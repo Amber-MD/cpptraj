@@ -5,7 +5,10 @@
 # Clean
 CleanFiles rms.in rmsd1.dat rmsd2.dat ref.nc rmsd.mass.dat dme.dat trp.dat nofit.dat
 
-CheckNetcdf
+CheckNetcdf "2D RMS tests"
+if [ $? -ne 0 ] ; then
+  SkipTest "2D RMS tests"
+fi
 TOP="../tz2.parm7"
 CRD="../tz2.nc"
 INPUT="rms.in"
@@ -18,7 +21,6 @@ trajin $CRD 1 10
 EOF
 RunCpptraj "2D RMSD Test."
 DoTest rmsd.dat.save rmsd2.dat
-CheckTest
 
 # Test 2 - 2drms, mass-weighted
 cat > rms.in <<EOF
@@ -28,11 +30,13 @@ trajin $CRD 1 10
 EOF
 RunCpptraj "2D RMSD Test, mass-weighted."
 DoTest rmsd.mass.dat.save rmsd.mass.dat
-CheckTest
 
 # Test 3 - 2drms to reference traj
-CheckPnetcdf
-if [[ $? -eq 0 ]] ; then
+TESTNAME='2D RMSD Test with reference trajectory'
+CheckPnetcdf "$TESTNAME"
+if [ $? -ne 0 ] ; then
+  SkipCheck "$TESTNAME"
+else
   cat > rms.in <<EOF
 trajin $CRD 1 10
 trajout ref.nc netcdf
@@ -41,7 +45,7 @@ run
 2drms crdset crd1 :3-7 rmsout rmsd1.dat reftraj ref.nc
 runanalysis
 EOF
-  RunCpptraj "2D RMSD Test with reference trajectory."
+  RunCpptraj "$TESTNAME"
   DoTest rmsd.dat.save rmsd1.dat
 fi
 
@@ -52,7 +56,6 @@ trajin $CRD 1 10
 EOF
 RunCpptraj "2D DME Test."
 DoTest dme.dat.save dme.dat
-CheckTest
 
 # Test 5 - Reference Mask
 cat > rms.in <<EOF
