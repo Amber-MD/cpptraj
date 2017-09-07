@@ -5,7 +5,7 @@
 CleanFiles modes.in fluct.dat displ.dat corr.dat modestest.2.crd eigenval.dat rmsip.dat
 
 INPUT='modes.in'
-CheckMathlib
+CheckMathlib "Modes Analysis"
 if [ $? -ne 0 ] ; then
   SkipTest "Modes Analysis"
 fi

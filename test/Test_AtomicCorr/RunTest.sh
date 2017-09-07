@@ -3,16 +3,19 @@
 . ../MasterTest.sh
 
 CleanFiles corr.in acorr.gnu
-CheckNetcdf
+TESTNAME='Atomic Correlation test'
+CheckNetcdf "$TESTNAME"
+if [ $? -ne 0 ] ; then
+  SkipTest "$TESTNAME"
+fi
 INPUT="-i corr.in"
 cat > corr.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
 atomiccorr out acorr.gnu
 EOF
-RunCpptraj "Atomic Correlation test."
+RunCpptraj "$TESTNAME"
 DoTest acorr.gnu.save acorr.gnu
-CheckTest
 EndTest
 
 exit 0
