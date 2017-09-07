@@ -842,13 +842,14 @@ SetBinaries() {
 # Should not be called if CLEAN==1, CleanFiles should always be called first.
 
 SetDescription() {
-    if [ ! -z "$1" ] ; then
-      DESCRIP=$1
-    else # sanity check
-      DESCRIP='This test'
-      #echo "INTERNAL ERROR: Set test description!"
-      #exit 1
-    fi
+  if [ ! -z "$1" ] ; then
+    DESCRIP=$1
+  else # sanity check
+    DESCRIP='This test'
+    #echo "INTERNAL ERROR: Set test description!"
+    #exit 1
+  fi
+  echo ""
 }
 
 # SkipTest() <description>
@@ -877,7 +878,8 @@ SkipCheck() {
 CheckZlib() {
   if [ -z "$CPPTRAJ_ZLIB" ] ; then
     SetDescription "$1"
-    echo "$DESCRIP requires zlib. Cpptraj was compiled without zlib support."
+    echo "  $DESCRIP requires zlib."
+    echo "  Cpptraj was compiled without zlib support."
     return 1 
   fi
   return 0
@@ -886,7 +888,8 @@ CheckZlib() {
 CheckBzlib() {
   if [ -z "$CPPTRAJ_BZLIB" ] ; then
     SetDescription "$1"
-    echo "$DESCRIP requires bzlib. Cpptraj was compiled without bzlib support."
+    echo "  $DESCRIP requires bzlib."
+    echo "  Cpptraj was compiled without bzlib support."
     return 1
   fi
   return 0
@@ -895,7 +898,8 @@ CheckBzlib() {
 CheckNetcdf() {
   if [ -z "$CPPTRAJ_NETCDFLIB" ] ; then
     SetDescription "$1"
-    echo "$DESCRIP requires NetCDF. Cpptraj was compiled without NetCDF support."
+    echo "  $DESCRIP requires NetCDF."
+    echo "  Cpptraj was compiled without NetCDF support."
     return 1
   fi
   return 0
@@ -903,37 +907,29 @@ CheckNetcdf() {
 
 CheckMathlib() {
   if [ ! -z "$CPPTRAJ_NOMATHLIB" ] ; then
-    echo "This test requires LAPACK/ARPACK/BLAS routines."
-    echo "Cpptraj was compiled with -DNO_MATHLIB. Skipping test."
-    exit 0
+    SetDescription "$1"
+    echo "  $DESCRIP requires LAPACK/ARPACK/BLAS routines."
+    echo "  Cpptraj was compiled with -DNO_MATHLIB."
+    return 1
   fi
+  return 0
 }
 
 CheckSanderlib() {
   if [ -z "$CPPTRAJ_SANDERLIB" ] ; then
-    if [ ! -z "$1" ] ; then
-      DESCRIP=$1
-    else
-      DESCRIP="This test"
-    fi
-    echo "$DESCRIP requires compilation with the Sander API from AmberTools."
-    echo "Skipping test."
+    SetDescription "$1"
+    echo "  $DESCRIP requires compilation with the Sander API from AmberTools."
     return 1
   fi
   return 0
 }
 
 CheckPnetcdf() {
-  if [ ! -z "$DO_PARALLEL" ] ; then
-    DESCRIP="This test"
-    if [ ! -z "$1" ] ; then
-      DESCRIP="Test '$1'"
-    fi
-    if [ -z "$CPPTRAJ_PNETCDFLIB" ] ; then
-      echo "$DESCRIP requires compilation with parallel NetCDF."
-      echo "Cpptraj was compiled without parallel NetCDF support. Skipping test."
-      return 1
-    fi
+  if [ ! -z "$DO_PARALLEL" -a -z "$CPPTRAJ_PNETCDFLIB" ] ; then
+    SetDescription "$1"
+    echo "  $DESCRIP requires compilation with parallel NetCDF."
+    echo "  Cpptraj was compiled without parallel NetCDF support."
+    return 1
   fi
   return 0
 }
