@@ -241,6 +241,39 @@ GetResultsFiles() {
 }
 
 # ------------------------------------------------------------------------------
+ParseValgrindOut() {
+  awk 'BEGIN{
+    n_vg_err = 0;
+    n_vg_allocs = 0;
+    n_vg_frees = 0;
+    n_vg_allocated = 0;
+    n_vg_leaks = 0;
+    currentTest = "";
+    ntests = 0;
+  }{
+    if ($1 != currentTest) {
+      ntests++;
+      currentTest = $1;
+    }
+    if ($2 == "total" && $3 == "heap") {
+      n_vg_allocs += $5;
+      n_vg_frees += $7;
+      n_vg_allocated += $9;
+    } else if ($2 == "ERROR" && $3 == "SUMMARY:") {
+      n_vg_err += $4;
+    } else if ($2 == "LEAK" && $3 == "SUMMARY:") {
+      n_vg_leaks++;
+    }
+  }END{
+    printf("Valgrind summary for %i program executions:\n", ntests);
+    printf("    %i errors.\n", n_vg_err);
+    printf("    %i allocs, %i frees, %i bytes allocated.\n",
+           n_vg_allocs, n_vg_frees, n_vg_allocated);
+    printf("    %i memory leaks.\n", n_vg_leaks);
+  }' $1
+}
+
+# ------------------------------------------------------------------------------
 # Summary()
 #  Print a summary of results in all CPPTRAJ_TEST_RESULTS files. Optionally
 #  print an error summary and/or valgrind summary.
