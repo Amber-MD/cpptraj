@@ -9,9 +9,9 @@ INPUT="-i ptraj.in"
 GmxTrrRead() {
   MaxThreads 2 "TRR force/velocity read/write"
   if [ "$?" -eq 0 ] ; then
-    if [ -z "$NETCDFLIB" ] ; then
+    if [ -z "$CPPTRAJ_NETCDFLIB" ] ; then
       echo "TRR force/velocity read/write test requires NetCDF, skipping."
-    elif [ ! -z "$DO_PARALLEL" -a -z "$PNETCDFLIB" ] ; then
+    elif [ ! -z "$DO_PARALLEL" -a -z "$CPPTRAJ_PNETCDFLIB" ] ; then
       echo "TRR force/velocity read/write test requires parallel NetCDF, skipping."
     else
       cat > ptraj.in <<EOF

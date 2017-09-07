@@ -4,7 +4,7 @@
 
 CleanFiles ptraj.in cpptraj.nc mop.xtc temp.crd total?.out
 
-if [ ! -z "$NO_XDRFILE" ] ; then
+if [ ! -z "$CPPTRAJ_NO_XDRFILE" ] ; then
   echo ""
   echo "Cpptraj was compiled without XDR file support. Skipping XTC tests."
   echo ""
@@ -16,10 +16,10 @@ INPUT="-i ptraj.in"
 
 GmxXtcRead() {
   MaxThreads 2 "XTC read/write"
-  if [ "$?" -eq 0 ] ; then
-    if [ -z "$NETCDFLIB" ] ; then
+  if [ $? -eq 0 ] ; then
+    if [ -z "$CPPTRAJ_NETCDFLIB" ] ; then
       echo "XTC read/write test requires NetCDF, skipping."
-    elif [ ! -z "$DO_PARALLEL" -a -z "$PNETCDFLIB" ] ; then
+    elif [ ! -z "$DO_PARALLEL" -a -z "$CPPTRAJ_PNETCDFLIB" ] ; then
       echo "XTC read/write test requires parallel NetCDF, skipping."
     else
       cat > ptraj.in <<EOF
@@ -35,7 +35,7 @@ EOF
 
 GmxXtcWrite() {
   NotParallel "XTC write test"
-  if [ "$?" -eq 0 ] ; then
+  if [ $? -eq 0 ] ; then
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd
@@ -56,7 +56,7 @@ EOF
 # Gromacs XTC append
 GmxXtcAppend() {
   NotParallel "GMX XTC append"
-  if [ "$?" -eq 0 ] ; then
+  if [ $? -eq 0 ] ; then
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd 1 5
@@ -83,7 +83,7 @@ EOF
 GmxXtcOffset() {
   #MaxThreads 5 "GMX XTC offset test"
   NotParallel "GMX XTC offset test"
-  if [ "$?" -eq 0 ] ; then
+  if [ $? -eq 0 ] ; then
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin temp.crd.save 2 10 2

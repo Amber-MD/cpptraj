@@ -525,6 +525,7 @@ COMPLETETESTS=test.general \
               test.density \
               test.lipidorder \
               test.pairdist \
+              test.readdata \
               test.gist \
               test.ambpdb \
               test.systemVF \

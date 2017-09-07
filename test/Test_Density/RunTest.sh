@@ -38,7 +38,7 @@ EOF
 fi
 
 # Total system density test
-if [ ! -z "$NETCDFLIB" ] ; then
+if [ ! -z "$CPPTRAJ_NETCDFLIB" ] ; then
   cat > $in <<EOF
 parm ../tz2.truncoct.parm7 [OCT]
 trajin ../tz2.truncoct.nc parm [OCT]

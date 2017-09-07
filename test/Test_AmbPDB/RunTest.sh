@@ -24,7 +24,7 @@ else
   $VALGRIND $AMBPDB -p ../tz2.parm7 < ../tz2.rst7 > out1.pdb 2>> $CPPTRAJ_ERROR
   DoTest out.pdb.save out1.pdb
 
-  if [ ! -z "$NETCDFLIB" ] ; then
+  if [ ! -z "$CPPTRAJ_NETCDFLIB" ] ; then
     $VALGRIND $AMBPDB -p ../FtuFabI.NAD.TCL.parm7 -c ../FtuFabI.NAD.TCL.nc -bres > fabi.pdb 2>> $CPPTRAJ_ERROR
     DoTest fabi.pdb.save fabi.pdb
   fi
