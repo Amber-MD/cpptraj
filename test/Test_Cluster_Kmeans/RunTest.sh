@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles kmeans.in ptraj.txt ptraj.c? summary.dat info.dat cpptraj.crd.c? random.dat rinfo.dat random.crd.c?
-CheckNetcdf
+RequiresNetcdf "Cluster k-means tests"
 TOP=../tz2.parm7
 INPUT="kmeans.in"
 
