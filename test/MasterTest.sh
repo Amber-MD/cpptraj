@@ -224,11 +224,20 @@ NcTest() {
 #   Consolidate files with name <base>. If <mode> is 'single' assume one file in
 #   the current directory, otherwise assume files are in subdirectories.
 GetResultsFiles() {
+  if [ ! -z "$TEST_DIRS" ] ; then
+    RESULTSFILES=''
+    for DIR in $TEST_DIRS ; do
+      if [ -f "$DIR/$2" ] ; then
+        RESULTSFILES="$RESULTSFILES $DIR/$2"
+      fi
+    done
+  else
     if [ "$1" = 'single' ] ; then
       RESULTSFILES=`ls $2 2> /dev/null`
     else
       RESULTSFILES=`ls */$2 2> /dev/null`
     fi
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -379,6 +388,10 @@ EndTest() {
       fi
     fi
   fi
+  if [ $SUMMARY -ne 0 ] ; then
+    # NOTE: SUMMARY should only be set here if single test.
+    Summary
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -480,16 +493,16 @@ Help() {
   if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     echo "  <test dir 1> [<test dir 2> ...]"
   fi
-  echo "  summary         : Print summary of tests that have already been run only."
-  echo "  showerrors      : (summary only) Print all test errors to STDOUT after summary."
-  echo "  stdout          : Print CPPTRAJ test output to STDOUT."
   echo "  mpi             : Use MPI version of CPPTRAJ (automatically used if DO_PARALLEL set)."
   echo "  openmp          : Use OpenMP version of CPPTRAJ."
   echo "  cuda            : Use CUDA version of CPPTRAJ."
+  echo "  time            : Time the test with 'time'."
+  echo "  stdout          : Print CPPTRAJ test output to STDOUT."
   echo "  vg              : Run test with 'valgrind' memcheck."
   echo "  vgh             : Run test with 'valgrind' helgrind."
-  echo "  time            : Time the test with 'time'."
-  echo "  clean           : Clean test output."
+  echo "  clean           : Do not run test; clean test output."
+  echo "  summary         : Print summary of tests run."
+  echo "  showerrors      : (summary only) Print all test errors to STDOUT after summary."
   echo "  -nodacdif       : Do not use dacdif for test comparisons (AmberTools only)."
   echo "  -d              : Run CPPTRAJ with global debug level 4."
   echo "  -debug <#>      : Run CPPTRAJ with global debug level #."
@@ -555,11 +568,6 @@ CmdLineOpts() {
     esac
     shift
   done
-  # If summary requested just do that and exit.
-  if [ $SUMMARY -ne 0 ] ; then
-    Summary
-    exit 0
-  fi
   if [ $CPPTRAJ_PROFILE -eq 1 ] ; then
     Required "gprof"
   fi
@@ -886,7 +894,17 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     for DIR in $TEST_DIRS ; do
       cd $CPPTRAJ_TEST_ROOT/$DIR && ./RunTest.sh
     done
+    if [ $SUMMARY -ne 0 ] ; then
+      cd $CPPTRAJ_TEST_ROOT
+      Summary
+    fi
   else
+    # Probably executed via make.
+    # If summary requested just do that and exit.
+     if [ $SUMMARY -ne 0 ] ; then
+      Summary
+      exit 0
+    fi
     # Need a Makefile.
     if [ ! -f 'Makefile' ] ; then
       echo "Error: test Makefile not found." > /dev/stderr
