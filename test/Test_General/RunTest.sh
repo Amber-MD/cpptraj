@@ -17,7 +17,6 @@ CheckNetcdf "General tests"
 
 if [ $ERR -ne 0 ] ; then
   SkipTest "$TESTNAME"
-  exit 0
 fi
 
 CheckZlib

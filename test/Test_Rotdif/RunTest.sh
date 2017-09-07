@@ -3,8 +3,15 @@
 . ../MasterTest.sh
 
 CleanFiles rotdif.in rvecs.dat matrices.dat deffs.dat rotdif.out
-CheckNetcdf
-CheckPtrajAnalyze
+TESTNAME='Rotational diffusion calculation test'
+ERR=0
+CheckNetcdf "$TESTNAME"
+((ERR = ERR + $?))
+CheckMathlib
+((ERR = ERR + $?))
+if [ $ERR -ne 0 ] ; then
+  SkipTest "$TESTNAME"
+fi
 
 INPUT="-i rotdif.in"
 cat > rotdif.in <<EOF

@@ -5,7 +5,11 @@
 CleanFiles matrix.in mtest.dat.save mtest.*.dat dihcovar.dat modes.dihcovar.dat \
            dih.project.dat dih.project.agr dihedrals.dat
 
-CheckPtrajAnalyze
+TESTNAME='Dihedral Covariance Matrix Test'
+CheckMathlib "$TESTNAME" 
+if [ $? -ne 0 ] ; then
+  SkipTest "$TESTNAME"
+fi
 
 INPUT="-i matrix.in"
 if [[ -z $DO_PARALLEL ]] ; then
