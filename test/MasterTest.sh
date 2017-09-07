@@ -931,8 +931,8 @@ NotParallel() {
  return 0
 }
 
-# RequiresThreads() <# threads> <Test title>
-RequiresThreads() {
+# CheckNthreads() <# threads> <Test title>
+CheckNthreads() {
   if [ ! -z "$DO_PARALLEL" ] ; then
     SetNthreads
     if [ $? -ne 0 ] ; then

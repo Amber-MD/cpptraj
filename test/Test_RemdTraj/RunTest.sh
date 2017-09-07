@@ -43,7 +43,7 @@ RunCpptraj "NETCDF Replica Trajectory Run"
 DoTest d1.nc.dat.save d1.nc.dat
 
 # Remdout test
-RequiresThreads 4 "CRD Replica Trajectory Run with remdout"
+CheckNthreads 4 "CRD Replica Trajectory Run with remdout"
 if [[ $? -eq 0 ]] ; then
   # Create trajectories at all temperatures.
   for T in 300.00 384.30 492.20 630.50 ; do
