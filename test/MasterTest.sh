@@ -811,7 +811,7 @@ CheckPnetcdf() {
 # M A I N
 # ==============================================================================
 #echo "DEBUG: Begin MasterTest.sh. $*"
-echo "DEBUG: CPPTRAJ_TEST_MODE: $CPPTRAJ_TEST_MODE"
+#echo "DEBUG: CPPTRAJ_TEST_MODE: $CPPTRAJ_TEST_MODE"
 if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
@@ -890,7 +890,7 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
   # tests.
   #echo "DEBUG: Executing multiple tests."
   if [ ! -z "$TEST_DIRS" ] ; then
-    echo "DEBUG: Running tests in specified directories."
+    #echo "DEBUG: Running tests in specified directories."
     for DIR in $TEST_DIRS ; do
       cd $CPPTRAJ_TEST_ROOT/$DIR && ./RunTest.sh
     done
@@ -940,6 +940,15 @@ else
   fi
   if [ -f 'valgrind.out' ] ; then
     $CPPTRAJ_RM valgrind.out
+  fi
+  if [ -f 'test.out' ] ; then
+    $CPPTRAJ_RM test.out
+  fi
+  THREADFILES=`ls Thread.* 2> /dev/null`
+  if [ ! -z "$THREADFILES" ] ; then
+    for FILE in $THREADFILES ; do
+      $CPPTRAJ_RM $FILE
+    done
   fi
   if [ "$CPPTRAJ_TEST_CLEAN" -eq 0 ] ; then
     TEST_WORKDIR=`pwd`

@@ -623,13 +623,6 @@ test.vg:
 
 clean:
 	@echo "Cleaning all test directories:"
-	(find . -name 'test.out' -o -name 'valgrind.out' -o -name 'Thread.*' \
-        -o -name 'Test_Results.dat' -o -name 'Test_Error.dat' | \
-        while read dif ;\
-        do \
-            rm -f $$dif ;\
-        done ;\
-        )
 	$(MAKE) test.complete test.libcpptraj OPT=clean
 
 cleanprofile:
