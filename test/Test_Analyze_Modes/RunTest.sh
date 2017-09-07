@@ -4,21 +4,29 @@
 
 CleanFiles modes.in fluct.dat displ.dat corr.dat modestest.2.crd eigenval.dat rmsip.dat
 
-INPUT="modes.in"
-CheckPtrajAnalyze
-CheckNetcdf
+INPUT='modes.in'
+CheckMathlib
+if [ $? -ne 0 ] ; then
+  SkipTest "Modes Analysis"
+fi
 
 # Test modes fluct and mwcovar matrix generation
 TestFluct() {
-  TOP=../tz2.parm7
-  cat > modes.in <<EOF
+  TESTNAME='Modes analysis, RMS fluctuations'
+  CheckNetcdf "$TESTNAME"
+  if [ $? -ne 0 ] ; then
+    SkipCheck "$TESTNAME"
+  else
+    TOP=../tz2.parm7
+    cat > modes.in <<EOF
 trajin ../tz2.nc
 matrix mwcovar name tz2 @CA
 diagmatrix tz2 name tz2modes vecs 20
 modes fluct name tz2modes out fluct.dat setname Fluct prec 10.3
 EOF
-  RunCpptraj "Modes analysis, RMS fluctuations"
-  DoTest fluct.dat.save fluct.dat
+    RunCpptraj "$TESTNAME"
+    DoTest fluct.dat.save fluct.dat
+  fi
 }
 
 # Test modes displ and modes file read
@@ -36,15 +44,21 @@ EOF
 
 # Test modes corr and mwcovar matrix generation
 TestCorr() {
-  TOP=../tz2.parm7
-  cat > modes.in <<EOF
+  TESTNAME='Modes analysis, dipole correlation'
+  CheckNetcdf "$TESTNAME"
+  if [ $? -ne 0 ] ; then
+    SkipCheck "$TESTNAME"
+  else
+    TOP=../tz2.parm7
+    cat > modes.in <<EOF
 trajin ../tz2.nc
 matrix mwcovar name tz2
 analyze matrix tz2 name tz2modes vecs 20
 analyze modes corr name tz2modes out corr.dat mask1 :2-13@N mask2 :2-13@H
 EOF
-  RunCpptraj "Modes analysis, dipole correlation"
-  DoTest corr.dat.save corr.dat
+    RunCpptraj "$TESTNAME"
+    DoTest corr.dat.save corr.dat
+  fi
 }
 
 # Test modes trajout

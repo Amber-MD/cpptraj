@@ -57,10 +57,12 @@ SFX=""                   # CPPTRAJ binary suffix
 TARGET=""                # Make target if multiple tests being run
 STANDALONE=1             # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 TEST_DIRS=''             # Specific test directories to run.
+TEST_SKIPPED=0           # If 1 this test has been skipped via SkipTest.
 # ----- Variables local to single test ---------------------
 TEST_WORKDIR=''          # Test working directory
 NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
 ERRCOUNT=0               # Total number of errors detected by DoTest this test.
+SKIPCOUNT=0              # Total number of times SkipCheck called by this test.
 WARNCOUNT=0              # Total number of warnings detected by DoTest this test.
 PROGCOUNT=0              # Total number of times RunCpptraj has been called this test.
 PROGERROR=0              # Total number of program errors this test
@@ -434,8 +436,8 @@ RunCpptraj() {
 #   every test script.
 EndTest() {
   #echo "DEBUG: EndTest"
-  # Report only when not using dacdif 
-  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+  # Report only when not using dacdif and test not skipped.
+  if [ -z "$CPPTRAJ_DACDIF" -a $TEST_SKIPPED -eq 0 ] ; then
     echo ""
     if [ $PROGERROR -gt 0 ] ; then
       echo "  $PROGERROR out of $PROGCOUNT executions exited with an error."
@@ -450,6 +452,10 @@ EndTest() {
     else 
       echo "All $NUMCOMPARISONS comparisons passed." 
       OUT  "All $NUMCOMPARISONS comparisons passed."
+    fi
+    if [ $SKIPCOUNT -gt 0 ] ; then
+      echo "$SKIPCOUNT comparisons skipped."
+      OUT  "$SKIPCOUNT comparisons skipped."
     fi
     echo ""
     if [ ! -z "$VALGRIND" ] ; then
@@ -832,30 +838,43 @@ SetDescription() {
 }
 
 # SkipTest() <description>
-#  Skip an entire test.
+#  Skip an entire test directory.
 SkipTest() {
   echo "  SKIP: $1"
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  SKIP: $1"
   fi
   echo ""
-  exit 0
+  TEST_SKIPPED=1
+  EndTest
+}
+
+# SkipCheck() <description>
+#  Skip an individual test.
+SkipCheck() {
+  echo "  Skipped test: $1"
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    OUT "  Skipped test: $1"
+  fi
+  ((SKIPCOUNT++))
 }
 
 CheckZlib() {
   if [ -z "$CPPTRAJ_ZLIB" ] ; then
-    echo "This test requires zlib. Cpptraj was compiled without zlib support."
-    echo "Skipping test."
-    exit 0
+    SetDescription "$1"
+    echo "$DESCRIP requires zlib. Cpptraj was compiled without zlib support."
+    return 1 
   fi
+  return 0
 }
 
 CheckBzlib() {
   if [ -z "$CPPTRAJ_BZLIB" ] ; then
-    echo "This test requires bzlib. Cpptraj was compiled without bzlib support."
-    echo "Skipping test."
-    exit 0
+    SetDescription "$1"
+    echo "$DESCRIP requires bzlib. Cpptraj was compiled without bzlib support."
+    return 1
   fi
+  return 0
 }
 
 CheckNetcdf() {
@@ -867,7 +886,7 @@ CheckNetcdf() {
   return 0
 }
 
-CheckPtrajAnalyze() {
+CheckMathlib() {
   if [ ! -z "$CPPTRAJ_NOMATHLIB" ] ; then
     echo "This test requires LAPACK/ARPACK/BLAS routines."
     echo "Cpptraj was compiled with -DNO_MATHLIB. Skipping test."
