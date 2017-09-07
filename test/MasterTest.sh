@@ -56,6 +56,7 @@ SHOWERRORS=0             # If 1, print test errors to STDOUT after summary.
 SFX=""                   # CPPTRAJ binary suffix
 TARGET=""                # Make target if multiple tests being run
 STANDALONE=1             # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
+TEST_DIRS=''             # Specific test directories to run.
 # ----- Variables local to single test ---------------------
 TEST_WORKDIR=''          # Test working directory
 NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
@@ -476,7 +477,7 @@ MaxThreads() {
 # Help(): Print help
 Help() {
   echo "Command line flags"
-  echo "  summary         : Print summary of test results only."
+  echo "  summary         : Print summary of tests that have already been run only."
   echo "  showerrors      : (summary only) Print all test errors to STDOUT after summary."
   echo "  stdout          : Print CPPTRAJ test output to STDOUT."
   echo "  mpi             : Use MPI version of CPPTRAJ (automatically used if DO_PARALLEL set)."
@@ -502,8 +503,8 @@ Help() {
 
 #-------------------------------------------------------------------------------
 # CmdLineOpts()
-#   Process test script command line options. Only executed if CPPTRAJ_TEST_SETUP
-#   is not already set.
+#   Process test script command line options. Only executed if
+#   CPPTRAJ_TEST_SETUP is not already set.
 CmdLineOpts() {
   CPPTRAJ_TEST_CLEAN=0 # Will be exported
   SFX_OMP=0
@@ -530,7 +531,15 @@ CmdLineOpts() {
       "--target"  ) shift ; TARGET=$1 ;;
 #     "-profile"  ) PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
-      *           ) echo "Error: Unknown opt: $1" > /dev/stderr ; exit 1 ;;
+      *           )
+        if [ -d "$1" -a -f "$1/RunTest.sh" ] ; then
+          # Assume this is a test we want to run.
+          TEST_DIRS="$TEST_DIRS $1"
+        else
+          echo "Error: Unknown opt: $1" > /dev/stderr
+          exit 1
+        fi
+        ;;
     esac
     shift
   done
@@ -854,21 +863,28 @@ fi # END initial setup
 # Determine mode of execution: individual test or multiple tests.
 if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
   # Executed from CpptrajTest.sh. Assume we are executing multiple
-  # tests. Need a Makefile.
-  if [ ! -f 'Makefile' ] ; then
-    echo "Error: test Makefile not found." > /dev/stderr
-    exit 1
-  fi
+  # tests.
   #echo "DEBUG: Executing multiple tests."
-  # Running multiple tests, execute now.
-  Required "make"
-  if [ -z "$TARGET" ] ; then
-    echo "Error: '--target' not specified." > /dev/stderr
-    exit 1
-  fi
-  make $TARGET # FIXME should be test.all or something
-  if [ $? -ne 0 ] ; then
-    exit 1
+  if [ ! -z "$TEST_DIRS" ] ; then
+    echo "DEBUG: Running tests in specified directories."
+    for DIR in $TEST_DIRS ; do
+      cd $CPPTRAJ_TEST_ROOT/$DIR && ./RunTest.sh
+    done
+  else
+    # Need a Makefile.
+    if [ ! -f 'Makefile' ] ; then
+      echo "Error: test Makefile not found." > /dev/stderr
+      exit 1
+    fi
+    Required "make"
+    if [ -z "$TARGET" ] ; then
+      echo "Error: '--target' not specified." > /dev/stderr
+      exit 1
+    fi
+    make $TARGET
+    if [ $? -ne 0 ] ; then
+      exit 1
+    fi
   fi
 else
   # Assume we are only executing a single test.
