@@ -3,10 +3,14 @@
 . ../MasterTest.sh
 
 CleanFiles hist.in hist.gnu hist.agr freeE.gnu norm.gnu hist.dx 3D.dat
-CheckNetcdf
 INPUT="-i hist.in"
+
 # 1D and 2D histogram tests
-cat > hist.in <<EOF
+CheckNetcdf "Histogram Analysis test"
+if [ $? -ne 0 ] ; then
+  SkipCheck "Histogram Analysis test"
+else
+  cat > hist.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
 
@@ -21,11 +25,12 @@ hist name D1hist d1,9,26,0.5 out hist.agr
 hist phi6 psi6 min -180 max 180 bins 72 out freeE.gnu free 300.0
 hist phi6 psi6 min -180 max 180 bins 72 out norm.gnu norm 
 EOF
-RunCpptraj "Histogram Analysis Test"
-DoTest hist.gnu.save hist.gnu
-DoTest hist.agr.save hist.agr
-DoTest freeE.gnu.save freeE.gnu
-DoTest norm.gnu.save norm.gnu
+  RunCpptraj "Histogram Analysis Test"
+  DoTest hist.gnu.save hist.gnu
+  DoTest hist.agr.save hist.agr
+  DoTest freeE.gnu.save freeE.gnu
+  DoTest norm.gnu.save norm.gnu
+fi
 
 # 3D histogram test
 cat > 3D.dat <<EOF

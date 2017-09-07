@@ -10,7 +10,6 @@ CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat \
            bridgeintermol.dat avgbridgeintermol.dat noacut.dat
 
 INPUT="-i hbond.in"
-CheckNetcdf
 
 # Solute-solute, series output, lifetime analysis
 TestUU() {
@@ -52,7 +51,9 @@ EOF
 # Imaged hbond test
 TestImage() {
   MaxThreads 1 "Hbond with imaging"
-  if [ "$?" -eq 0 ] ; then
+  if [ $? -ne 0 ] ; then
+    SkipCheck "Hbond with imaging"
+  else
     cat > hbond.in <<EOF
 parm strip.4lztSc_nowat.parm7
 trajin strip.4lztSc.rst7
@@ -105,7 +106,9 @@ EOF
 
 BridgeIntermol() {
   MaxThreads 2 "Hbond, Bridge nointramol test."
-  if [ "$?" -eq 0 ] ; then
+  if [ $? -ne 0 ] ; then
+    SkipCheck "Hbond, Bridge nointramol test."
+  else
     cat > hbond.in <<EOF
 parm ../dna30.parm7
 trajin ../Test_AutoImage/split.duplex.nc
@@ -118,13 +121,18 @@ EOF
   fi
 }
 
-TestUU
-TestUV
+CheckNetcdf "Hbond tests"
+if [ $? -ne 0 ] ; then
+  SkipCheck "Hbond tests"
+else
+  TestUU
+  TestUV
+  TestNointramol
+  SpecifiedSoluteMask
+  NoAngleCut
+  BridgeIntermol
+fi
 TestImage
-TestNointramol
-SpecifiedSoluteMask
-NoAngleCut
-BridgeIntermol
 EndTest
 
 exit 0

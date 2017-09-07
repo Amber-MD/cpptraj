@@ -45,7 +45,9 @@ EOF
 # Gromacs TRR append
 GmxTrrAppend() {
   NotParallel "GMX TRR append"
-  if [ "$?" -eq 0 ] ; then
+  if [ $? -ne 0 ] ; then
+    SkipCheck "GMX TRR append"
+  else
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd 1 5
@@ -71,7 +73,9 @@ EOF
 # Gromacs TRR with offsets
 GmxOffset() {
   MaxThreads 5 "GMX offset test"
-  if [ "$?" -eq 0 ] ; then
+  if [ $? -ne 0 ] ; then
+    SkipCheck "GMX offset test"
+  else
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd 2 10 2

@@ -6,12 +6,12 @@ CleanFiles ptraj.in cpptraj.nc mop.xtc temp.crd total?.out
 
 TESTNAME='XTC tests'
 RequiresXdr "$TESTNAME"
+RequiresMaxThreads 2 "$TESTNAME"
 
 INPUT="-i ptraj.in"
 
 GmxXtcRead() {
   TESTNAME='XTC read/write test'
-  MaxThreads 2 "$TESTNAME"
   CheckNetcdf "$TESTNAME"
   CheckPnetcdf "$TESTNAME"
   if [ $CHECKERR -ne 0 ] ; then
@@ -29,7 +29,9 @@ EOF
 
 GmxXtcWrite() {
   NotParallel "XTC write test"
-  if [ $? -eq 0 ] ; then
+  if [ $? -ne 0 ] ; then
+    SkipCheck "XTC write test"
+  else
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd
@@ -50,7 +52,9 @@ EOF
 # Gromacs XTC append
 GmxXtcAppend() {
   NotParallel "GMX XTC append"
-  if [ $? -eq 0 ] ; then
+  if [ $? -ne 0 ] ; then
+    SkipCheck "GMX XTC append"
+  else
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd 1 5
@@ -77,7 +81,9 @@ EOF
 GmxXtcOffset() {
   #MaxThreads 5 "GMX XTC offset test"
   NotParallel "GMX XTC offset test"
-  if [ $? -eq 0 ] ; then
+  if [ $? -ne 0 ] ; then
+    SkipCheck "GMX XTC offset test"
+  else
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin temp.crd.save 2 10 2

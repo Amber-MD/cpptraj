@@ -4,11 +4,7 @@
 
 CleanFiles gist.in gist-*.dx gistout.dat
 
-NotParallel "GIST tetrahedral water cluster test."
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
-fi
+RequiresNotParallel "GIST tetrahedral water cluster test."
 
 INPUT="-i gist.in"
 

@@ -6,7 +6,7 @@
 CleanFiles image.in ortho.dat nonortho.dat image.crd image2.crd image3.crd image4.crd
 
 INPUT="-i image.in"
-CheckNetcdf
+RequiresNetcdf "Imaging tests"
 # Test 1 - orthorhombic imaged distance
 cat > image.in <<EOF
 noprogress
@@ -31,8 +31,10 @@ EOF
 RunCpptraj "Non-orthorhombic imaged distance test."
 DoTest nonortho.dat.save nonortho.dat
 
-MaxThreads 2 "Coordinate imaging tests."
-if [[ $? -eq 0 ]] ; then
+MaxThreads 2 "Coordinate imaging tests"
+if [ $? -ne 0 ] ; then
+  SkipCheck "Coordinate imaging tests"
+else
   # Test 3 - Orthorhombic coordinate imaging 
   cat > image.in <<EOF
 noprogress

@@ -4,12 +4,8 @@
 
 CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat \
            Gist1-*.dx Gist1-*.dat Gist2-*.dx Gist2-*.dat
-CheckNetcdf
-NotParallel "GIST test."
-if [ "$?" -ne 0 ] ; then
-  EndTest
-  exit 0
-fi
+RequiresNetcdf "GIST test"
+RequiresNotParallel "GIST test"
 
 INPUT="-i gist.in"
 
