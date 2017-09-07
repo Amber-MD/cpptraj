@@ -905,6 +905,16 @@ CheckNetcdf() {
   return 0
 }
 
+CheckXdr() {
+  if [ ! -z "$CPPTRAJ_NO_XDRFILE" ] ; then
+    SetDescription "$1"
+    echo "  $DESCRIP requires XDR file support."
+    echo "  Cpptraj was compiled without XDR file support."
+    return 1
+  fi
+  return 0
+}
+
 CheckMathlib() {
   if [ ! -z "$CPPTRAJ_NOMATHLIB" ] ; then
     SetDescription "$1"
