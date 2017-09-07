@@ -267,22 +267,24 @@ ParseValgrindOut() {
     }
   }
   {
-    if ($1 != currentTest) {
-      ntests++;
-      currentTest = $1;
-      vg_id[ntests] = currentTest;
-    }
-    if ($2 == "total" && $3 == "heap") {
-      gsub(/,/,"");
-      n_vg_allocs[ntests] += $5;
-      n_vg_frees[ntests] += $7;
-      n_vg_allocated[ntests] += $9;
-    } else if ($2 == "ERROR" && $3 == "SUMMARY:") {
-      gsub(/,/,"");
-      n_vg_err[ntests] += $4;
-    } else if ($2 == "LEAK" && $3 == "SUMMARY:") {
-      gsub(/,/,"");
-      n_vg_leaks[ntests]++;
+    if (index($1,"==") != 0) {
+      if ($1 != currentTest) {
+        ntests++;
+        currentTest = $1;
+        vg_id[ntests] = currentTest;
+      }
+      if ($2 == "total" && $3 == "heap") {
+        gsub(/,/,"");
+        n_vg_allocs[ntests] += $5;
+        n_vg_frees[ntests] += $7;
+        n_vg_allocated[ntests] += $9;
+      } else if ($2 == "ERROR" && $3 == "SUMMARY:") {
+        gsub(/,/,"");
+        n_vg_err[ntests] += $4;
+      } else if ($2 == "LEAK" && $3 == "SUMMARY:") {
+        gsub(/,/,"");
+        n_vg_leaks[ntests]++;
+      }
     }
   }END{
     WriteOut("/dev/stdout");
