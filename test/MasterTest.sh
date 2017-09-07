@@ -820,6 +820,28 @@ SetBinaries() {
 # these to make sure cpptraj was compiled with that library - exit gracefully
 # if not.
 # Should not be called if CLEAN==1, CleanFiles should always be called first.
+
+SetDescription() {
+    if [ ! -z "$1" ] ; then
+      DESCRIP=$1
+    else # sanity check
+      DESCRIP='This test'
+      #echo "INTERNAL ERROR: Set test description!"
+      #exit 1
+    fi
+}
+
+# SkipTest() <description>
+#  Skip an entire test.
+SkipTest() {
+  echo "  SKIP: $1"
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    OUT "  SKIP: $1"
+  fi
+  echo ""
+  exit 0
+}
+
 CheckZlib() {
   if [ -z "$CPPTRAJ_ZLIB" ] ; then
     echo "This test requires zlib. Cpptraj was compiled without zlib support."
@@ -838,10 +860,11 @@ CheckBzlib() {
 
 CheckNetcdf() {
   if [ -z "$CPPTRAJ_NETCDFLIB" ] ; then
-    echo "This test requires NetCDF. Cpptraj was compiled without NetCDF support."
-    echo "Skipping test."
-    exit 0
+    SetDescription "$1"
+    echo "$DESCRIP requires NetCDF. Cpptraj was compiled without NetCDF support."
+    return 1
   fi
+  return 0
 }
 
 CheckPtrajAnalyze() {

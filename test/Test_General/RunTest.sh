@@ -7,13 +7,18 @@ CleanFiles general.in distance.dat rmsd.dat rmsda.dat phi2.dat PhiPsi.dat \
            test.crd a1.dat Restart/* Restart test.nc r4.dat a2.dat.gz \
            a3.dat.bz2 r2.dat r3-nofit.dat
 
-NotParallel "General tests"
-if [ $? -eq 1 ] ; then
-  EndTest
-  exit 0
-fi
+TESTNAME='General tests'
+ERR=0
+NotParallel "$TESTNAME"
+((ERR = ERR + $?))
 # Check libraries
-CheckNetcdf
+CheckNetcdf "General tests"
+((ERR = ERR + $?))
+
+if [ $ERR -ne 0 ] ; then
+  SkipTest "$TESTNAME"
+fi
+
 CheckZlib
 CheckBzlib
 
