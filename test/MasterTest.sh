@@ -477,6 +477,9 @@ MaxThreads() {
 # Help(): Print help
 Help() {
   echo "Command line flags"
+  if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
+    echo "  <test dir 1> [<test dir 2> ...]"
+  fi
   echo "  summary         : Print summary of tests that have already been run only."
   echo "  showerrors      : (summary only) Print all test errors to STDOUT after summary."
   echo "  stdout          : Print CPPTRAJ test output to STDOUT."
@@ -883,7 +886,8 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     fi
     Required "make"
     if [ -z "$TARGET" ] ; then
-      echo "Error: '--target' not specified." > /dev/stderr
+      # If no target specified, probably not executed via make.
+      echo "Error: No test directories specified." > /dev/stderr
       exit 1
     fi
     make $TARGET
