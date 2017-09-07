@@ -7,9 +7,16 @@ CleanFiles atommap.in initial.mol2 atommap.dat reordered.pdb reordered.mol2 \
            fit.mol2 rmsd.dat map.chm_to_amb.dat mapped.pdb.? rmsout.dat \
            map.byres.chm_to_amb.dat
 
+MaxThreads 3 "Atom map tests"
+if [ $? -ne 0 ] ; then
+  SkipTest "Atom map tests"
+fi
+
 INPUT="-i atommap.in"
 MaxThreads 1 "AtomMap Test"
-if [ "$?" -eq 0 ] ; then
+if [ $? -ne 0 ] ; then
+  SkipCheck "AtomMap Test"
+else
   # Test 1
   cat > atommap.in <<EOF
 noprogress
@@ -41,7 +48,9 @@ fi
 
 # Test 2
 MaxThreads 2 "AtomMap with 'rmsfit'"
-if [ "$?" -eq 0 ] ; then
+if [ $? -ne 0 ] ; then
+  SkipCheck "AtomMap Test with 'rmsfit'"
+else
   cat > atommap.in <<EOF
 parm xtallig.mol2
 reference xtallig.mol2
@@ -59,7 +68,9 @@ fi
 
 # Test 3
 MaxThreads 3 "Atom map charmm->amber atom order"
-if [ "$?" -eq 0 ] ; then
+if [ $? -ne 0 ] ; then
+  SkipCheck "Atom map charmm->amber atom order"
+else
   cat > atommap.in <<EOF
 parm cg-amb.topo
 reference cg-amb.crds

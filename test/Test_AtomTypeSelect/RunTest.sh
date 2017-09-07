@@ -4,7 +4,8 @@
 
 # Clean
 CleanFiles temp.in rmsd.dat
-CheckNetcdf
+TESTNAME='Selection by atom type test'
+RequiresNetcdf "$TESTNAME"
 # Test
 cat > temp.in <<EOF
 noprogress
@@ -15,7 +16,6 @@ INPUT="temp.in"
 TOP="../tz2.parm7"
 RunCpptraj "Selection by atom type test."
 DoTest rmsd.dat.save rmsd.dat
-CheckTest
 
 EndTest
 

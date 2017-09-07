@@ -5,10 +5,7 @@
 # Clean
 CleanFiles rms.in rmsd1.dat rmsd2.dat ref.nc rmsd.mass.dat dme.dat trp.dat nofit.dat
 
-CheckNetcdf "2D RMS tests"
-if [ $? -ne 0 ] ; then
-  SkipTest "2D RMS tests"
-fi
+RequiresNetcdf "2D RMS tests"
 TOP="../tz2.parm7"
 CRD="../tz2.nc"
 INPUT="rms.in"

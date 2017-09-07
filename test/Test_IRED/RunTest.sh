@@ -7,10 +7,7 @@ CleanFiles orderparam ired.vec noe v0.cjt v0.cmt ired.in v0 plateau.norm.dat cjt
            matrix_ds2.dat
 
 TESTNAME="IRED vector/matrix test"
-CheckMathlib "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipTest "$TESTNAME"
-fi
+RequiresMathlib "$TESTNAME"
 
 TOP="1IEE_A_prot.prmtop"
 INPUT="ired.in"

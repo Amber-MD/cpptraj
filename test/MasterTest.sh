@@ -855,6 +855,13 @@ CheckNetcdf() {
   return 0
 }
 
+RequiresNetcdf() {
+  CheckNetcdf "$1"
+  if [ $? -ne 0 ] ; then
+    SkipTest "$DESCRIP"
+  fi
+}
+
 CheckXdr() {
   if [ ! -z "$CPPTRAJ_NO_XDRFILE" ] ; then
     SetDescription "$1"
@@ -866,6 +873,13 @@ CheckXdr() {
   return 0
 }
 
+RequiresXdr() {
+  CheckXdr "$1"
+  if [ $? -ne 0 ] ; then
+    SkipTest "$DESCRIP"
+  fi
+}
+
 CheckMathlib() {
   if [ ! -z "$CPPTRAJ_NOMATHLIB" ] ; then
     SetDescription "$1"
@@ -875,6 +889,13 @@ CheckMathlib() {
     return 1
   fi
   return 0
+}
+
+RequiresMathlib() {
+  CheckMathlib "$1"
+  if [ $? -ne 0 ] ; then
+    SkipTest "$DESCRIP"
+  fi
 }
 
 CheckSanderlib() {

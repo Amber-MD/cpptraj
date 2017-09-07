@@ -5,10 +5,7 @@
 CleanFiles ptraj.in cpptraj.nc mop.xtc temp.crd total?.out
 
 TESTNAME='XTC tests'
-CheckXdr "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipTest "$TESTNAME"
-fi
+RequiresXdr "$TESTNAME"
 
 INPUT="-i ptraj.in"
 

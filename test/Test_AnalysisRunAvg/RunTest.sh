@@ -4,10 +4,7 @@
 
 CleanFiles runavg.in running_avg.dat cumulative_avg.dat distances.dat
 TESTNAME='Analysis Running Average'
-CheckNetcdf "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipTest "$TESTNAME"
-fi
+RequiresNetcdf "$TESTNAME"
 INPUT="runavg.in"
 TOP="../tz2.parm7"
 cat > $INPUT <<EOF

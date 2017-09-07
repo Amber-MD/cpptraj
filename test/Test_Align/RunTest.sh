@@ -5,10 +5,7 @@
 # Clean
 CleanFiles rms.in rmsd.dat rmsd.mass.dat rmsd.reftraj.dat
 
-CheckNetcdf "Align tests"
-if [ $? -ne 0 ] ; then
-  SkipTest "Align tests"
-fi
+RequiresNetcdf "Align tests"
 TOP="../tz2.truncoct.parm7"
 INPUT="rms.in"
 
