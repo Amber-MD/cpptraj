@@ -861,6 +861,7 @@ SkipTest() {
   echo ""
   TEST_SKIPPED=1
   EndTest
+  exit 0
 }
 
 # SkipCheck() <description>
