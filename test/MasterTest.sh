@@ -104,7 +104,8 @@ OutBoth() {
 
 # FIXME This is a stub and should be removed
 CheckTest() {
-  CHECKTEST=1
+  echo "ERROR: CHECKTEST DISABLED!" > /dev/stderr
+  exit 1
 }
 
 # ------------------------------------------------------------------------------
