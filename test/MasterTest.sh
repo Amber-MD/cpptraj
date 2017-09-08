@@ -58,6 +58,7 @@ TARGET=""                # Make target if multiple tests being run
 STANDALONE=1             # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 TEST_DIRS=''             # Specific test directories to run.
 TEST_SKIPPED=0           # If 1 this test has been skipped via SkipTest.
+EXIT_ON_ERROR=1          # If 1 exit when a specified test fails.
 # ----- Variables local to single test ---------------------
 TEST_WORKDIR=''          # Test working directory
 NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
@@ -1074,6 +1075,9 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     #echo "DEBUG: Running tests in specified directories."
     for DIR in $TEST_DIRS ; do
       cd $CPPTRAJ_TEST_ROOT/$DIR && ./RunTest.sh
+      if [ $EXIT_ON_ERROR -ne 0 -a $? -ne 0 ] ; then
+        break
+      fi
     done
     if [ $SUMMARY -ne 0 ] ; then
       cd $CPPTRAJ_TEST_ROOT
