@@ -1063,9 +1063,9 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     export CPPTRAJ_DIFF
     # Determine binary locations
     SetBinaries
-    # If CPPTRAJ_TEST_OS is not set, assume linux. FIXME needed?
+    # If CPPTRAJ_TEST_OS is not set, try to determine. 
     if [ -z "$CPPTRAJ_TEST_OS" ] ; then
-      export CPPTRAJ_TEST_OS='linux'
+      export CPPTRAJ_TEST_OS=`uname -s | awk '{print $1}'`
     fi
     if [ ! -z "$DIFFOPTS" ] ; then
       echo "Warning: DIFFOPTS is set to '$DIFFOPTS'"
