@@ -4,6 +4,9 @@
 
 CleanFiles wavelet.in wavelet.gnu cluster.gnu cluster.dat
 
+TESTNAME='Wavelet analysis tests'
+Requires netcdf
+
 INPUT="-i wavelet.in"
 
 cat > wavelet.in <<EOF

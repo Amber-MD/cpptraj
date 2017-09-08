@@ -5,7 +5,9 @@
 CleanFiles corr.in v1.auto.dat v1v2.cross.dat v1.dplr.auto.dat \
            v1v2.dplr.cross.dat tz2.2.3.cross.dat \
            v1.o0.auto.dat v1.o1.auto.dat
-CheckNetcdf
+
+TESTNAME='Timecorr test'
+Requires netcdf
 INPUT="corr.in"
 TOP=../tz2.parm7
 

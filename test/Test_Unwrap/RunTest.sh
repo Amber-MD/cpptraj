@@ -3,12 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in unwrap.crd unwrap.ortho.crd
-CheckNetcdf
-NotParallel "Unwrap tests."
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
-fi
+TESTNAME='Unwrap tests'
+Requires netcdf notparallel
 
 INPUT="ptraj.in"
 TOP="../tz2.truncoct.parm7"
