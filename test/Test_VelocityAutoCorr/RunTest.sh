@@ -5,7 +5,7 @@
 CleanFiles vac.in VAC.agr VAC2.dat diff.dat
 
 TESTNAME='Velocity autocorrelation test'
-Requires netcdf maxthreads 10
+Requires netcdf maxthreads 5
 
 INPUT='-i vac.in'
 
