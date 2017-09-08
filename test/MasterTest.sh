@@ -886,6 +886,18 @@ CheckEnv() {
           fi
         fi
         ;;
+      'amberhome' )
+        if [ -z "$AMBERHOME" ] ; then
+          echo "  $DESCRIP requires AMBERHOME to be set."
+          ((CHECKERR++))
+        fi
+        ;;
+      'ambpdb' )
+        if [ ! -f "$AMBPDB" ] ; then
+          echo "  $DESCRIP requires AMBPDB."
+          ((CHECKERR++))
+        fi
+        ;;
       * ) echo "Error: Unknown CheckEnv() option: $1" > /dev/stderr ; exit 1 ;;
     esac
     shift
