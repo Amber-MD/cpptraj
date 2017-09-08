@@ -4,11 +4,8 @@
 
 CleanFiles ptraj.in contacts.dat byres.dat byres.dat.native
 TESTNAME='Contacts test'
-CheckNetcdf "$TESTNAME"
-NotParallel "$TESTNAME"
-if [ $CHECKERR -ne 0 ] ; then
-  SkipTest "$TESTNAME"
-fi
+Requires netcdf notparallel
+
 TOP="../tz2.truncoct.parm7"
 INPUT="ptraj.in"
 cat > ptraj.in <<EOF

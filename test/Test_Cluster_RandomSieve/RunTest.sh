@@ -4,7 +4,8 @@
 
 CleanFiles cluster.in random.out random.info.dat random.summary.dat \
            random.crd.c? random.cpop.agr random.rep.*.pdb CpptrajPairDist
-RequiresNetcdf "Cluster tests with random sieves"
+TESTNAME='Cluster tests with random sieves'
+Requires netcdf
 PREFIX="random"
 INPUT="-i cluster.in"
 

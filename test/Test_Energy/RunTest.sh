@@ -6,14 +6,15 @@ CleanFiles ene.in ene.agr
 
 INPUT="-i ene.in"
 
-RequiresNetcdf "Simple Energy test"
+TESTNAME='Simple energy test'
+Requires netcdf
 
 cat > ene.in <<EOF
 parm ../DPDP.parm7
 trajin ../DPDP.nc
 energy DPDP out ene.agr
 EOF
-RunCpptraj "Simple Energy test"
+RunCpptraj "$TESTNAME"
 DoTest ene.agr.save ene.agr
 
 EndTest

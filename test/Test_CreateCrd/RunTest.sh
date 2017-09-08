@@ -5,7 +5,8 @@
 CleanFiles create.in crd?.dat crd?.gnu crd?.rst7 crd.rst7
 
 INPUT="-i create.in"
-RequiresNetcdf "COORDS creation tests"
+TESTNAME='COORDS creation tests'
+Requires netcdf
 # Test COORDS creation and processing
 cat > create.in <<EOF
 parm ../tz2.parm7
@@ -20,8 +21,9 @@ RunCpptraj "COORDS data set creation and CRDFLUCT test."
 DoTest crd1.dat.save crd1.dat
  
 # Test velocities
-MaxThreads 1 "COORDS data set creation with velocities test."
-if [[ $? -eq 0 ]] ; then
+UNITNAME='COORDS data set creation with velocities test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
   cat > create.in <<EOF
 #parm trpzip2.ff10.mbondi.parm7
 #trajin tz2.220.rst7
@@ -33,7 +35,7 @@ createcrd crd1
 run
 crdout crd1 crd.rst7 title " " nobox time0 50961
 EOF
-  RunCpptraj "COORDS data set creation with velocities test."
+  RunCpptraj "$UNITNAME"
   DoTest crd0.rst7 crd.rst7
   DoTest crd1.rst7.save crd1.rst7
 fi

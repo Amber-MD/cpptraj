@@ -4,8 +4,8 @@
 
 CleanFiles cpptraj.in Final.PRY.mol2 combinedCrd.crd combinedParm.parm7 \
            E?.dat FabI.NDP.TCS.parm7
-
-RequiresNotParallel "Combine COORDS tests"
+TESTNAME='Combine COORDS tests'
+Requires notparallel
 
 INPUT="-i cpptraj.in"
 # Combine Tyr FF14SB backbone + CB with PRY fragment
@@ -31,11 +31,9 @@ EOF
 RunCpptraj "Combine COORDS test."
 DoTest Final.PRY.mol2.save Final.PRY.mol2
 
-TESTNAME='Combine COORDS with box info, split/combine COORDS tests'
-CheckNetcdf "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipCheck "$TESTNAME"
-else
+UNITNAME='Combine COORDS with box info, split/combine COORDS tests'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
   # Combine triclosan from FtuFabI + NAD + TCS with trpzip2
   cat > cpptraj.in <<EOF
 parm ../FtuFabI.NAD.TCL.parm7

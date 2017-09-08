@@ -9,11 +9,9 @@ TOP="../tz2.truncoct.parm7"
 INPUT="prec.in"
 
 # Test 1
-TESTNAME='Data file output precision test'
-CheckNetcdf "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipCheck "$TESTNAME"
-else
+UNITNAME='Data file output precision test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
   cat > prec.in <<EOF
 noprogress
 trajin ../tz2.truncoct.nc

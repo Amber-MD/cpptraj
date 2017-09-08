@@ -11,7 +11,8 @@ out4=electron_density.dat
 CleanFiles $in $out1 $out2 $out3 $out4 total.dat
 
 INPUT="-i $in"
-NotParallel "Density test."
+TESTNAME='Density test'
+Requires notparallel
 
 if [ $? -eq 0 ] ; then
   del='delta 0.25'
@@ -38,11 +39,9 @@ EOF
 fi
 
 # Total system density test
-TESTNAME="Total system density test"
-CheckNetcdf "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipCheck "$TESTNAME"
-else
+UNITNAME='Total system density test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
   cat > $in <<EOF
 parm ../tz2.truncoct.parm7 [OCT]
 trajin ../tz2.truncoct.nc parm [OCT]
@@ -57,7 +56,7 @@ go
 
 writedata total.dat D1 D2
 EOF
-  RunCpptraj "Total system density test"
+  RunCpptraj "$UNITNAME"
   DoTest total.dat.save total.dat
 fi
 

@@ -11,10 +11,9 @@ INPUT="-i cpptraj.in"
 TOP="../DPDP.parm7"
 
 # Test 1
-CheckNetcdf "DSSP tests"
-if [ $? -ne 0 ] ; then
-  SkipCheck "DSSP tests"
-else
+UNITNAME='DSSP basic tests'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
   cat > cpptraj.in <<EOF
 noprogress
 trajin ../DPDP.nc 
@@ -37,11 +36,9 @@ EOF
   DoTest dssp.dat.sum.save dssp.dat.sum
 
   # Test 3
-  TITLE="Secstruct (DSSP) command with changing number of residues."
-  NotParallel "$TITLE"
-  if [ $? -ne 0 ] ; then
-    SkipCheck "$TITLE"
-  else
+  UNITNAME="Secstruct (DSSP) command with changing number of residues."
+  CheckFor notparallel
+  if [ $? -eq 0 ] ; then
     cat > cpptraj.in <<EOF
 noprogress
 parm ../tz2.nhe.parm7
@@ -49,18 +46,16 @@ trajin ../tz2.nhe.nc parmindex 1
 trajin ../DPDP.nc
 secstruct out dssp2.gnu sumout dssp2.sum.agr nostring
 EOF
-    RunCpptraj "$TITLE"
+    RunCpptraj "$UNITNAME"
     DoTest dssp2.gnu.save dssp2.gnu
     DoTest dssp2.sum.agr.save dssp2.sum.agr
   fi
 fi # END if netcdf
 
 # Test 4
-TESTNAME='Secstruct (DSSP): SS assign output test'
-MaxThreads 1 "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipCheck "$TESTNAME"
-else
+UNITNAME='Secstruct (DSSP): SS assign output test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
   TOP=""
   cat > cpptraj.in <<EOF
 parm test.4.pdb

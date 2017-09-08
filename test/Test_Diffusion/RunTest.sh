@@ -6,7 +6,8 @@ INPUT="diffusion.in"
 
 CleanFiles $INPUT diff_?.xmgr diff.dat diff.1.dat diff.2.dat diff.3.dat nw.dat \
            WAT_O.agr DC.dat Nonortho.agr Nonortho.dat noimage.agr noimage.dat
-RequiresNetcdf "Diffusion tests"
+TESTNAME='Diffusion tests'
+Requires netcdf
 
 # Basic ptraj diffusion test
 # creates <prefix>_X.xmgr, X = {a,r,x,y,z}
@@ -94,18 +95,16 @@ EOF
 }
 
 Test_diffusion_noImage
-MaxThreads 1 "Imaged diffusion tests"
-if [ $? -ne 0 ] ; then
-  SkipCheck "Imaged diffusion tests"
-else
+UNITNAME='Imaged diffusion tests'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
   Test_diffusion_oldSyntax
   Test_diffusion_newSyntax
   Test_diffusion_nonOrtho
 fi
-NotParallel "STFC diffusion tests."
-if [ $? -ne 0 ] ; then
-  SkipCheck "STFC diffusion tests."
-else
+UNITNAME='STFC diffusion tests'
+CheckFor notparallel
+if [ $? -eq 0 ] ; then
   Test_stfc_diffusion
 fi
 

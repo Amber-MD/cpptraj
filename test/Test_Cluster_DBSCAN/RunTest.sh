@@ -5,7 +5,8 @@
 CleanFiles dbscan.in summary.dat info.dat rvc.dat sievesummary.dat.? \
   sieveinfo.dat.? Kdist.dat Kdist.4.dat rms2d.gnu Kmatrix.gnu Kmatrix.max.dat
 INPUT="-i dbscan.in"
-RequiresNetcdf "Cluster DBSCAN tests"
+TESTNAME='Cluster DBSCAN tests'
+Requires netcdf
 # Test clustering
 cat > dbscan.in <<EOF
 parm ../tz2.parm7

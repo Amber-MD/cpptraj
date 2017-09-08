@@ -6,21 +6,28 @@ CleanFiles ene.in ene.dat ene1.dat long.dat strip.dat directsum.0 ewald.dat \
            ew_tz2.dat ew_tz2_10.dat tz2_ortho.dat directsum.0 run9.dat
 
 INPUT="-i ene.in"
-
-RequiresMaxThreads 10 "Ewald tests"
+TESTNAME='Ewald tests'
+Requires maxthreads 10
 
 Direct() {
+  UNITNAME='Direct sum test'
+  CheckFor maxthreads 1
+  if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 noprogress
 parm nacl.box.parm7
 trajin nacl.box.rst7
 energy out directsum.0 etype directsum npoints 10 
 EOF
-    RunCpptraj "Direct sum test"
+    RunCpptraj "$UNITNAME"
     DoTest directsum.0.save directsum.0
+  fi
 }
 
 NaCl() {
+  UNITNAME='Ewald test (NaCl crystal)'
+  CheckFor maxthreads 1
+  if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 noprogress
 parm nacl.box.parm7
@@ -28,47 +35,45 @@ trajin nacl.box.rst7
 energy out ewald.dat etype ewald cut 5.6 dsumtol 0.0000001 \
                                  rsumtol 0.0000001 skinnb 0.01
 EOF
-    RunCpptraj "Ewald test (NaCl crystal)"
+    RunCpptraj "$UNITNAME"
     DoTest ewald.dat.save ewald.dat
+  fi
 }
 
 Trpzip() {
-  CheckNetcdf "Ewald test (trunc. oct)"
-  if [ $? -ne 0 ] ; then
-    SkipCheck "Ewald test (trunc. oct)"
-  else
+  UNITNAME='Ewald test (trunc. oct)'
+  CheckFor netcdf maxthreads 1
+  if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
 energy out ew_tz2.dat etype ewald skinnb 0.01
 EOF
-    RunCpptraj "Ewald test (trunc. oct)"
+    RunCpptraj "$UNITNAME"
     DoTest ew_tz2.dat.save ew_tz2.dat
   fi
 }
 
 Tz2_10() {
-  CheckNetcdf "Ewald test (trunc. oct), 10 frames"
-  if [ $? -ne 0 ] ; then
-    SkipCheck "Ewald test (trunc. oct), 10 frames"
-  else
+  UNITNAME='Ewald test (trunc. oct), 10 frames'
+  CheckFor netcdf
+  if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 energy out ew_tz2_10.dat etype ewald skinnb 0.01
 EOF
-    RunCpptraj "Ewald test (trunc. oct), 10 frames"
+    RunCpptraj "$UNITNAME"
     DoTest ew_tz2_10.dat.save ew_tz2_10.dat
   fi
 }
 
 Ortho() {
-  CheckNetcdf "Ewald test (ortho), 10 frames"
-  if [ $? -ne 0 ] ; then
-    SkipCheck "Ewald test (ortho), 10 frames"
-  else
+  UNITNAME='Ewald test (ortho), 10 frames'
+  CheckFor netcdf
+  if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 noprogress
 parm ../tz2.ortho.parm7
@@ -80,14 +85,9 @@ EOF
   fi
 }
 
-MaxThreads 1 "Ewald tests (direct sum, NaCl)"
-if [ $? -ne 0 ] ; then
-  SkipCheck "Ewald tests (direct sum, NaCl)"
-else
-  Direct
-  NaCl
-  Trpzip
-fi
+Direct
+NaCl
+Trpzip
 Tz2_10
 Ortho
 

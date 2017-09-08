@@ -8,13 +8,12 @@ CleanFiles closest.in first.Closest.pdb.1 closestmols.dat \
            closest10.center2_4.crd closest10.mols.dat
 
 INPUT="-i closest.in"
-RequiresNetcdf "Closest tests"
+TESTNAME='Closest tests'
+Requires netcdf
 
-TESTNAME='Closest command tests using first/all solvent atoms'
-MaxThreads 1 "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipCheck "$TESTNAME"
-else
+UNITNAME='Closest command tests using first/all solvent atoms'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
   # Test 1 - Closest, first solvent atom only
   cat > closest.in <<EOF
 noprogress

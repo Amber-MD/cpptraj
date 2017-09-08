@@ -6,7 +6,8 @@ CleanFiles cluster.in CpptrajPairDist *.rmsd.dat *.summary.dat *.info.dat \
            *.half.dat *.nc.c? *.pdb *.agr *.out *.sil.*.dat
 
 INPUT="-i cluster.in"
-RequiresNetcdf "Cluster with sieve tests"
+TESTNAME='Cluster with sieve tests'
+Requires netcdf
 Cluster() {
   PREFIX=$1
   SIEVEARG=$2
