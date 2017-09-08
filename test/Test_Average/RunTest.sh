@@ -4,8 +4,8 @@
 
 # Clean
 CleanFiles average.in test.pdb test2.pdb
-
-RequiresNetcdf "Average test."
+TESTNAME='Average test'
+Requires netcdf
 TOP="../tz2.parm7"
 
 # Test 1

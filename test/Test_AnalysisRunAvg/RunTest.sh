@@ -4,7 +4,7 @@
 
 CleanFiles runavg.in running_avg.dat cumulative_avg.dat distances.dat
 TESTNAME='Analysis Running Average'
-RequiresNetcdf "$TESTNAME"
+Requires netcdf
 INPUT="runavg.in"
 TOP="../tz2.parm7"
 cat > $INPUT <<EOF

@@ -20,11 +20,9 @@ else
   $VALGRIND $AMBPDB -p ../tz2.parm7 < ../tz2.rst7 > out1.pdb 2>> $CPPTRAJ_ERROR
   DoTest out.pdb.save out1.pdb
 
-  TESTNAME='Convert NetCDF to PDB with ambpdb'
-  CheckNetcdf "$TESTNAME"
-  if [ $? -ne 0 ] ; then
-    SkipCheck "$TESTNAME"
-  else
+  UNITNAME='Convert NetCDF to PDB with ambpdb'
+  CheckFor netcdf
+  if [ $? -eq 0 ] ; then
     $VALGRIND $AMBPDB -p ../FtuFabI.NAD.TCL.parm7 -c ../FtuFabI.NAD.TCL.nc -bres > fabi.pdb 2>> $CPPTRAJ_ERROR
     DoTest fabi.pdb.save fabi.pdb
   fi

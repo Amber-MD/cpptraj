@@ -5,7 +5,8 @@
 # Clean
 CleanFiles rms.in rmsd1.dat rmsd2.dat ref.nc rmsd.mass.dat dme.dat trp.dat nofit.dat
 
-RequiresNetcdf "2D RMS tests"
+TESTNAME='2D RMSD tests'
+Requires netcdf
 TOP="../tz2.parm7"
 CRD="../tz2.nc"
 INPUT="rms.in"

@@ -5,7 +5,7 @@
 # Clean
 CleanFiles temp.in rmsd.dat
 TESTNAME='Selection by atom type test'
-RequiresNetcdf "$TESTNAME"
+Requires netcdf
 # Test
 cat > temp.in <<EOF
 noprogress

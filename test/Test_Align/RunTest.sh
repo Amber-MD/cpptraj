@@ -5,7 +5,8 @@
 # Clean
 CleanFiles rms.in rmsd.dat rmsd.mass.dat rmsd.reftraj.dat
 
-RequiresNetcdf "Align tests"
+TESTNAME='Align tests'
+Requires netcdf
 TOP="../tz2.truncoct.parm7"
 INPUT="rms.in"
 

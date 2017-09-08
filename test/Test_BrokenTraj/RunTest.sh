@@ -4,7 +4,8 @@
 
 # Clean
 CleanFiles goodrmsd.dat badrmsd.dat goodtraj.in brokentraj.in zip.gz zip.in ziprmsd.dat
-RequiresNotParallel "Broken Traj"
+TESTNAME='Broken trajectory tests'
+Requires notparallel
 
 # Test 1
 cat > goodtraj.in <<EOF
@@ -28,18 +29,21 @@ RunCpptraj "Broken Traj: Running broken trajectory."
 DoTest goodrmsd.dat badrmsd.dat
 
 # Test 3
-CheckZlib
-cp broken.tz2.crd zip
-gzip zip
-cat > zip.in <<EOF
+UNITNAME='Compressed broken trajectory test'
+CheckFor zlib
+if [ $? -eq 0 ] ; then
+  cp broken.tz2.crd zip
+  gzip zip
+  cat > zip.in <<EOF
 noprogress
 parm ../tz2.parm7
 trajin zip.gz
 rmsd :2-18@N,CA,C out ziprmsd.dat
 EOF
-INPUT="-i zip.in"
-RunCpptraj "Broken Traj: Running compressed broken trajectory."
-DoTest goodrmsd.dat ziprmsd.dat
+  INPUT="-i zip.in"
+  RunCpptraj "$UNITNAME"
+  DoTest goodrmsd.dat ziprmsd.dat
+fi
 
 EndTest
 

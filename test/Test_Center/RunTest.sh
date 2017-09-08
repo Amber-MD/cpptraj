@@ -6,8 +6,8 @@
 CleanFiles center.in centered.crd origin.centered.crd origin.mass.centered.crd \
            ref.centered.crd point.centered.crd
 # NOTE: Also tests strip functionality
-RequiresMaxThreads 2 "Center tests"
-RequiresNetcdf "Center tests"
+TESTNAME='Center tests'
+Requires netcdf maxthreads 2
 
 INPUT="-i center.in"
 # Box center

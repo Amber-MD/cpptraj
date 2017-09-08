@@ -4,7 +4,7 @@
 
 CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat
 TESTNAME='Atomic fluctuations tests' 
-RequiresNetcdf "$TESTNAME"
+Requires netcdf
 INPUT="atomic.in"
 TOP="../tz2.parm7"
 

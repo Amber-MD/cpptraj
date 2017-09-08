@@ -4,7 +4,7 @@
 
 CleanFiles ac.in ac.agr dist.agr vac.agr
 TESTNAME='AutoCorr test'
-RequiresNetcdf "$TESTNAME"
+Requires netcdf
 INPUT="-i ac.in"
 cat > ac.in <<EOF
 parm ../tz2.parm7

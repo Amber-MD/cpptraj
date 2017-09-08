@@ -6,12 +6,12 @@ CleanFiles check.in report.dat nprob.dat tz2.dat skip.dat around.dat
 
 INPUT="-i check.in"
 
-RequiresMaxThreads 10 "Structure check tests"
+TESTNAME='Structure check tests'
+Requires maxthreads 10
 
-MaxThreads 1 "Structure Check"
-if [ $? -ne 0 ] ; then
-  SkipCheck "Structure Check"
-else
+UNITNAME='Basic structure check'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
   # Test 1
   cat > check.in <<EOF
 parm ../tz2.parm7
@@ -22,11 +22,9 @@ EOF
   DoTest report.dat.save report.dat
   DoTest nprob.dat.save nprob.dat
   # Around test with skip
-  TESTNAME='Structure Check with Around and Skip'
-  CheckNetcdf "$TESTNAME"
-  if [ $? -ne 0 ] ; then
-    SkipCheck "$TESTNAME"
-  else
+  UNITNAME='Structure Check with Around and Skip'
+  CheckFor netcdf
+  if [ $? -eq 0 ] ; then
     cat > check.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
@@ -40,11 +38,9 @@ EOF
   fi
 fi
 
-TESTNAME='Structure check with PBC/around tests'
-CheckNetcdf "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipCheck "$TESTNAME"
-else
+UNITNAME='Structure check with PBC/around tests'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
   cat > check.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc

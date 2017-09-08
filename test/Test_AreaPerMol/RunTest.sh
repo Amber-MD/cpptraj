@@ -7,7 +7,7 @@ CleanFiles apm.in apm.dat box.dat areaxy.dat mask.dat mask2.dat \
 
 INPUT='-i apm.in'
 TESTNAME='Area per molecule test'
-RequiresMaxThreads 1 "$TESTNAME"
+Requires maxthreads 1
 cat > apm.in <<EOF
 parm ../DOPC.parm7
 trajin ../DOPC.rst7

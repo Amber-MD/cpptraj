@@ -4,8 +4,8 @@
 
 CleanFiles box.in addbox.rst7 addbox.rst7.? addbox.rst7.10 \
                   modX.rst7   modX.rst7.?   modX.rst7.10
-RequiresNetcdf "Box tests"
-RequiresMaxThreads 10 "Box tests"
+TESTNAME='Box tests'
+Requires netcdf maxthreads 10
 
 INPUT="-i box.in"
 cat > box.in <<EOF

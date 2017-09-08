@@ -5,11 +5,12 @@
 # Clean
 CleanFiles rmsavg.in rmsavg.dat tz2.ncrst
 
-RequiresNetcdf "Averaged reference coordinates tests"
+TESTNAME='Averaged reference coordinates tests'
+Requires netcdf
 TOP="../tz2.parm7"
 
 INPUT="rmsavg.in"
-if [[ -z $DO_PARALLEL ]] ; then
+if [ -z "$DO_PARALLEL" ] ; then
   cat > rmsavg.in <<EOF
 loadcrd ../tz2.nc name TZ2
 crdaction TZ2 average crdset Avg_TZ2
