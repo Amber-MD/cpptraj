@@ -67,8 +67,10 @@ SKIPCOUNT=0              # Total number of times SkipCheck called by this test.
 WARNCOUNT=0              # Total number of warnings detected by DoTest this test.
 PROGCOUNT=0              # Total number of times RunCpptraj has been called this test.
 PROGERROR=0              # Total number of program errors this test
-CHECKERR=0               # Total errors this test from CheckX routines.
-TESTNAME=''              # Current test name for CheckEnv routine.
+CHECKERR=0               # Total errors this test from CheckEnv routine.
+TESTNAME=''              # Current test name for Requires routine.
+UNITNAME=''              # Current unit name for CheckFor routine.
+DESCRIP=''               # Current test/unit name for CheckEnv routine.
 
 # ==============================================================================
 # TestHeader() <outfile>
@@ -792,17 +794,6 @@ SetBinaries() {
 # The RequiresX versions of the Routines will skip the entire test if the
 # check does not pass.
 
-SetDescription() {
-  if [ ! -z "$1" ] ; then
-    DESCRIP=$1
-  else # sanity check
-    DESCRIP='This test'
-    #echo "INTERNAL ERROR: Set test description!"
-    #exit 1
-  fi
-  echo ""
-}
-
 # SkipTest() <description>
 #  Skip an entire test directory.
 SkipTest() {
@@ -833,7 +824,7 @@ SkipCheck() {
 #   CheckDefines.
 TestLibrary() {
   if [ -z "$2" ] ; then
-    echo "  $TESTNAME requires $1."
+    echo "  $DESCRIP requires $1."
     echo "  Cpptraj was compiled without $1 support."
     ((CHECKERR++))
   fi
