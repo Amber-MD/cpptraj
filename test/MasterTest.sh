@@ -840,7 +840,7 @@ TestLibrary() {
 # Check for the given list of requirements. For each requirement not meant
 # increment CHECKERR by 1.
 CheckEnv() {
-  echo "DEBUG: CheckEnv() $*"
+  #echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
     echo "Warning: CheckEnv() called with TESTNAME/UNITNAME unset." > /dev/stderr
     exit 1
@@ -848,7 +848,7 @@ CheckEnv() {
   fi
   CHECKERR=0
   while [ ! -z "$1" ] ; do
-    echo "DEBUG: $DESCRIP: Checking requirement: $1"
+    #echo "DEBUG: $DESCRIP: Checking requirement: $1"
     case "$1" in
       'netcdf'    ) TestLibrary "NetCDF"             "$CPPTRAJ_NETCDFLIB" ;;
       'zlib'      ) TestLibrary "Zlib"               "$CPPTRAJ_ZLIB" ;;
@@ -1005,7 +1005,7 @@ RequiresMaxThreads() {
 #echo "DEBUG: Begin MasterTest.sh. $*"
 #echo "DEBUG: CPPTRAJ_TEST_MODE: $CPPTRAJ_TEST_MODE"
 if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
-  echo "DEBUG: Initial test setup."
+  #echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
   # Ensure required binaries are set up

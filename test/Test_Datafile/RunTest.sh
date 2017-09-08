@@ -18,7 +18,7 @@ trajin ../tz2.truncoct.nc
 rms R0 first :2-11 out prec.dat
 precision prec.dat * 8 3
 EOF
-  RunCpptraj "$TESTNAME"
+  RunCpptraj "$UNITNAME"
   DoTest prec.dat.save prec.dat
 fi
 

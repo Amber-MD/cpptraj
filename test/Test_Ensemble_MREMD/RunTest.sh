@@ -11,6 +11,7 @@ CleanFiles mremd.in Strip.sorted.crd.? rmsd.dat rmsd.dat.? all.rmsd.dat \
 INPUT="-i mremd.in"
 TESTNAME='M-REMD ensemble tests'
 Requires netcdf nthreads 8
+
 # Test M-REMD traj sorting
 TrajSort() {
   cat > mremd.in <<EOF
@@ -24,7 +25,6 @@ EOF
   for ((i=0; i < 8; i++)) ; do
     DoTest Strip.sorted.crd.$i.save Strip.sorted.crd.$i
   done
-  
 }
 
 # Test M-REMD traj sort, actions 
@@ -87,6 +87,11 @@ EOF
   fi
   DoTest Outtraj.crd.1.save Outtraj.crd.1
 }
+
+TrajSort
+ActionsTest
+OuttrajTest
+RunAvgTest
 
 EndTest
 exit 0
