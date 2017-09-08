@@ -823,7 +823,7 @@ SkipCheck() {
     OUT "  Skipped test: $1"
   fi
   ((SKIPCOUNT++))
-  # Reset check count
+  # Reset check count FIXME needed?
   CHECKERR=0
 }
 
@@ -839,6 +839,8 @@ TestLibrary() {
 }
 
 # CheckEnv() <list>
+# Check for the given list of requirements. For each requirement not meant
+# increment CHECKERR by 1.
 CheckEnv() {
   echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
@@ -892,6 +894,7 @@ CheckEnv() {
 }
 
 # Requires() <list>
+# If list of requirements is not met, skip entire test.
 Requires() {
   DESCRIP=$TESTNAME
   CheckEnv $*
@@ -912,174 +915,77 @@ CheckFor() {
   return 0
 }
 
+Disabled() {
+  echo "ERROR: FUNCTION DISABLED. FIX IT!" > /dev/stderr
+  exit 1
+}
 
 CheckZlib() {
-  if [ -z "$CPPTRAJ_ZLIB" ] ; then
-    SetDescription "$1"
-    echo "  $DESCRIP requires zlib."
-    echo "  Cpptraj was compiled without zlib support."
-    ((CHECKERR++))
-    return 1 
-  fi
-  return 0
+  Disabled
 }
 
 CheckBzlib() {
-  if [ -z "$CPPTRAJ_BZLIB" ] ; then
-    SetDescription "$1"
-    echo "  $DESCRIP requires bzlib."
-    echo "  Cpptraj was compiled without bzlib support."
-    ((CHECKERR++))
-    return 1
-  fi
-  return 0
+  Disabled
 }
 
 CheckNetcdf() {
-  if [ -z "$CPPTRAJ_NETCDFLIB" ] ; then
-    SetDescription "$1"
-    echo "  $DESCRIP requires NetCDF."
-    echo "  Cpptraj was compiled without NetCDF support."
-    ((CHECKERR++))
-    return 1
-  fi
-  return 0
+  Disabled
 }
 
 RequiresNetcdf() {
-  CheckNetcdf "$1"
-  if [ $? -ne 0 ] ; then
-    SkipTest "$DESCRIP"
-  fi
+  Disabled
 }
 
 CheckXdr() {
-  if [ ! -z "$CPPTRAJ_NO_XDRFILE" ] ; then
-    SetDescription "$1"
-    echo "  $DESCRIP requires XDR file support."
-    echo "  Cpptraj was compiled without XDR file support."
-    ((CHECKERR++))
-    return 1
-  fi
-  return 0
+  Disabled
 }
 
 RequiresXdr() {
-  CheckXdr "$1"
-  if [ $? -ne 0 ] ; then
-    SkipTest "$DESCRIP"
-  fi
+  Disabled
 }
 
 CheckMathlib() {
-  if [ ! -z "$CPPTRAJ_NOMATHLIB" ] ; then
-    SetDescription "$1"
-    echo "  $DESCRIP requires LAPACK/ARPACK/BLAS routines."
-    echo "  Cpptraj was compiled with -DNO_MATHLIB."
-    ((CHECKERR++))
-    return 1
-  fi
-  return 0
+  Disabled
 }
 
 RequiresMathlib() {
-  CheckMathlib "$1"
-  if [ $? -ne 0 ] ; then
-    SkipTest "$DESCRIP"
-  fi
+  Disabled
 }
 
 CheckSanderlib() {
-  if [ -z "$CPPTRAJ_SANDERLIB" ] ; then
-    SetDescription "$1"
-    echo "  $DESCRIP requires compilation with the Sander API from AmberTools."
-    ((CHECKERR++))
-    return 1
-  fi
-  return 0
+  Disabled
 }
 
 RequiresSanderlib() {
-  CheckSanderlib "$1"
-  if [ $? -ne 0 ] ; then
-    SkipTest "$DESCRIP"
-  fi
+  Disabled
 }
 
 CheckPnetcdf() {
-  if [ ! -z "$DO_PARALLEL" -a -z "$CPPTRAJ_PNETCDFLIB" ] ; then
-    SetDescription "$1"
-    echo "  $DESCRIP requires compilation with parallel NetCDF."
-    echo "  Cpptraj was compiled without parallel NetCDF support."
-    ((CHECKERR++))
-    return 1
-  fi
-  return 0
+  Disabled
 }
 
 # NotParallel() <Test title>
 #   Used to indicate a test should not be run in parallel.
 NotParallel() {
-  if [ ! -z "$DO_PARALLEL" ] ; then
-    SetDescription "$1"
-    echo "  $DESCRIP cannot be run in parallel."
-    ((CHECKERR++))
-    return 1
- fi
- return 0
+  Disabled
 }
 
 RequiresNotParallel() {
-  NotParallel "$1"
-  if [ $? -ne 0 ] ; then
-    SkipTest "$DESCRIP"
-  fi
+  Disabled
 }
 
 # CheckNthreads() <# threads> <Test title>
 CheckNthreads() {
-  if [ ! -z "$DO_PARALLEL" ] ; then
-    SetNthreads
-    if [ $? -ne 0 ] ; then
-      echo "Error: Program to find # threads not found ($CPPTRAJ_NPROC)" > /dev/stderr
-      echo "Error: Test requires $1 parallel threads. Attempting to run test anyway." > /dev/stderr
-      return 0
-    fi
-    REMAINDER=`echo "$N_THREADS % $1" | bc`
-    if [ -z "$REMAINDER" -o $REMAINDER -ne 0 ] ; then
-      SetDescription "$2"
-      echo "  $DESCRIP requires a multiple of $1 parallel threads."
-      ((CHECKERR++))
-      return 1
-    fi
-  fi
-  return 0
+  Disabled
 }
 
 # MaxThreads() <# threads> <Test title>
 MaxThreads() {
-  if [ ! -z "$DO_PARALLEL" ] ; then
-    SetNthreads
-    if [ $? -ne 0 ] ; then
-      echo "Error: Program to find # threads not found ($CPPTRAJ_NPROC)" > /dev/stderr
-      echo "Error: Test can only run with $1 or fewer threads. Attempting to run test anyway." > /dev/stderr
-      return 0
-    fi
-    if [ $N_THREADS -gt $1 ] ; then
-      SetDescription "$2"
-      echo "  $DESCRIP can only run with $1 or fewer parallel threads."
-      ((CHECKERR++))
-      return 1
-    fi
-  fi
-  return 0
+  Disabled
 }
 
 RequiresMaxThreads() {
-  MaxThreads "$1" "$2"
-  if [ $? -ne 0 ] ; then
-    SkipTest "$DESCRIP"
-  fi
+  Disabled
 }
 
 # ==============================================================================
