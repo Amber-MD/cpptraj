@@ -4,11 +4,12 @@
 
 CleanFiles vector.in vtest.dat.? v8.mol2 corr.v0.v8.dat avgcoord.out res5.out
 
-CheckNetcdf
-
 INPUT="-i vector.in"
 # Test Vector mask, principle xyz, dipole, box 
-cat > vector.in <<EOF
+UNITNAME='Basic vector tests'
+CheckFor netcdf maxthreads 10
+if [ $? -eq 0 ] ; then
+  cat > vector.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 vector v0 principal x @CA out vtest.dat.0 ptrajoutput
@@ -24,38 +25,43 @@ corr v0 v8 out corr.v0.v8.dat
 run
 writedata v8.mol2 vectraj v8 trajfmt mol2
 EOF
-RunCpptraj "Vector Tests"
-DoTest vtest.dat.0.save vtest.dat.0
-DoTest vtest.dat.1.save vtest.dat.1
-DoTest vtest.dat.2.save vtest.dat.2
-DoTest vtest.dat.3.save vtest.dat.3
-DoTest vtest.dat.4.save vtest.dat.4
-DoTest vtest.dat.5.save vtest.dat.5
-DoTest vtest.dat.6.save vtest.dat.6
-DoTest vtest.dat.7.save vtest.dat.7
-DoTest v8.mol2.save v8.mol2
+  RunCpptraj "$UNITNAME"
+  DoTest vtest.dat.0.save vtest.dat.0
+  DoTest vtest.dat.1.save vtest.dat.1
+  DoTest vtest.dat.2.save vtest.dat.2
+  DoTest vtest.dat.3.save vtest.dat.3
+  DoTest vtest.dat.4.save vtest.dat.4
+  DoTest vtest.dat.5.save vtest.dat.5
+  DoTest vtest.dat.6.save vtest.dat.6
+  DoTest vtest.dat.7.save vtest.dat.7
+  DoTest v8.mol2.save v8.mol2
+fi
 
 # Test vector center with magnitude
-cat > vector.in <<EOF
+UNITNAME='Test vector center with magnitude'
+CheckFor netcdf maxthreads 10
+if [ $? -eq 0 ] ; then
+  cat > vector.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc 1 10
 vector VC_A1 center @1 out avgcoord.out magnitude
 vector VC_R5 center :5 out res5.out magnitude
 EOF
-RunCpptraj "AvgCoord test."
-DoTest avgcoord.out.save avgcoord.out
-DoTest res5.out.save res5.out
+  RunCpptraj "$UNITNAME"
+  DoTest avgcoord.out.save avgcoord.out
+  DoTest res5.out.save res5.out
+fi
 
 # Test momentum vector.
-TESTNAME="Momentum vector test."
-MaxThreads 1 "$TESTNAME"
-if [ "$?" -eq 0 ] ; then
+UNITNAME="Momentum vector test."
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
   cat > vector.in <<EOF
 parm ../tz2.parm7
 trajin ../Test_SetVelocity/tz2.vel.rst7.save
 vector v9 momentum out vtest.dat.9
 EOF
-  RunCpptraj "$TESTNAME"
+  RunCpptraj "$UNITNAME"
   DoTest vtest.dat.9.save vtest.dat.9
 fi
 

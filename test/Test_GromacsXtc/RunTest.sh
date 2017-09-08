@@ -4,38 +4,29 @@
 
 CleanFiles ptraj.in cpptraj.nc mop.xtc temp.crd total?.out
 
-if [ ! -z "$NO_XDRFILE" ] ; then
-  echo ""
-  echo "Cpptraj was compiled without XDR file support. Skipping XTC tests."
-  echo ""
-  EndTest
-  exit 0
-fi
+TESTNAME='XTC tests'
+Requires xdr maxthreads 2
 
 INPUT="-i ptraj.in"
 
 GmxXtcRead() {
-  MaxThreads 2 "XTC read/write"
-  if [ "$?" -eq 0 ] ; then
-    if [ -z "$NETCDFLIB" ] ; then
-      echo "XTC read/write test requires NetCDF, skipping."
-    elif [ ! -z "$DO_PARALLEL" -a -z "$PNETCDFLIB" ] ; then
-      echo "XTC read/write test requires parallel NetCDF, skipping."
-    else
+  UNITNAME='XTC read test'
+  CheckFor netcdf pnetcdf
+  if [ $? -eq 0 ] ; then
       cat > ptraj.in <<EOF
 parm ../Test_GromacsTrr/nvt.protein.mol2
 trajin nvt.2frame.xtc
 trajout cpptraj.nc
 EOF
-      RunCpptraj "XTC read test"
+      RunCpptraj "$UNITNAME"
       NcTest cpptraj.nc.save cpptraj.nc
-    fi
   fi
 }
 
 GmxXtcWrite() {
-  NotParallel "XTC write test"
-  if [ "$?" -eq 0 ] ; then
+  UNITNAME='XTC write test'
+  CheckFor notparallel
+  if [ $? -eq 0 ] ; then
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd
@@ -55,8 +46,9 @@ EOF
 
 # Gromacs XTC append
 GmxXtcAppend() {
-  NotParallel "GMX XTC append"
-  if [ "$?" -eq 0 ] ; then
+  UNITNAME='GMX XTC append test'
+  CheckFor notparallel
+  if [ $? -eq 0 ] ; then
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd 1 5
@@ -81,9 +73,9 @@ EOF
 
 # Gromacs XTC with offsets
 GmxXtcOffset() {
-  #MaxThreads 5 "GMX XTC offset test"
-  NotParallel "GMX XTC offset test"
-  if [ "$?" -eq 0 ] ; then
+  UNITNAME='GMX XTC offset test'
+  CheckFor notparallel
+  if [ $? -eq 0 ] ; then
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin temp.crd.save 2 10 2

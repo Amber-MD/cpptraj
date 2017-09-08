@@ -4,15 +4,19 @@
 
 CleanFiles cif.in 1LE1.pdb temp?.crd
 
+TESTNAME='CIF tests'
+Requires maxthreads 6
+
 INPUT="-i cif.in"
-NotParallel "CIF read test."
-if [[ $? -eq 0 ]] ; then
+UNITNAME='CIF read test'
+CheckFor notparallel
+if [ $? -eq 0 ] ; then
   cat > cif.in <<EOF
 parm 1LE1.cif
 trajin 1LE1.cif
 trajout 1LE1.pdb
 EOF
-  RunCpptraj "CIF read test."
+  RunCpptraj "$UNITNAME"
   DoTest 1LE1.pdb.save 1LE1.pdb
 fi
 

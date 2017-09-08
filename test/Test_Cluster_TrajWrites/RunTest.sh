@@ -7,7 +7,8 @@ CleanFiles cluster.in cnumvtime.dat avg.summary.dat summary.dat \
            single lifetime.dat Avg.c?.rst7 info.single fromInfo.c?
 
 # Test 1
-CheckNetcdf
+TESTNAME='Cluster trajectory write tests'
+Requires netcdf
 INPUT="-i cluster.in"
 
 cat > cluster.in <<EOF

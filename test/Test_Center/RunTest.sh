@@ -6,13 +6,9 @@
 CleanFiles center.in centered.crd origin.centered.crd origin.mass.centered.crd \
            ref.centered.crd point.centered.crd
 # NOTE: Also tests strip functionality
-MaxThreads 2 "Center tests."
-if [ "$?" -ne 0 ] ; then
-  EndTest
-  exit 0
-fi
+TESTNAME='Center tests'
+Requires netcdf maxthreads 2
 
-CheckNetcdf
 INPUT="-i center.in"
 # Box center
 cat > center.in <<EOF

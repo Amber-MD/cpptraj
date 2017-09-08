@@ -8,10 +8,11 @@ out2=mass_density.dat
 out3=charge_density.dat
 out4=electron_density.dat
 
-CleanFiles $in $out1 $out2 $out3 $out4
+CleanFiles $in $out1 $out2 $out3 $out4 total.dat
 
 INPUT="-i $in"
-NotParallel "Density test."
+TESTNAME='Density test'
+Requires notparallel
 
 if [ $? -eq 0 ] ; then
   del='delta 0.25'
@@ -38,7 +39,9 @@ EOF
 fi
 
 # Total system density test
-if [ ! -z "$NETCDFLIB" ] ; then
+UNITNAME='Total system density test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
   cat > $in <<EOF
 parm ../tz2.truncoct.parm7 [OCT]
 trajin ../tz2.truncoct.nc parm [OCT]
@@ -53,10 +56,8 @@ go
 
 writedata total.dat D1 D2
 EOF
-  RunCpptraj "Total system density test"
+  RunCpptraj "$UNITNAME"
   DoTest total.dat.save total.dat
-else
-  echo "Warning: Total system density test requires NetCDF, skipping."
 fi
 
 EndTest

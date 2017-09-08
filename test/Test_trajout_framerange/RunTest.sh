@@ -4,12 +4,10 @@
 
 # Clean
 CleanFiles general.in *.rst7.? framerange.in framerange.crd
-NotParallel "Trajout Frame Range"
-if [[ $? -eq 1 ]] ; then
-  EndTest
-  exit 0
-fi
-CheckNetcdf
+
+TESTNAME='Trajout frame range'
+Requires notparallel netcdf
+
 # Test 1
 cat > general.in <<EOF
 noprogress
@@ -36,7 +34,6 @@ INPUT="-i framerange.in"
 RunCpptraj "Trajout Frame Range [Amber Coordinates]"
 DoTest framerange.crd.save framerange.crd
 
-CheckTest
 EndTest
 
 exit 0

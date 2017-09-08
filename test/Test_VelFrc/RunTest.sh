@@ -2,14 +2,10 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in CrdFrcVel.nc Vel.crd Frc.crd
+CleanFiles cpptraj.in CrdFrcVel.nc Vel.crd Frc.crd Vel1.crd Frc1.crd
 
-NotParallel "Separate velocity/force"
-if [ "$?" -eq 1 ] ; then
-  EndTest
-  exit 0
-fi
-CheckNetcdf
+TESTNAME='Read separate velocity/force trajectory data tests'
+Requires notparallel netcdf
 
 INPUT="-i cpptraj.in"
 
@@ -30,11 +26,27 @@ DoTest Vel.crd.save Vel.crd
 
 cat > cpptraj.in <<EOF
 parm ../tz2.nhe.parm7
+trajin CrdFrcVel.nc
+trajout Vel1.crd mdvel
+EOF
+RunCpptraj "Test writing velocities (MDVEL)"
+DoTest Vel.crd.save Vel1.crd
+
+cat > cpptraj.in <<EOF
+parm ../tz2.nhe.parm7
 trajin CrdFrcVel.nc usefrcascoords
 trajout Frc.crd
 EOF
 RunCpptraj "Test using forces as coordinates."
 DoTest Frc.crd.save Frc.crd
+
+cat > cpptraj.in <<EOF
+parm ../tz2.nhe.parm7
+trajin CrdFrcVel.nc
+trajout Frc1.crd mdfrc
+EOF
+RunCpptraj "Test writing forces (MDFRC)"
+DoTest Frc.crd.save Frc1.crd
 
 EndTest
 exit 0

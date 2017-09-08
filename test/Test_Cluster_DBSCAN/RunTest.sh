@@ -5,7 +5,8 @@
 CleanFiles dbscan.in summary.dat info.dat rvc.dat sievesummary.dat.? \
   sieveinfo.dat.? Kdist.dat Kdist.4.dat rms2d.gnu Kmatrix.gnu Kmatrix.max.dat
 INPUT="-i dbscan.in"
-CheckNetcdf
+TESTNAME='Cluster DBSCAN tests'
+Requires netcdf
 # Test clustering
 cat > dbscan.in <<EOF
 parm ../tz2.parm7
@@ -19,7 +20,6 @@ create rvc.dat R0 C0
 EOF
 RunCpptraj "DBSCAN test"
 DoTest rvc.dat.save rvc.dat
-CheckTest
 
 # Test 4-dist plot generation 
 cat > dbscan.in <<EOF
@@ -57,7 +57,6 @@ cluster C0 @CA dbscan epsilon 1.7 minpoints 5 bestrep cumulative \
 EOF
 RunCpptraj "DBSCAN with sieve"
 DoTest sieveinfo.dat.2.save sieveinfo.dat.2
-CheckTest
 
 EndTest
 exit 0

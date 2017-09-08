@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 CleanFiles corr.in corr.dat cross.dat
-CheckNetcdf
+TESTNAME='Correlation test'
+Requires netcdf
 INPUT="-i corr.in"
 cat > corr.in <<EOF
 parm ../tz2.parm7
@@ -14,10 +15,9 @@ radgyr rg :1-3 mass nomax
 corr d1 d1 out corr.dat 
 corr d1 rg out cross.dat 
 EOF
-RunCpptraj "Correlation Test."
+RunCpptraj "$TESTNAME"
 DoTest corr.dat.save corr.dat
 DoTest cross.dat.save cross.dat
-CheckTest
 EndTest
 
 exit 0

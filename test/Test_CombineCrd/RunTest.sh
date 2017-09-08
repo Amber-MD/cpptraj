@@ -4,12 +4,8 @@
 
 CleanFiles cpptraj.in Final.PRY.mol2 combinedCrd.crd combinedParm.parm7 \
            E?.dat FabI.NDP.TCS.parm7
-
-NotParallel "Combine COORDS tests."
-if [ "$?" -ne 0 ] ; then
-  EndTest
-  exit 0
-fi
+TESTNAME='Combine COORDS tests'
+Requires notparallel
 
 INPUT="-i cpptraj.in"
 # Combine Tyr FF14SB backbone + CB with PRY fragment
@@ -35,8 +31,11 @@ EOF
 RunCpptraj "Combine COORDS test."
 DoTest Final.PRY.mol2.save Final.PRY.mol2
 
-# Combine triclosan from FtuFabI + NAD + TCS with trpzip2
-cat > cpptraj.in <<EOF
+UNITNAME='Combine COORDS with box info, split/combine COORDS tests'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  # Combine triclosan from FtuFabI + NAD + TCS with trpzip2
+  cat > cpptraj.in <<EOF
 parm ../FtuFabI.NAD.TCL.parm7
 loadcrd ../FtuFabI.NAD.TCL.nc name TCS
 crdaction TCS strip !:TCS
@@ -49,13 +48,13 @@ combinecrd TZ2 TCS parmname combinedParm crdname combinedCrd
 parmwrite out combinedParm.parm7 parm combinedParm
 crdout combinedCrd combinedCrd.crd
 EOF
-RunCpptraj "Combine COORDS test with box info."
-DoTest combinedParm.parm7.save combinedParm.parm7 -I %VERSION
-DoTest combinedCrd.crd.save combinedCrd.crd
+  RunCpptraj "Combine COORDS test with box info."
+  DoTest combinedParm.parm7.save combinedParm.parm7 -I %VERSION
+  DoTest combinedCrd.crd.save combinedCrd.crd
 
-# Split FtuFabI+NDP+TCS apart, then put back together.
-CRD='../FtuFabI.NAD.TCL.nc 1 3'
-cat > cpptraj.in <<EOF
+  # Split FtuFabI+NDP+TCS apart, then put back together.
+  CRD='../FtuFabI.NAD.TCL.nc 1 3'
+  cat > cpptraj.in <<EOF
 parm ../FtuFabI.NAD.TCL.parm7
 
 loadcrd $CRD name FabI
@@ -74,9 +73,10 @@ combinecrd FabI NDP TCS parmname combinedParm crdname combinedCrd
 crdaction combinedCrd energy out E2.dat noheader
 parmwrite out FabI.NDP.TCS.parm7
 EOF
-RunCpptraj "Split coords and recombine test."
-DoTest E1.dat E2.dat
-DoTest ../FtuFabI.NAD.TCL.parm7 FabI.NDP.TCS.parm7 -I %VERSION
+  RunCpptraj "Split coords and recombine test."
+  DoTest E1.dat E2.dat
+  DoTest ../FtuFabI.NAD.TCL.parm7 FabI.NDP.TCS.parm7 -I %VERSION
+fi
 
 EndTest
 exit 0

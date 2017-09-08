@@ -6,6 +6,9 @@ CleanFiles rotate.in tz2.rotate.?.mol2
 
 INPUT='-i rotate.in'
 
+TESTNAME='Rotate dihedral tests'
+Requires netcdf
+
 # Rotate single dihedral to target value
 cat > rotate.in <<EOF
 parm ../tz2.parm7

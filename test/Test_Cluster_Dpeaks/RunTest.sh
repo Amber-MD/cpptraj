@@ -5,7 +5,8 @@
 CleanFiles dpeaks.in dpeaks.dat summary.dat info.dat
 
 INPUT="-i dpeaks.in"
-
+TESTNAME='Density peaks clustering test'
+Requires netcdf
 cat > dpeaks.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
@@ -23,7 +24,7 @@ runanalysis cluster crdset MyCrd C0     @CA dpeaks dvdfile dpeaks.dat epsilon 1.
                     summary summary.dat info info.dat
 #  dvdfile dpeaks.dat choosepoints manual distancecut 2.4 densitycut 0.0
 EOF
-RunCpptraj "Density peaks clustering test."
+RunCpptraj "$TESTNAME"
 DoTest dpeaks.dat.save dpeaks.dat
 DoTest summary.dat.save summary.dat
 DoTest info.dat.save info.dat

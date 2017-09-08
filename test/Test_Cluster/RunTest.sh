@@ -7,7 +7,8 @@
 CleanFiles cluster.in cnumvtime.dat avg.summary.dat summary.dat CpptrajPairDist \
            cpop.agr summary2.dat Cmatrix.nccmatrix Cmatrix.cmatrix summary3.dat
 
-CheckNetcdf
+TESTNAME='Hierarchical agglomerative clustering tests'
+Requires netcdf
 INPUT="-i cluster.in"
 # Test in-memory PW dist calc
 cat > cluster.in <<EOF

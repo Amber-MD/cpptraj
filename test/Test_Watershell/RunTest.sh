@@ -4,7 +4,8 @@
 
 CleanFiles ws.in ws.agr ws.ortho.agr ws.noimage.agr
 
-CheckNetcdf
+TESTNAME='Watershell tests'
+Requires netcdf
 INPUT="ws.in"
 
 # Non-orthorhombic imaging

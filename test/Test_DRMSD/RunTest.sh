@@ -4,7 +4,8 @@
 
 CleanFiles drmsd.in drmsd.dat
 
-CheckNetcdf
+TESTNAME='Distance RMSD test'
+Requires netcdf
 cat > drmsd.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
@@ -15,10 +16,9 @@ drmsd drms_fit out drmsd.dat
 EOF
 INPUT="-i drmsd.in"
 
-RunCpptraj "Distance RMSD test."
+RunCpptraj "$TESTNAME"
 
 DoTest drmsd.dat.save drmsd.dat
-CheckTest
 EndTest
 
 exit 0

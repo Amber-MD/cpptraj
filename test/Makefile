@@ -367,6 +367,9 @@ test.setvelocity:
 test.remlog:
 	@-cd Test_Remlog && ./RunTest.sh $(OPT)
 
+test.areapermol:
+	@-cd Test_AreaPerMol && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -459,7 +462,8 @@ SHORT_TESTS=test.general \
           test.distance \
           test.volume \
           test.setvelocity \
-          test.remlog
+          test.remlog \
+          test.areapermol
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -521,6 +525,7 @@ COMPLETETESTS=test.general \
               test.density \
               test.lipidorder \
               test.pairdist \
+              test.readdata \
               test.gist \
               test.ambpdb \
               test.systemVF \
@@ -578,7 +583,8 @@ COMPLETETESTS=test.general \
               test.distance \
               test.volume \
               test.setvelocity \
-              test.remlog
+              test.remlog \
+              test.areapermol
 
 test: test.all 
 
@@ -597,7 +603,10 @@ test.cuda:
 test.libcpptraj:
 	@-cd Test_Libcpptraj && ./RunTest.sh $(OPT)
 
-test.complete: $(COMPLETETESTS)
+test.complete: CpptrajTest.sh MasterTest.sh
+	@./CpptrajTest.sh --target test.cpptraj $(OPT)
+
+test.cpptraj: $(COMPLETETESTS)
 
 test.showerrors:
 	$(MAKE) test.complete summary OPT="$(OPT) showerrors"
@@ -607,21 +616,14 @@ test.short:
 
 test.shorttests: $(SHORT_TESTS)
 
-summary: Summary.sh MasterTest.sh
-	@./Summary.sh summary $(OPT)
+summary: CpptrajTest.sh MasterTest.sh
+	@./CpptrajTest.sh summary $(OPT)
 
 test.vg:
 	$(MAKE) test.complete summary OPT="$(OPT) vg"
 
 clean:
 	@echo "Cleaning all test directories:"
-	(find . -name 'test.out' -o -name 'valgrind.out' -o -name 'Thread.*' \
-        -o -name 'Test_Results.dat' -o -name 'Test_Error.dat' | \
-        while read dif ;\
-        do \
-            rm -f $$dif ;\
-        done ;\
-        )
 	$(MAKE) test.complete test.libcpptraj OPT=clean
 
 cleanprofile:

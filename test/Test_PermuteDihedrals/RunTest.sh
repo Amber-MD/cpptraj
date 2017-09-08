@@ -6,11 +6,9 @@ CleanFiles ds.in rotations.nc rotations.mdcrd random.mol2.1 RAND.mol2
 INPUT="ds.in"
 TOP=../tz2.parm7
 
-MaxThreads 1 "PermuteDihedrals tests"
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
-fi
+TESTNAME='PermuteDihedrals tests'
+Requires maxthreads 1
+
 # Interval test
 cat > ds.in <<EOF
 reference ../tz2.rst7 [TZ2]

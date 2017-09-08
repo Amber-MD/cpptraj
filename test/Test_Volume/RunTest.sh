@@ -4,7 +4,8 @@
 
 CleanFiles vol.in vol.dat
 
-CheckNetcdf
+TESTNAME='Volume tests'
+Requires netcdf
 
 INPUT='-i vol.in'
 
@@ -18,7 +19,7 @@ loadcrd ../tz2.ortho.nc name T2 parm [ORTHO]
 crdaction T1 volume Oct out vol.dat
 crdaction T2 volume Ortho out vol.dat
 EOF
-RunCpptraj "Volume tests."
+RunCpptraj "$TESTNAME"
 DoTest vol.dat.save vol.dat
 
 EndTest

@@ -5,15 +5,16 @@
 # Clean
 CleanFiles lie.in TCL.out
 
+TESTNAME='LIE test'
+Requires netcdf
+
 INPUT="lie.in"
 TOP=../FtuFabI.NAD.TCL.parm7
-# Check libraries
-CheckNetcdf
 cat > lie.in <<EOF
 trajin ../FtuFabI.NAD.TCL.nc
 lie LIE :TCS out TCL.out cutvdw 12 cutelec 12
 EOF
-RunCpptraj "LIE test, TCL"
+RunCpptraj "$TESTNAME"
 DoTest TCL.out.save TCL.out
 
 EndTest

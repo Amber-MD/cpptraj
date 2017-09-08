@@ -3,12 +3,10 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in random.crd
-MaxThreads 1 "randomizeions test"
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
-fi
-CheckZlib
+
+TESTNAME='randomizeions test'
+Requires maxthreads 1 zlib
+
 INPUT="ptraj.in"
 TOP="adh206.ff10.tip3p.parm7.gz"
 cat > ptraj.in <<EOF
@@ -18,7 +16,6 @@ trajout random.crd title "Test"
 EOF
 RunCpptraj "randomizeions test"
 DoTest random.crd.save random.crd
-CheckTest
 
 EndTest
 

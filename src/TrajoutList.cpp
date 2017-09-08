@@ -70,7 +70,33 @@ int TrajoutList::SetupTrajout(Topology* CurrentParm, CoordinateInfo const& cInfo
       active_.push_back( trajout_[i] );
     }
   }
+  ListActive();
   return 0;
+}
+
+static inline void Append(std::string& meta, std::string const& str) {
+  if (meta.empty())
+    meta.assign( str );
+  else
+    meta.append(", " + str);
+}
+
+/** List only active output trajectories. */
+void TrajoutList::ListActive() const {
+  if (!trajout_.empty()) {
+    mprintf(".....................................................\n");
+    if (!active_.empty()) {
+      mprintf("ACTIVE OUTPUT TRAJECTORIES (%zu):\n", active_.size());
+      for (ListType::const_iterator it = active_.begin(); it != active_.end(); ++it)
+      {
+        mprintf("  %s", (*it)->Traj().Filename().full());
+        std::string meta = (*it)->Traj().CoordInfo().InfoString();
+        if (!meta.empty()) mprintf(" (%s)", meta.c_str());
+        mprintf("\n");
+      }
+    } else
+      mprintf("NO ACTIVE OUTPUT TRAJECTORIES.\n");
+  }
 }
 
 // TrajoutList::WriteTrajout()
@@ -137,6 +163,7 @@ int TrajoutList::ParallelSetupTrajout(Topology* CurrentParm,
               CurrentParm->c_str());
     }
   }
+  ListActive();
   return 0;
 }
 #endif

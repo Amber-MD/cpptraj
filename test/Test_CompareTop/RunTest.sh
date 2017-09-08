@@ -5,12 +5,8 @@
 CleanFiles compare.in parm.diff
 
 INPUT="-i compare.in"
-TESTNAME="Compare topology test."
-NotParallel "$TESTNAME"
-if [ "$?" -ne 0 ] ; then
-  EndTest
-  exit 0
-fi
+TESTNAME='Compare topology test'
+Requires notparallel
 
 cat > compare.in <<EOF
 parm Protein.ff14SB.parm7
