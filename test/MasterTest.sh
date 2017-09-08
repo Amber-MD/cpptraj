@@ -670,10 +670,17 @@ CheckDefines() {
 #   Set paths for all binaries if not already set.
 SetBinaries() {
   # Guess where things might be depending on if we are in AT or not, etc.
+  PATH_TYPE='absolute'
   if [ $STANDALONE -eq 0 ] ; then
     DIRPREFIX=$AMBERHOME
   elif [ -z "$CPPTRAJHOME" ] ; then
-    DIRPREFIX=../../
+    # Need to do relative instead of absolute path.
+    PATH_TYPE='relative'
+    if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
+      DIRPREFIX=..
+    else
+      DIRPREFIX=../..
+    fi
   else
     DIRPREFIX=$CPPTRAJHOME
   fi
@@ -781,6 +788,14 @@ SetBinaries() {
     echo "DEBUG: DIFFCMD: $CPPTRAJ_DIFF"
     echo "DEBUG: DACDIF:  $CPPTRAJ_DACDIF"
     echo "DEBUG: NDIFF:   $CPPTRAJ_NDIFF"
+  fi
+  # If path type is relative and we are not in an indivdual test
+  # directories the path needs to be incremented one dir up.
+  if [ "$PATH_TYPE" = 'relative' -a "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
+    CPPTRAJ="../$CPPTRAJ"
+    AMBPDB="../$AMBPDB"
+    CPPTRAJ_NDIFF="../$CPPTRAJ_NDIFF"
+    CPPTRAJ_NPROC="../$CPPTRAJ_NPROC"
   fi
 }
 
