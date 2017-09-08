@@ -37,12 +37,12 @@
 #   CPPTRAJ_BZLIB        : If set CPPTRAJ has bzip support.
 #   CPPTRAJ_NETCDFLIB    : If set CPPTRAJ has NetCDF support.
 #   CPPTRAJ_MPILIB       : If set CPPTRAJ has MPI support.
-#   CPPTRAJ_NOMATHLIB    : If set CPPTRAJ was compiled without math libraries.
+#   CPPTRAJ_MATHLIB      : If set CPPTRAJ was compiled with math libraries.
 #   CPPTRAJ_OPENMP       : If set CPPTRAJ has OpenMP support.
 #   CPPTRAJ_PNETCDFLIB   : If set CPPTRAJ has parallel NetCDF support.
 #   CPPTRAJ_SANDERLIB    : If set CPPTRAJ was compiled with the sander API from AT.
 #   CPPTRAJ_CUDA         : If set CPPTRAJ has CUDA support.
-#   CPPTRAJ_NO_XDRFILE   : If set CPPTRAJ was compiled without XDR file support.
+#   CPPTRAJ_XDRFILE      : If set CPPTRAJ has XDR file support.
 # ----- Variables that can be set by individual scripts ----
 #   TOP                  : Topology file for cpptraj
 #   INPUT                : Input file for cpptraj
@@ -67,6 +67,7 @@ WARNCOUNT=0              # Total number of warnings detected by DoTest this test
 PROGCOUNT=0              # Total number of times RunCpptraj has been called this test.
 PROGERROR=0              # Total number of program errors this test
 CHECKERR=0               # Total errors this test from CheckX routines.
+TESTNAME=''              # Current test name for CheckEnv routine.
 
 # ==============================================================================
 # TestHeader() <outfile>
@@ -640,21 +641,25 @@ Required() {
 # CheckDefines()
 #   Check how CPPTRAJ was compiled.
 CheckDefines() {
+  CPPTRAJ_XDRFILE='yes'
+  CPPTRAJ_MATHLIB='yes'
   for DEFINE in `$CPPTRAJ --defines` ; do
     case "$DEFINE" in
       '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
       '-DHASBZ2'        ) export CPPTRAJ_BZLIB=$DEFINE ;;
       '-DBINTRAJ'       ) export CPPTRAJ_NETCDFLIB=$DEFINE ;;
       '-DMPI'           ) export CPPTRAJ_MPILIB=$DEFINE ;;
-      '-DNO_MATHLIB'    ) export CPPTRAJ_NOMATHLIB=$DEFINE ;;
+      '-DNO_MATHLIB'    ) CPPTRAJ_MATHLIB='' ;;
       '-D_OPENMP'       ) export CPPTRAJ_OPENMP=$DEFINE ;;
       '-DHAS_PNETCDF'   ) export CPPTRAJ_PNETCDFLIB=$DEFINE ;;
       '-DUSE_SANDERLIB' ) export CPPTRAJ_SANDERLIB=$DEFINE ;;
       '-DCUDA'          ) export CPPTRAJ_CUDA=$DEFINE ;;
-      '-DNO_XDRFILE'    ) export CPPTRAJ_NO_XDRFILE=$DEFINE ;;
+      '-DNO_XDRFILE'    ) CPPTRAJ_XDRFILE='' ;;
     esac
   done
-  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $NO_XDRFILE"
+  export CPPTRAJ_XDRFILE
+  export CPPTRAJ_MATHLIB
+  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $XDRFILE"
 }
 
 #-------------------------------------------------------------------------------
@@ -820,6 +825,49 @@ SkipCheck() {
   ((SKIPCOUNT++))
   # Reset check count
   CHECKERR=0
+}
+
+# TestLibrary() <name> <env. var>
+TestLibrary() {
+  if [ -z "$2" ] ; then
+    echo "  $TESTNAME requires $1."
+    echo "  Cpptraj was compiled without $1 support."
+    ((CHECKERR++))
+  fi
+}
+
+CheckEnv() {
+  echo "DEBUG: CheckEnv() $*"
+  if [ -z "$TESTNAME" ] ; then
+    echo "Warning: CheckEnv() called with TESTNAME unset." > /dev/stderr
+    TESTNAME='THIS TEST'
+  fi
+  CHECKERR=0
+  while [ ! -z "$1" ] ; do
+    echo "DEBUG: $TESTNAME: Checking requirement: $1"
+    case "$1" in
+      'netcdf'    ) TestLibrary "NetCDF"             "$CPPTRAJ_NETCDFLIB" ;;
+      'zlib'      ) TestLibrary "Zlib"               "$CPPTRAJ_ZLIB" ;;
+      'bzlib'     ) TestLibrary "Bzlib"              "$CPPTRAJ_BZLIB" ;;
+      'xdr'       ) TestLibrary "XDR file"           "$CPPTRAJ_XDRFILE" ;;
+      'mathlib'   ) TestLibrary "BLAS/LAPACK/ARPACK" "$CPPTRAJ_MATHLIB" ;;
+      'sanderlib' ) TestLibrary "SANDER API from AmberTools" "$CPPTRAJ_SANDERLIB" ;;
+      'pnetcdf'   )
+        if [ ! -z "$DO_PARALLEL" ] ; then
+          TestLibrary "Parallel NetCDF" "$CPPTRAJ_PNETCDFLIB"
+        fi
+        ;;
+      * ) echo "Error: Unknown CheckEnv() option: $1" > /dev/stderr ; exit 1 ;;
+    esac
+    shift
+  done
+}
+
+Requires() {
+  CheckEnv $*
+  if [ "$CHECKERR" -ne 0 ] ; then
+    SkipTest "$TESTNAME"
+  fi
 }
 
 CheckZlib() {
