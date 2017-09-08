@@ -490,6 +490,11 @@ EndTest() {
     # NOTE: SUMMARY should only be set here if single test.
     Summary
   fi
+  if [ $EXIT_ON_ERROR -eq 1 ] ; then
+    if [ $PROGERROR -ne 0 -o $ERRCOUNT -ne 0 ] ; then
+      exit 1
+    fi
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -838,6 +843,7 @@ CheckEnv() {
   echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
     echo "Warning: CheckEnv() called with TESTNAME/UNITNAME unset." > /dev/stderr
+    exit 1
     DESCRIP='THIS TEST'
   fi
   CHECKERR=0
