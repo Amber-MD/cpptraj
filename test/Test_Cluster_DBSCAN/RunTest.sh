@@ -20,7 +20,6 @@ create rvc.dat R0 C0
 EOF
 RunCpptraj "DBSCAN test"
 DoTest rvc.dat.save rvc.dat
-CheckTest
 
 # Test 4-dist plot generation 
 cat > dbscan.in <<EOF
@@ -58,7 +57,6 @@ cluster C0 @CA dbscan epsilon 1.7 minpoints 5 bestrep cumulative \
 EOF
 RunCpptraj "DBSCAN with sieve"
 DoTest sieveinfo.dat.2.save sieveinfo.dat.2
-CheckTest
 
 EndTest
 exit 0

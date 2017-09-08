@@ -21,8 +21,6 @@ RunCpptraj "Average Test."
 DoTest test.pdb.save test.pdb
 DoTest test.pdb.save test2.pdb
 
-CheckTest
-
 EndTest
 
 exit 0

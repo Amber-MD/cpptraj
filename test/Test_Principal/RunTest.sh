@@ -8,7 +8,8 @@ CleanFiles principal.in Ctest.pdb principal.dat Ctest.crd eigen.dat
 TOP="../Test_IRED/1IEE_A_prot.prmtop"
 INPUT="principal.in"
 
-if [[ -z $DO_PARALLEL ]] ; then
+if [ -z "$DO_PARALLEL" ] ; then
+  # serial version
   cat > principal.in <<EOF
 noprogress
 trajin ../Test_IRED/1IEE_A_test.mdcrd 1 10
@@ -23,6 +24,7 @@ EOF
   DoTest eigen.dat.save eigen.dat
 else
   # 'out' not supported in parallel
+  # FIXME still true?
   cat > principal.in <<EOF
 noprogress
 trajin ../Test_IRED/1IEE_A_test.mdcrd 1 10

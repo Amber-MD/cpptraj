@@ -9,15 +9,16 @@ Requires sanderlib netcdf
 INPUT="-i ene.in"
 
 TestPME() {
-  CheckPnetcdf "SANDER energy test, PME"
-  if [[ $? -eq 0 ]] ; then
+  UNITNAME='SANDER energy test, PME'
+  CheckFor pnetcdf
+  if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 esander S out Esander.dat saveforces
 trajout force.nc
 EOF
-    RunCpptraj "SANDER energy test, PME."
+    RunCpptraj "$UNITNAME"
     DoTest Esander.dat.save Esander.dat
     NcTest force.nc.save force.nc -a 0.000001
   fi

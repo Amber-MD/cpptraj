@@ -30,11 +30,9 @@ RunCpptraj "2D RMSD Test, mass-weighted."
 DoTest rmsd.mass.dat.save rmsd.mass.dat
 
 # Test 3 - 2drms to reference traj
-TESTNAME='2D RMSD Test with reference trajectory'
-CheckPnetcdf "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipCheck "$TESTNAME"
-else
+UNITNAME='2D RMSD Test with reference trajectory'
+CheckFor pnetcdf
+if [ $? -eq 0 ] ; then
   cat > rms.in <<EOF
 trajin $CRD 1 10
 trajout ref.nc netcdf
@@ -43,7 +41,7 @@ run
 2drms crdset crd1 :3-7 rmsout rmsd1.dat reftraj ref.nc
 runanalysis
 EOF
-  RunCpptraj "$TESTNAME"
+  RunCpptraj "$UNITNAME"
   DoTest rmsd.dat.save rmsd1.dat
 fi
 

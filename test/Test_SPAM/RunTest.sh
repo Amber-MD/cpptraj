@@ -6,11 +6,12 @@
 CleanFiles spam.in spam.dat spam.info spampure.dat test.mdcrd summary.dat
 
 # Check libraries
-CheckNetcdf
+TESTNAME='SPAM tests'
+Requires netcdf
 
 INPUT="spam.in"
 # SPAM test
-TOP="../tz2.truncoct.parm7"
+TOP='../tz2.truncoct.parm7'
 if [ -z "$DO_PARALLEL" ] ; then
   cat > spam.in <<EOF
 trajin ../tz2.truncoct.nc

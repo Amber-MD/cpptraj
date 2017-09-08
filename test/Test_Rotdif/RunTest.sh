@@ -4,11 +4,7 @@
 
 CleanFiles rotdif.in rvecs.dat matrices.dat deffs.dat rotdif.out
 TESTNAME='Rotational diffusion calculation test'
-CheckNetcdf "$TESTNAME"
-CheckMathlib "$TESTNAME"
-if [ $CHECKERR -ne 0 ] ; then
-  SkipTest "$TESTNAME"
-fi
+Requires netcdf mathlib
 
 INPUT="-i rotdif.in"
 cat > rotdif.in <<EOF
@@ -20,13 +16,12 @@ rotdif rmatrix R0[RM] rseed 1 nvecs 10 dt 0.002 tf 0.190 ncorr 101 \
        itmax 500 tol 0.000001 d0 0.03 order 2 rvecout rvecs.dat \
        rmout matrices.dat deffout deffs.dat outfile rotdif.out
 EOF
-RunCpptraj "Rotdif test"
+RunCpptraj "$TESTNAME"
 DoTest rvecs.dat.save rvecs.dat
 DoTest matrices.dat.save matrices.dat
 DoTest deffs.dat.save deffs.dat
 DoTest rotdif.out.save rotdif.out
 
-CheckTest
 EndTest
 
 exit 0

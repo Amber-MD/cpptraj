@@ -9,15 +9,16 @@ CleanFiles remd.in d1.offset.dat d1.crd.dat d1.nc.dat temp.crd.* \
 INPUT="-i remd.in"
 
 # Test 0
-MaxThreads 5 "CRD Replica Trajectory Run with offset"
-if [[ $? -eq 0 ]] ; then
+UNITNAME='CRD Replica Trajectory Run with offset'
+CheckFor maxthreads 5
+if [ $? -eq 0 ] ; then
   cat > remd.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7 
 trajin rem.crd.000 remdtraj remdtrajtemp 492.2 1 11 2
 distance d1 out d1.offset.dat @1 @21
 EOF
-  RunCpptraj "CRD Replica Trajectory Run with offset"
+  RunCpptraj "$UNITNAME"
   DoTest d1.offset.dat.save d1.offset.dat
 fi
 
@@ -32,24 +33,23 @@ RunCpptraj "CRD Replica Trajectory Run"
 DoTest d1.crd.dat.save d1.crd.dat
 
 # Test 2
-TESTNAME='NETCDF Replica Trajectory Run test'
-CheckNetcdf "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipCheck "$TESTNAME"
-else
+UNITNAME='NETCDF Replica Trajectory Run test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
   cat > remd.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7 
 trajin rem.nc.000 remdtraj remdtrajtemp 492.2
 distance d1 out d1.nc.dat @1 @21
 EOF
-  RunCpptraj "$TESTNAME"
+  RunCpptraj "$UNITNAME"
   DoTest d1.nc.dat.save d1.nc.dat
 fi
 
 # Remdout test
-CheckNthreads 4 "CRD Replica Trajectory Run with remdout"
-if [[ $? -eq 0 ]] ; then
+UNITNAME='CRD Replica Trajectory Run with remdout'
+CheckFor nthreads 4
+if [ $? -eq 0 ] ; then
   # Create trajectories at all temperatures.
   for T in 300.00 384.30 492.20 630.50 ; do
     cat > remd.in <<EOF
@@ -69,7 +69,7 @@ trajout temp.crd
 distance d1 out d1.ensemble.dat @1 @21
 EOF
   RunCpptraj "CRD Replica Trajectory Run with remdout"
-  if [[ -z $DO_PARALLEL ]] ; then
+  if [ -z "$DO_PARALLEL" ] ; then
     DoTest d1.ensemble.dat.save d1.ensemble.dat
   else
     cat d1.ensemble.dat.? > all.dat

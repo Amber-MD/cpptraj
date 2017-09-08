@@ -7,7 +7,7 @@ CleanFiles image.in ortho.dat nonortho.dat image.crd image2.crd image3.crd image
 
 INPUT="-i image.in"
 TESTNAME='Imaging tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 # Test 1 - orthorhombic imaged distance
 cat > image.in <<EOF
 noprogress
@@ -32,11 +32,9 @@ EOF
 RunCpptraj "Non-orthorhombic imaged distance test."
 DoTest nonortho.dat.save nonortho.dat
 
-MaxThreads 2 "Coordinate imaging tests"
-if [ $? -ne 0 ] ; then
-  SkipCheck "Coordinate imaging tests"
-else
-  # Test 3 - Orthorhombic coordinate imaging 
+UNITNAME='Orthorhombic coordinate imaging test'
+CheckFor maxthreads 2
+if [ $? -eq 0 ] ; then
   cat > image.in <<EOF
 noprogress
 parm ../tz2.ortho.parm7
@@ -46,10 +44,13 @@ image origin center
 trajout image.crd 
 go
 EOF
-  RunCpptraj "Orthorhombic coordinate imaging test."
+  RunCpptraj "$UNITNAME"
   DoTest image.crd.save image.crd
+fi
 
-  # Test 4 - Nonorthorhombic coordinate imaging
+UNITNAME='Nonorthorhombic coordinate imaging test'
+CheckFor maxthreads 2
+if [ $? -eq 0 ] ; then
   cat > image.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
@@ -59,10 +60,13 @@ image center triclinic
 trajout image2.crd
 go
 EOF
-  RunCpptraj "Nonorthorhombic coordinate imaging test."
+  RunCpptraj "$UNITNAME"
   DoTest image2.crd.save image2.crd
+fi
 
-  # Test - Nonorthorhombic coordinate imaging with familiar
+UNITNAME='Nonorthorhombic coordinate imaging test with familiar'
+CheckFor maxthreads 2
+if [ $? -eq 0 ] ; then
   cat > image.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
@@ -72,11 +76,14 @@ image origin center familiar
 trajout image3.crd
 go
 EOF
-  RunCpptraj "Nonorthorhombic coordinate imaging test with familiar."
+  RunCpptraj "$UNITNAME"
   DoTest image3.crd.save image3.crd
+fi
 
-  # Test - Nonorthorhombic coordinate imaging test with familiar and COM
-cat > image.in <<EOF
+UNITNAME='Nonorthorhombic coordinate imaging test with familiar and COM'
+CheckFor maxthreads 2
+if [ $? -eq 0 ] ; then
+  cat > image.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 2
@@ -85,7 +92,7 @@ image center familiar com :6
 trajout image4.crd
 go
 EOF
-  RunCpptraj "Nonorthorhombic coordinate imaging test with familiar and COM."
+  RunCpptraj "$UNITNAME"
   DoTest image4.crd.save image4.crd
 fi
 EndTest

@@ -5,13 +5,8 @@
 # Clean
 CleanFiles ncr.in nc.rst7* text.rst7*
 
-MaxThreads 1 "NetCDF restart tests"
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
-fi
-
-CheckNetcdf
+TESTNAME='NetCDF restart tests'
+Requires netcdf maxthreads 1
 
 INPUT="ncr.in"
 # Test 1-1: Convert text to netcdf restart
@@ -48,7 +43,6 @@ trajout text.rst7 restart title "Cpptraj Generated Restart"
 EOF
 RunCpptraj "NetCDF Restart w/ box Test - NetCDF->Txt"
 DoTest ../tz2.ortho.rst7 text.rst7 -w
-CheckTest
 
 EndTest
 
