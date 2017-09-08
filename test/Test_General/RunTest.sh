@@ -8,9 +8,8 @@ CleanFiles general.in distance.dat rmsd.dat rmsda.dat phi2.dat PhiPsi.dat \
            a3.dat.bz2 r2.dat r3-nofit.dat
 
 TESTNAME='General tests'
-# Required libraries 
-NotParallel "$TESTNAME"
-Requires netcdf zlib bzlib
+# Required environment 
+Requires notparallel netcdf zlib bzlib
 
 
 
