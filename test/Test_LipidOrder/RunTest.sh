@@ -12,14 +12,10 @@ out4=sn2_dir.dat
 
 CleanFiles $in $out1 $oute1 $out2 $oute2 $out3 $out4
 
-NotParallel "Lipid Order Parameter Test."
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
-fi
+TESTNAME='Lipid Order Parameter Test'
+Requires notparallel
 
 INPUT="-i $in"
-
 
 del='delta 0.1'
 
@@ -70,7 +66,6 @@ DoTest ${out2}.save $out2
 DoTest ${oute2}.save $oute2
 DoTest ${out3}.save $out3
 DoTest ${out4}.save $out4
-CheckTest
 EndTest
 
 exit 0

@@ -5,7 +5,8 @@
 # Clean
 CleanFiles jcoupling.in Jcoupling.dat jc.dat
 
-CheckNetcdf
+TESTNAME='J-coupling tests'
+Requires netcdf
 INPUT="-i jcoupling.in"
 # Test 1
 MaxThreads 1 "J-Coupling single frame test."

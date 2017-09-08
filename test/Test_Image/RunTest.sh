@@ -6,7 +6,8 @@
 CleanFiles image.in ortho.dat nonortho.dat image.crd image2.crd image3.crd image4.crd
 
 INPUT="-i image.in"
-RequiresNetcdf "Imaging tests"
+TESTNAME='Imaging tests'
+Requires netcdf
 # Test 1 - orthorhombic imaged distance
 cat > image.in <<EOF
 noprogress

@@ -6,8 +6,8 @@
 CleanFiles orderparam ired.vec noe v0.cjt v0.cmt ired.in v0 plateau.norm.dat cjt?.dat \
            matrix_ds2.dat
 
-TESTNAME="IRED vector/matrix test"
-RequiresMathlib "$TESTNAME"
+TESTNAME='IRED vector/matrix test'
+Requires mathlib
 
 TOP="1IEE_A_prot.prmtop"
 INPUT="ired.in"
@@ -53,7 +53,6 @@ DoTest noe.save noe
 
 #DoTest v0.cjt.save v0.cjt
 #DoTest v0.cmt.save v0.cmt
-CheckTest
 EndTest
 
 exit 0

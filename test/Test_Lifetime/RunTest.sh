@@ -4,7 +4,8 @@
 
 CleanFiles avg.life.5.gnu max.life.5.gnu life.5.gnu life.in perres.avg.gnu \
            perres.cumulative.gnu crv.life.5.gnu solutehb.gnu
-CheckNetcdf
+TESTNAME='Lifetime analysis tests'
+Requires netcdf
 cat > life.in <<EOF
 parm ../DPDP.parm7
 trajin ../DPDP.nc
@@ -26,7 +27,6 @@ DoTest max.life.5.gnu.save max.life.5.gnu
 DoTest life.5.gnu.save life.5.gnu
 DoTest crv.life.5.gnu.save crv.life.5.gnu
 DoTest solutehb.gnu.save solutehb.gnu
-CheckTest
 
 cat > life.in <<EOF
 parm ../DPDP.parm7

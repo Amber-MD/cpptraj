@@ -6,10 +6,9 @@ CleanFiles hist.in hist.gnu hist.agr freeE.gnu norm.gnu hist.dx 3D.dat
 INPUT="-i hist.in"
 
 # 1D and 2D histogram tests
-CheckNetcdf "Histogram Analysis test"
-if [ $? -ne 0 ] ; then
-  SkipCheck "Histogram Analysis test"
-else
+UNITNAME='1D/2D Histogram Analysis test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
   cat > hist.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
@@ -25,7 +24,7 @@ hist name D1hist d1,9,26,0.5 out hist.agr
 hist phi6 psi6 min -180 max 180 bins 72 out freeE.gnu free 300.0
 hist phi6 psi6 min -180 max 180 bins 72 out norm.gnu norm 
 EOF
-  RunCpptraj "Histogram Analysis Test"
+  RunCpptraj "$UNITNAME"
   DoTest hist.gnu.save hist.gnu
   DoTest hist.agr.save hist.agr
   DoTest freeE.gnu.save freeE.gnu
