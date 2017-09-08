@@ -791,14 +791,8 @@ SetBinaries() {
 }
 
 # ------------------------------------------------------------------------------
-# Library/environment Checks
-# Tests that depend on certain libraries (e.g. zlib) can run these to make sure
-# cpptraj was compiled with that library. Also includes routines for tests that
-# require having the environment set up a certain way (e.g. having a certain
-# number of MPI threads). Each time a required condition is not met, CHECKERR
-# will be incremented.
-# The RequiresX versions of the Routines will skip the entire test if the
-# check does not pass.
+# Library/environment Check functions
+# ------------------------------------------------------------------------------
 
 # SkipTest() <description>
 #  Skip an entire test directory.
@@ -839,6 +833,18 @@ TestLibrary() {
 # CheckEnv() <list>
 # Check for the given list of requirements. For each requirement not meant
 # increment CHECKERR by 1.
+# netcdf         : NetCDF support
+# zlib           : Zlib (gzip) support
+# bzlib          : Bzlib support
+# xdr            : XDR file support
+# mathlib        : BLAS/LAPACK/ARPACK support
+# sanderlib      : SANDER API support
+# pnetcdf        : Parallel NetCDF support
+# notparallel    : Test should not be run in parallel
+# maxthreads <#> : Test should not be run with more than <#> MPI threads
+# nthreads <#>   : Test requires multiples of <#> MPI threads in parallel
+# amberhome      : Test requires AMBERHOME set
+# ambpdb         : Test requires ambpdb
 CheckEnv() {
   #echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
@@ -926,6 +932,8 @@ CheckFor() {
   return 0
 }
 
+# ------------------------------------------------------------------------------
+# TODO remove all deprecated functions below.
 Disabled() {
   echo "ERROR: FUNCTION DISABLED. FIX IT!" > /dev/stderr
   exit 1
@@ -975,8 +983,6 @@ CheckPnetcdf() {
   Disabled
 }
 
-# NotParallel() <Test title>
-#   Used to indicate a test should not be run in parallel.
 NotParallel() {
   Disabled
 }
@@ -985,12 +991,10 @@ RequiresNotParallel() {
   Disabled
 }
 
-# CheckNthreads() <# threads> <Test title>
 CheckNthreads() {
   Disabled
 }
 
-# MaxThreads() <# threads> <Test title>
 MaxThreads() {
   Disabled
 }
