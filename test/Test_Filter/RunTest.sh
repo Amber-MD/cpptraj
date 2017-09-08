@@ -9,20 +9,19 @@ INPUT='filter.in'
 TOP='../tz2.truncoct.parm7'
 
 # Test 1
-TESTNAME="Filter test."
-RequiresNotParallel "$TESTNAME"
+TESTNAME="Filter tests"
+Requires notparallel
 
-CheckNetcdf "$TESTNAME"
-if [ $? -ne 0 ] ; then
-  SkipCheck "$TESTNAME"
-else
+UNITNAME='Basic filter test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
   cat > filter.in <<EOF
 trajin ../tz2.truncoct.nc
 rms R1 first :2-11
 filter R1 min 0.7 max 0.8 out filter.dat
 outtraj filter.crd 
 EOF
-  RunCpptraj "$TESTNAME"
+  RunCpptraj "$UNITNAME"
   DoTest ../Test_Outtraj/maxmin.crd.save filter.crd
   DoTest filter.dat.save filter.dat
 fi

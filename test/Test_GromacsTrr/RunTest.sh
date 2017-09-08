@@ -7,19 +7,15 @@ CleanFiles ptraj.in cpptraj.nc mop.trr temp.crd total?.out
 INPUT="-i ptraj.in"
 
 GmxTrrRead() {
-  TESTNAME='TRR force/velocity read/write'
-  MaxThreads 2 "$TESTNAME"
-  CheckNetcdf "$TESTNAME"
-  CheckPnetcdf "$TESTNAME"
-  if [ $CHECKERR -ne 0 ] ; then
-    SkipCheck "$TESTNAME"
-  else
+  UNITNAME='TRR force/velocity read/write test'
+  CheckFor maxthreads 2 netcdf pnetcdf
+  if [ $? -eq 0 ] ; then
       cat > ptraj.in <<EOF
 parm nvt.protein.mol2
 trajin nvt.2frame.trr
 trajout cpptraj.nc
 EOF
-      RunCpptraj "TRR coords/force/velocity read test"
+      RunCpptraj "$UNITNAME"
       NcTest cpptraj.nc.save cpptraj.nc
   fi
 }
@@ -44,10 +40,9 @@ EOF
 
 # Gromacs TRR append
 GmxTrrAppend() {
-  NotParallel "GMX TRR append"
-  if [ $? -ne 0 ] ; then
-    SkipCheck "GMX TRR append"
-  else
+  UNITNAME='GMX TRR append test'
+  CheckFor notparallel
+  if [ $? -eq 0 ] ; then
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd 1 5
@@ -72,10 +67,9 @@ EOF
 
 # Gromacs TRR with offsets
 GmxOffset() {
-  MaxThreads 5 "GMX offset test"
-  if [ $? -ne 0 ] ; then
-    SkipCheck "GMX offset test"
-  else
+  UNITNAME='GMX offset test'
+  CheckFor maxthreads 5
+  if [ $? -eq 0 ] ; then
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd 2 10 2

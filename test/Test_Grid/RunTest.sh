@@ -6,8 +6,8 @@ CleanFiles ptraj.in out.dipole out.xplor out.dx out.dx.2 test.dx box.dx mask.dx 
            nonortho.dx triclinic.nc nonortho.pdb bounds.dat bounds.mol2 \
            bounds.xplor avg.mol2 nonortho_wrap.dx
 
-RequiresNetcdf "Grid tests"
-RequiresMaxThreads 10 "Grid tests"
+TESTNAME='Grid tests'
+Requires netcdf maxthreads 10
 INPUT="ptraj.in"
 
 # dipole
