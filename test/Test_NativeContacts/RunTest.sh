@@ -7,7 +7,10 @@ CleanFiles nc.in nc.hp1.ca.dat nc.hp2.ca.dat nc.all.res.dat cmap.dat \
   nc1.pdb nc2.contacts.dat nc2.res.dat NC2.series.dat \
   nc4.dat nc4.nn.dat nc4.res.dat nc4.contacts.dat nc4.nn.pdb \
   NC5.series.dat NC5.respresent.dat NC5.nnseries.dat NC6.ressum.dat
-CheckNetcdf
+
+TESTNAME='Nativecontacts tests'
+Requires netcdf
+
 INPUT="-i nc.in"
 cat > nc.in <<EOF
 parm ../DPDP.parm7
@@ -34,9 +37,9 @@ DoTest nc.all.res.dat.save nc.all.res.dat
 DoTest native.resmap.gnu.save native.resmap.gnu
 DoTest nonnative.resmap.gnu.save nonnative.resmap.gnu
 
-TITLE="NativeContacts test, save non-native contacts, residue time series"
-NotParallel "$TITLE"
-if [ "$?" -eq 0 ] ; then
+UNITNAME='NativeContacts test, save non-native contacts, residue time series'
+CheckFor notparallel
+if [ $? -eq 0 ] ; then
   cat > nc.in <<EOF
 parm ../DPDP.parm7
 trajin ../DPDP.nc
@@ -50,7 +53,7 @@ nativecontacts name NC5 :10-11@CA,N :18-20@CA,N series savenonnative \
 nativecontacts name NC6 :10-11@CA,N :18-20@CA,N series savenonnative \
                resseries sum resseriesout NC6.ressum.dat
 EOF
-  RunCpptraj "$TITLE"
+  RunCpptraj "$UNITNAME"
   DoTest nc4.dat.save nc4.dat
   DoTest nc4.nn.dat.save nc4.nn.dat
   DoTest nc4.res.dat.save nc4.res.dat

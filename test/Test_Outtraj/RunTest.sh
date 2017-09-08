@@ -5,7 +5,8 @@
 # Clean
 CleanFiles rms.in rmsd.dat test.crd T1.crd T2.crd maxmin.in maxmin.crd
 
-CheckNetcdf
+TESTNAME='Outtraj tests'
+Requires netcdf
 TOP="../tz2.truncoct.parm7"
 
 # Test 1
@@ -24,8 +25,8 @@ DoTest T1.crd T2.crd
 DoTest ../tz2.truncoct.crd test.crd
 
 # Test 2
-TESTNAME="Outtraj Test with maxmin."
-NotParallel "$TESTNAME"
+UNITNAME="Outtraj Test with maxmin."
+CheckFor notparallel
 if [ "$?" -eq 0 ] ; then
   INPUT="maxmin.in"
   cat > maxmin.in <<EOF
@@ -33,7 +34,7 @@ trajin ../tz2.truncoct.nc
 rms R1 first :2-11
 outtraj maxmin.crd maxmin R1 min 0.7 max 0.8
 EOF
-  RunCpptraj "$TESTNAME"
+  RunCpptraj "$UNITNAME"
   DoTest maxmin.crd.save maxmin.crd
 fi
 

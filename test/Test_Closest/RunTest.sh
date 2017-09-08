@@ -8,9 +8,12 @@ CleanFiles closest.in first.Closest.pdb.1 closestmols.dat \
            closest10.center2_4.crd closest10.mols.dat
 
 INPUT="-i closest.in"
-CheckNetcdf
-MaxThreads 1 "Closest command test using first solvent atom."
-if [[ $? -eq 0 ]] ; then
+TESTNAME='Closest tests'
+Requires netcdf
+
+UNITNAME='Closest command tests using first/all solvent atoms'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
   # Test 1 - Closest, first solvent atom only
   cat > closest.in <<EOF
 noprogress
@@ -24,10 +27,7 @@ EOF
   DoTest closestmols.dat.save closestmols.dat
   # Tell diff to ignore the VERSION line
   DoTest closest.tz2.truncoct.parm7.save closest.tz2.truncoct.parm7 -I %VERSION
-fi
 
-MaxThreads 1 "Closest command test using all solvent atoms."
-if [[ $? -eq 0 ]] ; then
   # Test 2 - Closest, all solvent atoms
   cat > closest.in <<EOF
 parm ../tz2.truncoct.parm7

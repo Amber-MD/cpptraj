@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles ac.in ac.agr dist.agr vac.agr
-CheckNetcdf
+TESTNAME='AutoCorr test'
+Requires netcdf
 INPUT="-i ac.in"
 cat > ac.in <<EOF
 parm ../tz2.parm7
@@ -17,7 +18,6 @@ autocorr name AC d1-13 d3-11 d5-9 v1 out ac.agr lagmax 50
 EOF
 RunCpptraj "AutoCorr test."
 DoTest ac.agr.save ac.agr
-CheckTest
 EndTest
 
 exit 0

@@ -4,12 +4,8 @@
 
 CleanFiles cpptraj.in CrdFrcVel.nc Vel.crd Frc.crd Vel1.crd Frc1.crd
 
-NotParallel "Separate velocity/force"
-if [ "$?" -eq 1 ] ; then
-  EndTest
-  exit 0
-fi
-CheckNetcdf
+TESTNAME='Read separate velocity/force trajectory data tests'
+Requires notparallel netcdf
 
 INPUT="-i cpptraj.in"
 

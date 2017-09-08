@@ -4,15 +4,16 @@
 
 CleanFiles ms.in pp2.rst7 hairpin.rst7 dihedrals.dat dihedrals?.dat fromref.rst7 fromref.pdb.1
 INPUT="-i ms.in"
-CheckNetcdf
-MaxThreads 1 "Makestructure test"
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
-fi
+
+TESTNAME='Make structure tests'
+Requires maxthreads 1
+
 # Tests
 MS1() {
-cat > ms.in <<EOF
+  UNITNAME='Basic makestructure test'
+  CheckFor netcdf
+  if [ $? -eq 0 ] ; then
+    cat > ms.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc 1 1
 # Tests SS arg
@@ -31,11 +32,12 @@ multidihedral phi psi resrange 5-7 out dihedrals2.dat
 makestructure chi1:8:N:CA:CB:CG:35
 dihedral chi1 :8@N :8@CA :8@CB :8@CG out dihedrals3.dat
 EOF
-RunCpptraj "Makestructure test."
-DoTest pp2.rst7.save pp2.rst7
-DoTest dihedrals.dat.save dihedrals.dat -a 0.00001
-DoTest dihedrals2.dat.save dihedrals2.dat
-DoTest dihedrals3.dat.save dihedrals3.dat
+    RunCpptraj "$UNITNAME"
+    DoTest pp2.rst7.save pp2.rst7
+    DoTest dihedrals.dat.save dihedrals.dat -a 0.00001
+    DoTest dihedrals2.dat.save dihedrals2.dat
+    DoTest dihedrals3.dat.save dihedrals3.dat
+  fi
 }
 
 Ref() {
@@ -57,6 +59,5 @@ EOF
 MS1
 Ref
 
-CheckTest
 EndTest
 exit 0

@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 CleanFiles crank.in crank.dat results.dat stat.dat
-CheckNetcdf
+TESTNAME='Crankshaft test'
+Requires netcdf
 INPUT="crank.in"
 TOP=../tz2.parm7
 cat > crank.in <<EOF
@@ -12,7 +13,7 @@ dihedral phi3 :2@C :3@N :3@CA :3@C type phi
 analyze crankshaft angle phi2 phi3 info "residue 2-3 phi/phi" out crank.dat results results.dat
 analyze statistics all out stat.dat
 EOF
-RunCpptraj "Crankshaft test"
+RunCpptraj "$TESTNAME"
 DoTest crank.dat.save crank.dat
 DoTest results.dat.save results.dat
 DoTest stat.dat.save stat.dat

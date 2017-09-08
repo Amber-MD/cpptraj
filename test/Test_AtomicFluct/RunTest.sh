@@ -2,8 +2,9 @@
 
 . ../MasterTest.sh
 
-CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat 
-CheckNetcdf
+CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat
+TESTNAME='Atomic fluctuations tests' 
+Requires netcdf
 INPUT="atomic.in"
 TOP="../tz2.parm7"
 

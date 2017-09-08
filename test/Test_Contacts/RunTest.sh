@@ -3,12 +3,9 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in contacts.dat byres.dat byres.dat.native
-CheckNetcdf
-NotParallel "Contacts test."
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
-fi
+TESTNAME='Contacts test'
+Requires netcdf notparallel
+
 TOP="../tz2.truncoct.parm7"
 INPUT="ptraj.in"
 cat > ptraj.in <<EOF
@@ -23,7 +20,6 @@ RunCpptraj "Contacts test."
 DoTest contacts.dat.save contacts.dat
 DoTest byres.dat.save byres.dat
 DoTest byres.dat.native.save byres.dat.native
-CheckTest
 EndTest
 
 exit 0

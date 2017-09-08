@@ -4,8 +4,6 @@
 
 CleanFiles vector.in v6and7.dat
 
-CheckNetcdf
-
 INPUT="-i vector.in"
 # Test read/append of vector dataset 
 cat > vector.in <<EOF

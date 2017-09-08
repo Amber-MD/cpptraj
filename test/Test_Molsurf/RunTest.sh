@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles molsurf.in msurf.dat
-CheckNetcdf
+TESTNAME='Molsurf test'
+Requires netcdf
 # Molsurf test
 cat > molsurf.in <<EOF
 parm ../tz2.parm7
@@ -13,9 +14,8 @@ molsurf PARSE out msurf.dat radii parse
 molsurf VDW   out msurf.dat radii vdw
 EOF
 INPUT="-i molsurf.in"
-RunCpptraj "Molsurf test."
+RunCpptraj "$TESTNAME"
 DoTest msurf.dat.save msurf.dat
-CheckTest
 EndTest
 
 exit 0

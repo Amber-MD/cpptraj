@@ -18,11 +18,12 @@ EOF
 INPUT="-i cpptraj.offset.in"
 RunCpptraj "Normal trajectory read with offsets."
 DoTest rem.crd.save rem.crd.combined 
-CheckTest
 
 # Test 2
-CheckZlib
-cat > cpptraj.offset.in <<EOF
+UNITNAME='Gzipped trajectory read with offsets'
+CheckFor zlib
+if [ $? -eq 0 ] ; then
+  cat > cpptraj.offset.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7
 trajin rem.crd.000.gz 1 10 2 
@@ -31,14 +32,16 @@ trajin rem.crd.002.gz 3 8 2
 trajin rem.crd.003.gz 1 10 5
 trajout gzip.rem.crd.combined 
 EOF
-INPUT="-i cpptraj.offset.in"
-RunCpptraj "Gzipped trajectory read with offsets."
-DoTest rem.crd.save gzip.rem.crd.combined
-CheckTest
+  INPUT="-i cpptraj.offset.in"
+  RunCpptraj "$UNITNAME"
+  DoTest rem.crd.save gzip.rem.crd.combined
+fi
 
 # Test 3
-CheckBzlib
-cat > cpptraj.offset.in <<EOF
+UNITNAME='Bzip2ed trajectory read with offsets'
+CheckFor bzlib
+if [ $? -eq 0 ] ; then
+  cat > cpptraj.offset.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7
 trajin rem.crd.000.bz2 1 10 2 
@@ -47,10 +50,10 @@ trajin rem.crd.002.bz2 3 8 2
 trajin rem.crd.003.bz2 1 10 5
 trajout bzip2.rem.crd.combined 
 EOF
-INPUT="-i cpptraj.offset.in"
-RunCpptraj "Bzip2ed trajectory read with offsets."
-DoTest rem.crd.save bzip2.rem.crd.combined
-CheckTest
+  INPUT="-i cpptraj.offset.in"
+  RunCpptraj "Bzip2ed trajectory read with offsets."
+  DoTest rem.crd.save bzip2.rem.crd.combined
+fi
 
 EndTest
 

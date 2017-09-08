@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles runavg.in running_avg.dat cumulative_avg.dat distances.dat
-CheckNetcdf
+TESTNAME='Analysis Running Average'
+Requires netcdf
 INPUT="runavg.in"
 TOP="../tz2.parm7"
 cat > $INPUT <<EOF
@@ -13,12 +14,9 @@ distance d2 :10 :13 out distances.dat
 analyze runningavg d1 d2 out cumulative_avg.dat cumulative
 analyze runningavg d1 d2 out running_avg.dat window 10
 EOF
-
-#CPPTRAJ=`which ptraj`
-RunCpptraj "Analysis Running Average"
+RunCpptraj "$TESTNAME"
 DoTest running_avg.dat.save running_avg.dat
 DoTest cumulative_avg.dat.save cumulative_avg.dat
-CheckTest
 EndTest
 
 exit 0

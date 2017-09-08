@@ -4,8 +4,8 @@
 
 # Clean
 CleanFiles average.in test.pdb test2.pdb
-
-CheckNetcdf
+TESTNAME='Average test'
+Requires netcdf
 TOP="../tz2.parm7"
 
 # Test 1
@@ -20,8 +20,6 @@ INPUT="average.in"
 RunCpptraj "Average Test."
 DoTest test.pdb.save test.pdb
 DoTest test.pdb.save test2.pdb
-
-CheckTest
 
 EndTest
 

@@ -3,7 +3,10 @@
 . ../MasterTest.sh
 
 CleanFiles proj.in project.dat
-CheckNetcdf
+
+TESTNAME='PC projection test'
+Requires netcdf
+
 TOP=../tz2.parm7
 TRJ=../tz2.nc
 

@@ -4,6 +4,9 @@
 
 CleanFiles temp.in T.dat T2.dat T3.dat
 
+TESTNAME='Temperature tests'
+Requires netcdf
+
 INPUT="-i temp.in"
 cat > temp.in <<EOF
 parm Ala10.99SB.mbondi2.parm7

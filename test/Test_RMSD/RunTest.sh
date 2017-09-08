@@ -7,12 +7,17 @@ CleanFiles rms.in rmsd.dat rms.mass.in rmsd.mass.dat rms.reftraj.in \
            rmsd.reftraj.dat tz2.norotate.crd tz2.rotate.crd rmatrices.dat \
            rmsd.refcoords.dat rms.dat NoMod.dat NoMod.crd.save NoMod.crd
 
-CheckNetcdf
-TOP="../tz2.truncoct.parm7"
+TESTNAME='RMSD tests'
+Requires netcdf
+
 INPUT="rms.in"
 
 # Test rmsd, mass-weighted rmsd, rmsd to reference traj.
-cat > rms.in <<EOF
+UNITNAME='Basic RMSD tests'
+CheckFor maxthreads 10
+if [ $? -eq 0 ] ; then
+  TOP="../tz2.truncoct.parm7"
+  cat > rms.in <<EOF
 noprogress
 trajin ../tz2.truncoct.nc
 
@@ -24,11 +29,12 @@ removedata Res2_11_traj
 loadtraj ../tz2.truncoct.nc name TZ2
 rms Res2_11_traj reftraj TZ2 :2-11 out rmsd.refcoords.dat
 EOF
-RunCpptraj "RMSD Tests."
-DoTest rmsd.dat.save rmsd.dat
-DoTest rmsd.mass.dat.save rmsd.mass.dat
-DoTest rmsd.reftraj.dat.save rmsd.reftraj.dat
-DoTest rmsd.reftraj.dat.save rmsd.refcoords.dat
+  RunCpptraj "$UNITNAME"
+  DoTest rmsd.dat.save rmsd.dat
+  DoTest rmsd.mass.dat.save rmsd.mass.dat
+  DoTest rmsd.reftraj.dat.save rmsd.reftraj.dat
+  DoTest rmsd.reftraj.dat.save rmsd.refcoords.dat
+fi
 
 # Test RMS rotate/norotate, generation of rotation matrices
 TOP=""

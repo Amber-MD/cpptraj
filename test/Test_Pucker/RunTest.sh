@@ -5,6 +5,9 @@
 # Clean
 CleanFiles pucker.in pucker.dat Ptest.in CremerF.dat CremerP.dat
 
+TESTNAME='Pucker tests'
+Requires maxthreads 3
+
 # Test 1
 Nucleic() {
   TOP=../adh026.3.pdb
@@ -23,38 +26,40 @@ EOF
 }
 
 Furanoid() {
-  TOP=""
-  INPUT="-i Ptest.in"
-  cat > Ptest.in <<EOF
+  UNITNAME='5-member ring pucker, Cremer & Pople Furanoid test'
+  CheckFor maxthreads 1
+  if [ $? -eq 0 ] ; then
+    TOP=""
+    INPUT="-i Ptest.in"
+    cat > Ptest.in <<EOF
 parm Furanoid.mol2
 trajin Furanoid.mol2
 pucker Furanoid @C2 @C3 @C4 @C5 @O2 cremer out CremerF.dat amplitude range360
 EOF
-  RunCpptraj "5-member ring pucker, Cremer & Pople Furanoid test."
-  DoTest CremerF.dat.save CremerF.dat
+    RunCpptraj "$UNITNAME"
+    DoTest CremerF.dat.save CremerF.dat
+  fi
 }
 
 Pyranoid() {
-  TOP=""
-  INPUT="-i Ptest.in"
-  cat > Ptest.in <<EOF
+  UNITNAME='6-member ring pucker, Cremer & Pople Pyranoid test'
+  CheckFor maxthreads 1
+  if [ $? -eq 0 ] ; then
+    TOP=""
+    INPUT="-i Ptest.in"
+    cat > Ptest.in <<EOF
 parm Pyranoid.mol2
 trajin Pyranoid.mol2
 pucker Pyranoid @C1 @C2 @C3 @C4 @C5 @O5 cremer out CremerP.dat amplitude theta range360
 EOF
-  RunCpptraj "6-member ring pucker, Cremer & Pople Pyranoid test."
-  DoTest CremerP.dat.save CremerP.dat
+    RunCpptraj "6-member ring pucker, Cremer & Pople Pyranoid test."
+    DoTest CremerP.dat.save CremerP.dat
+  fi
 }
 
-MaxThreads 3 "Pucker command test"
-if [[ $? -eq 0 ]] ; then
-  Nucleic
-fi
-MaxThreads 1 "Pyranoid/furanoid pucker tests."
-if [[ $? -eq 0 ]] ; then
-  Furanoid
-  Pyranoid
-fi
+Nucleic
+Furanoid
+Pyranoid
 
 EndTest
 

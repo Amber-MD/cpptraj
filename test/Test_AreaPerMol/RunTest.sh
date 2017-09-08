@@ -6,9 +6,9 @@ CleanFiles apm.in apm.dat box.dat areaxy.dat mask.dat mask2.dat \
            xz.dat areaxz.dat yz.dat areayz.dat
 
 INPUT='-i apm.in'
-MaxThreads 1 "Area per molecule test."
-if [ $? -eq 0 ] ; then
-  cat > apm.in <<EOF
+TESTNAME='Area per molecule test'
+Requires maxthreads 1
+cat > apm.in <<EOF
 parm ../DOPC.parm7
 trajin ../DOPC.rst7
 areapermol DOPC1 nmols 36 out apm.dat noheader
@@ -31,14 +31,13 @@ areayz = areayz / 36
 writedata areayz.dat areayz noheader
 quit
 EOF
-  RunCpptraj "Area per molecule test."
-  DoTest apm.dat.save apm.dat
-  DoTest apm.dat.save areaxy.dat
-  DoTest apm.dat.save mask.dat
-  DoTest apm.dat.save mask2.dat
-  DoTest areaxz.dat xz.dat
-  DoTest areayz.dat yz.dat
-fi
+RunCpptraj "$TESTNAME"
+DoTest apm.dat.save apm.dat
+DoTest apm.dat.save areaxy.dat
+DoTest apm.dat.save mask.dat
+DoTest apm.dat.save mask2.dat
+DoTest areaxz.dat xz.dat
+DoTest areayz.dat yz.dat
 
 EndTest
 exit 0

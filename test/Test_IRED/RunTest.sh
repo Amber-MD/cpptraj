@@ -6,7 +6,8 @@
 CleanFiles orderparam ired.vec noe v0.cjt v0.cmt ired.in v0 plateau.norm.dat cjt?.dat \
            matrix_ds2.dat
 
-CheckPtrajAnalyze
+TESTNAME='IRED vector/matrix test'
+Requires mathlib
 
 TOP="1IEE_A_prot.prmtop"
 INPUT="ired.in"
@@ -41,7 +42,7 @@ run
 writedata cjt1.dat MyIred[Cj(t)]:0 
 EOF
 
-RunCpptraj "IRED vector/matrix test"
+RunCpptraj "$TESTNAME"
 DoTest ired.vec.save ired.vec
 DoTest v0.cmt.new.norm.save v0.cmt
 DoTest plateau.norm.dat.save plateau.norm.dat
@@ -52,7 +53,6 @@ DoTest noe.save noe
 
 #DoTest v0.cjt.save v0.cjt
 #DoTest v0.cmt.save v0.cmt
-CheckTest
 EndTest
 
 exit 0

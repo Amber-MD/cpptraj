@@ -3,7 +3,10 @@
 . ../MasterTest.sh
 
 CleanFiles radial.in Radial.agr cRadial.agr WatO-Trp4.agr WatO-Trp4.raw.agr
-CheckNetcdf
+
+TESTNAME='Radial test'
+Requires netcdf maxthreads 10
+
 cat > radial.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 10
@@ -15,7 +18,7 @@ radial WatO-Trp4.agr 0.5 10.0 :WAT@O :4&!@C,O,CA,HA,N,H center2 \
 EOF
 
 INPUT="-i radial.in"
-RunCpptraj "Radial Test"
+RunCpptraj "$TESTNAME"
 DoTest Radial.agr.save Radial.agr
 DoTest cRadial.agr.save cRadial.agr
 DoTest WatO-Trp4.agr.save WatO-Trp4.agr

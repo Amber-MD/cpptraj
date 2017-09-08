@@ -9,7 +9,9 @@ CleanFiles mremd.in Strip.sorted.crd.? rmsd.dat rmsd.dat.? all.rmsd.dat \
            RA.dat RA.dat.? all.RA.dat
 
 INPUT="-i mremd.in"
-CheckNetcdf
+TESTNAME='M-REMD ensemble tests'
+Requires netcdf nthreads 8
+
 # Test M-REMD traj sorting
 TrajSort() {
   cat > mremd.in <<EOF
@@ -23,7 +25,6 @@ EOF
   for ((i=0; i < 8; i++)) ; do
     DoTest Strip.sorted.crd.$i.save Strip.sorted.crd.$i
   done
-  
 }
 
 # Test M-REMD traj sort, actions 
@@ -39,7 +40,7 @@ rms R1-4NoH first :1-4&!@H= mass out rmsd.dat
 average avg.rst7 :1-4
 EOF
   RunCpptraj "M-REMD actions test."
-  if [[ -z $DO_PARALLEL ]] ; then
+  if [ -z "$DO_PARALLEL" ] ; then
     DoTest rmsd.dat.save rmsd.dat
     DoTest nhbond.dat.save nhbond.dat
     DoTest hbavg.dat.save hbavg.dat
@@ -62,7 +63,7 @@ runavg window 3
 rms RA first :1-4&!@H= out RA.dat
 EOF
   RunCpptraj "M-REMD no sort, running average test"
-  if [[ -z $DO_PARALLEL ]] ; then
+  if [ -z "$DO_PARALLEL" ] ; then
     DoTest RA.dat.save RA.dat
   else
     cat RA.dat.? > all.RA.dat && DoTest all.RA.dat.save all.RA.dat
@@ -87,13 +88,10 @@ EOF
   DoTest Outtraj.crd.1.save Outtraj.crd.1
 }
 
-RequiresThreads 8 "M-REMD ensemble tests"
-if [[ $? -eq 0 ]] ; then
-  TrajSort
-  ActionsTest
-  OuttrajTest
-  RunAvgTest
-fi
+TrajSort
+ActionsTest
+OuttrajTest
+RunAvgTest
 
 EndTest
 exit 0
