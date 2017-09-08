@@ -828,6 +828,8 @@ SkipCheck() {
 }
 
 # TestLibrary() <name> <env. var>
+#   Test for presence of cpptraj capability by given environment var, set by
+#   CheckDefines.
 TestLibrary() {
   if [ -z "$2" ] ; then
     echo "  $TESTNAME requires $1."
@@ -836,15 +838,16 @@ TestLibrary() {
   fi
 }
 
+# CheckEnv() <list>
 CheckEnv() {
   echo "DEBUG: CheckEnv() $*"
-  if [ -z "$TESTNAME" ] ; then
-    echo "Warning: CheckEnv() called with TESTNAME unset." > /dev/stderr
-    TESTNAME='THIS TEST'
+  if [ -z "$DESCRIP" ] ; then
+    echo "Warning: CheckEnv() called with TESTNAME/UNITNAME unset." > /dev/stderr
+    DESCRIP='THIS TEST'
   fi
   CHECKERR=0
   while [ ! -z "$1" ] ; do
-    echo "DEBUG: $TESTNAME: Checking requirement: $1"
+    echo "DEBUG: $DESCRIP: Checking requirement: $1"
     case "$1" in
       'netcdf'    ) TestLibrary "NetCDF"             "$CPPTRAJ_NETCDFLIB" ;;
       'zlib'      ) TestLibrary "Zlib"               "$CPPTRAJ_ZLIB" ;;
@@ -857,18 +860,58 @@ CheckEnv() {
           TestLibrary "Parallel NetCDF" "$CPPTRAJ_PNETCDFLIB"
         fi
         ;;
+      'notparallel' )
+        if [ ! -z "$DO_PARALLEL" ] ; then
+          echo "  $DESCRIP cannot be run in parallel."
+          ((CHECKERR++))
+        fi
+        ;;
+      'maxthreads' )
+        shift
+        if [ ! -z "$DO_PARALLEL" ] ; then
+          if [ $N_THREADS -gt $1 ] ; then
+            echo "  $DESCRIP can only run with $1 or fewer parallel threads."
+            ((CHECKERR++))
+          fi
+        fi
+        ;;
+      'nthreads' )
+        shift
+        if [ ! -z "$DO_PARALLEL" ] ; then
+          REMAINDER=`echo "$N_THREADS % $1" | bc`
+          if [ -z "$REMAINDER" -o $REMAINDER -ne 0 ] ; then
+            echo "  $DESCRIP requires a multiple of $1 parallel threads."
+            ((CHECKERR++))
+          fi
+        fi
+        ;;
       * ) echo "Error: Unknown CheckEnv() option: $1" > /dev/stderr ; exit 1 ;;
     esac
     shift
   done
 }
 
+# Requires() <list>
 Requires() {
+  DESCRIP=$TESTNAME
   CheckEnv $*
   if [ "$CHECKERR" -ne 0 ] ; then
     SkipTest "$TESTNAME"
   fi
 }
+
+# CheckFor() <list>
+# \return 1 if unit should be skipped, 0 otherwise.
+CheckFor() {
+  DESCRIP=$UNITNAME
+  CheckEnv $*
+  if [ "$CHECKERR" -ne 0 ] ; then
+    SkipCheck "$UNITNAME"
+    return 1
+  fi
+  return 0
+}
+
 
 CheckZlib() {
   if [ -z "$CPPTRAJ_ZLIB" ] ; then
