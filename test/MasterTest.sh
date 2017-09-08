@@ -850,7 +850,6 @@ CheckEnv() {
   if [ -z "$DESCRIP" ] ; then
     echo "Warning: CheckEnv() called with TESTNAME/UNITNAME unset." > /dev/stderr
     exit 1
-    DESCRIP='THIS TEST'
   fi
   CHECKERR=0
   while [ ! -z "$1" ] ; do

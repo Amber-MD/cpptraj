@@ -33,7 +33,7 @@ RunCpptraj "CRD Replica Trajectory Run"
 DoTest d1.crd.dat.save d1.crd.dat
 
 # Test 2
-UNITNAME='NETCDF Replica Trajectory Run test'
+UNITNAME='NetCDF Replica Trajectory Run test'
 CheckFor netcdf
 if [ $? -eq 0 ] ; then
   cat > remd.in <<EOF

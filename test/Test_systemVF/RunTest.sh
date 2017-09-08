@@ -12,7 +12,7 @@ trajin systemVF.nc
 trajout test.systemVF.nc netcdf 
 EOF
 INPUT="-i systemVF.in"
-RunCpptraj "Amber Netcdf with Velocity/Force test"
+RunCpptraj "$TESTNAME"
 NcTest systemVF.nc test.systemVF.nc
 EndTest
 exit 0
