@@ -34,11 +34,6 @@ dihedralinfo @N @CA @CB @%H1 out dihedrals.dat
 mass out masscharge.dat
 charge out masscharge.dat
 
-reference ../tz2.nc 50
-bonds @10 out values.dat reference
-angles @10 out values.dat reference
-dihedrals @10 out values.dat reference
-
 parm ../dna30.parm7
 molinfo !:WAT 1
 molinfo !:WAT out molecules.dat 1
@@ -54,8 +49,21 @@ DoTest angles.dat.save angles.dat
 DoTest dihedrals.dat.save dihedrals.dat
 DoTest masscharge.dat.save masscharge.dat
 DoTest molecules.dat.save molecules.dat
-DoTest values.dat.save values.dat
 DoTest molshort.dat.save molshort.dat
+
+UNITNAME='Topology info with reference coords test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > info.in <<EOF
+parm ../tz2.parm7
+reference ../tz2.nc 50
+bonds @10 out values.dat reference
+angles @10 out values.dat reference
+dihedrals @10 out values.dat reference
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest values.dat.save values.dat
+fi
 
 EndTest
 exit 0

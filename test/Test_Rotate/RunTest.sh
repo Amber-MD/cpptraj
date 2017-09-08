@@ -22,7 +22,7 @@ DoTest fromMatrices.crd.save fromMatrices.crd
 DoTest ../Test_RMSD/tz2.norotate.crd.save inverse.crd
 
 UNITNAME='Rotate with defined axis'
-CheckFor maxthreads 1
+CheckFor netcdf maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > rotate.in <<EOF
 parm ../FtuFabI.NAD.TCL.parm7
