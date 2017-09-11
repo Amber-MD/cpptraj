@@ -73,7 +73,9 @@ DoTest r4.dat.save r4.dat
 # NOTE: a2.dat.gz comparison allowed to fail on windows; differences caused
 #       by different newline characters in compressed file. Macs also seem to
 #       occasionally fail this test, even though decompressed diffs are the same
-if [ "$CPPTRAJ_TEST_OS" = 'Linux' ] ; then
+UNITNAME='Gzipped output data file comparison'
+CheckFor testos Linux
+if [ $? -eq 0 ] ; then
   DoTest a2.dat.gz.save a2.dat.gz
 fi
 DoTest a3.dat.bz2.save a3.dat.bz2

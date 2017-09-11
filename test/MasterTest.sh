@@ -856,6 +856,7 @@ TestLibrary() {
 # amberhome      : Test requires AMBERHOME set
 # ambpdb         : Test requires ambpdb
 # zcat           : Test requires zcat binary
+# testos <os>    : Test requires specific OS
 CheckEnv() {
   #echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
@@ -917,6 +918,13 @@ CheckEnv() {
         'zcat' )
           if [ -z "`which zcat`" ] ; then
             echo "  $DESCRIP requires zcat."
+            ((CHECKERR++))
+          fi
+          ;;
+        'testos' )
+          shift
+          if [ "$CPPTRAJ_TEST_OS" != $1 ] ; then
+            echo "  $DESCRIP requires $1 OS."
             ((CHECKERR++))
           fi
           ;;
