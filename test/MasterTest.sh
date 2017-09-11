@@ -857,6 +857,7 @@ TestLibrary() {
 # ambpdb         : Test requires ambpdb
 # zcat           : Test requires zcat binary
 # testos <os>    : Test requires specific OS
+# file <file>    : Test requires specified file
 CheckEnv() {
   #echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
@@ -925,6 +926,13 @@ CheckEnv() {
           shift
           if [ "$CPPTRAJ_TEST_OS" != $1 ] ; then
             echo "  $DESCRIP requires $1 OS."
+            ((CHECKERR++))
+          fi
+          ;;
+        'file' )
+          shift
+          if [ ! -f "$1" ] ; then
+            echo "  $DESCRIP requires file $1"
             ((CHECKERR++))
           fi
           ;;
