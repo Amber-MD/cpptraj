@@ -579,6 +579,7 @@ CmdLineOpts() {
       "vg"        ) VGMODE=1 ;;
       "vgh"       ) VGMODE=2 ;;
       "time"      ) GET_TIMING=1 ;;
+      "timing"    ) GET_TIMING=2 ;;
       "-d"        ) CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug 4" ;;
       "-debug"    ) shift ; CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug $1" ;;
       "-nodacdif" ) USE_DACDIF=0 ;;
@@ -763,7 +764,7 @@ SetBinaries() {
     fi
   fi
   # Determine timing if necessary
-  if [ $GET_TIMING -eq 1 ] ; then
+  if [ $GET_TIMING -gt 0 ] ; then
     Required "time"
     export CPPTRAJ_TIME=`which time`
   fi
@@ -1101,12 +1102,26 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
   #echo "DEBUG: Executing multiple tests."
   if [ ! -z "$TEST_DIRS" ] ; then
     #echo "DEBUG: Running tests in specified directories."
-    for DIR in $TEST_DIRS ; do
-      cd $CPPTRAJ_TEST_ROOT/$DIR && ./RunTest.sh
-      if [ $EXIT_ON_ERROR -ne 0 -a $? -ne 0 ] ; then
-        break
+    if [ $GET_TIMING -eq 2 ] ; then
+      TIMING_FILE="$CPPTRAJ_TEST_ROOT/Timing.dat"
+      if [ -f "$TIMING_FILE" ] ; then
+        $CPPTRAJ_RM $TIMING_FILE
       fi
-    done
+      for DIR in $TEST_DIRS ; do
+        cd $CPPTRAJ_TEST_ROOT/$DIR
+        $CPPTRAJ_TIME -f "%e" -o testtime ./RunTest.sh
+        printf "%.2f %s\n" `cat testtime` $DIR >> $TIMING_FILE 
+        $CPPTRAJ_RM testtime
+      done
+      echo "Test timing data written to $TIMING_FILE"
+    else
+      for DIR in $TEST_DIRS ; do
+        cd $CPPTRAJ_TEST_ROOT/$DIR && ./RunTest.sh
+        if [ $EXIT_ON_ERROR -ne 0 -a $? -ne 0 ] ; then
+          break
+        fi
+      done
+    fi
     if [ $SUMMARY -ne 0 ] ; then
       cd $CPPTRAJ_TEST_ROOT
       Summary
