@@ -851,8 +851,10 @@ TestLibrary() {
 # sanderlib      : SANDER API support
 # pnetcdf        : Parallel NetCDF support
 # notparallel    : Test should not be run in parallel
+# parallel       : Test should only be run in parallel
 # maxthreads <#> : Test should not be run with more than <#> MPI threads
 # nthreads <#>   : Test requires multiples of <#> MPI threads in parallel
+# threads <#>    : Test requires exactly <#> threads in parallel.
 # amberhome      : Test requires AMBERHOME set
 # ambpdb         : Test requires ambpdb
 # zcat           : Test requires zcat binary
@@ -885,6 +887,12 @@ CheckEnv() {
           ((CHECKERR++))
         fi
         ;;
+      'parallel' )
+        if [ -z "$DO_PARALLEL" ] ; then
+          echo "  $DESCRIP must be run in parallel."
+          ((CHECKERR++))
+        fi
+        ;;
       'maxthreads' )
         shift
         if [ ! -z "$DO_PARALLEL" ] ; then
@@ -900,6 +908,15 @@ CheckEnv() {
           REMAINDER=`echo "$N_THREADS % $1" | bc`
           if [ -z "$REMAINDER" -o $REMAINDER -ne 0 ] ; then
             echo "  $DESCRIP requires a multiple of $1 parallel threads."
+            ((CHECKERR++))
+          fi
+        fi
+        ;;
+      'threads' )
+        shift
+        if [ ! -z "$DO_PARALLEL" ] ; then
+          if [ $N_THREADS -ne $1 ] ; then
+            echo "  $DESCRIP requires exactly $1 parallel threads."
             ((CHECKERR++))
           fi
         fi
