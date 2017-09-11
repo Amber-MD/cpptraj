@@ -997,6 +997,10 @@ CheckMathlib() {
   Disabled
 }
 
+CheckPtrajAnalyze() {
+  Disabled
+}
+
 RequiresMathlib() {
   Disabled
 }
