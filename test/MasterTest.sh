@@ -1133,12 +1133,23 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
         $CPPTRAJ_RM testtime
       done
       echo "Test timing data written to $TIMING_FILE"
+    elif [ $EXIT_ON_ERROR -ne 0 ] ; then
+      TEST_OK_FILE=$CPPTRAJ_TEST_ROOT/OK
+      if [ ! -f "$TEST_OK_FILE" ] ; then
+        touch $TEST_OK_FILE
+      fi
+      for DIR in $TEST_DIRS ; do
+        if [ -z "`grep $DIR $TEST_OK_FILE`" ] ; then
+          cd $CPPTRAJ_TEST_ROOT/$DIR && ./RunTest.sh
+          if [ $EXIT_ON_ERROR -ne 0 -a $? -ne 0 ] ; then
+            break
+          fi
+          echo "$DIR" >> $TEST_OK_FILE
+        fi
+      done
     else
       for DIR in $TEST_DIRS ; do
         cd $CPPTRAJ_TEST_ROOT/$DIR && ./RunTest.sh
-        if [ $EXIT_ON_ERROR -ne 0 -a $? -ne 0 ] ; then
-          break
-        fi
       done
     fi
     if [ $SUMMARY -ne 0 ] ; then
