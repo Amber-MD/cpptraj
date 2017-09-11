@@ -58,7 +58,7 @@ TARGET=""                # Make target if multiple tests being run
 STANDALONE=1             # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 TEST_DIRS=''             # Specific test directories to run.
 TEST_SKIPPED=0           # If 1 this test has been skipped via SkipTest.
-EXIT_ON_ERROR=0          # (Debug) If 1 exit when a specified test fails.
+EXIT_ON_ERROR=1          # (Debug) If 1 exit when a specified test fails.
 # ----- Variables local to single test ---------------------
 TEST_WORKDIR=''          # Test working directory
 NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
@@ -855,6 +855,7 @@ TestLibrary() {
 # nthreads <#>   : Test requires multiples of <#> MPI threads in parallel
 # amberhome      : Test requires AMBERHOME set
 # ambpdb         : Test requires ambpdb
+# zcat           : Test requires zcat binary
 CheckEnv() {
   #echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
@@ -913,6 +914,12 @@ CheckEnv() {
           ((CHECKERR++))
         fi
         ;;
+        'zcat' )
+          if [ -z "`which zcat`" ] ; then
+            echo "  $DESCRIP requires zcat."
+            ((CHECKERR++))
+          fi
+          ;;
       * ) echo "Error: Unknown CheckEnv() option: $1" > /dev/stderr ; exit 1 ;;
     esac
     shift
