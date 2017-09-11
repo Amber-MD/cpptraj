@@ -860,6 +860,7 @@ TestLibrary() {
 # zcat           : Test requires zcat binary
 # testos <os>    : Test requires specific OS
 # file <file>    : Test requires specified file
+# openmp         : Test requires openmp
 CheckEnv() {
   #echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
@@ -876,6 +877,7 @@ CheckEnv() {
       'xdr'       ) TestLibrary "XDR file"           "$CPPTRAJ_XDRFILE" ;;
       'mathlib'   ) TestLibrary "BLAS/LAPACK/ARPACK" "$CPPTRAJ_MATHLIB" ;;
       'sanderlib' ) TestLibrary "SANDER API from AmberTools" "$CPPTRAJ_SANDERLIB" ;;
+      'openmp'    ) TestLibrary "OpenMP"             "$CPPTRAJ_OPENMP" ;;
       'pnetcdf'   )
         if [ ! -z "$DO_PARALLEL" ] ; then
           TestLibrary "Parallel NetCDF" "$CPPTRAJ_PNETCDFLIB"
@@ -1059,6 +1061,10 @@ MaxThreads() {
 }
 
 RequiresMaxThreads() {
+  Disabled
+}
+
+RequiresThreads() {
   Disabled
 }
 
