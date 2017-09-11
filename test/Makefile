@@ -612,7 +612,7 @@ test.showerrors:
 	$(MAKE) test.complete summary OPT="$(OPT) showerrors"
 
 test.short:
-	$(MAKE) test.shorttests summary
+	@./CpptrajTest.sh --target test.shorttests $(OPT)
 
 test.shorttests: $(SHORT_TESTS)
 
