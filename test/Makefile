@@ -1,4 +1,5 @@
 # Test makefile for cpptraj
+test: test.all 
 
 test.general:
 	@-cd Test_General && ./RunTest.sh $(OPT)
@@ -370,102 +371,7 @@ test.remlog:
 test.areapermol:
 	@-cd Test_AreaPerMol && ./RunTest.sh $(OPT)
 
-# Only non-time-consuming tests should go here.
-SHORT_TESTS=test.general \
-          test.strip \
-          test.brokentraj \
-          test.trajinoffset \
-          test.remdnetcdf \
-          test.framerange \
-          test.perres \
-          test.dssp \
-          test.hbond \
-          test.ncrestart \
-          test.image \
-          test.surf \
-          test.radgyr \
-          test.mask \
-          test.outtraj \
-          test.charmm \
-          test.rotdif \
-          test.runavg \
-          test.2drms \
-          test.mol2 \
-          test.nastruct \
-          test.average \
-          test.pucker \
-          test.atommap \
-          test.datafile \
-          test.radial \
-          test.hist \
-          test.closest \
-          test.drmsd \
-          test.cluster \
-          test.checkstructure \
-          test.rmsavgcorr \
-          test.vector \
-          test.atomicfluct \
-          test.grid \
-          test.watershell \
-          test.analrunavg \
-          test.density \
-          test.lipidorder \
-          test.pairdist \
-          test.readdata \
-          test.ambpdb \
-          test.systemVF \
-          test.atomiccorr \
-          test.autocorr \
-          test.box \
-          test.atomtypeselect \
-          test.avgref \
-          test.crankstat \
-          test.createcrd \
-          test.autoimage \
-          test.loadcrd \
-          test.multivector \
-          test.lifetime \
-          test.fft \
-          test.timecorr \
-          test.crosscorr \
-          test.symmrmsd \
-          test.multidihedral \
-          test.makestructure \
-          test.rotate \
-          test.integrate \
-          test.nativecontacts \
-          test.checkchirality \
-          test.energy \
-          test.permutedih \
-          test.ccp4 \
-          test.curvefit \
-          test.datasetavg \
-          test.vectormath \
-          test.temperature \
-          test.spline \
-          test.kde \
-          test.wavelet \
-          test.cif \
-          test.pdb \
-          test.align \
-          test.velocityautocorr \
-          test.velfrc \
-          test.rotatedihedral \
-          test.dataset \
-          test.remap \
-          test.comparetop \
-          test.filter \
-          test.combinecrd \
-          test.topinfo \
-          test.ti \
-          test.fiximagedbonds \
-          test.distance \
-          test.volume \
-          test.setvelocity \
-          test.remlog \
-          test.areapermol
-
-# Every test should go here.
+# Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
               test.brokentraj \
@@ -586,8 +492,6 @@ COMPLETETESTS=test.general \
               test.remlog \
               test.areapermol
 
-test: test.all 
-
 test.all:
 	$(MAKE) test.complete summary
 
@@ -610,11 +514,6 @@ test.cpptraj: $(COMPLETETESTS)
 
 test.showerrors:
 	$(MAKE) test.complete summary OPT="$(OPT) showerrors"
-
-test.short:
-	@./CpptrajTest.sh --target test.shorttests $(OPT)
-
-test.shorttests: $(SHORT_TESTS)
 
 summary: CpptrajTest.sh MasterTest.sh
 	@./CpptrajTest.sh summary $(OPT)
