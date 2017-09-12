@@ -488,7 +488,7 @@ EndTest() {
   if [ $EXIT_ON_ERROR -eq 1 ] ; then
     if [ $PROGERROR -ne 0 -o $ERRCOUNT -ne 0 ] ; then
       exit 1
-    elif [ $SKIPCOUNT -eq 0 -a $TEST_SKIPPED -eq 0 ] ; then
+    elif [ $NUM_COMPARISONS -eq 0 -a $TEST_SKIPPED -eq 0 ] ; then
       echo "Error: Zero comparisons and test not skipped." > /dev/stderr
      exit 1
     fi
@@ -867,6 +867,7 @@ TestLibrary() {
 # file <file>    : Test requires specified file
 # openmp         : Test requires openmp
 # singleensemble : Single NetCDF ensemble file support.
+# disabled       : Test is disabled, just count as skipped.
 CheckEnv() {
   #echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
@@ -961,6 +962,10 @@ CheckEnv() {
             echo "  $DESCRIP requires file $1"
             ((CHECKERR++))
           fi
+          ;;
+        'disabled' )
+          echo "  $DESCRIP is disabled."
+          ((CHECKERR++))
           ;;
       * ) echo "Error: Unknown CheckEnv() option: $1" > /dev/stderr ; exit 1 ;;
     esac
