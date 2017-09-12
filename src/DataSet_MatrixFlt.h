@@ -34,6 +34,7 @@ class DataSet_MatrixFlt : public DataSet_2D {
     typedef Matrix<float>::iterator iterator;
     iterator begin()                           { return mat_.begin();       }
     iterator end()                             { return mat_.end();         }
+    size_t SizeInBytes()                       { return mat_.sizeInBytes(Ncols(), Nrows()); }
   private:
     Matrix<float> mat_;
     MatrixKindType kind_;

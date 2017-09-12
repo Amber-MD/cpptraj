@@ -5,6 +5,7 @@
 #include "DataSet_GridFlt.h"
 #include "DataSet_GridDbl.h"
 #include "ProgressBar.h"
+#include "StringRoutines.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -271,10 +272,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (numthreads > 1)
       mprintf("\tParallelizing energy calculation with %i threads.\n", numthreads);
   }
-  if (doEij_)
+  if (doEij_) {
     mprintf("\tComputing and printing water-water Eij matrix, output to '%s'\n",
             eijfile_->Filename().full());
-  else
+    mprintf("\tWater-water Eij matrix size is %s\n",
+            ByteString(ww_Eij_->SizeInBytes(), BYTE_DECIMAL).c_str());
+  } else
     mprintf("\tSkipping water-water Eij matrix.\n");
   mprintf("\tWater reference density: %6.4f\n", BULK_DENS_); // TODO units
   mprintf("\tSimulation temperature: %6.4f K\n", temperature_);
