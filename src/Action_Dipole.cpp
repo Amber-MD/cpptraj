@@ -151,7 +151,7 @@ Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
     // Grid COM
     COM /= total_mass;
     COM -= cXYZ;
-    int ix, jy, kz;
+    size_t ix, jy, kz;
     //mprintf("CDBG: Solvent %i XYZ %8.3f %8.3f %8.3f\n",solvmol-CurrentParm_->MolStart(),COM[0],COM[1],COM[2]);
     if (grid_->CalcBins( COM[0], COM[1], COM[2], ix, jy, kz )) {
       // Point COM is inside the grid. Increment grid and grid the dipole.

@@ -22,23 +22,24 @@ template <class T> class Grid {
     /// \return Size of Z dimension.
     size_t NZ() const { return nz_; }
     /// Increment grid point by given value.
-    long int incrementBy(int,int,int, const T&);
+    long int incrementBy(size_t, size_t, size_t, const T&);
     /// Set grid point to value.
-    void setGrid(int,int,int, const T&);
+    void setGrid(size_t, size_t, size_t, const T&);
     /// \return element at a specified grid point.
-    const T& element(int,int,int) const;
+    const T& element(size_t, size_t, size_t) const;
     /// Convert X, Y, and Z bin #s to index.
-    long int CalcIndex(int x, int y, int z) const { 
-      return (long int)(x*(int)(ny_*nz_))+(y*(int)nz_)+z;
+    long int CalcIndex(size_t x, size_t y, size_t z) const { 
+      return (long int)(x*(ny_*nz_))+(y*nz_)+z;
     }
     // NOTE: This way of calculating overall index is consistent with
     //       how Matrix index is calcd but not used for backwards compat.
-    //long int CalcIndex(int x, int y, int z) const { return (z*nx_*ny_)+(y*nx_)+x; }
+    //long int CalcIndex(size_t x, size_t y, size_t z) const { return (z*nx_*ny_)+(y*nx_)+x; }
     /// Convert linear index to X, Y, and Z bin indices.
-    void ReverseIndex(long int idx, int& x, int& y, int& z) const {
-      x = idx / (ny_*nz_);
-      y = (idx / nz_) % ny_;
-      z = idx % nz_;
+    void ReverseIndex(long int idx, size_t& x, size_t& y, size_t& z) const {
+      //TODO check negative index?
+      x = (size_t)idx / (ny_*nz_);
+      y = ((size_t)idx / nz_) % ny_;
+      z = (size_t)idx % nz_;
     }
     /// Iterator over grid elements.
     typedef ArrayIterator<T> iterator;
@@ -93,23 +94,24 @@ template <class T> int Grid<T>::resize(size_t x, size_t y, size_t z) {
   nelements_ = nx_ * ny_ * nz_;
   if (nelements_ > 0L) {
     grid_ = new T[ nelements_ ];
+    if (grid_ == 0) return 1;
     std::fill( grid_, grid_ + nelements_, T() );
   }
   return 0;
 }
 // Grid::incrementBy()
 /** \return Index of underlying bin incremented. */
-template <class T> long int Grid<T>::incrementBy(int x, int y, int z, const T& eltIn) {
+template <class T> long int Grid<T>::incrementBy(size_t x, size_t y, size_t z, const T& eltIn) {
   long int idx = CalcIndex(x,y,z);
   grid_[idx] += eltIn;
   return idx;
 }
 // Grid::setGrid()
-template <class T> void Grid<T>::setGrid(int x, int y, int z, const T& eltIn) {
+template <class T> void Grid<T>::setGrid(size_t x, size_t y, size_t z, const T& eltIn) {
   grid_[CalcIndex(x,y,z)] = eltIn;
 }
 // Grid::element()
-template <class T> const T& Grid<T>::element(int x, int y, int z) const {
+template <class T> const T& Grid<T>::element(size_t x, size_t y, size_t z) const {
   return grid_[CalcIndex(x,y,z)];
 }
 #endif

@@ -642,7 +642,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   // TODO only !skipE?
   N_ON_GRID_ = 0;
 
-  int bin_i, bin_j, bin_k;
+  size_t bin_i, bin_j, bin_k;
   Vec3 const& Origin = gO_->GridOrigin();
   // Loop over each solvent molecule
   for (unsigned int sidx = 0; sidx < NSOLVENT_; sidx++)
@@ -1142,7 +1142,7 @@ void Action_GIST::Print() {
     ProgressBar O_progress( MAX_GRID_PT_ );
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       O_progress.Update( gr_pt );
-      int i, j, k;
+      size_t i, j, k;
       gO_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = gO_->BinCenter( i, j, k );
       datafile_->Printf("%d %g %g %g %d %g %g %g %g %g %g %g"
