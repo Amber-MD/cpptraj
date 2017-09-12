@@ -182,8 +182,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
 
-  if (ww_Eij_ != 0)
-    ww_Eij_->AllocateTriangle( MAX_GRID_PT_ );
+  if (ww_Eij_ != 0) {
+    if (ww_Eij_->AllocateTriangle( MAX_GRID_PT_ )) {
+      mprinterr("Error: Could not allocate memory for water-water Eij matrix.\n");
+      return Action::ERR;
+    }
+  }
 
   // Add sets to files
   file_gO->AddDataSet( gO_ );

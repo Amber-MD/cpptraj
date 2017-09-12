@@ -197,6 +197,7 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
     if (nelements_ > maxElements_) {
       if (elements_ != 0) delete[] elements_;
       elements_ = new T[ nelements_ ];
+      if (elements_ == 0) return 1;
       maxElements_ = nelements_;
     }
     std::fill(elements_, elements_ + nelements_, T());
