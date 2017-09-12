@@ -489,9 +489,9 @@ EndTest() {
   if [ $EXIT_ON_ERROR -eq 1 ] ; then
     if [ $PROGERROR -ne 0 -o $ERRCOUNT -ne 0 ] ; then
       exit 1
-    elif [ $NUM_COMPARISONS -eq 0 -a $TEST_SKIPPED -eq 0 ] ; then
+    elif [ $NUMCOMPARISONS -eq 0 -a $TEST_SKIPPED -eq 0 ] ; then
       echo "Error: Zero comparisons and test not skipped." > /dev/stderr
-     exit 1
+      exit 1
     fi
   fi
 }
