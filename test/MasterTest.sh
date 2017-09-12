@@ -41,6 +41,7 @@
 #   CPPTRAJ_OPENMP       : If set CPPTRAJ has OpenMP support.
 #   CPPTRAJ_PNETCDFLIB   : If set CPPTRAJ has parallel NetCDF support.
 #   CPPTRAJ_SANDERLIB    : If set CPPTRAJ was compiled with the sander API from AT.
+#   CPPTRAJ_FFTW_FFT     : If set CPPTRAJ was compiled with fftw
 #   CPPTRAJ_CUDA         : If set CPPTRAJ has CUDA support.
 #   CPPTRAJ_XDRFILE      : If set CPPTRAJ has XDR file support.
 #   CPPTRAJ_SINGLE_ENS   : If set CPPTRAJ has single ensemble support.
@@ -661,6 +662,7 @@ CheckDefines() {
       '-D_OPENMP'       ) export CPPTRAJ_OPENMP=$DEFINE ;;
       '-DHAS_PNETCDF'   ) export CPPTRAJ_PNETCDFLIB=$DEFINE ;;
       '-DUSE_SANDERLIB' ) export CPPTRAJ_SANDERLIB=$DEFINE ;;
+      '-DFFTW_FFT'      ) export CPPTRAJ_FFTW_FFT=$DEFINE ;;
       '-DCUDA'          ) export CPPTRAJ_CUDA=$DEFINE ;;
       '-DNO_XDRFILE'    ) CPPTRAJ_XDRFILE='' ;;
       '-DENABLE_SINGLE_ENSEMBLE' ) export CPPTRAJ_SINGLE_ENS=$DEFINE ;;
@@ -884,6 +886,7 @@ CheckEnv() {
       'xdr'       ) TestLibrary "XDR file"           "$CPPTRAJ_XDRFILE" ;;
       'mathlib'   ) TestLibrary "BLAS/LAPACK/ARPACK" "$CPPTRAJ_MATHLIB" ;;
       'sanderlib' ) TestLibrary "SANDER API from AmberTools" "$CPPTRAJ_SANDERLIB" ;;
+      'fftw'      ) TestLibrary "FFTW"               "$CPPTRAJ_FFTW_FFT" ;;
       'openmp'    ) TestLibrary "OpenMP"             "$CPPTRAJ_OPENMP" ;;
       'singleensemble' ) TestLibrary "Single ensemble support" "$CPPTRAJ_SINGLE_ENS" ;;
       'pnetcdf'   )
