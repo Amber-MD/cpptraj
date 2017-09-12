@@ -462,7 +462,7 @@ EndTest() {
       ((PASSCOUNT = $NUMCOMPARISONS - $WARNCOUNT))
       echo "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
       OUT  "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
-    else 
+    else
       echo "All $NUMCOMPARISONS comparisons passed." 
       OUT  "All $NUMCOMPARISONS comparisons passed."
     fi
@@ -488,6 +488,9 @@ EndTest() {
   if [ $EXIT_ON_ERROR -eq 1 ] ; then
     if [ $PROGERROR -ne 0 -o $ERRCOUNT -ne 0 ] ; then
       exit 1
+    elif [ $SKIPCOUNT -eq 0 -a $TEST_SKIPPED -eq 0 ] ; then
+      echo "Error: Zero comparisons and test not skipped." > /dev/stderr
+     exit 1
     fi
   fi
 }
