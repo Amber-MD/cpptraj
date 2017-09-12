@@ -6,14 +6,20 @@ template <class T> class Matrix {
 // TODO: Type may not be necessary here if in DataSet_2D
     enum MType { FULL = 0, HALF, TRIANGLE }; 
   public:
+    /// CONSTRUCTOR
     Matrix() :
       elements_(0), ncols_(0L), nrows_(0L), nelements_(0L),
       maxElements_(0L), currentElement_(0L), type_(FULL),
-      calcIndex(calcFullIndex) {}
+      indexFxn_(calcFullIndex) {}
+    /// DESTRUCTOR
     ~Matrix() { if (elements_!=0) delete[] elements_; }
+    /// COPY CONSTRUCTOR
     Matrix( const Matrix& );
+    /// ASSIGNMENT
     Matrix& operator=( const Matrix& );
+    /// \return Element at absolute index idx
     T& operator[](size_t idx)                  { return elements_[idx];  }
+    /// \return Const reference to element at absolute index idx
     const T& operator[](size_t idx)      const { return elements_[idx];  }
     /// \return total number of elements in the matrix.
     size_t size()                        const { return nelements_;      }
@@ -24,8 +30,8 @@ template <class T> class Matrix {
     /// Set up matrix for given number of cols and rows.
     int resize(size_t,size_t);
     /// \return element at specified col and row.
-    const T& element(int,int) const;
-    T&       element(int,int);
+    const T& element(size_t,size_t) const;
+    T&       element(size_t,size_t);
     /// \return number of rows (Y).
     size_t Nrows()     const { return nrows_;     }
     /// \return number of cols (X).
@@ -33,14 +39,14 @@ template <class T> class Matrix {
     /// Add an element to the matrix in order.
     int addElement( const T& );
     /// Set element at col and row.
-    void setElement(int,int, const T&);
+    void setElement(size_t, size_t, const T&);
     /// Add given value to element at col and row.
-    void updateElement(int, int, const T&);
+    void updateElement(size_t, size_t, const T&);
     /// \return pointer to internal array of elements.
     T const* Ptr()     const { return elements_;  }
     T* Ptr()                 { return elements_;  }
     /// Convert X and Y to index. 
-    size_t CalcIndex(int x, int y) const { return calcIndex(ncols_, x, y); }
+    size_t CalcIndex(size_t x, size_t y) const { return indexFxn_(ncols_, x, y); }
     /// Iterator over matrix elements
     typedef ArrayIterator<T> iterator;
     /// Iterator to beginning of matrix elements.
@@ -49,7 +55,7 @@ template <class T> class Matrix {
     /// Iterator to end of matrix elements.
     iterator end()   { return elements_ + nelements_; }
     iterator end()   const { return elements_ + nelements_; }
-    /// Return memory used by matrix in bytes.
+    /// \return memory used by matrix in bytes.
     size_t DataSize() const {
       return (nelements_*sizeof(T)) + sizeof(T) +
              (5 * sizeof(size_t) + sizeof(MType) +
@@ -74,14 +80,14 @@ template <class T> class Matrix {
     size_t currentElement_; ///< Current element (for AddElement())
     MType type_;            ///< Current matrix type.
     /// Pointer to index calculator for current matrix type
-    long int (*calcIndex)(size_t,int,int);
+    long int (*indexFxn_)(size_t,size_t,size_t);
     /// Full 2D matrix. 
-    static long int calcFullIndex(size_t nX,int x,int y) {
-      return (long int)( (y*(int)nX)+x );
+    static long int calcFullIndex(size_t nX, size_t x, size_t y) {
+      return (long int)( (y*nX)+x );
     }
     /// Upper-half matrix + diagonal.
-    static long int calcHalfIndex(size_t nX, int xIn, int yIn) {
-      int i, j;
+    static long int calcHalfIndex(size_t nX, size_t xIn, size_t yIn) {
+      size_t i, j;
       if (yIn > xIn) {
         i = xIn;
         j = yIn;
@@ -89,11 +95,11 @@ template <class T> class Matrix {
         i = yIn;
         j = xIn;
       }
-      return (long int)(i * (int)nX - (i * (i-1) / 2) + (j - i));
+      return (long int)((i * nX) - (i * (i-1UL) / 2UL) + (j - i));
     }
     /// Upper-half matrix - diagonal.
-    static long int calcTriIndex(size_t nX, int xIn, int yIn) {
-      int i, j;
+    static long int calcTriIndex(size_t nX, size_t xIn, size_t yIn) {
+      size_t i, j;
       if (yIn > xIn) {
         i = xIn;
         j = yIn;
@@ -102,8 +108,8 @@ template <class T> class Matrix {
         j = xIn;
       } else // iIn == jIn, triangle matrix diagonal is indicated by -1 
         return -1L;
-      int i1 = i + 1;
-      return ( ( ((int)nX * i) - ((i1 * i) / 2) ) + j - i1 );
+      size_t i1 = i + 1UL;
+      return (long int)(( (nX * i) - ((i1 * i) / 2UL) ) + j - i1);
     }
 };
 // COPY CONSTRUCTOR
@@ -116,7 +122,7 @@ template<class T> Matrix<T>::Matrix(const Matrix& rhs) :
   maxElements_( rhs.maxElements_ ),
   currentElement_( rhs.currentElement_ ),
   type_( rhs.type_ ),
-  calcIndex( rhs.calcIndex )
+  indexFxn_( rhs.indexFxn_ )
 {
   if (maxElements_ > 0L) {
     elements_ = new T[ maxElements_ ];
@@ -137,7 +143,7 @@ template<class T> Matrix<T>& Matrix<T>::operator=(const Matrix& rhs) {
   diagElt_ = rhs.diagElt_;
   currentElement_ = rhs.currentElement_;
   type_  = rhs.type_;
-  calcIndex = rhs.calcIndex;
+  indexFxn_ = rhs.indexFxn_;
   if (maxElements_ > 0L) {
     elements_ = new T[ maxElements_ ];
     std::copy( rhs.elements_, rhs.elements_ + nelements_, elements_ );
@@ -145,8 +151,8 @@ template<class T> Matrix<T>& Matrix<T>::operator=(const Matrix& rhs) {
   return *this;
 }
 // Matrix::sizeInBytes()
+/** \return Total size of Matrix in bytes. */
 template<class T> size_t Matrix<T>::sizeInBytes(size_t nX, size_t nY) {
-  // Size of elements
   size_t elSize;
   if (nX > 0L && nY > 0L)       // FULL
     elSize = nX * nY * sizeof( T );
@@ -159,12 +165,14 @@ template<class T> size_t Matrix<T>::sizeInBytes(size_t nX, size_t nY) {
           (5 * sizeof(size_t)) + sizeof(MType) + sizeof(long int(*)()));
 }
 // Matrix::resize()
-/** \param nX number of columns.
+/** Reallocate matrix with given number of columns and rows.
+  * \param nX number of columns.
   * \param nY number of rows.
   * Three types of allocation:
-  *   - cols > 0, rows > 0: Full matrix
-  *   - cols > 0, rows == 0: Half matrix
-  *   - cols == 0, rows > 0: Triangle matrix
+  *   - cols > 0,  rows > 0  : Full matrix
+  *   - cols > 0,  rows == 0 : Half matrix
+  *   - cols == 0, rows > 0  : Triangle matrix
+  * \return 0 if allocation successful, 1 otherwise.
   */
 template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
   diagElt_ = T(); // Diagonal element default to zero.
@@ -172,19 +180,19 @@ template<class T> int Matrix<T>::resize(size_t nX, size_t nY) {
     ncols_ = nX;
     nrows_ = nY;
     nelements_ = ncols_ * nrows_;
-    calcIndex = calcFullIndex;
+    indexFxn_ = calcFullIndex;
     type_ = FULL;
   } else if (nX > 0L && nY == 0L) { // HALF
     ncols_ = nX;
     nrows_ = nX;
     nelements_ = ncols_ * (ncols_ + 1L) / 2L;
-    calcIndex = calcHalfIndex;
+    indexFxn_ = calcHalfIndex;
     type_ = HALF;
   } else if (nX == 0L && nY > 0L) { // TRIANGLE
     ncols_ = nY;
     nrows_ = nY;
     nelements_ = (ncols_ * (ncols_ - 1L) / 2L);
-    calcIndex = calcTriIndex;
+    indexFxn_ = calcTriIndex;
     type_ = TRIANGLE;
   } else { // Both Zero, EMPTY
     ncols_ = 0L;
@@ -215,23 +223,27 @@ template<class T> int Matrix<T>::addElement(const T& elementIn) {
   return 1;
 }
 // Matrix::setElement()
-template<class T> void Matrix<T>::setElement(int xIn, int yIn, const T& eltIn) {
-  long int idx = calcIndex(ncols_, xIn, yIn);
+/** Set element at specified column xIn and row yIn. */
+template<class T> void Matrix<T>::setElement(size_t xIn, size_t yIn, const T& eltIn) {
+  long int idx = indexFxn_(ncols_, xIn, yIn);
   elements_[idx] = eltIn;
 }
 // Matrix::updateElement()
-template<class T> void Matrix<T>::updateElement(int xIn, int yIn, const T& eltIn) {
-  long int idx = calcIndex(ncols_, xIn, yIn);
+/** Update specified element at column xIn and row yIn via += */
+template<class T> void Matrix<T>::updateElement(size_t xIn, size_t yIn, const T& eltIn) {
+  long int idx = indexFxn_(ncols_, xIn, yIn);
   elements_[idx] += eltIn;
 }
 // Matrix::element()
-template<class T> const T& Matrix<T>::element(int xIn, int yIn) const {
-  long int idx = calcIndex(ncols_, xIn, yIn);
+/** \return Constant reference to specified element at column xIn and row yIn. */
+template<class T> const T& Matrix<T>::element(size_t xIn, size_t yIn) const {
+  long int idx = indexFxn_(ncols_, xIn, yIn);
   if (idx < 0) return diagElt_; // In case of xIn == yIn for TRIANGLE
   return elements_[idx];
 }
-template<class T> T& Matrix<T>::element(int xIn, int yIn) {
-  long int idx = calcIndex(ncols_, xIn, yIn);
+/** \return Reference to specified element at column xIn and row yIn. */
+template<class T> T& Matrix<T>::element(size_t xIn, size_t yIn) {
+  long int idx = indexFxn_(ncols_, xIn, yIn);
   if (idx < 0) return diagElt_; // In case of xIn == yIn for TRIANGLE
   return elements_[idx];
 }
