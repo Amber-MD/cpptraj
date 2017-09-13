@@ -32,6 +32,7 @@
 #   CPPTRAJ_DEBUG        : Can be set to pass global debug flag to cpptraj.
 #   DIFFOPTS             : Additional options to pass to CPPTRAJ_DIFF
 #   CPPTRAJ_PROFILE      : If 1, end of test profiling with gprof performed.
+#   CPPTRAJ_LONG_TEST    : If 1, enable long tests
 # Cpptraj binary characteristics
 #   CPPTRAJ_ZLIB         : If set CPPTRAJ has zlib support.
 #   CPPTRAJ_BZLIB        : If set CPPTRAJ has bzip support.
@@ -41,6 +42,7 @@
 #   CPPTRAJ_OPENMP       : If set CPPTRAJ has OpenMP support.
 #   CPPTRAJ_PNETCDFLIB   : If set CPPTRAJ has parallel NetCDF support.
 #   CPPTRAJ_SANDERLIB    : If set CPPTRAJ was compiled with the sander API from AT.
+#   CPPTRAJ_FFTW_FFT     : If set CPPTRAJ was compiled with fftw
 #   CPPTRAJ_CUDA         : If set CPPTRAJ has CUDA support.
 #   CPPTRAJ_XDRFILE      : If set CPPTRAJ has XDR file support.
 #   CPPTRAJ_SINGLE_ENS   : If set CPPTRAJ has single ensemble support.
@@ -59,7 +61,7 @@ TARGET=""                # Make target if multiple tests being run
 STANDALONE=1             # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 TEST_DIRS=''             # Specific test directories to run.
 TEST_SKIPPED=0           # If 1 this test has been skipped via SkipTest.
-EXIT_ON_ERROR=1          # (Debug) If 1 exit when a specified test fails.
+EXIT_ON_ERROR=0          # (Debug) If 1 exit when a specified test fails.
 # ----- Variables local to single test ---------------------
 TEST_WORKDIR=''          # Test working directory
 NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
@@ -488,9 +490,9 @@ EndTest() {
   if [ $EXIT_ON_ERROR -eq 1 ] ; then
     if [ $PROGERROR -ne 0 -o $ERRCOUNT -ne 0 ] ; then
       exit 1
-    elif [ $NUM_COMPARISONS -eq 0 -a $TEST_SKIPPED -eq 0 ] ; then
+    elif [ $NUMCOMPARISONS -eq 0 -a $TEST_SKIPPED -eq 0 ] ; then
       echo "Error: Zero comparisons and test not skipped." > /dev/stderr
-     exit 1
+      exit 1
     fi
   fi
 }
@@ -566,6 +568,7 @@ Help() {
 #   CPPTRAJ_TEST_SETUP is not already set.
 CmdLineOpts() {
   CPPTRAJ_TEST_CLEAN=0 # Will be exported
+  CPPTRAJ_LONG_TEST=0  # Will be exported
   CPPTRAJ_PROFILE=0    # Will be exported
   SFX_OMP=0
   SFX_CUDA=0
@@ -574,6 +577,7 @@ CmdLineOpts() {
   while [ ! -z "$1" ] ; do
     case "$1" in
       "clean"     ) CPPTRAJ_TEST_CLEAN=1 ;;
+      "long"      ) CPPTRAJ_LONG_TEST=1 ;;
       "summary"   ) SUMMARY=1 ;;
       "showerrors") SHOWERRORS=1 ;;
       "stdout"    ) CPPTRAJ_OUTPUT='/dev/stdout' ;;
@@ -585,6 +589,7 @@ CmdLineOpts() {
       "time"      ) GET_TIMING=1 ;;
       "timing"    ) GET_TIMING=2 ;;
       "-d"        ) CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug 4" ;;
+      "-exitonerr") EXIT_ON_ERROR=1 ;;
       "-debug"    ) shift ; CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug $1" ;;
       "-nodacdif" ) USE_DACDIF=0 ;;
       "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
@@ -616,6 +621,7 @@ CmdLineOpts() {
     Required "gprof"
   fi
   export CPPTRAJ_TEST_CLEAN
+  export CPPTRAJ_LONG_TEST
   export CPPTRAJ_DEBUG
   export CPPTRAJ_PROFILE
   # If DO_PARALLEL has been set force MPI
@@ -661,6 +667,7 @@ CheckDefines() {
       '-D_OPENMP'       ) export CPPTRAJ_OPENMP=$DEFINE ;;
       '-DHAS_PNETCDF'   ) export CPPTRAJ_PNETCDFLIB=$DEFINE ;;
       '-DUSE_SANDERLIB' ) export CPPTRAJ_SANDERLIB=$DEFINE ;;
+      '-DFFTW_FFT'      ) export CPPTRAJ_FFTW_FFT=$DEFINE ;;
       '-DCUDA'          ) export CPPTRAJ_CUDA=$DEFINE ;;
       '-DNO_XDRFILE'    ) CPPTRAJ_XDRFILE='' ;;
       '-DENABLE_SINGLE_ENSEMBLE' ) export CPPTRAJ_SINGLE_ENS=$DEFINE ;;
@@ -884,6 +891,7 @@ CheckEnv() {
       'xdr'       ) TestLibrary "XDR file"           "$CPPTRAJ_XDRFILE" ;;
       'mathlib'   ) TestLibrary "BLAS/LAPACK/ARPACK" "$CPPTRAJ_MATHLIB" ;;
       'sanderlib' ) TestLibrary "SANDER API from AmberTools" "$CPPTRAJ_SANDERLIB" ;;
+      'fftw'      ) TestLibrary "FFTW"               "$CPPTRAJ_FFTW_FFT" ;;
       'openmp'    ) TestLibrary "OpenMP"             "$CPPTRAJ_OPENMP" ;;
       'singleensemble' ) TestLibrary "Single ensemble support" "$CPPTRAJ_SINGLE_ENS" ;;
       'pnetcdf'   )
@@ -953,6 +961,12 @@ CheckEnv() {
           shift
           if [ "$CPPTRAJ_TEST_OS" != $1 ] ; then
             echo "  $DESCRIP requires $1 OS."
+            ((CHECKERR++))
+          fi
+          ;;
+        'long' )
+          if [ -z "$CPPTRAJ_LONG_TEST" -o $CPPTRAJ_LONG_TEST -eq 0 ] ; then
+            echo "  $DESCRIP is a long test and long tests disabled. Use 'long' to run."
             ((CHECKERR++))
           fi
           ;;
@@ -1162,6 +1176,13 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
   # Executed from CpptrajTest.sh. Assume we are executing multiple
   # tests.
   #echo "DEBUG: Executing multiple tests."
+  # Clean any existing test results files.
+  if [ -f "$CPPTRAJ_TEST_RESULTS" ] ; then
+    $CPPTRAJ_RM $CPPTRAJ_TEST_RESULTS
+  fi
+  if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
+    $CPPTRAJ_RM $CPPTRAJ_TEST_ERROR
+  fi
   if [ ! -z "$TEST_DIRS" ] ; then
     #echo "DEBUG: Running tests in specified directories."
     if [ $GET_TIMING -eq 2 ] ; then
@@ -1190,6 +1211,7 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
           echo "$DIR" >> $TEST_OK_FILE
         fi
       done
+      echo "DEBUG: OK tests listed in $TEST_OK_FILE"
     else
       for DIR in $TEST_DIRS ; do
         cd $CPPTRAJ_TEST_ROOT/$DIR && ./RunTest.sh
