@@ -1166,6 +1166,13 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
   # Executed from CpptrajTest.sh. Assume we are executing multiple
   # tests.
   #echo "DEBUG: Executing multiple tests."
+  # Clean any existing test results files.
+  if [ -f "$CPPTRAJ_TEST_RESULTS" ] ; then
+    $CPPTRAJ_RM $CPPTRAJ_TEST_RESULTS
+  fi
+  if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
+    $CPPTRAJ_RM $CPPTRAJ_TEST_ERROR
+  fi
   if [ ! -z "$TEST_DIRS" ] ; then
     #echo "DEBUG: Running tests in specified directories."
     if [ $GET_TIMING -eq 2 ] ; then
