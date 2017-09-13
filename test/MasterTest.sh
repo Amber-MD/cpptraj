@@ -32,6 +32,7 @@
 #   CPPTRAJ_DEBUG        : Can be set to pass global debug flag to cpptraj.
 #   DIFFOPTS             : Additional options to pass to CPPTRAJ_DIFF
 #   CPPTRAJ_PROFILE      : If 1, end of test profiling with gprof performed.
+#   CPPTRAJ_LONG_TEST    : If 1, enable long tests
 # Cpptraj binary characteristics
 #   CPPTRAJ_ZLIB         : If set CPPTRAJ has zlib support.
 #   CPPTRAJ_BZLIB        : If set CPPTRAJ has bzip support.
@@ -567,6 +568,7 @@ Help() {
 #   CPPTRAJ_TEST_SETUP is not already set.
 CmdLineOpts() {
   CPPTRAJ_TEST_CLEAN=0 # Will be exported
+  CPPTRAJ_LONG_TEST=0  # Will be exported
   CPPTRAJ_PROFILE=0    # Will be exported
   SFX_OMP=0
   SFX_CUDA=0
@@ -575,6 +577,7 @@ CmdLineOpts() {
   while [ ! -z "$1" ] ; do
     case "$1" in
       "clean"     ) CPPTRAJ_TEST_CLEAN=1 ;;
+      "long"      ) CPPTRAJ_LONG_TEST=1 ;;
       "summary"   ) SUMMARY=1 ;;
       "showerrors") SHOWERRORS=1 ;;
       "stdout"    ) CPPTRAJ_OUTPUT='/dev/stdout' ;;
@@ -618,6 +621,7 @@ CmdLineOpts() {
     Required "gprof"
   fi
   export CPPTRAJ_TEST_CLEAN
+  export CPPTRAJ_LONG_TEST
   export CPPTRAJ_DEBUG
   export CPPTRAJ_PROFILE
   # If DO_PARALLEL has been set force MPI
@@ -957,6 +961,12 @@ CheckEnv() {
           shift
           if [ "$CPPTRAJ_TEST_OS" != $1 ] ; then
             echo "  $DESCRIP requires $1 OS."
+            ((CHECKERR++))
+          fi
+          ;;
+        'long' )
+          if [ -z "$CPPTRAJ_LONG_TEST" -o $CPPTRAJ_LONG_TEST -eq 0 ] ; then
+            echo "  $DESCRIP is a long test and long tests disabled. Use 'long' to run."
             ((CHECKERR++))
           fi
           ;;
