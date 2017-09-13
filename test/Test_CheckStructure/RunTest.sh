@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles check.in report.dat nprob.dat tz2.dat skip.dat around.dat
+CleanFiles check.in report.dat nprob.dat tz2.dat skip.dat around.dat d1.dat
 
 INPUT="-i check.in"
 
