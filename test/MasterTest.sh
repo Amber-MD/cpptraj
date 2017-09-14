@@ -367,6 +367,18 @@ Summary() {
         exit (comparisons_diff + program_err);
       }' $CPPTRAJ_TEST_RESULTS
       ERR_STATUS=$?
+      if [ $SHOWERRORS -eq 1 ] ; then
+        grep "SKIP:" $CPPTRAJ_TEST_RESULTS > tmpout
+        grep "Skipped test:" $CPPTRAJ_TEST_RESULTS >> tmpout
+        if [ -s tmpout ] ; then
+          echo ""
+          echo "Skipped tests/comparisons:"
+          echo "---------------------------------------------------------"
+          cat tmpout
+          echo "---------------------------------------------------------"
+        fi
+        $CPPTRAJ_RM tmpout
+      fi
     fi
   fi
   # Error summary
