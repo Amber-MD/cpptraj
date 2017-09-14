@@ -77,7 +77,6 @@ class Action_Spam: public Action {
     CpptrajFile* infofile_;   ///< SPAM info file
     AtomMask mask_;           ///< Mask for selecting individual solvent residues
     Iarray resPeakNum_;       ///< Peak that each solvent residue is assigned to; -1 is unassigned
-    std::string summaryfile_; ///< File containing the summary of all SPAM statistics
     double site_size_;        ///< Size of the water site. This is a full edge length or diameter
     Topology* CurrentParm_;   ///< Current topology (for NB params).
     Darray atom_charge_;      ///< Charges that have been converted to Amber units
