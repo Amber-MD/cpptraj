@@ -25,7 +25,6 @@ class DataSet_Mesh : public DataSet_1D {
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)  const { return mesh_y_[idx];       }
     double Xcrd(size_t idx)  const { return mesh_x_[idx];       }
-    const void* VoidPtr(size_t) const;
     // -------------------------------------------
     inline void AddXY(double,double);
     double X(int i) const { return mesh_x_[i]; }
@@ -54,7 +53,8 @@ class DataSet_Mesh : public DataSet_1D {
   private:
     std::vector<double> mesh_x_;
     std::vector<double> mesh_y_;
-    Spline cspline_; ///< Cubic spline coefficients. TODO Split out completely?
+    // Cubic spline coefficients. TODO Split out completely?
+    Spline cspline_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 void DataSet_Mesh::AddXY(double x, double y) {
