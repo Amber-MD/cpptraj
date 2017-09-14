@@ -514,7 +514,7 @@ test.complete: CpptrajTest.sh MasterTest.sh
 test.cpptraj: $(COMPLETETESTS)
 
 test.showerrors:
-	$(MAKE) test.complete summary OPT="$(OPT) showerrors"
+	$(MAKE) test.complete summary OPT="$(OPT) showerrors long"
 
 summary: CpptrajTest.sh MasterTest.sh
 	@./CpptrajTest.sh summary $(OPT)
