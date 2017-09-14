@@ -162,7 +162,6 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataIO.cpp \
         DataIO_CCP4.cpp \
         DataIO_CharmmFastRep.cpp \
-        DataIO_CharmmOutput.cpp \
         DataIO_CharmmRepLog.cpp \
         DataIO_Cmatrix.cpp \
         DataIO_Evecs.cpp \

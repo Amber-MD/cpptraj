@@ -385,14 +385,19 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     // NOTE: Should return found dataset?
     return 0; 
   }
-  DS = Allocate( inType );
-  if (DS==0) {
-    mprinterr("Internal Error: DataSet %s memory allocation failed.\n", meta.PrintName().c_str());
+  TokenPtr token = &(DataArray[inType]);
+  if ( token->Alloc == 0) {
+    mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
     return 0;
   }
 # ifdef TIMER
   time_setup_.Start();
 # endif
+  DS = (DataSet*)token->Alloc();
+  if (DS==0) {
+    mprinterr("Internal Error: DataSet %s memory allocation failed.\n", meta.PrintName().c_str());
+    return 0;
+  }
   // If 1 dim set and time series status not set, set to true.
   if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) {
     meta.SetTimeSeries( MetaData::IS_TS );
@@ -428,17 +433,6 @@ void DataSetList::Timing() const {
   time_total_.WriteTiming(2,"DSL Total");
 }
 #endif
-
-// DataSetList::Allocate()
-DataSet* DataSetList::Allocate(DataSet::DataType inType) {
-  TokenPtr token = &(DataArray[inType]);
-  if ( token->Alloc == 0) {
-    mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
-    return 0;
-  }
-  return (DataSet*)token->Alloc();
-}
-
 // FIXME Should probably just make a more efficient search of DSL
 /** Special version of AddSet that does NOT check if set already exists.
   * Intended for use in Action Setup/DoAction where it is assumed that
@@ -454,7 +448,12 @@ DataSet* DataSetList::AddSet_NoCheck(DataSet::DataType inType, MetaData const& m
   MetaData meta( metaIn );
   meta.SetEnsembleNum( ensembleNum_ );
   // Allocate DataSet
-  DataSet* DS = Allocate(inType);
+  TokenPtr token = &(DataArray[inType]);
+  if ( token->Alloc == 0) {
+    mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
+    return 0;
+  }
+  DataSet* DS = (DataSet*)token->Alloc();
   if (DS==0) {
     mprinterr("Internal Error: DataSet %s memory allocation failed.\n", meta.PrintName().c_str());
     return 0;

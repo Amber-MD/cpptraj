@@ -33,7 +33,6 @@ class DataSet_double : public DataSet_1D {
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)        const { return Data_[idx];         }
     double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }
-    const void* VoidPtr(size_t idx) const { return (void*)(&(Data_[0])+idx); }
   private:
     std::vector<double> Data_;
 };
