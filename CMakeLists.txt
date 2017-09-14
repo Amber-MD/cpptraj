@@ -56,7 +56,9 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 #NetCDF and FFTW3 are found by the top-level configure script
 
 add_subdirectory(src)
+add_subdirectory(test)
 
+# --------------------------------------------------------------------
 if(NOT INSIDE_AMBER)
 	print_build_report()
 endif()
