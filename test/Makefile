@@ -294,6 +294,7 @@ test.vectormath:
 
 test.esander:
 	@-cd Test_Esander && ./RunTest.sh $(OPT)
+	@-cd Test_Esander_Short && ./RunTest.sh $(OPT)
 
 test.temperature:
 	@-cd Test_Temperature && ./RunTest.sh $(OPT)
