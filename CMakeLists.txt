@@ -59,6 +59,7 @@ endif()
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 
 add_subdirectory(src)
+add_subdirectory(test)
 
 #--------------------------------------------------------------
 if(INSTALL_HEADERS)
