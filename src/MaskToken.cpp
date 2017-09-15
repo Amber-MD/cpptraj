@@ -686,12 +686,12 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
   // Create temporary array of atom #s currently selected in mask.
   // These are the atoms the search is based on.
   typedef std::vector<unsigned int> Uarray;
-  Uarray ToSearch;
+  Uarray Idx;
   for (unsigned int i = 0; i < atoms_.size(); i++) {
     if (mask[i] == SelectedChar_)
-      ToSearch.push_back( i );
+      Idx.push_back( i*3 );
   }
-  if (ToSearch.empty()) {
+  if (Idx.empty()) {
     mprinterr("Error: Mask_SelectDistance: No atoms in prior selection.\n");
     return 1;
   }
@@ -699,8 +699,8 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     mprintf("\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
             (int)token.Within(), (int)token.ByAtom(), token.Distance());
     mprintf("\t\tSearch Mask=[");
-    for (Uarray::const_iterator at = ToSearch.begin(); at != ToSearch.end(); ++at)
-      mprintf(" %u",*at + 1);
+    for (Uarray::const_iterator at = Idx.begin(); at != Idx.end(); ++at)
+      mprintf(" %u",*at/3 + 1);
     mprintf(" ]\n");
   }
 
@@ -731,8 +731,8 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
       mask[atomi] = char0;
       const double* i_crd = REF + (atomi * 3);
       // Loop over initially selected atoms
-      for (int idx = 0; idx < (int)ToSearch.size(); idx++) {
-        double d2 = DIST2_NoImage(i_crd, REF + (ToSearch[idx]*3));
+      for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
+        double d2 = DIST2_NoImage(i_crd, REF + *idx);
         if (d2 < dcut2) {
           // State changes
           mask[atomi] = char1;
@@ -761,8 +761,8 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
       // Loop over residue atoms
       for (; atomi != residues_[resi].LastAtom(); atomi++, i_crd += 3) {
         // Loop over initially selected atoms
-        for (int idx = 0; idx < (int)ToSearch.size(); idx++) {
-          double d2 = DIST2_NoImage(i_crd, REF + (ToSearch[idx]*3));
+        for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
+          double d2 = DIST2_NoImage(i_crd, REF + *idx);
           if (d2 < dcut2) {
             // State changes
             schar = char1;
