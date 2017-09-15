@@ -164,7 +164,7 @@ int MaskToken::SetDistance(std::string &distop) {
 
 // =============================================================================
 // Class: MaskTokenArray
-MaskTokenArray::MaskTokenArray() : debug_(10) {}
+MaskTokenArray::MaskTokenArray() : debug_(0) {}
 
 bool MaskTokenArray::IsOperator(char op) {
   if (op=='!') return true;
@@ -634,7 +634,7 @@ char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
     if (err != 0 ) break;
     // Check if this mask should now go on the stack
     if ( token->OnStack() ) {
-      mprintf("DEBUG: Pushing Mask on stack, last Token [%s]\n",token->TypeName());
+      //mprintf("DEBUG: Pushing Mask on stack, last Token [%s]\n",token->TypeName());
       Stack.push( pMask );
       pMask = 0;
     }
@@ -695,14 +695,14 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     mprinterr("Error: Mask_SelectDistance: No atoms in prior selection.\n");
     return 1;
   }
-  if (debug_ > 1) {
-    mprintf("\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
-            (int)token.Within(), (int)token.ByAtom(), token.Distance());
-    mprintf("\t\tSearch Mask=[");
-    for (Uarray::const_iterator at = Idx.begin(); at != Idx.end(); ++at)
-      mprintf(" %u",*at/3 + 1);
-    mprintf(" ]\n");
-  }
+  //if (debug_ > 1) {
+  //  mprintf("\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
+  //          (int)token.Within(), (int)token.ByAtom(), token.Distance());
+  //  mprintf("\t\tSearch Mask=[");
+  //  for (Uarray::const_iterator at = Idx.begin(); at != Idx.end(); ++at)
+  //    mprintf(" %u",*at/3 + 1);
+  //  mprintf(" ]\n");
+  //}
 
   char char0, char1;
   if (token.Within()) {
