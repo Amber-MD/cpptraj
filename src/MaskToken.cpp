@@ -665,6 +665,13 @@ char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
 }
 
 // Topology::Mask_SelectDistance()
+/** \param REF reference coordinates.
+  * \param mask Initial atom selection; will be set with final output mask.
+  * \param token Describe how atoms are to be selected.
+  * \param atoms_ Atom array.
+  * \param residues_ Residue array.
+  * \return 0 if successful, 1 if an error occurs.
+  */
 int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
                                         MaskToken const& token,
                                         AtomArrayT const& atoms_,
@@ -676,14 +683,11 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
   }
   // Distance cutoff has been pre-squared.
   double dcut2 = token.Distance();
-  // Create temporary array of atom #s currently selected in mask. Also
-  // reset mask, it will be the output mask.
+  // Create temporary array of atom #s currently selected in mask.
   std::vector<unsigned int> selected;
   for (unsigned int i = 0; i < atoms_.size(); i++) {
-    if (mask[i]==SelectedChar_) {
+    if (mask[i] == SelectedChar_)
       selected.push_back( i );
-      mask[i] = UnselectedChar_; // TODO probably unnecessary
-    }
   }
   if (selected.empty()) {
     mprinterr("Error: Mask_SelectDistance: No atoms in prior selection.\n");
@@ -727,8 +731,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
       const double* i_crd = REF + (atomi * 3);
       // Loop over initially selected atoms
       for (int idx = 0; idx < (int)selected.size(); idx++) {
-        int atomj = selected[idx];
-        double d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
+        double d2 = DIST2_NoImage(i_crd, REF + (selected[idx]*3));
         if (d2 < dcut2) {
           // State changes
           mask[atomi] = char1;
@@ -758,8 +761,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
       for (; atomi != residues_[resi].LastAtom(); atomi++, i_crd += 3) {
         // Loop over initially selected atoms
         for (int idx = 0; idx < (int)selected.size(); idx++) {
-          int atomj = selected[idx];
-          double d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
+          double d2 = DIST2_NoImage(i_crd, REF + (selected[idx]*3));
           if (d2 < dcut2) {
             // State changes
             schar = char1;
