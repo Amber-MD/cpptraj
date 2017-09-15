@@ -5,8 +5,9 @@
 # Clean
 CleanFiles mask.in First.pdb.1 Second.pdb.1 Third.pdb.1 Fourth.pdb.1
 
+# NOTE: This also tests activeref
 TESTNAME='Distance-based atom mask tests'
-Requires netcdf
+Requires netcdf maxthreads 1
 
 INPUT='-i mask.in'
 
