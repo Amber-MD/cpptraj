@@ -46,7 +46,7 @@ class MaskTokenArray {
   public:
     typedef std::vector<Atom> AtomArrayT;
     typedef std::vector<Residue> ResArrayT;
-    MaskTokenArray() : debug_(0) {}
+    MaskTokenArray();
     // Virtual destructor since this will be inherited
     virtual ~MaskTokenArray() {}
     /// \return original mask expression as std::string
