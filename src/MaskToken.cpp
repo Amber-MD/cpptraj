@@ -685,7 +685,8 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
   double dcut2 = token.Distance();
   // Create temporary array of atom #s currently selected in mask.
   // These are the atoms the search is based on.
-  std::vector<unsigned int> ToSearch;
+  typedef std::vector<unsigned int> Uarray;
+  Uarray ToSearch;
   for (unsigned int i = 0; i < atoms_.size(); i++) {
     if (mask[i] == SelectedChar_)
       ToSearch.push_back( i );
@@ -698,8 +699,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     mprintf("\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
             (int)token.Within(), (int)token.ByAtom(), token.Distance());
     mprintf("\t\tSearch Mask=[");
-    for (std::vector<unsigned int>::const_iterator at = ToSearch.begin();
-                                                   at != ToSearch.end(); ++at)
+    for (Uarray::const_iterator at = ToSearch.begin(); at != ToSearch.end(); ++at)
       mprintf(" %u",*at + 1);
     mprintf(" ]\n");
   }
