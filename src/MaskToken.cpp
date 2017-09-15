@@ -670,25 +670,19 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
                                         AtomArrayT const& atoms_,
                                         ResArrayT const& residues_) const
 {
-  int endatom, resi;
-  bool selectresidue;
-  int atomi, idx, atomj;
-  double d2;
-  double dcut2 = token.Distance();
-  const double* i_crd;
-
   if (REF == 0) {
     mprinterr("Error: No reference set, cannot select by distance.\n");
     return 1;
   }
-  // Distance has been pre-squared.
+  // Distance cutoff has been pre-squared.
+  double dcut2 = token.Distance();
   // Create temporary array of atom #s currently selected in mask. Also
   // reset mask, it will be the output mask.
   std::vector<unsigned int> selected;
   for (unsigned int i = 0; i < atoms_.size(); i++) {
     if (mask[i]==SelectedChar_) {
       selected.push_back( i );
-      mask[i] = UnselectedChar_;
+      mask[i] = UnselectedChar_; // TODO probably unnecessary
     }
   }
   if (selected.empty()) {
@@ -705,24 +699,25 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     mprintf(" ]\n");
   }
 
-  if (token.ByAtom()) { // Select by atom
-    // Loop over all atoms
+  if (token.ByAtom()) {
+    // Select by atom
     int n_of_atoms = (int)atoms_.size();
+    int atomi;
     if (token.Within()) {
       // Select all atoms within dcut2 of any selected atom.
 #     ifdef _OPENMP
-#     pragma omp parallel private(atomi, idx, atomj, d2, i_crd)
+#     pragma omp parallel private(atomi)
       {
 #     pragma omp for
 #     endif
       for (atomi = 0; atomi < n_of_atoms; atomi++) {
         // Starts out unselected
         mask[atomi] = UnselectedChar_;
-        i_crd = REF + (atomi * 3);
+        const double* i_crd = REF + (atomi * 3);
         // Loop over initially selected atoms
-        for (idx = 0; idx < (int)selected.size(); idx++) {
-          atomj = selected[idx];
-          d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
+        for (int idx = 0; idx < (int)selected.size(); idx++) {
+          int atomj = selected[idx];
+          double d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
           if (d2 < dcut2) {
             mask[atomi] = SelectedChar_;
             break;
@@ -742,11 +737,11 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
       for (atomi = 0; atomi < n_of_atoms; atomi++) {
         // Starts out selected
         mask[atomi] = SelectedChar_;
-        i_crd = REF + (atomi * 3);
+        const double* i_crd = REF + (atomi * 3);
         // Loop over initially selected atoms
-        for (idx = 0; idx < (int)selected.size(); idx++) {
-          atomj = selected[idx];
-          d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
+        for (int idx = 0; idx < (int)selected.size(); idx++) {
+          int atomj = selected[idx];
+          double d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
           if (d2 < dcut2) {
             mask[atomi] = UnselectedChar_;
             break;
@@ -757,24 +752,26 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
       } // END pragma omp parallel
 #     endif
     }
-  } else { // Select by residue
+  } else {
+    // Select by residue
     int n_of_res = (int)residues_.size();
+    int resi;
 #ifdef _OPENMP
-#pragma omp parallel private(atomi, idx, atomj, d2, resi, selectresidue, endatom, i_crd)
+#pragma omp parallel private(resi)
 {
 #pragma omp for
 #endif
     for (resi = 0; resi < n_of_res; resi++) {
-      selectresidue = false;
+      bool selectresidue = false;
       // Determine end atom for this residue
-      endatom = residues_[resi].LastAtom();
+      int endatom = residues_[resi].LastAtom();
       // Loop over mask atoms
-      for (idx = 0; idx < (int)selected.size(); idx++) {
-        atomj = selected[idx];
-        i_crd = REF + (atomj * 3);
+      for (int idx = 0; idx < (int)selected.size(); idx++) {
+        int atomj = selected[idx];
+        const double* i_crd = REF + (atomj * 3);
         // Loop over residue atoms
-        for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++) {
-          d2 = DIST2_NoImage(REF + (atomi * 3), i_crd);
+        for (int atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++) {
+          double d2 = DIST2_NoImage(REF + (atomi * 3), i_crd);
           if (token.Within()) {
             if (d2 < dcut2) selectresidue = true;
           } else {
@@ -785,7 +782,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
         if (selectresidue) break;
       }
       if (selectresidue) {
-        for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++)
+        for (int atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++)
           mask[atomi] = SelectedChar_;
         continue;
       }
