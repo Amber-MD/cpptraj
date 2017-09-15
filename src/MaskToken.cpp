@@ -699,97 +699,83 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     mprintf(" ]\n");
   }
 
+  char char0, char1;
+  if (token.Within()) {
+    // Select all atoms within dcut2 of any selected atom.
+    // Select all residues with atoms within dcut2 of any selected atom.
+    char0 = UnselectedChar_;
+    char1 = SelectedChar_;
+  } else {
+    // Select all atoms outside dcut2 of all selected atoms.
+    // Select all residues with atoms outside dcut2 of all selected atoms.
+    char0 = SelectedChar_;
+    char1 = UnselectedChar_;
+  }
+
   if (token.ByAtom()) {
     // Select by atom
     int n_of_atoms = (int)atoms_.size();
     int atomi;
-    if (token.Within()) {
-      // Select all atoms within dcut2 of any selected atom.
-#     ifdef _OPENMP
-#     pragma omp parallel private(atomi)
-      {
-#     pragma omp for
-#     endif
-      for (atomi = 0; atomi < n_of_atoms; atomi++) {
-        // Starts out unselected
-        mask[atomi] = UnselectedChar_;
-        const double* i_crd = REF + (atomi * 3);
-        // Loop over initially selected atoms
-        for (int idx = 0; idx < (int)selected.size(); idx++) {
-          int atomj = selected[idx];
-          double d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
-          if (d2 < dcut2) {
-            mask[atomi] = SelectedChar_;
-            break;
-          }
-        } // END loop over initially selected atoms
-      } // END loop over all atoms
-#     ifdef _OPENMP
-      } // END pragma omp parallel
-#     endif
-    } else {
-      // Select all atoms outside dcut2 of all selected atoms
-#     ifdef _OPENMP
-#     pragma omp parallel private(atomi, idx, atomj, d2, i_crd)
-      {
-#     pragma omp for
-#     endif
-      for (atomi = 0; atomi < n_of_atoms; atomi++) {
-        // Starts out selected
-        mask[atomi] = SelectedChar_;
-        const double* i_crd = REF + (atomi * 3);
-        // Loop over initially selected atoms
-        for (int idx = 0; idx < (int)selected.size(); idx++) {
-          int atomj = selected[idx];
-          double d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
-          if (d2 < dcut2) {
-            mask[atomi] = UnselectedChar_;
-            break;
-          }
-        } // END loop over initially selected atoms
-      } // END loop over all atoms
-#     ifdef _OPENMP
-      } // END pragma omp parallel
-#     endif
-    }
+#   ifdef _OPENMP
+#   pragma omp parallel private(atomi)
+    {
+#   pragma omp for
+#   endif
+    for (atomi = 0; atomi < n_of_atoms; atomi++) {
+      // Initial state 
+      mask[atomi] = char0;
+      const double* i_crd = REF + (atomi * 3);
+      // Loop over initially selected atoms
+      for (int idx = 0; idx < (int)selected.size(); idx++) {
+        int atomj = selected[idx];
+        double d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
+        if (d2 < dcut2) {
+          // State changes
+          mask[atomi] = char1;
+          break;
+        }
+      } // END loop over initially selected atoms
+    } // END loop over all atoms
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#   endif
   } else {
     // Select by residue
     int n_of_res = (int)residues_.size();
     int resi;
-#ifdef _OPENMP
-#pragma omp parallel private(resi)
-{
-#pragma omp for
-#endif
+    // Loop over all residues
+#   ifdef _OPENMP
+#   pragma omp parallel private(resi)
+    {
+#   pragma omp for
+#   endif
     for (resi = 0; resi < n_of_res; resi++) {
-      bool selectresidue = false;
-      // Determine end atom for this residue
-      int endatom = residues_[resi].LastAtom();
-      // Loop over mask atoms
-      for (int idx = 0; idx < (int)selected.size(); idx++) {
-        int atomj = selected[idx];
-        const double* i_crd = REF + (atomj * 3);
-        // Loop over residue atoms
-        for (int atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++) {
-          double d2 = DIST2_NoImage(REF + (atomi * 3), i_crd);
-          if (token.Within()) {
-            if (d2 < dcut2) selectresidue = true;
-          } else {
-            if (d2 > dcut2) selectresidue = true;
+      // Initial state 
+      char schar = char0;
+      int atomi = residues_[resi].FirstAtom();
+      const double* i_crd = REF + (atomi * 3);
+      // Loop over residue atoms
+      for (; atomi != residues_[resi].LastAtom(); atomi++, i_crd += 3) {
+        // Loop over initially selected atoms
+        for (int idx = 0; idx < (int)selected.size(); idx++) {
+          int atomj = selected[idx];
+          double d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
+          if (d2 < dcut2) {
+            // State changes
+            schar = char1;
+            break;
           }
-          if (selectresidue) break; 
-        }
-        if (selectresidue) break;
-      }
-      if (selectresidue) {
-        for (int atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++)
-          mask[atomi] = SelectedChar_;
-        continue;
-      }
-    }
-#ifdef _OPENMP
-} // END pragma omp parallel
-#endif
+        } // END loop over initially selected atoms
+        if (schar == char1) break;
+      } // END loop over residue atoms
+      // Set residue selection status
+      for (atomi = residues_[resi].FirstAtom();
+           atomi != residues_[resi].LastAtom(); atomi++)
+        mask[atomi] = schar;
+    } // END loop over all residues
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#   endif
   }
   return 0;
 }
