@@ -3,8 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles mask.in First.dat First.pdb.1 Second.dat Second.pdb.1 \
-  Third.dat Third.pdb.1 Fourth.pdb.1
+CleanFiles mask.in First.pdb.1 Second.pdb.1 Third.pdb.1 Fourth.pdb.1
 
 TESTNAME='Distance-based atom mask tests'
 Requires netcdf
@@ -19,9 +18,9 @@ trajin ../tz2.nc 1 1
 
 activeref ref [FIRST]
 # Atoms outside 5 Ang from residue 2
-mask :2>@5.0 maskout First.dat maskpdb First.pdb
+mask :2>@5.0 maskpdb First.pdb
 # Atoms within 5 Ang of residue 2
-mask :2<@5.0 maskout Second.dat maskpdb Second.pdb
+mask :2<@5.0 maskpdb Second.pdb
 
 activeref ref [LAST]
 # Residues within 5 Ang of residue 2
