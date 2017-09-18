@@ -393,6 +393,9 @@ test.fixatomorder:
 test.lowestcurve:
 	@-cd Test_LowestCurve && ./RunTest.sh $(OPT)
 
+test.minimage:
+	@-cd Test_MinImage && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -519,7 +522,8 @@ COMPLETETESTS=test.general \
               test.change \
               test.createreservoir \
               test.fixatomorder \
-              test.lowestcurve
+              test.lowestcurve \
+              test.minimage
 
 test.all:
 	$(MAKE) test.complete summary
