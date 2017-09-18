@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles fix.in order.in
+CleanFiles fix.in order.in reorder.outoforder.parm7 reorder.mdcrd
 
 INPUT='-i fix.in'
 
