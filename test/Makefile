@@ -375,6 +375,9 @@ test.areapermol:
 test.distbasedmask:
 	@-cd Test_DistBasedMask && ./RunTest.sh $(OPT)
 
+test.calc:
+	@-cd Test_Calc && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -495,7 +498,8 @@ COMPLETETESTS=test.general \
               test.setvelocity \
               test.remlog \
               test.areapermol \
-              test.distbasedmask
+              test.distbasedmask \
+              test.calc
 
 test.all:
 	$(MAKE) test.complete summary
