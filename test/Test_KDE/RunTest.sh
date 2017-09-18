@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles kde.in kde.dat kl.dat final.dat
+CleanFiles kde.in kde.dat kl.dat final.dat divergence.dat
 
 INPUT="-i kde.in"
 cat > kde.in <<EOF
@@ -22,10 +22,14 @@ crdaction DPDP multidihedral PHI1 phi resrange 3 crdframes 1,50
 crdaction DPDP multidihedral PHI2 phi resrange 3 crdframes 51,100
 runanalysis kde PHI1[*] kldiv PHI2[*] klout kl.dat \
                 min -133 max -52 step 5 out final.dat name KDE_Phi
+runanalysis kde PHI2[*] min -133 max -52 step 5 bandwidth 5.682506 name KDE_Phi2
+list dataset
+runanalysis divergence ds1 KDE_Phi ds2 KDE_Phi2 out divergence.dat name Div
 EOF
-  RunCpptraj "KDE with Kullback-Leibler divergence test."
+  RunCpptraj "$UNITNAME"
   DoTest kl.dat.save kl.dat
   DoTest final.dat.save final.dat
+  DoTest divergence.dat.save divergence.dat
 fi
 
 EndTest
