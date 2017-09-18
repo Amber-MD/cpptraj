@@ -13,5 +13,6 @@ class Analysis_Divergence : public Analysis {
     std::vector<double> NormalizeSet(DataSet const&, unsigned int) const;
     DataSet* ds1_;
     DataSet* ds2_;
+    DataSet* dataout_;
 };
 #endif
