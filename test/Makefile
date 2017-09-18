@@ -381,6 +381,9 @@ test.calc:
 test.calcstate:
 	@-cd Test_CalcState && ./RunTest.sh $(OPT)
 
+test.change:
+	@-cd Test_Change && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -503,7 +506,8 @@ COMPLETETESTS=test.general \
               test.areapermol \
               test.distbasedmask \
               test.calc \
-              test.calcstate
+              test.calcstate \
+              test.change
 
 test.all:
 	$(MAKE) test.complete summary
