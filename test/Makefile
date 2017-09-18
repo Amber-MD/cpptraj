@@ -378,6 +378,9 @@ test.distbasedmask:
 test.calc:
 	@-cd Test_Calc && ./RunTest.sh $(OPT)
 
+test.calcstate:
+	@-cd Test_CalcState && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -499,7 +502,8 @@ COMPLETETESTS=test.general \
               test.remlog \
               test.areapermol \
               test.distbasedmask \
-              test.calc
+              test.calc \
+              test.calcstate
 
 test.all:
 	$(MAKE) test.complete summary
