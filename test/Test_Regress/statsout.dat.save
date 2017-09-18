@@ -1,0 +1,19 @@
+#Stats for XY:2
+	Data points= 27479
+	<X>= 2.79603
+	<Y>= 10.9491
+	SDx= 1.72203
+	SDy= 0.787681
+	Correlation coefficient= 0.698795
+	Slope= 0.319639
+	Standard error of slope= 0.00197391
+	t - value for slope= 161.932
+	Intercept= 10.0554
+	Standard Error of intercept= 0.00648183
+	t - value for intercept= 1551.32
+	Equation: Y = 0.319639 * X + 10.0554
+	Variance analysis:
+	Source       d.f Sum of squares    Mean square              F
+	Regression     1       8325.024       8325.024       26221.95
+	Residual   27477        8723.48       0.317483
+	Total      27478        17048.5
