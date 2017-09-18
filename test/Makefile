@@ -384,6 +384,9 @@ test.calcstate:
 test.change:
 	@-cd Test_Change && ./RunTest.sh $(OPT)
 
+test.createreservoir:
+	@-cd Test_CreateReservoir && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -507,7 +510,8 @@ COMPLETETESTS=test.general \
               test.distbasedmask \
               test.calc \
               test.calcstate \
-              test.change
+              test.change \
+              test.createreservoir
 
 test.all:
 	$(MAKE) test.complete summary
