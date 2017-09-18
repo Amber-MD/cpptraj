@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles calc.in calc.dat
+CleanFiles calc.in calc.dat mag.dat
 
 INPUT='-i calc.in'
 cat > calc.in <<EOF
@@ -17,6 +17,17 @@ writedata calc.dat xprec 2.0 invert V*
 EOF
 RunCpptraj "Calc test"
 DoTest calc.dat.save calc.dat
+
+cat > calc.in <<EOF
+readdata ../Test_Rotdif/rvecs.dat.save name Vec index 1
+X2     = Vec:2 * Vec:2
+Y2pZ2  =  (Vec:3^2) + (Vec:4 * Vec:4)
+Mag    = sqrt(X2 + Y2pZ2)
+AvgMag = avg(Mag)
+writedata mag.dat AvgMag
+EOF
+RunCpptraj "Calc test with data sets"
+DoTest mag.dat.save mag.dat
 
 EndTest
 exit 0
