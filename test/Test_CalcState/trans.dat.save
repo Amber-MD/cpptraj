@@ -1,0 +1,4 @@
+#N                Average          Max Transition
+2                  1.0000            1 Undefined->C0
+2                  1.0000            1 C0->Undefined
+1                  3.0000            3 C0->C1
