@@ -387,6 +387,9 @@ test.change:
 test.createreservoir:
 	@-cd Test_CreateReservoir && ./RunTest.sh $(OPT)
 
+test.fixatomorder:
+	@-cd Test_FixAtomOrder && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -511,7 +514,8 @@ COMPLETETESTS=test.general \
               test.calc \
               test.calcstate \
               test.change \
-              test.createreservoir
+              test.createreservoir \
+              test.fixatomorder
 
 test.all:
 	$(MAKE) test.complete summary

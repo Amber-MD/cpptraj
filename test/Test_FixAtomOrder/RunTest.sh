@@ -16,7 +16,7 @@ trajin min1.crd 1 10
 fixatomorder outprefix reorder
 trajout reorder.mdcrd
 EOF
-RunCpptraj "Out of order molecules test"
+RunCpptraj "Out of order molecules test (will print error messages)"
 DoTest reorder.outoforder.parm7.save reorder.outoforder.parm7 -I %VERSION
 DoTest reorder.mdcrd.save reorder.mdcrd
 
