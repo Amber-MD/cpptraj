@@ -8,7 +8,7 @@ INPUT='-i change.in'
 
 cat > change.in <<EOF
 parm ../Test_Charmm/ala3.psf
-trajin ../Test_Charmm/test.ala3.dcd 1 1
+trajin ../Test_Charmm/ala3.dcd 1 1
 change parmindex 0 resname from :1 to NALA
 change parmindex 0 resname from :3 to CALA
 change parmindex 0 atomname from @HN to H
