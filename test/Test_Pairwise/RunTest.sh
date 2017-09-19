@@ -21,7 +21,7 @@ run
 clear trajin
 reference ../Test_SymmRmsd/TYR.nc 1
 trajin ../Test_SymmRmsd/TYR.nc 2 2
-pairwise REF reference cutout ref.cut.mol2 pdbout ref.ene.pdb
+pairwise REF reference cutout ref.cut.mol2 pdbout ref.ene.pdb scalepdbe
 EOF
 RunCpptraj "$TESTNAME"
 DoTest pair.dat.save pair.dat
