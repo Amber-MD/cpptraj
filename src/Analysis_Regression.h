@@ -12,6 +12,9 @@ class Analysis_Regression : public Analysis {
   private:
     Array1D input_dsets_;
     Array1D output_dsets_;
+    typedef std::vector<DataSet*> DSarray;
+    DSarray slope_dsets_;
+    DSarray int_dsets_;
     CpptrajFile* statsout_;
     int nx_; ///< Number of x values
 };
