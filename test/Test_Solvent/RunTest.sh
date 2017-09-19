@@ -14,7 +14,7 @@ cat > solvent.in <<EOF
 parm AlaDipeptide.MEOH.parm7
 solvent :MOH
 trajin AlaDipeptide.MEOH.rst7
-closest 10 !:MOH
+closest 10 !:MOH noimage
 trajout closest10.mol2
 EOF
 RunCpptraj "Test solvent command with closest"
