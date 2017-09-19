@@ -402,6 +402,9 @@ test.regress:
 test.rst:
 	@-cd Test_Rst && ./RunTest.sh $(OPT)
 
+test.pairwise:
+	@-cd Test_Pairwise && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -531,7 +534,8 @@ COMPLETETESTS=test.general \
               test.lowestcurve \
               test.minimage \
               test.regress \
-              test.rst
+              test.rst \
+              test.pairwise
 
 test.all:
 	$(MAKE) test.complete summary
