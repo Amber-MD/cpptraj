@@ -32,6 +32,7 @@ class Action_Pairwise: public Action {
       double evdw;
       double eelec;
     };
+    typedef std::vector<NonbondEnergyType> Narray;
     typedef std::vector<double> Darray;
 
     /// Count number of pairwise interactions that will actually be calcd.
@@ -46,8 +47,7 @@ class Action_Pairwise: public Action {
     /// Write atoms satisfying cutoff for given energy type
     int PrintCutAtoms(Frame const&, int, EoutType, Darray const&, double);
 
-    /// Hold nonbond energy for each pair of atoms in reference
-    std::vector<NonbondEnergyType> ref_nonbondEnergy_;
+    Narray ref_nonbondEnergy_; ///< Hold NB energy for each pair of atoms in reference
     PrintModeType printMode_;  ///< Output print mode.
     PairCalcType nb_calcType_; ///< Type of nonbonded calc being performed
     AtomMask Mask0_;           ///< Calculate energy for atoms in mask

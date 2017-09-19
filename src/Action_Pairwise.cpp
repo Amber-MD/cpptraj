@@ -166,7 +166,13 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
     if (scalePdbE_)
       mprintf("\tEnergies in PDB will be scaled from 0.0 to 100.0\n");
   }
-  
+  mprintf("\tVDW energy matrix set: %s\n", vdwMat_->legend());
+  if (vmapout != 0)
+    mprintf("\tVDW energy matrix written to '%s'\n", vmapout->DataFilename().full());
+  mprintf("\tElec. energy matrix set: %s\n", eleMat_->legend());
+  if (emapout != 0)
+    mprintf("\tElec. energy matrix written to '%s'\n", emapout->DataFilename().full());
+ 
   return Action::OK;
 }
 
@@ -304,7 +310,7 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
 
   ELJ_ = 0.0;
   Eelec_ = 0.0;
-  std::vector<NonbondEnergyType>::const_iterator refpair = ref_nonbondEnergy_.begin();
+  Narray::const_iterator refpair = ref_nonbondEnergy_.begin();
   // Loop over all atom pairs and set information
   // Outer loop
   for (int idx1 = 0; idx1 != maskIn.Nselected(); idx1++)
