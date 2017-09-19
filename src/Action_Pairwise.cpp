@@ -21,6 +21,7 @@ Action_Pairwise::Action_Pairwise() :
   Eelec_(0),
   cut_evdw_(1.0),
   cut_eelec_(1.0),
+  avgout_(0),
   Eout_(0),
   scalePdbE_(false)
 {} 
@@ -56,7 +57,9 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
   DataFile* dataout = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataFile* vmapout = init.DFL().AddDataFile( actionArgs.GetStringKey("vmapout"), actionArgs );
   DataFile* emapout = init.DFL().AddDataFile( actionArgs.GetStringKey("emapout"), actionArgs );
-  avgout_ = actionArgs.GetStringKey("avgout");
+  avgout_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("avgout"),
+                                      "Pairwise Average Energies", DataFileList::TEXT, true);
+  if (avgout_ == 0) return Action::ERR;
   std::string eout = actionArgs.GetStringKey("eout");
   cut_eelec_ = fabs(actionArgs.getKeyDouble("cuteelec",1.0));
   cut_evdw_ = fabs(actionArgs.getKeyDouble("cutevdw",1.0));
@@ -145,15 +148,13 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
             ref_nonbondEnergy_.size(),
             ByteString(ref_nonbondEnergy_.size() * 2 * sizeof(double), BYTE_DECIMAL).c_str());
   }
-  if (!avgout_.empty()) {
-    mprintf("\tAverage energies will be written to '%s'\n", avgout_.c_str());
-    if (printMode_ == ONLY_CUT)
-      mprintf("\tOnly average energy components that satisfy the cutoffs will be printed.\n");
-    else if (printMode_ == OR_CUT)
-      mprintf("\tBoth energy components will be printed if either satisfy cutoffs.\n");
-    else if (printMode_ == AND_CUT)
-      mprintf("\tBoth energy components will be printed if both satisfy cutoffs.\n");
-  }
+  mprintf("\tAverage energies will be written to '%s'\n", avgout_->Filename().full());
+  if (printMode_ == ONLY_CUT)
+    mprintf("\tOnly average energy components that satisfy the cutoffs will be printed.\n");
+  else if (printMode_ == OR_CUT)
+    mprintf("\tBoth energy components will be printed if either satisfy cutoffs.\n");
+  else if (printMode_ == AND_CUT)
+    mprintf("\tBoth energy components will be printed if both satisfy cutoffs.\n");
   mprintf("\tEelec print absolute cutoff (kcal/mol): %.4f\n", cut_eelec_);
   mprintf("\tEvdw print absolute cutoff (kcal/mol) : %.4f\n", cut_evdw_);
   if (!mol2Prefix_.empty())
@@ -546,15 +547,13 @@ void Action_Pairwise::Print() {
     (*eleMat_)[i] *= norm;
   }
   // Write out final results
-  CpptrajFile AvgOut;
-  if (AvgOut.OpenWrite( avgout_ )) return;
   if (nb_calcType_ == NORMAL)
     mprintf("  PAIRWISE: Writing all pairs with |<evdw>| > %.4f, |<eelec>| > %.4f\n",
             cut_evdw_, cut_eelec_);
   else if (nb_calcType_ == COMPARE_REF)
     mprintf("  PAIRWISE: Writing all pairs with |<dEvdw>| > %.4f, |<dEelec>| > %.4f\n",
             cut_evdw_, cut_eelec_);
-  AvgOut.Printf("%-16s %5s -- %16s %5s : ENE\n","#Name1", "At1", "Name2", "At2");
+  avgout_->Printf("%-16s %5s -- %16s %5s : ENE\n","#Name1", "At1", "Name2", "At2");
   for (int idx1 = 0; idx1 != Mask0_.Nselected(); idx1++)
   {
     int m1 = Mask0_[idx1];
@@ -567,22 +566,22 @@ void Action_Pairwise::Print() {
       bool outpute = ( fabs(EE) > cut_eelec_ );
       if (printMode_ == ONLY_CUT) {
         if (outputv || outpute) {
-          AvgOut.Printf("%16s %5i -- %16s %5i :",
+          avgout_->Printf("%16s %5i -- %16s %5i :",
                   CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
                   CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1);
-          if (outputv) AvgOut.Printf("  EVDW= %12.5e", EV);
-          if (outpute) AvgOut.Printf(" EELEC= %12.5e", EE);
-          AvgOut.Printf("\n");
+          if (outputv) avgout_->Printf("  EVDW= %12.5e", EV);
+          if (outpute) avgout_->Printf(" EELEC= %12.5e", EE);
+          avgout_->Printf("\n");
         }
       } else if (printMode_ == OR_CUT) {
         if (outputv || outpute)
-          AvgOut.Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
+          avgout_->Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
                         CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
                         CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1,
                         EV, EE);
       } else if (printMode_ == AND_CUT) {
         if (outputv && outpute)
-          AvgOut.Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
+          avgout_->Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
                         CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
                         CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1,
                         EV, EE);

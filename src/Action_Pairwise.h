@@ -66,7 +66,7 @@ class Action_Pairwise: public Action {
     double cut_eelec_;         ///< Coulomb energy cutoff
     Darray atom_eelec_;        ///< Cumulative Eelec on each atom
     std::string mol2Prefix_;   ///< Mol2 file prefix for atoms satisfying cutoffs
-    std::string avgout_;       ///< Filename for printing final results
+    CpptrajFile* avgout_;      ///< File for printing average energies
     PDBfile PdbOut_;           ///< PDB with atoms colored by evdw/eelec
     CpptrajFile* Eout_;        ///< Output file for atom energies.
     static const double QFAC;  ///< Convert charges to kcal/mol units
