@@ -163,8 +163,10 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
   if (PdbOut_.IsOpen()) {
     mprintf("\tPDB with evdw/eelec in occupancy/B-factor columns will be written to %s\n",
             PdbOut_.Filename().full());
-    if (scalePdbE_)
-      mprintf("\tEnergies in PDB will be scaled from 0.0 to 100.0\n");
+    if (scalePdbE_) {
+      mprintf("\tEnergies in PDB will be scaled from 10.0 to 100.0\n");
+      mprintf("\tEnergies that do not satisfy cutoffs will be set to 0.0\n");
+    }
   }
   mprintf("\tVDW energy matrix set: %s\n", vdwMat_->legend());
   if (vmapout != 0)
@@ -500,7 +502,9 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
     double efac = 1.0;
     double voff = 0.0;
     double eoff = 0.0;
+    float step = 0.0;
     if (scalePdbE_) {
+      step = 10.0;
       double maxV = atom_evdw_[0];
       double minV = maxV;
       double maxE = atom_eelec_[0];
@@ -514,9 +518,9 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
       }
       //mprintf("DEBUG: %g < Evdw < %g | %g < Eelec < %g\n", minV, maxV, minE, maxE);
       voff = minV;
-      vfac = 1.0 / (maxV - minV);
+      vfac = 90.0 / (maxV - minV);
       eoff = minE;
-      efac = 1.0 / (maxE - minE);
+      efac = 90.0 / (maxE - minE);
     }
     for (int idx = 0; idx != Mask0_.Nselected(); idx++)
     {
@@ -524,9 +528,9 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
       float occ = 0.0;
       float bfac = 0.0;
       if (fabs(atom_evdw_[idx]) > cut_evdw_)
-        occ = (float)(vfac*(atom_evdw_[idx] - voff));
+        occ = (float)(vfac*(atom_evdw_[idx] - voff)) + step;
       if (fabs(atom_eelec_[idx]) > cut_eelec_)
-        bfac = (float)(efac*(atom_eelec_[idx] - eoff));
+        bfac = (float)(efac*(atom_eelec_[idx] - eoff)) + step;
       const double* XYZ = frm.Frm().XYZ( atom );
       Atom const& AT = (*CurrentParm_)[atom];
       int rn = AT.ResNum();
