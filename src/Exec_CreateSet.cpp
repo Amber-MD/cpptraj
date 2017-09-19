@@ -29,6 +29,7 @@ Exec::RetType Exec_CreateSet::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Must specify an equation.\n");
     return CpptrajState::ERR;
   }
+
   RPNcalc Calc;
   Calc.SetDebug( State.Debug() );
   if (Calc.ProcessExpression( equation )) return CpptrajState::ERR;
@@ -42,6 +43,10 @@ Exec::RetType Exec_CreateSet::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Invalid assignment in equation '%s'\n", equation.c_str());
     return CpptrajState::ERR;
   }
+
+  mprintf("\tCreating data set '%s' using equation '%s'\n""\tX min= %g, step= %g, nx= %i\n",
+          dsoutName.c_str(), equation.c_str(), xmin, xstep, nx);
+
   // Create X array
   DataSet* xset = State.DSL().AddSet( DataSet::DOUBLE, MetaData("X") );
   if (xset == 0) return CpptrajState::ERR;
