@@ -408,6 +408,12 @@ test.pairwise:
 test.parmbox:
 	@-cd Test_ParmBox && ./RunTest.sh $(OPT)
 
+test.solvent:
+	@-cd Test_Solvent && ./RunTest.sh $(OPT)
+
+test.translate:
+	@-cd Test_Translate && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -539,7 +545,9 @@ COMPLETETESTS=test.general \
               test.regress \
               test.rst \
               test.pairwise \
-              test.parmbox
+              test.parmbox \
+              test.solvent \
+              test.translate
 
 test.all:
 	$(MAKE) test.complete summary
