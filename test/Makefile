@@ -405,6 +405,9 @@ test.rst:
 test.pairwise:
 	@-cd Test_Pairwise && ./RunTest.sh $(OPT)
 
+test.parmbox:
+	@-cd Test_ParmBox && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -535,7 +538,8 @@ COMPLETETESTS=test.general \
               test.minimage \
               test.regress \
               test.rst \
-              test.pairwise
+              test.pairwise \
+              test.parmbox
 
 test.all:
 	$(MAKE) test.complete summary
