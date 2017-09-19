@@ -21,14 +21,15 @@ Action_Pairwise::Action_Pairwise() :
   Eelec_(0),
   cut_evdw_(1.0),
   cut_eelec_(1.0),
-  Eout_(0)
+  Eout_(0),
+  scalePdbE_(false)
 {} 
 
 void Action_Pairwise::Help() const {
   mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
           "\t[ %s ] [cutout <cut mol2 prefix>]\n", DataSetList::RefArgs);
   mprintf("\t[vmapout <vdw map>] [emapout <elec map>] [avgout <avg file>]\n"
-          "\t[eout <eout file>] [pdbout <pdb file>] [printmode {only|or|and}]\n"
+          "\t[eout <eout file>] [pdbout <pdb file> [scalepdbe]] [printmode {only|or|and}]\n"
           "  Calculate pairwise (non-bonded) energy for atoms in <mask>.\n"
           "  If 'eout' is specified individual interaction energies will be written to\n"
           "  <eout file>. If a reference structure is given the energies will be\n"
@@ -61,6 +62,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
   cut_evdw_ = fabs(actionArgs.getKeyDouble("cutevdw",1.0));
   mol2Prefix_ = actionArgs.GetStringKey("cutout");
   std::string pdbout = actionArgs.GetStringKey("pdbout");
+  scalePdbE_ = actionArgs.hasKey("scalepdbe");
   printMode_ = ONLY_CUT;
   std::string pmode = actionArgs.GetStringKey("printmode");
   if (!pmode.empty()) {
@@ -143,14 +145,26 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
             ref_nonbondEnergy_.size(),
             ByteString(ref_nonbondEnergy_.size() * 2 * sizeof(double), BYTE_DECIMAL).c_str());
   }
+  if (!avgout_.empty()) {
+    mprintf("\tAverage energies will be written to '%s'\n", avgout_.c_str());
+    if (printMode_ == ONLY_CUT)
+      mprintf("\tOnly average energy components that satisfy the cutoffs will be printed.\n");
+    else if (printMode_ == OR_CUT)
+      mprintf("\tBoth energy components will be printed if either satisfy cutoffs.\n");
+    else if (printMode_ == AND_CUT)
+      mprintf("\tBoth energy components will be printed if both satisfy cutoffs.\n");
+  }
   mprintf("\tEelec print absolute cutoff (kcal/mol): %.4f\n", cut_eelec_);
   mprintf("\tEvdw print absolute cutoff (kcal/mol) : %.4f\n", cut_evdw_);
   if (!mol2Prefix_.empty())
     mprintf("\tAtoms satisfying cutoff will be printed to %s.e<type>.mol2\n",
             mol2Prefix_.c_str());
-  if (PdbOut_.IsOpen())
-    mprintf("\tPDB with evdw/eelec in occ/b-fac columns will be written to %s\n",
+  if (PdbOut_.IsOpen()) {
+    mprintf("\tPDB with evdw/eelec in occupancy/B-factor columns will be written to %s\n",
             PdbOut_.Filename().full());
+    if (scalePdbE_)
+      mprintf("\tEnergies in PDB will be scaled from 0.0 to 100.0\n");
+  }
   
   return Action::OK;
 }
@@ -475,15 +489,37 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
   // Write PDB with atoms that satisfy cutoff colored in.
   if (PdbOut_.IsOpen()) {
     PdbOut_.WriteMODEL(frm.TrajoutNum() + 1); // FIXME in parallel this needs to be separate files
+    double vfac = 1.0;
+    double efac = 1.0;
+    double voff = 0.0;
+    double eoff = 0.0;
+    if (scalePdbE_) {
+      double maxV = atom_evdw_[0];
+      double minV = maxV;
+      double maxE = atom_eelec_[0];
+      double minE = maxE;
+      for (int idx = 1; idx != Mask0_.Nselected(); idx++)
+      {
+        maxV = std::max( maxV, atom_evdw_[idx] );
+        minV = std::min( minV, atom_evdw_[idx] );
+        maxE = std::max( maxE, atom_eelec_[idx] );
+        minE = std::min( minE, atom_eelec_[idx] );
+      }
+      //mprintf("DEBUG: %g < Evdw < %g | %g < Eelec < %g\n", minV, maxV, minE, maxE);
+      voff = minV;
+      vfac = 1.0 / (maxV - minV);
+      eoff = minE;
+      efac = 1.0 / (maxE - minE);
+    }
     for (int idx = 0; idx != Mask0_.Nselected(); idx++)
     {
       int atom = Mask0_[idx];
       float occ = 0.0;
       float bfac = 0.0;
       if (fabs(atom_evdw_[idx]) > cut_evdw_)
-        occ = (float)atom_evdw_[idx];
+        occ = (float)(vfac*(atom_evdw_[idx] - voff));
       if (fabs(atom_eelec_[idx]) > cut_eelec_)
-        bfac = (float)atom_eelec_[idx];
+        bfac = (float)(efac*(atom_eelec_[idx] - eoff));
       const double* XYZ = frm.Frm().XYZ( atom );
       Atom const& AT = (*CurrentParm_)[atom];
       int rn = AT.ResNum();

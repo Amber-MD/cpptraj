@@ -23,10 +23,31 @@ class Action_Pairwise: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
-    typedef std::vector<double> Darray;
     enum EoutType {VDWOUT = 0, ELECOUT};
     enum PairCalcType { SET_REF, COMPARE_REF, NORMAL };
     enum PrintModeType { ONLY_CUT = 0, OR_CUT, AND_CUT };
+
+    /// Hold nonbond energy for a given atom pair
+    struct NonbondEnergyType {
+      double evdw;
+      double eelec;
+    };
+    typedef std::vector<double> Darray;
+
+    /// Count number of pairwise interactions that will actually be calcd.
+    static int SetupNonbondParm(AtomMask const&, Topology const&);
+    /// Write energies to file
+    inline void WriteEnergies(Topology const&, int, int, double, double, const char*);
+    /// Calculate nonbond energy using nonbondParm for given frame
+    void NonbondEnergy(Frame const&, Topology const&, AtomMask const&);
+    /// Write mol2 file with atoms satisfying cutoff
+    int WriteCutFrame(int, Topology const&, AtomMask const&, Darray const&, 
+                      Frame const&, std::string const&);
+    /// Write atoms satisfying cutoff for given energy type
+    int PrintCutAtoms(Frame const&, int, EoutType, Darray const&, double);
+
+    /// Hold nonbond energy for each pair of atoms in reference
+    std::vector<NonbondEnergyType> ref_nonbondEnergy_;
     PrintModeType printMode_;  ///< Output print mode.
     PairCalcType nb_calcType_; ///< Type of nonbonded calc being performed
     AtomMask Mask0_;           ///< Calculate energy for atoms in mask
@@ -49,24 +70,6 @@ class Action_Pairwise: public Action {
     PDBfile PdbOut_;           ///< PDB with atoms colored by evdw/eelec
     CpptrajFile* Eout_;        ///< Output file for atom energies.
     static const double QFAC;  ///< Convert charges to kcal/mol units
-    /// Hold nonbond energy for a given atom pair
-    struct NonbondEnergyType {
-      double evdw;
-      double eelec;
-    };
-    /// Hold nonbond energy for each pair of atoms in reference
-    std::vector<NonbondEnergyType> ref_nonbondEnergy_;
-
-    /// Count number of pairwise interactions that will actually be calcd.
-    static int SetupNonbondParm(AtomMask const&, Topology const&);
-    /// Write energies to file
-    inline void WriteEnergies(Topology const&, int, int, double, double, const char*);
-    /// Calculate nonbond energy using nonbondParm for given frame
-    void NonbondEnergy(Frame const&, Topology const&, AtomMask const&);
-    /// Write mol2 file with atoms satisfying cutoff
-    int WriteCutFrame(int, Topology const&, AtomMask const&, Darray const&, 
-                      Frame const&, std::string const&);
-    /// Write atoms satisfying cutoff for given energy type
-    int PrintCutAtoms(Frame const&, int, EoutType, Darray const&, double);
+    bool scalePdbE_;           ///< If true scale PDB energy each frame between 0 and 100
 };
 #endif  
