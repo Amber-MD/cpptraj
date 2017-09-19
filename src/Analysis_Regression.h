@@ -13,5 +13,6 @@ class Analysis_Regression : public Analysis {
     Array1D input_dsets_;
     Array1D output_dsets_;
     CpptrajFile* statsout_;
+    int nx_; ///< Number of x values
 };
 #endif
