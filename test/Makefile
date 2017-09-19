@@ -414,6 +414,9 @@ test.solvent:
 test.translate:
 	@-cd Test_Translate && ./RunTest.sh $(OPT)
 
+test.replicatecell:
+	@-cd Test_ReplicateCell && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -547,7 +550,8 @@ COMPLETETESTS=test.general \
               test.pairwise \
               test.parmbox \
               test.solvent \
-              test.translate
+              test.translate \
+              test.replicatecell
 
 test.all:
 	$(MAKE) test.complete summary
