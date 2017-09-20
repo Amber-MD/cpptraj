@@ -5,7 +5,7 @@
 CleanFiles replicate.in cell.mol2 
 
 TESTNAME='Replicate cell test'
-Requires netcdf
+Requires netcdf maxthreads 1
 
 INPUT='-i replicate.in'
 
