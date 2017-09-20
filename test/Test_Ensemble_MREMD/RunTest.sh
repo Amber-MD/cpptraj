@@ -6,7 +6,7 @@ CleanFiles mremd.in Strip.sorted.crd.? rmsd.dat rmsd.dat.? all.rmsd.dat \
            nhbond.dat nhbond.dat.? all.nhbond.dat \
            hbavg.dat hbavg.dat.? all.hbavg.dat \
            Outtraj.crd Outtraj.crd.0 Outtraj.crd.1 avg.rst7.? \
-           RA.dat RA.dat.? all.RA.dat
+           RA.dat RA.dat.? all.RA.dat melt.dat
 
 INPUT="-i mremd.in"
 TESTNAME='M-REMD ensemble tests'
@@ -32,12 +32,16 @@ ActionsTest() {
   cat > mremd.in <<EOF
 noprogress
 parm rGACC.nowat.parm7
+reference rGACC.nowat.001
 ensemblesize 8
 ensemble rGACC.nowat.001
 hbond HB :1-4 solventdonor :Na+ solventacceptor :Na+ \
       out nhbond.dat avgout hbavg.dat
 rms R1-4NoH first :1-4&!@H= mass out rmsd.dat
 average avg.rst7 :1-4
+rms Ref reference
+run
+runanalysis meltcurve Ref out melt.dat cut 5.0 name ToRep1
 EOF
   RunCpptraj "M-REMD actions test."
   if [ -z "$DO_PARALLEL" ] ; then
