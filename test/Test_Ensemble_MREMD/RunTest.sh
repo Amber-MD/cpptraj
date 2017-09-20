@@ -6,7 +6,8 @@ CleanFiles mremd.in Strip.sorted.crd.? rmsd.dat rmsd.dat.? all.rmsd.dat \
            nhbond.dat nhbond.dat.? all.nhbond.dat \
            hbavg.dat hbavg.dat.? all.hbavg.dat \
            Outtraj.crd Outtraj.crd.0 Outtraj.crd.1 avg.rst7.? \
-           RA.dat RA.dat.? all.RA.dat melt.dat
+           RA.dat RA.dat.? all.RA.dat melt.dat RmsToRep1.dat \
+           RmsToRep1.dat.?
 
 INPUT="-i mremd.in"
 TESTNAME='M-REMD ensemble tests'
@@ -65,9 +66,14 @@ ensemble rGACC.nowat.001
 rms Ref reference out RmsToRep1.dat
 EOF
   RunCpptraj "M-REMD, generate RMS data"
+  if [ -z "$DO_PARALLEL" ] ; then
+    READDATA='readdata RmsToRep1.dat name Ref'
+  else
+    READDATA='readdata RmsToRep1.dat.? name Ref separate'
+  fi
   cat > mremd.in <<EOF
-readdata RmsToRep1.dat name Ref
-runanalysis meltcurve Ref out melt.dat cut 5.0 name ToRep1
+$READDATA
+runanalysis meltcurve Ref* out melt.dat cut 5.0 name ToRep1
 EOF
   RunCpptraj "M-REMD, meltcurve analysis"
   DoTest melt.dat.save melt.dat
