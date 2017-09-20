@@ -15,7 +15,7 @@ int Action_Esander::AddSet(Energy_Sander::Etype typeIn, DataSetList& DslIn, Data
 }
 
 void Action_Esander::Help() const {
-  mprintf("\t[<name>] [out <filename>] [saveforces] [parmname <file>]\n"
+  mprintf("\t[<name>] [out <filename>] [saveforces] [parmname <file>] [keepfiles]\n"
           "\t[<namelist vars>]\n"
           "    Supported namelist vars: %s\n", Energy_Sander::SupportedNamelist());
   mprintf("  Calculate energy for atoms in mask using Sander energy routines. This\n"

@@ -5,6 +5,7 @@
 #include "DataSet_GridFlt.h"
 #include "DataSet_GridDbl.h"
 #include "ProgressBar.h"
+#include "StringRoutines.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -182,8 +183,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
 
-  if (ww_Eij_ != 0)
-    ww_Eij_->AllocateTriangle( MAX_GRID_PT_ );
+  if (ww_Eij_ != 0) {
+    if (ww_Eij_->AllocateTriangle( MAX_GRID_PT_ )) {
+      mprinterr("Error: Could not allocate memory for water-water Eij matrix.\n");
+      return Action::ERR;
+    }
+  }
 
   // Add sets to files
   file_gO->AddDataSet( gO_ );
@@ -267,10 +272,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (numthreads > 1)
       mprintf("\tParallelizing energy calculation with %i threads.\n", numthreads);
   }
-  if (doEij_)
+  if (doEij_) {
     mprintf("\tComputing and printing water-water Eij matrix, output to '%s'\n",
             eijfile_->Filename().full());
-  else
+    mprintf("\tWater-water Eij matrix size is %s\n",
+            ByteString(ww_Eij_->SizeInBytes(), BYTE_DECIMAL).c_str());
+  } else
     mprintf("\tSkipping water-water Eij matrix.\n");
   mprintf("\tWater reference density: %6.4f\n", BULK_DENS_); // TODO units
   mprintf("\tSimulation temperature: %6.4f K\n", temperature_);
@@ -638,7 +645,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   // TODO only !skipE?
   N_ON_GRID_ = 0;
 
-  int bin_i, bin_j, bin_k;
+  size_t bin_i, bin_j, bin_k;
   Vec3 const& Origin = gO_->GridOrigin();
   // Loop over each solvent molecule
   for (unsigned int sidx = 0; sidx < NSOLVENT_; sidx++)
@@ -1138,7 +1145,7 @@ void Action_GIST::Print() {
     ProgressBar O_progress( MAX_GRID_PT_ );
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       O_progress.Update( gr_pt );
-      int i, j, k;
+      size_t i, j, k;
       gO_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = gO_->BinCenter( i, j, k );
       datafile_->Printf("%d %g %g %g %d %g %g %g %g %g %g %g"

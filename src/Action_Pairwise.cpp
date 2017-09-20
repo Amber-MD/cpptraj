@@ -21,14 +21,16 @@ Action_Pairwise::Action_Pairwise() :
   Eelec_(0),
   cut_evdw_(1.0),
   cut_eelec_(1.0),
-  Eout_(0)
+  avgout_(0),
+  Eout_(0),
+  scalePdbE_(false)
 {} 
 
 void Action_Pairwise::Help() const {
   mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
           "\t[ %s ] [cutout <cut mol2 prefix>]\n", DataSetList::RefArgs);
   mprintf("\t[vmapout <vdw map>] [emapout <elec map>] [avgout <avg file>]\n"
-          "\t[eout <eout file>] [pdbout <pdb file>] [printmode {only|or|and}]\n"
+          "\t[eout <eout file>] [pdbout <pdb file> [scalepdbe]] [printmode {only|or|and}]\n"
           "  Calculate pairwise (non-bonded) energy for atoms in <mask>.\n"
           "  If 'eout' is specified individual interaction energies will be written to\n"
           "  <eout file>. If a reference structure is given the energies will be\n"
@@ -55,12 +57,15 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
   DataFile* dataout = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataFile* vmapout = init.DFL().AddDataFile( actionArgs.GetStringKey("vmapout"), actionArgs );
   DataFile* emapout = init.DFL().AddDataFile( actionArgs.GetStringKey("emapout"), actionArgs );
-  avgout_ = actionArgs.GetStringKey("avgout");
+  avgout_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("avgout"),
+                                      "Pairwise Average Energies", DataFileList::TEXT, true);
+  if (avgout_ == 0) return Action::ERR;
   std::string eout = actionArgs.GetStringKey("eout");
   cut_eelec_ = fabs(actionArgs.getKeyDouble("cuteelec",1.0));
   cut_evdw_ = fabs(actionArgs.getKeyDouble("cutevdw",1.0));
   mol2Prefix_ = actionArgs.GetStringKey("cutout");
   std::string pdbout = actionArgs.GetStringKey("pdbout");
+  scalePdbE_ = actionArgs.hasKey("scalepdbe");
   printMode_ = ONLY_CUT;
   std::string pmode = actionArgs.GetStringKey("printmode");
   if (!pmode.empty()) {
@@ -143,15 +148,33 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
             ref_nonbondEnergy_.size(),
             ByteString(ref_nonbondEnergy_.size() * 2 * sizeof(double), BYTE_DECIMAL).c_str());
   }
+  mprintf("\tAverage energies will be written to '%s'\n", avgout_->Filename().full());
+  if (printMode_ == ONLY_CUT)
+    mprintf("\tOnly average energy components that satisfy the cutoffs will be printed.\n");
+  else if (printMode_ == OR_CUT)
+    mprintf("\tBoth energy components will be printed if either satisfy cutoffs.\n");
+  else if (printMode_ == AND_CUT)
+    mprintf("\tBoth energy components will be printed if both satisfy cutoffs.\n");
   mprintf("\tEelec print absolute cutoff (kcal/mol): %.4f\n", cut_eelec_);
   mprintf("\tEvdw print absolute cutoff (kcal/mol) : %.4f\n", cut_evdw_);
   if (!mol2Prefix_.empty())
     mprintf("\tAtoms satisfying cutoff will be printed to %s.e<type>.mol2\n",
             mol2Prefix_.c_str());
-  if (PdbOut_.IsOpen())
-    mprintf("\tPDB with evdw/eelec in occ/b-fac columns will be written to %s\n",
+  if (PdbOut_.IsOpen()) {
+    mprintf("\tPDB with evdw/eelec in occupancy/B-factor columns will be written to %s\n",
             PdbOut_.Filename().full());
-  
+    if (scalePdbE_) {
+      mprintf("\tEnergies in PDB will be scaled from 10.0 to 100.0\n");
+      mprintf("\tEnergies that do not satisfy cutoffs will be set to 0.0\n");
+    }
+  }
+  mprintf("\tVDW energy matrix set: %s\n", vdwMat_->legend());
+  if (vmapout != 0)
+    mprintf("\tVDW energy matrix written to '%s'\n", vmapout->DataFilename().full());
+  mprintf("\tElec. energy matrix set: %s\n", eleMat_->legend());
+  if (emapout != 0)
+    mprintf("\tElec. energy matrix written to '%s'\n", emapout->DataFilename().full());
+ 
   return Action::OK;
 }
 
@@ -289,7 +312,7 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
 
   ELJ_ = 0.0;
   Eelec_ = 0.0;
-  std::vector<NonbondEnergyType>::const_iterator refpair = ref_nonbondEnergy_.begin();
+  Narray::const_iterator refpair = ref_nonbondEnergy_.begin();
   // Loop over all atom pairs and set information
   // Outer loop
   for (int idx1 = 0; idx1 != maskIn.Nselected(); idx1++)
@@ -475,15 +498,39 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
   // Write PDB with atoms that satisfy cutoff colored in.
   if (PdbOut_.IsOpen()) {
     PdbOut_.WriteMODEL(frm.TrajoutNum() + 1); // FIXME in parallel this needs to be separate files
+    double vfac = 1.0;
+    double efac = 1.0;
+    double voff = 0.0;
+    double eoff = 0.0;
+    float step = 0.0;
+    if (scalePdbE_) {
+      step = 10.0;
+      double maxV = atom_evdw_[0];
+      double minV = maxV;
+      double maxE = atom_eelec_[0];
+      double minE = maxE;
+      for (int idx = 1; idx != Mask0_.Nselected(); idx++)
+      {
+        maxV = std::max( maxV, atom_evdw_[idx] );
+        minV = std::min( minV, atom_evdw_[idx] );
+        maxE = std::max( maxE, atom_eelec_[idx] );
+        minE = std::min( minE, atom_eelec_[idx] );
+      }
+      //mprintf("DEBUG: %g < Evdw < %g | %g < Eelec < %g\n", minV, maxV, minE, maxE);
+      voff = minV;
+      vfac = 90.0 / (maxV - minV);
+      eoff = minE;
+      efac = 90.0 / (maxE - minE);
+    }
     for (int idx = 0; idx != Mask0_.Nselected(); idx++)
     {
       int atom = Mask0_[idx];
       float occ = 0.0;
       float bfac = 0.0;
       if (fabs(atom_evdw_[idx]) > cut_evdw_)
-        occ = (float)atom_evdw_[idx];
+        occ = (float)(vfac*(atom_evdw_[idx] - voff)) + step;
       if (fabs(atom_eelec_[idx]) > cut_eelec_)
-        bfac = (float)atom_eelec_[idx];
+        bfac = (float)(efac*(atom_eelec_[idx] - eoff)) + step;
       const double* XYZ = frm.Frm().XYZ( atom );
       Atom const& AT = (*CurrentParm_)[atom];
       int rn = AT.ResNum();
@@ -510,15 +557,13 @@ void Action_Pairwise::Print() {
     (*eleMat_)[i] *= norm;
   }
   // Write out final results
-  CpptrajFile AvgOut;
-  if (AvgOut.OpenWrite( avgout_ )) return;
   if (nb_calcType_ == NORMAL)
     mprintf("  PAIRWISE: Writing all pairs with |<evdw>| > %.4f, |<eelec>| > %.4f\n",
             cut_evdw_, cut_eelec_);
   else if (nb_calcType_ == COMPARE_REF)
     mprintf("  PAIRWISE: Writing all pairs with |<dEvdw>| > %.4f, |<dEelec>| > %.4f\n",
             cut_evdw_, cut_eelec_);
-  AvgOut.Printf("%-16s %5s -- %16s %5s : ENE\n","#Name1", "At1", "Name2", "At2");
+  avgout_->Printf("%-16s %5s -- %16s %5s : ENE\n","#Name1", "At1", "Name2", "At2");
   for (int idx1 = 0; idx1 != Mask0_.Nselected(); idx1++)
   {
     int m1 = Mask0_[idx1];
@@ -531,22 +576,22 @@ void Action_Pairwise::Print() {
       bool outpute = ( fabs(EE) > cut_eelec_ );
       if (printMode_ == ONLY_CUT) {
         if (outputv || outpute) {
-          AvgOut.Printf("%16s %5i -- %16s %5i :",
+          avgout_->Printf("%16s %5i -- %16s %5i :",
                   CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
                   CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1);
-          if (outputv) AvgOut.Printf("  EVDW= %12.5e", EV);
-          if (outpute) AvgOut.Printf(" EELEC= %12.5e", EE);
-          AvgOut.Printf("\n");
+          if (outputv) avgout_->Printf("  EVDW= %12.5e", EV);
+          if (outpute) avgout_->Printf(" EELEC= %12.5e", EE);
+          avgout_->Printf("\n");
         }
       } else if (printMode_ == OR_CUT) {
         if (outputv || outpute)
-          AvgOut.Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
+          avgout_->Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
                         CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
                         CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1,
                         EV, EE);
       } else if (printMode_ == AND_CUT) {
         if (outputv && outpute)
-          AvgOut.Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
+          avgout_->Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
                         CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
                         CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1,
                         EV, EE);

@@ -6,11 +6,11 @@
 #include <limits> // Minimum double val for checking zero
 
 // CONSTRUCTOR
-Analysis_Divergence::Analysis_Divergence() : ds1_(0), ds2_(0) {}
+Analysis_Divergence::Analysis_Divergence() : ds1_(0), ds2_(0), dataout_(0) {}
 
 void Analysis_Divergence::Help() const {
   mprintf("\tds1 <ds1> ds2 <ds2>\n"
-          "  Calculate Kullback-Liebler divergence between specified data sets.\n");
+          "  Calculate Kullback-Leibler divergence between specified data sets.\n");
 }
 
 /// Ensure set is of valid type for divergence calc.
@@ -36,9 +36,16 @@ Analysis::RetType Analysis_Divergence::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (check_type(ds1_,1)) return Analysis::ERR;
   ds2_ = setup.DSL().GetDataSet( analyzeArgs.GetStringKey("ds2") );
   if (check_type(ds2_,2)) return Analysis::ERR;
+  DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  dataout_ = setup.DSL().AddSet( DataSet::DOUBLE, analyzeArgs.GetStringKey("name"), "DIV" );
+  if (dataout_ == 0) return Analysis::ERR;
+  if (outfile != 0) outfile->AddDataSet( dataout_ );
 
-  mprintf("    DIVERGENCE: Between %s and %s\n", ds1_->legend(),
-          ds2_->legend());
+  mprintf("    DIVERGENCE: Calculating Kullback-Leibler divergence between '%s' and '%s'\n",
+          ds1_->legend(), ds2_->legend());
+  mprintf("\tOutput set is '%s'\n", dataout_->legend());
+  if (outfile != 0)
+    mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
 
   return Analysis::OK;
 }
@@ -91,5 +98,6 @@ Analysis::RetType Analysis_Divergence::Analyze() {
     mprintf("Warning:\tEncountered %i invalid points when calculating divergence.\n", nInvalid);
   mprintf("\tDivergence between %s and %s is %g\n", ds1_->legend(),
           ds2_->legend(), divergence);
+  dataout_->Add(0, &divergence);
   return Analysis::OK;
 }

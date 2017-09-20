@@ -57,6 +57,7 @@ class Energy_Sander {
     bool specified_cut_;         ///< 'cut' was specified.
     bool specified_igb_;         ///< 'igb' was specified.
     bool specified_ntb_;         ///< 'ntb' was specified.
+    bool keepFiles_;             ///< If true keep any temporary files.
 };
 #endif /* USE_SANDERLIB and not LIBCPPTRAJ */
 #endif

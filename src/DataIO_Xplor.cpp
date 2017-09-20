@@ -169,11 +169,11 @@ int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
   // Write XPLOR header
   // Locate the indices of the absolute origin in order to find starting
   // indices for each axis. FIXME: Is this correct?
-  int grid_min_x, grid_min_y, grid_min_z;
+  long int grid_min_x, grid_min_y, grid_min_z;
   set.BinIndices(0.0, 0.0, 0.0, grid_min_x, grid_min_y, grid_min_z);
-  if (grid_min_x != 0) grid_min_x = -grid_min_x;
-  if (grid_min_y != 0) grid_min_y = -grid_min_y;
-  if (grid_min_z != 0) grid_min_z = -grid_min_z;
+  if (grid_min_x != 0L) grid_min_x = -grid_min_x;
+  if (grid_min_y != 0L) grid_min_y = -grid_min_y;
+  if (grid_min_z != 0L) grid_min_z = -grid_min_z;
   WriteXplorHeader(outfile, set.Meta().Legend(),
                    set.NX(), grid_min_x, grid_min_x + set.NX() - 1,
                    set.NY(), grid_min_y, grid_min_y + set.NY() - 1,

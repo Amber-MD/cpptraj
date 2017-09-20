@@ -57,7 +57,7 @@ EOF
 
 Tz2_10() {
   UNITNAME='Ewald test (trunc. oct), 10 frames'
-  CheckFor netcdf
+  CheckFor netcdf long
   if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 noprogress
@@ -72,7 +72,7 @@ EOF
 
 Ortho() {
   UNITNAME='Ewald test (ortho), 10 frames'
-  CheckFor netcdf
+  CheckFor netcdf long
   if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 noprogress

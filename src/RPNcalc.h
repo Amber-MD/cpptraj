@@ -56,6 +56,7 @@ class RPNcalc {
     Tarray tokens_;
     int debug_;
     TextFormat fmt_; ///< Output format
+    bool formatSet_; ///< If true use output format for any output data sets
 };
 /// Hold values/operators for RPN calculator.
 class RPNcalc::Token {

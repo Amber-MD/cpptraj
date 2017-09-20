@@ -11,7 +11,7 @@
 #include "Constants.h" // PI
 
 // CONSTRUCTOR
-RPNcalc::RPNcalc() : fmt_(TextFormat::DOUBLE) {}
+RPNcalc::RPNcalc() : fmt_(TextFormat::DOUBLE), formatSet_(false) {}
 
 static inline bool isOpChar(char cIn) {
   return ( cIn == '(' || cIn == ')' || cIn == '+' || cIn == '-' ||
@@ -36,6 +36,7 @@ int RPNcalc::ProcessOptions(ArgList& argIn) {
       mprinterr("Error: Unrecognized 'format': %s\n", fmtArg.c_str());
       return 1;
     }
+    formatSet_ = true;
   }
   std::string precArg = argIn.GetStringKey("prec");
   if (!precArg.empty()) {
@@ -44,6 +45,7 @@ int RPNcalc::ProcessOptions(ArgList& argIn) {
     int prec  = p0.getNextInteger(-1);
     //mprintf("Setting width/precision to %i.%i\n", width, prec);
     fmt_.SetFormatWidthPrecision(width, prec);
+    formatSet_ = true;
   }
   return 0;
 }
@@ -866,8 +868,10 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
     mprintf("Result: ");
     mprintf(fmt_.fmt(), Stack.top().Value());
     mprintf("\n");
-  } else
+  } else {
+    if (formatSet_) output->SetupFormat() = fmt_;
     mprintf("Result stored in '%s'\n", output->legend());
+  }
   return 0;
 }
 

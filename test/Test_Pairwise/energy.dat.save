@@ -1,0 +1,679 @@
+PAIRWISE: Frame 0
+	Atom      1@HH31-     8@H    Eelec=       2.7924
+	Atom      1@HH31-    26@C    Eelec=       3.8385
+	Atom      1@HH31-    27@O    Eelec=      -3.6046
+	Atom      1@HH31-    28@N    Eelec=      -2.2181
+	Atom      2@CH3 -    10@HA   Eelec=      -2.5568
+	Atom      2@CH3 -    15@CD1  Eelec=       3.3837
+	Atom      2@CH3 -    16@HD1  Eelec=      -3.0667
+	Atom      2@CH3 -    17@CE1  Eelec=       3.4824
+	Atom      2@CH3 -    18@HE1  Eelec=      -2.2404
+	Atom      2@CH3 -    19@CZ   Eelec=      -4.5529
+	Atom      2@CH3 -    20@OH   Eelec=       6.8103
+	Atom      2@CH3 -    21@HH   Eelec=      -4.6409
+	Atom      2@CH3 -    22@CE2  Eelec=       3.6227
+	Atom      2@CH3 -    23@HE2  Eelec=      -2.3771
+	Atom      2@CH3 -    24@CD2  Eelec=       3.5831
+	Atom      2@CH3 -    25@HD2  Eelec=      -3.4264
+	Atom      2@CH3 -    26@C    Eelec=     -14.9268
+	Atom      2@CH3 -    27@O    Eelec=      14.2814
+	Atom      2@CH3 -    28@N    Eelec=       8.2759
+	Atom      2@CH3 -    29@H    Eelec=      -5.1847
+	Atom      2@CH3 -    30@CH3  Eelec=       2.4850
+	Atom      3@HH32-     8@H    Eelec=       3.8978
+	Atom      3@HH32-    20@OH   Eelec=      -2.0031
+	Atom      3@HH32-    26@C    Eelec=       4.4805
+	Atom      3@HH32-    27@O    Eelec=      -4.4260
+	Atom      3@HH32-    28@N    Eelec=      -2.4824
+	Atom      4@HH33-     8@H    Eelec=       3.8978
+	Atom      4@HH33-    20@OH   Eelec=      -2.0402
+	Atom      4@HH33-    26@C    Eelec=       4.4805
+	Atom      4@HH33-    27@O    Eelec=      -4.4260
+	Atom      4@HH33-    28@N    Eelec=      -2.4824
+	Atom      5@C   -    12@HB2  Eelec=       2.1417
+	Atom      5@C   -    15@CD1  Eelec=      -6.9639
+	Atom      5@C   -    16@HD1  Eelec=       6.2171
+	Atom      5@C   -    17@CE1  Eelec=      -6.9123
+	Atom      5@C   -    18@HE1  Eelec=       4.3422
+	Atom      5@C   -    19@CZ   Eelec=       8.9874
+	Atom      5@C   -    20@OH   Eelec=     -13.0816
+	Atom      5@C   -    21@HH   Eelec=       8.8310
+	Atom      5@C   -    22@CE2  Eelec=      -7.2873
+	Atom      5@C   -    23@HE2  Eelec=       4.6840
+	Atom      5@C   -    24@CD2  Eelec=      -7.5692
+	Atom      5@C   -    25@HD2  Eelec=       7.2962
+	Atom      5@C   -    27@O    Eelec=     -28.0442
+	Atom      5@C   -    28@N    Eelec=     -17.0265
+	Atom      5@C   -    29@H    Eelec=      10.8315
+	Atom      5@C   -    30@CH3  Eelec=      -4.8125
+	Atom      5@C   -    31@HH31 Eelec=       3.1389
+	Atom      5@C   -    32@HH32 Eelec=       2.8701
+	Atom      5@C   -    33@HH33 Eelec=       2.8701
+	Atom      6@O   -    10@HA   Eelec=      -5.9259
+	Atom      6@O   -    12@HB2  Evdw=       2.1046
+	Atom      6@O   -    12@HB2  Eelec=      -2.4518
+	Atom      6@O   -    15@CD1  Eelec=       7.1244
+	Atom      6@O   -    16@HD1  Eelec=      -6.4287
+	Atom      6@O   -    17@CE1  Eelec=       7.0082
+	Atom      6@O   -    18@HE1  Eelec=      -4.4101
+	Atom      6@O   -    19@CZ   Eelec=      -8.9779
+	Atom      6@O   -    20@OH   Eelec=      13.0101
+	Atom      6@O   -    21@HH   Eelec=      -8.8207
+	Atom      6@O   -    22@CE2  Eelec=       7.1686
+	Atom      6@O   -    23@HE2  Eelec=      -4.5542
+	Atom      6@O   -    24@CD2  Eelec=       7.3836
+	Atom      6@O   -    25@HD2  Eelec=      -6.8754
+	Atom      6@O   -    26@C    Eelec=     -26.4140
+	Atom      6@O   -    27@O    Eelec=      22.1252
+	Atom      6@O   -    28@N    Eelec=      15.1720
+	Atom      6@O   -    29@H    Eelec=     -10.1353
+	Atom      6@O   -    30@CH3  Eelec=       4.2768
+	Atom      6@O   -    31@HH31 Eelec=      -2.7130
+	Atom      6@O   -    32@HH32 Eelec=      -2.5897
+	Atom      6@O   -    33@HH33 Eelec=      -2.5897
+	Atom      7@N   -    15@CD1  Eelec=       5.3039
+	Atom      7@N   -    16@HD1  Eelec=      -4.5701
+	Atom      7@N   -    17@CE1  Eelec=       5.2260
+	Atom      7@N   -    18@HE1  Eelec=      -3.2144
+	Atom      7@N   -    19@CZ   Eelec=      -6.9158
+	Atom      7@N   -    20@OH   Eelec=       9.9126
+	Atom      7@N   -    21@HH   Eelec=      -6.6044
+	Atom      7@N   -    22@CE2  Eelec=       5.7982
+	Atom      7@N   -    23@HE2  Eelec=      -3.7173
+	Atom      7@N   -    24@CD2  Eelec=       6.3013
+	Atom      7@N   -    25@HD2  Eelec=      -6.3650
+	Atom      7@N   -    29@H    Eelec=      -9.4324
+	Atom      7@N   -    30@CH3  Eelec=       4.2106
+	Atom      7@N   -    31@HH31 Eelec=      -2.7803
+	Atom      7@N   -    32@HH32 Eelec=      -2.4378
+	Atom      7@N   -    33@HH33 Eelec=      -2.4378
+	Atom      8@H   -    15@CD1  Eelec=      -3.0443
+	Atom      8@H   -    16@HD1  Eelec=       2.6291
+	Atom      8@H   -    17@CE1  Eelec=      -3.0871
+	Atom      8@H   -    19@CZ   Eelec=       4.1340
+	Atom      8@H   -    20@OH   Eelec=      -6.0293
+	Atom      8@H   -    21@HH   Eelec=       4.0244
+	Atom      8@H   -    22@CE2  Eelec=      -3.4525
+	Atom      8@H   -    23@HE2  Eelec=       2.2574
+	Atom      8@H   -    24@CD2  Eelec=      -3.6234
+	Atom      8@H   -    25@HD2  Eelec=       3.6851
+	Atom      8@H   -    27@O    Eelec=     -22.5977
+	Atom      8@H   -    28@N    Eelec=      -9.7286
+	Atom      8@H   -    29@H    Eelec=       5.5905
+	Atom      8@H   -    30@CH3  Eelec=      -2.7700
+	Atom      9@CA  -    25@HD2  Evdw=       3.3351
+	Atom     10@HA  -    20@OH   Eelec=      -2.6257
+	Atom     10@HA  -    24@CD2  Eelec=      -2.1264
+	Atom     10@HA  -    25@HD2  Eelec=       2.4526
+	Atom     10@HA  -    29@H    Eelec=       3.0474
+	Atom     14@CG  -    28@N    Evdw=       9.6332
+	Atom     15@CD1 -    21@HH   Eelec=      -6.5638
+	Atom     15@CD1 -    23@HE2  Eelec=      -2.6943
+	Atom     15@CD1 -    26@C    Eelec=      -9.0831
+	Atom     15@CD1 -    27@O    Eelec=       6.8575
+	Atom     15@CD1 -    28@N    Eelec=       7.0745
+	Atom     15@CD1 -    29@H    Eelec=      -5.6996
+	Atom     15@CD1 -    30@CH3  Eelec=       2.0057
+	Atom     16@HD1 -    20@OH   Eelec=      -6.9195
+	Atom     16@HD1 -    21@HH   Eelec=       4.9375
+	Atom     16@HD1 -    22@CE2  Eelec=      -3.3951
+	Atom     16@HD1 -    25@HD2  Eelec=       2.2225
+	Atom     16@HD1 -    26@C    Eelec=       7.1073
+	Atom     16@HD1 -    27@O    Eelec=      -5.5974
+	Atom     16@HD1 -    28@N    Eelec=      -5.1813
+	Atom     16@HD1 -    29@H    Eelec=       3.8847
+	Atom     17@CE1 -    25@HD2  Eelec=      -3.3951
+	Atom     17@CE1 -    26@C    Eelec=      -9.2304
+	Atom     17@CE1 -    27@O    Eelec=       7.2040
+	Atom     17@CE1 -    28@N    Eelec=       7.5981
+	Atom     17@CE1 -    29@H    Eelec=      -6.1624
+	Atom     17@CE1 -    30@CH3  Eelec=       2.3396
+	Atom     18@HE1 -    21@HH   Eelec=       9.6334
+	Atom     18@HE1 -    23@HE2  Eelec=       2.1114
+	Atom     18@HE1 -    24@CD2  Eelec=      -2.6943
+	Atom     18@HE1 -    26@C    Eelec=       5.4235
+	Atom     18@HE1 -    27@O    Eelec=      -4.3861
+	Atom     18@HE1 -    28@N    Eelec=      -4.3153
+	Atom     18@HE1 -    29@H    Eelec=       3.3183
+	Atom     19@CZ  -    26@C    Eelec=      13.0270
+	Atom     19@CZ  -    27@O    Eelec=     -10.1108
+	Atom     19@CZ  -    28@N    Eelec=     -11.5043
+	Atom     19@CZ  -    29@H    Eelec=       9.7677
+	Atom     19@CZ  -    30@CH3  Eelec=      -3.6668
+	Atom     19@CZ  -    32@HH32 Eelec=       2.3428
+	Atom     19@CZ  -    33@HH33 Eelec=       2.6214
+	Atom     20@OH  -    25@HD2  Eelec=      -6.9195
+	Atom     20@OH  -    26@C    Eelec=     -18.0610
+	Atom     20@OH  -    27@O    Eelec=      14.6386
+	Atom     20@OH  -    28@N    Eelec=      15.4716
+	Atom     20@OH  -    29@H    Eelec=     -12.1731
+	Atom     20@OH  -    30@CH3  Eelec=       5.3183
+	Atom     20@OH  -    31@HH31 Eelec=      -2.8887
+	Atom     20@OH  -    32@HH32 Eelec=      -3.5357
+	Atom     20@OH  -    33@HH33 Eelec=      -3.8320
+	Atom     21@HH  -    23@HE2  Eelec=       6.1320
+	Atom     21@HH  -    24@CD2  Eelec=      -5.7807
+	Atom     21@HH  -    25@HD2  Eelec=       4.2240
+	Atom     21@HH  -    26@C    Eelec=      11.6193
+	Atom     21@HH  -    27@O    Eelec=      -9.5604
+	Atom     21@HH  -    28@N    Eelec=      -9.6329
+	Atom     21@HH  -    29@H    Eelec=       7.3752
+	Atom     21@HH  -    30@CH3  Eelec=      -3.3148
+	Atom     21@HH  -    32@HH32 Eelec=       2.1669
+	Atom     21@HH  -    33@HH33 Eelec=       2.3996
+	Atom     22@CE2 -    26@C    Eelec=     -12.0030
+	Atom     22@CE2 -    27@O    Eelec=       8.8696
+	Atom     22@CE2 -    28@N    Evdw=       3.0293
+	Atom     22@CE2 -    28@N    Eelec=      11.7054
+	Atom     22@CE2 -    29@H    Eelec=     -11.5107
+	Atom     22@CE2 -    30@CH3  Eelec=       3.4947
+	Atom     22@CE2 -    32@HH32 Eelec=      -2.2967
+	Atom     22@CE2 -    33@HH33 Eelec=      -2.3326
+	Atom     23@HE2 -    26@C    Eelec=       7.6808
+	Atom     23@HE2 -    27@O    Eelec=      -5.9056
+	Atom     23@HE2 -    28@N    Eelec=      -7.4383
+	Atom     23@HE2 -    29@H    Eelec=       6.4486
+	Atom     23@HE2 -    30@CH3  Eelec=      -2.4822
+	Atom     24@CD2 -    26@C    Evdw=       5.5182
+	Atom     24@CD2 -    26@C    Eelec=     -14.3065
+	Atom     24@CD2 -    27@O    Eelec=       9.3769
+	Atom     24@CD2 -    28@N    Evdw=     591.7839
+	Atom     24@CD2 -    28@N    Eelec=      14.3442
+	Atom     24@CD2 -    29@H    Evdw=   15806.1901
+	Atom     24@CD2 -    29@H    Eelec=     -20.2297
+	Atom     24@CD2 -    30@CH3  Eelec=       3.2189
+	Atom     25@HD2 -    26@C    Evdw=      14.7541
+	Atom     25@HD2 -    26@C    Eelec=      16.6617
+	Atom     25@HD2 -    27@O    Eelec=     -10.1145
+	Atom     25@HD2 -    28@N    Evdw=    1815.4033
+	Atom     25@HD2 -    28@N    Eelec=     -17.1369
+	Atom     25@HD2 -    29@H    Evdw=    1013.1864
+	Atom     25@HD2 -    29@H    Eelec=      18.7964
+	Atom     25@HD2 -    30@CH3  Eelec=      -3.2663
+	Atom     25@HD2 -    32@HH32 Eelec=       2.0043
+	Atom     27@O   -    31@HH31 Eelec=      -7.8739
+	Atom     27@O   -    32@HH32 Eelec=      -5.2298
+	Atom     27@O   -    33@HH33 Eelec=      -5.2298
+	PAIRWISE: Cumulative Evdw: Evdw < -2.0000, Evdw > 2.0000
+		    14@CG  :       4.8959
+		    24@CD2 :    8202.3805
+		    25@HD2 :    1423.9014
+		    26@C   :       9.9405
+		    28@N   :    1209.6183
+		    29@H   :    8410.4937
+	PAIRWISE: Cumulative Eelec: Eelec < -2.0000, Eelec > 2.0000
+		     3@HH32:       2.2880
+		     4@HH33:       2.2810
+		     5@C   :     -13.8847
+		     6@O   :      -5.0966
+		     7@N   :      -5.8614
+		     8@H   :      -6.4276
+		    15@CD1 :      -5.1506
+		    17@CE1 :      -2.9141
+		    18@HE1 :       5.9332
+		    20@OH  :      -9.0623
+		    21@HH  :       7.4492
+		    22@CE2 :      -4.6352
+		    23@HE2 :       5.1413
+		    24@CD2 :     -10.3607
+		    25@HD2 :       4.4977
+		    26@C   :     -14.8528
+		    27@O   :     -23.3169
+		    28@N   :      -5.8761
+		    29@H   :      -2.9875
+		    31@HH31:      -3.9645
+		    32@HH32:      -2.6880
+		    33@HH33:      -2.9507
+PAIRWISE: Frame 1
+	Atom      1@HH31-     8@H    Eelec=       2.7924
+	Atom      1@HH31-    26@C    Eelec=       3.8385
+	Atom      1@HH31-    27@O    Eelec=      -3.6046
+	Atom      1@HH31-    28@N    Eelec=      -2.2181
+	Atom      2@CH3 -    10@HA   Eelec=      -2.5568
+	Atom      2@CH3 -    15@CD1  Eelec=       3.5831
+	Atom      2@CH3 -    16@HD1  Eelec=      -3.4264
+	Atom      2@CH3 -    17@CE1  Eelec=       3.6227
+	Atom      2@CH3 -    18@HE1  Eelec=      -2.3771
+	Atom      2@CH3 -    19@CZ   Eelec=      -4.5529
+	Atom      2@CH3 -    20@OH   Eelec=       6.8103
+	Atom      2@CH3 -    21@HH   Eelec=      -4.7214
+	Atom      2@CH3 -    22@CE2  Eelec=       3.4824
+	Atom      2@CH3 -    23@HE2  Eelec=      -2.2404
+	Atom      2@CH3 -    24@CD2  Eelec=       3.3837
+	Atom      2@CH3 -    25@HD2  Eelec=      -3.0667
+	Atom      2@CH3 -    26@C    Eelec=     -14.9268
+	Atom      2@CH3 -    27@O    Eelec=      14.2814
+	Atom      2@CH3 -    28@N    Eelec=       8.2759
+	Atom      2@CH3 -    29@H    Eelec=      -5.1847
+	Atom      2@CH3 -    30@CH3  Eelec=       2.4850
+	Atom      3@HH32-     8@H    Eelec=       3.8978
+	Atom      3@HH32-    20@OH   Eelec=      -2.0031
+	Atom      3@HH32-    26@C    Eelec=       4.4805
+	Atom      3@HH32-    27@O    Eelec=      -4.4260
+	Atom      3@HH32-    28@N    Eelec=      -2.4824
+	Atom      4@HH33-     8@H    Eelec=       3.8978
+	Atom      4@HH33-    20@OH   Eelec=      -2.0402
+	Atom      4@HH33-    26@C    Eelec=       4.4805
+	Atom      4@HH33-    27@O    Eelec=      -4.4260
+	Atom      4@HH33-    28@N    Eelec=      -2.4824
+	Atom      5@C   -    12@HB2  Eelec=       2.1417
+	Atom      5@C   -    15@CD1  Eelec=      -7.5692
+	Atom      5@C   -    16@HD1  Eelec=       7.2962
+	Atom      5@C   -    17@CE1  Eelec=      -7.2873
+	Atom      5@C   -    18@HE1  Eelec=       4.6840
+	Atom      5@C   -    19@CZ   Eelec=       8.9874
+	Atom      5@C   -    20@OH   Eelec=     -13.0816
+	Atom      5@C   -    21@HH   Eelec=       9.0179
+	Atom      5@C   -    22@CE2  Eelec=      -6.9123
+	Atom      5@C   -    23@HE2  Eelec=       4.3422
+	Atom      5@C   -    24@CD2  Eelec=      -6.9639
+	Atom      5@C   -    25@HD2  Eelec=       6.2171
+	Atom      5@C   -    27@O    Eelec=     -28.0442
+	Atom      5@C   -    28@N    Eelec=     -17.0265
+	Atom      5@C   -    29@H    Eelec=      10.8315
+	Atom      5@C   -    30@CH3  Eelec=      -4.8125
+	Atom      5@C   -    31@HH31 Eelec=       3.1389
+	Atom      5@C   -    32@HH32 Eelec=       2.8701
+	Atom      5@C   -    33@HH33 Eelec=       2.8701
+	Atom      6@O   -    10@HA   Eelec=      -5.9259
+	Atom      6@O   -    12@HB2  Evdw=       2.1046
+	Atom      6@O   -    12@HB2  Eelec=      -2.4518
+	Atom      6@O   -    15@CD1  Eelec=       7.3836
+	Atom      6@O   -    16@HD1  Eelec=      -6.8754
+	Atom      6@O   -    17@CE1  Eelec=       7.1686
+	Atom      6@O   -    18@HE1  Eelec=      -4.5542
+	Atom      6@O   -    19@CZ   Eelec=      -8.9779
+	Atom      6@O   -    20@OH   Eelec=      13.0101
+	Atom      6@O   -    21@HH   Eelec=      -8.8992
+	Atom      6@O   -    22@CE2  Eelec=       7.0082
+	Atom      6@O   -    23@HE2  Eelec=      -4.4101
+	Atom      6@O   -    24@CD2  Eelec=       7.1244
+	Atom      6@O   -    25@HD2  Eelec=      -6.4287
+	Atom      6@O   -    26@C    Eelec=     -26.4140
+	Atom      6@O   -    27@O    Eelec=      22.1252
+	Atom      6@O   -    28@N    Eelec=      15.1720
+	Atom      6@O   -    29@H    Eelec=     -10.1353
+	Atom      6@O   -    30@CH3  Eelec=       4.2768
+	Atom      6@O   -    31@HH31 Eelec=      -2.7130
+	Atom      6@O   -    32@HH32 Eelec=      -2.5897
+	Atom      6@O   -    33@HH33 Eelec=      -2.5897
+	Atom      7@N   -    15@CD1  Eelec=       6.3013
+	Atom      7@N   -    16@HD1  Eelec=      -6.3650
+	Atom      7@N   -    17@CE1  Eelec=       5.7982
+	Atom      7@N   -    18@HE1  Eelec=      -3.7173
+	Atom      7@N   -    19@CZ   Eelec=      -6.9158
+	Atom      7@N   -    20@OH   Eelec=       9.9126
+	Atom      7@N   -    21@HH   Eelec=      -6.8674
+	Atom      7@N   -    22@CE2  Eelec=       5.2260
+	Atom      7@N   -    23@HE2  Eelec=      -3.2144
+	Atom      7@N   -    24@CD2  Eelec=       5.3039
+	Atom      7@N   -    25@HD2  Eelec=      -4.5701
+	Atom      7@N   -    29@H    Eelec=      -9.4324
+	Atom      7@N   -    30@CH3  Eelec=       4.2106
+	Atom      7@N   -    31@HH31 Eelec=      -2.7803
+	Atom      7@N   -    32@HH32 Eelec=      -2.4378
+	Atom      7@N   -    33@HH33 Eelec=      -2.4378
+	Atom      8@H   -    15@CD1  Eelec=      -3.6234
+	Atom      8@H   -    16@HD1  Eelec=       3.6851
+	Atom      8@H   -    17@CE1  Eelec=      -3.4525
+	Atom      8@H   -    18@HE1  Eelec=       2.2574
+	Atom      8@H   -    19@CZ   Eelec=       4.1340
+	Atom      8@H   -    20@OH   Eelec=      -6.0293
+	Atom      8@H   -    21@HH   Eelec=       4.2081
+	Atom      8@H   -    22@CE2  Eelec=      -3.0871
+	Atom      8@H   -    24@CD2  Eelec=      -3.0443
+	Atom      8@H   -    25@HD2  Eelec=       2.6291
+	Atom      8@H   -    27@O    Eelec=     -22.5977
+	Atom      8@H   -    28@N    Eelec=      -9.7286
+	Atom      8@H   -    29@H    Eelec=       5.5905
+	Atom      8@H   -    30@CH3  Eelec=      -2.7700
+	Atom      9@CA  -    16@HD1  Evdw=       3.3352
+	Atom     10@HA  -    15@CD1  Eelec=      -2.1264
+	Atom     10@HA  -    16@HD1  Eelec=       2.4526
+	Atom     10@HA  -    20@OH   Eelec=      -2.6257
+	Atom     10@HA  -    29@H    Eelec=       3.0474
+	Atom     14@CG  -    28@N    Evdw=       9.6332
+	Atom     15@CD1 -    21@HH   Eelec=      -6.5638
+	Atom     15@CD1 -    23@HE2  Eelec=      -2.6943
+	Atom     15@CD1 -    26@C    Evdw=       5.5182
+	Atom     15@CD1 -    26@C    Eelec=     -14.3065
+	Atom     15@CD1 -    27@O    Eelec=       9.3769
+	Atom     15@CD1 -    28@N    Evdw=     591.7836
+	Atom     15@CD1 -    28@N    Eelec=      14.3442
+	Atom     15@CD1 -    29@H    Evdw=   15805.9486
+	Atom     15@CD1 -    29@H    Eelec=     -20.2297
+	Atom     15@CD1 -    30@CH3  Eelec=       3.2189
+	Atom     16@HD1 -    20@OH   Eelec=      -6.9195
+	Atom     16@HD1 -    21@HH   Eelec=       4.9375
+	Atom     16@HD1 -    22@CE2  Eelec=      -3.3951
+	Atom     16@HD1 -    25@HD2  Eelec=       2.2225
+	Atom     16@HD1 -    26@C    Evdw=      14.7545
+	Atom     16@HD1 -    26@C    Eelec=      16.6618
+	Atom     16@HD1 -    27@O    Eelec=     -10.1145
+	Atom     16@HD1 -    28@N    Evdw=    1815.4658
+	Atom     16@HD1 -    28@N    Eelec=     -17.1370
+	Atom     16@HD1 -    29@H    Evdw=    1013.2621
+	Atom     16@HD1 -    29@H    Eelec=      18.7966
+	Atom     16@HD1 -    30@CH3  Eelec=      -3.2663
+	Atom     16@HD1 -    32@HH32 Eelec=       2.0043
+	Atom     17@CE1 -    25@HD2  Eelec=      -3.3951
+	Atom     17@CE1 -    26@C    Eelec=     -12.0030
+	Atom     17@CE1 -    27@O    Eelec=       8.8696
+	Atom     17@CE1 -    28@N    Evdw=       3.0294
+	Atom     17@CE1 -    28@N    Eelec=      11.7054
+	Atom     17@CE1 -    29@H    Eelec=     -11.5107
+	Atom     17@CE1 -    30@CH3  Eelec=       3.4947
+	Atom     17@CE1 -    32@HH32 Eelec=      -2.2967
+	Atom     17@CE1 -    33@HH33 Eelec=      -2.3326
+	Atom     18@HE1 -    21@HH   Eelec=       9.6334
+	Atom     18@HE1 -    23@HE2  Eelec=       2.1114
+	Atom     18@HE1 -    24@CD2  Eelec=      -2.6943
+	Atom     18@HE1 -    26@C    Eelec=       7.6808
+	Atom     18@HE1 -    27@O    Eelec=      -5.9056
+	Atom     18@HE1 -    28@N    Eelec=      -7.4383
+	Atom     18@HE1 -    29@H    Eelec=       6.4486
+	Atom     18@HE1 -    30@CH3  Eelec=      -2.4822
+	Atom     19@CZ  -    26@C    Eelec=      13.0270
+	Atom     19@CZ  -    27@O    Eelec=     -10.1108
+	Atom     19@CZ  -    28@N    Eelec=     -11.5044
+	Atom     19@CZ  -    29@H    Eelec=       9.7677
+	Atom     19@CZ  -    30@CH3  Eelec=      -3.6668
+	Atom     19@CZ  -    32@HH32 Eelec=       2.3428
+	Atom     19@CZ  -    33@HH33 Eelec=       2.6214
+	Atom     20@OH  -    25@HD2  Eelec=      -6.9195
+	Atom     20@OH  -    26@C    Eelec=     -18.0610
+	Atom     20@OH  -    27@O    Eelec=      14.6386
+	Atom     20@OH  -    28@N    Eelec=      15.4716
+	Atom     20@OH  -    29@H    Eelec=     -12.1731
+	Atom     20@OH  -    30@CH3  Eelec=       5.3183
+	Atom     20@OH  -    31@HH31 Eelec=      -2.8887
+	Atom     20@OH  -    32@HH32 Eelec=      -3.5357
+	Atom     20@OH  -    33@HH33 Eelec=      -3.8320
+	Atom     21@HH  -    23@HE2  Eelec=       6.1320
+	Atom     21@HH  -    24@CD2  Eelec=      -5.7807
+	Atom     21@HH  -    25@HD2  Eelec=       4.2240
+	Atom     21@HH  -    26@C    Eelec=      12.6950
+	Atom     21@HH  -    27@O    Eelec=     -10.3711
+	Atom     21@HH  -    28@N    Eelec=     -11.0001
+	Atom     21@HH  -    29@H    Eelec=       8.5512
+	Atom     21@HH  -    30@CH3  Eelec=      -3.9001
+	Atom     21@HH  -    31@HH31 Eelec=       2.1067
+	Atom     21@HH  -    32@HH32 Eelec=       2.7001
+	Atom     21@HH  -    33@HH33 Eelec=       2.7693
+	Atom     22@CE2 -    26@C    Eelec=      -9.2304
+	Atom     22@CE2 -    27@O    Eelec=       7.2040
+	Atom     22@CE2 -    28@N    Eelec=       7.5981
+	Atom     22@CE2 -    29@H    Eelec=      -6.1624
+	Atom     22@CE2 -    30@CH3  Eelec=       2.3396
+	Atom     23@HE2 -    26@C    Eelec=       5.4235
+	Atom     23@HE2 -    27@O    Eelec=      -4.3861
+	Atom     23@HE2 -    28@N    Eelec=      -4.3153
+	Atom     23@HE2 -    29@H    Eelec=       3.3183
+	Atom     24@CD2 -    26@C    Eelec=      -9.0831
+	Atom     24@CD2 -    27@O    Eelec=       6.8575
+	Atom     24@CD2 -    28@N    Eelec=       7.0745
+	Atom     24@CD2 -    29@H    Eelec=      -5.6996
+	Atom     24@CD2 -    30@CH3  Eelec=       2.0057
+	Atom     25@HD2 -    26@C    Eelec=       7.1073
+	Atom     25@HD2 -    27@O    Eelec=      -5.5974
+	Atom     25@HD2 -    28@N    Eelec=      -5.1813
+	Atom     25@HD2 -    29@H    Eelec=       3.8847
+	Atom     27@O   -    31@HH31 Eelec=      -7.8739
+	Atom     27@O   -    32@HH32 Eelec=      -5.2298
+	Atom     27@O   -    33@HH33 Eelec=      -5.2298
+	PAIRWISE: Cumulative Evdw: Evdw < -2.0000, Evdw > 2.0000
+		    14@CG  :       4.8959
+		    15@CD1 :    8202.2596
+		    16@HD1 :    1423.9708
+		    26@C   :       9.9407
+		    28@N   :    1209.6495
+		    29@H   :    8410.4108
+	PAIRWISE: Cumulative Eelec: Eelec < -2.0000, Eelec > 2.0000
+		     3@HH32:       2.3101
+		     4@HH33:       2.2872
+		     5@C   :     -13.7913
+		     6@O   :      -5.1359
+		     7@N   :      -5.9928
+		     8@H   :      -6.3358
+		    15@CD1 :     -10.7522
+		    16@HD1 :       4.8545
+		    17@CE1 :      -4.6352
+		    18@HE1 :       6.8920
+		    20@OH  :      -9.0623
+		    21@HH  :       7.8391
+		    22@CE2 :      -2.9141
+		    23@HE2 :       4.1825
+		    24@CD2 :      -4.7590
+		    26@C   :     -14.3150
+		    27@O   :     -23.7222
+		    28@N   :      -6.5597
+		    29@H   :      -2.3995
+		    31@HH31:      -3.8350
+		    32@HH32:      -2.4214
+		    33@HH33:      -2.7659
+PAIRWISE: Frame 2
+	Atom      1@HH31-     8@H    Eelec=       2.7924
+	Atom      1@HH31-    26@C    Eelec=       3.8385
+	Atom      1@HH31-    27@O    Eelec=      -3.6046
+	Atom      1@HH31-    28@N    Eelec=      -2.2181
+	Atom      2@CH3 -    10@HA   Eelec=      -2.5568
+	Atom      2@CH3 -    15@CD1  Eelec=       3.5831
+	Atom      2@CH3 -    16@HD1  Eelec=      -3.4264
+	Atom      2@CH3 -    17@CE1  Eelec=       3.6227
+	Atom      2@CH3 -    18@HE1  Eelec=      -2.3771
+	Atom      2@CH3 -    19@CZ   Eelec=      -4.5529
+	Atom      2@CH3 -    20@OH   Eelec=       6.8103
+	Atom      2@CH3 -    21@HH   Eelec=      -4.6409
+	Atom      2@CH3 -    22@CE2  Eelec=       3.4824
+	Atom      2@CH3 -    23@HE2  Eelec=      -2.2404
+	Atom      2@CH3 -    24@CD2  Eelec=       3.3837
+	Atom      2@CH3 -    25@HD2  Eelec=      -3.0667
+	Atom      2@CH3 -    26@C    Eelec=     -14.9268
+	Atom      2@CH3 -    27@O    Eelec=      14.2814
+	Atom      2@CH3 -    28@N    Eelec=       8.2759
+	Atom      2@CH3 -    29@H    Eelec=      -5.1847
+	Atom      2@CH3 -    30@CH3  Eelec=       2.4850
+	Atom      3@HH32-     8@H    Eelec=       3.8978
+	Atom      3@HH32-    20@OH   Eelec=      -2.0031
+	Atom      3@HH32-    26@C    Eelec=       4.4805
+	Atom      3@HH32-    27@O    Eelec=      -4.4260
+	Atom      3@HH32-    28@N    Eelec=      -2.4824
+	Atom      4@HH33-     8@H    Eelec=       3.8978
+	Atom      4@HH33-    20@OH   Eelec=      -2.0402
+	Atom      4@HH33-    26@C    Eelec=       4.4805
+	Atom      4@HH33-    27@O    Eelec=      -4.4260
+	Atom      4@HH33-    28@N    Eelec=      -2.4824
+	Atom      5@C   -    12@HB2  Eelec=       2.1417
+	Atom      5@C   -    15@CD1  Eelec=      -7.5692
+	Atom      5@C   -    16@HD1  Eelec=       7.2962
+	Atom      5@C   -    17@CE1  Eelec=      -7.2873
+	Atom      5@C   -    18@HE1  Eelec=       4.6840
+	Atom      5@C   -    19@CZ   Eelec=       8.9874
+	Atom      5@C   -    20@OH   Eelec=     -13.0816
+	Atom      5@C   -    21@HH   Eelec=       8.8310
+	Atom      5@C   -    22@CE2  Eelec=      -6.9123
+	Atom      5@C   -    23@HE2  Eelec=       4.3422
+	Atom      5@C   -    24@CD2  Eelec=      -6.9639
+	Atom      5@C   -    25@HD2  Eelec=       6.2171
+	Atom      5@C   -    27@O    Eelec=     -28.0442
+	Atom      5@C   -    28@N    Eelec=     -17.0265
+	Atom      5@C   -    29@H    Eelec=      10.8315
+	Atom      5@C   -    30@CH3  Eelec=      -4.8125
+	Atom      5@C   -    31@HH31 Eelec=       3.1389
+	Atom      5@C   -    32@HH32 Eelec=       2.8701
+	Atom      5@C   -    33@HH33 Eelec=       2.8701
+	Atom      6@O   -    10@HA   Eelec=      -5.9259
+	Atom      6@O   -    12@HB2  Evdw=       2.1046
+	Atom      6@O   -    12@HB2  Eelec=      -2.4518
+	Atom      6@O   -    15@CD1  Eelec=       7.3836
+	Atom      6@O   -    16@HD1  Eelec=      -6.8754
+	Atom      6@O   -    17@CE1  Eelec=       7.1686
+	Atom      6@O   -    18@HE1  Eelec=      -4.5542
+	Atom      6@O   -    19@CZ   Eelec=      -8.9779
+	Atom      6@O   -    20@OH   Eelec=      13.0101
+	Atom      6@O   -    21@HH   Eelec=      -8.8207
+	Atom      6@O   -    22@CE2  Eelec=       7.0082
+	Atom      6@O   -    23@HE2  Eelec=      -4.4101
+	Atom      6@O   -    24@CD2  Eelec=       7.1244
+	Atom      6@O   -    25@HD2  Eelec=      -6.4287
+	Atom      6@O   -    26@C    Eelec=     -26.4140
+	Atom      6@O   -    27@O    Eelec=      22.1252
+	Atom      6@O   -    28@N    Eelec=      15.1720
+	Atom      6@O   -    29@H    Eelec=     -10.1353
+	Atom      6@O   -    30@CH3  Eelec=       4.2768
+	Atom      6@O   -    31@HH31 Eelec=      -2.7130
+	Atom      6@O   -    32@HH32 Eelec=      -2.5897
+	Atom      6@O   -    33@HH33 Eelec=      -2.5897
+	Atom      7@N   -    15@CD1  Eelec=       6.3013
+	Atom      7@N   -    16@HD1  Eelec=      -6.3650
+	Atom      7@N   -    17@CE1  Eelec=       5.7982
+	Atom      7@N   -    18@HE1  Eelec=      -3.7173
+	Atom      7@N   -    19@CZ   Eelec=      -6.9158
+	Atom      7@N   -    20@OH   Eelec=       9.9126
+	Atom      7@N   -    21@HH   Eelec=      -6.6044
+	Atom      7@N   -    22@CE2  Eelec=       5.2260
+	Atom      7@N   -    23@HE2  Eelec=      -3.2144
+	Atom      7@N   -    24@CD2  Eelec=       5.3039
+	Atom      7@N   -    25@HD2  Eelec=      -4.5701
+	Atom      7@N   -    29@H    Eelec=      -9.4324
+	Atom      7@N   -    30@CH3  Eelec=       4.2106
+	Atom      7@N   -    31@HH31 Eelec=      -2.7803
+	Atom      7@N   -    32@HH32 Eelec=      -2.4378
+	Atom      7@N   -    33@HH33 Eelec=      -2.4378
+	Atom      8@H   -    15@CD1  Eelec=      -3.6234
+	Atom      8@H   -    16@HD1  Eelec=       3.6851
+	Atom      8@H   -    17@CE1  Eelec=      -3.4525
+	Atom      8@H   -    18@HE1  Eelec=       2.2574
+	Atom      8@H   -    19@CZ   Eelec=       4.1340
+	Atom      8@H   -    20@OH   Eelec=      -6.0293
+	Atom      8@H   -    21@HH   Eelec=       4.0244
+	Atom      8@H   -    22@CE2  Eelec=      -3.0871
+	Atom      8@H   -    24@CD2  Eelec=      -3.0443
+	Atom      8@H   -    25@HD2  Eelec=       2.6291
+	Atom      8@H   -    27@O    Eelec=     -22.5977
+	Atom      8@H   -    28@N    Eelec=      -9.7286
+	Atom      8@H   -    29@H    Eelec=       5.5905
+	Atom      8@H   -    30@CH3  Eelec=      -2.7700
+	Atom      9@CA  -    16@HD1  Evdw=       3.3352
+	Atom     10@HA  -    15@CD1  Eelec=      -2.1264
+	Atom     10@HA  -    16@HD1  Eelec=       2.4526
+	Atom     10@HA  -    20@OH   Eelec=      -2.6257
+	Atom     10@HA  -    29@H    Eelec=       3.0474
+	Atom     14@CG  -    28@N    Evdw=       9.6332
+	Atom     15@CD1 -    21@HH   Eelec=      -5.7807
+	Atom     15@CD1 -    23@HE2  Eelec=      -2.6943
+	Atom     15@CD1 -    26@C    Evdw=       5.5182
+	Atom     15@CD1 -    26@C    Eelec=     -14.3065
+	Atom     15@CD1 -    27@O    Eelec=       9.3769
+	Atom     15@CD1 -    28@N    Evdw=     591.7836
+	Atom     15@CD1 -    28@N    Eelec=      14.3442
+	Atom     15@CD1 -    29@H    Evdw=   15805.9486
+	Atom     15@CD1 -    29@H    Eelec=     -20.2297
+	Atom     15@CD1 -    30@CH3  Eelec=       3.2189
+	Atom     16@HD1 -    20@OH   Eelec=      -6.9195
+	Atom     16@HD1 -    21@HH   Eelec=       4.2240
+	Atom     16@HD1 -    22@CE2  Eelec=      -3.3951
+	Atom     16@HD1 -    25@HD2  Eelec=       2.2225
+	Atom     16@HD1 -    26@C    Evdw=      14.7545
+	Atom     16@HD1 -    26@C    Eelec=      16.6618
+	Atom     16@HD1 -    27@O    Eelec=     -10.1145
+	Atom     16@HD1 -    28@N    Evdw=    1815.4658
+	Atom     16@HD1 -    28@N    Eelec=     -17.1370
+	Atom     16@HD1 -    29@H    Evdw=    1013.2621
+	Atom     16@HD1 -    29@H    Eelec=      18.7966
+	Atom     16@HD1 -    30@CH3  Eelec=      -3.2663
+	Atom     16@HD1 -    32@HH32 Eelec=       2.0043
+	Atom     17@CE1 -    25@HD2  Eelec=      -3.3951
+	Atom     17@CE1 -    26@C    Eelec=     -12.0030
+	Atom     17@CE1 -    27@O    Eelec=       8.8696
+	Atom     17@CE1 -    28@N    Evdw=       3.0294
+	Atom     17@CE1 -    28@N    Eelec=      11.7054
+	Atom     17@CE1 -    29@H    Eelec=     -11.5107
+	Atom     17@CE1 -    30@CH3  Eelec=       3.4947
+	Atom     17@CE1 -    32@HH32 Eelec=      -2.2967
+	Atom     17@CE1 -    33@HH33 Eelec=      -2.3326
+	Atom     18@HE1 -    21@HH   Eelec=       6.1320
+	Atom     18@HE1 -    23@HE2  Eelec=       2.1114
+	Atom     18@HE1 -    24@CD2  Eelec=      -2.6943
+	Atom     18@HE1 -    26@C    Eelec=       7.6808
+	Atom     18@HE1 -    27@O    Eelec=      -5.9056
+	Atom     18@HE1 -    28@N    Eelec=      -7.4383
+	Atom     18@HE1 -    29@H    Eelec=       6.4486
+	Atom     18@HE1 -    30@CH3  Eelec=      -2.4822
+	Atom     19@CZ  -    26@C    Eelec=      13.0270
+	Atom     19@CZ  -    27@O    Eelec=     -10.1108
+	Atom     19@CZ  -    28@N    Eelec=     -11.5044
+	Atom     19@CZ  -    29@H    Eelec=       9.7677
+	Atom     19@CZ  -    30@CH3  Eelec=      -3.6668
+	Atom     19@CZ  -    32@HH32 Eelec=       2.3428
+	Atom     19@CZ  -    33@HH33 Eelec=       2.6214
+	Atom     20@OH  -    25@HD2  Eelec=      -6.9195
+	Atom     20@OH  -    26@C    Eelec=     -18.0610
+	Atom     20@OH  -    27@O    Eelec=      14.6386
+	Atom     20@OH  -    28@N    Eelec=      15.4716
+	Atom     20@OH  -    29@H    Eelec=     -12.1731
+	Atom     20@OH  -    30@CH3  Eelec=       5.3183
+	Atom     20@OH  -    31@HH31 Eelec=      -2.8887
+	Atom     20@OH  -    32@HH32 Eelec=      -3.5357
+	Atom     20@OH  -    33@HH33 Eelec=      -3.8320
+	Atom     21@HH  -    23@HE2  Eelec=       9.6334
+	Atom     21@HH  -    24@CD2  Eelec=      -6.5638
+	Atom     21@HH  -    25@HD2  Eelec=       4.9375
+	Atom     21@HH  -    26@C    Eelec=      11.6193
+	Atom     21@HH  -    27@O    Eelec=      -9.5604
+	Atom     21@HH  -    28@N    Eelec=      -9.6329
+	Atom     21@HH  -    29@H    Eelec=       7.3752
+	Atom     21@HH  -    30@CH3  Eelec=      -3.3148
+	Atom     21@HH  -    32@HH32 Eelec=       2.1669
+	Atom     21@HH  -    33@HH33 Eelec=       2.3996
+	Atom     22@CE2 -    26@C    Eelec=      -9.2304
+	Atom     22@CE2 -    27@O    Eelec=       7.2040
+	Atom     22@CE2 -    28@N    Eelec=       7.5981
+	Atom     22@CE2 -    29@H    Eelec=      -6.1624
+	Atom     22@CE2 -    30@CH3  Eelec=       2.3396
+	Atom     23@HE2 -    26@C    Eelec=       5.4235
+	Atom     23@HE2 -    27@O    Eelec=      -4.3861
+	Atom     23@HE2 -    28@N    Eelec=      -4.3153
+	Atom     23@HE2 -    29@H    Eelec=       3.3183
+	Atom     24@CD2 -    26@C    Eelec=      -9.0831
+	Atom     24@CD2 -    27@O    Eelec=       6.8575
+	Atom     24@CD2 -    28@N    Eelec=       7.0745
+	Atom     24@CD2 -    29@H    Eelec=      -5.6996
+	Atom     24@CD2 -    30@CH3  Eelec=       2.0057
+	Atom     25@HD2 -    26@C    Eelec=       7.1073
+	Atom     25@HD2 -    27@O    Eelec=      -5.5974
+	Atom     25@HD2 -    28@N    Eelec=      -5.1813
+	Atom     25@HD2 -    29@H    Eelec=       3.8847
+	Atom     27@O   -    31@HH31 Eelec=      -7.8739
+	Atom     27@O   -    32@HH32 Eelec=      -5.2298
+	Atom     27@O   -    33@HH33 Eelec=      -5.2298
+	PAIRWISE: Cumulative Evdw: Evdw < -2.0000, Evdw > 2.0000
+		    14@CG  :       4.8959
+		    15@CD1 :    8202.2596
+		    16@HD1 :    1423.9708
+		    26@C   :       9.9407
+		    28@N   :    1209.6495
+		    29@H   :    8410.4108
+	PAIRWISE: Cumulative Eelec: Eelec < -2.0000, Eelec > 2.0000
+		     3@HH32:       2.2880
+		     4@HH33:       2.2810
+		     5@C   :     -13.8847
+		     6@O   :      -5.0966
+		     7@N   :      -5.8614
+		     8@H   :      -6.4276
+		    15@CD1 :     -10.3607
+		    16@HD1 :       4.4977
+		    17@CE1 :      -4.6352
+		    18@HE1 :       5.1413
+		    20@OH  :      -9.0623
+		    21@HH  :       7.4492
+		    22@CE2 :      -2.9141
+		    23@HE2 :       5.9332
+		    24@CD2 :      -5.1506
+		    26@C   :     -14.8528
+		    27@O   :     -23.3169
+		    28@N   :      -5.8761
+		    29@H   :      -2.9874
+		    31@HH31:      -3.9645
+		    32@HH32:      -2.6880
+		    33@HH33:      -2.9507

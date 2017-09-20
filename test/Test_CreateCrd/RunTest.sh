@@ -25,8 +25,6 @@ UNITNAME='COORDS data set creation with velocities test'
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > create.in <<EOF
-#parm trpzip2.ff10.mbondi.parm7
-#trajin tz2.220.rst7
 parm ../rGACC.full.parm7
 trajin ../rGACC.full.nc
 trajout crd1.rst7 

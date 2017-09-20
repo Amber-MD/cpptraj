@@ -601,9 +601,16 @@ int DataIO_Std::WriteDataInverted(CpptrajFile& file, DataSetList const& Sets)
   size_t maxFrames = DetermineMax( Sets );
   // Write each set to a line.
   DataSet::SizeArray positions(1);
-  for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
+  // Set up x column format
+  DataSetList::const_iterator set = Sets.begin();
+  TextFormat x_col_format;
+  if (hasXcolumn_)
+    x_col_format = XcolFmt();
+  else
+    x_col_format = (*set)->Format();
+  for (; set != Sets.end(); ++set) {
     // Write dataset name as first column.
-    WriteNameToBuffer( file, (*set)->Meta().Legend(), (*set)->Format().ColumnWidth(), false); 
+    WriteNameToBuffer( file, (*set)->Meta().Legend(), x_col_format.ColumnWidth(), false); 
     // Write each frame to subsequent columns
     for (positions[0] = 0; positions[0] < maxFrames; positions[0]++) 
       (*set)->WriteBuffer(file, positions);

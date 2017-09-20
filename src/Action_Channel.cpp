@@ -86,11 +86,11 @@ Action::RetType Action_Channel::Setup(ActionSetup& setup) {
 Action::RetType Action_Channel::DoAction(int frameNum, ActionFrame& frm) {
   // TODO: Gridding should be a DataSet_3d routine.
   DataSet_GridFlt& GRID = static_cast<DataSet_GridFlt&>( *grid_ );
-  const int nx = (int)GRID.NX();
-  const int ny = (int)GRID.NY();
-  const int nz = (int)GRID.NZ();
   const float SOLUTE = 1.0;
   const float BULK = 0.0;
+  long int nx = (long int)GRID.NX();
+  long int ny = (long int)GRID.NY();
+  long int nz = (long int)GRID.NZ();
   // Reset grid
   for (DataSet_GridFlt::iterator gval = GRID.begin(); gval != GRID.end(); ++gval)
     *gval = BULK;
@@ -109,21 +109,19 @@ Action::RetType Action_Channel::DoAction(int frameNum, ActionFrame& frm) {
     Vec3 maxPt = pt + *radius;
     minPt.Print("min point");
     maxPt.Print("max point");
-    int min_i, min_j, min_k;
+    long int min_i, min_j, min_k;
     GRID.BinIndices(minPt[0],minPt[1],minPt[2],min_i,min_j,min_k);
-    int max_i, max_j, max_k;
+    long int max_i, max_j, max_k;
     GRID.BinIndices(maxPt[0],maxPt[1],maxPt[2],max_i,max_j,max_k);
-    mprintf("\tGrid dims: %i <= i < %i\n", std::max(0,min_i), std::min(max_i,nx));
-    mprintf("\tGrid dims: %i <= j < %i\n", std::max(0,min_j), std::min(max_j,ny));
-    mprintf("\tGrid dims: %i <= k < %i\n", std::max(0,min_k), std::min(max_k,nz));
+    mprintf("\tGrid dims: %li <= i < %li\n", std::max(0L,min_i), std::min(max_i,nx));
+    mprintf("\tGrid dims: %li <= j < %li\n", std::max(0L,min_j), std::min(max_j,ny));
+    mprintf("\tGrid dims: %li <= k < %li\n", std::max(0L,min_k), std::min(max_k,nz));
     // TODO: Check spherical distance.
-    for (int i = std::max(0,min_i); i <= std::min(max_i,nx); i++) {
-      for (int j = std::max(0,min_j); j <= std::min(max_j,ny); j++) {
-        for (int k = std::max(0,min_k); k <= std::min(max_k,nz); k++) {
+    // TODO cast down to ints?
+    for (long int i = std::max(0L,min_i); i <= std::min(max_i,nx); i++)
+      for (long int j = std::max(0L,min_j); j <= std::min(max_j,ny); j++)
+        for (long int k = std::max(0L,min_k); k <= std::min(max_k,nz); k++)
           GRID.SetElement(i,j,k,SOLUTE);
-        }
-      }
-    }
   }
 
   return Action::OK;

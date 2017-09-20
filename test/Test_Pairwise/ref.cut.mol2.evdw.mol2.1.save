@@ -1,0 +1,21 @@
+@<TRIPOS>MOLECULE
+Cpptraj generated mol2 file.
+    6     4     1     0     0
+SMALL
+USER_CHARGES
+
+
+@<TRIPOS>ATOM
+      1 CD1         7.3257    5.7587   -0.1281 CA         1 TYR    -8202.483030
+      2 HD1         6.6074    5.9202    0.6756 HA         1 TYR    -1424.037834
+      3 CE1         8.5704    6.3987   -0.0936 CA         1 TYR     -2.048249
+      4 CE2         9.1710    5.3439   -2.1928 CA         1 TYR      2.048213
+      5 CD2         7.9264    4.7038   -2.2273 CA         1 TYR    8202.603881
+      6 HD2         7.6757    4.0440   -3.0579 HA         1 TYR    1423.968467
+@<TRIPOS>BOND
+    1     4     5 1
+    2     1     3 1
+    3     5     6 1
+    4     1     2 1
+@<TRIPOS>SUBSTRUCTURE
+      1 TYR               1 ****               0 ****  **** 

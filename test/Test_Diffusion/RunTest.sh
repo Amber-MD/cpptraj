@@ -62,32 +62,31 @@ EOF
 # STFC diffusion tests
 Test_stfc_diffusion() {
   TOP=../tz2.ortho.parm7
-  CMD="stfcdiffusion"
   # Basic test
   cat > $INPUT <<EOF
 trajin ../tz2.ortho.nc
-$CMD mask :1-13 out diff.dat
+stfcdiffusion mask :1-13 out diff.dat
 EOF
   RunCpptraj "STFC Diffusion Test"
   DoTest diff.dat.save diff.dat
   # Test with individual distances
   cat > $INPUT <<EOF
 trajin ../tz2.ortho.nc
-$CMD mask :1-13 out diff.1.dat distances
+stfcdiffusion mask :1-13 out diff.1.dat distances
 EOF
   RunCpptraj "STFC Diffusion Test with individual distances"
   DoTest diff.1.dat.save diff.1.dat
   # Test with COM
   cat > $INPUT <<EOF
 trajin ../tz2.ortho.nc
-$CMD mask :1-13 out diff.2.dat com
+stfcdiffusion mask :1-13 out diff.2.dat com
 EOF
   RunCpptraj "STFC Diffusion Test with COM"
   DoTest diff.2.dat.save diff.2.dat
   # Test with second mask
   cat > $INPUT <<EOF
 trajin ../tz2.ortho.nc 
-$CMD mask :1-13 out diff.3.dat mask2 :WAT
+stfcdiffusion mask :1-13 out diff.3.dat mask2 :WAT
 EOF
   RunCpptraj "STFC Diffusion Test with second mask"
   DoTest diff.3.dat.save diff.3.dat
