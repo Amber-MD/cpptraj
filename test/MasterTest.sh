@@ -881,11 +881,12 @@ TestLibrary() {
 # threads <#>    : Test requires exactly <#> threads in parallel.
 # amberhome      : Test requires AMBERHOME set
 # ambpdb         : Test requires ambpdb
-# zcat           : Test requires zcat binary
+# inpath <name>  : Test requires <name> to be in PATH
 # testos <os>    : Test requires specific OS
 # file <file>    : Test requires specified file
 # openmp         : Test requires openmp
 # singleensemble : Single NetCDF ensemble file support.
+# long           : Test requires the 'long' option be specified.
 # disabled       : Test is disabled, just count as skipped.
 CheckEnv() {
   #echo "DEBUG: CheckEnv() $*"
