@@ -5,7 +5,7 @@
 CleanFiles esander.in gb.dat pme.dat
 
 TESTNAME='Energy via sander API short tests (GB/PME)'
-Requires sanderlib
+Requires sanderlib maxthreads 1
 
 INPUT='-i esander.in'
 cat > esander.in <<EOF
