@@ -4,6 +4,9 @@
 
 CleanFiles change.in ala3.mod.pdb
 
+TESTNAME='Change command test'
+Requires maxthreads 1
+
 INPUT='-i change.in'
 
 cat > change.in <<EOF
@@ -14,7 +17,7 @@ change parmindex 0 resname from :3 to CALA
 change parmindex 0 atomname from @HN to H
 trajout ala3.mod.pdb
 EOF
-RunCpptraj "Change command test"
+RunCpptraj "$TESTNAME"
 DoTest ala3.mod.pdb.save ala3.mod.pdb
 
 EndTest
