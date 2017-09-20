@@ -6,7 +6,7 @@ CleanFiles pw.in pair.dat energy.dat avg.dat map.elec.gnu map.vdw.gnu \
            ref.ene.pdb ref.cut.mol2.*.mol2.?
 
 TESTNAME='Pairwise test'
-Requires netcdf
+Requires netcdf maxthreads 1
 
 INPUT='-i pw.in'
 
