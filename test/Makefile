@@ -417,6 +417,9 @@ test.translate:
 test.replicatecell:
 	@-cd Test_ReplicateCell && ./RunTest.sh $(OPT)
 
+test.scaledihedralk:
+	@-cd Test_ScaleDihedralK && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -551,7 +554,8 @@ COMPLETETESTS=test.general \
               test.parmbox \
               test.solvent \
               test.translate \
-              test.replicatecell
+              test.replicatecell \
+              test.scaledihedralk
 
 test.all:
 	$(MAKE) test.complete summary
