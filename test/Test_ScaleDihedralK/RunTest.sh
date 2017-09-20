@@ -8,7 +8,6 @@ INPUT='-i scale.in'
 
 cat > scale.in <<EOF
 parm ../tz2.parm7
-dihedrals :1 out res1.0.dat #DEBUG
 scaledihedralk 0.5
 dihedrals :1 out scale.res1.0.5.dat
 EOF
