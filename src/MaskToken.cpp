@@ -1,4 +1,3 @@
-#include <cmath> // DEBUG
 #include <locale>
 #include <stack> // Tokenize()
 #include "MaskToken.h"
