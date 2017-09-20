@@ -963,9 +963,10 @@ CheckEnv() {
           ((CHECKERR++))
         fi
         ;;
-        'zcat' )
-          if [ -z "`which zcat`" ] ; then
-            echo "  $DESCRIP requires zcat."
+        'inpath' )
+          shift
+          if [ -z "`which $1`" ] ; then
+            echo "  $DESCRIP requires $1 to be in PATH."
             ((CHECKERR++))
           fi
           ;;
