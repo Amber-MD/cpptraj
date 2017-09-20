@@ -420,6 +420,9 @@ test.replicatecell:
 test.scaledihedralk:
 	@-cd Test_ScaleDihedralK && ./RunTest.sh $(OPT)
 
+test.phipsi:
+	@-cd Test_PhiPsi && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -555,7 +558,8 @@ COMPLETETESTS=test.general \
               test.solvent \
               test.translate \
               test.replicatecell \
-              test.scaledihedralk
+              test.scaledihedralk \
+              test.phipsi
 
 test.all:
 	$(MAKE) test.complete summary
