@@ -13,7 +13,7 @@ cat > ptraj.in <<EOF
 trajin ../tz2.ortho.nc
 rms first :1-13
 center :1-13 mass origin 
-volmap volmap3.dx 1.0 1.0 1.0 :WAT@O  centermask !:1-13 \
+volmap volmap3.dx 1.0 1.0 1.0 :WAT@O  \
        radscale 1.36 size 20,20,20 peakcut 0.10 peakfile peaks1.xyz
 EOF
 RunCpptraj "$TESTNAME"
