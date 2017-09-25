@@ -10,7 +10,7 @@
 #   AMBPDB               : Set to ambpdb binary being tested.
 #   VALGRIND             : Set to 'valgrind' command if memory check requested.
 #   CPPTRAJ_DIFF         : Command used to check for test differences.
-#   CPPTRAJ_DACDIF       : Set if using 'dacdif' in AmberTools to checkout for test differences.
+#   CPPTRAJ_DACDIF       : Set if testing inside AmberTools.
 #   CPPTRAJ_NDIFF        : Set to Nelson H. F. Beebe's ndiff.awk for numerical diff calc.
 #   CPPTRAJ_NCDUMP       : Set to ncdump command; needed for NcTest()
 #   CPPTRAJ_RM           : Command used to remove files
@@ -106,6 +106,7 @@ OutBoth() {
 #   \return 0 if both present, 1 if either one absent.
 CheckTestFiles() {
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    # Standalone output.
     if [ ! -f "$1" ] ; then
       OutBoth "  Save file '$1' not found."
     elif [ ! -f "$2" ] ; then
@@ -156,7 +157,7 @@ DoTest() {
     ((ERRCOUNT++))
   else
     if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
-      # Print AT test header
+      # Print AT test header.
       echo "diffing $F1 with $F2"
     fi
     if [ $USE_NDIFF -eq 0 ] ; then
@@ -189,6 +190,7 @@ DoTest() {
     $CPPTRAJ_RM temp.diff
   fi
   if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
+    # Print AT test footer.
     echo "=============================================================="
   fi
 }
@@ -849,6 +851,8 @@ SkipTest() {
   echo "  SKIP: $1"
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  SKIP: $1"
+  else
+    echo "  SKIP: $1"
   fi
   echo ""
   TEST_SKIPPED=1
@@ -862,6 +866,8 @@ SkipCheck() {
   echo "  Skipped test: $1"
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  Skipped test: $1"
+  else
+    echo "  Skipped test: $1"
   fi
   ((SKIPCOUNT++))
   # Reset check count FIXME needed?
@@ -1165,7 +1171,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     STANDALONE=1
     USE_DACDIF=0
   fi
-  # Determine if diff or dacdif will be used.
+  # Determine if diff or dacdif style will be used.
   CPPTRAJ_DIFF=''
   CPPTRAJ_DACDIF=''
   if [ $USE_DACDIF -eq 1 ] ; then
@@ -1289,6 +1295,7 @@ else
     $CPPTRAJ_RM $CPPTRAJ_TEST_RESULTS
   fi
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    # Standalone. Only remove previous error file if it exists.
     if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
       $CPPTRAJ_RM $CPPTRAJ_TEST_ERROR
     fi
