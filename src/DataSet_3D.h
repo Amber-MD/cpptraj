@@ -17,7 +17,7 @@ class DataSet_3D : public DataSet {
     int Append(DataSet*) { return 1; }
     int Allocate(SizeArray const&) { return 1; } // TODO enable?
     /// \return Data from grid at x/y/z point.
-    virtual double GetElement(int, int, int) const = 0;
+    virtual double GetElement(size_t, size_t, size_t) const = 0;
     /// \return Data from grid.
     virtual double operator[](size_t) const = 0;
     /// \return size of X dimension.
@@ -27,9 +27,9 @@ class DataSet_3D : public DataSet {
     /// \return size of Z dimension.
     virtual size_t NZ() const = 0;
     /// \return grid index
-    virtual long int CalcIndex(int, int, int) const = 0;
+    virtual long int CalcIndex(size_t, size_t, size_t) const = 0;
     /// Calculate bins for given grid index
-    virtual void ReverseIndex(long int, int&, int&, int&) const = 0;
+    virtual void ReverseIndex(long int, size_t&, size_t&, size_t&) const = 0;
     /// Increment specified voxel by given amount.
     virtual void UpdateVoxel(long int, double) = 0;
     // -------------------------------------------
@@ -47,17 +47,17 @@ class DataSet_3D : public DataSet {
     void GridInfo() const;
     // -------------------------------------------
     /// Convert X, Y, and Z coords to indices. Check bounds.
-    bool CalcBins(double x,double y,double z,int& i,int& j,int& k) const { 
+    bool CalcBins(double x,double y,double z,size_t& i,size_t& j,size_t& k) const { 
       return gridBin_->CalcBins(x, y, z, i, j, k);
     }
     /// Convert X, Y, and Z coords to indices. No bounds check.
-    void BinIndices(double x,double y,double z,int& i,int& j,int& k) const {
+    void BinIndices(double x,double y,double z,long int& i,long int& j,long int& k) const {
       gridBin_->BinIndices(x, y, z, i, j, k);
     }
     /// \return coordinates of specified voxel corner.
-    Vec3 BinCorner(int i,int j,int k) const { return gridBin_->BinCorner(i, j, k); }
+    Vec3 BinCorner(long int i,long int j,long int k) const { return gridBin_->BinCorner(i, j, k); }
     /// \return coordinates of specified voxel center.
-    Vec3 BinCenter(int i,int j,int k) const { return gridBin_->BinCenter(i, j, k); }
+    Vec3 BinCenter(long int i,long int j,long int k) const { return gridBin_->BinCenter(i, j, k); }
     /// \return coordinates of grid origin.
     Vec3 const& GridOrigin()          const { return gridBin_->GridOrigin();       }
     /// \return unit cell matrix.

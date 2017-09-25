@@ -5,18 +5,32 @@
 #include "DataSet_3D.h" // For allocating grid
 
 // CONSTRUCTOR
-Action_Bounds::Action_Bounds() : outfile_(0), offset_(1), grid_(0) {}
+Action_Bounds::Action_Bounds() :
+  outfile_(0),
+  offset_(1),
+  grid_(0),
+  ds_xmin_(0),
+  ds_ymin_(0),
+  ds_zmin_(0),
+  ds_xmax_(0),
+  ds_ymax_(0),
+  ds_zmax_(0)
+{}
 
 void Action_Bounds::Help() const {
-  mprintf("\t[<mask>] [out <filename>]\n"
-          "\t[dx <dx> [dy <dy>] [dz <dz>] name <gridname> [offset <bin offset>]]\n"
+  mprintf("\t[<mask>] [out <filename>] [name <setname>]\n"
+          "\t[dx <dx> [dy <dy>] [dz <dz>] [offset <offset>]]\n"
           "  Calcuate the max/min coordinates (X,Y,Z) of atoms in <mask>.\n"
-          "    [<mask>]: Atoms to calculate boundaries for.\n"
-          "    [out <filename>]: Write boundaries to <filename>.\n"
-          "    [dx <dx>] [dy <dy>] [dz <dz>]: Grid spacing in X/Y/Z directions.\n"
-          "      If specified a grid will be created after processing is complete.\n"
-          "    [name <gridname>]: Name of grid data set (if 'dx <dx>' etc specified).\n"
-          "    [offset <bin offset>]: Number of bins to add in each direction to grid.\n");
+          "    <mask>         : Atoms to calculate boundaries for.\n"
+          "    out <filename> : Write boundaries to <filename>.\n"
+          "    name <setname> : Output data set name.\n"
+          "  If dx/dy/dz are specified, a grid will be created from the calculated\n"
+          "  boundaries after processing is complete. In this case 'name' must be\n"
+          "  specified.\n"
+          "    dx <dx>          : Grid spacing in the X direction.\n"
+          "    dy <dy>          : Grid spacing in the Y direction. Use <dx> if not given.\n"
+          "    dz <dz>          : Grid spacing in the Z direction. Use <dy> if not given.\n"
+          "    offset <offset>] : Number of bins to add in each direction to grid.\n");
 }
 
 // Action_Bounds::Init()
@@ -30,17 +44,31 @@ Action::RetType Action_Bounds::Init(ArgList& actionArgs, ActionInit& init, int d
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   std::string dsname = actionArgs.GetStringKey("name");
   offset_ = actionArgs.getKeyInt("offset", 1);
-  // Set default spacings if necessary. Y uses X, Z uses Y.
   if (dxyz_[0] > -1.0) {
+    // Set up grid
     if (dsname.empty()) {
       mprinterr("Error: Grid name must be specified if spacing specified.\n");
       return Action::ERR;
     } 
+    // Set default spacings if necessary. Y uses X, Z uses Y.
     if (dxyz_[1] < 0.0) dxyz_[1] = dxyz_[0];
     if (dxyz_[2] < 0.0) dxyz_[2] = dxyz_[1];
     grid_ = init.DSL().AddSet(DataSet::GRID_FLT, dsname, "Bounds");
     if (grid_ == 0) return Action::ERR;
+  } else {
+    if (dsname.empty())
+      dsname = init.DSL().GenerateDefaultName("BOUNDS");
   }
+  // Set up data sets
+  ds_xmin_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "xmin"));
+  ds_ymin_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "ymin"));
+  ds_zmin_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "zmin"));
+  ds_xmax_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "xmax"));
+  ds_ymax_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "ymax"));
+  ds_zmax_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "zmax"));
+  if (ds_xmin_ == 0 || ds_ymin_ == 0 || ds_zmin_ == 0 ||
+      ds_xmax_ == 0 || ds_ymax_ == 0 || ds_zmax_ == 0)
+    return Action::ERR;
 
   min_[0] = DBL_MAX;
   min_[1] = min_[0];
@@ -109,6 +137,12 @@ void Action_Bounds::Print() {
   size_t nxyz[3];
 
   mprintf("    BOUNDS: Output to %s\n", outfile_->Filename().full());
+  ds_xmin_->Add(0, min_  );
+  ds_ymin_->Add(0, min_+1);
+  ds_zmin_->Add(0, min_+2);
+  ds_xmax_->Add(0, max_  );
+  ds_ymax_->Add(0, max_+1);
+  ds_zmax_->Add(0, max_+2);
   for (int i = 0; i < 3; i++) {
     outfile_->Printf("%f < %c < %f", min_[i], cXYZ[i], max_[i]);
     if (dxyz_[i] > 0.0) {

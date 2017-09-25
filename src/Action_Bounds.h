@@ -23,5 +23,11 @@ class Action_Bounds : public Action {
     Vec3 dxyz_;
     int offset_;
     DataSet* grid_;
+    DataSet* ds_xmin_;
+    DataSet* ds_ymin_;
+    DataSet* ds_zmin_;
+    DataSet* ds_xmax_;
+    DataSet* ds_ymax_;
+    DataSet* ds_zmax_;
 };
 #endif

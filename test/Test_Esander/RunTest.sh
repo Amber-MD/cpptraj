@@ -3,8 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles ene.in Esander.dat force.nc Edpdp.dat CpptrajEsander.parm7 NoWat.dat
-TESTNAME='SANDER energy tests'
-Requires sanderlib netcdf
+TESTNAME='SANDER energy tests (long)'
+Requires sanderlib netcdf long
 
 INPUT="-i ene.in"
 

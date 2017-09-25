@@ -36,25 +36,29 @@ Action_Spam::Action_Spam() : Action(HIDDEN),
 { }
 
 void Action_Spam::Help() const {
-  mprintf("\t<filename> [solv <solvname>] [reorder] [name <name>]\n"
-          "\t[purewater] [cut <cut>] [info <infofile>] [summary <summary>]\n"
-          "\t[site_size <size>] [sphere] [out <datafile>]\n"
-          "\t[dgbulk <dgbulk>] [dhbulk <dhbulk>] [temperature <T>]\n"
-          "    <filename> : File with the peak locations present (XYZ- format)\n"
-          "    <solvname> : Name of the solvent residues\n"
+  mprintf("\t[name <name>] [out <datafile>] [cut <cut>] [solv <solvname>]\n"
+          "\t{ purewater |\n"
+          "\t  <filename> [reorder] [info <infofile>] [summary <summary>]\n"
+          "\t  [site_size <size>] [sphere] [temperature <T>]\n"
+          "\t  [dgbulk <dgbulk>] [dhbulk <dhbulk>] }\n"
+          "  Perform SPAM water analysis. If 'purewater' is specified calculate\n"
+          "  bulk energy values for a pure water system. Otherwise determine SPAM\n"
+          "  energies from peaks previously identified from the 'volmap' action.\n"
+          "    <name>     : Output data set name.\n"
+          "    <datafile> : Data file with all SPAM energies for each snapshot.\n"
           "    <cut>      : Non-bonded cutoff for energy evaluation\n"
-          "    <dgbulk>   : SPAM free energy of the bulk solvent in kcal/mol\n"
-          "    <dhbulk>   : SPAM enthalpy of the bulk solvent in kcal/mol\n"
-          "    <T>        : Temperature at which SPAM calculation was run.\n"
-          "    <infofile> : File with stats about which sites are occupied when.\n"
-          "    <size>     : Size of the water site around each density peak.\n"
-          "    [sphere]   : Treat each site like a sphere.\n"
+          "    <solvname> : Name of the solvent residues\n"
           "    [purewater]: The system is pure water---used to parametrize the bulk values.\n"
+          "    <filename> : File with the peak locations present (XYZ- format)\n"
           "    [reorder]  : The solvent should be re-ordered so the same solvent molecule\n"
           "                 is always in the same site.\n"
-          "    <summary>  : File with the summary of all SPAM results. If not specified,\n"
-          "                 no SPAM energies will be calculated.\n"
-          "    <datafile> : Data file with all SPAM energies for each snapshot.\n");
+          "    <infofile> : File with stats about which sites are occupied when.\n"
+          "    <summary>  : File with the summary of all SPAM results.\n"
+          "    <size>     : Size of the water site around each density peak.\n"
+          "    [sphere]   : Treat each site like a sphere.\n"
+          "    <T>        : Temperature at which SPAM calculation was run.\n"
+          "    <dgbulk>   : SPAM free energy of the bulk solvent in kcal/mol\n"
+          "    <dhbulk>   : SPAM enthalpy of the bulk solvent in kcal/mol\n");
 }
 
 // Action_Spam::Init()
@@ -79,6 +83,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   // Get output data file
   DataFile* datafile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  DataFile* summaryfile = 0;
 
   // Solvent residue name
   solvname_ = actionArgs.GetStringKey("solv");
@@ -127,7 +132,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       infoname = std::string("spam.info");
     infofile_ = init.DFL().AddCpptrajFile(infoname, "SPAM info");
     if (infofile_ == 0) return Action::ERR;
-    DataFile* summaryfile = init.DFL().AddDataFile(actionArgs.GetStringKey("summary"), actionArgs);
+    summaryfile = init.DFL().AddDataFile(actionArgs.GetStringKey("summary"), actionArgs);
     // Divide site size by 2 to make it half the edge length (or radius)
     site_size_ = actionArgs.getKeyDouble("site_size", 2.5) / 2.0;
     sphere_ = actionArgs.hasKey("sphere");
@@ -196,7 +201,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     peakFrameData_.resize( peaks_.size() );
   }
   // Determine if energy calculation needs to happen
-  calcEnergy_ = (!summaryfile_.empty() || datafile != 0);
+  calcEnergy_ = (summaryfile != 0 || datafile != 0);
   // Set function for determining if water is inside peak
   if (sphere_)
     Inside_ = &Action_Spam::inside_sphere;
@@ -214,8 +219,9 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
             sqrt(cut2_));
     if (reorder_)
       mprintf("\tWarning: Re-ordering makes no sense for pure solvent.\n");
-    if (!summaryfile_.empty())
-      mprintf("\tPrinting solvent SPAM summary to %s\n", summaryfile_.c_str());
+    if (summaryfile != 0)
+      mprintf("\tPrinting solvent SPAM summary to %s\n",
+               summaryfile->DataFilename().full());
   } else {
     mprintf("\tSolvent [%s] density peaks taken from %s.\n",
             solvname_.c_str(), filename.base());

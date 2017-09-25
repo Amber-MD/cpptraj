@@ -163,6 +163,7 @@ int MaskToken::SetDistance(std::string &distop) {
 
 // =============================================================================
 // Class: MaskTokenArray
+MaskTokenArray::MaskTokenArray() : debug_(0) {}
 
 bool MaskTokenArray::IsOperator(char op) {
   if (op=='!') return true;
@@ -632,7 +633,7 @@ char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
     if (err != 0 ) break;
     // Check if this mask should now go on the stack
     if ( token->OnStack() ) {
-      //mprintf("Pushing Mask on stack, last Token [%s]\n",token->TypeName());
+      //mprintf("DEBUG: Pushing Mask on stack, last Token [%s]\n",token->TypeName());
       Stack.push( pMask );
       pMask = 0;
     }
@@ -663,113 +664,120 @@ char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
 }
 
 // Topology::Mask_SelectDistance()
+/** \param REF reference coordinates.
+  * \param mask Initial atom selection; will be set with final output mask.
+  * \param token Describe how atoms are to be selected.
+  * \param atoms_ Atom array.
+  * \param residues_ Residue array.
+  * \return 0 if successful, 1 if an error occurs.
+  */
 int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
                                         MaskToken const& token,
                                         AtomArrayT const& atoms_,
                                         ResArrayT const& residues_) const
 {
-  int endatom, resi;
-  bool selectresidue;
-  int atomi, idx, atomj;
-  double d2;
-  double distance = token.Distance();
-  const double* i_crd;
-
   if (REF == 0) {
     mprinterr("Error: No reference set, cannot select by distance.\n");
     return 1;
   }
-  // Distance has been pre-squared.
-  // Create temporary array of atom #s currently selected in mask. Also
-  // reset mask, it will be the output mask.
-  std::vector<unsigned int> selected;
+  // Distance cutoff has been pre-squared.
+  double dcut2 = token.Distance();
+  // Create temporary array of atom #s currently selected in mask.
+  // These are the atoms the search is based on.
+  typedef std::vector<unsigned int> Uarray;
+  Uarray Idx;
   for (unsigned int i = 0; i < atoms_.size(); i++) {
-    if (mask[i]==SelectedChar_) {
-      selected.push_back( i );
-      mask[i] = UnselectedChar_;
-    }
+    if (mask[i] == SelectedChar_)
+      Idx.push_back( i*3 );
   }
-  if (selected.empty()) {
-    mprinterr("Error: SelectAtomsWithin(%f): No atoms in prior selection.\n",distance);
+  if (Idx.empty()) {
+    mprinterr("Error: Mask_SelectDistance: No atoms in prior selection.\n");
     return 1;
   }
-/*  if (debug_ > 1) {
-    mprintf("\t\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
-            (int)within, (int)byAtom, distance);
-    mprintf("\t\t\tInitial Mask=[");
-    for (std::vector<unsigned int>::iterator at = selected.begin(); at != selected.end(); at++)
-      mprintf(" %u",*at + 1);
-    mprintf(" ]\n");
-  }*/
+  //if (debug_ > 1) {
+  //  mprintf("\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
+  //          (int)token.Within(), (int)token.ByAtom(), token.Distance());
+  //  mprintf("\t\tSearch Mask=[");
+  //  for (Uarray::const_iterator at = Idx.begin(); at != Idx.end(); ++at)
+  //    mprintf(" %u",*at/3 + 1);
+  //  mprintf(" ]\n");
+  //}
 
-  if (token.ByAtom()) { // Select by atom
-    // Loop over all atoms
+  char char0, char1;
+  if (token.Within()) {
+    // Select all atoms within dcut2 of any selected atom.
+    // Select all residues with atoms within dcut2 of any selected atom.
+    char0 = UnselectedChar_;
+    char1 = SelectedChar_;
+  } else {
+    // Select all atoms outside dcut2 of all selected atoms.
+    // Select all residues with atoms outside dcut2 of all selected atoms.
+    char0 = SelectedChar_;
+    char1 = UnselectedChar_;
+  }
+
+  if (token.ByAtom()) {
+    // Select by atom
     int n_of_atoms = (int)atoms_.size();
-#ifdef _OPENMP
-#pragma omp parallel private(atomi, idx, atomj, d2, i_crd)
-{
-#pragma omp for
-#endif
+    int atomi;
+#   ifdef _OPENMP
+#   pragma omp parallel private(atomi)
+    {
+#   pragma omp for
+#   endif
     for (atomi = 0; atomi < n_of_atoms; atomi++) {
-      // No need to calculate if atomi already selected
-      if (mask[atomi] == SelectedChar_) continue;
+      // Initial state 
+      mask[atomi] = char0;
+      const double* i_crd = REF + (atomi * 3);
       // Loop over initially selected atoms
-      i_crd = REF + (atomi * 3);
-      for (idx = 0; idx < (int)selected.size(); idx++) {
-        atomj = selected[idx];
-        d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
-        if (token.Within()) {
-          if (d2 < distance) {
-            mask[atomi] = SelectedChar_;
-            break;
-          }
-        } else {
-          if (d2 > distance) {
-            mask[atomi] = SelectedChar_;
-            break;
-          }
+      for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
+        double d2 = DIST2_NoImage(i_crd, REF + *idx);
+        if (d2 < dcut2) {
+          // State changes
+          mask[atomi] = char1;
+          break;
         }
-      }
-    }
-#ifdef _OPENMP
-} // END pragma omp parallel
-#endif
-  } else { // Select by residue
+      } // END loop over initially selected atoms
+    } // END loop over all atoms
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#   endif
+  } else {
+    // Select by residue
     int n_of_res = (int)residues_.size();
-#ifdef _OPENMP
-#pragma omp parallel private(atomi, idx, atomj, d2, resi, selectresidue, endatom, i_crd)
-{
-#pragma omp for
-#endif
+    int resi;
+    // Loop over all residues
+#   ifdef _OPENMP
+#   pragma omp parallel private(resi)
+    {
+#   pragma omp for
+#   endif
     for (resi = 0; resi < n_of_res; resi++) {
-      selectresidue = false;
-      // Determine end atom for this residue
-      endatom = residues_[resi].LastAtom();
-      // Loop over mask atoms
-      for (idx = 0; idx < (int)selected.size(); idx++) {
-        atomj = selected[idx];
-        i_crd = REF + (atomj * 3);
-        // Loop over residue atoms
-        for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++) {
-          d2 = DIST2_NoImage(REF + (atomi * 3), i_crd);
-          if (token.Within()) {
-            if (d2 < distance) selectresidue = true;
-          } else {
-            if (d2 > distance) selectresidue = true;
+      // Initial state 
+      char schar = char0;
+      int atomi = residues_[resi].FirstAtom();
+      const double* i_crd = REF + (atomi * 3);
+      // Loop over residue atoms
+      for (; atomi != residues_[resi].LastAtom(); atomi++, i_crd += 3) {
+        // Loop over initially selected atoms
+        for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
+          double d2 = DIST2_NoImage(i_crd, REF + *idx);
+          if (d2 < dcut2) {
+            // State changes
+            schar = char1;
+            break;
           }
-          if (selectresidue) break; 
-        }
-        if (selectresidue) break;
-      }
-      if (selectresidue) {
-        for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++)
-          mask[atomi] = SelectedChar_;
-        continue;
-      }
-    }
-#ifdef _OPENMP
-} // END pragma omp parallel
-#endif
+        } // END loop over initially selected atoms
+        if (schar == char1) break;
+      } // END loop over residue atoms
+      // Set residue selection status
+      for (atomi = residues_[resi].FirstAtom();
+           atomi != residues_[resi].LastAtom(); atomi++)
+        mask[atomi] = schar;
+    } // END loop over all residues
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#   endif
   }
   return 0;
 }

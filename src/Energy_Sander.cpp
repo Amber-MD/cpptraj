@@ -1,5 +1,6 @@
 #if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
 #include <locale>
+#include <cstdio> // remove()
 #include "Energy_Sander.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h" // For writing temporary top
@@ -8,10 +9,15 @@ Energy_Sander::Energy_Sander() :
   debug_(0),
   specified_cut_(false),
   specified_igb_(false),
-  specified_ntb_(false)
+  specified_ntb_(false),
+  keepFiles_(false)
 {}
 
-Energy_Sander::~Energy_Sander() { if (is_setup()) sander_cleanup(); }
+Energy_Sander::~Energy_Sander() {
+  if (is_setup()) sander_cleanup();
+  if (!keepFiles_ && ! top_filename_.empty())
+    remove( top_filename_.full() );
+}
 
 const char* Energy_Sander::Estring_[] = {
   "Total", "VDW", "Elec", "GB", "Bond", "Angle", "Dihedral", "VDW14", "Elec14",
@@ -184,6 +190,7 @@ int Energy_Sander::SetInput(ArgList& argIn) {
   restraintmask.copy( input_.restraintmask, restraintmask.size(), 0 );
   // Temporary parm file name
   top_filename_ = argIn.GetStringKey("parmname", "CpptrajEsander.parm7");
+  keepFiles_ = argIn.hasKey("keepfiles");
   return 0;
 }
 

@@ -7,13 +7,13 @@ class GridBin {
     GridBin() : OXYZ_(0.0) {}
     virtual ~GridBin() {}
     /// Given coordinates, set corresponding bin indices; check bounds.
-    virtual bool CalcBins(double, double, double, int&, int&, int&) const = 0;
+    virtual bool CalcBins(double, double, double, size_t&, size_t&, size_t&) const = 0;
     /// Given coordinates, set corresponding bin indices; no bounds check.
-    virtual void BinIndices(double, double, double, int&, int&, int&) const = 0;
-    /// \return coordinates of bin for given indices.
-    virtual Vec3 BinCorner(int, int, int) const = 0;
-    /// \return coordinates of bin center for given indices.
-    virtual Vec3 BinCenter(int, int, int) const = 0;
+    virtual void BinIndices(double, double, double, long int&, long int&, long int&) const = 0;
+    /// \return coordinates of bin for given indices; no bound check.
+    virtual Vec3 BinCorner(long int, long int, long int) const = 0;
+    /// \return coordinates of bin center for given indices; no bounds check.
+    virtual Vec3 BinCenter(long int, long int, long int) const = 0;
     /// \return unit cell matrix. // TODO: Make const&?
     virtual Matrix_3x3 Ucell() const = 0;
     /// \return true if GridBin type is orthogonal.
@@ -34,31 +34,31 @@ class GridBin_Ortho : public GridBin {
     GridBin_Ortho() : dx_(-1.0), dy_(-1.0), dz_(-1.0), mx_(0),  my_(0), mz_(0) {}
     GridBin* Copy() const { return (GridBin*)(new GridBin_Ortho(*this)); }
     bool CalcBins(double x, double y, double z,
-                  int& i, int& j, int& k) const
+                  size_t& i, size_t& j, size_t& k) const
     {
       if (x >= OXYZ_[0] && x < mx_) { // X
         if (y >= OXYZ_[1] && y < my_) { // Y
           if (z >= OXYZ_[2] && z < mz_) { // Z
-            i = (int)((x-OXYZ_[0]) / dx_);
-            j = (int)((y-OXYZ_[1]) / dy_);
-            k = (int)((z-OXYZ_[2]) / dz_);
+            i = (size_t)((x-OXYZ_[0]) / dx_);
+            j = (size_t)((y-OXYZ_[1]) / dy_);
+            k = (size_t)((z-OXYZ_[2]) / dz_);
             return true;
           }
         }
       }
       return false;
     }
-    void BinIndices(double x, double y, double z, int& i, int& j, int& k) const {
-      i = (int)((x-OXYZ_[0]) / dx_);
-      j = (int)((y-OXYZ_[1]) / dy_);
-      k = (int)((z-OXYZ_[2]) / dz_);
+    void BinIndices(double x, double y, double z, long int& i, long int& j, long int& k) const {
+      i = (long int)((x-OXYZ_[0]) / dx_);
+      j = (long int)((y-OXYZ_[1]) / dy_);
+      k = (long int)((z-OXYZ_[2]) / dz_);
     }
-    Vec3 BinCorner(int i, int j, int k) const {
+    Vec3 BinCorner(long int i, long int j, long int k) const {
       return Vec3((double)i*dx_+OXYZ_[0],
                   (double)j*dy_+OXYZ_[1],
                   (double)k*dz_+OXYZ_[2]);
     }
-    Vec3 BinCenter(int i, int j, int k) const {
+    Vec3 BinCenter(long int i, long int j, long int k) const {
       return Vec3((double)i*dx_+OXYZ_[0]+0.5*dx_,
                   (double)j*dy_+OXYZ_[1]+0.5*dy_,
                   (double)k*dz_+OXYZ_[2]+0.5*dz_);
@@ -90,32 +90,32 @@ class GridBin_Nonortho : public GridBin {
     GridBin_Nonortho() {}
     GridBin* Copy() const { return (GridBin*)(new GridBin_Nonortho(*this)); }
     bool CalcBins(double x, double y, double z,
-                  int& i, int& j, int& k) const
+                  size_t& i, size_t& j, size_t& k) const
     {
       Vec3 frac = recip_ * Vec3(x - OXYZ_[0], y - OXYZ_[1], z - OXYZ_[2]);
       if (frac[0] >= 0.0 && frac[0] < 1.0) {
         if (frac[1] >= 0.0 && frac[1] < 1.0) {
           if (frac[2] >= 0.0 && frac[2] < 1.0) {
-            i = (int)(frac[0] * nx_);
-            j = (int)(frac[1] * ny_);
-            k = (int)(frac[2] * nz_);
+            i = (size_t)(frac[0] * nx_);
+            j = (size_t)(frac[1] * ny_);
+            k = (size_t)(frac[2] * nz_);
             return true;
           }
         }
       }
       return false;
     }
-    void BinIndices(double x, double y, double z, int& i, int& j, int& k) const {
+    void BinIndices(double x, double y, double z, long int& i, long int& j, long int& k) const {
       Vec3 frac = recip_ * Vec3(x - OXYZ_[0], y - OXYZ_[1], z - OXYZ_[2]);
-      i = (int)(frac[0] * nx_);
-      j = (int)(frac[1] * ny_);
-      k = (int)(frac[2] * nz_);
+      i = (long int)(frac[0] * nx_);
+      j = (long int)(frac[1] * ny_);
+      k = (long int)(frac[2] * nz_);
     }
-    Vec3 BinCorner(int i, int j, int k) const {
+    Vec3 BinCorner(long int i, long int j, long int k) const {
       Vec3 frac( (double)i / nx_, (double)j / ny_, (double)k / nz_ );
       return ucell_.TransposeMult( frac );
     }
-    Vec3 BinCenter(int i, int j, int k) const {
+    Vec3 BinCenter(long int i, long int j, long int k) const {
       Vec3 frac_half((1.0 + 2.0 * (double)i) / (2.0 * nx_),  //(0.5 * (1.0 / nx_)) + ((double)i / nx_),
                      (1.0 + 2.0 * (double)j) / (2.0 * ny_), 
                      (1.0 + 2.0 * (double)k) / (2.0 * nz_));

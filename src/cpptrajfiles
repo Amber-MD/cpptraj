@@ -226,6 +226,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \
+        Exec_CreateSet.cpp \
         Exec_DataFile.cpp \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
