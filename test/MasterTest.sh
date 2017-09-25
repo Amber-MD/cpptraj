@@ -851,8 +851,6 @@ SkipTest() {
   echo "  SKIP: $1"
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  SKIP: $1"
-  else
-    echo "  SKIP: $1"
   fi
   echo ""
   TEST_SKIPPED=1
@@ -866,8 +864,6 @@ SkipCheck() {
   echo "  Skipped test: $1"
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  Skipped test: $1"
-  else
-    echo "  Skipped test: $1"
   fi
   ((SKIPCOUNT++))
   # Reset check count FIXME needed?
@@ -1188,7 +1184,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   #fi
   export CPPTRAJ_DACDIF
   export CPPTRAJ_DIFF
-  # If not cleaning see what else needs to be set up. 
+  # If not cleaning see what else needs to be set up.
   if [ $CPPTRAJ_TEST_CLEAN -eq 0 ] ; then
     # Determine binary locations
     SetBinaries
