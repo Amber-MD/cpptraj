@@ -86,7 +86,9 @@ TestHeader() {
 # OUT() <message>
 #   Write message to CPPTRAJ_TEST_RESULTS
 OUT() {
-  echo "$1" >> $CPPTRAJ_TEST_RESULTS
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    echo "$1" >> $CPPTRAJ_TEST_RESULTS
+  fi
 }
 
 # ERR() <message>
@@ -113,60 +115,63 @@ OutBoth() {
 #   H. F. Beebe's ndiff.awk script. The remaining args can be used to pass
 #   options to CPPTRAJ_DIFF.
 DoTest() {
-  #echo "DEBUG: DoTest $1 $2"
+  # Use diff, or ndiff where '-r' or '-a' specified.
+  ((NUMCOMPARISONS++))
+  DIFFARGS='--strip-trailing-cr'
+  NDIFFARGS=""
+  # First two arguments are files to compare.
+  F1=$1 ; shift
+  F2=$1 ; shift
+  # Process remaining arguments.
+  USE_NDIFF=0
+  while [ ! -z "$1" ] ; do
+    case "$1" in
+      "-r"           ) USE_NDIFF=1; shift; NDIFFARGS="$NDIFFARGS -v RELERR=$1" ;;
+      "-a"           ) USE_NDIFF=1; shift; NDIFFARGS="$NDIFFARGS -v ABSERR=$1" ;;
+      *              ) DIFFARGS=$DIFFARGS" $1" ;;
+    esac
+    shift
+  done
   if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
-    # Use dacdif. Use any '-r <X>' or '-a <X>' args found. Ignore the rest.
-    DIFFARGS="$1 $2"
-    shift # Save file
-    shift # Test file
-    # Process remaining args
-    while [ ! -z "$1" ] ; do
-      case "$1" in
-        "-r" ) shift ; DIFFARGS=" -r $1 "$DIFFARGS ;;
-        "-a" ) shift ; DIFFARGS=" -a $1 "$DIFFARGS ;;
-      esac
-      shift
-    done
-    $CPPTRAJ_DACDIF $DIFFARGS
+    # Print AT test header
+    echo "diffing $F1 with $F2"
+  fi
+  if [ ! -f "$F1" ] ; then
+    OutBoth "  Save file '$F1' not found."
+    ((ERRCOUNT++))
+  elif [ ! -f "$F2" ] ; then
+    OutBoth "  Test output '$F2' not found."
+    ((ERRCOUNT++))
   else
-    # Use diff, or ndiff where '-r' or '-a' specified.
-    ((NUMCOMPARISONS++))
-    DIFFARGS='--strip-trailing-cr'
-    NDIFFARGS=""
-    # First two arguments are files to compare.
-    F1=$1 ; shift
-    F2=$1 ; shift
-    # Process remaining arguments.
-    USE_NDIFF=0
-    while [ ! -z "$1" ] ; do
-      case "$1" in
-        "-r"           ) USE_NDIFF=1; shift; NDIFFARGS="$NDIFFARGS -v RELERR=$1" ;;
-        "-a"           ) USE_NDIFF=1; shift; NDIFFARGS="$NDIFFARGS -v ABSERR=$1" ;;
-        *              ) DIFFARGS=$DIFFARGS" $1" ;;
-      esac
-      shift
-    done
-    if [ ! -f "$F1" ] ; then
-      OutBoth "  Save file '$F1' not found."
-      ((ERRCOUNT++))
-    elif [ ! -f "$F2" ] ; then
-      OutBoth "  Test output '$F2' not found."
-      ((ERRCOUNT++))
+    if [ $USE_NDIFF -eq 0 ] ; then
+      $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
     else
-      if [ $USE_NDIFF -eq 0 ] ; then
-        $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
-      else
-        awk -f $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
-      fi
-      if [ -s 'temp.diff' ] ; then
+      awk -f $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
+    fi
+    if [ -s 'temp.diff' ] ; then
+      if [ -z "$CPPTRAJ_DACDIF" ] ; then
         OutBoth "  $F1 $F2 are different."
         cat temp.diff >> $CPPTRAJ_TEST_ERROR
-        ((ERRCOUNT++))
       else
-        OUT  "  $F2 OK."
+        mv temp.diff $F2.dif
+        echo "possible FAILURE:  check $F2.dif"
+        echo "possible FAILURE:  check $F2.dif" >> $CPPTRAJ_TEST_ERROR
+        echo "$TEST_WORKDIR" >> $CPPTRAJ_TEST_ERROR
+        cat $F2.dif >> $CPPTRAJ_TEST_ERROR
+        echo "---------------------------------------" >> $CPPTRAJ_TEST_ERROR
       fi
-      $CPPTRAJ_RM temp.diff
+      ((ERRCOUNT++))
+    else
+      OUT  "  $F2 OK."
+      if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
+        # AmberTools header
+        echo "PASSED"
+      fi
     fi
+    $CPPTRAJ_RM temp.diff
+  fi
+  if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
+    echo "=============================================================="
   fi
 }
 
@@ -196,15 +201,15 @@ NcTest() {
   done
   # Prepare files.
   if [ ! -e "$F1" ] ; then
-    if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    #if [ -z "$CPPTRAJ_DACDIF" ] ; then
       OutBoth "  Save file '$F1' not found."
-    fi
+    #fi
     ((NUMCOMPARISONS++))
     ((ERRCOUNT++))
   elif [ ! -e "$F2" ] ; then
-    if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    #if [ -z "$CPPTRAJ_DACDIF" ] ; then
       OutBoth "  Test output '$F2' not found."
-    fi
+    #fi
     ((NUMCOMPARISONS++))
     ((ERRCOUNT++))
   else
@@ -437,9 +442,9 @@ RunCpptraj() {
   ((PROGCOUNT++))
   echo ""
   echo "  CPPTRAJ: $1"
-  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+  #if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  CPPTRAJ: $1"
-  fi
+  #fi
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
     echo "$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
   fi
@@ -832,9 +837,9 @@ SetBinaries() {
 #  Skip an entire test directory.
 SkipTest() {
   echo "  SKIP: $1"
-  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+  #if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  SKIP: $1"
-  fi
+  #fi
   echo ""
   TEST_SKIPPED=1
   EndTest
@@ -845,9 +850,9 @@ SkipTest() {
 #  Skip an individual test.
 SkipCheck() {
   echo "  Skipped test: $1"
-  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+  #if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  Skipped test: $1"
-  fi
+  #fi
   ((SKIPCOUNT++))
   # Reset check count FIXME needed?
   CHECKERR=0
@@ -1137,36 +1142,38 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   CPPTRAJ_ERROR='/dev/stderr'
   # Process command line options
   CmdLineOpts $*
+  # Determine standalone or AmberTools
+  if [ ! -z "`echo "$CPPTRAJ_TEST_ROOT" | grep AmberTools`" ] ; then
+    # Assume AmberTools. Need AMBERHOME.
+    STANDALONE=0
+    if [ -z "$AMBERHOME" ] ; then
+      echo "Error: In AmberTools and AMBERHOME is not set. Required for tests." > /dev/stderr
+      exit 1
+    fi
+  else
+    # Standalone. Never use dacdif.
+    STANDALONE=1
+    USE_DACDIF=0
+  fi
+  # Determine if diff or dacdif will be used.
+  CPPTRAJ_DIFF=''
+  CPPTRAJ_DACDIF=''
+  if [ $USE_DACDIF -eq 1 ] ; then
+    CPPTRAJ_DACDIF="$AMBERHOME/test/dacdif"
+    if [ ! -f "$CPPTRAJ_DACDIF" ] ; then
+      echo "$CPPTRAJ_DACDIF not found. Required for AmberTools tests."
+      exit 1
+    fi
+    export CPPTRAJ_TEST_ERROR="$AMBERHOME/test/TEST_FAILURES.diff"
+  fi
+  #else
+    Required "diff"
+    CPPTRAJ_DIFF=`which diff`
+  #fi
+  export CPPTRAJ_DACDIF
+  export CPPTRAJ_DIFF
   # If not cleaning see what else needs to be set up. 
   if [ $CPPTRAJ_TEST_CLEAN -eq 0 ] ; then
-    # Determine standalone or AmberTools
-    if [ ! -z "`echo "$CPPTRAJ_TEST_ROOT" | grep AmberTools`" ] ; then
-      # Assume AmberTools. Need AMBERHOME.
-      STANDALONE=0
-      if [ -z "$AMBERHOME" ] ; then
-        echo "Error: In AmberTools and AMBERHOME is not set. Required for tests." > /dev/stderr
-        exit 1
-      fi
-    else
-      # Standalone. Never use dacdif.
-      STANDALONE=1
-      USE_DACDIF=0
-    fi
-    # Determine if diff or dacdif will be used.
-    CPPTRAJ_DIFF=''
-    CPPTRAJ_DACDIF=''
-    if [ $USE_DACDIF -eq 1 ] ; then
-      CPPTRAJ_DACDIF="$AMBERHOME/test/dacdif"
-      if [ ! -f "$CPPTRAJ_DACDIF" ] ; then
-        echo "$CPPTRAJ_DACDIF not found. Required for AmberTools tests."
-        exit 1
-      fi
-    else
-      Required "diff"
-      CPPTRAJ_DIFF=`which diff`
-    fi
-    export CPPTRAJ_DACDIF
-    export CPPTRAJ_DIFF
     # Determine binary locations
     SetBinaries
     # If CPPTRAJ_TEST_OS is not set, try to determine. 
@@ -1194,7 +1201,7 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
   if [ -f "$CPPTRAJ_TEST_RESULTS" ] ; then
     $CPPTRAJ_RM $CPPTRAJ_TEST_RESULTS
   fi
-  if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
+  if [ -f "$CPPTRAJ_TEST_ERROR" -a -z "$CPPTRAJ_DACDIF" ] ; then
     $CPPTRAJ_RM $CPPTRAJ_TEST_ERROR
   fi
   if [ ! -z "$TEST_DIRS" ] ; then
@@ -1271,8 +1278,13 @@ else
   if [ -f "$CPPTRAJ_TEST_RESULTS" ] ; then
     $CPPTRAJ_RM $CPPTRAJ_TEST_RESULTS
   fi
-  if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
-    $CPPTRAJ_RM $CPPTRAJ_TEST_ERROR
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
+      $CPPTRAJ_RM $CPPTRAJ_TEST_ERROR
+    fi
+  else
+    # AmberTools - remove previous .dif files
+    $CPPTRAJ_RM *.dif 2> /dev/null
   fi
   if [ -f 'valgrind.out' ] ; then
     $CPPTRAJ_RM valgrind.out
