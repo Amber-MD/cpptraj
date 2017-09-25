@@ -79,7 +79,7 @@ DESCRIP=''               # Current test/unit name for CheckEnv routine.
 # TestHeader() <outfile>
 #   Write test header (working directory) to specified file.
 TestHeader() {
-  echo "**************************************************************" > $1
+  echo "********************************************************************************" > $1
   echo "TEST: $TEST_WORKDIR" >> $1
 }
 
