@@ -86,25 +86,44 @@ TestHeader() {
 # OUT() <message>
 #   Write message to CPPTRAJ_TEST_RESULTS
 OUT() {
-  if [ -z "$CPPTRAJ_DACDIF" ] ; then
-    echo "$1" >> $CPPTRAJ_TEST_RESULTS
-  fi
-}
-
-# ERR() <message>
-#   Write message to CPPTRAJ_TEST_ERROR. Write header if this is the first error.
-ERR() {
-  if [ $ERRCOUNT -eq 0 -a -z "$CPPTRAJ_DACDIF" ] ; then
-    TestHeader "$CPPTRAJ_TEST_ERROR"
-  fi
-  echo "$1" >> $CPPTRAJ_TEST_ERROR
+  echo "$1" >> $CPPTRAJ_TEST_RESULTS
 }
 
 # OutBoth() <message>
 #   Send <message> to CPPTRAJ_TEST_RESULTS and CPPTRAJ_TEST_ERROR
 OutBoth() {
   OUT "$1"
-  ERR "$1"
+  # Write header to CPPTRAJ_TEST_ERROR if this is the first error.
+  if [ $ERRCOUNT -eq 0 ] ; then
+    TestHeader "$CPPTRAJ_TEST_ERROR"
+  fi
+  echo "$1" >> $CPPTRAJ_TEST_ERROR
+}
+
+# ------------------------------------------------------------------------------
+# CheckTestFiles() <test save> <test output>
+#   Check that <test save> and <test output> exist.
+#   \return 0 if both present, 1 if either one absent.
+CheckTestFiles() {
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    if [ ! -f "$1" ] ; then
+      OutBoth "  Save file '$1' not found."
+    elif [ ! -f "$2" ] ; then
+      OutBoth "  Test output '$2' not found."
+    else
+      return 0
+    fi
+  else
+    # AmberTools output
+    if [ ! -f "$1" ] ; then
+      echo "possible FAILURE:  file $1 does not exist."
+    elif [ ! -f "$2" ] ; then
+      echo "possible FAILURE:  file $2 does not exist."
+    else
+      return 0
+    fi
+  fi
+  return 1
 }
 
 # ------------------------------------------------------------------------------
@@ -132,17 +151,14 @@ DoTest() {
     esac
     shift
   done
-  if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
-    # Print AT test header
-    echo "diffing $F1 with $F2"
-  fi
-  if [ ! -f "$F1" ] ; then
-    OutBoth "  Save file '$F1' not found."
-    ((ERRCOUNT++))
-  elif [ ! -f "$F2" ] ; then
-    OutBoth "  Test output '$F2' not found."
+  CheckTestFiles $F1 $F2
+  if [ $? -ne 0 ] ; then
     ((ERRCOUNT++))
   else
+    if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
+      # Print AT test header
+      echo "diffing $F1 with $F2"
+    fi
     if [ $USE_NDIFF -eq 0 ] ; then
       $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
     else
@@ -162,9 +178,11 @@ DoTest() {
       fi
       ((ERRCOUNT++))
     else
-      OUT  "  $F2 OK."
-      if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
-        # AmberTools header
+      if [ -z "$CPPTRAJ_DACDIF" ] ; then
+        # Standalone pass.
+        OUT  "  $F2 OK."
+      else
+        # AmberTools pass.
         echo "PASSED"
       fi
     fi
@@ -199,20 +217,12 @@ NcTest() {
     DIFFARGS=$DIFFARGS" $1"
     shift
   done
-  # Prepare files.
-  if [ ! -e "$F1" ] ; then
-    #if [ -z "$CPPTRAJ_DACDIF" ] ; then
-      OutBoth "  Save file '$F1' not found."
-    #fi
-    ((NUMCOMPARISONS++))
-    ((ERRCOUNT++))
-  elif [ ! -e "$F2" ] ; then
-    #if [ -z "$CPPTRAJ_DACDIF" ] ; then
-      OutBoth "  Test output '$F2' not found."
-    #fi
+  CheckTestFiles $F1 $F2
+  if [ $? -ne 0 ] ; then
     ((NUMCOMPARISONS++))
     ((ERRCOUNT++))
   else
+    # Prepare files.
     if [ $CALC_NUM_ERR -eq 1 ] ; then
       # FIXME: Must remove commas here because I cannot figure out how to pass
       # the regular expression to ndiff.awk FS without the interpreter giving
@@ -442,9 +452,9 @@ RunCpptraj() {
   ((PROGCOUNT++))
   echo ""
   echo "  CPPTRAJ: $1"
-  #if [ -z "$CPPTRAJ_DACDIF" ] ; then
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  CPPTRAJ: $1"
-  #fi
+  fi
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
     echo "$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
   fi
@@ -837,9 +847,9 @@ SetBinaries() {
 #  Skip an entire test directory.
 SkipTest() {
   echo "  SKIP: $1"
-  #if [ -z "$CPPTRAJ_DACDIF" ] ; then
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  SKIP: $1"
-  #fi
+  fi
   echo ""
   TEST_SKIPPED=1
   EndTest
@@ -850,9 +860,9 @@ SkipTest() {
 #  Skip an individual test.
 SkipCheck() {
   echo "  Skipped test: $1"
-  #if [ -z "$CPPTRAJ_DACDIF" ] ; then
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  Skipped test: $1"
-  #fi
+  fi
   ((SKIPCOUNT++))
   # Reset check count FIXME needed?
   CHECKERR=0
