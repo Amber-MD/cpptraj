@@ -102,20 +102,20 @@ class MaskTokenArray {
     int Tokenize();
 
     // Mask selection routines.
-    int Mask_SelectDistance(const double*, char *, MaskToken const&,
-                            AtomArrayT const&, ResArrayT const&, MolArrayT const&) const;
+    int SelectDistance(const double*, char *, MaskToken const&,
+                       AtomArrayT const&, ResArrayT const&, MolArrayT const&) const;
     void Mask_AND(char*, char*, unsigned int) const;
     void Mask_OR(char*, char*, unsigned int) const;
     void Mask_NEG(char *, unsigned int) const;
-    void MaskSelectResidues(ResArrayT const&, NameType const&, char*) const;
-    void MaskSelectResidues(ResArrayT const&, int, int, char*) const;
-    void MaskSelectChainID(ResArrayT const&, NameType const&, char*) const;
+    void SelectResName(ResArrayT const&, NameType const&, char*) const;
+    void SelectResNum(ResArrayT const&, int, int, char*) const;
+    void SelectChainID(ResArrayT const&, NameType const&, char*) const;
     void SelectOriginalResNum(ResArrayT const&, int, int, char*) const;
-    void MaskSelectMolecules(MolArrayT const&, int, int, char*) const;
-    void MaskSelectElements(AtomArrayT const&, NameType const&, char*) const;
-    void MaskSelectTypes(AtomArrayT const&, NameType const&, char*) const;
-    void MaskSelectAtoms(AtomArrayT const&, NameType const&, char*) const;
-    void MaskSelectAtoms(AtomArrayT const&, int, int, char*) const;
+    void SelectMolNum(MolArrayT const&, int, int, char*) const;
+    void SelectElement(AtomArrayT const&, NameType const&, char*) const;
+    void SelectAtomType(AtomArrayT const&, NameType const&, char*) const;
+    void SelectAtomName(AtomArrayT const&, NameType const&, char*) const;
+    void SelectAtomNum(AtomArrayT const&, int, int, char*) const;
 
     MTarray maskTokens_;
     std::string maskExpression_; ///< String specifying atom mask selection.
