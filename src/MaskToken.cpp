@@ -19,7 +19,7 @@ MaskToken::MaskToken() :
 
 const char* MaskToken::MaskTypeString[] = {
   "OP_NONE",
-  "ResNum", "ResName", "ResChain",
+  "ResNum", "ResName", "ResChain", "OriginalResNum",
   "AtomNum", "AtomName", "AtomType", "AtomElement",
   "MolNum",
   "SelectAll", "OP_AND", "OP_OR", "OP_NEG", "OP_DIST"
@@ -35,6 +35,7 @@ void MaskToken::Print() const {
     case AtomName: mprintf(" Name=[%s]",*name_); break;
     case MolNum:
     case ResNum:
+    case OresNum:
     case AtomNum: mprintf(" First=%i  Second=%i",res1_,res2_); break;
     case OP_DIST: 
       mprintf(" within=%i  distOp=%i  distance^2=%f",
@@ -61,6 +62,9 @@ int MaskToken::MakeNameType() {
   else if (type_ == MolNum) {
     mprinterr("Internal Error: Molecule name not yet supported.\n");
     return 1;
+  } else if (type_ == OresNum) {
+    mprinterr("Internal Error: Only digits supported for original residue number.\n");
+    return 1;
   }
   return 0;
 }
@@ -84,7 +88,7 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
     }
   }
   // Check that all chars are digits or - for number range 
-  if (type_ == ResNum || type_ == AtomNum || type_ == MolNum) {
+  if (type_ == ResNum || type_ == AtomNum || type_ == MolNum || type_ == OresNum) {
     for (std::string::const_iterator p = tokenString.begin(); p != tokenString.end(); ++p) {
       if (*p != '-' && isalpha(*p, loc)) {
         //mprintf("DEBUG: making name type because of %c\n",*p);
@@ -93,7 +97,7 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
       } 
     }
   }
-  if (type_ == ResNum || type_ == AtomNum || type_ == MolNum) {
+  if (type_ == ResNum || type_ == AtomNum || type_ == MolNum || type_ == OresNum) {
     // Does this token argument have a dash? Only valid for number ranges.
     size_t dashPosition = tokenString.find_first_of("-");
     if (dashPosition != std::string::npos) {
@@ -176,7 +180,7 @@ int MaskToken::SetDistance(std::string const& distop) {
 
 // =============================================================================
 // Class: MaskTokenArray
-MaskTokenArray::MaskTokenArray() : debug_(0) {}
+MaskTokenArray::MaskTokenArray() : debug_(10) {}
 
 // TODO include parentheses?
 bool MaskTokenArray::IsOperator(char op) {
@@ -190,17 +194,18 @@ bool MaskTokenArray::IsOperator(char op) {
 
 bool MaskTokenArray::IsOperand(char op) {
   std::locale loc;
-  if (op=='*')  return true;
-  if (op=='/')  return true;
-  if (op=='\\')  return true;
-  if (op=='%')  return true;
-  if (op=='-')  return true;
-  if (op=='?')  return true;
-  if (op==',')  return true;
+  if (op=='*' ) return true; // Wildcard
+  if (op=='/' ) return true; // Atom element, res chain ID
+  if (op=='\\') return true;
+  if (op=='%' ) return true; // Atom type
+  if (op==';' ) return true; // Original res number
+  if (op=='-' ) return true;
+  if (op=='?' ) return true; // Wildcard single char
+  if (op==',' ) return true;
   if (op=='\'') return true;
-  if (op=='.')  return true;
-  if (op=='=')  return true;
-  if (op=='+')  return true;
+  if (op=='.' ) return true;
+  if (op=='=' ) return true; // Wildcard
+  if (op=='+' ) return true;
   if (isalnum(op, loc)) return true;
   return false;
 }
@@ -473,7 +478,8 @@ int MaskTokenArray::Tokenize() {
         if (buffer[0]==':') {
           // Residue
           tokenType = MaskToken::ResNum;
-          if (buffer[1] =='/') tokenType = MaskToken::ResChain;
+          if      (buffer[1] =='/') tokenType = MaskToken::ResChain;
+          else if (buffer[1] == ';') tokenType = MaskToken::OresNum;
         } else if (buffer[0]=='@') {
           // Atom
           tokenType = MaskToken::AtomNum; 
@@ -632,6 +638,9 @@ char* MaskTokenArray::ParseMask(AtomArrayT const& atoms,
     switch ( token->Type() ) {
       case MaskToken::ResNum : 
         SelectResNum( residues, token->Res1(), token->Res2(), pMask );
+        break;
+      case MaskToken::OresNum :
+        SelectOriginalResNum( residues, token->Res1(), token->Res2(), pMask );
         break;
       case MaskToken::ResName :
         SelectResName( residues, token->Name(), pMask );
