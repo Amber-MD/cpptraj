@@ -238,6 +238,13 @@ std::string const& ArgList::GetStringNext() {
 
 /** \return true if argument at position is a potential mask. */
 bool ArgList::ArgIsMask(unsigned int pos) const {
+  //size_t found = arglist_[pos].find_first_of(":@*");
+  //return (found != std::string::npos);
+  // NOTE: The below method is more rigorous but potentially allows more
+  //       "bad" masks through as *. For example, with previous method above,
+  //       'select test@' fails with 'Tokenize: Wrong syntax' because 'test@'
+  //       is treated as a mask, but with new method below 'test@' is ignored
+  //       and 'select' assumes no mask present and selects all.
   std::string::const_iterator p = arglist_[pos].begin();
   // Advance past any negate operator or open parentheses. Assume token not empty.
   while (*p == '!' || *p == '(') {
@@ -255,8 +262,6 @@ bool ArgList::ArgIsMask(unsigned int pos) const {
     default : isMask = false;
   }
   return isMask;
-  //size_t found = arglist_[pos].find_first_of(":@*");
-  //return (found != std::string::npos);
 }
 
 // ArgList::GetMaskNext()
