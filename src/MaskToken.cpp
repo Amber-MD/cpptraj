@@ -18,8 +18,8 @@ MaskToken::MaskToken() :
 { }
 
 const char* MaskToken::MaskTypeString[] = {
-  "OP_NONE", "ResNum", "ResName", "AtomNum", "AtomName", "AtomType", "AtomElement", "SelectAll",
-  "OP_AND", "OP_OR", "OP_NEG", "OP_DIST"
+  "OP_NONE", "ResNum", "ResName", "AtomNum", "AtomName", "AtomType", "AtomElement", "MolNum",
+  "SelectAll", "OP_AND", "OP_OR", "OP_NEG", "OP_DIST"
 };
 
 void MaskToken::Print() const {
@@ -27,6 +27,7 @@ void MaskToken::Print() const {
   switch (type_) {
     case ResName:
     case AtomName: mprintf(" Name=[%s]",*name_); break;
+    case MolNum:
     case ResNum:
     case AtomNum: mprintf(" First=%i  Second=%i",res1_,res2_); break;
     case OP_DIST: 
@@ -43,15 +44,19 @@ void MaskToken::Print() const {
           (int)d_within_, (int)d_atom_, distance_);*/
 } 
 
-const char *MaskToken::TypeName() const {
-  return MaskTypeString[type_];
-}
+const char *MaskToken::TypeName() const { return MaskTypeString[type_]; }
 
-void MaskToken::MakeNameType() {
+/** Convert number type to name type if possible. */
+int MaskToken::MakeNameType() {
   if (type_ == ResNum)
     type_ = ResName;
   else if (type_ == AtomNum)
     type_ = AtomName;
+  else if (type_ == MolNum) {
+    mprinterr("Internal Error: Molecule name not yet supported.\n");
+    return 1;
+  }
+  return 0;
 }
 
 /** Basic : or @ operand. */
@@ -69,20 +74,20 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
       type_ = SelectAll;
       return 0;
     } else {
-      MakeNameType();
+      if (MakeNameType()) return 1;
     }
   }
   // Check that all chars are digits or - for number range 
-  if (type_ == ResNum || type_ == AtomNum) {
+  if (type_ == ResNum || type_ == AtomNum || type_ == MolNum) {
     for (std::string::const_iterator p = tokenString.begin(); p != tokenString.end(); ++p) {
       if (*p != '-' && isalpha(*p, loc)) {
         //mprintf("DEBUG: making name type because of %c\n",*p);
-        MakeNameType();
+        if (MakeNameType()) return 1;
         break;
       } 
     }
   }
-  if (type_ == ResNum || type_ == AtomNum) {
+  if (type_ == ResNum || type_ == AtomNum || type_ == MolNum) {
     // Does this token argument have a dash? Only valid for number ranges.
     size_t dashPosition = tokenString.find_first_of("-");
     if (dashPosition != std::string::npos) {
@@ -163,8 +168,9 @@ int MaskToken::SetDistance(std::string &distop) {
 
 // =============================================================================
 // Class: MaskTokenArray
-MaskTokenArray::MaskTokenArray() : debug_(0) {}
+MaskTokenArray::MaskTokenArray() : debug_(10) {}
 
+// TODO include parentheses?
 bool MaskTokenArray::IsOperator(char op) {
   if (op=='!') return true;
   if (op=='&') return true;
@@ -200,7 +206,7 @@ int MaskTokenArray::OperatorPriority(char op) {
   if (op == '(') return(2);
   if (op == '_') return(1);
 
-  mprinterr("OperatorPriority(): unknown operator ==%c== on stack when processing atom mask",op);
+  mprinterr("OperatorPriority(): unknown operator '%c' on stack when processing atom mask",op);
   return(0);
 }
 
@@ -245,10 +251,11 @@ int MaskTokenArray::Tokenize() {
   std::string postfix;
   std::stack<char> Stack;
 
-  // 0 means new operand or operand was just completed, and terminated with ']', 
-  // 1 means operand with ":" read,
-  // 2 means operand with "@" read
+  // 0 means new operand or operand was just completed, and terminated with ']'.
+  // 1 means operand with ":" read.
+  // 2 means operand with "@" read.
   // 3 means '<' or '>' read, waiting for numbers.
+  // 4 means operand with "^" read.
   int flag = 0;
 
   for (std::string::iterator p = maskExpression_.begin(); p != maskExpression_.end(); p++)
@@ -257,6 +264,7 @@ int MaskTokenArray::Tokenize() {
     if ( isspace(*p, loc) ) continue;
     
     if ( IsOperator(*p) || *p == '(' || *p == ')' ) {
+      mprintf("DEBUG: Operator or parentheses: %c\n", *p);
       if (flag > 0) {
         buffer += "])";
         flag = 0;
@@ -277,7 +285,8 @@ int MaskTokenArray::Tokenize() {
           return 1;
         }
       }
-    } else if ( IsOperand(*p) || isalnum(*p, loc) ) {
+    } else if ( IsOperand(*p) ) {
+      mprintf("DEBUG: Operand: %c\n", *p);
       if (flag==0) {
         buffer.assign("([");
         flag = 1;
@@ -296,6 +305,7 @@ int MaskTokenArray::Tokenize() {
       }
       buffer += *p;
     } else if ( *p == ':' ) {
+      // Residue character
       if (flag == 0) {
         buffer.assign("([:");
         flag = 1;
@@ -304,15 +314,27 @@ int MaskTokenArray::Tokenize() {
         flag = 1;
       }
     } else if ( *p == '@' ) {
+      // Atom character
       if (flag == 0) {
         buffer.assign("([@");
         flag = 2;
       } else if (flag == 1) {
+        // Residue AND atom
         buffer += "]&[@";
         flag = 2;
       } else if (flag == 2) {
+        // Atom OR Atom
         buffer += "])|([@";
         flag = 2;
+      }
+    } else if ( *p == '^' ) {
+      // Molecule character
+      if (flag == 0) {
+        buffer.assign("([^");
+        flag = 4;
+      } else {
+        buffer += "])|([^";
+        flag = 4;
       }
     } else {
       mprinterr("Error: Tokenize: Unknown symbol (%c) expression when parsing atom mask [%s]\n",
@@ -331,7 +353,7 @@ int MaskTokenArray::Tokenize() {
   infix += "_";
 
   if (debug_ > 0)
-    mprintf("DEBUG: NEW_INFIX ==%s==\n",infix.c_str());
+    mprintf("DEBUG: NEW_INFIX: %s\n",infix.c_str());
 
   // -----------------------------------
   // Convert to RPN
@@ -397,7 +419,7 @@ int MaskTokenArray::Tokenize() {
     } 
   } // END for loop over infix
   if (debug_ > 0)
-  mprintf("DEBUG: NEW_POSTFIX ==%s==\n",postfix.c_str());
+  mprintf("DEBUG: NEW_POSTFIX: %s\n",postfix.c_str());
 
   // Convert to MaskTokens in same order. The postfix expression is composed
   // of operands enclosed within brackets, and single character operators.
@@ -433,12 +455,17 @@ int MaskTokenArray::Tokenize() {
         // Determine type from first char. Default to Num; MaskToken::SetToken
         // will convert to Name if appropriate.
         MaskToken::MaskTokenType tokenType = MaskToken::OP_NONE;
-        if (buffer[0]==':') // Residue
+        if (buffer[0]==':') {
+          // Residue
           tokenType = MaskToken::ResNum; 
-        else if (buffer[0]=='@') { // Atom
+        } else if (buffer[0]=='@') {
+          // Atom
           tokenType = MaskToken::AtomNum; 
           if      (buffer[1]=='%') tokenType = MaskToken::AtomType;
           else if (buffer[1]=='/') tokenType = MaskToken::AtomElement;
+        } else if (buffer[0]=='^') {
+          // Molecule
+          tokenType = MaskToken::MolNum;
         }
         if (tokenType==MaskToken::OP_NONE) {
           mprinterr("Error: Unrecognized token type.\n");
@@ -446,7 +473,9 @@ int MaskTokenArray::Tokenize() {
           return 1;
         }
         // Create new string without type character(s)
-        if (tokenType==MaskToken::ResNum || tokenType==MaskToken::AtomNum)
+        if (tokenType==MaskToken::ResNum  ||
+            tokenType==MaskToken::AtomNum ||
+            tokenType==MaskToken::MolNum)
           tokenString.assign( buffer.begin()+1, buffer.end() );
         else
           tokenString.assign( buffer.begin()+2, buffer.end() );
@@ -470,7 +499,7 @@ int MaskTokenArray::Tokenize() {
         maskTokens_.back().SetOnStack();
       }
     // operand is a part inside [...]
-    } else if ( IsOperand( *p ) || *p == ':' || *p == '@' || *p == '<' || *p == '>' ) {
+    } else if ( IsOperand( *p ) || *p == ':' || *p == '@' || *p == '^' || *p == '<' || *p == '>' ) {
       buffer += *p;
     // Operators
     } else if (*p == '!' ) {
@@ -535,7 +564,7 @@ int MaskTokenArray::SetMaskString(const char* maskStringIn) {
   else
     maskExpression_.assign( "*" );
 
-  if (debug_ > 0) mprintf("expression: ==%s==\n", maskExpression_.c_str());
+  if (debug_ > 0) mprintf("expression: %s\n", maskExpression_.c_str());
 
   // Convert mask expression to maskTokens 
   if (Tokenize()) return 1;

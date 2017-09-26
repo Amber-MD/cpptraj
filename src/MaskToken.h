@@ -6,8 +6,8 @@
 class MaskToken {
   public:
     enum MaskTokenType { 
-      OP_NONE=0, ResNum, ResName, AtomNum, AtomName, AtomType, AtomElement, SelectAll,
-      OP_AND, OP_OR, OP_NEG, OP_DIST
+      OP_NONE=0, ResNum, ResName, AtomNum, AtomName, AtomType, AtomElement, MolNum,
+      SelectAll, OP_AND, OP_OR, OP_NEG, OP_DIST
     };
     MaskToken();
     const char *TypeName() const;
@@ -28,6 +28,8 @@ class MaskToken {
   private:
     static const char* MaskTypeString[];
 
+    int MakeNameType();
+
     MaskTokenType type_;
     int res1_;
     int res2_;
@@ -37,8 +39,6 @@ class MaskToken {
     bool d_within_;
     bool d_atom_;
     double distance_;
-
-    void MakeNameType();
 };
 // =============================================================================
 /// Hold an array of MaskTokens. Basis of all Mask classes.

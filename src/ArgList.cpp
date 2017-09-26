@@ -238,8 +238,25 @@ std::string const& ArgList::GetStringNext() {
 
 /** \return true if argument at position is a potential mask. */
 bool ArgList::ArgIsMask(unsigned int pos) const {
-  size_t found = arglist_[pos].find_first_of(":@*");
-  return (found != std::string::npos);
+  std::string::const_iterator p = arglist_[pos].begin();
+  // Advance past any negate operator or open parentheses. Assume token not empty.
+  while (*p == '!' || *p == '(') {
+    ++p;
+    if (p == arglist_[pos].end()) return false;
+  }
+  // Determine if character could start a mask expression.
+  bool isMask;
+  switch ( *p ) {
+    case '@':
+    case ':':
+    case '^':
+    case '*':
+    case '=': isMask = true; break;
+    default : isMask = false;
+  }
+  return isMask;
+  //size_t found = arglist_[pos].find_first_of(":@*");
+  //return (found != std::string::npos);
 }
 
 // ArgList::GetMaskNext()
