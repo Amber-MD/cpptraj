@@ -635,6 +635,9 @@ char* MaskTokenArray::ParseMask(AtomArrayT const& atoms_,
       case MaskToken::ResName :
         MaskSelectResidues( residues_, token->Name(), pMask );
         break;
+      case MaskToken::ResChain :
+        MaskSelectChainID( residues_, token->Name(), pMask );
+        break;
       case MaskToken::AtomNum :
         MaskSelectAtoms( atoms_, token->Res1(), token->Res2(), pMask );
         break;
@@ -896,6 +899,16 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, int res1, in
     endatom = residues_[res2-1].LastAtom();
   // Select atoms
   std::fill(mask + residues_[res1-1].FirstAtom(), mask + endatom, SelectedChar_);
+}
+
+/** Select residues by chain ID. */
+void MaskTokenArray::MaskSelectChainID(ResArrayT const& residues, NameType const& name,
+                                       char* mask) const
+{
+  for (ResArrayT::const_iterator res = residues.begin();
+                                 res != residues.end(); ++res)
+    if ( res->ChainID() == name[0] )
+      std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
 }
 
 // Mask args expected to start from 1
