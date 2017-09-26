@@ -133,14 +133,14 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
     }
   } else {
     // This is a string arg.
-    // Use AssignNoFormat so that * not converte to '
+    // Use AssignNoFormat so that * not convert to '
     //name_.AssignNoFormat( tokenString.c_str() ); // TODO: Convert directly from string
     name_ = tokenString;
   }
   return 0;
 }
 
-/** [<|>][@|:|^]<dist> */
+/** Distance by distance. [<|>][@|:|^]<dist> */
 int MaskToken::SetDistance(std::string const& distop) {
   if (distop.empty()) return 1;
   type_ = OP_DIST;
@@ -180,7 +180,7 @@ int MaskToken::SetDistance(std::string const& distop) {
 
 // =============================================================================
 // Class: MaskTokenArray
-MaskTokenArray::MaskTokenArray() : debug_(10) {}
+MaskTokenArray::MaskTokenArray() : debug_(0) {}
 
 // TODO include parentheses?
 bool MaskTokenArray::IsOperator(char op) {
