@@ -11,8 +11,8 @@ MaskToken::MaskToken() :
   name_(""),
   type_(OP_NONE),
   distOp_(BY_ATOM),
-  res1_(-1),
-  res2_(-1),
+  idx1_(-1),
+  idx2_(-1),
   onStack_(false),
   d_within_(false)
 { }
@@ -36,7 +36,7 @@ void MaskToken::Print() const {
     case MolNum:
     case ResNum:
     case OresNum:
-    case AtomNum: mprintf(" First=%i  Second=%i",res1_,res2_); break;
+    case AtomNum: mprintf(" First=%i  Second=%i",idx1_,idx2_); break;
     case OP_DIST: 
       mprintf(" within=%i  distOp=%i  distance^2=%f",
               (int)d_within_, (int)distOp_, distance2_);
@@ -46,7 +46,7 @@ void MaskToken::Print() const {
   mprintf(" OnStack=%i\n",(int)onStack_);
 /*
   mprintf("TOKEN: [%s] Res1=%i  Res2=%i  Name=[%s]  OnStack=%i\n",
-          MaskTypeString[type_], res1_, res2_, *name_, (int)onStack_);
+          MaskTypeString[type_], idx1_, idx2_, *name_, (int)onStack_);
   mprintf("            within=%i  distOp=%i  distance^2=%f\n",
           (int)d_within_, (int)distOp_, distance2_);*/
 } 
@@ -113,22 +113,22 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
         mprinterr("Error: Incomplete number range given (%s).\n", tokenString.c_str());
         return 1;
       }
-      res1_ = convertToInteger( arg1 );
-      res2_ = convertToInteger( arg2 );
+      idx1_ = convertToInteger( arg1 );
+      idx2_ = convertToInteger( arg2 );
     } else {
       // Get the number arg
-      res1_ = convertToInteger( tokenString );
-      res2_ = res1_;
+      idx1_ = convertToInteger( tokenString );
+      idx2_ = idx1_;
     }
     // Ensure that res1 and res2 are valid
-    if (res2_ < res1_) {
-      mprinterr("Error: Mask range, second num (%i) less than first (%i).\n",res2_,res1_);
+    if (idx2_ < idx1_) {
+      mprinterr("Error: Mask range, second num (%i) less than first (%i).\n",idx2_,idx1_);
       return 1;
     }
     // It is expected that number args will start from 1
-    if (res1_ < 1 || res2_ < 1) {
+    if (idx1_ < 1 || idx2_ < 1) {
       mprinterr("Error: One or both numbers of mask arg (%s) < 1 (%i, %i)\n",
-                tokenString.c_str(), res1_,res2_);
+                tokenString.c_str(), idx1_,idx2_);
       return 1;
     }
   } else {
@@ -637,10 +637,10 @@ char* MaskTokenArray::ParseMask(AtomArrayT const& atoms,
     }
     switch ( token->Type() ) {
       case MaskToken::ResNum : 
-        SelectResNum( residues, token->Res1(), token->Res2(), pMask );
+        SelectResNum( residues, token->Idx1(), token->Idx2(), pMask );
         break;
       case MaskToken::OresNum :
-        SelectOriginalResNum( residues, token->Res1(), token->Res2(), pMask );
+        SelectOriginalResNum( residues, token->Idx1(), token->Idx2(), pMask );
         break;
       case MaskToken::ResName :
         SelectResName( residues, token->Name(), pMask );
@@ -649,7 +649,7 @@ char* MaskTokenArray::ParseMask(AtomArrayT const& atoms,
         SelectChainID( residues, token->Name(), pMask );
         break;
       case MaskToken::AtomNum :
-        SelectAtomNum( atoms, token->Res1(), token->Res2(), pMask );
+        SelectAtomNum( atoms, token->Idx1(), token->Idx2(), pMask );
         break;
       case MaskToken::AtomName :
         SelectAtomName( atoms, token->Name(), pMask );
@@ -661,7 +661,7 @@ char* MaskTokenArray::ParseMask(AtomArrayT const& atoms,
         SelectElement( atoms, token->Name(), pMask );
         break;
       case MaskToken::MolNum :
-        SelectMolNum( molecules, token->Res1(), token->Res2(), pMask );
+        SelectMolNum( molecules, token->Idx1(), token->Idx2(), pMask );
         break;
       case MaskToken::SelectAll :
         std::fill(pMask, pMask + atoms.size(), SelectedChar_);

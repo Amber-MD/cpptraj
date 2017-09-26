@@ -23,8 +23,8 @@ class MaskToken {
     void SetOnStack()                 { onStack_ = true;             }
 
     inline MaskTokenType Type()   const { return type_;      }
-    inline int Res1()             const { return res1_;      }
-    inline int Res2()             const { return res2_;      }
+    inline int Idx1()             const { return idx1_;      }
+    inline int Idx2()             const { return idx2_;      }
     inline const NameType& Name() const { return name_;      }
     inline bool OnStack()         const { return onStack_;   }
     inline bool Within()          const { return d_within_;  }
@@ -39,8 +39,8 @@ class MaskToken {
     NameType name_;      ///< Atom name/type/element, residue name, chain ID
     MaskTokenType type_; ///< Mask token type
     DistOpType distOp_;  ///< Distance selection type
-    int res1_;           ///< Begin atom/residue/molecule index
-    int res2_;           ///< End atom/residue/molecule index
+    int idx1_;           ///< Begin atom/residue/molecule index
+    int idx2_;           ///< End atom/residue/molecule index
     bool onStack_;       ///< True if resulting mask needs to go on stack
     bool d_within_;      ///< True if distance selection is within
 };
