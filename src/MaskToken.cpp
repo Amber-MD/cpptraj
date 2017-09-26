@@ -168,7 +168,7 @@ int MaskToken::SetDistance(std::string &distop) {
 
 // =============================================================================
 // Class: MaskTokenArray
-MaskTokenArray::MaskTokenArray() : debug_(10) {}
+MaskTokenArray::MaskTokenArray() : debug_(0) {}
 
 // TODO include parentheses?
 bool MaskTokenArray::IsOperator(char op) {
@@ -264,7 +264,7 @@ int MaskTokenArray::Tokenize() {
     if ( isspace(*p, loc) ) continue;
     
     if ( IsOperator(*p) || *p == '(' || *p == ')' ) {
-      mprintf("DEBUG: Operator or parentheses: %c\n", *p);
+      //mprintf("DEBUG: Operator or parentheses: %c\n", *p);
       if (flag > 0) {
         buffer += "])";
         flag = 0;
@@ -286,7 +286,7 @@ int MaskTokenArray::Tokenize() {
         }
       }
     } else if ( IsOperand(*p) ) {
-      mprintf("DEBUG: Operand: %c\n", *p);
+      //mprintf("DEBUG: Operand: %c\n", *p);
       if (flag==0) {
         buffer.assign("([");
         flag = 1;
@@ -419,7 +419,7 @@ int MaskTokenArray::Tokenize() {
     } 
   } // END for loop over infix
   if (debug_ > 0)
-  mprintf("DEBUG: NEW_POSTFIX: %s\n",postfix.c_str());
+    mprintf("DEBUG: NEW_POSTFIX: %s\n",postfix.c_str());
 
   // Convert to MaskTokens in same order. The postfix expression is composed
   // of operands enclosed within brackets, and single character operators.
@@ -483,7 +483,6 @@ int MaskTokenArray::Tokenize() {
           mprinterr("Error: empty token for '%c'\n",buffer[0]);
           return 1;
         }
-        // DEBUG
         //mprintf("DEBUG: buffer=[%s]  tokenString=[%s]\n",buffer.c_str(),tokenString.c_str());
         // Split operand by comma
         ArgList commaList(tokenString, ",");
@@ -564,7 +563,7 @@ int MaskTokenArray::SetMaskString(const char* maskStringIn) {
   else
     maskExpression_.assign( "*" );
 
-  if (debug_ > 0) mprintf("expression: %s\n", maskExpression_.c_str());
+  if (debug_ > 0) mprintf("DEBUG: expression: %s\n", maskExpression_.c_str());
 
   // Convert mask expression to maskTokens 
   if (Tokenize()) return 1;
