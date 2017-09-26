@@ -537,7 +537,7 @@ int MaskTokenArray::Tokenize() {
   if (!maskTokens_.empty()) {
     std::stack<char> tempStack;
     bool validMask = true;
-    std::vector<MaskToken>::const_iterator T = maskTokens_.begin();
+    MTarray::const_iterator T = maskTokens_.begin();
     for ( ; T != maskTokens_.end(); ++T)
     {
       if (T->Type() == MaskToken::OP_AND ||
@@ -561,8 +561,7 @@ int MaskTokenArray::Tokenize() {
     } 
   }
   if (debug_ > 0)
-    for (std::vector<MaskToken>::const_iterator T = maskTokens_.begin(); 
-                                                T != maskTokens_.end(); T++)
+    for (MTarray::const_iterator T = maskTokens_.begin(); T != maskTokens_.end(); ++T)
       T->Print();
 
   return 0;
@@ -870,8 +869,7 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues, NameType cons
                                         char *mask) const
 {
   //mprintf("\t\t\tSelecting residues named [%s]\n",*name);
-  for (std::vector<Residue>::const_iterator res = residues.begin();
-                                            res != residues.end(); res++)
+  for (ResArrayT::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
     if ( res->Name().Match( name ) ) {
       std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
@@ -939,8 +937,7 @@ void MaskTokenArray::MaskSelectElements(AtomArrayT const& atoms, NameType const&
                                         char* mask ) const
 {
   unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); ++atom, ++m)
+  for (AtomArrayT::const_iterator atom = atoms.begin(); atom != atoms.end(); ++atom, ++m)
   {
     NameType atom_element( atom->ElementName() );
     if ( atom_element.Match( element ) )
@@ -953,8 +950,7 @@ void MaskTokenArray::MaskSelectTypes(AtomArrayT const& atoms, NameType const& ty
                                      char* mask ) const
 {
   unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); ++atom, ++m)
+  for (AtomArrayT::const_iterator atom = atoms.begin(); atom != atoms.end(); ++atom, ++m)
   {
     if ( atom->Type().Match( type ) )
       mask[m] = SelectedChar_;
@@ -967,8 +963,7 @@ void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms, NameType const& na
 {
   //mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
   unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); atom++, ++m)
+  for (AtomArrayT::const_iterator atom = atoms.begin(); atom != atoms.end(); ++atom, ++m)
   {
     //mprintf("\t\t\t%u PARM[%s]  NAME[%s]",m,(*atom).c_str(),*name);
     if ( atom->Name().Match( name ) )
