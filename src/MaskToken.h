@@ -7,7 +7,10 @@
 class MaskToken {
   public:
     enum MaskTokenType { 
-      OP_NONE=0, ResNum, ResName, AtomNum, AtomName, AtomType, AtomElement, MolNum,
+      OP_NONE=0,
+      ResNum, ResName, ResChain,
+      AtomNum, AtomName, AtomType, AtomElement,
+      MolNum,
       SelectAll, OP_AND, OP_OR, OP_NEG, OP_DIST
     };
     MaskToken();

@@ -18,7 +18,10 @@ MaskToken::MaskToken() :
 { }
 
 const char* MaskToken::MaskTypeString[] = {
-  "OP_NONE", "ResNum", "ResName", "AtomNum", "AtomName", "AtomType", "AtomElement", "MolNum",
+  "OP_NONE",
+  "ResNum", "ResName", "ResChain",
+  "AtomNum", "AtomName", "AtomType", "AtomElement",
+  "MolNum",
   "SelectAll", "OP_AND", "OP_OR", "OP_NEG", "OP_DIST"
 };
 
@@ -26,6 +29,9 @@ void MaskToken::Print() const {
   mprintf("TOKEN: [%s]",MaskTypeString[type_]);
   switch (type_) {
     case ResName:
+    case ResChain:
+    case AtomType:
+    case AtomElement:
     case AtomName: mprintf(" Name=[%s]",*name_); break;
     case MolNum:
     case ResNum:
@@ -464,7 +470,8 @@ int MaskTokenArray::Tokenize() {
         MaskToken::MaskTokenType tokenType = MaskToken::OP_NONE;
         if (buffer[0]==':') {
           // Residue
-          tokenType = MaskToken::ResNum; 
+          tokenType = MaskToken::ResNum;
+          if (buffer[1] =='/') tokenType = MaskToken::ResChain;
         } else if (buffer[0]=='@') {
           // Atom
           tokenType = MaskToken::AtomNum; 
