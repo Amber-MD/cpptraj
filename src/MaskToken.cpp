@@ -609,11 +609,11 @@ void MaskTokenArray::BriefMaskInfo() const {
 char MaskTokenArray::SelectedChar_ = 'T';
 char MaskTokenArray::UnselectedChar_ = 'F';
 
-/** \return Array of char, same size as atoms_, with T for selected atoms and F otherwise.
+/** \return Array of char, same size as atoms, with T for selected atoms and F otherwise.
   */
-char* MaskTokenArray::ParseMask(AtomArrayT const& atoms_,
-                                ResArrayT const& residues_,
-                                MolArrayT const& molecules_,
+char* MaskTokenArray::ParseMask(AtomArrayT const& atoms,
+                                ResArrayT const& residues,
+                                MolArrayT const& molecules,
                                 const double* XYZ) const
 {
   std::stack<char*> Stack;
@@ -625,54 +625,54 @@ char* MaskTokenArray::ParseMask(AtomArrayT const& atoms_,
   {
     if (pMask==0) {
       // Create new blank mask
-      pMask = new char[ atoms_.size() ];
-      std::fill(pMask, pMask + atoms_.size(), UnselectedChar_);
+      pMask = new char[ atoms.size() ];
+      std::fill(pMask, pMask + atoms.size(), UnselectedChar_);
     }
     switch ( token->Type() ) {
       case MaskToken::ResNum : 
-        MaskSelectResidues( residues_, token->Res1(), token->Res2(), pMask );
+        MaskSelectResidues( residues, token->Res1(), token->Res2(), pMask );
         break;
       case MaskToken::ResName :
-        MaskSelectResidues( residues_, token->Name(), pMask );
+        MaskSelectResidues( residues, token->Name(), pMask );
         break;
       case MaskToken::ResChain :
-        MaskSelectChainID( residues_, token->Name(), pMask );
+        MaskSelectChainID( residues, token->Name(), pMask );
         break;
       case MaskToken::AtomNum :
-        MaskSelectAtoms( atoms_, token->Res1(), token->Res2(), pMask );
+        MaskSelectAtoms( atoms, token->Res1(), token->Res2(), pMask );
         break;
       case MaskToken::AtomName :
-        MaskSelectAtoms( atoms_, token->Name(), pMask );
+        MaskSelectAtoms( atoms, token->Name(), pMask );
         break;
       case MaskToken::AtomType :
-        MaskSelectTypes( atoms_, token->Name(), pMask );
+        MaskSelectTypes( atoms, token->Name(), pMask );
         break;
       case MaskToken::AtomElement :
-        MaskSelectElements( atoms_, token->Name(), pMask );
+        MaskSelectElements( atoms, token->Name(), pMask );
         break;
       case MaskToken::MolNum :
-        MaskSelectMolecules( molecules_, token->Res1(), token->Res2(), pMask );
+        MaskSelectMolecules( molecules, token->Res1(), token->Res2(), pMask );
         break;
       case MaskToken::SelectAll :
-        std::fill(pMask, pMask + atoms_.size(), SelectedChar_);
+        std::fill(pMask, pMask + atoms.size(), SelectedChar_);
         break;
       case MaskToken::OP_AND :
         pMask2 = Stack.top();
         Stack.pop();
-        Mask_AND( Stack.top(), pMask2, atoms_.size() );
+        Mask_AND( Stack.top(), pMask2, atoms.size() );
         delete[] pMask2;
         break;
       case MaskToken::OP_OR :
         pMask2 = Stack.top();
         Stack.pop();
-        Mask_OR( Stack.top(), pMask2, atoms_.size() );
+        Mask_OR( Stack.top(), pMask2, atoms.size() );
         delete[] pMask2;
         break;
       case MaskToken::OP_NEG :
-        Mask_NEG( Stack.top(), atoms_.size() );
+        Mask_NEG( Stack.top(), atoms.size() );
         break;
       case MaskToken::OP_DIST :
-        err = Mask_SelectDistance( XYZ, Stack.top(), *token, atoms_, residues_); 
+        err = Mask_SelectDistance( XYZ, Stack.top(), *token, atoms, residues); 
         break;
       default:
         mprinterr("Error: Invalid mask token (Mask [%s], type [%s]).\n",
@@ -716,14 +716,14 @@ char* MaskTokenArray::ParseMask(AtomArrayT const& atoms_,
 /** \param REF reference coordinates.
   * \param mask Initial atom selection; will be set with final output mask.
   * \param token Describe how atoms are to be selected.
-  * \param atoms_ Atom array.
-  * \param residues_ Residue array.
+  * \param atoms Atom array.
+  * \param residues Residue array.
   * \return 0 if successful, 1 if an error occurs.
   */
 int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
                                         MaskToken const& token,
-                                        AtomArrayT const& atoms_,
-                                        ResArrayT const& residues_) const
+                                        AtomArrayT const& atoms,
+                                        ResArrayT const& residues) const
 {
   if (REF == 0) {
     mprinterr("Error: No reference set, cannot select by distance.\n");
@@ -735,7 +735,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
   // These are the atoms the search is based on.
   typedef std::vector<unsigned int> Uarray;
   Uarray Idx;
-  for (unsigned int i = 0; i < atoms_.size(); i++) {
+  for (unsigned int i = 0; i < atoms.size(); i++) {
     if (mask[i] == SelectedChar_)
       Idx.push_back( i*3 );
   }
@@ -767,7 +767,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 
   if (token.ByAtom()) {
     // Select by atom
-    int n_of_atoms = (int)atoms_.size();
+    int n_of_atoms = (int)atoms.size();
     int atomi;
 #   ifdef _OPENMP
 #   pragma omp parallel private(atomi)
@@ -793,7 +793,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 #   endif
   } else {
     // Select by residue
-    int n_of_res = (int)residues_.size();
+    int n_of_res = (int)residues.size();
     int resi;
     // Loop over all residues
 #   ifdef _OPENMP
@@ -804,10 +804,10 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     for (resi = 0; resi < n_of_res; resi++) {
       // Initial state 
       char schar = char0;
-      int atomi = residues_[resi].FirstAtom();
+      int atomi = residues[resi].FirstAtom();
       const double* i_crd = REF + (atomi * 3);
       // Loop over residue atoms
-      for (; atomi != residues_[resi].LastAtom(); atomi++, i_crd += 3) {
+      for (; atomi != residues[resi].LastAtom(); atomi++, i_crd += 3) {
         // Loop over initially selected atoms
         for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
           double d2 = DIST2_NoImage(i_crd, REF + *idx);
@@ -820,8 +820,8 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
         if (schar == char1) break;
       } // END loop over residue atoms
       // Set residue selection status
-      for (atomi = residues_[resi].FirstAtom();
-           atomi != residues_[resi].LastAtom(); atomi++)
+      for (atomi = residues[resi].FirstAtom();
+           atomi != residues[resi].LastAtom(); atomi++)
         mask[atomi] = schar;
     } // END loop over all residues
 #   ifdef _OPENMP
@@ -866,12 +866,12 @@ void MaskTokenArray::Mask_NEG(char *mask1, unsigned int N) const {
 }
 
 // MaskTokenArray::MaskSelectResidues()
-void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, NameType const& name,
+void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues, NameType const& name,
                                         char *mask) const
 {
   //mprintf("\t\t\tSelecting residues named [%s]\n",*name);
-  for (std::vector<Residue>::const_iterator res = residues_.begin();
-                                            res != residues_.end(); res++)
+  for (std::vector<Residue>::const_iterator res = residues.begin();
+                                            res != residues.end(); res++)
   {
     if ( res->Name().Match( name ) ) {
       std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
@@ -881,11 +881,11 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, NameType con
 
 // MaskTokenArray::MaskSelectResidues()
 // Mask args expected to start from 1
-void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, int res1, int res2,
+void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues, int res1, int res2,
                                         char *mask) const
 {
   int endatom;
-  int nres = (int) residues_.size();
+  int nres = (int) residues.size();
   //mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
   // Check start atom. res1 and res2 are checked by MaskToken
   if (res1 > nres) {
@@ -894,11 +894,11 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, int res1, in
   }
   // If last res > nres, make it nres
   if ( res2 >= nres )
-    endatom = residues_.back().LastAtom();
+    endatom = residues.back().LastAtom();
   else
-    endatom = residues_[res2-1].LastAtom();
+    endatom = residues[res2-1].LastAtom();
   // Select atoms
-  std::fill(mask + residues_[res1-1].FirstAtom(), mask + endatom, SelectedChar_);
+  std::fill(mask + residues[res1-1].FirstAtom(), mask + endatom, SelectedChar_);
 }
 
 /** Select residues by chain ID. */
@@ -935,12 +935,12 @@ void MaskTokenArray::MaskSelectMolecules(MolArrayT const& molecules, int mol1, i
 }
 
 // MaskTokenArray::MaskSelectElements()
-void MaskTokenArray::MaskSelectElements(AtomArrayT const& atoms_, NameType const& element,
+void MaskTokenArray::MaskSelectElements(AtomArrayT const& atoms, NameType const& element,
                                         char* mask ) const
 {
   unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
-                                         atom != atoms_.end(); ++atom, ++m)
+  for (std::vector<Atom>::const_iterator atom = atoms.begin();
+                                         atom != atoms.end(); ++atom, ++m)
   {
     NameType atom_element( atom->ElementName() );
     if ( atom_element.Match( element ) )
@@ -949,12 +949,12 @@ void MaskTokenArray::MaskSelectElements(AtomArrayT const& atoms_, NameType const
 }
 
 // MaskTokenArray::MaskSelectTypes()
-void MaskTokenArray::MaskSelectTypes(AtomArrayT const& atoms_, NameType const& type,
+void MaskTokenArray::MaskSelectTypes(AtomArrayT const& atoms, NameType const& type,
                                      char* mask ) const
 {
   unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
-                                         atom != atoms_.end(); ++atom, ++m)
+  for (std::vector<Atom>::const_iterator atom = atoms.begin();
+                                         atom != atoms.end(); ++atom, ++m)
   {
     if ( atom->Type().Match( type ) )
       mask[m] = SelectedChar_;
@@ -962,13 +962,13 @@ void MaskTokenArray::MaskSelectTypes(AtomArrayT const& atoms_, NameType const& t
 }
 
 // MaskTokenArray::MaskSelectAtoms()
-void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms_, NameType const& name,
+void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms, NameType const& name,
                                      char *mask) const
 {
   //mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
   unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
-                                         atom != atoms_.end(); atom++, ++m)
+  for (std::vector<Atom>::const_iterator atom = atoms.begin();
+                                         atom != atoms.end(); atom++, ++m)
   {
     //mprintf("\t\t\t%u PARM[%s]  NAME[%s]",m,(*atom).c_str(),*name);
     if ( atom->Name().Match( name ) )
@@ -978,19 +978,19 @@ void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms_, NameType const& n
 }
 
 // Mask args expected to start from 1
-void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms_, int atom1, int atom2,
+void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms, int atom1, int atom2,
                                      char *mask) const
 {
   int startatom, endatom;
   //mprintf("\t\t\tSelecting atoms %i to %i\n",atom1,atom2);
-  if (atom1 > (int)atoms_.size()) {
-    mprintf("Warning: Select atoms: atom 1 out of range (%i > %zu)\n",atom1, atoms_.size());
+  if (atom1 > (int)atoms.size()) {
+    mprintf("Warning: Select atoms: atom 1 out of range (%i > %zu)\n",atom1, atoms.size());
     return;
   }
   startatom = atom1 - 1;
-  if (atom2 > (int)atoms_.size()) 
+  if (atom2 > (int)atoms.size())
     //mprinterr("Error: Select atoms: atom 2 out of range (%i)\n",atom2)
-    endatom = atoms_.size();
+    endatom = atoms.size();
   else
     endatom = atom2;
   // Select atoms
