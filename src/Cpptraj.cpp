@@ -513,7 +513,7 @@ int Cpptraj::Interactive() {
     }
     if (!inputLine.empty()) {
       readLoop = Command::Dispatch( State_, *inputLine );
-      if (logfile_.IsOpen() && readLoop != CpptrajState::ERR) {
+      if (logfile_.IsOpen() && (readLoop != CpptrajState::ERR || State_.RecordAllInput())) {
         logfile_.Printf("%s\n", inputLine.c_str());
         logfile_.Flush();
       }
