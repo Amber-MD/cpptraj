@@ -18,7 +18,7 @@ class MaskToken {
     const char *TypeName() const;
     void Print() const;
     int SetToken( MaskTokenType, std::string const& );
-    int SetDistance( std::string & );
+    int SetDistance( std::string const& );
     void SetOperator(MaskTokenType t) { type_ = t; onStack_ = false; }
     void SetOnStack()                 { onStack_ = true;             }
 
@@ -103,7 +103,7 @@ class MaskTokenArray {
 
     // Mask selection routines.
     int Mask_SelectDistance(const double*, char *, MaskToken const&,
-                            AtomArrayT const&, ResArrayT const&) const;
+                            AtomArrayT const&, ResArrayT const&, MolArrayT const&) const;
     void Mask_AND(char*, char*, unsigned int) const;
     void Mask_OR(char*, char*, unsigned int) const;
     void Mask_NEG(char *, unsigned int) const;

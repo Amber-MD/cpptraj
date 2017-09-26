@@ -65,7 +65,7 @@ int MaskToken::MakeNameType() {
   return 0;
 }
 
-/** Basic : or @ operand. */
+/** Basic : @ or ^ operand. */
 int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) {
   std::locale loc;
   if (tokenString.empty()) return 1;
@@ -136,8 +136,8 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
   return 0;
 }
 
-/** [<|>][@|:]<dist> */
-int MaskToken::SetDistance(std::string &distop) {
+/** [<|>][@|:|^]<dist> */
+int MaskToken::SetDistance(std::string const& distop) {
   if (distop.empty()) return 1;
   type_ = OP_DIST;
   onStack_ = false;
@@ -155,13 +155,15 @@ int MaskToken::SetDistance(std::string &distop) {
     mprinterr("Error: Malformed distance operator: expected '<' or '>' (%c)\n",distop[0]);
     return 1;
   }
-  // 2nd char indidcates atoms (@) or residues (:)
+  // 2nd char indidcates atoms (@), residues (:), or molecules (^)
   if (distop[1]=='@')
     distOp_ = BY_ATOM;
   else if (distop[1]==':')
     distOp_ = BY_RES;
+  else if (distop[1]=='^')
+    distOp_ = BY_MOL;
   else {
-    mprinterr("Error: Malformed distance operator: expected ':' or '@' (%c)\n",distop[1]);
+    mprinterr("Error: Malformed distance operator: expected '^', ':', or '@' (%c)\n",distop[1]);
     return 1;
   }
   // 3rd char onwards is the distance argument
@@ -285,7 +287,7 @@ int MaskTokenArray::Tokenize() {
         ++p;
         buffer += *p;
         flag = 3;
-        if ( *p != ':' && *p != '@' ) {
+        if ( *p != ':' && *p != '@' && *p != '^' ) {
           --p;
           mprinterr("Error: Tokenize: Wrong syntax for distance mask [%c]\n",*p);
           return 1;
@@ -671,7 +673,7 @@ char* MaskTokenArray::ParseMask(AtomArrayT const& atoms,
         Mask_NEG( Stack.top(), atoms.size() );
         break;
       case MaskToken::OP_DIST :
-        err = Mask_SelectDistance( XYZ, Stack.top(), *token, atoms, residues); 
+        err = Mask_SelectDistance( XYZ, Stack.top(), *token, atoms, residues, molecules);
         break;
       default:
         mprinterr("Error: Invalid mask token (Mask [%s], type [%s]).\n",
@@ -722,7 +724,8 @@ char* MaskTokenArray::ParseMask(AtomArrayT const& atoms,
 int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
                                         MaskToken const& token,
                                         AtomArrayT const& atoms,
-                                        ResArrayT const& residues) const
+                                        ResArrayT const& residues,
+                                        MolArrayT const& molecules) const
 {
   if (REF == 0) {
     mprinterr("Error: No reference set, cannot select by distance.\n");
@@ -774,7 +777,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 #   pragma omp for
 #   endif
     for (atomi = 0; atomi < n_of_atoms; atomi++) {
-      // Initial state 
+      // Initial state
       mask[atomi] = char0;
       const double* i_crd = REF + (atomi * 3);
       // Loop over initially selected atoms
@@ -790,7 +793,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif
-  } else {
+  } else if (token.DistOp() == MaskToken::BY_RES) {
     // Select by residue
     int n_of_res = (int)residues.size();
     int resi;
@@ -801,7 +804,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 #   pragma omp for
 #   endif
     for (resi = 0; resi < n_of_res; resi++) {
-      // Initial state 
+      // Initial state
       char schar = char0;
       int atomi = residues[resi].FirstAtom();
       const double* i_crd = REF + (atomi * 3);
@@ -826,6 +829,47 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif
+  } else {
+    // Select by molecule
+    if (molecules.empty()) {
+      mprinterr("Error: No molecule info. Cannot select molecules by distance.\n");
+      return 1;
+    }
+    int n_of_mol = (int)molecules.size();
+    int moli;
+    // Loop over all molecules
+#   ifdef _OPENMP
+#   pragma omp parallel private(moli)
+    {
+#   pragma omp for
+#   endif
+    for (moli = 0; moli < n_of_mol; moli++) {
+      // Initial state
+      char schar = char0;
+      int atomi = molecules[moli].BeginAtom();
+      const double* i_crd = REF + (atomi * 3);
+      // Loop over molecule atoms
+      for (; atomi != molecules[moli].EndAtom(); atomi++, i_crd += 3) {
+        // Loop over initially selected atoms
+        for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
+          double d2 = DIST2_NoImage(i_crd, REF + *idx);
+          if (d2 < dcut2) {
+            // State changes
+            schar = char1;
+            break;
+          }
+        } // END loop over initially selected atoms
+        if (schar == char1) break;
+      } // END loop over molecule atoms
+      // Set molecule selection status
+      for (atomi = molecules[moli].BeginAtom();
+           atomi != molecules[moli].EndAtom(); atomi++)
+        mask[atomi] = schar;
+    } // END loop over all molecules
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#   endif
+
   }
   return 0;
 }
