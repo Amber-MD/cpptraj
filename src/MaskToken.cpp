@@ -322,6 +322,10 @@ int MaskTokenArray::Tokenize() {
         // Residue AND atom
         buffer += "]&[@";
         flag = 2;
+      } else if (flag == 4) {
+        // Molecule AND atom
+        buffer += "]&[@";
+        flag = 2;
       } else if (flag == 2) {
         // Atom OR Atom
         buffer += "])|([@";
