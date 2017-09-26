@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles pdb.in test.pdb tz2.pqr.gb.pdb tz2.pqr.parse.pdb \
-           tz2.pqr.vdw.pdb chainA.dat
+           tz2.pqr.vdw.pdb chainA.dat oresnum.dat
 
 INPUT="-i pdb.in"
 
@@ -15,12 +15,14 @@ UNITNAME='PDB format read/write test'
 cat >> pdb.in <<EOF
 parm 2b5t.pdb noconect
 resinfo :/A out chainA.dat
+resinfo :;2 out oresnum.dat
 trajin 2b5t.pdb
 trajout test.pdb teradvance sg "P 1"
 EOF
 RunCpptraj "$UNITNAME"
 DoTest test.pdb.save test.pdb
 DoTest chainA.dat.save chainA.dat
+DoTest oresnum.dat.save oresnum.dat
 
 # Test writing PQR files with various radii options
 UNITNAME='PQR file write with various radii'
