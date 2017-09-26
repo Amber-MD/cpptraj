@@ -124,14 +124,14 @@ Array1D.o : Array1D.cpp ArgList.h Array1D.h AssociatedData.h Atom.h AtomExtra.h 
 AssociatedData.o : AssociatedData.cpp ArgList.h AssociatedData.h CpptrajStdio.h
 Atom.o : Atom.cpp Atom.h CpptrajStdio.h NameType.h
 AtomMap.o : AtomMap.cpp Atom.h AtomExtra.h AtomMap.h AtomMask.h Box.h CharMask.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MapAtom.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Topology.h Vec3.h
-AtomMask.o : AtomMask.cpp Atom.h AtomMask.h CpptrajStdio.h MaskToken.h NameType.h Residue.h
+AtomMask.o : AtomMask.cpp Atom.h AtomMask.h CpptrajStdio.h MaskToken.h Molecule.h NameType.h Residue.h
 AxisType.o : AxisType.cpp ArgList.h AssociatedData.h Atom.h AtomExtra.h AtomMask.h AxisType.h Box.h CharMask.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_1D.h DataSet_Coords.h DataSet_Coords_REF.h Dimension.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h MetaData.h Molecule.h NameType.h PDBfile.h Parallel.h ParameterTypes.h Range.h ReferenceFrame.h ReplicaDimArray.h Residue.h StringRoutines.h TextFormat.h Timer.h Topology.h TorsionRoutines.h Vec3.h
 BondSearch.o : BondSearch.cpp Atom.h AtomExtra.h AtomMask.h BondSearch.h Box.h CharMask.h CoordinateInfo.h CpptrajStdio.h DistRoutines.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Timer.h Topology.h Vec3.h
 Box.o : Box.cpp Box.h Constants.h CpptrajStdio.h Matrix_3x3.h Parallel.h Vec3.h
 BufferedFrame.o : BufferedFrame.cpp BufferedFrame.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Parallel.h TextFormat.h
 BufferedLine.o : BufferedLine.cpp BufferedLine.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Parallel.h
 ByteRoutines.o : ByteRoutines.cpp
-CharMask.o : CharMask.cpp Atom.h CharMask.h CpptrajStdio.h MaskToken.h NameType.h Residue.h
+CharMask.o : CharMask.cpp Atom.h CharMask.h CpptrajStdio.h MaskToken.h Molecule.h NameType.h Residue.h
 CIFfile.o : CIFfile.cpp Atom.h BufferedLine.h CIFfile.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h Parallel.h
 ClusterDist.o : ClusterDist.cpp ArgList.h ArrayIterator.h AssociatedData.h Atom.h AtomExtra.h AtomMap.h AtomMask.h Box.h CharMask.h ClusterDist.h Constants.h CoordinateInfo.h CpptrajFile.h DataSet.h DataSet_1D.h DataSet_Coords.h Dimension.h FileIO.h FileName.h Frame.h Hungarian.h MapAtom.h MaskToken.h Matrix.h Matrix_3x3.h MetaData.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h SymmetricRmsdCalc.h TextFormat.h Topology.h Vec3.h
 ClusterList.o : ClusterList.cpp ArgList.h ArrayIterator.h AssociatedData.h Atom.h AtomExtra.h AtomMap.h AtomMask.h Box.h CharMask.h ClusterDist.h ClusterList.h ClusterNode.h ClusterSieve.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_1D.h DataSet_Cmatrix.h DataSet_Coords.h Dimension.h FileIO.h FileName.h Frame.h Hungarian.h MapAtom.h MaskToken.h Matrix.h Matrix_3x3.h MetaData.h Molecule.h NameType.h PDBfile.h Parallel.h ParameterTypes.h ProgressBar.h Range.h ReplicaDimArray.h Residue.h StringRoutines.h SymmetricRmsdCalc.h TextFormat.h Topology.h Vec3.h
@@ -192,7 +192,7 @@ DataSet_Mat3x3.o : DataSet_Mat3x3.cpp ArgList.h AssociatedData.h CpptrajFile.h D
 DataSet_MatrixDbl.o : DataSet_MatrixDbl.cpp ArgList.h ArrayIterator.h AssociatedData.h CpptrajFile.h DataSet.h DataSet_2D.h DataSet_MatrixDbl.h Dimension.h FileIO.h FileName.h Matrix.h MetaData.h Parallel.h Range.h TextFormat.h
 DataSet_MatrixFlt.o : DataSet_MatrixFlt.cpp ArgList.h ArrayIterator.h AssociatedData.h CpptrajFile.h DataSet.h DataSet_2D.h DataSet_MatrixFlt.h Dimension.h FileIO.h FileName.h Matrix.h MetaData.h Parallel.h Range.h TextFormat.h
 DataSet_Mesh.o : DataSet_Mesh.cpp ArgList.h AssociatedData.h Constants.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_1D.h DataSet_Mesh.h Dimension.h FileIO.h FileName.h MetaData.h Parallel.h Range.h Spline.h TextFormat.h
-DataSet_Modes.o : DataSet_Modes.cpp ArgList.h ArrayIterator.h AssociatedData.h Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_2D.h DataSet_MatrixDbl.h DataSet_Modes.h Dimension.h FileIO.h FileName.h Frame.h MaskToken.h Matrix.h Matrix_3x3.h MetaData.h NameType.h Parallel.h Range.h ReplicaDimArray.h Residue.h TextFormat.h Vec3.h
+DataSet_Modes.o : DataSet_Modes.cpp ArgList.h ArrayIterator.h AssociatedData.h Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_2D.h DataSet_MatrixDbl.h DataSet_Modes.h Dimension.h FileIO.h FileName.h Frame.h MaskToken.h Matrix.h Matrix_3x3.h MetaData.h Molecule.h NameType.h Parallel.h Range.h ReplicaDimArray.h Residue.h TextFormat.h Vec3.h
 DataSet_RemLog.o : DataSet_RemLog.cpp ArgList.h AssociatedData.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_RemLog.h Dimension.h FileIO.h FileName.h MetaData.h Parallel.h Range.h ReplicaDimArray.h TextFormat.h
 DataSet_Topology.o : DataSet_Topology.cpp ArgList.h AssociatedData.h Atom.h AtomExtra.h AtomMask.h BaseIOtype.h Box.h CharMask.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_Topology.h Dimension.h FileIO.h FileName.h FileTypes.h Frame.h MaskToken.h Matrix_3x3.h MetaData.h Molecule.h NameType.h Parallel.h ParameterTypes.h ParmFile.h ParmIO.h Range.h ReplicaDimArray.h Residue.h TextFormat.h Topology.h Vec3.h
 DataSet_Vector.o : DataSet_Vector.cpp ArgList.h ArrayIterator.h AssociatedData.h ComplexArray.h Constants.h Corr.h CpptrajFile.h DataSet.h DataSet_1D.h DataSet_Vector.h Dimension.h FileIO.h FileName.h MetaData.h Parallel.h PubFFT.h Range.h TextFormat.h Vec3.h
@@ -254,7 +254,7 @@ FileIO_Mpi.o : FileIO_Mpi.cpp FileIO.h FileIO_Mpi.h Parallel.h
 FileIO_Std.o : FileIO_Std.cpp FileIO.h FileIO_Std.h
 FileName.o : FileName.cpp CpptrajStdio.h FileName.h
 FileTypes.o : FileTypes.cpp ArgList.h BaseIOtype.h CpptrajStdio.h FileTypes.h
-Frame.o : Frame.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Parallel.h ReplicaDimArray.h Residue.h Vec3.h
+Frame.o : Frame.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ReplicaDimArray.h Residue.h Vec3.h
 GridAction.o : GridAction.cpp ArgList.h ArrayIterator.h AssociatedData.h Atom.h AtomExtra.h AtomMask.h Box.h CharMask.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_3D.h DataSet_Coords.h DataSet_Coords_REF.h DataSet_GridFlt.h Dimension.h FileIO.h FileName.h Frame.h Grid.h GridAction.h GridBin.h MaskToken.h Matrix_3x3.h MetaData.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReferenceFrame.h ReplicaDimArray.h Residue.h TextFormat.h Timer.h Topology.h Vec3.h
 HistBin.o : HistBin.cpp Constants.h CpptrajStdio.h Dimension.h HistBin.h
 Hungarian.o : Hungarian.cpp ArrayIterator.h Constants.h CpptrajStdio.h Hungarian.h Matrix.h
@@ -262,7 +262,7 @@ ImageRoutines.o : ImageRoutines.cpp Atom.h AtomExtra.h AtomMask.h Box.h CharMask
 InputTrajCommon.o : InputTrajCommon.cpp ArgList.h Atom.h AtomExtra.h AtomMask.h Box.h CharMask.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h InputTrajCommon.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Topology.h TrajFrameCounter.h Vec3.h
 KDE.o : KDE.cpp ArgList.h AssociatedData.h Constants.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_1D.h DataSet_double.h Dimension.h FileIO.h FileName.h HistBin.h KDE.h MetaData.h Parallel.h Range.h TextFormat.h
 MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h
-MaskToken.o : MaskToken.cpp ArgList.h Atom.h Box.h CpptrajStdio.h DistRoutines.h MaskToken.h Matrix_3x3.h NameType.h Parallel.h Residue.h StringRoutines.h Vec3.h
+MaskToken.o : MaskToken.cpp ArgList.h Atom.h Box.h CpptrajStdio.h DistRoutines.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h Residue.h StringRoutines.h Vec3.h
 Matrix_3x3.o : Matrix_3x3.cpp Constants.h CpptrajStdio.h Matrix_3x3.h Vec3.h
 MetaData.o : MetaData.cpp CpptrajStdio.h FileName.h MetaData.h Range.h StringRoutines.h
 Mol.o : Mol.cpp Atom.h AtomExtra.h AtomMask.h Box.h CharMask.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Mol.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h Topology.h Vec3.h
@@ -302,7 +302,7 @@ StructureMapper.o : StructureMapper.cpp ArgList.h AssociatedData.h Atom.h AtomEx
 SymmetricRmsdCalc.o : SymmetricRmsdCalc.cpp ArrayIterator.h Atom.h AtomExtra.h AtomMap.h AtomMask.h Box.h CharMask.h CoordinateInfo.h CpptrajStdio.h DistRoutines.h FileName.h Frame.h Hungarian.h MapAtom.h MaskToken.h Matrix.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h SymmetricRmsdCalc.h Topology.h Vec3.h
 TextFormat.o : TextFormat.cpp StringRoutines.h TextFormat.h
 Timer.o : Timer.cpp CpptrajStdio.h Timer.h
-TinkerFile.o : TinkerFile.cpp ArgList.h Atom.h AtomMask.h Box.h BufferedLine.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h NameType.h Parallel.h ReplicaDimArray.h Residue.h StringRoutines.h TinkerFile.h Vec3.h
+TinkerFile.o : TinkerFile.cpp ArgList.h Atom.h AtomMask.h Box.h BufferedLine.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ReplicaDimArray.h Residue.h StringRoutines.h TinkerFile.h Vec3.h
 TopInfo.o : TopInfo.cpp ArgList.h AssociatedData.h Atom.h AtomExtra.h AtomMask.h Box.h CharMask.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_Coords.h Dimension.h DistRoutines.h FileIO.h FileName.h Frame.h MaskToken.h Matrix_3x3.h MetaData.h Mol.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h StringRoutines.h TextFormat.h TopInfo.h Topology.h TorsionRoutines.h Vec3.h
 Topology.o : Topology.cpp Atom.h AtomExtra.h AtomMask.h Box.h CharMask.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h StringRoutines.h Topology.h Vec3.h
 TorsionRoutines.o : TorsionRoutines.cpp Constants.h TorsionRoutines.h Vec3.h

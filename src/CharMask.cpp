@@ -4,12 +4,13 @@
 /** Given atom and residue info and coordinates, setup character mask
   * based on current mask tokens.
   */
-int CharMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues, const double* XYZ)
+int CharMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues,
+                        MolArrayT const& molecules, const double* XYZ)
 {
   CharMask_.clear();
   nselected_ = 0;
   CharMask_.reserve( atoms.size() );
-  char* charmask = ParseMask(atoms, residues, XYZ);
+  char* charmask = ParseMask(atoms, residues, molecules, XYZ);
   if (charmask == 0) return 1;
   for (unsigned int i = 0; i != atoms.size(); i++) {
     CharMask_.push_back( charmask[i] );

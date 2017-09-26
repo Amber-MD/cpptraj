@@ -598,8 +598,9 @@ char MaskTokenArray::UnselectedChar_ = 'F';
 
 /** \return Array of char, same size as atoms_, with T for selected atoms and F otherwise.
   */
-char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
-                                std::vector<Residue> const& residues_,
+char* MaskTokenArray::ParseMask(AtomArrayT const& atoms_,
+                                ResArrayT const& residues_,
+                                MolArrayT const& molecules_,
                                 const double* XYZ) const
 {
   std::stack<char*> Stack;
@@ -632,6 +633,9 @@ char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
         break;
       case MaskToken::AtomElement :
         MaskSelectElements( atoms_, token->Name(), pMask );
+        break;
+      case MaskToken::MolNum :
+        MaskSelectMolecules( molecules_, token->Res1(), token->Res2(), pMask );
         break;
       case MaskToken::SelectAll :
         std::fill(pMask, pMask + atoms_.size(), SelectedChar_);
@@ -869,8 +873,7 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, int res1, in
   //mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
   // Check start atom. res1 and res2 are checked by MaskToken
   if (res1 > nres) {
-    if (debug_>0)
-      mprintf("Warning: Select residues: res 1 out of range (%i)\n",res1);
+    mprintf("Warning: Select residues: res 1 out of range (%i > %i)\n",res1, nres);
     return;
   }
   // If last res > nres, make it nres
@@ -880,6 +883,29 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, int res1, in
     endatom = residues_[res2-1].LastAtom();
   // Select atoms
   std::fill(mask + residues_[res1-1].FirstAtom(), mask + endatom, SelectedChar_);
+}
+
+// Mask args expected to start from 1
+void MaskTokenArray::MaskSelectMolecules(MolArrayT const& molecules, int mol1, int mol2,
+                                         char* mask) const
+{
+  if (molecules.empty()) {
+    mprintf("Warning: No molecule information, cannot select by molecule.\n");
+    return;
+  }
+  int endatom;
+  int nmol = (int)molecules.size();
+  if (mol1 > nmol) {
+    mprintf("Warning: Select molecules: mol 1 out of range (%i > %i)\n", mol1, nmol);
+    return;
+  }
+  // If last mol > nmol, make it nmol
+  if ( mol2 >= nmol )
+    endatom = molecules.back().EndAtom();
+  else
+    endatom = molecules[mol2-1].EndAtom();
+  // Select atoms
+  std::fill(mask + molecules[mol1-1].BeginAtom(), mask + endatom, SelectedChar_);
 }
 
 // MaskTokenArray::MaskSelectElements()
@@ -932,8 +958,7 @@ void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms_, int atom1, int at
   int startatom, endatom;
   //mprintf("\t\t\tSelecting atoms %i to %i\n",atom1,atom2);
   if (atom1 > (int)atoms_.size()) {
-    if (debug_>0) 
-      mprintf("Warning: Select atoms: atom 1 out of range (%i)\n",atom1);
+    mprintf("Warning: Select atoms: atom 1 out of range (%i > %zu)\n",atom1, atoms_.size());
     return;
   }
   startatom = atom1 - 1;

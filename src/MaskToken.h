@@ -2,6 +2,7 @@
 #define INC_MASKTOKEN_H
 #include "Atom.h"
 #include "Residue.h"
+#include "Molecule.h"
 /// Hold information used in mask selection. 
 class MaskToken {
   public:
@@ -46,6 +47,7 @@ class MaskTokenArray {
   public:
     typedef std::vector<Atom> AtomArrayT;
     typedef std::vector<Residue> ResArrayT;
+    typedef std::vector<Molecule> MolArrayT;
     MaskTokenArray();
     // Virtual destructor since this will be inherited
     virtual ~MaskTokenArray() {}
@@ -68,7 +70,7 @@ class MaskTokenArray {
     /// Print selected atoms to screen.
     virtual void PrintMaskAtoms(const char*) const = 0;
     /// Select atoms based on current MaskTokens given atom/residue info
-    virtual int SetupMask(AtomArrayT const&, ResArrayT const&, const double*) = 0;
+    virtual int SetupMask(AtomArrayT const&, ResArrayT const&, MolArrayT const&, const double*) = 0;
     /// Clear all mask information.
     virtual void ResetMask() = 0;
     /// Clear selected atoms only.
@@ -83,7 +85,7 @@ class MaskTokenArray {
   protected:
     void ClearTokens() { maskTokens_.clear(); maskExpression_.clear(); }
     /// \return array of characters with selected atoms marked with SelectedChar_
-    char* ParseMask(AtomArrayT const&, ResArrayT const&, const double*) const;
+    char* ParseMask(AtomArrayT const&, ResArrayT const&, MolArrayT const&, const double*) const;
     static char SelectedChar_;
     static char UnselectedChar_; 
   private:
@@ -104,6 +106,7 @@ class MaskTokenArray {
     void Mask_NEG(char *, unsigned int) const;
     void MaskSelectResidues(ResArrayT const&, NameType const&, char*) const;
     void MaskSelectResidues(ResArrayT const&, int, int, char*) const;
+    void MaskSelectMolecules(MolArrayT const&, int, int, char*) const;
     void MaskSelectElements(AtomArrayT const&, NameType const&, char*) const;
     void MaskSelectTypes(AtomArrayT const&, NameType const&, char*) const;
     void MaskSelectAtoms(AtomArrayT const&, NameType const&, char*) const;

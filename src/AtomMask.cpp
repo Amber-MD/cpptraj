@@ -164,14 +164,15 @@ void AtomMask::PrintMaskAtoms(const char *header) const {
   * maskChar_ is used to determine whether atoms denoted by 'T' or 'F' will
   * be selected (the latter is the case e.g. with stripped atoms). 
   */
-int AtomMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues, const double* XYZ)
+int AtomMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues,
+                        MolArrayT const& molecules, const double* XYZ)
 {
   // Set up an integer list of the selected atoms. 
   // NOTE: For large selections this will use 4x the memory of the char atom
   //       mask. Could check to see which will be bigger.
   Natom_ = (int)atoms.size();
   Selected_.clear();
-  char* charmask = ParseMask(atoms, residues, XYZ);
+  char* charmask = ParseMask(atoms, residues, molecules, XYZ);
   if (charmask == 0) return 1;
   for (int atom = 0; atom != Natom_; atom++) {
     if (charmask[atom] == maskChar_)
