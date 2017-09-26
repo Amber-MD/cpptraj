@@ -943,6 +943,15 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues, int res1, int
   std::fill(mask + residues[res1-1].FirstAtom(), mask + endatom, SelectedChar_);
 }
 
+/** Select by original residue number. */
+void MaskTokenArray::SelectOriginalResNum(ResArrayT const& residues, int res1, int res2,
+                                          char* mask) const
+{
+  for (ResArrayT::const_iterator res = residues.begin(); res != residues.end(); ++res)
+    if ( res->OriginalResNum() >= res1 && res->OriginalResNum() <= res2 )
+      std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
+}
+
 /** Select residues by chain ID. */
 void MaskTokenArray::MaskSelectChainID(ResArrayT const& residues, NameType const& name,
                                        char* mask) const

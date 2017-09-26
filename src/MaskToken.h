@@ -110,6 +110,7 @@ class MaskTokenArray {
     void MaskSelectResidues(ResArrayT const&, NameType const&, char*) const;
     void MaskSelectResidues(ResArrayT const&, int, int, char*) const;
     void MaskSelectChainID(ResArrayT const&, NameType const&, char*) const;
+    void SelectOriginalResNum(ResArrayT const&, int, int, char*) const;
     void MaskSelectMolecules(MolArrayT const&, int, int, char*) const;
     void MaskSelectElements(AtomArrayT const&, NameType const&, char*) const;
     void MaskSelectTypes(AtomArrayT const&, NameType const&, char*) const;
