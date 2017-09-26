@@ -13,6 +13,7 @@ class MaskToken {
       MolNum,
       SelectAll, OP_AND, OP_OR, OP_NEG, OP_DIST
     };
+    enum DistOpType { BY_ATOM = 0, BY_RES, BY_MOL };
     MaskToken();
     const char *TypeName() const;
     void Print() const;
@@ -21,28 +22,27 @@ class MaskToken {
     void SetOperator(MaskTokenType t) { type_ = t; onStack_ = false; }
     void SetOnStack()                 { onStack_ = true;             }
 
-    inline MaskTokenType Type()   const { return type_;     }
-    inline int Res1()             const { return res1_;     }
-    inline int Res2()             const { return res2_;     }
-    inline const NameType& Name() const { return name_;     }
-    inline bool OnStack()         const { return onStack_;  }
-    inline bool Within()          const { return d_within_; }
-    inline bool ByAtom()          const { return d_atom_;   }
-    inline double Distance()      const { return distance_; }
+    inline MaskTokenType Type()   const { return type_;      }
+    inline int Res1()             const { return res1_;      }
+    inline int Res2()             const { return res2_;      }
+    inline const NameType& Name() const { return name_;      }
+    inline bool OnStack()         const { return onStack_;   }
+    inline bool Within()          const { return d_within_;  }
+    inline DistOpType DistOp()    const { return distOp_;    }
+    inline double Distance2()     const { return distance2_; }
   private:
     static const char* MaskTypeString[];
 
     int MakeNameType();
 
-    MaskTokenType type_;
-    int res1_;
-    int res2_;
-    NameType name_;
-    bool onStack_;
-    // Distance criteria
-    bool d_within_;
-    bool d_atom_;
-    double distance_;
+    double distance2_;   ///< Distance cutoff squared
+    NameType name_;      ///< Atom name/type/element, residue name, chain ID
+    MaskTokenType type_; ///< Mask token type
+    DistOpType distOp_;  ///< Distance selection type
+    int res1_;           ///< Begin atom/residue/molecule index
+    int res2_;           ///< End atom/residue/molecule index
+    bool onStack_;       ///< True if resulting mask needs to go on stack
+    bool d_within_;      ///< True if distance selection is within
 };
 // =============================================================================
 /// Hold an array of MaskTokens. Basis of all Mask classes.

@@ -7,14 +7,14 @@
 #include "DistRoutines.h" // selection by distance
 
 MaskToken::MaskToken() :
+  distance2_(0.0),
+  name_(""),
   type_(OP_NONE),
+  distOp_(BY_ATOM),
   res1_(-1),
   res2_(-1),
-  name_(""),
   onStack_(false),
-  d_within_(false),
-  d_atom_(false),
-  distance_(0.0)
+  d_within_(false)
 { }
 
 const char* MaskToken::MaskTypeString[] = {
@@ -37,8 +37,8 @@ void MaskToken::Print() const {
     case ResNum:
     case AtomNum: mprintf(" First=%i  Second=%i",res1_,res2_); break;
     case OP_DIST: 
-      mprintf(" within=%i  d_atom=%i  distance^2=%lf",
-              (int)d_within_, (int)d_atom_, distance_);
+      mprintf(" within=%i  distOp=%i  distance^2=%f",
+              (int)d_within_, (int)distOp_, distance2_);
       break;
     default: mprintf(" ");
   }
@@ -46,8 +46,8 @@ void MaskToken::Print() const {
 /*
   mprintf("TOKEN: [%s] Res1=%i  Res2=%i  Name=[%s]  OnStack=%i\n",
           MaskTypeString[type_], res1_, res2_, *name_, (int)onStack_);
-  mprintf("            within=%i  d_atom=%i  distance^2=%lf\n",
-          (int)d_within_, (int)d_atom_, distance_);*/
+  mprintf("            within=%i  distOp=%i  distance^2=%f\n",
+          (int)d_within_, (int)distOp_, distance2_);*/
 } 
 
 const char *MaskToken::TypeName() const { return MaskTypeString[type_]; }
@@ -157,18 +157,18 @@ int MaskToken::SetDistance(std::string &distop) {
   }
   // 2nd char indidcates atoms (@) or residues (:)
   if (distop[1]=='@')
-    d_atom_ = true;
+    distOp_ = BY_ATOM;
   else if (distop[1]==':')
-    d_atom_ = false;
+    distOp_ = BY_RES;
   else {
     mprinterr("Error: Malformed distance operator: expected ':' or '@' (%c)\n",distop[1]);
     return 1;
   }
   // 3rd char onwards is the distance argument
   std::string distarg(distop.begin()+2, distop.end());
-  distance_ = convertToDouble(distarg);
+  distance2_ = convertToDouble(distarg);
   // Pre-square the distance
-  distance_ *= distance_;
+  distance2_ *= distance2_;
   return 0;
 }
 
@@ -729,7 +729,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     return 1;
   }
   // Distance cutoff has been pre-squared.
-  double dcut2 = token.Distance();
+  double dcut2 = token.Distance2();
   // Create temporary array of atom #s currently selected in mask.
   // These are the atoms the search is based on.
   typedef std::vector<unsigned int> Uarray;
@@ -743,8 +743,8 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     return 1;
   }
   //if (debug_ > 1) {
-  //  mprintf("\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
-  //          (int)token.Within(), (int)token.ByAtom(), token.Distance());
+  //  mprintf("\t\tDistance Op: Within=%i  DistOp=%i  distance^2=%f\n",
+  //          (int)token.Within(), (int)token.DistOp(), token.Distance2());
   //  mprintf("\t\tSearch Mask=[");
   //  for (Uarray::const_iterator at = Idx.begin(); at != Idx.end(); ++at)
   //    mprintf(" %u",*at/3 + 1);
@@ -764,7 +764,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     char1 = UnselectedChar_;
   }
 
-  if (token.ByAtom()) {
+  if (token.DistOp() == MaskToken::BY_ATOM) {
     // Select by atom
     int n_of_atoms = (int)atoms.size();
     int atomi;
