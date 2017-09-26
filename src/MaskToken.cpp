@@ -309,6 +309,9 @@ int MaskTokenArray::Tokenize() {
       if (flag == 0) {
         buffer.assign("([:");
         flag = 1;
+      } else if (flag == 4) {
+        // Molecule AND residue
+        buffer += ("]&[:");
       } else {
         buffer += "])|([:";
         flag = 1;
