@@ -6,6 +6,7 @@
 #include "CmdInput.h"     // ProcessInput()
 #include "RPNcalc.h"
 #include "Deprecated.h"
+#include "Control.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Analyze.h"
 #include "Exec_Calc.h"
@@ -172,6 +173,8 @@ CmdList Command::commands_ = CmdList();
 const Cmd Command::EMPTY_ = Cmd();
 
 Command::Carray Command::names_ = Command::Carray();
+
+Command::CtlArray Command::control_ = Command::CtlArray();
 
 /** Initialize all commands. Should only be called once as program starts. */
 void Command::Init() {
@@ -364,6 +367,8 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
+  // CONTROL STRUCTURES
+  Command::AddCmd( new Control_For(),          Cmd::CTL, 1, "for" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
@@ -467,31 +472,69 @@ void Command::ListCommands(DispatchObject::Otype typeIn) {
     ListCommandsForType( typeIn );
 }
 
+CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn)
+{
+  ArgList cmdArg( commandIn );
+  cmdArg.MarkArg(0); // Always mark the first arg as the command
+  return Dispatch(State, cmdArg);
+}
+
 /** Search for the given command and execute it. EXE commands are executed
   * immediately and then freed. ACT and ANA commands are sent to the
   * CpptrajState for later execution.
   */
-CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn)
+CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
 {
-  ArgList cmdArg( commandIn );
-  cmdArg.MarkArg(0); // Always mark the first arg as the command 
+  // Check for control block
+  if (!control_.empty()) {
+    // In control block. Check if current block should end.
+    if ( control_.top()->EndControl( cmdArg ) ) {
+      mprintf("DEBUG: End control block.\n");
+      // TODO Process block here.
+      Control* currentCtl = control_.top();
+      control_.pop();
+      do {
+        for (Control::const_iterator ctlCmd = currentCtl->begin();
+                                     ctlCmd != currentCtl->end(); ++ctlCmd)
+        {
+          ArgList tmpArg = *ctlCmd;
+          if ( Dispatch(State, tmpArg) != CpptrajState::OK ) // TODO handle quit?
+            return CpptrajState::ERR;
+        }
+      } while (currentCtl->NotDone());
+      delete currentCtl;
+    } else {
+      // Add this command to current control block.
+      control_.top()->AddCommand( cmdArg );
+      mprintf("DEBUG: Added command '%s' to control block.\n", cmdArg.Command());
+    }
+    return CpptrajState::OK;
+  }
   Cmd const& cmd = SearchToken( cmdArg );
   CpptrajState::RetType ret_val = CpptrajState::OK;
   if (cmd.Empty()) {
     // Try to evaluate the expression
     RPNcalc calc;
     calc.SetDebug( State.Debug() );
-    if (calc.ProcessExpression( commandIn ))
+    if (calc.ProcessExpression( cmdArg.ArgLineStr() ))
       ret_val = CpptrajState::ERR;
     else {
       if (calc.Evaluate( State.DSL() ))
         ret_val = CpptrajState::ERR;
     }
     if (ret_val == CpptrajState::ERR)
-      mprinterr("'%s': Invalid command or expression.\n", commandIn.c_str());
+      mprinterr("'%s': Invalid command or expression.\n", cmdArg.ArgLine());
   } else {
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
+      case Cmd::CTL:
+        mprintf("DEBUG: Control statement detected.\n");
+        if ( ((Control*)obj)->SetupControl( cmdArg ) ) {
+          delete obj;
+          return CpptrajState::ERR;
+        }
+        control_.push( (Control*)obj );
+        break;
       case Cmd::EXE:
         ret_val = ((Exec*)obj)->Execute( State, cmdArg );
         delete obj;
