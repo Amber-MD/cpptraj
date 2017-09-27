@@ -53,7 +53,8 @@ class Ewald {
 #   endif
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;
-    typedef std::vector< std::set<int> > Iarray2D;
+    typedef std::set<int> Iset;
+    typedef std::vector<Iset> Iarray2D;
 #   ifdef DEBUG_EWALD
     Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
 #   endif

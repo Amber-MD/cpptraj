@@ -229,19 +229,6 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
-/// Round floating point to nearest whole number.
-static inline double ANINT(double xIn) {
-  double fpart, ipart;
-  fpart = modf(xIn, &ipart);
-  if (fpart < 0.0) fpart = -fpart;
-  if (fpart < 0.5)
-    return ipart;
-  if (xIn > 0.0)
-    return ipart + 1.0;
-  else
-    return ipart - 1.0;
-}
-
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
@@ -249,7 +236,8 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 bp, bm, offset(0.0);
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
-  if (!ortho_) frm.Frm().BoxCrd().ToRecip(ucell, recip);
+  Box const& box = frm.Frm().BoxCrd();
+  if (!ortho_) box.ToRecip(ucell, recip);
   // Store anchor point in fcom for now.
   if (useMass_)
     fcom = frm.Frm().VCenterOfMass( anchorMask_ );
@@ -265,7 +253,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
     // Center on box center
     if (ortho_ || truncoct_)
       // Center is box xyz over 2
-      anchorcenter = frm.Frm().BoxCrd().Center();
+      anchorcenter = box.Center();
     else
       // Center in frac coords is (0.5,0.5,0.5)
       anchorcenter = ucell.TransposeMult(Vec3(0.5));
@@ -276,7 +264,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   // Setup imaging, and image everything in current Frame
   // according to mobileList_.
   if (ortho_) {
-    if (Image::SetupOrtho(frm.Frm().BoxCrd(), bp, bm, origin_)) {
+    if (Image::SetupOrtho(box, bp, bm, origin_)) {
       mprintf("Warning: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
       return Action::OK; // FIXME return MODIFY_COORDS instead?
@@ -304,31 +292,42 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       else
         framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
 
-      // Determine direction from molecule to anchor
-      Vec3 delta = anchorcenter - framecenter;
-//      mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
       // Determine distance in terms of box lengths
-      Vec3 Dxyz, minTrans;
       if (ortho_) {
-        Dxyz = delta / frm.Frm().BoxCrd().Lengths();
-        minTrans = Vec3(ANINT(Dxyz[0]) * frm.Frm().BoxCrd().BoxX(),
-                        ANINT(Dxyz[1]) * frm.Frm().BoxCrd().BoxY(),
-                        ANINT(Dxyz[2]) * frm.Frm().BoxCrd().BoxZ());
+        // Determine direction from molecule to anchor
+        Vec3 delta = anchorcenter - framecenter;
+        //mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
+        Vec3 minTrans( floor(delta[0]/box.BoxX()+0.5)*box.BoxX(),
+                       floor(delta[1]/box.BoxY()+0.5)*box.BoxY(),
+                       floor(delta[2]/box.BoxZ()+0.5)*box.BoxZ() );
+        Vec3 minImage = framecenter + minTrans;
+        //mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}\n",
+        //        frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
+        //        minTrans[0], minTrans[1], minTrans[2]);
+        // Move atoms closer to anchor. Update coords in currentFrame.
+        frm.ModifyFrm().Translate(minTrans, firstAtom, lastAtom);
+        // New anchor is previous fixed mol
+        anchorcenter = minImage;
       } else {
-        Dxyz = recip * delta;
-        minTrans = ucell.TransposeMult( Vec3(ANINT(Dxyz[0]),
-                                             ANINT(Dxyz[1]),
-                                             ANINT(Dxyz[2])) );
+        Vec3 newAnchor = framecenter;
+        Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
+        // If molecule was imaged, determine whether imaged position is closer to anchor.
+        if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
+          imagedcenter = framecenter + Trans;
+          double framedist2 = DIST2_NoImage( anchorcenter, framecenter );
+          double imageddist2 = DIST2_NoImage( anchorcenter, imagedcenter );
+          //mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}"
+          //        " frame dist2=%6.2f, imaged dist2=%6.2f\n",
+          //        frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
+          //        Trans[0], Trans[1], Trans[2], sqrt(framedist2), sqrt(imageddist2));
+          if (imageddist2 < framedist2) {
+            // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
+            frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
+            newAnchor = imagedcenter;
+          }
+        }
+        anchorcenter = newAnchor;
       }
-//      Dxyz.Print("Dxyz");
-      Vec3 minImage = framecenter + minTrans;
-//      mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}\n",
-//              frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
-//              minTrans[0], minTrans[1], minTrans[2]);
-      // Move atoms closer to anchor. Update coords in currentFrame.
-      frm.ModifyFrm().Translate(minTrans, firstAtom, lastAtom);
-      // New anchor is previous fixed mol
-      anchorcenter = minImage;
     }
   } else {
     // For each molecule defined by atom pairs in fixedList, determine if the
@@ -345,7 +344,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
         framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
       // Determine if molecule would be imaged.
       if (ortho_)
-        Trans = Image::Ortho(framecenter, bp, bm, frm.Frm().BoxCrd());
+        Trans = Image::Ortho(framecenter, bp, bm, box);
       else
         Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
       // If molecule was imaged, determine whether imaged position is closer to anchor.

@@ -48,17 +48,32 @@ if(NOT INSIDE_AMBER)
 	set(BUNDLE_IDENTIFIER org.ambermd.cpptraj)
 	set(BUNDLE_SIGNATURE CPTJ)
 	include(Packaging)
+	
+	# header installation option
+	option(INSTALL_HEADERS "Copy headers to the include/cpptraj folder of the install directory.  Useful for building with pytraj." FALSE)
+else()
+	set(INSTALL_HEADERS FALSE)
 endif()
 
 # on Windows, make MSVC auto-create import libraries just like MinGW does
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 
-#NetCDF and FFTW3 are found by the top-level configure script
-
 add_subdirectory(src)
 add_subdirectory(test)
 
-# --------------------------------------------------------------------
+#--------------------------------------------------------------
+if(INSTALL_HEADERS)
+	# grab all .h files from the main directory.
+	file(GLOB CPPTRAJ_HEADERS "src/*.h")
+	
+	# also grab xdrfile headers since some of them are used by cpptraj headers
+	file(GLOB XDRFILE_HEADERS "src/xdrfile/*.h")
+
+	install(FILES ${CPPTRAJ_HEADERS} DESTINATION ${INCDIR}/cpptraj)
+	install(FILES ${XDRFILE_HEADERS} DESTINATION ${INCDIR}/cpptraj/xdrfile)
+endif()
+
+#--------------------------------------------------------------	
 if(NOT INSIDE_AMBER)
 	print_build_report()
 endif()
