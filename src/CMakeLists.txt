@@ -177,7 +177,7 @@ if(MPI)
 	make_mpi_version(cpptraj cpptraj.MPI LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi> INSTALL)
 	make_mpi_version(libcpptraj libcpptraj_mpi LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi> INSTALL)
 	
-	set_property(TARGET cpptraj.MPI libcpptraj_mpi cpptraj_common_obj_mpi PROPERTY COMPILE_DEFINITIONS MPI) # since we use CXX mpi, we have to define this manually
+	set_property(TARGET cpptraj.MPI libcpptraj_mpi cpptraj_common_obj_mpi APPEND PROPERTY COMPILE_DEFINITIONS MPI) # since we use CXX mpi, we have to define this manually
 			
 	if(pnetcdf_ENABLED)
 		targets_link_libraries(cpptraj.MPI libcpptraj_mpi LIBRARIES pnetcdf)
