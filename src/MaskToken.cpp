@@ -180,7 +180,7 @@ int MaskToken::SetDistance(std::string const& distop) {
 
 // =============================================================================
 // Class: MaskTokenArray
-MaskTokenArray::MaskTokenArray() : debug_(10) {}
+MaskTokenArray::MaskTokenArray() : debug_(0) {}
 
 // TODO include parentheses?
 bool MaskTokenArray::IsOperator(char op) {
