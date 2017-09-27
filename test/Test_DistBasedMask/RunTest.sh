@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles mask.in First.pdb.1 Second.pdb.1 Third.pdb.1 Fourth.pdb.1
+CleanFiles mask.in First.pdb.1 Second.pdb.1 Third.pdb.1 Fourth.pdb.1 \
+           Fifth.pdb.1 Sixth.pdb.1
 
 # NOTE: This also tests activeref
 TESTNAME='Distance-based atom mask tests'
@@ -34,11 +35,30 @@ outtraj Fourth.pdb.1 pdb noter
 
 run
 EOF
-RunCpptraj "$TESTNAME"
+RunCpptraj "$TESTNAME (atom, residue)"
 DoTest First.pdb.1.save First.pdb.1
 DoTest Second.pdb.1.save Second.pdb.1
 DoTest Third.pdb.1.save Third.pdb.1
 DoTest Fourth.pdb.1.save Fourth.pdb.1
+
+cat > mask.in <<EOF
+parm ../DOPC.parm7
+trajin ../DOPC.rst7
+reference ../DOPC.rst7
+
+# Molecules within 3 Ang of residue 1
+strip !(:1<^3.0)
+outtraj Fifth.pdb.1 pdb noter
+unstrip
+# Molecules outside 10 Ang of residue 24
+strip (!(:24>^22.0))|:WAT
+outtraj Sixth.pdb.1 pdb noter
+
+run
+EOF
+RunCpptraj "$TESTNAME (molecule)"
+DoTest Fifth.pdb.1.save Fifth.pdb.1
+DoTest Sixth.pdb.1.save Sixth.pdb.1
 
 EndTest
 

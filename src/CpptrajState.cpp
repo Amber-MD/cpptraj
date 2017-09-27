@@ -20,6 +20,7 @@ CpptrajState::CpptrajState() :
   topDebug_(0),
   showProgress_(true),
   exitOnError_(true),
+  recordAllInput_(true),
   noEmptyRun_(false),
   mode_(UNDEFINED)
 # ifdef MPI

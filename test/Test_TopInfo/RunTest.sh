@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles info.in atoms.dat residues.dat bonds.dat angles.dat dihedrals.dat \
-           molecules.dat masscharge.dat values.dat molshort.dat
+           molecules.dat masscharge.dat values.dat molshort.dat molselect.dat \
+           molselect2.dat
 
 INPUT="-i info.in"
 cat > info.in <<EOF
@@ -39,6 +40,8 @@ molinfo !:WAT 1
 molinfo !:WAT out molecules.dat 1
 molinfo short 1
 molinfo short out molshort.dat 1
+resinfo ^2,5-7,100 out molselect.dat parm dna30.parm7
+atoms ^1:DC@P,O?P out molselect2.dat parmindex 1
 quit
 EOF
 RunCpptraj "Topology info print test."
@@ -50,6 +53,8 @@ DoTest dihedrals.dat.save dihedrals.dat
 DoTest masscharge.dat.save masscharge.dat
 DoTest molecules.dat.save molecules.dat
 DoTest molshort.dat.save molshort.dat
+DoTest molselect.dat.save molselect.dat
+DoTest molselect2.dat.save molselect2.dat
 
 UNITNAME='Topology info with reference coords test'
 CheckFor netcdf

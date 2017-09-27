@@ -7,54 +7,69 @@
 #include "DistRoutines.h" // selection by distance
 
 MaskToken::MaskToken() :
-  type_(OP_NONE),
-  res1_(-1),
-  res2_(-1),
+  distance2_(0.0),
   name_(""),
+  type_(OP_NONE),
+  distOp_(BY_ATOM),
+  idx1_(-1),
+  idx2_(-1),
   onStack_(false),
-  d_within_(false),
-  d_atom_(false),
-  distance_(0.0)
+  d_within_(false)
 { }
 
 const char* MaskToken::MaskTypeString[] = {
-  "OP_NONE", "ResNum", "ResName", "AtomNum", "AtomName", "AtomType", "AtomElement", "SelectAll",
-  "OP_AND", "OP_OR", "OP_NEG", "OP_DIST"
+  "OP_NONE",
+  "ResNum", "ResName", "ResChain", "OriginalResNum",
+  "AtomNum", "AtomName", "AtomType", "AtomElement",
+  "MolNum",
+  "SelectAll", "OP_AND", "OP_OR", "OP_NEG", "OP_DIST"
 };
 
 void MaskToken::Print() const {
   mprintf("TOKEN: [%s]",MaskTypeString[type_]);
   switch (type_) {
     case ResName:
+    case ResChain:
+    case AtomType:
+    case AtomElement:
     case AtomName: mprintf(" Name=[%s]",*name_); break;
+    case MolNum:
     case ResNum:
-    case AtomNum: mprintf(" First=%i  Second=%i",res1_,res2_); break;
+    case OresNum:
+    case AtomNum: mprintf(" First=%i  Second=%i",idx1_,idx2_); break;
     case OP_DIST: 
-      mprintf(" within=%i  d_atom=%i  distance^2=%lf",
-              (int)d_within_, (int)d_atom_, distance_);
+      mprintf(" within=%i  distOp=%i  distance^2=%f",
+              (int)d_within_, (int)distOp_, distance2_);
       break;
     default: mprintf(" ");
   }
   mprintf(" OnStack=%i\n",(int)onStack_);
 /*
   mprintf("TOKEN: [%s] Res1=%i  Res2=%i  Name=[%s]  OnStack=%i\n",
-          MaskTypeString[type_], res1_, res2_, *name_, (int)onStack_);
-  mprintf("            within=%i  d_atom=%i  distance^2=%lf\n",
-          (int)d_within_, (int)d_atom_, distance_);*/
+          MaskTypeString[type_], idx1_, idx2_, *name_, (int)onStack_);
+  mprintf("            within=%i  distOp=%i  distance^2=%f\n",
+          (int)d_within_, (int)distOp_, distance2_);*/
 } 
 
-const char *MaskToken::TypeName() const {
-  return MaskTypeString[type_];
-}
+const char *MaskToken::TypeName() const { return MaskTypeString[type_]; }
 
-void MaskToken::MakeNameType() {
+/** Convert number type to name type if possible. */
+int MaskToken::MakeNameType() {
   if (type_ == ResNum)
     type_ = ResName;
   else if (type_ == AtomNum)
     type_ = AtomName;
+  else if (type_ == MolNum) {
+    mprinterr("Internal Error: Molecule name not yet supported.\n");
+    return 1;
+  } else if (type_ == OresNum) {
+    mprinterr("Internal Error: Only digits supported for original residue number.\n");
+    return 1;
+  }
+  return 0;
 }
 
-/** Basic : or @ operand. */
+/** Basic : @ or ^ operand. */
 int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) {
   std::locale loc;
   if (tokenString.empty()) return 1;
@@ -69,20 +84,20 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
       type_ = SelectAll;
       return 0;
     } else {
-      MakeNameType();
+      if (MakeNameType()) return 1;
     }
   }
   // Check that all chars are digits or - for number range 
-  if (type_ == ResNum || type_ == AtomNum) {
+  if (type_ == ResNum || type_ == AtomNum || type_ == MolNum || type_ == OresNum) {
     for (std::string::const_iterator p = tokenString.begin(); p != tokenString.end(); ++p) {
       if (*p != '-' && isalpha(*p, loc)) {
         //mprintf("DEBUG: making name type because of %c\n",*p);
-        MakeNameType();
+        if (MakeNameType()) return 1;
         break;
       } 
     }
   }
-  if (type_ == ResNum || type_ == AtomNum) {
+  if (type_ == ResNum || type_ == AtomNum || type_ == MolNum || type_ == OresNum) {
     // Does this token argument have a dash? Only valid for number ranges.
     size_t dashPosition = tokenString.find_first_of("-");
     if (dashPosition != std::string::npos) {
@@ -98,35 +113,35 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
         mprinterr("Error: Incomplete number range given (%s).\n", tokenString.c_str());
         return 1;
       }
-      res1_ = convertToInteger( arg1 );
-      res2_ = convertToInteger( arg2 );
+      idx1_ = convertToInteger( arg1 );
+      idx2_ = convertToInteger( arg2 );
     } else {
       // Get the number arg
-      res1_ = convertToInteger( tokenString );
-      res2_ = res1_;
+      idx1_ = convertToInteger( tokenString );
+      idx2_ = idx1_;
     }
     // Ensure that res1 and res2 are valid
-    if (res2_ < res1_) {
-      mprinterr("Error: Mask range, second num (%i) less than first (%i).\n",res2_,res1_);
+    if (idx2_ < idx1_) {
+      mprinterr("Error: Mask range, second num (%i) less than first (%i).\n",idx2_,idx1_);
       return 1;
     }
     // It is expected that number args will start from 1
-    if (res1_ < 1 || res2_ < 1) {
+    if (idx1_ < 1 || idx2_ < 1) {
       mprinterr("Error: One or both numbers of mask arg (%s) < 1 (%i, %i)\n",
-                tokenString.c_str(), res1_,res2_);
+                tokenString.c_str(), idx1_,idx2_);
       return 1;
     }
   } else {
     // This is a string arg.
-    // Use AssignNoFormat so that * not converte to '
+    // Use AssignNoFormat so that * not convert to '
     //name_.AssignNoFormat( tokenString.c_str() ); // TODO: Convert directly from string
     name_ = tokenString;
   }
   return 0;
 }
 
-/** [<|>][@|:]<dist> */
-int MaskToken::SetDistance(std::string &distop) {
+/** Distance by distance. [<|>][@|:|^]<dist> */
+int MaskToken::SetDistance(std::string const& distop) {
   if (distop.empty()) return 1;
   type_ = OP_DIST;
   onStack_ = false;
@@ -144,27 +159,30 @@ int MaskToken::SetDistance(std::string &distop) {
     mprinterr("Error: Malformed distance operator: expected '<' or '>' (%c)\n",distop[0]);
     return 1;
   }
-  // 2nd char indidcates atoms (@) or residues (:)
+  // 2nd char indidcates atoms (@), residues (:), or molecules (^)
   if (distop[1]=='@')
-    d_atom_ = true;
+    distOp_ = BY_ATOM;
   else if (distop[1]==':')
-    d_atom_ = false;
+    distOp_ = BY_RES;
+  else if (distop[1]=='^')
+    distOp_ = BY_MOL;
   else {
-    mprinterr("Error: Malformed distance operator: expected ':' or '@' (%c)\n",distop[1]);
+    mprinterr("Error: Malformed distance operator: expected '^', ':', or '@' (%c)\n",distop[1]);
     return 1;
   }
   // 3rd char onwards is the distance argument
   std::string distarg(distop.begin()+2, distop.end());
-  distance_ = convertToDouble(distarg);
+  distance2_ = convertToDouble(distarg);
   // Pre-square the distance
-  distance_ *= distance_;
+  distance2_ *= distance2_;
   return 0;
 }
 
 // =============================================================================
 // Class: MaskTokenArray
-MaskTokenArray::MaskTokenArray() : debug_(0) {}
+MaskTokenArray::MaskTokenArray() : debug_(10) {}
 
+// TODO include parentheses?
 bool MaskTokenArray::IsOperator(char op) {
   if (op=='!') return true;
   if (op=='&') return true;
@@ -176,17 +194,18 @@ bool MaskTokenArray::IsOperator(char op) {
 
 bool MaskTokenArray::IsOperand(char op) {
   std::locale loc;
-  if (op=='*')  return true;
-  if (op=='/')  return true;
-  if (op=='\\')  return true;
-  if (op=='%')  return true;
-  if (op=='-')  return true;
-  if (op=='?')  return true;
-  if (op==',')  return true;
+  if (op=='*' ) return true; // Wildcard
+  if (op=='/' ) return true; // Atom element, res chain ID
+  if (op=='\\') return true;
+  if (op=='%' ) return true; // Atom type
+  if (op==';' ) return true; // Original res number
+  if (op=='-' ) return true;
+  if (op=='?' ) return true; // Wildcard single char
+  if (op==',' ) return true;
   if (op=='\'') return true;
-  if (op=='.')  return true;
-  if (op=='=')  return true;
-  if (op=='+')  return true;
+  if (op=='.' ) return true;
+  if (op=='=' ) return true; // Wildcard
+  if (op=='+' ) return true;
   if (isalnum(op, loc)) return true;
   return false;
 }
@@ -200,7 +219,7 @@ int MaskTokenArray::OperatorPriority(char op) {
   if (op == '(') return(2);
   if (op == '_') return(1);
 
-  mprinterr("OperatorPriority(): unknown operator ==%c== on stack when processing atom mask",op);
+  mprinterr("OperatorPriority(): unknown operator '%c' on stack when processing atom mask",op);
   return(0);
 }
 
@@ -245,18 +264,21 @@ int MaskTokenArray::Tokenize() {
   std::string postfix;
   std::stack<char> Stack;
 
-  // 0 means new operand or operand was just completed, and terminated with ']', 
-  // 1 means operand with ":" read,
-  // 2 means operand with "@" read
+  // 0 means new operand or operand was just completed, and terminated with ']'.
+  // 1 means operand with ":" read.
+  // 2 means operand with "@" read.
   // 3 means '<' or '>' read, waiting for numbers.
+  // 4 means operand with "^" read.
+  // 5 means operand with ":" just read; check for additional ":".
   int flag = 0;
 
   for (std::string::iterator p = maskExpression_.begin(); p != maskExpression_.end(); p++)
   {
     // Skip spaces and newlines
     if ( isspace(*p, loc) ) continue;
-    
+    if ( flag == 5 && *p != ':' ) flag = 1;
     if ( IsOperator(*p) || *p == '(' || *p == ')' ) {
+      //mprintf("DEBUG: Operator or parentheses: %c\n", *p);
       if (flag > 0) {
         buffer += "])";
         flag = 0;
@@ -271,13 +293,14 @@ int MaskTokenArray::Tokenize() {
         ++p;
         buffer += *p;
         flag = 3;
-        if ( *p != ':' && *p != '@' ) {
+        if ( *p != ':' && *p != '@' && *p != '^' ) {
           --p;
           mprinterr("Error: Tokenize: Wrong syntax for distance mask [%c]\n",*p);
           return 1;
         }
       }
-    } else if ( IsOperand(*p) || isalnum(*p, loc) ) {
+    } else if ( IsOperand(*p) ) {
+      //mprintf("DEBUG: Operand: %c\n", *p);
       if (flag==0) {
         buffer.assign("([");
         flag = 1;
@@ -296,23 +319,48 @@ int MaskTokenArray::Tokenize() {
       }
       buffer += *p;
     } else if ( *p == ':' ) {
+      // Residue character
       if (flag == 0) {
         buffer.assign("([:");
+        flag = 5;
+      } else if (flag == 4) {
+        // Molecule AND residue
+        buffer += ("]&[:");
+        flag = 5;
+      } else if (flag == 5) {
+        // Second of two ':', just append.
+        buffer += *p;
         flag = 1;
       } else {
         buffer += "])|([:";
-        flag = 1;
+        flag = 5;
       }
     } else if ( *p == '@' ) {
+      // Atom character
       if (flag == 0) {
         buffer.assign("([@");
         flag = 2;
       } else if (flag == 1) {
+        // Residue AND atom
+        buffer += "]&[@";
+        flag = 2;
+      } else if (flag == 4) {
+        // Molecule AND atom
         buffer += "]&[@";
         flag = 2;
       } else if (flag == 2) {
+        // Atom OR Atom
         buffer += "])|([@";
         flag = 2;
+      }
+    } else if ( *p == '^' ) {
+      // Molecule character
+      if (flag == 0) {
+        buffer.assign("([^");
+        flag = 4;
+      } else {
+        buffer += "])|([^";
+        flag = 4;
       }
     } else {
       mprinterr("Error: Tokenize: Unknown symbol (%c) expression when parsing atom mask [%s]\n",
@@ -331,7 +379,7 @@ int MaskTokenArray::Tokenize() {
   infix += "_";
 
   if (debug_ > 0)
-    mprintf("DEBUG: NEW_INFIX ==%s==\n",infix.c_str());
+    mprintf("DEBUG: NEW_INFIX: %s\n",infix.c_str());
 
   // -----------------------------------
   // Convert to RPN
@@ -397,7 +445,7 @@ int MaskTokenArray::Tokenize() {
     } 
   } // END for loop over infix
   if (debug_ > 0)
-  mprintf("DEBUG: NEW_POSTFIX ==%s==\n",postfix.c_str());
+    mprintf("DEBUG: NEW_POSTFIX: %s\n",postfix.c_str());
 
   // Convert to MaskTokens in same order. The postfix expression is composed
   // of operands enclosed within brackets, and single character operators.
@@ -433,12 +481,19 @@ int MaskTokenArray::Tokenize() {
         // Determine type from first char. Default to Num; MaskToken::SetToken
         // will convert to Name if appropriate.
         MaskToken::MaskTokenType tokenType = MaskToken::OP_NONE;
-        if (buffer[0]==':') // Residue
-          tokenType = MaskToken::ResNum; 
-        else if (buffer[0]=='@') { // Atom
+        if (buffer[0]==':') {
+          // Residue
+          tokenType = MaskToken::ResNum;
+          if      (buffer[1] ==':') tokenType = MaskToken::ResChain;
+          else if (buffer[1] == ';') tokenType = MaskToken::OresNum;
+        } else if (buffer[0]=='@') {
+          // Atom
           tokenType = MaskToken::AtomNum; 
           if      (buffer[1]=='%') tokenType = MaskToken::AtomType;
           else if (buffer[1]=='/') tokenType = MaskToken::AtomElement;
+        } else if (buffer[0]=='^') {
+          // Molecule
+          tokenType = MaskToken::MolNum;
         }
         if (tokenType==MaskToken::OP_NONE) {
           mprinterr("Error: Unrecognized token type.\n");
@@ -446,7 +501,9 @@ int MaskTokenArray::Tokenize() {
           return 1;
         }
         // Create new string without type character(s)
-        if (tokenType==MaskToken::ResNum || tokenType==MaskToken::AtomNum)
+        if (tokenType==MaskToken::ResNum  ||
+            tokenType==MaskToken::AtomNum ||
+            tokenType==MaskToken::MolNum)
           tokenString.assign( buffer.begin()+1, buffer.end() );
         else
           tokenString.assign( buffer.begin()+2, buffer.end() );
@@ -454,7 +511,6 @@ int MaskTokenArray::Tokenize() {
           mprinterr("Error: empty token for '%c'\n",buffer[0]);
           return 1;
         }
-        // DEBUG
         //mprintf("DEBUG: buffer=[%s]  tokenString=[%s]\n",buffer.c_str(),tokenString.c_str());
         // Split operand by comma
         ArgList commaList(tokenString, ",");
@@ -470,7 +526,7 @@ int MaskTokenArray::Tokenize() {
         maskTokens_.back().SetOnStack();
       }
     // operand is a part inside [...]
-    } else if ( IsOperand( *p ) || *p == ':' || *p == '@' || *p == '<' || *p == '>' ) {
+    } else if ( IsOperand( *p ) || *p == ':' || *p == '@' || *p == '^' || *p == '<' || *p == '>' ) {
       buffer += *p;
     // Operators
     } else if (*p == '!' ) {
@@ -495,7 +551,7 @@ int MaskTokenArray::Tokenize() {
   if (!maskTokens_.empty()) {
     std::stack<char> tempStack;
     bool validMask = true;
-    std::vector<MaskToken>::const_iterator T = maskTokens_.begin();
+    MTarray::const_iterator T = maskTokens_.begin();
     for ( ; T != maskTokens_.end(); ++T)
     {
       if (T->Type() == MaskToken::OP_AND ||
@@ -519,8 +575,7 @@ int MaskTokenArray::Tokenize() {
     } 
   }
   if (debug_ > 0)
-    for (std::vector<MaskToken>::const_iterator T = maskTokens_.begin(); 
-                                                T != maskTokens_.end(); T++)
+    for (MTarray::const_iterator T = maskTokens_.begin(); T != maskTokens_.end(); ++T)
       T->Print();
 
   return 0;
@@ -535,7 +590,7 @@ int MaskTokenArray::SetMaskString(const char* maskStringIn) {
   else
     maskExpression_.assign( "*" );
 
-  if (debug_ > 0) mprintf("expression: ==%s==\n", maskExpression_.c_str());
+  if (debug_ > 0) mprintf("DEBUG: expression: %s\n", maskExpression_.c_str());
 
   // Convert mask expression to maskTokens 
   if (Tokenize()) return 1;
@@ -567,10 +622,11 @@ void MaskTokenArray::BriefMaskInfo() const {
 char MaskTokenArray::SelectedChar_ = 'T';
 char MaskTokenArray::UnselectedChar_ = 'F';
 
-/** \return Array of char, same size as atoms_, with T for selected atoms and F otherwise.
+/** \return Array of char, same size as atoms, with T for selected atoms and F otherwise.
   */
-char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
-                                std::vector<Residue> const& residues_,
+char* MaskTokenArray::ParseMask(AtomArrayT const& atoms,
+                                ResArrayT const& residues,
+                                MolArrayT const& molecules,
                                 const double* XYZ) const
 {
   std::stack<char*> Stack;
@@ -582,48 +638,57 @@ char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
   {
     if (pMask==0) {
       // Create new blank mask
-      pMask = new char[ atoms_.size() ];
-      std::fill(pMask, pMask + atoms_.size(), UnselectedChar_);
+      pMask = new char[ atoms.size() ];
+      std::fill(pMask, pMask + atoms.size(), UnselectedChar_);
     }
     switch ( token->Type() ) {
       case MaskToken::ResNum : 
-        MaskSelectResidues( residues_, token->Res1(), token->Res2(), pMask );
+        SelectResNum( residues, token->Idx1(), token->Idx2(), pMask );
+        break;
+      case MaskToken::OresNum :
+        SelectOriginalResNum( residues, token->Idx1(), token->Idx2(), pMask );
         break;
       case MaskToken::ResName :
-        MaskSelectResidues( residues_, token->Name(), pMask );
+        SelectResName( residues, token->Name(), pMask );
+        break;
+      case MaskToken::ResChain :
+        SelectChainID( residues, token->Name(), pMask );
         break;
       case MaskToken::AtomNum :
-        MaskSelectAtoms( atoms_, token->Res1(), token->Res2(), pMask );
+        SelectAtomNum( atoms, token->Idx1(), token->Idx2(), pMask );
         break;
       case MaskToken::AtomName :
-        MaskSelectAtoms( atoms_, token->Name(), pMask );
+        SelectAtomName( atoms, token->Name(), pMask );
         break;
       case MaskToken::AtomType :
-        MaskSelectTypes( atoms_, token->Name(), pMask );
+        SelectAtomType( atoms, token->Name(), pMask );
         break;
       case MaskToken::AtomElement :
-        MaskSelectElements( atoms_, token->Name(), pMask );
+        SelectElement( atoms, token->Name(), pMask );
+        break;
+      case MaskToken::MolNum :
+        SelectMolNum( molecules, token->Idx1(), token->Idx2(), pMask );
         break;
       case MaskToken::SelectAll :
-        std::fill(pMask, pMask + atoms_.size(), SelectedChar_);
+        std::fill(pMask, pMask + atoms.size(), SelectedChar_);
         break;
       case MaskToken::OP_AND :
         pMask2 = Stack.top();
         Stack.pop();
-        Mask_AND( Stack.top(), pMask2, atoms_.size() );
+        Mask_AND( Stack.top(), pMask2, atoms.size() );
         delete[] pMask2;
         break;
       case MaskToken::OP_OR :
         pMask2 = Stack.top();
         Stack.pop();
-        Mask_OR( Stack.top(), pMask2, atoms_.size() );
+        Mask_OR( Stack.top(), pMask2, atoms.size() );
         delete[] pMask2;
         break;
       case MaskToken::OP_NEG :
-        Mask_NEG( Stack.top(), atoms_.size() );
+        Mask_NEG( Stack.top(), atoms.size() );
         break;
       case MaskToken::OP_DIST :
-        err = Mask_SelectDistance( XYZ, Stack.top(), *token, atoms_, residues_); 
+        err = SelectDistance( XYZ, Stack.top(), *token, atoms, residues, molecules);
         break;
       default:
         mprinterr("Error: Invalid mask token (Mask [%s], type [%s]).\n",
@@ -663,30 +728,30 @@ char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
   return pMask;
 }
 
-// Topology::Mask_SelectDistance()
 /** \param REF reference coordinates.
   * \param mask Initial atom selection; will be set with final output mask.
   * \param token Describe how atoms are to be selected.
-  * \param atoms_ Atom array.
-  * \param residues_ Residue array.
+  * \param atoms Atom array.
+  * \param residues Residue array.
   * \return 0 if successful, 1 if an error occurs.
   */
-int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
-                                        MaskToken const& token,
-                                        AtomArrayT const& atoms_,
-                                        ResArrayT const& residues_) const
+int MaskTokenArray::SelectDistance(const double* REF, char *mask,
+                                   MaskToken const& token,
+                                   AtomArrayT const& atoms,
+                                   ResArrayT const& residues,
+                                   MolArrayT const& molecules) const
 {
   if (REF == 0) {
     mprinterr("Error: No reference set, cannot select by distance.\n");
     return 1;
   }
   // Distance cutoff has been pre-squared.
-  double dcut2 = token.Distance();
+  double dcut2 = token.Distance2();
   // Create temporary array of atom #s currently selected in mask.
   // These are the atoms the search is based on.
   typedef std::vector<unsigned int> Uarray;
   Uarray Idx;
-  for (unsigned int i = 0; i < atoms_.size(); i++) {
+  for (unsigned int i = 0; i < atoms.size(); i++) {
     if (mask[i] == SelectedChar_)
       Idx.push_back( i*3 );
   }
@@ -695,8 +760,8 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     return 1;
   }
   //if (debug_ > 1) {
-  //  mprintf("\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
-  //          (int)token.Within(), (int)token.ByAtom(), token.Distance());
+  //  mprintf("\t\tDistance Op: Within=%i  DistOp=%i  distance^2=%f\n",
+  //          (int)token.Within(), (int)token.DistOp(), token.Distance2());
   //  mprintf("\t\tSearch Mask=[");
   //  for (Uarray::const_iterator at = Idx.begin(); at != Idx.end(); ++at)
   //    mprintf(" %u",*at/3 + 1);
@@ -716,9 +781,9 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
     char1 = UnselectedChar_;
   }
 
-  if (token.ByAtom()) {
+  if (token.DistOp() == MaskToken::BY_ATOM) {
     // Select by atom
-    int n_of_atoms = (int)atoms_.size();
+    int n_of_atoms = (int)atoms.size();
     int atomi;
 #   ifdef _OPENMP
 #   pragma omp parallel private(atomi)
@@ -726,7 +791,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 #   pragma omp for
 #   endif
     for (atomi = 0; atomi < n_of_atoms; atomi++) {
-      // Initial state 
+      // Initial state
       mask[atomi] = char0;
       const double* i_crd = REF + (atomi * 3);
       // Loop over initially selected atoms
@@ -742,9 +807,9 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif
-  } else {
+  } else if (token.DistOp() == MaskToken::BY_RES) {
     // Select by residue
-    int n_of_res = (int)residues_.size();
+    int n_of_res = (int)residues.size();
     int resi;
     // Loop over all residues
 #   ifdef _OPENMP
@@ -753,12 +818,12 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 #   pragma omp for
 #   endif
     for (resi = 0; resi < n_of_res; resi++) {
-      // Initial state 
+      // Initial state
       char schar = char0;
-      int atomi = residues_[resi].FirstAtom();
+      int atomi = residues[resi].FirstAtom();
       const double* i_crd = REF + (atomi * 3);
       // Loop over residue atoms
-      for (; atomi != residues_[resi].LastAtom(); atomi++, i_crd += 3) {
+      for (; atomi != residues[resi].LastAtom(); atomi++, i_crd += 3) {
         // Loop over initially selected atoms
         for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
           double d2 = DIST2_NoImage(i_crd, REF + *idx);
@@ -771,13 +836,54 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
         if (schar == char1) break;
       } // END loop over residue atoms
       // Set residue selection status
-      for (atomi = residues_[resi].FirstAtom();
-           atomi != residues_[resi].LastAtom(); atomi++)
+      for (atomi = residues[resi].FirstAtom();
+           atomi != residues[resi].LastAtom(); atomi++)
         mask[atomi] = schar;
     } // END loop over all residues
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif
+  } else {
+    // Select by molecule
+    if (molecules.empty()) {
+      mprinterr("Error: No molecule info. Cannot select molecules by distance.\n");
+      return 1;
+    }
+    int n_of_mol = (int)molecules.size();
+    int moli;
+    // Loop over all molecules
+#   ifdef _OPENMP
+#   pragma omp parallel private(moli)
+    {
+#   pragma omp for
+#   endif
+    for (moli = 0; moli < n_of_mol; moli++) {
+      // Initial state
+      char schar = char0;
+      int atomi = molecules[moli].BeginAtom();
+      const double* i_crd = REF + (atomi * 3);
+      // Loop over molecule atoms
+      for (; atomi != molecules[moli].EndAtom(); atomi++, i_crd += 3) {
+        // Loop over initially selected atoms
+        for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
+          double d2 = DIST2_NoImage(i_crd, REF + *idx);
+          if (d2 < dcut2) {
+            // State changes
+            schar = char1;
+            break;
+          }
+        } // END loop over initially selected atoms
+        if (schar == char1) break;
+      } // END loop over molecule atoms
+      // Set molecule selection status
+      for (atomi = molecules[moli].BeginAtom();
+           atomi != molecules[moli].EndAtom(); atomi++)
+        mask[atomi] = schar;
+    } // END loop over all molecules
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#   endif
+
   }
   return 0;
 }
@@ -816,13 +922,12 @@ void MaskTokenArray::Mask_NEG(char *mask1, unsigned int N) const {
   }
 }
 
-// MaskTokenArray::MaskSelectResidues()
-void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, NameType const& name,
-                                        char *mask) const
+/** Select by residue name. */
+void MaskTokenArray::SelectResName(ResArrayT const& residues, NameType const& name,
+                                   char *mask) const
 {
   //mprintf("\t\t\tSelecting residues named [%s]\n",*name);
-  for (std::vector<Residue>::const_iterator res = residues_.begin();
-                                            res != residues_.end(); res++)
+  for (ResArrayT::const_iterator res = residues.begin(); res != residues.end(); ++res)
   {
     if ( res->Name().Match( name ) ) {
       std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
@@ -830,36 +935,77 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, NameType con
   }
 }
 
-// MaskTokenArray::MaskSelectResidues()
-// Mask args expected to start from 1
-void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, int res1, int res2,
-                                        char *mask) const
+/** Select by residue number. */
+void MaskTokenArray::SelectResNum(ResArrayT const& residues, int res1, int res2,
+                                  char *mask) const
 {
   int endatom;
-  int nres = (int) residues_.size();
+  int nres = (int) residues.size();
   //mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
   // Check start atom. res1 and res2 are checked by MaskToken
+  // Mask args expected to start from 1
   if (res1 > nres) {
-    if (debug_>0)
-      mprintf("Warning: Select residues: res 1 out of range (%i)\n",res1);
+    mprintf("Warning: Select residues: res 1 out of range (%i > %i)\n",res1, nres);
     return;
   }
   // If last res > nres, make it nres
   if ( res2 >= nres )
-    endatom = residues_.back().LastAtom();
+    endatom = residues.back().LastAtom();
   else
-    endatom = residues_[res2-1].LastAtom();
+    endatom = residues[res2-1].LastAtom();
   // Select atoms
-  std::fill(mask + residues_[res1-1].FirstAtom(), mask + endatom, SelectedChar_);
+  std::fill(mask + residues[res1-1].FirstAtom(), mask + endatom, SelectedChar_);
 }
 
-// MaskTokenArray::MaskSelectElements()
-void MaskTokenArray::MaskSelectElements(AtomArrayT const& atoms_, NameType const& element,
-                                        char* mask ) const
+/** Select by original residue number. */
+void MaskTokenArray::SelectOriginalResNum(ResArrayT const& residues, int res1, int res2,
+                                          char* mask) const
+{
+  for (ResArrayT::const_iterator res = residues.begin(); res != residues.end(); ++res)
+    if ( res->OriginalResNum() >= res1 && res->OriginalResNum() <= res2 )
+      std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
+}
+
+/** Select residues by chain ID. */
+void MaskTokenArray::SelectChainID(ResArrayT const& residues, NameType const& name,
+                                   char* mask) const
+{
+  for (ResArrayT::const_iterator res = residues.begin();
+                                 res != residues.end(); ++res)
+    if ( res->ChainID() == name[0] )
+      std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
+}
+
+/** Select by molecule number. */
+void MaskTokenArray::SelectMolNum(MolArrayT const& molecules, int mol1, int mol2,
+                                  char* mask) const
+{
+  if (molecules.empty()) {
+    mprintf("Warning: No molecule information, cannot select by molecule.\n");
+    return;
+  }
+  int endatom;
+  int nmol = (int)molecules.size();
+  // Mask args expected to start from 1
+  if (mol1 > nmol) {
+    mprintf("Warning: Select molecules: mol 1 out of range (%i > %i)\n", mol1, nmol);
+    return;
+  }
+  // If last mol > nmol, make it nmol
+  if ( mol2 >= nmol )
+    endatom = molecules.back().EndAtom();
+  else
+    endatom = molecules[mol2-1].EndAtom();
+  // Select atoms
+  std::fill(mask + molecules[mol1-1].BeginAtom(), mask + endatom, SelectedChar_);
+}
+
+/** Select by atomic element. */
+void MaskTokenArray::SelectElement(AtomArrayT const& atoms, NameType const& element,
+                                   char* mask ) const
 {
   unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
-                                         atom != atoms_.end(); ++atom, ++m)
+  for (AtomArrayT::const_iterator atom = atoms.begin(); atom != atoms.end(); ++atom, ++m)
   {
     NameType atom_element( atom->ElementName() );
     if ( atom_element.Match( element ) )
@@ -867,27 +1013,25 @@ void MaskTokenArray::MaskSelectElements(AtomArrayT const& atoms_, NameType const
   } 
 }
 
-// MaskTokenArray::MaskSelectTypes()
-void MaskTokenArray::MaskSelectTypes(AtomArrayT const& atoms_, NameType const& type,
-                                     char* mask ) const
+/** Select by atom type. */
+void MaskTokenArray::SelectAtomType(AtomArrayT const& atoms, NameType const& type,
+                                    char* mask ) const
 {
   unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
-                                         atom != atoms_.end(); ++atom, ++m)
+  for (AtomArrayT::const_iterator atom = atoms.begin(); atom != atoms.end(); ++atom, ++m)
   {
     if ( atom->Type().Match( type ) )
       mask[m] = SelectedChar_;
   } 
 }
 
-// MaskTokenArray::MaskSelectAtoms()
-void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms_, NameType const& name,
-                                     char *mask) const
+/** Select by atom name. */
+void MaskTokenArray::SelectAtomName(AtomArrayT const& atoms, NameType const& name,
+                                    char *mask) const
 {
   //mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
   unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
-                                         atom != atoms_.end(); atom++, ++m)
+  for (AtomArrayT::const_iterator atom = atoms.begin(); atom != atoms.end(); ++atom, ++m)
   {
     //mprintf("\t\t\t%u PARM[%s]  NAME[%s]",m,(*atom).c_str(),*name);
     if ( atom->Name().Match( name ) )
@@ -896,21 +1040,21 @@ void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms_, NameType const& n
   }
 }
 
-// Mask args expected to start from 1
-void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms_, int atom1, int atom2,
-                                     char *mask) const
+/** Select by atom number. */
+void MaskTokenArray::SelectAtomNum(AtomArrayT const& atoms, int atom1, int atom2,
+                                   char *mask) const
 {
   int startatom, endatom;
   //mprintf("\t\t\tSelecting atoms %i to %i\n",atom1,atom2);
-  if (atom1 > (int)atoms_.size()) {
-    if (debug_>0) 
-      mprintf("Warning: Select atoms: atom 1 out of range (%i)\n",atom1);
+  // Mask args expected to start from 1
+  if (atom1 > (int)atoms.size()) {
+    mprintf("Warning: Select atoms: atom 1 out of range (%i > %zu)\n",atom1, atoms.size());
     return;
   }
   startatom = atom1 - 1;
-  if (atom2 > (int)atoms_.size()) 
+  if (atom2 > (int)atoms.size())
     //mprinterr("Error: Select atoms: atom 2 out of range (%i)\n",atom2)
-    endatom = atoms_.size();
+    endatom = atoms.size();
   else
     endatom = atom2;
   // Select atoms

@@ -31,6 +31,7 @@ class CpptrajState {
     int Debug()               const { return debug_;       }
     bool ShowProgress()       const { return showProgress_;}
     bool ExitOnError()        const { return exitOnError_; }
+    bool RecordAllInput()     const { return recordAllInput_; }
     bool EmptyState()         const { return (actionList_.Empty() && 
                                               analysisList_.Empty() &&
                                               trajoutList_.Empty() &&
@@ -102,6 +103,7 @@ class CpptrajState {
     int topDebug_;      ///< Topology debug level.
     bool showProgress_; ///< If true, display progress during Run.
     bool exitOnError_;  ///< If true exit when errors encountered instead of continuing.
+    bool recordAllInput_; ///< When true save all input to log, even errors.
     /// If true do not process input trajectories when no actions/output trajectories.
     bool noEmptyRun_; // DEBUG: false is used for benchmarking trajectory read speed.
     TrajModeType mode_; ///< Current trajectory mode (NORMAL/ENSEMBLE)
