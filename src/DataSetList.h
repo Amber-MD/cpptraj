@@ -89,8 +89,6 @@ class DataSetList {
 
     /// Generate name based on given default and # of DataSets.
     std::string GenerateDefaultName(std::string const&) const;
-    /// Allocate DataSet of given type - do not add to list.
-    static DataSet* Allocate(DataSet::DataType);
     /// Add DataSet to list; set up default name if no name specified.
     DataSet* AddSet( DataSet::DataType, MetaData const&, const char*);
     /// Add DataSet to list with given MetaData.
