@@ -180,7 +180,7 @@ int MaskToken::SetDistance(std::string const& distop) {
 
 // =============================================================================
 // Class: MaskTokenArray
-MaskTokenArray::MaskTokenArray() : debug_(0) {}
+MaskTokenArray::MaskTokenArray() : debug_(10) {}
 
 // TODO include parentheses?
 bool MaskTokenArray::IsOperator(char op) {
@@ -325,6 +325,7 @@ int MaskTokenArray::Tokenize() {
       } else if (flag == 4) {
         // Molecule AND residue
         buffer += ("]&[:");
+        flag = 1;
       } else {
         buffer += "])|([:";
         flag = 1;
