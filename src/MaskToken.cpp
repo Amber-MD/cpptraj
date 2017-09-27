@@ -269,13 +269,14 @@ int MaskTokenArray::Tokenize() {
   // 2 means operand with "@" read.
   // 3 means '<' or '>' read, waiting for numbers.
   // 4 means operand with "^" read.
+  // 5 means operand with ":" just read; check for additional ":".
   int flag = 0;
 
   for (std::string::iterator p = maskExpression_.begin(); p != maskExpression_.end(); p++)
   {
     // Skip spaces and newlines
     if ( isspace(*p, loc) ) continue;
-    
+    if ( flag == 5 && *p != ':' ) flag = 1;
     if ( IsOperator(*p) || *p == '(' || *p == ')' ) {
       //mprintf("DEBUG: Operator or parentheses: %c\n", *p);
       if (flag > 0) {
@@ -321,14 +322,18 @@ int MaskTokenArray::Tokenize() {
       // Residue character
       if (flag == 0) {
         buffer.assign("([:");
-        flag = 1;
+        flag = 5;
       } else if (flag == 4) {
         // Molecule AND residue
         buffer += ("]&[:");
+        flag = 5;
+      } else if (flag == 5) {
+        // Second of two ':', just append.
+        buffer += *p;
         flag = 1;
       } else {
         buffer += "])|([:";
-        flag = 1;
+        flag = 5;
       }
     } else if ( *p == '@' ) {
       // Atom character
