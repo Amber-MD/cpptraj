@@ -484,7 +484,7 @@ int MaskTokenArray::Tokenize() {
         if (buffer[0]==':') {
           // Residue
           tokenType = MaskToken::ResNum;
-          if      (buffer[1] =='/') tokenType = MaskToken::ResChain;
+          if      (buffer[1] ==':') tokenType = MaskToken::ResChain;
           else if (buffer[1] == ';') tokenType = MaskToken::OresNum;
         } else if (buffer[0]=='@') {
           // Atom

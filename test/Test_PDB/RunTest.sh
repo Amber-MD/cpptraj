@@ -14,7 +14,7 @@ Requires maxthreads 1
 UNITNAME='PDB format read/write test'
 cat >> pdb.in <<EOF
 parm 2b5t.pdb noconect
-resinfo :/A out chainA.dat
+resinfo ::A out chainA.dat
 resinfo :;2 out oresnum.dat
 trajin 2b5t.pdb
 trajout test.pdb teradvance sg "P 1"
