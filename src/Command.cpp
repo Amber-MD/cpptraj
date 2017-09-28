@@ -497,8 +497,9 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
 /** \return true if any control blocks remain. */
 bool Command::UnterminatedControl() {
   if (!control_.empty()) {
-    // TODO better error message
     mprinterr("Error: %u unterminated control block(s) detected.\n", ctlidx_+1);
+    for (int i = 0; i <= ctlidx_; i++)
+      mprinterr("Error:   %i : %s\n", i, control_[i]->Description().c_str());
     return true;
   }
   return false;
@@ -510,6 +511,10 @@ int Command::AddControlBlock(Control* ctl, ArgList& cmdArg) {
     return 1;
   control_.push_back( ctl );
   ctlidx_++;
+  mprintf("CONTROL: ");
+  for (int i = 0; i < ctlidx_; i++)
+    mprintf("  ");
+  mprintf("%s\n", ctl->Description().c_str());
   mprintf("DEBUG: Begin control block %i\n", ctlidx_);
   return 0;
 }
@@ -525,6 +530,10 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
     // In control block. Check if current block should end.
     if ( control_[ctlidx_]->EndControl( cmdArg ) ) {
       mprintf("DEBUG: End control block %i.\n", ctlidx_);
+      mprintf("CONTROL: ");
+      for (int i = 0; i < ctlidx_; i++)
+        mprintf("  ");
+      mprintf("END\n");
       ctlidx_--;
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).

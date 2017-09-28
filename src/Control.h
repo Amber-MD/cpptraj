@@ -15,10 +15,15 @@ class Control : public DispatchObject {
     virtual bool EndControl(ArgList const&) const = 0;
     /// Add command to control structure.
     virtual void AddCommand(ArgList const&) = 0;
+    /// \return Description of control structure.
+    std::string const& Description() const { return description_; }
+
     virtual unsigned int Ncommands() const = 0;
     virtual const_iterator begin() const = 0;
     virtual const_iterator end() const = 0;
     virtual bool NotDone() = 0;
+  protected:
+    std::string description_; ///< Describe control TODO private?
 };
 
 /// Loop over mask expression etc

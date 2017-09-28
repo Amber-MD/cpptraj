@@ -26,9 +26,9 @@ int Control_For::SetupControl(ArgList& argIn) {
       mprinterr("Error: 'for inmask': missing variable name.\n");
       return 1;
     }
-    static const char* TypeStr[] = { "ATOMS", "RESIDUES", "MOLECULES" };
-    mprintf("DEBUG: for %s %s inmask %s do\n", TypeStr[varType_], 
-            varname_.c_str(), mask_.MaskString());
+    static const char* TypeStr[] = { "ATOMS ", "RESIDUES ", "MOLECULES " };
+    description_.assign("for " + std::string(TypeStr[varType_]) +
+                        varname_ + " inmask " + mask_.MaskExpression() + " do");
   }
   if (varname_.empty()) {
     mprinterr("Error: for: No variable name/loop type specified.\n");
