@@ -41,3 +41,14 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
   }
   return 0;
 }
+
+void Control_For::Start() {
+  atom_ = mask_.begin();
+}
+
+bool Control_For::NotDone() {
+  if (atom_ == mask_.end()) return false;
+  mprintf("DEBUG: Control_For: %i\n", *atom_);
+  ++atom_;
+  return true;
+}

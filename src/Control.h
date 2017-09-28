@@ -20,6 +20,7 @@ class Control : public DispatchObject {
     virtual const_iterator begin() const = 0;
     virtual const_iterator end() const = 0;
     virtual bool NotDone() = 0;
+    virtual void Start() = 0;
   protected:
     std::string description_; ///< Describe control TODO private?
 };
@@ -34,13 +35,16 @@ class Control_For : public Control {
     int SetupControl(CpptrajState&, ArgList&);
     bool EndControl(ArgList const& a) const { return (a.CommandIs("done")); }
     void AddCommand(ArgList const& c) { commands_.push_back(c); }
+
     unsigned int Ncommands() const { return commands_.size(); }
     const_iterator begin() const { return commands_.begin(); }
     const_iterator end()   const { return commands_.end();   }
-    bool NotDone() { return false; } // TODO
+    bool NotDone();
+    void Start();
   private:
     enum ForType {ATOMS=0, RESIDUES, MOLECULES, UNKNOWN};
     AtomMask mask_;
+    AtomMask::const_iterator atom_;
     std::string varname_;
     ArgArray commands_;
     ForType varType_;

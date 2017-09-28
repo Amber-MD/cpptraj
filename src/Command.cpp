@@ -519,6 +519,20 @@ int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg)
   return 0;
 }
 
+int Command::ExecuteControlBlock(int block, CpptrajState& State)
+{
+  control_[block]->Start();
+  while (control_[block]->NotDone()) {
+    for (Control::const_iterator it = control_[block]->begin();
+                                 it != control_[block]->end(); ++it)
+    {
+      for (int i = 0; i < block; i++) mprintf("  ");
+      mprintf("%s\n", it->Command());
+    }
+  }
+  return 0;
+}
+
 /** Search for the given command and execute it. EXE commands are executed
   * immediately and then freed. ACT and ANA commands are sent to the
   * CpptrajState for later execution.
@@ -538,6 +552,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).
         mprintf("DEBUG: Executing %u control block(s).\n", control_.size());
+        if (ExecuteControlBlock(0, State)) return CpptrajState::ERR;
         for (unsigned int i = 0; i < control_.size(); i++) {
           mprintf("DEBUG:  %u : %u commands.\n", i, control_[i]->Ncommands());
           delete control_[i];
