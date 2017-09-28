@@ -37,8 +37,8 @@ class Control_For : public Control {
     void AddCommand(ArgList const& c) { commands_.push_back(c); }
 
     unsigned int Ncommands() const { return commands_.size(); }
-    const_iterator begin() const { return commands_.begin(); }
-    const_iterator end()   const { return commands_.end();   }
+    const_iterator begin() const { return modified_commands_.begin(); }
+    const_iterator end()   const { return modified_commands_.end();   }
     bool NotDone();
     void Start();
   private:
@@ -47,6 +47,7 @@ class Control_For : public Control {
     AtomMask::const_iterator atom_;
     std::string varname_;
     ArgArray commands_;
+    ArgArray modified_commands_;
     ForType varType_;
 };
 #endif

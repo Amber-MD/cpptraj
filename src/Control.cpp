@@ -1,5 +1,6 @@
 #include "Control.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 void Control_For::Help() const {
   mprintf("\t{atoms|residues|molecules} <var> inmask <mask> %s\n", DataSetList::TopIdxArgs);
@@ -48,7 +49,21 @@ void Control_For::Start() {
 
 bool Control_For::NotDone() {
   if (atom_ == mask_.end()) return false;
-  mprintf("DEBUG: Control_For: %i\n", *atom_);
+  std::string atomStr = "@" + integerToString(*atom_ + 1);
+  mprintf("DEBUG: Control_For: %s\n", atomStr.c_str());
+  // Replace varname_ in commands with atom
+  modified_commands_.clear();
+  for (const_iterator it = commands_.begin(); it != commands_.end(); ++it)
+  {
+    modified_commands_.push_back( *it );
+    for (int i = 0; i < modified_commands_.back().Nargs(); i++)
+    {
+      if (modified_commands_.back()[i][0] == '$') {
+        modified_commands_.back().ChangeArg(i, atomStr);
+        mprintf("VAR %s\n", modified_commands_.back()[i].c_str());
+      }
+    }
+  }
   ++atom_;
   return true;
 }

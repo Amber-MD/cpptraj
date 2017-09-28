@@ -533,7 +533,7 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
         if (ExecuteControlBlock(block+1, State)) return 1;
       } else {
         for (int i = 0; i < block; i++) mprintf("  ");
-        mprintf("%s\n", it->ArgLine());
+        mprintf("%s %s\n", it->Command(), it->ArgString().c_str());
       }
     }
   }

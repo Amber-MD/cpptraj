@@ -61,6 +61,8 @@ class ArgList {
     void PrintDebug() const;
     /// Remove the first argument
     void RemoveFirstArg();
+    /// Change argument at position to new argument
+    void ChangeArg(int p, std::string const& a) { arglist_[p] = a; }
     /// \return the first argument
     const char *Command() const;
     /// \return true if the first argument matches key
