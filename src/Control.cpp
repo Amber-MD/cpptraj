@@ -14,12 +14,13 @@ int Control_For_Mask::SetupControl(CpptrajState& State, ArgList& argIn) {
   static const char* TypeStr[] = { "ATOMS ", "RESIDUES ", "MOLECULES " };
   description_.assign("for ");
   // formask {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS] ...
-  std::string inmask_arg = argIn.GetStringKey("in");
-  int Nselected = -1;
-  while (!inmask_arg.empty()) {
+  std::string inMaskArg = argIn.GetStringKey("in");
+  int Niterations = -1;
+  while (!inMaskArg.empty()) {
     Masks_.push_back( MaskHolder() );
     MaskHolder& MH = Masks_.back();
-    if (MH.mask_.SetMaskString( inmask_arg )) return 1;
+    AtomMask currentMask;
+    if (currentMask.SetMaskString( inMaskArg )) return 1;
     if (argIn.hasKey("atoms")) MH.varType_ = ATOMS;
     else if (argIn.hasKey("residues")) MH.varType_ = RESIDUES;
     else if (argIn.hasKey("molecules")) MH.varType_ = MOLECULES;
@@ -36,18 +37,41 @@ int Control_For_Mask::SetupControl(CpptrajState& State, ArgList& argIn) {
       return 1;
     }
     MH.varname_ = "$" + MH.varname_;
-    if (currentTop->SetupIntegerMask( MH.mask_ )) return 1;
-    MH.mask_.MaskInfo();
-    if (MH.mask_.None()) return 1;
-    if (Nselected == -1)
-      Nselected = MH.mask_.Nselected();
-    else if (MH.mask_.Nselected() != Nselected)
-      mprintf("Warning: # selected %i != previous # selected %i\n",
-              MH.mask_.Nselected(), Nselected);
+    if (currentTop->SetupIntegerMask( currentMask )) return 1;
+    currentMask.MaskInfo();
+    if (currentMask.None()) return 1;
+    // Set up indices
+    if (MH.varType_ == ATOMS)
+      MH.Idxs_ = currentMask.Selected();
+    else if (MH.varType_ == RESIDUES) {
+      int curRes = -1;
+      for (AtomMask::const_iterator at = currentMask.begin(); at != currentMask.end(); ++at) {
+        int res = (*currentTop)[*at].ResNum();
+        if (res != curRes) {
+          MH.Idxs_.push_back( res );
+          curRes = res;
+        }
+      }
+    } else if (MH.varType_ == MOLECULES) {
+      int curMol = -1;
+      for (AtomMask::const_iterator at = currentMask.begin(); at != currentMask.end(); ++at) {
+        int mol = (*currentTop)[*at].MolNum();
+        if (mol != curMol) {
+          MH.Idxs_.push_back( mol );
+          curMol = mol;
+        }
+      }
+    }
+    // Check number of values
+    if (Niterations == -1)
+      Niterations = (int)MH.Idxs_.size();
+    else if ((int)MH.Idxs_.size() != Niterations)
+      mprintf("Warning: # iterations %zu != previous # iterations %i\n",
+              MH.Idxs_.size(), Niterations);
     if (description_ != "for ") description_.append(", ");
     description_.append(std::string(TypeStr[MH.varType_]) +
-                        MH.varname_ + " in " + MH.mask_.MaskExpression());
-    inmask_arg = argIn.GetStringKey("in");
+                        MH.varname_ + " in " + currentMask.MaskExpression());
+    inMaskArg = argIn.GetStringKey("in");
   }
   description_.append(" do");
 
@@ -56,7 +80,7 @@ int Control_For_Mask::SetupControl(CpptrajState& State, ArgList& argIn) {
 
 void Control_For_Mask::Start(Varray& CurrentVars) {
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
-    MH->atom_ = MH->mask_.begin();
+    MH->idx_ = MH->Idxs_.begin();
     // Init CurrentVars
     CurrentVars.push_back( VarPair(MH->varname_, "") );
   }
@@ -68,19 +92,21 @@ void Control_For_Mask::Start(Varray& CurrentVars) {
 
 Control::DoneType Control_For_Mask::CheckDone(Varray& CurrentVars) {
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
-    // Exit as soon as one is done TODO check all
-    if (MH->atom_ == MH->mask_.end()) return DONE;
-    std::string atomStr = "@" + integerToString(*(MH->atom_) + 1);
-    mprintf("DEBUG: Control_For_Mask: %s\n", atomStr.c_str());
+    // Exit as soon as one is done TODO check all?
+    if (MH->idx_ == MH->Idxs_.end()) return DONE;
+    // Get variable value
+    static const char* prefix[] = {"@", ":", "^"};
+    std::string maskStr = prefix[MH->varType_] + integerToString(*(MH->idx_) + 1);
+    mprintf("DEBUG: Control_For_Mask: %s\n", maskStr.c_str());
     // Update CurrentVars
     Varray::iterator it = CurrentVars.begin();
     for (; it != CurrentVars.end(); ++it) {
       if (it->first == MH->varname_) {
-        it->second = atomStr;
+        it->second = maskStr;
         break;
       }
     }
-    ++(MH->atom_);
+    ++(MH->idx_);
   }
   return NOT_DONE;
 }

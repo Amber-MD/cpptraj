@@ -54,11 +54,12 @@ class Control_For_Mask : public Control {
     DoneType CheckDone(Varray&);
   private:
     enum ForType {ATOMS=0, RESIDUES, MOLECULES, UNKNOWN};
+    typedef std::vector<int> Iarray;
     class MaskHolder {
       public:
       MaskHolder() : varType_(UNKNOWN) {}
-      AtomMask mask_;
-      AtomMask::const_iterator atom_;
+      Iarray Idxs_;                ///< Hold selected atom/residue/molecule indices
+      Iarray::const_iterator idx_; ///< Hold current atom/residue/molecule index
       std::string varname_;
       ForType varType_;
     };
