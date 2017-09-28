@@ -9,6 +9,7 @@ void Control_For_Mask::Help() const {
 
 /** Set up each mask. */
 int Control_For_Mask::SetupControl(CpptrajState& State, ArgList& argIn) {
+  mprintf("    Setting up 'formask' loop.\n");
   Masks_.clear();
   Topology* currentTop = 0;
   static const char* TypeStr[] = { "ATOMS ", "RESIDUES ", "MOLECULES " };
@@ -65,14 +66,17 @@ int Control_For_Mask::SetupControl(CpptrajState& State, ArgList& argIn) {
     // Check number of values
     if (Niterations == -1)
       Niterations = (int)MH.Idxs_.size();
-    else if ((int)MH.Idxs_.size() != Niterations)
+    else if ((int)MH.Idxs_.size() != Niterations) {
       mprintf("Warning: # iterations %zu != previous # iterations %i\n",
               MH.Idxs_.size(), Niterations);
+      Niterations = std::min((int)MH.Idxs_.size(), Niterations);
+    }
     if (description_ != "for ") description_.append(", ");
     description_.append(std::string(TypeStr[MH.varType_]) +
                         MH.varname_ + " in " + currentMask.MaskExpression());
     inMaskArg = argIn.GetStringKey("in");
   }
+  mprintf("\tLoop will execute for %i iterations.\n", Niterations);
   description_.append(" do");
 
   return 0;
@@ -95,7 +99,7 @@ Control::DoneType Control_For_Mask::CheckDone(Varray& CurrentVars) {
     // Get variable value
     static const char* prefix[] = {"@", ":", "^"};
     std::string maskStr = prefix[MH->varType_] + integerToString(*(MH->idx_) + 1);
-    mprintf("DEBUG: Control_For_Mask: %s\n", maskStr.c_str());
+    //mprintf("DEBUG: Control_For_Mask: %s\n", maskStr.c_str());
     // Update CurrentVars
     Varray::iterator it = CurrentVars.begin();
     for (; it != CurrentVars.end(); ++it) {

@@ -504,23 +504,25 @@ int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg)
     return 1;
   control_.push_back( ctl );
   ctlidx_++;
-  mprintf("CONTROL: ");
+  mprintf("  BLOCK %2i: ", ctlidx_);
   for (int i = 0; i < ctlidx_; i++)
     mprintf("  ");
   mprintf("%s\n", ctl->Description().c_str());
-  mprintf("DEBUG: Begin control block %i\n", ctlidx_);
+  //mprintf("DEBUG: Begin control block %i\n", ctlidx_);
   return 0;
 }
 
 #define NEW_BLOCK "__NEW_BLOCK__"
-
+/** Execute the specified control block. */
 int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray CurrentVars)
 {
   control_[block]->Start(CurrentVars);
-  mprintf("DEBUG: Start: CurrentVars:");
-  for (Control::Varray::const_iterator vp = CurrentVars.begin(); vp != CurrentVars.end(); ++vp)
-    mprintf(" %s=%s", vp->first.c_str(), vp->second.c_str());
-  mprintf("\n");
+  if (State.Debug() > 0) {
+    mprintf("DEBUG: Start: CurrentVars:");
+    for (Control::Varray::const_iterator vp = CurrentVars.begin(); vp != CurrentVars.end(); ++vp)
+      mprintf(" %s=%s", vp->first.c_str(), vp->second.c_str());
+    mprintf("\n");
+  }
   Control::DoneType ret = control_[block]->CheckDone(CurrentVars);
   while (ret == Control::NOT_DONE) {
     for (Control::const_iterator it = control_[block]->begin();
@@ -545,14 +547,17 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray
             }
           }
         }
+        // Print modified command and execute.
         for (int i = 0; i < block; i++) mprintf("  ");
-        mprintf("%s %s\n", modCmd.Command(), modCmd.ArgString().c_str());
+        mprintf("  [%s %s]\n", modCmd.Command(), modCmd.ArgString().c_str());
         if ( ExecuteCommand(State, modCmd) != CpptrajState::OK ) return 1;
       }
     }
     ret = control_[block]->CheckDone(CurrentVars);
   }
   if (ret == Control::ERROR) return 1;
+  //for (int i = 0; i < block; i++) mprintf("  ");
+  //mprintf("\n");
   return 0;
 }
 
@@ -569,21 +574,23 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   if (!control_.empty()) {
     // In control block. Check if current block should end.
     if ( control_[ctlidx_]->EndControl( cmdArg ) ) {
-      mprintf("DEBUG: End control block %i.\n", ctlidx_);
-      mprintf("CONTROL: ");
+      //mprintf("DEBUG: End control block %i.\n", ctlidx_);
+      mprintf("  BLOCK %2i: ", ctlidx_);
       for (int i = 0; i < ctlidx_; i++)
         mprintf("  ");
       mprintf("END\n");
       ctlidx_--;
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).
-        mprintf("DEBUG: Executing %u control block(s).\n", control_.size());
+        mprintf("CONTROL: Executing %u control block(s).\n", control_.size());
         if (ExecuteControlBlock(0, State, Control::Varray())) return CpptrajState::ERR;
+        // Control block finished, clean up
         for (unsigned int i = 0; i < control_.size(); i++) {
-          mprintf("DEBUG:  %u : %u commands.\n", i, control_[i]->Ncommands());
+          //mprintf("DEBUG:  %u : %u commands.\n", i, control_[i]->Ncommands());
           delete control_[i];
         }
         control_.clear();
+        mprintf("CONTROL: Control block finished.\n\n");
       }
     } else {
       // Check if this is another control statement (silently)
@@ -591,7 +598,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       if (ctlCmd.Empty()) {
         // Add this command to current control block.
         control_[ctlidx_]->AddCommand( cmdArg );
-        mprintf("DEBUG: Added command '%s' to control block %i.\n", cmdArg.Command(), ctlidx_);
+        mprintf("\tAdded command '%s' to control block %i.\n", cmdArg.Command(), ctlidx_);
       } else {
         // Tell current block that a new block is being created
         control_[ctlidx_]->AddCommand(NEW_BLOCK);
@@ -631,7 +638,7 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList& cmd
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
       case Cmd::CTL:
-        mprintf("DEBUG: Initial control statement detected.\n");
+        mprintf("CONTROL: Starting control block.\n");
         if (AddControlBlock( (Control*)obj, State, cmdArg )) {
           delete obj;
           return CpptrajState::ERR;
