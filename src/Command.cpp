@@ -506,8 +506,8 @@ bool Command::UnterminatedControl() {
 }
 
 /** Create new control block with given Control. */
-int Command::AddControlBlock(Control* ctl, ArgList& cmdArg) {
-  if ( ctl->SetupControl( cmdArg ) )
+int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg) {
+  if ( ctl->SetupControl( State, cmdArg ) )
     return 1;
   control_.push_back( ctl );
   ctlidx_++;
@@ -554,7 +554,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
       } else {
         // Create new control block
         DispatchObject* obj = ctlCmd.Alloc();
-        if (AddControlBlock( (Control*)obj, cmdArg )) {
+        if (AddControlBlock( (Control*)obj, State, cmdArg )) {
           delete obj;
           return CpptrajState::ERR;
         }
@@ -582,7 +582,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
     switch (cmd.Destination()) {
       case Cmd::CTL:
         mprintf("DEBUG: Initial control statement detected.\n");
-        if (AddControlBlock( (Control*)obj, cmdArg )) {
+        if (AddControlBlock( (Control*)obj, State, cmdArg )) {
           delete obj;
           return CpptrajState::ERR;
         }

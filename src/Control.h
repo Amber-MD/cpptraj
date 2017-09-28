@@ -1,8 +1,6 @@
 #ifndef INC_CONTROL_H
 #define INC_CONTROL_H
-#include "ArgList.h"
-#include "AtomMask.h"
-#include "DispatchObject.h"
+#include "CpptrajState.h"
 /// Control structures.
 class Control : public DispatchObject {
   public:
@@ -10,7 +8,7 @@ class Control : public DispatchObject {
     typedef ArgArray::const_iterator const_iterator;
     Control() : DispatchObject(CONTROL) {}
     /// Set up control structure.
-    virtual int SetupControl(ArgList&) = 0;
+    virtual int SetupControl(CpptrajState&, ArgList&) = 0;
     /// Check for control structure end command.
     virtual bool EndControl(ArgList const&) const = 0;
     /// Add command to control structure.
@@ -33,7 +31,7 @@ class Control_For : public Control {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Control_For(); }
 
-    int SetupControl(ArgList&);
+    int SetupControl(CpptrajState&, ArgList&);
     bool EndControl(ArgList const& a) const { return (a.CommandIs("done")); }
     void AddCommand(ArgList const& c) { commands_.push_back(c); }
     unsigned int Ncommands() const { return commands_.size(); }
