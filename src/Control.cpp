@@ -2,17 +2,17 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 
-void Control_For::Help() const {
-  mprintf("\t{atoms|residues|molecules} <var> inmask <mask> %s\n", DataSetList::TopIdxArgs);
+void Control_For_Mask::Help() const {
+  mprintf("\t{atoms|residues|molecules} <var> in <mask> %s\n", DataSetList::TopIdxArgs);
 }
 
-int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
+int Control_For_Mask::SetupControl(CpptrajState& State, ArgList& argIn) {
   mask_.ResetMask();
   varname_.clear();
   commands_.clear();
   varType_ = UNKNOWN;
-  // for {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS]
-  std::string inmask_arg = argIn.GetStringKey("inmask");
+  // formask {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS]
+  std::string inmask_arg = argIn.GetStringKey("in");
   if (!inmask_arg.empty()) {
     if (mask_.SetMaskString( inmask_arg )) return 1;
     if (argIn.hasKey("atoms")) varType_ = ATOMS;
@@ -44,7 +44,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
   return 0;
 }
 
-void Control_For::Start(Varray& CurrentVars) {
+void Control_For_Mask::Start(Varray& CurrentVars) {
   atom_ = mask_.begin();
   // Init CurrentVars
   CurrentVars.push_back( VarPair(varname_, "") );
@@ -54,10 +54,10 @@ void Control_For::Start(Varray& CurrentVars) {
   mprintf("\n");
 }
 
-Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
+Control::DoneType Control_For_Mask::CheckDone(Varray& CurrentVars) {
   if (atom_ == mask_.end()) return DONE;
   std::string atomStr = "@" + integerToString(*atom_ + 1);
-  mprintf("DEBUG: Control_For: %s\n", atomStr.c_str());
+  mprintf("DEBUG: Control_For_Mask: %s\n", atomStr.c_str());
   // Update CurrentVars
   Varray::iterator it = CurrentVars.begin();
   for (; it != CurrentVars.end(); ++it) {

@@ -370,7 +370,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // CONTROL STRUCTURES
-  Command::AddCmd( new Control_For(),          Cmd::CTL, 1, "for" );
+  Command::AddCmd( new Control_For_Mask(),     Cmd::CTL, 1, "formask" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );

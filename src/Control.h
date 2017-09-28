@@ -22,22 +22,26 @@ class Control : public DispatchObject {
     typedef std::pair<std::string,std::string> VarPair;
     /// Hold variable/value pairs
     typedef std::vector<VarPair> Varray;
-
+    /// \return Number of commands in the block
     virtual unsigned int Ncommands() const = 0;
+    /// \return iterator to first command in the block.
     virtual const_iterator begin() const = 0;
+    /// \return iterator to last command in the block.
     virtual const_iterator end() const = 0;
+    /// Start control block. Check/init variables.
     virtual void Start(Varray&) = 0;
+    /// Update variables and increment, check control state.
     virtual DoneType CheckDone(Varray&) = 0;
   protected:
     std::string description_; ///< Describe control TODO private?
 };
 
 /// Loop over mask expression etc
-class Control_For : public Control {
+class Control_For_Mask : public Control {
   public:
-    Control_For() {}
+    Control_For_Mask() {}
     void Help() const;
-    DispatchObject* Alloc() const { return (DispatchObject*)new Control_For(); }
+    DispatchObject* Alloc() const { return (DispatchObject*)new Control_For_Mask(); }
 
     int SetupControl(CpptrajState&, ArgList&);
     bool EndControl(ArgList const& a) const { return (a.CommandIs("done")); }
