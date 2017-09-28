@@ -519,6 +519,8 @@ int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg)
   return 0;
 }
 
+#define NEW_BLOCK "__NEW_BLOCK__"
+
 int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
   control_[block]->Start();
@@ -526,8 +528,13 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
     for (Control::const_iterator it = control_[block]->begin();
                                  it != control_[block]->end(); ++it)
     {
-      for (int i = 0; i < block; i++) mprintf("  ");
-      mprintf("%s\n", it->Command());
+      // Check if we need to execute a new block
+      if (it->CommandIs(NEW_BLOCK)) {
+        if (ExecuteControlBlock(block+1, State)) return 1;
+      } else {
+        for (int i = 0; i < block; i++) mprintf("  ");
+        mprintf("%s\n", it->ArgLine());
+      }
     }
   }
   return 0;
@@ -567,6 +574,8 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
         control_[ctlidx_]->AddCommand( cmdArg );
         mprintf("DEBUG: Added command '%s' to control block %i.\n", cmdArg.Command(), ctlidx_);
       } else {
+        // Tell current block that a new block is being created
+        control_[ctlidx_]->AddCommand(NEW_BLOCK);
         // Create new control block
         DispatchObject* obj = ctlCmd.Alloc();
         if (AddControlBlock( (Control*)obj, State, cmdArg )) {
@@ -616,6 +625,8 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
   }
   return ret_val;
 }
+
+#undef NEW_BLOCK
 
 /** Read command input from file. */
 CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string const& inputFilename)
