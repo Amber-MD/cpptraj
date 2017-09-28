@@ -176,6 +176,8 @@ Command::Carray Command::names_ = Command::Carray();
 
 Command::CtlArray Command::control_ = Command::CtlArray();
 
+int Command::ctlidx_ = -1;
+
 /** Initialize all commands. Should only be called once as program starts. */
 void Command::Init() {
   // GENERAL
@@ -408,15 +410,21 @@ void Command::AddCmd(DispatchObject* oIn, Cmd::DestType dIn, int nKeys, ...) {
 }
 
 /** Search Commands list for command with given keyword and object type. */
-Cmd const& Command::SearchTokenType(DispatchObject::Otype catIn, const char* keyIn)
+Cmd const& Command::SearchTokenType(DispatchObject::Otype catIn, const char* keyIn,
+                                    bool silent)
 {
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
     if (catIn != cmd->Obj().Type()) continue;
     if (cmd->KeyMatches(keyIn)) return *cmd;
   }
-  mprinterr("'%s': Command not found.\n", keyIn);
+  if (!silent) mprinterr("'%s': Command not found.\n", keyIn);
   return EMPTY_;
+}
+
+/** Search Commands list for command with given keyword and object type. */
+Cmd const& Command::SearchTokenType(DispatchObject::Otype catIn, const char* keyIn) {
+  return SearchTokenType(catIn, keyIn, false);
 }
 
 /** Search the Commands list for given command.
@@ -479,6 +487,16 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   return Dispatch(State, cmdArg);
 }
 
+/** Create new control block with given Control. */
+int Command::AddControlBlock(Control* ctl, ArgList& cmdArg) {
+  if ( ctl->SetupControl( cmdArg ) )
+    return 1;
+  control_.push_back( ctl );
+  ctlidx_++;
+  mprintf("DEBUG: Begin control block %i\n", ctlidx_);
+  return 0;
+}
+
 /** Search for the given command and execute it. EXE commands are executed
   * immediately and then freed. ACT and ANA commands are sent to the
   * CpptrajState for later execution.
@@ -488,28 +506,37 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
   // Check for control block
   if (!control_.empty()) {
     // In control block. Check if current block should end.
-    if ( control_.top()->EndControl( cmdArg ) ) {
-      mprintf("DEBUG: End control block.\n");
-      // TODO Process block here.
-      Control* currentCtl = control_.top();
-      control_.pop();
-      do {
-        for (Control::const_iterator ctlCmd = currentCtl->begin();
-                                     ctlCmd != currentCtl->end(); ++ctlCmd)
-        {
-          ArgList tmpArg = *ctlCmd;
-          if ( Dispatch(State, tmpArg) != CpptrajState::OK ) // TODO handle quit?
-            return CpptrajState::ERR;
+    if ( control_[ctlidx_]->EndControl( cmdArg ) ) {
+      mprintf("DEBUG: End control block %i.\n", ctlidx_);
+      ctlidx_--;
+      if (ctlidx_ < 0) {
+        // Outermost control structure is ended. Execute control block(s).
+        mprintf("DEBUG: Executing %u control block(s).\n", control_.size());
+        for (unsigned int i = 0; i < control_.size(); i++) {
+          mprintf("DEBUG:  %u : %u commands.\n", i, control_[i]->Ncommands());
+          delete control_[i];
         }
-      } while (currentCtl->NotDone());
-      delete currentCtl;
+        control_.clear();
+      }
     } else {
-      // Add this command to current control block.
-      control_.top()->AddCommand( cmdArg );
-      mprintf("DEBUG: Added command '%s' to control block.\n", cmdArg.Command());
+      // Check if this is another control statement (silently)
+      Cmd const& ctlCmd = SearchTokenType(DispatchObject::CONTROL, cmdArg.Command(), true);
+      if (ctlCmd.Empty()) {
+        // Add this command to current control block.
+        control_[ctlidx_]->AddCommand( cmdArg );
+        mprintf("DEBUG: Added command '%s' to control block %i.\n", cmdArg.Command(), ctlidx_);
+      } else {
+        // Create new control block
+        DispatchObject* obj = ctlCmd.Alloc();
+        if (AddControlBlock( (Control*)obj, cmdArg )) {
+          delete obj;
+          return CpptrajState::ERR;
+        }
+      }
     }
     return CpptrajState::OK;
   }
+  // Look for command in command list.
   Cmd const& cmd = SearchToken( cmdArg );
   CpptrajState::RetType ret_val = CpptrajState::OK;
   if (cmd.Empty()) {
@@ -528,12 +555,11 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
       case Cmd::CTL:
-        mprintf("DEBUG: Control statement detected.\n");
-        if ( ((Control*)obj)->SetupControl( cmdArg ) ) {
+        mprintf("DEBUG: Initial control statement detected.\n");
+        if (AddControlBlock( (Control*)obj, cmdArg )) {
           delete obj;
           return CpptrajState::ERR;
         }
-        control_.push( (Control*)obj );
         break;
       case Cmd::EXE:
         ret_val = ((Exec*)obj)->Execute( State, cmdArg );

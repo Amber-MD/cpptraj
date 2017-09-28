@@ -1,6 +1,5 @@
 #ifndef INC_COMMAND_H
 #define INC_COMMAND_H
-#include <stack>
 #include "CmdList.h"
 #include "CpptrajState.h"
 #include "Control.h"
@@ -23,14 +22,17 @@ class Command {
     /// \return Pointer to command name address.
     static const char* CmdToken(int idx) { return names_[idx]; }
   private:
+    static Cmd const& SearchTokenType(DispatchObject::Otype, const char*, bool);
     static void ListCommandsForType(DispatchObject::Otype);
+    static int AddControlBlock(Control*, ArgList&);
     static CpptrajState::RetType Dispatch(CpptrajState&, ArgList&);
 
     static CmdList commands_; ///< Master list of commands.
     static const Cmd EMPTY_;  ///< Empty command.
     typedef std::vector<const char*> Carray;
     static Carray names_; ///< Array of pointers to all command names, for ReadLine
-    typedef std::stack<Control*> CtlArray;
+    typedef std::vector<Control*> CtlArray;
     static CtlArray control_;
+    static int ctlidx_;
 };
 #endif
