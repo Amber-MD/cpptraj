@@ -18,11 +18,16 @@ class Control : public DispatchObject {
 
     enum DoneType { DONE = 0, NOT_DONE, ERROR };
 
+    /// Hold variable, value
+    typedef std::pair<std::string,std::string> VarPair;
+    /// Hold variable/value pairs
+    typedef std::vector<VarPair> Varray;
+
     virtual unsigned int Ncommands() const = 0;
     virtual const_iterator begin() const = 0;
     virtual const_iterator end() const = 0;
-    virtual DoneType CheckDone() = 0;
-    virtual void Start() = 0;
+    virtual void Start(Varray&) = 0;
+    virtual DoneType CheckDone(Varray&) = 0;
   protected:
     std::string description_; ///< Describe control TODO private?
 };
@@ -39,17 +44,16 @@ class Control_For : public Control {
     void AddCommand(ArgList const& c) { commands_.push_back(c); }
 
     unsigned int Ncommands() const { return commands_.size(); }
-    const_iterator begin() const { return modified_commands_.begin(); }
-    const_iterator end()   const { return modified_commands_.end();   }
-    DoneType CheckDone();
-    void Start();
+    const_iterator begin() const { return commands_.begin(); }
+    const_iterator end()   const { return commands_.end();   }
+    void Start(Varray&);
+    DoneType CheckDone(Varray&);
   private:
     enum ForType {ATOMS=0, RESIDUES, MOLECULES, UNKNOWN};
     AtomMask mask_;
     AtomMask::const_iterator atom_;
     std::string varname_;
     ArgArray commands_;
-    ArgArray modified_commands_;
     ForType varType_;
 };
 #endif

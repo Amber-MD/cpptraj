@@ -27,7 +27,7 @@ class Command {
     static Cmd const& SearchTokenType(DispatchObject::Otype, const char*, bool);
     static void ListCommandsForType(DispatchObject::Otype);
     static int AddControlBlock(Control*, CpptrajState&, ArgList&);
-    static int ExecuteControlBlock(int, CpptrajState&);
+    static int ExecuteControlBlock(int, CpptrajState&, Control::Varray);
     static CpptrajState::RetType Dispatch(CpptrajState&, ArgList&);
 
     static CmdList commands_; ///< Master list of commands.

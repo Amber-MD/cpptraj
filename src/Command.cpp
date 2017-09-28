@@ -521,23 +521,38 @@ int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg)
 
 #define NEW_BLOCK "__NEW_BLOCK__"
 
-int Command::ExecuteControlBlock(int block, CpptrajState& State)
+int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray CurrentVars)
 {
-  control_[block]->Start();
-  Control::DoneType ret = control_[block]->CheckDone();
+  control_[block]->Start(CurrentVars);
+  Control::DoneType ret = control_[block]->CheckDone(CurrentVars);
   while (ret == Control::NOT_DONE) {
     for (Control::const_iterator it = control_[block]->begin();
                                  it != control_[block]->end(); ++it)
     {
       // Check if we need to execute a new block
       if (it->CommandIs(NEW_BLOCK)) {
-        if (ExecuteControlBlock(block+1, State)) return 1;
+        if (ExecuteControlBlock(block+1, State, CurrentVars)) return 1;
       } else {
+        // Replace variable names in command with entries from CurrentVars
+        ArgList modCmd = *it;
+        for (int n = 0; n < modCmd.Nargs(); n++) {
+          if (modCmd[n][0] == '$') {
+            Control::Varray::const_iterator vp = CurrentVars.begin();
+            for (; vp != CurrentVars.end(); ++vp)
+              if (vp->first == modCmd[n]) break;
+            if (vp != CurrentVars.end())
+              modCmd.ChangeArg(n, vp->second);
+            else {
+              mprinterr("Error: Unrecognized variable in command: %s\n", modCmd[n].c_str());
+              return 1;
+            }
+          }
+        }
         for (int i = 0; i < block; i++) mprintf("  ");
-        mprintf("%s %s\n", it->Command(), it->ArgString().c_str());
+        mprintf("%s %s\n", modCmd.Command(), modCmd.ArgString().c_str());
       }
     }
-    ret = control_[block]->CheckDone();
+    ret = control_[block]->CheckDone(CurrentVars);
   }
   if (ret == Control::ERROR) return 1;
   return 0;
@@ -562,7 +577,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).
         mprintf("DEBUG: Executing %u control block(s).\n", control_.size());
-        if (ExecuteControlBlock(0, State)) return CpptrajState::ERR;
+        if (ExecuteControlBlock(0, State, Control::Varray())) return CpptrajState::ERR;
         for (unsigned int i = 0; i < control_.size(); i++) {
           mprintf("DEBUG:  %u : %u commands.\n", i, control_[i]->Ncommands());
           delete control_[i];

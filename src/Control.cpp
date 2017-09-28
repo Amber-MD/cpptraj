@@ -44,30 +44,26 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
   return 0;
 }
 
-void Control_For::Start() {
+void Control_For::Start(Varray& CurrentVars) {
   atom_ = mask_.begin();
+  // Init CurrentVars
+  CurrentVars.push_back( VarPair(varname_, "") );
+  mprintf("DEBUG: Start: CurrentVars:");
+  for (Varray::const_iterator vp = CurrentVars.begin(); vp != CurrentVars.end(); ++vp)
+    mprintf(" %s=%s", vp->first.c_str(), vp->second.c_str());
+  mprintf("\n");
 }
 
-Control::DoneType Control_For::CheckDone() {
+Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
   if (atom_ == mask_.end()) return DONE;
   std::string atomStr = "@" + integerToString(*atom_ + 1);
   mprintf("DEBUG: Control_For: %s\n", atomStr.c_str());
-  // Replace varname_ in commands with atom
-  modified_commands_.clear();
-  for (const_iterator it = commands_.begin(); it != commands_.end(); ++it)
-  {
-    modified_commands_.push_back( *it );
-    for (int i = 0; i < modified_commands_.back().Nargs(); i++)
-    {
-      if (modified_commands_.back()[i][0] == '$') {
-        if (modified_commands_.back()[i] == varname_) {
-          modified_commands_.back().ChangeArg(i, atomStr);
-        } else {
-          mprinterr("Error: Unrecognized variable in command: %s\n",
-                    modified_commands_.back()[i].c_str());
-          return ERROR;
-        }
-      }
+  // Update CurrentVars
+  Varray::iterator it = CurrentVars.begin();
+  for (; it != CurrentVars.end(); ++it) {
+    if (it->first == varname_) {
+      it->second = atomStr;
+      break;
     }
   }
   ++atom_;
