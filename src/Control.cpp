@@ -29,6 +29,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       mprinterr("Error: 'for inmask': missing variable name.\n");
       return 1;
     }
+    varname_ = "$" + varname_;
     if (top->SetupIntegerMask( mask_ )) return 1;
     mask_.MaskInfo();
     if (mask_.None()) return 1;
@@ -59,8 +60,13 @@ bool Control_For::NotDone() {
     for (int i = 0; i < modified_commands_.back().Nargs(); i++)
     {
       if (modified_commands_.back()[i][0] == '$') {
-        modified_commands_.back().ChangeArg(i, atomStr);
-        mprintf("VAR %s\n", modified_commands_.back()[i].c_str());
+        if (modified_commands_.back()[i] == varname_) {
+          modified_commands_.back().ChangeArg(i, atomStr);
+        } else {
+          mprinterr("Error: Unrecognized variable in command: %s\n",
+                    modified_commands_.back()[i].c_str());
+          return false;
+        }
       }
     }
   }
