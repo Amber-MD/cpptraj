@@ -524,6 +524,10 @@ int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg)
 int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray CurrentVars)
 {
   control_[block]->Start(CurrentVars);
+  mprintf("DEBUG: Start: CurrentVars:");
+  for (Control::Varray::const_iterator vp = CurrentVars.begin(); vp != CurrentVars.end(); ++vp)
+    mprintf(" %s=%s", vp->first.c_str(), vp->second.c_str());
+  mprintf("\n");
   Control::DoneType ret = control_[block]->CheckDone(CurrentVars);
   while (ret == Control::NOT_DONE) {
     for (Control::const_iterator it = control_[block]->begin();

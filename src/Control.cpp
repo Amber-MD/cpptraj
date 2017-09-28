@@ -78,18 +78,16 @@ int Control_For_Mask::SetupControl(CpptrajState& State, ArgList& argIn) {
   return 0;
 }
 
+/** For each mask add variable to CurrentVars and initialize iterator. */
 void Control_For_Mask::Start(Varray& CurrentVars) {
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
     MH->idx_ = MH->Idxs_.begin();
     // Init CurrentVars
     CurrentVars.push_back( VarPair(MH->varname_, "") );
   }
-  mprintf("DEBUG: Start: CurrentVars:");
-  for (Varray::const_iterator vp = CurrentVars.begin(); vp != CurrentVars.end(); ++vp)
-    mprintf(" %s=%s", vp->first.c_str(), vp->second.c_str());
-  mprintf("\n");
 }
 
+/** For each mask check if done, then update CurrentVars, then increment. */
 Control::DoneType Control_For_Mask::CheckDone(Varray& CurrentVars) {
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
     // Exit as soon as one is done TODO check all?
