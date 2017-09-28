@@ -487,13 +487,6 @@ void Command::ListCommands(DispatchObject::Otype typeIn) {
     ListCommandsForType( typeIn );
 }
 
-CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn)
-{
-  ArgList cmdArg( commandIn );
-  cmdArg.MarkArg(0); // Always mark the first arg as the command
-  return Dispatch(State, cmdArg);
-}
-
 /** \return true if any control blocks remain. */
 bool Command::UnterminatedControl() {
   if (!control_.empty()) {
@@ -564,10 +557,13 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray
 
 /** Search for the given command and execute it. EXE commands are executed
   * immediately and then freed. ACT and ANA commands are sent to the
-  * CpptrajState for later execution.
+  * CpptrajState for later execution. CTL commands set up control blocks
+  * which will be executed when completed.
   */
-CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
+CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn)
 {
+  ArgList cmdArg( commandIn );
+  cmdArg.MarkArg(0); // Always mark the first arg as the command
   // Check for control block
   if (!control_.empty()) {
     // In control block. Check if current block should end.
@@ -608,6 +604,13 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
     }
     return CpptrajState::OK;
   }
+  return ExecuteCommand( State, cmdArg );
+}
+
+#undef NEW_BLOCK
+
+/** Search for and execute the given command. */
+CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList& cmdArg ) {
   // Look for command in command list.
   Cmd const& cmd = SearchToken( cmdArg );
   CpptrajState::RetType ret_val = CpptrajState::OK;
@@ -647,8 +650,6 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, ArgList& cmdArg)
   }
   return ret_val;
 }
-
-#undef NEW_BLOCK
 
 /** Read command input from file. */
 CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string const& inputFilename)

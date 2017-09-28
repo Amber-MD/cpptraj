@@ -28,7 +28,7 @@ class Command {
     static void ListCommandsForType(DispatchObject::Otype);
     static int AddControlBlock(Control*, CpptrajState&, ArgList&);
     static int ExecuteControlBlock(int, CpptrajState&, Control::Varray);
-    static CpptrajState::RetType Dispatch(CpptrajState&, ArgList&);
+    static CpptrajState::RetType ExecuteCommand(CpptrajState&, ArgList&);
 
     static CmdList commands_; ///< Master list of commands.
     static const Cmd EMPTY_;  ///< Empty command.
