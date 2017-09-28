@@ -16,10 +16,12 @@ class Control : public DispatchObject {
     /// \return Description of control structure.
     std::string const& Description() const { return description_; }
 
+    enum DoneType { DONE = 0, NOT_DONE, ERROR };
+
     virtual unsigned int Ncommands() const = 0;
     virtual const_iterator begin() const = 0;
     virtual const_iterator end() const = 0;
-    virtual bool NotDone() = 0;
+    virtual DoneType CheckDone() = 0;
     virtual void Start() = 0;
   protected:
     std::string description_; ///< Describe control TODO private?
@@ -39,7 +41,7 @@ class Control_For : public Control {
     unsigned int Ncommands() const { return commands_.size(); }
     const_iterator begin() const { return modified_commands_.begin(); }
     const_iterator end()   const { return modified_commands_.end();   }
-    bool NotDone();
+    DoneType CheckDone();
     void Start();
   private:
     enum ForType {ATOMS=0, RESIDUES, MOLECULES, UNKNOWN};

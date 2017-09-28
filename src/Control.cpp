@@ -48,8 +48,8 @@ void Control_For::Start() {
   atom_ = mask_.begin();
 }
 
-bool Control_For::NotDone() {
-  if (atom_ == mask_.end()) return false;
+Control::DoneType Control_For::CheckDone() {
+  if (atom_ == mask_.end()) return DONE;
   std::string atomStr = "@" + integerToString(*atom_ + 1);
   mprintf("DEBUG: Control_For: %s\n", atomStr.c_str());
   // Replace varname_ in commands with atom
@@ -65,11 +65,11 @@ bool Control_For::NotDone() {
         } else {
           mprinterr("Error: Unrecognized variable in command: %s\n",
                     modified_commands_.back()[i].c_str());
-          return false;
+          return ERROR;
         }
       }
     }
   }
   ++atom_;
-  return true;
+  return NOT_DONE;
 }

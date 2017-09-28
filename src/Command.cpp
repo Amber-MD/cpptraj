@@ -524,7 +524,8 @@ int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg)
 int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
   control_[block]->Start();
-  while (control_[block]->NotDone()) {
+  Control::DoneType ret = control_[block]->CheckDone();
+  while (ret == Control::NOT_DONE) {
     for (Control::const_iterator it = control_[block]->begin();
                                  it != control_[block]->end(); ++it)
     {
@@ -536,7 +537,9 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
         mprintf("%s %s\n", it->Command(), it->ArgString().c_str());
       }
     }
+    ret = control_[block]->CheckDone();
   }
+  if (ret == Control::ERROR) return 1;
   return 0;
 }
 
