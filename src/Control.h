@@ -54,10 +54,16 @@ class Control_For_Mask : public Control {
     DoneType CheckDone(Varray&);
   private:
     enum ForType {ATOMS=0, RESIDUES, MOLECULES, UNKNOWN};
-    AtomMask mask_;
-    AtomMask::const_iterator atom_;
-    std::string varname_;
+    class MaskHolder {
+      public:
+      MaskHolder() : varType_(UNKNOWN) {}
+      AtomMask mask_;
+      AtomMask::const_iterator atom_;
+      std::string varname_;
+      ForType varType_;
+    };
+    typedef std::vector<MaskHolder> Marray;
+    Marray Masks_;
     ArgArray commands_;
-    ForType varType_;
 };
 #endif

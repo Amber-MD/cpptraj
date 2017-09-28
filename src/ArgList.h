@@ -89,7 +89,7 @@ class ArgList {
     double getKeyDouble(const char*, double);
     /// \return true if the key is present in the list
     bool hasKey(const char*);
-    /// \return true if they key is in the list but do not mark.
+    /// \return true if they key is in the list and unmarked; do not mark.
     bool Contains(const char*) const;
   private:
     /// Empty string to return when args not found

@@ -440,7 +440,6 @@ bool ArgList::hasKey(const char *key) {
 /** \param key string to search for
   * \return true if key is found, false if not.
   */
-// NOTE: Should this be ignoring previously marked strings?
 bool ArgList::Contains(const char *key) const {
   for (unsigned int arg = 0; arg < arglist_.size(); arg++) 
     if (!marked_[arg]) {
