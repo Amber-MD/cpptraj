@@ -547,6 +547,7 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray
         }
         for (int i = 0; i < block; i++) mprintf("  ");
         mprintf("%s %s\n", modCmd.Command(), modCmd.ArgString().c_str());
+        if ( ExecuteCommand(State, modCmd) != CpptrajState::OK ) return 1;
       }
     }
     ret = control_[block]->CheckDone(CurrentVars);
