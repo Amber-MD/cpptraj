@@ -15,6 +15,8 @@ class Command {
     static Cmd const& SearchToken(ArgList&);
     /// \return command of given type corresponding to given command key. 
     static Cmd const& SearchTokenType(DispatchObject::Otype, const char*);
+    /// \return true if unterminated control block(s) exist.
+    static bool UnterminatedControl();
     /// Execute command, modifies given CpptrajState
     static CpptrajState::RetType Dispatch(CpptrajState&, std::string const&);
     /// Read input commands from given file, modifies given CpptrajState.

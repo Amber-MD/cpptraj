@@ -385,8 +385,15 @@ void Command::Init() {
   names_.push_back( 0 );
 }
 
-/** Free all commands. Should only be called just before program exit. */
-void Command::Free() { commands_.Clear(); }
+/** Free all commands. Should only be called just before program exit. Also
+  * remove any remaining control blocks.
+  */
+void Command::Free() {
+  commands_.Clear();
+  for (CtlArray::iterator it = control_.begin(); it != control_.end(); ++it)
+    delete *it;
+  control_.clear();
+}
 
 /** \param oIn Pointer to DispatchObject to add as command.
   * \param dIn Command destination
@@ -485,6 +492,16 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   ArgList cmdArg( commandIn );
   cmdArg.MarkArg(0); // Always mark the first arg as the command
   return Dispatch(State, cmdArg);
+}
+
+/** \return true if any control blocks remain. */
+bool Command::UnterminatedControl() {
+  if (!control_.empty()) {
+    // TODO better error message
+    mprinterr("Error: %u unterminated control block(s) detected.\n", ctlidx_+1);
+    return true;
+  }
+  return false;
 }
 
 /** Create new control block with given Control. */
