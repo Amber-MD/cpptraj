@@ -156,7 +156,7 @@ endif()
 targets_link_libraries(cpptraj libcpptraj ambpdb LIBRARIES xdrfile)
 
 # libsander
-if(BUILD_SANDER_API)
+if(INSIDE_AMBER AND ("${AMBER_TOOLS}" MATCHES "sander" AND BUILD_SANDER_API))
 	#add the sander-specific definitions and libraries
 	set_property(TARGET cpptraj PROPERTY COMPILE_DEFINITIONS USE_SANDERLIB)
 	target_link_libraries(cpptraj libsander)
@@ -169,7 +169,7 @@ if(arpack_DISABLED)
 endif()
 
 # --------------------------------------------------------------------
-# parallelization
+# Parallel Versions
 # --------------------------------------------------------------------
 
 if(MPI)
