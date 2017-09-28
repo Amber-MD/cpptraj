@@ -6,21 +6,33 @@ void Control_For::Help() const {
 }
 
 int Control_For::SetupControl(ArgList& argIn) {
-  // for <var> inmask <mask> do
+  mask_.ResetMask();
+  varname_.clear();
+  commands_.clear();
+  varType_ = UNKNOWN;
+  // for {atoms|residues|molecules} <var> inmask <mask>
   std::string inmask_arg = argIn.GetStringKey("inmask");
-  if (inmask_arg.empty()) {
-    mprinterr("Error: 'for': expected 'in <expression>'\n");
-    return 1;
+  if (!inmask_arg.empty()) {
+    if (mask_.SetMaskString( inmask_arg )) return 1;
+    if (argIn.hasKey("atoms")) varType_ = ATOMS;
+    else if (argIn.hasKey("residues")) varType_ = RESIDUES;
+    else if (argIn.hasKey("molecules")) varType_ = MOLECULES;
+    if (varType_ == UNKNOWN) {
+      mprinterr("Error: One of {atoms|residues|molecules} not specfied.\n");
+      return 1;
+    }
+    varname_ = argIn.GetStringNext();
+    if (varname_.empty()) {
+      mprinterr("Error: 'for inmask': missing variable name.\n");
+      return 1;
+    }
+    static const char* TypeStr[] = { "ATOMS", "RESIDUES", "MOLECULES" };
+    mprintf("DEBUG: for %s %s inmask %s do\n", TypeStr[varType_], 
+            varname_.c_str(), mask_.MaskString());
   }
-  if (!argIn.hasKey("do")) {
-    mprinterr("Error: 'for': missing 'do'\n");
-    return 1;
-  }
-  varname_ = argIn.GetStringNext();
   if (varname_.empty()) {
-    mprinterr("Error: 'for': missing variable name.\n");
+    mprinterr("Error: for: No variable name/loop type specified.\n");
     return 1;
   }
-  mprintf("DEBUG: for %s in %s do\n", varname_.c_str(), inmask_arg.c_str());
   return 0;
 }
