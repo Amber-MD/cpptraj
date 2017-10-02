@@ -13,8 +13,8 @@ TOP="1IEE_A_prot.prmtop"
 INPUT="ired.in"
 cat > $INPUT <<EOF
 trajin 1IEE_A_test.mdcrd
-for atoms Natom inmask :2-129@N&!:PRO atoms Hatom inmask :2-129@H
-  vector \$Natom ired \$Hatom
+for atoms Natom inmask :2-129@N&!:PRO atoms Hatom inmask :2-129@H v=1;v<127;v++
+  vector v\$v \$Natom ired \$Hatom
 done
 
 matrix ired name matired order 2
