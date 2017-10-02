@@ -22,7 +22,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
   while (iarg < argIn.Nargs())
   {
     // Advance to next unmarked argument.
-    while (argIn.Marked(iarg) && iarg < argIn.Nargs()) iarg++;
+    while (iarg < argIn.Nargs() && argIn.Marked(iarg)) iarg++;
     if (iarg == argIn.Nargs()) break;
     // Determine 'for' type
     ForType ftype = UNKNOWN;
@@ -223,9 +223,9 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       if (MH.incOp_ == DECREMENT)
         MH.inc_ = -MH.inc_;
       // DEBUG
-      mprintf("DEBUG: start=%i endOp=%i end=%i incOp=%i val=%i startArg=%s endArg=%s\n",
-              MH.start_, (int)MH.endOp_, MH.end_, (int)MH.incOp_, MH.inc_,
-              MH.startArg_.c_str(), MH.endArg_.c_str());
+      //mprintf("DEBUG: start=%i endOp=%i end=%i incOp=%i val=%i startArg=%s endArg=%s\n",
+      //        MH.start_, (int)MH.endOp_, MH.end_, (int)MH.incOp_, MH.inc_,
+      //        MH.startArg_.c_str(), MH.endArg_.c_str());
     }
     // Check number of values
     if (MaxIterations == -1)
