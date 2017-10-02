@@ -91,7 +91,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       // [<var>=<start>;<var><OP><end>;<var><OP>[<value>]]
       MH.varType_ = ftype;
       ArgList varArg( argIn[iarg], ";" );
-      if (varArg.Nargs() != 3) {
+      if (varArg.Nargs() < 2 || varArg.Nargs() > 3) {
         mprinterr("Error: Malformed 'for' loop variable.\n"
                   "Error: Expected '[<var>=<start>;<var><OP><end>;<var><OP>[<value>]]'\n"
                   "Error: Got '%s'\n", argIn[iarg].c_str());
@@ -117,50 +117,56 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       size_t pos0 = MH.varname_.size();
       size_t pos1 = pos0 + 1;
       MH.endOp_ = NO_OP;
-      if ( varArg[1][pos0] == '<' )
-        MH.endOp_ = LESS_THAN;
-      else if (varArg[1][pos0] == '>')
-        MH.endOp_ = GREATER_THAN;
-      if (MH.endOp_ == NO_OP) {
-        mprinterr("Error: Unrecognized op: '%s'\n", varArg[1].substr(pos0, pos1-pos0).c_str());
-        return 1;
-      }
-      std::string endStr = varArg[1].substr(pos1);
-      if (!validInteger(endStr)) {
-        if (endStr[0] != '$') {
-          mprinterr("Error: Expected end argument to be integer or variable.\n");
+      int iargIdx = 1;
+      if (varArg.Nargs() == 3) {
+        iargIdx = 2;
+        if ( varArg[1][pos0] == '<' )
+          MH.endOp_ = LESS_THAN;
+        else if (varArg[1][pos0] == '>')
+          MH.endOp_ = GREATER_THAN;
+        if (MH.endOp_ == NO_OP) {
+          mprinterr("Error: Unrecognized end op: '%s'\n",
+                    varArg[1].substr(pos0, pos1-pos0).c_str());
           return 1;
         }
-        MH.endArg_ = endStr;
-      } else
-        MH.end_ = convertToInteger(endStr);
+        std::string endStr = varArg[1].substr(pos1);
+        if (!validInteger(endStr)) {
+          if (endStr[0] != '$') {
+            mprinterr("Error: Expected end argument to be integer or variable.\n");
+            return 1;
+          }
+          MH.endArg_ = endStr;
+        } else
+          MH.end_ = convertToInteger(endStr);
+      }
       // Third argument: <var><OP>[<value>]
       pos1 = pos0 + 2;
       MH.incOp_ = NO_OP;
       bool needValue = false;
-      if ( varArg[2][pos0] == '+' ) {
-        if (varArg[2][pos0+1] == '+') {
+      if ( varArg[iargIdx][pos0] == '+' ) {
+        if (varArg[iargIdx][pos0+1] == '+') {
           MH.incOp_ = INCREMENT;
           MH.inc_ = 1;
-        } else if (varArg[2][pos0+1] == '=') {
+        } else if (varArg[iargIdx][pos0+1] == '=') {
           MH.incOp_ = INCREMENT;
           needValue = true;
         }
-      } else if ( varArg[2][pos0] == '-' ) {
-        if (varArg[2][pos0+1] == '-' ) {
+      } else if ( varArg[iargIdx][pos0] == '-' ) {
+        if (varArg[iargIdx][pos0+1] == '-' ) {
           MH.incOp_ = DECREMENT;
           MH.inc_ = 1;
-        } else if (varArg[2][pos0+1] == '=') {
+        } else if (varArg[iargIdx][pos0+1] == '=') {
           MH.incOp_ = DECREMENT;
           needValue = true;
         }
       }
       if (MH.incOp_ == NO_OP) {
-        mprinterr("Error: Unrecognized op: '%s'\n", varArg[2].substr(pos0, pos1-pos0).c_str());
+        mprinterr("Error: Unrecognized increment op: '%s'\n",
+                  varArg[iargIdx].substr(pos0, pos1-pos0).c_str());
         return 1;
       }
       if (needValue) {
-        std::string incStr = varArg[2].substr(pos1);
+        std::string incStr = varArg[iargIdx].substr(pos1);
         if (!validInteger(incStr)) {
           mprinterr("Error: increment value is not a valid integer.\n");
           return 1;
@@ -178,35 +184,37 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
         sval = integerToString(MH.start_);
       else
         sval = MH.startArg_;
-      if (MH.endArg_.empty())
-        eval = integerToString(MH.end_);
-      else
-        eval = MH.endArg_;
-      // Check end > start for increment, start > end for decrement
-      int maxval, minval;
-      if (MH.incOp_ == INCREMENT) {
-        if (MH.start_ >= MH.end_) {
-          mprinterr("Error: start must be less than end for increment.\n");
-          return 1;
+      description_.append("(" + MH.varname_ + "=" + sval + "; ");
+      if (iargIdx == 2) {
+        // End argument present
+        if (MH.endArg_.empty())
+          eval = integerToString(MH.end_);
+        else
+          eval = MH.endArg_;
+        description_.append(MH.varname_ + std::string(OpStr[MH.endOp_]) + eval + "; ");
+        // Check end > start for increment, start > end for decrement
+        int maxval, minval;
+        if (MH.incOp_ == INCREMENT) {
+          if (MH.start_ >= MH.end_) {
+            mprinterr("Error: start must be less than end for increment.\n");
+            return 1;
+          }
+          minval = MH.start_;
+          maxval = MH.end_;
+        } else {
+          if (MH.end_ >= MH.start_) {
+            mprinterr("Error: end must be less than start for decrement.\n");
+            return 1;
+          }
+          minval = MH.end_;
+          maxval = MH.start_;
         }
-        minval = MH.start_;
-        maxval = MH.end_;
-      } else {
-        if (MH.end_ >= MH.start_) {
-          mprinterr("Error: end must be less than start for decrement.\n");
-          return 1;
-        }
-        minval = MH.end_;
-        maxval = MH.start_;
+        // Figure out number of iterations
+        Niterations = (maxval - minval) / MH.inc_;
+        if (((maxval-minval) % MH.inc_) > 0) Niterations++;
       }
-      // Figure out number of iterations
-      Niterations = (maxval - minval) / MH.inc_;
-      if (((maxval-minval) % MH.inc_) > 0) Niterations++;
-      // Update description
-      description_.append("(" + MH.varname_ + "=" + sval + "; " +
-                                MH.varname_ + std::string(OpStr[MH.endOp_]) + eval + "; " +
-                                MH.varname_ + std::string(OpStr[MH.incOp_]) +
-                                integerToString(MH.inc_) + ")");
+      description_.append( MH.varname_ + std::string(OpStr[MH.incOp_]) +
+                           integerToString(MH.inc_) + ")" );
       // If decrementing just negate value
       if (MH.incOp_ == DECREMENT)
         MH.inc_ = -MH.inc_;
@@ -218,7 +226,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
     // Check number of values
     if (MaxIterations == -1)
       MaxIterations = Niterations;
-    else if (Niterations != MaxIterations) {
+    else if (Niterations != -1 && Niterations != MaxIterations) {
       mprintf("Warning: # iterations %i != previous # iterations %i\n",
               Niterations, MaxIterations);
       MaxIterations = std::min(Niterations, MaxIterations);
