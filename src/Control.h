@@ -53,7 +53,8 @@ class Control_For : public Control {
     void Start(Varray&);
     DoneType CheckDone(Varray&);
   private:
-    enum ForType {ATOMS=0, RESIDUES, MOLECULES, UNKNOWN};
+    enum ForType {ATOMS=0, RESIDUES, MOLECULES, VARIABLE, UNKNOWN};
+    enum OpType { INCREMENT, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
     typedef std::vector<int> Iarray;
     class MaskHolder {
       public:
@@ -62,6 +63,13 @@ class Control_For : public Control {
       Iarray::const_iterator idx_; ///< Hold current atom/residue/molecule index
       std::string varname_;
       ForType varType_;
+      OpType endOp_;
+      OpType incOp_;
+      int start_;
+      int end_;
+      int val_;
+      std::string startArg_;
+      std::string endArg_;
     };
     typedef std::vector<MaskHolder> Marray;
     Marray Masks_;
