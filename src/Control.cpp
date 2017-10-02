@@ -3,19 +3,19 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 
-void Control_For_Mask::Help() const {
+void Control_For::Help() const {
   mprintf("\t{atoms|residues|molecules} <var> in <mask> %s\n", DataSetList::TopIdxArgs);
 }
 
 /** Set up each mask. */
-int Control_For_Mask::SetupControl(CpptrajState& State, ArgList& argIn) {
+int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
   mprintf("    Setting up 'formask' loop.\n");
   Masks_.clear();
   Topology* currentTop = 0;
   static const char* TypeStr[] = { "ATOMS ", "RESIDUES ", "MOLECULES " };
   description_.assign("for ");
-  // formask {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS] ...
-  std::string inMaskArg = argIn.GetStringKey("in");
+  // for {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS] ...
+  std::string inMaskArg = argIn.GetStringKey("inmask");
   int Niterations = -1;
   while (!inMaskArg.empty()) {
     Masks_.push_back( MaskHolder() );
@@ -83,7 +83,7 @@ int Control_For_Mask::SetupControl(CpptrajState& State, ArgList& argIn) {
 }
 
 /** For each mask add variable to CurrentVars and initialize iterator. */
-void Control_For_Mask::Start(Varray& CurrentVars) {
+void Control_For::Start(Varray& CurrentVars) {
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
     MH->idx_ = MH->Idxs_.begin();
     // Init CurrentVars
@@ -92,14 +92,14 @@ void Control_For_Mask::Start(Varray& CurrentVars) {
 }
 
 /** For each mask check if done, then update CurrentVars, then increment. */
-Control::DoneType Control_For_Mask::CheckDone(Varray& CurrentVars) {
+Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
     // Exit as soon as one is done TODO check all?
     if (MH->idx_ == MH->Idxs_.end()) return DONE;
     // Get variable value
     static const char* prefix[] = {"@", ":", "^"};
     std::string maskStr = prefix[MH->varType_] + integerToString(*(MH->idx_) + 1);
-    //mprintf("DEBUG: Control_For_Mask: %s\n", maskStr.c_str());
+    //mprintf("DEBUG: Control_For: %s\n", maskStr.c_str());
     // Update CurrentVars
     Varray::iterator it = CurrentVars.begin();
     for (; it != CurrentVars.end(); ++it) {

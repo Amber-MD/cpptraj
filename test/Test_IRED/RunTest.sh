@@ -13,7 +13,7 @@ TOP="1IEE_A_prot.prmtop"
 INPUT="ired.in"
 cat > $INPUT <<EOF
 trajin 1IEE_A_test.mdcrd
-formask atoms Natom in :2-129@N&!:PRO atoms Hatom in :2-129@H
+for atoms Natom inmask :2-129@N&!:PRO atoms Hatom in :2-129@H
   vector \$Natom ired \$Hatom
 done
 

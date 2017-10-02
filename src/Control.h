@@ -37,11 +37,11 @@ class Control : public DispatchObject {
 };
 
 /// Loop over mask expression etc
-class Control_For_Mask : public Control {
+class Control_For : public Control {
   public:
-    Control_For_Mask() {}
+    Control_For() {}
     void Help() const;
-    DispatchObject* Alloc() const { return (DispatchObject*)new Control_For_Mask(); }
+    DispatchObject* Alloc() const { return (DispatchObject*)new Control_For(); }
 
     int SetupControl(CpptrajState&, ArgList&);
     bool EndControl(ArgList const& a) const { return (a.CommandIs("done")); }
