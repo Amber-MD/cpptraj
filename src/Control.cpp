@@ -166,6 +166,10 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
           return 1;
         }
         MH.inc_ = convertToInteger(incStr);
+        if (MH.inc_ < 1) {
+          mprinterr("Error: Extra '-' detected in increment.\n");
+          return 1;
+        }
       }
       // Description
       MH.varname_ = "$" + MH.varname_;
@@ -178,6 +182,27 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
         eval = integerToString(MH.end_);
       else
         eval = MH.endArg_;
+      // Check end > start for increment, start > end for decrement
+      int maxval, minval;
+      if (MH.incOp_ == INCREMENT) {
+        if (MH.start_ >= MH.end_) {
+          mprinterr("Error: start must be less than end for increment.\n");
+          return 1;
+        }
+        minval = MH.start_;
+        maxval = MH.end_;
+      } else {
+        if (MH.end_ >= MH.start_) {
+          mprinterr("Error: end must be less than start for decrement.\n");
+          return 1;
+        }
+        minval = MH.end_;
+        maxval = MH.start_;
+      }
+      // Figure out number of iterations
+      Niterations = (maxval - minval) / MH.inc_;
+      if (((maxval-minval) % MH.inc_) > 0) Niterations++;
+      // Update description
       description_.append("(" + MH.varname_ + "=" + sval + "; " +
                                 MH.varname_ + std::string(OpStr[MH.endOp_]) + eval + "; " +
                                 MH.varname_ + std::string(OpStr[MH.incOp_]) +
@@ -200,8 +225,10 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
     }
   }
   mprintf("\tLoop will execute for %i iterations.\n", MaxIterations);
-  if (MaxIterations < 1)
-    mprintf("Warning: Loop has less than 1 iteration.\n");
+  if (MaxIterations < 1) {
+    mprinterr("Error: Loop has less than 1 iteration.\n");
+    return 1; 
+  }
   description_.append(") do");
 
   return 0;
