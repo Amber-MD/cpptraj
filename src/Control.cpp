@@ -4,7 +4,9 @@
 #include "StringRoutines.h"
 
 void Control_For::Help() const {
-  mprintf("\t{atoms|residues|molecules} <var> in <mask> %s\n", DataSetList::TopIdxArgs);
+  mprintf("\t[ {atoms|residues|molecules} <var> inmask <mask> %s ...\n"
+          "\t  <var>=<start>;[<var><OP><end>;]<var><OP>[<value>] ... ]\n",
+          DataSetList::TopIdxArgs);
 }
 
 /** Set up each mask. */
@@ -39,6 +41,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
     int Niterations = -1;
     // Set up for specific type
     if (description_ != "for (") description_.append(", ");
+    // -------------------------------------------
     if (ftype == ATOMS || ftype == RESIDUES || ftype == MOLECULES)
     {
       // {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS]
@@ -87,13 +90,14 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       Niterations = (int)MH.Idxs_.size();
       description_.append(std::string(TypeStr[MH.varType_]) +
                         MH.varname_ + " inmask " + currentMask.MaskExpression());
+    // -------------------------------------------
     } else if (ftype == INTEGER) {
-      // [<var>=<start>;<var><OP><end>;<var><OP>[<value>]]
+      // [<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]
       MH.varType_ = ftype;
       ArgList varArg( argIn[iarg], ";" );
       if (varArg.Nargs() < 2 || varArg.Nargs() > 3) {
         mprinterr("Error: Malformed 'for' loop variable.\n"
-                  "Error: Expected '[<var>=<start>;<var><OP><end>;<var><OP>[<value>]]'\n"
+                  "Error: Expected '[<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]'\n"
                   "Error: Got '%s'\n", argIn[iarg].c_str());
         return 1;
       }
