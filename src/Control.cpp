@@ -32,6 +32,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       return 1;
     }
     argIn.MarkArg(iarg);
+    int Niterations = -1;
     // Set up for specific type
     if (ftype == ATOMS || ftype == RESIDUES || ftype == MOLECULES)
     {
@@ -80,18 +81,19 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
           }
         }
       }
-      // Check number of values
-      if (MaxIterations == -1)
-        MaxIterations = (int)MH.Idxs_.size();
-      else if ((int)MH.Idxs_.size() != MaxIterations) {
-        mprintf("Warning: # iterations %zu != previous # iterations %i\n",
-                MH.Idxs_.size(), MaxIterations);
-        MaxIterations = std::min((int)MH.Idxs_.size(), MaxIterations);
-      }
+      Niterations = (int)MH.Idxs_.size();
       if (description_ != "for (") description_.append(", ");
       description_.append(std::string(TypeStr[MH.varType_]) +
                         MH.varname_ + " inmask " + currentMask.MaskExpression());
     } // END for mask setup
+    // Check number of values
+    if (MaxIterations == -1)
+      MaxIterations = Niterations;
+    else if (Niterations != MaxIterations) {
+      mprintf("Warning: # iterations %i != previous # iterations %i\n",
+              Niterations, MaxIterations);
+      MaxIterations = std::min(Niterations, MaxIterations);
+    }
   }
   mprintf("\tLoop will execute for %i iterations.\n", MaxIterations);
   description_.append(") do");
