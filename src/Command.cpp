@@ -1,3 +1,4 @@
+#include <cctype> // isalnum
 #include <cstdarg>
 #include <algorithm> // std::sort()
 #include "Command.h"
@@ -537,8 +538,11 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray
         for (int n = 0; n < modCmd.Nargs(); n++) {
           size_t pos = modCmd[n].find("$");
           if (pos != std::string::npos) {
-            // Argument is/contains a variable.
-            std::string var_in_arg = modCmd[n].substr(pos);
+            // Argument is/contains a variable. Find first non-alphanumeric char
+            size_t len = 1;
+            for (size_t pos1 = pos+1; pos1 < modCmd[n].size(); pos1++, len++)
+              if (!isalnum(modCmd[n][pos1])) break;
+            std::string var_in_arg = modCmd[n].substr(pos, len);
             // See if variable occurs in CurrentVars
             Control::Varray::const_iterator vp = CurrentVars.begin();
             for (; vp != CurrentVars.end(); ++vp)
@@ -549,7 +553,7 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray
               arg.replace(pos, vp->first.size(), vp->second);
               modCmd.ChangeArg(n, arg);
             } else {
-              mprinterr("Error: Unrecognized variable in command: %s\n", modCmd[n].c_str());
+              mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
               return 1;
             }
           }
