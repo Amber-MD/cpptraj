@@ -13,6 +13,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
   Masks_.clear();
   Topology* currentTop = 0;
   static const char* TypeStr[] = { "ATOMS ", "RESIDUES ", "MOLECULES " };
+  static const char* OpStr[] = {"+=", "-=", "<", ">"};
   description_.assign("for (");
   int MaxIterations = -1;
   int iarg = 0;
@@ -27,7 +28,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
     else if ( argIn[iarg] == "residues"  ) ftype = RESIDUES;
     else if ( argIn[iarg] == "molecules" ) ftype = MOLECULES;
     else if ( argIn[iarg].find(";") != std::string::npos )
-      ftype = VARIABLE;
+      ftype = INTEGER;
     if (ftype == UNKNOWN) {
       mprinterr("Error: One of {atoms|residues|molecules} not specfied.\n");
       return 1;
@@ -37,6 +38,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
     MaskHolder& MH = Masks_.back();
     int Niterations = -1;
     // Set up for specific type
+    if (description_ != "for (") description_.append(", ");
     if (ftype == ATOMS || ftype == RESIDUES || ftype == MOLECULES)
     {
       // {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS]
@@ -83,10 +85,9 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
         }
       }
       Niterations = (int)MH.Idxs_.size();
-      if (description_ != "for (") description_.append(", ");
       description_.append(std::string(TypeStr[MH.varType_]) +
                         MH.varname_ + " inmask " + currentMask.MaskExpression());
-    } else if (ftype == VARIABLE) {
+    } else if (ftype == INTEGER) {
       // [<var>=<start>;<var><OP><end>;<var><OP>[<value>]]
       ArgList varArg( argIn[iarg], ";" );
       if (varArg.Nargs() != 3) {
@@ -165,6 +166,22 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
         }
         MH.val_ = convertToInteger(incStr);
       }
+      // Description
+      MH.varname_ = "$" + MH.varname_;
+      std::string sval, eval;
+      if (MH.startArg_.empty())
+        sval = integerToString(MH.start_);
+      else
+        sval = MH.startArg_;
+      if (MH.endArg_.empty())
+        eval = integerToString(MH.end_);
+      else
+        eval = MH.endArg_;
+      description_.append("(" + MH.varname_ + "=" + sval + "; " +
+                                MH.varname_ + std::string(OpStr[MH.endOp_]) + eval + "; " +
+                                MH.varname_ + std::string(OpStr[MH.incOp_]) +
+                                integerToString(MH.val_) + ")");
+      // If decrementing just negate value
       if (MH.incOp_ == DECREMENT)
         MH.val_ = -MH.val_;
       // DEBUG
