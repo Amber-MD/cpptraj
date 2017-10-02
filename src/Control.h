@@ -67,7 +67,8 @@ class Control_For : public Control {
       OpType incOp_;
       int start_;
       int end_;
-      int val_;
+      int inc_;
+      int currentVal_;
       std::string startArg_;
       std::string endArg_;
     };

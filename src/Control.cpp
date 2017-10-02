@@ -89,6 +89,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
                         MH.varname_ + " inmask " + currentMask.MaskExpression());
     } else if (ftype == INTEGER) {
       // [<var>=<start>;<var><OP><end>;<var><OP>[<value>]]
+      MH.varType_ = ftype;
       ArgList varArg( argIn[iarg], ";" );
       if (varArg.Nargs() != 3) {
         mprinterr("Error: Malformed 'for' loop variable.\n"
@@ -140,7 +141,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       if ( varArg[2][pos0] == '+' ) {
         if (varArg[2][pos0+1] == '+') {
           MH.incOp_ = INCREMENT;
-          MH.val_ = 1;
+          MH.inc_ = 1;
         } else if (varArg[2][pos0+1] == '=') {
           MH.incOp_ = INCREMENT;
           needValue = true;
@@ -148,7 +149,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       } else if ( varArg[2][pos0] == '-' ) {
         if (varArg[2][pos0+1] == '-' ) {
           MH.incOp_ = DECREMENT;
-          MH.val_ = 1;
+          MH.inc_ = 1;
         } else if (varArg[2][pos0+1] == '=') {
           MH.incOp_ = DECREMENT;
           needValue = true;
@@ -164,7 +165,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
           mprinterr("Error: increment value is not a valid integer.\n");
           return 1;
         }
-        MH.val_ = convertToInteger(incStr);
+        MH.inc_ = convertToInteger(incStr);
       }
       // Description
       MH.varname_ = "$" + MH.varname_;
@@ -180,13 +181,13 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       description_.append("(" + MH.varname_ + "=" + sval + "; " +
                                 MH.varname_ + std::string(OpStr[MH.endOp_]) + eval + "; " +
                                 MH.varname_ + std::string(OpStr[MH.incOp_]) +
-                                integerToString(MH.val_) + ")");
+                                integerToString(MH.inc_) + ")");
       // If decrementing just negate value
       if (MH.incOp_ == DECREMENT)
-        MH.val_ = -MH.val_;
+        MH.inc_ = -MH.inc_;
       // DEBUG
       mprintf("DEBUG: start=%i endOp=%i end=%i incOp=%i val=%i startArg=%s endArg=%s\n",
-              MH.start_, (int)MH.endOp_, MH.end_, (int)MH.incOp_, MH.val_,
+              MH.start_, (int)MH.endOp_, MH.end_, (int)MH.incOp_, MH.inc_,
               MH.startArg_.c_str(), MH.endArg_.c_str());
     }
     // Check number of values
@@ -209,30 +210,53 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
 /** For each mask add variable to CurrentVars and initialize iterator. */
 void Control_For::Start(Varray& CurrentVars) {
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
-    MH->idx_ = MH->Idxs_.begin();
+    if (MH->varType_ == INTEGER)
+      MH->currentVal_ = MH->start_; // TODO search currentvars
+    else
+      MH->idx_ = MH->Idxs_.begin();
     // Init CurrentVars
     CurrentVars.push_back( VarPair(MH->varname_, "") );
   }
 }
 
+static inline void UpdateCurrentVars(Control::Varray& CurrentVars, std::string const& varname,
+                                     std::string const& value)
+{
+  //mprintf("DEBUG: UpdateCurrentVars: %s = %s\n", varname.c_str(), value.c_str());
+  Control::Varray::iterator it = CurrentVars.begin();
+  for (; it != CurrentVars.end(); ++it) {
+    if (it->first == varname) {
+      it->second = value;
+      break;
+    }
+  }
+}
+
 /** For each mask check if done, then update CurrentVars, then increment. */
 Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
+  static const char* prefix[] = {"@", ":", "^"};
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
     // Exit as soon as one is done TODO check all?
-    if (MH->idx_ == MH->Idxs_.end()) return DONE;
-    // Get variable value
-    static const char* prefix[] = {"@", ":", "^"};
-    std::string maskStr = prefix[MH->varType_] + integerToString(*(MH->idx_) + 1);
-    //mprintf("DEBUG: Control_For: %s\n", maskStr.c_str());
-    // Update CurrentVars
-    Varray::iterator it = CurrentVars.begin();
-    for (; it != CurrentVars.end(); ++it) {
-      if (it->first == MH->varname_) {
-        it->second = maskStr;
-        break;
+    if (MH->varType_ == INTEGER) {
+      if (MH->endOp_ == LESS_THAN) {
+        if (MH->currentVal_ >= MH->end_) return DONE;
+      } else if (MH->endOp_ == GREATER_THAN) {
+        if (MH->currentVal_ <= MH->end_) return DONE;
       }
+      // Get variable value and update CurrentVars
+      UpdateCurrentVars(CurrentVars, MH->varname_, integerToString( MH->currentVal_ ));
+      // Increment
+      MH->currentVal_ += MH->inc_;
+    } else {
+      if (MH->idx_ == MH->Idxs_.end()) return DONE;
+      // Get variable value
+      std::string maskStr = prefix[MH->varType_] + integerToString(*(MH->idx_) + 1);
+      //mprintf("DEBUG: Control_For: %s\n", maskStr.c_str());
+      // Update CurrentVars
+      UpdateCurrentVars(CurrentVars, MH->varname_, maskStr);
+      // Increment
+      ++(MH->idx_);
     }
-    ++(MH->idx_);
   }
   return NOT_DONE;
 }

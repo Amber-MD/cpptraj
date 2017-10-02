@@ -535,13 +535,20 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray
         // Replace variable names in command with entries from CurrentVars
         ArgList modCmd = *it;
         for (int n = 0; n < modCmd.Nargs(); n++) {
-          if (modCmd[n][0] == '$') {
+          size_t pos = modCmd[n].find("$");
+          if (pos != std::string::npos) {
+            // Argument is/contains a variable.
+            std::string var_in_arg = modCmd[n].substr(pos);
+            // See if variable occurs in CurrentVars
             Control::Varray::const_iterator vp = CurrentVars.begin();
             for (; vp != CurrentVars.end(); ++vp)
-              if (vp->first == modCmd[n]) break;
-            if (vp != CurrentVars.end())
-              modCmd.ChangeArg(n, vp->second);
-            else {
+              if (vp->first == var_in_arg) break;
+            // If found replace with value from CurrentVars
+            if (vp != CurrentVars.end()) {
+              std::string arg = modCmd[n];
+              arg.replace(pos, vp->first.size(), vp->second);
+              modCmd.ChangeArg(n, arg);
+            } else {
               mprinterr("Error: Unrecognized variable in command: %s\n", modCmd[n].c_str());
               return 1;
             }
