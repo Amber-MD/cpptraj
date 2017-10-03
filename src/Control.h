@@ -7,22 +7,24 @@ class Control : public DispatchObject {
   public:
     typedef std::vector<ArgList> ArgArray;
     typedef ArgArray::const_iterator const_iterator;
+    /// Hold variable/value pairs
+    typedef VariableArray Varray;
+
     Control() : DispatchObject(CONTROL) {}
     /// Set up control structure.
-    virtual int SetupControl(CpptrajState&, ArgList&) = 0;
+    virtual int SetupControl(CpptrajState&, ArgList&, Varray&) = 0;
+    /// \return true if this is a control block, false otherwise.
+    virtual bool IsBlock() const = 0;
+
+    // ----- BLOCK -------------------------------
+    /// \return Description of control structure.
+    std::string const& Description() const { return description_; }
     /// Check for control structure end command.
     virtual bool EndControl(ArgList const&) const = 0;
     /// Add command to control structure.
     virtual void AddCommand(ArgList const&) = 0;
-    /// \return Description of control structure.
-    std::string const& Description() const { return description_; }
 
     enum DoneType { DONE = 0, NOT_DONE, ERROR };
-
-    /// Hold variable/value pairs
-    typedef VariableArray Varray;
-    /// \return Number of commands in the block
-    virtual unsigned int Ncommands() const = 0;
     /// \return iterator to first command in the block.
     virtual const_iterator begin() const = 0;
     /// \return iterator to last command in the block.
@@ -42,11 +44,11 @@ class Control_For : public Control {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Control_For(); }
 
-    int SetupControl(CpptrajState&, ArgList&);
+    int SetupControl(CpptrajState&, ArgList&, Varray&);
     bool EndControl(ArgList const& a) const { return (a.CommandIs("done")); }
     void AddCommand(ArgList const& c) { commands_.push_back(c); }
+    bool IsBlock() const { return true; }
 
-    unsigned int Ncommands() const { return commands_.size(); }
     const_iterator begin() const { return commands_.begin(); }
     const_iterator end()   const { return commands_.end();   }
     void Start();
@@ -72,5 +74,23 @@ class Control_For : public Control {
     typedef std::vector<LoopVar> Marray;
     Marray Vars_;
     ArgArray commands_;
+};
+
+/// Create/update script variables
+class Control_Set : public Control {
+  public:
+    Control_Set() {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Control_Set(); }
+
+    int SetupControl(CpptrajState&, ArgList&, Varray&);
+    bool IsBlock() const { return false; }
+
+    bool EndControl(ArgList const& a) const { return false; }
+    void AddCommand(ArgList const& c) {}
+    const_iterator begin() const { return const_iterator(); }
+    const_iterator end()   const { return const_iterator(); }
+    void Start() {}
+    DoneType CheckDone(Varray&) { return ERROR; }
 };
 #endif

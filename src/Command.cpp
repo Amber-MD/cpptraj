@@ -374,6 +374,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // CONTROL STRUCTURES
   Command::AddCmd( new Control_For(),          Cmd::CTL, 1, "for" );
+  Command::AddCmd( new Control_Set(),          Cmd::CTL, 1, "set" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
@@ -509,15 +510,20 @@ bool Command::UnterminatedControl() {
 
 /** Create new control block with given Control. */
 int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg) {
-  if ( ctl->SetupControl( State, cmdArg ) )
+  if ( ctl->SetupControl( State, cmdArg, CurrentVars_ ) )
     return 1;
-  control_.push_back( ctl );
-  ctlidx_++;
-  mprintf("  BLOCK %2i: ", ctlidx_);
-  for (int i = 0; i < ctlidx_; i++)
-    mprintf("  ");
-  mprintf("%s\n", ctl->Description().c_str());
-  //mprintf("DEBUG: Begin control block %i\n", ctlidx_);
+  if ( ctl->IsBlock() ) {
+    if (ctlidx_ == -1) mprintf("CONTROL: Starting control block.\n");
+    control_.push_back( ctl );
+    ctlidx_++;
+    mprintf("  BLOCK %2i: ", ctlidx_);
+    for (int i = 0; i < ctlidx_; i++)
+      mprintf("  ");
+    mprintf("%s\n", ctl->Description().c_str());
+    //mprintf("DEBUG: Begin control block %i\n", ctlidx_);
+  } else
+    // Not a block. Can delete now.
+    delete ctl;
   return 0;
 }
 
@@ -636,7 +642,6 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
       case Cmd::CTL:
-        mprintf("CONTROL: Starting control block.\n");
         if (AddControlBlock( (Control*)obj, State, cmdArg )) {
           delete obj;
           return CpptrajState::ERR;
