@@ -52,7 +52,7 @@ class Control_For : public Control {
     void Start();
     DoneType CheckDone(Varray&);
   private:
-    enum ForType {ATOMS=0, RESIDUES, MOLECULES, INTEGER, UNKNOWN};
+    enum ForType {ATOMS=0, RESIDUES, MOLECULES, MOLFIRSTRES, MOLLASTRES, INTEGER, UNKNOWN};
     enum OpType { INCREMENT, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
     typedef std::vector<int> Iarray;
     class MaskHolder {

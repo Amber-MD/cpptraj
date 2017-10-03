@@ -4,9 +4,23 @@
 #include "StringRoutines.h"
 
 void Control_For::Help() const {
-  mprintf("\t[ {atoms|residues|molecules} <var> inmask <mask> %s ...\n"
-          "\t  <var>=<start>;[<var><OP><end>;]<var><OP>[<value>] ... ]\n",
+  mprintf("\t{ {atoms|residues|molecules|molfirstres|mollastres}\n"
+          "\t    <var> inmask <mask> %s ... |\n"
+          "\t  <var>=<start>;[<var><end OP><end>;]<var><increment OP>[<value>] ... }\n",
           DataSetList::TopIdxArgs);
+  mprintf("\tEND KEYWORD: 'done'\n");
+  mprintf("  Create a 'for' loop around specified mask(s) and/or integer value(s).\n"
+          "  Any number and combination of masks and integers can be specified.\n"
+          "  Variables created in the for loop can be referenced by prefacing\n"
+          "  the name with a '$' character.\n"
+          "  Available 'end OP'       : '<' '>'\n"
+          "  Available 'increment OP' : '++', '--', '+=', '-='\n"
+          "  Note that variables are NOT incremented after the final loop iteration,\n"
+          "  i.e. loop variables always retain their final value.\n"
+          "  Example:\n"
+          "\tfor atoms A0 inmask :1-27&!@H= i=1;i++\n"
+          "\t  distance d$i :TCS $A0 out $i.dat\n"
+          "\tdone\n");
 }
 
 /** Set up each mask. */
@@ -14,7 +28,8 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
   mprintf("    Setting up 'for' loop.\n");
   Masks_.clear();
   Topology* currentTop = 0;
-  static const char* TypeStr[] = { "ATOMS ", "RESIDUES ", "MOLECULES " };
+  static const char* TypeStr[] = { "ATOMS ", "RESIDUES ", "MOLECULES ",
+                                   "MOL_FIRST_RES ", "MOL_LAST_RES " };
   static const char* OpStr[] = {"+=", "-=", "<", ">"};
   description_.assign("for (");
   int MaxIterations = -1;
@@ -26,13 +41,18 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
     if (iarg == argIn.Nargs()) break;
     // Determine 'for' type
     ForType ftype = UNKNOWN;
+    bool isMaskFor = true;
     if      ( argIn[iarg] == "atoms"     ) ftype = ATOMS;
     else if ( argIn[iarg] == "residues"  ) ftype = RESIDUES;
     else if ( argIn[iarg] == "molecules" ) ftype = MOLECULES;
-    else if ( argIn[iarg].find(";") != std::string::npos )
+    else if ( argIn[iarg] == "molfirstres" ) ftype = MOLFIRSTRES;
+    else if ( argIn[iarg] == "mollastres"  ) ftype = MOLLASTRES;
+    else if ( argIn[iarg].find(";") != std::string::npos ) {
+      isMaskFor = false;
       ftype = INTEGER;
+    }
     if (ftype == UNKNOWN) {
-      mprinterr("Error: One of {atoms|residues|molecules} not specfied.\n");
+      mprinterr("Error: for loop type not specfied.\n");
       return 1;
     }
     argIn.MarkArg(iarg);
@@ -42,7 +62,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
     // Set up for specific type
     if (description_ != "for (") description_.append(", ");
     // -------------------------------------------
-    if (ftype == ATOMS || ftype == RESIDUES || ftype == MOLECULES)
+    if (isMaskFor)
     {
       // {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS]
       if (argIn[iarg+2] != "inmask") {
@@ -77,12 +97,24 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
             curRes = res;
           }
         }
-      } else if (MH.varType_ == MOLECULES) {
+      } else if (MH.varType_ == MOLECULES ||
+                 MH.varType_ == MOLFIRSTRES ||
+                 MH.varType_ == MOLLASTRES)
+      {
         int curMol = -1;
         for (AtomMask::const_iterator at = currentMask.begin(); at != currentMask.end(); ++at) {
           int mol = (*currentTop)[*at].MolNum();
           if (mol != curMol) {
-            MH.Idxs_.push_back( mol );
+            if (MH.varType_ == MOLECULES)
+              MH.Idxs_.push_back( mol );
+            else {
+              int res;
+              if (MH.varType_ == MOLFIRSTRES)
+                res = (*currentTop)[ currentTop->Mol( mol ).BeginAtom() ].ResNum();
+              else // MOLLASTRES
+                res = (*currentTop)[ currentTop->Mol( mol ).EndAtom()-1 ].ResNum();
+              MH.Idxs_.push_back( res );
+            }
             curMol = mol;
           }
         }
@@ -258,7 +290,7 @@ void Control_For::Start() {
 
 /** For each mask check if done, then update CurrentVars, then increment. */
 Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
-  static const char* prefix[] = {"@", ":", "^"};
+  static const char* prefix[] = {"@", ":", "^", ":", ":"};
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
     // Exit as soon as one is done TODO check all?
     if (MH->varType_ == INTEGER) {
