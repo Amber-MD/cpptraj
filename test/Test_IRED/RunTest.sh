@@ -18,7 +18,7 @@ for atoms Natom inmask :2-129@N&!:PRO atoms Hatom inmask :2-129@H v=1;v++
 done
 
 matrix ired name matired order 2
-diagmatrix matired out ired.vec name ired.vec vecs 126
+diagmatrix matired out ired.vec name ired.vec vecs \$v
 ired order 2 modes ired.vec relax freq 500.0 NHdist 1.02 \
      tstep 1.0 tcorr 10000.0 norm name MyIred \
      out v0 noefile noe ds2matrix matrix_ds2.dat 
