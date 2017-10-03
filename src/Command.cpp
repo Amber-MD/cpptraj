@@ -388,6 +388,7 @@ void Command::Init() {
   names_.push_back( 0 );
 }
 
+/** Clear any existing control blocks. */
 void Command::ClearControlBlocks() {
   for (CtlArray::iterator it = control_.begin(); it != control_.end(); ++it)
     delete *it;
@@ -546,15 +547,14 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
     ret = control_[block]->CheckDone(CurrentVars_);
   }
   if (ret == Control::ERROR) return 1;
-  //for (int i = 0; i < block; i++) mprintf("  ");
-  //mprintf("\n");
   return 0;
 }
 
-/** Search for the given command and execute it. EXE commands are executed
-  * immediately and then freed. ACT and ANA commands are sent to the
-  * CpptrajState for later execution. CTL commands set up control blocks
-  * which will be executed when completed.
+/** Handle the given command. If inside a control block, if the command is
+  * a control command a new block will be created, otherwise the command will
+  * be added to the current control block. Once all control blocks are
+  * complete they will be executed. If not inside a control block, just
+  * execute the command.
   */
 CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn)
 {
@@ -605,7 +605,12 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
 
 #undef NEW_BLOCK
 
-/** Search for and execute the given command. */
+/** Search for the given command and execute it. Replace any variables in
+  * command with their values. EXE commands are executed immediately and
+  * then freed. ACT and ANA commands are sent to the CpptrajState for later
+  * execution. CTL commands set up control blocks which will be executed when
+  * the outer control block is completed.
+  */
 CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList const& cmdArgIn ) {
   // Replace variable names in command with entries from CurrentVars
   ArgList cmdArg = CurrentVars_.ReplaceVariables( cmdArgIn );
