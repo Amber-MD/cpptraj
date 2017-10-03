@@ -388,14 +388,19 @@ void Command::Init() {
   names_.push_back( 0 );
 }
 
+void Command::ClearControlBlocks() {
+  for (CtlArray::iterator it = control_.begin(); it != control_.end(); ++it)
+    delete *it;
+  control_.clear();
+  ctlidx_ = -1;
+}
+
 /** Free all commands. Should only be called just before program exit. Also
   * remove any remaining control blocks.
   */
 void Command::Free() {
   commands_.Clear();
-  for (CtlArray::iterator it = control_.begin(); it != control_.end(); ++it)
-    delete *it;
-  control_.clear();
+  ClearControlBlocks();
 }
 
 /** \param oIn Pointer to DispatchObject to add as command.
@@ -568,13 +573,9 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).
         mprintf("CONTROL: Executing %u control block(s).\n", control_.size());
-        if (ExecuteControlBlock(0, State)) return CpptrajState::ERR;
-        // Control block finished, clean up
-        for (unsigned int i = 0; i < control_.size(); i++) {
-          //mprintf("DEBUG:  %u : %u commands.\n", i, control_[i]->Ncommands());
-          delete control_[i];
-        }
-        control_.clear();
+        int cbret = ExecuteControlBlock(0, State);
+        ClearControlBlocks();
+        if (cbret != 0) return CpptrajState::ERR;
         mprintf("CONTROL: Control block finished.\n\n");
       }
     } else {
@@ -591,6 +592,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
         DispatchObject* obj = ctlCmd.Alloc();
         if (AddControlBlock( (Control*)obj, State, cmdArg )) {
           delete obj;
+          ClearControlBlocks();
           return CpptrajState::ERR;
         }
       }
@@ -607,7 +609,7 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
   // Replace variable names in command with entries from CurrentVars
   ArgList cmdArg = CurrentVars_.ReplaceVariables( cmdArgIn );
   if (cmdArg.empty()) return CpptrajState::ERR;
-  // Print modified command and execute.
+  // Print modified command
   mprintf("  [%s]\n", cmdArg.ArgLine());
   // Look for command in command list.
   Cmd const& cmd = SearchToken( cmdArg );
@@ -672,8 +674,6 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
     }
     // Only attempt to execute if the command is not blank.
     if (!input.Empty()) {
-      // Print the input line that will be sent to dispatch
-      //mprintf("  [%s]\n", input.str());
 #     ifdef TIMER
       Timer time_cmd; // DEBUG
       time_cmd.Start(); // DEBUG
