@@ -179,6 +179,8 @@ Command::CtlArray Command::control_ = Command::CtlArray();
 
 int Command::ctlidx_ = -1;
 
+Control::Varray Command::CurrentVars_ = Control::Varray();
+
 /** Initialize all commands. Should only be called once as program starts. */
 void Command::Init() {
   // GENERAL
@@ -515,56 +517,32 @@ int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg)
 
 #define NEW_BLOCK "__NEW_BLOCK__"
 /** Execute the specified control block. */
-int Command::ExecuteControlBlock(int block, CpptrajState& State, Control::Varray CurrentVars)
+int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
-  control_[block]->Start(CurrentVars);
-  if (State.Debug() > 0) {
+  control_[block]->Start(CurrentVars_);
+  if (State.Debug() >= 0) {
     mprintf("DEBUG: Start: CurrentVars:");
-    for (Control::Varray::const_iterator vp = CurrentVars.begin(); vp != CurrentVars.end(); ++vp)
-      mprintf(" %s=%s", vp->first.c_str(), vp->second.c_str());
-    mprintf("\n");
+    CurrentVars_.PrintVariables();
   }
-  Control::DoneType ret = control_[block]->CheckDone(CurrentVars);
+  Control::DoneType ret = control_[block]->CheckDone(CurrentVars_);
   while (ret == Control::NOT_DONE) {
     for (Control::const_iterator it = control_[block]->begin();
                                  it != control_[block]->end(); ++it)
     {
       // Check if we need to execute a new block
       if (it->CommandIs(NEW_BLOCK)) {
-        if (ExecuteControlBlock(block+1, State, CurrentVars)) return 1;
+        if (ExecuteControlBlock(block+1, State)) return 1;
       } else {
         // Replace variable names in command with entries from CurrentVars
-        ArgList modCmd = *it;
-        for (int n = 0; n < modCmd.Nargs(); n++) {
-          size_t pos = modCmd[n].find("$");
-          if (pos != std::string::npos) {
-            // Argument is/contains a variable. Find first non-alphanumeric char
-            size_t len = 1;
-            for (size_t pos1 = pos+1; pos1 < modCmd[n].size(); pos1++, len++)
-              if (!isalnum(modCmd[n][pos1])) break;
-            std::string var_in_arg = modCmd[n].substr(pos, len);
-            // See if variable occurs in CurrentVars
-            Control::Varray::const_iterator vp = CurrentVars.begin();
-            for (; vp != CurrentVars.end(); ++vp)
-              if (vp->first == var_in_arg) break;
-            // If found replace with value from CurrentVars
-            if (vp != CurrentVars.end()) {
-              std::string arg = modCmd[n];
-              arg.replace(pos, vp->first.size(), vp->second);
-              modCmd.ChangeArg(n, arg);
-            } else {
-              mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
-              return 1;
-            }
-          }
-        }
+        ArgList modCmd = CurrentVars_.ReplaceVariables( *it );
+        if (modCmd.empty()) return 1;
         // Print modified command and execute.
         for (int i = 0; i < block; i++) mprintf("  ");
         mprintf("  [%s %s]\n", modCmd.Command(), modCmd.ArgString().c_str());
         if ( ExecuteCommand(State, modCmd) != CpptrajState::OK ) return 1;
       }
     }
-    ret = control_[block]->CheckDone(CurrentVars);
+    ret = control_[block]->CheckDone(CurrentVars_);
   }
   if (ret == Control::ERROR) return 1;
   //for (int i = 0; i < block; i++) mprintf("  ");
@@ -594,7 +572,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).
         mprintf("CONTROL: Executing %u control block(s).\n", control_.size());
-        if (ExecuteControlBlock(0, State, Control::Varray())) return CpptrajState::ERR;
+        if (ExecuteControlBlock(0, State)) return CpptrajState::ERR;
         // Control block finished, clean up
         for (unsigned int i = 0; i < control_.size(); i++) {
           //mprintf("DEBUG:  %u : %u commands.\n", i, control_[i]->Ncommands());

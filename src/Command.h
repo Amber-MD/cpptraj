@@ -27,15 +27,18 @@ class Command {
     static Cmd const& SearchTokenType(DispatchObject::Otype, const char*, bool);
     static void ListCommandsForType(DispatchObject::Otype);
     static int AddControlBlock(Control*, CpptrajState&, ArgList&);
-    static int ExecuteControlBlock(int, CpptrajState&, Control::Varray);
+    static ArgList ReplaceVariables(ArgList const&);
+    static int ExecuteControlBlock(int, CpptrajState&);
     static CpptrajState::RetType ExecuteCommand(CpptrajState&, ArgList&);
 
     static CmdList commands_; ///< Master list of commands.
     static const Cmd EMPTY_;  ///< Empty command.
     typedef std::vector<const char*> Carray;
-    static Carray names_; ///< Array of pointers to all command names, for ReadLine
+    static Carray names_;     ///< Array of pointers to all command names, for ReadLine
     typedef std::vector<Control*> CtlArray;
-    static CtlArray control_;
-    static int ctlidx_;
+    static CtlArray control_; ///< Array of control blocks
+    static int ctlidx_;       ///< Point to current control block
+    /// Array of script variables and their current values.
+    static Control::Varray CurrentVars_;
 };
 #endif

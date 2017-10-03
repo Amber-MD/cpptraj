@@ -1,6 +1,7 @@
 #ifndef INC_CONTROL_H
 #define INC_CONTROL_H
 #include "CpptrajState.h"
+#include "VariableArray.h"
 /// Control structures.
 class Control : public DispatchObject {
   public:
@@ -18,10 +19,8 @@ class Control : public DispatchObject {
 
     enum DoneType { DONE = 0, NOT_DONE, ERROR };
 
-    /// Hold variable, value
-    typedef std::pair<std::string,std::string> VarPair;
     /// Hold variable/value pairs
-    typedef std::vector<VarPair> Varray;
+    typedef VariableArray Varray;
     /// \return Number of commands in the block
     virtual unsigned int Ncommands() const = 0;
     /// \return iterator to first command in the block.

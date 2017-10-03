@@ -254,20 +254,7 @@ void Control_For::Start(Varray& CurrentVars) {
     else
       MH->idx_ = MH->Idxs_.begin();
     // Init CurrentVars
-    CurrentVars.push_back( VarPair(MH->varname_, "") );
-  }
-}
-
-static inline void UpdateCurrentVars(Control::Varray& CurrentVars, std::string const& varname,
-                                     std::string const& value)
-{
-  //mprintf("DEBUG: UpdateCurrentVars: %s = %s\n", varname.c_str(), value.c_str());
-  Control::Varray::iterator it = CurrentVars.begin();
-  for (; it != CurrentVars.end(); ++it) {
-    if (it->first == varname) {
-      it->second = value;
-      break;
-    }
+    CurrentVars.UpdateVariable( MH->varname_, "" );
   }
 }
 
@@ -283,7 +270,7 @@ Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
         if (MH->currentVal_ <= MH->end_) return DONE;
       }
       // Get variable value and update CurrentVars
-      UpdateCurrentVars(CurrentVars, MH->varname_, integerToString( MH->currentVal_ ));
+      CurrentVars.UpdateVariable( MH->varname_, integerToString( MH->currentVal_ ));
       // Increment
       MH->currentVal_ += MH->inc_;
     } else {
@@ -292,7 +279,7 @@ Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
       std::string maskStr = prefix[MH->varType_] + integerToString(*(MH->idx_) + 1);
       //mprintf("DEBUG: Control_For: %s\n", maskStr.c_str());
       // Update CurrentVars
-      UpdateCurrentVars(CurrentVars, MH->varname_, maskStr);
+      CurrentVars.UpdateVariable( MH->varname_, maskStr );
       // Increment
       ++(MH->idx_);
     }

@@ -43,3 +43,8 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn) {
   return modCmd;
 }
 
+void VariableArray::PrintVariables() const {
+  for (Varray::const_iterator vp = CurrentVars_.begin(); vp != CurrentVars_.end(); ++vp)
+    mprintf(" %s=%s", vp->first.c_str(), vp->second.c_str());
+  mprintf("\n");
+}

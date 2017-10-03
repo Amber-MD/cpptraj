@@ -337,6 +337,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         TrajIOarray.cpp \
         Trajout_Single.cpp \
         TrajoutList.cpp \
+        VariableArray.cpp \
         Vec3.cpp \
         ViewRst.cpp
 
