@@ -29,7 +29,7 @@ class Command {
     static int AddControlBlock(Control*, CpptrajState&, ArgList&);
     static ArgList ReplaceVariables(ArgList const&);
     static int ExecuteControlBlock(int, CpptrajState&);
-    static CpptrajState::RetType ExecuteCommand(CpptrajState&, ArgList&);
+    static CpptrajState::RetType ExecuteCommand(CpptrajState&, ArgList const&);
 
     static CmdList commands_; ///< Master list of commands.
     static const Cmd EMPTY_;  ///< Empty command.

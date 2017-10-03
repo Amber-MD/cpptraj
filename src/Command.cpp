@@ -529,17 +529,13 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
     for (Control::const_iterator it = control_[block]->begin();
                                  it != control_[block]->end(); ++it)
     {
-      // Check if we need to execute a new block
       if (it->CommandIs(NEW_BLOCK)) {
+        // Execute next control block
         if (ExecuteControlBlock(block+1, State)) return 1;
       } else {
-        // Replace variable names in command with entries from CurrentVars
-        ArgList modCmd = CurrentVars_.ReplaceVariables( *it );
-        if (modCmd.empty()) return 1;
-        // Print modified command and execute.
         for (int i = 0; i < block; i++) mprintf("  ");
-        mprintf("  [%s %s]\n", modCmd.Command(), modCmd.ArgString().c_str());
-        if ( ExecuteCommand(State, modCmd) != CpptrajState::OK ) return 1;
+        // Execute command
+        if ( ExecuteCommand(State, *it) != CpptrajState::OK ) return 1;
       }
     }
     ret = control_[block]->CheckDone(CurrentVars_);
@@ -607,7 +603,12 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
 #undef NEW_BLOCK
 
 /** Search for and execute the given command. */
-CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList& cmdArg ) {
+CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList const& cmdArgIn ) {
+  // Replace variable names in command with entries from CurrentVars
+  ArgList cmdArg = CurrentVars_.ReplaceVariables( cmdArgIn );
+  if (cmdArg.empty()) return CpptrajState::ERR;
+  // Print modified command and execute.
+  mprintf("  [%s]\n", cmdArg.ArgLine());
   // Look for command in command list.
   Cmd const& cmd = SearchToken( cmdArg );
   CpptrajState::RetType ret_val = CpptrajState::OK;
@@ -672,7 +673,7 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
     // Only attempt to execute if the command is not blank.
     if (!input.Empty()) {
       // Print the input line that will be sent to dispatch
-      mprintf("  [%s]\n", input.str());
+      //mprintf("  [%s]\n", input.str());
 #     ifdef TIMER
       Timer time_cmd; // DEBUG
       time_cmd.Start(); // DEBUG
