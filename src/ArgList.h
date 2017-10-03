@@ -62,7 +62,7 @@ class ArgList {
     /// Remove the first argument
     void RemoveFirstArg();
     /// Change argument at position to new argument
-    void ChangeArg(int p, std::string const& a) { arglist_[p] = a; }
+    void ChangeArg(unsigned int, std::string const&);
     /// \return the first argument
     const char *Command() const;
     /// \return true if the first argument matches key

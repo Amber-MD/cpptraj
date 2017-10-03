@@ -207,6 +207,13 @@ void ArgList::RemoveFirstArg() {
   marked_.erase( marked_.begin() );
 }
 
+/** Replace argument at position with given argument. Update ArgLine. */
+void ArgList::ChangeArg(unsigned int idx, std::string const& arg) {
+  size_t pos = argline_.find( arglist_[idx], 0 ); 
+  argline_.replace(pos, arglist_[idx].size(), arg);
+  arglist_[idx] = arg;
+}
+
 // ArgList::Command()
 /* \return pointer to the first argument
  */
