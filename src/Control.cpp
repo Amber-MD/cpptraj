@@ -26,7 +26,7 @@ void Control_For::Help() const {
 /** Set up each mask. */
 int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
   mprintf("    Setting up 'for' loop.\n");
-  Masks_.clear();
+  Vars_.clear();
   Topology* currentTop = 0;
   static const char* TypeStr[] = { "ATOMS ", "RESIDUES ", "MOLECULES ",
                                    "MOL_FIRST_RES ", "MOL_LAST_RES " };
@@ -56,8 +56,8 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       return 1;
     }
     argIn.MarkArg(iarg);
-    Masks_.push_back( MaskHolder() );
-    MaskHolder& MH = Masks_.back();
+    Vars_.push_back( LoopVar() );
+    LoopVar& MH = Vars_.back();
     int Niterations = -1;
     // Set up for specific type
     if (description_ != "for (") description_.append(", ");
@@ -270,7 +270,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
 
 /** For each mask initialize iterator. For each integer set to start value. */
 void Control_For::Start() {
-  for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
+  for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
     if (MH->varType_ == INTEGER)
       MH->currentVal_ = MH->start_; // TODO search currentvars
     else
@@ -281,7 +281,7 @@ void Control_For::Start() {
 /** For each mask check if done, then update CurrentVars, then increment. */
 Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
   static const char* prefix[] = {"@", ":", "^", ":", ":"};
-  for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
+  for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
     // Exit as soon as one is done TODO check all?
     if (MH->varType_ == INTEGER) {
       if (MH->endOp_ == LESS_THAN) {

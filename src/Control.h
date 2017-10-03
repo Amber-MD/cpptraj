@@ -55,22 +55,22 @@ class Control_For : public Control {
     enum ForType {ATOMS=0, RESIDUES, MOLECULES, MOLFIRSTRES, MOLLASTRES, INTEGER, UNKNOWN};
     enum OpType { INCREMENT, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
     typedef std::vector<int> Iarray;
-    class MaskHolder {
+    class LoopVar {
       public:
-      MaskHolder() : varType_(UNKNOWN) {}
-      Iarray Idxs_;                ///< Hold selected atom/residue/molecule indices
-      Iarray::const_iterator idx_; ///< Hold current atom/residue/molecule index
-      std::string varname_;
-      ForType varType_;
-      OpType endOp_;
-      OpType incOp_;
-      int start_;
-      int end_;
-      int inc_;
-      int currentVal_;
+      LoopVar() : varType_(UNKNOWN) {}
+      Iarray Idxs_;                ///< (MASK only) Selected atom/residue/molecule indices
+      Iarray::const_iterator idx_; ///< (MASK only) Current atom/residue/molecule index
+      std::string varname_;        ///< Loop variable name
+      ForType varType_;            ///< Loop variable type
+      OpType endOp_;               ///< (INTEGER only) end operator
+      OpType incOp_;               ///< (INTEGER only) increment operator
+      int start_;                  ///< (INTEGER only) initial value
+      int end_;                    ///< (INTEGER only) end value
+      int inc_;                    ///< (INTEGER only) increment value
+      int currentVal_;             ///< (INTEGER only) current value
     };
-    typedef std::vector<MaskHolder> Marray;
-    Marray Masks_;
+    typedef std::vector<LoopVar> Marray;
+    Marray Vars_;
     ArgArray commands_;
 };
 #endif
