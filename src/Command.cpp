@@ -526,7 +526,7 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
   control_[block]->Start();
   Control::DoneType ret = control_[block]->CheckDone(CurrentVars_);
-  if (State.Debug() >= 0) {
+  if (State.Debug() > 0) {
     mprintf("DEBUG: Start: CurrentVars:");
     CurrentVars_.PrintVariables();
   }
@@ -583,6 +583,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       Cmd const& ctlCmd = SearchTokenType(DispatchObject::CONTROL, cmdArg.Command(), true);
       if (ctlCmd.Empty()) {
         // Add this command to current control block.
+        mprintf("  [%s]\n", cmdArg.ArgLine());
         control_[ctlidx_]->AddCommand( cmdArg );
         mprintf("\tAdded command '%s' to control block %i.\n", cmdArg.Command(), ctlidx_);
       } else {
