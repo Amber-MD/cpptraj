@@ -27,9 +27,9 @@ class Control : public DispatchObject {
     virtual const_iterator begin() const = 0;
     /// \return iterator to last command in the block.
     virtual const_iterator end() const = 0;
-    /// Start control block. Check/init variables.
-    virtual void Start(Varray&) = 0;
-    /// Update variables and increment, check control state.
+    /// Start control block. Init internal variables if necessary.
+    virtual void Start() = 0;
+    /// Add/update variables and increment, check control state.
     virtual DoneType CheckDone(Varray&) = 0;
   protected:
     std::string description_; ///< Describe control TODO private?
@@ -49,7 +49,7 @@ class Control_For : public Control {
     unsigned int Ncommands() const { return commands_.size(); }
     const_iterator begin() const { return commands_.begin(); }
     const_iterator end()   const { return commands_.end();   }
-    void Start(Varray&);
+    void Start();
     DoneType CheckDone(Varray&);
   private:
     enum ForType {ATOMS=0, RESIDUES, MOLECULES, INTEGER, UNKNOWN};

@@ -519,12 +519,12 @@ int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg)
 /** Execute the specified control block. */
 int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
-  control_[block]->Start(CurrentVars_);
+  control_[block]->Start();
+  Control::DoneType ret = control_[block]->CheckDone(CurrentVars_);
   if (State.Debug() >= 0) {
     mprintf("DEBUG: Start: CurrentVars:");
     CurrentVars_.PrintVariables();
   }
-  Control::DoneType ret = control_[block]->CheckDone(CurrentVars_);
   while (ret == Control::NOT_DONE) {
     for (Control::const_iterator it = control_[block]->begin();
                                  it != control_[block]->end(); ++it)

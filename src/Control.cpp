@@ -246,15 +246,13 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
   return 0;
 }
 
-/** For each mask add variable to CurrentVars and initialize iterator. */
-void Control_For::Start(Varray& CurrentVars) {
+/** For each mask initialize iterator. For each integer set to start value. */
+void Control_For::Start() {
   for (Marray::iterator MH = Masks_.begin(); MH != Masks_.end(); ++MH) {
     if (MH->varType_ == INTEGER)
       MH->currentVal_ = MH->start_; // TODO search currentvars
     else
       MH->idx_ = MH->Idxs_.begin();
-    // Init CurrentVars
-    CurrentVars.UpdateVariable( MH->varname_, "" );
   }
 }
 
