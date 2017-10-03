@@ -9,8 +9,6 @@ class Command {
     static void Free();
     /// List commands of given type, or all if type is NONE
     static void ListCommands(DispatchObject::Otype);
-    /// Add a command to the list of commands
-    static void AddCmd(DispatchObject*, Cmd::DestType, int, ...);
     /// \return command corresponding to first argument in ArgList.
     static Cmd const& SearchToken(ArgList&);
     /// \return command of given type corresponding to given command key. 
@@ -24,12 +22,19 @@ class Command {
     /// \return Pointer to command name address.
     static const char* CmdToken(int idx) { return names_[idx]; }
   private:
+    /// Add a command to the list of commands
+    static void AddCmd(DispatchObject*, Cmd::DestType, int, ...);
+    /// Search for command of given type with given name; can be silent.
     static Cmd const& SearchTokenType(DispatchObject::Otype, const char*, bool);
+    /// List all commands for given type
     static void ListCommandsForType(DispatchObject::Otype);
+    /// Clear all existing control blocks
     static void ClearControlBlocks();
+    /// Add a new control block
     static int AddControlBlock(Control*, CpptrajState&, ArgList&);
-    static ArgList ReplaceVariables(ArgList const&);
+    /// Execute specified control block
     static int ExecuteControlBlock(int, CpptrajState&);
+    /// Execute given command
     static CpptrajState::RetType ExecuteCommand(CpptrajState&, ArgList const&);
 
     static CmdList commands_; ///< Master list of commands.
