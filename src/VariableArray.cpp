@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 
 /** Add variable/value to array if it doesnt exist, otherwise set value. */
-void VariableArray::AddVariable(std::string const& varname, std::string const& value)
+void VariableArray::UpdateVariable(std::string const& varname, std::string const& value)
 {
   Varray::iterator it = CurrentVars_.begin();
   for (; it != CurrentVars_.end(); ++it)

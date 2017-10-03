@@ -10,8 +10,8 @@ class VariableArray {
     typedef std::vector<Vpair> Varray;
     /// CONSTRUCTOR
     VariableArray() {}
-    /// Add variable with initial value.
-    void AddVariable(std::string const&, std::string const&);
+    /// Add/update variable with given value.
+    void UpdateVariable(std::string const&, std::string const&);
     /// Replace all variables in given ArgList with their values.
     ArgList ReplaceVariables(ArgList const&);
   private:
