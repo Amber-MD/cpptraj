@@ -68,8 +68,6 @@ class Control_For : public Control {
       int end_;
       int inc_;
       int currentVal_;
-      std::string startArg_;
-      std::string endArg_;
     };
     typedef std::vector<MaskHolder> Marray;
     Marray Masks_;

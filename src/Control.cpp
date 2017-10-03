@@ -142,11 +142,9 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       }
       MH.varname_ = startArg[0];
       if (!validInteger(startArg[1])) {
-        if (startArg[1][0] != '$') {
-          mprinterr("Error: Expected start argument to be integer or variable.\n");
-          return 1;
-        }
-        MH.startArg_ = startArg[1];
+        // TODO allow variables
+        mprinterr("Error: Start argument must be an integer.\n");
+        return 1;
       } else
         MH.start_ = convertToInteger(startArg[1]);
       // Second argument: <var><OP><end>
@@ -167,11 +165,9 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
         }
         std::string endStr = varArg[1].substr(pos1);
         if (!validInteger(endStr)) {
-          if (endStr[0] != '$') {
-            mprinterr("Error: Expected end argument to be integer or variable.\n");
-            return 1;
-          }
-          MH.endArg_ = endStr;
+          // TODO allow variables
+          mprinterr("Error: End argument must be an integer.\n");
+          return 1;
         } else
           MH.end_ = convertToInteger(endStr);
       }
@@ -215,18 +211,12 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn) {
       }
       // Description
       MH.varname_ = "$" + MH.varname_;
-      std::string sval, eval;
-      if (MH.startArg_.empty())
-        sval = integerToString(MH.start_);
-      else
-        sval = MH.startArg_;
+      std::string sval = integerToString(MH.start_);
       description_.append("(" + MH.varname_ + "=" + sval + "; ");
+      std::string eval;
       if (iargIdx == 2) {
         // End argument present
-        if (MH.endArg_.empty())
-          eval = integerToString(MH.end_);
-        else
-          eval = MH.endArg_;
+        eval = integerToString(MH.end_);
         description_.append(MH.varname_ + std::string(OpStr[MH.endOp_]) + eval + "; ");
         // Check end > start for increment, start > end for decrement
         int maxval, minval;
