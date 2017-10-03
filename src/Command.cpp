@@ -562,6 +562,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   cmdArg.MarkArg(0); // Always mark the first arg as the command
   // Check for control block
   if (!control_.empty()) {
+    mprintf("  [%s]\n", cmdArg.ArgLine());
     // In control block. Check if current block should end.
     if ( control_[ctlidx_]->EndControl( cmdArg ) ) {
       //mprintf("DEBUG: End control block %i.\n", ctlidx_);
@@ -583,7 +584,6 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       Cmd const& ctlCmd = SearchTokenType(DispatchObject::CONTROL, cmdArg.Command(), true);
       if (ctlCmd.Empty()) {
         // Add this command to current control block.
-        mprintf("  [%s]\n", cmdArg.ArgLine());
         control_[ctlidx_]->AddCommand( cmdArg );
         mprintf("\tAdded command '%s' to control block %i.\n", cmdArg.Command(), ctlidx_);
       } else {
