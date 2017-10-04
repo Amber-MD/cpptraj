@@ -309,29 +309,23 @@ Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
 
 // =============================================================================
 void Control_Set::Help() const {
-  mprintf("\t<variable>=<value>\n");
+  mprintf("\t<variable>=<value>\n"
+          "  Set script variable <variable> to value <value>.\n");
 }
 
 int Control_Set::SetupControl(CpptrajState& State, ArgList& argIn, Varray& CurrentVars)
 {
-  int iarg = 0;
-  while (iarg < argIn.Nargs()) {
-    while (iarg < argIn.Nargs() && argIn.Marked(iarg)) iarg++;
-    if (iarg == argIn.Nargs()) break;
-    if ( argIn[iarg].find("=") != std::string::npos ) {
-      // <var>=<value>
-      ArgList equals( argIn[iarg], "=" );
-      if (equals.Nargs() != 2) {
-        mprinterr("Error: Expected <var>=<value>\n");
-        return 1;
-      }
-      CurrentVars.UpdateVariable( "$" + equals[0], equals[1] );
-      mprintf("\tVariable '%s' set to '%s'\n", equals[0].c_str(), equals[1].c_str());
-      argIn.MarkArg(iarg);
-    } else {
-      mprinterr("Error: Unrecognized syntax: %s\n", argIn[iarg].c_str());
-      return 1;
-    }
+  // In this case allow any amount of whitespace, so re-tokenize the original
+  // argument line, minus the command.
+  ArgList remaining = argIn.RemainingArgs();
+  ArgList equals( remaining.ArgLineStr(), " =" );
+  if (equals.Nargs() != 2) {
+    mprinterr("Error: Expected <var>=<value>\n");
+    return 1;
   }
+  CurrentVars.UpdateVariable( "$" + equals[0], equals[1] );
+  mprintf("\tVariable '%s' set to '%s'\n", equals[0].c_str(), equals[1].c_str());
+  for (int iarg = 0; iarg < argIn.Nargs(); iarg++)
+    argIn.MarkArg( iarg );
   return 0;
 }

@@ -23,7 +23,7 @@ class Control : public DispatchObject {
     virtual bool EndControl(ArgList const&) const = 0;
     /// Add command to control structure.
     virtual void AddCommand(ArgList const&) = 0;
-
+    /// Control states
     enum DoneType { DONE = 0, NOT_DONE, ERROR };
     /// \return iterator to first command in the block.
     virtual const_iterator begin() const = 0;
@@ -37,7 +37,7 @@ class Control : public DispatchObject {
     std::string description_; ///< Describe control TODO private?
 };
 
-/// Loop over mask expression etc
+/// Loop over mask expression or integer 
 class Control_For : public Control {
   public:
     Control_For() {}
