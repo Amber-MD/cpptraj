@@ -5,6 +5,9 @@
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
            nh.dat rms.nofit.dat
 
+TESTNAME='Loop tests'
+Requires netcdf maxthreads 10
+
 INPUT='-i for.in'
 cat > for.in <<EOF
 set FNAME= ../tz2.nc
@@ -28,15 +31,13 @@ for residues R1 inmask :1-12 r=1;r++
   rms R\$r \$R1&!@H= nofit out rms.nofit.dat
 done
 EOF
-RunCpptraj "Loop tests"
+RunCpptraj "$TESTNAME"
 DoTest TRP.vec.dat.save TRP.vec.dat
 DoTest TRP.rms.dat.save TRP.rms.dat
 DoTest TRP.CA.dist.dat.save TRP.CA.dist.dat
 DoTest TRP.tocenter.dat.save TRP.tocenter.dat
 DoTest nh.dat.save nh.dat
 DoTest rms.nofit.dat.save rms.nofit.dat
-
-#DoTest test.out.save test.out
 
 EndTest
 exit 0
