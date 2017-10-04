@@ -638,7 +638,7 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
       case Cmd::CTL:
-        ret_val = ((Control_Set*)obj)->SetupControl(State, cmdArg, CurrentVars_);
+        ret_val = ((Control*)obj)->SetupControl(State, cmdArg, CurrentVars_);
         delete obj;
         break;
       case Cmd::BLK:

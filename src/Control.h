@@ -71,13 +71,22 @@ class ControlBlock_For : public ControlBlock {
     ArgArray commands_;
 };
 // =============================================================================
-/// Create/update script variables
-class Control_Set : public DispatchObject {
+/// Work with script variables
+class Control : public DispatchObject {
   public:
     /// Hold variable/value pairs
     typedef VariableArray Varray;
 
-    Control_Set() : DispatchObject(CONTROL) {}
+    Control() : DispatchObject(CONTROL) {}
+    virtual ~Control() {}
+    virtual CpptrajState::RetType SetupControl(CpptrajState&, ArgList&, Varray&) = 0;
+};
+
+/// Create/update script variables
+class Control_Set : public Control {
+  public:
+
+    Control_Set() {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Control_Set(); }
 
