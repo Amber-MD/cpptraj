@@ -375,6 +375,7 @@ void Command::Init() {
   // CONTROL STRUCTURES
   Command::AddCmd( new ControlBlock_For(),     Cmd::BLK, 1, "for" );
   Command::AddCmd( new Control_Set(),          Cmd::CTL, 1, "set" );
+  Command::AddCmd( new Control_Show(),         Cmd::CTL, 1, "show" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );

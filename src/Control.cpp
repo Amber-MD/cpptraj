@@ -331,3 +331,16 @@ CpptrajState::RetType
     argIn.MarkArg( iarg );
   return CpptrajState::OK;
 }
+// -----------------------------------------------------------------------------
+void Control_Show::Help() const {
+  mprintf("  Show all current script variables and their values.\n");
+}
+
+CpptrajState::RetType
+  Control_Show::SetupControl(CpptrajState& State, ArgList& argIn, Varray& CurrentVars)
+{
+  //for (Varray::const_iterator it = CurrentVars.begin(); it != CurrentVars.end(); ++it)
+  //  mprintf("\t%s = %s\n", it->first.c_str(), it->second.c_str());
+  CurrentVars.PrintVariables();
+  return CpptrajState::OK;
+}

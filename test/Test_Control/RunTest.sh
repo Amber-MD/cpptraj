@@ -30,6 +30,7 @@ rms :1-12&!@H=
 for residues R1 inmask :1-12 r=1;r++
   rms R\$r \$R1&!@H= nofit out rms.nofit.dat
 done
+show
 EOF
 RunCpptraj "$TESTNAME"
 DoTest TRP.vec.dat.save TRP.vec.dat
