@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 
-void Control_For::Help() const {
+void ControlBlock_For::Help() const {
   mprintf("\t{ {atoms|residues|molecules|molfirstres|mollastres}\n"
           "\t    <var> inmask <mask> %s ... |\n"
           "\t  <var>=<start>;[<var><end OP><end>;]<var><increment OP>[<value>] ... }\n",
@@ -23,8 +23,8 @@ void Control_For::Help() const {
           "\tdone\n");
 }
 
-/** Set up each mask. */
-int Control_For::SetupControl(CpptrajState& State, ArgList& argIn, Varray& CurrentVars) {
+/** Set up each mask/integer loop. */
+int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
   mprintf("    Setting up 'for' loop.\n");
   Vars_.clear();
   Topology* currentTop = 0;
@@ -269,7 +269,7 @@ int Control_For::SetupControl(CpptrajState& State, ArgList& argIn, Varray& Curre
 }
 
 /** For each mask initialize iterator. For each integer set to start value. */
-void Control_For::Start() {
+void ControlBlock_For::Start() {
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
     if (MH->varType_ == INTEGER)
       MH->currentVal_ = MH->start_; // TODO search currentvars
@@ -279,7 +279,7 @@ void Control_For::Start() {
 }
 
 /** For each mask check if done, then update CurrentVars, then increment. */
-Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
+ControlBlock::DoneType ControlBlock_For::CheckDone(Varray& CurrentVars) {
   static const char* prefix[] = {"@", ":", "^", ":", ":"};
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
     // Exit as soon as one is done TODO check all?
@@ -297,7 +297,7 @@ Control::DoneType Control_For::CheckDone(Varray& CurrentVars) {
       if (MH->idx_ == MH->Idxs_.end()) return DONE;
       // Get variable value
       std::string maskStr = prefix[MH->varType_] + integerToString(*(MH->idx_) + 1);
-      //mprintf("DEBUG: Control_For: %s\n", maskStr.c_str());
+      //mprintf("DEBUG: ControlBlock_For: %s\n", maskStr.c_str());
       // Update CurrentVars
       CurrentVars.UpdateVariable( MH->varname_, maskStr );
       // Increment
@@ -313,19 +313,21 @@ void Control_Set::Help() const {
           "  Set script variable <variable> to value <value>.\n");
 }
 
-int Control_Set::SetupControl(CpptrajState& State, ArgList& argIn, Varray& CurrentVars)
+/** Set up variable with value. In this case allow any amount of whitespace,
+  * so re-tokenize the original argument line (minus the command).
+  */
+CpptrajState::RetType
+  Control_Set::SetupControl(CpptrajState& State, ArgList& argIn, Varray& CurrentVars)
 {
-  // In this case allow any amount of whitespace, so re-tokenize the original
-  // argument line, minus the command.
   ArgList remaining = argIn.RemainingArgs();
   ArgList equals( remaining.ArgLineStr(), " =" );
   if (equals.Nargs() != 2) {
     mprinterr("Error: Expected <var>=<value>\n");
-    return 1;
+    return CpptrajState::ERR;
   }
   CurrentVars.UpdateVariable( "$" + equals[0], equals[1] );
   mprintf("\tVariable '%s' set to '%s'\n", equals[0].c_str(), equals[1].c_str());
   for (int iarg = 0; iarg < argIn.Nargs(); iarg++)
     argIn.MarkArg( iarg );
-  return 0;
+  return CpptrajState::OK;
 }

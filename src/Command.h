@@ -31,7 +31,7 @@ class Command {
     /// Clear all existing control blocks
     static void ClearControlBlocks();
     /// Add a new control block
-    static int AddControlBlock(Control*, CpptrajState&, ArgList&);
+    static int AddControlBlock(ControlBlock*, CpptrajState&, ArgList&);
     /// Execute specified control block
     static int ExecuteControlBlock(int, CpptrajState&);
     /// Execute given command
@@ -41,10 +41,10 @@ class Command {
     static const Cmd EMPTY_;  ///< Empty command.
     typedef std::vector<const char*> Carray;
     static Carray names_;     ///< Array of pointers to all command names, for ReadLine
-    typedef std::vector<Control*> CtlArray;
+    typedef std::vector<ControlBlock*> CtlArray;
     static CtlArray control_; ///< Array of control blocks
     static int ctlidx_;       ///< Point to current control block
     /// Array of script variables and their current values.
-    static Control::Varray CurrentVars_;
+    static VariableArray CurrentVars_;
 };
 #endif

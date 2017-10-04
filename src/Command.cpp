@@ -179,7 +179,7 @@ Command::CtlArray Command::control_ = Command::CtlArray();
 
 int Command::ctlidx_ = -1;
 
-Control::Varray Command::CurrentVars_ = Control::Varray();
+VariableArray Command::CurrentVars_ = VariableArray();
 
 /** Initialize all commands. Should only be called once as program starts. */
 void Command::Init() {
@@ -373,7 +373,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // CONTROL STRUCTURES
-  Command::AddCmd( new Control_For(),          Cmd::CTL, 1, "for" );
+  Command::AddCmd( new ControlBlock_For(),     Cmd::BLK, 1, "for" );
   Command::AddCmd( new Control_Set(),          Cmd::CTL, 1, "set" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
@@ -508,22 +508,18 @@ bool Command::UnterminatedControl() {
   return false;
 }
 
-/** Create new control block with given Control. */
-int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg) {
-  if ( ctl->SetupControl( State, cmdArg, CurrentVars_ ) )
+/** Create new control block with given Block. */
+int Command::AddControlBlock(ControlBlock* ctl, CpptrajState& State, ArgList& cmdArg) {
+  if ( ctl->SetupBlock( State, cmdArg ) )
     return 1;
-  if ( ctl->IsBlock() ) {
-    if (ctlidx_ == -1) mprintf("CONTROL: Starting control block.\n");
-    control_.push_back( ctl );
-    ctlidx_++;
-    mprintf("  BLOCK %2i: ", ctlidx_);
-    for (int i = 0; i < ctlidx_; i++)
-      mprintf("  ");
-    mprintf("%s\n", ctl->Description().c_str());
-    //mprintf("DEBUG: Begin control block %i\n", ctlidx_);
-  } else
-    // Not a block. Can delete now.
-    delete ctl;
+  if (ctlidx_ == -1) mprintf("CONTROL: Starting control block.\n");
+  control_.push_back( ctl );
+  ctlidx_++;
+  mprintf("  BLOCK %2i: ", ctlidx_);
+  for (int i = 0; i < ctlidx_; i++)
+    mprintf("  ");
+  mprintf("%s\n", ctl->Description().c_str());
+  //mprintf("DEBUG: Begin control block %i\n", ctlidx_);
   return 0;
 }
 
@@ -532,14 +528,14 @@ int Command::AddControlBlock(Control* ctl, CpptrajState& State, ArgList& cmdArg)
 int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
   control_[block]->Start();
-  Control::DoneType ret = control_[block]->CheckDone(CurrentVars_);
+  ControlBlock::DoneType ret = control_[block]->CheckDone(CurrentVars_);
   if (State.Debug() > 0) {
     mprintf("DEBUG: Start: CurrentVars:");
     CurrentVars_.PrintVariables();
   }
-  while (ret == Control::NOT_DONE) {
-    for (Control::const_iterator it = control_[block]->begin();
-                                 it != control_[block]->end(); ++it)
+  while (ret == ControlBlock::NOT_DONE) {
+    for (ControlBlock::const_iterator it = control_[block]->begin();
+                                      it != control_[block]->end(); ++it)
     {
       if (it->CommandIs(NEW_BLOCK)) {
         // Execute next control block
@@ -552,7 +548,7 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
     }
     ret = control_[block]->CheckDone(CurrentVars_);
   }
-  if (ret == Control::ERROR) return 1;
+  if (ret == ControlBlock::ERROR) return 1;
   return 0;
 }
 
@@ -570,7 +566,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   if (!control_.empty()) {
     mprintf("  [%s]\n", cmdArg.ArgLine());
     // In control block. Check if current block should end.
-    if ( control_[ctlidx_]->EndControl( cmdArg ) ) {
+    if ( control_[ctlidx_]->EndBlock( cmdArg ) ) {
       //mprintf("DEBUG: End control block %i.\n", ctlidx_);
       mprintf("  BLOCK %2i: ", ctlidx_);
       for (int i = 0; i < ctlidx_; i++)
@@ -586,8 +582,8 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
         mprintf("CONTROL: Control block finished.\n\n");
       }
     } else {
-      // Check if this is another control statement (silently)
-      Cmd const& ctlCmd = SearchTokenType(DispatchObject::CONTROL, cmdArg.Command(), true);
+      // Check if this is another control block statement (silently)
+      Cmd const& ctlCmd = SearchTokenType(DispatchObject::BLOCK, cmdArg.Command(), true);
       if (ctlCmd.Empty()) {
         // Add this command to current control block.
         control_[ctlidx_]->AddCommand( cmdArg );
@@ -597,7 +593,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
         control_[ctlidx_]->AddCommand(NEW_BLOCK);
         // Create new control block
         DispatchObject* obj = ctlCmd.Alloc();
-        if (AddControlBlock( (Control*)obj, State, cmdArg )) {
+        if (AddControlBlock( (ControlBlock*)obj, State, cmdArg )) {
           delete obj;
           ClearControlBlocks();
           return CpptrajState::ERR;
@@ -642,7 +638,11 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
       case Cmd::CTL:
-        if (AddControlBlock( (Control*)obj, State, cmdArg )) {
+        ret_val = ((Control_Set*)obj)->SetupControl(State, cmdArg, CurrentVars_);
+        delete obj;
+        break;
+      case Cmd::BLK:
+        if (AddControlBlock( (ControlBlock*)obj, State, cmdArg )) {
           delete obj;
           return CpptrajState::ERR;
         }

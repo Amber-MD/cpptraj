@@ -11,8 +11,8 @@
 class Cmd {
   public:
     typedef std::vector< std::string > Sarray; // TODO put in common header?
-    /// Command destinations. EXEcute, ACTion, ANAlysis, ConTroL, DEPrecated.
-    enum DestType { EXE = 0, ACT, ANA, CTL, DEP };
+    /// Command destinations. EXEcute, ACTion, ANAlysis, ConTroL, BLocK, DEPrecated.
+    enum DestType { EXE = 0, ACT, ANA, CTL, BLK, DEP };
     /// CONSTRUCTOR
     Cmd() : object_(0), dest_(EXE) {}
     /// CONSTRUCTOR - takes destination, DispatchObject pointer, and keywords.
