@@ -566,8 +566,9 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   // Check for control block
   if (!control_.empty()) {
     mprintf("  [%s]\n", cmdArg.ArgLine());
-    // In control block. Check if current block should end.
+    // In control block.
     if ( control_[ctlidx_]->EndBlock( cmdArg ) ) {
+      // End the current control block.
       //mprintf("DEBUG: End control block %i.\n", ctlidx_);
       mprintf("  BLOCK %2i: ", ctlidx_);
       for (int i = 0; i < ctlidx_; i++)
@@ -609,9 +610,9 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
 #undef NEW_BLOCK
 
 /** Search for the given command and execute it. Replace any variables in
-  * command with their values. EXE commands are executed immediately and
-  * then freed. ACT and ANA commands are sent to the CpptrajState for later
-  * execution. CTL commands set up control blocks which will be executed when
+  * command with their values. EXE and CTL commands are executed immediately
+  * and then freed. ACT and ANA commands are sent to the CpptrajState for later
+  * execution. BLK commands set up control blocks which will be executed when
   * the outer control block is completed.
   */
 CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList const& cmdArgIn ) {
@@ -624,7 +625,7 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
   Cmd const& cmd = SearchToken( cmdArg );
   CpptrajState::RetType ret_val = CpptrajState::OK;
   if (cmd.Empty()) {
-    // Try to evaluate the expression
+    // Not a command. Try to evaluate the expression
     RPNcalc calc;
     calc.SetDebug( State.Debug() );
     if (calc.ProcessExpression( cmdArg.ArgLineStr() ))
