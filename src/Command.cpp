@@ -584,8 +584,8 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       }
     } else {
       // Check if this is another control block statement (silently)
-      Cmd const& ctlCmd = SearchTokenType(DispatchObject::BLOCK, cmdArg.Command(), true);
-      if (ctlCmd.Empty()) {
+      Cmd const& ctlCmd = SearchTokenType(DispatchObject::CONTROL, cmdArg.Command(), true);
+      if (ctlCmd.Empty() || ctlCmd.Destination() != Cmd::BLK) { // TODO just check Destination?
         // Add this command to current control block.
         control_[ctlidx_]->AddCommand( cmdArg );
         mprintf("\tAdded command '%s' to control block %i.\n", cmdArg.Command(), ctlidx_);

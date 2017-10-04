@@ -12,7 +12,7 @@ class ControlBlock : public DispatchObject {
     /// Control block states
     enum DoneType { DONE = 0, NOT_DONE, ERROR };
 
-    ControlBlock() : DispatchObject(BLOCK) {}
+    ControlBlock() : DispatchObject(CONTROL) {}
     virtual ~ControlBlock() {}
     /// \return Description of control block.
     std::string const& Description() const { return description_; }
