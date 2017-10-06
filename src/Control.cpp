@@ -311,11 +311,14 @@ ControlBlock::DoneType ControlBlock_For::CheckDone(Varray& CurrentVars) {
 void Control_Set::Help() const {
   mprintf("\t{ <variable> = <value> |\n"
           "\t  <variable> = {atoms|residues|molecules} inmask <mask>\n"
-          "\t    [%s] }\n",
+          "\t    [%s]\n"
+          "\t  <variable> = trajinframes }\n",
           DataSetList::TopIdxArgs);
-  mprintf("  Set script variable <variable> to value <value>. Alternatively\n"
-          "  set script variable to the number of atoms/residues/molecules in\n"
-          "  the given atom mask.\n");
+  mprintf("  - Set script variable <variable> to value <value>.\n"
+          "  - Set script variable to the number of atoms/residues/molecules in\n"
+          "     the given atom mask.\n"
+          "  - Set script variable to the current number of frames that will\n"
+          "     be read from all previous 'trajin' statements.\n");
 }
 
 /** Set up variable with value. In this case allow any amount of whitespace,
@@ -370,6 +373,8 @@ CpptrajState::RetType
       mprinterr("Error: Expected 'atoms', 'residues', or 'molecules'.\n");
       return CpptrajState::ERR;
     }
+  } else if (equals.hasKey("trajinframes")) {
+    value = integerToString(State.InputTrajList().MaxFrames());
   } else
     value = equals.ArgLineStr();
   CurrentVars.UpdateVariable( "$" + variable, value );
