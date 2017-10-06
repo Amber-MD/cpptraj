@@ -28,7 +28,7 @@ void VariableArray::AppendVariable(std::string const& varname, std::string const
 }
 
 /** Replace all variables in given ArgList with their values. */
-ArgList VariableArray::ReplaceVariables(ArgList const& argIn) {
+ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const& DSL) {
   ArgList modCmd = argIn;
   for (int n = 0; n < modCmd.Nargs(); n++) {
     size_t pos = modCmd[n].find("$");
@@ -48,8 +48,14 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn) {
         arg.replace(pos, vp->first.size(), vp->second);
         modCmd.ChangeArg(n, arg);
       } else {
-        mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
-        return ArgList();
+        // Not found in CurrentVars_; see if it occurs in DataSetList.
+        DataSet* ds = DSL.GetDataSet( modCmd[n] );
+        if (ds == 0) {
+          mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
+          return ArgList();
+        } else {
+          mprintf("DEBUG: DataSet '%s'\n", ds->legend());
+        }
       }
     }
   }

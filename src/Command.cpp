@@ -617,7 +617,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   */
 CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList const& cmdArgIn ) {
   // Replace variable names in command with entries from CurrentVars
-  ArgList cmdArg = CurrentVars_.ReplaceVariables( cmdArgIn );
+  ArgList cmdArg = CurrentVars_.ReplaceVariables( cmdArgIn, State.DSL() );
   if (cmdArg.empty()) return CpptrajState::ERR;
   // Print modified command
   mprintf("  [%s]\n", cmdArg.ArgLine());
