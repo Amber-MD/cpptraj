@@ -5,7 +5,7 @@
 
 void ControlBlock_For::Help() const {
   mprintf("\t{ {atoms|residues|molecules|molfirstres|mollastres}\n"
-          "\t    <var> inmask <mask> %s ... |\n"
+          "\t    <var> inmask <mask> [%s] ... |\n"
           "\t  <var>=<start>;[<var><end OP><end>;]<var><increment OP>[<value>] ... }\n",
           DataSetList::TopIdxArgs);
   mprintf("\tEND KEYWORD: 'done'\n");
@@ -309,8 +309,13 @@ ControlBlock::DoneType ControlBlock_For::CheckDone(Varray& CurrentVars) {
 
 // =============================================================================
 void Control_Set::Help() const {
-  mprintf("\t<variable>=<value>\n"
-          "  Set script variable <variable> to value <value>.\n");
+  mprintf("\t{ <variable> = <value> |\n"
+          "\t  <variable> = {atoms|residues|molecules} inmask <mask>\n"
+          "\t    [%s] }\n",
+          DataSetList::TopIdxArgs);
+  mprintf("  Set script variable <variable> to value <value>. Alternatively\n"
+          "  set script variable to the number of atoms/residues/molecules in\n"
+          "  the given atom mask.\n");
 }
 
 /** Set up variable with value. In this case allow any amount of whitespace,
@@ -320,17 +325,60 @@ CpptrajState::RetType
   Control_Set::SetupControl(CpptrajState& State, ArgList& argIn, Varray& CurrentVars)
 {
   ArgList remaining = argIn.RemainingArgs();
-  ArgList equals( remaining.ArgLineStr(), " =" );
-  if (equals.Nargs() != 2) {
+  size_t pos = remaining.ArgLineStr().find_first_of("=");
+  if (pos == std::string::npos) {
     mprinterr("Error: Expected <var>=<value>\n");
     return CpptrajState::ERR;
   }
-  CurrentVars.UpdateVariable( "$" + equals[0], equals[1] );
-  mprintf("\tVariable '%s' set to '%s'\n", equals[0].c_str(), equals[1].c_str());
+  std::string variable = NoWhitespace( remaining.ArgLineStr().substr(0, pos) );
+  if (variable.empty()) {
+    mprinterr("Error: No variable name.\n");
+    return CpptrajState::ERR;
+  }
+  ArgList equals( NoLeadingWhitespace(remaining.ArgLineStr().substr(pos+1)) );
+  std::string value;
+  if (equals.Contains("inmask")) {
+    AtomMask mask( equals.GetStringKey("inmask") );
+    Topology* top = State.DSL().GetTopByIndex( equals );
+    if (top == 0) return CpptrajState::ERR;
+    if (top->SetupIntegerMask( mask )) return CpptrajState::ERR;
+    if (equals.hasKey("atoms"))
+      value = integerToString( mask.Nselected() );
+    else if (equals.hasKey("residues")) {
+      int curRes = -1;
+      int nres = 0;
+      for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
+        int res = (*top)[*at].ResNum();
+        if (res != curRes) {
+          nres++;
+          curRes = res;
+        }
+      }
+      value = integerToString( nres );
+    } else if (equals.hasKey("molecules")) {
+      int curMol = -1;
+      int nmol = 0;
+      for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
+        int mol = (*top)[*at].MolNum();
+        if (mol != curMol) {
+          nmol++;
+          curMol = mol;
+        }
+      }
+      value = integerToString( nmol );
+    } else {
+      mprinterr("Error: Expected 'atoms', 'residues', or 'molecules'.\n");
+      return CpptrajState::ERR;
+    }
+  } else
+    value = equals.ArgLineStr();
+  CurrentVars.UpdateVariable( "$" + variable, value );
+  mprintf("\tVariable '%s' set to '%s'\n", variable.c_str(), value.c_str());
   for (int iarg = 0; iarg < argIn.Nargs(); iarg++)
     argIn.MarkArg( iarg );
   return CpptrajState::OK;
 }
+
 // -----------------------------------------------------------------------------
 void Control_Show::Help() const {
   mprintf("  Show all current script variables and their values.\n");
