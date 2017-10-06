@@ -8,6 +8,8 @@ class VariableArray {
     VariableArray() {}
     /// Add/update variable with given value.
     void UpdateVariable(std::string const&, std::string const&);
+    /// Add/append variable with given value.
+    void AppendVariable(std::string const&, std::string const&);
     /// Replace all variables in given ArgList with their values.
     ArgList ReplaceVariables(ArgList const&);
     /// Print all variable/value pairs to stdout

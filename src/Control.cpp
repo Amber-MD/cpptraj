@@ -309,12 +309,13 @@ ControlBlock::DoneType ControlBlock_For::CheckDone(Varray& CurrentVars) {
 
 // =============================================================================
 void Control_Set::Help() const {
-  mprintf("\t{ <variable> = <value> |\n"
-          "\t  <variable> = {atoms|residues|molecules} inmask <mask>\n"
+  mprintf("\t{ <variable> <OP> <value> |\n"
+          "\t  <variable> <OP> {atoms|residues|molecules} inmask <mask>\n"
           "\t    [%s]\n"
-          "\t  <variable> = trajinframes }\n",
+          "\t  <variable> <OP> trajinframes }\n",
           DataSetList::TopIdxArgs);
-  mprintf("  - Set script variable <variable> to value <value>.\n"
+  mprintf("  Set (<OP> = '=') or append (<OP> = '+=') a script variable.\n"
+          "  - Set script variable <variable> to value <value>.\n"
           "  - Set script variable to the number of atoms/residues/molecules in\n"
           "     the given atom mask.\n"
           "  - Set script variable to the current number of frames that will\n"
@@ -328,17 +329,23 @@ CpptrajState::RetType
   Control_Set::SetupControl(CpptrajState& State, ArgList& argIn, Varray& CurrentVars)
 {
   ArgList remaining = argIn.RemainingArgs();
-  size_t pos = remaining.ArgLineStr().find_first_of("=");
-  if (pos == std::string::npos) {
+  size_t pos0 = remaining.ArgLineStr().find_first_of("=");
+  if (pos0 == std::string::npos) {
     mprinterr("Error: Expected <var>=<value>\n");
     return CpptrajState::ERR;
   }
-  std::string variable = NoWhitespace( remaining.ArgLineStr().substr(0, pos) );
+  size_t pos1 = pos0;
+  bool append = false;
+  if (pos0 > 0 && remaining.ArgLineStr()[pos0-1] == '+') {
+    pos0--;
+    append = true;
+  }
+  std::string variable = NoWhitespace( remaining.ArgLineStr().substr(0, pos0) );
   if (variable.empty()) {
     mprinterr("Error: No variable name.\n");
     return CpptrajState::ERR;
   }
-  ArgList equals( NoLeadingWhitespace(remaining.ArgLineStr().substr(pos+1)) );
+  ArgList equals( NoLeadingWhitespace(remaining.ArgLineStr().substr(pos1+1)) );
   std::string value;
   if (equals.Contains("inmask")) {
     AtomMask mask( equals.GetStringKey("inmask") );
@@ -377,7 +384,10 @@ CpptrajState::RetType
     value = integerToString(State.InputTrajList().MaxFrames());
   } else
     value = equals.ArgLineStr();
-  CurrentVars.UpdateVariable( "$" + variable, value );
+  if (append)
+    CurrentVars.AppendVariable( "$" + variable, value );
+  else
+    CurrentVars.UpdateVariable( "$" + variable, value );
   mprintf("\tVariable '%s' set to '%s'\n", variable.c_str(), value.c_str());
   for (int iarg = 0; iarg < argIn.Nargs(); iarg++)
     argIn.MarkArg( iarg );

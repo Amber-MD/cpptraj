@@ -14,6 +14,19 @@ void VariableArray::UpdateVariable(std::string const& varname, std::string const
     it->second = value;
 }
 
+/** Add variable/value to array if it doesnt exist, otherwise append value. */
+void VariableArray::AppendVariable(std::string const& varname, std::string const& value)
+{
+  Varray::iterator it = CurrentVars_.begin();
+  for (; it != CurrentVars_.end(); ++it)
+    if (it->first == varname)
+      break;
+  if (it == CurrentVars_.end())
+    CurrentVars_.push_back( Vpair(varname, value) );
+  else
+    it->second += value;
+}
+
 /** Replace all variables in given ArgList with their values. */
 ArgList VariableArray::ReplaceVariables(ArgList const& argIn) {
   ArgList modCmd = argIn;
