@@ -3,6 +3,10 @@
 #include "ArgList.h"
 /// Hold script variables and their values.
 class VariableArray {
+    /// Hold variable and corresponding value.
+    typedef std::pair<std::string, std::string> Vpair;
+    /// Hold list of variables and corresponding values.
+    typedef std::vector<Vpair> Varray;
   public:
     /// CONSTRUCTOR
     VariableArray() {}
@@ -14,12 +18,11 @@ class VariableArray {
     ArgList ReplaceVariables(ArgList const&);
     /// Print all variable/value pairs to stdout
     void PrintVariables() const;
-  private:
-    /// Hold variable and corresponding value.
-    typedef std::pair<std::string, std::string> Vpair;
-    /// Hold list of variables and corresponding values.
-    typedef std::vector<Vpair> Varray;
 
+    typedef Varray::const_iterator const_iterator;
+    const_iterator begin() const { return CurrentVars_.begin(); }
+    const_iterator end()   const { return CurrentVars_.end(); }
+  private:
     Varray CurrentVars_; ///< Hold all current variables
 };
 #endif
