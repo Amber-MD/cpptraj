@@ -48,8 +48,16 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
         arg.replace(pos, vp->first.size(), vp->second);
         modCmd.ChangeArg(n, arg);
       } else {
-        // Not found in CurrentVars_; see if it occurs in DataSetList.
-        DataSet* ds = DSL.GetDataSet( modCmd[n] );
+        // Not found in CurrentVars_; see if this is a DataSet.
+        for (size_t pos1 = pos+len; pos1 < modCmd[n].size(); pos1++, len++)
+          if (!isalnum(modCmd[n][pos1]) &&
+              modCmd[n][pos1] != '[' &&
+              modCmd[n][pos1] != ':' &&
+              modCmd[n][pos1] != ']' &&
+              modCmd[n][pos1] != '%')
+            break;
+        var_in_arg = modCmd[n].substr(pos+1, len-1);
+        DataSet* ds = DSL.GetDataSet( var_in_arg );
         if (ds == 0) {
           mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
           return ArgList();
