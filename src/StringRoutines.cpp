@@ -140,6 +140,19 @@ std::string NoTrailingWhitespace(std::string const& line) {
   return duplicate;
 }
 
+void RemoveLeadingWhitespace(std::string& line) {
+  size_t pos = 0;
+  while (pos < line.size() && isspace(line[pos])) pos++;
+  if (pos > 0)
+    line = line.substr(pos, line.size() - pos);
+}
+
+std::string NoLeadingWhitespace(std::string const& line) {
+  std::string duplicate(line);
+  RemoveLeadingWhitespace(duplicate);
+  return duplicate;
+}
+
 /// Remove all whitespace from string.
 void RemoveAllWhitespace(std::string& line) {
   if (line.empty()) return;

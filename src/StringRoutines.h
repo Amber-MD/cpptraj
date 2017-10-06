@@ -20,6 +20,10 @@ int FloatWidth(double);
 void RemoveTrailingWhitespace(std::string &);
 /// \return string stripped of trailing whitespace.
 std::string NoTrailingWhitespace(std::string const&);
+/// Remove any leading whitespace from string.
+void RemoveLeadingWhitespace(std::string&);
+/// \return string stripped of leading whitespace.
+std::string NoLeadingWhitespace(std::string const&);
 /// Remove all whitespace from a string
 void RemoveAllWhitespace(std::string&);
 /// \return string with all whitespace removed.
