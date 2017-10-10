@@ -57,6 +57,8 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
               modCmd[n][pos1] != '[' &&
               modCmd[n][pos1] != ':' &&
               modCmd[n][pos1] != ']' &&
+              modCmd[n][pos1] != '_' &&
+              modCmd[n][pos1] != '-' &&
               modCmd[n][pos1] != '%')
             break;
         var_in_arg = modCmd[n].substr(pos+1, len-1);
@@ -65,7 +67,6 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
           mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
           return ArgList();
         } else {
-          mprintf("\tDataSet '%s'\n", ds->legend());
           if (ds->Type() != DataSet::STRING && ds->Group() != DataSet::SCALAR_1D) {
             mprinterr("Error: Only 1D data sets supported.\n");
             return ArgList();
@@ -81,6 +82,8 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
             value = (*((DataSet_string*)ds))[0];
           else
             value = doubleToString(((DataSet_1D*)ds)->Dval(0));
+          mprintf("\tReplaced variable '$%s' with value '%s' from DataSet '%s'\n",
+                  var_in_arg.c_str(), value.c_str(), ds->legend());
           std::string arg = modCmd[n];
           arg.replace(pos, var_in_arg.size()+1, value);
           modCmd.ChangeArg(n, arg);
