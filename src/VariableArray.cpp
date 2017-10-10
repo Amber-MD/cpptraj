@@ -1,5 +1,8 @@
 #include "VariableArray.h"
 #include "CpptrajStdio.h"
+#include "DataSet_string.h"
+#include "DataSet_1D.h"
+#include "StringRoutines.h"
 
 /** Add variable/value to array if it doesnt exist, otherwise set value. */
 void VariableArray::UpdateVariable(std::string const& varname, std::string const& value)
@@ -62,7 +65,25 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
           mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
           return ArgList();
         } else {
-          mprintf("DEBUG: DataSet '%s'\n", ds->legend());
+          mprintf("\tDataSet '%s'\n", ds->legend());
+          if (ds->Type() != DataSet::STRING && ds->Group() != DataSet::SCALAR_1D) {
+            mprinterr("Error: Only 1D data sets supported.\n");
+            return ArgList();
+          }
+          if (ds->Size() < 1) {
+            mprinterr("Error: Set is empty.\n");
+            return ArgList();
+          }
+          if (ds->Size() > 1)
+            mprintf("Warning: Only using first value.\n");
+          std::string value;
+          if (ds->Type() == DataSet::STRING)
+            value = (*((DataSet_string*)ds))[0];
+          else
+            value = doubleToString(((DataSet_1D*)ds)->Dval(0));
+          std::string arg = modCmd[n];
+          arg.replace(pos, var_in_arg.size()+1, value);
+          modCmd.ChangeArg(n, arg);
         }
       }
     }
