@@ -31,6 +31,14 @@ for residues R1 inmask :1-12 r=1;r++
   rms R\$r \$R1&!@H= nofit out rms.nofit.dat
 done
 show
+
+# Print info for the last 10 atoms. This tests using data set values
+# as script variables and replacement of multiple script variables
+# in a single argument.
+set Natom = atoms inmask *
+last10 = \$Natom - 10
+show
+atoms "@\$last10 - \$Natom" out last10.dat
 EOF
 RunCpptraj "$TESTNAME"
 DoTest TRP.vec.dat.save TRP.vec.dat
@@ -39,6 +47,7 @@ DoTest TRP.CA.dist.dat.save TRP.CA.dist.dat
 DoTest TRP.tocenter.dat.save TRP.tocenter.dat
 DoTest nh.dat.save nh.dat
 DoTest rms.nofit.dat.save rms.nofit.dat
+DoTest last10.dat.save last10.dat
 
 EndTest
 exit 0
