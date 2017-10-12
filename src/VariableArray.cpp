@@ -35,7 +35,7 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
   ArgList modCmd = argIn;
   for (int n = 0; n < modCmd.Nargs(); n++) {
     size_t pos = modCmd[n].find("$");
-    if (pos != std::string::npos) {
+    while (pos != std::string::npos) {
       // Argument is/contains a variable. Find first non-alphanumeric char
       size_t len = 1;
       for (size_t pos1 = pos+1; pos1 < modCmd[n].size(); pos1++, len++)
@@ -47,6 +47,8 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
         if (vp->first == var_in_arg) break;
       // If found replace with value from CurrentVars_
       if (vp != CurrentVars_.end()) {
+        mprintf("\tReplaced variable '%s' with value '%s'\n",
+                var_in_arg.c_str(), vp->second.c_str());
         std::string arg = modCmd[n];
         arg.replace(pos, vp->first.size(), vp->second);
         modCmd.ChangeArg(n, arg);
@@ -89,7 +91,8 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
           modCmd.ChangeArg(n, arg);
         }
       }
-    }
+      pos = modCmd[n].find("$");
+    } // END loop over this argument
   }
   return modCmd;
 }
