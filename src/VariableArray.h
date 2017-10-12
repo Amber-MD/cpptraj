@@ -15,7 +15,7 @@ class VariableArray {
     /// Add/append variable with given value.
     void AppendVariable(std::string const&, std::string const&);
     /// Replace all variables in given ArgList with their values.
-    ArgList ReplaceVariables(ArgList const&, DataSetList const&);
+    ArgList ReplaceVariables(ArgList const&, DataSetList const&, int);
     /// Print all variable/value pairs to stdout
     void PrintVariables() const;
 

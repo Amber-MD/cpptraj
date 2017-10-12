@@ -31,7 +31,9 @@ void VariableArray::AppendVariable(std::string const& varname, std::string const
 }
 
 /** Replace all variables in given ArgList with their values. */
-ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const& DSL) {
+ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const& DSL, int debug)
+{
+  if (debug > 0) mprintf("DEBUG: Before variable replacement:  [%s]\n", argIn.ArgLine());
   ArgList modCmd = argIn;
   for (int n = 0; n < modCmd.Nargs(); n++) {
     size_t pos = modCmd[n].find("$");
@@ -47,8 +49,9 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
         if (vp->first == var_in_arg) break;
       // If found replace with value from CurrentVars_
       if (vp != CurrentVars_.end()) {
-        mprintf("\tReplaced variable '%s' with value '%s'\n",
-                var_in_arg.c_str(), vp->second.c_str());
+        if (debug > 0)
+          mprintf("DEBUG: Replaced variable '%s' with value '%s'\n",
+                  var_in_arg.c_str(), vp->second.c_str());
         std::string arg = modCmd[n];
         arg.replace(pos, vp->first.size(), vp->second);
         modCmd.ChangeArg(n, arg);
@@ -84,8 +87,9 @@ ArgList VariableArray::ReplaceVariables(ArgList const& argIn, DataSetList const&
             value = (*((DataSet_string*)ds))[0];
           else
             value = doubleToString(((DataSet_1D*)ds)->Dval(0));
-          mprintf("\tReplaced variable '$%s' with value '%s' from DataSet '%s'\n",
-                  var_in_arg.c_str(), value.c_str(), ds->legend());
+          if (debug > 0)
+            mprintf("DEBUG: Replaced variable '$%s' with value '%s' from DataSet '%s'\n",
+                    var_in_arg.c_str(), value.c_str(), ds->legend());
           std::string arg = modCmd[n];
           arg.replace(pos, var_in_arg.size()+1, value);
           modCmd.ChangeArg(n, arg);
