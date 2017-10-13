@@ -201,6 +201,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
   Command::AddCmd( new Exec_Precision(),       Cmd::EXE, 1, "precision" );
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
+  Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
   Command::AddCmd( new Exec_Quit(),            Cmd::EXE, 2, "exit", "quit" );
   Command::AddCmd( new Exec_ReadData(),        Cmd::EXE, 1, "readdata" );
   Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
@@ -578,8 +579,10 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).
         mprintf("CONTROL: Executing %u control block(s).\n", control_.size());
+        if (State.QuietBlocks()) SetWorldSilent(true);
         int cbret = ExecuteControlBlock(0, State);
         ClearControlBlocks();
+        if (State.QuietBlocks()) SetWorldSilent(false);
         if (cbret != 0) return CpptrajState::ERR;
         mprintf("CONTROL: Control block finished.\n\n");
       }
