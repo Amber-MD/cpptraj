@@ -170,6 +170,8 @@ static inline int Get12I6(const char* ptr, int* IVALS) {
   // a newline. Ignore that.
   if (nvals > 0 && nvals < 12) nvals--;
   for (int i = 0; i < nvals; i++) {
+    // Only allow integers. Right-aligned, so check final character.
+    if (!isdigit(SVALS[i][5])) return 0;
     SVALS[i][6] = '\0';
     //mprintf("DEBUG: %2i = %6s\n", i, SVALS[i]);
     IVALS[i] = atoi( SVALS[i] );
