@@ -13,7 +13,7 @@ class ParmFile {
     enum ParmFormatType { AMBERPARM=0, PDBFILE, MOL2FILE, CHARMMPSF, CIFFILE,
                           GMXTOP, SDFFILE, TINKER, UNKNOWN_PARM };
     static void ReadOptions() { FileTypes::ReadOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM); }
-    static void WriteOptions(){ FileTypes::WriteOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM);} 
+    static void WriteOptions(){ FileTypes::WriteOptions(PF_WriteKeyArray,PF_AllocArray,UNKNOWN_PARM);}
     ParmFile() {}
     int ReadTopology(Topology&, FileName const&, ArgList const&,int);
     int ReadTopology(Topology& t, FileName const& n, int d) {
