@@ -16,6 +16,8 @@ class TrajectoryFile {
     static const FileTypes::AllocToken TF_AllocArray[];
     /// For associating keywords/extensions with file types. 
     static const FileTypes::KeyToken TF_KeyArray[];
+    /// Trajectories for which writes are supported
+    static const FileTypes::KeyToken TF_WriteKeyArray[];
   public:
     /// Known trajectory formats.
     enum TrajFormatType {
@@ -30,7 +32,7 @@ class TrajectoryFile {
     /// List read options for each format.
     static void ReadOptions() { FileTypes::ReadOptions(TF_KeyArray,TF_AllocArray, UNKNOWN_TRAJ); }
     /// List write options for each format.
-    static void WriteOptions(){ FileTypes::WriteOptions(TF_KeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
+    static void WriteOptions(){ FileTypes::WriteOptions(TF_WriteKeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
     /// \return format type from keyword in ArgList. 
     static TrajFormatType GetFormatFromArg(ArgList& a) {
       return (TrajFormatType)FileTypes::GetFormatFromArg(TF_KeyArray, a, UNKNOWN_TRAJ);
