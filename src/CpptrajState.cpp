@@ -19,6 +19,7 @@ CpptrajState::CpptrajState() :
   refDebug_(0),
   topDebug_(0),
   showProgress_(true),
+  quietBlocks_(false),
   exitOnError_(true),
   recordAllInput_(true),
   noEmptyRun_(false),

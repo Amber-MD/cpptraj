@@ -436,6 +436,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     {
       CpptrajState::RetType c_err = Command::ProcessInput( State_, *inputFilename );
       if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
+      if (Command::UnterminatedControl()) return ERROR;
       if (c_err == CpptrajState::QUIT) return QUIT;
     }
   }
@@ -450,6 +451,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // "" means read from STDIN
       CpptrajState::RetType c_err = Command::ProcessInput( State_, "" ); 
       if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
+      if (Command::UnterminatedControl()) return ERROR;
       if (c_err == CpptrajState::QUIT) return QUIT;
     }
   }
@@ -528,6 +530,7 @@ int Cpptraj::Interactive() {
     }
   }
   logfile_.CloseFile();
+  if (Command::UnterminatedControl()) return 1;
   if (readLoop == CpptrajState::ERR) return 1;
   return 0;
 }

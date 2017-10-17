@@ -19,6 +19,7 @@ class CpptrajState {
     CpptrajState();
     void SetNoExitOnError()  { exitOnError_ = false;  }
     void SetNoProgress()     { showProgress_ = false; }
+    void SetQuietBlocks(bool b)    { quietBlocks_ = b;         }
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
 #   ifdef MPI
     void SetForceParaEnsemble(bool b) { forceParallelEnsemble_ = b; }
@@ -30,6 +31,7 @@ class CpptrajState {
     TrajModeType Mode()       const { return mode_;        }
     int Debug()               const { return debug_;       }
     bool ShowProgress()       const { return showProgress_;}
+    bool QuietBlocks()        const { return quietBlocks_; }
     bool ExitOnError()        const { return exitOnError_; }
     bool RecordAllInput()     const { return recordAllInput_; }
     bool EmptyState()         const { return (actionList_.Empty() && 
@@ -102,6 +104,7 @@ class CpptrajState {
     int refDebug_;      ///< Reference debug level.
     int topDebug_;      ///< Topology debug level.
     bool showProgress_; ///< If true, display progress during Run.
+    bool quietBlocks_;  ///< If true suppress output when executing control blocks.
     bool exitOnError_;  ///< If true exit when errors encountered instead of continuing.
     bool recordAllInput_; ///< When true save all input to log, even errors.
     /// If true do not process input trajectories when no actions/output trajectories.

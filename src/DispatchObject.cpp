@@ -11,6 +11,7 @@ const char* DispatchObject::ObjKeyword(Otype typeIn) {
     case ANALYSIS: return "Analysis";
     case GENERAL: return "General";
     case SYSTEM: return "System";
+    case CONTROL: return "Control";
     case HIDDEN: return 0;
     case DEPRECATED: return 0;
   }
