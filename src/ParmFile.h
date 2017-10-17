@@ -7,6 +7,8 @@ class ParmFile {
     static const FileTypes::AllocToken PF_AllocArray[];
     /// For associating keywords/extensions with file types. 
     static const FileTypes::KeyToken PF_KeyArray[];
+    /// Topologies for which writes are supported.
+    static const FileTypes::KeyToken PF_WriteKeyArray[];
   public :
     enum ParmFormatType { AMBERPARM=0, PDBFILE, MOL2FILE, CHARMMPSF, CIFFILE,
                           GMXTOP, SDFFILE, TINKER, UNKNOWN_PARM };

@@ -37,6 +37,12 @@ const FileTypes::KeyToken ParmFile::PF_KeyArray[] = {
   { UNKNOWN_PARM, 0,         0        }
 };
 
+const FileTypes::KeyToken ParmFile::PF_WriteKeyArray[] = {
+  { AMBERPARM,    "amber",   ".parm7" },
+  { CHARMMPSF,    "psf",     ".psf"   },
+  { UNKNOWN_PARM, 0,         0        }
+};
+
 // ParmFile::DetectFormat()
 ParmIO* ParmFile::DetectFormat(FileName const& fname, ParmFormatType& ptype) {
   CpptrajFile file;
@@ -133,10 +139,10 @@ int ParmFile::WriteTopology(Topology const& Top, FileName const& fnameIn,
   ParmFormatType fmt = fmtIn;
   if (fmt == UNKNOWN_PARM) {
     // Check arg list to see if format specified.
-    fmt = (ParmFormatType)FileTypes::GetFormatFromArg(PF_KeyArray, argIn, UNKNOWN_PARM);
+    fmt = (ParmFormatType)FileTypes::GetFormatFromArg(PF_WriteKeyArray, argIn, UNKNOWN_PARM);
     // If still UNKNOWN check file extension. Default to AMBERPARM
     if (fmt == UNKNOWN_PARM)
-      fmt = (ParmFormatType)FileTypes::GetTypeFromExtension(PF_KeyArray, parmName_.Ext(),
+      fmt = (ParmFormatType)FileTypes::GetTypeFromExtension(PF_WriteKeyArray, parmName_.Ext(),
                                                             AMBERPARM);
   }
   ParmIO* parmio = (ParmIO*)FileTypes::AllocIO(PF_AllocArray, fmt, true);
