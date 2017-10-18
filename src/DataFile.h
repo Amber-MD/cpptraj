@@ -8,6 +8,8 @@ class DataFile {
     static const FileTypes::AllocToken DF_AllocArray[];
     /// For associating keywords/extensions with file types. 
     static const FileTypes::KeyToken DF_KeyArray[];
+    /// Keywords/extensions for types that support writes.
+    static const FileTypes::KeyToken DF_WriteKeyArray[];
   public:
     /// Known data file formats.
     enum DataFormatType {
@@ -22,7 +24,7 @@ class DataFile {
     /// List read options for each format.
     static void ReadOptions() { FileTypes::ReadOptions(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA); }
     /// List write options for each format.
-    static void WriteOptions(){ FileTypes::WriteOptions(DF_KeyArray,DF_AllocArray,UNKNOWN_DATA); }
+    static void WriteOptions(){ FileTypes::WriteOptions(DF_WriteKeyArray,DF_AllocArray,UNKNOWN_DATA); }
     /// \return format type from keyword
     static DataFormatType GetFormatFromArg(ArgList& a) {
       return (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, a, UNKNOWN_DATA);
