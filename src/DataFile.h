@@ -25,12 +25,10 @@ class DataFile {
     static void ReadOptions() { FileTypes::ReadOptions(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA); }
     /// List write options for each format.
     static void WriteOptions(){ FileTypes::WriteOptions(DF_WriteKeyArray,DF_AllocArray,UNKNOWN_DATA); }
-/*
-    /// \return format type from keyword
-    static DataFormatType GetFormatFromArg(ArgList& a) {
-      return (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, a, UNKNOWN_DATA);
+    /// \return Write format type from keyword in ArgList, or default
+    static DataFormatType WriteFormatFromArg(ArgList& a, DataFormatType def) {
+      return (DataFormatType)FileTypes::GetFormatFromArg(DF_WriteKeyArray,a,def);
     }
-*/
     /// \return string corresponding to format.
     static const char* FormatString(DataFormatType t) {
       return FileTypes::FormatDescription(DF_AllocArray, t);

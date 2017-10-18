@@ -82,7 +82,6 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { REMLOG,       "remlog", ".log"   },
   { MDOUT,        "mdout",  ".mdout" },
   { EVECS,        "evecs",  ".evecs" },
-  { VECTRAJ,      "vectraj",".vectraj" }, // TODO remove from this array? 
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
   { CMATRIX,      "cmatrix",".cmatrix" },
