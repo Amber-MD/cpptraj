@@ -16,6 +16,8 @@ class TrajectoryFile {
     static const FileTypes::AllocToken TF_AllocArray[];
     /// For associating keywords/extensions with file types. 
     static const FileTypes::KeyToken TF_KeyArray[];
+    /// Trajectories for which writes are supported
+    static const FileTypes::KeyToken TF_WriteKeyArray[];
   public:
     /// Known trajectory formats.
     enum TrajFormatType {
@@ -30,30 +32,22 @@ class TrajectoryFile {
     /// List read options for each format.
     static void ReadOptions() { FileTypes::ReadOptions(TF_KeyArray,TF_AllocArray, UNKNOWN_TRAJ); }
     /// List write options for each format.
-    static void WriteOptions(){ FileTypes::WriteOptions(TF_KeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
-    /// \return format type from keyword in ArgList. 
-    static TrajFormatType GetFormatFromArg(ArgList& a) {
-      return (TrajFormatType)FileTypes::GetFormatFromArg(TF_KeyArray, a, UNKNOWN_TRAJ);
+    static void WriteOptions(){ FileTypes::WriteOptions(TF_WriteKeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
+    /// \return write format type corresponding to given string, or default if no match.
+    static TrajFormatType WriteFormatFromString(std::string const& s, TrajFormatType def) {
+      return (TrajFormatType)FileTypes::GetFormatFromString(TF_WriteKeyArray,s,def);
     }
-    /// \return format type from keyword. Default to Amber trajectory.
-    static TrajFormatType GetFormatFromString(std::string const& s) {
-      return (TrajFormatType)FileTypes::GetFormatFromString(TF_KeyArray, s, AMBERTRAJ);
+    /// \return write format type corresponding to extension of give filename, or default.
+    static TrajFormatType WriteFormatFromFname(FileName const& f, TrajFormatType def) {
+      return (TrajFormatType)FileTypes::GetTypeFromExtension(TF_WriteKeyArray,f.Ext(),def);
     }
-    /// \return format type from keyword, or given default if keyword is empty.
-    static TrajFormatType GetFormatFromString(std::string const& s, TrajFormatType def) {
-      return (TrajFormatType)FileTypes::GetFormatFromString(TF_KeyArray, s, def);
+    /// \return default filename extension for given write format type.
+    static std::string WriteFormatExtension(TrajFormatType t) {
+      return FileTypes::GetExtensionForType(TF_WriteKeyArray, t);
     }
-    /// \return standard file extension for trajectory format.
-    static std::string GetExtensionForType(TrajFormatType t) {
-      return FileTypes::GetExtensionForType(TF_KeyArray, t);
-    }
-    /// \return type from extension.
-    static TrajFormatType GetTypeFromExtension(std::string const& e) {
-      return (TrajFormatType)FileTypes::GetTypeFromExtension(TF_KeyArray, e, UNKNOWN_TRAJ);
-    }
-    /// \return type from extension. Default to given format if unknown.
-    static TrajFormatType GetTypeFromExtension(FileName const& f, TrajFormatType def) {
-      return (TrajFormatType)FileTypes::GetTypeFromExtension(TF_KeyArray, f.Ext(), def);
+    /// \return write format type corresponding to keyword in ArgList, or default type.
+    static TrajFormatType WriteFormatFromArg(ArgList& a, TrajFormatType def) {
+      return (TrajFormatType)FileTypes::GetFormatFromArg(TF_WriteKeyArray, a, def);
     }
     /// \return string corresponding to given format.
     static const char* FormatString( TrajFormatType tt ) { return 

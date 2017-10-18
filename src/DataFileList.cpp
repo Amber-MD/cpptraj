@@ -129,7 +129,7 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
       return 0;
     }
     // Check for keywords that do not match file type
-    DataFile::DataFormatType kType = DataFile::GetFormatFromArg( argIn );
+    DataFile::DataFormatType kType = DataFile::WriteFormatFromArg( argIn, DataFile::UNKNOWN_DATA );
     if (kType != DataFile::UNKNOWN_DATA && kType != Current->Type())
       mprintf("Warning: %s is type %s but type %s keyword specified; ignoring keyword.\n",
               Current->DataFilename().full(), Current->FormatString(),

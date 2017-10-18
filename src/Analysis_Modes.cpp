@@ -135,7 +135,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     }
     TrajectoryFile::TrajFormatType tOutFmt = TrajectoryFile::UNKNOWN_TRAJ;
     if ( analyzeArgs.Contains("trajoutfmt") )
-      tOutFmt = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
+      tOutFmt = TrajectoryFile::WriteFormatFromString( analyzeArgs.GetStringKey("trajoutfmt"),
+                                                       TrajectoryFile::AMBERTRAJ );
     if (analyzeParm == 0) {
       mprinterr("Error: Could not get topology for output trajectory.\n");
       return Analysis::ERR;

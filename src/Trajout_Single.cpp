@@ -42,9 +42,9 @@ int Trajout_Single::InitEnsembleTrajWrite(FileName const& tnameIn, ArgList const
   // Try to determine format here, before extension is potentially modified.
   TrajectoryFile::TrajFormatType fmt = fmtIn;
   if (fmt == TrajectoryFile::UNKNOWN_TRAJ)
-    fmt = TrajectoryFile::GetFormatFromArg( args );
+    fmt = TrajectoryFile::WriteFormatFromArg( args, TrajectoryFile::UNKNOWN_TRAJ );
   if (fmt == TrajectoryFile::UNKNOWN_TRAJ)
-    fmt = TrajectoryFile::GetTypeFromExtension( tnameIn.Ext() );
+    fmt = TrajectoryFile::WriteFormatFromFname( tnameIn, TrajectoryFile::UNKNOWN_TRAJ );
   int err = 0;
   if (ensembleNum > -1)
     err = InitTrajWrite( AppendNumber(tnameIn.Full(), ensembleNum), args, fmt );
