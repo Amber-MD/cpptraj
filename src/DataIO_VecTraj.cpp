@@ -17,7 +17,8 @@ void DataIO_VecTraj::WriteHelp() {
 }
 
 int DataIO_VecTraj::processWriteArgs(ArgList& argIn) {
-  trajoutFmt_ = TrajectoryFile::GetFormatFromString( argIn.GetStringKey("trajfmt") );
+  trajoutFmt_ = TrajectoryFile::WriteFormatFromString( argIn.GetStringKey("trajfmt"),
+                                                       TrajectoryFile::AMBERTRAJ );
   parmoutName_ = argIn.GetStringKey("parmout");
   includeOrigin_ = !argIn.hasKey("noorigin");
   return 0;

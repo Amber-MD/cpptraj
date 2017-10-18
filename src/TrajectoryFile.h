@@ -37,13 +37,17 @@ class TrajectoryFile {
     static TrajFormatType WriteFormatFromString(std::string const& s, TrajFormatType def) {
       return (TrajFormatType)FileTypes::GetFormatFromString(TF_WriteKeyArray,s,def);
     }
-    /// \return write format type corresonding to extension of give filename, or default.
+    /// \return write format type corresponding to extension of give filename, or default.
     static TrajFormatType WriteFormatFromFname(FileName const& f, TrajFormatType def) {
       return (TrajFormatType)FileTypes::GetTypeFromExtension(TF_WriteKeyArray,f.Ext(),def);
     }
     /// \return default filename extension for given write format type.
     static std::string WriteFormatExtension(TrajFormatType t) {
       return FileTypes::GetExtensionForType(TF_WriteKeyArray, t);
+    }
+    /// \return write format type corresponding to keyword in ArgList, or default type.
+    static TrajFormatType WriteFormatFromArg(ArgList& a, TrajFormatType def) {
+      return (TrajFormatType)FileTypes::GetFormatFromArg(TF_WriteKeyArray, a, def);
     }
 /*
     /// \return format type from keyword in ArgList. 

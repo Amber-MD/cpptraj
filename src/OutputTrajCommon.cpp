@@ -37,12 +37,12 @@ int OutputTrajCommon::CommonTrajoutSetup(FileName const& tnameIn, ArgList& argIn
   // If a write format was not specified (UNKNOWN_TRAJ) check the argument
   // list to see if format was specified there.
   writeFormat_ = fmtIn;
-  if (writeFormat_==TrajectoryFile::UNKNOWN_TRAJ) {
-    writeFormat_ = TrajectoryFile::GetFormatFromArg(argIn);
+  if (writeFormat_ == TrajectoryFile::UNKNOWN_TRAJ) {
+    writeFormat_ = TrajectoryFile::WriteFormatFromArg(argIn, TrajectoryFile::UNKNOWN_TRAJ);
     // If still UNKNOWN_TRAJ this means no type specified. Check to see if
     // the filename extension is recognized.
     if (writeFormat_ == TrajectoryFile::UNKNOWN_TRAJ) {
-      writeFormat_ = TrajectoryFile::GetTypeFromExtension( trajName_.Ext() );
+      writeFormat_ = TrajectoryFile::WriteFormatFromFname(trajName_, TrajectoryFile::UNKNOWN_TRAJ);
       // Default to Amber trajectory.
       if (writeFormat_ == TrajectoryFile::UNKNOWN_TRAJ) {
         mprintf("Warning: Format not specified and extension '%s' not recognized."
