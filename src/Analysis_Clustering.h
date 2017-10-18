@@ -47,6 +47,7 @@ class Analysis_Clustering: public Analysis {
     DataSet* pw_dist_;          ///< Cluster pairwise distance matrix dataset
     DataFile* cpopvtimefile_;   ///< Cluster pop v time file.
     DataFile* pwd_file_;        ///< Data file to write pairwise distance matrix to.
+    // TODO use FileName
     std::string summaryfile_;   ///< Summary file name
     std::string halffile_;      ///< 1st/2nd half summary file name
     std::string clusterfile_;   ///< Cluster trajectory base filename.
