@@ -33,6 +33,19 @@ class TrajectoryFile {
     static void ReadOptions() { FileTypes::ReadOptions(TF_KeyArray,TF_AllocArray, UNKNOWN_TRAJ); }
     /// List write options for each format.
     static void WriteOptions(){ FileTypes::WriteOptions(TF_WriteKeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
+    /// \return write format type corresponding to given string, or default if no match.
+    static TrajFormatType WriteFormatFromString(std::string const& s, TrajFormatType def) {
+      return (TrajFormatType)FileTypes::GetFormatFromString(TF_WriteKeyArray,s,def);
+    }
+    /// \return write format type corresonding to extension of give filename, or default.
+    static TrajFormatType WriteFormatFromFname(FileName const& f, TrajFormatType def) {
+      return (TrajFormatType)FileTypes::GetTypeFromExtension(TF_WriteKeyArray,f.Ext(),def);
+    }
+    /// \return default filename extension for given write format type.
+    static std::string WriteFormatExtension(TrajFormatType t) {
+      return FileTypes::GetExtensionForType(TF_WriteKeyArray, t);
+    }
+/*
     /// \return format type from keyword in ArgList. 
     static TrajFormatType GetFormatFromArg(ArgList& a) {
       return (TrajFormatType)FileTypes::GetFormatFromArg(TF_KeyArray, a, UNKNOWN_TRAJ);
@@ -57,6 +70,7 @@ class TrajectoryFile {
     static TrajFormatType GetTypeFromExtension(FileName const& f, TrajFormatType def) {
       return (TrajFormatType)FileTypes::GetTypeFromExtension(TF_KeyArray, f.Ext(), def);
     }
+*/
     /// \return string corresponding to given format.
     static const char* FormatString( TrajFormatType tt ) { return 
       FileTypes::FormatDescription(TF_AllocArray, tt);
