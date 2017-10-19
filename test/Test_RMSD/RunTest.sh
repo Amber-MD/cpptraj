@@ -47,8 +47,7 @@ trajin ../tz2.truncoct.nc parm [WAT]
 strip :WAT
 rms NOROT ref [first] norotate @CA
 outtraj tz2.norotate.crd parm [WAT]
-rms ROT ref [first] out rms.dat @CA savematrices
-create rmatrices.dat ROT[RM]
+rms ROT ref [first] out rms.dat @CA savematrices matricesout rmatrices.dat
 outtraj tz2.rotate.crd parm [WAT]
 EOF
 RunCpptraj "RMS coordinate rotation/rotation matrices test."
