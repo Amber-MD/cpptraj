@@ -426,6 +426,9 @@ test.phipsi:
 test.control:
 	@-cd Test_Control && ./RunTest.sh $(OPT)
 
+test.infraredspec:
+	@-cd Test_InfraredSpec && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -563,7 +566,8 @@ COMPLETETESTS=test.general \
               test.replicatecell \
               test.scaledihedralk \
               test.phipsi \
-              test.control
+              test.control \
+              test.infraredspec
 
 test.all:
 	$(MAKE) test.complete summary
