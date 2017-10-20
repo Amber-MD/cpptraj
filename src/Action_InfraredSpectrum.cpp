@@ -39,6 +39,7 @@ Action::RetType Action_InfraredSpectrum::Init(ArgList& actionArgs, ActionInit& i
          init.DSL().AddSet(DataSet::VECTOR,
                            MetaData(actionArgs.GetStringNext(), "raw"), "IR");
   if (Vel_ == 0) return Action::ERR;
+  Vel_->SetupFormat().SetFormatWidthPrecision(12, 4);
   if (rawfile != 0) rawfile->AddDataSet( Vel_ );
   VAC_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(Vel_->Meta().Name(), "ac"));
   if (VAC_ == 0) return Action::ERR;
