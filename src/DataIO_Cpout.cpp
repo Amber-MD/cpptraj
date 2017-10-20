@@ -3,22 +3,29 @@
 #include "CpptrajStdio.h"
 
 /// CONSTRUCTOR
-DataIO_Cpout::DataIO_Cpout()
-{
+DataIO_Cpout::DataIO_Cpout() :
+  type_(NONE)
+{ }
 
-}
+const char* DataIO_Cpout::FMT_REDOX_ = "Redox potential: %f V\n";
+
+const char* DataIO_Cpout::FMT_PH_ = "Solvent pH: %f\n";
 
 // DataIO_Cpout::ID_DataFormat()
 bool DataIO_Cpout::ID_DataFormat(CpptrajFile& infile)
 {
   bool iscpout = false;
+  type_ = NONE;
   if (!infile.OpenFile()) {
     const char* ptr = infile.NextLine();
     if (ptr != 0) {
       float orig_ph;
-      if (sscanf(ptr, "Redox potential: %f V\n", &orig_ph) == 1) {
-        mprinterr("Error: Redox potential not yet supported.\n");
-      } else if (sscanf(ptr, "Solvent pH: %f\n", &orig_ph) == 1) {
+      if (sscanf(ptr, FMT_REDOX_, &orig_ph) == 1) {
+        type_ = REDOX;
+      } else if (sscanf(ptr, FMT_PH_, &orig_ph) == 1) {
+        type_ = PH;
+      }
+      if (type_ != NONE) {
         ptr = infile.NextLine();
         int step_size;
         if (ptr != 0) {

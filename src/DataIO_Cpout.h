@@ -13,5 +13,10 @@ class DataIO_Cpout : public DataIO {
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
+  private:
+    static const char* FMT_REDOX_;
+    static const char* FMT_PH_;
+    enum FileType { PH = 0, REDOX, NONE };
+    FileType type_;
 };
 #endif
