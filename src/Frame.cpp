@@ -847,7 +847,7 @@ Vec3 Frame::VMomentum(AtomMask const& mask) const {
   }
   Vec3 sum(0.0);
   for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
-    sum += (Vec3(VXYZ(*at)) * Mass_[*at]);
+    sum += (Vec3(VelXYZ(*at)) * Mass_[*at]);
   return sum;
 }
 
@@ -860,7 +860,7 @@ Vec3 Frame::VMomentum(AtomMask const& mask, double& sumMass) const {
   Vec3 sum(0.0);
   sumMass = 0.0;
   for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
-    sum += (Vec3(VXYZ(*at)) * Mass_[*at]);
+    sum += (Vec3(VelXYZ(*at)) * Mass_[*at]);
     sumMass += Mass_[*at];
   }
   return sum;
