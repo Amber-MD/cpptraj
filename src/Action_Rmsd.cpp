@@ -13,15 +13,19 @@ Action_Rmsd::Action_Rmsd() :
   masterDSL_(0),
   debug_(0),
   mode_(ROT_AND_TRANS),
+  tvecType_(NO_TVEC),
   fit_(true),
   useMass_(false),
   rmsd_(0),
-  rmatrices_(0)
+  rmatrices_(0),
+  tvecs_(0)
 { }
 
 void Action_Rmsd::Help() const {
-  mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit | norotate | nomod]\n"
-          "\t[mass] [savematrices]\n%s"
+  mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [mass]\n"
+          "\t[nofit | norotate | nomod]\n"
+          "\t[savematrices [matricesout <file>]]\n"
+          "\t[savevectors {combined|separate} [vecsout <file>]]\n%s"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"
           "\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n",
@@ -44,7 +48,24 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
   useMass_ = actionArgs.hasKey("mass");
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  DataFile* matricesOut = 0;
+  DataFile* vecsOut = 0;
   bool saveMatrices = actionArgs.hasKey("savematrices");
+  if (saveMatrices)
+    matricesOut = init.DFL().AddDataFile(actionArgs.GetStringKey("matricesout"));
+  std::string saveVectors = actionArgs.GetStringKey("savevectors");
+  if (saveVectors.empty())
+    tvecType_ = NO_TVEC;
+  else if (saveVectors == "combined")
+    tvecType_ = COMBINED;
+  else if (saveVectors == "separate")
+    tvecType_ = SEPARATE;
+  else {
+    mprinterr("Error: Expected 'combined' or 'separate' for 'savevectors'\n");
+    return Action::ERR;
+  }
+  if (tvecType_ != NO_TVEC)
+    vecsOut = init.DFL().AddDataFile(actionArgs.GetStringKey("vecsout"));
   // Reference keywords
   REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ );
   // Per-res keywords
@@ -89,6 +110,18 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
     rmatrices_ = init.DSL().AddSet(DataSet::MAT3X3, md);
     if (rmatrices_ == 0) return Action::ERR;
+    if (matricesOut != 0) matricesOut->AddDataSet( rmatrices_ );
+  }
+  // Set up translation vector data set if specified
+  if (tvecType_ != NO_TVEC) {
+    md.SetAspect("TV");
+    if (!fit_) {
+      mprinterr("Error: Must be fitting in order to save translation vectors.\n");
+      return Action::ERR;
+    }
+    tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VECTOR, md);
+    if (tvecs_ == 0) return Action::ERR;
+    if (vecsOut != 0) vecsOut->AddDataSet( tvecs_ );
   }
 # ifdef MPI
   if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
@@ -111,6 +144,17 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
   if (rmatrices_ != 0)
     mprintf("\tRotation matrices will be saved to set '%s'\n", rmatrices_->legend());
+  if (matricesOut != 0)
+    mprintf("\tRotation matrices will be written to '%s'\n", matricesOut->DataFilename().full());
+  if (tvecType_ == COMBINED)
+    mprintf("\tCombined target-to-reference translation vector will be saved to set '%s'\n",
+            tvecs_->legend());
+  else if (tvecType_ == SEPARATE)
+    mprintf("\tTarget-to-origin translation vector saved to '%s' as Vx Vy Vz,\n"
+            "\t  origin-to-reference translation vector saved to '%s' as Ox Oy Oz\n",
+            tvecs_->legend(), tvecs_->legend());
+  if (vecsOut != 0)
+    mprintf("\tTranslation vectors will be written to '%s'\n", vecsOut->DataFilename().full());
   // Per-residue RMSD info.
   if (perres_) {
     mprintf("          No-fit RMSD will also be calculated for ");
@@ -320,6 +364,10 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
   else {
     rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
     if (rmatrices_ != 0) rmatrices_->Add(frameNum, rot_.Dptr());
+    if (tvecType_ == COMBINED)
+      tvecs_->AddVxyz( tgtTrans_ + REF_.RefTrans() );
+    else if (tvecType_ == SEPARATE)
+      tvecs_->AddVxyz( tgtTrans_, REF_.RefTrans() );
     switch (mode_) {
       case ROT_AND_TRANS:
         frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());

@@ -4,6 +4,7 @@
 #include "Range.h"
 #include "ReferenceAction.h"
 #include "DataSet_1D.h"
+#include "DataSet_Vector.h"
 /// Action to calculate the RMSD between frame and a reference frame.
 class Action_Rmsd: public Action {
   public:
@@ -17,6 +18,8 @@ class Action_Rmsd: public Action {
     void Print();
     /// Describe if and how coordinates should be modified.
     enum ModeType { ROT_AND_TRANS = 0, TRANS_ONLY, NONE };
+    /// Describe if and how translation vectors should be saved.
+    enum TvecType { NO_TVEC = 0, COMBINED, SEPARATE };
     // PerResRMSD -------------
     /// Set up per-residue RMSD calc
     int perResSetup(Topology const&, Topology const&);
@@ -45,6 +48,7 @@ class Action_Rmsd: public Action {
     AtomMask tgtMask_; ///< Mask of selected target atoms.
     int debug_;
     ModeType mode_;    ///< Describe how coords should be modified during RMS-fit
+    TvecType tvecType_;
     bool fit_;         ///< If true, best-fit RMS.
     bool useMass_;     ///< If true, mass-weight calculation.
     Vec3 tgtTrans_;    ///< Hold translation to origin.
@@ -52,5 +56,6 @@ class Action_Rmsd: public Action {
     Frame tgtFrame_;   ///< Hold selected target atoms.
     DataSet* rmsd_;
     DataSet* rmatrices_;
+    DataSet_Vector* tvecs_;
 };
 #endif
