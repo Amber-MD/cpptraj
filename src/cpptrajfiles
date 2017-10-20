@@ -167,6 +167,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataIO_CharmmOutput.cpp \
         DataIO_CharmmRepLog.cpp \
         DataIO_Cmatrix.cpp \
+        DataIO_Cpout.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \

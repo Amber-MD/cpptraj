@@ -25,6 +25,7 @@
 #include "DataIO_CharmmRepLog.h"
 #include "DataIO_CharmmFastRep.h"
 #include "DataIO_CharmmOutput.h"
+#include "DataIO_Cpout.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -68,6 +69,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "CHARMM REM log",     DataIO_CharmmRepLog::ReadHelp, 0,             DataIO_CharmmRepLog::Alloc},
   { "CHARMM Fast REM log",0,                             0,            DataIO_CharmmFastRep::Alloc},
   { "CHARMM Output",      0,                             0,             DataIO_CharmmOutput::Alloc},
+  { "Amber CPOUT",        0,                             0,             DataIO_Cpout::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
