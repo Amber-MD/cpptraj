@@ -39,9 +39,9 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: Must specify output file.\n");
     return CpptrajState::ERR;
   }
-  TrajectoryFile::TrajFormatType fmt = TrajectoryFile::GetFormatFromArg(argIn);
-  if (fmt != TrajectoryFile::PDBFILE && fmt != TrajectoryFile::MOL2FILE)
-    fmt = TrajectoryFile::PDBFILE; // Default to PDB
+  // Default to PDB. TODO only allow PDB/Mol2?
+  TrajectoryFile::TrajFormatType fmt =
+    TrajectoryFile::WriteFormatFromArg(argIn, TrajectoryFile::PDBFILE);
   int smaskoffset = argIn.getKeyInt("smaskoffset", 0) + 1;
   int qmaskoffset = argIn.getKeyInt("qmaskoffset", 0) + 1;
 

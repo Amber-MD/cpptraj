@@ -233,7 +233,8 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     return Analysis::ERR;
   }
   traj3dName_ = analyzeArgs.GetStringKey("traj3d");
-  traj3dFmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajfmt") );
+  traj3dFmt_ = TrajectoryFile::WriteFormatFromString( analyzeArgs.GetStringKey("trajfmt"),
+                                                      TrajectoryFile::AMBERTRAJ );
   parmoutName_ = analyzeArgs.GetStringKey("parmout");
   // Create a DataFile here so any DataFile arguments can be processed. If it
   // turns out later that native output is needed the DataFile will be removed.

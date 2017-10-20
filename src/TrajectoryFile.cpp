@@ -87,6 +87,30 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { SDF,            "sdf",       ".sdf"     },
   { UNKNOWN_TRAJ,   0,           0          }
 };
+
+const FileTypes::KeyToken TrajectoryFile::TF_WriteKeyArray[] = {
+  { AMBERNETCDF,    "netcdf",    ".nc"      },
+  { AMBERNETCDF,    "cdf",       ".nc"      },
+  { AMBERRESTARTNC, "ncrestart", ".ncrst"   },
+  { AMBERRESTARTNC, "restartnc", ".ncrst"   },
+# ifdef ENABLE_SINGLE_ENSEMBLE
+  { AMBERNCENSEMBLE,"ncensemble",".ncens"   },
+# endif
+  { PDBFILE,        "pdb",       ".pdb"     },
+  { MOL2FILE,       "mol2",      ".mol2"    },
+  { CHARMMDCD,      "dcd",       ".dcd"     },
+  { CHARMMDCD,      "charmm",    ".dcd"     },
+  { GMXTRX,         "trr",       ".trr"     },
+  { GMXXTC,         "xtc",       ".xtc"     },
+  { BINPOS,         "binpos",    ".binpos"  },
+  { AMBERRESTART,   "restart",   ".rst7"    },
+  { AMBERRESTART,   "restrt",    ".rst7"    },
+  { AMBERRESTART,   "rest",      ".rst7"    },
+  { AMBERTRAJ,      "crd",       ".crd"     },
+  { SQM,            "sqm",       ".sqm"     },
+  { UNKNOWN_TRAJ,   0,           0          }
+};
+
 // -----------------------------------------------------------------------------
 
 // TrajectoryFile::DetectFormat()

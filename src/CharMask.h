@@ -27,7 +27,7 @@ class CharMask : public MaskTokenArray {
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*) const;
     /// Set up character mask based on current mask expression. 
-    int SetupMask(AtomArrayT const&, ResArrayT const&, const double*);
+    int SetupMask(AtomArrayT const&, ResArrayT const&, MolArrayT const&, const double*);
     /// Reset atom mask
     void ResetMask();
     /// Clear any selected atoms in mask.

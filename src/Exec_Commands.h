@@ -30,6 +30,16 @@ class Exec_NoProgress : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_NoProgress(); }
     RetType Execute(CpptrajState&, ArgList&);
 };
+
+/// Tell CpptrajState to suppress output in control blocks
+class Exec_QuietBlocks : public Exec {
+  public:
+    Exec_QuietBlocks() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_QuietBlocks(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
+
 #ifdef MPI
 /// Tell CpptrajState to run parallel ensemble even with 1 thread/member
 class Exec_ForceParaEnsemble : public Exec {

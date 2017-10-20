@@ -5,7 +5,8 @@
 # Clean
 CleanFiles rms.in rmsd.dat rms.mass.in rmsd.mass.dat rms.reftraj.in \
            rmsd.reftraj.dat tz2.norotate.crd tz2.rotate.crd rmatrices.dat \
-           rmsd.refcoords.dat rms.dat NoMod.dat NoMod.crd.save NoMod.crd
+           rmsd.refcoords.dat rms.dat NoMod.dat NoMod.crd.save NoMod.crd \
+           vecs.dat
 
 TESTNAME='RMSD tests'
 Requires netcdf
@@ -22,7 +23,8 @@ noprogress
 trajin ../tz2.truncoct.nc
 
 rms Res2-11 first :2-11 out rmsd.dat
-rms Res2-11_mass first :2-11 out rmsd.mass.dat mass
+rms Res2-11_mass first :2-11 out rmsd.mass.dat mass \
+  savevectors combined vecsout vecs.dat
 rms Res2_11_traj reftraj ../tz2.truncoct.nc :2-11 out rmsd.reftraj.dat
 run
 removedata Res2_11_traj
@@ -32,6 +34,7 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest rmsd.dat.save rmsd.dat
   DoTest rmsd.mass.dat.save rmsd.mass.dat
+  DoTest vecs.dat.save vecs.dat
   DoTest rmsd.reftraj.dat.save rmsd.reftraj.dat
   DoTest rmsd.reftraj.dat.save rmsd.refcoords.dat
 fi
@@ -47,8 +50,7 @@ trajin ../tz2.truncoct.nc parm [WAT]
 strip :WAT
 rms NOROT ref [first] norotate @CA
 outtraj tz2.norotate.crd parm [WAT]
-rms ROT ref [first] out rms.dat @CA savematrices
-create rmatrices.dat ROT[RM]
+rms ROT ref [first] out rms.dat @CA savematrices matricesout rmatrices.dat
 outtraj tz2.rotate.crd parm [WAT]
 EOF
 RunCpptraj "RMS coordinate rotation/rotation matrices test."

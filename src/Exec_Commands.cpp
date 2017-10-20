@@ -44,6 +44,17 @@ Exec::RetType Exec_NoProgress::Execute(CpptrajState& State, ArgList&)
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------
+void Exec_QuietBlocks::Help() const {
+  mprintf("  Suppress output when executing control blocks.\n");
+}
+
+Exec::RetType Exec_QuietBlocks::Execute(CpptrajState& State, ArgList&)
+{
+  State.SetQuietBlocks(true);
+  mprintf("\tSupressing output when executing control blocks.\n");
+  return CpptrajState::OK;
+}
+// -----------------------------------------------------------------------------
 void Exec_Quit::Help() const { mprintf("  Exit CPPTRAJ\n"); }
 // -----------------------------------------------------------------------------
 void Exec_ActiveRef::Help() const {

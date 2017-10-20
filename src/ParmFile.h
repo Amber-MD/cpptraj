@@ -7,11 +7,13 @@ class ParmFile {
     static const FileTypes::AllocToken PF_AllocArray[];
     /// For associating keywords/extensions with file types. 
     static const FileTypes::KeyToken PF_KeyArray[];
+    /// Topologies for which writes are supported.
+    static const FileTypes::KeyToken PF_WriteKeyArray[];
   public :
     enum ParmFormatType { AMBERPARM=0, PDBFILE, MOL2FILE, CHARMMPSF, CIFFILE,
                           GMXTOP, SDFFILE, TINKER, UNKNOWN_PARM };
     static void ReadOptions() { FileTypes::ReadOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM); }
-    static void WriteOptions(){ FileTypes::WriteOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM);} 
+    static void WriteOptions(){ FileTypes::WriteOptions(PF_WriteKeyArray,PF_AllocArray,UNKNOWN_PARM);}
     ParmFile() {}
     int ReadTopology(Topology&, FileName const&, ArgList const&,int);
     int ReadTopology(Topology& t, FileName const& n, int d) {

@@ -1037,24 +1037,24 @@ int Topology::SetSolventInfo() {
 
 // Topology::SetupIntegerMask()
 int Topology::SetupIntegerMask(AtomMask &mask) const {
-  return mask.SetupMask(atoms_, residues_, refCoords_.xAddress());
+  return mask.SetupMask(atoms_, residues_, molecules_, refCoords_.xAddress());
 }
 
 // Topology::SetupCharMask()
 int Topology::SetupCharMask(CharMask &mask) const {
-  return mask.SetupMask(atoms_, residues_, refCoords_.xAddress());
+  return mask.SetupMask(atoms_, residues_, molecules_, refCoords_.xAddress());
 }
 
 // Topology::SetupIntegerMask()
 int Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
-  if (frame.empty()) return mask.SetupMask(atoms_, residues_, 0);
-  return mask.SetupMask(atoms_, residues_, frame.xAddress());
+  if (frame.empty()) return mask.SetupMask(atoms_, residues_, molecules_, 0);
+  return mask.SetupMask(atoms_, residues_, molecules_, frame.xAddress());
 }
 
 // Topology::SetupCharMask()
 int Topology::SetupCharMask(CharMask &mask, Frame const& frame) const {
-  if (frame.empty()) return mask.SetupMask(atoms_, residues_, 0);
-  return mask.SetupMask(atoms_, residues_, frame.xAddress());
+  if (frame.empty()) return mask.SetupMask(atoms_, residues_, molecules_, 0);
+  return mask.SetupMask(atoms_, residues_, molecules_, frame.xAddress());
 }
 
 // -----------------------------------------------------------------------------
