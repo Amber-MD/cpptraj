@@ -8,7 +8,7 @@
 #  include <omp.h>
 #endif
 
-Action_InfraredSpectrum::Action_InfraredSpectrum() :
+Action_InfraredSpectrum::Action_InfraredSpectrum() : Action(HIDDEN),
   Vel_(0),
   VAC_(0),
   currentTop_(0),
