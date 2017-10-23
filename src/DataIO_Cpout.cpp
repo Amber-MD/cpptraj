@@ -128,13 +128,21 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     } 
     // delta record or full record header read
     while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
-      mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
+      //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
       phdata->AddState(res, state);
       ptr = infile.Line();
     }
     ptr = infile.Line();
   }
   infile.CloseFile();
+
+  for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res) {
+    mprintf("DEBUG: Res %u: \n", res-phdata->begin());
+    for (DataSet_PH::Residue::const_iterator state = res->begin();
+                                             state != res->end(); ++state)
+      mprintf(" %i", *state);
+    mprintf("\n");
+  }
 
   return 0;
 }
