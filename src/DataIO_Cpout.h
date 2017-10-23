@@ -17,6 +17,10 @@ class DataIO_Cpout : public DataIO {
     static const char* FMT_REDOX_;
     static const char* FMT_PH_;
     enum FileType { PH = 0, REDOX, NONE };
+
+    int ReadCpin(FileName const&);
+
+    FileName cpin_file_;
     FileType type_;
 };
 #endif

@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdlib>
 #include "DataIO_Cpout.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
@@ -45,12 +46,55 @@ bool DataIO_Cpout::ID_DataFormat(CpptrajFile& infile)
 // DataIO_Cpout::ReadHelp()
 void DataIO_Cpout::ReadHelp()
 {
-
+  mprintf("\tcpin <file> : CPIN file name.\n");
 }
 
 // DataIO_Cpout::processReadArgs()
 int DataIO_Cpout::processReadArgs(ArgList& argIn)
 {
+  cpin_file_ = argIn.GetStringKey("cpin");
+  return 0;
+}
+
+int DataIO_Cpout::ReadCpin(FileName const& fname) {
+  BufferedLine infile;
+  if (infile.OpenFileRead( fname )) return 1;
+  enum cpinMode { NONE = 0, CHRGDAT, PROTCNT, RESNAME, RESSTATE, STATEINF };
+  cpinMode mode = NONE;
+  ArgList list;
+  const char* ptr = infile.Line(); // &CNSTPH
+  int arg0 = 0;
+  while (ptr != 0) {
+    // Read ahead to see if there is an equals; assignment on this line.
+    arg0 = 0;
+    for (const char* p = ptr; *p != '\0'; ++p)
+      if (*p == '=')
+        arg0 = 1;
+    // Tokenize the line
+    list.SetList(ptr, "=, ");
+    if (list.Nargs() > 0) {
+      if (arg0 == 1) {
+        // Determine what kind of line it is
+        if (list[0] == "CHRGDAT")
+          mode = CHRGDAT;
+        else if (list[0] == "PROTCNT")
+          mode = PROTCNT;
+        else {
+          mprintf("Warning: Unhandled CPIN namelist: %s\n", list.Command());
+          mode = NONE;
+        }
+      }
+      // Process line
+      if (mode == CHRGDAT) {
+        for (int arg = arg0; arg < list.Nargs(); arg++)
+          mprintf("\t\t%12.4f\n", atof(list[arg].c_str()));
+      } else if (mode == PROTCNT) {
+        for (int arg = arg0; arg < list.Nargs(); arg++)
+          mprintf("\t\t%6i\n", atoi(list[arg].c_str()));
+      }
+    }
+    ptr = infile.Line();
+  }
 
   return 0;
 }
@@ -58,6 +102,11 @@ int DataIO_Cpout::processReadArgs(ArgList& argIn)
 // DataIO_Cpout::ReadData()
 int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  // If a cpin file has been specified read it now.
+  if (!cpin_file_.empty()) {
+    if (ReadCpin(cpin_file_)) return 1;
+  }
+
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
   const char* ptr = infile.Line();
