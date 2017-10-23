@@ -61,7 +61,8 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
 
-  enum VarType { NONE = 0, CHRGDAT, PROTCNT, RESNAME, RESSTATE, NUM_STATES, TRESCNT };
+  enum VarType { NONE = 0, CHRGDAT, PROTCNT, RESNAME, RESSTATE, NUM_STATES, 
+                 NUM_ATOMS, TRESCNT };
   VarType vtype = NONE;
 
   enum NamelistMode { OUTSIDE_NAMELIST = 0, INSIDE_NAMELIST };
@@ -70,10 +71,15 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   /// One for each residue.
   StateArray States;
 
+  typedef std::vector<std::string> Sarray;
+  Sarray resnames;
+  std::string system;
+
   int stateinf_ridx = 0;
 
   std::string token;
   const char* ptr = infile.Line(); // &CNSTPH
+  bool inQuote = false;
   while (ptr != 0) {
     for (const char* p = ptr; *p != '\0'; ++p)
     {
@@ -87,11 +93,18 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
       } else {
         if ( *p == '/' || *p == '&' )
           break;
-        else if ( *p == '=' ) {
+        else if ( *p == '\'' || *p == '"' ) {
+          if (inQuote)
+            inQuote = false;
+          else
+            inQuote = true;
+        } else if ( *p == '=' ) {
           // Variable. Figure out which one.
           mprintf("VAR: %s\n", token.c_str());
           if ( token == "CHRGDAT" )
             vtype = CHRGDAT;
+          else if (token == "RESNAME")
+            vtype = RESNAME;
           else if (token == "TRESCNT")
             vtype = TRESCNT;
           else if (token.compare(0,8,"STATEINF") == 0) {
@@ -107,6 +120,8 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
               States.resize(stateinf_ridx+1); // TODO bounds check
             if (stateinf[2] == "NUM_STATES")
               vtype = NUM_STATES;
+            else if (stateinf[2] == "NUM_ATOMS")
+              vtype = NUM_ATOMS;
             else
               vtype = NONE;
           } else
@@ -117,12 +132,19 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
           mprintf("\tValue: %s mode %i\n", token.c_str(), (int)vtype);
           if (vtype == CHRGDAT)
             charges_.push_back( atof( token.c_str() ) );
-          else if (vtype == TRESCNT)
+          else if (vtype == RESNAME) {
+            if (token.compare(0,6,"System")==0)
+              system = token.substr(7);
+            else
+              resnames.push_back( token.substr(8) );
+          } else if (vtype == TRESCNT)
             trescnt_ = atoi( token.c_str() );
           else if (vtype == NUM_STATES)
             States[stateinf_ridx].num_states_ = atoi( token.c_str() );
+          else if (vtype == NUM_ATOMS)
+            States[stateinf_ridx].num_atoms_  = atoi( token.c_str() );
           token.clear();
-        } else if (!isspace(*p))
+        } else if (!isspace(*p) || inQuote)
           token += *p;
       }
     }
@@ -141,7 +163,10 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   if (col != 0) mprintf("\n");
   mprintf("trescnt = %i\n", trescnt_);
   for (StateArray::const_iterator it = States.begin(); it != States.end(); ++it)
-    mprintf("\tnum_states= %i\n", it->num_states_);
+    mprintf("\tnum_states= %i  num_atoms= %i\n", it->num_states_, it->num_atoms_);
+  mprintf("System: %s\n", system.c_str());
+  for (Sarray::const_iterator it = resnames.begin(); it != resnames.end(); ++it)
+    mprintf("\t%s\n", it->c_str());
 
   return 0;
 }
