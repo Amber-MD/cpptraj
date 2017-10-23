@@ -62,7 +62,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   if (infile.OpenFileRead( fname )) return 1;
 
   enum VarType { NONE = 0, CHRGDAT, PROTCNT, RESNAME, RESSTATE, NUM_STATES, 
-                 NUM_ATOMS, TRESCNT };
+                 NUM_ATOMS, FIRST_CHARGE, TRESCNT };
   VarType vtype = NONE;
 
   enum NamelistMode { OUTSIDE_NAMELIST = 0, INSIDE_NAMELIST };
@@ -122,6 +122,8 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
               vtype = NUM_STATES;
             else if (stateinf[2] == "NUM_ATOMS")
               vtype = NUM_ATOMS;
+            else if (stateinf[2] == "FIRST_CHARGE")
+              vtype = FIRST_CHARGE;
             else
               vtype = NONE;
           } else
@@ -143,6 +145,8 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
             States[stateinf_ridx].num_states_ = atoi( token.c_str() );
           else if (vtype == NUM_ATOMS)
             States[stateinf_ridx].num_atoms_  = atoi( token.c_str() );
+          else if (vtype == FIRST_CHARGE)
+            States[stateinf_ridx].first_charge_ = atoi( token.c_str() );
           token.clear();
         } else if (!isspace(*p) || inQuote)
           token += *p;
@@ -163,7 +167,8 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   if (col != 0) mprintf("\n");
   mprintf("trescnt = %i\n", trescnt_);
   for (StateArray::const_iterator it = States.begin(); it != States.end(); ++it)
-    mprintf("\tnum_states= %i  num_atoms= %i\n", it->num_states_, it->num_atoms_);
+    mprintf("\tnum_states= %i  num_atoms= %i  first_charge= %i\n",
+            it->num_states_, it->num_atoms_, it->first_charge_);
   mprintf("System: %s\n", system.c_str());
   for (Sarray::const_iterator it = resnames.begin(); it != resnames.end(); ++it)
     mprintf("\t%s\n", it->c_str());
