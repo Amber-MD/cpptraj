@@ -921,13 +921,12 @@ int RPNcalc::Nparams() const {
         std::istringstream iss( T->Name().substr(1) );      
         int pnum;
         iss >> pnum;
-        if (iss.fail()) {
-          mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
-          return 1;
+        /// If not followed by a number this may just be a data set.
+        if (!iss.fail()) {
+          if (min_param ==-1 || pnum < min_param) min_param = pnum;
+          if (max_param ==-1 || pnum > max_param) max_param = pnum;
+          nparams++;
         }
-        if (min_param ==-1 || pnum < min_param) min_param = pnum;
-        if (max_param ==-1 || pnum > max_param) max_param = pnum;
-        nparams++;
       }
       else if (T->Name() == "X")
         hasXvar = true;
