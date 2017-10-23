@@ -1,15 +1,16 @@
 #include <cstdio>
 #include "DataIO_Cpout.h"
 #include "CpptrajStdio.h"
+#include "BufferedLine.h"
 
 /// CONSTRUCTOR
 DataIO_Cpout::DataIO_Cpout() :
   type_(NONE)
 { }
 
-const char* DataIO_Cpout::FMT_REDOX_ = "Redox potential: %f V\n";
+const char* DataIO_Cpout::FMT_REDOX_ = "Redox potential: %f V";
 
-const char* DataIO_Cpout::FMT_PH_ = "Solvent pH: %f\n";
+const char* DataIO_Cpout::FMT_PH_ = "Solvent pH: %f";
 
 // DataIO_Cpout::ID_DataFormat()
 bool DataIO_Cpout::ID_DataFormat(CpptrajFile& infile)
@@ -29,7 +30,7 @@ bool DataIO_Cpout::ID_DataFormat(CpptrajFile& infile)
         ptr = infile.NextLine();
         int step_size;
         if (ptr != 0) {
-          iscpout = (sscanf(ptr, "Monte Carlo step size: %d\n", &step_size) == 1);
+          iscpout = (sscanf(ptr, "Monte Carlo step size: %d", &step_size) == 1);
         }
       }
     }
@@ -54,8 +55,68 @@ int DataIO_Cpout::processReadArgs(ArgList& argIn)
 // DataIO_Cpout::ReadData()
 int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  BufferedLine infile;
+  if (infile.OpenFileRead( fname )) return 1;
+  const char* ptr = infile.Line();
 
-  return 1;
+  float orig_ph, time, pHval = 0.0;
+  int step, res, state;
+
+  // Determine type if necessary.
+  if (type_ == NONE) {
+    if (sscanf(ptr, FMT_REDOX_, &orig_ph) == 1) {
+      type_ = REDOX;
+    } else if (sscanf(ptr, FMT_PH_, &orig_ph) == 1) {
+      type_ = PH;
+    } else {
+      mprinterr("Error: Could not determine CPOUT file type.\n");
+      return 1;
+    }
+    infile.CloseFile();
+    infile.OpenFileRead( fname );
+  }
+
+  const char* fmt = 0;
+  const char* rFmt = 0;
+  if (type_ == PH) {
+    mprintf("\tConstant pH output file.\n");
+    fmt = FMT_PH_;
+    rFmt = "Residue %d State: %d pH: %f";
+  } else if (type_ == REDOX) {
+    mprintf("\tRedOx output file.\n");
+    fmt = FMT_REDOX_;
+    rFmt = "Residue %d State: %d E: %f V";
+  }
+
+  while (ptr != 0) {
+    if (sscanf(ptr, fmt, &orig_ph) == 1) {
+      // Full record
+      mprintf("DEBUG: pH= %f\n", orig_ph);
+      ptr = infile.Line(); // Monte Carlo step size
+      ptr = infile.Line(); // Current MD time step
+      if (sscanf(ptr,"Time step: %d", &step) != 1) {
+        mprinterr("Error: Could not get step.\n");
+        return 1;
+      }
+      mprintf("DEBUG: step= %i\n", step);
+      ptr = infile.Line(); // Current time (ps)
+      if (sscanf(ptr,"Time: %f", &time) != 1) {
+        mprinterr("Error: Could not get time.\n");
+        return 1;
+      }
+      mprintf("DEBUG: time= %f\n", time);
+      ptr = infile.Line(); // Residue
+    } 
+    // delta record or full record header read
+    while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
+      mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
+      ptr = infile.Line();
+    }
+    ptr = infile.Line();
+  }
+  infile.CloseFile();
+
+  return 0;
 }
 
 // DataIO_Cpout::WriteHelp()
