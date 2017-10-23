@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <cctype>
 #include "DataIO_Cpout.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
@@ -59,42 +60,88 @@ int DataIO_Cpout::processReadArgs(ArgList& argIn)
 int DataIO_Cpout::ReadCpin(FileName const& fname) {
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
-  enum cpinMode { NONE = 0, CHRGDAT, PROTCNT, RESNAME, RESSTATE, STATEINF };
-  cpinMode mode = NONE;
-  ArgList list;
+
+  enum VarType { NONE = 0, CHRGDAT, PROTCNT, RESNAME, RESSTATE, NUM_STATES, TRESCNT };
+  VarType vtype = NONE;
+
+  enum NamelistMode { OUTSIDE_NAMELIST = 0, INSIDE_NAMELIST };
+  NamelistMode nmode = OUTSIDE_NAMELIST;
+
+  /// One for each residue.
+  StateArray States;
+
+  int stateinf_ridx = 0;
+
+  std::string token;
   const char* ptr = infile.Line(); // &CNSTPH
-  int arg0 = 0;
   while (ptr != 0) {
-    // Read ahead to see if there is an equals; assignment on this line.
-    arg0 = 0;
     for (const char* p = ptr; *p != '\0'; ++p)
-      if (*p == '=')
-        arg0 = 1;
-    // Tokenize the line
-    list.SetList(ptr, "=, ");
-    if (list.Nargs() > 0) {
-      if (arg0 == 1) {
-        // Determine what kind of line it is
-        if (list[0] == "CHRGDAT")
-          mode = CHRGDAT;
-        else if (list[0] == "PROTCNT")
-          mode = PROTCNT;
-        else {
-          mprintf("Warning: Unhandled CPIN namelist: %s\n", list.Command());
-          mode = NONE;
-        }
-      }
-      // Process line
-      if (mode == CHRGDAT) {
-        for (int arg = arg0; arg < list.Nargs(); arg++)
-          mprintf("\t\t%12.4f\n", atof(list[arg].c_str()));
-      } else if (mode == PROTCNT) {
-        for (int arg = arg0; arg < list.Nargs(); arg++)
-          mprintf("\t\t%6i\n", atoi(list[arg].c_str()));
+    {
+      if (nmode == OUTSIDE_NAMELIST) {
+        if (isspace(*p)) {
+          mprintf("NAMELIST: %s\n", token.c_str());
+          token.clear();
+          nmode = INSIDE_NAMELIST;
+        } else
+          token += *p;
+      } else {
+        if ( *p == '/' || *p == '&' )
+          break;
+        else if ( *p == '=' ) {
+          // Variable. Figure out which one.
+          mprintf("VAR: %s\n", token.c_str());
+          if ( token == "CHRGDAT" )
+            vtype = CHRGDAT;
+          else if (token == "TRESCNT")
+            vtype = TRESCNT;
+          else if (token.compare(0,8,"STATEINF") == 0) {
+            // Expect STATEINF(<res>)%<field>
+            ArgList stateinf(token, "()%=");
+            if (stateinf.Nargs() != 3) {
+              mprintf("Error: Malformed STATEINF: %s\n", token.c_str());
+              return 1;
+            }
+            stateinf_ridx = atoi(stateinf[1].c_str());
+            mprintf("DEBUG Res %i : %s\n", stateinf_ridx, stateinf[2].c_str());
+            if (stateinf_ridx >= (int)States.size())
+              States.resize(stateinf_ridx+1); // TODO bounds check
+            if (stateinf[2] == "NUM_STATES")
+              vtype = NUM_STATES;
+            else
+              vtype = NONE;
+          } else
+            vtype = NONE;
+          token.clear();
+        } else if (*p == ',') {
+          // Value. Assign to appropriate variable
+          mprintf("\tValue: %s mode %i\n", token.c_str(), (int)vtype);
+          if (vtype == CHRGDAT)
+            charges_.push_back( atof( token.c_str() ) );
+          else if (vtype == TRESCNT)
+            trescnt_ = atoi( token.c_str() );
+          else if (vtype == NUM_STATES)
+            States[stateinf_ridx].num_states_ = atoi( token.c_str() );
+          token.clear();
+        } else if (!isspace(*p))
+          token += *p;
       }
     }
     ptr = infile.Line();
   }
+
+  mprintf("%zu charges.\n", charges_.size());
+  int col = 0;
+  for (Darray::const_iterator c = charges_.begin(); c != charges_.end(); ++c) {
+    mprintf(" %12.4f", *c);
+    if (++col == 5) {
+      mprintf("\n");
+      col = 0;
+    }
+  }
+  if (col != 0) mprintf("\n");
+  mprintf("trescnt = %i\n", trescnt_);
+  for (StateArray::const_iterator it = States.begin(); it != States.end(); ++it)
+    mprintf("\tnum_states= %i\n", it->num_states_);
 
   return 0;
 }

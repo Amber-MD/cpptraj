@@ -18,9 +18,22 @@ class DataIO_Cpout : public DataIO {
     static const char* FMT_PH_;
     enum FileType { PH = 0, REDOX, NONE };
 
+    typedef std::vector<double> Darray;
+
+    struct StateInfo {
+      int num_states_;
+      int first_atom_;
+      int num_atoms_;
+      int first_state_;
+      int first_charge_;
+    };
+    typedef std::vector<StateInfo> StateArray;
+
     int ReadCpin(FileName const&);
 
     FileName cpin_file_;
     FileType type_;
+    int trescnt_;
+    Darray charges_;
 };
 #endif
