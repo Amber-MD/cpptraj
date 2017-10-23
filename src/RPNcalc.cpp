@@ -911,23 +911,28 @@ RPNcalc::AssignType RPNcalc::AssignStatus() const {
 }
 
 // RPNcalc::Nparams()
-int RPNcalc::Nparams() const {
+int RPNcalc::Nparams(AssignType assign) const {
   int nparams=0, min_param=-1, max_param=-1;
   bool hasXvar = false;
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
     if (T->Type() == VARIABLE) {
       if (T->Name()[0] == 'A')
       {
-        std::istringstream iss( T->Name().substr(1) );      
-        int pnum;
-        iss >> pnum;
-        if (iss.fail()) {
-          mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
-          return 1;
+        // If we are not assigning the result this must be a parameter. If
+        // we are assigning the result the first token will not be a
+        // parameter.
+        if (assign == NO_ASSIGN || T != tokens_.begin()) {
+          std::istringstream iss( T->Name().substr(1) );      
+          int pnum;
+          iss >> pnum;
+          if (iss.fail()) {
+            mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
+            return 1;
+          }
+          if (min_param ==-1 || pnum < min_param) min_param = pnum;
+          if (max_param ==-1 || pnum > max_param) max_param = pnum;
+          nparams++;
         }
-        if (min_param ==-1 || pnum < min_param) min_param = pnum;
-        if (max_param ==-1 || pnum > max_param) max_param = pnum;
-        nparams++;
       }
       else if (T->Name() == "X")
         hasXvar = true;
