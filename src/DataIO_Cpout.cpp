@@ -2,11 +2,14 @@
 #include "DataIO_Cpout.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
+#include "DataSet_PH.h"
 
 /// CONSTRUCTOR
 DataIO_Cpout::DataIO_Cpout() :
   type_(NONE)
-{ }
+{
+  SetValid( DataSet::PH );
+}
 
 const char* DataIO_Cpout::FMT_REDOX_ = "Redox potential: %f V";
 
@@ -88,6 +91,22 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     rFmt = "Residue %d State: %d E: %f V";
   }
 
+  // Allocate ph DataSet
+  DataSet* ds = 0;
+  if (!dsname.empty()) ds = dsl.CheckForSet(dsname);
+  if (ds == 0) {
+    // New set
+    ds = dsl.AddSet( DataSet::PH, dsname, "ph" );
+    if (ds == 0) return 1;
+  } else {
+    if (ds->Type() != DataSet::PH) {
+      mprinterr("Error: Set '%s' is not ph data.\n", ds->legend());
+      return 1;
+    }
+    // TODO check # residues etc
+  }
+  DataSet_PH* phdata = (DataSet_PH*)ds;
+
   while (ptr != 0) {
     if (sscanf(ptr, fmt, &orig_ph) == 1) {
       // Full record
@@ -110,6 +129,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     // delta record or full record header read
     while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
       mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
+      phdata->AddState(res, state);
       ptr = infile.Line();
     }
     ptr = infile.Line();
