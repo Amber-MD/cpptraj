@@ -7,7 +7,8 @@
 
 /// CONSTRUCTOR
 DataIO_Cpout::DataIO_Cpout() :
-  type_(NONE)
+  type_(NONE),
+  original_pH_(0.0)
 {
   SetValid( DataSet::PH );
 }
@@ -24,10 +25,9 @@ bool DataIO_Cpout::ID_DataFormat(CpptrajFile& infile)
   if (!infile.OpenFile()) {
     const char* ptr = infile.NextLine();
     if (ptr != 0) {
-      float orig_ph;
-      if (sscanf(ptr, FMT_REDOX_, &orig_ph) == 1) {
+      if (sscanf(ptr, FMT_REDOX_, &original_pH_) == 1) {
         type_ = REDOX;
-      } else if (sscanf(ptr, FMT_PH_, &orig_ph) == 1) {
+      } else if (sscanf(ptr, FMT_PH_, &original_pH_) == 1) {
         type_ = PH;
       }
       if (type_ != NONE) {
@@ -88,7 +88,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
     {
       if (nmode == OUTSIDE_NAMELIST) {
         if (isspace(*p)) {
-          mprintf("NAMELIST: %s\n", token.c_str());
+          //mprintf("NAMELIST: %s\n", token.c_str());
           token.clear();
           nmode = INSIDE_NAMELIST;
         } else
@@ -104,7 +104,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
         // ---------------------------------------
         } else if ( *p == '=' ) {
           // Variable. Figure out which one.
-          mprintf("VAR: %s\n", token.c_str());
+          //mprintf("VAR: %s\n", token.c_str());
           if ( token == "CHRGDAT" )
             vtype = CHRGDAT;
           else if (token == "PROTCNT")
@@ -121,7 +121,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
               return 1;
             }
             stateinf_ridx = atoi(stateinf[1].c_str());
-            mprintf("DEBUG Res %i : %s\n", stateinf_ridx, stateinf[2].c_str());
+            //mprintf("DEBUG Res %i : %s\n", stateinf_ridx, stateinf[2].c_str());
             if (stateinf_ridx >= (int)States.size())
               States.resize(stateinf_ridx+1); // TODO bounds check
             if (stateinf[2] == "NUM_STATES")
@@ -140,7 +140,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
         // ---------------------------------------
         } else if (*p == ',') {
           // Value. Assign to appropriate variable
-          mprintf("\tValue: %s mode %i\n", token.c_str(), (int)vtype);
+          //mprintf("\tValue: %s mode %i\n", token.c_str(), (int)vtype);
           if (vtype == CHRGDAT)
             charges.push_back( atof( token.c_str() ) );
           else if (vtype == PROTCNT)
@@ -232,14 +232,14 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   if (infile.OpenFileRead( fname )) return 1;
   const char* ptr = infile.Line();
 
-  float orig_ph, time, pHval = 0.0;
+  float time, pHval;
   int step, res, state;
 
   // Determine type if necessary.
   if (type_ == NONE) {
-    if (sscanf(ptr, FMT_REDOX_, &orig_ph) == 1) {
+    if (sscanf(ptr, FMT_REDOX_, &original_pH_) == 1) {
       type_ = REDOX;
-    } else if (sscanf(ptr, FMT_PH_, &orig_ph) == 1) {
+    } else if (sscanf(ptr, FMT_PH_, &original_pH_) == 1) {
       type_ = PH;
     } else {
       mprinterr("Error: Could not determine CPOUT file type.\n");
@@ -248,6 +248,8 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     infile.CloseFile();
     infile.OpenFileRead( fname );
   }
+  mprintf("\tOriginal pH= %f\n", original_pH_);
+  pHval = original_pH_;
 
   const char* fmt = 0;
   const char* rFmt = 0;
@@ -286,30 +288,31 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   DataSet_PH* phdata = (DataSet_PH*)ds;
   int maxRes = (int)phdata->Residues().size();
 
+  float solvent_pH = original_pH_;
   while (ptr != 0) {
-    if (sscanf(ptr, fmt, &orig_ph) == 1) {
+    if (sscanf(ptr, fmt, &solvent_pH) == 1) {
       // Full record
-      mprintf("DEBUG: pH= %f\n", orig_ph);
+      //mprintf("DEBUG: pH= %f\n", solvent_pH);
       ptr = infile.Line(); // Monte Carlo step size
       ptr = infile.Line(); // Current MD time step
       if (sscanf(ptr,"Time step: %d", &step) != 1) {
         mprinterr("Error: Could not get step.\n");
         return 1;
       }
-      mprintf("DEBUG: step= %i\n", step);
+      //mprintf("DEBUG: step= %i\n", step);
       ptr = infile.Line(); // Current time (ps)
       if (sscanf(ptr,"Time: %f", &time) != 1) {
         mprinterr("Error: Could not get time.\n");
         return 1;
       }
-      mprintf("DEBUG: time= %f\n", time);
+      //mprintf("DEBUG: time= %f\n", time);
       ptr = infile.Line(); // Residue
     } 
-    // delta record or full record header read
+    // delta record or full record Residue read
     while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
       //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
       if (res < maxRes) 
-        phdata->AddState(res, state);
+        phdata->AddState(res, state, pHval);
       else {
         mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes);
         return 1;
@@ -321,12 +324,17 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   infile.CloseFile();
 
   for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res) {
-    mprintf("DEBUG: Res %u: \n", res-phdata->begin());
+    mprintf("DEBUG: Res %u:\n", res-phdata->begin());
     for (DataSet_PH::Residue::const_iterator state = res->begin();
                                              state != res->end(); ++state)
       mprintf(" %i", *state);
     mprintf("\n");
   }
+  mprintf("DEBUG: pH values:\n");
+  for (DataSet_PH::ph_iterator ph = phdata->pH_Values().begin();
+                               ph != phdata->pH_Values().end(); ++ph)
+    mprintf(" %6.2f", *ph);
+  mprintf("\n");
 
   mprintf("\tTitratable Residues:\n");
   for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res)

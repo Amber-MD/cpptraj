@@ -6,6 +6,7 @@
 class DataSet_PH : public DataSet {
     typedef std::vector<int> Iarray;
     typedef std::vector<bool> Barray;
+    typedef std::vector<float> Farray;
   public:
     DataSet_PH();
     static DataSet* Alloc() { return (DataSet*)new DataSet_PH(); }
@@ -38,14 +39,19 @@ class DataSet_PH : public DataSet {
 
     void SetResidueInfo(Rarray const& r) { residues_ = r; }
 
+    typedef Farray::const_iterator ph_iterator;
     Rarray const& Residues() const { return residues_; }
 
     // NOTE: Bounds check should be done outside of here.
-    void AddState(unsigned int res, int state) { residues_[res].push_back( state ); }
+    void AddState(unsigned int res, int state, float pH) {
+      residues_[res].push_back( state );
+      solvent_pH_.push_back( pH );
+    }
 
     typedef Rarray::const_iterator const_iterator;
     const_iterator begin() const { return residues_.begin(); }
     const_iterator end()   const { return residues_.end();   }
+    Farray const& pH_Values() const { return solvent_pH_; }
     // -------------------------------------------
     size_t Size() const { return residues_.size(); }
     void Info()   const;
@@ -57,7 +63,7 @@ class DataSet_PH : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
   private:
-    float solvent_pH_;     ///< Solvent pH
+    Farray solvent_pH_;    ///< Solvent pH values each frame
     Rarray residues_;      ///< Array of residues.
 };
 #endif

@@ -35,6 +35,7 @@ class DataIO_Cpout : public DataIO {
 
     FileName cpin_file_;
     FileType type_;
+    float original_pH_;
     DataSet_PH::Rarray Residues_;
 };
 #endif
