@@ -75,6 +75,8 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   Sarray resnames;
   std::string system;
   Iarray protcnt;
+  int trescnt = 0;
+  Darray charges; // TODO may not need these
 
   int stateinf_ridx = 0;
 
@@ -140,7 +142,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
           // Value. Assign to appropriate variable
           mprintf("\tValue: %s mode %i\n", token.c_str(), (int)vtype);
           if (vtype == CHRGDAT)
-            charges_.push_back( atof( token.c_str() ) );
+            charges.push_back( atof( token.c_str() ) );
           else if (vtype == PROTCNT)
             protcnt.push_back( atoi( token.c_str() ) );
           else if (vtype == RESNAME) {
@@ -149,7 +151,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
             else
               resnames.push_back( token.substr(8) );
           } else if (vtype == TRESCNT)
-            trescnt_ = atoi( token.c_str() );
+            trescnt = atoi( token.c_str() );
           else if (vtype == NUM_STATES)
             States[stateinf_ridx].num_states_ = atoi( token.c_str() );
           else if (vtype == NUM_ATOMS)
@@ -167,9 +169,9 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   }
 
   // DEBUG
-  mprintf("%zu charges.\n", charges_.size());
+  mprintf("%zu charges.\n", charges.size());
   int col = 0;
-  for (Darray::const_iterator c = charges_.begin(); c != charges_.end(); ++c) {
+  for (Darray::const_iterator c = charges.begin(); c != charges.end(); ++c) {
     mprintf(" %12.4f", *c);
     if (++col == 5) {
       mprintf("\n");
@@ -181,7 +183,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   for (Iarray::const_iterator p = protcnt.begin(); p != protcnt.end(); ++p)
     mprintf(" %i", *p);
   mprintf("\n");
-  mprintf("trescnt = %i\n", trescnt_);
+  mprintf("trescnt = %i\n", trescnt);
   for (StateArray::const_iterator it = States.begin(); it != States.end(); ++it)
     mprintf("\tnum_states= %i  num_atoms= %i  first_charge= %i  first_state= %i\n",
             it->num_states_, it->num_atoms_, it->first_charge_, it->first_state_);
@@ -190,14 +192,14 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
     mprintf("\t%s\n", it->c_str());
 
   // Checks
-  if (trescnt_ != (int)States.size()) {
+  if (trescnt != (int)States.size()) {
     mprinterr("Error: Number of states in CPIN (%zu) != TRESCNT in CPIN (%i)\n",
-              States.size(), trescnt_);
+              States.size(), trescnt);
     return 1;
   }
-  if (trescnt_ != (int)resnames.size()) {
+  if (trescnt != (int)resnames.size()) {
     mprinterr("Error: Number of residues in CPIN (%zu) != TRESCNT in CPIN (%i)\n",
-              resnames.size(), trescnt_);
+              resnames.size(), trescnt);
     return 1;
   }
 
@@ -218,7 +220,6 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
     }
     Residues_.push_back( 
       DataSet_PH::Residue(split[0], atoi(split[1].c_str()), res_protcnt, max_prots) );
-    Residues_.back().Print();
   }
 
   return 0;
@@ -227,13 +228,6 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
 // DataIO_Cpout::ReadData()
 int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
-  // Require a CPIN file. 
-  if (cpin_file_.empty()) {
-    mprinterr("Error: No CPIN file specified.\n");
-    return 1;
-  }
-  if (ReadCpin(cpin_file_)) return 1;
-
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
   const char* ptr = infile.Line();
@@ -274,15 +268,23 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     // New set
     ds = dsl.AddSet( DataSet::PH, dsname, "ph" );
     if (ds == 0) return 1;
-  } else {
-    if (ds->Type() != DataSet::PH) {
-      mprinterr("Error: Set '%s' is not ph data.\n", ds->legend());
+    // Require a CPIN file. 
+    if (cpin_file_.empty()) {
+      mprinterr("Error: No CPIN file specified and not appending to existing pH set.\n");
       return 1;
     }
-    // TODO check # residues etc
+    if (ReadCpin(cpin_file_)) return 1;
+    ((DataSet_PH*)ds)->SetResidueInfo( Residues_ );
+  } else {
+    if (ds->Type() != DataSet::PH) {
+      mprinterr("Error: Set '%s' is not pH data.\n", ds->legend());
+      return 1;
+    }
+    mprintf("\tAppending to set '%s'\n", ds->legend());
+    // TODO check # residues etc?
   }
   DataSet_PH* phdata = (DataSet_PH*)ds;
-  phdata->SetResidueInfo( Residues_ );
+  int maxRes = (int)phdata->Residues().size();
 
   while (ptr != 0) {
     if (sscanf(ptr, fmt, &orig_ph) == 1) {
@@ -306,7 +308,12 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     // delta record or full record header read
     while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
       //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
-      phdata->AddState(res, state);
+      if (res < maxRes) 
+        phdata->AddState(res, state);
+      else {
+        mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes);
+        return 1;
+      }
       ptr = infile.Line();
     }
     ptr = infile.Line();
@@ -321,6 +328,9 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     mprintf("\n");
   }
 
+  mprintf("\tTitratable Residues:\n");
+  for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res)
+    res->Print();
   return 0;
 }
 

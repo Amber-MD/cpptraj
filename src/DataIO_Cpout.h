@@ -35,8 +35,6 @@ class DataIO_Cpout : public DataIO {
 
     FileName cpin_file_;
     FileType type_;
-    int trescnt_;
-    Darray charges_;
     DataSet_PH::Rarray Residues_;
 };
 #endif

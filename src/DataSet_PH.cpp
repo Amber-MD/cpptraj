@@ -1,10 +1,17 @@
 #include "DataSet_PH.h"
-#include "CpptrajStdio.h" // DEBUG
+#include "CpptrajStdio.h"
 
 DataSet_PH::DataSet_PH() :
   // 0 dim indicates DataSet-specific write
   DataSet(PH, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 4), 0)
 {}
+
+void DataSet_PH::Info() const {
+  mprintf(" (%zu residues", residues_.size());
+  if (!residues_.empty())
+    mprintf(", %zu frames", residues_[0].Nframes());
+  mprintf(")");
+}
 
 // =============================================================================
 DataSet_PH::Residue::Residue(NameType const& rname, int resid,

@@ -21,6 +21,7 @@ class DataSet_PH : public DataSet {
         /// ASSIGN
         Residue& operator=(Residue const&);
         void push_back(int state)     { states_.push_back(state); }
+        unsigned int Nframes() const  { return states_.size();    }
         typedef Iarray::const_iterator const_iterator;
         const_iterator begin() const { return states_.begin(); }
         const_iterator end()   const { return states_.end();   }
@@ -37,6 +38,8 @@ class DataSet_PH : public DataSet {
 
     void SetResidueInfo(Rarray const& r) { residues_ = r; }
 
+    Rarray const& Residues() const { return residues_; }
+
     // NOTE: Bounds check should be done outside of here.
     void AddState(unsigned int res, int state) { residues_[res].push_back( state ); }
 
@@ -45,7 +48,7 @@ class DataSet_PH : public DataSet {
     const_iterator end()   const { return residues_.end();   }
     // -------------------------------------------
     size_t Size() const { return residues_.size(); }
-    void Info()   const { return; }
+    void Info()   const;
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Allocate(SizeArray const&)  { return 0; } // TODO implement?
     void Add( size_t, const void* ) { return; }
