@@ -256,7 +256,7 @@ FileIO_Bzip2.o : FileIO_Bzip2.cpp CpptrajStdio.h FileIO.h FileIO_Bzip2.h
 FileIO_Gzip.o : FileIO_Gzip.cpp CpptrajStdio.h FileIO.h FileIO_Gzip.h
 FileIO_Mpi.o : FileIO_Mpi.cpp FileIO.h FileIO_Mpi.h Parallel.h
 FileIO_Std.o : FileIO_Std.cpp FileIO.h FileIO_Std.h
-FileName.o : FileName.cpp CpptrajStdio.h FileName.h
+FileName.o : FileName.cpp CpptrajStdio.h FileName.h StringRoutines.h
 FileTypes.o : FileTypes.cpp ArgList.h BaseIOtype.h CpptrajStdio.h FileTypes.h
 Frame.o : Frame.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ReplicaDimArray.h Residue.h Vec3.h
 GridAction.o : GridAction.cpp ArgList.h ArrayIterator.h AssociatedData.h Atom.h AtomExtra.h AtomMask.h Box.h CharMask.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_3D.h DataSet_Coords.h DataSet_Coords_REF.h DataSet_GridFlt.h Dimension.h FileIO.h FileName.h Frame.h Grid.h GridAction.h GridBin.h MaskToken.h Matrix_3x3.h MetaData.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReferenceFrame.h ReplicaDimArray.h Residue.h TextFormat.h Timer.h Topology.h Vec3.h
