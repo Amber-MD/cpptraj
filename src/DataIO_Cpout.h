@@ -19,6 +19,7 @@ class DataIO_Cpout : public DataIO {
     enum FileType { PH = 0, REDOX, NONE };
 
     typedef std::vector<double> Darray;
+    typedef std::vector<int> Iarray;
 
     struct StateInfo {
       int num_states_;

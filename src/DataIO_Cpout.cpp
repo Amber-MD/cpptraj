@@ -62,7 +62,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   if (infile.OpenFileRead( fname )) return 1;
 
   enum VarType { NONE = 0, CHRGDAT, PROTCNT, RESNAME, RESSTATE, NUM_STATES, 
-                 NUM_ATOMS, FIRST_CHARGE, TRESCNT };
+                 NUM_ATOMS, FIRST_STATE, FIRST_CHARGE, TRESCNT };
   VarType vtype = NONE;
 
   enum NamelistMode { OUTSIDE_NAMELIST = 0, INSIDE_NAMELIST };
@@ -74,6 +74,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   typedef std::vector<std::string> Sarray;
   Sarray resnames;
   std::string system;
+  Iarray protcnt;
 
   int stateinf_ridx = 0;
 
@@ -98,11 +99,14 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
             inQuote = false;
           else
             inQuote = true;
+        // ---------------------------------------
         } else if ( *p == '=' ) {
           // Variable. Figure out which one.
           mprintf("VAR: %s\n", token.c_str());
           if ( token == "CHRGDAT" )
             vtype = CHRGDAT;
+          else if (token == "PROTCNT")
+            vtype = PROTCNT;
           else if (token == "RESNAME")
             vtype = RESNAME;
           else if (token == "TRESCNT")
@@ -122,6 +126,8 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
               vtype = NUM_STATES;
             else if (stateinf[2] == "NUM_ATOMS")
               vtype = NUM_ATOMS;
+            else if (stateinf[2] == "FIRST_STATE")
+              vtype = FIRST_STATE;
             else if (stateinf[2] == "FIRST_CHARGE")
               vtype = FIRST_CHARGE;
             else
@@ -129,11 +135,14 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
           } else
             vtype = NONE;
           token.clear();
+        // ---------------------------------------
         } else if (*p == ',') {
           // Value. Assign to appropriate variable
           mprintf("\tValue: %s mode %i\n", token.c_str(), (int)vtype);
           if (vtype == CHRGDAT)
             charges_.push_back( atof( token.c_str() ) );
+          else if (vtype == PROTCNT)
+            protcnt.push_back( atoi( token.c_str() ) );
           else if (vtype == RESNAME) {
             if (token.compare(0,6,"System")==0)
               system = token.substr(7);
@@ -145,6 +154,8 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
             States[stateinf_ridx].num_states_ = atoi( token.c_str() );
           else if (vtype == NUM_ATOMS)
             States[stateinf_ridx].num_atoms_  = atoi( token.c_str() );
+          else if (vtype == FIRST_STATE)
+            States[stateinf_ridx].first_state_  = atoi( token.c_str() );
           else if (vtype == FIRST_CHARGE)
             States[stateinf_ridx].first_charge_ = atoi( token.c_str() );
           token.clear();
@@ -155,6 +166,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
     ptr = infile.Line();
   }
 
+  // DEBUG
   mprintf("%zu charges.\n", charges_.size());
   int col = 0;
   for (Darray::const_iterator c = charges_.begin(); c != charges_.end(); ++c) {
@@ -165,13 +177,50 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
     }
   }
   if (col != 0) mprintf("\n");
+  mprintf("%zu protcnt=", protcnt.size());
+  for (Iarray::const_iterator p = protcnt.begin(); p != protcnt.end(); ++p)
+    mprintf(" %i", *p);
+  mprintf("\n");
   mprintf("trescnt = %i\n", trescnt_);
   for (StateArray::const_iterator it = States.begin(); it != States.end(); ++it)
-    mprintf("\tnum_states= %i  num_atoms= %i  first_charge= %i\n",
-            it->num_states_, it->num_atoms_, it->first_charge_);
+    mprintf("\tnum_states= %i  num_atoms= %i  first_charge= %i  first_state= %i\n",
+            it->num_states_, it->num_atoms_, it->first_charge_, it->first_state_);
   mprintf("System: %s\n", system.c_str());
   for (Sarray::const_iterator it = resnames.begin(); it != resnames.end(); ++it)
     mprintf("\t%s\n", it->c_str());
+
+  // Checks
+  if (trescnt_ != (int)States.size()) {
+    mprinterr("Error: Number of states in CPIN (%zu) != TRESCNT in CPIN (%i)\n",
+              States.size(), trescnt_);
+    return 1;
+  }
+  if (trescnt_ != (int)resnames.size()) {
+    mprinterr("Error: Number of residues in CPIN (%zu) != TRESCNT in CPIN (%i)\n",
+              resnames.size(), trescnt_);
+    return 1;
+  }
+
+  // Define residues
+  DataSet_PH::Rarray Residues_;
+  Sarray::const_iterator rname = resnames.begin();
+  for (StateArray::const_iterator it = States.begin(); it != States.end(); ++it, ++rname)
+  {
+    Iarray res_protcnt;
+    int max_prots = -1;
+    for (int j = 0; j < it->num_states_; j++) {
+      res_protcnt.push_back( protcnt[it->first_state_ + j] );
+      max_prots = std::max( max_prots, res_protcnt.back() );
+    }
+    ArgList split(*rname);
+    if (split.Nargs() != 2) {
+      mprinterr("Error: Malformed residue name/number '%s'\n", rname->c_str());
+      return 1;
+    }
+    Residues_.push_back( 
+      DataSet_PH::Residue(split[0], atoi(split[1].c_str()), res_protcnt, max_prots) );
+    Residues_.back().Print();
+  }
 
   return 0;
 }

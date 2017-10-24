@@ -1,23 +1,36 @@
 #ifndef INC_DATASET_PH
 #define INC_DATASET_PH
 #include "DataSet.h"
+#include "NameType.h"
 /// Hold data from constant pH simulations; protonation states of each residue.
 class DataSet_PH : public DataSet {
     typedef std::vector<int> Iarray;
+    typedef std::vector<bool> Barray;
   public:
     DataSet_PH();
     static DataSet* Alloc() { return (DataSet*)new DataSet_PH(); }
 
     class Residue {
       public:
-        Residue() {}
+        Residue() : resid_(-1) {}
+        /// Res name, num, protcnts, max prot
+        Residue(NameType const&, int, Iarray const&, int);
         Residue(int nframes) : states_(nframes, 0) {}
+        /// COPY
+        Residue(Residue const&);
+        /// ASSIGN
+        Residue& operator=(Residue const&);
         void push_back(int state)     { states_.push_back(state); }
         typedef Iarray::const_iterator const_iterator;
         const_iterator begin() const { return states_.begin(); }
         const_iterator end()   const { return states_.end();   }
+        void Print() const;
       private:
-        Iarray states_;
+        NameType resname_;  ///< Residue name.
+        int resid_;         ///< Residue number.
+        Iarray protcnts_;   ///< Hold protonation count for each state.
+        Barray protonated_; ///< True if state is protonated.
+        Iarray states_;     ///< Hold protonation state for each frame.
     };
     typedef std::vector<Residue> Rarray;
 
