@@ -4,7 +4,6 @@
 #include "DataIO_Cpout.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
-#include "DataSet_PH.h"
 
 /// CONSTRUCTOR
 DataIO_Cpout::DataIO_Cpout() :
@@ -57,6 +56,7 @@ int DataIO_Cpout::processReadArgs(ArgList& argIn)
   return 0;
 }
 
+/** Read CPIN file to get state information for each residue. */
 int DataIO_Cpout::ReadCpin(FileName const& fname) {
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
@@ -202,7 +202,6 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   }
 
   // Define residues
-  DataSet_PH::Rarray Residues_;
   Sarray::const_iterator rname = resnames.begin();
   for (StateArray::const_iterator it = States.begin(); it != States.end(); ++it, ++rname)
   {
@@ -228,10 +227,12 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
 // DataIO_Cpout::ReadData()
 int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
-  // If a cpin file has been specified read it now.
-  if (!cpin_file_.empty()) {
-    if (ReadCpin(cpin_file_)) return 1;
+  // Require a CPIN file. 
+  if (cpin_file_.empty()) {
+    mprinterr("Error: No CPIN file specified.\n");
+    return 1;
   }
+  if (ReadCpin(cpin_file_)) return 1;
 
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
@@ -281,6 +282,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     // TODO check # residues etc
   }
   DataSet_PH* phdata = (DataSet_PH*)ds;
+  phdata->SetResidueInfo( Residues_ );
 
   while (ptr != 0) {
     if (sscanf(ptr, fmt, &orig_ph) == 1) {

@@ -9,7 +9,7 @@ class DataSet_PH : public DataSet {
   public:
     DataSet_PH();
     static DataSet* Alloc() { return (DataSet*)new DataSet_PH(); }
-
+    // -------------------------------------------
     class Residue {
       public:
         Residue() : resid_(-1) {}
@@ -33,12 +33,12 @@ class DataSet_PH : public DataSet {
         Iarray states_;     ///< Hold protonation state for each frame.
     };
     typedef std::vector<Residue> Rarray;
+    // -------------------------------------------
 
-    void AddState(unsigned int res, int state) {
-      if (res >= residues_.size())
-        residues_.resize(res+1, Residue(nframes_));
-      residues_[res].push_back( state );
-    }
+    void SetResidueInfo(Rarray const& r) { residues_ = r; }
+
+    // NOTE: Bounds check should be done outside of here.
+    void AddState(unsigned int res, int state) { residues_[res].push_back( state ); }
 
     typedef Rarray::const_iterator const_iterator;
     const_iterator begin() const { return residues_.begin(); }
@@ -54,8 +54,7 @@ class DataSet_PH : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
   private:
-
-    Rarray residues_;
-    unsigned int nframes_;
+    float solvent_pH_;     ///< Solvent pH
+    Rarray residues_;      ///< Array of residues.
 };
 #endif

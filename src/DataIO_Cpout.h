@@ -1,6 +1,7 @@
 #ifndef INC_DATAIO_CPOUT_H
 #define INC_DATAIO_CPOUT_H
 #include "DataIO.h"
+#include "DataSet_PH.h"
 /// Read Amber cpout file 
 class DataIO_Cpout : public DataIO {
   public:
@@ -36,5 +37,6 @@ class DataIO_Cpout : public DataIO {
     FileType type_;
     int trescnt_;
     Darray charges_;
+    DataSet_PH::Rarray Residues_;
 };
 #endif
