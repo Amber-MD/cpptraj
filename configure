@@ -1409,9 +1409,9 @@ if [ "$USECUDA" -eq 1 -a ! -z "$SHADER_MODEL" ] ; then
 fi
 cat >> config.h <<EOF
 
-CPPTRAJHOME=$CPPTRAJHOME
-CPPTRAJBIN=$CPPTRAJBIN
-CPPTRAJLIB=$CPPTRAJLIB
+CPPTRAJHOME="$CPPTRAJHOME"
+CPPTRAJBIN="$CPPTRAJBIN"
+CPPTRAJLIB="$CPPTRAJLIB"
 
 INSTALL_TARGETS=$INSTALL_TARGETS
 
@@ -1453,10 +1453,10 @@ EOF
 
 # Create directories if necessary
 if [ ! -e "$CPPTRAJBIN" ] ; then
-  mkdir $CPPTRAJBIN
+  mkdir "$CPPTRAJBIN"
 fi
 if [ ! -e "$CPPTRAJLIB" ] ; then
-  mkdir $CPPTRAJLIB
+  mkdir "$CPPTRAJLIB"
 fi
 
 # Create a resource file. If SKIP_CHECKS is 'yes' assume we are in
