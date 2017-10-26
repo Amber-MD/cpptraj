@@ -9,6 +9,8 @@ a C++ rewrite of the PTRAJ trajectory analysis code from Amber.
 The official AmberTools release version of CPPTRAJ can be found
 at the [Amber website](http://ambermd.org).
 
+See whats [new in CPPTRAJ](https://github.com/Amber-MD/cpptraj/wiki).
+
 For more information see the following publication:
 
 [Daniel R. Roe and Thomas E. Cheatham, III, "PTRAJ and CPPTRAJ: Software for
@@ -28,7 +30,7 @@ PYTRAJ Compatibility Status
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2016 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2017 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
