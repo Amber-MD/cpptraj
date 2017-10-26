@@ -1453,10 +1453,10 @@ EOF
 
 # Create directories if necessary
 if [ ! -e "$CPPTRAJBIN" ] ; then
-  mkdir $CPPTRAJBIN
+  mkdir "$CPPTRAJBIN"
 fi
 if [ ! -e "$CPPTRAJLIB" ] ; then
-  mkdir $CPPTRAJLIB
+  mkdir "$CPPTRAJLIB"
 fi
 
 # Create a resource file. If SKIP_CHECKS is 'yes' assume we are in
