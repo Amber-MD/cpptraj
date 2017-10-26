@@ -47,11 +47,13 @@ libraries:
 * Bzip2
 * Gzip
 
-For NetCDF trajectory output when processing trajectories in parallel,
-parallel NetCDF is also required (MPI build only).
+The following libraries are optional:
+
+* Parallel NetCDF (-mpi build only, for NetCDF trajectory output)
+* CUDA (-cuda build only)
 
 `./configure gnu` should be adequate to set up compilation for most systems.
-For systems without BLAS/LAPACK/ARPACK and/or NETCDF libraries installed,
+For systems without BLAS/LAPACK/ARPACK and/or NetCDF libraries installed,
 the `-amberlib` flag can be specified to use the ones already compiled in
 an AmberTools installation (`$AMBERHOME` must be set), e.g.
 `./configure -amberlib gnu`. For multicore systems, the `-openmp` flag can
@@ -59,19 +61,23 @@ be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
 An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag.
 CPPTRAJ can be built with both MPI and OpenMP; when running this build users 
 should take care to properly set OMP_NUM_THREADS if using more than 1 MPI
-thread per node.
+thread per node. A CUDA build is now also available via the `-cuda` flag.
+Any combination of `-cuda`, `-mpi`, and `-openmp` may be used.
 
 The configure script by default sets everything up to link dynamically. The
 `-static` flag can be used to force static linking. If linking errors are
 encountered you may need to specify library locations using the `--with-LIB=`
 options. For example, to use NetCDF compiled in `/opt/netcdf` use the option 
 `--with-netcdf=/opt/netcdf`. Alternatively, individual libraries can be 
-disabled with the `-no<LIB>` options.
+disabled with the `-no<LIB>` options. The `-libstatic` flag
+can be used to static link only libraries that have been specified. 
 
 After `configure` has been successfully run, `make install` will
-compile and place the cpptraj binary in the `bin/` subdirectory. It is highly
-recommended that `make check` be run as well to test the basic functionality
-of CPPTRAJ.
+compile and place the cpptraj binary in the `bin/` subdirectory. Note that
+on multithreaded systems `make -j X install` (where X is an integer > 1
+and less than the max # cores on your system) will run much faster.
+After installation, It is highly recommended that `make check` be run as
+well to test the basic functionality of CPPTRAJ.
 
 CPPTRAJ Authors
 ===============
