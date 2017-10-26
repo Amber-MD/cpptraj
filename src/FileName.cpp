@@ -293,7 +293,7 @@ File::NameArray File::SearchForReplicas(FileName const& fname, int debug) {
   }
   return replica_filenames;
 }
-
+#ifdef MPI
 /** Each rank searches for replica based on lowest replica number. */
 File::NameArray File::SearchForReplicas(FileName const& fname, bool trajCommMaster,
                                         int ensRank, int ensSize, int debug)
@@ -316,7 +316,7 @@ File::NameArray File::SearchForReplicas(FileName const& fname, bool trajCommMast
     replica_filenames.push_back( repName.RepFilename( offset ) );
   return replica_filenames;
 }
-
+#endif
 static std::string fileErrMsg_ = std::string("");
 
 void File::ErrorMsg(const char* fname) {

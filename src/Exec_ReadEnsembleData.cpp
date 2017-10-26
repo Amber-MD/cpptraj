@@ -4,18 +4,19 @@
 // Exec_ReadEnsembleData::Help()
 void Exec_ReadEnsembleData::Help() const
 {
-  mprintf("<filename> [names <additional files]\n");
+  mprintf("<filename> [filenames <additional files]\n");
 }
 
 // Exec_ReadEnsembleData::Execute()
 Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn)
 {
-  std::string additionalNames = argIn.GetStringKey("names");
+  std::string additionalNames = argIn.GetStringKey("filenames");
   FileName fname( argIn.GetStringNext() );
   if (fname.empty()) {
     mprinterr("Error: No file name given.\n");
     return CpptrajState::ERR;
   }
+
   File::NameArray fileNames;
   if (!additionalNames.empty()) {
     ArgList name_list(additionalNames, ",");
@@ -32,5 +33,25 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   mprintf("\t%zu files.\n", fileNames.size());
   for (File::NameArray::const_iterator it = fileNames.begin(); it != fileNames.end(); ++it)
     mprintf("\t  %s\n", it->full());
+
+
+  // Execute a data read on all files.
+  unsigned int min_file = 0;
+  unsigned int max_file = fileNames.size();
+
+  int err = 0;
+  for (unsigned int nfile = min_file; nfile < max_file; nfile++)
+  {
+    DataFile dataIn;
+    dataIn.SetDebug( State.DFL().Debug() );
+    // TODO ExpandToFilenames?
+    if (dataIn.ReadDataIn( fileNames[nfile], argIn, State.DSL(), nfile, max_file ) != 0)
+    {
+      mprinterr("Error: Could not read data file '%s'\n", fileNames[nfile].full());
+      err = 1;
+      break;
+    }
+  }
+  if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
