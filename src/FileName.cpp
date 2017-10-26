@@ -291,7 +291,6 @@ File::NameArray File::SearchForReplicas(FileName const& fname, int debug) {
     else
       search_for_files = false;
   }
-  mprintf("\tFound %u replicas.\n", replica_filenames.size());
   return replica_filenames;
 }
 
