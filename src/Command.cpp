@@ -22,6 +22,7 @@
 #include "Exec_Precision.h"
 #include "Exec_PrintData.h"
 #include "Exec_ReadData.h"
+#include "Exec_ReadEnsembleData.h"
 #include "Exec_ReadInput.h"
 #include "Exec_RunAnalysis.h"
 #include "Exec_SequenceAlign.h"
@@ -205,6 +206,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
   Command::AddCmd( new Exec_Quit(),            Cmd::EXE, 2, "exit", "quit" );
   Command::AddCmd( new Exec_ReadData(),        Cmd::EXE, 1, "readdata" );
+  Command::AddCmd( new Exec_ReadEnsembleData(),Cmd::EXE, 1, "readensembledata" );
   Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
   Command::AddCmd( new Exec_RemoveData(),      Cmd::EXE, 1, "removedata" );
   Command::AddCmd( new Exec_Run(),             Cmd::EXE, 2, "go", "run" );
