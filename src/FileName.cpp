@@ -295,6 +295,29 @@ File::NameArray File::SearchForReplicas(FileName const& fname, int debug) {
   return replica_filenames;
 }
 
+/** Each rank searches for replica based on lowest replica number. */
+File::NameArray File::SearchForReplicas(FileName const& fname, bool trajCommMaster,
+                                        int ensRank, int ensSize, int debug)
+{
+  NameArray replica_filenames;
+  RepName repName(fname, debug);
+  if (repName.Error()) return replica_filenames;
+  // TODO check for lower replica number?
+  FileName replicaFilename = repName.RepFilename( ensRank );
+  // Only traj comm masters actually check for files.
+  if (trajCommMaster) {
+    if (!File::Exists( replicaFilename )) {
+      File::ErrorMsg( replicaFilename.full() );
+      rprinterr("Error: File '%s' not accessible.\n", replicaFilename.full());
+      return replica_filenames;
+    }
+  }
+  // At this point each rank has found its replica. Populate filename array.
+  for (int offset = 0; offset < ensSize; ++offset)
+    replica_filenames.push_back( repName.RepFilename( offset ) );
+  return replica_filenames;
+}
+
 static std::string fileErrMsg_ = std::string("");
 
 void File::ErrorMsg(const char* fname) {

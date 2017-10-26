@@ -48,7 +48,12 @@ namespace File {
   typedef std::vector<FileName> NameArray;
   /// Expand given expression to array of file names
   NameArray ExpandToFilenames(std::string const&);
+  /// Search for file names <base>.X given a base name (and debug level) 
   NameArray SearchForReplicas(FileName const&, int);
+# ifdef MPI
+  /// Base name, trajComm master, ensemble rank, ensemble size, debug
+  NameArray SearchForReplicas(FileName const&, bool, int, int, int);
+# endif
   /// Print error message corresponding to 'false' value from 'Exists()'
   void ErrorMsg(const char*);
   bool Exists(std::string const&);

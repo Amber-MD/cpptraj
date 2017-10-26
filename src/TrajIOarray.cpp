@@ -24,7 +24,9 @@ int TrajIOarray::SetupReplicaFilenames(FileName const& tnameIn, ArgList& argIn) 
   std::string trajnames = argIn.GetStringKey("trajnames");
   if (!trajnames.empty())
     return AddReplicasFromArgs( tnameIn, trajnames );
-  return SearchForReplicas( tnameIn );
+  replica_filenames_ = File::SearchForReplicas( tnameIn, debug_ );
+  if (replica_filenames_.empty()) return 1;
+  return 0;
 }
 
 /** Add lowest replica file name and names from comma-separated list. */
@@ -48,42 +50,6 @@ int TrajIOarray::AddReplicasFromArgs(FileName const& name0,
     }
     replica_filenames_.push_back( trajFilename );
   }
-  return 0;
-}
-
-/** Assuming lowest replica filename has been set, search for all other 
-  * replica names assuming a naming scheme of '<PREFIX>.<EXT>[.<CEXT>]', 
-  * where <EXT> is a numerical extension and <CEXT> is an optional 
-  * compression extension. 
-  * \return Found replica filenames, or an empty list on error. 
-  */
-int TrajIOarray::SearchForReplicas(FileName const& fname) {
-  RepName repName(fname, debug_);
-  if (repName.Error()) return 1;
-  // Search for a replica number lower than this. Correct functioning
-  // of the replica code requires the file specified by trajin be the
-  // lowest # replica.
-  if (File::Exists( repName.RepFilename( -1 ) )) {
-    mprintf("Warning: Replica# found lower than file specified with trajin.\n"
-            "Warning:   Found \"%s\"; 'trajin remdtraj' requires lowest # replica.\n",
-            repName.RepFilename( -1 ).full());
-  }
-  // Add lowest replica filename, search for and add all replicas higher than it.
-  replica_filenames_.push_back( fname );
-  int rep_offset = 0;
-  bool search_for_files = true;
-  FileName trajFilename;
-  while (search_for_files) {
-    ++rep_offset;
-    trajFilename = repName.RepFilename( rep_offset );
-    //mprintf("\t\tChecking for %s\n", trajFilename.full());
-    if (File::Exists( trajFilename ))
-      replica_filenames_.push_back( trajFilename );
-    else
-      search_for_files = false;
-  }
-  mprintf("\tFound %u replicas.\n", replica_filenames_.size());
-
   return 0;
 }
 
@@ -230,7 +196,10 @@ int TrajIOarray::SetupReplicaFilenames(FileName const& tnameIn, ArgList& argIn,
   std::string trajnames = argIn.GetStringKey("trajnames");
   if (!trajnames.empty())
     return AddReplicasFromArgs( tnameIn, trajnames, ensComm, trajComm );
-  return SearchForReplicas( tnameIn, ensComm, trajComm );
+  replica_filenames_ = File::SearchForReplicas( tnameIn, trajComm.Master(), ensComm.Rank(),
+                                                ensComm.Size(), debug_ );
+  if (replica_filenames_.empty()) return 1;
+  return 0;
 }
 
 /** Each rank checks that specified file is present. */
@@ -255,28 +224,6 @@ int TrajIOarray::AddReplicasFromArgs(FileName const& name0,
       return 1;
     }
   }
-  return 0;
-}
-
-/** Each rank searches for replica based on lowest replica number. */
-int TrajIOarray::SearchForReplicas(FileName const& fname, Parallel::Comm const& ensComm,
-                                   Parallel::Comm const& trajComm)
-{
-  RepName repName(fname, debug_);
-  if (repName.Error()) return 1;
-  // TODO check for lower replica number?
-  FileName replicaFilename = repName.RepFilename( ensComm.Rank() );
-  // Only traj comm masters actually check for files.
-  if (trajComm.Master()) {
-    if (!File::Exists( replicaFilename )) {
-      File::ErrorMsg( replicaFilename.full() );
-      rprinterr("Error: File '%s' not accessible.\n", replicaFilename.full());
-      return 1;
-    }
-  }
-  // At this point each rank has found its replica. Populate filename array.
-  for (int offset = 0; offset < ensComm.Size(); ++offset)
-    replica_filenames_.push_back( repName.RepFilename( offset ) );
   return 0;
 }
 
@@ -375,65 +322,3 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
   return 0;
 }
 #endif
-
-// ----- RepName Class ---------------------------------------------------------
-// RepName CONSTRUCTOR
-TrajIOarray::RepName::RepName(FileName const& fname, int debugIn) :
-  extChar_('.')
-{
-  if (debugIn > 1)
-    mprintf("\tREMDTRAJ: FileName=[%s]\n", fname.full());
-  if ( fname.Ext().empty() ) {
-    mprinterr("Error: Traj %s has no numerical extension, required for automatic\n"
-              "Error:   detection of replica trajectories. Expected filename format is\n"
-              "Error:   <Prefix>.<#> (with optional compression extension), examples:\n"
-              "Error:   Rep.traj.nc.000,  remd.x.01.gz etc.\n", fname.base());
-    return;
-  }
-  // Split off everything before replica extension
-  size_t found = fname.Full().rfind( fname.Ext() );
-  Prefix_.assign( fname.Full().substr(0, found) );
-  ReplicaExt_.assign( fname.Ext() ); // This should be the numeric extension
-  // Remove leading '.'
-  if (ReplicaExt_[0] == '.') ReplicaExt_.erase(0,1);
-  CompressExt_.assign( fname.Compress() );
-  if (debugIn > 1) {
-    mprintf("\tREMDTRAJ: Prefix=[%s], #Ext=[%s], CompressExt=[%s]\n",
-            Prefix_.c_str(), ReplicaExt_.c_str(), CompressExt_.c_str());
-  }
-  // CHARMM replica numbers are format <name>_<num>
-  if ( !validInteger(ReplicaExt_) ) {
-    size_t uscore = fname.Full().rfind('_');
-    if (uscore != std::string::npos) {
-      Prefix_.assign( fname.Full().substr(0, uscore) );
-      ReplicaExt_.assign( fname.Full().substr(uscore+1) );
-      extChar_ = '_';
-      if (debugIn > 0)
-        mprintf("\tREMDTRAJ: CHARMM style replica names detected, prefix='%s' ext='%s'\n",
-                Prefix_.c_str(), ReplicaExt_.c_str());
-    }
-  }
-  // Check that the numerical extension is valid.
-  if ( !validInteger(ReplicaExt_) ) {
-    mprinterr("Error: Replica extension [%s] is not an integer.\n", ReplicaExt_.c_str());
-    Prefix_.clear(); // Empty Prefix_ indicates error.
-    return;
-  }
-  ExtWidth_ = (int)ReplicaExt_.size();
-  if (debugIn > 1)
-    mprintf("\tREMDTRAJ: Numerical Extension width=%i\n", ExtWidth_);
-  // Store lowest replica number
-  lowestRepnum_ = convertToInteger( ReplicaExt_ );
-  // TODO: Do not allow negative replica numbers?
-  if (debugIn > 1)
-    mprintf("\tREMDTRAJ: index of first replica = %i\n", lowestRepnum_);
-}
-
-/** \return Replica file name for given offset from lowest replica number. */
-FileName TrajIOarray::RepName::RepFilename(int offset) const {
-  FileName trajFilename;
-  trajFilename.SetFileName_NoExpansion( Prefix_ + extChar_ +
-                                        integerToString(lowestRepnum_ + offset, ExtWidth_) +
-                                        CompressExt_ );
-  return trajFilename;
-}
