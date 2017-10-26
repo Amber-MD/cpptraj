@@ -9,7 +9,7 @@ a C++ rewrite of the PTRAJ trajectory analysis code from Amber.
 The official AmberTools release version of CPPTRAJ can be found
 at the [Amber website](http://ambermd.org).
 
-See whats [new in CPPTRAJ](https://github.com/Amber-MD/cpptraj/wiki).
+See what's [new in CPPTRAJ](https://github.com/Amber-MD/cpptraj/wiki).
 
 For more information see the following publication:
 
