@@ -225,9 +225,18 @@ DataSet* DataSetList::PopSet( DataSet* dsIn ) {
 /** The set argument must match EXACTLY, so Data will not return Data:1 */
 DataSet* DataSetList::CheckForSet(MetaData const& md) const
 {
-  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->Matches_Exact( md ) )
-      return *ds;
+  // If incoming MetaData ensemble number is not set but DataSetList is,
+  // use DataSetList member number.
+  if (md.EnsembleNum() == -1 && ensembleNum_ != -1) {
+    MetaData md_ensNum( md );
+    md_ensNum.SetEnsembleNum( ensembleNum_ );
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+      if ( (*ds)->Matches_Exact( md_ensNum ) )
+        return *ds;
+  } else
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+      if ( (*ds)->Matches_Exact( md ) )
+        return *ds;
   return 0;
 }
 
