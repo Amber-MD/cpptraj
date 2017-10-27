@@ -34,24 +34,35 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   for (File::NameArray::const_iterator it = fileNames.begin(); it != fileNames.end(); ++it)
     mprintf("\t  %s\n", it->full());
 
-
-  // Execute a data read on all files.
   unsigned int min_file = 0;
   unsigned int max_file = fileNames.size();
+# ifdef MPI
+  // Setup communicators if not already done.
+  if (Parallel::EnsembleComm().IsNull()) {
+    if (Parallel::SetupComms( fileNames.size() )) return 1;
+  }
+  min_file = (unsigned int)Parallel::EnsembleComm().Rank();
+  max_file = min_file + 1;
+# endif
 
+  // Execute a data read on all files.
   int err = 0;
   for (unsigned int nfile = min_file; nfile < max_file; nfile++)
   {
     DataFile dataIn;
     dataIn.SetDebug( State.DFL().Debug() );
+    State.DSL().SetEnsembleNum( nfile );
     // TODO ExpandToFilenames?
-    if (dataIn.ReadDataIn( fileNames[nfile], argIn, State.DSL(), nfile, max_file ) != 0)
+    if (dataIn.ReadDataIn( fileNames[nfile], argIn, State.DSL() ) != 0)
     {
       mprinterr("Error: Could not read data file '%s'\n", fileNames[nfile].full());
       err = 1;
       break;
     }
   }
+# ifdef MPI
+  err = Parallel::World().CheckError( err );
+# endif
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
