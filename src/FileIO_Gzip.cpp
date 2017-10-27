@@ -52,10 +52,10 @@ off_t FileIO_Gzip::Size(const char *filename) {
   fseek(infile, -4, SEEK_END);
 
   b1=0; b2=0; b3=0; b4=0;
-  fread(&b4,1,1,infile);
-  fread(&b3,1,1,infile);
-  fread(&b2,1,1,infile);
-  fread(&b1,1,1,infile);
+  if (fread(&b4,1,1,infile) != 1) return -1L;
+  if (fread(&b3,1,1,infile) != 1) return -1L;
+  if (fread(&b2,1,1,infile) != 1) return -1L;
+  if (fread(&b1,1,1,infile) != 1) return -1L;
 
   val = 0;
   temp = (off_t) b1;

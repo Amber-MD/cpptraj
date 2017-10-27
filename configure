@@ -1290,12 +1290,15 @@ if [[ $USECUDA -eq 1 ]] ; then
     sm30flags='-gencode arch=compute_30,code=sm_30'
     #SM2.0 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc.
     sm20flags='-gencode arch=compute_20,code=sm_20'
-    if [ "$CUDA_VERSION" = "8.0" ]; then
+    if [ "$CUDA_VERSION" = '9.0' ] ; then
+      echo "Configuring for SM3.0, SM5.0, SM5.2, SM5.3, SM6.0 and SM6.1"
+      NVCCFLAGS="$sm30flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags"
+    elif [ "$CUDA_VERSION" = '8.0' ] ; then
       echo "Configuring for SM2.0, SM3.0, SM5.0, SM5.2, SM5.3, SM6.0 and SM6.1"
       NVCCFLAGS="$sm20flags $sm30flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags"
     else
       echo "Configuring for SM2.0, SM3.0, SM5.0, SM5.2 and SM5.3"
-      echo "BE AWARE: CUDA 7.5 does not support GTX-1080, Titan-XP, DGX-1 or other Pascal based GPUs."
+      echo "BE AWARE: CUDA < 8.0 does not support GTX-1080, Titan-XP, DGX-1 or other Pascal based GPUs."
       NVCCFLAGS="$sm20flags $sm30flags $sm50flags $sm52flags $sm53flags"
     fi
   fi
