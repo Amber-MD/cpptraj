@@ -47,6 +47,11 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
 
   // Execute a data read on all files.
   int err = 0;
+# ifdef MPI
+  // Only thread 0 from each TrajComm does reads.
+  if (!Parallel::TrajComm().Master())
+    min_file = max_file + 1;
+# endif
   for (unsigned int nfile = min_file; nfile < max_file; nfile++)
   {
     DataFile dataIn;
