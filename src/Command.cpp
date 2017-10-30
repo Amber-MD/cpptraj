@@ -25,6 +25,7 @@
 #include "Exec_ReadEnsembleData.h"
 #include "Exec_ReadInput.h"
 #include "Exec_RunAnalysis.h"
+#include "Exec_SortEnsembleData.h"
 #include "Exec_SequenceAlign.h"
 #include "Exec_ViewRst.h"
 // ----- SYSTEM ----------------------------------------------------------------
@@ -216,6 +217,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_SetListDebug(),    Cmd::EXE, 2, "debug", "prnlev" );
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
+  Command::AddCmd( new Exec_SortEnsembleData(),Cmd::EXE, 1, "sortensembledata" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
   Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
 # ifdef MPI

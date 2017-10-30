@@ -251,6 +251,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_RunAnalysis.cpp \
         Exec_ScaleDihedralK.cpp \
         Exec_SequenceAlign.cpp \
+        Exec_SortEnsembleData.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
         Exec_Traj.cpp \
