@@ -8,5 +8,8 @@ class Exec_SortEnsembleData : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_SortEnsembleData(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    int SortData(DataSetList const&) const;
+    int Sort_pH_Data(DataSetList const&) const;
 };
 #endif
