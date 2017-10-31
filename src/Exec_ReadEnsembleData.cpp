@@ -41,8 +41,8 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   if (Parallel::EnsembleComm().IsNull()) {
     if (Parallel::SetupComms( fileNames.size() )) return CpptrajState::ERR;
   }
-  min_file = (unsigned int)Parallel::EnsembleComm().Rank();
-  max_file = min_file + 1;
+  min_file = (unsigned int)Parallel::Ensemble_Beg();
+  max_file = (unsigned int)Parallel::Ensemble_End();
 # endif
 
   // Execute a data read on all files.
