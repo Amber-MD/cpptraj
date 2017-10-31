@@ -1,5 +1,6 @@
 #include "Exec_SortEnsembleData.h"
 #include "CpptrajStdio.h"
+#include "DataSet_PH.h"
 
 // Exec_SortEnsembleData::Help()
 void Exec_SortEnsembleData::Help() const
@@ -18,6 +19,32 @@ inline bool CheckError(int err) {
 
 //  Exec_SortEnsembleData::Sort_pH_Data()
 int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort) const {
+  // Gather pH data
+  typedef std::vector<DataSet_PH*> Parray;
+  Parray PH;
+  for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
+    PH.push_back( (DataSet_PH*)*ds );
+
+  typedef std::vector<double> Darray;
+  Darray pHvalues;
+# ifdef MPI
+  pHvalues.resize( Parallel::Ensemble_Size() );
+  Darray phtmp;
+  for (Parray::const_iterator ds = PH.begin(); ds != PH.end(); ++ds)
+    phtmp.push_back( (*ds)->pH_Values()[0] );
+  if (Parallel::EnsembleComm().AllGather(&phtmp[0], phtmp.size(), MPI_DOUBLE, &pHvalues[0])) {
+    mprinterr("Error: Gathering pH values.\n");
+    return 1;
+  }
+# else
+  for (Parray::const_iterator ds = PH.begin(); ds != PH.end(); ++ds)
+    pHvalues.push_back( (*ds)->pH_Values()[0] );
+# endif
+  mprintf("\tInitial pH values:");
+  for (Darray::const_iterator ph = pHvalues.begin(); ph != pHvalues.end(); ++ph)
+    mprintf(" %6.2f", *ph);
+  mprintf("\n");
+  
   return 0;
 }
 
@@ -29,14 +56,28 @@ int Exec_SortEnsembleData::SortData(DataSetList const& setsToSort) const {
     err = 1;
   }
   if (CheckError(err)) return 1;
+# ifdef MPI
+  // Number of sets to sort should be equal to # members I am responsible for.
+  if (Parallel::N_Ens_Members() != (int)setsToSort.size()) {
+    rprinterr("Internal Error: Number of ensemble members (%i) != # sets to sort (%zu)\n",
+               Parallel::N_Ens_Members(), setsToSort.size());
+    return 1;
+  }
+# endif
 
   DataSet::DataType dtype = setsToSort[0]->Type();
-  for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
+  for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds) {
+    if ((*ds)->Size() < 1) {
+      rprinterr("Error: Set '%s' is empty.\n", (*ds)->legend());
+      err = 1;
+      break;
+    }
     if (dtype != (*ds)->Type()) {
       rprinterr("Error: Set '%s' has different type than first set.\n", (*ds)->legend());
       err = 1;
       break;
     }
+  }
   if (CheckError(err)) return 1; 
 
 # ifdef MPI
