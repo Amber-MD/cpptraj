@@ -11,6 +11,10 @@ Parallel::Comm Parallel::world_ = Parallel::Comm();
 Parallel::Comm Parallel::ensembleComm_ = Parallel::Comm();
 Parallel::Comm Parallel::trajComm_ = Parallel::Comm();
 
+int Parallel::ensemble_size_ = -1;
+int Parallel::ensemble_beg_ = -1;
+int Parallel::ensemble_end_ = -1;
+
 // printMPIerr()
 /** Wrapper for MPI_Error string.  */
 void Parallel::printMPIerr(int err, const char *routineName, int rank) {
@@ -123,12 +127,15 @@ int Parallel::SetupComms(int ngroups) {
     //fprintf(stdout, "DEBUG: Resetting ensemble/traj comm info.\n");
     trajComm_.Reset();
     ensembleComm_.Reset();
+    ensemble_size_ = -1;
+    ensemble_beg_ = -1;
+    ensemble_end_ = -1;
   } else if (!ensembleComm_.IsNull()) {
     // If comms were previously set up make sure the number of groups remains the same!
-    if (ensembleComm_.Size() != ngroups) {
+    if (ensemble_size_ != ngroups) {
       if ( world_.Master() )
         fprintf(stderr,"Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
-                ngroups, ensembleComm_.Size());
+                ngroups, ensemble_size_);
       return 1;
     }
   } else {
@@ -139,6 +146,7 @@ int Parallel::SetupComms(int ngroups) {
                 world_.Size(), ngroups);
       return 1;
     }
+    ensemble_size_ = ngroups;
     // Split into comms for parallel across trajectory
     int ID = world_.Rank() / (world_.Size() / ngroups);
     //fprintf(stdout,"[%i] DEBUG: My trajComm ID is %i\n", world_.Rank(), ID);

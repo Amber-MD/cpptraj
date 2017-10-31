@@ -64,6 +64,9 @@ class Parallel {
 #   ifdef CPPTRAJ_MPI
     static void printMPIerr(int, const char*, int);
     static int checkMPIerr(int, const char*, int);
+    static int ensemble_size_; ///< Number of ensemble members.
+    static int ensemble_beg_;  ///< Starting member for this ensemble thread.
+    static int ensemble_end_;  ///< Ending member for this ensemble thread.
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static void dbgprintf(const char*, ...);
     static int debug_init();
