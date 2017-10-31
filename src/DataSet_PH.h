@@ -21,12 +21,15 @@ class DataSet_PH : public DataSet {
         Residue(Residue const&);
         /// ASSIGN
         Residue& operator=(Residue const&);
-        void push_back(int state)     { states_.push_back(state); }
-        unsigned int Nframes() const  { return states_.size();    }
+        void push_back(int state)       { states_.push_back(state); }
+        unsigned int Nframes()    const { return states_.size();    }
         typedef Iarray::const_iterator const_iterator;
-        const_iterator begin() const { return states_.begin(); }
-        const_iterator end()   const { return states_.end();   }
+        const_iterator begin()    const { return states_.begin(); }
+        const_iterator end()      const { return states_.end();   }
         void Print() const;
+        int State(unsigned int n) const { return states_[n];       }
+        void Allocate(unsigned int n)   { states_.reserve( n );    }
+        void Resize(unsigned int n)     { states_.resize( n, 0 );  }
       private:
         NameType resname_;  ///< Residue name.
         int resid_;         ///< Residue number.
@@ -51,12 +54,15 @@ class DataSet_PH : public DataSet {
     typedef Rarray::const_iterator const_iterator;
     const_iterator begin() const { return residues_.begin(); }
     const_iterator end()   const { return residues_.end();   }
+    Residue const& Res(int idx) const { return residues_[idx]; }
     Farray const& pH_Values() const { return solvent_pH_; }
+    void Resize(size_t);
     // -------------------------------------------
     size_t Size() const { return residues_.size(); }
     void Info()   const;
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
-    int Allocate(SizeArray const&)  { return 0; } // TODO implement?
+    /// Reserve space for states of each residue
+    int Allocate(SizeArray const&);
     void Add( size_t, const void* ) { return; }
     int Append(DataSet*)            { return 1; }
 #   ifdef MPI
