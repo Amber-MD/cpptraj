@@ -612,11 +612,11 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
 void DataSetList::PrintList(DataListType const& dlist) {
   for (DataListType::const_iterator ds = dlist.begin(); ds != dlist.end(); ++ds) {
     DataSet const& dset = static_cast<DataSet const&>( *(*ds) );
-    rprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), dset.legend(),
+    mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), dset.legend(),
             DataArray[dset.Type()].Description, dset.Meta().ScalarDescription().c_str(),
             dset.Size());
     dset.Info();
-    rprintf("\n");
+    mprintf("\n");
   }
 }
 
