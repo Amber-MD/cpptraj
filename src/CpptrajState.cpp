@@ -742,27 +742,16 @@ int CpptrajState::RunEnsemble() {
 void CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_stop, int& my_frames,
                                             int maxFrames, Parallel::Comm const& commIn) const
 {
-  int frames_per_thread = maxFrames / commIn.Size();
-  int remainder         = maxFrames % commIn.Size();
-  my_frames             = frames_per_thread + (int)(commIn.Rank() < remainder);
-  // Figure out where this thread starts and stops
-  my_start = 0;
-  for (int rank = 0; rank != commIn.Rank(); rank++)
-    if (rank < remainder)
-      my_start += (frames_per_thread + 1);
-    else
-      my_start += (frames_per_thread);
-  my_stop = my_start + my_frames;
+  my_frames = commIn.DivideAmongThreads(my_start, my_stop, maxFrames);
+  std::vector<int> frames_per_thread( commIn.Size() );
+  commIn.GatherMaster(&my_frames, 1, MPI_INT, &frames_per_thread[0]);
   // Print how many frames each rank will process.
   if (commIn.Master()) {
     mprintf("\nPARALLEL INFO:\n");
     if (Parallel::EnsembleComm().Size() > 1)
       mprintf("  %i threads per ensemble member.\n", commIn.Size());
-    for (int rank = 0; rank != commIn.Size(); rank++) {
-      int FPT = frames_per_thread;
-      if (rank < remainder) ++FPT;
-      mprintf("  Thread %i will process %i frames.\n", rank, FPT);
-    }
+    for (int rank = 0; rank != commIn.Size(); rank++)
+      mprintf("  Thread %i will process %i frames.\n", rank, frames_per_thread[rank]);
   }
   commIn.Barrier();
   if (debug_ > 0) rprintf("Start %i Stop %i Frames %i\n", my_start+1, my_stop, my_frames);
