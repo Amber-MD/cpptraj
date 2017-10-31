@@ -50,7 +50,9 @@ class Parallel {
 #   ifdef CPPTRAJ_MPI
     static int Abort(int);
     /// Set up ensemble and trajectory communicators for given ensemble size
-    static int SetupComms(int);
+    static int SetupComms(int, bool);
+    /// Set up communicators - do not allow fewer threads than groups. TODO remove
+    static int SetupComms(int n) { return SetupComms(n, false); }
     /// For DEBUG: infinite loop, gives time to attach a debugger.
     static void Lock();
     static Comm const& EnsembleComm()   { return ensembleComm_;   }

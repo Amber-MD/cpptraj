@@ -121,7 +121,7 @@ int Parallel::Abort(int errcode) {
   *   3 4 5 (member 1)
   * Threads 0 and 3 would read the first third of the trajectories, etc.
   */
-int Parallel::SetupComms(int ngroups) {
+int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
   if (ngroups < 1) {
     // If ngroups < 1 assume we want to reset comm info
     //fprintf(stdout, "DEBUG: Resetting ensemble/traj comm info.\n");
@@ -139,6 +139,10 @@ int Parallel::SetupComms(int ngroups) {
       return 1;
     }
   } else if (world_.Size() < ngroups) {
+    if (!allowFewerThreadsThanGroups) {
+      fprintf(stderr,"Error: Fewer threads than groups currently not allowed.\n");
+      return 1;
+    }
     // Initial setup: fewer threads than groups.
     ensemble_size_ = ngroups;
     world_.DivideAmongThreads( ensemble_beg_, ensemble_end_, ensemble_size_ );

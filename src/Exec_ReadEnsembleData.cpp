@@ -38,9 +38,9 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   unsigned int max_file = fileNames.size();
 # ifdef MPI
   // Setup communicators if not already done.
-  if (Parallel::EnsembleComm().IsNull()) {
-    if (Parallel::SetupComms( fileNames.size() )) return CpptrajState::ERR;
-  }
+  // NOTE: Allowing fewer threads than groups here.
+  if (Parallel::SetupComms( fileNames.size(), true ))
+    return CpptrajState::ERR;
   min_file = (unsigned int)Parallel::Ensemble_Beg();
   max_file = (unsigned int)Parallel::Ensemble_End();
 # endif
