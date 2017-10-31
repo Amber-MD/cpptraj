@@ -221,6 +221,7 @@ Parallel::Comm Parallel::Comm::Split(int ID) const {
   return Comm(newComm);
 }
 
+/** Free and reset communicator. */
 void Parallel::Comm::Reset() {
   if (comm_ != MPI_COMM_NULL) {
     MPI_Comm_free( &comm_ );
@@ -228,6 +229,25 @@ void Parallel::Comm::Reset() {
     rank_ = 0;
     size_ = 1;
   }
+}
+
+/** Split given number of elements as evenly as possible among ranks.
+  * \return Number of elements this thread is responsible for.
+  */
+int Parallel::Comm::DivideAmongThreads(int& my_start, int& my_stop, int maxElts) const
+{
+  int frames_per_thread = maxElts / size_;
+  int remainder         = maxElts % size_;
+  int my_frames         = frames_per_thread + (int)(rank_ < remainder);
+  // Figure out where this thread starts and stops
+  my_start = 0;
+  for (int rnk = 0; rnk != rank_; rnk++)
+    if (rnk < remainder)
+      my_start += (frames_per_thread + 1);
+    else
+      my_start += (frames_per_thread);
+  my_stop = my_start + my_frames;
+  return my_frames;
 }
 
 /** Use MPI_REDUCE to OP the values in sendbuffer and place them in

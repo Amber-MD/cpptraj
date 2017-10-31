@@ -93,6 +93,8 @@ class Parallel::Comm {
     /// Split this Comm into a new Comm, give current rank the given ID
     Comm Split(int) const;
     void Reset();
+    /// my_start, my_stop, maxElts
+    int DivideAmongThreads(int&, int&, int) const;
     /// RecvBuffer, SendBuffer, Count, DataType, Op
     int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
     /// Buffer, Count, Rank, DataType 
