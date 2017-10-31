@@ -42,9 +42,9 @@ class EnsembleIn {
     int SetIndicesMap(std::vector<RemdIdxType> const&);
     InputTrajCommon& SetTraj() { return traj_; }
     /// For converting temperature to replica index
-    ReplicaMap<double> TemperatureMap_;
+    ReplicaInfo::Map<double> TemperatureMap_;
     /// For converting indices to replica index
-    ReplicaMap<RemdIdxType> IndicesMap_;
+    ReplicaInfo::Map<RemdIdxType> IndicesMap_;
     ReplicaInfo::TargetType targetType_; ///< Hold type of REMD frame being searched for.
     int badEnsemble_;         ///< Set to 1 if problem reading ensemble, 0 otherwise.
     int debug_;
@@ -64,8 +64,8 @@ class EnsembleIn {
 #   endif
 #   endif
   private:
-    static void PrintReplicaTmap(ReplicaMap<double> const&);
-    static void PrintReplicaImap(ReplicaMap<RemdIdxType> const&);
+    static void PrintReplicaTmap(ReplicaInfo::Map<double> const&);
+    static void PrintReplicaImap(ReplicaInfo::Map<RemdIdxType> const&);
 
     InputTrajCommon traj_;
 #   ifdef MPI

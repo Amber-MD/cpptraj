@@ -1,14 +1,16 @@
 #ifndef INC_REPLICAINFO_H
 #define INC_REPLICAINFO_H
 #include <map>
-namespace ReplicaInfo {
-  enum TargetType { NONE = 0, TEMP, INDICES, CRDIDX };
-}
+/// Hold types/classes/functions having to do with processing ensemble/replica data.
+namespace ReplicaInfo { // TODO just Replica
+/// Replica sort target type
+enum TargetType { NONE = 0, TEMP, INDICES, CRDIDX };
+
 /// Hold temperature/indices for replica ensemble.
-template <class T> class ReplicaMap {
+template <class T> class Map {
     typedef std::map<T, int> RmapType;
   public:
-    ReplicaMap() {}
+    Map() {}
     // Create a map from T array to replicas 0->N
     int CreateMap(std::vector<T> const&);
     T const& Duplicate() const { return duplicate_; }
@@ -23,8 +25,8 @@ template <class T> class ReplicaMap {
     RmapType repMap_;
     T duplicate_;
 };
-// ReplicaMap::CreateMap()
-template <class T> int ReplicaMap<T>::CreateMap(std::vector<T> const& Vals) {
+// Map::CreateMap()
+template <class T> int Map<T>::CreateMap(std::vector<T> const& Vals) {
   std::set<T> tList;
   for (typename std::vector<T>::const_iterator val = Vals.begin(); val != Vals.end(); ++val)
   {
@@ -41,12 +43,13 @@ template <class T> int ReplicaMap<T>::CreateMap(std::vector<T> const& Vals) {
     repMap_.insert(std::pair<T, int>(*v0, repnum));
   return 0;
 }
-// ReplicaMap::FindIndex()
-template <class T> int ReplicaMap<T>::FindIndex( T const& Val ) const {
+// Map::FindIndex()
+template <class T> int Map<T>::FindIndex( T const& Val ) const {
   typename RmapType::const_iterator rmap = repMap_.find( Val );
   if (rmap == repMap_.end())
     return -1;
   else
     return rmap->second;
 }
+} // END namespace Replica
 #endif
