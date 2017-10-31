@@ -19,12 +19,11 @@ inline bool CheckError(int err) {
 
 //  Exec_SortEnsembleData::Sort_pH_Data()
 int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort) const {
-  // Gather pH data
+  // Gather initial pH data
   typedef std::vector<DataSet_PH*> Parray;
   Parray PH;
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
     PH.push_back( (DataSet_PH*)*ds );
-
   typedef std::vector<double> Darray;
   Darray pHvalues;
 # ifdef MPI
@@ -49,7 +48,27 @@ int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort) const {
   for (ReplicaInfo::Map<double>::const_iterator ph = pH_map.begin(); ph != pH_map.end(); ++ph)
     mprintf(" %6.2f", *ph);
   mprintf("\n");
-  
+
+  // TODO check that residue info all the same
+  unsigned int nframes = PH[0]->Size();
+  std::vector<DataSet_PH> sets( pHvalues.size() );
+  for (unsigned int idx = 0; idx != sets.size(); idx++) {
+    sets[idx].SetResidueInfo( PH[0]->Residues() );
+    sets[idx].Resize( nframes );
+  }
+
+  for (unsigned int n = 0; n < nframes; n++)
+  {
+    for (Parray::const_iterator ds = PH.begin(); ds != PH.end(); ++ds)
+    {
+      float phval = (*ds)->pH_Values()[n];
+      int idx = pH_map.FindIndex( phval );
+      for (unsigned int res = 0; res < (*ds)->Residues().size(); res++)
+      {
+        sets[idx].AddState(res, (*ds)->Res(res).State(n), phval);
+      }
+    }
+  }
   return 0;
 }
 
@@ -73,7 +92,7 @@ int Exec_SortEnsembleData::SortData(DataSetList const& setsToSort) const {
   DataSet::DataType dtype = setsToSort[0]->Type();
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds) {
     rprintf("\t%s\n", (*ds)->legend());
-    if ((*ds)->Size() < 1) {
+    if ((*ds)->Size() < 1) { //TODO check sizes match
       rprinterr("Error: Set '%s' is empty.\n", (*ds)->legend());
       err = 1;
       break;

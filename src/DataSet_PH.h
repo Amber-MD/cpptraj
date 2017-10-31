@@ -21,6 +21,8 @@ class DataSet_PH : public DataSet {
         Residue(Residue const&);
         /// ASSIGN
         Residue& operator=(Residue const&);
+        int& operator[](int n)          { return states_[n];        }
+        int operator[](int n) const     { return states_[n];        }
         void push_back(int state)       { states_.push_back(state); }
         unsigned int Nframes()    const { return states_.size();    }
         typedef Iarray::const_iterator const_iterator;
@@ -49,6 +51,11 @@ class DataSet_PH : public DataSet {
     void AddState(unsigned int res, int state, float pH) {
       residues_[res].push_back( state );
       solvent_pH_.push_back( pH );
+    }
+
+    void SetState(unsigned int res, int frame, int state, float pH) {
+      residues_[res][frame] = state;
+      solvent_pH_[frame] = pH;
     }
 
     typedef Rarray::const_iterator const_iterator;

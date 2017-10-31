@@ -10,6 +10,7 @@ int DataSet_PH::Allocate(SizeArray const& sizeIn) {
   if (!sizeIn.empty()) {
     for (Rarray::iterator res = residues_.begin(); res != residues_.end(); ++res)
       res->Allocate( sizeIn[0] );
+    solvent_pH_.reserve( sizeIn[0] );
   }
   return 0;
 }
@@ -17,6 +18,7 @@ int DataSet_PH::Allocate(SizeArray const& sizeIn) {
 void DataSet_PH::Resize(size_t n) {
   for (Rarray::iterator res = residues_.begin(); res != residues_.end(); ++res)
     res->Resize( n );
+  solvent_pH_.resize(n, 0.0);
 }
 
 void DataSet_PH::Info() const {
