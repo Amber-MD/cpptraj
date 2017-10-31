@@ -33,15 +33,20 @@ int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort) const {
   for (Parray::const_iterator ds = PH.begin(); ds != PH.end(); ++ds)
     phtmp.push_back( (*ds)->pH_Values()[0] );
   if (Parallel::EnsembleComm().AllGather(&phtmp[0], phtmp.size(), MPI_DOUBLE, &pHvalues[0])) {
-    mprinterr("Error: Gathering pH values.\n");
+    rprinterr("Error: Gathering pH values.\n");
     return 1;
   }
 # else
   for (Parray::const_iterator ds = PH.begin(); ds != PH.end(); ++ds)
     pHvalues.push_back( (*ds)->pH_Values()[0] );
 # endif
+  ReplicaInfo::Map<double> pH_map;
+  if (pH_map.CreateMap( pHvalues )) {
+    rprinterr("Error: Duplicate pH value detected (%.2f) in ensemble.\n", pH_map.Duplicate());
+    return 1;
+  }
   mprintf("\tInitial pH values:");
-  for (Darray::const_iterator ph = pHvalues.begin(); ph != pHvalues.end(); ++ph)
+  for (ReplicaInfo::Map<double>::const_iterator ph = pH_map.begin(); ph != pH_map.end(); ++ph)
     mprintf(" %6.2f", *ph);
   mprintf("\n");
   
@@ -67,6 +72,7 @@ int Exec_SortEnsembleData::SortData(DataSetList const& setsToSort) const {
 
   DataSet::DataType dtype = setsToSort[0]->Type();
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds) {
+    rprintf("\t%s\n", (*ds)->legend());
     if ((*ds)->Size() < 1) {
       rprinterr("Error: Set '%s' is empty.\n", (*ds)->legend());
       err = 1;
@@ -81,12 +87,13 @@ int Exec_SortEnsembleData::SortData(DataSetList const& setsToSort) const {
   if (CheckError(err)) return 1; 
 
 # ifdef MPI
+  Parallel::EnsembleComm().Barrier(); // DEBUG
   typedef std::vector<int> Iarray;
   Iarray Dtypes( Parallel::EnsembleComm().Size(), -1 );
   if ( Parallel::EnsembleComm().AllGather( &dtype, 1, MPI_INT, &Dtypes[0] ) ) return 1;
   for (int rank = 1; rank < Parallel::EnsembleComm().Size(); rank++)
     if (Dtypes[0] != Dtypes[rank]) {
-      mprinterr("Error: Set types on rank %i do not match types on rank 0.\n", rank);
+      rprinterr("Error: Set types on rank %i do not match types on rank 0.\n", rank);
       err = 1;
       break;
     }
@@ -95,7 +102,7 @@ int Exec_SortEnsembleData::SortData(DataSetList const& setsToSort) const {
 
   // Only work for pH data for now.
   if (dtype != DataSet::PH) {
-    mprinterr("Error: Only works for pH data for now.\n");
+    rprinterr("Error: Only works for pH data for now.\n");
     return 1;
   }
 
@@ -120,10 +127,10 @@ Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn
 # ifdef MPI
   // For now, require ensemble mode in parallel.
   if (Parallel::EnsembleComm().IsNull()) {
-    mprinterr("Error: Data set ensemble sort requires ensemble mode in parallel.\n");
+    rprinterr("Error: Data set ensemble sort requires ensemble mode in parallel.\n");
     return CpptrajState::ERR;
   }
-  // If not a TrajComm master we do not have complete data, so exit now.
+  // Only TrajComm masters have complete data.
   if (Parallel::TrajComm().Master())
     err = SortData( setsToSort );
   if (Parallel::World().CheckError( err ))
