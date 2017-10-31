@@ -54,6 +54,9 @@ class Parallel {
     /// For DEBUG: infinite loop, gives time to attach a debugger.
     static void Lock();
     static Comm const& EnsembleComm()   { return ensembleComm_;   }
+    static int Ensemble_Size()          { return ensemble_size_;  }
+    static int Ensemble_Beg()           { return ensemble_beg_;   }
+    static int Ensemble_End()           { return ensemble_end_;   }
     static Comm const& TrajComm()       { return trajComm_;       }
     static Comm const& ActiveComm();
 #   ifdef PARALLEL_DEBUG_VERBOSE
