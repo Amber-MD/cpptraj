@@ -144,7 +144,14 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
       fprintf(stderr,"Error: Fewer threads than groups currently not allowed.\n");
       return 1;
     }
-    // Initial setup: fewer threads than groups.
+    // Initial setup: fewer threads than groups. Make sure that # threads is a
+    // multiple of ngroups. This is required for things like AllGather to work
+    // properly.
+    if ( (ngroups % world_.Size()) != 0 ) {
+      fprintf(stderr,"Error: # of replicas (%i) must be a multiple of # threads (%i)\n",
+              ngroups, world_.Size());
+      return 1;
+    }
     ensemble_size_ = ngroups;
     n_ens_members_ = world_.DivideAmongThreads( ensemble_beg_, ensemble_end_, ensemble_size_ );
     fprintf(stderr,"DEBUG: Rank %i handling ensemble members %i to %i\n", world_.Rank(),
