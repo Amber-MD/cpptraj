@@ -12,8 +12,9 @@ Parallel::Comm Parallel::ensembleComm_ = Parallel::Comm();
 Parallel::Comm Parallel::trajComm_ = Parallel::Comm();
 
 int Parallel::ensemble_size_ = -1;
-int Parallel::ensemble_beg_ = -1;
-int Parallel::ensemble_end_ = -1;
+int Parallel::ensemble_beg_  = -1;
+int Parallel::ensemble_end_  = -1;
+int Parallel::n_ens_members_ = 0;
 
 // printMPIerr()
 /** Wrapper for MPI_Error string.  */
@@ -145,7 +146,7 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     }
     // Initial setup: fewer threads than groups.
     ensemble_size_ = ngroups;
-    world_.DivideAmongThreads( ensemble_beg_, ensemble_end_, ensemble_size_ );
+    n_ens_members_ = world_.DivideAmongThreads( ensemble_beg_, ensemble_end_, ensemble_size_ );
     fprintf(stderr,"DEBUG: Rank %i handling ensemble members %i to %i\n", world_.Rank(),
             ensemble_beg_, ensemble_end_);
     int ID = world_.Rank();
@@ -182,8 +183,9 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     //  fprintf(stdout,"[%i] DEBUG: RANKS: TrajComm %i/%i  EnsembleComm %i/%i\n",
     //          world_.Rank(), trajComm_.Rank()+1, trajComm_.Size(),
     //          ensembleComm_.Rank()+1, ensembleComm_.Size());
-    ensemble_beg_ = ensembleComm_.Rank();
-    ensemble_end_ = ensemble_beg_ + 1;
+    ensemble_beg_  = ensembleComm_.Rank();
+    ensemble_end_  = ensemble_beg_ + 1;
+    n_ens_members_ = 1;
     world_.Barrier();
   }
   return 0;

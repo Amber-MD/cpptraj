@@ -59,6 +59,7 @@ class Parallel {
     static int Ensemble_Size()          { return ensemble_size_;  }
     static int Ensemble_Beg()           { return ensemble_beg_;   }
     static int Ensemble_End()           { return ensemble_end_;   }
+    static int N_Ens_Members()          { return n_ens_members_;  }
     static Comm const& TrajComm()       { return trajComm_;       }
     static Comm const& ActiveComm();
 #   ifdef PARALLEL_DEBUG_VERBOSE
@@ -69,9 +70,10 @@ class Parallel {
 #   ifdef CPPTRAJ_MPI
     static void printMPIerr(int, const char*, int);
     static int checkMPIerr(int, const char*, int);
-    static int ensemble_size_; ///< Number of ensemble members.
+    static int ensemble_size_; ///< Total number of ensemble members.
     static int ensemble_beg_;  ///< Starting member for this ensemble thread.
     static int ensemble_end_;  ///< Ending member for this ensemble thread.
+    static int n_ens_members_; ///< Number of ensemble members thread is responsible for.
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static void dbgprintf(const char*, ...);
     static int debug_init();
