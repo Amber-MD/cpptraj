@@ -169,16 +169,18 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
   }
 
   // DEBUG
-  mprintf("%zu charges.\n", charges.size());
-  int col = 0;
-  for (Darray::const_iterator c = charges.begin(); c != charges.end(); ++c) {
-    mprintf(" %12.4f", *c);
-    if (++col == 5) {
-      mprintf("\n");
-      col = 0;
+  if (debug_ > 1) {
+    mprintf("%zu charges.\n", charges.size());
+    int col = 0;
+    for (Darray::const_iterator c = charges.begin(); c != charges.end(); ++c) {
+      mprintf(" %12.4f", *c);
+      if (++col == 5) {
+        mprintf("\n");
+        col = 0;
+      }
     }
+    if (col != 0) mprintf("\n");
   }
-  if (col != 0) mprintf("\n");
   mprintf("%zu protcnt=", protcnt.size());
   for (Iarray::const_iterator p = protcnt.begin(); p != protcnt.end(); ++p)
     mprintf(" %i", *p);
@@ -325,6 +327,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   }
   infile.CloseFile();
 
+  if (debug_ > 1) {
   for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res) {
     mprintf("DEBUG: Res %u:\n", res-phdata->begin());
     for (DataSet_PH::Residue::const_iterator state = res->begin();
@@ -337,6 +340,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
                                ph != phdata->pH_Values().end(); ++ph)
     mprintf(" %6.2f", *ph);
   mprintf("\n");
+  }
 
   mprintf("\tTitratable Residues:\n");
   for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res)
