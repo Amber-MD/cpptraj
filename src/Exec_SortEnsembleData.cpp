@@ -97,15 +97,15 @@ const
   if (Parallel::World().Size() > 1) {
     for (int idx = 0; idx != (int)sortedPH.size(); idx++) {
       DataSet_PH* out = (DataSet_PH*)OutputSets[idx];
-      mprintf("DEBUG: Consolidate set %s to rank %i\n",
-              out->legend(), Parallel::MemberEnsCommRank(idx));
+      //mprintf("DEBUG: Consolidate set %s to rank %i\n",
+      //        out->legend(), Parallel::MemberEnsCommRank(idx));
       out->Consolidate( Parallel::EnsembleComm(), Parallel::MemberEnsCommRank(idx) );
     }
     // Remove sets that do not belong on this rank
     for (int idx = (int)sortedPH.size() - 1; idx > -1; idx--) {
       if (Parallel::MemberEnsCommRank(idx) != Parallel::EnsembleComm().Rank()) {
-        rprintf("DEBUG: Remove set %s (%i) from rank %i\n", OutputSets[idx]->legend(),
-                idx, Parallel::EnsembleComm().Rank());
+        //rprintf("DEBUG: Remove set %s (%i) from rank %i\n", OutputSets[idx]->legend(),
+        //        idx, Parallel::EnsembleComm().Rank());
         OutputSets.RemoveSet( OutputSets[idx] );
       }
     }
@@ -135,7 +135,7 @@ const
 
   DataSet::DataType dtype = setsToSort[0]->Type();
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds) {
-    rprintf("\t%s\n", (*ds)->legend());
+    rprintf("\tSet '%s'\n", (*ds)->legend());
     if ((*ds)->Size() < 1) { //TODO check sizes match
       rprinterr("Error: Set '%s' is empty.\n", (*ds)->legend());
       err = 1;
@@ -150,7 +150,6 @@ const
   if (CheckError(err)) return 1; 
 
 # ifdef MPI
-  Parallel::EnsembleComm().Barrier(); // DEBUG
   typedef std::vector<int> Iarray;
   Iarray Dtypes( Parallel::EnsembleComm().Size(), -1 );
   if ( Parallel::EnsembleComm().AllGather( &dtype, 1, MPI_INT, &Dtypes[0] ) ) return 1;
@@ -177,14 +176,12 @@ const
 // Exec_SortEnsembleData::Execute()
 Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn)
 {
-  rprintf("DEBUG: Entering sortensembledata.\n");
   DataSetList setsToSort;
   std::string dsarg = argIn.GetStringNext();
   while (!dsarg.empty()) {
     setsToSort += State.DSL().GetMultipleSets( dsarg );
     dsarg = argIn.GetStringNext();
   }
-  setsToSort.List();
 
   int err = 0;
 # ifdef MPI
