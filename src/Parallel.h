@@ -106,7 +106,7 @@ class Parallel::Comm {
     /// my_start, my_stop, maxElts
     int DivideAmongThreads(int&, int&, int) const;
     /// RecvBuffer, SendBuffer, Count, DataType, Op
-    int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    int ReduceMaster(void*, void*, int, MPI_Datatype, MPI_Op) const;
     /// Buffer, Count, Rank, DataType 
     int SendMaster(void*, int, int, MPI_Datatype) const;
     /// Return, Input, Count, DataType, Op

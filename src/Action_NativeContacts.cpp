@@ -587,7 +587,7 @@ int Action_NativeContacts::SyncAction() {
   // Get total number of frames.
   int N = (int)nframes_;
   int total_frames;
-  trajComm_.Reduce( &total_frames, &N, 1, MPI_INT, MPI_SUM );
+  trajComm_.ReduceMaster( &total_frames, &N, 1, MPI_INT, MPI_SUM );
   if (trajComm_.Master())
     nframes_ = (unsigned int)total_frames;
   // Should have the same number of contacts on each thread since reference is shared.
@@ -597,7 +597,7 @@ int Action_NativeContacts::SyncAction() {
     buf[0] = it->second.Avg();
     buf[1] = it->second.Stdev();
     buf[2] = (double)it->second.Nframes();
-    trajComm_.Reduce( total, buf, 3, MPI_DOUBLE, MPI_SUM );
+    trajComm_.ReduceMaster( total, buf, 3, MPI_DOUBLE, MPI_SUM );
     if (trajComm_.Master())
       it->second.SetValues( total[0], total[1], (int)total[2] );
   }

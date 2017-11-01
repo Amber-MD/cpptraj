@@ -418,15 +418,15 @@ int Action_Radial::SyncAction() {
   CombineRdfThreads();
 # endif
   int total_frames = 0;
-  trajComm_.Reduce( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
+  trajComm_.ReduceMaster( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
   if (trajComm_.Master()) {
     numFrames_ = total_frames;
     int* sum_bins = new int[ numBins_ ];
-    trajComm_.Reduce( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
+    trajComm_.ReduceMaster( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
     std::copy( sum_bins, sum_bins + numBins_, RDF_ );
     delete[] sum_bins;
   } else
-    trajComm_.Reduce( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
+    trajComm_.ReduceMaster( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
   return 0;
 }
 #endif

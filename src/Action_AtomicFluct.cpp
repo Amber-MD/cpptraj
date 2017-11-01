@@ -160,7 +160,7 @@ Action::RetType Action_AtomicFluct::DoAction(int frameNum, ActionFrame& frm) {
 #ifdef MPI
 int Action_AtomicFluct::SyncAction() {
   int total_frames = 0;
-  trajComm_.Reduce( &total_frames, &sets_, 1, MPI_INT, MPI_SUM );
+  trajComm_.ReduceMaster( &total_frames, &sets_, 1, MPI_INT, MPI_SUM );
   if (trajComm_.Master())
     sets_ = total_frames;
   SumCoords_.SumToMaster(trajComm_);

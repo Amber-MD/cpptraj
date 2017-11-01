@@ -290,7 +290,7 @@ int Parallel::Comm::DivideAmongThreads(int& my_start, int& my_stop, int maxElts)
 /** Use MPI_REDUCE to OP the values in sendbuffer and place them in
   * recvbuffer on master.
   */
-int Parallel::Comm::Reduce(void* recvBuffer, void* sendBuffer, int N,
+int Parallel::Comm::ReduceMaster(void* recvBuffer, void* sendBuffer, int N,
                            MPI_Datatype datatype, MPI_Op op) const
 {
   int err = MPI_Reduce(sendBuffer, recvBuffer, N, datatype, op, 0, comm_);

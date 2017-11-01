@@ -822,10 +822,10 @@ int Action_Matrix::SyncAction() {
   if (!vect2_.empty()) {
     if (trajComm_.Master()) {
       Darray buf( vect2_.size() );
-      trajComm_.Reduce( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+      trajComm_.ReduceMaster( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
       vect2_ = buf;
     } else
-      trajComm_.Reduce( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+      trajComm_.ReduceMaster( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
   }
   return 0;
 }
