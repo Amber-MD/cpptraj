@@ -31,7 +31,11 @@ class DataSet_PH : public DataSet {
         void Print() const;
         int State(unsigned int n) const { return states_[n];       }
         void Allocate(unsigned int n)   { states_.reserve( n );    }
-        void Resize(unsigned int n)     { states_.resize( n, 0 );  }
+        void Resize(unsigned int n)     { states_.assign( n, 0 );  }
+#       ifdef MPI
+        Iarray const& States()    const { return states_; }
+        int* StatesPtr()                { return &states_[0]; }
+#       endif
       private:
         NameType resname_;  ///< Residue name.
         int resid_;         ///< Residue number.
@@ -82,6 +86,7 @@ class DataSet_PH : public DataSet {
     int Append(DataSet*)            { return 1; }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+    void Consolidate(Parallel::Comm const&, int);
 #   endif
   private:
     Farray solvent_pH_;    ///< Solvent pH values each frame
