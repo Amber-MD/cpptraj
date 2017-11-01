@@ -287,6 +287,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   }
   DataSet_PH* phdata = (DataSet_PH*)ds;
   int maxRes = (int)phdata->Residues().size();
+  Iarray resStates( phdata->Residues().size() );
 
   float solvent_pH = original_pH_;
   while (ptr != 0) {
@@ -311,14 +312,15 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     // delta record or full record Residue read
     while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
       //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
-      if (res < maxRes) 
-        phdata->AddState(res, state, pHval);
+      if (res < maxRes)
+        resStates[res] = state;
       else {
         mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes);
         return 1;
       }
       ptr = infile.Line();
     }
+    phdata->AddState(resStates, pHval);
     ptr = infile.Line();
   }
   infile.CloseFile();

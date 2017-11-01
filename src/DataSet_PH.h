@@ -53,8 +53,9 @@ class DataSet_PH : public DataSet {
     Farray const& pH_Values() const { return solvent_pH_; }
 
     // NOTE: Bounds check should be done outside of here.
-    void AddState(unsigned int res, int state, float pH) {
-      residues_[res].push_back( state );
+    void AddState(Iarray const& resStates, float pH) {
+      for (unsigned int res = 0; res < resStates.size(); res++)
+        residues_[res].push_back( resStates[res] );
       solvent_pH_.push_back( pH );
     }
     /// Set pH and state for specified frame/residue
