@@ -305,6 +305,31 @@ int Parallel::Comm::ReduceMaster(void* recvBuffer, void* sendBuffer, int N,
   return 0;
 }
 
+int Parallel::Comm::Reduce(int rankIn, void* recvBuffer, void* sendBuffer, int N,
+                           MPI_Datatype datatype, MPI_Op op) const
+{
+  int err = MPI_Reduce(sendBuffer, recvBuffer, N, datatype, op, rankIn, comm_);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Reducing data to rank.", rank_);
+    return Parallel::Abort(err); // TODO handle gracefully?
+  }
+  return 0;
+}
+
+/** Perform an mpi allreduce. */
+int Parallel::Comm::AllReduce(void *Return, void *input, int count,
+                              MPI_Datatype datatype, MPI_Op op) const
+{
+  int err = MPI_Allreduce(input, Return, count, datatype, op, comm_);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing allreduce.\n", rank_);
+    printf("[%i]\tError: allreduce failed for %i elements.\n", rank_, count);
+    return Parallel::Abort(err);
+  }
+  //if (parallel_check_error(err)!=0) return 1;
+  return 0;
+}
+
 /** If master    : receive specified value(s) from sendRank.
   * If not master: send specified value(s) to master.
   */
@@ -325,20 +350,6 @@ int Parallel::Comm::SendMaster(void *Buffer, int Count, int sendRank, MPI_Dataty
       printMPIerr(err, "Receiving data from non-master.", rank_);
       return Parallel::Abort(err);
     }
-  }
-  //if (parallel_check_error(err)!=0) return 1;
-  return 0;
-}
-
-/** Perform an mpi allreduce. */
-int Parallel::Comm::AllReduce(void *Return, void *input, int count,
-                              MPI_Datatype datatype, MPI_Op op) const
-{
-  int err = MPI_Allreduce(input, Return, count, datatype, op, comm_);
-  if (err != MPI_SUCCESS) {
-    printMPIerr(err, "Performing allreduce.\n", rank_);
-    printf("[%i]\tError: allreduce failed for %i elements.\n", rank_, count);
-    return Parallel::Abort(err);
   }
   //if (parallel_check_error(err)!=0) return 1;
   return 0;
