@@ -40,31 +40,38 @@ class DataSet_PH : public DataSet {
         Iarray states_;     ///< Hold protonation state for each frame.
     };
     typedef std::vector<Residue> Rarray;
+    typedef Rarray::const_iterator const_iterator;
     // -------------------------------------------
-
+    // Residue functions
     void SetResidueInfo(Rarray const& r) { residues_ = r; }
+    Rarray const& Residues()       const { return residues_; }
+    const_iterator begin()         const { return residues_.begin(); }
+    const_iterator end()           const { return residues_.end();   }
+    Residue const& Res(int idx)    const { return residues_[idx]; }
 
     typedef Farray::const_iterator ph_iterator;
-    Rarray const& Residues() const { return residues_; }
+    Farray const& pH_Values() const { return solvent_pH_; }
 
     // NOTE: Bounds check should be done outside of here.
     void AddState(unsigned int res, int state, float pH) {
       residues_[res].push_back( state );
       solvent_pH_.push_back( pH );
     }
-
+    /// Set pH and state for specified frame/residue
     void SetState(unsigned int res, int frame, int state, float pH) {
       residues_[res][frame] = state;
-      solvent_pH_[frame] = pH;
+      solvent_pH_[frame] = pH; // TODO should pass in an array for res?
     }
-
-    typedef Rarray::const_iterator const_iterator;
-    const_iterator begin() const { return residues_.begin(); }
-    const_iterator end()   const { return residues_.end();   }
-    Residue const& Res(int idx) const { return residues_[idx]; }
-    Farray const& pH_Values() const { return solvent_pH_; }
+    /// Resize pH array and state array for each residue.
     void Resize(size_t);
-    // -------------------------------------------
+    /// \return number of frames
+    unsigned int Nframes() const {
+      if (residues_.empty())
+        return 0;
+      else
+        return residues_.front().Nframes();
+    }
+    // ----- DataSet functions -------------------
     size_t Size() const { return residues_.size(); }
     void Info()   const;
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
