@@ -81,6 +81,7 @@ const
     {
       float phval = (*ds)->pH_Values()[n];
       int idx = pH_map.FindIndex( phval );
+      //mprintf("DEBUG: %6u Set %10s pH= %6.2f going to %2i\n", n+1, (*ds)->legend(), phval, idx);
       DataSet_PH* out = (DataSet_PH*)OutputSets[idx];
       for (unsigned int res = 0; res < (*ds)->Residues().size(); res++)
       {
