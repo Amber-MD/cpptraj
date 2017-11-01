@@ -1,6 +1,7 @@
 #include "Exec_SortEnsembleData.h"
 #include "CpptrajStdio.h"
 #include "DataSet_PH.h"
+#include "StringRoutines.h" // doubleToString
 
 // Exec_SortEnsembleData::Help()
 void Exec_SortEnsembleData::Help() const
@@ -18,25 +19,31 @@ inline bool CheckError(int err) {
 }
 
 //  Exec_SortEnsembleData::Sort_pH_Data()
-int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort) const {
-  // Gather initial pH data
+int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort, DataSetList& OutputSets)
+const
+{
+  // Cast sets back to DataSet_PH
   typedef std::vector<DataSet_PH*> Parray;
-  Parray PH;
+  Parray PHsets;
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
-    PH.push_back( (DataSet_PH*)*ds );
+    PHsets.push_back( (DataSet_PH*)*ds );
+  // Gather initial pH data values, ensure no duplicates
   typedef std::vector<double> Darray;
   Darray pHvalues;
+  // member0 will hold index of first ensemble member.
 # ifdef MPI
+  const int member0 = Parallel::Ensemble_Beg();
   pHvalues.resize( Parallel::Ensemble_Size() );
   Darray phtmp;
-  for (Parray::const_iterator ds = PH.begin(); ds != PH.end(); ++ds)
+  for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
     phtmp.push_back( (*ds)->pH_Values()[0] );
   if (Parallel::EnsembleComm().AllGather(&phtmp[0], phtmp.size(), MPI_DOUBLE, &pHvalues[0])) {
     rprinterr("Error: Gathering pH values.\n");
     return 1;
   }
 # else
-  for (Parray::const_iterator ds = PH.begin(); ds != PH.end(); ++ds)
+  const int member0 = 0;
+  for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
     pHvalues.push_back( (*ds)->pH_Values()[0] );
 # endif
   ReplicaInfo::Map<double> pH_map;
@@ -44,36 +51,51 @@ int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort) const {
     rprinterr("Error: Duplicate pH value detected (%.2f) in ensemble.\n", pH_map.Duplicate());
     return 1;
   }
+  Darray sortedPH;
   mprintf("\tInitial pH values:");
   for (ReplicaInfo::Map<double>::const_iterator ph = pH_map.begin(); ph != pH_map.end(); ++ph)
-    mprintf(" %6.2f", *ph);
+  {
+    mprintf(" %6.2f", ph->first);
+    sortedPH.push_back( ph->first );
+  }
   mprintf("\n");
 
+  // Create sets to hold sorted pH values
   // TODO check that residue info all the same
-  unsigned int nframes = PH[0]->Size();
-  std::vector<DataSet_PH> sets( pHvalues.size() );
-  for (unsigned int idx = 0; idx != sets.size(); idx++) {
-    sets[idx].SetResidueInfo( PH[0]->Residues() );
-    sets[idx].Resize( nframes );
+  unsigned int nframes = PHsets[0]->Nframes();
+  rprintf("DEBUG: Sorting %u frames for %zu sets, %zu pH values.\n",
+          nframes, PHsets.size(), pHvalues.size());
+  int member = member0;
+  for (unsigned int idx = 0; idx != PHsets.size(); idx++, member++) {
+    OutputSets.SetEnsembleNum( member );
+    DataSet_PH* out = (DataSet_PH*)OutputSets.AddSet( DataSet::PH, PHsets[idx]->Meta() );
+    if (out==0) return 1;
+    out->SetLegend( "pH " + doubleToString( sortedPH[idx] ) );
+    out->SetResidueInfo( PHsets[0]->Residues() );
+    out->Resize( nframes );
   }
 
   for (unsigned int n = 0; n < nframes; n++)
   {
-    for (Parray::const_iterator ds = PH.begin(); ds != PH.end(); ++ds)
+    for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
     {
       float phval = (*ds)->pH_Values()[n];
       int idx = pH_map.FindIndex( phval );
+      DataSet_PH* out = (DataSet_PH*)OutputSets[idx];
       for (unsigned int res = 0; res < (*ds)->Residues().size(); res++)
       {
-        sets[idx].AddState(res, (*ds)->Res(res).State(n), phval);
+        out->SetState(res, n, (*ds)->Res(res).State(n), phval);
       }
     }
   }
+
   return 0;
 }
 
 // Exec_SortEnsembleData::SortData()
-int Exec_SortEnsembleData::SortData(DataSetList const& setsToSort) const {
+int Exec_SortEnsembleData::SortData(DataSetList const& setsToSort, DataSetList& OutputSets)
+const
+{
   int err = 0;
   if (setsToSort.empty()) {
     rprinterr("Error: No sets selected.\n");
@@ -125,7 +147,7 @@ int Exec_SortEnsembleData::SortData(DataSetList const& setsToSort) const {
     return 1;
   }
 
-  err = Sort_pH_Data( setsToSort );
+  err = Sort_pH_Data( setsToSort, OutputSets );
 
   return err;
 }
@@ -150,8 +172,21 @@ Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn
     return CpptrajState::ERR;
   }
   // Only TrajComm masters have complete data.
-  if (Parallel::TrajComm().Master())
-    err = SortData( setsToSort );
+  if (Parallel::TrajComm().Master()) {
+    DataSetList OutputSets;
+    err = SortData( setsToSort, OutputSets );
+    if (err == 0) {
+      // Remove unsorted sets. 
+      for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
+        State.DSL().RemoveSet( *ds );
+      // Add sorted sets.
+      for (DataSetList::const_iterator ds = OutputSets.begin(); ds != OutputSets.end(); ++ds)
+        State.DSL().AddSet( *ds );
+      // Since sorted sets have been transferred to master DSL, OutputSets now
+      // just has copies.
+      OutputSets.SetHasCopies( true );
+    }
+  }
   if (Parallel::World().CheckError( err ))
 # else
   if (SortData( setsToSort )) 

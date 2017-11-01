@@ -9,7 +9,7 @@ class Exec_SortEnsembleData : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_SortEnsembleData(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
-    int SortData(DataSetList const&) const;
-    int Sort_pH_Data(DataSetList const&) const;
+    int SortData(DataSetList const&, DataSetList&) const;
+    int Sort_pH_Data(DataSetList const&, DataSetList&) const;
 };
 #endif
