@@ -32,7 +32,6 @@ const
   Darray pHvalues;
   // member0 will hold index of first ensemble member.
 # ifdef MPI
-  const int member0 = Parallel::Ensemble_Beg();
   pHvalues.resize( Parallel::Ensemble_Size() );
   Darray phtmp;
   for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
@@ -42,7 +41,6 @@ const
     return 1;
   }
 # else
-  const int member0 = 0;
   for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
     pHvalues.push_back( (*ds)->pH_Values()[0] );
 # endif
@@ -60,15 +58,15 @@ const
   }
   mprintf("\n");
 
-  // Create sets to hold sorted pH values
+  // Create sets to hold sorted pH values. Create a set for each pH value.
   // TODO check that residue info all the same
+  MetaData md = PHsets[0]->Meta();
   unsigned int nframes = PHsets[0]->Nframes();
   rprintf("DEBUG: Sorting %u frames for %zu sets, %zu pH values.\n",
           nframes, PHsets.size(), pHvalues.size());
-  int member = member0;
-  for (unsigned int idx = 0; idx != PHsets.size(); idx++, member++) {
-    OutputSets.SetEnsembleNum( member );
-    DataSet_PH* out = (DataSet_PH*)OutputSets.AddSet( DataSet::PH, PHsets[idx]->Meta() );
+  for (unsigned int idx = 0; idx != sortedPH.size(); idx++) {
+    OutputSets.SetEnsembleNum( idx );
+    DataSet_PH* out = (DataSet_PH*)OutputSets.AddSet( DataSet::PH, md );
     if (out==0) return 1;
     out->SetLegend( "pH " + doubleToString( sortedPH[idx] ) );
     out->SetResidueInfo( PHsets[0]->Residues() );
@@ -89,7 +87,21 @@ const
       }
     }
   }
-
+# ifdef MPI
+  // Now we need to reduce down each set onto the thread where it belongs.
+  if (Parallel::World().Size() > 1) {
+    for (int idx = 0; idx != (int)sortedPH.size(); idx++) {
+      DataSet_PH* out = (DataSet_PH*)OutputSets[idx];
+      if (idx >= Parallel::Ensemble_Beg() && idx < Parallel::Ensemble_End()) {
+        // OutputSet[idx] belongs to this thread.
+        rprintf("DEBUG: %s belongs to me.\n", out->legend());
+      } else {
+        // OutputSet[idx] belongs to another thread.
+        rprintf("DEBUG: %s belongs to someone else.\n", out->legend());
+      }
+    }
+  }
+# endif
   return 0;
 }
 
