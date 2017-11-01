@@ -181,18 +181,19 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
     }
     if (col != 0) mprintf("\n");
   }
-  mprintf("%zu protcnt=", protcnt.size());
-  for (Iarray::const_iterator p = protcnt.begin(); p != protcnt.end(); ++p)
-    mprintf(" %i", *p);
-  mprintf("\n");
-  mprintf("trescnt = %i\n", trescnt);
-  for (StateArray::const_iterator it = States.begin(); it != States.end(); ++it)
-    mprintf("\tnum_states= %i  num_atoms= %i  first_charge= %i  first_state= %i\n",
-            it->num_states_, it->num_atoms_, it->first_charge_, it->first_state_);
-  mprintf("System: %s\n", system.c_str());
-  for (Sarray::const_iterator it = resnames.begin(); it != resnames.end(); ++it)
-    mprintf("\t%s\n", it->c_str());
-
+  mprintf("\tSystem: %s\n", system.c_str());
+  if (debug_ > 0) {
+    mprintf("%zu protcnt=", protcnt.size());
+    for (Iarray::const_iterator p = protcnt.begin(); p != protcnt.end(); ++p)
+      mprintf(" %i", *p);
+    mprintf("\n");
+    mprintf("trescnt = %i\n", trescnt);
+    for (StateArray::const_iterator it = States.begin(); it != States.end(); ++it)
+      mprintf("\tnum_states= %i  num_atoms= %i  first_charge= %i  first_state= %i\n",
+              it->num_states_, it->num_atoms_, it->first_charge_, it->first_state_);
+    for (Sarray::const_iterator it = resnames.begin(); it != resnames.end(); ++it)
+      mprintf("\t%s\n", it->c_str());
+  }
   // Checks
   if (trescnt != (int)States.size()) {
     mprinterr("Error: Number of states in CPIN (%zu) != TRESCNT in CPIN (%i)\n",
@@ -292,6 +293,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   Iarray resStates( phdata->Residues().size() );
 
   float solvent_pH = original_pH_;
+  unsigned int nframes = 0;
   while (ptr != 0) {
     if (sscanf(ptr, fmt, &solvent_pH) == 1) {
       // Full record
@@ -323,28 +325,30 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
       ptr = infile.Line();
     }
     phdata->AddState(resStates, pHval);
+    nframes++;
     ptr = infile.Line();
   }
   infile.CloseFile();
 
   if (debug_ > 1) {
-  for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res) {
-    mprintf("DEBUG: Res %u:\n", res-phdata->begin());
-    for (DataSet_PH::Residue::const_iterator state = res->begin();
-                                             state != res->end(); ++state)
-      mprintf(" %i", *state);
+    for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res) {
+      mprintf("DEBUG: Res %u:\n", res-phdata->begin());
+      for (DataSet_PH::Residue::const_iterator state = res->begin();
+                                               state != res->end(); ++state)
+        mprintf(" %i", *state);
+      mprintf("\n");
+    }
+    mprintf("DEBUG: pH values:\n");
+    for (DataSet_PH::ph_iterator ph = phdata->pH_Values().begin();
+                                 ph != phdata->pH_Values().end(); ++ph)
+      mprintf(" %6.2f", *ph);
     mprintf("\n");
-  }
-  mprintf("DEBUG: pH values:\n");
-  for (DataSet_PH::ph_iterator ph = phdata->pH_Values().begin();
-                               ph != phdata->pH_Values().end(); ++ph)
-    mprintf(" %6.2f", *ph);
-  mprintf("\n");
   }
 
   mprintf("\tTitratable Residues:\n");
   for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res)
     res->Print();
+  mprintf("\t%u frames\n", nframes);
   return 0;
 }
 
