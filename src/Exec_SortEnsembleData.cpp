@@ -30,7 +30,6 @@ const
   // Gather initial pH data values, ensure no duplicates
   typedef std::vector<double> Darray;
   Darray pHvalues;
-  // member0 will hold index of first ensemble member.
 # ifdef MPI
   pHvalues.resize( Parallel::Ensemble_Size() );
   Darray phtmp;
@@ -96,36 +95,19 @@ const
 # ifdef MPI
   // Now we need to reduce down each set onto the thread where it belongs.
   if (Parallel::World().Size() > 1) {
-    typedef std::vector<int> Iarray;
-    Iarray setDest( sortedPH.size(), 0 ); // TODO should this be done in Parallel?
     for (int idx = 0; idx != (int)sortedPH.size(); idx++) {
       DataSet_PH* out = (DataSet_PH*)OutputSets[idx];
-      if (idx >= Parallel::Ensemble_Beg() && idx < Parallel::Ensemble_End()) {
-        // OutputSet[idx] belongs to this thread.
-        rprintf("DEBUG: %s belongs to me.\n", out->legend());
-        setDest[idx] = Parallel::EnsembleComm().Rank();
-      } else {
-        // OutputSet[idx] belongs to another thread.
-        rprintf("DEBUG: %s belongs to someone else.\n", out->legend());
-      }
-    }
-    Iarray setDestination( sortedPH.size(), 0 );
-    Parallel::EnsembleComm().AllReduce(&setDestination[0], &setDest[0], sortedPH.size(),
-                                       MPI_INT, MPI_SUM);
-    for (Iarray::const_iterator it = setDestination.begin(); it != setDestination.end(); ++it)
-      mprintf("DEBUG: Set %u belongs to rank %i\n", it-setDestination.begin(), *it);
-    for (int idx = 0; idx != (int)sortedPH.size(); idx++) {
-      DataSet_PH* out = (DataSet_PH*)OutputSets[idx];
-      mprintf("DEBUG: Consolidate set %s to rank %i\n", out->legend(), setDestination[idx]);
-      out->Consolidate( Parallel::EnsembleComm(), setDestination[idx] );
+      mprintf("DEBUG: Consolidate set %s to rank %i\n",
+              out->legend(), Parallel::MemberEnsCommRank(idx));
+      out->Consolidate( Parallel::EnsembleComm(), Parallel::MemberEnsCommRank(idx) );
     }
     // Remove sets that do not belong on this rank
     for (int idx = (int)sortedPH.size() - 1; idx > -1; idx--) {
-      if (setDestination[idx] != Parallel::EnsembleComm().Rank()) {
+      if (Parallel::MemberEnsCommRank(idx) != Parallel::EnsembleComm().Rank()) {
         rprintf("DEBUG: Remove set %s (%i) from rank %i\n", OutputSets[idx]->legend(),
                 idx, Parallel::EnsembleComm().Rank());
         OutputSets.RemoveSet( OutputSets[idx] );
-     } 
+      }
     }
   }
 # endif
