@@ -359,25 +359,35 @@ int DataIO_Cpout::processWriteArgs(ArgList& argIn)
 int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
 {
   if (dsl.empty()) return 1;
-  if (dsl.size() > 1)
-    mprintf("Warning: Multiple sets not yet supported for constant pH write.\n");
-  DataSet_PH const& PH = static_cast<DataSet_PH const&>( *(*(dsl.begin())) );
+  bool writeHeader = false;
+  if (dsl.size() > 1) {
+    mprintf("Warning: Multiple sets to a single constant pH file.\n");
+    writeHeader = true;
+  }
   CpptrajFile outfile;
   if (outfile.OpenWrite(fname)) {
     mprinterr("Error: Could not open %s for writing.\n", fname.full());
     return 1;
   }
-  // TODO header
-  if (PH.Residues().size() < 1) {
-    mprinterr("Error: No residues.\n");
-    return 1;
-  }
-  unsigned int nframes = PH.Res(0).Nframes();
-  for (unsigned int i = 0; i < nframes; i++) {
-    float phval = PH.pH_Values()[i];
-    for (unsigned int res = 0; res < PH.Residues().size(); res++)
-      mprintf("Residue %4i State: %2i pH: %7.3f\n", res, PH.Res(res)[i], phval);
-    mprintf("\n");
+
+  for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+  {
+    DataSet_PH const& PH = static_cast<DataSet_PH const&>( *(*ds) );
+    if (PH.Residues().size() < 1) {
+      mprinterr("Error: No residues in set '%s'.\n", PH.legend());
+      return 1;
+    }
+    // TODO better header
+    if (writeHeader)
+      outfile.Printf("#%s\n", PH.legend());
+    unsigned int nframes = PH.Res(0).Nframes();
+    for (unsigned int i = 0; i < nframes; i++) {
+      //float phval = PH.pH_Values()[i];
+      for (unsigned int res = 0; res < PH.Residues().size(); res++)
+        outfile.Printf("Residue %4i State: %2i\n", res, PH.Res(res)[i]);
+        //outfile.Printf("Residue %4i State: %2i pH: %7.3f\n", res, PH.Res(res)[i], phval);
+      outfile.Printf("\n");
+    }
   }
   outfile.CloseFile();
   return 0;
