@@ -60,6 +60,8 @@ class Parallel {
     static int Ensemble_Beg()           { return ensemble_beg_;   }
     static int Ensemble_End()           { return ensemble_end_;   }
     static int N_Ens_Members()          { return n_ens_members_;  }
+    /// \return Rank in ensembleComm_ for given member.
+    static int MemberEnsCommRank(int i) { return memberEnsRank_[i];}
     static Comm const& TrajComm()       { return trajComm_;       }
     static Comm const& ActiveComm();
 #   ifdef PARALLEL_DEBUG_VERBOSE
@@ -74,6 +76,7 @@ class Parallel {
     static int ensemble_beg_;  ///< Starting member for this ensemble thread.
     static int ensemble_end_;  ///< Ending member for this ensemble thread.
     static int n_ens_members_; ///< Number of ensemble members thread is responsible for.
+    static int* memberEnsRank_;///< Rank in ensemble comm for each member.
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static void dbgprintf(const char*, ...);
     static int debug_init();

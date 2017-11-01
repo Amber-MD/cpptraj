@@ -11,10 +11,11 @@ Parallel::Comm Parallel::world_ = Parallel::Comm();
 Parallel::Comm Parallel::ensembleComm_ = Parallel::Comm();
 Parallel::Comm Parallel::trajComm_ = Parallel::Comm();
 
-int Parallel::ensemble_size_ = -1;
-int Parallel::ensemble_beg_  = -1;
-int Parallel::ensemble_end_  = -1;
-int Parallel::n_ens_members_ = 0;
+int Parallel::ensemble_size_  = -1;
+int Parallel::ensemble_beg_   = -1;
+int Parallel::ensemble_end_   = -1;
+int Parallel::n_ens_members_  =  0;
+int* Parallel::memberEnsRank_ =  0;
 
 // printMPIerr()
 /** Wrapper for MPI_Error string.  */
@@ -99,6 +100,10 @@ int Parallel::Init(int argc, char** argv) {
 }
 
 int Parallel::End() {
+  if (memberEnsRank_ != 0) {
+    delete[] memberEnsRank_;
+    memberEnsRank_ = 0;
+  }
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_end();
 # endif
@@ -194,6 +199,15 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     ensemble_end_  = ensemble_beg_ + 1;
     n_ens_members_ = 1;
     world_.Barrier();
+  }
+  if (memberEnsRank_ != 0) {
+    delete[] memberEnsRank_;
+    memberEnsRank_ = 0;
+  }
+  if (ensemble_size_ > 0) {
+    memberEnsRank_ = new int[ ensemble_size_ ];
+    for (int idx = 0; idx < ensemble_size_; idx++)
+      memberEnsRank_[idx] = idx / n_ens_members_;
   }
   return 0;
 }
