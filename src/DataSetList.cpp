@@ -618,6 +618,23 @@ void DataSetList::PrintList(DataListType const& dlist) {
     dset.Info();
     mprintf("\n");
   }
+# ifdef MPI
+  // Print sets from remaining ranks.
+  if (!Parallel::EnsembleComm().IsNull()) {
+    Parallel::EnsembleComm().Barrier();
+    for (int rank = 1; rank < Parallel::EnsembleComm().Size(); rank++) {
+      if (rank == Parallel::EnsembleComm().Rank() && Parallel::TrajComm().Master()) {
+        for (DataListType::const_iterator ds = dlist.begin(); ds != dlist.end(); ++ds) {
+          DataSet const& dset = static_cast<DataSet const&>( *(*ds) );
+          rprintf("%s \"%s\" (%s%s), size is %zu\n", dset.Meta().PrintName().c_str(),
+                  dset.legend(), DataArray[dset.Type()].Description,
+                  dset.Meta().ScalarDescription().c_str(), dset.Size());
+        }
+      }
+      Parallel::EnsembleComm().Barrier();
+    }
+  }
+# endif
 }
 
 // DataSetList::List()
