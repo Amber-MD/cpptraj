@@ -61,8 +61,9 @@ const
   // TODO check that residue info all the same
   MetaData md = PHsets[0]->Meta();
   unsigned int nframes = PHsets[0]->Nframes();
-  rprintf("DEBUG: Sorting %u frames for %zu sets, %zu pH values.\n",
-          nframes, PHsets.size(), pHvalues.size());
+  if (debug_ > 0)
+    rprintf("DEBUG: Sorting %u frames for %zu sets, %zu pH values.\n",
+            nframes, PHsets.size(), pHvalues.size());
   for (unsigned int idx = 0; idx != sortedPH.size(); idx++) {
     OutputSets.SetEnsembleNum( idx );
     DataSet_PH* out = (DataSet_PH*)OutputSets.AddSet( DataSet::PH, md );
@@ -124,6 +125,8 @@ const
     err = 1;
   }
   if (CheckError(err)) return 1;
+  mprintf("\tSorting the following sets:\n");
+  setsToSort.List();
 # ifdef MPI
   // Number of sets to sort should be equal to # members I am responsible for.
   if (Parallel::N_Ens_Members() != (int)setsToSort.size()) {
@@ -135,7 +138,6 @@ const
 
   DataSet::DataType dtype = setsToSort[0]->Type();
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds) {
-    rprintf("\tSet '%s'\n", (*ds)->legend());
     if ((*ds)->Size() < 1) { //TODO check sizes match
       rprinterr("Error: Set '%s' is empty.\n", (*ds)->legend());
       err = 1;
@@ -176,6 +178,7 @@ const
 // Exec_SortEnsembleData::Execute()
 Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn)
 {
+  debug_ = State.Debug();
   DataSetList setsToSort;
   std::string dsarg = argIn.GetStringNext();
   while (!dsarg.empty()) {
@@ -199,13 +202,13 @@ Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn
       for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
         State.DSL().RemoveSet( *ds );
       // Add sorted sets.
-      for (DataSetList::const_iterator ds = OutputSets.begin(); ds != OutputSets.end(); ++ds) {
-        rprintf("DEBUG: Sorted set: %s\n", (*ds)->legend());
+      for (DataSetList::const_iterator ds = OutputSets.begin(); ds != OutputSets.end(); ++ds)
         State.DSL().AddSet( *ds );
-      }
       // Since sorted sets have been transferred to master DSL, OutputSets now
       // just has copies.
       OutputSets.SetHasCopies( true );
+      mprintf("\tSorted sets:\n");
+      OutputSets.List();
     }
   }
   if (Parallel::World().CheckError( err ))
