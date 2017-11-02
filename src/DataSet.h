@@ -64,8 +64,10 @@ class DataSet {
     virtual int Append(DataSet*) = 0;
     // TODO SizeInMB?
 #   ifdef MPI
-    /// Consolidate this DataSet across all threads (MPI only)
+    /// Piece this DataSet together from multiple threads.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
+    /// Consolidate this DataSet from multiple threads to target thread. TODO pure virtual
+    //virtual int Consolidate(Parallel::Comm const&, int) { return 1; }
 #   endif
     // -----------------------------------------------------
     /// Associate additional data with this set.
