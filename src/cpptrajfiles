@@ -90,6 +90,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Analysis_Average.cpp \
         Analysis_Clustering.cpp \
         Analysis_Corr.cpp \
+        Analysis_ConstantPHStats.cpp \
         Analysis_CrankShaft.cpp \
         Analysis_CrdFluct.cpp \
         Analysis_CrossCorr.cpp \

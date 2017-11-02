@@ -171,6 +171,7 @@
 #include "Analysis_State.h"
 #include "Analysis_Multicurve.h"
 #include "Analysis_TI.h"
+#include "Analysis_ConstantPHStats.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -348,6 +349,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
   Command::AddCmd( new Analysis_Clustering(),  Cmd::ANA, 1, "cluster" );
   Command::AddCmd( new Analysis_Corr(),        Cmd::ANA, 2, "corr", "correlationcoe" );
+  Command::AddCmd( new Analysis_ConstantPHStats,Cmd::ANA,1, "cphstats" );
   Command::AddCmd( new Analysis_CrankShaft(),  Cmd::ANA, 2, "crank", "crankshaft" );
   Command::AddCmd( new Analysis_CrdFluct(),    Cmd::ANA, 1, "crdfluct" );
   Command::AddCmd( new Analysis_CrossCorr(),   Cmd::ANA, 1, "crosscorr" );
