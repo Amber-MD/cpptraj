@@ -631,8 +631,10 @@ void DataSetList::PrintList(DataListType const& dlist) {
                   dset.Meta().ScalarDescription().c_str(), dset.Size());
         }
       }
+      mflush();
       Parallel::EnsembleComm().Barrier();
     }
+    Parallel::EnsembleComm().Barrier();
   }
 # endif
 }
