@@ -55,14 +55,21 @@ class Parallel {
     static int SetupComms(int n) { return SetupComms(n, false); }
     /// For DEBUG: infinite loop, gives time to attach a debugger.
     static void Lock();
+    /// \return Across-ensemble communicator; includes trajectory comm. masters.
     static Comm const& EnsembleComm()   { return ensembleComm_;   }
+    /// \return total ensemble size.
     static int Ensemble_Size()          { return ensemble_size_;  }
+    /// \return First ensemble member this thread is responsible for.
     static int Ensemble_Beg()           { return ensemble_beg_;   }
+    /// \return Last+1 ensemble member this thread is responsible for.
     static int Ensemble_End()           { return ensemble_end_;   }
+    /// \return Total number of ensemble members this thread is responsible for.
     static int N_Ens_Members()          { return n_ens_members_;  }
-    /// \return Rank in ensembleComm_ for given member.
+    /// \return Rank in ensemble comm. for given member.
     static int MemberEnsCommRank(int i) { return memberEnsRank_[i];}
+    /// \return Across-trajectory communicator.
     static Comm const& TrajComm()       { return trajComm_;       }
+    /// \return trajectory comm. if active, world comm. otherwise.
     static Comm const& ActiveComm();
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static FILE* mpidebugfile_;
@@ -72,11 +79,11 @@ class Parallel {
 #   ifdef CPPTRAJ_MPI
     static void printMPIerr(int, const char*, int);
     static int checkMPIerr(int, const char*, int);
-    static int ensemble_size_; ///< Total number of ensemble members.
-    static int ensemble_beg_;  ///< Starting member for this ensemble thread.
-    static int ensemble_end_;  ///< Ending member for this ensemble thread.
-    static int n_ens_members_; ///< Number of ensemble members thread is responsible for.
-    static int* memberEnsRank_;///< Rank in ensemble comm for each member.
+    static int ensemble_size_;  ///< Total number of ensemble members.
+    static int ensemble_beg_;   ///< Starting member for this ensemble thread.
+    static int ensemble_end_;   ///< Ending member for this ensemble thread.
+    static int n_ens_members_;  ///< Number of ensemble members thread is responsible for.
+    static int* memberEnsRank_; ///< Rank in ensemble comm for each member.
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static void dbgprintf(const char*, ...);
     static int debug_init();
@@ -85,9 +92,9 @@ class Parallel {
     static Comm ensembleComm_;   ///< Communicator across ensemble.
     static Comm trajComm_;       ///< Communicator across single trajectory.
 #   endif /* CPPTRAJ_MPI */
-    static Comm world_;
+    static Comm world_;          ///< World communicator.
 };
-
+/// Wrapper around MPI communicator.
 class Parallel::Comm {
   public:
     int Rank()    const { return rank_;      }
@@ -137,7 +144,7 @@ class Parallel::Comm {
     int rank_;
     int size_;
 };
-
+/// Wrapper around MPI file routines.
 class Parallel::File {
   public:
     File() {}
