@@ -15,6 +15,7 @@ class Analysis_ConstantPHStats : public Analysis {
   private:
     int debug_;
     DataSetList inputSets_;
+    
     class ResStat {
       public:
         ResStat() : num_(-1), n_transitions_(0), n_prot_(0), tot_prot_(0) {}

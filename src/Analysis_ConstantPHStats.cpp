@@ -87,6 +87,7 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
   } // END loop over DataSets
 
   mprintf("#%-5s %4s %6s %8s %8s %8s\n", "pH", "Name", "Num", "Ntrans", "Nprot", "TotProt");
+  int nstats = 0;
   for (StatMap::const_iterator res_map = Stats.begin(); res_map != Stats.end(); ++res_map)
   {
     //int resnum = res_map->first;
@@ -94,10 +95,36 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
                                   ph_res != res_map->second.end(); ++ph_res)
     {
       ResStat const& stat = ph_res->second;
+      nstats++;
       rprintf("%6.2f %4s %6i %8i %8i %8i\n", ph_res->first,
               *(stat.name_), stat.num_, stat.n_transitions_, stat.n_prot_, stat.tot_prot_);
     }
   }
+/*
+# ifdef MPI
+  // For doing things like pH plots gather all data to a single thread.
+  if (!Parallel::EnsembleComm().IsNull() && Parallel::EnsembleComm().Size() > 1)
+  {
+    if (Parallel::EnsembleComm().Master() {
+      std::vector<int> Nstats_on_thread( Parallel::EnsembleComm().Size() );
+      Parallel::EnsembleComm().GatherMaster( &nstats, 1, MPI_INT, &Nstats_on_thread[0] );
+
+    } else {
+      // Not ensemble master. Send master how many stats I have.
+      Parallel::EnsembleComm().GatherMaster( &nstats, 1, MPI_INT, 0 );
+      // Send master each stat.
+      for (StatMap::const_iterator res_map = Stats.begin(); res_map != Stats.end(); ++res_map)
+      {
+        //int resnum = res_map->first;
+        for (PHresMap::const_iterator ph_res = res_map->second.begin();
+                                      ph_res != res_map->second.end(); ++ph_res)
+        {
+          float ph = 
+          ResStat const& stat = ph_res->second;
+  */
+
+  // Create a titration curve for each residue.
+          
 
   return Analysis::OK;
 }
