@@ -80,6 +80,13 @@ class DataSet_PH : public DataSet {
       else
         return residues_.front().Nframes();
     }
+    /// \return Solvent pH (FIXME not good for unsorted data)
+    float Solvent_pH() const {
+      if (solvent_pH_.empty())
+        return -1.0;
+      else
+        return solvent_pH_.front();
+    }
     // ----- DataSet functions -------------------
     size_t Size() const { return residues_.size(); }
     void Info()   const;
