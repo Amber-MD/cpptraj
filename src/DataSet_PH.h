@@ -29,11 +29,11 @@ class DataSet_PH : public DataSet {
         const_iterator begin()    const { return states_.begin(); }
         const_iterator end()      const { return states_.end();   }
         void Print() const;
+        Iarray const& States()    const { return states_; }
         int State(unsigned int n) const { return states_[n];       }
         void Allocate(unsigned int n)   { states_.reserve( n );    }
         void Resize(unsigned int n)     { states_.assign( n, 0 );  }
 #       ifdef MPI
-        Iarray const& States()    const { return states_; }
         int* StatesPtr()                { return &states_[0]; }
 #       endif
         bool IsProtonated(int s)  const { return protonated_[s]; }

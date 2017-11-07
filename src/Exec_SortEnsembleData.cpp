@@ -195,6 +195,7 @@ Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   }
   // Only TrajComm masters have complete data.
   if (Parallel::TrajComm().Master()) {
+# endif
     DataSetList OutputSets;
     err = SortData( setsToSort, OutputSets );
     if (err == 0) {
@@ -210,10 +211,11 @@ Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn
       mprintf("\tSorted sets:\n");
       OutputSets.List();
     }
+# ifdef MPI
   }
   if (Parallel::World().CheckError( err ))
 # else
-  if (SortData( setsToSort )) 
+  if (err != 0) 
 # endif
     return CpptrajState::ERR;
   return CpptrajState::OK;
