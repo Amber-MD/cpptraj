@@ -19,9 +19,14 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
   }
   // Remove non-pH data sets
   for (DataSetList::const_iterator ds = tempDSL.begin(); ds != tempDSL.end(); ++ds)
-    if ( (*ds)->Type() == DataSet::PH )
+    if ( (*ds)->Type() == DataSet::PH ) {
+      /// Require residue data.
+      if ( ((DataSet_PH*)(*ds))->Residues().empty() ) {
+        mprinterr("Error: pH set '%s' has no residue info.\n", (*ds)->legend());
+        return Analysis::ERR;
+      }
       inputSets_.AddCopyOfSet( *ds );
-    else
+    } else
       mprintf("Warning: Set '%s' is not a pH data set, skipping.\n", (*ds)->legend());
   if (inputSets_.empty()) {
     mprinterr("Error: No pH data sets.\n");

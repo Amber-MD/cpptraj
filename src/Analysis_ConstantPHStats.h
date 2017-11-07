@@ -15,6 +15,15 @@ class Analysis_ConstantPHStats : public Analysis {
   private:
     int debug_;
     DataSetList inputSets_;
+
+    /// Hold all DataSets for a residue
+    struct resStatData {
+      DataSet* nTrans_;
+      DataSet* nProt_;
+      DataSet* totProt_;
+      DataSet* fracProt_;
+      DataSet* fracDeprot_;
+    };
     
     class ResStat {
       public:
