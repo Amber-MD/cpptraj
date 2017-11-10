@@ -158,7 +158,7 @@ targets_link_libraries(cpptraj libcpptraj ambpdb LIBRARIES xdrfile)
 # libsander
 if(INSIDE_AMBER AND ("${AMBER_TOOLS}" MATCHES "sander" AND BUILD_SANDER_API))
 	#add the sander-specific definitions and libraries
-	set_property(TARGET cpptraj PROPERTY COMPILE_DEFINITIONS USE_SANDERLIB)
+	target_compile_definitions(cpptraj PRIVATE USE_SANDERLIB)
 	target_link_libraries(cpptraj libsander)
 endif()
 
@@ -192,7 +192,7 @@ if(OPENMP)
 	make_openmp_version(libcpptraj libcpptraj_omp LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_openmp> INSTALL)
 endif()
 
-if(MPI AND OPENMP)
+if(BUILD_PARALLEL_COMBINATIONS AND (MPI AND OPENMP))
 	make_openmp_version(cpptraj_common_obj_mpi cpptraj_common_obj_mpi_openmp LANGUAGES CXX)
 	make_openmp_version(cpptraj.MPI cpptraj.MPI.OMP LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp> INSTALL)
 	make_openmp_version(libcpptraj_mpi libcpptraj_mpi_omp LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp> INSTALL)
@@ -217,7 +217,7 @@ if(CUDA)
 	
 	install(TARGETS cpptraj.cuda DESTINATION ${BINDIR} COMPONENT CUDA)
 	
-	if(MPI)
+	if(BUILD_PARALLEL_COMBINATIONS AND MPI)
 		make_mpi_version(cpptraj_common_obj_cuda cpptraj_common_obj_mpi_cuda LANGUAGES CXX)
 		make_mpi_version(cpptraj.cuda cpptraj.MPI.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> INSTALL)
 		make_mpi_version(libcpptraj_cuda libcpptraj_mpi_cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> INSTALL)
@@ -231,13 +231,13 @@ if(CUDA)
 		endif()
 	endif()
 
-	if(OPENMP)
+	if(BUILD_PARALLEL_COMBINATIONS AND OPENMP)
 		make_openmp_version(cpptraj_common_obj_cuda cpptraj_common_obj_openmp_cuda LANGUAGES CXX)
 		make_openmp_version(cpptraj.cuda cpptraj.OMP.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_openmp_cuda> INSTALL)
 		make_openmp_version(libcpptraj_cuda libcpptraj_omp_cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_openmp_cuda> INSTALL)
 	endif()
 
-	if(MPI AND OPENMP)
+	if(BUILD_PARALLEL_COMBINATIONS AND (MPI AND OPENMP))
 		# THE ULTIMATE CHIMERA!!!!! Muahahahaha!
 		make_openmp_version(cpptraj_common_obj_mpi_cuda cpptraj_common_obj_mpi_openmp_cuda LANGUAGES CXX)
 		make_openmp_version(cpptraj.MPI.cuda cpptraj.MPI.OMP.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp_cuda> INSTALL)
