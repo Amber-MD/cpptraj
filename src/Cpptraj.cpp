@@ -113,11 +113,12 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   total_time.Start();
 # ifdef CUDA
   int nGPUs = 0;
-  if ( cudaGetDeviceCount( &nGPUs ) != cudaSuccess ) {
-    mprinterr("Error: Could not get # of GPU devices.\n");
-    return 1;
-  }
-  if (nGPUs < 1) {
+  cudaError_t cerr = cudaGetDeviceCount( &nGPUs );
+  if ( cerr == cudaErrorNoDevice )
+    mprinterr("Error: No CUDA-capable devices present.\n");
+  else if ( cerr == cudaErrorInsufficientDriver )
+    mprinterr("Error: NVIDIA driver version is insufficient for this version of CUDA.\n");
+  if (nGPUs < 1 || cerr != cudaSuccess) {
     mprinterr("Error: No CUDA-capable devices found.\n");
     return 1;
   }
@@ -436,6 +437,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     {
       CpptrajState::RetType c_err = Command::ProcessInput( State_, *inputFilename );
       if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
+      if (Command::UnterminatedControl()) return ERROR;
       if (c_err == CpptrajState::QUIT) return QUIT;
     }
   }
@@ -450,6 +452,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // "" means read from STDIN
       CpptrajState::RetType c_err = Command::ProcessInput( State_, "" ); 
       if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
+      if (Command::UnterminatedControl()) return ERROR;
       if (c_err == CpptrajState::QUIT) return QUIT;
     }
   }
@@ -528,6 +531,7 @@ int Cpptraj::Interactive() {
     }
   }
   logfile_.CloseFile();
+  if (Command::UnterminatedControl()) return 1;
   if (readLoop == CpptrajState::ERR) return 1;
   return 0;
 }

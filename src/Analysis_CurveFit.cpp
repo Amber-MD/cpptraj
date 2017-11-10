@@ -240,7 +240,7 @@ Analysis::RetType Analysis_CurveFit::Internal_setup(std::string const& suffixIn,
       mprinterr("Error: Invalid assignment in equation '%s'.\n", equation_.c_str());
       return Analysis::ERR;
     } 
-    n_expected_params_ = Calc_.Nparams();
+    n_expected_params_ = Calc_.Nparams(RPNcalc::YES_ASSIGN);
   }
   // Get keywords
   Results_ = DFLin.AddCpptrajFile( analyzeArgs.GetStringKey("resultsout"), "Curve Fit Results",

@@ -82,13 +82,29 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { REMLOG,       "remlog", ".log"   },
   { MDOUT,        "mdout",  ".mdout" },
   { EVECS,        "evecs",  ".evecs" },
-  { VECTRAJ,      "vectraj",".vectraj" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
   { CMATRIX,      "cmatrix",".cmatrix" },
   { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CHARMMREPD,   "charmmrepd",".exch" },
   { CHARMMOUT,    "charmmout", ".charmmout"},
+  { UNKNOWN_DATA, 0,        0        }
+};
+
+/** Types that support writes. */
+const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
+  { DATAFILE,     "dat",    ".dat"   },
+  { XMGRACE,      "grace",  ".agr"   },
+  { XMGRACE,      "grace",  ".xmgr"  },
+  { GNUPLOT,      "gnu",    ".gnu"   },
+  { XPLOR,        "xplor",  ".xplor" },
+  { XPLOR,        "xplor",  ".grid"  },
+  { OPENDX,       "opendx", ".dx"    },
+  { EVECS,        "evecs",  ".evecs" },
+  { VECTRAJ,      "vectraj",".vectraj" },
+  { CCP4,         "ccp4",   ".ccp4"  },
+  { CMATRIX,      "cmatrix",".cmatrix" },
+  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -229,9 +245,9 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   dfType_ = typeIn;
   // If unknown, first look for keyword, then guess from extension.
   if (dfType_ == UNKNOWN_DATA)
-    dfType_ = (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, argIn, UNKNOWN_DATA );
+    dfType_ = (DataFormatType)FileTypes::GetFormatFromArg(DF_WriteKeyArray, argIn, UNKNOWN_DATA );
   if (dfType_ == UNKNOWN_DATA)
-    dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_KeyArray, filename_.Ext(),
+    dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_WriteKeyArray, filename_.Ext(),
                                                               DATAFILE);
   // Set up DataIO based on format.
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );

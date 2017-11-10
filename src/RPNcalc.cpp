@@ -482,9 +482,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       for (unsigned int i = 0; i != nOps; i++) {
         Dval[i] = Stack.top();
         Stack.pop();
-        // Replace 1D datasets of size 1 with the actual value.
+        // Replace 1D scalar datasets of size 1 with the actual value.
         if (Dval[i].IsDataSet() && Dval[i].DS()!=0 && // Probably being assigned to if '0'
-            Dval[i].DS()->Ndim()==1 && Dval[i].DS()->Size()==1)
+            ScalarTimeSeries(Dval[i].DS()) && Dval[i].DS()->Size()==1)
           Dval[i].SetValue(((DataSet_1D*)Dval[i].DS())->Dval(0));
       }
       // -----------------------------------------
@@ -656,19 +656,21 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         // Handle 2 or 1 operand
         if (T->numOperands() == 2) {
           if (Dval[0].IsDataSet() && Dval[1].IsDataSet()) {
-            // Both are DataSets. Must have same size.
+            // Both are DataSets.
             DataSet* ds1 = Dval[0].DS();
             DataSet* ds2 = Dval[1].DS();
             if (debug_>0)
               mprintf("DEBUG: '%s' [%s] '%s' => 'TEMP:%u'\n", ds2->legend(), T->Description(),
                       ds1->legend(), T-tokens_.begin());
-            if (ds1->Size() != ds2->Size()) {
-              mprinterr("Error: Sets '%s' and '%s' do not have same size, required for %s\n",
-                        ds1->legend(), ds2->legend(), T->name());
-              return 1;
-            }
             if (ScalarTimeSeries(ds1) && ScalarTimeSeries(ds2))
             {
+              // Both DataSets are scalar time series. They must have the same size.
+              // The case where one DataSet has size 1 is hanlded by SetValue() above.
+              if (ds1->Size() != ds2->Size()) {
+                mprinterr("Error: Sets '%s' and '%s' are not the same size, required for %s\n",
+                          ds1->legend(), ds2->legend(), T->name());
+                return 1;
+              }
               tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
               DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
               D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
@@ -679,18 +681,34 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             }
             else if (ds1->Type() == DataSet::VECTOR && ds2->Type() == DataSet::VECTOR)
             {
+              // Both DataSets are vector time series. If ds1 size != ds2 size, ds1 or ds2
+              // may be of size 1.
+              unsigned int Max = std::max(ds1->Size(), ds2->Size());
+              unsigned int nincr = 1;
+              unsigned int mincr = 1;
+              if (ds1->Size() != ds2->Size()) {
+                if (ds1->Size() == 1) nincr = 0;
+                if (ds2->Size() == 1) mincr = 0;
+                if (nincr == 1 && mincr == 1) {
+                  mprinterr("Error: Vector sets '%s' and '%s' are not the same size and\n"
+                            "Error:   neither set has size 1, requrired for %s\n",
+                            ds1->legend(), ds2->legend(), T->name());
+                  return 1;
+                }
+              }
               tempDS = LocalList.AddSet(DataSet::VECTOR, MetaData("TEMP", T-tokens_.begin()));
               DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
-              V0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
+              V0.Allocate( DataSet::SizeArray(1, Max) );
               DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);
               DataSet_Vector const& V2 = static_cast<DataSet_Vector const&>(*ds2);
               // TODO: Worry about origin?
-              for (unsigned int n = 0; n != V1.Size(); n++) {
+              unsigned int m = 0;
+              for (unsigned int n = 0; n != Max; n+=nincr, m+=mincr) {
                 switch (T->Type()) {
-                  case OP_MINUS: V0.AddVxyz( V2[n] - V1[n] ); break;
-                  case OP_PLUS:  V0.AddVxyz( V2[n] + V1[n] ); break;
-                  case OP_DIV:   V0.AddVxyz( V2[n] / V1[n] ); break;
-                  case OP_MULT:  V0.AddVxyz( V2[n] * V1[n] ); break; // Dot
+                  case OP_MINUS: V0.AddVxyz( V2[m] - V1[n] ); break;
+                  case OP_PLUS:  V0.AddVxyz( V2[m] + V1[n] ); break;
+                  case OP_DIV:   V0.AddVxyz( V2[m] / V1[n] ); break;
+                  case OP_MULT:  V0.AddVxyz( V2[m] * V1[n] ); break; // Dot
                   default:
                     mprinterr("Error: Operation '%s' not valid for vector.\n", T->Description());
                     return 1;
@@ -893,23 +911,28 @@ RPNcalc::AssignType RPNcalc::AssignStatus() const {
 }
 
 // RPNcalc::Nparams()
-int RPNcalc::Nparams() const {
+int RPNcalc::Nparams(AssignType assign) const {
   int nparams=0, min_param=-1, max_param=-1;
   bool hasXvar = false;
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
     if (T->Type() == VARIABLE) {
       if (T->Name()[0] == 'A')
       {
-        std::istringstream iss( T->Name().substr(1) );      
-        int pnum;
-        iss >> pnum;
-        if (iss.fail()) {
-          mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
-          return 1;
+        // If we are not assigning the result this must be a parameter. If
+        // we are assigning the result the first token will not be a
+        // parameter.
+        if (assign == NO_ASSIGN || T != tokens_.begin()) {
+          std::istringstream iss( T->Name().substr(1) );      
+          int pnum;
+          iss >> pnum;
+          if (iss.fail()) {
+            mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
+            return 1;
+          }
+          if (min_param ==-1 || pnum < min_param) min_param = pnum;
+          if (max_param ==-1 || pnum > max_param) max_param = pnum;
+          nparams++;
         }
-        if (min_param ==-1 || pnum < min_param) min_param = pnum;
-        if (max_param ==-1 || pnum > max_param) max_param = pnum;
-        nparams++;
       }
       else if (T->Name() == "X")
         hasXvar = true;

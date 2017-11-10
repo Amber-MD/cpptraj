@@ -153,6 +153,32 @@ Parm_Amber::Parm_Amber() :
   UB_count_[1] = 0;
 }
 
+/** It seems that %Xi in sscanf() can get confused when integers take up
+  * the entire X characters. Not sure if this is a system bug or not, but
+  * this function will first ensure only 6 characters are read before
+  * converting to integer.
+  * \param ptr Input string to parse. Must not be NULL.
+  * \param IVALS Output integer array
+  * \return Number of values actually read.
+  */
+static inline int Get12I6(const char* ptr, int* IVALS) {
+  char SVALS[12][7];
+  int nvals = sscanf(ptr, "%6c%6c%6c%6c%6c%6c%6c%6c%6c%6c%6c%6c",
+                     SVALS[0], SVALS[1], SVALS[2], SVALS[3], SVALS[ 4], SVALS[ 5],
+                     SVALS[6], SVALS[7], SVALS[8], SVALS[9], SVALS[10], SVALS[11]);
+  // If less than 12 values read the line was short, so the final value will be
+  // a newline. Ignore that.
+  if (nvals > 0 && nvals < 12) nvals--;
+  for (int i = 0; i < nvals; i++) {
+    // Only allow integers. Right-aligned, so check final character.
+    if (!isdigit(SVALS[i][5])) return 0;
+    SVALS[i][6] = '\0';
+    //mprintf("DEBUG: %2i = %6s\n", i, SVALS[i]);
+    IVALS[i] = atoi( SVALS[i] );
+  }
+  return nvals;
+}
+
 // Parm_Amber::ID_ParmFormat()
 bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
   int iamber[12];
@@ -177,10 +203,7 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
     int line1size = (int)strlen(lineBuf);
     if (line1size == (81 + fileIn.IsDos())) {
       fileIn.Gets(lineBuf, BUF_SIZE);
-      if ( sscanf(lineBuf,"%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i",
-                  iamber,   iamber+1, iamber+2,  iamber+3,
-                  iamber+4, iamber+5, iamber+6,  iamber+7,
-                  iamber+8, iamber+9, iamber+10, iamber+11) == 12 )
+      if ( Get12I6(lineBuf, iamber) == 12)
       {
         if (debug_>0) mprintf("  AMBER TOPOLOGY, OLD FORMAT\n");
         ptype_ = OLDPARM;
@@ -528,9 +551,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
       const char* ptr = file_.NextLine();
       if (ptr == 0) return 1;
       // Old pointers format is 12I6
-      int nvals = sscanf(ptr, "%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i",
-                         IVALS  , IVALS+1, IVALS+2, IVALS+3, IVALS+4 , IVALS+5,
-                         IVALS+6, IVALS+7, IVALS+8, IVALS+9, IVALS+10, IVALS+11);
+      int nvals = Get12I6(ptr, IVALS);
       nPointers += nvals;
       // First two lines should always have 12 values.
       if (line < 2 && nvals < 12) {

@@ -1,3 +1,4 @@
+#include <cctype> // isalnum
 #include <cstdarg>
 #include <algorithm> // std::sort()
 #include "Command.h"
@@ -6,6 +7,7 @@
 #include "CmdInput.h"     // ProcessInput()
 #include "RPNcalc.h"
 #include "Deprecated.h"
+#include "Control.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Analyze.h"
 #include "Exec_Calc.h"
@@ -128,6 +130,7 @@
 #include "Action_HydrogenBond.h"
 #include "Action_FixImagedBonds.h"
 #include "Action_LipidOrder.h"
+#include "Action_InfraredSpectrum.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -173,6 +176,12 @@ const Cmd Command::EMPTY_ = Cmd();
 
 Command::Carray Command::names_ = Command::Carray();
 
+Command::CtlArray Command::control_ = Command::CtlArray();
+
+int Command::ctlidx_ = -1;
+
+VariableArray Command::CurrentVars_ = VariableArray();
+
 /** Initialize all commands. Should only be called once as program starts. */
 void Command::Init() {
   // GENERAL
@@ -193,6 +202,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
   Command::AddCmd( new Exec_Precision(),       Cmd::EXE, 1, "precision" );
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
+  Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
   Command::AddCmd( new Exec_Quit(),            Cmd::EXE, 2, "exit", "quit" );
   Command::AddCmd( new Exec_ReadData(),        Cmd::EXE, 1, "readdata" );
   Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
@@ -281,6 +291,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
   Command::AddCmd( new Action_HydrogenBond(),  Cmd::ACT, 1, "hbond" );
   Command::AddCmd( new Action_Image(),         Cmd::ACT, 1, "image" );
+  Command::AddCmd( new Action_InfraredSpectrum(),Cmd::ACT,2,"irspec","infraredspec");
   Command::AddCmd( new Action_Jcoupling(),     Cmd::ACT, 1, "jcoupling" );
   Command::AddCmd( new Action_LESsplit(),      Cmd::ACT, 1, "lessplit" );
   Command::AddCmd( new Action_LIE(),           Cmd::ACT, 1, "lie" );
@@ -364,6 +375,10 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
+  // CONTROL STRUCTURES
+  Command::AddCmd( new ControlBlock_For(),     Cmd::BLK, 1, "for" );
+  Command::AddCmd( new Control_Set(),          Cmd::CTL, 1, "set" );
+  Command::AddCmd( new Control_Show(),         Cmd::CTL, 1, "show" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
@@ -378,8 +393,21 @@ void Command::Init() {
   names_.push_back( 0 );
 }
 
-/** Free all commands. Should only be called just before program exit. */
-void Command::Free() { commands_.Clear(); }
+/** Clear any existing control blocks. */
+void Command::ClearControlBlocks() {
+  for (CtlArray::iterator it = control_.begin(); it != control_.end(); ++it)
+    delete *it;
+  control_.clear();
+  ctlidx_ = -1;
+}
+
+/** Free all commands. Should only be called just before program exit. Also
+  * remove any remaining control blocks.
+  */
+void Command::Free() {
+  commands_.Clear();
+  ClearControlBlocks();
+}
 
 /** \param oIn Pointer to DispatchObject to add as command.
   * \param dIn Command destination
@@ -403,15 +431,21 @@ void Command::AddCmd(DispatchObject* oIn, Cmd::DestType dIn, int nKeys, ...) {
 }
 
 /** Search Commands list for command with given keyword and object type. */
-Cmd const& Command::SearchTokenType(DispatchObject::Otype catIn, const char* keyIn)
+Cmd const& Command::SearchTokenType(DispatchObject::Otype catIn, const char* keyIn,
+                                    bool silent)
 {
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
     if (catIn != cmd->Obj().Type()) continue;
     if (cmd->KeyMatches(keyIn)) return *cmd;
   }
-  mprinterr("'%s': Command not found.\n", keyIn);
+  if (!silent) mprinterr("'%s': Command not found.\n", keyIn);
   return EMPTY_;
+}
+
+/** Search Commands list for command with given keyword and object type. */
+Cmd const& Command::SearchTokenType(DispatchObject::Otype catIn, const char* keyIn) {
+  return SearchTokenType(catIn, keyIn, false);
 }
 
 /** Search the Commands list for given command.
@@ -467,31 +501,159 @@ void Command::ListCommands(DispatchObject::Otype typeIn) {
     ListCommandsForType( typeIn );
 }
 
-/** Search for the given command and execute it. EXE commands are executed
-  * immediately and then freed. ACT and ANA commands are sent to the
-  * CpptrajState for later execution.
+/** \return true if any control blocks remain. */
+bool Command::UnterminatedControl() {
+  if (!control_.empty()) {
+    mprinterr("Error: %u unterminated control block(s) detected.\n", ctlidx_+1);
+    for (int i = 0; i <= ctlidx_; i++)
+      mprinterr("Error:   %i : %s\n", i, control_[i]->Description().c_str());
+    return true;
+  }
+  return false;
+}
+
+/** Create new control block with given Block. */
+int Command::AddControlBlock(ControlBlock* ctl, CpptrajState& State, ArgList& cmdArg) {
+  if ( ctl->SetupBlock( State, cmdArg ) )
+    return 1;
+  if (ctlidx_ == -1) mprintf("CONTROL: Starting control block.\n");
+  control_.push_back( ctl );
+  ctlidx_++;
+  mprintf("  BLOCK %2i: ", ctlidx_);
+  for (int i = 0; i < ctlidx_; i++)
+    mprintf("  ");
+  mprintf("%s\n", ctl->Description().c_str());
+  //mprintf("DEBUG: Begin control block %i\n", ctlidx_);
+  return 0;
+}
+
+#define NEW_BLOCK "__NEW_BLOCK__"
+/** Execute the specified control block. */
+int Command::ExecuteControlBlock(int block, CpptrajState& State)
+{
+  control_[block]->Start();
+  ControlBlock::DoneType ret = control_[block]->CheckDone(CurrentVars_);
+  if (State.Debug() > 0) {
+    mprintf("DEBUG: Start: CurrentVars:");
+    CurrentVars_.PrintVariables();
+  }
+  while (ret == ControlBlock::NOT_DONE) {
+    for (ControlBlock::const_iterator it = control_[block]->begin();
+                                      it != control_[block]->end(); ++it)
+    {
+      if (it->CommandIs(NEW_BLOCK)) {
+        // Execute next control block
+        if (ExecuteControlBlock(block+1, State)) return 1;
+      } else {
+        for (int i = 0; i < block; i++) mprintf("  ");
+        // Execute command
+        if ( ExecuteCommand(State, *it) != CpptrajState::OK ) return 1;
+      }
+    }
+    ret = control_[block]->CheckDone(CurrentVars_);
+  }
+  if (ret == ControlBlock::ERROR) return 1;
+  return 0;
+}
+
+/** Handle the given command. If inside a control block, if the command is
+  * a control command a new block will be created, otherwise the command will
+  * be added to the current control block. Once all control blocks are
+  * complete they will be executed. If not inside a control block, just
+  * execute the command.
   */
 CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& commandIn)
 {
   ArgList cmdArg( commandIn );
-  cmdArg.MarkArg(0); // Always mark the first arg as the command 
+  cmdArg.MarkArg(0); // Always mark the first arg as the command
+  // Check for control block
+  if (!control_.empty()) {
+    mprintf("  [%s]\n", cmdArg.ArgLine());
+    // In control block.
+    if ( control_[ctlidx_]->EndBlock( cmdArg ) ) {
+      // End the current control block.
+      //mprintf("DEBUG: End control block %i.\n", ctlidx_);
+      mprintf("  BLOCK %2i: ", ctlidx_);
+      for (int i = 0; i < ctlidx_; i++)
+        mprintf("  ");
+      mprintf("END\n");
+      ctlidx_--;
+      if (ctlidx_ < 0) {
+        // Outermost control structure is ended. Execute control block(s).
+        mprintf("CONTROL: Executing %u control block(s).\n", control_.size());
+        if (State.QuietBlocks()) SetWorldSilent(true);
+        int cbret = ExecuteControlBlock(0, State);
+        ClearControlBlocks();
+        if (State.QuietBlocks()) SetWorldSilent(false);
+        if (cbret != 0) return CpptrajState::ERR;
+        mprintf("CONTROL: Control block finished.\n\n");
+      }
+    } else {
+      // Check if this is another control block statement (silently)
+      Cmd const& ctlCmd = SearchTokenType(DispatchObject::CONTROL, cmdArg.Command(), true);
+      if (ctlCmd.Empty() || ctlCmd.Destination() != Cmd::BLK) { // TODO just check Destination?
+        // Add this command to current control block.
+        control_[ctlidx_]->AddCommand( cmdArg );
+        mprintf("\tAdded command '%s' to control block %i.\n", cmdArg.Command(), ctlidx_);
+      } else {
+        // Tell current block that a new block is being created
+        control_[ctlidx_]->AddCommand(NEW_BLOCK);
+        // Create new control block
+        DispatchObject* obj = ctlCmd.Alloc();
+        if (AddControlBlock( (ControlBlock*)obj, State, cmdArg )) {
+          delete obj;
+          ClearControlBlocks();
+          return CpptrajState::ERR;
+        }
+      }
+    }
+    return CpptrajState::OK;
+  }
+  return ExecuteCommand( State, cmdArg );
+}
+
+#undef NEW_BLOCK
+
+/** Search for the given command and execute it. Replace any variables in
+  * command with their values. EXE and CTL commands are executed immediately
+  * and then freed. ACT and ANA commands are sent to the CpptrajState for later
+  * execution. BLK commands set up control blocks which will be executed when
+  * the outer control block is completed.
+  */
+CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList const& cmdArgIn ) {
+  // Replace variable names in command with entries from CurrentVars
+  ArgList cmdArg = CurrentVars_.ReplaceVariables( cmdArgIn, State.DSL(), State.Debug() );
+  if (cmdArg.empty()) return CpptrajState::ERR;
+  // Print modified command
+  mprintf("  [%s]\n", cmdArg.ArgLine());
+  // Look for command in command list.
   Cmd const& cmd = SearchToken( cmdArg );
   CpptrajState::RetType ret_val = CpptrajState::OK;
   if (cmd.Empty()) {
-    // Try to evaluate the expression
+    // Not a command. Try to evaluate the expression
     RPNcalc calc;
     calc.SetDebug( State.Debug() );
-    if (calc.ProcessExpression( commandIn ))
+    if (calc.ProcessExpression( cmdArg.ArgLineStr() ))
       ret_val = CpptrajState::ERR;
     else {
       if (calc.Evaluate( State.DSL() ))
         ret_val = CpptrajState::ERR;
     }
     if (ret_val == CpptrajState::ERR)
-      mprinterr("'%s': Invalid command or expression.\n", commandIn.c_str());
+      mprinterr("'%s': Invalid command or expression.\n", cmdArg.ArgLine());
   } else {
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
+      case Cmd::CTL:
+        ret_val = ((Control*)obj)->SetupControl(State, cmdArg, CurrentVars_);
+        delete obj;
+        break;
+      case Cmd::BLK:
+        if (AddControlBlock( (ControlBlock*)obj, State, cmdArg )) {
+          delete obj;
+          return CpptrajState::ERR;
+        }
+        break;
       case Cmd::EXE:
         ret_val = ((Exec*)obj)->Execute( State, cmdArg );
         delete obj;
@@ -530,8 +692,6 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
     }
     // Only attempt to execute if the command is not blank.
     if (!input.Empty()) {
-      // Print the input line that will be sent to dispatch
-      mprintf("  [%s]\n", input.str());
 #     ifdef TIMER
       Timer time_cmd; // DEBUG
       time_cmd.Start(); // DEBUG

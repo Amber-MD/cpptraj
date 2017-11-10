@@ -207,6 +207,13 @@ void ArgList::RemoveFirstArg() {
   marked_.erase( marked_.begin() );
 }
 
+/** Replace argument at position with given argument. Update ArgLine. */
+void ArgList::ChangeArg(unsigned int idx, std::string const& arg) {
+  size_t pos = argline_.find( arglist_[idx], 0 ); 
+  argline_.replace(pos, arglist_[idx].size(), arg);
+  arglist_[idx] = arg;
+}
+
 // ArgList::Command()
 /* \return pointer to the first argument
  */
@@ -440,7 +447,6 @@ bool ArgList::hasKey(const char *key) {
 /** \param key string to search for
   * \return true if key is found, false if not.
   */
-// NOTE: Should this be ignoring previously marked strings?
 bool ArgList::Contains(const char *key) const {
   for (unsigned int arg = 0; arg < arglist_.size(); arg++) 
     if (!marked_[arg]) {

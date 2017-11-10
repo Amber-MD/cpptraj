@@ -21,7 +21,7 @@ class RPNcalc {
     /// \return Name of variable being assigned to.
     std::string const& FirstTokenName() const;
     /// \return Number of A<n> parameter variables, check validity.
-    int Nparams() const;
+    int Nparams(AssignType) const;
   private:
     class Token;
     class ValType;
