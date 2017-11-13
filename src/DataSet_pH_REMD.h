@@ -1,5 +1,5 @@
-#ifndef INC_DATASET_REND_PH
-#define INC_DATASET_REMD_PH
+#ifndef INC_DATASET_PH_REMD_H
+#define INC_DATASET_PH_REMD_H
 #include "DataSet.h"
 #include "NameType.h"
 /// Hold unsorted data from constant pH REMD simulations; protonation states of each residue.
