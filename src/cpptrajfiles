@@ -156,6 +156,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Control.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
+        CphResidue.cpp \
         CpptrajFile.cpp \
         CpptrajState.cpp \
         CpptrajStdio.cpp \
