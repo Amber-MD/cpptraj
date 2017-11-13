@@ -23,7 +23,8 @@
 #include "DataSet_Cmatrix_MEM.h"
 #include "DataSet_Cmatrix_NOMEM.h"
 #include "DataSet_Cmatrix_DISK.h"
-#include "DataSet_PH.h"
+#include "DataSet_pH.h"
+#include "DataSet_pH_REMD.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
 const DataSetList::DataToken DataSetList::DataArray[] = {
@@ -48,7 +49,8 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "cluster matrix",DataSet_Cmatrix_MEM::Alloc}, // CMATRIX
   { "cluster matrix (no memory)",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
   { "cluster matrix (disk)",     DataSet_Cmatrix_DISK::Alloc},  // CMATRIX_DISK
-  { "pH",            DataSet_PH::Alloc         }, // PH
+  { "pH",            DataSet_pH::Alloc         }, // PH
+  { "pH (REMD)",     DataSet_pH_REMD::Alloc    }, // PH_REMD
   { 0, 0 }
 };
 
