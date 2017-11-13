@@ -1,15 +1,15 @@
-#ifndef INC_DATASET_PH
-#define INC_DATASET_PH
+#ifndef INC_DATASET_REND_PH
+#define INC_DATASET_REMD_PH
 #include "DataSet.h"
 #include "NameType.h"
-/// Hold data from constant pH simulations; protonation states of each residue.
-class DataSet_PH : public DataSet {
+/// Hold unsorted data from constant pH REMD simulations; protonation states of each residue.
+class DataSet_pH_REMD : public DataSet {
     typedef std::vector<int> Iarray;
     typedef std::vector<bool> Barray;
     typedef std::vector<float> Farray;
   public:
-    DataSet_PH();
-    static DataSet* Alloc() { return (DataSet*)new DataSet_PH(); }
+    DataSet_pH_REMD();
+    static DataSet* Alloc() { return (DataSet*)new DataSet_pH_REMD(); }
     // -------------------------------------------
     class Residue {
       public:
