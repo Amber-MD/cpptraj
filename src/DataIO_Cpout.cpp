@@ -222,7 +222,7 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
       return 1;
     }
     Residues_.push_back( 
-      DataSet_PH::Residue(split[0], atoi(split[1].c_str()), res_protcnt, max_prots) );
+      CphResidue(split[0], atoi(split[1].c_str()), res_protcnt, max_prots) );
   }
 
   return 0;
@@ -279,7 +279,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
       return 1;
     }
     if (ReadCpin(cpin_file_)) return 1;
-    ((DataSet_PH*)ds)->SetResidueInfo( Residues_ );
+    ((DataSet_pH_REMD*)ds)->SetResidueInfo( Residues_ );
   } else {
     if (ds->Type() != DataSet::PH) {
       mprinterr("Error: Set '%s' is not pH data.\n", ds->legend());
@@ -288,7 +288,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     mprintf("\tAppending to set '%s'\n", ds->legend());
     // TODO check # residues etc?
   }
-  DataSet_PH* phdata = (DataSet_PH*)ds;
+  DataSet_pH_REMD* phdata = (DataSet_pH_REMD*)ds;
   int maxRes = (int)phdata->Residues().size();
   Iarray resStates( phdata->Residues().size() );
 
@@ -331,22 +331,22 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   infile.CloseFile();
 
   if (debug_ > 1) {
-    for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res) {
+    for (DataSet_pH_REMD::const_iterator res = phdata->begin(); res != phdata->end(); ++res) {
       mprintf("DEBUG: Res %u:\n", res-phdata->begin());
-      for (DataSet_PH::Residue::const_iterator state = res->begin();
+      for (CphResidue::const_iterator state = res->begin();
                                                state != res->end(); ++state)
         mprintf(" %i", *state);
       mprintf("\n");
     }
     mprintf("DEBUG: pH values:\n");
-    for (DataSet_PH::ph_iterator ph = phdata->pH_Values().begin();
+    for (DataSet_pH_REMD::ph_iterator ph = phdata->pH_Values().begin();
                                  ph != phdata->pH_Values().end(); ++ph)
       mprintf(" %6.2f", *ph);
     mprintf("\n");
   }
 
   mprintf("\tTitratable Residues:\n");
-  for (DataSet_PH::const_iterator res = phdata->begin(); res != phdata->end(); ++res)
+  for (DataSet_pH_REMD::const_iterator res = phdata->begin(); res != phdata->end(); ++res)
     res->Print();
   mprintf("\t%u frames\n", nframes);
   return 0;
@@ -382,7 +382,7 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
 
   for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
   {
-    DataSet_PH const& PH = static_cast<DataSet_PH const&>( *(*ds) );
+    DataSet_pH_REMD const& PH = static_cast<DataSet_pH_REMD const&>( *(*ds) );
     if (PH.Residues().size() < 1) {
       mprinterr("Error: No residues in set '%s'.\n", PH.legend());
       return 1;
