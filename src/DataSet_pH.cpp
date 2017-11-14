@@ -19,10 +19,7 @@ void DataSet_pH::Resize(size_t n) {
 }
 
 void DataSet_pH::Info() const {
-  mprintf(" (%s %i pH= %.2f", *resname_, resid_, solvent_pH_);
-  if (!pH_Values_.empty())
-    mprintf(", unsorted REMD");
-  mprintf(")");
+  mprintf(" (%s %i pH= %.2f)", *(res_.Name()), res_.Num(), solvent_pH_);
 }
 # ifdef MPI
 void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
@@ -50,25 +47,6 @@ void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
   }
 }
 #endif
-
-// DataSet_pH::SetResidueInfo()
-void DataSet_pH::SetResidueInfo(NameType const& rnameIn, int residIn,
-                                Iarray const& protcntsIn, int max_prots)
-{
-  resname_ = rnameIn;
-  resid_ = residIn;
-  protcnts_ = protcntsIn;
-  protonated_.reserve(protcnts_.size());
-  for (Iarray::const_iterator it = protcnts_.begin(); it != protcnts_.end(); ++it)
-    protonated_.push_back(*it == max_prots);
-}
-
-void DataSet_pH::SetResidueInfo(DataSet_pH const& rhs) {
-  resname_ = rhs.resname_;
-  resid_ = rhs.resid_;
-  protcnts_ = rhs.protcnts_;
-  protonated_ = rhs.protonated_;
-}
 
 /* DataSet_pH::Residue& DataSet_pH::Residue::operator=(Residue const& rhs) {
   if (this != &rhs) {
