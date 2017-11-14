@@ -1036,9 +1036,19 @@ if [[ $USEMKL -eq 1 ]] ; then
   fi
   # Assume GNU linker.
   if [[ $USEOPENMP -eq 1 ]] ; then
-    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl,--start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_intel_thread.a $MKLROOT/libmkl_core.a -Wl,--end-group -liomp5 -lpthread"
+    if [ "$COMPILERS" = 'intel' ] ; then
+      MKLTHREAD='libmkl_intel_thread.a'
+      MKLOMP='-liomp5'
+    elif [ "$COMPILERS" = 'pgi' ] ; then
+      MKLTHREAD='libmkl_pgi_thread.a'
+      MKLOMP='-pgf90libs -mp'
+    else
+      MKLTHREAD='libmkl_gnu_thread.a'
+      MKLOMP='-lgomp'
+    fi
+    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl,--start-group $MKLROOT/$MKLINTERFACE $MKLROOT/$MKLTHREAD $MKLROOT/libmkl_core.a -Wl,--end-group $MKLOMP -lpthread -lm -ldl"
   else
-    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl,--start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_sequential.a $MKLROOT/libmkl_core.a -Wl,--end-group -lpthread"
+    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl,--start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_sequential.a $MKLROOT/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl"
   fi
   BLAS=""
   LAPACK=""
