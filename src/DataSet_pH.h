@@ -1,7 +1,7 @@
 #ifndef INC_DATASET_PH
 #define INC_DATASET_PH
 #include "DataSet_1D.h"
-#include "NameType.h"
+#include "CphResidue.h"
 /// Hold data from constant pH simulations; protonation states of each residue.
 class DataSet_pH : public DataSet_1D {
     typedef std::vector<int> Iarray;
@@ -37,16 +37,13 @@ class DataSet_pH : public DataSet_1D {
     int State(unsigned int idx) const { return states_[idx];    }
     float pH(unsigned int idx)  const { return pH_Values_[idx]; }
     float Solvent_pH()          const { return solvent_pH_;     }
-    NameType const& Name()      const { return resname_;        }
-    int Num()                   const { return resid_;          }
-    bool IsProtonated(int s)    const { return protonated_[s];  }
-    int Nprotons(int s)         const { return protcnts_[s];    }
+    CphResidue const& Res()     const { return res_;            }
   private:
     typedef std::vector<bool> Barray;
     typedef std::vector<float> Farray;
 
     float solvent_pH_;     ///< Solvent pH
-    Farray pH_Values_;     ///< Solvent pH values each frame (REMD).
+    
     NameType resname_;     ///< Residue name.
     int resid_;            ///< Residue number.
     Iarray protcnts_;      ///< Hold protonation count for each state.
