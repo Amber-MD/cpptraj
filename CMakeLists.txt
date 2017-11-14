@@ -51,8 +51,11 @@ if(NOT INSIDE_AMBER)
 	
 	# header installation option
 	option(INSTALL_HEADERS "Copy headers to the include/cpptraj folder of the install directory.  Useful for building with pytraj." FALSE)
+	
+	option(BUILD_PARALLEL_COMBINATIONS "If true, then combinations of all enabled parallelizations will be built, e.g. cpptraj.OMP.MPI and cpptraj.OMP.MPI.cuda" FALSE)
 else()
 	set(INSTALL_HEADERS FALSE)
+	set(BUILD_PARALLEL_COMBINATIONS FALSE)
 endif()
 
 # on Windows, make MSVC auto-create import libraries just like MinGW does
