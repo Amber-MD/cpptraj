@@ -3,7 +3,8 @@
 #include <cctype>
 #include "DataIO_Cpout.h"
 #include "CpptrajStdio.h"
-#include "BufferedLine.h"
+#include "DataSet_pH.h"
+#include "DataSet_pH_REMD.h"
 
 /// CONSTRUCTOR
 DataIO_Cpout::DataIO_Cpout() :
@@ -11,6 +12,7 @@ DataIO_Cpout::DataIO_Cpout() :
   original_pH_(0.0)
 {
   SetValid( DataSet::PH );
+  SetValid( DataSet::PH_REMD );
 }
 
 const char* DataIO_Cpout::FMT_REDOX_ = "Redox potential: %f V";
@@ -231,105 +233,64 @@ int DataIO_Cpout::ReadCpin(FileName const& fname) {
 // DataIO_Cpout::ReadData()
 int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  // Require a CPIN file. 
+  if (cpin_file_.empty()) {
+    mprinterr("Error: No CPIN file specified.\n");
+    return 1;
+  }
+  Residues_.clear();
+  if (ReadCpin( cpin_file_ )) return 1;
+
+  // Open CPOUT file.
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
   const char* ptr = infile.Line();
 
-  float time, pHval;
-  int step, res, state;
-
-  // Determine type if necessary.
-  if (type_ == NONE) {
-    if (sscanf(ptr, FMT_REDOX_, &original_pH_) == 1) {
-      type_ = REDOX;
-    } else if (sscanf(ptr, FMT_PH_, &original_pH_) == 1) {
-      type_ = PH;
-    } else {
-      mprinterr("Error: Could not determine CPOUT file type.\n");
-      return 1;
-    }
-    infile.CloseFile();
-    infile.OpenFileRead( fname );
-  }
-  mprintf("\tOriginal pH= %f\n", original_pH_);
-  pHval = original_pH_;
-
+  // Determine type and number of residues. 
   const char* fmt = 0;
   const char* rFmt = 0;
-  if (type_ == PH) {
-    mprintf("\tConstant pH output file.\n");
-    fmt = FMT_PH_;
-    rFmt = "Residue %d State: %d pH: %f";
-  } else if (type_ == REDOX) {
+  if (sscanf(ptr, FMT_REDOX_, &original_pH_) == 1) {
+    type_ = REDOX;
     mprintf("\tRedOx output file.\n");
     fmt = FMT_REDOX_;
     rFmt = "Residue %d State: %d E: %f V";
-  }
-
-  // Allocate ph DataSet
-  DataSet* ds = 0;
-  if (!dsname.empty()) ds = dsl.CheckForSet(dsname);
-  if (ds == 0) {
-    // New set
-    ds = dsl.AddSet( DataSet::PH, dsname, "ph" );
-    if (ds == 0) return 1;
-    // Require a CPIN file. 
-    if (cpin_file_.empty()) {
-      mprinterr("Error: No CPIN file specified and not appending to existing pH set.\n");
-      return 1;
-    }
-    if (ReadCpin(cpin_file_)) return 1;
-    ((DataSet_pH_REMD*)ds)->SetResidueInfo( Residues_ );
+  } else if (sscanf(ptr, FMT_PH_, &original_pH_) == 1) {
+    type_ = PH;
+    mprintf("\tConstant pH output file.\n");
+    fmt = FMT_PH_;
+    rFmt = "Residue %d State: %d pH: %f";
   } else {
-    if (ds->Type() != DataSet::PH) {
-      mprinterr("Error: Set '%s' is not pH data.\n", ds->legend());
-      return 1;
-    }
-    mprintf("\tAppending to set '%s'\n", ds->legend());
-    // TODO check # residues etc?
+    mprinterr("Error: Could not determine CPOUT file type.\n");
+    return 1;
   }
-  DataSet_pH_REMD* phdata = (DataSet_pH_REMD*)ds;
-  int maxRes = (int)phdata->Residues().size();
-  Iarray resStates( phdata->Residues().size() );
-
-  float solvent_pH = original_pH_;
-  unsigned int nframes = 0;
-  while (ptr != 0) {
-    if (sscanf(ptr, fmt, &solvent_pH) == 1) {
-      // Full record
-      //mprintf("DEBUG: pH= %f\n", solvent_pH);
-      ptr = infile.Line(); // Monte Carlo step size
-      ptr = infile.Line(); // Current MD time step
-      if (sscanf(ptr,"Time step: %d", &step) != 1) {
-        mprinterr("Error: Could not get step.\n");
-        return 1;
-      }
-      //mprintf("DEBUG: step= %i\n", step);
-      ptr = infile.Line(); // Current time (ps)
-      if (sscanf(ptr,"Time: %f", &time) != 1) {
-        mprinterr("Error: Could not get time.\n");
-        return 1;
-      }
-      //mprintf("DEBUG: time= %f\n", time);
-      ptr = infile.Line(); // Residue
-    } 
-    // delta record or full record Residue read
-    while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
-      //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
-      if (res < maxRes)
-        resStates[res] = state;
-      else {
-        mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes);
-        return 1;
-      }
-      ptr = infile.Line();
-    }
-    phdata->AddState(resStates, pHval);
-    nframes++;
-    ptr = infile.Line();
+  ptr = infile.Line(); // Monte Carlo step size
+  ptr = infile.Line(); // Current MD time step
+  ptr = infile.Line(); // Current MD time
+  ptr = infile.Line(); // First residue
+  int res, state;
+  float pHval; 
+  int nscan = sscanf(ptr, rFmt, &res, &state, &pHval);
+  if (nscan == 2) {
+    mprintf("\tNot from REMD.\n");
+  } else if (nscan == 3) {
+    mprintf("\tpH values from REMD detected.\n");
+  } else {
+    mprintf("Got %i values from first Residue line, expected only 2 or 3.\n", nscan);
+    return 1;
   }
   infile.CloseFile();
 
+  // Allocate DataSets
+  int err = 1;
+  if (nscan == 2) {
+    // Sorted constant pH
+    err = ReadSorted(infile, dsl, dsname, fmt, rFmt);
+  } else if (nscan == 3) {
+    // Unsorted constant pH
+    err = ReadUnsorted(infile, dsl, dsname, fmt, rFmt);
+  }
+  infile.CloseFile();
+/*
   if (debug_ > 1) {
     for (DataSet_pH_REMD::const_iterator res = phdata->begin(); res != phdata->end(); ++res) {
       mprintf("DEBUG: Res %u:\n", res-phdata->begin());
@@ -349,7 +310,95 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   for (DataSet_pH_REMD::const_iterator res = phdata->begin(); res != phdata->end(); ++res)
     res->Print();
   mprintf("\t%u frames\n", nframes);
-  return 0;
+*/
+  return err;
+}
+
+int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
+  // Sorted constant pH
+  for (Rarray::iterator res = Residues_.begin(); res != Residues_.end(); ++res)
+  {
+    MetaData md( dsname, *(res->Name()), res->Num() );
+    DataSet* ds = DSL.CheckForSet(md);
+    if (ds == 0) {
+      // New set
+      ds = DSL.AddSet( DataSet::PH, md );
+      if (ds == 0) return 1;
+      ((DataSet_pH*)ds)->SetResidueInfo( *res );
+    } else {
+      if (ds->Type() != DataSet::PH) {
+        mprinterr("Error: Set '%s' type does not match, cannot append.\n", ds->legend());
+        return 1;
+      }
+      mprintf("\tAppending to set '%s'\n", ds->legend());
+      // TODO check # residues etc?
+    }
+  }
+
+}
+
+int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
+  // Unsorted constant pH
+  DataSet* ds = DSL.CheckForSet(dsname);
+  if (ds == 0) {
+    // New set
+    ds = DSL.AddSet( DataSet::PH_REMD, dsname, "ph" );
+    if (ds == 0) return 1;
+    ((DataSet_pH_REMD*)ds)->SetResidueInfo( Residues_ );
+  } else {
+    if (ds->Type() != DataSet::PH_REMD) {
+      mprinterr("Error: Set '%s' is not pH data.\n", ds->legend());
+      return 1;
+    }
+    mprintf("\tAppending to set '%s'\n", ds->legend());
+    // TODO check # residues etc?
+  }
+  DataSet_pH_REMD* phdata = (DataSet_pH_REMD*)ds;
+  int maxRes = (int)phdata->Residues().size();
+  Iarray resStates( phdata->Residues().size() );
+
+  float solvent_pH = original_pH_;
+  unsigned int nframes = 0;
+  const char* ptr = infile.Line();
+  while (ptr != 0) {
+    if (sscanf(ptr, fmt, &solvent_pH) == 1) {
+      // Full record
+      //mprintf("DEBUG: pH= %f\n", solvent_pH);
+      ptr = infile.Line(); // Monte Carlo step size
+      ptr = infile.Line(); // Current MD time step
+      int step;
+      if (sscanf(ptr,"Time step: %d", &step) != 1) {
+        mprinterr("Error: Could not get step.\n");
+        return 1;
+      }
+      //mprintf("DEBUG: step= %i\n", step);
+      ptr = infile.Line(); // Current time (ps)
+      float time;
+      if (sscanf(ptr,"Time: %f", &time) != 1) {
+        mprinterr("Error: Could not get time.\n");
+        return 1;
+      }
+      //mprintf("DEBUG: time= %f\n", time);
+      ptr = infile.Line(); // Residue
+    } 
+    // delta record or full record Residue read
+    int res, state;
+    float pHval;
+    while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
+      //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
+      if (res < maxRes)
+        resStates[res] = state;
+      else {
+        mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes);
+        return 1;
+      }
+      ptr = infile.Line();
+    }
+    phdata->AddState(resStates, pHval);
+    nframes++;
+    ptr = infile.Line();
+  }
+
 }
 
 // DataIO_Cpout::WriteHelp()

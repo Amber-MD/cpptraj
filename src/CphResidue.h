@@ -2,6 +2,7 @@
 #define INC_CPHRESIDUE_H
 #include <vector>
 #include "NameType.h"
+/// Hold information for a titratable residue.
 class CphResidue {
     typedef std::vector<int> Iarray;
     typedef std::vector<bool> Barray;

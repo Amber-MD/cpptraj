@@ -1,7 +1,8 @@
 #ifndef INC_DATAIO_CPOUT_H
 #define INC_DATAIO_CPOUT_H
 #include "DataIO.h"
-#include "DataSet_pH_REMD.h"
+#include "CphResidue.h"
+#include "BufferedLine.h"
 /// Read Amber cpout file 
 class DataIO_Cpout : public DataIO {
   public:
@@ -21,6 +22,7 @@ class DataIO_Cpout : public DataIO {
 
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
+    typedef std::vector<CphResidue> Rarray;
 
     struct StateInfo {
       int num_states_;
@@ -32,10 +34,12 @@ class DataIO_Cpout : public DataIO {
     typedef std::vector<StateInfo> StateArray;
 
     int ReadCpin(FileName const&);
+    int ReadSorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
+    int ReadUnsorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
 
     FileName cpin_file_;
     FileType type_;
     float original_pH_;
-    DataSet_pH_REMD::Rarray Residues_;
+    Rarray Residues_;    ///< Hold all residues from CPIN file
 };
 #endif
