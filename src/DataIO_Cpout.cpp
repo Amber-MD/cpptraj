@@ -316,6 +316,9 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
 
 int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
   // Sorted constant pH
+  typedef std::vector<DataSet_pH*> Parray;
+  Parray ResSets;
+  ResSets.reserve( Residues_.size() );
   for (Rarray::iterator res = Residues_.begin(); res != Residues_.end(); ++res)
   {
     MetaData md( dsname, *(res->Name()), res->Num() );
@@ -333,8 +336,50 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
       mprintf("\tAppending to set '%s'\n", ds->legend());
       // TODO check # residues etc?
     }
+    ResSets.push_back( (DataSet_pH*)ds );
   }
+  int maxRes = (int)ResSets.size();
 
+  unsigned int nframes = 0;
+  const char* ptr = infile.Line();
+  while (ptr != 0) {
+    float solvent_pH;
+    if (sscanf(ptr, fmt, &solvent_pH) == 1) {
+      // Full record
+      //mprintf("DEBUG: pH= %f\n", solvent_pH);
+      ptr = infile.Line(); // Monte Carlo step size
+      ptr = infile.Line(); // Current MD time step
+      int step;
+      if (sscanf(ptr,"Time step: %d", &step) != 1) {
+        mprinterr("Error: Could not get step.\n");
+        return 1;
+      }
+      //mprintf("DEBUG: step= %i\n", step);
+      ptr = infile.Line(); // Current time (ps)
+      float time;
+      if (sscanf(ptr,"Time: %f", &time) != 1) {
+        mprinterr("Error: Could not get time.\n");
+        return 1;
+      }
+      //mprintf("DEBUG: time= %f\n", time);
+      ptr = infile.Line(); // Residue
+    }
+    // delta record or full record Residue read
+    int res, state;
+    while (sscanf(ptr, rFmt, &res, &state) == 2) {
+      //mprintf("DEBUG: res= %i state= %i\n", res, state);
+      if (res < maxRes)
+        ResSets[res]->AddState( state );
+      else {
+        mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes);
+        return 1;
+      }
+      ptr = infile.Line();
+    }
+    nframes++;
+    ptr = infile.Line();
+  }
+  return 0;
 }
 
 int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
@@ -398,7 +443,7 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
     nframes++;
     ptr = infile.Line();
   }
-
+  return 0;
 }
 
 // DataIO_Cpout::WriteHelp()
