@@ -200,6 +200,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_MatrixFlt.cpp \
         DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
+        DataSet_pH.cpp \
         DataSet_pH_REMD.cpp \
         DataSet_RemLog.cpp \
         DataSet_Topology.cpp \
