@@ -279,6 +279,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     return 1;
   }
   infile.CloseFile();
+  if (infile.OpenFileRead( fname )) return 1;
 
   // Allocate DataSets
   int err = 1;
