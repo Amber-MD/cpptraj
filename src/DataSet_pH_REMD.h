@@ -21,6 +21,8 @@ class DataSet_pH_REMD : public DataSet {
     typedef Farray::const_iterator ph_iterator;
     Farray const& pH_Values() const { return solvent_pH_; }
 
+    Iarray const& ResStates() const { return resStates_; }
+
     void AddState(Iarray const& states, float pH) {
       for (Iarray::const_iterator it = states.begin(); it != states.end(); ++it)
         resStates_.push_back( *it );
@@ -29,7 +31,7 @@ class DataSet_pH_REMD : public DataSet {
 
     void Resize(size_t);
     // ----- DataSet functions -------------------
-    size_t Size() const { return residues_.size(); }
+    size_t Size() const { return solvent_pH_.size(); }
     void Info()   const;
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     /// Reserve space for states of each residue

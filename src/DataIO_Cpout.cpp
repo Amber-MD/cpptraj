@@ -328,6 +328,7 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
       ds = DSL.AddSet( DataSet::PH, md );
       if (ds == 0) return 1;
       ((DataSet_pH*)ds)->SetResidueInfo( *res );
+      ((DataSet_pH*)ds)->Set_Solvent_pH( original_pH_ ); // TODO combine with above?
     } else {
       if (ds->Type() != DataSet::PH) {
         mprinterr("Error: Set '%s' type does not match, cannot append.\n", ds->legend());
@@ -459,40 +460,71 @@ int DataIO_Cpout::processWriteArgs(ArgList& argIn)
   return 0;
 }
 
+// DataIO_Cpout::WriteHeader()
+void DataIO_Cpout::WriteHeader(CpptrajFile& outfile, float solventPH, int stepSize,
+                               int step, double time) const
+{
+  outfile.Printf("Solvent pH: %8.5f\n"
+                 "Monte Carlo step size: %8i\n"
+                 "Time step: %8i\n"
+                 "Time: %10.3f\n", solventPH, stepSize, step, time);
+}
+
+
 // DataIO_Cpout::WriteData()
 int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
 {
   if (dsl.empty()) return 1;
-  bool writeHeader = false;
-  if (dsl.size() > 1) {
-    mprintf("Warning: Multiple sets to a single constant pH file.\n");
-    writeHeader = true;
+
+  DataSet::DataType dtype = dsl[0]->Type();
+  if (dtype != DataSet::PH && dtype != DataSet::PH_REMD) {
+    mprinterr("Internal Error: Set '%s' is not a pH set.\n", dsl[0]->legend() );
+    return 1;
   }
+
+  unsigned int maxFrames = dsl[0]->Size();
+  for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds) {
+    if ((*ds)->Type() != dtype) {
+      mprinterr("Error: Cannot mix sorted and unsorted pH sets.\n");
+      return 1;
+    }
+    if (maxFrames != (*ds)->Size()) {
+      mprintf("Warning: Set '%s' frames (%zu) != frames in previous set(s) (%u)\n",
+              (*ds)->legend(), (*ds)->Size(), maxFrames);
+      maxFrames = std::min( maxFrames, (unsigned int)(*ds)->Size() );
+    }
+  }
+
   CpptrajFile outfile;
   if (outfile.OpenWrite(fname)) {
     mprinterr("Error: Could not open %s for writing.\n", fname.full());
     return 1;
   }
 
-  for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
-  {
-    DataSet_pH_REMD const& PH = static_cast<DataSet_pH_REMD const&>( *(*ds) );
-    if (PH.Residues().size() < 1) {
-      mprinterr("Error: No residues in set '%s'.\n", PH.legend());
-      return 1;
+  if (dtype == DataSet::PH_REMD) {
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds) {
+      DataSet_pH_REMD const& PH = static_cast<DataSet_pH_REMD const&>( *(*ds) );
+      unsigned int idx = 0;
+      unsigned int maxres = PH.Residues().size();
+      for (unsigned int frame = 0; frame != maxFrames; frame++) {
+        if (frame == 0)
+          WriteHeader(outfile, PH.pH_Values()[0], 100, 100, 0.198);
+        for (unsigned int res = 0; res != maxres; res++, idx++)
+          outfile.Printf("Residue %4u State: %2i pH: %7.3f\n",
+                         res, PH.ResStates()[idx], PH.pH_Values()[frame]);
+        outfile.Printf("\n");
+      }
     }
-    // TODO better header
-    if (writeHeader)
-      outfile.Printf("#%s\n", PH.legend());
-    unsigned int nframes = PH.Res(0).Nframes();
-    for (unsigned int i = 0; i < nframes; i++) {
-      //float phval = PH.pH_Values()[i];
-      for (unsigned int res = 0; res < PH.Residues().size(); res++)
-        outfile.Printf("Residue %4i State: %2i\n", res, PH.Res(res)[i]);
-        //outfile.Printf("Residue %4i State: %2i pH: %7.3f\n", res, PH.Res(res)[i], phval);
+  } else {
+    for (unsigned int frame = 0; frame != maxFrames; frame++) {
+      if (frame == 0) // TODO check all same pH
+        WriteHeader(outfile, ((DataSet_pH*)dsl[0])->Solvent_pH(), 100, 100, 0.198);
+      for (unsigned int res = 0; res != dsl.size(); res++)
+        outfile.Printf("Residue %4u State: %2i\n", res, ((DataSet_pH*)dsl[res])->State(frame));
       outfile.Printf("\n");
     }
   }
+
   outfile.CloseFile();
   return 0;
 }

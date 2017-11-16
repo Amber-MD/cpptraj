@@ -36,6 +36,7 @@ class DataIO_Cpout : public DataIO {
     int ReadCpin(FileName const&);
     int ReadSorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
     int ReadUnsorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
+    void WriteHeader(CpptrajFile&, float, int, int, double) const;
 
     FileName cpin_file_;
     FileType type_;
