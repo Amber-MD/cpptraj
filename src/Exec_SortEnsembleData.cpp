@@ -70,7 +70,7 @@ const
   for (unsigned int idx = 0; idx != sortedPH.size(); idx++) {
     OutputSets.SetEnsembleNum( idx );
     for (unsigned int res = 0; res != Residues.size(); ++res) {
-      MetaData md( PHsets[0]->Meta().Name(), *(Residues[res].Name()), Residues[res].Num() );
+      MetaData md(PHsets[0]->Meta().Name(), Residues[res].Name().Truncated(), Residues[res].Num());
       DataSet_pH* out = (DataSet_pH*)OutputSets.AddSet( DataSet::PH, md );
       if (out==0) return 1;
       out->SetLegend( "pH " + doubleToString( sortedPH[idx] ) );

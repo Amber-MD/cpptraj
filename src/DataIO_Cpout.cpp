@@ -322,7 +322,7 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
   ResSets.reserve( Residues_.size() );
   for (Rarray::iterator res = Residues_.begin(); res != Residues_.end(); ++res)
   {
-    MetaData md( dsname, *(res->Name()), res->Num() );
+    MetaData md( dsname, res->Name().Truncated(), res->Num() );
     DataSet* ds = DSL.CheckForSet(md);
     if (ds == 0) {
       // New set
