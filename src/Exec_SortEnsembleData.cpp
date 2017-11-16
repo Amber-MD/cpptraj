@@ -1,6 +1,7 @@
 #include "Exec_SortEnsembleData.h"
 #include "CpptrajStdio.h"
-#include "DataSet_PH.h"
+#include "DataSet_pH_REMD.h"
+#include "DataSet_pH.h"
 #include "StringRoutines.h" // doubleToString
 
 // Exec_SortEnsembleData::Help()
@@ -22,11 +23,12 @@ inline bool CheckError(int err) {
 int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort, DataSetList& OutputSets)
 const
 {
-  // Cast sets back to DataSet_PH
-  typedef std::vector<DataSet_PH*> Parray;
+  // Cast sets back to DataSet_pH_REMD
+  typedef std::vector<DataSet_pH_REMD*> Parray;
   Parray PHsets;
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
-    PHsets.push_back( (DataSet_PH*)*ds );
+    PHsets.push_back( (DataSet_pH_REMD*)*ds );
+
   // Gather initial pH data values, ensure no duplicates
   typedef std::vector<double> Darray;
   Darray pHvalues;
@@ -57,39 +59,46 @@ const
   }
   mprintf("\n");
 
-  // Create sets to hold sorted pH values. Create a set for each pH value.
+  // Create sets to hold sorted pH values. Create a set for each pH value
+  // and each residue. Final output sets will be PH0R0, PH0R1, PH1R0, ...
   // TODO check that residue info all the same
-  MetaData md = PHsets[0]->Meta();
-  unsigned int nframes = PHsets[0]->Nframes();
+  DataSet_pH_REMD::Rarray const& Residues = PHsets[0]->Residues();
+  unsigned int nframes = PHsets[0]->Size();
   if (debug_ > 0)
     rprintf("DEBUG: Sorting %u frames for %zu sets, %zu pH values.\n",
             nframes, PHsets.size(), pHvalues.size());
   for (unsigned int idx = 0; idx != sortedPH.size(); idx++) {
     OutputSets.SetEnsembleNum( idx );
-    DataSet_PH* out = (DataSet_PH*)OutputSets.AddSet( DataSet::PH, md );
-    if (out==0) return 1;
-    out->SetLegend( "pH " + doubleToString( sortedPH[idx] ) );
-    out->SetResidueInfo( PHsets[0]->Residues() );
-    out->Resize( nframes );
+    for (unsigned int res = 0; res != Residues.size(); ++res) {
+      MetaData md( PHsets[0]->Meta().Name(), *(Residues[res].Name()), Residues[res].Num() );
+      DataSet_pH* out = (DataSet_pH*)OutputSets.AddSet( DataSet::PH, md );
+      if (out==0) return 1;
+      out->SetLegend( "pH " + doubleToString( sortedPH[idx] ) );
+      ((DataSet_pH*)out)->Set_Solvent_pH( sortedPH[idx] );
+      out->SetResidueInfo( Residues[res] );
+      out->Resize( nframes );
+    }
   }
 
-  for (unsigned int n = 0; n < nframes; n++)
+  // Loop over unsorted sets
+  for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
   {
-    for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
+    unsigned int phidx = 0;
+    for (unsigned int n = 0; n < nframes; n++)
     {
       float phval = (*ds)->pH_Values()[n];
-      int idx = pH_map.FindIndex( phval );
+      int setidx = pH_map.FindIndex( phval ) * Residues.size();
       //rprintf("DEBUG: %6u Set %10s pH= %6.2f going to %2i\n", n+1, (*ds)->legend(), phval, idx);
       //mflush();
-      DataSet_PH* out = (DataSet_PH*)OutputSets[idx];
-      for (unsigned int res = 0; res < (*ds)->Residues().size(); res++)
+      for (unsigned int res = 0; res < (*ds)->Residues().size(); res++, setidx++, phidx++)
       {
+        DataSet_pH* out = (DataSet_pH*)OutputSets[setidx];
         //if (res == 0 && idx == 0) {
         //  rprintf("DEBUG: Frame %3u res %2u State %2i pH %6.2f\n", 
         //          n, res, (*ds)->Res(res).State(n), phval);
         //  mflush();
         //}
-        out->SetState(res, n, (*ds)->Res(res).State(n), phval);
+        out->SetState(n, (*ds)->ResStates()[phidx]);
       }
     }
   }
@@ -165,8 +174,8 @@ const
 # endif
 
   // Only work for pH data for now.
-  if (dtype != DataSet::PH) {
-    rprinterr("Error: Only works for pH data for now.\n");
+  if (dtype != DataSet::PH_REMD) {
+    rprinterr("Error: Only works for pH REMD data for now.\n");
     return 1;
   }
 
