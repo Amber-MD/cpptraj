@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_CONSTANTPHSTATS_H
 #include <map>
 #include "Analysis.h"
-#include "DataSet_PH.h"
+#include "CphResidue.h"
 /// <Enter description of Analysis_ConstantPHStats here>
 class Analysis_ConstantPHStats : public Analysis {
   public:
@@ -28,7 +28,7 @@ class Analysis_ConstantPHStats : public Analysis {
     class ResStat {
       public:
         ResStat() : num_(-1), n_transitions_(0), n_prot_(0), tot_prot_(0) {}
-        ResStat(DataSet_PH::Residue const& r, int init_state) :
+        ResStat(CphResidue const& r, int init_state) :
           name_(r.Name()), num_(r.Num()), n_transitions_(0),
           n_prot_((int)r.IsProtonated(init_state)),
           tot_prot_(r.Nprotons(init_state))

@@ -1,5 +1,6 @@
 #include "Analysis_ConstantPHStats.h"
 #include "CpptrajStdio.h"
+#include "DataSet_pH.h"
 
 // Analysis_ConstantPHStats::Help()
 void Analysis_ConstantPHStats::Help() const {
@@ -21,11 +22,14 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
   for (DataSetList::const_iterator ds = tempDSL.begin(); ds != tempDSL.end(); ++ds)
     if ( (*ds)->Type() == DataSet::PH ) {
       /// Require residue data.
-      if ( ((DataSet_PH*)(*ds))->Residues().empty() ) {
+      if ( ((DataSet_pH*)(*ds))->Res().Num() == -1 ) {
         mprinterr("Error: pH set '%s' has no residue info.\n", (*ds)->legend());
         return Analysis::ERR;
       }
       inputSets_.AddCopyOfSet( *ds );
+    } else if ( (*ds)->Type() == DataSet::PH_REMD ) {
+      mprinterr("Error: pH set '%s' must be sorted first.\n", (*ds)->legend());
+      return Analysis::ERR;
     } else
       mprintf("Warning: Set '%s' is not a pH data set, skipping.\n", (*ds)->legend());
   if (inputSets_.empty()) {
@@ -44,21 +48,18 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
   // Loop over all data sets
   for (DataSetList::const_iterator ds = inputSets_.begin(); ds != inputSets_.end(); ++ds)
   {
-    DataSet_PH const& PH = static_cast<DataSet_PH const&>( *((DataSet_PH*)*ds) );
-    if (PH.Nframes() > 0) {
-      // Loop over all residues
-      for (DataSet_PH::const_iterator res = PH.begin(); res != PH.end(); ++res)
-      {
+    DataSet_pH const& PH = static_cast<DataSet_pH const&>( *((DataSet_pH*)*ds) );
+    if (PH.Size() > 0) {
         // Initial state.
-        int last_state = res->States().front();
+        int last_state = PH.State(0);
         PHresMap::iterator ph_res;
         // Try to find residue in map.
-        StatMap::iterator it = Stats.lower_bound( res->Num() );
-        if ( it == Stats.end() || it->first != res->Num() ) {
+        StatMap::iterator it = Stats.lower_bound( PH.Res().Num() );
+        if ( it == Stats.end() || it->first != PH.Res().Num() ) {
           // New residue. First create map of solvent pH to residue.
           PHresMap tmp;
-          tmp.insert( PHresPair(PH.Solvent_pH(), ResStat(*res, last_state)) );
-          it = Stats.insert( it, StatPair(res->Num(), tmp) );
+          tmp.insert( PHresPair(PH.Solvent_pH(), ResStat(PH.Res(), last_state)) );
+          it = Stats.insert( it, StatPair(PH.Res().Num(), tmp) );
           ph_res = it->second.begin();
         } else {
           // Existing residue. Find pH.
@@ -68,26 +69,25 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
           {
             // New pH value.
             ph_res = it->second.insert( ph_res, PHresPair(PH.Solvent_pH(),
-                                                          ResStat(*res, last_state)) );
+                                                          ResStat(PH.Res(), last_state)) );
           }
         }
         ResStat& stat = ph_res->second;
 
         // Loop over frames after initial.
-        for (unsigned int n = 1; n != res->Nframes(); n++)
+        for (unsigned int n = 1; n != PH.Size(); n++)
         {
-          //if ( res->State(n) != last_state )
-          if ( res->IsProtonated( res->State(n) ) != res->IsProtonated( last_state ) )
+          //if ( PH.State(n) != last_state )
+          if ( PH.Res().IsProtonated( PH.State(n) ) != PH.Res().IsProtonated( last_state ) )
             stat.n_transitions_++;
-          if ( res->IsProtonated( res->State(n) ) )
+          if ( PH.Res().IsProtonated( PH.State(n) ) )
             stat.n_prot_++;
-          stat.tot_prot_ += res->Nprotons( res->State(n) );
-          last_state = res->State(n);
+          stat.tot_prot_ += PH.Res().Nprotons( PH.State(n) );
+          last_state = PH.State(n);
         }
         rprintf("DEBUG: %s '%s %i' n_transitions= %i  n_prot= %i  tot_prot= %i\n",
-                PH.legend(), *(res->Name()), res->Num(),
+                PH.legend(), *(PH.Res().Name()), PH.Res().Num(),
                 stat.n_transitions_, stat.n_prot_, stat.tot_prot_);
-      } // END loop over residues
     }
   } // END loop over DataSets
 
