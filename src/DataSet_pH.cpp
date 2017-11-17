@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 
 DataSet_pH::DataSet_pH() :
-  DataSet_1D(PH, TextFormat(TextFormat::DOUBLE, 10, 4))
+  DataSet_1D(PH, TextFormat(TextFormat::INTEGER, 10))
 {}
 
 int DataSet_pH::Allocate(SizeArray const& sizeIn) {
@@ -11,6 +11,13 @@ int DataSet_pH::Allocate(SizeArray const& sizeIn) {
     //solvent_pH_.reserve( sizeIn[0] );
   }
   return 0;
+}
+
+void DataSet_pH::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
+  if (pIn[0] >= states_.size())
+    cbuffer.Printf(format_.fmt(), 0);
+  else
+    cbuffer.Printf(format_.fmt(), states_[pIn[0]]);
 }
 
 void DataSet_pH::Resize(size_t n) {

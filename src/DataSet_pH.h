@@ -12,7 +12,7 @@ class DataSet_pH : public DataSet_1D {
     // ----- DataSet functions -------------------
     size_t Size() const { return states_.size(); }
     void Info()   const;
-    void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     /// Reserve space for states of each residue
     int Allocate(SizeArray const&);
     void Add( size_t, const void* ) { return; }
