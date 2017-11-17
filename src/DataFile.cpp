@@ -107,6 +107,7 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { CCP4,         "ccp4",   ".ccp4"  },
   { CMATRIX,      "cmatrix",".cmatrix" },
   { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
+  { CPOUT,        "cpout",  ".cpout" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
