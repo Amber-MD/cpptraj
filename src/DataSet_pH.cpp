@@ -1,6 +1,6 @@
 #include "DataSet_pH.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // DEBUG
+//#incl ude "StringRoutines.h" // DEBUG
 
 DataSet_pH::DataSet_pH() :
   DataSet_1D(PH, TextFormat(TextFormat::INTEGER, 10))
@@ -31,24 +31,24 @@ void DataSet_pH::Info() const {
 void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
 {
   if (commIn.Rank() == rank) {
-    commIn.Barrier(); // DEBUG
+    /*commIn.Barrier(); // DEBUG
     std::string msg("MASTER:");
     for (std::vector<int>::const_iterator it = states_.begin(); it != states_.end(); ++it)
       msg.append(" " + integerToString(*it));
     rprintf("%s\n", msg.c_str());
     mflush();
     commIn.Barrier();
-    commIn.Barrier(); // END DEBUG
+    commIn.Barrier(); // END DEBUG*/
     std::vector<int> itmp = states_;
     commIn.Reduce(rank, &states_[0], &itmp[0], states_.size(), MPI_INT, MPI_SUM);
   } else {
-    commIn.Barrier(); // DEBUG
+    /*commIn.Barrier(); // DEBUG
     commIn.Barrier();
     std::string msg("CHILD_:");
     for (std::vector<int>::const_iterator it = states_.begin(); it != states_.end(); ++it)
       msg.append(" " + integerToString(*it));
     rprintf("%s\n", msg.c_str());
-    commIn.Barrier();
+    commIn.Barrier();*/
     commIn.Reduce(rank, 0, &states_[0], states_.size(), MPI_INT, MPI_SUM);
   }
 }

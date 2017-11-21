@@ -73,7 +73,7 @@ const
       MetaData md(PHsets[0]->Meta().Name(), Residues[res].Name().Truncated(), Residues[res].Num());
       DataSet_pH* out = (DataSet_pH*)OutputSets.AddSet( DataSet::PH, md );
       if (out==0) return 1;
-      out->SetLegend( "pH " + doubleToString( sortedPH[idx] ) );
+      //out->SetLegend( "pH " + doubleToString( sortedPH[idx] ) );
       ((DataSet_pH*)out)->Set_Solvent_pH( sortedPH[idx] );
       out->SetResidueInfo( Residues[res] );
       out->Resize( nframes );
@@ -108,7 +108,7 @@ const
     for (int idx = 0; idx != (int)OutputSets.size(); idx++) {
       DataSet_pH* out = (DataSet_pH*)OutputSets[idx];
       int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
-      rprintf("DEBUG: Consolidate set %s to rank %i\n", out->legend(), ensembleRank);
+      //rprintf("DEBUG: Consolidate set %s to rank %i\n", out->legend(), ensembleRank);
       out->Consolidate( Parallel::EnsembleComm(), ensembleRank );
     }
     // Remove sets that do not belong on this rank
@@ -116,8 +116,8 @@ const
       DataSet* out = OutputSets[idx];
       int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
       if (ensembleRank != Parallel::EnsembleComm().Rank()) {
-        rprintf("DEBUG: Remove set %s (%i) from rank %i\n", out->legend(),
-                idx, Parallel::EnsembleComm().Rank());
+        //rprintf("DEBUG: Remove set %s (%i) from rank %i\n", out->legend(),
+        //        idx, Parallel::EnsembleComm().Rank());
         OutputSets.RemoveSet( out );
       }
     }
