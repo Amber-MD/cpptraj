@@ -457,26 +457,36 @@ void DataIO_Cpout::WriteHelp()
 // DataIO_Cpout::processWriteArgs()
 int DataIO_Cpout::processWriteArgs(ArgList& argIn)
 {
+  mc_stepsize_ = argIn.getKeyInt("mcstepsize", 100);
+  dt_ = argIn.getKeyDouble("dt", 0.002);
+  nheader_ = argIn.getKeyInt("nwriteheader", 0);
 
   return 0;
 }
 
 // DataIO_Cpout::WriteHeader()
-void DataIO_Cpout::WriteHeader(CpptrajFile& outfile, float solventPH, int stepSize,
-                               int step, double time) const
+void DataIO_Cpout::WriteHeader(CpptrajFile& outfile, float solventPH, int frame) const
 {
+  int time_step = (frame+1)*mc_stepsize_;
+  double time = (double)(time_step-1) * dt_;
   outfile.Printf("Solvent pH: %8.5f\n"
                  "Monte Carlo step size: %8i\n"
                  "Time step: %8i\n"
-                 "Time: %10.3f\n", solventPH, stepSize, step, time);
+                 "Time: %10.3f\n", solventPH, mc_stepsize_, time_step, time);
 }
 
+static inline bool write_header(int frame, int ntwx) {
+  return ( (ntwx > 0) &&
+           (frame == 0 || (((frame+1)%ntwx) == 0)) );
+}
 
 // DataIO_Cpout::WriteData()
 int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
 {
   if (dsl.empty()) return 1;
 
+  if (nheader_ > 0)
+    mprintf("\tHeader write frequency: %i\n", nheader_);
   DataSet::DataType dtype = dsl[0]->Type();
   if (dtype != DataSet::PH && dtype != DataSet::PH_REMD) {
     mprinterr("Internal Error: Set '%s' is not a pH set.\n", dsl[0]->legend() );
@@ -496,6 +506,7 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
     }
   }
 
+  mprintf("\tWriting %u frames\n", maxFrames);
   CpptrajFile outfile;
   if (outfile.OpenWrite(fname)) {
     mprinterr("Error: Could not open %s for writing.\n", fname.full());
@@ -508,8 +519,8 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
       unsigned int idx = 0;
       unsigned int maxres = PH.Residues().size();
       for (unsigned int frame = 0; frame != maxFrames; frame++) {
-        if (frame == 0)
-          WriteHeader(outfile, PH.pH_Values()[0], 100, 100, 0.198);
+        if (write_header(frame, nheader_))
+          WriteHeader(outfile, PH.pH_Values()[0], frame);
         for (unsigned int res = 0; res != maxres; res++, idx++)
           outfile.Printf("Residue %4u State: %2i pH: %7.3f\n",
                          res, PH.ResStates()[idx], PH.pH_Values()[frame]);
@@ -518,8 +529,8 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
     }
   } else {
     for (unsigned int frame = 0; frame != maxFrames; frame++) {
-      if (frame == 0) // TODO check all same pH
-        WriteHeader(outfile, ((DataSet_pH*)dsl[0])->Solvent_pH(), 100, 100, 0.198);
+      if (write_header(frame, nheader_)) // TODO check all same pH
+        WriteHeader(outfile, ((DataSet_pH*)dsl[0])->Solvent_pH(), frame);
       for (unsigned int res = 0; res != dsl.size(); res++)
         outfile.Printf("Residue %4u State: %2i\n", res, ((DataSet_pH*)dsl[res])->State(frame));
       outfile.Printf("\n");

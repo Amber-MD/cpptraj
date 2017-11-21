@@ -36,11 +36,15 @@ class DataIO_Cpout : public DataIO {
     int ReadCpin(FileName const&);
     int ReadSorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
     int ReadUnsorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
-    void WriteHeader(CpptrajFile&, float, int, int, double) const;
+    void WriteHeader(CpptrajFile&, float, int) const;
 
     FileName cpin_file_;
     FileType type_;
     float original_pH_;
     Rarray Residues_;    ///< Hold all residues from CPIN file
+
+    double dt_; ///< Write time step
+    int mc_stepsize_; ///< Write monte carlo step size
+    int nheader_; ///< Frequency to write header
 };
 #endif
