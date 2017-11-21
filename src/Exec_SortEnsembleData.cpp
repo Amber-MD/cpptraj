@@ -105,18 +105,20 @@ const
 # ifdef MPI
   // Now we need to reduce down each set onto the thread where it belongs.
   if (Parallel::World().Size() > 1) {
-    for (int idx = 0; idx != (int)sortedPH.size(); idx++) {
-      DataSet_PH* out = (DataSet_PH*)OutputSets[idx];
-      //mprintf("DEBUG: Consolidate set %s to rank %i\n",
-      //        out->legend(), Parallel::MemberEnsCommRank(idx));
-      out->Consolidate( Parallel::EnsembleComm(), Parallel::MemberEnsCommRank(idx) );
+    for (int idx = 0; idx != (int)OutputSets.size(); idx++) {
+      DataSet_pH* out = (DataSet_pH*)OutputSets[idx];
+      int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
+      rprintf("DEBUG: Consolidate set %s to rank %i\n", out->legend(), ensembleRank);
+      out->Consolidate( Parallel::EnsembleComm(), ensembleRank );
     }
     // Remove sets that do not belong on this rank
-    for (int idx = (int)sortedPH.size() - 1; idx > -1; idx--) {
-      if (Parallel::MemberEnsCommRank(idx) != Parallel::EnsembleComm().Rank()) {
-        //rprintf("DEBUG: Remove set %s (%i) from rank %i\n", OutputSets[idx]->legend(),
-        //        idx, Parallel::EnsembleComm().Rank());
-        OutputSets.RemoveSet( OutputSets[idx] );
+    for (int idx = (int)OutputSets.size() - 1; idx > -1; idx--) {
+      DataSet* out = OutputSets[idx];
+      int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
+      if (ensembleRank != Parallel::EnsembleComm().Rank()) {
+        rprintf("DEBUG: Remove set %s (%i) from rank %i\n", out->legend(),
+                idx, Parallel::EnsembleComm().Rank());
+        OutputSets.RemoveSet( out );
       }
     }
   }
