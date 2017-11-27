@@ -4,13 +4,15 @@
 
 // Analysis_ConstantPHStats::Help()
 void Analysis_ConstantPHStats::Help() const {
-
+  mprintf("\t<pH sets> [statsout <statsfile>]\n");
 }
 
 // Analysis_ConstantPHStats::Setup()
 Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
+  statsOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("statsout"), 
+                                         "Constant pH stats", DataFileList::TEXT);
   // Get DataSets
   DataSetList tempDSL;
   std::string dsarg = analyzeArgs.GetStringNext();
@@ -38,6 +40,10 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
   }
 
   mprintf("    CONSTANT PH STATS:\n");
+  if (statsOut_ != 0)
+    mprintf("\tConstant pH statistics (cphstats style) output to '%s'\n",
+            statsOut_->Filename().full());
+  mprintf("\tInput pH data sets:\n");
   inputSets_.List();
   return Analysis::OK;
 }

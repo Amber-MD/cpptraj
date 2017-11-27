@@ -24,7 +24,7 @@ class Analysis_ConstantPHStats : public Analysis {
       DataSet* fracProt_;
       DataSet* fracDeprot_;
     };
-    
+    /// Hold various protonation stats for single residue at single pH
     class ResStat {
       public:
         ResStat() : num_(-1), n_transitions_(0), n_prot_(0), tot_prot_(0) {}
@@ -55,5 +55,7 @@ class Analysis_ConstantPHStats : public Analysis {
     typedef std::map<int,PHresMap> StatMap;
     /// Pair residue id to array of stats
     typedef std::pair<int,PHresMap> StatPair;
+
+    CpptrajFile* statsOut_;
 };
 #endif
