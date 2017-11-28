@@ -104,7 +104,8 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
         write_pH = false;
         tot_prot = 0;
       }
-      statsOut_->Printf("%3s %-4i", *(stat->ds_->Res().Name()), stat->ds_->Res().Num());
+      statsOut_->Printf("%3s %-4i", stat->ds_->Res().Name().Truncated().c_str(),
+                        stat->ds_->Res().Num());
       double dsize = (double)stat->ds_->Size();
       double dnprot = (double)stat->n_prot_;
       if (dnprot > 0.0) {
