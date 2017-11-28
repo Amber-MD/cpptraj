@@ -1,3 +1,4 @@
+#include <cmath>
 #include <algorithm>
 #include "Analysis_ConstantPHStats.h"
 #include "CpptrajStdio.h"
@@ -103,11 +104,19 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
         write_pH = false;
         tot_prot = 0;
       }
-
       statsOut_->Printf("%3s %-4i", *(stat->ds_->Res().Name()), stat->ds_->Res().Num());
-      statsOut_->Printf(": Offset %6s", "inf");
-      statsOut_->Printf("  Pred %6s", "inf");
-      statsOut_->Printf("  Frac Prot %5.3f", (double)stat->n_prot_ / (double)stat->ds_->Size());
+      double dsize = (double)stat->ds_->Size();
+      double dnprot = (double)stat->n_prot_;
+      if (dnprot > 0.0) {
+        double pKa = (double)current_pH - log10( (dsize - dnprot) / dnprot );
+        double offset = pKa - current_pH;
+        statsOut_->Printf(": Offset %6.3f", offset);
+        statsOut_->Printf("  Pred %6.3f", pKa);
+      } else {
+        statsOut_->Printf(": Offset %6s", "inf");
+        statsOut_->Printf("  Pred %6s", "inf");
+      }
+      statsOut_->Printf("  Frac Prot %5.3f", dnprot / dsize);
       statsOut_->Printf(" Transitions %9i\n", stat->n_transitions_);
       tot_prot += stat->tot_prot_;
 
@@ -115,7 +124,7 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
       if (next == Stats_.end() || next->ds_->Solvent_pH() > current_pH) {
         write_pH = true;
         statsOut_->Printf("\nAverage total molecular protonation: %7.3f\n",
-                         (double)tot_prot / (double)stat->ds_->Size());
+                         (double)tot_prot / dsize);
       }
     }
   }
