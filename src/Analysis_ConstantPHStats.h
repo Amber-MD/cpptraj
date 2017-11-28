@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_CONSTANTPHSTATS_H
 #include <map>
 #include "Analysis.h"
-#include "CphResidue.h"
+#include "DataSet_pH.h"
 /// <Enter description of Analysis_ConstantPHStats here>
 class Analysis_ConstantPHStats : public Analysis {
   public:
@@ -24,38 +24,48 @@ class Analysis_ConstantPHStats : public Analysis {
       DataSet* fracProt_;
       DataSet* fracDeprot_;
     };
-    /// Hold various protonation stats for single residue at single pH
+    /// Hold various protonation stats for input DataSet (single residue at single pH)
     class ResStat {
       public:
-        ResStat() : num_(-1), n_transitions_(0), n_prot_(0), tot_prot_(0) {}
-        ResStat(CphResidue const& r, int init_state) :
-          name_(r.Name()), num_(r.Num()), n_transitions_(0),
-          n_prot_((int)r.IsProtonated(init_state)),
-          tot_prot_(r.Nprotons(init_state))
+        /// CONSTRUCTOR
+        ResStat() : ds_(0), n_transitions_(0), n_prot_(0), tot_prot_(0) {}
+        /// CONSTRUCTOR : pH DataSet, initial state
+        ResStat(DataSet_pH* ds, int init_state) :
+          ds_(ds),
+          n_transitions_(0),
+          n_prot_((int)ds->Res().IsProtonated(init_state)),
+          tot_prot_(ds->Res().Nprotons(init_state))
         {}
-/*        /// Sort by pH
-        bool operator<(const ResStat& rhs) const {
-          return (pH_ < rhs.pH_);
-        }
-        /// Equivalent if have same pH
-        bool operator==(const ResStat&) const;*/
 
-        NameType name_;
-        int num_; // TODO remove?
-//        float pH_;
-        int n_transitions_;
-        int n_prot_;
-        int tot_prot_;
+        DataSet_pH* ds_;    ///< Pointer to the associated input DataSet.
+        int n_transitions_; ///< Protonated -> Deprotonated or vice-versa
+        int n_prot_;        ///< # states protonated
+        int tot_prot_;      ///< Total proton count
     };
-    /// Map solvent pH to residue.
-    typedef std::map<float,ResStat> PHresMap;
-    /// Pair solvent pH to residue.
-    typedef std::pair<float,ResStat> PHresPair;
-    /// Map residue id to array of stats at different pH values.
-    typedef std::map<int,PHresMap> StatMap;
-    /// Pair residue id to array of stats
-    typedef std::pair<int,PHresMap> StatPair;
+    typedef std::vector<ResStat> Rarray;
 
+    /// Sort ResStat by pH, then residue number.
+    struct ph_num_sort {
+      inline bool operator()(ResStat const& r0, ResStat const& r1) const {
+        if (r0.ds_->Solvent_pH() == r1.ds_->Solvent_pH())
+          return (r0.ds_->Res().Num() < r1.ds_->Res().Num());
+        else
+          return (r0.ds_->Solvent_pH() < r1.ds_->Solvent_pH());
+      }
+    };
+
+    /// Sort ResStat by residue number, then pH.
+    struct num_ph_sort {
+      inline bool operator()(ResStat const& r0, ResStat const& r1) const {
+        if (r0.ds_->Res().Num() == r1.ds_->Res().Num())
+          return (r0.ds_->Solvent_pH() < r1.ds_->Solvent_pH());
+        else
+          return (r0.ds_->Res().Num() < r1.ds_->Res().Num());
+      }
+    };
+
+    
+    Rarray Stats_;           ///< Hold residue protonation stats for each input DataSet
     CpptrajFile* statsOut_;
 };
 #endif

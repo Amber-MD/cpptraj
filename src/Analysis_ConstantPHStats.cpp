@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "Analysis_ConstantPHStats.h"
 #include "CpptrajStdio.h"
 #include "DataSet_pH.h"
@@ -50,67 +51,75 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
 
 // Analysis_ConstantPHStats::Analyze()
 Analysis::RetType Analysis_ConstantPHStats::Analyze() {
-  StatMap Stats;
   // Loop over all data sets
   for (DataSetList::const_iterator ds = inputSets_.begin(); ds != inputSets_.end(); ++ds)
   {
-    DataSet_pH const& PH = static_cast<DataSet_pH const&>( *((DataSet_pH*)*ds) );
-    if (PH.Size() > 0) {
-        // Initial state.
-        int last_state = PH.State(0);
-        PHresMap::iterator ph_res;
-        // Try to find residue in map.
-        StatMap::iterator it = Stats.lower_bound( PH.Res().Num() );
-        if ( it == Stats.end() || it->first != PH.Res().Num() ) {
-          // New residue. First create map of solvent pH to residue.
-          PHresMap tmp;
-          tmp.insert( PHresPair(PH.Solvent_pH(), ResStat(PH.Res(), last_state)) );
-          it = Stats.insert( it, StatPair(PH.Res().Num(), tmp) );
-          ph_res = it->second.begin();
-        } else {
-          // Existing residue. Find pH.
-          ph_res = it->second.lower_bound( PH.Solvent_pH() );
-          if (ph_res == it->second.end() ||
-              ph_res->first != PH.Solvent_pH()) // TODO fix comparison
-          {
-            // New pH value.
-            ph_res = it->second.insert( ph_res, PHresPair(PH.Solvent_pH(),
-                                                          ResStat(PH.Res(), last_state)) );
-          }
-        }
-        ResStat& stat = ph_res->second;
-
-        // Loop over frames after initial.
-        for (unsigned int n = 1; n != PH.Size(); n++)
-        {
-          //if ( PH.State(n) != last_state )
-          if ( PH.Res().IsProtonated( PH.State(n) ) != PH.Res().IsProtonated( last_state ) )
-            stat.n_transitions_++;
-          if ( PH.Res().IsProtonated( PH.State(n) ) )
-            stat.n_prot_++;
-          stat.tot_prot_ += PH.Res().Nprotons( PH.State(n) );
-          last_state = PH.State(n);
-        }
-        rprintf("DEBUG: %s '%s %i' n_transitions= %i  n_prot= %i  tot_prot= %i\n",
-                PH.legend(), *(PH.Res().Name()), PH.Res().Num(),
-                stat.n_transitions_, stat.n_prot_, stat.tot_prot_);
+    DataSet_pH* phset = (DataSet_pH*)*ds;
+    if (phset->Size() > 0) {
+      Stats_.push_back( ResStat(phset, phset->State(0)) );
+      DataSet_pH const& PH = static_cast<DataSet_pH const&>( *phset );
+      // Get residue stats
+      ResStat& stat = Stats_.back(); 
+      // Initial state.
+      int last_state = PH.State(0);
+      // Loop over frames after initial.
+      for (unsigned int n = 1; n != PH.Size(); n++)
+      {
+        //if ( PH.State(n) != last_state )
+        if ( PH.Res().IsProtonated( PH.State(n) ) != PH.Res().IsProtonated( last_state ) )
+          stat.n_transitions_++;
+        if ( PH.Res().IsProtonated( PH.State(n) ) )
+          stat.n_prot_++;
+        stat.tot_prot_ += PH.Res().Nprotons( PH.State(n) );
+        last_state = PH.State(n);
+      }
+      rprintf("DEBUG: %s '%s %i' n_transitions= %i  n_prot= %i  tot_prot= %i\n",
+              PH.legend(), *(PH.Res().Name()), PH.Res().Num(),
+              stat.n_transitions_, stat.n_prot_, stat.tot_prot_);
     }
   } // END loop over DataSets
 
+  // Print some results grouped by residue
+  std::sort( Stats_.begin(), Stats_.end(), num_ph_sort() );
   mprintf("#%-5s %4s %6s %8s %8s %8s\n", "pH", "Name", "Num", "Ntrans", "Nprot", "TotProt");
-  int nstats = 0;
-  for (StatMap::const_iterator res_map = Stats.begin(); res_map != Stats.end(); ++res_map)
+  for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
   {
-    //int resnum = res_map->first;
-    for (PHresMap::const_iterator ph_res = res_map->second.begin();
-                                  ph_res != res_map->second.end(); ++ph_res)
+    DataSet_pH const& PH = static_cast<DataSet_pH const&>( *(stat->ds_) );
+    rprintf("%6.2f %4s %6i %8i %8i %8i\n", PH.Solvent_pH(), *(PH.Res().Name()), PH.Res().Num(),
+            stat->n_transitions_, stat->n_prot_, stat->tot_prot_);
+  }
+
+  // Print cphstats-like output, grouped by pH
+  if (statsOut_ != 0) {
+    std::sort( Stats_.begin(), Stats_.end(), ph_num_sort() );
+    float current_pH = -100.0;
+    bool write_pH = true;
+    unsigned int tot_prot = 0;
+    for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
     {
-      ResStat const& stat = ph_res->second;
-      nstats++;
-      rprintf("%6.2f %4s %6i %8i %8i %8i\n", ph_res->first,
-              *(stat.name_), stat.num_, stat.n_transitions_, stat.n_prot_, stat.tot_prot_);
+      if (write_pH) {
+        current_pH = stat->ds_->Solvent_pH();
+        statsOut_->Printf("Solvent pH is %8.3f\n", current_pH);
+        write_pH = false;
+        tot_prot = 0;
+      }
+
+      statsOut_->Printf("%3s %-4i", *(stat->ds_->Res().Name()), stat->ds_->Res().Num());
+      statsOut_->Printf(": Offset %6s", "inf");
+      statsOut_->Printf("  Pred %6s", "inf");
+      statsOut_->Printf("  Frac Prot %5.3f", (double)stat->n_prot_ / (double)stat->ds_->Size());
+      statsOut_->Printf(" Transitions %9i\n", stat->n_transitions_);
+      tot_prot += stat->tot_prot_;
+
+      Rarray::const_iterator next = stat + 1;
+      if (next == Stats_.end() || next->ds_->Solvent_pH() > current_pH) {
+        write_pH = true;
+        statsOut_->Printf("\nAverage total molecular protonation: %7.3f\n",
+                         (double)tot_prot / (double)stat->ds_->Size());
+      }
     }
   }
+    
 /*
 # ifdef MPI
   // For doing things like pH plots gather all data to a single thread.
