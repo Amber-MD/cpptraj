@@ -13,8 +13,13 @@ class Analysis_ConstantPHStats : public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
+    DataFile* fracPlotOut_;
+    std::string dsname_;
     int debug_;
+    bool createFracPlot_;
+    bool useFracProtonated_;
     DataSetList inputSets_;
+    DataSetList* masterDSL_;
 
     /// Hold all DataSets for a residue
     struct resStatData {

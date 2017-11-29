@@ -3,10 +3,13 @@
 #include "Analysis_ConstantPHStats.h"
 #include "CpptrajStdio.h"
 #include "DataSet_pH.h"
+#include "DataSet_Mesh.h"
+#include "StringRoutines.h"
 
 // Analysis_ConstantPHStats::Help()
 void Analysis_ConstantPHStats::Help() const {
-  mprintf("\t<pH sets> [statsout <statsfile>]\n");
+  mprintf("\t<pH sets> [statsout <statsfile>] [deprot]\n"
+          "\t[fracplot [fracplotout <file>]]\n");
 }
 
 // Analysis_ConstantPHStats::Setup()
@@ -15,6 +18,20 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
   debug_ = debugIn;
   statsOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("statsout"), 
                                          "Constant pH stats", DataFileList::TEXT);
+  dsname_ = analyzeArgs.GetStringKey("name");
+  if (dsname_.empty())
+    dsname_ = setup.DSL().GenerateDefaultName("CPH");
+  createFracPlot_ = analyzeArgs.hasKey("fracplot");
+  useFracProtonated_ = !analyzeArgs.hasKey("deprot");
+  const char* FRACSTR_;
+  if (useFracProtonated_)
+    FRACSTR_ = "protonated";
+  else
+    FRACSTR_ = "deprotonated";
+  if (createFracPlot_) {
+    fracPlotOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("fracplotout") );
+    fracPlotOut_->ProcessArgs("xlabel pH ylabel \"Frac. " + std::string(FRACSTR_) + "\"");
+  }
   // Get DataSets
   DataSetList tempDSL;
   std::string dsarg = analyzeArgs.GetStringNext();
@@ -40,11 +57,18 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
     mprinterr("Error: No pH data sets.\n");
     return Analysis::ERR;
   }
+  masterDSL_ = setup.DslPtr();
 
   mprintf("    CONSTANT PH STATS:\n");
   if (statsOut_ != 0)
     mprintf("\tConstant pH statistics (cphstats style) output to '%s'\n",
             statsOut_->Filename().full());
+  if (createFracPlot_) {
+    mprintf("\tFraction %s vs pH will be calculated", FRACSTR_);
+    if (fracPlotOut_ != 0)
+      mprintf(" and written to '%s'", fracPlotOut_->DataFilename().full());
+    mprintf("\n");
+  }
   mprintf("\tInput pH data sets:\n");
   inputSets_.List();
   return Analysis::OK;
@@ -85,12 +109,33 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
 
   // Print some results grouped by residue
   std::sort( Stats_.begin(), Stats_.end(), num_ph_sort() );
+  int lastRes = -1;
+  DataSet_Mesh* fracPlot = 0;
   mprintf("#%-5s %4s %6s %8s %8s %8s\n", "pH", "Name", "Num", "Ntrans", "Nprot", "TotProt");
   for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
   {
     DataSet_pH const& PH = static_cast<DataSet_pH const&>( *(stat->ds_) );
+    if (lastRes != PH.Res().Num()) { // Assuming residue numbers are unique
+      lastRes = PH.Res().Num();
+      // New residue
+      if (createFracPlot_) {
+        fracPlot = (DataSet_Mesh*)masterDSL_->AddSet(DataSet::XYMESH,
+                                                     MetaData(dsname_, "Frac", PH.Res().Num()));
+        if (fracPlot == 0) return Analysis::ERR;
+        fracPlot->SetLegend(PH.Res().Name().Truncated() + ":" + integerToString(PH.Res().Num()));
+        if (fracPlotOut_ != 0) fracPlotOut_->AddDataSet(fracPlot);
+      }
+    }
+
     rprintf("%6.2f %4s %6i %8u %8u %8u\n", PH.Solvent_pH(), *(PH.Res().Name()), PH.Res().Num(),
             stat->n_transitions_, stat->n_prot_, stat->tot_prot_);
+
+    if (fracPlot != 0) {
+      double frac = (double)stat->n_prot_ / (double)stat->nframes_;
+      if (!useFracProtonated_)
+        frac = 1.0 - frac;
+      fracPlot->AddXY( PH.Solvent_pH(), frac );
+    }
   }
 
   // Print cphstats-like output, grouped by pH
