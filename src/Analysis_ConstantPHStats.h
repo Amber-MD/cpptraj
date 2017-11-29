@@ -28,19 +28,25 @@ class Analysis_ConstantPHStats : public Analysis {
     class ResStat {
       public:
         /// CONSTRUCTOR
-        ResStat() : ds_(0), n_transitions_(0), n_prot_(0), tot_prot_(0) {}
+        ResStat() : ds_(0), n_transitions_(0), n_prot_(0), tot_prot_(0), nframes_(0) {}
+        /// CONSTRUCTOR : pH DataSet
+        ResStat(DataSet_pH* ds) :
+          ds_(ds),
+          n_transitions_(0), n_prot_(0), tot_prot_(0), nframes_(0) {}
         /// CONSTRUCTOR : pH DataSet, initial state
-        ResStat(DataSet_pH* ds, int init_state) :
+        ResStat(DataSet_pH* ds, unsigned int init_state) :
           ds_(ds),
           n_transitions_(0),
-          n_prot_((int)ds->Res().IsProtonated(init_state)),
-          tot_prot_(ds->Res().Nprotons(init_state))
+          n_prot_((unsigned int)ds->Res().IsProtonated(init_state)),
+          tot_prot_(ds->Res().Nprotons(init_state)),
+          nframes_(1)
         {}
 
         DataSet_pH* ds_;    ///< Pointer to the associated input DataSet.
-        int n_transitions_; ///< Protonated -> Deprotonated or vice-versa
-        int n_prot_;        ///< # states protonated
-        int tot_prot_;      ///< Total proton count
+        unsigned int n_transitions_; ///< Protonated -> Deprotonated or vice-versa
+        unsigned int n_prot_;        ///< # states protonated
+        unsigned int tot_prot_;      ///< Total proton count
+        unsigned int nframes_;       ///< Total number of frames
     };
     typedef std::vector<ResStat> Rarray;
 

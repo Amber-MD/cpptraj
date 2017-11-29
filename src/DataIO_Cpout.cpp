@@ -331,6 +331,7 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
       ((DataSet_pH*)ds)->SetResidueInfo( *res );
       ((DataSet_pH*)ds)->Set_Solvent_pH( original_pH_ ); // TODO combine with above?
     } else {
+      // TODO may need to skip reading first record on append
       if (ds->Type() != DataSet::PH) {
         mprinterr("Error: Set '%s' type does not match, cannot append.\n", ds->legend());
         return 1;
@@ -393,6 +394,7 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
     if (ds == 0) return 1;
     ((DataSet_pH_REMD*)ds)->SetResidueInfo( Residues_ );
   } else {
+    // TODO may need to skip reading first record on append
     if (ds->Type() != DataSet::PH_REMD) {
       mprinterr("Error: Set '%s' is not pH data.\n", ds->legend());
       return 1;

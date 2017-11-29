@@ -56,8 +56,10 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
   for (DataSetList::const_iterator ds = inputSets_.begin(); ds != inputSets_.end(); ++ds)
   {
     DataSet_pH* phset = (DataSet_pH*)*ds;
-    if (phset->Size() > 0) {
-      Stats_.push_back( ResStat(phset, phset->State(0)) );
+    if (phset->Size() > 1) {
+      //Stats_.push_back( ResStat(phset, phset->State(0)) );
+      // NOTE: Ignore the first state since no dynamics have been done yet.
+      Stats_.push_back( ResStat(phset) );
       DataSet_pH const& PH = static_cast<DataSet_pH const&>( *phset );
       // Get residue stats
       ResStat& stat = Stats_.back(); 
@@ -74,9 +76,10 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
         stat.tot_prot_ += PH.Res().Nprotons( PH.State(n) );
         last_state = PH.State(n);
       }
-      rprintf("DEBUG: %s '%s %i' n_transitions= %i  n_prot= %i  tot_prot= %i\n",
+      stat.nframes_ += (PH.Size() - 1);
+      rprintf("DEBUG: %s '%s %i' n_transitions= %u  n_prot= %u  tot_prot= %u  nframes= %u\n",
               PH.legend(), *(PH.Res().Name()), PH.Res().Num(),
-              stat.n_transitions_, stat.n_prot_, stat.tot_prot_);
+              stat.n_transitions_, stat.n_prot_, stat.tot_prot_, stat.nframes_);
     }
   } // END loop over DataSets
 
@@ -86,7 +89,7 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
   for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
   {
     DataSet_pH const& PH = static_cast<DataSet_pH const&>( *(stat->ds_) );
-    rprintf("%6.2f %4s %6i %8i %8i %8i\n", PH.Solvent_pH(), *(PH.Res().Name()), PH.Res().Num(),
+    rprintf("%6.2f %4s %6i %8u %8u %8u\n", PH.Solvent_pH(), *(PH.Res().Name()), PH.Res().Num(),
             stat->n_transitions_, stat->n_prot_, stat->tot_prot_);
   }
 
@@ -106,7 +109,7 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
       }
       statsOut_->Printf("%3s %-4i", stat->ds_->Res().Name().Truncated().c_str(),
                         stat->ds_->Res().Num());
-      double dsize = (double)stat->ds_->Size();
+      double dsize = (double)stat->nframes_;
       double dnprot = (double)stat->n_prot_;
       if (dnprot > 0.0) {
         double pKa = (double)current_pH - log10( (dsize - dnprot) / dnprot );
