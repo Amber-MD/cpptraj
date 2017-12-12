@@ -470,8 +470,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   if (image_.ImagingEnabled())
     frameIn.BoxCrd().ToRecip(ucell, recip);
 
-  //mprintf("DEBUG: NsoluteSolventAtoms= %zu  NwatAtomsOnGrid= %u\n",
-  //        A_idxs_.size(), N_ON_GRID_);
+//  mprintf("DEBUG: NSolventAtoms= %zu  NwatAtomsOnGrid= %u\n", O_idxs_.size()*nMolAtoms_, N_ON_GRID_);
 
   double* E_UV_VDW  = &(E_UV_VDW_[0][0]);
   double* E_UV_Elec = &(E_UV_Elec_[0][0]);
@@ -526,20 +525,27 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         if ( a1_voxel == SOLUTE_ ) {
           // Solute to solvent on grid energy
           // Calculate distance
+          gist_nonbond_dist_.Start();
           double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
                                ucell, recip );
+          gist_nonbond_dist_.Stop();
+          gist_nonbond_UV_.Start();
           // Calculate energy
           Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
           E_UV_VDW[a2_voxel]  += Evdw;
           E_UV_Elec[a2_voxel] += Eelec;
+          gist_nonbond_UV_.Stop();
         } else {
           // Solvent to solvent on grid energy
           // Only do the energy calculation if not previously done or atom1 not on grid
           if (a2 != a1 && (a2 > a1 || a1_voxel == OFF_GRID_))
           {
             // Calculate distance
+            gist_nonbond_dist_.Start();
             double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
                                  ucell, recip );
+            gist_nonbond_dist_.Stop();
+            gist_nonbond_VV_.Start();
             // Calculate energy
             Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
             //mprintf("DEBUG1: v1= %i v2= %i EVV %i %i Vdw= %f Elec= %f\n", a2_voxel, a1_voxel, a2, a1, Evdw, Eelec);
@@ -567,6 +573,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
                 }
               }
             }
+            gist_nonbond_VV_.Stop();
           }
         }
       } // END a1 and a2 not in same molecule
@@ -1191,8 +1198,9 @@ void Action_GIST::Print() {
   gist_action_.WriteTiming(1,  "Action:", total);
   gist_grid_.WriteTiming(2,    "Grid:   ", gist_action_.Total());
   gist_nonbond_.WriteTiming(2, "Nonbond:", gist_action_.Total());
-  //gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
-  //gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
+  gist_nonbond_dist_.WriteTiming(3, "Dist2:", gist_nonbond_.Total());
+  gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
+  gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
   gist_euler_.WriteTiming(2,   "Euler:  ", gist_action_.Total());
   gist_dipole_.WriteTiming(2,  "Dipole: ", gist_action_.Total());
   gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());

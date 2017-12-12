@@ -92,6 +92,7 @@ class Action_GIST : public Action {
     Timer gist_print_;
     Timer gist_grid_;
     Timer gist_nonbond_;
+    Timer gist_nonbond_dist_;
     Timer gist_nonbond_UV_;
     Timer gist_nonbond_VV_;
     Timer gist_euler_;
