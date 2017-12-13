@@ -62,6 +62,9 @@ class Action_GIST : public Action {
     Iarray A_idxs_;      ///< Atom indices for each solute and solvent atom.+ (energy calc only)
     Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
     Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
+
+    Iarray U_idxs_;      ///< Solute atom indices.
+    Iarray OffGrid_idxs_;///< Off-grid solvent atom indices.
 #   ifdef _OPENMP
     std::vector<Iarray> EIJ_V1_; ///< Hold any interaction energy voxel 1 each frame.*
     std::vector<Iarray> EIJ_V2_; ///< Hold any interaction energy voxel 2 each frame.*
