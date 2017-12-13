@@ -505,7 +505,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     {
       int a2 = OnGrid_idxs_[gidx];              // Index of water on grid
       int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
-      const double* A2_XYZ = frameIn.XYZ( a2 ); // Coord of water on grid
+      //const double* A2_XYZ = frameIn.XYZ( a2 ); // Coord of water on grid
+      const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3;
       // Calculate distance
       gist_nonbond_dist_.Start();
       double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
@@ -551,7 +552,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     for (int idx1 = 0; idx1 < nmolatoms; idx1++)
     {
       int a1 = OnGrid_idxs_[vidx1+idx1];
-      const double* a1XYZ = frameIn.XYZ( a1 );
+      //const double* a1XYZ = frameIn.XYZ( a1 );
+      const double* a1XYZ = (&OnGrid_XYZ_[0])+(vidx1+idx1)*3;
       double qa1 = topIn[ a1 ].Charge();
       int a1_voxel = atom_voxel_[a1];               // Voxel of water on grid
       // Inner loop over all other solvent molecules
@@ -561,7 +563,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         for (int idx2 = 0; idx2 < nmolatoms; idx2++)
         {
           int a2 = OnGrid_idxs_[vidx2+idx2];
-          const double* a2XYZ = frameIn.XYZ( a2 );
+          //const double* a2XYZ = frameIn.XYZ( a2 );
+          const double* a2XYZ = (&OnGrid_XYZ_[0])+(vidx2+idx2)*3;
           double qa2 = topIn[ a2 ].Charge();
           int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
           // Calculate distance
@@ -632,7 +635,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         for (int idx2 = 0; idx2 < nmolatoms; idx2++)
         {
           int a2 = OnGrid_idxs_[vidx+idx2];
-          const double* a2XYZ = frameIn.XYZ( a2 );
+          //const double* a2XYZ = frameIn.XYZ( a2 );
+          const double* a2XYZ = (&OnGrid_XYZ_[0])+(vidx+idx2)*3;
           double qa2 = topIn[ a2 ].Charge();
           int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
           // Calculate distance
@@ -698,7 +702,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       if (a1_mol != a2_mol)
       {
         int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
-        const double* A2_XYZ = frameIn.XYZ( a2 ); // Coord of water on grid
+        //const double* A2_XYZ = frameIn.XYZ( a2 ); // Coord of water on grid
+        const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3;
         if ( a1_voxel == SOLUTE_ ) {
           // Solute to solvent on grid energy
           // Calculate distance
@@ -830,6 +835,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   // TODO only !skipE?
   N_ON_GRID_ = 0;
   OffGrid_idxs_.clear();
+  OnGrid_XYZ_.clear();
 
   size_t bin_i, bin_j, bin_k;
   Vec3 const& Origin = gO_->GridOrigin();
@@ -860,9 +866,14 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         // Oxygen is inside the grid. Record the voxel.
         // NOTE hydrogens/EP always assigned to same voxel for energy purposes.
         int voxel = (int)gO_->CalcIndex(bin_i, bin_j, bin_k);
+        const double* wXYZ = O_XYZ;
         for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
           atom_voxel_[oidx+IDX] = voxel;
           OnGrid_idxs_[N_ON_GRID_+IDX] = oidx + IDX;
+          OnGrid_XYZ_.push_back( wXYZ[0] );
+          OnGrid_XYZ_.push_back( wXYZ[1] );
+          OnGrid_XYZ_.push_back( wXYZ[2] );
+          wXYZ+=3;
         }
         N_ON_GRID_ += nMolAtoms_;
         //mprintf("DEBUG1: Water atom %i voxel %i\n", oidx, voxel);
