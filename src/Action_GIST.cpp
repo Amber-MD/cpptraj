@@ -483,7 +483,24 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   float* Neighbor = &(neighbor_[0][0]);
   double Evdw, Eelec;
 # ifdef GIST_NEW_NONBOND
+  // Wrap on-grid water coords back to primary cell TODO nonortho only TODO openmp
+  double* ongrid_xyz = &OnGrid_XYZ_[0];
+  int maxXYZ = (int)OnGrid_XYZ_.size();
+  for (int idx = 0; idx < maxXYZ; idx += 3)
+  {
+    double* XYZ = ongrid_xyz + idx;
+    // Convert to frac coords
+    recip.TimesVec( XYZ, XYZ );
+    // Wrap to primary cell
+    XYZ[0] = XYZ[0] - floor(XYZ[0]);
+    XYZ[1] = XYZ[1] - floor(XYZ[1]);
+    XYZ[2] = XYZ[2] - floor(XYZ[2]);
+    // Convert back to Cartesian
+    ucell.TransposeMult( XYZ, XYZ );
+  }
+    
   // ----- Solute to on-grid solvent -------------
+  gist_nonbond_UV_.Start();
   int uidx;
   int maxUidx = (int)U_idxs_.size();
   mprintf("DEBUG: # solute= %i # on grid= %i  off grid= %i\n", maxUidx, N_ON_GRID_, (int)OffGrid_idxs_.size());
@@ -520,8 +537,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # ifdef _OPENMP
   } // END omp parallel
 # endif
+  gist_nonbond_UV_.Start();
 
   // ----- On-grid solvent to on-grid solvent ----
+  gist_nonbond_VV_.Start();
   int vidx1;
   int maxVidx = (int)N_ON_GRID_; // TODO use size()
   int nmolatoms = (int)nMolAtoms_;
@@ -604,8 +623,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         ww_Eij_->UpdateElement(EIJ_V1_[thread][idx], EIJ_V2_[thread][idx], EIJ_EN_[thread][idx]);
   }
 # endif
+  gist_nonbond_VV_.Stop();
 
   // ----- Off-grid solvent to on-grid solvent ---
+  gist_nonbond_OV_.Start();
   int oidx;
   int maxOidx = (int)OffGrid_idxs_.size();
 # ifdef _OPENMP
@@ -625,6 +646,20 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       int a1 = OffGrid_idxs_[oidx+idx1];
       const double* a1XYZ = frameIn.XYZ( a1 );
       double qa1 = topIn[ a1 ].Charge();
+      // Convert to frac coords TODO nonortho only
+      Vec3 vFrac = recip * Vec3( a1XYZ );
+      // Wrap to primary unit cell
+      vFrac[0] = vFrac[0] - floor(vFrac[0]);
+      vFrac[1] = vFrac[1] - floor(vFrac[1]);
+      vFrac[2] = vFrac[2] - floor(vFrac[2]);
+      // Calculate all images of this solvent atom
+      std::vector<Vec3> vImages;
+      vImages.reserve(27); 
+      for (int ix = -1; ix != 2; ix++)
+        for (int iy = -1; iy != 2; iy++)
+          for (int iz = -1; iz != 2; iz++)
+            // Convert image back to Cartesian
+            vImages.push_back( ucell.TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
       // Inner loop over on-grid solvent molecules 
       for (int vidx = 0; vidx < maxVidx; vidx += nmolatoms)
       {
@@ -637,7 +672,16 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
           // Calculate distance
           //gist_nonbond_dist_.Start();
-          double rij2 = Dist2( image_.ImageType(), a1XYZ, a2XYZ, frameIn.BoxCrd(), ucell, recip);
+          //double rij2 = Dist2( image_.ImageType(), a1XYZ, a2XYZ, frameIn.BoxCrd(), ucell, recip);
+          double rij2 = 9999999.0;
+          for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
+                                                 vCart != vImages.end(); ++vCart)
+          {
+            double x = (*vCart)[0] - a2XYZ[0];
+            double y = (*vCart)[1] - a2XYZ[1];
+            double z = (*vCart)[2] - a2XYZ[2];
+            rij2 = std::min(rij2, x*x + y*y + z*z);
+          }
           //gist_nonbond_dist_.Stop();
           // Calculate energy
           Ecalc( rij2, qa1, qa2, topIn.GetLJparam(a1, a2), Evdw, Eelec );
@@ -653,6 +697,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # ifdef _OPENMP
   } // END pragma omp parallel
 # endif
+  gist_nonbond_OV_.Stop();
 // ===============================================
 # else /* GIST_NEW_NONBOND */
   int aidx;
@@ -1392,8 +1437,9 @@ void Action_GIST::Print() {
   gist_grid_.WriteTiming(2,    "Grid:   ", gist_action_.Total());
   gist_nonbond_.WriteTiming(2, "Nonbond:", gist_action_.Total());
   //gist_nonbond_dist_.WriteTiming(3, "Dist2:", gist_nonbond_.Total());
-  //gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
-  //gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
+  gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
+  gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
+  gist_nonbond_OV_.WriteTiming(3, "OV:", gist_nonbond_.Total());
   gist_euler_.WriteTiming(2,   "Euler:  ", gist_action_.Total());
   gist_dipole_.WriteTiming(2,  "Dipole: ", gist_action_.Total());
   gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());
