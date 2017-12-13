@@ -498,20 +498,19 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # endif
   for (uidx = 0; uidx < maxUidx; uidx++)
   {
-    int a1 = U_idxs_[uidx];
-    Vec3 A1_XYZ( frameIn.XYZ( a1 ) );  // Coord of atom1
-    double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
+    int a1 = U_idxs_[uidx];            // Index of solute atom
+    Vec3 A1_XYZ( frameIn.XYZ( a1 ) );  // Coord of solute atom
+    double qA1 = topIn[ a1 ].Charge(); // Charge of solute atom
     for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx++)
     {
-      int a2 = OnGrid_idxs_[gidx];              // Index of water on grid
-      int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
-      //const double* A2_XYZ = frameIn.XYZ( a2 ); // Coord of water on grid
-      const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3;
+      int a2 = OnGrid_idxs_[gidx];                     // Index of water on grid
+      int a2_voxel = atom_voxel_[a2];                  // Voxel of water on grid
+      const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3; // Coord of water on grid
       // Calculate distance
-      gist_nonbond_dist_.Start();
+      //gist_nonbond_dist_.Start();
       double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
                            ucell, recip );
-      gist_nonbond_dist_.Stop();
+      //gist_nonbond_dist_.Stop();
       // Calculate energy
       Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
       E_UV_VDW[a2_voxel]  += Evdw;
@@ -552,10 +551,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     for (int idx1 = 0; idx1 < nmolatoms; idx1++)
     {
       int a1 = OnGrid_idxs_[vidx1+idx1];
-      //const double* a1XYZ = frameIn.XYZ( a1 );
       const double* a1XYZ = (&OnGrid_XYZ_[0])+(vidx1+idx1)*3;
       double qa1 = topIn[ a1 ].Charge();
-      int a1_voxel = atom_voxel_[a1];               // Voxel of water on grid
+      int a1_voxel = atom_voxel_[a1];
       // Inner loop over all other solvent molecules
       for (int vidx2 = vidx1 + nmolatoms; vidx2 < maxVidx; vidx2 += nmolatoms)
       {
@@ -563,14 +561,13 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         for (int idx2 = 0; idx2 < nmolatoms; idx2++)
         {
           int a2 = OnGrid_idxs_[vidx2+idx2];
-          //const double* a2XYZ = frameIn.XYZ( a2 );
           const double* a2XYZ = (&OnGrid_XYZ_[0])+(vidx2+idx2)*3;
           double qa2 = topIn[ a2 ].Charge();
-          int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
+          int a2_voxel = atom_voxel_[a2];
           // Calculate distance
-          gist_nonbond_dist_.Start();
+          //gist_nonbond_dist_.Start();
           double rij2 = Dist2( image_.ImageType(), a1XYZ, a2XYZ, frameIn.BoxCrd(), ucell, recip);
-          gist_nonbond_dist_.Stop();
+          //gist_nonbond_dist_.Stop();
           // Calculate energy
           Ecalc( rij2, qa1, qa2, topIn.GetLJparam(a1, a2), Evdw, Eelec );
           E_VV_VDW[a1_voxel] += Evdw;
@@ -635,14 +632,13 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         for (int idx2 = 0; idx2 < nmolatoms; idx2++)
         {
           int a2 = OnGrid_idxs_[vidx+idx2];
-          //const double* a2XYZ = frameIn.XYZ( a2 );
           const double* a2XYZ = (&OnGrid_XYZ_[0])+(vidx+idx2)*3;
           double qa2 = topIn[ a2 ].Charge();
           int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
           // Calculate distance
-          gist_nonbond_dist_.Start();
+          //gist_nonbond_dist_.Start();
           double rij2 = Dist2( image_.ImageType(), a1XYZ, a2XYZ, frameIn.BoxCrd(), ucell, recip);
-          gist_nonbond_dist_.Stop();
+          //gist_nonbond_dist_.Stop();
           // Calculate energy
           Ecalc( rij2, qa1, qa2, topIn.GetLJparam(a1, a2), Evdw, Eelec );
           E_VV_VDW[a2_voxel] += Evdw;
@@ -701,16 +697,15 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       int a2_mol = topIn[ a2 ].MolNum();        // Molecule # of atom 2
       if (a1_mol != a2_mol)
       {
-        int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
-        //const double* A2_XYZ = frameIn.XYZ( a2 ); // Coord of water on grid
-        const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3;
+        int a2_voxel = atom_voxel_[a2];                  // Voxel of water on grid
+        const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3; // Coord of water on grid
         if ( a1_voxel == SOLUTE_ ) {
           // Solute to solvent on grid energy
           // Calculate distance
-          gist_nonbond_dist_.Start();
+          //gist_nonbond_dist_.Start();
           double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
                                ucell, recip );
-          gist_nonbond_dist_.Stop();
+          //gist_nonbond_dist_.Stop();
           //gist_nonbond_UV_.Start();
           // Calculate energy
           Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
@@ -723,10 +718,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           if (a2 != a1 && (a2 > a1 || a1_voxel == OFF_GRID_))
           {
             // Calculate distance
-            gist_nonbond_dist_.Start();
+            //gist_nonbond_dist_.Start();
             double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
                                  ucell, recip );
-            gist_nonbond_dist_.Stop();
+            //gist_nonbond_dist_.Stop();
             //gist_nonbond_VV_.Start();
             // Calculate energy
             Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
@@ -1396,9 +1391,9 @@ void Action_GIST::Print() {
   gist_action_.WriteTiming(1,  "Action:", total);
   gist_grid_.WriteTiming(2,    "Grid:   ", gist_action_.Total());
   gist_nonbond_.WriteTiming(2, "Nonbond:", gist_action_.Total());
-  gist_nonbond_dist_.WriteTiming(3, "Dist2:", gist_nonbond_.Total());
-  gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
-  gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
+  //gist_nonbond_dist_.WriteTiming(3, "Dist2:", gist_nonbond_.Total());
+  //gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
+  //gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
   gist_euler_.WriteTiming(2,   "Euler:  ", gist_action_.Total());
   gist_dipole_.WriteTiming(2,  "Dipole: ", gist_action_.Total());
   gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());
