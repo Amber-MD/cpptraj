@@ -471,9 +471,11 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
   // Set up imaging info.
   Matrix_3x3 ucell, recip;
+  Darray OnGrid_frac; // For nonortho on-grid solvent self calc
   if (image_.ImageType() == NONORTHO) {
     frameIn.BoxCrd().ToRecip(ucell, recip);
 #   ifdef GIST_NEW_NONBOND
+    OnGrid_frac.reserve( OnGrid_XYZ_.size() );
     // Wrap on-grid water coords back to primary cell TODO openmp
     double* ongrid_xyz = &OnGrid_XYZ_[0];
     int maxXYZ = (int)OnGrid_XYZ_.size();
@@ -486,6 +488,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       XYZ[0] = XYZ[0] - floor(XYZ[0]);
       XYZ[1] = XYZ[1] - floor(XYZ[1]);
       XYZ[2] = XYZ[2] - floor(XYZ[2]);
+      OnGrid_frac.push_back( XYZ[0] );
+      OnGrid_frac.push_back( XYZ[1] );
+      OnGrid_frac.push_back( XYZ[2] );
       // Convert back to Cartesian
       ucell.TransposeMult( XYZ, XYZ );
     }
@@ -605,6 +610,17 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       const double* a1XYZ = (&OnGrid_XYZ_[0])+(vidx1+idx1)*3;
       double qa1 = topIn[ a1 ].Charge();
       int a1_voxel = atom_voxel_[a1];
+      std::vector<Vec3> vImages;
+      if (image_.ImageType() == NONORTHO) {
+        Vec3 vFrac( (&OnGrid_frac[0])+(vidx1+idx1)*3 );
+        // Calculate all images of this solvent atom
+        vImages.reserve(27); 
+        for (int ix = -1; ix != 2; ix++)
+          for (int iy = -1; iy != 2; iy++)
+            for (int iz = -1; iz != 2; iz++)
+              // Convert image back to Cartesian
+              vImages.push_back( ucell.TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
+      }
       // Inner loop over all other solvent molecules
       for (int vidx2 = vidx1 + nmolatoms; vidx2 < maxVidx; vidx2 += nmolatoms)
       {
@@ -617,7 +633,21 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           int a2_voxel = atom_voxel_[a2];
           // Calculate distance
           //gist_nonbond_dist_.Start();
-          double rij2 = Dist2( image_.ImageType(), a1XYZ, a2XYZ, frameIn.BoxCrd(), ucell, recip);
+          double rij2;
+          if (image_.ImageType() == NONORTHO) {
+            rij2 = 9999999.0;
+            for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
+                                                   vCart != vImages.end(); ++vCart)
+            {
+              double x = (*vCart)[0] - a2XYZ[0];
+              double y = (*vCart)[1] - a2XYZ[1];
+              double z = (*vCart)[2] - a2XYZ[2];
+              rij2 = std::min(rij2, x*x + y*y + z*z);
+            }
+          } else if (image_.ImageType() == ORTHO)
+            rij2 = DIST2_ImageOrtho( a1XYZ, a2XYZ, frameIn.BoxCrd() );
+          else
+            rij2 = DIST2_NoImage( a1XYZ, a2XYZ );
           //gist_nonbond_dist_.Stop();
           // Calculate energy
           Ecalc( rij2, qa1, qa2, topIn.GetLJparam(a1, a2), Evdw, Eelec );
