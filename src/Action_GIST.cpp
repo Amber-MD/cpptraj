@@ -507,10 +507,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   double Evdw, Eelec;
 # ifdef GIST_NEW_NONBOND
   // ----- Solute to on-grid solvent -------------
-  gist_nonbond_UV_.Start();
+  //gist_nonbond_UV_.Start();
   int uidx;
   int maxUidx = (int)U_idxs_.size();
-  mprintf("DEBUG: # solute= %i # on grid= %i  off grid= %i\n", maxUidx, N_ON_GRID_, (int)OffGrid_idxs_.size());
+  //mprintf("DEBUG: # solute= %i # on grid= %i  off grid= %i\n", maxUidx, N_ON_GRID_, (int)OffGrid_idxs_.size());
 # ifdef _OPENMP
   int mythread;
 # pragma omp parallel private(uidx, mythread, E_UV_VDW, E_UV_Elec, Evdw, Eelec)
@@ -574,10 +574,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # ifdef _OPENMP
   } // END omp parallel
 # endif
-  gist_nonbond_UV_.Stop();
+  //gist_nonbond_UV_.Stop();
 
   // ----- On-grid solvent to on-grid solvent ----
-  gist_nonbond_VV_.Start();
+  //gist_nonbond_VV_.Start();
   int vidx1;
   int maxVidx = (int)N_ON_GRID_; // TODO use size()
   int nmolatoms = (int)nMolAtoms_;
@@ -685,10 +685,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         ww_Eij_->UpdateElement(EIJ_V1_[thread][idx], EIJ_V2_[thread][idx], EIJ_EN_[thread][idx]);
   }
 # endif
-  gist_nonbond_VV_.Stop();
+  //gist_nonbond_VV_.Stop();
 
   // ----- Off-grid solvent to on-grid solvent ---
-  gist_nonbond_OV_.Start();
+  //gist_nonbond_OV_.Start();
   int oidx;
   int maxOidx = (int)OffGrid_idxs_.size();
 # ifdef _OPENMP
@@ -766,7 +766,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # ifdef _OPENMP
   } // END pragma omp parallel
 # endif
-  gist_nonbond_OV_.Stop();
+  //gist_nonbond_OV_.Stop();
 // ===============================================
 # else /* GIST_NEW_NONBOND */
   int aidx;
@@ -1506,9 +1506,9 @@ void Action_GIST::Print() {
   gist_grid_.WriteTiming(2,    "Grid:   ", gist_action_.Total());
   gist_nonbond_.WriteTiming(2, "Nonbond:", gist_action_.Total());
   //gist_nonbond_dist_.WriteTiming(3, "Dist2:", gist_nonbond_.Total());
-  gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
-  gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
-  gist_nonbond_OV_.WriteTiming(3, "OV:", gist_nonbond_.Total());
+  //gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
+  //gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
+  //gist_nonbond_OV_.WriteTiming(3, "OV:", gist_nonbond_.Total());
   gist_euler_.WriteTiming(2,   "Euler:  ", gist_action_.Total());
   gist_dipole_.WriteTiming(2,  "Dipole: ", gist_action_.Total());
   gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());
