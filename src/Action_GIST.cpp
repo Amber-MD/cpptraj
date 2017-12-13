@@ -539,7 +539,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 # ifdef _OPENMP
   } // END omp parallel
 # endif
-  gist_nonbond_UV_.Start();
+  gist_nonbond_UV_.Stop();
 
   // ----- On-grid solvent to on-grid solvent ----
   gist_nonbond_VV_.Start();
@@ -650,7 +650,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       double qa1 = topIn[ a1 ].Charge();
       std::vector<Vec3> vImages;
       if (image_.ImageType() == NONORTHO) {
-        // Convert to frac coords TODO nonortho only
+        // Convert to frac coords
         Vec3 vFrac = recip * Vec3( a1XYZ );
         // Wrap to primary unit cell
         vFrac[0] = vFrac[0] - floor(vFrac[0]);
