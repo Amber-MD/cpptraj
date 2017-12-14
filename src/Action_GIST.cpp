@@ -282,7 +282,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
             ByteString(ww_Eij_->SizeInBytes(), BYTE_DECIMAL).c_str());
   } else
     mprintf("\tSkipping water-water Eij matrix.\n");
-  mprintf("\tWater reference density: %6.4f\n", BULK_DENS_); // TODO units
+  mprintf("\tWater reference density: %6.4f molecules/Ang^3\n", BULK_DENS_);
   mprintf("\tSimulation temperature: %6.4f K\n", temperature_);
   if (image_.UseImage())
     mprintf("\tDistances will be imaged.\n");
@@ -416,8 +416,15 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     mprintf("Warning: Less than 5 solvent molecules. Cannot perform order calculation.\n");
     doOrder_ = false;
   }
-  // Allocate space for saving indices of water atoms that are on the grid TODO just use push_back?
-  OnGrid_idxs_.resize( O_idxs_.size() * nMolAtoms_ );
+  // Allocate space for saving indices of water atoms that are on the grid
+  // Estimate how man solvent molecules can possibly fit onto the grid.
+  // Add some extra voxels as a buffer.
+  double max_voxels = (double)MAX_GRID_PT_ + (1.10 * (double)MAX_GRID_PT_);
+  double totalVolume = max_voxels * gO_->VoxelVolume();
+  double max_mols = totalVolume * BULK_DENS_;
+  //mprintf("\tEstimating grid can fit a max of %.0f solvent molecules (w/ 10%% buffer).\n",
+  //        max_mols);
+  OnGrid_idxs_.reserve( (unsigned int)max_mols * nMolAtoms_ );
 # ifdef GIST_NEW_NONBOND
   OffGrid_idxs_.reserve( O_idxs_.size() * nMolAtoms_ );
 # endif
@@ -927,7 +934,7 @@ void Action_GIST::Order(Frame const& frameIn) {
   {
     int oidx1 = OnGrid_idxs_[gidx];
     int voxel1 = atom_voxel_[oidx1];
-    Vec3 XYZ1( frameIn.XYZ( oidx1 ) );
+    Vec3 XYZ1( (&OnGrid_XYZ_[0])+gidx*3 );
     // Find coordinates for 4 closest neighbors to this water (on or off grid).
     // TODO set up overall grid in DoAction.
     Vec3 WAT[4];
@@ -979,6 +986,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   NFRAME_++;
   // TODO only !skipE?
   N_ON_GRID_ = 0;
+  OnGrid_idxs_.clear();
 # ifdef GIST_NEW_NONBOND
   OffGrid_idxs_.clear();
 # endif
@@ -1016,7 +1024,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         const double* wXYZ = O_XYZ;
         for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
           atom_voxel_[oidx+IDX] = voxel;
-          OnGrid_idxs_[N_ON_GRID_+IDX] = oidx + IDX;
+          //OnGrid_idxs_[N_ON_GRID_+IDX] = oidx + IDX;
+          OnGrid_idxs_.push_back( oidx+IDX );
           OnGrid_XYZ_.push_back( wXYZ[0] );
           OnGrid_XYZ_.push_back( wXYZ[1] );
           OnGrid_XYZ_.push_back( wXYZ[2] );
