@@ -322,10 +322,6 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   // NOTE: these are just guesses
   O_idxs_.reserve( setup.Top().Nsolvent() );
   A_idxs_.reserve( setup.Top().Natom() );
-# ifdef GIST_NEW_NONBOND
-  U_idxs_.clear();
-  U_idxs_.reserve( setup.Top().Nsolvent() ); // TODO better guess
-# endif
   atom_voxel_.reserve( setup.Top().Natom() );
   unsigned int midx = 0;
   unsigned int NsolventAtoms = 0;
@@ -400,9 +396,6 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       if (mol->NumAtoms() > 1) {
         for (int u_idx = mol->BeginAtom(); u_idx != mol->EndAtom(); ++u_idx) {
           A_idxs_.push_back( u_idx );
-#         ifdef GIST_NEW_NONBOND
-          U_idxs_.push_back( u_idx );
-#         endif
           atom_voxel_.push_back( SOLUTE_ );
           NsoluteAtoms++;
         }
@@ -425,9 +418,6 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   //mprintf("\tEstimating grid can fit a max of %.0f solvent molecules (w/ 10%% buffer).\n",
   //        max_mols);
   OnGrid_idxs_.reserve( (unsigned int)max_mols * nMolAtoms_ );
-# ifdef GIST_NEW_NONBOND
-  OffGrid_idxs_.reserve( O_idxs_.size() * nMolAtoms_ );
-# endif
   N_ON_GRID_ = 0;
 
   if (!skipE_) {
@@ -473,13 +463,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
   // Set up imaging info.
   Matrix_3x3 ucell, recip;
-# ifdef GIST_NEW_NONBOND
-  Darray OnGrid_frac; // For nonortho on-grid solvent self calc
-# endif
   if (image_.ImageType() == NONORTHO) {
     frameIn.BoxCrd().ToRecip(ucell, recip);
-#   ifdef GIST_NEW_NONBOND
-    OnGrid_frac.reserve( OnGrid_XYZ_.size() );
     // Wrap on-grid water coords back to primary cell TODO openmp
     double* ongrid_xyz = &OnGrid_XYZ_[0];
     int maxXYZ = (int)OnGrid_XYZ_.size();
@@ -492,13 +477,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       XYZ[0] = XYZ[0] - floor(XYZ[0]);
       XYZ[1] = XYZ[1] - floor(XYZ[1]);
       XYZ[2] = XYZ[2] - floor(XYZ[2]);
-      OnGrid_frac.push_back( XYZ[0] );
-      OnGrid_frac.push_back( XYZ[1] );
-      OnGrid_frac.push_back( XYZ[2] );
       // Convert back to Cartesian
       ucell.TransposeMult( XYZ, XYZ );
     }
-#   endif
   }
 
 //  mprintf("DEBUG: NSolventAtoms= %zu  NwatAtomsOnGrid= %u\n", O_idxs_.size()*nMolAtoms_, N_ON_GRID_);
@@ -509,270 +490,6 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   double* E_VV_Elec = &(E_VV_Elec_[0][0]);
   float* Neighbor = &(neighbor_[0][0]);
   double Evdw, Eelec;
-# ifdef GIST_NEW_NONBOND
-  // ----- Solute to on-grid solvent -------------
-  //gist_nonbond_UV_.Start();
-  int uidx;
-  int maxUidx = (int)U_idxs_.size();
-  //mprintf("DEBUG: # solute= %i # on grid= %i  off grid= %i\n", maxUidx, N_ON_GRID_, (int)OffGrid_idxs_.size());
-# ifdef _OPENMP
-  int mythread;
-# pragma omp parallel private(uidx, mythread, E_UV_VDW, E_UV_Elec, Evdw, Eelec)
-  {
-  mythread = omp_get_thread_num();
-  E_UV_VDW = &(E_UV_VDW_[mythread][0]);
-  E_UV_Elec = &(E_UV_Elec_[mythread][0]);
-# pragma omp for
-# endif
-  for (uidx = 0; uidx < maxUidx; uidx++)
-  {
-    int a1 = U_idxs_[uidx];            // Index of solute atom
-    Vec3 A1_XYZ( frameIn.XYZ( a1 ) );  // Coord of solute atom
-    double qA1 = topIn[ a1 ].Charge(); // Charge of solute atom
-    std::vector<Vec3> vImages;
-    if (image_.ImageType() == NONORTHO) {
-      // Convert to frac coords
-      Vec3 vFrac = recip * Vec3( A1_XYZ );
-      // Wrap to primary unit cell
-      vFrac[0] = vFrac[0] - floor(vFrac[0]);
-      vFrac[1] = vFrac[1] - floor(vFrac[1]);
-      vFrac[2] = vFrac[2] - floor(vFrac[2]);
-      // Calculate all images of this solvent atom
-      vImages.reserve(27); 
-      for (int ix = -1; ix != 2; ix++)
-        for (int iy = -1; iy != 2; iy++)
-          for (int iz = -1; iz != 2; iz++)
-            // Convert image back to Cartesian
-            vImages.push_back( ucell.TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
-    }
-    // Loop over on-grid solvent atoms
-    for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx++)
-    {
-      int a2 = OnGrid_idxs_[gidx];                     // Index of water on grid
-      int a2_voxel = atom_voxel_[a2];                  // Voxel of water on grid
-      const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3; // Coord of water on grid
-      // Calculate distance
-      //gist_nonbond_dist_.Start();
-      double rij2;
-      if (image_.ImageType() == NONORTHO) {
-        rij2 = maxD_;
-        for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
-                                               vCart != vImages.end(); ++vCart)
-        {
-          double x = (*vCart)[0] - A2_XYZ[0];
-          double y = (*vCart)[1] - A2_XYZ[1];
-          double z = (*vCart)[2] - A2_XYZ[2];
-          rij2 = std::min(rij2, x*x + y*y + z*z);
-        }
-      } else if (image_.ImageType() == ORTHO)
-        rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
-      else
-        rij2 = DIST2_NoImage( A1_XYZ, A2_XYZ );
-      //gist_nonbond_dist_.Stop();
-      // Calculate energy
-      Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
-      E_UV_VDW[a2_voxel]  += Evdw;
-      E_UV_Elec[a2_voxel] += Eelec;
-    } // END loop over on-grid solvent atoms
-  } // END loop over solute atoms
-# ifdef _OPENMP
-  } // END omp parallel
-# endif
-  //gist_nonbond_UV_.Stop();
-
-  // ----- On-grid solvent to on-grid solvent ----
-  //gist_nonbond_VV_.Start();
-  int vidx1;
-  int maxVidx = (int)N_ON_GRID_; // TODO use size()
-  int nmolatoms = (int)nMolAtoms_;
-# ifdef _OPENMP
-  Iarray* eij_v1;
-  Iarray* eij_v2;
-  Farray* eij_en;
-# pragma omp parallel private(vidx1, mythread, E_VV_VDW, E_VV_Elec, Evdw, Eelec, Neighbor, eij_v1, eij_v2, eij_en)
-  {
-  mythread = omp_get_thread_num(); // TODO does this really need to be done again?
-  E_VV_VDW = &(E_VV_VDW_[mythread][0]);
-  E_VV_Elec = &(E_VV_Elec_[mythread][0]);
-  Neighbor = (&neighbor_[mythread][0]);
-  if (doEij_) {
-    eij_v1 = &(EIJ_V1_[mythread]);
-    eij_v2 = &(EIJ_V2_[mythread]);
-    eij_en = &(EIJ_EN_[mythread]);
-    eij_v1->clear();
-    eij_v2->clear();
-    eij_en->clear();
-  }
-# pragma omp for schedule(dynamic)
-# endif
-  for (vidx1 = 0; vidx1 < maxVidx; vidx1 += nmolatoms)
-  {
-    // Loop over atoms in solvent molecule 1
-    for (int idx1 = 0; idx1 < nmolatoms; idx1++)
-    {
-      int a1 = OnGrid_idxs_[vidx1+idx1];
-      const double* a1XYZ = (&OnGrid_XYZ_[0])+(vidx1+idx1)*3;
-      double qa1 = topIn[ a1 ].Charge();
-      int a1_voxel = atom_voxel_[a1];
-      std::vector<Vec3> vImages;
-      if (image_.ImageType() == NONORTHO) {
-        Vec3 vFrac( (&OnGrid_frac[0])+(vidx1+idx1)*3 );
-        // Calculate all images of this solvent atom
-        vImages.reserve(27); 
-        for (int ix = -1; ix != 2; ix++)
-          for (int iy = -1; iy != 2; iy++)
-            for (int iz = -1; iz != 2; iz++)
-              // Convert image back to Cartesian
-              vImages.push_back( ucell.TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
-      }
-      // Inner loop over all other solvent molecules
-      for (int vidx2 = vidx1 + nmolatoms; vidx2 < maxVidx; vidx2 += nmolatoms)
-      {
-        // Loop over atoms in solvent molecule 2
-        for (int idx2 = 0; idx2 < nmolatoms; idx2++)
-        {
-          int a2 = OnGrid_idxs_[vidx2+idx2];
-          const double* a2XYZ = (&OnGrid_XYZ_[0])+(vidx2+idx2)*3;
-          double qa2 = topIn[ a2 ].Charge();
-          int a2_voxel = atom_voxel_[a2];
-          // Calculate distance
-          //gist_nonbond_dist_.Start();
-          double rij2;
-          if (image_.ImageType() == NONORTHO) {
-            rij2 = maxD_;
-            for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
-                                                   vCart != vImages.end(); ++vCart)
-            {
-              double x = (*vCart)[0] - a2XYZ[0];
-              double y = (*vCart)[1] - a2XYZ[1];
-              double z = (*vCart)[2] - a2XYZ[2];
-              rij2 = std::min(rij2, x*x + y*y + z*z);
-            }
-          } else if (image_.ImageType() == ORTHO)
-            rij2 = DIST2_ImageOrtho( a1XYZ, a2XYZ, frameIn.BoxCrd() );
-          else
-            rij2 = DIST2_NoImage( a1XYZ, a2XYZ );
-          //gist_nonbond_dist_.Stop();
-          // Calculate energy
-          Ecalc( rij2, qa1, qa2, topIn.GetLJparam(a1, a2), Evdw, Eelec );
-          E_VV_VDW[a1_voxel] += Evdw;
-          E_VV_VDW[a2_voxel] += Evdw;
-          E_VV_Elec[a1_voxel] += Eelec;
-          E_VV_Elec[a2_voxel] += Eelec;
-          // Store water neighbor using only O-O distance
-          if (idx1 == 0 && idx2 == 0 && rij2 < NeighborCut2_) {
-            Neighbor[a1_voxel] += 1.0;
-            Neighbor[a2_voxel] += 1.0;
-          }
-          // Water-water interaction
-          if (doEij_) {
-            if (a1_voxel != a2_voxel) {
-#             ifdef _OPENMP
-              eij_v1->push_back( a1_voxel );
-              eij_v2->push_back( a2_voxel );
-              eij_en->push_back( Evdw + Eelec );
-#             else
-              ww_Eij_->UpdateElement(a1_voxel, a2_voxel, Evdw + Eelec);
-#             endif
-            }
-          }
-        } // END loop over atoms in solvent mol 2
-      } // END inner loop over solvent molecules
-    } // END loop over atoms in solvemt mol 1
-  } // END outer loop over solvent molecules
-# ifdef _OPENMP
-  } // END pragma omp for
-  if (doEij_) {
-    // Add any Eijs to matrix
-    for (unsigned int thread = 0; thread != EIJ_V1_.size(); thread++)
-      for (unsigned int idx = 0; idx != EIJ_V1_[thread].size(); idx++)
-        ww_Eij_->UpdateElement(EIJ_V1_[thread][idx], EIJ_V2_[thread][idx], EIJ_EN_[thread][idx]);
-  }
-# endif
-  //gist_nonbond_VV_.Stop();
-
-  // ----- Off-grid solvent to on-grid solvent ---
-  //gist_nonbond_OV_.Start();
-  int oidx;
-  int maxOidx = (int)OffGrid_idxs_.size();
-# ifdef _OPENMP
-# pragma omp parallel private(oidx, mythread, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec)
-  {
-  mythread = omp_get_thread_num();
-  E_VV_VDW = &(E_VV_VDW_[mythread][0]);
-  E_VV_Elec = &(E_VV_Elec_[mythread][0]);
-  Neighbor = (&neighbor_[mythread][0]);
-# pragma omp for
-# endif
-  for (oidx = 0; oidx < maxOidx; oidx += nmolatoms)
-  {
-    // Loop over atoms in off-grid solvent molecule
-    for (int idx1 = 0; idx1 < nmolatoms; idx1++)
-    {
-      int a1 = OffGrid_idxs_[oidx+idx1];
-      const double* a1XYZ = frameIn.XYZ( a1 );
-      double qa1 = topIn[ a1 ].Charge();
-      std::vector<Vec3> vImages;
-      if (image_.ImageType() == NONORTHO) {
-        // Convert to frac coords
-        Vec3 vFrac = recip * Vec3( a1XYZ );
-        // Wrap to primary unit cell
-        vFrac[0] = vFrac[0] - floor(vFrac[0]);
-        vFrac[1] = vFrac[1] - floor(vFrac[1]);
-        vFrac[2] = vFrac[2] - floor(vFrac[2]);
-        // Calculate all images of this solvent atom
-        vImages.reserve(27); 
-        for (int ix = -1; ix != 2; ix++)
-          for (int iy = -1; iy != 2; iy++)
-            for (int iz = -1; iz != 2; iz++)
-              // Convert image back to Cartesian
-              vImages.push_back( ucell.TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
-      }
-      // Inner loop over on-grid solvent molecules 
-      for (int vidx = 0; vidx < maxVidx; vidx += nmolatoms)
-      {
-        // Loop over atoms in on-grid solvent molecule
-        for (int idx2 = 0; idx2 < nmolatoms; idx2++)
-        {
-          int a2 = OnGrid_idxs_[vidx+idx2];
-          const double* a2XYZ = (&OnGrid_XYZ_[0])+(vidx+idx2)*3;
-          double qa2 = topIn[ a2 ].Charge();
-          int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
-          // Calculate distance
-          //gist_nonbond_dist_.Start();
-          double rij2;
-          if (image_.ImageType() == NONORTHO) {
-            rij2 = maxD_;
-            for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
-                                                   vCart != vImages.end(); ++vCart)
-            {
-              double x = (*vCart)[0] - a2XYZ[0];
-              double y = (*vCart)[1] - a2XYZ[1];
-              double z = (*vCart)[2] - a2XYZ[2];
-              rij2 = std::min(rij2, x*x + y*y + z*z);
-            }
-          } else if (image_.ImageType() == ORTHO)
-            rij2 = DIST2_ImageOrtho( a1XYZ, a2XYZ, frameIn.BoxCrd() );
-          else
-            rij2 = DIST2_NoImage( a1XYZ, a2XYZ );
-          //gist_nonbond_dist_.Stop();
-          // Calculate energy
-          Ecalc( rij2, qa1, qa2, topIn.GetLJparam(a1, a2), Evdw, Eelec );
-          E_VV_VDW[a2_voxel] += Evdw;
-          E_VV_Elec[a2_voxel] += Eelec;
-          // Store water neighbor using only O-O distance
-          if (idx1 == 0 && idx2 == 0 && rij2 < NeighborCut2_)
-            Neighbor[a2_voxel] += 1.0;
-        } // END loop over on-grid solvent atoms
-      } // END inner loop over on-grid solvent molecules
-    } // END loop over off-grid solvent atoms
-  } // END loop over off-grid solvent molecules
-# ifdef _OPENMP
-  } // END pragma omp parallel
-# endif
-  //gist_nonbond_OV_.Stop();
-// ===============================================
-# else /* GIST_NEW_NONBOND */
   int aidx;
   int maxAidx = (int)A_idxs_.size();
   // Loop over all solute + solvent atoms
@@ -924,7 +641,6 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         ww_Eij_->UpdateElement(EIJ_V1_[thread][idx], EIJ_V2_[thread][idx], EIJ_EN_[thread][idx]);
   }
 # endif
-# endif /* GIST_NEW_NONBOND */
 }
 
 // Action_GIST::Order()
@@ -987,9 +703,6 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   // TODO only !skipE?
   N_ON_GRID_ = 0;
   OnGrid_idxs_.clear();
-# ifdef GIST_NEW_NONBOND
-  OffGrid_idxs_.clear();
-# endif
   OnGrid_XYZ_.clear();
 
   size_t bin_i, bin_j, bin_k;
@@ -1149,13 +862,6 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         gist_dipole_.Stop();
         // ---------------------------------------
       }
-#     ifdef GIST_NEW_NONBOND
-      else {
-        // Oxygen not on grid.
-        for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++)
-          OffGrid_idxs_.push_back( oidx + IDX );
-      }
-#     endif
 
       // Water is at most 1.5A away from grid, so we need to check for H
       // even if O is outside grid.
@@ -1164,13 +870,6 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
       if (gO_->CalcBins( H2_XYZ[0], H2_XYZ[1], H2_XYZ[2], bin_i, bin_j, bin_k ) )
         N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
     }
-#   ifdef GIST_NEW_NONBOND
-    else {
-      // Water not within 1.5 Ang of grid
-      for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++)
-        OffGrid_idxs_.push_back( oidx + IDX );
-    }
-#   endif 
   } // END loop over each solvent molecule
 
   // Do energy calculation if requested
