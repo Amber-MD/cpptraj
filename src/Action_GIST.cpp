@@ -435,20 +435,6 @@ const double Action_GIST::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBE
 const int Action_GIST::SOLUTE_ = -2;
 const int Action_GIST::OFF_GRID_ = -1;
 
-/** Distance calculation, potentially imaged. */
-double Action_GIST::Dist2(ImagingType itype, const double* XYZ1, const double* XYZ2,
-                          Box const& BoxCrd, Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
-{
-  // Calculate distance^2
-  switch (itype) {
-    case NOIMAGE : return DIST2_NoImage( XYZ1, XYZ2 );
-    case ORTHO   : return DIST2_ImageOrtho( XYZ1, XYZ2, BoxCrd );
-    case NONORTHO: return DIST2_ImageNonOrtho( XYZ1, XYZ2, ucell, recip );
-  }
-  // Sanity check
-  return 0.0;
-}
-
 /** Non-bonded energy calc. */
 void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ,
                         double& Evdw, double& Eelec)
@@ -806,6 +792,22 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     Vec3 A1_XYZ( frameIn.XYZ( a1 ) );  // Coord of atom1
     double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
     bool a1IsO = (topIn[ a1 ].Element() == Atom::OXYGEN);
+    std::vector<Vec3> vImages;
+    if (image_.ImageType() == NONORTHO) {
+      // Convert to frac coords
+      Vec3 vFrac = recip * A1_XYZ; 
+      // Wrap to primary unit cell
+      vFrac[0] = vFrac[0] - floor(vFrac[0]);
+      vFrac[1] = vFrac[1] - floor(vFrac[1]);
+      vFrac[2] = vFrac[2] - floor(vFrac[2]);
+      // Calculate all images of this solvent atom
+      vImages.reserve(27); 
+      for (int ix = -1; ix != 2; ix++)
+        for (int iy = -1; iy != 2; iy++)
+          for (int iz = -1; iz != 2; iz++)
+            // Convert image back to Cartesian
+            vImages.push_back( ucell.TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
+    }
     // Loop over all solvent atoms on the grid
     // TODO skip calculations that do not contribute
     for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx++)
@@ -820,8 +822,21 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           // Solute to solvent on grid energy
           // Calculate distance
           //gist_nonbond_dist_.Start();
-          double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
-                               ucell, recip );
+          double rij2;
+          if (image_.ImageType() == NONORTHO) {
+            rij2 = maxD_;
+            for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
+                                                   vCart != vImages.end(); ++vCart)
+            {
+              double x = (*vCart)[0] - A2_XYZ[0];
+              double y = (*vCart)[1] - A2_XYZ[1];
+              double z = (*vCart)[2] - A2_XYZ[2];
+              rij2 = std::min(rij2, x*x + y*y + z*z);
+            }
+          } else if (image_.ImageType() == ORTHO)
+            rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
+          else
+            rij2 = DIST2_NoImage( A1_XYZ, A2_XYZ );
           //gist_nonbond_dist_.Stop();
           //gist_nonbond_UV_.Start();
           // Calculate energy
@@ -836,8 +851,21 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           {
             // Calculate distance
             //gist_nonbond_dist_.Start();
-            double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
-                                 ucell, recip );
+            double rij2;
+            if (image_.ImageType() == NONORTHO) {
+             rij2 = maxD_;
+              for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
+                                                     vCart != vImages.end(); ++vCart)
+              {
+                double x = (*vCart)[0] - A2_XYZ[0];
+                double y = (*vCart)[1] - A2_XYZ[1];
+                double z = (*vCart)[2] - A2_XYZ[2];
+                rij2 = std::min(rij2, x*x + y*y + z*z);
+              }
+            } else if (image_.ImageType() == ORTHO)
+              rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
+            else
+              rij2 = DIST2_NoImage( A1_XYZ, A2_XYZ );
             //gist_nonbond_dist_.Stop();
             //gist_nonbond_VV_.Start();
             // Calculate energy
