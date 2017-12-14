@@ -318,12 +318,14 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   //mol_nums_.clear();
   O_idxs_.clear();
   A_idxs_.clear();
-  U_idxs_.clear();
   atom_voxel_.clear();
   // NOTE: these are just guesses
   O_idxs_.reserve( setup.Top().Nsolvent() );
   A_idxs_.reserve( setup.Top().Natom() );
+# ifdef GIST_NEW_NONBOND
+  U_idxs_.clear();
   U_idxs_.reserve( setup.Top().Nsolvent() ); // TODO better guess
+# endif
   atom_voxel_.reserve( setup.Top().Natom() );
   unsigned int midx = 0;
   unsigned int NsolventAtoms = 0;
@@ -398,7 +400,9 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       if (mol->NumAtoms() > 1) {
         for (int u_idx = mol->BeginAtom(); u_idx != mol->EndAtom(); ++u_idx) {
           A_idxs_.push_back( u_idx );
+#         ifdef GIST_NEW_NONBOND
           U_idxs_.push_back( u_idx );
+#         endif
           atom_voxel_.push_back( SOLUTE_ );
           NsoluteAtoms++;
         }
@@ -414,7 +418,9 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   }
   // Allocate space for saving indices of water atoms that are on the grid TODO just use push_back?
   OnGrid_idxs_.resize( O_idxs_.size() * nMolAtoms_ );
+# ifdef GIST_NEW_NONBOND
   OffGrid_idxs_.reserve( O_idxs_.size() * nMolAtoms_ );
+# endif
   N_ON_GRID_ = 0;
 
   if (!skipE_) {
@@ -460,7 +466,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
   // Set up imaging info.
   Matrix_3x3 ucell, recip;
+# ifdef GIST_NEW_NONBOND
   Darray OnGrid_frac; // For nonortho on-grid solvent self calc
+# endif
   if (image_.ImageType() == NONORTHO) {
     frameIn.BoxCrd().ToRecip(ucell, recip);
 #   ifdef GIST_NEW_NONBOND
@@ -972,7 +980,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   NFRAME_++;
   // TODO only !skipE?
   N_ON_GRID_ = 0;
+# ifdef GIST_NEW_NONBOND
   OffGrid_idxs_.clear();
+# endif
   OnGrid_XYZ_.clear();
 
   size_t bin_i, bin_j, bin_k;
@@ -1130,11 +1140,14 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         dipolez_->UpdateVoxel(voxel, DPZ);
         gist_dipole_.Stop();
         // ---------------------------------------
-      } else {
+      }
+#     ifdef GIST_NEW_NONBOND
+      else {
         // Oxygen not on grid.
         for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++)
           OffGrid_idxs_.push_back( oidx + IDX );
       }
+#     endif
 
       // Water is at most 1.5A away from grid, so we need to check for H
       // even if O is outside grid.
@@ -1142,11 +1155,14 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
       if (gO_->CalcBins( H2_XYZ[0], H2_XYZ[1], H2_XYZ[2], bin_i, bin_j, bin_k ) )
         N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
-    } else {
+    }
+#   ifdef GIST_NEW_NONBOND
+    else {
       // Water not within 1.5 Ang of grid
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++)
         OffGrid_idxs_.push_back( oidx + IDX );
     }
+#   endif 
   } // END loop over each solvent molecule
 
   // Do energy calculation if requested
