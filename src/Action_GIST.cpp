@@ -808,7 +808,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       vFrac[0] = vFrac[0] - floor(vFrac[0]);
       vFrac[1] = vFrac[1] - floor(vFrac[1]);
       vFrac[2] = vFrac[2] - floor(vFrac[2]);
-      // Calculate all images of this solvent atom
+      // Calculate all images of this atom
       vImages.reserve(27); 
       for (int ix = -1; ix != 2; ix++)
         for (int iy = -1; iy != 2; iy++)
@@ -817,17 +817,16 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             vImages.push_back( ucell.TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
     }
     // Loop over all solvent atoms on the grid
-    // TODO skip calculations that do not contribute
     for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx++)
     {
-      int a2 = OnGrid_idxs_[gidx];              // Index of water on grid
-      int a2_mol = topIn[ a2 ].MolNum();        // Molecule # of atom 2
+      int a2 = OnGrid_idxs_[gidx];              // Index of on-grid solvent
+      int a2_mol = topIn[ a2 ].MolNum();        // Molecule # of on-grid solvent
       if (a1_mol != a2_mol)
       {
-        int a2_voxel = atom_voxel_[a2];                  // Voxel of water on grid
-        const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3; // Coord of water on grid
+        int a2_voxel = atom_voxel_[a2];                  // Voxel of on-grid solvent
+        const double* A2_XYZ = (&OnGrid_XYZ_[0])+gidx*3; // Coord of on-grid solvent
         if ( a1_voxel == SOLUTE_ ) {
-          // Solute to solvent on grid energy
+          // Solute to on-grid solvent energy
           // Calculate distance
           //gist_nonbond_dist_.Start();
           double rij2;
@@ -853,7 +852,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           E_UV_Elec[a2_voxel] += Eelec;
           //gist_nonbond_UV_.Stop();
         } else {
-          // Solvent to solvent on grid energy
+          // Off-grid/on-grid solvent to on-grid solvent energy
           // Only do the energy calculation if not previously done or atom1 not on grid
           if (a2 != a1 && (a2 > a1 || a1_voxel == OFF_GRID_))
           {
