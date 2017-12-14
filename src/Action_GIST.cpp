@@ -410,7 +410,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     doOrder_ = false;
   }
   // Allocate space for saving indices of water atoms that are on the grid
-  // Estimate how man solvent molecules can possibly fit onto the grid.
+  // Estimate how many solvent molecules can possibly fit onto the grid.
   // Add some extra voxels as a buffer.
   double max_voxels = (double)MAX_GRID_PT_ + (1.10 * (double)MAX_GRID_PT_);
   double totalVolume = max_voxels * gO_->VoxelVolume();
@@ -878,7 +878,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
       if (gO_->CalcBins( H2_XYZ[0], H2_XYZ[1], H2_XYZ[2], bin_i, bin_j, bin_k ) )
         N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
-    }
+    } // END water is within 1.5 Ang of grid
   } // END loop over each solvent molecule
 
   // Do energy calculation if requested
