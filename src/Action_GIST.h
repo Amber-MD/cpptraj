@@ -30,6 +30,7 @@ class Action_GIST : public Action {
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;
     static const Vec3 z_lab_;
+    static const double maxD_;
     static const double QFAC_;
     static const int SOLUTE_;
     static const int OFF_GRID_;

@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cfloat> // DBL_MAX
 #include "Action_GIST.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
@@ -9,6 +10,8 @@
 #ifdef _OPENMP
 # include <omp.h>
 #endif
+
+const double Action_GIST::maxD_ = DBL_MAX;
 
 Action_GIST::Action_GIST() :
   gO_(0),
@@ -551,7 +554,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       //gist_nonbond_dist_.Start();
       double rij2;
       if (image_.ImageType() == NONORTHO) {
-        rij2 = 9999999.0;
+        rij2 = maxD_;
         for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
                                                vCart != vImages.end(); ++vCart)
         {
@@ -635,7 +638,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           //gist_nonbond_dist_.Start();
           double rij2;
           if (image_.ImageType() == NONORTHO) {
-            rij2 = 9999999.0;
+            rij2 = maxD_;
             for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
                                                    vCart != vImages.end(); ++vCart)
             {
@@ -738,7 +741,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           //gist_nonbond_dist_.Start();
           double rij2;
           if (image_.ImageType() == NONORTHO) {
-            rij2 = 9999999.0;
+            rij2 = maxD_;
             for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
                                                    vCart != vImages.end(); ++vCart)
             {
@@ -885,8 +888,6 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 // Action_GIST::Order()
 void Action_GIST::Order(Frame const& frameIn) {
   // Loop over all solvent molecules that are on the grid
-  double maxD = frameIn.BoxCrd().BoxX() + frameIn.BoxCrd().BoxY() + frameIn.BoxCrd().BoxZ();
-  maxD *= maxD;
   for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx += 3)
   {
     int oidx1 = OnGrid_idxs_[gidx];
@@ -895,10 +896,10 @@ void Action_GIST::Order(Frame const& frameIn) {
     // Find coordinates for 4 closest neighbors to this water (on or off grid).
     // TODO set up overall grid in DoAction.
     Vec3 WAT[4];
-    double d1 = maxD;
-    double d2 = maxD;
-    double d3 = maxD;
-    double d4 = maxD;
+    double d1 = maxD_;
+    double d2 = maxD_;
+    double d3 = maxD_;
+    double d4 = maxD_;
     for (unsigned int sidx2 = 0; sidx2 < NSOLVENT_; sidx2++)
     {
       int oidx2 = O_idxs_[sidx2];
