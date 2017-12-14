@@ -19,8 +19,7 @@ gist doorder doeij refdens 0.033422885325 gridcntr 1.44 0.67 0.29 \
 go
 EOF
 RunCpptraj "GIST water-water interaction test"
-echo "DEBUG: Using absolute error tolerance of 0.00001"
-DoTest Gist1-Eww_ij.dat.save Gist1-Eww_ij.dat -a 0.00001
+DoTest Gist1-Eww_ij.dat.save Gist1-Eww_ij.dat
 
 # GIST test with finer grid for everything else
 cat > gist.in <<EOF
