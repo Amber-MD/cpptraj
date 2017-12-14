@@ -468,7 +468,13 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     // Wrap on-grid water coords back to primary cell TODO openmp
     double* ongrid_xyz = &OnGrid_XYZ_[0];
     int maxXYZ = (int)OnGrid_XYZ_.size();
-    for (int idx = 0; idx < maxXYZ; idx += 3)
+    int idx;
+#   ifdef _OPENMP
+#   pragma omp parallel private(idx)
+    {
+#   pragma omp for
+#   endif
+    for (idx = 0; idx < maxXYZ; idx += 3)
     {
       double* XYZ = ongrid_xyz + idx;
       // Convert to frac coords
@@ -480,6 +486,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       // Convert back to Cartesian
       ucell.TransposeMult( XYZ, XYZ );
     }
+#   ifdef _OPENMP
+    }
+#   endif
   }
 
 //  mprintf("DEBUG: NSolventAtoms= %zu  NwatAtomsOnGrid= %u\n", O_idxs_.size()*nMolAtoms_, N_ON_GRID_);
