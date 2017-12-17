@@ -35,6 +35,8 @@ matrix:
 before_install:
   - set -e
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      # attempt to fix broken Homebrew stuff
+      rm -rf '/usr/local/include/c++'
       brew tap homebrew/science;
       brew update;
       brew install netcdf fftw;
@@ -58,10 +60,10 @@ install:
         mkdir install;
         
         builddir=$(pwd)/build;
-        installdir=$(pwd)/install;
+        installdir=$(pwd);
         
         cd $builddir;
-        cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DCMAKE_INSTALL_PREFIX=$installdir;
+        cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DINSTALL_HEADERS=FALSE -DCMAKE_INSTALL_PREFIX=$installdir -DPRINT_PACKAGING_REPORT=TRUE;
         make -j2 install;
         cd ..;
         
