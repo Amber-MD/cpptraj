@@ -29,7 +29,7 @@ matrix:
 #    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install TEST_TYPE=test.showerrors }
 #   - { os: osx, env: COMPILER=clang USE_CMAKE=0 BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install TEST_TYPE=test.showerrors }
 #    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-openmp -shared" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj TEST_TYPE=test.libcpptraj }
-    - { os: linux, env: COMPILER=gnu USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
+#    - { os: linux, env: COMPILER=gnu USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
     - { os: osx, env: COMPILER=clang USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
 
 before_install:
@@ -40,13 +40,10 @@ before_install:
       brew update;
       brew install netcdf fftw;
       
-      if [ "$USE_CMAKE" == 1 ]; then
-        brew install cmake;
-      fi
-      
       curl -L https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
       tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
-      shell_session_update() { echo "Overriding shell_session_update"; };
+      
+      rvm get stable;
     else
       curl -OL https://anaconda.org/AmberMD/pysander/16.0/download/linux-64/pysander-16.0-py27_1.tar.bz2;
       tar jxf pysander-16.0-py27_1.tar.bz2 lib/libsander.so include/sander.h;
