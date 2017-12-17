@@ -54,18 +54,18 @@ before_install:
 
 install:
     - if [ "$USE_CMAKE" == 1 ]; then
-        mkdir build
-        mkdir install
+        mkdir build;
+        mkdir install;
         
-        builddir=$(pwd)/build
-        installdir=$(pwd)/install
+        builddir=$(pwd)/build;
+        installdir=$(pwd)/install;
         
-        cd $builddir
-        cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DCMAKE_INSTALL_PREFIX=$installdir
-        make -j2 install
-        cd ..
+        cd $builddir;
+        cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DCMAKE_INSTALL_PREFIX=$installdir;
+        make -j2 install;
+        cd ..;
         
-        export PATH=$installdir/bin:$PATH
+        export PATH=$installdir/bin:$PATH;
         
       else
         if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -74,8 +74,8 @@ install:
         else
           export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
           ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
-        fi
-        make -j2 $BUILD_TYPE 
+        fi;
+        make -j2 $BUILD_TYPE ;
       fi
 script:
     - cd test && make $TEST_TYPE
