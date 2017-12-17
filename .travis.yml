@@ -33,48 +33,48 @@ matrix:
     - { os: osx, env: COMPILER=clang USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
 
 before_install:
-  - set -e
-  #- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-  - rm -rf '/usr/local/include/c++'
-  - brew tap homebrew/science;
-  - brew update;
-  - brew install netcdf fftw;
+  - set -ex
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      rm -rf '/usr/local/include/c++'
+      brew tap homebrew/science;
+      brew update;
+      brew install netcdf fftw;
       
-  - curl -L https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
-  - tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
+      curl -L https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
+      tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
       
-  - shell_session_update() { echo "Overriding shell_session_update"; };
-  - rvm get head || true;
-    #else
-    #  curl -OL https://anaconda.org/AmberMD/pysander/16.0/download/linux-64/pysander-16.0-py27_1.tar.bz2;
-    #  tar jxf pysander-16.0-py27_1.tar.bz2 lib/libsander.so include/sander.h;
-    #fi
+      shell_session_update() { echo "Overriding shell_session_update"; };
+      rvm get head || true;
+    else
+      curl -OL https://anaconda.org/AmberMD/pysander/16.0/download/linux-64/pysander-16.0-py27_1.tar.bz2;
+      tar jxf pysander-16.0-py27_1.tar.bz2 lib/libsander.so include/sander.h;
+    fi
   - mv lib include $HOME
 
 install:
-    - if [ "$USE_CMAKE" == 1 ]; then
-        mkdir build;
-        mkdir install;
+  #- if [ "$USE_CMAKE" == 1 ]; then
+  - mkdir build;
+  - mkdir install;
         
-        builddir=$(pwd)/build;
-        installdir=$(pwd);
+  - builddir=$(pwd)/build;
+  - installdir=$(pwd);
         
-        cd $builddir;
-        cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DINSTALL_HEADERS=FALSE -DCMAKE_INSTALL_PREFIX=$installdir -DPRINT_PACKAGING_REPORT=TRUE;
-        make -j2 install;
-        cd ..;
+  - cd $builddir;
+  - cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DINSTALL_HEADERS=FALSE -DCMAKE_INSTALL_PREFIX=$installdir -DCMAKE_LIBRARY_PATH=$HOME/lib -DPRINT_PACKAGING_REPORT=TRUE;
+  - make -j2 install;
+  - cd ..;
         
-        export PATH=$installdir/bin:$PATH;
+  - export PATH=$installdir/bin:$PATH;
         
-      else
-        if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-          export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
-          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
-        else
-          export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
-          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
-        fi;
-        make -j2 $BUILD_TYPE ;
-      fi
+#      else
+#        if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+#          export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
+#          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+#        else
+#          export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
+#          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+#        fi;
+#        make -j2 $BUILD_TYPE ;
+#      fi
 script:
     - cd test && make $TEST_TYPE
