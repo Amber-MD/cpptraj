@@ -4,7 +4,8 @@ sudo: false
 addons:
   apt:
     sources:
-    - ubuntu-toolchain-r-test
+      - ubuntu-toolchain-r-test
+      - george-edison55-precise-backports
     packages:
       - gfortran
       - libbz2-dev
@@ -18,14 +19,18 @@ addons:
       - openmpi-bin
       - openmpi-common
       - libopenmpi-dev
+      - cmake-data
+      - cmake
 matrix:
   include:
-    - { os: linux, env: COMPILER=gnu BUILD_TYPE=install TEST_TYPE=test.showerrors }
-    - { os: linux, env: COMPILER=clang BUILD_TYPE=install TEST_TYPE=test.showerrors }
-    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 BUILD_TYPE=install TEST_TYPE=test.showerrors }
-    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install TEST_TYPE=test.showerrors }
-#   - { os: osx, env: COMPILER=clang BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install TEST_TYPE=test.showerrors }
-    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp -shared" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj TEST_TYPE=test.libcpptraj }
+#    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_TYPE=install TEST_TYPE=test.showerrors }
+#    - { os: linux, env: COMPILER=clang USE_CMAKE=0 BUILD_TYPE=install TEST_TYPE=test.showerrors }
+#    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 BUILD_TYPE=install TEST_TYPE=test.showerrors }
+#    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install TEST_TYPE=test.showerrors }
+#   - { os: osx, env: COMPILER=clang USE_CMAKE=0 BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install TEST_TYPE=test.showerrors }
+#    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-openmp -shared" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj TEST_TYPE=test.libcpptraj }
+    - { os: linux, env: COMPILER=gnu USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
+    - { os: osx, env: COMPILER=clang USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
 
 before_install:
   - set -e
@@ -33,6 +38,11 @@ before_install:
       brew tap homebrew/science;
       brew update;
       brew install netcdf fftw;
+      
+      if [ "$USE_CMAKE" == 1 ]; then
+        brew install cmake;
+      fi
+      
       curl -L https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
       tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
       shell_session_update() { echo "Overriding shell_session_update"; };
@@ -43,13 +53,29 @@ before_install:
   - mv lib include $HOME
 
 install:
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    - if [ "$USE_CMAKE" == 1 ]; then
+        mkdir build
+        mkdir install
+        
+        builddir=$(pwd)/build
+        installdir=$(pwd)/install
+        
+        cd $builddir
+        cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DCMAKE_INSTALL_PREFIX=$installdir
+        make -j2 install
+        cd ..
+        
+        export PATH=$installdir/bin:$PATH
+        
+      else
+        if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
           export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
           ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
-      else
+        else
           export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
           ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+        fi
+        make -j2 $BUILD_TYPE 
       fi
-    - make -j2 $BUILD_TYPE 
 script:
     - cd test && make $TEST_TYPE
