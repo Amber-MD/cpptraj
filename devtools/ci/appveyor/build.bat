@@ -1,6 +1,6 @@
+@echo on
 
-
-if %USE_CMAKE equ 1 (
+if %USE_CMAKE% equ 1 (
 
 	mkdir build
 		
@@ -11,13 +11,7 @@ if %USE_CMAKE equ 1 (
 	mingw32-make -j2 package || exit /b
 	cd ..
 ) else (
-	"sh configure --with-netcdf=/usr/local/ 
-                  --with-blas=/mingw64/ -openblas
-                  --with-bzlib=/mingw64/
-                  --with-zlib=/mingw64
-                  --with-arpack=/mingw64
-                  --with-readline=/mingw64/
-                  -shared -windows gnu" || exit /b
+	"sh configure --with-netcdf=/usr/local/ --with-blas=/mingw64/ -openblas --with-bzlib=/mingw64/ --with-zlib=/mingw64 --with-arpack=/mingw64 --with-readline=/mingw64/ -shared -windows gnu" || exit /b
 	make libcpptraj -j2 || exit /b
 	make install -j2 || exit /b
 )
