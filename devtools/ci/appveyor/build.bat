@@ -7,7 +7,7 @@ if %USE_CMAKE% equ 1 (
 	cd build
 	
 	rem make sure to pick up netcdf in /usr/local
-	cmake .. "-GMinGW Makefiles" -DCMAKE_LIBRARY_PATH=C:/msys64/mingw64/lib;C:/msys64/usr/local/lib -DCMAKE_INCLUDE_PATH=C:/msys64/mingw64/include;C:/msys64/usr/local/include "-DCMAKE_SH=" -DPACKAGE_TYPE=ARCHIVE -DARCHIVE_FORMAT=ZIP -DINSTALL_HEADERS=TRUE -DCOMPILER=manual || exit /b
+	cmake .. "-GMinGW Makefiles" -DCMAKE_LIBRARY_PATH=C:/msys64/mingw64/lib;C:/msys64/usr/local/lib -DCMAKE_INCLUDE_PATH=C:/msys64/mingw64/include;C:/msys64/usr/local/include "-DCMAKE_SH=" -DPACKAGE_TYPE=ARCHIVE -DPRINT_PACKAGING_REPORT=TRUE -DARCHIVE_FORMAT=ZIP -DINSTALL_HEADERS=TRUE -DCOMPILER=manual || exit /b
 	mingw32-make -j2 package || exit /b
 	cd ..
 ) else (
