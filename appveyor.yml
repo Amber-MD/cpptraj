@@ -1,13 +1,5 @@
 os: Windows Server 2012
 
-# make sure to clone cmake submodule (snippet from here: https://github.com/appveyor/ci/issues/899)
-clone_script:
-- cmd: >-
-    git clone -q --branch=%APPVEYOR_REPO_BRANCH% https://github.com/%APPVEYOR_REPO_NAME%.git %APPVEYOR_BUILD_FOLDER%
-    cd %APPVEYOR_BUILD_FOLDER%
-    git checkout -qf %APPVEYOR_REPO_COMMIT%
-    git submodule update --init --recursive
-
 # We need printf exponents to have 2 digits like the C standard says,
 # or tests will fail. Set environment variable for mingw-w64:
 # https://github.com/Alexpux/mingw-w64/blob/master/mingw-w64-crt/stdio/mingw_pformat.c#L223
@@ -18,6 +10,7 @@ environment:
       PRINTF_EXPONENT_DIGITS: "2"
 
 install:
+  - git submodule update --init --recursive
   - devtools\ci\appveyor\setup-environment.bat
 
 build_script:
