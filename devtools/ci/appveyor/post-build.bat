@@ -4,7 +4,7 @@ echo "hello"
 if %USE_CMAKE% equ 1 (
 	
 	rem move and rename already created package file
-	xcopy /Y /F build\cpptraj.zip .\cpptraj-%APPVEYOR_BUILD_ID%.zip
+	echo F | xcopy /Y /F build\cpptraj.zip .\cpptraj-%APPVEYOR_BUILD_ID%.zip
 	
 	rem move executables to bin folder
 	mkdir bin
