@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1) #need 3.1 for "cmake -E env" command
-project(cpptraj)
+project(cpptraj NONE)
 
 #version number
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
