@@ -35,7 +35,6 @@ matrix:
 before_install:
   - set -e
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      # attempt to fix broken Homebrew stuff
       rm -rf '/usr/local/include/c++'
       brew tap homebrew/science;
       brew update;
