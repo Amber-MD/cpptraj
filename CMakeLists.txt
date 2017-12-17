@@ -15,7 +15,7 @@ if(NOT INSIDE_AMBER)
 	include(cmake/AmberBuildSystemInit.cmake)
 
 	#now enable the languages
-	enable_language(CXX)
+	enable_language(C CXX)
 
 	include(AmberBuildSystem2ndInit)
 	
