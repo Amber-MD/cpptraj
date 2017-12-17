@@ -1,4 +1,10 @@
 @echo on
+
+rem We need printf exponents to have 2 digits like the C standard says,
+rem or tests will fail. Set environment variable for mingw-w64:
+rem https://github.com/Alexpux/mingw-w64/blob/master/mingw-w64-crt/stdio/mingw_pformat.c#L223
+set PRINTF_EXPONENT_DIGITS=2
+
 set HOME=.
 set MSYSTEM=MINGW64
 set "PATH=C:/msys64/usr/bin;C:/msys64/mingw64/bin;%PATH%"
