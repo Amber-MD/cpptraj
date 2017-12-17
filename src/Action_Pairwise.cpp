@@ -1,5 +1,6 @@
 // Action_Pairwise
 #include <cmath> //sqrt
+#include <algorithm> // max, min
 #include "Action_Pairwise.h"
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
