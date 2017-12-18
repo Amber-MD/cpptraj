@@ -27,7 +27,7 @@ matrix:
 #    - { os: linux, env: COMPILER=clang USE_CMAKE=0 BUILD_TYPE=install TEST_TYPE=test.showerrors }
 #    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 BUILD_TYPE=install TEST_TYPE=test.showerrors }
 #    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install TEST_TYPE=test.showerrors }
-#   - { os: osx, env: COMPILER=clang USE_CMAKE=0 BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: osx, env: COMPILER=clang USE_CMAKE=0 BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install TEST_TYPE=test.showerrors }
 #    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-openmp -shared" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj TEST_TYPE=test.libcpptraj }
 #    - { os: linux, env: COMPILER=gnu USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
     - { os: osx, osx_image: xcode9.2, env: COMPILER=clang USE_CMAKE=1 BUILD_FLAGS="" TEST_TYPE=test.showerrors}
@@ -40,7 +40,7 @@ before_install:
       rm -rf '/usr/local/include/c++'
       brew tap homebrew/science;
       brew update;
-      brew install netcdf fftw;
+      brew install netcdf fftw arpack;
       
       curl -L https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
       tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
@@ -59,6 +59,7 @@ install:
       cd build;
       cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DINSTALL_HEADERS=FALSE -DCMAKE_INSTALL_PREFIX=$installdir -DCMAKE_LIBRARY_PATH=$HOME/lib -DPRINT_PACKAGING_REPORT=TRUE;
       make -j2 install;    
+      cd ..
       export PATH=$installdir/bin:$PATH;
     else
       if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
