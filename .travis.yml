@@ -30,7 +30,7 @@ matrix:
 #   - { os: osx, env: COMPILER=clang USE_CMAKE=0 BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install TEST_TYPE=test.showerrors }
 #    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-openmp -shared" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj TEST_TYPE=test.libcpptraj }
 #    - { os: linux, env: COMPILER=gnu USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
-    - { os: osx, osx_image: xcode6.4, env: COMPILER=clang USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
+    - { os: osx, osx_image: xcode9.2, env: COMPILER=clang USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 TEST_TYPE=test.showerrors}
 
 #shell_session_update() { echo "Overriding shell_session_update"; };
 
