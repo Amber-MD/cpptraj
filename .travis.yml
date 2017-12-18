@@ -59,10 +59,7 @@ install:
         
   - builddir=$(pwd)/build;
   - installdir=$(pwd);   
-  - cd $builddir
-  - cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DINSTALL_HEADERS=FALSE -DCMAKE_INSTALL_PREFIX=$installdir -DCMAKE_LIBRARY_PATH=$HOME/lib -DPRINT_PACKAGING_REPORT=TRUE;
-  - make -j2 install;
-  - cd ..;
+  - (cd $builddir && cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DINSTALL_HEADERS=FALSE -DCMAKE_INSTALL_PREFIX=$installdir -DCMAKE_LIBRARY_PATH=$HOME/lib -DPRINT_PACKAGING_REPORT=TRUE && make -j2 install)
         
   - export PATH=$installdir/bin:$PATH;
         
