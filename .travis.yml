@@ -44,7 +44,7 @@ before_install:
       tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
       
       shell_session_update() { echo "Overriding shell_session_update"; };
-      rvm get head || true;
+      #rvm get head || true;
     else
       curl -OL https://anaconda.org/AmberMD/pysander/16.0/download/linux-64/pysander-16.0-py27_1.tar.bz2;
       tar jxf pysander-16.0-py27_1.tar.bz2 lib/libsander.so include/sander.h;
