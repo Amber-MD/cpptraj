@@ -36,7 +36,6 @@ matrix:
 
     
 before_install:
-  - set -e
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       rm -rf '/usr/local/include/c++'
       brew tap homebrew/science;
