@@ -370,6 +370,14 @@ void Action_Volmap::Print() {
   float nf = (float)Nframes_;
   for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
     *gval /= nf;
+  // Print volume estimate
+  unsigned int nOccupiedVoxels = 0;
+  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
+    if (*gval > 0.0) ++nOccupiedVoxels;
+  double volume_estimate = (double)nOccupiedVoxels * grid_->VoxelVolume();
+  mprintf("\t%u occupied voxels, voxel volume= %f Ang^3, total volume %f Ang^3\n",
+          nOccupiedVoxels, grid_->VoxelVolume(), volume_estimate);
+
 //    grid_.PrintXplor( filename_, "This line is ignored", 
 //                      "rdparm generated grid density" );
   
