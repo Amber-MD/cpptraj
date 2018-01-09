@@ -119,6 +119,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       mprinterr("Error: Currently only works with orthogonal grids.\n");
       return Action::ERR;
     }
+    setname = dsname;
     GridBin_Ortho const& gbo = static_cast<GridBin_Ortho const&>( grid_->Bin() );
     dx_ = gbo.DX();
     dy_ = gbo.DY();
@@ -163,6 +164,9 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 # endif
   // Setup output file
   if (outfile != 0) outfile->AddDataSet( grid_ );
+  // Create total volume set
+  total_volume_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(setname, "totalvol"));
+  if (total_volume_ == 0) return Action::ERR;
 
   // Info
   mprintf("    VOLMAP: Grid spacing will be %.2fx%.2fx%.2f Angstroms\n", dx_, dy_, dz_);
@@ -176,6 +180,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   if (outfile != 0)
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
   mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
+  mprintf("\tTotal grid volume dataset name is '%s'\n", total_volume_->legend());
   if (peakfile_ != 0)
     mprintf("\tDensity peaks above %.3f will be printed to %s in XYZ-format\n",
             peakcut_, peakfile_->Filename().full());
@@ -397,6 +402,7 @@ void Action_Volmap::Print() {
   for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
     if (*gval > 0.0) ++nOccupiedVoxels;
   double volume_estimate = (double)nOccupiedVoxels * grid_->Bin().VoxelVolume();
+  total_volume_->Add(0, &volume_estimate);
   mprintf("\t%u occupied voxels, voxel volume= %f Ang^3, total volume %f Ang^3\n",
           nOccupiedVoxels, grid_->Bin().VoxelVolume(), volume_estimate);
 

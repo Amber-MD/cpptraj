@@ -32,6 +32,7 @@ class Action_Volmap : public Action {
     AtomMask densitymask_;
     /// the grid we are using
     DataSet_GridFlt* grid_;
+    DataSet* total_volume_; ///< Hold total grid volume.
     /// file name with the peak locations as Carbons in XYZ file format
     CpptrajFile* peakfile_;
     /// The value below which to ignore all peaks
