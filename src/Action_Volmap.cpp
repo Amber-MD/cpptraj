@@ -37,7 +37,8 @@ void Action_Volmap::RawHelp() const {
           "\t{ data <existing set> |\n"
           "\t  name <setname> <dx> [<dy> <dz>]\n"
           "\t    { size <x,y,z> [center <x,y,z>] |\n"
-          "\t      centermask <mask> [buffer <buffer>] }\n"
+          "\t      centermask <mask> [buffer <buffer>] |\n"
+          "\t      boxref <reference> }\n"
           "\t}\n"
           "\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
 }
@@ -53,29 +54,68 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   peakfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", 1.0);
   // Determine how to set up grid: previous data set, 'size'/'center', or 'centermask'
-  std::string dsname = actionArgs.GetStringKey("data");
-  std::string setname, sizestr, centerstr;
   setupGridOnMask_ = false;
-  if (dsname.empty()) {
-    setname = actionArgs.GetStringKey("name");
-    sizestr = actionArgs.GetStringKey("size");
-    if (sizestr.empty()) {
-      std::string cmask = actionArgs.GetStringKey("centermask");
-      if (cmask.empty()) {
-        mprinterr("Error: To set up grid must specify either 'data', 'size', or 'centermask'.\n");
+  enum SetupMode { DATASET=0, SIZE_CENTER, CENTERMASK, BOXREF, NMODE };
+  SetupMode mode = NMODE;
+  const char* SetupKey[5] = { "data", "size", "centermask", "boxref", 0 };
+  std::string setup_arg;
+  for (int i = 0; i < (int)NMODE; i++)
+  {
+    setup_arg = actionArgs.GetStringKey( SetupKey[i] );
+    if (!setup_arg.empty()) {
+      mode = (SetupMode)i;
+      break;
+    }
+  }
+  if (mode == NMODE) {
+    mprinterr("Error: To set up grid must specify one of:");
+    for (int i = 0; i < (int)NMODE; i++) mprinterr(" '%s'", SetupKey[i]);
+    mprinterr("\n");
+    return Action::ERR;
+  }
+
+  if (mode != DATASET) {
+    Vec3 Sizes(0.0);
+    Vec3 Center(0.0);
+    std::string setname = actionArgs.GetStringKey("name");
+    if (mode == SIZE_CENTER) {
+      // 'size' specified. 
+      ArgList sizeargs = ArgList(setup_arg, ",");
+      Sizes[0] = sizeargs.getNextDouble(0.0);
+      Sizes[1] = sizeargs.getNextDouble(0.0);
+      Sizes[2] = sizeargs.getNextDouble(0.0);
+      if (Sizes[0] <= 0 || Sizes[1] <= 0 || Sizes[2] <= 0) {
+        mprinterr("Error: Volmap: Illegal grid sizes [%s]\n", setup_arg.c_str());
         return Action::ERR;
       }
+      // Get 'center' arg.
+      ArgList centerargs = ArgList(actionArgs.GetStringKey("center"), ",");
+      Center[0] = centerargs.getNextDouble(0.0);
+      Center[1] = centerargs.getNextDouble(0.0);
+      Center[2] = centerargs.getNextDouble(0.0);
+    } else if (mode == CENTERMASK) {
       // Center mask specified. Get buffer size.
       setupGridOnMask_ = true;
-      centermask_.SetMaskString( cmask );
+      centermask_.SetMaskString( setup_arg );
       buffer_ = actionArgs.getKeyDouble("buffer", 3.0);
       if (buffer_ < 0) {
-        mprintf("Error: Volmap: The buffer must be non-negative.\n");
+        mprinterr("Error: Volmap: The buffer must be non-negative.\n");
         return Action::ERR;
       }
-    } else {
-      // 'size' specified. Get center.
-      centerstr = actionArgs.GetStringKey("center");
+    } else if (mode == BOXREF) {
+      // Use reference box coords.
+      DataSet_Coords_REF* REF = (DataSet_Coords_REF*)init.DSL().FindSetOfType( setup_arg, DataSet::REF_FRAME );
+      if (REF == 0) {
+        mprinterr("Error: Reference '%s' not found.\n", setup_arg.c_str());
+        return Action::ERR;
+      }
+      if (REF->CoordsInfo().TrajBox().Type() != Box::ORTHO) {
+        mprinterr("Error: Reference '%s' does not have orthogonal box information.\n",
+                  setup_arg.c_str());
+        return Action::ERR;
+      }
+      Sizes = REF->CoordsInfo().TrajBox().Lengths();
+      Center = REF->CoordsInfo().TrajBox().Center();
     }
     // Get grid resolutions
     dx_ = actionArgs.getNextDouble(0.0);
@@ -86,38 +126,31 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
                 "Error:   if 'data' not specified.\n");
       return Action::ERR;
     }
-  }
-  //std::string density = actionArgs.GetStringKey("density"); // FIXME obsolete?
-  // Get the required mask
-  std::string reqmask = actionArgs.GetMaskNext();
-  if (reqmask.empty()) {
-     mprinterr("Error: No atom mask specified.\n");
-     return Action::ERR;
-  }
-  densitymask_.SetMaskString(reqmask);
-  // Get output filename
-  std::string outfilename = actionArgs.GetStringKey("out");
-  if (outfilename.empty())
-    outfilename = actionArgs.GetStringNext(); // Backwards compat.
-  DataFile* outfile = init.DFL().AddDataFile( outfilename, actionArgs );
-
-# ifdef _OPENMP
-  // Always need to allocate temp grid space for each thread.
-  int numthreads = 0;
-# pragma omp parallel
-  {
-    if (omp_get_thread_num() == 0)
-      numthreads = omp_get_num_threads();
-  }
-  GRID_THREAD_.resize( numthreads );
-# endif
-  // Create new grid or use existing. 
-  if (!dsname.empty()) {
+    // Allocate grid dataset
+    grid_ = (DataSet_GridFlt*)init.DSL().AddSet(DataSet::GRID_FLT, setname, "VOLMAP");
+    if (grid_ == 0) {
+      mprinterr("Error: Could not create grid dataset '%s'\n", setname.c_str());
+      return Action::ERR;
+    }
+    if (!setupGridOnMask_) {
+      // Allocate grid memory
+      if ( grid_->Allocate_X_C_D(Sizes, Center, Vec3(dx_,dy_,dz_)) ) {
+        mprinterr("Error: Could not allocate grid dataset '%s'\n", grid_->legend());
+        Sizes.Print("Sizes");
+        Center.Print("Center");
+        return Action::ERR;
+      }
+      Vec3 const& oxyz = grid_->Bin().GridOrigin();
+      xmin_ = oxyz[0];
+      ymin_ = oxyz[1];
+      zmin_ = oxyz[2];
+    }
+  } else {
     // Get existing grid dataset
-    grid_ = (DataSet_GridFlt*)init.DSL().FindSetOfType( dsname, DataSet::GRID_FLT );
+    grid_ = (DataSet_GridFlt*)init.DSL().FindSetOfType( setup_arg, DataSet::GRID_FLT );
     if (grid_ == 0) {
       mprinterr("Error: Could not find grid data set with name '%s'\n",
-                dsname.c_str());
+                setup_arg.c_str());
       return Action::ERR;
     }
     if (!grid_->Bin().IsOrthoGrid()) {
@@ -132,45 +165,39 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     xmin_ = oxyz[0];
     ymin_ = oxyz[1];
     zmin_ = oxyz[2];
-  } else {
-    // Create new grid.
-    grid_ = (DataSet_GridFlt*)init.DSL().AddSet(DataSet::GRID_FLT, setname, "VOLMAP");
-    if (grid_ == 0) return Action::ERR;
-    if (!sizestr.empty()) {
-      // Get grid sizes from the specified arguments
-      ArgList sizeargs = ArgList(sizestr, ",");
-      double xsize = sizeargs.getNextDouble(0.0);
-      double ysize = sizeargs.getNextDouble(0.0);
-      double zsize = sizeargs.getNextDouble(0.0);
-      if (xsize <= 0 || ysize <= 0 || zsize <= 0) {
-        mprinterr("Error: Volmap: Illegal grid sizes [%s]\n", sizestr.c_str());
-        return Action::ERR;
-      }
-      ArgList centerargs = ArgList(centerstr, ",");
-      double xcenter = centerargs.getNextDouble(0.0);
-      double ycenter = centerargs.getNextDouble(0.0);
-      double zcenter = centerargs.getNextDouble(0.0);
-      // Allocate grid
-      if ( grid_->Allocate_X_C_D(Vec3(xsize,ysize,zsize), 
-                                 Vec3(xcenter,ycenter,zcenter), 
-                                 Vec3(dx_,dy_,dz_)) ) return Action::ERR;
-      Vec3 const& oxyz = grid_->Bin().GridOrigin();
-      xmin_ = oxyz[0];
-      ymin_ = oxyz[1];
-      zmin_ = oxyz[2];
-    } 
+  } 
+  //std::string density = actionArgs.GetStringKey("density"); // FIXME obsolete?
+  // Get the required mask
+  std::string reqmask = actionArgs.GetMaskNext();
+  if (reqmask.empty()) {
+     mprinterr("Error: No atom mask specified.\n");
+     return Action::ERR;
   }
+  densitymask_.SetMaskString(reqmask);
+  // Get output filename
+  std::string outfilename = actionArgs.GetStringKey("out");
+  if (outfilename.empty())
+    outfilename = actionArgs.GetStringNext(); // Backwards compat.
+  DataFile* outfile = init.DFL().AddDataFile( outfilename, actionArgs );
+  if (outfile != 0) outfile->AddDataSet( grid_ );
+  // Create total volume set
+  total_volume_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(grid_->Meta().Name(), "totalvol"));
+  if (total_volume_ == 0) return Action::ERR;
+
 # ifdef _OPENMP
+  // Always need to allocate temp grid space for each thread.
+  int numthreads = 0;
+# pragma omp parallel
+  {
+    if (omp_get_thread_num() == 0)
+      numthreads = omp_get_num_threads();
+  }
+  GRID_THREAD_.resize( numthreads );
   // If not setting up grid via mask later, allocate temp space now.
   if (!setupGridOnMask_)
     for (Garray::iterator gt = GRID_THREAD_.begin(); gt != GRID_THREAD_.end(); ++gt)
       gt->resize( grid_->NX(), grid_->NY(), grid_->NZ() );
 # endif
-  // Setup output file
-  if (outfile != 0) outfile->AddDataSet( grid_ );
-  // Create total volume set
-  total_volume_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(grid_->Meta().Name(), "totalvol"));
-  if (total_volume_ == 0) return Action::ERR;
 
   // Info
   mprintf("    VOLMAP: Grid spacing will be %.2fx%.2fx%.2f Angstroms\n", dx_, dy_, dz_);
@@ -311,42 +338,44 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 # pragma omp for
 # endif
   for (midx = 0; midx < maxidx; midx++) {
-    atom = densitymask_[midx];
-    Vec3 pt = Vec3(frm.Frm().XYZ(atom));
-    int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
-    int iy = (int) ( floor( (pt[1]-ymin_) / dy_ + 0.5 ) );
-    int iz = (int) ( floor( (pt[2]-zmin_) / dz_ + 0.5 ) );
-    /* See how many steps in each dimension we smear out our Gaussian. This
-     * formula is taken to be consistent with VMD's volmap tool
-     */
     float rhalf = halfradii_[midx];
-    int nxstep = (int) ceil(4.1 * rhalf / dx_);
-    int nystep = (int) ceil(4.1 * rhalf / dy_);
-    int nzstep = (int) ceil(4.1 * rhalf / dz_);
-    if (ix < -nxstep || ix > nX + nxstep ||
-        iy < -nystep || iy > nY + nystep ||
-        iz < -nzstep || iz > nZ + nzstep)
-      continue;
-    // Calculate the gaussian normalization factor (in 3 dimensions with the
-    // given half-radius)
-    double norm = 1 / (sqrt_8_pi_cubed * rhalf*rhalf*rhalf);
-    double exfac = -1.0 / (2.0 * rhalf * rhalf);
-    //mprintf("DBG: Atom %i norm %g exfac %g\n", atom+1, norm, exfac);
+    if (rhalf > 0.0) {
+      atom = densitymask_[midx];
+      Vec3 pt = Vec3(frm.Frm().XYZ(atom));
+      int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
+      int iy = (int) ( floor( (pt[1]-ymin_) / dy_ + 0.5 ) );
+      int iz = (int) ( floor( (pt[2]-zmin_) / dz_ + 0.5 ) );
+      /* See how many steps in each dimension we smear out our Gaussian. This
+       * formula is taken to be consistent with VMD's volmap tool
+       */
+      int nxstep = (int) ceil(4.1 * rhalf / dx_);
+      int nystep = (int) ceil(4.1 * rhalf / dy_);
+      int nzstep = (int) ceil(4.1 * rhalf / dz_);
+      if (ix < -nxstep || ix > nX + nxstep ||
+          iy < -nystep || iy > nY + nystep ||
+          iz < -nzstep || iz > nZ + nzstep)
+        continue;
+      // Calculate the gaussian normalization factor (in 3 dimensions with the
+      // given half-radius)
+      double norm = 1 / (sqrt_8_pi_cubed * rhalf*rhalf*rhalf);
+      double exfac = -1.0 / (2.0 * rhalf * rhalf);
+      //mprintf("DBG: Atom %i norm %g exfac %g\n", atom+1, norm, exfac);
 
-    int xend = std::min(ix+nxstep, nX);
-    int yend = std::min(iy+nystep, nY);
-    int zend = std::min(iz+nzstep, nZ);
-    for (int xval = std::max(ix-nxstep, 0); xval < xend; xval++)
-      for (int yval = std::max(iy-nystep, 0); yval < yend; yval++)
-        for (int zval = std::max(iz-nzstep, 0); zval < zend; zval++) {
-          Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
-          double dist2 = gridpt.Magnitude2();
-#         ifdef _OPENMP
-          GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
-#         else
-          grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
-#         endif
-        }
+      int xend = std::min(ix+nxstep, nX);
+      int yend = std::min(iy+nystep, nY);
+      int zend = std::min(iz+nzstep, nZ);
+      for (int xval = std::max(ix-nxstep, 0); xval < xend; xval++)
+        for (int yval = std::max(iy-nystep, 0); yval < yend; yval++)
+          for (int zval = std::max(iz-nzstep, 0); zval < zend; zval++) {
+            Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
+            double dist2 = gridpt.Magnitude2();
+#           ifdef _OPENMP
+            GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+#           else
+            grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+#           endif
+          }
+    } // END if rhalf > 0.0
   } // END loop over atoms in densitymask_
 # ifdef _OPENMP
   } // END pragma omp parallel
@@ -402,19 +431,16 @@ void Action_Volmap::Print() {
     *gval /= nf;
   // Print volume estimate
   unsigned int nOccupiedVoxels = 0;
-  double vsum = 0.0;
   for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
     if (*gval > 0.0) {
       ++nOccupiedVoxels;
       //mprintf("DBG: %16.8e\n", *gval);
     }
-    vsum += (double)(*gval);
   }
   double volume_estimate = (double)nOccupiedVoxels * grid_->Bin().VoxelVolume();
   total_volume_->Add(0, &volume_estimate);
   mprintf("\t%u occupied voxels, voxel volume= %f Ang^3, total volume %f Ang^3\n",
           nOccupiedVoxels, grid_->Bin().VoxelVolume(), volume_estimate);
-  mprintf("DEBUG: vsum= %f\n");
 
 //    grid_.PrintXplor( filename_, "This line is ignored", 
 //                      "rdparm generated grid density" );
