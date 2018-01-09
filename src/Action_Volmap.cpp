@@ -79,8 +79,13 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     }
     // Get grid resolutions
     dx_ = actionArgs.getNextDouble(0.0);
-    dy_ = actionArgs.getNextDouble(0.0);
-    dz_ = actionArgs.getNextDouble(0.0);
+    dy_ = actionArgs.getNextDouble(dx_);
+    dz_ = actionArgs.getNextDouble(dy_);
+    if (dx_ <= 0.0 || dy_ <= 0.0 || dz_ <= 0.0) {
+      mprinterr("Error: At least one of <dx> <dy> <dz> spacings must be specified\n"
+                "Error:   if 'data' not specified.\n");
+      return Action::ERR;
+    }
   }
   //std::string density = actionArgs.GetStringKey("density"); // FIXME obsolete?
   // Get the required mask
