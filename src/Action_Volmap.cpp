@@ -35,7 +35,7 @@ void Action_Volmap::Help() const {
 void Action_Volmap::RawHelp() const {
   mprintf("\t[out <filename>] <mask> [radscale <factor>]\n"
           "\t{ data <existing set> |\n"
-          "\t  name <setname> <dx> <dy> <dz>\n"
+          "\t  name <setname> <dx> [<dy> <dz>]\n"
           "\t    { size <x,y,z> [center <x,y,z>] |\n"
           "\t      centermask <mask> [buffer <buffer>] }\n"
           "\t}\n"
