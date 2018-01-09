@@ -221,15 +221,13 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   }
   // Set up our radii_
   halfradii_.clear();
-  halfradii_.reserve( setup.Top().Natom() );
+  halfradii_.reserve( densitymask_.Nselected() );
   if (setup.Top().Nonbond().HasNonbond()) {
-    for (int i = 0; i < setup.Top().Natom(); i++)
-      halfradii_.push_back( (float)(setup.Top().GetVDWradius(i) * radscale_ / 2) );
+    for (AtomMask::const_iterator atom = densitymask_.begin(); atom != densitymask_.end(); ++atom)
+      halfradii_.push_back( (float)(setup.Top().GetVDWradius(*atom) * radscale_ / 2) );
   } else {
-    for (Topology::atom_iterator it = setup.Top().begin();
-            it != setup.Top().end(); it++) {
-      halfradii_.push_back( (float)(it->ElementRadius() * radscale_ / 2) );
-    }
+    for (AtomMask::const_iterator atom = densitymask_.begin(); atom != densitymask_.end(); ++atom)
+      halfradii_.push_back( (float)(setup.Top()[*atom].ElementRadius() * radscale_ / 2) );
   }
 
   // DEBUG
@@ -321,18 +319,19 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
     /* See how many steps in each dimension we smear out our Gaussian. This
      * formula is taken to be consistent with VMD's volmap tool
      */
-    int nxstep = (int) ceil(4.1 * halfradii_[atom] / dx_);
-    int nystep = (int) ceil(4.1 * halfradii_[atom] / dy_);
-    int nzstep = (int) ceil(4.1 * halfradii_[atom] / dz_);
+    float rhalf = halfradii_[midx];
+    int nxstep = (int) ceil(4.1 * rhalf / dx_);
+    int nystep = (int) ceil(4.1 * rhalf / dy_);
+    int nzstep = (int) ceil(4.1 * rhalf / dz_);
     if (ix < -nxstep || ix > nX + nxstep ||
         iy < -nystep || iy > nY + nystep ||
         iz < -nzstep || iz > nZ + nzstep)
       continue;
     // Calculate the gaussian normalization factor (in 3 dimensions with the
     // given half-radius)
-    double norm = 1 / (sqrt_8_pi_cubed * 
-                       halfradii_[atom]*halfradii_[atom]*halfradii_[atom]);
-    double exfac = -1.0 / (2.0 * halfradii_[atom] * halfradii_[atom]);
+    double norm = 1 / (sqrt_8_pi_cubed * rhalf*rhalf*rhalf);
+    double exfac = -1.0 / (2.0 * rhalf * rhalf);
+    //mprintf("DBG: Atom %i norm %g exfac %g\n", atom+1, norm, exfac);
 
     int xend = std::min(ix+nxstep, nX);
     int yend = std::min(iy+nystep, nY);
@@ -407,7 +406,7 @@ void Action_Volmap::Print() {
   for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
     if (*gval > 0.0) {
       ++nOccupiedVoxels;
-      mprintf("DBG: %16.8e\n", *gval);
+      //mprintf("DBG: %16.8e\n", *gval);
     }
     vsum += (double)(*gval);
   }
