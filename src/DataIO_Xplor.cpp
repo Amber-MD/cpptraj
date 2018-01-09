@@ -170,7 +170,7 @@ int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
   // Locate the indices of the absolute origin in order to find starting
   // indices for each axis. FIXME: Is this correct?
   long int grid_min_x, grid_min_y, grid_min_z;
-  set.BinIndices(0.0, 0.0, 0.0, grid_min_x, grid_min_y, grid_min_z);
+  set.Bin().Indices(0.0, 0.0, 0.0, grid_min_x, grid_min_y, grid_min_z);
   if (grid_min_x != 0L) grid_min_x = -grid_min_x;
   if (grid_min_y != 0L) grid_min_y = -grid_min_y;
   if (grid_min_z != 0L) grid_min_z = -grid_min_z;
@@ -178,7 +178,7 @@ int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
                    set.NX(), grid_min_x, grid_min_x + set.NX() - 1,
                    set.NY(), grid_min_y, grid_min_y + set.NY() - 1,
                    set.NZ(), grid_min_z, grid_min_z + set.NZ() - 1,
-                   set.Ucell());
+                   set.Bin().Ucell());
   // Print grid bins
   for (size_t k = 0; k < set.NZ(); ++k) {
     outfile.Printf("%8i\n", k);

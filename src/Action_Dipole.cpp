@@ -153,7 +153,7 @@ Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
     COM -= cXYZ;
     size_t ix, jy, kz;
     //mprintf("CDBG: Solvent %i XYZ %8.3f %8.3f %8.3f\n",solvmol-CurrentParm_->MolStart(),COM[0],COM[1],COM[2]);
-    if (grid_->CalcBins( COM[0], COM[1], COM[2], ix, jy, kz )) {
+    if (grid_->Bin().Calc( COM[0], COM[1], COM[2], ix, jy, kz )) {
       // Point COM is inside the grid. Increment grid and grid the dipole.
       long int bin = grid_->Increment( ix, jy, kz, Increment() );
       dipole_[bin] += dipolar_vector;
@@ -206,7 +206,7 @@ void Action_Dipole::Print() {
         //mprintf("CDBG: %5i %5i %5i %lf\n",i,j,k,density);
         if ( density >= max_density ) {
           // Print Bin Coords
-          Vec3 binCorner = grid_->BinCorner(i, j, k);
+          Vec3 binCorner = grid_->Bin().Corner(i, j, k);
           outfile_->Printf("%8.3f %8.3f %8.3f", binCorner[0], binCorner[1], binCorner[2]);
           // Normalize dipoles by density
           size_t idx = grid_->CalcIndex(i,j,k);

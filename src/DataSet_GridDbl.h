@@ -50,14 +50,14 @@ class DataSet_GridDbl : public DataSet_3D {
 // DataSet_GridDbl::Increment()
 long int DataSet_GridDbl::Increment(Vec3 const& xyz, double f) {
   size_t i,j,k;
-  if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k))
+  if (Bin().Calc(xyz[0],xyz[1],xyz[2],i,j,k))
     return grid_.incrementBy(i,j,k,f);
   return -1L; 
 }
 // DataSet_GridDbl::Increment()
 long int DataSet_GridDbl::Increment(const double* xyz, double f) {
   size_t i,j,k;
-  if (CalcBins(xyz[0],xyz[1],xyz[2],i,j,k))
+  if (Bin().Calc(xyz[0],xyz[1],xyz[2],i,j,k))
     return grid_.incrementBy(i,j,k,f);
   return -1L;
 }

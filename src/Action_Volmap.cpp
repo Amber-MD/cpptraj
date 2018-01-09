@@ -33,10 +33,12 @@ void Action_Volmap::Help() const {
 }
 
 void Action_Volmap::RawHelp() const {
-  mprintf("\tfilename dx dy dz <mask> [radscale <factor>]\n"
+  mprintf("\t[out <filename>] <mask> [radscale <factor>]\n"
           "\t{ data <existing set> |\n"
-          "\t  name <setname> { size <x,y,z> [center <x,y,z>] |\n"
-          "\t                   centermask <mask> [buffer <buffer>] } }\n"
+          "\t  name <setname> <dx> <dy> <dz>\n"
+          "\t    { size <x,y,z> [center <x,y,z>] |\n"
+          "\t      centermask <mask> [buffer <buffer>] }\n"
+          "\t}\n"
           "\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
 }
 
@@ -50,36 +52,50 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
   peakfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", 1.0);
-  std::string sizestr = actionArgs.GetStringKey("size");
-  std::string center = actionArgs.GetStringKey("centermask");
-  //std::string density = actionArgs.GetStringKey("density"); // FIXME obsolete?
+  // Determine how to set up grid: previous data set, 'size'/'center', or 'centermask'
   std::string dsname = actionArgs.GetStringKey("data");
-  std::string setname, centerstr;
+  std::string setname, sizestr, centerstr;
+  setupGridOnMask_ = false;
   if (dsname.empty()) {
     setname = actionArgs.GetStringKey("name");
-    centerstr = actionArgs.GetStringKey("center");
-    buffer_ = actionArgs.getKeyDouble("buffer", 3.0);
-    if (buffer_ < 0) {
-      mprintf("Error: Volmap: The buffer must be non-negative.\n");
-      return Action::ERR;
+    sizestr = actionArgs.GetStringKey("size");
+    if (sizestr.empty()) {
+      std::string cmask = actionArgs.GetStringKey("centermask");
+      if (cmask.empty()) {
+        mprinterr("Error: To set up grid must specify either 'data', 'size', or 'centermask'.\n");
+        return Action::ERR;
+      }
+      // Center mask specified. Get buffer size.
+      setupGridOnMask_ = true;
+      centermask_.SetMaskString( cmask );
+      buffer_ = actionArgs.getKeyDouble("buffer", 3.0);
+      if (buffer_ < 0) {
+        mprintf("Error: Volmap: The buffer must be non-negative.\n");
+        return Action::ERR;
+      }
+    } else {
+      // 'size' specified. Get center.
+      centerstr = actionArgs.GetStringKey("center");
     }
+    // Get grid resolutions
+    dx_ = actionArgs.getNextDouble(0.0);
+    dy_ = actionArgs.getNextDouble(0.0);
+    dz_ = actionArgs.getNextDouble(0.0);
   }
-  // Get grid resolutions
-  dx_ = actionArgs.getNextDouble(0.0);
-  dy_ = actionArgs.getNextDouble(0.0);
-  dz_ = actionArgs.getNextDouble(0.0);
+  //std::string density = actionArgs.GetStringKey("density"); // FIXME obsolete?
+  // Get output filename
+  std::string outfilename = actionArgs.GetStringKey("out");
+  if (outfilename.empty())
+    outfilename = actionArgs.GetStringNext(); // Backwards compat.
+  DataFile* outfile = init.DFL().AddDataFile( outfilename, actionArgs );
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
   if (reqmask.empty()) {
-     mprinterr("Error: Volmap: no density mask specified.\n");
+     mprinterr("Error: No atom mask specified.\n");
      return Action::ERR;
   }
   densitymask_.SetMaskString(reqmask);
-  // Get output filename
-  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringNext(), actionArgs );
 
-  // Create new grid or use existing. 
-  setupGridOnMask_ = false;
 # ifdef _OPENMP
   // Always need to allocate temp grid space for each thread.
   int numthreads = 0;
@@ -90,14 +106,27 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   GRID_THREAD_.resize( numthreads );
 # endif
+  // Create new grid or use existing. 
   if (!dsname.empty()) {
     // Get existing grid dataset
     grid_ = (DataSet_GridFlt*)init.DSL().FindSetOfType( dsname, DataSet::GRID_FLT );
     if (grid_ == 0) {
-      mprinterr("Error: volmap: Could not find grid data set with name %s\n",
+      mprinterr("Error: Could not find grid data set with name '%s'\n",
                 dsname.c_str());
       return Action::ERR;
     }
+    if (!grid_->Bin().IsOrthoGrid()) {
+      mprinterr("Error: Currently only works with orthogonal grids.\n");
+      return Action::ERR;
+    }
+    GridBin_Ortho const& gbo = static_cast<GridBin_Ortho const&>( grid_->Bin() );
+    dx_ = gbo.DX();
+    dy_ = gbo.DY();
+    dz_ = gbo.DZ();
+    Vec3 const& oxyz = gbo.GridOrigin();
+    xmin_ = oxyz[0];
+    ymin_ = oxyz[1];
+    zmin_ = oxyz[2];
   } else {
     // Create new grid.
     grid_ = (DataSet_GridFlt*)init.DSL().AddSet(DataSet::GRID_FLT, setname, "VOLMAP");
@@ -120,18 +149,11 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       if ( grid_->Allocate_X_C_D(Vec3(xsize,ysize,zsize), 
                                  Vec3(xcenter,ycenter,zcenter), 
                                  Vec3(dx_,dy_,dz_)) ) return Action::ERR;
-      Vec3 const& oxyz = grid_->GridOrigin();
+      Vec3 const& oxyz = grid_->Bin().GridOrigin();
       xmin_ = oxyz[0];
       ymin_ = oxyz[1];
       zmin_ = oxyz[2];
-    } else {
-      // Will generate grid around a mask. See if we have a center mask
-      if (center.empty())
-        centermask_.SetMaskString(reqmask);
-      else
-        centermask_.SetMaskString(center);
-      setupGridOnMask_ = true;
-    }
+    } 
   }
 # ifdef _OPENMP
   // If not setting up grid via mask later, allocate temp space now.
@@ -144,11 +166,11 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 
   // Info
   mprintf("    VOLMAP: Grid spacing will be %.2fx%.2fx%.2f Angstroms\n", dx_, dy_, dz_);
-  if (sizestr.empty())
-    mprintf("\tGrid centered around %s with %.2f Ang. clearance\n",
+  if (setupGridOnMask_)
+    mprintf("\tGrid centered around mask %s with %.2f Ang. clearance\n",
             centermask_.MaskExpression().c_str(), buffer_);
   else
-    mprintf("\tGrid centered at origin.\n");
+    grid_->GridInfo();
   mprintf("\tGridding atoms in mask '%s'\n", densitymask_.MaskString());
   mprintf("\tDividing radii by %f\n", 1.0/radscale_);
   if (outfile != 0)
@@ -374,9 +396,9 @@ void Action_Volmap::Print() {
   unsigned int nOccupiedVoxels = 0;
   for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
     if (*gval > 0.0) ++nOccupiedVoxels;
-  double volume_estimate = (double)nOccupiedVoxels * grid_->VoxelVolume();
+  double volume_estimate = (double)nOccupiedVoxels * grid_->Bin().VoxelVolume();
   mprintf("\t%u occupied voxels, voxel volume= %f Ang^3, total volume %f Ang^3\n",
-          nOccupiedVoxels, grid_->VoxelVolume(), volume_estimate);
+          nOccupiedVoxels, grid_->Bin().VoxelVolume(), volume_estimate);
 
 //    grid_.PrintXplor( filename_, "This line is ignored", 
 //                      "rdparm generated grid density" );
