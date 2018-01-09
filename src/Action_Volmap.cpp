@@ -124,7 +124,6 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       mprinterr("Error: Currently only works with orthogonal grids.\n");
       return Action::ERR;
     }
-    setname = dsname;
     GridBin_Ortho const& gbo = static_cast<GridBin_Ortho const&>( grid_->Bin() );
     dx_ = gbo.DX();
     dy_ = gbo.DY();
@@ -170,7 +169,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   // Setup output file
   if (outfile != 0) outfile->AddDataSet( grid_ );
   // Create total volume set
-  total_volume_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(setname, "totalvol"));
+  total_volume_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(grid_->Meta().Name(), "totalvol"));
   if (total_volume_ == 0) return Action::ERR;
 
   // Info
@@ -325,15 +324,15 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
     int nxstep = (int) ceil(4.1 * halfradii_[atom] / dx_);
     int nystep = (int) ceil(4.1 * halfradii_[atom] / dy_);
     int nzstep = (int) ceil(4.1 * halfradii_[atom] / dz_);
+    if (ix < -nxstep || ix > nX + nxstep ||
+        iy < -nystep || iy > nY + nystep ||
+        iz < -nzstep || iz > nZ + nzstep)
+      continue;
     // Calculate the gaussian normalization factor (in 3 dimensions with the
     // given half-radius)
     double norm = 1 / (sqrt_8_pi_cubed * 
                        halfradii_[atom]*halfradii_[atom]*halfradii_[atom]);
     double exfac = -1.0 / (2.0 * halfradii_[atom] * halfradii_[atom]);
-    if (ix < -nxstep || ix > nX + nxstep ||
-        iy < -nystep || iy > nY + nystep ||
-        iz < -nzstep || iz > nZ + nzstep)
-      continue;
 
     int xend = std::min(ix+nxstep, nX);
     int yend = std::min(iy+nystep, nY);
@@ -404,12 +403,19 @@ void Action_Volmap::Print() {
     *gval /= nf;
   // Print volume estimate
   unsigned int nOccupiedVoxels = 0;
-  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
-    if (*gval > 0.0) ++nOccupiedVoxels;
+  double vsum = 0.0;
+  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
+    if (*gval > 0.0) {
+      ++nOccupiedVoxels;
+      mprintf("DBG: %16.8e\n", *gval);
+    }
+    vsum += (double)(*gval);
+  }
   double volume_estimate = (double)nOccupiedVoxels * grid_->Bin().VoxelVolume();
   total_volume_->Add(0, &volume_estimate);
   mprintf("\t%u occupied voxels, voxel volume= %f Ang^3, total volume %f Ang^3\n",
           nOccupiedVoxels, grid_->Bin().VoxelVolume(), volume_estimate);
+  mprintf("DEBUG: vsum= %f\n");
 
 //    grid_.PrintXplor( filename_, "This line is ignored", 
 //                      "rdparm generated grid density" );
