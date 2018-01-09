@@ -83,11 +83,6 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     dz_ = actionArgs.getNextDouble(0.0);
   }
   //std::string density = actionArgs.GetStringKey("density"); // FIXME obsolete?
-  // Get output filename
-  std::string outfilename = actionArgs.GetStringKey("out");
-  if (outfilename.empty())
-    outfilename = actionArgs.GetStringNext(); // Backwards compat.
-  DataFile* outfile = init.DFL().AddDataFile( outfilename, actionArgs );
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
   if (reqmask.empty()) {
@@ -95,6 +90,11 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
      return Action::ERR;
   }
   densitymask_.SetMaskString(reqmask);
+  // Get output filename
+  std::string outfilename = actionArgs.GetStringKey("out");
+  if (outfilename.empty())
+    outfilename = actionArgs.GetStringNext(); // Backwards compat.
+  DataFile* outfile = init.DFL().AddDataFile( outfilename, actionArgs );
 
 # ifdef _OPENMP
   // Always need to allocate temp grid space for each thread.
