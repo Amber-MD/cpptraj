@@ -22,27 +22,18 @@ class Action_Volmap : public Action {
     double dx_, dy_, dz_;
     /// minimum values in the x-, y-, and z-dimensions
     double xmin_, ymin_, zmin_;
-    /// number of frames we analyzed so we can average at the end
-    int Nframes_;
-    /// If true, set up the grid on first frame based on centermask.
-    bool setupGridOnMask_;
-    /// mask to center the grid on
-    AtomMask centermask_;
-    /// mask of atoms to grid
-    AtomMask densitymask_;
-    /// the grid we are using
-    DataSet_GridFlt* grid_;
+    int Nframes_;           ///< Number of frames we analyzed so we can average at the end
+    bool setupGridOnMask_;  ///< If true, set up the grid on first frame based on centermask.
+    AtomMask centermask_;   ///< Mask to center the grid on
+    AtomMask densitymask_;  ///< Max of atoms to grid.
+    DataSet_GridFlt* grid_; ///< Hold the grid.
     DataSet* total_volume_; ///< Hold total grid volume.
-    /// file name with the peak locations as Carbons in XYZ file format
-    CpptrajFile* peakfile_;
-    /// The value below which to ignore all peaks
-    double peakcut_;
-    /// the atomic radii of each atom in the gridded selection
-    std::vector<float> halfradii_;
-    /// the clearance between the edges of our grid and centermask_
-    double buffer_;
-    /// the scaling factor to divide all radii by
-    double radscale_;
+    CpptrajFile* peakfile_; ///< file name with the peak locations as Carbons in XYZ file format
+    double peakcut_;        ///< The value below which to ignore all peaks
+    std::vector<float> halfradii_; ///< 1/2 the atomic radii of each atom in the gridded selection
+    double buffer_;         ///< Clearance between the edges of our grid and centermask_
+    double radscale_;       ///< The scaling factor to divide all radii by
+    double stepfac_;        ///< Factor for determining how many steps to smear Gaussian
     static const double sqrt_8_pi_cubed;
 #   ifdef _OPENMP
     typedef std::vector< Grid<float> > Garray;

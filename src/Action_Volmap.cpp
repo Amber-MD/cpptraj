@@ -10,15 +10,20 @@
 const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
-  dx_(0.0), dy_(0.0), dz_(0.0),
-  xmin_(0.0), ymin_(0.0), zmin_(0.0),
+  dx_(0.0),
+  dy_(0.0),
+  dz_(0.0),
+  xmin_(0.0),
+  ymin_(0.0),
+  zmin_(0.0),
   Nframes_(0),
   setupGridOnMask_(false),
   grid_(0),
   peakfile_(0),
   peakcut_(0.05),
   buffer_(3.0),
-  radscale_(1.0)
+  radscale_(1.0),
+  stepfac_(4.1)
 {}
 
 void Action_Volmap::Help() const {
@@ -53,6 +58,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
   peakfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", 1.0);
+  stepfac_ = actionArgs.getKeyDouble("stepfac", 4.1);
   // Determine how to set up grid: previous data set, 'size'/'center', or 'centermask'
   setupGridOnMask_ = false;
   enum SetupMode { DATASET=0, SIZE_CENTER, CENTERMASK, BOXREF, NMODE };
@@ -208,6 +214,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     grid_->GridInfo();
   mprintf("\tGridding atoms in mask '%s'\n", densitymask_.MaskString());
   mprintf("\tDividing radii by %f\n", 1.0/radscale_);
+  mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
   if (outfile != 0)
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
   mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
@@ -348,9 +355,9 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
       /* See how many steps in each dimension we smear out our Gaussian. This
        * formula is taken to be consistent with VMD's volmap tool
        */
-      int nxstep = (int) ceil(4.1 * rhalf / dx_);
-      int nystep = (int) ceil(4.1 * rhalf / dy_);
-      int nzstep = (int) ceil(4.1 * rhalf / dz_);
+      int nxstep = (int) ceil(stepfac_ * rhalf / dx_);
+      int nystep = (int) ceil(stepfac_ * rhalf / dy_);
+      int nzstep = (int) ceil(stepfac_ * rhalf / dz_);
       if (ix < -nxstep || ix > nX + nxstep ||
           iy < -nystep || iy > nY + nystep ||
           iz < -nzstep || iz > nZ + nzstep)
