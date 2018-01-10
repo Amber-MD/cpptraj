@@ -24,6 +24,7 @@ class Action_Volmap : public Action {
     double xmin_, ymin_, zmin_;
     int Nframes_;           ///< Number of frames we analyzed so we can average at the end
     bool setupGridOnMask_;  ///< If true, set up the grid on first frame based on centermask.
+    bool spheremode_;       ///< If true, grid points farther than rhalf^2 will be skipped
     AtomMask centermask_;   ///< Mask to center the grid on
     AtomMask densitymask_;  ///< Max of atoms to grid.
     DataSet_GridFlt* grid_; ///< Hold the grid.

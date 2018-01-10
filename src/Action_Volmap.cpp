@@ -18,6 +18,7 @@ Action_Volmap::Action_Volmap() :
   zmin_(0.0),
   Nframes_(0),
   setupGridOnMask_(false),
+  spheremode_(false),
   grid_(0),
   peakfile_(0),
   peakcut_(0.05),
@@ -38,7 +39,7 @@ void Action_Volmap::Help() const {
 }
 
 void Action_Volmap::RawHelp() const {
-  mprintf("\t[out <filename>] <mask> [radscale <factor>]\n"
+  mprintf("\t[out <filename>] <mask> [radscale <factor>] [stepfac <fac>] [sphere]\n"
           "\t{ data <existing set> |\n"
           "\t  name <setname> <dx> [<dy> <dz>]\n"
           "\t    { size <x,y,z> [center <x,y,z>] |\n"
@@ -57,8 +58,15 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   // Get specific keywords
   peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
   peakfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
-  radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", 1.0);
-  stepfac_ = actionArgs.getKeyDouble("stepfac", 4.1);
+  spheremode_ = actionArgs.hasKey("sphere");
+  radscale_ = 1.0;
+  stepfac_ = 4.1;
+  if (spheremode_) {
+    radscale_ = 0.5;
+    stepfac_ = 1.0;
+  }
+  radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", radscale_);
+  stepfac_ = actionArgs.getKeyDouble("stepfac", stepfac_);
   // Determine how to set up grid: previous data set, 'size'/'center', or 'centermask'
   setupGridOnMask_ = false;
   enum SetupMode { DATASET=0, SIZE_CENTER, CENTERMASK, BOXREF, NMODE };
@@ -213,6 +221,8 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   else
     grid_->GridInfo();
   mprintf("\tGridding atoms in mask '%s'\n", densitymask_.MaskString());
+  if (spheremode_)
+    mprintf("\tWhen smearing Gaussian, voxels farther than radii/2 will be skipped.\n");
   mprintf("\tDividing radii by %f\n", 1.0/radscale_);
   mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
   if (outfile != 0)
@@ -347,6 +357,11 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
   for (midx = 0; midx < maxidx; midx++) {
     double rhalf = (double)halfradii_[midx];
     if (rhalf > 0.0) {
+      double rcut2;
+      if (spheremode_)
+        rcut2 = rhalf*rhalf;
+      else
+        rcut2 = 99999999.0;
       atom = densitymask_[midx];
       Vec3 pt = Vec3(frm.Frm().XYZ(atom));
       int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
@@ -376,11 +391,13 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
           for (int zval = std::max(iz-nzstep, 0); zval < zend; zval++) {
             Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
             double dist2 = gridpt.Magnitude2();
+            if (dist2 < rcut2) {
 #           ifdef _OPENMP
             GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
 #           else
             grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
 #           endif
+            }
           }
     } // END if rhalf > 0.0
   } // END loop over atoms in densitymask_
