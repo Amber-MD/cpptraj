@@ -10,5 +10,6 @@ class Exec_CompareTop : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     void CompareAtoms(Topology const&, Topology const&, CpptrajFile&) const;
+    static inline bool Check(bool,bool,const char*, const char*, const char*);
 };
 #endif

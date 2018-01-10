@@ -155,6 +155,13 @@ typedef ParmT<DihedralParmType> DihT;
 /// Array of dihedral atoms and parameters
 typedef std::vector<DihT> DihArrayT;
 
+static DihedralParmType DParm(DihedralParmArray const& D, int idx) {
+  if (idx < 0)
+    return DihedralParmType();
+  else
+    return D[idx];
+}
+
 /// \return Array of dihedral atoms and parameters from given Topology
 static DihArrayT DihArray( Topology const& topIn ) {
   DihArrayT array;
@@ -166,13 +173,13 @@ static DihArrayT DihArray( Topology const& topIn ) {
                                      it != topIn.Dihedrals().end(); ++it)
   {
     SetDihParms( topIn, *it, atoms, rnums, names );
-    array.push_back( DihT(atoms, rnums, names, topIn.DihedralParm()[it->Idx()]) );
+    array.push_back( DihT(atoms, rnums, names, DParm(topIn.DihedralParm(),it->Idx())) );
   }
   for (DihedralArray::const_iterator it = topIn.DihedralsH().begin();
                                      it != topIn.DihedralsH().end(); ++it)
   {
     SetDihParms( topIn, *it, atoms, rnums, names );
-    array.push_back( DihT(atoms, rnums, names, topIn.DihedralParm()[it->Idx()]) );
+    array.push_back( DihT(atoms, rnums, names, DParm(topIn.DihedralParm(),it->Idx())) );
   }
   return array;
 }
@@ -216,6 +223,13 @@ typedef ParmT<AngleParmType> AngT;
 /// Array of angle atoms and parameters
 typedef std::vector<AngT> AngArrayT;
 
+static AngleParmType AParm(AngleParmArray const& A, int idx) {
+  if (idx < 0)
+    return AngleParmType();
+  else
+    return A[idx];
+}
+
 /// \return Array of angle atoms and parameters from given Topology
 static AngArrayT AngArray( Topology const& topIn ) {
   AngArrayT array;
@@ -227,13 +241,13 @@ static AngArrayT AngArray( Topology const& topIn ) {
                                   it != topIn.Angles().end(); ++it)
   {
     SetAngParms( topIn, *it, atoms, rnums, names );
-    array.push_back( AngT(atoms, rnums, names, topIn.AngleParm()[it->Idx()]) );
+    array.push_back( AngT(atoms, rnums, names, AParm(topIn.AngleParm(),it->Idx())) );
   }
   for (AngleArray::const_iterator it = topIn.AnglesH().begin();
                                   it != topIn.AnglesH().end(); ++it)
   {
     SetAngParms( topIn, *it, atoms, rnums, names );
-    array.push_back( AngT(atoms, rnums, names, topIn.AngleParm()[it->Idx()]) );
+    array.push_back( AngT(atoms, rnums, names, AParm(topIn.AngleParm(),it->Idx())) );
   }
   return array;
 }
@@ -417,6 +431,17 @@ void Exec_CompareTop::CompareAtoms(Topology const& T1, Topology const& T2,
 }
 
 // -----------------------------------------------------------------------------
+bool Exec_CompareTop::Check(bool p1empty, bool p2empty, const char* descrip,
+                            const char* p1, const char* p2)
+{
+  if (p1empty || p2empty) {
+    if (p1empty) mprintf("Warning: '%s' does not have %s. Skipping.\n", p1, descrip);
+    if (p2empty) mprintf("Warning: '%s' does not have %s. Skipping.\n", p2, descrip);
+    return false;
+  }
+  return true;
+}
+
 /// Compare two topologies, find differences
 Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -454,9 +479,14 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
   }
   if (cmp_lj) {
     // LJ params
-    output.Printf("# LJ params\n");
-    Diff<LJatom> diff_lj;
-    diff_lj.Compare( LJarray(p1), LJarray(p2), PrintLJatom, output, p1, p2 );
+    // Make sure both topologies have LJ params.
+    if (Check(!p1.Nonbond().HasNonbond(), !p2.Nonbond().HasNonbond(), "LJ parameters",
+               p1.c_str(), p2.c_str()))
+    {
+      output.Printf("# LJ params\n");
+      Diff<LJatom> diff_lj;
+      diff_lj.Compare( LJarray(p1), LJarray(p2), PrintLJatom, output, p1, p2 );
+    }
   }
   if (cmp_bnd) {
     // Bonds
@@ -470,23 +500,37 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
   }
   if (cmp_ang) {
     // Angles
-    output.Printf("# Angles\n");
-    Diff<AngT> diff_ang;
-    diff_ang.Compare( AngArray(p1), AngArray(p2), PrintAngT, output, p1, p2 );
+    if (Check(p1.Nangles() < 1, p2.Nangles() < 1, "angles", p1.c_str(), p2.c_str()))
+    {
+      output.Printf("# Angles\n");
+      Diff<AngT> diff_ang;
+      diff_ang.Compare( AngArray(p1), AngArray(p2), PrintAngT, output, p1, p2 );
+    }
     // Angle parameters
-    output.Printf("# Angle Parameters\n");
-    Diff<AngleParmType> diff_angP;
-    diff_angP.Compare( p1.AngleParm(), p2.AngleParm(), PrintAngP, output, p1, p2 );
+    if (Check(p1.AngleParm().empty(), p2.AngleParm().empty(), "angle params",
+              p1.c_str(), p2.c_str()))
+    {
+      output.Printf("# Angle Parameters\n");
+      Diff<AngleParmType> diff_angP;
+      diff_angP.Compare( p1.AngleParm(), p2.AngleParm(), PrintAngP, output, p1, p2 );
+    }
   }
   if (cmp_dih) {
     // Dihedrals
-    output.Printf("# Dihedrals\n");
-    Diff<DihT> diff_dih;
-    diff_dih.Compare( DihArray(p1), DihArray(p2), PrintDihT, output, p1, p2 );
+    if (Check(p1.Ndihedrals() < 1, p2.Ndihedrals() < 1, "dihedrals", p1.c_str(), p2.c_str()))
+    {
+      output.Printf("# Dihedrals\n");
+      Diff<DihT> diff_dih;
+      diff_dih.Compare( DihArray(p1), DihArray(p2), PrintDihT, output, p1, p2 );
+    }
     // Dihedral parameters
-    output.Printf("# Dihedral Parameters\n");
-    Diff<DihedralParmType> diff_dihP;
-    diff_dihP.Compare( p1.DihedralParm(), p2.DihedralParm(), PrintDihP, output, p1, p2 );
+    if (Check(p1.DihedralParm().empty(), p2.DihedralParm().empty(), "dihedral params",
+              p1.c_str(), p2.c_str()))
+    {
+      output.Printf("# Dihedral Parameters\n");
+      Diff<DihedralParmType> diff_dihP;
+      diff_dihP.Compare( p1.DihedralParm(), p2.DihedralParm(), PrintDihP, output, p1, p2 );
+    }
   }
   output.CloseFile();
   return CpptrajState::OK;
