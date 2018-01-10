@@ -345,7 +345,7 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 # pragma omp for
 # endif
   for (midx = 0; midx < maxidx; midx++) {
-    float rhalf = halfradii_[midx];
+    double rhalf = (double)halfradii_[midx];
     if (rhalf > 0.0) {
       atom = densitymask_[midx];
       Vec3 pt = Vec3(frm.Frm().XYZ(atom));
