@@ -18,6 +18,9 @@ class Action_Volmap : public Action {
     void Print();
     void RawHelp() const;
 
+    /// Radii to use
+    enum RadiiType { UNSPECIFIED = 0, VDW, ELEMENT };
+    RadiiType radiiType_;
     /// grid resolutions
     double dx_, dy_, dz_;
     /// minimum values in the x-, y-, and z-dimensions
@@ -31,6 +34,7 @@ class Action_Volmap : public Action {
     DataSet* total_volume_; ///< Hold total grid volume.
     CpptrajFile* peakfile_; ///< file name with the peak locations as Carbons in XYZ file format
     double peakcut_;        ///< The value below which to ignore all peaks
+    std::vector<int> Atoms_; ///< Atoms with radii > 0.0
     std::vector<float> halfradii_; ///< 1/2 the atomic radii of each atom in the gridded selection
     double buffer_;         ///< Clearance between the edges of our grid and centermask_
     double radscale_;       ///< The scaling factor to divide all radii by

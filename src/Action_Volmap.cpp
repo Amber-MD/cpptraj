@@ -10,6 +10,7 @@
 const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
+  radiiType_(UNSPECIFIED),
   dx_(0.0),
   dy_(0.0),
   dz_(0.0),
@@ -46,7 +47,7 @@ void Action_Volmap::RawHelp() const {
           "\t      centermask <mask> [buffer <buffer>] |\n"
           "\t      boxref <reference> }\n"
           "\t}\n"
-          "\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
+          "\t[radii {vdw | element}] [peakcut <cutoff>] [peakfile <xyzfile>]\n");
 }
 
 // Action_Volmap::Init()
@@ -67,6 +68,18 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", radscale_);
   stepfac_ = actionArgs.getKeyDouble("stepfac", stepfac_);
+  std::string radarg = actionArgs.GetStringKey("radii");
+  radiiType_ = UNSPECIFIED;
+  if (!radarg.empty()) {
+    if (radarg == "vdw")
+      radiiType_ = VDW;
+    else if (radarg == "element")
+      radiiType_ = ELEMENT;
+    else {
+      mprinterr("Error: Unrecognized radii type: %s\n", radarg.c_str());
+      return Action::ERR;
+    }
+  }
   // Determine how to set up grid: previous data set, 'size'/'center', or 'centermask'
   setupGridOnMask_ = false;
   enum SetupMode { DATASET=0, SIZE_CENTER, CENTERMASK, BOXREF, NMODE };
@@ -221,6 +234,12 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   else
     grid_->GridInfo();
   mprintf("\tGridding atoms in mask '%s'\n", densitymask_.MaskString());
+  if (radiiType_ == VDW)
+    mprintf("\tUsing van der Waals radii.\n");
+  else if (radiiType_ == ELEMENT)
+    mprintf("\tUsing elemental radii.\n");
+  else if (radiiType_ == UNSPECIFIED)
+    mprintf("\tUsing van der Waals radii if present, elemental radii otherwise.\n");
   if (spheremode_)
     mprintf("\tWhen smearing Gaussian, voxels farther than radii/2 will be skipped.\n");
   mprintf("\tDividing radii by %f\n", 1.0/radscale_);
@@ -266,14 +285,39 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   // Set up our radii_
   halfradii_.clear();
   halfradii_.reserve( densitymask_.Nselected() );
-  if (setup.Top().Nonbond().HasNonbond()) {
-    for (AtomMask::const_iterator atom = densitymask_.begin(); atom != densitymask_.end(); ++atom)
-      halfradii_.push_back( (float)(setup.Top().GetVDWradius(*atom) * radscale_ / 2) );
-  } else {
-    for (AtomMask::const_iterator atom = densitymask_.begin(); atom != densitymask_.end(); ++atom)
-      halfradii_.push_back( (float)(setup.Top()[*atom].ElementRadius() * radscale_ / 2) );
+  Atoms_.clear();
+  Atoms_.reserve( densitymask_.Nselected() );
+  RadiiType radiiToUse = radiiType_;
+  if (radiiToUse == VDW && !setup.Top().Nonbond().HasNonbond()) {
+    mprinterr("Error: VDW radii specified but no VDW radii present in '%s'.\n",
+              setup.Top().c_str());
+    return Action::ERR;
   }
-
+  if (radiiToUse == UNSPECIFIED) {
+    if (setup.Top().Nonbond().HasNonbond())
+      radiiToUse = VDW;
+    else
+      radiiToUse = ELEMENT;
+  }
+  for (AtomMask::const_iterator atom = densitymask_.begin(); atom != densitymask_.end(); ++atom)
+  {
+    double rad = 0.0;
+    if (radiiToUse == VDW)
+      rad = setup.Top().GetVDWradius(*atom);
+    else if (radiiToUse == ELEMENT)
+      rad = setup.Top()[*atom].ElementRadius();
+    if (rad > 0.0) {
+      halfradii_.push_back( (float)(rad * radscale_ / 2) );
+      Atoms_.push_back( *atom );
+    }
+  }
+  if ((int)Atoms_.size() < densitymask_.Nselected())
+    mprintf("Warning: %i atoms have 0.0 radii and will be skipped.\n",
+            densitymask_.Nselected() - (int)Atoms_.size());
+  if (Atoms_.empty()) {
+    mprinterr("Error: No atoms with radii > 0.0\n");
+    return Action::ERR;
+  }
   // DEBUG
 //for (AtomMask::const_iterator it = densitymask_.begin(); it != densitymask_.end(); it++)
 //  mprintf("Radius of atom %d is %f\n", *it, 2 * halfradii_[*it]);
@@ -345,7 +389,7 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
   int nX = (int)grid_->NX();
   int nY = (int)grid_->NY();
   int nZ = (int)grid_->NZ();
-  int maxidx = densitymask_.Nselected();
+  int maxidx = (int)Atoms_.size();
   int midx, atom;
 # ifdef _OPENMP
   int mythread;
@@ -356,13 +400,12 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 # endif
   for (midx = 0; midx < maxidx; midx++) {
     double rhalf = (double)halfradii_[midx];
-    if (rhalf > 0.0) {
       double rcut2;
       if (spheremode_)
         rcut2 = rhalf*rhalf;
       else
         rcut2 = 99999999.0;
-      atom = densitymask_[midx];
+      atom = Atoms_[midx];
       Vec3 pt = Vec3(frm.Frm().XYZ(atom));
       int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
       int iy = (int) ( floor( (pt[1]-ymin_) / dy_ + 0.5 ) );
@@ -399,7 +442,6 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 #           endif
             }
           }
-    } // END if rhalf > 0.0
   } // END loop over atoms in densitymask_
 # ifdef _OPENMP
   } // END pragma omp parallel
