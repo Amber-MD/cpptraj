@@ -503,5 +503,7 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
   int nd = 1;
   PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
   PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
+  if (parm_->Chamber().HasChamber())
+    PrintDihedrals( parm_->Chamber().Impropers(), parm_->Chamber().ImproperParm(), mask1, mask2, mask3, mask4, nw, nd );
   return 0;
 }
