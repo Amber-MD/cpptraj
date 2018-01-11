@@ -3,6 +3,7 @@
 #include "Parm_Gromacs.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "ArgList.h"
 
 bool Parm_Gromacs::LineContainsKey(std::string const& line, std::string const& directive)
 const
@@ -55,14 +56,17 @@ int Parm_Gromacs::AdvanceToElse( BufferedLine& infile ) const {
 
 Parm_Gromacs::KeyType Parm_Gromacs::FindKey(std::string const& line) const
 {
- if      ( LineContainsKey(line, "[ moleculetype ]"  ) ) return G_MOLECULE_TYPE;
- else if ( LineContainsKey(line, "[ atoms ]"         ) ) return G_ATOMS;
- else if ( LineContainsKey(line, "[ bonds ]"         ) ) return G_BONDS;
- else if ( LineContainsKey(line, "[ system ]"        ) ) return G_SYSTEM;
- else if ( LineContainsKey(line, "[ molecules ]"     ) ) return G_MOLECULES;
- else if ( LineContainsKey(line, "[ settles ]"       ) ) return G_SETTLES;
- else if ( LineContainsKey(line, "[ virtual_sites3 ]") ) return G_VIRTUAL_SITES3;
- return G_UNKNOWN_KEY;
+  // Conversion to arglist will skip leading bracket and whitespace
+  ArgList keyArg(line, "[ ]");
+  if (keyArg.Nargs() < 1) return G_UNKNOWN_KEY;
+  if      ( LineContainsKey(keyArg[0], "moleculetype"  ) ) return G_MOLECULE_TYPE;
+  else if ( LineContainsKey(keyArg[0], "atoms"         ) ) return G_ATOMS;
+  else if ( LineContainsKey(keyArg[0], "bonds"         ) ) return G_BONDS;
+  else if ( LineContainsKey(keyArg[0], "system"        ) ) return G_SYSTEM;
+  else if ( LineContainsKey(keyArg[0], "molecules"     ) ) return G_MOLECULES;
+  else if ( LineContainsKey(keyArg[0], "settles"       ) ) return G_SETTLES;
+  else if ( LineContainsKey(keyArg[0], "virtual_sites3") ) return G_VIRTUAL_SITES3;
+  return G_UNKNOWN_KEY;
 }
 
 const char* Parm_Gromacs::SEP = " \t";
