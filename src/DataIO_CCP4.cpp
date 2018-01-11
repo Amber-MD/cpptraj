@@ -221,7 +221,7 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
   }
   DataSet_3D const& grid = static_cast<DataSet_3D const&>( *(*setIn) );
   // Check input grid
-  Vec3 OXYZ = grid.GridOrigin();
+  Vec3 OXYZ = grid.Bin().GridOrigin();
   if (OXYZ[0] < 0.0 || OXYZ[1] < 0.0 || OXYZ[2] < 0.0 ||
       OXYZ[0] > 0.0 || OXYZ[1] > 0.0 || OXYZ[2] > 0.0)
     mprintf("Warning: Grid '%s' origin is not 0.0, 0.0, 0.0\n"
@@ -247,7 +247,7 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
   buffer.i[7] = (int)grid.NX();
   buffer.i[8] = (int)grid.NY();
   buffer.i[9] = (int)grid.NZ();
-  Box box( grid.Ucell() );
+  Box box( grid.Bin().Ucell() );
   buffer.f[10] = (float)box[0];
   buffer.f[11] = (float)box[1];
   buffer.f[12] = (float)box[2];

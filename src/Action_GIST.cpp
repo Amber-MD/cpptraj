@@ -290,7 +290,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tDistances will not be imaged.\n");
   gO_->GridInfo();
   mprintf("\tNumber of voxels: %zu, voxel volume: %f Ang^3\n",
-          MAX_GRID_PT_, gO_->VoxelVolume());
+          MAX_GRID_PT_, gO_->Bin().VoxelVolume());
   mprintf("#Please cite these papers if you use GIST results in a publication:\n"
           "#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman J. Comp. Chem. 37 (21) 2016\n"
           "#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
@@ -413,7 +413,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   // Estimate how many solvent molecules can possibly fit onto the grid.
   // Add some extra voxels as a buffer.
   double max_voxels = (double)MAX_GRID_PT_ + (1.10 * (double)MAX_GRID_PT_);
-  double totalVolume = max_voxels * gO_->VoxelVolume();
+  double totalVolume = max_voxels * gO_->Bin().VoxelVolume();
   double max_mols = totalVolume * BULK_DENS_;
   //mprintf("\tEstimating grid can fit a max of %.0f solvent molecules (w/ 10%% buffer).\n",
   //        max_mols);
@@ -715,7 +715,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   OnGrid_XYZ_.clear();
 
   size_t bin_i, bin_j, bin_k;
-  Vec3 const& Origin = gO_->GridOrigin();
+  Vec3 const& Origin = gO_->Bin().GridOrigin();
   // Loop over each solvent molecule
   for (unsigned int sidx = 0; sidx < NSOLVENT_; sidx++)
   {
@@ -738,7 +738,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
       const double* H1_XYZ = frm.Frm().XYZ( oidx + 1 );
       const double* H2_XYZ = frm.Frm().XYZ( oidx + 2 );
       // Try to bin the oxygen
-      if ( gO_->CalcBins( O_XYZ[0], O_XYZ[1], O_XYZ[2], bin_i, bin_j, bin_k ) )
+      if ( gO_->Bin().Calc( O_XYZ[0], O_XYZ[1], O_XYZ[2], bin_i, bin_j, bin_k ) )
       {
         // Oxygen is inside the grid. Record the voxel.
         // NOTE hydrogens/EP always assigned to same voxel for energy purposes.
@@ -874,9 +874,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
 
       // Water is at most 1.5A away from grid, so we need to check for H
       // even if O is outside grid.
-      if (gO_->CalcBins( H1_XYZ[0], H1_XYZ[1], H1_XYZ[2], bin_i, bin_j, bin_k ) )
+      if (gO_->Bin().Calc( H1_XYZ[0], H1_XYZ[1], H1_XYZ[2], bin_i, bin_j, bin_k ) )
         N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
-      if (gO_->CalcBins( H2_XYZ[0], H2_XYZ[1], H2_XYZ[2], bin_i, bin_j, bin_k ) )
+      if (gO_->Bin().Calc( H2_XYZ[0], H2_XYZ[1], H2_XYZ[2], bin_i, bin_j, bin_k ) )
         N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
     } // END water is within 1.5 Ang of grid
   } // END loop over each solvent molecule
@@ -949,7 +949,7 @@ void Action_GIST::SumEVV() {
 // Action_GIST::Print()
 void Action_GIST::Print() {
   gist_print_.Start();
-  double Vvox = gO_->VoxelVolume();
+  double Vvox = gO_->Bin().VoxelVolume();
 
   mprintf("    GIST OUTPUT:\n");
   // Calculate orientational entropy
@@ -1222,7 +1222,7 @@ void Action_GIST::Print() {
       O_progress.Update( gr_pt );
       size_t i, j, k;
       gO_->ReverseIndex( gr_pt, i, j, k );
-      Vec3 XYZ = gO_->BinCenter( i, j, k );
+      Vec3 XYZ = gO_->Bin().Center( i, j, k );
       datafile_->Printf("%d %g %g %g %d %g %g %g %g %g %g %g"
                         " %g %g %g %g %g %g %g %g %g %g %g %g \n",
                         gr_pt, XYZ[0], XYZ[1], XYZ[2], N_waters_[gr_pt], gO[gr_pt], gH[gr_pt],

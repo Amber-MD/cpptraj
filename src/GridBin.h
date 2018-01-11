@@ -7,13 +7,13 @@ class GridBin {
     GridBin() : OXYZ_(0.0) {}
     virtual ~GridBin() {}
     /// Given coordinates, set corresponding bin indices; check bounds.
-    virtual bool CalcBins(double, double, double, size_t&, size_t&, size_t&) const = 0;
+    virtual bool Calc(double, double, double, size_t&, size_t&, size_t&) const = 0;
     /// Given coordinates, set corresponding bin indices; no bounds check.
-    virtual void BinIndices(double, double, double, long int&, long int&, long int&) const = 0;
+    virtual void Indices(double, double, double, long int&, long int&, long int&) const = 0;
     /// \return coordinates of bin for given indices; no bound check.
-    virtual Vec3 BinCorner(long int, long int, long int) const = 0;
+    virtual Vec3 Corner(long int, long int, long int) const = 0;
     /// \return coordinates of bin center for given indices; no bounds check.
-    virtual Vec3 BinCenter(long int, long int, long int) const = 0;
+    virtual Vec3 Center(long int, long int, long int) const = 0;
     /// \return unit cell matrix. // TODO: Make const&?
     virtual Matrix_3x3 Ucell() const = 0;
     /// \return true if GridBin type is orthogonal.
@@ -33,8 +33,8 @@ class GridBin_Ortho : public GridBin {
   public:
     GridBin_Ortho() : dx_(-1.0), dy_(-1.0), dz_(-1.0), mx_(0),  my_(0), mz_(0) {}
     GridBin* Copy() const { return (GridBin*)(new GridBin_Ortho(*this)); }
-    bool CalcBins(double x, double y, double z,
-                  size_t& i, size_t& j, size_t& k) const
+    bool Calc(double x, double y, double z,
+              size_t& i, size_t& j, size_t& k) const
     {
       if (x >= OXYZ_[0] && x < mx_) { // X
         if (y >= OXYZ_[1] && y < my_) { // Y
@@ -48,17 +48,17 @@ class GridBin_Ortho : public GridBin {
       }
       return false;
     }
-    void BinIndices(double x, double y, double z, long int& i, long int& j, long int& k) const {
+    void Indices(double x, double y, double z, long int& i, long int& j, long int& k) const {
       i = (long int)((x-OXYZ_[0]) / dx_);
       j = (long int)((y-OXYZ_[1]) / dy_);
       k = (long int)((z-OXYZ_[2]) / dz_);
     }
-    Vec3 BinCorner(long int i, long int j, long int k) const {
+    Vec3 Corner(long int i, long int j, long int k) const {
       return Vec3((double)i*dx_+OXYZ_[0],
                   (double)j*dy_+OXYZ_[1],
                   (double)k*dz_+OXYZ_[2]);
     }
-    Vec3 BinCenter(long int i, long int j, long int k) const {
+    Vec3 Center(long int i, long int j, long int k) const {
       return Vec3((double)i*dx_+OXYZ_[0]+0.5*dx_,
                   (double)j*dy_+OXYZ_[1]+0.5*dy_,
                   (double)k*dz_+OXYZ_[2]+0.5*dz_);
@@ -89,7 +89,7 @@ class GridBin_Nonortho : public GridBin {
   public:
     GridBin_Nonortho() {}
     GridBin* Copy() const { return (GridBin*)(new GridBin_Nonortho(*this)); }
-    bool CalcBins(double x, double y, double z,
+    bool Calc(double x, double y, double z,
                   size_t& i, size_t& j, size_t& k) const
     {
       Vec3 frac = recip_ * Vec3(x - OXYZ_[0], y - OXYZ_[1], z - OXYZ_[2]);
@@ -105,17 +105,17 @@ class GridBin_Nonortho : public GridBin {
       }
       return false;
     }
-    void BinIndices(double x, double y, double z, long int& i, long int& j, long int& k) const {
+    void Indices(double x, double y, double z, long int& i, long int& j, long int& k) const {
       Vec3 frac = recip_ * Vec3(x - OXYZ_[0], y - OXYZ_[1], z - OXYZ_[2]);
       i = (long int)(frac[0] * nx_);
       j = (long int)(frac[1] * ny_);
       k = (long int)(frac[2] * nz_);
     }
-    Vec3 BinCorner(long int i, long int j, long int k) const {
+    Vec3 Corner(long int i, long int j, long int k) const {
       Vec3 frac( (double)i / nx_, (double)j / ny_, (double)k / nz_ );
       return ucell_.TransposeMult( frac );
     }
-    Vec3 BinCenter(long int i, long int j, long int k) const {
+    Vec3 Center(long int i, long int j, long int k) const {
       Vec3 frac_half((1.0 + 2.0 * (double)i) / (2.0 * nx_),  //(0.5 * (1.0 / nx_)) + ((double)i / nx_),
                      (1.0 + 2.0 * (double)j) / (2.0 * ny_), 
                      (1.0 + 2.0 * (double)k) / (2.0 * nz_));

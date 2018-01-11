@@ -247,10 +247,10 @@ int DataIO_OpenDx::WriteGridWrap(DataSet const& setIn, CpptrajFile& outfile) con
   int mesh_z = set.NZ();
   // Origin needs to be shifted half grid spacing, i.e. it is the center of the
   // bin located at -1, -1, -1.
-  Vec3 oxyz = set.BinCenter(-1, -1, -1);
+  Vec3 oxyz = set.Bin().Center(-1, -1, -1);
   // Print the OpenDX header
   WriteDxHeader(outfile, mesh_x+2, mesh_y+2, mesh_z+2, mesh_x, mesh_y, mesh_z,
-                set.Ucell(), oxyz);
+                set.Bin().Ucell(), oxyz);
   // Print out the data. Start at bin -1, end on bin N.
   int nvals = 0; // Keep track of how many values printed on current line.
   if (gridWriteMode_ == WRAP) {
@@ -301,13 +301,13 @@ int DataIO_OpenDx::WriteGridWrap(DataSet const& setIn, CpptrajFile& outfile) con
 
 int DataIO_OpenDx::WriteGrid(DataSet const& setIn, CpptrajFile& outfile) const {
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
-  Vec3 oxyz = set.GridOrigin();
+  Vec3 oxyz = set.Bin().GridOrigin();
   if (gridWriteMode_ == BIN_CENTER)
     // Origin needs to be shifted to center of bin located at 0,0,0
-    oxyz = set.BinCenter(0,0,0);
+    oxyz = set.Bin().Center(0,0,0);
   // Print the OpenDX header
   WriteDxHeader(outfile, set.NX(), set.NY(), set.NZ(), set.NX(), set.NY(), set.NZ(),
-                set.Ucell(), oxyz);
+                set.Bin().Ucell(), oxyz);
   // Now print out the data.
   size_t gridsize = set.Size();
   if (gridsize == 1)
