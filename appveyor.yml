@@ -1,5 +1,7 @@
 os: Windows Server 2012
 
+clone_folder: c:\projects\cpptraj
+
 environment:
   matrix:
     - USE_CMAKE: "0"      
