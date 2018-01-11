@@ -46,24 +46,7 @@ class DataSet_3D : public DataSet {
     /// Print grid info.
     void GridInfo() const;
     // -------------------------------------------
-    /// Convert X, Y, and Z coords to indices. Check bounds.
-    bool CalcBins(double x,double y,double z,size_t& i,size_t& j,size_t& k) const { 
-      return gridBin_->CalcBins(x, y, z, i, j, k);
-    }
-    /// Convert X, Y, and Z coords to indices. No bounds check.
-    void BinIndices(double x,double y,double z,long int& i,long int& j,long int& k) const {
-      gridBin_->BinIndices(x, y, z, i, j, k);
-    }
-    /// \return coordinates of specified voxel corner.
-    Vec3 BinCorner(long int i,long int j,long int k) const { return gridBin_->BinCorner(i, j, k); }
-    /// \return coordinates of specified voxel center.
-    Vec3 BinCenter(long int i,long int j,long int k) const { return gridBin_->BinCenter(i, j, k); }
-    /// \return coordinates of grid origin.
-    Vec3 const& GridOrigin()          const { return gridBin_->GridOrigin();       }
-    /// \return unit cell matrix.
-    Matrix_3x3 Ucell()                const { return gridBin_->Ucell();            }
-    /// \return voxel volume.
-    double VoxelVolume()              const { return gridBin_->VoxelVolume();      }
+    GridBin const& Bin() const { return *gridBin_; }
   private:
     /// Check if grid dimension is even; if not, increment it by 1.
     static void CheckEven(size_t&, char);
