@@ -243,6 +243,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
   Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
+  Command::AddCmd( new Exec_ImproperInfo(),Cmd::EXE, 3,"impropers","improperinfo","printimpropers");
   Command::AddCmd( new Exec_MassInfo(),      Cmd::EXE, 1, "mass" );
   Command::AddCmd( new Exec_MolInfo(),       Cmd::EXE, 1, "molinfo" );
   Command::AddCmd( new Exec_LoadParm(),      Cmd::EXE, 1, "parm" );

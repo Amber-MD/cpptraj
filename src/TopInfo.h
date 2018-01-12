@@ -18,7 +18,7 @@ class TopInfo {
     int PrintBondInfo(std::string const&, std::string const&) const;
     int PrintAngleInfo(std::string const&, std::string const&, std::string const&) const;
     int PrintDihedralInfo(std::string const&, std::string const&,
-                          std::string const&, std::string const&) const;
+                          std::string const&, std::string const&,bool) const;
     int PrintChargeInfo(std::string const&) const;
     int PrintMassInfo(std::string const&) const;
   private:

@@ -95,7 +95,32 @@ Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
   std::string mask1 = argIn.GetMaskNext();
   std::string mask2 = argIn.GetMaskNext();
   std::string mask3 = argIn.GetMaskNext();
-  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext() )) return CpptrajState::ERR;
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), false ))
+    return CpptrajState::ERR;
+  return CpptrajState::OK;
+}
+
+// -----------------------------------------------------------------------------
+void Exec_ImproperInfo::Help() const {
+  mprintf("\t[%s] [<mask1>] [<mask2> <mask3> <mask4>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("  For specified topology (first by default) either print CHARMM improper info\n"
+          "  for all atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
+          "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n");
+}
+
+Exec::RetType Exec_ImproperInfo::Execute(CpptrajState& State, ArgList& argIn) {
+  if (argIn.hasKey("and")) {
+    mprinterr("Error: The 'and' keyword has been deprecated. To restrict improper\n"
+              "Error:   selection please use 4 masks.\n");
+    return CpptrajState::ERR;
+  }
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Improper info")) return CpptrajState::ERR;
+  std::string mask1 = argIn.GetMaskNext();
+  std::string mask2 = argIn.GetMaskNext();
+  std::string mask3 = argIn.GetMaskNext();
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext(), true ))
+    return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 

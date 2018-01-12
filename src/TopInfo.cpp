@@ -445,7 +445,7 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
       outfile_->Printf("%c %*i", type, nw, nd);
       int didx = dih->Idx();
       if ( didx > -1 )
-        outfile_->Printf(" %6.3f %5.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
+        outfile_->Printf(" %7.3f %5.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
                  dihedralparm[didx].Pn());
       if ( !coords_.empty() )
         outfile_->Printf(" %7.2f", Torsion( coords_.XYZ(atom1),
@@ -473,8 +473,13 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
 
 // TopInfo::PrintDihedralInfo()
 int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& mask2exp,
-                               std::string const& mask3exp, std::string const& mask4exp) const
+                               std::string const& mask3exp, std::string const& mask4exp,
+                               bool printImpropers) const
 {
+  if (printImpropers && !parm_->Chamber().HasChamber()) {
+    mprintf("Warning: '%s' does not have any Charmm impropers.\n");
+    return 0;
+  }
   CharMask mask1( mask1exp );
   if (SetupMask( mask1 )) return 1;
   CharMask mask2;
@@ -487,10 +492,21 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
     mprinterr("Error: Require either 1 mask or 4 masks.\n");
     return 1;
   }
-  int nw = std::max(3, DigitWidth(parm_->DihedralsH().size() + parm_->Dihedrals().size()));
-  outfile_->Printf("# %*s", nw, "Dih");
-  if (!parm_->DihedralParm().empty())
-    outfile_->Printf(" %6s %5s %4s", "PK", "Phase", "PN");
+  size_t n_torsions;
+  const char* label = "Dih";
+  bool hasParams;
+  if (printImpropers) {
+    label = "Imp";
+    n_torsions = parm_->Chamber().Impropers().size();
+    hasParams = !parm_->Chamber().ImproperParm().empty();
+  } else {
+    n_torsions = parm_->DihedralsH().size() + parm_->Dihedrals().size();
+    hasParams = !parm_->DihedralParm().empty();
+  }
+  int nw = std::max(3, DigitWidth(n_torsions));
+  outfile_->Printf("# %*s", nw, label);
+  if (hasParams)
+    outfile_->Printf(" %7s %5s %4s", "PK", "Phase", "PN");
   if (!coords_.empty())
     outfile_->Printf(" %7s", "Value");
   outfile_->Printf(" %-*s %-*s %-*s %-*s %*s %*s %*s %*s %*s %*s %*s %*s\n",
@@ -501,9 +517,11 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
                    max_type_len_, "T1", max_type_len_, "T2",
                    max_type_len_, "T3", max_type_len_, "T4");
   int nd = 1;
-  PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
-  PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
-  if (parm_->Chamber().HasChamber())
+  if (printImpropers) {
     PrintDihedrals( parm_->Chamber().Impropers(), parm_->Chamber().ImproperParm(), mask1, mask2, mask3, mask4, nw, nd );
+  } else {
+    PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
+    PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
+  }
   return 0;
 }

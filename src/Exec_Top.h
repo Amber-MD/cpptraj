@@ -46,6 +46,14 @@ class Exec_DihedralInfo : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_DihedralInfo(); }
     RetType Execute(CpptrajState&, ArgList&);
 };
+/// Print CHARMM improper info for atoms in mask.
+class Exec_ImproperInfo : public Exec {
+  public:
+    Exec_ImproperInfo() : Exec(PARM) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ImproperInfo(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
 /// Print info for atoms in mask.
 class Exec_AtomInfo : public Exec {
   public:
