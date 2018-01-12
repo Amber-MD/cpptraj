@@ -10,7 +10,7 @@ if %USE_CMAKE% equ 1 (
 	cd build
 	
 	rem make sure to pick up netcdf in /usr/local
-	cmake .. "-GMinGW Makefiles" -DCMAKE_LIBRARY_PATH=C:/msys64/mingw64/lib;C:/msys64/usr/local/lib -DFORCE_DISABLE_LIBS=arpack -DCMAKE_INCLUDE_PATH=C:/msys64/mingw64/include;C:/msys64/usr/local/include "-DCMAKE_SH=" -DPACKAGE_TYPE=ARCHIVE -DPRINT_PACKAGING_REPORT=TRUE -DARCHIVE_FORMAT=ZIP -DINSTALL_HEADERS=TRUE -DCOMPILER=manual -DCMAKE_INSTALL_PREFIX=%SRCDIR% || exit /b
+	cmake .. "-GMinGW Makefiles" -DCMAKE_LIBRARY_PATH=C:/msys64/mingw64/lib;C:/msys64/usr/local/lib -DFORCE_DISABLE_LIBS=arpack -DCMAKE_INCLUDE_PATH=C:/msys64/mingw64/include;C:/msys64/usr/local/include "-DCMAKE_SH=" -DPACKAGE_TYPE=ARCHIVE -DPRINT_PACKAGING_REPORT=TRUE -DARCHIVE_FORMAT=ZIP -DINSTALL_HEADERS=TRUE -DCOMPILER=MANUAL -DCMAKE_INSTALL_PREFIX=%SRCDIR% || exit /b
 	mingw32-make -j2 install || exit /b
 	mingw32-make -j2 package || exit /b
 	cd ..
