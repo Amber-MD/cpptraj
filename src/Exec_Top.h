@@ -30,6 +30,14 @@ class Exec_BondInfo : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_BondInfo(); }
     RetType Execute(CpptrajState&, ArgList&);
 };
+/// Print CHARMM Urey-Bradley info for atoms in mask.
+class Exec_UBInfo : public Exec {
+  public:
+    Exec_UBInfo() : Exec(PARM) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_UBInfo(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
 /// Print angle info for atoms in mask.
 class Exec_AngleInfo : public Exec {
   public:

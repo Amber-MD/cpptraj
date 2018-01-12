@@ -314,14 +314,31 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
 }
 
 // TopInfo::PrintBondInfo()
-int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2exp) const {
+int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2exp,
+                           bool printUB) const
+{
+  if (printUB && !parm_->Chamber().HasChamber()) {
+    mprintf("Warning: '%s' does not have any CHARMM parameters.\n", parm_->c_str());
+    return 0;
+  }
   CharMask mask1( mask1exp );
   if (SetupMask( mask1 )) return 1;
   CharMask mask2;
   if (!mask2exp.empty() && SetupMask( mask2exp, mask2 )) return 1;
-  int nw = std::max(4, DigitWidth(parm_->BondsH().size() + parm_->Bonds().size()));
-  outfile_->Printf("%-*s", nw, "#Bnd");
-  if (!parm_->BondParm().empty())
+  size_t n_bonds;
+  const char* label = "#Bnd";
+  bool hasParams;
+  if (printUB) {
+    label = "#UB";
+    n_bonds = parm_->Chamber().UB().size();
+    hasParams = !parm_->Chamber().UBparm().empty();
+  } else {
+    n_bonds = parm_->BondsH().size() + parm_->Bonds().size();
+    hasParams = !parm_->BondParm().empty();
+  }
+  int nw = std::max(4, DigitWidth(n_bonds));
+  outfile_->Printf("%-*s", nw, label);
+  if (hasParams)
     outfile_->Printf(" %6s %6s", "RK", "REQ");
   if (!coords_.empty())
     outfile_->Printf(" %6s", "Value");
@@ -330,8 +347,12 @@ int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2
                    Awidth_, "A1", Awidth_, "A2",
                    max_type_len_, "T1", max_type_len_, "T2");
   int nb = 1;
-  PrintBonds( parm_->BondsH(), parm_->BondParm(), mask1, mask2, nw, nb );
-  PrintBonds( parm_->Bonds(),  parm_->BondParm(), mask1, mask2, nw, nb );
+  if (printUB)
+    PrintBonds( parm_->Chamber().UB(), parm_->Chamber().UBparm(), mask1, mask2, nw, nb );
+  else {
+    PrintBonds( parm_->BondsH(), parm_->BondParm(), mask1, mask2, nw, nb );
+    PrintBonds( parm_->Bonds(),  parm_->BondParm(), mask1, mask2, nw, nb );
+  }
   return 0;
 }
 
@@ -477,7 +498,7 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
                                bool printImpropers) const
 {
   if (printImpropers && !parm_->Chamber().HasChamber()) {
-    mprintf("Warning: '%s' does not have any Charmm impropers.\n");
+    mprintf("Warning: '%s' does not have any CHARMM parameters.\n", parm_->c_str());
     return 0;
   }
   CharMask mask1( mask1exp );
