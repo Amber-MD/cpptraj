@@ -10,7 +10,8 @@ class PDBfile : public CpptrajFile {
     // NOTE: PDB_RECNAME must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
                       CONECT, UNKNOWN};
-    PDBfile() : anum_(1), recType_(UNKNOWN), lineLengthWarning_(false) {}
+    /// CONSTRUCTOR
+    PDBfile();
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
@@ -52,6 +53,8 @@ class PDBfile : public CpptrajFile {
     /// Write complete PDB ATOM/HETATM record
     void WriteCoord(PDB_RECTYPE, int, NameType const&, char, NameType const&, char, int,
                     char, double, double, double, float, float, const char *, int, bool);
+    /// \return True if coordinate write has overflowed; reset overflow status.
+    bool CoordOverflow() { bool stat = coordOverflow_; coordOverflow_ = false; return stat; }
     /// Write ANISOU record.
     void WriteANISOU(int, NameType const&, NameType const&, char, int,
                      int, int, int, int, int, int, const char *, int);
@@ -75,9 +78,11 @@ class PDBfile : public CpptrajFile {
     /// \return true if the first 6 chars of buffer match a PDB keyword
     static bool IsPDBkeyword(std::string const&);
 
-    int anum_;            ///< Atom number for writing.
-    PDB_RECTYPE recType_; ///< Current record type.
+    int anum_;               ///< Atom number for writing.
+    PDB_RECTYPE recType_;    ///< Current record type.
     bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
+    bool coordOverflow_;     ///< True if coords on write exceed field width
+    /// Recognized PDB record types; corresponds to PDB_RECTYPE
     static const char* PDB_RECNAME[];
 };
 /// Hold information for an SSBOND record.
