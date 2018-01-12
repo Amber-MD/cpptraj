@@ -288,6 +288,8 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 
 // Topology::StartNewMol()
 void Topology::StartNewMol() {
+  // No atoms, so no need to do anything.
+  if (atoms_.empty()) return;
   // If this is the first time this routine has been called, consider all
   // atoms to this point as belonging to first molecule. 
   if (molecules_.empty()) {
@@ -303,6 +305,12 @@ void Topology::StartNewMol() {
     //mprintf("DEBUG:\tMolecule %zu, atoms %i to %zu\n",
     //       molecules_.size(), lastAtom, atoms_.size());
   }
+  if (residues_.empty()) {
+    // No residues yet. Consider entire molecule to be the residue.
+    mprintf("Warning: Starting a molecule before residue info present.\n"
+            "Warning:   Creating residue named 'MOL'\n");
+    residues_.push_back( Residue("MOL",0,atoms_.size(),1,' ',' ') );
+  } 
   residues_.back().SetTerminal( true );
 }
 

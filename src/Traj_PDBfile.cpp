@@ -649,6 +649,9 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       ++terIdx;
     }
   }
+  // Report overflows
+  if (file_.CoordOverflow())
+    mprintf("Warning: Coordinates are too large to fit in PDB format. Consider another format.\n");
   if (pdbWriteMode_ == MULTI) {
     // If writing 1 pdb per frame, close output file
     WriteBonds();

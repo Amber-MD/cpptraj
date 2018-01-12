@@ -84,10 +84,20 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       if (infile.RecType() == PDBfile::END) break;
     }
   }
+  // Sanity check
+  if (TopIn.Natom() < 1) {
+    mprinterr("Error: No atoms present in PDB.\n");
+    return 1;
+  }
   // Add bonds. The bonds array actually contains ATOM/HETATM serial #s.
-  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
-    TopIn.AddBond( serial[bnd->A1()], serial[bnd->A2()] );
-  BondSearch( TopIn, Coords, Offset_, debug_ ); 
+  if (!bonds.empty()) {
+    if (serial.empty()) // Should never get here
+      mprintf("Warning: CONECT info present but no ATOM/HETATMs.\n");
+    else
+      for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+        TopIn.AddBond( serial[bnd->A1()], serial[bnd->A2()] );
+  }
+  BondSearch( TopIn, Coords, Offset_, debug_ );
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;
