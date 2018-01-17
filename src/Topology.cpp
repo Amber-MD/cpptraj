@@ -6,6 +6,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
 #include "Constants.h" // RADDEG, SMALL
+#include "AtomType.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
