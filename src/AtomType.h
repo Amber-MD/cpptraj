@@ -17,7 +17,6 @@ class AtomType {
     /// Combine LJ params with this and another type using Lorentz-Berthelot rules
     NonbondType Combine_LB(AtomType const&) const;
   private:
-    NameType name_; ///< Atom type name
     double radius_; ///< VDW radius
     double depth_;  ///< LJ well-depth
     int oidx_; ///< Original atom type index.

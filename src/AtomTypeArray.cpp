@@ -14,6 +14,6 @@ bool AtomTypeArray::AddAtomType(NameType const& nameIn, AtomType const& typeIn)
     mprintf("\tAdded atom type '%s'\n", *nameIn);
     return false;
   }
-  mprintf("\tType '%s' already present.\n");
+  mprintf("\tType '%s' already present.\n", *nameIn);
   return true;
 }
