@@ -1573,35 +1573,6 @@ void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const&
                                  dih->Type() ), dp[dih->Idx()] );
 }
 
-/// Hold LJ params for a unique atom type
-class AtomType {
-  public:
-    AtomType() : radius_(0.0), depth_(0.0) {}
-    AtomType(double r, double d, int o) : radius_(r), depth_(d), oidx_(o) {}
-    double Radius() const { return radius_; }
-    double Depth()  const { return depth_;  }
-    int OriginalIdx() const { return oidx_; }
-    bool operator<(AtomType const& rhs)  const {
-      return ( (radius_ < rhs.radius_) && (depth_ < rhs.depth_) );
-    }
-    bool operator==(AtomType const& rhs) const {
-      return ( (fabs(radius_ - rhs.radius_) < Constants::SMALL) &&
-               (fabs(depth_  - rhs.depth_ ) < Constants::SMALL) );
-    }
-    NonbondType Combine_LB(AtomType const& rhs) const {
-      double dR = radius_ + rhs.radius_;
-      double dE = sqrt( depth_ * rhs.depth_ );
-      double dR2 = dR * dR;
-      double dR6 = dR2 * dR2 * dR2;
-      double dER6 = dE * dR6;
-      return NonbondType( dER6*dR6, 2.0*dER6 );
-    }
-  private:
-    double radius_; ///< VDW radius
-    double depth_;  ///< LJ well-depth
-    int oidx_; ///< Original atom type index.
-};
-
 /// Map type indices to LJ parameters 
 class TypeArray {
   public:
