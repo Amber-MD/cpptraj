@@ -23,6 +23,7 @@
 #include "DataSet_Cmatrix_MEM.h"
 #include "DataSet_Cmatrix_NOMEM.h"
 #include "DataSet_Cmatrix_DISK.h"
+#include "DataSet_Parameters.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
 const DataSetList::DataToken DataSetList::DataArray[] = {
@@ -47,6 +48,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "cluster matrix",DataSet_Cmatrix_MEM::Alloc}, // CMATRIX
   { "cluster matrix (no memory)",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
   { "cluster matrix (disk)",     DataSet_Cmatrix_DISK::Alloc},  // CMATRIX_DISK
+  { "parameters",    DataSet_Parameters::Alloc},  // PARAMETERS
   { 0, 0 }
 };
 
