@@ -9,13 +9,14 @@ class AtomTypeHolder {
     typedef std::vector<NameType> Narray;
     AtomTypeHolder() {}
     AtomTypeHolder(Narray const& namesIn) : types_(namesIn) {}
-    AtomTypeHolder(int size) { types_.resize(size); }
-    int SetTypes(Narray const& namesIn) {
+    AtomTypeHolder(int size) { types_.clear(); types_.reserve(size); }
+    void AddName(NameType const& n) { types_.push_back( n ); }
+/*    int SetTypes(Narray const& namesIn) {
       if (namesIn.size() != types_.size()) return 1;
       for (unsigned int idx = 0; idx != namesIn.size(); idx++)
         types_[idx] = namesIn[idx];
       return 0;
-    }
+    }*/
     /// \return number of types in holder
     unsigned int Size() const { return types_.size(); }
     /// \return Type name at index

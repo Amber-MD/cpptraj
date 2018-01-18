@@ -89,9 +89,14 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
           else if (args.hasKey("END")) break;
           else if (readParam == 2) {
             // BOND PARAMETERS
-            prm.AT().AddAtomType( args.GetStringNext() );
-            prm.AT().AddAtomType( args.GetStringNext() );
-            prm.BP().push_back( BondParmType( args.getNextDouble(0), args.getNextDouble(0) ) );
+            AtomTypeHolder types(2);
+            types.AddName( args.GetStringNext() );
+            types.AddName( args.GetStringNext() );
+            prm.AT().CheckForAtomType( types[0] );
+            prm.AT().CheckForAtomType( types[1] );
+            prm.BP().AddBondParm(types,
+                                 BondParmType(args.getNextDouble(0), args.getNextDouble(0)),
+                                 false);
           }
         }
       }

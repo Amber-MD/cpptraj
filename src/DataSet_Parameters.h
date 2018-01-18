@@ -3,6 +3,7 @@
 #include "DataSet.h"
 #include "ParameterTypes.h"
 #include "AtomTypeArray.h"
+#include "ParameterHolders.h"
 /// <Enter description of DataSet_Parameters here>
 class DataSet_Parameters : public DataSet {
   public:
@@ -19,13 +20,12 @@ class DataSet_Parameters : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
     // -------------------------------------------
-    AtomTypeArray& AT() { return atomTypes_; }
-    BondParmArray& BP() { return bondParm_; }
+    AtomTypeArray& AT()  { return atomTypes_; }
+    BondParmHolder& BP() { return bondParm_; }
 
     void Debug() const;
   private:
     AtomTypeArray atomTypes_;
-    BondParmArray bondParm_;
-    
+    BondParmHolder bondParm_;
 };
 #endif
