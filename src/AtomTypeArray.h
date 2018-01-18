@@ -11,9 +11,8 @@ class AtomTypeArray {
     AtomTypeArray() {}
 
     bool AddAtomType(NameType const&, AtomType const&);
-    bool AddAtomType(NameType const& n) {
-      return AddAtomType(n, AtomType());
-    }
+    int CheckForAtomType(NameType const& n);
+
     typedef Tmap::const_iterator const_iterator;
     const_iterator begin() const { return nameToIdx_.begin(); }
     const_iterator end()   const { return nameToIdx_.end();   }
