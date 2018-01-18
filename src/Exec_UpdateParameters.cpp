@@ -8,6 +8,16 @@ void Exec_UpdateParameters::Help() const
   mprintf("\t%s\n", DataSetList::TopArgs);
 }
 
+static inline void BondTypes(ParmHolder<int>& ParmIndices, Topology const& top, BondArray const& bonds) {
+  for (BondArray::const_iterator b = bonds.begin(); b != bonds.end(); ++b)
+  {
+    AtomTypeHolder types(2);
+    types.AddName( top[b->A1()].Type() );
+    types.AddName( top[b->A2()].Type() );
+    ParmIndices.AddParm( types, b->Idx(), false );
+  }
+}
+
 // Exec_UpdateParameters::Execute()
 Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -32,17 +42,31 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
     return CpptrajState::ERR;
   }
   Topology& top = static_cast<Topology&>( *dstop );
-  // Now update parameters
+
+  // Get list of existing parameters 
   ParmHolder<int> ParmIndices;
   // Bond parameters
-  for (BondArray::const_iterator b = top.Bonds().begin(); b != top.Bonds().end(); ++b)
+  BondTypes(ParmIndices, top, top.Bonds());
+  BondTypes(ParmIndices, top, top.BondsH());
+  // Update bond parameters. We assume a parameter in top is never repeated.
+  for (ParmHolder<BondParmType>::const_iterator it1 = prm.BP().begin();
+                                                it1 != prm.BP().end(); ++it1)
   {
-    AtomTypeHolder types(2);
-    types.AddName( top[b->A1()].Type() );
-    types.AddName( top[b->A2()].Type() );
-    ParmIndices.AddParm( types, b->Idx(), false );
+    for (ParmHolder<int>::const_iterator it0 = ParmIndices.begin();
+                                         it0 != ParmIndices.end(); ++it0)
+    {
+      if (it1->first == it0->first)
+      {
+        BondParmType& bp = top.SetBondParm(it0->second);
+        mprintf("\tUpdating bond parameter %s - %s from %f %f to %f %f\n",
+                *(it0->first[0]), *(it0->first[1]), bp.Rk(), bp.Req(),
+                it1->second.Rk(), it1->second.Req());
+        bp = it1->second;
+      }
+    }
   }
-  for (ParmHolder<int>::const_iterator it = ParmIndices.begin(); it != ParmIndices.end(); ++it)
-    mprintf("\t%s %s %i\n", *(it->first[0]), *(it->first[0]), it->second);
+
+  //for (ParmHolder<int>::const_iterator it = ParmIndices.begin(); it != ParmIndices.end(); ++it)
+  //  mprintf("\t%s %s %i\n", *(it->first[0]), *(it->first[1]), it->second);
   return CpptrajState::OK;
 }

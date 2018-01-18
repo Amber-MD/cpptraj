@@ -27,6 +27,7 @@ class DataSet_Parameters : public DataSet {
     ParmHolder<DihedralParmType>& DP() { return dihParm_; }
     ParmHolder<DihedralParmType>& IP() { return impParm_; }
 
+    ParmHolder<BondParmType> const& BP() const { return bondParm_; }
     void Debug() const;
   private:
     AtomTypeArray atomTypes_;
