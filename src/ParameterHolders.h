@@ -4,7 +4,7 @@
 #include <utility>
 #include "NameType.h"
 #include "ParameterTypes.h"
-#include "CpptrajStdio.h" // DEBUG
+//#inc lude "CpptrajStdio.h" // DEBUG
 class AtomTypeHolder {
   public:
     typedef std::vector<NameType> Narray;
@@ -76,40 +76,40 @@ template <class T> class ParmHolder {
     typedef std::vector<Bpair> Bmap;
   public:
     ParmHolder() {}
-
+/*
     static inline void PrintTypes(AtomTypeHolder const& types) {
       for (AtomTypeHolder::const_iterator it = types.begin(); it != types.end(); ++it)
         mprintf(" %s", *(*it));
       mprintf("\n");
     }
-
+*/
     int AddParm(AtomTypeHolder const& types, T const& bp, bool allowUpdate) {
 //       if (types.Size() != 2) {
 //    mprinterr("Internal Error: ParmHolder::AddParm(): # types is not 2 (%zu)\n",
 //              types.Size());
 //    return -1;
 //  }
-  // Check if parm for these types exist
-  typename Bmap::iterator it = bpmap_.begin();
-  for (; it != bpmap_.end(); ++it)
-    if (it->first == types) break;
-  if (it == bpmap_.end()) {
-    // New parm
-    bpmap_.push_back( Bpair(types, bp) );
-    mprintf("\tAdded new bond params for ");
-    PrintTypes(types);
-  } else {
-    if (allowUpdate) {
-      mprintf("\tUpdating bond parameters for ");
-      PrintTypes(types);
-      it->second = bp;
-    } else {
-      mprinterr("Error: Update of bond params not allowed for ");
-      PrintTypes( types);
-      return 1;
-    }
-  }
-  return 0;
+      // Check if parm for these types exist
+      typename Bmap::iterator it = bpmap_.begin();
+      for (; it != bpmap_.end(); ++it)
+        if (it->first == types) break;
+      if (it == bpmap_.end()) {
+        // New parm
+        bpmap_.push_back( Bpair(types, bp) );
+        //mprintf("\tAdded new bond params for ");
+        //PrintTypes(types);
+      } else {
+        if (allowUpdate) {
+          //mprintf("\tUpdating bond parameters for ");
+          //PrintTypes(types);
+          it->second = bp;
+        } else {
+          //mprinterr("Error: Update of bond params not allowed for ");
+          //PrintTypes( types);
+          return 1;
+        }
+      }
+      return 0;
     }
 
     typedef typename Bmap::const_iterator const_iterator;
