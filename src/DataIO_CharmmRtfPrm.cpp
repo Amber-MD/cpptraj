@@ -126,6 +126,23 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
               teq = args.getNextDouble(0);
               prm.UB().AddParm(utypes, BondParmType(tk, teq), false);
             }
+          } else if (readParam == 4 || readParam == 5) {
+            // DIHEDRAL PARAMETERS
+            AtomTypeHolder types(4);
+            types.AddName( args.GetStringNext() );
+            types.AddName( args.GetStringNext() );
+            types.AddName( args.GetStringNext() );
+            types.AddName( args.GetStringNext() );
+            prm.AT().CheckForAtomType( types[0] );
+            prm.AT().CheckForAtomType( types[1] );
+            prm.AT().CheckForAtomType( types[2] );
+            double pk = args.getNextDouble(0);
+            double pn = args.getNextDouble(0);
+            double phase = args.getNextDouble(0);
+            if (readParam == 4)
+              prm.DP().AddParm(types, DihedralParmType(pk, pn, phase), false);
+            else
+              prm.IP().AddParm(types, DihedralParmType(pk, pn, phase), false);
           }
         }
       }

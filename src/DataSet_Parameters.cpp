@@ -17,6 +17,12 @@ void DataSet_Parameters::Debug() const {
   mprintf("UB parameters:\n");
   for (ParmHolder<BondParmType>::const_iterator bp = ubParm_.begin(); bp != ubParm_.end(); ++bp)
     mprintf("\t%s - %s : %f %f\n", *(bp->first[0]), *(bp->first[1]), bp->second.Rk(), bp->second.Req());
+  mprintf("Dihedral parameters:\n");
+  for (ParmHolder<DihedralParmType>::const_iterator bp = dihParm_.begin(); bp != dihParm_.end(); ++bp)
+    mprintf("\t%s - %s - %s - %s : %f %f %f\n", *(bp->first[0]), *(bp->first[1]), *(bp->first[2]), *(bp->first[3]), bp->second.Pk(), bp->second.Pn(), bp->second.Phase());
+  mprintf("Improper parameters:\n");
+  for (ParmHolder<DihedralParmType>::const_iterator bp = impParm_.begin(); bp != impParm_.end(); ++bp)
+    mprintf("\t%s - %s - %s - %s : %f %f %f\n", *(bp->first[0]), *(bp->first[1]), *(bp->first[2]), *(bp->first[3]), bp->second.Pk(), bp->second.Pn(), bp->second.Phase());
 
 }
   

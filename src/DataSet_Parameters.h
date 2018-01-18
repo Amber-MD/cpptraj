@@ -24,6 +24,8 @@ class DataSet_Parameters : public DataSet {
     ParmHolder<BondParmType>& BP() { return bondParm_; }
     ParmHolder<AngleParmType>& AP() { return angleParm_; }
     ParmHolder<BondParmType>& UB() { return ubParm_; }
+    ParmHolder<DihedralParmType>& DP() { return dihParm_; }
+    ParmHolder<DihedralParmType>& IP() { return impParm_; }
 
     void Debug() const;
   private:
@@ -31,5 +33,7 @@ class DataSet_Parameters : public DataSet {
     ParmHolder<BondParmType> bondParm_;
     ParmHolder<AngleParmType> angleParm_;
     ParmHolder<BondParmType> ubParm_;
+    ParmHolder<DihedralParmType> dihParm_;
+    ParmHolder<DihedralParmType> impParm_;
 };
 #endif
