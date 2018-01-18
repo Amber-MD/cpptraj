@@ -1824,6 +1824,46 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
               "Warning: To change this behavior specify the 'writeempty' keyword.\n");
   }
 
+  // CHAMBER only - write CMAP parameters
+  if (ptype_ == CHAMBER && TopOut.Chamber().HasCmap()) {
+    // CMAP COUNT
+    if (BufferAlloc(F_CHM_CMAPC, 2)) return 1;
+    file_.IntToBuffer( TopOut.Chamber().Cmap().size() );     // CMAP terms
+    file_.IntToBuffer( TopOut.Chamber().CmapGrid().size() ); // CMAP grids
+    file_.FlushBuffer();
+    // CMAP GRID RESOLUTIONS
+    if (BufferAlloc(F_CHM_CMAPR, TopOut.Chamber().CmapGrid().size())) return 1;
+    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
+                                       grid != TopOut.Chamber().CmapGrid().end(); ++grid)
+      file_.IntToBuffer( grid->Resolution() );
+    file_.FlushBuffer();
+    // CMAP GRIDS
+    int ngrid = 1;
+    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
+                                       grid != TopOut.Chamber().CmapGrid().end();
+                                       ++grid, ++ngrid)
+    {
+      if (BufferAlloc(F_CHM_CMAPP, grid->Size(), ngrid)) return 1;
+      for (std::vector<double>::const_iterator it = grid->Grid().begin();
+                                               it != grid->Grid().end(); ++it)
+        file_.DblToBuffer( *it );
+      file_.FlushBuffer();
+    }
+    // CMAP parameters
+    if (BufferAlloc(F_CHM_CMAPI, TopOut.Chamber().Cmap().size())) return 1;
+    for (CmapArray::const_iterator it = TopOut.Chamber().Cmap().begin();
+                                   it != TopOut.Chamber().Cmap().end(); ++it)
+    {
+      file_.IntToBuffer( it->A1() + 1 );
+      file_.IntToBuffer( it->A2() + 1 );
+      file_.IntToBuffer( it->A3() + 1 );
+      file_.IntToBuffer( it->A4() + 1 );
+      file_.IntToBuffer( it->A5() + 1 );
+      file_.IntToBuffer( it->Idx() + 1 );
+    }
+    file_.FlushBuffer();
+  }
+
   // Write solvent info if IFBOX > 0
   if (ifbox > 0) {
     // Determine first solvent molecule 
@@ -1901,46 +1941,6 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (BufferAlloc(F_SCREEN, TopOut.Natom())) return 1;
     for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
       file_.DblToBuffer( atm->Screen() );
-    file_.FlushBuffer();
-  }
-
-  // CHAMBER only - write CMAP parameters
-  if (ptype_ == CHAMBER && TopOut.Chamber().HasCmap()) {
-    // CMAP COUNT
-    if (BufferAlloc(F_CHM_CMAPC, 2)) return 1;
-    file_.IntToBuffer( TopOut.Chamber().Cmap().size() );     // CMAP terms
-    file_.IntToBuffer( TopOut.Chamber().CmapGrid().size() ); // CMAP grids
-    file_.FlushBuffer();
-    // CMAP GRID RESOLUTIONS
-    if (BufferAlloc(F_CHM_CMAPR, TopOut.Chamber().CmapGrid().size())) return 1;
-    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
-                                       grid != TopOut.Chamber().CmapGrid().end(); ++grid)
-      file_.IntToBuffer( grid->Resolution() );
-    file_.FlushBuffer();
-    // CMAP GRIDS
-    int ngrid = 1;
-    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
-                                       grid != TopOut.Chamber().CmapGrid().end();
-                                       ++grid, ++ngrid)
-    {
-      if (BufferAlloc(F_CHM_CMAPP, grid->Size(), ngrid)) return 1;
-      for (std::vector<double>::const_iterator it = grid->Grid().begin();
-                                               it != grid->Grid().end(); ++it)
-        file_.DblToBuffer( *it );
-      file_.FlushBuffer();
-    }
-    // CMAP parameters
-    if (BufferAlloc(F_CHM_CMAPI, TopOut.Chamber().Cmap().size())) return 1;
-    for (CmapArray::const_iterator it = TopOut.Chamber().Cmap().begin();
-                                   it != TopOut.Chamber().Cmap().end(); ++it)
-    {
-      file_.IntToBuffer( it->A1() + 1 );
-      file_.IntToBuffer( it->A2() + 1 );
-      file_.IntToBuffer( it->A3() + 1 );
-      file_.IntToBuffer( it->A4() + 1 );
-      file_.IntToBuffer( it->A5() + 1 );
-      file_.IntToBuffer( it->Idx() + 1 );
-    }
     file_.FlushBuffer();
   }
 
