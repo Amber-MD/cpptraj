@@ -141,7 +141,7 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             double pn = args.getNextDouble(0);
             double phase = args.getNextDouble(0) * Constants::DEGRAD;
             if (readParam == 4)
-              prm.DP().AddParm(types, DihedralParmType(pk, pn, phase), false);
+              prm.DP().AddParm(types, DihedralParmType(pk, pn, phase, 1.0, 1.0), false);
             else
               prm.IP().AddParm(types, DihedralParmType(pk, pn, phase), false);
           } else if (readParam == 6) {
