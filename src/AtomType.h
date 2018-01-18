@@ -4,10 +4,12 @@
 /// Hold LJ params for a unique atom type
 class AtomType {
   public:
-    AtomType() : radius_(0.0), depth_(0.0), oidx_(-1) {}
-    AtomType(double r, double d, int o) : radius_(r), depth_(d), oidx_(o) {}
+    AtomType() : radius_(0.0), depth_(0.0), mass_(0.0), oidx_(-1) {}
+    AtomType(double r, double d, int o) : radius_(r), depth_(d), mass_(0.0), oidx_(o) {}
+    AtomType(double m) : radius_(0.0), depth_(0.0), mass_(m), oidx_(-1) {}
     double Radius() const { return radius_; }
     double Depth()  const { return depth_;  }
+    double Mass()   const { return mass_;   }
     int OriginalIdx() const { return oidx_; }
     bool operator<(AtomType const& rhs)  const {
       return ( (radius_ < rhs.radius_) && (depth_ < rhs.depth_) );
@@ -19,6 +21,7 @@ class AtomType {
   private:
     double radius_; ///< VDW radius
     double depth_;  ///< LJ well-depth
+    double mass_;   ///< Mass in amu
     int oidx_; ///< Original atom type index.
 };
 #endif

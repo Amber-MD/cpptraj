@@ -11,7 +11,8 @@ bool AtomTypeArray::AddAtomType(NameType const& nameIn, AtomType const& typeIn)
     int idx = types_.size();
     types_.push_back( typeIn );
     nameToIdx_.insert( Tpair(nameIn, idx) );
-    mprintf("\tAdded atom type '%s'\n", *nameIn);
+    mprintf("\tAdded atom type '%s', mass=%f radius=%f depth=%f\n", *nameIn,
+            typeIn.Mass(), typeIn.Radius(), typeIn.Depth());
     return false;
   }
   mprintf("\tType '%s' already present.\n", *nameIn);

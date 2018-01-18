@@ -87,7 +87,15 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
           else if (args.hasKey("IMPROPERS")) readParam = 5;
           else if (args.hasKey("NONBONDED")) readParam = 6;
           else if (args.hasKey("END")) break;
-          else if (readParam == 2) {
+          else if (readParam == 1) {
+            // ATOM TYPES (masses really)
+            if (args.hasKey("MASS") && args.Nargs() == 4) {
+              args.MarkArg(0);
+              args.MarkArg(1);
+              args.MarkArg(2);
+              prm.AT().AddAtomType(args[2], AtomType(args.getNextDouble(0)));
+            }
+          } else if (readParam == 2) {
             // BOND PARAMETERS
             AtomTypeHolder types(2);
             types.AddName( args.GetStringNext() );
