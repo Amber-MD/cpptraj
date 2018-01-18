@@ -255,6 +255,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
         Exec_Traj.cpp \
+        Exec_UpdateParameters.cpp \
         Exec_ViewRst.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
