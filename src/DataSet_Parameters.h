@@ -21,11 +21,15 @@ class DataSet_Parameters : public DataSet {
 #   endif
     // -------------------------------------------
     AtomTypeArray& AT()  { return atomTypes_; }
-    BondParmHolder& BP() { return bondParm_; }
+    ParmHolder<BondParmType>& BP() { return bondParm_; }
+    ParmHolder<AngleParmType>& AP() { return angleParm_; }
+    ParmHolder<BondParmType>& UB() { return ubParm_; }
 
     void Debug() const;
   private:
     AtomTypeArray atomTypes_;
-    BondParmHolder bondParm_;
+    ParmHolder<BondParmType> bondParm_;
+    ParmHolder<AngleParmType> angleParm_;
+    ParmHolder<BondParmType> ubParm_;
 };
 #endif

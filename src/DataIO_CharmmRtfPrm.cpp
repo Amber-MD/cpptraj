@@ -104,7 +104,28 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             prm.AT().CheckForAtomType( types[1] );
             double rk = args.getNextDouble(0);
             double req = args.getNextDouble(0);
-            prm.BP().AddBondParm(types, BondParmType(rk, req), false);
+            prm.BP().AddParm(types, BondParmType(rk, req), false);
+          } else if (readParam == 3) {
+            // ANGLE PARAMETERS
+            AtomTypeHolder types(3);
+            types.AddName( args.GetStringNext() );
+            types.AddName( args.GetStringNext() );
+            types.AddName( args.GetStringNext() );
+            prm.AT().CheckForAtomType( types[0] );
+            prm.AT().CheckForAtomType( types[1] );
+            prm.AT().CheckForAtomType( types[2] );
+            double tk = args.getNextDouble(0);
+            double teq = args.getNextDouble(0);
+            prm.AP().AddParm(types, AngleParmType(tk, teq), false);
+            if (args.Nargs() > 5) {
+              // UREY-BRADLEY
+              AtomTypeHolder utypes(2);
+              utypes.AddName(types[0]);
+              utypes.AddName(types[2]);
+              tk = args.getNextDouble(0);
+              teq = args.getNextDouble(0);
+              prm.UB().AddParm(utypes, BondParmType(tk, teq), false);
+            }
           }
         }
       }

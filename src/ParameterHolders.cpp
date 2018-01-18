@@ -1,6 +1,6 @@
 #include "ParameterHolders.h"
 #include "CpptrajStdio.h"
-
+/*
 int BondParmHolder::AddBondParm(AtomTypeHolder const& types, BondParmType const& bp,
                                 bool allowUpdate)
 {
@@ -32,3 +32,4 @@ int BondParmHolder::AddBondParm(AtomTypeHolder const& types, BondParmType const&
   }
   return 0;
 }
+*/

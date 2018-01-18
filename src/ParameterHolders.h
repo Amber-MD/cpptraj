@@ -4,9 +4,11 @@
 #include <utility>
 #include "NameType.h"
 #include "ParameterTypes.h"
+#include "CpptrajStdio.h" // DEBUG
 class AtomTypeHolder {
   public:
     typedef std::vector<NameType> Narray;
+    typedef Narray::const_iterator const_iterator;
     AtomTypeHolder() {}
     AtomTypeHolder(Narray const& namesIn) : types_(namesIn) {}
     AtomTypeHolder(int size) { types_.clear(); types_.reserve(size); }
@@ -17,6 +19,8 @@ class AtomTypeHolder {
         types_[idx] = namesIn[idx];
       return 0;
     }*/
+    const_iterator begin() const { return types_.begin(); }
+    const_iterator end() const { return types_.end(); }
     /// \return number of types in holder
     unsigned int Size() const { return types_.size(); }
     /// \return Type name at index
@@ -66,14 +70,49 @@ class AtomTypeHolder {
     Narray types_;
 };
 // -----------------------------------------------------------------------------
-class BondParmHolder {
+template <class T> class ParmHolder {
     // TODO may want to actually use a map one day for performance reasons.
-    typedef std::pair<AtomTypeHolder,BondParmType> Bpair;
+    typedef std::pair<AtomTypeHolder,T> Bpair;
     typedef std::vector<Bpair> Bmap;
   public:
-    BondParmHolder() {}
-    int AddBondParm(AtomTypeHolder const&, BondParmType const&, bool);
-    typedef Bmap::const_iterator const_iterator;
+    ParmHolder() {}
+
+    static inline void PrintTypes(AtomTypeHolder const& types) {
+      for (AtomTypeHolder::const_iterator it = types.begin(); it != types.end(); ++it)
+        mprintf(" %s", *(*it));
+      mprintf("\n");
+    }
+
+    int AddParm(AtomTypeHolder const& types, T const& bp, bool allowUpdate) {
+//       if (types.Size() != 2) {
+//    mprinterr("Internal Error: ParmHolder::AddParm(): # types is not 2 (%zu)\n",
+//              types.Size());
+//    return -1;
+//  }
+  // Check if parm for these types exist
+  typename Bmap::iterator it = bpmap_.begin();
+  for (; it != bpmap_.end(); ++it)
+    if (it->first == types) break;
+  if (it == bpmap_.end()) {
+    // New parm
+    bpmap_.push_back( Bpair(types, bp) );
+    mprintf("\tAdded new bond params for ");
+    PrintTypes(types);
+  } else {
+    if (allowUpdate) {
+      mprintf("\tUpdating bond parameters for ");
+      PrintTypes(types);
+      it->second = bp;
+    } else {
+      mprinterr("Error: Update of bond params not allowed for ");
+      PrintTypes( types);
+      return 1;
+    }
+  }
+  return 0;
+    }
+
+    typedef typename Bmap::const_iterator const_iterator;
     const_iterator begin() const { return bpmap_.begin(); }
     const_iterator end()   const { return bpmap_.end();   }
   private:
