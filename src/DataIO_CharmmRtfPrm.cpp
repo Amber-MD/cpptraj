@@ -159,7 +159,7 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
   }
  
   prm.Debug(); 
-  return 1;
+  return 0;
 }
 
 // DataIO_CharmmRtfPrm::WriteHelp()

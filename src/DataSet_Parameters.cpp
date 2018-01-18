@@ -2,7 +2,9 @@
 #include "CpptrajStdio.h"
 
 /// CONSTRUCTOR
-DataSet_Parameters::DataSet_Parameters() {}
+DataSet_Parameters::DataSet_Parameters() :
+  DataSet(PARAMETERS, GENERIC, TextFormat(), 0)
+{}
 
 void DataSet_Parameters::Debug() const {
   mprintf("Atom Types:\n");
