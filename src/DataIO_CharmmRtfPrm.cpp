@@ -94,9 +94,9 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             types.AddName( args.GetStringNext() );
             prm.AT().CheckForAtomType( types[0] );
             prm.AT().CheckForAtomType( types[1] );
-            prm.BP().AddBondParm(types,
-                                 BondParmType(args.getNextDouble(0), args.getNextDouble(0)),
-                                 false);
+            double rk = args.getNextDouble(0);
+            double req = args.getNextDouble(0);
+            prm.BP().AddBondParm(types, BondParmType(rk, req), false);
           }
         }
       }

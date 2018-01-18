@@ -1,7 +1,7 @@
 #ifndef INC_PARAMETERHOLDERS_H
 #define INC_PARAMETERHOLDERS_H
-#include <map>
 #include <vector>
+#include <utility>
 #include "NameType.h"
 #include "ParameterTypes.h"
 class AtomTypeHolder {
@@ -43,6 +43,7 @@ class AtomTypeHolder {
         }
       return match;
     }
+/*
     /// The lowest type name of either end is used for sorting.
     bool operator<(AtomTypeHolder const& rhs) const {
       if (types_.size() != rhs.types_.size()) {
@@ -60,17 +61,21 @@ class AtomTypeHolder {
       else
         idx1 = lastidx;
       return (types_[idx0] < rhs.types_[idx1]);
-    }
+    }*/
   private:
     Narray types_;
 };
 // -----------------------------------------------------------------------------
 class BondParmHolder {
-    typedef std::map<AtomTypeHolder,BondParmType> Bmap;
+    // TODO may want to actually use a map one day for performance reasons.
     typedef std::pair<AtomTypeHolder,BondParmType> Bpair;
+    typedef std::vector<Bpair> Bmap;
   public:
     BondParmHolder() {}
     int AddBondParm(AtomTypeHolder const&, BondParmType const&, bool);
+    typedef Bmap::const_iterator const_iterator;
+    const_iterator begin() const { return bpmap_.begin(); }
+    const_iterator end()   const { return bpmap_.end();   }
   private:
     Bmap bpmap_;
 };
