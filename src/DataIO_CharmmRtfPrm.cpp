@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
 #include "BufferedLine.h"
+#include "Constants.h" // DEGRAD
 
 /// CONSTRUCTOR
 DataIO_CharmmRtfPrm::DataIO_CharmmRtfPrm()
@@ -116,7 +117,7 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             prm.AT().CheckForAtomType( types[2] );
             double tk = args.getNextDouble(0);
             double teq = args.getNextDouble(0);
-            prm.AP().AddParm(types, AngleParmType(tk, teq), false);
+            prm.AP().AddParm(types, AngleParmType(tk, teq*Constants::DEGRAD), false);
             if (args.Nargs() > 5) {
               // UREY-BRADLEY
               AtomTypeHolder utypes(2);
@@ -138,7 +139,7 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             prm.AT().CheckForAtomType( types[2] );
             double pk = args.getNextDouble(0);
             double pn = args.getNextDouble(0);
-            double phase = args.getNextDouble(0);
+            double phase = args.getNextDouble(0) * Constants::DEGRAD;
             if (readParam == 4)
               prm.DP().AddParm(types, DihedralParmType(pk, pn, phase), false);
             else

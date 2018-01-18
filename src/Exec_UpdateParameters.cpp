@@ -18,6 +18,17 @@ static inline void BondTypes(ParmHolder<int>& ParmIndices, Topology const& top, 
   }
 }
 
+static inline void AngleTypes(ParmHolder<int>& ParmIndices, Topology const& top, AngleArray const& angles) {
+  for (AngleArray::const_iterator b = angles.begin(); b != angles.end(); ++b)
+  {
+    AtomTypeHolder types(3);
+    types.AddName( top[b->A1()].Type() );
+    types.AddName( top[b->A2()].Type() );
+    types.AddName( top[b->A3()].Type() );
+    ParmIndices.AddParm( types, b->Idx(), false );
+  }
+}
+
 // Exec_UpdateParameters::Execute()
 Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -62,9 +73,33 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
                 *(it0->first[0]), *(it0->first[1]), bp.Rk(), bp.Req(),
                 it1->second.Rk(), it1->second.Req());
         bp = it1->second;
+        break;
       }
     }
   }
+  ParmIndices.clear();
+  // Angle parameters
+  AngleTypes(ParmIndices, top, top.Angles());
+  AngleTypes(ParmIndices, top, top.AnglesH());
+  // Update bond parameters. We assume a parameter in top is never repeated.
+  for (ParmHolder<AngleParmType>::const_iterator it1 = prm.AP().begin();
+                                                 it1 != prm.AP().end(); ++it1)
+  {
+    for (ParmHolder<int>::const_iterator it0 = ParmIndices.begin();
+                                         it0 != ParmIndices.end(); ++it0)
+    {
+      if (it1->first == it0->first)
+      {
+        AngleParmType& bp = top.SetAngleParm(it0->second);
+        mprintf("\tUpdating angle parameter %s - %s - %s from %f %f to %f %f\n",
+                *(it0->first[0]), *(it0->first[1]), *(it0->first[2]), bp.Tk(), bp.Teq(),
+                it1->second.Tk(), it1->second.Teq());
+        bp = it1->second;
+        break;
+      }
+    }
+  }
+
 
   //for (ParmHolder<int>::const_iterator it = ParmIndices.begin(); it != ParmIndices.end(); ++it)
   //  mprintf("\t%s %s %i\n", *(it->first[0]), *(it->first[1]), it->second);

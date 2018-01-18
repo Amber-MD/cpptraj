@@ -76,6 +76,7 @@ template <class T> class ParmHolder {
     typedef std::vector<Bpair> Bmap;
   public:
     ParmHolder() {}
+    void clear() { bpmap_.clear(); }
 /*
     static inline void PrintTypes(AtomTypeHolder const& types) {
       for (AtomTypeHolder::const_iterator it = types.begin(); it != types.end(); ++it)
