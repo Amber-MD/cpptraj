@@ -10,6 +10,8 @@ class AtomType {
     double Radius() const { return radius_; }
     double Depth()  const { return depth_;  }
     double Mass()   const { return mass_;   }
+    void SetRadius(double r) { radius_ = r; }
+    void SetDepth(double d)  { depth_ = d; }
     int OriginalIdx() const { return oidx_; }
     bool operator<(AtomType const& rhs)  const {
       return ( (radius_ < rhs.radius_) && (depth_ < rhs.depth_) );

@@ -6,8 +6,10 @@ DataSet_Parameters::DataSet_Parameters() {}
 
 void DataSet_Parameters::Debug() const {
   mprintf("Atom Types:\n");
-  for (AtomTypeArray::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at)
-    mprintf("\t%s %i\n", *(at->first), at->second);
+  for (AtomTypeArray::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
+    int idx = at->second;
+    mprintf("\t%s %i %f %f %f\n", *(at->first), idx, atomTypes_[idx].Radius(), atomTypes_[idx].Depth(), atomTypes_[idx].Mass());
+  } 
   mprintf("Bond parameters:\n");
   for (ParmHolder<BondParmType>::const_iterator bp = bondParm_.begin(); bp != bondParm_.end(); ++bp)
     mprintf("\t%s - %s : %f %f\n", *(bp->first[0]), *(bp->first[1]), bp->second.Rk(), bp->second.Req());

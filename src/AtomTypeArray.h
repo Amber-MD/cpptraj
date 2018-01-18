@@ -10,8 +10,12 @@ class AtomTypeArray {
   public:
     AtomTypeArray() {}
 
+    AtomType const& operator[](int idx) const { return types_[idx]; }
+
     bool AddAtomType(NameType const&, AtomType const&);
     int CheckForAtomType(NameType const& n);
+
+    AtomType& UpdateType(int idx) { return types_[idx]; }
 
     typedef Tmap::const_iterator const_iterator;
     const_iterator begin() const { return nameToIdx_.begin(); }

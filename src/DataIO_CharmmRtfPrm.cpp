@@ -143,6 +143,14 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
               prm.DP().AddParm(types, DihedralParmType(pk, pn, phase), false);
             else
               prm.IP().AddParm(types, DihedralParmType(pk, pn, phase), false);
+          } else if (readParam == 6) {
+            // NONBONDED PARAMETERS TODO do not add if not already present
+            int idx = prm.AT().CheckForAtomType( args.GetStringNext() );
+            double epsilon = args.getNextDouble(0.0); // skip
+            epsilon = args.getNextDouble(0.0); // negative by convention
+            double radius = args.getNextDouble(0.0);
+            prm.AT().UpdateType(idx).SetRadius( radius );
+            prm.AT().UpdateType(idx).SetDepth( -epsilon );
           }
         }
       }
