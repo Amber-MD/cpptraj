@@ -284,6 +284,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         PairList.cpp \
         Parallel.cpp \
         ParallelNetcdf.cpp \
+        ParameterHolders.cpp \
         ParmFile.cpp \
         Parm_Amber.cpp \
         Parm_CharmmPsf.cpp \
