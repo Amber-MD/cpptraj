@@ -63,6 +63,8 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
   }
   DataSet_Parameters& prm = static_cast<DataSet_Parameters&>( *ds );
 
+  enum ModeType { NONE = 0, PARAM, TOP };
+  ModeType mode = NONE;
   int readParam = -1;
   while (line != 0) {
     if (line[0] != '*') {
@@ -75,11 +77,11 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
           line = infile.Line();
           args.Append( ArgList(Input(line)) );
         }
-        if (readParam == -1) {
+        if (mode == NONE) {
           if (args.Nargs() >= 2 && args[0] == "read" && args.hasKey("param"))
-            readParam = 0; 
-        } else {
-          // Reading parameters
+            mode = PARAM; 
+        } else if (mode == PARAM) {
+          // ----- Reading parameters ------------
           mprintf("DBG: %s\n", args.ArgLine());
           if (args.hasKey("ATOMS")) readParam = 1;
           else if (args.hasKey("BONDS")) readParam = 2;
@@ -87,7 +89,7 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
           else if (args.hasKey("DIHEDRALS")) readParam = 4;
           else if (args.hasKey("IMPROPERS")) readParam = 5;
           else if (args.hasKey("NONBONDED")) readParam = 6;
-          else if (args.hasKey("END")) break;
+          else if (args.hasKey("END")) { readParam = -1; mode = NONE; } 
           else if (readParam == 1) {
             // ATOM TYPES (masses really)
             if (args.hasKey("MASS") && args.Nargs() == 4) {
@@ -153,7 +155,7 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             prm.AT().UpdateType(idx).SetRadius( radius );
             prm.AT().UpdateType(idx).SetDepth( -epsilon );
           }
-        }
+        } // mode
       }
     }
     line = infile.Line();
