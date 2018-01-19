@@ -66,6 +66,8 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
   }
   Topology& top = static_cast<Topology&>( *dstop );
 
+  mprintf("\tUpdating parameters in topology '%s' using those in set '%s'\n",
+          top.c_str(), prm.legend());
   // Get list of existing parameters.
   // We assume a parameter in topology is never repeated, so as soon
   // as it is found we can move to the next one. 

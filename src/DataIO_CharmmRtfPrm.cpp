@@ -44,6 +44,7 @@ static inline std::string Input(const char* line) {
 // DataIO_CharmmRtfPrm::ReadData()
 int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  mprintf("Warning: Currently only CHARMM parameters will be read from this file.\n"); 
   BufferedLine infile;
   if (infile.OpenFileRead(fname)) return 1;
   const char* line = infile.Line();

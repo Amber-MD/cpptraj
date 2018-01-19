@@ -1,7 +1,7 @@
 #ifndef INC_EXEC_UPDATEPARAMETERS_H
 #define INC_EXEC_UPDATEPARAMETERS_H
 #include "Exec.h"
-/// <Enter description of Exec_UpdateParameters here>
+/// Update parameters in a topology with those from a data set. 
 class Exec_UpdateParameters : public Exec {
   public:
     Exec_UpdateParameters() : Exec(HIDDEN) {}
