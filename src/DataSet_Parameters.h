@@ -10,8 +10,8 @@ class DataSet_Parameters : public DataSet {
     DataSet_Parameters();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Parameters(); }
     // ----- DataSet functions -------------------
-    size_t Size()                                    const { return 0; }
-    void Info()                                      const { return; }
+    size_t Size()                                    const;
+    void Info()                                      const;
     int Allocate(SizeArray const&)                         { return 1; }
     void Add(size_t, const void*)                          { return; }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }

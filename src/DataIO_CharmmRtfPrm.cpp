@@ -82,7 +82,8 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             mode = PARAM; 
         } else if (mode == PARAM) {
           // ----- Reading parameters ------------
-          mprintf("DBG: %s\n", args.ArgLine());
+          if (debug_ > 1)
+            mprintf("DBG: %s\n", args.ArgLine());
           if (args.hasKey("ATOMS")) readParam = 1;
           else if (args.hasKey("BONDS")) readParam = 2;
           else if (args.hasKey("ANGLES")) readParam = 3;
@@ -160,8 +161,8 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
     }
     line = infile.Line();
   }
- 
-  prm.Debug(); 
+  if (debug_ > 0) 
+    prm.Debug();
   return 0;
 }
 

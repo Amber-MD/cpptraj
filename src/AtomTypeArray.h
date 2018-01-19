@@ -8,14 +8,17 @@ class AtomTypeArray {
     typedef std::vector<AtomType> Tarray;
     typedef std::map<NameType, int> Tmap;
   public:
-    AtomTypeArray() {}
+    AtomTypeArray() : debug_(0) {}
 
     AtomType const& operator[](int idx) const { return types_[idx]; }
 
+    void SetDebug(int d) { debug_ = d; }
     bool AddAtomType(NameType const&, AtomType const&);
-    int CheckForAtomType(NameType const& n);
+    int CheckForAtomType(NameType const&);
+    int AtomTypeIndex(NameType const&);
 
     AtomType& UpdateType(int idx) { return types_[idx]; }
+    unsigned int Size() const { return types_.size(); }
 
     typedef Tmap::const_iterator const_iterator;
     const_iterator begin() const { return nameToIdx_.begin(); }
@@ -25,5 +28,6 @@ class AtomTypeArray {
 
     Tarray types_;
     Tmap nameToIdx_;
+    int debug_;
 };
 #endif

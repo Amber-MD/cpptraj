@@ -11,11 +11,12 @@ bool AtomTypeArray::AddAtomType(NameType const& nameIn, AtomType const& typeIn)
     int idx = types_.size();
     types_.push_back( typeIn );
     nameToIdx_.insert( Tpair(nameIn, idx) );
-    mprintf("\tAdded atom type '%s', mass=%f radius=%f depth=%f\n", *nameIn,
-            typeIn.Mass(), typeIn.Radius(), typeIn.Depth());
+    if (debug_ > 0)
+      mprintf("\tAdded atom type '%s', mass=%f radius=%f depth=%f\n", *nameIn,
+              typeIn.Mass(), typeIn.Radius(), typeIn.Depth());
     return false;
   }
-  mprintf("\tType '%s' already present.\n", *nameIn);
+  if (debug_ > 0) mprintf("\tType '%s' already present.\n", *nameIn);
   return true;
 }
 
@@ -30,11 +31,19 @@ int AtomTypeArray::CheckForAtomType(NameType const& nameIn) {
     idx = types_.size();
     types_.push_back( AtomType() );
     nameToIdx_.insert( Tpair(nameIn, idx) );
-    mprintf("\tAdded placholder atom type '%s' (%i)\n", *nameIn, idx);
+    if (debug_ > 0) mprintf("\tAdded placholder atom type '%s' (%i)\n", *nameIn, idx);
   } else {
     idx = it->second;
-    mprintf("\tType '%s' already present (%i).\n", *nameIn, idx);
+    if (debug_ > 0) mprintf("\tType '%s' already present (%i).\n", *nameIn, idx);
   }
   return idx;
 }
 
+/** \return Atom type index if it exists, -1 otherwise. */
+int AtomTypeArray::AtomTypeIndex(NameType const& nameIn) {
+  int idx = -1;
+  Tmap::iterator it = nameToIdx_.find( nameIn );
+  if (it != nameToIdx_.end())
+    idx = it->second;
+  return idx;
+}
