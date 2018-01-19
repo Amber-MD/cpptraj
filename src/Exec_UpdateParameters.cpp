@@ -5,7 +5,7 @@
 // Exec_UpdateParameters::Help()
 void Exec_UpdateParameters::Help() const
 {
-  mprintf("\t%s\n", DataSetList::TopArgs);
+  mprintf("\t%s setname <parm set>\n", DataSetList::TopArgs);
 }
 
 static inline void BondTypes(ParmHolder<int>& ParmIndices, Topology const& top, BondArray const& bonds) {
