@@ -149,7 +149,13 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
               prm.IP().AddParm(types, DihedralParmType(pk, pn, phase), false);
           } else if (readParam == 6) {
             // NONBONDED PARAMETERS TODO do not add if not already present
-            int idx = prm.AT().CheckForAtomType( args.GetStringNext() );
+            NameType at = args.GetStringNext();
+            int idx = prm.AT().AtomTypeIndex( at );
+            if (idx == -1) {
+              mprinterr("Error: Nonbond parameters defined for type '%s' without MASS card.\n",
+                        *at);
+              return 1;
+            }
             double epsilon = args.getNextDouble(0.0); // skip
             epsilon = args.getNextDouble(0.0); // negative by convention
             double radius = args.getNextDouble(0.0);

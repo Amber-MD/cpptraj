@@ -4,7 +4,7 @@
 #include "ParameterTypes.h"
 #include "AtomTypeArray.h"
 #include "ParameterHolders.h"
-/// <Enter description of DataSet_Parameters here>
+/// Hold parameters for atom types, bonds, angles, etc 
 class DataSet_Parameters : public DataSet {
   public:
     DataSet_Parameters();

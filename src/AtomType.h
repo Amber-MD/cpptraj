@@ -1,7 +1,7 @@
 #ifndef INC_ATOMTYPE_H
 #define INC_ATOMTYPE_H
 #include "ParameterTypes.h"
-/// Hold LJ params for a unique atom type
+/// Hold parameters for a unique atom type TODO LJ off diagonal
 class AtomType {
   public:
     AtomType() : radius_(0.0), depth_(0.0), mass_(0.0), oidx_(-1) {}

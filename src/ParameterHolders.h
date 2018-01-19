@@ -5,6 +5,7 @@
 #include "NameType.h"
 #include "ParameterTypes.h"
 //#inc lude "CpptrajStdio.h" // DEBUG
+/// Used to hold two or more atom type names.
 class AtomTypeHolder {
   public:
     typedef std::vector<NameType> Narray;
@@ -70,6 +71,7 @@ class AtomTypeHolder {
     Narray types_;
 };
 // -----------------------------------------------------------------------------
+/// Used to associate atom type names with an object (parameter etc)
 template <class T> class ParmHolder {
     // TODO may want to actually use a map one day for performance reasons.
     typedef std::pair<AtomTypeHolder,T> Bpair;
