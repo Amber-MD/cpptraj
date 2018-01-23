@@ -147,6 +147,8 @@ class Parm_Amber : public ParmIO {
 
     ParmType ptype_;
     BufferedFrame file_;
+    double elec_to_parm_; ///< Convert elec to topology units
+    double parm_to_elec_; ///< Convert topology units to elec.
 
     // Read variables
     Iarray values_; ///< Values read in from POINTERS
@@ -157,6 +159,8 @@ class Parm_Amber : public ParmIO {
     bool SCNB_set_; ///< True if SCNB section found
 
     // CHAMBER variables
+    static const double ELECTOCHAMBER_;
+    static const double CHAMBERTOELEC_;
     int UB_count_[2];   ///< Urey-Bradley count: # bonds (x3), # parameters
     int N_impropers_;   ///< Number of impropers (x5)
     int N_impTerms_;    ///< Number of improper terms

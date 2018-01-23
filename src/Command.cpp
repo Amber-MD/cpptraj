@@ -47,6 +47,7 @@
 #include "Exec_ParmWrite.h"
 #include "Exec_ScaleDihedralK.h"
 #include "Exec_Top.h"
+#include "Exec_UpdateParameters.h"
 // ----- ACTION ----------------------------------------------------------------
 #include "Action_Angle.h"
 #include "Action_Distance.h"
@@ -255,6 +256,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
   Command::AddCmd( new Exec_UBInfo(),        Cmd::EXE, 2, "ubinfo", "printub" );
+  Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters"); // HIDDEN
   // ACTION
   Command::AddCmd( new Action_Align(),         Cmd::ACT, 1, "align" );
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );

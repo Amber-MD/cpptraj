@@ -3,6 +3,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               ArgList.cpp \
               Atom.cpp \
               AtomMask.cpp \
+              AtomType.cpp \
               BondSearch.cpp \
               Box.cpp \
               BufferedFrame.cpp \

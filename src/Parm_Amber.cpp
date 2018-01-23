@@ -2,6 +2,7 @@
 #include <cstdio> // sscanf
 #include <cctype> // toupper, isdigit
 #include <cstdlib>  // atoi
+#include <cmath> // sqrt
 #include <algorithm> // std::min, std::max
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
@@ -138,10 +139,16 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { 0, 0 }
 };
 
+const double Parm_Amber::ELECTOCHAMBER_ = sqrt(332.0716);
+
+const double Parm_Amber::CHAMBERTOELEC_ = 1.0 / ELECTOCHAMBER_;
+
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Parm_Amber::Parm_Amber() :
   ptype_(OLDPARM),
+  elec_to_parm_(Constants::ELECTOAMBER),
+  parm_to_elec_(Constants::AMBERTOELEC),
   numLJparm_(0),
   SCEE_set_(false),
   SCNB_set_(false),
@@ -220,6 +227,8 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
 // Parm_Amber::ReadParm()
 int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   if (file_.OpenRead( fname )) return 1;
+  elec_to_parm_ = Constants::ELECTOAMBER;
+  parm_to_elec_ = Constants::AMBERTOELEC;
   int err = 0;
   if (ptype_ == OLDPARM)
     err = ReadOldParm( TopIn );
@@ -393,6 +402,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
           int err = 0;
           switch ((FlagType)flagIdx) {
             case F_CTITLE: ptype_ = CHAMBER; // Fall through to F_TITLE
+                           elec_to_parm_ = ELECTOCHAMBER_;
+                           parm_to_elec_ = CHAMBERTOELEC_;
             case F_TITLE:     err = ReadTitle(TopIn); break;
             case F_POINTERS:  err = ReadPointers(AMBERPOINTERS_, TopIn, FMT); break;
             case F_NAMES:     err = ReadAtomNames(TopIn, FMT); break;
@@ -617,7 +628,7 @@ int Parm_Amber::ReadAtomNames(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadAtomCharges(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHARGE, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetAtom(idx).SetCharge( atof(file_.NextElement()) * Constants::AMBERTOELEC );
+    TopIn.SetAtom(idx).SetCharge( atof(file_.NextElement()) * parm_to_elec_ );
   return 0;
 }
 
@@ -1449,6 +1460,8 @@ int Parm_Amber::WriteExtra(std::vector<AtomExtra> const& extra) {
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (file_.OpenWrite( fname )) return 1;
+  elec_to_parm_ = Constants::ELECTOAMBER;
+  parm_to_elec_ = Constants::AMBERTOELEC;
   // Determine if this is a CHAMBER topology
   ptype_ = NEWPARM;
   FlagType titleFlag = F_TITLE;
@@ -1458,6 +1471,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     else {
       titleFlag = F_CTITLE;
       ptype_ = CHAMBER;
+      elec_to_parm_ = ELECTOCHAMBER_;
+      parm_to_elec_ = CHAMBERTOELEC_;
     }
   }
   // Warn about empty parameters
@@ -1569,7 +1584,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // CHARGES
   if (BufferAlloc(F_CHARGE, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    file_.DblToBuffer( atm->Charge() * Constants::ELECTOAMBER );
+    file_.DblToBuffer( atm->Charge() * elec_to_parm_ );
   file_.FlushBuffer();
 
   // ATOMIC NUMBER
@@ -1824,6 +1839,46 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
               "Warning: To change this behavior specify the 'writeempty' keyword.\n");
   }
 
+  // CHAMBER only - write CMAP parameters
+  if (ptype_ == CHAMBER && TopOut.Chamber().HasCmap()) {
+    // CMAP COUNT
+    if (BufferAlloc(F_CHM_CMAPC, 2)) return 1;
+    file_.IntToBuffer( TopOut.Chamber().Cmap().size() );     // CMAP terms
+    file_.IntToBuffer( TopOut.Chamber().CmapGrid().size() ); // CMAP grids
+    file_.FlushBuffer();
+    // CMAP GRID RESOLUTIONS
+    if (BufferAlloc(F_CHM_CMAPR, TopOut.Chamber().CmapGrid().size())) return 1;
+    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
+                                       grid != TopOut.Chamber().CmapGrid().end(); ++grid)
+      file_.IntToBuffer( grid->Resolution() );
+    file_.FlushBuffer();
+    // CMAP GRIDS
+    int ngrid = 1;
+    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
+                                       grid != TopOut.Chamber().CmapGrid().end();
+                                       ++grid, ++ngrid)
+    {
+      if (BufferAlloc(F_CHM_CMAPP, grid->Size(), ngrid)) return 1;
+      for (std::vector<double>::const_iterator it = grid->Grid().begin();
+                                               it != grid->Grid().end(); ++it)
+        file_.DblToBuffer( *it );
+      file_.FlushBuffer();
+    }
+    // CMAP parameters
+    if (BufferAlloc(F_CHM_CMAPI, TopOut.Chamber().Cmap().size())) return 1;
+    for (CmapArray::const_iterator it = TopOut.Chamber().Cmap().begin();
+                                   it != TopOut.Chamber().Cmap().end(); ++it)
+    {
+      file_.IntToBuffer( it->A1() + 1 );
+      file_.IntToBuffer( it->A2() + 1 );
+      file_.IntToBuffer( it->A3() + 1 );
+      file_.IntToBuffer( it->A4() + 1 );
+      file_.IntToBuffer( it->A5() + 1 );
+      file_.IntToBuffer( it->Idx() + 1 );
+    }
+    file_.FlushBuffer();
+  }
+
   // Write solvent info if IFBOX > 0
   if (ifbox > 0) {
     // Determine first solvent molecule 
@@ -1901,46 +1956,6 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (BufferAlloc(F_SCREEN, TopOut.Natom())) return 1;
     for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
       file_.DblToBuffer( atm->Screen() );
-    file_.FlushBuffer();
-  }
-
-  // CHAMBER only - write CMAP parameters
-  if (ptype_ == CHAMBER && TopOut.Chamber().HasCmap()) {
-    // CMAP COUNT
-    if (BufferAlloc(F_CHM_CMAPC, 2)) return 1;
-    file_.IntToBuffer( TopOut.Chamber().Cmap().size() );     // CMAP terms
-    file_.IntToBuffer( TopOut.Chamber().CmapGrid().size() ); // CMAP grids
-    file_.FlushBuffer();
-    // CMAP GRID RESOLUTIONS
-    if (BufferAlloc(F_CHM_CMAPR, TopOut.Chamber().CmapGrid().size())) return 1;
-    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
-                                       grid != TopOut.Chamber().CmapGrid().end(); ++grid)
-      file_.IntToBuffer( grid->Resolution() );
-    file_.FlushBuffer();
-    // CMAP GRIDS
-    int ngrid = 1;
-    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
-                                       grid != TopOut.Chamber().CmapGrid().end();
-                                       ++grid, ++ngrid)
-    {
-      if (BufferAlloc(F_CHM_CMAPP, grid->Size(), ngrid)) return 1;
-      for (std::vector<double>::const_iterator it = grid->Grid().begin();
-                                               it != grid->Grid().end(); ++it)
-        file_.DblToBuffer( *it );
-      file_.FlushBuffer();
-    }
-    // CMAP parameters
-    if (BufferAlloc(F_CHM_CMAPI, TopOut.Chamber().Cmap().size())) return 1;
-    for (CmapArray::const_iterator it = TopOut.Chamber().Cmap().begin();
-                                   it != TopOut.Chamber().Cmap().end(); ++it)
-    {
-      file_.IntToBuffer( it->A1() + 1 );
-      file_.IntToBuffer( it->A2() + 1 );
-      file_.IntToBuffer( it->A3() + 1 );
-      file_.IntToBuffer( it->A4() + 1 );
-      file_.IntToBuffer( it->A5() + 1 );
-      file_.IntToBuffer( it->Idx() + 1 );
-    }
     file_.FlushBuffer();
   }
 
