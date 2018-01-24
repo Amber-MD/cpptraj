@@ -650,7 +650,7 @@ while [[ ! -z $1 ]] ; do
       ;;
     "-d" )
       Msg "Turning on compiler debug info and disabling optimization"
-      DEBUGFLAGS="-g"
+      DEBUGFLAGS="-g -O0"
       OPT=0
       ;;
     "-debugon"      )
@@ -917,6 +917,19 @@ fi
 SetCompilerOptions $COMPILERS
 
 CheckCompilerVersion $COMPILERS
+
+# For pgi on cray modify some flags
+if [[ $USECRAY -eq 1 && $COMPILERS = "pgi" ]] ; then
+  OMPFLAGS="-mp=nonuma"
+  OPTFLAGS="-fast"
+  FOPTFLAGS="-fast"
+fi
+
+# Remove opt flags if specified
+if [[ $OPT -eq 0 ]] ; then
+  OPTFLAGS=""
+  FOPTFLAGS=""
+fi
 
 # Check that OpenMP will work if it was specified
 TestOpenMP
@@ -1258,13 +1271,6 @@ if [[ $USETIMER -eq 1 ]] ; then
   LDFLAGS="$LDFLAGS -lrt"
 fi
 
-# For pgi on cray modify some flags
-if [[ $USECRAY -eq 1 && $COMPILERS = "pgi" ]] ; then
-  OPTFLAGS="-fast"
-  OMPFLAGS="-mp=nonuma"
-  FOPTFLAGS="-fast"
-fi
-
 # Add flags for OPENMP if specified
 if [[ $USEOPENMP -eq 1 ]] ; then
   if [[ "$WINDOWS" = "yes" ]]; then
@@ -1275,13 +1281,6 @@ if [[ $USEOPENMP -eq 1 ]] ; then
   DIRECTIVES="$OMPFLAGS $DIRECTIVES"
   LDFLAGS="$OMPFLAGS $LDFLAGS"
   SFX=$SFX".OMP"
-fi
-
-# Remove opt flags if specified
-if [[ $OPT -eq 0 ]] ; then
-  OPTFLAGS=""
-  FOPTFLAGS=""
-  DEBUGFLAGS="$DEBUGFLAGS -O0"
 fi
 
 # Add flags specific to cray compilers
