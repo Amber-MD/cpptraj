@@ -5,6 +5,9 @@
 #include "Constants.h"
 #include "StringRoutines.h"
 #include "Spline.h"
+#ifdef LIBPME
+#  include "libpme_standalone.h"
+#endif
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -580,6 +583,42 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   t_recip_.Stop();
   return ene * 0.5;
 }
+
+#ifdef LIBPME
+double Ewald::Recip_ParticleMesh(Frame const& frmIn) {
+  libpme::Mat<double> coordsD(6, 3);
+  //coordsD << 2.0, 2.0, 2.0, 2.5, 2.0, 3.0, 1.5, 2.0, 3.0, 0.0, 0.0, 0.0, 0.5, 0.0, 1.0, -0.5, 0.0, 1.0;
+  libpme::Mat<double> chargesD(6, 1);
+  //chargesD << -0.834, 0.417, 0.417, -0.834, 0.417, 0.417;
+  libpme::Mat<double> forcesD(6, 3);
+  forcesD.setZero();
+  int nfft1_ = 2;
+  int nfft2_ = 2;
+  int nfft3_ = 2;
+  // Instantiate double precision PME object
+  // Args: 1 = Exponent of the distance kernel: 1 for Coulomb
+  //       2 = Kappa
+  //       3 = Spline order
+  //       4 = nfft1
+  //       5 = nfft2
+  //       6 = nfft3
+  //       7 = scale factor to be applied to all computed energies and derivatives thereof
+  //       8 = number of nodes used for the rec space PME calculation.
+  //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
+  auto pme_object = std::unique_ptr<PMEinstanceD>(new PMEInstanceD(1, ew_coeff_, 6, nfft1_, nfft2_, nfft3_, 332.0716, 1, 0)); 
+  // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
+  // Args: 1 = the A lattice parameter in units consistent with the coordinates.
+  //       2 = the B lattice parameter in units consistent with the coordinates.
+  //       3 = the C lattice parameter in units consistent with the coordinates.
+  //       4 = the alpha lattice parameter in degrees.
+  //       5 = the beta lattice parameter in degrees.
+  //       6 = the gamma lattice parameter in degrees.
+  Box const& box = frmIn.BoxCrd();
+  pme->setLatticeVectors(box.X(), box.Y(), box.Z(), box.Alpha(), box.Beta(), box.Gamma());
+  double erecip = pme->computeEFRec(0, chargesD, coordsD, forcesD);
+  return erecip;
+}
+#endif
 
 // Ewald::Adjust()
 # ifdef _OPENMP

@@ -39,6 +39,10 @@ class Ewald {
     double Self(double);
     /// Ewald reciprocal energy
     double Recip_Regular(Matrix_3x3 const&, double);
+#   ifdef LIBPME
+    /// Particle mesh Ewald reciprocal energy
+    double Recip_ParticleMesh(Frame const&);
+#   endif
 #   ifdef DEBUG_EWALD
     /// Slow version of direct space energy, no pairlist.
     double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
