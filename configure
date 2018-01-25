@@ -99,6 +99,7 @@ DEBUGFLAGS=''   # Compiler debug flags
 C11FLAG=''      # Flag for compiling C++11 code
 WARNFLAG=''     # Flag to print compiler warnings
 NOINLINEFLAG='' # Flag to prevent compiler inlining
+DIRECTIVES=''   # Common compiler directives
 
 # ----- Configure options ------------------------
 USE_MPI=0      # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
@@ -138,8 +139,8 @@ Err() {
 }
 
 #-------------------------------------------------------------------------------
-# Set up compilers and compiler options
-SetCompilers() {
+# Set up compiler commands and compiler options
+SetupCompilers() {
   if [ ! -z "$CXX" ] ; then echo "C++ compiler (CXX) set to $CXX" ; fi
   if [ ! -z "$CC"  ] ; then echo "C compiler (CC) set to $CC" ; fi
   if [ ! -z "$FC"  ] ; then echo "Fortran compiler (FC) set to $FC" ; fi
@@ -276,6 +277,7 @@ SetCompilers() {
     UsageSimple
     exit 1
   fi
+
   # Turn off optimizations if necessary
   if [ $USE_OPT -eq 0 ] ; then
     OPTFLAGS='-O0'
@@ -294,11 +296,34 @@ SetCompilers() {
   CXXFLAGS="$DFLAG $WARNFLAG $OPTFLAGS $NOINLINEFLAG $PICFLAG $CXXFLAGS"
   CFLAGS="$DFLAG $WARNFLAG $OPTFLAGS $PICFLAG $CFLAGS"
   FFLAGS="$DFLAG $WARNFLAG $FOPTFLAGS $PICFLAG $FREEFMTFLAG $FFLAGS"
-  echo $CXX $CXXFLAGS
-  echo $CC $CFLAGS
-  echo $FC $FFLAGS
 }
 
+#-------------------------------------------------------------------------------
+# Set up profiling if specified
+SetupProfiling() {
+  if [ $USE_PROFILE -ne 0 ] ; then
+    if [ $USE_PROFILE -eq 1 -o $USE_PROFILE -eq 2 ] ; then
+      if [ "$COMPILERS" != 'gnu' ] ; then
+        Err "This profile option only supported by GNU compilers."
+      fi
+      if [ $USE_PROFILE -eq 1 ] ; then
+        CXXFLAGS="-pg $CXXFLAGS"
+        CFLAGS="-pg $CXXFLAGS"
+        LDFLAGS="-pg $LDFLAGS"
+      else
+        DIRECTIVES="$DIRECTIVES -D_GLIBCXX_PROFILE"
+      fi
+    elif [ $USE_PROFILE -eq 3 ] ; then
+      VTUNEFLAGS=''
+      if [ "$COMPILERS" = 'intel' ] ; then
+        VTUNEFLAGS='-debug inline-debug-info'
+        CFLAGS="-g $VTUNEFLAGS $CFLAGS"
+        CXXFLAGS="-g $VTUNEFLAGS $CXXFLAGS"
+      fi
+      LDFLAGS="-shared-intel -shared-libgcc $LDFLAGS"
+    fi
+  fi
+}
 
 # ==============================================================================
 # MAIN SCRIPT
@@ -398,7 +423,14 @@ if [ $USE_MPI -ne 0 -a $USE_WINDOWS -eq 1 ] ; then
 fi
 
 # Set up compilers and compiler options
-SetCompilers
+SetupCompilers
+
+# Set up profiling if specified
+SetupProfiling
 
 # Summary
 echo "$COMPILERS compilers in use."
+echo $CXX $CXXFLAGS
+echo $CC $CFLAGS
+echo $FC $FFLAGS
+echo DIRECTIVES $DIRECTIVES
