@@ -25,6 +25,7 @@ UsageSimple() {
 #-------------------------------------------------------------------------------
 # Print more detailed options
 UsageFull() {
+  UsageSimple
   echo "  ADDITIONAL OPTIONS:"
   echo "    -debug     : Turn on compiler debugging info."
   echo "    -noopt     : Do not use optimized compiler flags."
@@ -86,8 +87,48 @@ UsageFull() {
   echo ""
 }
 
-#-------------------------------------------------------------------------------
-# Script variables
+# ----- Script variables -------------------------------------------------------
+COMPILERS=''    # Use-specified compiler suite to use.
+OPTFLAGS=''     # C/C++ compiler optimization flags
+FOPTFLAGS=''    # Fortran compiler optimization flags
+FREEFMTFLAG=''  # Fortran free format flag
+FLINK=''        # Flag for linking in Fortran code
+OMPFLAG=''      # Compiler OpenMP flag
+PICFLAG=''      # Compiler flag for position-independent code
+DEBUGFLAGS=''   # Compiler debug flags
+C11FLAG=''      # Flag for compiling C++11 code
+WARNFLAG=''     # Flag to print compiler warnings
+NOINLINEFLAG='' # Flag to prevent compiler inlining
+
+# ----- Configure options ------------------------
+USE_MPI=0      # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
+USE_OPENMP=0   # 0 = no OpenMP, 1 = OpenMP
+USE_CUDA=0     # 0 = no CUDA, 1 = CUDA
+USE_CRAY=0     # 1 = Compiling on a cray machine. 
+USE_OPT=1      # 0 = no optimization, 1 = use compiler optimizations.
+USE_BLAS=1     # 0 = no BLAS/LAPACK, 1 = system/specified, 2 = MKL, 3 = OpenBLAS, 4 = macAccelerate, 5 = LibSci
+USE_DEBUG=0    # 0 = no debug info, 1 = enable compiler debug info
+USE_STATIC=0   # 0 = no static linking, 1 = static linking, 2 = static link for specified libraries
+USE_SHARED=0   # 1 = Use flag for position-independent code (required for libcpptraj)
+USE_AMBERLIB=0 # 1 = Use NetCDF/BLAS/LAPACK/ARPACK libraries from AMBERHOME
+USE_FFTW3=0    # 0 = Use internal FFT, 1 = use FFTW3
+USE_WINDOWS=0  # 1 = Compiling on windows
+USE_PROFILE=0  # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
+
+USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
+USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
+USE_TIMER=0          # Enable detailed internal timings.
+
+CLEAN=1        # 0 = clean after configure, 1 = do not
+SKIP_CHECKS=0  # 0 = Check compilers/libraries, 1 = do not
+
+# Flags for large file support
+LFS='-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64'
+
+# Install locations
+CPPTRAJHOME=''
+CPPTRAJBIN=''
+CPPTRAJLIB=''
 
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
@@ -96,18 +137,156 @@ Err() {
   exit 1
 }
 
+#-------------------------------------------------------------------------------
+# Set up compilers and compiler options
+SetCompilers() {
+  if [ ! -z "$CXX" ] ; then echo "C++ compiler (CXX) set to $CXX" ; fi
+  if [ ! -z "$CC"  ] ; then echo "C compiler (CC) set to $CC" ; fi
+  if [ ! -z "$FC"  ] ; then echo "Fortran compiler (FC) set to $FC" ; fi
+  # If no compiler type specified try to guess
+  if [ -z "$COMPILERS" ] ; then
+    if [ ! -z "$CXX" ] ; then
+      echo "Determining compilers from CXX ($CXX)"
+      COMPILERS='gnu'
+      case "$CXX" in
+        *g++*     ) COMPILERS='gnu' ;;
+        *clang++* ) COMPILERS='clang' ;;
+        *icpc*    ) COMPILERS='intel' ;;
+        *pgc++*   ) COMPILERS='pgi' ;;
+        *CC*      ) COMPILERS='cray' ;;
+        * ) echo "Warning: Could not detect compiler type ($CXX); assuming GNU" > /dev/stderr;;
+      esac
+    else
+      COMPILERS='gnu'
+      echo "No compilers specified; defaulting to GNU."
+    fi
+  fi
+  # Set compiler options
+  WARNFLAG='-Wall'
+  DFLAG='-g'
+  NOINLINEFLAG='-fno-inline'
+  case "$COMPILERS" in
+    'gnu' )
+      if [ -z "$CC" ]; then CC=gcc; fi
+      if [ -z "$CXX" ]; then CXX=g++; fi
+      if [ -z "$FC" ]; then FC=gfortran; fi
+      OPTFLAGS='-O3'
+      OMPFLAG='-fopenmp'
+      FREEFMTFLAG='-ffree-form'
+      FOPTFLAGS='-O3'
+      FLINK='-lgfortran'
+      PICFLAG='-fPIC'
+      C11FLAG='-std=gnu++11'
+      ;;
+   'clang' )
+      if [ -z "$CC" ]; then CC=clang; fi
+      if [ -z "$CXX" ]; then CXX=clang++; fi
+      if [ -z "$FC" ]; then FC=gfortran; fi
+      OPTFLAGS='-O3'
+      OMPFLAG='-fopenmp'
+      FREEFMTFLAG='-ffree-form'
+      FOPTFLAGS='-O3'
+      FLINK='-lgfortran'
+      PICFLAG='-fPIC'
+      ;;
+    'intel' )
+      if [ -z "$CC" ]; then CC=icc; fi
+      if [ -z "$CXX" ]; then CXX=icpc; fi
+      if [ -z "$FC" ]; then FC=ifort; fi
+      CXXFLAGS="-fp-model precise -fp-model source $CXXFLAGS"
+      CFLAGS="-fp-model precise -fp-model source $CFLAGS"
+      OPTFLAGS='-O3'
+      MAJOR_V=`$CXX -v 2>&1 | awk '{print $3}' | cut -d'.' -f1`
+      if [ $MAJOR_V -ge 16 ] ; then
+        OMPFLAG='-qopenmp'
+      else
+        OMPFLAG='-openmp'
+      fi
+      FREEFMTFLAG='-FR'
+      FOPTFLAGS='-ip -O3'
+      FLINK='-lifport -lifcore'
+      PICFLAG="-fpic"
+      ;;
+    "pgi" )
+      if [ -z "$CC" ]; then CC=pgcc; fi
+      if [ -z "$CXX" ]; then CXX=pgc++; fi
+      if [ -z "$FC" ]; then FC=pgf90; fi
+      OPTFLAGS='-fast'
+      FOPTFLAGS='-fast'
+      if [ $USE_CRAY -eq 1 ] ; then
+        OMPFLAG='-mp=nonuma'
+      else
+        OMPFLAG='-mp'
+      fi
+      NOINLINEFLAG='-Mnoautoinline'
+      WARNFLAG='-Minform=warn'
+      FREEFMTFLAG='-Mfree'
+      FLINK='-pgf90libs'
+      PICFLAG='-fpic'
+      C11FLAG='-std=c++11'
+      ;;
+    "cray" )
+      if [ -z "$CC" ]; then CC=cc; fi
+      if [ -z "$CXX" ]; then CXX=CC; fi
+      if [ -z "$FC" ]; then FC=ftn; fi
+      CXXFLAGS="-h gnu $CXXFLAGS"
+      CFLAGS="-h gnu $CFLAGS"
+      OPTFLAGS=''
+      OMPFLAG=''
+      FREEFMTFLAG='-f free -emf'
+      FOPTFLAGS=''
+      FLINK=''
+      PICFLAG='-fpic'
+      ;;
+    * ) echo "Error: Unknown compilers: $1" > /dev/stderr ; exit 1 ;;
+  esac
+  # Sanity check
+  if [ -z "$CC" -o -z "$CXX" -o -z "$FC" ] ; then
+    echo "Error: No compiler specified and CXX not set." > /dev/stderr
+    UsageSimple
+    exit 1
+  fi
+  # Turn off optimizations if necessary
+  if [ $USE_OPT -eq 0 ] ; then
+    OPTFLAGS='-O0'
+    FOPTFLAGS='-O0'
+  fi
+  # Turn off PI code if necessary
+  if [ $USE_SHARED -eq 0 ] ; then
+    PICFLAG=''
+  fi
+  # Turn off debug flags if necessary
+  if [ $USE_DEBUG -eq 0 ] ; then
+    DFLAG=''
+    NOINLINEFLAG=''
+  fi
+  # Set compiler flags
+  CXXFLAGS="$DFLAG $WARNFLAG $OPTFLAGS $NOINLINEFLAG $PICFLAG $CXXFLAGS"
+  CFLAGS="$DFLAG $WARNFLAG $OPTFLAGS $PICFLAG $CFLAGS"
+  FFLAGS="$DFLAG $WARNFLAG $FOPTFLAGS $PICFLAG $FREEFMTFLAG $FFLAGS"
+  echo $CXX $CXXFLAGS
+  echo $CC $CFLAGS
+  echo $FC $FFLAGS
+}
+
+
 # ==============================================================================
 # MAIN SCRIPT
-# Process user options.
+# Check requirements
+if [ -z "`which awk`" ] ; then
+  Err "CPPTRAJ configure requires 'awk'."
+fi
 
+
+# ------------------------------------------------
+
+# Process user options.
 KEY=''
 VALUE=''
 while [ ! -z "$1" ] ; do
   VALUE=''
   # Check for '='
-  #POS=`echo $1 | awk 'match($0,"="){print RSTART}'`
   POS=`expr index "$1" =`
-  echo POS $POS
   if [ $POS -eq 1 ] ; then
     Err "'=' cannot be the first character in an argument ($1)"
   elif [ $POS -gt 1 ] ; then
@@ -123,5 +302,68 @@ while [ ! -z "$1" ] ; do
     KEY=$1
   fi
   echo "KEY='$KEY'  VALUE='$VALUE'" # DEBUG
+  # Process KEY
+  case "$KEY" in
+    '--help' | '-h' ) UsageSimple ; exit 0 ;;
+    '--full-help'   ) UsageFull   ; exit 0 ;;
+    # Compiler Options
+    'gnu'        ) COMPILERS=$KEY ;;
+    'clang'      ) COMPILERS=$KEY ;;
+    'intel'      ) COMPILERS=$KEY ;;
+    'pgi'        ) COMPILERS=$KEY ;;
+    'cray'       ) COMPILERS=$KEY ;;
+    'CXX'        ) CXX="$VALUE" ;;
+    'CC'         ) CC="$VALUE" ;;
+    'FC'         ) FC="$VALUE" ;;
+    'CXXFLAGS'   ) CXXFLAGS="$VALUE" ;;
+    'CFLAGS'     ) CFLAGS="$VALUE" ;;
+    'FFLAGS'     ) FFLAGS="$VALUE" ;;
+    'LDFLAGS'    ) LDFLAGS="$VALUE" ;;
+    'DBGFLAGS'   ) DBGFLAGS="$VALUE" ;;
+    # Build options
+    '-mpi'           ) USE_MPI=1 ;;
+    '-intelmpi'      ) USE_MPI=2 ;;
+    '-openmp'        ) USE_OPENMP=1 ;;
+    '-cuda'          ) USE_CUDA=1 ;;
+    '-cray'          ) USE_CRAY=1 ;;
+    '-mkl'           ) USE_BLAS=2 ;;
+    '-openblas'      ) USE_BLAS=3 ;;
+    '-macAccelerate' ) USE_BLAS=4 ;;
+    '-libsci'        ) USE_BLAS=5 ;;
+    '-debug'         ) USE_DEBUG=1 ;;
+    '-d'             ) USE_OPT=0 ; USE_DEBUG=1 ;;
+    '-noopt'         ) USE_OPT=0 ;;
+    '-windows'       ) USE_WINDOWS=1 ;;
+    # Cpptraj options
+    '-nolfs'           ) LFS='' ;;
+    '-single-ensemble' ) USE_SINGLEENSEMBLE=1 ;;
+    '-debugon'         ) USE_CPPTRAJDEBUG=1 ;;
+    '-timer'           ) USE_TIMER=1 ;;
+    # Code profiling
+    '-profile'  ) USE_PROFILE=1 ;;
+    '-gprofile' ) USE_PROFILE=2 ;;
+    '-vtune'    ) USE_PROFILE=3 ;;
+    # Linking options
+    '-static'        ) USE_STATIC=1 ;;
+    '-libstatic'     ) USE_STATIC=2 ;;
+    '-shared'        ) USE_SHARED=1 ;;
+    '-amberlib'      ) USE_AMBERLIB=1 ;;
+    '-fftw3'         ) USE_FFTW3=1 ;;
+    # Install options
+    '-noclean'       ) CLEAN=0 ;;
+    '--skip-checks'  ) SKIP_CHECKS='yes' ;;
+    '--prefix'       )
+      CPPTRAJHOME=$VALUE
+      CPPTRAJBIN=$VALUE/bin
+      CPPTRAJLIB=$VALUE/lib
+      ;;
+    * ) Err "Unrecognized Option '$1'. Use '-h' or '--help' for help." ;;
+  esac
   shift
 done
+
+# Set up compilers and compiler options
+SetCompilers
+
+# Summary
+echo "$COMPILERS compilers in use."
