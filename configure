@@ -316,7 +316,7 @@ SetupProfiling() {
         CFLAGS="-pg $CXXFLAGS"
         LDFLAGS="-pg $LDFLAGS"
       else
-        DIRECTIVES="$DIRECTIVES -D_GLIBCXX_PROFILE"
+        CXXFLAGS="$CXXFLAGS -D_GLIBCXX_PROFILE"
       fi
     elif [ $USE_PROFILE -eq 3 ] ; then
       vtuneflags=''
@@ -332,9 +332,12 @@ SetupProfiling() {
 
 #-------------------------------------------------------------------------------
 # Test compile and run a program.
-# ARGS: [silent] <description> <compiler> <args> <file> [<link>]
+# ARGS: [silent|quiet] <description> <compiler> <args> <file> [<link>]
 TestProgram() {
-  if [ "$1" = 'silent' ] ; then
+  if [ "$1" = 'quiet' ] ; then
+    silent=2
+    shift
+  elif [ "$1" = 'silent' ] ; then
     silent=1
     shift
   else
@@ -345,7 +348,7 @@ TestProgram() {
   args="$3"
   file="$4"
   link="$5"
-  echo -n "$desc: "
+  if [ $silent -ne 2 ] ; then echo -n "$desc: " ; fi
   COMPILELINE="$comp $args -o testp $file $link"
   $COMPILELINE > /dev/null 2> compile.err
   if [ $? -ne 0 ] ; then
@@ -424,6 +427,22 @@ EOF
     C11_SUPPORT='no'
   else
     C11_SUPPORT='yes'
+  fi
+  # Some compilers (like older Intel) have a problem with the order of
+  # stdio vs mpi
+  if [ $USE_MPI -ne 0 ] ; then
+    cat > testp.cpp <<EOF
+#include <cstdio>
+#include <mpi.h>
+int main() { printf("Testing a C++ MPI program.\n"); return 0; }
+EOF
+    TestProgram quiet "  Testing STDIO/MPI ordering" "$CXX" "$CXXFLAGS" testp.cpp
+    if [ $? -eq 1 ] ; then
+      # Try to fix it with -DMPICH_IGNORE_CXX_SEEK
+      TestProgram "  Testing fix for STDIO/MPI ordering" "$CXX" "$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK" testp.cpp
+      # That worked. Add to CXXFLAGS
+      CXXFLAGS="$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK"
+    fi
   fi
 }
 
