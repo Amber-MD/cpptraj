@@ -117,6 +117,7 @@ USE_PROFILE=0  # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = I
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
 USE_TIMER=0          # Enable detailed internal timings.
+C11_SUPPORT='yes'    # Support C++11 code
 
 CLEAN=1        # 0 = clean after configure, 1 = do not
 SKIP_CHECKS=0  # 0 = Check compilers/libraries, 1 = do not
@@ -331,8 +332,14 @@ SetupProfiling() {
 
 #-------------------------------------------------------------------------------
 # Test compile and run a program.
-# ARGS: <description> <compiler> <args> <file> <link>
+# ARGS: [silent] <description> <compiler> <args> <file> [<link>]
 TestProgram() {
+  if [ "$1" = 'silent' ] ; then
+    silent=1
+    shift
+  else
+    silent=0
+  fi
   desc="$1"
   comp="$2"
   args="$3"
@@ -342,11 +349,16 @@ TestProgram() {
   COMPILELINE="$comp $args -o testp $file $link"
   $COMPILELINE > /dev/null 2> compile.err
   if [ $? -ne 0 ] ; then
-    echo ""
-    echo "Compile failed: $COMPILELINE" > /dev/stderr
-    echo "Error follows:" > /dev/stderr
-    cat compile.err > /dev/stderr
-    exit 1
+    if [ $silent -eq 0 ] ; then
+      echo ""
+      echo "Compile failed: $COMPILELINE" > /dev/stderr
+      echo "Error follows:" > /dev/stderr
+      cat compile.err > /dev/stderr
+      exit 1
+    else
+      rm compile.err
+      return 1
+    fi
   fi
   ./testp > /dev/null
   if [ $? -ne 0 ] ; then
@@ -356,16 +368,63 @@ TestProgram() {
   fi
   echo "OK"
   rm -f $file testp compile.err
+  return 0
 }
 
 #-------------------------------------------------------------------------------
 # Basic compiler tests
 TestCompilers() {
+  echo "$COMPILERS compilers in use."
+  # C++
+  cat > testp.cpp <<EOF
+#include <cstdio>
+int main() { printf("Testing\n"); return 0; }
+EOF
+  TestProgram "  Testing C++ compiler" "$CXX" "$CXXFLAGS" testp.cpp
+  # C
   cat > testp.c <<EOF
 #include <stdio.h>
 int main() { printf("Testing\n"); return 0; }
 EOF
-  TestProgram "Testing C compiler" "$CC" "$CFLAGS" testp.c
+  TestProgram "  Testing C compiler" "$CC" "$CFLAGS" testp.c
+  # Fortran
+  # OpenMP
+  if [ $USE_OPENMP -eq 1 ] ; then
+    cat > testp.cpp <<EOF
+#ifdef _OPENMP
+#include <omp.h>
+#include <cstdio>
+int main() {
+  int nthreads;
+# pragma omp parallel
+  {
+  if (omp_get_thread_num() == 0)
+    nthreads = omp_get_num_threads();
+  }
+  printf("%i threads Testing\n", nthreads);
+  return 0;
+}
+#endif
+EOF
+    TestProgram "  Testing OpenMP" "$CXX" "$CXXFLAGS $OMPFLAG" testp.cpp
+  fi
+  # C11 support
+  cat > testp.cpp <<EOF
+#if __cplusplus < 201103L
+#error This file requires compiler and library support for the \
+ISO C++ 2011 standard. This support is currently experimental, and must be \
+enabled with the -std=c++11 or -std=gnu++11 compiler options.
+#endif
+#include <cstdio>
+int main() { printf("Testing\n"); return 0; }
+EOF
+  TestProgram silent "  Testing C++11 support" "$CXX" "$CXXFLAGS $C11FLAG" testp.cpp
+  if [ $? -eq 1 ] ; then
+    echo "Not present"
+    C11_SUPPORT='no'
+  else
+    C11_SUPPORT='yes'
+  fi
 }
 
 # ==============================================================================
@@ -475,7 +534,6 @@ SetupProfiling
 TestCompilers
 
 # Summary
-echo "$COMPILERS compilers in use."
 echo $CXX $CXXFLAGS
 echo $CC $CFLAGS
 echo $FC $FFLAGS
