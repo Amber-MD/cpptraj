@@ -130,6 +130,30 @@ CPPTRAJHOME=''
 CPPTRAJBIN=''
 CPPTRAJLIB=''
 
+# ----- External Libraries -----------------------
+LNETCDF=0
+LBLAS=1
+LLAPACK=2
+LARPACK=3
+LREADLINE=4
+LXDRFILE=5
+LPARANC=6 # Parallel NetCDF
+LFFT=7
+LZIP=8
+LBZIP=9
+
+LIB_STAT[$LNETCDF]=1                 # 0 = off, 1 = enabled, 2 = bundled
+LIB_HOME[$LNETCDF]=''                # Library home directory (-L<home>)
+LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
+LIB_STTC[$LNETCDF]='lib/libnetcdf.a' # Expected static location relative to home
+LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
+LIB_DOFF[$LNETCDF]=''                # Directive if library off
+
+LIB_STAT[$LPARANC]=0
+LIB_HOME[$LPARANC]=''
+LIB_FLAG[$LPARANC]='-lpnetcdf'
+LIB_STTC[$LPARANC]='lib/libpnetcdf.a'
+
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
 Err() {
