@@ -97,8 +97,6 @@ OMPFLAG=''      # Compiler OpenMP flag
 PICFLAG=''      # Compiler flag for position-independent code
 DEBUGFLAGS=''   # Compiler debug flags
 C11FLAG=''      # Flag for compiling C++11 code
-WARNFLAG=''     # Flag to print compiler warnings
-NOINLINEFLAG='' # Flag to prevent compiler inlining
 DIRECTIVES=''   # Common compiler directives
 
 # ----- Configure options ------------------------
@@ -163,9 +161,9 @@ SetupCompilers() {
     fi
   fi
   # Set compiler options
-  WARNFLAG='-Wall'
-  DFLAG='-g'
-  NOINLINEFLAG='-fno-inline'
+  warnflag='-Wall'
+  dflag='-g'
+  noinlineflag='-fno-inline'
   case "$COMPILERS" in
     'gnu' )
       if [ -z "$CC" ]; then CC=gcc; fi
@@ -219,8 +217,8 @@ SetupCompilers() {
       else
         OMPFLAG='-mp'
       fi
-      NOINLINEFLAG='-Mnoautoinline'
-      WARNFLAG='-Minform=warn'
+      noinlineflag='-Mnoautoinline'
+      warnflag='-Minform=warn'
       FREEFMTFLAG='-Mfree'
       FLINK='-pgf90libs'
       PICFLAG='-fpic'
@@ -295,13 +293,13 @@ SetupCompilers() {
   fi
   # Turn off debug flags if necessary
   if [ $USE_DEBUG -eq 0 ] ; then
-    DFLAG=''
-    NOINLINEFLAG=''
+    dflag=''
+    noinlineflag=''
   fi
   # Set compiler flags
-  CXXFLAGS="$DFLAG $WARNFLAG $OPTFLAGS $NOINLINEFLAG $PICFLAG $CXXFLAGS"
-  CFLAGS="$DFLAG $WARNFLAG $OPTFLAGS $PICFLAG $CFLAGS"
-  FFLAGS="$DFLAG $WARNFLAG $FOPTFLAGS $PICFLAG $FREEFMTFLAG $FFLAGS"
+  CXXFLAGS="$dflag $warnflag $OPTFLAGS $noinlineflag $PICFLAG $CXXFLAGS"
+  CFLAGS="$dflag $warnflag $OPTFLAGS $PICFLAG $CFLAGS"
+  FFLAGS="$dflag $warnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $FFLAGS"
 }
 
 #-------------------------------------------------------------------------------
@@ -320,15 +318,54 @@ SetupProfiling() {
         DIRECTIVES="$DIRECTIVES -D_GLIBCXX_PROFILE"
       fi
     elif [ $USE_PROFILE -eq 3 ] ; then
-      VTUNEFLAGS=''
+      vtuneflags=''
       if [ "$COMPILERS" = 'intel' ] ; then
-        VTUNEFLAGS='-debug inline-debug-info'
-        CFLAGS="-g $VTUNEFLAGS $CFLAGS"
-        CXXFLAGS="-g $VTUNEFLAGS $CXXFLAGS"
+        vtuneflags='-debug inline-debug-info'
+        CFLAGS="-g $vtuneflags $CFLAGS"
+        CXXFLAGS="-g $vtuneflags $CXXFLAGS"
       fi
       LDFLAGS="-shared-intel -shared-libgcc $LDFLAGS"
     fi
   fi
+}
+
+#-------------------------------------------------------------------------------
+# Test compile and run a program.
+# ARGS: <description> <compiler> <args> <file> <link>
+TestProgram() {
+  desc="$1"
+  comp="$2"
+  args="$3"
+  file="$4"
+  link="$5"
+  echo -n "$desc: "
+  COMPILELINE="$comp $args -o testp $file $link"
+  $COMPILELINE > /dev/null 2> compile.err
+  if [ $? -ne 0 ] ; then
+    echo ""
+    echo "Compile failed: $COMPILELINE" > /dev/stderr
+    echo "Error follows:" > /dev/stderr
+    cat compile.err > /dev/stderr
+    exit 1
+  fi
+  ./testp > /dev/null
+  if [ $? -ne 0 ] ; then
+    echo ""
+    echo "Program failed, compiled with: $COMPILELINE" > /dev/stderr
+    exit 1
+  fi
+  echo "OK"
+  rm -f $file testp compile.err
+}
+
+#-------------------------------------------------------------------------------
+# Basic compiler tests
+TestCompilers() {
+  cat > testp.c <<EOF
+#include <stdio.h>
+int main() { printf("Testing\n"); return 0; }
+EOF
+  TestProgram "Testing C compiler" "$CC" "$CFLAGS" testp.c
 }
 
 # ==============================================================================
@@ -433,6 +470,9 @@ SetupCompilers
 
 # Set up profiling if specified
 SetupProfiling
+
+# Basic Compiler checks
+TestCompilers
 
 # Summary
 echo "$COMPILERS compilers in use."
