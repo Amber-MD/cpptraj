@@ -165,6 +165,7 @@ SetupCompilers() {
   warnflag='-Wall'
   dflag='-g'
   noinlineflag='-fno-inline'
+  commonflags=''
   case "$COMPILERS" in
     'gnu' )
       if [ -z "$CC" ]; then CC=gcc; fi
@@ -237,6 +238,9 @@ SetupCompilers() {
       FOPTFLAGS=''
       FLINK=''
       PICFLAG='-fpic'
+      if [ $USE_OPENMP -eq 0 ] ; then
+        commonflags='-h noomp'
+      fi
       ;;
     * ) echo "Error: Unknown compilers: $1" > /dev/stderr ; exit 1 ;;
   esac
@@ -282,7 +286,6 @@ SetupCompilers() {
     UsageSimple
     exit 1
   fi
-
   # Turn off optimizations if necessary
   if [ $USE_OPT -eq 0 ] ; then
     OPTFLAGS='-O0'
@@ -298,9 +301,12 @@ SetupCompilers() {
     noinlineflag=''
   fi
   # Set compiler flags
-  CXXFLAGS="$dflag $warnflag $OPTFLAGS $noinlineflag $PICFLAG $CXXFLAGS"
-  CFLAGS="$dflag $warnflag $OPTFLAGS $PICFLAG $CFLAGS"
-  FFLAGS="$dflag $warnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $FFLAGS"
+  CXXFLAGS="$dflag $warnflag $OPTFLAGS $noinlineflag $PICFLAG $commonflags $CXXFLAGS"
+  CFLAGS="$dflag $warnflag $OPTFLAGS $PICFLAG $commonflags $CFLAGS"
+  FFLAGS="$dflag $warnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $commonflags $FFLAGS"
+  echo $CXX $CXXFLAGS
+  echo $CC $CFLAGS
+  echo $FC $FFLAGS
 }
 
 #-------------------------------------------------------------------------------
@@ -448,13 +454,11 @@ EOF
 
 # ==============================================================================
 # MAIN SCRIPT
+
 # Check requirements
 if [ -z "`which awk`" ] ; then
   Err "CPPTRAJ configure requires 'awk'."
 fi
-
-
-# ------------------------------------------------
 
 # Process user options.
 KEY=''
@@ -553,7 +557,4 @@ SetupProfiling
 TestCompilers
 
 # Summary
-echo $CXX $CXXFLAGS
-echo $CC $CFLAGS
-echo $FC $FFLAGS
 echo DIRECTIVES $DIRECTIVES
