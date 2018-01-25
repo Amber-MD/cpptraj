@@ -240,6 +240,36 @@ SetCompilers() {
       ;;
     * ) echo "Error: Unknown compilers: $1" > /dev/stderr ; exit 1 ;;
   esac
+  # Change to MPI compiler wrappers if specified
+  if [ $USE_MPI -ne 0 ] ; then
+    if [ $USE_MPI -eq 1 ] ; then
+      mpi_cc='mpicc'
+      mpi_cxx='mpicxx'
+      mpi_f90='mpif90'
+    elif [ $USE_MPI -eq 2 ] ; then
+      mpi_cc='mpiicc'
+      mpi_cxx='mpiicpc'
+      mpi_f90='mpiifort'
+    fi
+    if [ -z "$MPICC" ] ; then
+      CC=$mpi_cc
+    else
+      echo "MPI C compiler (MPICC) set to $MPICC"
+      CC=$MPICC
+    fi
+    if [ -z "$MPICXX" ] ; then
+      CXX=$mpi_cxx
+    else
+      echo "MPI C++ compiler (MPICXX) set to $MPICXX"
+      CXX=$MPICXX
+    fi
+    if [ -z "$MPIF90" ] ; then
+      FC=$mpi_f90
+    else
+      echo "MPI Fortran compiler (MPIF90) set to $MPIF90"
+      FC=$MPIF90
+    fi
+  fi
   # Sanity check
   if [ -z "$CC" -o -z "$CXX" -o -z "$FC" ] ; then
     echo "Error: No compiler specified and CXX not set." > /dev/stderr
@@ -361,6 +391,11 @@ while [ ! -z "$1" ] ; do
   esac
   shift
 done
+
+# Basic checks
+if [ $USE_MPI -ne 0 -a $USE_WINDOWS -eq 1 ] ; then
+  Err "MPI not currently supported on Windows."
+fi
 
 # Set up compilers and compiler options
 SetCompilers
