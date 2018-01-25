@@ -271,6 +271,12 @@ SetupCompilers() {
       FC=$MPIF90
     fi
   fi
+  # Use cray wrappers
+  if [ $USE_CRAY -eq 1 ] ; then
+    CC=cc
+    CXX=CC
+    FC=ftn
+  fi
   # Sanity check
   if [ -z "$CC" -o -z "$CXX" -o -z "$FC" ] ; then
     echo "Error: No compiler specified and CXX not set." > /dev/stderr
