@@ -547,7 +547,10 @@ SetupLibraries() {
         else
           linc="-I$lhome/include"
           if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
-            lflag="$lhome/lib ${LIB_STTC[$i]}"
+            lflag="$lhome/lib/${LIB_STTC[$i]}"
+            if [ -z "$lflag" ] ; then
+              Err "Static library for ${LIB_CKEY[$i]} is not known."
+            fi
           else
             lflag="-L$lhome/lib ${LIB_FLAG[$i]}"
           fi
@@ -941,6 +944,10 @@ while [ ! -z "$1" ] ; do
       LIB_STAT[$LBLAS]='off'
       LIB_STAT[$LLAPACK]='off'
       LIB_STAT[$LARPACK]='off'
+      ;;
+    '-openblas'      )
+      LIB_FLAG[$LBLAS]='-lopenblas'
+      LIB_STAT[$LLAPACK]='off'
       ;;
     # Install options
     '-noclean'       ) CLEAN=0 ;;
