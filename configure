@@ -134,7 +134,7 @@ CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
 # Total number of external libraries
-NLIB=10
+NLIB=11
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 LNETCDF=0
@@ -147,6 +147,7 @@ LARPACK=6
 LFFTW3=7
 LREADLINE=8
 LXDRFILE=9
+LSANDER=10
 
 # Library status:
 #   off       : Do not use library.
@@ -233,6 +234,14 @@ LIB_FLAG[$LXDRFILE]='-lxdrfile'
 LIB_STTC[$LXDRFILE]='libxdrfile.a'
 LIB_D_ON[$LXDRFILE]=''
 LIB_DOFF[$LXDRFILE]='-DNO_XDRFILE'
+
+LIB_STAT[$LSANDER]='amberopt'
+LIB_CKEY[$LSANDER]='sanderlib'
+LIB_HOME[$LSANDER]=''
+LIB_FLAG[$LSANDER]='-lsander'
+LIB_STTC[$LSANDER]='libsander.a'
+LIB_D_ON[$LSANDER]='-DUSE_SANDERLIB'
+LIB_DOFF[$LSANDER]=''
 
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
@@ -446,18 +455,49 @@ EOF
   TestProgram "  Checking Xdrfile" "$CXX" "$CXXFLAGS ${LIB_INCL[$LXDRFILE]}" testp.cpp "${LIB_FLAG[$LXDRFILE]}"
 }
 
+TestSanderlib() {
+  cat > testp.cpp <<EOF
+#include "sander.h"
+int main() {
+  sander_input input_;
+  input_.extdiel = 78.5; input_.intdiel = 1.0;  input_.rgbmax = 25.0;
+  input_.saltcon = 0.0;  input_.cut = 8.0;      input_.dielc = 1.0;
+  input_.rdt = 0.0;      input_.fswitch = -1.0; input_.restraint_wt = 0.0;
+
+  input_.igb = 0; input_.alpb = 0;  input_.gbsa = 0;    input_.lj1264 = -1;
+  input_.ipb = 0; input_.inp = 2;   input_.vdwmeth = 1; input_.ew_type = 0;
+  input_.ntb = 0; input_.ifqnt = 0; input_.jfastw = 0;  input_.ntf = 2;
+  input_.ntc = 2; input_.ntr = 0;   input_.ibelly = 0;
+
+  input_.restraintmask[0] = '\0'; input_.bellymask[0] = '\0'; input_.refc[0] = '\0';
+  if (is_setup()) sander_cleanup();
+  return 0;
+}
+EOF
+  if [ "${LIB_STAT[$LSANDER]}" = 'amberopt' ] ; then
+    TestProgram silent "  Checking for sanderlib" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "${LIB_FLAG[$LSANDER]}"
+    if [ $? -eq 1 ] ; then
+      echo "Warning: SANDER test failed. CPPTRAJ will be built without the SANDER API."
+      LIB_STAT[$LSANDER]='off'
+    fi
+  else
+    TestProgram "  Checking sanderlib" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "${LIB_FLAG[$LSANDER]}"
+  fi
+}
+
 #-------------------------------------------------------------------------------
 # Test external libraries
 TestLibraries() {
-  if [ "${LIB_TEST[$LBZIP]}" == 'yes'     ] ; then TestBzlib ; fi
-  if [ "${LIB_TEST[$LZIP]}" == 'yes'      ] ; then TestZlib ; fi
-  if [ "${LIB_TEST[$LNETCDF]}" == 'yes'   ] ; then TestNetcdf ; fi
-  if [ "${LIB_TEST[$LPARANC]}" == 'yes'   ] ; then TestPnetcdf ; fi
-  if [ "${LIB_TEST[$LBLAS]}" == 'yes'     ] ; then TestMathlib ; fi
-  if [ "${LIB_TEST[$LARPACK]}" == 'yes'   ] ; then TestArpack ; fi
-  if [ "${LIB_TEST[$LFFTW3]}" == 'yes'    ] ; then TestFFTW3 ; fi
-  if [ "${LIB_TEST[$LREADLINE]}" == 'yes' ] ; then TestReadline ; fi
-  if [ "${LIB_TEST[$LXDRFILE]}" == 'yes'  ] ; then TestXdrfile ; fi
+  if [ "${LIB_TEST[$LBZIP]}" = 'yes'     ] ; then TestBzlib ; fi
+  if [ "${LIB_TEST[$LZIP]}" = 'yes'      ] ; then TestZlib ; fi
+  if [ "${LIB_TEST[$LNETCDF]}" = 'yes'   ] ; then TestNetcdf ; fi
+  if [ "${LIB_TEST[$LPARANC]}" = 'yes'   ] ; then TestPnetcdf ; fi
+  if [ "${LIB_TEST[$LBLAS]}" = 'yes'     ] ; then TestMathlib ; fi
+  if [ "${LIB_TEST[$LARPACK]}" = 'yes'   ] ; then TestArpack ; fi
+  if [ "${LIB_TEST[$LFFTW3]}" = 'yes'    ] ; then TestFFTW3 ; fi
+  if [ "${LIB_TEST[$LREADLINE]}" = 'yes' ] ; then TestReadline ; fi
+  if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
+  if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
 }
 
 #-------------------------------------------------------------------------------
@@ -493,7 +533,7 @@ SetupLibraries() {
       fi
       # Static/dynamic linking
       lhome=${LIB_HOME[$i]}
-      if [ "${LIB_STAT[$i]}" == 'bundled' ] ; then
+      if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
         LIB_TEST[$i]='no'
         linc=$lhome
         lflag="$lhome/${LIB_STTC[$i]}"
