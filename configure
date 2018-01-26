@@ -162,9 +162,6 @@ LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
 LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
-LIB_INCL[$LNETCDF]='"netcdf.h"'      # Include file
-LIB_PREA[$LNETCDF]='void unused() {int ncid; nc_open("foo.nc", 0, &ncid);}\n'
-LIB_TEST[$LNETCDF]='printf("Testing\\n"); printf("%%s\\n",nc_strerror(0));\n'
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
@@ -174,9 +171,6 @@ LIB_FLAG[$LPARANC]='-lpnetcdf'
 LIB_STTC[$LPARANC]='libpnetcdf.a'
 LIB_D_ON[$LPARANC]='-DHAS_PNETCDF'
 LIB_DOFF[$LPARANC]=''
-LIB_INCL[$LPARANC]='<pnetcdf.h>'
-LIB_PREA[$LPARANC]='void unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}\n'
-LIB_TEST[$LPARANC]='printf("Testing\\n"); printf("%%s\\n",ncmpi_strerror(0));\n'
 
 LIB_STAT[$LBZIP]='enabled'
 LIB_CKEY[$LBZIP]='bzlib'
@@ -186,8 +180,6 @@ LIB_FLAG[$LBZIP]='-lbz2'
 LIB_STTC[$LBZIP]='libbz2.a'
 LIB_D_ON[$LBZIP]='-DHASBZ2'
 LIB_DOFF[$LBZIP]=''
-LIB_INCL[$LBZIP]='"bzlib.h"'
-LIB_TEST[$LBZIP]='BZFILE *bfile; bfile=NULL; printf("Testing\\n");\n'
 
 LIB_STAT[$LZIP]='enabled'
 LIB_CKEY[$LZIP]='zlib'
@@ -197,8 +189,6 @@ LIB_FLAG[$LZIP]='-lz'
 LIB_STTC[$LZIP]='libz.a'
 LIB_D_ON[$LZIP]='-DHASGZ'
 LIB_DOFF[$LZIP]=''
-LIB_INCL[$LZIP]='"zlib.h"'
-LIB_TEST[$LZIP]='gzFile gfile; gfile=NULL; printf("Testing\\n");\n'
 
 LIB_STAT[$LBLAS]='enabled'
 LIB_CKEY[$LBLAS]='blas'
@@ -208,9 +198,6 @@ LIB_FLAG[$LBLAS]='-lblas'
 LIB_STTC[$LBLAS]='libblas.a'
 LIB_D_ON[$LBLAS]=''
 LIB_DOFF[$LBLAS]='-DNO_MATHLIB'
-LIB_INCL[$LBLAS]=''
-LIB_PREA[$LBLAS]='#include <algorithm>\nextern "C" {\nvoid dsyev_(char*, char*, int&, double*, int&, double*,double*,int&,int&);\nvoid dgemm_(char*, char*, int&, int&, int&, double&,\ndouble*, int&, double*, int&, double&, double*, int&); }\n'
-LIB_TEST[$LBLAS]='int n_cols = 3, lwork = 102, info;\ndouble work[102], mat[9], vec[3], alpha = 1.0;\nstd::fill(mat, mat+9, 1.0);\n  dsyev_((char*)"V", (char*)"U", n_cols, mat, n_cols, vec, work, lwork, info);\n  dgemm_((char*)"N",(char*)"N", n_cols, n_cols, n_cols, alpha,\n    mat, n_cols, mat, n_cols, alpha, mat, n_cols);\nprintf("Testing\n");\n'
 
 
 #-------------------------------------------------------------------------------
@@ -285,6 +272,54 @@ TestProgram() {
   return 0
 }
 
+# ===== LIBRARY TESTS ==========================================================
+TestBzlib() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include "bzlib.h"
+int main() { BZFILE *bfile; bfile=NULL; printf("Testing\n"); return 0; }
+EOF
+  TestProgram "  Checking BZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBZIP]}" testp.cpp "${LIB_FLAG[$LBZIP]}"
+}
+
+TestZlib() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include "zlib.h"
+int main() { gzFile gfile; gfile=NULL; printf("Testing\n"); return 0; }
+EOF
+  TestProgram "  Checking ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+}
+
+TestNetcdf() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include "netcdf.h"
+void unused() {int ncid; nc_open("foo.nc", 0, &ncid);}
+int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
+EOF
+  TestProgram "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+}
+
+TestPnetcdf() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include <pnetcdf.h>
+void unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}
+int main() { printf("Testing\n"); printf("%s\n",ncmpi_strerror(0)); return 0; }
+EOF
+  TestProgram "  Checking Parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
+}
+
+#-------------------------------------------------------------------------------
+# Test external libraries
+TestLibraries() {
+  if [ "${LIB_STAT[$LBZIP]}" != 'off' ] ; then TestBzlib ; fi
+  if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then TestZlib ; fi
+  if [ "${LIB_STAT[$LNETCDF]}" != 'off' ] ; then TestNetcdf ; fi
+  if [ "${LIB_STAT[$LPARANC]}" != 'off' ] ; then TestPnetcdf ; fi
+}
+
 #-------------------------------------------------------------------------------
 # Setup include and linker flags for external libraries
 SetupLibraries() {
@@ -309,20 +344,12 @@ SetupLibraries() {
     if [ "${LIB_STAT[$i]}" = 'off' ] ; then
       echo "${LIB_CKEY[$i]} disabled."
       if [ ! -z "${LIB_DOFF[$i]}" ] ; then
-        if [ -z "$DIRECTIVES" ] ; then
-          DIRECTIVES=${LIB_DOFF[$i]}
-        else
-          DIRECTIVES="$DIRECTIVES ${LIB_DOFF[$i]}"
-        fi
+        DIRECTIVES="$DIRECTIVES ${LIB_DOFF[$i]}"
       fi
     else
       echo "${LIB_CKEY[$i]} enabled."
       if [ ! -z "${LIB_D_ON[$i]}" ] ; then
-        if [ -z "$DIRECTIVES" ] ; then
-          DIRECTIVES=${LIB_D_ON[$i]}
-        else
-          DIRECTIVES="$DIRECTIVES ${LIB_D_ON[$i]}"
-        fi
+        DIRECTIVES="$DIRECTIVES ${LIB_D_ON[$i]}"
       fi
       # Static/dynamic linking
       lhome=${LIB_HOME[$i]}
@@ -344,23 +371,9 @@ SetupLibraries() {
           fi
         fi
         echo "linc $linc lflag $lflag" # DEBUG
-        # Construct test.
-        printf "#include <cstdio>\n" > testp.cpp
-        printf "#include ${LIB_INCL[$i]}\n" >> testp.cpp
-        printf "${LIB_PREA[$i]}" >> testp.cpp
-        printf "int main() {\n" >> testp.cpp
-        printf "${LIB_TEST[$i]}" >> testp.cpp
-        printf "  return 0; }\n" >> testp.cpp
-        # Run test
-        TestProgram "  Checking library '${LIB_CKEY[$i]}'" "$CXX" "$CXXFLAGS $linc" testp.cpp "$lflag"
-        # Set flags
-        INCLUDE="$INCLUDE $linc"
-        if [ "${LIB_TYPE[$i]}" = 'ldflags' ] ; then
-          LDFLAGS="$LDFLAGS $lflag"
-        else
-          CPPTRAJ_LIB="$CPPTRAJ_LIB $lflag"
-        fi
       fi
+      LIB_FLAG[$i]="$lflag"
+      LIB_INCL[$i]="$linc"
     fi
   done
 }
@@ -750,7 +763,11 @@ TestCompilers
 # Set up external libraries
 SetupLibraries
 
+# Test external libraries
+TestLibraries
+
 # Summary
 echo DIRECTIVES $DIRECTIVES
 echo LDFLAGS $LDFLAGS
 echo CPPTRAJ_LIB $CPPTRAJ_LIB
+echo INCLUDE $INCLUDE
