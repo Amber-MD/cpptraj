@@ -916,7 +916,7 @@ while [ ! -z "$1" ] ; do
     '-cuda'          ) USE_CUDA=1 ;;
     '-cray'          ) USE_CRAY=1 ;;
     '-mkl'           ) USE_BLAS=2 ;;
-    '-openblas'      ) USE_BLAS=3 ;;
+#    '-openblas'      ) USE_BLAS=3 ;;
     '-macAccelerate' ) USE_BLAS=4 ;;
     '-libsci'        ) USE_BLAS=5 ;;
     '-debug'         ) USE_DEBUG=1 ;;
@@ -948,6 +948,7 @@ while [ ! -z "$1" ] ; do
     '-openblas'      )
       LIB_FLAG[$LBLAS]='-lopenblas'
       LIB_STAT[$LLAPACK]='off'
+      LIB_FLAG[$LLAPACK]=''
       ;;
     # Install options
     '-noclean'       ) CLEAN=0 ;;
