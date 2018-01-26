@@ -136,16 +136,16 @@ CPPTRAJLIB=''
 #NLIB=10
 NLIB=1
 # Library indices
-LNETCDF=0
-LBLAS=1
-LLAPACK=2
+LFFT=7
 LARPACK=3
+LLAPACK=2
+LBLAS=1
+LNETCDF=0
+LPARANC=6    # Parallel NetCDF
+LBZIP=9
+LZIP=8
 LREADLINE=4
 LXDRFILE=5
-LPARANC=6 # Parallel NetCDF
-LFFT=7
-LZIP=8
-LBZIP=9
 
 # Library status:
 #   off       : Do not use library.
@@ -155,6 +155,7 @@ LBZIP=9
 #   bundled   : Use bundled version of library.
 LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, amberopt, bundled
 LIB_CKEY[$LNETCDF]='netcdf'          # Command-line key for '--with-' and '-no'
+LIB_TYPE[$LNETCDF]='ldflags'         # ldflags = common, cpptraj = cpptraj only
 LIB_HOME[$LNETCDF]=''                # Library home directory (-L<home>)
 LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
 LIB_STTC[$LNETCDF]='lib/libnetcdf.a' # Expected static location relative to home
@@ -164,9 +165,13 @@ LIB_INCL[$LNETCDF]='"netcdf.h"'      # Include file
 LIB_TEST[$LNETCDF]='#include <cstdio>\n#include "netcdf.h"\nvoid unused() {int ncid; nc_open("foo.nc", 0, &ncid);}\nint main() { printf("Testing\\n"); printf("%s\\n",nc_strerror(0)); return 0; }\n'
 
 LIB_STAT[$LPARANC]='off'
+LIB_CKEY[$LPARANC]='pnetcdf'
+LIB_TYPE[$LPARANC]='ldflags'
 LIB_HOME[$LPARANC]=''
 LIB_FLAG[$LPARANC]='-lpnetcdf'
 LIB_STTC[$LPARANC]='lib/libpnetcdf.a'
+LIB_D_ON[$LPARANC]='-DHAS_PNETCDF'
+LIB_DOFF[$LPARANC]=''
 
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
@@ -276,13 +281,12 @@ SetupLibraries() {
           DIRECTIVES="$DIRECTIVES ${LIB_D_ON[$i]}"
         fi
       fi
-      if [ "${LIB_STAT[$i]}" != 'bundled' ] ; then
-        # Static/dynamic linking
-        lhome=${LIB_HOME[$i]}
-#      if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
-#        linc="-I$lhome"
-#        lflag="${LIB_STTC[$i]}"
-#      elif [ -z "$lhome" ] ; then
+      # Static/dynamic linking
+      lhome=${LIB_HOME[$i]}
+      if [ "${LIB_STAT[$i]}" == 'bundled' ] ; then
+        linc=$lhome
+        lflag=${LIB_STTC[$i]}
+      else
         if [ -z "$lhome" ] ; then
           if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
             Err "'-libstatic' requires --with-${LIB_CKEY[$i]} specified."
