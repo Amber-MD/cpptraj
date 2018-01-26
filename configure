@@ -88,17 +88,18 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
-COMPILERS=''    # Use-specified compiler suite to use.
-OPTFLAGS=''     # C/C++ compiler optimization flags
-FOPTFLAGS=''    # Fortran compiler optimization flags
-FREEFMTFLAG=''  # Fortran free format flag
-FLINK=''        # Flag for linking in Fortran code
-OMPFLAG=''      # Compiler OpenMP flag
-PICFLAG=''      # Compiler flag for position-independent code
-DEBUGFLAGS=''   # Compiler debug flags
-C11FLAG=''      # Flag for compiling C++11 code
-DIRECTIVES=''   # Common compiler directives
-INCLUDE=''      # Library include line
+COMPILERS=''     # Use-specified compiler suite to use.
+OPTFLAGS=''      # C/C++ compiler optimization flags
+FOPTFLAGS=''     # Fortran compiler optimization flags
+FREEFMTFLAG=''   # Fortran free format flag
+FLINK=''         # Flag for linking in Fortran code
+OMPFLAG=''       # Compiler OpenMP flag
+PICFLAG=''       # Compiler flag for position-independent code
+DEBUGFLAGS=''    # Compiler debug flags
+C11FLAG=''       # Flag for compiling C++11 code
+DIRECTIVES=''    # Common compiler directives
+INCLUDE=''       # Library include line
+REQUIRES_FLINK=0 # If 1 FLINK flag required during link phase
 
 # ----- Configure options ------------------------
 USE_MPI=0      # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
@@ -134,17 +135,17 @@ CPPTRAJLIB=''
 # ----- External Libraries -----------------------
 # Total number of external libraries
 #NLIB=9
-NLIB=4
+NLIB=6
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 LNETCDF=0
 LPARANC=1    # Parallel NetCDF
 LZIP=2
 LBZIP=3
-LFFT=4
-LARPACK=5
-LBLAS=6
-LLAPACK=7
+LBLAS=4
+LLAPACK=5
+LARPACK=6
+LFFT=7
 LREADLINE=8
 LXDRFILE=9
 
@@ -199,6 +200,14 @@ LIB_STTC[$LBLAS]='libblas.a'
 LIB_D_ON[$LBLAS]=''
 LIB_DOFF[$LBLAS]='-DNO_MATHLIB'
 
+LIB_STAT[$LLAPACK]='enabled'
+LIB_CKEY[$LLAPACK]='lapack'
+LIB_TYPE[$LLAPACK]='cpptraj'
+LIB_HOME[$LLAPACK]=''
+LIB_FLAG[$LLAPACK]='-llapack'
+LIB_STTC[$LLAPACK]='liblapack.a'
+LIB_D_ON[$LLAPACK]=''
+LIB_DOFF[$LLAPACK]=''
 
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
@@ -248,6 +257,7 @@ TestProgram() {
   link="$5"
   if [ $silent -ne 2 ] ; then echo -n "$desc: " ; fi
   COMPILELINE="$comp $args -o testp $file $link"
+  echo $COMPILELINE #DEBUG
   $COMPILELINE > /dev/null 2> compile.err
   if [ $? -ne 0 ] ; then
     if [ $silent -eq 0 ] ; then
@@ -311,6 +321,39 @@ EOF
   TestProgram "  Checking Parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
 }
 
+TestMathlib() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+extern "C" {
+  void dsyev_(char*, char*, int&, double*, int&, double*,double*,int&,int&);
+  void dgemm_(char*, char*, int&, int&, int&, double&,
+              double*, int&, double*, int&, double&, double*, int&);
+}
+int main() {
+  int n_cols = 3, lwork = 102, info;
+  double work[102], mat[9], vec[3], alpha = 1.0;
+  mat[0] = 1.0; mat[1] = 1.0; mat[2] = 1.0;
+  mat[3] = 1.0; mat[4] = 1.0; mat[5] = 1.0;
+  mat[6] = 1.0; mat[7] = 1.0; mat[8] = 1.0;
+  dsyev_((char*)"V", (char*)"U", n_cols, mat, n_cols, vec, work, lwork, info);
+  dgemm_((char*)"N",(char*)"N", n_cols, n_cols, n_cols, alpha,
+         mat, n_cols, mat, n_cols, alpha, mat, n_cols);
+  printf("Testing\n"); return 0;
+}
+EOF
+  if [ $REQUIRES_FLINK -eq 0 ] ; then
+    # First try without FLINK
+    flibs="${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+    TestProgram silent "  Checking LAPACK/BLAS" "$CXX" "$CXXFLAGS" testp.cpp "$flibs"
+    if [ $? -eq 1 ] ; then
+      # That failed. Try using FLINK
+      flibs="$flibs $FLINK"
+      TestProgram silent "  Checking LAPACK/BLAS (fortran)" "$CXX" "$CXXFLAGS" testp.cpp "$flibs"
+      REQUIRES_FLINK=1
+    fi
+  fi
+}
+
 #-------------------------------------------------------------------------------
 # Test external libraries
 TestLibraries() {
@@ -318,6 +361,7 @@ TestLibraries() {
   if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then TestZlib ; fi
   if [ "${LIB_STAT[$LNETCDF]}" != 'off' ] ; then TestNetcdf ; fi
   if [ "${LIB_STAT[$LPARANC]}" != 'off' ] ; then TestPnetcdf ; fi
+  if [ "${LIB_STAT[$LBLAS]}" != 'off' ] ; then TestMathlib ; fi
 }
 
 #-------------------------------------------------------------------------------
