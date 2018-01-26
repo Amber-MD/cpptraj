@@ -803,6 +803,11 @@ while [ ! -z "$1" ] ; do
     '-shared'        ) USE_SHARED=1 ;;
     '-amberlib'      ) USE_AMBERLIB=1 ;;
     '-fftw3'         ) USE_FFTW3=1 ;;
+    '-nomathlib'     )
+      LIB_STAT[$LBLAS]='off'
+      LIB_STAT[$LLAPACK]='off'
+      LIB_STAT[$LARPACK]='off'
+      ;;
     # Install options
     '-noclean'       ) CLEAN=0 ;;
     '--skip-checks'  ) SKIP_CHECKS='yes' ;;
