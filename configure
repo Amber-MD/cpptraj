@@ -134,8 +134,7 @@ CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
 # Total number of external libraries
-#NLIB=9
-NLIB=7
+NLIB=8
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 LNETCDF=0
@@ -145,7 +144,7 @@ LBZIP=3
 LBLAS=4
 LLAPACK=5
 LARPACK=6
-LFFT=7
+LFFTW3=7
 LREADLINE=8
 LXDRFILE=9
 
@@ -210,6 +209,14 @@ LIB_FLAG[$LARPACK]='-larpack'
 LIB_STTC[$LARPACK]='libarpack.a'
 LIB_D_ON[$LARPACK]=''
 LIB_DOFF[$LARPACK]='-DNO_ARPACK'
+
+LIB_STAT[$LFFTW3]='off'
+LIB_CKEY[$LFFTW3]='fftw3'
+LIB_HOME[$LFFTW3]=''
+LIB_FLAG[$LFFTW3]='-lfftw3'
+LIB_STTC[$LFFTW3]='libfftw3.a'
+LIB_D_ON[$LFFTW3]='-DFFTW_FFT'
+LIB_DOFF[$LFFTW3]=''
 
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
@@ -384,6 +391,20 @@ EOF
   DetermineFlink "  Checking ARPACK" "${LIB_FLAG[$LARPACK]} ${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
 }
 
+TestFFTW3() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include <fftw3.h>
+int main() {
+  fftw_complex* array = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 32);
+  if (array == 0) return 1;
+  fftw_free(array);
+  printf("Testing\n"); return 0;
+}
+EOF
+  TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}" 
+}
+
 #-------------------------------------------------------------------------------
 # Test external libraries
 TestLibraries() {
@@ -393,6 +414,7 @@ TestLibraries() {
   if [ "${LIB_STAT[$LPARANC]}" != 'off' ] ; then TestPnetcdf ; fi
   if [ "${LIB_STAT[$LBLAS]}" != 'off' ] ; then TestMathlib ; fi
   if [ "${LIB_STAT[$LARPACK]}" != 'off' ] ; then TestArpack ; fi
+  if [ "${LIB_STAT[$LFFTW3]}" != 'off' ] ; then TestFFTW3 ; fi
 }
 
 #-------------------------------------------------------------------------------
@@ -802,7 +824,9 @@ while [ ! -z "$1" ] ; do
     '-libstatic'     ) USE_STATIC=2 ;;
     '-shared'        ) USE_SHARED=1 ;;
     '-amberlib'      ) USE_AMBERLIB=1 ;;
-    '-fftw3'         ) USE_FFTW3=1 ;;
+    '-fftw3'         )
+      LIB_STAT[$LFFTW3]='enabled'
+      USE_FFTW3=1 ;;
     '-nomathlib'     )
       LIB_STAT[$LBLAS]='off'
       LIB_STAT[$LLAPACK]='off'
