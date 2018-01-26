@@ -161,7 +161,7 @@ LIB_STTC[$LNETCDF]='lib/libnetcdf.a' # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_INCL[$LNETCDF]='"netcdf.h"'      # Include file
-LIB_TEST[$LNETCDF]='#include <cstdio>\n#include "netcdf.h"\nvoid unused() {int ncid; nc_open("foo.nc", 0, &ncid);}\nint main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }\n'
+LIB_TEST[$LNETCDF]='#include <cstdio>\n#include "netcdf.h"\nvoid unused() {int ncid; nc_open("foo.nc", 0, &ncid);}\nint main() { printf("Testing\\n"); printf("%s\\n",nc_strerror(0)); return 0; }\n'
 
 LIB_STAT[$LPARANC]='off'
 LIB_HOME[$LPARANC]=''
@@ -194,6 +194,50 @@ CheckLibraryKeys() {
     fi
   done
   return 1
+}
+
+#-------------------------------------------------------------------------------
+# Test compile and run a program.
+# ARGS: [silent|quiet] <description> <compiler> <args> <file> [<link>]
+TestProgram() {
+  if [ "$1" = 'quiet' ] ; then
+    silent=2
+    shift
+  elif [ "$1" = 'silent' ] ; then
+    silent=1
+    shift
+  else
+    silent=0
+  fi
+  desc="$1"
+  comp="$2"
+  args="$3"
+  file="$4"
+  link="$5"
+  if [ $silent -ne 2 ] ; then echo -n "$desc: " ; fi
+  COMPILELINE="$comp $args -o testp $file $link"
+  $COMPILELINE > /dev/null 2> compile.err
+  if [ $? -ne 0 ] ; then
+    if [ $silent -eq 0 ] ; then
+      echo ""
+      echo "Compile failed: $COMPILELINE" > /dev/stderr
+      echo "Error follows:" > /dev/stderr
+      cat compile.err > /dev/stderr
+      exit 1
+    else
+      rm compile.err
+      return 1
+    fi
+  fi
+  ./testp > /dev/null
+  if [ $? -ne 0 ] ; then
+    echo ""
+    echo "Program failed, compiled with: $COMPILELINE" > /dev/stderr
+    exit 1
+  fi
+  echo "OK"
+  rm -f $file testp compile.err
+  return 0
 }
 
 #-------------------------------------------------------------------------------
@@ -232,25 +276,31 @@ SetupLibraries() {
           DIRECTIVES="$DIRECTIVES ${LIB_D_ON[$i]}"
         fi
       fi
-      # Static/dynamic linking
-      lhome=${LIB_HOME[$i]}
-      if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
-        linc="-I$lhome"
-        lflag="${LIB_STTC[$i]}"
-      elif [ -z "$lhome" ] ; then
-        if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
-          Err "'-libstatic' requires --with-${LIB_CKEY[$i]} specified."
-        fi
-        lflag=${LIB_FLAG[$i]}
-      else
-        linc="-I$lhome/include"
-        if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
-          lflag="$lhome/${LIB_STTC[$i]}"
+      if [ "${LIB_STAT[$i]}" != 'bundled' ] ; then
+        # Static/dynamic linking
+        lhome=${LIB_HOME[$i]}
+#      if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
+#        linc="-I$lhome"
+#        lflag="${LIB_STTC[$i]}"
+#      elif [ -z "$lhome" ] ; then
+        if [ -z "$lhome" ] ; then
+          if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
+            Err "'-libstatic' requires --with-${LIB_CKEY[$i]} specified."
+          fi
+          lflag=${LIB_FLAG[$i]}
         else
-          lflag="-L$lhome/lib ${LIB_FLAG[$i]}"
+          linc="-I$lhome/include"
+          if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
+            lflag="$lhome/${LIB_STTC[$i]}"
+          else
+            lflag="-L$lhome/lib ${LIB_FLAG[$i]}"
+          fi
         fi
+        echo "linc $linc lflag $lflag" # DEBUG
+        # Run test
+        printf "${LIB_TEST[$i]}" > testp.cpp
+        TestProgram "  Checking library '${LIB_CKEY[$i]}'" "$CXX" "$CXXFLAGS $linc" testp.cpp "$lflag"
       fi
-      echo "linc $linc lflag $lflag" # DEBUG
     fi
   done
 }
@@ -452,50 +502,6 @@ SetupProfiling() {
       LDFLAGS="-shared-intel -shared-libgcc $LDFLAGS"
     fi
   fi
-}
-
-#-------------------------------------------------------------------------------
-# Test compile and run a program.
-# ARGS: [silent|quiet] <description> <compiler> <args> <file> [<link>]
-TestProgram() {
-  if [ "$1" = 'quiet' ] ; then
-    silent=2
-    shift
-  elif [ "$1" = 'silent' ] ; then
-    silent=1
-    shift
-  else
-    silent=0
-  fi
-  desc="$1"
-  comp="$2"
-  args="$3"
-  file="$4"
-  link="$5"
-  if [ $silent -ne 2 ] ; then echo -n "$desc: " ; fi
-  COMPILELINE="$comp $args -o testp $file $link"
-  $COMPILELINE > /dev/null 2> compile.err
-  if [ $? -ne 0 ] ; then
-    if [ $silent -eq 0 ] ; then
-      echo ""
-      echo "Compile failed: $COMPILELINE" > /dev/stderr
-      echo "Error follows:" > /dev/stderr
-      cat compile.err > /dev/stderr
-      exit 1
-    else
-      rm compile.err
-      return 1
-    fi
-  fi
-  ./testp > /dev/null
-  if [ $? -ne 0 ] ; then
-    echo ""
-    echo "Program failed, compiled with: $COMPILELINE" > /dev/stderr
-    exit 1
-  fi
-  echo "OK"
-  rm -f $file testp compile.err
-  return 0
 }
 
 #-------------------------------------------------------------------------------
