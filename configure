@@ -134,18 +134,19 @@ CPPTRAJLIB=''
 # ----- External Libraries -----------------------
 # Total number of external libraries
 #NLIB=10
-NLIB=1
+NLIB=4
 # Library indices
-LFFT=7
-LARPACK=3
-LLAPACK=2
-LBLAS=1
+# Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 LNETCDF=0
-LPARANC=6    # Parallel NetCDF
-LBZIP=9
-LZIP=8
-LREADLINE=4
-LXDRFILE=5
+LPARANC=1    # Parallel NetCDF
+LZIP=2
+LBZIP=3
+LFFT=4
+LARPACK=5
+LLAPACK=6
+LBLAS=7
+LREADLINE=8
+LXDRFILE=9
 
 # Library status:
 #   off       : Do not use library.
@@ -158,24 +159,44 @@ LIB_CKEY[$LNETCDF]='netcdf'          # Command-line key for '--with-' and '-no'
 LIB_TYPE[$LNETCDF]='ldflags'         # ldflags = common, cpptraj = cpptraj only
 LIB_HOME[$LNETCDF]=''                # Library home directory (-L<home>)
 LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
-LIB_STTC[$LNETCDF]='lib/libnetcdf.a' # Expected static location relative to home
+LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_INCL[$LNETCDF]='"netcdf.h"'      # Include file
-LIB_TEST[$LNETCDF]='#include <cstdio>\n#include "netcdf.h"\nvoid unused() {int ncid; nc_open("foo.nc", 0, &ncid);}\nint main() { printf("Testing\\n"); printf("%s\\n",nc_strerror(0)); return 0; }\n'
+LIB_TEST[$LNETCDF]='#include <cstdio>\n#include "netcdf.h"\nvoid unused() {int ncid; nc_open("foo.nc", 0, &ncid);}\nint main() { printf("Testing\\n"); printf("%%s\\n",nc_strerror(0)); return 0; }\n'
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
 LIB_TYPE[$LPARANC]='ldflags'
 LIB_HOME[$LPARANC]=''
 LIB_FLAG[$LPARANC]='-lpnetcdf'
-LIB_STTC[$LPARANC]='lib/libpnetcdf.a'
+LIB_STTC[$LPARANC]='libpnetcdf.a'
 LIB_D_ON[$LPARANC]='-DHAS_PNETCDF'
 LIB_DOFF[$LPARANC]=''
 LIB_INLC[$LPARANC]='<pnetcdf.h>'
-LIB_TEST[$LPARANC]='#include <cstdio>\n#include <pnetcdf.h>\nvoid unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}\nint main() { printf("Testing\\n"); printf("%s\\n",ncmpi_strerror(0)); return 0; }\n'
+LIB_TEST[$LPARANC]='#include <cstdio>\n#include <pnetcdf.h>\nvoid unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}\nint main() { printf("Testing\\n"); printf("%%s\\n",ncmpi_strerror(0)); return 0; }\n'
 
+LIB_STAT[$LBZIP]='enabled'
+LIB_CKEY[$LBZIP]='bzlib'
+LIB_TYPE[$LBZIP]='ldflags'
+LIB_HOME[$LBZIP]=''
+LIB_FLAG[$LBZIP]='-lbz2'
+LIB_STTC[$LBZIP]='libbz2.a'
+LIB_D_ON[$LBZIP]='-DHASBZ2'
+LIB_DOFF[$LBZIP]=''
+LIB_INLC[$LBZIP]='"bzlib.h"'
+LIB_TEST[$LBZIP]='#include <cstdio>\n#include "bzlib.h"\nint main() { BZFILE *bfile; bfile=NULL; printf("Testing\\n"); return 0; }\n'
 
+LIB_STAT[$LZIP]='enabled'
+LIB_CKEY[$LZIP]='zlib'
+LIB_TYPE[$LZIP]='ldflags'
+LIB_HOME[$LZIP]=''
+LIB_FLAG[$LZIP]='-lz'
+LIB_STTC[$LZIP]='libz.a'
+LIB_D_ON[$LZIP]='-DHASGZ'
+LIB_DOFF[$LZIP]=''
+LIB_INLC[$LZIP]='"zlib.h"'
+LIB_TEST[$LZIP]='#include <cstdio>\n#include "zlib.h"\nint main() { gzFile gfile; gfile=NULL; printf("Testing\\n"); return 0; }\n'
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
 Err() {
@@ -298,7 +319,7 @@ SetupLibraries() {
         else
           linc="-I$lhome/include"
           if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
-            lflag="$lhome/${LIB_STTC[$i]}"
+            lflag="$lhome/lib ${LIB_STTC[$i]}"
           else
             lflag="-L$lhome/lib ${LIB_FLAG[$i]}"
           fi
@@ -313,6 +334,7 @@ SetupLibraries() {
           LDFLAGS="$LDFLAGS $lflag"
         else
           CPPTRAJ_LIB="$CPPTRAJ_LIB $lflag"
+        fi
       fi
     fi
   done
@@ -603,7 +625,8 @@ VALUE=''
 while [ ! -z "$1" ] ; do
   VALUE=''
   # Check for '='
-  POS=`expr index "$1" =`
+  #POS=`expr index "$1" =` # NOT PORTABLE
+  POS=`echo $1 | awk 'match($0,"="){print RSTART}'`
   if [ $POS -eq 1 ] ; then
     Err "'=' cannot be the first character in an argument ($1)"
   elif [ $POS -gt 1 ] ; then
