@@ -162,6 +162,7 @@ LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
 LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
+LIB_LINK[$LNETCDF]='dynamic'         # How to link the library
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
@@ -242,6 +243,10 @@ LIB_FLAG[$LSANDER]='-lsander'
 LIB_STTC[$LSANDER]='libsander.a'
 LIB_D_ON[$LSANDER]='-DUSE_SANDERLIB'
 LIB_DOFF[$LSANDER]=''
+
+for ((i=0; i < $NLIB; i++)) ; do
+  LIB_LINK[$i]='dynamic'
+done
 
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
@@ -532,6 +537,9 @@ SetupLibraries() {
         DIRECTIVES="$DIRECTIVES ${LIB_D_ON[$i]}"
       fi
       # Static/dynamic linking
+      if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
+        LIB_LINK[$i]='static'
+      fi
       lhome=${LIB_HOME[$i]}
       if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
         LIB_TEST[$i]='no'
@@ -540,13 +548,13 @@ SetupLibraries() {
       else
         LIB_TEST[$i]='yes'
         if [ -z "$lhome" ] ; then
-          if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
+          if [ "${LIB_LINK[$i]}" = 'static' ] ; then
             Err "'-libstatic' requires --with-${LIB_CKEY[$i]} specified."
           fi
           lflag=${LIB_FLAG[$i]}
         else
           linc="-I$lhome/include"
-          if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
+          if [ "${LIB_LINK[$i]}" = 'static' ] ; then
             lflag="$lhome/lib/${LIB_STTC[$i]}"
             if [ -z "$lflag" ] ; then
               Err "Static library for ${LIB_CKEY[$i]} is not known."
@@ -685,7 +693,7 @@ SetupCompilers() {
         commonflags='-h noomp'
       fi
       ;;
-    * ) echo "Error: Unknown compilers: $1" > /dev/stderr ; exit 1 ;;
+    * ) Err "Unknown compilers: $1" ;;
   esac
   # Change to MPI compiler wrappers if specified
   if [ $USE_MPI -ne 0 ] ; then
@@ -936,7 +944,23 @@ while [ ! -z "$1" ] ; do
     '-static'        ) USE_STATIC=1 ;;
     '-libstatic'     ) USE_STATIC=2 ;;
     '-shared'        ) USE_SHARED=1 ;;
-    '-amberlib'      ) USE_AMBERLIB=1 ;;
+    '-amberlib'      )
+      if [ -z "$AMBERHOME" ] ; then
+        Err "'-amberlib' requires that AMBERHOME be set."
+      fi
+      LIB_STAT[$LNETCDF]='specified'
+      LIB_STAT[$LBLAS]='specified'
+      LIB_STAT[$LLAPACK]='specified'
+      LIB_STAT[$LARPACK]='specified'
+      LIB_HOME[$LNETCDF]=$AMBERHOME
+      LIB_HOME[$LBLAS]=$AMBERHOME
+      LIB_HOME[$LLAPACK]=$AMBERHOME
+      LIB_HOME[$LARPACK]=$AMBERHOME
+      LIB_LINK[$LNETCDF]='static'
+      LIB_LINK[$LBLAS]='static'
+      LIB_LINK[$LLAPACK]='static'
+      LIB_LINK[$LARPACK]='static'
+      ;;
     '-fftw3'         )
       LIB_STAT[$LFFTW3]='enabled'
       USE_FFTW3=1 ;;
