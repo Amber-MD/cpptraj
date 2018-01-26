@@ -792,7 +792,15 @@ EOF
 int main() { printf("Testing\n"); return 0; }
 EOF
   TestProgram "  Testing C compiler" "$CC" "$CFLAGS" testp.c
-  # Fortran
+  # Fortran - only needed if pub_fft.F90 needs to be compiled
+  if [ $USE_FFTW3 -eq 0 ] ; then
+    cat > testp.f <<EOF
+      program testf
+      write(6,*) 'testing a Fortran program'
+      end program testf
+EOF
+    TestProgram "  Testing Fortran compiler" "$FC" "$FFLAGS" testp.f
+  fi
   # OpenMP
   if [ $USE_OPENMP -eq 1 ] ; then
     cat > testp.cpp <<EOF
