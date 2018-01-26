@@ -134,7 +134,7 @@ CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
 # Total number of external libraries
-NLIB=8
+NLIB=9
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 LNETCDF=0
@@ -217,6 +217,14 @@ LIB_FLAG[$LFFTW3]='-lfftw3'
 LIB_STTC[$LFFTW3]='libfftw3.a'
 LIB_D_ON[$LFFTW3]='-DFFTW_FFT'
 LIB_DOFF[$LFFTW3]=''
+
+LIB_STAT[$LREADLINE]='off'
+LIB_CKEY[$LREADLINE]='readline'
+LIB_HOME[$LREADLINE]=''
+LIB_FLAG[$LREADLINE]='-lreadline'
+LIB_STTC[$LREADLINE]=''
+LIB_D_ON[$LREADLINE]='-DFFTW_FFT'
+LIB_DOFF[$LREADLINE]='-DNO_READLINE'
 
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
@@ -405,6 +413,18 @@ EOF
   TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}" 
 }
 
+TestReadline() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include <readline.h>
+static char *line_read = (char *)NULL;
+// Do not want to actually run this so leave outside main
+void Unused() { line_read = readline(""); }
+int main() { return 0; }
+EOF
+  TestProgram "  Checking Readline" "$CXX" "$CXXFLAGS ${LIB_INCL[$LREADLINE]}" testp.cpp "${LIB_FLAG[$LREADLINE]}"
+}
+
 #-------------------------------------------------------------------------------
 # Test external libraries
 TestLibraries() {
@@ -415,6 +435,7 @@ TestLibraries() {
   if [ "${LIB_STAT[$LBLAS]}" != 'off' ] ; then TestMathlib ; fi
   if [ "${LIB_STAT[$LARPACK]}" != 'off' ] ; then TestArpack ; fi
   if [ "${LIB_STAT[$LFFTW3]}" != 'off' ] ; then TestFFTW3 ; fi
+  if [ "${LIB_STAT[$LREADLINE]}" != 'off' ] ; then TestReadline ; fi
 }
 
 #-------------------------------------------------------------------------------
@@ -466,8 +487,22 @@ SetupLibraries() {
           else
             lflag="-L$lhome/lib ${LIB_FLAG[$i]}"
           fi
+          # Library-specific INCLUDE fixes
+          if [ $i -eq $LREADLINE ] ; then
+            linc="$linc/readline"
+          fi
         fi
         echo "linc $linc lflag $lflag" # DEBUG
+        # Library-specific flag fixes
+        if [ $i -eq $LREADLINE ] ; then
+          # For external readline, we need to link libtermcap for windows
+          # and libncurses for Linux
+          #if [ $USE_WINDOWS -eq 1 ]; then
+            lflag="$lflag -ltermcap"
+          #else
+          #  lflag="$lflag -lncurses"
+          #fi
+        fi
       fi
       LIB_FLAG[$i]="$lflag"
       LIB_INCL[$i]="$linc"
