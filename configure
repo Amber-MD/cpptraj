@@ -98,6 +98,7 @@ PICFLAG=''      # Compiler flag for position-independent code
 DEBUGFLAGS=''   # Compiler debug flags
 C11FLAG=''      # Flag for compiling C++11 code
 DIRECTIVES=''   # Common compiler directives
+INCLUDE=''      # Library include line
 
 # ----- Configure options ------------------------
 USE_MPI=0      # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
@@ -146,7 +147,13 @@ LFFT=7
 LZIP=8
 LBZIP=9
 
-LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, search, bundled
+# Library status:
+#   off       : Do not use library.
+#   enabled   : Try to use library.
+#   specified : Library location has been specified.
+#   amberopt  : Use library from AMBERHOME - optional.
+#   bundled   : Use bundled version of library.
+LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, amberopt, bundled
 LIB_CKEY[$LNETCDF]='netcdf'          # Command-line key for '--with-' and '-no'
 LIB_HOME[$LNETCDF]=''                # Library home directory (-L<home>)
 LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
@@ -187,6 +194,65 @@ CheckLibraryKeys() {
     fi
   done
   return 1
+}
+
+#-------------------------------------------------------------------------------
+# Setup include and linker flags for external libraries
+SetupLibraries() {
+  # For any 'amberopt' check that AMBERHOME is available.
+  for ((i=0; i < $NLIB; i++)) ; do
+    if [ "${LIB_STAT[$i]}" = 'amberopt' ] ; then
+      if [ -z "$AMBERHOME" ] ; then
+        echo "Warning: Compilation of ${LIB_CKEY[$i]} requires AMBERHOME to be set"
+        echo "         if --with-${LIB_CKEY[$i]} not specified."
+        LIB_STAT[$i]='off'
+      else
+        LIB_HOME[$i]=$AMBERHOME
+      fi
+    fi
+  done
+  # Set up library paths
+  nactive=0
+  for ((i=0; i < $NLIB; i++)) ; do
+    if [ "${LIB_STAT[$i]}" = 'off' ] ; then
+      echo "${LIB_CKEY[$i]} disabled."
+      if [ ! -z "${LIB_DOFF[$i]}" ] ; then
+        if [ -z "$DIRECTIVES" ] ; then
+          DIRECTIVES=${LIB_DOFF[$i]}
+        else
+          DIRECTIVES="$DIRECTIVES ${LIB_DOFF[$i]}"
+        fi
+      fi
+    else
+      echo "${LIB_CKEY[$i]} enabled."
+      if [ ! -z "${LIB_D_ON[$i]}" ] ; then
+        if [ -z "$DIRECTIVES" ] ; then
+          DIRECTIVES=${LIB_D_ON[$i]}
+        else
+          DIRECTIVES="$DIRECTIVES ${LIB_D_ON[$i]}"
+        fi
+      fi
+      # Static/dynamic linking
+      lhome=${LIB_HOME[$i]}
+      if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
+        linc="-I$lhome"
+        lflag="${LIB_STTC[$i]}"
+      elif [ -z "$lhome" ] ; then
+        if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
+          Err "'-libstatic' requires --with-${LIB_CKEY[$i]} specified."
+        fi
+        lflag=${LIB_FLAG[$i]}
+      else
+        linc="-I$lhome/include"
+        if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
+          lflag="$lhome/${LIB_STTC[$i]}"
+        else
+          lflag="-L$lhome/lib ${LIB_FLAG[$i]}"
+        fi
+      fi
+      echo "linc $linc lflag $lflag" # DEBUG
+    fi
+  done
 }
 
 #-------------------------------------------------------------------------------
@@ -612,6 +678,9 @@ SetupProfiling
 
 # Basic Compiler checks
 TestCompilers
+
+# Set up external libraries
+SetupLibraries
 
 # Summary
 echo DIRECTIVES $DIRECTIVES
