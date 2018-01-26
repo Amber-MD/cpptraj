@@ -218,17 +218,17 @@ LIB_STTC[$LFFTW3]='libfftw3.a'
 LIB_D_ON[$LFFTW3]='-DFFTW_FFT'
 LIB_DOFF[$LFFTW3]=''
 
-LIB_STAT[$LREADLINE]='off'
+LIB_STAT[$LREADLINE]='bundled'
 LIB_CKEY[$LREADLINE]='readline'
-LIB_HOME[$LREADLINE]=''
+LIB_HOME[$LREADLINE]='readline'
 LIB_FLAG[$LREADLINE]='-lreadline'
-LIB_STTC[$LREADLINE]=''
+LIB_STTC[$LREADLINE]='libreadline.a'
 LIB_D_ON[$LREADLINE]=''
 LIB_DOFF[$LREADLINE]='-DNO_READLINE'
 
-LIB_STAT[$LXDRFILE]='off'
+LIB_STAT[$LXDRFILE]='bundled'
 LIB_CKEY[$LXDRFILE]='xdrfile'
-LIB_HOME[$LXDRFILE]=''
+LIB_HOME[$LXDRFILE]='xdrfile'
 LIB_FLAG[$LXDRFILE]='-lxdrfile'
 LIB_STTC[$LXDRFILE]='libxdrfile.a'
 LIB_D_ON[$LXDRFILE]=''
@@ -449,15 +449,15 @@ EOF
 #-------------------------------------------------------------------------------
 # Test external libraries
 TestLibraries() {
-  if [ "${LIB_STAT[$LBZIP]}" != 'off' ] ; then TestBzlib ; fi
-  if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then TestZlib ; fi
-  if [ "${LIB_STAT[$LNETCDF]}" != 'off' ] ; then TestNetcdf ; fi
-  if [ "${LIB_STAT[$LPARANC]}" != 'off' ] ; then TestPnetcdf ; fi
-  if [ "${LIB_STAT[$LBLAS]}" != 'off' ] ; then TestMathlib ; fi
-  if [ "${LIB_STAT[$LARPACK]}" != 'off' ] ; then TestArpack ; fi
-  if [ "${LIB_STAT[$LFFTW3]}" != 'off' ] ; then TestFFTW3 ; fi
-  if [ "${LIB_STAT[$LREADLINE]}" != 'off' ] ; then TestReadline ; fi
-  if [ "${LIB_STAT[$LXDRFILE]}" != 'off' ] ; then TestXdrfile ; fi
+  if [ "${LIB_TEST[$LBZIP]}" == 'yes'     ] ; then TestBzlib ; fi
+  if [ "${LIB_TEST[$LZIP]}" == 'yes'      ] ; then TestZlib ; fi
+  if [ "${LIB_TEST[$LNETCDF]}" == 'yes'   ] ; then TestNetcdf ; fi
+  if [ "${LIB_TEST[$LPARANC]}" == 'yes'   ] ; then TestPnetcdf ; fi
+  if [ "${LIB_TEST[$LBLAS]}" == 'yes'     ] ; then TestMathlib ; fi
+  if [ "${LIB_TEST[$LARPACK]}" == 'yes'   ] ; then TestArpack ; fi
+  if [ "${LIB_TEST[$LFFTW3]}" == 'yes'    ] ; then TestFFTW3 ; fi
+  if [ "${LIB_TEST[$LREADLINE]}" == 'yes' ] ; then TestReadline ; fi
+  if [ "${LIB_TEST[$LXDRFILE]}" == 'yes'  ] ; then TestXdrfile ; fi
 }
 
 #-------------------------------------------------------------------------------
@@ -476,7 +476,6 @@ SetupLibraries() {
     fi
   done
   # Set up library paths
-  nactive=0
   for ((i=0; i < $NLIB; i++)) ; do
     lhome=''
     linc=''
@@ -486,6 +485,7 @@ SetupLibraries() {
       if [ ! -z "${LIB_DOFF[$i]}" ] ; then
         DIRECTIVES="$DIRECTIVES ${LIB_DOFF[$i]}"
       fi
+      LIB_TEST[$i]='no'
     else
       echo "${LIB_CKEY[$i]} enabled."
       if [ ! -z "${LIB_D_ON[$i]}" ] ; then
@@ -494,9 +494,11 @@ SetupLibraries() {
       # Static/dynamic linking
       lhome=${LIB_HOME[$i]}
       if [ "${LIB_STAT[$i]}" == 'bundled' ] ; then
+        LIB_TEST[$i]='no'
         linc=$lhome
-        lflag=${LIB_STTC[$i]}
+        lflag="$lhome/${LIB_STTC[$i]}"
       else
+        LIB_TEST[$i]='yes'
         if [ -z "$lhome" ] ; then
           if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
             Err "'-libstatic' requires --with-${LIB_CKEY[$i]} specified."
@@ -517,7 +519,6 @@ SetupLibraries() {
             linc="$linc/xdrfile"
           fi
         fi
-        echo "linc $linc lflag $lflag" # DEBUG
         # Library-specific flag fixes
         if [ $i -eq $LREADLINE ] ; then
           # For external readline, we need to link libtermcap for windows
@@ -529,6 +530,7 @@ SetupLibraries() {
           #fi
         fi
       fi
+      echo "linc $linc lflag $lflag" # DEBUG
       LIB_FLAG[$i]="$lflag"
       LIB_INCL[$i]="$linc"
     fi
