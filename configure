@@ -917,7 +917,7 @@ while [ ! -z "$1" ] ; do
     '-cray'          ) USE_CRAY=1 ;;
     '-mkl'           ) USE_BLAS=2 ;;
 #    '-openblas'      ) USE_BLAS=3 ;;
-    '-macAccelerate' ) USE_BLAS=4 ;;
+#    '-macAccelerate' ) USE_BLAS=4 ;;
     '-libsci'        ) USE_BLAS=5 ;;
     '-debug'         ) USE_DEBUG=1 ;;
     '-d'             ) USE_OPT=0 ; USE_DEBUG=1 ;;
@@ -947,6 +947,11 @@ while [ ! -z "$1" ] ; do
       ;;
     '-openblas'      )
       LIB_FLAG[$LBLAS]='-lopenblas'
+      LIB_STAT[$LLAPACK]='off'
+      LIB_FLAG[$LLAPACK]=''
+      ;;
+    '-macAccelerate' )
+      LIB_FLAG[$LBLAS]='-framework Accelerate'
       LIB_STAT[$LLAPACK]='off'
       LIB_FLAG[$LLAPACK]=''
       ;;
