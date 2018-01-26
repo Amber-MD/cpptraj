@@ -131,6 +131,10 @@ CPPTRAJBIN=''
 CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
+# Total number of external libraries
+#NLIB=10
+NLIB=1
+# Library indices
 LNETCDF=0
 LBLAS=1
 LLAPACK=2
@@ -142,14 +146,17 @@ LFFT=7
 LZIP=8
 LBZIP=9
 
-LIB_STAT[$LNETCDF]=1                 # 0 = off, 1 = enabled, 2 = bundled
+LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, search, bundled
+LIB_CKEY[$LNETCDF]='netcdf'          # Command-line key for '--with-' and '-no'
 LIB_HOME[$LNETCDF]=''                # Library home directory (-L<home>)
 LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
 LIB_STTC[$LNETCDF]='lib/libnetcdf.a' # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
+LIB_INCL[$LNETCDF]='"netcdf.h"'      # Include file
+LIB_TEST[$LNETCDF]='#include <cstdio>\n#include "netcdf.h"\nvoid unused() {int ncid; nc_open("foo.nc", 0, &ncid);}\nint main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }\n'
 
-LIB_STAT[$LPARANC]=0
+LIB_STAT[$LPARANC]='off'
 LIB_HOME[$LPARANC]=''
 LIB_FLAG[$LPARANC]='-lpnetcdf'
 LIB_STTC[$LPARANC]='lib/libpnetcdf.a'
@@ -159,6 +166,27 @@ LIB_STTC[$LPARANC]='lib/libpnetcdf.a'
 Err() {
   echo "Error: $*" > /dev/stderr
   exit 1
+}
+
+#-------------------------------------------------------------------------------
+# Check for '--with' and '-no' library keys.
+CheckLibraryKeys() {
+  for ((i=0; i < $NLIB; i++)) ; do
+    LKEY="--with-"${LIB_CKEY[$i]}
+    if [ "$1" = "$LKEY" ] ; then
+      LIB_HOME[$i]=$2
+      LIB_STAT[$i]='specified'
+      echo "${LIB_CKEY[$i]} enabled."
+      return 0
+    fi
+    LKEY="-no"${LIB_CKEY[$i]}
+    if [ "$1" = "$LKEY" ] ; then
+      LIB_STAT[$i]='off'
+      echo "${LIB_CKEY[$i]} disabled."
+      return 0
+    fi
+  done
+  return 1
 }
 
 #-------------------------------------------------------------------------------
@@ -561,7 +589,12 @@ while [ ! -z "$1" ] ; do
       CPPTRAJBIN=$VALUE/bin
       CPPTRAJLIB=$VALUE/lib
       ;;
-    * ) Err "Unrecognized Option '$1'. Use '-h' or '--help' for help." ;;
+    * ) # Check for library keys
+      CheckLibraryKeys "$KEY" "$VALUE"
+      if [ $? -eq 1 ] ; then
+        Err "Unrecognized Option '$1'. Use '-h' or '--help' for help."
+      fi
+      ;;
   esac
   shift
 done
