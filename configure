@@ -133,7 +133,7 @@ CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
 # Total number of external libraries
-#NLIB=10
+#NLIB=9
 NLIB=4
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
@@ -143,8 +143,8 @@ LZIP=2
 LBZIP=3
 LFFT=4
 LARPACK=5
-LLAPACK=6
-LBLAS=7
+LBLAS=6
+LLAPACK=7
 LREADLINE=8
 LXDRFILE=9
 
@@ -163,7 +163,8 @@ LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_INCL[$LNETCDF]='"netcdf.h"'      # Include file
-LIB_TEST[$LNETCDF]='#include <cstdio>\n#include "netcdf.h"\nvoid unused() {int ncid; nc_open("foo.nc", 0, &ncid);}\nint main() { printf("Testing\\n"); printf("%%s\\n",nc_strerror(0)); return 0; }\n'
+LIB_PREA[$LNETCDF]='void unused() {int ncid; nc_open("foo.nc", 0, &ncid);}\n'
+LIB_TEST[$LNETCDF]='printf("Testing\\n"); printf("%%s\\n",nc_strerror(0));\n'
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
@@ -173,8 +174,9 @@ LIB_FLAG[$LPARANC]='-lpnetcdf'
 LIB_STTC[$LPARANC]='libpnetcdf.a'
 LIB_D_ON[$LPARANC]='-DHAS_PNETCDF'
 LIB_DOFF[$LPARANC]=''
-LIB_INLC[$LPARANC]='<pnetcdf.h>'
-LIB_TEST[$LPARANC]='#include <cstdio>\n#include <pnetcdf.h>\nvoid unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}\nint main() { printf("Testing\\n"); printf("%%s\\n",ncmpi_strerror(0)); return 0; }\n'
+LIB_INCL[$LPARANC]='<pnetcdf.h>'
+LIB_PREA[$LPARANC]='void unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}\n'
+LIB_TEST[$LPARANC]='printf("Testing\\n"); printf("%%s\\n",ncmpi_strerror(0));\n'
 
 LIB_STAT[$LBZIP]='enabled'
 LIB_CKEY[$LBZIP]='bzlib'
@@ -184,8 +186,8 @@ LIB_FLAG[$LBZIP]='-lbz2'
 LIB_STTC[$LBZIP]='libbz2.a'
 LIB_D_ON[$LBZIP]='-DHASBZ2'
 LIB_DOFF[$LBZIP]=''
-LIB_INLC[$LBZIP]='"bzlib.h"'
-LIB_TEST[$LBZIP]='#include <cstdio>\n#include "bzlib.h"\nint main() { BZFILE *bfile; bfile=NULL; printf("Testing\\n"); return 0; }\n'
+LIB_INCL[$LBZIP]='"bzlib.h"'
+LIB_TEST[$LBZIP]='BZFILE *bfile; bfile=NULL; printf("Testing\\n");\n'
 
 LIB_STAT[$LZIP]='enabled'
 LIB_CKEY[$LZIP]='zlib'
@@ -195,8 +197,22 @@ LIB_FLAG[$LZIP]='-lz'
 LIB_STTC[$LZIP]='libz.a'
 LIB_D_ON[$LZIP]='-DHASGZ'
 LIB_DOFF[$LZIP]=''
-LIB_INLC[$LZIP]='"zlib.h"'
-LIB_TEST[$LZIP]='#include <cstdio>\n#include "zlib.h"\nint main() { gzFile gfile; gfile=NULL; printf("Testing\\n"); return 0; }\n'
+LIB_INCL[$LZIP]='"zlib.h"'
+LIB_TEST[$LZIP]='gzFile gfile; gfile=NULL; printf("Testing\\n");\n'
+
+LIB_STAT[$LBLAS]='enabled'
+LIB_CKEY[$LBLAS]='blas'
+LIB_TYPE[$LBLAS]='cpptraj'
+LIB_HOME[$LBLAS]=''
+LIB_FLAG[$LBLAS]='-lblas'
+LIB_STTC[$LBLAS]='libblas.a'
+LIB_D_ON[$LBLAS]=''
+LIB_DOFF[$LBLAS]='-DNO_MATHLIB'
+LIB_INCL[$LBLAS]=''
+LIB_PREA[$LBLAS]='#include <algorithm>\nextern "C" {\nvoid dsyev_(char*, char*, int&, double*, int&, double*,double*,int&,int&);\nvoid dgemm_(char*, char*, int&, int&, int&, double&,\ndouble*, int&, double*, int&, double&, double*, int&); }\n'
+LIB_TEST[$LBLAS]='int n_cols = 3, lwork = 102, info;\ndouble work[102], mat[9], vec[3], alpha = 1.0;\nstd::fill(mat, mat+9, 1.0);\n  dsyev_((char*)"V", (char*)"U", n_cols, mat, n_cols, vec, work, lwork, info);\n  dgemm_((char*)"N",(char*)"N", n_cols, n_cols, n_cols, alpha,\n    mat, n_cols, mat, n_cols, alpha, mat, n_cols);\nprintf("Testing\n");\n'
+
+
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
 Err() {
@@ -287,6 +303,9 @@ SetupLibraries() {
   # Set up library paths
   nactive=0
   for ((i=0; i < $NLIB; i++)) ; do
+    lhome=''
+    linc=''
+    lflag=''
     if [ "${LIB_STAT[$i]}" = 'off' ] ; then
       echo "${LIB_CKEY[$i]} disabled."
       if [ ! -z "${LIB_DOFF[$i]}" ] ; then
@@ -325,8 +344,14 @@ SetupLibraries() {
           fi
         fi
         echo "linc $linc lflag $lflag" # DEBUG
+        # Construct test.
+        printf "#include <cstdio>\n" > testp.cpp
+        printf "#include ${LIB_INCL[$i]}\n" >> testp.cpp
+        printf "${LIB_PREA[$i]}" >> testp.cpp
+        printf "int main() {\n" >> testp.cpp
+        printf "${LIB_TEST[$i]}" >> testp.cpp
+        printf "  return 0; }\n" >> testp.cpp
         # Run test
-        printf "${LIB_TEST[$i]}" > testp.cpp
         TestProgram "  Checking library '${LIB_CKEY[$i]}'" "$CXX" "$CXXFLAGS $linc" testp.cpp "$lflag"
         # Set flags
         INCLUDE="$INCLUDE $linc"
@@ -627,6 +652,7 @@ while [ ! -z "$1" ] ; do
   # Check for '='
   #POS=`expr index "$1" =` # NOT PORTABLE
   POS=`echo $1 | awk 'match($0,"="){print RSTART}'`
+  if [ -z "$POS" ] ; then POS=0 ; fi
   if [ $POS -eq 1 ] ; then
     Err "'=' cannot be the first character in an argument ($1)"
   elif [ $POS -gt 1 ] ; then
@@ -726,3 +752,5 @@ SetupLibraries
 
 # Summary
 echo DIRECTIVES $DIRECTIVES
+echo LDFLAGS $LDFLAGS
+echo CPPTRAJ_LIB $CPPTRAJ_LIB
