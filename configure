@@ -107,11 +107,11 @@ USE_OPENMP=0   # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0     # 0 = no CUDA, 1 = CUDA
 USE_CRAY=0     # 1 = Compiling on a cray machine. 
 USE_OPT=1      # 0 = no optimization, 1 = use compiler optimizations.
-USE_BLAS=1     # 0 = no BLAS/LAPACK, 1 = system/specified, 2 = MKL, 3 = OpenBLAS, 4 = macAccelerate, 5 = LibSci
+USE_BLAS=1     # 0 = no BLAS/LAPACK, 1 = system/specified, 2 = MKL, 3 = OpenBLAS, 4 = macAccelerate, 5 = LibSci TODO remove
+USE_MKL=0      # 1 = Use MKL for BLAS/LAPACK
 USE_DEBUG=0    # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0   # 0 = no static linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0   # 1 = Use flag for position-independent code (required for libcpptraj)
-USE_AMBERLIB=0 # 1 = Use NetCDF/BLAS/LAPACK/ARPACK libraries from AMBERHOME
 USE_FFTW3=0    # 0 = Use internal FFT, 1 = use FFTW3
 USE_WINDOWS=0  # 1 = Compiling on windows
 USE_PROFILE=0  # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
@@ -541,6 +541,7 @@ SetupLibraries() {
         LIB_LINK[$i]='static'
       fi
       lhome=${LIB_HOME[$i]}
+      echo DEBUG $lhome
       if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
         LIB_TEST[$i]='no'
         linc=$lhome
@@ -867,6 +868,56 @@ EOF
   fi
 }
 
+# ------------------------------------------------------------------------------
+# Set up MKL flags for BLAS/LAPACK
+SetupMKL() {
+  if [ -z "$MKLROOT" ] ; then
+    if [ -z "$MKL_HOME" ] ; then
+      echo "MKLROOT/MKL_HOME not set."
+      exit 1
+    fi
+    mkldir=$MKL_HOME
+  else
+    mkldir=$MKLROOT
+  fi
+  echo "Using MKL for BLAS/LAPACK in $mkldir"
+  # Determine architecture
+  architecture=`uname -m`
+  if [ "$architecture" = 'x86_64' -o "$architecture" = 'em64t' ] ; then
+    echo "Assuming 64 bit architecture."
+    mkldir="$mkldir/lib/intel64"
+    mklinterface=libmkl_intel_lp64.a
+    mklblas="-lmkl_blas95_lp64"
+    mkllapack="-lmkl_lapack95_lp64"
+  else
+    echo "Assuming 32 bit architecture."
+    mkldir="$mkldir/lib/32"
+    mklinterface=libmkl_intel.a
+    mklblas="-lmkl_blas95"
+    mkllapack="-lmkl_lapack95"
+  fi
+  # Assume GNU linker.
+  if [ $USE_OPENMP -eq 1 ] ; then
+    if [ "$COMPILERS" = 'intel' ] ; then
+      mklthread='libmkl_intel_thread.a'
+      mklomp='-liomp5'
+    elif [ "$COMPILERS" = 'pgi' ] ; then
+      mklthread='libmkl_pgi_thread.a'
+      mklomp='-pgf90libs -mp'
+    else
+      mklthread='libmkl_gnu_thread.a'
+      mklomp='-lgomp'
+    fi
+    mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/$MKLTHREAD $mkldir/libmkl_core.a -Wl,--end-group $MKLOMP -lpthread -lm -ldl"
+  else
+    mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/libmkl_sequential.a $mkldir/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl"
+  fi
+  LIB_STAT[$LBLAS]='enabled'
+  LIB_FLAG[$LBLAS]="$mkllib"
+  LIB_STAT[$LLAPACK]='off'
+  LIB_FLAG[$LLAPACK]=''
+}
+
 # ==============================================================================
 # MAIN SCRIPT
 
@@ -923,7 +974,7 @@ while [ ! -z "$1" ] ; do
     '-openmp'        ) USE_OPENMP=1 ;;
     '-cuda'          ) USE_CUDA=1 ;;
     '-cray'          ) USE_CRAY=1 ;;
-    '-mkl'           ) USE_BLAS=2 ;;
+    '-mkl'           ) USE_MKL=1 ;;
 #    '-openblas'      ) USE_BLAS=3 ;;
 #    '-macAccelerate' ) USE_BLAS=4 ;;
     '-libsci'        ) USE_BLAS=5 ;;
@@ -1010,6 +1061,11 @@ SetupProfiling
 
 # Basic Compiler checks
 TestCompilers
+
+# Set up MKL if necessary
+if [ $USE_MKL -eq 1 ] ; then
+  SetupMKL
+fi
 
 # Set up external libraries
 SetupLibraries
