@@ -135,7 +135,7 @@ CPPTRAJLIB=''
 # ----- External Libraries -----------------------
 # Total number of external libraries
 #NLIB=9
-NLIB=6
+NLIB=7
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 LNETCDF=0
@@ -157,7 +157,6 @@ LXDRFILE=9
 #   bundled   : Use bundled version of library.
 LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, amberopt, bundled
 LIB_CKEY[$LNETCDF]='netcdf'          # Command-line key for '--with-' and '-no'
-LIB_TYPE[$LNETCDF]='ldflags'         # ldflags = common, cpptraj = cpptraj only
 LIB_HOME[$LNETCDF]=''                # Library home directory (-L<home>)
 LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
 LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
@@ -166,7 +165,6 @@ LIB_DOFF[$LNETCDF]=''                # Directive if library off
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
-LIB_TYPE[$LPARANC]='ldflags'
 LIB_HOME[$LPARANC]=''
 LIB_FLAG[$LPARANC]='-lpnetcdf'
 LIB_STTC[$LPARANC]='libpnetcdf.a'
@@ -175,7 +173,6 @@ LIB_DOFF[$LPARANC]=''
 
 LIB_STAT[$LBZIP]='enabled'
 LIB_CKEY[$LBZIP]='bzlib'
-LIB_TYPE[$LBZIP]='ldflags'
 LIB_HOME[$LBZIP]=''
 LIB_FLAG[$LBZIP]='-lbz2'
 LIB_STTC[$LBZIP]='libbz2.a'
@@ -184,7 +181,6 @@ LIB_DOFF[$LBZIP]=''
 
 LIB_STAT[$LZIP]='enabled'
 LIB_CKEY[$LZIP]='zlib'
-LIB_TYPE[$LZIP]='ldflags'
 LIB_HOME[$LZIP]=''
 LIB_FLAG[$LZIP]='-lz'
 LIB_STTC[$LZIP]='libz.a'
@@ -193,7 +189,6 @@ LIB_DOFF[$LZIP]=''
 
 LIB_STAT[$LBLAS]='enabled'
 LIB_CKEY[$LBLAS]='blas'
-LIB_TYPE[$LBLAS]='cpptraj'
 LIB_HOME[$LBLAS]=''
 LIB_FLAG[$LBLAS]='-lblas'
 LIB_STTC[$LBLAS]='libblas.a'
@@ -202,12 +197,19 @@ LIB_DOFF[$LBLAS]='-DNO_MATHLIB'
 
 LIB_STAT[$LLAPACK]='enabled'
 LIB_CKEY[$LLAPACK]='lapack'
-LIB_TYPE[$LLAPACK]='cpptraj'
 LIB_HOME[$LLAPACK]=''
 LIB_FLAG[$LLAPACK]='-llapack'
 LIB_STTC[$LLAPACK]='liblapack.a'
 LIB_D_ON[$LLAPACK]=''
 LIB_DOFF[$LLAPACK]=''
+
+LIB_STAT[$LARPACK]='enabled'
+LIB_CKEY[$LARPACK]='arpack'
+LIB_HOME[$LARPACK]=''
+LIB_FLAG[$LARPACK]='-larpack'
+LIB_STTC[$LARPACK]='libarpack.a'
+LIB_D_ON[$LARPACK]=''
+LIB_DOFF[$LARPACK]='-DNO_ARPACK'
 
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
@@ -321,6 +323,23 @@ EOF
   TestProgram "  Checking Parallel NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LPARANC]}" testp.cpp "${LIB_FLAG[$LPARANC]}"
 }
 
+DetermineFlink() {
+  desc="$1"
+  flibs="$2"
+  if [ $REQUIRES_FLINK -eq 0 ] ; then
+    # Try without FLINK
+    TestProgram silent "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs"
+    if [ $? -eq 1 ] ; then
+      # That failed. Try with FLINK
+      TestProgram "$desc (Fortran)" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
+      REQUIRES_FLINK=1
+    fi
+  else
+    # Try with FLINK
+    TestProgram "$desc (Fortran)" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
+  fi
+}
+    
 TestMathlib() {
   cat > testp.cpp <<EOF
 #include <cstdio>
@@ -341,17 +360,28 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-  if [ $REQUIRES_FLINK -eq 0 ] ; then
-    # First try without FLINK
-    flibs="${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
-    TestProgram silent "  Checking LAPACK/BLAS" "$CXX" "$CXXFLAGS" testp.cpp "$flibs"
-    if [ $? -eq 1 ] ; then
-      # That failed. Try using FLINK
-      flibs="$flibs $FLINK"
-      TestProgram silent "  Checking LAPACK/BLAS (fortran)" "$CXX" "$CXXFLAGS" testp.cpp "$flibs"
-      REQUIRES_FLINK=1
-    fi
-  fi
+  DetermineFlink "  Checking LAPACK/BLAS" "${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
+}
+
+TestArpack() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+extern "C" {
+  void dsaupd_(int&, char&, int&, char*, int&, double&, double*,
+               int&, double*, int&, int*, int*, double*, double*,
+               int&, int&);
+}
+int main() {
+  int ival = 0;
+  double dval = 0.0;
+  char cval = 'I';
+  dsaupd_(ival, cval, ival, &cval, ival, dval, &dval,
+          ival, &dval, ival, &ival, &ival, &dval, &dval,
+          ival, ival);
+  printf("Testing\n"); return 0;
+}
+EOF
+  DetermineFlink "  Checking ARPACK" "${LIB_FLAG[$LARPACK]} ${LIB_FLAG[$LLAPACK]} ${LIB_FLAG[$LBLAS]}"
 }
 
 #-------------------------------------------------------------------------------
@@ -362,6 +392,7 @@ TestLibraries() {
   if [ "${LIB_STAT[$LNETCDF]}" != 'off' ] ; then TestNetcdf ; fi
   if [ "${LIB_STAT[$LPARANC]}" != 'off' ] ; then TestPnetcdf ; fi
   if [ "${LIB_STAT[$LBLAS]}" != 'off' ] ; then TestMathlib ; fi
+  if [ "${LIB_STAT[$LARPACK]}" != 'off' ] ; then TestArpack ; fi
 }
 
 #-------------------------------------------------------------------------------
