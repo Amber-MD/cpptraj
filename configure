@@ -172,6 +172,9 @@ LIB_FLAG[$LPARANC]='-lpnetcdf'
 LIB_STTC[$LPARANC]='lib/libpnetcdf.a'
 LIB_D_ON[$LPARANC]='-DHAS_PNETCDF'
 LIB_DOFF[$LPARANC]=''
+LIB_INLC[$LPARANC]='<pnetcdf.h>'
+LIB_TEST[$LPARANC]='#include <cstdio>\n#include <pnetcdf.h>\nvoid unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}\nint main() { printf("Testing\\n"); printf("%s\\n",ncmpi_strerror(0)); return 0; }\n'
+
 
 #-------------------------------------------------------------------------------
 # Print message to stderr and exit.
@@ -304,6 +307,12 @@ SetupLibraries() {
         # Run test
         printf "${LIB_TEST[$i]}" > testp.cpp
         TestProgram "  Checking library '${LIB_CKEY[$i]}'" "$CXX" "$CXXFLAGS $linc" testp.cpp "$lflag"
+        # Set flags
+        INCLUDE="$INCLUDE $linc"
+        if [ "${LIB_TYPE[$i]}" = 'ldflags' ] ; then
+          LDFLAGS="$LDFLAGS $lflag"
+        else
+          CPPTRAJ_LIB="$CPPTRAJ_LIB $lflag"
       fi
     fi
   done
