@@ -102,13 +102,12 @@ INCLUDE=''       # Library include line
 REQUIRES_FLINK=0 # If 1 FLINK flag required during link phase
 
 # ----- Configure options ------------------------
-USE_MPI=0      # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
-USE_OPENMP=0   # 0 = no OpenMP, 1 = OpenMP
-USE_CUDA=0     # 0 = no CUDA, 1 = CUDA
-USE_CRAY=0     # 1 = Compiling on a cray machine. 
-USE_OPT=1      # 0 = no optimization, 1 = use compiler optimizations.
-USE_BLAS=1     # 0 = no BLAS/LAPACK, 1 = system/specified, 2 = MKL, 3 = OpenBLAS, 4 = macAccelerate, 5 = LibSci TODO remove
-USE_MKL=0      # 1 = Use MKL for BLAS/LAPACK
+USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
+USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
+USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
+USE_CRAY=0        # 1 = Compiling on a cray machine. 
+USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations.
+BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray)
 USE_DEBUG=0    # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0   # 0 = no static linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0   # 1 = Use flag for position-independent code (required for libcpptraj)
@@ -974,10 +973,8 @@ while [ ! -z "$1" ] ; do
     '-openmp'        ) USE_OPENMP=1 ;;
     '-cuda'          ) USE_CUDA=1 ;;
     '-cray'          ) USE_CRAY=1 ;;
-    '-mkl'           ) USE_MKL=1 ;;
-#    '-openblas'      ) USE_BLAS=3 ;;
-#    '-macAccelerate' ) USE_BLAS=4 ;;
-    '-libsci'        ) USE_BLAS=5 ;;
+    '-mkl'           ) BLAS_TYPE='mkl' ;;
+    '-libsci'        ) BLAS_TYPE='libsci' ;;
     '-debug'         ) USE_DEBUG=1 ;;
     '-d'             ) USE_OPT=0 ; USE_DEBUG=1 ;;
     '-noopt'         ) USE_OPT=0 ;;
@@ -1063,8 +1060,13 @@ SetupProfiling
 TestCompilers
 
 # Set up MKL if necessary
-if [ $USE_MKL -eq 1 ] ; then
+if [ "$BLAS_TYPE" ='mkl' ] ; then
   SetupMKL
+elif [ "$BLAS_TYPE" = 'libsci' ] ; then
+  LIB_STAT[$LBLAS]='enabled'
+  LIB_FLAG[$LBLAS]=''
+  LIB_STAT[$LLAPACK]='off'
+  LIB_FLAG[$LLAPACK]=''
 fi
 
 # Set up external libraries
