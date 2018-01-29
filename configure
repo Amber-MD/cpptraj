@@ -684,7 +684,12 @@ SetupCompilers() {
       CXXFLAGS="-fp-model precise -fp-model source $CXXFLAGS"
       CFLAGS="-fp-model precise -fp-model source $CFLAGS"
       OPTFLAGS='-O3'
-      MAJOR_V=`$CXX -v 2>&1 | awk '{print $3}' | cut -d'.' -f1`
+      VERSION_LINE=`$CXX -v 2>&1`
+      if [ $? -ne 0 ] ; then
+        echo "$VERSION_LINE"
+        Err "Could not check Intel C++ compiler version."
+      fi
+      MAJOR_V=`echo "$VERSION_LINE" | awk '{print $3}' | cut -d'.' -f1`
       if [ $MAJOR_V -ge 16 ] ; then
         OMPFLAG='-qopenmp'
       else
@@ -1037,7 +1042,7 @@ BasicChecks() {
   # Binary suffix
   if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI" ; fi
   if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP" ; fi
-  if [ $USE_CUDA -ne 0   ] ; then SFX=$SFX".cuda" ; fi
+  if [ "${LIB_STAT[$LCUDA]}" != 'off' ] ; then SFX=$SFX".cuda" ; fi
 }
 
 # ==============================================================================
