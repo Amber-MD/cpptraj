@@ -725,6 +725,7 @@ SetupCompilers() {
       CFLAGS="-h gnu $CFLAGS"
       OPTFLAGS=''
       OMPFLAG=''
+      warnflag='-h msglevel_2' # This will also print cautions
       FREEFMTFLAG='-f free -emf'
       FOPTFLAGS=''
       FLINK=''
@@ -794,6 +795,7 @@ SetupCompilers() {
   # Turn off static flag if necessary
   if [ $USE_STATIC -ne 1 ] ; then
     staticflag=''
+    staticlink=''
   fi
   # Set compiler flags
   CXXFLAGS="$DBFLAG $warnflag $OPTFLAGS $noinlineflag $PICFLAG $commonflags $CXXFLAGS"
