@@ -1107,3 +1107,11 @@ echo DIRECTIVES $DIRECTIVES
 echo LDFLAGS $LDFLAGS
 echo CPPTRAJ_LIB $CPPTRAJ_LIB
 echo INCLUDE $INCLUDE
+
+if [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
+  echo "************************************************************************"
+  echo "* Warning: No parallel NetCDF library specified.                       *"
+  echo "* Warning: NetCDF parallel trajectory output requires parallel NetCDF. *"
+  echo "************************************************************************"
+fi
+
