@@ -90,20 +90,15 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
-COMPILERS=''      # Use-specified compiler suite to use.
-OPTFLAGS=''       # C/C++ compiler optimization flags
-FOPTFLAGS=''      # Fortran compiler optimization flags
-FREEFMTFLAG=''    # Fortran free format flag
+COMPILERS=''      # User-specified compiler suite to use.
 FLINK=''          # Flag for linking in Fortran code
-SHARED_SUFFIX=''  # Suffix for shared libraries
-OMPFLAG=''        # Compiler OpenMP flag
-PICFLAG=''        # Compiler flag for position-independent code
-DBFLAG=''         # Flag for turning on compiler debug symbols
-C11FLAG=''        # Flag for compiling C++11 code
-DIRECTIVES=''     # Common compiler directives
-INCLUDE=''        # Library include line
 REQUIRES_FLINK=0  # If 1 FLINK flag required during link phase
+C11FLAG=''        # Flag for compiling C++11 code
 C11_SUPPORT='yes' # Support C++11 code
+SHARED_SUFFIX=''  # Suffix for shared libraries
+DBFLAG=''         # Flag for turning on compiler debug symbols
+DIRECTIVES=''     # Common compiler directives
+INCLUDE=''        # Library header include line
 SFX=''            # Binary suffix
 
 # ----- Configure options ------------------------
@@ -111,10 +106,10 @@ USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations.
 BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray)
-USE_DEBUG=0    # 0 = no debug info, 1 = enable compiler debug info
-USE_STATIC=0   # 0 = no static linking, 1 = static linking, 2 = static link for specified libraries
-USE_SHARED=0   # 1 = Use flag for position-independent code (required for libcpptraj)
-USE_PROFILE=0  # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
+USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
+USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for specified libraries
+USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
+USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
@@ -137,11 +132,11 @@ NLIB=13
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 LNETCDF=0
 LPARANC=1    # Parallel NetCDF
-LZIP=2
-LBZIP=3
-LBLAS=4
+LBZIP=2
+LZIP=3
+LARPACK=4
 LLAPACK=5
-LARPACK=6
+LBLAS=6
 LFFTW3=7
 LREADLINE=8
 LXDRFILE=9
@@ -149,7 +144,7 @@ LSANDER=10
 LTIMER=11
 LCUDA=12
 
-# Library status:
+# LIB_STAT = Library status:
 #   off       : Do not use library.
 #   enabled   : Try to use library.
 #   specified : Library location has been specified.
@@ -163,6 +158,7 @@ LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_LINK[$LNETCDF]='dynamic'         # How to link the library
+LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj, other
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
@@ -171,6 +167,7 @@ LIB_FLAG[$LPARANC]='-lpnetcdf'
 LIB_STTC[$LPARANC]='libpnetcdf.a'
 LIB_D_ON[$LPARANC]='-DHAS_PNETCDF'
 LIB_DOFF[$LPARANC]=''
+LIB_TYPE[$LPARANC]='ld'
 
 LIB_STAT[$LBZIP]='enabled'
 LIB_CKEY[$LBZIP]='bzlib'
@@ -179,6 +176,7 @@ LIB_FLAG[$LBZIP]='-lbz2'
 LIB_STTC[$LBZIP]='libbz2.a'
 LIB_D_ON[$LBZIP]='-DHASBZ2'
 LIB_DOFF[$LBZIP]=''
+LIB_TYPE[$LBZIP]='ld'
 
 LIB_STAT[$LZIP]='enabled'
 LIB_CKEY[$LZIP]='zlib'
@@ -187,6 +185,7 @@ LIB_FLAG[$LZIP]='-lz'
 LIB_STTC[$LZIP]='libz.a'
 LIB_D_ON[$LZIP]='-DHASGZ'
 LIB_DOFF[$LZIP]=''
+LIB_TYPE[$LZIP]='ld'
 
 LIB_STAT[$LBLAS]='enabled'
 LIB_CKEY[$LBLAS]='blas'
@@ -195,6 +194,7 @@ LIB_FLAG[$LBLAS]='-lblas'
 LIB_STTC[$LBLAS]='libblas.a'
 LIB_D_ON[$LBLAS]=''
 LIB_DOFF[$LBLAS]='-DNO_MATHLIB'
+LIB_TYPE[$LBLAS]='cpp'
 
 LIB_STAT[$LLAPACK]='enabled'
 LIB_CKEY[$LLAPACK]='lapack'
@@ -203,6 +203,7 @@ LIB_FLAG[$LLAPACK]='-llapack'
 LIB_STTC[$LLAPACK]='liblapack.a'
 LIB_D_ON[$LLAPACK]=''
 LIB_DOFF[$LLAPACK]=''
+LIB_TYPE[$LLAPACK]='cpp'
 
 LIB_STAT[$LARPACK]='enabled'
 LIB_CKEY[$LARPACK]='arpack'
@@ -211,6 +212,7 @@ LIB_FLAG[$LARPACK]='-larpack'
 LIB_STTC[$LARPACK]='libarpack.a'
 LIB_D_ON[$LARPACK]=''
 LIB_DOFF[$LARPACK]='-DNO_ARPACK'
+LIB_TYPE[$LARPACK]='cpp'
 
 LIB_STAT[$LFFTW3]='off'
 LIB_CKEY[$LFFTW3]='fftw3'
@@ -219,6 +221,7 @@ LIB_FLAG[$LFFTW3]='-lfftw3'
 LIB_STTC[$LFFTW3]='libfftw3.a'
 LIB_D_ON[$LFFTW3]='-DFFTW_FFT'
 LIB_DOFF[$LFFTW3]=''
+LIB_TYPE[$LFFTW3]='other'
 
 LIB_STAT[$LREADLINE]='bundled'
 LIB_CKEY[$LREADLINE]='readline'
@@ -227,6 +230,7 @@ LIB_FLAG[$LREADLINE]='-lreadline'
 LIB_STTC[$LREADLINE]='libreadline.a'
 LIB_D_ON[$LREADLINE]=''
 LIB_DOFF[$LREADLINE]='-DNO_READLINE'
+LIB_TYPE[$LREADLINE]='other'
 
 LIB_STAT[$LXDRFILE]='bundled'
 LIB_CKEY[$LXDRFILE]='xdrfile'
@@ -235,6 +239,7 @@ LIB_FLAG[$LXDRFILE]='-lxdrfile'
 LIB_STTC[$LXDRFILE]='libxdrfile.a'
 LIB_D_ON[$LXDRFILE]=''
 LIB_DOFF[$LXDRFILE]='-DNO_XDRFILE'
+LIB_TYPE[$LXDRFILE]='other'
 
 LIB_STAT[$LSANDER]='amberopt'
 LIB_CKEY[$LSANDER]='sanderlib'
@@ -243,11 +248,13 @@ LIB_FLAG[$LSANDER]='-lsander'
 LIB_STTC[$LSANDER]='libsander.a'
 LIB_D_ON[$LSANDER]='-DUSE_SANDERLIB'
 LIB_DOFF[$LSANDER]=''
+LIB_TYPE[$LSANDER]='cpp'
 
 LIB_STAT[$LTIMER]='off'
 LIB_CKEY[$LTIMER]='timer'
 LIB_FLAG[$LTIMER]='-lrt'
 LIB_D_ON[$LTIMER]='-DTIMER'
+LIB_TYPE[$LTIMER]='ld'
 
 LIB_STAT[$LCUDA]='off'
 LIB_CKEY[$LCUDA]='cuda'
@@ -256,6 +263,7 @@ LIB_FLAG[$LCUDA]='-lcuda -lcudart'
 LIB_STTC[$LCUDA]=''
 LIB_D_ON[$LCUDA]='-DCUDA'
 LIB_DOFF[$LCUDA]=''
+LIB_TYPE[$LTIMER]='cpp'
 
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
@@ -526,6 +534,24 @@ TestLibraries() {
   if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   # TODO test cuda?
+  # Set up linking flags
+  ldf=''
+  CPPTRAJ_LIB=''
+  INCLUDE=''
+  for ((i=0; i < $NLIB; i++)) ; do
+    if [ ! -z "${LIB_INCL[$i]}" ] ; then
+      INCLUDE="$INCLUDE ${LIB_INCL[$i]}"
+    fi
+    if [ "${LIB_TYPE[$i]}" = 'ld' ] ; then
+      ldf="$ldf ${LIB_FLAG[$i]}"
+    elif [ "${LIB_TYPE[$i]}" = 'cpp' ] ; then
+      CPPTRAJ_LIB="$CPPTRAJ_LIB ${LIB_FLAG[$i]}"
+    fi
+  done
+  if [ $REQUIRES_FLINK -eq 0 ] ; then
+    FLINK=''
+  fi
+  LDFLAGS="$ldf $FLINK $LDFLAGS"
 }
 
 #-------------------------------------------------------------------------------
@@ -567,7 +593,7 @@ SetupLibraries() {
       #echo DEBUG $lhome
       if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
         LIB_TEST[$i]='no'
-        linc=$lhome
+        linc="-I$lhome"
         lflag="$lhome/${LIB_STTC[$i]}"
       else
         LIB_TEST[$i]='yes'
@@ -646,6 +672,11 @@ SetupCompilers() {
     fi
   fi
   # Set compiler options
+  optflags=''       # C/C++ compiler optimization flags
+  foptflags=''      # Fortran compiler optimization flags
+  ompflag=''        # Compiler OpenMP flag
+  freefmtflag=''    # Fortran free format flag
+  picflag=''        # Compiler flag for position-independent code
   warnflag='-Wall'
   DBFLAG='-g'
   noinlineflag='-fno-inline'
@@ -657,12 +688,12 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=gcc; fi
       if [ -z "$CXX" ]; then CXX=g++; fi
       if [ -z "$FC" ]; then FC=gfortran; fi
-      OPTFLAGS='-O3'
-      OMPFLAG='-fopenmp'
-      FREEFMTFLAG='-ffree-form'
-      FOPTFLAGS='-O3'
+      optflags='-O3'
+      ompflag='-fopenmp'
+      freefmtflag='-ffree-form'
+      foptflags='-O3'
       FLINK='-lgfortran'
-      PICFLAG='-fPIC'
+      picflag='-fPIC'
       C11FLAG='-std=gnu++11'
       staticlink='-lquadmath'
       ;;
@@ -670,12 +701,12 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=clang; fi
       if [ -z "$CXX" ]; then CXX=clang++; fi
       if [ -z "$FC" ]; then FC=gfortran; fi
-      OPTFLAGS='-O3'
-      OMPFLAG='-fopenmp'
-      FREEFMTFLAG='-ffree-form'
-      FOPTFLAGS='-O3'
+      optflags='-O3'
+      ompflag='-fopenmp'
+      freefmtflag='-ffree-form'
+      foptflags='-O3'
       FLINK='-lgfortran'
-      PICFLAG='-fPIC'
+      picflag='-fPIC'
       ;;
     'intel' )
       if [ -z "$CC" ]; then CC=icc; fi
@@ -683,7 +714,7 @@ SetupCompilers() {
       if [ -z "$FC" ]; then FC=ifort; fi
       CXXFLAGS="-fp-model precise -fp-model source $CXXFLAGS"
       CFLAGS="-fp-model precise -fp-model source $CFLAGS"
-      OPTFLAGS='-O3'
+      optflags='-O3'
       VERSION_LINE=`$CXX -v 2>&1`
       if [ $? -ne 0 ] ; then
         echo "$VERSION_LINE"
@@ -691,31 +722,31 @@ SetupCompilers() {
       fi
       MAJOR_V=`echo "$VERSION_LINE" | awk '{print $3}' | cut -d'.' -f1`
       if [ $MAJOR_V -ge 16 ] ; then
-        OMPFLAG='-qopenmp'
+        ompflag='-qopenmp'
       else
-        OMPFLAG='-openmp'
+        ompflag='-openmp'
       fi
-      FREEFMTFLAG='-FR'
-      FOPTFLAGS='-ip -O3'
+      freefmtflag='-FR'
+      foptflags='-ip -O3'
       FLINK='-lifport -lifcore'
-      PICFLAG="-fpic"
+      picflag="-fpic"
       ;;
     "pgi" )
       if [ -z "$CC" ]; then CC=pgcc; fi
       if [ -z "$CXX" ]; then CXX=pgc++; fi
       if [ -z "$FC" ]; then FC=pgf90; fi
-      OPTFLAGS='-fast'
-      FOPTFLAGS='-fast'
+      optflags='-fast'
+      foptflags='-fast'
       if [ "$PLATFORM" = 'cray' ] ; then
-        OMPFLAG='-mp=nonuma'
+        ompflag='-mp=nonuma'
       else
-        OMPFLAG='-mp'
+        ompflag='-mp'
       fi
       noinlineflag='-Mnoautoinline'
       warnflag='-Minform=warn'
-      FREEFMTFLAG='-Mfree'
+      freefmtflag='-Mfree'
       FLINK='-pgf90libs'
-      PICFLAG='-fpic'
+      picflag='-fpic'
       C11FLAG='-std=c++11'
       ;;
     "cray" )
@@ -724,14 +755,14 @@ SetupCompilers() {
       if [ -z "$FC" ]; then FC=ftn; fi
       CXXFLAGS="-h gnu $CXXFLAGS"
       CFLAGS="-h gnu $CFLAGS"
-      OPTFLAGS=''
-      OMPFLAG=''
+      optflags=''
+      ompflag=''
       warnflag='-h msglevel_2' # This will also print cautions
       fwarnflag='-m 2'
-      FREEFMTFLAG='-f free -emf'
-      FOPTFLAGS=''
+      freefmtflag='-f free -emf'
+      foptflags=''
       FLINK=''
-      PICFLAG='-fpic'
+      picflag='-fpic'
       if [ $USE_OPENMP -eq 0 ] ; then
         commonflags='-h noomp'
       fi
@@ -784,12 +815,12 @@ SetupCompilers() {
   fi
   # Turn off optimizations if necessary
   if [ $USE_OPT -eq 0 ] ; then
-    OPTFLAGS='-O0'
-    FOPTFLAGS='-O0'
+    optflags='-O0'
+    foptflags='-O0'
   fi
   # Turn off PI code if necessary
   if [ $USE_SHARED -eq 0 ] ; then
-    PICFLAG=''
+    picflag=''
   fi
   # Turn off debug flags if necessary
   if [ $USE_DEBUG -eq 0 ] ; then
@@ -802,9 +833,9 @@ SetupCompilers() {
     staticlink=''
   fi
   # Set compiler flags
-  CXXFLAGS="$DBFLAG $warnflag $OPTFLAGS $noinlineflag $PICFLAG $commonflags $CXXFLAGS"
-  CFLAGS="$DBFLAG $warnflag $OPTFLAGS $PICFLAG $commonflags $CFLAGS"
-  FFLAGS="$DBFLAG $fwarnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $commonflags $FFLAGS"
+  CXXFLAGS="$DBFLAG $warnflag $ompflag $optflags $noinlineflag $picflag $commonflags $CXXFLAGS"
+  CFLAGS="$DBFLAG $warnflag $ompflag $optflags $picflag $commonflags $CFLAGS"
+  FFLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $freefmtflag $commonflags $FFLAGS"
   LDFLAGS="$LDFLAGS $staticflag $staticlink"
   # DEBUG
   #echo $CXX $CXXFLAGS
@@ -882,9 +913,9 @@ int main() {
 }
 #endif
 EOF
-    TestProgram "  Testing OpenMP" "$CXX" "$CXXFLAGS $OMPFLAG" testp.cpp
+    TestProgram "  Testing OpenMP" "$CXX" "$CXXFLAGS" testp.cpp
   fi
-  # C11 support
+  # C++11 support
   cat > testp.cpp <<EOF
 #if __cplusplus < 201103L
 #error This file requires compiler and library support for the \
@@ -959,7 +990,7 @@ SetupMKL() {
       mklthread='libmkl_gnu_thread.a'
       mklomp='-lgomp'
     fi
-    mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/$MKLTHREAD $mkldir/libmkl_core.a -Wl,--end-group $MKLOMP -lpthread -lm -ldl"
+    mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/$mklthread $mkldir/libmkl_core.a -Wl,--end-group $MKLOMP -lpthread -lm -ldl"
   else
     mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/libmkl_sequential.a $mkldir/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl"
   fi
@@ -1030,6 +1061,17 @@ SetupCUDA() {
 # ------------------------------------------------------------------------------
 # Basic checks, set up some directives
 BasicChecks() {
+  # Check install directory
+  if [ -z "$CPPTRAJHOME" ] ; then
+    # Default is to use current directory.
+    CPPTRAJHOME=`pwd`
+    CPPTRAJBIN=$CPPTRAJHOME/bin
+    CPPTRAJLIB=$CPPTRAJHOME/lib
+  elif [ ! -d "$CPPTRAJHOME" ] ; then
+    echo "Error: Install directory '$CPPTRAJHOME' does not exist."
+    exit 1
+  fi
+  # Test incompatible options
   if [ "$PLATFORM" = 'windows' ] ; then
     if [ $USE_MPI -ne 0 ] ; then
       Err "MPI not currently supported on Windows."
@@ -1296,6 +1338,9 @@ TestLibraries
 
 # Summary
 echo DIRECTIVES $DIRECTIVES
+echo CFLAGS $CFLAGS
+echo CXXFLAGS $CXXFLAGS
+echo FFLAGS $FFLAGS
 echo LDFLAGS $LDFLAGS
 echo CPPTRAJ_LIB $CPPTRAJ_LIB
 echo INCLUDE $INCLUDE
