@@ -390,7 +390,7 @@ DetermineFlink() {
       TestProgram "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
       REQUIRES_FLINK=1
     else
-      # That worked. Print OK."
+      # That worked. Print OK." TODO add to LDFLAGS?
       echo "$desc: OK"
     fi
   else
@@ -1089,7 +1089,33 @@ EOF
         fi
         LDFLAGS="$LDFLAGS -stdlib=libstdc++"
       fi
-    fi
+      # Test that clang can link between C++ and fortran
+      if [ $REQUIRES_FLINK -eq 0 ] ; then
+        echo "Testing clang C++/Fortran linking..."
+        cat > testc.cpp <<EOF
+#include <cstdio>
+extern "C" { void mytest_(int&); } int main() { int ival=14; printf("Testing"); mytest_(ival); }
+EOF
+        $CXX $CXXFLAGS -c -o testc.o testc.cpp > /dev/null 2> compile.err
+        if [ $? -ne 0 ] ; then
+          cat compile.err
+          exit 1
+        fi
+        cat > testf.f <<EOF
+subroutine mytest(ival)
+  implicit none
+  integer, intent(in) :: ival
+  write(6,'(a,i6)') ' cross-link ', ival
+end subroutine mytest
+EOF
+        $FC $FFLAGS -c -o testf.o testf.f > /dev/null 2> compile.err
+        if [ $? -ne 0 ] ; then
+          cat compile.err
+          exit 1
+        fi
+        TestProgram "clang++/gfortran link" "$CXX" " " "testc.o testf.o"
+      fi
+    fi # End if clang
   # ----- Windows/Cygwin -------------------------
   elif [ "$PLATFORM" = 'windows' -o ! -z "`echo $PLATFORM | grep -i cygwin`" ] ; then
     SHARED_SUFFIX='.dll'
