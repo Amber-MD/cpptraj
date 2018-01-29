@@ -921,39 +921,6 @@ EOF
 EOF
     TestProgram "  Testing Fortran compiler" "$FC" "$FFLAGS" testp.f
   fi
-  # C++11 support
-  cat > testp.cpp <<EOF
-#if __cplusplus < 201103L
-#error This file requires compiler and library support for the \
-ISO C++ 2011 standard. This support is currently experimental, and must be \
-enabled with the -std=c++11 or -std=gnu++11 compiler options.
-#endif
-#include <cstdio>
-int main() { printf("Testing\n"); return 0; }
-EOF
-  TestProgram silent "  Testing C++11 support" "$CXX" "$CXXFLAGS $C11FLAG" testp.cpp
-  if [ $? -eq 1 ] ; then
-    echo "Not present"
-    C11_SUPPORT='no'
-  else
-    C11_SUPPORT='yes'
-  fi
-  # Some compilers (like older Intel) have a problem with the order of
-  # stdio vs mpi
-  if [ $USE_MPI -ne 0 ] ; then
-    cat > testp.cpp <<EOF
-#include <cstdio>
-#include <mpi.h>
-int main() { printf("Testing a C++ MPI program.\n"); return 0; }
-EOF
-    TestProgram quiet "  Testing STDIO/MPI ordering" "$CXX" "$CXXFLAGS" testp.cpp
-    if [ $? -eq 1 ] ; then
-      # Try to fix it with -DMPICH_IGNORE_CXX_SEEK
-      TestProgram "  Testing fix for STDIO/MPI ordering" "$CXX" "$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK" testp.cpp
-      # That worked. Add to CXXFLAGS
-      CXXFLAGS="$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK"
-    fi
-  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -1131,6 +1098,41 @@ BasicChecks() {
 #-------------------------------------------------------------------------------
 # Platform-specific tests 
 PlatformTests() {
+  # C++11 support
+  cat > testp.cpp <<EOF
+#if __cplusplus < 201103L
+#error This file requires compiler and library support for the \
+ISO C++ 2011 standard. This support is currently experimental, and must be \
+enabled with the -std=c++11 or -std=gnu++11 compiler options.
+#endif
+#include <cstdio>
+int main() { printf("Testing\n"); return 0; }
+EOF
+  TestProgram silent "  Testing C++11 support" "$CXX" "$CXXFLAGS $C11FLAG" testp.cpp
+  if [ $? -eq 1 ] ; then
+    echo "Not present"
+    C11_SUPPORT='no'
+  else
+    C11_SUPPORT='yes'
+    CXXFLAGS="$CXXFLAGS $C11FLAG"
+  fi
+  # Some compilers (like older Intel) have a problem with the order of
+  # stdio vs mpi
+  if [ $USE_MPI -ne 0 ] ; then
+    cat > testp.cpp <<EOF
+#include <cstdio>
+#include <mpi.h>
+int main() { printf("Testing a C++ MPI program.\n"); return 0; }
+EOF
+    TestProgram quiet "  Testing STDIO/MPI ordering" "$CXX" "$CXXFLAGS" testp.cpp
+    if [ $? -eq 1 ] ; then
+      # Try to fix it with -DMPICH_IGNORE_CXX_SEEK
+      TestProgram "  Testing fix for STDIO/MPI ordering" "$CXX" "$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK" testp.cpp
+      # That worked. Add to CXXFLAGS
+      CXXFLAGS="$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK"
+    fi
+  fi
+  # Determine platform if not already specified
   if [ -z "$PLATFORM" ] ; then
     PLATFORM=`uname -s | awk '{print $1}'`
   fi
@@ -1357,7 +1359,6 @@ TestLibraries
 # ----- Summary ----------------------------------
 echo ""
 echo "Configuration summary:"
-echo "  $COMPILERS compilers in use."
 echo -n "  Build type:"
 if [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -eq 0 ] ; then
   echo " Serial"
@@ -1388,6 +1389,12 @@ if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then
   echo "  Support for single-ensemble trajectories enabled."
 fi
 echo "  Target platform: $PLATFORM"
+echo "  $COMPILERS compilers in use."
+if [ "$C11_SUPPORT" = 'yes' ] ; then
+  echo "  C++11 support enabled."
+else
+  echo "  C++11 support disabled."
+fi
 if [ $USE_OPT -eq 1 ] ; then
   echo "  Compiler optimizations are on."
 else
