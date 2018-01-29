@@ -1243,6 +1243,9 @@ SetupLibraries
 # Test external libraries
 TestLibraries
 
+# Platform-specific tests
+PlatformTests
+
 # Summary
 echo DIRECTIVES $DIRECTIVES
 echo LDFLAGS $LDFLAGS
