@@ -1072,6 +1072,24 @@ PlatformTests() {
   # ----- Mac OSX --------------------------------
   if [ "$PLATFORM" = 'Darwin' ] ; then
     SHARED_SUFFIX='.dylib'
+    if [ "$COMPILERS" = 'clang' ] ; then
+      # On OSX with clang, some libraries may be built with libstdc++ and will
+      # fail to link without this flag.
+      cat > testp.cpp <<EOF
+#include <cstdio>
+#include <string>
+int main() { std::string temp("Testing"); printf("%s\n", temp.c_str()); return 0; }
+EOF
+      TestProgram silent "Without stdlib flag" "$CXX" "$CXXFLAGS" testp.cpp
+      if [ $? -eq 1 ] ; then
+        # Test with stdlib flag
+        TestProgram silent "With stdlib flag" "$CXX" "$CXXFLAGS" testp.cpp "-stdlib=libstdc++"
+        if [ $? -eq 1 ] ; then
+          Err "Could not link properly with clang++ on OSX"
+        fi
+        LDFLAGS="$LDFLAGS -stdlib=libstdc++"
+      fi
+    fi
   # ----- Windows/Cygwin -------------------------
   elif [ "$PLATFORM" = 'windows' -o ! -z "`echo $PLATFORM | grep -i cygwin`" ] ; then
     SHARED_SUFFIX='.dll'
