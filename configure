@@ -107,7 +107,7 @@ USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations.
-BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray)
+BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray) etc
 USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
@@ -285,20 +285,20 @@ CheckLibraryKeys() {
     LKEY="-"${LIB_CKEY[$i]}
     if [ "$1" = "$LKEY" ] ; then
       LIB_STAT[$i]='enabled'
-      echo "${LIB_CKEY[$i]} enabled."
+      echo "  ${LIB_CKEY[$i]} enabled."
       return 0
     fi
     LKEY="--with-"${LIB_CKEY[$i]}
     if [ "$1" = "$LKEY" ] ; then
       LIB_HOME[$i]=$2
       LIB_STAT[$i]='specified'
-      echo "${LIB_CKEY[$i]} specified."
+      echo "  ${LIB_CKEY[$i]} specified: $2"
       return 0
     fi
     LKEY="-no"${LIB_CKEY[$i]}
     if [ "$1" = "$LKEY" ] ; then
       LIB_STAT[$i]='off'
-      echo "${LIB_CKEY[$i]} disabled."
+      echo "  ${LIB_CKEY[$i]} disabled."
       return 0
     fi
   done
@@ -642,7 +642,7 @@ SetupLibraries() {
           #fi
         fi
       fi
-      echo "${LIB_CKEY[$i]} ${LIB_STAT[$i]} linc $linc lflag $lflag" # DEBUG
+      #echo "${LIB_CKEY[$i]} ${LIB_STAT[$i]} linc $linc lflag $lflag" # DEBUG
       LIB_FLAG[$i]="$lflag"
       LIB_INCL[$i]="$linc"
     fi
@@ -875,7 +875,6 @@ SetupProfiling() {
 #-------------------------------------------------------------------------------
 # Basic compiler tests
 TestCompilers() {
-  echo "$COMPILERS compilers in use."
   # C++
   cat > testp.cpp <<EOF
 #include <cstdio>
@@ -968,13 +967,13 @@ SetupMKL() {
   # Determine architecture
   architecture=`uname -m`
   if [ "$architecture" = 'x86_64' -o "$architecture" = 'em64t' ] ; then
-    echo "Assuming 64 bit architecture."
+    echo "  Assuming 64 bit architecture."
     mkldir="$mkldir/lib/intel64"
     mklinterface=libmkl_intel_lp64.a
     mklblas="-lmkl_blas95_lp64"
     mkllapack="-lmkl_lapack95_lp64"
   else
-    echo "Assuming 32 bit architecture."
+    echo "  Assuming 32 bit architecture."
     mkldir="$mkldir/lib/32"
     mklinterface=libmkl_intel.a
     mklblas="-lmkl_blas95"
@@ -1111,6 +1110,14 @@ BasicChecks() {
     LIB_HOME[$LBLAS]=''
     LIB_LINK[$LBLAS]='dynamic'
     LIB_FLAG[$LBLAS]=''
+    LIB_STAT[$LLAPACK]='off'
+    LIB_FLAG[$LLAPACK]=''
+  elif [ "$BLAS_TYPE" = 'openblas' ] ; then
+    LIB_FLAG[$LBLAS]='-lopenblas'
+    LIB_STAT[$LLAPACK]='off'
+    LIB_FLAG[$LLAPACK]=''
+  elif [ "$BLAS_TYPE" = 'macAccelerate' ] ; then
+    LIB_FLAG[$LBLAS]='-framework Accelerate'
     LIB_STAT[$LLAPACK]='off'
     LIB_FLAG[$LLAPACK]=''
   fi
@@ -1260,6 +1267,8 @@ while [ ! -z "$1" ] ; do
     '-cray'          ) PLATFORM='cray' ;;
     '-mkl'           ) BLAS_TYPE='mkl' ;;
     '-libsci'        ) BLAS_TYPE='libsci' ;;
+    '-openblas'      ) BLAS_TYPE='openblas' ;;
+    '-macAccelerate' ) BLAS_TYPE='macAccelerate' ;;
     '-debug'         ) USE_DEBUG=1 ;;
     '-d'             ) USE_OPT=0 ; USE_DEBUG=1 ;;
     '-noopt'         ) USE_OPT=0 ;;
@@ -1297,16 +1306,6 @@ while [ ! -z "$1" ] ; do
       LIB_STAT[$LBLAS]='off'
       LIB_STAT[$LLAPACK]='off'
       LIB_STAT[$LARPACK]='off'
-      ;;
-    '-openblas'      )
-      LIB_FLAG[$LBLAS]='-lopenblas'
-      LIB_STAT[$LLAPACK]='off'
-      LIB_FLAG[$LLAPACK]=''
-      ;;
-    '-macAccelerate' )
-      LIB_FLAG[$LBLAS]='-framework Accelerate'
-      LIB_STAT[$LLAPACK]='off'
-      LIB_FLAG[$LLAPACK]=''
       ;;
     # Install options
     '-noclean'       ) CLEAN='no' ;;
@@ -1350,14 +1349,67 @@ SetupLibraries
 TestLibraries
 
 # ----- Summary ----------------------------------
-echo DIRECTIVES $DIRECTIVES
-echo CFLAGS $CFLAGS
-echo CXXFLAGS $CXXFLAGS
-echo FFLAGS $FFLAGS
-echo LDFLAGS $LDFLAGS
-echo CPPTRAJ_LIB $CPPTRAJ_LIB
-echo INCLUDE $INCLUDE
-echo REQUIRES_FLINK $REQUIRES_FLINK FLINK $FLINK
+echo ""
+echo "Configuration summary:"
+echo "  $COMPILERS compilers in use."
+echo -n "  Build type:"
+if [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -eq 0 ] ; then
+  echo " Serial"
+elif [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -ne 0 ] ; then
+  echo " CUDA"
+else
+  if [ $USE_MPI -ne 0 -a $USE_OPENMP -ne 0 ] ; then
+    echo -n " Hybrid MPI/OpenMP"
+  elif [ $USE_MPI -ne 0 ] ; then
+    echo -n " MPI"
+  elif [ $USE_OPENMP -ne 0 ] ; then
+    echo -n " OpenMP"
+  fi
+  if [ $USE_CUDA -ne 0 ] ; then
+    echo " + CUDA"
+  else
+    echo ""
+  fi
+fi
+echo -n "  Options:"
+for ((i=0; i < $NLIB; i++)) ; do
+  if [ "${LIB_STAT[$i]}" != 'off' ] ; then
+    echo -n " ${LIB_CKEY[$i]}"
+  fi
+done
+echo ""
+if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then
+  echo "  Support for single-ensemble trajectories enabled."
+fi
+echo "  Target platform: $PLATFORM"
+if [ $USE_OPT -eq 1 ] ; then
+  echo "  Compiler optimizations are on."
+else
+  echo "  Compiler optimizations are off."
+fi
+if [ $USE_DEBUG -ne 0 ] ; then
+  echo "  Compiler debug symbols are on."
+fi
+if [ $USE_PROFILE -ne 0 ] ; then
+  echo "  Code profiling is on."
+fi
+if [ "$BLAS_TYPE" != 'other' ] ; then
+  echo "  BLAS/LAPACK from: $BLAS_TYPE"
+fi
+if [ $USE_STATIC -eq 1 ] ; then
+  echo "  Using static linking."
+elif [ $USE_STATIC -eq 2 ] ; then
+  echo "  Specified libraries will be linked statically if possible."
+fi
+#echo DIRECTIVES $DIRECTIVES
+#echo CFLAGS $CFLAGS
+#echo CXXFLAGS $CXXFLAGS
+#echo FFLAGS $FFLAGS
+#echo LDFLAGS $LDFLAGS
+#echo CPPTRAJ_LIB $CPPTRAJ_LIB
+#echo INCLUDE $INCLUDE
+#echo REQUIRES_FLINK $REQUIRES_FLINK FLINK $FLINK
+echo ""
 
 if [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
   echo "************************************************************************"
