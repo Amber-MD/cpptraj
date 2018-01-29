@@ -95,6 +95,7 @@ OPTFLAGS=''       # C/C++ compiler optimization flags
 FOPTFLAGS=''      # Fortran compiler optimization flags
 FREEFMTFLAG=''    # Fortran free format flag
 FLINK=''          # Flag for linking in Fortran code
+SHARED_SUFFIX=''  # Suffix for shared libraries
 OMPFLAG=''        # Compiler OpenMP flag
 PICFLAG=''        # Compiler flag for position-independent code
 DBFLAG=''         # Flag for turning on compiler debug symbols
@@ -314,7 +315,7 @@ TestProgram() {
   link="$5 $LDFLAGS"
   if [ $silent -ne 2 ] ; then echo -n "$desc: " ; fi
   COMPILELINE="$comp $args -o testp $file $link"
-  echo "COMPILE: $COMPILELINE" #DEBUG
+  #echo "COMPILE: $COMPILELINE" #DEBUG
   $COMPILELINE > /dev/null 2> compile.err
   if [ $? -ne 0 ] ; then
     if [ $silent -eq 0 ] ; then
@@ -963,6 +964,8 @@ SetupMKL() {
     mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/libmkl_sequential.a $mkldir/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl"
   fi
   LIB_STAT[$LBLAS]='enabled'
+  LIB_HOME[$LBLAS]=''
+  LIB_LINK[$LBLAS]='dynamic'
   LIB_FLAG[$LBLAS]="$mkllib"
   LIB_STAT[$LLAPACK]='off'
   LIB_FLAG[$LLAPACK]=''
@@ -1047,6 +1050,35 @@ BasicChecks() {
   if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI" ; fi
   if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP" ; fi
   if [ "${LIB_STAT[$LCUDA]}" != 'off' ] ; then SFX=$SFX".cuda" ; fi
+  # Additional BLAS setup if necessary. Done here to override -amberlib.
+  if [ "$BLAS_TYPE" = 'mkl' ] ; then
+    SetupMKL
+  elif [ "$BLAS_TYPE" = 'libsci' ] ; then
+    LIB_STAT[$LBLAS]='enabled'
+    LIB_HOME[$LBLAS]=''
+    LIB_LINK[$LBLAS]='dynamic'
+    LIB_FLAG[$LBLAS]=''
+    LIB_STAT[$LLAPACK]='off'
+    LIB_FLAG[$LLAPACK]=''
+  fi
+}
+
+#-------------------------------------------------------------------------------
+# Platform-specific tests 
+PlatformTests() {
+  if [ -z "$PLATFORM" ] ; then
+    PLATFORM=`uname -s | awk '{print $1}'`
+  fi
+  # ----- Mac OSX --------------------------------
+  if [ "$PLATFORM" = 'Darwin' ] ; then
+    SHARED_SUFFIX='.dylib'
+  # ----- Windows/Cygwin -------------------------
+  elif [ "$PLATFORM" = 'windows' -o ! -z "`echo $PLATFORM | grep -i cygwin`" ] ; then
+    SHARED_SUFFIX='.dll'
+  # ----- Linux (default) ------------------------
+  else
+    SHARED_SUFFIX='.so'
+  fi
 }
 
 # ==============================================================================
@@ -1184,18 +1216,8 @@ SetupCompilers
 # Set up profiling if specified
 SetupProfiling
 
-# Basic Compiler checks
+# Basic Compiler tests 
 TestCompilers
-
-# Set up MKL if necessary
-if [ "$BLAS_TYPE" = 'mkl' ] ; then
-  SetupMKL
-elif [ "$BLAS_TYPE" = 'libsci' ] ; then
-  LIB_STAT[$LBLAS]='enabled'
-  LIB_FLAG[$LBLAS]=''
-  LIB_STAT[$LLAPACK]='off'
-  LIB_FLAG[$LLAPACK]=''
-fi
 
 # Set up external libraries
 SetupLibraries
