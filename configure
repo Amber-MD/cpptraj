@@ -116,8 +116,8 @@ USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
 
-CLEAN=1        # 0 = clean after configure, 1 = do not
-SKIP_CHECKS=0  # 0 = Check compilers/libraries, 1 = do not
+CLEAN='yes'       # yes = clean after configure, no = do not
+SKIP_CHECKS='no'  # no = Check compilers/libraries, yes = do not
 
 # Flags for large file support
 LFS='-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64'
@@ -1308,7 +1308,7 @@ while [ ! -z "$1" ] ; do
       LIB_FLAG[$LLAPACK]=''
       ;;
     # Install options
-    '-noclean'       ) CLEAN=0 ;;
+    '-noclean'       ) CLEAN='no' ;;
     '--skip-checks'  ) SKIP_CHECKS='yes' ;;
     '--prefix'       )
       CPPTRAJHOME=$VALUE
@@ -1346,7 +1346,7 @@ SetupLibraries
 # Test external libraries
 TestLibraries
 
-# Summary
+# ----- Summary ----------------------------------
 echo DIRECTIVES $DIRECTIVES
 echo CFLAGS $CFLAGS
 echo CXXFLAGS $CXXFLAGS
@@ -1363,7 +1363,7 @@ if [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
   echo "************************************************************************"
 fi
 
-# Determine which targets to build
+# ----- Determine which targets to build ---------
 CPPTRAJ_TARGET=""
 AMBPDB_TARGET=""
 LIBCPPTRAJ_TARGET=""
@@ -1388,6 +1388,10 @@ if [ $USE_MPI -ne 0 ] ; then
   NPROC_TARGET=nproc
   INSTALL_TARGETS=$INSTALL_TARGETS" $NPROC_TARGET"
 fi
+# CUDA
+if [ $USE_CUDA -eq 1 ] ; then
+  CUDA_TARGET='cuda_kernels/libcpptraj_cuda.a'
+fi
 # Readline
 if [ "${LIB_STAT[$LREADLINE]}" = 'bundled' ] ; then
   READLINE_TARGET=${LIB_FLAG[$LREADLINE]}
@@ -1409,7 +1413,7 @@ else
   FFT_DEPEND=''
 fi
 
-# Write config.h
+# ----- Write config.h ---------------------------
 cat > config.h <<EOF
 # config.h for cpptraj
 # configured using: $CONFIGURECMD
@@ -1461,3 +1465,56 @@ SFX=$SFX
 EXE=$EXE
 EOF
 
+# ----- Create directories if necessary ----------
+if [ ! -e "$CPPTRAJBIN" ] ; then
+  mkdir "$CPPTRAJBIN"
+fi
+if [ ! -e "$CPPTRAJLIB" ] ; then
+  mkdir "$CPPTRAJLIB"
+fi
+
+# ----- Create a resource file. ------------------
+# If SKIP_CHECKS is 'yes' assume we are in AmberTools, no resource file needed.
+RFILE=''
+if [ "$SKIP_CHECKS" = 'no' ] ; then
+  if [ -z "`echo $SHELL | grep csh`" ] ; then
+    # We have a sane shell
+    RFILE=$CPPTRAJHOME/cpptraj.sh
+    cat > $RFILE <<EOF
+export CPPTRAJHOME="$CPPTRAJHOME"
+export PATH=$CPPTRAJBIN:\${PATH}
+EOF
+    if [ "$PLATFORM" != "Darwin" ] ; then
+      echo "export LD_LIBRARY_PATH=$CPPTRAJLIB:\${LD_LIBRARY_PATH}" >> $RFILE
+    fi
+  else
+    # C-shell - blech
+    RFILE=$CPPTRAJHOME/cpptraj.csh
+    cat > $RFILE <<EOF
+setenv CPPTRAJHOME "$CPPTRAJHOME"
+setenv PATH "$CPPTRAJBIN:\${PATH}"
+EOF
+    if [ "$PLATFORM" != "Darwin" ] ; then
+      echo "setenv LD_LIBRARY_PATH \"$CPPTRAJLIB:\${LD_LIBRARY_PATH}\"" >> $RFILE
+    fi
+  fi
+fi
+
+# ----- Clean the source directory if necessary --
+if [ "$CLEAN" = 'yes' ] ; then
+  echo 'Cleaning source directory.'
+  cd src && make clean > /dev/null 2> /dev/null
+fi
+
+if [ ! -z "$RFILE" ] ; then
+  echo ""
+  echo "--------------------------------------------------------------------------------"
+  echo "An environment resource file for CPPTRAJ has been created:"
+  echo "  $RFILE"
+  echo "You may 'source' this file to set up your environment for CPPTRAJ."
+  echo "--------------------------------------------------------------------------------"
+  echo ""
+  echo "CPPTRAJ configuration complete."
+  echo ""
+fi
+exit 0
