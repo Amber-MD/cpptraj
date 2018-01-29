@@ -111,7 +111,6 @@ BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray)
 USE_DEBUG=0    # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0   # 0 = no static linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0   # 1 = Use flag for position-independent code (required for libcpptraj)
-USE_FFTW3=0    # 0 = Use internal FFT, 1 = use FFTW3
 USE_WINDOWS=0  # 1 = Compiling on windows
 USE_PROFILE=0  # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
 
@@ -258,11 +257,17 @@ Err() {
 # Check for '--with' and '-no' library keys.
 CheckLibraryKeys() {
   for ((i=0; i < $NLIB; i++)) ; do
+    LKEY="-"${LIB_CKEY[$i]}
+    if [ "$1" = "$LKEY" ] ; then
+      LIB_STAT[$i]='enabled'
+      echo "${LIB_CKEY[$i]} enabled."
+      return 0
+    fi
     LKEY="--with-"${LIB_CKEY[$i]}
     if [ "$1" = "$LKEY" ] ; then
       LIB_HOME[$i]=$2
       LIB_STAT[$i]='specified'
-      echo "${LIB_CKEY[$i]} enabled."
+      echo "${LIB_CKEY[$i]} specified."
       return 0
     fi
     LKEY="-no"${LIB_CKEY[$i]}
@@ -295,7 +300,7 @@ TestProgram() {
   link="$5"
   if [ $silent -ne 2 ] ; then echo -n "$desc: " ; fi
   COMPILELINE="$comp $args -o testp $file $link"
-  echo $COMPILELINE #DEBUG
+  #echo $COMPILELINE #DEBUG
   $COMPILELINE > /dev/null 2> compile.err
   if [ $? -ne 0 ] ; then
     if [ $silent -eq 0 ] ; then
@@ -364,15 +369,18 @@ DetermineFlink() {
   flibs="$2"
   if [ $REQUIRES_FLINK -eq 0 ] ; then
     # Try without FLINK
-    TestProgram silent "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs"
+    TestProgram quiet "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs"
     if [ $? -eq 1 ] ; then
       # That failed. Try with FLINK
-      TestProgram "$desc (Fortran)" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
+      TestProgram "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
       REQUIRES_FLINK=1
+    else
+      # That worked. Print OK."
+      echo "$desc: OK"
     fi
   else
     # Try with FLINK
-    TestProgram "$desc (Fortran)" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
+    TestProgram "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
   fi
 }
     
@@ -525,13 +533,13 @@ SetupLibraries() {
     linc=''
     lflag=''
     if [ "${LIB_STAT[$i]}" = 'off' ] ; then
-      echo "${LIB_CKEY[$i]} disabled."
+      #echo "${LIB_CKEY[$i]} disabled." # DEBUG
       if [ ! -z "${LIB_DOFF[$i]}" ] ; then
         DIRECTIVES="$DIRECTIVES ${LIB_DOFF[$i]}"
       fi
       LIB_TEST[$i]='no'
     else
-      echo "${LIB_CKEY[$i]} enabled."
+      #echo "${LIB_CKEY[$i]} enabled." # DEBUG
       if [ ! -z "${LIB_D_ON[$i]}" ] ; then
         DIRECTIVES="$DIRECTIVES ${LIB_D_ON[$i]}"
       fi
@@ -540,7 +548,7 @@ SetupLibraries() {
         LIB_LINK[$i]='static'
       fi
       lhome=${LIB_HOME[$i]}
-      echo DEBUG $lhome
+      #echo DEBUG $lhome
       if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
         LIB_TEST[$i]='no'
         linc=$lhome
@@ -581,7 +589,7 @@ SetupLibraries() {
           #fi
         fi
       fi
-      echo "linc $linc lflag $lflag" # DEBUG
+      #echo "linc $linc lflag $lflag" # DEBUG
       LIB_FLAG[$i]="$lflag"
       LIB_INCL[$i]="$linc"
     fi
@@ -755,9 +763,10 @@ SetupCompilers() {
   CXXFLAGS="$dflag $warnflag $OPTFLAGS $noinlineflag $PICFLAG $commonflags $CXXFLAGS"
   CFLAGS="$dflag $warnflag $OPTFLAGS $PICFLAG $commonflags $CFLAGS"
   FFLAGS="$dflag $warnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $commonflags $FFLAGS"
-  echo $CXX $CXXFLAGS
-  echo $CC $CFLAGS
-  echo $FC $FFLAGS
+  # DEBUG
+  #echo $CXX $CXXFLAGS
+  #echo $CC $CFLAGS
+  #echo $FC $FFLAGS
 }
 
 #-------------------------------------------------------------------------------
@@ -804,7 +813,7 @@ int main() { printf("Testing\n"); return 0; }
 EOF
   TestProgram "  Testing C compiler" "$CC" "$CFLAGS" testp.c
   # Fortran - only needed if pub_fft.F90 needs to be compiled
-  if [ $USE_FFTW3 -eq 0 ] ; then
+  if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
     cat > testp.f <<EOF
       program testf
       write(6,*) 'testing a Fortran program'
@@ -948,7 +957,7 @@ while [ ! -z "$1" ] ; do
   else
     KEY=$1
   fi
-  echo "KEY='$KEY'  VALUE='$VALUE'" # DEBUG
+  #echo "KEY='$KEY'  VALUE='$VALUE'" # DEBUG
   # Process KEY
   case "$KEY" in
     '--help' | '-h' ) UsageSimple ; exit 0 ;;
@@ -1009,9 +1018,6 @@ while [ ! -z "$1" ] ; do
       LIB_LINK[$LLAPACK]='static'
       LIB_LINK[$LARPACK]='static'
       ;;
-    '-fftw3'         )
-      LIB_STAT[$LFFTW3]='enabled'
-      USE_FFTW3=1 ;;
     '-nomathlib'     )
       LIB_STAT[$LBLAS]='off'
       LIB_STAT[$LLAPACK]='off'
@@ -1060,7 +1066,7 @@ SetupProfiling
 TestCompilers
 
 # Set up MKL if necessary
-if [ "$BLAS_TYPE" ='mkl' ] ; then
+if [ "$BLAS_TYPE" = 'mkl' ] ; then
   SetupMKL
 elif [ "$BLAS_TYPE" = 'libsci' ] ; then
   LIB_STAT[$LBLAS]='enabled'
