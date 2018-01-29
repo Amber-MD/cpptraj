@@ -116,8 +116,8 @@ USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
 
-CLEAN='yes'       # yes = clean after configure, no = do not
-SKIP_CHECKS='no'  # no = Check compilers/libraries, yes = do not
+CLEAN='yes'          # yes = clean after configure, no = do not
+PERFORM_CHECKS='yes' # yes = Check compilers/libraries, no = do not
 
 # Flags for large file support
 LFS='-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64'
@@ -598,7 +598,7 @@ SetupLibraries() {
         linc="-I$lhome"
         lflag="$lhome/${LIB_STTC[$i]}"
       else
-        LIB_TEST[$i]='yes'
+        LIB_TEST[$i]=$PERFORM_CHECKS
         if [ -z "$lhome" ] ; then 
           # Lib home not specified
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
@@ -1093,6 +1093,7 @@ BasicChecks() {
   if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
     REQUIRES_FLINK=1
   fi
+  # TODO if we skipped checks we may need the FLINK flag enabled
   # Directives
   if [ $USE_MPI -ne 0            ] ; then DIRECTIVES="$DIRECTIVES -DMPI" ; fi
   if [ $USE_CPPTRAJDEBUG -ne 0   ] ; then DIRECTIVES="$DIRECTIVES -DDEBUG" ; fi
@@ -1309,7 +1310,7 @@ while [ ! -z "$1" ] ; do
       ;;
     # Install options
     '-noclean'       ) CLEAN='no' ;;
-    '--skip-checks'  ) SKIP_CHECKS='yes' ;;
+    '--skip-checks'  ) PERFORM_CHECKS='no' ;;
     '--prefix'       )
       CPPTRAJHOME=$VALUE
       CPPTRAJBIN=$VALUE/bin
@@ -1334,8 +1335,10 @@ SetupCompilers
 # Set up profiling if specified
 SetupProfiling
 
-# Basic Compiler tests 
-TestCompilers
+# Basic Compiler tests
+if [ "$PERFORM_CHECKS" = 'yes' ] ; then
+  TestCompilers
+fi
 
 # Platform-specific tests
 PlatformTests
@@ -1474,9 +1477,9 @@ if [ ! -e "$CPPTRAJLIB" ] ; then
 fi
 
 # ----- Create a resource file. ------------------
-# If SKIP_CHECKS is 'yes' assume we are in AmberTools, no resource file needed.
+# If PERFORM_CHECKS is 'no' assume we are in AmberTools, no resource file needed.
 RFILE=''
-if [ "$SKIP_CHECKS" = 'no' ] ; then
+if [ "$PERFORM_CHECKS" = 'yes' ] ; then
   if [ -z "`echo $SHELL | grep csh`" ] ; then
     # We have a sane shell
     RFILE=$CPPTRAJHOME/cpptraj.sh
