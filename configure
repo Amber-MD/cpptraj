@@ -88,24 +88,25 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
-COMPILERS=''     # Use-specified compiler suite to use.
-OPTFLAGS=''      # C/C++ compiler optimization flags
-FOPTFLAGS=''     # Fortran compiler optimization flags
-FREEFMTFLAG=''   # Fortran free format flag
-FLINK=''         # Flag for linking in Fortran code
-OMPFLAG=''       # Compiler OpenMP flag
-PICFLAG=''       # Compiler flag for position-independent code
-DEBUGFLAGS=''    # Compiler debug flags
-C11FLAG=''       # Flag for compiling C++11 code
-DIRECTIVES=''    # Common compiler directives
-INCLUDE=''       # Library include line
-REQUIRES_FLINK=0 # If 1 FLINK flag required during link phase
-C11_SUPPORT='yes'    # Support C++11 code
+COMPILERS=''      # Use-specified compiler suite to use.
+OPTFLAGS=''       # C/C++ compiler optimization flags
+FOPTFLAGS=''      # Fortran compiler optimization flags
+FREEFMTFLAG=''    # Fortran free format flag
+FLINK=''          # Flag for linking in Fortran code
+OMPFLAG=''        # Compiler OpenMP flag
+PICFLAG=''        # Compiler flag for position-independent code
+DBFLAG=''         # Flag for turning on compiler debug symbols
+C11FLAG=''        # Flag for compiling C++11 code
+#NVCC=''          # nvcc compiler
+#NVCCFLAGS=''     # nvcc compiler flags
+DIRECTIVES=''     # Common compiler directives
+INCLUDE=''        # Library include line
+REQUIRES_FLINK=0  # If 1 FLINK flag required during link phase
+C11_SUPPORT='yes' # Support C++11 code
 
 # ----- Configure options ------------------------
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
-USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_CRAY=0        # 1 = Compiling on a cray machine. 
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations.
 BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray)
@@ -131,7 +132,7 @@ CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
 # Total number of external libraries
-NLIB=12
+NLIB=13
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 LNETCDF=0
@@ -146,6 +147,7 @@ LREADLINE=8
 LXDRFILE=9
 LSANDER=10
 LTIMER=11
+LCUDA=12
 
 # Library status:
 #   off       : Do not use library.
@@ -246,6 +248,14 @@ LIB_STAT[$LTIMER]='off'
 LIB_CKEY[$LTIMER]='timer'
 LIB_FLAG[$LTIMER]='-lrt'
 LIB_D_ON[$LTIMER]='-DTIMER'
+
+LIB_STAT[$LCUDA]='off'
+LIB_CKEY[$LCUDA]='cuda'
+LIB_HOME[$LCUDA]=''
+LIB_FLAG[$LCUDA]='-lcuda -lcudart'
+LIB_STTC[$LCUDA]=''
+LIB_D_ON[$LCUDA]='-DCUDA'
+LIB_DOFF[$LCUDA]=''
 
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
@@ -515,6 +525,7 @@ TestLibraries() {
   if [ "${LIB_TEST[$LREADLINE]}" = 'yes' ] ; then TestReadline ; fi
   if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
+  # TODO test cuda?
 }
 
 #-------------------------------------------------------------------------------
@@ -560,20 +571,29 @@ SetupLibraries() {
         lflag="$lhome/${LIB_STTC[$i]}"
       else
         LIB_TEST[$i]='yes'
-        if [ -z "$lhome" ] ; then
+        if [ -z "$lhome" ] ; then 
+          # Lib home not specified
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
             Err "'-libstatic' requires --with-${LIB_CKEY[$i]} specified."
           fi
           lflag=${LIB_FLAG[$i]}
         else
+          # Lib home specified
           linc="-I$lhome/include"
+          # Check if lib or lib64 exists. Prefer 'lib' for backwards compat.
+          lhdir="$lhome/lib"
+          if [ ! -d "$lhdir" ] ; then
+            lhdir="$lhome/lib64"
+          fi
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
-            lflag="$lhome/lib/${LIB_STTC[$i]}"
-            if [ -z "$lflag" ] ; then
-              Err "Static library for ${LIB_CKEY[$i]} is not known."
+            if [ -z "${LIB_STTC[$i]}" ] ; then
+              echo "Warning: Cannot link '${LIB_CKEY[$i]}' statically."
+              lflag="-L$lhdir ${LIB_FLAG[$i]}"
+            else
+              lflag="$lhdir/${LIB_STTC[$i]}"
             fi
           else
-            lflag="-L$lhome/lib ${LIB_FLAG[$i]}"
+            lflag="-L$lhdir ${LIB_FLAG[$i]}"
           fi
           # Library-specific INCLUDE fixes
           if [ $i -eq $LREADLINE ] ; then
@@ -594,7 +614,7 @@ SetupLibraries() {
           #fi
         fi
       fi
-      #echo "linc $linc lflag $lflag" # DEBUG
+      echo "${LIB_CKEY[$i]} ${LIB_STAT[$i]} linc $linc lflag $lflag" # DEBUG
       LIB_FLAG[$i]="$lflag"
       LIB_INCL[$i]="$linc"
     fi
@@ -627,7 +647,7 @@ SetupCompilers() {
   fi
   # Set compiler options
   warnflag='-Wall'
-  dflag='-g'
+  DBFLAG='-g'
   noinlineflag='-fno-inline'
   commonflags=''
   case "$COMPILERS" in
@@ -761,13 +781,13 @@ SetupCompilers() {
   fi
   # Turn off debug flags if necessary
   if [ $USE_DEBUG -eq 0 ] ; then
-    dflag=''
+    DBFLAG=''
     noinlineflag=''
   fi
   # Set compiler flags
-  CXXFLAGS="$dflag $warnflag $OPTFLAGS $noinlineflag $PICFLAG $commonflags $CXXFLAGS"
-  CFLAGS="$dflag $warnflag $OPTFLAGS $PICFLAG $commonflags $CFLAGS"
-  FFLAGS="$dflag $warnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $commonflags $FFLAGS"
+  CXXFLAGS="$DBFLAG $warnflag $OPTFLAGS $noinlineflag $PICFLAG $commonflags $CXXFLAGS"
+  CFLAGS="$DBFLAG $warnflag $OPTFLAGS $PICFLAG $commonflags $CFLAGS"
+  FFLAGS="$DBFLAG $warnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $commonflags $FFLAGS"
   # DEBUG
   #echo $CXX $CXXFLAGS
   #echo $CC $CFLAGS
@@ -932,6 +952,63 @@ SetupMKL() {
 }
 
 # ------------------------------------------------------------------------------
+# Check that CUDA_HOME is defined and set up flags for nvcc
+SetupCUDA() {
+  if [ -z "$CUDA_HOME" ] ; then
+    Err "CUDA_HOME not set. Set CUDA_HOME to point to your NVIDIA tools installation."
+  fi
+  if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
+    Err "Error: nvcc cuda compiler not found in $CUDA_HOME/bin"
+  fi
+  if [ -z "$NVCC" ]; then NVCC="$CUDA_HOME/bin/nvcc"; fi
+  cuda_version=`$NVCC --version | grep 'release' | cut -d' ' -f5 | cut -d',' -f1`
+  echo "  CUDA version $cuda_version detected."
+  if [ -z "$NVCCFLAGS" -a -z "$SHADER_MODEL" ] ; then
+    echo "Warning: SHADER_MODEL not set. Compiling for multiple architectures."
+    echo "Warning: To compile for a specific architecture set SHADER_MODEL"
+    echo "Warning: to 'sm_XX', where XX is the shader model version."
+    # NOTE: From AmberTools configure2
+    #Note at present we do not include SM3.5 or SM3.7 since they sometimes show performance
+    #regressions over just using SM3.0.
+    #SM6.2 = ??? 
+    sm62flags='-gencode arch=compute_62,code=sm_62'
+    #SM6.1 = GP106 = GTX-1070, GP104 = GTX-1080, GP102 = Titan-X[P]
+    sm61flags='-gencode arch=compute_61,code=sm_61'
+    #SM6.0 = GP100 / P100 = DGX-1
+    sm60flags='-gencode arch=compute_60,code=sm_60'
+    #SM5.3 = GM200 [Grid] = M60, M40?
+    sm53flags='-gencode arch=compute_53,code=sm_53'
+    #SM5.2 = GM200 = GTX-Titan-X, M6000 etc.
+    sm52flags='-gencode arch=compute_52,code=sm_52'
+    #SM5.0 = GM204 = GTX980, 970 etc
+    sm50flags='-gencode arch=compute_50,code=sm_50'
+    #SM3.7 = GK210 = K80
+    sm37flags='-gencode arch=compute_37,code=sm_37'
+    #SM3.5 = GK110 + 110B = K20, K20X, K40, GTX780, GTX-Titan, GTX-Titan-Black, GTX-Titan-Z
+    sm35flags='-gencode arch=compute_35,code=sm_35'
+    #SM3.0 = GK104 = K10, GTX680, 690 etc.
+    sm30flags='-gencode arch=compute_30,code=sm_30'
+    #SM2.0 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc.
+    sm20flags='-gencode arch=compute_20,code=sm_20'
+    if [ "$cuda_version" = '9.0' ] ; then
+      echo "Configuring for SM3.0, SM5.0, SM5.2, SM5.3, SM6.0 and SM6.1"
+      NVCCFLAGS="$sm30flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags"
+    elif [ "$cuda_version" = '8.0' ] ; then
+      echo "Configuring for SM2.0, SM3.0, SM5.0, SM5.2, SM5.3, SM6.0 and SM6.1"
+      NVCCFLAGS="$sm20flags $sm30flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags"
+    else
+      echo "Configuring for SM2.0, SM3.0, SM5.0, SM5.2 and SM5.3"
+      echo "BE AWARE: CUDA < 8.0 does not support GTX-1080, Titan-XP, DGX-1 or other Pascal based GPUs."
+      NVCCFLAGS="$sm20flags $sm30flags $sm50flags $sm52flags $sm53flags"
+    fi
+  fi
+  if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="$DBFLAG -arch=$SHADER_MODEL"; fi
+  LIB_STAT[$LCUDA]='specified'
+  LIB_HOME[$LCUDA]=$CUDA_HOME
+}
+
+
+# ------------------------------------------------------------------------------
 # Basic checks, set up some directives
 BasicChecks() {
   if [ $USE_MPI -ne 0 -a $USE_WINDOWS -eq 1 ] ; then
@@ -1004,7 +1081,7 @@ while [ ! -z "$1" ] ; do
     '-mpi'           ) USE_MPI=1 ;;
     '-intelmpi'      ) USE_MPI=2 ;;
     '-openmp'        ) USE_OPENMP=1 ;;
-    '-cuda'          ) USE_CUDA=1 ;;
+    '-cuda'          ) SetupCUDA ;;
     '-cray'          ) USE_CRAY=1 ;;
     '-mkl'           ) BLAS_TYPE='mkl' ;;
     '-libsci'        ) BLAS_TYPE='libsci' ;;
