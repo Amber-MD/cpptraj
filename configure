@@ -100,10 +100,12 @@ DBFLAG=''         # Flag for turning on compiler debug symbols
 DIRECTIVES=''     # Common compiler directives
 INCLUDE=''        # Library header include line
 SFX=''            # Binary suffix
+EXE=''            # Binary executable suffix
 
 # ----- Configure options ------------------------
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
+USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations.
 BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray)
 USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
@@ -548,10 +550,10 @@ TestLibraries() {
       CPPTRAJ_LIB="$CPPTRAJ_LIB ${LIB_FLAG[$i]}"
     fi
   done
-  if [ $REQUIRES_FLINK -eq 0 ] ; then
-    FLINK=''
+  if [ $REQUIRES_FLINK -eq 1 ] ; then
+    CPPTRAJ_LIB="$CPPTRAJ_LIB $FLINK"
   fi
-  LDFLAGS="$ldf $FLINK $LDFLAGS"
+  LDFLAGS="$ldf $LDFLAGS"
 }
 
 #-------------------------------------------------------------------------------
@@ -1056,6 +1058,7 @@ SetupCUDA() {
   if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="$DBFLAG -arch=$SHADER_MODEL"; fi
   LIB_STAT[$LCUDA]='specified'
   LIB_HOME[$LCUDA]=$CUDA_HOME
+  USE_CUDA=1
 }
 
 # ------------------------------------------------------------------------------
@@ -1079,6 +1082,8 @@ BasicChecks() {
     if [ $USE_OPENMP -ne 0 ] ; then
       Err "OpenMP not currently supported on Windows."
     fi
+    echo "WINDOWS support requested. Implies '-static'."
+    USE_STATIC=1
   fi
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
     echo "Warning: Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
@@ -1092,10 +1097,11 @@ BasicChecks() {
   if [ $USE_MPI -ne 0            ] ; then DIRECTIVES="$DIRECTIVES -DMPI" ; fi
   if [ $USE_CPPTRAJDEBUG -ne 0   ] ; then DIRECTIVES="$DIRECTIVES -DDEBUG" ; fi
   if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
+  if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
   # Binary suffix
   if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI" ; fi
   if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP" ; fi
-  if [ "${LIB_STAT[$LCUDA]}" != 'off' ] ; then SFX=$SFX".cuda" ; fi
+  if [ $USE_CUDA -ne 0   ] ; then SFX=$SFX".cuda" ; fi
   # Additional BLAS setup if necessary. Done here to override -amberlib.
   if [ "$BLAS_TYPE" = 'mkl' ] ; then
     SetupMKL
@@ -1181,7 +1187,11 @@ EOF
       fi
     fi # End if clang
   # ----- Windows/Cygwin -------------------------
-  elif [ "$PLATFORM" = 'windows' -o ! -z "`echo $PLATFORM | grep -i cygwin`" ] ; then
+  elif [ "$PLATFORM" = 'windows' ] ; then
+    SHARED_SUFFIX='.dll.a'
+    EXE='.exe'
+  # ----- Cygwin ---------------------------------
+  elif [ ! -z "`echo $PLATFORM | grep -i cygwin`" ] ; then
     SHARED_SUFFIX='.dll'
   # ----- Linux (default) ------------------------
   else
@@ -1352,4 +1362,88 @@ if [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
   echo "* Warning: NetCDF parallel trajectory output requires parallel NetCDF. *"
   echo "************************************************************************"
 fi
+
+# Determine which targets to build
+CPPTRAJ_TARGET=""
+AMBPDB_TARGET=""
+LIBCPPTRAJ_TARGET=""
+NPROC_TARGET=""
+INSTALL_TARGETS=""
+# Always build cpptraj
+CPPTRAJ_TARGET=cpptraj$SFX$EXE
+INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
+# Only build ambpdb in serial
+if [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -eq 0 ] ; then
+  AMBPDB_TARGET=ambpdb
+  INSTALL_TARGETS=$INSTALL_TARGETS" install_ambpdb"
+fi
+# Can we build libcpptraj? TODO serial/OpenMP only?
+if [ $USE_SHARED -eq 1 ] ; then
+  LIBCPPTRAJ_TARGET='$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)'
+else
+  LIBCPPTRAJ_TARGET='nolibcpptraj'
+fi
+# Only build nproc for MPI
+if [ $USE_MPI -ne 0 ] ; then
+  NPROC_TARGET=nproc
+  INSTALL_TARGETS=$INSTALL_TARGETS" $NPROC_TARGET"
+fi
+# Readline
+if [ "${LIB_STAT[$LREADLINE]}" = 'bundled' ] ; then
+  READLINE_TARGET=${LIB_FLAG[$LREADLINE]}
+else
+  READLINE_TARGET='noreadline'
+fi
+
+# Write config.h
+cat > config.h <<EOF
+# config.h for cpptraj
+# configured using: $CONFIGURECMD
+EOF
+if [ $USE_CUDA -eq 1 -a ! -z "$SHADER_MODEL" ] ; then
+  echo "# SHADER_MODEL=$SHADER_MODEL" >> config.h
+fi
+cat >> config.h <<EOF
+
+CPPTRAJHOME="$CPPTRAJHOME"
+CPPTRAJBIN="$CPPTRAJBIN"
+CPPTRAJLIB="$CPPTRAJLIB"
+
+INSTALL_TARGETS=$INSTALL_TARGETS
+
+EOF
+if [ ! -z "$DBGFLAGS" ] ; then
+  echo "DBGFLAGS=$DBGFLAGS" >> config.h
+fi
+cat >> config.h <<EOF
+CC=$CC
+CXX=$CXX
+FC=$FC
+CFLAGS=$CFLAGS \$(DBGFLAGS)
+CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
+FFLAGS=$FFLAGS \$(DBGFLAGS)
+SHARED_SUFFIX=$SHARED_SUFFIX
+
+LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
+
+NVCC=$NVCC
+NVCCFLAGS=$NVCCFLAGS \$(DBGFLAGS)
+CUDA_TARGET=$CUDA_TARGET
+
+READLINE=${LIB_FLAG[$LREADLINE]}
+READLINE_HOME=${LIB_HOME[$LREADLINE]}
+READLINE_TARGET=$READLINE_TARGET
+
+XDRFILE=$XDRFILE
+XDRFILE_HOME=$XDRFILE_HOME
+XDRFILE_TARGET=$XDRFILE_TARGET
+
+FFT_DEPEND=$FFT_DEPEND
+FFT_LIB=$FFT_LIB
+
+CPPTRAJ_LIB=$CPPTRAJ_LIB
+LDFLAGS=$LDFLAGS
+SFX=$SFX
+EXE=$EXE
+EOF
 
