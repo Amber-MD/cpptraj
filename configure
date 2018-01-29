@@ -739,8 +739,8 @@ SetupCompilers() {
   esac
   # Unless specified fortran warnflag is same as C/C++
   if [ -z "$fwarnflag" ] ; then fwarnflag=$warnflag ; fi
-  # Change to MPI compiler wrappers if specified
-  if [ $USE_MPI -ne 0 ] ; then
+  # Change to MPI compiler wrappers if specified. Not needed for cray.
+  if [ $USE_MPI -ne 0 -a "$COMPILERS" != 'cray' ] ; then
     if [ $USE_MPI -eq 1 ] ; then
       mpi_cc='mpicc'
       mpi_cxx='mpicxx'
