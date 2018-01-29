@@ -1299,7 +1299,7 @@ echo DIRECTIVES $DIRECTIVES
 echo LDFLAGS $LDFLAGS
 echo CPPTRAJ_LIB $CPPTRAJ_LIB
 echo INCLUDE $INCLUDE
-echo FLINK $FLINK
+echo REQUIRES_FLINK $REQUIRES_FLINK FLINK $FLINK
 
 if [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
   echo "************************************************************************"
