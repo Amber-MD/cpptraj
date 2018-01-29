@@ -103,6 +103,7 @@ DIRECTIVES=''     # Common compiler directives
 INCLUDE=''        # Library include line
 REQUIRES_FLINK=0  # If 1 FLINK flag required during link phase
 C11_SUPPORT='yes' # Support C++11 code
+SFX=''            # Binary suffix
 
 # ----- Configure options ------------------------
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
@@ -113,7 +114,6 @@ BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray)
 USE_DEBUG=0    # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0   # 0 = no static linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0   # 1 = Use flag for position-independent code (required for libcpptraj)
-USE_WINDOWS=0  # 1 = Compiling on windows
 USE_PROFILE=0  # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
@@ -312,10 +312,10 @@ TestProgram() {
   comp="$2"
   args="$3"
   file="$4"
-  link="$5"
+  link="$5 $LDFLAGS"
   if [ $silent -ne 2 ] ; then echo -n "$desc: " ; fi
   COMPILELINE="$comp $args -o testp $file $link"
-  #echo $COMPILELINE #DEBUG
+  echo "COMPILE: $COMPILELINE" #DEBUG
   $COMPILELINE > /dev/null 2> compile.err
   if [ $? -ne 0 ] ; then
     if [ $silent -eq 0 ] ; then
@@ -650,6 +650,8 @@ SetupCompilers() {
   DBFLAG='-g'
   noinlineflag='-fno-inline'
   commonflags=''
+  staticflag='-static'
+  staticlink=''
   case "$COMPILERS" in
     'gnu' )
       if [ -z "$CC" ]; then CC=gcc; fi
@@ -662,6 +664,7 @@ SetupCompilers() {
       FLINK='-lgfortran'
       PICFLAG='-fPIC'
       C11FLAG='-std=gnu++11'
+      staticlink='-lquadmath'
       ;;
    'clang' )
       if [ -z "$CC" ]; then CC=clang; fi
@@ -784,10 +787,15 @@ SetupCompilers() {
     DBFLAG=''
     noinlineflag=''
   fi
+  # Turn off static flag if necessary
+  if [ $USE_STATIC -ne 1 ] ; then
+    staticflag=''
+  fi
   # Set compiler flags
   CXXFLAGS="$DBFLAG $warnflag $OPTFLAGS $noinlineflag $PICFLAG $commonflags $CXXFLAGS"
   CFLAGS="$DBFLAG $warnflag $OPTFLAGS $PICFLAG $commonflags $CFLAGS"
   FFLAGS="$DBFLAG $warnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $commonflags $FFLAGS"
+  LDFLAGS="$LDFLAGS $staticflag $staticlink"
   # DEBUG
   #echo $CXX $CXXFLAGS
   #echo $CC $CFLAGS
@@ -1007,14 +1015,17 @@ SetupCUDA() {
   LIB_HOME[$LCUDA]=$CUDA_HOME
 }
 
-
 # ------------------------------------------------------------------------------
 # Basic checks, set up some directives
 BasicChecks() {
-  if [ $USE_MPI -ne 0 -a $USE_WINDOWS -eq 1 ] ; then
-    Err "MPI not currently supported on Windows."
+  if [ "$PLATFORM" = 'windows' ] ; then
+    if [ $USE_MPI -ne 0 ] ; then
+      Err "MPI not currently supported on Windows."
+    fi
+    if [ $USE_OPENMP -ne 0 ] ; then
+      Err "OpenMP not currently supported on Windows."
+    fi
   fi
-
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
     echo "Warning: Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
     USE_MPI=1
@@ -1023,6 +1034,10 @@ BasicChecks() {
   if [ $USE_MPI -ne 0            ] ; then DIRECTIVES="$DIRECTIVES -DMPI" ; fi
   if [ $USE_CPPTRAJDEBUG -ne 0   ] ; then DIRECTIVES="$DIRECTIVES -DDEBUG" ; fi
   if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
+  # Binary suffix
+  if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI" ; fi
+  if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP" ; fi
+  if [ $USE_CUDA -ne 0   ] ; then SFX=$SFX".cuda" ; fi
 }
 
 # ==============================================================================
@@ -1088,7 +1103,7 @@ while [ ! -z "$1" ] ; do
     '-debug'         ) USE_DEBUG=1 ;;
     '-d'             ) USE_OPT=0 ; USE_DEBUG=1 ;;
     '-noopt'         ) USE_OPT=0 ;;
-    '-windows'       ) USE_WINDOWS=1 ;;
+    '-windows'       ) PLATFORM='windows' ;;
     # Cpptraj options
     '-nolfs'           ) LFS='' ;;
     '-single-ensemble' ) USE_SINGLEENSEMBLE=1 ;;
