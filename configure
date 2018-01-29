@@ -73,6 +73,8 @@ UsageFull() {
   echo "    CFLAGS       : Flags to pass to the C compiler."
   echo "    FFLAGS       : Flags to pass to the Fortran compiler."
   echo "    LDFLAGS      : Flags to pass to the linker."
+  echo "    NVCC         : Name of the nvcc compiler."
+  echo "    NVCCFLAGS    : Flags to pass to the nvcc compiler."
   echo "    DBGFLAGS     : Any additional flags to pass to all compilers."
   echo "    SHADER_MODEL : (-cuda) Should be set to 'sm_XX', where XX is CUDA compute architecture."
   echo ""
@@ -97,8 +99,6 @@ OMPFLAG=''        # Compiler OpenMP flag
 PICFLAG=''        # Compiler flag for position-independent code
 DBFLAG=''         # Flag for turning on compiler debug symbols
 C11FLAG=''        # Flag for compiling C++11 code
-#NVCC=''          # nvcc compiler
-#NVCCFLAGS=''     # nvcc compiler flags
 DIRECTIVES=''     # Common compiler directives
 INCLUDE=''        # Library include line
 REQUIRES_FLINK=0  # If 1 FLINK flag required during link phase
@@ -108,7 +108,6 @@ SFX=''            # Binary suffix
 # ----- Configure options ------------------------
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
-USE_CRAY=0        # 1 = Compiling on a cray machine. 
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations.
 BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray)
 USE_DEBUG=0    # 0 = no debug info, 1 = enable compiler debug info
@@ -706,7 +705,7 @@ SetupCompilers() {
       if [ -z "$FC" ]; then FC=pgf90; fi
       OPTFLAGS='-fast'
       FOPTFLAGS='-fast'
-      if [ $USE_CRAY -eq 1 ] ; then
+      if [ "$PLATFORM" = 'cray' ] ; then
         OMPFLAG='-mp=nonuma'
       else
         OMPFLAG='-mp'
@@ -767,7 +766,7 @@ SetupCompilers() {
     fi
   fi
   # Use cray wrappers
-  if [ $USE_CRAY -eq 1 ] ; then
+  if [ "$PLATFORM" = 'cray' ] ; then
     CC=cc
     CXX=CC
     FC=ftn
@@ -1102,7 +1101,7 @@ while [ ! -z "$1" ] ; do
     '-intelmpi'      ) USE_MPI=2 ;;
     '-openmp'        ) USE_OPENMP=1 ;;
     '-cuda'          ) SetupCUDA ;;
-    '-cray'          ) USE_CRAY=1 ;;
+    '-cray'          ) PLATFORM='cray' ;;
     '-mkl'           ) BLAS_TYPE='mkl' ;;
     '-libsci'        ) BLAS_TYPE='libsci' ;;
     '-debug'         ) USE_DEBUG=1 ;;
