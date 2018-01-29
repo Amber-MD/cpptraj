@@ -390,11 +390,11 @@ DetermineFlink() {
       TestProgram "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
       REQUIRES_FLINK=1
     else
-      # That worked. Print OK." TODO add to LDFLAGS?
+      # That worked. Print OK."
       echo "$desc: OK"
     fi
   else
-    # Try with FLINK
+    # FLINK already present
     TestProgram "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
   fi
 }
@@ -856,7 +856,7 @@ int main() { printf("Testing\n"); return 0; }
 EOF
   TestProgram "  Testing C compiler" "$CC" "$CFLAGS" testp.c
   # Fortran - only needed if pub_fft.F90 needs to be compiled
-  if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
+  if [ $REQUIRES_FLINK -eq 1 ] ; then
     cat > testp.f <<EOF
       program testf
       write(6,*) 'testing a Fortran program'
@@ -1042,6 +1042,10 @@ BasicChecks() {
     echo "Warning: Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
     USE_MPI=1
   fi
+  # If pub_FFT.F90 will be compiled need C++/Fortran linking
+  if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
+    REQUIRES_FLINK=1
+  fi
   # Directives
   if [ $USE_MPI -ne 0            ] ; then DIRECTIVES="$DIRECTIVES -DMPI" ; fi
   if [ $USE_CPPTRAJDEBUG -ne 0   ] ; then DIRECTIVES="$DIRECTIVES -DDEBUG" ; fi
@@ -1090,7 +1094,7 @@ EOF
         LDFLAGS="$LDFLAGS -stdlib=libstdc++"
       fi
       # Test that clang can link between C++ and fortran
-      if [ $REQUIRES_FLINK -eq 0 ] ; then
+      if [ $REQUIRES_FLINK -eq 1 ] ; then
         echo "Testing clang C++/Fortran linking..."
         cat > testc.cpp <<EOF
 #include <cstdio>
@@ -1113,7 +1117,25 @@ EOF
           cat compile.err
           exit 1
         fi
-        TestProgram "clang++/gfortran link" "$CXX" " " "testc.o testf.o"
+        TestProgram silent "clang++/gfortran link" "$CXX" " " "testc.o testf.o" "$FLINK"
+        if [ $? -ne 0 ] ; then
+          # Probably missing lgfortran Search for it
+          fortlib_dir=''
+          for fl_dir in `$FC -print-search-dirs | grep "libraries:" | awk 'BEGIN{FS="[=:]";}{
+            for (col=2; col <= NF; col++)
+              print $col;
+          }'` ; do
+            TestProgram silent "test" "$CXX" " " "testc.o testf.o" "-L$fl_dir $FLINK"
+            if [ $? -eq 0 ] ; then
+              fortlib_dir=$fl_dir
+              break
+            fi
+          done
+          if [ -z "$fortlib_dir" ] ; then
+            Err "Cannot link C++ and Fortran with clang."
+          fi
+          FLINK="-L$fortlib_dir $FLINK"
+        fi
       fi
     fi # End if clang
   # ----- Windows/Cygwin -------------------------
@@ -1263,20 +1285,21 @@ SetupProfiling
 # Basic Compiler tests 
 TestCompilers
 
+# Platform-specific tests
+PlatformTests
+
 # Set up external libraries
 SetupLibraries
 
 # Test external libraries
 TestLibraries
 
-# Platform-specific tests
-PlatformTests
-
 # Summary
 echo DIRECTIVES $DIRECTIVES
 echo LDFLAGS $LDFLAGS
 echo CPPTRAJ_LIB $CPPTRAJ_LIB
 echo INCLUDE $INCLUDE
+echo FLINK $FLINK
 
 if [ $USE_MPI -ne 0 -a "${LIB_STAT[$LPARANC]}" = 'off' ] ; then
   echo "************************************************************************"
