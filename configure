@@ -726,6 +726,7 @@ SetupCompilers() {
       OPTFLAGS=''
       OMPFLAG=''
       warnflag='-h msglevel_2' # This will also print cautions
+      fwarnflag='-m 2'
       FREEFMTFLAG='-f free -emf'
       FOPTFLAGS=''
       FLINK=''
@@ -736,6 +737,8 @@ SetupCompilers() {
       ;;
     * ) Err "Unknown compilers: $1" ;;
   esac
+  # Unless specified fortran warnflag is same as C/C++
+  if [ -z "$fwarnflag" ] ; then fwarnflag=$warnflag ; fi
   # Change to MPI compiler wrappers if specified
   if [ $USE_MPI -ne 0 ] ; then
     if [ $USE_MPI -eq 1 ] ; then
@@ -800,7 +803,7 @@ SetupCompilers() {
   # Set compiler flags
   CXXFLAGS="$DBFLAG $warnflag $OPTFLAGS $noinlineflag $PICFLAG $commonflags $CXXFLAGS"
   CFLAGS="$DBFLAG $warnflag $OPTFLAGS $PICFLAG $commonflags $CFLAGS"
-  FFLAGS="$DBFLAG $warnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $commonflags $FFLAGS"
+  FFLAGS="$DBFLAG $fwarnflag $FOPTFLAGS $PICFLAG $FREEFMTFLAG $commonflags $FFLAGS"
   LDFLAGS="$LDFLAGS $staticflag $staticlink"
   # DEBUG
   #echo $CXX $CXXFLAGS
