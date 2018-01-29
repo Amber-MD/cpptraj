@@ -834,6 +834,10 @@ SetupCompilers() {
     staticflag=''
     staticlink=''
   fi
+  # Turn off openmp flag if necessary
+  if [ $USE_OPENMP -eq 0 ] ; then
+    ompflag=''
+  fi
   # Set compiler flags
   CXXFLAGS="$DBFLAG $warnflag $ompflag $optflags $noinlineflag $picflag $commonflags $CXXFLAGS"
   CFLAGS="$DBFLAG $warnflag $ompflag $optflags $picflag $commonflags $CFLAGS"
@@ -1140,10 +1144,10 @@ PlatformTests() {
 #include <string>
 int main() { std::string temp("Testing"); printf("%s\n", temp.c_str()); return 0; }
 EOF
-      TestProgram silent "Without stdlib flag" "$CXX" "$CXXFLAGS" testp.cpp
+      TestProgram quiet "Without stdlib flag" "$CXX" "$CXXFLAGS" testp.cpp
       if [ $? -eq 1 ] ; then
         # Test with stdlib flag
-        TestProgram silent "With stdlib flag" "$CXX" "$CXXFLAGS" testp.cpp "-stdlib=libstdc++"
+        TestProgram quiet "With stdlib flag" "$CXX" "$CXXFLAGS" testp.cpp "-stdlib=libstdc++"
         if [ $? -eq 1 ] ; then
           Err "Could not link properly with clang++ on OSX"
         fi
@@ -1151,7 +1155,7 @@ EOF
       fi
       # Test that clang can link between C++ and fortran
       if [ $REQUIRES_FLINK -eq 1 ] ; then
-        echo "Testing clang C++/Fortran linking..."
+        echo -n "  Testing clang C++/Fortran linking: "
         cat > testc.cpp <<EOF
 #include <cstdio>
 extern "C" { void mytest_(int&); } int main() { int ival=14; printf("Testing"); mytest_(ival); }
@@ -1173,7 +1177,7 @@ EOF
           cat compile.err
           exit 1
         fi
-        TestProgram silent "clang++/gfortran link" "$CXX" " " "testc.o testf.o" "$FLINK"
+        TestProgram quiet "clang++/gfortran link" "$CXX" " " "testc.o testf.o" "$FLINK"
         if [ $? -ne 0 ] ; then
           # Probably missing lgfortran Search for it
           fortlib_dir=''
@@ -1181,7 +1185,7 @@ EOF
             for (col=2; col <= NF; col++)
               print $col;
           }'` ; do
-            TestProgram silent "test" "$CXX" " " "testc.o testf.o" "-L$fl_dir $FLINK"
+            TestProgram quiet "test" "$CXX" " " "testc.o testf.o" "-L$fl_dir $FLINK"
             if [ $? -eq 0 ] ; then
               fortlib_dir=$fl_dir
               break
@@ -1192,6 +1196,7 @@ EOF
           fi
           FLINK="-L$fortlib_dir $FLINK"
         fi
+        echo "OK"
       fi
     fi # End if clang
   # ----- Windows/Cygwin -------------------------
