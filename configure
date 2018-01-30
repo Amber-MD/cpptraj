@@ -150,14 +150,14 @@ LCUDA=12
 #   amberopt  : Use library from AMBERHOME - optional.
 #   bundled   : Use bundled version of library.
 LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, amberopt, bundled
-LIB_CKEY[$LNETCDF]='netcdf'          # Command-line key for '--with-' and '-no'
+LIB_CKEY[$LNETCDF]='netcdf'          # Command-line key for '-', '--with-' and '-no'
 LIB_HOME[$LNETCDF]=''                # Library home directory (-L<home>)
 LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
 LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_LINK[$LNETCDF]='dynamic'         # How to link the library
-LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj, other
+LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
@@ -238,7 +238,7 @@ LIB_FLAG[$LXDRFILE]='-lxdrfile'
 LIB_STTC[$LXDRFILE]='libxdrfile.a'
 LIB_D_ON[$LXDRFILE]=''
 LIB_DOFF[$LXDRFILE]='-DNO_XDRFILE'
-LIB_TYPE[$LXDRFILE]='other'
+LIB_TYPE[$LXDRFILE]='ld'
 
 LIB_STAT[$LSANDER]='amberopt'
 LIB_CKEY[$LSANDER]='sanderlib'
@@ -262,7 +262,7 @@ LIB_FLAG[$LCUDA]='-lcuda -lcudart'
 LIB_STTC[$LCUDA]=''
 LIB_D_ON[$LCUDA]='-DCUDA'
 LIB_DOFF[$LCUDA]=''
-LIB_TYPE[$LTIMER]='cpp'
+LIB_TYPE[$LCUDA]='cpp'
 
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
@@ -533,6 +533,11 @@ TestLibraries() {
   if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   # TODO test cuda?
+}
+
+#-------------------------------------------------------------------------------
+# Set final flags for compiling and linking.
+SetupFinalFlags() {
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
@@ -540,6 +545,7 @@ TestLibraries() {
   nincl=0
   for ((i=0; i < $NLIB; i++)) ; do
     if [ "${LIB_STAT[$i]}" != 'off' ] ; then
+      # Include directories
       if [ ! -z "${LIB_INCL[$i]}" ] ; then
         # Search for previous include
         idir=${LIB_INCL[$i]}
@@ -559,6 +565,7 @@ TestLibraries() {
           INCLUDE="$INCLUDE $idir"
         fi
       fi
+      # Link flags
       if [ "${LIB_TYPE[$i]}" = 'ld' ] ; then
         ldf="$ldf ${LIB_FLAG[$i]}"
       elif [ "${LIB_TYPE[$i]}" = 'cpp' ] ; then
@@ -570,9 +577,9 @@ TestLibraries() {
     CPPTRAJ_LIB="$CPPTRAJ_LIB $FLINK"
   fi
   LDFLAGS="$ldf $LDFLAGS"
-  CXXFLAGS="$INCLUDE $CXXFLAGS"
-  CFLAGS="$INCLUDE $CFLAGS"
-  FFLAGS="$INCLUDE $FFLAGS"
+  CXXFLAGS="$DIRECTIVES $INCLUDE $CXXFLAGS"
+  CFLAGS="$DIRECTIVES $INCLUDE $CFLAGS"
+  FFLAGS="$DIRECTIVES $INCLUDE $FFLAGS"
 }
 
 #-------------------------------------------------------------------------------
@@ -1392,6 +1399,9 @@ SetupLibraries
 # Test external libraries
 TestLibraries
 
+# Set final compile flags
+SetupFinalFlags
+
 # ----- Summary ----------------------------------
 echo ""
 echo "Configuration summary:"
@@ -1451,6 +1461,9 @@ if [ $USE_PROFILE -ne 0 ] ; then
 fi
 if [ "$BLAS_TYPE" != 'other' -a "$BLAS_TYPE" != 'none' ] ; then
   echo "  BLAS/LAPACK from: $BLAS_TYPE"
+fi
+if [ -z "$LFS" ] ; then
+  echo "  Large file support is off."
 fi
 if [ $USE_STATIC -eq 1 ] ; then
   echo "  Using static linking."
