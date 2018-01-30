@@ -112,6 +112,7 @@ USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
 USE_PROFILE=0     # 0 = no profiling, 1 = C++ profiling, 2 = GLIBC profiling, 3 = Intel Vtune
+USE_AMBERLIB=0    # 1 = Use AMBERHOME to fill in NetCDF/BLAS/LAPACK/ARPACK as needed
 
 USE_SINGLEENSEMBLE=0 # Enable support for single ensemble trajectories
 USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
@@ -541,13 +542,15 @@ TestLibraries() {
   CPPTRAJ_LIB=''
   INCLUDE=''
   for ((i=0; i < $NLIB; i++)) ; do
-    if [ ! -z "${LIB_INCL[$i]}" ] ; then
-      INCLUDE="$INCLUDE ${LIB_INCL[$i]}"
-    fi
-    if [ "${LIB_TYPE[$i]}" = 'ld' ] ; then
-      ldf="$ldf ${LIB_FLAG[$i]}"
-    elif [ "${LIB_TYPE[$i]}" = 'cpp' ] ; then
-      CPPTRAJ_LIB="$CPPTRAJ_LIB ${LIB_FLAG[$i]}"
+    if [ "${LIB_STAT[$i]}" != 'off' ] ; then
+      if [ ! -z "${LIB_INCL[$i]}" ] ; then
+        INCLUDE="$INCLUDE ${LIB_INCL[$i]}"
+      fi
+      if [ "${LIB_TYPE[$i]}" = 'ld' ] ; then
+        ldf="$ldf ${LIB_FLAG[$i]}"
+      elif [ "${LIB_TYPE[$i]}" = 'cpp' ] ; then
+        CPPTRAJ_LIB="$CPPTRAJ_LIB ${LIB_FLAG[$i]}"
+      fi
     fi
   done
   if [ $REQUIRES_FLINK -eq 1 ] ; then
@@ -1082,7 +1085,11 @@ BasicChecks() {
   if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP" ; fi
   if [ $USE_CUDA -ne 0   ] ; then SFX=$SFX".cuda" ; fi
   # Additional BLAS setup if necessary. Done here to override -amberlib.
-  if [ "$BLAS_TYPE" = 'mkl' ] ; then
+  if [ "$BLAS_TYPE" = 'none' ] ; then
+    LIB_STAT[$LBLAS]='off'
+    LIB_STAT[$LLAPACK]='off'
+    LIB_STAT[$LARPACK]='off'
+  elif [ "$BLAS_TYPE" = 'mkl' ] ; then
     SetupMKL
   elif [ "$BLAS_TYPE" = 'libsci' ] ; then
     LIB_STAT[$LBLAS]='enabled'
@@ -1099,6 +1106,34 @@ BasicChecks() {
     LIB_FLAG[$LBLAS]='-framework Accelerate'
     LIB_STAT[$LLAPACK]='off'
     LIB_FLAG[$LLAPACK]=''
+  elif [ $USE_AMBERLIB -eq 1 ] ; then
+    if [ "${LIB_STAT[$LBLAS]}" == 'enabled' ] ; then
+      echo "  Using blas from $AMBERHOME"
+      LIB_STAT[$LBLAS]='specified'
+      LIB_HOME[$LBLAS]=$AMBERHOME
+      LIB_LINK[$LBLAS]='static'
+    fi
+    if [ "${LIB_STAT[$LLAPACK]}" == 'enabled' ] ; then
+      echo "  Using lapack from $AMBERHOME"
+      LIB_STAT[$LLAPACK]='specified'
+      LIB_HOME[$LLAPACK]=$AMBERHOME
+      LIB_LINK[$LLAPACK]='static'
+    fi
+  fi
+  # Use AMBERHOME to fill in libraries if needed
+  if [ $USE_AMBERLIB -eq 1 ] ; then
+    if [ "${LIB_STAT[$LNETCDF]}" == 'enabled' ] ; then
+      echo "  Using netcdf from $AMBERHOME"
+      LIB_STAT[$LNETCDF]='specified'
+      LIB_HOME[$LNETCDF]=$AMBERHOME
+      LIB_LINK[$LNETCDF]='static'
+    fi
+    if [ "${LIB_STAT[$LARPACK]}" == 'enabled' ] ; then
+      echo "  Using arpack from $AMBERHOME"
+      LIB_STAT[$LARPACK]='specified'
+      LIB_HOME[$LARPACK]=$AMBERHOME
+      LIB_LINK[$LARPACK]='static'
+    fi
   fi
 }
 
@@ -1303,24 +1338,9 @@ while [ ! -z "$1" ] ; do
       if [ -z "$AMBERHOME" ] ; then
         Err "'-amberlib' requires that AMBERHOME be set."
       fi
-      LIB_STAT[$LNETCDF]='specified'
-      LIB_STAT[$LBLAS]='specified'
-      LIB_STAT[$LLAPACK]='specified'
-      LIB_STAT[$LARPACK]='specified'
-      LIB_HOME[$LNETCDF]=$AMBERHOME
-      LIB_HOME[$LBLAS]=$AMBERHOME
-      LIB_HOME[$LLAPACK]=$AMBERHOME
-      LIB_HOME[$LARPACK]=$AMBERHOME
-      LIB_LINK[$LNETCDF]='static'
-      LIB_LINK[$LBLAS]='static'
-      LIB_LINK[$LLAPACK]='static'
-      LIB_LINK[$LARPACK]='static'
+      USE_AMBERLIB=1
       ;;
-    '-nomathlib'     )
-      LIB_STAT[$LBLAS]='off'
-      LIB_STAT[$LLAPACK]='off'
-      LIB_STAT[$LARPACK]='off'
-      ;;
+    '-nomathlib'     ) BLAS_TYPE='none' ;;
     # Install options
     '-noclean'       ) CLEAN='no' ;;
     '--skip-checks'  ) PERFORM_CHECKS='no' ;;
@@ -1389,6 +1409,10 @@ else
     echo ""
   fi
 fi
+# DEBUG
+#for ((i=0; i < $NLIB; i++)) ; do
+#  echo " Library: ${LIB_CKEY[$i]} (${LIB_STAT[$i]})"
+#done
 echo -n "  Options:"
 for ((i=0; i < $NLIB; i++)) ; do
   if [ "${LIB_STAT[$i]}" != 'off' ] ; then
