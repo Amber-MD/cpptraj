@@ -533,14 +533,31 @@ TestLibraries() {
   if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   # TODO test cuda?
-  # Set up linking flags
+  # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
   INCLUDE=''
+  nincl=0
   for ((i=0; i < $NLIB; i++)) ; do
     if [ "${LIB_STAT[$i]}" != 'off' ] ; then
       if [ ! -z "${LIB_INCL[$i]}" ] ; then
-        INCLUDE="$INCLUDE ${LIB_INCL[$i]}"
+        # Search for previous include
+        idir=${LIB_INCL[$i]}
+        for ((j=0; j < $nincl; j++)) ; do
+          if [ "${include_array[$j]}" = "$idir" ] ; then
+            # Already included
+            #echo "DEBUG: $idir already included"
+            idir=''
+            break
+          fi
+        done
+        if [ ! -z "$idir" ] ; then
+          # Not yet included
+          #echo "DEBUG: $idir new inclusion"
+          include_array[$nincl]=$idir
+          ((nincl++))
+          INCLUDE="$INCLUDE $idir"
+        fi
       fi
       if [ "${LIB_TYPE[$i]}" = 'ld' ] ; then
         ldf="$ldf ${LIB_FLAG[$i]}"
@@ -553,6 +570,9 @@ TestLibraries() {
     CPPTRAJ_LIB="$CPPTRAJ_LIB $FLINK"
   fi
   LDFLAGS="$ldf $LDFLAGS"
+  CXXFLAGS="$INCLUDE $CXXFLAGS"
+  CFLAGS="$INCLUDE $CFLAGS"
+  FFLAGS="$INCLUDE $FFLAGS"
 }
 
 #-------------------------------------------------------------------------------
