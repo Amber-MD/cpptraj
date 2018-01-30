@@ -1441,7 +1441,7 @@ fi
 if [ $USE_PROFILE -ne 0 ] ; then
   echo "  Code profiling is on."
 fi
-if [ "$BLAS_TYPE" != 'other' ] ; then
+if [ "$BLAS_TYPE" != 'other' -a "$BLAS_TYPE" != 'none' ] ; then
   echo "  BLAS/LAPACK from: $BLAS_TYPE"
 fi
 if [ $USE_STATIC -eq 1 ] ; then
