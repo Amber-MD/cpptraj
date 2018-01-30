@@ -22,7 +22,7 @@ install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
 cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET)
-	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(READLINE) $(CUDA_TARGET) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # AmbPDB -------------------------------
 install_ambpdb: ambpdb$(EXE)
@@ -53,7 +53,7 @@ nproc:
 
 # Additional library targets
 readline/libreadline.a: readline/Makefile
-	cd $(READLINE_HOME) && $(MAKE) all
+	cd readline && $(MAKE) all
 
 xdrfile/libxdrfile.a: xdrfile/Makefile
 	cd xdrfile && $(MAKE) all
@@ -74,9 +74,6 @@ cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)
 # Individual file targets
 $(FFT_DEPEND):  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
-
-ReadLine.o: ReadLine.cpp
-	$(CXX) $(CXXFLAGS) -I$(READLINE_HOME) -c -o $@ ReadLine.cpp
 
 # Dependency targets
 findDepend: FindDepend.o 
