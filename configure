@@ -659,7 +659,6 @@ SetupCompilers() {
   if [ -z "$COMPILERS" ] ; then
     if [ ! -z "$CXX" ] ; then
       echo "Determining compilers from CXX ($CXX)"
-      COMPILERS='gnu'
       case "$CXX" in
         *g++*     ) COMPILERS='gnu' ;;
         *clang++* ) COMPILERS='clang' ;;
@@ -668,9 +667,17 @@ SetupCompilers() {
         *CC*      ) COMPILERS='cray' ;;
         * ) echo "Warning: Could not detect compiler type ($CXX); assuming GNU" > /dev/stderr;;
       esac
+    fi
+  fi
+  # If still no compiler default to gnu
+  if [ -z "$COMPILERS" ] ; then
+    # On OSX sometimes gnu means clang
+    if [ ! -z "`g++ --version | grep LLVM`" ] ; then
+      echo "No compilers specified; defaulting to Apple clang (gnu)"
+      COMPILERS='clang'
     else
+      echo "No compilers specified; defaulting to gnu"
       COMPILERS='gnu'
-      echo "No compilers specified; defaulting to GNU."
     fi
   fi
   # Set compiler options
@@ -1132,10 +1139,6 @@ EOF
       CXXFLAGS="$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK"
     fi
   fi
-  # Determine platform if not already specified
-  if [ -z "$PLATFORM" ] ; then
-    PLATFORM=`uname -s | awk '{print $1}'`
-  fi
   # ----- Mac OSX --------------------------------
   if [ "$PLATFORM" = 'Darwin' ] ; then
     SHARED_SUFFIX='.dylib'
@@ -1221,6 +1224,9 @@ EOF
 # Check requirements
 if [ -z "`which awk`" ] ; then
   Err "CPPTRAJ configure requires 'awk'."
+fi
+if [ -z "`which grep`" ] ; then
+  Err "CPPTRAJ configure requires 'grep'."
 fi
 
 CONFIGURECMD="./configure $*"
@@ -1332,6 +1338,11 @@ while [ ! -z "$1" ] ; do
   esac
   shift
 done
+
+# Determine platform if not already specified
+if [ -z "$PLATFORM" ] ; then
+  PLATFORM=`uname -s | awk '{print $1}'`
+fi
 
 # Basic checks and directives
 BasicChecks
