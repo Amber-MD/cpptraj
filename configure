@@ -547,7 +547,14 @@ SetupFinalFlags() {
   INCLUDE=''
   nincl=0
   for ((i=0; i < $NLIB; i++)) ; do
-    if [ "${LIB_STAT[$i]}" != 'off' ] ; then
+    if [ "${LIB_STAT[$i]}" == 'off' ] ; then
+      if [ ! -z "${LIB_DOFF[$i]}" ] ; then
+        DIRECTIVES="$DIRECTIVES ${LIB_DOFF[$i]}"
+      fi
+    else
+      if [ ! -z "${LIB_D_ON[$i]}" ] ; then
+        DIRECTIVES="$DIRECTIVES ${LIB_D_ON[$i]}"
+      fi
       # Include directories
       if [ ! -z "${LIB_INCL[$i]}" ] ; then
         # Search for previous include
@@ -607,15 +614,9 @@ SetupLibraries() {
     lflag=''
     if [ "${LIB_STAT[$i]}" = 'off' ] ; then
       #echo "${LIB_CKEY[$i]} disabled." # DEBUG
-      if [ ! -z "${LIB_DOFF[$i]}" ] ; then
-        DIRECTIVES="$DIRECTIVES ${LIB_DOFF[$i]}"
-      fi
       LIB_TEST[$i]='no'
     else
       #echo "${LIB_CKEY[$i]} enabled." # DEBUG
-      if [ ! -z "${LIB_D_ON[$i]}" ] ; then
-        DIRECTIVES="$DIRECTIVES ${LIB_D_ON[$i]}"
-      fi
       # Static/dynamic linking
       if [ "${LIB_STAT[$i]}" = 'specified' -a $USE_STATIC -eq 2 ] ; then
         LIB_LINK[$i]='static'
