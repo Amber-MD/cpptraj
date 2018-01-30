@@ -583,6 +583,9 @@ SetupFinalFlags() {
       fi
     fi
   done
+  if [ "$C11_SUPPORT" = 'yes' ] ; then
+    DIRECTIVES="$DIRECTIVES -DLIBPME"
+  fi
   if [ $REQUIRES_FLINK -eq 1 ] ; then
     CPPTRAJ_LIB="$CPPTRAJ_LIB $FLINK"
   fi
