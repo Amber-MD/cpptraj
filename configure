@@ -479,9 +479,12 @@ EOF
 TestXdrfile() {
   cat > testp.cpp <<EOF
 #include <xdrfile_xtc.h>
+#include <xdr_seek.h>
+XDRFILE* file;
 bool Unused(const char* fname, int& natoms) {
   if ( read_xtc_natoms( (char*)fname, &natoms ) != exdrOK )
     return false;
+  xdr_seek(file, 0, SEEK_SET);
   return true;
 }
 int main() { return 0; }
@@ -1576,8 +1579,6 @@ READLINE=${LIB_FLAG[$LREADLINE]}
 READLINE_HOME=${LIB_HOME[$LREADLINE]}
 READLINE_TARGET=$READLINE_TARGET
 
-XDRFILE=${LIB_FLAG[$LXDRFILE]}
-XDRFILE_HOME=${LIB_HOME[$LXDRFILE]}
 XDRFILE_TARGET=$XDRFILE_TARGET
 
 FFT_DEPEND=$FFT_DEPEND

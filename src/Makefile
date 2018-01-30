@@ -56,7 +56,7 @@ readline/libreadline.a: readline/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all
 
 xdrfile/libxdrfile.a: xdrfile/Makefile
-	cd $(XDRFILE_HOME) && $(MAKE) all
+	cd xdrfile && $(MAKE) all
 
 noreadline:
 	@echo ""
