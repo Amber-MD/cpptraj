@@ -220,7 +220,7 @@ LIB_FLAG[$LFFTW3]='-lfftw3'
 LIB_STTC[$LFFTW3]='libfftw3.a'
 LIB_D_ON[$LFFTW3]='-DFFTW_FFT'
 LIB_DOFF[$LFFTW3]=''
-LIB_TYPE[$LFFTW3]='other'
+LIB_TYPE[$LFFTW3]='cpp'
 
 LIB_STAT[$LREADLINE]='bundled'
 LIB_CKEY[$LREADLINE]='readline'
@@ -1533,11 +1533,9 @@ else
 fi
 # FFT
 if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
-  FFT_LIB='pub_fft.o'
-  FFT_DEPEND=$FFT_LIB
+  FFT_TARGET='pub_fft.o'
 else
-  FFT_LIB=${LIB_FLAG[$LFFTW3]}
-  FFT_DEPEND=''
+  FFT_TARGET=''
 fi
 
 # ----- Write config.h ---------------------------
@@ -1579,8 +1577,7 @@ READLINE_TARGET=$READLINE_TARGET
 
 XDRFILE_TARGET=$XDRFILE_TARGET
 
-FFT_DEPEND=$FFT_DEPEND
-FFT_LIB=$FFT_LIB
+FFT_TARGET=$FFT_TARGET
 
 CPPTRAJ_LIB=$CPPTRAJ_LIB
 LDFLAGS=$LDFLAGS

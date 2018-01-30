@@ -21,8 +21,8 @@ install: $(INSTALL_TARGETS)
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET)
-	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET)
+	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # AmbPDB -------------------------------
 install_ambpdb: ambpdb$(EXE)
@@ -38,8 +38,8 @@ ambpdb$(EXE): $(AMBPDB_OBJECTS) $(XDRFILE_TARGET)
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_DEPEND) $(XDRFILE_TARGET)
-	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(XDRFILE_TARGET)
+	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 nolibcpptraj:
 	@echo ""
@@ -51,7 +51,10 @@ nolibcpptraj:
 nproc:
 	cd ../util && $(MAKE)
 
-# Additional library targets
+# Internal object/library targets
+pub_fft.o:  pub_fft.F90
+	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
+
 readline/libreadline.a: readline/Makefile
 	cd readline && $(MAKE) all
 
@@ -71,10 +74,6 @@ noxdrfile:
 cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)
 	cd cuda_kernels && $(MAKE) all
 
-# Individual file targets
-$(FFT_DEPEND):  pub_fft.F90
-	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
-
 # Dependency targets
 findDepend: FindDepend.o 
 	$(CXX) -o findDepend FindDepend.o
@@ -87,7 +86,7 @@ dependclean:
 
 # Clean/uninstall targets
 clean:
-	/bin/rm -f $(OBJECTS) $(FFT_DEPEND) cpptraj$(SFX) AmbPDB.o ambpdb *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
+	/bin/rm -f $(OBJECTS) $(FFT_TARGET) cpptraj$(SFX) AmbPDB.o ambpdb *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
 	cd readline && $(MAKE) clean
 	cd xdrfile && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
