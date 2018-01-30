@@ -541,6 +541,12 @@ TestLibraries() {
 #-------------------------------------------------------------------------------
 # Set final flags for compiling and linking.
 SetupFinalFlags() {
+  # Basic directives
+  if [ $USE_MPI -ne 0            ] ; then DIRECTIVES="$DIRECTIVES -DMPI" ; fi
+  if [ $USE_CPPTRAJDEBUG -ne 0   ] ; then DIRECTIVES="$DIRECTIVES -DDEBUG" ; fi
+  if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
+  if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
+  if [ "$C11_SUPPORT" = 'yes'    ] ; then DIRECTIVES="$DIRECTIVES -DLIBPME" ; fi
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
@@ -583,9 +589,6 @@ SetupFinalFlags() {
       fi
     fi
   done
-  if [ "$C11_SUPPORT" = 'yes' ] ; then
-    DIRECTIVES="$DIRECTIVES -DLIBPME"
-  fi
   if [ $REQUIRES_FLINK -eq 1 ] ; then
     CPPTRAJ_LIB="$CPPTRAJ_LIB $FLINK"
   fi
@@ -1099,11 +1102,6 @@ BasicChecks() {
     REQUIRES_FLINK=1
   fi
   # TODO if we skipped checks we may need the FLINK flag enabled
-  # Directives
-  if [ $USE_MPI -ne 0            ] ; then DIRECTIVES="$DIRECTIVES -DMPI" ; fi
-  if [ $USE_CPPTRAJDEBUG -ne 0   ] ; then DIRECTIVES="$DIRECTIVES -DDEBUG" ; fi
-  if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
-  if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
   # Binary suffix
   if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI" ; fi
   if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP" ; fi
