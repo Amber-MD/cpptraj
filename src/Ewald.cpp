@@ -6,6 +6,7 @@
 #include "StringRoutines.h"
 #include "Spline.h"
 #ifdef LIBPME
+#  include <memory> // unique_ptr (libpme_standalone.h)
 #  include "libpme_standalone.h"
 #endif
 #ifdef _OPENMP
