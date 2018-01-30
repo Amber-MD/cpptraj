@@ -1130,7 +1130,7 @@ PlatformTests() {
   # C++11 support
   cat > testp.cpp <<EOF
 #include <initializer_list>
-int main() { constexpr int a = 5; auto b = a; for (auto i : {1, 2, 3}) { b += i; } }
+int main() { constexpr int a = 5; auto b = a; for (auto i : {1, 2, 3}) { b += i; } return 0; }
 EOF
   TestProgram silent "  Testing C++11 support" "$CXX" "$CXXFLAGS $C11FLAG" testp.cpp
   if [ $? -eq 1 ] ; then
