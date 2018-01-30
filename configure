@@ -1129,13 +1129,8 @@ BasicChecks() {
 PlatformTests() {
   # C++11 support
   cat > testp.cpp <<EOF
-#if __cplusplus < 201103L
-#error This file requires compiler and library support for the \
-ISO C++ 2011 standard. This support is currently experimental, and must be \
-enabled with the -std=c++11 or -std=gnu++11 compiler options.
-#endif
-#include <cstdio>
-int main() { printf("Testing\n"); return 0; }
+#include <initializer_list>
+int main() { constexpr int a = 5; auto b = a; for (auto i : {1, 2, 3}) { b += i; } }
 EOF
   TestProgram silent "  Testing C++11 support" "$CXX" "$CXXFLAGS $C11FLAG" testp.cpp
   if [ $? -eq 1 ] ; then
