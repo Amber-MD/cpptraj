@@ -881,7 +881,7 @@ SetupCompilers() {
   CXXFLAGS="$DBFLAG $warnflag $ompflag $optflags $noinlineflag $picflag $commonflags $CXXFLAGS"
   CFLAGS="$DBFLAG $warnflag $ompflag $optflags $picflag $commonflags $CFLAGS"
   FFLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $freefmtflag $commonflags $FFLAGS"
-  LDFLAGS="$LDFLAGS $staticflag $staticlink"
+  LDFLAGS="$LDFLAGS $ompflag $staticflag $staticlink"
   # DEBUG
   #echo $CXX $CXXFLAGS
   #echo $CC $CFLAGS
