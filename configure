@@ -715,6 +715,7 @@ SetupCompilers() {
       foptflags='-O3'
       FLINK='-lgfortran'
       picflag='-fPIC'
+      C11FLAG='-std=c++11'
       ;;
     'intel' )
       if [ -z "$CC" ]; then CC=icc; fi
@@ -738,6 +739,7 @@ SetupCompilers() {
       foptflags='-ip -O3'
       FLINK='-lifport -lifcore'
       picflag="-fpic"
+      C11FLAG='-std=c++11'
       ;;
     "pgi" )
       if [ -z "$CC" ]; then CC=pgcc; fi
@@ -771,6 +773,7 @@ SetupCompilers() {
       foptflags=''
       FLINK=''
       picflag='-fpic'
+      C11FLAG='-hstd=c++11'
       if [ $USE_OPENMP -eq 0 ] ; then
         commonflags='-h noomp'
       fi
