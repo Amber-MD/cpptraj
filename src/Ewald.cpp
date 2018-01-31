@@ -413,12 +413,13 @@ double Ewald::CalcPmeEnergy(Frame const& frameIn, Topology const& topIn, AtomMas
   // TODO these should be allocated elsewhere.
   libpme::Mat<double> coordsD(maskIn.Nselected(), 3);
   libpme::Mat<double> chargesD(maskIn.Nselected(), 1);
-  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm) {
+  int idx = 0;
+  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm, ++idx) {
     const double* XYZ = frameIn.XYZ( *atm );
-    coordsD << XYZ[0];
-    coordsD << XYZ[1];
-    coordsD << XYZ[2];
-    chargesD << topIn[*atm].Charge();
+    coordsD(idx, 0) = XYZ[0];
+    coordsD(idx, 1) = XYZ[1];
+    coordsD(idx, 2) = XYZ[2];
+    chargesD(idx)   = topIn[*atm].Charge();
   }
 
 //  MapCoords(frameIn, ucell, recip, maskIn);

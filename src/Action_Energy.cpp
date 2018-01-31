@@ -322,6 +322,11 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Energy_[ELEC]->Add(frameNum, &ene);
         Etot += ene;
         break;
+      case PMEWALD:
+        ene = EW_.CalcPmeEnergy(frm.Frm(), *currentParm_, Imask_);
+        Energy_[ELEC]->Add(frameNum, &ene);
+        Etot += ene;
+        break;
     }
   }
 
@@ -335,6 +340,6 @@ void Action_Energy::Print() {
            Mask1_.MaskString());
   etime_.WriteTiming(0, " Total:");
   ENE_.PrintTiming(etime_.Total());
-  if (etype_ == EW)
+  if (etype_ == EW || etype_ == PME)
     EW_.Timing(etime_.Total());
 }
