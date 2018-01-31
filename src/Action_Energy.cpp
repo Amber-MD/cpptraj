@@ -21,10 +21,10 @@ void Action_Energy::Help() const {
 /// DataSet aspects
 static const char* Estring[] = {"bond", "angle", "dih", "vdw14", "elec14", "vdw", "elec", "total"};
 
-/// Calculation types
+/// Calculation types (CalcType)
 static const char* Cstring[] = {"Bond", "Angle", "Torsion", "1-4 Nonbond", "Nonbond",
                                 "Electrostatics", "van der Waals", "Electrostatics (Direct Sum)",
-                                "Electrostatics (Ewald)" };
+                                "Electrostatics (Ewald)", "Electrostatics (PME)" };
 
 // Action_Energy::AddSet()
 int Action_Energy::AddSet(Etype typeIn, DataSetList& DslIn, DataFile* outfile,
@@ -89,6 +89,15 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         mlimits_[2] = mlim.getNextInteger(0);
       } else
         std::fill(mlimits_, mlimits_+3, 0);
+    } else if (etypearg == "pme") {
+      // Ewald method
+      etype_ = PME;
+      calc_elec = true;
+      cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
+      dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
+      rsumtol_ = actionArgs.getKeyDouble("rsumtol", 5E-5);
+      ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
+      skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
     } else if (etypearg == "simple") {
       // Simple method
       etype_ = SIMPLE;
@@ -111,6 +120,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       case SIMPLE:    Ecalcs_.push_back(COULOMB); break;
       case DIRECTSUM: Ecalcs_.push_back(DIRECT); break;
       case EW:        Ecalcs_.push_back(EWALD); break;
+      case PME:       Ecalcs_.push_back(PMEWALD); break;
     }
   }
   // If nothing is selected, select all.
@@ -147,6 +157,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       case COULOMB:
       case DIRECT:
       case EWALD:
+      case PMEWALD:
         if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR; break;
     }
   }
@@ -188,6 +199,17 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     else
       mprintf("\tNumber of reciprocal vectors in each direction= {%i,%i,%i}\n",
               mlimits_[0], mlimits_[1], mlimits_[2]);
+  } else if (etype_ = PME) {
+    mprintf("\tCalculating electrostatics with particle mesh Ewald method.\n");
+    mprintf("\tDirect space cutoff= %.4f\n", cutoff_);
+    if (dsumtol_ != 0.0)
+      mprintf("\tDirect sum tolerance= %g\n", dsumtol_);
+    if (rsumtol_ != 0.0)
+      mprintf("\tReciprocal sum tolerance= %g\n", rsumtol_);
+    if (ewcoeff_ == 0.0)
+      mprintf("\tWill determine Ewald coefficient from cutoff and direct sum tolerance.\n");
+    else
+      mprintf("\tEwald coefficient= %.4f\n", ewcoeff_);
   }
   return Action::OK;
 }
@@ -217,6 +239,11 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
                       ewcoeff_, maxexp_, skinnb_, 0.0, debug_, mlimits_))
       return Action::ERR;
     EW_.EwaldSetup( setup.Top(), Imask_ );
+  } else if (etype_ == PME) {
+    if (EW_.PME_Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
+                     ewcoeff_, skinnb_, 0.0, debug_))
+      return Action::ERR;
+    EW_.PME_Setup( setup.Top(), Imask_ );
   }
   currentParm_ = setup.TopAddress();
   return Action::OK;

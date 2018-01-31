@@ -3,6 +3,10 @@
 #include "Topology.h"
 #include "Timer.h"
 #include "PairList.h"
+#ifdef LIBPME
+#  include <memory> // unique_ptr (libpme_standalone.h)
+#  include "libpme_standalone.h"
+#endif
 /// Class for calculating electrostatics using Ewald summation.
 class Ewald {
   public:
@@ -14,6 +18,12 @@ class Ewald {
     void EwaldSetup(Topology const&, AtomMask const&);
     /// Calculate electrostatic energy via Ewald summation.
     double CalcEnergy(Frame const&, AtomMask const&);
+#   ifdef LIBPME
+    int PME_Init(Box const&, double, double, double, double, double, double, int);
+    void PME_Setup(Topology const&, AtomMask const&);
+    /// Calculate electrostatic energy via particle mesh Ewald
+    double CalcPmeEnergy(Frame const&, Topology const&, AtomMask const&);
+#   endif
     /// Report timings.
     void Timing(double) const;
 #   ifdef DEBUG_EWALD
@@ -35,17 +45,17 @@ class Ewald {
     void FillErfcTable(double,double);
     /// \return erfc value from erfc lookup table.
     inline double ERFC(double) const;
-    /// Based on given length return number of grid points that is power of 2, 3, or 5
-    static int ComputeNFFT(double);
-    /// Determine grid points for FFT in each dimension
-    int DetermineNfft(int&, int&, int&, Box const&) const;
     /// Ewald "self" energy
     double Self(double);
     /// Ewald reciprocal energy
     double Recip_Regular(Matrix_3x3 const&, double);
 #   ifdef LIBPME
+    /// Based on given length return number of grid points that is power of 2, 3, or 5
+    static int ComputeNFFT(double);
+    /// Determine grid points for FFT in each dimension
+    int DetermineNfft(int&, int&, int&, Box const&) const;
     /// Particle mesh Ewald reciprocal energy
-    double Recip_ParticleMesh(Frame const&);
+    double Recip_ParticleMesh(libpme::Mat<double> const&, libpme::Mat<double> const&, Box const&);
 #   endif
 #   ifdef DEBUG_EWALD
     /// Slow version of direct space energy, no pairlist.

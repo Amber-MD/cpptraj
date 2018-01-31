@@ -5,10 +5,6 @@
 #include "Constants.h"
 #include "StringRoutines.h"
 #include "Spline.h"
-#ifdef LIBPME
-#  include <memory> // unique_ptr (libpme_standalone.h)
-#  include "libpme_standalone.h"
-#endif
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -243,6 +239,7 @@ double Ewald::ERFC(double xIn) const {
          dx*(erfc_table_[xidx+1] + dx*(erfc_table_[xidx+2] + dx*erfc_table_[xidx+3]));
 }
 
+#ifdef LIBPME
 // -----------------------------------------------------------------------------
 /** \return true if given number is a product of powers of 2, 3, or 5. */
 static inline bool check_prime_factors(int nIn) {
@@ -313,6 +310,169 @@ int Ewald::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box const& boxIn) c
 
   return 0;
 }
+
+/** Set up PME parameters. */
+int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
+                    double ew_coeffIn, double skinnbIn, double erfcTableDxIn, int debugIn)
+{
+  debug_ = debugIn;
+  cutoff_ = cutoffIn;
+  dsumTol_ = dsumTolIn;
+  rsumTol_ = rsumTolIn; // FIXME needed?
+  ew_coeff_ = ew_coeffIn;
+  erfcTableDx_ = erfcTableDxIn;
+  Matrix_3x3 ucell, recip;
+  boxIn.ToRecip(ucell, recip);
+
+  // Check input
+  if (cutoff_ < Constants::SMALL) {
+    mprinterr("Error: Direct space cutoff (%g) is too small.\n", cutoff_);
+    return 1;
+  }
+  char dir[3] = {'X', 'Y', 'Z'};
+  for (int i = 0; i < 3; i++) {
+    if (cutoff_ > boxIn[i]/2.0) {
+      mprinterr("Error: Cutoff must be less than half the box length (%g > %g, %c)\n",
+                cutoff_, boxIn[i]/2.0, dir[i]);
+      return 1;
+    }
+  }
+  if (skinnbIn < 0.0) {
+    mprinterr("Error: skinnb is less than 0.0\n");
+    return 1;
+  }
+
+  // Set defaults if necessary
+  if (dsumTol_ < Constants::SMALL)
+    dsumTol_ = 1E-5;
+  if (rsumTol_ < Constants::SMALL)
+    rsumTol_ = 5E-5;
+  Vec3 recipLengths = boxIn.RecipLengths(recip);
+  if (DABS(ew_coeff_) < Constants::SMALL)
+    ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
+  if (erfcTableDx_ <= 0.0) erfcTableDx_ = 1.0 / 5000;
+  // TODO make this optional
+  FillErfcTable( cutoff_, ew_coeff_ );
+
+  mprintf("\tEwald params:\n");
+  mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g\n",
+          cutoff_, dsumTol_, ew_coeff_);
+  mprintf("\t               Recip. Sum Tol= %g   NB skin= %g\n", rsumTol_, skinnbIn);
+  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  // Set up pair list
+  if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;
+  if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
+
+  return 0;
+}
+
+/** Convert charges to Amber units. Calculate sum of charges and squared charges. */
+void Ewald::PME_Setup(Topology const& topIn, AtomMask const& maskIn) {
+  sumq_ = 0.0;
+  sumq2_ = 0.0;
+  Charge_.clear();
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
+    double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
+    Charge_.push_back(qi);
+    sumq_ += qi;
+    sumq2_ += (qi * qi);
+  }
+  //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
+  // Set up full exclusion lists.
+  Excluded_.clear();
+  Excluded_.resize( topIn.Natom() );
+  for (int at = 0; at != topIn.Natom(); at++) {
+    // Always exclude self
+    Excluded_[at].insert( at );
+    for (Atom::excluded_iterator excluded_atom = topIn[at].excludedbegin();
+                                 excluded_atom != topIn[at].excludedend();
+                               ++excluded_atom)
+    {
+      Excluded_[at            ].insert( *excluded_atom );
+      Excluded_[*excluded_atom].insert( at             );
+    }
+  }
+  unsigned int ex_size = 0;
+  for (Iarray2D::const_iterator it = Excluded_.begin(); it != Excluded_.end(); ++it)
+    ex_size += it->size();
+  mprintf("\tMemory used by full exclusion list: %s\n",
+          ByteString(ex_size * sizeof(int), BYTE_DECIMAL).c_str());
+}
+
+// Ewald::CalcPmeEnergy()
+double Ewald::CalcPmeEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
+{
+  t_total_.Start();
+  Matrix_3x3 ucell, recip;
+  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double e_self = Self( volume );
+
+  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+
+  // TODO make more efficient
+  // TODO these should be allocated elsewhere.
+  libpme::Mat<double> coordsD(maskIn.Nselected(), 3);
+  libpme::Mat<double> chargesD(maskIn.Nselected(), 1);
+  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm) {
+    const double* XYZ = frameIn.XYZ( *atm );
+    coordsD << XYZ[0];
+    coordsD << XYZ[1];
+    coordsD << XYZ[2];
+    chargesD << topIn[*atm].Charge();
+  }
+
+//  MapCoords(frameIn, ucell, recip, maskIn);
+  double e_recip = Recip_ParticleMesh( coordsD, chargesD, frameIn.BoxCrd() );
+  double e_adjust = 0.0;
+  double e_direct = Direct( pairList_, e_adjust );
+  if (debug_ > 0)
+    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
+            e_self, e_recip, e_direct, e_adjust);
+  t_total_.Stop();
+  return e_self + e_recip + e_direct + e_adjust;
+}
+
+// Ewald::Recip_ParticleMesh()
+double Ewald::Recip_ParticleMesh(libpme::Mat<double> const& coordsD,
+                                 libpme::Mat<double> const& chargesD, Box const& boxIn)
+{
+  t_recip_.Start();
+  // Dummy for forces  
+  libpme::Mat<double> forcesD(chargesD.size(), 3);
+  forcesD.setZero();
+  int nfft1 = -1;
+  int nfft2 = -1;
+  int nfft3 = -1;
+  if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
+    mprinterr("Error: Could not determine grid spacing.\n");
+    return 0.0;
+  }
+  // Instantiate double precision PME object
+  // Args: 1 = Exponent of the distance kernel: 1 for Coulomb
+  //       2 = Kappa
+  //       3 = Spline order
+  //       4 = nfft1
+  //       5 = nfft2
+  //       6 = nfft3
+  //       7 = scale factor to be applied to all computed energies and derivatives thereof
+  //       8 = number of nodes used for the rec space PME calculation.
+  //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
+  // NOTE: Charmm is 332.0716
+  static const double efac = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
+  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, 6, nfft1, nfft2, nfft3, efac, 1, 0)); 
+  // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
+  // Args: 1 = the A lattice parameter in units consistent with the coordinates.
+  //       2 = the B lattice parameter in units consistent with the coordinates.
+  //       3 = the C lattice parameter in units consistent with the coordinates.
+  //       4 = the alpha lattice parameter in degrees.
+  //       5 = the beta lattice parameter in degrees.
+  //       6 = the gamma lattice parameter in degrees.
+  pme_object->setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(), boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma());
+  double erecip = pme_object->computeEFRec(0, chargesD, coordsD, forcesD);
+  t_recip_.Stop();
+  return erecip;
+}
+#endif
 
 // -----------------------------------------------------------------------------
 /** Set up parameters. */
@@ -655,48 +815,6 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   t_recip_.Stop();
   return ene * 0.5;
 }
-
-#ifdef LIBPME
-double Ewald::Recip_ParticleMesh(Frame const& frmIn) {
-  t_recip_.Start();
-  libpme::Mat<double> coordsD(6, 3);
-  //coordsD << 2.0, 2.0, 2.0, 2.5, 2.0, 3.0, 1.5, 2.0, 3.0, 0.0, 0.0, 0.0, 0.5, 0.0, 1.0, -0.5, 0.0, 1.0;
-  libpme::Mat<double> chargesD(6, 1);
-  //chargesD << -0.834, 0.417, 0.417, -0.834, 0.417, 0.417;
-  libpme::Mat<double> forcesD(6, 3);
-  forcesD.setZero();
-  int nfft1 = -1;
-  int nfft2 = -1;
-  int nfft3 = -1;
-  if ( DetermineNfft(nfft1, nfft2, nfft3, frmIn.BoxCrd()) ) {
-    mprinterr("Error: Could not determine grid spacing.\n");
-    return 0.0;
-  }
-  // Instantiate double precision PME object
-  // Args: 1 = Exponent of the distance kernel: 1 for Coulomb
-  //       2 = Kappa
-  //       3 = Spline order
-  //       4 = nfft1
-  //       5 = nfft2
-  //       6 = nfft3
-  //       7 = scale factor to be applied to all computed energies and derivatives thereof
-  //       8 = number of nodes used for the rec space PME calculation.
-  //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
-  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, 6, nfft1, nfft2, nfft3, 332.0716, 1, 0)); 
-  // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
-  // Args: 1 = the A lattice parameter in units consistent with the coordinates.
-  //       2 = the B lattice parameter in units consistent with the coordinates.
-  //       3 = the C lattice parameter in units consistent with the coordinates.
-  //       4 = the alpha lattice parameter in degrees.
-  //       5 = the beta lattice parameter in degrees.
-  //       6 = the gamma lattice parameter in degrees.
-  Box const& box = frmIn.BoxCrd();
-  pme_object->setLatticeVectors(box.BoxX(), box.BoxY(), box.BoxZ(), box.Alpha(), box.Beta(), box.Gamma());
-  double erecip = pme_object->computeEFRec(0, chargesD, coordsD, forcesD);
-  t_recip_.Stop();
-  return erecip;
-}
-#endif
 
 // Ewald::Adjust()
 # ifdef _OPENMP

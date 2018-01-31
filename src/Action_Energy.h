@@ -21,9 +21,9 @@ class Action_Energy: public Action {
     /// For debugging the direct sum convergence
     double Dbg_Direct(Frame const&,int);
     /// Corresponds to calculations.
-    enum CalcType { BND, ANG, DIH, N14, NBD, LJ, COULOMB, DIRECT, EWALD };
+    enum CalcType { BND, ANG, DIH, N14, NBD, LJ, COULOMB, DIRECT, EWALD, PMEWALD };
     /// Corresponds to type of electrostatics.
-    enum ElecType { SIMPLE, DIRECTSUM, EW };
+    enum ElecType { SIMPLE, DIRECTSUM, EW, PME };
 
     ElecType etype_;               ///< Type of electrostatics calc.
     std::vector<DataSet*> Energy_; ///< Hold output data sets
