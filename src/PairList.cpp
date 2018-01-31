@@ -95,8 +95,10 @@ void PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
   int i2 = (int)((frac[1]) * (double)nGridY_);
   int i3 = (int)((frac[2]) * (double)nGridZ_);
   int idx = (i3*nGridX_*nGridY_)+(i2*nGridX_)+i1;
-  //mprintf("GRID2 atom assigned to cell %6i%6i%10.5f%10.5f%10.5f\n",
-  //        atomIdx+1, idx+1, frac[0], frac[1], frac[2]);
+# ifdef DEBUG_PAIRLIST
+  mprintf("GRID2 atom assigned to cell %6i%6i%10.5f%10.5f%10.5f\n",
+          atomIdx+1, idx+1, frac[0], frac[1], frac[2]);
+# endif
   if (idx < 0 || idx >= (int)cells_.size()) { // Sanity check
     mprinterr("Internal Error: Grid %i is out of range (>= %zu || < 0)\n",
               idx, cells_.size());
@@ -125,6 +127,10 @@ void PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
       Vec3 fc( XYZ[0]*recip[0],    XYZ[1]*recip[4],    XYZ[2]*recip[8]   );
       Vec3 fcw(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2]));
       Vec3 ccw(fcw[0]*ucell[0],    fcw[1]*ucell[4],    fcw[2]*ucell[8]   );
+#     ifdef DEBUG_PAIRLIST
+      mprintf("DBG: o %6i fc=%7.3f%7.3f%7.3f  fcw=%7.3f%7.3f%7.3f  ccw=%7.3f%7.3f%7.3f\n",
+              *atom+1, fc[0], fc[1], fc[2], fcw[0], fcw[1], fcw[2], ccw[0], ccw[1], ccw[2]);
+#     endif
       GridAtom( atom-maskIn.begin(), fcw, ccw );
     }
   } else {
@@ -134,6 +140,10 @@ void PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
       Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
       Vec3 fcw(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2]));
       Vec3 ccw = ucell.TransposeMult( fcw );
+#     ifdef DEBUG_PAIRLIST
+      mprintf("DBG: n %6i fc=%7.3f%7.3f%7.3f  fcw=%7.3f%7.3f%7.3f  ccw=%7.3f%7.3f%7.3f\n",
+              *atom+1, fc[0], fc[1], fc[2], fcw[0], fcw[1], fcw[2], ccw[0], ccw[1], ccw[2]);
+#     endif
       GridAtom( atom-maskIn.begin(), fcw, ccw );
     }
   }

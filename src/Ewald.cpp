@@ -8,6 +8,9 @@
 #ifdef _OPENMP
 # include <omp.h>
 #endif
+#ifdef DEBUG_PAIRLIST
+#incl ude "PDBfile.h"
+#endif
 
 Ewald::Ewald() :
   sumq_(0.0),
@@ -362,6 +365,21 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn, double 
   // Set up pair list
   if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;
   if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
+# ifdef DEBUG_PAIRLIST
+  // Write grid PDB
+  PDBfile gridpdb;
+  gridpdb.OpenWrite("gridpoints.pdb");
+  for (int iz = 0; iz != pairList_.NZ(); iz++)
+    for (int iy = 0; iy != pairList_.NY(); iy++)
+      for (int ix = 0; ix != pairList_.NX(); ix++) {
+        double fx = (double)ix / (double)pairList_.NX();
+        double fy = (double)iy / (double)pairList_.NY();
+        double fz = (double)iz / (double)pairList_.NZ();
+        Vec3 cart = ucell.TransposeMult( Vec3(fx,fy,fz) );
+        gridpdb.WriteHET(1, cart[0], cart[1], cart[2]);
+      }
+  gridpdb.CloseFile();
+#endif
 
   return 0;
 }
@@ -869,6 +887,9 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
       {
         Vec3 const& xyz0 = it0->ImageCoords();
         double q0 = Charge_[it0->Idx()];
+#       ifdef DEBUG_PAIRLIST
+        mprintf("DBG: Cell %6i (%6i atoms):\n", cidx+1, thisCell.NatomsInGrid());
+#       endif
         // Exclusion list for this atom
         Iset const& excluded = Excluded_[it0->Idx()];
         // Calc interaction of atom to all other atoms in thisCell.
@@ -879,6 +900,9 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
           double q1 = Charge_[it1->Idx()];
           Vec3 dxyz = xyz1 - xyz0;
           double rij2 = dxyz.Magnitude2();
+#         ifdef DEBUG_PAIRLIST
+          mprintf("\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
+#         endif
           // If atom excluded, calc adjustment, otherwise calc elec. energy.
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
@@ -910,6 +934,9 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
         for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
         {
           PairList::CellType const& nbrCell = PL.Cell( cellList[nidx] );
+#         ifdef DEBUG_PAIRLIST
+          if (nbrCell.NatomsInGrid()>0) mprintf("\tto neighbor cell %6i\n", cellList[nidx]+1);
+#         endif
           // Translate vector for neighbor cell
           Vec3 const& tVec = PL.TransVec( transList[nidx] );
           //mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
@@ -921,6 +948,9 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
             double q1 = Charge_[it1->Idx()];
             Vec3 dxyz = xyz1 + tVec - xyz0;
             double rij2 = dxyz.Magnitude2();
+#           ifdef DEBUG_PAIRLIST
+            mprintf("\t\tAtom %6i to atom %6i (%f)\n", it0->Idx()+1, it1->Idx()+1, sqrt(rij2));
+#           endif
             //mprintf("\t\tNbrAtom %06i\n",atnum1);
             // If atom excluded, calc adjustment, otherwise calc elec. energy.
             // TODO Is there better way of checking this?

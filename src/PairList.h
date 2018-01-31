@@ -42,6 +42,11 @@ class PairList {
     Vec3 const& TransVec(int t)    const { return translateVec_[t];  }
     /// \return Array containing wrapped fractional coords.
     Varray const& FracCoords()     const { return Frac_;  }
+#   ifdef DEBUG_PAIRLIST
+    int NX() const { return nGridX_; }
+    int NY() const { return nGridY_; }
+    int NZ() const { return nGridZ_; }
+#   endif
   private:
     /// Determine neighbors and translation vectors for each cell.
     void CalcGridPointers(int,int);
