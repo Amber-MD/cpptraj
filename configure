@@ -205,9 +205,9 @@ LIB_D_ON[$LLAPACK]=''
 LIB_DOFF[$LLAPACK]=''
 LIB_TYPE[$LLAPACK]='cpp'
 
-LIB_STAT[$LARPACK]='enabled'
+LIB_STAT[$LARPACK]='bundled'
 LIB_CKEY[$LARPACK]='arpack'
-LIB_HOME[$LARPACK]=''
+LIB_HOME[$LARPACK]='arpack'
 LIB_FLAG[$LARPACK]='-larpack'
 LIB_STTC[$LARPACK]='libarpack.a'
 LIB_D_ON[$LARPACK]=''
@@ -888,6 +888,7 @@ SetupCompilers() {
   # Set compiler flags
   CXXFLAGS="$DBFLAG $warnflag $ompflag $optflags $noinlineflag $picflag $commonflags $CXXFLAGS"
   CFLAGS="$DBFLAG $warnflag $ompflag $optflags $picflag $commonflags $CFLAGS"
+  F77FLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $commonflags $FFLAGS"
   FFLAGS="$DBFLAG $fwarnflag $ompflag $foptflags $picflag $freefmtflag $commonflags $FFLAGS"
   LDFLAGS="$LDFLAGS $ompflag $staticflag $staticlink"
   # DEBUG
@@ -1326,6 +1327,7 @@ while [ ! -z "$1" ] ; do
     'CXXFLAGS'   ) CXXFLAGS="$VALUE" ;;
     'CFLAGS'     ) CFLAGS="$VALUE" ;;
     'FFLAGS'     ) FFLAGS="$VALUE" ;;
+    'F77FLAGS'   ) F77FLAGS="$VALUE" ;;
     'LDFLAGS'    ) LDFLAGS="$VALUE" ;;
     'DBGFLAGS'   ) DBGFLAGS="$VALUE" ;;
     # Build options
@@ -1537,6 +1539,12 @@ if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
 else
   XDRFILE_TARGET='noxdrfile'
 fi
+# Arpack
+if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
+  ARPACK_TARGET=${LIB_FLAG[$LARPACK]}
+else
+  ARPACK_TARGET='noarpack'
+fi
 # FFT
 if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
   FFT_TARGET='pub_fft.o'
@@ -1571,6 +1579,7 @@ FC=$FC
 CFLAGS=$CFLAGS \$(DBGFLAGS)
 CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
 FFLAGS=$FFLAGS \$(DBGFLAGS)
+F77FLAGS=$F77FLAGS \$(DBGFLAGS)
 SHARED_SUFFIX=$SHARED_SUFFIX
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
@@ -1582,6 +1591,8 @@ CUDA_TARGET=$CUDA_TARGET
 READLINE_TARGET=$READLINE_TARGET
 
 XDRFILE_TARGET=$XDRFILE_TARGET
+
+ARPACK_TARGET=$ARPACK_TARGET
 
 FFT_TARGET=$FFT_TARGET
 

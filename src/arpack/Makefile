@@ -13,7 +13,7 @@ ARPACKLIB= ivout.o dvout.o dgetv0.o dlaqrb.o dnaitr.o dnapps.o \
 dnaup2.o dnaupd.o dnconv.o dneigh.o dmout.o \
 dneupd.o dngets.o dsaitr.o dsapps.o dsaup2.o \
 dsaupd.o dsconv.o dseigt.o dsesrt.o dseupd.o \
-dsgets.o dsortc.o dsortr.o dstatn.o dstats.o dstqrb.o 
+dsgets.o dsortc.o dsortr.o dstatn.o dstats.o dstqrb.o second.o
 
 SARPACKLIB= svout.o sgetv0.o slaqrb.o snaitr.o snapps.o \
 snaup2.o snaupd.o snconv.o sneigh.o smout.o \

@@ -21,7 +21,7 @@ install: $(INSTALL_TARGETS)
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
 	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # AmbPDB -------------------------------
@@ -38,7 +38,7 @@ ambpdb$(EXE): $(AMBPDB_OBJECTS) $(XDRFILE_TARGET)
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(XDRFILE_TARGET)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
 	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 nolibcpptraj:
@@ -61,6 +61,9 @@ readline/libreadline.a: readline/Makefile
 xdrfile/libxdrfile.a: xdrfile/Makefile
 	cd xdrfile && $(MAKE) all
 
+arpack/libarpack.a: arpack/Makefile
+	cd arpack && $(MAKE) install
+
 noreadline:
 	@echo ""
 	@echo "Skipping bundled READLINE build"
@@ -69,6 +72,11 @@ noreadline:
 noxdrfile:
 	@echo ""
 	@echo "Skipping bundled XDRFILE build"
+	@echo ""
+
+noarpack:
+	@echo ""
+	@echo "Skipping bundled ARPACK build"
 	@echo ""
 
 cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)
@@ -89,6 +97,7 @@ clean:
 	/bin/rm -f $(OBJECTS) $(FFT_TARGET) cpptraj$(SFX) AmbPDB.o ambpdb *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
 	cd readline && $(MAKE) clean
 	cd xdrfile && $(MAKE) clean
+	cd arpack && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
 
 uninstall:
