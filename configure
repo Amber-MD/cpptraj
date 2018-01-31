@@ -709,7 +709,7 @@ SetupCompilers() {
   # If still no compiler default to gnu
   if [ -z "$COMPILERS" ] ; then
     # On OSX sometimes gnu means clang
-    if [ ! -z "`g++ --version | grep LLVM`" ] ; then
+    if [ "$PLATFORM" = 'Darwin' -a ! -z "`g++ --version | grep LLVM`" ] ; then
       echo "No compilers specified; defaulting to Apple clang (gnu)"
       COMPILERS='clang'
     else
