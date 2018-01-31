@@ -26,7 +26,7 @@ $(LIBDIR)/libarpack.a: $(ARPACKLIB)
 	$(RANLIB) libarpack.a
 
 clean:
-	-/bin/rm -f *.o _*.f libarpack.a
+	-/bin/rm -f *.o _*.f *__genmod.* libarpack.a
 
 uninstall:
 	-rm -f $(LIBDIR)/libarpack.a
