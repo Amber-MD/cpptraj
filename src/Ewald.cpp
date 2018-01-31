@@ -309,7 +309,7 @@ int Ewald::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box const& boxIn) c
     mprinterr("Error: Bad NFFT values: %i %i %i\n", nfft1, nfft2, nfft3);
     return 1;
   }
-  mprintf("DEBUG: NFFTs: %i %i %i\n", nfft1, nfft2, nfft3);
+  if (debug_ > 1) mprintf("DEBUG: NFFTs: %i %i %i\n", nfft1, nfft2, nfft3);
 
   return 0;
 }
