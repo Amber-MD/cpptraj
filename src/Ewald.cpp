@@ -315,14 +315,13 @@ int Ewald::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box const& boxIn) c
 }
 
 /** Set up PME parameters. */
-int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
+int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
                     double ew_coeffIn, double skinnbIn, double erfcTableDxIn, 
                     int debugIn, const int* nfftIn)
 {
   debug_ = debugIn;
   cutoff_ = cutoffIn;
   dsumTol_ = dsumTolIn;
-  rsumTol_ = rsumTolIn; // FIXME needed?
   ew_coeff_ = ew_coeffIn;
   erfcTableDx_ = erfcTableDxIn;
   Matrix_3x3 ucell, recip;
@@ -352,8 +351,6 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn, double 
   // Set defaults if necessary
   if (dsumTol_ < Constants::SMALL)
     dsumTol_ = 1E-5;
-  if (rsumTol_ < Constants::SMALL)
-    rsumTol_ = 5E-5;
   Vec3 recipLengths = boxIn.RecipLengths(recip);
   if (DABS(ew_coeff_) < Constants::SMALL)
     ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
@@ -362,9 +359,8 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn, double 
   FillErfcTable( cutoff_, ew_coeff_ );
 
   mprintf("\tEwald params:\n");
-  mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g\n",
-          cutoff_, dsumTol_, ew_coeff_);
-  mprintf("\t               Recip. Sum Tol= %g   NB skin= %g\n", rsumTol_, skinnbIn);
+  mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g  NB skin= %g\n",
+          cutoff_, dsumTol_, ew_coeff_, skinnbIn);
   mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  NFFT1=%i NFFT2=%i NFFT3=%i\n", mlimit_[0], mlimit_[1], mlimit_[2]); 
   // Set up pair list

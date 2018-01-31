@@ -95,7 +95,6 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       calc_elec = true;
       cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
       dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
-      rsumtol_ = actionArgs.getKeyDouble("rsumtol", 5E-5);
       ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
       skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
       std::string marg = actionArgs.GetStringKey("nfft");
@@ -252,7 +251,7 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
       return Action::ERR;
     EW_.EwaldSetup( setup.Top(), Imask_ );
   } else if (etype_ == PME) {
-    if (EW_.PME_Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
+    if (EW_.PME_Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
                      ewcoeff_, skinnb_, 0.0, debug_, mlimits_))
       return Action::ERR;
     EW_.PME_Setup( setup.Top(), Imask_ );
