@@ -606,7 +606,7 @@ double Ewald::Recip_ParticleMesh(Frame const& frmIn) {
   //       7 = scale factor to be applied to all computed energies and derivatives thereof
   //       8 = number of nodes used for the rec space PME calculation.
   //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
-  auto pme_object = std::unique_ptr<PMEinstanceD>(new PMEInstanceD(1, ew_coeff_, 6, nfft1_, nfft2_, nfft3_, 332.0716, 1, 0)); 
+  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, 6, nfft1_, nfft2_, nfft3_, 332.0716, 1, 0)); 
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
@@ -615,8 +615,8 @@ double Ewald::Recip_ParticleMesh(Frame const& frmIn) {
   //       5 = the beta lattice parameter in degrees.
   //       6 = the gamma lattice parameter in degrees.
   Box const& box = frmIn.BoxCrd();
-  pme->setLatticeVectors(box.X(), box.Y(), box.Z(), box.Alpha(), box.Beta(), box.Gamma());
-  double erecip = pme->computeEFRec(0, chargesD, coordsD, forcesD);
+  pme_object->setLatticeVectors(box.BoxX(), box.BoxY(), box.BoxZ(), box.Alpha(), box.Beta(), box.Gamma());
+  double erecip = pme_object->computeEFRec(0, chargesD, coordsD, forcesD);
   return erecip;
 }
 #endif
