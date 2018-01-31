@@ -587,6 +587,7 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
 
 #ifdef LIBPME
 double Ewald::Recip_ParticleMesh(Frame const& frmIn) {
+  t_recip_.Start();
   libpme::Mat<double> coordsD(6, 3);
   //coordsD << 2.0, 2.0, 2.0, 2.5, 2.0, 3.0, 1.5, 2.0, 3.0, 0.0, 0.0, 0.0, 0.5, 0.0, 1.0, -0.5, 0.0, 1.0;
   libpme::Mat<double> chargesD(6, 1);
@@ -617,6 +618,7 @@ double Ewald::Recip_ParticleMesh(Frame const& frmIn) {
   Box const& box = frmIn.BoxCrd();
   pme_object->setLatticeVectors(box.BoxX(), box.BoxY(), box.BoxZ(), box.Alpha(), box.Beta(), box.Gamma());
   double erecip = pme_object->computeEFRec(0, chargesD, coordsD, forcesD);
+  t_recip_.Stop();
   return erecip;
 }
 #endif
