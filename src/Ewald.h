@@ -19,7 +19,7 @@ class Ewald {
     /// Calculate electrostatic energy via Ewald summation.
     double CalcEnergy(Frame const&, AtomMask const&);
 #   ifdef LIBPME
-    int PME_Init(Box const&, double, double, double, double, double, int, const int*);
+    int PME_Init(Box const&, double, double, double, double, double, int, int, const int*);
     void PME_Setup(Topology const&, AtomMask const&);
     /// Calculate electrostatic energy via particle mesh Ewald
     double CalcPmeEnergy(Frame const&, Topology const&, AtomMask const&);
@@ -107,8 +107,8 @@ class Ewald {
     double rsumTol_;      ///< Reciprocal space sum tolerance.
     double erfcTableDx_;  ///< Spacing of X values in Erfc table.
     double one_over_Dx_;  ///< One over erfcTableDx_.
-    int mlimit_[3];       ///< Number of units in each direction to calc recip. sum.
-    int maxmlim_;         ///< The max of the three mlimit_ values.
+    int mlimit_[3];       ///< Number of units in each direction to calc recip. sum. / nfft
+    int maxmlim_;         ///< The max of the three mlimit_ values. / pme spline order
     int debug_;
     Timer t_total_;
     Timer t_self_;

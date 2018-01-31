@@ -317,7 +317,7 @@ int Ewald::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box const& boxIn) c
 /** Set up PME parameters. */
 int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
                     double ew_coeffIn, double skinnbIn, double erfcTableDxIn, 
-                    int debugIn, const int* nfftIn)
+                    int orderIn, int debugIn, const int* nfftIn)
 {
   debug_ = debugIn;
   cutoff_ = cutoffIn;
@@ -329,6 +329,7 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
   mlimit_[0] = nfftIn[0];
   mlimit_[1] = nfftIn[1];
   mlimit_[2] = nfftIn[2];
+  maxmlim_ = orderIn;
 
   // Check input
   if (cutoff_ < Constants::SMALL) {
@@ -349,6 +350,7 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
   }
 
   // Set defaults if necessary
+  if (maxmlim_ < 1) maxmlim_ = 6;
   if (dsumTol_ < Constants::SMALL)
     dsumTol_ = 1E-5;
   Vec3 recipLengths = boxIn.RecipLengths(recip);
@@ -361,6 +363,7 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
   mprintf("\tEwald params:\n");
   mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g  NB skin= %g\n",
           cutoff_, dsumTol_, ew_coeff_, skinnbIn);
+  mprintf("\t  Bspline order= %i\n", maxmlim_);
   mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  NFFT1=%i NFFT2=%i NFFT3=%i\n", mlimit_[0], mlimit_[1], mlimit_[2]); 
   // Set up pair list
@@ -479,7 +482,7 @@ double Ewald::Recip_ParticleMesh(libpme::Mat<double> const& coordsD,
   //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
   // NOTE: Charmm is 332.0716
   static const double efac = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, 6, nfft1, nfft2, nfft3, efac, 1, 0)); 
+  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, maxmlim_, nfft1, nfft2, nfft3, efac, 1, 0)); 
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
