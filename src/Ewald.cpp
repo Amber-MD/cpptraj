@@ -316,7 +316,8 @@ int Ewald::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box const& boxIn) c
 
 /** Set up PME parameters. */
 int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
-                    double ew_coeffIn, double skinnbIn, double erfcTableDxIn, int debugIn)
+                    double ew_coeffIn, double skinnbIn, double erfcTableDxIn, 
+                    int debugIn, const int* nfftIn)
 {
   debug_ = debugIn;
   cutoff_ = cutoffIn;
@@ -326,6 +327,9 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn, double 
   erfcTableDx_ = erfcTableDxIn;
   Matrix_3x3 ucell, recip;
   boxIn.ToRecip(ucell, recip);
+  mlimit_[0] = nfftIn[0];
+  mlimit_[1] = nfftIn[1];
+  mlimit_[2] = nfftIn[2];
 
   // Check input
   if (cutoff_ < Constants::SMALL) {
@@ -362,6 +366,7 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn, double 
           cutoff_, dsumTol_, ew_coeff_);
   mprintf("\t               Recip. Sum Tol= %g   NB skin= %g\n", rsumTol_, skinnbIn);
   mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  mprintf("\t  NFFT1=%i NFFT2=%i NFFT3=%i\n", mlimit_[0], mlimit_[1], mlimit_[2]); 
   // Set up pair list
   if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;
   if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
@@ -459,9 +464,9 @@ double Ewald::Recip_ParticleMesh(libpme::Mat<double> const& coordsD,
   // Dummy for forces  
   libpme::Mat<double> forcesD(chargesD.size(), 3);
   forcesD.setZero();
-  int nfft1 = -1;
-  int nfft2 = -1;
-  int nfft3 = -1;
+  int nfft1 = mlimit_[0];
+  int nfft2 = mlimit_[1];
+  int nfft3 = mlimit_[2];
   if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
     mprinterr("Error: Could not determine grid spacing.\n");
     return 0.0;

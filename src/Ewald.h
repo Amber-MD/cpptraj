@@ -19,7 +19,7 @@ class Ewald {
     /// Calculate electrostatic energy via Ewald summation.
     double CalcEnergy(Frame const&, AtomMask const&);
 #   ifdef LIBPME
-    int PME_Init(Box const&, double, double, double, double, double, double, int);
+    int PME_Init(Box const&, double, double, double, double, double, double, int, const int*);
     void PME_Setup(Topology const&, AtomMask const&);
     /// Calculate electrostatic energy via particle mesh Ewald
     double CalcPmeEnergy(Frame const&, Topology const&, AtomMask const&);

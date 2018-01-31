@@ -90,7 +90,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       } else
         std::fill(mlimits_, mlimits_+3, 0);
     } else if (etypearg == "pme") {
-      // Ewald method
+      // particle mesh Ewald method
       etype_ = PME;
       calc_elec = true;
       cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
@@ -98,6 +98,18 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       rsumtol_ = actionArgs.getKeyDouble("rsumtol", 5E-5);
       ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
       skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
+      std::string marg = actionArgs.GetStringKey("nfft");
+      if (!marg.empty()) {
+        ArgList mlim(marg, ",");
+        if (mlim.Nargs() != 3) {
+          mprinterr("Error: Need 3 integers in comma-separated list for 'nfft'\n");
+          return Action::ERR;
+        }
+        mlimits_[0] = mlim.getNextInteger(0);
+        mlimits_[1] = mlim.getNextInteger(0);
+        mlimits_[2] = mlim.getNextInteger(0);
+      } else
+        std::fill(mlimits_, mlimits_+3, -1);
     } else if (etypearg == "simple") {
       // Simple method
       etype_ = SIMPLE;
@@ -241,7 +253,7 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     EW_.EwaldSetup( setup.Top(), Imask_ );
   } else if (etype_ == PME) {
     if (EW_.PME_Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
-                     ewcoeff_, skinnb_, 0.0, debug_))
+                     ewcoeff_, skinnb_, 0.0, debug_, mlimits_))
       return Action::ERR;
     EW_.PME_Setup( setup.Top(), Imask_ );
   }
