@@ -35,6 +35,10 @@ class Ewald {
     void FillErfcTable(double,double);
     /// \return erfc value from erfc lookup table.
     inline double ERFC(double) const;
+    /// Based on given length return number of grid points that is power of 2, 3, or 5
+    static int ComputeNFFT(double);
+    /// Determine grid points for FFT in each dimension
+    int DetermineNfft(int&, int&, int&, Box const&) const;
     /// Ewald "self" energy
     double Self(double);
     /// Ewald reciprocal energy

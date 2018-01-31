@@ -244,6 +244,77 @@ double Ewald::ERFC(double xIn) const {
 }
 
 // -----------------------------------------------------------------------------
+/** \return true if given number is a product of powers of 2, 3, or 5. */
+static inline bool check_prime_factors(int nIn) {
+  if (nIn == 1) return true;
+  int NL = nIn;
+  int NQ;
+  // First divide down by 2
+  while (NL > 0) {
+    NQ = NL / 2;
+    if (NQ * 2 != NL) break;
+    if (NQ == 1) return true;
+    NL = NQ;
+  }
+  // Next try 3
+  while (NL > 0) {
+    NQ = NL / 3;
+    if (NQ * 3 != NL) break;
+    if (NQ == 1) return true;
+    NL = NQ;
+  }
+  // Last try 5
+  while (NL > 0) {
+    NQ = NL / 5;
+    if (NQ * 5 != NL) break;
+    if (NQ == 1) return true;
+    NL = NQ;
+  }
+  return false;
+}
+
+/** Compute the ceiling of len that is also a product of powers of 2, 3, 5.
+  * Use check_prime_factors to get the smallest integer greater or equal
+  * than len which is decomposable into powers of 2, 3, 5.
+  */
+int Ewald::ComputeNFFT(double len) {
+  int mval = (int)len - 1;
+  for (int i = 0; i < 100; i++) {
+    mval += 1;
+    // Sanity check
+    if (mval < 1) {
+      mprinterr("Error: Bad box length %g, cannot get NFFT value.\n", len);
+      return 0;
+    }
+    if (check_prime_factors(mval))
+      return mval;
+  }
+  mprinterr("Error: Failed to get good FFT array size for length %g Ang.\n", len);
+  return 0;
+}
+
+/** Given a box, determine number of FFT grid points in each dimension. */
+int Ewald::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box const& boxIn) const {
+   if (nfft1 < 1) {
+    // Need even dimension for X direction
+    nfft1 = ComputeNFFT( (boxIn.BoxX() + 1.0) * 0.5 );
+    nfft1 *= 2;
+  }
+  if (nfft2 < 1)
+    nfft2 = ComputeNFFT( boxIn.BoxY() );
+  if (nfft3 < 1)
+    nfft3 = ComputeNFFT( boxIn.BoxZ() );
+
+  if (nfft1 < 1 || nfft2 < 1 || nfft3 < 1) {
+    mprinterr("Error: Bad NFFT values: %i %i %i\n", nfft1, nfft2, nfft3);
+    return 1;
+  }
+  mprintf("DEBUG: NFFTs: %i %i %i\n", nfft1, nfft2, nfft3);
+
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 /** Set up parameters. */
 int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
                      double ew_coeffIn, double maxexpIn, double skinnbIn,
@@ -594,9 +665,13 @@ double Ewald::Recip_ParticleMesh(Frame const& frmIn) {
   //chargesD << -0.834, 0.417, 0.417, -0.834, 0.417, 0.417;
   libpme::Mat<double> forcesD(6, 3);
   forcesD.setZero();
-  int nfft1_ = 2;
-  int nfft2_ = 2;
-  int nfft3_ = 2;
+  int nfft1 = -1;
+  int nfft2 = -1;
+  int nfft3 = -1;
+  if ( DetermineNfft(nfft1, nfft2, nfft3, frmIn.BoxCrd()) ) {
+    mprinterr("Error: Could not determine grid spacing.\n");
+    return 0.0;
+  }
   // Instantiate double precision PME object
   // Args: 1 = Exponent of the distance kernel: 1 for Coulomb
   //       2 = Kappa
@@ -607,7 +682,7 @@ double Ewald::Recip_ParticleMesh(Frame const& frmIn) {
   //       7 = scale factor to be applied to all computed energies and derivatives thereof
   //       8 = number of nodes used for the rec space PME calculation.
   //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
-  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, 6, nfft1_, nfft2_, nfft3_, 332.0716, 1, 0)); 
+  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, 6, nfft1, nfft2, nfft3, 332.0716, 1, 0)); 
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
