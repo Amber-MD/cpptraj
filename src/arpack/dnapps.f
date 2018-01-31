@@ -237,7 +237,7 @@ c     | Initialize timing statistics  |
 c     | & message level for debugging |
 c     %-------------------------------%
 c
-      call second (t0)
+      call arsecond (t0)
       msglvl = mnapps
       kplusp = kev + np 
 c 
@@ -635,7 +635,7 @@ c
       end if
 c 
  9000 continue
-      call second (t1)
+      call arsecond (t1)
       tnapps = tnapps + (t1 - t0)
 c 
       return

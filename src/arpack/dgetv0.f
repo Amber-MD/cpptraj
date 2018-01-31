@@ -214,7 +214,7 @@ c        | Initialize timing statistics  |
 c        | & message level for debugging |
 c        %-------------------------------%
 c
-         call second (t0)
+         call arsecond (t0)
          msglvl = mgetv0
 c 
          ierr   = 0
@@ -241,7 +241,7 @@ c        | Force the starting vector into the range of OP to handle |
 c        | the generalized problem when B is possibly (singular).   |
 c        %----------------------------------------------------------%
 c
-         call second (t2)
+         call arsecond (t2)
          if (bmat .eq. 'G') then
             nopx = nopx + 1
             ipntr(1) = 1
@@ -265,7 +265,7 @@ c
       if (orth)  go to 40
 c 
       if (bmat .eq. 'G') then
-         call second (t3)
+         call arsecond (t3)
          tmvopx = tmvopx + (t3 - t2)
       end if
 c 
@@ -274,7 +274,7 @@ c     | Starting vector is now in the range of OP; r = OP*r; |
 c     | Compute B-norm of starting vector.                   |
 c     %------------------------------------------------------%
 c
-      call second (t2)
+      call arsecond (t2)
       first = .TRUE.
       if (bmat .eq. 'G') then
          nbx = nbx + 1
@@ -290,7 +290,7 @@ c
    20 continue
 c
       if (bmat .eq. 'G') then
-         call second (t3)
+         call arsecond (t3)
          tmvbx = tmvbx + (t3 - t2)
       end if
 c 
@@ -333,7 +333,7 @@ c     %----------------------------------------------------------%
 c     | Compute the B-norm of the orthogonalized starting vector |
 c     %----------------------------------------------------------%
 c
-      call second (t2)
+      call arsecond (t2)
       if (bmat .eq. 'G') then
          nbx = nbx + 1
          call dcopy (n, resid, 1, workd(n+1), 1)
@@ -348,7 +348,7 @@ c
    40 continue
 c
       if (bmat .eq. 'G') then
-         call second (t3)
+         call arsecond (t3)
          tmvbx = tmvbx + (t3 - t2)
       end if
 c 
@@ -406,7 +406,7 @@ c
       end if
       ido = 99
 c 
-      call second (t1)
+      call arsecond (t1)
       tgetv0 = tgetv0 + (t1 - t0)
 c 
  9000 continue

@@ -119,7 +119,7 @@ c     |                                                             |
 c     | for some appropriate choice of norm.                        |
 c     %-------------------------------------------------------------%
 c
-      call second (t0)
+      call arsecond (t0)
 c
 c     %---------------------------------%
 c     | Get machine dependent constant. |
@@ -134,7 +134,7 @@ c
          if (bounds(i) .le. tol*temp)   nconv = nconv + 1
    20 continue
 c 
-      call second (t1)
+      call arsecond (t1)
       tnconv = tnconv + (t1 - t0)
 c 
       return

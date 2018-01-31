@@ -1,4 +1,4 @@
-      SUBROUTINE SECOND( T )
+      SUBROUTINE ARSECOND( T )
 *
       REAL       T
 *
@@ -10,7 +10,7 @@
 *  Purpose
 *  =======
 *
-*  SECOND returns the user time for a process in seconds.
+*  ARSECOND returns the user time for a process in seconds.
 *  This version gets the time from the system function ETIME.
 *
 *     .. Local Scalars ..
@@ -21,7 +21,7 @@
 *     ..
 *     .. External Functions ..
       REAL               ETIME
-      EXTERNAL           ETIME
+*      EXTERNAL           ETIME
 *     ..
 *     .. Executable Statements ..
 *
@@ -31,6 +31,6 @@
 
       RETURN
 *
-*     End of SECOND
+*     End of ARSECOND
 *
       END

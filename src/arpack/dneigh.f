@@ -170,7 +170,7 @@ c     | Initialize timing statistics  |
 c     | & message level for debugging |
 c     %-------------------------------%
 c
-      call second (t0)
+      call arsecond (t0)
       msglvl = mneigh
 c 
       if (msglvl .gt. 2) then
@@ -301,7 +301,7 @@ c
      &              '_neigh: Ritz estimates for the eigenvalues of H')
       end if
 c
-      call second (t1)
+      call arsecond (t1)
       tneigh = tneigh + (t1 - t0)
 c
  9000 continue

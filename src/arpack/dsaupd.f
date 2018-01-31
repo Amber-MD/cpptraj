@@ -478,7 +478,7 @@ c        | & message level for debugging |
 c        %-------------------------------%
 c
          call dstats 
-         call second (t0)
+         call arsecond (t0)
          msglvl = msaupd
 c
          ierr   = 0
@@ -638,7 +638,7 @@ c
      &               '_saupd: corresponding error bounds')
       end if 
 c
-      call second (t1)
+      call arsecond (t1)
       tsaupd = t1 - t0
 c 
       if (msglvl .gt. 0) then

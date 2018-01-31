@@ -258,7 +258,7 @@ c     %-----------------------%
 c
       if (ido .eq. 0) then
 c 
-         call second (t0)
+         call arsecond (t0)
 c 
          msglvl = mnaup2
 c 
@@ -758,7 +758,7 @@ c        | the first step of the next call to dnaitr.  |
 c        %---------------------------------------------%
 c
          cnorm = .true.
-         call second (t2)
+         call arsecond (t2)
          if (bmat .eq. 'G') then
             nbx = nbx + 1
             call dcopy (n, resid, 1, workd(n+1), 1)
@@ -783,7 +783,7 @@ c        | WORKD(1:N) := B*RESID            |
 c        %----------------------------------%
 c
          if (bmat .eq. 'G') then
-            call second (t3)
+            call arsecond (t3)
             tmvbx = tmvbx + (t3 - t2)
          end if
 c 
@@ -822,7 +822,7 @@ c     %------------%
 c     | Error Exit |
 c     %------------%
 c
-      call second (t1)
+      call arsecond (t1)
       tnaup2 = t1 - t0
 c     
  9000 continue

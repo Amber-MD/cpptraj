@@ -138,7 +138,7 @@ c     | Initialize timing statistics  |
 c     | & message level for debugging |
 c     %-------------------------------% 
 c
-      call second (t0)
+      call arsecond (t0)
       msglvl = mseigt
 c
       if (msglvl .gt. 0) then
@@ -168,7 +168,7 @@ c
          bounds(k) = rnorm*abs(bounds(k))
    30 continue
 c 
-      call second (t1)
+      call arsecond (t1)
       tseigt = tseigt + (t1 - t0)
 c
  9000 continue

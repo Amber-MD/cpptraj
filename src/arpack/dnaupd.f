@@ -476,7 +476,7 @@ c        | & message level for debugging |
 c        %-------------------------------%
 c
          call dstatn
-         call second (t0)
+         call arsecond (t0)
          msglvl = mnaupd
 c
 c        %----------------%
@@ -640,7 +640,7 @@ c
      &               '_naupd: Associated Ritz estimates')
       end if
 c
-      call second (t1)
+      call arsecond (t1)
       tnaupd = t1 - t0
 c
       if (msglvl .gt. 0) then

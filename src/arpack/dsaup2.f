@@ -262,7 +262,7 @@ c        | Initialize timing statistics  |
 c        | & message level for debugging |
 c        %-------------------------------%
 c
-         call second (t0)
+         call arsecond (t0)
          msglvl = msaup2
 c
 c        %---------------------------------%
@@ -770,7 +770,7 @@ c        | the first step of the next call to dsaitr.  |
 c        %---------------------------------------------%
 c
          cnorm = .true.
-         call second (t2)
+         call arsecond (t2)
          if (bmat .eq. 'G') then
             nbx = nbx + 1
             call dcopy (n, resid, 1, workd(n+1), 1)
@@ -795,7 +795,7 @@ c        | WORKD(1:N) := B*RESID            |
 c        %----------------------------------%
 c
          if (bmat .eq. 'G') then
-            call second (t3)
+            call arsecond (t3)
             tmvbx = tmvbx + (t3 - t2)
          end if
 c 
@@ -837,7 +837,7 @@ c     %------------%
 c     | Error exit |
 c     %------------%
 c
-      call second (t1)
+      call arsecond (t1)
       tsaup2 = t1 - t0
 c 
  9000 continue
