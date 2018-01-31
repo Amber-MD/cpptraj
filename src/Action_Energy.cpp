@@ -199,7 +199,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     else
       mprintf("\tNumber of reciprocal vectors in each direction= {%i,%i,%i}\n",
               mlimits_[0], mlimits_[1], mlimits_[2]);
-  } else if (etype_ = PME) {
+  } else if (etype_ == PME) {
     mprintf("\tCalculating electrostatics with particle mesh Ewald method.\n");
     mprintf("\tDirect space cutoff= %.4f\n", cutoff_);
     if (dsumtol_ != 0.0)
