@@ -11,52 +11,36 @@
 class Ewald {
   public:
     Ewald();
-    /// Initialize Ewald parameters.
-    int EwaldInit(Box const&, double, double, double, double, double, double,
-                  double, int, const int*);
-    /// Set up for given topology and mask.
-    void EwaldSetup(Topology const&, AtomMask const&);
-    /// Calculate electrostatic energy via Ewald summation.
-    double CalcEnergy(Frame const&, AtomMask const&);
-#   ifdef LIBPME
-    int PME_Init(Box const&, double, double, double, double, double, int, int, const int*);
-    void PME_Setup(Topology const&, AtomMask const&);
-    /// Calculate electrostatic energy via particle mesh Ewald
-    double CalcPmeEnergy(Frame const&, Topology const&, AtomMask const&);
-#   endif
+    // ----- Virtual functions -------------------
+    virtual ~Ewald() {}
+    virtual int Setup(Topology const&, AtomMask const&) = 0;
+    virtual double CalcEnergy(Frame const&, AtomMask const&) = 0; // TODO const?
+    // -------------------------------------------
     /// Report timings.
     void Timing(double) const;
 #   ifdef DEBUG_EWALD
     /// Slow non-pairlist version of energy calc. For debug only.
     double CalcEnergy_NoPairList(Frame const&, Topology const&, AtomMask const&);
 #   endif
-  private:
+  protected:
+    static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
     /// Complimentary error function, erfc.
     static double erfc_func(double);
     /// Determine Ewald coefficient from cutoff and direct sum tolerance.
     static double FindEwaldCoefficient(double,double);
-    /// Determine max length for reciprocal calcs based on reciprocal limits
-    static double FindMaxexpFromMlim(const int*, Matrix_3x3 const&);
-    /// Determine max length for reciprocal calcs based on Ewald coefficient and recip tol.
-    static double FindMaxexpFromTol(double, double);
-    /// Determine reciprocal limits based on unit cell reciprocal vectors
-    static void GetMlimits(int*, double, double, Vec3 const&, Matrix_3x3 const&);
+
     /// Fill erfc lookup table using cubic spline interpolation.
     void FillErfcTable(double,double);
     /// \return erfc value from erfc lookup table.
     inline double ERFC(double) const;
     /// Ewald "self" energy
     double Self(double);
-    /// Ewald reciprocal energy
-    double Recip_Regular(Matrix_3x3 const&, double);
-#   ifdef LIBPME
-    /// Based on given length return number of grid points that is power of 2, 3, or 5
-    static int ComputeNFFT(double);
-    /// Determine grid points for FFT in each dimension
-    int DetermineNfft(int&, int&, int&, Box const&) const;
-    /// Particle mesh Ewald reciprocal energy
-    double Recip_ParticleMesh(libpme::Mat<double> const&, libpme::Mat<double> const&, Box const&);
-#   endif
+
+    int CheckInput(Box const&, int, double, double, double, double, double);
+    int Setup_Pairlist(Box const&, Vec3 const&, double);
+    void CalculateCharges(Topology const&, AtomMask const&);
+    void SetupExcluded(Topology const&); // TODO fix for atom mask
+
 #   ifdef DEBUG_EWALD
     /// Slow version of direct space energy, no pairlist.
     double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
@@ -69,6 +53,8 @@ class Ewald {
 #   else
     inline double Adjust(double,double,double); // Cannot be const bc timers
 #   endif
+
+    // TODO make variables private
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;
     typedef std::set<int> Iset;
@@ -77,38 +63,18 @@ class Ewald {
     Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
 #   endif
     Darray Charge_; ///< Hold atomic charges converted to Amber units.
-    // Hold trig tables
-    Darray cosf1_;
-    Darray cosf2_;
-    Darray cosf3_;
-    Darray sinf1_;
-    Darray sinf2_;
-    Darray sinf3_;
-    Darray c12_;
-    Darray s12_;
-    Darray c3_;
-    Darray s3_;
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each atom.
-#   ifdef _OPENMP
-    typedef std::vector<int> Iarray;
-    Iarray mlim1_;        ///< Hold m1 reciprocal indices
-    Iarray mlim2_;        ///< Hold m2 reciprocal indices
-    int multCut_;         ///< Hold index after which multiplier should be 2.0.
-#   endif
+
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges
     double sumq2_;        ///< Sum of charges squared
     double ew_coeff_;     ///< Ewald coefficient
-    double maxexp_;       ///< Determines how far out recip vectors go? FIXME check!
     double cutoff_;       ///< Direct space cutoff
     double dsumTol_;      ///< Direct space sum tolerance.
-    double rsumTol_;      ///< Reciprocal space sum tolerance.
     double erfcTableDx_;  ///< Spacing of X values in Erfc table.
     double one_over_Dx_;  ///< One over erfcTableDx_.
-    int mlimit_[3];       ///< Number of units in each direction to calc recip. sum. / nfft
-    int maxmlim_;         ///< The max of the three mlimit_ values. / pme spline order
     int debug_;
     Timer t_total_;
     Timer t_self_;

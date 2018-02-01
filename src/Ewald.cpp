@@ -1,33 +1,25 @@
-#include <cmath>
+#include <cmath> //sqrt
 #include <algorithm> // std::min, std::max
 #include "Ewald.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
-#include "StringRoutines.h"
+#include "StringRoutines.h" // ByteString
 #include "Spline.h"
-#ifdef _OPENMP
-# include <omp.h>
-#endif
 #ifdef DEBUG_PAIRLIST
 #incl ude "PDBfile.h"
 #endif
 
+/// CONSTRUCTOR
 Ewald::Ewald() :
   sumq_(0.0),
   sumq2_(0.0),
   ew_coeff_(0.0),
-  maxexp_(0.0),
   cutoff_(0.0),
   dsumTol_(0.0),
-  rsumTol_(0.0),
   erfcTableDx_(0.0),
   one_over_Dx_(0.0),
-  maxmlim_(0),
   debug_(0)
 {
-  mlimit_[0] = 0;
-  mlimit_[1] = 0;
-  mlimit_[2] = 0;
 # ifdef DEBUG_EWALD
   // Save fractional translations for 1 cell in each direction (and primary cell).
   // This is only for the non-pairlist version of direct.
@@ -40,9 +32,6 @@ Ewald::Ewald() :
 }
 
 const double Ewald::INVSQRTPI_ = 1.0 / sqrt(Constants::PI);
-
-static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
-static inline int    IABS(int    xIn) { if (xIn < 0  ) return -xIn; else return xIn; }
 
 /** Complimentary error function: 2/sqrt(PI) * SUM[exp(-t^2)*dt]
   * Original code: SANDER: erfcfun.F90
@@ -96,112 +85,6 @@ double Ewald::erfc_func(double xIn) {
   return erfc;
 }
 
-/** Determine Ewald coefficient from cutoff and direct sum tolerance.
-  * Original Code: SANDER: findewaldcof
-  */
-double Ewald::FindEwaldCoefficient(double cutoff, double dsum_tol)
-{
-  // First get direct sum tolerance. How big must the Ewald coefficient be to
-  // get terms outside the cutoff below tolerance?
-  double xval = 0.5;
-  int nloop = 0;
-  double term = 0.0;
-  do {
-    xval = 2.0 * xval;
-    nloop++;
-    double yval = xval * cutoff;
-    term = erfc_func(yval) / cutoff;
-  } while (term >= dsum_tol);
-
-  // Binary search tolerance is 2^-50
-  int ntimes = nloop + 50;
-  double xlo = 0.0;
-  double xhi = xval;
-  for (int i = 0; i != ntimes; i++) {
-    xval = (xlo + xhi) / 2.0;
-    double yval = xval * cutoff;
-    double term = erfc_func(yval) / cutoff;
-    if (term >= dsum_tol)
-      xlo = xval;
-    else
-      xhi = xval;
-  }
-  mprintf("\tEwald coefficient for cut=%g, direct sum tol=%g is %g\n",
-          cutoff, dsum_tol, xval);
-  return xval;
-}
-
-/** \return maxexp value based on mlimits */
-double Ewald::FindMaxexpFromMlim(const int* mlimit, Matrix_3x3 const& recip) {
-  double maxexp = DABS( (double)mlimit[0] * recip[0] );
-  double z2     = DABS( (double)mlimit[1] * recip[4] );
-  maxexp = std::max(maxexp, z2);
-  double z3     = DABS( (double)mlimit[2] * recip[8] );
-  maxexp = std::max(maxexp, z3);
-  return maxexp;
-}
-
-/** \return maxexp value based on Ewald coefficient and reciprocal sum tolerance. */
-double Ewald::FindMaxexpFromTol(double ewCoeff, double rsumTol) {
-  double xval = 0.5;
-  int nloop = 0;
-  double term = 0.0;
-  do {
-    xval = 2.0 * xval;
-    nloop++;
-    double yval = Constants::PI * xval / ewCoeff;
-    term = 2.0 * ewCoeff * erfc_func(yval) * INVSQRTPI_;
-  } while (term >= rsumTol);
-
-  // Binary search tolerance is 2^-60
-  int ntimes = nloop + 60;
-  double xlo = 0.0;
-  double xhi = xval;
-  for (int i = 0; i != ntimes; i++) {
-    xval = (xlo + xhi) / 2.0;
-    double yval = Constants::PI * xval / ewCoeff;
-    double term = 2.0 * ewCoeff * erfc_func(yval) * INVSQRTPI_;
-    if (term > rsumTol)
-      xlo = xval;
-    else
-      xhi = xval;
-  }
-  mprintf("\tMaxExp for Ewald coefficient %g, direct sum tol %g is %g\n",
-          ewCoeff, rsumTol, xval);
-  return xval;
-}
-
-/** Get mlimits. */
-void Ewald::GetMlimits(int* mlimit, double maxexp, double eigmin, 
-                       Vec3 const& reclng, Matrix_3x3 const& recip)
-{
-  //mprintf("DEBUG: Recip lengths %12.4f%12.4f%12.4f\n", reclng[0], reclng[1], reclng[2]);
-
-  int mtop1 = (int)(reclng[0] * maxexp / sqrt(eigmin));
-  int mtop2 = (int)(reclng[1] * maxexp / sqrt(eigmin));
-  int mtop3 = (int)(reclng[2] * maxexp / sqrt(eigmin));
-
-  int nrecvecs = 0;
-  mlimit[0] = 0;
-  mlimit[1] = 0;
-  mlimit[2] = 0;
-  double maxexp2 = maxexp * maxexp;
-  for (int m1 = -mtop1; m1 <= mtop1; m1++) {
-    for (int m2 = -mtop2; m2 <= mtop2; m2++) {
-      for (int m3 = -mtop3; m3 <= mtop3; m3++) {
-        Vec3 Zvec = recip.TransposeMult( Vec3(m1,m2,m3) );
-        if ( Zvec.Magnitude2() <= maxexp2 ) {
-          nrecvecs++;
-          mlimit[0] = std::max( mlimit[0], IABS(m1) );
-          mlimit[1] = std::max( mlimit[1], IABS(m2) );
-          mlimit[2] = std::max( mlimit[2], IABS(m3) );
-        }
-      }
-    }
-  }
-  mprintf("\tNumber of reciprocal vectors: %i\n", nrecvecs);
-}
-
 // Ewald::FillErfcTable()
 void Ewald::FillErfcTable(double cutoffIn, double dxdr) {
   one_over_Dx_ = 1.0 / erfcTableDx_;
@@ -242,95 +125,86 @@ double Ewald::ERFC(double xIn) const {
          dx*(erfc_table_[xidx+1] + dx*(erfc_table_[xidx+2] + dx*erfc_table_[xidx+3]));
 }
 
-#ifdef LIBPME
-// -----------------------------------------------------------------------------
-/** \return true if given number is a product of powers of 2, 3, or 5. */
-static inline bool check_prime_factors(int nIn) {
-  if (nIn == 1) return true;
-  int NL = nIn;
-  int NQ;
-  // First divide down by 2
-  while (NL > 0) {
-    NQ = NL / 2;
-    if (NQ * 2 != NL) break;
-    if (NQ == 1) return true;
-    NL = NQ;
-  }
-  // Next try 3
-  while (NL > 0) {
-    NQ = NL / 3;
-    if (NQ * 3 != NL) break;
-    if (NQ == 1) return true;
-    NL = NQ;
-  }
-  // Last try 5
-  while (NL > 0) {
-    NQ = NL / 5;
-    if (NQ * 5 != NL) break;
-    if (NQ == 1) return true;
-    NL = NQ;
-  }
-  return false;
-}
-
-/** Compute the ceiling of len that is also a product of powers of 2, 3, 5.
-  * Use check_prime_factors to get the smallest integer greater or equal
-  * than len which is decomposable into powers of 2, 3, 5.
+/** Determine Ewald coefficient from cutoff and direct sum tolerance.
+  * Original Code: SANDER: findewaldcof
   */
-int Ewald::ComputeNFFT(double len) {
-  int mval = (int)len - 1;
-  for (int i = 0; i < 100; i++) {
-    mval += 1;
-    // Sanity check
-    if (mval < 1) {
-      mprinterr("Error: Bad box length %g, cannot get NFFT value.\n", len);
-      return 0;
+double Ewald::FindEwaldCoefficient(double cutoff, double dsum_tol)
+{
+  // First get direct sum tolerance. How big must the Ewald coefficient be to
+  // get terms outside the cutoff below tolerance?
+  double xval = 0.5;
+  int nloop = 0;
+  double term = 0.0;
+  do {
+    xval = 2.0 * xval;
+    nloop++;
+    double yval = xval * cutoff;
+    term = erfc_func(yval) / cutoff;
+  } while (term >= dsum_tol);
+
+  // Binary search tolerance is 2^-50
+  int ntimes = nloop + 50;
+  double xlo = 0.0;
+  double xhi = xval;
+  for (int i = 0; i != ntimes; i++) {
+    xval = (xlo + xhi) / 2.0;
+    double yval = xval * cutoff;
+    double term = erfc_func(yval) / cutoff;
+    if (term >= dsum_tol)
+      xlo = xval;
+    else
+      xhi = xval;
+  }
+  mprintf("\tEwald coefficient for cut=%g, direct sum tol=%g is %g\n",
+          cutoff, dsum_tol, xval);
+  return xval;
+}
+
+/** Convert charges to Amber units. Calculate sum of charges and squared charges. */
+void Ewald::CalculateCharges(Topology const& topIn, AtomMask const& maskIn) {
+  sumq_ = 0.0;
+  sumq2_ = 0.0;
+  Charge_.clear();
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
+    double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
+    Charge_.push_back(qi);
+    sumq_ += qi;
+    sumq2_ += (qi * qi);
+  }
+  //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
+}
+
+/** Set up full exclusion lists. */
+void Ewald::SetupExcluded(Topology const& topIn) {
+  Excluded_.clear();
+  Excluded_.resize( topIn.Natom() );
+  for (int at = 0; at != topIn.Natom(); at++) {
+    // Always exclude self
+    Excluded_[at].insert( at );
+    for (Atom::excluded_iterator excluded_atom = topIn[at].excludedbegin();
+                                 excluded_atom != topIn[at].excludedend();
+                               ++excluded_atom)
+    {
+      Excluded_[at            ].insert( *excluded_atom );
+      Excluded_[*excluded_atom].insert( at             );
     }
-    if (check_prime_factors(mval))
-      return mval;
   }
-  mprinterr("Error: Failed to get good FFT array size for length %g Ang.\n", len);
-  return 0;
+  unsigned int ex_size = 0;
+  for (Iarray2D::const_iterator it = Excluded_.begin(); it != Excluded_.end(); ++it)
+    ex_size += it->size();
+  mprintf("\tMemory used by full exclusion list: %s\n",
+          ByteString(ex_size * sizeof(int), BYTE_DECIMAL).c_str());
 }
 
-/** Given a box, determine number of FFT grid points in each dimension. */
-int Ewald::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box const& boxIn) const {
-   if (nfft1 < 1) {
-    // Need even dimension for X direction
-    nfft1 = ComputeNFFT( (boxIn.BoxX() + 1.0) * 0.5 );
-    nfft1 *= 2;
-  }
-  if (nfft2 < 1)
-    nfft2 = ComputeNFFT( boxIn.BoxY() );
-  if (nfft3 < 1)
-    nfft3 = ComputeNFFT( boxIn.BoxZ() );
-
-  if (nfft1 < 1 || nfft2 < 1 || nfft3 < 1) {
-    mprinterr("Error: Bad NFFT values: %i %i %i\n", nfft1, nfft2, nfft3);
-    return 1;
-  }
-  if (debug_ > 0) mprintf("DEBUG: NFFTs: %i %i %i\n", nfft1, nfft2, nfft3);
-
-  return 0;
-}
-
-/** Set up PME parameters. */
-int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
-                    double ew_coeffIn, double skinnbIn, double erfcTableDxIn, 
-                    int orderIn, int debugIn, const int* nfftIn)
+/** Check some common input. */
+int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsumTolIn,
+                      double ew_coeffIn, double erfcTableDxIn, double skinnbIn)
 {
   debug_ = debugIn;
   cutoff_ = cutoffIn;
   dsumTol_ = dsumTolIn;
   ew_coeff_ = ew_coeffIn;
   erfcTableDx_ = erfcTableDxIn;
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
-  mlimit_[0] = nfftIn[0];
-  mlimit_[1] = nfftIn[1];
-  mlimit_[2] = nfftIn[2];
-  maxmlim_ = orderIn;
-
   // Check input
   if (cutoff_ < Constants::SMALL) {
     mprinterr("Error: Direct space cutoff (%g) is too small.\n", cutoff_);
@@ -350,24 +224,20 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
   }
 
   // Set defaults if necessary
-  if (maxmlim_ < 1) maxmlim_ = 6;
   if (dsumTol_ < Constants::SMALL)
     dsumTol_ = 1E-5;
-  Vec3 recipLengths = boxIn.RecipLengths(recip);
   if (DABS(ew_coeff_) < Constants::SMALL)
     ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
   if (erfcTableDx_ <= 0.0) erfcTableDx_ = 1.0 / 5000;
   // TODO make this optional
   FillErfcTable( cutoff_, ew_coeff_ );
 
-  mprintf("\tEwald params:\n");
-  mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g  NB skin= %g\n",
-          cutoff_, dsumTol_, ew_coeff_, skinnbIn);
-  mprintf("\t  Bspline order= %i\n", maxmlim_);
-  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
-  mprintf("\t  NFFT1=%i NFFT2=%i NFFT3=%i\n", mlimit_[0], mlimit_[1], mlimit_[2]); 
-  // Set up pair list
-  if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;
+  return 0;
+}
+
+/** Initialize and set up pairlist. */
+int Ewald::Setup_Pairlist(Box const& boxIn, Vec3 const& recipLengths, double skinnbIn) {
+  if (pairList_.InitPairList(cutoff_, skinnbIn, debug_)) return 1;
   if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
 # ifdef DEBUG_PAIRLIST
   // Write grid PDB
@@ -383,295 +253,8 @@ int Ewald::PME_Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
         gridpdb.WriteHET(1, cart[0], cart[1], cart[2]);
       }
   gridpdb.CloseFile();
-#endif
-
-  return 0;
-}
-
-/** Convert charges to Amber units. Calculate sum of charges and squared charges. */
-void Ewald::PME_Setup(Topology const& topIn, AtomMask const& maskIn) {
-  sumq_ = 0.0;
-  sumq2_ = 0.0;
-  Charge_.clear();
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
-    double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
-    Charge_.push_back(qi);
-    sumq_ += qi;
-    sumq2_ += (qi * qi);
-  }
-  //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
-  // Set up full exclusion lists.
-  Excluded_.clear();
-  Excluded_.resize( topIn.Natom() );
-  for (int at = 0; at != topIn.Natom(); at++) {
-    // Always exclude self
-    Excluded_[at].insert( at );
-    for (Atom::excluded_iterator excluded_atom = topIn[at].excludedbegin();
-                                 excluded_atom != topIn[at].excludedend();
-                               ++excluded_atom)
-    {
-      Excluded_[at            ].insert( *excluded_atom );
-      Excluded_[*excluded_atom].insert( at             );
-    }
-  }
-  unsigned int ex_size = 0;
-  for (Iarray2D::const_iterator it = Excluded_.begin(); it != Excluded_.end(); ++it)
-    ex_size += it->size();
-  mprintf("\tMemory used by full exclusion list: %s\n",
-          ByteString(ex_size * sizeof(int), BYTE_DECIMAL).c_str());
-}
-
-// Ewald::CalcPmeEnergy()
-double Ewald::CalcPmeEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
-{
-  t_total_.Start();
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
-  double e_self = Self( volume );
-
-  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
-
-  // TODO make more efficient
-  // TODO these should be allocated elsewhere.
-  libpme::Mat<double> coordsD(maskIn.Nselected(), 3);
-  libpme::Mat<double> chargesD(maskIn.Nselected(), 1);
-  int idx = 0;
-  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm, ++idx) {
-    const double* XYZ = frameIn.XYZ( *atm );
-    coordsD(idx, 0) = XYZ[0];
-    coordsD(idx, 1) = XYZ[1];
-    coordsD(idx, 2) = XYZ[2];
-    chargesD(idx)   = topIn[*atm].Charge();
-  }
-
-//  MapCoords(frameIn, ucell, recip, maskIn);
-  double e_recip = Recip_ParticleMesh( coordsD, chargesD, frameIn.BoxCrd() );
-  double e_adjust = 0.0;
-  double e_direct = Direct( pairList_, e_adjust );
-  if (debug_ > 0)
-    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
-            e_self, e_recip, e_direct, e_adjust);
-  t_total_.Stop();
-  return e_self + e_recip + e_direct + e_adjust;
-}
-
-// Ewald::Recip_ParticleMesh()
-double Ewald::Recip_ParticleMesh(libpme::Mat<double> const& coordsD,
-                                 libpme::Mat<double> const& chargesD, Box const& boxIn)
-{
-  t_recip_.Start();
-  // Dummy for forces  
-  libpme::Mat<double> forcesD(chargesD.size(), 3);
-  forcesD.setZero();
-  int nfft1 = mlimit_[0];
-  int nfft2 = mlimit_[1];
-  int nfft3 = mlimit_[2];
-  if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
-    mprinterr("Error: Could not determine grid spacing.\n");
-    return 0.0;
-  }
-  // Instantiate double precision PME object
-  // Args: 1 = Exponent of the distance kernel: 1 for Coulomb
-  //       2 = Kappa
-  //       3 = Spline order
-  //       4 = nfft1
-  //       5 = nfft2
-  //       6 = nfft3
-  //       7 = scale factor to be applied to all computed energies and derivatives thereof
-  //       8 = number of nodes used for the rec space PME calculation.
-  //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
-  // NOTE: Charmm is 332.0716
-  static const double efac = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, maxmlim_, nfft1, nfft2, nfft3, efac, 1, 0)); 
-  // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
-  // Args: 1 = the A lattice parameter in units consistent with the coordinates.
-  //       2 = the B lattice parameter in units consistent with the coordinates.
-  //       3 = the C lattice parameter in units consistent with the coordinates.
-  //       4 = the alpha lattice parameter in degrees.
-  //       5 = the beta lattice parameter in degrees.
-  //       6 = the gamma lattice parameter in degrees.
-  pme_object->setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(), boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma());
-  double erecip = pme_object->computeEFRec(0, chargesD, coordsD, forcesD);
-  t_recip_.Stop();
-  return erecip;
-}
-#endif
-
-// -----------------------------------------------------------------------------
-/** Set up parameters. */
-int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
-                     double ew_coeffIn, double maxexpIn, double skinnbIn,
-                     double erfcTableDxIn, int debugIn, const int* mlimitsIn)
-{
-  debug_ = debugIn;
-  cutoff_ = cutoffIn;
-  dsumTol_ = dsumTolIn;
-  rsumTol_ = rsumTolIn;
-  ew_coeff_ = ew_coeffIn;
-  maxexp_ = maxexpIn;
-  erfcTableDx_ = erfcTableDxIn;
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
-  if (mlimitsIn != 0)
-    std::copy(mlimitsIn, mlimitsIn+3, mlimit_);
-
-  // Check input
-  if (cutoff_ < Constants::SMALL) {
-    mprinterr("Error: Direct space cutoff (%g) is too small.\n", cutoff_);
-    return 1;
-  }
-  char dir[3] = {'X', 'Y', 'Z'};
-  for (int i = 0; i < 3; i++) {
-    if (cutoff_ > boxIn[i]/2.0) {
-      mprinterr("Error: Cutoff must be less than half the box length (%g > %g, %c)\n",
-                cutoff_, boxIn[i]/2.0, dir[i]);
-      return 1;
-    }
-  }
-  if (mlimit_[0] < 0 || mlimit_[1] < 0 || mlimit_[2] < 0) {
-    mprinterr("Error: Cannot specify negative mlimit values.\n");
-    return 1;
-  }
-  maxmlim_ = mlimit_[0];
-  maxmlim_ = std::max(maxmlim_, mlimit_[1]);
-  maxmlim_ = std::max(maxmlim_, mlimit_[2]);
-  if (maxexp_ < 0.0) {
-    mprinterr("Error: maxexp is less than 0.0\n");
-    return 1;
-  }
-  if (skinnbIn < 0.0) {
-    mprinterr("Error: skinnb is less than 0.0\n");
-    return 1;
-  }
-
-  // Set defaults if necessary
-  if (dsumTol_ < Constants::SMALL)
-    dsumTol_ = 1E-5;
-  if (rsumTol_ < Constants::SMALL)
-    rsumTol_ = 5E-5;
-  Vec3 recipLengths = boxIn.RecipLengths(recip);
-  if (DABS(ew_coeff_) < Constants::SMALL)
-    ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
-  if (maxmlim_ > 0)
-    maxexp_ = FindMaxexpFromMlim(mlimit_, recip);
-  else {
-    if ( maxexp_ < Constants::SMALL )
-      maxexp_ = FindMaxexpFromTol(ew_coeff_, rsumTol_);
-    // eigmin typically bigger than this unless cell is badly distorted.
-    double eigmin = 0.5;
-    // Calculate lengths of reciprocal vectors
-    GetMlimits(mlimit_, maxexp_, eigmin, recipLengths, recip);
-    maxmlim_ = mlimit_[0];
-    maxmlim_ = std::max(maxmlim_, mlimit_[1]);
-    maxmlim_ = std::max(maxmlim_, mlimit_[2]);
-  }
-  if (erfcTableDx_ <= 0.0) erfcTableDx_ = 1.0 / 5000;
-  // TODO make this optional
-  FillErfcTable( cutoff_, ew_coeff_ );
-
-  mprintf("\tEwald params:\n");
-  mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g\n",
-          cutoff_, dsumTol_, ew_coeff_);
-  mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g   NB skin= %g\n",
-          maxexp_, rsumTol_, skinnbIn);
-  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
-  mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
-  // Set up pair list
-  if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;
-  if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
-
-  return 0;
-}
-
-/** Convert charges to Amber units. Calculate sum of charges and squared charges. */
-void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
-  sumq_ = 0.0;
-  sumq2_ = 0.0;
-  Charge_.clear();
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
-    double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
-    Charge_.push_back(qi);
-    sumq_ += qi;
-    sumq2_ += (qi * qi);
-  }
-  //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
-  // Build exponential factors for use in structure factors.
-  // These arrays are laid out in 1D; value for each atom at each m, i.e.
-  // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
-  // Number of M values is the max + 1.
-  int mmax = maxmlim_ + 1;
-  unsigned int tsize = maskIn.Nselected() * mmax;
-  cosf1_.assign( tsize, 1.0 );
-  cosf2_.assign( tsize, 1.0 );
-  cosf3_.assign( tsize, 1.0 );
-  sinf1_.assign( tsize, 0.0 );
-  sinf2_.assign( tsize, 0.0 );
-  sinf3_.assign( tsize, 0.0 );
-  mprintf("\tMemory used by trig tables: %s\n",
-          ByteString(6*tsize*sizeof(double), BYTE_DECIMAL).c_str());
-  // M0
-//  for (int i = 0; i != maskIn.Nselected(); i++) {
-//    cosf1_.push_back( 1.0 );
-//    cosf2_.push_back( 1.0 );
-//    cosf3_.push_back( 1.0 );
-//    sinf1_.push_back( 0.0 );
-//    sinf2_.push_back( 0.0 );
-//    sinf3_.push_back( 0.0 );
-// }
-  // Set up full exclusion lists.
-  Excluded_.clear();
-  Excluded_.resize( topIn.Natom() );
-  for (int at = 0; at != topIn.Natom(); at++) {
-    // Always exclude self
-    Excluded_[at].insert( at );
-    for (Atom::excluded_iterator excluded_atom = topIn[at].excludedbegin();
-                                 excluded_atom != topIn[at].excludedend();
-                               ++excluded_atom)
-    {
-      Excluded_[at            ].insert( *excluded_atom );
-      Excluded_[*excluded_atom].insert( at             );
-    }
-  }
-  unsigned int ex_size = 0;
-  for (Iarray2D::const_iterator it = Excluded_.begin(); it != Excluded_.end(); ++it)
-    ex_size += it->size();
-  mprintf("\tMemory used by full exclusion list: %s\n",
-          ByteString(ex_size * sizeof(int), BYTE_DECIMAL).c_str());
-# ifdef _OPENMP
-  // Pre-calculate m1 and m2 indices
-  mlim1_.clear();
-  mlim2_.clear();
-  multCut_ = 0;
-  for (int m1 = 0; m1 <= mlimit_[0]; m1++) {
-    for (int m2 = -mlimit_[1]; m2 <= mlimit_[1]; m2++) {
-      mlim1_.push_back( m1 );
-      mlim2_.push_back( m2 );
-    }
-    // After this index (end of m1 == 0) multiplier must be 2.0
-    if (m1 == 0)
-      multCut_ = (int)mlim1_.size();
-  }
-  // Each thread will need its own space for trig math
-  int numthreads;
-# pragma omp parallel
-  {
-#   pragma omp master
-    {
-      numthreads = omp_get_num_threads();
-      mprintf("\tParallelizing calculation with %i threads\n", numthreads);
-    }
-  }
-  unsigned int asize = (unsigned int)maskIn.Nselected() * (unsigned int)numthreads;
-  c12_.resize( asize );
-  s12_.resize( asize );
-  c3_.resize(  asize );
-  s3_.resize(  asize );
-#else
-  c12_.resize( maskIn.Nselected() );
-  s12_.resize( maskIn.Nselected() );
-  c3_.resize(  maskIn.Nselected() );
-  s3_.resize(  maskIn.Nselected() );
 # endif
+  return 0;
 }
 
 /** Self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
@@ -685,158 +268,6 @@ double Ewald::Self(double volume) {
   ene += ee_plasma;
   t_self_.Stop();
   return ene;
-}
-
-/** Reciprocal space energy counteracting the neutralizing charge distribution. */
-double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
-  t_recip_.Start();
-  double fac = (Constants::PI*Constants::PI) / (ew_coeff_ * ew_coeff_);
-  double maxexp2 = maxexp_ * maxexp_;
-  double ene = 0.0;
-  Varray const& Frac = pairList_.FracCoords();
-  // Number of M values is the max + 1.
-  int mmax = maxmlim_ + 1;
-  // Build exponential factors for use in structure factors.
-  // These arrays are laid out in 1D; value for each atom at each m, i.e.
-  // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
-  // M0 is done in EwaldSetup()
-  t_trig_tables_.Start();
-  unsigned int mnidx = Frac.size();
-  // M1
-  for (unsigned int i = 0; i != Frac.size(); i++, mnidx++) {
-    //mprintf("FRAC: %6i%20.10f%20.10f%20.10f\n", i+1, Frac[i][0], Frac[i][1], Frac[i][2]);
-    cosf1_[mnidx] = cos(Constants::TWOPI * Frac[i][0]);
-    cosf2_[mnidx] = cos(Constants::TWOPI * Frac[i][1]);
-    cosf3_[mnidx] = cos(Constants::TWOPI * Frac[i][2]);
-    sinf1_[mnidx] = sin(Constants::TWOPI * Frac[i][0]);
-    sinf2_[mnidx] = sin(Constants::TWOPI * Frac[i][1]);
-    sinf3_[mnidx] = sin(Constants::TWOPI * Frac[i][2]);
-  }
-  // M2-MX
-  // Get the higher factors by recursion using trig addition rules.
-  // Negative values of M by complex conjugation, or even cosf, odd sinf.
-  // idx will always point to M-1 values
-  unsigned int idx = Frac.size();
-  for (int m = 2; m < mmax; m++) {
-    // Set m1idx to beginning of M1 values.
-    unsigned int m1idx = Frac.size();
-    for (unsigned int i = 0; i != Frac.size(); i++, idx++, m1idx++, mnidx++) {
-      cosf1_[mnidx] = cosf1_[idx]*cosf1_[m1idx] - sinf1_[idx]*sinf1_[m1idx];
-      cosf2_[mnidx] = cosf2_[idx]*cosf2_[m1idx] - sinf2_[idx]*sinf2_[m1idx];
-      cosf3_[mnidx] = cosf3_[idx]*cosf3_[m1idx] - sinf3_[idx]*sinf3_[m1idx];
-      sinf1_[mnidx] = sinf1_[idx]*cosf1_[m1idx] + cosf1_[idx]*sinf1_[m1idx];
-      sinf2_[mnidx] = sinf2_[idx]*cosf2_[m1idx] + cosf2_[idx]*sinf2_[m1idx];
-      sinf3_[mnidx] = sinf3_[idx]*cosf3_[m1idx] + cosf3_[idx]*sinf3_[m1idx];
-    }
-  }
-  // DEBUG
-/*  unsigned int midx = 0;
-  for (int m = 0; m != mmax; m++) {
-    for (unsigned int i = 0; i != Frac.size(); i++, midx++)
-      mprintf("TRIG: %6i%6u%12.6f%12.6f%12.6f%12.6f%12.6f%12.6f\n", m,i+1,
-               cosf1_[midx], cosf2_[midx], cosf3_[midx],
-               sinf1_[midx], sinf2_[midx], sinf3_[midx]);
-  }*/
-  t_trig_tables_.Stop();
-# ifdef _OPENMP
-  double mult;
-  unsigned int offset;
-  int mlim_idx;
-  int mlim_end = (int)mlim1_.size();
-  double *c12, *s12, *c3, *s3;
-# pragma omp parallel private(mult,mlim_idx,c12,s12,c3,s3,offset) reduction(+:ene)
-  {
-  offset = (unsigned int)omp_get_thread_num() * Frac.size();
-  c12 = &c12_[0] + offset;
-  s12 = &s12_[0] + offset;
-  c3  = &c3_[0]  + offset;
-  s3  = &s3_[0]  + offset;
-# pragma omp for
-  for (mlim_idx = 0; mlim_idx < mlim_end; mlim_idx++)
-  {
-      if (mlim_idx < multCut_)
-        mult = 1.0;
-      else
-        mult = 2.0;
-      int m1 = mlim1_[mlim_idx];
-      int m2 = mlim2_[mlim_idx];
-# else
-  Darray& c12 = c12_;
-  Darray& s12 = s12_;
-  Darray& c3 = c3_;
-  Darray& s3 = s3_;
-  double mult = 1.0;
-  for (int m1 = 0; m1 <= mlimit_[0]; m1++)
-  {
-    for (int m2 = -mlimit_[1]; m2 <= mlimit_[1]; m2++)
-    {
-# endif
-      int m1idx = Frac.size() * m1;
-      int m2idx = Frac.size() * IABS(m2);
-
-      if (m2 < 0) {
-        for (unsigned int i = 0; i != Frac.size(); i++, m1idx++, m2idx++) {
-          c12[i] = cosf1_[m1idx]*cosf2_[m2idx] + sinf1_[m1idx]*sinf2_[m2idx];
-          s12[i] = sinf1_[m1idx]*cosf2_[m2idx] - cosf1_[m1idx]*sinf2_[m2idx];
-        }
-      } else {
-        for (unsigned int i = 0; i != Frac.size(); i++, m1idx++, m2idx++) {
-          c12[i] = cosf1_[m1idx]*cosf2_[m2idx] - sinf1_[m1idx]*sinf2_[m2idx];
-          s12[i] = sinf1_[m1idx]*cosf2_[m2idx] + cosf1_[m1idx]*sinf2_[m2idx];
-        }
-      }
-      for (int m3 = -mlimit_[2]; m3 <= mlimit_[2]; m3++)
-      {
-        // Columns of recip are reciprocal unit cell vecs, so
-        // mhat contains Cartesian components of recip vector M.
-        Vec3 mhat = recip.TransposeMult( Vec3(m1, m2, m3) );
-        double msq = mhat.Magnitude2();
-        double denom = Constants::PI * volume * msq;
-        double eterm = 0.0;
-//        double vterm = 0.0;
-        if ( m1*m1 + m2*m2 + m3*m3 > 0 ) {
-          eterm = exp(-fac*msq) / denom;
-//          vterm = 2.0 * (fac*msq + 1.0) / msq;
-        }
-        // mult takes care to double count for symmetry. Can take care of
-        // with eterm.
-        eterm *= mult;
-        if (msq < maxexp2) {
-          int m3idx = Frac.size() * IABS(m3);
-          // Get the product of complex exponentials.
-          if (m3 < 0) {
-            for (unsigned int i = 0; i != Frac.size(); i++, m3idx++) {
-              c3[i] = c12[i]*cosf3_[m3idx] + s12[i]*sinf3_[m3idx];
-              s3[i] = s12[i]*cosf3_[m3idx] - c12[i]*sinf3_[m3idx];
-            }
-          } else {
-            for (unsigned int i = 0; i != Frac.size(); i++, m3idx++) {
-              c3[i] = c12[i]*cosf3_[m3idx] - s12[i]*sinf3_[m3idx];
-              s3[i] = s12[i]*cosf3_[m3idx] + c12[i]*sinf3_[m3idx];
-            }
-          }
-          // Get the structure factor
-          double cstruct = 0.0;
-          double sstruct = 0.0;
-          for (unsigned int i = 0; i != Frac.size(); i++) {
-            cstruct += Charge_[i] * c3[i];
-            sstruct += Charge_[i] * s3[i];
-          }
-          double struc2 = cstruct*cstruct + sstruct*sstruct;
-          ene += eterm * struc2;
-          //mprintf("LOOP: %3i%3i%3i ENE= %20.10f\n", m1, m2, m3, ene);
-        } // END IF msq < maxexp2
-      } // END loop over m3
-# ifdef _OPENMP
-  } // END loop over mlim_idx
-  } // END pragma omp parallel
-# else
-    } // END loop over m2
-    mult = 2.0;
-  } // END loop over m1
-# endif
-  t_recip_.Stop();
-  return ene * 0.5;
 }
 
 // Ewald::Adjust()
@@ -996,27 +427,6 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
   t_direct_.Stop();
   e_adjust_out = e_adjust;
   return Eelec;
-}
-
-/** Calculate Ewald energy. Faster version that uses pair list. */
-double Ewald::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
-{
-  t_total_.Start();
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
-  double e_self = Self( volume );
-
-  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
-
-//  MapCoords(frameIn, ucell, recip, maskIn);
-  double e_recip = Recip_Regular( recip, volume );
-  double e_adjust = 0.0;
-  double e_direct = Direct( pairList_, e_adjust );
-  if (debug_ > 0)
-    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
-            e_self, e_recip, e_direct, e_adjust);
-  t_total_.Stop();
-  return e_self + e_recip + e_direct + e_adjust;
 }
 
 #ifdef DEBUG_EWALD

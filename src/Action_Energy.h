@@ -35,7 +35,7 @@ class Action_Energy: public Action {
     Energy_Amber ENE_;             ///< Energy calc class.
     int npoints_;                  ///< # unit cells in each direction for elec. direct sum
     int debug_;
-    Ewald EW_;                     ///< Ewald energy class.
+    Ewald* EW_;                    ///< Ewald energy class.
     double cutoff_;                ///< Ewald cutoff.
     double dsumtol_;               ///< Ewald direct sum tolerance.
     double rsumtol_;               ///< Ewald reciprocal sum tolerance.

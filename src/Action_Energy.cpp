@@ -1,5 +1,7 @@
 #include "Action_Energy.h"
 #include "CpptrajStdio.h"
+#include "Ewald_Regular.h"
+#include "Ewald_ParticleMesh.h"
 
 // CONSTRUCTOR
 Action_Energy::Action_Energy() : currentParm_(0), debug_(0)
@@ -246,15 +248,17 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     }
   // Set up Ewald if necessary.
   if (etype_ == EW) { // TODO erfc table dx option
-    if (EW_.EwaldInit(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
-                      ewcoeff_, maxexp_, skinnb_, 0.0, debug_, mlimits_))
+    EW_ = (Ewald*)new Ewald_Regular();
+    if (((Ewald_Regular*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
+                                    ewcoeff_, maxexp_, skinnb_, 0.0, debug_, mlimits_))
       return Action::ERR;
-    EW_.EwaldSetup( setup.Top(), Imask_ );
+    EW_->Setup( setup.Top(), Imask_ );
   } else if (etype_ == PME) {
-    if (EW_.PME_Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
-                     ewcoeff_, skinnb_, 0.0, npoints_, debug_, mlimits_))
+    EW_ = (Ewald*)new Ewald_ParticleMesh();
+    if (((Ewald_ParticleMesh*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
+                                         ewcoeff_, skinnb_, 0.0, npoints_, debug_, mlimits_))
       return Action::ERR;
-    EW_.PME_Setup( setup.Top(), Imask_ );
+    EW_->Setup( setup.Top(), Imask_ );
   }
   currentParm_ = setup.TopAddress();
   return Action::OK;
@@ -329,12 +333,8 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Etot += ene;
         break;
       case EWALD:
-        ene = EW_.CalcEnergy(frm.Frm(), Imask_);
-        Energy_[ELEC]->Add(frameNum, &ene);
-        Etot += ene;
-        break;
       case PMEWALD:
-        ene = EW_.CalcPmeEnergy(frm.Frm(), *currentParm_, Imask_);
+        ene = EW_->CalcEnergy(frm.Frm(), Imask_);
         Energy_[ELEC]->Add(frameNum, &ene);
         Etot += ene;
         break;
@@ -352,5 +352,5 @@ void Action_Energy::Print() {
   etime_.WriteTiming(0, " Total:");
   ENE_.PrintTiming(etime_.Total());
   if (etype_ == EW || etype_ == PME)
-    EW_.Timing(etime_.Total());
+    EW_->Timing(etime_.Total());
 }
