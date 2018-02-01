@@ -77,10 +77,11 @@ UsageFull() {
   echo "                   SM3.0 = GK104 = K10, GTX680, 690 etc."
   echo "                   SM2.0 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc."
   echo "  EXPERIMENTAL OPTIONS:"
-  echo "    -profile         : Use Gnu compiler profiling (>= V4.5)*"
-  echo "    -gprofile        : Use Gnu compiler GLIBC profiling (>= V4.5)*"
-  echo "    -vtune           : Enable options for use with Intel Vtune"
-  echo "    -single-ensemble : Enable support for reading/writing single ensemble trajectories."
+  echo "    --compile-verbose : Turn on compile details."
+  echo "    -profile          : Use Gnu compiler profiling (>= V4.5)*"
+  echo "    -gprofile         : Use Gnu compiler GLIBC profiling (>= V4.5)*"
+  echo "    -vtune            : Enable options for use with Intel Vtune"
+  echo "    -single-ensemble  : Enable support for reading/writing single ensemble trajectories."
   echo ""
   echo "*NOTE: -profile and -gprofile are mutually exclusive."
   echo ""
@@ -100,6 +101,7 @@ SFX=''            # Binary suffix
 EXE=''            # Binary executable suffix
 
 # ----- Configure options ------------------------
+COMPILE_VERBOSE=0 # 1 = show details during compile
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
@@ -1380,9 +1382,10 @@ while [ ! -z "$1" ] ; do
       ;;
     '-nomathlib'     ) BLAS_TYPE='none' ;;
     # Install options
-    '-noclean'       ) CLEAN='no' ;;
-    '--skip-checks'  ) PERFORM_CHECKS='no' ;;
-    '--prefix'       )
+    '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
+    '-noclean'          ) CLEAN='no' ;;
+    '--skip-checks'     ) PERFORM_CHECKS='no' ;;
+    '--prefix'          )
       CPPTRAJHOME=$VALUE
       CPPTRAJBIN=$VALUE/bin
       CPPTRAJLIB=$VALUE/lib
@@ -1618,12 +1621,26 @@ LDFLAGS=$LDFLAGS
 SFX=$SFX
 EXE=$EXE
 
+EOF
+if [ $COMPILE_VERBOSE -eq 1 ] ; then
+  cat >> config.h <<EOF
 .cpp.o:
 	\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
 
 .c.o:
 	\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
 EOF
+else
+  cat >> config.h <<EOF
+.cpp.o:
+	@echo CXX \$<
+	@\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
+
+.c.o:
+	@echo CC \$<
+	@\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
+EOF
+fi
 
 # ----- Create directories if necessary ----------
 if [ ! -e "$CPPTRAJBIN" ] ; then
