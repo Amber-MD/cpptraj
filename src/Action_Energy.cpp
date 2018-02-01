@@ -230,6 +230,12 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       mprintf("\tWill determine Ewald coefficient from cutoff and direct sum tolerance.\n");
     else
       mprintf("\tEwald coefficient= %.4f\n", ewcoeff_);
+    if (mlimits_[0] < 1 && mlimits_[1] < 1 && mlimits_[2] < 1)
+      mprintf("\tWill determine number of FFT grid points from box size.\n");
+    else
+      mprintf("\tNumber of FFT grid points in each direction= {%i,%i,%i}\n",
+              mlimits_[0], mlimits_[1], mlimits_[2]);
+
   }
   return Action::OK;
 }
