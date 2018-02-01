@@ -21,6 +21,9 @@ void Action_Energy::Help() const {
           "\t         ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
           "\t               [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]\n"
           "\t               [mlimits <X>,<Y>,<Z>]} ]\n"
+          "\t         pme [cut <cutoff>] [dsumtol <dtol>] [order <order>]\n"
+          "\t             [ewcoeff <coeff>] [skinnb <skinnb>]\n"
+          "\t             [nfft <nfft1>,<nfft2>,<nfft3>]\n"
           "  Calculate energy for atoms in mask.\n");
 }
 
