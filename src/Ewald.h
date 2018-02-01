@@ -35,6 +35,8 @@ class Ewald {
     inline double ERFC(double) const;
     /// Ewald "self" energy
     double Self(double);
+    /// Get analytical estimate of energy due to dispersion interactions > cutoff
+    double Vdw_Correction(double);
 
     int CheckInput(Box const&, int, double, double, double, double, double);
     int Setup_Pairlist(Box const&, Vec3 const&, double);

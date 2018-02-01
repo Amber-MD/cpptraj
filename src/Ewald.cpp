@@ -429,6 +429,14 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
   return Eelec;
 }
 
+double Ewald::Vdw_Correction(double volume) {
+  double term = 0.0;
+  double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
+
+  double evdwr = -prefac * term;
+  return evdwr;
+}
+
 #ifdef DEBUG_EWALD
 /** Calculate direct space energy. This is the slow version that doesn't
   * use a pair list; for debug purposes only.
