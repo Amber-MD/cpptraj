@@ -350,6 +350,7 @@ test.gromacs:
 
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
+	@-cd Test_LibPME && ./RunTest.sh $(OPT)
 
 test.ti:
 	@-cd Test_TI && ./RunTest.sh $(OPT)
