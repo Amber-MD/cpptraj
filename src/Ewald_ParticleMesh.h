@@ -19,6 +19,9 @@ class Ewald_ParticleMesh : public Ewald {
     /// Particle mesh Ewald reciprocal energy
     double Recip_ParticleMesh(libpme::Mat<double> const&, libpme::Mat<double> const&, Box const&);
 
+    libpme::Mat<double> coordsD_;
+    libpme::Mat<double> chargesD_;
+
     int nfft_[3]; ///< Number of FFT grid points in each direction
     int order_;   ///< PME B spline order
 };

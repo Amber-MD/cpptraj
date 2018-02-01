@@ -1,6 +1,7 @@
 #ifdef LIBPME
 #include "Ewald_ParticleMesh.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // ELECTOAMBER
 
 /// CONSTRUCTOR
 Ewald_ParticleMesh::Ewald_ParticleMesh() : order_(6)
@@ -98,9 +99,15 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   mprintf("\tParticle Mesh Ewald params:\n");
   mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g  NB skin= %g\n",
           cutoff_, dsumTol_, ew_coeff_, skinnbIn);
-  mprintf("\t  Bspline order= %i\n", maxmlim_);
+  mprintf("\t  Bspline order= %i\n", order_);
   mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
-  mprintf("\t  NFFT1=%i NFFT2=%i NFFT3=%i\n", mlimit_[0], mlimit_[1], mlimit_[2]); 
+  mprintf("\t ");
+  for (int i = 0; i != 3; i++)
+    if (nfft_[i] == -1)
+      mprintf(" NFFT%i=auto", i+1);
+    else
+      mprintf(" NFFT%i=%i", i+1, nfft_[i]);
+  mprintf("\n");
 
   // Set up pair list
   Matrix_3x3 ucell, recip;
@@ -114,7 +121,14 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
 /** Setup PME calculation. */
 int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
+  // TODO can this be combined with Charge_?
+  coordsD_  = libpme::Mat<double>(maskIn.Nselected(), 3);
+  chargesD_ = libpme::Mat<double>(maskIn.Nselected(), 1);
+  int idx = 0;
+  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm, ++idx)
+    chargesD_(idx) = topIn[*atm].Charge();
   SetupExcluded(topIn);
+  return 0;
 }
 
 /** Calculate full nonbonded energy with PME */
@@ -128,20 +142,16 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
   pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
 
   // TODO make more efficient
-  // TODO these should be allocated elsewhere.
-  libpme::Mat<double> coordsD(maskIn.Nselected(), 3);
-  libpme::Mat<double> chargesD(maskIn.Nselected(), 1);
   int idx = 0;
   for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm, ++idx) {
     const double* XYZ = frameIn.XYZ( *atm );
-    coordsD(idx, 0) = XYZ[0];
-    coordsD(idx, 1) = XYZ[1];
-    coordsD(idx, 2) = XYZ[2];
-    chargesD(idx)   = topIn[*atm].Charge();
+    coordsD_(idx, 0) = XYZ[0];
+    coordsD_(idx, 1) = XYZ[1];
+    coordsD_(idx, 2) = XYZ[2];
   }
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
-  double e_recip = Recip_ParticleMesh( coordsD, chargesD, frameIn.BoxCrd() );
+  double e_recip = Recip_ParticleMesh( coordsD_, chargesD_, frameIn.BoxCrd() );
   double e_adjust = 0.0;
   double e_direct = Direct( pairList_, e_adjust );
   if (debug_ > 0)
@@ -156,12 +166,9 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD
                                  libpme::Mat<double> const& chargesD, Box const& boxIn)
 {
   t_recip_.Start();
-  // Dummy for forces  
-  libpme::Mat<double> forcesD(chargesD.size(), 3);
-  forcesD.setZero();
-  int nfft1 = mlimit_[0];
-  int nfft2 = mlimit_[1];
-  int nfft3 = mlimit_[2];
+  int nfft1 = nfft_[0];
+  int nfft2 = nfft_[1];
+  int nfft3 = nfft_[2];
   if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
     mprinterr("Error: Could not determine grid spacing.\n");
     return 0.0;
@@ -178,7 +185,7 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD
   //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
   // NOTE: Charmm is 332.0716
   static const double efac = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, maxmlim_, nfft1, nfft2, nfft3, efac, 1, 0)); 
+  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, order_, nfft1, nfft2, nfft3, efac, 1, 0)); 
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
@@ -187,7 +194,7 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD
   //       5 = the beta lattice parameter in degrees.
   //       6 = the gamma lattice parameter in degrees.
   pme_object->setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(), boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma());
-  double erecip = pme_object->computeEFRec(0, chargesD, coordsD, forcesD);
+  double erecip = pme_object->computeERec(0, chargesD, coordsD);
   t_recip_.Stop();
   return erecip;
 }
