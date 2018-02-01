@@ -105,6 +105,7 @@ USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations.
 BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray) etc
+MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
 USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
@@ -602,6 +603,57 @@ SetupFinalFlags() {
 #-------------------------------------------------------------------------------
 # Setup include and linker flags for external libraries
 SetupLibraries() {
+  # Additional BLAS setup if necessary. Done here to override -amberlib.
+  if [ "$BLAS_TYPE" = 'none' ] ; then
+    LIB_STAT[$LBLAS]='off'
+    LIB_STAT[$LLAPACK]='off'
+    LIB_STAT[$LARPACK]='off'
+  elif [ "$BLAS_TYPE" = 'mkl' ] ; then
+    SetupMKL
+  elif [ "$BLAS_TYPE" = 'libsci' ] ; then
+    LIB_STAT[$LBLAS]='enabled'
+    LIB_HOME[$LBLAS]=''
+    LIB_LINK[$LBLAS]='dynamic'
+    LIB_FLAG[$LBLAS]=''
+    LIB_STAT[$LLAPACK]='off'
+    LIB_FLAG[$LLAPACK]=''
+  elif [ "$BLAS_TYPE" = 'openblas' ] ; then
+    LIB_FLAG[$LBLAS]='-lopenblas'
+    LIB_STAT[$LLAPACK]='off'
+    LIB_FLAG[$LLAPACK]=''
+  elif [ "$BLAS_TYPE" = 'macAccelerate' ] ; then
+    LIB_FLAG[$LBLAS]='-framework Accelerate'
+    LIB_STAT[$LLAPACK]='off'
+    LIB_FLAG[$LLAPACK]=''
+  elif [ $USE_AMBERLIB -eq 1 ] ; then
+    if [ "${LIB_STAT[$LBLAS]}" == 'enabled' ] ; then
+      echo "  Using blas from $AMBERHOME"
+      LIB_STAT[$LBLAS]='specified'
+      LIB_HOME[$LBLAS]=$AMBERHOME
+      LIB_LINK[$LBLAS]='static'
+    fi
+    if [ "${LIB_STAT[$LLAPACK]}" == 'enabled' ] ; then
+      echo "  Using lapack from $AMBERHOME"
+      LIB_STAT[$LLAPACK]='specified'
+      LIB_HOME[$LLAPACK]=$AMBERHOME
+      LIB_LINK[$LLAPACK]='static'
+    fi
+  fi
+  # Use AMBERHOME to fill in libraries if needed
+  if [ $USE_AMBERLIB -eq 1 ] ; then
+    if [ "${LIB_STAT[$LNETCDF]}" == 'enabled' ] ; then
+      echo "  Using netcdf from $AMBERHOME"
+      LIB_STAT[$LNETCDF]='specified'
+      LIB_HOME[$LNETCDF]=$AMBERHOME
+      LIB_LINK[$LNETCDF]='static'
+    fi
+    if [ "${LIB_STAT[$LARPACK]}" == 'enabled' ] ; then
+      echo "  Using arpack from $AMBERHOME"
+      LIB_STAT[$LARPACK]='specified'
+      LIB_HOME[$LARPACK]=$AMBERHOME
+      LIB_LINK[$LARPACK]='static'
+    fi
+  fi
   # For any 'amberopt' check that AMBERHOME is available.
   for ((i=0; i < $NLIB; i++)) ; do
     if [ "${LIB_STAT[$i]}" = 'amberopt' ] ; then
@@ -976,46 +1028,55 @@ EOF
 # ------------------------------------------------------------------------------
 # Set up MKL flags for BLAS/LAPACK
 SetupMKL() {
-  if [ -z "$MKLROOT" ] ; then
-    if [ -z "$MKL_HOME" ] ; then
-      echo "MKLROOT/MKL_HOME not set."
-      exit 1
-    fi
-    mkldir=$MKL_HOME
-  else
-    mkldir=$MKLROOT
+  if [ "$MKL_TYPE" = 'mkl' -a "$COMPILERS" != 'intel' ] ; then
+     MKL_TYPE='line'
   fi
-  echo "Using MKL for BLAS/LAPACK in $mkldir"
-  # Determine architecture
-  architecture=`uname -m`
-  if [ "$architecture" = 'x86_64' -o "$architecture" = 'em64t' ] ; then
-    echo "  Assuming 64 bit architecture."
-    mkldir="$mkldir/lib/intel64"
-    mklinterface=libmkl_intel_lp64.a
-    mklblas="-lmkl_blas95_lp64"
-    mkllapack="-lmkl_lapack95_lp64"
+  if [ "$MKL_TYPE" = 'mkl' ] ; then
+    # Simple flag for Intel compilers
+    mkllib='-mkl'
   else
-    echo "  Assuming 32 bit architecture."
-    mkldir="$mkldir/lib/32"
-    mklinterface=libmkl_intel.a
-    mklblas="-lmkl_blas95"
-    mkllapack="-lmkl_lapack95"
-  fi
-  # Assume GNU linker.
-  if [ $USE_OPENMP -eq 1 ] ; then
-    if [ "$COMPILERS" = 'intel' ] ; then
-      mklthread='libmkl_intel_thread.a'
-      mklomp='-liomp5'
-    elif [ "$COMPILERS" = 'pgi' ] ; then
-      mklthread='libmkl_pgi_thread.a'
-      mklomp='-pgf90libs -mp'
+    # Link-line advisor style
+    if [ -z "$MKLROOT" ] ; then
+      if [ -z "$MKL_HOME" ] ; then
+        echo "MKLROOT/MKL_HOME not set."
+        exit 1
+      fi
+      mkldir=$MKL_HOME
     else
-      mklthread='libmkl_gnu_thread.a'
-      mklomp='-lgomp'
+      mkldir=$MKLROOT
     fi
-    mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/$mklthread $mkldir/libmkl_core.a -Wl,--end-group $MKLOMP -lpthread -lm -ldl"
-  else
-    mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/libmkl_sequential.a $mkldir/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl"
+    echo "Using MKL for BLAS/LAPACK in $mkldir"
+    # Determine architecture
+    architecture=`uname -m`
+    if [ "$architecture" = 'x86_64' -o "$architecture" = 'em64t' ] ; then
+      echo "  Assuming 64 bit architecture."
+      mkldir="$mkldir/lib/intel64"
+      mklinterface=libmkl_intel_lp64.a
+      mklblas="-lmkl_blas95_lp64"
+      mkllapack="-lmkl_lapack95_lp64"
+    else
+      echo "  Assuming 32 bit architecture."
+      mkldir="$mkldir/lib/32"
+      mklinterface=libmkl_intel.a
+      mklblas="-lmkl_blas95"
+      mkllapack="-lmkl_lapack95"
+   fi
+    # Assume GNU linker.
+    if [ $USE_OPENMP -eq 1 ] ; then
+      if [ "$COMPILERS" = 'intel' ] ; then
+        mklthread='libmkl_intel_thread.a'
+        mklomp='-liomp5'
+      elif [ "$COMPILERS" = 'pgi' ] ; then
+        mklthread='libmkl_pgi_thread.a'
+        mklomp='-pgf90libs -mp'
+      else
+        mklthread='libmkl_gnu_thread.a'
+        mklomp='-lgomp'
+      fi
+      mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/$mklthread $mkldir/libmkl_core.a -Wl,--end-group $MKLOMP -lpthread -lm -ldl"
+    else
+      mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/libmkl_sequential.a $mkldir/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl"
+    fi
   fi
   LIB_STAT[$LBLAS]='enabled'
   LIB_HOME[$LBLAS]=''
@@ -1111,57 +1172,6 @@ BasicChecks() {
   if [ $USE_MPI -ne 0    ] ; then SFX=$SFX".MPI" ; fi
   if [ $USE_OPENMP -ne 0 ] ; then SFX=$SFX".OMP" ; fi
   if [ $USE_CUDA -ne 0   ] ; then SFX=$SFX".cuda" ; fi
-  # Additional BLAS setup if necessary. Done here to override -amberlib.
-  if [ "$BLAS_TYPE" = 'none' ] ; then
-    LIB_STAT[$LBLAS]='off'
-    LIB_STAT[$LLAPACK]='off'
-    LIB_STAT[$LARPACK]='off'
-  elif [ "$BLAS_TYPE" = 'mkl' ] ; then
-    SetupMKL
-  elif [ "$BLAS_TYPE" = 'libsci' ] ; then
-    LIB_STAT[$LBLAS]='enabled'
-    LIB_HOME[$LBLAS]=''
-    LIB_LINK[$LBLAS]='dynamic'
-    LIB_FLAG[$LBLAS]=''
-    LIB_STAT[$LLAPACK]='off'
-    LIB_FLAG[$LLAPACK]=''
-  elif [ "$BLAS_TYPE" = 'openblas' ] ; then
-    LIB_FLAG[$LBLAS]='-lopenblas'
-    LIB_STAT[$LLAPACK]='off'
-    LIB_FLAG[$LLAPACK]=''
-  elif [ "$BLAS_TYPE" = 'macAccelerate' ] ; then
-    LIB_FLAG[$LBLAS]='-framework Accelerate'
-    LIB_STAT[$LLAPACK]='off'
-    LIB_FLAG[$LLAPACK]=''
-  elif [ $USE_AMBERLIB -eq 1 ] ; then
-    if [ "${LIB_STAT[$LBLAS]}" == 'enabled' ] ; then
-      echo "  Using blas from $AMBERHOME"
-      LIB_STAT[$LBLAS]='specified'
-      LIB_HOME[$LBLAS]=$AMBERHOME
-      LIB_LINK[$LBLAS]='static'
-    fi
-    if [ "${LIB_STAT[$LLAPACK]}" == 'enabled' ] ; then
-      echo "  Using lapack from $AMBERHOME"
-      LIB_STAT[$LLAPACK]='specified'
-      LIB_HOME[$LLAPACK]=$AMBERHOME
-      LIB_LINK[$LLAPACK]='static'
-    fi
-  fi
-  # Use AMBERHOME to fill in libraries if needed
-  if [ $USE_AMBERLIB -eq 1 ] ; then
-    if [ "${LIB_STAT[$LNETCDF]}" == 'enabled' ] ; then
-      echo "  Using netcdf from $AMBERHOME"
-      LIB_STAT[$LNETCDF]='specified'
-      LIB_HOME[$LNETCDF]=$AMBERHOME
-      LIB_LINK[$LNETCDF]='static'
-    fi
-    if [ "${LIB_STAT[$LARPACK]}" == 'enabled' ] ; then
-      echo "  Using arpack from $AMBERHOME"
-      LIB_STAT[$LARPACK]='specified'
-      LIB_HOME[$LARPACK]=$AMBERHOME
-      LIB_LINK[$LARPACK]='static'
-    fi
-  fi
 }
 
 #-------------------------------------------------------------------------------
