@@ -89,7 +89,7 @@ EOF
   fi
 }
 
-Tz2_10() {
+Tz2_Nonortho_10() {
   UNITNAME='Ewald test (trunc. oct), 10 frames'
   CheckFor netcdf long
   if [ $? -eq 0 ] ; then
@@ -104,7 +104,7 @@ EOF
   fi
 }
 
-Ortho() {
+Tz2_Ortho_10() {
   UNITNAME='Ewald test (ortho), 10 frames'
   CheckFor netcdf long
   if [ $? -eq 0 ] ; then
@@ -123,8 +123,8 @@ EOF
 NaCl
 #TrpzipNonortho
 TrpzipOrtho
-#Tz2_10
-#Ortho
+#Tz2_Nonortho_10
+#Tz2_Ortho_10
 
 EndTest
 exit 0 
