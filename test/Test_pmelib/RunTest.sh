@@ -8,7 +8,7 @@ CleanFiles ene.in ene.dat ene1.dat long.dat strip.dat directsum.0 ewald.dat \
 
 INPUT="-i ene.in"
 TESTNAME='Particle mesh Ewald tests'
-Requires maxthreads 10
+Requires libpme maxthreads 10
 
 Simple() {
   UNITNAME='Particle mesh Ewald test (simple)'
