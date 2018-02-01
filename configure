@@ -548,7 +548,12 @@ SetupFinalFlags() {
   if [ $USE_CPPTRAJDEBUG -ne 0   ] ; then DIRECTIVES="$DIRECTIVES -DDEBUG" ; fi
   if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
   if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
-  if [ "$C11_SUPPORT" = 'yes'    ] ; then DIRECTIVES="$DIRECTIVES -DLIBPME" ; fi
+  if [ "$C11_SUPPORT" = 'yes'    ] ; then
+    DIRECTIVES="$DIRECTIVES -DLIBPME"
+    #if [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
+    #  DIRECTIVES="$DIRECTIVES -DEIGEN_FFTW_DEFAULT"
+    #fi
+  fi
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
