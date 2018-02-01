@@ -3,26 +3,12 @@
 . ../MasterTest.sh
 
 CleanFiles ene.in ene.dat ene1.dat long.dat strip.dat directsum.0 ewald.dat \
-           ew_tz2.dat ew_tz2_10.dat tz2_ortho.dat directsum.0 run9.dat pme.nacl.dat
+           ew_tz2.dat ew_tz2_10.dat tz2_ortho.dat directsum.0 run9.dat pme.nacl.dat \
+            ew_tz2o.dat
 
 INPUT="-i ene.in"
 TESTNAME='Particle mesh Ewald tests'
 Requires maxthreads 10
-
-Direct() {
-  UNITNAME='Direct sum test'
-  CheckFor maxthreads 1
-  if [ $? -eq 0 ] ; then
-    cat > ene.in <<EOF
-noprogress
-parm nacl.box.parm7
-trajin nacl.box.rst7
-energy out directsum.0 etype directsum npoints 10 
-EOF
-    RunCpptraj "$UNITNAME"
-    DoTest directsum.0.save directsum.0
-  fi
-}
 
 Simple() {
   UNITNAME='Particle mesh Ewald test (simple)'
@@ -64,18 +50,40 @@ EOF
   fi
 }
 
-Trpzip() {
-  UNITNAME='Ewald test (trunc. oct)'
+TrpzipNonortho() {
+  UNITNAME='Particle mesh Ewald test (trunc. oct)'
   CheckFor netcdf maxthreads 1
   if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
-energy out ew_tz2.dat etype ewald skinnb 0.01
+debug actions 1
+energy Reg out ew_tz2.dat etype ewald skinnb 0.01
+energy Pme out ew_tz2.dat etype pme   skinnb 0.01 order 4
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest ew_tz2.dat.save ew_tz2.dat
+    #DoTest ew_tz2.dat.save ew_tz2.dat
+  fi
+}
+
+TrpzipOrtho() {
+  UNITNAME='Particle mesh Ewald test (ortho)'
+  CheckFor netcdf maxthreads 1
+  if [ $? -eq 0 ] ; then
+    cat > ene.in <<EOF
+noprogress
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 1
+debug actions 1
+energy Reg out ew_tz2o.dat etype ewald skinnb 0.01 \
+       cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
+energy Pme out ew_tz2o.dat etype pme   skinnb 0.01 order 6 \
+       cut 8.0 dsumtol 0.0000001 nfft 72,90,72
+precision ew_tz2o.dat 20 10
+EOF
+    RunCpptraj "$UNITNAME"
+    DoTest ew_tz2o.dat.save ew_tz2o.dat
   fi
 }
 
@@ -109,10 +117,10 @@ EOF
   fi
 }
 
-#Direct
 #Simple
 NaCl
-#Trpzip
+#TrpzipNonortho
+TrpzipOrtho
 #Tz2_10
 #Ortho
 
