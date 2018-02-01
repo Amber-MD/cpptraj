@@ -7,6 +7,7 @@
 class Action_Energy: public Action {
   public:
     Action_Energy();
+    ~Action_Energy();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_Energy(); }
     void Help() const;
   private:

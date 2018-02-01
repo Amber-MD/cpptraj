@@ -3,12 +3,16 @@
 #include "Ewald_Regular.h"
 #include "Ewald_ParticleMesh.h"
 
-// CONSTRUCTOR
-Action_Energy::Action_Energy() : currentParm_(0), debug_(0)
+/// CONSTRUCTOR
+Action_Energy::Action_Energy() : currentParm_(0), debug_(0), EW_(0)
 {
   std::fill(mlimits_, mlimits_+3, 0);
 }
 
+/// DESTRUCTOR
+Action_Energy::~Action_Energy() {
+  if (EW_ != 0) delete EW_;
+}
 
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
@@ -59,6 +63,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   // Electrostatics type. If specified always split the Elec/VDW calc.
   etype_ = SIMPLE;
   std::string etypearg = actionArgs.GetStringKey("etype");
+  EW_ = 0;
   if (!etypearg.empty()) {
     if (calc_nb) {
       calc_nb = false;
@@ -91,6 +96,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         mlimits_[2] = mlim.getNextInteger(0);
       } else
         std::fill(mlimits_, mlimits_+3, 0);
+      EW_ = (Ewald*)new Ewald_Regular();
     } else if (etypearg == "pme") {
       // particle mesh Ewald method
       etype_ = PME;
@@ -112,6 +118,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         mlimits_[2] = mlim.getNextInteger(0);
       } else
         std::fill(mlimits_, mlimits_+3, -1);
+      EW_ = (Ewald*)new Ewald_ParticleMesh();
     } else if (etypearg == "simple") {
       // Simple method
       etype_ = SIMPLE;
@@ -248,13 +255,11 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     }
   // Set up Ewald if necessary.
   if (etype_ == EW) { // TODO erfc table dx option
-    EW_ = (Ewald*)new Ewald_Regular();
     if (((Ewald_Regular*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
                                     ewcoeff_, maxexp_, skinnb_, 0.0, debug_, mlimits_))
       return Action::ERR;
     EW_->Setup( setup.Top(), Imask_ );
   } else if (etype_ == PME) {
-    EW_ = (Ewald*)new Ewald_ParticleMesh();
     if (((Ewald_ParticleMesh*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
                                          ewcoeff_, skinnb_, 0.0, npoints_, debug_, mlimits_))
       return Action::ERR;

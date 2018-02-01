@@ -121,12 +121,9 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
 /** Setup PME calculation. */
 int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
-  // TODO can this be combined with Charge_?
   coordsD_  = libpme::Mat<double>(maskIn.Nselected(), 3);
-  chargesD_ = libpme::Mat<double>(maskIn.Nselected(), 1);
-  int idx = 0;
-  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm, ++idx)
-    chargesD_(idx) = topIn[*atm].Charge();
+  // This essentially makes chargesD_ point to the Charge_ array.
+  chargesD_ = libpme::mapMat<double>(&Charge_[0], maskIn.Nselected(), 1);
   SetupExcluded(topIn);
   return 0;
 }
@@ -183,9 +180,9 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD
   //       7 = scale factor to be applied to all computed energies and derivatives thereof
   //       8 = number of nodes used for the rec space PME calculation.
   //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
-  // NOTE: Charmm is 332.0716
-  static const double efac = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
-  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, order_, nfft1, nfft2, nfft3, efac, 1, 0)); 
+  // NOTE: Scale factor for Charmm is 332.0716
+  // NOTE: The electrostatic constant has been baked into the Charge_ array already.
+  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, order_, nfft1, nfft2, nfft3, 1.0, 1, 0));
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
