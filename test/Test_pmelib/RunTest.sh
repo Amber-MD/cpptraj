@@ -59,8 +59,10 @@ noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
 debug actions 1
-energy Reg out ew_tz2.dat etype ewald skinnb 0.01
-energy Pme out ew_tz2.dat etype pme   skinnb 0.01 order 4
+energy Reg out ew_tz2.dat etype ewald skinnb 0.01 \
+       cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
+energy Pme out ew_tz2.dat etype pme   skinnb 0.01 order 6 \
+       cut 8.0 dsumtol 0.0000001 nfft 96,90,90
 EOF
     RunCpptraj "$UNITNAME"
     #DoTest ew_tz2.dat.save ew_tz2.dat
