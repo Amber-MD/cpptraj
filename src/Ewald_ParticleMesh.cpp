@@ -1,7 +1,6 @@
 #ifdef LIBPME
 #include "Ewald_ParticleMesh.h"
 #include "CpptrajStdio.h"
-#include "Constants.h" // ELECTOAMBER
 
 /// CONSTRUCTOR
 Ewald_ParticleMesh::Ewald_ParticleMesh() : order_(6)
