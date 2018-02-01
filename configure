@@ -600,9 +600,6 @@ SetupFinalFlags() {
     CPPTRAJ_LIB="$CPPTRAJ_LIB $FLINK"
   fi
   LDFLAGS="$ldf $LDFLAGS"
-  CXXFLAGS="$DIRECTIVES $INCLUDE $CXXFLAGS"
-  CFLAGS="$DIRECTIVES $INCLUDE $CFLAGS"
-  FFLAGS="$DIRECTIVES $INCLUDE $FFLAGS"
 }
 
 #-------------------------------------------------------------------------------
@@ -1599,6 +1596,8 @@ CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
 FFLAGS=$FFLAGS \$(DBGFLAGS)
 F77FLAGS=$F77FLAGS \$(DBGFLAGS)
 SHARED_SUFFIX=$SHARED_SUFFIX
+DIRECTIVES=$DIRECTIVES
+INCLUDE=$INCLUDE
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 
@@ -1618,6 +1617,12 @@ CPPTRAJ_LIB=$CPPTRAJ_LIB
 LDFLAGS=$LDFLAGS
 SFX=$SFX
 EXE=$EXE
+
+.cpp.o:
+	\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
+
+.c.o:
+	\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
 EOF
 
 # ----- Create directories if necessary ----------

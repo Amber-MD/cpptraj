@@ -23,6 +23,9 @@ $(TARGET): $(OBJECTS)
 	-$(DEL_FILE) $(TARGET)
 	$(AR) $(TARGET) $(OBJECTS)
 
+.c.o:
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 test: $(TARGET) xdrfile_c_test.o
 	$(CC) -o a.out xdrfile_c_test.c $(TARGET) -lm
 	./a.out
