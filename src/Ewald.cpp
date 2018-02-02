@@ -246,6 +246,8 @@ int Ewald::Setup_Pairlist(Box const& boxIn, Vec3 const& recipLengths, double ski
 # ifdef DEBUG_PAIRLIST
   // Write grid PDB
   PDBfile gridpdb;
+  Matrix_3x3 ucell, recip;
+  boxIn.ToRecip(ucell, recip);
   gridpdb.OpenWrite("gridpoints.pdb");
   for (int iz = 0; iz != pairList_.NZ(); iz++)
     for (int iy = 0; iy != pairList_.NY(); iy++)
@@ -360,12 +362,25 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
               double e_elec = qiqj * erfc / rij;
               Eelec += e_elec;
               //int ta0, ta1;
-              //if (atnum0 < atnum1) {
-              //  ta0=atnum0; ta1=atnum1;
+              //if (it0->Idx() < it1->Idx()) {
+              //  ta0=it0->Idx(); ta1=it1->Idx();
               //} else {
-              //  ta1=atnum0; ta0=atnum1;
+              //  ta1=it0->Idx(); ta0=it1->Idx();
               //}
               //mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
+              int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
+                                            TypeIndices_[it1->Idx()]);
+              if (nbindex > -1) {
+                NonbondType const& LJ = NB_->NBarray()[ nbindex ];
+                double r2    = 1.0 / rij2;
+                double r6    = r2 * r2 * r2;
+                double r12   = r6 * r6;
+                double f12   = LJ.A() * r12;  // A/r^12
+                double f6    = LJ.B() * r6;   // B/r^6
+                double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+                Evdw += e_vdw;
+                //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
+              }
             }
           } else
             e_adjust += Adjust(q0, q1, sqrt(rij2));
@@ -412,10 +427,10 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                 Eelec += e_elec;
                 //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
                 //int ta0, ta1;
-                //if (atnum0 < atnum1) {
-                //  ta0=atnum0; ta1=atnum1;
+                //if (it0->Idx() < it1->Idx()) {
+                //  ta0=it0->Idx(); ta1=it1->Idx();
                 //} else {
-                //  ta1=atnum0; ta0=atnum1;
+                //  ta1=it0->Idx(); ta0=it1->Idx();
                 //}
                 //mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
                 int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
@@ -429,6 +444,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                   double f6    = LJ.B() * r6;   // B/r^6
                   double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
                   Evdw += e_vdw;
+                  //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
                 }
               }
             } else
