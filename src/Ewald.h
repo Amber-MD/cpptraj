@@ -71,8 +71,6 @@ class Ewald {
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each atom.
-    Iarray N_vdw_type_;   ///< Number of each VDW type.
-    NonbondParmType const* NBparams_; ///< Pointer to nonbonded parameters
 
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges
@@ -82,6 +80,7 @@ class Ewald {
     double dsumTol_;      ///< Direct space sum tolerance.
     double erfcTableDx_;  ///< Spacing of X values in Erfc table.
     double one_over_Dx_;  ///< One over erfcTableDx_.
+    double Vdw_Recip_term_; ///< VDW recip correction term from # types and B parameters
     int debug_;
     Timer t_total_;
     Timer t_self_;

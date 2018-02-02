@@ -430,39 +430,39 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
   return Eelec;
 }
 
+/** Determine VDW long range correction prefactor. */
 void Ewald::Setup_VDW_Correction(Topology const& topIn) {
-  NBparams_ = static_cast<NonbondParmType const*>( &(topIn.Nonbond()) );
-  //NonbondParmType const& NB = topIn.Nonbond();
-  if (!NBparams_->HasNonbond()) {
+  Vdw_Recip_term_ = 0.0;
+  NonbondParmType const& NB = topIn.Nonbond();
+  if (!NB.HasNonbond()) {
     mprintf("Warning: '%s' has no nonbonded parameters. Cannot calculate VDW correction.\n");
-    N_vdw_type_.clear();
     return;
   }
   // Count the number of each unique nonbonded type.
-  N_vdw_type_.assign( NBparams_->Ntypes(), 0 );
+  Iarray N_vdw_type( NB.Ntypes(), 0 );
   for (Topology::atom_iterator atm = topIn.begin(); atm != topIn.end(); ++atm)
-    N_vdw_type_[ atm->TypeIndex() ]++;
-  mprintf("DEBUG: %zu VDW types.\n", N_vdw_type_.size());
-  for (Iarray::const_iterator it = N_vdw_type_.begin(); it != N_vdw_type_.end(); ++it)
-    mprintf("\tType %u = %i\n", it-N_vdw_type_.begin(), *it);
-}
-
-double Ewald::Vdw_Correction(double volume) {
-  double term = 0.0;
-  double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
-
-  for (unsigned int itype = 0; itype != N_vdw_type_.size(); itype++)
+    N_vdw_type[ atm->TypeIndex() ]++;
+  mprintf("DEBUG: %zu VDW types.\n", N_vdw_type.size());
+  for (Iarray::const_iterator it = N_vdw_type.begin(); it != N_vdw_type.end(); ++it)
+    mprintf("\tType %u = %i\n", it-N_vdw_type.begin(), *it);
+  // Determine correction term from types and LJ B parameters
+  for (unsigned int itype = 0; itype != N_vdw_type.size(); itype++)
   {
-    unsigned int offset = N_vdw_type_.size() * itype;
-    for (unsigned int jtype = 0; jtype != N_vdw_type_.size(); jtype++)
+    unsigned int offset = N_vdw_type.size() * itype;
+    for (unsigned int jtype = 0; jtype != N_vdw_type.size(); jtype++)
     {
       unsigned int idx = offset + jtype;
-      int nbidx = NBparams_->NBindex()[ idx ];
+      int nbidx = NB.NBindex()[ idx ];
       if (nbidx > -1)
-        term += N_vdw_type_[itype] * N_vdw_type_[jtype] * NBparams_->NBarray()[ nbidx ].B();
+        Vdw_Recip_term_ += N_vdw_type[itype] * N_vdw_type[jtype] * NB.NBarray()[ nbidx ].B();
     }
   }
-  double e_vdwr = -prefac * term;
+}
+
+/** Calculate full VDW long range correction from volume. */
+double Ewald::Vdw_Correction(double volume) {
+  double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
+  double e_vdwr = -prefac * Vdw_Recip_term_;
   mprintf("DEBUG: Vdw correction %20.10f\n", e_vdwr);
   return e_vdwr;
 }
