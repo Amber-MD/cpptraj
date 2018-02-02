@@ -86,9 +86,9 @@ void Matrix_3x3::Zero() {
 void Matrix_3x3::Print(const char* Title) const 
 {
   mprintf("    %s\n",Title);
-  mprintf("     %8.4f %8.4f %8.4f\n", M_[0], M_[1], M_[2]);
-  mprintf("     %8.4f %8.4f %8.4f\n", M_[3], M_[4], M_[5]);
-  mprintf("     %8.4f %8.4f %8.4f\n", M_[6], M_[7], M_[8]);
+  mprintf("     %16.10f %16.10f %16.10f\n", M_[0], M_[1], M_[2]);
+  mprintf("     %16.10f %16.10f %16.10f\n", M_[3], M_[4], M_[5]);
+  mprintf("     %16.10f %16.10f %16.10f\n", M_[6], M_[7], M_[8]);
 }
 
 // -----------------------------------------------------------------------------
