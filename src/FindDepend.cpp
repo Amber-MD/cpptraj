@@ -14,7 +14,7 @@ using namespace std;
 #define BUFFERSIZE 1024
 
 // Return true if first goes before second
-bool compareNames( string first, string second) {
+bool compareNames( string const& first, string const& second) {
   if ( first.compare(second) < 0)
     return true;
   else
@@ -88,7 +88,6 @@ list<string> *PeakHeader(char *filename, int indent, bool includeStdHeaders) {
       if (strcmp(headername,"pnetcdf.h")==0) continue;
       if (strcmp(headername,"sander.h")==0) continue;
       if (strcmp(headername,"omp.h")==0) continue;
-      if (strcmp(headername,"libpme_standalone.h")==0) continue;
       if (strncmp(headername,"readline",8)==0) continue;
       if (strncmp(headername,"xdrfile",7)==0) continue;
     }
@@ -100,15 +99,15 @@ list<string> *PeakHeader(char *filename, int indent, bool includeStdHeaders) {
   // DEBUG
   //fprintf(stdout,"%i:%s ",indent,filename);
   //for (it=HeaderList->begin(); it!=HeaderList->end(); it++) 
-  //  fprintf(stdout,"[%s]",(*it).c_str());
+  //  fprintf(stdout,"[%s]",it->c_str());
   //fprintf(stdout,"\n");
 
   // Go through each header in the list, skipping standard headers
   // Use a copy of HeaderList so the iterator wont go on forever
   SpliceList = *HeaderList;
   for (it=SpliceList.begin(); it!=SpliceList.end(); it++) {
-    if ( (*it).find('<')==string::npos ) {
-      SecondList = PeakHeader((char*)(*it).c_str(),indent+1,includeStdHeaders);
+    if ( it->find('<')==string::npos && *it != "libpme_standalone.h" ) {
+      SecondList = PeakHeader((char*)it->c_str(),indent+1,includeStdHeaders);
       if (SecondList!=NULL) {
         HeaderList->splice( HeaderList->end(), *SecondList );
         delete SecondList;
