@@ -23,6 +23,12 @@ class Ewald {
     double CalcEnergy_NoPairList(Frame const&, Topology const&, AtomMask const&);
 #   endif
   protected:
+    typedef std::vector<double> Darray;
+    typedef std::vector<int> Iarray;
+    typedef std::vector<Vec3> Varray;
+    typedef std::set<int> Iset;
+    typedef std::vector<Iset> Iarray2D;
+
     static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
     /// Complimentary error function, erfc.
     static double erfc_func(double);
@@ -42,6 +48,7 @@ class Ewald {
     int Setup_Pairlist(Box const&, Vec3 const&, double);
     void CalculateCharges(Topology const&, AtomMask const&);
     void SetupExcluded(Topology const&); // TODO fix for atom mask
+    void Setup_VDW_Correction(Topology const&);
 
 #   ifdef DEBUG_EWALD
     /// Slow version of direct space energy, no pairlist.
@@ -57,10 +64,6 @@ class Ewald {
 #   endif
 
     // TODO make variables private
-    typedef std::vector<double> Darray;
-    typedef std::vector<Vec3> Varray;
-    typedef std::set<int> Iset;
-    typedef std::vector<Iset> Iarray2D;
 #   ifdef DEBUG_EWALD
     Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
 #   endif
@@ -68,6 +71,8 @@ class Ewald {
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each atom.
+    Iarray N_vdw_type_;   ///< Number of each VDW type.
+    NonbondParmType const* NBparams_; ///< Pointer to nonbonded parameters
 
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges

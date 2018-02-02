@@ -127,36 +127,6 @@ int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   return 0;
 }
 
-/** Calculate full nonbonded energy with PME */
-double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
-{
-  t_total_.Start();
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
-  double e_self = Self( volume );
-
-  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
-
-  // TODO make more efficient
-  int idx = 0;
-  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm, ++idx) {
-    const double* XYZ = frameIn.XYZ( *atm );
-    coordsD_(idx, 0) = XYZ[0];
-    coordsD_(idx, 1) = XYZ[1];
-    coordsD_(idx, 2) = XYZ[2];
-  }
-
-//  MapCoords(frameIn, ucell, recip, maskIn);
-  double e_recip = Recip_ParticleMesh( coordsD_, chargesD_, frameIn.BoxCrd() );
-  double e_adjust = 0.0;
-  double e_direct = Direct( pairList_, e_adjust );
-  if (debug_ > 0)
-    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
-            e_self, e_recip, e_direct, e_adjust);
-  t_total_.Stop();
-  return e_self + e_recip + e_direct + e_adjust;
-}
-
 // Ewald::Recip_ParticleMesh()
 double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD,
                                  libpme::Mat<double> const& chargesD, Box const& boxIn)
@@ -195,5 +165,35 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD
   return erecip;
 }
 
+/** Calculate full nonbonded energy with PME */
+double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
+{
+  t_total_.Start();
+  Matrix_3x3 ucell, recip;
+  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double e_self = Self( volume );
+  double e_vdwr = Vdw_Correction( volume );
+
+  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+
+  // TODO make more efficient
+  int idx = 0;
+  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm, ++idx) {
+    const double* XYZ = frameIn.XYZ( *atm );
+    coordsD_(idx, 0) = XYZ[0];
+    coordsD_(idx, 1) = XYZ[1];
+    coordsD_(idx, 2) = XYZ[2];
+  }
+
+//  MapCoords(frameIn, ucell, recip, maskIn);
+  double e_recip = Recip_ParticleMesh( coordsD_, chargesD_, frameIn.BoxCrd() );
+  double e_adjust = 0.0;
+  double e_direct = Direct( pairList_, e_adjust );
+  if (debug_ > 0)
+    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
+            e_self, e_recip, e_direct, e_adjust);
+  t_total_.Stop();
+  return e_self + e_recip + e_direct + e_adjust;
+}
 
 #endif /* LIBPME */

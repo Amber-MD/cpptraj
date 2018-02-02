@@ -378,6 +378,7 @@ double Ewald_Regular::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
   Matrix_3x3 ucell, recip;
   double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
   double e_self = Self( volume );
+  double e_vdwr = Vdw_Correction( volume );
 
   pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
 

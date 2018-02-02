@@ -33,7 +33,7 @@ class Ewald_Regular : public Ewald {
     Darray c3_;
     Darray s3_;
 #   ifdef _OPENMP
-    typedef std::vector<int> Iarray;
+    typedef Ewald::Iarray Iarray;
     Iarray mlim1_;        ///< Hold m1 reciprocal indices
     Iarray mlim2_;        ///< Hold m2 reciprocal indices
     int multCut_;         ///< Hold index after which multiplier should be 2.0.

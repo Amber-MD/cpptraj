@@ -172,6 +172,7 @@ void Ewald::CalculateCharges(Topology const& topIn, AtomMask const& maskIn) {
     sumq2_ += (qi * qi);
   }
   //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
+  Setup_VDW_Correction( topIn );
 }
 
 /** Set up full exclusion lists. */
@@ -429,12 +430,41 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
   return Eelec;
 }
 
+void Ewald::Setup_VDW_Correction(Topology const& topIn) {
+  NBparams_ = static_cast<NonbondParmType const*>( &(topIn.Nonbond()) );
+  //NonbondParmType const& NB = topIn.Nonbond();
+  if (!NBparams_->HasNonbond()) {
+    mprintf("Warning: '%s' has no nonbonded parameters. Cannot calculate VDW correction.\n");
+    N_vdw_type_.clear();
+    return;
+  }
+  // Count the number of each unique nonbonded type.
+  N_vdw_type_.assign( NBparams_->Ntypes(), 0 );
+  for (Topology::atom_iterator atm = topIn.begin(); atm != topIn.end(); ++atm)
+    N_vdw_type_[ atm->TypeIndex() ]++;
+  mprintf("DEBUG: %zu VDW types.\n", N_vdw_type_.size());
+  for (Iarray::const_iterator it = N_vdw_type_.begin(); it != N_vdw_type_.end(); ++it)
+    mprintf("\tType %u = %i\n", it-N_vdw_type_.begin(), *it);
+}
+
 double Ewald::Vdw_Correction(double volume) {
   double term = 0.0;
   double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
 
-  double evdwr = -prefac * term;
-  return evdwr;
+  for (unsigned int itype = 0; itype != N_vdw_type_.size(); itype++)
+  {
+    unsigned int offset = N_vdw_type_.size() * itype;
+    for (unsigned int jtype = 0; jtype != N_vdw_type_.size(); jtype++)
+    {
+      unsigned int idx = offset + jtype;
+      int nbidx = NBparams_->NBindex()[ idx ];
+      if (nbidx > -1)
+        term += N_vdw_type_[itype] * N_vdw_type_[jtype] * NBparams_->NBarray()[ nbidx ].B();
+    }
+  }
+  double e_vdwr = -prefac * term;
+  mprintf("DEBUG: Vdw correction %20.10f\n", e_vdwr);
+  return e_vdwr;
 }
 
 #ifdef DEBUG_EWALD
