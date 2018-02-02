@@ -165,11 +165,14 @@ void Ewald::CalculateCharges(Topology const& topIn, AtomMask const& maskIn) {
   sumq_ = 0.0;
   sumq2_ = 0.0;
   Charge_.clear();
+  TypeIndices_.clear();
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
     double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
     Charge_.push_back(qi);
     sumq_ += qi;
     sumq2_ += (qi * qi);
+    // Store atom type indices for selected atoms.
+    TypeIndices_.push_back( topIn[*atom].TypeIndex() );
   }
   //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
   Setup_VDW_Correction( topIn );
@@ -296,15 +299,16 @@ double Ewald::Adjust(double q0, double q1, double rij) {
   * a pair list. Also calculate the energy adjustment for excluded
   * atoms.
   */
-double Ewald::Direct(PairList const& PL, double& e_adjust_out)
+double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
 {
   t_direct_.Start();
   double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
   double e_adjust = 0.0;
+  double Evdw = 0.0;
   int cidx;
 # ifdef _OPENMP
-# pragma omp parallel private(cidx) reduction(+: Eelec, e_adjust)
+# pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust)
   {
 # pragma omp for
 # endif
@@ -414,6 +418,18 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
                 //  ta1=atnum0; ta0=atnum1;
                 //}
                 //mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
+                int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
+                                              TypeIndices_[it1->Idx()]);
+                if (nbindex > -1) {
+                  NonbondType const& LJ = NB_->NBarray()[ nbindex ];
+                  double r2    = 1.0 / rij2;
+                  double r6    = r2 * r2 * r2;
+                  double r12   = r6 * r6;
+                  double f12   = LJ.A() * r12;  // A/r^12
+                  double f6    = LJ.B() * r6;   // B/r^6
+                  double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+                  Evdw += e_vdw;
+                }
               }
             } else
               e_adjust += Adjust(q0, q1, sqrt(rij2));
@@ -427,19 +443,20 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
 # endif
   t_direct_.Stop();
   e_adjust_out = e_adjust;
+  evdw_out = Evdw;
   return Eelec;
 }
 
 /** Determine VDW long range correction prefactor. */
 void Ewald::Setup_VDW_Correction(Topology const& topIn) {
   Vdw_Recip_term_ = 0.0;
-  NonbondParmType const& NB = topIn.Nonbond();
-  if (!NB.HasNonbond()) {
+  NB_ = static_cast<NonbondParmType const*>( &(topIn.Nonbond()) );
+  if (!NB_->HasNonbond()) {
     mprintf("Warning: '%s' has no nonbonded parameters. Cannot calculate VDW correction.\n");
     return;
   }
   // Count the number of each unique nonbonded type.
-  Iarray N_vdw_type( NB.Ntypes(), 0 );
+  Iarray N_vdw_type( NB_->Ntypes(), 0 );
   for (Topology::atom_iterator atm = topIn.begin(); atm != topIn.end(); ++atm)
     N_vdw_type[ atm->TypeIndex() ]++;
   mprintf("DEBUG: %zu VDW types.\n", N_vdw_type.size());
@@ -452,9 +469,9 @@ void Ewald::Setup_VDW_Correction(Topology const& topIn) {
     for (unsigned int jtype = 0; jtype != N_vdw_type.size(); jtype++)
     {
       unsigned int idx = offset + jtype;
-      int nbidx = NB.NBindex()[ idx ];
+      int nbidx = NB_->NBindex()[ idx ];
       if (nbidx > -1)
-        Vdw_Recip_term_ += N_vdw_type[itype] * N_vdw_type[jtype] * NB.NBarray()[ nbidx ].B();
+        Vdw_Recip_term_ += N_vdw_type[itype] * N_vdw_type[jtype] * NB_->NBarray()[ nbidx ].B();
     }
   }
 }

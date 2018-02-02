@@ -127,6 +127,15 @@ int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   return 0;
 }
 
+/*
+static inline void PrintM(const char* Title, libpme::Mat<double> const& M_)
+{
+  mprintf("    %s\n",Title);
+  mprintf("     %16.10f %16.10f %16.10f\n", M_(0,0), M_(0,1), M_(0,2));
+  mprintf("     %16.10f %16.10f %16.10f\n", M_(1,0), M_(1,1), M_(1,2));
+  mprintf("     %16.10f %16.10f %16.10f\n", M_(2,0), M_(2,1), M_(2,2));
+}*/
+
 // Ewald::Recip_ParticleMesh()
 double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD,
                                  libpme::Mat<double> const& chargesD, Box const& boxIn)
@@ -188,10 +197,11 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
 //  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_ParticleMesh( coordsD_, chargesD_, frameIn.BoxCrd() );
   double e_adjust = 0.0;
-  double e_direct = Direct( pairList_, e_adjust );
+  double e_vdw = 0.0;
+  double e_direct = Direct( pairList_, e_adjust, e_vdw );
   if (debug_ > 0)
-    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
-            e_self, e_recip, e_direct, e_adjust);
+    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f  Evdw= %20.10f\n",
+            e_self, e_recip, e_direct, e_adjust, e_vdw);
   t_total_.Stop();
   return e_self + e_recip + e_direct + e_adjust;
 }

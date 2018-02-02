@@ -55,7 +55,7 @@ class Ewald {
     double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
 #   endif
     /// Fast version of direct space energy using a pairlist
-    double Direct(PairList const&, double&);
+    double Direct(PairList const&, double&, double&);
     /// \return adjusted energy for excluded atom pair
 #   ifdef _OPENMP
     inline double Adjust(double,double,double) const;
@@ -67,10 +67,12 @@ class Ewald {
 #   ifdef DEBUG_EWALD
     Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
 #   endif
-    Darray Charge_; ///< Hold atomic charges converted to Amber units.
+    Darray Charge_;       ///< Hold atomic charges converted to Amber units.
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each atom.
+    Iarray TypeIndices_;  ///< Hold atom type indices
+    NonbondParmType const* NB_;
 
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges
