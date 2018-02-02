@@ -10,7 +10,7 @@ class Ewald_ParticleMesh : public Ewald {
     int Init(Box const&, double, double, double, double, double, int, int, const int*);
     // ----- Inherited ---------------------------
     int Setup(Topology const&, AtomMask const&);
-    double CalcEnergy(Frame const&, AtomMask const&); // TODO const?
+    double CalcEnergy(Frame const&, AtomMask const&, double&); // TODO const?
   private:
     /// Based on given length return number of grid points that is power of 2, 3, or 5
     static int ComputeNFFT(double);

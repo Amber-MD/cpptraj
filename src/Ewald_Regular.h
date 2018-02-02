@@ -9,7 +9,7 @@ class Ewald_Regular : public Ewald {
              double, int, const int*);
     // ----- Inherited ---------------------------
     int Setup(Topology const&, AtomMask const&);
-    double CalcEnergy(Frame const&, AtomMask const&); // TODO const?
+    double CalcEnergy(Frame const&, AtomMask const&, double&); // TODO const?
   private:
     /// Determine max length for reciprocal calcs based on reciprocal limits
     static double FindMaxexpFromMlim(const int*, Matrix_3x3 const&);

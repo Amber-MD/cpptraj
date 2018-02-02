@@ -175,7 +175,7 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD
 }
 
 /** Calculate full nonbonded energy with PME */
-double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
+double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn, double& e_vdw)
 {
   t_total_.Start();
   Matrix_3x3 ucell, recip;
@@ -197,11 +197,12 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
 //  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_ParticleMesh( coordsD_, chargesD_, frameIn.BoxCrd() );
   double e_adjust = 0.0;
-  double e_vdw = 0.0;
+         e_vdw = 0.0;
   double e_direct = Direct( pairList_, e_adjust, e_vdw );
   if (debug_ > 0)
     mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f  Evdw= %20.10f\n",
             e_self, e_recip, e_direct, e_adjust, e_vdw);
+  e_vdw += e_vdwr;
   t_total_.Stop();
   return e_self + e_recip + e_direct + e_adjust;
 }

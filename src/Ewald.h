@@ -14,7 +14,7 @@ class Ewald {
     // ----- Virtual functions -------------------
     virtual ~Ewald() {}
     virtual int Setup(Topology const&, AtomMask const&) = 0;
-    virtual double CalcEnergy(Frame const&, AtomMask const&) = 0; // TODO const?
+    virtual double CalcEnergy(Frame const&, AtomMask const&, double&) = 0; // TODO const?
     // -------------------------------------------
     /// Report timings.
     void Timing(double) const;

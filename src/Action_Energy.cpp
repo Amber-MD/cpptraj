@@ -81,6 +81,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       // Ewald method
       etype_ = EW;
       calc_elec = true;
+      calc_vdw = false; // Will be done by Ewald direct sum
       cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
       dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
       rsumtol_ = actionArgs.getKeyDouble("rsumtol", 5E-5);
@@ -104,6 +105,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       // particle mesh Ewald method
       etype_ = PME;
       calc_elec = true;
+      calc_vdw = false; // Will be done by Ewald direct sum
       cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
       dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
       ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
@@ -180,9 +182,12 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         if (AddSet(VDW, init.DSL(), outfile, setname)) return Action::ERR; break;
       case COULOMB:
       case DIRECT:
+        if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR; break;
       case EWALD:
       case PMEWALD:
-        if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR; break;
+        if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR;
+        if (AddSet(VDW, init.DSL(), outfile, setname)) return Action::ERR;
+        break;
     }
   }
 //  if (Ecalcs_.size() > 1) {
@@ -348,9 +353,10 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case EWALD:
       case PMEWALD:
-        ene = EW_->CalcEnergy(frm.Frm(), Imask_);
+        ene = EW_->CalcEnergy(frm.Frm(), Imask_, ene2);
         Energy_[ELEC]->Add(frameNum, &ene);
-        Etot += ene;
+        Energy_[VDW]->Add(frameNum, &ene2);
+        Etot += (ene + ene2);
         break;
     }
   }
