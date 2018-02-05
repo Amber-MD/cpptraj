@@ -1,3 +1,4 @@
+#include <algorithm> // copy/fill/min/max
 #include <cmath>
 #include "Ewald_Regular.h"
 #include "CpptrajStdio.h"
@@ -107,6 +108,8 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
   boxIn.ToRecip(ucell, recip);
   if (mlimitsIn != 0)
     std::copy(mlimitsIn, mlimitsIn+3, mlimit_);
+  else
+    std::fill(mlimit_, mlimit_+3, 0);
 
   // Check input
   if (mlimit_[0] < 0 || mlimit_[1] < 0 || mlimit_[2] < 0) {
@@ -395,4 +398,3 @@ double Ewald_Regular::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn, d
   t_total_.Stop();
   return e_self + e_recip + e_direct + e_adjust;
 }
-

@@ -2,11 +2,12 @@
 #define INC_EWALD_PARTICLEMESH_H
 #ifdef LIBPME
 #include "Ewald.h"
-#include <memory> // unique_ptr (libpme_standalone.h)
 #include "libpme_standalone.h"
+/// Class for calculating electrostatics with particle mesh Ewald.
 class Ewald_ParticleMesh : public Ewald {
   public:
     Ewald_ParticleMesh();
+    /// Box, cut, dsum tol, ew coeff, NB skin, erfc dx, order, debug, nfft
     int Init(Box const&, double, double, double, double, double, int, int, const int*);
     // ----- Inherited ---------------------------
     int Setup(Topology const&, AtomMask const&);
@@ -19,8 +20,8 @@ class Ewald_ParticleMesh : public Ewald {
     /// Particle mesh Ewald reciprocal energy
     double Recip_ParticleMesh(libpme::Mat<double> const&, libpme::Mat<double> const&, Box const&);
 
-    libpme::Mat<double> coordsD_;
-    libpme::Mat<double> chargesD_;
+    libpme::Mat<double> coordsD_;   ///< Hold coordinates for selected atoms
+    libpme::Mat<double> chargesD_;  ///< Will point to Ewald::Charge_
 
     int nfft_[3]; ///< Number of FFT grid points in each direction
     int order_;   ///< PME B spline order

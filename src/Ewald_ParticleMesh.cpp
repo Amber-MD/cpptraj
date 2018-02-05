@@ -1,4 +1,6 @@
 #ifdef LIBPME
+#include <algorithm> // copy/fill
+#include <memory> // unique_ptr
 #include "Ewald_ParticleMesh.h"
 #include "CpptrajStdio.h"
 
@@ -90,6 +92,8 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
     return 1;
   if (nfftIn != 0)
     std::copy(nfftIn, nfftIn+3, nfft_);
+  else
+    std::fill(nfft_, nfft_+3, -1);
   order_ = orderIn;
 
   // Set defaults if necessary

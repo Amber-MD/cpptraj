@@ -3,11 +3,7 @@
 #include "Topology.h"
 #include "Timer.h"
 #include "PairList.h"
-#ifdef LIBPME
-#  include <memory> // unique_ptr (libpme_standalone.h)
-#  include "libpme_standalone.h"
-#endif
-/// Class for calculating electrostatics using Ewald summation.
+/// Base class for calculating electrostatics using Ewald methods.
 class Ewald {
   public:
     Ewald();
@@ -43,11 +39,15 @@ class Ewald {
     double Self(double);
     /// Get analytical estimate of energy due to dispersion interactions > cutoff
     double Vdw_Correction(double);
-
+    /// Box, debug, cutoff, dsum tol, ew coeff, erfc dx, nb skin
     int CheckInput(Box const&, int, double, double, double, double, double);
+    /// Set up pair list
     int Setup_Pairlist(Box const&, Vec3 const&, double);
+    /// Calculate sum q, sum q^2. Calls setup for vdw correction
     void CalculateCharges(Topology const&, AtomMask const&);
-    void SetupExcluded(Topology const&, AtomMask const&); // TODO fix for atom mask
+    /// Setup main excluded atom list
+    void SetupExcluded(Topology const&, AtomMask const&);
+    /// Setup VDW correction for selected atom types
     void Setup_VDW_Correction(Topology const&, AtomMask const&);
 
 #   ifdef DEBUG_EWALD
@@ -67,12 +67,12 @@ class Ewald {
 #   ifdef DEBUG_EWALD
     Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
 #   endif
-    Darray Charge_;       ///< Hold atomic charges converted to Amber units.
+    Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
-    Iarray2D Excluded_;   ///< Full exclusion list for each atom.
-    Iarray TypeIndices_;  ///< Hold atom type indices
-    NonbondParmType const* NB_;
+    Iarray2D Excluded_;   ///< Full exclusion list for each selected atom.
+    Iarray TypeIndices_;  ///< Hold atom type indices for selected atoms
+    NonbondParmType const* NB_; ///< Pointer to nonbonded parameters
 
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges

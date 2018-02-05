@@ -1,10 +1,11 @@
 #ifndef INC_EWALD_REGULAR_H
 #define INC_EWALD_REGULAR_H
 #include "Ewald.h"
+/// Calculate regular Ewald energy
 class Ewald_Regular : public Ewald {
   public:
     Ewald_Regular();
-    /// Initialize Ewald parameters.
+    /// Box, cutoff, dsum tol, rsum tol, ew coeff, maxexp, nb skin, erfc dx, debug, mlimits
     int Init(Box const&, double, double, double, double, double, double,
              double, int, const int*);
     // ----- Inherited ---------------------------
