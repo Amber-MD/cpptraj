@@ -22,10 +22,10 @@ void Action_Energy::Help() const {
           "\t          directsum [npoints <N>] |\n"
           "\t          ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
           "\t                [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]\n"
-          "\t                [mlimits <X>,<Y>,<Z>]\n"
+          "\t                [mlimits <X>,<Y>,<Z>] [erfcdx <dx>]\n"
           "\t          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>]\n"
           "\t              [ewcoeff <coeff>] [skinnb <skinnb>]\n"
-          "\t              [nfft <nfft1>,<nfft2>,<nfft3>]\n"
+          "\t              [nfft <nfft1>,<nfft2>,<nfft3>] [erfcdx <dx>]\n"
           "\t        } ]\n"
           "  Calculate energy for atoms in mask.\n");
 }
@@ -101,6 +101,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
       maxexp_ = actionArgs.getKeyDouble("maxexp", 0.0);
       skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
+      erfcDx_ = actionArgs.getKeyDouble("erfcdx", 0.0);
       std::string marg = actionArgs.GetStringKey("mlimits");
       if (!marg.empty()) {
         ArgList mlim(marg, ",");
@@ -122,6 +123,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
       ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
       skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
+      erfcDx_ = actionArgs.getKeyDouble("erfcdx", 0.0);
       npoints_ = actionArgs.getKeyInt("order", 6);
       std::string marg = actionArgs.GetStringKey("nfft");
       if (!marg.empty()) {
@@ -243,6 +245,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     else
       mprintf("\tNumber of reciprocal vectors in each direction= {%i,%i,%i}\n",
               mlimits_[0], mlimits_[1], mlimits_[2]);
+    if (erfcDx_ > 0.0)
+      mprintf("\tERFC table dx= %g\n", erfcDx_);
   } else if (elecType_ == PME) {
     mprintf("\tDirect space cutoff= %.4f\n", cutoff_);
     if (dsumtol_ != 0.0)
@@ -257,7 +261,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     else
       mprintf("\tNumber of FFT grid points in each direction= {%i,%i,%i}\n",
               mlimits_[0], mlimits_[1], mlimits_[2]);
-
+    if (erfcDx_ > 0.0)
+      mprintf("\tERFC table dx= %g\n", erfcDx_);
   }
   if (termEnabled[VDW] && lj_longrange_correction)
     mprintf("\tUsing long range correction for nonbond VDW calc.\n");
@@ -284,16 +289,16 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   // Set up Ewald if necessary.
-  if (elecType_ == EWALD) { // TODO erfc table dx option
+  if (elecType_ == EWALD) {
     if (((Ewald_Regular*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
-                                    ewcoeff_, maxexp_, skinnb_, 0.0, debug_, mlimits_))
+                                    ewcoeff_, maxexp_, skinnb_, erfcDx_, debug_, mlimits_))
       return Action::ERR;
     EW_->Setup( setup.Top(), Imask_ );
   }
 # ifdef LIBPME
   else if (elecType_ == PME) {
     if (((Ewald_ParticleMesh*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
-                                         ewcoeff_, skinnb_, 0.0, npoints_, debug_, mlimits_))
+                                         ewcoeff_, skinnb_, erfcDx_, npoints_, debug_, mlimits_))
       return Action::ERR;
     EW_->Setup( setup.Top(), Imask_ );
   }

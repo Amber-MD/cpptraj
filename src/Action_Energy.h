@@ -44,6 +44,7 @@ class Action_Energy: public Action {
     double ewcoeff_;               ///< Ewald coefficient.
     double maxexp_;
     double skinnb_;                ///< Size of non-bonded "skin"
+    double erfcDx_;                ///< Spacing for ERFC table (default 1/5000)
     int mlimits_[3];               ///< mlimits (reg. Ewald) or nfft (PME)
     bool need_lj_params_;          ///< True if LJ parameters needed.
     Timer etime_;
