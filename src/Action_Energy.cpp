@@ -116,6 +116,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       EW_ = (Ewald*)new Ewald_Regular();
     } else if (etypearg == "pme") {
       // particle mesh Ewald method
+#     ifdef LIBPME
       elecType_ = PME;
       cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
       dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
@@ -135,6 +136,10 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       } else
         std::fill(mlimits_, mlimits_+3, -1);
       EW_ = (Ewald*)new Ewald_ParticleMesh();
+#     else
+      mprinterr("Error: 'pme' requires compiling with -DLIBPME and C++11 support.\n");
+      return Action::ERR;
+#     endif
     } else if (etypearg == "simple") {
       // Simple method
       elecType_ = SIMPLE;
@@ -284,12 +289,15 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
                                     ewcoeff_, maxexp_, skinnb_, 0.0, debug_, mlimits_))
       return Action::ERR;
     EW_->Setup( setup.Top(), Imask_ );
-  } else if (elecType_ == PME) {
+  }
+# ifdef LIBPME
+  else if (elecType_ == PME) {
     if (((Ewald_ParticleMesh*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
                                          ewcoeff_, skinnb_, 0.0, npoints_, debug_, mlimits_))
       return Action::ERR;
     EW_->Setup( setup.Top(), Imask_ );
   }
+# endif
   currentParm_ = setup.TopAddress();
   return Action::OK;
 }

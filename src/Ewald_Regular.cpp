@@ -1,3 +1,4 @@
+#include <cmath>
 #include "Ewald_Regular.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
