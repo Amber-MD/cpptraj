@@ -4,7 +4,7 @@
 
 CleanFiles ene.in ene.dat ene1.dat long.dat strip.dat directsum.0 ewald.dat \
            ew_tz2.dat ew_tz2_10.dat tz2_ortho.dat directsum.0 run9.dat pme.nacl.dat \
-            ew_tz2o.dat
+           ew_tz2o.dat ew_tz2o.mask.dat
 
 INPUT="-i ene.in"
 TESTNAME='Particle mesh Ewald tests'
@@ -89,6 +89,26 @@ EOF
   fi
 }
 
+MaskTz2Ortho() {
+  UNITNAME='Particle mesh Ewald test (ortho, with mask)'
+  CheckFor netcdf maxthreads 1
+  if [ $? -eq 0 ] ; then
+    cat > ene.in <<EOF
+noprogress
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc 1 1
+debug actions 1
+energy Reg nonbond out ew_tz2o.mask.dat etype ewald skinnb 0.01 !:WAT \
+       cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
+energy Pme nonbond out ew_tz2o.mask.dat etype pme   skinnb 0.01 order 6 !:WAT \
+       cut 8.0 dsumtol 0.0000001 nfft 72,90,72
+precision ew_tz2o.mask.dat 20 10
+EOF
+    RunCpptraj "$UNITNAME"
+    DoTest ew_tz2o.mask.dat.save ew_tz2o.mask.dat
+  fi
+}
+
 Tz2_Nonortho_10() {
   UNITNAME='Ewald test (trunc. oct), 10 frames'
   CheckFor netcdf long
@@ -123,6 +143,7 @@ EOF
 NaCl
 #TrpzipNonortho
 TrpzipOrtho
+MaskTz2Ortho
 #Tz2_Nonortho_10
 #Tz2_Ortho_10
 
