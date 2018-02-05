@@ -1,2 +1,2 @@
-#Frame      Reg[elec]     Reg[vdw]   Reg[total]    Pme[elec]     Pme[vdw]   Pme[total]
-       1   -6584.7728     378.6621   -6206.1107   -6584.7728     378.6621   -6206.1107
+#Frame       Reg[vdw]    Reg[elec]   Reg[total]     Pme[vdw]    Pme[elec]   Pme[total]
+       1     378.6621   -6584.7728   -6206.1107     378.6621   -6584.7728   -6206.1107

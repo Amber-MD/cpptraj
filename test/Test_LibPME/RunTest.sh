@@ -39,9 +39,9 @@ noprogress
 parm ../Test_Ewald/nacl.box.parm7
 trajin ../Test_Ewald/nacl.box.rst7
 debug actions 1
-energy Reg out ewald.dat etype ewald cut 5.6 dsumtol 0.0000001 rsumtol 0.000000001 skinnb 0.01 mlimits 12,12,12
+energy Reg nonbond out ewald.dat etype ewald cut 5.6 dsumtol 0.0000001 rsumtol 0.000000001 skinnb 0.01 mlimits 12,12,12
 
-energy Pme out ewald.dat etype pme cut 5.6 dsumtol 0.0000001 skinnb 0.01 nfft 32,32,32
+energy Pme nonbond out ewald.dat etype pme cut 5.6 dsumtol 0.0000001 skinnb 0.01 nfft 32,32,32
 EOF
     RunCpptraj "$UNITNAME"
     grep "DEBUG: Eself" test.out > pme.nacl.dat
@@ -78,9 +78,9 @@ noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 1
 debug actions 1
-energy Reg out ew_tz2o.dat etype ewald skinnb 0.01 \
+energy Reg nonbond out ew_tz2o.dat etype ewald skinnb 0.01 \
        cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
-energy Pme out ew_tz2o.dat etype pme   skinnb 0.01 order 6 \
+energy Pme nonbond out ew_tz2o.dat etype pme   skinnb 0.01 order 6 \
        cut 8.0 dsumtol 0.0000001 nfft 72,90,72
 precision ew_tz2o.dat 20 10
 EOF
