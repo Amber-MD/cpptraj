@@ -175,7 +175,7 @@ void Ewald::CalculateCharges(Topology const& topIn, AtomMask const& maskIn) {
     TypeIndices_.push_back( topIn[*atom].TypeIndex() );
   }
   //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
-  Setup_VDW_Correction( topIn );
+  Setup_VDW_Correction( topIn, maskIn );
 }
 
 /** Set up exclusion lists for selected atoms. */
@@ -482,7 +482,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
 }
 
 /** Determine VDW long range correction prefactor. */
-void Ewald::Setup_VDW_Correction(Topology const& topIn) {
+void Ewald::Setup_VDW_Correction(Topology const& topIn, AtomMask const& maskIn) {
   Vdw_Recip_term_ = 0.0;
   NB_ = static_cast<NonbondParmType const*>( &(topIn.Nonbond()) );
   if (!NB_->HasNonbond()) {
@@ -491,8 +491,8 @@ void Ewald::Setup_VDW_Correction(Topology const& topIn) {
   }
   // Count the number of each unique nonbonded type.
   Iarray N_vdw_type( NB_->Ntypes(), 0 );
-  for (Topology::atom_iterator atm = topIn.begin(); atm != topIn.end(); ++atm)
-    N_vdw_type[ atm->TypeIndex() ]++;
+  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm)
+    N_vdw_type[ topIn[*atm].TypeIndex() ]++;
   mprintf("DEBUG: %zu VDW types.\n", N_vdw_type.size());
   for (Iarray::const_iterator it = N_vdw_type.begin(); it != N_vdw_type.end(); ++it)
     mprintf("\tType %u = %i\n", it-N_vdw_type.begin(), *it);

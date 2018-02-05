@@ -48,7 +48,7 @@ class Ewald {
     int Setup_Pairlist(Box const&, Vec3 const&, double);
     void CalculateCharges(Topology const&, AtomMask const&);
     void SetupExcluded(Topology const&, AtomMask const&); // TODO fix for atom mask
-    void Setup_VDW_Correction(Topology const&);
+    void Setup_VDW_Correction(Topology const&, AtomMask const&);
 
 #   ifdef DEBUG_EWALD
     /// Slow version of direct space energy, no pairlist.
