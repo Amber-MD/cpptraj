@@ -178,19 +178,37 @@ void Ewald::CalculateCharges(Topology const& topIn, AtomMask const& maskIn) {
   Setup_VDW_Correction( topIn );
 }
 
-/** Set up full exclusion lists. */
-void Ewald::SetupExcluded(Topology const& topIn) {
+/** Set up exclusion lists for selected atoms. */
+void Ewald::SetupExcluded(Topology const& topIn, AtomMask const& maskIn)
+{
   Excluded_.clear();
-  Excluded_.resize( topIn.Natom() );
-  for (int at = 0; at != topIn.Natom(); at++) {
+  Excluded_.resize( maskIn.Nselected() );
+  // Create a character mask so we can see if atoms in excluded lists are
+  // also selected.
+  CharMask Cmask(maskIn.ConvertToCharMask(), maskIn.Nselected());
+  // Create a map of atom number to maskIn index.
+  int selectedIdx = 0;
+  Iarray atToIdx( Cmask.Natom(), -1 );
+  for (int cidx = 0; cidx != Cmask.Natom(); cidx++)
+    if (Cmask.AtomInCharMask(cidx))
+      atToIdx[cidx] = selectedIdx++;
+  // Loop over selected atoms
+  for (int idx = 0; idx != maskIn.Nselected(); idx++)
+  {
     // Always exclude self
-    Excluded_[at].insert( at );
+    Excluded_[idx].insert( idx );
+    int at = maskIn[idx];
     for (Atom::excluded_iterator excluded_atom = topIn[at].excludedbegin();
                                  excluded_atom != topIn[at].excludedend();
                                ++excluded_atom)
     {
-      Excluded_[at            ].insert( *excluded_atom );
-      Excluded_[*excluded_atom].insert( at             );
+      if (Cmask.AtomInCharMask(*excluded_atom))
+      {
+        // Find excluded atoms index in maskIn
+        int excluded_idx = atToIdx[*excluded_atom];
+        Excluded_[idx         ].insert( excluded_idx );
+        Excluded_[excluded_idx].insert( idx          );
+      }
     }
   }
   unsigned int ex_size = 0;

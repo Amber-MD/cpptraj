@@ -179,7 +179,7 @@ int Ewald_Regular::Setup(Topology const& topIn, AtomMask const& maskIn) {
 //    sinf3_.push_back( 0.0 );
 // }
 
-  SetupExcluded(topIn);
+  SetupExcluded(topIn, maskIn);
 
 # ifdef _OPENMP
   // Pre-calculate m1 and m2 indices

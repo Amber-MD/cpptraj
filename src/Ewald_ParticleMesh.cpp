@@ -123,7 +123,7 @@ int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   coordsD_  = libpme::Mat<double>(maskIn.Nselected(), 3);
   // This essentially makes chargesD_ point to the Charge_ array.
   chargesD_ = libpme::mapMat<double>(&Charge_[0], maskIn.Nselected(), 1);
-  SetupExcluded(topIn);
+  SetupExcluded(topIn, maskIn);
   return 0;
 }
 
