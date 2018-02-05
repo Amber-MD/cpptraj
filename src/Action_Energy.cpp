@@ -16,7 +16,8 @@ Action_Energy::~Action_Energy() {
 
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
-          "\t[bond] [angle] [dihedral] [nb14] {[nonbond] | [elec] [vdw]}\n"
+          "\t[bond] [angle] [dihedral] {[nb14] | [e14] | [v14]}\n"
+          "\t{[nonbond] | [elec] [vdw]}\n"
           "\t[ etype {simple | directsum [npoints <N>] |\n"
           "\t         ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
           "\t               [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]\n"
@@ -28,17 +29,22 @@ void Action_Energy::Help() const {
 }
 
 /// Corresponds to Etype 
-static const char* Estring[] = {"bond", "angle", "dih", "vdw14", "elec14", "vdw", "elec", "total"};
+static const char* AspectStr[] = {"bond", "angle", "dih", "vdw14", "elec14",
+                                  "vdw", "elec", "total"};
+
+/// Corresponds to Etype
+static const char* EtypeStr[] = {"Bonds", "Angles", "Dihedrals", "1-4 VDW", "1-4 Elec.",
+                                 "VDW", "Elec.", "Total"};
 
 /// Corresponds to ElecType 
-static const char* ElecString[] = { "None", "Simple", "Direct Sum", "Regular Ewald",
+static const char* ElecStr[] = { "None", "Simple", "Direct Sum", "Regular Ewald",
                                  "Particle Mesh Ewald" };
 
 // Action_Energy::AddSet()
 int Action_Energy::AddSet(Etype typeIn, DataSetList& DslIn, DataFile* outfile,
                           std::string const& setnameIn)
 {
-  Energy_[typeIn] = DslIn.AddSet(DataSet::DOUBLE, MetaData(setnameIn, Estring[typeIn]));
+  Energy_[typeIn] = DslIn.AddSet(DataSet::DOUBLE, MetaData(setnameIn, AspectStr[typeIn]));
   if (Energy_[typeIn] == 0) return 1;
   if (outfile != 0) outfile->AddDataSet( Energy_[typeIn] );
   return 0;
@@ -56,7 +62,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   termEnabled[ANGLE] = actionArgs.hasKey("angle");
   termEnabled[DIHEDRAL] = actionArgs.hasKey("dihedral");
   termEnabled[V14] = actionArgs.hasKey("v14");
-  termEnabled[Q14] = actionArgs.hasKey("q14");
+  termEnabled[Q14] = actionArgs.hasKey("e14");
   termEnabled[VDW] = actionArgs.hasKey("vdw");
   termEnabled[ELEC] = actionArgs.hasKey("elec");
   if (actionArgs.hasKey("nb14")) {
@@ -200,10 +206,10 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("    ENERGY: Calculating energy for atoms in mask '%s'\n", Mask1_.MaskString());
   mprintf("\tCalculating terms:");
   for (int i = 0; i != (int)TOTAL+1; i++)
-    if (termEnabled[i]) mprintf(" %s", Estring[i]);
+    if (termEnabled[i]) mprintf(" %s", EtypeStr[i]);
   mprintf("\n");
   if (elecType_ != NO_ELE)
-    mprintf("\tElectrostatics method: %s\n", ElecString[elecType_]);
+    mprintf("\tElectrostatics method: %s\n", ElecStr[elecType_]);
   if (elecType_ == DIRECTSUM) {
     if (npoints_ < 0)
       mprintf("\tDirect sum energy for up to %i unit cells in each direction will be calculated.\n",
@@ -326,11 +332,11 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_N14:
         ene = ENE_.E_14_Nonbond(frm.Frm(), *currentParm_, Mask1_, ene2);
-        Energy_[V14]->Add(frameNum, &ene);
-        Energy_[Q14]->Add(frameNum, &ene2);
+        if (Energy_[V14] != 0) Energy_[V14]->Add(frameNum, &ene);
+        if (Energy_[Q14] != 0) Energy_[Q14]->Add(frameNum, &ene2);
         Etot += (ene + ene2);
         break;
-      case C_NBD:
+      case C_NBD: // Both nonbond terms must be enabled 
         ene = ENE_.E_Nonbond(frm.Frm(), *currentParm_, Imask_, ene2);
         Energy_[VDW]->Add(frameNum, &ene);
         Energy_[ELEC]->Add(frameNum, &ene2);
@@ -355,10 +361,10 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Etot += ene;
         break;
       case C_EWALD:
-      case C_PME:
+      case C_PME: // Elec must be enabled, vdw may not be
         ene = EW_->CalcEnergy(frm.Frm(), Imask_, ene2);
         Energy_[ELEC]->Add(frameNum, &ene);
-        Energy_[VDW]->Add(frameNum, &ene2);
+        if (Energy_[VDW] != 0) Energy_[VDW]->Add(frameNum, &ene2);
         Etot += (ene + ene2);
         break;
     }
