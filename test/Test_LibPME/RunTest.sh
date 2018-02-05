@@ -2,15 +2,13 @@
 
 . ../MasterTest.sh
 
-CleanFiles ene.in ene.dat ene1.dat long.dat strip.dat directsum.0 ewald.dat \
-           ew_tz2.dat ew_tz2_10.dat tz2_ortho.dat directsum.0 run9.dat pme.nacl.dat \
-           ew_tz2o.dat ew_tz2o.mask.dat
-
+CleanFiles ene.in ewald.dat debug.nacl.dat nacl.dat debug.tz2n.dat tz2n.dat \
+           debug.tz2o.dat tz2o.dat debug.mtz2o.dat mtz2o.dat pme.nacl.dat
 INPUT="-i ene.in"
 TESTNAME='Particle mesh Ewald tests'
 Requires libpme maxthreads 10
 # Set to 1 for debugging purposes
-PMEDEBUG=1
+PMEDEBUG=0
 if [ $PMEDEBUG -eq 0 ] ; then
   ECMD='#energy'
   PREFIX=''
