@@ -88,6 +88,13 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
                     double ew_coeffIn, double skinnbIn, double erfcTableDxIn, 
                     int orderIn, int debugIn, const int* nfftIn)
 {
+  if (boxIn.Type() != Box::ORTHO) {
+    mprintf("Warning: LibPME currently gives incorrect results for non-orthogonal cells.\n");
+    if (debugIn == 0) {
+      mprinterr("Error: LibPME currently requires orthogonal cell. Use debug > 0 to continue.\n");
+      return 1;
+    }
+  }
   if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, erfcTableDxIn, skinnbIn))
     return 1;
   if (nfftIn != 0)
