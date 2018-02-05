@@ -314,6 +314,7 @@ double Action_Energy::Dbg_Direct(Frame const& frameIn, int maxpoints) {
 Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   etime_.Start();
   double Etot = 0.0, ene, ene2;
+  typedef std::vector<CalcType>::const_iterator calc_it;
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
   {
     switch (*calc) {

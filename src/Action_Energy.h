@@ -30,13 +30,12 @@ class Action_Energy: public Action {
     ElecType elecType_;            ///< Type of electrostatics calc.
     std::vector<DataSet*> Energy_; ///< Hold output data sets (length Etype+1)
     std::vector<CalcType> Ecalcs_; ///< Hold which calcs to perform
-    typedef std::vector<CalcType>::const_iterator calc_it;
     Topology* currentParm_;        ///< Hold current topology
     CharMask Mask1_;               ///< Char mask for all but NB calc
     AtomMask Imask_;               ///< Int mask for NB calc
     Energy_Amber ENE_;             ///< Energy calc class.
     std::string setname_;          ///< Output DataSet name
-    int npoints_;                  ///< # unit cells in each direction for elec. direct sum
+    int npoints_;                  ///< # cells in each direction (DIRECT) or spline order (PME)
     int debug_;
     Ewald* EW_;                    ///< Ewald energy class.
     double cutoff_;                ///< Ewald direct space cutoff.
@@ -45,7 +44,7 @@ class Action_Energy: public Action {
     double ewcoeff_;               ///< Ewald coefficient.
     double maxexp_;
     double skinnb_;                ///< Size of non-bonded "skin"
-    int mlimits_[3];
+    int mlimits_[3];               ///< mlimits (reg. Ewald) or nfft (PME)
     bool need_lj_params_;          ///< True if LJ parameters needed.
     Timer etime_;
 };
