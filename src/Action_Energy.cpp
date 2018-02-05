@@ -18,13 +18,15 @@ void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
           "\t[bond] [angle] [dihedral] {[nb14] | [e14] | [v14]}\n"
           "\t{[nonbond] | [elec] [vdw]}\n"
-          "\t[ etype {simple | directsum [npoints <N>] |\n"
-          "\t         ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
-          "\t               [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]\n"
-          "\t               [mlimits <X>,<Y>,<Z>]} ]\n"
-          "\t         pme [cut <cutoff>] [dsumtol <dtol>] [order <order>]\n"
-          "\t             [ewcoeff <coeff>] [skinnb <skinnb>]\n"
-          "\t             [nfft <nfft1>,<nfft2>,<nfft3>]\n"
+          "\t[ etype { simple |\n"
+          "\t          directsum [npoints <N>] |\n"
+          "\t          ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
+          "\t                [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]\n"
+          "\t                [mlimits <X>,<Y>,<Z>]\n"
+          "\t          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>]\n"
+          "\t              [ewcoeff <coeff>] [skinnb <skinnb>]\n"
+          "\t              [nfft <nfft1>,<nfft2>,<nfft3>]\n"
+          "\t        } ]\n"
           "  Calculate energy for atoms in mask.\n");
 }
 
