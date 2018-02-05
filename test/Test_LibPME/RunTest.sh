@@ -9,6 +9,15 @@ CleanFiles ene.in ene.dat ene1.dat long.dat strip.dat directsum.0 ewald.dat \
 INPUT="-i ene.in"
 TESTNAME='Particle mesh Ewald tests'
 Requires libpme maxthreads 10
+# Set to 1 for debugging purposes
+PMEDEBUG=1
+if [ $PMEDEBUG -eq 0 ] ; then
+  ECMD='#energy'
+  PREFIX=''
+else
+  ECMD='energy'
+  PREFIX='debug.'
+fi
 
 Simple() {
   UNITNAME='Particle mesh Ewald test (simple)'
@@ -34,19 +43,22 @@ NaCl() {
   UNITNAME='Particle mesh Ewald test (NaCl crystal)'
   CheckFor maxthreads 1
   if [ $? -eq 0 ] ; then
+    TFILE="$PREFIX"nacl.dat
     cat > ene.in <<EOF
 noprogress
 parm ../Test_Ewald/nacl.box.parm7
 trajin ../Test_Ewald/nacl.box.rst7
-debug actions 1
-energy Reg nonbond out ewald.dat etype ewald cut 5.6 dsumtol 0.0000001 rsumtol 0.000000001 skinnb 0.01 mlimits 12,12,12
+debug actions $PMEDEBUG
+$ECMD Reg nonbond out $TFILE etype ewald cut 5.6 dsumtol 0.0000001 rsumtol 0.000000001 skinnb 0.01 mlimits 12,12,12
 
-energy Pme nonbond out ewald.dat etype pme cut 5.6 dsumtol 0.0000001 skinnb 0.01 nfft 32,32,32
+energy Pme nonbond out $TFILE etype pme cut 5.6 dsumtol 0.0000001 skinnb 0.01 nfft 32,32,32
 EOF
     RunCpptraj "$UNITNAME"
-    grep "DEBUG: Eself" test.out > pme.nacl.dat
-    DoTest pme.nacl.dat.save pme.nacl.dat
-    DoTest ewald.dat.save ewald.dat
+    if [ $PMEDEBUG -gt 0 ] ; then
+      grep "DEBUG: Eself" test.out > pme.nacl.dat
+      DoTest pme.nacl.dat.save pme.nacl.dat
+    fi
+    DoTest "$TFILE".save "$TFILE"
   fi
 }
 
@@ -54,14 +66,15 @@ TrpzipNonortho() {
   UNITNAME='Particle mesh Ewald test (trunc. oct)'
   CheckFor netcdf maxthreads 1
   if [ $? -eq 0 ] ; then
+    TFILE="$PREFIX"tz2n.dat
     cat > ene.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
 #debug actions 1
-energy Reg out ew_tz2.dat etype ewald skinnb 0.01 \
+$ECMD Reg out $TFILE etype ewald skinnb 0.01 \
        cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
-energy Pme out ew_tz2.dat etype pme   skinnb 0.01 order 6 \
+energy Pme out $TFILE etype pme   skinnb 0.01 order 6 \
        cut 8.0 dsumtol 0.0000001 nfft 96,90,90
 EOF
     RunCpptraj "$UNITNAME"
@@ -73,19 +86,20 @@ TrpzipOrtho() {
   UNITNAME='Particle mesh Ewald test (ortho)'
   CheckFor netcdf maxthreads 1
   if [ $? -eq 0 ] ; then
+    TFILE="$PREFIX"tz2o.dat
     cat > ene.in <<EOF
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 1
 #debug actions 1
-energy Reg nonbond out ew_tz2o.dat etype ewald skinnb 0.01 \
+$ECMD Reg nonbond out $TFILE etype ewald skinnb 0.01 \
        cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
-energy Pme nonbond out ew_tz2o.dat etype pme   skinnb 0.01 order 6 \
+energy Pme nonbond out $TFILE etype pme   skinnb 0.01 order 6 \
        cut 8.0 dsumtol 0.0000001 nfft 72,90,72
-precision ew_tz2o.dat 20 10
+precision $TFILE 20 10
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest ew_tz2o.dat.save ew_tz2o.dat
+    DoTest "$TFILE".save "$TFILE"
   fi
 }
 
@@ -93,19 +107,20 @@ MaskTz2Ortho() {
   UNITNAME='Particle mesh Ewald test (ortho, with mask)'
   CheckFor netcdf maxthreads 1
   if [ $? -eq 0 ] ; then
+    TFILE="$PREFIX"mtz2o.dat
     cat > ene.in <<EOF
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 1
 #debug actions 1
-energy Reg nonbond out ew_tz2o.mask.dat etype ewald skinnb 0.01 !:WAT \
+$ECMD Reg nonbond out $TFILE etype ewald skinnb 0.01 !:WAT \
        cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
-energy Pme nonbond out ew_tz2o.mask.dat etype pme   skinnb 0.01 order 6 !:WAT \
+energy Pme nonbond out $TFILE etype pme   skinnb 0.01 order 6 !:WAT \
        cut 8.0 dsumtol 0.0000001 nfft 72,90,72
-precision ew_tz2o.mask.dat 20 10
+precision $TFILE 20 10
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest ew_tz2o.mask.dat.save ew_tz2o.mask.dat
+    DoTest "$TFILE".save "$TFILE"
   fi
 }
 
