@@ -58,7 +58,7 @@ TrpzipNonortho() {
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
-debug actions 1
+#debug actions 1
 energy Reg out ew_tz2.dat etype ewald skinnb 0.01 \
        cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
 energy Pme out ew_tz2.dat etype pme   skinnb 0.01 order 6 \
@@ -77,7 +77,7 @@ TrpzipOrtho() {
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 1
-debug actions 1
+#debug actions 1
 energy Reg nonbond out ew_tz2o.dat etype ewald skinnb 0.01 \
        cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
 energy Pme nonbond out ew_tz2o.dat etype pme   skinnb 0.01 order 6 \
@@ -97,7 +97,7 @@ MaskTz2Ortho() {
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 1
-debug actions 1
+#debug actions 1
 energy Reg nonbond out ew_tz2o.mask.dat etype ewald skinnb 0.01 !:WAT \
        cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
 energy Pme nonbond out ew_tz2o.mask.dat etype pme   skinnb 0.01 order 6 !:WAT \

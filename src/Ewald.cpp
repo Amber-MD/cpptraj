@@ -493,9 +493,11 @@ void Ewald::Setup_VDW_Correction(Topology const& topIn, AtomMask const& maskIn) 
   Iarray N_vdw_type( NB_->Ntypes(), 0 );
   for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm)
     N_vdw_type[ topIn[*atm].TypeIndex() ]++;
-  mprintf("DEBUG: %zu VDW types.\n", N_vdw_type.size());
-  for (Iarray::const_iterator it = N_vdw_type.begin(); it != N_vdw_type.end(); ++it)
-    mprintf("\tType %u = %i\n", it-N_vdw_type.begin(), *it);
+  if (debug_ > 0) {
+    mprintf("DEBUG: %zu VDW types.\n", N_vdw_type.size());
+    for (Iarray::const_iterator it = N_vdw_type.begin(); it != N_vdw_type.end(); ++it)
+      mprintf("\tType %u = %i\n", it-N_vdw_type.begin(), *it);
+  }
   // Determine correction term from types and LJ B parameters
   for (unsigned int itype = 0; itype != N_vdw_type.size(); itype++)
   {
@@ -514,7 +516,7 @@ void Ewald::Setup_VDW_Correction(Topology const& topIn, AtomMask const& maskIn) 
 double Ewald::Vdw_Correction(double volume) {
   double prefac = Constants::TWOPI / (3.0*volume*cutoff_*cutoff_*cutoff_);
   double e_vdwr = -prefac * Vdw_Recip_term_;
-  mprintf("DEBUG: Vdw correction %20.10f\n", e_vdwr);
+  if (debug_ > 0) mprintf("DEBUG: Vdw correction %20.10f\n", e_vdwr);
   return e_vdwr;
 }
 
