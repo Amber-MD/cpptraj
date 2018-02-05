@@ -215,7 +215,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("    ENERGY: Calculating energy for atoms in mask '%s'\n", Mask1_.MaskString());
   mprintf("\tCalculating terms:");
   for (int i = 0; i != (int)TOTAL+1; i++)
-    if (termEnabled[i]) mprintf(" %s", EtypeStr[i]);
+    if (termEnabled[i]) mprintf(" '%s'", EtypeStr[i]);
   mprintf("\n");
   if (elecType_ != NO_ELE)
     mprintf("\tElectrostatics method: %s\n", ElecStr[elecType_]);
