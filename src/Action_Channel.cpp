@@ -110,9 +110,9 @@ Action::RetType Action_Channel::DoAction(int frameNum, ActionFrame& frm) {
     minPt.Print("min point");
     maxPt.Print("max point");
     long int min_i, min_j, min_k;
-    GRID.BinIndices(minPt[0],minPt[1],minPt[2],min_i,min_j,min_k);
+    GRID.Bin().Indices(minPt[0],minPt[1],minPt[2],min_i,min_j,min_k);
     long int max_i, max_j, max_k;
-    GRID.BinIndices(maxPt[0],maxPt[1],maxPt[2],max_i,max_j,max_k);
+    GRID.Bin().Indices(maxPt[0],maxPt[1],maxPt[2],max_i,max_j,max_k);
     mprintf("\tGrid dims: %li <= i < %li\n", std::max(0L,min_i), std::min(max_i,nx));
     mprintf("\tGrid dims: %li <= j < %li\n", std::max(0L,min_j), std::min(max_j,ny));
     mprintf("\tGrid dims: %li <= k < %li\n", std::max(0L,min_k), std::min(max_k,nz));

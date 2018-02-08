@@ -1,6 +1,7 @@
 #include "Analysis_Regression.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Mesh.h"
+#include <algorithm> // max, min
 
 Analysis_Regression::Analysis_Regression() : statsout_(0), nx_(0) {}
 

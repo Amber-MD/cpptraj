@@ -6,8 +6,17 @@
 
 /// PDB record types
 // NOTE: Must correspond with PDB_RECTYPE
-const char* PDBfile::PDB_RECNAME[] = { "ATOM  ", "HETATM", "CRYST1", "TER   ",
-  "END   ", "ANISOU", "EndRec", "CONECT", 0 };
+const char* PDBfile::PDB_RECNAME[] = { 
+  "ATOM  ", "HETATM", "CRYST1", "TER   ", "END   ", "ANISOU", "EndRec",
+  "CONECT", 0 };
+
+/// CONSTRUCTOR
+PDBfile::PDBfile() :
+  anum_(1),
+  recType_(UNKNOWN),
+  lineLengthWarning_(false),
+  coordOverflow_(false)
+{}
 
 // PDBfile::IsPDBkeyword()
 bool PDBfile::IsPDBkeyword(std::string const& recname) {
@@ -325,6 +334,16 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& aname,
              Occ, Bfac, Elt, charge, false);
 }
 
+/// Fill buffer with coordinates. If too large/small, fill with asterisks.
+static inline void x_to_buf(char* coord_buf, double X, bool& coordOverflow)
+{
+  if (X > 9999.999 || X < -999.999) {
+    coordOverflow = true;
+    sprintf(coord_buf, "%8s", "********");
+  } else
+    sprintf(coord_buf, "%8.3f", X);
+}
+
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          char altLoc,
@@ -333,11 +352,17 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          double X, double Y, double Z, float Occ, float B, 
                          const char* Elt, int charge, bool highPrecision) 
 {
+  static char coord_buf[25];
+  coord_buf[24] = '\0';
+  // Write coordinates to buffer, detect overflow
+  x_to_buf(coord_buf   , X, coordOverflow_);
+  x_to_buf(coord_buf+8 , Y, coordOverflow_);
+  x_to_buf(coord_buf+16, Z, coordOverflow_);
   WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode, Elt);
   if (highPrecision)
-    Printf("   %8.3f%8.3f%8.3f%8.4f%8.4f      %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
+    Printf("   %24s%8.4f%8.4f      %2s%2s\n", coord_buf, Occ, B, Elt, "");
   else
-    Printf("   %8.3f%8.3f%8.3f%6.2f%6.2f          %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
+    Printf("   %24s%6.2f%6.2f          %2s%2s\n", coord_buf, Occ, B, Elt, "");
 }
 
 // PDBfile::WriteANISOU()

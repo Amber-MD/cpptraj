@@ -30,6 +30,7 @@ class Action_GIST : public Action {
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;
     static const Vec3 z_lab_;
+    static const double maxD_;
     static const double QFAC_;
     static const int SOLUTE_;
     static const int OFF_GRID_;
@@ -78,6 +79,7 @@ class Action_GIST : public Action {
     Xarray voxel_Q_;   ///< w4, x4, y4, z4 for all waters in each voxel.*
 
     typedef std::vector<double> Darray;
+    Darray OnGrid_XYZ_;             ///< XYZ coordinates for on-grid waters.*
     std::vector<Darray> E_UV_VDW_;  ///< Solute-solvent van der Waals energy for each voxel.*
     std::vector<Darray> E_UV_Elec_; ///< Solute-solvent electrostatic energy for each voxel.*
     std::vector<Darray> E_VV_VDW_;  ///< Solvent-solvent van der Waals energy for each voxel.*
@@ -92,8 +94,10 @@ class Action_GIST : public Action {
     Timer gist_print_;
     Timer gist_grid_;
     Timer gist_nonbond_;
+    Timer gist_nonbond_dist_;
     Timer gist_nonbond_UV_;
     Timer gist_nonbond_VV_;
+    Timer gist_nonbond_OV_;
     Timer gist_euler_;
     Timer gist_dipole_;
     Timer gist_order_;

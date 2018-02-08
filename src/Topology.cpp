@@ -6,6 +6,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
 #include "Constants.h" // RADDEG, SMALL
+#include "AtomType.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -288,6 +289,8 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 
 // Topology::StartNewMol()
 void Topology::StartNewMol() {
+  // No atoms, so no need to do anything.
+  if (atoms_.empty()) return;
   // If this is the first time this routine has been called, consider all
   // atoms to this point as belonging to first molecule. 
   if (molecules_.empty()) {
@@ -303,6 +306,12 @@ void Topology::StartNewMol() {
     //mprintf("DEBUG:\tMolecule %zu, atoms %i to %zu\n",
     //       molecules_.size(), lastAtom, atoms_.size());
   }
+  if (residues_.empty()) {
+    // No residues yet. Consider entire molecule to be the residue.
+    mprintf("Warning: Starting a molecule before residue info present.\n"
+            "Warning:   Creating residue named 'MOL'\n");
+    residues_.push_back( Residue("MOL",0,atoms_.size(),1,' ',' ') );
+  } 
   residues_.back().SetTerminal( true );
 }
 
@@ -1564,35 +1573,6 @@ void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const&
                                  dih->A3() + atomOffset, dih->A4() + atomOffset,
                                  dih->Type() ), dp[dih->Idx()] );
 }
-
-/// Hold LJ params for a unique atom type
-class AtomType {
-  public:
-    AtomType() : radius_(0.0), depth_(0.0) {}
-    AtomType(double r, double d, int o) : radius_(r), depth_(d), oidx_(o) {}
-    double Radius() const { return radius_; }
-    double Depth()  const { return depth_;  }
-    int OriginalIdx() const { return oidx_; }
-    bool operator<(AtomType const& rhs)  const {
-      return ( (radius_ < rhs.radius_) && (depth_ < rhs.depth_) );
-    }
-    bool operator==(AtomType const& rhs) const {
-      return ( (fabs(radius_ - rhs.radius_) < Constants::SMALL) &&
-               (fabs(depth_  - rhs.depth_ ) < Constants::SMALL) );
-    }
-    NonbondType Combine_LB(AtomType const& rhs) const {
-      double dR = radius_ + rhs.radius_;
-      double dE = sqrt( depth_ * rhs.depth_ );
-      double dR2 = dR * dR;
-      double dR6 = dR2 * dR2 * dR2;
-      double dER6 = dE * dR6;
-      return NonbondType( dER6*dR6, 2.0*dER6 );
-    }
-  private:
-    double radius_; ///< VDW radius
-    double depth_;  ///< LJ well-depth
-    int oidx_; ///< Original atom type index.
-};
 
 /// Map type indices to LJ parameters 
 class TypeArray {

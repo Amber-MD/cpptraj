@@ -24,6 +24,8 @@ class ArgList {
     // Copy/Assignment
     ArgList(const ArgList&);
     ArgList& operator=(const ArgList &);
+    // Append all unmarked args to this arg list
+    void Append(ArgList const&);
     /// \return the argument at the given position
     std::string const& operator[](int) const;
     /// \return Internal argument list as vector of strings

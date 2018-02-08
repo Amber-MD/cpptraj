@@ -129,6 +129,8 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
+        AtomType.cpp \
+        AtomTypeArray.cpp \
         AxisType.cpp \
         BondSearch.cpp \
         Box.cpp \
@@ -168,6 +170,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataIO_CharmmFastRep.cpp \
         DataIO_CharmmOutput.cpp \
         DataIO_CharmmRepLog.cpp \
+        DataIO_CharmmRtfPrm.cpp \
         DataIO_Cmatrix.cpp \
         DataIO_Cpout.cpp \
         DataIO_Evecs.cpp \
@@ -200,6 +203,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_MatrixFlt.cpp \
         DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
+        DataSet_Parameters.cpp \
         DataSet_pH.cpp \
         DataSet_pH_REMD.cpp \
         DataSet_RemLog.cpp \
@@ -258,6 +262,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
         Exec_Traj.cpp \
+        Exec_UpdateParameters.cpp \
         Exec_ViewRst.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \

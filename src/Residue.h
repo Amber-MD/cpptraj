@@ -21,6 +21,12 @@ class Residue {
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(-1),
       icode_(ic), chainID_(cid), isTerminal_(false)
     {}
+    /// CONSTRUCTOR - Res name, first atom, last atom, original resnum, icode, chain ID
+    Residue(NameType const& n, int first, int last, int r, char ic, char cid) :
+      resname_(n), firstAtom_(first), lastAtom_(last),
+      originalResNum_(r), segID_(-1), icode_(ic), chainID_(cid),
+      isTerminal_(false)
+    {}
     /// CONSTRUCTOR - Res name, original resnum, segment ID
     Residue(NameType const& n, int r, int s) :
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),

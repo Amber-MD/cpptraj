@@ -34,6 +34,16 @@ ArgList &ArgList::operator=(const ArgList &rhs) {
   return *this;
 }
 
+void ArgList::Append(ArgList const& argIn) {
+  for (unsigned int idx = 0; idx != argIn.arglist_.size(); idx++) {
+    if (!argIn.marked_[idx]) {
+      arglist_.push_back( argIn.arglist_[idx] );
+      marked_.push_back( argIn.marked_[idx] );
+      argline_.append( " " + argIn.arglist_[idx] );
+    }
+  }
+}
+
 // ArgList::operator[]
 std::string const& ArgList::operator[](int idx) const {
   if (idx < 0 || idx >= (int)arglist_.size()) {

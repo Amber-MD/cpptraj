@@ -162,9 +162,9 @@ void Action_Grid::Print() {
     mprintf("    GRID: Normalization");
     double dens = 1.0;
     if (normalize_ == TO_DENSITY) {
-      dens = grid_->VoxelVolume() * density_;
+      dens = grid_->Bin().VoxelVolume() * density_;
       mprintf(" to density %g molecules/Ang^3, voxel volume= %g Ang^3, %g mols/voxel,",
-              density_, grid_->VoxelVolume(), dens);
+              density_, grid_->Bin().VoxelVolume(), dens);
     } else
       mprintf(" to");
     mprintf(" number of frames %u", nframes_);
@@ -202,7 +202,7 @@ void Action_Grid::PrintPDB(double gridMax)
       for (size_t i = 0; i < grid_->NX(); ++i) {
         double gridval = grid_->GetElement(i, j, k) * norm;
         if (gridval > max_) {
-          Vec3 cxyz = grid_->BinCenter(i,j,k);
+          Vec3 cxyz = grid_->Bin().Center(i,j,k);
           pdbout.WriteATOM(res++, cxyz[0], cxyz[1], cxyz[2], "GRID", gridval);
         }
       }
@@ -212,7 +212,7 @@ void Action_Grid::PrintPDB(double gridMax)
   for (size_t k = 0; k <= grid_->NZ(); k += grid_->NZ())
     for (size_t j = 0; j <= grid_->NY(); j += grid_->NY())
       for (size_t i = 0; i <= grid_->NX(); i += grid_->NX()) {
-        Vec3 cxyz = grid_->BinCorner(i,j,k);
+        Vec3 cxyz = grid_->Bin().Corner(i,j,k);
         pdbout.WriteHET(res, cxyz[0], cxyz[1], cxyz[2]);
       }
   // DEBUG: Write all grid bin corners
@@ -221,7 +221,7 @@ void Action_Grid::PrintPDB(double gridMax)
     for (size_t k = 0; k <= grid_->NZ(); k++)
       for (size_t j = 0; j <= grid_->NY(); j++)
         for (size_t i = 0; i <= grid_->NX(); i++) {
-          Vec3 cxyz = grid_->BinCorner(i,j,k);
+          Vec3 cxyz = grid_->Bin().Corner(i,j,k);
           pdbout.WriteATOM(res, cxyz[0], cxyz[1], cxyz[2], "BIN", 0.0);
         }
   }
