@@ -64,7 +64,7 @@ Exec::RetType Exec_WriteDataFile::Execute(CpptrajState& State, ArgList& argIn)
   }
   DataFile* df = new DataFile();
   if (df == 0) return CpptrajState::ERR;
-  if (State.DFL().EnsembleNum() != -1)
+  if (State.DFL().EnsembleNum() != -1 && !argIn.hasKey("noensextension"))
     name1.append( "." + integerToString(State.DFL().EnsembleNum()) );
   if (df->SetupDatafile( name1, argIn, State.Debug() )) {
     delete df;

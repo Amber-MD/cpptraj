@@ -118,7 +118,8 @@ void DataFile::WriteHelp() {
   mprintf("\t[<format keyword>]\n"
           "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>] [sort]\n"
           "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n"
-          "\t[xprec <width>[.<precision>]] [xfmt {double|scientific|general}]\n");
+          "\t[xprec <width>[.<precision>]] [xfmt {double|scientific|general}]\n"
+          "\t[noensextension]\n");
 }
 
 // DataFile::DetectFormat()
