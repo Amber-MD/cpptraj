@@ -28,9 +28,11 @@ DoTest sorted.pH_6.00.save sorted.pH_6.00
 
 UNITNAME='Constant pH stats test'
 cat > cphstats.in <<EOF
-readensembledata sorted.pH_1.00.save filenames sorted.pH_2.00.save,sorted.pH_3.00.save,sorted.pH_4.00.save,sorted.pH_5.00.save,sorted.pH_6.00.save cpin cpin name PH
+#readensembledata sorted.pH_1.00.save filenames sorted.pH_2.00.save,sorted.pH_3.00.save,sorted.pH_4.00.save,sorted.pH_5.00.save,sorted.pH_6.00.save cpin cpin name PH
+readdata sorted.pH_*.00 separate cpin cpin name PH
 list datasets
-runanalysis cphstats PH[*] statsout stats.dat fracplot fracplotout frac.agr deprot
+#runanalysis cphstats PH[*] statsout stats.dat fracplot fracplotout frac.agr deprot
+runanalysis cphstats PH*[*] statsout stats.dat fracplot fracplotout frac.agr deprot
 list dataset
 EOF
 RunCpptraj "$UNITNAME"
