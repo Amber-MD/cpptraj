@@ -9,17 +9,19 @@ TESTNAME='Constant pH stats / data set sort test'
 
 UNITNAME='Ensemble data read / sort'
 SKIP='no'
-if [ $N_THREADS -lt 7 ] ; then
-  if [ $N_THREADS -eq 4 -o $N_THREADS -eq 5 ] ; then
-     echo "  $UNITNAME cannot be run with 4 or 5 threads."
-     ((CHECKERR++))
-     SkipCheck "$UNITNAME"
-     SKIP='yes'
-  fi
-else
-  CheckFor nthreads 6
-  if [ $? -eq 1 ] ; then
-    SKIP='yes'
+if [ ! -z $N_THREADS ] ; then
+  if [ $N_THREADS -lt 7 ] ; then
+    if [ $N_THREADS -eq 4 -o $N_THREADS -eq 5 ] ; then
+      echo "  $UNITNAME cannot be run with 4 or 5 threads."
+      ((CHECKERR++))
+      SkipCheck "$UNITNAME"
+      SKIP='yes'
+    fi
+  else
+    CheckFor nthreads 6
+    if [ $? -eq 1 ] ; then
+      SKIP='yes'
+    fi
   fi
 fi
 if [ "$SKIP" = 'no' ] ; then
