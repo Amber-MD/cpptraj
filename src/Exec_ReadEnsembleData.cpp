@@ -69,5 +69,9 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   err = Parallel::World().CheckError( err );
 # endif
   if (err != 0) return CpptrajState::ERR;
+# ifdef MPI
+  if (Parallel::EnsembleComm().Size() > 1 && State.DFL().EnsembleNum() < 0)
+    State.DFL().SetEnsembleNum( Parallel::EnsembleComm().Rank() );
+# endif
   return CpptrajState::OK;
 }
