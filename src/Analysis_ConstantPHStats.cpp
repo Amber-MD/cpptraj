@@ -101,9 +101,10 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
         last_state = PH.State(n);
       }
       stat.nframes_ += (PH.Size() - 1);
-      rprintf("DEBUG: %s '%s %i' n_transitions= %u  n_prot= %u  tot_prot= %u  nframes= %u\n",
-              PH.legend(), *(PH.Res().Name()), PH.Res().Num(),
-              stat.n_transitions_, stat.n_prot_, stat.tot_prot_, stat.nframes_);
+      if (debug_ > 0)
+        rprintf("DEBUG: %s '%s %i' n_transitions= %u  n_prot= %u  tot_prot= %u  nframes= %u\n",
+                PH.legend(), *(PH.Res().Name()), PH.Res().Num(),
+                stat.n_transitions_, stat.n_prot_, stat.tot_prot_, stat.nframes_);
     }
   } // END loop over DataSets
 
