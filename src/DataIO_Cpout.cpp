@@ -239,7 +239,10 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     return 1;
   }
   Residues_.clear();
-  if (ReadCpin( cpin_file_ )) return 1;
+  if (ReadCpin( cpin_file_ )) {
+    mprinterr("Error: Could not read CPIN file '%s'\n", cpin_file_.full());
+    return 1;
+  }
 
   // Open CPOUT file.
   BufferedLine infile;
