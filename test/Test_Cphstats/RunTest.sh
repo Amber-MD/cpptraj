@@ -15,7 +15,7 @@ list dataset
 sortensembledata PH
 list dataset
 for i=0;i<6;i++ j=1;j++
-  writedata sorted.pH_\$j.00 as cpout PH[*]%\$i nwriteheader 50
+  writedata sorted.pH_\$j.00 as cpout PH[*]%\$i nwriteheader 50 noensextension
 done
 EOF
 RunCpptraj "$UNITNAME"
