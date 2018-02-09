@@ -23,6 +23,8 @@
 #include "DataSet_Cmatrix_MEM.h"
 #include "DataSet_Cmatrix_NOMEM.h"
 #include "DataSet_Cmatrix_DISK.h"
+#include "DataSet_pH.h"
+#include "DataSet_pH_REMD.h"
 #include "DataSet_Parameters.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
@@ -48,6 +50,8 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "cluster matrix",DataSet_Cmatrix_MEM::Alloc}, // CMATRIX
   { "cluster matrix (no memory)",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
   { "cluster matrix (disk)",     DataSet_Cmatrix_DISK::Alloc},  // CMATRIX_DISK
+  { "pH",            DataSet_pH::Alloc         }, // PH
+  { "pH REMD",       DataSet_pH_REMD::Alloc    }, // PH_REMD
   { "parameters",    DataSet_Parameters::Alloc},  // PARAMETERS
   { 0, 0 }
 };
@@ -225,9 +229,18 @@ DataSet* DataSetList::PopSet( DataSet* dsIn ) {
 /** The set argument must match EXACTLY, so Data will not return Data:1 */
 DataSet* DataSetList::CheckForSet(MetaData const& md) const
 {
-  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->Matches_Exact( md ) )
-      return *ds;
+  // If incoming MetaData ensemble number is not set but DataSetList is,
+  // use DataSetList member number.
+  if (md.EnsembleNum() == -1 && ensembleNum_ != -1) {
+    MetaData md_ensNum( md );
+    md_ensNum.SetEnsembleNum( ensembleNum_ );
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+      if ( (*ds)->Matches_Exact( md_ensNum ) )
+        return *ds;
+  } else
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+      if ( (*ds)->Matches_Exact( md ) )
+        return *ds;
   return 0;
 }
 
@@ -609,6 +622,25 @@ void DataSetList::PrintList(DataListType const& dlist) {
     dset.Info();
     mprintf("\n");
   }
+# ifdef MPI
+  // Print sets from remaining ranks.
+  if (!Parallel::EnsembleComm().IsNull()) {
+    Parallel::EnsembleComm().Barrier();
+    for (int rank = 1; rank < Parallel::EnsembleComm().Size(); rank++) {
+      if (rank == Parallel::EnsembleComm().Rank() && Parallel::TrajComm().Master()) {
+        for (DataListType::const_iterator ds = dlist.begin(); ds != dlist.end(); ++ds) {
+          DataSet const& dset = static_cast<DataSet const&>( *(*ds) );
+          rprintf("%s \"%s\" (%s%s), size is %zu\n", dset.Meta().PrintName().c_str(),
+                  dset.legend(), DataArray[dset.Type()].Description,
+                  dset.Meta().ScalarDescription().c_str(), dset.Size());
+        }
+      }
+      mflush();
+      Parallel::EnsembleComm().Barrier();
+    }
+    Parallel::EnsembleComm().Barrier();
+  }
+# endif
 }
 
 // DataSetList::List()

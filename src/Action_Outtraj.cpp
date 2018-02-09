@@ -97,7 +97,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
 # ifdef MPI
 int Action_Outtraj::SyncAction() {
   int nframes = outtraj_.Traj().NframesWritten();
-  trajComm_.Reduce( &total_frames_, &nframes, 1, MPI_INT, MPI_SUM );
+  trajComm_.ReduceMaster( &total_frames_, &nframes, 1, MPI_INT, MPI_SUM );
   return 0;
 }
 #endif

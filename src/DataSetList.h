@@ -52,6 +52,8 @@ class DataSetList {
     void SetDebug(int d) { debug_ = d; }
     /// Set DataSets pending status.
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
+    /// Set whether set has copies (no ds mem free) or not (will free ds mem).
+    void SetHasCopies(bool b)       { hasCopies_ = b;       }
     /// Make all sets not part of an ensemble part of given ensemble.
     //void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble

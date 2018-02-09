@@ -48,9 +48,31 @@ namespace File {
   typedef std::vector<FileName> NameArray;
   /// Expand given expression to array of file names
   NameArray ExpandToFilenames(std::string const&);
+  /// Search for file names <base>.X given a base name (and debug level) 
+  NameArray SearchForReplicas(FileName const&, int);
+# ifdef MPI
+  /// Base name, trajComm master, ensemble rank, ensemble size, debug
+  NameArray SearchForReplicas(FileName const&, bool, int, int, int);
+# endif
   /// Print error message corresponding to 'false' value from 'Exists()'
   void ErrorMsg(const char*);
   bool Exists(std::string const&);
   bool Exists(FileName const&);
+  /** Given lowest replica traj filename, split into components for search. */
+  class RepName {
+  public:
+    RepName() : ExtWidth_(0), lowestRepnum_(-1), extChar_('.') {}
+    RepName(FileName const&, int);
+    bool Error() const { return Prefix_.empty(); }
+    /// \return Replica file name for given offset from lowest replica number.
+    FileName RepFilename(int) const;
+  private:
+    std::string Prefix_;      ///< File name up to the numerical extension.
+    std::string ReplicaExt_;  ///< Numerical extension.
+    std::string CompressExt_; ///< Optional compression extension after numerical extension.
+    int ExtWidth_;            ///< Width of the numerical extension. TODO remove
+    int lowestRepnum_;        ///< Integer value of numerical extension.
+    char extChar_;            ///< Character preceding numerical extension
+  };
 }
 #endif

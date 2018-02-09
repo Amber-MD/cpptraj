@@ -430,6 +430,9 @@ test.control:
 test.infraredspec:
 	@-cd Test_InfraredSpec && ./RunTest.sh $(OPT)
 
+test.cphstats:
+	@-cd Test_Cphstats && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -568,7 +571,8 @@ COMPLETETESTS=test.general \
               test.scaledihedralk \
               test.phipsi \
               test.control \
-              test.infraredspec
+              test.infraredspec \
+              test.cphstats
 
 test.all:
 	$(MAKE) test.complete summary

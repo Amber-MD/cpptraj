@@ -140,7 +140,7 @@ Action::RetType Action_Average::DoAction(int frameNum, ActionFrame& frm) {
 #ifdef MPI
 int Action_Average::SyncAction() {
   int total_frames = 0;
-  trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  trajComm_.ReduceMaster( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
   AvgFrame_.SumToMaster(trajComm_);
   if (trajComm_.Master())
     Nframes_ = total_frames;

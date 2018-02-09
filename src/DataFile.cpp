@@ -25,6 +25,7 @@
 #include "DataIO_CharmmRepLog.h"
 #include "DataIO_CharmmFastRep.h"
 #include "DataIO_CharmmOutput.h"
+#include "DataIO_Cpout.h"
 #include "DataIO_CharmmRtfPrm.h"
 
 // CONSTRUCTOR
@@ -69,6 +70,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "CHARMM REM log",     DataIO_CharmmRepLog::ReadHelp, 0,             DataIO_CharmmRepLog::Alloc},
   { "CHARMM Fast REM log",0,                             0,            DataIO_CharmmFastRep::Alloc},
   { "CHARMM Output",      0,                             0,             DataIO_CharmmOutput::Alloc},
+  { "Amber CPOUT",        DataIO_Cpout::ReadHelp, DataIO_Cpout::WriteHelp, DataIO_Cpout::Alloc},
   { "CHARMM RTF/PRM",     0,                             0,            DataIO_CharmmRtfPrm::Alloc },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
@@ -108,6 +110,7 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { CCP4,         "ccp4",   ".ccp4"  },
   { CMATRIX,      "cmatrix",".cmatrix" },
   { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
+  { CPOUT,        "cpout",  ".cpout" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -115,7 +118,8 @@ void DataFile::WriteHelp() {
   mprintf("\t[<format keyword>]\n"
           "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>] [sort]\n"
           "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n"
-          "\t[xprec <width>[.<precision>]] [xfmt {double|scientific|general}]\n");
+          "\t[xprec <width>[.<precision>]] [xfmt {double|scientific|general}]\n"
+          "\t[noensextension]\n");
 }
 
 // DataFile::DetectFormat()

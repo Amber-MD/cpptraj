@@ -518,7 +518,7 @@ int Action_DSSP::SyncAction() {
   for (std::vector<SSres>::iterator res = SecStruct_.begin(); res != SecStruct_.end(); ++res)
   {
     std::fill(SSprob, SSprob+8, 0);
-    Init_.TrajComm().Reduce( SSprob, res->SSprob, 8, MPI_INT, MPI_SUM );
+    Init_.TrajComm().ReduceMaster( SSprob, res->SSprob, 8, MPI_INT, MPI_SUM );
     if (Init_.TrajComm().Master()) {
       for (int idx = 0; idx != 8; idx++)
         res->SSprob[idx] = SSprob[idx];
@@ -526,7 +526,7 @@ int Action_DSSP::SyncAction() {
   }
   // Calc total number of frames.
   int total_frames = 0;
-  Init_.TrajComm().Reduce( &total_frames, &Nframe_, 1, MPI_INT, MPI_SUM );
+  Init_.TrajComm().ReduceMaster( &total_frames, &Nframe_, 1, MPI_INT, MPI_SUM );
   if (Init_.TrajComm().Master())
     Nframe_ = total_frames;
   return 0;

@@ -22,8 +22,10 @@
 #include "Exec_Precision.h"
 #include "Exec_PrintData.h"
 #include "Exec_ReadData.h"
+#include "Exec_ReadEnsembleData.h"
 #include "Exec_ReadInput.h"
 #include "Exec_RunAnalysis.h"
+#include "Exec_SortEnsembleData.h"
 #include "Exec_SequenceAlign.h"
 #include "Exec_ViewRst.h"
 // ----- SYSTEM ----------------------------------------------------------------
@@ -170,6 +172,7 @@
 #include "Analysis_State.h"
 #include "Analysis_Multicurve.h"
 #include "Analysis_TI.h"
+#include "Analysis_ConstantPHStats.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -206,6 +209,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
   Command::AddCmd( new Exec_Quit(),            Cmd::EXE, 2, "exit", "quit" );
   Command::AddCmd( new Exec_ReadData(),        Cmd::EXE, 1, "readdata" );
+  Command::AddCmd( new Exec_ReadEnsembleData(),Cmd::EXE, 1, "readensembledata" );
   Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
   Command::AddCmd( new Exec_RemoveData(),      Cmd::EXE, 1, "removedata" );
   Command::AddCmd( new Exec_Run(),             Cmd::EXE, 2, "go", "run" );
@@ -215,6 +219,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_SetListDebug(),    Cmd::EXE, 2, "debug", "prnlev" );
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
+  Command::AddCmd( new Exec_SortEnsembleData(),Cmd::EXE, 1, "sortensembledata" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
   Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
 # ifdef MPI
@@ -348,6 +353,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
   Command::AddCmd( new Analysis_Clustering(),  Cmd::ANA, 1, "cluster" );
   Command::AddCmd( new Analysis_Corr(),        Cmd::ANA, 2, "corr", "correlationcoe" );
+  Command::AddCmd( new Analysis_ConstantPHStats,Cmd::ANA,1, "cphstats" );
   Command::AddCmd( new Analysis_CrankShaft(),  Cmd::ANA, 2, "crank", "crankshaft" );
   Command::AddCmd( new Analysis_CrdFluct(),    Cmd::ANA, 1, "crdfluct" );
   Command::AddCmd( new Analysis_CrossCorr(),   Cmd::ANA, 1, "crosscorr" );
