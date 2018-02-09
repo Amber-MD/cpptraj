@@ -4,7 +4,16 @@
 // Exec_ReadEnsembleData::Help()
 void Exec_ReadEnsembleData::Help() const
 {
-  mprintf("<filename> [filenames <additional files]\n");
+  mprintf("\t<filename> [filenames <additional files>] [<readdata args>]\n"
+          "  Read data sets as an ensemble, i.e. each file is a different member\n"
+          "  of an ensemble. If one filename is given, it is assumed it is the\n"
+          "  \"lowest\" member of an ensemble with a numerical extension, e.g.\n"
+          "  file.001 and the remaining files are searched for automatically.\n"
+          "  Otherwise all other members of the ensemble can be specified with\n"
+          "  'filenames' and a comma-separated list e.g. \n"
+          "  'file.001 filenames file.002,file.003,file.004\n"
+          "  For additional 'readdata' arguments that can be passed in type\n"
+          "  'help readdata'\n");
 }
 
 // Exec_ReadEnsembleData::Execute()

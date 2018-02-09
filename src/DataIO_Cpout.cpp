@@ -456,7 +456,9 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
 // DataIO_Cpout::WriteHelp()
 void DataIO_Cpout::WriteHelp()
 {
-
+  mprintf("\tmcstepsize <nstep> : Monte Carlo step size.\n"
+          "\tdt <dt>            : Simulation time step.\n"
+          "\tnheader <freq>     : Header write frequency in frames.\n");
 }
 
 // DataIO_Cpout::processWriteArgs()

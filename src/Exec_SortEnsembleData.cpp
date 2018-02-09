@@ -4,12 +4,6 @@
 #include "DataSet_pH.h"
 #include "StringRoutines.h" // doubleToString
 
-// Exec_SortEnsembleData::Help()
-void Exec_SortEnsembleData::Help() const
-{
-
-}
-
 inline bool CheckError(int err) {
 # ifdef MPI
   if (Parallel::EnsembleComm().CheckError( err )) return 1;
@@ -185,6 +179,14 @@ const
 
   return err;
 }
+
+// Exec_SortEnsembleData::Help()
+void Exec_SortEnsembleData::Help() const
+{
+  mprintf("\t<dset arg0> [<dset arg1> ...]\n"
+          "  Sort unsorted data sets. Currently only works for constant pH REMD data.\n");
+}
+
 
 // Exec_SortEnsembleData::Execute()
 Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn)

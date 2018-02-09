@@ -70,7 +70,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "CHARMM REM log",     DataIO_CharmmRepLog::ReadHelp, 0,             DataIO_CharmmRepLog::Alloc},
   { "CHARMM Fast REM log",0,                             0,            DataIO_CharmmFastRep::Alloc},
   { "CHARMM Output",      0,                             0,             DataIO_CharmmOutput::Alloc},
-  { "Amber CPOUT",        0,                             0,             DataIO_Cpout::Alloc},
+  { "Amber CPOUT",        DataIO_Cpout::ReadHelp, DataIO_Cpout::WriteHelp, DataIO_Cpout::Alloc},
   { "CHARMM RTF/PRM",     0,                             0,            DataIO_CharmmRtfPrm::Alloc },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
