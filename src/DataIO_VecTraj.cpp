@@ -13,7 +13,9 @@ DataIO_VecTraj::DataIO_VecTraj() :
 }
 
 void DataIO_VecTraj::WriteHelp() {
-  mprintf("\t[trajfmt <format>] [parmout <file>] [noorigin]\n");
+  mprintf("\ttrajfmt <format> : Output trajectory format.\n"
+          "\tparmout <file>   : Output topology name (optional).\n"
+          "\tnoorigin         : Do not write vector origins.\n");
 }
 
 int DataIO_VecTraj::processWriteArgs(ArgList& argIn) {

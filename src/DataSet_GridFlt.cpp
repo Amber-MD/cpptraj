@@ -19,10 +19,10 @@ int DataSet_GridFlt::Sync(size_t total, std::vector<int> const& rank_frames,
 {
   if (commIn.Master()) {
     std::vector<float> buf( grid_.size() );
-    commIn.Reduce( &(buf[0]), &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
+    commIn.ReduceMaster( &(buf[0]), &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
     std::copy( buf.begin(), buf.end(), grid_.begin() );
   } else
-    commIn.Reduce( 0,         &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
+    commIn.ReduceMaster( 0,         &(grid_[0]), grid_.size(), MPI_FLOAT, MPI_SUM );
   return 0;
 }
 #endif

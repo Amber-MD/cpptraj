@@ -90,6 +90,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Analysis_Average.cpp \
         Analysis_Clustering.cpp \
         Analysis_Corr.cpp \
+        Analysis_ConstantPHStats.cpp \
         Analysis_CrankShaft.cpp \
         Analysis_CrdFluct.cpp \
         Analysis_CrossCorr.cpp \
@@ -157,6 +158,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Control.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
+        CphResidue.cpp \
         CpptrajFile.cpp \
         CpptrajState.cpp \
         CpptrajStdio.cpp \
@@ -170,6 +172,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataIO_CharmmRepLog.cpp \
         DataIO_CharmmRtfPrm.cpp \
         DataIO_Cmatrix.cpp \
+        DataIO_Cpout.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
@@ -201,6 +204,8 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
         DataSet_Parameters.cpp \
+        DataSet_pH.cpp \
+        DataSet_pH_REMD.cpp \
         DataSet_RemLog.cpp \
         DataSet_Topology.cpp \
         DataSet_Vector.cpp \
@@ -247,11 +252,13 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_Precision.cpp \
         Exec_PrintData.cpp \
         Exec_ReadData.cpp \
+        Exec_ReadEnsembleData.cpp \
         Exec_ReadInput.cpp \
         Exec_RotateDihedral.cpp \
         Exec_RunAnalysis.cpp \
         Exec_ScaleDihedralK.cpp \
         Exec_SequenceAlign.cpp \
+        Exec_SortEnsembleData.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
         Exec_Traj.cpp \

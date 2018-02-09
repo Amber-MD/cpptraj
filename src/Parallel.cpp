@@ -11,6 +11,12 @@ Parallel::Comm Parallel::world_ = Parallel::Comm();
 Parallel::Comm Parallel::ensembleComm_ = Parallel::Comm();
 Parallel::Comm Parallel::trajComm_ = Parallel::Comm();
 
+int Parallel::ensemble_size_  = -1;
+int Parallel::ensemble_beg_   = -1;
+int Parallel::ensemble_end_   = -1;
+int Parallel::n_ens_members_  =  0;
+int* Parallel::memberEnsRank_ =  0;
+
 // printMPIerr()
 /** Wrapper for MPI_Error string.  */
 void Parallel::printMPIerr(int err, const char *routineName, int rank) {
@@ -94,6 +100,10 @@ int Parallel::Init(int argc, char** argv) {
 }
 
 int Parallel::End() {
+  if (memberEnsRank_ != 0) {
+    delete[] memberEnsRank_;
+    memberEnsRank_ = 0;
+  }
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_end();
 # endif
@@ -117,20 +127,48 @@ int Parallel::Abort(int errcode) {
   *   3 4 5 (member 1)
   * Threads 0 and 3 would read the first third of the trajectories, etc.
   */
-int Parallel::SetupComms(int ngroups) {
+int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
   if (ngroups < 1) {
     // If ngroups < 1 assume we want to reset comm info
     //fprintf(stdout, "DEBUG: Resetting ensemble/traj comm info.\n");
     trajComm_.Reset();
     ensembleComm_.Reset();
+    ensemble_size_ = -1;
+    ensemble_beg_ = -1;
+    ensemble_end_ = -1;
   } else if (!ensembleComm_.IsNull()) {
     // If comms were previously set up make sure the number of groups remains the same!
-    if (ensembleComm_.Size() != ngroups) {
+    if (ensemble_size_ != ngroups) {
       if ( world_.Master() )
         fprintf(stderr,"Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
-                ngroups, ensembleComm_.Size());
+                ngroups, ensemble_size_);
       return 1;
     }
+  } else if (world_.Size() < ngroups) {
+    if (!allowFewerThreadsThanGroups) {
+      fprintf(stderr,"Error: Fewer threads than groups currently not allowed.\n");
+      return 1;
+    }
+    // Initial setup: fewer threads than groups. Make sure that # threads is a
+    // multiple of ngroups. This is required for things like AllGather to work
+    // properly.
+    if ( (ngroups % world_.Size()) != 0 ) {
+      fprintf(stderr,"Error: # of replicas (%i) must be a multiple of # threads (%i)\n",
+              ngroups, world_.Size());
+      return 1;
+    }
+    ensemble_size_ = ngroups;
+    n_ens_members_ = world_.DivideAmongThreads( ensemble_beg_, ensemble_end_, ensemble_size_ );
+    //fprintf(stderr,"DEBUG: Rank %i handling ensemble members %i to %i\n", world_.Rank(),
+    //        ensemble_beg_, ensemble_end_);
+    int ID = world_.Rank();
+    trajComm_ = world_.Split( ID );
+    // NOTE: This effectively duplicates World
+    ensembleComm_ = world_.Split( 0 );
+    //fprintf(stderr,"DEBUG: Rank %i trajComm rank %i/%i ensComm rank %i/%i\n",
+    //        world_.Rank(), trajComm_.Rank(), trajComm_.Size(),
+    //        ensembleComm_.Rank(), ensembleComm_.Size());
+    world_.Barrier();
   } else {
     // Initial setup: Make sure that ngroups is a multiple of total # threads.
     if ( (world_.Size() % ngroups) != 0 ) {
@@ -139,6 +177,7 @@ int Parallel::SetupComms(int ngroups) {
                 world_.Size(), ngroups);
       return 1;
     }
+    ensemble_size_ = ngroups;
     // Split into comms for parallel across trajectory
     int ID = world_.Rank() / (world_.Size() / ngroups);
     //fprintf(stdout,"[%i] DEBUG: My trajComm ID is %i\n", world_.Rank(), ID);
@@ -156,7 +195,19 @@ int Parallel::SetupComms(int ngroups) {
     //  fprintf(stdout,"[%i] DEBUG: RANKS: TrajComm %i/%i  EnsembleComm %i/%i\n",
     //          world_.Rank(), trajComm_.Rank()+1, trajComm_.Size(),
     //          ensembleComm_.Rank()+1, ensembleComm_.Size());
+    ensemble_beg_  = ensembleComm_.Rank();
+    ensemble_end_  = ensemble_beg_ + 1;
+    n_ens_members_ = 1;
     world_.Barrier();
+  }
+  if (memberEnsRank_ != 0) {
+    delete[] memberEnsRank_;
+    memberEnsRank_ = 0;
+  }
+  if (ensemble_size_ > 0) {
+    memberEnsRank_ = new int[ ensemble_size_ ];
+    for (int idx = 0; idx < ensemble_size_; idx++)
+      memberEnsRank_[idx] = idx / n_ens_members_;
   }
   return 0;
 }
@@ -221,6 +272,7 @@ Parallel::Comm Parallel::Comm::Split(int ID) const {
   return Comm(newComm);
 }
 
+/** Free and reset communicator. */
 void Parallel::Comm::Reset() {
   if (comm_ != MPI_COMM_NULL) {
     MPI_Comm_free( &comm_ );
@@ -230,10 +282,29 @@ void Parallel::Comm::Reset() {
   }
 }
 
+/** Split given number of elements as evenly as possible among ranks.
+  * \return Number of elements this thread is responsible for.
+  */
+int Parallel::Comm::DivideAmongThreads(int& my_start, int& my_stop, int maxElts) const
+{
+  int frames_per_thread = maxElts / size_;
+  int remainder         = maxElts % size_;
+  int my_frames         = frames_per_thread + (int)(rank_ < remainder);
+  // Figure out where this thread starts and stops
+  my_start = 0;
+  for (int rnk = 0; rnk != rank_; rnk++)
+    if (rnk < remainder)
+      my_start += (frames_per_thread + 1);
+    else
+      my_start += (frames_per_thread);
+  my_stop = my_start + my_frames;
+  return my_frames;
+}
+
 /** Use MPI_REDUCE to OP the values in sendbuffer and place them in
   * recvbuffer on master.
   */
-int Parallel::Comm::Reduce(void* recvBuffer, void* sendBuffer, int N,
+int Parallel::Comm::ReduceMaster(void* recvBuffer, void* sendBuffer, int N,
                            MPI_Datatype datatype, MPI_Op op) const
 {
   int err = MPI_Reduce(sendBuffer, recvBuffer, N, datatype, op, 0, comm_);
@@ -245,6 +316,31 @@ int Parallel::Comm::Reduce(void* recvBuffer, void* sendBuffer, int N,
   //  checkMPIerr(err,"parallel_sum");
   //  return 1;
   //}
+  return 0;
+}
+
+int Parallel::Comm::Reduce(int rankIn, void* recvBuffer, void* sendBuffer, int N,
+                           MPI_Datatype datatype, MPI_Op op) const
+{
+  int err = MPI_Reduce(sendBuffer, recvBuffer, N, datatype, op, rankIn, comm_);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Reducing data to rank.", rank_);
+    return Parallel::Abort(err); // TODO handle gracefully?
+  }
+  return 0;
+}
+
+/** Perform an mpi allreduce. */
+int Parallel::Comm::AllReduce(void *Return, void *input, int count,
+                              MPI_Datatype datatype, MPI_Op op) const
+{
+  int err = MPI_Allreduce(input, Return, count, datatype, op, comm_);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing allreduce.\n", rank_);
+    printf("[%i]\tError: allreduce failed for %i elements.\n", rank_, count);
+    return Parallel::Abort(err);
+  }
+  //if (parallel_check_error(err)!=0) return 1;
   return 0;
 }
 
@@ -268,20 +364,6 @@ int Parallel::Comm::SendMaster(void *Buffer, int Count, int sendRank, MPI_Dataty
       printMPIerr(err, "Receiving data from non-master.", rank_);
       return Parallel::Abort(err);
     }
-  }
-  //if (parallel_check_error(err)!=0) return 1;
-  return 0;
-}
-
-/** Perform an mpi allreduce. */
-int Parallel::Comm::AllReduce(void *Return, void *input, int count,
-                              MPI_Datatype datatype, MPI_Op op) const
-{
-  int err = MPI_Allreduce(input, Return, count, datatype, op, comm_);
-  if (err != MPI_SUCCESS) {
-    printMPIerr(err, "Performing allreduce.\n", rank_);
-    printf("[%i]\tError: allreduce failed for %i elements.\n", rank_, count);
-    return Parallel::Abort(err);
   }
   //if (parallel_check_error(err)!=0) return 1;
   return 0;

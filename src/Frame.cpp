@@ -1325,11 +1325,11 @@ int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
 int Frame::SumToMaster(Parallel::Comm const& commIn) {
   if (commIn.Master()) {
     double* total = new double[ ncoord_ ];
-    commIn.Reduce( total, X_, ncoord_, MPI_DOUBLE, MPI_SUM );
+    commIn.ReduceMaster( total, X_, ncoord_, MPI_DOUBLE, MPI_SUM );
     std::copy( total, total + ncoord_, X_ );
     delete[] total;
   } else
-    commIn.Reduce( 0,     X_, ncoord_, MPI_DOUBLE, MPI_SUM );
+    commIn.ReduceMaster( 0,     X_, ncoord_, MPI_DOUBLE, MPI_SUM );
   return 0;
 }
 #endif
