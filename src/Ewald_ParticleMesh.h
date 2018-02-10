@@ -13,15 +13,16 @@ class Ewald_ParticleMesh : public Ewald {
     int Setup(Topology const&, AtomMask const&);
     double CalcEnergy(Frame const&, AtomMask const&, double&); // TODO const?
   private:
+    typedef libpme::Matrix<double> Mat;
     /// Based on given length return number of grid points that is power of 2, 3, or 5
     static int ComputeNFFT(double);
     /// Determine grid points for FFT in each dimension
     int DetermineNfft(int&, int&, int&, Box const&) const;
     /// Particle mesh Ewald reciprocal energy
-    double Recip_ParticleMesh(libpme::Mat<double> const&, libpme::Mat<double> const&, Box const&);
+    double Recip_ParticleMesh(Mat const&, Mat const&, Box const&);
 
-    libpme::Mat<double> coordsD_;   ///< Hold coordinates for selected atoms
-    libpme::Mat<double> chargesD_;  ///< Will point to Ewald::Charge_
+    Mat coordsD_;   ///< Hold coordinates for selected atoms
+    Mat chargesD_;  ///< Will point to Ewald::Charge_
 
     int nfft_[3]; ///< Number of FFT grid points in each direction
     int order_;   ///< PME B spline order

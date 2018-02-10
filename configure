@@ -551,10 +551,9 @@ SetupFinalFlags() {
   if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
   if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
   if [ "$C11_SUPPORT" = 'yes'    ] ; then
-    DIRECTIVES="$DIRECTIVES -DLIBPME"
-    #if [ "${LIB_STAT[$LFFTW3]}" = 'enabled' ] ; then
-    #  DIRECTIVES="$DIRECTIVES -DEIGEN_FFTW_DEFAULT"
-    #fi
+    if [ "${LIB_STAT[$LFFTW3]}" != 'off' ] ; then
+      DIRECTIVES="$DIRECTIVES -DLIBPME"
+    fi
   fi
   # Set up include and linking flags
   ldf=''
@@ -1474,8 +1473,14 @@ echo "  Target platform: $PLATFORM"
 echo "  $COMPILERS compilers in use."
 if [ "$C11_SUPPORT" = 'yes' ] ; then
   echo "  C++11 support enabled."
+  if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
+    echo "  PME support disabled."
+  else
+    echo "  PME support enabled."
+  fi
 else
   echo "  C++11 support disabled."
+  echo "  PME support disabled."
 fi
 if [ $USE_OPT -eq 1 ] ; then
   echo "  Compiler optimizations are on."

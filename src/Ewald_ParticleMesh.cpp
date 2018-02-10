@@ -131,15 +131,15 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
 /** Setup PME calculation. */
 int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
-  coordsD_  = libpme::Mat<double>(maskIn.Nselected(), 3);
+  coordsD_  = Mat(maskIn.Nselected(), 3);
   // This essentially makes chargesD_ point to the Charge_ array.
-  chargesD_ = libpme::mapMat<double>(&Charge_[0], maskIn.Nselected(), 1);
+  chargesD_ = Mat(&Charge_[0], maskIn.Nselected(), 1);
   SetupExcluded(topIn, maskIn);
   return 0;
 }
 
 /*
-static inline void PrintM(const char* Title, libpme::Mat<double> const& M_)
+static inline void PrintM(const char* Title, Mat<double> const& M_)
 {
   mprintf("    %s\n",Title);
   mprintf("     %16.10f %16.10f %16.10f\n", M_(0,0), M_(0,1), M_(0,2));
@@ -148,8 +148,8 @@ static inline void PrintM(const char* Title, libpme::Mat<double> const& M_)
 }*/
 
 // Ewald::Recip_ParticleMesh()
-double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD,
-                                 libpme::Mat<double> const& chargesD, Box const& boxIn)
+double Ewald_ParticleMesh::Recip_ParticleMesh(Mat const& coordsD,
+                                              Mat const& chargesD, Box const& boxIn)
 {
   t_recip_.Start();
   int nfft1 = nfft_[0];
@@ -179,7 +179,10 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(libpme::Mat<double> const& coordsD
   //       4 = the alpha lattice parameter in degrees.
   //       5 = the beta lattice parameter in degrees.
   //       6 = the gamma lattice parameter in degrees.
-  pme_object->setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(), boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma());
+  //       7 = lattice type
+  pme_object->setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
+                                boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+                                PMEInstanceD::LatticeType::XAligned);
   double erecip = pme_object->computeERec(0, chargesD, coordsD);
   t_recip_.Stop();
   return erecip;
