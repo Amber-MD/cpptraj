@@ -2,7 +2,10 @@
 #include <algorithm> // copy/fill
 #include <memory> // unique_ptr
 #include "Ewald_ParticleMesh.h"
+#include "libpme_standalone.h"
 #include "CpptrajStdio.h"
+
+typedef libpme::Matrix<double> Mat;
 
 /// CONSTRUCTOR
 Ewald_ParticleMesh::Ewald_ParticleMesh() : order_(6)
@@ -131,9 +134,8 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
 /** Setup PME calculation. */
 int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
-  coordsD_  = Mat(maskIn.Nselected(), 3);
-  // This essentially makes chargesD_ point to the Charge_ array.
-  chargesD_ = Mat(&Charge_[0], maskIn.Nselected(), 1);
+  coordsD_.clear();
+  coordsD_.reserve( maskIn.Nselected() * 3);
   SetupExcluded(topIn, maskIn);
   return 0;
 }
@@ -148,10 +150,12 @@ static inline void PrintM(const char* Title, Mat<double> const& M_)
 }*/
 
 // Ewald::Recip_ParticleMesh()
-double Ewald_ParticleMesh::Recip_ParticleMesh(Mat const& coordsD,
-                                              Mat const& chargesD, Box const& boxIn)
+double Ewald_ParticleMesh::Recip_ParticleMesh(Box const& boxIn)
 {
   t_recip_.Start();
+  // This essentially makes coordsD and chargesD point to arrays.
+  Mat coordsD(&coordsD_[0], Charge_.size(), 3);
+  Mat chargesD(&Charge_[0], Charge_.size(), 1);
   int nfft1 = nfft_[0];
   int nfft2 = nfft_[1];
   int nfft3 = nfft_[2];
@@ -201,15 +205,16 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
 
   // TODO make more efficient
   int idx = 0;
+  coordsD_.clear();
   for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm, ++idx) {
     const double* XYZ = frameIn.XYZ( *atm );
-    coordsD_(idx, 0) = XYZ[0];
-    coordsD_(idx, 1) = XYZ[1];
-    coordsD_(idx, 2) = XYZ[2];
+    coordsD_.push_back( XYZ[0] );
+    coordsD_.push_back( XYZ[1] );
+    coordsD_.push_back( XYZ[2] );
   }
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
-  double e_recip = Recip_ParticleMesh( coordsD_, chargesD_, frameIn.BoxCrd() );
+  double e_recip = Recip_ParticleMesh( frameIn.BoxCrd() );
   double e_adjust = 0.0;
          e_vdw = 0.0;
   double e_direct = Direct( pairList_, e_adjust, e_vdw );
