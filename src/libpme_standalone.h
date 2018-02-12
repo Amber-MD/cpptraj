@@ -23,7 +23,6 @@
 // C++ header
 
 #include <algorithm>
-#include <functional>
 #include <array>
 #include <cmath>
 #include <complex>
@@ -763,25 +762,25 @@ extern void F_ZGEEV(char *, char *, int *, std::complex<double> *, int *, std::c
 
 namespace libpme {
 
-void C_SGEEV(char jobvl, char jobvr, int n, float *a, int lda, float *wr, float *wi, float *vl, int ldvl, float *vr,
-             int ldvr, float *work, int lwork, int *info) {
+static void C_SGEEV(char jobvl, char jobvr, int n, float *a, int lda, float *wr, float *wi, float *vl, int ldvl,
+                    float *vr, int ldvr, float *work, int lwork, int *info) {
     ::F_SGEEV(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
 }
 
-void C_DGEEV(char jobvl, char jobvr, int n, double *a, int lda, double *wr, double *wi, double *vl, int ldvl,
-             double *vr, int ldvr, double *work, int lwork, int *info) {
+static void C_DGEEV(char jobvl, char jobvr, int n, double *a, int lda, double *wr, double *wi, double *vl, int ldvl,
+                    double *vr, int ldvr, double *work, int lwork, int *info) {
     ::F_DGEEV(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
 }
 
-void C_CGEEV(char jobvl, char jobvr, int n, std::complex<float> *a, int lda, std::complex<float> *wr,
-             std::complex<float> *wi, std::complex<float> *vl, int ldvl, std::complex<float> *vr, int ldvr,
-             std::complex<float> *work, int lwork, int *info) {
+static void C_CGEEV(char jobvl, char jobvr, int n, std::complex<float> *a, int lda, std::complex<float> *wr,
+                    std::complex<float> *wi, std::complex<float> *vl, int ldvl, std::complex<float> *vr, int ldvr,
+                    std::complex<float> *work, int lwork, int *info) {
     ::F_CGEEV(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
 }
 
-void C_ZGEEV(char jobvl, char jobvr, int n, std::complex<double> *a, int lda, std::complex<double> *wr,
-             std::complex<double> *wi, std::complex<double> *vl, int ldvl, std::complex<double> *vr, int ldvr,
-             std::complex<double> *work, int lwork, int *info) {
+static void C_ZGEEV(char jobvl, char jobvr, int n, std::complex<double> *a, int lda, std::complex<double> *wr,
+                    std::complex<double> *wi, std::complex<double> *vl, int ldvl, std::complex<double> *vr, int ldvr,
+                    std::complex<double> *work, int lwork, int *info) {
     ::F_ZGEEV(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
 }
 
@@ -877,27 +876,32 @@ class Matrix {
     /*!
      * \brief The sliceIterator struct provides a read-only view of a sub-block of a matrix, with arbitrary size.
      */
-    struct readOnlySliceIterator {
-        Real *start_, *end_, *ptr_;
+    struct sliceIterator {
+        Real *begin_, *end_, *ptr_;
         size_t stride_;
-        readOnlySliceIterator(Real* start, Real* end, size_t stride)
-            : start_(start), end_(end), ptr_(start), stride_(stride) {}
-        readOnlySliceIterator begin() const { return readOnlySliceIterator(start_, end_, stride_); }
-        readOnlySliceIterator end() const { return readOnlySliceIterator(end_, end_, 0); }
-        bool operator!=(const readOnlySliceIterator& other) { return ptr_ != other.ptr_; }
-        readOnlySliceIterator operator++() {
-            ptr_ += stride_;
+        sliceIterator(Real* start, Real* end, size_t stride) : begin_(start), end_(end), ptr_(start), stride_(stride) {}
+        sliceIterator begin() const { return sliceIterator(begin_, end_, stride_); }
+        sliceIterator end() const { return sliceIterator(end_, end_, 0); }
+        sliceIterator cbegin() const { return sliceIterator(begin_, end_, stride_); }
+        sliceIterator cend() const { return sliceIterator(end_, end_, 0); }
+        bool operator!=(const sliceIterator& other) { return ptr_ != other.ptr_; }
+        sliceIterator operator*=(Real val) {
+            for (auto& element : *this) element *= val;
             return *this;
         }
-        const Real& operator*() const { return *ptr_; }
-    };
-    struct sliceIterator {
-        Real *start_, *end_, *ptr_;
-        size_t stride_;
-        sliceIterator(Real* start, Real* end, size_t stride) : start_(start), end_(end), ptr_(start), stride_(stride) {}
-        sliceIterator begin() const { return sliceIterator(start_, end_, stride_); }
-        sliceIterator end() const { return sliceIterator(end_, end_, 0); }
-        bool operator!=(const sliceIterator& other) { return ptr_ != other.ptr_; }
+        sliceIterator operator/=(Real val) {
+            Real invVal = 1 / val;
+            for (auto& element : *this) element *= invVal;
+            return *this;
+        }
+        sliceIterator operator-=(Real val) {
+            for (auto& element : *this) element -= val;
+            return *this;
+        }
+        sliceIterator operator+=(Real val) {
+            for (auto& element : *this) element += val;
+            return *this;
+        }
         sliceIterator operator++() {
             ptr_ += stride_;
             return *this;
@@ -910,18 +914,14 @@ class Matrix {
      * \param r the row to return.
      * \return the slice in memory corresponding to the rth row.
      */
-    readOnlySliceIterator row(size_t r) const {
-        return readOnlySliceIterator(data_ + r * nCols_, data_ + r * nCols_, 1);
-    }
+    sliceIterator row(size_t r) const { return sliceIterator(data_ + r * nCols_, data_ + (r + 1) * nCols_, 1); }
 
     /*!
      * \brief col returns a read-only iterator over a given column.
      * \param c the column to return.
      * \return the slice in memory corresponding to the cth column.
      */
-    readOnlySliceIterator col(size_t c) const {
-        return readOnlySliceIterator(data_ + c, data_ + nRows_ * nCols_ + c, nCols_);
-    }
+    sliceIterator col(size_t c) const { return sliceIterator(data_ + c, data_ + nRows_ * nCols_ + c, nCols_); }
 
     /*!
      * \return the number of rows in this matrix.
@@ -1230,7 +1230,8 @@ class Matrix {
     /*!
      * \brief diagonalize diagonalize this matrix, leaving the original untouched.
      * \param order how to order the (eigenvalue,eigenvector) pairs, where the sort key is the real part of the
-     * eigenvalue. \return a tuple of <real eigenvalue compnents, imaginary eigenvalue components, eigenvectors> sorted
+     * eigenvalue.
+     * \return a tuple of <real eigenvalue compnents, imaginary eigenvalue components, eigenvectors> sorted
      * according to the order variable.  The eigenvectors are stored by column.
      */
     std::tuple<Matrix<Real>, Matrix<Real>, Matrix<Real>> diagonalize(SortOrder order = SortOrder::Ascending) const {
@@ -1497,7 +1498,6 @@ class BSpline {
  * \file libpme.h
  * \brief Contains the C++ implementation of a PME Instance, and related helper classes.
  */
-
 
 namespace libpme {
 
@@ -2168,51 +2168,52 @@ class PMEInstance {
      * \param alpha the alpha lattice parameter in degrees.
      * \param beta the beta lattice parameter in degrees.
      * \param gamma the gamma lattice parameter in degrees.
+     * \param latticeType how to arrange the lattice vectors.  Options are
+     * ShapeMatrix: enforce a symmetric representation of the lattice vectors [c.f. S. Nosé and M. L. Klein,
+     *              Mol. Phys. 50 1055 (1983)] particularly appendix C.
+     * XAligned: make the A vector coincide with the X axis, the B vector fall in the XY plane, and the C vector
+     *           take the appropriate alignment to completely define the system.
      */
     void setLatticeVectors(Real A, Real B, Real C, Real alpha, Real beta, Real gamma, LatticeType latticeType) {
-        // For the symmetric representation of the box vectors; see
-        //   S. Nosé and M. L. Klein, Mol. Phys. 50 1055 (1983)
-        // particularly appendix C for details.
         if (latticeType == LatticeType::ShapeMatrix) {
-                Matrix<Real> HtH(3, 3);
-                HtH(0, 0) = A * A;
-                HtH(1, 1) = B * B;
-                HtH(2, 2) = C * C;
-                // Check for angles very close to 90, to avoid noise from the eigensolver later on.
-                HtH(0, 1) = HtH(1, 0) = std::abs(gamma - 90) < 1e-4f ? 0 : A * B * cos(M_PI * gamma / 180);
-                HtH(0, 2) = HtH(2, 0) = std::abs(beta - 90) < 1e-4f ? 0 : A * C * cos(M_PI * beta / 180);
-                HtH(1, 2) = HtH(2, 1) = std::abs(alpha - 90) < 1e-4f ? 0 : B * C * cos(M_PI * alpha / 180);
+            Matrix<Real> HtH(3, 3);
+            HtH(0, 0) = A * A;
+            HtH(1, 1) = B * B;
+            HtH(2, 2) = C * C;
+            // Check for angles very close to 90, to avoid noise from the eigensolver later on.
+            HtH(0, 1) = HtH(1, 0) = std::abs(gamma - 90) < 1e-4f ? 0 : A * B * cos(M_PI * gamma / 180);
+            HtH(0, 2) = HtH(2, 0) = std::abs(beta - 90) < 1e-4f ? 0 : A * C * cos(M_PI * beta / 180);
+            HtH(1, 2) = HtH(2, 1) = std::abs(alpha - 90) < 1e-4f ? 0 : B * C * cos(M_PI * alpha / 180);
 
-                auto eigenTuple = HtH.diagonalize();
-                Matrix<Real> evalsReal = std::get<0>(eigenTuple);
-                Matrix<Real> evalsImag = std::get<1>(eigenTuple);
-                Matrix<Real> evecs = std::get<2>(eigenTuple);
-                if (!evalsImag.isNearZero())
-                    throw std::runtime_error("Unexpected complex eigenvalues encountered while making shape matrix.");
-                for (int i = 0; i < 3; ++i) evalsReal(i, 0) = sqrt(evalsReal(i, 0));
-                boxVecs_.setZero();
-                for (int i = 0; i < 3; ++i) {
-                    for (int j = 0; j < 3; ++j) {
-                        for (int k = 0; k < 3; ++k) {
-                            boxVecs_(i, j) += evecs(i, k) * evecs(j, k) * evalsReal(k, 0);
-                        }
+            auto eigenTuple = HtH.diagonalize();
+            Matrix<Real> evalsReal = std::get<0>(eigenTuple);
+            Matrix<Real> evalsImag = std::get<1>(eigenTuple);
+            Matrix<Real> evecs = std::get<2>(eigenTuple);
+            if (!evalsImag.isNearZero())
+                throw std::runtime_error("Unexpected complex eigenvalues encountered while making shape matrix.");
+            for (int i = 0; i < 3; ++i) evalsReal(i, 0) = sqrt(evalsReal(i, 0));
+            boxVecs_.setZero();
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    for (int k = 0; k < 3; ++k) {
+                        boxVecs_(i, j) += evecs(i, k) * evecs(j, k) * evalsReal(k, 0);
                     }
                 }
-                recVecs_ = boxVecs_.inverse();
-            } else if (latticeType == LatticeType::XAligned) {
-
-                boxVecs_(0, 0) = A;
-                boxVecs_(0, 1) = 0;
-                boxVecs_(0, 2) = 0;
-                boxVecs_(1, 0) = B * cos(M_PI / 180 * gamma);
-                boxVecs_(1, 1) = B * sin(M_PI / 180 * gamma);
-                boxVecs_(1, 2) = 0;
-                boxVecs_(2, 0) = C * cos(M_PI / 180 * beta);
-                boxVecs_(2, 1) = (B * C * cos(M_PI / 180 * alpha) - boxVecs_(2, 0) * boxVecs_(1, 0)) / boxVecs_(1, 1);
-                boxVecs_(2, 2) = sqrt(C * C - boxVecs_(2, 0) * boxVecs_(2, 0) - boxVecs_(2, 1) * boxVecs_(2, 1));
-            } else {
-                throw std::runtime_error("Unknown lattice type in setLatticeVectors");
             }
+            recVecs_ = boxVecs_.inverse();
+        } else if (latticeType == LatticeType::XAligned) {
+            boxVecs_(0, 0) = A;
+            boxVecs_(0, 1) = 0;
+            boxVecs_(0, 2) = 0;
+            boxVecs_(1, 0) = B * cos(M_PI / 180 * gamma);
+            boxVecs_(1, 1) = B * sin(M_PI / 180 * gamma);
+            boxVecs_(1, 2) = 0;
+            boxVecs_(2, 0) = C * cos(M_PI / 180 * beta);
+            boxVecs_(2, 1) = (B * C * cos(M_PI / 180 * alpha) - boxVecs_(2, 0) * boxVecs_(1, 0)) / boxVecs_(1, 1);
+            boxVecs_(2, 2) = sqrt(C * C - boxVecs_(2, 0) * boxVecs_(2, 0) - boxVecs_(2, 1) * boxVecs_(2, 1));
+        } else {
+            throw std::runtime_error("Unknown lattice type in setLatticeVectors");
+        }
         recVecs_ = boxVecs_.inverse();
         scaledRecVecs_(0, 0) = recVecs_(0, 0) * aDim_;
         scaledRecVecs_(0, 1) = recVecs_(0, 1) * aDim_;
@@ -3057,7 +3058,7 @@ using PMEInstanceF = libpme::PMEInstance<float>;
 // C header
 #include <stddef.h>
 
-enum LatticeType { XAligned = 0, ShapeMatrix = 1 };
+typedef enum { XAligned = 0, ShapeMatrix = 1 } LatticeType;
 
 typedef struct PMEInstance PMEInstance;
 extern struct PMEInstance *libpme_setupD(int rPower, double kappa, int splineOrder, int aDim, int bDim, int cDim,
@@ -3065,9 +3066,9 @@ extern struct PMEInstance *libpme_setupD(int rPower, double kappa, int splineOrd
 extern struct PMEInstance *libpme_setupF(int rPower, float kappa, int splineOrder, int aDim, int bDim, int cDim,
                                          float scaleFactor, int nNodes, int nThreads);
 extern void libpme_set_lattice_vectorsD(struct PMEInstance *pme, double A, double B, double C, double kappa,
-                                        double beta, double gamma, enum LatticeType);
+                                        double beta, double gamma, LatticeType latticeType);
 extern void libpme_set_lattice_vectorsF(struct PMEInstance *pme, float A, float B, float C, float kappa, float beta,
-                                        float gamma, enum LatticeType);
+                                        float gamma, LatticeType latticeType);
 extern double libpme_compute_EF_recD(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, double *parameters,
                                      double *coordinates, double *forces);
 extern float libpme_compute_EF_recF(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, float *parameters,
