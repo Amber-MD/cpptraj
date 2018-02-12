@@ -70,13 +70,14 @@ noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
 #debug actions 1
-$ECMD Reg out $TFILE etype ewald skinnb 0.01 \
+$ECMD Reg nonbond out $TFILE etype ewald skinnb 0.01 \
        cut 8.0 dsumtol 0.0000001 rsumtol 0.000000001
-energy Pme out $TFILE etype pme   skinnb 0.01 order 6 \
+energy Pme nonbond out $TFILE etype pme   skinnb 0.01 order 6 \
        cut 8.0 dsumtol 0.0000001 nfft 96,90,90
+precision $TFILE 20 10
 EOF
     RunCpptraj "$UNITNAME"
-    #DoTest ew_tz2.dat.save ew_tz2.dat
+    DoTest tz2n.dat.save tz2n.dat
   fi
 }
 
@@ -154,7 +155,7 @@ EOF
 
 #Simple
 NaCl
-#TrpzipNonortho
+TrpzipNonortho
 TrpzipOrtho
 MaskTz2Ortho
 #Tz2_Nonortho_10
