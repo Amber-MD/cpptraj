@@ -656,6 +656,14 @@ SetupLibraries() {
       LIB_HOME[$LARPACK]=$AMBERHOME
       LIB_LINK[$LARPACK]='static'
     fi
+    if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
+      LIB_STAT[$LFFTW3]='amberopt'
+      LIB_LINK[$LFFTW3]='static'
+    elif [ "${LIB_STAT[$LFFTW3]}" == 'enabled' ] ; then
+      LIB_STAT[$LFFTW3]='specified'
+      LIB_HOME[$LFFTW3]=$AMBERHOME
+      LIB_LINK[$LFFTW3]='static'
+    fi
   fi
   # For any 'amberopt' check that AMBERHOME is available.
   for ((i=0; i < $NLIB; i++)) ; do
