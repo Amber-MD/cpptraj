@@ -742,6 +742,10 @@ SetupLibraries() {
           #else
           #  lflag="$lflag -lncurses"
           #fi
+        elif [ $i -eq $LSANDER ] ; then
+          # Always specify libsander location to prevent pulling in
+          # other amber libraries.
+          lflag="${LIB_HOME[$LSANDER]}/lib/libsander.so"
         fi
       fi
       #echo "${LIB_CKEY[$i]} ${LIB_STAT[$i]} linc $linc lflag $lflag" # DEBUG
