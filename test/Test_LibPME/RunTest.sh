@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles ene.in ewald.dat debug.nacl.dat nacl.dat debug.tz2n.dat tz2n.dat \
-           debug.tz2o.dat tz2o.dat debug.mtz2o.dat mtz2o.dat pme.nacl.dat
+           debug.tz2o.dat tz2o.dat debug.mtz2o.dat mtz2o.dat pme.nacl.dat \
+           long_tz2n.dat
 INPUT="-i ene.in"
 TESTNAME='Particle mesh Ewald tests'
 Requires libpme maxthreads 10
@@ -124,17 +125,18 @@ EOF
 }
 
 Tz2_Nonortho_10() {
-  UNITNAME='Ewald test (trunc. oct), 10 frames'
+  UNITNAME='PME test (trunc. oct), 10 frames'
   CheckFor netcdf long
   if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
-energy out ew_tz2_10.dat etype ewald skinnb 0.01
+energy Pme nonbond out long_tz2n.dat etype pme skinnb 2.0 cut 8.0 \
+  dsumtol 0.0000001 nfft 72,90,72
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest ew_tz2_10.dat.save ew_tz2_10.dat
+    DoTest long_tz2n.dat.save long_tz2n.dat
   fi
 }
 
@@ -158,7 +160,7 @@ NaCl
 TrpzipNonortho
 TrpzipOrtho
 MaskTz2Ortho
-#Tz2_Nonortho_10
+Tz2_Nonortho_10
 #Tz2_Ortho_10
 
 EndTest
