@@ -48,7 +48,7 @@ UsageFull() {
   echo "    -static        : Use static linking."
   echo "    -libstatic     : Use static linking only for specified libraries."
   echo "    -mkl           : Use Intel MKL for BLAS/LAPACK (requires MKL_HOME/MKLROOT set)."
-  echo "    -openblas      : Use OpenBLAS (with LAPACK) instead of separate BLAS/LAPACK"
+  echo "    -openblas      : Use OpenBLAS for BLAS/LAPACK/ARPACK (may require '--with-blas')"
   echo "    -macAccelerate : Use Accelerate framework for BLAS/LAPACK"
   echo "    -libsci        : Use Cray LibSci for BLAS/LAPACK"
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
@@ -624,6 +624,8 @@ SetupLibraries() {
     LIB_FLAG[$LBLAS]='-lopenblas'
     LIB_STAT[$LLAPACK]='off'
     LIB_FLAG[$LLAPACK]=''
+    LIB_STAT[$LARPACK]='enabled'
+    LIB_HOME[$LARPACK]=''
   elif [ "$BLAS_TYPE" = 'macAccelerate' ] ; then
     LIB_FLAG[$LBLAS]='-framework Accelerate'
     LIB_STAT[$LLAPACK]='off'
@@ -650,7 +652,7 @@ SetupLibraries() {
       LIB_HOME[$LNETCDF]=$AMBERHOME
       LIB_LINK[$LNETCDF]='static'
     fi
-    if [ "${LIB_STAT[$LARPACK]}" == 'enabled' ] ; then
+    if [ "${LIB_STAT[$LARPACK]}" == 'enabled' -a "$BLAS_TYPE" != 'openblas' ] ; then
       echo "  Using arpack from $AMBERHOME"
       LIB_STAT[$LARPACK]='specified'
       LIB_HOME[$LARPACK]=$AMBERHOME
@@ -692,7 +694,7 @@ SetupLibraries() {
         LIB_LINK[$i]='static'
       fi
       lhome=${LIB_HOME[$i]}
-      #echo DEBUG $lhome
+      #echo DEBUG $lhome ${LIB_STAT[$i]}
       if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
         LIB_TEST[$i]='no'
         linc="-I$lhome"
@@ -1483,13 +1485,13 @@ echo "  $COMPILERS compilers in use."
 if [ "$C11_SUPPORT" = 'yes' ] ; then
   echo "  C++11 support enabled."
   if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
-    echo "  PME support disabled."
+    echo "  PME support disabled (requires FFTW3)."
   else
     echo "  PME support enabled."
   fi
 else
   echo "  C++11 support disabled."
-  echo "  PME support disabled."
+  echo "  PME support disabled (requires C++11 and FFTW3)."
 fi
 if [ $USE_OPT -eq 1 ] ; then
   echo "  Compiler optimizations are on."
