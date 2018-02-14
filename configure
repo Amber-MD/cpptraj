@@ -1378,16 +1378,17 @@ while [ ! -z "$1" ] ; do
     '-gprofile' ) USE_PROFILE=2 ;;
     '-vtune'    ) USE_PROFILE=3 ;;
     # Linking options
-    '-static'        ) USE_STATIC=1 ;;
-    '-libstatic'     ) USE_STATIC=2 ;;
-    '-shared'        ) USE_SHARED=1 ;;
-    '-amberlib'      )
+    '-static'           ) USE_STATIC=1 ;;
+    '-libstatic'        ) USE_STATIC=2 ;;
+    '-shared'           ) USE_SHARED=1 ;;
+    '-amberlib'         )
       if [ -z "$AMBERHOME" ] ; then
         Err "'-amberlib' requires that AMBERHOME be set."
       fi
       USE_AMBERLIB=1
       ;;
-    '-nomathlib'     ) BLAS_TYPE='none' ;;
+    '-nomathlib'        ) BLAS_TYPE='none' ;;
+    '--requires-flink'  ) REQUIRES_FLINK=1 ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
