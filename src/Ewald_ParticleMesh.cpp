@@ -164,11 +164,11 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(Box const& boxIn)
   //       5 = nfft2
   //       6 = nfft3
   //       7 = scale factor to be applied to all computed energies and derivatives thereof
-  //       8 = number of nodes used for the rec space PME calculation.
-  //       9 = max # threads to use for each MPI instance; 0 = all available threads used.
+  //       8 = max # threads to use for each MPI instance; 0 = all available threads used.
   // NOTE: Scale factor for Charmm is 332.0716
   // NOTE: The electrostatic constant has been baked into the Charge_ array already.
-  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD(1, ew_coeff_, order_, nfft1, nfft2, nfft3, 1.0, 1, 0));
+  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
+  pme_object->setup(1, ew_coeff_, order_, nfft1, nfft2, nfft3, 1.0, 0);
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.

@@ -28,6 +28,7 @@
 #include <complex>
 #include <exception>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -219,6 +220,7 @@ class FFTWWrapper {
     unsigned transformFlags_;
 
    public:
+    FFTWWrapper() {}
     FFTWWrapper(size_t fftDimension) : fftDimension_(fftDimension), transformFlags_(FFTW_ESTIMATE) {
         libpme::vector<Real> realTemp(fftDimension_);
         libpme::vector<std::complex<Real>> complexTemp1(fftDimension_);
@@ -906,6 +908,42 @@ class Matrix {
             ptr_ += stride_;
             return *this;
         }
+        const Real& operator[](size_t index) { return *(begin_ + index); }
+        size_t size() const { return std::distance(begin_, end_) / stride_; }
+        void assertSameSize(const sliceIterator& other) const {
+            if (size() != other.size())
+                throw std::runtime_error("Slice operations only supported for slices of the same size.");
+        }
+        void assertContiguous(const sliceIterator& iter) const {
+            if (iter.stride_ != 1)
+                throw std::runtime_error(
+                    "Slice operations called on operation that is only allowed for contiguous data.");
+        }
+        Matrix<Real> operator-(const sliceIterator& other) const {
+            assertSameSize(other);
+            assertContiguous(*this);
+            assertContiguous(other);
+            Matrix ret(1, size());
+            std::transform(begin_, end_, other.begin_, ret[0],
+                           [](const Real& a, const Real& b) -> Real { return a - b; });
+            return ret;
+        }
+        sliceIterator operator-=(const sliceIterator& other) const {
+            assertSameSize(other);
+            assertContiguous(*this);
+            assertContiguous(other);
+            std::transform(begin_, end_, other.begin_, begin_,
+                           [](const Real& a, const Real& b) -> Real { return a - b; });
+            return *this;
+        }
+        sliceIterator operator+=(const sliceIterator& other) const {
+            assertSameSize(other);
+            assertContiguous(*this);
+            assertContiguous(other);
+            std::transform(begin_, end_, other.begin_, begin_,
+                           [](const Real& a, const Real& b) -> Real { return a + b; });
+            return *this;
+        }
         Real& operator*() { return *ptr_; }
     };
 
@@ -932,6 +970,11 @@ class Matrix {
      * \return the number of columns in this matrix.
      */
     size_t nCols() const { return nCols_; }
+
+    /*!
+     * \brief Matrix Constructs an empty matrix.
+     */
+    Matrix() {}
 
     /*!
      * \brief Matrix Constructs a new matrix, allocating memory.
@@ -974,11 +1017,6 @@ class Matrix {
      * \param nCols the number of columns in the matrix.
      */
     Matrix(Real* ptr, size_t nRows, size_t nCols) : nRows_(nRows), nCols_(nCols), data_(ptr) {}
-
-    /*!
-     *\brief Default empty constructor.
-     */
-    Matrix() : nRows_(0), nCols_(0), data_(0) {}
 
     /*!
      * \brief cast make a copy of this matrix, with its elements cast as a different type.
@@ -1179,7 +1217,7 @@ class Matrix {
     Real dot(const Matrix& other) const {
         assertSameSize(other);
 
-        return std::inner_product(begin(), end(), other.begin(), 0);
+        return std::inner_product(cbegin(), cend(), other.cbegin(), Real(0));
     }
 
     /*!
@@ -1286,6 +1324,147 @@ std::ostream& operator<<(std::ostream& os, Matrix<Real> const& m) {
 }  // Namespace libpme
 #endif  // Header guard
 // #include "memory.h"
+#if HAVE_MPI == 1
+// original file: ../src/mpi_wrapper.h
+
+// BEGINLICENSE
+//
+// This file is part of libpme, which is distributed under the BSD 3-clause license,
+// as described in the LICENSE file in the top level directory of this project.
+//
+// Author: Andrew C. Simmonett
+//
+// ENDLICENSE
+#ifndef _LIBPME_MPI_WRAPPER_H_
+#define _LIBPME_MPI_WRAPPER_H_
+
+#include <mpi.h>
+
+#include <exception>
+#include <iomanip>
+#include <iostream>
+
+namespace libpme {
+
+/*!
+ * \brief The MPITypes struct abstracts away the MPI_Datatype types for different floating point modes
+ *        using templates to hide the details from the caller.
+ */
+template <typename Real>
+struct MPITypes {
+    MPI_Datatype realType_;
+    MPI_Datatype complexType_;
+    MPITypes() {
+        throw std::runtime_error("MPI wrapper has not been implemented for the requested floating point type.");
+    }
+};
+
+template <>
+MPITypes<float>::MPITypes() : realType_(MPI_FLOAT), complexType_(MPI_C_COMPLEX) {}
+
+template <>
+MPITypes<double>::MPITypes() : realType_(MPI_DOUBLE), complexType_(MPI_C_DOUBLE_COMPLEX) {}
+
+template <>
+MPITypes<long double>::MPITypes() : realType_(MPI_LONG_DOUBLE), complexType_(MPI_C_LONG_DOUBLE_COMPLEX) {}
+
+/*!
+ * \brief The MPIWrapper struct is a lightweight C++ wrapper around the C MPI functions.  Its main
+ *        purpose is to provide RAII semantics, ensuring that memory is correctly freed.  It also
+ *        conveniently abstracts away the different MPI type descriptors for each floating point type.
+ */
+template <typename Real>
+struct MPIWrapper {
+    using types = MPITypes<Real>;
+    /// The MPI communicator instance to use for all reciprocal space work.
+    MPI_Comm mpiCommunicator_;
+    /// The total number of MPI nodes involved in reciprocal space work.
+    int numNodes_;
+    /// The MPI rank of this node.
+    int myRank_;
+    /// The number of nodes in the X direction.
+    int numNodesX_;
+    /// The number of nodes in the Y direction.
+    int numNodesY_;
+    /// The number of nodes in the Z direction.
+    int numNodesZ_;
+
+    void assertNodePartitioningValid(int numNodes, int numNodesX, int numNodesY, int numNodesZ) const {
+        if (numNodes != numNodesX * numNodesY * numNodesZ)
+            throw std::runtime_error(
+                "Communicator world size does not match the numNodesX, numNodesY, numNodesZ passed in.");
+    }
+
+    MPIWrapper() : mpiCommunicator_(nullptr), numNodes_(0), myRank_(0) {}
+    MPIWrapper(const MPI_Comm& communicator, int numNodesX, int numNodesY, int numNodesZ)
+        : numNodesX_(numNodesX), numNodesY_(numNodesY), numNodesZ_(numNodesZ) {
+        if(MPI_Comm_dup(communicator, &mpiCommunicator_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_dup in MPIWrapper constructor.");
+        if(MPI_Comm_size(mpiCommunicator_, &numNodes_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_size in MPIWrapper constructor.");
+        if(MPI_Comm_rank(mpiCommunicator_, &myRank_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_rank in MPIWrapper constructor.");
+
+        assertNodePartitioningValid(numNodes_, numNodesX, numNodesY, numNodesZ);
+    }
+    ~MPIWrapper() {
+        if (mpiCommunicator_) MPI_Comm_free(&mpiCommunicator_);
+    }
+
+    /*!
+     * \brief barrier wait for all members of this communicator to reach this point.
+     */
+    void barrier() {
+        if (MPI_Barrier(mpiCommunicator_) != MPI_SUCCESS) throw std::runtime_error("Problem in MPI Barrier call!");
+    }
+
+    /*!
+     * \brief split split this communicator into subgroups.
+     * \param color the number identifying the subgroup the new communicator belongs to.
+     * \param key the rank of the new communicator within the subgroup.
+     * \return the new communicator.
+     */
+    std::unique_ptr<MPIWrapper> split(int color, int key) {
+        std::unique_ptr<MPIWrapper> newWrapper(new MPIWrapper);
+        if(MPI_Comm_split(mpiCommunicator_, color, key, &newWrapper->mpiCommunicator_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_split in MPIWrapper split.");
+        if(MPI_Comm_size(newWrapper->mpiCommunicator_, &newWrapper->numNodes_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_size in MPIWrapper split.");
+        if(MPI_Comm_rank(newWrapper->mpiCommunicator_, &newWrapper->myRank_)  != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_rank in MPIWrapper split.");
+        return newWrapper;
+    }
+
+    /*!
+     * \brief operator << a convenience wrapper around ostream, to inject node info.
+     */
+    friend std::ostream& operator<<(std::ostream& os, const MPIWrapper& obj) {
+        os << "Node " << obj.myRank_ << " of " << obj.numNodes_ << ":" << std::endl;
+        return os;
+    }
+};
+
+// Adapter to allow piping of streams into unique_ptr-held object
+template <typename Real>
+std::ostream& operator<<(std::ostream& os, const std::unique_ptr<MPIWrapper<Real>>& obj) {
+    os << *obj;
+    return os;
+}
+
+// A convenience macro to guarantee that each node prints in order.
+#define PRINT(out)                                                                                       \
+    for (int node = 0; node < mpiCommunicator_->numNodes_; ++node) {                                     \
+        if (node == mpiCommunicator_->myRank_)                                                           \
+            std::cout << mpiCommunicator_ << out << std::setw(16) << std::setprecision(10) << std::endl; \
+        mpiCommunicator_->barrier();                                                                     \
+    };
+
+
+}  // Namespace libpme
+#endif  // Header guard
+#else
+typedef struct ompi_communicator_t *MPI_Comm;
+#endif
 // original file: ../src/powers.h
 
 // BEGINLICENSE
@@ -1576,17 +1755,15 @@ static int cartAddress(int lx, int ly, int lz) {
  */
 template <typename Real>
 class PMEInstance {
+    using GridIterator = std::vector<std::vector<std::pair<short, short>>>;
+
    protected:
-    /// The (inverse) exponent of the distance in the interaction kernel.
-    int rPower_;
     /// The FFT grid dimensions in the {A,B,C} grid dimensions.
     int aDim_, bDim_, cDim_;
     /// The X dimension after real->complex transformation.
     int xDim_;
     /// The order of the cardinal B-Spline used for interpolation.
     int splineOrder_;
-    /// The number of MPI instances used for the PME calculation.
-    int nNodes_;
     /// The number of threads per MPI instance.
     int nThreads_;
     /// The scale factor to apply to all energies and derivatives.
@@ -1605,7 +1782,7 @@ class PMEInstance {
     std::vector<Real> permutations_;
     /// From a given starting point on the {A,B,C} edge of the grid, lists all points to be handled, correctly wrapping
     /// around the end.
-    std::vector<std::vector<short>> aGridIterator_, bGridIterator_, cGridIterator_;
+    GridIterator aGridIterator_, bGridIterator_, cGridIterator_;
     /// The real-space (density, potential) grid.
     Matrix<Real> realGrid_;
     /// The Fourier space transformed grid, in {x,y,z} pencil form.
@@ -1636,6 +1813,20 @@ class PMEInstance {
     /// A function pointer to call the approprate function to compute the adjusted energy and force, templated to the
     /// rPower value.
     std::function<std::tuple<Real, Real>(Real, Real, Real)> adjEFFxn_;
+#if HAVE_MPI == 1
+    /// The communicator object that handles interactions with MPI.
+    std::unique_ptr<MPIWrapper<Real>> mpiCommunicator_;
+    /// The communicator object that handles interactions with MPI along this nodes {X,Y,Z} pencils.
+    std::unique_ptr<MPIWrapper<Real>> mpiCommunicatorX_, mpiCommunicatorY_, mpiCommunicatorZ_;
+#endif
+    /// The rank of this node along the {X,Y,Z} dimensions.
+    int rankX_, rankY_, rankZ_;
+    /// The first grid point that this node is responsible for in the {X,Y,Z} dimensions.
+    int firstX_, firstY_, firstZ_;
+    /// The grid point beyond the last point that this this node is responsible for in the {X,Y,Z} dimensions.
+    int lastX_, lastY_, lastZ_;
+    /// The {X,Y,Z} dimensions of the locally owned chunk of the grid.
+    int myDimX_, myDimY_, myDimZ_;
     /// FFTW wrappers to help with transformations in the three dimensions.
     FFTWWrapper<Real> fftHelperA_, fftHelperB_, fftHelperC_;
 
@@ -2063,6 +2254,11 @@ class PMEInstance {
     enum class LatticeType : int { XAligned = 0, ShapeMatrix = 1 };
 
     /*!
+     * \brief The different conventions for numbering nodes.
+     */
+    enum class NodeOrder : int { ZYX = 0 };
+
+    /*!
      * \brief Returns a read-only copy of the real space grid.
      *
      * This grid contains the density after spreadParameters() has been called, then
@@ -2078,77 +2274,7 @@ class PMEInstance {
      */
     const Matrix<std::complex<Real>> &compGridXYZ() { return compGridXYZ_; }
 
-    /*!
-     * \brief PMEInstance an object to store information and functions to compute a PME reciprocal space term.
-     * \param rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive dispersion).
-     * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
-     * \param splineOrder the order of B-spline; must be at least (2 + max. multipole order + deriv. level needed).
-     * \param aDim the dimension of the FFT grid along the A axis.
-     * \param bDim the dimension of the FFT grid along the B axis.
-     * \param cDim the dimension of the FFT grid along the C axis.
-     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the 1 / [4
-     * pi epslion0] for Coulomb calculations).
-     * \param nNodes the number of nodes used for the rec space PME calculation.
-     * \param nThreads the maximum number of threads to use for each MPI instance; if set to 0 all available threads are
-     * used.
-     */
-    PMEInstance(int rPower, Real kappa, int splineOrder, int aDim, int bDim, int cDim, Real scaleFactor, int nNodes,
-                int nThreads)
-        : rPower_(rPower),
-          aDim_(aDim),
-          bDim_(bDim),
-          cDim_(cDim),
-          xDim_(aDim / 2 + 1),
-          splineOrder_(splineOrder),
-          nNodes_(nNodes),
-          nThreads_(nThreads),
-          scaleFactor_(scaleFactor),
-          kappa_(kappa),
-          boxVecs_(3, 3),
-          recVecs_(3, 3),
-          scaledRecVecs_(3, 3),
-          aGridIterator_(aDim, std::vector<short>(splineOrder, 0)),
-          bGridIterator_(bDim, std::vector<short>(splineOrder, 0)),
-          cGridIterator_(cDim, std::vector<short>(splineOrder, 0)),
-          realGrid_(cDim * bDim, aDim),
-          compGridCXB_(cDim_ * xDim_, bDim_),
-          compGridCBX_(cDim_ * bDim_, xDim_),
-          compGridXYC_(xDim_ * bDim_, cDim_),
-          compGridXYZ_(xDim_ * bDim_, cDim_),
-          fftHelperA_(aDim_),
-          fftHelperB_(bDim_),
-          fftHelperC_(cDim_) {
-        // Grid iterators to correctly wrap the grid when using splines.
-        for (int gridStart = 0; gridStart < aDim_; ++gridStart)
-            for (int splinePoint = 0; splinePoint < splineOrder_; ++splinePoint)
-                aGridIterator_[gridStart][splinePoint] = (gridStart + splinePoint) % aDim_;
-        for (int gridStart = 0; gridStart < bDim_; ++gridStart)
-            for (int splinePoint = 0; splinePoint < splineOrder_; ++splinePoint)
-                bGridIterator_[gridStart][splinePoint] = (gridStart + splinePoint) % bDim_;
-        for (int gridStart = 0; gridStart < cDim_; ++gridStart)
-            for (int splinePoint = 0; splinePoint < splineOrder_; ++splinePoint)
-                cGridIterator_[gridStart][splinePoint] = (gridStart + splinePoint) % cDim_;
-
-        BSpline<Real> spline = BSpline<Real>(0, 0, splineOrder_, 0);
-        aSplineMod_ = spline.invSplineModuli(aDim_);
-        bSplineMod_ = spline.invSplineModuli(bDim_);
-        cSplineMod_ = spline.invSplineModuli(cDim_);
-
-        // Set up function pointers by instantiating the appropriate evaluation functions.  We could add many more
-        // entries by default here, but don't right now to avoid code bloat.  To add an extra rPower kernel is a
-        // trivial cut and paste exercise; just add a new line with the desired 1/R power as the macro's argument.
-        switch (rPower_) {
-            ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(1);
-            ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(6);
-            default:
-                std::string msg("Bad rPower requested.  To fix this, add the appropriate entry in");
-                msg += __FILE__;
-                msg += ", line number ";
-                msg += std::to_string(__LINE__ - 5);
-                throw std::runtime_error(msg.c_str());
-                break;
-        }
-    }
+    PMEInstance() : boxVecs_(3, 3), recVecs_(3, 3), scaledRecVecs_(3, 3) {}
 
     /*!
      * \brief cellVolume Compute the volume of the unit cell.
@@ -2215,15 +2341,10 @@ class PMEInstance {
             throw std::runtime_error("Unknown lattice type in setLatticeVectors");
         }
         recVecs_ = boxVecs_.inverse();
-        scaledRecVecs_(0, 0) = recVecs_(0, 0) * aDim_;
-        scaledRecVecs_(0, 1) = recVecs_(0, 1) * aDim_;
-        scaledRecVecs_(0, 2) = recVecs_(0, 2) * aDim_;
-        scaledRecVecs_(1, 0) = recVecs_(1, 0) * bDim_;
-        scaledRecVecs_(1, 1) = recVecs_(1, 1) * bDim_;
-        scaledRecVecs_(1, 2) = recVecs_(1, 2) * bDim_;
-        scaledRecVecs_(2, 0) = recVecs_(2, 0) * cDim_;
-        scaledRecVecs_(2, 1) = recVecs_(2, 1) * cDim_;
-        scaledRecVecs_(2, 2) = recVecs_(2, 2) * cDim_;
+        scaledRecVecs_ = recVecs_.clone();
+        scaledRecVecs_.row(0) *= aDim_;
+        scaledRecVecs_.row(1) *= bDim_;
+        scaledRecVecs_.row(2) *= cDim_;
     }
 
     /*!
@@ -2382,28 +2503,22 @@ class PMEInstance {
             auto splineA = std::get<0>(bSplines);
             auto splineB = std::get<1>(bSplines);
             auto splineC = std::get<2>(bSplines);
+            const auto &aGridIterator = aGridIterator_[splineA.startingGridPoint()];
+            const auto &bGridIterator = bGridIterator_[splineB.startingGridPoint()];
+            const auto &cGridIterator = cGridIterator_[splineC.startingGridPoint()];
             for (int component = 0; component < nComponents; ++component) {
                 const auto &quanta = angMomIterator_[component];
                 Real param = parameters(atom, component);
                 const Real *splineValsA = splineA[quanta[0]];
                 const Real *splineValsB = splineB[quanta[1]];
                 const Real *splineValsC = splineC[quanta[2]];
-
-                short relC = 0;
-                for (auto &cPoint : cGridIterator_[splineC.startingGridPoint()]) {
-                    Real cVal = splineValsC[relC++];
-                    Real cValP = param * cVal;
-
-                    auto relB = 0;
-                    for (auto &bPoint : bGridIterator_[splineB.startingGridPoint()]) {
-                        Real bVal = splineValsB[relB++];
-                        Real cbValP = cValP * bVal;
-                        int cbPoint = cPoint * bDim_ + bPoint;
-
-                        auto relA = 0;
-                        for (auto &aPoint : aGridIterator_[splineA.startingGridPoint()]) {
-                            Real aVal = splineValsA[relA++];
-                            realGrid_(cbPoint, aPoint) += cbValP * aVal;
+                for (const auto &cPoint : cGridIterator) {
+                    Real cValP = param * splineValsC[cPoint.second];
+                    for (const auto &bPoint : bGridIterator) {
+                        Real cbValP = cValP * splineValsB[bPoint.second];
+                        Real *cbRow = realGrid_[cPoint.first * bDim_ + bPoint.first];
+                        for (const auto &aPoint : aGridIterator) {
+                            cbRow[aPoint.first] += cbValP * splineValsA[aPoint.second];
                         }
                     }
                 }
@@ -2448,28 +2563,24 @@ class PMEInstance {
             auto splineA = std::get<0>(bSplines);
             auto splineB = std::get<1>(bSplines);
             auto splineC = std::get<2>(bSplines);
-            short relC = 0;
-            for (auto &cPoint : cGridIterator_[splineC.startingGridPoint()]) {
-                auto relB = 0;
-                for (auto &bPoint : bGridIterator_[splineB.startingGridPoint()]) {
-                    int cbPoint = cPoint * bDim_ + bPoint;
-
-                    auto relA = 0;
-                    for (auto &aPoint : aGridIterator_[splineA.startingGridPoint()]) {
-                        Real gridVal = realGrid_(cbPoint, aPoint);
+            const auto &aGridIterator = aGridIterator_[splineA.startingGridPoint()];
+            const auto &bGridIterator = bGridIterator_[splineB.startingGridPoint()];
+            const auto &cGridIterator = cGridIterator_[splineC.startingGridPoint()];
+            for (const auto &cPoint : cGridIterator) {
+                for (const auto &bPoint : bGridIterator) {
+                    Real *cbRow = realGrid_[cPoint.first * bDim_ + bPoint.first];
+                    for (const auto &aPoint : aGridIterator) {
+                        Real gridVal = cbRow[aPoint.first];
                         for (int component = 0; component < nForceComponents; ++component) {
                             const auto &quanta = angMomIterator_[component];
                             const Real *splineValsA = splineA[quanta[0]];
                             const Real *splineValsB = splineB[quanta[1]];
                             const Real *splineValsC = splineC[quanta[2]];
-                            fractionalPhis[0][component] +=
-                                gridVal * splineValsA[relA] * splineValsB[relB] * splineValsC[relC];
+                            fractionalPhis[0][component] += gridVal * splineValsA[aPoint.second] *
+                                                            splineValsB[bPoint.second] * splineValsC[cPoint.second];
                         }
-                        ++relA;
                     }
-                    ++relB;
                 }
-                ++relC;
             }
 
             Real fracForce[3] = {0, 0, 0};
@@ -2547,10 +2658,9 @@ class PMEInstance {
         for (int pair = 0; pair < nPair; ++pair) {
             short i = pairList(pair, 0);
             short j = pairList(pair, 1);
-            Real deltaR[3] = {coordinates(j, 0) - coordinates(i, 0), coordinates(j, 1) - coordinates(i, 1),
-                              coordinates(j, 2) - coordinates(i, 2)};
+            auto deltaR = coordinates.row(j) - coordinates.row(i);
             // TODO: apply minimum image convention.
-            Real rSquared = deltaR[0] * deltaR[0] + deltaR[1] * deltaR[1] + deltaR[2] * deltaR[2];
+            Real rSquared = deltaR.dot(deltaR);
             energy += parameters(i, 0) * parameters(j, 0) * dirEFxn_(rSquared, kappaSquared);
         }
         return scaleFactor_ * energy;
@@ -2590,23 +2700,19 @@ class PMEInstance {
         for (int pair = 0; pair < nPair; ++pair) {
             short i = pairList(pair, 0);
             short j = pairList(pair, 1);
-            Real deltaR[3] = {coordinates(j, 0) - coordinates(i, 0), coordinates(j, 1) - coordinates(i, 1),
-                              coordinates(j, 2) - coordinates(i, 2)};
+            auto deltaR = coordinates.row(j) - coordinates.row(i);
             // TODO: apply minimum image convention.
-            Real rSquared = deltaR[0] * deltaR[0] + deltaR[1] * deltaR[1] + deltaR[2] * deltaR[2];
+            Real rSquared = deltaR.dot(deltaR);
             auto kernels = dirEFFxn_(rSquared, kappa_, kappaSquared);
             Real eKernel = std::get<0>(kernels);
             Real fKernel = std::get<1>(kernels);
             Real prefactor = scaleFactor_ * parameters(i, 0) * parameters(j, 0);
             energy += prefactor * eKernel;
             Real f = prefactor * fKernel;
-            Real force[3] = {f * deltaR[0], f * deltaR[1], f * deltaR[2]};
-            forces(i, 0) -= force[0];
-            forces(i, 1) -= force[1];
-            forces(i, 2) -= force[2];
-            forces(j, 0) += force[0];
-            forces(j, 1) += force[1];
-            forces(j, 2) += force[2];
+            auto force = deltaR.row(0);
+            force *= f;
+            forces.row(i) -= force;
+            forces.row(j) += force;
         }
         return energy;
     }
@@ -2647,29 +2753,26 @@ class PMEInstance {
         for (int pair = 0; pair < nPair; ++pair) {
             short i = pairList(pair, 0);
             short j = pairList(pair, 1);
-            Real deltaR[3] = {coordinates(j, 0) - coordinates(i, 0), coordinates(j, 1) - coordinates(i, 1),
-                              coordinates(j, 2) - coordinates(i, 2)};
+            auto deltaR = coordinates.row(j) - coordinates.row(i);
             // TODO: apply minimum image convention.
-            Real rSquared = deltaR[0] * deltaR[0] + deltaR[1] * deltaR[1] + deltaR[2] * deltaR[2];
+            Real rSquared = deltaR.dot(deltaR);
             auto kernels = dirEFFxn_(rSquared, kappa_, kappaSquared);
             Real eKernel = std::get<0>(kernels);
             Real fKernel = std::get<1>(kernels);
             Real prefactor = scaleFactor_ * parameters(i, 0) * parameters(j, 0);
             energy += prefactor * eKernel;
             Real f = prefactor * fKernel;
-            Real force[3] = {f * deltaR[0], f * deltaR[1], f * deltaR[2]};
-            forces(i, 0) -= force[0];
-            forces(i, 1) -= force[1];
-            forces(i, 2) -= force[2];
-            forces(j, 0) += force[0];
-            forces(j, 1) += force[1];
-            forces(j, 2) += force[2];
-            virial[0][0] -= force[0] * deltaR[0];
-            virial[0][1] -= 0.5f * (force[0] * deltaR[1] + force[1] * deltaR[0]);
-            virial[0][2] -= force[1] * deltaR[1];
-            virial[0][3] -= 0.5f * (force[0] * deltaR[2] + force[2] * deltaR[0]);
-            virial[0][4] -= 0.5f * (force[1] * deltaR[2] + force[2] * deltaR[1]);
-            virial[0][5] -= force[2] * deltaR[2];
+            Matrix<Real> dRCopy = deltaR.clone();
+            auto force = dRCopy.row(0);
+            force *= f;
+            forces.row(i) -= force;
+            forces.row(j) += force;
+            virial[0][0] -= force[0] * deltaR[0][0];
+            virial[0][1] -= 0.5f * (force[0] * deltaR[0][1] + force[1] * deltaR[0][0]);
+            virial[0][2] -= force[1] * deltaR[0][1];
+            virial[0][3] -= 0.5f * (force[0] * deltaR[0][2] + force[2] * deltaR[0][0]);
+            virial[0][4] -= 0.5f * (force[1] * deltaR[0][2] + force[2] * deltaR[0][1]);
+            virial[0][5] -= force[2] * deltaR[0][2];
         }
         return energy;
     }
@@ -2707,10 +2810,9 @@ class PMEInstance {
         for (int pair = 0; pair < nPair; ++pair) {
             short i = pairList(pair, 0);
             short j = pairList(pair, 1);
-            Real deltaR[3] = {coordinates(j, 0) - coordinates(i, 0), coordinates(j, 1) - coordinates(i, 1),
-                              coordinates(j, 2) - coordinates(i, 2)};
+            auto deltaR = coordinates.row(j) - coordinates.row(i);
             // TODO: apply minimum image convention.
-            Real rSquared = deltaR[0] * deltaR[0] + deltaR[1] * deltaR[1] + deltaR[2] * deltaR[2];
+            Real rSquared = deltaR.dot(deltaR);
             energy += parameters(i, 0) * parameters(j, 0) * adjEFxn_(rSquared, kappaSquared);
         }
         return scaleFactor_ * energy;
@@ -2750,23 +2852,19 @@ class PMEInstance {
         for (int pair = 0; pair < nPair; ++pair) {
             short i = pairList(pair, 0);
             short j = pairList(pair, 1);
-            Real deltaR[3] = {coordinates(j, 0) - coordinates(i, 0), coordinates(j, 1) - coordinates(i, 1),
-                              coordinates(j, 2) - coordinates(i, 2)};
+            auto deltaR = coordinates.row(j) - coordinates.row(i);
             // TODO: apply minimum image convention.
-            Real rSquared = deltaR[0] * deltaR[0] + deltaR[1] * deltaR[1] + deltaR[2] * deltaR[2];
+            Real rSquared = deltaR.dot(deltaR);
             auto kernels = adjEFFxn_(rSquared, kappa_, kappaSquared);
             Real eKernel = std::get<0>(kernels);
             Real fKernel = std::get<1>(kernels);
             Real prefactor = scaleFactor_ * parameters(i, 0) * parameters(j, 0);
             energy += prefactor * eKernel;
             Real f = prefactor * fKernel;
-            Real force[3] = {f * deltaR[0], f * deltaR[1], f * deltaR[2]};
-            forces(i, 0) -= force[0];
-            forces(i, 1) -= force[1];
-            forces(i, 2) -= force[2];
-            forces(j, 0) += force[0];
-            forces(j, 1) += force[1];
-            forces(j, 2) += force[2];
+            auto force = deltaR.row(0);
+            force *= f;
+            forces.row(i) -= force;
+            forces.row(j) += force;
         }
         return energy;
     }
@@ -2807,29 +2905,26 @@ class PMEInstance {
         for (int pair = 0; pair < nPair; ++pair) {
             short i = pairList(pair, 0);
             short j = pairList(pair, 1);
-            Real deltaR[3] = {coordinates(j, 0) - coordinates(i, 0), coordinates(j, 1) - coordinates(i, 1),
-                              coordinates(j, 2) - coordinates(i, 2)};
+            auto deltaR = coordinates.row(j) - coordinates.row(i);
             // TODO: apply minimum image convention.
-            Real rSquared = deltaR[0] * deltaR[0] + deltaR[1] * deltaR[1] + deltaR[2] * deltaR[2];
+            Real rSquared = deltaR.dot(deltaR);
             auto kernels = adjEFFxn_(rSquared, kappa_, kappaSquared);
             Real eKernel = std::get<0>(kernels);
             Real fKernel = std::get<1>(kernels);
             Real prefactor = scaleFactor_ * parameters(i, 0) * parameters(j, 0);
             energy += prefactor * eKernel;
             Real f = prefactor * fKernel;
-            Real force[3] = {f * deltaR[0], f * deltaR[1], f * deltaR[2]};
-            forces(i, 0) -= force[0];
-            forces(i, 1) -= force[1];
-            forces(i, 2) -= force[2];
-            forces(j, 0) += force[0];
-            forces(j, 1) += force[1];
-            forces(j, 2) += force[2];
-            virial[0][0] -= force[0] * deltaR[0];
-            virial[0][1] -= 0.5f * (force[0] * deltaR[1] + force[1] * deltaR[0]);
-            virial[0][2] -= force[1] * deltaR[1];
-            virial[0][3] -= 0.5f * (force[0] * deltaR[2] + force[2] * deltaR[0]);
-            virial[0][4] -= 0.5f * (force[1] * deltaR[2] + force[2] * deltaR[1]);
-            virial[0][5] -= force[2] * deltaR[2];
+            Matrix<Real> dRCopy = deltaR.clone();
+            auto force = dRCopy.row(0);
+            force *= f;
+            forces.row(i) -= force;
+            forces.row(j) += force;
+            virial[0][0] -= force[0] * deltaR[0][0];
+            virial[0][1] -= 0.5f * (force[0] * deltaR[0][1] + force[1] * deltaR[0][0]);
+            virial[0][2] -= force[1] * deltaR[0][1];
+            virial[0][3] -= 0.5f * (force[0] * deltaR[0][2] + force[2] * deltaR[0][0]);
+            virial[0][4] -= 0.5f * (force[1] * deltaR[0][2] + force[2] * deltaR[0][1]);
+            virial[0][5] -= force[2] * deltaR[0][2];
         }
         return energy;
     }
@@ -3047,6 +3142,199 @@ class PMEInstance {
         energy += computeEFVAdj(excludedList, parameterAngMom, parameters, coordinates, forces, virial);
         return energy;
     }
+
+    /*!
+     * \brief makeGridIterator makes an iterator over the spline values that contribute to this node's grid
+     *        in a given Cartesian dimension.  The iterator is of the form (grid point, spline index) and is
+     *        sorted by increasing grid point, for cache efficiency.
+     * \param dimension the dimension of the grid in the Cartesian dimension of interest.
+     * \param first the first grid point in the Cartesian dimension to be handled by this node.
+     * \param last the element past the last grid point in the Cartesian dimension to be handled by this node.
+     * \return the vector of spline iterators for each starting grid point.
+     */
+    GridIterator makeGridIterator(int dimension, int first, int last) {
+        // TODO make me private!
+        GridIterator gridIterator;
+        for (int gridStart = 0; gridStart < dimension; ++gridStart) {
+            std::vector<std::pair<short, short>> splineIterator(splineOrder_);
+            splineIterator.clear();
+            for (int splineIndex = 0; splineIndex < splineOrder_; ++splineIndex) {
+                int gridPoint = (splineIndex + gridStart) % dimension;
+                if (gridPoint >= first && gridPoint < last)
+                    splineIterator.push_back(std::make_pair(gridPoint - first, splineIndex));
+            }
+            std::sort(splineIterator.begin(), splineIterator.end());
+            gridIterator.push_back(splineIterator);
+        }
+        return gridIterator;
+    }
+
+    /*!
+     * \brief common_init sets up information that is common to serial and parallel runs.
+     */
+    void common_init(int rPower, Real kappa, int splineOrder, int aDim, int bDim, int cDim, Real scaleFactor,
+                     int nThreads) {
+        // TODO make this private!
+        aDim_ = aDim;
+        bDim_ = bDim;
+        cDim_ = cDim;
+        xDim_ = aDim / 2 + 1;
+        splineOrder_ = splineOrder;
+        nThreads_ = nThreads;
+        scaleFactor_ = scaleFactor;
+        kappa_ = kappa;
+
+        // Helpers to perform 1D FFTs along each dimension.
+        fftHelperA_ = FFTWWrapper<Real>(aDim_);
+        fftHelperB_ = FFTWWrapper<Real>(bDim_);
+        fftHelperC_ = FFTWWrapper<Real>(cDim_);
+
+        // Grid iterators to correctly wrap the grid when using splines.
+        aGridIterator_ = makeGridIterator(aDim_, firstX_, lastX_);
+        bGridIterator_ = makeGridIterator(bDim_, firstY_, lastY_);
+        cGridIterator_ = makeGridIterator(cDim_, firstZ_, lastZ_);
+
+        // Fourier space spline norms.
+        BSpline<Real> spline = BSpline<Real>(0, 0, splineOrder_, 0);
+        aSplineMod_ = spline.invSplineModuli(aDim_);
+        bSplineMod_ = spline.invSplineModuli(bDim_);
+        cSplineMod_ = spline.invSplineModuli(cDim_);
+
+        // Set up function pointers by instantiating the appropriate evaluation functions.  We could add many more
+        // entries by default here, but don't right now to avoid code bloat.  To add an extra rPower kernel is a
+        // trivial cut and paste exercise; just add a new line with the desired 1/R power as the macro's argument.
+        switch (rPower) {
+            ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(1);
+            ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(6);
+            default:
+                std::string msg("Bad rPower requested.  To fix this, add the appropriate entry in");
+                msg += __FILE__;
+                msg += ", line number ";
+                msg += std::to_string(__LINE__ - 5);
+                throw std::runtime_error(msg.c_str());
+                break;
+        }
+
+        // The matrices used in the transformations.
+        realGrid_ = Matrix<Real>(myDimZ_ * myDimY_, myDimX_);
+        compGridCXB_ = Matrix<std::complex<Real>>(cDim_ * xDim_, bDim_);
+        compGridCBX_ = Matrix<std::complex<Real>>(cDim_ * bDim_, xDim_);
+        compGridXYC_ = Matrix<std::complex<Real>>(xDim_ * bDim_, cDim_);
+        compGridXYZ_ = Matrix<std::complex<Real>>(xDim_ * bDim_, cDim_);
+    }
+
+    /*!
+     * \brief setup initializes this object for a PME calculation using only threading.
+     * \param rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive dispersion).
+     * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
+     * \param splineOrder the order of B-spline; must be at least (2 + max. multipole order + deriv. level needed).
+     * \param aDim the dimension of the FFT grid along the A axis.
+     * \param bDim the dimension of the FFT grid along the B axis.
+     * \param cDim the dimension of the FFT grid along the C axis.
+     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the
+     *        1 / [4 pi epslion0] for Coulomb calculations).
+     * \param nThreads the maximum number of threads to use for each MPI instance; if set to 0 all available threads are
+     * used.
+     */
+    void setup(int rPower, Real kappa, int splineOrder, int aDim, int bDim, int cDim, Real scaleFactor, int nThreads) {
+        rankX_ = rankY_ = rankZ_ = 0;
+        firstX_ = firstY_ = firstZ_ = 0;
+        lastX_ = aDim;
+        lastY_ = bDim;
+        lastZ_ = cDim;
+        myDimX_ = aDim;
+        myDimY_ = bDim;
+        myDimZ_ = cDim;
+        common_init(rPower, kappa, splineOrder, aDim, bDim, cDim, scaleFactor, nThreads);
+    }
+
+    /*!
+     * \brief setup initializes this object for a PME calculation using MPI parallism and threading.
+     * \param rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive dispersion).
+     * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
+     * \param splineOrder the order of B-spline; must be at least (2 + max. multipole order + deriv. level needed).
+     * \param aDim the dimension of the FFT grid along the A axis.
+     * \param bDim the dimension of the FFT grid along the B axis.
+     * \param cDim the dimension of the FFT grid along the C axis.
+     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the
+     *        1 / [4 pi epslion0] for Coulomb calculations).
+     * \param nThreads the maximum number of threads to use for each MPI instance; if set to 0 all available threads are
+     * \param communicator the MPI communicator for the reciprocal space calcultion, which should already be
+     * initialized. \param numNodesX the number of nodes to be used for the X dimension. \param numNodesY the number of
+     * nodes to be used for the Y dimension. \param numNodesZ the number of nodes to be used for the Z dimension.
+     */
+    void setupParallel(int rPower, Real kappa, int splineOrder, int aDim, int bDim, int cDim, Real scaleFactor,
+                       int nThreads, const MPI_Comm &communicator, NodeOrder nodeOrder, int numNodesX, int numNodesY,
+                       int numNodesZ) {
+#if HAVE_MPI == 1
+        mpiCommunicator_ =
+            std::unique_ptr<MPIWrapper<Real>>(new MPIWrapper<Real>(communicator, numNodesX, numNodesY, numNodesZ));
+        switch (nodeOrder) {
+            case (NodeOrder::ZYX):
+                rankX_ = mpiCommunicator_->myRank_ % numNodesX;
+                rankY_ = (mpiCommunicator_->myRank_ % (numNodesY * numNodesX)) / numNodesX;
+                rankZ_ = mpiCommunicator_->myRank_ / (numNodesY * numNodesX);
+                mpiCommunicatorX_ = mpiCommunicator_->split(rankZ_*numNodesY + rankY_, rankX_);
+                mpiCommunicatorY_ = mpiCommunicator_->split(rankZ_*numNodesX + rankX_, rankY_);
+                mpiCommunicatorZ_ = mpiCommunicator_->split(rankY_*numNodesX + rankX_, rankZ_);
+                break;
+            default:
+                throw std::runtime_error("Unknown NodeOrder in setupParallel.");
+        }
+        myDimX_ = aDim / numNodesX;
+        myDimY_ = bDim / numNodesY;
+        myDimZ_ = cDim / numNodesZ;
+        firstX_ = rankX_ * myDimX_;
+        firstY_ = rankY_ * myDimY_;
+        firstZ_ = rankZ_ * myDimZ_;
+        lastX_ = rankX_ == numNodesX ? aDim : (rankX_ + 1) * myDimX_;
+        lastY_ = rankY_ == numNodesY ? bDim : (rankY_ + 1) * myDimY_;
+        lastZ_ = rankZ_ == numNodesZ ? cDim : (rankZ_ + 1) * myDimZ_;
+        //PRINT("Ranks: " << rankX_ << "  " << rankY_ << "  " << rankZ_ << std::endl
+        //                << "X range:  " << firstX_ << "  " << lastX_ << std::endl
+        //                << "Y range:  " << firstY_ << "  " << lastY_ << std::endl
+        //                << "Z range:  " << firstZ_ << "  " << lastZ_ << std::endl);
+        //PRINT( "Xcolor " << rankZ_*numNodesY + rankY_<< std::endl <<
+        //       "Ycolor " << rankZ_*numNodesX + rankX_<< std::endl <<
+        //       "Zcolor " << rankY_*numNodesX + rankX_<< std::endl);
+        common_init(rPower, kappa, splineOrder, aDim, bDim, cDim, scaleFactor, nThreads);
+#else   // Have MPI
+        throw std::runtime_error(
+            "setupParallel called, but libPME was not compiled with MPI.  Make sure you compile with -DHAVE_MPI=1 in "
+            "the list of compiler definitions.");
+#endif  // Have MPI
+    }
+
+    /*!
+     * \brief Runs a PME reciprocal space calculation, computing energies in an MPI parallel fashion.
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
+     * etc.).
+     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
+     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
+     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     *
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
+     * \param energy pointer to the variable holding the energy; this is incremented, not assigned.
+     * \return the reciprocal space energy.
+     */
+    Real computeERecParallel(int parameterAngMom, const Matrix<Real> &parameters, const Matrix<Real> &coordinates) {
+        sanityChecks(parameterAngMom, parameters, coordinates);
+
+        spreadParameters(parameterAngMom, parameters, coordinates);
+        PRINT(realGrid_);
+        return 0;
+        forwardTransform();
+        return convolveE(parameterAngMom, parameters);
+    }
 };
 }  // Namespace libpme
 
@@ -3061,10 +3349,12 @@ using PMEInstanceF = libpme::PMEInstance<float>;
 typedef enum { XAligned = 0, ShapeMatrix = 1 } LatticeType;
 
 typedef struct PMEInstance PMEInstance;
-extern struct PMEInstance *libpme_setupD(int rPower, double kappa, int splineOrder, int aDim, int bDim, int cDim,
-                                         double scaleFactor, int nNodes, int nThreads);
-extern struct PMEInstance *libpme_setupF(int rPower, float kappa, int splineOrder, int aDim, int bDim, int cDim,
-                                         float scaleFactor, int nNodes, int nThreads);
+extern struct PMEInstance *libpme_createD();
+extern struct PMEInstance *libpme_createF();
+extern void libpme_setupD(struct PMEInstance *pme, int rPower, double kappa, int splineOrder, int aDim, int bDim,
+                          int cDim, double scaleFactor, int nThreads);
+extern void libpme_setupF(struct PMEInstance *pme, int rPower, float kappa, int splineOrder, int aDim, int bDim,
+                          int cDim, float scaleFactor, int nThreads);
 extern void libpme_set_lattice_vectorsD(struct PMEInstance *pme, double A, double B, double C, double kappa,
                                         double beta, double gamma, LatticeType latticeType);
 extern void libpme_set_lattice_vectorsF(struct PMEInstance *pme, float A, float B, float C, float kappa, float beta,
