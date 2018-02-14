@@ -235,8 +235,9 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         bool has_colon = false; // For index
         enum BracketState { NONE, OPEN, CLOSED };
         BracketState bracket = NONE;
-        while (ptr != expression.end() && !isOpChar(*ptr) && !isspace(*ptr,loc))
+        while (ptr != expression.end() && !isspace(*ptr,loc))
         {
+          if (bracket != OPEN && isOpChar(*ptr)) break;
           //mprintf("DEBUG: Var '%c'\n", *ptr);
           varname.push_back( *(ptr++) );
           // Check for brackets (Aspect)
