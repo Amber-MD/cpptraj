@@ -414,7 +414,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
 
 // -----------------------------------------------------------------------------
 /** Calculate the kinetic energy using given velocities. */
-double Energy_Amber::E_Kinetic(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+double Energy_Amber::E_Kinetic(Frame const& fIn, AtomMask const& mask)
 {
   if (!fIn.HasVelocity()) return 0.0;
   time_ke_.Start();
@@ -424,7 +424,7 @@ double Energy_Amber::E_Kinetic(Frame const& fIn, Topology const& tIn, AtomMask c
     const double* vxyz = fIn.VelXYZ( *at );
     //mprintf("DEBUG: Atom %i vxyz = %12.4f %12.4f %12.4f\n", *at+1, vxyz[0], vxyz[1], vxyz[2]);
     double v2 = vxyz[0]*vxyz[0] + vxyz[1]*vxyz[1] + vxyz[2]*vxyz[2];
-    ke += (tIn[*at].Mass() * v2);
+    ke += (fIn.Mass(*at) * v2);
   }
   time_ke_.Stop();
   return 0.5 * ke;
@@ -434,12 +434,10 @@ double Energy_Amber::E_Kinetic(Frame const& fIn, Topology const& tIn, AtomMask c
   * i.e. the given velocities are one half step ahead of the given coordinates
   * and forces.
   * \param fIn Current frame with coordinates, +0.5*dt velocities, and forces.
-  * \param tIn Current topology with masses. TODO just use whats in the frame.
   * \param mask Selected atoms.
   * \param dt Time step in ps.
   */
-double Energy_Amber::E_Kinetic_VV(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
-                                  double dt)
+double Energy_Amber::E_Kinetic_VV(Frame const& fIn, AtomMask const& mask, double dt)
 {
   // Vn = Vh - 0.5 * dt * Fn/m
   // V = velocity, F = force, n = step, h = n + half step, dt = time step, m = mass
@@ -451,11 +449,12 @@ double Energy_Amber::E_Kinetic_VV(Frame const& fIn, Topology const& tIn, AtomMas
   for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
   {
     const double* vxyz = fIn.VelXYZ( *at );
+    double mass = fIn.Mass( *at );
     //const double* fxyz = fIn.FrcXYZ( *at );
     Vec3 fxyz = Vec3(fIn.FrcXYZ(*at));
-    velN[0] = vxyz[0] - dthalf * fxyz[0] / tIn[*at].Mass();
-    velN[1] = vxyz[1] - dthalf * fxyz[1] / tIn[*at].Mass();
-    velN[2] = vxyz[2] - dthalf * fxyz[2] / tIn[*at].Mass();
+    velN[0] = vxyz[0] - dthalf * fxyz[0] / mass; 
+    velN[1] = vxyz[1] - dthalf * fxyz[1] / mass; 
+    velN[2] = vxyz[2] - dthalf * fxyz[2] / mass; 
     // DEBUG
     /*
     if (at == mask.begin()) {
@@ -467,7 +466,7 @@ double Energy_Amber::E_Kinetic_VV(Frame const& fIn, Topology const& tIn, AtomMas
       mprintf("\n");
     }
     */
-    ke += (tIn[*at].Mass() * velN.Magnitude2());
+    ke += (mass * velN.Magnitude2());
     //for (int i = 0; i != 3; i++) {
     //  double v2 = (vxyz[i] + vold[i]);
     //  ke += (tIn[*at].Mass() * 0.25 * (v2 * v2));

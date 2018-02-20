@@ -18,9 +18,9 @@ class Energy_Amber {
 
     double E_DirectSum(Frame const&, Topology const&, AtomMask const&, int);
     /// Calculate kinetic energy from velocity information.
-    double E_Kinetic(Frame const&, Topology const&, AtomMask const&);
+    double E_Kinetic(Frame const&, AtomMask const&);
     /// Calculate kinetic energy from forces and plus-half timestep velocities.
-    double E_Kinetic_VV(Frame const&, Topology const&, AtomMask const&, double);
+    double E_Kinetic_VV(Frame const&, AtomMask const&, double);
 
     void SetDebug(int d) { debug_ = d; }
     void PrintTiming(double) const;

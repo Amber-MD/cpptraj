@@ -410,9 +410,9 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
       case C_KE:
         if (frm.Frm().HasVelocity()) {
           if (frm.Frm().HasForce())
-            ene = ENE_.E_Kinetic_VV(frm.Frm(), *currentParm_, Imask_, dt_);
+            ene = ENE_.E_Kinetic_VV(frm.Frm(), Imask_, dt_);
           else
-            ene = ENE_.E_Kinetic(frm.Frm(), *currentParm_, Imask_);
+            ene = ENE_.E_Kinetic(frm.Frm(), Imask_);
           Energy_[KE]->Add(frameNum, &ene);
         }
         break;
