@@ -413,10 +413,76 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
 }
 
 // -----------------------------------------------------------------------------
+/** Calculate the kinetic energy using given velocities. */
+double Energy_Amber::E_Kinetic(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+{
+  if (!fIn.HasVelocity()) return 0.0;
+  time_ke_.Start();
+  double ke = 0.0;
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+  {
+    const double* vxyz = fIn.VelXYZ( *at );
+    //mprintf("DEBUG: Atom %i vxyz = %12.4f %12.4f %12.4f\n", *at+1, vxyz[0], vxyz[1], vxyz[2]);
+    double v2 = vxyz[0]*vxyz[0] + vxyz[1]*vxyz[1] + vxyz[2]*vxyz[2];
+    ke += (tIn[*at].Mass() * v2);
+  }
+  time_ke_.Stop();
+  return 0.5 * ke;
+}
+
+/** Calculate the kinetic energy assuming a Velocity Verlet / leapfrog scheme,
+  * i.e. the given velocities are one half step ahead of the given coordinates
+  * and forces.
+  * \param fIn Current frame with coordinates, +0.5*dt velocities, and forces.
+  * \param tIn Current topology with masses. TODO just use whats in the frame.
+  * \param mask Selected atoms.
+  * \param dt Time step in ps.
+  */
+double Energy_Amber::E_Kinetic_VV(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
+                                  double dt)
+{
+  // Vn = Vh - 0.5 * dt * Fn/m
+  // V = velocity, F = force, n = step, h = n + half step, dt = time step, m = mass
+  if (!fIn.HasVelocity() || !fIn.HasForce()) return 0.0;
+  time_ke_.Start();
+  double ke = 0.0;
+  double dthalf = dt * Constants::AMBERTIME_TO_PS * 0.5;
+  Vec3 velN(0.0);
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+  {
+    const double* vxyz = fIn.VelXYZ( *at );
+    //const double* fxyz = fIn.FrcXYZ( *at );
+    Vec3 fxyz = Vec3(fIn.FrcXYZ(*at));
+    velN[0] = vxyz[0] - dthalf * fxyz[0] / tIn[*at].Mass();
+    velN[1] = vxyz[1] - dthalf * fxyz[1] / tIn[*at].Mass();
+    velN[2] = vxyz[2] - dthalf * fxyz[2] / tIn[*at].Mass();
+    // DEBUG
+    /*
+    if (at == mask.begin()) {
+      double vold[3];
+      for (int i = 0; i < 3; i++) {
+        vold[i] = vxyz[i] - (dt*Constants::AMBERTIME_TO_PS) * fxyz[i] / tIn[*at].Mass();
+        mprintf("DBG: v vold m %6i%12.7f%12.7f%12.7f\n", i+1, vxyz[i], vold[i], tIn[*at].Mass());
+      }
+      mprintf("\n");
+    }
+    */
+    ke += (tIn[*at].Mass() * velN.Magnitude2());
+    //for (int i = 0; i != 3; i++) {
+    //  double v2 = (vxyz[i] + vold[i]);
+    //  ke += (tIn[*at].Mass() * 0.25 * (v2 * v2));
+    //}
+  }
+  time_ke_.Stop();
+  return 0.5 * ke;
+}
+
+// -----------------------------------------------------------------------------
 void Energy_Amber::PrintTiming(double totalIn) const {
-  time_bond_.WriteTiming(1,  "BOND:      ", totalIn);
-  time_angle_.WriteTiming(1, "ANGLE:     ", totalIn);
-  time_tors_.WriteTiming(1,  "TORSION:   ", totalIn);
-  time_14_.WriteTiming(1,    "1-4_NONBOND", totalIn);
-  time_NB_.WriteTiming(1,    "NONBOND:   ", totalIn);
+  time_bond_.WriteTiming(1,  "BOND        :", totalIn);
+  time_angle_.WriteTiming(1, "ANGLE       :", totalIn);
+  time_tors_.WriteTiming(1,  "TORSION     :", totalIn);
+  time_14_.WriteTiming(1,    "1-4_NONBOND :", totalIn);
+  time_NB_.WriteTiming(1,    "NONBOND     :", totalIn);
+  time_ke_.WriteTiming(1,    "KE          :", totalIn);
 }

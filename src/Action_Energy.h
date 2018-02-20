@@ -16,14 +16,14 @@ class Action_Energy: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
     /// Corresponds to data sets.
-    enum Etype { BOND = 0, ANGLE, DIHEDRAL, V14, Q14, VDW, ELEC, TOTAL};
+    enum Etype { BOND = 0, ANGLE, DIHEDRAL, V14, Q14, VDW, ELEC, KE, TOTAL};
     /// Add energy data set of specified type.
     int AddSet(Etype, DataSetList&, DataFile*, std::string const&);
     /// For debugging the direct sum convergence
     double Dbg_Direct(Frame const&,int);
     /// Corresponds to calculations.
     enum CalcType { C_BND, C_ANG, C_DIH, C_N14, C_NBD, C_LJ,
-                    C_COULOMB, C_DIRECT, C_EWALD, C_PME };
+                    C_COULOMB, C_DIRECT, C_EWALD, C_PME, C_KE };
     /// Corresponds to type of electrostatics.
     enum ElecType { NO_ELE = 0, SIMPLE, DIRECTSUM, EWALD, PME };
 
@@ -45,8 +45,10 @@ class Action_Energy: public Action {
     double maxexp_;
     double skinnb_;                ///< Size of non-bonded "skin"
     double erfcDx_;                ///< Spacing for ERFC table (default 1/5000)
+    double dt_;                    ///< Time step for estimating kinetic energy (leapfrog)
     int mlimits_[3];               ///< mlimits (reg. Ewald) or nfft (PME)
     bool need_lj_params_;          ///< True if LJ parameters needed.
+    bool calc_ke_;                 ///< True if KE calculation will be attempted.
     Timer etime_;
 };
 #endif

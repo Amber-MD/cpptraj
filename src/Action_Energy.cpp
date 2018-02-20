@@ -16,7 +16,7 @@ Action_Energy::~Action_Energy() {
 
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
-          "\t[bond] [angle] [dihedral] {[nb14] | [e14] | [v14]}\n"
+          "\t[bond] [angle] [dihedral] [kinetic [dt <dt>]] {[nb14] | [e14] | [v14]}\n"
           "\t{[nonbond] | [elec] [vdw]}\n"
           "\t[ etype { simple |\n"
           "\t          directsum [npoints <N>] |\n"
@@ -32,11 +32,11 @@ void Action_Energy::Help() const {
 
 /// Corresponds to Etype 
 static const char* AspectStr[] = {"bond", "angle", "dih", "vdw14", "elec14",
-                                  "vdw", "elec", "total"};
+                                  "vdw", "elec", "kinetic", "total"};
 
 /// Corresponds to Etype
 static const char* EtypeStr[] = {"Bonds", "Angles", "Dihedrals", "1-4 VDW", "1-4 Elec.",
-                                 "VDW", "Elec.", "Total"};
+                                 "VDW", "Elec.", "Kinetic", "Total"};
 
 /// Corresponds to ElecType 
 static const char* ElecStr[] = { "None", "Simple", "Direct Sum", "Regular Ewald",
@@ -75,13 +75,17 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     termEnabled[VDW] = true;
     termEnabled[ELEC] = true;
   }
+  termEnabled[KE] = actionArgs.hasKey("kinetic");
   int nactive = 0;
   for (std::vector<bool>::const_iterator it = termEnabled.begin(); it != termEnabled.end(); ++it)
     if (*it) ++nactive;
-  // If no terms specified, enabled everything.
+  // If no terms specified, enabled everything. TODO disable KE?
   if (nactive == 0) termEnabled.assign((int)TOTAL+1, true);
   // If more than one term enabled ensure total will be calculated.
   if (nactive > 1) termEnabled[TOTAL] = true;
+  // If KE enabled get time step
+  if (termEnabled[KE])
+    dt_ = actionArgs.getKeyDouble("dt", 0.001);
   // Electrostatics type.
   std::string etypearg = actionArgs.GetStringKey("etype");
   elecType_ = NO_ELE;
@@ -139,7 +143,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         std::fill(mlimits_, mlimits_+3, -1);
       EW_ = (Ewald*)new Ewald_ParticleMesh();
 #     else
-      mprinterr("Error: 'pme' requires compiling with -DLIBPME and C++11 support.\n");
+      mprinterr("Error: 'pme' requires compiling with FFTW3 and C++11 support.\n");
       return Action::ERR;
 #     endif
     } else if (etypearg == "simple") {
@@ -160,6 +164,11 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     Ecalcs_.push_back(C_ANG);
   if (termEnabled[DIHEDRAL])
     Ecalcs_.push_back(C_DIH);
+  if (termEnabled[KE]) {
+    calc_ke_ = true;
+    Ecalcs_.push_back(C_KE);
+  } else
+    calc_ke_ = false;
   if (termEnabled[V14] || termEnabled[Q14])
     Ecalcs_.push_back(C_N14);
   // Determine which nonbonded calc to use if any.
@@ -266,6 +275,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   if (termEnabled[VDW] && lj_longrange_correction)
     mprintf("\tUsing long range correction for nonbond VDW calc.\n");
+  if (calc_ke_)
+    mprintf("\tTime step for KE calculation if forces present: %g ps\n", dt_);
 
   return Action::OK;
 }
@@ -294,6 +305,19 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
                                     ewcoeff_, maxexp_, skinnb_, erfcDx_, debug_, mlimits_))
       return Action::ERR;
     EW_->Setup( setup.Top(), Imask_ );
+  }
+  // For KE, check for velocities/forces
+  if (calc_ke_) {
+    if (!setup.CoordInfo().HasVel()) {
+      mprintf("Warning: Coordinates have no velocities - kinetic energy will be zero.\n");
+    } else {
+      if (setup.CoordInfo().HasForce())
+        mprintf("\tForce info present. Assuming plus-half time step velocities.\n"
+                "\tVelocities at time 't' will be estimated using force info.\n");
+      else
+        mprintf("\tForce info not present. Assuming velocities are at same time\n"
+                "\tstep as coordinates.\n");
+    }
   }
 # ifdef LIBPME
   else if (elecType_ == PME) {
@@ -382,6 +406,15 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Energy_[ELEC]->Add(frameNum, &ene);
         if (Energy_[VDW] != 0) Energy_[VDW]->Add(frameNum, &ene2);
         Etot += (ene + ene2);
+        break;
+      case C_KE:
+        if (frm.Frm().HasVelocity()) {
+          if (frm.Frm().HasForce())
+            ene = ENE_.E_Kinetic_VV(frm.Frm(), *currentParm_, Imask_, dt_);
+          else
+            ene = ENE_.E_Kinetic(frm.Frm(), *currentParm_, Imask_);
+          Energy_[KE]->Add(frameNum, &ene);
+        }
         break;
     }
   }
