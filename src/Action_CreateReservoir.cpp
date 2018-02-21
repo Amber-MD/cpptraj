@@ -10,18 +10,20 @@ Action_CreateReservoir::Action_CreateReservoir() :
   iseed_(0),
   trajIsOpen_(false),
   useVelocity_(false),
+  useForce_(false),
   nframes_(0)
 {}
 
 void Action_CreateReservoir::Help() const {
   mprintf("\t<filename> ene <energy data set> [bin <cluster bin data set>]\n"
-          "\ttemp0 <temp0> iseed <iseed> [novelocity]\n"
+          "\ttemp0 <temp0> iseed <iseed> [novelocity] [noforce]\n"
           "\t[%s] [title <title>]\n", DataSetList::TopArgs);
   mprintf("  Create structure reservoir for use with reservoir REMD simulations using\n"
           "  energies in <energy data set>, temperature <temp0> and random seed <iseed>\n"
-          "  Do not include velocities if 'novelocity' is specified. If <cluster bin data set>\n"
-          "  is specified from e.g. a previous 'clusterdihedral' command, the reservoir can\n"
-          "  be used for non-Boltzmann reservoir REMD (rremd==3).\n");
+          "  Do not include velocities/forces if 'novelocity'/'noforce' specified.\n"
+          "  If <cluster bin data set> is specified from e.g. a previous\n"
+          "  'clusterdihedral' command, the reservoir can be used for non-Boltzmann\n"
+          "  reservoir REMD (rremd==3).\n");
 }
 
 // Action_CreateReservoir::Init()
@@ -54,6 +56,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
     return Action::ERR;
   }
   useVelocity_ = !actionArgs.hasKey("novelocity");
+  useForce_ = !actionArgs.hasKey("noforce");
   // Get parm for reservoir traj
   original_trajparm_ = init.DSL().GetTopology( actionArgs );
   if (original_trajparm_ == 0) {
@@ -111,6 +114,10 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
     mprintf("\tVelocities will be written to reservoir if present.\n");
   else
     mprintf("\tVelocities will not be written to reservoir.\n");
+  if (useForce_)
+    mprintf("\tForces will be written to reservoir if present.\n");
+  else
+    mprintf("\tForces will not be written to reservoir.\n");
   mprintf("\tTopology: %s\n", original_trajparm_->c_str());
   return Action::OK;
 }
@@ -125,7 +132,10 @@ Action::RetType Action_CreateReservoir::Setup(ActionSetup& setup) {
   }
   if (!trajIsOpen_) {
     mprintf("\tCreating reservoir file %s\n", filename_.full());
-    if (reservoir_.InitReservoir(filename_, title_, setup.CoordInfo(), setup.Top().Natom(),
+    CoordinateInfo cinfo = setup.CoordInfo();
+    if (!useVelocity_) cinfo.SetVelocity(false);
+    if (!useForce_)    cinfo.SetForce(false);
+    if (reservoir_.InitReservoir(filename_, title_, cinfo, setup.Top().Natom(),
                                  (bin_ != 0), reservoirT_, iseed_))
     {
       mprinterr("Error: Could not set up NetCDF reservoir.\n");

@@ -25,7 +25,8 @@ class Action_CreateReservoir : public Action {
     int iseed_;                   ///< Reservoir seed
     FileName filename_;           ///< Reservoir file name
     bool trajIsOpen_;             ///< True if reservoir has been initialized and opened
-    bool useVelocity_;            ///< If true, include velocities if preesnt.
+    bool useVelocity_;            ///< If true, include velocities if present.
+    bool useForce_;               ///< If true, include forces if present.
     size_t nframes_;              ///< Use to keep track of number of frames written.
 };
 #endif
