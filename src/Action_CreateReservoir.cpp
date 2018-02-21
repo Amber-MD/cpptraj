@@ -6,9 +6,7 @@ Action_CreateReservoir::Action_CreateReservoir() :
   original_trajparm_(0),
   ene_(0),
   bin_(0),
-# ifdef BINTRAJ
   reservoirT_(0.0),
-# endif
   iseed_(0),
   trajIsOpen_(false),
   useVelocity_(false),
@@ -17,19 +15,22 @@ Action_CreateReservoir::Action_CreateReservoir() :
 
 void Action_CreateReservoir::Help() const {
   mprintf("\t<filename> ene <energy data set> [bin <cluster bin data set>]\n"
-          "\ttemp0 <temp0> iseed <iseed> [velocity]\n"
-          "\t[parm <parmfile> | parmindex <#>] [title <title>]\n"
-          "  Create structure reservoir for use with reservoir REMD simulations using\n"
+          "\ttemp0 <temp0> iseed <iseed> [novelocity]\n"
+          "\t[%s] [title <title>]\n", DataSetList::TopArgs);
+  mprintf("  Create structure reservoir for use with reservoir REMD simulations using\n"
           "  energies in <energy data set>, temperature <temp0> and random seed <iseed>\n"
-          "  Include velocities if [velocity] is specified. If <cluster bin data set> is\n"
-          "  specified from e.g. a previous 'clusterdihedral' command, the reservoir can\n"
+          "  Do not include velocities if 'novelocity' is specified. If <cluster bin data set>\n"
+          "  is specified from e.g. a previous 'clusterdihedral' command, the reservoir can\n"
           "  be used for non-Boltzmann reservoir REMD (rremd==3).\n");
 }
 
 // Action_CreateReservoir::Init()
 Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-# ifdef BINTRAJ
+# ifndef BINTRAJ
+  mprinterr("Error: NetCDF reservoir requires NetCDF support. Recompile with -DBINTRAJ.\n");
+  return Action::ERR;
+# endif
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
     mprinterr("Error: 'createreservoir' action does not work with > 1 thread (%i threads currently).\n", init.TrajComm().Size());
@@ -52,7 +53,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
     mprinterr("Error: Reservoir random seed must be specified and > 0\n");
     return Action::ERR;
   }
-  useVelocity_ = actionArgs.hasKey("velocity");
+  useVelocity_ = !actionArgs.hasKey("novelocity");
   // Get parm for reservoir traj
   original_trajparm_ = init.DSL().GetTopology( actionArgs );
   if (original_trajparm_ == 0) {
@@ -95,32 +96,27 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
   trajIsOpen_ = false;
   nframes_ = 0;
   // Setup output reservoir file
-  reservoir_.SetDebug( debugIn );
+  //reservoir_.SetDebug( debugIn );
   // Set title
-  std::string title = actionArgs.GetStringKey("title");
-  if (title.empty())
-    title.assign("Cpptraj generated structure reservoir");
-  reservoir_.SetTitle( title );
-  // Process additional netcdf traj args
-  //reservoir_.processWriteArgs( actionArgs );
+  title_ = actionArgs.GetStringKey("title");
+  if (title_.empty())
+    title_.assign("Cpptraj generated structure reservoir");
 
-  mprintf("    CREATERESERVOIR: %s, energy data %s", filename_.full(), ene_->legend());
+  mprintf("    CREATERESERVOIR: '%s', energy data '%s'", filename_.full(), ene_->legend());
   if (bin_ != 0)
-    mprintf(", bin data %s", bin_->legend());
-  mprintf("\n\tReservoir temperature= %.2f, random seed= %i\n", reservoirT_, iseed_);
+    mprintf(", bin data '%s'", bin_->legend());
+  mprintf("\n\tTitle: %s\n", title_.c_str());
+  mprintf("\tReservoir temperature= %.2f, random seed= %i\n", reservoirT_, iseed_);
   if (useVelocity_)
-    mprintf("\tVelocities will be written to reservoir.\n");
+    mprintf("\tVelocities will be written to reservoir if present.\n");
+  else
+    mprintf("\tVelocities will not be written to reservoir.\n");
   mprintf("\tTopology: %s\n", original_trajparm_->c_str());
   return Action::OK;
-# else
-  mprinterr("Error: reservoir requires NetCDF. Reconfigure with NetCDF enabled.\n");
-  return Action::ERR;
-# endif
 }
 
 // Action_CreateReservoir::Setup()
 Action::RetType Action_CreateReservoir::Setup(ActionSetup& setup) {
-# ifdef BINTRAJ
   // Check that input parm matches current parm
   if (original_trajparm_->Pindex() != setup.Top().Pindex()) {
     mprintf("Info: createreservoir was set up for topology %s\n", original_trajparm_->c_str());
@@ -129,45 +125,30 @@ Action::RetType Action_CreateReservoir::Setup(ActionSetup& setup) {
   }
   if (!trajIsOpen_) {
     mprintf("\tCreating reservoir file %s\n", filename_.full());
-    // Use parm to set up box info for the reservoir.
-    CoordinateInfo cInfo = setup.CoordInfo();
-    cInfo.SetVelocity( useVelocity_ );
-    // Set up write and open - no append.
-    if (reservoir_.setupTrajout( filename_, setup.TopAddress(), cInfo, setup.Nframes(), false))
-      return Action::ERR;
-    // Add reservoir vars to netcdf traj
-    if (reservoir_.createReservoir((bin_!=0), reservoirT_, iseed_)) {
-      mprinterr("Error: Could not add reservoir variables to netcdf trajectory.\n");
+    if (reservoir_.InitReservoir(filename_, title_, setup.CoordInfo(), setup.Top().Natom(),
+                                 (bin_ != 0), reservoirT_, iseed_))
+    {
+      mprinterr("Error: Could not set up NetCDF reservoir.\n");
       return Action::ERR;
     }
-
     trajIsOpen_ = true;
     nframes_ = 0;
   }
   return Action::OK;
-# else
-  return Action::ERR;
-# endif 
 }
 
 // Action_CreateReservoir::DoAction()
 Action::RetType Action_CreateReservoir::DoAction(int frameNum, ActionFrame& frm) {
-# ifdef BINTRAJ
   int bin = -1;
   if (bin_ != 0) bin = (int)bin_->Dval(frm.TrajoutNum());
-  if (reservoir_.writeReservoir(nframes_++, frm.Frm(), ene_->Dval(frm.TrajoutNum()), bin))
+  if (reservoir_.WriteReservoir(nframes_++, frm.Frm(), ene_->Dval(frm.TrajoutNum()), bin))
     return Action::ERR;
   return Action::OK;
-# else
-  return Action::ERR;
-# endif
 }
 
 // Action_CreateReservoir::Print()
 void Action_CreateReservoir::Print() {
-# ifdef BINTRAJ
   mprintf("\tReservoir %s: %u frames.\n", filename_.base(), nframes_);
-  reservoir_.closeTraj();
-  trajIsOpen_=false;
-# endif
+  reservoir_.CloseReservoir();
+  trajIsOpen_ = false;
 }

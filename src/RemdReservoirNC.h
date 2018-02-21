@@ -11,7 +11,7 @@ class RemdReservoirNC : private NetcdfFile {
     /// Initialize and open. Filename, title, coordinate info, # atoms, has bins, reservoir temp, seed
     int InitReservoir(FileName const&, std::string const&, CoordinateInfo const&, int, bool, double, int);
     /// Write structure, energy, and bin to reservoir
-    int WriteReservoir(int, Frame const&, double, int);
+    int WriteReservoir(unsigned int, Frame const&, double, int);
     /// Close the reservoir
     void CloseReservoir() { NC_close(); }
   private:

@@ -1,7 +1,9 @@
 #include "RemdReservoirNC.h"
 #include "CpptrajStdio.h"
 #include "NC_Routines.h"
+#ifdef BINTRAJ
 #include <netcdf.h>
+#endif
 
 /** Initialize NetCDF structure reservoir. */
 int RemdReservoirNC::InitReservoir(FileName const& fnameIn, std::string const& titleIn,
@@ -24,8 +26,9 @@ int RemdReservoirNC::InitReservoir(FileName const& fnameIn, std::string const& t
 }
 
 /** Write a frame to structure reservoir. */
-int RemdReservoirNC::WriteReservoir(int set, Frame const& frame, double energy, int bin)
+int RemdReservoirNC::WriteReservoir(unsigned int set, Frame const& frame, double energy, int bin)
 {
+# ifdef BINTRAJ
   start_[0] = set;
   start_[1] = 0;
   start_[2] = 0;
@@ -35,7 +38,7 @@ int RemdReservoirNC::WriteReservoir(int set, Frame const& frame, double energy, 
   // Coords
   DoubleToFloat(&Coord_[0], frame.xAddress());
   if (NC::CheckErr(nc_put_vara_float(ncid_,coordVID_,start_,count_,&Coord_[0])) ) {
-    mprinterr("Error: Netcdf writing reservoir coords %i\n",set);
+    mprinterr("Error: Netcdf writing reservoir coords %u\n",set);
     return 1;
   }
   // Velo
@@ -76,4 +79,7 @@ int RemdReservoirNC::WriteReservoir(int set, Frame const& frame, double energy, 
   }
   nc_sync(ncid_); // Necessary after every write??
   return 0;
+# else
+  return 1;
+# endif
 }
