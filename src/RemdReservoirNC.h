@@ -14,7 +14,7 @@ class RemdReservoirNC : private NetcdfFile {
     int WriteReservoir(unsigned int, Frame const&, double, int);
     /// Close the reservoir
 #   ifdef BINTRAJ
-    void CloseReservoir(); { NC_close(); }
+    void CloseReservoir() { NC_close(); }
 #   else
     void CloseReservoir() {}
 #   endif
