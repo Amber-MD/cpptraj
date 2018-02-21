@@ -64,10 +64,10 @@ install:
     else
       if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
-        ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+        ./configure $BUILD_FLAGS $COMPILER;
       else
         export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
-        ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+        ./configure $BUILD_FLAGS $COMPILER;
       fi;
       make -j2 $BUILD_TYPE ;
     fi
