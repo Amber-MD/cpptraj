@@ -378,93 +378,129 @@ double Action_Energy::Dbg_Direct(Frame const& frameIn, int maxpoints) {
 
 // Action_Energy::DoAction()
 Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
-  etime_.Start();
+  time_total_.Start();
   double Etot = 0.0, ene, ene2;
   typedef std::vector<CalcType>::const_iterator calc_it;
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
   {
     switch (*calc) {
       case C_BND:
+        time_bond_.Start();
         ene = ENE_.E_bond(frm.Frm(), *currentParm_, Mask1_);
+        time_bond_.Stop();
         Energy_[BOND]->Add(frameNum, &ene);
         Etot += ene;
         break;
       case C_ANG:
+        time_angle_.Start();
         ene = ENE_.E_angle(frm.Frm(), *currentParm_, Mask1_);
+        time_angle_.Stop();
         Energy_[ANGLE]->Add(frameNum, &ene);
         Etot += ene;
         break;
       case C_DIH:
+        time_tors_.Start();
         ene = ENE_.E_torsion(frm.Frm(), *currentParm_, Mask1_);
+        time_tors_.Stop();
         Energy_[DIHEDRAL]->Add(frameNum, &ene);
         Etot += ene;
         break;
       case C_N14:
+        time_14_.Start();
         ene = ENE_.E_14_Nonbond(frm.Frm(), *currentParm_, Mask1_, ene2);
+        time_14_.Stop();
         if (Energy_[V14] != 0) Energy_[V14]->Add(frameNum, &ene);
         if (Energy_[Q14] != 0) Energy_[Q14]->Add(frameNum, &ene2);
         Etot += (ene + ene2);
         break;
       case C_NBD: // Both nonbond terms must be enabled 
+        time_NB_.Start();
         ene = ENE_.E_Nonbond(frm.Frm(), *currentParm_, Imask_, ene2);
+        time_NB_.Stop();
         Energy_[VDW]->Add(frameNum, &ene);
         Energy_[ELEC]->Add(frameNum, &ene2);
         Etot += (ene + ene2);
         break;
       case C_LJ:
+        time_NB_.Start();
         ene = ENE_.E_VDW(frm.Frm(), *currentParm_, Imask_);
+        time_NB_.Stop();
         Energy_[VDW]->Add(frameNum, &ene);
         Etot += ene;
         break;
       case C_COULOMB:
+        time_NB_.Start();
         ene = ENE_.E_Elec(frm.Frm(), *currentParm_, Imask_);
+        time_NB_.Stop();
         Energy_[ELEC]->Add(frameNum, &ene);
         Etot += ene;
         break;
       case C_DIRECT:
+        time_NB_.Start();
         if (npoints_ < 0)
           ene = Dbg_Direct(frm.Frm(), (-npoints_)+1);
         else
           ene = ENE_.E_DirectSum(frm.Frm(), *currentParm_, Imask_, npoints_);
+        time_NB_.Stop();
         Energy_[ELEC]->Add(frameNum, &ene);
         Etot += ene;
         break;
       case C_EWALD:
       case C_PME: // Elec must be enabled, vdw may not be
+        time_NB_.Start();
         ene = EW_->CalcEnergy(frm.Frm(), Imask_, ene2);
+        time_NB_.Stop();
         Energy_[ELEC]->Add(frameNum, &ene);
         if (Energy_[VDW] != 0) Energy_[VDW]->Add(frameNum, &ene2);
         Etot += (ene + ene2);
         break;
       case C_KEAUTO:
         if (frm.Frm().HasVelocity()) {
+          time_ke_.Start();
           if (frm.Frm().HasForce())
             ene = ENE_.E_Kinetic_VV(frm.Frm(), Imask_, dt_);
           else
             ene = ENE_.E_Kinetic(frm.Frm(), Imask_);
+          time_ke_.Stop();
           Energy_[KE]->Add(frameNum, &ene);
         }
         break;
       case C_KEVEL:
+        time_ke_.Start();
         ene = ENE_.E_Kinetic(frm.Frm(), Imask_);
+        time_ke_.Stop();
         Energy_[KE]->Add(frameNum, &ene);
         break;
       case C_KEVV:
+        time_ke_.Start();
         ene = ENE_.E_Kinetic_VV(frm.Frm(), Imask_, dt_);
+        time_ke_.Stop();
         Energy_[KE]->Add(frameNum, &ene);
         break;
     }
   }
   if (Energy_[TOTAL] != 0)
     Energy_[TOTAL]->Add(frameNum, &Etot);
-  etime_.Stop();
+  time_total_.Stop();
   return Action::OK;
 }
 
 void Action_Energy::Print() {
   mprintf("Timing for energy: '%s' ('%s')\n", setname_.c_str(), Mask1_.MaskString());
-  etime_.WriteTiming(0, " Total:");
-  ENE_.PrintTiming(etime_.Total());
-  if (elecType_ == EWALD || elecType_ == PME)
-    EW_->Timing(etime_.Total());
+  time_total_.WriteTiming(0, " Total:");
+  if (time_bond_.Total() > 0.0)
+    time_bond_.WriteTiming(1,  "BOND        :", time_total_.Total());
+  if (time_angle_.Total() > 0.0)
+    time_angle_.WriteTiming(1, "ANGLE       :", time_total_.Total());
+  if (time_tors_.Total() > 0.0)
+    time_tors_.WriteTiming(1,  "TORSION     :", time_total_.Total());
+  if (time_14_.Total() > 0.0)
+    time_14_.WriteTiming(1,    "1-4_NONBOND :", time_total_.Total());
+  if (time_NB_.Total() > 0.0) {
+    time_NB_.WriteTiming(1,    "NONBOND     :", time_total_.Total());
+    if (elecType_ == EWALD || elecType_ == PME)
+      EW_->Timing(time_NB_.Total());
+  }
+  if (time_ke_.Total() > 0.0)
+    time_ke_.WriteTiming(1,    "KE          :", time_total_.Total());
 }

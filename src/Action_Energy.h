@@ -51,6 +51,12 @@ class Action_Energy: public Action {
     double dt_;                    ///< Time step for estimating kinetic energy (leapfrog)
     int mlimits_[3];               ///< mlimits (reg. Ewald) or nfft (PME)
     bool need_lj_params_;          ///< True if LJ parameters needed.
-    Timer etime_;
+    Timer time_total_;
+    Timer time_bond_;
+    Timer time_angle_;
+    Timer time_tors_;
+    Timer time_14_;
+    Timer time_NB_;
+    Timer time_ke_;
 };
 #endif

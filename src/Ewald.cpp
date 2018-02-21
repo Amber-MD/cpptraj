@@ -605,11 +605,12 @@ double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
 
 // Ewald::Timing()
 void Ewald::Timing(double total) const {
-  t_total_.WriteTiming(1,  "EwaldTotal:", total);
+  t_total_.WriteTiming(1,  "  EwaldTotal:", total);
   t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
   t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
-  t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
-  t_direct_.WriteTiming(2, "Direct :    ", t_total_.Total());
+  if (t_trig_tables_.Total() > 0.0)
+    t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
+  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
 # ifndef _OPENMP
   t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
   t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
