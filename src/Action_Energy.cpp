@@ -292,7 +292,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   if (termEnabled[VDW] && lj_longrange_correction)
     mprintf("\tUsing long range correction for nonbond VDW calc.\n");
-  if (KEtype_ != NONE) {
+  if (KEtype_ != KE_NONE) {
     if (KEtype_ == KE_AUTO)
       mprintf("\tIf forces and velocities present KE will be calculated assuming\n"
               "\tvelocities are a half step ahead of forces; if only velocities\n"
