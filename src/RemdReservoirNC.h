@@ -13,7 +13,11 @@ class RemdReservoirNC : private NetcdfFile {
     /// Write structure, energy, and bin to reservoir
     int WriteReservoir(unsigned int, Frame const&, double, int);
     /// Close the reservoir
-    void CloseReservoir() { NC_close(); }
+#   ifdef BINTRAJ
+    void CloseReservoir(); { NC_close(); }
+#   else
+    void CloseReservoir() {}
+#   endif
   private:
     std::vector<float> Coord_; ///< For converting input coords to single precision
     int eptotVID_;             ///< Potential energy variable ID
