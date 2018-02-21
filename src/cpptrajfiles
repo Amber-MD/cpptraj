@@ -310,6 +310,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Range.cpp \
         RPNcalc.cpp \
         ReferenceAction.cpp \
+        RemdReservoirNC.cpp \
         Residue.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \

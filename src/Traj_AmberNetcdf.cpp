@@ -14,8 +14,6 @@
 // CONSTRUCTOR
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
   Coord_(0),
-  eptotVID_(-1),
-  binsVID_(-1),
   useVelAsCoords_(false),
   useFrcAsCoords_(false),
   readAccess_(false),
@@ -437,61 +435,6 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   return 0;
 }  
 
-// Traj_AmberNetcdf::writeReservoir()
-int Traj_AmberNetcdf::writeReservoir(int set, Frame const& frame, double energy, int bin) {
-  start_[0] = ncframe_;
-  start_[1] = 0;
-  start_[2] = 0;
-  count_[0] = 1;
-  count_[1] = Ncatom();
-  count_[2] = 3;
-  // Coords
-  DoubleToFloat(Coord_, frame.xAddress());
-  if (NC::CheckErr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
-    mprinterr("Error: Netcdf writing reservoir coords %i\n",set);
-    return 1;
-  }
-  // Velo
-  if (velocityVID_ != -1) {
-    if (frame.vAddress() == 0) { // TODO: Make it so this can NEVER happen.
-      mprinterr("Error: Reservoir expects velocities, but no velocities in frame.\n");
-      return 1;
-    }
-    DoubleToFloat(Coord_, frame.vAddress());
-    if (NC::CheckErr(nc_put_vara_float(ncid_,velocityVID_,start_,count_,Coord_)) ) {
-      mprinterr("Error: Netcdf writing reservoir velocities %i\n",set);
-      return 1;
-    }
-  }
-  // Eptot, bins
-  if ( NC::CheckErr( nc_put_vara_double(ncid_,eptotVID_,start_,count_,&energy)) ) {
-    mprinterr("Error: Writing eptot.\n");
-    return 1;
-  }
-  if (binsVID_ != -1) {
-    if ( NC::CheckErr( nc_put_vara_int(ncid_,binsVID_,start_,count_,&bin)) ) {
-      mprinterr("Error: Writing bins.\n");
-      return 1;
-    }
-  }
-  // Write box
-  if (cellLengthVID_ != -1) {
-    count_[1] = 3;
-    count_[2] = 0;
-    if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frame.bAddress())) ) {
-      mprinterr("Error: Writing cell lengths.\n");
-      return 1;
-    }
-    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frame.bAddress()+3)) ) {
-      mprinterr("Error: Writing cell angles.\n");
-      return 1;
-    }
-  }
-  nc_sync(ncid_); // Necessary after every write??
-  ++ncframe_;
-  return 0;
-}
-  
 // Traj_AmberNetcdf::Info()
 void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");
