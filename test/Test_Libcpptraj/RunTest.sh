@@ -1,23 +1,17 @@
 #!/bin/bash
 
+. ../MasterTest.sh
 # Clean
-for FILE in Makefile Test.cpp a.out ; do
-  if [ -f "$FILE" ] ; then
-    rm $FILE
-  fi
-done
-
-if [ "$1" = 'clean' ] ; then
-  exit 0
-fi
+CleanFiles Makefile Test.cpp a.out
 
 echo "**************************************************************"
 echo "LIBCPPTRAJ test."
 
 # First determine whether we are part of AmberTools directory
-IN_AMBERTOOLS=0
-if [ ! -z "`pwd | grep AmberTools`" ] ; then
+if [ $STANDALONE -eq 0 ] ; then
   IN_AMBERTOOLS=1
+else
+  IN_AMBERTOOLS=0
 fi
 
 # Determine location of config.h, needed for compiler vars.
@@ -84,7 +78,13 @@ EOF
 echo "    Testing compile and link of libcpptraj."
 make test_libcpptraj
 if [ "$?" -ne 0 ] ; then
-  echo "Error: Could not compile with libcpptraj." > /dev/stderr
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    echo "Error: Could not compile with libcpptraj." > /dev/stderr
+    OutBoth "Error: Could not compile with libcpptraj."
+  else
+    echo "libcpptraj: Program error"
+  fi
+  ((PROGERROR++))
   exit 1
 fi
 
@@ -94,8 +94,14 @@ export LD_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$LD_LIBRARY_PATH
 echo "    Testing that program compiled with libcpptraj will execute."
 VERSION=`./a.out --version | grep Version`
 echo "$VERSION"
-if [ "$?" -ne 0 -o -z "$VERSION" ] ; then
-  echo "Error: Could not run program compiled with libcpptraj." > /dev/stderr
+if [ $? -ne 0 -o -z "$VERSION" ] ; then
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    echo "Error: Cannot execute program built with libcpptraj" > /dev/stderr
+    OutBoth "Error: Cannot execute program built with libcpptraj"
+  else
+    echo "libcpptraj: Program error"
+  fi
+  ((PROGERROR++))
   exit 1
 fi
 
