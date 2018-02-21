@@ -22,7 +22,7 @@ install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
 cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
-	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
+	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # AmbPDB -------------------------------
 install_ambpdb: ambpdb$(EXE)

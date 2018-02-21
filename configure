@@ -161,7 +161,7 @@ LIB_STTC[$LNETCDF]='libnetcdf.a'     # Expected static location relative to home
 LIB_D_ON[$LNETCDF]='-DBINTRAJ'       # Directive if library on
 LIB_DOFF[$LNETCDF]=''                # Directive if library off
 LIB_LINK[$LNETCDF]='dynamic'         # How to link the library
-LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj
+LIB_TYPE[$LNETCDF]='ld'              # ld = LDFLAGS, cpp = cpptraj, blank = special
 
 LIB_STAT[$LPARANC]='off'
 LIB_CKEY[$LPARANC]='pnetcdf'
@@ -233,7 +233,7 @@ LIB_FLAG[$LREADLINE]='-lreadline'
 LIB_STTC[$LREADLINE]='libreadline.a'
 LIB_D_ON[$LREADLINE]=''
 LIB_DOFF[$LREADLINE]='-DNO_READLINE'
-LIB_TYPE[$LREADLINE]='cpp'
+LIB_TYPE[$LREADLINE]=''
 
 LIB_STAT[$LXDRFILE]='bundled'
 LIB_CKEY[$LXDRFILE]='xdrfile'
@@ -1629,6 +1629,7 @@ NVCCFLAGS=$NVCCFLAGS \$(DBGFLAGS)
 CUDA_TARGET=$CUDA_TARGET
 
 READLINE_TARGET=$READLINE_TARGET
+READLINE_LIB=${LIB_FLAG[$LREADLINE]}
 
 XDRFILE_TARGET=$XDRFILE_TARGET
 
