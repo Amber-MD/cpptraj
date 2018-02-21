@@ -22,12 +22,15 @@ class Action_Energy: public Action {
     /// For debugging the direct sum convergence
     double Dbg_Direct(Frame const&,int);
     /// Corresponds to calculations.
-    enum CalcType { C_BND, C_ANG, C_DIH, C_N14, C_NBD, C_LJ,
-                    C_COULOMB, C_DIRECT, C_EWALD, C_PME, C_KE };
+    enum CalcType { C_BND = 0, C_ANG, C_DIH, C_N14, C_NBD, C_LJ,
+                    C_COULOMB, C_DIRECT, C_EWALD, C_PME, C_KEAUTO, C_KEVEL, C_KEVV };
     /// Corresponds to type of electrostatics.
     enum ElecType { NO_ELE = 0, SIMPLE, DIRECTSUM, EWALD, PME };
+    /// Corresponds to type of KE calc.
+    enum KEType { KE_NONE = 0, KE_AUTO, KE_VEL, KE_VV };
 
     ElecType elecType_;            ///< Type of electrostatics calc.
+    KEType KEtype_;                ///< Type of KE calc.
     std::vector<DataSet*> Energy_; ///< Hold output data sets (length Etype+1)
     std::vector<CalcType> Ecalcs_; ///< Hold which calcs to perform
     Topology* currentParm_;        ///< Hold current topology
@@ -48,7 +51,6 @@ class Action_Energy: public Action {
     double dt_;                    ///< Time step for estimating kinetic energy (leapfrog)
     int mlimits_[3];               ///< mlimits (reg. Ewald) or nfft (PME)
     bool need_lj_params_;          ///< True if LJ parameters needed.
-    bool calc_ke_;                 ///< True if KE calculation will be attempted.
     Timer etime_;
 };
 #endif

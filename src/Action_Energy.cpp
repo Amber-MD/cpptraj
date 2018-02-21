@@ -16,8 +16,8 @@ Action_Energy::~Action_Energy() {
 
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
-          "\t[bond] [angle] [dihedral] [kinetic [dt <dt>]] {[nb14] | [e14] | [v14]}\n"
-          "\t{[nonbond] | [elec] [vdw]}\n"
+          "\t[bond] [angle] [dihedral] {[nb14] | [e14] | [v14]}\n"
+          "\t{[nonbond] | [elec] [vdw]} [kinetic [ketype {vel|vv}] [dt <dt>]]\n"
           "\t[ etype { simple |\n"
           "\t          directsum [npoints <N>] |\n"
           "\t          ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
@@ -83,9 +83,23 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   if (nactive == 0) termEnabled.assign((int)TOTAL+1, true);
   // If more than one term enabled ensure total will be calculated.
   if (nactive > 1) termEnabled[TOTAL] = true;
-  // If KE enabled get time step
-  if (termEnabled[KE])
-    dt_ = actionArgs.getKeyDouble("dt", 0.001);
+  // If KE enabled get type, time step, etc
+  KEtype_ = KE_NONE;
+  if (termEnabled[KE]) {
+    std::string ketype = actionArgs.GetStringKey("ketype");
+    if (ketype.empty())
+      KEtype_ = KE_AUTO;
+    else if (ketype == "vel")
+      KEtype_ = KE_VEL;
+    else if (ketype == "vv")
+      KEtype_ = KE_VV;
+    else {
+      mprinterr("Error: Unrecognized 'ketype': %s\n", ketype.c_str());
+      return Action::ERR;
+    }
+    if (KEtype_ != KE_VEL)
+      dt_ = actionArgs.getKeyDouble("dt", 0.001);
+  }
   // Electrostatics type.
   std::string etypearg = actionArgs.GetStringKey("etype");
   elecType_ = NO_ELE;
@@ -165,10 +179,13 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   if (termEnabled[DIHEDRAL])
     Ecalcs_.push_back(C_DIH);
   if (termEnabled[KE]) {
-    calc_ke_ = true;
-    Ecalcs_.push_back(C_KE);
-  } else
-    calc_ke_ = false;
+    if (KEtype_ == KE_AUTO)
+      Ecalcs_.push_back(C_KEAUTO);
+    else if (KEtype_ == KE_VEL)
+      Ecalcs_.push_back(C_KEVEL);
+    else if (KEtype_ == KE_VV)
+      Ecalcs_.push_back(C_KEVV);
+  }
   if (termEnabled[V14] || termEnabled[Q14])
     Ecalcs_.push_back(C_N14);
   // Determine which nonbonded calc to use if any.
@@ -275,9 +292,18 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   if (termEnabled[VDW] && lj_longrange_correction)
     mprintf("\tUsing long range correction for nonbond VDW calc.\n");
-  if (calc_ke_)
-    mprintf("\tTime step for KE calculation if forces present: %g ps\n", dt_);
-
+  if (KEtype_ != NONE) {
+    if (KEtype_ == KE_AUTO)
+      mprintf("\tIf forces and velocities present KE will be calculated assuming\n"
+              "\tvelocities are a half step ahead of forces; if only velocities\n"
+              "\tpresent KE will be calculated assuming velocities are on-step.\n");
+    else if (KEtype_ == KE_VV)
+      mprintf("\tKE will be calculated assuming velocities are a half step ahead of forces.\n");
+    else if (KEtype_ == KE_VEL)
+      mprintf("\tKE will be calculated assuming velocities are on-step.\n");
+    if (KEtype_ != KE_VEL)
+      mprintf("\tTime step for KE calculation if forces present: %g ps\n", dt_);
+  }
   return Action::OK;
 }
 
@@ -307,16 +333,19 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     EW_->Setup( setup.Top(), Imask_ );
   }
   // For KE, check for velocities/forces
-  if (calc_ke_) {
+  if (KEtype_ != KE_NONE) {
     if (!setup.CoordInfo().HasVel()) {
       mprintf("Warning: Coordinates have no velocities - kinetic energy will be zero.\n");
-    } else {
+    } else if (KEtype_ == KE_AUTO) {
       if (setup.CoordInfo().HasForce())
         mprintf("\tForce info present. Assuming plus-half time step velocities.\n"
                 "\tVelocities at time 't' will be estimated using force info.\n");
       else
         mprintf("\tForce info not present. Assuming velocities are at same time\n"
                 "\tstep as coordinates.\n");
+    } else if (KEtype_ == KE_VV && !setup.CoordInfo().HasForce()) {
+      mprintf("Warning: Coordinates have velocities but no forces - cannot use\n"
+              "Warning: 'ketype vv' to estimate kinetic energy.\n");
     }
   }
 # ifdef LIBPME
@@ -407,7 +436,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         if (Energy_[VDW] != 0) Energy_[VDW]->Add(frameNum, &ene2);
         Etot += (ene + ene2);
         break;
-      case C_KE:
+      case C_KEAUTO:
         if (frm.Frm().HasVelocity()) {
           if (frm.Frm().HasForce())
             ene = ENE_.E_Kinetic_VV(frm.Frm(), Imask_, dt_);
@@ -415,6 +444,14 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
             ene = ENE_.E_Kinetic(frm.Frm(), Imask_);
           Energy_[KE]->Add(frameNum, &ene);
         }
+        break;
+      case C_KEVEL:
+        ene = ENE_.E_Kinetic(frm.Frm(), Imask_);
+        Energy_[KE]->Add(frameNum, &ene);
+        break;
+      case C_KEVV:
+        ene = ENE_.E_Kinetic_VV(frm.Frm(), Imask_, dt_);
+        Energy_[KE]->Add(frameNum, &ene);
         break;
     }
   }
