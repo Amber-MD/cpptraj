@@ -82,6 +82,7 @@ EOF
 make test_libcpptraj
 if [ "$?" -ne 0 ] ; then
   ProgramError "Could not compile with libcpptraj." "libcpptraj"
+  exit 1
 else
   # Run the test program. Export library to avoid any issues
   export DYLD_FALLBACK_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$DYLD_FALLBACK_LIBRARY_PATH
@@ -91,6 +92,7 @@ else
   echo "$VERSION"
   if [ $STATUS -ne 0 -o -z "$VERSION" ] ; then
     ProgramError "Cannot execute program built with libcpptraj" "libcpptraj"
+    exit 1
   else
     # Pseudo DoTest() execution
     ((NUMCOMPARISONS++))
