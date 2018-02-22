@@ -445,6 +445,23 @@ Summary() {
 }
 
 # ------------------------------------------------------------------------------
+# ProgramError() <message>
+ProgramError() {
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    echo "Error: $1" > /dev/stderr
+    OutBoth "Error: $1"
+  else
+    if [ -z "$2" ] ; then
+      PNAME=$CPPTRAJ
+    else
+      PNAME=$2
+    fi
+    echo "$PNAME: Program error"
+  fi
+  ((PROGERROR++))
+}
+
+# ------------------------------------------------------------------------------
 # RunCpptraj() <title>
 #   Run cpptraj test with given title.
 RunCpptraj() {
@@ -465,13 +482,7 @@ RunCpptraj() {
   STATUS=$?
   #echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ $STATUS -ne 0 ] ; then
-    if [ -z "$CPPTRAJ_DACDIF" ] ; then
-      echo "Error: cpptraj exited with status $STATUS" > /dev/stderr
-      OutBoth "Error: cpptraj exited with status $STATUS"
-    else
-      echo "$CPPTRAJ: Program error"
-    fi
-    ((PROGERROR++))
+    ProgramError "cpptraj exited with status $STATUS"
   fi
 }
 

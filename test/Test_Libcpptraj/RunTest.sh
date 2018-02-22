@@ -4,8 +4,12 @@
 # Clean
 CleanFiles Makefile Test.cpp a.out
 
-echo "**************************************************************"
-echo "LIBCPPTRAJ test."
+TESTNAME='LIBCPPTRAJ linking test.'
+echo ""
+echo "  CPPTRAJ: $TESTNAME"
+if [ -z "$CPPTRAJ_DACDIF" ] ; then
+  OUT "  CPPTRAJ: $TESTNAME"
+fi
 
 # First determine whether we are part of AmberTools directory
 if [ $STANDALONE -eq 0 ] ; then
@@ -75,36 +79,30 @@ int main(int argc, char **argv) {
 EOF
  
 # Make the test program
-echo "    Testing compile and link of libcpptraj."
 make test_libcpptraj
 if [ "$?" -ne 0 ] ; then
-  if [ -z "$CPPTRAJ_DACDIF" ] ; then
-    echo "Error: Could not compile with libcpptraj." > /dev/stderr
-    OutBoth "Error: Could not compile with libcpptraj."
+  ProgramError "Could not compile with libcpptraj." "libcpptraj"
+else
+  # Run the test program. Export library to avoid any issues
+  export DYLD_FALLBACK_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$DYLD_FALLBACK_LIBRARY_PATH
+  export LD_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$LD_LIBRARY_PATH
+  VERSION=`./a.out --version`
+  STATUS=$?
+  echo "$VERSION"
+  if [ $STATUS -ne 0 -o -z "$VERSION" ] ; then
+    ProgramError "Cannot execute program built with libcpptraj" "libcpptraj"
   else
-    echo "libcpptraj: Program error"
+    # Pseudo DoTest() execution
+    ((NUMCOMPARISONS++))
+    if [ -z "$CPPTRAJ_DACDIF" ] ; then
+      # Standalone pass.
+      OUT  "  LIBCPPTRAJ OK."
+    else
+      # AmberTools pass.
+      echo "PASSED"
+    fi
   fi
-  ((PROGERROR++))
-  exit 1
 fi
 
-# Run the test program. Export library to avoid any issues
-export DYLD_FALLBACK_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$DYLD_FALLBACK_LIBRARY_PATH
-export LD_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$LD_LIBRARY_PATH
-echo "    Testing that program compiled with libcpptraj will execute."
-VERSION=`./a.out --version | grep Version`
-echo "$VERSION"
-if [ $? -ne 0 -o -z "$VERSION" ] ; then
-  if [ -z "$CPPTRAJ_DACDIF" ] ; then
-    echo "Error: Cannot execute program built with libcpptraj" > /dev/stderr
-    OutBoth "Error: Cannot execute program built with libcpptraj"
-  else
-    echo "libcpptraj: Program error"
-  fi
-  ((PROGERROR++))
-  exit 1
-fi
-
-echo "Test passed."
-echo ""
+EndTest
 exit 0
