@@ -34,7 +34,7 @@ ambpdb$(EXE): $(AMBPDB_OBJECTS) $(XDRFILE_TARGET)
 # libcpptraj ---------------------------
 # Rule to make libcpptraj-specific objects
 %.LIBCPPTRAJ.o : %.cpp
-	$(CXX) -c -o $@ $(CXXFLAGS) -DLIBCPPTRAJ $(DBGFLAGS) $<
+	$(CXX) $(DIRECTIVES) -DLIBCPPTRAJ $(INCLUDE) $(CXXFLAGS) -c -o $@ $<
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
