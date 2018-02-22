@@ -350,6 +350,7 @@ test.gromacs:
 
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
+	@-cd Test_LibPME && ./RunTest.sh $(OPT)
 
 test.ti:
 	@-cd Test_TI && ./RunTest.sh $(OPT)
@@ -586,7 +587,7 @@ test.cuda:
 	$(MAKE) test.complete summary OPT="$(OPT) cuda"
 
 test.libcpptraj:
-	@-cd Test_Libcpptraj && ./RunTest.sh $(OPT)
+	@cd Test_Libcpptraj && ./RunTest.sh $(OPT)
 
 test.complete: CpptrajTest.sh MasterTest.sh
 	@./CpptrajTest.sh --target test.cpptraj $(OPT)

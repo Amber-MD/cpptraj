@@ -17,7 +17,7 @@ Direct() {
 noprogress
 parm nacl.box.parm7
 trajin nacl.box.rst7
-energy out directsum.0 etype directsum npoints 10 
+energy elec out directsum.0 etype directsum npoints 10 
 EOF
     RunCpptraj "$UNITNAME"
     DoTest directsum.0.save directsum.0
@@ -32,7 +32,7 @@ NaCl() {
 noprogress
 parm nacl.box.parm7
 trajin nacl.box.rst7
-energy out ewald.dat etype ewald cut 5.6 dsumtol 0.0000001 \
+energy elec out ewald.dat etype ewald cut 5.6 dsumtol 0.0000001 \
                                  rsumtol 0.0000001 skinnb 0.01
 EOF
     RunCpptraj "$UNITNAME"
@@ -48,7 +48,7 @@ Trpzip() {
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
-energy out ew_tz2.dat etype ewald skinnb 0.01
+energy elec out ew_tz2.dat etype ewald skinnb 0.01
 EOF
     RunCpptraj "$UNITNAME"
     DoTest ew_tz2.dat.save ew_tz2.dat
@@ -63,7 +63,7 @@ Tz2_10() {
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
-energy out ew_tz2_10.dat etype ewald skinnb 0.01
+energy elec out ew_tz2_10.dat etype ewald skinnb 0.01
 EOF
     RunCpptraj "$UNITNAME"
     DoTest ew_tz2_10.dat.save ew_tz2_10.dat
@@ -78,7 +78,7 @@ Ortho() {
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
-energy out tz2_ortho.dat etype ewald skinnb 0.01
+energy elec out tz2_ortho.dat etype ewald skinnb 0.01
 EOF
     RunCpptraj "Ewald test (ortho), 10 frames"
     DoTest tz2_ortho.dat.save tz2_ortho.dat

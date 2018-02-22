@@ -198,6 +198,9 @@ std::string Cpptraj::Defines() {
 #if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
 #endif
+#ifdef LIBPME
+  defined_str.append(" -DLIBPME");
+#endif
   return defined_str;
 }
 

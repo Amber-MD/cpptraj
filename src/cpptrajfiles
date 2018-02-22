@@ -227,6 +227,8 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         EnsembleOut_Single.cpp \
         EnsembleOutList.cpp \
         Ewald.cpp \
+        Ewald_ParticleMesh.cpp \
+        Ewald_Regular.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
         Exec_Change.cpp \
