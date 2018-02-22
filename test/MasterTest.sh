@@ -1199,7 +1199,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   export CPPTRAJ_DACDIF
   export CPPTRAJ_DIFF
   # If not cleaning see what else needs to be set up.
-  if [ $CPPTRAJ_TEST_CLEAN -eq 0 ] ; then
+  if [ $CPPTRAJ_TEST_CLEAN -eq 0 -a -z "$IS_LIBCPPTRAJ" ] ; then
     # Determine binary locations
     SetBinaries
     # If CPPTRAJ_TEST_OS is not set, try to determine. 

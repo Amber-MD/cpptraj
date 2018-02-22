@@ -1,5 +1,5 @@
 #!/bin/bash
-
+IS_LIBCPPTRAJ='yes'
 . ../MasterTest.sh
 # Clean
 CleanFiles Makefile Test.cpp a.out
