@@ -1,7 +1,7 @@
 #ifndef INC_DATAIO_CPOUT_H
 #define INC_DATAIO_CPOUT_H
 #include "DataIO.h"
-#include "CphResidue.h"
+#include "Cph.h"
 #include "BufferedLine.h"
 /// Read Amber cpout file 
 class DataIO_Cpout : public DataIO {
@@ -22,7 +22,7 @@ class DataIO_Cpout : public DataIO {
 
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
-    typedef std::vector<CphResidue> Rarray;
+    typedef std::vector<Cph::CpRes> Rarray;
 
     struct StateInfo {
       int num_states_;

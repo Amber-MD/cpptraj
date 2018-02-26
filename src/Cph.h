@@ -37,5 +37,19 @@ class CpRes {
     Iarray protcnts_;   ///< Hold protonation count for each state.
     Barray protonated_; ///< True if state is protonated.
 };
+
+/// Hold constant pH time variables
+class CpTime {
+  public:
+    CpTime() : t0_(-1.0), dt_(-1.0), mc_stepsize_(0) {}
+    CpTime(int m, float t0, float dt) : t0_(t0), dt_(dt), mc_stepsize_(m) {}
+    int MonteCarloStepSize()   const { return mc_stepsize_; }
+    float InitialTime()        const { return t0_; }
+    float TimeStep()           const { return dt_; }
+  private:
+    float t0_;             ///< Initial time
+    float dt_;             ///< Time step
+    int mc_stepsize_;      ///< Monte Carlo step size
+};
 } // END namepsace Cph
 #endif

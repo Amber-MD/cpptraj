@@ -70,9 +70,7 @@ const
       //out->SetLegend( "pH " + doubleToString( sortedPH[idx] ) );
       out->Set_Solvent_pH( sortedPH[idx] );
       out->SetResidueInfo( Residues[res] );
-      out->SetTimeValues(PHsets[0]->MonteCarloStepSize(),
-                         PHsets[0]->InitialTime(),
-                         PHsets[0]->TimeStep());
+      out->SetTimeValues(PHsets[0]->Time());
       out->Resize( maxFrames );
     }
   }

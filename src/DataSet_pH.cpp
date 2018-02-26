@@ -3,10 +3,7 @@
 //#incl ude "StringRoutines.h" // DEBUG
 
 DataSet_pH::DataSet_pH() :
-  DataSet_1D(PH, TextFormat(TextFormat::INTEGER, 10)),
-  t0_(-1.0),
-  dt_(-10.0),
-  mc_stepsize_(-1)
+  DataSet_1D(PH, TextFormat(TextFormat::INTEGER, 10))
 {}
 
 int DataSet_pH::Allocate(SizeArray const& sizeIn) {
