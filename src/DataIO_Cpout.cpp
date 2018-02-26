@@ -16,6 +16,7 @@ DataIO_Cpout::DataIO_Cpout() :
 }
 
 const char* DataIO_Cpout::FMT_REDOX_ = "Redox potential: %f V";
+//const char* DataIO_Cpout::FMT_REDOX_ = "Redox potential: %f V Temperature: %f K";
 
 const char* DataIO_Cpout::FMT_PH_ = "Solvent pH: %f";
 
@@ -412,31 +413,43 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
   float solvent_pH = original_pH_;
   unsigned int nframes = 0;
   const char* ptr = infile.Line();
+  int mc_stepsize = 0;
+  float t0 = -1.0;
+  float time = 0.0;
+  int s0 = -1;
+  int step = 0;
+  bool isFull = false;
   while (ptr != 0) {
+    isFull = false;
     if (sscanf(ptr, fmt, &solvent_pH) == 1) {
       // Full record
+      isFull = true;
       //mprintf("DEBUG: pH= %f\n", solvent_pH);
-      ptr = infile.Line(); // Monte Carlo step size
-      ptr = infile.Line(); // Current MD time step
-      int step;
+      // Monte Carlo step size - should never change
+      ptr = infile.Line();
+      sscanf(ptr, "Monte Carlo step size: %i", &mc_stepsize);
+      // Current MD time step
+      ptr = infile.Line();
       if (sscanf(ptr,"Time step: %d", &step) != 1) {
         mprinterr("Error: Could not get step.\n");
         return 1;
       }
+      if (s0 < 0) s0 = step;
       //mprintf("DEBUG: step= %i\n", step);
-      ptr = infile.Line(); // Current time (ps)
-      float time;
-      if (sscanf(ptr,"Time: %f", &time) != 1) {
+      // Current time (ps)
+      ptr = infile.Line();
+      if (sscanf(ptr, "Time: %f", &time) != 1) {
         mprinterr("Error: Could not get time.\n");
         return 1;
       }
+      if (t0 < 0.0) t0 = time;
       //mprintf("DEBUG: time= %f\n", time);
       ptr = infile.Line(); // Residue
     } 
     // delta record or full record Residue read
     int res, state;
     float pHval;
-    while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
+    while (ptr != 0 && sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
       //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
       if (res < maxRes)
         resStates[res] = state;
@@ -446,10 +459,14 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
       }
       ptr = infile.Line();
     }
-    phdata->AddState(resStates, pHval);
+    phdata->AddState(resStates, pHval, isFull);
     nframes++;
     ptr = infile.Line();
   }
+  mprintf("DEBUG: MC step size %i, t0 = %f, tf = %f, nframes= %i\n", mc_stepsize, t0, time, nframes);
+  double dt = ((double)time - (double)t0) / ((double)(step - s0));
+  mprintf("DEBUG: dt = %f\n", dt);
+  phdata->SetTimeValues(mc_stepsize, t0, dt);
   return 0;
 }
 

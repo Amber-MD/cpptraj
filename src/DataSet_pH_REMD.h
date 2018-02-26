@@ -22,11 +22,15 @@ class DataSet_pH_REMD : public DataSet {
 
     Iarray const& ResStates() const { return resStates_; }
 
-    void AddState(Iarray const& states, float pH) {
+    void AddState(Iarray const& states, float pH, bool isFull) {
       for (Iarray::const_iterator it = states.begin(); it != states.end(); ++it)
         resStates_.push_back( *it );
       solvent_pH_.push_back( pH );
+      full_.push_back( isFull );
     }
+
+    /// Set Monte Carlo step size, initial time, and time step
+    void SetTimeValues(int m, float t0, float dt) { mc_stepsize_ = m; t0_ = t0; dt_ = dt; }
 
     void Resize(size_t);
     // ----- DataSet functions -------------------
@@ -48,5 +52,6 @@ class DataSet_pH_REMD : public DataSet {
     Iarray resStates_;     ///< State of each residue each frame: {R00, R10, R20}, {R01, ...}
     float t0_;             ///< Initial time
     float dt_;             ///< Time step
+    int mc_stepsize_;      ///< Monte Carlo step size
 };
 #endif
