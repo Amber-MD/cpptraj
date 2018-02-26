@@ -465,7 +465,15 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-  TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}" 
+   if [ "${LIB_STAT[$LFFTW3]}" = 'amberopt' ] ; then
+    TestProgram silent "  Checking for FFTW3 from AMBERHOME" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+    if [ $? -eq 1 ] ; then
+      echo "Warning: FFTW3 test failed. CPPTRAJ will be built without FFTW3."
+      LIB_STAT[$LFFTW3]='off'
+    fi
+  else
+    TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
+  fi
 }
 
 TestReadline() {
@@ -1386,7 +1394,10 @@ while [ ! -z "$1" ] ; do
     # Linking options
     '-static'           ) USE_STATIC=1 ;;
     '-libstatic'        ) USE_STATIC=2 ;;
-    '-shared'           ) USE_SHARED=1 ;;
+    '-shared'           )
+      USE_SHARED=1
+      LIB_STAT[$LSANDER]='off'
+      ;;
     '-amberlib'         )
       if [ -z "$AMBERHOME" ] ; then
         Err "'-amberlib' requires that AMBERHOME be set."
