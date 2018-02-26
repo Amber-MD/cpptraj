@@ -68,8 +68,11 @@ const
       DataSet_pH* out = (DataSet_pH*)OutputSets.AddSet( DataSet::PH, md );
       if (out==0) return 1;
       //out->SetLegend( "pH " + doubleToString( sortedPH[idx] ) );
-      ((DataSet_pH*)out)->Set_Solvent_pH( sortedPH[idx] );
+      out->Set_Solvent_pH( sortedPH[idx] );
       out->SetResidueInfo( Residues[res] );
+      out->SetTimeValues(PHsets[0]->MonteCarloStepSize(),
+                         PHsets[0]->InitialTime(),
+                         PHsets[0]->TimeStep());
       out->Resize( nframes );
     }
   }
@@ -92,7 +95,7 @@ const
         //          n, res, (*ds)->Res(res).State(n), phval);
         //  mflush();
         //}
-        out->SetState(n, (*ds)->ResStates()[phidx]);
+        out->SetState(n, (*ds)->ResStates()[phidx], (*ds)->RecordType(n));
       }
     }
   }
@@ -142,11 +145,24 @@ const
 # endif
 
   DataSet::DataType dtype = setsToSort[0]->Type();
+  size_t maxSize = 0;
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds) {
     if ((*ds)->Size() < 1) { //TODO check sizes match
       rprinterr("Error: Set '%s' is empty.\n", (*ds)->legend());
       err = 1;
       break;
+    }
+    if (ds == setsToSort.begin())
+      maxSize = (*ds)->Size();
+    else if ((*ds)->Size() < maxSize) {
+      rprintf("Warning: Set '%s' has fewer frames (%zu) than previous set(s) (%zu)\n"
+              "Warning: Only using the first %zu frames of all sets.\n",
+              (*ds)->legend(), (*ds)->Size(), maxSize, (*ds)->Size());
+      maxSize = (*ds)->Size();
+    } else if ((*ds)->Size() > maxSize) {
+      rprintf("Warning: Set '%s' has more frames (%zu) than previous set(s) (%zu)\n"
+              "Warning: Only using the first %zu frames of all sets.\n",
+              (*ds)->legend(), (*ds)->Size(), maxSize, maxSize);
     }
     if (dtype != (*ds)->Type()) {
       rprinterr("Error: Set '%s' has different type than first set.\n", (*ds)->legend());
@@ -154,7 +170,8 @@ const
       break;
     }
   }
-  if (CheckError(err)) return 1; 
+  if (CheckError(err)) return 1;
+  maxFrames_ = (int)maxSize;
 
 # ifdef MPI
   typedef std::vector<int> Iarray;

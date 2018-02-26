@@ -1,7 +1,7 @@
 #ifndef INC_EXEC_SORTENSEMBLEDATA_H
 #define INC_EXEC_SORTENSEMBLEDATA_H
 #include "Exec.h"
-/// <Enter description of Exec_SortEnsembleData here>
+/// Sort unsorted data. Currently only for data from PH-REMD runs. 
 class Exec_SortEnsembleData : public Exec {
   public:
     Exec_SortEnsembleData() : Exec(GENERAL), debug_(0) {}
@@ -10,8 +10,9 @@ class Exec_SortEnsembleData : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     int SortData(DataSetList const&, DataSetList&) const;
-    int Sort_pH_Data(DataSetList const&, DataSetList&) const;
+    int Sort_pH_Data(DataSetList const&, DataSetList&, ) const;
 
     int debug_;
+    int maxFrames_;
 };
 #endif

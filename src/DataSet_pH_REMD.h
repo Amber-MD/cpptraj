@@ -20,17 +20,21 @@ class DataSet_pH_REMD : public DataSet {
     typedef Farray::const_iterator ph_iterator;
     Farray const& pH_Values() const { return solvent_pH_; }
 
-    Iarray const& ResStates() const { return resStates_; }
+    Iarray const& ResStates()         const { return resStates_;    }
+    int RecordType(unsigned int idx)  const { return recType_[idx]; }
 
-    void AddState(Iarray const& states, float pH, bool isFull) {
+    void AddState(Iarray const& states, float pH, int recType) {
       for (Iarray::const_iterator it = states.begin(); it != states.end(); ++it)
         resStates_.push_back( *it );
       solvent_pH_.push_back( pH );
-      full_.push_back( isFull );
+      recType_.push_back( recType );
     }
 
     /// Set Monte Carlo step size, initial time, and time step
     void SetTimeValues(int m, float t0, float dt) { mc_stepsize_ = m; t0_ = t0; dt_ = dt; }
+    int MonteCarloStepSize()   const { return mc_stepsize_; }
+    float InitialTime()        const { return t0_; }
+    float TimeStep()           const { return dt_; }
 
     void Resize(size_t);
     // ----- DataSet functions -------------------
@@ -48,7 +52,7 @@ class DataSet_pH_REMD : public DataSet {
   private:
     Rarray residues_;      ///< Array of residues.
     Farray solvent_pH_;    ///< Solvent pH values each frame
-    Iarray full_;          ///< 1 if frame is a full record. Int because MPI doesnt have C++ bool
+    Iarray recType_;       ///< Record type each frame.
     Iarray resStates_;     ///< State of each residue each frame: {R00, R10, R20}, {R01, ...}
     float t0_;             ///< Initial time
     float dt_;             ///< Time step

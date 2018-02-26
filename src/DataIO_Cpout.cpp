@@ -319,6 +319,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   return err;
 }
 
+/** Read sorted pH data. */
 int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
   // Sorted constant pH
   typedef std::vector<DataSet_pH*> Parray;
@@ -355,13 +356,13 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
   float time = 0.0;
   int s0 = -1;
   int step = 0;
-  int isFull = CphResidue::PARTIAL_RECORD;
+  int recType = CphResidue::PARTIAL_RECORD;
   while (ptr != 0) {
-    isFull = CphResidue::PARTIAL_RECORD;
+    recType = CphResidue::PARTIAL_RECORD;
     float solvent_pH;
     if (sscanf(ptr, fmt, &solvent_pH) == 1) {
       // Full record
-      isFull = CphResidue::FULL_RECORD;
+      recType = CphResidue::FULL_RECORD;
       //mprintf("DEBUG: pH= %f\n", solvent_pH);
       // Monte Carlo step size - should never change
       ptr = infile.Line();
@@ -399,9 +400,9 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
       ptr = infile.Line();
     }
     if (nres == 1)
-      isFull = res;
+      recType = res;
     for (unsigned int idx = 0; idx < resStates.size(); idx++)
-      ResSets[idx]->AddState( resStates[idx], isFull );
+      ResSets[idx]->AddState( resStates[idx], recType );
     nframes++;
     ptr = infile.Line();
   }
@@ -413,6 +414,7 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
   return 0;
 }
 
+/** Read unsorted pH data (from e.g. replica exchange). */
 int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
   // Unsorted constant pH
   DataSet* ds = DSL.CheckForSet(dsname);
@@ -442,12 +444,12 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
   float time = 0.0;
   int s0 = -1;
   int step = 0;
-  bool isFull = false;
+  int recType = CphResidue::PARTIAL_RECORD;
   while (ptr != 0) {
-    isFull = false;
+    recType = CphResidue::PARTIAL_RECORD;
     if (sscanf(ptr, fmt, &solvent_pH) == 1) {
       // Full record
-      isFull = true;
+      recType = CphResidue::FULL_RECORD;
       //mprintf("DEBUG: pH= %f\n", solvent_pH);
       // Monte Carlo step size - should never change
       ptr = infile.Line();
@@ -471,8 +473,9 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
       ptr = infile.Line(); // Residue
     } 
     // delta record or full record Residue read
-    int res, state;
     float pHval;
+    int res, state;
+    int nres = 0;
     while (ptr != 0 && sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
       //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
       if (res < maxRes)
@@ -482,8 +485,11 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
         return 1;
       }
       ptr = infile.Line();
+      nres++;
     }
-    phdata->AddState(resStates, pHval, isFull);
+    if (nres == 1)
+      recType = res;
+    phdata->AddState(resStates, pHval, recType);
     nframes++;
     ptr = infile.Line();
   }
@@ -566,13 +572,25 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
       DataSet_pH_REMD const& PH = static_cast<DataSet_pH_REMD const&>( *(*ds) );
       unsigned int idx = 0;
       unsigned int maxres = PH.Residues().size();
+      mc_stepsize_ = PH.MonteCarloStepSize();
+      time0_ = PH.InitialTime();
+      dt_ = PH.TimeStep();
       for (unsigned int frame = 0; frame != maxFrames; frame++) {
-        if (write_header(frame, nheader_))
-          WriteHeader(outfile, PH.pH_Values()[0], frame);
-        for (unsigned int res = 0; res != maxres; res++, idx++)
-          outfile.Printf("Residue %4u State: %2i pH: %7.3f\n",
-                         res, PH.ResStates()[idx], PH.pH_Values()[frame]);
-        outfile.Printf("\n");
+        int rectype = PH.RecordType(frame);
+        //if (write_header(frame, nheader_))
+        if ( rectype < 0 ) {
+          if (rectype == CphResidue::FULL_RECORD)
+            WriteHeader(outfile, PH.pH_Values()[frame], frame);
+          for (unsigned int res = 0; res != maxres; res++, idx++)
+            outfile.Printf("Residue %4u State: %2i pH: %7.3f\n",
+                           res, PH.ResStates()[idx], PH.pH_Values()[frame]);
+          outfile.Printf("\n");
+        } else { // TODO be smarter here
+          for (unsigned int res = 0; res != maxres; res++, idx++)
+            if (res == rectype)
+              outfile.Printf("Residue %4u State: %2i pH: %7.3f\n\n",
+                             res, PH.ResStates()[idx], PH.pH_Values()[frame]);
+        }
       }
     }
   } else {
@@ -583,7 +601,7 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
     time0_ = firstSet->InitialTime();
     dt_ = firstSet->TimeStep();
     for (unsigned int frame = 0; frame != maxFrames; frame++) {
-      int rectype = ((DataSet_pH*)dsl[0])->RecordType(frame);
+      int rectype = firstSet->RecordType(frame);
       if ( rectype < 0 ) {
       //if (write_header(frame, nheader_)) // TODO check all same pH
         if ( rectype == CphResidue::FULL_RECORD)
