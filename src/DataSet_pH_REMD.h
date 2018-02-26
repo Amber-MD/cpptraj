@@ -5,7 +5,6 @@
 /// Hold unsorted data from constant pH REMD simulations; protonation states of each residue.
 class DataSet_pH_REMD : public DataSet {
     typedef std::vector<int> Iarray;
-    typedef std::vector<bool> Barray;
     typedef std::vector<float> Farray;
   public:
     DataSet_pH_REMD();
@@ -45,6 +44,9 @@ class DataSet_pH_REMD : public DataSet {
   private:
     Rarray residues_;      ///< Array of residues.
     Farray solvent_pH_;    ///< Solvent pH values each frame
-    Iarray resStates_;     ///< State of each residue each frame: R00, R10, R20, R01, ...
+    Iarray full_;          ///< 1 if frame is a full record. Int because MPI doesnt have C++ bool
+    Iarray resStates_;     ///< State of each residue each frame: {R00, R10, R20}, {R01, ...}
+    float t0_;             ///< Initial time
+    float dt_;             ///< Time step
 };
 #endif

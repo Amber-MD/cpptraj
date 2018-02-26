@@ -2,7 +2,7 @@
 #define INC_DATASET_PH
 #include "DataSet_1D.h"
 #include "CphResidue.h"
-/// Hold data from constant pH simulations; protonation states of each residue.
+/// Hold data from constant pH simulations; protonation states of a single residue.
 class DataSet_pH : public DataSet_1D {
     typedef std::vector<int> Iarray;
   public:
