@@ -282,6 +282,54 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     mprintf("Got %i values from first Residue line, expected only 2 or 3.\n", nscan);
     return 1;
   }
+  // Try to determine the number of residues
+  int nres = 0;
+  while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
+    nres++;
+    ptr = infile.Line();
+  }
+  mprintf("\t%i residues in first record.\n", nres);
+  // If unsorted data, attempt to determine if from explicit solvent.
+  // When there is info for only one residue per step less data
+  // needs to be stored and sorting needs to happen differently.
+  bool isImplicit = false;
+  if (nscan == 3) {
+    for (int nframe = 1; nframe < 3; nframe++)
+    {
+      ptr = infile.Line(); // Should be beginning of next record
+      //mprintf("DEBUG: '%s'\n", ptr);
+      if (ptr != 0 && sscanf(ptr, fmt, &pHval) == 1) {
+        //mprintf("FULL %i\n", nframe);
+        // Full record
+        ptr = infile.Line(); // Monte Carlo step size
+        ptr = infile.Line(); // Current MD time step
+        ptr = infile.Line(); // Current MD time
+        for (int ir = 0; ir != nres; ir++) {
+          ptr = infile.Line(); // Residue
+          //mprintf("\t'%s'\n", ptr);
+          if (ptr == 0) {
+            mprinterr("Error: Malformed full record.\n");
+            return 1;
+          }
+        }
+        ptr = infile.Line(); // blank 
+      } else {
+        //mprintf("DELTA %i\n", nframe);
+        int nr = 0;
+        while (ptr != 0 && sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
+          nr++;
+          //mprintf("\t%s\n", ptr);
+          ptr = infile.Line(); // Residue
+        }
+        if (nr < nres) {
+          isImplicit = true;
+          break;
+        }
+      }
+    }
+  }
+  if (isImplicit)
+    mprintf("\tUnsorted implicit pH data detected.\n");
   infile.CloseFile();
   if (infile.OpenFileRead( fname )) return 1;
 
@@ -489,6 +537,10 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
     }
     if (nres == 1)
       recType = res;
+    //mprintf("DEBUG: %8i %6.2f", nframes, pHval);
+    //for (Iarray::const_iterator it = resStates.begin(); it != resStates.end(); ++it)
+    //  mprintf(" %i", *it);
+    //mprintf("\n");
     phdata->AddState(resStates, pHval, recType);
     nframes++;
     ptr = infile.Line();
@@ -500,6 +552,7 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
   return 0;
 }
 
+// =============================================================================
 // DataIO_Cpout::WriteHelp()
 void DataIO_Cpout::WriteHelp()
 {
