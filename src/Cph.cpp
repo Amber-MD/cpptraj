@@ -1,12 +1,7 @@
-#include "CphResidue.h"
+#include "Cph.h"
 //#inc lude "CpptrajStdio.h"
 
-const int CphResidue::FULL_RECORD = -2;
-
-const int CphResidue::PARTIAL_RECORD = -1;
-
-CphResidue::CphResidue(NameType const& rname, int resid,
-                             Iarray const& protcnts, int max_prots) :
+Cph::CpRes::CpRes(NameType const& rname, int resid, Iarray const& protcnts, int max_prots) :
   resname_(rname), resid_(resid), protcnts_(protcnts)
 {
   protonated_.reserve(protcnts_.size());
@@ -14,14 +9,14 @@ CphResidue::CphResidue(NameType const& rname, int resid,
     protonated_.push_back(*it == max_prots);
 }
 
-CphResidue::CphResidue(CphResidue const& rhs) :
+Cph::CpRes::CpRes(CpRes const& rhs) :
   resname_(rhs.resname_),
   resid_(rhs.resid_),
   protcnts_(rhs.protcnts_),
   protonated_(rhs.protonated_)
 {}
 
-CphResidue& CphResidue::operator=(CphResidue const& rhs) {
+Cph::CpRes& Cph::CpRes::operator=(CpRes const& rhs) {
   if (this != &rhs) {
     resname_ = rhs.resname_;
     resid_ = rhs.resid_;
@@ -31,7 +26,7 @@ CphResidue& CphResidue::operator=(CphResidue const& rhs) {
   return *this;
 }
 
-/*void CphResidue::Print() const {
+/*void Cph::CpRes::Print() const {
   mprintf("\t%s %8i (%zu frames)", *resname_, resid_, states_.size());
   for (unsigned int i = 0; i != protcnts_.size(); i++)
     mprintf(" %2i (%1i),", protcnts_[i], (int)protonated_[i]);

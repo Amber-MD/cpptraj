@@ -1,20 +1,28 @@
-#ifndef INC_CPHRESIDUE_H
-#define INC_CPHRESIDUE_H
+#ifndef INC_CPH_H
+#define INC_CPH_H
 #include <vector>
 #include "NameType.h"
+namespace Cph {
+
+/// Indicate full record written
+const int FULL_RECORD = -2;
+
+/// Indicate partial record written
+const int PARTIAL_RECORD = -1;
+
 /// Hold information for a titratable residue.
-class CphResidue {
+class CpRes {
     typedef std::vector<int> Iarray;
     typedef std::vector<bool> Barray;
   public:
-    CphResidue() : resid_(-1) {}
+    CpRes() : resid_(-1) {}
     /// Res name, num, protcnts, max prot
-    CphResidue(NameType const&, int, Iarray const&, int);
+    CpRes(NameType const&, int, Iarray const&, int);
     /// COPY
-    CphResidue(CphResidue const&);
+    CpRes(CpRes const&);
     /// ASSIGN
-    CphResidue& operator=(CphResidue const&);
-    void Print() const;
+    CpRes& operator=(CpRes const&);
+    //void Print() const;
     bool IsProtonated(int s)  const { return protonated_[s]; }
     int Nprotons(int s)       const { return protcnts_[s];   }
     NameType const& Name()    const { return resname_;       }
@@ -29,4 +37,5 @@ class CphResidue {
     Iarray protcnts_;   ///< Hold protonation count for each state.
     Barray protonated_; ///< True if state is protonated.
 };
+} // END namepsace Cph
 #endif
