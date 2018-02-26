@@ -145,7 +145,7 @@ const
 # endif
 
   DataSet::DataType dtype = setsToSort[0]->Type();
-  size_t maxSize = 0;
+  unsigned int maxSize = 0;
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds) {
     if ((*ds)->Size() < 1) { //TODO check sizes match
       rprinterr("Error: Set '%s' is empty.\n", (*ds)->legend());
@@ -155,13 +155,13 @@ const
     if (ds == setsToSort.begin())
       maxSize = (*ds)->Size();
     else if ((*ds)->Size() < maxSize) {
-      rprintf("Warning: Set '%s' has fewer frames (%zu) than previous set(s) (%zu)\n"
+      rprintf("Warning: Set '%s' has fewer frames (%zu) than previous set(s) (%u)\n"
               "Warning: Only using the first %zu frames of all sets.\n",
               (*ds)->legend(), (*ds)->Size(), maxSize, (*ds)->Size());
-      maxSize = (*ds)->Size();
+      maxSize = (unsigned int)(*ds)->Size();
     } else if ((*ds)->Size() > maxSize) {
-      rprintf("Warning: Set '%s' has more frames (%zu) than previous set(s) (%zu)\n"
-              "Warning: Only using the first %zu frames of all sets.\n",
+      rprintf("Warning: Set '%s' has more frames (%zu) than previous set(s) (%u)\n"
+              "Warning: Only using the first %u frames of all sets.\n",
               (*ds)->legend(), (*ds)->Size(), maxSize, maxSize);
     }
     if (dtype != (*ds)->Type()) {
@@ -173,6 +173,8 @@ const
   if (CheckError(err)) return 1;
 
 # ifdef MPI
+  unsigned int threadSize = maxSize;
+  Parallel::EnsembleComm().AllReduce( &maxSize, &threadSize, 1, MPI_UNSIGNED, MPI_MIN );
   typedef std::vector<int> Iarray;
   Iarray Dtypes( Parallel::EnsembleComm().Size(), -1 );
   if ( Parallel::EnsembleComm().AllGather( &dtype, 1, MPI_INT, &Dtypes[0] ) ) return 1;
