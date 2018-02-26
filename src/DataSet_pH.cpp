@@ -3,7 +3,10 @@
 //#incl ude "StringRoutines.h" // DEBUG
 
 DataSet_pH::DataSet_pH() :
-  DataSet_1D(PH, TextFormat(TextFormat::INTEGER, 10))
+  DataSet_1D(PH, TextFormat(TextFormat::INTEGER, 10)),
+  t0_(-1.0),
+  dt_(-10.0),
+  mc_stepsize_(-1)
 {}
 
 int DataSet_pH::Allocate(SizeArray const& sizeIn) {
@@ -41,6 +44,8 @@ void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
     commIn.Barrier(); // END DEBUG*/
     std::vector<int> itmp = states_;
     commIn.Reduce(rank, &states_[0], &itmp[0], states_.size(), MPI_INT, MPI_SUM);
+    itmp = full_;
+    commIn.Reduce(rank, &full_[0], &itmp[0], full_.size(), MPI_INT, MPI_SUM);
   } else {
     /*commIn.Barrier(); // DEBUG
     commIn.Barrier();
@@ -49,7 +54,8 @@ void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
       msg.append(" " + integerToString(*it));
     rprintf("%s\n", msg.c_str());
     commIn.Barrier();*/
-    commIn.Reduce(rank, 0, &states_[0], states_.size(), MPI_INT, MPI_SUM);
+    commIn.Reduce(rank, 0, &states_[0], states_.size(), MPI_INT, MPI_SUM); 
+    commIn.Reduce(rank, 0, &full_[0], full.size(), MPI_INT, MPI_SUM);
   }
 }
 #endif

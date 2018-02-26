@@ -349,25 +349,37 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
 
   unsigned int nframes = 0;
   const char* ptr = infile.Line();
+  int mc_stepsize = 0;
+  float t0 = -1.0;
+  float time = 0.0;
+  int s0 = -1;
+  int step = 0;
+  bool isFull = false;
   while (ptr != 0) {
+    isFull = false;
     float solvent_pH;
     if (sscanf(ptr, fmt, &solvent_pH) == 1) {
       // Full record
+      isFull = true;
       //mprintf("DEBUG: pH= %f\n", solvent_pH);
-      ptr = infile.Line(); // Monte Carlo step size
-      ptr = infile.Line(); // Current MD time step
-      int step;
+      // Monte Carlo step size - should never change
+      ptr = infile.Line();
+      sscanf(ptr, "Monte Carlo step size: %i", &mc_stepsize);
+      // Current MD time step
+      ptr = infile.Line();
       if (sscanf(ptr,"Time step: %d", &step) != 1) {
         mprinterr("Error: Could not get step.\n");
         return 1;
       }
+      if (s0 < 0) s0 = step;
       //mprintf("DEBUG: step= %i\n", step);
-      ptr = infile.Line(); // Current time (ps)
-      float time;
-      if (sscanf(ptr,"Time: %f", &time) != 1) {
+      // Current time (ps)
+      ptr = infile.Line();
+      if (sscanf(ptr, "Time: %f", &time) != 1) {
         mprinterr("Error: Could not get time.\n");
         return 1;
       }
+      if (t0 < 0.0) t0 = time;
       //mprintf("DEBUG: time= %f\n", time);
       ptr = infile.Line(); // Residue
     }
@@ -376,7 +388,7 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
     while (sscanf(ptr, rFmt, &res, &state) == 2) {
       //mprintf("DEBUG: res= %i state= %i\n", res, state);
       if (res < maxRes)
-        ResSets[res]->AddState( state );
+        ResSets[res]->AddState( state, isFull );
       else {
         mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes);
         return 1;
@@ -386,6 +398,11 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
     nframes++;
     ptr = infile.Line();
   }
+  mprintf("DEBUG: MC step size %i, t0 = %f, tf = %f, nframes= %i\n", mc_stepsize, t0, time, nframes);
+  double dt = ((double)time - (double)t0) / ((double)(step - s0));
+  mprintf("DEBUG: dt = %f\n", dt);
+  for (Parray::iterator p = ResSets.begin(); p != ResSets.end(); ++p)
+    (*p)->SetTimeValues(mc_stepsize, t0, dt);
   return 0;
 }
 
