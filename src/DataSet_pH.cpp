@@ -12,6 +12,7 @@ DataSet_pH::DataSet_pH() :
 int DataSet_pH::Allocate(SizeArray const& sizeIn) {
   if (!sizeIn.empty()) {
     states_.reserve( sizeIn[0] );
+    recType_.reserve( sizeIn[0] );
   }
   return 0;
 }
@@ -25,6 +26,7 @@ void DataSet_pH::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
 
 void DataSet_pH::Resize(size_t n) {
   states_.resize( n );
+  recType_.resize( n );
 }
 
 void DataSet_pH::Info() const {

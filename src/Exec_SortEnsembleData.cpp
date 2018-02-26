@@ -14,7 +14,8 @@ inline bool CheckError(int err) {
 }
 
 //  Exec_SortEnsembleData::Sort_pH_Data()
-int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort, DataSetList& OutputSets)
+int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort, DataSetList& OutputSets,
+                                        unsigned int maxFrames)
 const
 {
   // Cast sets back to DataSet_pH_REMD
@@ -57,10 +58,9 @@ const
   // and each residue. Final output sets will be PH0R0, PH0R1, PH1R0, ...
   // TODO check that residue info all the same
   DataSet_pH_REMD::Rarray const& Residues = PHsets[0]->Residues();
-  unsigned int nframes = PHsets[0]->Size();
   if (debug_ > 0)
     rprintf("DEBUG: Sorting %u frames for %zu sets, %zu pH values.\n",
-            nframes, PHsets.size(), pHvalues.size());
+            maxFrames, PHsets.size(), pHvalues.size());
   for (unsigned int idx = 0; idx != sortedPH.size(); idx++) {
     OutputSets.SetEnsembleNum( idx );
     for (unsigned int res = 0; res != Residues.size(); ++res) {
@@ -73,7 +73,7 @@ const
       out->SetTimeValues(PHsets[0]->MonteCarloStepSize(),
                          PHsets[0]->InitialTime(),
                          PHsets[0]->TimeStep());
-      out->Resize( nframes );
+      out->Resize( maxFrames );
     }
   }
 
@@ -81,7 +81,7 @@ const
   for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
   {
     unsigned int phidx = 0;
-    for (unsigned int n = 0; n < nframes; n++)
+    for (unsigned int n = 0; n < maxFrames; n++)
     {
       float phval = (*ds)->pH_Values()[n];
       int setidx = pH_map.FindIndex( phval ) * Residues.size();
@@ -171,7 +171,6 @@ const
     }
   }
   if (CheckError(err)) return 1;
-  maxFrames_ = (int)maxSize;
 
 # ifdef MPI
   typedef std::vector<int> Iarray;
@@ -192,7 +191,7 @@ const
     return 1;
   }
 
-  err = Sort_pH_Data( setsToSort, OutputSets );
+  err = Sort_pH_Data( setsToSort, OutputSets, maxSize );
 
   return err;
 }

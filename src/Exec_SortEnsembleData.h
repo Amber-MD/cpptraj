@@ -10,9 +10,8 @@ class Exec_SortEnsembleData : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     int SortData(DataSetList const&, DataSetList&) const;
-    int Sort_pH_Data(DataSetList const&, DataSetList&, ) const;
+    int Sort_pH_Data(DataSetList const&, DataSetList&, unsigned int) const;
 
     int debug_;
-    int maxFrames_;
 };
 #endif
