@@ -289,6 +289,8 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     ptr = infile.Line();
   }
   mprintf("\t%i residues in first record.\n", nres);
+  maxRes_ = nres;
+  resStates_.resize( maxRes_, 0 );
   // If unsorted data, attempt to determine if from explicit solvent.
   // When there is info for only one residue per step less data
   // needs to be stored and sorting needs to happen differently.
@@ -304,7 +306,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
         ptr = infile.Line(); // Monte Carlo step size
         ptr = infile.Line(); // Current MD time step
         ptr = infile.Line(); // Current MD time
-        for (int ir = 0; ir != nres; ir++) {
+        for (int ir = 0; ir != maxRes_; ir++) {
           ptr = infile.Line(); // Residue
           //mprintf("\t'%s'\n", ptr);
           if (ptr == 0) {
@@ -321,7 +323,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
           //mprintf("\t%s\n", ptr);
           ptr = infile.Line(); // Residue
         }
-        if (nr < nres) {
+        if (nr < maxRes_) {
           isImplicit = true;
           break;
         }
@@ -334,6 +336,8 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   if (infile.OpenFileRead( fname )) return 1;
 
   // Allocate DataSets
+  t0_ = -1.0;
+  s0_ = -1;
   int err = 1;
   if (nscan == 2) {
     // Sorted constant pH
@@ -367,13 +371,70 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   return err;
 }
 
+/** Read a constant pH data record. */
+int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* rFmt) {
+  const char* ptr = infile.Line();
+  //mprintf("DEBUG: Record: '%s'\n", ptr);
+  if (ptr == 0) return 0;
+  recType_ = Cph::PARTIAL_RECORD;
+  if (sscanf(ptr, fmt, &solvent_pH_) == 1) {
+    // Full record
+    recType_ = Cph::FULL_RECORD;
+    //mprintf("DEBUG: pH= %f\n", solvent_pH_);
+    // Monte Carlo step size - should never change
+    ptr = infile.Line();
+    sscanf(ptr, "Monte Carlo step size: %i", &mc_stepsize_);
+    // Current MD time step
+    ptr = infile.Line();
+    if (sscanf(ptr,"Time step: %d", &step_) != 1) {
+      mprinterr("Error: Could not get step.\n");
+      return -1;
+    }
+    if (s0_ < 0) s0_ = step_;
+    //mprintf("DEBUG: step= %i\n", step_);
+    // Current time (ps)
+    ptr = infile.Line();
+    if (sscanf(ptr, "Time: %f", &time_) != 1) {
+      mprinterr("Error: Could not get time.\n");
+      return -1;
+    }
+    if (t0_ < 0.0) t0_ = time_;
+    //mprintf("DEBUG: time= %f\n", time_);
+    ptr = infile.Line(); // Residue
+  }
+  // delta record or full record Residue read
+  int res, state;
+  pHval_ = solvent_pH_;
+  int nres = 0;
+  //mprintf("DEBUG: Res: '%s'\n", ptr);
+  while (sscanf(ptr, rFmt, &res, &state, &pHval_) >= 2) {
+    //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval_);
+    //mprintf("DEBUG: res= %i state= %i\n", res, state);
+    if (res < maxRes_)
+      resStates_[res] = state;
+    else {
+      mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes_);
+      return -1;
+    }
+    nres++;
+    ptr = infile.Line();
+  }
+  if (nres == 1)
+    recType_ = res;
+  //mprintf("DEBUG: %6.2f", pHval_);
+  //for (Iarray::const_iterator it = resStates_.begin(); it != resStates_.end(); ++it)
+  //  mprintf(" %2i", *it);
+  //mprintf("\n");
+
+  return 1;
+};
+
 /** Read sorted pH data. */
 int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
   // Sorted constant pH
   typedef std::vector<DataSet_pH*> Parray;
   Parray ResSets;
   ResSets.reserve( Residues_.size() );
-  Iarray resStates( Residues_.size(), 0 );
   for (Rarray::iterator res = Residues_.begin(); res != Residues_.end(); ++res)
   {
     MetaData md( dsname, res->Name().Truncated(), res->Num() );
@@ -395,70 +456,19 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
     }
     ResSets.push_back( (DataSet_pH*)ds );
   }
-  int maxRes = (int)ResSets.size();
 
   unsigned int nframes = 0;
-  const char* ptr = infile.Line();
-  int mc_stepsize = 0;
-  float t0 = -1.0;
-  float time = 0.0;
-  int s0 = -1;
-  int step = 0;
-  int recType = Cph::PARTIAL_RECORD;
-  while (ptr != 0) {
-    recType = Cph::PARTIAL_RECORD;
-    float solvent_pH;
-    if (sscanf(ptr, fmt, &solvent_pH) == 1) {
-      // Full record
-      recType = Cph::FULL_RECORD;
-      //mprintf("DEBUG: pH= %f\n", solvent_pH);
-      // Monte Carlo step size - should never change
-      ptr = infile.Line();
-      sscanf(ptr, "Monte Carlo step size: %i", &mc_stepsize);
-      // Current MD time step
-      ptr = infile.Line();
-      if (sscanf(ptr,"Time step: %d", &step) != 1) {
-        mprinterr("Error: Could not get step.\n");
-        return 1;
-      }
-      if (s0 < 0) s0 = step;
-      //mprintf("DEBUG: step= %i\n", step);
-      // Current time (ps)
-      ptr = infile.Line();
-      if (sscanf(ptr, "Time: %f", &time) != 1) {
-        mprinterr("Error: Could not get time.\n");
-        return 1;
-      }
-      if (t0 < 0.0) t0 = time;
-      //mprintf("DEBUG: time= %f\n", time);
-      ptr = infile.Line(); // Residue
-    }
-    // delta record or full record Residue read
-    int res, state;
-    int nres = 0;
-    while (sscanf(ptr, rFmt, &res, &state) == 2) {
-      //mprintf("DEBUG: res= %i state= %i\n", res, state);
-      if (res < maxRes)
-        resStates[res] = state;
-      else {
-        mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes);
-        return 1;
-      }
-      nres++;
-      ptr = infile.Line();
-    }
-    if (nres == 1)
-      recType = res;
-    for (unsigned int idx = 0; idx < resStates.size(); idx++)
-      ResSets[idx]->AddState( resStates[idx], recType );
+  while ( ReadRecord(infile, fmt, rFmt) == 1 )
+  {
+    for (unsigned int idx = 0; idx < resStates_.size(); idx++)
+      ResSets[idx]->AddState( resStates_[idx], recType_ );
     nframes++;
-    ptr = infile.Line();
   }
-  mprintf("DEBUG: MC step size %i, t0 = %f, tf = %f, nframes= %i\n", mc_stepsize, t0, time, nframes);
-  double dt = ((double)time - (double)t0) / ((double)(step - s0));
+  mprintf("DEBUG: MC step size %i, t0 = %f, tf = %f, nframes= %i\n", mc_stepsize_, t0_, time_, nframes);
+  double dt = ((double)time_ - (double)t0_) / ((double)(step_ - s0_));
   mprintf("DEBUG: dt = %f\n", dt);
   for (Parray::iterator p = ResSets.begin(); p != ResSets.end(); ++p)
-    (*p)->SetTimeValues(Cph::CpTime(mc_stepsize, t0, dt));
+    (*p)->SetTimeValues(Cph::CpTime(mc_stepsize_, t0_, dt));
   return 0;
 }
 
@@ -481,74 +491,18 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
     // TODO check # residues etc?
   }
   DataSet_pH_REMD* phdata = (DataSet_pH_REMD*)ds;
-  int maxRes = (int)phdata->Residues().size();
-  Iarray resStates( phdata->Residues().size() );
 
-  float solvent_pH = original_pH_;
+  //float solvent_pH = original_pH_;
   unsigned int nframes = 0;
-  const char* ptr = infile.Line();
-  int mc_stepsize = 0;
-  float t0 = -1.0;
-  float time = 0.0;
-  int s0 = -1;
-  int step = 0;
-  int recType = Cph::PARTIAL_RECORD;
-  while (ptr != 0) {
-    recType = Cph::PARTIAL_RECORD;
-    if (sscanf(ptr, fmt, &solvent_pH) == 1) {
-      // Full record
-      recType = Cph::FULL_RECORD;
-      //mprintf("DEBUG: pH= %f\n", solvent_pH);
-      // Monte Carlo step size - should never change
-      ptr = infile.Line();
-      sscanf(ptr, "Monte Carlo step size: %i", &mc_stepsize);
-      // Current MD time step
-      ptr = infile.Line();
-      if (sscanf(ptr,"Time step: %d", &step) != 1) {
-        mprinterr("Error: Could not get step.\n");
-        return 1;
-      }
-      if (s0 < 0) s0 = step;
-      //mprintf("DEBUG: step= %i\n", step);
-      // Current time (ps)
-      ptr = infile.Line();
-      if (sscanf(ptr, "Time: %f", &time) != 1) {
-        mprinterr("Error: Could not get time.\n");
-        return 1;
-      }
-      if (t0 < 0.0) t0 = time;
-      //mprintf("DEBUG: time= %f\n", time);
-      ptr = infile.Line(); // Residue
-    } 
-    // delta record or full record Residue read
-    float pHval;
-    int res, state;
-    int nres = 0;
-    while (ptr != 0 && sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
-      //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval);
-      if (res < maxRes)
-        resStates[res] = state;
-      else {
-        mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes);
-        return 1;
-      }
-      ptr = infile.Line();
-      nres++;
-    }
-    if (nres == 1)
-      recType = res;
-    //mprintf("DEBUG: %8i %6.2f", nframes, pHval);
-    //for (Iarray::const_iterator it = resStates.begin(); it != resStates.end(); ++it)
-    //  mprintf(" %i", *it);
-    //mprintf("\n");
-    phdata->AddState(resStates, pHval, recType);
+  while ( ReadRecord(infile, fmt, rFmt) == 1 )
+  {
+    phdata->AddState(resStates_, pHval_, recType_);
     nframes++;
-    ptr = infile.Line();
   }
-  mprintf("DEBUG: MC step size %i, t0 = %f, tf = %f, nframes= %i\n", mc_stepsize, t0, time, nframes);
-  double dt = ((double)time - (double)t0) / ((double)(step - s0));
+  mprintf("DEBUG: MC step size %i, t0 = %f, tf = %f, nframes= %i\n", mc_stepsize_, t0_, time_, nframes);
+  double dt = ((double)time_ - (double)t0_) / ((double)(step_ - s0_));
   mprintf("DEBUG: dt = %f\n", dt);
-  phdata->SetTimeValues(Cph::CpTime(mc_stepsize, t0, dt));
+  phdata->SetTimeValues(Cph::CpTime(mc_stepsize_, t0_, dt));
   return 0;
 }
 

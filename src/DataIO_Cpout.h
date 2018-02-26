@@ -34,8 +34,10 @@ class DataIO_Cpout : public DataIO {
     typedef std::vector<StateInfo> StateArray;
 
     int ReadCpin(FileName const&);
+    int ReadRecord(BufferedLine&, const char*, const char*);
     int ReadSorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
     int ReadUnsorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
+
     void WriteHeader(CpptrajFile&, float, int) const;
 
     FileName cpin_file_;
@@ -43,9 +45,20 @@ class DataIO_Cpout : public DataIO {
     float original_pH_;
     Rarray Residues_;    ///< Hold all residues from CPIN file
 
+    int maxRes_;       ///< Total number of residues
+
+    int recType_;      ///< Current record type
+    int mc_stepsize_;  ///< Monte Carlo step size
+    int step_;         ///< Current step
+    int s0_;           ///< Initial step
+    float time_;       ///< Current time
+    float t0_;         ///< Initial time
+    float solvent_pH_; ///< Current solvent pH
+    float pHval_;      ///< Current pH value
+    Iarray resStates_; ///< Current residue states
+
     double dt_; ///< Write time step
     double time0_; ///< Initial write time
-    int mc_stepsize_; ///< Write monte carlo step size
     int nheader_; ///< Frequency to write header
 };
 #endif
