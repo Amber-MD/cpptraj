@@ -1,6 +1,10 @@
 #include "CphResidue.h"
 //#inc lude "CpptrajStdio.h"
 
+const int CphResidue::FULL_RECORD = -2;
+
+const int CphResidue::PARTIAL_RECORD = -1;
+
 CphResidue::CphResidue(NameType const& rname, int resid,
                              Iarray const& protcnts, int max_prots) :
   resname_(rname), resid_(resid), protcnts_(protcnts)
