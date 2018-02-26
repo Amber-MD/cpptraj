@@ -44,8 +44,8 @@ void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
     commIn.Barrier(); // END DEBUG*/
     std::vector<int> itmp = states_;
     commIn.Reduce(rank, &states_[0], &itmp[0], states_.size(), MPI_INT, MPI_SUM);
-    itmp = full_;
-    commIn.Reduce(rank, &full_[0], &itmp[0], full_.size(), MPI_INT, MPI_SUM);
+    itmp = recType_;
+    commIn.Reduce(rank, &recType_[0], &itmp[0], recType_.size(), MPI_INT, MPI_SUM);
   } else {
     /*commIn.Barrier(); // DEBUG
     commIn.Barrier();
@@ -55,7 +55,7 @@ void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
     rprintf("%s\n", msg.c_str());
     commIn.Barrier();*/
     commIn.Reduce(rank, 0, &states_[0], states_.size(), MPI_INT, MPI_SUM); 
-    commIn.Reduce(rank, 0, &full_[0], full.size(), MPI_INT, MPI_SUM);
+    commIn.Reduce(rank, 0, &recType_[0], full.size(), MPI_INT, MPI_SUM);
   }
 }
 #endif

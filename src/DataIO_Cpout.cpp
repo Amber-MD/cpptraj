@@ -583,7 +583,7 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
     time0_ = firstSet->InitialTime();
     dt_ = firstSet->TimeStep();
     for (unsigned int frame = 0; frame != maxFrames; frame++) {
-      int rectype = ((DataSet_pH*)dsl[0])->Full(frame);
+      int rectype = ((DataSet_pH*)dsl[0])->RecordType(frame);
       if ( rectype < 0 ) {
       //if (write_header(frame, nheader_)) // TODO check all same pH
         if ( rectype == CphResidue::FULL_RECORD)
