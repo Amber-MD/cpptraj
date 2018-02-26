@@ -44,6 +44,7 @@ class DataIO_Cpout : public DataIO {
     Rarray Residues_;    ///< Hold all residues from CPIN file
 
     double dt_; ///< Write time step
+    double time0_; ///< Initial write time
     int mc_stepsize_; ///< Write monte carlo step size
     int nheader_; ///< Frequency to write header
 };
