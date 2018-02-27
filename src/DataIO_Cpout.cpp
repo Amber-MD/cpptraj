@@ -14,6 +14,7 @@ DataIO_Cpout::DataIO_Cpout() :
 {
   SetValid( DataSet::PH );
   SetValid( DataSet::PH_EXPL );
+  SetValid( DataSet::PH_IMPL );
 }
 
 const char* DataIO_Cpout::FMT_REDOX_ = "Redox potential: %f V";
@@ -563,7 +564,7 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
   if (dsl.empty()) return 1;
 
   DataSet::DataType dtype = dsl[0]->Type();
-  if (dtype != DataSet::PH && dtype != DataSet::PH_EXPL) {
+  if (dtype != DataSet::PH && dsl[0]->Group() != DataSet::PHREMD) {
     mprinterr("Internal Error: Set '%s' is not a pH set.\n", dsl[0]->legend() );
     return 1;
   }
@@ -571,13 +572,16 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
   unsigned int maxFrames = dsl[0]->Size();
   for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds) {
     if ((*ds)->Type() != dtype) {
-      mprinterr("Error: Cannot mix sorted and unsorted pH sets.\n");
+      mprinterr("Error: Cannot mix different pH set types.\n");
       return 1;
     }
-    if (maxFrames != (*ds)->Size()) {
-      mprintf("Warning: Set '%s' frames (%zu) != frames in previous set(s) (%u)\n",
-              (*ds)->legend(), (*ds)->Size(), maxFrames);
-      maxFrames = std::min( maxFrames, (unsigned int)(*ds)->Size() );
+    // For sorted sets need to have same number of frames
+    if (dtype == DataSet::PH) {
+      if (maxFrames != (*ds)->Size()) {
+        mprintf("Warning: Set '%s' frames (%zu) != frames in previous set(s) (%u)\n",
+                (*ds)->legend(), (*ds)->Size(), maxFrames);
+        maxFrames = std::min( maxFrames, (unsigned int)(*ds)->Size() );
+      }
     }
   }
 
@@ -589,25 +593,40 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
   }
 
   if (dtype == DataSet::PH_EXPL) {
+    // Unsorted explicit pH - all complete residue records.
     for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds) {
       DataSet_PHREMD_Explicit const& PH = static_cast<DataSet_PHREMD_Explicit const&>( *(*ds) );
       unsigned int idx = 0;
       unsigned int maxres = PH.Residues().size();
       mc_stepsize_ = PH.Time().MonteCarloStepSize();
       for (unsigned int frame = 0; frame != maxFrames; frame++) {
-        int rectype = PH.RecordType(frame);
+        if (PH.RecordType(frame) == Cph::FULL_RECORD)
+          WriteHeader(outfile, PH.Time().InitialTime(), PH.Time().TimeStep(), PH.pH_Values()[frame], frame);
+        for (unsigned int res = 0; res != maxres; res++, idx++)
+          outfile.Printf("Residue %4u State: %2i pH: %7.3f\n",
+                         res, PH.ResStates()[idx], PH.pH_Values()[frame]);
+        outfile.Printf("\n");
+      }
+    }
+  } else if (dtype == DataSet::PH_IMPL) {
+    // Unsorted implicit pH - mix of complete and single residue records.
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds) {
+      DataSet_PHREMD_Implicit const& PH = static_cast<DataSet_PHREMD_Implicit const&>( *(*ds) );
+      unsigned int maxres = PH.Residues().size();
+      mc_stepsize_ = PH.Time().MonteCarloStepSize();
+      for (unsigned int frame = 0; frame != maxFrames; frame++) {
+        DataSet_PHREMD_Implicit::Record const& Rec = PH.Records()[frame];
+        int rectype = Rec.RecType();
         if ( rectype < 0 ) {
           if (rectype == Cph::FULL_RECORD)
-            WriteHeader(outfile, PH.Time().InitialTime(), PH.Time().TimeStep(), PH.pH_Values()[frame], frame);
-          for (unsigned int res = 0; res != maxres; res++, idx++)
+            WriteHeader(outfile, PH.Time().InitialTime(), PH.Time().TimeStep(), Rec.pH(), frame);
+          for (unsigned int res = 0; res != maxres; res++)
             outfile.Printf("Residue %4u State: %2i pH: %7.3f\n",
-                           res, PH.ResStates()[idx], PH.pH_Values()[frame]);
+                           res, Rec.ResStates()[res], Rec.pH());
           outfile.Printf("\n");
-        } else { // TODO be smarter here
-          for (unsigned int res = 0; res != maxres; res++, idx++)
-            if ((int)res == rectype)
-              outfile.Printf("Residue %4u State: %2i pH: %7.3f\n\n",
-                             res, PH.ResStates()[idx], PH.pH_Values()[frame]);
+        } else {
+            outfile.Printf("Residue %4u State: %2i pH: %7.3f\n\n",
+                           rectype, Rec.ResStates()[0], Rec.pH());
         }
       }
     }

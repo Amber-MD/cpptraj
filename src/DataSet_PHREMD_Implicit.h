@@ -27,6 +27,9 @@ class DataSet_PHREMD_Implicit : public DataSet_PHREMD {
           else
             resStates_ = s;
         }
+        float pH()                const { return pH_;        }
+        int RecType()             const { return recType_;   }
+        Iarray const& ResStates() const { return resStates_; }
       private:
         float pH_;         ///< solvent pH
         int recType_;      ///< Record type
