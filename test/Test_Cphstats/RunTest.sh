@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles cphstats.in sorted.pH_*.00 stats.dat frac.agr implicit.sorted.dat
+CleanFiles cphstats.in sorted.pH_*.00 stats.dat frac.agr implicit.sorted.dat \
+           explicit.004.cpout
 
 INPUT='-i cphstats.in'
 TESTNAME='Constant pH stats / data set sort test'
@@ -69,6 +70,14 @@ runanalysis cphstats PH[*] statsout implicit.sorted.dat
 EOF
 RunCpptraj "$UNITNAME"
 DoTest implicit.sorted.dat.save implicit.sorted.dat
+
+UNITNAME='Unsorted pH read/write test'
+cat > cphstats.in <<EOF
+readdata cpout.004 cpin cpin name PH4
+writedata explicit.004.cpout PH4
+EOF
+RunCpptraj "$UNITNAME"
+DoTest cpout.004 explicit.004.cpout
 
 EndTest
 exit 0
