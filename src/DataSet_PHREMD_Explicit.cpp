@@ -1,12 +1,11 @@
-#include "DataSet_pH_REMD.h"
+#include "DataSet_PHREMD_Explicit.h"
 #include "CpptrajStdio.h"
 
-DataSet_pH_REMD::DataSet_pH_REMD() :
-  // 0 dim indicates DataSet-specific write
-  DataSet(PH_EXPL, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 4), 0)
+DataSet_PHREMD_Explicit::DataSet_PHREMD_Explicit() :
+  DataSet_PHREMD(PH_EXPL, TextFormat(TextFormat::DOUBLE, 10, 4))
 {}
 
-int DataSet_pH_REMD::Allocate(SizeArray const& sizeIn) {
+int DataSet_PHREMD_Explicit::Allocate(SizeArray const& sizeIn) {
   if (!sizeIn.empty()) {
     resStates_.reserve( sizeIn[0] * residues_.size() );
     solvent_pH_.reserve( sizeIn[0] );
@@ -14,18 +13,18 @@ int DataSet_pH_REMD::Allocate(SizeArray const& sizeIn) {
   }
   return 0;
 }
-
-void DataSet_pH_REMD::Resize(size_t n) {
+/*
+void DataSet_PHREMD_Explicit::Resize(size_t n) {
   resStates_.resize(n * residues_.size(), 0);
   solvent_pH_.resize(n, 0.0);
   recType_.resize(n, false);
 }
-
-void DataSet_pH_REMD::Info() const {
+*/
+void DataSet_PHREMD_Explicit::Info() const {
   mprintf(" (%zu residues, %zu frames)", residues_.size(), solvent_pH_.size());
 }
 # ifdef MPI
-void DataSet_pH_REMD::Consolidate(Parallel::Comm const& commIn, int rank)
+void DataSet_PHREMD_Explicit::Consolidate(Parallel::Comm const& commIn, int rank)
 {
   if (commIn.Rank() == rank) {
     //commIn.Barrier(); // DEBUG

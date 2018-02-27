@@ -1,21 +1,12 @@
-#ifndef INC_DATASET_PH_REMD_H
-#define INC_DATASET_PH_REMD_H
-#include "DataSet.h"
-#include "Cph.h"
-/// Hold unsorted data from constant pH REMD simulations; protonation states of each residue.
-class DataSet_pH_REMD : public DataSet {
-    typedef std::vector<int> Iarray;
+#ifndef INC_DATASET_PHREMD_EXPLICIT_H
+#define INC_DATASET_PHREMD_EXPLICIT_H
+#include "DataSet_PHREMD.h"
+/// Hold unsorted data from explicit constant pH REMD simulations
+class DataSet_PHREMD_Explicit : public DataSet_PHREMD {
     typedef std::vector<float> Farray;
   public:
-    DataSet_pH_REMD();
-    static DataSet* Alloc() { return (DataSet*)new DataSet_pH_REMD(); }
-
-    typedef std::vector<Cph::CpRes> Rarray;
-    typedef Rarray::const_iterator const_iterator;
-    // Residue functions
-    void SetResidueInfo(Rarray const& r) { residues_ = r; }
-    Rarray const& Residues()       const { return residues_; }
-    Cph::CpRes const& Res(int idx) const { return residues_[idx]; }
+    DataSet_PHREMD_Explicit();
+    static DataSet* Alloc() { return (DataSet*)new DataSet_PHREMD_Explicit(); }
 
     typedef Farray::const_iterator ph_iterator;
     Farray const& pH_Values() const { return solvent_pH_; }
@@ -30,11 +21,7 @@ class DataSet_pH_REMD : public DataSet {
       recType_.push_back( recType );
     }
 
-    /// Set Monte Carlo step size, initial time, and time step
-    void SetTimeValues(Cph::CpTime const& t) { time_ = t; }
-    Cph::CpTime const& Time() const    { return time_; }
-
-    void Resize(size_t);
+    //void Resize(size_t); // TODO necessary?
     // ----- DataSet functions -------------------
     size_t Size() const { return solvent_pH_.size(); }
     void Info()   const;
@@ -48,10 +35,8 @@ class DataSet_pH_REMD : public DataSet {
     void Consolidate(Parallel::Comm const&, int);
 #   endif
   private:
-    Rarray residues_;      ///< Array of residues.
     Farray solvent_pH_;    ///< Solvent pH values each frame
     Iarray recType_;       ///< Record type each frame.
     Iarray resStates_;     ///< State of each residue each frame: {R00, R10, R20}, {R01, ...}
-    Cph::CpTime time_;     ///< Time values
 };
 #endif
