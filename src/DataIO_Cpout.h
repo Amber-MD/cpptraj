@@ -37,7 +37,8 @@ class DataIO_Cpout : public DataIO {
     int ReadRecord(BufferedLine&, const char*, const char*);
     double CalcTimeStep() const;
     int ReadSorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
-    int ReadUnsorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
+    int ReadUnsortedExplicit(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
+    int ReadUnsortedImplicit(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
 
     void WriteHeader(CpptrajFile&, double, double, float, int) const;
 

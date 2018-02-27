@@ -21,7 +21,12 @@ class DataSet_PHREMD_Implicit : public DataSet_PHREMD {
     class Record {
       public:
         Record() : pH_(-1.0), recType_(Cph::PARTIAL_RECORD) {}
-        Record(float p, int r, Iarray const& s) : pH_(p), recType_(r), resStates_(s) {}
+        Record(float p, int r, Iarray const& s) : pH_(p), recType_(r) {
+          if (recType_ >= 0)
+            resStates_ = Iarray(1, s[r]);
+          else
+            resStates_ = s;
+        }
       private:
         float pH_;         ///< solvent pH
         int recType_;      ///< Record type

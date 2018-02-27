@@ -5,6 +5,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_pH.h"
 #include "DataSet_PHREMD_Explicit.h"
+#include "DataSet_PHREMD_Implicit.h"
 
 /// CONSTRUCTOR
 DataIO_Cpout::DataIO_Cpout() :
@@ -323,7 +324,10 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     err = ReadSorted(infile, dsl, dsname, fmt, rFmt);
   } else if (nscan == 3) {
     // Unsorted constant pH
-    err = ReadUnsorted(infile, dsl, dsname, fmt, rFmt);
+    if (isImplicit)
+      err = ReadUnsortedImplicit(infile, dsl, dsname, fmt, rFmt);
+    else
+      err = ReadUnsortedExplicit(infile, dsl, dsname, fmt, rFmt);
   }
   infile.CloseFile();
 /*
@@ -472,7 +476,7 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
   * create a single DataSet containing pH values and states for
   * all residues.
   */
-int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt)
+int DataIO_Cpout::ReadUnsortedExplicit(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt)
 {
   // Unsorted constant pH
   DataSet* ds = DSL.CheckForSet(dsname);
@@ -484,7 +488,7 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
   } else {
     // TODO may need to skip reading first record on append
     if (ds->Type() != DataSet::PH_EXPL) {
-      mprinterr("Error: Set '%s' is not pH data.\n", ds->legend());
+      mprinterr("Error: Set '%s' is not unsorted explicit pH data.\n", ds->legend());
       return 1;
     }
     mprintf("\tAppending to set '%s'\n", ds->legend());
@@ -495,6 +499,37 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
   //float solvent_pH = original_pH_;
   while ( ReadRecord(infile, fmt, rFmt) == 1 )
     phdata->AddState(resStates_, pHval_, recType_);
+  phdata->SetTimeValues(Cph::CpTime(mc_stepsize_, t0_, CalcTimeStep()));
+  return 0;
+}
+
+/** Read unsorted implicit pH data (from e.g. replica exchange). Will
+  * create a single DataSet containing pH values and states for
+  * all residues.
+  */
+int DataIO_Cpout::ReadUnsortedImplicit(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt)
+{
+  // Unsorted constant pH
+  DataSet* ds = DSL.CheckForSet(dsname);
+  if (ds == 0) {
+    // New set
+    ds = DSL.AddSet( DataSet::PH_IMPL, dsname, "ph" );
+    if (ds == 0) return 1;
+    ((DataSet_PHREMD_Implicit*)ds)->SetResidueInfo( Residues_ );
+  } else {
+    // TODO may need to skip reading first record on append
+    if (ds->Type() != DataSet::PH_IMPL) {
+      mprinterr("Error: Set '%s' is not unsorted implicit pH data.\n", ds->legend());
+      return 1;
+    }
+    mprintf("\tAppending to set '%s'\n", ds->legend());
+    // TODO check # residues etc?
+  }
+  DataSet_PHREMD_Implicit* phdata = (DataSet_PHREMD_Implicit*)ds;
+
+  //float solvent_pH = original_pH_;
+  while ( ReadRecord(infile, fmt, rFmt) == 1 )
+    phdata->AddRecord(DataSet_PHREMD_Implicit::Record(pHval_, recType_, resStates_));
   phdata->SetTimeValues(Cph::CpTime(mc_stepsize_, t0_, CalcTimeStep()));
   return 0;
 }
