@@ -27,7 +27,7 @@ if [ ! -z $N_THREADS ] ; then
 fi
 if [ "$SKIP" = 'no' ] ; then
   cat > cphstats.in <<EOF
-readensembledata cpout.001 cpin cpin name PH
+readensembledata ExplicitRemd/cpout.001 cpin ExplicitRemd/cpin name PH
 #readensembledata cpout.001 filenames cpout.002,cpout.003,cpout.004,cpout.005,cpout.006 name PH
 list dataset
 sortensembledata PH
@@ -48,12 +48,13 @@ fi
 UNITNAME='Constant pH stats test'
 cat > cphstats.in <<EOF
 #readensembledata sorted.pH_1.00.save filenames sorted.pH_2.00.save,sorted.pH_3.00.save,sorted.pH_4.00.save,sorted.pH_5.00.save,sorted.pH_6.00.save cpin cpin name PH
-readdata sorted.pH_1.00.save separate cpin cpin name PH1
-readdata sorted.pH_2.00.save separate cpin cpin name PH2
-readdata sorted.pH_3.00.save separate cpin cpin name PH3
-readdata sorted.pH_4.00.save separate cpin cpin name PH4
-readdata sorted.pH_5.00.save separate cpin cpin name PH5
-readdata sorted.pH_6.00.save separate cpin cpin name PH6
+set CPIN = ExplicitRemd/cpin
+readdata sorted.pH_1.00.save separate cpin \$CPIN name PH1
+readdata sorted.pH_2.00.save separate cpin \$CPIN name PH2
+readdata sorted.pH_3.00.save separate cpin \$CPIN name PH3
+readdata sorted.pH_4.00.save separate cpin \$CPIN name PH4
+readdata sorted.pH_5.00.save separate cpin \$CPIN name PH5
+readdata sorted.pH_6.00.save separate cpin \$CPIN name PH6
 list datasets
 #runanalysis cphstats PH[*] statsout stats.dat fracplot fracplotout frac.agr deprot
 runanalysis cphstats PH*[*] statsout stats.dat fracplot fracplotout frac.agr deprot
@@ -73,11 +74,11 @@ DoTest implicit.sorted.dat.save implicit.sorted.dat
 
 UNITNAME='Unsorted pH read/write test'
 cat > cphstats.in <<EOF
-readdata cpout.004 cpin cpin name PH4
+readdata ExplicitRemd/cpout.004 cpin ExplicitRemd/cpin name PH4
 writedata explicit.004.cpout PH4
 EOF
 RunCpptraj "$UNITNAME"
-DoTest cpout.004 explicit.004.cpout
+DoTest ExplicitRemd/cpout.004 explicit.004.cpout
 
 EndTest
 exit 0
