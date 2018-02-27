@@ -291,42 +291,20 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   mprintf("\t%i residues in first record.\n", nRes_);
   maxRes_ = nRes_;
   resStates_.resize( maxRes_, 0 );
-  // If unsorted data, attempt to determine if from explicit solvent.
-  // When there is info for only one residue per step less data
-  // needs to be stored and sorting needs to happen differently.
+  // If unsorted data, attempt to determine if from implicit solvent
+  // (delta records have info for only one residue per step). Means
+  // less data needs to be stored and sorting needs to happen differently.
   bool isImplicit = false;
   if (nscan == 3) {
+    // Look ahead 3 records.
     for (int nframe = 1; nframe < 3; nframe++)
     {
-      ptr = infile.Line(); // Should be beginning of next record
-      //mprintf("DEBUG: '%s'\n", ptr);
-      if (ptr != 0 && sscanf(ptr, fmt, &pHval) == 1) {
-        //mprintf("FULL %i\n", nframe);
-        // Full record
-        ptr = infile.Line(); // Monte Carlo step size
-        ptr = infile.Line(); // Current MD time step
-        ptr = infile.Line(); // Current MD time
-        for (int ir = 0; ir != maxRes_; ir++) {
-          ptr = infile.Line(); // Residue
-          //mprintf("\t'%s'\n", ptr);
-          if (ptr == 0) {
-            mprinterr("Error: Malformed full record.\n");
-            return 1;
-          }
-        }
-        ptr = infile.Line(); // blank 
-      } else {
-        //mprintf("DELTA %i\n", nframe);
-        int nr = 0;
-        while (ptr != 0 && sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
-          nr++;
-          //mprintf("\t%s\n", ptr);
-          ptr = infile.Line(); // Residue
-        }
-        if (nr < maxRes_) {
-          isImplicit = true;
-          break;
-        }
+      state = ReadRecord(infile, fmt, rFmt);
+      if (state == -1) return 1;
+      if (state == 1 && recType_ >= 0) {
+        // Unsorted implicit
+        isImplicit = true;
+        break;
       }
     }
   }
@@ -422,9 +400,14 @@ int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* 
     }
     nRes_++;
     ptr = infile.Line();
+    if (ptr == 0) break;
   }
   if (nRes_ == 1)
     recType_ = res;
+  else if (nRes_ < maxRes_) {
+    mprinterr("Error: Only read %i residues - expected %i\n", nRes_, maxRes_);
+    return -1;
+  }
   //mprintf("DEBUG: %6.2f", pHval_);
   //for (Iarray::const_iterator it = resStates_.begin(); it != resStates_.end(); ++it)
   //  mprintf(" %2i", *it);
