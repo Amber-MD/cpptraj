@@ -18,11 +18,11 @@ int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort, DataSetLi
                                         unsigned int maxFrames)
 const
 {
-  // Cast sets back to DataSet_PHREMD_Explicit
-  typedef std::vector<DataSet_PHREMD_Explicit*> Parray;
+  // Cast sets back to DataSet_PHREMD
+  typedef std::vector<DataSet_PHREMD*> Parray;
   Parray PHsets;
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
-    PHsets.push_back( (DataSet_PHREMD_Explicit*)*ds );
+    PHsets.push_back( (DataSet_PHREMD*)*ds );
 
   // Gather initial pH data values, ensure no duplicates
   typedef std::vector<double> Darray;
@@ -31,14 +31,14 @@ const
   pHvalues.resize( Parallel::Ensemble_Size() );
   Darray phtmp;
   for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
-    phtmp.push_back( (*ds)->pH_Values()[0] );
+    phtmp.push_back( (*ds)->Initial_pH() );
   if (Parallel::EnsembleComm().AllGather(&phtmp[0], phtmp.size(), MPI_DOUBLE, &pHvalues[0])) {
     rprinterr("Error: Gathering pH values.\n");
     return 1;
   }
 # else
   for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
-    pHvalues.push_back( (*ds)->pH_Values()[0] );
+    pHvalues.push_back( (*ds)->Initial_pH() );
 # endif
   ReplicaInfo::Map<double> pH_map;
   if (pH_map.CreateMap( pHvalues )) {
@@ -75,49 +75,54 @@ const
     }
   }
 
-  // Loop over unsorted sets
-  for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
-  {
-    unsigned int phidx = 0;
-    for (unsigned int n = 0; n < maxFrames; n++)
+  if ( PHsets[0]->Type() == DataSet::PH_EXPL) {
+    // Loop over unsorted sets
+    for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
     {
-      float phval = (*ds)->pH_Values()[n];
-      int setidx = pH_map.FindIndex( phval ) * Residues.size();
-      //rprintf("DEBUG: %6u Set %10s pH= %6.2f going to %2i\n", n+1, (*ds)->legend(), phval, idx);
-      //mflush();
-      for (unsigned int res = 0; res < (*ds)->Residues().size(); res++, setidx++, phidx++)
+      DataSet_PHREMD_Explicit* in = (DataSet_PHREMD_Explicit*)*ds;
+      unsigned int phidx = 0;
+      for (unsigned int n = 0; n < maxFrames; n++)
       {
-        DataSet_pH* out = (DataSet_pH*)OutputSets[setidx];
-        //if (res == 0 && idx == 0) {
-        //  rprintf("DEBUG: Frame %3u res %2u State %2i pH %6.2f\n", 
-        //          n, res, (*ds)->Res(res).State(n), phval);
-        //  mflush();
-        //}
-        out->SetState(n, (*ds)->ResStates()[phidx], (*ds)->RecordType(n));
+        float phval = in->pH_Values()[n];
+        int setidx = pH_map.FindIndex( phval ) * Residues.size();
+        //rprintf("DEBUG: %6u Set %10s pH= %6.2f going to %2i\n", n+1, in->legend(), phval, idx);
+        //mflush();
+        for (unsigned int res = 0; res < in->Residues().size(); res++, setidx++, phidx++)
+        {
+          DataSet_pH* out = (DataSet_pH*)OutputSets[setidx];
+          //if (res == 0 && idx == 0) {
+          //  rprintf("DEBUG: Frame %3u res %2u State %2i pH %6.2f\n", 
+          //          n, res, in->Res(res).State(n), phval);
+          //  mflush();
+          //}
+          out->SetState(n, in->ResStates()[phidx], in->RecordType(n));
+        }
       }
     }
-  }
-# ifdef MPI
-  // Now we need to reduce down each set onto the thread where it belongs.
-  if (Parallel::World().Size() > 1) {
-    for (int idx = 0; idx != (int)OutputSets.size(); idx++) {
-      DataSet_pH* out = (DataSet_pH*)OutputSets[idx];
-      int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
-      //rprintf("DEBUG: Consolidate set %s to rank %i\n", out->legend(), ensembleRank);
-      out->Consolidate( Parallel::EnsembleComm(), ensembleRank );
-    }
-    // Remove sets that do not belong on this rank
-    for (int idx = (int)OutputSets.size() - 1; idx > -1; idx--) {
-      DataSet* out = OutputSets[idx];
-      int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
-      if (ensembleRank != Parallel::EnsembleComm().Rank()) {
-        //rprintf("DEBUG: Remove set %s (%i) from rank %i\n", out->legend(),
-        //        idx, Parallel::EnsembleComm().Rank());
-        OutputSets.RemoveSet( out );
+#   ifdef MPI
+    // Now we need to reduce down each set onto the thread where it belongs.
+    if (Parallel::World().Size() > 1) {
+      for (int idx = 0; idx != (int)OutputSets.size(); idx++) {
+        DataSet_pH* out = (DataSet_pH*)OutputSets[idx];
+        int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
+        //rprintf("DEBUG: Consolidate set %s to rank %i\n", out->legend(), ensembleRank);
+        out->Consolidate( Parallel::EnsembleComm(), ensembleRank );
+      }
+      // Remove sets that do not belong on this rank
+      for (int idx = (int)OutputSets.size() - 1; idx > -1; idx--) {
+        DataSet* out = OutputSets[idx];
+        int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
+        if (ensembleRank != Parallel::EnsembleComm().Rank()) {
+          //rprintf("DEBUG: Remove set %s (%i) from rank %i\n", out->legend(),
+          //        idx, Parallel::EnsembleComm().Rank());
+          OutputSets.RemoveSet( out );
+        }
       }
     }
-  }
 # endif
+  } else {
+    return 1;
+  }
   return 0;
 }
 
@@ -186,7 +191,7 @@ const
 # endif
 
   // Only work for pH data for now.
-  if (dtype != DataSet::PH_EXPL) {
+  if (dtype != DataSet::PH_EXPL && dtype != DataSet::PH_IMPL) {
     rprinterr("Error: Only works for pH REMD data for now.\n");
     return 1;
   }
