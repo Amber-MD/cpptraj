@@ -283,13 +283,13 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     return 1;
   }
   // Try to determine the number of residues
-  int nres = 0;
+  nRes_ = 0;
   while (sscanf(ptr, rFmt, &res, &state, &pHval) >= 2) {
-    nres++;
+    nRes_++;
     ptr = infile.Line();
   }
-  mprintf("\t%i residues in first record.\n", nres);
-  maxRes_ = nres;
+  mprintf("\t%i residues in first record.\n", nRes_);
+  maxRes_ = nRes_;
   resStates_.resize( maxRes_, 0 );
   // If unsorted data, attempt to determine if from explicit solvent.
   // When there is info for only one residue per step less data
@@ -338,6 +338,7 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   // Allocate DataSets
   t0_ = -1.0;
   s0_ = -1;
+  nframes_ = 0;
   int err = 1;
   if (nscan == 2) {
     // Sorted constant pH
@@ -408,7 +409,7 @@ int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* 
   // delta record or full record Residue read
   int res, state;
   pHval_ = solvent_pH_;
-  int nres = 0;
+  nRes_ = 0;
   //mprintf("DEBUG: Res: '%s'\n", ptr);
   while (sscanf(ptr, rFmt, &res, &state, &pHval_) >= 2) {
     //mprintf("DEBUG: res= %i state= %i pH= %f\n", res, state, pHval_);
@@ -419,22 +420,31 @@ int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* 
       mprinterr("Error: Res %i in CPOUT > max # res in CPIN (%i)\n", res, maxRes_);
       return -1;
     }
-    nres++;
+    nRes_++;
     ptr = infile.Line();
   }
-  if (nres == 1)
+  if (nRes_ == 1)
     recType_ = res;
   //mprintf("DEBUG: %6.2f", pHval_);
   //for (Iarray::const_iterator it = resStates_.begin(); it != resStates_.end(); ++it)
   //  mprintf(" %2i", *it);
   //mprintf("\n");
-
+  nframes_++;
   return 1;
 };
 
+/** Calculate time step based on initial and final time and step count. */
+double DataIO_Cpout::CalcTimeStep() const {
+  double dt = ((double)time_ - (double)t0_) / ((double)(step_ - s0_));
+  mprintf("\tMC step size %i, t0 = %g, tf = %g, nframes= %u, dt = %g\n",
+          mc_stepsize_, t0_, time_, nframes_, dt);
+  return dt;
+}
+
 /** Read sorted pH data. Will generate a single DataSet for each residue. */
-int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
-  // Sorted constant pH
+int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt)
+{
+  // Create data sets for each residue 
   typedef std::vector<DataSet_pH*> Parray;
   Parray ResSets;
   ResSets.reserve( Residues_.size() );
@@ -459,17 +469,13 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
     }
     ResSets.push_back( (DataSet_pH*)ds );
   }
-
-  unsigned int nframes = 0;
+  // Loop over records
   while ( ReadRecord(infile, fmt, rFmt) == 1 )
   {
     for (unsigned int idx = 0; idx < resStates_.size(); idx++)
       ResSets[idx]->AddState( resStates_[idx], recType_ );
-    nframes++;
   }
-  mprintf("DEBUG: MC step size %i, t0 = %f, tf = %f, nframes= %i\n", mc_stepsize_, t0_, time_, nframes);
-  double dt = ((double)time_ - (double)t0_) / ((double)(step_ - s0_));
-  mprintf("DEBUG: dt = %f\n", dt);
+  double dt = CalcTimeStep();
   for (Parray::iterator p = ResSets.begin(); p != ResSets.end(); ++p)
     (*p)->SetTimeValues(Cph::CpTime(mc_stepsize_, t0_, dt));
   return 0;
@@ -479,7 +485,8 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
   * create a single DataSet containing pH values and states for
   * all residues.
   */
-int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
+int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt)
+{
   // Unsorted constant pH
   DataSet* ds = DSL.CheckForSet(dsname);
   if (ds == 0) {
@@ -499,16 +506,9 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
   DataSet_pH_REMD* phdata = (DataSet_pH_REMD*)ds;
 
   //float solvent_pH = original_pH_;
-  unsigned int nframes = 0;
   while ( ReadRecord(infile, fmt, rFmt) == 1 )
-  {
     phdata->AddState(resStates_, pHval_, recType_);
-    nframes++;
-  }
-  mprintf("DEBUG: MC step size %i, t0 = %f, tf = %f, nframes= %i\n", mc_stepsize_, t0_, time_, nframes);
-  double dt = ((double)time_ - (double)t0_) / ((double)(step_ - s0_));
-  mprintf("DEBUG: dt = %f\n", dt);
-  phdata->SetTimeValues(Cph::CpTime(mc_stepsize_, t0_, dt));
+  phdata->SetTimeValues(Cph::CpTime(mc_stepsize_, t0_, CalcTimeStep()));
   return 0;
 }
 
@@ -600,7 +600,7 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
           outfile.Printf("\n");
         } else { // TODO be smarter here
           for (unsigned int res = 0; res != maxres; res++, idx++)
-            if (res == rectype)
+            if ((int)res == rectype)
               outfile.Printf("Residue %4u State: %2i pH: %7.3f\n\n",
                              res, PH.ResStates()[idx], PH.pH_Values()[frame]);
         }

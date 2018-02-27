@@ -35,6 +35,7 @@ class DataIO_Cpout : public DataIO {
 
     int ReadCpin(FileName const&);
     int ReadRecord(BufferedLine&, const char*, const char*);
+    double CalcTimeStep() const;
     int ReadSorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
     int ReadUnsorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
 
@@ -47,10 +48,12 @@ class DataIO_Cpout : public DataIO {
 
     int maxRes_;       ///< Total number of residues
 
+    unsigned int nframes_; ///< Total number of frames
     int recType_;      ///< Current record type
     int mc_stepsize_;  ///< Monte Carlo step size
     int step_;         ///< Current step
     int s0_;           ///< Initial step
+    int nRes_;         ///< Number of residues in current record.
     float time_;       ///< Current time
     float t0_;         ///< Initial time
     float solvent_pH_; ///< Current solvent pH
