@@ -371,7 +371,10 @@ int DataIO_Cpout::ReadData(FileName const& fname, DataSetList& dsl, std::string 
   return err;
 }
 
-/** Read a constant pH data record. */
+/** Read a single constant pH data record. For full records sets solvent_pH_,
+  * mc_stepsize_, step_, s0_, and time_. For full and delta records sets
+  * recType_, resStates_, and pHval_.
+  */
 int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* rFmt) {
   const char* ptr = infile.Line();
   //mprintf("DEBUG: Record: '%s'\n", ptr);
@@ -429,7 +432,7 @@ int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* 
   return 1;
 };
 
-/** Read sorted pH data. */
+/** Read sorted pH data. Will generate a single DataSet for each residue. */
 int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
   // Sorted constant pH
   typedef std::vector<DataSet_pH*> Parray;
@@ -472,7 +475,10 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
   return 0;
 }
 
-/** Read unsorted pH data (from e.g. replica exchange). */
+/** Read unsorted explicit pH data (from e.g. replica exchange). Will
+  * create a single DataSet containing pH values and states for
+  * all residues.
+  */
 int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::string const& dsname, const char* fmt, const char* rFmt) {
   // Unsorted constant pH
   DataSet* ds = DSL.CheckForSet(dsname);
