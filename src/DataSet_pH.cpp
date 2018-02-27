@@ -54,7 +54,7 @@ void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
     rprintf("%s\n", msg.c_str());
     commIn.Barrier();*/
     commIn.Reduce(rank, 0, &states_[0], states_.size(), MPI_INT, MPI_SUM); 
-    commIn.Reduce(rank, 0, &recType_[0], full.size(), MPI_INT, MPI_SUM);
+    commIn.Reduce(rank, 0, &recType_[0], recType_.size(), MPI_INT, MPI_SUM);
   }
 }
 #endif

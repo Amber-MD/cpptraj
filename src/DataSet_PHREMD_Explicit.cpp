@@ -49,7 +49,7 @@ void DataSet_PHREMD_Explicit::Consolidate(Parallel::Comm const& commIn, int rank
     //for (std::vector<int>::const_iterator it = residues_.front().begin(); it != residues_.front().end(); ++it)
     //  rprintf("%4u %1i\n", it-residues_.front().begin()+1, *it);
     commIn.Reduce(rank, 0, &solvent_pH_[0], solvent_pH_.size(), MPI_FLOAT, MPI_SUM);
-    commIn.Reduce(rank, 0, &recType_[0], full.size(), MPI_INT, MPI_SUM);
+    commIn.Reduce(rank, 0, &recType_[0], recType_.size(), MPI_INT, MPI_SUM);
     if (!residues_.empty()) {
       commIn.Reduce(rank, 0, &resStates_[0], resStates_.size(), MPI_INT, MPI_SUM);
     }
