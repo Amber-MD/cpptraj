@@ -22,6 +22,8 @@ class DataSet_PHREMD : public DataSet {
     void SetTimeValues(Cph::CpTime const& t)       { time_ = t;    }
     /// \return constant pH time values
     Cph::CpTime const& Time()                const { return time_; }
+    /// \return Initial pH value.
+    virtual float Initial_pH() const = 0;
 
     //void Resize(size_t); // TODO necessary?
   protected: // TODO private?

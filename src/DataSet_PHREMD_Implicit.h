@@ -40,6 +40,8 @@ class DataSet_PHREMD_Implicit : public DataSet_PHREMD {
     RecArray const& Records() const { return records_;       }
     /// Add record
     void AddRecord(Record const& s)  { records_.push_back(s); }
+    /// \return First solvent pH value
+    float Initial_pH() const { return records_.front().pH(); }
   private:
     RecArray records_;
 };
