@@ -19,15 +19,16 @@ void Exec_ReadEnsembleData::Help() const
 // Exec_ReadEnsembleData::Execute()
 Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn)
 {
-  std::string additionalNames = argIn.GetStringKey("filenames");
-  FileName fname( argIn.GetStringNext() );
-  if (fname.empty()) {
-    mprinterr("Error: No file name given.\n");
-    return CpptrajState::ERR;
-  }
-
   File::NameArray fileNames;
+  std::string additionalNames = argIn.GetStringKey("filenames");
   if (!additionalNames.empty()) {
+    // Lowest file name specified, additional members specified with
+    // filenames.
+    FileName fname( argIn.GetStringNext() );
+    if (fname.empty()) {
+      mprinterr("Error: No file name given.\n");
+      return CpptrajState::ERR;
+    }
     ArgList name_list(additionalNames, ",");
     if (name_list.Nargs() < 1) {
       mprinterr("Error: No additional names specified.\n");
@@ -37,7 +38,16 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
     for (int arg = 0; arg < name_list.Nargs(); arg++)
       fileNames.push_back( name_list[arg] );
   } else {
-    fileNames = File::SearchForReplicas( fname, State.Debug() );
+    // Check if this corresponds to multiple file names
+    fileNames = File::ExpandToFilenames( argIn.GetStringNext() );
+    if (fileNames.empty()) {
+      mprinterr("Error: No name or invalid filename specified.\n");
+      return CpptrajState::ERR;
+    }
+    // If this corresponds to a single file assume this is the lowest member
+    // and search for more members.
+    if (fileNames.size() == 1) 
+      fileNames = File::SearchForReplicas( fileNames[0], State.Debug() );
   }
   mprintf("\t%zu files.\n", fileNames.size());
   for (File::NameArray::const_iterator it = fileNames.begin(); it != fileNames.end(); ++it)
