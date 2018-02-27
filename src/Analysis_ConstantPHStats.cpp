@@ -48,7 +48,7 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
         return Analysis::ERR;
       }
       inputSets_.AddCopyOfSet( *ds );
-    } else if ( (*ds)->Type() == DataSet::PH_REMD ) {
+    } else if ( (*ds)->Type() == DataSet::PH_EXPL ) {
       mprinterr("Error: pH set '%s' must be sorted first.\n", (*ds)->legend());
       return Analysis::ERR;
     } else

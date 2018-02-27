@@ -12,7 +12,7 @@ DataIO_Cpout::DataIO_Cpout() :
   original_pH_(0.0)
 {
   SetValid( DataSet::PH );
-  SetValid( DataSet::PH_REMD );
+  SetValid( DataSet::PH_EXPL );
 }
 
 const char* DataIO_Cpout::FMT_REDOX_ = "Redox potential: %f V";
@@ -478,12 +478,12 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
   DataSet* ds = DSL.CheckForSet(dsname);
   if (ds == 0) {
     // New set
-    ds = DSL.AddSet( DataSet::PH_REMD, dsname, "ph" );
+    ds = DSL.AddSet( DataSet::PH_EXPL, dsname, "ph" );
     if (ds == 0) return 1;
     ((DataSet_pH_REMD*)ds)->SetResidueInfo( Residues_ );
   } else {
     // TODO may need to skip reading first record on append
-    if (ds->Type() != DataSet::PH_REMD) {
+    if (ds->Type() != DataSet::PH_EXPL) {
       mprinterr("Error: Set '%s' is not pH data.\n", ds->legend());
       return 1;
     }
@@ -528,7 +528,7 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
   if (dsl.empty()) return 1;
 
   DataSet::DataType dtype = dsl[0]->Type();
-  if (dtype != DataSet::PH && dtype != DataSet::PH_REMD) {
+  if (dtype != DataSet::PH && dtype != DataSet::PH_EXPL) {
     mprinterr("Internal Error: Set '%s' is not a pH set.\n", dsl[0]->legend() );
     return 1;
   }
@@ -553,7 +553,7 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
     return 1;
   }
 
-  if (dtype == DataSet::PH_REMD) {
+  if (dtype == DataSet::PH_EXPL) {
     for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds) {
       DataSet_pH_REMD const& PH = static_cast<DataSet_pH_REMD const&>( *(*ds) );
       unsigned int idx = 0;

@@ -186,7 +186,7 @@ const
 # endif
 
   // Only work for pH data for now.
-  if (dtype != DataSet::PH_REMD) {
+  if (dtype != DataSet::PH_EXPL) {
     rprinterr("Error: Only works for pH REMD data for now.\n");
     return 1;
   }

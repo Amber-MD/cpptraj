@@ -51,8 +51,8 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "cluster matrix (no memory)",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
   { "cluster matrix (disk)",     DataSet_Cmatrix_DISK::Alloc},  // CMATRIX_DISK
   { "pH",            DataSet_pH::Alloc         }, // PH
-  { "pH REMD",       DataSet_pH_REMD::Alloc    }, // PH_REMD
-  { "parameters",    DataSet_Parameters::Alloc},  // PARAMETERS
+  { "pH REMD (explicit)",DataSet_pH_REMD::Alloc}, // PH_EXPL
+  { "parameters",    DataSet_Parameters::Alloc }, // PARAMETERS
   { 0, 0 }
 };
 

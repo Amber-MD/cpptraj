@@ -3,7 +3,7 @@
 
 DataSet_pH_REMD::DataSet_pH_REMD() :
   // 0 dim indicates DataSet-specific write
-  DataSet(PH_REMD, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 4), 0)
+  DataSet(PH_EXPL, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 4), 0)
 {}
 
 int DataSet_pH_REMD::Allocate(SizeArray const& sizeIn) {
