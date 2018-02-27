@@ -1,6 +1,7 @@
 #include "Exec_SortEnsembleData.h"
 #include "CpptrajStdio.h"
 #include "DataSet_PHREMD_Explicit.h"
+#include "DataSet_PHREMD_Implicit.h"
 #include "DataSet_pH.h"
 #include "StringRoutines.h" // doubleToString
 
@@ -98,7 +99,7 @@ const
           out->SetState(n, in->ResStates()[phidx], in->RecordType(n));
         }
       }
-    }
+    } // END loop over unsorted sets
 #   ifdef MPI
     // Now we need to reduce down each set onto the thread where it belongs.
     if (Parallel::World().Size() > 1) {
@@ -120,6 +121,43 @@ const
       }
     }
 # endif
+  } else if ( PHsets[0]->Type() == DataSet::PH_IMPL) {
+    // Loop over frames
+    for (unsigned int n = 0; n < maxFrames; n++)
+    {
+      // Loop over unsorted sets
+      for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
+      {
+        DataSet_PHREMD_Implicit* in = (DataSet_PHREMD_Implicit*)*ds;
+        DataSet_PHREMD_Implicit::Record const& Rec = in->Records()[n];
+        float phval = Rec.pH();
+        int setidx = pH_map.FindIndex( phval ) * Residues.size();
+        if (Rec.RecType() == Cph::FULL_RECORD) {
+          for (unsigned int res = 0; res < in->Residues().size(); res++, setidx++)
+          {
+            DataSet_pH* out = (DataSet_pH*)OutputSets[setidx];
+            //if (res == 0 && idx == 0) {
+            //  rprintf("DEBUG: Frame %3u res %2u State %2i pH %6.2f\n", 
+            //          n, res, in->Res(res).State(n), phval);
+            //  mflush();
+            //}
+            out->SetState(n, Rec.ResStates()[res], Rec.RecType());
+          }
+        } else {
+          for (int res = 0; res < (int)in->Residues().size(); res++, setidx++)
+          {
+            DataSet_pH* out = (DataSet_pH*)OutputSets[setidx];
+            if (res == Rec.RecType())
+              out->SetState(n, Rec.ResStates()[0], Rec.RecType());
+            else
+              // State for this residue not recorded - use previous state.
+              // Should be fine since first state always has all residues.
+              out->SetState(n, out->State(n-1), Rec.RecType());
+          }
+        }
+      } // END loop over unsorted sets
+    } // END loop over frames
+
   } else {
     return 1;
   }

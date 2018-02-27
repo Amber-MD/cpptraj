@@ -10,7 +10,18 @@
 /// CONSTRUCTOR
 DataIO_Cpout::DataIO_Cpout() :
   type_(NONE),
-  original_pH_(0.0)
+  original_pH_(0.0),
+  maxRes_(0),
+  nframes_(0),
+  recType_(0),
+  mc_stepsize_(0),
+  step_(0),
+  s0_(0),
+  nRes_(0), // FIXME may not need to be a class var
+  solvent_pH_(0.0),
+  pHval_(0.0),
+  time_(0.0),
+  t0_(0.0)
 {
   SetValid( DataSet::PH );
   SetValid( DataSet::PH_EXPL );
