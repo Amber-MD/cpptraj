@@ -4,7 +4,7 @@
 #include "DataIO_Cpout.h"
 #include "CpptrajStdio.h"
 #include "DataSet_pH.h"
-#include "DataSet_pH_REMD.h"
+#include "DataSet_PHREMD_Explicit.h"
 
 /// CONSTRUCTOR
 DataIO_Cpout::DataIO_Cpout() :
@@ -480,7 +480,7 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
     // New set
     ds = DSL.AddSet( DataSet::PH_EXPL, dsname, "ph" );
     if (ds == 0) return 1;
-    ((DataSet_pH_REMD*)ds)->SetResidueInfo( Residues_ );
+    ((DataSet_PHREMD_Explicit*)ds)->SetResidueInfo( Residues_ );
   } else {
     // TODO may need to skip reading first record on append
     if (ds->Type() != DataSet::PH_EXPL) {
@@ -490,7 +490,7 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
     mprintf("\tAppending to set '%s'\n", ds->legend());
     // TODO check # residues etc?
   }
-  DataSet_pH_REMD* phdata = (DataSet_pH_REMD*)ds;
+  DataSet_PHREMD_Explicit* phdata = (DataSet_PHREMD_Explicit*)ds;
 
   //float solvent_pH = original_pH_;
   while ( ReadRecord(infile, fmt, rFmt) == 1 )
@@ -555,7 +555,7 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
 
   if (dtype == DataSet::PH_EXPL) {
     for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds) {
-      DataSet_pH_REMD const& PH = static_cast<DataSet_pH_REMD const&>( *(*ds) );
+      DataSet_PHREMD_Explicit const& PH = static_cast<DataSet_PHREMD_Explicit const&>( *(*ds) );
       unsigned int idx = 0;
       unsigned int maxres = PH.Residues().size();
       mc_stepsize_ = PH.Time().MonteCarloStepSize();

@@ -24,7 +24,8 @@
 #include "DataSet_Cmatrix_NOMEM.h"
 #include "DataSet_Cmatrix_DISK.h"
 #include "DataSet_pH.h"
-#include "DataSet_pH_REMD.h"
+#include "DataSet_PHREMD_Explicit.h"
+#include "DataSet_PHREMD_Implicit.h"
 #include "DataSet_Parameters.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
@@ -51,7 +52,8 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "cluster matrix (no memory)",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
   { "cluster matrix (disk)",     DataSet_Cmatrix_DISK::Alloc},  // CMATRIX_DISK
   { "pH",            DataSet_pH::Alloc         }, // PH
-  { "pH REMD (explicit)",DataSet_pH_REMD::Alloc}, // PH_EXPL
+  { "pH REMD (explicit)",DataSet_PHREMD_Explicit::Alloc}, // PH_EXPL
+  { "pH REMD (implicit)",DataSet_PHREMD_Implicit::Alloc}, // PH_IMPL
   { "parameters",    DataSet_Parameters::Alloc }, // PARAMETERS
   { 0, 0 }
 };

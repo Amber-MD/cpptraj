@@ -1,6 +1,6 @@
 #include "Exec_SortEnsembleData.h"
 #include "CpptrajStdio.h"
-#include "DataSet_pH_REMD.h"
+#include "DataSet_PHREMD_Explicit.h"
 #include "DataSet_pH.h"
 #include "StringRoutines.h" // doubleToString
 
@@ -18,11 +18,11 @@ int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort, DataSetLi
                                         unsigned int maxFrames)
 const
 {
-  // Cast sets back to DataSet_pH_REMD
-  typedef std::vector<DataSet_pH_REMD*> Parray;
+  // Cast sets back to DataSet_PHREMD_Explicit
+  typedef std::vector<DataSet_PHREMD_Explicit*> Parray;
   Parray PHsets;
   for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
-    PHsets.push_back( (DataSet_pH_REMD*)*ds );
+    PHsets.push_back( (DataSet_PHREMD_Explicit*)*ds );
 
   // Gather initial pH data values, ensure no duplicates
   typedef std::vector<double> Darray;
@@ -57,7 +57,7 @@ const
   // Create sets to hold sorted pH values. Create a set for each pH value
   // and each residue. Final output sets will be PH0R0, PH0R1, PH1R0, ...
   // TODO check that residue info all the same
-  DataSet_pH_REMD::Rarray const& Residues = PHsets[0]->Residues();
+  DataSet_PHREMD::Rarray const& Residues = PHsets[0]->Residues();
   if (debug_ > 0)
     rprintf("DEBUG: Sorting %u frames for %zu sets, %zu pH values.\n",
             maxFrames, PHsets.size(), pHvalues.size());
