@@ -459,8 +459,12 @@ int DataIO_Cpout::ReadSorted(BufferedLine& infile, DataSetList& DSL, std::string
       ResSets[idx]->AddState( resStates_[idx], recType_ );
   }
   double dt = CalcTimeStep();
+  Dimension xdim(t0_, dt, "Time");
   for (Parray::iterator p = ResSets.begin(); p != ResSets.end(); ++p)
+  {
     (*p)->SetTimeValues(Cph::CpTime(mc_stepsize_, t0_, dt));
+    (*p)->SetDim(Dimension::X, xdim);
+  }
   return 0;
 }
 
@@ -499,35 +503,23 @@ int DataIO_Cpout::ReadUnsorted(BufferedLine& infile, DataSetList& DSL, std::stri
 // DataIO_Cpout::WriteHelp()
 void DataIO_Cpout::WriteHelp()
 {
-  mprintf("\tmcstepsize <nstep> : Monte Carlo step size.\n"
-          "\tdt <dt>            : Simulation time step.\n"
-          "\tnheader <freq>     : Header write frequency in frames.\n");
 }
 
 // DataIO_Cpout::processWriteArgs()
 int DataIO_Cpout::processWriteArgs(ArgList& argIn)
 {
-  mc_stepsize_ = argIn.getKeyInt("mcstepsize", 100);
-  dt_ = argIn.getKeyDouble("dt", 0.002);
-  nheader_ = argIn.getKeyInt("nwriteheader", 0);
-
   return 0;
 }
 
 // DataIO_Cpout::WriteHeader()
-void DataIO_Cpout::WriteHeader(CpptrajFile& outfile, float solventPH, int frame) const
+void DataIO_Cpout::WriteHeader(CpptrajFile& outfile, double time0, double dt, float solventPH, int frame) const
 {
   int time_step = (frame+1)*mc_stepsize_;
-  double time = time0_ + ((double)(time_step - mc_stepsize_) * dt_);
+  double time = time0 + ((double)(time_step - mc_stepsize_) * dt);
   outfile.Printf("Solvent pH: %8.5f\n"
                  "Monte Carlo step size: %8i\n"
                  "Time step: %8i\n"
                  "Time: %10.3f\n", solventPH, mc_stepsize_, time_step, time);
-}
-
-static inline bool write_header(int frame, int ntwx) {
-  return ( (ntwx > 0) &&
-           (frame == 0 || (((frame+1)%ntwx) == 0)) );
 }
 
 // DataIO_Cpout::WriteData()
@@ -535,8 +527,6 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
 {
   if (dsl.empty()) return 1;
 
-  if (nheader_ > 0)
-    mprintf("\tHeader write frequency: %i\n", nheader_);
   DataSet::DataType dtype = dsl[0]->Type();
   if (dtype != DataSet::PH && dtype != DataSet::PH_REMD) {
     mprinterr("Internal Error: Set '%s' is not a pH set.\n", dsl[0]->legend() );
@@ -569,14 +559,11 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
       unsigned int idx = 0;
       unsigned int maxres = PH.Residues().size();
       mc_stepsize_ = PH.Time().MonteCarloStepSize();
-      time0_ = PH.Time().InitialTime();
-      dt_ = PH.Time().TimeStep();
       for (unsigned int frame = 0; frame != maxFrames; frame++) {
         int rectype = PH.RecordType(frame);
-        //if (write_header(frame, nheader_))
         if ( rectype < 0 ) {
           if (rectype == Cph::FULL_RECORD)
-            WriteHeader(outfile, PH.pH_Values()[frame], frame);
+            WriteHeader(outfile, PH.Time().InitialTime(), PH.Time().TimeStep(), PH.pH_Values()[frame], frame);
           for (unsigned int res = 0; res != maxres; res++, idx++)
             outfile.Printf("Residue %4u State: %2i pH: %7.3f\n",
                            res, PH.ResStates()[idx], PH.pH_Values()[frame]);
@@ -594,14 +581,11 @@ int DataIO_Cpout::WriteData(FileName const& fname, DataSetList const& dsl)
     DataSet_pH* firstSet = ((DataSet_pH*)dsl[0]);
     float solventPH = firstSet->Solvent_pH();
     mc_stepsize_ = firstSet->Time().MonteCarloStepSize();
-    time0_ = firstSet->Time().InitialTime();
-    dt_ = firstSet->Time().TimeStep();
     for (unsigned int frame = 0; frame != maxFrames; frame++) {
       int rectype = firstSet->RecordType(frame);
       if ( rectype < 0 ) {
-      //if (write_header(frame, nheader_)) // TODO check all same pH
         if ( rectype == Cph::FULL_RECORD)
-          WriteHeader(outfile, solventPH, frame);
+          WriteHeader(outfile, firstSet->Time().InitialTime(), firstSet->Time().TimeStep(), solventPH, frame);
         for (unsigned int res = 0; res != dsl.size(); res++)
           outfile.Printf("Residue %4u State: %2i\n", res, ((DataSet_pH*)dsl[res])->State(frame));
         outfile.Printf("\n");

@@ -39,7 +39,7 @@ class DataIO_Cpout : public DataIO {
     int ReadSorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
     int ReadUnsorted(BufferedLine&, DataSetList&, std::string const&, const char*, const char*);
 
-    void WriteHeader(CpptrajFile&, float, int) const;
+    void WriteHeader(CpptrajFile&, double, double, float, int) const;
 
     FileName cpin_file_;
     FileType type_;
@@ -60,8 +60,5 @@ class DataIO_Cpout : public DataIO {
     double t0_;        ///< Initial time
     Iarray resStates_; ///< Current residue states
 
-    double dt_; ///< Write time step
-    double time0_; ///< Initial write time
-    int nheader_; ///< Frequency to write header
 };
 #endif
