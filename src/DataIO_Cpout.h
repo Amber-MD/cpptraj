@@ -54,10 +54,10 @@ class DataIO_Cpout : public DataIO {
     int step_;         ///< Current step
     int s0_;           ///< Initial step
     int nRes_;         ///< Number of residues in current record.
-    float time_;       ///< Current time
-    float t0_;         ///< Initial time
     float solvent_pH_; ///< Current solvent pH
     float pHval_;      ///< Current pH value
+    double time_;      ///< Current time
+    double t0_;        ///< Initial time
     Iarray resStates_; ///< Current residue states
 
     double dt_; ///< Write time step

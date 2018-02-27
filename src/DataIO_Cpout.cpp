@@ -376,7 +376,7 @@ int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* 
     //mprintf("DEBUG: step= %i\n", step_);
     // Current time (ps)
     ptr = infile.Line();
-    if (sscanf(ptr, "Time: %f", &time_) != 1) {
+    if (sscanf(ptr, "Time: %lf", &time_) != 1) {
       mprinterr("Error: Could not get time.\n");
       return -1;
     }
@@ -418,8 +418,8 @@ int DataIO_Cpout::ReadRecord(BufferedLine& infile, const char* fmt, const char* 
 
 /** Calculate time step based on initial and final time and step count. */
 double DataIO_Cpout::CalcTimeStep() const {
-  double dt = ((double)time_ - (double)t0_) / ((double)(step_ - s0_));
-  mprintf("\tMC step size %i, t0 = %g, tf = %g, nframes= %u, dt = %g\n",
+  double dt = (time_ - t0_) / ((double)(step_ - s0_));
+  mprintf("\tMC step size %i, t0 = %.3f, tf = %.3f, nframes= %u, dt = %.3f\n",
           mc_stepsize_, t0_, time_, nframes_, dt);
   return dt;
 }
