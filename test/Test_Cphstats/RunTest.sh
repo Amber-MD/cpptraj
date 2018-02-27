@@ -3,12 +3,12 @@
 . ../MasterTest.sh
 
 CleanFiles cphstats.in sorted.pH_*.00 stats.dat frac.agr implicit.sorted.dat \
-           explicit.004.cpout
+           explicit.004.cpout implicit.007.cpout
 
 INPUT='-i cphstats.in'
 TESTNAME='Constant pH stats / data set sort test'
 
-UNITNAME='Ensemble data read / sort'
+UNITNAME='Explicit pH REMD ensemble data read / sort'
 SKIP='no'
 if [ ! -z $N_THREADS ] ; then
   if [ $N_THREADS -lt 7 ] ; then
@@ -66,19 +66,28 @@ DoTest frac.agr.save frac.agr
 
 UNITNAME='Sorted implicit constant pH stats test'
 cat > cphstats.in <<EOF
-readdata md2_cpout.pH_2.00.save cpin 1AKI.dry.equil.cpin name PH
+readdata ImplicitRemd/md2_cpout.pH_2.00.save cpin ImplicitRemd/1AKI.dry.equil.cpin name PH
 runanalysis cphstats PH[*] statsout implicit.sorted.dat
 EOF
 RunCpptraj "$UNITNAME"
 DoTest implicit.sorted.dat.save implicit.sorted.dat
 
+UNITNAME='Explicit pH REMD ensemble data read / sort'
+cat > cphstats.in <<EOF
+readensembledata ImplicitRemd/pH*/1AKI.dry.md2.cpout cpin ImplicitRemd/1AKI.dry.equil.cpin
+EOF
+RunCpptraj "$UNITNAME"
+
 UNITNAME='Unsorted pH read/write test'
 cat > cphstats.in <<EOF
 readdata ExplicitRemd/cpout.004 cpin ExplicitRemd/cpin name PH4
 writedata explicit.004.cpout PH4
+readdata ImplicitRemd/pH7/1AKI.dry.md2.cpout cpin ImplicitRemd/1AKI.dry.equil.cpin name PH7
+writedata implicit.007.cpout PH7
 EOF
 RunCpptraj "$UNITNAME"
 DoTest ExplicitRemd/cpout.004 explicit.004.cpout
+DoTest ImplicitRemd/pH7/1AKI.dry.md2.cpout implicit.007.cpout -B
 
 EndTest
 exit 0
