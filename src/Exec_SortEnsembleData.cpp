@@ -59,9 +59,14 @@ const
   // and each residue. Final output sets will be PH0R0, PH0R1, PH1R0, ...
   // TODO check that residue info all the same
   DataSet_PHREMD::Rarray const& Residues = PHsets[0]->Residues();
+  int defaultState = 0;
+# ifdef MPI
+  if ( PHsets[0]->Type() == DataSet::PH_IMPL)
+    defaultState = -1;
+# endif
   if (debug_ > 0)
     rprintf("DEBUG: Sorting %u frames for %zu sets, %zu pH values.\n",
-            maxFrames, PHsets.size(), pHvalues.size());
+            maxFrames, PHsets.size(), sortedPH.size());
   for (unsigned int idx = 0; idx != sortedPH.size(); idx++) {
     OutputSets.SetEnsembleNum( idx );
     for (unsigned int res = 0; res != Residues.size(); ++res) {
@@ -72,10 +77,11 @@ const
       out->Set_Solvent_pH( sortedPH[idx] );
       out->SetResidueInfo( Residues[res] );
       out->SetTimeValues(PHsets[0]->Time());
-      out->Resize( maxFrames );
+      out->Resize( maxFrames, defaultState );
     }
   }
 
+  // ---------------------------------------------
   if ( PHsets[0]->Type() == DataSet::PH_EXPL) {
     // Loop over unsorted sets
     for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
@@ -120,8 +126,191 @@ const
         }
       }
     }
-# endif
+#   endif
+  // ---------------------------------------------
   } else if ( PHsets[0]->Type() == DataSet::PH_IMPL) {
+#   ifdef MPI
+    typedef std::vector<int> Iarray;
+    typedef std::vector<Iarray> Iarray2;
+    typedef std::vector<bool> Barray;
+    // True if I have this pH value
+    Barray isMyPh( sortedPH.size(), false );
+    // Which rank in ensemble has which pH
+    Iarray pHrank( sortedPH.size(), 0 );
+    for (int phidx = 0; phidx != (int)sortedPH.size(); phidx++)
+    {
+      int ensembleRank = Parallel::MemberEnsCommRank( phidx );
+      pHrank[phidx] = ensembleRank;
+      isMyPh[phidx] = (ensembleRank == Parallel::EnsembleComm().Rank());
+    }
+    // DEBUG
+    for (unsigned int idx = 0; idx != pHrank.size(); idx++)
+      mprintf("\tpH %6.2f on rank %i\n", sortedPH[idx], pHrank[idx]);
+    // Hold frame-residue-state for each pH not on this rank.
+    Iarray2 FrmResState( sortedPH.size() );
+    // Loop over unsorted sets
+    for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
+    {
+      DataSet_PHREMD_Implicit* in = (DataSet_PHREMD_Implicit*)*ds;
+      // Loop over frames
+      for (unsigned int n = 0; n < maxFrames; n++)
+      {
+        DataSet_PHREMD_Implicit::Record const& Rec = in->Records()[n];
+        float phval = Rec.pH();
+        int phidx = pH_map.FindIndex( phval );
+        if (isMyPh[phidx]) {
+          // This pH belongs to me. Set value.
+          int setidx = phidx * Residues.size();
+          if (Rec.RecType() == Cph::FULL_RECORD) {
+            // Info for all residues
+            for (unsigned int res = 0; res < in->Residues().size(); res++, setidx++)
+              ((DataSet_pH*)OutputSets[setidx])->SetState(n, Rec.ResStates()[res], Rec.RecType());
+          } else if (Rec.RecType() > -1) {
+            // Info for single residue, record type for all residues
+            //rprintf("\tSetting my pH %6.2f frame %8i state %2i idx %6i res %6i '%s'\n", sortedPH[phidx], n, Rec.ResStates()[0], setidx, Rec.RecType(), OutputSets[setidx+Rec.RecType()]->legend());
+            for (int res = 0; res < (int)in->Residues().size(); res++, setidx++)
+              if (res == Rec.RecType())
+                ((DataSet_pH*)OutputSets[setidx])->SetState(n, Rec.ResStates()[0], Rec.RecType());
+              else
+                ((DataSet_pH*)OutputSets[setidx])->SetRecType(n, Rec.RecType());
+          }
+        } else {
+          // This pH belongs to another rank. Save it.
+          if (Rec.RecType() > -1) {
+            // Info for a single residue present
+            FrmResState[phidx].push_back( n );
+            FrmResState[phidx].push_back( Rec.RecType() );
+            FrmResState[phidx].push_back( Rec.ResStates()[0] );
+          } else {
+            // Info for all residues present
+            FrmResState[phidx].push_back( n );
+            FrmResState[phidx].push_back( Rec.RecType() );
+            for (unsigned int res = 0; res < in->Residues().size(); res++)
+              FrmResState[phidx].push_back( Rec.ResStates()[res] );
+          }
+        }
+      } // END loop over frames
+    } // END loop over sets
+    // DEBUG
+/*
+    Parallel::EnsembleComm().Barrier();
+    for (int rank = 0; rank < Parallel::EnsembleComm().Size(); rank++)
+    {
+      if (rank == Parallel::EnsembleComm().Rank())
+      {
+        for (unsigned int phidx = 0; phidx != sortedPH.size(); phidx++) {
+          rprintf("DEBUG: pH %6.2f: %8s %6s %2s\n", sortedPH[phidx], "Frm", "Res", "St");
+          Iarray const& FRS = FrmResState[phidx];
+          unsigned int idx = 0;
+          while (idx < FRS.size()) {
+            int rec = FRS[idx+1];
+            if (rec > -1) {
+              rprintf("                  %8i %6i %2i\n", FRS[idx], rec, FRS[idx+2]);
+              idx += 3;
+            } else {
+              rprintf("                  %8i %6i All Residues\n", FRS[idx], rec);
+              idx += (2 + Residues.size());
+            }
+          }
+        }
+      }
+      Parallel::EnsembleComm().Barrier();
+    }
+*/
+    // Communicate states to other ranks
+    typedef std::vector<unsigned int> Uarray;
+    Uarray sizeOnRank( Parallel::EnsembleComm().Size() );
+    for (unsigned int phidx = 0; phidx != sortedPH.size(); phidx++)
+    {
+      // Each rank says how many frames of this pH they have collected and
+      // send to rank the pH belongs to.
+      unsigned int nph = FrmResState[phidx].size();
+      Parallel::EnsembleComm().Gather(&nph, 1, MPI_UNSIGNED, &sizeOnRank[0], pHrank[phidx]);
+      if (pHrank[phidx] == Parallel::EnsembleComm().Rank())
+      {
+        // This pH belongs to me. I should have no frames at this pH.
+        if (sizeOnRank[Parallel::EnsembleComm().Rank()] > 0) {
+          rprinterr("Internal Error: Rank has frames to communicate at its pH\n");
+          Parallel::Abort(1);
+        }
+        unsigned int totalSize = 0;
+        for (unsigned int idx = 0; idx != sizeOnRank.size(); idx++) {
+          totalSize += sizeOnRank[idx];
+          //rprintf("DEBUG: Rank %4u has %8u frames of pH %6.2f\n",
+          //        idx, sizeOnRank[idx], sortedPH[phidx]);
+        }
+        //rprintf("DEBUG: Total incoming size: %u\n", totalSize);
+        FrmResState[phidx].resize( totalSize );
+        // Receive state info for this pH from other ranks
+        int* frsArray = &(FrmResState[phidx][0]);
+        for (int rank = 0; rank != Parallel::EnsembleComm().Size(); rank++) {
+          if (rank != Parallel::EnsembleComm().Rank()) {
+            Parallel::EnsembleComm().Recv(frsArray, sizeOnRank[rank], MPI_INT, rank, 1600+rank);
+            frsArray += sizeOnRank[rank];
+          }
+        }
+      } else {
+        // This pH belongs to another rank. Send my info there.
+        int* frsArray = &(FrmResState[phidx][0]);
+        Parallel::EnsembleComm().Send(frsArray, nph, MPI_INT, pHrank[phidx], 1600+Parallel::EnsembleComm().Rank());
+      }
+      Parallel::EnsembleComm().Barrier();
+    }
+    // Fill in state info
+    std::vector<DataSet*> ToRemove;
+    for (unsigned int phidx = 0; phidx != sortedPH.size(); phidx++)
+    {
+      int setidx = phidx * Residues.size();
+      if (pHrank[phidx] == Parallel::EnsembleComm().Rank())
+      {
+        Iarray const& FRS = FrmResState[phidx];
+        // This pH belongs to me. Fill in the information received from
+        // other ranks.
+        unsigned int idx = 0;
+        while (idx < FRS.size()) {
+          int rec = FRS[idx+1];
+          if (rec > -1) {
+            // Info for single residue, record type for all residues
+            //rprintf("\tSetting pH %6.2f frame %8i state %2i idx %6i res %6i '%s'\n", sortedPH[phidx], FRS[idx], FRS[idx+2], setidx, rec, OutputSets[setidx+rec]->legend());
+            for (int res = 0; res != (int)Residues.size(); res++) {
+              DataSet_pH* out = (DataSet_pH*)OutputSets[setidx + res];
+              if (rec == res)
+                out->SetState( FRS[idx], FRS[idx+2], rec );
+              else
+                out->SetRecType( FRS[idx], rec );
+            }
+            idx += 3;
+          } else {
+            //rprintf("                  %8i %6i All Residues\n", FRS[idx], rec);
+            int frm = FRS[idx];
+            idx += 2;
+            for (unsigned int res = 0; res != Residues.size(); res++, idx++) {
+              DataSet_pH* out = (DataSet_pH*)OutputSets[setidx + res];
+              out->SetState( frm, FRS[idx], rec );
+            }
+          }
+        }
+        // Fill in any remaining data. FIXME safe to assume first frame is set?
+        for (unsigned int res = 0; res != Residues.size(); res++) {
+          DataSet_pH* out = (DataSet_pH*)OutputSets[setidx + res];
+          for (unsigned int n = 1; n < maxFrames; n++)
+            if (out->State(n) == -1)
+              out->SetState(n, out->State(n-1), out->RecordType(n));
+        }
+      } else {
+        // This pH does not belong to me. Mark associated data sets to be removed.
+        for (unsigned int res = 0; res != Residues.size(); res++)
+          ToRemove.push_back( OutputSets[setidx + res] );
+      }
+    }
+    // Remove data sets that do not belong to me.
+    for (std::vector<DataSet*>::reverse_iterator it = ToRemove.rbegin();
+                                                 it != ToRemove.rend(); ++it)
+    {
+      //rprintf("DEBUG: '%s' does not belong to me.\n", (*it)->legend());
+      OutputSets.RemoveSet( *it );
+    }
+#   else /* if not MPI */
     // Loop over frames
     for (unsigned int n = 0; n < maxFrames; n++)
     {
@@ -157,9 +346,10 @@ const
         }
       } // END loop over unsorted sets
     } // END loop over frames
-
+#   endif /* MPI */
+  // ---------------------------------------------
   } else {
-    return 1;
+    return 1; // Sanity check
   }
   return 0;
 }

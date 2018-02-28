@@ -30,6 +30,7 @@ class DataSet_pH : public DataSet_1D {
     void SetResidueInfo(Cph::CpRes const& r) { res_ = r; }
     void Set_Solvent_pH( float p )              { solvent_pH_ = p; }
     void SetState(unsigned int n, int s, int r) { states_[n] = s; recType_[n] = r; }
+    void SetRecType(unsigned int n, int r)      { recType_[n] = r; } // MPI
     void AddState(int s, int r)                 { states_.push_back( s ); recType_.push_back( r ); }
     int State(unsigned int idx)       const { return states_[idx];    }
     int RecordType(unsigned int idx)  const { return recType_[idx];      }
