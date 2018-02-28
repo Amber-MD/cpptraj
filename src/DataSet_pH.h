@@ -26,7 +26,7 @@ class DataSet_pH : public DataSet_1D {
     double Xcrd(size_t idx)         const { return Dim(0).Coord(idx);          }
     const void* VoidPtr(size_t idx) const { return (void*)(&(states_[0])+idx); }
     // -------------------------------------------
-    void Resize(size_t);
+    void Resize(size_t, int);
     void SetResidueInfo(Cph::CpRes const& r) { res_ = r; }
     void Set_Solvent_pH( float p )              { solvent_pH_ = p; }
     void SetState(unsigned int n, int s, int r) { states_[n] = s; recType_[n] = r; }

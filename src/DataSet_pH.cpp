@@ -21,8 +21,8 @@ void DataSet_pH::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
     cbuffer.Printf(format_.fmt(), states_[pIn[0]]);
 }
 
-void DataSet_pH::Resize(size_t n) {
-  states_.resize( n );
+void DataSet_pH::Resize(size_t n, int stateIn) {
+  states_.resize( n, stateIn );
   recType_.resize( n );
 }
 
