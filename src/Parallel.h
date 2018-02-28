@@ -123,6 +123,10 @@ class Parallel::Comm {
     int SendMaster(void*, int, int, MPI_Datatype) const;
     /// Return, Input, Count, DataType, Op
     int AllReduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    /// Buffer, Count, DataType, Op
+    int AllReduce(void*, int, MPI_Datatype, MPI_Op) const;
+    /// SendBuffer, Count, DataType, RecvBuffer, Rank
+    int Gather(void*, int, MPI_Datatype, void*, int) const;
     /// SendBuffer, Count, DataType, RecvBuffer
     int GatherMaster(void*, int, MPI_Datatype, void*) const;
     /// SendBuffer, Count, DataType, RecvBuffer

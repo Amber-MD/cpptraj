@@ -344,6 +344,20 @@ int Parallel::Comm::AllReduce(void *Return, void *input, int count,
   return 0;
 }
 
+/** Perform an mpi allreduce in-place. */
+int Parallel::Comm::AllReduce(void *buffer, int count,
+                              MPI_Datatype datatype, MPI_Op op) const
+{
+  int err = MPI_Allreduce(MPI_IN_PLACE, buffer, count, datatype, op, comm_);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing allreduce in-place.\n", rank_);
+    printf("[%i]\tError: allreduce failed for %i elements.\n", rank_, count);
+    return Parallel::Abort(err);
+  }
+  //if (parallel_check_error(err)!=0) return 1;
+  return 0;
+}
+
 /** If master    : receive specified value(s) from sendRank.
   * If not master: send specified value(s) to master.
   */
@@ -369,13 +383,25 @@ int Parallel::Comm::SendMaster(void *Buffer, int Count, int sendRank, MPI_Dataty
   return 0;
 }
 
+/** Perform an mpi gather to specified rank. Assumes send/recv data type and count are same. */
+int Parallel::Comm::Gather(void* sendbuffer, int count, MPI_Datatype datatype,
+                           void* recvbuffer, int rank) const
+{
+  int err = MPI_Gather( sendbuffer, count, datatype, recvbuffer, count, datatype, rank, comm_ );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing gather.\n", rank_);
+    return Parallel::Abort(err);
+  }
+  return 0;
+}
+
 /** Perform an mpi gather to master. Assumes send/recv data type and count are same. */
 int Parallel::Comm::GatherMaster(void* sendbuffer, int count, MPI_Datatype datatype,
                                  void* recvbuffer) const
 {
   int err = MPI_Gather( sendbuffer, count, datatype, recvbuffer, count, datatype, 0, comm_ );
   if (err != MPI_SUCCESS) {
-    printMPIerr(err, "Performing gather.\n", rank_);
+    printMPIerr(err, "Performing gather to master.\n", rank_);
     return Parallel::Abort(err);
   }
   //if (parallel_check_error(err)!=0) return 1;
