@@ -9,16 +9,25 @@
 #endif
 #include "Cpptraj.h"
 #include "Parallel.h"
-// ----------========== CPPTRAJ MAIN ROUTINE ==========----------
-/// Main routine.
-int main(int argc, char **argv) {
-  if (Parallel::Init(argc,argv) != 0) return 1;
+
+/** The Cpptraj class lives here to ensure destructors are called
+  * before Parallel::End();
+  */
+int CpptrajProgram(int argc, char** argv) {
   Cpptraj Program;
   int err = Program.RunCpptraj(argc, argv);
 # ifdef FFTW_FFT
   // Ensure no debris from FFTW is left over.
   fftw_cleanup();
 # endif
+  return err;
+}
+
+// ----------========== CPPTRAJ MAIN ROUTINE ==========----------
+/// Main routine.
+int main(int argc, char **argv) {
+  if (Parallel::Init(argc, argv) != 0) return 1;
+  int err = CpptrajProgram(argc, argv);
   Parallel::End();
   return err;
 }
