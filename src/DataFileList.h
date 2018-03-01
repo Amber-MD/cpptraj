@@ -18,6 +18,7 @@ class DataFileList {
     void RemoveDataSet(DataSet*);
     void SetDebug(int);
     void SetEnsembleNum(int i) { ensembleNum_ = i; }
+    void SetEnsExtension(bool b) { ensExt_ = b; }
     /// \return DataFile whose full path matches given string or 0.
     DataFile* GetDataFile(FileName const&) const;
     /// \return CpptrajFile whose full path matches given string or 0.
@@ -64,6 +65,7 @@ class DataFileList {
 
     int debug_;
     int ensembleNum_; ///< Ensemble member number.
+    bool ensExt_;     ///< If true append ensemble member number to file names.
 };
 // ----- INTERNAL CLASS DEFINITIONS --------------------------------------------
 class DataFileList::CFstruct {

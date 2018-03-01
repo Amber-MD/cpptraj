@@ -567,11 +567,13 @@ int Parallel::File::Fread(void* buffer, int count, MPI_Datatype datatype) {
 int Parallel::File::Fwrite(const void* buffer, int count, MPI_Datatype datatype) {
   MPI_Status status;
 # ifdef PARALLEL_DEBUG_VERBOSE
+  //const char* temp = (const char*)buffer;
   //dbgprintf("Calling MPI write(%i): [%s]\n",count,temp);
   dbgprintf("Calling MPI write(%i):\n",count);
 # endif
   // NOTE: Some MPI implementations require the void* cast
-  int err = MPI_File_write( file_, (void*)buffer, count, datatype, &status);
+  //int err = MPI_File_write( file_, (void*)buffer, count, datatype, &status);
+  int err = MPI_File_write_shared( file_, (void*)buffer, count, datatype, &status);
   if (err != MPI_SUCCESS) {
     printMPIerr(err, "parallel_fwrite", comm_.Rank());
     return 1;

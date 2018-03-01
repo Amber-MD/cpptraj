@@ -145,6 +145,19 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
     float current_pH = -100.0;
     bool write_pH = true;
     unsigned int tot_prot = 0;
+#   ifdef MPI
+    // Determine if file is shared or not 
+    int startRank, endRank;
+    if (statsOut_->IOtype() == CpptrajFile::MPIFILE) {
+      startRank = 0;
+      endRank = Parallel::EnsembleComm().Size();
+    } else {
+      startRank = Parallel::EnsembleComm().Rank();
+      endRank = startRank+1;
+    }
+    for (int rank = startRank; rank != endRank; ++rank) {
+      if (rank == Parallel::EnsembleComm().Rank()) {
+#   endif
     for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
     {
       if (write_pH) {
@@ -176,8 +189,13 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
         statsOut_->Printf("\nAverage total molecular protonation: %7.3f\n",
                          (double)tot_prot / dsize);
       }
-    }
-  }
+    } // END loop over Stats_
+#   ifdef MPI
+      }
+      Parallel::EnsembleComm().Barrier();
+    } // END loop over ranks
+#   endif
+  } // END if statsOut_ != 0
     
 /*
 # ifdef MPI

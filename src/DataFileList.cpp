@@ -8,7 +8,7 @@
 #endif
 
 // CONSTRUCTOR
-DataFileList::DataFileList() : debug_(0), ensembleNum_(-1) {}
+DataFileList::DataFileList() : debug_(0), ensembleNum_(-1), ensExt_(true) {}
 
 // DESTRUCTOR
 DataFileList::~DataFileList() { Clear(); }
@@ -95,7 +95,7 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
 {
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
-  mprintf("DEBUG: Adding DataFile for ensemble member %i\n", ensembleNum_);
+  rprintf("DEBUG: Adding DataFile for ensemble member %i\n", ensembleNum_);
   FileName fname( nameIn );
   // Append ensemble number if set.
   //rprintf("DEBUG: Setting up data file '%s' with ensembleNum %i\n", nameIn.base(), ensembleNum_);
@@ -173,14 +173,14 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 {
   // If no filename and stdout not allowed, no output desired.
   if (nameIn.empty() && !allowStdout) return 0;
-  mprintf("DEBUG: Adding CpptrajFile for ensemble member %i\n", ensembleNum_);
+  rprintf("DEBUG: Adding CpptrajFile for ensemble member %i\n", ensembleNum_);
   FileName name;
   CpptrajFile* Current = 0;
   int currentIdx = -1;
   if (!nameIn.empty()) {
     name = nameIn;
     // Append ensemble number if set.
-    if (ensembleNum_ != -1)
+    if (ensembleNum_ != -1 && ensExt_)
       name.Append( "." + integerToString(ensembleNum_) );
     // Check if filename in use by DataFile.
     DataFile* df = GetDataFile(name);
@@ -202,7 +202,17 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     Current->SetDebug(debug_);
     // Set up file for writing. 
     //if (Current->SetupWrite( name, debug_ ))
+#   ifdef MPI
+    int err = 0;
+    if (ensembleNum_ != -1 && !ensExt_) {
+      Current->SetupWrite( name, 10 );
+      err = Current->ParallelOpenFile(Parallel::EnsembleComm());
+    } else
+      err = Current->OpenWrite( name );
+    if (err != 0)
+#   else
     if (Current->OpenWrite( name ))
+#   endif
     {
       mprinterr("Error: Setting up text output file %s\n", name.full());
       delete Current;

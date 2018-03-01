@@ -55,6 +55,8 @@ class CpptrajFile {
     int ParallelOpenFile(Parallel::Comm const& c) { return ParallelOpenFile(access_, c); }
     // -------------------------------------------
 #   endif
+    /// \return File IO type
+    FileType IOtype()           const { return fileType_;             }
     /// \return the access file is currently set up for.
     AccessType Access()         const { return access_;               }
     /// \return the compression type
