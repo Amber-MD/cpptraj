@@ -76,6 +76,7 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
 
 // Analysis_ConstantPHStats::Analyze()
 Analysis::RetType Analysis_ConstantPHStats::Analyze() {
+  rprintf("DEBUG: Entering Analysis_ConstantPHStats::Analyze()\n");
   // Loop over all data sets
   for (DataSetList::const_iterator ds = inputSets_.begin(); ds != inputSets_.end(); ++ds)
   {
@@ -146,17 +147,10 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
     bool write_pH = true;
     unsigned int tot_prot = 0;
 #   ifdef MPI
-    // Determine if file is shared or not 
-    int startRank, endRank;
-    if (statsOut_->IOtype() == CpptrajFile::MPIFILE) {
-      startRank = 0;
-      endRank = Parallel::EnsembleComm().Size();
-    } else {
-      startRank = Parallel::EnsembleComm().Rank();
-      endRank = startRank+1;
-    }
-    for (int rank = startRank; rank != endRank; ++rank) {
+    // Each rank dumps its stats in turn
+    for (int rank = 0; rank != Parallel::EnsembleComm().Size(); ++rank) {
       if (rank == Parallel::EnsembleComm().Rank()) {
+        rprintf("DEBUG: Rank %i write statsOut\n", rank);
 #   endif
     for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
     {

@@ -69,8 +69,6 @@ class Parallel {
     static int MemberEnsCommRank(int i) { return memberEnsRank_[i];}
     /// \return Across-trajectory communicator.
     static Comm const& TrajComm()       { return trajComm_;       }
-    /// \return trajectory comm. if active, world comm. otherwise.
-    static Comm const& ActiveComm();
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static FILE* mpidebugfile_;
 #   endif /* PARALLEL_DEBUG_VERBOSE */

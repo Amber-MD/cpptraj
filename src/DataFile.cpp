@@ -433,7 +433,7 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
 # ifdef MPI
-  if (!Parallel::ActiveComm().Master()) {
+  if (!Parallel::TrajComm().Master()) {
     if (debug_ > 0)
       rprintf("DEBUG: Not a trajectory master: skipping data file write on this rank.\n");
   } else {

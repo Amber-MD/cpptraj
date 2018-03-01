@@ -89,6 +89,7 @@ int Parallel::Init(int argc, char** argv) {
     return 1;
   }
   world_ = Comm(MPI_COMM_WORLD);
+  SetupComms( -1 );
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_init();
 # endif
@@ -107,7 +108,8 @@ int Parallel::End() {
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_end();
 # endif
-  SetupComms( -1 );
+  trajComm_.Reset();
+  ensembleComm_.Reset();
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
   return 0;
@@ -136,7 +138,13 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     ensemble_size_ = -1;
     ensemble_beg_ = -1;
     ensemble_end_ = -1;
-  } else if (!ensembleComm_.IsNull()) {
+    // trajComm_ will contain all threads, ensembleComm_ will only contain world master.
+    trajComm_ = world_.Split( 0 );
+    int color = MPI_UNDEFINED;
+    if (world_.Master())
+      color = 0;
+    ensembleComm_ = world_.Split( color );
+  } else if (ensemble_size_ > -1) {
     // If comms were previously set up make sure the number of groups remains the same!
     if (ensemble_size_ != ngroups) {
       if ( world_.Master() )
@@ -218,14 +226,6 @@ void Parallel::Lock() {
   int PleaseWait = 1;
   while (PleaseWait == 1)
     PleaseWait *= 1;
-}
-
-/** \return TrajComm if TrajComm defined, otherwise world. */
-Parallel::Comm const& Parallel::ActiveComm() {
-  if (TrajComm().IsNull())
-    return World();
-  else
-    return TrajComm();
 }
 
 #else /* MPI */
