@@ -171,11 +171,6 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     trajComm_ = world_.Split( ID );
     // NOTE: This effectively duplicates World
     ensembleComm_ = world_.Split( 0 );
-#   ifdef PARALLEL_DEBUG_VERBOSE
-    fprintf(stderr,"DEBUG: Rank %i trajComm rank %i/%i ensComm rank %i/%i members %i to %i\n",
-            world_.Rank(), trajComm_.Rank(), trajComm_.Size(),
-            ensembleComm_.Rank(), ensembleComm_.Size(), ensemble_beg_, ensemble_end_);
-#   endif
     world_.Barrier();
   } else {
     // Initial setup: Make sure that ngroups is a multiple of total # threads.
@@ -208,6 +203,11 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     n_ens_members_ = 1;
     world_.Barrier();
   }
+# ifdef PARALLEL_DEBUG_VERBOSE
+  fprintf(stderr,"DEBUG: Rank %i trajComm rank %i/%i ensComm rank %i/%i members %i to %i\n",
+          world_.Rank(), trajComm_.Rank(), trajComm_.Size(),
+          ensembleComm_.Rank(), ensembleComm_.Size(), ensemble_beg_, ensemble_end_);
+# endif
   if (memberEnsRank_ != 0) {
     delete[] memberEnsRank_;
     memberEnsRank_ = 0;
