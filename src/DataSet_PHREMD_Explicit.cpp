@@ -23,8 +23,9 @@ void DataSet_PHREMD_Explicit::Resize(size_t n) {
 void DataSet_PHREMD_Explicit::Info() const {
   mprintf(" (%zu residues, %zu frames)", residues_.size(), solvent_pH_.size());
 }
+/*
 # ifdef MPI
-void DataSet_PHREMD_Explicit::Consolidate(Parallel::Comm const& commIn, int rank)
+void DataSet_PHREMD_Explicit::Reduce(Parallel::Comm const& commIn, int rank)
 {
   if (commIn.Rank() == rank) {
     //commIn.Barrier(); // DEBUG
@@ -55,4 +56,4 @@ void DataSet_PHREMD_Explicit::Consolidate(Parallel::Comm const& commIn, int rank
     }
   }
 }
-#endif
+#endif*/

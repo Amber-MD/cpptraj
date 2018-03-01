@@ -112,8 +112,8 @@ const
       for (int idx = 0; idx != (int)OutputSets.size(); idx++) {
         DataSet_pH* out = (DataSet_pH*)OutputSets[idx];
         int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
-        //rprintf("DEBUG: Consolidate set %s to rank %i\n", out->legend(), ensembleRank);
-        out->Consolidate( Parallel::EnsembleComm(), ensembleRank );
+        //rprintf("DEBUG: Reduce set %s to rank %i\n", out->legend(), ensembleRank);
+        out->Reduce( Parallel::EnsembleComm(), ensembleRank );
       }
       // Remove sets that do not belong on this rank
       for (int idx = (int)OutputSets.size() - 1; idx > -1; idx--) {

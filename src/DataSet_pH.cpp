@@ -30,7 +30,7 @@ void DataSet_pH::Info() const {
   mprintf(" (%s %i pH= %.2f)", *(res_.Name()), res_.Num(), solvent_pH_);
 }
 # ifdef MPI
-void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
+void DataSet_pH::Reduce(Parallel::Comm const& commIn, int rank)
 {
   if (commIn.Rank() == rank) {
     /*commIn.Barrier(); // DEBUG

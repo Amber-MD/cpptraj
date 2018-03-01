@@ -17,7 +17,7 @@ class DataSet_PHREMD_Explicit : public DataSet_PHREMD {
     int Append(DataSet*)            { return 1; }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
-    void Consolidate(Parallel::Comm const&, int);
+    //void Reduce(Parallel::Comm const&, int);
 #   endif
     // -------------------------------------------
     typedef Farray::const_iterator ph_iterator;

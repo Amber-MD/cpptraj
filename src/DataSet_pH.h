@@ -19,7 +19,8 @@ class DataSet_pH : public DataSet_1D {
     int Append(DataSet*)            { return 1; }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
-    void Consolidate(Parallel::Comm const&, int);
+    /// Sum data to the specified rank in communicator
+    void Reduce(Parallel::Comm const&, int);
 #   endif
     // ----- DataSet_1D functions ----------------
     double Dval(size_t i)           const { return (double)states_[i];         }
