@@ -95,6 +95,7 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
 {
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
+  mprintf("DEBUG: Adding DataFile for ensemble member %i\n", ensembleNum_);
   FileName fname( nameIn );
   // Append ensemble number if set.
   //rprintf("DEBUG: Setting up data file '%s' with ensembleNum %i\n", nameIn.base(), ensembleNum_);
@@ -172,6 +173,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 {
   // If no filename and stdout not allowed, no output desired.
   if (nameIn.empty() && !allowStdout) return 0;
+  mprintf("DEBUG: Adding CpptrajFile for ensemble member %i\n", ensembleNum_);
   FileName name;
   CpptrajFile* Current = 0;
   int currentIdx = -1;
