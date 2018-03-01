@@ -3,8 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles cphstats.in sorted.pH_*.00 stats.dat frac.agr implicit.sorted.dat \
-           explicit.004.cpout implicit.007.cpout implicit.sorted.2.0.cpout \
-           implicit.stats.2.0.dat implicit.001.cpout smallimplicit.sorted.?.cpout \
+           explicit.004.cpout implicit.001.cpout smallimplicit.sorted.?.cpout \
            smallimplicit.stats.dat
 
 INPUT='-i cphstats.in'
@@ -100,12 +99,9 @@ readdata ExplicitRemd/cpout.004 cpin ExplicitRemd/cpin name PH4
 writedata explicit.004.cpout PH4
 readdata SmallImplicitRemd/run0.cpout.001 cpin SmallImplicitRemd/cpin name PH
 writedata implicit.001.cpout PH
-#readdata ImplicitRemd/pH7/1AKI.dry.md2.cpout cpin ImplicitRemd/1AKI.dry.equil.cpin name PH7
-#writedata implicit.007.cpout PH7
 EOF
 RunCpptraj "$UNITNAME"
 DoTest ExplicitRemd/cpout.004 explicit.004.cpout
-#DoTest ImplicitRemd/pH7/1AKI.dry.md2.cpout implicit.007.cpout -B
 DoTest SmallImplicitRemd/run0.cpout.001 implicit.001.cpout
 
 EndTest
