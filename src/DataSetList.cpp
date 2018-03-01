@@ -683,14 +683,16 @@ int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
       SetsToSync.push_back( *ds );
       size_on_rank.push_back( (*ds)->Size() );
     }
-// DEBUG
-  //for (int rank = 0; rank != commIn.Size(); rank++) {
-  //  if (rank == commIn.Rank())
-  //    for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
-  //      rprintf("SET '%s'\n", (*ds)->legend());
-  //  commIn.Barrier();
-  //}
-// DEBUG END
+# ifdef PARALLEL_DEBUG_VERBOSE
+  // DEBUG
+  rprintf("DEBUG: SYNCING SETS\n");
+  for (int rank = 0; rank != commIn.Size(); rank++) {
+    if (rank == commIn.Rank())
+      for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
+        rprintf("SET '%s'\n", (*ds)->legend());
+    commIn.Barrier();
+  }
+# endif
   std::vector<int> n_on_rank( commIn.Size(), 0 );
   int nSets = (int)SetsToSync.size();
   commIn.AllGather( &nSets, 1, MPI_INT, &n_on_rank[0] );

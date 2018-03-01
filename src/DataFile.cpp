@@ -37,6 +37,9 @@ DataFile::DataFile() :
   dflWrite_(true),
   setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
   sortSets_(false),
+# ifdef MPI
+  isShared_(false),
+# endif
   default_width_(-1),
   default_precision_(0),
   dataio_(0),

@@ -99,8 +99,17 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   FileName fname( nameIn );
   // Append ensemble number if set.
   //rprintf("DEBUG: Setting up data file '%s' with ensembleNum %i\n", nameIn.base(), ensembleNum_);
-  if (ensembleNum_ != -1 && !argIn.hasKey("noensextension"))
-    fname.Append( "." + integerToString(ensembleNum_) );
+# ifdef MPI
+  bool isShared = false;
+# endif
+  if (ensembleNum_ != -1) {
+    if (!argIn.hasKey("noensextension") && ensExt_)
+      fname.Append( "." + integerToString(ensembleNum_) );
+#   ifdef MPI
+    else
+      isShared = true;
+#   endif
+  }
   // Check if filename in use by CpptrajFile.
   CpptrajFile* cf = GetCpptrajFile(fname);
   if (cf != 0) {
@@ -118,6 +127,10 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
       delete Current;
       return 0;
     }
+#   ifdef MPI
+    Current->SetShared( isShared );
+    rprintf("File '%s' shared: %i\n", fname.full(), (int)isShared);
+#   endif
     fileList_.push_back(Current);
   } else {
     // Set debug level

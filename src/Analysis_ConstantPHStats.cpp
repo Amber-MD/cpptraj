@@ -111,6 +111,10 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
 
   // Print some results grouped by residue
   std::sort( Stats_.begin(), Stats_.end(), num_ph_sort() );
+# ifdef MPI
+  DataSetList setsToSync;
+  bool needToSync = false;
+# endif
   int lastRes = -1;
   DataSet_Mesh* fracPlot = 0;
   mprintf("#%-5s %4s %6s %8s %8s %8s\n", "pH", "Name", "Num", "Ntrans", "Nprot", "TotProt");
@@ -125,7 +129,22 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
                                                      MetaData(dsname_, "Frac", PH.Res().Num()));
         if (fracPlot == 0) return Analysis::ERR;
         fracPlot->SetLegend(PH.Res().Name().Truncated() + ":" + integerToString(PH.Res().Num()));
+#       ifdef MPI
+        if (fracPlotOut_ != 0) {
+          if (fracPlotOut_->IsShared()) {
+            needToSync = true;
+            if (Parallel::EnsembleComm().Master())
+              fracPlotOut_->AddDataSet(fracPlot);
+          } else
+            fracPlotOut_->AddDataSet(fracPlot);
+        }
+        if (needToSync) {
+          fracPlot->SetNeedsSync( true );
+          setsToSync.AddCopyOfSet( fracPlot );
+        }
+#       else
         if (fracPlotOut_ != 0) fracPlotOut_->AddDataSet(fracPlot);
+#       endif
       }
     }
 
@@ -139,6 +158,10 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
       fracPlot->AddXY( PH.Solvent_pH(), frac );
     }
   }
+# ifdef MPI
+  if (createFracPlot_)
+    setsToSync.SynchronizeData( Parallel::EnsembleComm() );
+# endif
 
   // Print cphstats-like output, grouped by pH
   if (statsOut_ != 0) {
