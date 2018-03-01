@@ -46,8 +46,10 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
     }
     // If this corresponds to a single file assume this is the lowest member
     // and search for more members.
-    if (fileNames.size() == 1) 
+    if (fileNames.size() == 1) {
+      mprintf("\tAutomatically searching for ensemble members based on filename extension.\n");
       fileNames = File::SearchForReplicas( fileNames[0], State.Debug() );
+    }
   }
   mprintf("\t%zu files.\n", fileNames.size());
   for (File::NameArray::const_iterator it = fileNames.begin(); it != fileNames.end(); ++it)
