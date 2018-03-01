@@ -74,20 +74,6 @@ EOF
 RunCpptraj "$UNITNAME"
 DoTest implicit.sorted.dat.save implicit.sorted.dat
 
-if [ -f 'ImplicitRemd/pH2/1AKI.dry.md2.cpout' ] ; then
-  UNITNAME='Larger implicit pH REMD ensemble data read / sort / stats'
-  cat > cphstats.in <<EOF
-readensembledata ImplicitRemd/pH*/1AKI.dry.md2.cpout \
-                 cpin ImplicitRemd/1AKI.dry.equil.cpin name PH
-sortensembledata PH
-writedata implicit.sorted.2.0.cpout PH[*]%0
-runanalysis cphstats PH[*]%0 statsout implicit.stats.2.0.dat
-EOF
-  RunCpptraj "$UNITNAME"
-  DoTest ImplicitRemd/md2_cpout.pH_2.00.save implicit.sorted.2.0.cpout
-  DoTest implicit.sorted.dat.save implicit.stats.2.0.dat
-fi
-
 UNITNAME='Implicit pH REMD ensemble data read / sort / stats'
 cat > cphstats.in <<EOF
 readensembledata SmallImplicitRemd/run0.cpout.00* cpin SmallImplicitRemd/cpin name PH
