@@ -131,3 +131,22 @@ Exec::RetType Exec_SelectDS::Execute(CpptrajState& State, ArgList& argIn) {
   }
   return CpptrajState::OK;
 }
+// -----------------------------------------------------------------------------
+void Exec_EnsFileExt::Help() const {
+  mprintf("\t{on|off}\n"
+          "  Turn printing of ensemble member number filename extensions on or off.\n");
+}
+
+Exec::RetType Exec_EnsFileExt::Execute(CpptrajState& State, ArgList& argIn) {
+  if        (argIn.hasKey("on" )) {
+    State.DFL().SetEnsExtension(true);
+    mprintf("\tEnsemble member number will be appended to output file names.\n");
+  } else if (argIn.hasKey("off")) {
+    State.DFL().SetEnsExtension(false);
+    mprintf("\tEnsemble member number will not be appended to output file names.\n");
+  } else {
+    mprinterr("Error: Expect 'on' or 'off'\n");
+    return CpptrajState::ERR;
+  }
+  return CpptrajState::OK;
+}
