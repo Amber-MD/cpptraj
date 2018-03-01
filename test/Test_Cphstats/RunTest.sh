@@ -4,7 +4,8 @@
 
 CleanFiles cphstats.in sorted.pH_*.00 stats.dat frac.agr implicit.sorted.dat \
            explicit.004.cpout implicit.007.cpout implicit.sorted.2.0.cpout \
-           implicit.stats.2.0.dat
+           implicit.stats.2.0.dat implicit.001.cpout smallimplicit.sorted.?.cpout \
+           smallimplicit.stats.dat
 
 INPUT='-i cphstats.in'
 TESTNAME='Constant pH stats / data set sort test'
@@ -73,28 +74,53 @@ EOF
 RunCpptraj "$UNITNAME"
 DoTest implicit.sorted.dat.save implicit.sorted.dat
 
-UNITNAME='Implicit pH REMD ensemble data read / sort / stats'
-cat > cphstats.in <<EOF
+if [ -f 'ImplicitRemd/pH2/1AKI.dry.md2.cpout' ] ; then
+  UNITNAME='Larger implicit pH REMD ensemble data read / sort / stats'
+  cat > cphstats.in <<EOF
 readensembledata ImplicitRemd/pH*/1AKI.dry.md2.cpout \
                  cpin ImplicitRemd/1AKI.dry.equil.cpin name PH
 sortensembledata PH
 writedata implicit.sorted.2.0.cpout PH[*]%0
 runanalysis cphstats PH[*]%0 statsout implicit.stats.2.0.dat
 EOF
+  RunCpptraj "$UNITNAME"
+  DoTest ImplicitRemd/md2_cpout.pH_2.00.save implicit.sorted.2.0.cpout
+  DoTest implicit.sorted.dat.save implicit.stats.2.0.dat
+fi
+
+UNITNAME='Implicit pH REMD ensemble data read / sort / stats'
+cat > cphstats.in <<EOF
+readensembledata SmallImplicitRemd/run0.cpout.00* cpin SmallImplicitRemd/cpin name PH
+sortensembledata PH
+
+writedata smallimplicit.sorted.0.cpout noensextension PH[*]%0
+#writedata temp.dat noensextension PH[*]%0 xmin 0 xstep 1
+writedata smallimplicit.sorted.1.cpout noensextension PH[*]%1
+writedata smallimplicit.sorted.2.cpout noensextension PH[*]%2
+writedata smallimplicit.sorted.3.cpout noensextension PH[*]%3
+
+cphstats PH[*] statsout smallimplicit.stats.dat
+EOF
 RunCpptraj "$UNITNAME"
-DoTest ImplicitRemd/md2_cpout.pH_2.00.save implicit.sorted.2.0.cpout
-DoTest implicit.sorted.dat.save implicit.stats.2.0.dat
+DoTest smallimplicit.sorted.0.cpout.save smallimplicit.sorted.0.cpout
+DoTest smallimplicit.sorted.1.cpout.save smallimplicit.sorted.1.cpout
+DoTest smallimplicit.sorted.2.cpout.save smallimplicit.sorted.2.cpout
+DoTest smallimplicit.sorted.3.cpout.save smallimplicit.sorted.3.cpout
+DoTest smallimplicit.stats.dat.save smallimplicit.stats.dat
 
 UNITNAME='Unsorted pH read/write test'
 cat > cphstats.in <<EOF
 readdata ExplicitRemd/cpout.004 cpin ExplicitRemd/cpin name PH4
 writedata explicit.004.cpout PH4
-readdata ImplicitRemd/pH7/1AKI.dry.md2.cpout cpin ImplicitRemd/1AKI.dry.equil.cpin name PH7
-writedata implicit.007.cpout PH7
+readdata SmallImplicitRemd/run0.cpout.001 cpin SmallImplicitRemd/cpin name PH
+writedata implicit.001.cpout PH
+#readdata ImplicitRemd/pH7/1AKI.dry.md2.cpout cpin ImplicitRemd/1AKI.dry.equil.cpin name PH7
+#writedata implicit.007.cpout PH7
 EOF
 RunCpptraj "$UNITNAME"
 DoTest ExplicitRemd/cpout.004 explicit.004.cpout
-DoTest ImplicitRemd/pH7/1AKI.dry.md2.cpout implicit.007.cpout -B
+#DoTest ImplicitRemd/pH7/1AKI.dry.md2.cpout implicit.007.cpout -B
+DoTest SmallImplicitRemd/run0.cpout.001 implicit.001.cpout
 
 EndTest
 exit 0
