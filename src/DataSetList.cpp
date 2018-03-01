@@ -626,7 +626,7 @@ void DataSetList::PrintList(DataListType const& dlist) {
   }
 # ifdef MPI
   // Print sets from remaining ranks.
-  if (!Parallel::EnsembleComm().IsNull()) {
+  if (Parallel::EnsembleIsSetup()) {
     Parallel::EnsembleComm().Barrier();
     for (int rank = 1; rank < Parallel::EnsembleComm().Size(); rank++) {
       if (rank == Parallel::EnsembleComm().Rank() && Parallel::TrajComm().Master()) {

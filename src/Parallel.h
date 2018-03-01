@@ -57,6 +57,8 @@ class Parallel {
     static void Lock();
     /// \return Across-ensemble communicator; includes trajectory comm. masters.
     static Comm const& EnsembleComm()   { return ensembleComm_;   }
+    /// \return True if comms have been set up for a specific number of groups.
+    static bool EnsembleIsSetup()       { return ensemble_size_ > -1; }
     /// \return total ensemble size.
     static int Ensemble_Size()          { return ensemble_size_;  }
     /// \return First ensemble member this thread is responsible for.

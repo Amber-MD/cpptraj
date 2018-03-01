@@ -451,7 +451,7 @@ Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   int err = 0;
 # ifdef MPI
   // For now, require ensemble mode in parallel.
-  if (Parallel::EnsembleComm().IsNull()) {
+  if (!Parallel::EnsembleIsSetup()) {
     rprinterr("Error: Data set ensemble sort requires ensemble mode in parallel.\n");
     return CpptrajState::ERR;
   }

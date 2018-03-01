@@ -138,12 +138,9 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     ensemble_size_ = -1;
     ensemble_beg_ = -1;
     ensemble_end_ = -1;
-    // trajComm_ will contain all threads, ensembleComm_ will only contain world master.
+    // Equivalent to ngroups 1 
     trajComm_ = world_.Split( 0 );
-    int color = MPI_UNDEFINED;
-    if (world_.Master())
-      color = 0;
-    ensembleComm_ = world_.Split( color );
+    ensembleComm_ = world_.Split( 0 );
   } else if (ensemble_size_ > -1) {
     // If comms were previously set up make sure the number of groups remains the same!
     if (ensemble_size_ != ngroups) {
@@ -572,8 +569,8 @@ int Parallel::File::Fwrite(const void* buffer, int count, MPI_Datatype datatype)
   dbgprintf("Calling MPI write(%i):\n",count);
 # endif
   // NOTE: Some MPI implementations require the void* cast
-  //int err = MPI_File_write( file_, (void*)buffer, count, datatype, &status);
-  int err = MPI_File_write_shared( file_, (void*)buffer, count, datatype, &status);
+  int err = MPI_File_write( file_, (void*)buffer, count, datatype, &status);
+  //int err = MPI_File_write_shared( file_, (void*)buffer, count, datatype, &status);
   if (err != MPI_SUCCESS) {
     printMPIerr(err, "parallel_fwrite", comm_.Rank());
     return 1;

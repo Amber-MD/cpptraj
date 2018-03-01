@@ -28,7 +28,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   // Set up replica file names.
 # ifdef MPI
   int err = 0;
-  if (!Parallel::EnsembleComm().IsNull())
+  if (Parallel::EnsembleIsSetup())
     err = REMDtraj_.SetupReplicaFilenames( tnameIn, argIn, Parallel::EnsembleComm(),
                                            Parallel::TrajComm() );
   else {
@@ -42,14 +42,14 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
 # endif
   // Set up TrajectoryIO classes for all file names.
 # ifdef MPI
-  if (!Parallel::EnsembleComm().IsNull())
+  if (Parallel::EnsembleIsSetup())
     err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm(),
                                  Parallel::EnsembleComm(), Parallel::TrajComm() );
   else
     err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm());
   if (Parallel::World().CheckError( err )) return 1;
   // Set up communicators if not already done
-  if (Parallel::EnsembleComm().IsNull()) {
+  if (!Parallel::EnsembleIsSetup()) {
     if (Parallel::SetupComms( REMDtraj_.size() )) return 1;
   } else
     mprintf("\tAll ranks set up total of %zu replicas.\n", REMDtraj_.size());
