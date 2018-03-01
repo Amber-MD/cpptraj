@@ -140,7 +140,7 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     ensemble_end_ = -1;
     // Equivalent to ngroups 1 
     trajComm_ = world_.Split( 0 );
-    ensembleComm_ = world_.Split( 0 );
+    ensembleComm_ = world_.Split( world_.Rank() % trajComm_.Size() );
   } else if (ensemble_size_ > -1) {
     // If comms were previously set up make sure the number of groups remains the same!
     if (ensemble_size_ != ngroups) {

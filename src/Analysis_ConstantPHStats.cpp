@@ -147,8 +147,19 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
     bool write_pH = true;
     unsigned int tot_prot = 0;
 #   ifdef MPI
-    // Each rank dumps its stats in turn
-    for (int rank = 0; rank != Parallel::EnsembleComm().Size(); ++rank) {
+    // If shared, each rank dumps its stats in turn. Otherwise writing
+    // to separate files.
+    int startRank, stopRank;
+    if (statsOut_->IOtype() == CpptrajFile::MPIFILE) {
+      rprintf("DEBUG: statsOut is shared.\n");
+      startRank = 0;
+      stopRank = Parallel::EnsembleComm().Size();
+    } else {
+      rprintf("DEBUG: statsOut is NOT shared.\n");
+      startRank = Parallel::EnsembleComm().Rank();
+      stopRank = startRank + 1;
+    }
+    for (int rank = startRank; rank != stopRank; ++rank) {
       if (rank == Parallel::EnsembleComm().Rank()) {
         rprintf("DEBUG: Rank %i write statsOut\n", rank);
 #   endif
