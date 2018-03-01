@@ -267,6 +267,10 @@ File::NameArray File::ExpandToFilenames(std::string const& fnameArg) {
   */
 File::NameArray File::SearchForReplicas(FileName const& fname, int debug) {
   NameArray replica_filenames;
+  if (!File::Exists(fname)) {
+    mprinterr("Error: '%s' does not correspond to a file.\n", fname.full());
+    return replica_filenames;
+  }
   RepName repName(fname, debug);
   if (repName.Error()) return replica_filenames;
   // Search for a replica number lower than this. Correct functioning
