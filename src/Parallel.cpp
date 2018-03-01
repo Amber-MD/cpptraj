@@ -510,8 +510,13 @@ int Parallel::File::OpenFile(const char* filename, const char* mode, Comm const&
   return 0;
 }
 
-/** Flush the file. */
-int Parallel::File::Flush() { return MPI_File_sync( file_ ); }
+/** Flush the file. Advance shared file pointer to end. */
+int Parallel::File::Flush() {
+  int err = 0;
+  err += MPI_File_sync( file_ );
+  err += MPI_File_seek( file_, 0, MPI_SEEK_END );
+  return err;
+}
 
 /** \return the position of this rank in the file. */
 off_t Parallel::File::Position() {
@@ -570,7 +575,6 @@ int Parallel::File::Fwrite(const void* buffer, int count, MPI_Datatype datatype)
 # endif
   // NOTE: Some MPI implementations require the void* cast
   int err = MPI_File_write( file_, (void*)buffer, count, datatype, &status);
-  //int err = MPI_File_write_shared( file_, (void*)buffer, count, datatype, &status);
   if (err != MPI_SUCCESS) {
     printMPIerr(err, "parallel_fwrite", comm_.Rank());
     return 1;

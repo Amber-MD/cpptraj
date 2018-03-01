@@ -186,6 +186,8 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
     } // END loop over Stats_
 #   ifdef MPI
       }
+      // This ensures file pointer is correctly positioned for next rank to write.
+      statsOut_->Flush();
       Parallel::EnsembleComm().Barrier();
     } // END loop over ranks
 #   endif
