@@ -159,6 +159,7 @@ class Parallel::File {
     int CloseFile();
     int Fread(void*, int, MPI_Datatype);
     int Fwrite(const void*, int, MPI_Datatype);
+    int Fwrite_shared(const void*, int, MPI_Datatype);
     int Fseek(off_t, int);
     char* Fgets(char*, int);
     int SetSize(long int);

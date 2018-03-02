@@ -268,6 +268,7 @@ Exec_ViewRst.o : Exec_ViewRst.cpp Action.h ActionFrameCounter.h ActionList.h Act
 FileIO_Bzip2.o : FileIO_Bzip2.cpp CpptrajStdio.h FileIO.h FileIO_Bzip2.h
 FileIO_Gzip.o : FileIO_Gzip.cpp CpptrajStdio.h FileIO.h FileIO_Gzip.h
 FileIO_Mpi.o : FileIO_Mpi.cpp FileIO.h FileIO_Mpi.h Parallel.h
+FileIO_MpiShared.o : FileIO_MpiShared.cpp FileIO.h FileIO_Mpi.h FileIO_MpiShared.h Parallel.h
 FileIO_Std.o : FileIO_Std.cpp FileIO.h FileIO_Std.h
 FileName.o : FileName.cpp CpptrajStdio.h FileName.h StringRoutines.h
 FileTypes.o : FileTypes.cpp ArgList.h BaseIOtype.h CpptrajStdio.h FileTypes.h

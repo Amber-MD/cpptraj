@@ -514,7 +514,7 @@ int Parallel::File::OpenFile(const char* filename, const char* mode, Comm const&
 int Parallel::File::Flush() {
   int err = 0;
   err += MPI_File_sync( file_ );
-  err += MPI_File_seek( file_, 0, MPI_SEEK_END );
+  //err += MPI_File_seek( file_, 0, MPI_SEEK_END );
   return err;
 }
 
@@ -575,6 +575,23 @@ int Parallel::File::Fwrite(const void* buffer, int count, MPI_Datatype datatype)
 # endif
   // NOTE: Some MPI implementations require the void* cast
   int err = MPI_File_write( file_, (void*)buffer, count, datatype, &status);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "parallel_fwrite", comm_.Rank());
+    return 1;
+  }
+  return 0;
+}
+
+/** Write data in parallel using shared file pointer. */
+int Parallel::File::Fwrite_shared(const void* buffer, int count, MPI_Datatype datatype) {
+  MPI_Status status;
+# ifdef PARALLEL_DEBUG_VERBOSE
+  //const char* temp = (const char*)buffer;
+  //dbgprintf("Calling MPI write(%i): [%s]\n",count,temp);
+  dbgprintf("Calling MPI write(%i):\n",count);
+# endif
+  // NOTE: Some MPI implementations require the void* cast
+  int err = MPI_File_write_shared( file_, (void*)buffer, count, datatype, &status);
   if (err != MPI_SUCCESS) {
     printMPIerr(err, "parallel_fwrite", comm_.Rank());
     return 1;

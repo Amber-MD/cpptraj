@@ -270,6 +270,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
+        FileIO_MpiShared.cpp \
         FileIO_Std.cpp \
         FileName.cpp \
         FileTypes.cpp \
