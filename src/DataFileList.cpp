@@ -8,7 +8,15 @@
 #endif
 
 // CONSTRUCTOR
-DataFileList::DataFileList() : debug_(0), ensembleNum_(-1), ensExt_(true) {}
+DataFileList::DataFileList() :
+  debug_(0),
+  ensembleNum_(-1),
+# ifdef MPI
+  ensembleExt_(true)
+# else
+  ensembleExt_(false)
+# endif
+{}
 
 // DESTRUCTOR
 DataFileList::~DataFileList() { Clear(); }
@@ -99,17 +107,6 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   FileName fname( nameIn );
   // Append ensemble number if set.
   //rprintf("DEBUG: Setting up data file '%s' with ensembleNum %i\n", nameIn.base(), ensembleNum_);
-# ifdef MPI
-  bool isShared = false;
-# endif
-  if (ensembleNum_ != -1) {
-    if (!argIn.hasKey("noensextension") && ensExt_)
-      fname.Append( "." + integerToString(ensembleNum_) );
-#   ifdef MPI
-    else
-      isShared = true;
-#   endif
-  }
   // Check if filename in use by CpptrajFile.
   CpptrajFile* cf = GetCpptrajFile(fname);
   if (cf != 0) {
@@ -122,15 +119,12 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   // If no DataFile associated with name, create new DataFile
   if (Current==0) {
     Current = new DataFile();
+    Current->SetEnsExt( ensembleExt_ );
     if (Current->SetupDatafile(fname, argIn, typeIn, debug_)) {
       mprinterr("Error: Setting up data file %s\n", fname.full());
       delete Current;
       return 0;
     }
-#   ifdef MPI
-    Current->SetShared( isShared );
-    rprintf("File '%s' shared: %i\n", fname.full(), (int)isShared);
-#   endif
     fileList_.push_back(Current);
   } else {
     // Set debug level
@@ -193,7 +187,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
   if (!nameIn.empty()) {
     name = nameIn;
     // Append ensemble number if set.
-    if (ensembleNum_ != -1 && ensExt_)
+    if (ensembleNum_ != -1 && ensembleExt_)
       name.Append( "." + integerToString(ensembleNum_) );
     // Check if filename in use by DataFile.
     DataFile* df = GetDataFile(name);
@@ -217,7 +211,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     //if (Current->SetupWrite( name, debug_ ))
 #   ifdef MPI
     int err = 0;
-    if (ensembleNum_ != -1 && !ensExt_) {
+    if (ensembleNum_ != -1 && !ensembleExt_) {
       Current->SetupWrite( name, 10 );
       err = Current->ParallelOpenFile(Parallel::EnsembleComm());
     } else
