@@ -75,7 +75,24 @@ RunCpptraj "$UNITNAME"
 DoTest implicit.sorted.dat.save implicit.sorted.dat
 
 UNITNAME='Implicit pH REMD ensemble data read / sort / stats'
-cat > cphstats.in <<EOF
+SKIP='no'
+if [ ! -z $N_THREADS ] ; then
+  if [ $N_THREADS -lt 5 ] ; then
+    if [ $N_THREADS -eq 3 ] ; then
+      echo "  $UNITNAME cannot be run with 3 threads."
+      ((CHECKERR++))
+      SkipCheck "$UNITNAME"
+      SKIP='yes'
+    fi
+  else
+    CheckFor nthreads 4
+    if [ $? -eq 1 ] ; then
+      SKIP='yes'
+    fi
+  fi
+fi
+if [ "$SKIP" = 'no' ] ; then
+  cat > cphstats.in <<EOF
 readensembledata SmallImplicitRemd/run0.cpout.00* cpin SmallImplicitRemd/cpin name PH
 sortensembledata PH
 
@@ -88,12 +105,13 @@ writedata smallimplicit.sorted.3.cpout noensextension PH[*]%3
 ensextension off
 cphstats PH[*] statsout smallimplicit.stats.dat
 EOF
-RunCpptraj "$UNITNAME"
-DoTest smallimplicit.sorted.0.cpout.save smallimplicit.sorted.0.cpout
-DoTest smallimplicit.sorted.1.cpout.save smallimplicit.sorted.1.cpout
-DoTest smallimplicit.sorted.2.cpout.save smallimplicit.sorted.2.cpout
-DoTest smallimplicit.sorted.3.cpout.save smallimplicit.sorted.3.cpout
-DoTest smallimplicit.stats.dat.save smallimplicit.stats.dat
+  RunCpptraj "$UNITNAME"
+  DoTest smallimplicit.sorted.0.cpout.save smallimplicit.sorted.0.cpout
+  DoTest smallimplicit.sorted.1.cpout.save smallimplicit.sorted.1.cpout
+  DoTest smallimplicit.sorted.2.cpout.save smallimplicit.sorted.2.cpout
+  DoTest smallimplicit.sorted.3.cpout.save smallimplicit.sorted.3.cpout
+  DoTest smallimplicit.stats.dat.save smallimplicit.stats.dat
+fi
 
 UNITNAME='Unsorted pH read/write test'
 cat > cphstats.in <<EOF
