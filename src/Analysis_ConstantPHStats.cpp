@@ -80,7 +80,6 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
 
 // Analysis_ConstantPHStats::Analyze()
 Analysis::RetType Analysis_ConstantPHStats::Analyze() {
-  rprintf("DEBUG: Entering Analysis_ConstantPHStats::Analyze()\n");
   // Loop over all data sets
   for (DataSetList::const_iterator ds = inputSets_.begin(); ds != inputSets_.end(); ++ds)
   {
@@ -177,50 +176,47 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
     // to separate files.
     int startRank, stopRank;
     if (statsOut_->IsMPI()) {
-      rprintf("DEBUG: statsOut is shared.\n");
       startRank = 0;
       stopRank = Parallel::EnsembleComm().Size();
     } else {
-      rprintf("DEBUG: statsOut is NOT shared.\n");
       startRank = Parallel::EnsembleComm().Rank();
       stopRank = startRank + 1;
     }
     for (int rank = startRank; rank != stopRank; ++rank) {
       if (rank == Parallel::EnsembleComm().Rank()) {
-        rprintf("DEBUG: Rank %i write statsOut\n", rank);
 #   endif
-    for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
-    {
-      if (write_pH) {
-        current_pH = stat->ds_->Solvent_pH();
-        statsOut_->Printf("Solvent pH is %8.3f\n", current_pH);
-        write_pH = false;
-        tot_prot = 0;
-      }
-      statsOut_->Printf("%3s %-4i", stat->ds_->Res().Name().Truncated().c_str(),
-                        stat->ds_->Res().Num());
-      double dsize = (double)stat->nframes_;
-      double dnprot = (double)stat->n_prot_;
-      if (dnprot > 0.0) {
-        double pKa = (double)current_pH - log10( (dsize - dnprot) / dnprot );
-        double offset = pKa - current_pH;
-        statsOut_->Printf(": Offset %6.3f", offset);
-        statsOut_->Printf("  Pred %6.3f", pKa);
-      } else {
-        statsOut_->Printf(": Offset %6s", "inf");
-        statsOut_->Printf("  Pred %6s", "inf");
-      }
-      statsOut_->Printf("  Frac Prot %5.3f", dnprot / dsize);
-      statsOut_->Printf(" Transitions %9i\n", stat->n_transitions_);
-      tot_prot += stat->tot_prot_;
+        for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
+        {
+          if (write_pH) {
+            current_pH = stat->ds_->Solvent_pH();
+            statsOut_->Printf("Solvent pH is %8.3f\n", current_pH);
+            write_pH = false;
+            tot_prot = 0;
+          }
+          statsOut_->Printf("%3s %-4i", stat->ds_->Res().Name().Truncated().c_str(),
+                            stat->ds_->Res().Num());
+          double dsize = (double)stat->nframes_;
+          double dnprot = (double)stat->n_prot_;
+          if (dnprot > 0.0) {
+            double pKa = (double)current_pH - log10( (dsize - dnprot) / dnprot );
+            double offset = pKa - current_pH;
+            statsOut_->Printf(": Offset %6.3f", offset);
+            statsOut_->Printf("  Pred %6.3f", pKa);
+          } else {
+            statsOut_->Printf(": Offset %6s", "inf");
+            statsOut_->Printf("  Pred %6s", "inf");
+          }
+          statsOut_->Printf("  Frac Prot %5.3f", dnprot / dsize);
+          statsOut_->Printf(" Transitions %9i\n", stat->n_transitions_);
+          tot_prot += stat->tot_prot_;
 
-      Rarray::const_iterator next = stat + 1;
-      if (next == Stats_.end() || next->ds_->Solvent_pH() > current_pH) {
-        write_pH = true;
-        statsOut_->Printf("\nAverage total molecular protonation: %7.3f\n",
-                         (double)tot_prot / dsize);
-      }
-    } // END loop over Stats_
+          Rarray::const_iterator next = stat + 1;
+          if (next == Stats_.end() || next->ds_->Solvent_pH() > current_pH) {
+            write_pH = true;
+            statsOut_->Printf("\nAverage total molecular protonation: %7.3f\n",
+                             (double)tot_prot / dsize);
+          }
+        } // END loop over Stats_
 #   ifdef MPI
       }
       // Hold up before next rank writes. 
