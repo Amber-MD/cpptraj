@@ -57,7 +57,8 @@ readdata sorted.pH_4.00.save separate cpin \$CPIN name PH4
 readdata sorted.pH_5.00.save separate cpin \$CPIN name PH5
 readdata sorted.pH_6.00.save separate cpin \$CPIN name PH6
 list datasets
-#runanalysis cphstats PH[*] statsout stats.dat fracplot fracplotout frac.agr deprot
+
+ensextension off
 runanalysis cphstats PH*[*] statsout stats.dat fracplot fracplotout frac.agr deprot
 list dataset
 EOF
@@ -84,6 +85,7 @@ writedata smallimplicit.sorted.1.cpout noensextension PH[*]%1
 writedata smallimplicit.sorted.2.cpout noensextension PH[*]%2
 writedata smallimplicit.sorted.3.cpout noensextension PH[*]%3
 
+ensextension off
 cphstats PH[*] statsout smallimplicit.stats.dat
 EOF
 RunCpptraj "$UNITNAME"
