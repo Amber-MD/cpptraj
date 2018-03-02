@@ -73,10 +73,15 @@ class DataFile {
     void SetDFLwrite(bool fIn)           { dflWrite_ = fIn;  }
     /// Specify whether ensemble member number extension should be used.
     void SetEnsExt(bool b)               { ensExt_ = b;      }
+    /// \return True if ensemble member number extension will be used.
+    bool EnsExt()                  const { return ensExt_;   }
     /// \return True if DataFile needs to be written.
     bool DFLwrite()                const { return dflWrite_; }
     /// \return DataFile format type.
     DataFormatType Type()          const { return dfType_;   }
+#   ifdef MPI
+    void SetThreadCanWrite(bool b)       { threadCanWrite_ = b; }
+#   endif
   private:
     static DataIO* DetectFormat(FileName const&, DataFormatType&);
     int WriteSetsToFile(FileName const&, DataSetList&);
@@ -90,6 +95,9 @@ class DataFile {
     bool setDataSetPrecision_; ///< True: set default precision of incoming DataSets.
     bool sortSets_;            ///< True: Sort sets before write.
     bool ensExt_;              ///< If true append ensemble member number to file
+#   ifdef MPI
+    bool threadCanWrite_;      ///< True if thread is writing to this file.
+#   endif
     int default_width_;        ///< Default width of data sets added to this file.
     int default_precision_;    ///< Default precision of data sets added to this file.
     DataSetList SetList_;      ///< Array of pointers to associated DataSets.

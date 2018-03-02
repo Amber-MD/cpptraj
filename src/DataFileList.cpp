@@ -213,7 +213,8 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     int err = 0;
     if (ensembleNum_ != -1 && !ensembleExt_) {
       Current->SetupWrite( name, 10 );
-      err = Current->ParallelOpenFile(Parallel::EnsembleComm());
+      // true means open for shared write
+      err = Current->ParallelOpenFile(Parallel::EnsembleComm(), true);
     } else
       err = Current->OpenWrite( name );
     if (err != 0)

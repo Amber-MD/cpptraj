@@ -243,6 +243,7 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn, int debugIn
   return SetupDatafile(fnameIn, argIn, UNKNOWN_DATA, debugIn);
 }
 
+// DataFile::SetupDatafile()
 int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
                             DataFormatType typeIn, int debugIn)
 {
@@ -259,6 +260,10 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   // Set up DataIO based on format.
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+# ifdef MPI
+  // Default to TrajComm master can write.
+  threadCanWrite_ = Parallel::TrajComm().Master();
+# endif
   if (!argIn.empty())
     ProcessArgs( argIn );
   return 0;
@@ -524,9 +529,9 @@ int DataFile::WriteNoEnsExtension() {
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
 # ifdef MPI
-  if (!Parallel::TrajComm().Master()) {
+  if (!threadCanWrite_) {
     if (debug_ > 0)
-      rprintf("DEBUG: Not a trajectory master: skipping data file write on this rank.\n");
+      rprintf("DEBUG: Thread will not write file '%s'.\n", DataFilename().full());
   } else {
 # endif
     if (debug_ > 0)

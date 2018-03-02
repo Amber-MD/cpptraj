@@ -31,6 +31,10 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
   if (createFracPlot_) {
     fracPlotOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("fracplotout") );
     fracPlotOut_->ProcessArgs("xlabel pH ylabel \"Frac. " + std::string(FRACSTR_) + "\"");
+#   ifdef MPI
+    if (!fracPlotOut_->EnsExt())
+      fracPlotOut_->SetThreadCanWrite( Parallel::EnsembleComm().Master() );
+#   endif
   }
   // Get DataSets
   DataSetList tempDSL;
@@ -131,10 +135,9 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
         fracPlot->SetLegend(PH.Res().Name().Truncated() + ":" + integerToString(PH.Res().Num()));
 #       ifdef MPI
         if (fracPlotOut_ != 0) {
-          if (fracPlotOut_->IsShared()) {
+          if (!fracPlotOut_->EnsExt()) {
             needToSync = true;
-            if (Parallel::EnsembleComm().Master())
-              fracPlotOut_->AddDataSet(fracPlot);
+            fracPlotOut_->AddDataSet(fracPlot);
           } else
             fracPlotOut_->AddDataSet(fracPlot);
         }
@@ -173,7 +176,7 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
     // If shared, each rank dumps its stats in turn. Otherwise writing
     // to separate files.
     int startRank, stopRank;
-    if (statsOut_->IOtype() == CpptrajFile::MPIFILE) {
+    if (statsOut_->IsMPI()) {
       rprintf("DEBUG: statsOut is shared.\n");
       startRank = 0;
       stopRank = Parallel::EnsembleComm().Size();
@@ -220,45 +223,11 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
     } // END loop over Stats_
 #   ifdef MPI
       }
-      // This ensures file pointer is correctly positioned for next rank to write.
-      statsOut_->Flush();
+      // Hold up before next rank writes. 
       Parallel::EnsembleComm().Barrier();
     } // END loop over ranks
 #   endif
   } // END if statsOut_ != 0
     
-/*
-# ifdef MPI
-  // For doing things like pH plots gather all data to a single thread.
-  if (!Parallel::EnsembleComm().IsNull() && Parallel::EnsembleComm().Size() > 1)
-  {
-    if (Parallel::EnsembleComm().Master() {
-      std::vector<int> Nstats_on_thread( Parallel::EnsembleComm().Size() );
-      Parallel::EnsembleComm().GatherMaster( &nstats, 1, MPI_INT, &Nstats_on_thread[0] );
-
-    } else {
-      // Not ensemble master. Send master how many stats I have.
-      Parallel::EnsembleComm().GatherMaster( &nstats, 1, MPI_INT, 0 );
-      // Send master each stat.
-      for (StatMap::const_iterator res_map = Stats.begin(); res_map != Stats.end(); ++res_map)
-      {
-        //int resnum = res_map->first;
-        for (PHresMap::const_iterator ph_res = res_map->second.begin();
-                                      ph_res != res_map->second.end(); ++ph_res)
-        {
-          float ph = 
-          ResStat const& stat = ph_res->second;
-  */
-
-  // Create a titration curve for each residue.
-          
-
   return Analysis::OK;
 }
-// =============================================================================
-/*
-bool Analysis_ConstantPHStats::ResStat::operator==(const ResStat& rhs) const {
-  float diff = pH_ - rhs.pH_;
-  if (diff < 0.0) diff = -diff;
-  return (diff < Constants::SMALL);
-}*/

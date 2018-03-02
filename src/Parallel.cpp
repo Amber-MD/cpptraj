@@ -510,12 +510,9 @@ int Parallel::File::OpenFile(const char* filename, const char* mode, Comm const&
   return 0;
 }
 
-/** Flush the file. Advance shared file pointer to end. */
+/** Flush the file. */
 int Parallel::File::Flush() {
-  int err = 0;
-  err += MPI_File_sync( file_ );
-  //err += MPI_File_seek( file_, 0, MPI_SEEK_END );
-  return err;
+  return MPI_File_sync( file_ );
 }
 
 /** \return the position of this rank in the file. */

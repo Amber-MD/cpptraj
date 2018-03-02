@@ -10,7 +10,7 @@ class CpptrajFile {
   public:
     enum AccessType   { READ=0, WRITE, APPEND, UPDATE };
     enum CompressType { NO_COMPRESSION=0, GZIP, BZIP2, ZIP };
-    enum FileType { UNKNOWN_TYPE=0, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE };
+    enum FileType { UNKNOWN_TYPE=0, STANDARD, GZIPFILE, BZIP2FILE, ZIPFILE, MPIFILE, MPISHARED };
 
     CpptrajFile();
     virtual ~CpptrajFile(); // Virtual since class is inherited
@@ -51,12 +51,17 @@ class CpptrajFile {
     int SetupAppend(FileName const&, int);
     // -------------------------------------------
 #   ifdef MPI
-    int ParallelOpenFile(AccessType, Parallel::Comm const&);
+    bool IsMPI() const { return (fileType_ == MPIFILE || fileType_ == MPISHARED); }
+    int ParallelOpenFile(AccessType, Parallel::Comm const&, bool);
+    int ParallelOpenFile(AccessType t, Parallel::Comm const& c) {
+      return ParallelOpenFile(t, c, false); //  Default to no shared write
+    }
     int ParallelOpenFile(Parallel::Comm const& c) { return ParallelOpenFile(access_, c); }
+    int ParallelOpenFile(Parallel::Comm const& c, bool b) {
+      return ParallelOpenFile(access_, c, b);
+    }
     // -------------------------------------------
 #   endif
-    /// \return File IO type
-    FileType IOtype()           const { return fileType_;             }
     /// \return the access file is currently set up for.
     AccessType Access()         const { return access_;               }
     /// \return the compression type
