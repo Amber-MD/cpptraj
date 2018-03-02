@@ -93,7 +93,10 @@ if [ ! -z $N_THREADS ] ; then
 fi
 if [ "$SKIP" = 'no' ] ; then
   cat > cphstats.in <<EOF
-readensembledata SmallImplicitRemd/run0.cpout.00* cpin SmallImplicitRemd/cpin name PH
+#readensembledata SmallImplicitRemd/run0.cpout.00* cpin SmallImplicitRemd/cpin name PH
+# FIXME wildcard matching does not work on windows
+readensembledata SmallImplicitRemd/run0.cpout.000 filenames SmallImplicitRemd/run0.cpout.001,SmallImplicitRemd/run0.cpout.002,SmallImplicitRemd/run0.cpout.003 cpin SmallImplicitRemd/cpin name PH
+
 sortensembledata PH
 
 writedata smallimplicit.sorted.0.cpout noensextension PH[*]%0
