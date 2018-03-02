@@ -32,6 +32,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <functional>
 
 // original file: ../src/fftw_wrapper.h
 
