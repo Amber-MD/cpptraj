@@ -3,6 +3,10 @@
 FEEDSTOCK_ROOT=$(cd "$(dirname "$0")/../"; pwd;)
 DOCKER_IMAGE=hainm/pytraj-build-box:17.0
 
+# not clone pytraj inside the docker image
+# https://githubengineering.com/crypto-removal-notice/
+git clone http://github.com/amber-md/pytraj
+
 docker info
 cat << EOF | docker run -i \
                         -v ${FEEDSTOCK_ROOT}:/cpptraj \
@@ -13,7 +17,6 @@ cat << EOF | docker run -i \
 
 set -x
 cd /cpptraj/
-git clone http://github.com/amber-md/pytraj
 
 bash configure -shared -openmp gnu
 make libcpptraj -j4
