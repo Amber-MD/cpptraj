@@ -10,14 +10,15 @@ cat << EOF | docker run -i \
                         ${DOCKER_IMAGE}\
                         bash || exit $?
 
+
 set -x
 cd /cpptraj/
+git clone https://github.com/amber-md/pytraj
 
 bash configure -shared -openmp gnu
 make libcpptraj -j4
 export CPPTRAJHOME=/cpptraj
 
-git clone https://github.com/amber-md/pytraj
 cd pytraj
 /opt/python/cp35-cp35m/bin/python setup.py install
 # make sure we can run very simple test
