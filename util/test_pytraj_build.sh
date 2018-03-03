@@ -13,7 +13,7 @@ cat << EOF | docker run -i \
 
 set -x
 cd /cpptraj/
-git clone https://github.com/amber-md/pytraj
+git clone http://github.com/amber-md/pytraj
 
 bash configure -shared -openmp gnu
 make libcpptraj -j4
