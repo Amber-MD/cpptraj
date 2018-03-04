@@ -17,7 +17,11 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
 {
   debug_ = debugIn;
   statsOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("statsout"), 
-                                         "Constant pH stats", DataFileList::TEXT);
+                                         "Constant pH stats", DataFileList::TEXT, false
+#                                        ifdef MPI
+                                         , Parallel::MasterComm()
+#                                        endif
+                                        );
   dsname_ = analyzeArgs.GetStringKey("name");
   if (dsname_.empty())
     dsname_ = setup.DSL().GenerateDefaultName("CPH");

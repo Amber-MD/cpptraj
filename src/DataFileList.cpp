@@ -169,23 +169,52 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
                                           std::string const& descrip, CFtype typeIn)
 { return AddCpptrajFile(nameIn, descrip, typeIn, false); }
 
+#ifdef MPI
+CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn, 
+                                          std::string const& descrip,
+                                          CFtype typeIn, bool allowStdout)
+{
+  return AddCpptrajFile(nameIn, descrip, typeIn, allowStdout, Parallel::Comm());
+}
+#endif
+
 /** Create new CpptrajFile of the given type, or return existing CpptrajFile.
   * STDOUT will be used if name is empty and STDOUT is allowed.
   */
 // TODO: Accept const ArgList so arguments are not reset?
 CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn, 
                                           std::string const& descrip,
-                                          CFtype typeIn, bool allowStdout)
+                                          CFtype typeIn, bool allowStdout
+#                                         ifdef MPI
+                                          , Parallel::Comm const& commIn
+#                                         endif
+                                         )
 {
   // If no filename and stdout not allowed, no output desired.
   if (nameIn.empty() && !allowStdout) return 0;
   FileName name;
   CpptrajFile* Current = 0;
   int currentIdx = -1;
+# ifdef MPI
+  bool openShared = false;
+# endif
   if (!nameIn.empty()) {
     name = nameIn;
+    bool appendEnsNum = (ensembleNum_ != -1 && ensembleExt_);
+#   ifdef MPI
+    // If not appending ensemble number (i.e. file is shared) make sure
+    // comm is valid.
+    if (!appendEnsNum) {
+      openShared = true;
+      if (commIn.IsNull()) {
+        mprintf("Warning: Shared write not supported for '%s'. Appending ensemble number.\n");
+        openShared = false;
+        appendEnsNum = true;
+      }
+    }
+#   endif
     // Append ensemble number if set.
-    if (ensembleNum_ != -1 && ensembleExt_)
+    if (appendEnsNum)
       name.Append( "." + integerToString(ensembleNum_) );
     // Check if filename in use by DataFile.
     DataFile* df = GetDataFile(name);
@@ -209,10 +238,11 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     //if (Current->SetupWrite( name, debug_ ))
 #   ifdef MPI
     int err = 0;
-    if (ensembleNum_ != -1 && !ensembleExt_) {
-      Current->SetupWrite( name, 10 );
+    if (openShared) {
+      // File is being shared by different threads
+      Current->SetupWrite( name, debug_ );
       // true means open for shared write
-      err = Current->ParallelOpenFile(Parallel::EnsembleComm(), true);
+      err = Current->ParallelOpenFile(commIn, true);
     } else
       err = Current->OpenWrite( name );
     if (err != 0)

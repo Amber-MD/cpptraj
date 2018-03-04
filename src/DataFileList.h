@@ -40,6 +40,9 @@ class DataFileList {
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype);
     /// Add/create CpptrajFile of given type; optionally allow STDOUT.
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool);
+#   ifdef MPI
+    CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool,Parallel::Comm const&);
+#   endif
     /// List DataFiles and CpptrajFiles.
     void List() const;
     /// Write all DataFiles in list that have not yet been written.
