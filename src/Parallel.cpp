@@ -10,6 +10,7 @@ Parallel::Comm Parallel::world_ = Parallel::Comm();
 #ifdef MPI
 Parallel::Comm Parallel::ensembleComm_ = Parallel::Comm();
 Parallel::Comm Parallel::trajComm_ = Parallel::Comm();
+Parallel::Comm Parallel::masterComm_ = Parallel::Comm();
 
 int Parallel::ensemble_size_  = -1;
 int Parallel::ensemble_beg_   = -1;
@@ -110,6 +111,7 @@ int Parallel::End() {
 # endif
   trajComm_.Reset();
   ensembleComm_.Reset();
+  masterComm_.Reset();
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
   return 0;
@@ -138,11 +140,15 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     ensemble_size_ = -1;
     ensemble_beg_ = -1;
     ensemble_end_ = -1;
-    // Equivalent to ngroups 1 
+    // This makes trajComm_ equivalent to MPI_COMM_WORLD 
     trajComm_ = world_.Split( 0 );
-    ensembleComm_ = world_.Split( world_.Rank() % trajComm_.Size() );
+    // Rank 0 is ensemble comm, everyone else is null.
+    int color = MPI_COMM_NULL;
+    if (world_.Rank() == 0)
+      color = 0;
+    ensembleComm_ = world_.Split( color );
   } else if (ensemble_size_ > -1) {
-    // If comms were previously set up make sure the number of groups remains the same!
+    // Comms were previously set up; make sure the number of groups remains the same!
     if (ensemble_size_ != ngroups) {
       if ( world_.Master() )
         fprintf(stderr,"Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
@@ -150,13 +156,15 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
       return 1;
     }
   } else if (world_.Size() < ngroups) {
+    // Fewer threads than groups. Make sure that # threads is a
+    // multiple of ngroups. This is required for things like AllGather to work
+    // properly.
     if (!allowFewerThreadsThanGroups) {
       fprintf(stderr,"Error: Fewer threads than groups currently not allowed.\n");
       return 1;
     }
-    // Initial setup: fewer threads than groups. Make sure that # threads is a
-    // multiple of ngroups. This is required for things like AllGather to work
-    // properly.
+    trajComm_.Reset();
+    ensembleComm_.Reset();
     if ( (ngroups % world_.Size()) != 0 ) {
       fprintf(stderr,"Error: # of replicas (%i) must be a multiple of # threads (%i)\n",
               ngroups, world_.Size());
@@ -170,13 +178,15 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     ensembleComm_ = world_.Split( 0 );
     world_.Barrier();
   } else {
-    // Initial setup: Make sure that ngroups is a multiple of total # threads.
+    // Threads >= groups. Make sure that ngroups is a multiple of total # threads.
     if ( (world_.Size() % ngroups) != 0 ) {
       if ( world_.Master() )
         fprintf(stderr,"Error: # of threads (%i) must be a multiple of # replicas (%i)\n",
                 world_.Size(), ngroups);
       return 1;
     }
+    trajComm_.Reset();
+    ensembleComm_.Reset();
     ensemble_size_ = ngroups;
     // Split into comms for parallel across trajectory
     int ID = world_.Rank() / (world_.Size() / ngroups);
@@ -200,6 +210,12 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     n_ens_members_ = 1;
     world_.Barrier();
   }
+  // Create comm with only trajComm_ masters.
+  masterComm_.Reset();
+  int color = MPI_COMM_NULL;
+  if (trajComm_.Master())
+    color = 0;
+  masterComm_ = world_.Split( color );
 # ifdef PARALLEL_DEBUG_VERBOSE
   fprintf(stderr,"DEBUG: Rank %i trajComm rank %i/%i ensComm rank %i/%i members %i to %i\n",
           world_.Rank(), trajComm_.Rank(), trajComm_.Size(),

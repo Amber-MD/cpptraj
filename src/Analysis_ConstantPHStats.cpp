@@ -32,8 +32,9 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
     fracPlotOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("fracplotout") );
     fracPlotOut_->ProcessArgs("xlabel pH ylabel \"Frac. " + std::string(FRACSTR_) + "\"");
 #   ifdef MPI
-    if (!fracPlotOut_->EnsExt())
-      fracPlotOut_->SetThreadCanWrite( Parallel::EnsembleComm().Master() );
+    // Fraction plot should only ever be written by the overall master
+    // since it needs data from every ensemble member.
+    fracPlotOut_->SetThreadCanWrite( Parallel::MasterComm().Master() );
 #   endif
   }
   // Get DataSets
@@ -162,7 +163,7 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
   }
 # ifdef MPI
   if (createFracPlot_)
-    setsToSync.SynchronizeData( Parallel::EnsembleComm() );
+    setsToSync.SynchronizeData( Parallel::MasterComm() );
 # endif
 
   // Print cphstats-like output, grouped by pH
@@ -177,13 +178,13 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
     int startRank, stopRank;
     if (statsOut_->IsMPI()) {
       startRank = 0;
-      stopRank = Parallel::EnsembleComm().Size();
+      stopRank = Parallel::MasterComm().Size();
     } else {
-      startRank = Parallel::EnsembleComm().Rank();
+      startRank = Parallel::MasterComm().Rank();
       stopRank = startRank + 1;
     }
     for (int rank = startRank; rank != stopRank; ++rank) {
-      if (rank == Parallel::EnsembleComm().Rank()) {
+      if (rank == Parallel::MasterComm().Rank()) {
 #   endif
         for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
         {
@@ -220,7 +221,7 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
 #   ifdef MPI
       }
       // Hold up before next rank writes. 
-      Parallel::EnsembleComm().Barrier();
+      Parallel::MasterComm().Barrier();
     } // END loop over ranks
 #   endif
   } // END if statsOut_ != 0

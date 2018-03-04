@@ -71,6 +71,8 @@ class Parallel {
     static int MemberEnsCommRank(int i) { return memberEnsRank_[i];}
     /// \return Across-trajectory communicator.
     static Comm const& TrajComm()       { return trajComm_;       }
+    /// \return Communicator containing TrajComm() masters.
+    static Comm const& MasterComm()     { return masterComm_;     }
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static FILE* mpidebugfile_;
 #   endif /* PARALLEL_DEBUG_VERBOSE */
@@ -91,6 +93,7 @@ class Parallel {
 #   endif /* PARALLEL_DEBUG_VERBOSE */
     static Comm ensembleComm_;   ///< Communicator across ensemble.
     static Comm trajComm_;       ///< Communicator across single trajectory.
+    static Comm masterComm_;     ///< Communicator between trajComm_ masters.
 #   endif /* CPPTRAJ_MPI */
     static Comm world_;          ///< World communicator.
 };
