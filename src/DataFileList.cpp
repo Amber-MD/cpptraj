@@ -170,11 +170,12 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 { return AddCpptrajFile(nameIn, descrip, typeIn, false); }
 
 #ifdef MPI
+/** Add CpptrajFile in parallel. Default to TrajComm. */
 CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn, 
                                           std::string const& descrip,
                                           CFtype typeIn, bool allowStdout)
 {
-  return AddCpptrajFile(nameIn, descrip, typeIn, allowStdout, Parallel::Comm());
+  return AddCpptrajFile(nameIn, descrip, typeIn, allowStdout, Parallel::TrajComm());
 }
 #endif
 
@@ -196,6 +197,8 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
   CpptrajFile* Current = 0;
   int currentIdx = -1;
 # ifdef MPI
+  // If the given comm is null, no output desired from this thread.
+  if (commIn.IsNull()) return 0;
   bool openShared = false;
 # endif
   if (!nameIn.empty()) {
@@ -204,9 +207,10 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 #   ifdef MPI
     // If not appending ensemble number (i.e. file is shared) make sure
     // comm is valid.
+    // FIXME currently not valid for trajComm
     if (!appendEnsNum) {
       openShared = true;
-      if (commIn.IsNull()) {
+      if (commIn == Parallel::TrajComm()) {
         mprintf("Warning: Shared write not supported for '%s'. Appending ensemble number.\n");
         openShared = false;
         appendEnsNum = true;
@@ -239,9 +243,10 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 #   ifdef MPI
     int err = 0;
     if (openShared) {
+      rprintf("DEBUG: Opening '%s' shared.\n", name.full());
       // File is being shared by different threads
       Current->SetupWrite( name, debug_ );
-      // true means open for shared write
+      // true here means open for shared write
       err = Current->ParallelOpenFile(commIn, true);
     } else
       err = Current->OpenWrite( name );
