@@ -1294,7 +1294,9 @@ EOF
           if [ -z "$fortlib_dir" ] ; then
             Err "Cannot link C++ and Fortran with clang."
           fi
-          FLINK="-L$fortlib_dir $FLINK"
+          # Make sure system lib dir is searched before libgfortran dir.
+          # See https://github.com/Amber-MD/cpptraj/pull/473
+          FLINK="-L/usr/lib -L$fortlib_dir $FLINK"
         fi
         echo "OK"
       fi
