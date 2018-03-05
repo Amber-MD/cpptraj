@@ -140,13 +140,9 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     ensemble_size_ = -1;
     ensemble_beg_ = -1;
     ensemble_end_ = -1;
-    // This makes trajComm_ equivalent to MPI_COMM_WORLD 
+    // Equivalent to ngroups 1
     trajComm_ = world_.Split( 0 );
-    // Rank 0 is ensemble comm, everyone else is null.
-    int color = MPI_COMM_NULL;
-    if (world_.Rank() == 0)
-      color = 0;
-    ensembleComm_ = world_.Split( color );
+    ensembleComm_ = world_.Split( world_.Rank() % trajComm_.Size() );
   } else if (ensemble_size_ > -1) {
     // Comms were previously set up; make sure the number of groups remains the same!
     if (ensemble_size_ != ngroups) {
@@ -211,16 +207,18 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     world_.Barrier();
   }
   // Create comm with only trajComm_ masters.
+  // TODO should just be ensemble comm for trajComm master?
   masterComm_.Reset();
-  int color = MPI_COMM_NULL;
+  int color = MPI_UNDEFINED;
   if (trajComm_.Master())
     color = 0;
   masterComm_ = world_.Split( color );
-# ifdef PARALLEL_DEBUG_VERBOSE
-  fprintf(stderr,"DEBUG: Rank %i trajComm rank %i/%i ensComm rank %i/%i members %i to %i\n",
+//# ifdef PARALLEL_DEBUG_VERBOSE
+  fprintf(stderr,"DEBUG: [%i] trajComm %i/%i ensComm %i/%i masterComm %i/%i members %i to %i (%i)\n",
           world_.Rank(), trajComm_.Rank(), trajComm_.Size(),
-          ensembleComm_.Rank(), ensembleComm_.Size(), ensemble_beg_, ensemble_end_);
-# endif
+          ensembleComm_.Rank(), ensembleComm_.Size(),
+          masterComm_.Rank(), masterComm_.Size(), ensemble_beg_, ensemble_end_-1, n_ens_members_);
+//# endif
   if (memberEnsRank_ != 0) {
     delete[] memberEnsRank_;
     memberEnsRank_ = 0;
@@ -272,6 +270,12 @@ Parallel::Comm& Parallel::Comm::operator=(Comm const& rhs) {
     size_ = rhs.size_;
   }
   return *this;
+}
+
+/** \return true if communicators are the same. */
+bool Parallel::Comm::operator==(Comm const& rhs) const {
+  if (IsNull() || rhs.IsNull()) return false;
+  return (comm_ == rhs.comm_); // TODO use MPI_Comm_compare?
 }
 
 /** Barrier for this communicator. */

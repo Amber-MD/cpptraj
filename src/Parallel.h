@@ -109,6 +109,7 @@ class Parallel::Comm {
     //~Comm();
     Comm(Comm const&);
     Comm& operator=(Comm const&);
+    bool operator==(Comm const&) const;
     /// \return Internal MPI_Comm
     MPI_Comm MPIcomm() const { return comm_; }
     bool IsNull() const { return comm_ == MPI_COMM_NULL; }
