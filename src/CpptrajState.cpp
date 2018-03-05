@@ -168,8 +168,16 @@ CpptrajState::RetType CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList
   argIn.MarkArg(0);
   AnalysisSetup setup(DSL_, DFL_);
   RetType err = OK;
-  if (analysisList_.AddAnalysis( anaIn, argIn, setup )) err = ERR;
 # ifdef MPI
+  // Only master performs analyses currently.
+  if (Parallel::TrajComm().Master()) {
+# endif
+    if (analysisList_.AddAnalysis( anaIn, argIn, setup )) err = ERR;
+# ifdef MPI
+  } else {
+    // Add a placeholder analysis on non-master thread.
+    analysisList_.AddPlaceholder(); // FIXME this feels kludgy
+  }
   if (Parallel::World().CheckError( err )) err = ERR;
 # endif
   return err;
@@ -1322,7 +1330,6 @@ void CpptrajState::MasterDataFileWrite() { DFL_.WriteAllDF(); }
 
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {
-  if (analysisList_.Empty()) return 0;
   analysis_time_.Reset();
   analysis_time_.Start();
   int err = 0;

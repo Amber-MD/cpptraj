@@ -213,12 +213,12 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
   if (trajComm_.Master())
     color = 0;
   masterComm_ = world_.Split( color );
-//# ifdef PARALLEL_DEBUG_VERBOSE
+# ifdef PARALLEL_DEBUG_VERBOSE
   fprintf(stderr,"DEBUG: [%i] trajComm %i/%i ensComm %i/%i masterComm %i/%i members %i to %i (%i)\n",
           world_.Rank(), trajComm_.Rank(), trajComm_.Size(),
           ensembleComm_.Rank(), ensembleComm_.Size(),
           masterComm_.Rank(), masterComm_.Size(), ensemble_beg_, ensemble_end_-1, n_ens_members_);
-//# endif
+# endif
   if (memberEnsRank_ != 0) {
     delete[] memberEnsRank_;
     memberEnsRank_ = 0;

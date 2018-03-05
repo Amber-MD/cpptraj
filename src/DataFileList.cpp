@@ -243,7 +243,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 #   ifdef MPI
     int err = 0;
     if (openShared) {
-      rprintf("DEBUG: Opening '%s' shared.\n", name.full());
+      //rprintf("DEBUG: Opening '%s' shared.\n", name.full());
       // File is being shared by different threads
       Current->SetupWrite( name, debug_ );
       // true here means open for shared write

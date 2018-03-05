@@ -39,6 +39,30 @@ int AnalysisList::AddAnalysis(Analysis* anaIn, ArgList& argIn, AnalysisSetup& se
   return 0;
 }
 
+#ifdef MPI
+// FIXME Kludge
+class Analysis_Placeholder : public Analysis {
+  public:
+    DispatchObject* Alloc() const { return 0; }
+    void Help() const {}
+    Analysis_Placeholder() : Analysis(HIDDEN) {}
+    RetType Setup(ArgList&, AnalysisSetup&, int) { return Analysis::OK; }
+    RetType Analyze() { return Analysis::OK; }
+};
+
+/** In parallel currently only trajComm masters will do analysis. This adds
+  * a placeholder so that threads can remain in sync.
+  * FIXME this is really just a kludge
+  */
+void AnalysisList::AddPlaceholder() {
+  AnaHolder ana;
+  ana.ptr_ = new Analysis_Placeholder();
+  ana.args_ = ArgList();
+  ana.status_ = SETUP;
+  analysisList_.push_back( ana );
+}
+#endif
+
 // AnalysisList::DoAnalyses()
 int AnalysisList::DoAnalyses() {
   if (analysisList_.empty()) return 0;
