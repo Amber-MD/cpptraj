@@ -1415,6 +1415,8 @@ while [ ! -z "$1" ] ; do
       CPPTRAJBIN=$VALUE/bin
       CPPTRAJLIB=$VALUE/lib
       ;;
+    # Hidden debug options
+    '--debug-parallel'  ) DIRECTIVES="$DIRECTIVES -DPARALLEL_DEBUG_VERBOSE" ;;
     * ) # Check for library keys
       CheckLibraryKeys "$KEY" "$VALUE"
       if [ $? -eq 1 ] ; then
