@@ -667,10 +667,13 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
         break;
       case Cmd::EXE:
 #       ifdef MPI
-        if (Parallel::TrajComm().Master())
+        if (((Exec*)obj)->CommType() == Exec::TRAJCOMM_MASTER) {
+          if (Parallel::TrajComm().Master())
+            ret_val = ((Exec*)obj)->Execute( State, cmdArg );
+          else
+            ret_val = CpptrajState::OK;
+        } else // All threads
           ret_val = ((Exec*)obj)->Execute( State, cmdArg );
-        else
-          ret_val = CpptrajState::OK;
         if (Parallel::World().CheckError( (int)ret_val ) != 0)
           ret_val = CpptrajState::ERR;
 #       else

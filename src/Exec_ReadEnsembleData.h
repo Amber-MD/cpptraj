@@ -8,5 +8,8 @@ class Exec_ReadEnsembleData : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ReadEnsembleData(); }
     RetType Execute(CpptrajState&, ArgList&);
+#   ifdef MPI
+    CommEnumType CommType() const { return ALLTHREADS; }
+#   endif
 };
 #endif

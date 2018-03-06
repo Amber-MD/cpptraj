@@ -5,15 +5,6 @@
 #include "DataSet_pH.h"
 #include "StringRoutines.h" // doubleToString
 
-inline bool CheckError(int err) {
-# ifdef MPI
-  if (Parallel::EnsembleComm().CheckError( err )) return 1;
-# else
-  if (err != 0) return 1;
-# endif
-  return 0;
-}
-
 //  Exec_SortEnsembleData::Sort_pH_Data()
 int Exec_SortEnsembleData::Sort_pH_Data(DataSetList const& setsToSort, DataSetList& OutputSets,
                                         unsigned int maxFrames)
@@ -33,7 +24,7 @@ const
   Darray phtmp;
   for (Parray::const_iterator ds = PHsets.begin(); ds != PHsets.end(); ++ds)
     phtmp.push_back( (*ds)->Initial_pH() );
-  if (Parallel::EnsembleComm().AllGather(&phtmp[0], phtmp.size(), MPI_DOUBLE, &pHvalues[0])) {
+  if (comm_.AllGather(&phtmp[0], phtmp.size(), MPI_DOUBLE, &pHvalues[0])) {
     rprinterr("Error: Gathering pH values.\n");
     return 1;
   }
@@ -113,15 +104,15 @@ const
         DataSet_pH* out = (DataSet_pH*)OutputSets[idx];
         int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
         //rprintf("DEBUG: Reduce set %s to rank %i\n", out->legend(), ensembleRank);
-        out->Reduce( Parallel::EnsembleComm(), ensembleRank );
+        out->Reduce( comm_, ensembleRank );
       }
       // Remove sets that do not belong on this rank
       for (int idx = (int)OutputSets.size() - 1; idx > -1; idx--) {
         DataSet* out = OutputSets[idx];
         int ensembleRank = Parallel::MemberEnsCommRank( out->Meta().EnsembleNum() );
-        if (ensembleRank != Parallel::EnsembleComm().Rank()) {
+        if (ensembleRank != comm_.Rank()) {
           //rprintf("DEBUG: Remove set %s (%i) from rank %i\n", out->legend(),
-          //        idx, Parallel::EnsembleComm().Rank());
+          //        idx, comm_.Rank());
           OutputSets.RemoveSet( out );
         }
       }
@@ -141,7 +132,7 @@ const
     {
       int ensembleRank = Parallel::MemberEnsCommRank( phidx );
       pHrank[phidx] = ensembleRank;
-      isMyPh[phidx] = (ensembleRank == Parallel::EnsembleComm().Rank());
+      isMyPh[phidx] = (ensembleRank == comm_.Rank());
     }
     // DEBUG
     for (unsigned int idx = 0; idx != pHrank.size(); idx++)
@@ -193,10 +184,10 @@ const
     } // END loop over sets
     // DEBUG
 /*
-    Parallel::EnsembleComm().Barrier();
-    for (int rank = 0; rank < Parallel::EnsembleComm().Size(); rank++)
+    comm_.Barrier();
+    for (int rank = 0; rank < comm_.Size(); rank++)
     {
-      if (rank == Parallel::EnsembleComm().Rank())
+      if (rank == comm_.Rank())
       {
         for (unsigned int phidx = 0; phidx != sortedPH.size(); phidx++) {
           rprintf("DEBUG: pH %6.2f: %8s %6s %2s\n", sortedPH[phidx], "Frm", "Res", "St");
@@ -214,22 +205,22 @@ const
           }
         }
       }
-      Parallel::EnsembleComm().Barrier();
+      comm_.Barrier();
     }
 */
     // Communicate states to other ranks
     typedef std::vector<unsigned int> Uarray;
-    Uarray sizeOnRank( Parallel::EnsembleComm().Size() );
+    Uarray sizeOnRank( comm_.Size() );
     for (unsigned int phidx = 0; phidx != sortedPH.size(); phidx++)
     {
       // Each rank says how many frames of this pH they have collected and
       // send to rank the pH belongs to.
       unsigned int nph = FrmResState[phidx].size();
-      Parallel::EnsembleComm().Gather(&nph, 1, MPI_UNSIGNED, &sizeOnRank[0], pHrank[phidx]);
-      if (pHrank[phidx] == Parallel::EnsembleComm().Rank())
+      comm_.Gather(&nph, 1, MPI_UNSIGNED, &sizeOnRank[0], pHrank[phidx]);
+      if (pHrank[phidx] == comm_.Rank())
       {
         // This pH belongs to me. I should have no frames at this pH.
-        if (sizeOnRank[Parallel::EnsembleComm().Rank()] > 0) {
+        if (sizeOnRank[comm_.Rank()] > 0) {
           rprinterr("Internal Error: Rank has frames to communicate at its pH\n");
           Parallel::Abort(1);
         }
@@ -243,25 +234,25 @@ const
         FrmResState[phidx].resize( totalSize );
         // Receive state info for this pH from other ranks
         int* frsArray = &(FrmResState[phidx][0]);
-        for (int rank = 0; rank != Parallel::EnsembleComm().Size(); rank++) {
-          if (rank != Parallel::EnsembleComm().Rank()) {
-            Parallel::EnsembleComm().Recv(frsArray, sizeOnRank[rank], MPI_INT, rank, 1600+rank);
+        for (int rank = 0; rank != comm_.Size(); rank++) {
+          if (rank != comm_.Rank()) {
+            comm_.Recv(frsArray, sizeOnRank[rank], MPI_INT, rank, 1600+rank);
             frsArray += sizeOnRank[rank];
           }
         }
       } else {
         // This pH belongs to another rank. Send my info there.
         int* frsArray = &(FrmResState[phidx][0]);
-        Parallel::EnsembleComm().Send(frsArray, nph, MPI_INT, pHrank[phidx], 1600+Parallel::EnsembleComm().Rank());
+        comm_.Send(frsArray, nph, MPI_INT, pHrank[phidx], 1600+comm_.Rank());
       }
-      Parallel::EnsembleComm().Barrier();
+      comm_.Barrier();
     }
     // Fill in state info
     std::vector<DataSet*> ToRemove;
     for (unsigned int phidx = 0; phidx != sortedPH.size(); phidx++)
     {
       int setidx = phidx * Residues.size();
-      if (pHrank[phidx] == Parallel::EnsembleComm().Rank())
+      if (pHrank[phidx] == comm_.Rank())
       {
         Iarray const& FRS = FrmResState[phidx];
         // This pH belongs to me. Fill in the information received from
@@ -405,17 +396,17 @@ const
 
 # ifdef MPI
   unsigned int threadSize = maxSize;
-  Parallel::EnsembleComm().AllReduce( &maxSize, &threadSize, 1, MPI_UNSIGNED, MPI_MIN );
+  comm_.AllReduce( &maxSize, &threadSize, 1, MPI_UNSIGNED, MPI_MIN );
   typedef std::vector<int> Iarray;
-  Iarray Dtypes( Parallel::EnsembleComm().Size(), -1 );
-  if ( Parallel::EnsembleComm().AllGather( &dtype, 1, MPI_INT, &Dtypes[0] ) ) return 1;
-  for (int rank = 1; rank < Parallel::EnsembleComm().Size(); rank++)
+  Iarray Dtypes( comm_.Size(), -1 );
+  if ( comm_.AllGather( &dtype, 1, MPI_INT, &Dtypes[0] ) ) return 1;
+  for (int rank = 1; rank < comm_.Size(); rank++)
     if (Dtypes[0] != Dtypes[rank]) {
       rprinterr("Error: Set types on rank %i do not match types on rank 0.\n", rank);
       err = 1;
       break;
     }
-  if (Parallel::EnsembleComm().CheckError( err )) return 1;
+  if (comm_.CheckError( err )) return 1;
 # endif
 
   // Only work for pH data for now.
@@ -456,26 +447,25 @@ Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn
     return CpptrajState::ERR;
   }
   // Only TrajComm masters have complete data.
-  if (Parallel::TrajComm().Master()) {
+  comm_ = Parallel::MasterComm();
 # endif
-    DataSetList OutputSets;
-    err = SortData( setsToSort, OutputSets );
-    if (err == 0) {
-      // Remove unsorted sets. 
-      for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
-        State.DSL().RemoveSet( *ds );
-      // Add sorted sets.
-      for (DataSetList::const_iterator ds = OutputSets.begin(); ds != OutputSets.end(); ++ds)
-        State.DSL().AddSet( *ds );
-      // Since sorted sets have been transferred to master DSL, OutputSets now
-      // just has copies.
-      OutputSets.SetHasCopies( true );
-      mprintf("\tSorted sets:\n");
-      OutputSets.List();
-    }
-# ifdef MPI
+  DataSetList OutputSets;
+  err = SortData( setsToSort, OutputSets );
+  if (err == 0) {
+    // Remove unsorted sets. 
+    for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
+      State.DSL().RemoveSet( *ds );
+    // Add sorted sets.
+    for (DataSetList::const_iterator ds = OutputSets.begin(); ds != OutputSets.end(); ++ds)
+      State.DSL().AddSet( *ds );
+    // Since sorted sets have been transferred to master DSL, OutputSets now
+    // just has copies.
+    OutputSets.SetHasCopies( true );
+    mprintf("\tSorted sets:\n");
+    OutputSets.List();
   }
-  if (Parallel::World().CheckError( err ))
+# ifdef MPI
+  if (comm_.CheckError( err ))
 # else
   if (err != 0) 
 # endif

@@ -7,6 +7,9 @@ class Exec_CrdOut : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CrdOut(); }
     RetType Execute(CpptrajState&, ArgList&);
+#   ifdef MPI
+    CommEnumType CommType() const { return ALLTHREADS; }
+#   endif
   private:
     RetType WriteCrd(CpptrajState&, ArgList&);
 #   ifdef MPI

@@ -8,6 +8,9 @@ class Exec_CrdAction : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CrdAction(); }
     RetType Execute(CpptrajState&, ArgList&);
+#   ifdef MPI
+    CommEnumType CommType() const { return ALLTHREADS; }
+#   endif
   private:
     RetType ProcessArgs(CpptrajState&, ArgList&);
     RetType DoCrdAction(CpptrajState&, ArgList&, DataSet_Coords*,
