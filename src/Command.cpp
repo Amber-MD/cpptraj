@@ -666,7 +666,16 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
         }
         break;
       case Cmd::EXE:
+#       ifdef MPI
+        if (Parallel::TrajComm().Master())
+          ret_val = ((Exec*)obj)->Execute( State, cmdArg );
+        else
+          ret_val = CpptrajState::OK;
+        if (Parallel::World().CheckError( (int)ret_val ) != 0)
+          ret_val = CpptrajState::ERR;
+#       else
         ret_val = ((Exec*)obj)->Execute( State, cmdArg );
+#       endif
         delete obj;
         break;
       case Cmd::ACT: ret_val = State.AddToActionQueue( (Action*)obj, cmdArg ); break;
