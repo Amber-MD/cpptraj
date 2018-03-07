@@ -7,9 +7,6 @@ class Exec_RunAnalysis : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_RunAnalysis(); }
     RetType Execute(CpptrajState&, ArgList&);
-#   ifdef MPI
-    CommEnumType CommType() const { return ALLTHREADS; }
-#   endif
   private:
     int DoRunAnalysis(CpptrajState&, ArgList&) const;
 };
