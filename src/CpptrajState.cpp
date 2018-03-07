@@ -168,16 +168,8 @@ CpptrajState::RetType CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList
   argIn.MarkArg(0);
   AnalysisSetup setup(DSL_, DFL_);
   RetType err = OK;
+  if (analysisList_.AddAnalysis( anaIn, argIn, setup )) err = ERR;
 # ifdef MPI
-  // Only master performs analyses currently.
-  if (Parallel::TrajComm().Master()) {
-# endif
-    if (analysisList_.AddAnalysis( anaIn, argIn, setup )) err = ERR;
-# ifdef MPI
-  } else {
-    // Add a placeholder analysis on non-master thread.
-    analysisList_.AddPlaceholder(); // FIXME this feels kludgy
-  }
   if (Parallel::World().CheckError( err )) err = ERR;
 # endif
   return err;

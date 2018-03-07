@@ -10,9 +10,6 @@ class AnalysisList {
     void SetDebug(int d) { debug_ = d; }
     int Debug() const { return debug_; }
     int AddAnalysis(Analysis*, ArgList&, AnalysisSetup&);
-#   ifdef MPI
-    void AddPlaceholder(); // FIXME Kludge
-#   endif
     int DoAnalyses();
     void List() const;
     bool Empty() const { return analysisList_.empty(); }

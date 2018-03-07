@@ -6,7 +6,7 @@ CleanFiles regress.in fit.dat statsout.dat Y.dat regress.dat
 
 TESTNAME='Linear regression test.'
 
-#Requires notparallel
+Requires maxthreads 1 
 
 INPUT="-i regress.in"
 
