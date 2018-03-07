@@ -62,6 +62,13 @@ Exec::RetType Exec_ReadEnsembleData::Execute(CpptrajState& State, ArgList& argIn
   // NOTE: Allowing fewer threads than groups here.
   if (Parallel::SetupComms( fileNames.size(), true ))
     return CpptrajState::ERR;
+  // Right now since trajcomm non-masters dont get data it doesnt
+  // make sense to have multiple threads per node and in fact can
+  // lead to strange errors down the line.
+  if (Parallel::TrajComm().Size() > 1) {
+    mprinterr("Error: 'readensembledata' not set up to use multiple threads per member.\n");
+    return CpptrajState::ERR;
+  }
   min_file = (unsigned int)Parallel::Ensemble_Beg();
   max_file = (unsigned int)Parallel::Ensemble_End();
 # endif

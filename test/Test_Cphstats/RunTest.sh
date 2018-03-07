@@ -20,7 +20,7 @@ if [ ! -z $N_THREADS ] ; then
       SKIP='yes'
     fi
   else
-    CheckFor nthreads 6
+    CheckFor maxthreads 6
     if [ $? -eq 1 ] ; then
       SKIP='yes'
     fi
@@ -85,7 +85,7 @@ if [ ! -z $N_THREADS ] ; then
       SKIP='yes'
     fi
   else
-    CheckFor nthreads 4
+    CheckFor maxthreads 4
     if [ $? -eq 1 ] ; then
       SKIP='yes'
     fi
