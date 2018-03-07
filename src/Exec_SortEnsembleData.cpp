@@ -447,25 +447,27 @@ Exec::RetType Exec_SortEnsembleData::Execute(CpptrajState& State, ArgList& argIn
     return CpptrajState::ERR;
   }
   // Only TrajComm masters have complete data.
-  comm_ = Parallel::MasterComm();
+  if (Parallel::TrajComm().Master()) {
+    comm_ = Parallel::MasterComm();
 # endif
-  DataSetList OutputSets;
-  err = SortData( setsToSort, OutputSets );
-  if (err == 0) {
-    // Remove unsorted sets. 
-    for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
-      State.DSL().RemoveSet( *ds );
-    // Add sorted sets.
-    for (DataSetList::const_iterator ds = OutputSets.begin(); ds != OutputSets.end(); ++ds)
-      State.DSL().AddSet( *ds );
-    // Since sorted sets have been transferred to master DSL, OutputSets now
-    // just has copies.
-    OutputSets.SetHasCopies( true );
-    mprintf("\tSorted sets:\n");
-    OutputSets.List();
-  }
+    DataSetList OutputSets;
+    err = SortData( setsToSort, OutputSets );
+    if (err == 0) {
+      // Remove unsorted sets. 
+      for (DataSetList::const_iterator ds = setsToSort.begin(); ds != setsToSort.end(); ++ds)
+        State.DSL().RemoveSet( *ds );
+      // Add sorted sets.
+      for (DataSetList::const_iterator ds = OutputSets.begin(); ds != OutputSets.end(); ++ds)
+        State.DSL().AddSet( *ds );
+      // Since sorted sets have been transferred to master DSL, OutputSets now
+      // just has copies.
+      OutputSets.SetHasCopies( true );
+      mprintf("\tSorted sets:\n");
+      OutputSets.List();
+    }
 # ifdef MPI
-  if (comm_.CheckError( err ))
+  }
+  if (Parallel::World().CheckError( err ))
 # else
   if (err != 0) 
 # endif
