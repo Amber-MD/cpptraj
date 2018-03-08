@@ -196,10 +196,42 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
   FileName name;
   CpptrajFile* Current = 0;
   int currentIdx = -1;
+
+  bool appendExt;
+# ifdef MPI
+  bool openShared;
+# endif
+  if (ensembleNum_ == -1) {
+    // No extension to append - ignore ensembleExt_
+    appendExt = false;
+#   ifdef MPI
+    // Open shared if input comm is not null.
+    openShared = (!commIn.IsNull());
+#   endif
+  } else {
+    if (ensembleExt_) {
+      appendExt = true;
+#     ifdef MPI
+      openShared = false;
+#     endif
+    } else {
+      appendExt = false;
+#     ifdef MPI
+      if (commIn.IsNull()) {
+        appendExt = true;
+        openShared = false;
+      } else {
+        appendExt = false;
+        openShared = true;
+      }
+#     endif
+    }
+  }
+
   if (!nameIn.empty()) {
     name = nameIn;
     // Append ensemble number if set.
-    if (ensembleNum_ != -1 && ensembleExt_)
+    if (appendExt)
       name.Append( "." + integerToString(ensembleNum_) );
     // Check if filename in use by DataFile.
     DataFile* df = GetDataFile(name);
@@ -223,7 +255,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     //if (Current->SetupWrite( name, debug_ ))
 #   ifdef MPI
     int err = 0;
-    if (!commIn.IsNull()) {
+    if (openShared) {
       //rprintf("DEBUG: Opening '%s' shared.\n", name.full());
       // File is being shared by different threads
       Current->SetupWrite( name, debug_ );

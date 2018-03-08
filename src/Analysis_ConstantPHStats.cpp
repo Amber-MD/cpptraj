@@ -34,7 +34,7 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
     FRACSTR_ = "deprotonated";
   if (createFracPlot_) {
     fracPlotOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("fracplotout") );
-    fracPlotOut_->ProcessArgs("xlabel pH ylabel \"Frac. " + std::string(FRACSTR_) + "\"");
+    fracPlotOut_->ProcessArgs("xlabel pH ylabel \"Frac. " + std::string(FRACSTR_) + "\" noensextension");
 #   ifdef MPI
     // Fraction plot should only ever be written by the overall master
     // since it needs data from every ensemble member.
