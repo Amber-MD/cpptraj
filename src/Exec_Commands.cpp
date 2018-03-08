@@ -144,6 +144,9 @@ Exec::RetType Exec_EnsFileExt::Execute(CpptrajState& State, ArgList& argIn) {
   } else if (argIn.hasKey("off")) {
     State.DFL().SetEnsExtension(false);
     mprintf("\tEnsemble member number will not be appended to output file names.\n");
+#   ifdef MPI
+    mprintf("Warning: This option has not been fully tested in parallel.\n");
+#   endif
   } else {
     mprinterr("Error: Expect 'on' or 'off'\n");
     return CpptrajState::ERR;
