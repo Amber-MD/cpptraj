@@ -1322,7 +1322,6 @@ void CpptrajState::MasterDataFileWrite() { DFL_.WriteAllDF(); }
 
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {
-  if (analysisList_.Empty()) return 0;
   analysis_time_.Reset();
   analysis_time_.Start();
   int err = 0;

@@ -10,6 +10,7 @@ Parallel::Comm Parallel::world_ = Parallel::Comm();
 #ifdef MPI
 Parallel::Comm Parallel::ensembleComm_ = Parallel::Comm();
 Parallel::Comm Parallel::trajComm_ = Parallel::Comm();
+Parallel::Comm Parallel::masterComm_ = Parallel::Comm();
 
 int Parallel::ensemble_size_  = -1;
 int Parallel::ensemble_beg_   = -1;
@@ -89,6 +90,7 @@ int Parallel::Init(int argc, char** argv) {
     return 1;
   }
   world_ = Comm(MPI_COMM_WORLD);
+  SetupComms( -1 );
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_init();
 # endif
@@ -107,7 +109,9 @@ int Parallel::End() {
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_end();
 # endif
-  SetupComms( -1 );
+  trajComm_.Reset();
+  ensembleComm_.Reset();
+  masterComm_.Reset();
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
   return 0;
@@ -136,8 +140,11 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     ensemble_size_ = -1;
     ensemble_beg_ = -1;
     ensemble_end_ = -1;
-  } else if (!ensembleComm_.IsNull()) {
-    // If comms were previously set up make sure the number of groups remains the same!
+    // Equivalent to ngroups 1
+    trajComm_ = world_.Split( 0 );
+    ensembleComm_ = world_.Split( world_.Rank() % trajComm_.Size() );
+  } else if (ensemble_size_ > -1) {
+    // Comms were previously set up; make sure the number of groups remains the same!
     if (ensemble_size_ != ngroups) {
       if ( world_.Master() )
         fprintf(stderr,"Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
@@ -145,13 +152,15 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
       return 1;
     }
   } else if (world_.Size() < ngroups) {
+    // Fewer threads than groups. Make sure that # threads is a
+    // multiple of ngroups. This is required for things like AllGather to work
+    // properly.
     if (!allowFewerThreadsThanGroups) {
       fprintf(stderr,"Error: Fewer threads than groups currently not allowed.\n");
       return 1;
     }
-    // Initial setup: fewer threads than groups. Make sure that # threads is a
-    // multiple of ngroups. This is required for things like AllGather to work
-    // properly.
+    trajComm_.Reset();
+    ensembleComm_.Reset();
     if ( (ngroups % world_.Size()) != 0 ) {
       fprintf(stderr,"Error: # of replicas (%i) must be a multiple of # threads (%i)\n",
               ngroups, world_.Size());
@@ -159,24 +168,21 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     }
     ensemble_size_ = ngroups;
     n_ens_members_ = world_.DivideAmongThreads( ensemble_beg_, ensemble_end_, ensemble_size_ );
-    //fprintf(stderr,"DEBUG: Rank %i handling ensemble members %i to %i\n", world_.Rank(),
-    //        ensemble_beg_, ensemble_end_);
     int ID = world_.Rank();
     trajComm_ = world_.Split( ID );
     // NOTE: This effectively duplicates World
     ensembleComm_ = world_.Split( 0 );
-    //fprintf(stderr,"DEBUG: Rank %i trajComm rank %i/%i ensComm rank %i/%i\n",
-    //        world_.Rank(), trajComm_.Rank(), trajComm_.Size(),
-    //        ensembleComm_.Rank(), ensembleComm_.Size());
     world_.Barrier();
   } else {
-    // Initial setup: Make sure that ngroups is a multiple of total # threads.
+    // Threads >= groups. Make sure that ngroups is a multiple of total # threads.
     if ( (world_.Size() % ngroups) != 0 ) {
       if ( world_.Master() )
         fprintf(stderr,"Error: # of threads (%i) must be a multiple of # replicas (%i)\n",
                 world_.Size(), ngroups);
       return 1;
     }
+    trajComm_.Reset();
+    ensembleComm_.Reset();
     ensemble_size_ = ngroups;
     // Split into comms for parallel across trajectory
     int ID = world_.Rank() / (world_.Size() / ngroups);
@@ -200,6 +206,19 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
     n_ens_members_ = 1;
     world_.Barrier();
   }
+  // Create comm with only trajComm_ masters.
+  // TODO should just be ensemble comm for trajComm master?
+  masterComm_.Reset();
+  int color = MPI_UNDEFINED;
+  if (trajComm_.Master())
+    color = 0;
+  masterComm_ = world_.Split( color );
+# ifdef PARALLEL_DEBUG_VERBOSE
+  fprintf(stderr,"DEBUG: [%i] trajComm %i/%i ensComm %i/%i masterComm %i/%i members %i to %i (%i)\n",
+          world_.Rank(), trajComm_.Rank(), trajComm_.Size(),
+          ensembleComm_.Rank(), ensembleComm_.Size(),
+          masterComm_.Rank(), masterComm_.Size(), ensemble_beg_, ensemble_end_-1, n_ens_members_);
+# endif
   if (memberEnsRank_ != 0) {
     delete[] memberEnsRank_;
     memberEnsRank_ = 0;
@@ -218,14 +237,6 @@ void Parallel::Lock() {
   int PleaseWait = 1;
   while (PleaseWait == 1)
     PleaseWait *= 1;
-}
-
-/** \return TrajComm if TrajComm defined, otherwise world. */
-Parallel::Comm const& Parallel::ActiveComm() {
-  if (TrajComm().IsNull())
-    return World();
-  else
-    return TrajComm();
 }
 
 #else /* MPI */
@@ -259,6 +270,12 @@ Parallel::Comm& Parallel::Comm::operator=(Comm const& rhs) {
     size_ = rhs.size_;
   }
   return *this;
+}
+
+/** \return true if communicators are the same. */
+bool Parallel::Comm::operator==(Comm const& rhs) const {
+  if (IsNull() || rhs.IsNull()) return false;
+  return (comm_ == rhs.comm_); // TODO use MPI_Comm_compare?
 }
 
 /** Barrier for this communicator. */
@@ -344,6 +361,20 @@ int Parallel::Comm::AllReduce(void *Return, void *input, int count,
   return 0;
 }
 
+/** Perform an mpi allreduce in-place. */
+int Parallel::Comm::AllReduce(void *buffer, int count,
+                              MPI_Datatype datatype, MPI_Op op) const
+{
+  int err = MPI_Allreduce(MPI_IN_PLACE, buffer, count, datatype, op, comm_);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing allreduce in-place.\n", rank_);
+    printf("[%i]\tError: allreduce failed for %i elements.\n", rank_, count);
+    return Parallel::Abort(err);
+  }
+  //if (parallel_check_error(err)!=0) return 1;
+  return 0;
+}
+
 /** If master    : receive specified value(s) from sendRank.
   * If not master: send specified value(s) to master.
   */
@@ -369,13 +400,25 @@ int Parallel::Comm::SendMaster(void *Buffer, int Count, int sendRank, MPI_Dataty
   return 0;
 }
 
+/** Perform an mpi gather to specified rank. Assumes send/recv data type and count are same. */
+int Parallel::Comm::Gather(void* sendbuffer, int count, MPI_Datatype datatype,
+                           void* recvbuffer, int rank) const
+{
+  int err = MPI_Gather( sendbuffer, count, datatype, recvbuffer, count, datatype, rank, comm_ );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing gather.\n", rank_);
+    return Parallel::Abort(err);
+  }
+  return 0;
+}
+
 /** Perform an mpi gather to master. Assumes send/recv data type and count are same. */
 int Parallel::Comm::GatherMaster(void* sendbuffer, int count, MPI_Datatype datatype,
                                  void* recvbuffer) const
 {
   int err = MPI_Gather( sendbuffer, count, datatype, recvbuffer, count, datatype, 0, comm_ );
   if (err != MPI_SUCCESS) {
-    printMPIerr(err, "Performing gather.\n", rank_);
+    printMPIerr(err, "Performing gather to master.\n", rank_);
     return Parallel::Abort(err);
   }
   //if (parallel_check_error(err)!=0) return 1;
@@ -488,7 +531,9 @@ int Parallel::File::OpenFile(const char* filename, const char* mode, Comm const&
 }
 
 /** Flush the file. */
-int Parallel::File::Flush() { return MPI_File_sync( file_ ); }
+int Parallel::File::Flush() {
+  return MPI_File_sync( file_ );
+}
 
 /** \return the position of this rank in the file. */
 off_t Parallel::File::Position() {
@@ -541,11 +586,29 @@ int Parallel::File::Fread(void* buffer, int count, MPI_Datatype datatype) {
 int Parallel::File::Fwrite(const void* buffer, int count, MPI_Datatype datatype) {
   MPI_Status status;
 # ifdef PARALLEL_DEBUG_VERBOSE
+  //const char* temp = (const char*)buffer;
   //dbgprintf("Calling MPI write(%i): [%s]\n",count,temp);
   dbgprintf("Calling MPI write(%i):\n",count);
 # endif
   // NOTE: Some MPI implementations require the void* cast
   int err = MPI_File_write( file_, (void*)buffer, count, datatype, &status);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "parallel_fwrite", comm_.Rank());
+    return 1;
+  }
+  return 0;
+}
+
+/** Write data in parallel using shared file pointer. */
+int Parallel::File::Fwrite_shared(const void* buffer, int count, MPI_Datatype datatype) {
+  MPI_Status status;
+# ifdef PARALLEL_DEBUG_VERBOSE
+  //const char* temp = (const char*)buffer;
+  //dbgprintf("Calling MPI write(%i): [%s]\n",count,temp);
+  dbgprintf("Calling MPI write(%i):\n",count);
+# endif
+  // NOTE: Some MPI implementations require the void* cast
+  int err = MPI_File_write_shared( file_, (void*)buffer, count, datatype, &status);
   if (err != MPI_SUCCESS) {
     printMPIerr(err, "parallel_fwrite", comm_.Rank());
     return 1;

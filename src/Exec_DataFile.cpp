@@ -8,19 +8,20 @@
 static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList& DSL)
 {
   int err = 0;
+  std::string setsToWrite;
   for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa) {
     DataSetList Sets = DSL.GetMultipleSets( *dsa );
     if (Sets.empty())
       mprintf("Warning: %s does not correspond to any data sets.\n", dsa->c_str());
     for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
-      mprintf(" %s", (*set)->legend());
       if ( df.AddDataSet(*set) ) {
         mprinterr("Error: Could not add data set %s to file.\n", (*set)->legend());
         ++err;
       }
+      setsToWrite.append( " " + (*set)->Meta().Legend() );
     }
   }
-  mprintf("\n");
+  mprintf("%s\n", setsToWrite.c_str());
   return err;
 }
 
@@ -64,8 +65,7 @@ Exec::RetType Exec_WriteDataFile::Execute(CpptrajState& State, ArgList& argIn)
   }
   DataFile* df = new DataFile();
   if (df == 0) return CpptrajState::ERR;
-  if (State.DFL().EnsembleNum() != -1 && !argIn.hasKey("noensextension"))
-    name1.append( "." + integerToString(State.DFL().EnsembleNum()) );
+  df->SetEnsExt( State.DFL().UseEnsExtension() );
   if (df->SetupDatafile( name1, argIn, State.Debug() )) {
     delete df;
     return CpptrajState::ERR;

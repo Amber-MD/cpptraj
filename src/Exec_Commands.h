@@ -153,4 +153,13 @@ class Exec_SelectDS : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_SelectDS(); }
     RetType Execute(CpptrajState&, ArgList&);
 };
+
+/// Enable/disable ensemble number filename extension.
+class Exec_EnsFileExt : public Exec {
+  public:
+    Exec_EnsFileExt() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_EnsFileExt(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
 #endif

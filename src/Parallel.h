@@ -57,6 +57,8 @@ class Parallel {
     static void Lock();
     /// \return Across-ensemble communicator; includes trajectory comm. masters.
     static Comm const& EnsembleComm()   { return ensembleComm_;   }
+    /// \return True if comms have been set up for a specific number of groups.
+    static bool EnsembleIsSetup()       { return ensemble_size_ > -1; }
     /// \return total ensemble size.
     static int Ensemble_Size()          { return ensemble_size_;  }
     /// \return First ensemble member this thread is responsible for.
@@ -69,8 +71,8 @@ class Parallel {
     static int MemberEnsCommRank(int i) { return memberEnsRank_[i];}
     /// \return Across-trajectory communicator.
     static Comm const& TrajComm()       { return trajComm_;       }
-    /// \return trajectory comm. if active, world comm. otherwise.
-    static Comm const& ActiveComm();
+    /// \return Communicator containing TrajComm() masters.
+    static Comm const& MasterComm()     { return masterComm_;     }
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static FILE* mpidebugfile_;
 #   endif /* PARALLEL_DEBUG_VERBOSE */
@@ -91,6 +93,7 @@ class Parallel {
 #   endif /* PARALLEL_DEBUG_VERBOSE */
     static Comm ensembleComm_;   ///< Communicator across ensemble.
     static Comm trajComm_;       ///< Communicator across single trajectory.
+    static Comm masterComm_;     ///< Communicator between trajComm_ masters.
 #   endif /* CPPTRAJ_MPI */
     static Comm world_;          ///< World communicator.
 };
@@ -106,6 +109,7 @@ class Parallel::Comm {
     //~Comm();
     Comm(Comm const&);
     Comm& operator=(Comm const&);
+    bool operator==(Comm const&) const;
     /// \return Internal MPI_Comm
     MPI_Comm MPIcomm() const { return comm_; }
     bool IsNull() const { return comm_ == MPI_COMM_NULL; }
@@ -123,6 +127,10 @@ class Parallel::Comm {
     int SendMaster(void*, int, int, MPI_Datatype) const;
     /// Return, Input, Count, DataType, Op
     int AllReduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    /// Buffer, Count, DataType, Op
+    int AllReduce(void*, int, MPI_Datatype, MPI_Op) const;
+    /// SendBuffer, Count, DataType, RecvBuffer, Rank
+    int Gather(void*, int, MPI_Datatype, void*, int) const;
     /// SendBuffer, Count, DataType, RecvBuffer
     int GatherMaster(void*, int, MPI_Datatype, void*) const;
     /// SendBuffer, Count, DataType, RecvBuffer
@@ -155,6 +163,7 @@ class Parallel::File {
     int CloseFile();
     int Fread(void*, int, MPI_Datatype);
     int Fwrite(const void*, int, MPI_Datatype);
+    int Fwrite_shared(const void*, int, MPI_Datatype);
     int Fseek(off_t, int);
     char* Fgets(char*, int);
     int SetSize(long int);

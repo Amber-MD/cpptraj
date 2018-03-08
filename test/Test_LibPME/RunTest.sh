@@ -78,7 +78,7 @@ energy Pme nonbond out $TFILE etype pme   skinnb 0.01 order 6 \
 precision $TFILE 20 10
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest tz2n.dat.save tz2n.dat
+    DoTest tz2n.dat.save tz2n.dat -a 0.000001
   fi
 }
 
@@ -99,7 +99,7 @@ energy Pme nonbond out $TFILE etype pme   skinnb 0.01 order 6 \
 precision $TFILE 20 10
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest "$TFILE".save "$TFILE"
+    DoTest "$TFILE".save "$TFILE" -a 0.000001
   fi
 }
 

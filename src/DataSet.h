@@ -26,12 +26,12 @@ class DataSet {
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
-      MAT3X3, TOPOLOGY, CMATRIX, CMATRIX_NOMEM, CMATRIX_DISK, PH, PH_REMD,
+      MAT3X3, TOPOLOGY, CMATRIX, CMATRIX_NOMEM, CMATRIX_DISK, PH, PH_EXPL, PH_IMPL,
       PARAMETERS
     };
     /// Group DataSet belongs to.
     enum DataGroup {
-      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, CLUSTERMATRIX
+      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, CLUSTERMATRIX, PHREMD
     };
 
     DataSet();
@@ -67,8 +67,6 @@ class DataSet {
 #   ifdef MPI
     /// Piece this DataSet together from multiple threads.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
-    /// Consolidate this DataSet from multiple threads to target thread. TODO pure virtual
-    //virtual int Consolidate(Parallel::Comm const&, int) { return 1; }
 #   endif
     // -----------------------------------------------------
     /// Associate additional data with this set.

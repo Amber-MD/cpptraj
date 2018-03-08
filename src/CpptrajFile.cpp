@@ -14,13 +14,14 @@
 #endif
 #ifdef MPI
 #  include "FileIO_Mpi.h"
+#  include "FileIO_MpiShared.h"
 #endif
 #ifdef HASBZ2
 #  include "FileIO_Bzip2.h"
 #endif
 
 const char* CpptrajFile::FileTypeName[] = {
-  "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE"
+  "UNKNOWN_TYPE", "STANDARD", "GZIPFILE", "BZIP2FILE", "ZIPFILE", "MPIFILE", "MPISHARED"
 };
 
 const char* CpptrajFile::AccessTypeName[] = {
@@ -95,7 +96,7 @@ CpptrajFile::~CpptrajFile() {
 }
 #ifdef MPI
 /** Open the file using MPI file routines. */
-int CpptrajFile::ParallelOpenFile(AccessType accessIn, Parallel::Comm const& commIn)
+int CpptrajFile::ParallelOpenFile(AccessType accessIn, Parallel::Comm const& commIn, bool sharedWrite)
 {
   if (IO_ == 0) {
     mprinterr("Internal Error: CpptrajFile has not been set up.\n");
@@ -114,7 +115,10 @@ int CpptrajFile::ParallelOpenFile(AccessType accessIn, Parallel::Comm const& com
   }
   if (isOpen_) CloseFile();
   // TODO Save serial IO object?
-  fileType_ = MPIFILE;
+  if (sharedWrite)
+    fileType_ = MPISHARED;
+  else
+    fileType_ = MPIFILE;
   IO_ = SetupFileIO( fileType_ );
   if (IO_ == 0) return 1;
   ((FileIO_Mpi*)IO_)->SetComm( commIn );
@@ -177,7 +181,7 @@ void CpptrajFile::CloseFile() {
     isOpen_=false;
 #   ifdef MPI
     // Restore standard IO object.
-    if (fileType_ == MPIFILE) {
+    if (IsMPI()) {
       delete IO_;
       fileType_ = STANDARD;
       IO_ = SetupFileIO( fileType_ );
@@ -415,10 +419,12 @@ FileIO* CpptrajFile::SetupFileIO(FileType typeIn) {
       return 0;
 #endif
     break;
-    case MPIFILE   : 
 #ifdef MPI
-      return (new FileIO_Mpi());
+    case MPIFILE   : return (new FileIO_Mpi());
+    case MPISHARED : return (new FileIO_MpiShared());
 #else
+    case MPIFILE   :
+    case MPISHARED :
       mprinterr("Error: Compiled without MPI support. Recompile with -DMPI\n");
       return 0;
 #endif

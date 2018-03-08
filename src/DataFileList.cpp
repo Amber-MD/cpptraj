@@ -8,7 +8,15 @@
 #endif
 
 // CONSTRUCTOR
-DataFileList::DataFileList() : debug_(0), ensembleNum_(-1) {}
+DataFileList::DataFileList() :
+  debug_(0),
+  ensembleNum_(-1),
+# ifdef MPI
+  ensembleExt_(true)
+# else
+  ensembleExt_(false)
+# endif
+{}
 
 // DESTRUCTOR
 DataFileList::~DataFileList() { Clear(); }
@@ -98,8 +106,6 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   FileName fname( nameIn );
   // Append ensemble number if set.
   //rprintf("DEBUG: Setting up data file '%s' with ensembleNum %i\n", nameIn.base(), ensembleNum_);
-  if (ensembleNum_ != -1 && !argIn.hasKey("noensextension"))
-    fname.Append( "." + integerToString(ensembleNum_) );
   // Check if filename in use by CpptrajFile.
   CpptrajFile* cf = GetCpptrajFile(fname);
   if (cf != 0) {
@@ -112,6 +118,7 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   // If no DataFile associated with name, create new DataFile
   if (Current==0) {
     Current = new DataFile();
+    Current->SetEnsExt( ensembleExt_ );
     if (Current->SetupDatafile(fname, argIn, typeIn, debug_)) {
       mprinterr("Error: Setting up data file %s\n", fname.full());
       delete Current;
@@ -162,23 +169,69 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
                                           std::string const& descrip, CFtype typeIn)
 { return AddCpptrajFile(nameIn, descrip, typeIn, false); }
 
+#ifdef MPI
+/** Add CpptrajFile in parallel. Default to null Comm. */
+CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn, 
+                                          std::string const& descrip,
+                                          CFtype typeIn, bool allowStdout)
+{
+  return AddCpptrajFile(nameIn, descrip, typeIn, allowStdout, Parallel::Comm());
+}
+#endif
+
 /** Create new CpptrajFile of the given type, or return existing CpptrajFile.
   * STDOUT will be used if name is empty and STDOUT is allowed.
   */
 // TODO: Accept const ArgList so arguments are not reset?
 CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn, 
                                           std::string const& descrip,
-                                          CFtype typeIn, bool allowStdout)
+                                          CFtype typeIn, bool allowStdout
+#                                         ifdef MPI
+                                          , Parallel::Comm const& commIn
+#                                         endif
+                                         )
 {
   // If no filename and stdout not allowed, no output desired.
   if (nameIn.empty() && !allowStdout) return 0;
   FileName name;
   CpptrajFile* Current = 0;
   int currentIdx = -1;
+
+  bool appendExt;
+# ifdef MPI
+  bool openShared;
+# endif
+  if (ensembleNum_ == -1) {
+    // No extension to append - ignore ensembleExt_
+    appendExt = false;
+#   ifdef MPI
+    // Open shared if input comm is not null.
+    openShared = (!commIn.IsNull());
+#   endif
+  } else {
+    if (ensembleExt_) {
+      appendExt = true;
+#     ifdef MPI
+      openShared = false;
+#     endif
+    } else {
+      appendExt = false;
+#     ifdef MPI
+      if (commIn.IsNull()) {
+        appendExt = true;
+        openShared = false;
+      } else {
+        appendExt = false;
+        openShared = true;
+      }
+#     endif
+    }
+  }
+
   if (!nameIn.empty()) {
     name = nameIn;
     // Append ensemble number if set.
-    if (ensembleNum_ != -1)
+    if (appendExt)
       name.Append( "." + integerToString(ensembleNum_) );
     // Check if filename in use by DataFile.
     DataFile* df = GetDataFile(name);
@@ -200,7 +253,20 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     Current->SetDebug(debug_);
     // Set up file for writing. 
     //if (Current->SetupWrite( name, debug_ ))
+#   ifdef MPI
+    int err = 0;
+    if (openShared) {
+      //rprintf("DEBUG: Opening '%s' shared.\n", name.full());
+      // File is being shared by different threads
+      Current->SetupWrite( name, debug_ );
+      // true here means open for shared write
+      err = Current->ParallelOpenFile(commIn, true);
+    } else
+      err = Current->OpenWrite( name );
+    if (err != 0)
+#   else
     if (Current->OpenWrite( name ))
+#   endif
     {
       mprinterr("Error: Setting up text output file %s\n", name.full());
       delete Current;
