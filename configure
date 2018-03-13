@@ -308,9 +308,12 @@ CheckLibraryKeys() {
 
 #-------------------------------------------------------------------------------
 # Test compile and run a program.
-# ARGS: [silent|quiet] <description> <compiler> <args> <file> [<link>]
+# ARGS: [noexe|silent|quiet] <description> <compiler> <args> <file> [<link>]
 TestProgram() {
-  if [ "$1" = 'quiet' ] ; then
+  if [ "$1" = 'noexe' ] ; then
+    silent=3
+    shift
+  elif [ "$1" = 'quiet' ] ; then
     silent=2
     shift
   elif [ "$1" = 'silent' ] ; then
@@ -340,11 +343,13 @@ TestProgram() {
       return 1
     fi
   fi
-  ./testp > /dev/null
-  if [ $? -ne 0 ] ; then
-    echo ""
-    echo "Program failed, compiled with: $COMPILELINE" > /dev/stderr
-    exit 1
+  if [ $silent -ne 3 ] ; then
+    ./testp > /dev/null
+    if [ $? -ne 0 ] ; then
+      echo ""
+      echo "Program failed, compiled with: $COMPILELINE" > /dev/stderr
+      exit 1
+    fi
   fi
   if [ $silent -ne 2 ] ; then echo "OK" ; fi
   rm -f $file testp compile.err
@@ -534,6 +539,25 @@ EOF
   fi
 }
 
+TestCuda() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include <cuda_runtime_api.h>
+
+int main() {
+  int device;
+  if ( cudaGetDevice( &device ) == cudaSuccess ) {
+    cudaDeviceProp deviceProp;
+    if ( cudaGetDeviceProperties( &deviceProp, device ) == cudaSuccess )
+      printf("| CUDA device: %s\n", deviceProp.name);
+  }
+  return 0;
+}
+EOF
+  TestProgram noexe "  Checking CUDA" "$CXX" "$CXXFLAGS ${LIB_INCL[$LCUDA]}" testp.cpp "${LIB_FLAG[$LCUDA]}"
+}
+
+
 #-------------------------------------------------------------------------------
 # Test external libraries
 TestLibraries() {
@@ -547,7 +571,7 @@ TestLibraries() {
   if [ "${LIB_TEST[$LREADLINE]}" = 'yes' ] ; then TestReadline ; fi
   if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
-  # TODO test cuda?
+  if [ "${LIB_TEST[$LCUDA]}" = 'yes'     ] ; then TestCuda ; fi
 }
 
 #-------------------------------------------------------------------------------
@@ -718,10 +742,11 @@ SetupLibraries() {
         else
           # Lib home specified
           linc="-I$lhome/include"
-          # Check if lib or lib64 exists. Prefer 'lib' for backwards compat.
+          # Check if architecture-specific lib dir exists. Use that if so.
           lhdir="$lhome/lib"
-          if [ ! -d "$lhdir" ] ; then
-            lhdir="$lhome/lib64"
+          ladir="$lhome/lib$NBITS"
+          if [ -d "$ladir" ] ; then
+            lhdir="$ladir"
           fi
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
             if [ -z "${LIB_STTC[$i]}" ] ; then
@@ -1070,17 +1095,14 @@ SetupMKL() {
     else
       mkldir=$MKLROOT
     fi
-    echo "Using MKL for BLAS/LAPACK in $mkldir"
+    echo "  Using MKL for BLAS/LAPACK in $mkldir"
     # Determine architecture
-    architecture=`uname -m`
-    if [ "$architecture" = 'x86_64' -o "$architecture" = 'em64t' ] ; then
-      echo "  Assuming 64 bit architecture."
+    if [ "$NBITS" -eq 64 ] ; then
       mkldir="$mkldir/lib/intel64"
       mklinterface=libmkl_intel_lp64.a
       mklblas="-lmkl_blas95_lp64"
       mkllapack="-lmkl_lapack95_lp64"
     else
-      echo "  Assuming 32 bit architecture."
       mkldir="$mkldir/lib/32"
       mklinterface=libmkl_intel.a
       mklblas="-lmkl_blas95"
@@ -1434,6 +1456,19 @@ if [ -z "$PLATFORM" ] ; then
   PLATFORM=`uname -s | awk '{print $1}'`
 fi
 
+# Determine architecture bits if not already specified
+if [ -z "$NBITS" ] ; then
+  architecture=`uname -m`
+  if [ -z "$architecture" ] ; then
+    echo "Warning: Could not determine 32 vs 64-bit OS - assuming 64-bit."
+    NBITS=64
+  elif [ "$architecture" = 'x86_64' -o "$architecture" = 'em64t' ] ; then
+    NBITS=64
+  else
+    NBITS=32
+  fi
+fi
+
 # Basic checks and directives
 BasicChecks
 
@@ -1499,7 +1534,7 @@ echo ""
 if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then
   echo "  Support for single-ensemble trajectories enabled."
 fi
-echo "  Target platform: $PLATFORM"
+echo "  Target platform: $PLATFORM, $NBITS-bit."
 echo "  $COMPILERS compilers in use."
 if [ "$C11_SUPPORT" = 'yes' ] ; then
   echo "  C++11 support enabled."
