@@ -742,10 +742,11 @@ SetupLibraries() {
         else
           # Lib home specified
           linc="-I$lhome/include"
-          # Check if lib or lib64 exists. Prefer 'lib' for backwards compat.
+          # Check if architecture-specific lib dir exists. Use that if so.
           lhdir="$lhome/lib"
-          if [ ! -d "$lhdir" ] ; then
-            lhdir="$lhome/lib64"
+          ladir="$lhome/lib$NBITS"
+          if [ -d "$ladir" ] ; then
+            lhdir="$ladir"
           fi
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
             if [ -z "${LIB_STTC[$i]}" ] ; then
@@ -1094,7 +1095,7 @@ SetupMKL() {
     else
       mkldir=$MKLROOT
     fi
-    echo "Using MKL for BLAS/LAPACK in $mkldir"
+    echo "  Using MKL for BLAS/LAPACK in $mkldir"
     # Determine architecture
     if [ "$NBITS" -eq 64 ] ; then
       mkldir="$mkldir/lib/intel64"
