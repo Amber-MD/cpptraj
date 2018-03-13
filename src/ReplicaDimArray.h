@@ -14,7 +14,7 @@ class ReplicaDimArray {
     //       currently match what is defined in Amber for REMD (remd.F90)
     //       EXCEPT RXSGLD, which uses the TEMPERATURE framework in Amber.
     //       Care should be taken to keep these in sync.
-    enum RemDimType { UNKNOWN=0, TEMPERATURE, PARTIAL, HAMILTONIAN, PH, RXSGLD };
+    enum RemDimType { UNKNOWN=0, TEMPERATURE, PARTIAL, HAMILTONIAN, PH, REDOX, RXSGLD };
     int operator[](int idx) const { return (int)remDims_[idx];         }
     int Ndims()             const { return (int)remDims_.size();       }
     void AddRemdDimension(int d)         { remDims_.push_back((RemDimType)d); }
@@ -28,7 +28,8 @@ class ReplicaDimArray {
         case PARTIAL:     return "Partial";     // 2 (UNUSED?)
         case HAMILTONIAN: return "Hamiltonian"; // 3
         case PH:          return "pH";          // 4
-        case RXSGLD:      return "RXSGLD";      // 5
+        case REDOX:       return "RedOx";       // 5
+        case RXSGLD:      return "RXSGLD";      // 6 FIXME placeholder for future traj type
       }
       return 0; // Sanity check, should never reach.
     }
