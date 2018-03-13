@@ -1209,9 +1209,8 @@ BasicChecks() {
     echo "Warning: Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
     USE_MPI=1
   fi
-  # If pub_FFT.F90 will be compiled or we are using the bundled ARPACK
-  # then we will need C++/Fortran linking.
-  if [ "${LIB_STAT[$LFFTW3]}" = 'off' -o "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
+  # If we are using the bundled ARPACK then we will need C++/Fortran linking.
+  if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
     REQUIRES_FLINK=1
   fi
   # TODO if we skipped checks we may need the FLINK flag enabled
