@@ -967,7 +967,7 @@ CheckEnv() {
       'nthreads' )
         shift
         if [ ! -z "$DO_PARALLEL" ] ; then
-          REMAINDER=`echo "$N_THREADS % $1" | bc`
+          REMAINDER=`expr $N_THREADS % $1`
           if [ -z "$REMAINDER" -o $REMAINDER -ne 0 ] ; then
             echo "  $DESCRIP requires a multiple of $1 parallel threads."
             ((CHECKERR++))
