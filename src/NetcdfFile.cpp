@@ -47,6 +47,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCREMD_CRDIDX "remd_crdidx"
 #define NCEPTOT "eptot"
 #define NCBINS "bins"
+#define NCREMDVALUES "remd_values"
 
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
@@ -63,7 +64,7 @@ NetcdfFile::NetcdfFile() :
   indicesVID_(-1),
   repidxVID_(-1),
   crdidxVID_(-1),
-  ncdebug_(0),
+  ncdebug_(10),
   frameDID_(-1),
   atomDID_(-1),
   ncatom_(-1),
@@ -256,13 +257,15 @@ int NetcdfFile::SetupTime() {
 
 // NetcdfFile::SetupTemperature()
 /** Determine if Netcdf file contains temperature; set up temperature VID. */
-int NetcdfFile::SetupTemperature() {
-  if ( nc_inq_varid(ncid_,NCTEMPERATURE,&TempVID_) == NC_NOERR ) {
-    if (ncdebug_>0) mprintf("\tNetCDF file has replica temperatures.\n");
-    return 0;
-  } 
-  TempVID_=-1;
-  return 1;
+void NetcdfFile::SetupTemperature() {
+  TempVID_ = -1;
+  RemdValuesVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCTEMPERATURE, &TempVID_) == NC_NOERR ) {
+    if (ncdebug_ > 0) mprintf("\tNetCDF file has replica temperatures.\n");
+  }
+  if ( nc_inq_varid(ncid_, NCREMDVALUES, &RemdValuesVID_) == NC_NOERR ) {
+    if (ncdebug_ > 0) mprintf("\tNetCDF file has replica values.\n");
+  }
 }
 
 // NetcdfFile::SetupMultiD()

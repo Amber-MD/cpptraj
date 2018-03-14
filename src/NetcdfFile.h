@@ -41,7 +41,7 @@ class NetcdfFile {
     /// Read - Set up box information if present.
     int SetupBox(Box&, NCTYPE);
     /// Read - Set up temperature information if present.
-    int SetupTemperature();
+    void SetupTemperature();
     /// Read - Set up replica index info if present.
     int SetupMultiD(ReplicaDimArray&);
     /// Convert given float array to double.
@@ -74,6 +74,7 @@ class NetcdfFile {
     int ncid_;           ///< NetCDF file ID
     int ncframe_;        ///< Total number of frames in file
     int TempVID_;        ///< Temperature variable ID.
+    int RemdValuesVID_;  ///< Replica values variable ID.
     int coordVID_;       ///< Coordinates variable ID.
     int velocityVID_;    ///< Velocity variable ID.
     int frcVID_;         ///< Force variable ID.
