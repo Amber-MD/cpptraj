@@ -263,9 +263,6 @@ void NetcdfFile::SetupTemperature() {
   if ( nc_inq_varid(ncid_, NCTEMPERATURE, &TempVID_) == NC_NOERR ) {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has replica temperatures.\n");
   }
-  if ( nc_inq_varid(ncid_, NCREMDVALUES, &RemdValuesVID_) == NC_NOERR ) {
-    if (ncdebug_ > 0) mprintf("\tNetCDF file has replica values.\n");
-  }
 }
 
 // NetcdfFile::SetupMultiD()
@@ -311,6 +308,10 @@ int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
   if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_INDICES, &indicesVID_)) ) {
     mprinterr("Error: Getting replica indices variable ID.\n");
     return -1;
+  }
+  // Get VID for replica values
+  if ( nc_inq_varid(ncid_, NCREMDVALUES, &RemdValuesVID_) == NC_NOERR ) {
+    if (ncdebug_ > 0) mprintf("\tNetCDF file has replica values.\n");
   }
   // Print info for each dimension
   for (int dim = 0; dim < remd_dimension_; ++dim)
@@ -373,6 +374,20 @@ int NetcdfFile::SetupBox(Box& boxIn, NCTYPE typeIn) {
   }
   // No box information
   return -1;
+}
+
+int NetcdfFile::ReadRemdValues(double* remdValPtr) {
+  if ( RemdValuesVID_ != -1 ) {
+    // FIXME assuming start_ is set
+    count_[0] = 1;               // 1 frame
+    count_[1] = remd_dimension_; // # dimensions
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, RemdValuesVID_, start_, count_, remdValPtr)) )
+    {
+      mprinterr("Error: Getting replica values\n");
+      return 1;
+    }
+  }
+  return 0;
 }
 
 // NetcdfFile::NC_openRead()

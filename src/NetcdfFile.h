@@ -44,6 +44,8 @@ class NetcdfFile {
     void SetupTemperature();
     /// Read - Set up replica index info if present.
     int SetupMultiD(ReplicaDimArray&);
+    /// Read - Remd Values
+    int ReadRemdValues(double* );
     /// Convert given float array to double.
     inline void FloatToDouble(double*,const float*) const;
     /// Convert given double array to float.
@@ -74,7 +76,6 @@ class NetcdfFile {
     int ncid_;           ///< NetCDF file ID
     int ncframe_;        ///< Total number of frames in file
     int TempVID_;        ///< Temperature variable ID.
-    int RemdValuesVID_;  ///< Replica values variable ID.
     int coordVID_;       ///< Coordinates variable ID.
     int velocityVID_;    ///< Velocity variable ID.
     int frcVID_;         ///< Force variable ID.
@@ -102,6 +103,7 @@ class NetcdfFile {
     int spatialVID_;      ///< Spatial (x, y, z) variable ID
     int cell_spatialVID_; ///< Box lengths variable ID
     int cell_angularVID_; ///< Box angles variable ID
+    int RemdValuesVID_;  ///< Replica values variable ID.
 #   endif /* BINTRAJ */
 };
 #ifdef BINTRAJ

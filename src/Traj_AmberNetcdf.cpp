@@ -290,6 +290,9 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     //mprintf("\n");
   }
 
+  // Read REMD values.
+  if (ReadRemdValues( frameIn.rvAddress() )) return 1;
+
   // Read box info 
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
