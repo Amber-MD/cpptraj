@@ -91,7 +91,6 @@ class NetcdfFile {
     int NC_defineTemperature(int*, int);
 
     std::vector<double> RemdValues_; ///< Hold remd values
-    std::vector<int> remDimIdx_;     ///< Hold dim index for each type
     ReplicaDimArray remDimType_;     ///< Type of each dimension
 
     int ncdebug_;

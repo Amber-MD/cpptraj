@@ -293,14 +293,14 @@ int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
   count_[0]=remd_dimension_; 
   count_[1]=0; 
   count_[2]=0;
-  int* remd_dimtype = new int[ remd_dimension_ ];
+  std::vector<int> remd_dimtype( remd_dimension_ );
   // Get dimension types
   int dimtypeVID;
   if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
     mprinterr("Error: Getting dimension type variable ID for each dimension.\n");
     return -1;
   }
-  if ( NC::CheckErr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, remd_dimtype)) ) {
+  if ( NC::CheckErr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, &remd_dimtype[0])) ) {
     mprinterr("Error: Getting dimension type in each dimension.\n");
     return -1;
   }
@@ -315,17 +315,11 @@ int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
     RemdValues_.assign( 3, 0 );
   }
   // Print info for each dimension
-  remDimIdx_.assign( remd_dimension_, 0 );
   for (int dim = 0; dim < remd_dimension_; ++dim) {
     remdDim.AddRemdDimension( remd_dimtype[dim] );
-    // Store type of each dimension
+    // Store type of each dimension TODO should just have one netcdf coordinfo
     remDimType_.AddRemdDimension( remd_dimtype[dim] );
-    // Store the indices for each dimension
-    remDimIdx_[ remd_dimtype[dim] ] = dim;
-    mprintf("DEBUG: Dimension '%s' is index %i\n",
-            ReplicaDimArray::dimType( (ReplicaDimArray::RemDimType)remd_dimtype[dim]), dim); 
   }
-  delete[] remd_dimtype;
   return 0; 
 }
 
@@ -582,18 +576,25 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   }
   // Setup dimensions for Coords/Velocity
   // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-  if (type == NC_AMBERENSEMBLE) {
-    dimensionID[0] = frameDID_;
-    dimensionID[1] = ensembleDID_;
-    dimensionID[2] = atomDID_;
-    dimensionID[3] = spatialDID_;
-  } else if (type == NC_AMBERTRAJ) {
-    dimensionID[0] = frameDID_;
-    dimensionID[1] = atomDID_;
-    dimensionID[2] = spatialDID_;
-  } else {
-    dimensionID[0] = atomDID_;
-    dimensionID[1] = spatialDID_;
+  switch (type) {
+    case NC_AMBERENSEMBLE:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = ensembleDID_;
+      dimensionID[2] = atomDID_;
+      dimensionID[3] = spatialDID_;
+      break;
+    case NC_AMBERTRAJ:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = atomDID_;
+      dimensionID[2] = spatialDID_;
+      break;
+    case NC_AMBERRESTART:
+      dimensionID[0] = atomDID_;
+      dimensionID[1] = spatialDID_;
+      break;
+    case NC_UNKNOWN:
+      mprinterr("Internal Error: Unknown type passed to NC_create()\n");
+      return 1;
   }
   // Coord variable
   if (coordInfo.HasCrd()) {
@@ -831,15 +832,13 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     ReplicaDimArray const& remdDim = coordInfo.ReplicaDimensions();
     start_[0] = 0;
     count_[0] = remd_dimension_;
-    int* tempDims = new int[ remd_dimension_ ];
+    std::vector<int> tempDims( remd_dimension_ );
     for (int i = 0; i < remd_dimension_; ++i)
       tempDims[i] = remdDim[i];
-    if (NC::CheckErr(nc_put_vara_int(ncid_, remDimTypeVID, start_, count_, tempDims))) {
+    if (NC::CheckErr(nc_put_vara_int(ncid_, remDimTypeVID, start_, count_, &tempDims[0]))) {
       mprinterr("Error: writing replica dimension types.\n");
-      delete[] tempDims;
       return 1;
     }
-    delete[] tempDims;
   }
 
   return 0;
