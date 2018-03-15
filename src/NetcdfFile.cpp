@@ -75,7 +75,8 @@ NetcdfFile::NetcdfFile() :
   cell_angularDID_(-1),
   spatialVID_(-1),
   cell_spatialVID_(-1),
-  cell_angularVID_(-1)
+  cell_angularVID_(-1),
+  RemdValuesVID_(-1)
 {
   start_[0] = 0;
   start_[1] = 0;
