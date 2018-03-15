@@ -259,9 +259,23 @@ int NetcdfFile::SetupTime() {
 /** Determine if Netcdf file contains temperature; set up temperature VID. */
 void NetcdfFile::SetupTemperature() {
   TempVID_ = -1;
-  RemdValuesVID_ = -1;
   if ( nc_inq_varid(ncid_, NCTEMPERATURE, &TempVID_) == NC_NOERR ) {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has replica temperatures.\n");
+  } else {
+    // For backwards compat., check for REMD_VALUES with 1 dimension
+    int tmpvid;
+    if ( nc_inq_varid(ncid_, NCREMDVALUES, &tmpvid) == NC_NOERR ) {
+      int ndims;
+      if (NC::CheckErr(nc_inq_varndims(ncid_, tmpvid, &ndims))) {
+        mprinterr("Error: Checking number of dimensions for REMD_VALUES.\n");
+        return;
+      }
+      if (ndims < 2) {
+        mprintf("Warning: New style (Amber >= V18) remd values detected with 1 dimension.\n"
+                "Warning:  Assuming temperature.\n");
+        TempVID_ = tmpvid;
+      }
+    }
   }
 }
 
@@ -525,6 +539,15 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n",Name.c_str(),(int)type);
       return 1;
   }
+
+  // Decide if we are going to use replica values. For backwards compatibility,
+  // if only 1 D and/or we only have temperature, the temp0 variable will be
+  // used.
+  //bool useRepValues = false;
+  //if (coordInfo.HasReplicaDims()) {
+  //  // Determine which dimension types are active.
+
+  //}
 
   if (type == NC_AMBERENSEMBLE) {
     // Ensemble dimension for ensemble
