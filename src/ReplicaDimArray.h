@@ -15,6 +15,7 @@ class ReplicaDimArray {
     //       EXCEPT RXSGLD, which uses the TEMPERATURE framework in Amber.
     //       Care should be taken to keep these in sync.
     enum RemDimType { UNKNOWN=0, TEMPERATURE, PARTIAL, HAMILTONIAN, PH, REDOX, RXSGLD };
+    RemDimType DimType(int idx) const { return remDims_[idx]; }
     int operator[](int idx) const { return (int)remDims_[idx];         }
     int Ndims()             const { return (int)remDims_.size();       }
     void AddRemdDimension(int d)         { remDims_.push_back((RemDimType)d); }

@@ -1,7 +1,7 @@
 #ifndef INC_NETCDFFILE_H
 #define INC_NETCDFFILE_H
 #include <string>
-#include "CoordinateInfo.h"
+#include "Frame.h"
 /// The base interface to NetCDF trajectory files.
 class NetcdfFile {
   public:
@@ -45,7 +45,7 @@ class NetcdfFile {
     /// Read - Set up replica index info if present.
     int SetupMultiD(ReplicaDimArray&);
     /// Read - Remd Values
-    int ReadRemdValues(double* );
+    int ReadRemdValues(Frame&);
     /// Convert given float array to double.
     inline void FloatToDouble(double*,const float*) const;
     /// Convert given double array to float.
@@ -89,6 +89,10 @@ class NetcdfFile {
     int crdidxVID_;      ///< Variable ID for overall coordinate index.
   private:
     int NC_defineTemperature(int*, int);
+
+    std::vector<double> RemdValues_; ///< Hold remd values
+    std::vector<int> remDimIdx_;     ///< Hold dim index for each type
+    ReplicaDimArray remDimType_;     ///< Type of each dimension
 
     int ncdebug_;
     int ensembleDID_;     ///< Ensemble dimenison ID

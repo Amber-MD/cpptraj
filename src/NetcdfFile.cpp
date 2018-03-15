@@ -312,10 +312,19 @@ int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
   // Get VID for replica values
   if ( nc_inq_varid(ncid_, NCREMDVALUES, &RemdValuesVID_) == NC_NOERR ) {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has replica values.\n");
+    RemdValues_.assign( 3, 0 );
   }
   // Print info for each dimension
-  for (int dim = 0; dim < remd_dimension_; ++dim)
+  remDimIdx_.assign( remd_dimension_, 0 );
+  for (int dim = 0; dim < remd_dimension_; ++dim) {
     remdDim.AddRemdDimension( remd_dimtype[dim] );
+    // Store type of each dimension
+    remDimType_.AddRemdDimension( remd_dimtype[dim] );
+    // Store the indices for each dimension
+    remDimIdx_[ remd_dimtype[dim] ] = dim;
+    mprintf("DEBUG: Dimension '%s' is index %i\n",
+            ReplicaDimArray::dimType( (ReplicaDimArray::RemDimType)remd_dimtype[dim]), dim); 
+  }
   delete[] remd_dimtype;
   return 0; 
 }
@@ -376,16 +385,31 @@ int NetcdfFile::SetupBox(Box& boxIn, NCTYPE typeIn) {
   return -1;
 }
 
-int NetcdfFile::ReadRemdValues(double* remdValPtr) {
+/** \return 1 if RemdValues were read, 0 otherwise. */
+int NetcdfFile::ReadRemdValues(Frame& frm) {
   if ( RemdValuesVID_ != -1 ) {
     // FIXME assuming start_ is set
     count_[0] = 1;               // 1 frame
     count_[1] = remd_dimension_; // # dimensions
-    if ( NC::CheckErr(nc_get_vara_double(ncid_, RemdValuesVID_, start_, count_, remdValPtr)) )
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, RemdValuesVID_, start_, count_, &RemdValues_[0])) )
     {
       mprinterr("Error: Getting replica values\n");
-      return 1;
+      return 0; // FIXME -1 instead?
     }
+    for (int idx = 0; idx != remDimType_.Ndims(); ++idx)
+    {
+      if (remDimType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
+        frm.SetTemperature( RemdValues_[idx] );
+        mprintf("DEBUG: T= %g\n", frm.Temperature());
+      } else if (remDimType_.DimType(idx) == ReplicaDimArray::PH) {
+        frm.Set_pH( RemdValues_[idx] );
+        mprintf("DEBUG: pH= %g\n", frm.pH());
+      } else if (remDimType_.DimType(idx) == ReplicaDimArray::REDOX) {
+        frm.SetRedOx( RemdValues_[idx] );
+        mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
+      }
+    }
+    return 1;
   }
   return 0;
 }

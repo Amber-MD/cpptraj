@@ -77,6 +77,8 @@ class Frame {
     int size()                        const { return ncoord_;        }
     int NrepDims()                    const { return (int)remd_indices_.size(); } // TODO: deprecate
     double Temperature()              const { return T_;             }
+    double pH()                       const { return pH_;            }
+    double RedOx()                    const { return redox_;         }
     double Time()                     const { return time_;          }
     /// \return pointer to start of XYZ coords for given atom.
     const double* XYZ(int atnum)      const { return X_ + (atnum*3); } 
@@ -92,16 +94,18 @@ class Frame {
     const Box& BoxCrd()               const { return box_;           }
     /// \return replica indices
     RemdIdxType const& RemdIndices()  const { return remd_indices_;  }
-    /// \return replica values
-    RemdValType const& RemdValues()   const { return remd_values_;   }
     /// Set box alpha, beta, and gamma
     inline void SetBoxAngles(const double*);
     /// Set box
     void SetBox( Box const& b ) { box_ = b; }
     /// Set temperature
-    void SetTemperature(double tIn) { T_ = tIn;   }
+    void SetTemperature(double tIn) { T_ = tIn;     }
+    /// Set pH
+    void Set_pH(double phIn)        { pH_ = phIn;   }
+    /// Set RedOx potential
+    void SetRedOx(double rIn)       { redox_ = rIn; }
     /// Set time
-    void SetTime(double tIn)        {time_ = tIn; }
+    void SetTime(double tIn)        { time_ = tIn;  }
     /// Set masses
     void SetMass(std::vector<Atom> const&);
     // ----- Access to internal data pointers ----
@@ -112,7 +116,6 @@ class Frame {
     inline double* tAddress() { return &T_;               }
     inline double* mAddress() { return &time_;            }
     inline int* iAddress()    { return &remd_indices_[0]; }
-    inline double* rvAddress(){ return &remd_values_[0];  }
     inline const double* xAddress() const { return X_;                }
     inline const double* vAddress() const { return V_;                }
     inline const double* fAddress() const { return F_;                }
@@ -120,7 +123,6 @@ class Frame {
     inline const double* tAddress() const { return &T_;               }
     inline const double* mAddress() const { return &time_;            }
     inline const int* iAddress()    const { return &remd_indices_[0]; }
-    inline const double* rvAddress()const { return &remd_values_[0];  }
     // ----- Frame memory allocation routines ----
     /// Allocate frame for given # atoms, no mass or velocity.
     int SetupFrame(int);
@@ -240,12 +242,13 @@ class Frame {
     int ncoord_;    ///< Number of coordinates stored in frame (natom * 3).
     Box box_;       ///< Box coords, 3xlengths, 3xangles
     double T_;      ///< Temperature
+    double pH_;     ///< pH
+    double redox_;  ///< RedOx potential
     double time_;   ///< Time FIXME Should this be float?
     double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     double* V_;     ///< Velocities (same arrangement as Coords).
     double* F_;     ///< Frame (same arrangement as Coords).
     RemdIdxType remd_indices_; ///< replica indices.
-    RemdValType remd_values_; ///< replica values.
     Darray Mass_;   ///< Masses.
     bool memIsExternal_; ///< True if Frame is not responsible for freeing memory.
 

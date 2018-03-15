@@ -13,6 +13,8 @@ Frame::Frame( ) :
   maxnatom_(0),
   ncoord_(0),
   T_(0.0),
+  pH_(0.0),
+  redox_(0.0),
   time_(0.0),
   X_(0),
   V_(0),
@@ -36,6 +38,8 @@ Frame::Frame(int natomIn) :
   maxnatom_(natomIn),
   ncoord_(natomIn*3), 
   T_(0.0),
+  pH_(0.0),
+  redox_(0.0),
   time_(0.0),
   X_(0),
   V_(0),
@@ -53,6 +57,8 @@ Frame::Frame(std::vector<Atom> const& atoms) :
   maxnatom_(natom_),
   ncoord_(natom_*3),
   T_(0.0),
+  pH_(0.0),
+  redox_(0.0),
   time_(0.0),
   X_(0),
   V_(0),
@@ -74,12 +80,13 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   ncoord_(natom_*3),
   box_(frameIn.box_),
   T_( frameIn.T_ ),
+  pH_( frameIn.pH_ ),
+  redox_( frameIn.redox_ ),
   time_( frameIn.time_ ),
   X_(0),
   V_(0),
   F_(0),
   remd_indices_(frameIn.remd_indices_),
-  remd_values_(frameIn.remd_values_),
   memIsExternal_(false)
 {
   if (ncoord_ > 0) {
@@ -144,12 +151,13 @@ Frame::Frame(const Frame& rhs) :
   ncoord_(rhs.ncoord_),
   box_(rhs.box_),
   T_(rhs.T_),
+  pH_(rhs.pH_),
+  redox_(rhs.redox_),
   time_(rhs.time_),
   X_(0),
   V_(0),
   F_(0),
   remd_indices_(rhs.remd_indices_),
-  remd_values_(rhs.remd_values_),
   Mass_(rhs.Mass_),
   memIsExternal_(false)
 {
@@ -176,12 +184,13 @@ void Frame::swap(Frame &first, Frame &second) {
   swap(first.maxnatom_, second.maxnatom_);
   swap(first.ncoord_, second.ncoord_);
   swap(first.T_, second.T_);
+  swap(first.pH_, second.pH_);
+  swap(first.redox_, second.redox_);
   swap(first.time_, second.time_);
   swap(first.X_, second.X_);
   swap(first.V_, second.V_);
   swap(first.F_, second.F_);
   first.remd_indices_.swap(second.remd_indices_);
-  first.remd_values_.swap(second.remd_values_);
   first.Mass_.swap(second.Mass_);
   swap(first.memIsExternal_, second.memIsExternal_);
   first.box_.swap( second.box_ );
@@ -201,9 +210,10 @@ Frame &Frame::operator=(Frame rhs) {
     ncoord_ = rhs.ncoord_;
     box_ = rhs.box_;
     T_ = rhs.T_;
+    pH_ = rhs.pH_;
+    redox_ = rhs.redox_;
     time_ = rhs.time_;
     remd_indices_ = rhs.remd_indices_;
-    remd_values_ = rhs.remd_values_;
     Mass_ = rhs.Mass_;
     memIsExternal_ = false;
     if (X_ != 0) delete[] X_;
@@ -314,7 +324,6 @@ void Frame::Info(const char *msg) const {
   mprintf("%i atoms, %i coords",natom_, ncoord_);
   if (V_!=0) mprintf(", with Velocities");
   if (!remd_indices_.empty()) mprintf(", with replica indices");
-  if (!remd_values_.empty()) mprintf(", with replica values");
   mprintf("\n");
 }
 
@@ -450,8 +459,6 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
   box_ = cinfo.TrajBox();
   // Replica indices
   remd_indices_.assign( cinfo.ReplicaDimensions().Ndims(), 0 );
-  // Replica values
-  remd_values_.assign( cinfo.ReplicaDimensions().Ndims(), 0 );
   return 0;
 }
 
@@ -533,9 +540,10 @@ void Frame::SetCoordinates(Frame const& frameIn, AtomMask const& maskIn) {
   ncoord_ = natom_ * 3;
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  pH_ = frameIn.pH_;
+  redox_ = frameIn.redox_;
   time_ = frameIn.time_;
   remd_indices_ = frameIn.remd_indices_;
-  remd_values_ = frameIn.remd_values_;
   double* newXptr = X_;
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
   {
@@ -586,9 +594,10 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   // Copy T/box
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  pH_ = frameIn.pH_;
+  redox_ = frameIn.redox_;
   time_ = frameIn.time_;
   remd_indices_ = frameIn.remd_indices_;
-  remd_values_ = frameIn.remd_values_;
   double* newXptr = X_;
   Darray::iterator mass = Mass_.begin();
   // Copy coords/mass
@@ -642,9 +651,10 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   ncoord_ = natom_ * 3;
   box_ = tgtIn.box_;
   T_ = tgtIn.T_;
+  pH_ = tgtIn.pH_;
+  redox_ = tgtIn.redox_;
   time_ = tgtIn.time_;
   remd_indices_ = tgtIn.remd_indices_;
-  remd_values_ = tgtIn.remd_values_;
   // Copy Coords/Mass
   double* newXptr = X_;
   Darray::iterator newmass = Mass_.begin();
@@ -695,9 +705,10 @@ void Frame::StripUnmappedAtoms(Frame const& refIn, std::vector<int> const& mapIn
   }
   box_ = refIn.box_;
   T_ = refIn.T_;
+  pH_ = refIn.pH_;
+  redox_ = refIn.redox_;
   time_ = refIn.time_;
   remd_indices_ = refIn.remd_indices_;
-  remd_values_ = refIn.remd_values_;
 
   double* newXptr = X_;
   double* refptr = refIn.X_;
@@ -726,9 +737,10 @@ void Frame::ModifyByMap(Frame const& frameIn, std::vector<int> const& mapIn) {
   }
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  pH_ = frameIn.pH_;
+  redox_ = frameIn.redox_;
   time_ = frameIn.time_;
   remd_indices_ = frameIn.remd_indices_;
-  remd_values_ = frameIn.remd_values_;
 
   double* Xptr = X_;
   for (std::vector<int>::const_iterator oldatom = mapIn.begin(); 
@@ -1313,9 +1325,10 @@ int Frame::SendFrame(int recvrank, Parallel::Comm const& commIn) {
     commIn.Send( F_,              ncoord_, MPI_DOUBLE, recvrank, 1218 );
   commIn.Send( box_.boxPtr(),     6,       MPI_DOUBLE, recvrank, 1213 );
   commIn.Send( &T_,               1,       MPI_DOUBLE, recvrank, 1214 );
+  commIn.Send( &pH_,              1,       MPI_DOUBLE, recvrank, 1219 );
+  commIn.Send( &redox_,           1,       MPI_DOUBLE, recvrank, 1220 );
   commIn.Send( &time_,            1,       MPI_DOUBLE, recvrank, 1217 );
   commIn.Send( &remd_indices_[0], remd_indices_.size(), MPI_INT, recvrank, 1216 );
-  commIn.Send( &remd_values_[0], remd_values_.size(), MPI_DOUBLE, recvrank, 1217 );
   return 0;
 }
 
@@ -1329,9 +1342,10 @@ int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
     commIn.Recv( F_,              ncoord_, MPI_DOUBLE, sendrank, 1218 );
   commIn.Recv( box_.boxPtr(),     6,       MPI_DOUBLE, sendrank, 1213 );
   commIn.Recv( &T_,               1,       MPI_DOUBLE, sendrank, 1214 );
+  commIn.Recv( &pH_,              1,       MPI_DOUBLE, sendrank, 1219 );
+  commIn.Recv( &redox_,           1,       MPI_DOUBLE, sendrank, 1220 );
   commIn.Recv( &time_,            1,       MPI_DOUBLE, sendrank, 1217 );
   commIn.Recv( &remd_indices_[0], remd_indices_.size(), MPI_INT, sendrank, 1216 );
-  commIn.Recv( &remd_values_[0], remd_values_.size(), MPI_DOUBLE, sendrank, 1217 );
   return 0;
 }
 
