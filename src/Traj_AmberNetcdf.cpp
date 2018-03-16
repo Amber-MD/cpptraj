@@ -382,6 +382,9 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
     }
   }
 
+  // Write Remd Values
+  WriteRemdValues(frameOut);
+
   // Write box
   if (cellLengthVID_ != -1) {
     count_[1] = 3;

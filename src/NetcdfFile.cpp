@@ -957,6 +957,36 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   return 0;
 }
 
+/** \return 1 if RemdValues were written, 0 otherwise. */
+int NetcdfFile::WriteRemdValues(Frame const& frm) {
+  if ( RemdValuesVID_ != -1 ) {
+    for (int idx = 0; idx != remValType_.Ndims(); ++idx)
+    {
+      if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
+        RemdValues_[idx] = frm.Temperature();
+        mprintf("DEBUG: T= %g\n", frm.Temperature());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
+        RemdValues_[idx] = frm.pH();
+        mprintf("DEBUG: pH= %g\n", frm.pH());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
+        RemdValues_[idx] = frm.RedOx();
+        mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
+      }
+    }
+    // FIXME assuming start_ is set
+    count_[0] = 1;               // 1 frame
+    count_[1] = remd_dimension_; // # dimensions
+    if ( NC::CheckErr(nc_put_vara_double(ncid_, RemdValuesVID_, start_, count_, &RemdValues_[0])) )
+    {
+      mprinterr("Error: Writing replica values\n");
+      return 0; // FIXME -1 instead?
+    }
+    return 1;
+  }
+  return 0;
+}
+
+// =============================================================================
 // NetcdfFile::WriteIndices()
 void NetcdfFile::WriteIndices() const {
   mprintf("DBG: Start={%zu, %zu, %zu, %zu} Count={%zu, %zu, %zu, %zu}\n",

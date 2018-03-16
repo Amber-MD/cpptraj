@@ -48,6 +48,8 @@ class NetcdfFile {
     int SetupMultiD();
     /// Read - Remd Values
     int ReadRemdValues(Frame&);
+    /// Write - Remd Values
+    int WriteRemdValues(Frame const&);
     /// Convert given float array to double.
     inline void FloatToDouble(double*,const float*) const;
     /// Convert given double array to float.
