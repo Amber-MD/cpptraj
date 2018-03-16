@@ -119,6 +119,19 @@ std::string NetcdfFile::GetNcTitle() const {
   return NC::GetAttrText(ncid_, "title");
 }
 
+/** \return true if temperature VID is defined or a replica dimension is temperature.
+  */
+bool NetcdfFile::HasTemperatures() const {
+  if (TempVID_ != -1)
+    return true;
+  else if (RemdValuesVID_ != -1) {
+    for (int idx = 0; idx != remDimType_.Ndims(); idx++)
+      if (remDimType_.DimType(idx) == ReplicaDimArray::TEMPERATURE)
+        return true;
+  }
+  return false;
+}
+
 // NetcdfFile::SetupFrameDim()
 /** Get the frame dimension ID and # of frames (ncframe). */
 int NetcdfFile::SetupFrameDim() {
@@ -262,21 +275,6 @@ void NetcdfFile::SetupTemperature() {
   TempVID_ = -1;
   if ( nc_inq_varid(ncid_, NCTEMPERATURE, &TempVID_) == NC_NOERR ) {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has replica temperatures.\n");
-  } else {
-    // For backwards compat., check for REMD_VALUES with 1 dimension
-    int tmpvid;
-    if ( nc_inq_varid(ncid_, NCREMDVALUES, &tmpvid) == NC_NOERR ) {
-      int ndims;
-      if (NC::CheckErr(nc_inq_varndims(ncid_, tmpvid, &ndims))) {
-        mprinterr("Error: Checking number of dimensions for REMD_VALUES.\n");
-        return;
-      }
-      if (ndims < 2) {
-        mprintf("Warning: New style (Amber >= V18) remd values detected with 1 dimension.\n"
-                "Warning:  Assuming temperature.\n");
-        TempVID_ = tmpvid;
-      }
-    }
   }
 }
 
@@ -287,54 +285,75 @@ void NetcdfFile::SetupTemperature() {
   */
 int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
   int dimensionDID;
+  remd_dimension_ = 0;
+  if ( nc_inq_dimid(ncid_, NCREMD_DIMENSION, &dimensionDID) == NC_NOERR)
+  {
+    // Although this is a second call to dimid, makes for easier code
+    if ( (dimensionDID = NC::GetDimInfo(ncid_, NCREMD_DIMENSION, remd_dimension_))==-1 )
+      return -1;
+    if (ncdebug_ > 0)
+      mprintf("\tNetCDF file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
+    // Ensure valid # dimensions
+    if (remd_dimension_ < 1) {
+      mprinterr("Error: Number of REMD dimensions is less than 1!\n");
+      return -1;
+    }
+    // Start and count for groupnum and dimtype, allocate mem
+    start_[0]=0; 
+    start_[1]=0; 
+    start_[2]=0;
+    count_[0]=remd_dimension_; 
+    count_[1]=0; 
+    count_[2]=0;
+    std::vector<int> remd_dimtype( remd_dimension_ );
+    // Get dimension types
+    int dimtypeVID;
+    if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
+      mprinterr("Error: Getting dimension type variable ID for each dimension.\n");
+      return -1;
+    }
+    if ( NC::CheckErr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, &remd_dimtype[0])) ) {
+      mprinterr("Error: Getting dimension type in each dimension.\n");
+      return -1;
+    }
+    // Get VID for replica indices
+    if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_INDICES, &indicesVID_)) ) {
+      mprinterr("Error: Getting replica indices variable ID.\n");
+      return -1;
+    }
+    // Print info for each dimension
+    for (int dim = 0; dim < remd_dimension_; ++dim) {
+      remdDim.AddRemdDimension( remd_dimtype[dim] );
+      // Store type of each dimension TODO should just have one netcdf coordinfo
+      remDimType_.AddRemdDimension( remd_dimtype[dim] );
+    }
+  }
 
-  if ( nc_inq_dimid(ncid_, NCREMD_DIMENSION, &dimensionDID) != NC_NOERR)
-    return 1;
- 
-  // Although this is a second call to dimid, makes for easier code
-  if ( (dimensionDID = NC::GetDimInfo(ncid_, NCREMD_DIMENSION, remd_dimension_))==-1 )
-    return -1;
-  if (ncdebug_ > 0)
-    mprintf("\tNetCDF file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
-  // Ensure valid # dimensions
-  if (remd_dimension_ < 1) {
-    mprinterr("Error: Number of REMD dimensions is less than 1!\n");
-    return -1;
-  }
-  // Start and count for groupnum and dimtype, allocate mem
-  start_[0]=0; 
-  start_[1]=0; 
-  start_[2]=0;
-  count_[0]=remd_dimension_; 
-  count_[1]=0; 
-  count_[2]=0;
-  std::vector<int> remd_dimtype( remd_dimension_ );
-  // Get dimension types
-  int dimtypeVID;
-  if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
-    mprinterr("Error: Getting dimension type variable ID for each dimension.\n");
-    return -1;
-  }
-  if ( NC::CheckErr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, &remd_dimtype[0])) ) {
-    mprinterr("Error: Getting dimension type in each dimension.\n");
-    return -1;
-  }
-  // Get VID for replica indices
-  if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_INDICES, &indicesVID_)) ) {
-    mprinterr("Error: Getting replica indices variable ID.\n");
-    return -1;
-  }
   // Get VID for replica values
   if ( nc_inq_varid(ncid_, NCREMDVALUES, &RemdValuesVID_) == NC_NOERR ) {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has replica values.\n");
-    RemdValues_.assign( 3, 0 );
+    if (remd_dimension_ > 0) {
+      RemdValues_.assign( remd_dimension_, 0 );
+    } else {
+      // Probably 1D
+      int ndims = 0;
+      if (NC::CheckErr(nc_inq_varndims(ncid_, RemdValuesVID_, &ndims))) {
+        mprinterr("Error: Checking number of dimensions for REMD_VALUES.\n");
+        return 1;
+      }
+      if (ndims < 2) {
+        mprintf("Warning: New style (Amber >= V18) remd values detected with < 2 dimensions.\n"
+                "Warning:  Assuming temperature.\n");
+        remDimType_.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
+      } else {
+        mprinterr("Error: New style (Amber >= V18) remd values detected with > 1 dimension\n"
+                  "Error:   but no multi-D replica info present.\n");
+        return 1;
+      }
+      RemdValues_.assign( ndims, 0 );
+    }
   }
-  // Print info for each dimension
-  for (int dim = 0; dim < remd_dimension_; ++dim) {
-    remdDim.AddRemdDimension( remd_dimtype[dim] );
-    // Store type of each dimension TODO should just have one netcdf coordinfo
-    remDimType_.AddRemdDimension( remd_dimtype[dim] );
-  }
+
   return 0; 
 }
 

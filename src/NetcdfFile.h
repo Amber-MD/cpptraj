@@ -65,7 +65,7 @@ class NetcdfFile {
     bool HasForces()       const { return (frcVID_ != -1);      }
     bool HasVelocities()   const { return (velocityVID_ != -1); }
     bool HasCoords()       const { return (coordVID_ != -1);    }
-    bool HasTemperatures() const { return (TempVID_ != -1);     }
+    bool HasTemperatures() const;
     bool HasTimes()        const { return (timeVID_ != -1);     }
   protected: // TODO: Make all private
 #   ifdef MPI
