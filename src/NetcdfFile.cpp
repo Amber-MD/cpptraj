@@ -610,17 +610,8 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       return 1;
   }
 
-  // Decide if we are going to use replica values. For backwards compatibility,
-  // if only 1 D and/or we only have temperature, the temp0 variable will be
-  // used.
-  //bool useRepValues = false;
-  //if (coordInfo.HasReplicaDims()) {
-  //  // Determine which dimension types are active.
-
-  //}
-
+  // Ensemble dimension for ensemble
   if (type == NC_AMBERENSEMBLE) {
-    // Ensemble dimension for ensemble
     if (coordInfo.EnsembleSize() < 1) {
       mprinterr("Internal Error: NetcdfFile: ensembleSize < 1\n");
       return 1;
@@ -631,9 +622,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     }
     dimensionID[1] = ensembleDID_;
   }
+  // Frame dimension for traj
   ncframe_ = 0;
   if (type == NC_AMBERTRAJ || type == NC_AMBERENSEMBLE) {
-    // Frame dimension for traj
     if ( NC::CheckErr( nc_def_dim( ncid_, NCFRAME, NC_UNLIMITED, &frameDID_)) ) {
       mprinterr("Error: Defining frame dimension.\n");
       return 1;
