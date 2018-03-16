@@ -204,6 +204,9 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
     //mprintf("\n");
   }
 
+  // Read REMD values.
+  ReadRemdValues(frameIn);
+
   // Read box info 
   if (cellLengthVID_ != -1) {
     count_[0] = 3;
@@ -293,6 +296,9 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
       return 1;
     }
   }
+  // Write Remd Values
+  WriteRemdValues(frameOut);
+
   //nc_sync(ncid_); // Necessary? File about to close anyway... 
   // Close file for this set
   closeTraj();

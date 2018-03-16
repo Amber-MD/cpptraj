@@ -252,7 +252,7 @@ int Traj_NcEnsemble::writeFrame(int set, Frame const& frameOut) {
   return 1;
 }
 
-// Traj_NcEnsemble::readArray()
+// Traj_NcEnsemble::readArray() //TODO RemdValues
 int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 # ifdef HAS_PNETCDF
   MPI_Offset pstart_[4];
@@ -365,7 +365,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
   return 0;
 }
 
-// Traj_NcEnsemble::writeArray()
+// Traj_NcEnsemble::writeArray() // TODO RemdValues
 int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
 # ifdef HAS_PNETCDF
   MPI_Offset pstart_[4];
