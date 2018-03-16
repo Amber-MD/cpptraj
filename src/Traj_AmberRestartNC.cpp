@@ -92,17 +92,14 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
   // Setup Time - FIXME: allowed to fail silently
   SetupTime();
   // Box info
-  Box nc_box;
-  if (SetupBox(nc_box, NC_AMBERRESTART) == 1) // 1 indicates an error
+  if (SetupBox(NC_AMBERRESTART) == 1) // 1 indicates an error
     return TRAJIN_ERR;
   // Replica Temperatures - FIXME: allowed to fail silently 
   SetupTemperature();
   // Replica Dimensions
-  ReplicaDimArray remdDim;
-  if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
+  if ( SetupMultiD() == -1 ) return TRAJIN_ERR;
   // Set traj info: FIXME - no forces yet
-  SetCoordInfo( CoordinateInfo(remdDim, nc_box, HasVelocities(),
-                               HasTemperatures(), HasTimes(), false) );
+  SetCoordInfo( NC_coordInfo() );
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;

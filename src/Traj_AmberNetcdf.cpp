@@ -102,18 +102,13 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
   // Setup Time - FIXME: Allowed to fail silently
   SetupTime();
   // Box info
-  Box nc_box;
-  if (SetupBox(nc_box, NC_AMBERTRAJ) == 1) // 1 indicates an error
+  if (SetupBox(NC_AMBERTRAJ) == 1) // 1 indicates an error
     return TRAJIN_ERR;
   // Replica Temperatures - FIXME: Allowed to fail silently
   SetupTemperature();
   // Replica Dimensions
-  ReplicaDimArray remdDim;
-  if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
-  CoordinateInfo ncCoordInfo(remdDim, nc_box, HasVelocities(),
-                             HasTemperatures(), HasTimes(), HasForces());
-  ncCoordInfo.SetCrd( HasCoords() );
-  SetCoordInfo( ncCoordInfo ); 
+  if ( SetupMultiD() == -1 ) return TRAJIN_ERR;
+  SetCoordInfo( NC_coordInfo() ); 
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;

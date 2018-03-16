@@ -1,6 +1,60 @@
 #include "CoordinateInfo.h"
 #include "CpptrajStdio.h"
 
+/** Default constructor. */
+CoordinateInfo::CoordinateInfo() :
+  ensembleSize_(0),
+  hasCrd_(true),
+  hasVel_(false),
+  hasTemp_(false),
+  has_pH_(false),
+  hasRedox_(false),
+  hasTime_(false),
+  hasFrc_(false)
+{}
+
+/** Box, velocity, temperature, time. TODO pH, redox? */
+CoordinateInfo::CoordinateInfo(Box const& b, bool v, bool t, bool m) :
+  box_(b),
+  ensembleSize_(0),
+  hasCrd_(true),
+  hasVel_(v),
+  hasTemp_(t),
+  has_pH_(false),
+  hasRedox_(false),
+  hasTime_(m),
+  hasFrc_(false)
+{}
+
+/** Box, coords, velocity, force, time. */
+CoordinateInfo::CoordinateInfo(Box const& b, bool c, bool v, bool f, bool m) :
+  box_(b),
+  ensembleSize_(0),
+  hasCrd_(c),
+  hasVel_(v),
+  hasTemp_(false),
+  has_pH_(false),
+  hasRedox_(false),
+  hasTime_(m),
+  hasFrc_(f)
+{}
+
+/** Constructor - All */
+CoordinateInfo::CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b,
+                               bool c, bool v, bool t, bool m, bool f) :
+  remdDim_(r),
+  box_(b),
+  ensembleSize_(e),
+  hasCrd_(c),
+  hasVel_(v),
+  hasTemp_(t),
+  has_pH_(false),
+  hasRedox_(false),
+  hasTime_(m),
+  hasFrc_(f)
+{}
+
+/** DEBUG: Print info to stdout. */
 void CoordinateInfo::PrintCoordInfo(const char* name, const char* parm) const {
   mprintf("DBG: '%s' parm '%s' CoordInfo={ box type %s", name, parm, box_.TypeName());
   if (remdDim_.Ndims() > 0) mprintf(", %i rep dims", remdDim_.Ndims());
@@ -19,6 +73,7 @@ static inline void Append(std::string& meta, std::string const& str) {
     meta.append(", " + str);
 }
 
+/** \return String describing elements that are present. */
 std::string CoordinateInfo::InfoString() const {
   std::string meta;
   if ( HasCrd() )         Append(meta, "coordinates");

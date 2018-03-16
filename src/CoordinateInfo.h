@@ -10,20 +10,13 @@
 class CoordinateInfo {
   public:
     /// CONSTRUCTOR
-    CoordinateInfo() : ensembleSize_(0), hasCrd_(true), hasVel_(false),
-                       hasTemp_(false), hasTime_(false), hasFrc_(false) {}
+    CoordinateInfo();
     /// CONSTRUCTOR - box, velocity, temperature, time
-    CoordinateInfo(Box const& b, bool v, bool t, bool m) :
-      box_(b), ensembleSize_(0), hasCrd_(true), hasVel_(v),
-      hasTemp_(t), hasTime_(m), hasFrc_(false) {}
-    /// CONSTRUCTOR - all except ensemble size
-    CoordinateInfo(ReplicaDimArray const& r, Box const& b, bool v, bool t, bool m, bool f) :
-      remdDim_(r), box_(b), ensembleSize_(0), hasCrd_(true), hasVel_(v),
-      hasTemp_(t), hasTime_(m), hasFrc_(f) {}
-    /// CONSTRUCTOR - All
-    CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b, bool v, bool t, bool m, bool f) :
-      remdDim_(r), box_(b), ensembleSize_(e), hasCrd_(true), hasVel_(v),
-      hasTemp_(t), hasTime_(m), hasFrc_(f) {}
+    CoordinateInfo(Box const&, bool, bool, bool);
+    /// CONSTRUCTOR - box, coord, velocity, force, time TODO merge with above? 
+    CoordinateInfo(Box const&, bool, bool, bool, bool);
+    /// CONSTRUCTOR - ensemble size, remd dims, box, coords, velocity, temp., time, force 
+    CoordinateInfo(int, ReplicaDimArray const&, Box const&, bool, bool, bool, bool, bool);
     bool HasBox()              const { return box_.HasBox();            }
     const Box& TrajBox()       const { return box_;                     }
     int EnsembleSize()         const { return ensembleSize_;            }
@@ -62,6 +55,8 @@ class CoordinateInfo {
     bool hasCrd_;             ///< True if coords present. Now only relevant for NetCDF traj.
     bool hasVel_;             ///< True if coords have associated velocities.
     bool hasTemp_;            ///< True if coords include temp info.
+    bool has_pH_;             ///< True if coords include pH info.
+    bool hasRedox_;          ///< True if coords include RedOx potential info.
     bool hasTime_;            ///< True if coords include time info.
     bool hasFrc_;             ///< True if coords have associated forces.
 };

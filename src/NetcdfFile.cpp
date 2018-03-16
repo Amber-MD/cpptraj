@@ -64,6 +64,7 @@ NetcdfFile::NetcdfFile() :
   indicesVID_(-1),
   repidxVID_(-1),
   crdidxVID_(-1),
+  ensembleSize_(0),
   ncdebug_(10),
   frameDID_(-1),
   atomDID_(-1),
@@ -142,10 +143,10 @@ int NetcdfFile::SetupFrameDim() {
 
 /** Get the ensemble dimension ID and size. */
 int NetcdfFile::SetupEnsembleDim() {
-  int ensembleSize = 0;
-  ensembleDID_ = NC::GetDimInfo( ncid_, NCENSEMBLE, ensembleSize );
+  ensembleSize_ = 0;
+  ensembleDID_ = NC::GetDimInfo( ncid_, NCENSEMBLE, ensembleSize_ );
   if (ensembleDID_ == -1) return 0;
-  return ensembleSize;
+  return ensembleSize_;
 }
 
 // NetcdfFile::SetupCoordsVelo()
@@ -283,7 +284,7 @@ void NetcdfFile::SetupTemperature() {
   * number of replica dimensions (remd_dimension_) and figure out
   * the dimension types (remdDim)
   */
-int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
+int NetcdfFile::SetupMultiD() {
   int dimensionDID;
   remd_dimension_ = 0;
   if ( nc_inq_dimid(ncid_, NCREMD_DIMENSION, &dimensionDID) == NC_NOERR)
@@ -321,12 +322,9 @@ int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
       mprinterr("Error: Getting replica indices variable ID.\n");
       return -1;
     }
-    // Print info for each dimension
-    for (int dim = 0; dim < remd_dimension_; ++dim) {
-      remdDim.AddRemdDimension( remd_dimtype[dim] );
-      // Store type of each dimension TODO should just have one netcdf coordinfo
+    // Store type of each dimension TODO should just have one netcdf coordinfo
+    for (int dim = 0; dim < remd_dimension_; ++dim)
       remDimType_.AddRemdDimension( remd_dimtype[dim] );
-    }
   }
 
   // Get VID for replica values
@@ -360,8 +358,8 @@ int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
 // NetcdfFile::SetupBox()
 /** \return 0 on success, 1 on error, -1 for no box coords. */
 // TODO: Use Box class
-int NetcdfFile::SetupBox(Box& boxIn, NCTYPE typeIn) {
-  boxIn.SetNoBox();
+int NetcdfFile::SetupBox(NCTYPE typeIn) {
+  nc_box_.SetNoBox();
   if ( nc_inq_varid(ncid_, NCCELL_LENGTHS, &cellLengthVID_) == NC_NOERR ) {
     if (NC::CheckErr( nc_inq_varid(ncid_, NCCELL_ANGLES, &cellAngleVID_) )) {
       mprinterr("Error: Getting cell angles.\n");
@@ -406,7 +404,7 @@ int NetcdfFile::SetupBox(Box& boxIn, NCTYPE typeIn) {
     }
     if (ncdebug_ > 0) mprintf("\tNetCDF Box: XYZ={%f %f %f} ABG={%f %f %f}\n",
                               boxCrd[0], boxCrd[1], boxCrd[2], boxCrd[3], boxCrd[4], boxCrd[5]);
-    boxIn.SetBox( boxCrd );
+    nc_box_.SetBox( boxCrd );
     return 0;
   }
   // No box information
@@ -442,6 +440,13 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
   return 0;
 }
 
+/** \return Coordinate info corresponding to current setup. */
+CoordinateInfo NetcdfFile::NC_coordInfo() const {
+  return CoordinateInfo( ensembleSize_, remDimType_, nc_box_,
+                         HasCoords(), HasVelocities(), HasTemperatures(),
+                         HasTimes(), HasForces() );
+}
+
 // NetcdfFile::NC_openRead()
 int NetcdfFile::NC_openRead(std::string const& Name) {
   if (Name.empty()) return 1;
@@ -459,6 +464,7 @@ void NetcdfFile::NC_close() {
   ncid_ = -1;
 }
 
+// =============================================================================
 // NetcdfFile::NC_openWrite()
 int NetcdfFile::NC_openWrite(std::string const& Name) {
   if (Name.empty()) return 1;

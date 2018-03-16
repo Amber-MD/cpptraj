@@ -11,8 +11,7 @@ int RemdReservoirNC::InitReservoir(FileName const& fnameIn, std::string const& t
                                    int natomsIn, bool hasBins, double tempIn, int iseed)
 {
 # ifdef BINTRAJ
-  CoordinateInfo cInfo(ReplicaDimArray(), cinfoIn.TrajBox(), cinfoIn.HasVel(),
-                       false, false, cinfoIn.HasForce());
+  CoordinateInfo cInfo(cinfoIn.TrajBox(), true, cinfoIn.HasVel(), cinfoIn.HasForce(), false);
   if (NC_create( fnameIn.Full(), NC_AMBERTRAJ, natomsIn, cInfo,
                  "Cpptraj generated structure reservoir" ))
     return 1;

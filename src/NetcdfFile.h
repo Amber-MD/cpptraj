@@ -17,6 +17,8 @@ class NetcdfFile {
     NCTYPE GetNetcdfConventions();
     /// Check NetCDF file conventions version.
     void CheckConventionsVersion();
+    /// \return Coordinate info corresponding to current setup. TODO have in variable?
+    CoordinateInfo NC_coordInfo() const;
     /// Open NetCDF file for reading.
     int NC_openRead(std::string const&);
     /// Open previously created NetCDF file for writing.
@@ -39,11 +41,11 @@ class NetcdfFile {
     /// Read - Set up time variable if present
     int SetupTime();
     /// Read - Set up box information if present.
-    int SetupBox(Box&, NCTYPE);
+    int SetupBox(NCTYPE);
     /// Read - Set up temperature information if present.
     void SetupTemperature();
     /// Read - Set up replica index info if present.
-    int SetupMultiD(ReplicaDimArray&);
+    int SetupMultiD();
     /// Read - Remd Values
     int ReadRemdValues(Frame&);
     /// Convert given float array to double.
@@ -87,12 +89,15 @@ class NetcdfFile {
     int indicesVID_;     ///< Variable ID for replica indices.
     int repidxVID_;      ///< Variable ID for overall replica index.
     int crdidxVID_;      ///< Variable ID for overall coordinate index.
+    // NC ensemble
+    int ensembleSize_;
   private:
     int NC_defineTemperature(int*, int);
 
     std::vector<double> RemdValues_; ///< Hold remd values
     ReplicaDimArray remDimType_;     ///< Type of each dimension
 
+    Box nc_box_;          ///< Hold box information
     int ncdebug_;
     int ensembleDID_;     ///< Ensemble dimenison ID
     int frameDID_;        ///< Frames dimension ID
