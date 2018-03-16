@@ -15,8 +15,8 @@ class CoordinateInfo {
     CoordinateInfo(Box const&, bool, bool, bool);
     /// CONSTRUCTOR - box, coord, velocity, force, time TODO merge with above? 
     CoordinateInfo(Box const&, bool, bool, bool, bool);
-    /// CONSTRUCTOR - ensemble size, remd dims, box, coords, velocity, force, temp., pH, redox, time
-    CoordinateInfo(int, ReplicaDimArray const&, Box const&, bool, bool, bool, bool, bool, bool, bool);
+    /// CONSTRUCTOR - ensemble size, remd dims, box, coords, velocity, force, temp., pH, redox, time, use remd values
+    CoordinateInfo(int, ReplicaDimArray const&, Box const&, bool, bool, bool, bool, bool, bool, bool, bool);
     bool HasBox()              const { return box_.HasBox();            }
     const Box& TrajBox()       const { return box_;                     }
     int EnsembleSize()         const { return ensembleSize_;            }
@@ -59,7 +59,8 @@ class CoordinateInfo {
     bool hasFrc_;             ///< True if coords have associated forces.
     bool hasTemp_;            ///< True if coords include temp info.
     bool has_pH_;             ///< True if coords include pH info.
-    bool hasRedox_;          ///< True if coords include RedOx potential info.
+    bool hasRedox_;           ///< True if coords include RedOx potential info.
     bool hasTime_;            ///< True if coords include time info.
+    bool useRemdValues_;      ///< True if using remd_values in netcdf file
 };
 #endif

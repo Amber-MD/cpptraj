@@ -10,7 +10,8 @@ CoordinateInfo::CoordinateInfo() :
   hasTemp_(false),
   has_pH_(false),
   hasRedox_(false),
-  hasTime_(false)
+  hasTime_(false),
+  useRemdValues_(false)
 {}
 
 /** Box, velocity, temperature, time. TODO pH, redox? */
@@ -23,7 +24,8 @@ CoordinateInfo::CoordinateInfo(Box const& b, bool v, bool t, bool m) :
   hasTemp_(t),
   has_pH_(false),
   hasRedox_(false),
-  hasTime_(m)
+  hasTime_(m),
+  useRemdValues_(false)
 {}
 
 /** Box, coords, velocity, force, time. */
@@ -36,12 +38,13 @@ CoordinateInfo::CoordinateInfo(Box const& b, bool c, bool v, bool f, bool m) :
   hasTemp_(false),
   has_pH_(false),
   hasRedox_(false),
-  hasTime_(m)
+  hasTime_(m),
+  useRemdValues_(false)
 {}
 
 /** Constructor - All */
 CoordinateInfo::CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b,
-                               bool c, bool v, bool f, bool t, bool p, bool o, bool m) :
+                               bool c, bool v, bool f, bool t, bool p, bool o, bool m, bool u) :
   remdDim_(r),
   box_(b),
   ensembleSize_(e),
@@ -51,7 +54,8 @@ CoordinateInfo::CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b,
   hasTemp_(t),
   has_pH_(p),
   hasRedox_(o),
-  hasTime_(m)
+  hasTime_(m),
+  useRemdValues_(u)
 {}
 
 /** DEBUG: Print info to stdout. */
@@ -92,7 +96,7 @@ std::string CoordinateInfo::InfoString() const {
 }
 
 #ifdef MPI
-#define CINFOMPISIZE 8
+#define CINFOMPISIZE 9
 int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
   // ensSize, hasvel, hastemp, hastime, hasfrc, NrepDims, Dim1, ..., DimN, 
   int* iArray;
@@ -108,7 +112,8 @@ int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
     iArray[4] = (int)hasFrc_;
     iArray[5] = (int)has_pH_;
     iArray[6] = (int)hasRedox_;
-    iArray[7] = remdDim_.Ndims();
+    iArray[7] = (int)useRemdValues_;
+    iArray[8] = remdDim_.Ndims();
     unsigned int ii = CINFOMPISIZE;
     for (int ir = 0; ir != remdDim_.Ndims(); ir++, ii++)
       iArray[ii] = remdDim_[ir];
@@ -117,16 +122,17 @@ int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
     commIn.MasterBcast( &iSize, 1, MPI_INT );
     iArray = new int[ iSize ];
     commIn.MasterBcast( iArray, iSize, MPI_INT );
-    ensembleSize_ = iArray[0];
-    hasVel_       = (bool)iArray[1];
-    hasTemp_      = (bool)iArray[2];
-    hasTime_      = (bool)iArray[3];
-    hasFrc_       = (bool)iArray[4];
-    has_pH_       = (bool)iArray[5];
-    hasRedox_     = (bool)iArray[6];
+    ensembleSize_  = iArray[0];
+    hasVel_        = (bool)iArray[1];
+    hasTemp_       = (bool)iArray[2];
+    hasTime_       = (bool)iArray[3];
+    hasFrc_        = (bool)iArray[4];
+    has_pH_        = (bool)iArray[5];
+    hasRedox_      = (bool)iArray[6];
+    useRemdValues_ = (bool)iArray[7]
     remdDim_.clear();
     unsigned int ii = CINFOMPISIZE;
-    for (int ir = 0; ir != iArray[7]; ir++, ii++)
+    for (int ir = 0; ir != iArray[8]; ir++, ii++)
       remdDim_.AddRemdDimension( iArray[ii] );
   }
   delete[] iArray;
