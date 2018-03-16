@@ -133,7 +133,7 @@ bool NetcdfFile::HasTemperatures() const {
   return false;
 }
 
-/** \return true if a replica dimension is pH.
+/** \return true if a replica dimension is pH. TODO put inside ReplicaDimArray
   */
 bool NetcdfFile::Has_pH() const {
   if (!remDimType_.empty()) {
@@ -465,8 +465,9 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
 /** \return Coordinate info corresponding to current setup. */
 CoordinateInfo NetcdfFile::NC_coordInfo() const {
   return CoordinateInfo( ensembleSize_, remDimType_, nc_box_,
-                         HasCoords(), HasVelocities(), HasTemperatures(),
-                         HasTimes(), HasForces() );
+                         HasCoords(), HasVelocities(), HasForces(), 
+                         HasTemperatures(), Has_pH(), HasRedOx(),
+                         HasTimes() );
 }
 
 // NetcdfFile::NC_openRead()
@@ -558,10 +559,8 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   nc_type dataType;
 
   if (ncdebug_>1)
-    mprintf("DEBUG: NC_create: %s  natom=%i V=%i F=%i box=%i  temp=%i  time=%i\n",
-            Name.c_str(),natomIn,(int)coordInfo.HasVel(),
-            (int)coordInfo.HasForce(),(int)coordInfo.HasBox(),
-            (int)coordInfo.HasTemp(),(int)coordInfo.HasTime());
+    mprintf("DEBUG: NC_create: '%s'  natom=%i  %s\n",
+            Name.c_str(),natomIn, coordInfo.InfoString().c_str());
 
   if ( NC::CheckErr( nc_create( Name.c_str(), NC_64BIT_OFFSET, &ncid_) ) )
     return 1;
