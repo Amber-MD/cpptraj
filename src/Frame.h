@@ -94,6 +94,10 @@ class Frame {
     const Box& BoxCrd()               const { return box_;           }
     /// \return replica indices
     RemdIdxType const& RemdIndices()  const { return remd_indices_;  }
+    /// \return overall replica index
+    int RepIdx()                      const { return repidx_;        }
+    /// \return overall coordinate index
+    int CrdIdx()                      const { return crdidx_;        }
     /// Set box alpha, beta, and gamma
     inline void SetBoxAngles(const double*);
     /// Set box
@@ -249,6 +253,8 @@ class Frame {
     double* V_;     ///< Velocities (same arrangement as Coords).
     double* F_;     ///< Frame (same arrangement as Coords).
     RemdIdxType remd_indices_; ///< replica indices.
+    int repidx_;    ///< overall replica index
+    int crdidx_;    ///< overall coordinate index.
     Darray Mass_;   ///< Masses.
     bool memIsExternal_; ///< True if Frame is not responsible for freeing memory.
 
