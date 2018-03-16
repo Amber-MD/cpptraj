@@ -29,6 +29,7 @@ class CoordinateInfo {
     bool HasForce()            const { return hasFrc_;                  }
     bool HasReplicaDims()      const { return (remdDim_.Ndims() != 0);  }
     ReplicaDimArray const& ReplicaDimensions() const { return remdDim_; }
+    bool UseRemdValues()       const { return useRemdValues_;           }
     void SetTime(bool m)        { hasTime_ = m; }
     void SetTemperature(bool t) { hasTemp_ = t; }
     void SetCrd(bool c)         { hasCrd_ = c;  }

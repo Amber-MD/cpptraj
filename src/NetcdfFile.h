@@ -96,9 +96,11 @@ class NetcdfFile {
     bool HasRedOx() const;
 
     int NC_defineTemperature(int*, int);
+    inline void SetRemDimDID(NCTYPE, int, int*) const;
 
     std::vector<double> RemdValues_; ///< Hold remd values
-    ReplicaDimArray remDimType_;     ///< Type of each dimension
+    ReplicaDimArray remDimType_;     ///< Type of each dimension (multi-D).
+    ReplicaDimArray remValType_;     ///< Type of each value (single or multi-D).
 
     Box nc_box_;          ///< Hold box information
     int ncdebug_;

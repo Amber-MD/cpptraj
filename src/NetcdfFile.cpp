@@ -125,9 +125,9 @@ std::string NetcdfFile::GetNcTitle() const {
 bool NetcdfFile::HasTemperatures() const {
   if (TempVID_ != -1)
     return true;
-  else if (!remDimType_.empty()) {
-    for (int idx = 0; idx != remDimType_.Ndims(); idx++)
-      if (remDimType_.DimType(idx) == ReplicaDimArray::TEMPERATURE)
+  else if (!remValType_.empty()) {
+    for (int idx = 0; idx != remValType_.Ndims(); idx++)
+      if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE)
         return true;
   }
   return false;
@@ -136,9 +136,9 @@ bool NetcdfFile::HasTemperatures() const {
 /** \return true if a replica dimension is pH. TODO put inside ReplicaDimArray
   */
 bool NetcdfFile::Has_pH() const {
-  if (!remDimType_.empty()) {
-    for (int idx = 0; idx != remDimType_.Ndims(); idx++)
-      if (remDimType_.DimType(idx) == ReplicaDimArray::PH)
+  if (!remValType_.empty()) {
+    for (int idx = 0; idx != remValType_.Ndims(); idx++)
+      if (remValType_.DimType(idx) == ReplicaDimArray::PH)
         return true;
   }
   return false;
@@ -147,9 +147,9 @@ bool NetcdfFile::Has_pH() const {
 /** \return true if a replica dimension is RedOx.
   */
 bool NetcdfFile::HasRedOx() const {
-  if (!remDimType_.empty()) {
-    for (int idx = 0; idx != remDimType_.Ndims(); idx++)
-      if (remDimType_.DimType(idx) == ReplicaDimArray::REDOX)
+  if (!remValType_.empty()) {
+    for (int idx = 0; idx != remValType_.Ndims(); idx++)
+      if (remValType_.DimType(idx) == ReplicaDimArray::REDOX)
         return true;
   }
   return false;
@@ -345,6 +345,7 @@ int NetcdfFile::SetupMultiD() {
       return -1;
     }
     // Store type of each dimension TODO should just have one netcdf coordinfo
+    remDimType_.clear();
     for (int dim = 0; dim < remd_dimension_; ++dim)
       remDimType_.AddRemdDimension( remd_dimtype[dim] );
   }
@@ -352,8 +353,10 @@ int NetcdfFile::SetupMultiD() {
   // Get VID for replica values
   if ( nc_inq_varid(ncid_, NCREMDVALUES, &RemdValuesVID_) == NC_NOERR ) {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has replica values.\n");
+    remValType_.clear();
     if (remd_dimension_ > 0) {
       RemdValues_.assign( remd_dimension_, 0 );
+      remValType_ = remDimType_;
     } else {
       // Probably 1D
       int ndims = 0;
@@ -364,7 +367,7 @@ int NetcdfFile::SetupMultiD() {
       if (ndims < 2) {
         mprintf("Warning: New style (Amber >= V18) remd values detected with < 2 dimensions.\n"
                 "Warning:  Assuming temperature.\n");
-        remDimType_.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
+        remValType_.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
       } else {
         mprinterr("Error: New style (Amber >= V18) remd values detected with > 1 dimension\n"
                   "Error:   but no multi-D replica info present.\n");
@@ -444,15 +447,15 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
       mprinterr("Error: Getting replica values\n");
       return 0; // FIXME -1 instead?
     }
-    for (int idx = 0; idx != remDimType_.Ndims(); ++idx)
+    for (int idx = 0; idx != remValType_.Ndims(); ++idx)
     {
-      if (remDimType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
+      if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
         frm.SetTemperature( RemdValues_[idx] );
         mprintf("DEBUG: T= %g\n", frm.Temperature());
-      } else if (remDimType_.DimType(idx) == ReplicaDimArray::PH) {
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
         frm.Set_pH( RemdValues_[idx] );
         mprintf("DEBUG: pH= %g\n", frm.pH());
-      } else if (remDimType_.DimType(idx) == ReplicaDimArray::REDOX) {
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
         frm.SetRedOx( RemdValues_[idx] );
         mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
       }
@@ -467,7 +470,7 @@ CoordinateInfo NetcdfFile::NC_coordInfo() const {
   return CoordinateInfo( ensembleSize_, remDimType_, nc_box_,
                          HasCoords(), HasVelocities(), HasForces(), 
                          HasTemperatures(), Has_pH(), HasRedOx(),
-                         HasTimes() );
+                         HasTimes(), (RemdValuesVID_ != -1) );
 }
 
 // NetcdfFile::NC_openRead()
@@ -547,6 +550,26 @@ int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
     return 1;
   }
   return 0;
+}
+
+/** Set remDimDID appropriate for given type. */
+void NetcdfFile::SetRemDimDID(NCTYPE type, int remDimDID, int* dimensionID) const {
+  switch (type) {
+    case NC_AMBERENSEMBLE:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = ensembleDID_;
+      dimensionID[2] = remDimDID;
+      break;
+    case NC_AMBERTRAJ:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = remDimDID;
+      break;
+    case NC_AMBERRESTART:
+      dimensionID[0] = remDimDID;
+      break;
+    default:
+      mprinterr("Internal Error: SetRemDimDID(): Unrecognized type.\n");
+  }
 }
 
 // NetcdfFile::NC_create()
@@ -708,17 +731,17 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     }
   }
   // Replica Temperature
-  if (coordInfo.HasTemp()) {
+  if (coordInfo.HasTemp() && !coordInfo.UseRemdValues()) {
     // NOTE: Setting dimensionID should be OK for Restart, will not be used.
     dimensionID[0] = frameDID_;
     if ( NC_defineTemperature( dimensionID, NDIM-2 ) ) return 1;
   }
   // Replica indices
   int remDimTypeVID = -1;
+  int remDimDID = -1;
   if (coordInfo.HasReplicaDims()) {
     // Define number of replica dimensions
     remd_dimension_ = coordInfo.ReplicaDimensions().Ndims();
-    int remDimDID = -1;
     if ( NC::CheckErr(nc_def_dim(ncid_, NCREMD_DIMENSION, remd_dimension_, &remDimDID)) ) {
       mprinterr("Error: Defining replica indices dimension.\n");
       return 1;
@@ -731,17 +754,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       return 1;
     }
     // Need to store the indices of replica in each dimension each frame
-    // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-    if (type == NC_AMBERENSEMBLE) {
-      dimensionID[0] = frameDID_;
-      dimensionID[1] = ensembleDID_;
-      dimensionID[2] = remDimDID;
-    } else if (type == NC_AMBERTRAJ) {
-      dimensionID[0] = frameDID_;
-      dimensionID[1] = remDimDID;
-    } else {
-      dimensionID[0] = remDimDID;
-    }
+    SetRemDimDID(type, remDimDID, dimensionID);
     if (NC::CheckErr(nc_def_var(ncid_, NCREMD_INDICES, NC_INT, NDIM-1, dimensionID, &indicesVID_)))
     {
       mprinterr("Error: Defining replica indices variable ID.\n");
@@ -750,6 +763,33 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     // TODO: Determine if groups are really necessary for restarts. If not, 
     // remove from AmberNetcdf.F90.
   }
+  // Replica values
+  if (coordInfo.UseRemdValues()) {
+    remValType_.clear();
+    if (coordInfo.HasReplicaDims()) {
+      SetRemDimDID(type, remDimDID, dimensionID);
+      if (NC::CheckErr(nc_def_var(ncid_, NCREMDVALUES, NC_DOUBLE, NDIM-1,
+                                  dimensionID, &RemdValuesVID_)))
+      {
+        mprinterr("Error: defining replica values variable ID.\n");
+        return 1;
+      }
+      RemdValues_.resize( remd_dimension_ );
+      for (int idx = 0; idx != coordInfo.ReplicaDimensions().Ndims(); idx++)
+        remValType_.AddRemdDimension( coordInfo.ReplicaDimensions().DimType(idx) );
+    } else {
+      dimensionID[0] = frameDID_;
+      if (NC::CheckErr(nc_def_var(ncid_, NCREMDVALUES, NC_DOUBLE, NDIM-2,
+                                  dimensionID, &RemdValuesVID_)))
+      {
+        mprinterr("Error: defining replica values variable ID.\n");
+        return 1;
+      }
+      RemdValues_.resize( 1 );
+      // FIXME assuming temperature
+      remValType_.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
+    }
+  } 
   // Box Info
   if (coordInfo.HasBox()) {
     // Cell Spatial
@@ -899,12 +939,15 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
 
   // Store the type of each replica dimension.
   if (coordInfo.HasReplicaDims()) {
+    remDimType_.clear();
     ReplicaDimArray const& remdDim = coordInfo.ReplicaDimensions();
     start_[0] = 0;
     count_[0] = remd_dimension_;
     std::vector<int> tempDims( remd_dimension_ );
-    for (int i = 0; i < remd_dimension_; ++i)
+    for (int i = 0; i < remd_dimension_; ++i) {
       tempDims[i] = remdDim[i];
+      remDimType_.AddRemdDimension( remdDim[i] );
+    }
     if (NC::CheckErr(nc_put_vara_int(ncid_, remDimTypeVID, start_, count_, &tempDims[0]))) {
       mprinterr("Error: writing replica dimension types.\n");
       return 1;
