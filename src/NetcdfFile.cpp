@@ -436,16 +436,20 @@ int NetcdfFile::SetupBox(NCTYPE typeIn) {
   return -1;
 }
 
-/** \return 1 if RemdValues were read, 0 otherwise. */
+/** Read REMD related values. */
 int NetcdfFile::ReadRemdValues(Frame& frm) {
+  // FIXME assuming start_ is set
+  count_[0] = 1; // 1 frame
+  if ( repidxVID_ != -1)
+    nc_get_vara_int(ncid_, repidxVID_, start_, count_, frm.repidxPtr());
+  if ( crdidxVID_ != -1)
+    nc_get_vara_int(ncid_, crdidxVID_, start_, count_, frm.crdidxPtr());
   if ( RemdValuesVID_ != -1 ) {
-    // FIXME assuming start_ is set
-    count_[0] = 1;               // 1 frame
     count_[1] = remd_dimension_; // # dimensions
     if ( NC::CheckErr(nc_get_vara_double(ncid_, RemdValuesVID_, start_, count_, &RemdValues_[0])) )
     {
       mprinterr("Error: Getting replica values\n");
-      return 0; // FIXME -1 instead?
+      return 1;
     }
     for (int idx = 0; idx != remValType_.Ndims(); ++idx)
     {
@@ -460,7 +464,6 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
         mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
       }
     }
-    return 1;
   }
   return 0;
 }
@@ -470,7 +473,8 @@ CoordinateInfo NetcdfFile::NC_coordInfo() const {
   return CoordinateInfo( ensembleSize_, remDimType_, nc_box_,
                          HasCoords(), HasVelocities(), HasForces(), 
                          HasTemperatures(), Has_pH(), HasRedOx(),
-                         HasTimes(), (RemdValuesVID_ != -1) );
+                         HasTimes(), (repidxVID_ != -1), (crdidxVID_ != -1),
+                         (RemdValuesVID_ != -1) );
 }
 
 // NetcdfFile::NC_openRead()
@@ -754,6 +758,22 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     // TODO: Determine if groups are really necessary for restarts. If not, 
     // remove from AmberNetcdf.F90.
   }
+  if (coordInfo.HasRepIdx()) {
+    dimensionID[0] = frameDID_;
+    if (NC::CheckErr(nc_def_var(ncid_, NCREMD_REPIDX, NC_INT, NDIM-2, dimensionID, &repidxVID_)))
+    {
+      mprinterr("Error: Defining replica idx variable ID.\n");
+      return 1;
+    }
+  }
+  if (coordInfo.HasCrdIdx()) {
+    dimensionID[0] = frameDID_;
+    if (NC::CheckErr(nc_def_var(ncid_, NCREMD_CRDIDX, NC_INT, NDIM-2, dimensionID, &crdidxVID_)))
+    {
+      mprinterr("Error: Defining coordinate idx variable ID.\n");
+      return 1;
+    }
+  }
   // Replica values
   if (coordInfo.UseRemdValues()) {
     remValType_.clear();
@@ -948,8 +968,14 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   return 0;
 }
 
-/** \return 1 if RemdValues were written, 0 otherwise. */
+/** Write REMD-related values. */
 int NetcdfFile::WriteRemdValues(Frame const& frm) {
+  // FIXME assuming start_ is set
+  count_[0] = 1; // 1 frame
+  if ( repidxVID_ != -1)
+    nc_put_vara_int(ncid_, repidxVID_, start_, count_, frm.repidxPtr());
+  if ( crdidxVID_ != -1)
+    nc_put_vara_int(ncid_, crdidxVID_, start_, count_, frm.crdidxPtr());
   if ( RemdValuesVID_ != -1 ) {
     for (int idx = 0; idx != remValType_.Ndims(); ++idx)
     {
@@ -964,15 +990,12 @@ int NetcdfFile::WriteRemdValues(Frame const& frm) {
         mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
       }
     }
-    // FIXME assuming start_ is set
-    count_[0] = 1;               // 1 frame
     count_[1] = remd_dimension_; // # dimensions
     if ( NC::CheckErr(nc_put_vara_double(ncid_, RemdValuesVID_, start_, count_, &RemdValues_[0])) )
     {
       mprinterr("Error: Writing replica values\n");
-      return 0; // FIXME -1 instead?
+      return 1;
     }
-    return 1;
   }
   return 0;
 }

@@ -120,6 +120,8 @@ class Frame {
     inline double* tAddress() { return &T_;               }
     inline double* mAddress() { return &time_;            }
     inline int* iAddress()    { return &remd_indices_[0]; }
+    inline int* repidxPtr()   { return &repidx_;          }
+    inline int* crdidxPtr()   { return &crdidx_;          }
     inline const double* xAddress() const { return X_;                }
     inline const double* vAddress() const { return V_;                }
     inline const double* fAddress() const { return F_;                }
@@ -127,6 +129,8 @@ class Frame {
     inline const double* tAddress() const { return &T_;               }
     inline const double* mAddress() const { return &time_;            }
     inline const int* iAddress()    const { return &remd_indices_[0]; }
+    inline const int* repidxPtr()   const { return &repidx_;          }
+    inline const int* crdidxPtr()   const { return &crdidx_;          }
     // ----- Frame memory allocation routines ----
     /// Allocate frame for given # atoms, no mass or velocity.
     int SetupFrame(int);

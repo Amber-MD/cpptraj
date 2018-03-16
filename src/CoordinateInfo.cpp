@@ -11,6 +11,8 @@ CoordinateInfo::CoordinateInfo() :
   has_pH_(false),
   hasRedox_(false),
   hasTime_(false),
+  hasrepidx_(false),
+  hascrdidx_(false),
   useRemdValues_(false)
 {}
 
@@ -25,6 +27,8 @@ CoordinateInfo::CoordinateInfo(Box const& b, bool v, bool t, bool m) :
   has_pH_(false),
   hasRedox_(false),
   hasTime_(m),
+  hasrepidx_(false),
+  hascrdidx_(false),
   useRemdValues_(false)
 {}
 
@@ -39,12 +43,15 @@ CoordinateInfo::CoordinateInfo(Box const& b, bool c, bool v, bool f, bool m) :
   has_pH_(false),
   hasRedox_(false),
   hasTime_(m),
+  hasrepidx_(false),
+  hascrdidx_(false),
   useRemdValues_(false)
 {}
 
 /** Constructor - All */
 CoordinateInfo::CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b,
-                               bool c, bool v, bool f, bool t, bool p, bool o, bool m, bool u) :
+                               bool c, bool v, bool f, bool t, bool p, bool o, bool m, 
+                               bool ri, bool ci, bool u) :
   remdDim_(r),
   box_(b),
   ensembleSize_(e),
@@ -55,6 +62,8 @@ CoordinateInfo::CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b,
   has_pH_(p),
   hasRedox_(o),
   hasTime_(m),
+  hasrepidx_(ri),
+  hascrdidx_(ci),
   useRemdValues_(u)
 {}
 
@@ -69,6 +78,8 @@ void CoordinateInfo::PrintCoordInfo(const char* name, const char* parm) const {
   if (has_pH_) mprintf(", pH");
   if (hasRedox_) mprintf(", redox");
   if (hasTime_) mprintf(", times");
+  if (hasrepidx_) mprintf(", repidx");
+  if (hascrdidx_) mprintf(", crdidx");
   if (ensembleSize_ > 0) mprintf(", ensemble size %i", ensembleSize_);
   mprintf(" }\n");
 }
@@ -91,6 +102,8 @@ std::string CoordinateInfo::InfoString() const {
   if ( HasRedOx() )       Append(meta, "redox");
   if ( HasTime() )        Append(meta, "time");
   if ( HasReplicaDims() ) Append(meta, "replicaDims");
+  if ( HasRepIdx() )      Append(meta, "replica indices");
+  if ( HasCrdIdx() )      Append(meta, "coordinate indices");
   if ( HasBox() )         Append(meta, "box");
   return meta;
 }
