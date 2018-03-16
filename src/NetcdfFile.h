@@ -92,6 +92,9 @@ class NetcdfFile {
     // NC ensemble
     int ensembleSize_;
   private:
+    bool Has_pH() const;
+    bool HasRedOx() const;
+
     int NC_defineTemperature(int*, int);
 
     std::vector<double> RemdValues_; ///< Hold remd values

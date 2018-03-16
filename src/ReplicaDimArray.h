@@ -18,6 +18,7 @@ class ReplicaDimArray {
     RemDimType DimType(int idx) const { return remDims_[idx]; }
     int operator[](int idx) const { return (int)remDims_[idx];         }
     int Ndims()             const { return (int)remDims_.size();       }
+    bool empty()            const { return remDims_.empty();           }
     void AddRemdDimension(int d)         { remDims_.push_back((RemDimType)d); }
     void AddRemdDimension(RemDimType d)  { remDims_.push_back(d);             }
     void ChangeRemdDim(int d, RemDimType t) { remDims_[d] = t; }

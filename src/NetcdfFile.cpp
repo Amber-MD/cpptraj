@@ -125,9 +125,31 @@ std::string NetcdfFile::GetNcTitle() const {
 bool NetcdfFile::HasTemperatures() const {
   if (TempVID_ != -1)
     return true;
-  else if (RemdValuesVID_ != -1) {
+  else if (!remDimType_.empty()) {
     for (int idx = 0; idx != remDimType_.Ndims(); idx++)
       if (remDimType_.DimType(idx) == ReplicaDimArray::TEMPERATURE)
+        return true;
+  }
+  return false;
+}
+
+/** \return true if a replica dimension is pH.
+  */
+bool NetcdfFile::Has_pH() const {
+  if (!remDimType_.empty()) {
+    for (int idx = 0; idx != remDimType_.Ndims(); idx++)
+      if (remDimType_.DimType(idx) == ReplicaDimArray::PH)
+        return true;
+  }
+  return false;
+}
+
+/** \return true if a replica dimension is RedOx.
+  */
+bool NetcdfFile::HasRedOx() const {
+  if (!remDimType_.empty()) {
+    for (int idx = 0; idx != remDimType_.Ndims(); idx++)
+      if (remDimType_.DimType(idx) == ReplicaDimArray::REDOX)
         return true;
   }
   return false;
