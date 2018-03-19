@@ -105,14 +105,17 @@ int Trajin_Multi::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, Topolog
         for (int dim = 0; dim != Rdim.Ndims(); dim++)
         {
           ReplicaInfo::Map<double> dMap;
-          mprintf("Initial %s values:", Rdim.Description(dim));
-          for (std::vector<double>::const_iterator it = DimValues[dim].begin();
-                                                   it != DimValues[dim].end(); ++it)
-            mprintf(" %g", *it);
-          mprintf("\n");
+          if (debug_ > 0) {
+            mprintf("DEBUG: Initial %s values:", Rdim.Description(dim));
+            for (std::vector<double>::const_iterator it = DimValues[dim].begin();
+                                                     it != DimValues[dim].end(); ++it)
+              mprintf(" %g", *it);
+            mprintf("\n");
+          }
           dMap.CreateMap(DimValues[dim], false);
           int tIdx = dMap.FindIndex( remdtrajval[dim] );
-          mprintf("\tTARGET INDEX for %g is %i\n", remdtrajval[dim], tIdx);
+          mprintf("\tTarget index for '%s' value %g is %i\n", Rdim.Description(dim),
+                  remdtrajval[dim], tIdx+1);
           if (tIdx < 0) {
             mprinterr("Error: Value %g not found in input ensemble for '%s' dimension (%i)\n",
                       remdtrajval[dim], Rdim.Description(dim), dim);
