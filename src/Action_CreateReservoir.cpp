@@ -99,7 +99,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
   trajIsOpen_ = false;
   nframes_ = 0;
   // Setup output reservoir file
-  //reservoir_.SetDebug( debugIn );
+  reservoir_.SetDebug( debugIn );
   // Set title
   title_ = actionArgs.GetStringKey("title");
   if (title_.empty())

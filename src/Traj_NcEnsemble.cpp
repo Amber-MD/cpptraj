@@ -103,20 +103,15 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
 # endif
   readAccess_ = true;
   filename_ = fname;
-  //if (openTrajin()) return TRAJIN_ERR;
-  // Open single thread for now
-  if (NC_openRead( filename_.Full() )) return TRAJIN_ERR;
+  // NOTE: Setup opens and closes single thread for now
   // Setup for Amber NetCDF ensemble
-  if ( NC_setupRead(NC_AMBERENSEMBLE, trajParm->Natom(), useVelAsCoords_, useFrcAsCoords_) )
+  if ( NC_setupRead(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(),
+                    useVelAsCoords_, useFrcAsCoords_, debug_) )
     return TRAJIN_ERR;
   // Get title
   SetTitle( GetNcTitle() );
   // Set coordinate info 
   SetCoordInfo( NC_coordInfo() ); 
-  if (debug_>1) NetcdfDebug();
-  //closeTraj();
-  // Close single thread for now
-  NC_close();
   // Set up local ensemble parameters
 # ifdef MPI
   ensembleStart_ = Parallel::World().Rank();
@@ -126,7 +121,7 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
   ensembleEnd_ = ensembleSize_;
 # endif
   // DEBUG: Print info for all ranks
-  WriteVIDs();
+  DebugVIDs();
   // Allocate float array
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
@@ -162,9 +157,9 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Parallel::World().Master()) { // Only master creates file.
 #   endif
       // Create NetCDF file.
-      err = NC_create(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(), CoordInfo(), Title());
-      if (debug_ > 1 && err == 0) NetcdfDebug();
-      // Close Netcdf file. It will be reopened write.
+      err = NC_create(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(), CoordInfo(),
+                      Title(), debug_);
+      // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
       NC_close();
 #   ifdef MPI
     }

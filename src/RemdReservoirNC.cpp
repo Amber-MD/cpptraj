@@ -13,7 +13,7 @@ int RemdReservoirNC::InitReservoir(FileName const& fnameIn, std::string const& t
 # ifdef BINTRAJ
   CoordinateInfo cInfo(cinfoIn.TrajBox(), true, cinfoIn.HasVel(), cinfoIn.HasForce(), false);
   if (NC_create( fnameIn.Full(), NC_AMBERTRAJ, natomsIn, cInfo,
-                 "Cpptraj generated structure reservoir" ))
+                 "Cpptraj generated structure reservoir", debug_ ))
     return 1;
   if (NC_createReservoir(hasBins, tempIn, iseed, eptotVID_, binsVID_))
     return 1;

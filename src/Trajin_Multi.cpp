@@ -15,6 +15,7 @@ int Trajin_Multi::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, Topolog
   // Set file name and topology pointer.
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   REMDtraj_.ClearIOarray();
+  REMDtraj_.SetDebug( debug_ );
   // Check for deprecated args
   if (argIn.hasKey("remdout")) {
     mprinterr("%s", TrajIOarray::DEPRECATED_remdout);

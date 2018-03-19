@@ -23,13 +23,13 @@ class NetcdfFile {
     int NC_createReservoir(bool, double, int, int&, int&);
     /// Create NetCDF trajectory file of given type.
     int NC_create(std::string const&, NCTYPE, int, 
-                  CoordinateInfo const&, std::string const&);
+                  CoordinateInfo const&, std::string const&, int);
     /// Close NetCDF file, do not reset dimension/variable IDs.
     void NC_close();
     /// \return Title of NetCDF file.
-    std::string GetNcTitle() const;
-    /// Set up open NetCDF file for reading.
-    int NC_setupRead(NCTYPE, int, bool, bool);
+    std::string const& GetNcTitle() const { return nctitle_; }
+    /// Set up NetCDF file for reading.
+    int NC_setupRead(std::string const&, NCTYPE, int, bool, bool, int);
     /// Read - Remd Values
     int ReadRemdValues(Frame&);
     /// Write - Remd Values
@@ -41,9 +41,7 @@ class NetcdfFile {
     /// DEBUG - Write start and count arrays to STDOUT
     void WriteIndices() const;
     /// DEBUG - Write all variable IDs to STDOUT
-    void WriteVIDs() const;
-    /// DEBUG - Write general debug info to STDOUT
-    void NetcdfDebug() const;
+    void DebugVIDs() const;
 
     inline int Ncid()      const { return ncid_;                }
     inline int Ncatom()    const { return ncatom_;              }
@@ -72,6 +70,7 @@ class NetcdfFile {
     int crdidxVID_;      ///< Variable ID for overall coordinate index.
     // NC ensemble
     int ensembleSize_;
+    std::string nctitle_;
   private:
     static const char* ConventionsStr_[];
 

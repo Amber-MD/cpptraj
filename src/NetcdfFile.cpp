@@ -127,12 +127,6 @@ void NetcdfFile::CheckConventionsVersion() {
     mprintf("Warning: NetCDF file has ConventionVersion that is not 1.0 (%s)\n", attrText.c_str());
 }
 
-// NetcdfFile::GetNcTitle()
-/** \return Title global attribute. */
-std::string NetcdfFile::GetNcTitle() const {
-  return NC::GetAttrText(ncid_, "title");
-}
-
 /** \return true if temperature VID is defined or a replica dimension is temperature.
   */
 bool NetcdfFile::HasTemperatures() const {
@@ -480,13 +474,16 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
   return 0;
 }
 
-/** Set up an already opened NetCDF file for reading. */
-int NetcdfFile::NC_setupRead(NCTYPE expectedType, int expectedNatoms,
-                             bool useVelAsCoords, bool useFrcAsCoords)
+/** Set up a NetCDF file for reading. */
+int NetcdfFile::NC_setupRead(std::string const& fname, NCTYPE expectedType, int expectedNatoms,
+                             bool useVelAsCoords, bool useFrcAsCoords, int debugIn)
 {
-  // File MUST be open
-  if (ncid_ == -1) {
-    mprinterr("Internal Error: NC_setupRead called before NC_openRead.\n");
+  ncdebug_ = debugIn;
+  // If file is open, close it.
+  if (ncid_ != -1) NC_close();
+  // Open read
+  if (NC_openRead( fname.c_str() ) != 0) {
+    mprinterr("Error: Could not open NetCDF file '%s' for read setup.\n", fname.c_str());
     return 1;
   }
   // Sanity check
@@ -498,6 +495,8 @@ int NetcdfFile::NC_setupRead(NCTYPE expectedType, int expectedNatoms,
   }
   // This will warn if conventions are not 1.0 
   CheckConventionsVersion();
+  // Get the title
+  nctitle_ = NC::GetAttrText(ncid_, "title");
   // Get frame info if necessary.
   if (myType_ == NC_AMBERTRAJ || myType_ == NC_AMBERENSEMBLE) {
     if (SetupFrameDim() != 0) return 1;
@@ -534,6 +533,8 @@ int NetcdfFile::NC_setupRead(NCTYPE expectedType, int expectedNatoms,
   // labelDID;
   //int cell_spatialDID, cell_angularDID;
   //int spatialVID, cell_spatialVID, cell_angularVID;
+  if (ncdebug_ > 1) NC::Debug(ncid_);
+  NC_close();
   return 0;
 }
   
@@ -648,13 +649,14 @@ void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
 
 // NetcdfFile::NC_create()
 int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
-                          CoordinateInfo const& coordInfo, std::string const& title) 
+                          CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
 {
   if (Name.empty()) return 1;
   int dimensionID[NC_MAX_VAR_DIMS];
   int NDIM;
   nc_type dataType;
   myType_ = typeIn;
+  ncdebug_ = debugIn;
 
   if (ncdebug_>1)
     mprintf("DEBUG: NC_create: '%s'  natom=%i  %s\n",
@@ -1030,6 +1032,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
       return 1;
     }
   }
+  if (ncdebug_ > 1) NC::Debug(ncid_);
 
   return 0;
 }
@@ -1074,15 +1077,12 @@ void NetcdfFile::WriteIndices() const {
          count_[0], count_[1], count_[2], count_[3]);
 }
 
-// NetcdfFile::WriteVIDs()
-void NetcdfFile::WriteVIDs() const {
+// NetcdfFile::DebugVIDs()
+void NetcdfFile::DebugVIDs() const {
   rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i frcVID_=%i  cellAngleVID_=%i"
           "  cellLengthVID_=%i  indicesVID_=%i\n",
           TempVID_, coordVID_, velocityVID_, frcVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
 }
-
-// NetcdfFile::NetcdfDebug()
-void NetcdfFile::NetcdfDebug() const { NC::Debug(ncid_); }
 
 #ifdef MPI
 void NetcdfFile::Sync(Parallel::Comm const& commIn) {

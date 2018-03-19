@@ -73,10 +73,10 @@ int Traj_AmberNetcdf::processReadArgs(ArgList& argIn) {
 int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   filename_ = fname;
-  if (openTrajin()) return TRAJIN_ERR;
   readAccess_ = true;
   // Setup for Amber NetCDF trajectory
-  if ( NC_setupRead(NC_AMBERTRAJ, trajParm->Natom(), useVelAsCoords_, useFrcAsCoords_) )
+  if ( NC_setupRead(filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(),
+                    useVelAsCoords_, useFrcAsCoords_, debug_) )
     return TRAJIN_ERR;
   // Get title
   SetTitle( GetNcTitle() );
@@ -86,8 +86,6 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
   // float to/from double.
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
-  if (debug_>1) NetcdfDebug();
-  closeTraj();
   return Ncframe();
 }
 
@@ -150,10 +148,10 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
     // Create NetCDF file.
-    if (NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(), Title() ))
+    if (NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
+                   Title(), debug_ ))
       return 1;
-    if (debug_>1) NetcdfDebug();
-    // Close Netcdf file. It will be reopened write.
+    // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
     NC_close();
     // Allocate memory
     if (Coord_!=0) delete[] Coord_;

@@ -46,7 +46,6 @@ int Traj_AmberRestartNC::openTrajin() {
     mprinterr("Error: Opening Netcdf restart file %s for reading.\n", filename_.base());
     return 1;
   }
-  if (debug_>1) NetcdfDebug();
   return 0;
 }
 
@@ -68,16 +67,15 @@ int Traj_AmberRestartNC::processReadArgs(ArgList& argIn) {
 int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   filename_ = fname;
-  if (openTrajin()) return TRAJIN_ERR;
   readAccess_ = true;
   // Setup for Amber NetCDF restart.
-  if ( NC_setupRead(NC_AMBERRESTART, trajParm->Natom(), useVelAsCoords_, useFrcAsCoords_) )
+  if ( NC_setupRead(filename_.Full(), NC_AMBERRESTART, trajParm->Natom(),
+                    useVelAsCoords_, useFrcAsCoords_, debug_) )
     return TRAJIN_ERR;
   // Get title
   SetTitle( GetNcTitle() );
   // Set coordinate info 
   SetCoordInfo( NC_coordInfo() );
-  closeTraj();
   // Only 1 frame for NC restarts
   return 1;
 }
@@ -211,7 +209,8 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   else
     fname = filename_.AppendFileName( "." + integerToString(set+1) );
   // Create Netcdf file 
-  if ( NC_create( fname.full(), NC_AMBERRESTART, n_atoms_, CoordInfo(), Title() ) )
+  if ( NC_create( fname.full(), NC_AMBERRESTART, n_atoms_, CoordInfo(),
+                  Title(), debug_ ) )
     return 1;
   // write coords
   start_[0] = 0;
