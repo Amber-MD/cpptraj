@@ -32,6 +32,7 @@ class NetcdfFile {
     void NC_close();
     /// \return Title of NetCDF file.
     std::string GetNcTitle() const;
+    int NC_setupRead(NCTYPE, int, bool, bool);
     /// Read - Set up frame dimension ID and number of frames.
     int SetupFrameDim();
     /// Read - Set up ensemble dimension ID and number of members.
@@ -94,6 +95,8 @@ class NetcdfFile {
     // NC ensemble
     int ensembleSize_;
   private:
+    static const char* ConventionsStr_[];
+
     bool Has_pH() const;
     bool HasRedOx() const;
 

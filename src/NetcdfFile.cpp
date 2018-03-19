@@ -87,6 +87,13 @@ NetcdfFile::NetcdfFile() :
   count_[2] = 0;
 }
 
+const char* NetcdfFile::ConventionsStr_[] = {
+  0,               // UNKNOWN
+  "AMBER",         // NC_AMBERTRAJ
+  "AMBERRESTART",  // NC_AMBERRESTART
+  "AMBERENSEMBLE"  // NC_AMBERENSEMBLE
+};
+
 // NetcdfFile::GetNetcdfConventions()
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
   NCTYPE nctype = NC_UNKNOWN;
@@ -466,6 +473,59 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
   }
   return 0;
 }
+
+int NetcdfFile::NC_setupRead(NCTYPE expectedType, int expectedNatoms,
+                             bool useVelAsCoords, bool useFrcAsCoords)
+{
+  // File MUST be open
+  if (ncid_ == -1) {
+    mprinterr("Internal Error: NC_setupRead called before NC_openRead.\n");
+    return 1;
+  }
+  // Sanity check
+  if ( GetNetcdfConventions() != expectedType ) {
+    mprinterr("Error: NetCDF file conventions do not include \"%s\"\n",
+              ConventionsStr_[expectedType]);
+    return 1;
+  }
+  // This will warn if conventions are not 1.0 
+  CheckConventionsVersion();
+  // Get frame info if necessary.
+  if (expectedType == NC_AMBERTRAJ || expectedType == NC_AMBERENSEMBLE) {
+    if (SetupFrameDim() != 0) return 1;
+    if (Ncframe() < 1) {
+      mprinterr("Error: NetCDF file has no frames.\n");
+      return 1;
+    }
+    // Get ensemble info if necessary
+    if (expectedType == NC_AMBERENSEMBLE) {
+      if (SetupEnsembleDim() < 1) {
+        mprinterr("Error: Could not get ensemble dimension info.\n");
+        return 1;
+      }
+    }
+  }
+  // Setup atom-dimension-related variables. 
+  if ( SetupCoordsVelo( useVelAsCoords, useFrcAsCoords ) != 0 ) return 1;
+  // Check that specified number of atoms matches expected number.
+  if (Ncatom() != expectedNatoms) {
+    mprinterr("Error: Number of atoms in NetCDF file (%i) does not match number\n"
+              "Error:  in associated topology (%i)!\n", Ncatom(), expectedNatoms);
+    return 1; 
+  }
+  // Setup Time - FIXME: Allowed to fail silently
+  SetupTime();
+  // Box info
+  if (SetupBox(expectedType) == 1) // 1 indicates an error
+    return 1;
+  // Replica Temperatures - FIXME: Allowed to fail silently
+  SetupTemperature();
+  // Replica Dimensions
+  if ( SetupMultiD() == -1 ) return 1;
+
+  return 0;
+}
+  
 
 /** \return Coordinate info corresponding to current setup. */
 CoordinateInfo NetcdfFile::NC_coordInfo() const {

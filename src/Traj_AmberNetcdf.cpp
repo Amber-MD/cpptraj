@@ -75,39 +75,12 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
   filename_ = fname;
   if (openTrajin()) return TRAJIN_ERR;
   readAccess_ = true;
-  // Sanity check - Make sure this is a Netcdf trajectory
-  if ( GetNetcdfConventions() != NC_AMBERTRAJ ) {
-    mprinterr("Error: Netcdf file %s conventions do not include \"AMBER\"\n",filename_.base());
+  // Setup for Amber NetCDF trajectory
+  if ( NC_setupRead(NC_AMBERTRAJ, trajParm->Natom(), useVelAsCoords_, useFrcAsCoords_) )
     return TRAJIN_ERR;
-  }
-  // This will warn if conventions are not 1.0 
-  CheckConventionsVersion();
   // Get title
   SetTitle( GetNcTitle() );
-  // Get Frame info
-  if ( SetupFrameDim()!=0 ) return TRAJIN_ERR;
-  if ( Ncframe() < 1 ) {
-    mprinterr("Error: Netcdf file is empty.\n");
-    return TRAJIN_ERR;
-  }
-  // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo( useVelAsCoords_, useFrcAsCoords_ )!=0 ) return TRAJIN_ERR;
-  // Check that specified number of atoms matches expected number.
-  if (Ncatom() != trajParm->Natom()) {
-    mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n"
-              "Error:   match number in associated parmtop (%i)!\n", 
-              filename_.base(), Ncatom(), trajParm->Natom());
-    return TRAJIN_ERR;
-  }
-  // Setup Time - FIXME: Allowed to fail silently
-  SetupTime();
-  // Box info
-  if (SetupBox(NC_AMBERTRAJ) == 1) // 1 indicates an error
-    return TRAJIN_ERR;
-  // Replica Temperatures - FIXME: Allowed to fail silently
-  SetupTemperature();
-  // Replica Dimensions
-  if ( SetupMultiD() == -1 ) return TRAJIN_ERR;
+  // Set coordinate info
   SetCoordInfo( NC_coordInfo() ); 
   // NOTE: TO BE ADDED
   // labelDID;
