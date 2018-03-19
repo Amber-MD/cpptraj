@@ -3,6 +3,9 @@
 #  include <netcdf.h>
 #  include "NC_Routines.h"
 #endif
+#ifdef MPI
+# include "ParallelNetcdf.h"
+#endif
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "Version.h"
@@ -1068,6 +1071,44 @@ int NetcdfFile::WriteRemdValues(Frame const& frm) {
   }
   return 0;
 }
+
+#ifdef MPI
+int NetcdfFile::parallelWriteRemdValues(int set, Frame const& frm) {
+  MPI_Offset pstart_[2];
+  MPI_Offset pcount_[2];
+  pstart_[0] = set;
+  pstart_[1] = 0;
+  pcount_[0] = 1;               // 1 frame
+  pcount_[1] = remd_dimension_; // # dimensions 
+  // REMD values
+  if ( repidxVID_ != -1)
+    ncmpi_put_vara_int(ncid_, repidxVID_, pstart_, pcount_, frm.repidxPtr());
+  if ( crdidxVID_ != -1)
+    ncmpi_put_vara_int(ncid_, crdidxVID_, pstart_, pcount_, frm.crdidxPtr());
+  if ( RemdValuesVID_ != -1 ) {
+    for (int idx = 0; idx != remValType_.Ndims(); ++idx)
+    {
+      if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
+        RemdValues_[idx] = frm.Temperature();
+        //mprintf("DEBUG: T= %g\n", frm.Temperature());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
+        RemdValues_[idx] = frm.pH();
+        //mprintf("DEBUG: pH= %g\n", frm.pH());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
+        RemdValues_[idx] = frm.RedOx();
+        //mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
+      }
+    }
+    pcount_[1] = remd_dimension_; // # dimensions
+    if ( NC::CheckErr(ncmpi_put_vara_double(ncid_, RemdValuesVID_, pstart_, pcount_, &RemdValues_[0])) )
+    {
+      mprinterr("Error: Writing replica values\n");
+      return 1;
+    }
+  }
+  return 0;
+}
+#endif
 
 // =============================================================================
 // NetcdfFile::DebugIndices()

@@ -545,6 +545,9 @@ int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
     if (checkPNCerr(err)) return Parallel::Abort(err);
   }
 
+  // Write Remd Values
+  parallelWriteRemdValues(set, frameOut);
+
   pcount_[2] = 0;
   if (cellLengthVID_ != -1) {
     pcount_[1] = 3;

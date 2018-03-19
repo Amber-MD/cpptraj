@@ -142,7 +142,7 @@ int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
     hasFrc_        = (bool)iArray[4];
     has_pH_        = (bool)iArray[5];
     hasRedox_      = (bool)iArray[6];
-    useRemdValues_ = (bool)iArray[7]
+    useRemdValues_ = (bool)iArray[7];
     remdDim_.clear();
     unsigned int ii = CINFOMPISIZE;
     for (int ir = 0; ir != iArray[8]; ir++, ii++)

@@ -170,7 +170,7 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     // Synchronize netcdf info on non-master threads
     Sync(Parallel::World());
     // DEBUG: Print info for all ranks
-    WriteVIDs();
+    DebugVIDs();
 #   endif
     // Allocate memory
     if (Coord_!=0) delete[] Coord_;

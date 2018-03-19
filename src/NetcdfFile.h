@@ -34,6 +34,9 @@ class NetcdfFile {
     int ReadRemdValues(Frame&);
     /// Write - Remd Values
     int WriteRemdValues(Frame const&);
+#   ifdef MPI
+    int parallelWriteRemdValues(int, Frame const&);
+#   endif
     /// Convert given float array to double.
     inline void FloatToDouble(double*,const float*) const;
     /// Convert given double array to float.
