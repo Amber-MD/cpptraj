@@ -93,6 +93,7 @@ int Trajout_Single::InitTrajout(FileName const& tnameIn, ArgList const& argIn,
     mprinterr("Error: trajout %s: Could not process arguments.\n", traj_.Filename().full());
     return 1;
   }
+  if (trajout_args.CheckForMoreArgs()) return 1;
   // Write is set up for topology in SetupTrajWrite 
   return 0;
 }
