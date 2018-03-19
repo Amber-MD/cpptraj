@@ -461,19 +461,20 @@ int NetcdfFile::ReadRemdValues(Frame& frm) {
     {
       if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
         frm.SetTemperature( RemdValues_[idx] );
-        mprintf("DEBUG: T= %g\n", frm.Temperature());
+        //mprintf("DEBUG: T= %g\n", frm.Temperature());
       } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
         frm.Set_pH( RemdValues_[idx] );
-        mprintf("DEBUG: pH= %g\n", frm.pH());
+        //mprintf("DEBUG: pH= %g\n", frm.pH());
       } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
         frm.SetRedOx( RemdValues_[idx] );
-        mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
+        //mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
       }
     }
   }
   return 0;
 }
 
+/** Set up an already opened NetCDF file for reading. */
 int NetcdfFile::NC_setupRead(NCTYPE expectedType, int expectedNatoms,
                              bool useVelAsCoords, bool useFrcAsCoords)
 {
@@ -1043,13 +1044,13 @@ int NetcdfFile::WriteRemdValues(Frame const& frm) {
     {
       if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
         RemdValues_[idx] = frm.Temperature();
-        mprintf("DEBUG: T= %g\n", frm.Temperature());
+        //mprintf("DEBUG: T= %g\n", frm.Temperature());
       } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
         RemdValues_[idx] = frm.pH();
-        mprintf("DEBUG: pH= %g\n", frm.pH());
+        //mprintf("DEBUG: pH= %g\n", frm.pH());
       } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
         RemdValues_[idx] = frm.RedOx();
-        mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
+        //mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
       }
     }
     count_[1] = remd_dimension_; // # dimensions

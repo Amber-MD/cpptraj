@@ -443,10 +443,12 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
 // Traj_NcEnsemble::Info()
 void Traj_NcEnsemble::Info() {
   mprintf("is a NetCDF Ensemble AMBER trajectory");
-  if (readAccess_ && !HasCoords()) mprintf(" (no coordinates)");
-  //if (HasV()) mprintf(" containing velocities");
-  //if (HasT()) mprintf(" with replica temperatures");
-  if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
+  if (readAccess_) {
+    mprintf(" with %s", CoordInfo().InfoString().c_str());
+    if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
+    if (useFrcAsCoords_) mprintf(" (using forces as coordinates)");
+    if (remd_dimension_ > 0) mprintf(", %i replica dimensions", remd_dimension_);
+  } 
 }
 #endif
 #endif

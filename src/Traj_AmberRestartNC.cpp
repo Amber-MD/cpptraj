@@ -282,12 +282,11 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
 void Traj_AmberRestartNC::Info() {
   mprintf("is a NetCDF AMBER restart file");
   if (readAccess_) {
-    if (CoordInfo().HasVel()) mprintf(", with velocities");
-    if (CoordInfo().HasTemp()) mprintf(", with replica temperature");
-    if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
-  } else {
-    if (outputTemp_) mprintf(", with temperature");
-  }
+    mprintf(" with %s", CoordInfo().InfoString().c_str());
+    if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
+    if (useFrcAsCoords_) mprintf(" (using forces as coordinates)");
+    if (remd_dimension_ > 0) mprintf(", %i replica dimensions", remd_dimension_);
+  } 
 }
 #ifdef MPI
 /// Since files are opened on write this does not need to do anything

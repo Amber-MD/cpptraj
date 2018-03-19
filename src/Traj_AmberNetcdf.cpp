@@ -409,26 +409,11 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");
   if (readAccess_) {
-    if (!HasCoords()) mprintf(" (no coordinates)");
+    mprintf(" with %s", CoordInfo().InfoString().c_str());
     if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
     if (useFrcAsCoords_) mprintf(" (using forces as coordinates)");
-    if (HasVelocities() || HasForces() || HasTemperatures()) {
-      mprintf(" with");
-      if (HasVelocities()) mprintf(" velocities");
-      if (HasForces()) mprintf(" forces");
-      if (HasTemperatures()) mprintf(" temperatures");
-    }
-    if (remd_dimension_ > 0) mprintf(" %i replica dimensions", remd_dimension_);
-  } else {
-    if ( !(write_mdcrd_ && write_mdvel_ && write_mdfrc_) ) {
-      if (write_mdcrd_ || write_mdvel_ || write_mdfrc_) {
-        mprintf(" with");
-        if (write_mdcrd_) mprintf(" coordinates");
-        if (write_mdvel_) mprintf(" velocities");
-        if (write_mdfrc_) mprintf(" forces");
-      }
-    }
-  }
+    if (remd_dimension_ > 0) mprintf(", %i replica dimensions", remd_dimension_);
+  } 
 }
 #ifdef MPI
 #ifdef HAS_PNETCDF

@@ -53,11 +53,6 @@ class NetcdfFile {
     inline int Ncatom3()   const { return ncatom3_;             }
     inline int Ncframe()   const { return ncframe_;             }
     inline int CoordVID()  const { return coordVID_;            }
-    bool HasForces()       const { return (frcVID_ != -1);      }
-    bool HasVelocities()   const { return (velocityVID_ != -1); }
-    bool HasCoords()       const { return (coordVID_ != -1);    }
-    bool HasTemperatures() const;
-    bool HasTimes()        const { return (timeVID_ != -1);     }
   protected: // TODO: Make all private
 #   ifdef MPI
     void Sync(Parallel::Comm const&);
@@ -85,6 +80,11 @@ class NetcdfFile {
 
     bool Has_pH() const;
     bool HasRedOx() const;
+    bool HasForces()       const { return (frcVID_ != -1);      }
+    bool HasVelocities()   const { return (velocityVID_ != -1); }
+    bool HasCoords()       const { return (coordVID_ != -1);    }
+    bool HasTemperatures() const;
+    bool HasTimes()        const { return (timeVID_ != -1);     }
 
     /// Read - Set up frame dimension ID and number of frames.
     int SetupFrameDim();
