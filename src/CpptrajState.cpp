@@ -87,6 +87,7 @@ int CpptrajState::SetTrajMode(TrajModeType modeIn, std::string const& fnameIn,
     if (Parallel::SetupComms( 1 )) return 1;
 #   endif
   }
+  if (argIn.CheckForMoreArgs()) return 1;
   return 0;
 }
 
@@ -130,6 +131,7 @@ int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
     err = trajoutList_.AddTrajout( fname, argIn, top );
   else if (mode_ == ENSEMBLE)
     err = ensembleOut_.AddEnsembleOut( fname, argIn, top, trajinList_.EnsembleSize() );
+  if (argIn.CheckForMoreArgs()) return 1;
   return err;
 }
 
