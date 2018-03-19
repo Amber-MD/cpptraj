@@ -89,28 +89,33 @@ NetcdfFile::NetcdfFile() :
 }
 
 const char* NetcdfFile::ConventionsStr_[] = {
-  0,               // UNKNOWN
   "AMBER",         // NC_AMBERTRAJ
   "AMBERRESTART",  // NC_AMBERRESTART
-  "AMBERENSEMBLE"  // NC_AMBERENSEMBLE
+  "AMBERENSEMBLE", // NC_AMBERENSEMBLE
+  0                // UNKNOWN
 };
 
 // NetcdfFile::GetNetcdfConventions()
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
   NCTYPE nctype = NC_UNKNOWN;
   std::string attrText = NC::GetAttrText(ncidIn, "Conventions");
-  if (attrText == "AMBERENSEMBLE")
-    nctype = NC_AMBERENSEMBLE;
-  else if (attrText == "AMBER")
-    nctype = NC_AMBERTRAJ;
-  else if (attrText == "AMBERRESTART")
-    nctype = NC_AMBERRESTART;
-  else if (attrText.empty()) 
+  if (attrText.empty()) {
     mprinterr("Error: Could not get conventions from NetCDF file.\n");
-  else {
-    mprinterr("Error: NetCDF file has unrecognized conventions \"%s\".\n",
-              attrText.c_str());
-    mprinterr("Error:   Expected \"AMBER\", \"AMBERRESTART\", or \"AMBERENSEMBLE\".\n");
+  } else {
+    for (int i = 0; i < (int)NC_UNKNOWN; i++) {
+      if (attrText.compare( ConventionsStr_[i] ) == 0) {
+        nctype = (NCTYPE)i;
+        break;
+      }
+    }
+    if (nctype == NC_UNKNOWN) {
+      mprinterr("Error: NetCDF file has unrecognized conventions \"%s\".\n",
+                attrText.c_str());
+      mprinterr("Error: Expected one of");
+      for (int i = 0; i < (int)NC_UNKNOWN; i++)
+        mprintf(" \"%s\"", ConventionsStr_[i]);
+      mprinterr("\n");
+    }
   }
   return nctype;
 }
@@ -953,15 +958,10 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
     mprinterr("Error: Writing program version.\n");
     return 1;
   }
-  // TODO: Make conventions a static string
-  bool errOccurred = false;
-  if ( myType_ == NC_AMBERENSEMBLE )
-    errOccurred = NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",13,"AMBERENSEMBLE"));
-  else if ( myType_ == NC_AMBERTRAJ )
-    errOccurred = NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",5,"AMBER"));
-  else
-    errOccurred = NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",12,"AMBERRESTART"));
-  if (errOccurred) {
+  // Write conventions based on type 
+  std::string cStr( ConventionsStr_[myType_] );
+  if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "Conventions", cStr.size(), cStr.c_str())))
+  {
     mprinterr("Error: Writing conventions.\n");
     return 1;
   }

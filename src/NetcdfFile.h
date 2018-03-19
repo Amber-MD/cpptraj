@@ -6,7 +6,7 @@
 class NetcdfFile {
   public:
     /// For determining NetCDF trajectory file type
-    enum NCTYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_AMBERRESTART, NC_AMBERENSEMBLE };
+    enum NCTYPE { NC_AMBERTRAJ = 0, NC_AMBERRESTART, NC_AMBERENSEMBLE, NC_UNKNOWN };
     /// \return Type of given file.
     NCTYPE GetNetcdfConventions(const char*);
 #   ifndef BINTRAJ
