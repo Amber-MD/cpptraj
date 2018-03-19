@@ -65,7 +65,7 @@ NetcdfFile::NetcdfFile() :
   repidxVID_(-1),
   crdidxVID_(-1),
   ensembleSize_(0),
-  ncdebug_(10),
+  ncdebug_(0),
   frameDID_(-1),
   atomDID_(-1),
   ncatom_(-1),
@@ -355,7 +355,6 @@ int NetcdfFile::SetupMultiD() {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has replica values.\n");
     remValType_.clear();
     if (remd_dimension_ > 0) {
-      RemdValues_.assign( remd_dimension_, 0 );
       remValType_ = remDimType_;
     } else {
       // Probably 1D
@@ -373,8 +372,8 @@ int NetcdfFile::SetupMultiD() {
                   "Error:   but no multi-D replica info present.\n");
         return 1;
       }
-      RemdValues_.assign( ndims, 0 );
     }
+    RemdValues_.assign( remValType_.Ndims(), 0 );
   }
 
   return 0; 
