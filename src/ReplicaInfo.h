@@ -11,7 +11,9 @@ template <class T> class Map {
     typedef std::map<T, int> RmapType;
   public:
     Map() {}
-    // Create a map from T array to replicas 0->N
+    /// Create a map from T array to replicas 0->N, potentially allow duplicate input values
+    int CreateMap(std::vector<T> const&, bool);
+    /// Create a map from T array to replicas 0->N
     int CreateMap(std::vector<T> const&);
     T const& Duplicate() const { return duplicate_; }
     // Given T, find index in map
@@ -26,12 +28,18 @@ template <class T> class Map {
     T duplicate_;
 };
 // Map::CreateMap()
-template <class T> int Map<T>::CreateMap(std::vector<T> const& Vals) {
+/** Create a map of indices to sorted input values.
+  * \param Vals array of input values.
+  * \param checkForDuplicates If true, return 1 if duplicate values detected in Vals
+  */
+template <class T> int Map<T>::CreateMap(std::vector<T> const& Vals, bool checkForDuplicates)
+{
   std::set<T> tList;
   for (typename std::vector<T>::const_iterator val = Vals.begin(); val != Vals.end(); ++val)
   {
     std::pair<typename std::set<T>::iterator, bool> ret = tList.insert( *val );
-    if (!ret.second) { // Duplicate value detected.
+    if (checkForDuplicates && !ret.second) {
+      // Duplicate value detected.
       duplicate_ = *val;
       return 1;
     }
@@ -42,6 +50,13 @@ template <class T> int Map<T>::CreateMap(std::vector<T> const& Vals) {
   for (typename std::set<T>::const_iterator v0 = tList.begin(); v0 != tList.end(); ++v0, ++repnum)
     repMap_.insert(std::pair<T, int>(*v0, repnum));
   return 0;
+}
+/** Create a map of indices to sorted input values.
+  * \return 0 if map created, 1 if duplicate values detected in Vals.
+  */
+template <class T> int Map<T>::CreateMap(std::vector<T> const& Vals)
+{
+  return CreateMap(Vals, true);
 }
 // Map::FindIndex()
 template <class T> int Map<T>::FindIndex( T const& Val ) const {
