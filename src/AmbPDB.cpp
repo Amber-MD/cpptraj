@@ -202,8 +202,14 @@ int main(int argc, char** argv) {
   if (ctr_origin) 
     TrajFrame.CenterOnOrigin(false);
   // Output coords
+  
   Trajout_Single trajout;
-  trajArgs.SetList( aatm + bres + pqr + title + ter_opt + box + sybyltype + writeconect, " " );
+  std::string ARGS;
+  if (fmt == TrajectoryFile::MOL2FILE)
+    ARGS = title + sybyltype;
+  else
+    ARGS =  aatm + bres + pqr + title + ter_opt + box +  writeconect;
+  trajArgs.SetList( ARGS, " " );
   if ( trajout.PrepareStdoutTrajWrite(trajArgs, &parm, cInfo, 1, fmt) ) return 1;
   trajout.WriteSingle(0, TrajFrame);
   trajout.EndTraj();
