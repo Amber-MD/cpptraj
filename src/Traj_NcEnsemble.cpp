@@ -349,7 +349,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     start_[1] = member;   // Ensemble
     count_[2] = Ncatom(); // Atoms
     // Write Coords
-    //WriteIndices(); // DEBUG
+    //DebugIndices(); // DEBUG
     DoubleToFloat(Coord_, frm->xAddress());
 #   ifdef HAS_PNETCDF
     if (ncmpi_put_vara_float_all(ncid_, coordVID_, start_, count_, Coord_))

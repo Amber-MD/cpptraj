@@ -1070,8 +1070,8 @@ int NetcdfFile::WriteRemdValues(Frame const& frm) {
 }
 
 // =============================================================================
-// NetcdfFile::WriteIndices()
-void NetcdfFile::WriteIndices() const {
+// NetcdfFile::DebugIndices()
+void NetcdfFile::DebugIndices() const {
   mprintf("DBG: Start={%zu, %zu, %zu, %zu} Count={%zu, %zu, %zu, %zu}\n",
          start_[0], start_[1], start_[2], start_[3],
          count_[0], count_[1], count_[2], count_[3]);

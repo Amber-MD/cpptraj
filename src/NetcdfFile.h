@@ -39,7 +39,7 @@ class NetcdfFile {
     /// Convert given double array to float.
     inline void DoubleToFloat(float*,const double*) const; 
     /// DEBUG - Write start and count arrays to STDOUT
-    void WriteIndices() const;
+    void DebugIndices() const;
     /// DEBUG - Write all variable IDs to STDOUT
     void DebugVIDs() const;
 
