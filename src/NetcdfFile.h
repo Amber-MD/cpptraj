@@ -13,10 +13,6 @@ class NetcdfFile {
     NetcdfFile() { }
 #   else 
     NetcdfFile();
-    /// \return NetCDF trajectory type based on conventions.
-    NCTYPE GetNetcdfConventions();
-    /// Check NetCDF file conventions version.
-    void CheckConventionsVersion();
     /// \return Coordinate info corresponding to current setup. TODO have in variable?
     CoordinateInfo NC_coordInfo() const;
     /// Open NetCDF file for reading.
@@ -32,6 +28,7 @@ class NetcdfFile {
     void NC_close();
     /// \return Title of NetCDF file.
     std::string GetNcTitle() const;
+    /// Set up open NetCDF file for reading.
     int NC_setupRead(NCTYPE, int, bool, bool);
     /// Read - Remd Values
     int ReadRemdValues(Frame&);
@@ -78,6 +75,11 @@ class NetcdfFile {
   private:
     static const char* ConventionsStr_[];
 
+    /// \return NetCDF trajectory type based on conventions.
+    NCTYPE GetNetcdfConventions(int);
+    /// Check NetCDF file conventions version.
+    void CheckConventionsVersion();
+
     bool Has_pH() const;
     bool HasRedOx() const;
     bool HasForces()       const { return (frcVID_ != -1);      }
@@ -95,20 +97,21 @@ class NetcdfFile {
     /// Read - Set up time variable if present
     int SetupTime();
     /// Read - Set up box information if present.
-    int SetupBox(NCTYPE);
+    int SetupBox();
     /// Read - Set up temperature information if present.
     void SetupTemperature();
     /// Read - Set up replica index info if present.
     int SetupMultiD();
 
     int NC_defineTemperature(int*, int);
-    inline void SetRemDimDID(NCTYPE, int, int*) const;
+    inline void SetRemDimDID(int, int*) const;
 
     std::vector<double> RemdValues_; ///< Hold remd values
     ReplicaDimArray remDimType_;     ///< Type of each dimension (multi-D).
     ReplicaDimArray remValType_;     ///< Type of each value (single or multi-D).
     // TODO audit the dimension IDs, may not need to be class vars.
     Box nc_box_;          ///< Hold box information
+    NCTYPE myType_;       ///< Current file type.
     int ncdebug_;
     int ensembleDID_;     ///< Ensemble dimenison ID
     int frameDID_;        ///< Frames dimension ID

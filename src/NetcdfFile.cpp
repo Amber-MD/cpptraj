@@ -10,16 +10,17 @@
 // NetcdfFile::GetNetcdfConventions()
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
   NCTYPE nctype = NC_UNKNOWN;
-#ifdef BINTRAJ
+# ifdef BINTRAJ
   // NOTE: Do not use checkNCerr so this fails silently. Allows routine to
   //       be used in file autodetection.
-  if ( nc_open( fname, NC_NOWRITE, &ncid_ ) != NC_NOERR )
+  int myNcid;
+  if ( nc_open( fname, NC_NOWRITE, &myNcid ) != NC_NOERR )
     return NC_UNKNOWN;
-  nctype = GetNetcdfConventions();
-  NC_close();
-#else
-  mprintf("Error: Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
-#endif
+  nctype = GetNetcdfConventions(myNcid);
+  nc_close( myNcid ); 
+# else
+  mprinterr("Error: Compiled without NetCDF support. Recompile with -DBINTRAJ\n");
+# endif
   return nctype;
 }
 
@@ -95,9 +96,9 @@ const char* NetcdfFile::ConventionsStr_[] = {
 };
 
 // NetcdfFile::GetNetcdfConventions()
-NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
+NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
   NCTYPE nctype = NC_UNKNOWN;
-  std::string attrText = NC::GetAttrText(ncid_, "Conventions");
+  std::string attrText = NC::GetAttrText(ncidIn, "Conventions");
   if (attrText == "AMBERENSEMBLE")
     nctype = NC_AMBERENSEMBLE;
   else if (attrText == "AMBER")
@@ -281,7 +282,7 @@ int NetcdfFile::SetupTime() {
               attrText.c_str());
     // Check for time values which have NOT been filled, which was possible
     // with netcdf trajectories created by older versions of ptraj/cpptraj.
-    if (ncframe_ > 0 && GetNetcdfConventions() == NC_AMBERTRAJ) {
+    if (ncframe_ > 0 && myType_ == NC_AMBERTRAJ) {
       float time;
       start_[0] = 0; count_[0] = 1;
       if (NC::CheckErr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
@@ -389,7 +390,7 @@ int NetcdfFile::SetupMultiD() {
 // NetcdfFile::SetupBox()
 /** \return 0 on success, 1 on error, -1 for no box coords. */
 // TODO: Use Box class
-int NetcdfFile::SetupBox(NCTYPE typeIn) {
+int NetcdfFile::SetupBox() {
   nc_box_.SetNoBox();
   if ( nc_inq_varid(ncid_, NCCELL_LENGTHS, &cellLengthVID_) == NC_NOERR ) {
     if (NC::CheckErr( nc_inq_varid(ncid_, NCCELL_ANGLES, &cellAngleVID_) )) {
@@ -403,7 +404,7 @@ int NetcdfFile::SetupBox(NCTYPE typeIn) {
     start_[1]=0; 
     start_[2]=0;
     start_[3]=0;
-    switch (typeIn) {
+    switch (myType_) {
       case NC_AMBERRESTART:
         count_[0]=3;
         count_[1]=0;
@@ -484,7 +485,8 @@ int NetcdfFile::NC_setupRead(NCTYPE expectedType, int expectedNatoms,
     return 1;
   }
   // Sanity check
-  if ( GetNetcdfConventions() != expectedType ) {
+  myType_ = GetNetcdfConventions(ncid_);
+  if ( myType_ != expectedType ) {
     mprinterr("Error: NetCDF file conventions do not include \"%s\"\n",
               ConventionsStr_[expectedType]);
     return 1;
@@ -492,14 +494,14 @@ int NetcdfFile::NC_setupRead(NCTYPE expectedType, int expectedNatoms,
   // This will warn if conventions are not 1.0 
   CheckConventionsVersion();
   // Get frame info if necessary.
-  if (expectedType == NC_AMBERTRAJ || expectedType == NC_AMBERENSEMBLE) {
+  if (myType_ == NC_AMBERTRAJ || myType_ == NC_AMBERENSEMBLE) {
     if (SetupFrameDim() != 0) return 1;
     if (Ncframe() < 1) {
       mprinterr("Error: NetCDF file has no frames.\n");
       return 1;
     }
     // Get ensemble info if necessary
-    if (expectedType == NC_AMBERENSEMBLE) {
+    if (myType_ == NC_AMBERENSEMBLE) {
       if (SetupEnsembleDim() < 1) {
         mprinterr("Error: Could not get ensemble dimension info.\n");
         return 1;
@@ -517,7 +519,7 @@ int NetcdfFile::NC_setupRead(NCTYPE expectedType, int expectedNatoms,
   // Setup Time - FIXME: Allowed to fail silently
   SetupTime();
   // Box info
-  if (SetupBox(expectedType) == 1) // 1 indicates an error
+  if (SetupBox() == 1) // 1 indicates an error
     return 1;
   // Replica Temperatures - FIXME: Allowed to fail silently
   SetupTemperature();
@@ -620,8 +622,8 @@ int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
 }
 
 /** Set remDimDID appropriate for given type. */
-void NetcdfFile::SetRemDimDID(NCTYPE type, int remDimDID, int* dimensionID) const {
-  switch (type) {
+void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
+  switch (myType_) {
     case NC_AMBERENSEMBLE:
       dimensionID[0] = frameDID_;
       dimensionID[1] = ensembleDID_;
@@ -640,13 +642,14 @@ void NetcdfFile::SetRemDimDID(NCTYPE type, int remDimDID, int* dimensionID) cons
 }
 
 // NetcdfFile::NC_create()
-int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
+int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title) 
 {
   if (Name.empty()) return 1;
   int dimensionID[NC_MAX_VAR_DIMS];
   int NDIM;
   nc_type dataType;
+  myType_ = typeIn;
 
   if (ncdebug_>1)
     mprintf("DEBUG: NC_create: '%s'  natom=%i  %s\n",
@@ -659,7 +662,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   ncatom3_ = ncatom_ * 3;
   
   // Set number of dimensions based on file type
-  switch (type) {
+  switch (myType_) {
     case NC_AMBERENSEMBLE:
       NDIM = 4;
       dataType = NC_FLOAT;
@@ -673,12 +676,12 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       dataType = NC_DOUBLE;
       break;
     default:
-      mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n",Name.c_str(),(int)type);
+      mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n",Name.c_str(),(int)myType_);
       return 1;
   }
 
   // Ensemble dimension for ensemble
-  if (type == NC_AMBERENSEMBLE) {
+  if (myType_ == NC_AMBERENSEMBLE) {
     if (coordInfo.EnsembleSize() < 1) {
       mprinterr("Internal Error: NetcdfFile: ensembleSize < 1\n");
       return 1;
@@ -691,7 +694,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   }
   // Frame dimension for traj
   ncframe_ = 0;
-  if (type == NC_AMBERTRAJ || type == NC_AMBERENSEMBLE) {
+  if (myType_ == NC_AMBERTRAJ || myType_ == NC_AMBERENSEMBLE) {
     if ( NC::CheckErr( nc_def_dim( ncid_, NCFRAME, NC_UNLIMITED, &frameDID_)) ) {
       mprinterr("Error: Defining frame dimension.\n");
       return 1;
@@ -727,7 +730,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   }
   // Setup dimensions for Coords/Velocity
   // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-  switch (type) {
+  switch (myType_) {
     case NC_AMBERENSEMBLE:
       dimensionID[0] = frameDID_;
       dimensionID[1] = ensembleDID_;
@@ -812,7 +815,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       return 1;
     }
     // Need to store the indices of replica in each dimension each frame
-    SetRemDimDID(type, remDimDID, dimensionID);
+    SetRemDimDID(remDimDID, dimensionID);
     if (NC::CheckErr(nc_def_var(ncid_, NCREMD_INDICES, NC_INT, NDIM-1, dimensionID, &indicesVID_)))
     {
       mprinterr("Error: Defining replica indices variable ID.\n");
@@ -841,7 +844,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   if (coordInfo.UseRemdValues()) {
     remValType_.clear();
     if (coordInfo.HasReplicaDims()) {
-      SetRemDimDID(type, remDimDID, dimensionID);
+      SetRemDimDID(remDimDID, dimensionID);
       if (NC::CheckErr(nc_def_var(ncid_, NCREMDVALUES, NC_DOUBLE, NDIM-1,
                                   dimensionID, &RemdValuesVID_)))
       {
@@ -897,11 +900,11 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     // Setup dimensions for Box
     // NOTE: This must be modified if more types added
     int boxdim;
-    if (type == NC_AMBERENSEMBLE) {
+    if (myType_ == NC_AMBERENSEMBLE) {
       dimensionID[0] = frameDID_;
       dimensionID[1] = ensembleDID_;
       boxdim = 2;
-    } else if (type == NC_AMBERTRAJ) {
+    } else if (myType_ == NC_AMBERTRAJ) {
       dimensionID[0] = frameDID_;
       boxdim = 1;
     } else {
@@ -952,9 +955,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   }
   // TODO: Make conventions a static string
   bool errOccurred = false;
-  if ( type == NC_AMBERENSEMBLE )
+  if ( myType_ == NC_AMBERENSEMBLE )
     errOccurred = NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",13,"AMBERENSEMBLE"));
-  else if ( type == NC_AMBERTRAJ )
+  else if ( myType_ == NC_AMBERTRAJ )
     errOccurred = NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",5,"AMBER"));
   else
     errOccurred = NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",12,"AMBERRESTART"));
