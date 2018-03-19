@@ -33,20 +33,6 @@ class NetcdfFile {
     /// \return Title of NetCDF file.
     std::string GetNcTitle() const;
     int NC_setupRead(NCTYPE, int, bool, bool);
-    /// Read - Set up frame dimension ID and number of frames.
-    int SetupFrameDim();
-    /// Read - Set up ensemble dimension ID and number of members.
-    int SetupEnsembleDim();
-    /// Read - Set up coordinates, velocities, forces, # atoms
-    int SetupCoordsVelo(bool, bool);
-    /// Read - Set up time variable if present
-    int SetupTime();
-    /// Read - Set up box information if present.
-    int SetupBox(NCTYPE);
-    /// Read - Set up temperature information if present.
-    void SetupTemperature();
-    /// Read - Set up replica index info if present.
-    int SetupMultiD();
     /// Read - Remd Values
     int ReadRemdValues(Frame&);
     /// Write - Remd Values
@@ -99,6 +85,21 @@ class NetcdfFile {
 
     bool Has_pH() const;
     bool HasRedOx() const;
+
+    /// Read - Set up frame dimension ID and number of frames.
+    int SetupFrameDim();
+    /// Read - Set up ensemble dimension ID and number of members.
+    int SetupEnsembleDim();
+    /// Read - Set up coordinates, velocities, forces, # atoms
+    int SetupCoordsVelo(bool, bool);
+    /// Read - Set up time variable if present
+    int SetupTime();
+    /// Read - Set up box information if present.
+    int SetupBox(NCTYPE);
+    /// Read - Set up temperature information if present.
+    void SetupTemperature();
+    /// Read - Set up replica index info if present.
+    int SetupMultiD();
 
     int NC_defineTemperature(int*, int);
     inline void SetRemDimDID(NCTYPE, int, int*) const;
