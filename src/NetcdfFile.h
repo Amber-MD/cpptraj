@@ -107,7 +107,7 @@ class NetcdfFile {
     std::vector<double> RemdValues_; ///< Hold remd values
     ReplicaDimArray remDimType_;     ///< Type of each dimension (multi-D).
     ReplicaDimArray remValType_;     ///< Type of each value (single or multi-D).
-
+    // TODO audit the dimension IDs, may not need to be class vars.
     Box nc_box_;          ///< Hold box information
     int ncdebug_;
     int ensembleDID_;     ///< Ensemble dimenison ID
