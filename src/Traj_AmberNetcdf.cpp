@@ -82,10 +82,6 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
   SetTitle( GetNcTitle() );
   // Set coordinate info
   SetCoordInfo( NC_coordInfo() ); 
-  // NOTE: TO BE ADDED
-  // labelDID;
-  //int cell_spatialDID, cell_angularDID;
-  //int spatialVID, cell_spatialVID, cell_angularVID;
   // Amber Netcdf coords are float. Allocate a float array for converting
   // float to/from double.
   if (Coord_ != 0) delete[] Coord_;

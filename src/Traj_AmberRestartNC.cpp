@@ -70,40 +70,13 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
   filename_ = fname;
   if (openTrajin()) return TRAJIN_ERR;
   readAccess_ = true;
-  // Sanity check - Make sure this is a Netcdf restart
-  if ( GetNetcdfConventions() != NC_AMBERRESTART ) {
-    mprinterr("Error: Netcdf restart file %s conventions do not include \"AMBERRESTART\"\n",
-              filename_.base());
+  // Setup for Amber NetCDF restart.
+  if ( NC_setupRead(NC_AMBERRESTART, trajParm->Natom(), useVelAsCoords_, useFrcAsCoords_) )
     return TRAJIN_ERR;
-  }
-  // This will warn if conventions are not 1.0 
-  CheckConventionsVersion();
   // Get title
   SetTitle( GetNcTitle() );
-  // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo( useVelAsCoords_, useFrcAsCoords_ )!=0 ) return TRAJIN_ERR;
-  // Check that specified number of atoms matches expected number.
-  if (Ncatom() != trajParm->Natom()) {
-    mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
-              filename_.base(), Ncatom());
-    mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
-    return TRAJIN_ERR;
-  }
-  // Setup Time - FIXME: allowed to fail silently
-  SetupTime();
-  // Box info
-  if (SetupBox(NC_AMBERRESTART) == 1) // 1 indicates an error
-    return TRAJIN_ERR;
-  // Replica Temperatures - FIXME: allowed to fail silently 
-  SetupTemperature();
-  // Replica Dimensions
-  if ( SetupMultiD() == -1 ) return TRAJIN_ERR;
-  // Set traj info: FIXME - no forces yet
+  // Set coordinate info 
   SetCoordInfo( NC_coordInfo() );
-  // NOTE: TO BE ADDED
-  // labelDID;
-  //int cell_spatialDID, cell_angularDID;
-  //int spatialVID, cell_spatialVID, cell_angularVID;
   closeTraj();
   // Only 1 frame for NC restarts
   return 1;

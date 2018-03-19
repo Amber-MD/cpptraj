@@ -522,7 +522,10 @@ int NetcdfFile::NC_setupRead(NCTYPE expectedType, int expectedNatoms,
   SetupTemperature();
   // Replica Dimensions
   if ( SetupMultiD() == -1 ) return 1;
-
+  // NOTE: TO BE ADDED
+  // labelDID;
+  //int cell_spatialDID, cell_angularDID;
+  //int spatialVID, cell_spatialVID, cell_angularVID;
   return 0;
 }
   
