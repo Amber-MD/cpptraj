@@ -35,7 +35,9 @@ class NetcdfFile {
     /// Write - Remd Values
     int WriteRemdValues(Frame const&);
 #   ifdef MPI
+#   ifdef HAS_PNETCDF
     int parallelWriteRemdValues(int, Frame const&);
+#   endif
 #   endif
     /// Convert given float array to double.
     inline void FloatToDouble(double*,const float*) const;

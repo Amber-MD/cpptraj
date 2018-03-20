@@ -1075,6 +1075,7 @@ int NetcdfFile::WriteRemdValues(Frame const& frm) {
 }
 
 #ifdef MPI
+#ifdef HAS_PNETCDF
 int NetcdfFile::parallelWriteRemdValues(int set, Frame const& frm) {
   MPI_Offset pstart_[2];
   MPI_Offset pcount_[2];
@@ -1110,6 +1111,7 @@ int NetcdfFile::parallelWriteRemdValues(int set, Frame const& frm) {
   }
   return 0;
 }
+#endif
 #endif
 
 // =============================================================================
