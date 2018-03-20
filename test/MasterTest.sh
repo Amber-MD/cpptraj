@@ -231,11 +231,11 @@ NcTest() {
       # the regular expression to ndiff.awk FS without the interpreter giving
       # this error for FS='[ \t,()]':
       # awk: fatal: Invalid regular expression: /'[/
-      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0.save
-      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0
+      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0
     else
-      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" > nc0.save
-      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" > nc0
+      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:program" > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:program" > nc0
     fi
     DoTest $DIFFARGS 
     $CPPTRAJ_RM nc0.save nc0
