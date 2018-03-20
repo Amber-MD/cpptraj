@@ -109,7 +109,7 @@ std::string CoordinateInfo::InfoString() const {
 }
 
 #ifdef MPI
-#define CINFOMPISIZE 9
+#define CINFOMPISIZE 11
 int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
   // ensSize, hasvel, hastemp, hastime, hasfrc, NrepDims, Dim1, ..., DimN, 
   int* iArray;
@@ -118,15 +118,17 @@ int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
     iSize = remdDim_.Ndims() + CINFOMPISIZE;
     commIn.MasterBcast( &iSize, 1, MPI_INT );
     iArray = new int[ iSize ];
-    iArray[0] = ensembleSize_;
-    iArray[1] = (int)hasVel_;
-    iArray[2] = (int)hasTemp_;
-    iArray[3] = (int)hasTime_;
-    iArray[4] = (int)hasFrc_;
-    iArray[5] = (int)has_pH_;
-    iArray[6] = (int)hasRedox_;
-    iArray[7] = (int)useRemdValues_;
-    iArray[8] = remdDim_.Ndims();
+    iArray[0]  = ensembleSize_;
+    iArray[1]  = (int)hasVel_;
+    iArray[2]  = (int)hasTemp_;
+    iArray[3]  = (int)hasTime_;
+    iArray[4]  = (int)hasFrc_;
+    iArray[5]  = (int)has_pH_;
+    iArray[6]  = (int)hasRedox_;
+    iArray[7]  = (int)useRemdValues_;
+    iArray[8]  = (int)hasrepidx_;
+    iArray[9]  = (int)hascrdidx_;
+    iArray[10] = remdDim_.Ndims();
     unsigned int ii = CINFOMPISIZE;
     for (int ir = 0; ir != remdDim_.Ndims(); ir++, ii++)
       iArray[ii] = remdDim_[ir];
@@ -143,9 +145,11 @@ int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
     has_pH_        = (bool)iArray[5];
     hasRedox_      = (bool)iArray[6];
     useRemdValues_ = (bool)iArray[7];
+    hasrepidx_     = (bool)iArray[8];
+    hascrdidx_     = (bool)iArray[9];
     remdDim_.clear();
     unsigned int ii = CINFOMPISIZE;
-    for (int ir = 0; ir != iArray[8]; ir++, ii++)
+    for (int ir = 0; ir != iArray[10]; ir++, ii++)
       remdDim_.AddRemdDimension( iArray[ii] );
   }
   delete[] iArray;

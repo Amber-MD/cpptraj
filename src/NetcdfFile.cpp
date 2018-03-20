@@ -807,6 +807,24 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
     dimensionID[0] = frameDID_;
     if ( NC_defineTemperature( dimensionID, NDIM-2 ) ) return 1;
   }
+  // Overall replica index
+  if (coordInfo.HasRepIdx()) {
+    dimensionID[0] = frameDID_;
+    if (NC::CheckErr(nc_def_var(ncid_, NCREMD_REPIDX, NC_INT, NDIM-2, dimensionID, &repidxVID_)))
+    {
+      mprinterr("Error: Defining replica idx variable ID.\n");
+      return 1;
+    }
+  }
+  // Overall coordinate index
+  if (coordInfo.HasCrdIdx()) {
+    dimensionID[0] = frameDID_;
+    if (NC::CheckErr(nc_def_var(ncid_, NCREMD_CRDIDX, NC_INT, NDIM-2, dimensionID, &crdidxVID_)))
+    {
+      mprinterr("Error: Defining coordinate idx variable ID.\n");
+      return 1;
+    }
+  }
   // Replica indices
   int remDimTypeVID = -1;
   int remDimDID = -1;
@@ -833,22 +851,6 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
     }
     // TODO: Determine if groups are really necessary for restarts. If not, 
     // remove from AmberNetcdf.F90.
-  }
-  if (coordInfo.HasRepIdx()) {
-    dimensionID[0] = frameDID_;
-    if (NC::CheckErr(nc_def_var(ncid_, NCREMD_REPIDX, NC_INT, NDIM-2, dimensionID, &repidxVID_)))
-    {
-      mprinterr("Error: Defining replica idx variable ID.\n");
-      return 1;
-    }
-  }
-  if (coordInfo.HasCrdIdx()) {
-    dimensionID[0] = frameDID_;
-    if (NC::CheckErr(nc_def_var(ncid_, NCREMD_CRDIDX, NC_INT, NDIM-2, dimensionID, &crdidxVID_)))
-    {
-      mprinterr("Error: Defining coordinate idx variable ID.\n");
-      return 1;
-    }
   }
   // Replica values
   if (coordInfo.UseRemdValues()) {
@@ -1127,58 +1129,77 @@ void NetcdfFile::DebugVIDs() const {
 
 #ifdef MPI
 void NetcdfFile::Sync(Parallel::Comm const& commIn) {
-  int nc_vars[23];
+  static const unsigned int NCVARS_SIZE = 29;
+  int nc_vars[NCVARS_SIZE];
   if (commIn.Master()) {
-    nc_vars[0] = ncframe_;
-    nc_vars[1] = TempVID_;
-    nc_vars[2] = coordVID_;
-    nc_vars[3] = velocityVID_;
-    nc_vars[4] = frcVID_;
-    nc_vars[5] = cellAngleVID_;
-    nc_vars[6] = cellLengthVID_;
-    nc_vars[7] = timeVID_;
-    nc_vars[8] = remd_dimension_;
-    nc_vars[9] = indicesVID_;
-    nc_vars[10] = ncdebug_;
-    nc_vars[11] = ensembleDID_;
-    nc_vars[12] = frameDID_;
-    nc_vars[13] = atomDID_;
-    nc_vars[14] = ncatom_;
-    nc_vars[15] = ncatom3_;
-    nc_vars[16] = spatialDID_;
-    nc_vars[17] = labelDID_;
-    nc_vars[18] = cell_spatialDID_;
-    nc_vars[19] = cell_angularDID_;
-    nc_vars[20] = spatialVID_;
-    nc_vars[21] = cell_spatialVID_;
-    nc_vars[22] = cell_angularVID_;
+    nc_vars[0]  = ncframe_;
+    nc_vars[1]  = TempVID_;
+    nc_vars[2]  = coordVID_;
+    nc_vars[3]  = velocityVID_;
+    nc_vars[4]  = frcVID_;
+    nc_vars[5]  = cellAngleVID_;
+    nc_vars[6]  = cellLengthVID_;
+    nc_vars[7]  = timeVID_;
+    nc_vars[8]  = remd_dimension_;
+    nc_vars[9]  = indicesVID_;
+    nc_vars[10] = repidxVID_;
+    nc_vars[11] = crdidxVID_;
+    nc_vars[12] = ensembleSize_;
+    nc_vars[13] = ncdebug_;
+    nc_vars[14] = ensembleDID_;
+    nc_vars[15] = frameDID_;
+    nc_vars[16] = atomDID_;
+    nc_vars[17] = ncatom_;
+    nc_vars[18] = ncatom3_;
+    nc_vars[19] = spatialDID_;
+    nc_vars[20] = labelDID_;
+    nc_vars[21] = cell_spatialDID_;
+    nc_vars[22] = cell_angularDID_;
+    nc_vars[23] = spatialVID_;
+    nc_vars[24] = cell_spatialVID_;
+    nc_vars[25] = cell_angularVID_;
+    nc_vars[26] = RemdValuesVID_;
+    nc_vars[27] = remDimType_.Ndims();
+    nc_vars[28] = remValType_.Ndims();
+    commIn.MasterBcast( nc_vars, NCVARS_SIZE, MPI_INT );
+  } else {
+    // Non-master
+    commIn.MasterBcast( nc_vars, NCVARS_SIZE, MPI_INT );
+    ncframe_         = nc_vars[0];
+    TempVID_         = nc_vars[1];
+    coordVID_        = nc_vars[2];
+    velocityVID_     = nc_vars[3];
+    frcVID_          = nc_vars[4];
+    cellAngleVID_    = nc_vars[5];
+    cellLengthVID_   = nc_vars[6];
+    timeVID_         = nc_vars[7];
+    remd_dimension_  = nc_vars[8];
+    indicesVID_      = nc_vars[9];
+    repidxVID_       = nc_vars[10];
+    crdidxVID_       = nc_vars[11];
+    ensembleSize_    = nc_vars[12];
+    ncdebug_         = nc_vars[13];
+    ensembleDID_     = nc_vars[14];
+    frameDID_        = nc_vars[15];
+    atomDID_         = nc_vars[16];
+    ncatom_          = nc_vars[17];
+    ncatom3_         = nc_vars[18];
+    spatialDID_      = nc_vars[19];
+    labelDID_        = nc_vars[20];
+    cell_spatialDID_ = nc_vars[21];
+    cell_angularDID_ = nc_vars[22];
+    spatialVID_      = nc_vars[23];
+    cell_spatialVID_ = nc_vars[24];
+    cell_angularVID_ = nc_vars[25];
+    RemdValuesVID_   = nc_vars[26];
+    remDimType_.assign( nc_vars[27], ReplicaDimArray::UNKNOWN );
+    remValType_.assign( nc_vars[28], ReplicaDimArray::UNKNOWN );
+    RemdValues_.resize( nc_vars[28] );
   }
-  commIn.MasterBcast( nc_vars, 23, MPI_INT );
-  if (!commIn.Master()) {
-    ncframe_ = nc_vars[0];
-    TempVID_ = nc_vars[1];
-    coordVID_ = nc_vars[2];
-    velocityVID_ = nc_vars[3];
-    frcVID_ = nc_vars[4];
-    cellAngleVID_ = nc_vars[5];
-    cellLengthVID_ = nc_vars[6];
-    timeVID_ = nc_vars[7];
-    remd_dimension_ = nc_vars[8];
-    indicesVID_ = nc_vars[9];
-    ncdebug_ = nc_vars[10];
-    ensembleDID_ = nc_vars[11];
-    frameDID_ = nc_vars[12];
-    atomDID_ = nc_vars[13];
-    ncatom_ = nc_vars[14];
-    ncatom3_ = nc_vars[15];
-    spatialDID_ = nc_vars[16];
-    labelDID_ = nc_vars[17];
-    cell_spatialDID_ = nc_vars[18];
-    cell_angularDID_ = nc_vars[19];
-    spatialVID_ = nc_vars[20];
-    cell_spatialVID_ = nc_vars[21];
-    cell_angularVID_ = nc_vars[22];
-  }
+  if (!remDimType_.empty())
+    commIn.MasterBcast( remDimType_.Ptr(), remDimType_.Ndims(), MPI_INT );
+  if (!remValType_.empty())
+    commIn.MasterBcast( remValType_.Ptr(), remValType_.Ndims(), MPI_INT );
 }
 #endif /* MPI */
 #endif /* BINTRAJ */

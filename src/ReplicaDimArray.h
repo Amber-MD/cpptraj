@@ -47,6 +47,10 @@ class ReplicaDimArray {
         if ( *d0 != *(d1++) ) return true;
       return false;
     }
+#   ifdef MPI
+    void assign( unsigned int n, RemDimType t ) { remDims_.assign(n, t); }
+    int* Ptr() { return (int*)&remDims_[0]; }
+#   endif
   private:
     std::vector<RemDimType> remDims_;
 };
