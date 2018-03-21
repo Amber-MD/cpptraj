@@ -73,57 +73,19 @@ int Traj_AmberNetcdf::processReadArgs(ArgList& argIn) {
 int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   filename_ = fname;
-  if (openTrajin()) return TRAJIN_ERR;
   readAccess_ = true;
-  // Sanity check - Make sure this is a Netcdf trajectory
-  if ( GetNetcdfConventions() != NC_AMBERTRAJ ) {
-    mprinterr("Error: Netcdf file %s conventions do not include \"AMBER\"\n",filename_.base());
+  // Setup for Amber NetCDF trajectory
+  if ( NC_setupRead(filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(),
+                    useVelAsCoords_, useFrcAsCoords_, debug_) )
     return TRAJIN_ERR;
-  }
-  // This will warn if conventions are not 1.0 
-  CheckConventionsVersion();
   // Get title
   SetTitle( GetNcTitle() );
-  // Get Frame info
-  if ( SetupFrameDim()!=0 ) return TRAJIN_ERR;
-  if ( Ncframe() < 1 ) {
-    mprinterr("Error: Netcdf file is empty.\n");
-    return TRAJIN_ERR;
-  }
-  // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo( useVelAsCoords_, useFrcAsCoords_ )!=0 ) return TRAJIN_ERR;
-  // Check that specified number of atoms matches expected number.
-  if (Ncatom() != trajParm->Natom()) {
-    mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n"
-              "Error:   match number in associated parmtop (%i)!\n", 
-              filename_.base(), Ncatom(), trajParm->Natom());
-    return TRAJIN_ERR;
-  }
-  // Setup Time - FIXME: Allowed to fail silently
-  SetupTime();
-  // Box info
-  Box nc_box;
-  if (SetupBox(nc_box, NC_AMBERTRAJ) == 1) // 1 indicates an error
-    return TRAJIN_ERR;
-  // Replica Temperatures - FIXME: Allowed to fail silently
-  SetupTemperature();
-  // Replica Dimensions
-  ReplicaDimArray remdDim;
-  if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
-  CoordinateInfo ncCoordInfo(remdDim, nc_box, HasVelocities(),
-                             HasTemperatures(), HasTimes(), HasForces());
-  ncCoordInfo.SetCrd( HasCoords() );
-  SetCoordInfo( ncCoordInfo ); 
-  // NOTE: TO BE ADDED
-  // labelDID;
-  //int cell_spatialDID, cell_angularDID;
-  //int spatialVID, cell_spatialVID, cell_angularVID;
+  // Set coordinate info
+  SetCoordInfo( NC_coordInfo() ); 
   // Amber Netcdf coords are float. Allocate a float array for converting
   // float to/from double.
   if (Coord_ != 0) delete[] Coord_;
   Coord_ = new float[ Ncatom3() ];
-  if (debug_>1) NetcdfDebug();
-  closeTraj();
   return Ncframe();
 }
 
@@ -186,10 +148,10 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
     // Create NetCDF file.
-    if (NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(), Title() ))
+    if (NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
+                   Title(), debug_ ))
       return 1;
-    if (debug_>1) NetcdfDebug();
-    // Close Netcdf file. It will be reopened write.
+    // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
     NC_close();
     // Allocate memory
     if (Coord_!=0) delete[] Coord_;
@@ -290,6 +252,9 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     //mprintf("\n");
   }
 
+  // Read REMD values.
+  ReadRemdValues(frameIn);
+
   // Read box info 
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
@@ -384,6 +349,9 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
     }
   }
 
+  // Write Remd Values
+  WriteRemdValues(frameOut);
+
   // Write box
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
@@ -439,26 +407,11 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");
   if (readAccess_) {
-    if (!HasCoords()) mprintf(" (no coordinates)");
+    mprintf(" with %s", CoordInfo().InfoString().c_str());
     if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
     if (useFrcAsCoords_) mprintf(" (using forces as coordinates)");
-    if (HasVelocities() || HasForces() || HasTemperatures()) {
-      mprintf(" with");
-      if (HasVelocities()) mprintf(" velocities");
-      if (HasForces()) mprintf(" forces");
-      if (HasTemperatures()) mprintf(" temperatures");
-    }
-    if (remd_dimension_ > 0) mprintf(" %i replica dimensions", remd_dimension_);
-  } else {
-    if ( !(write_mdcrd_ && write_mdvel_ && write_mdfrc_) ) {
-      if (write_mdcrd_ || write_mdvel_ || write_mdfrc_) {
-        mprintf(" with");
-        if (write_mdcrd_) mprintf(" coordinates");
-        if (write_mdvel_) mprintf(" velocities");
-        if (write_mdfrc_) mprintf(" forces");
-      }
-    }
-  }
+    if (remd_dimension_ > 0) mprintf(", %i replica dimensions", remd_dimension_);
+  } 
 }
 #ifdef MPI
 #ifdef HAS_PNETCDF
@@ -591,6 +544,9 @@ int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
     err = ncmpi_put_vara_float(ncid_, frcVID_, pstart_, pcount_, Coord_);
     if (checkPNCerr(err)) return Parallel::Abort(err);
   }
+
+  // Write Remd Values
+  parallelWriteRemdValues(set, frameOut);
 
   pcount_[2] = 0;
   if (cellLengthVID_ != -1) {

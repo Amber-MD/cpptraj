@@ -390,9 +390,8 @@ int Traj_GmxTrX::setupTrajin(FileName const& fname, Topology* trajParm)
   if ( box_size_ > 0 ) {
     if ( ReadBox( box ) ) return TRAJIN_ERR;
   }
-  // Set traj info - No temperature
-  SetCoordInfo( CoordinateInfo(ReplicaDimArray(), Box(box), (v_size_ > 0),
-                               false, true, (f_size_ > 0)) );
+  // Box, coords, velocity, force, time 
+  SetCoordInfo( CoordinateInfo(Box(box), true, (v_size_ > 0), (f_size_ > 0), true) );
   closeTraj();
   return nframes;
 }
