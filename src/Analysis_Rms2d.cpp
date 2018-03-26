@@ -57,7 +57,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   useMass_ = analyzeArgs.hasKey("mass");
   std::string outfilename = analyzeArgs.GetStringKey("out");
   if (outfilename.empty()) outfilename = analyzeArgs.GetStringKey("rmsout"); // DEPRECATED
-  DataFile* rmsdFile = setup.DFL().AddDataFile(outfilename, analyzeArgs);
+  DataFile* rmsdFile = setup.DFL().AddDataFile(outfilename, "square2d", analyzeArgs);
   std::string reftrajname = analyzeArgs.GetStringKey("reftraj");
   if (!reftrajname.empty()) {
     RefParm_ = setup.DSL().GetTopology(analyzeArgs); // TODO Use coords set
@@ -66,12 +66,6 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     useReferenceTraj_ = false;
   // Check for correlation. 
   DataFile* corrfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("corr"), analyzeArgs);
-  // Require an output filename if corr not specified
-  if (rmsdFile == 0 && corrfile == 0) {
-    mprinterr("Error: Rms2d: No output filename specified.\n");
-    Help();
-    return Analysis::ERR;
-  }
   // Get target mask.
   TgtMask_.SetMaskString( analyzeArgs.GetMaskNext() );
   // Get reference mask. 
@@ -120,10 +114,8 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   // Format DataSet 
   rmsdataset_->SetupFormat().SetFormatWidthPrecision(8,3);
   // Add to output file
-  if (rmsdFile != 0) {
+  if (rmsdFile != 0)
     rmsdFile->AddDataSet( rmsdataset_ );
-    rmsdFile->ProcessArgs("square2d");
-  }
   // Set up DataSet for corr if specified
   if (corrfile != 0) {
     Ct_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(rmsdataset_->Meta().Name(), "Corr") );
