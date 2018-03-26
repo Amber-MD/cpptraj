@@ -2,6 +2,7 @@
 #include <cmath> // sqrt
 #include <vector>
 #include <algorithm> // sort
+#include <map> // Find best reps
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // Pseudo-F
@@ -80,6 +81,26 @@ void ClusterList::Renumber(bool addSievedFrames) {
     node->SetNum( newNum++ );
 }
 
+typedef std::pair<double, int> RepPair;
+typedef std::multimap<double, int> RepMap;
+
+void SaveBestRep(RepMap& reps, RepPair const& Dist_Num, unsigned int maxSize)
+{
+  if (reps.empty())
+    reps.insert( Dist_Num );
+  else {
+    RepMap::reverse_iterator end = reps.rbegin();
+    if (Dist_Num.first < end->first) {
+      reps.insert( Dist_Num );
+      if (reps.size() > maxSize) {
+        RepMap::iterator it = reps.end();
+        --it;
+        reps.erase( it );
+      }
+    }
+  }
+}
+
 // ClusterList::FindBestRepFrames_CumulativeDist()
 /** Find the frame in each cluster that is the best representative by
   * having the lowest cumulative distance to every other point in the cluster.
@@ -92,6 +113,7 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
     //tmp.OpenWrite("c"+integerToString(node->Num())+".bestRep.dat"); // DEBUG
     double mindist = DBL_MAX;
     int minframe = -1;
+    RepMap bestReps;
     for (ClusterNode::frame_iterator f1 = node->beginframe();
                                      f1 != node->endframe(); ++f1)
     {
@@ -101,6 +123,7 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
         if (f1 != f2)
           cdist += Frame_Distance(*f1, *f2);
       }
+      SaveBestRep(bestReps, RepPair(cdist, *f1), 3);
       if (cdist < mindist) {
         mindist = cdist;
         minframe = *f1;
@@ -114,6 +137,10 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
       err++;
     }
     node->SetBestRepFrame( minframe );
+    // DEBUG
+    mprintf("DEBUG: Best rep %i (%g). Top 3:\n", minframe, mindist);
+    for (RepMap::const_iterator it = bestReps.begin(); it != bestReps.end(); ++it)
+      mprintf("\t%i (%g)\n", it->second, it->first);
   }
   return err;
 }

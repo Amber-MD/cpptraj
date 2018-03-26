@@ -7,6 +7,7 @@
 /** This base class holds all the individual clusters, as well as routines 
   * that can be used to obtain information on clusters after clustering.
   */
+// TODO Create ClusterFrameDistance class to hold combined DataSet_Cmatrix and ClusterDist
 class ClusterList {
   public:
     enum DistMetricType { RMS = 0, DME, SRMSD, DATA };
