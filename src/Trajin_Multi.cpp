@@ -122,7 +122,7 @@ int Trajin_Multi::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, Topolog
             mprinterr("Error: Potential values are:");
             for (ReplicaInfo::Map<double>::const_iterator it = dMap.begin();
                                                           it != dMap.end(); ++it)
-              mprinterr(" %g", *it);
+              mprinterr(" %g", it->first);
             mprinterr("\n");
             return 1;
           }
