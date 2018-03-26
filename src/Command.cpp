@@ -199,6 +199,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
   Command::AddCmd( new Exec_DataFilter(),      Cmd::EXE, 1, "datafilter" );
   Command::AddCmd( new Exec_DataSetCmd(),      Cmd::EXE, 1, "dataset" );
+  Command::AddCmd( new Exec_EnsFileExt(),      Cmd::EXE, 1, "ensextension" );
   Command::AddCmd( new Exec_GenerateAmberRst(),Cmd::EXE, 1, "rst" );
   Command::AddCmd( new Exec_Help(),            Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ListAll(),         Cmd::EXE, 1, "list" );

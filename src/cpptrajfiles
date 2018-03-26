@@ -158,7 +158,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Control.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
-        CphResidue.cpp \
+        Cph.cpp \
         CpptrajFile.cpp \
         CpptrajState.cpp \
         CpptrajStdio.cpp \
@@ -205,7 +205,8 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_Modes.cpp \
         DataSet_Parameters.cpp \
         DataSet_pH.cpp \
-        DataSet_pH_REMD.cpp \
+        DataSet_PHREMD_Explicit.cpp \
+        DataSet_PHREMD_Implicit.cpp \
         DataSet_RemLog.cpp \
         DataSet_Topology.cpp \
         DataSet_Vector.cpp \
@@ -227,6 +228,8 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         EnsembleOut_Single.cpp \
         EnsembleOutList.cpp \
         Ewald.cpp \
+        Ewald_ParticleMesh.cpp \
+        Ewald_Regular.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
         Exec_Change.cpp \
@@ -267,6 +270,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
+        FileIO_MpiShared.cpp \
         FileIO_Std.cpp \
         FileName.cpp \
         FileTypes.cpp \

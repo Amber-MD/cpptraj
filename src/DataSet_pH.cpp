@@ -9,6 +9,7 @@ DataSet_pH::DataSet_pH() :
 int DataSet_pH::Allocate(SizeArray const& sizeIn) {
   if (!sizeIn.empty()) {
     states_.reserve( sizeIn[0] );
+    recType_.reserve( sizeIn[0] );
   }
   return 0;
 }
@@ -20,15 +21,16 @@ void DataSet_pH::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
     cbuffer.Printf(format_.fmt(), states_[pIn[0]]);
 }
 
-void DataSet_pH::Resize(size_t n) {
-  states_.resize( n );
+void DataSet_pH::Resize(size_t n, int stateIn) {
+  states_.resize( n, stateIn );
+  recType_.resize( n );
 }
 
 void DataSet_pH::Info() const {
   mprintf(" (%s %i pH= %.2f)", *(res_.Name()), res_.Num(), solvent_pH_);
 }
 # ifdef MPI
-void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
+void DataSet_pH::Reduce(Parallel::Comm const& commIn, int rank)
 {
   if (commIn.Rank() == rank) {
     /*commIn.Barrier(); // DEBUG
@@ -41,6 +43,8 @@ void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
     commIn.Barrier(); // END DEBUG*/
     std::vector<int> itmp = states_;
     commIn.Reduce(rank, &states_[0], &itmp[0], states_.size(), MPI_INT, MPI_SUM);
+    itmp = recType_;
+    commIn.Reduce(rank, &recType_[0], &itmp[0], recType_.size(), MPI_INT, MPI_SUM);
   } else {
     /*commIn.Barrier(); // DEBUG
     commIn.Barrier();
@@ -49,7 +53,8 @@ void DataSet_pH::Consolidate(Parallel::Comm const& commIn, int rank)
       msg.append(" " + integerToString(*it));
     rprintf("%s\n", msg.c_str());
     commIn.Barrier();*/
-    commIn.Reduce(rank, 0, &states_[0], states_.size(), MPI_INT, MPI_SUM);
+    commIn.Reduce(rank, 0, &states_[0], states_.size(), MPI_INT, MPI_SUM); 
+    commIn.Reduce(rank, 0, &recType_[0], recType_.size(), MPI_INT, MPI_SUM);
   }
 }
 #endif

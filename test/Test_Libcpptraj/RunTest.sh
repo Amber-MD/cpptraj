@@ -1,23 +1,21 @@
 #!/bin/bash
-
+IS_LIBCPPTRAJ='yes'
+. ../MasterTest.sh
 # Clean
-for FILE in Makefile Test.cpp a.out ; do
-  if [ -f "$FILE" ] ; then
-    rm $FILE
-  fi
-done
+CleanFiles Makefile Test.cpp a.out
 
-if [ "$1" = 'clean' ] ; then
-  exit 0
+TESTNAME='LIBCPPTRAJ linking test.'
+echo ""
+echo "  CPPTRAJ: $TESTNAME"
+if [ -z "$CPPTRAJ_DACDIF" ] ; then
+  OUT "  CPPTRAJ: $TESTNAME"
 fi
 
-echo "**************************************************************"
-echo "LIBCPPTRAJ test."
-
 # First determine whether we are part of AmberTools directory
-IN_AMBERTOOLS=0
-if [ ! -z "`pwd | grep AmberTools`" ] ; then
+if [ $STANDALONE -eq 0 ] ; then
   IN_AMBERTOOLS=1
+else
+  IN_AMBERTOOLS=0
 fi
 
 # Determine location of config.h, needed for compiler vars.
@@ -81,24 +79,32 @@ int main(int argc, char **argv) {
 EOF
  
 # Make the test program
-echo "    Testing compile and link of libcpptraj."
 make test_libcpptraj
 if [ "$?" -ne 0 ] ; then
-  echo "Error: Could not compile with libcpptraj." > /dev/stderr
+  ProgramError "Could not compile with libcpptraj." "libcpptraj"
   exit 1
+else
+  # Run the test program. Export library to avoid any issues
+  export DYLD_FALLBACK_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$DYLD_FALLBACK_LIBRARY_PATH
+  export LD_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$LD_LIBRARY_PATH
+  VERSION=`./a.out --version`
+  STATUS=$?
+  echo "$VERSION"
+  if [ $STATUS -ne 0 -o -z "$VERSION" ] ; then
+    ProgramError "Cannot execute program built with libcpptraj" "libcpptraj"
+    exit 1
+  else
+    # Pseudo DoTest() execution
+    ((NUMCOMPARISONS++))
+    if [ -z "$CPPTRAJ_DACDIF" ] ; then
+      # Standalone pass.
+      OUT  "  LIBCPPTRAJ OK."
+    else
+      # AmberTools pass.
+      echo "PASSED"
+    fi
+  fi
 fi
 
-# Run the test program. Export library to avoid any issues
-export DYLD_FALLBACK_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$DYLD_FALLBACK_LIBRARY_PATH
-export LD_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$LD_LIBRARY_PATH
-echo "    Testing that program compiled with libcpptraj will execute."
-VERSION=`./a.out --version | grep Version`
-echo "$VERSION"
-if [ "$?" -ne 0 -o -z "$VERSION" ] ; then
-  echo "Error: Could not run program compiled with libcpptraj." > /dev/stderr
-  exit 1
-fi
-
-echo "Test passed."
-echo ""
+EndTest
 exit 0

@@ -7,11 +7,12 @@
 class FileIO_Mpi : public FileIO {
   public:
     FileIO_Mpi() {}
+    virtual ~FileIO_Mpi() {}
     int OpenStream(StreamType) { return 1; } 
     int Open(const char *, const char *);    
     int Close();
     int Read(void *, size_t );
-    int Write(const void *, size_t);
+    virtual int Write(const void *, size_t);
     int Flush();
     int Seek(off_t);
     int Rewind();  
@@ -21,7 +22,7 @@ class FileIO_Mpi : public FileIO {
     off_t Size(const char*) { return 0; }
     /// Set communicator
     void SetComm(Parallel::Comm const& commIn) { comm_ = commIn; }
-  private:
+  protected:
     Parallel::File pfile_;
     Parallel::Comm comm_; 
 };

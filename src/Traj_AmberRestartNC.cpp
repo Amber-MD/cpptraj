@@ -46,7 +46,6 @@ int Traj_AmberRestartNC::openTrajin() {
     mprinterr("Error: Opening Netcdf restart file %s for reading.\n", filename_.base());
     return 1;
   }
-  if (debug_>1) NetcdfDebug();
   return 0;
 }
 
@@ -68,46 +67,15 @@ int Traj_AmberRestartNC::processReadArgs(ArgList& argIn) {
 int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   filename_ = fname;
-  if (openTrajin()) return TRAJIN_ERR;
   readAccess_ = true;
-  // Sanity check - Make sure this is a Netcdf restart
-  if ( GetNetcdfConventions() != NC_AMBERRESTART ) {
-    mprinterr("Error: Netcdf restart file %s conventions do not include \"AMBERRESTART\"\n",
-              filename_.base());
+  // Setup for Amber NetCDF restart.
+  if ( NC_setupRead(filename_.Full(), NC_AMBERRESTART, trajParm->Natom(),
+                    useVelAsCoords_, useFrcAsCoords_, debug_) )
     return TRAJIN_ERR;
-  }
-  // This will warn if conventions are not 1.0 
-  CheckConventionsVersion();
   // Get title
   SetTitle( GetNcTitle() );
-  // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo( useVelAsCoords_, useFrcAsCoords_ )!=0 ) return TRAJIN_ERR;
-  // Check that specified number of atoms matches expected number.
-  if (Ncatom() != trajParm->Natom()) {
-    mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
-              filename_.base(), Ncatom());
-    mprinterr("       match number in associated parmtop (%i)!\n",trajParm->Natom());
-    return TRAJIN_ERR;
-  }
-  // Setup Time - FIXME: allowed to fail silently
-  SetupTime();
-  // Box info
-  Box nc_box;
-  if (SetupBox(nc_box, NC_AMBERRESTART) == 1) // 1 indicates an error
-    return TRAJIN_ERR;
-  // Replica Temperatures - FIXME: allowed to fail silently 
-  SetupTemperature();
-  // Replica Dimensions
-  ReplicaDimArray remdDim;
-  if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
-  // Set traj info: FIXME - no forces yet
-  SetCoordInfo( CoordinateInfo(remdDim, nc_box, HasVelocities(),
-                               HasTemperatures(), HasTimes(), false) );
-  // NOTE: TO BE ADDED
-  // labelDID;
-  //int cell_spatialDID, cell_angularDID;
-  //int spatialVID, cell_spatialVID, cell_angularVID;
-  closeTraj();
+  // Set coordinate info 
+  SetCoordInfo( NC_coordInfo() );
   // Only 1 frame for NC restarts
   return 1;
 }
@@ -207,6 +175,9 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
     //mprintf("\n");
   }
 
+  // Read REMD values.
+  ReadRemdValues(frameIn);
+
   // Read box info 
   if (cellLengthVID_ != -1) {
     count_[0] = 3;
@@ -238,7 +209,8 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   else
     fname = filename_.AppendFileName( "." + integerToString(set+1) );
   // Create Netcdf file 
-  if ( NC_create( fname.full(), NC_AMBERRESTART, n_atoms_, CoordInfo(), Title() ) )
+  if ( NC_create( fname.full(), NC_AMBERRESTART, n_atoms_, CoordInfo(),
+                  Title(), debug_ ) )
     return 1;
   // write coords
   start_[0] = 0;
@@ -296,6 +268,9 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
       return 1;
     }
   }
+  // Write Remd Values
+  WriteRemdValues(frameOut);
+
   //nc_sync(ncid_); // Necessary? File about to close anyway... 
   // Close file for this set
   closeTraj();
@@ -306,12 +281,11 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
 void Traj_AmberRestartNC::Info() {
   mprintf("is a NetCDF AMBER restart file");
   if (readAccess_) {
-    if (CoordInfo().HasVel()) mprintf(", with velocities");
-    if (CoordInfo().HasTemp()) mprintf(", with replica temperature");
-    if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
-  } else {
-    if (outputTemp_) mprintf(", with temperature");
-  }
+    mprintf(" with %s", CoordInfo().InfoString().c_str());
+    if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
+    if (useFrcAsCoords_) mprintf(" (using forces as coordinates)");
+    if (remd_dimension_ > 0) mprintf(", %i replica dimensions", remd_dimension_);
+  } 
 }
 #ifdef MPI
 /// Since files are opened on write this does not need to do anything

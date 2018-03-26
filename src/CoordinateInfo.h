@@ -10,30 +10,28 @@
 class CoordinateInfo {
   public:
     /// CONSTRUCTOR
-    CoordinateInfo() : ensembleSize_(0), hasCrd_(true), hasVel_(false),
-                       hasTemp_(false), hasTime_(false), hasFrc_(false) {}
+    CoordinateInfo();
     /// CONSTRUCTOR - box, velocity, temperature, time
-    CoordinateInfo(Box const& b, bool v, bool t, bool m) :
-      box_(b), ensembleSize_(0), hasCrd_(true), hasVel_(v),
-      hasTemp_(t), hasTime_(m), hasFrc_(false) {}
-    /// CONSTRUCTOR - all except ensemble size
-    CoordinateInfo(ReplicaDimArray const& r, Box const& b, bool v, bool t, bool m, bool f) :
-      remdDim_(r), box_(b), ensembleSize_(0), hasCrd_(true), hasVel_(v),
-      hasTemp_(t), hasTime_(m), hasFrc_(f) {}
-    /// CONSTRUCTOR - All
-    CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b, bool v, bool t, bool m, bool f) :
-      remdDim_(r), box_(b), ensembleSize_(e), hasCrd_(true), hasVel_(v),
-      hasTemp_(t), hasTime_(m), hasFrc_(f) {}
+    CoordinateInfo(Box const&, bool, bool, bool);
+    /// CONSTRUCTOR - box, coord, velocity, force, time TODO merge with above? 
+    CoordinateInfo(Box const&, bool, bool, bool, bool);
+    /// CONSTRUCTOR - ensemble size, remd dims, box, coords, velocity, force, temp., pH, redox, time, has repidx, has crdidx, use remd values
+    CoordinateInfo(int, ReplicaDimArray const&, Box const&, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool);
     bool HasBox()              const { return box_.HasBox();            }
     const Box& TrajBox()       const { return box_;                     }
     int EnsembleSize()         const { return ensembleSize_;            }
     bool HasCrd()              const { return hasCrd_;                  }
     bool HasVel()              const { return hasVel_;                  }
-    bool HasTemp()             const { return hasTemp_;                 }
-    bool HasTime()             const { return hasTime_;                 }
     bool HasForce()            const { return hasFrc_;                  }
+    bool HasTemp()             const { return hasTemp_;                 }
+    bool Has_pH()              const { return has_pH_;                  }
+    bool HasRedOx()            const { return hasRedox_;                }
+    bool HasTime()             const { return hasTime_;                 }
     bool HasReplicaDims()      const { return (remdDim_.Ndims() != 0);  }
+    bool HasRepIdx()           const { return hasrepidx_;               }
+    bool HasCrdIdx()           const { return hascrdidx_;               }
     ReplicaDimArray const& ReplicaDimensions() const { return remdDim_; }
+    bool UseRemdValues()       const { return useRemdValues_;           }
     void SetTime(bool m)        { hasTime_ = m; }
     void SetTemperature(bool t) { hasTemp_ = t; }
     void SetCrd(bool c)         { hasCrd_ = c;  }
@@ -61,8 +59,13 @@ class CoordinateInfo {
     int ensembleSize_;        ///< If coordinate ensemble, total # of replicas.
     bool hasCrd_;             ///< True if coords present. Now only relevant for NetCDF traj.
     bool hasVel_;             ///< True if coords have associated velocities.
-    bool hasTemp_;            ///< True if coords include temp info.
-    bool hasTime_;            ///< True if coords include time info.
     bool hasFrc_;             ///< True if coords have associated forces.
+    bool hasTemp_;            ///< True if coords include temp info.
+    bool has_pH_;             ///< True if coords include pH info.
+    bool hasRedox_;           ///< True if coords include RedOx potential info.
+    bool hasTime_;            ///< True if coords include time info.
+    bool hasrepidx_;          ///< True if coords have replica indices
+    bool hascrdidx_;          ///< True if coords have coordinate indices
+    bool useRemdValues_;      ///< True if using remd_values in netcdf file
 };
 #endif

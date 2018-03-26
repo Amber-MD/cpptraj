@@ -7,7 +7,7 @@
 class RemdReservoirNC : private NetcdfFile {
   public:
     RemdReservoirNC() : eptotVID_(-1), binsVID_(-1) {}
-    //void SetDebug(int d) { debug_ = d; } // TODO necessary?
+    void SetDebug(int d) { debug_ = d; }
     /// Initialize and open. Filename, title, coordinate info, # atoms, has bins, reservoir temp, seed
     int InitReservoir(FileName const&, std::string const&, CoordinateInfo const&, int, bool, double, int);
     /// Write structure, energy, and bin to reservoir
@@ -22,5 +22,6 @@ class RemdReservoirNC : private NetcdfFile {
     std::vector<float> Coord_; ///< For converting input coords to single precision
     int eptotVID_;             ///< Potential energy variable ID
     int binsVID_;              ///< Cluster bins variable ID
+    int debug_;
 };
 #endif

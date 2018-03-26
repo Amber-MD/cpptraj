@@ -803,7 +803,8 @@ int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajPa
   // Synchronize info on non-master threads.
   SyncTrajIO( commIn );
   // TODO for simplicity converting everything to int. Should be double for larger #s?
-  int* buf = new int[ 13 ];
+  static const unsigned int BCAST_SIZE = 14;
+  std::vector<int> buf( BCAST_SIZE );
   if (commIn.Master()) {
     master_ = true;
     buf[0]  = dcdatom_;
@@ -819,12 +820,13 @@ int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajPa
     buf[10] = (int)coordinate_size_;
     buf[11] = nfixedat_;
     buf[12] = nfreeat_;
-    commIn.MasterBcast(buf, 13, MPI_INT);
+    buf[13] = (int)charmmCellType_;
+    commIn.MasterBcast(&buf[0], buf.size(), MPI_INT);
     if (nfixedat_ != 0)
       commIn.MasterBcast(freeat_, nfreeat_, MPI_INT);
   } else {
     master_ = false;
-    commIn.MasterBcast(buf, 13, MPI_INT);
+    commIn.MasterBcast(&buf[0], buf.size(), MPI_INT);
     dcdatom_         = buf[0];
     dcdframes_       = buf[1];
     isBigEndian_     = (bool)buf[2];
@@ -838,14 +840,15 @@ int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajPa
     coordinate_size_ = (size_t)buf[10];
     nfixedat_        = buf[11];
     nfreeat_         = buf[12];
+    charmmCellType_  = (CType)buf[13];
     if (nfixedat_ > 0) {
       freeat_ = new int[ nfreeat_ ];
       commIn.MasterBcast(freeat_, nfreeat_, MPI_INT);
     }
     if (append)
-      file_.SetupWrite( fname, debug_ );
-    else
       file_.SetupAppend( fname, debug_ );
+    else
+      file_.SetupWrite( fname, debug_ );
     AllocateCoords();
   }
   if (debug_ > 0)

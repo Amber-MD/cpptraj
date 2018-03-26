@@ -22,11 +22,10 @@ Exec::RetType Exec_RunAnalysis::Execute(CpptrajState& State, ArgList& argIn) {
   // Run specified analysis
   int err = 0;
 # ifdef MPI
-
   // Only master performs analyses currently.
-  if (Parallel::ActiveComm().Size() > 1)
+  if (Parallel::TrajComm().Size() > 1)
     mprintf("Warning: Analysis does not currently use multiple MPI threads.\n");
-  if (Parallel::ActiveComm().Master())
+  if (Parallel::TrajComm().Master())
 # endif
     err = DoRunAnalysis(State, argIn);
 # ifdef MPI

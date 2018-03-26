@@ -64,7 +64,7 @@ EOF
   cat > remd.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7 
-ensemble rem.crd.000 remdtraj remdtrajtemp 492.20 
+ensemble rem.crd.000
 trajout temp.crd 
 distance d1 out d1.ensemble.dat @1 @21
 EOF

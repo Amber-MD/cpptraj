@@ -17,7 +17,11 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
 {
   debug_ = debugIn;
   statsOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("statsout"), 
-                                         "Constant pH stats", DataFileList::TEXT);
+                                         "Constant pH stats", DataFileList::TEXT, false
+#                                        ifdef MPI
+                                         , Parallel::MasterComm()
+#                                        endif
+                                        );
   dsname_ = analyzeArgs.GetStringKey("name");
   if (dsname_.empty())
     dsname_ = setup.DSL().GenerateDefaultName("CPH");
@@ -30,7 +34,12 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
     FRACSTR_ = "deprotonated";
   if (createFracPlot_) {
     fracPlotOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("fracplotout") );
-    fracPlotOut_->ProcessArgs("xlabel pH ylabel \"Frac. " + std::string(FRACSTR_) + "\"");
+    fracPlotOut_->ProcessArgs("xlabel pH ylabel \"Frac. " + std::string(FRACSTR_) + "\" noensextension");
+#   ifdef MPI
+    // Fraction plot should only ever be written by the overall master
+    // since it needs data from every ensemble member.
+    fracPlotOut_->SetThreadCanWrite( Parallel::MasterComm().Master() );
+#   endif
   }
   // Get DataSets
   DataSetList tempDSL;
@@ -48,7 +57,7 @@ Analysis::RetType Analysis_ConstantPHStats::Setup(ArgList& analyzeArgs, Analysis
         return Analysis::ERR;
       }
       inputSets_.AddCopyOfSet( *ds );
-    } else if ( (*ds)->Type() == DataSet::PH_REMD ) {
+    } else if ( (*ds)->Type() == DataSet::PH_EXPL ) {
       mprinterr("Error: pH set '%s' must be sorted first.\n", (*ds)->legend());
       return Analysis::ERR;
     } else
@@ -110,6 +119,10 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
 
   // Print some results grouped by residue
   std::sort( Stats_.begin(), Stats_.end(), num_ph_sort() );
+# ifdef MPI
+  DataSetList setsToSync;
+  bool needToSync = false;
+# endif
   int lastRes = -1;
   DataSet_Mesh* fracPlot = 0;
   mprintf("#%-5s %4s %6s %8s %8s %8s\n", "pH", "Name", "Num", "Ntrans", "Nprot", "TotProt");
@@ -124,7 +137,21 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
                                                      MetaData(dsname_, "Frac", PH.Res().Num()));
         if (fracPlot == 0) return Analysis::ERR;
         fracPlot->SetLegend(PH.Res().Name().Truncated() + ":" + integerToString(PH.Res().Num()));
+#       ifdef MPI
+        if (fracPlotOut_ != 0) {
+          if (!fracPlotOut_->EnsExt()) {
+            needToSync = true;
+            fracPlotOut_->AddDataSet(fracPlot);
+          } else
+            fracPlotOut_->AddDataSet(fracPlot);
+        }
+        if (needToSync) {
+          fracPlot->SetNeedsSync( true );
+          setsToSync.AddCopyOfSet( fracPlot );
+        }
+#       else
         if (fracPlotOut_ != 0) fracPlotOut_->AddDataSet(fracPlot);
+#       endif
       }
     }
 
@@ -138,6 +165,10 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
       fracPlot->AddXY( PH.Solvent_pH(), frac );
     }
   }
+# ifdef MPI
+  if (createFracPlot_)
+    setsToSync.SynchronizeData( Parallel::MasterComm() );
+# endif
 
   // Print cphstats-like output, grouped by pH
   if (statsOut_ != 0) {
@@ -145,72 +176,59 @@ Analysis::RetType Analysis_ConstantPHStats::Analyze() {
     float current_pH = -100.0;
     bool write_pH = true;
     unsigned int tot_prot = 0;
-    for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
-    {
-      if (write_pH) {
-        current_pH = stat->ds_->Solvent_pH();
-        statsOut_->Printf("Solvent pH is %8.3f\n", current_pH);
-        write_pH = false;
-        tot_prot = 0;
-      }
-      statsOut_->Printf("%3s %-4i", stat->ds_->Res().Name().Truncated().c_str(),
-                        stat->ds_->Res().Num());
-      double dsize = (double)stat->nframes_;
-      double dnprot = (double)stat->n_prot_;
-      if (dnprot > 0.0) {
-        double pKa = (double)current_pH - log10( (dsize - dnprot) / dnprot );
-        double offset = pKa - current_pH;
-        statsOut_->Printf(": Offset %6.3f", offset);
-        statsOut_->Printf("  Pred %6.3f", pKa);
-      } else {
-        statsOut_->Printf(": Offset %6s", "inf");
-        statsOut_->Printf("  Pred %6s", "inf");
-      }
-      statsOut_->Printf("  Frac Prot %5.3f", dnprot / dsize);
-      statsOut_->Printf(" Transitions %9i\n", stat->n_transitions_);
-      tot_prot += stat->tot_prot_;
-
-      Rarray::const_iterator next = stat + 1;
-      if (next == Stats_.end() || next->ds_->Solvent_pH() > current_pH) {
-        write_pH = true;
-        statsOut_->Printf("\nAverage total molecular protonation: %7.3f\n",
-                         (double)tot_prot / dsize);
-      }
-    }
-  }
-    
-/*
-# ifdef MPI
-  // For doing things like pH plots gather all data to a single thread.
-  if (!Parallel::EnsembleComm().IsNull() && Parallel::EnsembleComm().Size() > 1)
-  {
-    if (Parallel::EnsembleComm().Master() {
-      std::vector<int> Nstats_on_thread( Parallel::EnsembleComm().Size() );
-      Parallel::EnsembleComm().GatherMaster( &nstats, 1, MPI_INT, &Nstats_on_thread[0] );
-
+#   ifdef MPI
+    // If shared, each rank dumps its stats in turn. Otherwise writing
+    // to separate files.
+    int startRank, stopRank;
+    if (statsOut_->IsMPI()) {
+      startRank = 0;
+      stopRank = Parallel::MasterComm().Size();
     } else {
-      // Not ensemble master. Send master how many stats I have.
-      Parallel::EnsembleComm().GatherMaster( &nstats, 1, MPI_INT, 0 );
-      // Send master each stat.
-      for (StatMap::const_iterator res_map = Stats.begin(); res_map != Stats.end(); ++res_map)
-      {
-        //int resnum = res_map->first;
-        for (PHresMap::const_iterator ph_res = res_map->second.begin();
-                                      ph_res != res_map->second.end(); ++ph_res)
+      startRank = Parallel::MasterComm().Rank();
+      stopRank = startRank + 1;
+    }
+    for (int rank = startRank; rank != stopRank; ++rank) {
+      if (rank == Parallel::MasterComm().Rank()) {
+#   endif
+        for (Rarray::const_iterator stat = Stats_.begin(); stat != Stats_.end(); ++stat)
         {
-          float ph = 
-          ResStat const& stat = ph_res->second;
-  */
+          if (write_pH) {
+            current_pH = stat->ds_->Solvent_pH();
+            statsOut_->Printf("Solvent pH is %8.3f\n", current_pH);
+            write_pH = false;
+            tot_prot = 0;
+          }
+          statsOut_->Printf("%3s %-4i", stat->ds_->Res().Name().Truncated().c_str(),
+                            stat->ds_->Res().Num());
+          double dsize = (double)stat->nframes_;
+          double dnprot = (double)stat->n_prot_;
+          if (dnprot > 0.0) {
+            double pKa = (double)current_pH - log10( (dsize - dnprot) / dnprot );
+            double offset = pKa - current_pH;
+            statsOut_->Printf(": Offset %6.3f", offset);
+            statsOut_->Printf("  Pred %6.3f", pKa);
+          } else {
+            statsOut_->Printf(": Offset %6s", "inf");
+            statsOut_->Printf("  Pred %6s", "inf");
+          }
+          statsOut_->Printf("  Frac Prot %5.3f", dnprot / dsize);
+          statsOut_->Printf(" Transitions %9i\n", stat->n_transitions_);
+          tot_prot += stat->tot_prot_;
 
-  // Create a titration curve for each residue.
-          
-
+          Rarray::const_iterator next = stat + 1;
+          if (next == Stats_.end() || next->ds_->Solvent_pH() > current_pH) {
+            write_pH = true;
+            statsOut_->Printf("\nAverage total molecular protonation: %7.3f\n",
+                             (double)tot_prot / dsize);
+          }
+        } // END loop over Stats_
+#   ifdef MPI
+      }
+      // Hold up before next rank writes. 
+      Parallel::MasterComm().Barrier();
+    } // END loop over ranks
+#   endif
+  } // END if statsOut_ != 0
+    
   return Analysis::OK;
 }
-// =============================================================================
-/*
-bool Analysis_ConstantPHStats::ResStat::operator==(const ResStat& rhs) const {
-  float diff = pH_ - rhs.pH_;
-  if (diff < 0.0) diff = -diff;
-  return (diff < Constants::SMALL);
-}*/
