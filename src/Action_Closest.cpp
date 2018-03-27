@@ -95,7 +95,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
       return Action::ERR;
     }
     // Add sets to datafile in list.
-    outFile_ = init.DFL().AddDataFile( filename );
+    outFile_ = init.DFL().AddDataFile( filename, "noxcol", actionArgs );
     if (outFile_ == 0) {
       mprinterr("Error: Could not set up output file %s\n", filename.c_str());
       return Action::ERR;
@@ -104,7 +104,6 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
     outFile_->AddDataSet(moldata_);
     outFile_->AddDataSet(distdata_);
     outFile_->AddDataSet(atomdata_);
-    outFile_->ProcessArgs("noxcol");
   }
 
   // Get Masks

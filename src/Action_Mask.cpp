@@ -82,7 +82,7 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (fnum_ == 0 || anum_ == 0 || aname_ == 0 ||
         rnum_ == 0 || rname_ == 0 || mnum_ == 0)
       return Action::ERR;
-    DataFile* dout = init.DFL().AddDataFile( dsout, actionArgs );
+    DataFile* dout = init.DFL().AddDataFile( dsout, "noxcol", actionArgs );
     if (dout != 0) {
       dout->AddDataSet( fnum_ );
       dout->AddDataSet( anum_ );
@@ -90,7 +90,6 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
       dout->AddDataSet( rnum_ );
       dout->AddDataSet( rname_ );
       dout->AddDataSet( mnum_ );
-      dout->ProcessArgs("noxcol");
     }
     idx_ = 0;
   }
