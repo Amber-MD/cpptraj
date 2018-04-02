@@ -25,7 +25,7 @@ class Analysis_Rms2d: public Analysis {
     static const char* ModeStrings_[];
     enum ModeType { RMS_FIT = 0, RMS_NOFIT, DME, SRMSD };
     ModeType mode_;
-    DataSet_Coords* coords_;   ///< Hold coords from input frames.
+    DataSet_Coords* TgtTraj_;  ///< Hold coords from input frames.
     bool useReferenceTraj_;    ///< If true read from reference trajectory.
     bool useMass_;             ///< If true, mass-weight.
     AtomMask TgtMask_;         ///< Target atom mask.

@@ -10,7 +10,7 @@
 // CONSTRUCTOR
 Analysis_Rms2d::Analysis_Rms2d() :
   mode_(RMS_FIT),
-  coords_(0),
+  TgtTraj_(0),
   useReferenceTraj_(false),
   useMass_(false),
   RefTraj_(0),
@@ -38,8 +38,8 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
 {
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
-  coords_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
-  if (coords_ == 0) {
+  TgtTraj_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
+  if (TgtTraj_ == 0) {
     mprinterr("Error: rms2d: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());
     Help();
@@ -123,7 +123,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     corrfile->AddDataSet( Ct_ );
   }
 
-  mprintf("    RMS2D: COORDS set [%s], mask [%s]", coords_->legend(),
+  mprintf("    RMS2D: COORDS set [%s], mask [%s]", TgtTraj_->legend(),
           TgtMask_.MaskString());
   if ( TgtMask_.MaskExpression() != RefMask_.MaskExpression() )
     mprintf(" ref mask [%s]", RefMask_.MaskString());
@@ -146,7 +146,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, AnalysisSetup& set
 Analysis::RetType Analysis_Rms2d::Analyze() {
   int err = 0;
   // Set up target mask
-  if (coords_->Top().SetupIntegerMask( TgtMask_ )) return Analysis::ERR;
+  if (TgtTraj_->Top().SetupIntegerMask( TgtMask_ )) return Analysis::ERR;
   TgtMask_.MaskInfo();
   if (TgtMask_.None()) { 
     mprinterr("Error: No atoms selected for [%s]\n", TgtMask_.MaskString());
@@ -154,7 +154,7 @@ Analysis::RetType Analysis_Rms2d::Analyze() {
   }
   // Set up reference mask. If no reference parm use target parm.
   if (RefParm_ == 0)
-    err = coords_->Top().SetupIntegerMask( RefMask_ );
+    err = TgtTraj_->Top().SetupIntegerMask( RefMask_ );
   else
     err = RefParm_->SetupIntegerMask(RefMask_);
   if (err != 0) {
@@ -173,7 +173,7 @@ Analysis::RetType Analysis_Rms2d::Analyze() {
   // Set up symmetry-corrected RMSD calc if necessary - always fit!
   if (mode_ == SRMSD) {
     SRMSD_.InitSymmRMSD(true, useMass_, 0);
-    if (SRMSD_.SetupSymmRMSD( coords_->Top(), TgtMask_, false)) // No remap
+    if (SRMSD_.SetupSymmRMSD( TgtTraj_->Top(), TgtMask_, false)) // No remap
       return Analysis::ERR;
   }
   // Actually do the 2D rms calculation
@@ -191,7 +191,7 @@ int Analysis_Rms2d::Calculate_2D() {
   float R = 0.0;
   int nref, ntgt, tgtstart;
   if (!useReferenceTraj_)
-    RefTraj_ = coords_;
+    RefTraj_ = TgtTraj_;
   int totalref = RefTraj_->Size();
   // Determine if target mask and reference mask are equial.
   bool masksAreEqual = (TgtMask_ == RefMask_);
@@ -199,31 +199,31 @@ int Analysis_Rms2d::Calculate_2D() {
   // upper-triangle matrix, otherwise need a full one.
   bool calculateFullMatrix = (!masksAreEqual || useReferenceTraj_);
   if (calculateFullMatrix)
-    rmsdataset_->Allocate2D( coords_->Size(), totalref );
+    rmsdataset_->Allocate2D( TgtTraj_->Size(), totalref );
   else
-    rmsdataset_->AllocateTriangle( coords_->Size() );
+    rmsdataset_->AllocateTriangle( TgtTraj_->Size() );
   // Print Info
   mprintf("\tCalculating %s", ModeStrings_[mode_]);
   if (masksAreEqual) {
     mprintf(" using mask [%s]", TgtMask_.MaskString());
     if (useReferenceTraj_)
-      mprintf(" between frames in '%s' and frames in '%s'", coords_->legend(), RefTraj_->legend());
+      mprintf(" between frames in '%s' and frames in '%s'", TgtTraj_->legend(), RefTraj_->legend());
     else
-      mprintf(" between each frame in '%s'", coords_->legend());
+      mprintf(" between each frame in '%s'", TgtTraj_->legend());
   } else {
     if (useReferenceTraj_)
       mprintf(" between frames in '%s' [%s] and frames in '%s' [%s]",
-              coords_->legend(), TgtMask_.MaskString(),
+              TgtTraj_->legend(), TgtMask_.MaskString(),
               RefTraj_->legend(), RefMask_.MaskString());
     else
       mprintf(" between frames in '%s' [%s] to [%s]",
-              coords_->legend(), TgtMask_.MaskString(), RefMask_.MaskString());
+              TgtTraj_->legend(), TgtMask_.MaskString(), RefMask_.MaskString());
   }
   mprintf(" (%zu total).\n", rmsdataset_->Size());
   // Set up target and reference frames based on mask. Both have same topology.
   Frame SelectedRef, SelectedTgt;
   SelectedRef.SetupFrameFromMask( RefMask_, RefTraj_->Top().Atoms() );
-  SelectedTgt.SetupFrameFromMask( TgtMask_, coords_->Top().Atoms()  );
+  SelectedTgt.SetupFrameFromMask( TgtMask_, TgtTraj_->Top().Atoms() );
   ParallelProgress progress( totalref );
   // LOOP OVER REFERENCE FRAMES
 # ifdef _OPENMP
@@ -250,7 +250,7 @@ int Analysis_Rms2d::Calculate_2D() {
         tgtstart = nref + 1;
       for (ntgt = tgtstart; ntgt < totalref; ntgt++) {
         // Get the current target frame
-        coords_->GetFrame( ntgt, SelectedTgt, TgtMask_ );
+        TgtTraj_->GetFrame( ntgt, SelectedTgt, TgtMask_ );
         switch (mode_) {
           case RMS_FIT:   R = (float)SelectedTgt.RMSD_CenteredRef(SelectedRef, useMass_); break;
           case RMS_NOFIT: R = (float)SelectedTgt.RMSD_NoFit(SelectedRef, useMass_); break;
