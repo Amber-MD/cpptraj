@@ -18,7 +18,6 @@ class Analysis_Rms2d: public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
-    int CalcRmsToTraj();
     int Calculate_2D();
     void CalcAutoCorr();
 
