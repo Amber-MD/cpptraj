@@ -193,15 +193,16 @@ int Analysis_Rms2d::Calculate_2D() {
   if (!useReferenceTraj_)
     RefTraj_ = TgtTraj_;
   int totalref = RefTraj_->Size();
+  int totaltgt = TgtTraj_->Size();
   // Determine if target mask and reference mask are equial.
   bool masksAreEqual = (TgtMask_ == RefMask_);
   // If tgt and ref masks are the same and ref traj is tgt traj, only need an
   // upper-triangle matrix, otherwise need a full one.
   bool calculateFullMatrix = (!masksAreEqual || useReferenceTraj_);
   if (calculateFullMatrix)
-    rmsdataset_->Allocate2D( TgtTraj_->Size(), totalref );
+    rmsdataset_->Allocate2D( totaltgt, totalref );
   else
-    rmsdataset_->AllocateTriangle( TgtTraj_->Size() );
+    rmsdataset_->AllocateTriangle( totaltgt );
   // Print Info
   mprintf("\tCalculating %s", ModeStrings_[mode_]);
   if (masksAreEqual) {
@@ -248,7 +249,7 @@ int Analysis_Rms2d::Calculate_2D() {
         tgtstart = 0;
       else
         tgtstart = nref + 1;
-      for (ntgt = tgtstart; ntgt < totalref; ntgt++) {
+      for (ntgt = tgtstart; ntgt < totaltgt; ntgt++) {
         // Get the current target frame
         TgtTraj_->GetFrame( ntgt, SelectedTgt, TgtMask_ );
         switch (mode_) {
