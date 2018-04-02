@@ -27,6 +27,8 @@ class AtomMask : public MaskTokenArray {
     AtomMask(int);
     /// \return Internal selected atom array.
     std::vector<int> const& Selected()  const { return Selected_;             }
+    /// \return true if masks select the same atoms
+    bool operator==(AtomMask const&) const;
     /// AtomMask default iterator
     typedef std::vector<int>::const_iterator const_iterator;
     /// \return const iterator to the beginning of Selected
