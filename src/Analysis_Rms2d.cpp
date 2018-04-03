@@ -200,7 +200,7 @@ int Analysis_Rms2d::Calculate_2D() {
   // upper-triangle matrix, otherwise need a full one.
   bool calculateFullMatrix = (!masksAreEqual || useReferenceTraj_);
   if (calculateFullMatrix)
-    rmsdataset_->Allocate2D( totaltgt, totalref );
+    rmsdataset_->Allocate2D( totalref, totaltgt );
   else
     rmsdataset_->AllocateTriangle( totaltgt );
   // Print Info
@@ -258,11 +258,7 @@ int Analysis_Rms2d::Calculate_2D() {
           case DME:       R = (float)SelectedTgt.DISTRMSD(SelectedRef); break;
           case SRMSD:     R = (float)SRMSD_.SymmRMSD_CenteredRef(SelectedTgt, SelectedRef); break;
         }
-#       ifdef _OPENMP
-        rmsdataset_->SetElement(ntgt, nref, R);
-#       else
-        rmsdataset_->AddElement( R );
-#       endif
+        rmsdataset_->SetElement(nref, ntgt, R);
         // DEBUG
         //mprinterr("%12i %12i %12.4lf\n",nref,ntgt,R);
       } // END loop over target frames
