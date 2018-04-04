@@ -195,6 +195,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
         DataSet_Coords_REF.cpp \
+        DataSet_Coords_Trajin.cpp \
         DataSet_Coords_TRJ.cpp \
         DataSet_GridDbl.cpp \
         DataSet_GridFlt.cpp \
