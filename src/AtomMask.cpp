@@ -18,6 +18,15 @@ void AtomMask::ResetMask() {
   ClearTokens();
 }
 
+/** \return true if masks select the same atoms. */
+bool AtomMask::operator==(AtomMask const& rhs) const {
+  if (Selected_.size() != rhs.Selected_.size()) return false;
+  for (unsigned int idx = 0; idx != Selected_.size(); idx++) {
+    if (Selected_[idx] != rhs.Selected_[idx]) return false;
+  }
+  return true;
+}
+
 /** Flip the current character used to select atoms. Useful when you want 
   * the mask to select the inverse of the given expression, like in 'strip'.
   */

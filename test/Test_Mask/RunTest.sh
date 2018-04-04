@@ -30,7 +30,7 @@ cat > mask.in <<EOF
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
-mask "(:8@NZ <:3.0) & :WAT@O" name M out M.dat noxcol
+mask "(:8@NZ <:3.0) & :WAT@O" name M out M.dat
 EOF
 RunCpptraj "Mask longer command test."
 DoTest M.dat.save M.dat

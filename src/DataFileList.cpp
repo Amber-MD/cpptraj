@@ -97,6 +97,17 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, DataFile::DataFormat
   return AddDataFile( nameIn, args, typeIn );
 }
 
+/** This version can have default arguments passed in. */
+DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList const& default_args,
+                                    ArgList& argIn)
+{
+  ArgList args = default_args;
+  DataFile* df = AddDataFile( nameIn, args, DataFile::UNKNOWN_DATA );
+  if (df != 0 && !argIn.empty())
+    df->ProcessArgs( argIn );
+  return df;
+}
+
 /** Create new DataFile, or return existing DataFile. */
 DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
                                     DataFile::DataFormatType typeIn)
