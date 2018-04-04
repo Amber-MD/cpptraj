@@ -225,12 +225,20 @@ int Analysis_Rms2d::Calculate_2D() {
   Frame SelectedRef, SelectedTgt;
   SelectedRef.SetupFrameFromMask( RefMask_, RefTraj_->Top().Atoms() );
   SelectedTgt.SetupFrameFromMask( TgtMask_, TgtTraj_->Top().Atoms() );
+# ifdef _OPENMP
+  Frame RefFrame;
+  bool isTRAJ = false;
+  if (RefTraj_->Type() == DataSet::TRAJ) {
+    RefFrame = RefTraj_->AllocateFrame();
+    isTRAJ = true;
+  }
+# endif
   ParallelProgress progress( totalref );
   // LOOP OVER REFERENCE FRAMES
 # ifdef _OPENMP
   SymmetricRmsdCalc SRMSD_OMP = SRMSD_;
 # define SRMSD_ SRMSD_OMP
-# pragma omp parallel private(nref, ntgt, tgtstart) firstprivate(SRMSD_OMP, R, SelectedTgt, SelectedRef, progress)
+# pragma omp parallel private(nref, ntgt, tgtstart) firstprivate(SRMSD_OMP, R, SelectedTgt, SelectedRef, RefFrame, progress)
   {
     if (omp_get_thread_num()==0)
       mprintf("\tParallelizing calculation with %i OpenMP threads.\n", omp_get_num_threads());
@@ -240,7 +248,13 @@ int Analysis_Rms2d::Calculate_2D() {
     for (nref=0; nref < totalref; nref++) {
       progress.Update(nref);
       // Get the current reference frame
-      RefTraj_->GetFrame( nref, SelectedRef, RefMask_ );
+#     ifdef _OPENMP
+      if (isTRAJ) {
+        RefTraj_->GetFrame( nref, RefFrame );
+        SelectedRef.SetCoordinates( RefFrame, RefMask_ );
+      } else
+#     endif
+        RefTraj_->GetFrame( nref, SelectedRef, RefMask_ );
       // Select and pre-center reference atoms (if fitting)
       if (mode_ == RMS_FIT || mode_ == SRMSD)
         SelectedRef.CenterOnOrigin(useMass_);
