@@ -75,6 +75,7 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   printf("NMols =  %d, NAtoms = %d\n", NMols, NAtoms); 
   printf("active_size =  %d\n", active_size);
   printf("NBlocks =  %d\n", NBlocks);
+  printf("BLOCKDIM =  %d\n", BLOCKDIM);
   printf("sizeof(double) = %d\n", sizeof(double));
   printf("About to launch kernel.\n");
 
@@ -176,6 +177,7 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
   printf("NMols =  %d, NAtoms = %d\n", NMols, NAtoms); 
   printf("active_size =  %d\n", active_size);
   printf("NBlocks =  %d\n", NBlocks);
+  printf("BLOCKDIM =  %d\n", BLOCKDIM);
   printf("sizeof(double) = %d\n", sizeof(double));
   printf("About to launch kernel.\n");
 
