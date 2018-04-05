@@ -116,8 +116,8 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
     nframes = (int)xtc_frames;
 */
   closeTraj();
-  // No velocity, no temperature, yes time, no force
-  SetCoordInfo( CoordinateInfo(ReplicaDimArray(), tmp.BoxCrd(), false, false, true, false) );
+  // Box, coords, no velocity, no force, yes time
+  SetCoordInfo( CoordinateInfo(tmp.BoxCrd(), true, false, false, true) );
   return nframes;
 }
 

@@ -42,15 +42,9 @@ class TrajIOarray {
     /// Set debug level
     void SetDebug(int d) { debug_ = d; }
   private:
-    /// Used for replica filename searching.
-    class RepName;
-    /// Given lowest replica name, search for all other replicas.
-    int SearchForReplicas(FileName const&);
     /// Add the given file name and names from comma-separated list. 
     int AddReplicasFromArgs(FileName const&, std::string const&);
 #   ifdef MPI
-    /// Given lowest replica name, ensemble rank searches for corresponding replica
-    int SearchForReplicas(FileName const&, Parallel::Comm const&, Parallel::Comm const&);
     /// Each rank searches for replica from given name + comma-separated list
     int AddReplicasFromArgs(FileName const&, std::string const&, Parallel::Comm const&,
                             Parallel::Comm const&);
@@ -59,22 +53,5 @@ class TrajIOarray {
     IOarrayType IOarray_;               ///< Input replica trajectories.
     File::NameArray replica_filenames_; ///< Replica traj file names.
     int debug_;
-};
-// ----- PRIVATE CLASSES -------------------------------------------------------
-/** Given lowest replica traj filename, split into components for search. */
-class TrajIOarray::RepName {
-  public:
-    RepName() : ExtWidth_(0), lowestRepnum_(-1), extChar_('.') {}
-    RepName(FileName const&, int);
-    bool Error() const { return Prefix_.empty(); }
-    /// \return Replica file name for given offset from lowest replica number.
-    FileName RepFilename(int) const;
-  private:
-    std::string Prefix_;      ///< File name up to the numerical extension.
-    std::string ReplicaExt_;  ///< Numerical extension.
-    std::string CompressExt_; ///< Optional compression extension after numerical extension.
-    int ExtWidth_;            ///< Width of the numerical extension. TODO remove
-    int lowestRepnum_;        ///< Integer value of numerical extension.
-    char extChar_;            ///< Character preceding numerical extension
 };
 #endif

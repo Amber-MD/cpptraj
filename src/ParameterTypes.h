@@ -1,5 +1,7 @@
 #ifndef INC_PARAMETERTYPES_H
 #define INC_PARAMETERTYPES_H
+#include <vector>
+#include "NameType.h" 
 // ----- BOND/ANGLE/DIHEDRAL PARAMETERS ----------------------------------------
 /// Hold bond parameters
 class BondParmType {
@@ -92,6 +94,8 @@ class DihedralParmType {
                          pk_(k), pn_(n), phase_(p), scee_(e), scnb_(b) {}
     DihedralParmType(double k, double p) :
                          pk_(k), pn_(0), phase_(p), scee_(0), scnb_(0) {}
+    DihedralParmType(double k, double n, double p) :
+                         pk_(k), pn_(n), phase_(p), scee_(0), scnb_(0) {}
     inline double Pk()    const { return pk_;    }
     inline double& Pk()         { return pk_;    }
     inline double Pn()    const { return pn_;    }

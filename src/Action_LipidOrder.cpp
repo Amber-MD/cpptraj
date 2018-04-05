@@ -297,11 +297,11 @@ int Action_LipidOrder::SyncAction() {
   {
     for (ChainType::iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
     {
-      trajComm_.Reduce( dbuf, it->Sptr(), total, MPI_DOUBLE, MPI_SUM );
+      trajComm_.ReduceMaster( dbuf, it->Sptr(), total, MPI_DOUBLE, MPI_SUM );
       if (trajComm_.Master()) std::copy( dbuf, dbuf+total, it->Sptr() );
-      trajComm_.Reduce( dbuf, it->S2ptr(), total, MPI_DOUBLE, MPI_SUM );
+      trajComm_.ReduceMaster( dbuf, it->S2ptr(), total, MPI_DOUBLE, MPI_SUM );
       if (trajComm_.Master()) std::copy( dbuf, dbuf+total, it->S2ptr() );
-      trajComm_.Reduce( ubuf, it->Nptr(), nthreads_, MPI_UNSIGNED, MPI_SUM );
+      trajComm_.ReduceMaster( ubuf, it->Nptr(), nthreads_, MPI_UNSIGNED, MPI_SUM );
       if (trajComm_.Master()) std::copy( ubuf, ubuf+nthreads_, it->Nptr() );
     }
   }

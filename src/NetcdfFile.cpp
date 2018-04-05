@@ -3,6 +3,9 @@
 #  include <netcdf.h>
 #  include "NC_Routines.h"
 #endif
+#ifdef MPI
+# include "ParallelNetcdf.h"
+#endif
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "Version.h"
@@ -10,16 +13,17 @@
 // NetcdfFile::GetNetcdfConventions()
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
   NCTYPE nctype = NC_UNKNOWN;
-#ifdef BINTRAJ
+# ifdef BINTRAJ
   // NOTE: Do not use checkNCerr so this fails silently. Allows routine to
   //       be used in file autodetection.
-  if ( nc_open( fname, NC_NOWRITE, &ncid_ ) != NC_NOERR )
+  int myNcid;
+  if ( nc_open( fname, NC_NOWRITE, &myNcid ) != NC_NOERR )
     return NC_UNKNOWN;
-  nctype = GetNetcdfConventions();
-  NC_close();
-#else
-  mprintf("Error: Compiled without NETCDF support. Recompile with -DBINTRAJ\n");
-#endif
+  nctype = GetNetcdfConventions(myNcid);
+  nc_close( myNcid ); 
+# else
+  mprinterr("Error: Compiled without NetCDF support. Recompile with -DBINTRAJ\n");
+# endif
   return nctype;
 }
 
@@ -47,6 +51,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCREMD_CRDIDX "remd_crdidx"
 #define NCEPTOT "eptot"
 #define NCBINS "bins"
+#define NCREMDVALUES "remd_values"
 
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
@@ -63,6 +68,7 @@ NetcdfFile::NetcdfFile() :
   indicesVID_(-1),
   repidxVID_(-1),
   crdidxVID_(-1),
+  ensembleSize_(0),
   ncdebug_(0),
   frameDID_(-1),
   atomDID_(-1),
@@ -74,7 +80,8 @@ NetcdfFile::NetcdfFile() :
   cell_angularDID_(-1),
   spatialVID_(-1),
   cell_spatialVID_(-1),
-  cell_angularVID_(-1)
+  cell_angularVID_(-1),
+  RemdValuesVID_(-1)
 {
   start_[0] = 0;
   start_[1] = 0;
@@ -84,22 +91,34 @@ NetcdfFile::NetcdfFile() :
   count_[2] = 0;
 }
 
+const char* NetcdfFile::ConventionsStr_[] = {
+  "AMBER",         // NC_AMBERTRAJ
+  "AMBERRESTART",  // NC_AMBERRESTART
+  "AMBERENSEMBLE", // NC_AMBERENSEMBLE
+  0                // UNKNOWN
+};
+
 // NetcdfFile::GetNetcdfConventions()
-NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
+NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(int ncidIn) {
   NCTYPE nctype = NC_UNKNOWN;
-  std::string attrText = NC::GetAttrText(ncid_, "Conventions");
-  if (attrText == "AMBERENSEMBLE")
-    nctype = NC_AMBERENSEMBLE;
-  else if (attrText == "AMBER")
-    nctype = NC_AMBERTRAJ;
-  else if (attrText == "AMBERRESTART")
-    nctype = NC_AMBERRESTART;
-  else if (attrText.empty()) 
+  std::string attrText = NC::GetAttrText(ncidIn, "Conventions");
+  if (attrText.empty()) {
     mprinterr("Error: Could not get conventions from NetCDF file.\n");
-  else {
-    mprinterr("Error: NetCDF file has unrecognized conventions \"%s\".\n",
-              attrText.c_str());
-    mprinterr("Error:   Expected \"AMBER\", \"AMBERRESTART\", or \"AMBERENSEMBLE\".\n");
+  } else {
+    for (int i = 0; i < (int)NC_UNKNOWN; i++) {
+      if (attrText.compare( ConventionsStr_[i] ) == 0) {
+        nctype = (NCTYPE)i;
+        break;
+      }
+    }
+    if (nctype == NC_UNKNOWN) {
+      mprinterr("Error: NetCDF file has unrecognized conventions \"%s\".\n",
+                attrText.c_str());
+      mprinterr("Error: Expected one of");
+      for (int i = 0; i < (int)NC_UNKNOWN; i++)
+        mprintf(" \"%s\"", ConventionsStr_[i]);
+      mprinterr("\n");
+    }
   }
   return nctype;
 }
@@ -111,10 +130,39 @@ void NetcdfFile::CheckConventionsVersion() {
     mprintf("Warning: NetCDF file has ConventionVersion that is not 1.0 (%s)\n", attrText.c_str());
 }
 
-// NetcdfFile::GetNcTitle()
-/** \return Title global attribute. */
-std::string NetcdfFile::GetNcTitle() const {
-  return NC::GetAttrText(ncid_, "title");
+/** \return true if temperature VID is defined or a replica dimension is temperature.
+  */
+bool NetcdfFile::HasTemperatures() const {
+  if (TempVID_ != -1)
+    return true;
+  else if (!remValType_.empty()) {
+    for (int idx = 0; idx != remValType_.Ndims(); idx++)
+      if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE)
+        return true;
+  }
+  return false;
+}
+
+/** \return true if a replica dimension is pH. TODO put inside ReplicaDimArray
+  */
+bool NetcdfFile::Has_pH() const {
+  if (!remValType_.empty()) {
+    for (int idx = 0; idx != remValType_.Ndims(); idx++)
+      if (remValType_.DimType(idx) == ReplicaDimArray::PH)
+        return true;
+  }
+  return false;
+}
+
+/** \return true if a replica dimension is RedOx.
+  */
+bool NetcdfFile::HasRedOx() const {
+  if (!remValType_.empty()) {
+    for (int idx = 0; idx != remValType_.Ndims(); idx++)
+      if (remValType_.DimType(idx) == ReplicaDimArray::REDOX)
+        return true;
+  }
+  return false;
 }
 
 // NetcdfFile::SetupFrameDim()
@@ -127,10 +175,10 @@ int NetcdfFile::SetupFrameDim() {
 
 /** Get the ensemble dimension ID and size. */
 int NetcdfFile::SetupEnsembleDim() {
-  int ensembleSize = 0;
-  ensembleDID_ = NC::GetDimInfo( ncid_, NCENSEMBLE, ensembleSize );
+  ensembleSize_ = 0;
+  ensembleDID_ = NC::GetDimInfo( ncid_, NCENSEMBLE, ensembleSize_ );
   if (ensembleDID_ == -1) return 0;
-  return ensembleSize;
+  return ensembleSize_;
 }
 
 // NetcdfFile::SetupCoordsVelo()
@@ -236,7 +284,7 @@ int NetcdfFile::SetupTime() {
               attrText.c_str());
     // Check for time values which have NOT been filled, which was possible
     // with netcdf trajectories created by older versions of ptraj/cpptraj.
-    if (ncframe_ > 0 && GetNetcdfConventions() == NC_AMBERTRAJ) {
+    if (ncframe_ > 0 && myType_ == NC_AMBERTRAJ) {
       float time;
       start_[0] = 0; count_[0] = 1;
       if (NC::CheckErr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
@@ -256,13 +304,11 @@ int NetcdfFile::SetupTime() {
 
 // NetcdfFile::SetupTemperature()
 /** Determine if Netcdf file contains temperature; set up temperature VID. */
-int NetcdfFile::SetupTemperature() {
-  if ( nc_inq_varid(ncid_,NCTEMPERATURE,&TempVID_) == NC_NOERR ) {
-    if (ncdebug_>0) mprintf("\tNetCDF file has replica temperatures.\n");
-    return 0;
-  } 
-  TempVID_=-1;
-  return 1;
+void NetcdfFile::SetupTemperature() {
+  TempVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCTEMPERATURE, &TempVID_) == NC_NOERR ) {
+    if (ncdebug_ > 0) mprintf("\tNetCDF file has replica temperatures.\n");
+  }
 }
 
 // NetcdfFile::SetupMultiD()
@@ -270,57 +316,84 @@ int NetcdfFile::SetupTemperature() {
   * number of replica dimensions (remd_dimension_) and figure out
   * the dimension types (remdDim)
   */
-int NetcdfFile::SetupMultiD(ReplicaDimArray& remdDim) {
+int NetcdfFile::SetupMultiD() {
   int dimensionDID;
+  remd_dimension_ = 0;
+  if ( nc_inq_dimid(ncid_, NCREMD_DIMENSION, &dimensionDID) == NC_NOERR)
+  {
+    // Although this is a second call to dimid, makes for easier code
+    if ( (dimensionDID = NC::GetDimInfo(ncid_, NCREMD_DIMENSION, remd_dimension_))==-1 )
+      return -1;
+    if (ncdebug_ > 0)
+      mprintf("\tNetCDF file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
+    // Ensure valid # dimensions
+    if (remd_dimension_ < 1) {
+      mprinterr("Error: Number of REMD dimensions is less than 1!\n");
+      return -1;
+    }
+    // Start and count for groupnum and dimtype, allocate mem
+    start_[0]=0; 
+    start_[1]=0; 
+    start_[2]=0;
+    count_[0]=remd_dimension_; 
+    count_[1]=0; 
+    count_[2]=0;
+    std::vector<int> remd_dimtype( remd_dimension_ );
+    // Get dimension types
+    int dimtypeVID;
+    if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
+      mprinterr("Error: Getting dimension type variable ID for each dimension.\n");
+      return -1;
+    }
+    if ( NC::CheckErr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, &remd_dimtype[0])) ) {
+      mprinterr("Error: Getting dimension type in each dimension.\n");
+      return -1;
+    }
+    // Get VID for replica indices
+    if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_INDICES, &indicesVID_)) ) {
+      mprinterr("Error: Getting replica indices variable ID.\n");
+      return -1;
+    }
+    // Store type of each dimension TODO should just have one netcdf coordinfo
+    remDimType_.clear();
+    for (int dim = 0; dim < remd_dimension_; ++dim)
+      remDimType_.AddRemdDimension( remd_dimtype[dim] );
+  }
 
-  if ( nc_inq_dimid(ncid_, NCREMD_DIMENSION, &dimensionDID) != NC_NOERR)
-    return 1;
- 
-  // Although this is a second call to dimid, makes for easier code
-  if ( (dimensionDID = NC::GetDimInfo(ncid_, NCREMD_DIMENSION, remd_dimension_))==-1 )
-    return -1;
-  if (ncdebug_ > 0)
-    mprintf("\tNetCDF file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
-  // Ensure valid # dimensions
-  if (remd_dimension_ < 1) {
-    mprinterr("Error: Number of REMD dimensions is less than 1!\n");
-    return -1;
+  // Get VID for replica values
+  if ( nc_inq_varid(ncid_, NCREMDVALUES, &RemdValuesVID_) == NC_NOERR ) {
+    if (ncdebug_ > 0) mprintf("\tNetCDF file has replica values.\n");
+    remValType_.clear();
+    if (remd_dimension_ > 0) {
+      remValType_ = remDimType_;
+    } else {
+      // Probably 1D
+      int ndims = 0;
+      if (NC::CheckErr(nc_inq_varndims(ncid_, RemdValuesVID_, &ndims))) {
+        mprinterr("Error: Checking number of dimensions for REMD_VALUES.\n");
+        return 1;
+      }
+      if (ndims < 2) {
+        mprintf("Warning: New style (Amber >= V18) remd values detected with < 2 dimensions.\n"
+                "Warning:  Assuming temperature.\n");
+        remValType_.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
+      } else {
+        mprinterr("Error: New style (Amber >= V18) remd values detected with > 1 dimension\n"
+                  "Error:   but no multi-D replica info present.\n");
+        return 1;
+      }
+    }
+    RemdValues_.assign( remValType_.Ndims(), 0 );
   }
-  // Start and count for groupnum and dimtype, allocate mem
-  start_[0]=0; 
-  start_[1]=0; 
-  start_[2]=0;
-  count_[0]=remd_dimension_; 
-  count_[1]=0; 
-  count_[2]=0;
-  int* remd_dimtype = new int[ remd_dimension_ ];
-  // Get dimension types
-  int dimtypeVID;
-  if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
-    mprinterr("Error: Getting dimension type variable ID for each dimension.\n");
-    return -1;
-  }
-  if ( NC::CheckErr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, remd_dimtype)) ) {
-    mprinterr("Error: Getting dimension type in each dimension.\n");
-    return -1;
-  }
-  // Get VID for replica indices
-  if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_INDICES, &indicesVID_)) ) {
-    mprinterr("Error: Getting replica indices variable ID.\n");
-    return -1;
-  }
-  // Print info for each dimension
-  for (int dim = 0; dim < remd_dimension_; ++dim)
-    remdDim.AddRemdDimension( remd_dimtype[dim] );
-  delete[] remd_dimtype;
+
   return 0; 
 }
 
 // NetcdfFile::SetupBox()
 /** \return 0 on success, 1 on error, -1 for no box coords. */
 // TODO: Use Box class
-int NetcdfFile::SetupBox(Box& boxIn, NCTYPE typeIn) {
-  boxIn.SetNoBox();
+int NetcdfFile::SetupBox() {
+  nc_box_.SetNoBox();
   if ( nc_inq_varid(ncid_, NCCELL_LENGTHS, &cellLengthVID_) == NC_NOERR ) {
     if (NC::CheckErr( nc_inq_varid(ncid_, NCCELL_ANGLES, &cellAngleVID_) )) {
       mprinterr("Error: Getting cell angles.\n");
@@ -333,7 +406,7 @@ int NetcdfFile::SetupBox(Box& boxIn, NCTYPE typeIn) {
     start_[1]=0; 
     start_[2]=0;
     start_[3]=0;
-    switch (typeIn) {
+    switch (myType_) {
       case NC_AMBERRESTART:
         count_[0]=3;
         count_[1]=0;
@@ -365,11 +438,117 @@ int NetcdfFile::SetupBox(Box& boxIn, NCTYPE typeIn) {
     }
     if (ncdebug_ > 0) mprintf("\tNetCDF Box: XYZ={%f %f %f} ABG={%f %f %f}\n",
                               boxCrd[0], boxCrd[1], boxCrd[2], boxCrd[3], boxCrd[4], boxCrd[5]);
-    boxIn.SetBox( boxCrd );
+    nc_box_.SetBox( boxCrd );
     return 0;
   }
   // No box information
   return -1;
+}
+
+/** Read REMD related values. */
+int NetcdfFile::ReadRemdValues(Frame& frm) {
+  // FIXME assuming start_ is set
+  count_[0] = 1; // 1 frame
+  if ( repidxVID_ != -1)
+    nc_get_vara_int(ncid_, repidxVID_, start_, count_, frm.repidxPtr());
+  if ( crdidxVID_ != -1)
+    nc_get_vara_int(ncid_, crdidxVID_, start_, count_, frm.crdidxPtr());
+  if ( RemdValuesVID_ != -1 ) {
+    count_[1] = remd_dimension_; // # dimensions
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, RemdValuesVID_, start_, count_, &RemdValues_[0])) )
+    {
+      mprinterr("Error: Getting replica values\n");
+      return 1;
+    }
+    for (int idx = 0; idx != remValType_.Ndims(); ++idx)
+    {
+      if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
+        frm.SetTemperature( RemdValues_[idx] );
+        //mprintf("DEBUG: T= %g\n", frm.Temperature());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
+        frm.Set_pH( RemdValues_[idx] );
+        //mprintf("DEBUG: pH= %g\n", frm.pH());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
+        frm.SetRedOx( RemdValues_[idx] );
+        //mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
+      }
+    }
+  }
+  return 0;
+}
+
+/** Set up a NetCDF file for reading. */
+int NetcdfFile::NC_setupRead(std::string const& fname, NCTYPE expectedType, int expectedNatoms,
+                             bool useVelAsCoords, bool useFrcAsCoords, int debugIn)
+{
+  ncdebug_ = debugIn;
+  // If file is open, close it.
+  if (ncid_ != -1) NC_close();
+  // Open read
+  if (NC_openRead( fname.c_str() ) != 0) {
+    mprinterr("Error: Could not open NetCDF file '%s' for read setup.\n", fname.c_str());
+    return 1;
+  }
+  // Sanity check
+  myType_ = GetNetcdfConventions(ncid_);
+  if ( myType_ != expectedType ) {
+    mprinterr("Error: NetCDF file conventions do not include \"%s\"\n",
+              ConventionsStr_[expectedType]);
+    return 1;
+  }
+  // This will warn if conventions are not 1.0 
+  CheckConventionsVersion();
+  // Get the title
+  nctitle_ = NC::GetAttrText(ncid_, "title");
+  // Get frame info if necessary.
+  if (myType_ == NC_AMBERTRAJ || myType_ == NC_AMBERENSEMBLE) {
+    if (SetupFrameDim() != 0) return 1;
+    if (Ncframe() < 1) {
+      mprinterr("Error: NetCDF file has no frames.\n");
+      return 1;
+    }
+    // Get ensemble info if necessary
+    if (myType_ == NC_AMBERENSEMBLE) {
+      if (SetupEnsembleDim() < 1) {
+        mprinterr("Error: Could not get ensemble dimension info.\n");
+        return 1;
+      }
+    }
+  }
+  // Setup atom-dimension-related variables. 
+  if ( SetupCoordsVelo( useVelAsCoords, useFrcAsCoords ) != 0 ) return 1;
+  // Check that specified number of atoms matches expected number.
+  if (Ncatom() != expectedNatoms) {
+    mprinterr("Error: Number of atoms in NetCDF file (%i) does not match number\n"
+              "Error:  in associated topology (%i)!\n", Ncatom(), expectedNatoms);
+    return 1; 
+  }
+  // Setup Time - FIXME: Allowed to fail silently
+  SetupTime();
+  // Box info
+  if (SetupBox() == 1) // 1 indicates an error
+    return 1;
+  // Replica Temperatures - FIXME: Allowed to fail silently
+  SetupTemperature();
+  // Replica Dimensions
+  if ( SetupMultiD() == -1 ) return 1;
+  // NOTE: TO BE ADDED
+  // labelDID;
+  //int cell_spatialDID, cell_angularDID;
+  //int spatialVID, cell_spatialVID, cell_angularVID;
+  if (ncdebug_ > 1) NC::Debug(ncid_);
+  NC_close();
+  return 0;
+}
+  
+
+/** \return Coordinate info corresponding to current setup. */
+CoordinateInfo NetcdfFile::NC_coordInfo() const {
+  return CoordinateInfo( ensembleSize_, remDimType_, nc_box_,
+                         HasCoords(), HasVelocities(), HasForces(), 
+                         HasTemperatures(), Has_pH(), HasRedOx(),
+                         HasTimes(), (repidxVID_ != -1), (crdidxVID_ != -1),
+                         (RemdValuesVID_ != -1) );
 }
 
 // NetcdfFile::NC_openRead()
@@ -389,6 +568,7 @@ void NetcdfFile::NC_close() {
   ncid_ = -1;
 }
 
+// =============================================================================
 // NetcdfFile::NC_openWrite()
 int NetcdfFile::NC_openWrite(std::string const& Name) {
   if (Name.empty()) return 1;
@@ -450,20 +630,40 @@ int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
   return 0;
 }
 
+/** Set remDimDID appropriate for given type. */
+void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
+  switch (myType_) {
+    case NC_AMBERENSEMBLE:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = ensembleDID_;
+      dimensionID[2] = remDimDID;
+      break;
+    case NC_AMBERTRAJ:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = remDimDID;
+      break;
+    case NC_AMBERRESTART:
+      dimensionID[0] = remDimDID;
+      break;
+    default:
+      mprinterr("Internal Error: SetRemDimDID(): Unrecognized type.\n");
+  }
+}
+
 // NetcdfFile::NC_create()
-int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
-                          CoordinateInfo const& coordInfo, std::string const& title) 
+int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
+                          CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
 {
   if (Name.empty()) return 1;
   int dimensionID[NC_MAX_VAR_DIMS];
   int NDIM;
   nc_type dataType;
+  myType_ = typeIn;
+  ncdebug_ = debugIn;
 
   if (ncdebug_>1)
-    mprintf("DEBUG: NC_create: %s  natom=%i V=%i F=%i box=%i  temp=%i  time=%i\n",
-            Name.c_str(),natomIn,(int)coordInfo.HasVel(),
-            (int)coordInfo.HasForce(),(int)coordInfo.HasBox(),
-            (int)coordInfo.HasTemp(),(int)coordInfo.HasTime());
+    mprintf("DEBUG: NC_create: '%s'  natom=%i  %s\n",
+            Name.c_str(),natomIn, coordInfo.InfoString().c_str());
 
   if ( NC::CheckErr( nc_create( Name.c_str(), NC_64BIT_OFFSET, &ncid_) ) )
     return 1;
@@ -472,7 +672,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   ncatom3_ = ncatom_ * 3;
   
   // Set number of dimensions based on file type
-  switch (type) {
+  switch (myType_) {
     case NC_AMBERENSEMBLE:
       NDIM = 4;
       dataType = NC_FLOAT;
@@ -486,12 +686,12 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       dataType = NC_DOUBLE;
       break;
     default:
-      mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n",Name.c_str(),(int)type);
+      mprinterr("Error: NC_create (%s): Unrecognized type (%i)\n",Name.c_str(),(int)myType_);
       return 1;
   }
 
-  if (type == NC_AMBERENSEMBLE) {
-    // Ensemble dimension for ensemble
+  // Ensemble dimension for ensemble
+  if (myType_ == NC_AMBERENSEMBLE) {
     if (coordInfo.EnsembleSize() < 1) {
       mprinterr("Internal Error: NetcdfFile: ensembleSize < 1\n");
       return 1;
@@ -502,9 +702,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     }
     dimensionID[1] = ensembleDID_;
   }
+  // Frame dimension for traj
   ncframe_ = 0;
-  if (type == NC_AMBERTRAJ || type == NC_AMBERENSEMBLE) {
-    // Frame dimension for traj
+  if (myType_ == NC_AMBERTRAJ || myType_ == NC_AMBERENSEMBLE) {
     if ( NC::CheckErr( nc_def_dim( ncid_, NCFRAME, NC_UNLIMITED, &frameDID_)) ) {
       mprinterr("Error: Defining frame dimension.\n");
       return 1;
@@ -540,18 +740,25 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   }
   // Setup dimensions for Coords/Velocity
   // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-  if (type == NC_AMBERENSEMBLE) {
-    dimensionID[0] = frameDID_;
-    dimensionID[1] = ensembleDID_;
-    dimensionID[2] = atomDID_;
-    dimensionID[3] = spatialDID_;
-  } else if (type == NC_AMBERTRAJ) {
-    dimensionID[0] = frameDID_;
-    dimensionID[1] = atomDID_;
-    dimensionID[2] = spatialDID_;
-  } else {
-    dimensionID[0] = atomDID_;
-    dimensionID[1] = spatialDID_;
+  switch (myType_) {
+    case NC_AMBERENSEMBLE:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = ensembleDID_;
+      dimensionID[2] = atomDID_;
+      dimensionID[3] = spatialDID_;
+      break;
+    case NC_AMBERTRAJ:
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = atomDID_;
+      dimensionID[2] = spatialDID_;
+      break;
+    case NC_AMBERRESTART:
+      dimensionID[0] = atomDID_;
+      dimensionID[1] = spatialDID_;
+      break;
+    case NC_UNKNOWN:
+      mprinterr("Internal Error: Unknown type passed to NC_create()\n");
+      return 1;
   }
   // Coord variable
   if (coordInfo.HasCrd()) {
@@ -595,17 +802,35 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     }
   }
   // Replica Temperature
-  if (coordInfo.HasTemp()) {
+  if (coordInfo.HasTemp() && !coordInfo.UseRemdValues()) {
     // NOTE: Setting dimensionID should be OK for Restart, will not be used.
     dimensionID[0] = frameDID_;
     if ( NC_defineTemperature( dimensionID, NDIM-2 ) ) return 1;
   }
+  // Overall replica index
+  if (coordInfo.HasRepIdx()) {
+    dimensionID[0] = frameDID_;
+    if (NC::CheckErr(nc_def_var(ncid_, NCREMD_REPIDX, NC_INT, NDIM-2, dimensionID, &repidxVID_)))
+    {
+      mprinterr("Error: Defining replica idx variable ID.\n");
+      return 1;
+    }
+  }
+  // Overall coordinate index
+  if (coordInfo.HasCrdIdx()) {
+    dimensionID[0] = frameDID_;
+    if (NC::CheckErr(nc_def_var(ncid_, NCREMD_CRDIDX, NC_INT, NDIM-2, dimensionID, &crdidxVID_)))
+    {
+      mprinterr("Error: Defining coordinate idx variable ID.\n");
+      return 1;
+    }
+  }
   // Replica indices
   int remDimTypeVID = -1;
+  int remDimDID = -1;
   if (coordInfo.HasReplicaDims()) {
     // Define number of replica dimensions
     remd_dimension_ = coordInfo.ReplicaDimensions().Ndims();
-    int remDimDID = -1;
     if ( NC::CheckErr(nc_def_dim(ncid_, NCREMD_DIMENSION, remd_dimension_, &remDimDID)) ) {
       mprinterr("Error: Defining replica indices dimension.\n");
       return 1;
@@ -618,17 +843,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       return 1;
     }
     // Need to store the indices of replica in each dimension each frame
-    // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-    if (type == NC_AMBERENSEMBLE) {
-      dimensionID[0] = frameDID_;
-      dimensionID[1] = ensembleDID_;
-      dimensionID[2] = remDimDID;
-    } else if (type == NC_AMBERTRAJ) {
-      dimensionID[0] = frameDID_;
-      dimensionID[1] = remDimDID;
-    } else {
-      dimensionID[0] = remDimDID;
-    }
+    SetRemDimDID(remDimDID, dimensionID);
     if (NC::CheckErr(nc_def_var(ncid_, NCREMD_INDICES, NC_INT, NDIM-1, dimensionID, &indicesVID_)))
     {
       mprinterr("Error: Defining replica indices variable ID.\n");
@@ -637,6 +852,33 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     // TODO: Determine if groups are really necessary for restarts. If not, 
     // remove from AmberNetcdf.F90.
   }
+  // Replica values
+  if (coordInfo.UseRemdValues()) {
+    remValType_.clear();
+    if (coordInfo.HasReplicaDims()) {
+      SetRemDimDID(remDimDID, dimensionID);
+      if (NC::CheckErr(nc_def_var(ncid_, NCREMDVALUES, NC_DOUBLE, NDIM-1,
+                                  dimensionID, &RemdValuesVID_)))
+      {
+        mprinterr("Error: defining replica values variable ID.\n");
+        return 1;
+      }
+      RemdValues_.resize( remd_dimension_ );
+      for (int idx = 0; idx != coordInfo.ReplicaDimensions().Ndims(); idx++)
+        remValType_.AddRemdDimension( coordInfo.ReplicaDimensions().DimType(idx) );
+    } else {
+      dimensionID[0] = frameDID_;
+      if (NC::CheckErr(nc_def_var(ncid_, NCREMDVALUES, NC_DOUBLE, NDIM-2,
+                                  dimensionID, &RemdValuesVID_)))
+      {
+        mprinterr("Error: defining replica values variable ID.\n");
+        return 1;
+      }
+      RemdValues_.resize( 1 );
+      // FIXME assuming temperature
+      remValType_.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
+    }
+  } 
   // Box Info
   if (coordInfo.HasBox()) {
     // Cell Spatial
@@ -670,11 +912,11 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     // Setup dimensions for Box
     // NOTE: This must be modified if more types added
     int boxdim;
-    if (type == NC_AMBERENSEMBLE) {
+    if (myType_ == NC_AMBERENSEMBLE) {
       dimensionID[0] = frameDID_;
       dimensionID[1] = ensembleDID_;
       boxdim = 2;
-    } else if (type == NC_AMBERTRAJ) {
+    } else if (myType_ == NC_AMBERTRAJ) {
       dimensionID[0] = frameDID_;
       boxdim = 1;
     } else {
@@ -723,15 +965,10 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     mprinterr("Error: Writing program version.\n");
     return 1;
   }
-  // TODO: Make conventions a static string
-  bool errOccurred = false;
-  if ( type == NC_AMBERENSEMBLE )
-    errOccurred = NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",13,"AMBERENSEMBLE"));
-  else if ( type == NC_AMBERTRAJ )
-    errOccurred = NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",5,"AMBER"));
-  else
-    errOccurred = NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",12,"AMBERRESTART"));
-  if (errOccurred) {
+  // Write conventions based on type 
+  std::string cStr( ConventionsStr_[myType_] );
+  if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "Conventions", cStr.size(), cStr.c_str())))
+  {
     mprinterr("Error: Writing conventions.\n");
     return 1;
   }
@@ -786,94 +1023,185 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
 
   // Store the type of each replica dimension.
   if (coordInfo.HasReplicaDims()) {
+    remDimType_.clear();
     ReplicaDimArray const& remdDim = coordInfo.ReplicaDimensions();
     start_[0] = 0;
     count_[0] = remd_dimension_;
-    int* tempDims = new int[ remd_dimension_ ];
-    for (int i = 0; i < remd_dimension_; ++i)
+    std::vector<int> tempDims( remd_dimension_ );
+    for (int i = 0; i < remd_dimension_; ++i) {
       tempDims[i] = remdDim[i];
-    if (NC::CheckErr(nc_put_vara_int(ncid_, remDimTypeVID, start_, count_, tempDims))) {
+      remDimType_.AddRemdDimension( remdDim[i] );
+    }
+    if (NC::CheckErr(nc_put_vara_int(ncid_, remDimTypeVID, start_, count_, &tempDims[0]))) {
       mprinterr("Error: writing replica dimension types.\n");
-      delete[] tempDims;
       return 1;
     }
-    delete[] tempDims;
   }
+  if (ncdebug_ > 1) NC::Debug(ncid_);
 
   return 0;
 }
 
-// NetcdfFile::WriteIndices()
-void NetcdfFile::WriteIndices() const {
+/** Write REMD-related values. */
+int NetcdfFile::WriteRemdValues(Frame const& frm) {
+  // FIXME assuming start_ is set
+  count_[0] = 1; // 1 frame
+  if ( repidxVID_ != -1)
+    nc_put_vara_int(ncid_, repidxVID_, start_, count_, frm.repidxPtr());
+  if ( crdidxVID_ != -1)
+    nc_put_vara_int(ncid_, crdidxVID_, start_, count_, frm.crdidxPtr());
+  if ( RemdValuesVID_ != -1 ) {
+    for (int idx = 0; idx != remValType_.Ndims(); ++idx)
+    {
+      if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
+        RemdValues_[idx] = frm.Temperature();
+        //mprintf("DEBUG: T= %g\n", frm.Temperature());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
+        RemdValues_[idx] = frm.pH();
+        //mprintf("DEBUG: pH= %g\n", frm.pH());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
+        RemdValues_[idx] = frm.RedOx();
+        //mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
+      }
+    }
+    count_[1] = remd_dimension_; // # dimensions
+    if ( NC::CheckErr(nc_put_vara_double(ncid_, RemdValuesVID_, start_, count_, &RemdValues_[0])) )
+    {
+      mprinterr("Error: Writing replica values\n");
+      return 1;
+    }
+  }
+  return 0;
+}
+
+#ifdef MPI
+#ifdef HAS_PNETCDF
+int NetcdfFile::parallelWriteRemdValues(int set, Frame const& frm) {
+  MPI_Offset pstart_[2];
+  MPI_Offset pcount_[2];
+  pstart_[0] = set;
+  pstart_[1] = 0;
+  pcount_[0] = 1;               // 1 frame
+  pcount_[1] = remd_dimension_; // # dimensions 
+  // REMD values
+  if ( repidxVID_ != -1)
+    ncmpi_put_vara_int(ncid_, repidxVID_, pstart_, pcount_, frm.repidxPtr());
+  if ( crdidxVID_ != -1)
+    ncmpi_put_vara_int(ncid_, crdidxVID_, pstart_, pcount_, frm.crdidxPtr());
+  if ( RemdValuesVID_ != -1 ) {
+    for (int idx = 0; idx != remValType_.Ndims(); ++idx)
+    {
+      if (remValType_.DimType(idx) == ReplicaDimArray::TEMPERATURE) {
+        RemdValues_[idx] = frm.Temperature();
+        //mprintf("DEBUG: T= %g\n", frm.Temperature());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::PH) {
+        RemdValues_[idx] = frm.pH();
+        //mprintf("DEBUG: pH= %g\n", frm.pH());
+      } else if (remValType_.DimType(idx) == ReplicaDimArray::REDOX) {
+        RemdValues_[idx] = frm.RedOx();
+        //mprintf("DEBUG: RedOx= %g\n", frm.RedOx());
+      }
+    }
+    pcount_[1] = remd_dimension_; // # dimensions
+    if ( NC::CheckErr(ncmpi_put_vara_double(ncid_, RemdValuesVID_, pstart_, pcount_, &RemdValues_[0])) )
+    {
+      mprinterr("Error: Writing replica values\n");
+      return 1;
+    }
+  }
+  return 0;
+}
+#endif
+#endif
+
+// =============================================================================
+// NetcdfFile::DebugIndices()
+void NetcdfFile::DebugIndices() const {
   mprintf("DBG: Start={%zu, %zu, %zu, %zu} Count={%zu, %zu, %zu, %zu}\n",
          start_[0], start_[1], start_[2], start_[3],
          count_[0], count_[1], count_[2], count_[3]);
 }
 
-// NetcdfFile::WriteVIDs()
-void NetcdfFile::WriteVIDs() const {
+// NetcdfFile::DebugVIDs()
+void NetcdfFile::DebugVIDs() const {
   rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i frcVID_=%i  cellAngleVID_=%i"
           "  cellLengthVID_=%i  indicesVID_=%i\n",
           TempVID_, coordVID_, velocityVID_, frcVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
 }
 
-// NetcdfFile::NetcdfDebug()
-void NetcdfFile::NetcdfDebug() const { NC::Debug(ncid_); }
-
 #ifdef MPI
 void NetcdfFile::Sync(Parallel::Comm const& commIn) {
-  int nc_vars[23];
+  static const unsigned int NCVARS_SIZE = 29;
+  int nc_vars[NCVARS_SIZE];
   if (commIn.Master()) {
-    nc_vars[0] = ncframe_;
-    nc_vars[1] = TempVID_;
-    nc_vars[2] = coordVID_;
-    nc_vars[3] = velocityVID_;
-    nc_vars[4] = frcVID_;
-    nc_vars[5] = cellAngleVID_;
-    nc_vars[6] = cellLengthVID_;
-    nc_vars[7] = timeVID_;
-    nc_vars[8] = remd_dimension_;
-    nc_vars[9] = indicesVID_;
-    nc_vars[10] = ncdebug_;
-    nc_vars[11] = ensembleDID_;
-    nc_vars[12] = frameDID_;
-    nc_vars[13] = atomDID_;
-    nc_vars[14] = ncatom_;
-    nc_vars[15] = ncatom3_;
-    nc_vars[16] = spatialDID_;
-    nc_vars[17] = labelDID_;
-    nc_vars[18] = cell_spatialDID_;
-    nc_vars[19] = cell_angularDID_;
-    nc_vars[20] = spatialVID_;
-    nc_vars[21] = cell_spatialVID_;
-    nc_vars[22] = cell_angularVID_;
+    nc_vars[0]  = ncframe_;
+    nc_vars[1]  = TempVID_;
+    nc_vars[2]  = coordVID_;
+    nc_vars[3]  = velocityVID_;
+    nc_vars[4]  = frcVID_;
+    nc_vars[5]  = cellAngleVID_;
+    nc_vars[6]  = cellLengthVID_;
+    nc_vars[7]  = timeVID_;
+    nc_vars[8]  = remd_dimension_;
+    nc_vars[9]  = indicesVID_;
+    nc_vars[10] = repidxVID_;
+    nc_vars[11] = crdidxVID_;
+    nc_vars[12] = ensembleSize_;
+    nc_vars[13] = ncdebug_;
+    nc_vars[14] = ensembleDID_;
+    nc_vars[15] = frameDID_;
+    nc_vars[16] = atomDID_;
+    nc_vars[17] = ncatom_;
+    nc_vars[18] = ncatom3_;
+    nc_vars[19] = spatialDID_;
+    nc_vars[20] = labelDID_;
+    nc_vars[21] = cell_spatialDID_;
+    nc_vars[22] = cell_angularDID_;
+    nc_vars[23] = spatialVID_;
+    nc_vars[24] = cell_spatialVID_;
+    nc_vars[25] = cell_angularVID_;
+    nc_vars[26] = RemdValuesVID_;
+    nc_vars[27] = remDimType_.Ndims();
+    nc_vars[28] = remValType_.Ndims();
+    commIn.MasterBcast( nc_vars, NCVARS_SIZE, MPI_INT );
+  } else {
+    // Non-master
+    commIn.MasterBcast( nc_vars, NCVARS_SIZE, MPI_INT );
+    ncframe_         = nc_vars[0];
+    TempVID_         = nc_vars[1];
+    coordVID_        = nc_vars[2];
+    velocityVID_     = nc_vars[3];
+    frcVID_          = nc_vars[4];
+    cellAngleVID_    = nc_vars[5];
+    cellLengthVID_   = nc_vars[6];
+    timeVID_         = nc_vars[7];
+    remd_dimension_  = nc_vars[8];
+    indicesVID_      = nc_vars[9];
+    repidxVID_       = nc_vars[10];
+    crdidxVID_       = nc_vars[11];
+    ensembleSize_    = nc_vars[12];
+    ncdebug_         = nc_vars[13];
+    ensembleDID_     = nc_vars[14];
+    frameDID_        = nc_vars[15];
+    atomDID_         = nc_vars[16];
+    ncatom_          = nc_vars[17];
+    ncatom3_         = nc_vars[18];
+    spatialDID_      = nc_vars[19];
+    labelDID_        = nc_vars[20];
+    cell_spatialDID_ = nc_vars[21];
+    cell_angularDID_ = nc_vars[22];
+    spatialVID_      = nc_vars[23];
+    cell_spatialVID_ = nc_vars[24];
+    cell_angularVID_ = nc_vars[25];
+    RemdValuesVID_   = nc_vars[26];
+    remDimType_.assign( nc_vars[27], ReplicaDimArray::UNKNOWN );
+    remValType_.assign( nc_vars[28], ReplicaDimArray::UNKNOWN );
+    RemdValues_.resize( nc_vars[28] );
   }
-  commIn.MasterBcast( nc_vars, 23, MPI_INT );
-  if (!commIn.Master()) {
-    ncframe_ = nc_vars[0];
-    TempVID_ = nc_vars[1];
-    coordVID_ = nc_vars[2];
-    velocityVID_ = nc_vars[3];
-    frcVID_ = nc_vars[4];
-    cellAngleVID_ = nc_vars[5];
-    cellLengthVID_ = nc_vars[6];
-    timeVID_ = nc_vars[7];
-    remd_dimension_ = nc_vars[8];
-    indicesVID_ = nc_vars[9];
-    ncdebug_ = nc_vars[10];
-    ensembleDID_ = nc_vars[11];
-    frameDID_ = nc_vars[12];
-    atomDID_ = nc_vars[13];
-    ncatom_ = nc_vars[14];
-    ncatom3_ = nc_vars[15];
-    spatialDID_ = nc_vars[16];
-    labelDID_ = nc_vars[17];
-    cell_spatialDID_ = nc_vars[18];
-    cell_angularDID_ = nc_vars[19];
-    spatialVID_ = nc_vars[20];
-    cell_spatialVID_ = nc_vars[21];
-    cell_angularVID_ = nc_vars[22];
-  }
+  if (!remDimType_.empty())
+    commIn.MasterBcast( remDimType_.Ptr(), remDimType_.Ndims(), MPI_INT );
+  if (!remValType_.empty())
+    commIn.MasterBcast( remValType_.Ptr(), remValType_.Ndims(), MPI_INT );
 }
 #endif /* MPI */
 #endif /* BINTRAJ */

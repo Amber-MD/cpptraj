@@ -5,7 +5,7 @@
 
 Help() {
   echo "Usage: $0 <name> [<type>]"
-  echo "  <type>: Action Analysis Exec Traj DataIO"
+  echo "  <type>: Action Analysis Exec Traj DataIO DataSet"
   echo ""
 }
 
@@ -24,7 +24,7 @@ if [ -z "$TYPE" ] ; then
   Help
   exit 1 
 fi
-if [ "$TYPE" != 'Action' -a "$TYPE" != 'Analysis' -a "$TYPE" != 'Exec' -a "$TYPE" != 'Traj' -a "$TYPE" != 'DataIO' ] ; then
+if [ "$TYPE" != 'Action' -a "$TYPE" != 'Analysis' -a "$TYPE" != 'Exec' -a "$TYPE" != 'Traj' -a "$TYPE" != 'DataIO' -a "$TYPE" != 'DataSet' ] ; then
   echo "Type $TYPE not recognized."
   Help
   exit 1
@@ -406,7 +406,37 @@ int $CLASS::WriteData(FileName const& fname, DataSetList const& dsl)
   return 1;
 }
 EOF
+# ----- DataSet ----------------------------------
+elif [ "$TYPE" = 'DataSet' ] ; then
+  cat >> $H_FILE <<EOF
+  public:
+    $CLASS();
+    static DataSet* Alloc() { return (DataSet*)new $CLASS(); }
+    // ----- DataSet functions -------------------
+    size_t Size()                                    const { return 0; }
+    void Info()                                      const { return; }
+    int Allocate(SizeArray const&)                         { return 1; }
+    void Add(size_t, const void*)                          { return; }
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
+    int Append(DataSet*)                                   { return 1; }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
+    // -------------------------------------------
+  private:
+};
+#endif
+EOF
+  cat > $C_FILE <<EOF
+#include "$H_FILE"
+#include "CpptrajStdio.h"
 
+/// CONSTRUCTOR
+$CLASS::$CLASS()
+{
+
+}
+EOF
 # ------------------------------------------------
 else
   echo "Unrecognized type: $TYPE."

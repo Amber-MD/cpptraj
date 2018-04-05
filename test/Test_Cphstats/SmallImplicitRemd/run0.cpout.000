@@ -1,0 +1,50 @@
+Solvent pH: 10.50000
+Monte Carlo step size:       50
+Time step:       50
+Time:      0.049
+Residue    0 State:  1 pH:  10.500
+Residue    1 State:  0 pH:  10.500
+
+Residue    1 State:  0 pH:  10.500
+
+Residue    0 State:  1 pH:  10.000
+
+Residue    1 State:  0 pH:  10.000
+
+Residue    1 State:  0 pH:  10.000
+
+Residue    1 State:  0 pH:  10.000
+
+Residue    1 State:  0 pH:  10.500
+
+Residue    1 State:  0 pH:  10.500
+
+Residue    0 State:  1 pH:  10.500
+
+Residue    0 State:  0 pH:  10.500
+
+Residue    1 State:  0 pH:  10.000
+
+Residue    0 State:  0 pH:  10.000
+
+Residue    0 State:  0 pH:   9.500
+
+Residue    1 State:  0 pH:   9.500
+
+Residue    1 State:  0 pH:   9.000
+
+Residue    0 State:  0 pH:   9.000
+
+Residue    1 State:  0 pH:   9.000
+
+Residue    0 State:  0 pH:   9.000
+
+Residue    1 State:  0 pH:   9.500
+
+Solvent pH:  9.50000
+Monte Carlo step size:       50
+Time step:     1000
+Time:      0.999
+Residue    0 State:  0 pH:   9.500
+Residue    1 State:  0 pH:   9.500
+

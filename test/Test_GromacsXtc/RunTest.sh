@@ -58,7 +58,7 @@ EOF
     cat > ptraj.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd 6 10
-trajout mop.xtc stc append
+trajout mop.xtc xtc append
 EOF
     RunCpptraj "CRD(6-10) => XTC"
     cat > ptraj.in <<EOF

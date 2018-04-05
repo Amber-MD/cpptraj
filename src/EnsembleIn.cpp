@@ -54,12 +54,12 @@ void EnsembleIn::TimingData(double trajin_time) {
 void EnsembleIn::PrintReplicaInfo() const {
   if (targetType_ == ReplicaInfo::TEMP) {
     mprintf("  Ensemble Temperature Map:\n");
-    for (ReplicaMap<double>::const_iterator tmap = TemperatureMap_.begin();
+    for (ReplicaInfo::Map<double>::const_iterator tmap = TemperatureMap_.begin();
                                             tmap != TemperatureMap_.end(); ++tmap)
       mprintf("\t%10.2f -> %i\n", tmap->first, tmap->second);
   } else if (targetType_ == ReplicaInfo::INDICES) {
     mprintf("  Ensemble Indices Map:\n");
-    for (ReplicaMap<Frame::RemdIdxType>::const_iterator imap = IndicesMap_.begin();
+    for (ReplicaInfo::Map<Frame::RemdIdxType>::const_iterator imap = IndicesMap_.begin();
                                                         imap != IndicesMap_.end(); ++imap)
     {
       mprintf("\t{");

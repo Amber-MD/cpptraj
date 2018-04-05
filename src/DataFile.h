@@ -15,7 +15,7 @@ class DataFile {
     enum DataFormatType {
       DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, EVECS,
       VECTRAJ, XVG, CCP4, CMATRIX, NCCMATRIX, CHARMMREPD, CHARMMFASTREP,
-      CHARMMOUT, UNKNOWN_DATA 
+      CHARMMOUT, CPOUT, CHARMMRTFPRM, UNKNOWN_DATA 
     };
     DataFile();
     ~DataFile();
@@ -71,24 +71,33 @@ class DataFile {
     FileName const& DataFilename() const { return filename_; }
     /// Used by DataFileList, indicates DataFile needs to be written. 
     void SetDFLwrite(bool fIn)           { dflWrite_ = fIn;  }
+    /// Specify whether ensemble member number extension should be used.
+    void SetEnsExt(bool b)               { ensExt_ = b;      }
+    /// \return True if ensemble member number extension will be used.
+    bool EnsExt()                  const { return ensExt_;   }
     /// \return True if DataFile needs to be written.
     bool DFLwrite()                const { return dflWrite_; }
     /// \return DataFile format type.
     DataFormatType Type()          const { return dfType_;   }
-    /// \return DataFile member num.
-    int Member()                   const { return member_;   }
-    /// Set DataFile member num.
-    void SetMember(int m) { member_ = m; }
+#   ifdef MPI
+    void SetThreadCanWrite(bool b)       { threadCanWrite_ = b; }
+#   endif
   private:
     static DataIO* DetectFormat(FileName const&, DataFormatType&);
+    int WriteSetsToFile(FileName const&, DataSetList&);
+    int WriteWithEnsExtension();
+    int WriteNoEnsExtension();
 
     int debug_;
-    int member_;               ///< DataFile ensemble member number.
     int dimension_;            ///< The dimension of all sets in the DataFile.
     DataFormatType dfType_;    ///< Format to read/write data in DataFile.
     bool dflWrite_;            ///< True: write file when DataFileList::WriteAllDF called.
     bool setDataSetPrecision_; ///< True: set default precision of incoming DataSets.
     bool sortSets_;            ///< True: Sort sets before write.
+    bool ensExt_;              ///< If true append ensemble member number to file
+#   ifdef MPI
+    bool threadCanWrite_;      ///< True if thread is writing to this file.
+#   endif
     int default_width_;        ///< Default width of data sets added to this file.
     int default_precision_;    ///< Default precision of data sets added to this file.
     DataSetList SetList_;      ///< Array of pointers to associated DataSets.

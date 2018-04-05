@@ -171,7 +171,7 @@ int Action_Dipole::SyncAction() {
   double buf[3];
   for (std::vector<Vec3>::iterator dp = dipole_.begin(); dp != dipole_.end(); ++dp)
   {
-    trajComm_.Reduce( buf, dp->Dptr(), 3, MPI_DOUBLE, MPI_SUM );
+    trajComm_.ReduceMaster( buf, dp->Dptr(), 3, MPI_DOUBLE, MPI_SUM );
     std::copy( buf, buf+3, dp->Dptr() );
   }
   return 0;

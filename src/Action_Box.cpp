@@ -58,23 +58,12 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
 }
 
 Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
-  double* frame_box = frm.ModifyFrm().bAddress();
   if (nobox_) {
-    frame_box[0] = 0.0;
-    frame_box[1] = 0.0;
-    frame_box[2] = 0.0;
-    frame_box[3] = 0.0;
-    frame_box[4] = 0.0;
-    frame_box[5] = 0.0;
+    frm.ModifyFrm().SetBox( Box() );
   } else {
     Box fbox( box_ );
-    fbox.SetMissingInfo( Box( frame_box ) );
-    frame_box[0] = fbox.BoxX();
-    frame_box[1] = fbox.BoxY();
-    frame_box[2] = fbox.BoxZ();
-    frame_box[3] = fbox.Alpha();
-    frame_box[4] = fbox.Beta();
-    frame_box[5] = fbox.Gamma();
+    fbox.SetMissingInfo( frm.Frm().BoxCrd() );
+    frm.ModifyFrm().SetBox( fbox );
   }
   return Action::MODIFY_COORDS;
 }

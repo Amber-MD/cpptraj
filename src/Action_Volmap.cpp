@@ -458,7 +458,7 @@ int Action_Volmap::SyncAction() {
   CombineGridThreads();
 # endif
   int total_frames = 0;
-  trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  trajComm_.ReduceMaster( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
   if (trajComm_.Master())
     Nframes_ = total_frames;
   return 0;

@@ -17,13 +17,17 @@ class DataFileList {
     DataFile* RemoveDataFile(DataFile*);
     void RemoveDataSet(DataSet*);
     void SetDebug(int);
-    void SetEnsembleNum(int i) { ensembleNum_ = i; }
+    void SetEnsembleNum(int i) { ensembleNum_ = i; } // TODO get rid of this
+    void SetEnsExtension(bool b) { ensembleExt_ = b; }
+    bool UseEnsExtension() const { return ensembleExt_; }
     /// \return DataFile whose full path matches given string or 0.
     DataFile* GetDataFile(FileName const&) const;
     /// \return CpptrajFile whose full path matches given string or 0.
     CpptrajFile* GetCpptrajFile(FileName const&) const;
     /// \return DataFile specified by name, add if none exists, or 0 if no name specified.
     DataFile* AddDataFile(FileName const&, ArgList&);
+    /// Allow default arguments.
+    DataFile* AddDataFile(FileName const&, ArgList const&, ArgList&);
     /// \return DataFile specified by name, add if none exists, or 0 if no name specified.
     DataFile* AddDataFile(FileName const&);
     /// \return DataFile specified by name with specific format, add if none exists.
@@ -38,6 +42,9 @@ class DataFileList {
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype);
     /// Add/create CpptrajFile of given type; optionally allow STDOUT.
     CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool);
+#   ifdef MPI
+    CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool,Parallel::Comm const&);
+#   endif
     /// List DataFiles and CpptrajFiles.
     void List() const;
     /// Write all DataFiles in list that have not yet been written.
@@ -63,7 +70,8 @@ class DataFileList {
     MDarray cfData_;
 
     int debug_;
-    int ensembleNum_; ///< Ensemble member number.
+    int ensembleNum_;  ///< Ensemble member number.
+    bool ensembleExt_; ///< If true append ensemble member number to file names.
 };
 // ----- INTERNAL CLASS DEFINITIONS --------------------------------------------
 class DataFileList::CFstruct {

@@ -37,6 +37,7 @@
 #   CPPTRAJ_ZLIB         : If set CPPTRAJ has zlib support.
 #   CPPTRAJ_BZLIB        : If set CPPTRAJ has bzip support.
 #   CPPTRAJ_NETCDFLIB    : If set CPPTRAJ has NetCDF support.
+#   CPPTRAJ_LIBPME       : If set CPPTRAJ was compiled with libPME.
 #   CPPTRAJ_MPILIB       : If set CPPTRAJ has MPI support.
 #   CPPTRAJ_MATHLIB      : If set CPPTRAJ was compiled with math libraries.
 #   CPPTRAJ_OPENMP       : If set CPPTRAJ has OpenMP support.
@@ -230,11 +231,11 @@ NcTest() {
       # the regular expression to ndiff.awk FS without the interpreter giving
       # this error for FS='[ \t,()]':
       # awk: fatal: Invalid regular expression: /'[/
-      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0.save
-      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0
+      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0
     else
-      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" > nc0.save
-      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" > nc0
+      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:program" > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:program" > nc0
     fi
     DoTest $DIFFARGS 
     $CPPTRAJ_RM nc0.save nc0
@@ -444,6 +445,23 @@ Summary() {
 }
 
 # ------------------------------------------------------------------------------
+# ProgramError() <message>
+ProgramError() {
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    echo "Error: $1" > /dev/stderr
+    OutBoth "Error: $1"
+  else
+    if [ -z "$2" ] ; then
+      PNAME=$CPPTRAJ
+    else
+      PNAME=$2
+    fi
+    echo "$PNAME: Program error"
+  fi
+  ((PROGERROR++))
+}
+
+# ------------------------------------------------------------------------------
 # RunCpptraj() <title>
 #   Run cpptraj test with given title.
 RunCpptraj() {
@@ -464,13 +482,7 @@ RunCpptraj() {
   STATUS=$?
   #echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ $STATUS -ne 0 ] ; then
-    if [ -z "$CPPTRAJ_DACDIF" ] ; then
-      echo "Error: cpptraj exited with status $STATUS" > /dev/stderr
-      OutBoth "Error: cpptraj exited with status $STATUS"
-    else
-      echo "$CPPTRAJ: Program error"
-    fi
-    ((PROGERROR++))
+    ProgramError "cpptraj exited with status $STATUS"
   fi
 }
 
@@ -691,6 +703,7 @@ CheckDefines() {
       '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
       '-DHASBZ2'        ) export CPPTRAJ_BZLIB=$DEFINE ;;
       '-DBINTRAJ'       ) export CPPTRAJ_NETCDFLIB=$DEFINE ;;
+      '-DLIBPME'        ) export CPPTRAJ_LIBPME=$DEFINE ;;
       '-DMPI'           ) export CPPTRAJ_MPILIB=$DEFINE ;;
       '-DNO_MATHLIB'    ) CPPTRAJ_MATHLIB='' ;;
       '-D_OPENMP'       ) export CPPTRAJ_OPENMP=$DEFINE ;;
@@ -916,6 +929,7 @@ CheckEnv() {
     #echo "DEBUG: $DESCRIP: Checking requirement: $1"
     case "$1" in
       'netcdf'    ) TestLibrary "NetCDF"             "$CPPTRAJ_NETCDFLIB" ;;
+      'libpme'    ) TestLibrary "libPME"             "$CPPTRAJ_LIBPME" ;;
       'zlib'      ) TestLibrary "Zlib"               "$CPPTRAJ_ZLIB" ;;
       'bzlib'     ) TestLibrary "Bzlib"              "$CPPTRAJ_BZLIB" ;;
       'xdr'       ) TestLibrary "XDR file"           "$CPPTRAJ_XDRFILE" ;;
@@ -953,7 +967,7 @@ CheckEnv() {
       'nthreads' )
         shift
         if [ ! -z "$DO_PARALLEL" ] ; then
-          REMAINDER=`echo "$N_THREADS % $1" | bc`
+          REMAINDER=`expr $N_THREADS % $1`
           if [ -z "$REMAINDER" -o $REMAINDER -ne 0 ] ; then
             echo "  $DESCRIP requires a multiple of $1 parallel threads."
             ((CHECKERR++))
@@ -1185,7 +1199,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   export CPPTRAJ_DACDIF
   export CPPTRAJ_DIFF
   # If not cleaning see what else needs to be set up.
-  if [ $CPPTRAJ_TEST_CLEAN -eq 0 ] ; then
+  if [ $CPPTRAJ_TEST_CLEAN -eq 0 -a -z "$IS_LIBCPPTRAJ" ] ; then
     # Determine binary locations
     SetBinaries
     # If CPPTRAJ_TEST_OS is not set, try to determine. 

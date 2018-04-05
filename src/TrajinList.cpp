@@ -85,6 +85,7 @@ int TrajinList::AddEnsembleIn(std::string const& fname, Topology* topIn, ArgList
       err++;
       continue;
     }
+    if (args.CheckForMoreArgs()) return 1;
     // Currently all input ensembles must be same size.
     if (ensembleSize_ == -1)
       ensembleSize_ = ensemble->EnsembleCoordInfo().EnsembleSize();
@@ -158,6 +159,7 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
       err++;
       continue;
     }
+    if (args.CheckForMoreArgs()) return 1;
     // Add to trajin list and update # of frames.
     trajin_.push_back( traj );
     UpdateMaxFrames( traj->Traj() );

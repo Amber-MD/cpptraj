@@ -37,6 +37,11 @@ std::string ReferenceAction::help_ =
 #ifdef MPI
 /** Should be called after InitRef(). */
 int ReferenceAction::SetTrajComm( Parallel::Comm const& commIn ) {
+  // Does not work for previous
+  if (previous_ && commIn.Size() > 1) {
+    mprinterr("Error: 'previous' reference does not work in parallel.\n");
+    return 1;
+  }
   trajComm_ = commIn;
   // Sanity check. Ensure refMode_ matches on all threads.
   std::vector<int> all_modes( trajComm_.Size() );

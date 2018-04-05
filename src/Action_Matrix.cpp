@@ -160,7 +160,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       matByRes_->SetNeedsSync( false );
 #     endif
     } 
-    outfile_ = init.DFL().AddDataFile(outfilename, actionArgs);
+    outfile_ = init.DFL().AddDataFile(outfilename, "square2d noxcol noheader", actionArgs);
     if (outfile_ != 0) {
       if (outtype_ == BYATOM)
         outfile_->AddDataSet( Mat_ );
@@ -822,10 +822,10 @@ int Action_Matrix::SyncAction() {
   if (!vect2_.empty()) {
     if (trajComm_.Master()) {
       Darray buf( vect2_.size() );
-      trajComm_.Reduce( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+      trajComm_.ReduceMaster( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
       vect2_ = buf;
     } else
-      trajComm_.Reduce( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+      trajComm_.ReduceMaster( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
   }
   return 0;
 }
@@ -1063,7 +1063,4 @@ void Action_Matrix::Print() {
                          ByMaskAverage(mask2_.Nselected(), mask2_.Nselected()));
     }
   }
-  // Process output file args FIXME Can this be done in Init()?
-  if (outfile_ != 0)
-    outfile_->ProcessArgs("square2d noxcol noheader");
 }
