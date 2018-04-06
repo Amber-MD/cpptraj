@@ -308,6 +308,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
+        QuaternionRMSD.cpp \
         Random.cpp \
         Range.cpp \
         RPNcalc.cpp \
@@ -359,7 +360,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Vec3.cpp \
         ViewRst.cpp
 
-CSOURCES= molsurf.c
+CSOURCES= molsurf.c qcprot.c
 
 # The files below are used by cpptraj and libcpptraj but must be compiled
 # differently for libcpptraj.
