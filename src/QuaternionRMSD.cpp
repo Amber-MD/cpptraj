@@ -4,8 +4,8 @@
 #include "CpptrajStdio.h"
 
 double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
-                                        Matrix_3x3& U, Vec3& Trans,
-                                        bool useMass)
+                                  Matrix_3x3& U, Vec3& Trans,
+                                  bool useMass, double minScore)
 {
   Trans.Zero();
   int ncoord = Ref.size();
@@ -103,6 +103,20 @@ double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
   return CalcRMSDRotationalMatrix( Xref_, Xtgt_, len_, U.Dptr(), M_ );
 */
   double rmsd;
-  FastCalcRMSDAndRotation(U.Dptr(), rot.Dptr(), &rmsd, mwss, total_mass, -1);
+  FastCalcRMSDAndRotation(U.Dptr(), rot.Dptr(), &rmsd, mwss, total_mass, minScore);
   return rmsd;
+}
+
+double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
+                                  Matrix_3x3& U, Vec3& Trans,
+                                  bool useMass)
+{
+  return QuaternionRMSD_CenteredRef(Ref, Tgt, U, Trans, useMass, -1);
+}
+
+double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt, bool useMass)
+{
+  Matrix_3x3 U;
+  Vec3 Trans;
+  return QuaternionRMSD_CenteredRef(Ref, Tgt, U, Trans, useMass, 99999);
 }
