@@ -3,70 +3,30 @@
 #include "Constants.h"
 #include "CpptrajStdio.h"
 
-QuaternionRMSD::~QuaternionRMSD() {
-  Clear();
-}
-
-void QuaternionRMSD::Clear() {
-  if (M_ != 0) {
-    delete[] M_;
-    M_ = 0;
-  }
-  if (Xtgt_ != 0) {
-    for (int i = 0; i < 3; i++) {
-      delete[] Xtgt_[i];
-      delete[] Xref_[i];
-    }
-    delete[] Xtgt_;
-    delete[] Xref_;
-    Xtgt_ = 0;
-    Xref_ = 0;
-  }
-  len_ = 0;
-}
-
-int QuaternionRMSD::Init(int natom, std::vector<double> const& mass)
-{
-  Clear();
-  len_ = natom;
-  Xtgt_ = new double*[ 3 ];
-  Xref_ = new double*[ 3 ];
-  for (int i = 0; i < 3; i++) {
-    Xtgt_[i] = new double[ len_ ];
-    Xref_[i] = new double[ len_ ];
-  }
-  if (!mass.empty()) {
-    M_ = new double[ mass.size() ];
-    std::copy(mass.begin(), mass.end(), M_);
-  }
-  return 0;
-}
-
-double QuaternionRMSD::RMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
-                                        Matrix_3x3& U, Vec3& Trans)
+double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
+                                        Matrix_3x3& U, Vec3& Trans,
+                                        bool useMass)
 {
   Trans.Zero();
-  double* X_ = Tgt.xAddress();
-  const double* R_ = Ref.xAddress();
-  int ncoord = len_ * 3;
+  int ncoord = Ref.size();
   double total_mass;
-  if (M_ != 0) {
+  if (useMass) {
     total_mass = 0.0;
     int im = 0;
     for (int ix = 0; ix < ncoord; ix += 3, im++) {
-      double mass = M_[im];
+      double mass = Tgt.Mass(im);
       total_mass += mass;
-      Trans[0] += (X_[ix  ] * mass);
-      Trans[1] += (X_[ix+1] * mass);
-      Trans[2] += (X_[ix+2] * mass);
+      Trans[0] += (Tgt[ix  ] * mass);
+      Trans[1] += (Tgt[ix+1] * mass);
+      Trans[2] += (Tgt[ix+2] * mass);
     }
   } else {
-    total_mass = (double)len_;
+    total_mass = (double)Ref.Natom();
     int im = 0;
     for (int ix = 0; ix < ncoord; ix += 3, im++) {
-      Trans[0] += X_[ix  ];
-      Trans[1] += X_[ix+1];
-      Trans[2] += X_[ix+2];
+      Trans[0] += Tgt[ix  ];
+      Trans[1] += Tgt[ix+1];
+      Trans[2] += Tgt[ix+2];
      }
   }
   if (total_mass < Constants::SMALL) {
@@ -78,6 +38,56 @@ double QuaternionRMSD::RMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
   Trans[2] /= total_mass;
   Trans.Neg();
   Tgt.Translate(Trans);
+
+  // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
+  // Calculate the Kabsch matrix: R = (rij) = Sum(yni*xnj)
+  double mwss = 0.0;
+  Matrix_3x3 rot(0.0);
+  if (useMass) {
+    int im = 0;
+    for (int i = 0; i < ncoord; i += 3, im++)
+    {
+      double xt = Tgt[i  ];
+      double yt = Tgt[i+1];
+      double zt = Tgt[i+2];
+      double xr = Ref[i  ];
+      double yr = Ref[i+1];
+      double zr = Ref[i+2];
+      double atom_mass = Tgt.Mass(im);
+      mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
+      rot[0] += atom_mass*xt*xr;
+      rot[1] += atom_mass*xt*yr;
+      rot[2] += atom_mass*xt*zr;
+      rot[3] += atom_mass*yt*xr;
+      rot[4] += atom_mass*yt*yr;
+      rot[5] += atom_mass*yt*zr;
+      rot[6] += atom_mass*zt*xr;
+      rot[7] += atom_mass*zt*yr;
+      rot[8] += atom_mass*zt*zr;
+    }
+  } else {
+    for (int i = 0; i < ncoord; i += 3)
+    {
+      double xt = Tgt[i  ];
+      double yt = Tgt[i+1];
+      double zt = Tgt[i+2];
+      double xr = Ref[i  ];
+      double yr = Ref[i+1];
+      double zr = Ref[i+2];
+      mwss += ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
+      rot[0] += xt*xr;
+      rot[1] += xt*yr;
+      rot[2] += xt*zr;
+      rot[3] += yt*xr;
+      rot[4] += yt*yr;
+      rot[5] += yt*zr;
+      rot[6] += zt*xr;
+      rot[7] += zt*yr;
+      rot[8] += zt*zr;
+    }
+  }
+  mwss *= 0.5;    // E0 = 0.5*Sum(xn^2+yn^2) 
+/*
   // Save coordinates
   int ix = 0;
   for (int im = 0; im < len_; im++, ix += 3)
@@ -91,4 +101,8 @@ double QuaternionRMSD::RMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
   }
 
   return CalcRMSDRotationalMatrix( Xref_, Xtgt_, len_, U.Dptr(), M_ );
+*/
+  double rmsd;
+  FastCalcRMSDAndRotation(U.Dptr(), rot.Dptr(), &rmsd, mwss, total_mass, -1);
+  return rmsd;
 }
