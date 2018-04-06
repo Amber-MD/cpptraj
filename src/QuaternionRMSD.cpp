@@ -103,7 +103,9 @@ double QuaternionRMSD_CenteredRef(Frame const& Ref, Frame& Tgt,
   return CalcRMSDRotationalMatrix( Xref_, Xtgt_, len_, U.Dptr(), M_ );
 */
   double rmsd;
+  //int err =
   FastCalcRMSDAndRotation(U.Dptr(), rot.Dptr(), &rmsd, mwss, total_mass, minScore);
+  //mprintf("DEBUG: qcprot returned %i\n", err);
   return rmsd;
 }
 
