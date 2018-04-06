@@ -96,7 +96,7 @@ extern "C" {
                RMSD value
 
 */
-double CalcRMSDRotationalMatrix(double **coords1, double **coords2, const int len, double *rot, const double *weight);
+//double CalcRMSDRotationalMatrix(double **coords1, double **coords2, const int len, double *rot, const double *weight);
 
 /* Calculate the inner product of two structures.
    If weight array is not NULL, calculate the weighted inner product.

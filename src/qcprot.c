@@ -87,7 +87,7 @@
  ******************************************************************************/
 #include "qcprot.h"
 
-
+/*
 static double
 InnerProduct(double *A, double **coords1, double **coords2, const int len, const double *weight)
 {
@@ -160,7 +160,7 @@ InnerProduct(double *A, double **coords1, double **coords2, const int len, const
 
     return (G1 + G2) * 0.5;
 }
-
+*/
 
 int
 FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double len, double minScore)
@@ -340,7 +340,7 @@ FastCalcRMSDAndRotation(double *rot, double *A, double *rmsd, double E0, double 
     return (1);
 }
 
-
+/*
 static void
 CenterCoords(double **coords, const int len, const double *weight)
 {
@@ -387,18 +387,19 @@ CenterCoords(double **coords, const int len, const double *weight)
         z[i] -= zsum;
     }
 }
-
+*/
 
 /* Superposition coords2 onto coords1 -- in other words, coords2 is rotated, coords1 is held fixed */
+/*
 double
 CalcRMSDRotationalMatrix(double **coords1, double **coords2, const int len, double *rot, const double *weight)
 {
     int             i;
     double          A[9], rmsd, wsum;
 
-    /* center the structures -- if precentered you can omit this step */
-//    CenterCoords(coords1, len, weight);
-//    CenterCoords(coords2, len, weight);
+    // center the structures -- if precentered you can omit this step
+    CenterCoords(coords1, len, weight);
+    CenterCoords(coords2, len, weight);
 
     if (weight == NULL)
     {
@@ -413,12 +414,12 @@ CalcRMSDRotationalMatrix(double **coords1, double **coords2, const int len, doub
         }
     }
 
-    /* calculate the (weighted) inner product of two structures */
+    // calculate the (weighted) inner product of two structures
     double E0 = InnerProduct(A, coords1, coords2, len, weight);
 
-    /* calculate the RMSD & rotational matrix */
+    // calculate the RMSD & rotational matrix
     FastCalcRMSDAndRotation(rot, A, &rmsd, E0, wsum, -1);
 
     return rmsd;
 }
-
+*/
