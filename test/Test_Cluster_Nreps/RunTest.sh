@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles cluster.in 2drms.gnu clusters.*.dat summary.*.dat
+CleanFiles cluster.in 2drms.gnu clusters.*.dat summary.*.dat singlerep.nc \
+           Rep.c*.nc PD
 
 INPUT='-i cluster.in'
 
@@ -11,7 +12,11 @@ parm ../DPDP.parm7
 trajin ../DPDP.nc
 #2drms !@H= out 2drms.gnu
 cluster kmeans clusters 2 info clusters.2.dat summary summary.2.dat \
-        savepairdist pairdist PD savenreps 5
+        savepairdist pairdist PD savenreps 5 
+
+#\
+#        singlerepout singlerep.nc \
+#        repout Rep repfmt netcdf repframe
 EOF
 RunCpptraj "Clustering with specified # reps"
 
