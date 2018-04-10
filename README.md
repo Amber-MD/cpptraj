@@ -5,7 +5,6 @@ CPPTRAJ is a program designed to load and analyze molecular dynamics
 trajectories and relevant data sets derived from their analysis. It is 
 a C++ rewrite of the PTRAJ trajectory analysis code from Amber.
 
-*Note that the GitHub version of CPPTRAJ should be considered BETA.*  
 The official AmberTools release version of CPPTRAJ can be found
 at the [Amber website](http://ambermd.org).
 
@@ -30,26 +29,23 @@ PYTRAJ Compatibility Status
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2017 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2018 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
 Installation & Testing
 ======================
 Run `./configure --help` for a short list of configure options. `./configure --full-help`
-will list all available configure options. By default, CPPTRAJ requires the following
+will list all available configure options. For full functionality, CPPTRAJ requires the following
 libraries:
 
 * NetCDF
 * BLAS
 * LAPACK
-* ARPACK
+* ARPACK (now bundled with CPPTRAJ)
 * Bzip2
 * Gzip
-
-The following libraries are optional:
-
-* Parallel NetCDF (-mpi build only, for NetCDF trajectory output)
+* Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
 * CUDA (-cuda build only)
 
 `./configure gnu` should be adequate to set up compilation for most systems.
@@ -81,12 +77,14 @@ well to test the basic functionality of CPPTRAJ.
 
 CPPTRAJ Authors
 ===============
-**Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>)  
-Department of Medicinal Chemistry  
-University of Utah, Salt Lake City, UT.
+**Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>)
+Laboratory of Computational Biology
+National Heart Lung and Blood Institute
+National Institutes of Health, Bethesda, MD. 
 
-  CPPTRAJ is based on PTRAJ by Thomas E. Cheatham, III (University of Utah,
-Salt Lake City, UT, USA) and many routines from PTRAJ have been adapted for 
+  CPPTRAJ is based on PTRAJ by Thomas E. Cheatham, III (Department of
+Medicinal Chemistry, University of Utah, Salt Lake City, UT, USA) and
+many routines from PTRAJ have been adapted for 
 use in CPPTRAJ, including code used in the following classes:
 Analysis\_CrankShaft, Analysis\_Statistics, Action\_DNAionTracker,
 Action\_RandomizeIons, Action\_Principal, Action\_Grid, GridAction,
@@ -128,6 +126,9 @@ Enhancements to entropy calculation in original Action\_Gist.
 
 * Amit Roy (University of Utah, UT)
 Code for the CUDA version of the 'closest' Action.
+
+* Andrew Simmonett (National Institutes of Health)
+Code for the reciprocal part of the particle mesh Ewald calculation.
 
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)

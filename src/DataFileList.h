@@ -26,6 +26,8 @@ class DataFileList {
     CpptrajFile* GetCpptrajFile(FileName const&) const;
     /// \return DataFile specified by name, add if none exists, or 0 if no name specified.
     DataFile* AddDataFile(FileName const&, ArgList&);
+    /// Allow default arguments.
+    DataFile* AddDataFile(FileName const&, ArgList const&, ArgList&);
     /// \return DataFile specified by name, add if none exists, or 0 if no name specified.
     DataFile* AddDataFile(FileName const&);
     /// \return DataFile specified by name with specific format, add if none exists.
