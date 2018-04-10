@@ -1046,25 +1046,54 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
-    Trajout_Single clusterout;
-    // Get best rep frame # 
-    int framenum = C->BestRepFrame();
-    // Create filename based on frame #
-    std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
-    if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
-    cfilename += tmpExt;
-    // Set up trajectory file.
-    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
-                                    coords_->CoordsInfo(), 1, reptrajfmt_))
-    {
-      mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
-                cfilename.c_str());
-       return;
+    if (writeRepFrameNum_) {
+      // Each rep from cluster to separate file.
+      for (ClusterNode::RepPairArray::const_iterator rep = C->BestReps().begin();
+                                                     rep != C->BestReps().end(); ++rep)
+      {
+        Trajout_Single clusterout;
+        // Get best rep frame # 
+        int framenum = rep->first;
+        // Create filename based on cluster number and frame #
+        std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num()) +
+                                ("." + integerToString(framenum+1)) + tmpExt;
+        // Set up trajectory file.
+        if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+                                        coords_->CoordsInfo(), 1, reptrajfmt_))
+        {
+          mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
+                    cfilename.c_str());
+          return;
+        }
+        // Write cluster rep frame
+        coords_->GetFrame( framenum, clusterframe );
+        clusterout.WriteSingle(framenum, clusterframe);
+        // Close traj
+        clusterout.EndTraj();
+      }
+    } else {
+      // Each rep from cluster to single file.
+      Trajout_Single clusterout;
+      // Create filename based on cluster number
+      std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num()) + tmpExt;
+      // Set up trajectory file.
+      if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+                                      coords_->CoordsInfo(), nRepsToSave_, reptrajfmt_))
+      {
+        mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
+                  cfilename.c_str());
+        return;
+      }
+      int framecounter = 0;
+      for (ClusterNode::RepPairArray::const_iterator rep = C->BestReps().begin();
+                                                     rep != C->BestReps().end(); ++rep)
+      {
+        // Write cluster rep frame
+        coords_->GetFrame( rep->first, clusterframe );
+        clusterout.WriteSingle( framecounter++, clusterframe );
+      }
+      // Close traj
+      clusterout.EndTraj();
     }
-    // Write cluster rep frame
-    coords_->GetFrame( framenum, clusterframe );
-    clusterout.WriteSingle(framenum, clusterframe);
-    // Close traj
-    clusterout.EndTraj();
   }
 }
