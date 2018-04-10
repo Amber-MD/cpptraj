@@ -22,9 +22,9 @@ class ClusterList {
     /// Determine which frame in each cluster is best representative using cumulative distance.
     int FindBestRepFrames_CumulativeDist(int);
     /// Determine which frame (ignoring sieved) in each cluster is best representative.
-    int FindBestRepFrames_NoSieve_CumulativeDist();
+    int FindBestRepFrames_NoSieve_CumulativeDist(int);
     /// Determine which frame in each cluster is best representative by distance to centroid.
-    int FindBestRepFrames_Centroid();
+    int FindBestRepFrames_Centroid(int);
     /// Print overall summary of clusters.
     void Summary(std::string const&,bool) const;
     /// Print summary of clusters separated by parts.

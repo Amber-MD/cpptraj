@@ -608,8 +608,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     cluster_post_bestrep.Start();
     switch (bestRep_) {
       case CUMULATIVE: CList_->FindBestRepFrames_CumulativeDist(nRepsToSave_); break;
-      case CENTROID  : CList_->FindBestRepFrames_Centroid(); break;
-      case CUMULATIVE_NOSIEVE: CList_->FindBestRepFrames_NoSieve_CumulativeDist(); break;
+      case CENTROID  : CList_->FindBestRepFrames_Centroid(nRepsToSave_); break;
+      case CUMULATIVE_NOSIEVE: CList_->FindBestRepFrames_NoSieve_CumulativeDist(nRepsToSave_); break;
     }
     cluster_post_bestrep.Stop();
     // DEBUG
