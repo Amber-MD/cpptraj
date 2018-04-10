@@ -231,8 +231,15 @@ void ClusterList::Summary(std::string const& summaryfile, bool includeSieveInAvg
   }
   if (FrameDistances().SieveValue() != 1 && !includeSieveInAvg)
     mprintf("Warning: Within cluster average distance (AvgDist) does not include sieved frames.\n");
-  outfile.Printf("%-8s %8s %8s %8s %8s %8s %8s","#Cluster","Frames","Frac",
-                     "AvgDist","Stdev","Centroid","AvgCDist");
+  outfile.Printf("%-8s %8s %8s %8s %8s","#Cluster","Frames","Frac",
+                     "AvgDist","Stdev");
+  if (!clusters_.empty() && clusters_.front().BestReps().size() > 1) {
+    int nBestReps = clusters_.front().BestReps().size();
+    for (int i = 0; i != nBestReps; i++)
+      outfile.Printf(" %8s %8s", "Rep", "RepScore");
+  } else
+    outfile.Printf(" %8s", "Centroid");
+  outfile.Printf(" %8s", "AvgCDist");
   unsigned int nWidth = DetermineNameWidth();
   if (nWidth > 0) {
     if (nWidth < 8) nWidth = 8;
@@ -313,9 +320,17 @@ void ClusterList::Summary(std::string const& summaryfile, bool includeSieveInAvg
       //t_fdist.Stop();
     }
     // OUTPUT
-    outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f",
-                   node->Num(), node->Nframes(), (double)node->Nframes()/fmax, internalAvg, 
-                   internalSD, node->BestRepFrame()+1, avgclusterdist );
+    outfile.Printf("%8i %8i %8.3f %8.3f %8.3f",
+                   node->Num(), node->Nframes(), (double)node->Nframes()/fmax,
+                   internalAvg, internalSD);
+    if (node->BestReps().size() < 2)
+      outfile.Printf(" %8i", node->BestRepFrame()+1);
+    else {
+      for (ClusterNode::RepPairArray::const_iterator rep = node->BestReps().begin();
+                                                     rep != node->BestReps().end(); ++rep)
+        outfile.Printf(" %8i %8.3f", rep->first+1, rep->second);
+    }
+    outfile.Printf(" %8.3f", avgclusterdist);
     if (nWidth > 0)
       outfile.Printf(" %*s %8.3f", nWidth, node->Cname().c_str(), node->RefRms());
     outfile.Printf("\n");

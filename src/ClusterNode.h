@@ -38,10 +38,13 @@ class ClusterNode {
     frame_iterator endframe()   const { return frameList_.end();   }
     /// \return Frame number at given index.
     int ClusterFrame(int idx)   const { return frameList_[idx];    }
-    // Return internal variables
+    /// \return cluster eccentricity
     double Eccentricity()      const { return eccentricity_;          }
+    /// \return internal cluster number
     int Num()                  const { return num_;                   }
+    /// \return number of frames in cluster.
     int Nframes()              const { return (int)frameList_.size(); }
+    /// \return best representative frame number, or -1 if no best rep set.
     int BestRepFrame()         const {
       if (bestReps_.empty())
         return -1;
