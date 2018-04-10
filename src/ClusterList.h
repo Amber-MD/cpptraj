@@ -20,7 +20,7 @@ class ClusterList {
     /// Add back sieved frames, update centroids, sort by cluster population.
     void Renumber(bool);
     /// Determine which frame in each cluster is best representative using cumulative distance.
-    int FindBestRepFrames_CumulativeDist();
+    int FindBestRepFrames_CumulativeDist(int);
     /// Determine which frame (ignoring sieved) in each cluster is best representative.
     int FindBestRepFrames_NoSieve_CumulativeDist();
     /// Determine which frame in each cluster is best representative by distance to centroid.

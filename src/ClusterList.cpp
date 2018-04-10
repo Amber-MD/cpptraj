@@ -119,7 +119,7 @@ void SetBestRepFrame(ClusterNode& node, RepMap const& reps) {
 /** Find the frame in each cluster that is the best representative by
   * having the lowest cumulative distance to every other point in the cluster.
   */
-int ClusterList::FindBestRepFrames_CumulativeDist() {
+int ClusterList::FindBestRepFrames_CumulativeDist(int nToSave) {
   int err = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
     //node->Cent()->Print("centroid." + integerToString(node->Num())); // DEBUG
@@ -135,7 +135,7 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
         if (f1 != f2)
           cdist += Frame_Distance(*f1, *f2);
       }
-      SaveBestRep(bestReps, RepPair(cdist, *f1), 3);
+      SaveBestRep(bestReps, RepPair(cdist, *f1), nToSave);
       //tmp.Printf("%i %g %g\n", *f1+1, cdist, Cdist_->FrameCentroidDist(*f1, node->Cent()));
     }
     //tmp.CloseFile();
@@ -219,6 +219,7 @@ int ClusterList::FindBestRepFrames_Centroid() {
   return err;
 }
 
+// -----------------------------------------------------------------------------
 // ClusterList::DetermineNameWidth()
 unsigned int ClusterList::DetermineNameWidth() const {
   // Quick pass through clusters to determine width of cluster names

@@ -39,6 +39,7 @@ class Analysis_Clustering: public Analysis {
     int windowSize_;            ///< Window size for # clusters seen vs time.
     int drawGraph_;
     int draw_maxit_;
+    int nRepsToSave_;           ///< Number of best representative structures to save
     double draw_tol_;
     double refCut_;             ///< RMSD cutoff for assigning reference names to clusters.
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
