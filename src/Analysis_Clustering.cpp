@@ -68,7 +68,7 @@ void Analysis_Clustering::Help() const {
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
-          "\t[bestrep {cumulative|centroid|cumulative_nosieve}]\n"
+          "\t[bestrep {cumulative|centroid|cumulative_nosieve}] [savenreps <#>]\n"
           "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
           "\t[sil <silhouette file prefix>] [assignrefs [refcut <rms>] [refmask <mask>]]\n"
@@ -236,6 +236,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       mprinterr("Error: Invalid 'bestRep' option (%s)\n", bestRepStr.c_str());
       return Analysis::ERR;
     }
+  }
+  nRepsToSave_ = analyzeArgs.getKeyInt("savenreps", 1);
+  if (nRepsToSave_ < 1) {
+    mprinterr("Error: 'savenreps' must be > 0\n");
+    return Analysis::ERR;
   }
   if (analyzeArgs.hasKey("drawgraph"))
     drawGraph_ = 1;
@@ -468,6 +473,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       mprintf(" lowest cumulative distance to all other frames (ignore sieved frames).\n");
       break;
   }
+  if (nRepsToSave_ > 1)
+    mprintf("\tThe top %i representative frames will be determined.\n", nRepsToSave_);
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
