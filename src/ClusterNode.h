@@ -10,6 +10,10 @@ class ClusterNode {
     ClusterNode(ClusterDist*,ClusterDist::Cframes const&, int);
     ClusterNode(const ClusterNode&);
     ClusterNode& operator=(const ClusterNode&);
+    /// Used to pair a representative frame number with a score.
+    typedef std::pair<int,float> RepPair;
+    /// Used to hold a list of representative frames/scores
+    typedef std::vector<RepPair> RepPairArray;
     /// Used to sort clusters by # of frames in cluster
     inline bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
@@ -46,6 +50,9 @@ class ClusterNode {
     void AddFrameToCluster(int fnum) { frameList_.push_back( fnum );  }
     void SetNum(int numIn)           { num_ = numIn;                  }
     void SetBestRepFrame(int f)      { repFrame_ = f;                 }
+    /// Access representative frame list
+    RepPairArray const& BestReps() const { return bestReps_; }
+    RepPairArray&       BestReps()       { return bestReps_; }
     inline void SetNameAndRms(std::string const&, double);
     /// Sort internal frame list
     void SortFrameList();
@@ -62,6 +69,7 @@ class ClusterNode {
     double refRms_;                   ///< Cluster rms to reference (if assigned)
     int num_;                         ///< Cluster number.
     int repFrame_;                    ///< Frame number with lowest dist. to all other frames.
+    RepPairArray bestReps_;           ///< List of best representative frames with scores.
     ClusterDist::Cframes frameList_;  ///< List of frames belonging to this cluster.
     Centroid* centroid_;              ///< Centroid of all frames in this cluster.
     std::string name_;                ///< Cluster name assigned from reference.

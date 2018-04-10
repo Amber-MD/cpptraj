@@ -81,9 +81,12 @@ void ClusterList::Renumber(bool addSievedFrames) {
     node->SetNum( newNum++ );
 }
 
+// -----------------------------------------------------------------------------
+/// Used to pair representative score with frame number.
 typedef std::pair<double, int> RepPair;
+/// Used to hold pairs of representative scores to frames.
 typedef std::multimap<double, int> RepMap;
-
+/// Save up to maxSize of the best (lowest) representative scores/frames.
 void SaveBestRep(RepMap& reps, RepPair const& Dist_Num, unsigned int maxSize)
 {
   if (reps.empty())
@@ -100,6 +103,17 @@ void SaveBestRep(RepMap& reps, RepPair const& Dist_Num, unsigned int maxSize)
     }
   }
 }
+/// Set given cluster node with best representative frames/scores in reps
+void SetBestRepFrame(ClusterNode& node, RepMap const& reps) {
+  if (!reps.empty()) {
+    node.BestReps().clear();
+    for (RepMap::const_iterator it = reps.begin(); it != reps.end(); ++it) {
+      if (node.BestReps().empty())
+        node.SetBestRepFrame( it->second );
+      node.BestReps().push_back( ClusterNode::RepPair(it->second, (float)it->first) );
+    }
+  }
+}
 
 // ClusterList::FindBestRepFrames_CumulativeDist()
 /** Find the frame in each cluster that is the best representative by
@@ -111,8 +125,6 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
     //node->Cent()->Print("centroid." + integerToString(node->Num())); // DEBUG
     //CpptrajFile tmp; // DEBUG
     //tmp.OpenWrite("c"+integerToString(node->Num())+".bestRep.dat"); // DEBUG
-    double mindist = DBL_MAX;
-    int minframe = -1;
     RepMap bestReps;
     for (ClusterNode::frame_iterator f1 = node->beginframe();
                                      f1 != node->endframe(); ++f1)
@@ -124,21 +136,17 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
           cdist += Frame_Distance(*f1, *f2);
       }
       SaveBestRep(bestReps, RepPair(cdist, *f1), 3);
-      if (cdist < mindist) {
-        mindist = cdist;
-        minframe = *f1;
-      }
       //tmp.Printf("%i %g %g\n", *f1+1, cdist, Cdist_->FrameCentroidDist(*f1, node->Cent()));
     }
     //tmp.CloseFile();
-    if (minframe == -1) {
+    if (bestReps.empty()) {
       mprinterr("Error: Could not determine represenative frame for cluster %i\n",
                 node->Num());
       err++;
     }
-    node->SetBestRepFrame( minframe );
+    SetBestRepFrame( *node, bestReps );
     // DEBUG
-    mprintf("DEBUG: Best rep %i (%g). Top 3:\n", minframe, mindist);
+    mprintf("DEBUG: Best reps:\n");
     for (RepMap::const_iterator it = bestReps.begin(); it != bestReps.end(); ++it)
       mprintf("\t%i (%g)\n", it->second, it->first);
   }
