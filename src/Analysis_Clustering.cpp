@@ -1007,7 +1007,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = coords_->TopPtr();
   if (clusterout.PrepareTrajWrite(singlerepfile_, ArgList(), clusterparm,
-                                  coords_->CoordsInfo(), CList.Nclusters(),
+                                  coords_->CoordsInfo(), CList.Nclusters() * nRepsToSave_,
                                   singlerepfmt_)) 
   {
     mprinterr("Error: Could not set up single trajectory for represenatatives %s for write.\n",
@@ -1021,8 +1021,12 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator cluster = CList.begincluster(); 
                                      cluster != CList.endcluster(); ++cluster) 
   {
-   coords_->GetFrame( cluster->BestRepFrame(), clusterframe );
-   clusterout.WriteSingle(framecounter++, clusterframe);
+    for (ClusterNode::RepPairArray::const_iterator rep = cluster->BestReps().begin();
+                                                   rep != cluster->BestReps().end(); ++rep)
+    {
+      coords_->GetFrame( rep->first, clusterframe );
+      clusterout.WriteSingle(framecounter++, clusterframe);
+    }
   }
   // Close traj
   clusterout.EndTraj();
