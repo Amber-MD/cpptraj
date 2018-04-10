@@ -319,7 +319,7 @@ void ClusterList::Summary(std::string const& summaryfile, bool includeSieveInAvg
       }
       //t_fdist.Stop();
     }
-    // OUTPUT
+    // OUTPUT - TODO handle case when clusters dont have same number best reps
     outfile.Printf("%8i %8i %8.3f %8.3f %8.3f",
                    node->Num(), node->Nframes(), (double)node->Nframes()/fmax,
                    internalAvg, internalSD);
@@ -492,7 +492,15 @@ void ClusterList::PrintClustersToFile(std::string const& filename) const {
   // Print representative frame numbers
   outfile.Printf("#Representative frames:");
   for (cluster_iterator C1 = begincluster(); C1 != endcluster(); ++C1)
-    outfile.Printf(" %i", C1->BestRepFrame()+1);
+    if (C1->BestReps().size() < 2)
+      outfile.Printf(" %i", C1->BestRepFrame()+1);
+    else {
+      outfile.Printf(" {");
+      for (ClusterNode::RepPairArray::const_iterator rep = C1->BestReps().begin();
+                                                     rep != C1->BestReps().end(); ++rep)
+        outfile.Printf(" %i %g", rep->first+1, rep->second);
+      outfile.Printf(" }");
+    }
   outfile.Printf("\n");
   // Print sieve info if present
   if (FrameDistances().SieveValue() != 1) {
