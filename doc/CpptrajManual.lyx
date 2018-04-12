@@ -27,7 +27,17 @@
 \bibtex_command default
 \index_command default
 \paperfontsize default
-\use_hyperref false
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen true
+\pdf_bookmarksopenlevel 0
+\pdf_breaklinks true
+\pdf_pdfborder true
+\pdf_colorlinks true
+\pdf_backref false
+\pdf_pdfusetitle true
 \papersize default
 \use_geometry false
 \use_package amsmath 1
@@ -40,7 +50,7 @@
 \use_package stackrel 1
 \use_package stmaryrd 1
 \use_package undertilde 1
-\cite_engine natbib 
+\cite_engine natbib
 \cite_engine_type numerical
 \biblio_style plainnat
 \use_bibtopic false
@@ -69,7 +79,6 @@
 \end_header
 
 \begin_body
-
 
 \begin_layout Standard
 
@@ -36298,7 +36307,6 @@ n times
 \bar no
 \noun off
 \color none
-\lang english
 
 \begin_inset Formula $\tau_{m}$
 \end_inset
@@ -36477,7 +36485,6 @@ key "Prompers02a"
 \bar no
 \noun off
 \color none
-\lang english
 
 \begin_inset Formula $\tau_{m}$
 \end_inset
