@@ -41391,7 +41391,7 @@ run
 \begin_inset CommandInset bibtex
 LatexCommand bibtex
 bibfiles "cpptraj"
-options "plainnat"
+options "unsrt"
 
 \end_inset
 
