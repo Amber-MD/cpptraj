@@ -33,6 +33,19 @@ CPPTRAJ is Copyright (c) 2010-2018 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
+Documentation
+=============
+  The `/doc` subdirectory contains PDF and LyX versions of the CPPTRAJ manual.
+An HTML version can be found [here](https://amber-md.github.io/cpptraj/). There
+is also limited help for commands in interactive mode via `help [<command>]`;
+`help` with no arguments lists all known commands.
+
+  Code documentation can be generated via Doxygen by typing `make docs`. This
+will install HTML and Latex documentation at `doc/html/index.html` and in 
+the `doc/latex` respectively. A limited developers guide is available in
+Lyx/PDF formats in the `doc/` subdirectory and in HTML format
+[here](https://amber-md.github.io/cpptraj/).
+
 Installation & Testing
 ======================
 Run `./configure --help` for a short list of configure options. `./configure --full-help`
@@ -58,6 +71,8 @@ An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag.
 CPPTRAJ can be built with both MPI and OpenMP; when running this build users 
 should take care to properly set OMP_NUM_THREADS if using more than 1 MPI
 thread per node. A CUDA build is now also available via the `-cuda` flag.
+By default CPPTRAJ will be configured for multiple shader models; to restrict
+the CUDA build to a single shader model use the SHADER_MODEL environment variable.
 Any combination of `-cuda`, `-mpi`, and `-openmp` may be used.
 
 The configure script by default sets everything up to link dynamically. The
@@ -162,14 +177,3 @@ Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
 * CPPTRAJ uses the xdrfile library for reading XTC files (http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library); specifically a somewhat updated version from MDTRAJ (https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
 
-Documentation
-=============
-  The main documentation for CPPTRAJ usage is in the AmberTools user manual,
-available from the [Amber website](http://ambermd.org/doc12/) or from the AmberTools
-distribution in `$AMBERHOME/doc`. There is also limited help for commands in interactive mode via
-`help [<command>]`; `help` with no arguments lists all known commands.
-
-  Code documentation can be generated via Doxygen by typing `make docs`. This
-will install HTML and Latex documentation at `doc/html/index.html` and in 
-the `doc/latex` respectively. A limited developers guide is available in
-Lyx/PDF formats in the `doc/` subdirectory.
