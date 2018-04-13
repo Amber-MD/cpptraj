@@ -28,6 +28,8 @@ class CpptrajState {
     DataSetList&       DSL()        { return DSL_;         }
     DataFileList const& DFL() const { return DFL_;         }
     DataFileList&       DFL()       { return DFL_;         }
+    AnalysisList const& Analyses() const { return analysisList_; }
+    AnalysisList&       Analyses()       { return analysisList_; }
     TrajModeType Mode()       const { return mode_;        }
     int Debug()               const { return debug_;       }
     bool ShowProgress()       const { return showProgress_;}

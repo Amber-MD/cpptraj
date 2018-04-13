@@ -19,6 +19,7 @@
 #include "Exec_DataSetCmd.h"
 #include "Exec_GenerateAmberRst.h"
 #include "Exec_Help.h"
+#include "Exec_ParallelAnalysis.h"
 #include "Exec_Precision.h"
 #include "Exec_PrintData.h"
 #include "Exec_ReadData.h"
@@ -205,6 +206,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ListAll(),         Cmd::EXE, 1, "list" );
   Command::AddCmd( new Exec_NoExitOnError(),   Cmd::EXE, 1, "noexitonerror" );
   Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
+  Command::AddCmd( new Exec_ParallelAnalysis(),Cmd::EXE, 1, "parallelanalysis" );
   Command::AddCmd( new Exec_Precision(),       Cmd::EXE, 1, "precision" );
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );

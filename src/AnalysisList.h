@@ -13,6 +13,7 @@ class AnalysisList {
     int DoAnalyses();
     void List() const;
     bool Empty() const { return analysisList_.empty(); }
+    unsigned int size() const { return analysisList_.size(); }
   private:
     /// Analysis setup status
     enum AnalysisStatusType { NO_SETUP = 0, SETUP, INACTIVE };
