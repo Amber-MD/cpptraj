@@ -42,6 +42,7 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
   }
   // This error check serves as a barrier
   if (Parallel::World().CheckError( nerr )) return CpptrajState::ERR;
+  State.DFL().AllThreads_WriteAllDF();
   State.Analyses().Clear();
   return CpptrajState::OK;
 }
