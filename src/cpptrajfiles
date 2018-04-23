@@ -97,6 +97,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Analysis_CurveFit.cpp \
         Analysis_Divergence.cpp \
         Analysis_FFT.cpp \
+        Analysis_HausdorffDistance.cpp \
         Analysis_Hist.cpp \
         Analysis_Integrate.cpp \
         Analysis_IRED.cpp \

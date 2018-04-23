@@ -174,6 +174,7 @@
 #include "Analysis_Multicurve.h"
 #include "Analysis_TI.h"
 #include "Analysis_ConstantPHStats.h"
+#include "Analysis_HausdorffDistance.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -364,6 +365,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
+  Command::AddCmd( new Analysis_HausdorffDistance,Cmd::ANA,1,"hausdorff" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
   Command::AddCmd( new Analysis_Integrate(),   Cmd::ANA, 1, "integrate" );
   Command::AddCmd( new Analysis_IRED(),        Cmd::ANA, 1, "ired" );
