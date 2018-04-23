@@ -74,7 +74,10 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
               setHasChanged = Parallel::World().Rank();
             Parallel::World().ReduceMaster(&sourceRank, &setHasChanged, 1, MPI_INT, MPI_SUM);
             mprintf("DEBUG: Need to sync '%s' from %i\n", State.DSL()[idx]->legend(), sourceRank);
-            //if (Parallel::World().Master())
+            if (Parallel::World().Master())
+              State.DSL()[idx]->RecvSet( sourceRank, Parallel::World() );
+            else if (setHasChanged == Parallel::World().Rank())
+              State.DSL()[idx]->SendSet( 0,          Parallel::World() );
           } else
             mprintf("DEBUG: '%s' exists on multiple threads. Not syncing.\n",
                     State.DSL()[idx]->legend());

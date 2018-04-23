@@ -34,6 +34,9 @@
   *     1400+X: Action_AtomicCorr: Atomic movement vectors
   *     1500  : Action_NAstruct: Array containing BP step info on rank.
   *     1501+X:   Array of step series data from rank.
+  *     1600+X: Ensemble sort
+  *     1700  : DataSet_MatrixFlt size
+  *     1701  : DataSet_MatrixFlt buffer
   */
 class Parallel {
   public:
