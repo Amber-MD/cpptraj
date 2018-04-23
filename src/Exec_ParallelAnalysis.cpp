@@ -1,6 +1,7 @@
 #include "Exec_ParallelAnalysis.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
+#include "Timer.h"
 #include <cstdio> // DEBUG
 // Exec_ParallelAnalysis::Help()
 void Exec_ParallelAnalysis::Help() const
@@ -11,12 +12,17 @@ void Exec_ParallelAnalysis::Help() const
 // Exec_ParallelAnalysis::Execute()
 Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn)
 {
+  Timer t_total;
+  t_total.Start();
+  Timer t_sync;
   bool syncToMaster = argIn.hasKey("sync");
   std::vector<unsigned int> setSizesBefore;
   if (syncToMaster) {
+    t_sync.Start();
     setSizesBefore.reserve( State.DSL().size() );
     for (DataSetList::const_iterator it = State.DSL().begin(); it != State.DSL().end(); ++it)
       setSizesBefore.push_back( (*it)->Size() );
+    t_sync.Stop();
   }
   // DEBUG - Have each thread report what analyses it knows about and what
   // data sets it has.
@@ -52,6 +58,7 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
   State.DFL().AllThreads_WriteAllDF();
   State.Analyses().Clear();
   if (syncToMaster) {
+    t_sync.Start();
     // Check which sizes have changed.
     if (setSizesBefore.size() != State.DSL().size()) {
       mprintf("Warning: Number of sets have changed. Not attempting to sync sets to master.\n");
@@ -84,7 +91,12 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
         }
       }
     }
+    t_sync.Stop();
   }
+  t_total.Stop();
+  t_total.WriteTiming(1, "Total:");
+  if (syncToMaster)
+    t_sync.WriteTiming(2, "Sync:", t_total.Total());
   return CpptrajState::OK;
 }
 #else
