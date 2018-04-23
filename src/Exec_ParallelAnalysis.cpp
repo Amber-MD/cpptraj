@@ -5,12 +5,19 @@
 // Exec_ParallelAnalysis::Help()
 void Exec_ParallelAnalysis::Help() const
 {
-
+  mprintf("\t[sync]\n");
 }
 
 // Exec_ParallelAnalysis::Execute()
 Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn)
 {
+  bool syncToMaster = argIn.hasKey("sync");
+  std::vector<unsigned int> setSizesBefore;
+  if (syncToMaster) {
+    setSizesBefore.reserve( State.DSL().size() );
+    for (DataSetList::const_iterator it = State.DSL().begin(); it != State.DSL().end(); ++it)
+      setSizesBefore.push_back( (*it)->Size() );
+  }
   // DEBUG - Have each thread report what analyses it knows about and what
   // data sets it has.
 /*
@@ -44,6 +51,37 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
   if (Parallel::World().CheckError( nerr )) return CpptrajState::ERR;
   State.DFL().AllThreads_WriteAllDF();
   State.Analyses().Clear();
+  if (syncToMaster) {
+    // Check which sizes have changed.
+    if (setSizesBefore.size() != State.DSL().size()) {
+      mprintf("Warning: Number of sets have changed. Not attempting to sync sets to master.\n");
+    } else {
+      for (unsigned int idx = 0; idx != State.DSL().size(); idx++) {
+        int setHasChanged = 0;
+        if (!Parallel::World().Master()) {
+          if (setSizesBefore[idx] != State.DSL()[idx]->Size()) {
+            rprintf("Set '%s' size has changed from %u to %zu\n",
+                    State.DSL()[idx]->legend(), setSizesBefore[idx], State.DSL()[idx]->Size());
+            setHasChanged = 1;
+          }
+        }
+        int totalChanged;
+        Parallel::World().AllReduce(&totalChanged, &setHasChanged, 1, MPI_INT, MPI_SUM);
+        if (totalChanged > 0) {
+          if (totalChanged == 1) {
+            int sourceRank = 0;
+            if (setHasChanged == 1)
+              setHasChanged = Parallel::World().Rank();
+            Parallel::World().ReduceMaster(&sourceRank, &setHasChanged, 1, MPI_INT, MPI_SUM);
+            mprintf("DEBUG: Need to sync '%s' from %i\n", State.DSL()[idx]->legend(), sourceRank);
+            //if (Parallel::World().Master())
+          } else
+            mprintf("DEBUG: '%s' exists on multiple threads. Not syncing.\n",
+                    State.DSL()[idx]->legend());
+        }
+      }
+    }
+  }
   return CpptrajState::OK;
 }
 #else
