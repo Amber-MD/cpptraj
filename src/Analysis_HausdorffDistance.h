@@ -8,7 +8,7 @@
   */
 class Analysis_HausdorffDistance : public Analysis {
   public:
-    Analysis_HausdorffDistance() {}
+    Analysis_HausdorffDistance();
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_HausdorffDistance(); }
     void Help() const;
 
@@ -17,6 +17,10 @@ class Analysis_HausdorffDistance : public Analysis {
   private:
     static double h_Matrix(DataSet_2D*);
 
+    enum OutType { BASIC = 0, UPPER_TRI_MATRIX };
+
     DataSetList inputSets_;
+    OutType outType_;
+    DataSet* out_;
 };
 #endif
