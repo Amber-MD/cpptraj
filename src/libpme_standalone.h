@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cfloat> // LDBL_EPSILON
 #include <cmath>
 #include <complex>
 #include <exception>
@@ -33,6 +34,7 @@
 #include <tuple>
 #include <vector>
 #include <functional>
+#include <stdexcept>
 
 // original file: ../src/fftw_wrapper.h
 
@@ -386,7 +388,8 @@ struct incompleteGammaRecursion<Real, 0, false> {
     }
 
    private:
-    static constexpr long double epsilon = 10.0 * std::numeric_limits<long double>::epsilon();
+    //static constexpr long double epsilon = 10.0 * std::numeric_limits<long double>::epsilon();
+    static constexpr long double epsilon = 10.0 * LDBL_EPSILON;
 
     ////////////////////////////////////////////////////////////////////////////////
     // static long double Continued_Fraction_Ei( long double x )                  //
@@ -3065,7 +3068,7 @@ class PMEInstance {
                 std::string msg("Bad rPower requested.  To fix this, add the appropriate entry in");
                 msg += __FILE__;
                 msg += ", line number ";
-                msg += std::to_string(__LINE__ - 5);
+                msg += std::to_string((long long)(__LINE__ - 5));
                 throw std::runtime_error(msg.c_str());
                 break;
         }
