@@ -1,5 +1,5 @@
 #ifndef CPPTRAJ_VERSION_STRING
-#define CPPTRAJ_VERSION_STRING "V18.00"
+#define CPPTRAJ_VERSION_STRING "V18.01"
 /// This is used in NetcdfFile
 #define CPPTRAJ_VERSION_STRLEN 6
 #endif
