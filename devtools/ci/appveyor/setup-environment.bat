@@ -1,4 +1,5 @@
 @echo on
+setlocal EnableDelayedExpansion
 
 rem add makensis to the PATH
 set "PATH=%PATH%;C:\Program Files (x86)\NSIS"
@@ -10,8 +11,8 @@ if %USE_VS% equ 1 (
 	7z x cpptraj-msvc-prebuilts.7z
 	set PREBUILTS_DIR=%cd%\cpptraj-msvc-prebuilts
 	
-	rem add prebuilt DLLs to the PATH
-	set "PATH=%PATH%;%PREBUILTS_DIR%\bin"
+	rem add prebuilt DLLs and Dumpbin to the PATH
+	set "PATH=%PATH%;%PREBUILTS_DIR%\bin;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin"
 	
 ) else (
 
@@ -25,18 +26,18 @@ if %USE_VS% equ 1 (
 	set "PATH=C:/msys64/usr/bin;C:/msys64/mingw64/bin;%PATH%"
 
 	set MINGWPREFIX=x86_64-w64-mingw32
-	set CC=%MINGWPREFIX%-gcc.exe
-	set CXX=%MINGWPREFIX%-g++.exe
-	set FC=%MINGWPREFIX%-gfortran.exe
+	set CC=!MINGWPREFIX!-gcc.exe
+	set CXX=!MINGWPREFIX!-g++.exe
+	set FC=!MINGWPREFIX!-gfortran.exe
 	sh -lc "pacman -S --noconfirm --needed mingw-w64-x86_64-openblas mingw-w64-x86_64-arpack mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-fortran mingw-w64-x86_64-ncurses mingw-w64-x86_64-readline mingw64/mingw-w64-x86_64-netcdf diffutils"
 
-	if %USE_CMAKE equ 1 (
+	if %USE_CMAKE% equ 1 (
 			
 		rem path from here: https://www.appveyor.com/docs/build-environment/#mingw-msys-cygwin
 		set MINGWDIR=C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1
 		
 		rem add mingw32-make to the PATH
-		set "PATH=%PATH%;%MINGWDIR%\bin"
+		set "PATH=!PATH!;!MINGWDIR!\bin"
 		
 	) 
 )
