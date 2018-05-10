@@ -20,6 +20,7 @@ after_build:
 
 test_script:
   - set CPPTRAJ_TEST_OS=windows
+  - set "PATH=%PATH%;%cd%\bin"
   - sh -lc "cd test; make test.showerrors"
 
 artifacts:
