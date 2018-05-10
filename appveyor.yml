@@ -6,7 +6,7 @@ environment:
   matrix:
     - BUILD_TYPE: "cmake-vs"
     - BUILD_TYPE: "cmake-mingw"
-#    - BUILD_TYPE: "configure-mingw"
+    - BUILD_TYPE: "configure-mingw"
 
 install:
   - git submodule update --init --recursive

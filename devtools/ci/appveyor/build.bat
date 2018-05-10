@@ -12,6 +12,8 @@ if %BUILD_TYPE% equ cmake-vs (
 	msbuild /m cpptraj.sln
 	msbuild /m INSTALL.vcxproj
 	msbuild /m PACKAGE.vcxproj
+	
+	cd ..
 )
 
 if %BUILD_TYPE% equ cmake-mingw (

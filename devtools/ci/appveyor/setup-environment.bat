@@ -3,6 +3,8 @@
 rem add makensis to the PATH
 set "PATH=%PATH%;C:\Program Files (x86)\NSIS"
 
+set MINGWPREFIX=x86_64-w64-mingw32
+
 if %BUILD_TYPE% equ cmake-vs (
 	
 	rem download prebuilt NetCDF and FFTW (hosted by Jamie Smith)
@@ -24,7 +26,6 @@ if %BUILD_TYPE% equ cmake-vs (
 	set MSYSTEM=MINGW64
 	set "PATH=C:/msys64/usr/bin;C:/msys64/mingw64/bin;%PATH%"
 
-	set MINGWPREFIX=x86_64-w64-mingw32
 	set CC=%MINGWPREFIX%-gcc.exe
 	set CXX=%MINGWPREFIX%-g++.exe
 	set FC=%MINGWPREFIX%-gfortran.exe
