@@ -1,6 +1,8 @@
 @echo on
 
 rem add makensis to the PATH
+set "ORIG_PATH=%PATH%"
+
 set "PATH=%PATH%;C:\Program Files (x86)\NSIS"
 
 set HOME=.
