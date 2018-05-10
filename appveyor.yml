@@ -5,8 +5,8 @@ clone_folder: c:\projects\cpptraj
 environment:
   matrix:
     - BUILD_TYPE: "cmake-vs"
-    - BUILD_TYPE: "cmake-mingw"
-    - BUILD_TYPE: "configure-mingw"
+#    - BUILD_TYPE: "cmake-mingw"
+#    - BUILD_TYPE: "configure-mingw"
 
 install:
   - git submodule update --init --recursive
@@ -21,7 +21,7 @@ after_build:
 test_script:
   - set CPPTRAJ_TEST_OS=windows
   - set "PATH=%PATH%;%cd%\bin"
-  - sh -lc "cd test; make test.showerrors"
+#  - sh -lc "cd test; make test.showerrors"
 
 artifacts:
   - path: cpptraj-$(APPVEYOR_BUILD_ID).zip
