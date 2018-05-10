@@ -3,7 +3,7 @@
 rem add makensis to the PATH
 set "PATH=%PATH%;C:\Program Files (x86)\NSIS"
 
-if %BUILD_TYPE% equ "cmake-vs" (
+if %BUILD_TYPE% equ cmake-vs (
 	
 	rem download prebuilt NetCDF and FFTW (hosted by Jamie Smith)
 	powershell -Command "(new-object System.Net.WebClient).DownloadFile('https://app.box.com/shared/static/cc04s69672igsbfb4n3efbmv4hxlycu2.7z','cpptraj-msvc-prebuilts.7z')
@@ -34,7 +34,7 @@ if %BUILD_TYPE% equ "cmake-vs" (
 	set MINGWDIR=C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1
 )
 
-if %BUILD_TYPE% equ "cmake-mingw" (
+if %BUILD_TYPE% equ cmake-mingw (
 			
 	rem add mingw32-make to the PATH
 	set "PATH=%PATH%;%MINGWDIR%\bin"

@@ -3,7 +3,7 @@
 rem must have forward slashes
 set SRCDIR=C:/projects/cpptraj
 
-if %BUILD_TYPE% equ "cmake-vs" (
+if %BUILD_TYPE% equ cmake-vs (
 	
 	mkdir build
 	cd build
@@ -14,7 +14,7 @@ if %BUILD_TYPE% equ "cmake-vs" (
 	msbuild /m PACKAGE.vcxproj
 )
 
-if %BUILD_TYPE% equ "cmake-mingw" (
+if %BUILD_TYPE% equ cmake-mingw (
 
 	mkdir build
 		
@@ -27,7 +27,7 @@ if %BUILD_TYPE% equ "cmake-mingw" (
 	cd ..
 )
 
-if %BUILD_TYPE% equ "configure-mingw" (
+if %BUILD_TYPE% equ configure-mingw (
 	sh -lc "./configure --with-netcdf=/usr/local/ --with-blas=/mingw64/ -openblas --with-bzlib=/mingw64/ --with-zlib=/mingw64 --with-arpack=/mingw64 --with-readline=/mingw64/ -shared -windows gnu" || exit /b
 	make libcpptraj -j2 || exit /b
 	make install -j2 || exit /b
