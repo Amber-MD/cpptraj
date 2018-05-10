@@ -4,8 +4,10 @@ clone_folder: c:\projects\cpptraj
 
 environment:
   matrix:
-    - USE_CMAKE: "0"      
-    - USE_CMAKE: "1"
+#    - USE_VS:    "0"
+#      USE_CMAKE: "0"      
+    - USE_VS:    "0"
+      USE_CMAKE: "1"
     - USE_VS:    "1"
       USE_CMAKE: "1"
 

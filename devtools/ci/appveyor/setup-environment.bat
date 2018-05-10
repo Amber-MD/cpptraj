@@ -7,7 +7,7 @@ if %USE_VS% equ 1 (
 	
 	rem download prebuilt NetCDF and FFTW (hosted by Jamie Smith)
 	powershell -Command "(new-object System.Net.WebClient).DownloadFile('https://app.box.com/shared/static/cc04s69672igsbfb4n3efbmv4hxlycu2.7z','cpptraj-msvc-prebuilts.7z')
-	7z x cpptraj-msvc-prebuilts
+	7z x cpptraj-msvc-prebuilts.7z
 	set PREBUILTS_DIR=%cd%\cpptraj-msvc-prebuilts
 	
 	rem add prebuilt DLLs to the PATH
