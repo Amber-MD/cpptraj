@@ -10,6 +10,8 @@ if %BUILD_TYPE% equ cmake-vs (
 	rem (from https://github.com/cisco/ChezScheme/issues/19 )
 	set MSYS2_PATH_TYPE=inherit
 	
+	set "PATH=%cd%\bin;%PATH%"
+	
 	sh -lc "cd test; make test.showerrors"
 	
 ) else (
