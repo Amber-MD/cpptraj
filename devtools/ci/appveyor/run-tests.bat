@@ -12,7 +12,10 @@ if %BUILD_TYPE% equ cmake-vs (
 	
 	set "PATH=%cd%\bin;%PATH%"
 	
-	sh -lc "cd test; make test.showerrors"
+	cd C:/msys64/usr/bin
+	
+	cpptraj --version
+	sh -lc "cd /c/projects/cpptraj/test; make test.showerrors"
 	
 ) else (
 	sh -lc "cd test; make test.showerrors" || exit /b
