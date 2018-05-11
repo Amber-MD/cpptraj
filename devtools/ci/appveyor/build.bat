@@ -9,9 +9,9 @@ if %BUILD_TYPE% equ cmake-vs (
 	cd build
 	
 	cmake .. "-GVisual Studio 14 2015 Win64" -DCMAKE_PREFIX_PATH=%PREBUILTS_DIR% -DPRINT_PACKAGING_REPORT=TRUE -DARCHIVE_FORMAT=ZIP -DINSTALL_HEADERS=TRUE -DCOMPILER=MSVC -DCMAKE_INSTALL_PREFIX=%SRCDIR% -DCMAKE_BUILD_TYPE=RELEASE
-	msbuild /m cpptraj.sln
-	msbuild /m INSTALL.vcxproj
-	msbuild /m PACKAGE.vcxproj
+	msbuild cpptraj.sln
+	msbuild INSTALL.vcxproj
+	msbuild PACKAGE.vcxproj
 	
 	cd ..
 )

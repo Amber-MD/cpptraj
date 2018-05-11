@@ -20,9 +20,12 @@ after_build:
 
 test_script:
   - set CPPTRAJ_TEST_OS=windows
-  - set "PATH=C:/msys64/usr/bin;%ORIG_PATH%;%cd%\bin"
-  - echo "PATH for testing-> %PATH%"
-  - sh -lc "cd test; make test.showerrors"
+  - dumpbin /dependents bin/cpptraj.exe
+  - bin/cpptraj --version
+
+#  - set "PATH=C:/msys64/usr/bin;%ORIG_PATH%;%cd%\bin"
+#  - echo "PATH for testing-> %PATH%"
+#  - sh -lc "cd test; make test.showerrors"
 
 artifacts:
   - path: cpptraj-$(APPVEYOR_BUILD_ID).zip
