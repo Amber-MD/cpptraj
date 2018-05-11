@@ -41,6 +41,7 @@ UsageFull() {
   echo "  LIBRARY OPTIONS"
   echo "    -<lib>             : Enable library."
   echo "    --with-<lib>=<DIR> : Use library in specified directory."
+  echo "    -l<lib>=<FILE>     : Use specified library file."
   echo "    -no<lib>           : Disable library."
   echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
@@ -150,10 +151,11 @@ LCUDA=12
 # LIB_STAT = Library status:
 #   off       : Do not use library.
 #   enabled   : Try to use library.
-#   specified : Library location has been specified.
+#   specified : Library directory has been specified.
 #   amberopt  : Use library from AMBERHOME - optional.
 #   bundled   : Use bundled version of library.
-LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, amberopt, bundled
+#   direct    : Library location directly specified.
+LIB_STAT[$LNETCDF]='enabled'         # off, enabled, specified, amberopt, bundled, direct
 LIB_CKEY[$LNETCDF]='netcdf'          # Command-line key for '-', '--with-' and '-no'
 LIB_HOME[$LNETCDF]=''                # Library home directory (-L<home>)
 LIB_FLAG[$LNETCDF]='-lnetcdf'        # Library linker flag
@@ -300,6 +302,13 @@ CheckLibraryKeys() {
     if [ "$1" = "$LKEY" ] ; then
       LIB_STAT[$i]='off'
       echo "  ${LIB_CKEY[$i]} disabled."
+      return 0
+    fi
+    LKEY="-l"${LIB_CKEY[$i]}
+    if [ "$1" = "$LKEY" ] ; then
+      LIB_STAT[$i]='direct'
+      LIB_FLAG[$i]=$2
+      echo "  ${LIB_CKEY[$i]} location directly specified: $2"
       return 0
     fi
   done
@@ -733,7 +742,10 @@ SetupLibraries() {
         lflag="$lhome/${LIB_STTC[$i]}"
       else
         LIB_TEST[$i]=$PERFORM_CHECKS
-        if [ -z "$lhome" ] ; then 
+        if [ "${LIB_STAT[$i]}" = 'direct' ] ; then
+          lflag=${LIB_FLAG[$i]}
+          linc=''
+        elif [ -z "$lhome" ] ; then
           # Lib home not specified
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
             Err "'-libstatic' requires --with-${LIB_CKEY[$i]} specified."
@@ -1385,12 +1397,18 @@ while [ ! -z "$1" ] ; do
     'CXX'        ) CXX="$VALUE" ;;
     'CC'         ) CC="$VALUE" ;;
     'FC'         ) FC="$VALUE" ;;
+    'MPICXX'     ) MPICXX="$VALUE" ;;
+    'MPICC'      ) MPICC="$VALUE" ;;
+    'MPIF90'     ) MPIF90="$VALUE" ;;
     'CXXFLAGS'   ) CXXFLAGS="$VALUE" ;;
     'CFLAGS'     ) CFLAGS="$VALUE" ;;
     'FFLAGS'     ) FFLAGS="$VALUE" ;;
     'F77FLAGS'   ) F77FLAGS="$VALUE" ;;
     'LDFLAGS'    ) LDFLAGS="$VALUE" ;;
     'DBGFLAGS'   ) DBGFLAGS="$VALUE" ;;
+    'NVCC'       ) NVCC="$VALUE" ;;
+    'NVCCFLAGS'  ) NVCCFLAGS="$VALUE" ;;
+    'SHADER_MODEL') SHADER_MODEL="$VALUE" ;;
     # Build options
     '-mpi'           ) USE_MPI=1 ;;
     '-intelmpi'      ) USE_MPI=2 ;;

@@ -1,7 +1,9 @@
-#LyX 2.1 created this file. For more info see http://www.lyx.org/
-\lyxformat 474
+#LyX 2.2 created this file. For more info see http://www.lyx.org/
+\lyxformat 508
 \begin_document
 \begin_header
+\save_transient_properties true
+\origin unavailable
 \textclass article
 \use_default_options true
 \maintain_unincluded_children false
@@ -9,16 +11,16 @@
 \language_package default
 \inputencoding auto
 \fontencoding global
-\font_roman default
-\font_sans default
-\font_typewriter default
-\font_math auto
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
 \font_default_family default
 \use_non_tex_fonts false
 \font_sc false
 \font_osf false
-\font_sf_scale 100
-\font_tt_scale 100
+\font_sf_scale 100 100
+\font_tt_scale 100 100
 \graphics default
 \default_output_format default
 \output_sync 0
@@ -97,7 +99,7 @@ Jason M.
 \begin_inset Newline newline
 \end_inset
 
-Last Updated: 2015-12-22
+Last Updated: 2018-05-10
 \begin_inset Newpage pagebreak
 \end_inset
 
@@ -172,7 +174,7 @@ DO NOT USE TABS
 \end_layout
 
 \begin_layout Itemize
-Try to keep lines between 80 and 100 characters long.
+Try to keep the maximum length of lines between 80 and 100 characters long.
 \end_layout
 
 \begin_layout Itemize
@@ -180,29 +182,21 @@ Whenever possible, put separate code on separate lines.
  Exceptions can be made for very simple statements such as logic evaluations
  and simple initializations.
  For example,
-\begin_inset Newline newline
-\end_inset
+\end_layout
 
+\begin_layout LyX-Code
+double x1 = 0.0; x2 = 0.0; x3 = 0.0;
+\end_layout
 
-\series bold
-double x1 = 0.0, x2 = 0.0, x3 = 0.0;
-\series default
-
-\begin_inset Newline newline
-\end_inset
-
+\begin_layout Standard
 is OK, but
-\begin_inset Newline newline
-\end_inset
+\end_layout
 
-
-\series bold
+\begin_layout LyX-Code
 double x1 = var1 * var2; double x2 = var3 / var4;
-\series default
+\end_layout
 
-\begin_inset Newline newline
-\end_inset
-
+\begin_layout Standard
 is not.
  There are two reasons: 1) When separate statements share a line it makes
  using debuggers more difficult, and 2) when separate statements share a
@@ -273,6 +267,10 @@ Warnings should be written to STDOUT with mprintf with prefix 'Warning:';
 
 \begin_layout Itemize
 Classes:
+\begin_inset Separator latexpar
+\end_inset
+
+
 \end_layout
 
 \begin_deeper
@@ -388,6 +386,37 @@ doxygen
  See http://www.stack.nl/~dimitri/doxygen/manual.html for instructions.
 \end_layout
 
+\begin_layout Subsection
+Versioning
+\end_layout
+
+\begin_layout Standard
+The internal versioning for CPPTRAJ is supposed to go like this: 
+\end_layout
+
+\begin_layout LyX-Code
+V<major>.<minor>.<revision> 
+\end_layout
+
+\begin_layout Description
+<major> Incremented whenever there is a major API change, e.g.
+ changing the Action base class, etc.
+\end_layout
+
+\begin_layout Description
+<minor> Incremented whenever there are changes to behavior, e.g.
+ syntax, functionality, or output.
+\end_layout
+
+\begin_layout Description
+<revision> All other changes (so at least each pull request).
+\end_layout
+
+\begin_layout Standard
+Whenever a number that precedes <revision> is incremented, all subsequent
+ numbers should be reset to 0.
+\end_layout
+
 \begin_layout Section
 Building Cpptraj and Documentation
 \end_layout
@@ -404,7 +433,7 @@ $CPPTRAJHOME
 \family default
  directory.
  The standalone build is particularly useful for development and testing.
- Type './configure --help' for a list of configure options.
+ Type './configure –help' for a list of configure options.
  In order to build Cpptraj standalone one needs to specify the location
  of the NetCDF, zlib, bzlib2, and BLAS/LAPACK/ARPACK libraries if they aren't
  in your system path; configure will use the ones in $AMBERHOME if 
@@ -659,6 +688,10 @@ DslPtr() For Actions that require access to the master DataSetList after
  hbond, which cannot set up hbond time series until hbonds are actually
  detected in DoAction()), they can store a pointer to the master DataSetList
  like so:
+\begin_inset Separator latexpar
+\end_inset
+
+
 \end_layout
 
 \begin_deeper
@@ -2329,7 +2362,7 @@ ParmFile
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="5" columns="2">
-<features rotate="0" tabularvalignment="middle">
+<features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
 <row>
