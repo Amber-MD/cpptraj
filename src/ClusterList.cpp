@@ -11,7 +11,7 @@
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
-#include "PDBfile.h" // DEBUG
+#include "PDBfile.h" // For writing out pseudo-graph 
 
 // XMGRACE colors
 const char* ClusterList::XMGRACE_COLOR[] = {
@@ -144,9 +144,11 @@ int ClusterList::FindBestRepFrames_CumulativeDist(int nToSave) {
     }
     SetBestRepFrame( *node, bestReps );
     // DEBUG
-    mprintf("DEBUG: Best reps:\n");
-    for (RepMap::const_iterator it = bestReps.begin(); it != bestReps.end(); ++it)
-      mprintf("\t%i (%g)\n", it->second, it->first);
+    if (debug_ > 0) {
+      mprintf("DEBUG: Best reps:\n");
+      for (RepMap::const_iterator it = bestReps.begin(); it != bestReps.end(); ++it)
+        mprintf("\t%i (%g)\n", it->second, it->first);
+    }
   }
   return err;
 }
