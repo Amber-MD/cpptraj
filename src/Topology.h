@@ -64,7 +64,7 @@ class Topology {
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
     // ----- Bond-specific routines --------------
-    int Nbonds()                            const { return bonds_.size()+bondsh_.size(); }
+    size_t Nbonds()                            const { return bonds_.size()+bondsh_.size(); }
     BondArray         const& Bonds()        const { return bonds_;        }
     BondArray         const& BondsH()       const { return bondsh_;       }
     BondParmArray     const& BondParm()     const { return bondparm_;     }
@@ -75,7 +75,7 @@ class Topology {
     void AddBond(BondType const&, bool);
     void AddBond(int, int, BondParmType const&);
     // ----- Angle-specific routines -------------
-    int Nangles()                           const { return angles_.size()+anglesh_.size(); }
+    size_t Nangles()                           const { return angles_.size()+anglesh_.size(); }
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }
     AngleParmArray    const& AngleParm()    const { return angleparm_;    }
@@ -85,7 +85,7 @@ class Topology {
     void AddAngle(AngleType const&, bool);
     void AddAngle(int, int, int, AngleParmType const&); 
     // ----- Dihedral-specific routines ----------
-    int Ndihedrals()                        const { return dihedrals_.size()+dihedralsh_.size(); }
+    size_t Ndihedrals()                        const { return dihedrals_.size()+dihedralsh_.size(); }
     DihedralArray     const& Dihedrals()    const { return dihedrals_;       }
     DihedralArray     const& DihedralsH()   const { return dihedralsh_;      }
     DihedralParmArray const& DihedralParm() const { return dihedralparm_;    }

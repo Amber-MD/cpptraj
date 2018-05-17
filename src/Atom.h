@@ -3,6 +3,7 @@
 #include <vector>
 #include <set> // For excluded 
 #include "NameType.h"
+#include "SymbolExporting.h"
 /// Hold information for an atom
 class Atom {
   public:
@@ -95,10 +96,10 @@ class Atom {
   protected:
     static const size_t NUMELEMENTS = 76;
   private:
-    static const int AtomicElementNum[];
-    static const char* AtomicElementName[];
-    static const double AtomicElementMass[];
-    static const double AtomicElementRadius[];
+    static CPPTRAJ_EXPORT const int AtomicElementNum[];
+    static CPPTRAJ_EXPORT const char* AtomicElementName[];
+    static CPPTRAJ_EXPORT const double AtomicElementMass[];
+    static CPPTRAJ_EXPORT const double AtomicElementRadius[];
     double charge_;    ///< Charge in e-
     double polar_;     ///< Atomic polarizability in Ang^3
     double mass_;      ///< mass in amu

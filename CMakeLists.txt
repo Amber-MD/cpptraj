@@ -64,18 +64,6 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 add_subdirectory(src)
 add_subdirectory(test)
 
-#--------------------------------------------------------------
-if(INSTALL_HEADERS)
-	# grab all .h files from the main directory.
-	file(GLOB CPPTRAJ_HEADERS "src/*.h")
-	
-	# also grab xdrfile headers since some of them are used by cpptraj headers
-	file(GLOB XDRFILE_HEADERS "src/xdrfile/*.h")
-
-	install(FILES ${CPPTRAJ_HEADERS} DESTINATION ${INCDIR}/cpptraj)
-	install(FILES ${XDRFILE_HEADERS} DESTINATION ${INCDIR}/cpptraj/xdrfile)
-endif()
-
 #--------------------------------------------------------------	
 if(NOT INSIDE_AMBER)
 	print_build_report()
