@@ -30,6 +30,7 @@ UsageFull() {
   echo "  ADDITIONAL OPTIONS"
   echo "    -debug     : Turn on compiler debugging info."
   echo "    -noopt     : Do not use optimized compiler flags."
+  echo "    -tune      : Enable host-specific compiler optimizations."
   echo "    -noc++11   : Disable C++11 support."
   echo "    -d         : Turn on compiler debug info and disable optimization (i.e. -debug -noopt)."
   echo "    -timer     : Enable additional timing info."
@@ -63,6 +64,7 @@ UsageFull() {
   echo "    CFLAGS       : Flags to pass to the C compiler."
   echo "    FFLAGS       : Flags to pass to the Fortran compiler."
   echo "    LDFLAGS      : Flags to pass to the linker."
+  echo "    TUNEFLAGS    : Host-specific tuning flags. Will override '-tune'."
   echo "    NVCC         : Name of the nvcc compiler."
   echo "    NVCCFLAGS    : Flags to pass to the nvcc compiler."
   echo "    DBGFLAGS     : Any additional flags to pass to all compilers."
@@ -834,7 +836,7 @@ SetupCompilers() {
   # Set compiler options
   optflags=''       # C/C++ compiler optimization flags
   foptflags=''      # Fortran compiler optimization flags
-  tuneflags=''      # Flags for native host optimizations
+  hostflags=''      # Flags for native host optimizations
   ompflag=''        # Compiler OpenMP flag
   freefmtflag=''    # Fortran free format flag
   picflag=''        # Compiler flag for position-independent code
@@ -850,7 +852,7 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=gcc; fi
       if [ -z "$CXX" ]; then CXX=g++; fi
       if [ -z "$FC" ]; then FC=gfortran; fi
-      tuneflags='-mtune=native'
+      hostflags='-mtune=native'
       optflags='-O3'
       ompflag='-fopenmp'
       freefmtflag='-ffree-form'
@@ -864,7 +866,7 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=clang; fi
       if [ -z "$CXX" ]; then CXX=clang++; fi
       if [ -z "$FC" ]; then FC=gfortran; fi
-      tuneflags=''
+      hostflags=''
       optflags='-O3'
       ompflag='-fopenmp'
       freefmtflag='-ffree-form'
@@ -879,7 +881,7 @@ SetupCompilers() {
       if [ -z "$FC" ]; then FC=ifort; fi
       CXXFLAGS="-fp-model precise -fp-model source $CXXFLAGS"
       CFLAGS="-fp-model precise -fp-model source $CFLAGS"
-      tuneflags='-xHost'
+      hostflags='-xHost'
       optflags='-O3'
       VERSION_LINE=`$CXX -v 2>&1`
       if [ $? -ne 0 ] ; then
@@ -903,7 +905,7 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=pgcc; fi
       if [ -z "$CXX" ]; then CXX=pgc++; fi
       if [ -z "$FC" ]; then FC=pgf90; fi
-      tuneflags='-fastsse'
+      hostflags='-fastsse'
       optflags='-fast'
       foptflags='-fast'
       if [ "$PLATFORM" = 'cray' ] ; then
@@ -924,7 +926,7 @@ SetupCompilers() {
       if [ -z "$FC" ]; then FC=ftn; fi
       CXXFLAGS="-h gnu $CXXFLAGS"
       CFLAGS="-h gnu $CFLAGS"
-      tuneflags=''
+      hostflags=''
       optflags=''
       ompflag=''
       warnflag='-h msglevel_2' # This will also print cautions
@@ -988,10 +990,10 @@ SetupCompilers() {
   if [ $USE_OPT -eq 0 ] ; then
     optflags='-O0'
     foptflags='-O0'
-    tuneflags=''
+    hostflags=''
   elif [ $USE_OPT -eq 2 ] ; then
-    optflags="$optflags $tuneflags"
-    foptflags="$optflags $tuneflags"
+    optflags="$optflags $hostflags"
+    foptflags="$foptflags $hostflags"
   fi
   # Turn off PI code if necessary
   if [ $USE_SHARED -eq 0 ] ; then
