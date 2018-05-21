@@ -30,6 +30,7 @@ UsageFull() {
   echo "  ADDITIONAL OPTIONS"
   echo "    -debug     : Turn on compiler debugging info."
   echo "    -noopt     : Do not use optimized compiler flags."
+  echo "    -tune      : Enable host-specific compiler optimizations."
   echo "    -noc++11   : Disable C++11 support."
   echo "    -d         : Turn on compiler debug info and disable optimization (i.e. -debug -noopt)."
   echo "    -timer     : Enable additional timing info."
@@ -63,6 +64,7 @@ UsageFull() {
   echo "    CFLAGS       : Flags to pass to the C compiler."
   echo "    FFLAGS       : Flags to pass to the Fortran compiler."
   echo "    LDFLAGS      : Flags to pass to the linker."
+  echo "    TUNEFLAGS    : Host-specific tuning flags. Will override '-tune'."
   echo "    NVCC         : Name of the nvcc compiler."
   echo "    NVCCFLAGS    : Flags to pass to the nvcc compiler."
   echo "    DBGFLAGS     : Any additional flags to pass to all compilers."
@@ -106,7 +108,7 @@ COMPILE_VERBOSE=0 # 1 = show details during compile
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
 USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
-USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations.
+USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations, 2 = optimize/tune.
 BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray) etc
 MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
 USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
@@ -834,6 +836,7 @@ SetupCompilers() {
   # Set compiler options
   optflags=''       # C/C++ compiler optimization flags
   foptflags=''      # Fortran compiler optimization flags
+  hostflags=''      # Flags for native host optimizations
   ompflag=''        # Compiler OpenMP flag
   freefmtflag=''    # Fortran free format flag
   picflag=''        # Compiler flag for position-independent code
@@ -849,6 +852,7 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=gcc; fi
       if [ -z "$CXX" ]; then CXX=g++; fi
       if [ -z "$FC" ]; then FC=gfortran; fi
+      hostflags='-mtune=native'
       optflags='-O3'
       ompflag='-fopenmp'
       freefmtflag='-ffree-form'
@@ -862,6 +866,7 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=clang; fi
       if [ -z "$CXX" ]; then CXX=clang++; fi
       if [ -z "$FC" ]; then FC=gfortran; fi
+      hostflags=''
       optflags='-O3'
       ompflag='-fopenmp'
       freefmtflag='-ffree-form'
@@ -876,6 +881,7 @@ SetupCompilers() {
       if [ -z "$FC" ]; then FC=ifort; fi
       CXXFLAGS="-fp-model precise -fp-model source $CXXFLAGS"
       CFLAGS="-fp-model precise -fp-model source $CFLAGS"
+      hostflags='-xHost'
       optflags='-O3'
       VERSION_LINE=`$CXX -v 2>&1`
       if [ $? -ne 0 ] ; then
@@ -899,6 +905,7 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=pgcc; fi
       if [ -z "$CXX" ]; then CXX=pgc++; fi
       if [ -z "$FC" ]; then FC=pgf90; fi
+      hostflags='-fastsse'
       optflags='-fast'
       foptflags='-fast'
       if [ "$PLATFORM" = 'cray' ] ; then
@@ -919,6 +926,7 @@ SetupCompilers() {
       if [ -z "$FC" ]; then FC=ftn; fi
       CXXFLAGS="-h gnu $CXXFLAGS"
       CFLAGS="-h gnu $CFLAGS"
+      hostflags=''
       optflags=''
       ompflag=''
       warnflag='-h msglevel_2' # This will also print cautions
@@ -978,10 +986,18 @@ SetupCompilers() {
     UsageSimple
     exit 1
   fi
-  # Turn off optimizations if necessary
+  # Turn off/on optimizations if necessary
+  if [ ! -z "$TUNEFLAGS" ] ; then
+    USE_OPT=2
+    hostflags=$TUNEFLAGS
+  fi
   if [ $USE_OPT -eq 0 ] ; then
     optflags='-O0'
     foptflags='-O0'
+    hostflags=''
+  elif [ $USE_OPT -eq 2 ] ; then
+    optflags="$optflags $hostflags"
+    foptflags="$foptflags $hostflags"
   fi
   # Turn off PI code if necessary
   if [ $USE_SHARED -eq 0 ] ; then
@@ -1422,6 +1438,7 @@ while [ ! -z "$1" ] ; do
     '-debug'         ) USE_DEBUG=1 ;;
     '-d'             ) USE_OPT=0 ; USE_DEBUG=1 ;;
     '-noopt'         ) USE_OPT=0 ;;
+    '-tune'          ) USE_OPT=2 ;;
     '-noc++11'       ) C11_SUPPORT='no' ;;
     '-windows'       ) PLATFORM='windows' ;;
     # Cpptraj options
@@ -1566,6 +1583,11 @@ else
 fi
 if [ $USE_OPT -eq 1 ] ; then
   echo "  Compiler optimizations are on."
+elif [ $USE_OPT -eq 2 ] ; then
+  echo "  Compiler optimizations and native host tuning are on."
+  if [ ! -z "$TUNEFLAGS" ] ; then
+    echo "  Custom host tuning flags: $TUNEFLAGS"
+  fi
 else
   echo "  Compiler optimizations are off."
 fi
