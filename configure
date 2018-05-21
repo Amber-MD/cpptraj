@@ -986,7 +986,11 @@ SetupCompilers() {
     UsageSimple
     exit 1
   fi
-  # Turn off optimizations if necessary
+  # Turn off/on optimizations if necessary
+  if [ ! -z "$TUNEFLAGS" ] ; then
+    USE_OPT=2
+    hostflags=$TUNEFLAGS
+  fi
   if [ $USE_OPT -eq 0 ] ; then
     optflags='-O0'
     foptflags='-O0'
@@ -1581,6 +1585,9 @@ if [ $USE_OPT -eq 1 ] ; then
   echo "  Compiler optimizations are on."
 elif [ $USE_OPT -eq 2 ] ; then
   echo "  Compiler optimizations and native host tuning are on."
+  if [ ! -z "$TUNEFLAGS" ] ; then
+    echo "  Custom host tuning flags: $TUNEFLAGS"
+  fi
 else
   echo "  Compiler optimizations are off."
 fi
