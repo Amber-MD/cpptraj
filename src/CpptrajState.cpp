@@ -1019,6 +1019,11 @@ int CpptrajState::RunParallel() {
   init_time_.Stop();
   // ----- ACTION PHASE --------------------------
   mprintf("\nBEGIN PARALLEL TRAJECTORY PROCESSING:\n");
+# ifdef TIMER
+  Timer trajin_time;
+  Timer actions_time;
+  Timer trajout_time;
+# endif
   frames_time_.Start();
   master_time_.Start();
   ProgressBar progress;
@@ -1027,16 +1032,34 @@ int CpptrajState::RunParallel() {
   Frame TrajFrame = input_traj.AllocateFrame();
   int actionSet = 0; // Internal data frame
   for (int set = my_start; set != my_stop; set++, actionSet++) {
+#   ifdef TIMER
+    trajin_time.Start();
+#   endif
     input_traj.GetFrame(set, TrajFrame);
+#   ifdef TIMER
+    trajin_time.Stop();
+#   endif
     if (TrajFrame.CheckCoordsInvalid()) // TODO actual frame #
       rprintf("Warning: Set %i coords 1 & 2 overlap at origin; may be corrupt.\n", set + 1);
     ActionFrame currentFrame( &TrajFrame, set );
+#   ifdef TIMER
+    actions_time.Start();
+#   endif
     bool suppress_output = actionList_.DoActions(actionSet, currentFrame);
+#   ifdef TIMER
+    actions_time.Stop();
+#   endif
     // Trajectory output
     if (!suppress_output) {
+#     ifdef TIMER
+      trajout_time.Start();
+#     endif
       if (trajoutList_.WriteTrajout(set, currentFrame.Frm())) {
         if (exitOnError_) return 1;
       }
+#     ifdef TIMER
+      trajout_time.Stop();
+#     endif
     }
     if (showProgress_) progress.Update( actionSet );
   }
@@ -1050,6 +1073,23 @@ int CpptrajState::RunParallel() {
     mprintf("TIME: Rank %i throughput= %.4f frames / second.\n", rank, darray[rank]);
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)input_traj.Size() / master_time_.Total());
+# ifdef TIMER
+  darray.resize( TrajComm.Size() * 4 ); // trajin, action, trajout, frames
+  double rank_times[4];
+  rank_times[0] = trajin_time.Total();
+  rank_times[1] = actions_time.Total();
+  rank_times[2] = trajout_time.Total();
+  rank_times[3] = frames_time_.Total();
+  TrajComm.GatherMaster( rank_times, 4, MPI_DOUBLE, &darray[0] );
+  int ridx = 0;
+  for (int rank = 0; rank < TrajComm.Size(); rank++, ridx += 4)
+  {
+    mprintf("TIME: Breakdown timings for rank %i\n", rank);
+    mprintf("TIME:\t%s %.4f s (%6.2f%%)\n", "Trajectory read:        ", darray[ridx],   (darray[ridx]   / darray[ridx+3])*100.0);
+    mprintf("TIME:\t%s %.4f s (%6.2f%%)\n", "Action frame processing:", darray[ridx+1], (darray[ridx+1] / darray[ridx+3])*100.0);
+    mprintf("TIME:\t%s %.4f s (%6.2f%%)\n", "Trajectory output:      ", darray[ridx+2], (darray[ridx+2] / darray[ridx+3])*100.0);
+  }
+# endif
   trajoutList_.CloseTrajout();
   DSL_.SetNewSetsNeedSync( false );
   sync_time_.Start();
