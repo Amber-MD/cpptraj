@@ -60,6 +60,30 @@ EOF
 RunCpptraj "TRAJ data set creation with velocities test."
 DoTest crd1.rst7.save crd2.rst7
 
+# Test appending
+cat > create.in <<EOF
+parm ../tz2.parm7
+
+trajin ../tz2.nc
+createcrd crd3
+run
+crdaction crd3 distance :1 :12 out crd3.dat noheader
+
+clear trajin
+trajin ../tz2.nc 1 50
+createcrd crd4
+run
+
+clear trajin
+trajin ../tz2.nc 51 last
+createcrd crd4
+run
+
+crdaction crd4 distance :1 :12 out crd4.dat noheader
+EOF
+RunCpptraj "COORDS data set append test."
+DoTest crd3.dat crd4.dat
+
 EndTest
 
 exit 0
