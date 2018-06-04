@@ -80,6 +80,7 @@ template <class T> class ParmHolder {
     ParmHolder() {}
     void clear() { bpmap_.clear(); }
     unsigned int size() const { return bpmap_.size(); }
+    bool empty() const { return bpmap_.empty(); }
 /*
     static inline void PrintTypes(AtomTypeHolder const& types) {
       for (AtomTypeHolder::const_iterator it = types.begin(); it != types.end(); ++it)
@@ -119,6 +120,14 @@ template <class T> class ParmHolder {
     typedef typename Bmap::const_iterator const_iterator;
     const_iterator begin() const { return bpmap_.begin(); }
     const_iterator end()   const { return bpmap_.end();   }
+
+    T FindParam(AtomTypeHolder const& types, bool& found) {
+      found = true;
+      for (const_iterator it = begin(); it != end(); ++it)
+        if (it->first == types) return it->second;
+      found = false;
+      return T();
+    }
   private:
     Bmap bpmap_;
 };
