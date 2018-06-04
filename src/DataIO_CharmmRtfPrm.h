@@ -1,6 +1,8 @@
 #ifndef INC_DATAIO_CHARMMRTFPRM_H
 #define INC_DATAIO_CHARMMRTFPRM_H
 #include "DataIO.h"
+#include "BufferedLine.h"
+#include "DataSet_Parameters.h"
 /// Read in CHARMM topology / parameters. TODO topology read 
 class DataIO_CharmmRtfPrm : public DataIO {
   public:
@@ -13,5 +15,9 @@ class DataIO_CharmmRtfPrm : public DataIO {
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
+
+    int ReadData(DataSet_Parameters&, FileName const&) const;
+  private:
+    int ReadData(DataSet_Parameters&, BufferedLine&) const;
 };
 #endif

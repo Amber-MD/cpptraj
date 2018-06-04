@@ -1,8 +1,6 @@
 #include <cctype> // isspace
 #include "DataIO_CharmmRtfPrm.h"
 #include "CpptrajStdio.h"
-#include "DataSet_Parameters.h"
-#include "BufferedLine.h"
 #include "Constants.h" // DEGRAD
 
 /// CONSTRUCTOR
@@ -48,8 +46,6 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
   mprintf("Warning: Currently only CHARMM parameters will be read from this file.\n"); 
   BufferedLine infile;
   if (infile.OpenFileRead(fname)) return 1;
-  const char* line = infile.Line();
-  if (line == 0) return 1;
   // Allocate data set
   MetaData md( dsname );
   DataSet* ds = dsl.CheckForSet( md );
@@ -65,6 +61,21 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
   }
   DataSet_Parameters& prm = static_cast<DataSet_Parameters&>( *ds );
 
+  return ReadData(prm, infile);
+}
+
+// DataIO_CharmmRtfPrm::ReadData()
+int DataIO_CharmmRtfPrm::ReadData(DataSet_Parameters& prm, FileName const& fname) const {
+  BufferedLine infile;
+  if (infile.OpenFileRead(fname)) return 1;
+  return ReadData(prm, infile);
+}
+
+// DataIO_CharmmRtfPrm::ReadData()
+int DataIO_CharmmRtfPrm::ReadData(DataSet_Parameters& prm, BufferedLine& infile) const {
+  const char* line = infile.Line();
+  if (line == 0) return 1;
+
   enum ModeType { NONE = 0, PARAM, TOP };
   ModeType mode = NONE;
   enum SectionType { UNKNOWN, ATOMS, BONDS, ANGLES, DIHEDRALS, IMPROPERS, NONBONDED, IGNORE };
@@ -73,7 +84,8 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
     // Strip away leading whitespace.
     while (*line != '\0' && isspace(*line)) ++line;
     if (line[0] == '*') {
-      mprintf("DEBUG: Title: %s\n", line);
+      if (debug_ > 0)
+        mprintf("DEBUG: Title: %s\n", line);
     } else if (line[0] == '!') {
       if (debug_ > 0)
         mprintf("DEBUG: Comment: %s\n", line);
