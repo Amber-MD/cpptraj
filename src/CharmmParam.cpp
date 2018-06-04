@@ -8,7 +8,10 @@ int CharmmParam::ReadParams(std::string const& nameIn) {
 
   mprintf("\tAttempting to read CHARMM parameters from '%s'\n", nameIn.c_str());
 
-  if (infile.OpenFileRead( nameIn )) return 1;
+  if (infile.OpenFileRead( nameIn )) {
+    mprinterr("Error: Could not open file '%s'\n", nameIn.c_str());
+    return 1;
+  }
 
   // NOTE: IGNORE is a debug option
   enum SectionType { UNKNOWN = 0, ATOMS, IGNORE };
