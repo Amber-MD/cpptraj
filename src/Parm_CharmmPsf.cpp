@@ -6,6 +6,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "Mol.h" // UniqueCount()
+#include "DataIO_CharmmRtfPrm.h"
 
 // Parm_CharmmPsf::ID_ParmFormat()
 bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
@@ -29,7 +30,8 @@ int Parm_CharmmPsf::processReadArgs(ArgList& argIn) {
   // Read CHARMM parameters if specified.
   std::string parFileName = argIn.GetStringKey("param");
   while (!parFileName.empty()) {
-    err += param_.ReadParams( parFileName );
+    DataIO_CharmmRtfPrm infile;
+    err += infile.ReadData(params_, parFileName );
     parFileName = argIn.GetStringKey("param");
   }
   return err;
