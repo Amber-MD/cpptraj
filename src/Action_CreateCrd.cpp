@@ -32,6 +32,12 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, ActionInit& init, in
     if (!setname.empty()) {
       DataSet* ds = init.DSL().FindSetOfType( setname, DataSet::COORDS );
       if (ds != 0) {
+#       ifdef MPI
+        if (init.TrajComm().Size() > 1) {
+          mprinterr("Error: Appending to existing COORDS data sets not supported in parallel.\n");
+          return Action::ERR;
+        }
+#       endif
         append = true;
         coords_ = (DataSet_Coords_CRD*)ds;
         pindex_ = coords_->Top().Pindex();
