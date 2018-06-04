@@ -66,33 +66,36 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
 
   enum ModeType { NONE = 0, PARAM, TOP };
   ModeType mode = NONE;
-  int readParam = -1;
+  enum SectionType { UNKNOWN, ATOMS, BONDS, ANGLES, DIHEDRALS, IMPROPERS, NONBONDED, IGNORE };
+  SectionType currentSection = UNKNOWN;
   while (line != 0) {
     if (line[0] != '*') {
       // Input() will read everything up to comment character
       ArgList args( Input(line), " \t" );
       if (args.Nargs() > 0) {
-        // Check for continuation
+        // Line not blank. Check for continuation
         while (args[args.Nargs()-1] == "-") {
           args.MarkArg(args.Nargs()-1);
           line = infile.Line();
           args.Append( ArgList(Input(line)) );
         }
-        if (mode == NONE) {
-          if (args.Nargs() >= 2 && args[0] == "read" && args.hasKey("param"))
-            mode = PARAM; 
-        } else if (mode == PARAM) {
-          // ----- Reading parameters ------------
+        if (mode == NONE || currentSection == UNKNOWN) {
           if (debug_ > 1)
             mprintf("DBG: %s\n", args.ArgLine());
-          if (args.hasKey("ATOMS")) readParam = 1;
-          else if (args.hasKey("BONDS")) readParam = 2;
-          else if (args.hasKey("ANGLES")) readParam = 3;
-          else if (args.hasKey("DIHEDRALS")) readParam = 4;
-          else if (args.hasKey("IMPROPERS")) readParam = 5;
-          else if (args.hasKey("NONBONDED")) readParam = 6;
-          else if (args.hasKey("END")) { readParam = -1; mode = NONE; } 
-          else if (readParam == 1) {
+          // See if there is a read param command
+          if (args.Nargs() >= 2 && args[0] == "read" && args.hasKey("param"))
+            mode = PARAM; 
+          // See if we are at the start of a section.
+          else if (args.hasKey("ATOMS"))     { currentSection = ATOMS; mode = PARAM; }
+          else if (args.hasKey("BONDS"))     { currentSection = BONDS; mode = PARAM; }
+          else if (args.hasKey("ANGLES"))    { currentSection = ANGLES; mode = PARAM; }
+          else if (args.hasKey("DIHEDRALS")) { currentSection = DIHEDRALS; mode = PARAM; }
+          else if (args.hasKey("IMPROPERS")) { currentSection = IMPROPERS; mode = PARAM; }
+          else if (args.hasKey("NONBONDED")) { currentSection = NONBONDED; mode = PARAM; }
+          else if (args.hasKey("END"))       { currentSection = UNKNOWN; mode = NONE; }
+        } else if (mode == PARAM) {
+          // ----- Reading parameters ------------
+          if (currentSection == ATOMS) {
             // ATOM TYPES (masses really)
             if (args.hasKey("MASS") && args.Nargs() == 4) {
               args.MarkArg(0);
@@ -100,7 +103,7 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
               args.MarkArg(2);
               prm.AT().AddAtomType(args[2], AtomType(args.getNextDouble(0)));
             }
-          } else if (readParam == 2) {
+          } else if (currentSection == BONDS) {
             // BOND PARAMETERS
             AtomTypeHolder types(2);
             types.AddName( args.GetStringNext() );
@@ -110,7 +113,7 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             double rk = args.getNextDouble(0);
             double req = args.getNextDouble(0);
             prm.BP().AddParm(types, BondParmType(rk, req), false);
-          } else if (readParam == 3) {
+          } else if (currentSection == ANGLES) {
             // ANGLE PARAMETERS
             AtomTypeHolder types(3);
             types.AddName( args.GetStringNext() );
@@ -131,7 +134,7 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
               teq = args.getNextDouble(0);
               prm.UB().AddParm(utypes, BondParmType(tk, teq), false);
             }
-          } else if (readParam == 4 || readParam == 5) {
+          } else if (currentSection == DIHEDRALS || currentSection == IMPROPERS) {
             // DIHEDRAL PARAMETERS
             AtomTypeHolder types(4);
             types.AddName( args.GetStringNext() );
@@ -144,11 +147,11 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             double pk = args.getNextDouble(0);
             double pn = args.getNextDouble(0);
             double phase = args.getNextDouble(0) * Constants::DEGRAD;
-            if (readParam == 4)
+            if (currentSection == DIHEDRALS)
               prm.DP().AddParm(types, DihedralParmType(pk, pn, phase, 1.0, 1.0), false);
             else
               prm.IP().AddParm(types, DihedralParmType(pk, pn, phase), false);
-          } else if (readParam == 6) {
+          } else if (currentSection == NONBONDED) {
             // NONBONDED PARAMETERS TODO do not add if not already present
             NameType at = args.GetStringNext();
             int idx = prm.AT().AtomTypeIndex( at );
@@ -163,7 +166,12 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             prm.AT().UpdateType(idx).SetRadius( radius );
             prm.AT().UpdateType(idx).SetDepth( -epsilon );
           }
-        } // mode
+        } // END mode
+      } else {
+        // Line is blank
+        //mprintf("DEBUG: Resetting to unknown at line %i\n", infile.LineNumber());
+        mode = NONE;
+        currentSection = UNKNOWN;
       }
     }
     line = infile.Line();
