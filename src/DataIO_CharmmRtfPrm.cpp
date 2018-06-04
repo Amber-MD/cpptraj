@@ -187,7 +187,7 @@ int DataIO_CharmmRtfPrm::ReadData(DataSet_Parameters& prm, BufferedLine& infile)
               mprintf("Warning: Bad syntax for dihedral parameter on line %i: %s\n", infile.LineNumber(), line);
             else {
               // DIHEDRAL/IMPROPER PARAMETERS
-              AtomTypeHolder types(4);
+              AtomTypeHolder types(4, "X"); // X is wildcard character
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
