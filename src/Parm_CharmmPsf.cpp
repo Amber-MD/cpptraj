@@ -7,6 +7,7 @@
 #include "StringRoutines.h"
 #include "Mol.h" // UniqueCount()
 
+// Parm_CharmmPsf::ID_ParmFormat()
 bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
   // Assumes already set up
   if (fileIn.OpenFile()) return false;
@@ -15,6 +16,23 @@ bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
   bool isPSF = ( nextLine.compare(0, 3, "PSF") == 0 );
   fileIn.CloseFile();
   return isPSF;
+}
+
+// Parm_CharmmPsf::ReadHelp()
+void Parm_CharmmPsf::ReadHelp() {
+  mprintf("\tparam <file> : Read CHARMM parameters from given file. Can do multiple times.\n");
+}
+
+// Parm_CharmmPsf::processReadArgs()
+int Parm_CharmmPsf::processReadArgs(ArgList& argIn) {
+  int err = 0;
+  // Read CHARMM parameters if specified.
+  std::string parFileName = argIn.GetStringKey("param");
+  while (!parFileName.empty()) {
+    err += param_.ReadParams( parFileName );
+    parFileName = argIn.GetStringKey("param");
+  }
+  return err;
 }
 
 int Parm_CharmmPsf::FindTag(char* tag, const char* target, int tgtsize, CpptrajFile& infile) {
