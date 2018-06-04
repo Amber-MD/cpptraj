@@ -81,6 +81,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     mprinterr("Error: No atoms in PSF file.\n");
     return 1;
   }
+  bool found; // Used when assigning parameters
   // Read the next natom lines
   int psfresnum = 0;
   char psfresname[9];
@@ -132,8 +133,25 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
                               bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
                               bondatoms+6,bondatoms+7);
       // NOTE: Charmm atom nums start from 1
-      for (int bondidx=0; bondidx < nbondsread; bondidx+=2)
-        parmOut.AddBond(bondatoms[bondidx]-1, bondatoms[bondidx+1]-1);
+      if (params_.BP().empty()) {
+        for (int bondidx=0; bondidx < nbondsread; bondidx+=2)
+          parmOut.AddBond(bondatoms[bondidx]-1, bondatoms[bondidx+1]-1);
+      } else {
+        for (int bondidx = 0; bondidx < nbondsread; bondidx += 2) {
+          int a1 = bondatoms[bondidx]-1;
+          int a2 = bondatoms[bondidx+1]-1;
+          AtomTypeHolder types(2);
+          types.AddName( parmOut[a1].Type() );
+          types.AddName( parmOut[a2].Type() );
+          BondParmType bpt = params_.BP().FindParam( types, found );
+          if (found)
+            parmOut.AddBond( a1, a2, bpt );
+          else {
+            mprintf("Warning: Parameters not found for bond %s - %s\n", parmOut.AtomMaskName(a1).c_str(), parmOut.AtomMaskName(a2).c_str());
+            parmOut.AddBond( a1, a2 );
+          }
+        }
+      }
     }
   } else
     mprintf("Warning: PSF has no bonds.\n");
@@ -152,10 +170,29 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       int nanglesread = sscanf(buffer,"%i %i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
                               bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
                               bondatoms+6,bondatoms+7, bondatoms+8);
-      for (int angleidx=0; angleidx < nanglesread; angleidx += 3)
-        parmOut.AddAngle( bondatoms[angleidx  ]-1,
-                          bondatoms[angleidx+1]-1,
-                          bondatoms[angleidx+2]-1 );
+      if (params_.AP().empty()) {
+        for (int angleidx=0; angleidx < nanglesread; angleidx += 3)
+          parmOut.AddAngle( bondatoms[angleidx  ]-1,
+                            bondatoms[angleidx+1]-1,
+                            bondatoms[angleidx+2]-1 );
+      } else {
+        for (int angleidx=0; angleidx < nanglesread; angleidx += 3) {
+          int a1 = bondatoms[angleidx]-1;
+          int a2 = bondatoms[angleidx+1]-1;
+          int a3 = bondatoms[angleidx+2]-1;
+          AtomTypeHolder types(3);
+          types.AddName( parmOut[a1].Type() );
+          types.AddName( parmOut[a2].Type() );
+          types.AddName( parmOut[a3].Type() );
+          AngleParmType apt = params_.AP().FindParam( types, found );
+          if (found)
+            parmOut.AddAngle( a1, a2, a3, apt );
+          else {
+            mprintf("Warning: Parameters not found for angle %s - %s - %s\n", parmOut.AtomMaskName(a1).c_str(), parmOut.AtomMaskName(a2).c_str(), parmOut.AtomMaskName(a3).c_str());
+            parmOut.AddAngle( a1, a2, a3 );
+          }
+        }
+      }
     }
   } else
     mprintf("Warning: PSF has no angles.\n");
@@ -174,13 +211,34 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       int ndihread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
                               bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
                               bondatoms+6,bondatoms+7);
-      for (int dihidx=0; dihidx < ndihread; dihidx += 4)
-        // TODO: Determine end dihedrals
-        parmOut.AddDihedral( DihedralType(bondatoms[dihidx  ]-1,
-                                          bondatoms[dihidx+1]-1,
-                                          bondatoms[dihidx+2]-1,
-                                          bondatoms[dihidx+3]-1,
-                                          DihedralType::NORMAL) );
+      if (params_.DP().empty())
+        for (int dihidx=0; dihidx < ndihread; dihidx += 4)
+          // TODO: Determine end dihedrals
+          parmOut.AddDihedral( DihedralType(bondatoms[dihidx  ]-1,
+                                            bondatoms[dihidx+1]-1,
+                                            bondatoms[dihidx+2]-1,
+                                            bondatoms[dihidx+3]-1,
+                                            DihedralType::NORMAL) );
+      else {
+        for (int dihidx=0; dihidx < ndihread; dihidx += 4) {
+          int a1 = bondatoms[dihidx]-1;
+          int a2 = bondatoms[dihidx+1]-1;
+          int a3 = bondatoms[dihidx+2]-1;
+          int a4 = bondatoms[dihidx+3]-1;
+          AtomTypeHolder types(4);
+          types.AddName( parmOut[a1].Type() );
+          types.AddName( parmOut[a2].Type() );
+          types.AddName( parmOut[a3].Type() );
+          types.AddName( parmOut[a4].Type() );
+          DihedralParmType dpt = params_.DP().FindParam( types, found );
+          if (found)
+            parmOut.AddDihedral( DihedralType(a1, a2, a3, a4, DihedralType::NORMAL), dpt );
+          else {
+            mprintf("Warning: Parameters not found for dihedral %s - %s - %s - %s\n", parmOut.AtomMaskName(a1).c_str(), parmOut.AtomMaskName(a2).c_str(), parmOut.AtomMaskName(a3).c_str(), parmOut.AtomMaskName(a4).c_str());
+            parmOut.AddDihedral( DihedralType(a1, a2, a3, a4, DihedralType::NORMAL) );
+          }
+        }
+      }
     }
   } else
     mprintf("Warning: PSF has no dihedrals.\n");
