@@ -82,6 +82,8 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     return 1;
   }
   bool found; // Used when assigning parameters
+  // DEBUG
+  //params_.Debug();
   // Read the next natom lines
   int psfresnum = 0;
   char psfresname[9];
