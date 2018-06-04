@@ -18,5 +18,5 @@
  * Whenever a number that precedes <revision> is incremented, all subsequent
  * numbers should be reset to 0.
  */
-#define CPPTRAJ_INTERNAL_VERSION "V4.3.9"
+#define CPPTRAJ_INTERNAL_VERSION "V4.3.10"
 #endif
