@@ -7,7 +7,7 @@ class BufferedLine : private CpptrajFile {
   public:
     BufferedLine();
     ~BufferedLine();
-    /// Get the next line in the buffer.
+    /// Get the next line in the buffer (no newline).
     const char* Line();
     /// Convert current line into tokens
     int TokenizeLine(const char*);
