@@ -47,6 +47,54 @@ int Parm_CharmmPsf::FindTag(char* tag, const char* target, int tgtsize, CpptrajF
   return nval;
 }
 
+int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char* typestr, Topology& parmOut) const
+{
+    bool found;
+    int bondatoms[8];
+    const char* buffer = 0; 
+    int nlines = ndihedral / 2;
+    if ( (ndihedral % 2) != 0) nlines++;
+    for (int dihline = 0; dihline < nlines; dihline++) {
+      if ( (buffer=infile.NextLine()) == 0) {
+        mprinterr("Error: Reading %s line %i\n", typestr, dihline+1);
+        return 1;
+      }
+      // Each line has 2 groups of 4 atom numbers
+      int ndihread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
+                              bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
+                              bondatoms+6,bondatoms+7);
+      if (params_.DP().empty())
+        for (int dihidx=0; dihidx < ndihread; dihidx += 4)
+          // TODO: Determine end dihedrals
+          parmOut.AddDihedral( DihedralType(bondatoms[dihidx  ]-1,
+                                            bondatoms[dihidx+1]-1,
+                                            bondatoms[dihidx+2]-1,
+                                            bondatoms[dihidx+3]-1,
+                                            DihedralType::NORMAL) );
+      else {
+        for (int dihidx=0; dihidx < ndihread; dihidx += 4) {
+          int a1 = bondatoms[dihidx]-1;
+          int a2 = bondatoms[dihidx+1]-1;
+          int a3 = bondatoms[dihidx+2]-1;
+          int a4 = bondatoms[dihidx+3]-1;
+          AtomTypeHolder types(4);
+          types.AddName( parmOut[a1].Type() );
+          types.AddName( parmOut[a2].Type() );
+          types.AddName( parmOut[a3].Type() );
+          types.AddName( parmOut[a4].Type() );
+          DihedralParmType dpt = params_.DP().FindParam( types, found );
+          if (found)
+            parmOut.AddDihedral( DihedralType(a1, a2, a3, a4, DihedralType::NORMAL), dpt );
+          else {
+            mprintf("Warning: Parameters not found for %s %s - %s - %s - %s\n", typestr, parmOut.AtomMaskName(a1).c_str(), parmOut.AtomMaskName(a2).c_str(), parmOut.AtomMaskName(a3).c_str(), parmOut.AtomMaskName(a4).c_str());
+            parmOut.AddDihedral( DihedralType(a1, a2, a3, a4, DihedralType::NORMAL) );
+          }
+        }
+      }
+    }
+  return 0;
+}
+
 // Parm_CharmmPsf::ReadParm()
 /** Open the Charmm PSF file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
@@ -202,46 +250,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   int ndihedral = FindTag(tag, "!NPHI", 5, infile);
   if (ndihedral > 0) {
     if (debug_>0) mprintf("\tPSF: !NPHI tag found, ndihedral=%i\n", ndihedral);
-    int nlines = ndihedral / 2;
-    if ( (ndihedral % 2) != 0) nlines++;
-    for (int dihline = 0; dihline < nlines; dihline++) {
-      if ( (buffer=infile.NextLine()) == 0) {
-        mprinterr("Error: Reading dihedral line %i\n", dihline+1);
-        return 1;
-      }
-      // Each line has 2 groups of 4 atom numbers
-      int ndihread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
-                              bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
-                              bondatoms+6,bondatoms+7);
-      if (params_.DP().empty())
-        for (int dihidx=0; dihidx < ndihread; dihidx += 4)
-          // TODO: Determine end dihedrals
-          parmOut.AddDihedral( DihedralType(bondatoms[dihidx  ]-1,
-                                            bondatoms[dihidx+1]-1,
-                                            bondatoms[dihidx+2]-1,
-                                            bondatoms[dihidx+3]-1,
-                                            DihedralType::NORMAL) );
-      else {
-        for (int dihidx=0; dihidx < ndihread; dihidx += 4) {
-          int a1 = bondatoms[dihidx]-1;
-          int a2 = bondatoms[dihidx+1]-1;
-          int a3 = bondatoms[dihidx+2]-1;
-          int a4 = bondatoms[dihidx+3]-1;
-          AtomTypeHolder types(4);
-          types.AddName( parmOut[a1].Type() );
-          types.AddName( parmOut[a2].Type() );
-          types.AddName( parmOut[a3].Type() );
-          types.AddName( parmOut[a4].Type() );
-          DihedralParmType dpt = params_.DP().FindParam( types, found );
-          if (found)
-            parmOut.AddDihedral( DihedralType(a1, a2, a3, a4, DihedralType::NORMAL), dpt );
-          else {
-            mprintf("Warning: Parameters not found for dihedral %s - %s - %s - %s\n", parmOut.AtomMaskName(a1).c_str(), parmOut.AtomMaskName(a2).c_str(), parmOut.AtomMaskName(a3).c_str(), parmOut.AtomMaskName(a4).c_str());
-            parmOut.AddDihedral( DihedralType(a1, a2, a3, a4, DihedralType::NORMAL) );
-          }
-        }
-      }
-    }
+    if (ReadDihedrals(infile, ndihedral, "dihedral", parmOut)) return 1;
   } else
     mprintf("Warning: PSF has no dihedrals.\n");
   mprintf("\tPSF contains %i atoms, %i residues.\n", parmOut.Natom(), parmOut.Nres());

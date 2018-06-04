@@ -123,7 +123,7 @@ template <class T> class ParmHolder {
     const_iterator begin() const { return bpmap_.begin(); }
     const_iterator end()   const { return bpmap_.end();   }
 
-    T FindParam(AtomTypeHolder const& types, bool& found) {
+    T FindParam(AtomTypeHolder const& types, bool& found) const {
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
         if (it->first == types) return it->second;
