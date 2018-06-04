@@ -13,6 +13,7 @@ class AtomTypeHolder {
     AtomTypeHolder() {}
     AtomTypeHolder(Narray const& namesIn) : types_(namesIn) {}
     AtomTypeHolder(int size) { types_.clear(); types_.reserve(size); }
+    AtomTypeHolder(int size, NameType const& wc) : wildcard_(wc) { types_.clear(); types_.reserve(size); }
     void AddName(NameType const& n) { types_.push_back( n ); }
 /*    int SetTypes(Narray const& namesIn) {
       if (namesIn.size() != types_.size()) return 1;
@@ -33,7 +34,7 @@ class AtomTypeHolder {
       // Forwards direction
       bool match = true;
       for (unsigned int idx = 0; idx != types_.size(); idx++)
-        if (types_[idx] != rhs.types_[idx]) {
+        if (types_[idx] != rhs.types_[idx] && types_[idx] != wildcard_) {
           match = false;
           break;
         }
@@ -42,7 +43,7 @@ class AtomTypeHolder {
       match = true;
       unsigned int idx2 = types_.size() - 1;
       for (unsigned int idx = 0; idx != types_.size(); idx++, idx2--)
-        if (types_[idx] != rhs.types_[idx2]) {
+        if (types_[idx] != rhs.types_[idx2] && types_[idx] != wildcard_) {
           match = false;
           break;
         }
@@ -69,6 +70,7 @@ class AtomTypeHolder {
     }*/
   private:
     Narray types_;
+    NameType wildcard_;
 };
 // -----------------------------------------------------------------------------
 /// Used to associate atom type names with an object (parameter etc)
