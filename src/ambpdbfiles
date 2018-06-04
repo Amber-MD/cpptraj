@@ -10,6 +10,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               BufferedLine.cpp \
               ByteRoutines.cpp \
               CharMask.cpp \
+              CharmmParam.cpp \
               CIFfile.cpp \
               CoordinateInfo.cpp \
               CpptrajFile.cpp \
