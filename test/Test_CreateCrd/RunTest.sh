@@ -61,7 +61,10 @@ RunCpptraj "TRAJ data set creation with velocities test."
 DoTest crd1.rst7.save crd2.rst7
 
 # Test appending
-cat > create.in <<EOF
+UNITNAME='COORDS data set append test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > create.in <<EOF
 parm ../tz2.parm7
 
 trajin ../tz2.nc
@@ -81,8 +84,9 @@ run
 
 crdaction crd4 distance :1 :12 out crd4.dat noheader
 EOF
-RunCpptraj "COORDS data set append test."
-DoTest crd3.dat crd4.dat
+  RunCpptraj "$UNITNAME"
+  DoTest crd3.dat crd4.dat
+fi
 
 EndTest
 
