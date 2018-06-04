@@ -184,11 +184,6 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
           }
           // -------------------------------------
         } // END input determination 
-      } else {
-        // Line is blank
-        //mprintf("DEBUG: Resetting to unknown at line %i\n", infile.LineNumber());
-        mode = NONE;
-        currentSection = UNKNOWN;
       }
     }
     line = infile.Line();
