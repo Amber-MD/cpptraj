@@ -1,3 +1,4 @@
+#include <cctype> // isspace
 #include "DataIO_CharmmRtfPrm.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
@@ -69,7 +70,14 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
   enum SectionType { UNKNOWN, ATOMS, BONDS, ANGLES, DIHEDRALS, IMPROPERS, NONBONDED, IGNORE };
   SectionType currentSection = UNKNOWN;
   while (line != 0) {
-    if (line[0] != '*') {
+    // Strip away leading whitespace.
+    while (*line != '\0' && isspace(*line)) ++line;
+    if (line[0] == '*') {
+      mprintf("DEBUG: Title: %s\n", line);
+    } else if (line[0] == '!') {
+      if (debug_ > 0)
+        mprintf("DEBUG: Comment: %s\n", line);
+    } else {
       // Input() will read everything up to comment character
       ArgList args( Input(line), " \t" );
       if (args.Nargs() > 0) {
@@ -79,20 +87,28 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
           line = infile.Line();
           args.Append( ArgList(Input(line)) );
         }
-        if (mode == NONE || currentSection == UNKNOWN) {
-          if (debug_ > 1)
-            mprintf("DBG: %s\n", args.ArgLine());
-          // See if there is a read param command
-          if (args.Nargs() >= 2 && args[0] == "read" && args.hasKey("param"))
-            mode = PARAM; 
-          // See if we are at the start of a section.
-          else if (args.hasKey("ATOMS"))     { currentSection = ATOMS; mode = PARAM; }
-          else if (args.hasKey("BONDS"))     { currentSection = BONDS; mode = PARAM; }
-          else if (args.hasKey("ANGLES"))    { currentSection = ANGLES; mode = PARAM; }
-          else if (args.hasKey("DIHEDRALS")) { currentSection = DIHEDRALS; mode = PARAM; }
-          else if (args.hasKey("IMPROPERS")) { currentSection = IMPROPERS; mode = PARAM; }
-          else if (args.hasKey("NONBONDED")) { currentSection = NONBONDED; mode = PARAM; }
-          else if (args.hasKey("END"))       { currentSection = UNKNOWN; mode = NONE; }
+        if (debug_ > 1)
+          mprintf("DBG: %s\n", args.ArgLine());
+        // Determine input
+        if (args.hasKey("END")) {
+          // END read
+          currentSection = UNKNOWN;
+          mode = NONE;
+        } else if (args.Nargs() >= 2 && args[0] == "read" && args.hasKey("param")) {
+          // 'read param' command
+          mode = PARAM; 
+        } else if (args.hasKey("ATOMS"))     {
+          currentSection = ATOMS; mode = PARAM;
+        } else if (args.hasKey("BONDS"))     {
+          currentSection = BONDS; mode = PARAM;
+        } else if (args.hasKey("ANGLES"))    {
+          currentSection = ANGLES; mode = PARAM;
+        } else if (args.hasKey("DIHEDRALS")) {
+          currentSection = DIHEDRALS; mode = PARAM;
+        } else if (args.hasKey("IMPROPERS")) {
+          currentSection = IMPROPERS; mode = PARAM;
+        } else if (args.hasKey("NONBONDED")) {
+          currentSection = NONBONDED; mode = PARAM;
         } else if (mode == PARAM) {
           // ----- Reading parameters ------------
           if (currentSection == ATOMS) {
@@ -166,7 +182,8 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
             prm.AT().UpdateType(idx).SetRadius( radius );
             prm.AT().UpdateType(idx).SetDepth( -epsilon );
           }
-        } // END mode
+          // -------------------------------------
+        } // END input determination 
       } else {
         // Line is blank
         //mprintf("DEBUG: Resetting to unknown at line %i\n", infile.LineNumber());
