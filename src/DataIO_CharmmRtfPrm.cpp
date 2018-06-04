@@ -99,16 +99,28 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
           mode = PARAM; 
         } else if (args.hasKey("ATOMS"))     {
           currentSection = ATOMS; mode = PARAM;
+          mprintf("DEBUG: Section ATOMS, line %i\n", infile.LineNumber());
         } else if (args.hasKey("BONDS"))     {
           currentSection = BONDS; mode = PARAM;
+          mprintf("DEBUG: Section BONDS, line %i\n", infile.LineNumber());
         } else if (args.hasKey("ANGLES"))    {
           currentSection = ANGLES; mode = PARAM;
+          mprintf("DEBUG: Section ANGLES, line %i\n", infile.LineNumber());
         } else if (args.hasKey("DIHEDRALS")) {
           currentSection = DIHEDRALS; mode = PARAM;
-        } else if (args.hasKey("IMPROPERS")) {
+          mprintf("DEBUG: Section DIHEDRALS, line %i\n", infile.LineNumber());
+        } else if (args.hasKey("IMPROPER") || args.hasKey("IMPROPERS")) {
           currentSection = IMPROPERS; mode = PARAM;
+          mprintf("DEBUG: Section IMPROPERS, line %i\n", infile.LineNumber());
         } else if (args.hasKey("NONBONDED")) {
           currentSection = NONBONDED; mode = PARAM;
+          mprintf("DEBUG: Section NONBONDED, line %i\n", infile.LineNumber());
+        } else if (args.hasKey("HBOND")) {
+          currentSection = IGNORE; mode = NONE;
+          mprintf("Warning: Ignoring HBOND section.\n");
+        } else if (args.hasKey("CMAP")) {
+          currentSection = IGNORE; mode = NONE;
+          mprintf("Warning: Ignoring CMAP section.\n");
         } else if (mode == PARAM) {
           // ----- Reading parameters ------------
           if (currentSection == ATOMS) {
@@ -120,67 +132,84 @@ int DataIO_CharmmRtfPrm::ReadData(FileName const& fname, DataSetList& dsl, std::
               prm.AT().AddAtomType(args[2], AtomType(args.getNextDouble(0)));
             }
           } else if (currentSection == BONDS) {
-            // BOND PARAMETERS
-            AtomTypeHolder types(2);
-            types.AddName( args.GetStringNext() );
-            types.AddName( args.GetStringNext() );
-            prm.AT().CheckForAtomType( types[0] );
-            prm.AT().CheckForAtomType( types[1] );
-            double rk = args.getNextDouble(0);
-            double req = args.getNextDouble(0);
-            prm.BP().AddParm(types, BondParmType(rk, req), false);
+            if (args.Nargs() < 4)
+              mprintf("Warning: Bad syntax for bond parameter on line %i: %s\n", infile.LineNumber(), line);
+            else {
+              // BOND PARAMETERS
+              AtomTypeHolder types(2);
+              types.AddName( args.GetStringNext() );
+              types.AddName( args.GetStringNext() );
+              prm.AT().CheckForAtomType( types[0] );
+              prm.AT().CheckForAtomType( types[1] );
+              double rk = args.getNextDouble(0);
+              double req = args.getNextDouble(0);
+              prm.BP().AddParm(types, BondParmType(rk, req), false);
+            }
           } else if (currentSection == ANGLES) {
-            // ANGLE PARAMETERS
-            AtomTypeHolder types(3);
-            types.AddName( args.GetStringNext() );
-            types.AddName( args.GetStringNext() );
-            types.AddName( args.GetStringNext() );
-            prm.AT().CheckForAtomType( types[0] );
-            prm.AT().CheckForAtomType( types[1] );
-            prm.AT().CheckForAtomType( types[2] );
-            double tk = args.getNextDouble(0);
-            double teq = args.getNextDouble(0);
-            prm.AP().AddParm(types, AngleParmType(tk, teq*Constants::DEGRAD), false);
-            if (args.Nargs() > 5) {
-              // UREY-BRADLEY
-              AtomTypeHolder utypes(2);
-              utypes.AddName(types[0]);
-              utypes.AddName(types[2]);
-              tk = args.getNextDouble(0);
-              teq = args.getNextDouble(0);
-              prm.UB().AddParm(utypes, BondParmType(tk, teq), false);
+            if (args.Nargs() < 5)
+              mprintf("Warning: Bad syntax for angle parameter on line %i: %s\n", infile.LineNumber(), line);
+            else {
+              // ANGLE PARAMETERS
+              AtomTypeHolder types(3);
+              types.AddName( args.GetStringNext() );
+              types.AddName( args.GetStringNext() );
+              types.AddName( args.GetStringNext() );
+              prm.AT().CheckForAtomType( types[0] );
+              prm.AT().CheckForAtomType( types[1] );
+              prm.AT().CheckForAtomType( types[2] );
+              double tk = args.getNextDouble(0);
+              double teq = args.getNextDouble(0);
+              prm.AP().AddParm(types, AngleParmType(tk, teq*Constants::DEGRAD), false);
+              if (args.Nargs() > 5) {
+                // UREY-BRADLEY
+                AtomTypeHolder utypes(2);
+                utypes.AddName(types[0]);
+                utypes.AddName(types[2]);
+                tk = args.getNextDouble(0);
+                teq = args.getNextDouble(0);
+                prm.UB().AddParm(utypes, BondParmType(tk, teq), false);
+              }
             }
           } else if (currentSection == DIHEDRALS || currentSection == IMPROPERS) {
-            // DIHEDRAL PARAMETERS
-            AtomTypeHolder types(4);
-            types.AddName( args.GetStringNext() );
-            types.AddName( args.GetStringNext() );
-            types.AddName( args.GetStringNext() );
-            types.AddName( args.GetStringNext() );
-            prm.AT().CheckForAtomType( types[0] );
-            prm.AT().CheckForAtomType( types[1] );
-            prm.AT().CheckForAtomType( types[2] );
-            double pk = args.getNextDouble(0);
-            double pn = args.getNextDouble(0);
-            double phase = args.getNextDouble(0) * Constants::DEGRAD;
-            if (currentSection == DIHEDRALS)
-              prm.DP().AddParm(types, DihedralParmType(pk, pn, phase, 1.0, 1.0), false);
-            else
-              prm.IP().AddParm(types, DihedralParmType(pk, pn, phase), false);
-          } else if (currentSection == NONBONDED) {
-            // NONBONDED PARAMETERS TODO do not add if not already present
-            NameType at = args.GetStringNext();
-            int idx = prm.AT().AtomTypeIndex( at );
-            if (idx == -1) {
-              mprinterr("Error: Nonbond parameters defined for type '%s' without MASS card.\n",
-                        *at);
-              return 1;
+            if (args.Nargs() < 7)
+              mprintf("Warning: Bad syntax for dihedral parameter on line %i: %s\n", infile.LineNumber(), line);
+            else {
+              // DIHEDRAL/IMPROPER PARAMETERS
+              AtomTypeHolder types(4);
+              types.AddName( args.GetStringNext() );
+              types.AddName( args.GetStringNext() );
+              types.AddName( args.GetStringNext() );
+              types.AddName( args.GetStringNext() );
+              prm.AT().CheckForAtomType( types[0] );
+              prm.AT().CheckForAtomType( types[1] );
+              prm.AT().CheckForAtomType( types[2] );
+              double pk = args.getNextDouble(0);
+              double pn = args.getNextDouble(0);
+              double phase = args.getNextDouble(0) * Constants::DEGRAD;
+              if (currentSection == DIHEDRALS)
+                prm.DP().AddParm(types, DihedralParmType(pk, pn, phase, 1.0, 1.0), false);
+              else
+                prm.IP().AddParm(types, DihedralParmType(pk, pn, phase), false);
             }
-            double epsilon = args.getNextDouble(0.0); // skip
-            epsilon = args.getNextDouble(0.0); // negative by convention
-            double radius = args.getNextDouble(0.0);
-            prm.AT().UpdateType(idx).SetRadius( radius );
-            prm.AT().UpdateType(idx).SetDepth( -epsilon );
+          } else if (currentSection == NONBONDED) {
+            if (args.Nargs() < 4)
+              mprintf("Warning: Bad syntax for nonbond parameter on line %i: %s\n", infile.LineNumber(), line);
+            else {
+              // NONBONDED PARAMETERS TODO do not add if not already present
+              // TODO handle 1-4 stuff
+              NameType at = args.GetStringNext();
+              int idx = prm.AT().AtomTypeIndex( at );
+              if (idx == -1) {
+                mprinterr("Error: Nonbond parameters defined for type '%s' without MASS card.\n",
+                          *at);
+                return 1;
+              }
+              double epsilon = args.getNextDouble(0.0); // skip
+              epsilon = args.getNextDouble(0.0); // negative by convention
+              double radius = args.getNextDouble(0.0);
+              prm.AT().UpdateType(idx).SetRadius( radius );
+              prm.AT().UpdateType(idx).SetDepth( -epsilon );
+            }
           }
           // -------------------------------------
         } // END input determination 
