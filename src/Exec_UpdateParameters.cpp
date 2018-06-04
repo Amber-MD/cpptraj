@@ -8,36 +8,48 @@ void Exec_UpdateParameters::Help() const
   mprintf("\t%s setname <parm set>\n", DataSetList::TopArgs);
 }
 
-static inline void BondTypes(ParmHolder<int>& ParmIndices, Topology const& top, BondArray const& bonds) {
+static inline void BondTypes(ParmHolder<int>& ParmIndices, Topology const& top, BondArray const& bonds, int& skipCount) {
   for (BondArray::const_iterator b = bonds.begin(); b != bonds.end(); ++b)
   {
-    AtomTypeHolder types(2);
-    types.AddName( top[b->A1()].Type() );
-    types.AddName( top[b->A2()].Type() );
-    ParmIndices.AddParm( types, b->Idx(), false );
+    if (b->Idx() == -1)
+      skipCount++;
+    else {
+      AtomTypeHolder types(2);
+      types.AddName( top[b->A1()].Type() );
+      types.AddName( top[b->A2()].Type() );
+      ParmIndices.AddParm( types, b->Idx(), false );
+    }
   }
 }
 
-static inline void AngleTypes(ParmHolder<int>& ParmIndices, Topology const& top, AngleArray const& angles) {
+static inline void AngleTypes(ParmHolder<int>& ParmIndices, Topology const& top, AngleArray const& angles, int& skipCount) {
   for (AngleArray::const_iterator b = angles.begin(); b != angles.end(); ++b)
   {
-    AtomTypeHolder types(3);
-    types.AddName( top[b->A1()].Type() );
-    types.AddName( top[b->A2()].Type() );
-    types.AddName( top[b->A3()].Type() );
-    ParmIndices.AddParm( types, b->Idx(), false );
+    if (b->Idx() == -1)
+      skipCount++;
+    else {
+      AtomTypeHolder types(3);
+      types.AddName( top[b->A1()].Type() );
+      types.AddName( top[b->A2()].Type() );
+      types.AddName( top[b->A3()].Type() );
+      ParmIndices.AddParm( types, b->Idx(), false );
+    }
   }
 }
 
-static inline void DihedralTypes(ParmHolder<int>& ParmIndices, Topology const& top, DihedralArray const& dih) {
+static inline void DihedralTypes(ParmHolder<int>& ParmIndices, Topology const& top, DihedralArray const& dih, int& skipCount) {
   for (DihedralArray::const_iterator b = dih.begin(); b != dih.end(); ++b)
   {
-    AtomTypeHolder types(3);
-    types.AddName( top[b->A1()].Type() );
-    types.AddName( top[b->A2()].Type() );
-    types.AddName( top[b->A3()].Type() );
-    types.AddName( top[b->A4()].Type() );
-    ParmIndices.AddParm( types, b->Idx(), false );
+    if (b->Idx() == -1)
+      skipCount++;
+    else {
+      AtomTypeHolder types(3);
+      types.AddName( top[b->A1()].Type() );
+      types.AddName( top[b->A2()].Type() );
+      types.AddName( top[b->A3()].Type() );
+      types.AddName( top[b->A4()].Type() );
+      ParmIndices.AddParm( types, b->Idx(), false );
+    }
   }
 }
 
@@ -68,13 +80,17 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
 
   mprintf("\tUpdating parameters in topology '%s' using those in set '%s'\n",
           top.c_str(), prm.legend());
-  // Get list of existing parameters.
   // We assume a parameter in topology is never repeated, so as soon
-  // as it is found we can move to the next one. 
+  // as it is found we can move to the next one.
+  // ParmIndices will map type names for existing bonds, angles, etc. to
+  // existing type indices.
   ParmHolder<int> ParmIndices;
   // Bond parameters
-  BondTypes(ParmIndices, top, top.Bonds());
-  BondTypes(ParmIndices, top, top.BondsH());
+  int skipCount = 0;
+  BondTypes(ParmIndices, top, top.Bonds(), skipCount);
+  BondTypes(ParmIndices, top, top.BondsH(), skipCount);
+  if (skipCount > 0)
+    mprintf("Warning: %i bonds were missing parameters and were skipped.\n", skipCount);
   for (ParmHolder<BondParmType>::const_iterator it1 = prm.BP().begin();
                                                 it1 != prm.BP().end(); ++it1)
   {
@@ -94,8 +110,11 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
   }
   ParmIndices.clear();
   // Angle parameters
-  AngleTypes(ParmIndices, top, top.Angles());
-  AngleTypes(ParmIndices, top, top.AnglesH());
+  skipCount = 0;
+  AngleTypes(ParmIndices, top, top.Angles(), skipCount);
+  AngleTypes(ParmIndices, top, top.AnglesH(), skipCount);
+  if (skipCount > 0)
+    mprintf("Warning: %i angles were missing parameters and were skipped.\n", skipCount);
   for (ParmHolder<AngleParmType>::const_iterator it1 = prm.AP().begin();
                                                  it1 != prm.AP().end(); ++it1)
   {
@@ -115,8 +134,11 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
   }
   ParmIndices.clear();
   // Dihedral parameters
-  DihedralTypes(ParmIndices, top, top.Dihedrals());
-  DihedralTypes(ParmIndices, top, top.DihedralsH());
+  skipCount = 0;
+  DihedralTypes(ParmIndices, top, top.Dihedrals(), skipCount);
+  DihedralTypes(ParmIndices, top, top.DihedralsH(), skipCount);
+  if (skipCount > 0)
+    mprintf("Warning: %i dihedrals were missing parameters and were skipped.\n", skipCount);
   for (ParmHolder<DihedralParmType>::const_iterator it1 = prm.DP().begin();
                                                     it1 != prm.DP().end(); ++it1)
   {
@@ -139,7 +161,10 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
   if (top.Chamber().HasChamber()) {
     ChamberParmType& chm = top.SetChamber();
     // UB parameters
-    BondTypes(ParmIndices, top, chm.UB());
+    skipCount = 0;
+    BondTypes(ParmIndices, top, chm.UB(), skipCount);
+    if (skipCount > 0)
+      mprintf("Warning: %i Urey-Bradley terms were missing parameters and were skipped.\n", skipCount);
     for (ParmHolder<BondParmType>::const_iterator it1 = prm.UB().begin();
                                                   it1 != prm.UB().end(); ++it1)
     {
@@ -159,7 +184,10 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
     }
     ParmIndices.clear();
     // Improper parameters
-    DihedralTypes(ParmIndices, top, chm.Impropers());
+    skipCount = 0;
+    DihedralTypes(ParmIndices, top, chm.Impropers(), skipCount);
+    if (skipCount > 0)
+      mprintf("Warning: %i impropers were missing parameters and were skipped.\n", skipCount);
     for (ParmHolder<DihedralParmType>::const_iterator it1 = prm.IP().begin();
                                                       it1 != prm.IP().end(); ++it1)
     {
