@@ -293,6 +293,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
+        ParameterSet.cpp \
         PDBfile.cpp \
         PairList.cpp \
         Parallel.cpp \
