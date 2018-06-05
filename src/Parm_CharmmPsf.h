@@ -1,7 +1,7 @@
 #ifndef INC_PARM_CHARMMPSF_H
 #define INC_PARM_CHARMMPSF_H
 #include "ParmIO.h"
-#include "DataSet_Parameters.h"
+#include "ParameterSet.h"
 class Parm_CharmmPsf : public ParmIO {
   public :
     Parm_CharmmPsf() {}
@@ -16,6 +16,6 @@ class Parm_CharmmPsf : public ParmIO {
     static inline int FindTag(char*, const char*, CpptrajFile&);
     int ReadDihedrals(CpptrajFile&, int, const char*, Topology&) const;
 
-    DataSet_Parameters params_;
+    ParameterSet params_;
 };
 #endif
