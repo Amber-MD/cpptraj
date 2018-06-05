@@ -138,7 +138,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         BufferedLine.cpp \
         ByteRoutines.cpp \
         CharMask.cpp \
-        CharmmParam.cpp \
+        CharmmParamFile.cpp \
         CIFfile.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \
