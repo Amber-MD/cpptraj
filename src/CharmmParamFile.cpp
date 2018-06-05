@@ -202,7 +202,7 @@ int CharmmParamFile::WriteParams(ParameterSet& prm, FileName const& nameIn, int 
   outfile.Printf("\nATOMS\n");
   for (AtomTypeArray::const_iterator it = prm.AT().begin();
                                      it != prm.AT().end(); ++it)
-    outfile.Printf("%-6s%5i  %6s%12.5f\n", "MASS", -1, *(it->first), prm.AT()[it->second].Mass());
+    outfile.Printf("%-4s %3i  %-8s%10.5f\n", "MASS", -1, *(it->first), prm.AT()[it->second].Mass());
 
   outfile.Printf("\nEND\n");
   outfile.CloseFile();
