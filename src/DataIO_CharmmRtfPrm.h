@@ -15,9 +15,5 @@ class DataIO_CharmmRtfPrm : public DataIO {
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
-
-    int ReadData(DataSet_Parameters&, FileName const&) const;
-  private:
-    int ReadData(DataSet_Parameters&, BufferedLine&) const;
 };
 #endif
