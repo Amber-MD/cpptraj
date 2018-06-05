@@ -497,10 +497,6 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
                                std::string const& mask3exp, std::string const& mask4exp,
                                bool printImpropers) const
 {
-  if (printImpropers && !parm_->Chamber().HasChamber()) {
-    mprintf("Warning: '%s' does not have any CHARMM parameters.\n", parm_->c_str());
-    return 0;
-  }
   CharMask mask1( mask1exp );
   if (SetupMask( mask1 )) return 1;
   CharMask mask2;

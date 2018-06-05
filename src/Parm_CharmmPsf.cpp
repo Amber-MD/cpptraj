@@ -31,6 +31,7 @@ int Parm_CharmmPsf::processReadArgs(ArgList& argIn) {
   std::string parFileName = argIn.GetStringKey("param");
   while (!parFileName.empty()) {
     DataIO_CharmmRtfPrm infile;
+    mprintf("\tReading CHARMM parameters from '%s'\n", parFileName.c_str());
     err += infile.ReadData(params_, parFileName );
     parFileName = argIn.GetStringKey("param");
   }
