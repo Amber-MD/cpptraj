@@ -204,6 +204,38 @@ int CharmmParamFile::WriteParams(ParameterSet& prm, FileName const& nameIn, int 
                                      it != prm.AT().end(); ++it)
     outfile.Printf("%-4s %3i  %-8s%10.5f\n", "MASS", -1, *(it->first), prm.AT()[it->second].Mass());
 
+  // BONDS
+  if (!prm.BP().empty()) {
+    outfile.Printf("\nBONDS\n");
+    for (ParmHolder<BondParmType>::const_iterator it = prm.BP().begin();
+                                                  it != prm.BP().end(); ++it)
+      outfile.Printf("%-8s %-8s %8.3f %10.4f\n",
+                     *(it->first[0]), *(it->first[1]),
+                     it->second.Rk(), it->second.Req());
+  }
+
+  // ANGLES
+  if (!prm.AP().empty()) {
+    outfile.Printf("\nANGLES\n");
+    for (ParmHolder<AngleParmType>::const_iterator it = prm.AP().begin();
+                                                   it != prm.AP().end(); ++it)
+      outfile.Printf("%-8s %-8s %-8s %8.3f %10.4f\n",
+                     *(it->first[0]), *(it->first[1]), *(it->first[2]),
+                     it->second.Tk(), it->second.Teq());
+  }
+
+  // DIHEDRALS
+  if (!prm.DP().empty()) {
+    outfile.Printf("\nDIHEDRALS\n");
+    for (ParmHolder<DihedralParmType>::const_iterator it = prm.DP().begin();
+                                                      it != prm.DP().end(); ++it)
+      outfile.Printf("%-8s %-8s %-8s %-8s %10.4f %2i %8.2f\n",
+                     *(it->first[0]), *(it->first[1]), *(it->first[2]), *(it->first[3]),
+                     it->second.Pk(), (int)it->second.Pn(),
+                     it->second.Phase()*Constants::RADDEG);
+  }
+
+  // END
   outfile.Printf("\nEND\n");
   outfile.CloseFile();
   return 0;
