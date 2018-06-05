@@ -3,7 +3,7 @@
 #include "DataSet.h"
 #include "ParameterSet.h"
 /// DataSet wrapper around ParameterSet
-class DataSet_Parameters : public DataSet, ParameterSet  {
+class DataSet_Parameters : public DataSet, public ParameterSet  {
   public:
     DataSet_Parameters();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Parameters(); }
