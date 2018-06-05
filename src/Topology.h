@@ -111,6 +111,9 @@ class Topology {
     // ----- CHAMBER info ------------------------
     ChamberParmType const& Chamber()        const { return chamber_;      }
     ChamberParmType& SetChamber()                 { return chamber_;      }
+    void AddCharmmImproper(DihedralType const&, DihedralParmType const&);
+    void AddCharmmImproper(DihedralType const&, int);
+    void AddCharmmImproper(DihedralType const& i) { AddCharmmImproper(i, -1); }
     // ----- Misc routines -----------------------
     /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;
@@ -170,6 +173,12 @@ class Topology {
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
     void AddBondParam(BondType&, BP_mapType&);
     void AssignBondParameters();
+    static inline int AddTorsionParm(DihedralParmArray&, DihedralParmType const&);
+    bool CheckTorsionRange(DihedralType const& dihIn, const char*) const;
+    static inline DihedralType SetTorsionParmIndex(DihedralType const&,
+                                                   DihedralParmArray const&,
+                                                   int, const char*);
+
     void VisitAtom(int, int);
     int RecursiveMolSearch();
     int NonrecursiveMolSearch();

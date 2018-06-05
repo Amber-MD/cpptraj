@@ -688,47 +688,75 @@ void Topology::AddAngle(AngleType const& angIn, bool isH) {
     angles_.push_back( angIn );
 }
 
-// Topology::AddDihedral()
-void Topology::AddDihedral(DihedralType const& dih, DihedralParmType const& DPin)
+// -----------------------------------------------
+// Topology::AddTorsionParm()
+/** Check if given dihedral parm exists in given dihedral parm array. Add if not.
+  * \return Index in dihedral parm array.
+  */
+int Topology::AddTorsionParm(DihedralParmArray& dparray, DihedralParmType const& DPin)
 {
   // See if the DihedralParm exists.
   int pidx = -1;
-  for (DihedralParmArray::const_iterator dp = dihedralparm_.begin();
-                                         dp != dihedralparm_.end(); ++dp)
+  for (DihedralParmArray::const_iterator dp = dparray.begin();
+                                         dp != dparray.end(); ++dp)
     if ( fabs(DPin.Pk()    - dp->Pk()   ) < Constants::SMALL &&
          fabs(DPin.Pn()    - dp->Pn()   ) < Constants::SMALL &&
          fabs(DPin.Phase() - dp->Phase()) < Constants::SMALL &&
          fabs(DPin.SCEE()  - dp->SCEE() ) < Constants::SMALL &&
          fabs(DPin.SCNB()  - dp->SCNB() ) < Constants::SMALL )
     {
-      pidx = (int)(dp - dihedralparm_.begin());
+      pidx = (int)(dp - dparray.begin());
       break;
     }
   if (pidx == -1) {
-    pidx = (int)dihedralparm_.size();
-    dihedralparm_.push_back( DPin );
+    pidx = (int)dparray.size();
+    dparray.push_back( DPin );
   }
-  AddDihedral( dih, pidx );
+  return pidx;
 }
 
-// Topology::AddDihedral()
-void Topology::AddDihedral(DihedralType const& dihIn, int pidxIn) {
-  // FIXME: Check duplicate
+/** \return true if any atoms in the dihedral are out of range. */
+bool Topology::CheckTorsionRange(DihedralType const& dihIn, const char* typestr) const
+{
   // Check if atoms are out of range.
-  if (WarnOutOfRange(atoms_.size(), dihIn.A1(), "dihedral")) return;
-  if (WarnOutOfRange(atoms_.size(), dihIn.A2(), "dihedral")) return;
-  if (WarnOutOfRange(atoms_.size(), dihIn.A3(), "dihedral")) return;
-  if (WarnOutOfRange(atoms_.size(), dihIn.A4(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A1(), typestr)) return true;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A2(), typestr)) return true;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A3(), typestr)) return true;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A4(), typestr)) return true;
+  return false;
+}
+
+/** \return Dihedral with parm index set. */
+DihedralType Topology::SetTorsionParmIndex(DihedralType const& dihIn,
+                                           DihedralParmArray const& dparray,
+                                           int pidxIn, const char* typestr)
+{
   // Check if parm index is out of range;
   int pidx;
-  if (pidxIn < (int)dihedralparm_.size())
+  if (pidxIn < (int)dparray.size())
     pidx = pidxIn;
   else {
-    mprintf("Warning: No dihedral parameters for index %i\n", pidxIn);
+    mprintf("Warning: No %s parameters for index %i\n", typestr, pidxIn);
     pidx = -1;
   }
   DihedralType dih = dihIn;
   dih.SetIdx( pidx );
+  return dih;
+}
+
+/** Add given dihedral with given dihedral parm to dihedral array. */
+void Topology::AddDihedral(DihedralType const& dih, DihedralParmType const& DPin)
+{
+  int pidx = AddTorsionParm(dihedralparm_, DPin);
+  if (CheckTorsionRange(dih, "dihedral")) return;
+  AddDihedral(dih, pidx);
+}
+
+/** Add given dihedral with given dihedral parm index. */
+void Topology::AddDihedral(DihedralType const& dihIn, int pidxIn) {
+  // FIXME: Check duplicate
+  if (CheckTorsionRange(dihIn, "dihedral")) return;
+  DihedralType dih = SetTorsionParmIndex(dihIn, dihedralparm_, pidxIn, "dihedral");
   // Update dihedral arrays
   if (atoms_[dih.A1()].Element() == Atom::HYDROGEN ||
       atoms_[dih.A2()].Element() == Atom::HYDROGEN ||
@@ -739,11 +767,29 @@ void Topology::AddDihedral(DihedralType const& dihIn, int pidxIn) {
     dihedrals_.push_back( dih );
 }
 
+/** Add given dihedral to either dihedral with or without H array. */
 void Topology::AddDihedral(DihedralType const& dihIn, bool isH) {
   if (isH)
     dihedralsh_.push_back( dihIn );
   else
     dihedrals_.push_back( dihIn );
+}
+
+/** Add given Charmm improper with given improper parm to Charmm improper array. */
+void Topology::AddCharmmImproper(DihedralType const& imp, DihedralParmType const& IPin)
+{
+  int pidx = AddTorsionParm(chamber_.SetImproperParm(), IPin);
+  if (CheckTorsionRange(imp, "CHARMM improper")) return;
+  AddCharmmImproper(imp, pidx);
+}
+
+/** Add given Charmm improper with given improper parm index. */
+void Topology::AddCharmmImproper(DihedralType const& impIn, int pidxIn)
+{
+  if (CheckTorsionRange(impIn, "CHARMM improper")) return;
+  DihedralType imp = SetTorsionParmIndex(impIn, chamber_.ImproperParm(), pidxIn, "CHARMM improper");
+  // Update Charmm improper array.
+  chamber_.AddImproperTerm( imp );
 }
 
 // -----------------------------------------------------------------------------
