@@ -16,7 +16,7 @@ static inline std::string Input(const char* line) {
 }
 
 /** Read CHARMM parameters from specified file into given parameter set. */
-int CharmmParam::ReadParams(ParameterSet& prm, FileName const& nameIn, int debugIn) {
+int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int debugIn) {
   BufferedLine infile;
 
   mprintf("\tReading CHARMM parameters from '%s'\n", nameIn.full());

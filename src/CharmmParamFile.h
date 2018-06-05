@@ -1,11 +1,11 @@
-#ifndef INC_CHARMMPARAM_H
-#define INC_CHARMMPARAM_H
+#ifndef INC_CHARMMPARAMFILE_H
+#define INC_CHARMMPARAMFILE_H
 #include "ParameterSet.h"
 #include "FileName.h"
 /// Used to read in CHARMM parameters from CHARMM parameter file.
-class CharmmParam {
+class CharmmParamFile {
   public:
-    CharmmParam() {}
+    CharmmParamFile() {}
     int ReadParams(ParameterSet&, FileName const&, int);
   private:
 };
