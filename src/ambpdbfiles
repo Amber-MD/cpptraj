@@ -36,6 +36,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               ParmFile.cpp \
               Parm_Amber.cpp \
               Parm_CIF.cpp \
+              Parm_CharmmParam.cpp \
               Parm_CharmmPsf.cpp \
               Parm_Gromacs.cpp \
               Parm_Mol2.cpp \

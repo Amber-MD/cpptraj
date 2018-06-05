@@ -9,6 +9,7 @@
 #include "Parm_SDF.h"
 #include "Parm_Tinker.h"
 #include "Parm_Gromacs.h"
+#include "Parm_CharmmParam.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as ParmFormatType
@@ -21,6 +22,7 @@ const FileTypes::AllocToken ParmFile::PF_AllocArray[] = {
   { "Gromacs Topology", 0,                  0,                     Parm_Gromacs::Alloc   },
   { "SDF File",         0,                  0,                     Parm_SDF::Alloc       },
   { "Tinker File",      0,                  0,                     Parm_Tinker::Alloc    },
+  { "Charmm Params",    0,                  0,                     Parm_CharmmParam::Alloc },
   { "Unknown Topology", 0,                  0,                     0                     }
 };
 
@@ -40,6 +42,7 @@ const FileTypes::KeyToken ParmFile::PF_KeyArray[] = {
 const FileTypes::KeyToken ParmFile::PF_WriteKeyArray[] = {
   { AMBERPARM,    "amber",   ".parm7" },
   { CHARMMPSF,    "psf",     ".psf"   },
+  { CHARMMPARM,   "prm",     ".prm"   },
   { UNKNOWN_PARM, 0,         0        }
 };
 

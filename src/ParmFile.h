@@ -11,7 +11,7 @@ class ParmFile {
     static const FileTypes::KeyToken PF_WriteKeyArray[];
   public :
     enum ParmFormatType { AMBERPARM=0, PDBFILE, MOL2FILE, CHARMMPSF, CIFFILE,
-                          GMXTOP, SDFFILE, TINKER, UNKNOWN_PARM };
+                          GMXTOP, SDFFILE, TINKER, CHARMMPARM, UNKNOWN_PARM };
     static void ReadOptions() { FileTypes::ReadOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM); }
     static void WriteOptions(){ FileTypes::WriteOptions(PF_WriteKeyArray,PF_AllocArray,UNKNOWN_PARM);}
     ParmFile() {}
