@@ -37,8 +37,10 @@ int Parm_CharmmPsf::processReadArgs(ArgList& argIn) {
   return err;
 }
 
-int Parm_CharmmPsf::FindTag(char* tag, const char* target, int tgtsize, CpptrajFile& infile) {
+// Parm_CharmmPsf::FindTag()
+int Parm_CharmmPsf::FindTag(char* tag, const char* target, CpptrajFile& infile) {
   int nval = 0;
+  int tgtsize = strlen( target );
   while (strncmp(tag,target,tgtsize)!=0) {
     const char* buffer = infile.NextLine();
     if ( buffer == 0 ) return 0;
@@ -47,6 +49,7 @@ int Parm_CharmmPsf::FindTag(char* tag, const char* target, int tgtsize, CpptrajF
   return nval;
 }
 
+//  Parm_CharmmPsf::ReadDihedrals()
 int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char* typestr, Topology& parmOut) const
 {
     bool found;
@@ -77,17 +80,28 @@ int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char
           int a2 = bondatoms[dihidx+1]-1;
           int a3 = bondatoms[dihidx+2]-1;
           int a4 = bondatoms[dihidx+3]-1;
+          DihedralType dih(a1, a2, a3, a4, DihedralType::NORMAL);
           AtomTypeHolder types(4);
           types.AddName( parmOut[a1].Type() );
           types.AddName( parmOut[a2].Type() );
           types.AddName( parmOut[a3].Type() );
           types.AddName( parmOut[a4].Type() );
-          DihedralParmType dpt = params_.DP().FindParam( types, found );
-          if (found)
-            parmOut.AddDihedral( DihedralType(a1, a2, a3, a4, DihedralType::NORMAL), dpt );
-          else {
+          DihedralParmType dpt;
+          if (typestr[0] == 'd')
+            dpt = params_.DP().FindParam( types, found );
+          else
+            dpt = params_.IP().FindParam( types, found );
+          if (found) {
+            if (typestr[0] == 'd')
+              parmOut.AddDihedral( dih, dpt );
+            else
+              parmOut.AddCharmmImproper( dih, dpt );
+          } else {
             mprintf("Warning: Parameters not found for %s %s - %s - %s - %s\n", typestr, parmOut.AtomMaskName(a1).c_str(), parmOut.AtomMaskName(a2).c_str(), parmOut.AtomMaskName(a3).c_str(), parmOut.AtomMaskName(a4).c_str());
-            parmOut.AddDihedral( DihedralType(a1, a2, a3, a4, DihedralType::NORMAL) );
+            if (typestr[0] == 'd')
+              parmOut.AddDihedral( dih );
+            else
+              parmOut.AddCharmmImproper( dih );
           }
         }
       }
@@ -111,7 +125,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   const char* buffer = 0;
   if ( (buffer=infile.NextLine()) == 0 ) return 1;
   // Advance to <ntitle> !NTITLE
-  int ntitle = FindTag(tag, "!NTITLE", 7, infile); 
+  int ntitle = FindTag(tag, "!NTITLE", infile); 
   // Only read in 1st title. Skip any asterisks.
   std::string psftitle;
   if (ntitle > 0) {
@@ -122,7 +136,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   }
   parmOut.SetParmName( NoTrailingWhitespace(psftitle), infile.Filename() );
   // Advance to <natom> !NATOM
-  int natom = FindTag(tag, "!NATOM", 6, infile);
+  int natom = FindTag(tag, "!NATOM", infile);
   if (debug_>0) mprintf("\tPSF: !NATOM tag found, natom=%i\n", natom);
   // If no atoms, probably issue with PSF file
   if (natom < 1) {
@@ -168,7 +182,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int bondatoms[9];
-  int nbond = FindTag(tag, "!NBOND", 6, infile);
+  int nbond = FindTag(tag, "!NBOND", infile);
   if (nbond > 0) {
     if (debug_>0) mprintf("\tPSF: !NBOND tag found, nbond=%i\n", nbond);
     int nlines = nbond / 4;
@@ -206,7 +220,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   } else
     mprintf("Warning: PSF has no bonds.\n");
   // Advance to <nangles> !NTHETA
-  int nangle = FindTag(tag, "!NTHETA", 7, infile);
+  int nangle = FindTag(tag, "!NTHETA", infile);
   if (nangle > 0) {
     if (debug_>0) mprintf("\tPSF: !NTHETA tag found, nangle=%i\n", nangle);
     int nlines = nangle / 3;
@@ -247,12 +261,19 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   } else
     mprintf("Warning: PSF has no angles.\n");
   // Advance to <ndihedrals> !NPHI
-  int ndihedral = FindTag(tag, "!NPHI", 5, infile);
+  int ndihedral = FindTag(tag, "!NPHI", infile);
   if (ndihedral > 0) {
     if (debug_>0) mprintf("\tPSF: !NPHI tag found, ndihedral=%i\n", ndihedral);
     if (ReadDihedrals(infile, ndihedral, "dihedral", parmOut)) return 1;
   } else
     mprintf("Warning: PSF has no dihedrals.\n");
+  // Advance to <nimpropers> !NIMPHI
+  int nimproper = FindTag(tag, "!NIMPHI", infile);
+  if (nimproper > 0) {
+    if (debug_ > 0) mprintf("\tPSF: !NIMPHI tag found, nimproper=%i\n", nimproper);
+    if (ReadDihedrals(infile, nimproper, "improper", parmOut)) return 1;
+  } else
+    mprintf("Warning: PSF has no impropers.\n");
   mprintf("\tPSF contains %i atoms, %i residues.\n", parmOut.Natom(), parmOut.Nres());
 
   infile.CloseFile();
