@@ -4,13 +4,14 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Atom.cpp \
               AtomMask.cpp \
               AtomType.cpp \
+              AtomTypeArray.cpp \
               BondSearch.cpp \
               Box.cpp \
               BufferedFrame.cpp \
               BufferedLine.cpp \
               ByteRoutines.cpp \
               CharMask.cpp \
-              CharmmParam.cpp \
+              CharmmParamFile.cpp \
               CIFfile.cpp \
               CoordinateInfo.cpp \
               CpptrajFile.cpp \
@@ -31,6 +32,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               NC_Routines.cpp \
               NetcdfFile.cpp \
               OutputTrajCommon.cpp \
+              ParameterSet.cpp \
               ParmFile.cpp \
               Parm_Amber.cpp \
               Parm_CIF.cpp \
