@@ -6,7 +6,8 @@
 class CharmmParamFile {
   public:
     CharmmParamFile() {}
-    int ReadParams(ParameterSet&, FileName const&, int);
+    static int ReadParams(ParameterSet&, FileName const&, int);
+    static int WriteParams(ParameterSet&, FileName const&, int);
   private:
 };
 #endif
