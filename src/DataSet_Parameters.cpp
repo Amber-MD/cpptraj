@@ -7,23 +7,23 @@ DataSet_Parameters::DataSet_Parameters() :
 {}
 
 size_t DataSet_Parameters::Size() const {
-  return (atomTypes_.Size() +
-          bondParm_.size() +
-          angleParm_.size() +
-          ubParm_.size() +
-          dihParm_.size() +
-          impParm_.size());
+  return (AT().Size() +
+          BP().size() +
+          AP().size() +
+          UB().size() +
+          DP().size() +
+          IP().size());
 }
 
 void DataSet_Parameters::Info() const {
   if (Size() > 0) {
     mprintf(" (");
-    if (atomTypes_.Size() > 0) mprintf(" types=%zu", atomTypes_.Size());
-    if (bondParm_.size() > 0) mprintf(" bnd=%zu", bondParm_.size());
-    if (angleParm_.size() > 0) mprintf(" ang=%zu", angleParm_.size());
-    if (ubParm_.size() > 0) mprintf(" UB=%zu", ubParm_.size());
-    if (dihParm_.size() > 0) mprintf(" dih=%zu", dihParm_.size());
-    if (impParm_.size() > 0) mprintf(" imp=%zu", impParm_.size());
+    if (AT().Size() > 0) mprintf(" types=%zu", AT().Size());
+    if (BP().size() > 0) mprintf(" bnd=%zu", BP().size());
+    if (AP().size() > 0) mprintf(" ang=%zu", AP().size());
+    if (UB().size() > 0) mprintf(" UB=%zu", UB().size());
+    if (DP().size() > 0) mprintf(" dih=%zu", DP().size());
+    if (IP().size() > 0) mprintf(" imp=%zu", IP().size());
     mprintf(" )");
   }
 }

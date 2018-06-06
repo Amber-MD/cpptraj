@@ -13,6 +13,7 @@ class ParameterSet {
     ParmHolder<DihedralParmType>& DP() { return dihParm_; }
     ParmHolder<DihedralParmType>& IP() { return impParm_; }
 
+    AtomTypeArray const& AT() const { return atomTypes_; }
     ParmHolder<BondParmType> const& BP() const { return bondParm_; }
     ParmHolder<AngleParmType> const& AP() const { return angleParm_; }
     ParmHolder<BondParmType> const& UB() const { return ubParm_; }
@@ -20,8 +21,6 @@ class ParameterSet {
     ParmHolder<DihedralParmType> const& IP() const { return impParm_; }
 
     void Debug() const;
-
-    friend class DataSet_Parameters;
   private:
     AtomTypeArray atomTypes_;
     ParmHolder<BondParmType> bondParm_;
