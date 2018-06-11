@@ -265,9 +265,12 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
     }
   }
   // Label arguments
-  Xlabels_ = LabelArg( argIn.GetStringKey( "xlabels" ) );
-  Ylabels_ = LabelArg( argIn.GetStringKey( "ylabels" ) );
-  Zlabels_ = LabelArg( argIn.GetStringKey( "zlabels" ) );
+  if (argIn.Contains("xlabels"))
+    Xlabels_ = LabelArg( argIn.GetStringKey( "xlabels" ) );
+  if (argIn.Contains("ylabels"))
+    Ylabels_ = LabelArg( argIn.GetStringKey( "ylabels" ) );
+  if (argIn.Contains("zlabels"))
+    Zlabels_ = LabelArg( argIn.GetStringKey( "zlabels" ) );
   if (pm3d_ == MAP) useMap_ = true;
   return 0;
 }
