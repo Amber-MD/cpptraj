@@ -156,6 +156,9 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   double psfcharge;
   double psfmass;
   typedef std::vector<std::string> Sarray;
+  // TODO AtomTypeArray should eventually be in Topology
+  AtomTypeArray atomTypes;
+  atomTypes.SetDebug( 1 );
   Sarray SegIDs;
   for (int atom=0; atom < natom; atom++) {
     if ( (buffer=infile.NextLine()) == 0 ) {
@@ -178,8 +181,11 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       SegIDs.push_back( segmentID );
       if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
     }
-    parmOut.AddTopAtom( Atom( psfname, psfcharge, psfmass, psftype), 
-                        Residue( psfresname, psfresnum, idx) );
+    // TODO the type index stuff should be in Topology
+    int typeidx = atomTypes.CheckForAtomType( NameType(psftype), AtomType(psfmass) );
+    Atom chmAtom( psfname, psfcharge, psfmass, psftype );
+    chmAtom.SetTypeIndex( typeidx );
+    parmOut.AddTopAtom( chmAtom, Residue( psfresname, psfresnum, idx) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int bondatoms[9];
@@ -278,6 +284,45 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   mprintf("\tPSF contains %i atoms, %i residues.\n", parmOut.Natom(), parmOut.Nres());
 
   infile.CloseFile();
+
+  // Add nonbonded parameters
+  if (params_.HasLJparams()) {
+    int ntypes = (int)atomTypes.Size();
+    parmOut.SetNonbond().SetupLJforNtypes( ntypes );
+    mprintf("\tAtom Types:\n");
+    for (AtomTypeArray::const_iterator it = atomTypes.begin(); it != atomTypes.end(); ++it)
+    {
+      int idx1 = it->second;
+      int idx0 = params_.AT().AtomTypeIndex( it->first );
+      if (idx0 < 0)
+        mprintf("Warning: No LJ parameters for type '%s'\n", *(it->first));
+      else {
+        atomTypes.UpdateType(idx1).SetRadius( params_.AT()[idx0].Radius() );
+        atomTypes.UpdateType(idx1).SetDepth( params_.AT()[idx0].Depth() );
+      }
+      mprintf("\t\t%3i '%s' mass=%10.4f radius=%10.4f depth=%10.4f\n",
+              idx1, *(it->first),
+              atomTypes[idx1].Mass(),
+              atomTypes[idx1].Radius(),
+              atomTypes[idx1].Depth());
+    }
+    mprintf("\tAdding Lennard-Jones parameters using Lorentz-Berthelot combining rules.\n");
+    for (AtomTypeArray::const_iterator it1 = atomTypes.begin(); it1 != atomTypes.end(); ++it1)
+    {
+      int type1 = it1->second;
+      for (AtomTypeArray::const_iterator it2 = it1; it2 != atomTypes.end(); it2++)
+      {
+        int type2 = it2->second;
+        NonbondType LJ = atomTypes[type1].Combine_LB( atomTypes[type2] );
+        mprintf("\t%3i - %3i : Ri=%10.4f Ei=%10.4f Rj=%10.4f Ej=%10.4f A=%10.4f B=%10.4f\n",
+                type1, type2,
+                atomTypes[type1].Radius(), atomTypes[type1].Depth(),
+                atomTypes[type2].Radius(), atomTypes[type2].Depth(),
+                LJ.A(), LJ.B());
+        parmOut.SetNonbond().AddLJterm(type1, type2, LJ);
+      }
+    }
+  }
 
   return 0;
 }

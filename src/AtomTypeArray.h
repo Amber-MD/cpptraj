@@ -13,8 +13,12 @@ class AtomTypeArray {
     AtomType const& operator[](int idx) const { return types_[idx]; }
 
     void SetDebug(int d) { debug_ = d; }
+    /// \return true if type name already present, false otherwise.
     bool AddAtomType(NameType const&, AtomType const&);
+    /// \return Atom type index of new/existing atom type.
+    int CheckForAtomType(NameType const&, AtomType const&);
     int CheckForAtomType(NameType const&);
+    /// \return Atom type index of given name, -1 if not present.
     int AtomTypeIndex(NameType const&);
 
     AtomType& UpdateType(int idx) { return types_[idx]; }

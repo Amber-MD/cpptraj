@@ -160,6 +160,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
             if (args.Nargs() < 4)
               mprintf("Warning: Bad syntax for nonbond parameter on line %i: %s\n", infile.LineNumber(), line);
             else {
+              prm.SetHasLJparams( true );
               // NONBONDED PARAMETERS TODO do not add if not already present
               // TODO handle 1-4 stuff
               NameType at = args.GetStringNext();
