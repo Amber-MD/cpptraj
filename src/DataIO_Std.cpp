@@ -390,13 +390,10 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
     hasXcolumn_ = false;
   if (writeHeader_ && argIn.hasKey("noheader"))
     writeHeader_ = false;
-  bool original_square2d = square2d_;
-  if (argIn.hasKey("square2d"))
+  if (!square2d_ && argIn.hasKey("square2d"))
     square2d_ = true;
-  else if (argIn.hasKey("nosquare2d"))
+  else if (square2d_ && argIn.hasKey("nosquare2d"))
     square2d_ = false;
-  else
-    square2d_ = original_square2d;
   return 0;
 }
 
