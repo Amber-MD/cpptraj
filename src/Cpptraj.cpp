@@ -527,10 +527,16 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   // Add all output trajectories specified on command line.
   if (!trajoutFiles.empty()) {
     hasInput = true; // This allows direct traj conversion with no other input
-    for (Sarray::const_iterator trajoutName = trajoutFiles.begin();
-                                trajoutName != trajoutFiles.end();
-                                ++trajoutName)
-      if (State_.AddOutputTrajectory( *trajoutName )) return ERROR;
+    if (!trajoutArgs.empty()) {
+      ResizeArgs( trajoutFiles, trajoutArgs, "output" );
+      for (unsigned int it = 0; it != trajoutFiles.size(); it++)
+        if (State_.AddOutputTrajectory( trajoutFiles[it] + " " + trajoutArgs[it] )) return ERROR;
+    } else {
+      for (Sarray::const_iterator trajoutName = trajoutFiles.begin();
+                                  trajoutName != trajoutFiles.end();
+                                  ++trajoutName)
+        if (State_.AddOutputTrajectory( *trajoutName )) return ERROR;
+    }
   }
   // Process all input files specified on command line.
   if ( !inputFiles.empty() ) {
