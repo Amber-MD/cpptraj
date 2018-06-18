@@ -251,20 +251,33 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
   return 0;
 }
 
-void Cpptraj::AddFiles(Sarray& Files, int argc, char** argv, int& idx) {
-  Files.push_back( argv[++idx] );
-  // Assume all following args without leading '-' are also files.
-  while (idx+1 != argc && argv[idx+1][0] != '-')
-    Files.push_back( argv[++idx] );
+/** Add current argument and all following arguments without leading '-' to
+  * given string array.
+  */
+void Cpptraj::AddArgs(Sarray& Args, ArgList const& cmdLineArgs, int& idx)
+{
+  Args.push_back( cmdLineArgs[++idx] );
+  while (idx+1 != cmdLineArgs.Nargs() && cmdLineArgs[idx+1][0] != '-')
+    Args.push_back( cmdLineArgs[++idx] );
+}
+
+/** \return True if given argument matches key and is not the final argument.
+  */
+static inline bool NotFinalArg(std::string const& arg, const char* key, int pos, int nargs)
+{
+  return (arg == key && pos+1 != nargs);
 }
 
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
+  // First convert argv to one continuous string.
   commandLine_.clear();
   for (int i = 1; i < argc; i++)
     commandLine_.append( " " + std::string(argv[i]) );
+  // Use ArgList to split into arguments.
   ArgList cmdLineArgs( commandLine_ );
   mprintf("DEBUG: CmdLine: %s\n", cmdLineArgs.ArgLine() );
+  // Process command line flags from ArgList
   bool hasInput = false;
   bool interactive = false;
   Sarray inputFiles;
@@ -275,8 +288,10 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   Sarray refFiles;
   Sarray dataFiles;
   std::string dataOut;
-  for (int i = 1; i < argc; i++) {
-    std::string arg(argv[i]);
+  for (int iarg = 0; iarg < cmdLineArgs.Nargs(); iarg++)
+  {
+    std::string const& arg = cmdLineArgs[iarg];
+    // ----- One-and-done flags ------------------
     if ( arg == "--help" || arg == "-h" ) {
       // --help, -help: Print usage and exit
       SetWorldSilent(true);
@@ -312,75 +327,77 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (State_.TrajLength( topFiles[0], trajinFiles )) return ERROR;
       return QUIT;
     }
-    if ( arg == "--interactive" )
+    // ----- Single flags ------------------------
+    if ( arg == "--interactive" ) {
       interactive = true;
-    else if ( arg == "--suppress-all-output") {
+    } else if ( arg == "--suppress-all-output") {
       mprintf("Info: All further output will be suppressed.\n");
       SuppressAllOutput();
-    } else if ( arg == "-debug" && i+1 != argc) {
+    // ----- Flags that precede values -----------
+    } else if ( NotFinalArg(arg, "-debug", iarg, cmdLineArgs.Nargs()) ) {
       // -debug: Set overall debug level
-      ArgList dbgarg( argv[++i] );
+      ArgList dbgarg( cmdLineArgs[++iarg] );
       State_.SetListDebug( dbgarg );
-    } else if ( arg == "--log" && i+1 != argc)
+    } else if ( NotFinalArg(arg, "--log", iarg, cmdLineArgs.Nargs()) ) {
       // --log: Set up log file for interactive mode
-      logfilename_ = argv[++i];
-    else if ( arg == "-p" && i+1 != argc) {
+      logfilename_ = cmdLineArgs[++iarg];
+    } else if ( NotFinalArg(arg, "-p", iarg, cmdLineArgs.Nargs()) ) {
       // -p: Topology file
-      AddFiles( topFiles, argc, argv, i );
-    } else if ( arg == "-d" && i+1 != argc) {
+      AddArgs( topFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(arg, "-d", iarg, cmdLineArgs.Nargs()) ) {
       // -d: Read data file
-      AddFiles( dataFiles, argc, argv, i );
-    } else if ( arg == "-w" && i+1 != argc) {
+      AddArgs( dataFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(arg, "-w", iarg, cmdLineArgs.Nargs()) ) {
       // -w: Write data file. Only one allowed. For data file conversion.
-      dataOut.assign( argv[++i] );
-    } else if ( arg == "-y" && i+1 != argc) {
+      dataOut.assign( cmdLineArgs[++iarg] );
+    } else if ( NotFinalArg(arg, "-y", iarg, cmdLineArgs.Nargs()) ) {
       // -y: Trajectory file in.
-      AddFiles( trajinFiles, argc, argv, i );
-    } else if ( arg == "-ya" && i+1 != argc) {
+      AddArgs( trajinFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(arg, "-ya", iarg, cmdLineArgs.Nargs()) ) {
       // -ya: Trajectory file in arguments.
-      AddFiles( trajinArgs, argc, argv, i );
-    } else if ( arg == "-x" && i+1 != argc) {
+      AddArgs( trajinArgs, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(arg, "-x", iarg, cmdLineArgs.Nargs()) ) {
       // -x: Trajectory file out
-      trajoutFiles.push_back( argv[++i] );
-    } else if ( arg == "-c" && i+1 != argc) {
+      trajoutFiles.push_back( cmdLineArgs[++iarg] );
+    } else if ( NotFinalArg(arg, "-c", iarg, cmdLineArgs.Nargs()) ) {
       // -c: Reference file
-      AddFiles( refFiles, argc, argv, i );
-    } else if (arg == "-i" && i+1 != argc) {
+      AddArgs( refFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(arg, "-i", iarg, cmdLineArgs.Nargs()) ) {
       // -i: Input file(s)
-      AddFiles( inputFiles, argc, argv, i );
-    } else if (arg == "-o" && i+1 != argc) {
+      AddArgs( inputFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(arg, "-o", iarg, cmdLineArgs.Nargs()) ) {
       // -o: Output file
-      FileName ofilename(argv[++i]);
+      FileName ofilename(cmdLineArgs[++iarg]);
       if (ofilename.empty()) {
         mprinterr("Error: Could not set up output file with name '%s'\n", ofilename.full());
         return ERROR;
       }
       if (OutputToFile(ofilename.full())) return ERROR;
-    } else if (arg == "-ms" && i+1 != argc) {
+    } else if ( NotFinalArg(arg, "-ms", iarg, cmdLineArgs.Nargs()) ) {
       // -ms: Parse mask string, print selected atom #s
-      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, false )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], false, false )) return ERROR;
       return QUIT;
-    } else if (arg == "-mr" && i+1 != argc) {
+    } else if ( NotFinalArg(arg, "-mr", iarg, cmdLineArgs.Nargs()) ) {
       // -mr: Parse mask string, print selected res #s
-      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, true )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], false, true )) return ERROR;
       return QUIT;
-    } else if (arg == "--mask" && i+1 != argc) {
+    } else if ( NotFinalArg(arg, "--mask", iarg, cmdLineArgs.Nargs()) ) {
       // --mask: Parse mask string, print selected atom details
-      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, false )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, false )) return ERROR;
       return QUIT;
-    } else if (arg == "--resmask" && i+1 != argc) {
+    } else if ( NotFinalArg(arg, "--resmask", iarg, cmdLineArgs.Nargs()) ) {
       // --resmask: Parse mask string, print selected residue details
-      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, true )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, true )) return ERROR;
       return QUIT;
-    } else if ( i == 1 ) {
+    } else if ( iarg == 0 ) {
       // For backwards compatibility with PTRAJ; Position 1 = TOP file
-      topFiles.push_back( argv[i] );
-    } else if ( i == 2 ) {
+      topFiles.push_back( cmdLineArgs[iarg] );
+    } else if ( iarg == 1 ) {
       // For backwards compatibility with PTRAJ; Position 2 = INPUT file
-      inputFiles.push_back( argv[i] );
+      inputFiles.push_back( cmdLineArgs[iarg] );
     } else {
       // Unrecognized
-      mprintf("  Unrecognized input on command line: %i: %s\n", i,argv[i]);
+      mprintf("  Unrecognized input on command line: %i: %s\n", iarg+1, cmdLineArgs[iarg].c_str());
       Usage();
       return ERROR;
     }
