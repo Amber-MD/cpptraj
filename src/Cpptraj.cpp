@@ -263,11 +263,14 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   commandLine_.clear();
   for (int i = 1; i < argc; i++)
     commandLine_.append( " " + std::string(argv[i]) );
+  ArgList cmdLineArgs( commandLine_ );
+  mprintf("DEBUG: CmdLine: %s\n", cmdLineArgs.ArgLine() );
   bool hasInput = false;
   bool interactive = false;
   Sarray inputFiles;
   Sarray topFiles;
   Sarray trajinFiles;
+  Sarray trajinArgs;
   Sarray trajoutFiles;
   Sarray refFiles;
   Sarray dataFiles;
@@ -333,6 +336,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     } else if ( arg == "-y" && i+1 != argc) {
       // -y: Trajectory file in.
       AddFiles( trajinFiles, argc, argv, i );
+    } else if ( arg == "-ya" && i+1 != argc) {
+      // -ya: Trajectory file in arguments.
+      AddFiles( trajinArgs, argc, argv, i );
     } else if ( arg == "-x" && i+1 != argc) {
       // -x: Trajectory file out
       trajoutFiles.push_back( argv[++i] );
@@ -419,10 +425,30 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
                               ++refName)
     if (State_.AddReference( *refName )) return ERROR;
   // Add all input trajectories specified on command line.
-  for (Sarray::const_iterator trajinName = trajinFiles.begin();
-                              trajinName != trajinFiles.end();
-                              ++trajinName)
-    if (State_.AddInputTrajectory( *trajinName )) return ERROR;
+  // If there are fewer input trajectory arguments than input trajectories,
+  // duplicate the last input trajectory argument.
+  if (!trajinArgs.empty()) {
+    mprintf("DEBUG: trajinArgs:\n");
+    for (Sarray::const_iterator ta = trajinArgs.begin(); ta != trajinArgs.end(); ++ta)
+      mprintf("\t%s\n", ta->c_str());
+    if (trajinFiles.empty())
+      mprintf("Warning: Input trajectory arguments specified but no input trajectories.\n");
+    else {
+      if (trajinArgs.size() < trajinFiles.size())
+        trajinArgs.resize( trajinFiles.size(), trajinArgs.back() );
+      else if (trajinArgs.size() > trajinFiles.size()) {
+        mprintf("Warning: More input trajectory arguments specified than input trajectories.\n");
+        trajinArgs.resize( trajinFiles.size() );
+      }
+    }
+    for (unsigned int it = 0; it != trajinFiles.size(); it++)
+      if (State_.AddInputTrajectory( trajinFiles[it] + " " + trajinArgs[it] )) return ERROR;
+  } else {
+    for (Sarray::const_iterator trajinName = trajinFiles.begin();
+                                trajinName != trajinFiles.end();
+                                ++trajinName)
+      if (State_.AddInputTrajectory( *trajinName )) return ERROR;
+  }
   // Add all output trajectories specified on command line.
   if (!trajoutFiles.empty()) {
     hasInput = true; // This allows direct traj conversion with no other input
