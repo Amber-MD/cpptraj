@@ -44,6 +44,8 @@ bool validInteger(std::string const&);
 bool validDouble(std::string const&);
 /// \return the current date/time with format 'mm/dd/yy  hh:mm:ss'
 std::string TimeString();
+/// \return current host name
+std::string HostName();
 /// BYTE_BINARY: Sizes are based on 1024^X. BYTE_DECIMAL: Sizes are based on 1000^X.
 enum ByteType { BYTE_BINARY = 0, BYTE_DECIMAL };
 /// \return Given size in bytes as a human-readable string.
