@@ -389,19 +389,38 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // --resmask: Parse mask string, print selected residue details
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, true )) return ERROR;
       return QUIT;
-    } else if ( iarg == 0 ) {
-      // For backwards compatibility with PTRAJ; Position 1 = TOP file
-      topFiles.push_back( cmdLineArgs[iarg] );
-    } else if ( iarg == 1 ) {
-      // For backwards compatibility with PTRAJ; Position 2 = INPUT file
-      inputFiles.push_back( cmdLineArgs[iarg] );
     } else {
+      // Check if this is a file. TODO only have master do this MPI
+      bool unrecognized = true;
+      if ( arg[0] != '-' && File::Exists(arg) ) {
+        unrecognized = false;
+        // Check if this is a topology file.
+        ParmFile::ParmFormatType ptype;
+        ParmIO* pio = ParmFile::DetectFormat( arg, ptype );
+        if (pio != 0) {
+          topFiles.push_back( arg );
+        } else {
+          // Check if this is a trajectory file.
+          TrajectoryFile::TrajFormatType ttype;
+          TrajectoryIO* tio = TrajectoryFile::DetectFormat( arg, ttype );
+          if (tio != 0) {
+            trajinFiles.push_back( arg );
+          } else {
+            mprintf("Warning: Assuming '%s' contains cpptraj input.\n", arg.c_str());
+            // Assume input file
+            inputFiles.push_back( arg );
+          }
+        }
+      }
       // Unrecognized
-      mprintf("  Unrecognized input on command line: %i: %s\n", iarg+1, cmdLineArgs[iarg].c_str());
-      Usage();
-      return ERROR;
+      if (unrecognized) {
+        mprinterr("Error: Unrecognized input on command line: %i: %s\n",
+                  iarg+1, cmdLineArgs[iarg].c_str());
+        Usage();
+        return ERROR;
+      }
     }
-  }
+  } // END loop over command line flags
   Cpptraj::Intro();
   // Add all data files specified on command lin.
   for (Sarray::const_iterator dataFilename = dataFiles.begin();
