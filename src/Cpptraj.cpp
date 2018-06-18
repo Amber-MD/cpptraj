@@ -268,6 +268,25 @@ static inline bool NotFinalArg(ArgList const& cmdLineArgs, const char* key, int 
   return (cmdLineArgs[pos] == key && pos+1 != cmdLineArgs.Nargs());
 }
 
+/** \return 0 if unknown, 1 if topology, 2 if trajectory, 3 if input. */
+static inline int AutoDetect(std::string const& arg)
+{
+  if (File::Exists(arg)) {
+    // Check if this is a topology file.
+    ParmFile::ParmFormatType ptype = ParmFile::DetectFormat( arg );
+    if (ptype != ParmFile::UNKNOWN_PARM)
+      return 1;
+    // Check if this is a trajectory file.
+    TrajectoryFile::TrajFormatType ttype = TrajectoryFile::DetectFormat( arg );
+    if (ttype != TrajectoryFile::UNKNOWN_TRAJ)
+      return 2;
+    // Assume input file
+    mprintf("Warning: Assuming '%s' contains cpptraj input.\n", arg.c_str());
+    return 3;
+  }
+  return 0;
+}
+
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   // First convert argv to one continuous string.
@@ -390,28 +409,22 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, true )) return ERROR;
       return QUIT;
     } else {
-      // Check if this is a file. TODO only have master do this MPI
-      bool unrecognized = true;
-      if ( arg[0] != '-' && File::Exists(arg) ) {
-        unrecognized = false;
-        // Check if this is a topology file.
-        ParmFile::ParmFormatType ptype = ParmFile::DetectFormat( arg );
-        if (ptype != ParmFile::UNKNOWN_PARM) {
-          topFiles.push_back( arg );
-        } else {
-          // Check if this is a trajectory file.
-          TrajectoryFile::TrajFormatType ttype = TrajectoryFile::DetectFormat( arg );
-          if (ttype != TrajectoryFile::UNKNOWN_TRAJ) {
-            trajinFiles.push_back( arg );
-          } else {
-            mprintf("Warning: Assuming '%s' contains cpptraj input.\n", arg.c_str());
-            // Assume input file
-            inputFiles.push_back( arg );
-          }
-        }
-      }
-      // Unrecognized
-      if (unrecognized) {
+      // Check if this is a file.
+#     ifdef MPI
+      int ftype;
+      if (Parallel::World().Master())
+        ftype = AutoDetect( arg );
+      Parallel::World().MasterBcast(&ftype, 1, MPI_INT);
+#     else
+      int ftype = AutoDetect( arg );
+#     endif
+      if (ftype == 1)
+        topFiles.push_back( arg );
+      else if (ftype == 2)
+        trajinFiles.push_back( arg );
+      else if (ftype == 3)
+        inputFiles.push_back( arg );
+      else {
         mprinterr("Error: Unrecognized input on command line: %i: %s\n",
                   iarg+1, cmdLineArgs[iarg].c_str());
         Usage();
