@@ -302,9 +302,6 @@ static inline int AutoDetect(std::string const& arg)
   */
 void Cpptraj::ResizeArgs(Sarray const& Files, Sarray& Args, const char* type)
 {
-  mprintf("DEBUG: %s Args:\n", type);
-  for (Sarray::const_iterator ta = Args.begin(); ta != Args.end(); ++ta)
-    mprintf("\t%s\n", ta->c_str());
   if (Files.empty())
     mprintf("Warning: No %s trajectories but %s trajectory arguments were specified.\n",
             type, type);
@@ -320,6 +317,10 @@ void Cpptraj::ResizeArgs(Sarray const& Files, Sarray& Args, const char* type)
       Args.resize( Files.size() );
     }
   }
+  mprintf("\tArguments for %zu %s trajectories:\n", Files.size(), type);
+  Sarray::const_iterator tf = Files.begin();
+  for (Sarray::const_iterator ta = Args.begin(); ta != Args.end(); ++ta, ++tf)
+    mprintf("\t  %s %s\n", tf->c_str(), ta->c_str());
 }
 
 /** Read command line args. */
@@ -330,8 +331,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     commandLine_.append( " " + std::string(argv[i]) );
   // Use ArgList to split into arguments.
   ArgList cmdLineArgs( commandLine_ );
-//  if (State_.Debug() > 0)
-    mprintf("DEBUG: CmdLine: %s\n", cmdLineArgs.ArgLine() );
+  // mprintf("DEBUG: CmdLine: %s\n", cmdLineArgs.ArgLine() );
   // Process command line flags from ArgList
   bool hasInput = false;
   bool interactive = false;
