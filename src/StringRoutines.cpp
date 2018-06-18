@@ -7,6 +7,7 @@
 #include "CpptrajStdio.h"
 #ifdef _MSC_VER
 # include <windows.h>
+# include <tchar.h>
 #else
 # include <unistd.h>
 # include <limits.h>
