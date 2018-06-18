@@ -17,6 +17,9 @@
 #ifdef CUDA
 # include <cuda_runtime_api.h>
 #endif
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 /// CONSTRUCTOR - initializes all commands
 Cpptraj::Cpptraj() {
@@ -77,7 +80,10 @@ void Cpptraj::Intro() {
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
-  mprintf("| Running on %i threads\n", Parallel::World().Size());
+  mprintf("| Running on %i processes.\n", Parallel::World().Size());
+# endif
+# ifdef _OPENMP
+  mprintf("| %i OpenMP threads available.\n", omp_get_max_threads());
 # endif
   mprintf("| Date/time: %s\n", TimeString().c_str());
   std::string available_mem = AvailableMemoryStr();
