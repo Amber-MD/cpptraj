@@ -395,15 +395,13 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if ( arg[0] != '-' && File::Exists(arg) ) {
         unrecognized = false;
         // Check if this is a topology file.
-        ParmFile::ParmFormatType ptype;
-        ParmIO* pio = ParmFile::DetectFormat( arg, ptype );
-        if (pio != 0) {
+        ParmFile::ParmFormatType ptype = ParmFile::DetectFormat( arg );
+        if (ptype != ParmFile::UNKNOWN_PARM) {
           topFiles.push_back( arg );
         } else {
           // Check if this is a trajectory file.
-          TrajectoryFile::TrajFormatType ttype;
-          TrajectoryIO* tio = TrajectoryFile::DetectFormat( arg, ttype );
-          if (tio != 0) {
+          TrajectoryFile::TrajFormatType ttype = TrajectoryFile::DetectFormat( arg );
+          if (ttype != TrajectoryFile::UNKNOWN_TRAJ) {
             trajinFiles.push_back( arg );
           } else {
             mprintf("Warning: Assuming '%s' contains cpptraj input.\n", arg.c_str());
