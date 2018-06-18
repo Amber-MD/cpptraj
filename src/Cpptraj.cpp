@@ -261,11 +261,11 @@ void Cpptraj::AddArgs(Sarray& Args, ArgList const& cmdLineArgs, int& idx)
     Args.push_back( cmdLineArgs[++idx] );
 }
 
-/** \return True if given argument matches key and is not the final argument.
+/** \return True if argument at position matches key and is not the final argument.
   */
-static inline bool NotFinalArg(std::string const& arg, const char* key, int pos, int nargs)
+static inline bool NotFinalArg(ArgList const& cmdLineArgs, const char* key, int pos)
 {
-  return (arg == key && pos+1 != nargs);
+  return (cmdLineArgs[pos] == key && pos+1 != cmdLineArgs.Nargs());
 }
 
 /** Read command line args. */
@@ -334,38 +334,38 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       mprintf("Info: All further output will be suppressed.\n");
       SuppressAllOutput();
     // ----- Flags that precede values -----------
-    } else if ( NotFinalArg(arg, "-debug", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-debug", iarg) ) {
       // -debug: Set overall debug level
       ArgList dbgarg( cmdLineArgs[++iarg] );
       State_.SetListDebug( dbgarg );
-    } else if ( NotFinalArg(arg, "--log", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "--log", iarg) ) {
       // --log: Set up log file for interactive mode
       logfilename_ = cmdLineArgs[++iarg];
-    } else if ( NotFinalArg(arg, "-p", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-p", iarg) ) {
       // -p: Topology file
       AddArgs( topFiles, cmdLineArgs, iarg );
-    } else if ( NotFinalArg(arg, "-d", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-d", iarg) ) {
       // -d: Read data file
       AddArgs( dataFiles, cmdLineArgs, iarg );
-    } else if ( NotFinalArg(arg, "-w", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-w", iarg) ) {
       // -w: Write data file. Only one allowed. For data file conversion.
       dataOut.assign( cmdLineArgs[++iarg] );
-    } else if ( NotFinalArg(arg, "-y", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-y", iarg) ) {
       // -y: Trajectory file in.
       AddArgs( trajinFiles, cmdLineArgs, iarg );
-    } else if ( NotFinalArg(arg, "-ya", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-ya", iarg) ) {
       // -ya: Trajectory file in arguments.
       AddArgs( trajinArgs, cmdLineArgs, iarg );
-    } else if ( NotFinalArg(arg, "-x", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-x", iarg) ) {
       // -x: Trajectory file out
       trajoutFiles.push_back( cmdLineArgs[++iarg] );
-    } else if ( NotFinalArg(arg, "-c", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-c", iarg) ) {
       // -c: Reference file
       AddArgs( refFiles, cmdLineArgs, iarg );
-    } else if ( NotFinalArg(arg, "-i", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-i", iarg) ) {
       // -i: Input file(s)
       AddArgs( inputFiles, cmdLineArgs, iarg );
-    } else if ( NotFinalArg(arg, "-o", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-o", iarg) ) {
       // -o: Output file
       FileName ofilename(cmdLineArgs[++iarg]);
       if (ofilename.empty()) {
@@ -373,19 +373,19 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
         return ERROR;
       }
       if (OutputToFile(ofilename.full())) return ERROR;
-    } else if ( NotFinalArg(arg, "-ms", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-ms", iarg) ) {
       // -ms: Parse mask string, print selected atom #s
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], false, false )) return ERROR;
       return QUIT;
-    } else if ( NotFinalArg(arg, "-mr", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "-mr", iarg) ) {
       // -mr: Parse mask string, print selected res #s
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], false, true )) return ERROR;
       return QUIT;
-    } else if ( NotFinalArg(arg, "--mask", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "--mask", iarg) ) {
       // --mask: Parse mask string, print selected atom details
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, false )) return ERROR;
       return QUIT;
-    } else if ( NotFinalArg(arg, "--resmask", iarg, cmdLineArgs.Nargs()) ) {
+    } else if ( NotFinalArg(cmdLineArgs, "--resmask", iarg) ) {
       // --resmask: Parse mask string, print selected residue details
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, true )) return ERROR;
       return QUIT;
