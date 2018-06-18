@@ -40,6 +40,7 @@ Cpptraj::~Cpptraj() { Command::Free(); }
 void Cpptraj::Usage() {
   mprinterr("\n"
             "Usage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n"
+            "               [-ya <args>] [-xa <args>]\n"
             "               [-c <reference>] [-d <datain>] [-w <dataout>] [-o <output>]\n"
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
@@ -48,7 +49,9 @@ void Cpptraj::Usage() {
             "\t-p <Top0>        : Load <Top0> as a topology file. May be specified more than once.\n"
             "\t-i <Input0>      : Read input from <Input0>. May be specified more than once.\n"
             "\t-y <trajin>      : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
+            "\t-ya <args>       : Input trajectory file arguments.\n"
             "\t-x <trajout>     : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
+            "\t-xa <args>       : Output trajectory file arguments.\n"
             "\t-c <reference>   : Read <reference> as reference coordinates; same as input 'reference <reference>'.\n"
             "\t-d <datain>      : Read data in from file <datain> ('readdata <datain>').\n"
             "\t-w <dataout>     : Write data from <datain> as file <dataout> ('writedata <dataout>).\n"
@@ -293,6 +296,32 @@ static inline int AutoDetect(std::string const& arg)
   return 0;
 }
 
+/** Check that number of args are the same as files. If fewer args,
+  * replicate the last arg until sizes are equal. If more args, remove the
+  * extra args. If no files, print a warning.
+  */
+void Cpptraj::ResizeArgs(Sarray const& Files, Sarray& Args, const char* type)
+{
+  mprintf("DEBUG: %s Args:\n", type);
+  for (Sarray::const_iterator ta = Args.begin(); ta != Args.end(); ++ta)
+    mprintf("\t%s\n", ta->c_str());
+  if (Files.empty())
+    mprintf("Warning: No %s trajectories but %s trajectory arguments were specified.\n",
+            type, type);
+  else {
+    if (Args.size() < Files.size()) {
+      mprintf("Warning: Fewer %s trajectory arguments than %s trajectories.\n"
+              "Warning: Using final specified argument for remaining trajectories: '%s'\n",
+              type, type, Args.back().c_str());
+      Args.resize( Files.size(), Args.back() );
+    } else if (Args.size() > Files.size()) {
+      mprintf("Warning: More %s trajectory arguments specified than %s trajectories.\n",
+              type, type);
+      Args.resize( Files.size() );
+    }
+  }
+}
+
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   // First convert argv to one continuous string.
@@ -301,7 +330,8 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     commandLine_.append( " " + std::string(argv[i]) );
   // Use ArgList to split into arguments.
   ArgList cmdLineArgs( commandLine_ );
-  mprintf("DEBUG: CmdLine: %s\n", cmdLineArgs.ArgLine() );
+//  if (State_.Debug() > 0)
+    mprintf("DEBUG: CmdLine: %s\n", cmdLineArgs.ArgLine() );
   // Process command line flags from ArgList
   bool hasInput = false;
   bool interactive = false;
@@ -310,6 +340,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   Sarray trajinFiles;
   Sarray trajinArgs;
   Sarray trajoutFiles;
+  Sarray trajoutArgs;
   Sarray refFiles;
   Sarray dataFiles;
   std::string dataOut;
@@ -384,6 +415,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     } else if ( NotFinalArg(cmdLineArgs, "-x", iarg) ) {
       // -x: Trajectory file out
       trajoutFiles.push_back( cmdLineArgs[++iarg] );
+    } else if ( NotFinalArg(cmdLineArgs, "-xa", iarg) ) {
+      // -xa: Trajectory file out arguments.
+      AddArgs( trajoutArgs, cmdLineArgs, iarg );
     } else if ( NotFinalArg(cmdLineArgs, "-c", iarg) ) {
       // -c: Reference file
       AddArgs( refFiles, cmdLineArgs, iarg );
@@ -481,19 +515,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   // If there are fewer input trajectory arguments than input trajectories,
   // duplicate the last input trajectory argument.
   if (!trajinArgs.empty()) {
-    mprintf("DEBUG: trajinArgs:\n");
-    for (Sarray::const_iterator ta = trajinArgs.begin(); ta != trajinArgs.end(); ++ta)
-      mprintf("\t%s\n", ta->c_str());
-    if (trajinFiles.empty())
-      mprintf("Warning: Input trajectory arguments specified but no input trajectories.\n");
-    else {
-      if (trajinArgs.size() < trajinFiles.size())
-        trajinArgs.resize( trajinFiles.size(), trajinArgs.back() );
-      else if (trajinArgs.size() > trajinFiles.size()) {
-        mprintf("Warning: More input trajectory arguments specified than input trajectories.\n");
-        trajinArgs.resize( trajinFiles.size() );
-      }
-    }
+    ResizeArgs( trajinFiles, trajinArgs, "input" );
     for (unsigned int it = 0; it != trajinFiles.size(); it++)
       if (State_.AddInputTrajectory( trajinFiles[it] + " " + trajinArgs[it] )) return ERROR;
   } else {
