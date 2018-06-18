@@ -7,7 +7,7 @@ CleanFiles cmd.in test1.crd.save test1.crd
 
 TESTNAME='Command line tests'
 # Required environment 
-Requires notparallel
+Requires maxthreads 8
 
 INPUT='-i cmd.in'
 
