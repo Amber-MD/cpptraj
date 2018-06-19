@@ -18,11 +18,11 @@ trajin ../tz2.crd 98 last
 trajout test1.crd.save title MyTitle
 EOF
 INPUT='-i cmd.in'
-RunCpptraj "Command line test, part 1"
+RunCpptraj "Command line trajectory args test, part 1"
 
 # Now test using the command line. Hijack the INPUT variable.
 INPUT="-p ../tz2.parm7 -y ../tz2.crd -ya \"2 13 3\" -y ../tz2.crd -ya \"98 last\" -x test1.crd -xa \"title MyTitle\""
-RunCpptraj "Command line test, part 2"
+RunCpptraj "Command line test trajectory args test, part 2"
 DoTest test1.crd.save test1.crd
 
 # Test loading multiple topology files
