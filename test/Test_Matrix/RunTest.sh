@@ -4,6 +4,9 @@
 
 CleanFiles matrix.in mtest.dat.save mtest.*.dat evecs.10.dat
 
+TESTNAME='Matrix Tests'
+Requires maxthreads 10
+
 INPUT="-i matrix.in"
 cat > matrix.in <<EOF
 parm 1rrb_vac.prmtop
@@ -23,7 +26,7 @@ matrix mwcovar @CA out mtest.11.dat
 matrix dist @N @C out mtest.12.dat 
 matrix distcovar :1-4@CA out mtest.13.dat
 EOF
-RunCpptraj "Matrix Tests."
+RunCpptraj "$TESTNAME"
 DoTest mtest.dat.0.save mtest.0.dat
 DoTest mtest.dat.1.save mtest.1.dat
 DoTest mtest.dat.2.save mtest.2.dat

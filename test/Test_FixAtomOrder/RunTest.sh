@@ -4,6 +4,8 @@
 
 CleanFiles fix.in order.in reorder.outoforder.parm7 reorder.mdcrd
 
+TESTNAME='Out of order molecules test'
+Requires maxthreads 10
 INPUT='-i fix.in'
 
 cat > fix.in <<EOF
@@ -16,7 +18,7 @@ trajin min1.crd 1 10
 fixatomorder outprefix reorder
 trajout reorder.mdcrd
 EOF
-RunCpptraj "Out of order molecules test (will print error messages)"
+RunCpptraj "$TESTNAME (will print error messages)"
 DoTest reorder.outoforder.parm7.save reorder.outoforder.parm7 -I %VERSION
 DoTest reorder.mdcrd.save reorder.mdcrd
 

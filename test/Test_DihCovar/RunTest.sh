@@ -6,7 +6,7 @@ CleanFiles matrix.in mtest.dat.save mtest.*.dat dihcovar.dat modes.dihcovar.dat 
            dih.project.dat dih.project.agr dihedrals.dat
 
 TESTNAME='Dihedral Covariance Matrix Test'
-Requires mathlib
+Requires mathlib maxthreads 10
 
 INPUT="-i matrix.in"
 if [ -z "$DO_PARALLEL" ] ; then

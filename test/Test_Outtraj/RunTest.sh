@@ -6,7 +6,7 @@
 CleanFiles rms.in rmsd.dat test.crd T1.crd T2.crd maxmin.in maxmin.crd
 
 TESTNAME='Outtraj tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 TOP="../tz2.truncoct.parm7"
 
 # Test 1

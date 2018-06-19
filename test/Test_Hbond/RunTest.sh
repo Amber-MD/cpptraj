@@ -42,7 +42,7 @@ EOF
 # Solute-Solvent test
 TestUV() {
   UNITNAME='Solute-solvent hbond test'
-  CheckFor netcdf
+  CheckFor netcdf maxthreads 10
   if [ $? -eq 0 ] ; then
     cat > hbond.in <<EOF
 parm ../tz2.ortho.parm7
@@ -76,7 +76,7 @@ EOF
 # Nointramol test
 TestNointramol() {
   UNITNAME='Hbond, no intramolecular hydrogen bonds test'
-  CheckFor netcdf
+  CheckFor netcdf maxthreads 10
   if [ $? -eq 0 ] ; then
     cat > hbond.in <<EOF
 parm ../FtuFabI.NAD.TCL.parm7
