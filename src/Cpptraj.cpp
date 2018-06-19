@@ -292,8 +292,7 @@ static inline int AutoDetect(std::string const& arg)
     TrajectoryFile::TrajFormatType ttype = TrajectoryFile::DetectFormat( arg );
     if (ttype != TrajectoryFile::UNKNOWN_TRAJ)
       return 2;
-    // Assume input file
-    mprintf("Warning: Assuming '%s' contains cpptraj input.\n", arg.c_str());
+    // Assume input file.
     return 3;
   }
   return 0;
@@ -465,9 +464,10 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
         topFiles.push_back( arg );
       else if (ftype == 2)
         trajinFiles.push_back( arg );
-      else if (ftype == 3)
+      else if (ftype == 3) {
+        if (iarg != 1) mprintf("Warning: Assuming '%s' contains cpptraj input.\n", arg.c_str());
         inputFiles.push_back( arg );
-      else {
+      } else {
         mprinterr("Error: Unrecognized input on command line: %i: %s\n",
                   iarg+1, cmdLineArgs[iarg].c_str());
         Usage();
