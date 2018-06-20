@@ -7,10 +7,8 @@
 #include "CpptrajStdio.h"
 #ifdef _MSC_VER
 # include <windows.h>
-# include <tchar.h>
 #else
 # include <unistd.h>
-# include <limits.h>
 #endif
 #ifdef __APPLE__
 # include <sys/sysctl.h>
@@ -252,19 +250,6 @@ std::string TimeString() {
   return oss.str();
 }
 
-// -----------------------------------------------------------------------------
-/** HostName() */
-std::string HostName() {
-# ifdef _MSC_VER
-  TCHAR hostname[INFO_BUFFER_SIZE];
-  DWORD bufCharCount = INFO_BUFFER_SIZE;
-  GetComputerName( hostname, &bufCharCount );
-# else
-  char hostname[HOST_NAME_MAX];
-  gethostname(hostname, HOST_NAME_MAX);
-# endif
-  return std::string(hostname);
-}
 // -----------------------------------------------------------------------------
 std::string ByteString(unsigned long long sizeInBytes, ByteType bt) {
   static const char* BytePrefix[] = { " kB", " MB", " GB", " TB", " PB", " EB" };

@@ -84,7 +84,6 @@ void Cpptraj::Intro() {
 # endif
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
-  mprintf("| Host: %s\n", HostName().c_str());
 # ifdef MPI
   mprintf("| Running on %i processes.\n", Parallel::World().Size());
 # endif
