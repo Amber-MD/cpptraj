@@ -17,6 +17,9 @@
 #ifdef CUDA
 # include <cuda_runtime_api.h>
 #endif
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 /// CONSTRUCTOR - initializes all commands
 Cpptraj::Cpptraj() {
@@ -37,17 +40,20 @@ Cpptraj::~Cpptraj() { Command::Free(); }
 void Cpptraj::Usage() {
   mprinterr("\n"
             "Usage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n"
+            "               [-ya <args>] [-xa <args>] [<file>]\n"
             "               [-c <reference>] [-d <datain>] [-w <dataout>] [-o <output>]\n"
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
             "               [-ms <mask>] [-mr <mask>] [--mask <mask>] [--resmask <mask>]\n"
-            "       cpptraj <Top> <Input>\n"
-            "\t-p <Top0>        : Load <Top0> as a topology file. May be specified more than once.\n"
-            "\t-i <Input0>      : Read input from <Input0>. May be specified more than once.\n"
-            "\t-y <trajin>      : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
-            "\t-x <trajout>     : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
-            "\t-c <reference>   : Read <reference> as reference coordinates; same as input 'reference <reference>'.\n"
-            "\t-d <datain>      : Read data in from file <datain> ('readdata <datain>').\n"
+            "\t-p <Top0>        : * Load <Top0> as a topology file.\n"
+            "\t-i <Input0>      : * Read input from file <Input0>.\n"
+            "\t-y <trajin>      : * Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
+            "\t-x <trajout>     : * Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
+            "\t-ya <args>       : * Input trajectory file arguments.\n"
+            "\t-xa <args>       : * Output trajectory file arguments.\n"
+            "\t<file>           : * A topology, input trajectory, or file containing cpptraj input.\n"
+            "\t-c <reference>   : * Read <reference> as reference coordinates; same as input 'reference <reference>'.\n"
+            "\t-d <datain>      : * Read data in from file <datain> ('readdata <datain>').\n"
             "\t-w <dataout>     : Write data from <datain> as file <dataout> ('writedata <dataout>).\n"
             "\t-o <output>      : Write CPPTRAJ STDOUT output to file <output>.\n"
             "\t-h | --help      : Print command line help and exit.\n"
@@ -56,11 +62,13 @@ void Cpptraj::Usage() {
             "\t-debug <#>       : Set global debug level to <#>; same as input 'debug <#>'.\n"
             "\t--interactive    : Force interactive mode.\n"
             "\t--log <logfile>  : Record commands to <logfile> (interactive mode only). Default is 'cpptraj.log'.\n"
-            "\t-tl              : Print length of trajectories specified with '-y' to STDOUT.\n"
+            "\t-tl              : Print length of all input trajectories specified on the command line to STDOUT.\n"
             "\t-ms <mask>       : Print selected atom numbers to STDOUT.\n"
             "\t-mr <mask>       : Print selected residue numbers to STDOUT.\n"
             "\t--mask <mask>    : Print detailed atom selection to STDOUT.\n"
-            "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n\n");
+            "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n"
+            "      * Denotes flag may be specified multiple times.\n"
+            "\n");
 }
 
 void Cpptraj::Intro() {
@@ -77,7 +85,10 @@ void Cpptraj::Intro() {
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
-  mprintf("| Running on %i threads\n", Parallel::World().Size());
+  mprintf("| Running on %i processes.\n", Parallel::World().Size());
+# endif
+# ifdef _OPENMP
+  mprintf("| %i OpenMP threads available.\n", omp_get_max_threads());
 # endif
   mprintf("| Date/time: %s\n", TimeString().c_str());
   std::string available_mem = AvailableMemoryStr();
@@ -251,29 +262,93 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
   return 0;
 }
 
-void Cpptraj::AddFiles(Sarray& Files, int argc, char** argv, int& idx) {
-  Files.push_back( argv[++idx] );
-  // Assume all following args without leading '-' are also files.
-  while (idx+1 != argc && argv[idx+1][0] != '-')
-    Files.push_back( argv[++idx] );
+/** Add current argument and all following arguments without leading '-' to
+  * given string array.
+  */
+void Cpptraj::AddArgs(Sarray& Args, ArgList const& cmdLineArgs, int& idx)
+{
+  Args.push_back( cmdLineArgs[++idx] );
+  while (idx+1 != cmdLineArgs.Nargs() && cmdLineArgs[idx+1][0] != '-')
+    Args.push_back( cmdLineArgs[++idx] );
+}
+
+/** \return True if argument at position matches key and is not the final argument.
+  */
+static inline bool NotFinalArg(ArgList const& cmdLineArgs, const char* key, int pos)
+{
+  return (cmdLineArgs[pos] == key && pos+1 != cmdLineArgs.Nargs());
+}
+
+/** \return 0 if unknown, 1 if topology, 2 if trajectory, 3 if input. */
+static inline int AutoDetect(std::string const& arg)
+{
+  if (File::Exists(arg)) {
+    // Check if this is a topology file.
+    ParmFile::ParmFormatType ptype = ParmFile::DetectFormat( arg );
+    if (ptype != ParmFile::UNKNOWN_PARM)
+      return 1;
+    // Check if this is a trajectory file.
+    TrajectoryFile::TrajFormatType ttype = TrajectoryFile::DetectFormat( arg );
+    if (ttype != TrajectoryFile::UNKNOWN_TRAJ)
+      return 2;
+    // Assume input file.
+    return 3;
+  }
+  return 0;
+}
+
+/** Check that number of args are the same as files. If fewer args,
+  * replicate the last arg until sizes are equal. If more args, remove the
+  * extra args. If no files, print a warning.
+  */
+void Cpptraj::ResizeArgs(Sarray const& Files, Sarray& Args, const char* type)
+{
+  if (Files.empty())
+    mprintf("Warning: No %s trajectories but %s trajectory arguments were specified.\n",
+            type, type);
+  else {
+    if (Args.size() < Files.size()) {
+      mprintf("Warning: Fewer %s trajectory arguments than %s trajectories.\n"
+              "Warning: Using final specified argument for remaining trajectories: '%s'\n",
+              type, type, Args.back().c_str());
+      Args.resize( Files.size(), Args.back() );
+    } else if (Args.size() > Files.size()) {
+      mprintf("Warning: More %s trajectory arguments specified than %s trajectories.\n",
+              type, type);
+      Args.resize( Files.size() );
+    }
+  }
+  mprintf("\tArguments for %zu %s trajectories:\n", Files.size(), type);
+  Sarray::const_iterator tf = Files.begin();
+  for (Sarray::const_iterator ta = Args.begin(); ta != Args.end(); ++ta, ++tf)
+    mprintf("\t  %s %s\n", tf->c_str(), ta->c_str());
 }
 
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
+  // First convert argv to one continuous string.
   commandLine_.clear();
   for (int i = 1; i < argc; i++)
     commandLine_.append( " " + std::string(argv[i]) );
+  // Use ArgList to split into arguments.
+  ArgList cmdLineArgs( commandLine_ );
+  // mprintf("DEBUG: CmdLine: %s\n", cmdLineArgs.ArgLine() );
+  // Process command line flags from ArgList
   bool hasInput = false;
   bool interactive = false;
   Sarray inputFiles;
   Sarray topFiles;
   Sarray trajinFiles;
+  Sarray trajinArgs;
   Sarray trajoutFiles;
+  Sarray trajoutArgs;
   Sarray refFiles;
   Sarray dataFiles;
   std::string dataOut;
-  for (int i = 1; i < argc; i++) {
-    std::string arg(argv[i]);
+  for (int iarg = 0; iarg < cmdLineArgs.Nargs(); iarg++)
+  {
+    std::string const& arg = cmdLineArgs[iarg];
+    // ----- One-and-done flags ------------------
     if ( arg == "--help" || arg == "-h" ) {
       // --help, -help: Print usage and exit
       SetWorldSilent(true);
@@ -309,76 +384,96 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (State_.TrajLength( topFiles[0], trajinFiles )) return ERROR;
       return QUIT;
     }
-    if ( arg == "--interactive" )
+    // ----- Single flags ------------------------
+    if ( arg == "--interactive" ) {
       interactive = true;
-    else if ( arg == "--suppress-all-output") {
+    } else if ( arg == "--suppress-all-output") {
       mprintf("Info: All further output will be suppressed.\n");
       SuppressAllOutput();
-    } else if ( arg == "-debug" && i+1 != argc) {
+    // ----- Flags that precede values -----------
+    } else if ( NotFinalArg(cmdLineArgs, "-debug", iarg) ) {
       // -debug: Set overall debug level
-      ArgList dbgarg( argv[++i] );
+      ArgList dbgarg( cmdLineArgs[++iarg] );
       State_.SetListDebug( dbgarg );
-    } else if ( arg == "--log" && i+1 != argc)
+    } else if ( NotFinalArg(cmdLineArgs, "--log", iarg) ) {
       // --log: Set up log file for interactive mode
-      logfilename_ = argv[++i];
-    else if ( arg == "-p" && i+1 != argc) {
+      logfilename_ = cmdLineArgs[++iarg];
+    } else if ( NotFinalArg(cmdLineArgs, "-p", iarg) ) {
       // -p: Topology file
-      AddFiles( topFiles, argc, argv, i );
-    } else if ( arg == "-d" && i+1 != argc) {
+      AddArgs( topFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(cmdLineArgs, "-d", iarg) ) {
       // -d: Read data file
-      AddFiles( dataFiles, argc, argv, i );
-    } else if ( arg == "-w" && i+1 != argc) {
+      AddArgs( dataFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(cmdLineArgs, "-w", iarg) ) {
       // -w: Write data file. Only one allowed. For data file conversion.
-      dataOut.assign( argv[++i] );
-    } else if ( arg == "-y" && i+1 != argc) {
+      dataOut.assign( cmdLineArgs[++iarg] );
+    } else if ( NotFinalArg(cmdLineArgs, "-y", iarg) ) {
       // -y: Trajectory file in.
-      AddFiles( trajinFiles, argc, argv, i );
-    } else if ( arg == "-x" && i+1 != argc) {
+      AddArgs( trajinFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(cmdLineArgs, "-ya", iarg) ) {
+      // -ya: Trajectory file in arguments.
+      AddArgs( trajinArgs, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(cmdLineArgs, "-x", iarg) ) {
       // -x: Trajectory file out
-      trajoutFiles.push_back( argv[++i] );
-    } else if ( arg == "-c" && i+1 != argc) {
+      trajoutFiles.push_back( cmdLineArgs[++iarg] );
+    } else if ( NotFinalArg(cmdLineArgs, "-xa", iarg) ) {
+      // -xa: Trajectory file out arguments.
+      AddArgs( trajoutArgs, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(cmdLineArgs, "-c", iarg) ) {
       // -c: Reference file
-      AddFiles( refFiles, argc, argv, i );
-    } else if (arg == "-i" && i+1 != argc) {
+      AddArgs( refFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(cmdLineArgs, "-i", iarg) ) {
       // -i: Input file(s)
-      AddFiles( inputFiles, argc, argv, i );
-    } else if (arg == "-o" && i+1 != argc) {
+      AddArgs( inputFiles, cmdLineArgs, iarg );
+    } else if ( NotFinalArg(cmdLineArgs, "-o", iarg) ) {
       // -o: Output file
-      FileName ofilename(argv[++i]);
+      FileName ofilename(cmdLineArgs[++iarg]);
       if (ofilename.empty()) {
         mprinterr("Error: Could not set up output file with name '%s'\n", ofilename.full());
         return ERROR;
       }
       if (OutputToFile(ofilename.full())) return ERROR;
-    } else if (arg == "-ms" && i+1 != argc) {
+    } else if ( NotFinalArg(cmdLineArgs, "-ms", iarg) ) {
       // -ms: Parse mask string, print selected atom #s
-      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, false )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], false, false )) return ERROR;
       return QUIT;
-    } else if (arg == "-mr" && i+1 != argc) {
+    } else if ( NotFinalArg(cmdLineArgs, "-mr", iarg) ) {
       // -mr: Parse mask string, print selected res #s
-      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, true )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], false, true )) return ERROR;
       return QUIT;
-    } else if (arg == "--mask" && i+1 != argc) {
+    } else if ( NotFinalArg(cmdLineArgs, "--mask", iarg) ) {
       // --mask: Parse mask string, print selected atom details
-      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, false )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, false )) return ERROR;
       return QUIT;
-    } else if (arg == "--resmask" && i+1 != argc) {
+    } else if ( NotFinalArg(cmdLineArgs, "--resmask", iarg) ) {
       // --resmask: Parse mask string, print selected residue details
-      if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), true, true )) return ERROR;
+      if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, true )) return ERROR;
       return QUIT;
-    } else if ( i == 1 ) {
-      // For backwards compatibility with PTRAJ; Position 1 = TOP file
-      topFiles.push_back( argv[i] );
-    } else if ( i == 2 ) {
-      // For backwards compatibility with PTRAJ; Position 2 = INPUT file
-      inputFiles.push_back( argv[i] );
     } else {
-      // Unrecognized
-      mprintf("  Unrecognized input on command line: %i: %s\n", i,argv[i]);
-      Usage();
-      return ERROR;
+      // Check if this is a file.
+#     ifdef MPI
+      int ftype;
+      if (Parallel::World().Master())
+        ftype = AutoDetect( arg );
+      Parallel::World().MasterBcast(&ftype, 1, MPI_INT);
+#     else
+      int ftype = AutoDetect( arg );
+#     endif
+      if (ftype == 1)
+        topFiles.push_back( arg );
+      else if (ftype == 2)
+        trajinFiles.push_back( arg );
+      else if (ftype == 3) {
+        if (iarg != 1) mprintf("Warning: Assuming '%s' contains cpptraj input.\n", arg.c_str());
+        inputFiles.push_back( arg );
+      } else {
+        mprinterr("Error: Unrecognized input on command line: %i: %s\n",
+                  iarg+1, cmdLineArgs[iarg].c_str());
+        Usage();
+        return ERROR;
+      }
     }
-  }
+  } // END loop over command line flags
   Cpptraj::Intro();
   // Add all data files specified on command lin.
   for (Sarray::const_iterator dataFilename = dataFiles.begin();
@@ -419,17 +514,31 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
                               ++refName)
     if (State_.AddReference( *refName )) return ERROR;
   // Add all input trajectories specified on command line.
-  for (Sarray::const_iterator trajinName = trajinFiles.begin();
-                              trajinName != trajinFiles.end();
-                              ++trajinName)
-    if (State_.AddInputTrajectory( *trajinName )) return ERROR;
+  // If there are fewer input trajectory arguments than input trajectories,
+  // duplicate the last input trajectory argument.
+  if (!trajinArgs.empty()) {
+    ResizeArgs( trajinFiles, trajinArgs, "input" );
+    for (unsigned int it = 0; it != trajinFiles.size(); it++)
+      if (State_.AddInputTrajectory( trajinFiles[it] + " " + trajinArgs[it] )) return ERROR;
+  } else {
+    for (Sarray::const_iterator trajinName = trajinFiles.begin();
+                                trajinName != trajinFiles.end();
+                                ++trajinName)
+      if (State_.AddInputTrajectory( *trajinName )) return ERROR;
+  }
   // Add all output trajectories specified on command line.
   if (!trajoutFiles.empty()) {
     hasInput = true; // This allows direct traj conversion with no other input
-    for (Sarray::const_iterator trajoutName = trajoutFiles.begin();
-                                trajoutName != trajoutFiles.end();
-                                ++trajoutName)
-      if (State_.AddOutputTrajectory( *trajoutName )) return ERROR;
+    if (!trajoutArgs.empty()) {
+      ResizeArgs( trajoutFiles, trajoutArgs, "output" );
+      for (unsigned int it = 0; it != trajoutFiles.size(); it++)
+        if (State_.AddOutputTrajectory( trajoutFiles[it] + " " + trajoutArgs[it] )) return ERROR;
+    } else {
+      for (Sarray::const_iterator trajoutName = trajoutFiles.begin();
+                                  trajoutName != trajoutFiles.end();
+                                  ++trajoutName)
+        if (State_.AddOutputTrajectory( *trajoutName )) return ERROR;
+    }
   }
   // Process all input files specified on command line.
   if ( !inputFiles.empty() ) {

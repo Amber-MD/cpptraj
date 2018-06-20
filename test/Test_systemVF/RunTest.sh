@@ -4,7 +4,7 @@
 
 CleanFiles systemVF.in test.systemVF.nc test.systemVf.ncdump
 TESTNAME='Amber NetCDF trajectory with Velocity/Force test'
-Requires netcdf pnetcdf
+Requires netcdf pnetcdf maxthreads 10
 
 cat > systemVF.in <<EOF
 parm systemVF.parm7

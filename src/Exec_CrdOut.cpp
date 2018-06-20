@@ -18,7 +18,7 @@ Exec::RetType Exec_CrdOut::Execute(CpptrajState& State, ArgList& argIn) {
   //rprintf("DEBUG: About to create new comm, ID= %i\n", ID);
   trajComm_ = Parallel::World().Split( ID );
   if (ID != MPI_UNDEFINED) {
-    mprintf("Warning: '%s' command does not yet use multiple MPI threads.\n", argIn.Command());
+    mprintf("Warning: '%s' command does not yet use multiple MPI processes.\n", argIn.Command());
     ret = WriteCrd(State, argIn);
     if (ret != CpptrajState::OK)
       err = 1;

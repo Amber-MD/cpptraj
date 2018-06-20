@@ -515,7 +515,7 @@ int CpptrajState::RunEnsemble() {
   // In parallel only two frames needed; one for reading, one for receiving.
   FramePtrArray SortedFrames( 2 );
   FrameArray FrameEnsemble( 2 );
-  // Each thread will process one member of the ensemble, so local ensemble
+  // Each process will handle one member of the ensemble, so local ensemble
   // size is effectively 1.
   ensembleSize = 1;
 # else
@@ -533,7 +533,7 @@ int CpptrajState::RunEnsemble() {
   ActionEnsemble[0] = &actionList_;
   for (int member = 1; member < ensembleSize; member++)
     ActionEnsemble[member] = new ActionList();
-  // If we are on a single thread, give each member its own copy of the
+  // If we are on a single process, give each member its own copy of the
   // current topology address. This way if topology is modified by a member,
   // e.g. in strip or closest, subsequent members wont be trying to modify 
   // an already-modified topology.
@@ -739,19 +739,19 @@ int CpptrajState::RunEnsemble() {
 }
 #ifdef MPI
 // -----------------------------------------------------------------------------
-void CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_stop, int& my_frames,
+void CpptrajState::DivideFramesAmongProcesses(int& my_start, int& my_stop, int& my_frames,
                                             int maxFrames, Parallel::Comm const& commIn) const
 {
-  my_frames = commIn.DivideAmongThreads(my_start, my_stop, maxFrames);
-  std::vector<int> frames_per_thread( commIn.Size() );
-  commIn.GatherMaster(&my_frames, 1, MPI_INT, &frames_per_thread[0]);
+  my_frames = commIn.DivideAmongProcesses(my_start, my_stop, maxFrames);
+  std::vector<int> frames_per_process( commIn.Size() );
+  commIn.GatherMaster(&my_frames, 1, MPI_INT, &frames_per_process[0]);
   // Print how many frames each rank will process.
   if (commIn.Master()) {
     mprintf("\nPARALLEL INFO:\n");
     if (Parallel::EnsembleComm().Size() > 1)
-      mprintf("  %i threads per ensemble member.\n", commIn.Size());
+      mprintf("  %i processes per ensemble member.\n", commIn.Size());
     for (int rank = 0; rank != commIn.Size(); rank++)
-      mprintf("  Thread %i will process %i frames.\n", rank, frames_per_thread[rank]);
+      mprintf("  Process %i will handle %i frames.\n", rank, frames_per_process[rank]);
   }
   commIn.Barrier();
   if (debug_ > 0) rprintf("Start %i Stop %i Frames %i\n", my_start+1, my_stop, my_frames);
@@ -773,13 +773,13 @@ int CpptrajState::PreloadCheck(int my_start, int my_frames,
     return 1;
   } else if (my_frames == n_previous_frames) {
     rprinterr("Error: Number of preload frames is same as number of processed frames.\n"
-              "Error:   Try reducing the number of threads.\n");
+              "Error:   Try reducing the number of processes.\n");
     return 1;
   } 
   if (n_previous_frames > (my_frames / 2))
     rprintf("Warning: Number of preload frames is greater than half the "
                       "number of processed frames.\n"
-            "Warning:   Try reducing the number of threads.\n");
+            "Warning:   Try reducing the number of processes.\n");
   rprintf("Warning: Preloading %i frames. These frames will NOT have Actions performed on them.\n",
           n_previous_frames);
   return 0;
@@ -805,19 +805,19 @@ int CpptrajState::RunParaEnsemble() {
   int err = NAV.AddEnsembles(trajinList_.ensemble_begin(), trajinList_.ensemble_end());
   if (Parallel::World().CheckError( err )) return 1;
 
-  // Divide frames among threads
+  // Divide frames among processes
   int my_start, my_stop, my_frames;
-  DivideFramesAmongThreads(my_start, my_stop, my_frames, NAV.IDX().MaxFrames(), TrajComm);
-  // Ensure at least 1 frame per thread, otherwise some ranks could cause hangups.
+  DivideFramesAmongProcesses(my_start, my_stop, my_frames, NAV.IDX().MaxFrames(), TrajComm);
+  // Ensure at least 1 frame per process, otherwise some ranks could cause hangups.
   if (my_frames > 0)
     err = 0;
   else {
-    rprinterr("Error: Thread is processing less than 1 frame. Try reducing # threads.\n");
+    rprinterr("Error: Process is handling less than 1 frame. Try reducing # processes.\n");
     err = 1;
   }
   if (Parallel::World().CheckError( err )) return 1;
 
-  // Allocate DataSets in the master DataSetList based on # frames to be read by this thread.
+  // Allocate DataSets in the master DataSetList based on # frames to be read by this process.
   DSL_.AllocateSets( my_frames );
   // Any DataSets added to the DataSetList during run will need to be synced.
   DSL_.SetNewSetsNeedSync( true );
@@ -917,9 +917,9 @@ int CpptrajState::RunParaEnsemble() {
   ensembleOut_.CloseEnsembleOut();
   DSL_.SetNewSetsNeedSync( false );
   sync_time_.Start();
-  // Sync Actions to master thread
+  // Sync Actions to master process
   actionList_.SyncActions();
-  // Sync data sets to master thread
+  // Sync data sets to master process
   if (DSL_.SynchronizeData( TrajComm )) return 1;
   sync_time_.Stop();
   mprintf("\nACTION OUTPUT:\n");
@@ -968,19 +968,19 @@ int CpptrajState::RunParallel() {
     if (input_traj.AddInputTraj( *traj )) { err = 1; break; }
   if (TrajComm.CheckError( err )) return 1;
 
-  // Divide frames among threads.
+  // Divide frames among processes.
   int my_start, my_stop, my_frames;
-  DivideFramesAmongThreads(my_start, my_stop, my_frames, input_traj.Size(), TrajComm);
-  // Ensure at least 1 frame per thread, otherwise some ranks could cause hangups.
+  DivideFramesAmongProcesses(my_start, my_stop, my_frames, input_traj.Size(), TrajComm);
+  // Ensure at least 1 frame per process, otherwise some ranks could cause hangups.
   if (my_frames > 0)
     err = 0;
   else {
-    rprinterr("Error: Thread is processing less than 1 frame. Try reducing # threads.\n");
+    rprinterr("Error: Process is handling less than 1 frame. Try reducing # processes.\n");
     err = 1;
   }
   if (TrajComm.CheckError( err )) return 1;
 
-  // Allocate DataSets in DataSetList based on # frames read by this thread.
+  // Allocate DataSets in DataSetList based on # frames read by this process.
   DSL_.AllocateSets( my_frames );
   // Any DataSets added to the DataSetList during run will need to be synced.
   DSL_.SetNewSetsNeedSync( true );
@@ -1093,9 +1093,9 @@ int CpptrajState::RunParallel() {
   trajoutList_.CloseTrajout();
   DSL_.SetNewSetsNeedSync( false );
   sync_time_.Start();
-  // Sync Actions to master thread
+  // Sync Actions to master process
   actionList_.SyncActions();
-  // Sync data sets to master thread
+  // Sync data sets to master process
   if (DSL_.SynchronizeData( TrajComm )) return 1;
   sync_time_.Stop();
   post_time_.Start();
@@ -1120,10 +1120,10 @@ int CpptrajState::RunSingleTrajParallel() {
   // Set up single trajectory for parallel read.
   Trajin* trajin = *(trajinList_.trajin_begin());
   trajin->ParallelBeginTraj( Parallel::World() );
-  // Divide frames among threads.
+  // Divide frames among processes.
   int total_read_frames = trajin->Traj().Counter().TotalReadFrames();
   int my_start, my_stop, my_frames;
-  std::vector<int> rank_frames = DivideFramesAmongThreads(my_start, my_stop, my_frames,
+  std::vector<int> rank_frames = DivideFramesAmongProcesses(my_start, my_stop, my_frames,
                                                           total_read_frames,
                                                           Parallel::World().Size(),
                                                           Parallel::World().Rank(),
@@ -1135,7 +1135,7 @@ int CpptrajState::RunSingleTrajParallel() {
   rprintf("Start and stop adjusted for offset: %i to %i\n", traj_start, traj_stop);
   Parallel::World().Barrier();
 
-  // Allocate DataSets in DataSetList based on # frames read by this thread.
+  // Allocate DataSets in DataSetList based on # frames read by this process.
   DSL_.AllocateSets( my_frames );
 
   // ----- SETUP PHASE ---------------------------
@@ -1189,11 +1189,11 @@ int CpptrajState::RunSingleTrajParallel() {
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)total_read_frames / frames_time.Total());
   trajoutList_.CloseTrajout();
-  // Sync data sets to master thread
+  // Sync data sets to master process
   Timer time_sync;
   time_sync.Start();
   if (DSL_.SynchronizeData( total_read_frames, rank_frames, Parallel::World() )) return 1;
-  // Sync Actions to master thread
+  // Sync Actions to master process
   actionList_.SyncActions();
   time_sync.Stop();
   time_sync.WriteTiming(1, "Data set/actions sync");
@@ -1368,7 +1368,7 @@ int CpptrajState::RunAnalyses() {
 # ifdef MPI
   // Only master performs analyses currently.
   if (Parallel::TrajComm().Size() > 1)
-    mprintf("Warning: Analysis does not currently use multiple MPI threads.\n");
+    mprintf("Warning: Analysis does not currently use multiple MPI processes.\n");
   if (Parallel::TrajComm().Master())
 # endif
     err = analysisList_.DoAnalyses();

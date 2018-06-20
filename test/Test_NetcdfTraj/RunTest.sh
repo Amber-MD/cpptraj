@@ -6,7 +6,7 @@
 CleanFiles ptraj_netcdf.in trajectory.netcdf trajectory_test.mdcrd
 
 TESTNAME='NetCDF tests'
-Requires netcdf pnetcdf
+Requires netcdf pnetcdf maxthreads 10
 
 # Convert MDCRD to NETCDF and back again.
 INPUT="ptraj_netcdf.in"

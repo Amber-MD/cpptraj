@@ -9,7 +9,7 @@ CleanFiles closest.in first.Closest.pdb.1 closestmols.dat \
 
 INPUT="-i closest.in"
 TESTNAME='Closest tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 
 UNITNAME='Closest command tests using first/all solvent atoms'
 CheckFor maxthreads 1

@@ -59,6 +59,14 @@ ParmIO* ParmFile::DetectFormat(FileName const& fname, ParmFormatType& ptype) {
   return 0;
 }
 
+// ParmFile::DetectFormat()
+ParmFile::ParmFormatType ParmFile::DetectFormat(FileName const& fname) {
+  ParmFormatType ptype;
+  ParmIO* pio = DetectFormat(fname, ptype);
+  delete pio;
+  return ptype;
+}
+
 // ParmFile::ReadTopology()
 int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn, 
                            ArgList const& argListIn, int debugIn) 
