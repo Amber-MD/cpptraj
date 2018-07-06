@@ -37,29 +37,25 @@ void GetDependencies(string const& filename) {
   if (found != string::npos)
     ext = filename.substr(found);
 
-  printf("FILE: %s  EXT: %s\n", filename.c_str(), ext.c_str());
-  string key;
+  //printf("FILE: %s  EXT: %s\n", filename.c_str(), ext.c_str());
   if (ext == ".cpp" || ext == ".c") {
     type = SOURCE;
-    key = filename;
     // Each source file should only be accessed once
-    Smap::iterator it = Sources.find( key );
+    Smap::iterator it = Sources.find( filename );
     if (it != Sources.end()) {
       fprintf(stderr,"Error: Source '%s' is being looked at more than once.\n", filename.c_str());
       return;
     }
   } else if (ext == ".h") {
     type = HEADER;
-    key = filename;
     // If this header was already looked at return
-    Smap::iterator it = Headers.find( key );
+    Smap::iterator it = Headers.find( filename );
     if (it != Headers.end()) {
-      printf("\tSkipping already-seen header %s\n", filename.c_str());
+      //printf("\tSkipping already-seen header %s\n", filename.c_str());
       return;
     }
   } else // Ignore all others for now
     return;
-  printf("KEY: %s\n", key.c_str());
 
   FILE* infile = fopen(filename.c_str(), "rb");
   if (infile == 0) {
@@ -89,21 +85,21 @@ void GetDependencies(string const& filename) {
           size_t pos = strlen(headername);
           if (headername[pos-1]=='"') headername[pos-1]='\0';
           depends.insert( string(headername) );
-        } else
-          printf("\tSkipping system header line: %s", buffer);
+        } //else
+          //printf("\tSkipping system header line: %s", buffer);
       }
     }
   }
   fclose( infile );
-  printf("  %s depends:", filename.c_str());
-  for (Slist::const_iterator it = depends.begin(); it != depends.end(); ++it)
-    printf(" %s", it->c_str());
-  printf("\n");
+  //printf("  %s depends:", filename.c_str());
+  //for (Slist::const_iterator it = depends.begin(); it != depends.end(); ++it)
+  //  printf(" %s", it->c_str());
+  //printf("\n");
   //pair<Smap::iterator, bool> ret;
   if (type == SOURCE)
-    Sources.insert( Spair(key, depends) );
+    Sources.insert( Spair(filename, depends) );
   else
-    Headers.insert( Spair(key, depends) );
+    Headers.insert( Spair(filename, depends) );
   for (Slist::const_iterator it = depends.begin(); it != depends.end(); ++it)
      GetDependencies( *it ); 
 }
