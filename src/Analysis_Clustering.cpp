@@ -816,6 +816,7 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, unsigned in
   // Set up output data sets
   std::vector<DataSet_float*> Cpop;
   MetaData md(cnumvtime_->Meta().Name(), "Pop");
+  DataSet::SizeArray dsize(1, maxFrames);
   for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
     md.SetIdx( cnum );
     DataSet_float* ds = (DataSet_float*)masterDSL_->AddSet( DataSet::FLOAT, md );
@@ -823,45 +824,39 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, unsigned in
       mprinterr("Error: Could not allocate cluster pop v time DataSet.\n");
       return;
     }
-    ds->Resize( maxFrames );
+    ds->Allocate( dsize );
     Cpop.push_back( ds );
     // SANITY CHECK
     if (cpopvtimefile_ != 0)
       cpopvtimefile_->AddDataSet( ds );
   }
-  // pvt Will hold population vs time for the current cluster.
-  std::vector<int> pvt;
-  pvt.reserve( maxFrames );
   int cnum = 0;
   // Loop over all clusters
   for (ClusterList::cluster_iterator C = CList.begincluster(); C != CList.endcluster(); ++C, ++cnum)
   {
-    pvt.clear();
-    int pop = 0;
+    DataSet_float& pvt = static_cast<DataSet_float&>( *(Cpop[cnum]) );
+    float pop = 0.0;
     // Loop over all frames in cluster
     for (ClusterNode::frame_iterator f = C->beginframe(); f != C->endframe(); ++f)
     {
-      if (*f > (int)pvt.size())
-        pvt.resize( *f, pop );
-      pop++;
+      if (*f > (int)pvt.Size())
+        pvt.Resize( *f, pop );
+      pop = pop + 1.0;
       pvt[*f] = pop;
     }
     // Ensure pop v time set is maxFrames long
-    if (pvt.size() < maxFrames)
-      pvt.resize( maxFrames, pop );
+    if (pvt.Size() < maxFrames)
+      pvt.Resize( maxFrames, pop );
     // Normalization
-    if (norm_pop_ == NONE) {
-      for (unsigned int frm = 0; frm < maxFrames; ++frm)
-        (*(Cpop[cnum]))[frm] = (float)pvt[frm];
-    } else if (norm_pop_ == CLUSTERPOP) {
+    if (norm_pop_ == CLUSTERPOP) {
       float norm = 1.0 / (float)C->Nframes();
       for (unsigned int frm = 0; frm < maxFrames; ++frm)
-        (*(Cpop[cnum]))[frm] = (float)pvt[frm] * norm;
+        pvt[frm] = pvt[frm] * norm;
     } else if (norm_pop_ == FRAME) {
       float norm = 1.0;
       for (unsigned int frm = 0; frm < maxFrames; ++frm)
       {
-        (*(Cpop[cnum]))[frm] = (float)pvt[frm] / norm;
+        pvt[frm] = pvt[frm] / norm;
         norm = norm + 1.0;
       }
     }
