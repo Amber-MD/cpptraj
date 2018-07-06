@@ -38,12 +38,28 @@ void GetDependencies(string const& filename) {
     ext = filename.substr(found);
 
   printf("FILE: %s  EXT: %s\n", filename.c_str(), ext.c_str());
-  if (ext == ".cpp" || ext == ".c")
+  string key;
+  if (ext == ".cpp" || ext == ".c") {
     type = SOURCE;
-  else if (ext == ".h")
+    key = filename.substr(0,found) + ".o";
+    // Each source file should only be accessed once
+    Smap::iterator it = Sources.find( key );
+    if (it != Sources.end()) {
+      fprintf(stderr,"Error: Source '%s' is being looked at more than once.\n", filename.c_str());
+      return;
+    }
+  } else if (ext == ".h") {
     type = HEADER;
-  else // Ignore all others for now
+    key = filename;
+    // If this header was already looked at return
+    Smap::iterator it = Headers.find( key );
+    if (it != Headers.end()) {
+      printf("\tSkipping already-seen header %s\n", filename.c_str());
+      return;
+    }
+  } else // Ignore all others for now
     return;
+  printf("KEY: %s\n", key.c_str());
 
   FILE* infile = fopen(filename.c_str(), "rb");
   if (infile == 0) {
@@ -83,7 +99,13 @@ void GetDependencies(string const& filename) {
   for (Slist::const_iterator it = depends.begin(); it != depends.end(); ++it)
     printf(" %s", it->c_str());
   printf("\n");
-    
+  //pair<Smap::iterator, bool> ret;
+  if (type == SOURCE)
+    Sources.insert( Spair(key, depends) );
+  else
+    Headers.insert( Spair(key, depends) );
+  for (Slist::const_iterator it = depends.begin(); it != depends.end(); ++it)
+     GetDependencies( *it ); 
 }
 
 // M A I N
