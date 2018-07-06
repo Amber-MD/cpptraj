@@ -41,7 +41,7 @@ void GetDependencies(string const& filename) {
   string key;
   if (ext == ".cpp" || ext == ".c") {
     type = SOURCE;
-    key = filename.substr(0,found) + ".o";
+    key = filename;
     // Each source file should only be accessed once
     Smap::iterator it = Sources.find( key );
     if (it != Sources.end()) {
@@ -108,11 +108,34 @@ void GetDependencies(string const& filename) {
      GetDependencies( *it ); 
 }
 
+/** Recursive function for expanding dependencies. */
+void FillDependencies(Slist& depends, Slist const& dlist) {
+  for (Slist::const_iterator hdr = dlist.begin(); hdr != dlist.end(); ++hdr) {
+    depends.insert( *hdr );
+    Smap::iterator ret = Headers.find( *hdr );
+    if (ret != Headers.end())
+      FillDependencies(depends, ret->second);
+  }
+}
+
 // M A I N
 int main(int argc, char** argv) {
   if (argc < 2) return  0;
+  // Read through all source files; get dependencies and header dependencies.
   for (int i=1; i<argc; i++)
     GetDependencies(argv[i]);
+  // Write out source dependencies and fill in header dependencies.
+  for (Smap::const_iterator src = Sources.begin(); src != Sources.end(); ++src)
+  {
+    Slist depends;
+    FillDependencies(depends, src->second);
+    size_t found = src->first.find_last_of(".");
+    string objname = src->first.substr(0,found) + ".o";
+    printf("%s : %s", objname.c_str(), src->first.c_str());
+    for (Slist::const_iterator it = depends.begin(); it != depends.end(); ++it)
+      printf(" %s", it->c_str());
+    printf("\n");
+  }
 
   return 0;
 }
