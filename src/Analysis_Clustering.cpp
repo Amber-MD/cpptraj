@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
+#include "DataSet_float.h"
 #include "Trajout_Single.h"
 #include "Timer.h"
 // Clustering Algorithms
@@ -811,45 +812,58 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, unsigned in
 // Analysis_Clustering::CreateCpopvtime()
 // NOTE: Should not be called if cpopvtimefile is NULL
 void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, unsigned int maxFrames ) {
-  std::vector<int> Pop(CList.Nclusters(), 0);
+  mprintf("\tCalculating cluster population vs time for each cluster.\n");
   // Set up output data sets
-  std::vector<DataSet*> DSL;
+  std::vector<DataSet_float*> Cpop;
   MetaData md(cnumvtime_->Meta().Name(), "Pop");
   for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
     md.SetIdx( cnum );
-    DSL.push_back(masterDSL_->AddSet( DataSet::FLOAT, md ));
-    if (DSL.back() == 0) {
+    DataSet_float* ds = (DataSet_float*)masterDSL_->AddSet( DataSet::FLOAT, md );
+    if (ds == 0) {
       mprinterr("Error: Could not allocate cluster pop v time DataSet.\n");
       return;
     }
-    cpopvtimefile_->AddDataSet( DSL.back() );
+    ds->Resize( maxFrames );
+    Cpop.push_back( ds );
+    // SANITY CHECK
+    if (cpopvtimefile_ != 0)
+      cpopvtimefile_->AddDataSet( ds );
   }
-  // Set up normalization
-  std::vector<double> Norm;
-  if (norm_pop_ == CLUSTERPOP) {
-    int cnum = 0;
-    Norm.resize(CList.Nclusters(), 1.0);
-    for (ClusterList::cluster_iterator C = CList.begincluster(); 
-                                       C != CList.endcluster(); ++C)
-      Norm[cnum++] = (double)((*C).Nframes());
-  }
-  // Assumes cnumvtime has been calcd and not gracecolor!
-  double norm = 1.0;
-  DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>( *cnumvtime_ );
-  for (unsigned int frame = 0; frame < maxFrames; ++frame) {
-    int cluster_num = cnum_temp[frame];
-    // Noise points are -1
-    if (cluster_num > -1)
-      Pop[cluster_num]++;
-    for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
-      // Normalization
-      if (norm_pop_ == CLUSTERPOP)
-        norm = Norm[cnum];
-      else if (norm_pop_ == FRAME)
-        norm = (double)(frame + 1);
-      //float f = ((double)Pop[cnum] * Norm[cnum]);
-      float f = (float)((double)Pop[cnum] / norm);
-      DSL[cnum]->Add(frame, &f);
+  // pvt Will hold population vs time for the current cluster.
+  std::vector<int> pvt;
+  pvt.reserve( maxFrames );
+  int cnum = 0;
+  // Loop over all clusters
+  for (ClusterList::cluster_iterator C = CList.begincluster(); C != CList.endcluster(); ++C, ++cnum)
+  {
+    pvt.clear();
+    int pop = 0;
+    // Loop over all frames in cluster
+    for (ClusterNode::frame_iterator f = C->beginframe(); f != C->endframe(); ++f)
+    {
+      if (*f > (int)pvt.size())
+        pvt.resize( *f, pop );
+      pop++;
+      pvt[*f] = pop;
+    }
+    // Ensure pop v time set is maxFrames long
+    if (pvt.size() < maxFrames)
+      pvt.resize( maxFrames, pop );
+    // Normalization
+    if (norm_pop_ == NONE) {
+      for (unsigned int frm = 0; frm < maxFrames; ++frm)
+        (*(Cpop[cnum]))[frm] = (float)pvt[frm];
+    } else if (norm_pop_ == CLUSTERPOP) {
+      float norm = 1.0 / (float)C->Nframes();
+      for (unsigned int frm = 0; frm < maxFrames; ++frm)
+        (*(Cpop[cnum]))[frm] = (float)pvt[frm] * norm;
+    } else if (norm_pop_ == FRAME) {
+      float norm = 1.0;
+      for (unsigned int frm = 0; frm < maxFrames; ++frm)
+      {
+        (*(Cpop[cnum]))[frm] = (float)pvt[frm] / norm;
+        norm = norm + 1.0;
+      }
     }
   }
 }
