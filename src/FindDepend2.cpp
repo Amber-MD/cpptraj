@@ -26,6 +26,20 @@ Smap Headers;
 
 enum FileType { SOURCE = 0, HEADER };
 
+/** \return true if this header should be ignored. */
+bool IgnoreHeader(const char* headername) {
+  if (strcmp(headername,"mpi.h")==0) return true;
+  if (strcmp(headername,"zlib.h")==0) return true;
+  if (strcmp(headername,"bzlib.h")==0) return true;
+  if (strcmp(headername,"netcdf.h")==0) return true;
+  if (strcmp(headername,"pnetcdf.h")==0) return true;
+  if (strcmp(headername,"sander.h")==0) return true;
+  if (strcmp(headername,"omp.h")==0) return true;
+  if (strncmp(headername,"readline",8)==0) return true;
+  if (strncmp(headername,"xdrfile",7)==0) return true;
+  return false;
+}
+
 /** Add list of dependencies for the given file to map. */
 void GetDependencies(string const& filename) {
   char buffer[BUFFERSIZE+1];
@@ -84,7 +98,8 @@ void GetDependencies(string const& filename) {
           // Get rid of last "
           size_t pos = strlen(headername);
           if (headername[pos-1]=='"') headername[pos-1]='\0';
-          depends.insert( string(headername) );
+          if (!IgnoreHeader(headername))
+            depends.insert( string(headername) );
         } //else
           //printf("\tSkipping system header line: %s", buffer);
       }
