@@ -1,3 +1,10 @@
+/*
+ * FindDepend2
+ * Dan Roe 2018
+ * Given a list of source files with include directives, print a list of
+ * dependencies. Will ignore headers that are not directly a part of
+ * CPPTRAJ.
+ */
 #include <cstdio>
 #include <cctype>
 #include <cstring>
@@ -40,7 +47,7 @@ bool IgnoreHeader(const char* headername) {
   return false;
 }
 
-/** Add list of dependencies for the given file to map. */
+/** Add list of dependencies for the given file to appropriate map. */
 void GetDependencies(string const& filename) {
   char buffer[BUFFERSIZE+1];
   char headername[BUFFERSIZE+1];
