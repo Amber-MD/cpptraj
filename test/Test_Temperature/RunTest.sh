@@ -5,7 +5,7 @@
 CleanFiles temp.in T.dat T2.dat T3.dat
 
 TESTNAME='Temperature tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 
 INPUT="-i temp.in"
 cat > temp.in <<EOF
