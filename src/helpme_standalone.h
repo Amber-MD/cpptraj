@@ -5,18 +5,18 @@
 //
 
 
-// original file: ../src/libpme.h
+// original file: ../src/helpme.h
 
 // BEGINLICENSE
 //
-// This file is part of libpme, which is distributed under the BSD 3-clause license,
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
 // as described in the LICENSE file in the top level directory of this project.
 //
 // Author: Andrew C. Simmonett
 //
 // ENDLICENSE
-#ifndef _LIBPME_LIBPME_H_
-#define _LIBPME_LIBPME_H_
+#ifndef _HELPME_HELPME_H_
+#define _HELPME_HELPME_H_
 
 #if __cplusplus || DOXYGEN
 
@@ -24,56 +24,389 @@
 
 #include <algorithm>
 #include <array>
-#include <cfloat> // LDBL_EPSILON
 #include <cmath>
 #include <complex>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <memory>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <string>
 #include <tuple>
+#include <unistd.h>
 #include <vector>
-#include <functional>
-#include <stdexcept>
 
-// original file: ../src/fftw_wrapper.h
+// original file: ../src/cartesiantransform.h
 
 // BEGINLICENSE
 //
-// This file is part of libpme, which is distributed under the BSD 3-clause license,
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
 // as described in the LICENSE file in the top level directory of this project.
 //
 // Author: Andrew C. Simmonett
 //
 // ENDLICENSE
-#ifndef _LIBPME_FFTW_WRAPPER_H_
-#define _LIBPME_FFTW_WRAPPER_H_
+#ifndef _HELPME_CARTESIANTRANSFORM_H_
+#define _HELPME_CARTESIANTRANSFORM_H_
 
+// original file: ../src/matrix.h
+
+// BEGINLICENSE
+//
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
+// as described in the LICENSE file in the top level directory of this project.
+//
+// Author: Andrew C. Simmonett
+//
+// ENDLICENSE
+#ifndef _HELPME_MATRIX_H_
+#define _HELPME_MATRIX_H_
+
+#include <algorithm>
+#include <complex>
 #include <exception>
+#include <fstream>
+#include <initializer_list>
 #include <iostream>
-#include <limits>
-#include <type_traits>
+#include <iomanip>
+#include <numeric>
+#include <tuple>
 
-#include <fftw3.h>
+// original file: ../src/lapack_wrapper.h
+
+// BEGINLICENSE
+//
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
+// as described in the LICENSE file in the top level directory of this project.
+//
+// Author: Andrew C. Simmonett
+//
+// ENDLICENSE
+//
+// The code for Jacobi diagonalization is taken (with minimal modification) from
+//
+// http://www.mymathlib.com/c_source/matrices/eigen/jacobi_cyclic_method.c
+//
+#ifndef _HELPME_LAPACK_WRAPPER_H_
+#define _HELPME_LAPACK_WRAPPER_H_
+
+#include <cmath>
+#include <limits>
+
+namespace helpme {
+////////////////////////////////////////////////////////////////////////////////
+//  void Jacobi_Cyclic_Method                                                 //
+//            (Real eigenvalues[], Real *eigenvectors, Real *A, int n)  //
+//                                                                            //
+//  Description:                                                              //
+//     Find the eigenvalues and eigenvectors of a symmetric n x n matrix A    //
+//     using the Jacobi method. Upon return, the input matrix A will have     //
+//     been modified.                                                         //
+//     The Jacobi procedure for finding the eigenvalues and eigenvectors of a //
+//     symmetric matrix A is based on finding a similarity transformation     //
+//     which diagonalizes A.  The similarity transformation is given by a     //
+//     product of a sequence of orthogonal (rotation) matrices each of which  //
+//     annihilates an off-diagonal element and its transpose.  The rotation   //
+//     effects only the rows and columns containing the off-diagonal element  //
+//     and its transpose, i.e. if a[i][j] is an off-diagonal element, then    //
+//     the orthogonal transformation rotates rows a[i][] and a[j][], and      //
+//     equivalently it rotates columns a[][i] and a[][j], so that a[i][j] = 0 //
+//     and a[j][i] = 0.                                                       //
+//     The cyclic Jacobi method considers the off-diagonal elements in the    //
+//     following order: (0,1),(0,2),...,(0,n-1),(1,2),...,(n-2,n-1).  If the  //
+//     the magnitude of the off-diagonal element is greater than a treshold,  //
+//     then a rotation is performed to annihilate that off-diagnonal element. //
+//     The process described above is called a sweep.  After a sweep has been //
+//     completed, the threshold is lowered and another sweep is performed     //
+//     with the new threshold. This process is completed until the final      //
+//     sweep is performed with the final threshold.                           //
+//     The orthogonal transformation which annihilates the matrix element     //
+//     a[k][m], k != m, is Q = q[i][j], where q[i][j] = 0 if i != j, i,j != k //
+//     i,j != m and q[i][j] = 1 if i = j, i,j != k, i,j != m, q[k][k] =       //
+//     q[m][m] = cos(phi), q[k][m] = -sin(phi), and q[m][k] = sin(phi), where //
+//     the angle phi is determined by requiring a[k][m] -> 0.  This condition //
+//     on the angle phi is equivalent to                                      //
+//               cot(2 phi) = 0.5 * (a[k][k] - a[m][m]) / a[k][m]             //
+//     Since tan(2 phi) = 2 tan(phi) / (1 - tan(phi)^2),                      //
+//               tan(phi)^2 + 2cot(2 phi) * tan(phi) - 1 = 0.                 //
+//     Solving for tan(phi), choosing the solution with smallest magnitude,   //
+//       tan(phi) = - cot(2 phi) + sgn(cot(2 phi)) sqrt(cot(2phi)^2 + 1).     //
+//     Then cos(phi)^2 = 1 / (1 + tan(phi)^2) and sin(phi)^2 = 1 - cos(phi)^2 //
+//     Finally by taking the sqrts and assigning the sign to the sin the same //
+//     as that of the tan, the orthogonal transformation Q is determined.     //
+//     Let A" be the matrix obtained from the matrix A by applying the        //
+//     similarity transformation Q, since Q is orthogonal, A" = Q'AQ, where Q'//
+//     is the transpose of Q (which is the same as the inverse of Q).  Then   //
+//         a"[i][j] = Q'[i][p] a[p][q] Q[q][j] = Q[p][i] a[p][q] Q[q][j],     //
+//     where repeated indices are summed over.                                //
+//     If i is not equal to either k or m, then Q[i][j] is the Kronecker      //
+//     delta.   So if both i and j are not equal to either k or m,            //
+//                                a"[i][j] = a[i][j].                         //
+//     If i = k, j = k,                                                       //
+//        a"[k][k] =                                                          //
+//           a[k][k]*cos(phi)^2 + a[k][m]*sin(2 phi) + a[m][m]*sin(phi)^2     //
+//     If i = k, j = m,                                                       //
+//        a"[k][m] = a"[m][k] = 0 =                                           //
+//           a[k][m]*cos(2 phi) + 0.5 * (a[m][m] - a[k][k])*sin(2 phi)        //
+//     If i = k, j != k or m,                                                 //
+//        a"[k][j] = a"[j][k] = a[k][j] * cos(phi) + a[m][j] * sin(phi)       //
+//     If i = m, j = k, a"[m][k] = 0                                          //
+//     If i = m, j = m,                                                       //
+//        a"[m][m] =                                                          //
+//           a[m][m]*cos(phi)^2 - a[k][m]*sin(2 phi) + a[k][k]*sin(phi)^2     //
+//     If i= m, j != k or m,                                                  //
+//        a"[m][j] = a"[j][m] = a[m][j] * cos(phi) - a[k][j] * sin(phi)       //
+//                                                                            //
+//     If X is the matrix of normalized eigenvectors stored so that the ith   //
+//     column corresponds to the ith eigenvalue, then AX = X Lamda, where     //
+//     Lambda is the diagonal matrix with the ith eigenvalue stored at        //
+//     Lambda[i][i], i.e. X'AX = Lambda and X is orthogonal, the eigenvectors //
+//     are normalized and orthogonal.  So, X = Q1 Q2 ... Qs, where Qi is      //
+//     the ith orthogonal matrix,  i.e. X can be recursively approximated by  //
+//     the recursion relation X" = X Q, where Q is the orthogonal matrix and  //
+//     the initial estimate for X is the identity matrix.                     //
+//     If j = k, then x"[i][k] = x[i][k] * cos(phi) + x[i][m] * sin(phi),     //
+//     if j = m, then x"[i][m] = x[i][m] * cos(phi) - x[i][k] * sin(phi), and //
+//     if j != k and j != m, then x"[i][j] = x[i][j].                         //
+//                                                                            //
+//  Arguments:                                                                //
+//     Real  eigenvalues                                                      //
+//        Array of dimension n, which upon return contains the eigenvalues of //
+//        the matrix A.                                                       //
+//     Real* eigenvectors                                                     //
+//        Matrix of eigenvectors, the ith column of which contains an         //
+//        eigenvector corresponding to the ith eigenvalue in the array        //
+//        eigenvalues.                                                        //
+//     Real* A                                                                //
+//        Pointer to the first element of the symmetric n x n matrix A. The   //
+//        input matrix A is modified during the process.                      //
+//     int     n                                                              //
+//        The dimension of the array eigenvalues, number of columns and rows  //
+//        of the matrices eigenvectors and A.                                 //
+//                                                                            //
+//  Return Values:                                                            //
+//     Function is of type void.                                              //
+//                                                                            //
+//  Example:                                                                  //
+//     #define N                                                              //
+//     Real A[N][N], Real eigenvalues[N], Real eigenvectors[N][N]             //
+//                                                                            //
+//     (your code to initialize the matrix A )                                //
+//                                                                            //
+//     JacobiCyclicDiagonalization(eigenvalues, (Real*)eigenvectors,          //
+//                                                          (Real *) A, N);   //
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename Real>
+void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Real *A, int n) {
+    int row, i, j, k, m;
+    Real *pAk, *pAm, *p_r, *p_e;
+    Real threshold_norm;
+    Real threshold;
+    Real tan_phi, sin_phi, cos_phi, tan2_phi, sin2_phi, cos2_phi;
+    Real sin_2phi, cos_2phi, cot_2phi;
+    Real dum1;
+    Real dum2;
+    Real dum3;
+    Real r;
+    Real max;
+
+    // Take care of trivial cases
+
+    if (n < 1) return;
+    if (n == 1) {
+        eigenvalues[0] = *A;
+        *eigenvectors = 1;
+        return;
+    }
+
+    // Initialize the eigenvalues to the identity matrix.
+
+    for (p_e = eigenvectors, i = 0; i < n; i++)
+        for (j = 0; j < n; p_e++, j++)
+            if (i == j)
+                *p_e = 1;
+            else
+                *p_e = 0;
+
+    // Calculate the threshold and threshold_norm.
+
+    for (threshold = 0, pAk = const_cast<Real *>(A), i = 0; i < (n - 1); pAk += n, i++)
+        for (j = i + 1; j < n; j++) threshold += *(pAk + j) * *(pAk + j);
+    threshold = sqrt(threshold + threshold);
+    threshold_norm = threshold * std::numeric_limits<Real>::epsilon();
+    max = threshold + 1;
+    while (threshold > threshold_norm) {
+        threshold /= 10;
+        if (max < threshold) continue;
+        max = 0;
+        for (pAk = const_cast<Real *>(A), k = 0; k < (n - 1); pAk += n, k++) {
+            for (pAm = pAk + n, m = k + 1; m < n; pAm += n, m++) {
+                if (std::abs(*(pAk + m)) < threshold) continue;
+
+                // Calculate the sin and cos of the rotation angle which
+                // annihilates A[k][m].
+
+                cot_2phi = 0.5f * (*(pAk + k) - *(pAm + m)) / *(pAk + m);
+                dum1 = sqrt(cot_2phi * cot_2phi + 1);
+                if (cot_2phi < 0) dum1 = -dum1;
+                tan_phi = -cot_2phi + dum1;
+                tan2_phi = tan_phi * tan_phi;
+                sin2_phi = tan2_phi / (1 + tan2_phi);
+                cos2_phi = 1 - sin2_phi;
+                sin_phi = sqrt(sin2_phi);
+                if (tan_phi < 0) sin_phi = -sin_phi;
+                cos_phi = sqrt(cos2_phi);
+                sin_2phi = 2 * sin_phi * cos_phi;
+                cos_2phi = cos2_phi - sin2_phi;
+
+                // Rotate columns k and m for both the matrix A
+                //     and the matrix of eigenvectors.
+
+                p_r = const_cast<Real *>(A);
+                dum1 = *(pAk + k);
+                dum2 = *(pAm + m);
+                dum3 = *(pAk + m);
+                *(pAk + k) = dum1 * cos2_phi + dum2 * sin2_phi + dum3 * sin_2phi;
+                *(pAm + m) = dum1 * sin2_phi + dum2 * cos2_phi - dum3 * sin_2phi;
+                *(pAk + m) = 0;
+                *(pAm + k) = 0;
+                for (i = 0; i < n; p_r += n, i++) {
+                    if ((i == k) || (i == m)) continue;
+                    if (i < k)
+                        dum1 = *(p_r + k);
+                    else
+                        dum1 = *(pAk + i);
+                    if (i < m)
+                        dum2 = *(p_r + m);
+                    else
+                        dum2 = *(pAm + i);
+                    dum3 = dum1 * cos_phi + dum2 * sin_phi;
+                    if (i < k)
+                        *(p_r + k) = dum3;
+                    else
+                        *(pAk + i) = dum3;
+                    dum3 = -dum1 * sin_phi + dum2 * cos_phi;
+                    if (i < m)
+                        *(p_r + m) = dum3;
+                    else
+                        *(pAm + i) = dum3;
+                }
+                for (p_e = eigenvectors, i = 0; i < n; p_e += n, i++) {
+                    dum1 = *(p_e + k);
+                    dum2 = *(p_e + m);
+                    *(p_e + k) = dum1 * cos_phi + dum2 * sin_phi;
+                    *(p_e + m) = -dum1 * sin_phi + dum2 * cos_phi;
+                }
+            }
+            for (i = 0; i < n; i++)
+                if (i == k)
+                    continue;
+                else if (max < std::abs(*(pAk + i)))
+                    max = std::abs(*(pAk + i));
+        }
+    }
+    for (pAk = const_cast<Real *>(A), k = 0; k < n; pAk += n, k++) eigenvalues[k] = *(pAk + k);
+}
+
+}  // Namespace helpme
+#endif  // Header guard
+// original file: ../src/string_utils.h
+
+// BEGINLICENSE
+//
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
+// as described in the LICENSE file in the top level directory of this project.
+//
+// Author: Andrew C. Simmonett
+//
+// ENDLICENSE
+#ifndef _HELPME_STRING_UTIL_H_
+#define _HELPME_STRING_UTIL_H_
+
+#include <complex>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+namespace helpme {
+
+/*!
+ * \brief makes a string representation of a floating point number.
+ * \param width the width used to display the number.
+ * \param precision the precision used to display the number.
+ * \return the string representation of the floating point number.
+ */
+template <typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
+std::string formatNumber(const T &number, int width, int precision) {
+    std::stringstream stream;
+    stream.setf(std::ios::fixed, std::ios::floatfield);
+    stream << std::setw(width) << std::setprecision(precision) << number;
+    return stream.str();
+}
+
+/*!
+ * \brief makes a string representation of a complex number.
+ * \param width the width used to display the real and the imaginary components.
+ * \param precision the precision used to display the real and the imaginary components.
+ * \return the string representation of the complex number.
+ */
+template <typename T, typename std::enable_if<!std::is_floating_point<T>::value, int>::type = 0>
+std::string formatNumber(const T &number, int width, int precision) {
+    std::stringstream stream;
+    stream.setf(std::ios::fixed, std::ios::floatfield);
+    stream << "(" << std::setw(width) << std::setprecision(precision) << number.real() << ", " << std::setw(width)
+           << std::setprecision(precision) << number.imag() << ")";
+    return stream.str();
+}
+
+/*!
+ * \brief makes a string representation of a multdimensional tensor, stored in a flat array.
+ * \param data pointer to the start of the array holding the tensor information.
+ * \param size the length of the array holding the tensor information.
+ * \param rowDim the dimension of the fastest running index.
+ * \param width the width of each individual floating point number.
+ * \param precision used to display each floating point number.
+ * \return the string representation of the tensor.
+ */
+template <typename T>
+std::string stringify(T *data, size_t size, size_t rowDim, int width = 14, int precision = 8) {
+    std::stringstream stream;
+    for (size_t ind = 0; ind < size; ++ind) {
+        stream << formatNumber(data[ind], width, precision);
+        if (ind % rowDim == rowDim - 1)
+            stream << std::endl;
+        else
+            stream << "  ";
+    }
+    return stream.str();
+}
+
+}  // Namespace helpme
+
+#endif  // Header guard
 // original file: ../src/memory.h
 
 // BEGINLICENSE
 //
-// This file is part of libpme, which is distributed under the BSD 3-clause license,
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
 // as described in the LICENSE file in the top level directory of this project.
 //
 // Author: Andrew C. Simmonett
 //
 // ENDLICENSE
-#ifndef _LIBPME_MEMORY_H_
-#define _LIBPME_MEMORY_H_
+#ifndef _HELPME_MEMORY_H_
+#define _HELPME_MEMORY_H_
 
 #include <exception>
 #include <vector>
 
 #include <fftw3.h>
 
-namespace libpme {
+namespace helpme {
 
 /*!
  * \brief FFTWAllocator a class to handle aligned allocation of memory using the FFTW libraries.
@@ -142,22 +475,710 @@ bool operator!=(const FFTWAllocator<T1>&, const FFTWAllocator<T2>&) throw() {
 template <typename Real>
 using vector = std::vector<Real, FFTWAllocator<Real>>;
 
-}  // Namespace libpme
+}  // Namespace helpme
 
 #endif  // Header guard
 
-namespace libpme {
+namespace helpme {
+
+/*!
+ * A helper function to transpose a dense matrix in place, gratuitously stolen from
+ * https://stackoverflow.com/questions/9227747/in-place-transposition-of-a-matrix
+ */
+template <class RandomIterator>
+void transposeMemoryInPlace(RandomIterator first, RandomIterator last, int m) {
+    const int mn1 = (last - first - 1);
+    const int n = (last - first) / m;
+    std::vector<bool> visited(last - first);
+    RandomIterator cycle = first;
+    while (++cycle != last) {
+        if (visited[cycle - first]) continue;
+        int a = cycle - first;
+        do {
+            a = a == mn1 ? mn1 : (n * a) % mn1;
+            std::swap(*(first + a), *cycle);
+            visited[a] = true;
+        } while ((first + a) != cycle);
+    }
+}
+
+/*!
+ * \brief The Matrix class is designed to serve as a convenient wrapper to simplify 2D matrix operations.
+ *        It assumes dense matrices with contiguious data and the fast running index being the right
+ *        (column) index.  The underlying memory may have already been allocated elsewhere by C, Fortran
+ *        or Python, and is directly manipulated in place, saving an expensive copy operation.  To provide
+ *        read-only access to such memory address, use a const template type.
+ */
+template <typename Real>
+class Matrix {
+   protected:
+    /// The number of rows in the matrix.
+    size_t nRows_;
+    /// The number of columns in the matrix.
+    size_t nCols_;
+    /// A vector to conveniently allocate data, if we really need to.
+    helpme::vector<Real> allocatedData_;
+    /// Pointer to the raw data, whose allocation may not be controlled by us.
+    Real* data_;
+
+   public:
+    enum class SortOrder { Ascending, Descending };
+
+    inline const Real& operator()(int row, int col) const { return *(data_ + row * nCols_ + col); }
+    inline const Real& operator()(const std::pair<int, int>& indices) const {
+        return *(data_ + std::get<0>(indices) * nCols_ + std::get<1>(indices));
+    }
+    inline Real& operator()(int row, int col) { return *(data_ + row * nCols_ + col); }
+    inline Real& operator()(const std::pair<int, int>& indices) {
+        return *(data_ + std::get<0>(indices) * nCols_ + std::get<1>(indices));
+    }
+    inline const Real* operator[](int row) const { return data_ + row * nCols_; }
+    inline Real* operator[](int row) { return data_ + row * nCols_; }
+
+    Real* begin() const { return data_; }
+    Real* end() const { return data_ + nRows_ * nCols_; }
+    const Real* cbegin() const { return data_; }
+    const Real* cend() const { return data_ + nRows_ * nCols_; }
+
+    /*!
+     * \brief The sliceIterator struct provides a read-only view of a sub-block of a matrix, with arbitrary size.
+     */
+    struct sliceIterator {
+        Real *begin_, *end_, *ptr_;
+        size_t stride_;
+        sliceIterator(Real* start, Real* end, size_t stride) : begin_(start), end_(end), ptr_(start), stride_(stride) {}
+        sliceIterator begin() const { return sliceIterator(begin_, end_, stride_); }
+        sliceIterator end() const { return sliceIterator(end_, end_, 0); }
+        sliceIterator cbegin() const { return sliceIterator(begin_, end_, stride_); }
+        sliceIterator cend() const { return sliceIterator(end_, end_, 0); }
+        bool operator!=(const sliceIterator& other) { return ptr_ != other.ptr_; }
+        sliceIterator operator*=(Real val) {
+            for (auto& element : *this) element *= val;
+            return *this;
+        }
+        sliceIterator operator/=(Real val) {
+            Real invVal = 1 / val;
+            for (auto& element : *this) element *= invVal;
+            return *this;
+        }
+        sliceIterator operator-=(Real val) {
+            for (auto& element : *this) element -= val;
+            return *this;
+        }
+        sliceIterator operator+=(Real val) {
+            for (auto& element : *this) element += val;
+            return *this;
+        }
+        sliceIterator operator++() {
+            ptr_ += stride_;
+            return *this;
+        }
+        const Real& operator[](size_t index) { return *(begin_ + index); }
+        size_t size() const { return std::distance(begin_, end_) / stride_; }
+        void assertSameSize(const sliceIterator& other) const {
+            if (size() != other.size())
+                throw std::runtime_error("Slice operations only supported for slices of the same size.");
+        }
+        void assertContiguous(const sliceIterator& iter) const {
+            if (iter.stride_ != 1)
+                throw std::runtime_error(
+                    "Slice operations called on operation that is only allowed for contiguous data.");
+        }
+        Matrix<Real> operator-(const sliceIterator& other) const {
+            assertSameSize(other);
+            assertContiguous(*this);
+            assertContiguous(other);
+            Matrix ret(1, size());
+            std::transform(begin_, end_, other.begin_, ret[0],
+                           [](const Real& a, const Real& b) -> Real { return a - b; });
+            return ret;
+        }
+        sliceIterator operator-=(const sliceIterator& other) const {
+            assertSameSize(other);
+            assertContiguous(*this);
+            assertContiguous(other);
+            std::transform(begin_, end_, other.begin_, begin_,
+                           [](const Real& a, const Real& b) -> Real { return a - b; });
+            return *this;
+        }
+        sliceIterator operator+=(const sliceIterator& other) const {
+            assertSameSize(other);
+            assertContiguous(*this);
+            assertContiguous(other);
+            std::transform(begin_, end_, other.begin_, begin_,
+                           [](const Real& a, const Real& b) -> Real { return a + b; });
+            return *this;
+        }
+        Real& operator*() { return *ptr_; }
+    };
+
+    /*!
+     * \brief row returns a read-only iterator over a given row.
+     * \param r the row to return.
+     * \return the slice in memory corresponding to the rth row.
+     */
+    sliceIterator row(size_t r) const { return sliceIterator(data_ + r * nCols_, data_ + (r + 1) * nCols_, 1); }
+
+    /*!
+     * \brief col returns a read-only iterator over a given column.
+     * \param c the column to return.
+     * \return the slice in memory corresponding to the cth column.
+     */
+    sliceIterator col(size_t c) const { return sliceIterator(data_ + c, data_ + nRows_ * nCols_ + c, nCols_); }
+
+    /*!
+     * \return the number of rows in this matrix.
+     */
+    size_t nRows() const { return nRows_; }
+
+    /*!
+     * \return the number of columns in this matrix.
+     */
+    size_t nCols() const { return nCols_; }
+
+    /*!
+     * \brief Matrix Constructs an empty matrix.
+     */
+    Matrix() : nRows_(0), nCols_(0) {}
+
+    /*!
+     * \brief Matrix Constructs a new matrix, allocating memory.
+     * \param nRows the number of rows in the matrix.
+     * \param nCols the number of columns in the matrix.
+     */
+    Matrix(size_t nRows, size_t nCols)
+        : nRows_(nRows), nCols_(nCols), allocatedData_(nRows * nCols, 0), data_(allocatedData_.data()) {}
+
+    /*!
+     * \brief Matrix Constructs a new matrix, allocating memory.
+     * \param filename the ASCII file from which to read this matrix
+     */
+    Matrix(const std::string& filename) {
+        Real tmp;
+        std::ifstream inFile(filename);
+
+        if (!inFile) {
+            std::string msg("Unable to open file ");
+            msg += filename;
+            throw std::runtime_error(msg);
+        }
+
+        inFile >> nRows_;
+        inFile >> nCols_;
+        while (inFile >> tmp) allocatedData_.push_back(tmp);
+        inFile.close();
+        if (nRows_ * nCols_ != allocatedData_.size()) {
+            allocatedData_.clear();
+            std::string msg("Inconsistent dimensions in ");
+            msg += filename;
+            msg += ".  Amount of data inconsitent with declared size.";
+            throw std::runtime_error(msg);
+        }
+        allocatedData_.shrink_to_fit();
+        data_ = allocatedData_.data();
+    }
+
+    /*!
+     * \brief Matrix Constructs a new matrix, allocating memory and initializing values using the braced initializer.
+     * \param data a braced initializer list of braced initializer lists containing the values to be stored in the
+     * matrix.
+     */
+    Matrix(std::initializer_list<std::initializer_list<Real>> data) {
+        nRows_ = data.size();
+        nCols_ = nRows_ ? data.begin()->size() : 0;
+        allocatedData_.reserve(nRows_ * nCols_);
+        for (auto& row : data) {
+            if (row.size() != nCols_) throw std::runtime_error("Inconsistent row dimensions in matrix specification.");
+            allocatedData_.insert(allocatedData_.end(), row.begin(), row.end());
+        }
+        data_ = allocatedData_.data();
+    }
+
+    /*!
+     * \brief Matrix Constructs a new column vector, allocating memory and initializing values using the braced
+     * initializer. \param data a braced initializer list of braced initializer lists containing the values to be stored
+     * in the matrix.
+     */
+    Matrix(std::initializer_list<Real> data) : allocatedData_(data), data_(allocatedData_.data()) {
+        nRows_ = data.size();
+        nCols_ = 1;
+    }
+
+    /*!
+     * \brief Matrix Constructs a new matrix using already allocated memory.
+     * \param ptr the already-allocated memory underlying this matrix.
+     * \param nRows the number of rows in the matrix.
+     * \param nCols the number of columns in the matrix.
+     */
+    Matrix(Real* ptr, size_t nRows, size_t nCols) : nRows_(nRows), nCols_(nCols), data_(ptr) {}
+
+    /*!
+     * \brief cast make a copy of this matrix, with its elements cast as a different type.
+     * \tparam NewReal the type to cast each element to.
+     * \return the copy of the matrix with the new type.
+     */
+    template <typename NewReal>
+    Matrix<NewReal> cast() const {
+        Matrix<NewReal> newMat(nRows_, nCols_);
+        NewReal* newPtr = newMat[0];
+        const Real* dataPtr = data_;
+        for (size_t addr = 0; addr < nRows_ * nCols_; ++addr) *newPtr++ = static_cast<NewReal>(*dataPtr++);
+        return newMat;
+    }
+
+    /*!
+     * \brief setConstant sets all elements of this matrix to a specified value.
+     * \param value the value to set each element to.
+     */
+    void setConstant(Real value) { std::fill(begin(), end(), value); }
+
+    /*!
+     * \brief setZero sets each element of this matrix to zero.
+     */
+    void setZero() { setConstant(0); }
+
+    /*!
+     * \brief isNearZero checks that each element in this matrix has an absolute value below some threshold.
+     * \param threshold the value below which an element is considered zero.
+     * \return whether all values are near zero or not.
+     */
+    bool isNearZero(Real threshold = 1e-10f) const {
+        return !std::any_of(cbegin(), cend(), [&](const Real& val) { return std::abs(val) > threshold; });
+    }
+
+    /*!
+     * \brief inverse inverts this matrix, leaving the original matrix untouched.
+     * \return the inverse of this matrix.
+     */
+    Matrix inverse() const {
+        assertSquare();
+
+        Matrix matrixInverse(nRows_, nRows_);
+
+        if (nRows() == 3) {
+            // 3x3 is a really common case, so treat it here as.
+            Real determinant = data_[0] * (data_[4] * data_[8] - data_[7] * data_[5]) -
+                               data_[1] * (data_[3] * data_[8] - data_[5] * data_[6]) +
+                               data_[2] * (data_[3] * data_[7] - data_[4] * data_[6]);
+
+            Real determinantInverse = 1 / determinant;
+
+            matrixInverse.data_[0] = (data_[4] * data_[8] - data_[7] * data_[5]) * determinantInverse;
+            matrixInverse.data_[1] = (data_[2] * data_[7] - data_[1] * data_[8]) * determinantInverse;
+            matrixInverse.data_[2] = (data_[1] * data_[5] - data_[2] * data_[4]) * determinantInverse;
+            matrixInverse.data_[3] = (data_[5] * data_[6] - data_[3] * data_[8]) * determinantInverse;
+            matrixInverse.data_[4] = (data_[0] * data_[8] - data_[2] * data_[6]) * determinantInverse;
+            matrixInverse.data_[5] = (data_[3] * data_[2] - data_[0] * data_[5]) * determinantInverse;
+            matrixInverse.data_[6] = (data_[3] * data_[7] - data_[6] * data_[4]) * determinantInverse;
+            matrixInverse.data_[7] = (data_[6] * data_[1] - data_[0] * data_[7]) * determinantInverse;
+            matrixInverse.data_[8] = (data_[0] * data_[4] - data_[3] * data_[1]) * determinantInverse;
+        } else {
+            // Generic case; just use spectral decomposition, invert the eigenvalues, and stitch back together.
+            // Note that this only works for symmetric matrices.  Need to hook into Lapack for a general
+            // inversion routine if this becomes a limitation.
+            return this->applyOperation([](Real& element) { element = 1 / element; });
+        }
+        return matrixInverse;
+    }
+
+    /*!
+     * \brief assertSymmetric checks that this matrix is symmetric within some threshold.
+     * \param threshold the value below which an pair's difference is considered zero.
+     */
+    void assertSymmetric(const Real& threshold = 1e-10f) const {
+        assertSquare();
+        for (int row = 0; row < nRows_; ++row) {
+            for (int col = 0; col < row; ++col) {
+                if (std::abs(data_[row * nCols_ + col] - data_[col * nCols_ + row]) > threshold)
+                    throw std::runtime_error("Unexpected non-symmetric matrix found.");
+            }
+        }
+    }
+
+    /*!
+     * \brief applyOperationToEachElement modifies every element in the matrix by applying an operation.
+     * \param function a unary operator describing the operation to perform.
+     */
+    void applyOperationToEachElement(const std::function<void(Real&)>& function) {
+        std::for_each(begin(), end(), function);
+    }
+
+    /*!
+     * \brief applyOperation applies an operation to this matrix using the spectral decomposition,
+     *        leaving the original untouched.  Only for symmetric matrices, as coded.
+     * \param function a undary operator describing the operation to perform.
+     * \return the matrix transformed by the operator.
+     */
+    Matrix applyOperation(const std::function<void(Real&)>& function) const {
+        assertSymmetric();
+
+        auto eigenPairs = this->diagonalize();
+        Matrix evalsReal = std::get<0>(eigenPairs);
+        Matrix evecs = std::get<1>(eigenPairs);
+        evalsReal.applyOperationToEachElement(function);
+        Matrix evecsT = evecs.transpose();
+        for (int row = 0; row < nRows_; ++row) {
+            Real transformedEigenvalue = evalsReal[row][0];
+            std::for_each(evecsT.data_ + row * nCols_, evecsT.data_ + (row + 1) * nCols_,
+                          [&](Real& val) { val *= transformedEigenvalue; });
+        }
+        return evecs * evecsT;
+    }
+
+    /*!
+     * \brief assertSameSize make sure that this Matrix has the same dimensions as another Matrix.
+     * \param other the matrix to compare to.
+     */
+    void assertSameSize(const Matrix& other) const {
+        if (nRows_ != other.nRows_ || nCols_ != other.nCols_)
+            throw std::runtime_error("Attepting to compare matrices of different sizes!");
+    }
+
+    /*!
+     * \brief assertSquare make sure that this Matrix is square.
+     */
+    void assertSquare() const {
+        if (nRows_ != nCols_)
+            throw std::runtime_error("Attepting to perform a square matrix operation on a non-square matrix!");
+    }
+
+    /*!
+     * \brief multiply this matrix with another, returning a new matrix containing the product.
+     * \param other the right hand side of the matrix product.
+     * \return the product of this matrix with the matrix other.
+     */
+    Matrix multiply(const Matrix& other) const {
+        // TODO one fine day this should be replaced by GEMM calls, if matrix multiplies actually get used much.
+        if (nCols_ != other.nRows_)
+            throw std::runtime_error("Attempting to multiply matrices with incompatible dimensions.");
+        Matrix product(nRows_, other.nCols_);
+        Real* output = product.data_;
+        for (int row = 0; row < nRows_; ++row) {
+            const Real* rowPtr = data_ + row * nCols_;
+            for (int col = 0; col < other.nCols_; ++col) {
+                for (int link = 0; link < nCols_; ++link) {
+                    *output += rowPtr[link] * other.data_[link * other.nCols_ + col];
+                }
+                ++output;
+            }
+        }
+        return product;
+    }
+
+    /*!
+     * \brief operator * a convenient wrapper for the multiply function.
+     * \param other the right hand side of the matrix product.
+     * \return the product of this matrix with the matrix other.
+     */
+    Matrix operator*(const Matrix& other) const { return this->multiply(other); }
+
+    /*!
+     * \brief increment this matrix with another, returning a new matrix containing the sum.
+     * \param other the right hand side of the matrix sum.
+     * \return the sum of this matrix and the matrix other.
+     */
+    Matrix incrementWith(const Matrix& other) {
+        assertSameSize(other);
+        std::transform(begin(), end(), other.begin(), begin(),
+                       [](const Real& a, const Real& b) -> Real { return a + b; });
+        return *this;
+    }
+
+    /*!
+     * \brief a wrapper around the incrementWith() function.
+     * \param other the right hand side of the matrix sum.
+     * \return the sum of this matrix and the matrix other.
+     */
+    Matrix operator+=(const Matrix& other) { return this->incrementWith(other); }
+
+    /*!
+     * \brief almostEquals checks that two matrices have all elements the same, within some specificied tolerance.
+     * \param other the matrix against which we're comparing.
+     * \param tol the amount that each element is allowed to deviate by.
+     * \return whether the two matrices are almost equal.
+     */
+    template <typename T = Real, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
+    bool almostEquals(const Matrix& other, Real tolerance = 1e-6) const {
+        // The floating point version
+        assertSameSize(other);
+
+        return std::equal(cbegin(), cend(), other.cbegin(), [&tolerance](Real a, Real b) -> bool {
+            return (((a - b) < std::real(tolerance)) && ((a - b) > -std::real(tolerance)));
+        });
+    }
+    template <typename T = Real, typename std::enable_if<!std::is_floating_point<T>::value, int>::type = 0>
+    bool almostEquals(const Matrix& other, Real tolerance = 1e-6) const {
+        // The complex version
+        assertSameSize(other);
+
+        auto tol = std::real(tolerance);
+        // This is a little confusing, but the type "Real" is actually some king of std::complex<...>.
+        return std::equal(cbegin(), cend(), other.cbegin(), [&tol](Real a, Real b) -> bool {
+            return (((a.real() - b.real()) < tol) && ((a.real() - b.real()) > -tol) && ((a.imag() - b.imag()) < tol) &&
+                    ((a.imag() - b.imag()) > -tol));
+        });
+    }
+
+    /*!
+     * \brief dot computes the inner product of this matrix with another.
+     * \param other the other matrix in the inner product, which must have the same dimensions.
+     * \return the inner product.
+     */
+    Real dot(const Matrix& other) const {
+        assertSameSize(other);
+
+        return std::inner_product(cbegin(), cend(), other.cbegin(), Real(0));
+    }
+
+    /*!
+     * \brief write formatted matrix to a stream object.
+     * \param os stream object to write to.
+     * \return modified stream object.
+     */
+    std::ostream& write(std::ostream& os) const {
+        for (int row = 0; row < nRows_; ++row) os << stringify(data_ + row * nCols_, nCols_, nCols_);
+        os << std::endl;
+        return os;
+    }
+
+    /*!
+     * \brief transposeInPlace transposes this matrix in place.
+     */
+    void transposeInPlace() {
+        transposeMemoryInPlace(begin(), end(), nCols_);
+        std::swap(nCols_, nRows_);
+    }
+
+    /*!
+     * \brief clone make a new copy of this matrix by deep copying the data.
+     * \return the copy of this matrix.
+     */
+    Matrix clone() const {
+        Matrix newMatrix = Matrix(nRows_, nCols_);
+        std::copy(cbegin(), cend(), newMatrix.begin());
+        return newMatrix;
+    }
+
+    /*!
+     * \brief transpose this matrix, leaving the original untouched.
+     * \return a transposed deep copy of this matrix.
+     */
+    Matrix transpose() const {
+        Matrix copy = this->clone();
+        copy.transposeInPlace();
+        return copy;
+    }
+
+    /*!
+     * \brief diagonalize diagonalize this matrix, leaving the original untouched.  Note that this assumes
+     *        that this matrix is real and symmetric.
+     * \param order how to order the (eigenvalue,eigenvector) pairs, where the sort key is the eigenvalue.
+     * \return a pair of corresponding <eigenvalue , eigenvectors> sorted according to the order variable.
+     *         The eigenvectors are stored by column.
+     */
+    std::pair<Matrix<Real>, Matrix<Real>> diagonalize(SortOrder order = SortOrder::Ascending) const {
+        assertSymmetric();
+
+        Matrix eigenValues(nRows_, 1);
+        Matrix unsortedEigenVectors(nRows_, nRows_);
+        Matrix sortedEigenVectors(nRows_, nRows_);
+
+        JacobiCyclicDiagonalization<Real>(eigenValues[0], unsortedEigenVectors[0], cbegin(), nRows_);
+        unsortedEigenVectors.transposeInPlace();
+
+        std::vector<std::pair<Real, const Real*>> eigenPairs;
+        for (int val = 0; val < nRows_; ++val) eigenPairs.push_back({eigenValues[val][0], unsortedEigenVectors[val]});
+        std::sort(eigenPairs.begin(), eigenPairs.end());
+        if (order == SortOrder::Descending) std::reverse(eigenPairs.begin(), eigenPairs.end());
+        for (int val = 0; val < nRows_; ++val) {
+            const auto& e = eigenPairs[val];
+            eigenValues.data_[val] = std::get<0>(e);
+            std::copy(std::get<1>(e), std::get<1>(e) + nCols_, sortedEigenVectors[val]);
+        }
+        sortedEigenVectors.transposeInPlace();
+        return {std::move(eigenValues), std::move(sortedEigenVectors)};
+    }
+};
+
+/*!
+ * A helper function to allow printing of Matrix objects to a stream.
+ */
+template <typename Real>
+std::ostream& operator<<(std::ostream& os, Matrix<Real> const& m) {
+    return m.write(os);
+}
+
+}  // Namespace helpme
+#endif  // Header guard
+
+#include <vector>
+
+namespace helpme {
+
+static inline int cartesianAddress(int lx, int ly, int lz) {
+    int l = lx + ly + lz;
+    return lz * (2 * l - lz + 3) / 2 + ly;
+}
+
+/*!
+ * \brief makeCartesianRotationMatrix builds a rotation matrix for unique Cartesian
+ *        components with a given angular momentum.  The algorithm used here is the simple
+ *        version (eq. 18) from D. M. Elking, J. Comp. Chem., 37 2067 (2016).  It's definitely
+ *        not the fastest way to do it, but will be revisited if profiling shows it to be an issue.
+ * \param angularMomentum the angular momentum of the rotation matrix desired.
+ * \param transformer the matrix R to do the transform defined for a dipole as µ_new = R . µ_old.
+ * \return the rotation matrix
+ */
+template <typename Real>
+Matrix<Real> makeCartesianRotationMatrix(int angularMomentum, const Matrix<Real> &transformer) {
+    Real R00 = transformer[0][0];
+    Real R01 = transformer[0][1];
+    Real R02 = transformer[0][2];
+    Real R10 = transformer[1][0];
+    Real R11 = transformer[1][1];
+    Real R12 = transformer[1][2];
+    Real R20 = transformer[2][0];
+    Real R21 = transformer[2][1];
+    Real R22 = transformer[2][2];
+    int nComponents = (angularMomentum + 1) * (angularMomentum + 2) / 2;
+    auto factorial = std::vector<int>(2 * angularMomentum + 1);
+    factorial[0] = 1;
+    for (int l = 1; l <= 2 * angularMomentum; ++l) factorial[l] = l * factorial[l - 1];
+    Matrix<Real> R(nComponents, nComponents);
+    for (int nz = 0; nz <= angularMomentum; ++nz) {
+        for (int ny = 0; ny <= angularMomentum - nz; ++ny) {
+            int nx = angularMomentum - ny - nz;
+            for (int pz = 0; pz <= nx; ++pz) {
+                for (int py = 0; py <= nx - pz; ++py) {
+                    int px = nx - py - pz;
+                    for (int qz = 0; qz <= ny; ++qz) {
+                        for (int qy = 0; qy <= ny - qz; ++qy) {
+                            int qx = ny - qy - qz;
+                            for (int rz = 0; rz <= nz; ++rz) {
+                                for (int ry = 0; ry <= nz - rz; ++ry) {
+                                    int rx = nz - ry - rz;
+                                    int mx = px + qx + rx;
+                                    int my = py + qy + ry;
+                                    int mz = pz + qz + rz;
+                                    int m = mx + my + mz;
+                                    if (m == angularMomentum) {
+                                        Real normx = factorial[mx] / (factorial[px] * factorial[qx] * factorial[rx]);
+                                        Real normy = factorial[my] / (factorial[py] * factorial[qy] * factorial[ry]);
+                                        Real normz = factorial[mz] / (factorial[pz] * factorial[qz] * factorial[rz]);
+                                        Real Rx = std::pow(R00, px) * std::pow(R10, py) * std::pow(R20, pz);
+                                        Real Ry = std::pow(R01, qx) * std::pow(R11, qy) * std::pow(R21, qz);
+                                        Real Rz = std::pow(R02, rx) * std::pow(R12, ry) * std::pow(R22, rz);
+                                        Real term = normx * normy * normz * Rx * Ry * Rz;
+                                        R[cartesianAddress(mx, my, mz)][cartesianAddress(nx, ny, nz)] += term;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return R;
+}
+
+/*!
+ * \brief matrixVectorProduct A naive implementation of matrix-vector products, avoiding BLAS requirements (for now).
+ * \param transformer the transformation matrix.
+ * \param inputVector the vector to be transformed.
+ * \param outputVector the transformed vector.
+ */
+template <typename Real>
+void matrixVectorProduct(const Matrix<Real> &transformer, const Real *inputVector, Real *outputVector) {
+    int dimension = transformer.nRows();
+    for (int row = 0; row < dimension; ++row) {
+        outputVector[row] = std::inner_product(inputVector, inputVector + dimension, transformer[row], Real(0));
+    }
+}
+
+/*!
+ * \brief cartesianTransform transforms a list of a cartesian quantities to a different basis.
+ *        Assumes a list of quantities are to be transformed (in place) and all angular momentum
+ *        components up to and including the specified maximum are present in ascending A.M. order.
+ * \param maxAngularMomentum the maximum angular momentum of the incoming quantity.
+ * \param transformer the matrix R to do the transform defined for a dipole as µ_new = R . µ_old.
+ * \param transformee the quantity to be transformed, stored as nAtoms X nComponents, with
+ *        components being the fast running index.
+ */
+template <typename Real>
+Matrix<Real> cartesianTransform(int maxAngularMomentum, const Matrix<Real> &transformer, Matrix<Real> &transformee) {
+    Matrix<Real> transformed = transformee.clone();
+    int offset = 1;
+    int nAtoms = transformee.nRows();
+    for (int angularMomentum = 1; angularMomentum <= maxAngularMomentum; ++angularMomentum) {
+        auto rotationMatrix = makeCartesianRotationMatrix(angularMomentum, transformer);
+        for (int atom = 0; atom < nAtoms; ++atom) {
+            const Real *inputData = transformee[atom];
+            Real *outputData = transformed[atom];
+            matrixVectorProduct(rotationMatrix, inputData + offset, outputData + offset);
+        }
+        offset += (angularMomentum + 1) * (angularMomentum + 2) / 2;
+    }
+    return transformed;
+}
+
+}  // Namespace helpme
+#endif  // Header guard
+// original file: ../src/fftw_wrapper.h
+
+// BEGINLICENSE
+//
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
+// as described in the LICENSE file in the top level directory of this project.
+//
+// Author: Andrew C. Simmonett
+//
+// ENDLICENSE
+#ifndef _HELPME_FFTW_WRAPPER_H_
+#define _HELPME_FFTW_WRAPPER_H_
+
+#include <complex>
+#include <exception>
+#include <iostream>
+#include <limits>
+#include <type_traits>
+
+#include <fftw3.h>
+// #include "memory.h"
+
+namespace helpme {
 
 /*!
  * \brief The FFTWTypes class is a placeholder to lookup function names and types in FFTW parlance by template.
  */
 template <typename Real>
-struct FFTWTypes;
+struct FFTWTypes {
+    struct EmptyPlan {
+        int unused;
+    };
+    using Plan = int;
+    using Complex = std::complex<int>;
+    static Plan makePlan4(size_t, void *, void *, int) { return 0; };
+    static Plan makePlan5(size_t, void *, void *, int, int) { return 0; };
+    static void execPlan1(Plan){};
+    static void execPlan3(Plan, void *, void *){};
+    static constexpr bool isImplemented = false;
+    static constexpr decltype(&makePlan4) MakeRealToComplexPlan = &makePlan4;
+    static constexpr decltype(&makePlan4) MakeComplexToRealPlan = &makePlan4;
+    static constexpr decltype(&makePlan5) MakeComplexToComplexPlan = &makePlan5;
+    static constexpr decltype(&execPlan3) ExecuteRealToComplexPlan = &execPlan3;
+    static constexpr decltype(&execPlan3) ExecuteComplexToRealPlan = &execPlan3;
+    static constexpr decltype(&execPlan3) ExecuteComplexToComplexPlan = &execPlan3;
+    static constexpr decltype(&execPlan1) DestroyPlan = &execPlan1;
+    static constexpr decltype(&execPlan1) CleanupFFTW = &execPlan1;
+};
 
+#if HAVE_FFTWF == 1
 template <>
 struct FFTWTypes<float> {
     using Plan = fftwf_plan;
     using Complex = fftwf_complex;
+    static constexpr bool isImplemented = true;
     static constexpr decltype(&fftwf_plan_dft_r2c_1d) MakeRealToComplexPlan = &fftwf_plan_dft_r2c_1d;
     static constexpr decltype(&fftwf_plan_dft_c2r_1d) MakeComplexToRealPlan = &fftwf_plan_dft_c2r_1d;
     static constexpr decltype(&fftwf_plan_dft_1d) MakeComplexToComplexPlan = &fftwf_plan_dft_1d;
@@ -167,10 +1188,14 @@ struct FFTWTypes<float> {
     static constexpr decltype(&fftwf_destroy_plan) DestroyPlan = &fftwf_destroy_plan;
     static constexpr decltype(&fftwf_cleanup) CleanupFFTW = &fftwf_cleanup;
 };
+#endif  // HAVE_FFTWF
+
+#if HAVE_FFTWD == 1
 template <>
 struct FFTWTypes<double> {
     using Plan = fftw_plan;
     using Complex = fftw_complex;
+    static constexpr bool isImplemented = true;
     static constexpr decltype(&fftw_plan_dft_r2c_1d) MakeRealToComplexPlan = &fftw_plan_dft_r2c_1d;
     static constexpr decltype(&fftw_plan_dft_c2r_1d) MakeComplexToRealPlan = &fftw_plan_dft_c2r_1d;
     static constexpr decltype(&fftw_plan_dft_1d) MakeComplexToComplexPlan = &fftw_plan_dft_1d;
@@ -180,10 +1205,14 @@ struct FFTWTypes<double> {
     static constexpr decltype(&fftw_destroy_plan) DestroyPlan = &fftw_destroy_plan;
     static constexpr decltype(&fftw_cleanup) CleanupFFTW = &fftw_cleanup;
 };
+#endif  // HAVE_FFTWD
+
+#if HAVE_FFTWL == 1
 template <>
 struct FFTWTypes<long double> {
     using Plan = fftwl_plan;
     using Complex = fftwl_complex;
+    static constexpr bool isImplemented = true;
     static constexpr decltype(&fftwl_plan_dft_r2c_1d) MakeRealToComplexPlan = &fftwl_plan_dft_r2c_1d;
     static constexpr decltype(&fftwl_plan_dft_c2r_1d) MakeComplexToRealPlan = &fftwl_plan_dft_c2r_1d;
     static constexpr decltype(&fftwl_plan_dft_1d) MakeComplexToComplexPlan = &fftwl_plan_dft_1d;
@@ -193,6 +1222,7 @@ struct FFTWTypes<long double> {
     static constexpr decltype(&fftwl_destroy_plan) DestroyPlan = &fftwl_destroy_plan;
     static constexpr decltype(&fftwl_cleanup) CleanupFFTW = &fftwl_cleanup;
 };
+#endif  // HAVE_FFTWL
 
 /*!
  * \brief The FFTWWrapper class is a convenient wrapper to abstract away the details of different
@@ -225,9 +1255,15 @@ class FFTWWrapper {
    public:
     FFTWWrapper() {}
     FFTWWrapper(size_t fftDimension) : fftDimension_(fftDimension), transformFlags_(FFTW_ESTIMATE) {
-        libpme::vector<Real> realTemp(fftDimension_);
-        libpme::vector<std::complex<Real>> complexTemp1(fftDimension_);
-        libpme::vector<std::complex<Real>> complexTemp2(fftDimension_);
+        if (!typeinfo::isImplemented) {
+            throw std::runtime_error(
+                "Attempting to call FFTW using a precision mode that has not been linked. "
+                "Make sure that -DHAVE_FFTWF=1, -DHAVE_FFTWD=1 or -DHAVE_FFTWL=1 is added to the compiler flags"
+                "for single, double and long double precision support, respectively.");
+        }
+        helpme::vector<Real> realTemp(fftDimension_);
+        helpme::vector<std::complex<Real>> complexTemp1(fftDimension_);
+        helpme::vector<std::complex<Real>> complexTemp2(fftDimension_);
         Real *realPtr = realTemp.data();
         Complex *complexPtr1 = reinterpret_cast<Complex *>(complexTemp1.data());
         Complex *complexPtr2 = reinterpret_cast<Complex *>(complexTemp2.data());
@@ -302,31 +1338,30 @@ class FFTWWrapper {
     }
 };
 
-}  // Namespace libpme
+}  // Namespace helpme
 #endif  // Header guard
 // original file: ../src/gamma.h
 
 // BEGINLICENSE
 //
-// This file is part of libpme, which is distributed under the BSD 3-clause license,
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
 // as described in the LICENSE file in the top level directory of this project.
 //
 // Author: Andrew C. Simmonett
 //
 // ENDLICENSE
-#ifndef _LIBPME_GAMMA_H_
-#define _LIBPME_GAMMA_H_
+#ifndef _HELPME_GAMMA_H_
+#define _HELPME_GAMMA_H_
 
 #include <cmath>
 #include <limits>
-#include <tuple>
 
 /*!
  * \file gamma.h
  * \brief Contains C++ implementations of templated gamma and incomplete gamma functions, computed using recursion.
  */
 
-namespace libpme {
+namespace helpme {
 
 constexpr long double sqrtPi = 1.77245385090551602729816748334114518279754945612238712821381L;
 
@@ -388,8 +1423,7 @@ struct incompleteGammaRecursion<Real, 0, false> {
     }
 
    private:
-    //static constexpr long double epsilon = 10.0 * std::numeric_limits<long double>::epsilon();
-    static constexpr long double epsilon = 10.0 * LDBL_EPSILON;
+    static constexpr long double epsilon = 10.0 * std::numeric_limits<long double>::epsilon();
 
     ////////////////////////////////////////////////////////////////////////////////
     // static long double Continued_Fraction_Ei( long double x )                  //
@@ -589,13 +1623,13 @@ struct gammaRecursion<Real, 1, false> {
 /// Specific value of the Gamma function.
 template <typename Real>
 struct gammaRecursion<Real, 2, true> {
-    static constexpr Real value = 1.0;
+    static constexpr Real value = 1;
 };
 
 /// Specific value of the Gamma function.
 template <typename Real>
 struct gammaRecursion<Real, 2, false> {
-    static constexpr Real value = 1.0;
+    static constexpr Real value = 1;
 };
 
 /*!
@@ -622,9 +1656,9 @@ struct incompleteGammaComputer {
  */
 template <typename Real, int twoS, bool isPositive>
 struct incompleteVirialGammaRecursion {
-    static std::tuple<Real, Real> compute(Real x) {
+    static std::pair<Real, Real> compute(Real x) {
         Real gamma = incompleteGammaComputer<Real, twoS>::compute(x);
-        return std::make_tuple(gamma, (0.5f * twoS) * gamma + pow(x, (0.5f * twoS)) * exp(-x));
+        return {gamma, (0.5f * twoS) * gamma + pow(x, (0.5f * twoS)) * exp(-x)};
     }
 };
 
@@ -635,9 +1669,9 @@ struct incompleteVirialGammaRecursion {
  */
 template <typename Real, int twoS>
 struct incompleteVirialGammaRecursion<Real, twoS, false> {
-    static std::tuple<Real, Real> compute(Real x) {
+    static std::pair<Real, Real> compute(Real x) {
         Real gamma = incompleteGammaComputer<Real, twoS + 2>::compute(x);
-        return std::make_tuple((gamma - pow(x, 0.5f * twoS) * exp(-x)) / (0.5f * twoS), gamma);
+        return {(gamma - pow(x, 0.5f * twoS) * exp(-x)) / (0.5f * twoS), gamma};
     }
 };
 
@@ -656,7 +1690,7 @@ struct incompleteGammaVirialComputer {
      * \param x value required.
      * \return \f$\Gamma[\frac{\mathrm{twoS}}{2}, x]\f$ and \f$\Gamma[\frac{\mathrm{twoS+2}}{2}, x]\f$.
      */
-    static std::tuple<Real, Real> compute(Real x) {
+    static std::pair<Real, Real> compute(Real x) {
         return incompleteVirialGammaRecursion<Real, twoS, (twoS >= 0)>::compute(x);
     }
 };
@@ -676,671 +1710,296 @@ struct gammaComputer {
     static constexpr Real value = gammaRecursion<Real, twoS, (twoS > 0)>::value;
 };
 
-}  // Namespace libpme
+/*!
+ * \brief Computes the Gamma function using recursion instead of template metaprogramming.
+ * \f$ \Gamma[s] = \int_0^\infty t^{s-1} e^{-t} \mathrm{d}t \f$
+ * In this code we only need half integral values for the \f$s\f$ argument, so the input
+ * argument \f$s\f$ will yield \f$\Gamma[\frac{s}{2}]\f$.
+ * \tparam Real the floating point type to use for arithmetic.
+ * \param twoS twice the s value required.
+ */
+template <typename Real>
+Real nonTemplateGammaComputer(int twoS) {
+    if (twoS == 1) {
+        return sqrtPi;
+    } else if (twoS == 2) {
+        return 1;
+    } else if (twoS <= 0 && twoS % 2 == 0) {
+        return std::numeric_limits<Real>::max();
+    } else if (twoS > 0) {
+        return nonTemplateGammaComputer<Real>(twoS - 2) * (0.5f * twoS - 1);
+    } else {
+        return nonTemplateGammaComputer<Real>(twoS + 2) / (0.5f * twoS);
+    }
+}
+
+}  // Namespace helpme
 #endif  // Header guard
-// original file: ../src/matrix.h
+// original file: ../src/gridsize.h
 
 // BEGINLICENSE
 //
-// This file is part of libpme, which is distributed under the BSD 3-clause license,
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
 // as described in the LICENSE file in the top level directory of this project.
 //
 // Author: Andrew C. Simmonett
 //
 // ENDLICENSE
-#ifndef _LIBPME_MATRIX_H_
-#define _LIBPME_MATRIX_H_
+#ifndef _HELPME_GRIDSIZE_H_
+#define _HELPME_GRIDSIZE_H_
 
 #include <algorithm>
-#include <complex>
-#include <exception>
+#include <cmath>
 #include <initializer_list>
-#include <iostream>
-#include <iomanip>
-#include <numeric>
-#include <tuple>
+#include <vector>
 
-// original file: ../src/lapack_wrapper.h
+namespace helpme {
+
+// N.B. The templates here are just to avoid multiple definitions in the .so file.
+
+/*!
+ * \brief allDivisors checks that a list of values are divisors of a given input value.
+ * \param gridSize the gridSize to check for divisors.
+ * \param requiredDivisors the list of divisors.
+ * \return whether all listed values are divisors of gridSize.
+ */
+template <typename T>
+bool allDivisors(T gridSize, const std::initializer_list<T> &requiredDivisors) {
+    for (const T &divisor : requiredDivisors)
+        if (gridSize % divisor) return false;
+    return true;
+}
+
+/*!
+ * \brief findGridSize FFTW likes to have transformations with dimensions of the form
+ *
+ *       a  b  c  d   e   f
+ *      2  3  5  7  11  13
+ *
+ * where a,b,c and d are general and e+f is either 0 or 1. MKL has similar demands:
+ *
+ *   https://software.intel.com/en-us/articles/fft-length-and-layout-advisor/
+ *   http://www.fftw.org/fftw3_doc/Real_002ddata-DFTs.html
+ *
+ * This routine will compute the next largest grid size subject to the constraint that the
+ * resulting size is a multiple of a given factor.
+ * \param inputSize the minimum size of the grid.
+ * \param requiredDivisors list of values that must be a factor of the output grid size.
+ * \return the adjusted grid size.
+ */
+template <typename T>
+int findGridSize(T inputSize, const std::initializer_list<T> &requiredDivisors) {
+    std::vector<int> primeFactors{2, 3, 5, 7};
+    T minDivisor = std::min(requiredDivisors);
+    T currentSize = minDivisor * std::ceil(static_cast<float>(inputSize) / minDivisor);
+    while (true) {
+        // Now we know that the grid size is a multiple of requiredFactor, check
+        // that it satisfies the prime factor requirements stated above.
+        T remainder = currentSize;
+        for (const int &factor : primeFactors)
+            while (remainder > 1 && remainder % factor == 0) remainder /= factor;
+        if ((remainder == 1 || remainder == 11 || remainder == 13) && allDivisors(currentSize, requiredDivisors))
+            return currentSize;
+        currentSize += minDivisor;
+    }
+}
+
+}  // Namespace helpme
+
+#endif  // Header guard
+// #include "matrix.h"
+// #include "memory.h"
+#if HAVE_MPI == 1
+// original file: ../src/mpi_wrapper.h
 
 // BEGINLICENSE
 //
-// This file is part of libpme, which is distributed under the BSD 3-clause license,
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
 // as described in the LICENSE file in the top level directory of this project.
 //
 // Author: Andrew C. Simmonett
 //
 // ENDLICENSE
-#ifndef _LIBPME_LAPACK_WRAPPER_H_
-#define _LIBPME_LAPACK_WRAPPER_H_
+#ifndef _HELPME_MPI_WRAPPER_H_
+#define _HELPME_MPI_WRAPPER_H_
 
-#include <exception>
+#include <mpi.h>
+
 #include <complex>
+#include <exception>
+#include <iomanip>
+#include <iostream>
 
-#if FC_SYMBOL == 2
-#define F_SGEEV sgeev_
-#define F_SGESV sgesv_
-#define F_DGEEV dgeev_
-#define F_DGESV dgesv_
-#define F_CGEEV cgeev_
-#define F_CGESV cgesv_
-#define F_ZGEEV zgeev_
-#define F_ZGESV zgesv_
-#elif FC_SYMBOL == 1
-#define F_SGEEV sgeev
-#define F_SGESV sgesv
-#define F_DGEEV dgeev
-#define F_DGESV dgesv
-#define F_CGEEV cgeev
-#define F_CGESV cgesv
-#define F_ZGEEV zgeev
-#define F_ZGESV zgesv
-#elif FC_SYMBOL == 3
-#define F_SGEEV SGEEV
-#define F_SGESV SGESV
-#define F_DGEEV DGEEV
-#define F_DGESV DGESV
-#define F_CGEEV CGEEV
-#define F_CGESV CGESV
-#define F_ZGEEV ZGEEV
-#define F_ZGESV ZGESV
-#elif FC_SYMBOL == 4
-#define F_SGEEV SGEEV_
-#define F_SGESV SGESV_
-#define F_DGEEV DGEEV_
-#define F_DGESV DGESV_
-#define F_CGEEV CGEEV_
-#define F_CGESV CGESV_
-#define F_ZGEEV ZGEEV_
-#define F_ZGESV ZGESV_
-#endif
+namespace helpme {
 
-extern "C" {
-/*extern void F_SGEEV(char *, char *, int *, float *, int *, float *, float *, float *, int *, float *, int *, float *,
-                    int *, int *);*/
-extern void F_DGEEV(char *, char *, int *, double *, int *, double *, double *, double *, int *, double *, int *,
-                    double *, int *, int *);
-/*extern void F_CGEEV(char *, char *, int *, std::complex<float> *, int *, std::complex<float> *, std::complex<float> *,
-                    std::complex<float> *, int *, std::complex<float> *, int *, std::complex<float> *, int *, int *);
-extern void F_ZGEEV(char *, char *, int *, std::complex<double> *, int *, std::complex<double> *,
-                    std::complex<double> *, std::complex<double> *, int *, std::complex<double> *, int *,
-                    std::complex<double> *, int *, int *);*/
-}
-
-namespace libpme {
-/*
-static void C_SGEEV(char jobvl, char jobvr, int n, float *a, int lda, float *wr, float *wi, float *vl, int ldvl,
-                    float *vr, int ldvr, float *work, int lwork, int *info) {
-    ::F_SGEEV(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
-}
-*/
-static void C_DGEEV(char jobvl, char jobvr, int n, double *a, int lda, double *wr, double *wi, double *vl, int ldvl,
-                    double *vr, int ldvr, double *work, int lwork, int *info) {
-    ::F_DGEEV(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
-}
-/*
-static void C_CGEEV(char jobvl, char jobvr, int n, std::complex<float> *a, int lda, std::complex<float> *wr,
-                    std::complex<float> *wi, std::complex<float> *vl, int ldvl, std::complex<float> *vr, int ldvr,
-                    std::complex<float> *work, int lwork, int *info) {
-    ::F_CGEEV(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
-}
-
-static void C_ZGEEV(char jobvl, char jobvr, int n, std::complex<double> *a, int lda, std::complex<double> *wr,
-                    std::complex<double> *wi, std::complex<double> *vl, int ldvl, std::complex<double> *vr, int ldvr,
-                    std::complex<double> *work, int lwork, int *info) {
-    ::F_ZGEEV(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
-}
-*/
+/*!
+ * \brief The MPITypes struct abstracts away the MPI_Datatype types for different floating point modes
+ *        using templates to hide the details from the caller.
+ */
 template <typename Real>
-using diagonalizerType =
-    std::function<void(char, char, int, Real *, int, Real *, Real *, Real *, int, Real *, int, Real *, int, int *)>;
-
-template <typename Real>
-class LapackWrapper {
-   public:
-    static diagonalizerType<Real> diagonalizer() {
-        throw std::runtime_error("Diagonalization is not implemented for the requested data type");
-        return diagonalizerType<Real>();
+struct MPITypes {
+    MPI_Datatype realType_;
+    MPI_Datatype complexType_;
+    MPITypes() {
+        throw std::runtime_error("MPI wrapper has not been implemented for the requested floating point type.");
     }
 };
-/*
-template <>
-inline diagonalizerType<float> LapackWrapper<float>::diagonalizer() {
-    return &C_SGEEV;
-}*/
-template <>
-inline diagonalizerType<double> LapackWrapper<double>::diagonalizer() {
-    return &C_DGEEV;
-}
-/*template <>
-inline diagonalizerType<std::complex<float>> LapackWrapper<std::complex<float>>::diagonalizer() {
-    return &C_CGEEV;
-}
-template <>
-inline diagonalizerType<std::complex<double>> LapackWrapper<std::complex<double>>::diagonalizer() {
-    return &C_ZGEEV;
-}*/
 
-}  // Namespace libpme
-#endif  // Header guard
-// #include "memory.h"
+template <>
+MPITypes<float>::MPITypes() : realType_(MPI_FLOAT), complexType_(MPI_C_COMPLEX) {}
 
-namespace libpme {
+template <>
+MPITypes<double>::MPITypes() : realType_(MPI_DOUBLE), complexType_(MPI_C_DOUBLE_COMPLEX) {}
+
+template <>
+MPITypes<long double>::MPITypes() : realType_(MPI_LONG_DOUBLE), complexType_(MPI_C_LONG_DOUBLE_COMPLEX) {}
 
 /*!
- * A helper function to transpose a dense matrix in place, gratuitously stolen from
- * https://stackoverflow.com/questions/9227747/in-place-transposition-of-a-matrix
- */
-template <class RandomIterator>
-void transposeMemoryInPlace(RandomIterator first, RandomIterator last, int m) {
-    const int mn1 = (last - first - 1);
-    const int n = (last - first) / m;
-    std::vector<bool> visited(last - first);
-    RandomIterator cycle = first;
-    while (++cycle != last) {
-        if (visited[cycle - first]) continue;
-        int a = cycle - first;
-        do {
-            a = a == mn1 ? mn1 : (n * a) % mn1;
-            std::swap(*(first + a), *cycle);
-            visited[a] = true;
-        } while ((first + a) != cycle);
-    }
-}
-
-/*!
- * \brief The Matrix class is designed to serve as a convenient wrapper to simplify 2D matrix operations.
- *        It assumes dense matrices with contiguious data and the fast running index being the right
- *        (column) index.  The underlying memory may have already been allocated elsewhere by C, Fortran
- *        or Python, and is directly manipulated in place, saving an expensive copy operation.  To provide
- *        read-only access to such memory address, use a const template type.
+ * \brief The MPIWrapper struct is a lightweight C++ wrapper around the C MPI functions.  Its main
+ *        purpose is to provide RAII semantics, ensuring that memory is correctly freed.  It also
+ *        conveniently abstracts away the different MPI type descriptors for each floating point type.
  */
 template <typename Real>
-class Matrix {
-   protected:
-    /// The number of rows in the matrix.
-    size_t nRows_;
-    /// The number of columns in the matrix.
-    size_t nCols_;
-    /// A vector to conveniently allocate data, if we really need to.
-    libpme::vector<Real> allocatedData_;
-    /// Pointer to the raw data, whose allocation may not be controlled by us.
-    Real* data_;
+struct MPIWrapper {
+    MPITypes<Real> types_;
+    /// The MPI communicator instance to use for all reciprocal space work.
+    MPI_Comm mpiCommunicator_;
+    /// The total number of MPI nodes involved in reciprocal space work.
+    int numNodes_;
+    /// The MPI rank of this node.
+    int myRank_;
+    /// The number of nodes in the X direction.
+    int numNodesX_;
+    /// The number of nodes in the Y direction.
+    int numNodesY_;
+    /// The number of nodes in the Z direction.
+    int numNodesZ_;
 
-   public:
-    enum class SortOrder { Ascending, Descending };
+    void assertNodePartitioningValid(int numNodes, int numNodesX, int numNodesY, int numNodesZ) const {
+        if (numNodes != numNodesX * numNodesY * numNodesZ)
+            throw std::runtime_error(
+                "Communicator world size does not match the numNodesX, numNodesY, numNodesZ passed in.");
+    }
 
-    const Real& operator()(int row, int col) const { return *(data_ + row * nCols_ + col); }
-    Real& operator()(int row, int col) { return *(data_ + row * nCols_ + col); }
-    const Real* operator[](int row) const { return data_ + row * nCols_; }
-    Real* operator[](int row) { return data_ + row * nCols_; }
+    MPIWrapper() : mpiCommunicator_(0), numNodes_(0), myRank_(0) {}
+    MPIWrapper(const MPI_Comm& communicator, int numNodesX, int numNodesY, int numNodesZ)
+        : numNodesX_(numNodesX), numNodesY_(numNodesY), numNodesZ_(numNodesZ) {
+        if (MPI_Comm_dup(communicator, &mpiCommunicator_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_dup in MPIWrapper constructor.");
+        if (MPI_Comm_size(mpiCommunicator_, &numNodes_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_size in MPIWrapper constructor.");
+        if (MPI_Comm_rank(mpiCommunicator_, &myRank_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_rank in MPIWrapper constructor.");
 
-    Real* begin() { return data_; }
-    Real* end() { return data_ + nRows_ * nCols_; }
-    const Real* cbegin() const { return data_; }
-    const Real* cend() const { return data_ + nRows_ * nCols_; }
-
-    /*!
-     * \brief The sliceIterator struct provides a read-only view of a sub-block of a matrix, with arbitrary size.
-     */
-    struct sliceIterator {
-        Real *begin_, *end_, *ptr_;
-        size_t stride_;
-        sliceIterator(Real* start, Real* end, size_t stride) : begin_(start), end_(end), ptr_(start), stride_(stride) {}
-        sliceIterator begin() const { return sliceIterator(begin_, end_, stride_); }
-        sliceIterator end() const { return sliceIterator(end_, end_, 0); }
-        sliceIterator cbegin() const { return sliceIterator(begin_, end_, stride_); }
-        sliceIterator cend() const { return sliceIterator(end_, end_, 0); }
-        bool operator!=(const sliceIterator& other) { return ptr_ != other.ptr_; }
-        sliceIterator operator*=(Real val) {
-            for (auto& element : *this) element *= val;
-            return *this;
-        }
-        sliceIterator operator/=(Real val) {
-            Real invVal = 1 / val;
-            for (auto& element : *this) element *= invVal;
-            return *this;
-        }
-        sliceIterator operator-=(Real val) {
-            for (auto& element : *this) element -= val;
-            return *this;
-        }
-        sliceIterator operator+=(Real val) {
-            for (auto& element : *this) element += val;
-            return *this;
-        }
-        sliceIterator operator++() {
-            ptr_ += stride_;
-            return *this;
-        }
-        const Real& operator[](size_t index) { return *(begin_ + index); }
-        size_t size() const { return std::distance(begin_, end_) / stride_; }
-        void assertSameSize(const sliceIterator& other) const {
-            if (size() != other.size())
-                throw std::runtime_error("Slice operations only supported for slices of the same size.");
-        }
-        void assertContiguous(const sliceIterator& iter) const {
-            if (iter.stride_ != 1)
-                throw std::runtime_error(
-                    "Slice operations called on operation that is only allowed for contiguous data.");
-        }
-        Matrix<Real> operator-(const sliceIterator& other) const {
-            assertSameSize(other);
-            assertContiguous(*this);
-            assertContiguous(other);
-            Matrix ret(1, size());
-            std::transform(begin_, end_, other.begin_, ret[0],
-                           [](const Real& a, const Real& b) -> Real { return a - b; });
-            return ret;
-        }
-        sliceIterator operator-=(const sliceIterator& other) const {
-            assertSameSize(other);
-            assertContiguous(*this);
-            assertContiguous(other);
-            std::transform(begin_, end_, other.begin_, begin_,
-                           [](const Real& a, const Real& b) -> Real { return a - b; });
-            return *this;
-        }
-        sliceIterator operator+=(const sliceIterator& other) const {
-            assertSameSize(other);
-            assertContiguous(*this);
-            assertContiguous(other);
-            std::transform(begin_, end_, other.begin_, begin_,
-                           [](const Real& a, const Real& b) -> Real { return a + b; });
-            return *this;
-        }
-        Real& operator*() { return *ptr_; }
-    };
-
-    /*!
-     * \brief row returns a read-only iterator over a given row.
-     * \param r the row to return.
-     * \return the slice in memory corresponding to the rth row.
-     */
-    sliceIterator row(size_t r) const { return sliceIterator(data_ + r * nCols_, data_ + (r + 1) * nCols_, 1); }
-
-    /*!
-     * \brief col returns a read-only iterator over a given column.
-     * \param c the column to return.
-     * \return the slice in memory corresponding to the cth column.
-     */
-    sliceIterator col(size_t c) const { return sliceIterator(data_ + c, data_ + nRows_ * nCols_ + c, nCols_); }
-
-    /*!
-     * \return the number of rows in this matrix.
-     */
-    size_t nRows() const { return nRows_; }
-
-    /*!
-     * \return the number of columns in this matrix.
-     */
-    size_t nCols() const { return nCols_; }
-
-    /*!
-     * \brief Matrix Constructs an empty matrix.
-     */
-    Matrix() {}
-
-    /*!
-     * \brief Matrix Constructs a new matrix, allocating memory.
-     * \param nRows the number of rows in the matrix.
-     * \param nCols the number of columns in the matrix.
-     */
-    Matrix(size_t nRows, size_t nCols)
-        : nRows_(nRows), nCols_(nCols), allocatedData_(nRows * nCols, 0), data_(allocatedData_.data()) {}
-
-    /*!
-     * \brief Matrix Constructs a new matrix, allocating memory and initializing values using the braced initializer.
-     * \param data a braced initializer list of braced initializer lists containing the values to be stored in the
-     * matrix.
-     */
-    Matrix(std::initializer_list<std::initializer_list<Real>> data) {
-        nRows_ = data.size();
-        nCols_ = nRows_ ? data.begin()->size() : 0;
-        allocatedData_.reserve(nRows_ * nCols_);
-        for (auto& row : data) {
-            if (row.size() != nCols_) throw std::runtime_error("Inconsistent row dimensions in matrix specification.");
-            allocatedData_.insert(allocatedData_.end(), row.begin(), row.end());
-        }
-        data_ = allocatedData_.data();
+        assertNodePartitioningValid(numNodes_, numNodesX, numNodesY, numNodesZ);
+    }
+    ~MPIWrapper() {
+        if (mpiCommunicator_) MPI_Comm_free(&mpiCommunicator_);
     }
 
     /*!
-     * \brief Matrix Constructs a new column vector, allocating memory and initializing values using the braced
-     * initializer. \param data a braced initializer list of braced initializer lists containing the values to be stored
-     * in the matrix.
+     * \brief barrier wait for all members of this communicator to reach this point.
      */
-    Matrix(std::initializer_list<Real> data) : allocatedData_(data), data_(allocatedData_.data()) {
-        nRows_ = data.size();
-        nCols_ = 1;
+    void barrier() {
+        if (MPI_Barrier(mpiCommunicator_) != MPI_SUCCESS) throw std::runtime_error("Problem in MPI Barrier call!");
     }
 
     /*!
-     * \brief Matrix Constructs a new matrix using already allocated memory.
-     * \param ptr the already-allocated memory underlying this matrix.
-     * \param nRows the number of rows in the matrix.
-     * \param nCols the number of columns in the matrix.
+     * \brief split split this communicator into subgroups.
+     * \param color the number identifying the subgroup the new communicator belongs to.
+     * \param key the rank of the new communicator within the subgroup.
+     * \return the new communicator.
      */
-    Matrix(Real* ptr, size_t nRows, size_t nCols) : nRows_(nRows), nCols_(nCols), data_(ptr) {}
-
-    /*!
-     * \brief cast make a copy of this matrix, with its elements cast as a different type.
-     * \tparam NewReal the type to cast each element to.
-     * \return the copy of the matrix with the new type.
-     */
-    template <typename NewReal>
-    Matrix<NewReal> cast() const {
-        Matrix<NewReal> newMat(nRows_, nCols_);
-        NewReal* newPtr = newMat[0];
-        const Real* dataPtr = data_;
-        for (size_t addr = 0; addr < nRows_ * nCols_; ++addr) *newPtr++ = static_cast<NewReal>(*dataPtr++);
-        return newMat;
+    std::unique_ptr<MPIWrapper> split(int color, int key) {
+        std::unique_ptr<MPIWrapper> newWrapper(new MPIWrapper);
+        if (MPI_Comm_split(mpiCommunicator_, color, key, &newWrapper->mpiCommunicator_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_split in MPIWrapper split.");
+        if (MPI_Comm_size(newWrapper->mpiCommunicator_, &newWrapper->numNodes_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_size in MPIWrapper split.");
+        if (MPI_Comm_rank(newWrapper->mpiCommunicator_, &newWrapper->myRank_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem calling MPI_Comm_rank in MPIWrapper split.");
+        return newWrapper;
     }
 
     /*!
-     * \brief setConstant sets all elements of this matrix to a specified value.
-     * \param value the value to set each element to.
+     * \brief allToAll perform alltoall communication within this communicator.
+     * \param inBuffer the buffer containing input data.
+     * \param outBuffer the buffer to send results to.
+     * \param dimension the number of elements to be communicated.
      */
-    void setConstant(Real value) { std::fill(begin(), end(), value); }
-
+    void allToAll(std::complex<Real>* inBuffer, std::complex<Real>* outBuffer, int dimension) {
+        if (MPI_Alltoall(inBuffer, 2 * dimension, types_.realType_, outBuffer, 2 * dimension, types_.realType_,
+                         mpiCommunicator_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem encountered calling MPI alltoall.");
+    }
     /*!
-     * \brief setZero sets each element of this matrix to zero.
+     * \brief allToAll perform alltoall communication within this communicator.
+     * \param inBuffer the buffer containing input data.
+     * \param outBuffer the buffer to send results to.
+     * \param dimension the number of elements to be communicated.
      */
-    void setZero() { setConstant(0); }
-
+    void allToAll(Real* inBuffer, Real* outBuffer, int dimension) {
+        if (MPI_Alltoall(inBuffer, dimension, types_.realType_, outBuffer, dimension, types_.realType_,
+                         mpiCommunicator_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem encountered calling MPI alltoall.");
+    }
     /*!
-     * \brief isNearZero checks that each element in this matrix has an absolute value below some threshold.
-     * \param threshold the value below which an element is considered zero.
-     * \return whether all values are near zero or not.
+     * \brief reduce performs a reduction, with summation as the operation.
+     * \param inBuffer the buffer containing input data.
+     * \param outBuffer the buffer to send results to, which will be sent to node 0.
+     * \param dimension the number of elements to be reduced.
      */
-    bool isNearZero(Real threshold = 1e-10f) const {
-        return !std::any_of(cbegin(), cend(), [&](const Real& val) { return std::abs(val) > threshold; });
+    void reduce(Real* inBuffer, Real* outBuffer, int dimension) {
+        if (MPI_Reduce(inBuffer, outBuffer, dimension, types_.realType_, MPI_SUM, 0, mpiCommunicator_) != MPI_SUCCESS)
+            throw std::runtime_error("Problem encountered calling MPI reduce.");
     }
 
     /*!
-     * \brief inverse inverts this matrix, leaving the original matrix untouched.
-     * \return the inverse of this matrix.
+     * \brief operator << a convenience wrapper around ostream, to inject node info.
      */
-    Matrix inverse() const {
-        assertSquare();
-
-        Matrix matrixInverse(nRows_, nRows_);
-
-        if (nRows() == 3) {
-            // 3x3 is a really common case, so treat it here as.
-            Real determinant = data_[0] * (data_[4] * data_[8] - data_[7] * data_[5]) -
-                               data_[1] * (data_[3] * data_[8] - data_[5] * data_[6]) +
-                               data_[2] * (data_[3] * data_[7] - data_[4] * data_[6]);
-
-            Real determinantInverse = 1 / determinant;
-
-            matrixInverse.data_[0] = (data_[4] * data_[8] - data_[7] * data_[5]) * determinantInverse;
-            matrixInverse.data_[1] = (data_[2] * data_[7] - data_[1] * data_[8]) * determinantInverse;
-            matrixInverse.data_[2] = (data_[1] * data_[5] - data_[2] * data_[4]) * determinantInverse;
-            matrixInverse.data_[3] = (data_[5] * data_[6] - data_[3] * data_[8]) * determinantInverse;
-            matrixInverse.data_[4] = (data_[0] * data_[8] - data_[2] * data_[6]) * determinantInverse;
-            matrixInverse.data_[5] = (data_[3] * data_[2] - data_[0] * data_[5]) * determinantInverse;
-            matrixInverse.data_[6] = (data_[3] * data_[7] - data_[6] * data_[4]) * determinantInverse;
-            matrixInverse.data_[7] = (data_[6] * data_[1] - data_[0] * data_[7]) * determinantInverse;
-            matrixInverse.data_[8] = (data_[0] * data_[4] - data_[3] * data_[1]) * determinantInverse;
-        } else {
-            // Generic case; just use spectral decomposition, invert the eigenvalues, and stitch back together.
-            // Note that this only works for symmetric matrices.  Need to hook into Lapack for a general
-            // inversion routine if this becomes a limitation.
-            return this->applyOperation([](Real& element) { element = 1 / element; });
-        }
-        return matrixInverse;
-    }
-
-    /*!
-     * \brief assertSymmetric checks that this matrix is symmetric within some threshold.
-     * \param threshold the value below which an pair's difference is considered zero.
-     */
-    void assertSymmetric(const Real& threshold = 1e-10f) const {
-        assertSquare();
-        for (int row = 0; row < nRows_; ++row) {
-            for (int col = 0; col < row; ++col) {
-                if (std::abs(data_[row * nCols_ + col] - data_[col * nCols_ + row]) > threshold)
-                    throw std::runtime_error("Unexpected non-symmetric matrix found.");
-            }
-        }
-    }
-
-    /*!
-     * \brief applyOperationToEachElement modifies every element in the matrix by applying an operation.
-     * \param function a unary operator describing the operation to perform.
-     */
-    void applyOperationToEachElement(const std::function<void(Real&)>& function) {
-        std::for_each(begin(), end(), function);
-    }
-
-    /*!
-     * \brief applyOperation applies an operation to this matrix using the spectral decomposition,
-     *        leaving the original untouched.  Only for symmetric matrices, as coded.
-     * \param function a undary operator describing the operation to perform.
-     * \return the matrix transformed by the operator.
-     */
-    Matrix applyOperation(const std::function<void(Real&)>& function) const {
-        assertSymmetric();
-
-        auto eigenPairs = this->diagonalize();
-        Matrix evalsReal = std::get<0>(eigenPairs);
-        Matrix evalsImag = std::get<1>(eigenPairs);
-        Matrix evecs = std::get<2>(eigenPairs);
-        if (!evalsImag.isNearZero())
-            throw std::runtime_error("Unexpected complex eigenvalues encountered when applying operator to Matrix.");
-        evalsReal.applyOperationToEachElement(function);
-        Matrix evecsT = evecs.transpose();
-        for (int row = 0; row < nRows_; ++row) {
-            Real transformedEigenvalue = evalsReal[row][0];
-            std::for_each(evecsT.data_ + row * nCols_, evecsT.data_ + (row + 1) * nCols_,
-                          [&](Real& val) { val *= transformedEigenvalue; });
-        }
-        return evecs * evecsT;
-    }
-
-    /*!
-     * \brief assertSameSize make sure that this Matrix has the same dimensions as another Matrix.
-     * \param other the matrix to compare to.
-     */
-    void assertSameSize(const Matrix& other) const {
-        if (nRows_ != other.nRows_ || nCols_ != other.nCols_)
-            throw std::runtime_error("Attepting to compare matrices of different sizes!");
-    }
-
-    /*!
-     * \brief assertSquare make sure that this Matrix is square.
-     */
-    void assertSquare() const {
-        if (nRows_ != nCols_)
-            throw std::runtime_error("Attepting to perform a square matrix operation on a non-square matrix!");
-    }
-
-    /*!
-     * \brief multiply this matrix with another, returning a new matrix containing the product.
-     * \param other the right hand side of the matrix product.
-     * \return the product of this matrix with the matrix other.
-     */
-    Matrix multiply(const Matrix& other) const {
-        // TODO one fine day this should be replaced by GEMM calls, if matrix multiplies actually get used much.
-        if (nCols_ != other.nRows_)
-            throw std::runtime_error("Attempting to multiply matrices with incompatible dimensions.");
-        Matrix product(nRows_, other.nCols_);
-        Real* output = product.data_;
-        for (int row = 0; row < nRows_; ++row) {
-            const Real* rowPtr = data_ + row * nCols_;
-            for (int col = 0; col < other.nCols_; ++col) {
-                for (int link = 0; link < nCols_; ++link) {
-                    *output += rowPtr[link] * other.data_[link * other.nCols_ + col];
-                }
-                ++output;
-            }
-        }
-        return product;
-    }
-
-    /*!
-     * \brief operator * a convenient wrapper for the multiply function.
-     * \param other the right hand side of the matrix product.
-     * \return the product of this matrix with the matrix other.
-     */
-    Matrix operator*(const Matrix& other) const { return this->multiply(other); }
-
-    /*!
-     * \brief almostEquals checks that two matrices have all elements the same, within some specificied tolerance.
-     * \param other the matrix against which we're comparing.
-     * \param tol the amount that each element is allowed to deviate by.
-     * \return whether the two matrices are almost equal.
-     */
-    template <typename T = Real, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
-    bool almostEquals(const Matrix& other, Real tolerance = 1e-6) const {
-        // The floating point version
-        assertSameSize(other);
-
-        return std::equal(cbegin(), cend(), other.cbegin(), [&tolerance](Real a, Real b) -> bool {
-            return (((a - b) < std::real(tolerance)) && ((a - b) > -std::real(tolerance)));
-        });
-    }
-    template <typename T = Real, typename std::enable_if<!std::is_floating_point<T>::value, int>::type = 0>
-    bool almostEquals(const Matrix& other, Real tolerance = 1e-6) const {
-        // The complex version
-        assertSameSize(other);
-
-        auto tol = std::real(tolerance);
-        // This is a little confusing, but the type "Real" is actually some king of std::complex<...>.
-        return std::equal(cbegin(), cend(), other.cbegin(), [&tol](Real a, Real b) -> bool {
-            return (((a.real() - b.real()) < tol) && ((a.real() - b.real()) > -tol) && ((a.imag() - b.imag()) < tol) &&
-                    ((a.imag() - b.imag()) > -tol));
-        });
-    }
-
-    /*!
-     * \brief dot computes the inner product of this matrix with another.
-     * \param other the other matrix in the inner product, which must have the same dimensions.
-     * \return the inner product.
-     */
-    Real dot(const Matrix& other) const {
-        assertSameSize(other);
-
-        return std::inner_product(cbegin(), cend(), other.cbegin(), Real(0));
-    }
-
-    /*!
-     * \brief write formatted matrix to a stream object.
-     * \param os stream object to write to.
-     * \return modified stream object.
-     */
-    std::ostream& write(std::ostream& os) const {
-        for (int row = 0; row < nRows_; ++row) {
-            const Real* rowData = data_ + row * nCols_;
-            for (int col = 0; col < nCols_; ++col) {
-                os << std::setprecision(10) << std::setw(16) << rowData[col] << " ";
-            }
-            os << std::endl;
-        }
-        os << std::endl;
+    friend std::ostream& operator<<(std::ostream& os, const MPIWrapper& obj) {
+        os << "Node " << obj.myRank_ << " of " << obj.numNodes_ << ":" << std::endl;
         return os;
     }
-
-    /*!
-     * \brief transposeInPlace transposes this matrix in place.
-     */
-    void transposeInPlace() {
-        transposeMemoryInPlace(begin(), end(), nCols_);
-        std::swap(nCols_, nRows_);
-    }
-
-    /*!
-     * \brief clone make a new copy of this matrix by deep copying the data.
-     * \return the copy of this matrix.
-     */
-    Matrix clone() const {
-        Matrix newMatrix = Matrix(nRows_, nCols_);
-        std::copy(cbegin(), cend(), newMatrix.begin());
-        return newMatrix;
-    }
-
-    /*!
-     * \brief transpose this matrix, leaving the original untouched.
-     * \return a transposed deep copy of this matrix.
-     */
-    Matrix transpose() const {
-        Matrix copy = this->clone();
-        copy.transposeInPlace();
-        return copy;
-    }
-
-    /*!
-     * \brief diagonalize diagonalize this matrix, leaving the original untouched.
-     * \param order how to order the (eigenvalue,eigenvector) pairs, where the sort key is the real part of the
-     * eigenvalue.
-     * \return a tuple of <real eigenvalue compnents, imaginary eigenvalue components, eigenvectors> sorted
-     * according to the order variable.  The eigenvectors are stored by column.
-     */
-    std::tuple<Matrix<Real>, Matrix<Real>, Matrix<Real>> diagonalize(SortOrder order = SortOrder::Ascending) const {
-        if (nRows_ != nCols_) throw std::runtime_error("Attempting to diagonalize a non-square matrix.");
-        Matrix evalsReal(nRows_, 1);
-        Matrix evalsImag(nRows_, 1);
-        Matrix evecs(nRows_, nRows_);
-        std::vector<Real> clone(data_, data_ + nRows_ * nCols_);
-
-        int info;
-        Real workDim;
-        LapackWrapper<Real>::diagonalizer()('V', 'N', nRows_, clone.data(), nCols_, evalsReal.data_, evalsImag.data_,
-                                            evecs.data_, nCols_, nullptr, 1, &workDim, -1, &info);
-        int scratchSize = static_cast<int>(workDim);
-        std::vector<Real> work(scratchSize);
-        LapackWrapper<Real>::diagonalizer()('V', 'N', nRows_, clone.data(), nCols_, evalsReal.data_, evalsImag.data_,
-                                            evecs.data_, nCols_, nullptr, 1, work.data(), scratchSize, &info);
-        if (info) throw std::runtime_error("Something went wrong during diagonalization!");
-
-        struct eigenInfo {
-            Real valueReal, valueImag, *vector;
-            eigenInfo(Real r, Real i, Real* v) : valueReal(r), valueImag(i), vector(v) {}
-            bool operator<(eigenInfo const& other) const { return valueReal < other.valueReal; }
-        };
-
-        std::vector<eigenInfo> eigenTuples;
-        for (int val = 0; val < nRows_; ++val)
-            eigenTuples.push_back(eigenInfo(evalsReal[val][0], evalsImag[val][0], evecs[val]));
-
-        std::sort(eigenTuples.begin(), eigenTuples.end());
-        if (order == SortOrder::Descending) std::reverse(eigenTuples.begin(), eigenTuples.end());
-        for (int val = 0; val < nRows_; ++val) {
-            const auto& e = eigenTuples[val];
-            evalsReal.data_[val] = e.valueReal;
-            evalsImag.data_[val] = e.valueImag;
-            std::copy(e.vector, e.vector + nCols_, clone.data() + val * nCols_);
-        }
-        std::copy(clone.begin(), clone.end(), evecs.begin());
-        evecs.transposeInPlace();
-        return std::make_tuple(std::move(evalsReal), std::move(evalsImag), std::move(evecs));
-    }
 };
 
-/*!
- * A helper function to allow printing of Matrix objects to a stream.
- */
+// Adapter to allow piping of streams into unique_ptr-held object
 template <typename Real>
-std::ostream& operator<<(std::ostream& os, Matrix<Real> const& m) {
-    return m.write(os);
+std::ostream& operator<<(std::ostream& os, const std::unique_ptr<MPIWrapper<Real>>& obj) {
+    os << *obj;
+    return os;
 }
 
-}  // Namespace libpme
-#endif  // Header guard
-// #include "memory.h"
+// A convenience macro to guarantee that each node prints in order.
+#define PRINT(out)                                                                                           \
+    if (mpiCommunicator_) {                                                                                  \
+        for (int node = 0; node < mpiCommunicator_->numNodes_; ++node) {                                     \
+            std::cout.setf(std::ios::fixed, std::ios::floatfield);                                           \
+            if (node == mpiCommunicator_->myRank_)                                                           \
+                std::cout << mpiCommunicator_ << std::setw(18) << std::setprecision(10) << out << std::endl; \
+            mpiCommunicator_->barrier();                                                                     \
+        };                                                                                                   \
+    } else {                                                                                                 \
+        std::cout << std::setw(18) << std::setprecision(10) << out << std::endl;                             \
+    }
 
+}  // Namespace helpme
+#endif  // Header guard
+#else
+typedef struct ompi_communicator_t *MPI_Comm;
+#endif
 // original file: ../src/powers.h
 
 // BEGINLICENSE
 //
-// This file is part of libpme, which is distributed under the BSD 3-clause license,
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
 // as described in the LICENSE file in the top level directory of this project.
 //
 // Author: Andrew C. Simmonett
 //
 // ENDLICENSE
-#ifndef _LIBPME_POWERS_H_
-#define _LIBPME_POWERS_H_
+#ifndef _HELPME_POWERS_H_
+#define _HELPME_POWERS_H_
 
 #include <cmath>
 
@@ -1349,7 +2008,7 @@ std::ostream& operator<<(std::ostream& os, Matrix<Real> const& m) {
  * \brief Contains template functions to compute various quantities raised to an integer power.
  */
 
-namespace libpme {
+namespace helpme {
 
 template <typename Real, int n>
 struct raiseToIntegerPower {
@@ -1401,21 +2060,21 @@ struct raiseNormToIntegerPower {
      */
     static Real compute(Real val) { return normIntegerPowerComputer<Real, n, (n >= 0), (n % 2 == 0)>::compute(val); }
 };
-}  // Namespace libpme
+}  // Namespace helpme
 
 #endif  // Header guard
 // original file: ../src/splines.h
 
 // BEGINLICENSE
 //
-// This file is part of libpme, which is distributed under the BSD 3-clause license,
+// This file is part of helPME, which is distributed under the BSD 3-clause license,
 // as described in the LICENSE file in the top level directory of this project.
 //
 // Author: Andrew C. Simmonett
 //
 // ENDLICENSE
-#ifndef _LIBPME_SPLINES_H_
-#define _LIBPME_SPLINES_H_
+#ifndef _HELPME_SPLINES_H_
+#define _HELPME_SPLINES_H_
 
 // #include "matrix.h"
 
@@ -1424,7 +2083,7 @@ struct raiseNormToIntegerPower {
  * \brief Contains the C++ implementation of a cardinal B-Splines.
  */
 
-namespace libpme {
+namespace helpme {
 
 /*!
  * \class BSpline
@@ -1446,7 +2105,7 @@ class BSpline {
     short startingGridPoint_;
 
     /// Makes B-Spline array.
-    void makeSplineInPlace(Real *array, Real val, short n) {
+    inline void makeSplineInPlace(Real *array, const Real &val, const short &n) const {
         Real denom = (Real)1 / (n - 1);
         array[n - 1] = denom * val * array[n - 2];
         for (short j = 1; j < n - 1; ++j)
@@ -1455,25 +2114,56 @@ class BSpline {
     }
 
     /// Takes BSpline derivative.
-    void differentiateSpline(const Real *array, Real *dArray, short n) {
+    inline void differentiateSpline(const Real *array, Real *dArray, const short &n) const {
         dArray[0] = -array[0];
         for (short j = 1; j < n - 1; ++j) dArray[j] = array[j - 1] - array[j];
         dArray[n - 1] = array[n - 2];
     }
 
+    /*!
+     * \brief assertSplineIsSufficient ensures that the spline is large enough to be differentiable.
+     *        An mth order B-Spline is differentiable m-2 times.
+     */
+    void assertSplineIsSufficient(int splineOrder, int derivativeLevel) const {
+        if (splineOrder - derivativeLevel < 2) {
+            std::string msg(
+                "The spline order used is not sufficient for the derivative level requested."
+                "Set the spline order to at least ");
+            msg += std::to_string(derivativeLevel + 2);
+            msg += " to run this calculation.";
+            throw std::runtime_error(msg);
+        }
+    }
+
    public:
-    /// The B-splines and their derivatives
-    BSpline(short start, Real value, short order, short derivativeLevel)
-        : order_(order),
-          derivativeLevel_(derivativeLevel),
-          splines_(derivativeLevel + 1, order),
-          startingGridPoint_(start) {
+    /// The B-splines and their derivatives.  See update() for argument details.
+    BSpline(short start, Real value, short order, short derivativeLevel) : splines_(derivativeLevel + 1, order) {
+        update(start, value, order, derivativeLevel);
+    }
+
+    /*!
+     * \brief update computes information for BSpline, without reallocating memory unless needed.
+     * \param start the grid point at which to start interpolation.
+     * \param value the distance (in fractional coordinates) from the starting grid point.
+     * \param order the order of the BSpline.
+     * \param derivativeLevel the maximum level of derivative needed for this BSpline.
+     */
+    void update(short start, Real value, short order, short derivativeLevel) {
+        assertSplineIsSufficient(order, derivativeLevel);
+        startingGridPoint_ = start;
+        order_ = order;
+        derivativeLevel_ = derivativeLevel;
+
+        // The +1 is to account for the fact that we need to store entries up to and including the max.
+        if (splines_.nRows() < derivativeLevel + 1 || splines_.nCols() != order)
+            splines_ = Matrix<Real>(derivativeLevel + 1, order);
+
         splines_.setZero();
         splines_(0, 0) = 1 - value;
         splines_(0, 1) = value;
-        for (short m = 1; m < order - 1; ++m) {
+        for (short m = 1; m < order_ - 1; ++m) {
             makeSplineInPlace(splines_[0], value, m + 2);
-            if (m >= order - derivativeLevel_ - 2) {
+            if (m >= order_ - derivativeLevel_ - 2) {
                 short currentDerivative = order_ - m - 2;
                 for (short l = 0; l < currentDerivative; ++l)
                     differentiateSpline(splines_[l], splines_[l + 1], m + 2 + currentDerivative);
@@ -1488,12 +2178,12 @@ class BSpline {
      * \param gridDim the dimension of the grid in the dimension this spline is to be used.
      * \return a gridDim long vector containing the inverse of the Fourier space spline moduli.
      */
-    std::vector<Real> invSplineModuli(short gridDim) {
-        std::vector<Real> splineMods(gridDim, 0);
-        Real prefac = 2.0 * M_PI / gridDim;
+    helpme::vector<Real> invSplineModuli(short gridDim) {
+        helpme::vector<Real> splineMods(gridDim, 0);
+        Real prefac = 2 * M_PI / gridDim;
         for (int i = 0; i < gridDim; ++i) {
-            Real real = 0.0;
-            Real imag = 0.0;
+            Real real = 0;
+            Real imag = 0;
             for (int j = 0; j < order_; ++j) {
                 Real exparg = i * j * prefac;
                 Real jSpline = splines_(0, j);
@@ -1504,14 +2194,14 @@ class BSpline {
         }
 
         // Correct tiny values.
-        constexpr Real EPS = 1e-7;
-        if (splineMods[0] < EPS) splineMods[0] = 0.5 * splineMods[1];
+        constexpr Real EPS = 1e-7f;
+        if (splineMods[0] < EPS) splineMods[0] = splineMods[1] / 2;
         for (int i = 0; i < gridDim - 1; ++i)
-            if (splineMods[i] < EPS) splineMods[i] = 0.5 * (splineMods[i - 1] + splineMods[i + 1]);
-        if (splineMods[gridDim - 1] < EPS) splineMods[gridDim - 1] = 0.5 * splineMods[gridDim - 2];
+            if (splineMods[i] < EPS) splineMods[i] = (splineMods[i - 1] + splineMods[i + 1]) / 2;
+        if (splineMods[gridDim - 1] < EPS) splineMods[gridDim - 1] = splineMods[gridDim - 2] / 2;
 
         // Invert, to avoid division later on.
-        for (int i = 0; i < gridDim; ++i) splineMods[i] = 1.0 / splineMods[i];
+        for (int i = 0; i < gridDim; ++i) splineMods[i] = 1 / splineMods[i];
         return splineMods;
     }
 
@@ -1525,7 +2215,7 @@ class BSpline {
      * \brief Returns the B-Spline, or derivative thereof.
      * \param deriv the derivative level of the spline to be returned.
      */
-    const Real *operator[](short deriv) const { return splines_[deriv]; }
+    const Real *operator[](const int &deriv) const { return splines_[deriv]; }
 
     /*!
      * \brief Get read-only access to the full spline data.
@@ -1534,48 +2224,16 @@ class BSpline {
     const Matrix<Real> &splineData() const { return splines_; }
 };
 
-}  // Namespace libpme
+}  // Namespace helpme
 #endif  // Header guard
+// #include "string_utils.h"
 
 /*!
- * \file libpme.h
+ * \file helpme.h
  * \brief Contains the C++ implementation of a PME Instance, and related helper classes.
  */
 
-namespace libpme {
-
-/*
- * FFTW likes to have transformations with dimensions of the form
- *
- *       a  b  c  d   e   f
- *      2  3  5  7  11  13
- *
- * where a,b,c and d are general and e+f is either 0 or 1.  Here is a tabulation
- * of all numbers up to 10000 that fit such a pattern.  MKL has similar demands:
- *
- *   https://software.intel.com/en-us/articles/fft-length-and-layout-advisor/
- *   http://www.fftw.org/fftw3_doc/Real_002ddata-DFTs.html
- */
-static constexpr short maxGridDim = 10000;
-static constexpr short idealGridDims[337] = {
-    1,    2,    3,    4,    5,    6,    8,    9,    10,   11,   12,   13,   15,   16,   18,   20,   22,   24,   25,
-    26,   27,   30,   32,   33,   36,   39,   40,   44,   45,   48,   50,   52,   54,   55,   60,   64,   65,   66,
-    72,   75,   78,   80,   81,   88,   90,   96,   99,   100,  104,  108,  110,  117,  120,  125,  128,  130,  132,
-    135,  144,  150,  156,  160,  162,  165,  176,  180,  192,  195,  198,  200,  208,  216,  220,  225,  234,  240,
-    243,  250,  256,  260,  264,  270,  275,  288,  297,  300,  312,  320,  324,  325,  330,  351,  352,  360,  375,
-    384,  390,  396,  400,  405,  416,  432,  440,  450,  468,  480,  486,  495,  500,  512,  520,  528,  540,  550,
-    576,  585,  594,  600,  624,  625,  640,  648,  650,  660,  675,  702,  704,  720,  729,  750,  768,  780,  792,
-    800,  810,  825,  832,  864,  880,  891,  900,  936,  960,  972,  975,  990,  1000, 1024, 1040, 1053, 1056, 1080,
-    1100, 1125, 1152, 1170, 1188, 1200, 1215, 1248, 1250, 1280, 1296, 1300, 1320, 1350, 1375, 1404, 1408, 1440, 1458,
-    1485, 1500, 1536, 1560, 1584, 1600, 1620, 1625, 1650, 1664, 1728, 1755, 1760, 1782, 1800, 1872, 1875, 1920, 1944,
-    1950, 1980, 2000, 2025, 2048, 2080, 2106, 2112, 2160, 2187, 2200, 2250, 2304, 2340, 2376, 2400, 2430, 2475, 2496,
-    2500, 2560, 2592, 2600, 2640, 2673, 2700, 2750, 2808, 2816, 2880, 2916, 2925, 2970, 3000, 3072, 3120, 3125, 3159,
-    3168, 3200, 3240, 3250, 3300, 3328, 3375, 3456, 3510, 3520, 3564, 3600, 3645, 3744, 3750, 3840, 3888, 3900, 3960,
-    4000, 4050, 4096, 4125, 4160, 4212, 4224, 4320, 4374, 4400, 4455, 4500, 4608, 4680, 4752, 4800, 4860, 4875, 4950,
-    4992, 5000, 5120, 5184, 5200, 5265, 5280, 5346, 5400, 5500, 5616, 5625, 5632, 5760, 5832, 5850, 5940, 6000, 6075,
-    6144, 6240, 6250, 6318, 6336, 6400, 6480, 6500, 6561, 6600, 6656, 6750, 6875, 6912, 7020, 7040, 7128, 7200, 7290,
-    7425, 7488, 7500, 7680, 7776, 7800, 7920, 8000, 8019, 8100, 8125, 8192, 8250, 8320, 8424, 8448, 8640, 8748, 8775,
-    8800, 8910, 9000, 9216, 9360, 9375, 9477, 9504, 9600, 9720, 9750, 9900, 9984, 10000};
+namespace helpme {
 
 /*!
  * \brief nCartesian computes the total number of Cartesian components of a given angular momentum.
@@ -1597,16 +2255,31 @@ static int cartAddress(int lx, int ly, int lz) {
 }
 
 // This is used to define function pointers in the constructor, and makes it easy to add new kernels.
-#define ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(n) \
-    case n:                                         \
-        convolveEFxn_ = &convolveEImpl<n>;          \
-        convolveEVFxn_ = &convolveEVImpl<n>;        \
-        slfEFxn_ = &slfEImpl<n>;                    \
-        dirEFxn_ = &dirEImpl<n>;                    \
-        adjEFxn_ = &adjEImpl<n>;                    \
-        dirEFFxn_ = &dirEFImpl<n>;                  \
-        adjEFFxn_ = &adjEFImpl<n>;                  \
+#define ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(n)                  \
+    case n:                                                          \
+        convolveEVFxn_ = &convolveEVImpl<n>;                         \
+        cacheInfluenceFunctionFxn_ = &cacheInfluenceFunctionImpl<n>; \
+        slfEFxn_ = &slfEImpl<n>;                                     \
+        dirEFxn_ = &dirEImpl<n>;                                     \
+        adjEFxn_ = &adjEImpl<n>;                                     \
+        dirEFFxn_ = &dirEFImpl<n>;                                   \
+        adjEFFxn_ = &adjEFImpl<n>;                                   \
         break;
+
+/*!
+ * \class splineCacheEntry
+ * \brief A placeholder to encapsulate information about a given atom's splines
+ */
+template <typename Real>
+struct SplineCacheEntry {
+    BSpline<Real> aSpline, bSpline, cSpline;
+    int absoluteAtomNumber;
+    SplineCacheEntry(int order, int derivativeLevel)
+        : aSpline(0, 0, order, derivativeLevel),
+          bSpline(0, 0, order, derivativeLevel),
+          cSpline(0, 0, order, derivativeLevel),
+          absoluteAtomNumber(-1) {}
+};
 
 /*!
  * \class PMEInstance
@@ -1620,52 +2293,68 @@ static int cartAddress(int lx, int ly, int lz) {
 template <typename Real>
 class PMEInstance {
     using GridIterator = std::vector<std::vector<std::pair<short, short>>>;
+    using Complex = std::complex<Real>;
+    using Spline = BSpline<Real>;
+    using RealMat = Matrix<Real>;
+    using RealVec = helpme::vector<Real>;
+
+   public:
+    /*!
+     * \brief The different conventions for orienting a lattice constructed from input parameters.
+     */
+    enum class LatticeType : int { XAligned = 0, ShapeMatrix = 1 };
+
+    /*!
+     * \brief The different conventions for numbering nodes.
+     */
+    enum class NodeOrder : int { ZYX = 0 };
 
    protected:
     /// The FFT grid dimensions in the {A,B,C} grid dimensions.
-    int aDim_, bDim_, cDim_;
-    /// The X dimension after real->complex transformation.
-    int xDim_;
+    int dimA_, dimB_, dimC_;
+    /// The full A dimension after real->complex transformation.
+    int complexDimA_;
+    /// The locally owned A dimension after real->complex transformation.
+    int myComplexDimA_;
     /// The order of the cardinal B-Spline used for interpolation.
     int splineOrder_;
     /// The number of threads per MPI instance.
     int nThreads_;
+    /// The exponent of the (inverse) interatomic distance used in this kernel.
+    int rPower_;
     /// The scale factor to apply to all energies and derivatives.
     Real scaleFactor_;
     /// The attenuation parameter, whose units should be the inverse of those used to specify coordinates.
     Real kappa_;
     /// The lattice vectors.
-    Matrix<Real> boxVecs_;
+    RealMat boxVecs_;
     /// The reciprocal lattice vectors.
-    Matrix<Real> recVecs_;
+    RealMat recVecs_;
     /// The scaled reciprocal lattice vectors, for transforming forces from scaled fractional coordinates.
-    Matrix<Real> scaledRecVecs_;
+    RealMat scaledRecVecs_;
     /// An iterator over angular momentum components.
     std::vector<std::array<short, 3>> angMomIterator_;
     /// The number of permutations of each multipole component.
-    std::vector<Real> permutations_;
+    RealVec permutations_;
     /// From a given starting point on the {A,B,C} edge of the grid, lists all points to be handled, correctly wrapping
     /// around the end.
-    GridIterator aGridIterator_, bGridIterator_, cGridIterator_;
-    /// The real-space (density, potential) grid.
-    Matrix<Real> realGrid_;
-    /// The Fourier space transformed grid, in {x,y,z} pencil form.
-    Matrix<std::complex<Real>> compGridCXB_, compGridCBX_, compGridXYC_, compGridXYZ_;
+    GridIterator gridIteratorA_, gridIteratorB_, gridIteratorC_;
     /// The (inverse) bspline moduli to normalize the spreading / probing steps; these are folded into the convolution.
-    std::vector<Real> aSplineMod_, bSplineMod_, cSplineMod_;
-    /// A function pointer to call the approprate function to implement convolution, templated to the rPower value.
-    std::function<Real(int, int, int, Real, Matrix<std::complex<Real>> &, const Matrix<Real> &, Real, Real,
-                       const std::vector<Real> &, const std::vector<Real> &, const std::vector<Real> &, int,
-                       const Matrix<Real> &)>
-        convolveEFxn_;
+    RealVec splineModA_, splineModB_, splineModC_;
+    /// The cached influence function involved in the convolution.
+    RealVec cachedInfluenceFunction_;
     /// A function pointer to call the approprate function to implement convolution with virial, templated to
     /// the rPower value.
-    std::function<Real(int, int, int, Real, Matrix<std::complex<Real>> &, const Matrix<Real> &, Real, Real,
-                       const std::vector<Real> &, const std::vector<Real> &, const std::vector<Real> &, int,
-                       const Matrix<Real> &, Matrix<Real> &)>
+    std::function<Real(int, int, int, int, int, int, int, Real, Complex *, const RealMat &, Real, Real, const Real *,
+                       const Real *, const Real *, RealMat &, int)>
         convolveEVFxn_;
+    /// A function pointer to call the approprate function to implement cacheing of the influence function that appears
+    //  in the convolution, templated to the rPower value.
+    std::function<void(int, int, int, int, int, int, int, Real, RealVec &, const RealMat &, Real, Real, const Real *,
+                       const Real *, const Real *, int)>
+        cacheInfluenceFunctionFxn_;
     /// A function pointer to call the approprate function to compute self energy, templated to the rPower value.
-    std::function<Real(int, const Matrix<Real> &, Real, Real)> slfEFxn_;
+    std::function<Real(int, const RealMat &, Real, Real)> slfEFxn_;
     /// A function pointer to call the approprate function to compute the direct energy, templated to the rPower value.
     std::function<Real(Real, Real)> dirEFxn_;
     /// A function pointer to call the approprate function to compute the adjusted energy, templated to the rPower
@@ -1677,16 +2366,52 @@ class PMEInstance {
     /// A function pointer to call the approprate function to compute the adjusted energy and force, templated to the
     /// rPower value.
     std::function<std::tuple<Real, Real>(Real, Real, Real)> adjEFFxn_;
-    /// The rank of this node along the {X,Y,Z} dimensions.
-    int rankX_, rankY_, rankZ_;
-    /// The first grid point that this node is responsible for in the {X,Y,Z} dimensions.
-    int firstX_, firstY_, firstZ_;
-    /// The grid point beyond the last point that this this node is responsible for in the {X,Y,Z} dimensions.
-    int lastX_, lastY_, lastZ_;
+#if HAVE_MPI == 1
+    /// The communicator object that handles interactions with MPI.
+    std::unique_ptr<MPIWrapper<Real>> mpiCommunicator_;
+    /// The communicator object that handles interactions with MPI along this nodes {A,B,C} pencils.
+    std::unique_ptr<MPIWrapper<Real>> mpiCommunicatorA_, mpiCommunicatorB_, mpiCommunicatorC_;
+#endif
+    /// The number of nodes in the {A,B,C} dimensions.
+    int numNodesA_, numNodesB_, numNodesC_;
+    /// The rank of this node along the {A,B,C} dimensions.
+    int rankA_, rankB_, rankC_;
+    /// The first grid point that this node is responsible for in the {A,B,C} dimensions.
+    int firstA_, firstB_, firstC_;
+    /// The grid point beyond the last point that this this node is responsible for in the {A,B,C} dimensions.
+    int lastA_, lastB_, lastC_;
     /// The {X,Y,Z} dimensions of the locally owned chunk of the grid.
-    int myDimX_, myDimY_, myDimZ_;
-    /// FFTW wrappers to help with transformations in the three dimensions.
+    int myDimA_, myDimB_, myDimC_;
+    /// The subsets of a given dimension to be processed when doing a transform along another dimension.
+    int subsetOfCAlongA_, subsetOfCAlongB_, subsetOfBAlongC_;
+    /// The size of a cache line, in units of the size of the Real type, to allow better memory allocation policies.
+    Real cacheLineSizeInReals_;
+    /// The current unit cell parameters.
+    Real cellA_, cellB_, cellC_, cellAlpha_, cellBeta_, cellGamma_;
+    /// Whether the unit cell parameters have been changed, invalidating cached gF quantities.
+    bool unitCellHasChanged_;
+    /// Whether the kappa has been changed, invalidating kappa-dependent quantities.
+    bool kappaHasChanged_;
+    /// Whether any of the grid dimensions have changed.
+    bool gridDimensionHasChanged_;
+    /// Whether the spline order has changed.
+    bool splineOrderHasChanged_;
+    /// Whether the scale factor has changed.
+    bool scaleFactorHasChanged_;
+    /// Whether the power of R has changed.
+    bool rPowerHasChanged_;
+    /// Whether the parallel node setup has changed in any way.
+    bool numNodesHasChanged_;
+    /// The type of alignment scheme used for the lattice vectors.
+    LatticeType latticeType_;
+    /// Communication buffers for MPI parallelism.
+    helpme::vector<Complex> workSpace1_, workSpace2_;
+    /// FFTW wrappers to help with transformations in the {A,B,C} dimensions.
     FFTWWrapper<Real> fftHelperA_, fftHelperB_, fftHelperC_;
+    /// The list of atoms, and their fractional coordinates, that will contribute to this node.
+    std::vector<std::tuple<int, Real, Real, Real>> atomList_;
+    /// The cached list of splines, which is stored as a member to make it persistent.
+    std::vector<SplineCacheEntry<Real>> splineCache_;
 
     /*!
      * \brief A simple helper to compute factorials.
@@ -1697,6 +2422,33 @@ class PMEInstance {
         unsigned int ret = 1;
         for (unsigned int i = 1; i <= n; ++i) ret *= i;
         return ret;
+    }
+
+    /*!
+     * \brief makeGridIterator makes an iterator over the spline values that contribute to this node's grid
+     *        in a given Cartesian dimension.  The iterator is of the form (grid point, spline index) and is
+     *        sorted by increasing grid point, for cache efficiency.
+     * \param dimension the dimension of the grid in the Cartesian dimension of interest.
+     * \param first the first grid point in the Cartesian dimension to be handled by this node.
+     * \param last the element past the last grid point in the Cartesian dimension to be handled by this node.
+     * \return the vector of spline iterators for each starting grid point.
+     */
+    GridIterator makeGridIterator(int dimension, int first, int last) const {
+        GridIterator gridIterator;
+        for (int gridStart = 0; gridStart < dimension; ++gridStart) {
+            std::vector<std::pair<short, short>> splineIterator(splineOrder_);
+            splineIterator.clear();
+            for (int splineIndex = 0; splineIndex < splineOrder_; ++splineIndex) {
+                int gridPoint = (splineIndex + gridStart) % dimension;
+                if (gridPoint >= first && gridPoint < last)
+                    splineIterator.push_back(std::make_pair(gridPoint - first, splineIndex));
+            }
+            splineIterator.shrink_to_fit();
+            std::sort(splineIterator.begin(), splineIterator.end());
+            gridIterator.push_back(splineIterator);
+        }
+        gridIterator.shrink_to_fit();
+        return gridIterator;
     }
 
     /*! Make sure that the iterator over AM components is up to date.
@@ -1722,16 +2474,303 @@ class PMEInstance {
     }
 
     /*!
+     * \brief updateInfluenceFunction builds the gF array cache, if the lattice vector has changed since the last
+     *                                build of it.  If the cell is unchanged, this does nothing.
+     */
+    void updateInfluenceFunction() {
+        if (unitCellHasChanged_ || kappaHasChanged_ || gridDimensionHasChanged_ || splineOrderHasChanged_ ||
+            scaleFactorHasChanged_ || numNodesHasChanged_) {
+            cacheInfluenceFunctionFxn_(dimA_, dimB_, dimC_, myComplexDimA_, myDimB_ / numNodesC_,
+                                       rankA_ * myComplexDimA_, rankB_ * myDimB_ + rankC_ * myDimB_ / numNodesC_,
+                                       scaleFactor_, cachedInfluenceFunction_, recVecs_, cellVolume(), kappa_,
+                                       &splineModA_[0], &splineModB_[0], &splineModC_[0], nThreads_);
+        }
+    }
+
+    /*!
+     * \brief filterAtomsAndBuildSplineCache builds a list of BSplines for only the atoms to be handled by this node.
+     * \param splineDerivativeLevel the derivative level (parameter angular momentum + energy derivative level) of the
+     * BSplines. \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
+     */
+    void filterAtomsAndBuildSplineCache(int splineDerivativeLevel, const RealMat &coords) {
+        assertInitialized();
+
+        atomList_.clear();
+        size_t nAtoms = coords.nRows();
+        for (int atom = 0; atom < nAtoms; ++atom) {
+            const Real *atomCoords = coords[atom];
+            constexpr float EPS = 1e-6;
+            Real aCoord =
+                atomCoords[0] * recVecs_(0, 0) + atomCoords[1] * recVecs_(1, 0) + atomCoords[2] * recVecs_(2, 0) - EPS;
+            Real bCoord =
+                atomCoords[0] * recVecs_(0, 1) + atomCoords[1] * recVecs_(1, 1) + atomCoords[2] * recVecs_(2, 1) - EPS;
+            Real cCoord =
+                atomCoords[0] * recVecs_(0, 2) + atomCoords[1] * recVecs_(1, 2) + atomCoords[2] * recVecs_(2, 2) - EPS;
+            // Make sure the fractional coordinates fall in the range 0 <= s < 1
+            aCoord -= floor(aCoord);
+            bCoord -= floor(bCoord);
+            cCoord -= floor(cCoord);
+            short aStartingGridPoint = dimA_ * aCoord;
+            short bStartingGridPoint = dimB_ * bCoord;
+            short cStartingGridPoint = dimC_ * cCoord;
+            const auto &aGridIterator = gridIteratorA_[aStartingGridPoint];
+            const auto &bGridIterator = gridIteratorB_[bStartingGridPoint];
+            const auto &cGridIterator = gridIteratorC_[cStartingGridPoint];
+            if (aGridIterator.size() && bGridIterator.size() && cGridIterator.size())
+                atomList_.emplace_back(atom, aCoord, bCoord, cCoord);
+        }
+
+        // Now we know how many atoms we loop over the dense list, redefining nAtoms accordingly.
+        // The first stage above is to get the number of atoms, so we can avoid calling push_back
+        // and thus avoid the many memory allocations.  If the cache is too small, grow it by a
+        // certain scale factor to try and minimize allocations in a not-too-wasteful manner.
+        nAtoms = atomList_.size();
+        if (splineCache_.size() < nAtoms) {
+            size_t newSize = static_cast<size_t>(1.2 * nAtoms);
+            for (int atom = splineCache_.size(); atom < newSize; ++atom)
+                splineCache_.emplace_back(splineOrder_, splineDerivativeLevel);
+        }
+
+        for (int atomListNum = 0; atomListNum < nAtoms; ++atomListNum) {
+            const auto &entry = atomList_[atomListNum];
+            const int absoluteAtomNumber = std::get<0>(entry);
+            const Real aCoord = std::get<1>(entry);
+            const Real bCoord = std::get<2>(entry);
+            const Real cCoord = std::get<3>(entry);
+            short aStartingGridPoint = dimA_ * aCoord;
+            short bStartingGridPoint = dimB_ * bCoord;
+            short cStartingGridPoint = dimC_ * cCoord;
+            auto &atomSplines = splineCache_[atomListNum];
+            atomSplines.absoluteAtomNumber = absoluteAtomNumber;
+            atomSplines.aSpline.update(aStartingGridPoint, dimA_ * aCoord - aStartingGridPoint, splineOrder_,
+                                       splineDerivativeLevel);
+            atomSplines.bSpline.update(bStartingGridPoint, dimB_ * bCoord - bStartingGridPoint, splineOrder_,
+                                       splineDerivativeLevel);
+            atomSplines.cSpline.update(cStartingGridPoint, dimC_ * cCoord - cStartingGridPoint, splineOrder_,
+                                       splineDerivativeLevel);
+        }
+    }
+
+    /*!
+     * \brief Spreads parameters onto the grid for a single atom
+     * \param atom the absolute atom number.
+     * \param realGrid pointer to the array containing the grid in CBA order
+     * \param nComponents the number of angular momentum components in the parameters.
+     * \param nForceComponents the number of angular momentum components in the parameters with one extra
+     *        level of angular momentum to permit evaluation of forces.
+     * \param splineA the BSpline object for the A direction.
+     * \param splineB the BSpline object for the B direction.
+     * \param splineC the BSpline object for the C direction.
+     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
+     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
+     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     *
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     */
+    void spreadParametersImpl(const int &atom, Real *realGrid, const int &nComponents, const Spline &splineA,
+                              const Spline &splineB, const Spline &splineC, const RealMat &parameters) {
+        const auto &aGridIterator = gridIteratorA_[splineA.startingGridPoint()];
+        const auto &bGridIterator = gridIteratorB_[splineB.startingGridPoint()];
+        const auto &cGridIterator = gridIteratorC_[splineC.startingGridPoint()];
+        int numPointsA = static_cast<int>(aGridIterator.size());
+        int numPointsB = static_cast<int>(bGridIterator.size());
+        int numPointsC = static_cast<int>(cGridIterator.size());
+        const auto *iteratorDataA = aGridIterator.data();
+        const auto *iteratorDataB = bGridIterator.data();
+        const auto *iteratorDataC = cGridIterator.data();
+        for (int component = 0; component < nComponents; ++component) {
+            const auto &quanta = angMomIterator_[component];
+            Real param = parameters(atom, component);
+            const Real *splineValsA = splineA[quanta[0]];
+            const Real *splineValsB = splineB[quanta[1]];
+            const Real *splineValsC = splineC[quanta[2]];
+            for (int pointC = 0; pointC < numPointsC; ++pointC) {
+                const auto &cPoint = iteratorDataC[pointC];
+                Real cValP = param * splineValsC[cPoint.second];
+                for (int pointB = 0; pointB < numPointsB; ++pointB) {
+                    const auto &bPoint = iteratorDataB[pointB];
+                    Real cbValP = cValP * splineValsB[bPoint.second];
+                    Real *cbRow = realGrid + cPoint.first * myDimB_ * myDimA_ + bPoint.first * myDimA_;
+                    for (int pointA = 0; pointA < numPointsA; ++pointA) {
+                        const auto &aPoint = iteratorDataA[pointA];
+                        cbRow[aPoint.first] += cbValP * splineValsA[aPoint.second];
+                    }
+                }
+            }
+        }
+    }
+
+    /*!
+     * \brief Probes the grid and computes the force for a single atom, specialized for zero parameter angular momentum.
+     * \param potentialGrid pointer to the array containing the potential, in ZYX order.
+     * \param splineA the BSpline object for the A direction.
+     * \param splineB the BSpline object for the B direction.
+     * \param splineC the BSpline object for the C direction.
+     * \param parameter the list of parameter associated with the given atom.
+     * \param forces a 3 vector of the forces for this atom, ordered in memory as {Fx, Fy, Fz}.
+     */
+    void probeGridImpl(const Real *potentialGrid, const Spline &splineA, const Spline &splineB, const Spline &splineC,
+                       const Real &parameter, Real *forces) const {
+        const auto &aGridIterator = gridIteratorA_[splineA.startingGridPoint()];
+        const auto &bGridIterator = gridIteratorB_[splineB.startingGridPoint()];
+        const auto &cGridIterator = gridIteratorC_[splineC.startingGridPoint()];
+        // We unpack the vector to raw pointers, as profiling shows that using range based for loops over vectors
+        // causes a signficant penalty in the innermost loop, primarily due to checking the loop stop condition.
+        int numPointsA = static_cast<int>(aGridIterator.size());
+        int numPointsB = static_cast<int>(bGridIterator.size());
+        int numPointsC = static_cast<int>(cGridIterator.size());
+        const auto *iteratorDataA = aGridIterator.data();
+        const auto *iteratorDataB = bGridIterator.data();
+        const auto *iteratorDataC = cGridIterator.data();
+        const Real *splineStartA0 = splineA[0];
+        const Real *splineStartB0 = splineB[0];
+        const Real *splineStartC0 = splineC[0];
+        const Real *splineStartA1 = splineStartA0 + splineOrder_;
+        const Real *splineStartB1 = splineStartB0 + splineOrder_;
+        const Real *splineStartC1 = splineStartC0 + splineOrder_;
+        Real Ex = 0, Ey = 0, Ez = 0;
+        for (int pointC = 0; pointC < numPointsC; ++pointC) {
+            const auto &cPoint = iteratorDataC[pointC];
+            const Real &splineC0 = splineStartC0[cPoint.second];
+            const Real &splineC1 = splineStartC1[cPoint.second];
+            for (int pointB = 0; pointB < numPointsB; ++pointB) {
+                const auto &bPoint = iteratorDataB[pointB];
+                const Real &splineB0 = splineStartB0[bPoint.second];
+                const Real &splineB1 = splineStartB1[bPoint.second];
+                const Real *cbRow = potentialGrid + cPoint.first * myDimA_ * myDimB_ + bPoint.first * myDimA_;
+                for (int pointA = 0; pointA < numPointsA; ++pointA) {
+                    const auto &aPoint = iteratorDataA[pointA];
+                    const Real &splineA0 = splineStartA0[aPoint.second];
+                    const Real &splineA1 = splineStartA1[aPoint.second];
+                    const Real &gridVal = cbRow[aPoint.first];
+                    Ey += gridVal * splineA0 * splineB1 * splineC0;
+                    Ez += gridVal * splineA0 * splineB0 * splineC1;
+                    Ex += gridVal * splineA1 * splineB0 * splineC0;
+                }
+            }
+        }
+
+        forces[0] -= parameter * (scaledRecVecs_[0][0] * Ex + scaledRecVecs_[0][1] * Ey + scaledRecVecs_[0][2] * Ez);
+        forces[1] -= parameter * (scaledRecVecs_[1][0] * Ex + scaledRecVecs_[1][1] * Ey + scaledRecVecs_[1][2] * Ez);
+        forces[2] -= parameter * (scaledRecVecs_[2][0] * Ex + scaledRecVecs_[2][1] * Ey + scaledRecVecs_[2][2] * Ez);
+    }
+
+    /*!
+     * \brief Probes the grid and computes the force for a single atom, for arbitrary parameter angular momentum.
+     * \param potentialGrid pointer to the array containing the potential, in ZYX order.
+     * \param nPotentialComponents the number of components in the potential and its derivatives with one extra
+     *        level of angular momentum to permit evaluation of forces.
+     * \param splineA the BSpline object for the A direction.
+     * \param splineB the BSpline object for the B direction.
+     * \param splineC the BSpline object for the C direction.
+     * \param phiPtr a scratch array of length nPotentialComponents, to store the fractional potential.
+     * N.B. Make sure that updateAngMomIterator() has been called first with the appropriate derivative
+     * level for the requested potential derivatives.
+     */
+    void probeGridImpl(const Real *potentialGrid, const int &nPotentialComponents, const Spline &splineA,
+                       const Spline &splineB, const Spline &splineC, Real *phiPtr) {
+        const auto &aGridIterator = gridIteratorA_[splineA.startingGridPoint()];
+        const auto &bGridIterator = gridIteratorB_[splineB.startingGridPoint()];
+        const auto &cGridIterator = gridIteratorC_[splineC.startingGridPoint()];
+        const Real *splineStartA = splineA[0];
+        const Real *splineStartB = splineB[0];
+        const Real *splineStartC = splineC[0];
+        for (const auto &cPoint : cGridIterator) {
+            for (const auto &bPoint : bGridIterator) {
+                const Real *cbRow = potentialGrid + cPoint.first * myDimA_ * myDimB_ + bPoint.first * myDimA_;
+                for (const auto &aPoint : aGridIterator) {
+                    Real gridVal = cbRow[aPoint.first];
+                    for (int component = 0; component < nPotentialComponents; ++component) {
+                        const auto &quanta = angMomIterator_[component];
+                        const Real *splineValsA = splineStartA + quanta[0] * splineOrder_;
+                        const Real *splineValsB = splineStartB + quanta[1] * splineOrder_;
+                        const Real *splineValsC = splineStartC + quanta[2] * splineOrder_;
+                        phiPtr[component] += gridVal * splineValsA[aPoint.second] * splineValsB[bPoint.second] *
+                                             splineValsC[cPoint.second];
+                    }
+                }
+            }
+        }
+    }
+
+    /*!
+     * \brief Probes the grid and computes the force for a single atom, for arbitrary parameter angular momentum.
+     * \param atom the absolute atom number.
+     * \param potentialGrid pointer to the array containing the potential, in ZYX order.
+     * \param nComponents the number of angular momentum components in the parameters.
+     * \param nForceComponents the number of angular momentum components in the parameters with one extra
+     *        level of angular momentum to permit evaluation of forces.
+     * \param splineA the BSpline object for the A direction.
+     * \param splineB the BSpline object for the B direction.
+     * \param splineC the BSpline object for the C direction.
+     * \param phiPtr a scratch array of length nForceComponents, to store the fractional potential.
+     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
+     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
+     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     *
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     * \param forces a Nx3 matrix of the forces, ordered in memory as {Fx1,Fy1,Fz1,Fx2,Fy2,Fz2,....FxN,FyN,FzN}.
+     */
+    void probeGridImpl(const int &atom, const Real *potentialGrid, const int &nComponents, const int &nForceComponents,
+                       const Spline &splineA, const Spline &splineB, const Spline &splineC, Real *phiPtr,
+                       const RealMat &parameters, Real *forces) {
+        std::fill(phiPtr, phiPtr + nForceComponents, 0);
+        probeGridImpl(potentialGrid, nForceComponents, splineA, splineB, splineC, phiPtr);
+
+        Real fracForce[3] = {0, 0, 0};
+        for (int component = 0; component < nComponents; ++component) {
+            Real param = parameters(atom, component);
+            const auto &quanta = angMomIterator_[component];
+            short lx = quanta[0];
+            short ly = quanta[1];
+            short lz = quanta[2];
+            fracForce[0] -= param * phiPtr[cartAddress(lx + 1, ly, lz)];
+            fracForce[1] -= param * phiPtr[cartAddress(lx, ly + 1, lz)];
+            fracForce[2] -= param * phiPtr[cartAddress(lx, ly, lz + 1)];
+        }
+        forces[0] += scaledRecVecs_[0][0] * fracForce[0] + scaledRecVecs_[0][1] * fracForce[1] +
+                     scaledRecVecs_[0][2] * fracForce[2];
+        forces[1] += scaledRecVecs_[1][0] * fracForce[0] + scaledRecVecs_[1][1] * fracForce[1] +
+                     scaledRecVecs_[1][2] * fracForce[2];
+        forces[2] += scaledRecVecs_[2][0] * fracForce[0] + scaledRecVecs_[2][1] * fracForce[1] +
+                     scaledRecVecs_[2][2] * fracForce[2];
+    }
+
+    /*!
+     * \brief assertInitialized makes sure that setup() has been called before running any calculations.
+     */
+    void assertInitialized() const {
+        if (!rPower_)
+            throw std::runtime_error(
+                "Either setup(...) or setup_parallel(...) must be called before computing anything.");
+    }
+
+    /*!
      * \brief makeBSplines construct the {x,y,z} B-Splines.
      * \param atomCoords a 3-vector containing the atom's coordinates.
      * \param derivativeLevel level of derivative needed for the splines.
      * \return a 3-tuple containing the {x,y,z} B-splines.
      */
-    std::tuple<BSpline<Real>, BSpline<Real>, BSpline<Real>> makeBSplines(const Real *atomCoords,
-                                                                         short derivativeLevel) {
+    std::tuple<Spline, Spline, Spline> makeBSplines(const Real *atomCoords, short derivativeLevel) const {
         // Subtract a tiny amount to make sure we're not exactly on the rightmost (excluded)
         // grid point. The calculation is translationally invariant, so this is valid.
-        constexpr float EPS = 1e-6;
+        constexpr float EPS = 1e-6f;
         Real aCoord =
             atomCoords[0] * recVecs_(0, 0) + atomCoords[1] * recVecs_(1, 0) + atomCoords[2] * recVecs_(2, 0) - EPS;
         Real bCoord =
@@ -1742,16 +2781,15 @@ class PMEInstance {
         aCoord -= floor(aCoord);
         bCoord -= floor(bCoord);
         cCoord -= floor(cCoord);
-        short aStartingGridPoint = aDim_ * aCoord;
-        short bStartingGridPoint = bDim_ * bCoord;
-        short cStartingGridPoint = cDim_ * cCoord;
-        Real aDistanceFromGridPoint = aDim_ * aCoord - aStartingGridPoint;
-        Real bDistanceFromGridPoint = bDim_ * bCoord - bStartingGridPoint;
-        Real cDistanceFromGridPoint = cDim_ * cCoord - cStartingGridPoint;
-        return std::make_tuple(
-            BSpline<Real>(aStartingGridPoint, aDistanceFromGridPoint, splineOrder_, derivativeLevel),
-            BSpline<Real>(bStartingGridPoint, bDistanceFromGridPoint, splineOrder_, derivativeLevel),
-            BSpline<Real>(cStartingGridPoint, cDistanceFromGridPoint, splineOrder_, derivativeLevel));
+        short aStartingGridPoint = dimA_ * aCoord;
+        short bStartingGridPoint = dimB_ * bCoord;
+        short cStartingGridPoint = dimC_ * cCoord;
+        Real aDistanceFromGridPoint = dimA_ * aCoord - aStartingGridPoint;
+        Real bDistanceFromGridPoint = dimB_ * bCoord - bStartingGridPoint;
+        Real cDistanceFromGridPoint = dimC_ * cCoord - cStartingGridPoint;
+        return std::make_tuple(Spline(aStartingGridPoint, aDistanceFromGridPoint, splineOrder_, derivativeLevel),
+                               Spline(bStartingGridPoint, bDistanceFromGridPoint, splineOrder_, derivativeLevel),
+                               Spline(cStartingGridPoint, cDistanceFromGridPoint, splineOrder_, derivativeLevel));
     }
 
     /*!
@@ -1762,8 +2800,9 @@ class PMEInstance {
      * \param parameters the input parameters.
      * \param coordinates the input coordinates.
      */
-    void sanityChecks(int parameterAngMom, const Matrix<Real> &parameters, const Matrix<Real> &coordinates) {
-        // Start with some sanity checks.
+    void sanityChecks(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates) {
+        assertInitialized();
+
         if (parameters.nRows() == 0)
             throw std::runtime_error("Parameters have not been set yet!  Call setParameters(...) before runPME(...);");
         if (coordinates.nRows() == 0)
@@ -1781,209 +2820,105 @@ class PMEInstance {
     }
 
     /*!
-     * \brief convolveEImpl performs the reciprocal space convolution, returning the energy
+     * \brief convolveEVImpl performs the reciprocal space convolution, returning the energy.  We opt to not cache
+     *        this the same way as the non-virial version because it's safe to assume that if the virial is requested
+     *        the box is likely to change, which renders the cache useless.
      * \tparam rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive dispersion).
      * \param nx the grid dimension in the x direction.
      * \param ny the grid dimension in the y direction.
      * \param nz the grid dimension in the z direction.
-     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the 1 / [4
-     * pi epslion0] for Coulomb calculations).
-     * \param grid the Fourier space grid.
+     * \param myNx the subset of the grid in the x direction to be handled by this node.
+     * \param myNy the subset of the grid in the y direction to be handled by this node.
+     * \param startX the starting grid point handled by this node in the X direction.
+     * \param startY the starting grid point handled by this node in the Y direction.
+     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the
+     *        1 / [4 pi epslion0] for Coulomb calculations).
+     * \param gridPtr the Fourier space grid, with ordering YXZ.
      * \param boxInv the reciprocal lattice vectors.
      * \param volume the volume of the unit cell.
      * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
      * \param xMods the Fourier space norms of the x B-Splines.
      * \param yMods the Fourier space norms of the y B-Splines.
      * \param zMods the Fourier space norms of the z B-Splines.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
-     *
-     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
-     *
-     * i.e. generated by the python loops
-     * \code{.py}
-     * for L in range(maxAM+1):
-     *     for Lz in range(0,L+1):
-     *         for Ly in range(0, L - Lz + 1):
-     *              Lx  = L - Ly - Lz
-     * \endcode
-     * \return the reciprocal space energy.
-     */
-    template <int rPower>
-    static Real convolveEImpl(int nx, int ny, int nz, Real scaleFactor, Matrix<std::complex<Real>> &grid,
-                              const Matrix<Real> &boxInv, Real volume, Real kappa, const std::vector<Real> &xMods,
-                              const std::vector<Real> &yMods, const std::vector<Real> &zMods, int parameterAngMom,
-                              const Matrix<Real> &parameters) {
-        Real energy = 0;
-        std::vector<short> xMVals(nx), yMVals(ny), zMVals(nz);
-        // Iterators to conveniently map {X,Y,Z} grid location to m_{X,Y,Z} value, where -1/2 << m/dim < 1/2.
-        for (int kx = 0; kx < nx; ++kx) xMVals[kx] = kx >= (nx + 1) / 2 ? kx - nx : kx;
-        for (int ky = 0; ky < ny; ++ky) yMVals[ky] = ky >= (ny + 1) / 2 ? ky - ny : ky;
-        for (int kz = 0; kz < nz; ++kz) zMVals[kz] = kz >= (nz + 1) / 2 ? kz - nz : kz;
-
-        Real bPrefac = M_PI * M_PI / (kappa * kappa);
-        Real volPrefac = scaleFactor * pow(M_PI, rPower - 1) / (sqrtPi * gammaComputer<Real, rPower>::value * volume);
-        int halfNx = nx / 2 + 1;
-        std::complex<Real> *gridPtr = grid[0];
-        for (int kx = 0; kx < halfNx; ++kx) {
-            // Exclude m=0 cell.
-            size_t start = kx == 0 ? 1 : 0;
-            // We only loop over the first nx/2+1 x values; this accounts for the "missing" complex conjugate values.
-            Real permPrefac = kx != 0 && kx != halfNx - 1 ? 2 : 1;
-            size_t nyz = ny * nz;
-            std::complex<Real> *xPtr = gridPtr + kx * nyz;
-            Real mx = (Real)xMVals[kx];
-            Real xMod = xMods[kx];
-            for (size_t yz = start; yz < nyz; ++yz) {
-                int ky = yz / nz;
-                int kz = yz % nz;
-                Real my = (Real)yMVals[ky];
-                Real mz = (Real)zMVals[kz];
-                // TODO clean this up and move stuff up into outer loops.
-                Real mVecX = boxInv(0, 0) * mx + boxInv(0, 1) * my + boxInv(0, 2) * mz;
-                Real mVecY = boxInv(1, 0) * mx + boxInv(1, 1) * my + boxInv(1, 2) * mz;
-                Real mVecZ = boxInv(2, 0) * mx + boxInv(2, 1) * my + boxInv(2, 2) * mz;
-                Real mNormSq = mVecX * mVecX + mVecY * mVecY + mVecZ * mVecZ;
-                Real mTerm = raiseNormToIntegerPower<Real, rPower - 3>::compute(mNormSq);
-                Real bSquared = bPrefac * mNormSq + std::numeric_limits<Real>::epsilon();
-                Real incompleteGammaTerm = incompleteGammaComputer<Real, 3 - rPower>::compute(bSquared);
-                std::complex<Real> &gridVal = xPtr[ky * nz + kz];
-                Real structFacNorm = std::norm(gridVal);
-                Real influenceFunction = volPrefac * incompleteGammaTerm * mTerm * xMod * yMods[ky] * zMods[kz];
-                gridVal *= influenceFunction;
-                energy += permPrefac * influenceFunction * structFacNorm;
-            }
-        }
-        energy /= 2;
-
-        if (rPower > 3) {
-            // Kernels with rPower>3 are absolutely convergent and should have the m=0 term present.
-            size_t nAtoms = parameters.nRows();
-            Real prefac = scaleFactor * M_PI * sqrtPi * pow(kappa, rPower - 3) /
-                          ((rPower - 3) * gammaComputer<Real, rPower>::value * volume);
-            // To compute it we need sum_ij c(i)c(j); here's a way to do in O(N) effort instead of O(N^2).
-            Real sumI = 0;
-            Real sumIJ = 0;
-            for (int i = 0; i < nAtoms; ++i) sumI += parameters(i, 0);
-            for (int j = 0; j < nAtoms; ++j) sumIJ += sumI * parameters(j, 0);
-            energy += prefac * sumIJ;
-        }
-
-        return energy;
-    }
-
-    /*!
-     * \brief convolveEVImpl performs the reciprocal space convolution, returning the energy
-     * \tparam rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive dispersion).
-     * \param nx the grid dimension in the x direction.
-     * \param ny the grid dimension in the y direction.
-     * \param nz the grid dimension in the z direction.
-     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the 1 / [4
-     * pi epslion0] for Coulomb calculations).
-     * \param grid the Fourier space grid.
-     * \param boxInv the reciprocal lattice vectors.
-     * \param volume the volume of the unit cell.
-     * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
-     * \param xMods the Fourier space norms of the x B-Splines.
-     * \param yMods the Fourier space norms of the y B-Splines.
-     * \param zMods the Fourier space norms of the z B-Splines.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
-     *
-     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
-     *
-     * i.e. generated by the python loops
-     * \code{.py}
-     * for L in range(maxAM+1):
-     *     for Lz in range(0,L+1):
-     *         for Ly in range(0, L - Lz + 1):
-     *              Lx  = L - Ly - Lz
-     * \endcode
      * \param virial a vector of length 6 containing the unique virial elements, in the order XX XY YY XZ YZ ZZ.
      *        This vector is incremented, not assigned.
+     * \param nThreads the number of OpenMP threads to use.
      * \return the reciprocal space energy.
      */
     template <int rPower>
-    static Real convolveEVImpl(int nx, int ny, int nz, Real scaleFactor, Matrix<std::complex<Real>> &grid,
-                               const Matrix<Real> &boxInv, Real volume, Real kappa, const std::vector<Real> &xMods,
-                               const std::vector<Real> &yMods, const std::vector<Real> &zMods, int parameterAngMom,
-                               const Matrix<Real> &parameters, Matrix<Real> &virial) {
+    static Real convolveEVImpl(int nx, int ny, int nz, int myNx, int myNy, int startX, int startY, Real scaleFactor,
+                               Complex *gridPtr, const RealMat &boxInv, Real volume, Real kappa, const Real *xMods,
+                               const Real *yMods, const Real *zMods, RealMat &virial, int nThreads) {
         Real energy = 0;
-        std::vector<short> xMVals(nx), yMVals(ny), zMVals(nz);
+
+        bool nodeZero = startX == 0 && startY == 0;
+        if (rPower > 3 && nodeZero) {
+            // Kernels with rPower>3 are absolutely convergent and should have the m=0 term present.
+            // To compute it we need sum_ij c(i)c(j), which can be obtained from the structure factor norm.
+            Real prefac = 2 * scaleFactor * M_PI * sqrtPi * pow(kappa, rPower - 3) /
+                          ((rPower - 3) * gammaComputer<Real, rPower>::value * volume);
+            energy += prefac * std::norm(gridPtr[0]);
+        }
+        // Ensure the m=0 term convolution product is zeroed for the backtransform; it's been accounted for above.
+        if (nodeZero) gridPtr[0] = Complex(0, 0);
+
+        std::vector<Real> xMVals(myNx), yMVals(myNy), zMVals(nz);
         // Iterators to conveniently map {X,Y,Z} grid location to m_{X,Y,Z} value, where -1/2 << m/dim < 1/2.
-        for (int kx = 0; kx < nx; ++kx) xMVals[kx] = kx >= (nx + 1) / 2 ? kx - nx : kx;
-        for (int ky = 0; ky < ny; ++ky) yMVals[ky] = ky >= (ny + 1) / 2 ? ky - ny : ky;
+        for (int kx = 0; kx < myNx; ++kx) xMVals[kx] = startX + (kx + startX >= (nx + 1) / 2 ? kx - nx : kx);
+        for (int ky = 0; ky < myNy; ++ky) yMVals[ky] = startY + (ky + startY >= (ny + 1) / 2 ? ky - ny : ky);
         for (int kz = 0; kz < nz; ++kz) zMVals[kz] = kz >= (nz + 1) / 2 ? kz - nz : kz;
 
         Real bPrefac = M_PI * M_PI / (kappa * kappa);
         Real volPrefac = scaleFactor * pow(M_PI, rPower - 1) / (sqrtPi * gammaComputer<Real, rPower>::value * volume);
         int halfNx = nx / 2 + 1;
-        Real Vxx = 0;
-        Real Vxy = 0;
-        Real Vyy = 0;
-        Real Vxz = 0;
-        Real Vyz = 0;
-        Real Vzz = 0;
-        std::complex<Real> *gridPtr = grid[0];
-        for (int kx = 0; kx < halfNx; ++kx) {
-            // Exclude m=0 cell.
-            size_t start = kx == 0 ? 1 : 0;
-            // We only loop over the first nx/2+1 x values; this accounts for the "missing" complex conjugate values.
-            Real permPrefac = kx != 0 && kx != halfNx - 1 ? 2 : 1;
-            size_t nyz = ny * nz;
-            std::complex<Real> *xPtr = gridPtr + kx * nyz;
-            Real mx = (Real)xMVals[kx];
-            Real xMod = xMods[kx];
-            for (size_t yz = start; yz < nyz; ++yz) {
-                int ky = yz / nz;
-                int kz = yz % nz;
-                Real my = (Real)yMVals[ky];
-                Real mz = (Real)zMVals[kz];
-                Real mVecX = boxInv(0, 0) * mx + boxInv(0, 1) * my + boxInv(0, 2) * mz;
-                Real mVecY = boxInv(1, 0) * mx + boxInv(1, 1) * my + boxInv(1, 2) * mz;
-                Real mVecZ = boxInv(2, 0) * mx + boxInv(2, 1) * my + boxInv(2, 2) * mz;
-                Real mNormSq = mVecX * mVecX + mVecY * mVecY + mVecZ * mVecZ;
-                Real mTerm = raiseNormToIntegerPower<Real, rPower - 3>::compute(mNormSq);
-                Real bSquared = bPrefac * mNormSq;
-                auto gammas = incompleteGammaVirialComputer<Real, 3 - rPower>::compute(bSquared);
-                Real eGamma = std::get<0>(gammas);
-                Real vGamma = std::get<1>(gammas);
-                std::complex<Real> &gridVal = xPtr[ky * nz + kz];
-                Real structFacNorm = std::norm(gridVal);
-                Real totalPrefac = volPrefac * mTerm * xMod * yMods[ky] * zMods[kz];
-                Real influenceFunction = totalPrefac * eGamma;
-                gridVal *= influenceFunction;
-                Real eTerm = permPrefac * influenceFunction * structFacNorm;
-                Real vTerm = permPrefac * vGamma * totalPrefac / mNormSq * structFacNorm;
-                energy += eTerm;
-                Vxx += vTerm * mVecX * mVecX;
-                Vxy += vTerm * mVecX * mVecY;
-                Vyy += vTerm * mVecY * mVecY;
-                Vxz += vTerm * mVecX * mVecZ;
-                Vyz += vTerm * mVecY * mVecZ;
-                Vzz += vTerm * mVecZ * mVecZ;
-            }
+        size_t nxz = myNx * nz;
+        Real Vxx = 0, Vxy = 0, Vyy = 0, Vxz = 0, Vyz = 0, Vzz = 0;
+        const Real *boxPtr = boxInv[0];
+        const Real *xMPtr = xMVals.data();
+        const Real *yMPtr = yMVals.data();
+        const Real *zMPtr = zMVals.data();
+        size_t nyxz = myNy * nxz;
+        // Exclude m=0 cell.
+        int start = (nodeZero ? 1 : 0);
+// Writing the three nested loops in one allows for better load balancing in parallel.
+#pragma omp parallel for reduction(+ : energy, Vxx, Vxy, Vyy, Vxz, Vyz, Vzz) num_threads(nThreads)
+        for (size_t yxz = start; yxz < nyxz; ++yxz) {
+            size_t xz = yxz % nxz;
+            short ky = yxz / nxz;
+            short kx = xz / nz;
+            short kz = xz % nz;
+            // We only loop over the first nx/2+1 x values; this
+            // accounts for the "missing" complex conjugate values.
+            Real permPrefac = kx + startX != 0 && kx + startX != halfNx - 1 ? 2 : 1;
+            const Real &mx = xMPtr[kx];
+            const Real &my = yMPtr[ky];
+            const Real &mz = zMPtr[kz];
+            Real mVecX = boxPtr[0] * mx + boxPtr[1] * my + boxPtr[2] * mz;
+            Real mVecY = boxPtr[3] * mx + boxPtr[4] * my + boxPtr[5] * mz;
+            Real mVecZ = boxPtr[6] * mx + boxPtr[7] * my + boxPtr[8] * mz;
+            Real mNormSq = mVecX * mVecX + mVecY * mVecY + mVecZ * mVecZ;
+            Real mTerm = raiseNormToIntegerPower<Real, rPower - 3>::compute(mNormSq);
+            Real bSquared = bPrefac * mNormSq;
+            auto gammas = incompleteGammaVirialComputer<Real, 3 - rPower>::compute(bSquared);
+            Real eGamma = std::get<0>(gammas);
+            Real vGamma = std::get<1>(gammas);
+            Complex &gridVal = gridPtr[yxz];
+            Real structFacNorm = std::norm(gridVal);
+            Real totalPrefac = volPrefac * mTerm * yMods[ky + startY] * xMods[kx + startX] * zMods[kz];
+            Real influenceFunction = totalPrefac * eGamma;
+            gridVal *= influenceFunction;
+            Real eTerm = permPrefac * influenceFunction * structFacNorm;
+            Real vTerm = permPrefac * vGamma * totalPrefac / mNormSq * structFacNorm;
+            energy += eTerm;
+            Vxx += vTerm * mVecX * mVecX;
+            Vxy += vTerm * mVecX * mVecY;
+            Vyy += vTerm * mVecY * mVecY;
+            Vxz += vTerm * mVecX * mVecZ;
+            Vyz += vTerm * mVecY * mVecZ;
+            Vzz += vTerm * mVecZ * mVecZ;
         }
-        energy /= 2;
 
-        if (rPower > 3) {
-            // Kernels with rPower>3 are absolutely convergent and should have the m=0 term present.
-            size_t nAtoms = parameters.nRows();
-            Real prefac = scaleFactor * M_PI * sqrtPi * pow(kappa, rPower - 3) /
-                          ((rPower - 3) * gammaComputer<Real, rPower>::value * volume);
-            // To compute it we need sum_ij c(i)c(j); here's a way to do in O(N) effort instead of O(N^2).
-            Real sumI = 0;
-            Real sumIJ = 0;
-            for (int i = 0; i < nAtoms; ++i) sumI += parameters(i, 0);
-            for (int j = 0; j < nAtoms; ++j) sumIJ += sumI * parameters(j, 0);
-            energy += prefac * sumIJ;
-        }
+        energy /= 2;
 
         virial[0][0] -= Vxx - energy;
         virial[0][1] -= Vxy;
@@ -1993,6 +2928,77 @@ class PMEInstance {
         virial[0][5] -= Vzz - energy;
 
         return energy;
+    }
+    /*!
+     * \brief cacheInfluenceFunctionImpl computes the influence function used in convolution, for later use.
+     * \tparam rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive dispersion).
+     * \param nx the grid dimension in the x direction.
+     * \param ny the grid dimension in the y direction.
+     * \param nz the grid dimension in the z direction.
+     * \param myNx the subset of the grid in the x direction to be handled by this node.
+     * \param myNy the subset of the grid in the y direction to be handled by this node.
+     * \param startX the starting grid point handled by this node in the X direction.
+     * \param startY the starting grid point handled by this node in the Y direction.
+     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the
+     *        1 / [4 pi epslion0] for Coulomb calculations).
+     * \param gridPtr the Fourier space grid, with ordering YXZ.
+     * \param boxInv the reciprocal lattice vectors.
+     * \param volume the volume of the unit cell.
+     * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
+     * \param xMods the Fourier space norms of the x B-Splines.
+     * \param yMods the Fourier space norms of the y B-Splines.
+     * \param zMods the Fourier space norms of the z B-Splines.
+     *        This vector is incremented, not assigned.
+     * \param nThreads the number of OpenMP threads to use.
+     * \return the energy for the m=0 term.
+     */
+    template <int rPower>
+    static void cacheInfluenceFunctionImpl(int nx, int ny, int nz, int myNx, int myNy, int startX, int startY,
+                                           Real scaleFactor, RealVec &influenceFunction, const RealMat &boxInv,
+                                           Real volume, Real kappa, const Real *xMods, const Real *yMods,
+                                           const Real *zMods, int nThreads) {
+        bool nodeZero = startX == 0 && startY == 0;
+        size_t nxz = myNx * nz;
+        size_t nyxz = myNy * nxz;
+        influenceFunction.resize(nyxz);
+        Real *gridPtr = influenceFunction.data();
+        if (nodeZero) gridPtr[0] = 0;
+
+        std::vector<Real> xMVals(myNx), yMVals(myNy), zMVals(nz);
+        // Iterators to conveniently map {X,Y,Z} grid location to m_{X,Y,Z} value, where -1/2 << m/dim < 1/2.
+        for (int kx = 0; kx < myNx; ++kx) xMVals[kx] = startX + (kx + startX >= (nx + 1) / 2 ? kx - nx : kx);
+        for (int ky = 0; ky < myNy; ++ky) yMVals[ky] = startY + (ky + startY >= (ny + 1) / 2 ? ky - ny : ky);
+        for (int kz = 0; kz < nz; ++kz) zMVals[kz] = kz >= (nz + 1) / 2 ? kz - nz : kz;
+
+        Real bPrefac = M_PI * M_PI / (kappa * kappa);
+        Real volPrefac = scaleFactor * pow(M_PI, rPower - 1) / (sqrtPi * gammaComputer<Real, rPower>::value * volume);
+        int halfNx = nx / 2 + 1;
+        const Real *boxPtr = boxInv[0];
+        const Real *xMPtr = xMVals.data();
+        const Real *yMPtr = yMVals.data();
+        const Real *zMPtr = zMVals.data();
+        // Exclude m=0 cell.
+        int start = (nodeZero ? 1 : 0);
+// Writing the three nested loops in one allows for better load balancing in parallel.
+#pragma omp parallel for num_threads(nThreads)
+        for (size_t yxz = start; yxz < nyxz; ++yxz) {
+            size_t xz = yxz % nxz;
+            short ky = yxz / nxz;
+            short kx = xz / nz;
+            short kz = xz % nz;
+            Real mx = (Real)xMVals[kx];
+            Real my = (Real)yMVals[ky];
+            Real mz = (Real)zMVals[kz];
+            Real mVecX = boxPtr[0] * mx + boxPtr[1] * my + boxPtr[2] * mz;
+            Real mVecY = boxPtr[3] * mx + boxPtr[4] * my + boxPtr[5] * mz;
+            Real mVecZ = boxPtr[6] * mx + boxPtr[7] * my + boxPtr[8] * mz;
+            Real mNormSq = mVecX * mVecX + mVecY * mVecY + mVecZ * mVecZ;
+            Real mTerm = raiseNormToIntegerPower<Real, rPower - 3>::compute(mNormSq);
+            Real bSquared = bPrefac * mNormSq;
+            Real incompleteGammaTerm = incompleteGammaComputer<Real, 3 - rPower>::compute(bSquared);
+            gridPtr[yxz] =
+                volPrefac * incompleteGammaTerm * mTerm * yMods[ky + startY] * xMods[kx + startX] * zMods[kz];
+        }
     }
 
     /*!
@@ -2088,12 +3094,12 @@ class PMEInstance {
      *              Lx  = L - Ly - Lz
      * \endcode
      * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
-     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the 1 / [4
-     * pi epslion0] for Coulomb calculations).
+     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof
+     *        (e.g. the 1 / [4 pi epslion0] for Coulomb calculations).
      * \return the self energy.  N.B. there is no self force associated with this term.
      */
     template <int rPower>
-    static Real slfEImpl(int parameterAngMom, const Matrix<Real> &parameters, Real kappa, Real scaleFactor) {
+    static Real slfEImpl(int parameterAngMom, const RealMat &parameters, Real kappa, Real scaleFactor) {
         if (parameterAngMom) throw std::runtime_error("Multipole self terms have not been coded yet.");
 
         size_t nAtoms = parameters.nRows();
@@ -2105,34 +3111,96 @@ class PMEInstance {
         return prefac * sumCoefs;
     }
 
+    /*!
+     * \brief common_init sets up information that is common to serial and parallel runs.
+     */
+    void common_init(int rPower, Real kappa, int splineOrder, int dimA, int dimB, int dimC, Real scaleFactor,
+                     int nThreads) {
+        kappaHasChanged_ = kappa != kappa_;
+        rPowerHasChanged_ = rPower_ != rPower;
+        gridDimensionHasChanged_ = dimA_ != dimA || dimB_ != dimB || dimC_ != dimC;
+        splineOrderHasChanged_ = splineOrder_ != splineOrder;
+        scaleFactorHasChanged_ = scaleFactor_ != scaleFactor;
+        if (kappaHasChanged_ || rPowerHasChanged_ || gridDimensionHasChanged_ || splineOrderHasChanged_ ||
+            scaleFactorHasChanged_ || nThreads_ != nThreads) {
+            rPower_ = rPower;
+
+            dimA_ = dimA;
+            dimB_ = dimB;
+            dimC_ = dimC;
+            complexDimA_ = dimA / 2 + 1;
+            myComplexDimA_ = myDimA_ / 2 + 1;
+            splineOrder_ = splineOrder;
+#ifdef _OPENMP
+            nThreads_ = nThreads ? nThreads : omp_get_max_threads();
+#else
+            nThreads_ = 1;
+#endif
+            scaleFactor_ = scaleFactor;
+            kappa_ = kappa;
+            cacheLineSizeInReals_ = static_cast<Real>(sysconf(_SC_PAGESIZE) / sizeof(Real));
+
+            // Helpers to perform 1D FFTs along each dimension.
+            fftHelperA_ = FFTWWrapper<Real>(dimA_);
+            fftHelperB_ = FFTWWrapper<Real>(dimB_);
+            fftHelperC_ = FFTWWrapper<Real>(dimC_);
+
+            // Grid iterators to correctly wrap the grid when using splines.
+            gridIteratorA_ = makeGridIterator(dimA_, firstA_, lastA_);
+            gridIteratorB_ = makeGridIterator(dimB_, firstB_, lastB_);
+            gridIteratorC_ = makeGridIterator(dimC_, firstC_, lastC_);
+
+            // Fourier space spline norms.
+            Spline spline = Spline(0, 0, splineOrder_, 0);
+            splineModA_ = spline.invSplineModuli(dimA_);
+            splineModB_ = spline.invSplineModuli(dimB_);
+            splineModC_ = spline.invSplineModuli(dimC_);
+
+            // Set up function pointers by instantiating the appropriate evaluation functions.  We could add many more
+            // entries by default here, but don't right now to avoid code bloat.  To add an extra rPower kernel is a
+            // trivial cut and paste exercise; just add a new line with the desired 1/R power as the macro's argument.
+            switch (rPower) {
+                ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(1);
+                ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(6);
+                default:
+                    std::string msg("Bad rPower requested.  To fix this, add the appropriate entry in");
+                    msg += __FILE__;
+                    msg += ", line number ";
+                    msg += std::to_string(__LINE__ - 5);
+                    throw std::runtime_error(msg.c_str());
+                    break;
+            }
+
+            subsetOfCAlongA_ = myDimC_ / numNodesA_;
+            subsetOfCAlongB_ = myDimC_ / numNodesB_;
+            subsetOfBAlongC_ = myDimB_ / numNodesC_;
+
+            workSpace1_ = helpme::vector<Complex>(myDimC_ * myComplexDimA_ * myDimB_);
+            workSpace2_ = helpme::vector<Complex>(myDimC_ * myComplexDimA_ * myDimB_);
+        }
+    }
+
    public:
-    /*!
-     * \brief The different conventions for orienting a lattice constructed from input parameters.
-     */
-    enum class LatticeType : int { XAligned = 0, ShapeMatrix = 1 };
-
-    /*!
-     * \brief The different conventions for numbering nodes.
-     */
-    enum class NodeOrder : int { ZYX = 0 };
-
-    /*!
-     * \brief Returns a read-only copy of the real space grid.
-     *
-     * This grid contains the density after spreadParameters() has been called, then
-     * the potential after the FFTs and convolution step.
-     */
-    const Matrix<Real> &realGrid() { return realGrid_; }
-
-    /*!
-     * \brief Returns a read-only copy of the Fourier space forward transformed grid.
-     *
-     * This grid contains the Fourier transformed density and should not generally
-     * be accessed for any reason other than for testing purposes.
-     */
-    const Matrix<std::complex<Real>> &compGridXYZ() { return compGridXYZ_; }
-
-    PMEInstance() : boxVecs_(3, 3), recVecs_(3, 3), scaledRecVecs_(3, 3) {}
+    PMEInstance()
+        : boxVecs_(3, 3),
+          recVecs_(3, 3),
+          scaledRecVecs_(3, 3),
+          rPower_(0),
+          scaleFactor_(0),
+          dimA_(0),
+          dimB_(0),
+          dimC_(0),
+          splineOrder_(0),
+          kappa_(0),
+          cellA_(0),
+          cellB_(0),
+          cellC_(0),
+          numNodesA_(1),
+          numNodesB_(1),
+          numNodesC_(1),
+          cellAlpha_(0),
+          cellBeta_(0),
+          cellGamma_(0) {}
 
     /*!
      * \brief cellVolume Compute the volume of the unit cell.
@@ -2159,241 +3227,486 @@ class PMEInstance {
      *           take the appropriate alignment to completely define the system.
      */
     void setLatticeVectors(Real A, Real B, Real C, Real alpha, Real beta, Real gamma, LatticeType latticeType) {
-        if (latticeType == LatticeType::ShapeMatrix) {
-            Matrix<Real> HtH(3, 3);
-            HtH(0, 0) = A * A;
-            HtH(1, 1) = B * B;
-            HtH(2, 2) = C * C;
-            // Check for angles very close to 90, to avoid noise from the eigensolver later on.
-            HtH(0, 1) = HtH(1, 0) = std::abs(gamma - 90) < 1e-4f ? 0 : A * B * cos(M_PI * gamma / 180);
-            HtH(0, 2) = HtH(2, 0) = std::abs(beta - 90) < 1e-4f ? 0 : A * C * cos(M_PI * beta / 180);
-            HtH(1, 2) = HtH(2, 1) = std::abs(alpha - 90) < 1e-4f ? 0 : B * C * cos(M_PI * alpha / 180);
+        if (A != cellA_ || B != cellB_ || C != cellC_ || alpha != cellAlpha_ || beta != cellBeta_ ||
+            gamma != cellGamma_ || latticeType != latticeType_) {
+            if (latticeType == LatticeType::ShapeMatrix) {
+                RealMat HtH(3, 3);
+                HtH(0, 0) = A * A;
+                HtH(1, 1) = B * B;
+                HtH(2, 2) = C * C;
+                const float TOL = 1e-4f;
+                // Check for angles very close to 90, to avoid noise from the eigensolver later on.
+                HtH(0, 1) = HtH(1, 0) = std::abs(gamma - 90) < TOL ? 0 : A * B * cos(M_PI * gamma / 180);
+                HtH(0, 2) = HtH(2, 0) = std::abs(beta - 90) < TOL ? 0 : A * C * cos(M_PI * beta / 180);
+                HtH(1, 2) = HtH(2, 1) = std::abs(alpha - 90) < TOL ? 0 : B * C * cos(M_PI * alpha / 180);
 
-            auto eigenTuple = HtH.diagonalize();
-            Matrix<Real> evalsReal = std::get<0>(eigenTuple);
-            Matrix<Real> evalsImag = std::get<1>(eigenTuple);
-            Matrix<Real> evecs = std::get<2>(eigenTuple);
-            if (!evalsImag.isNearZero())
-                throw std::runtime_error("Unexpected complex eigenvalues encountered while making shape matrix.");
-            for (int i = 0; i < 3; ++i) evalsReal(i, 0) = sqrt(evalsReal(i, 0));
-            boxVecs_.setZero();
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    for (int k = 0; k < 3; ++k) {
-                        boxVecs_(i, j) += evecs(i, k) * evecs(j, k) * evalsReal(k, 0);
+                auto eigenTuple = HtH.diagonalize();
+                RealMat evalsReal = std::get<0>(eigenTuple);
+                RealMat evecs = std::get<1>(eigenTuple);
+                for (int i = 0; i < 3; ++i) evalsReal(i, 0) = sqrt(evalsReal(i, 0));
+                boxVecs_.setZero();
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; ++j) {
+                        for (int k = 0; k < 3; ++k) {
+                            boxVecs_(i, j) += evecs(i, k) * evecs(j, k) * evalsReal(k, 0);
+                        }
                     }
                 }
+                recVecs_ = boxVecs_.inverse();
+            } else if (latticeType == LatticeType::XAligned) {
+                boxVecs_(0, 0) = A;
+                boxVecs_(0, 1) = 0;
+                boxVecs_(0, 2) = 0;
+                boxVecs_(1, 0) = B * cos(M_PI / 180 * gamma);
+                boxVecs_(1, 1) = B * sin(M_PI / 180 * gamma);
+                boxVecs_(1, 2) = 0;
+                boxVecs_(2, 0) = C * cos(M_PI / 180 * beta);
+                boxVecs_(2, 1) = (B * C * cos(M_PI / 180 * alpha) - boxVecs_(2, 0) * boxVecs_(1, 0)) / boxVecs_(1, 1);
+                boxVecs_(2, 2) = sqrt(C * C - boxVecs_(2, 0) * boxVecs_(2, 0) - boxVecs_(2, 1) * boxVecs_(2, 1));
+            } else {
+                throw std::runtime_error("Unknown lattice type in setLatticeVectors");
             }
             recVecs_ = boxVecs_.inverse();
-        } else if (latticeType == LatticeType::XAligned) {
-            boxVecs_(0, 0) = A;
-            boxVecs_(0, 1) = 0;
-            boxVecs_(0, 2) = 0;
-            boxVecs_(1, 0) = B * cos(M_PI / 180 * gamma);
-            boxVecs_(1, 1) = B * sin(M_PI / 180 * gamma);
-            boxVecs_(1, 2) = 0;
-            boxVecs_(2, 0) = C * cos(M_PI / 180 * beta);
-            boxVecs_(2, 1) = (B * C * cos(M_PI / 180 * alpha) - boxVecs_(2, 0) * boxVecs_(1, 0)) / boxVecs_(1, 1);
-            boxVecs_(2, 2) = sqrt(C * C - boxVecs_(2, 0) * boxVecs_(2, 0) - boxVecs_(2, 1) * boxVecs_(2, 1));
+            scaledRecVecs_ = recVecs_.clone();
+            scaledRecVecs_.row(0) *= dimA_;
+            scaledRecVecs_.row(1) *= dimB_;
+            scaledRecVecs_.row(2) *= dimC_;
+            unitCellHasChanged_ = true;
         } else {
-            throw std::runtime_error("Unknown lattice type in setLatticeVectors");
+            unitCellHasChanged_ = false;
         }
-        recVecs_ = boxVecs_.inverse();
-        scaledRecVecs_ = recVecs_.clone();
-        scaledRecVecs_.row(0) *= aDim_;
-        scaledRecVecs_.row(1) *= bDim_;
-        scaledRecVecs_.row(2) *= cDim_;
     }
 
     /*!
-     * \brief Performs the forward 3D FFT.
-     *
-     * The realGrid_ member (stored in CBA order, with A being the fast running index) is
-     * transformed sequentially, yielding the complex grid compGridz_, which is XYZ ordered.
+     * \brief Performs the forward 3D FFT of the discretized parameter grid.
+     * \param realGrid the array of discretized parameters (stored in CBA order,
+     *                 with A being the fast running index) to be transformed.
+     * \return Pointer to the transformed grid, which is stored in one of the buffers in BAC order.
      */
-    void forwardTransform() {
-        // CBA -> CBX with instant sort to CXB
-        libpme::vector<std::complex<Real>> buffer(aDim_);
+    Complex *forwardTransform(Real *realGrid) {
+        Real *realCBA;
+        Complex *buffer1, *buffer2;
+        if (realGrid == reinterpret_cast<Real *>(workSpace1_.data())) {
+            realCBA = reinterpret_cast<Real *>(workSpace2_.data());
+            buffer1 = workSpace2_.data();
+            buffer2 = workSpace1_.data();
+        } else {
+            realCBA = reinterpret_cast<Real *>(workSpace2_.data());
+            buffer1 = workSpace2_.data();
+            buffer2 = workSpace1_.data();
+        }
+
+#if HAVE_MPI == 1
+        if (numNodesA_ > 1) {
+            // Communicate A along columns
+            mpiCommunicatorA_->allToAll(realGrid, realCBA, subsetOfCAlongA_ * myDimA_ * myDimB_);
+            // Resort the data to end up with realGrid holding a full row of A data, for B pencil and C subset.
+            for (int c = 0; c < subsetOfCAlongA_; ++c) {
+                Real *outC = realGrid + c * myDimB_ * dimA_;
+                for (int b = 0; b < myDimB_; ++b) {
+                    for (int chunk = 0; chunk < numNodesA_; ++chunk) {
+                        Real *inPtr = realCBA + (chunk * subsetOfCAlongA_ + c) * myDimB_ * myDimA_ + b * myDimA_;
+                        std::copy(inPtr, inPtr + myDimA_, outC + b * dimA_ + chunk * myDimA_);
+                    }
+                }
+            }
+        }
+#endif
+        // Each parallel node allocates buffers of length dimA/(2 numNodesA)+1 for A, leading to a total of
+        // dimA/2 + numNodesA = complexDimA+numNodesA-1 if dimA is even
+        // and
+        // numNodesA (dimA-1)/2 + numNodesA = complexDimA + numNodesA/2-1 if dimA is odd
+        // We just allocate the larger size here, remembering that the final padding values on the last node
+        // will all be allocated to zero and will not contribute to the final answer.
+        helpme::vector<Complex> buffer(complexDimA_ + numNodesA_ - 1);
+
+        // A transform, with instant sort to CAB ordering for each local block
         auto scratch = buffer.data();
-        for (int c = 0; c < cDim_; ++c) {
-            for (int b = 0; b < bDim_; ++b) {
-                int cb = c * bDim_ + b;
-                fftHelperA_.transform(realGrid_[cb], scratch);
-                for (int x = 0; x < xDim_; ++x) {
-                    int cx = c * xDim_ + x;
-                    compGridCXB_(cx, b) = scratch[x];
+        for (int c = 0; c < subsetOfCAlongA_; ++c) {
+            for (int b = 0; b < myDimB_; ++b) {
+                Real *gridPtr = realGrid + c * myDimB_ * dimA_ + b * dimA_;
+                fftHelperA_.transform(gridPtr, scratch);
+                for (int chunk = 0; chunk < numNodesA_; ++chunk) {
+                    for (int a = 0; a < myComplexDimA_; ++a) {
+                        buffer1[(chunk * subsetOfCAlongA_ + c) * myComplexDimA_ * myDimB_ + a * myDimB_ + b] =
+                            scratch[chunk * myComplexDimA_ + a];
+                    }
                 }
             }
         }
 
-        // CXB -> CXY with instant sort to XYC
-        for (int c = 0; c < cDim_; ++c) {
-            for (int x = 0; x < xDim_; ++x) {
-                int cx = c * xDim_ + x;
-                fftHelperB_.transform(compGridCXB_[cx], FFTW_FORWARD);
-                for (int y = 0; y < bDim_; ++y) {
-                    int xy = x * bDim_ + y;
-                    compGridXYC_(xy, c) = compGridCXB_[cx][y];
+#if HAVE_MPI == 1
+        // Communicate A back to blocks
+        if (numNodesA_ > 1) {
+            mpiCommunicatorA_->allToAll(buffer1, buffer2, subsetOfCAlongA_ * myComplexDimA_ * myDimB_);
+            std::swap(buffer1, buffer2);
+        }
+
+        // Communicate B along rows
+        if (numNodesB_ > 1) {
+            mpiCommunicatorB_->allToAll(buffer1, buffer2, subsetOfCAlongB_ * myComplexDimA_ * myDimB_);
+            // Resort the data to end up with the buffer holding a full row of B data, for A pencil and C subset.
+            for (int c = 0; c < subsetOfCAlongB_; ++c) {
+                Complex *cPtr = buffer1 + c * myComplexDimA_ * dimB_;
+                for (int a = 0; a < myComplexDimA_; ++a) {
+                    for (int chunk = 0; chunk < numNodesB_; ++chunk) {
+                        Complex *inPtr =
+                            buffer2 + (chunk * subsetOfCAlongB_ + c) * myComplexDimA_ * myDimB_ + a * myDimB_;
+                        std::copy(inPtr, inPtr + myDimB_, cPtr + a * dimB_ + chunk * myDimB_);
+                    }
+                }
+            }
+        }
+#endif
+
+        // B transform
+        for (int c = 0; c < subsetOfCAlongB_; ++c) {
+            Complex *cPtr = buffer1 + c * myComplexDimA_ * dimB_;
+            for (int a = 0; a < myComplexDimA_; ++a) {
+                fftHelperB_.transform(cPtr + a * dimB_, FFTW_FORWARD);
+            }
+        }
+
+#if HAVE_MPI == 1
+        if (numNodesB_ > 1) {
+            for (int c = 0; c < subsetOfCAlongB_; ++c) {
+                Complex *zPtr = buffer1 + c * myComplexDimA_ * dimB_;
+                for (int a = 0; a < myComplexDimA_; ++a) {
+                    for (int chunk = 0; chunk < numNodesB_; ++chunk) {
+                        Complex *inPtr = zPtr + a * dimB_ + chunk * myDimB_;
+                        Complex *outPtr =
+                            buffer2 + (chunk * subsetOfCAlongB_ + c) * myComplexDimA_ * myDimB_ + a * myDimB_;
+                        std::copy(inPtr, inPtr + myDimB_, outPtr);
+                    }
+                }
+            }
+            // Communicate B back to blocks
+            mpiCommunicatorB_->allToAll(buffer2, buffer1, subsetOfCAlongB_ * myComplexDimA_ * myDimB_);
+        }
+#endif
+
+        // sort local blocks from CAB to BAC order
+        for (int b = 0; b < myDimB_; ++b) {
+            for (int a = 0; a < myComplexDimA_; ++a) {
+                for (int c = 0; c < myDimC_; ++c) {
+                    buffer2[b * myComplexDimA_ * myDimC_ + a * myDimC_ + c] =
+                        buffer1[c * myComplexDimA_ * myDimB_ + a * myDimB_ + b];
                 }
             }
         }
 
-        // XYC -> XYZ
-        for (int xy = 0; xy < xDim_ * bDim_; ++xy) {
-            fftHelperC_.transform(compGridXYC_[xy], compGridXYZ_[xy], FFTW_FORWARD);
+#if HAVE_MPI == 1
+        if (numNodesC_ > 1) {
+            // Communicate C along columns
+            mpiCommunicatorC_->allToAll(buffer2, buffer1, subsetOfBAlongC_ * myComplexDimA_ * myDimC_);
+            for (int b = 0; b < subsetOfBAlongC_; ++b) {
+                Complex *outPtrB = buffer2 + b * myComplexDimA_ * dimC_;
+                for (int a = 0; a < myComplexDimA_; ++a) {
+                    Complex *outPtrBA = outPtrB + a * dimC_;
+                    for (int chunk = 0; chunk < numNodesC_; ++chunk) {
+                        Complex *inPtr =
+                            buffer1 + (chunk * subsetOfBAlongC_ + b) * myComplexDimA_ * myDimC_ + a * myDimC_;
+                        std::copy(inPtr, inPtr + myDimC_, outPtrBA + chunk * myDimC_);
+                    }
+                }
+            }
         }
+#endif
+
+        // C transform
+        for (int b = 0; b < subsetOfBAlongC_; ++b) {
+            Complex *outPtrB = buffer2 + b * myComplexDimA_ * dimC_;
+            for (int a = 0; a < myComplexDimA_; ++a) {
+                Complex *outPtrBA = outPtrB + a * dimC_;
+                fftHelperC_.transform(outPtrBA, FFTW_FORWARD);
+            }
+        }
+
+        return buffer2;
     }
 
     /*!
      * \brief Performs the inverse 3D FFT.
-     *
-     * The complGridXYZ_ member (stored in XYZ order, with Z being the fast running index) is
-     * transformed sequentially, yielding the real grid realGrid_, which is CBA ordered.
+     * \param convolvedGrid the complex array of discretized parameters convolved with the influence function
+     *                      (stored in BAC order, with C being the fast running index) to be transformed.
+     * \return Pointer to the potential grid, which is stored in one of the buffers in CBA order.
      */
-    void inverseTransform() {
-        // XYZ -> XYC with instant sort to CXY (stored in CXB buffer)
-        for (int x = 0; x < xDim_; ++x) {
-            for (int y = 0; y < bDim_; ++y) {
-                int xy = x * bDim_ + y;
-                fftHelperC_.transform(compGridXYZ_[xy], FFTW_BACKWARD);
-                for (int c = 0; c < cDim_; ++c) {
-                    int cx = c * xDim_ + x;
-                    compGridCXB_(cx, y) = compGridXYZ_[xy][c];
+    Real *inverseTransform(Complex *convolvedGrid) {
+        Complex *buffer1, *buffer2;
+        // Setup scratch, taking care not to overwrite the convolved grid.
+        if (convolvedGrid == workSpace1_.data()) {
+            buffer1 = workSpace2_.data();
+            buffer2 = workSpace1_.data();
+        } else {
+            buffer1 = workSpace1_.data();
+            buffer2 = workSpace2_.data();
+        }
+
+        // C transform
+        for (int y = 0; y < subsetOfBAlongC_; ++y) {
+            for (int x = 0; x < myComplexDimA_; ++x) {
+                int yx = y * myComplexDimA_ * dimC_ + x * dimC_;
+                fftHelperC_.transform(convolvedGrid + yx, FFTW_BACKWARD);
+            }
+        }
+
+#if HAVE_MPI == 1
+        if (numNodesC_ > 1) {
+            // Communicate C back to blocks
+            for (int b = 0; b < subsetOfBAlongC_; ++b) {
+                Complex *inPtrB = convolvedGrid + b * myComplexDimA_ * dimC_;
+                for (int a = 0; a < myComplexDimA_; ++a) {
+                    Complex *inPtrBA = inPtrB + a * dimC_;
+                    for (int chunk = 0; chunk < numNodesC_; ++chunk) {
+                        Complex *inPtrBAC = inPtrBA + chunk * myDimC_;
+                        Complex *outPtr =
+                            buffer1 + (chunk * subsetOfBAlongC_ + b) * myComplexDimA_ * myDimC_ + a * myDimC_;
+                        std::copy(inPtrBAC, inPtrBAC + myDimC_, outPtr);
+                    }
+                }
+            }
+            mpiCommunicatorC_->allToAll(buffer1, buffer2, subsetOfBAlongC_ * myComplexDimA_ * myDimC_);
+        }
+#endif
+
+        // sort local blocks from BAC to CAB order
+        for (int B = 0; B < myDimB_; ++B) {
+            for (int A = 0; A < myComplexDimA_; ++A) {
+                for (int C = 0; C < myDimC_; ++C) {
+                    buffer1[C * myComplexDimA_ * myDimB_ + A * myDimB_ + B] =
+                        buffer2[B * myComplexDimA_ * myDimC_ + A * myDimC_ + C];
                 }
             }
         }
 
-        // CXY->CXB with instant sort to CBX
-        for (int c = 0; c < cDim_; ++c) {
-            for (int x = 0; x < xDim_; ++x) {
-                int cx = c * xDim_ + x;
-                fftHelperB_.transform(compGridCXB_[cx], FFTW_BACKWARD);
-                for (int b = 0; b < bDim_; ++b) {
-                    int cb = c * bDim_ + b;
-                    compGridCBX_(cb, x) = compGridCXB_[cx][b];
-                }
-            }
-        }
-
-        // CBX -> CBA
-        for (int cb = 0; cb < cDim_ * bDim_; ++cb) {
-            fftHelperA_.transform(compGridCBX_[cb], realGrid_[cb]);
-        }
-    }
-
-    /*!
-     * \brief convolveE A wrapper to determine the correct convolution function to call.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
-     *
-     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
-     *
-     * i.e. generated by the python loops
-     * \code{.py}
-     * for L in range(maxAM+1):
-     *     for Lz in range(0,L+1):
-     *         for Ly in range(0, L - Lz + 1):
-     *              Lx  = L - Ly - Lz
-     * \endcode
-     * \return the reciprocal space energy.
-     */
-    Real convolveE(int parameterAngMom, const Matrix<Real> &parameters) {
-        return convolveEFxn_(aDim_, bDim_, cDim_, scaleFactor_, compGridXYZ_, recVecs_, cellVolume(), kappa_,
-                             aSplineMod_, bSplineMod_, cSplineMod_, parameterAngMom, parameters);
-    }
-
-    /*!
-     * \brief convolveEV A wrapper to determine the correct convolution function to call, including virial.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
-     *
-     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
-     *
-     * i.e. generated by the python loops
-     * \code{.py}
-     * for L in range(maxAM+1):
-     *     for Lz in range(0,L+1):
-     *         for Ly in range(0, L - Lz + 1):
-     *              Lx  = L - Ly - Lz
-     * \endcode
-     * \param virial a vector of length 6 containing the unique virial elements, in the order XX XY YY XZ YZ ZZ.
-     *        This vector is incremented, not assigned.
-     * \return the reciprocal space energy.
-     */
-    Real convolveEV(int parameterAngMom, const Matrix<Real> &parameters, Matrix<Real> &virial) {
-        return convolveEVFxn_(aDim_, bDim_, cDim_, scaleFactor_, compGridXYZ_, recVecs_, cellVolume(), kappa_,
-                              aSplineMod_, bSplineMod_, cSplineMod_, parameterAngMom, parameters, virial);
-    }
-
-    /*!
-     * \brief Spread the parameters onto the charge grid.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
-     *
-     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
-     *
-     * i.e. generated by the python loops
-     * \code{.py}
-     * for L in range(maxAM+1):
-     *     for Lz in range(0,L+1):
-     *         for Ly in range(0, L - Lz + 1):
-     *              Lx  = L - Ly - Lz
-     * \endcode
-     * Generally this shouldn't be called; use runPME() instead.  If you know what you're doing
-     * you can call this routine, which will yield the density in the realGrid_ member.
-     */
-    void spreadParameters(int parameterAngMom, const Matrix<Real> &parameters, const Matrix<Real> &coordinates) {
-        realGrid_.setZero();
-        updateAngMomIterator(parameterAngMom);
-        int nComponents = nCartesian(parameterAngMom);
-        size_t nAtoms = coordinates.nRows();
-        for (size_t atom = 0; atom < nAtoms; ++atom) {
-            auto bSplines = makeBSplines(coordinates[atom], parameterAngMom);
-            auto splineA = std::get<0>(bSplines);
-            auto splineB = std::get<1>(bSplines);
-            auto splineC = std::get<2>(bSplines);
-            const auto &aGridIterator = aGridIterator_[splineA.startingGridPoint()];
-            const auto &bGridIterator = bGridIterator_[splineB.startingGridPoint()];
-            const auto &cGridIterator = cGridIterator_[splineC.startingGridPoint()];
-            for (int component = 0; component < nComponents; ++component) {
-                const auto &quanta = angMomIterator_[component];
-                Real param = parameters(atom, component);
-                const Real *splineValsA = splineA[quanta[0]];
-                const Real *splineValsB = splineB[quanta[1]];
-                const Real *splineValsC = splineC[quanta[2]];
-                for (const auto &cPoint : cGridIterator) {
-                    Real cValP = param * splineValsC[cPoint.second];
-                    for (const auto &bPoint : bGridIterator) {
-                        Real cbValP = cValP * splineValsB[bPoint.second];
-                        Real *cbRow = realGrid_[cPoint.first * bDim_ + bPoint.first];
-                        for (const auto &aPoint : aGridIterator) {
-                            cbRow[aPoint.first] += cbValP * splineValsA[aPoint.second];
-                        }
+#if HAVE_MPI == 1
+        // Communicate B along rows
+        if (numNodesB_ > 1) {
+            mpiCommunicatorB_->allToAll(buffer1, buffer2, subsetOfCAlongB_ * myComplexDimA_ * myDimB_);
+            // Resort the data to end up with the buffer holding a full row of B data, for A pencil and C subset.
+            for (int c = 0; c < subsetOfCAlongB_; ++c) {
+                Complex *cPtr = buffer1 + c * myComplexDimA_ * dimB_;
+                for (int a = 0; a < myComplexDimA_; ++a) {
+                    for (int chunk = 0; chunk < numNodesB_; ++chunk) {
+                        Complex *inPtr =
+                            buffer2 + (chunk * subsetOfCAlongB_ + c) * myComplexDimA_ * myDimB_ + a * myDimB_;
+                        std::copy(inPtr, inPtr + myDimB_, cPtr + a * dimB_ + chunk * myDimB_);
                     }
                 }
             }
         }
+#endif
+
+        // B transform with instant sort of local blocks from CAB -> CBA order
+        for (int c = 0; c < subsetOfCAlongB_; ++c) {
+            for (int a = 0; a < myComplexDimA_; ++a) {
+                int cx = c * myComplexDimA_ * dimB_ + a * dimB_;
+                fftHelperB_.transform(buffer1 + cx, FFTW_BACKWARD);
+                for (int b = 0; b < myDimB_; ++b) {
+                    for (int chunk = 0; chunk < numNodesB_; ++chunk) {
+                        int cb = (chunk * subsetOfCAlongB_ + c) * myDimB_ * myComplexDimA_ + b * myComplexDimA_;
+                        buffer2[cb + a] = buffer1[cx + chunk * myDimB_ + b];
+                    }
+                }
+            }
+        }
+
+#if HAVE_MPI == 1
+        // Communicate B back to blocks
+        if (numNodesB_ > 1) {
+            mpiCommunicatorB_->allToAll(buffer2, buffer1, subsetOfCAlongB_ * myComplexDimA_ * myDimB_);
+        } else {
+            std::swap(buffer1, buffer2);
+        }
+
+        // Communicate A along rows
+        if (numNodesA_ > 1) {
+            mpiCommunicatorA_->allToAll(buffer1, buffer2, subsetOfCAlongA_ * myComplexDimA_ * myDimB_);
+            // Resort the data to end up with the buffer holding a full row of A data, for B pencil and C subset.
+            for (int c = 0; c < subsetOfCAlongA_; ++c) {
+                Complex *cPtr = buffer1 + c * myDimB_ * complexDimA_;
+                for (int b = 0; b < myDimB_; ++b) {
+                    for (int chunk = 0; chunk < numNodesA_; ++chunk) {
+                        Complex *inPtr =
+                            buffer2 + (chunk * subsetOfCAlongA_ + c) * myComplexDimA_ * myDimB_ + b * myComplexDimA_;
+                        std::copy(inPtr, inPtr + myComplexDimA_, cPtr + b * complexDimA_ + chunk * myComplexDimA_);
+                    }
+                }
+            }
+        }
+#else
+        std::swap(buffer1, buffer2);
+#endif
+
+        // A transform
+        Real *realGrid = reinterpret_cast<Real *>(buffer2);
+        for (int cb = 0; cb < subsetOfCAlongA_ * myDimB_; ++cb) {
+            fftHelperA_.transform(buffer1 + cb * complexDimA_, realGrid + cb * dimA_);
+        }
+
+#if HAVE_MPI == 1
+        // Communicate A back to blocks
+        if (numNodesA_ > 1) {
+            Real *realGrid2 = reinterpret_cast<Real *>(buffer1);
+            for (int c = 0; c < subsetOfCAlongA_; ++c) {
+                Real *cPtr = realGrid + c * myDimB_ * dimA_;
+                for (int b = 0; b < myDimB_; ++b) {
+                    for (int chunk = 0; chunk < numNodesA_; ++chunk) {
+                        Real *outPtr = realGrid2 + (chunk * subsetOfCAlongA_ + c) * myDimB_ * myDimA_ + b * myDimA_;
+                        Real *inPtr = cPtr + b * dimA_ + chunk * myDimA_;
+                        std::copy(inPtr, inPtr + myDimA_, outPtr);
+                    }
+                }
+            }
+            mpiCommunicatorA_->allToAll(realGrid2, realGrid, subsetOfCAlongA_ * myDimB_ * myDimA_);
+        }
+#endif
+        return realGrid;
     }
 
     /*!
-     * \brief Probes the potential grid to get the forces.
+     * \brief convolveE A wrapper to determine the correct convolution function to call.
+     * \param transformedGrid the pointer to the complex array holding the transformed grid in YXZ ordering.
+     * \return the reciprocal space energy.
+     */
+    Real convolveE(Complex *transformedGrid) {
+        updateInfluenceFunction();
+        size_t myNy = myDimB_ / numNodesC_;
+        size_t myNx = myComplexDimA_;
+        size_t nz = dimC_;
+        size_t nxz = myNx * nz;
+        size_t nyxz = myNy * nxz;
+        size_t halfNx = dimA_ / 2 + 1;
+        bool iAmNodeZero = (rankA_ == 0 && rankB_ == 0 && rankC_ == 0);
+        Real *influenceFunction = cachedInfluenceFunction_.data();
+        int startX = rankA_ * myComplexDimA_;
+        int startY = rankB_ * myDimB_ + rankC_ * myDimB_ / numNodesC_;
+
+        Real energy = 0;
+        if (rPower_ > 3 && iAmNodeZero) {
+            // Kernels with rPower>3 are absolutely convergent and should have the m=0 term present.
+            // To compute it we need sum_ij c(i)c(j), which can be obtained from the structure factor norm.
+            Real prefac = 2 * scaleFactor_ * M_PI * sqrtPi * pow(kappa_, rPower_ - 3) /
+                          ((rPower_ - 3) * nonTemplateGammaComputer<Real>(rPower_) * cellVolume());
+            energy += prefac * std::norm(transformedGrid[0]);
+        }
+
+        transformedGrid[0] = Complex(0, 0);
+#pragma omp parallel for reduction(+ : energy) num_threads(nThreads_)
+        for (size_t yxz = 0; yxz < nyxz; ++yxz) {
+            size_t xz = yxz % nxz;
+            int kx = startX + xz / nz;
+            // We only loop over the first nx/2+1 x values; this
+            // accounts for the "missing" complex conjugate values.
+            Real permPrefac = kx != 0 && kx != halfNx - 1 ? 2 : 1;
+            Real structFactorNorm = std::norm(transformedGrid[yxz]);
+            energy += permPrefac * structFactorNorm * influenceFunction[yxz];
+            transformedGrid[yxz] *= influenceFunction[yxz];
+        }
+        return energy / 2;
+    }
+
+    /*!
+     * \brief convolveEV A wrapper to determine the correct convolution function to call, including virial.
+     * \param transformedGrid the pointer to the complex array holding the transformed grid in YXZ ordering.
+     * \param virial a vector of length 6 containing the unique virial elements, in the order XX XY YY XZ YZ ZZ.
+     *        This vector is incremented, not assigned.
+     * \return the reciprocal space energy.
+     */
+    Real convolveEV(Complex *transformedGrid, RealMat &virial) {
+        return convolveEVFxn_(dimA_, dimB_, dimC_, myComplexDimA_, myDimB_ / numNodesC_, rankA_ * myComplexDimA_,
+                              rankB_ * myDimB_ + rankC_ * myDimB_ / numNodesC_, scaleFactor_, transformedGrid, recVecs_,
+                              cellVolume(), kappa_, &splineModA_[0], &splineModB_[0], &splineModC_[0], virial,
+                              nThreads_);
+    }
+
+    /*!
+     * \brief Spread the parameters onto the charge grid.  Generally this shouldn't be called;
+     *        use the various computeE() methods instead. This the more efficient version that filters
+     *        the atom list and uses pre-computed splines.  Therefore, the splineCache_
+     *        member must have been updated via a call to filterAtomsAndBuildSplineCache() first.
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
-     * Generally this shouldn't be called; use runPME() instead.  If you know what you're doing
-     * you can call this routine, which will yield the density in the realGrid_ member.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     * \return realGrid the array of discretized parameters (stored in CBA order).
+     */
+    Real *spreadParameters(int parameterAngMom, const RealMat &parameters) {
+        Real *realGrid = reinterpret_cast<Real *>(workSpace1_.data());
+        std::fill(workSpace1_.begin(), workSpace1_.end(), 0);
+        updateAngMomIterator(parameterAngMom);
+        size_t nAtoms = atomList_.size();
+        int nComponents = nCartesian(parameterAngMom);
+        for (size_t relativeAtomNumber = 0; relativeAtomNumber < nAtoms; ++relativeAtomNumber) {
+            const auto &entry = splineCache_[relativeAtomNumber];
+            const int &atom = entry.absoluteAtomNumber;
+            const auto &splineA = entry.aSpline;
+            const auto &splineB = entry.bSpline;
+            const auto &splineC = entry.cSpline;
+            spreadParametersImpl(atom, realGrid, nComponents, splineA, splineB, splineC, parameters);
+        }
+        return realGrid;
+    }
+
+    /*!
+     * \brief Spread the parameters onto the charge grid.  Generally this shouldn't be called;
+     *        use the various computeE() methods instead.  This is the slower version of this call that recomputes
+     * splines on demand and makes no assumptions about the integrity of the spline cache.
+     * \param parameterAngMom the angular momentum of the parameters
+     *        (0 for charges, C6 coefficients, 2 for quadrupoles, etc.).
      * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
      * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
      * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     *
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
+     * \return realGrid the array of discretized parameters (stored in CBA order).
+     */
+    Real *spreadParameters(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates) {
+        Real *realGrid = reinterpret_cast<Real *>(workSpace1_.data());
+        std::fill(workSpace1_.begin(), workSpace1_.end(), 0);
+        updateAngMomIterator(parameterAngMom);
+        int nComponents = nCartesian(parameterAngMom);
+        size_t nAtoms = coordinates.nRows();
+        for (size_t atom = 0; atom < nAtoms; ++atom) {
+            // Blindly reconstruct splines for this atom, assuming nothing about the validity of the cache.
+            // Note that this incurs a somewhat steep cost due to repeated memory allocations.
+            auto bSplines = makeBSplines(coordinates[atom], parameterAngMom);
+            const auto &splineA = std::get<0>(bSplines);
+            const auto &splineB = std::get<1>(bSplines);
+            const auto &splineC = std::get<2>(bSplines);
+            spreadParametersImpl(atom, realGrid, nComponents, splineA, splineB, splineC, parameters);
+        }
+        return realGrid;
+    }
+
+    /*!
+     * \brief Probes the potential grid to get the forces.  Generally this shouldn't be called;
+     *        use the various computeE() methods instead.  This is the slower version of this call that recomputes
+     *        splines on demand and makes no assumptions about the integrity of the spline cache.
+     * \param potentialGrid pointer to the array containing the potential, in ZYX order.
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2407,67 +3720,84 @@ class PMEInstance {
      * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
      * \param forces a Nx3 matrix of the forces, ordered in memory as {Fx1,Fy1,Fz1,Fx2,Fy2,Fz2,....FxN,FyN,FzN}.
      */
-    void probeGrid(int parameterAngMom, const Matrix<Real> &parameters, const Matrix<Real> &coordinates,
-                   Matrix<Real> &forces) {
+    void probeGrid(const Real *potentialGrid, int parameterAngMom, const RealMat &parameters,
+                   const RealMat &coordinates, RealMat &forces) {
         updateAngMomIterator(parameterAngMom + 1);
         int nComponents = nCartesian(parameterAngMom);
         int nForceComponents = nCartesian(parameterAngMom + 1);
-        size_t nAtoms = coordinates.nRows();
+        RealMat fractionalPhis(1, nForceComponents);
+        size_t nAtoms = parameters.nRows();
         for (size_t atom = 0; atom < nAtoms; ++atom) {
-            Matrix<Real> fractionalPhis(1, nForceComponents);
-            fractionalPhis.setZero();
-
             auto bSplines = makeBSplines(coordinates[atom], parameterAngMom + 1);
             auto splineA = std::get<0>(bSplines);
             auto splineB = std::get<1>(bSplines);
             auto splineC = std::get<2>(bSplines);
-            const auto &aGridIterator = aGridIterator_[splineA.startingGridPoint()];
-            const auto &bGridIterator = bGridIterator_[splineB.startingGridPoint()];
-            const auto &cGridIterator = cGridIterator_[splineC.startingGridPoint()];
-            for (const auto &cPoint : cGridIterator) {
-                for (const auto &bPoint : bGridIterator) {
-                    Real *cbRow = realGrid_[cPoint.first * bDim_ + bPoint.first];
-                    for (const auto &aPoint : aGridIterator) {
-                        Real gridVal = cbRow[aPoint.first];
-                        for (int component = 0; component < nForceComponents; ++component) {
-                            const auto &quanta = angMomIterator_[component];
-                            const Real *splineValsA = splineA[quanta[0]];
-                            const Real *splineValsB = splineB[quanta[1]];
-                            const Real *splineValsC = splineC[quanta[2]];
-                            fractionalPhis[0][component] += gridVal * splineValsA[aPoint.second] *
-                                                            splineValsB[bPoint.second] * splineValsC[cPoint.second];
-                        }
-                    }
-                }
-            }
+            probeGridImpl(atom, potentialGrid, nComponents, nForceComponents, splineA, splineB, splineC,
+                          fractionalPhis[0], parameters, forces[atom]);
+        }
+    }
 
-            Real fracForce[3] = {0, 0, 0};
-            for (int component = 0; component < nComponents; ++component) {
-                Real param = parameters(atom, component);
-                const auto &quanta = angMomIterator_[component];
-                short lx = quanta[0];
-                short ly = quanta[1];
-                short lz = quanta[2];
-                fracForce[0] += param * fractionalPhis(0, cartAddress(lx + 1, ly, lz));
-                fracForce[1] += param * fractionalPhis(0, cartAddress(lx, ly + 1, lz));
-                fracForce[2] += param * fractionalPhis(0, cartAddress(lx, ly, lz + 1));
+    /*!
+     * \brief Probes the potential grid to get the forces.  Generally this shouldn't be called;
+     *        use the various computeE() methods instead.  This is the faster version that uses
+     *        the filtered atom list and uses pre-computed splines.  Therefore, the splineCache_
+     *        member must have been updated via a call to filterAtomsAndBuildSplineCache() first.
+     *
+     * \param potentialGrid pointer to the array containing the potential, in ZYX order.
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     *
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     * \param forces a Nx3 matrix of the forces, ordered in memory as {Fx1,Fy1,Fz1,Fx2,Fy2,Fz2,....FxN,FyN,FzN}.
+     */
+    void probeGrid(const Real *potentialGrid, int parameterAngMom, const RealMat &parameters, RealMat &forces) {
+        updateAngMomIterator(parameterAngMom + 1);
+        int nComponents = nCartesian(parameterAngMom);
+        int nForceComponents = nCartesian(parameterAngMom + 1);
+        const Real *paramPtr = parameters[0];
+        // Find how many multiples of the cache line size are needed
+        // to ensure that each thread hits a unique page.
+        size_t rowSize = std::ceil(nForceComponents / cacheLineSizeInReals_) * cacheLineSizeInReals_;
+        RealMat fractionalPhis(nThreads_, rowSize);
+        size_t nAtoms = atomList_.size();
+#pragma omp parallel for num_threads(nThreads_)
+        for (size_t relativeAtomNumber = 0; relativeAtomNumber < nAtoms; ++relativeAtomNumber) {
+            const auto &entry = splineCache_[relativeAtomNumber];
+            const int &atom = entry.absoluteAtomNumber;
+            const auto &splineA = entry.aSpline;
+            const auto &splineB = entry.bSpline;
+            const auto &splineC = entry.cSpline;
+            if (parameterAngMom) {
+#ifdef _OPENMP
+                int threadID = omp_get_thread_num();
+#else
+                int threadID = 1;
+#endif
+                Real *myScratch = fractionalPhis[threadID % nThreads_];
+                probeGridImpl(atom, potentialGrid, nComponents, nForceComponents, splineA, splineB, splineC, myScratch,
+                              parameters, forces[atom]);
+            } else {
+                probeGridImpl(potentialGrid, splineA, splineB, splineC, paramPtr[atom], forces[atom]);
             }
-            forces(atom, 0) += scaledRecVecs_[0][0] * fracForce[0] + scaledRecVecs_[0][1] * fracForce[1] +
-                               scaledRecVecs_[0][2] * fracForce[2];
-            forces(atom, 1) += scaledRecVecs_[1][0] * fracForce[0] + scaledRecVecs_[1][1] * fracForce[1] +
-                               scaledRecVecs_[1][2] * fracForce[2];
-            forces(atom, 2) += scaledRecVecs_[2][0] * fracForce[0] + scaledRecVecs_[2][1] * fracForce[1] +
-                               scaledRecVecs_[2][2] * fracForce[2];
         }
     }
 
     /*!
      * \brief computeESlf computes the Ewald self interaction energy.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2480,19 +3810,19 @@ class PMEInstance {
      * \endcode
      * \return the self energy.
      */
-    Real computeESlf(int parameterAngMom, const Matrix<Real> &parameters) {
+    Real computeESlf(int parameterAngMom, const RealMat &parameters) {
+        assertInitialized();
         return slfEFxn_(parameterAngMom, parameters, kappa_, scaleFactor_);
     }
 
     /*!
-     * \brief computeEDir computes the direct space energy.  This is provided mostly for debugging and testing purposes;
-     *        generally the host program should provide the pairwise interactions.
-     * \param pairList dense list of atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \brief computeEDir computes the direct space energy.  This is provided mostly for debugging and testing
+     * purposes; generally the host program should provide the pairwise interactions. \param pairList dense list of
+     * atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN. \param parameterAngMom the angular momentum of
+     * the parameters (0 for charges, C6 coefficients, 2 for quadrupoles, etc.). \param parameters the list of
+     * parameters associated with each atom (charges, C6 coefficients, multipoles, etc...). For a parameter with
+     * angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the
+     * fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2506,9 +3836,10 @@ class PMEInstance {
      * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
      * \return the direct space energy.
      */
-    Real computeEDir(const Matrix<short> &pairList, int parameterAngMom, const Matrix<Real> &parameters,
-                     const Matrix<Real> &coordinates) {
+    Real computeEDir(const Matrix<short> &pairList, int parameterAngMom, const RealMat &parameters,
+                     const RealMat &coordinates) {
         if (parameterAngMom) throw std::runtime_error("Multipole self terms have not been coded yet.");
+        sanityChecks(parameterAngMom, parameters, coordinates);
 
         Real energy = 0;
         Real kappaSquared = kappa_ * kappa_;
@@ -2528,11 +3859,10 @@ class PMEInstance {
      * \brief computeEFDir computes the direct space energy and force.  This is provided mostly for debugging and
      * testing purposes; generally the host program should provide the pairwise interactions.
      * \param pairList dense list of atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2548,9 +3878,10 @@ class PMEInstance {
      *        This matrix is incremented, not assigned.
      * \return the direct space energy.
      */
-    Real computeEFDir(const Matrix<short> &pairList, int parameterAngMom, const Matrix<Real> &parameters,
-                      const Matrix<Real> &coordinates, Matrix<Real> &forces) {
+    Real computeEFDir(const Matrix<short> &pairList, int parameterAngMom, const RealMat &parameters,
+                      const RealMat &coordinates, RealMat &forces) {
         if (parameterAngMom) throw std::runtime_error("Multipole self terms have not been coded yet.");
+        sanityChecks(parameterAngMom, parameters, coordinates);
 
         Real energy = 0;
         Real kappaSquared = kappa_ * kappa_;
@@ -2566,7 +3897,7 @@ class PMEInstance {
             Real fKernel = std::get<1>(kernels);
             Real prefactor = scaleFactor_ * parameters(i, 0) * parameters(j, 0);
             energy += prefactor * eKernel;
-            Real f = prefactor * fKernel;
+            Real f = -prefactor * fKernel;
             auto force = deltaR.row(0);
             force *= f;
             forces.row(i) -= force;
@@ -2576,13 +3907,12 @@ class PMEInstance {
     }
 
     /*!
-     * \brief computeEFVDir computes the direct space energy, force and virial.  This is provided mostly for debugging
-     *        and testing purposes; generally the host program should provide the pairwise interactions.
-     * \param pairList dense list of atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
+     * \brief computeEFVDir computes the direct space energy, force and virial.  This is provided mostly for
+     * debugging and testing purposes; generally the host program should provide the pairwise interactions. \param
+     * pairList dense list of atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN. \param parameterAngMom
+     * the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles, etc.). \param
+     * parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles, etc...).
+     * For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
      * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
@@ -2601,9 +3931,10 @@ class PMEInstance {
      *        This vector is incremented, not assigned.
      * \return the direct space energy.
      */
-    Real computeEFVDir(const Matrix<short> &pairList, int parameterAngMom, const Matrix<Real> &parameters,
-                       const Matrix<Real> &coordinates, Matrix<Real> &forces, Matrix<Real> &virial) {
+    Real computeEFVDir(const Matrix<short> &pairList, int parameterAngMom, const RealMat &parameters,
+                       const RealMat &coordinates, RealMat &forces, RealMat &virial) {
         if (parameterAngMom) throw std::runtime_error("Multipole self terms have not been coded yet.");
+        sanityChecks(parameterAngMom, parameters, coordinates);
 
         Real energy = 0;
         Real kappaSquared = kappa_ * kappa_;
@@ -2619,32 +3950,31 @@ class PMEInstance {
             Real fKernel = std::get<1>(kernels);
             Real prefactor = scaleFactor_ * parameters(i, 0) * parameters(j, 0);
             energy += prefactor * eKernel;
-            Real f = prefactor * fKernel;
-            Matrix<Real> dRCopy = deltaR.clone();
+            Real f = -prefactor * fKernel;
+            RealMat dRCopy = deltaR.clone();
             auto force = dRCopy.row(0);
             force *= f;
             forces.row(i) -= force;
             forces.row(j) += force;
-            virial[0][0] -= force[0] * deltaR[0][0];
-            virial[0][1] -= 0.5f * (force[0] * deltaR[0][1] + force[1] * deltaR[0][0]);
-            virial[0][2] -= force[1] * deltaR[0][1];
-            virial[0][3] -= 0.5f * (force[0] * deltaR[0][2] + force[2] * deltaR[0][0]);
-            virial[0][4] -= 0.5f * (force[1] * deltaR[0][2] + force[2] * deltaR[0][1]);
-            virial[0][5] -= force[2] * deltaR[0][2];
+            virial[0][0] += force[0] * deltaR[0][0];
+            virial[0][1] += 0.5f * (force[0] * deltaR[0][1] + force[1] * deltaR[0][0]);
+            virial[0][2] += force[1] * deltaR[0][1];
+            virial[0][3] += 0.5f * (force[0] * deltaR[0][2] + force[2] * deltaR[0][0]);
+            virial[0][4] += 0.5f * (force[1] * deltaR[0][2] + force[2] * deltaR[0][1]);
+            virial[0][5] += force[2] * deltaR[0][2];
         }
         return energy;
     }
 
     /*!
-     * \brief computeEAdj computes the adjusted real space energy which extracts the energy for excluded pairs that is
-     *        present in reciprocal space. This is provided mostly for debugging and testing purposes; generally the
+     * \brief computeEAdj computes the adjusted real space energy which extracts the energy for excluded pairs that
+     * is present in reciprocal space. This is provided mostly for debugging and testing purposes; generally the
      *        host program should provide the pairwise interactions.
      * \param pairList dense list of atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2658,9 +3988,10 @@ class PMEInstance {
      * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
      * \return the adjusted energy.
      */
-    Real computeEAdj(const Matrix<short> &pairList, int parameterAngMom, const Matrix<Real> &parameters,
-                     const Matrix<Real> &coordinates) {
+    Real computeEAdj(const Matrix<short> &pairList, int parameterAngMom, const RealMat &parameters,
+                     const RealMat &coordinates) {
         if (parameterAngMom) throw std::runtime_error("Multipole self terms have not been coded yet.");
+        sanityChecks(parameterAngMom, parameters, coordinates);
 
         Real energy = 0;
         Real kappaSquared = kappa_ * kappa_;
@@ -2677,14 +4008,13 @@ class PMEInstance {
     }
 
     /*!
-     * \brief computeEFAdj computes the adjusted energy and force.  This is provided mostly for debugging and testing
-     * purposes; generally the host program should provide the pairwise interactions.
-     * \param pairList dense list of atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \brief computeEFAdj computes the adjusted energy and force.  This is provided mostly for debugging and
+     * testing purposes; generally the host program should provide the pairwise interactions. \param pairList dense
+     * list of atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN. \param parameterAngMom the angular
+     * momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles, etc.). \param parameters the
+     * list of parameters associated with each atom (charges, C6 coefficients, multipoles, etc...). For a parameter
+     * with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL = (L+1)*(L+2)*(L+3)/6 and
+     * the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2700,9 +4030,10 @@ class PMEInstance {
      *        This matrix is incremented, not assigned.
      * \return the adjusted energy.
      */
-    Real computeEFAdj(const Matrix<short> &pairList, int parameterAngMom, const Matrix<Real> &parameters,
-                      const Matrix<Real> &coordinates, Matrix<Real> &forces) {
+    Real computeEFAdj(const Matrix<short> &pairList, int parameterAngMom, const RealMat &parameters,
+                      const RealMat &coordinates, RealMat &forces) {
         if (parameterAngMom) throw std::runtime_error("Multipole self terms have not been coded yet.");
+        sanityChecks(parameterAngMom, parameters, coordinates);
 
         Real energy = 0;
         Real kappaSquared = kappa_ * kappa_;
@@ -2718,7 +4049,7 @@ class PMEInstance {
             Real fKernel = std::get<1>(kernels);
             Real prefactor = scaleFactor_ * parameters(i, 0) * parameters(j, 0);
             energy += prefactor * eKernel;
-            Real f = prefactor * fKernel;
+            Real f = -prefactor * fKernel;
             auto force = deltaR.row(0);
             force *= f;
             forces.row(i) -= force;
@@ -2731,11 +4062,10 @@ class PMEInstance {
      * \brief computeEFVAdj computes the adjusted energy, forces and virial.  This is provided mostly for debugging
      *        and testing purposes; generally the host program should provide the pairwise interactions.
      * \param pairList dense list of atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2753,9 +4083,10 @@ class PMEInstance {
      *        This vector is incremented, not assigned.
      * \return the adjusted energy.
      */
-    Real computeEFVAdj(const Matrix<short> &pairList, int parameterAngMom, const Matrix<Real> &parameters,
-                       const Matrix<Real> &coordinates, Matrix<Real> &forces, Matrix<Real> &virial) {
+    Real computeEFVAdj(const Matrix<short> &pairList, int parameterAngMom, const RealMat &parameters,
+                       const RealMat &coordinates, RealMat &forces, RealMat &virial) {
         if (parameterAngMom) throw std::runtime_error("Multipole self terms have not been coded yet.");
+        sanityChecks(parameterAngMom, parameters, coordinates);
 
         Real energy = 0;
         Real kappaSquared = kappa_ * kappa_;
@@ -2771,29 +4102,80 @@ class PMEInstance {
             Real fKernel = std::get<1>(kernels);
             Real prefactor = scaleFactor_ * parameters(i, 0) * parameters(j, 0);
             energy += prefactor * eKernel;
-            Real f = prefactor * fKernel;
-            Matrix<Real> dRCopy = deltaR.clone();
+            Real f = -prefactor * fKernel;
+            RealMat dRCopy = deltaR.clone();
             auto force = dRCopy.row(0);
             force *= f;
             forces.row(i) -= force;
             forces.row(j) += force;
-            virial[0][0] -= force[0] * deltaR[0][0];
-            virial[0][1] -= 0.5f * (force[0] * deltaR[0][1] + force[1] * deltaR[0][0]);
-            virial[0][2] -= force[1] * deltaR[0][1];
-            virial[0][3] -= 0.5f * (force[0] * deltaR[0][2] + force[2] * deltaR[0][0]);
-            virial[0][4] -= 0.5f * (force[1] * deltaR[0][2] + force[2] * deltaR[0][1]);
-            virial[0][5] -= force[2] * deltaR[0][2];
+            virial[0][0] += force[0] * deltaR[0][0];
+            virial[0][1] += 0.5f * (force[0] * deltaR[0][1] + force[1] * deltaR[0][0]);
+            virial[0][2] += force[1] * deltaR[0][1];
+            virial[0][3] += 0.5f * (force[0] * deltaR[0][2] + force[2] * deltaR[0][0]);
+            virial[0][4] += 0.5f * (force[1] * deltaR[0][2] + force[2] * deltaR[0][1]);
+            virial[0][5] += force[2] * deltaR[0][2];
         }
         return energy;
     }
 
     /*!
+     * \brief Runs a PME reciprocal space calculation, computing the potential and, optionally, its derivatives.
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     *
+     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
+     *
+     * i.e. generated by the python loops
+     * \code{.py}
+     * for L in range(maxAM+1):
+     *     for Lz in range(0,L+1):
+     *         for Ly in range(0, L - Lz + 1):
+     *              Lx  = L - Ly - Lz
+     * \endcode
+     * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
+     * \param energy pointer to the variable holding the energy; this is incremented, not assigned.
+     * \param gridPoints the list of grid points at which the potential is needed; can be the same as the
+     * coordinates. \param derivativeLevel the order of the potential derivatives required; 0 is the potential, 1 is
+     * (minus) the field, etc. \param potential the array holding the potential.  This is a matrix of dimensions
+     * nAtoms x nD, where nD is the derivative level requested.  See the details fo the parameters argument for
+     * information about ordering of derivative components. N.B. this array is incremented with the potential, not
+     * assigned, so take care to zero it first if only the current results are desired.
+     */
+    void computePRec(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates,
+                     const RealMat &gridPoints, int derivativeLevel, RealMat &potential) {
+        sanityChecks(parameterAngMom, parameters, coordinates);
+        updateAngMomIterator(std::max(parameterAngMom, derivativeLevel));
+
+        // Note: we're calling the version of spread parameters that computes its own splines here.
+        // This is quite inefficient, but allow the potential to be computed at arbitrary locations by
+        // simply regenerating splines on demand in the probing stage.  If this becomes too slow, it's
+        // easy to write some logic to check whether gridPoints and coordinates are the same, and
+        // handle that special case using spline cacheing machinery for efficiency.
+        auto realGrid = spreadParameters(parameterAngMom, parameters, coordinates);
+        auto gridAddress = forwardTransform(realGrid);
+        convolveE(gridAddress);
+        const auto potentialGrid = inverseTransform(gridAddress);
+        auto fracPotential = potential.clone();
+        int nPotentialComponents = nCartesian(derivativeLevel);
+        size_t nPoints = gridPoints.nRows();
+        for (size_t point = 0; point < nPoints; ++point) {
+            auto bSplines = makeBSplines(gridPoints[point], derivativeLevel);
+            auto splineA = std::get<0>(bSplines);
+            auto splineB = std::get<1>(bSplines);
+            auto splineC = std::get<2>(bSplines);
+            probeGridImpl(potentialGrid, nPotentialComponents, splineA, splineB, splineC, fracPotential[point]);
+        }
+        potential += cartesianTransform(derivativeLevel, scaledRecVecs_, fracPotential);
+    }
+
+    /*!
      * \brief Runs a PME reciprocal space calculation, computing energies.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2808,21 +4190,21 @@ class PMEInstance {
      * \param energy pointer to the variable holding the energy; this is incremented, not assigned.
      * \return the reciprocal space energy.
      */
-    Real computeERec(int parameterAngMom, const Matrix<Real> &parameters, const Matrix<Real> &coordinates) {
+    Real computeERec(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates) {
         sanityChecks(parameterAngMom, parameters, coordinates);
+        filterAtomsAndBuildSplineCache(parameterAngMom, coordinates);
 
-        spreadParameters(parameterAngMom, parameters, coordinates);
-        forwardTransform();
-        return convolveE(parameterAngMom, parameters);
+        auto realGrid = spreadParameters(parameterAngMom, parameters);
+        auto gridAddress = forwardTransform(realGrid);
+        return convolveE(gridAddress);
     }
 
     /*!
      * \brief Runs a PME reciprocal space calculation, computing energies and forces.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2839,26 +4221,26 @@ class PMEInstance {
      *        This matrix is incremented, not assigned.
      * \return the reciprocal space energy.
      */
-    Real computeEFRec(int parameterAngMom, const Matrix<Real> &parameters, const Matrix<Real> &coordinates,
-                      Matrix<Real> &forces) {
+    Real computeEFRec(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates, RealMat &forces) {
         sanityChecks(parameterAngMom, parameters, coordinates);
+        // Spline derivative level bumped by 1, for energy gradients.
+        filterAtomsAndBuildSplineCache(parameterAngMom + 1, coordinates);
 
-        spreadParameters(parameterAngMom, parameters, coordinates);
-        forwardTransform();
-        Real energy = convolveE(parameterAngMom, parameters);
-        inverseTransform();
-        probeGrid(parameterAngMom, parameters, coordinates, forces);
+        auto realGrid = spreadParameters(parameterAngMom, parameters);
+        auto gridAddress = forwardTransform(realGrid);
+        Real energy = convolveE(gridAddress);
+        const auto potentialGrid = inverseTransform(gridAddress);
+        probeGrid(potentialGrid, parameterAngMom, parameters, forces);
 
         return energy;
     }
 
     /*!
      * \brief Runs a PME reciprocal space calculation, computing energies, forces and the virial.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2877,15 +4259,18 @@ class PMEInstance {
      *        This vector is incremented, not assigned.
      * \return the reciprocal space energy.
      */
-    Real computeEFVRec(int parameterAngMom, const Matrix<Real> &parameters, const Matrix<Real> &coordinates,
-                       Matrix<Real> &forces, Matrix<Real> &virial) {
+    Real computeEFVRec(int parameterAngMom, const RealMat &parameters, const RealMat &coordinates, RealMat &forces,
+                       RealMat &virial) {
         sanityChecks(parameterAngMom, parameters, coordinates);
 
-        spreadParameters(parameterAngMom, parameters, coordinates);
-        forwardTransform();
-        Real energy = convolveEV(parameterAngMom, parameters, virial);
-        inverseTransform();
-        probeGrid(parameterAngMom, parameters, coordinates, forces);
+        // Spline derivative level bumped by 1, for energy gradients.
+        filterAtomsAndBuildSplineCache(parameterAngMom + 1, coordinates);
+
+        auto realGrid = spreadParameters(parameterAngMom, parameters);
+        auto gridPtr = forwardTransform(realGrid);
+        Real energy = convolveEV(gridPtr, virial);
+        const auto potentialGrid = inverseTransform(gridPtr);
+        probeGrid(potentialGrid, parameterAngMom, parameters, forces);
 
         return energy;
     }
@@ -2896,11 +4281,10 @@ class PMEInstance {
      *        debugging.
      * \param includedList dense list of included atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN,jN.
      * \param excludedList dense list of excluded atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2918,7 +4302,9 @@ class PMEInstance {
      * \return the full PME energy.
      */
     Real computeEAll(const Matrix<short> &includedList, const Matrix<short> &excludedList, int parameterAngMom,
-                     const Matrix<Real> &parameters, const Matrix<Real> &coordinates) {
+                     const RealMat &parameters, const RealMat &coordinates) {
+        sanityChecks(parameterAngMom, parameters, coordinates);
+
         Real energy = computeERec(parameterAngMom, parameters, coordinates);
         energy += computeESlf(parameterAngMom, parameters);
         energy += computeEDir(includedList, parameterAngMom, parameters, coordinates);
@@ -2932,11 +4318,10 @@ class PMEInstance {
      *        and debugging.
      * \param includedList dense list of included atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
      * \param excludedList dense list of excluded atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2954,7 +4339,9 @@ class PMEInstance {
      * \return the full PME energy.
      */
     Real computeEFAll(const Matrix<short> &includedList, const Matrix<short> &excludedList, int parameterAngMom,
-                      const Matrix<Real> &parameters, const Matrix<Real> &coordinates, Matrix<Real> &forces) {
+                      const RealMat &parameters, const RealMat &coordinates, RealMat &forces) {
+        sanityChecks(parameterAngMom, parameters, coordinates);
+
         Real energy = computeEFRec(parameterAngMom, parameters, coordinates, forces);
         energy += computeESlf(parameterAngMom, parameters);
         energy += computeEFDir(includedList, parameterAngMom, parameters, coordinates, forces);
@@ -2968,11 +4355,10 @@ class PMEInstance {
      *        be used for testing and debugging.
      * \param includedList dense list of included atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
      * \param excludedList dense list of excluded atom pairs, ordered like i1, j1, i2, j2, i3, j3, ... iN, jN.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
+     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for
+     * quadrupoles, etc.). \param parameters the list of parameters associated with each atom (charges, C6
+     * coefficients, multipoles, etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL
+     * is expected, where nL = (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
      *
      * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
      *
@@ -2992,8 +4378,9 @@ class PMEInstance {
      * \return the full PME energy.
      */
     Real computeEFVAll(const Matrix<short> &includedList, const Matrix<short> &excludedList, int parameterAngMom,
-                       const Matrix<Real> &parameters, const Matrix<Real> &coordinates, Matrix<Real> &forces,
-                       Matrix<Real> &virial) {
+                       const RealMat &parameters, const RealMat &coordinates, RealMat &forces, RealMat &virial) {
+        sanityChecks(parameterAngMom, parameters, coordinates);
+
         Real energy = computeEFVRec(parameterAngMom, parameters, coordinates, forces, virial);
         energy += computeESlf(parameterAngMom, parameters);
         energy += computeEFVDir(includedList, parameterAngMom, parameters, coordinates, forces, virial);
@@ -3002,167 +4389,153 @@ class PMEInstance {
     }
 
     /*!
-     * \brief makeGridIterator makes an iterator over the spline values that contribute to this node's grid
-     *        in a given Cartesian dimension.  The iterator is of the form (grid point, spline index) and is
-     *        sorted by increasing grid point, for cache efficiency.
-     * \param dimension the dimension of the grid in the Cartesian dimension of interest.
-     * \param first the first grid point in the Cartesian dimension to be handled by this node.
-     * \param last the element past the last grid point in the Cartesian dimension to be handled by this node.
-     * \return the vector of spline iterators for each starting grid point.
-     */
-    GridIterator makeGridIterator(int dimension, int first, int last) {
-        // TODO make me private!
-        GridIterator gridIterator;
-        for (int gridStart = 0; gridStart < dimension; ++gridStart) {
-            std::vector<std::pair<short, short>> splineIterator(splineOrder_);
-            splineIterator.clear();
-            for (int splineIndex = 0; splineIndex < splineOrder_; ++splineIndex) {
-                int gridPoint = (splineIndex + gridStart) % dimension;
-                if (gridPoint >= first && gridPoint < last)
-                    splineIterator.push_back(std::make_pair(gridPoint - first, splineIndex));
-            }
-            std::sort(splineIterator.begin(), splineIterator.end());
-            gridIterator.push_back(splineIterator);
-        }
-        return gridIterator;
-    }
-
-    /*!
-     * \brief common_init sets up information that is common to serial and parallel runs.
-     */
-    void common_init(int rPower, Real kappa, int splineOrder, int aDim, int bDim, int cDim, Real scaleFactor,
-                     int nThreads) {
-        // TODO make this private!
-        aDim_ = aDim;
-        bDim_ = bDim;
-        cDim_ = cDim;
-        xDim_ = aDim / 2 + 1;
-        splineOrder_ = splineOrder;
-        nThreads_ = nThreads;
-        scaleFactor_ = scaleFactor;
-        kappa_ = kappa;
-
-        // Helpers to perform 1D FFTs along each dimension.
-        fftHelperA_ = FFTWWrapper<Real>(aDim_);
-        fftHelperB_ = FFTWWrapper<Real>(bDim_);
-        fftHelperC_ = FFTWWrapper<Real>(cDim_);
-
-        // Grid iterators to correctly wrap the grid when using splines.
-        aGridIterator_ = makeGridIterator(aDim_, firstX_, lastX_);
-        bGridIterator_ = makeGridIterator(bDim_, firstY_, lastY_);
-        cGridIterator_ = makeGridIterator(cDim_, firstZ_, lastZ_);
-
-        // Fourier space spline norms.
-        BSpline<Real> spline = BSpline<Real>(0, 0, splineOrder_, 0);
-        aSplineMod_ = spline.invSplineModuli(aDim_);
-        bSplineMod_ = spline.invSplineModuli(bDim_);
-        cSplineMod_ = spline.invSplineModuli(cDim_);
-
-        // Set up function pointers by instantiating the appropriate evaluation functions.  We could add many more
-        // entries by default here, but don't right now to avoid code bloat.  To add an extra rPower kernel is a
-        // trivial cut and paste exercise; just add a new line with the desired 1/R power as the macro's argument.
-        switch (rPower) {
-            ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(1);
-            ENABLE_KERNEL_WITH_INVERSE_R_EXPONENT_OF(6);
-            default:
-                std::string msg("Bad rPower requested.  To fix this, add the appropriate entry in");
-                msg += __FILE__;
-                msg += ", line number ";
-                msg += std::to_string((long long)(__LINE__ - 5));
-                throw std::runtime_error(msg.c_str());
-                break;
-        }
-
-        // The matrices used in the transformations.
-        realGrid_ = Matrix<Real>(myDimZ_ * myDimY_, myDimX_);
-        compGridCXB_ = Matrix<std::complex<Real>>(cDim_ * xDim_, bDim_);
-        compGridCBX_ = Matrix<std::complex<Real>>(cDim_ * bDim_, xDim_);
-        compGridXYC_ = Matrix<std::complex<Real>>(xDim_ * bDim_, cDim_);
-        compGridXYZ_ = Matrix<std::complex<Real>>(xDim_ * bDim_, cDim_);
-    }
-
-    /*!
      * \brief setup initializes this object for a PME calculation using only threading.
-     * \param rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive dispersion).
-     * \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
+     *        This may be called repeatedly without compromising performance.
+     * \param rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive
+     * dispersion). \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
      * \param splineOrder the order of B-spline; must be at least (2 + max. multipole order + deriv. level needed).
-     * \param aDim the dimension of the FFT grid along the A axis.
-     * \param bDim the dimension of the FFT grid along the B axis.
-     * \param cDim the dimension of the FFT grid along the C axis.
+     * \param dimA the dimension of the FFT grid along the A axis.
+     * \param dimB the dimension of the FFT grid along the B axis.
+     * \param dimC the dimension of the FFT grid along the C axis.
      * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the
      *        1 / [4 pi epslion0] for Coulomb calculations).
-     * \param nThreads the maximum number of threads to use for each MPI instance; if set to 0 all available threads are
-     * used.
+     * \param nThreads the maximum number of threads to use for each MPI instance; if set to 0 all available threads
+     * are used.
      */
-    void setup(int rPower, Real kappa, int splineOrder, int aDim, int bDim, int cDim, Real scaleFactor, int nThreads) {
-        rankX_ = rankY_ = rankZ_ = 0;
-        firstX_ = firstY_ = firstZ_ = 0;
-        lastX_ = aDim;
-        lastY_ = bDim;
-        lastZ_ = cDim;
-        myDimX_ = aDim;
-        myDimY_ = bDim;
-        myDimZ_ = cDim;
-        common_init(rPower, kappa, splineOrder, aDim, bDim, cDim, scaleFactor, nThreads);
+    void setup(int rPower, Real kappa, int splineOrder, int dimA, int dimB, int dimC, Real scaleFactor, int nThreads) {
+        numNodesHasChanged_ = numNodesA_ != 1 || numNodesB_ != 1 || numNodesC_ != 1;
+        numNodesA_ = numNodesB_ = numNodesC_ = 1;
+        rankA_ = rankB_ = rankC_ = 0;
+        firstA_ = firstB_ = firstC_ = 0;
+        dimA = findGridSize(dimA, {1});
+        dimB = findGridSize(dimB, {1});
+        dimC = findGridSize(dimC, {1});
+        lastA_ = dimA;
+        lastB_ = dimB;
+        lastC_ = dimC;
+        myDimA_ = dimA;
+        myDimB_ = dimB;
+        myDimC_ = dimC;
+        common_init(rPower, kappa, splineOrder, dimA, dimB, dimC, scaleFactor, nThreads);
     }
 
     /*!
-     * \brief Runs a PME reciprocal space calculation, computing energies in an MPI parallel fashion.
-     * \param parameterAngMom the angular momentum of the parameters (0 for charges, C6 coefficients, 2 for quadrupoles,
-     * etc.).
-     * \param parameters the list of parameters associated with each atom (charges, C6 coefficients, multipoles,
-     * etc...). For a parameter with angular momentum L, a matrix of dimension nAtoms x nL is expected, where nL =
-     * (L+1)*(L+2)*(L+3)/6 and the fast running index nL has the ordering
-     *
-     * 0 X Y Z XX XY YY XZ YZ ZZ XXX XXY XYY YYY XXZ XYZ YYZ XZZ YZZ ZZZ ...
-     *
-     * i.e. generated by the python loops
-     * \code{.py}
-     * for L in range(maxAM+1):
-     *     for Lz in range(0,L+1):
-     *         for Ly in range(0, L - Lz + 1):
-     *              Lx  = L - Ly - Lz
-     * \endcode
-     * \param coordinates the cartesian coordinates, ordered in memory as {x1,y1,z1,x2,y2,z2,....xN,yN,zN}.
-     * \param energy pointer to the variable holding the energy; this is incremented, not assigned.
-     * \return the reciprocal space energy.
+     * \brief setup initializes this object for a PME calculation using MPI parallism and threading.
+     *        This may be called repeatedly without compromising performance.
+     * \param rPower the exponent of the (inverse) distance kernel (e.g. 1 for Coulomb, 6 for attractive
+     * dispersion). \param kappa the attenuation parameter in units inverse of those used to specify coordinates.
+     * \param splineOrder the order of B-spline; must be at least (2 + max. multipole order + deriv. level needed).
+     * \param dimA the dimension of the FFT grid along the A axis.
+     * \param dimB the dimension of the FFT grid along the B axis.
+     * \param dimC the dimension of the FFT grid along the C axis.
+     * \param scaleFactor a scale factor to be applied to all computed energies and derivatives thereof (e.g. the
+     *        1 / [4 pi epslion0] for Coulomb calculations).
+     * \param nThreads the maximum number of threads to use for each MPI instance; if set to 0 all available threads
+     * are \param communicator the MPI communicator for the reciprocal space calcultion, which should already be
+     *        initialized.
+     * \param numNodesA the number of nodes to be used for the A dimension.
+     * \param numNodesB the number of nodes to be used for the B dimension.
+     * \param numNodesC the number of nodes to be used for the C dimension.
      */
-    Real computeERecParallel(int parameterAngMom, const Matrix<Real> &parameters, const Matrix<Real> &coordinates) {
-        sanityChecks(parameterAngMom, parameters, coordinates);
+    void setupParallel(int rPower, Real kappa, int splineOrder, int dimA, int dimB, int dimC, Real scaleFactor,
+                       int nThreads, const MPI_Comm &communicator, NodeOrder nodeOrder, int numNodesA, int numNodesB,
+                       int numNodesC) {
+        numNodesHasChanged_ = numNodesA_ != numNodesA || numNodesB_ != numNodesB || numNodesC_ != numNodesC;
+#if HAVE_MPI == 1
+        mpiCommunicator_ =
+            std::unique_ptr<MPIWrapper<Real>>(new MPIWrapper<Real>(communicator, numNodesA, numNodesB, numNodesC));
+        switch (nodeOrder) {
+            case (NodeOrder::ZYX):
+                rankA_ = mpiCommunicator_->myRank_ % numNodesA;
+                rankB_ = (mpiCommunicator_->myRank_ % (numNodesB * numNodesA)) / numNodesA;
+                rankC_ = mpiCommunicator_->myRank_ / (numNodesB * numNodesA);
+                mpiCommunicatorA_ = mpiCommunicator_->split(rankC_ * numNodesB + rankB_, rankA_);
+                mpiCommunicatorB_ = mpiCommunicator_->split(rankC_ * numNodesA + rankA_, rankB_);
+                mpiCommunicatorC_ = mpiCommunicator_->split(rankB_ * numNodesA + rankA_, rankC_);
+                break;
+            default:
+                throw std::runtime_error("Unknown NodeOrder in setupParallel.");
+        }
+        numNodesA_ = numNodesA;
+        numNodesB_ = numNodesB;
+        numNodesC_ = numNodesC;
+        dimA = findGridSize(dimA, {numNodesA});
+        dimB = findGridSize(dimB, {numNodesB * numNodesC});
+        dimC = findGridSize(dimC, {numNodesA * numNodesC, numNodesB * numNodesC});
+        myDimA_ = dimA / numNodesA;
+        myDimB_ = dimB / numNodesB;
+        myDimC_ = dimC / numNodesC;
+        firstA_ = rankA_ * myDimA_;
+        firstB_ = rankB_ * myDimB_;
+        firstC_ = rankC_ * myDimC_;
+        lastA_ = rankA_ == numNodesA ? dimA : (rankA_ + 1) * myDimA_;
+        lastB_ = rankB_ == numNodesB ? dimB : (rankB_ + 1) * myDimB_;
+        lastC_ = rankC_ == numNodesC ? dimC : (rankC_ + 1) * myDimC_;
 
-        spreadParameters(parameterAngMom, parameters, coordinates);
-        PRINT(realGrid_);
-        return 0;
-        forwardTransform();
-        return convolveE(parameterAngMom, parameters);
+        common_init(rPower, kappa, splineOrder, dimA, dimB, dimC, scaleFactor, nThreads);
+
+#else   // Have MPI
+        throw std::runtime_error(
+            "setupParallel called, but helpme was not compiled with MPI.  Make sure you compile with -DHAVE_MPI=1 "
+            "in "
+            "the list of compiler definitions.");
+#endif  // Have MPI
     }
 };
-}  // Namespace libpme
+}  // Namespace helpme
 
-using PMEInstanceD = libpme::PMEInstance<double>;
-using PMEInstanceF = libpme::PMEInstance<float>;
+using PMEInstanceD = helpme::PMEInstance<double>;
+using PMEInstanceF = helpme::PMEInstance<float>;
 
 #else
 
 // C header
 #include <stddef.h>
+#if HAVE_MPI == 1
+#include <mpi.h>
+#endif
 
 typedef enum { XAligned = 0, ShapeMatrix = 1 } LatticeType;
+typedef enum { ZYX = 0 } NodeOrder;
 
 typedef struct PMEInstance PMEInstance;
-extern struct PMEInstance *libpme_createD();
-extern struct PMEInstance *libpme_createF();
-extern void libpme_setupD(struct PMEInstance *pme, int rPower, double kappa, int splineOrder, int aDim, int bDim,
+extern struct PMEInstance *helpme_createD();
+extern struct PMEInstance *helpme_createF();
+extern void helpme_destroyD(struct PMEInstance *pme);
+extern void helpme_destroyF(struct PMEInstance *pme);
+extern void helpme_setupD(struct PMEInstance *pme, int rPower, double kappa, int splineOrder, int aDim, int bDim,
                           int cDim, double scaleFactor, int nThreads);
-extern void libpme_setupF(struct PMEInstance *pme, int rPower, float kappa, int splineOrder, int aDim, int bDim,
+extern void helpme_setupF(struct PMEInstance *pme, int rPower, float kappa, int splineOrder, int aDim, int bDim,
                           int cDim, float scaleFactor, int nThreads);
-extern void libpme_set_lattice_vectorsD(struct PMEInstance *pme, double A, double B, double C, double kappa,
+#if HAVE_MPI == 1
+extern void helpme_setup_parallelD(PMEInstance *pme, int rPower, double kappa, int splineOrder, int dimA, int dimB,
+                                   int dimC, double scaleFactor, int nThreads, MPI_Comm communicator,
+                                   NodeOrder nodeOrder, int numNodesA, int numNodesB, int numNodesC);
+extern void helpme_setup_parallelF(PMEInstance *pme, int rPower, float kappa, int splineOrder, int dimA, int dimB,
+                                   int dimC, float scaleFactor, int nThreads, MPI_Comm communicator,
+                                   NodeOrder nodeOrder, int numNodesA, int numNodesB, int numNodesC);
+#endif  // HAVE_MPI
+extern void helpme_set_lattice_vectorsD(struct PMEInstance *pme, double A, double B, double C, double kappa,
                                         double beta, double gamma, LatticeType latticeType);
-extern void libpme_set_lattice_vectorsF(struct PMEInstance *pme, float A, float B, float C, float kappa, float beta,
+extern void helpme_set_lattice_vectorsF(struct PMEInstance *pme, float A, float B, float C, float kappa, float beta,
                                         float gamma, LatticeType latticeType);
-extern double libpme_compute_EF_recD(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, double *parameters,
+extern double helpme_compute_E_recD(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, double *parameters,
+                                    double *coordinates);
+extern float helpme_compute_E_recF(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, float *parameters,
+                                   float *coordinates);
+extern double helpme_compute_EF_recD(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, double *parameters,
                                      double *coordinates, double *forces);
-extern float libpme_compute_EF_recF(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, float *parameters,
+extern float helpme_compute_EF_recF(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, float *parameters,
                                     float *coordinates, float *forces);
+extern double helpme_compute_EFV_recD(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, double *parameters,
+                                      double *coordinates, double *forces, double *virial);
+extern float helpme_compute_EFV_recF(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, float *parameters,
+                                     float *coordinates, float *forces, float *virial);
+extern void helpme_compute_P_recD(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, double *parameters,
+                                  double *coordinates, size_t nGridPoints, double *gridPoints, int derivativeLevel,
+                                  double *potential);
+extern void helpme_compute_P_recF(struct PMEInstance *pme, size_t nAtoms, int parameterAngMom, float *parameters,
+                                  float *coordinates, size_t nGridPoints, float *gridPoints, int derivativeLevel,
+                                  float *potential);
 #endif  // C++/C
 #endif  // Header guard
