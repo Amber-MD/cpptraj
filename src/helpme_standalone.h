@@ -26,7 +26,7 @@
 #include <array>
 #include <cmath>
 #include <complex>
-#include <exception>
+#include <stdexcept>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -66,7 +66,7 @@
 
 #include <algorithm>
 #include <complex>
-#include <exception>
+#include <stdexcept>
 #include <fstream>
 #include <initializer_list>
 #include <iostream>
@@ -401,7 +401,7 @@ std::string stringify(T *data, size_t size, size_t rowDim, int width = 14, int p
 #ifndef _HELPME_MEMORY_H_
 #define _HELPME_MEMORY_H_
 
-#include <exception>
+#include <stdexcept>
 #include <vector>
 
 #include <fftw3.h>
@@ -1138,7 +1138,7 @@ Matrix<Real> cartesianTransform(int maxAngularMomentum, const Matrix<Real> &tran
 #define _HELPME_FFTW_WRAPPER_H_
 
 #include <complex>
-#include <exception>
+#include <stdexcept>
 #include <iostream>
 #include <limits>
 #include <type_traits>
@@ -1826,7 +1826,7 @@ int findGridSize(T inputSize, const std::initializer_list<T> &requiredDivisors) 
 #include <mpi.h>
 
 #include <complex>
-#include <exception>
+#include <stdexcept>
 #include <iomanip>
 #include <iostream>
 
@@ -3166,7 +3166,7 @@ class PMEInstance {
                     std::string msg("Bad rPower requested.  To fix this, add the appropriate entry in");
                     msg += __FILE__;
                     msg += ", line number ";
-                    msg += std::to_string(__LINE__ - 5);
+                    msg += std::to_string((long long)__LINE__ - 5);
                     throw std::runtime_error(msg.c_str());
                     break;
             }
