@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cfloat> // LDBL_EPSILON
 #include <cmath>
 #include <complex>
 #include <stdexcept>
@@ -1423,7 +1424,7 @@ struct incompleteGammaRecursion<Real, 0, false> {
     }
 
    private:
-    static constexpr long double epsilon = 10.0 * std::numeric_limits<long double>::epsilon();
+    static constexpr long double epsilon = 10.0 * LDBL_EPSILON;
 
     ////////////////////////////////////////////////////////////////////////////////
     // static long double Continued_Fraction_Ei( long double x )                  //
