@@ -49,8 +49,8 @@ Lyx/PDF formats in the `doc/` subdirectory and in HTML format
 Installation & Testing
 ======================
 Run `./configure --help` for a short list of configure options. `./configure --full-help`
-will list all available configure options. For full functionality, CPPTRAJ requires the following
-libraries:
+will list all available configure options. For full functionality, CPPTRAJ makes use of
+the following libraries:
 
 * NetCDF
 * BLAS
@@ -60,6 +60,7 @@ libraries:
 * Gzip
 * Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
 * CUDA (-cuda build only)
+* FFTW (mostly optional; required for PME functionality)
 
 `./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK/ARPACK and/or NetCDF libraries installed,
@@ -177,3 +178,4 @@ Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
 * CPPTRAJ uses the xdrfile library for reading XTC files (http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library); specifically a somewhat updated version from MDTRAJ (https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
 
+* The reciprocal part of the PME calculation is handled by the helPME library (https://github.com/andysim/helpme) by Andy Simmonett.
