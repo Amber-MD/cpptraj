@@ -202,7 +202,7 @@ namespace helpme {
 
 template <typename Real>
 void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Real *A, int n) {
-    int row, i, j, k, m;
+    int i, j, k, m;
     Real *pAk, *pAm, *p_r, *p_e;
     Real threshold_norm;
     Real threshold;
@@ -211,7 +211,6 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
     Real dum1;
     Real dum2;
     Real dum3;
-    Real r;
     Real max;
 
     // Take care of trivial cases
@@ -2973,11 +2972,7 @@ class PMEInstance {
 
         Real bPrefac = M_PI * M_PI / (kappa * kappa);
         Real volPrefac = scaleFactor * pow(M_PI, rPower - 1) / (sqrtPi * gammaComputer<Real, rPower>::value * volume);
-        int halfNx = nx / 2 + 1;
         const Real *boxPtr = boxInv[0];
-        const Real *xMPtr = xMVals.data();
-        const Real *yMPtr = yMVals.data();
-        const Real *zMPtr = zMVals.data();
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
@@ -3183,22 +3178,22 @@ class PMEInstance {
 
    public:
     PMEInstance()
-        : boxVecs_(3, 3),
-          recVecs_(3, 3),
-          scaledRecVecs_(3, 3),
-          rPower_(0),
-          scaleFactor_(0),
-          dimA_(0),
+        : dimA_(0),
           dimB_(0),
           dimC_(0),
           splineOrder_(0),
+          rPower_(0),
+          scaleFactor_(0),
           kappa_(0),
-          cellA_(0),
-          cellB_(0),
-          cellC_(0),
+          boxVecs_(3, 3),
+          recVecs_(3, 3),
+          scaledRecVecs_(3, 3),
           numNodesA_(1),
           numNodesB_(1),
           numNodesC_(1),
+          cellA_(0),
+          cellB_(0),
+          cellC_(0),
           cellAlpha_(0),
           cellBeta_(0),
           cellGamma_(0) {}
@@ -3581,7 +3576,6 @@ class PMEInstance {
         bool iAmNodeZero = (rankA_ == 0 && rankB_ == 0 && rankC_ == 0);
         Real *influenceFunction = cachedInfluenceFunction_.data();
         int startX = rankA_ * myComplexDimA_;
-        int startY = rankB_ * myDimB_ + rankC_ * myDimB_ / numNodesC_;
 
         Real energy = 0;
         if (rPower_ > 3 && iAmNodeZero) {
