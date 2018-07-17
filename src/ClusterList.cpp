@@ -89,7 +89,7 @@ typedef std::multimap<double, int> RepMap;
 /// Save up to maxSize of the best (lowest) representative scores/frames.
 void SaveBestRep(RepMap& reps, RepPair const& Dist_Num, unsigned int maxSize)
 {
-  if (reps.empty())
+  if (reps.size() < maxSize)
     reps.insert( Dist_Num );
   else {
     RepMap::reverse_iterator end = reps.rbegin();
@@ -103,6 +103,7 @@ void SaveBestRep(RepMap& reps, RepPair const& Dist_Num, unsigned int maxSize)
     }
   }
 }
+
 /// Set given cluster node with best representative frames/scores in reps
 void SetBestRepFrame(ClusterNode& node, RepMap const& reps) {
   if (!reps.empty()) {
