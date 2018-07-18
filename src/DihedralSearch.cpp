@@ -18,7 +18,11 @@ struct DihedralSearch::DIH_TYPE {
 const DihedralSearch::DIH_TYPE DihedralSearch::DIH[] = {
   {-1, MetaData::PHI,     "C"  , "N"  , "CA" , "C"   }, // PHI: C0-N1-CA1-C1
   { 1, MetaData::PSI,     "N"  , "CA" , "C"  , "N"   }, // PSI: N0-CA0-C0-N1
-  { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG"  }, // Protein CHI:
+  { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG"  }, // Protein CHI: R,N,D,Q,E,H,L,K,M,F,P,W,Y
+  { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "SG"  }, // Protein CHI: C
+  { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG1" }, // Protein CHI: I,V
+  { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "OG"  }, // Protein CHI: S
+  { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "OG1" }, // Protein CHI: T
   {-2, MetaData::OMEGA,   "CA" , "C"  , "N"  , "CA"  }, // OMEGA: CA0-C0-N1-CA1
   {-1, MetaData::ALPHA,   "O3'", "P"  , "O5'", "C5'" }, // ALPHA: 
   { 0, MetaData::BETA,    "P"  , "O5'", "C5'", "C4'" }, // BETA:
@@ -28,8 +32,8 @@ const DihedralSearch::DIH_TYPE DihedralSearch::DIH[] = {
   { 2, MetaData::ZETA,    "C3'", "O3'", "P"  , "O5'" }, // ZETA:
   { 0, MetaData::NU1,     "O4'", "C1'", "C2'", "C3'" }, // NU1: Nucleic pucker
   { 0, MetaData::NU2,     "C1'", "C2'", "C3'", "C4'" }, // NU2: Nucleic pucker
-  { 0, MetaData::CHIN,    "O4'", "C1'", "N9",  "C4"  }, // Nucleic CHI: Purine
-  { 0, MetaData::CHIN,    "O4'", "C1'", "N1",  "C2"  }, // Nucleic CHI: Pyrimidine
+  { 0, MetaData::CHIN,    "O4'", "C1'", "N9",  "C4"  }, // Nucleic CHI: Purine (A, G)
+  { 0, MetaData::CHIN,    "O4'", "C1'", "N1",  "C2"  }, // Nucleic CHI: Pyrimidine (U, T, C)
   { 0, MetaData::H1P,     "H1'", "C1'", "N9",  "C4"  }, // Nucleic H1' sugar pucker-base (purine)
   { 0, MetaData::H1P,     "H1'", "C1'", "N1",  "C2"  }, // Nucleic H1' sugar pucker-base (pyrim.)
   { 0, MetaData::C2P,     "C2'", "C1'", "N9",  "C4"  }, // Nucleic C2' sugar pucker-base (purine)
