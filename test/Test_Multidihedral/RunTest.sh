@@ -48,6 +48,20 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest chin.dat.save chin.dat
 fi
+
+# Test protein dihedrals 
+UNITNAME='Multidihedral protein dihedrals test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > dih.in <<EOF
+parm ARG.mol2
+trajin ARG.mol2
+multidihedral out arg.dat
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest arg.dat.save arg.dat
+fi
+
 EndTest
 
 exit 0
