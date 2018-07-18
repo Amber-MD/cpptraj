@@ -20,6 +20,7 @@ class MetaData {
     enum scalarType {
       ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,  NU1,   NU2,
       H1P,     C2P,  CHIN,  PHI,   PSI,     CHIP,  OMEGA,
+      CHI2,    CHI3, CHI4,  CHI5,
       PUCKER,
       NOE,
       DIST,    COVAR,     MWCOVAR, //FIXME: May need more descriptive names 
