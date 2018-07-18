@@ -19,7 +19,8 @@ class MetaData {
     /// Type of DataSet, used by Analysis_Statistics. Must match Stypes, TypeModes
     enum scalarType {
       // NOTE: DihedralSearch depends on Dihedrals being between ALPHA and PUCKER
-      ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,  NU1,   NU2,
+      ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,
+      NU0,     NU1,  NU2,   NU3,   NU4,
       H1P,     C2P,  CHIN,  PHI,   PSI,     CHIP,  OMEGA,
       CHI2,    CHI3, CHI4,  CHI5,
       PUCKER,

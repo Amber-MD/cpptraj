@@ -5,7 +5,8 @@
 const char* MetaData::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix","vector",0};
 const char* MetaData::Stypes[] = {
   // Torsions
-  "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "nu1",   "nu2",
+  "alpha", "beta", "gamma", "delta", "epsilon", "zeta",
+  "nu0",   "nu1",  "nu2",   "nu3",   "nu4",
   "h1p",   "c2p",  "chin",  "phi",   "psi",     "chip", "omega",
   "chi2",  "chi3", "chi4",  "chi5",
   // Pucker
@@ -20,7 +21,8 @@ const char* MetaData::Stypes[] = {
   "IRED",
   0 };
 const MetaData::scalarMode MetaData::TypeModes[] = {
-  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
+  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
+  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
   M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
   M_TORSION, M_TORSION, M_TORSION, M_TORSION,
   M_PUCKER,

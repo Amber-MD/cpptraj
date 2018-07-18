@@ -42,8 +42,11 @@ const DihedralSearch::DIH_TYPE DihedralSearch::DIH[] = {
   { 2, MetaData::DELTA,   "C5'", "C4'", "C3'", "O3'" }, // DELTA:
   { 2, MetaData::EPSILON, "C4'", "C3'", "O3'", "P"   }, // EPSILON:
   { 1, MetaData::ZETA,    "C3'", "O3'", "P"  , "O5'" }, // ZETA:
+  { 2, MetaData::NU0,     "C4'", "O4'", "C1'", "C2'" }, // NU0: Nucleic pucker
   { 2, MetaData::NU1,     "O4'", "C1'", "C2'", "C3'" }, // NU1: Nucleic pucker
   { 2, MetaData::NU2,     "C1'", "C2'", "C3'", "C4'" }, // NU2: Nucleic pucker
+  { 2, MetaData::NU3,     "C2'", "C3'", "C4'", "O4'" }, // NU3: Nucleic pucker
+  { 2, MetaData::NU4,     "C3'", "C4'", "O4'", "C1'" }, // NU4: Nucleic pucker
   { 2, MetaData::CHIN,    "O4'", "C1'", "N9",  "C4"  }, // Nucleic CHI: Purine (A, G)
   { 2, MetaData::CHIN,    "O4'", "C1'", "N1",  "C2"  }, // Nucleic CHI: Pyrimidine (U, T, C)
   { 2, MetaData::H1P,     "H1'", "C1'", "N9",  "C4"  }, // Nucleic H1' sugar pucker-base (purine)
