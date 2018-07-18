@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles dih.in multidih.dat dihedral.dat custom.dat dihedral2.dat all.dat chin.dat
+CleanFiles dih.in multidih.dat dihedral.dat custom.dat dihedral2.dat all.dat \
+           chin.dat arg.dat cyclic.dat
 
 TESTNAME='Multidihedral tests'
 Requires maxthreads 10
@@ -60,6 +61,18 @@ multidihedral out arg.dat
 EOF
   RunCpptraj "$UNITNAME"
   DoTest arg.dat.save arg.dat
+fi
+
+UNITNAME='Multidihedral cyclic molecule test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > dih.in <<EOF
+parm cyclic.mol2
+trajin cyclic.mol2
+multidihedral phi psi omega out cyclic.dat
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest cyclic.dat.save cyclic.dat
 fi
 
 EndTest
