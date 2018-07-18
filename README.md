@@ -1,7 +1,7 @@
 CPPTRAJ
 =======
 
-CPPTRAJ is a program designed to load and analyze molecular dynamics
+CPPTRAJ is a program designed to process and analyze molecular dynamics
 trajectories and relevant data sets derived from their analysis. It is 
 a C++ rewrite of the PTRAJ trajectory analysis code from Amber.
 
@@ -98,9 +98,9 @@ Laboratory of Computational Biology
 National Heart Lung and Blood Institute
 National Institutes of Health, Bethesda, MD. 
 
-  CPPTRAJ is based on PTRAJ by Thomas E. Cheatham, III (Department of
-Medicinal Chemistry, University of Utah, Salt Lake City, UT, USA) and
-many routines from PTRAJ have been adapted for 
+  CPPTRAJ began as a C++ rewrite of PTRAJ by Thomas E. Cheatham, III
+(Department of Medicinal Chemistry, University of Utah, Salt Lake City,
+ UT, USA) and many routines from PTRAJ were adapted for 
 use in CPPTRAJ, including code used in the following classes:
 Analysis\_CrankShaft, Analysis\_Statistics, Action\_DNAionTracker,
 Action\_RandomizeIons, Action\_Principal, Action\_Grid, GridAction,
@@ -145,6 +145,9 @@ Code for the CUDA version of the 'closest' Action.
 
 * Andrew Simmonett (National Institutes of Health)
 Code for the reciprocal part of the particle mesh Ewald calculation.
+
+* Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)
+Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearch).
 
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)
