@@ -23,6 +23,18 @@ const DihedralSearch::DIH_TYPE DihedralSearch::DIH[] = {
   { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG1" }, // Protein CHI: I,V
   { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "OG"  }, // Protein CHI: S
   { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "OG1" }, // Protein CHI: T
+  { 0, MetaData::CHI2,    "CA" , "CB" , "CG" , "CD"  }, // Protein CHI2: R, Q, E, I, K, P
+  { 0, MetaData::CHI2,    "CA" , "CB" , "CG" , "OD1" }, // Protein CHI2: N, D
+  { 0, MetaData::CHI2,    "CA" , "CB" , "CG" , "ND1" }, // Protein CHI2: H
+  { 0, MetaData::CHI2,    "CA" , "CB" , "CG" , "CD1" }, // Protein CHI2: L, F, W, Y
+  { 0, MetaData::CHI2,    "CA" , "CB" , "CG" , "SD"  }, // Protein CHI2: M
+  { 0, MetaData::CHI3,    "CB" , "CG" , "CD" , "NE"  }, // Protein CHI3: R
+  { 0, MetaData::CHI3,    "CB" , "CG" , "CD" , "OE1" }, // Protein CHI3: Q, E
+  { 0, MetaData::CHI3,    "CB" , "CG" , "CD" , "CE"  }, // Protein CHI3: K
+  { 0, MetaData::CHI3,    "CB" , "CG" , "SD" , "CE"  }, // Protein CHI3: M
+  { 0, MetaData::CHI4,    "CG" , "CD" , "NE" , "CZ"  }, // Protein CHI4: R
+  { 0, MetaData::CHI4,    "CG" , "CD" , "CE" , "NZ"  }, // Protein CHI4: K
+  { 0, MetaData::CHI5,    "CD" , "NE" , "CZ" , "NH1" }, // Protein CHI5: R
   {-2, MetaData::OMEGA,   "CA" , "C"  , "N"  , "CA"  }, // OMEGA: CA0-C0-N1-CA1
   {-1, MetaData::ALPHA,   "O3'", "P"  , "O5'", "C5'" }, // ALPHA: 
   { 0, MetaData::BETA,    "P"  , "O5'", "C5'", "C4'" }, // BETA:
