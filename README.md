@@ -1,30 +1,37 @@
 CPPTRAJ
 =======
 
-CPPTRAJ is a program designed to process and analyze molecular dynamics
-trajectories and relevant data sets derived from their analysis. It is 
-a C++ rewrite of the PTRAJ trajectory analysis code from Amber.
-
-The official AmberTools release version of CPPTRAJ can be found
-at the [Amber website](http://ambermd.org).
-
-See what's [new in CPPTRAJ](https://github.com/Amber-MD/cpptraj/wiki).
-
-For more information see the following publication:
-
-[Daniel R. Roe and Thomas E. Cheatham, III, "PTRAJ and CPPTRAJ: Software for
-  Processing and Analysis of Molecular Dynamics Trajectory Data". J. Chem.
-  Theory Comput., 2013, 9 (7), pp 3084-3095](http://pubs.acs.org/doi/abs/10.1021/ct400341p).
+Molecular dynamics trajectory data analysis.
 
 Build Status
 =============
 [![Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
 [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
+[![Pytraj Compatibility Status](https://circleci.com/gh/Amber-MD/cpptraj.svg?style=svg)](https://circleci.com/gh/Amber-MD/cpptraj)
 
-PYTRAJ Compatibility Status
-===========================
-[Pytraj GitHub](https://github.com/Amber-MD/pytraj) 
-[![CircleCI](https://circleci.com/gh/Amber-MD/cpptraj.svg?style=svg)](https://circleci.com/gh/Amber-MD/cpptraj)
+Description
+===========
+
+CPPTRAJ is a program designed to process and analyze molecular dynamics
+trajectories and relevant data sets derived from their analysis. CPPTRAJ
+supports many popular MD software packages including from Amber, CHARMM,
+Gromacs, and NAMD.
+
+CPPTRAJ is also distributed as part of the freely available AmberTools
+software package. The official AmberTools release version of CPPTRAJ can
+be found at the [Amber website](http://ambermd.org).
+
+For those wanting to use CPPTRAJ in their Python scripts, see
+[Pytraj](https://github.com/Amber-MD/pytraj).
+
+See what's [new in CPPTRAJ](https://github.com/Amber-MD/cpptraj/wiki). For those
+just starting out you may want to check out some [CPPTRAJ tutorials](http://ambermd.org/tutorials/TrajectoryAnalysis.php#cpptraj).
+
+For more information (or to cite CPPTRAJ) see the following publication:
+
+[Daniel R. Roe and Thomas E. Cheatham, III, "PTRAJ and CPPTRAJ: Software for
+  Processing and Analysis of Molecular Dynamics Trajectory Data". J. Chem.
+  Theory Comput., 2013, 9 (7), pp 3084-3095](http://pubs.acs.org/doi/abs/10.1021/ct400341p).
 
 Disclaimer and Copyright
 ========================
