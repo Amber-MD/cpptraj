@@ -165,7 +165,7 @@ Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearc
 ## Code in CPPTRAJ that originated in PTRAJ
 
 * Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)  
-Alrun N. Koller (Heinrich-Heine-University, Düsseldorf, Germany) 
+Alrun N. Koller (Heinrich-Heine-University, Düsseldorf, Germany)   
 Original implementation of matrix/vector functionality in PTRAJ, including matrix diagonalization, IRED analysis, eigenmode analysis, and vector time correlations.
 
 * Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)  
