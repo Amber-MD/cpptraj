@@ -14,8 +14,9 @@ Description
 
 CPPTRAJ is a program designed to process and analyze molecular dynamics
 trajectories and relevant data sets derived from their analysis. CPPTRAJ
-supports many popular MD software packages including from Amber, CHARMM,
-Gromacs, and NAMD.
+supports many popular MD software packages including [Amber](http://ambermd.org/),
+[CHARMM](https://www.charmm.org/charmm/), [Gromacs](http://www.gromacs.org/),
+and [NAMD](http://www.ks.uiuc.edu/Research/namd/).
 
 CPPTRAJ is also distributed as part of the freely available AmberTools
 software package. The official AmberTools release version of CPPTRAJ can
@@ -184,8 +185,10 @@ Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
 ## External libraries bundled with CPPTRAJ
 
-* CPPTRAJ makes use of the GNU readline library for the interactive command line (https://cnswww.cns.cwru.edu/php/chet/readline/rltop.html).
+* CPPTRAJ makes use of the [GNU readline](https://tiswww.case.edu/php/chet/readline/rltop.html) library for the interactive command line.
 
-* CPPTRAJ uses the xdrfile library for reading XTC files (http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library); specifically a somewhat updated version from MDTRAJ (https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
+* CPPTRAJ uses the [ARPACK](https://www.caam.rice.edu//software/ARPACK/) library to calculate eigenvalues/eigenvectors from large sparse matrices.
 
-* The reciprocal part of the PME calculation is handled by the helPME library (https://github.com/andysim/helpme) by Andy Simmonett.
+* CPPTRAJ uses the [xdrfile](http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library) library for reading XTC file; specifically a somewhat updated version from [MDTRAJ](https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
+
+* The reciprocal part of the PME calculation is handled by the [helPME](https://github.com/andysim/helpme) library by Andy Simmonett.
