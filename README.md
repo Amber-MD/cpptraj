@@ -1,7 +1,7 @@
 CPPTRAJ
 =======
 
-Molecular dynamics trajectory data analysis.
+Fast, parallelized molecular dynamics trajectory data analysis.
 
 Build Status
 =============
