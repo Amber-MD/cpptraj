@@ -183,7 +183,8 @@ Original implementation of the Amber NetCDF trajectory format.
 * Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)  
 Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
-## External libraries bundled with CPPTRAJ
+External libraries bundled with CPPTRAJ
+=======================================
 
 * CPPTRAJ makes use of the [GNU readline](https://tiswww.case.edu/php/chet/readline/rltop.html) library for the interactive command line.
 
