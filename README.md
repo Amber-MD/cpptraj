@@ -142,19 +142,19 @@ Normal mode wizard (nmwiz) output, original code for ADP calculation in Action\_
 * Zahra Heidari (Faculty of Chemistry, K. N. Toosi University of Technology, Tehran, Iran)  
 Original code for Analysis\_Wavelet.
 
-* Chris Lee (University of California, San Diego)
+* Chris Lee (University of California, San Diego)  
 Support for processing force information in NetCDF trajectories.
 
-* Steven Ramsey (CUNY Lehman College, Bronx, NY)
+* Steven Ramsey (CUNY Lehman College, Bronx, NY)  
 Enhancements to entropy calculation in original Action\_Gist.
 
-* Amit Roy (University of Utah, UT)
+* Amit Roy (University of Utah, UT)  
 Code for the CUDA version of the 'closest' Action.
 
-* Andrew Simmonett (National Institutes of Health)
+* Andrew Simmonett (National Institutes of Health)  
 Code for the reciprocal part of the particle mesh Ewald calculation.
 
-* Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)
+* Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)  
 Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearch).
 
 #### Various Contributions
