@@ -5,6 +5,8 @@
 # Clean
 CleanFiles cpptraj.offset.in rem.crd.combined gzip.rem.crd.combined bzip2.rem.crd.combined
 
+TESTNAME='Trajectory read with offset tests'
+Requires maxthreads 13
 # Test 1
 cat > cpptraj.offset.in <<EOF
 noprogress

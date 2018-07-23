@@ -4,6 +4,9 @@
 
 CleanFiles ptraj.in cpptraj.nc mop.trr temp.crd total?.out
 
+TESTNAME='GROMACS TRR tests'
+Requires maxthreads 10
+
 INPUT="-i ptraj.in"
 
 GmxTrrRead() {

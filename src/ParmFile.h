@@ -25,8 +25,12 @@ class ParmFile {
       return WriteTopology(t, n, ArgList(), f, d);
     }
     FileName const& ParmFilename() { return parmName_; }
+    /// \return ParmFormatType of given file or UNKNOWN_PARM.
+    static ParmFormatType DetectFormat(FileName const&);
   private :
-    ParmIO* DetectFormat(FileName const&, ParmFormatType&); 
+    /// \return Allocated ParmIO if given file matches known type, 0 otherwise.
+    static ParmIO* DetectFormat(FileName const&, ParmFormatType&);
+
     FileName parmName_; ///< Topology input/output file name. 
 };
 #endif

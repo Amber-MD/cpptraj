@@ -59,5 +59,7 @@ class TrajectoryFile {
     static TrajectoryIO* AllocTrajIO(TrajFormatType t) {
       return (TrajectoryIO*)FileTypes::AllocIO(TF_AllocArray, t, true);
     }
+    /// \return TrajFormatType of given file or UNKNOWN_TRAJ
+    static TrajFormatType DetectFormat(FileName const&);
 };
 #endif

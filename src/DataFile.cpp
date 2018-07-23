@@ -364,9 +364,9 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
   sortSets_ = argIn.hasKey("sort");
   // Dimension labels 
-  defaultDim_[0].label_ = argIn.GetStringKey("xlabel");
-  defaultDim_[1].label_ = argIn.GetStringKey("ylabel");
-  defaultDim_[2].label_ = argIn.GetStringKey("zlabel");
+  defaultDim_[0].label_ = argIn.GetStringKey("xlabel", defaultDim_[0].label_);
+  defaultDim_[1].label_ = argIn.GetStringKey("ylabel", defaultDim_[1].label_);
+  defaultDim_[2].label_ = argIn.GetStringKey("zlabel", defaultDim_[2].label_);
   // Dimension mins
   if (argIn.Contains("xmin")) {
     defaultDim_[0].min_ = argIn.getKeyDouble("xmin",1.0);
@@ -381,9 +381,9 @@ int DataFile::ProcessArgs(ArgList &argIn) {
     minIsSet_[2] = true;
   }
   // Dimension steps
-  defaultDim_[0].step_ = argIn.getKeyDouble("xstep", 0.0);
-  defaultDim_[1].step_ = argIn.getKeyDouble("ystep", 0.0);
-  defaultDim_[2].step_ = argIn.getKeyDouble("zstep", 0.0);
+  defaultDim_[0].step_ = argIn.getKeyDouble("xstep", defaultDim_[0].step_);
+  defaultDim_[1].step_ = argIn.getKeyDouble("ystep", defaultDim_[1].step_);
+  defaultDim_[2].step_ = argIn.getKeyDouble("zstep", defaultDim_[2].step_);
   // ptraj 'time' keyword
   if (argIn.Contains("time")) {
     defaultDim_[0].step_ = argIn.getKeyDouble("time", 1.0);

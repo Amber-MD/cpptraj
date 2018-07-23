@@ -320,6 +320,14 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
     return Action::SKIP;
   }
+  if ( tgtMask_.Nselected() < 3 ) {
+    mprintf("Warning: Less than 3 atoms selected for RMSD. Cannot fully"
+            "Warning:   populate the coordinate covariance matrix.\n");
+    if (debug_ == 0) {
+      mprintf("Warning: Skipping.\n");
+      return Action::SKIP;
+    }
+  }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
   tgtFrame_.SetupFrameFromMask(tgtMask_, setup.Top().Atoms());

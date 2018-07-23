@@ -4,6 +4,9 @@
 
 CleanFiles dih.in multidih.dat dihedral.dat custom.dat dihedral2.dat all.dat chin.dat
 
+TESTNAME='Multidihedral tests'
+Requires maxthreads 10
+
 INPUT="-i dih.in"
 UNITNAME='Multidihedral test'
 CheckFor netcdf

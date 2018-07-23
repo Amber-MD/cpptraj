@@ -128,3 +128,11 @@ TrajectoryIO* TrajectoryFile::DetectFormat(FileName const& fname, TrajFormatType
   ttype = UNKNOWN_TRAJ;
   return 0;
 }
+
+// TrajectoryFile::DetectFormat()
+TrajectoryFile::TrajFormatType TrajectoryFile::DetectFormat(FileName const& fname) {
+  TrajFormatType ttype;
+  TrajectoryIO* tio = DetectFormat(fname, ttype);
+  delete tio;
+  return ttype;
+}

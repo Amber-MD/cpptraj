@@ -595,7 +595,7 @@ SetupFinalFlags() {
   if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
   if [ "$C11_SUPPORT" = 'yes'    ] ; then
     if [ "${LIB_STAT[$LFFTW3]}" != 'off' ] ; then
-      DIRECTIVES="$DIRECTIVES -DLIBPME -DFC_SYMBOL=2"
+      DIRECTIVES="$DIRECTIVES -DLIBPME -DHAVE_FFTWD=1"
     fi
   fi
   # Set up include and linking flags

@@ -5,12 +5,14 @@
 # Clean
 CleanFiles prec.in prec.dat a1.dat a1.agr xprec.dat
 
+TESTNAME='Data file tests'
+
 TOP="../tz2.truncoct.parm7"
 INPUT="prec.in"
 
 # Test 1
 UNITNAME='Data file output precision test'
-CheckFor netcdf
+CheckFor netcdf maxthreads 10
 if [ $? -eq 0 ] ; then
   cat > prec.in <<EOF
 noprogress

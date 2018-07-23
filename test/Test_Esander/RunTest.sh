@@ -10,7 +10,7 @@ INPUT="-i ene.in"
 
 TestPME() {
   UNITNAME='SANDER energy test, PME'
-  CheckFor pnetcdf
+  CheckFor pnetcdf maxthreads 10
   if [ $? -eq 0 ] ; then
     cat > ene.in <<EOF
 parm ../tz2.truncoct.parm7
@@ -35,14 +35,18 @@ EOF
 }
 
 TestStrip() {
-  cat > ene.in <<EOF
+  UNITNAME="SANDER energy test after 'strip', PME."
+  CheckFor maxthreads 10
+  if [ $? -eq 0 ] ; then
+    cat > ene.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 strip :WAT
 esander NoWat out NoWat.dat
 EOF
-  RunCpptraj "SANDER energy test after 'strip', PME."
-  DoTest NoWat.dat.save NoWat.dat
+    RunCpptraj "$UNITNAME"
+    DoTest NoWat.dat.save NoWat.dat
+  fi
 }
 
 TestGB

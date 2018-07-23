@@ -2,10 +2,10 @@
 #include <algorithm> // copy/fill
 #include <memory> // unique_ptr
 #include "Ewald_ParticleMesh.h"
-#include "libpme_standalone.h"
+#include "helpme_standalone.h"
 #include "CpptrajStdio.h"
 
-typedef libpme::Matrix<double> Mat;
+typedef helpme::Matrix<double> Mat;
 
 /// CONSTRUCTOR
 Ewald_ParticleMesh::Ewald_ParticleMesh() : order_(6)
