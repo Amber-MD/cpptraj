@@ -6,35 +6,54 @@ const DihedralSearch::DihedralType DihedralSearch::D_END   = MetaData::PUCKER;
 
 /// Token to store pre-defined dihedral types.
 struct DihedralSearch::DIH_TYPE {
-  int off;
-  DihedralType type;
-  const char* an0;
-  const char* an1;
-  const char* an2;
-  const char* an3;
+  int cidx;          ///< Index of the "central" atom (i.e. what res should it belong to)
+  DihedralType type; ///< Dihedral MetaData type
+  const char* an0;   ///< First atom name
+  const char* an1;   ///< Second atom name
+  const char* an2;   ///< Third atom name
+  const char* an3;   ///< Fourth atom name
 };
 
 /** Recognized dihedral types go here.  */
 const DihedralSearch::DIH_TYPE DihedralSearch::DIH[] = {
-  {-1, MetaData::PHI,     "C"  , "N"  , "CA" , "C"   }, // PHI: C0-N1-CA1-C1
-  { 1, MetaData::PSI,     "N"  , "CA" , "C"  , "N"   }, // PSI: N0-CA0-C0-N1
-  { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG"  }, // Protein CHI:
-  {-2, MetaData::OMEGA,   "CA" , "C"  , "N"  , "CA"  }, // OMEGA: CA0-C0-N1-CA1
-  {-1, MetaData::ALPHA,   "O3'", "P"  , "O5'", "C5'" }, // ALPHA: 
-  { 0, MetaData::BETA,    "P"  , "O5'", "C5'", "C4'" }, // BETA:
-  { 0, MetaData::GAMMA,   "O5'", "C5'", "C4'", "C3'" }, // GAMMA:
-  { 0, MetaData::DELTA,   "C5'", "C4'", "C3'", "O3'" }, // DELTA:
-  { 1, MetaData::EPSILON, "C4'", "C3'", "O3'", "P"   }, // EPSILON:
-  { 2, MetaData::ZETA,    "C3'", "O3'", "P"  , "O5'" }, // ZETA:
-  { 0, MetaData::NU1,     "O4'", "C1'", "C2'", "C3'" }, // NU1: Nucleic pucker
-  { 0, MetaData::NU2,     "C1'", "C2'", "C3'", "C4'" }, // NU2: Nucleic pucker
-  { 0, MetaData::CHIN,    "O4'", "C1'", "N9",  "C4"  }, // Nucleic CHI: Purine
-  { 0, MetaData::CHIN,    "O4'", "C1'", "N1",  "C2"  }, // Nucleic CHI: Pyrimidine
-  { 0, MetaData::H1P,     "H1'", "C1'", "N9",  "C4"  }, // Nucleic H1' sugar pucker-base (purine)
-  { 0, MetaData::H1P,     "H1'", "C1'", "N1",  "C2"  }, // Nucleic H1' sugar pucker-base (pyrim.)
-  { 0, MetaData::C2P,     "C2'", "C1'", "N9",  "C4"  }, // Nucleic C2' sugar pucker-base (purine)
-  { 0, MetaData::C2P,     "C2'", "C1'", "N1",  "C2"  }, // Nucleic C2' sugar pucker-base (pyrim.)
-  { 0, MetaData::UNDEFINED,   0,     0,     0,     0 }
+  { 2, MetaData::PHI,     "C"  , "N"  , "CA" , "C"   }, // PHI: C0-N1-CA1-C1
+  { 2, MetaData::PSI,     "N"  , "CA" , "C"  , "N"   }, // PSI: N0-CA0-C0-N1
+  { 2, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG"  }, // Protein CHI: R,N,D,Q,E,H,L,K,M,F,P,W,Y
+  { 2, MetaData::CHIP,    "N"  , "CA" , "CB" , "SG"  }, // Protein CHI: C
+  { 2, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG1" }, // Protein CHI: I,V
+  { 2, MetaData::CHIP,    "N"  , "CA" , "CB" , "OG"  }, // Protein CHI: S
+  { 2, MetaData::CHIP,    "N"  , "CA" , "CB" , "OG1" }, // Protein CHI: T
+  { 2, MetaData::CHI2,    "CA" , "CB" , "CG" , "CD"  }, // Protein CHI2: R, Q, E, I, K, P
+  { 2, MetaData::CHI2,    "CA" , "CB" , "CG" , "OD1" }, // Protein CHI2: N, D
+  { 2, MetaData::CHI2,    "CA" , "CB" , "CG" , "ND1" }, // Protein CHI2: H
+  { 2, MetaData::CHI2,    "CA" , "CB" , "CG" , "CD1" }, // Protein CHI2: L, F, W, Y
+  { 2, MetaData::CHI2,    "CA" , "CB" , "CG" , "SD"  }, // Protein CHI2: M
+  { 2, MetaData::CHI3,    "CB" , "CG" , "CD" , "NE"  }, // Protein CHI3: R
+  { 2, MetaData::CHI3,    "CB" , "CG" , "CD" , "OE1" }, // Protein CHI3: Q, E
+  { 2, MetaData::CHI3,    "CB" , "CG" , "CD" , "CE"  }, // Protein CHI3: K
+  { 2, MetaData::CHI3,    "CB" , "CG" , "SD" , "CE"  }, // Protein CHI3: M
+  { 2, MetaData::CHI4,    "CG" , "CD" , "NE" , "CZ"  }, // Protein CHI4: R
+  { 2, MetaData::CHI4,    "CG" , "CD" , "CE" , "NZ"  }, // Protein CHI4: K
+  { 2, MetaData::CHI5,    "CD" , "NE" , "CZ" , "NH1" }, // Protein CHI5: R
+  { 2, MetaData::OMEGA,   "CA" , "C"  , "N"  , "CA"  }, // OMEGA: CA0-C0-N1-CA1
+  { 2, MetaData::ALPHA,   "O3'", "P"  , "O5'", "C5'" }, // ALPHA:
+  { 2, MetaData::BETA,    "P"  , "O5'", "C5'", "C4'" }, // BETA:
+  { 2, MetaData::GAMMA,   "O5'", "C5'", "C4'", "C3'" }, // GAMMA:
+  { 2, MetaData::DELTA,   "C5'", "C4'", "C3'", "O3'" }, // DELTA:
+  { 2, MetaData::EPSILON, "C4'", "C3'", "O3'", "P"   }, // EPSILON:
+  { 1, MetaData::ZETA,    "C3'", "O3'", "P"  , "O5'" }, // ZETA:
+  { 2, MetaData::NU0,     "C4'", "O4'", "C1'", "C2'" }, // NU0: Nucleic pucker
+  { 2, MetaData::NU1,     "O4'", "C1'", "C2'", "C3'" }, // NU1: Nucleic pucker
+  { 2, MetaData::NU2,     "C1'", "C2'", "C3'", "C4'" }, // NU2: Nucleic pucker
+  { 2, MetaData::NU3,     "C2'", "C3'", "C4'", "O4'" }, // NU3: Nucleic pucker
+  { 2, MetaData::NU4,     "C3'", "C4'", "O4'", "C1'" }, // NU4: Nucleic pucker
+  { 2, MetaData::CHIN,    "O4'", "C1'", "N9",  "C4"  }, // Nucleic CHI: Purine (A, G)
+  { 2, MetaData::CHIN,    "O4'", "C1'", "N1",  "C2"  }, // Nucleic CHI: Pyrimidine (U, T, C)
+  { 2, MetaData::H1P,     "H1'", "C1'", "N9",  "C4"  }, // Nucleic H1' sugar pucker-base (purine)
+  { 2, MetaData::H1P,     "H1'", "C1'", "N1",  "C2"  }, // Nucleic H1' sugar pucker-base (pyrim.)
+  { 2, MetaData::C2P,     "C2'", "C1'", "N9",  "C4"  }, // Nucleic C2' sugar pucker-base (purine)
+  { 2, MetaData::C2P,     "C2'", "C1'", "N1",  "C2"  }, // Nucleic C2' sugar pucker-base (pyrim.)
+  { 2, MetaData::UNDEFINED,   0,     0,     0,     0 }
 };
 
 // DihedralSearch::ListKnownTypes()
@@ -76,10 +95,12 @@ DihedralSearch::DihedralToken::DihedralToken(int off,
                                              NameType const& an0, NameType const& an1,
                                              NameType const& an2, NameType const& an3,
                                              std::string const& name) :
-  offset_(off),
+  centerIdx_(2),
   name_(name),
   type_(MetaData::UNDEFINED)
 {
+  // If offset is 2, central atom is second, otherwise use third.
+  if (off > 1) centerIdx_ = 1;
   aname_[0] = an0;
   aname_[1] = an1;
   aname_[2] = an2;
@@ -88,7 +109,7 @@ DihedralSearch::DihedralToken::DihedralToken(int off,
 
 // CONSTRUCTOR - Recognized type 
 DihedralSearch::DihedralToken::DihedralToken(DIH_TYPE const& dih) :
-  offset_(dih.off),
+  centerIdx_(dih.cidx),
   name_(MetaData::TypeString(dih.type)),
   type_(dih.type)
 {
@@ -98,12 +119,12 @@ DihedralSearch::DihedralToken::DihedralToken(DIH_TYPE const& dih) :
   aname_[3] = dih.an3;
 }
 
-static inline int FindNameBondedTo(Atom const& atm, Topology const& top,
-                                    NameType const& aname, int rnum)
+/// \return index of atom named aname bonded to atm in Topology top, or -1 if not found.
+static inline int FindNameBondedTo(Atom const& atm, Topology const& top, NameType const& aname)
 {
   int atomX = -1;
   for (Atom::bond_iterator bat = atm.bondbegin(); bat != atm.bondend(); ++bat)
-    if (top[*bat].Name() == aname && top[*bat].ResNum() == rnum)
+    if (top[*bat].Name() == aname)
     {
       atomX = *bat;
       break;
@@ -112,35 +133,40 @@ static inline int FindNameBondedTo(Atom const& atm, Topology const& top,
 }
 
 // DihedralSearch::DihedralToken::FindDihedralAtoms()
-// FIXME handle cyclic peptides etc
+/** Search given residue for this dihedral.
+  * \return Appropriate DihedralMask if found, or empty DihedralMask if not found.
+  */
 DihedralSearch::DihedralMask 
   DihedralSearch::DihedralToken::FindDihedralAtoms(Topology const& topIn, int resIn) const
 {
-  int resnum[4] = {resIn, resIn, resIn, resIn};
-  switch (offset_) {
-    case -2: --resnum[1];        // -1 a2 and a1
-    case -1: --resnum[0]; break; // -1 a1 only
-    case  2: ++resnum[2];        // +1 a3 and a4
-    case  1: ++resnum[3]; break; // +1 a4 only
-  }
-  if (resnum[0] < 0 || resnum[0] >= topIn.Nres()) return DihedralMask();
-  // Find the first atom in specified residue.
-  int atom0 = -1;
-  for (int at = topIn.Res(resnum[0]).FirstAtom(); at != topIn.Res(resnum[0]).LastAtom(); at++)
-    if (topIn[at].Name() == aname_[0]) {
-      atom0 = at;
+  Residue const& Res = topIn.Res(resIn);
+  int atIdx[4];
+  // See if central atom exists.
+  atIdx[centerIdx_] = -1;
+  for (int at = Res.FirstAtom(); at != Res.LastAtom(); at++)
+  {
+    if (topIn[at].Name() == aname_[centerIdx_]) {
+      atIdx[centerIdx_] = at;
       break;
     }
-  if (atom0 < 0) return DihedralMask();
-  // Subsequent atoms must be bonded to the previous atom.
-  int atom1 = FindNameBondedTo(topIn[atom0], topIn, aname_[1], resnum[1]);
-  if (atom1 < 0) return DihedralMask();
-  int atom2 = FindNameBondedTo(topIn[atom1], topIn, aname_[2], resnum[2]);
-  if (atom2 < 0) return DihedralMask();
-  int atom3 = FindNameBondedTo(topIn[atom2], topIn, aname_[3], resnum[3]);
-  if (atom3 < 0) return DihedralMask();
+  }
+  if (atIdx[centerIdx_] == -1) return DihedralMask();
+  // Find atoms in forward direction.
+  for (int i = centerIdx_+1; i < 4; i++)
+  {
+    int idx = FindNameBondedTo(topIn[atIdx[i-1]], topIn, aname_[i]);
+    if (idx == -1) return DihedralMask();
+    atIdx[i] = idx;
+  }
+  // Find atoms in reverse direction.
+  for (int i = centerIdx_-1; i > -1; i--)
+  {
+    int idx = FindNameBondedTo(topIn[atIdx[i+1]], topIn, aname_[i]);
+    if (idx == -1) return DihedralMask();
+    atIdx[i] = idx;
+  }
   // All atoms found at this point.
-  return DihedralMask(atom0, atom1, atom2, atom3, resIn, name_, type_);
+  return DihedralMask(atIdx[0], atIdx[1], atIdx[2], atIdx[3], resIn, name_, type_);
 }
 
 // -----------------------------------------------------------------------------
