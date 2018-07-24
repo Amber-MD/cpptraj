@@ -361,6 +361,18 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   return Analysis::OK;
 }
 
+// Analysis_Modes::PrintModesInfo()
+void Analysis_Modes::PrintModesInfo(DataSet_Modes const& modinfo) {
+  mprintf("\tModes '%s'", modinfo.legend());
+  if (modinfo.EvalsAreFreq())
+    mprintf(", eigenvalues are in cm^-1");
+  if (modinfo.EvecsAreMassWtd())
+    mprintf(", eigenvectors are mass-weighted");
+  else
+    mprintf(", not mass-weighted");
+  mprintf("\n");
+}
+
 // Analysis_Modes::Analyze()
 Analysis::RetType Analysis_Modes::Analyze() {
   // Check # of modes
@@ -379,14 +391,8 @@ Analysis::RetType Analysis_Modes::Analyze() {
       return Analysis::ERR;
     }
   }
-  mprintf("\tModes '%s'", modinfo_->legend());
-  if (modinfo_->EvalsAreFreq())
-    mprintf(", eigenvalues are in cm^-1");
-  if (modinfo_->EvecsAreMassWtd())
-    mprintf(", eigenvectors are mass-weighted");
-  mprintf("\n");
-  if (!modinfo_->EvalsAreFreq() && type_ == CORR)
-    mprintf("Warning: 'corr' analysis expects eigenvalues in cm^-1.\n");
+  PrintModesInfo( *modinfo_ );
+  if (modinfo2_ != 0) PrintModesInfo( *modinfo2_ );
 
   int err = 0;
   switch ( type_ ) {
@@ -504,6 +510,8 @@ void Analysis_Modes::CalcDisplacement( DataSet_Modes const& modes ) {
 
 // Analysis_Modes::CalcDipoleCorr()
 void Analysis_Modes::CalcDipoleCorr(DataSet_Modes const& modes) {
+  if (!modes.EvalsAreFreq())
+    mprintf("Warning: 'corr' analysis expects eigenvalues in cm^-1.\n");
   double qcorr = 1.0; // For when bose is false
   int rsize = atompairStack_.size() * (end_ - beg_ + 1);
   std::vector<double> results( rsize, 0.0 );
@@ -673,6 +681,24 @@ void Analysis_Modes::CalcEvalFrac(DataSet_Modes const& modes) {
   }
 }
 
+// Analysis_Modes::GetMasses()
+DataSet_Modes::Darray Analysis_Modes::GetMasses(DataSet_Modes const& modes1) {
+  DataSet_Modes::Darray mass1;
+  if (modes1.EvecsAreMassWtd()) {
+    mass1.reserve( modes1.Mass().size() * 3 );
+    for (DataSet_Modes::Darray::const_iterator m = modes1.Mass().begin();
+                                               m != modes1.Mass().end(); ++m)
+    {
+      double sm = sqrt(*m);
+      mass1.push_back( sm ); // FIXME need to change if e.g. dihcovar is mass weighted 
+      mass1.push_back( sm );
+      mass1.push_back( sm );
+    }
+  } else
+    mass1.assign( modes1.VectorSize(), 1.0 );
+  return mass1;
+}
+
 // Analysis_Modes::CalcRMSIP()
 int Analysis_Modes::CalcRMSIP(DataSet_Modes const& modes1, DataSet_Modes const& modes2) {
   if (modes1.VectorSize() != modes2.VectorSize()) {
@@ -692,23 +718,47 @@ int Analysis_Modes::CalcRMSIP(DataSet_Modes const& modes1, DataSet_Modes const& 
             "Warning; RMSIP value may not make sense.\n",
             modes1.legend(), modes1.Meta().TypeString(),
             modes2.legend(), modes2.Meta().TypeString());
+  bool hasMassWt = (modes1.EvecsAreMassWtd() || modes2.EvecsAreMassWtd());
+  bool canUnweight = true;
   if (modes1.EvecsAreMassWtd() && modes1.Mass().empty()) {
-     mprintf("Warning: Modes '%s' have been mass-weighted but no mass information present.\n",
-             modes1.legend());
+    mprintf("Warning: Modes '%s' have been mass-weighted but no mass information present.\n",
+            modes1.legend());
+    canUnweight = false;
   }
   if (modes2.EvecsAreMassWtd() && modes2.Mass().empty()) {
-     mprintf("Warning: Modes '%s' have been mass-weighted but no mass information present.\n",
-             modes2.legend());
+    mprintf("Warning: Modes '%s' have been mass-weighted but no mass information present.\n",
+            modes2.legend());
+    canUnweight = false;
   }
-
-  for (int m1 = beg_; m1 < end_; m1++) {
-    const double* ev1 = modes1.Eigenvector(m1);
-    for (int m2 = beg_; m2 < end_; m2++) {
-      const double* ev2 = modes2.Eigenvector(m2);
-      double dot = 0.0;
-      for (int iv = 0; iv < modes1.VectorSize(); iv++)
-        dot += ev1[iv] * ev2[iv];
-      sumsq += (dot * dot);
+  if (hasMassWt && !canUnweight) {
+    mprintf("Warning: Cannot correct for mass weighting; RMSIP value may not make sense.\n");
+    hasMassWt = false;
+  }
+  if (hasMassWt) {
+    // Correct for mass weighting
+    DataSet_Modes::Darray mass1 = GetMasses(modes1);
+    DataSet_Modes::Darray mass2 = GetMasses(modes2);
+    for (int m1 = beg_; m1 < end_; m1++) {
+      const double* ev1 = modes1.Eigenvector(m1);
+      for (int m2 = beg_; m2 < end_; m2++) {
+        const double* ev2 = modes2.Eigenvector(m2);
+        double dot = 0.0;
+        for (int iv = 0; iv < modes1.VectorSize(); iv++)
+          dot += ev1[iv] * mass1[iv] * ev2[iv] * mass2[iv];
+        sumsq += (dot * dot);
+      }
+    }
+  } else {
+    // No mass weighting
+    for (int m1 = beg_; m1 < end_; m1++) {
+      const double* ev1 = modes1.Eigenvector(m1);
+      for (int m2 = beg_; m2 < end_; m2++) {
+        const double* ev2 = modes2.Eigenvector(m2);
+        double dot = 0.0;
+        for (int iv = 0; iv < modes1.VectorSize(); iv++)
+          dot += ev1[iv] * ev2[iv];
+        sumsq += (dot * dot);
+      }
     }
   }
   sumsq /= (double)(end_ - beg_);
