@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles vector.in v6and7.dat rex-d.dat
+CleanFiles vector.in v6and7.dat rex-d.dat MD.ene.dat
 
 TESTNAME='Read data tests'
 
@@ -16,6 +16,14 @@ writedata v6and7.dat v6and7
 EOF
 RunCpptraj "$UNITNAME"
 DoTest v6and7.dat.save v6and7.dat
+
+UNITNAME='Read Amber output test'
+cat > vector.in <<EOF
+readdata md.initial.out md.restart.out name MD
+writedata MD.ene.dat MD[*] prec 14.4
+EOF
+RunCpptraj "$UNITNAME"
+DoTest MD.ene.dat.save MD.ene.dat
 
 UNITNAME='Read CHARMM output test'
 cat > vector.in <<EOF
