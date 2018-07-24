@@ -137,7 +137,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
         if (i > 0) {
           // Advance to first non-whitespace character
           const char* key = ptr + 5;
-          while (key != '\0' && isspace(*key)) ++key;
+          while (*key != '\0' && isspace(*key)) ++key;
           lineIsPresent = (LineHeaders[i].compare(0, LineHeaders[i].size(),
                                                   key, LineHeaders[i].size()) == 0);
           //mprintf("\t%s lineIsPresent= %i {%s}\n", LineHeaders[i].c_str(), (int)lineIsPresent, key); // DEBUG
