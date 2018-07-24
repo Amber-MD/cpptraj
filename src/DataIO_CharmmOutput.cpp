@@ -1,4 +1,5 @@
 #include <cstdio> // sscanf
+#include <cctype> // isspace
 #include "DataIO_CharmmOutput.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
@@ -127,15 +128,21 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
       bool ignoreStep = false;
       bool repeatedStep = false;
       std::fill(dvals, dvals+5, 0.0); // DEBUG
-      //mprintf("%i [%s]\n", buffer.LineNumber(), ptr);
+      //mprintf("%i [%s]\n", buffer.LineNumber(), ptr); // DEBUG
       int idx = 0; // Index into inputSets
       for (unsigned int i = 0; i != nTermsInLine.size(); i++) {
         // Determine if this line is present. First line should always
         // be present, DYN
         bool lineIsPresent = true;
         if (i > 0) {
+          // Advance to first non-whitespace character
+          const char* key = ptr + 5;
+          while (key != '\0' && isspace(*key)) ++key;
           lineIsPresent = (LineHeaders[i].compare(0, LineHeaders[i].size(),
-                                                  ptr+5, LineHeaders[i].size()) == 0);
+                                                  key, LineHeaders[i].size()) == 0);
+          //mprintf("\t%s lineIsPresent= %i {%s}\n", LineHeaders[i].c_str(), (int)lineIsPresent, key); // DEBUG
+          if (!lineIsPresent)
+            mprintf("Warning: Missing expected term %s at line %i\n", LineHeaders[i].c_str(), buffer.LineNumber());
         } else {
           // Line 0 should have the step
           sscanf(ptr+5, "%9i", &step);
@@ -157,7 +164,8 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
           }
         }
         if (ignoreStep) {
-          ptr = buffer.Line();
+          // Only advance if the line was actually present.
+          if (lineIsPresent) ptr = buffer.Line();
         } else if (lineIsPresent) {
           int nvals = sscanf(ptr+14,"%13lf%13lf%13lf%13lf%13lf",
                              dvals, dvals+1, dvals+2, dvals+3, dvals+4);
@@ -175,10 +183,10 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
             }
           } else {
             for (int val = 0; val < nvals; val++) {
-              //mprintf(" %13.5f", dvals[val]);
+              //mprintf(" %13.5f", dvals[val]); // DEBUG
               inputSets[idx+val]->Add(set, dvals + val);
             }
-            //mprintf("\n");
+            //mprintf("\n"); // DEBUG
           }
           ptr = buffer.Line();
         }
