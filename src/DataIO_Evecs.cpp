@@ -20,7 +20,7 @@ bool DataIO_Evecs::ID_DataFormat(CpptrajFile& infile) {
 // DataIO_Evecs::ReadHelp()
 void DataIO_Evecs::ReadHelp() {
   mprintf("\tibeg <firstmode>: First mode to read in (default 1).\n"
-          "\tiend <lastmode>:  Last mode to read in (default 50).\n");
+          "\tiend <lastmode>:  Last mode to read in (default all or 50 if # modes unknown).\n");
 }
 
 // DataIO_Evecs::processReadArgs()
