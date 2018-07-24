@@ -687,6 +687,20 @@ int Analysis_Modes::CalcRMSIP(DataSet_Modes const& modes1, DataSet_Modes const& 
     return 1;
   }
   double sumsq = 0.0;
+  if (modes1.Meta().ScalarType() != modes2.Meta().ScalarType())
+    mprintf("Warning: Modes '%s' type (%s) does not match modes '%s' type (%s)\n"
+            "Warning; RMSIP value may not make sense.\n",
+            modes1.legend(), modes1.Meta().TypeString(),
+            modes2.legend(), modes2.Meta().TypeString());
+  if (modes1.EvecsAreMassWtd() && modes1.Mass().empty()) {
+     mprintf("Warning: Modes '%s' have been mass-weighted but no mass information present.\n",
+             modes1.legend());
+  }
+  if (modes2.EvecsAreMassWtd() && modes2.Mass().empty()) {
+     mprintf("Warning: Modes '%s' have been mass-weighted but no mass information present.\n",
+             modes2.legend());
+  }
+
   for (int m1 = beg_; m1 < end_; m1++) {
     const double* ev1 = modes1.Eigenvector(m1);
     for (int m2 = beg_; m2 < end_; m2++) {
