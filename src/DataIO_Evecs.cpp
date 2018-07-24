@@ -5,10 +5,11 @@
 #include "DataSet_Modes.h"
 
 // CONSTRUCTOR
-DataIO_Evecs::DataIO_Evecs() : ibeg_(1), iend_(50), hasIend_(false) {
+DataIO_Evecs::DataIO_Evecs() : ibeg_(1), iend_(-1) {
   SetValid( DataSet::MODES );
 }
 
+// DataIO_Evecs::ID_DataFormat()
 bool DataIO_Evecs::ID_DataFormat(CpptrajFile& infile) {
   if (infile.OpenFile()) return false;
   std::string firstLine = infile.GetLine();
@@ -16,20 +17,21 @@ bool DataIO_Evecs::ID_DataFormat(CpptrajFile& infile) {
   return ( firstLine.compare(0, 18," Eigenvector file:") == 0 );
 }
 
+// DataIO_Evecs::ReadHelp()
 void DataIO_Evecs::ReadHelp() {
   mprintf("\tibeg <firstmode>: First mode to read in (default 1).\n"
           "\tiend <lastmode>:  Last mode to read in (default 50).\n");
 }
 
+// DataIO_Evecs::processReadArgs()
 int DataIO_Evecs::processReadArgs(ArgList& argIn) {
   ibeg_ = argIn.getKeyInt("ibeg",1);
-  hasIend_ = argIn.Contains("iend");
-  iend_ = argIn.getKeyInt("iend",50);
-  if (iend_ < 1 || ibeg_ < 1) {
+  iend_ = argIn.getKeyInt("iend",-1);
+  if ((iend_ != -1 && iend_ < 1) || ibeg_ < 1) {
     mprinterr("Error: iend and ibeg must be > 0\n");
     return 1;
   }
-  if (iend_ < ibeg_) {
+  if (iend_ != -1 && iend_ < ibeg_) {
     mprinterr("Error: iend cannot be less than ibeg\n");
     return 1;
   }
@@ -57,13 +59,7 @@ const char* DataIO_Evecs::MatrixOutputString(MetaData::scalarType typeIn) {
 int DataIO_Evecs::ReadData(FileName const& modesfile,
                            DataSetList& datasetlist, std::string const& dsname)
 {
-  // Process Arguments
-  int modesToRead = iend_ - ibeg_ + 1;
-  if (hasIend_)
-    mprintf("\tAttempting to read %i modes (%i to %i) from %s\n", modesToRead,
-            ibeg_, iend_, modesfile.full());
-  else
-    mprintf("\tReading modes from %s\n", modesfile.full());
+  mprintf("\tReading modes from %s\n", modesfile.full());
   BufferedFrame infile;
   if (infile.OpenRead( modesfile)) return 1;
   // Read title line, convert to arg list
@@ -99,21 +95,33 @@ int DataIO_Evecs::ReadData(FileName const& modesfile,
   DataSet_Modes& modesData = static_cast<DataSet_Modes&>( *mds );
   // For newer modesfiles, get # of modes in file.
   int modesInFile = title.getKeyInt("nmodes",-1);
+  // Determine number of modes to read
+  int modesToRead = 0;
   if (modesInFile == -1) {
-    modesInFile = modesToRead;
+    // Older file. If iend not yet set, try default of 50 modes.
+    if (iend_ == -1) iend_ = 50;
+    modesToRead = iend_ - ibeg_ + 1;
     mprintf("Warning: Older modes file, # of modes not known.\n"
             "Warning: Will try to read at least %i modes.\n", modesToRead);
   } else {
+    // Number of modes is known.
     mprintf("\tFile contains %i modes.\n", modesInFile);
-    if (modesToRead > modesInFile) {
-      mprintf("Warning: # modes to read (%i) > modes in file. Only reading %i modes.\n",
-              modesToRead, modesInFile);
-      modesToRead = modesInFile;
-    } else if (!hasIend_ && modesToRead < modesInFile) {
-      modesToRead = modesInFile;
+    if (iend_ == -1) iend_ = modesInFile;
+    if (iend_ > modesInFile) {
+      mprintf("Warning: Last mode to read (iend=%i) > modes in file. Setting to %i\n",
+              iend_, modesInFile);
       iend_ = modesInFile;
     }
+    modesToRead = iend_ - ibeg_ + 1;
   }
+  if (modesToRead < 1) {
+    mprinterr("Error: No modes to read.\n");
+    return 1;
+  } else if (modesToRead == 1)
+    mprintf("\tAttempting to read mode %i from %s\n", ibeg_, modesfile.full());
+  else
+    mprintf("\tAttempting to read %i modes (%i to %i) from %s\n", modesToRead,
+            ibeg_, iend_, modesfile.full());
   // For newer modesfiles, get width of data elts
   int colwidth = title.getKeyInt("width", -1);
   if (colwidth == -1)

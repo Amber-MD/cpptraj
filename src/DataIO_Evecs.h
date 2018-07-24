@@ -15,6 +15,5 @@ class DataIO_Evecs : public DataIO {
   private:
     static const char* MatrixOutputString(MetaData::scalarType);
     int ibeg_, iend_;
-    bool hasIend_;
 };
 #endif
