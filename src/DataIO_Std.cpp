@@ -47,6 +47,7 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   mode_ = READ1D;
   if (argIn.hasKey("read1d")) mode_ = READ1D;
   else if (argIn.hasKey("read2d")) mode_ = READ2D;
+  else if (argIn.hasKey("read3d")) mode_ = READ3D;
   else if (argIn.hasKey("vector")) mode_ = READVEC;
   else if (argIn.hasKey("mat3x3")) mode_ = READMAT3X3;
   indexcol_ = argIn.getKeyInt("index", -1);
@@ -56,6 +57,9 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
     return 1;
   }
   if (indexcol_ > 0) --indexcol_;
+  // Options for 3d
+  if (mode_ == READ3D) {
+  }
   return 0;
 }
   
@@ -251,6 +255,18 @@ int DataIO_Std::Read_2D(std::string const& fname,
 int DataIO_Std::Read_3D(std::string const& fname, 
                         DataSetList& datasetlist, std::string const& dsname)
 {
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("\tData will be read as 3D grid\n");
+  const char* ptr = buffer.Line();
+  DataSet_3D* ds = 0;
+  while (ptr != 0) {
+    if (ptr[0] != '#') {
+      int ntokens = buffer.TokenizeLine( SEPARATORS );
+      if (ntokens != 4) {
+        mprinterr("Error: Expected 4 columns (X, Y, Z, data), got %i\n", ntokens);
+        return 1;
+      }
   return 1;
 }
 
