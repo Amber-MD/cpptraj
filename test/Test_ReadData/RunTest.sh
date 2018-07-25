@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles vector.in v6and7.dat rex-d.dat MD.ene.dat
+CleanFiles vector.in v6and7.dat rex-d.dat MD.ene.dat out.dx out.dat
 
 TESTNAME='Read data tests'
 
@@ -32,6 +32,23 @@ writedata rex-d.dat ENE[*]
 EOF
 RunCpptraj "$UNITNAME"
 DoTest rex-d.dat.save rex-d.dat
+
+# Make sure we can read data in and write it out properly
+UNITNAME='3D data read/write test'
+cat > vector.in <<EOF
+readdata ../Test_Grid/out.dx.save name grid
+writedata out.dx grid
+EOF
+RunCpptraj "$UNITNAME"
+DoTest ../Test_Grid/out.dx.save out.dx
+
+# Read data as DX, write standard
+UNITNAME='Standard 3D data write test'
+cat > vector.in <<EOF
+readdata ../Test_Grid/out.dx.save name grid
+writedata out.dat grid
+EOF
+RunCpptraj "$UNITNAME"
 
 EndTest
   
