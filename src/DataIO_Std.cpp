@@ -25,7 +25,9 @@ DataIO_Std::DataIO_Std() :
   isInverted_(false), 
   hasXcolumn_(true), 
   writeHeader_(true), 
-  square2d_(false)
+  square2d_(false),
+  origin_(0.0),
+  delta_(1.0)
 {}
 
 static void PrintColumnError(int idx) {
@@ -43,6 +45,23 @@ void DataIO_Std::ReadHelp() {
 
 const char* DataIO_Std::SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
 
+// DataIO_Std::Get3Double()
+int DataIO_Std::Get3Double(std::string const& key, Vec3& vec)
+{
+  if (!key.empty()) {
+    ArgList oArg(key, ",");
+    if (oArg.Nargs() != 3) {
+      mprinterr("Error: Expected 3 comma-separated values for '%s'\n", key);
+      return 1;
+    }
+    vec[0] = oArg.getNextDouble(vec[0]);
+    vec[1] = oArg.getNextDouble(vec[1]);
+    vec[2] = oArg.getNextDouble(vec[2]);
+  }
+  return 0;
+}
+
+// DataIO_Std::processReadArgs()
 int DataIO_Std::processReadArgs(ArgList& argIn) {
   mode_ = READ1D;
   if (argIn.hasKey("read1d")) mode_ = READ1D;
@@ -59,6 +78,8 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   if (indexcol_ > 0) --indexcol_;
   // Options for 3d
   if (mode_ == READ3D) {
+    if (Get3Double(argIn.GetStringKey("origin"), origin_)) return 1;
+    if (Get3Double(argIn.GetStringKey("delta"),  delta_ )) return 1;
   }
   return 0;
 }
@@ -255,9 +276,15 @@ int DataIO_Std::Read_2D(std::string const& fname,
 int DataIO_Std::Read_3D(std::string const& fname, 
                         DataSetList& datasetlist, std::string const& dsname)
 {
+  // HACK - assume data has been written with X fastest, then Y, then Z,
+  // then afterwards guess at the spacing. 
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("Warning: Currently XYZ values are ignored. Assuming grid is laid out\n"
+          "Warning:  with X dim changing fastest and Z dim changing slowest.\n");
   mprintf("\tData will be read as 3D grid\n");
+  mprintf("\tOrigin : %g %g %g\n", origin_[0], origin_[1], origin_[2]);
+  mprintf("\tDelta  : %g %g %g\n", delta_[0], delta_[1], delta_[2]);
   const char* ptr = buffer.Line();
   DataSet_3D* ds = 0;
   while (ptr != 0) {
@@ -267,6 +294,14 @@ int DataIO_Std::Read_3D(std::string const& fname,
         mprinterr("Error: Expected 4 columns (X, Y, Z, data), got %i\n", ntokens);
         return 1;
       }
+      double xyzv[4];
+      xyzv[0] = atof( buffer.NextToken() );
+      xyzv[1] = atof( buffer.NextToken() );
+      xyzv[2] = atof( buffer.NextToken() );
+      xyzv[3] = atof( buffer.NextToken() );
+    }
+    ptr = buffer.Line();
+  }
   return 1;
 }
 
