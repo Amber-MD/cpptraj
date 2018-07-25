@@ -38,5 +38,6 @@ class DataIO_Std : public DataIO {
     bool square2d_;
     Vec3 origin_; ///< 3d reads, grid origin
     Vec3 delta_; ///< 3d reads, grid delta
+    size_t dims_[3]; ///< 3d reads, grid dims
 };
 #endif

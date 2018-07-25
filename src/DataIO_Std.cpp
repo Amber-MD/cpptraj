@@ -14,7 +14,7 @@
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_2D.h"
-#include "DataSet_3D.h"
+#include "DataSet_GridFlt.h"
 #include "DataSet_Cmatrix.h"
 
 // CONSTRUCTOR
@@ -28,7 +28,11 @@ DataIO_Std::DataIO_Std() :
   square2d_(false),
   origin_(0.0),
   delta_(1.0)
-{}
+{
+  dims_[0] = 0;
+  dims_[1] = 0;
+  dims_[2] = 0;
+}
 
 static void PrintColumnError(int idx) {
   mprinterr("Error: Number of columns in file changes at line %i.\n", idx);
@@ -37,6 +41,11 @@ static void PrintColumnError(int idx) {
 void DataIO_Std::ReadHelp() {
   mprintf("\tread1d:      Read data as 1D data sets (default).\n"
           "\tread2d:      Read data as 2D square matrix.\n"
+          "\tread3d:      Read data as 3D grid. Must also specify 'dims',\n"
+          "\t             can also specify 'origin' and 'delta'.\n"
+          "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
+          "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
+          "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
           "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
           "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
           "\tindex <col>: (1D) Use column # (starting from 1) as index (X) column.\n");
@@ -80,6 +89,15 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   if (mode_ == READ3D) {
     if (Get3Double(argIn.GetStringKey("origin"), origin_)) return 1;
     if (Get3Double(argIn.GetStringKey("delta"),  delta_ )) return 1;
+    Vec3 dtmp(dims_[0], dims_[1], dims_[2]);
+    if (Get3Double(argIn.GetStringKey("dims"), dtmp)) return 1;
+    dims_[0] = (size_t)dtmp[0];
+    dims_[1] = (size_t)dtmp[1];
+    dims_[2] = (size_t)dtmp[2];
+    if (dims_[0] == 0 || dims_[1] == 0 || dims_[2] == 0) {
+      mprinterr("Error: Currently at least 'dims' must be specified for 'read3d'\n");
+      return 1;
+    }
   }
   return 0;
 }
@@ -93,6 +111,7 @@ int DataIO_Std::ReadData(FileName const& fname,
   switch ( mode_ ) {
     case READ1D: err = Read_1D(fname.Full(), dsl, dsname); break;
     case READ2D: err = Read_2D(fname.Full(), dsl, dsname); break;
+    case READ3D: err = Read_3D(fname.Full(), dsl, dsname); break;
     case READVEC: err = Read_Vector(fname.Full(), dsl, dsname); break;
     case READMAT3X3: err = Read_Mat3x3(fname.Full(), dsl, dsname); break;
   }
@@ -280,13 +299,14 @@ int DataIO_Std::Read_3D(std::string const& fname,
   // then afterwards guess at the spacing. 
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
-  mprintf("Warning: Currently XYZ values are ignored. Assuming grid is laid out\n"
-          "Warning:  with X dim changing fastest and Z dim changing slowest.\n");
   mprintf("\tData will be read as 3D grid\n");
   mprintf("\tOrigin : %g %g %g\n", origin_[0], origin_[1], origin_[2]);
   mprintf("\tDelta  : %g %g %g\n", delta_[0], delta_[1], delta_[2]);
+  mprintf("\tDims   : %zu %zu %zu\n", dims_[0], dims_[1], dims_[2]);
+  DataSet_GridFlt* ds = (DataSet_GridFlt*)datasetlist.AddSet(DataSet::GRID_FLT, dsname);
+  if (ds == 0) return 1;
+  if (ds->Allocate_N_O_D( dims_[0], dims_[1], dims_[2], origin_, delta_ )) return 1;
   const char* ptr = buffer.Line();
-  DataSet_3D* ds = 0;
   while (ptr != 0) {
     if (ptr[0] != '#') {
       int ntokens = buffer.TokenizeLine( SEPARATORS );
@@ -299,6 +319,11 @@ int DataIO_Std::Read_3D(std::string const& fname,
       xyzv[1] = atof( buffer.NextToken() );
       xyzv[2] = atof( buffer.NextToken() );
       xyzv[3] = atof( buffer.NextToken() );
+      long int idx = ds->Increment(xyzv, (float)xyzv[3]);
+      if (idx < 0) {
+        mprintf("Warning: Coordinate out of bounds (%g %g %g), line %i\n",
+                xyzv[0], xyzv[1], xyzv[2], buffer.LineNumber());
+      }
     }
     ptr = buffer.Line();
   }
