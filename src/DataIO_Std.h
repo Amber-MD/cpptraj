@@ -32,7 +32,7 @@ class DataIO_Std : public DataIO {
     enum modeType {READ1D=0, READ2D, READ3D, READVEC, READMAT3X3};
     enum precType {UNSPEC, FLOAT, DOUBLE};
     modeType mode_;    ///< Read mode
-    precType prec_;
+    precType prec_;    ///< 3d reads, data set precision
     int indexcol_;     ///< Read: column containing index (X) values
     bool isInverted_;  ///< For 1D writes invert X/Y.
     bool hasXcolumn_;
