@@ -48,6 +48,8 @@ class DataSet_3D : public DataSet {
     // -------------------------------------------
     GridBin const& Bin() const { return *gridBin_; }
   private:
+    /// Set up DataSet dimensions based on gridBin_ and allocate grid
+    int SetupDimensions(size_t, size_t, size_t);
     /// Check if grid dimension is even; if not, increment it by 1.
     static void CheckEven(size_t&, char);
     /// Set up grid for given # x, y, and z points.

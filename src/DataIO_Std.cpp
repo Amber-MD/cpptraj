@@ -60,7 +60,7 @@ int DataIO_Std::Get3Double(std::string const& key, Vec3& vec)
   if (!key.empty()) {
     ArgList oArg(key, ",");
     if (oArg.Nargs() != 3) {
-      mprinterr("Error: Expected 3 comma-separated values for '%s'\n", key);
+      mprinterr("Error: Expected 3 comma-separated values for '%s'\n", key.c_str());
       return 1;
     }
     vec[0] = oArg.getNextDouble(vec[0]);
