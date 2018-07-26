@@ -857,9 +857,31 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   // Print X Y Z Values
   // x y z val(x,y,z)
   DataSet::SizeArray pos(3);
-  if (writeHeader_)
+  if (writeHeader_) {
+    file.Printf("#counts %zu %zu %zu\n", set.NX(), set.NY(), set.NZ());
+    file.Printf("#origin %g %g %g\n",
+                set.Bin().GridOrigin()[0],
+                set.Bin().GridOrigin()[1],
+                set.Bin().GridOrigin()[2]);
+    if (set.Bin().IsOrthoGrid()) {
+      GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( set.Bin() );
+      file.Printf("#delta %g %g %g\n", b.DX(), b.DY(), b.DZ());
+    } else {
+      GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( set.Bin() );
+      file.Printf("#delta %g %g %g %g %g %g %g %g %g\n",
+                  b.Ucell()[0]/set.NX(),
+                  b.Ucell()[1]/set.NX(),
+                  b.Ucell()[2]/set.NX(),
+                  b.Ucell()[3]/set.NY(),
+                  b.Ucell()[4]/set.NY(),
+                  b.Ucell()[5]/set.NY(),
+                  b.Ucell()[6]/set.NZ(),
+                  b.Ucell()[7]/set.NZ(),
+                  b.Ucell()[8]/set.NZ());
+    }
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
                 Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());
+  }
   std::string xyz_fmt;
   if (XcolPrecSet()) {
     TextFormat nfmt( XcolFmt(), XcolWidth(), XcolPrec() );
