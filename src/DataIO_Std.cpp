@@ -47,8 +47,8 @@ static void PrintColumnError(int idx) {
 void DataIO_Std::ReadHelp() {
   mprintf("\tread1d:      Read data as 1D data sets (default).\n"
           "\tread2d:      Read data as 2D square matrix.\n"
-          "\tread3d:      Read data as 3D grid. Must also specify 'dims',\n"
-          "\t             can also specify 'origin' and 'delta'.\n"
+          "\tread3d:      Read data as 3D grid. If no dimension data in file must also\n"
+          "\t             specify 'dims'; can also specify 'origin' and 'delta'.\n"
           "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
           "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
           "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
