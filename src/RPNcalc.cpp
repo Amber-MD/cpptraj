@@ -418,11 +418,12 @@ static inline bool ScalarTimeSeries(DataSet* ds) {
 }
 
 static inline bool IsMatrix(DataSet* ds) {
-  return (ds->Type()==DataSet::MATRIX_DBL ||
-          ds->Type()==DataSet::MATRIX_FLT);
+  return (ds->Group()==DataSet::MATRIX_2D);
 }
 
-static inline bool IsGrid(DataSet* ds) { return ds->Type()==DataSet::GRID_FLT; }
+static inline bool IsGrid(DataSet* ds) {
+  return ds->Group()==DataSet::GRID_3D;
+}
 
 // RPNcalc::Evaluate()
 int RPNcalc::Evaluate(DataSetList& DSL) const {

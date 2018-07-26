@@ -348,6 +348,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
     }
   }
   const char* ptr = buffer.Line();
+  unsigned int nvals = 0;
   while (ptr != 0) {
     if (ptr[0] != '#') {
       int ntokens = buffer.TokenizeLine( SEPARATORS );
@@ -355,6 +356,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
         mprinterr("Error: Expected 4 columns (X, Y, Z, data), got %i\n", ntokens);
         return 1;
       }
+      nvals++;
       double xyzv[4];
       xyzv[0] = atof( buffer.NextToken() );
       xyzv[1] = atof( buffer.NextToken() );
@@ -370,6 +372,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
     }
     ptr = buffer.Line();
   }
+  mprintf("\tRead %u values.\n", nvals);
   return 0;
 }
 
