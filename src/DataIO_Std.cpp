@@ -321,9 +321,30 @@ int DataIO_Std::Read_3D(std::string const& fname,
     dtype = DataSet::GRID_FLT;
     mprintf("\tGrid is single precision.\n");
   }
-  DataSet_3D* ds = (DataSet_3D*)datasetlist.AddSet(dtype, dsname);
-  if (ds == 0) return 1;
-  if (ds->Allocate_N_O_D( dims_[0], dims_[1], dims_[2], origin_, delta_ )) return 1;
+  MetaData md( dsname );
+  DataSet_3D* ds = 0;
+  DataSet* set = datasetlist.CheckForSet( md );
+  if (set == 0) {
+    ds = (DataSet_3D*)datasetlist.AddSet(dtype, dsname);
+    if (ds == 0) return 1;
+    if (ds->Allocate_N_O_D( dims_[0], dims_[1], dims_[2], origin_, delta_ )) return 1;
+  } else {
+    mprintf("\tAppending to existing set '%s'\n", set->legend());
+    if (set->Group() != DataSet::GRID_3D) {
+      mprinterr("Error: Set '%s' is not a grid set, cannot append.\n", set->legend());
+      return 1;
+    }
+    ds = (DataSet_3D*)set;
+    // Check that dimensions line up. TODO check origin etc too?
+    if (dims_[0] != ds->NX() ||
+        dims_[1] != ds->NY() ||
+        dims_[2] != ds->NZ())
+    {
+      mprintf("Warning: Specified grid dimensions (%zu %zu %zu) do not match\n"
+              "Warning:   '%s' dimensions (%zu %zu %zu)\n", dims_[0], dims_[1], dims_[2],
+              ds->legend(), dims_[0], dims_[1], dims_[2]);
+    }
+  }
   const char* ptr = buffer.Line();
   while (ptr != 0) {
     if (ptr[0] != '#') {
