@@ -817,8 +817,8 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
     for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
       for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
-        file.Printf( xyz_fmt.c_str(), set.Coord(0, pos[0]),
-                     set.Coord(1, pos[1]), set.Coord(2, pos[2]) );
+        Vec3 xyz = set.Bin().Corner(pos[0], pos[1], pos[2]);
+        file.Printf( xyz_fmt.c_str(), xyz[0], xyz[1], xyz[2] );
         set.WriteBuffer( file, pos );
         file.Printf("\n");
       }

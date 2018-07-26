@@ -100,11 +100,6 @@ int DataIO_Xplor::ReadData(FileName const& fname,
       }
     }
   }
-  // Set dimensions
-  // FIXME: This should be integrated with allocation
-  //grid.SetDim(Dimension::X, Dimension(origin[0], spacing[0], GridPts[0], "X"));
-  //grid.SetDim(Dimension::Y, Dimension(origin[1], spacing[1], GridPts[1], "Y"));
-  //grid.SetDim(Dimension::Z, Dimension(origin[2], spacing[2], GridPts[2], "Z"));
 
   return 0;
 }

@@ -9,29 +9,6 @@ DataSet_3D::DataSet_3D(DataSet_3D const& rhs) : DataSet(rhs), gridBin_(0) {
   if (rhs.gridBin_ != 0) gridBin_ = rhs.gridBin_->Copy();
 }
 
-/** Set up grid dimensions based on gridBin and allocate for the given
-  * dimensions.
-  */
-int DataSet_3D::SetupDimensions(size_t nx, size_t ny, size_t nz) {
-  if (gridBin_ != 0) {
-    Vec3 const& oxyz = gridBin_->GridOrigin();       // minimum values
-    Vec3 const& mxyz = gridBin_->Corner(nx, ny, nz); // max values
-    Vec3 delta;
-    delta[0] = (mxyz[0] - oxyz[0]) / (double)nx;
-    delta[1] = (mxyz[1] - oxyz[1]) / (double)ny;
-    delta[2] = (mxyz[2] - oxyz[2]) / (double)nz;
-    for (int i = 0; i < 3; i++) {
-      SetDim(i, Dimension(oxyz[i], delta[i]));
-      mprintf("DEBUG: %s dim %i min %12.4f step %12.4f max %12.4f\n",
-              legend(), i, Dim(i).Min(), Dim(i).Step(), mxyz[i]);
-    }
-  } else {
-    mprinterr("Internal Error: DataSet_3D::SetupDimensions() called without gridBin_ setup.\n");
-    return 1;
-  }
-  return Allocate3D(nx, ny, nz);
-}
-
 // DataSet_3D::Allocate_N_O_Box()
 int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz, 
                                  Vec3 const& oxyz, Box const& boxIn)
@@ -45,7 +22,7 @@ int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz,
   // Set origin and unit cell params.
   gb->Setup_O_Box(nx, ny, nz, oxyz, boxIn);
   gridBin_ = (GridBin*)gb;
-  return SetupDimensions(nx, ny, nz);
+  return Allocate3D(nx, ny, nz);
 }
 
 // DataSet_3D::Allocate_N_O_D()
@@ -61,7 +38,7 @@ int DataSet_3D::Allocate_N_O_D(size_t nx, size_t ny, size_t nz,
   // Set origin and spacing, calculate maximum (for binning).
   gb->Setup_O_D(nx, ny, nz, oxyz, dxyz);
   gridBin_ = (GridBin*)gb;
-  return SetupDimensions(nx, ny, nz);
+  return Allocate3D(nx, ny, nz);
 }
 
 // Calc_Origin()
