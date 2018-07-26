@@ -38,8 +38,10 @@ class DataIO_Std : public DataIO {
     bool hasXcolumn_;
     bool writeHeader_;
     bool square2d_;
-    Vec3 origin_; ///< 3d reads, grid origin
-    Vec3 delta_; ///< 3d reads, grid delta
+    bool sparse_;    ///< 3d writes, only write voxels with value > cut_
+    Vec3 origin_;    ///< 3d reads, grid origin
+    Vec3 delta_;     ///< 3d reads, grid delta
     size_t dims_[3]; ///< 3d reads, grid dims
+    double cut_;     ///< 3d writes, when 'sparse_', only write voxels > cut_
 };
 #endif

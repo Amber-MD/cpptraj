@@ -27,8 +27,10 @@ DataIO_Std::DataIO_Std() :
   hasXcolumn_(true), 
   writeHeader_(true), 
   square2d_(false),
+  sparse_(false),
   origin_(0.0),
-  delta_(1.0)
+  delta_(1.0),
+  cut_(0.0)
 {
   dims_[0] = 0;
   dims_[1] = 0;
@@ -492,11 +494,14 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
 
 // -----------------------------------------------------------------------------
 void DataIO_Std::WriteHelp() {
-  mprintf("\tinvert:     Flip X/Y axes.\n"
-          "\tnoxcol:     Do not print X (index) column.\n"
-          "\tnoheader:   Do not print header line.\n"
-          "\tsquare2d:   Write 2D data sets in matrix-like format.\n"
-          "\tnosquare2d: Write 2D data sets as '<X> <Y> <Value>'.\n");
+  mprintf("\tnoheader   : Do not print header line.\n"
+          "\tinvert     : Flip X/Y axes (1D).\n"
+          "\tnoxcol     : Do not print X (index) column (1D).\n"
+          "\tsquare2d   : Write 2D data sets in matrix-like format.\n"
+          "\tnosquare2d : Write 2D data sets as '<X> <Y> <Value>'.\n"
+          "\tnosparse   : Write all 3D grid voxels (default).\n"
+          "\tsparse     : Only write 3D grid voxels with value > cutoff.\n"
+          "\t\tcut : Cutoff for 'sparse'; default 0.\n");
 }
 
 // DataIO_Std::processWriteArgs()
@@ -511,6 +516,12 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
     square2d_ = true;
   else if (square2d_ && argIn.hasKey("nosquare2d"))
     square2d_ = false;
+  if (!sparse_ && argIn.hasKey("sparse"))
+    sparse_ = true;
+  else if (sparse_ && argIn.hasKey("nosparse"))
+    sparse_ = false;
+  if (sparse_)
+    cut_ = argIn.getKeyDouble("cut", cut_);
   return 0;
 }
 
@@ -838,7 +849,8 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   Dimension const& Ydim = static_cast<Dimension const&>(set.Dim(1));
   Dimension const& Zdim = static_cast<Dimension const&>(set.Dim(2));
   //if (Xdim.Step() == 1.0) xcol_precision = 0;
-  
+  if (sparse_)
+    mprintf("\tOnly writing voxels with value > %g\n", cut_);
   // Print X Y Z Values
   // x y z val(x,y,z)
   DataSet::SizeArray pos(3);
@@ -855,13 +867,29 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
     TextFormat zfmt( XcolFmt(), set.NZ(), Zdim.Min(), Zdim.Step(), 8, 3 );
     xyz_fmt = xfmt.Fmt() + " " + yfmt.Fmt() + " " + zfmt.Fmt() + " ";
   }
-  for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
-    for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
-      for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
-        Vec3 xyz = set.Bin().Corner(pos[0], pos[1], pos[2]);
-        file.Printf( xyz_fmt.c_str(), xyz[0], xyz[1], xyz[2] );
-        set.WriteBuffer( file, pos );
-        file.Printf("\n");
+  if (sparse_) {
+    for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
+      for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
+        for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
+          double val = set.GetElement(pos[0], pos[1], pos[2]);
+          if (val > cut_) {
+            Vec3 xyz = set.Bin().Corner(pos[0], pos[1], pos[2]);
+            file.Printf( xyz_fmt.c_str(), xyz[0], xyz[1], xyz[2] );
+            set.WriteBuffer( file, pos );
+            file.Printf("\n");
+          }
+        }
+      }
+    }
+  } else {
+    for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
+      for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
+        for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
+          Vec3 xyz = set.Bin().Corner(pos[0], pos[1], pos[2]);
+          file.Printf( xyz_fmt.c_str(), xyz[0], xyz[1], xyz[2] );
+          set.WriteBuffer( file, pos );
+          file.Printf("\n");
+        }
       }
     }
   }
