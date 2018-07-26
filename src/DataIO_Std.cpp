@@ -28,6 +28,8 @@ DataIO_Std::DataIO_Std() :
   writeHeader_(true), 
   square2d_(false),
   sparse_(false),
+  originSpecified_(false),
+  deltaSpecified_(false),
   origin_(0.0),
   delta_(1.0),
   cut_(0.0)
@@ -59,8 +61,9 @@ void DataIO_Std::ReadHelp() {
 const char* DataIO_Std::SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
 
 // DataIO_Std::Get3Double()
-int DataIO_Std::Get3Double(std::string const& key, Vec3& vec)
+int DataIO_Std::Get3Double(std::string const& key, Vec3& vec, bool& specified)
 {
+  specified = false;
   if (!key.empty()) {
     ArgList oArg(key, ",");
     if (oArg.Nargs() != 3) {
@@ -70,6 +73,7 @@ int DataIO_Std::Get3Double(std::string const& key, Vec3& vec)
     vec[0] = oArg.getNextDouble(vec[0]);
     vec[1] = oArg.getNextDouble(vec[1]);
     vec[2] = oArg.getNextDouble(vec[2]);
+    specified = true;
   }
   return 0;
 }
@@ -91,16 +95,19 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   if (indexcol_ > 0) --indexcol_;
   // Options for 3d
   if (mode_ == READ3D) {
-    if (Get3Double(argIn.GetStringKey("origin"), origin_)) return 1;
-    if (Get3Double(argIn.GetStringKey("delta"),  delta_ )) return 1;
-    Vec3 dtmp(dims_[0], dims_[1], dims_[2]);
-    if (Get3Double(argIn.GetStringKey("dims"), dtmp)) return 1;
-    dims_[0] = (size_t)dtmp[0];
-    dims_[1] = (size_t)dtmp[1];
-    dims_[2] = (size_t)dtmp[2];
-    if (dims_[0] == 0 || dims_[1] == 0 || dims_[2] == 0) {
-      mprinterr("Error: Currently at least 'dims' must be specified for 'read3d'\n");
-      return 1;
+    if (Get3Double(argIn.GetStringKey("origin"), origin_, originSpecified_)) return 1;
+    if (Get3Double(argIn.GetStringKey("delta"),  delta_,  deltaSpecified_ )) return 1;
+
+    std::string dimKey = argIn.GetStringKey("dims");
+    if (!dimKey.empty()) {
+      ArgList oArg(dimKey, ",");
+      if (oArg.Nargs() != 3) {
+        mprinterr("Error: Expected 3 comma-separated values for 'dims'.\n");
+        return 1;
+      }
+      dims_[0] = oArg.getNextInteger(dims_[0]);
+      dims_[1] = oArg.getNextInteger(dims_[1]);
+      dims_[2] = oArg.getNextInteger(dims_[2]);
     }
     // TODO precision for 1d and 2d too
     std::string precKey = argIn.GetStringKey("prec");
@@ -312,6 +319,61 @@ int DataIO_Std::Read_3D(std::string const& fname,
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
   mprintf("\tData will be read as 3D grid, X Y Z Value\n");
+  const char* ptr = buffer.Line();
+  // Check if #counts is present
+  if (strncmp(ptr,"#counts",7)==0) {
+    mprintf("\tReading grid dimensions.\n");
+    unsigned int counts[3];
+    sscanf(ptr+7,"%u %u %u", counts, counts+1, counts+2);
+    for (int i = 0; i < 3; i++) {
+      if (dims_[i] == 0)
+        dims_[i] = counts[i];
+      else if (dims_[i] != (size_t)counts[i])
+        mprintf("Warning: Specified size for dim %i (%zu) differs from size in file (%u)\n",
+                i, dims_[i], counts[i]);
+    }
+    ptr = buffer.Line();
+  }
+  if (dims_[0] == 0 || dims_[1] == 0 || dims_[2] == 0) {
+    mprinterr("Error: 'dims' not specified for 'read3d' and no dims in file\n");
+    return 1;
+  }
+  // Check if #origin is present
+  if (strncmp(ptr,"#origin",7)==0) {
+    mprintf("\tReading grid origin.\n");
+    double oxyz[3];
+    sscanf(ptr+7,"%lf %lf %lf", oxyz, oxyz+1, oxyz+2);
+    for (int i = 0; i < 3; i++) {
+      if (!originSpecified_)
+        origin_[i] = oxyz[i];
+      else if (origin_[i] != oxyz[i])
+        mprintf("Warning: Specified origin for dim %i (%g) differs from origin in file (%g)\n",
+                i, origin_[i], oxyz[i]);
+    }
+    ptr = buffer.Line();
+  }
+  // Check if #delta is present
+  if (strncmp(ptr,"#delta",6)==0) {
+    mprintf("\tReading grid deltas.\n");
+    double dvals[9];
+    int ndvals = sscanf(ptr+6,"%lf %lf %lf %lf %lf %lf %lf %lf %lf", dvals,
+                        dvals+1, dvals+2, dvals+3, dvals+4, dvals+5,
+                        dvals+6, dvals+7, dvals+8);
+    if (ndvals == 3) {
+      for (int i = 0; i < 3; i++) {
+        if (!deltaSpecified_)
+          delta_[i] = dvals[i];
+        else if (delta_[i] != dvals[i])
+          mprintf("Warning: Specified delta for dim %i (%g) differs from delta in file (%g)\n",
+                  i, delta_[i], dvals[i]);
+      }
+    } else {
+      mprinterr("Error: Not yet set up for non-ortho.\n");
+      return 1;
+    }
+    ptr = buffer.Line();
+  }
+
   mprintf("\tOrigin : %g %g %g\n", origin_[0], origin_[1], origin_[2]);
   mprintf("\tDelta  : %g %g %g\n", delta_[0], delta_[1], delta_[2]);
   mprintf("\tDims   : %zu %zu %zu\n", dims_[0], dims_[1], dims_[2]);
@@ -347,7 +409,6 @@ int DataIO_Std::Read_3D(std::string const& fname,
               ds->legend(), dims_[0], dims_[1], dims_[2]);
     }
   }
-  const char* ptr = buffer.Line();
   unsigned int nvals = 0;
   while (ptr != 0) {
     if (ptr[0] != '#') {

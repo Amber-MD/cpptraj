@@ -15,7 +15,7 @@ class DataIO_Std : public DataIO {
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     static const char* SEPARATORS;
-    static int Get3Double(std::string const&, Vec3&);
+    static int Get3Double(std::string const&, Vec3&, bool&);
     int Read_1D(std::string const&,DataSetList&,std::string const&);
     int Read_2D(std::string const&,DataSetList&,std::string const&);
     int Read_3D(std::string const&,DataSetList&,std::string const&);
@@ -38,10 +38,12 @@ class DataIO_Std : public DataIO {
     bool hasXcolumn_;
     bool writeHeader_;
     bool square2d_;
-    bool sparse_;    ///< 3d writes, only write voxels with value > cut_
-    Vec3 origin_;    ///< 3d reads, grid origin
-    Vec3 delta_;     ///< 3d reads, grid delta
-    size_t dims_[3]; ///< 3d reads, grid dims
-    double cut_;     ///< 3d writes, when 'sparse_', only write voxels > cut_
+    bool sparse_;          ///< 3d writes, only write voxels with value > cut_
+    bool originSpecified_; ///< 3d reads, true if origin specified
+    bool deltaSpecified_;  ///< 3d reads, true if delta specified.
+    Vec3 origin_;          ///< 3d reads, grid origin
+    Vec3 delta_;           ///< 3d reads, grid delta
+    size_t dims_[3];       ///< 3d reads, grid dims
+    double cut_;           ///< 3d writes, when 'sparse_', only write voxels > cut_
 };
 #endif
