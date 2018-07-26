@@ -14,13 +14,14 @@
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_2D.h"
-#include "DataSet_GridFlt.h"
+#include "DataSet_3D.h"
 #include "DataSet_Cmatrix.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
   mode_(READ1D),
+  prec_(UNSPEC),
   indexcol_(-1),
   isInverted_(false), 
   hasXcolumn_(true), 
@@ -46,6 +47,7 @@ void DataIO_Std::ReadHelp() {
           "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
           "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
           "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
+          "\t\tprec {dbl|flt*}       : Grid precision; double or float (default).\n"
           "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
           "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
           "\tindex <col>: (1D) Use column # (starting from 1) as index (X) column.\n");
@@ -97,6 +99,16 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
     if (dims_[0] == 0 || dims_[1] == 0 || dims_[2] == 0) {
       mprinterr("Error: Currently at least 'dims' must be specified for 'read3d'\n");
       return 1;
+    }
+    // TODO precision for 1d and 2d too
+    std::string precKey = argIn.GetStringKey("prec");
+    if (!precKey.empty()) {
+      if (precKey == "flt") prec_ = FLOAT;
+      else if (precKey == "dbl") prec_ = DOUBLE;
+      else {
+        mprinterr("Error: Expected only 'flt' or 'dbl' for keyword 'prec'\n");
+        return 1;
+      }
     }
   }
   return 0;
@@ -295,15 +307,21 @@ int DataIO_Std::Read_2D(std::string const& fname,
 int DataIO_Std::Read_3D(std::string const& fname, 
                         DataSetList& datasetlist, std::string const& dsname)
 {
-  // HACK - assume data has been written with X fastest, then Y, then Z,
-  // then afterwards guess at the spacing. 
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
-  mprintf("\tData will be read as 3D grid\n");
+  mprintf("\tData will be read as 3D grid, X Y Z Value\n");
   mprintf("\tOrigin : %g %g %g\n", origin_[0], origin_[1], origin_[2]);
   mprintf("\tDelta  : %g %g %g\n", delta_[0], delta_[1], delta_[2]);
   mprintf("\tDims   : %zu %zu %zu\n", dims_[0], dims_[1], dims_[2]);
-  DataSet_GridFlt* ds = (DataSet_GridFlt*)datasetlist.AddSet(DataSet::GRID_FLT, dsname);
+  DataSet::DataType dtype;
+  if (prec_ == DOUBLE) {
+    dtype = DataSet::GRID_DBL;
+    mprintf("\tGrid is double precision.\n");
+  } else {
+    dtype = DataSet::GRID_FLT;
+    mprintf("\tGrid is single precision.\n");
+  }
+  DataSet_3D* ds = (DataSet_3D*)datasetlist.AddSet(dtype, dsname);
   if (ds == 0) return 1;
   if (ds->Allocate_N_O_D( dims_[0], dims_[1], dims_[2], origin_, delta_ )) return 1;
   const char* ptr = buffer.Line();
@@ -319,15 +337,17 @@ int DataIO_Std::Read_3D(std::string const& fname,
       xyzv[1] = atof( buffer.NextToken() );
       xyzv[2] = atof( buffer.NextToken() );
       xyzv[3] = atof( buffer.NextToken() );
-      long int idx = ds->Increment(xyzv, (float)xyzv[3]);
-      if (idx < 0) {
+      size_t ix, iy, iz;
+      if ( ds->Bin().Calc(xyzv[0], xyzv[1], xyzv[2], ix, iy, iz ) ) {
+        ds->UpdateVoxel(ds->CalcIndex(ix, iy, iz), xyzv[3]);
+      } else {
         mprintf("Warning: Coordinate out of bounds (%g %g %g), line %i\n",
                 xyzv[0], xyzv[1], xyzv[2], buffer.LineNumber());
       }
     }
     ptr = buffer.Line();
   }
-  return 1;
+  return 0;
 }
 
 // DataIO_Std::Read_Vector()

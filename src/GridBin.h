@@ -6,7 +6,7 @@ class GridBin {
   public:
     GridBin() : OXYZ_(0.0) {}
     virtual ~GridBin() {}
-    /// Given coordinates, set corresponding bin indices; check bounds.
+    /// \return true if given coordinates are on grid; set corresponding bin indices.
     virtual bool Calc(double, double, double, size_t&, size_t&, size_t&) const = 0;
     /// Given coordinates, set corresponding bin indices; no bounds check.
     virtual void Indices(double, double, double, long int&, long int&, long int&) const = 0;

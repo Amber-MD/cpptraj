@@ -30,8 +30,10 @@ class DataIO_Std : public DataIO {
     int WriteSet2D(DataSet const&, CpptrajFile&);
     int WriteSet3D(DataSet const&, CpptrajFile&);
     enum modeType {READ1D=0, READ2D, READ3D, READVEC, READMAT3X3};
-    modeType mode_;
-    int indexcol_;
+    enum precType {UNSPEC, FLOAT, DOUBLE};
+    modeType mode_;    ///< Read mode
+    precType prec_;
+    int indexcol_;     ///< Read: column containing index (X) values
     bool isInverted_;  ///< For 1D writes invert X/Y.
     bool hasXcolumn_;
     bool writeHeader_;
