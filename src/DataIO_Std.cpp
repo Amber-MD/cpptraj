@@ -318,7 +318,8 @@ int DataIO_Std::Read_3D(std::string const& fname,
 {
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
-  mprintf("\tData will be read as 3D grid, X Y Z Value\n");
+  mprintf("\tData will be read as 3D grid: X Y Z Value\n");
+  mprintf("\tAssuming X Y Z are bin corners\n");
   const char* ptr = buffer.Line();
   // Check if #counts is present
   if (strncmp(ptr,"#counts",7)==0) {
@@ -417,6 +418,21 @@ int DataIO_Std::Read_3D(std::string const& fname,
     }
   }
   ds->GridInfo();
+
+  // Assume XYZ coords are of bin corners. Need to offset coords by half
+  // the voxel size.
+  Vec3 offset;
+  if (nonortho) {
+    GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( ds->Bin() );
+    offset = b.Ucell().TransposeMult(Vec3( 1/(2*(double)ds->NX()),
+                                           1/(2*(double)ds->NY()),
+                                           1/(2*(double)ds->NZ()) ));
+  } else {
+    GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( ds->Bin() );
+    offset = Vec3(b.DX()/2, b.DY()/2, b.DZ()/2);
+  }
+  mprintf("DEBUG: Offset: %E %E %E\n", offset[0], offset[1], offset[2]);
+
   unsigned int nvals = 0;
   while (ptr != 0) {
     if (ptr[0] != '#') {
@@ -432,12 +448,13 @@ int DataIO_Std::Read_3D(std::string const& fname,
       xyzv[2] = atof( buffer.NextToken() );
       xyzv[3] = atof( buffer.NextToken() );
       size_t ix, iy, iz;
-      if ( ds->Bin().Calc(xyzv[0], xyzv[1], xyzv[2], ix, iy, iz ) ) {
+      if ( ds->Bin().Calc(xyzv[0]+offset[0],
+                          xyzv[1]+offset[1],
+                          xyzv[2]+offset[2], ix, iy, iz ) )
         ds->UpdateVoxel(ds->CalcIndex(ix, iy, iz), xyzv[3]);
-      } else {
+      else
         mprintf("Warning: Coordinate out of bounds (%g %g %g, ), line %i\n",
                 xyzv[0], xyzv[1], xyzv[2], buffer.LineNumber());
-      }
     }
     ptr = buffer.Line();
   }
