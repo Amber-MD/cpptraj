@@ -41,6 +41,7 @@ class DataIO_Std : public DataIO {
     bool sparse_;          ///< 3d writes, only write voxels with value > cut_
     bool originSpecified_; ///< 3d reads, true if origin specified
     bool deltaSpecified_;  ///< 3d reads, true if delta specified.
+    bool binCorners_;      ///< 3d reads, if true assume coordinates are bin corners
     Vec3 origin_;          ///< 3d reads, grid origin
     Vec3 delta_;           ///< 3d reads, grid delta
     size_t dims_[3];       ///< 3d reads, grid dims

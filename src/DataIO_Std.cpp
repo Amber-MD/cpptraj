@@ -30,6 +30,7 @@ DataIO_Std::DataIO_Std() :
   sparse_(false),
   originSpecified_(false),
   deltaSpecified_(false),
+  binCorners_(true),
   origin_(0.0),
   delta_(1.0),
   cut_(0.0)
@@ -51,7 +52,8 @@ void DataIO_Std::ReadHelp() {
           "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
           "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
           "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
-          "\t\tprec {dbl|flt*}       : Grid precision; double or float (default).\n"
+          "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
+          "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
           "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
           "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
           "\tindex <col>: (1D) Use column # (starting from 1) as index (X) column.\n");
@@ -116,6 +118,15 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
       else if (precKey == "dbl") prec_ = DOUBLE;
       else {
         mprinterr("Error: Expected only 'flt' or 'dbl' for keyword 'prec'\n");
+        return 1;
+      }
+    }
+    std::string binKey = argIn.GetStringKey("bin");
+    if (!binKey.empty()) {
+      if (binKey == "center") binCorners_ = false;
+      else if (binKey == "corner") binCorners_ = true;
+      else {
+        mprinterr("Error: Expected only 'center' or 'corner' for keyword 'bin'\n");
         return 1;
       }
     }
@@ -319,7 +330,10 @@ int DataIO_Std::Read_3D(std::string const& fname,
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
   mprintf("\tData will be read as 3D grid: X Y Z Value\n");
-  mprintf("\tAssuming X Y Z are bin corners\n");
+  if (binCorners_)
+    mprintf("\tAssuming X Y Z are bin corners\n");
+  else
+    mprintf("\tAssuming X Y Z are bin centers\n");
   const char* ptr = buffer.Line();
   // Check if #counts is present
   if (strncmp(ptr,"#counts",7)==0) {
@@ -379,7 +393,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
     }
     ptr = buffer.Line();
   }
-
+  // Get or allocate data set
   DataSet::DataType dtype;
   if (prec_ == DOUBLE) {
     dtype = DataSet::GRID_DBL;
@@ -418,21 +432,24 @@ int DataIO_Std::Read_3D(std::string const& fname,
     }
   }
   ds->GridInfo();
-
-  // Assume XYZ coords are of bin corners. Need to offset coords by half
-  // the voxel size.
-  Vec3 offset;
-  if (nonortho) {
-    GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( ds->Bin() );
-    offset = b.Ucell().TransposeMult(Vec3( 1/(2*(double)ds->NX()),
-                                           1/(2*(double)ds->NY()),
-                                           1/(2*(double)ds->NZ()) ));
-  } else {
-    GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( ds->Bin() );
-    offset = Vec3(b.DX()/2, b.DY()/2, b.DZ()/2);
+  // Determine if an offset is needed
+  Vec3 offset(0.0);
+  if (binCorners_) {
+    // Assume XYZ coords are of bin corners. Need to offset coords by half
+    // the voxel size.
+    if (!ds->Bin().IsOrthoGrid()) {
+      GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( ds->Bin() );
+      offset = b.Ucell().TransposeMult(Vec3( 1/(2*(double)ds->NX()),
+                                             1/(2*(double)ds->NY()),
+                                             1/(2*(double)ds->NZ()) ));
+    } else {
+      GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( ds->Bin() );
+      offset = Vec3(b.DX()/2, b.DY()/2, b.DZ()/2);
+    }
   }
-  mprintf("DEBUG: Offset: %E %E %E\n", offset[0], offset[1], offset[2]);
-
+  if (debug_ > 0)
+    mprintf("DEBUG: Offset: %E %E %E\n", offset[0], offset[1], offset[2]);
+  // Read file
   unsigned int nvals = 0;
   while (ptr != 0) {
     if (ptr[0] != '#') {
