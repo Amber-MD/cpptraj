@@ -86,13 +86,13 @@ RunCpptraj "$UNITNAME"
 DoTest ../Test_Grid/out.dx.save out3.dx
 
 # Nonorthogonal grid write
-UNITNAME='Nonorthogonal grid standard write test.'
-CheckFor netcdf maxthreads 10
+UNITNAME='Nonorthogonal grid standard write/read tests.'
+CheckFor netcdf maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > vector.in <<EOF
 parm ../tz2.truncoct.parm7
 reference ../tz2.truncoct.nc [first]
-trajin ../tz2.truncoct.nc
+trajin ../tz2.truncoct.nc 1 1
 autoimage triclinic
 grid boxref [first] 42 42 42 :WAT@O normdensity name MyGrid
 run
