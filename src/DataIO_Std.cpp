@@ -945,16 +945,16 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   DataSet::SizeArray pos(3);
   if (writeHeader_) {
     file.Printf("#counts %zu %zu %zu\n", set.NX(), set.NY(), set.NZ());
-    file.Printf("#origin %g %g %g\n",
+    file.Printf("#origin %12.7f %12.7f %12.7f\n",
                 set.Bin().GridOrigin()[0],
                 set.Bin().GridOrigin()[1],
                 set.Bin().GridOrigin()[2]);
     if (set.Bin().IsOrthoGrid()) {
       GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( set.Bin() );
-      file.Printf("#delta %g %g %g\n", b.DX(), b.DY(), b.DZ());
+      file.Printf("#delta %12.7f %12.7f %12.7f\n", b.DX(), b.DY(), b.DZ());
     } else {
       GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( set.Bin() );
-      file.Printf("#delta %g %g %g %g %g %g %g %g %g\n",
+      file.Printf("#delta %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f\n",
                   b.Ucell()[0]/set.NX(),
                   b.Ucell()[1]/set.NX(),
                   b.Ucell()[2]/set.NX(),
