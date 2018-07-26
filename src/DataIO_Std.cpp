@@ -353,6 +353,8 @@ int DataIO_Std::Read_3D(std::string const& fname,
     ptr = buffer.Line();
   }
   // Check if #delta is present
+  bool nonortho = false;
+  Box gridBox;
   if (strncmp(ptr,"#delta",6)==0) {
     mprintf("\tReading grid deltas.\n");
     double dvals[9];
@@ -368,15 +370,15 @@ int DataIO_Std::Read_3D(std::string const& fname,
                   i, delta_[i], dvals[i]);
       }
     } else {
-      mprinterr("Error: Not yet set up for non-ortho.\n");
-      return 1;
+      nonortho = true;
+      dvals[0] *= (double)dims_[0]; dvals[1] *= (double)dims_[0]; dvals[2] *= (double)dims_[0];
+      dvals[3] *= (double)dims_[1]; dvals[4] *= (double)dims_[1]; dvals[5] *= (double)dims_[1];
+      dvals[6] *= (double)dims_[2]; dvals[7] *= (double)dims_[2]; dvals[8] *= (double)dims_[2];
+      gridBox = Box(Matrix_3x3(dvals));
     }
     ptr = buffer.Line();
   }
 
-  mprintf("\tOrigin : %g %g %g\n", origin_[0], origin_[1], origin_[2]);
-  mprintf("\tDelta  : %g %g %g\n", delta_[0], delta_[1], delta_[2]);
-  mprintf("\tDims   : %zu %zu %zu\n", dims_[0], dims_[1], dims_[2]);
   DataSet::DataType dtype;
   if (prec_ == DOUBLE) {
     dtype = DataSet::GRID_DBL;
@@ -391,7 +393,12 @@ int DataIO_Std::Read_3D(std::string const& fname,
   if (set == 0) {
     ds = (DataSet_3D*)datasetlist.AddSet(dtype, dsname);
     if (ds == 0) return 1;
-    if (ds->Allocate_N_O_D( dims_[0], dims_[1], dims_[2], origin_, delta_ )) return 1;
+    int err = 0;
+    if (nonortho)
+      err = ds->Allocate_N_O_Box(dims_[0], dims_[1], dims_[2], origin_, gridBox);
+    else
+      err = ds->Allocate_N_O_D(dims_[0], dims_[1], dims_[2], origin_, delta_);
+    if (err != 0) return 1;
   } else {
     mprintf("\tAppending to existing set '%s'\n", set->legend());
     if (set->Group() != DataSet::GRID_3D) {
@@ -409,6 +416,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
               ds->legend(), dims_[0], dims_[1], dims_[2]);
     }
   }
+  ds->GridInfo();
   unsigned int nvals = 0;
   while (ptr != 0) {
     if (ptr[0] != '#') {
@@ -427,7 +435,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
       if ( ds->Bin().Calc(xyzv[0], xyzv[1], xyzv[2], ix, iy, iz ) ) {
         ds->UpdateVoxel(ds->CalcIndex(ix, iy, iz), xyzv[3]);
       } else {
-        mprintf("Warning: Coordinate out of bounds (%g %g %g), line %i\n",
+        mprintf("Warning: Coordinate out of bounds (%g %g %g, ), line %i\n",
                 xyzv[0], xyzv[1], xyzv[2], buffer.LineNumber());
       }
     }
