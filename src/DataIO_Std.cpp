@@ -21,12 +21,24 @@
 DataIO_Std::DataIO_Std() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
   mode_(READ1D),
+  prec_(UNSPEC),
   indexcol_(-1),
   isInverted_(false), 
   hasXcolumn_(true), 
   writeHeader_(true), 
-  square2d_(false)
-{}
+  square2d_(false),
+  sparse_(false),
+  originSpecified_(false),
+  deltaSpecified_(false),
+  binCorners_(true),
+  origin_(0.0),
+  delta_(1.0),
+  cut_(0.0)
+{
+  dims_[0] = 0;
+  dims_[1] = 0;
+  dims_[2] = 0;
+}
 
 static void PrintColumnError(int idx) {
   mprinterr("Error: Number of columns in file changes at line %i.\n", idx);
@@ -35,6 +47,13 @@ static void PrintColumnError(int idx) {
 void DataIO_Std::ReadHelp() {
   mprintf("\tread1d:      Read data as 1D data sets (default).\n"
           "\tread2d:      Read data as 2D square matrix.\n"
+          "\tread3d:      Read data as 3D grid. If no dimension data in file must also\n"
+          "\t             specify 'dims'; can also specify 'origin' and 'delta'.\n"
+          "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
+          "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
+          "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
+          "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
+          "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
           "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
           "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
           "\tindex <col>: (1D) Use column # (starting from 1) as index (X) column.\n");
@@ -43,10 +62,30 @@ void DataIO_Std::ReadHelp() {
 
 const char* DataIO_Std::SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
 
+// DataIO_Std::Get3Double()
+int DataIO_Std::Get3Double(std::string const& key, Vec3& vec, bool& specified)
+{
+  specified = false;
+  if (!key.empty()) {
+    ArgList oArg(key, ",");
+    if (oArg.Nargs() != 3) {
+      mprinterr("Error: Expected 3 comma-separated values for '%s'\n", key.c_str());
+      return 1;
+    }
+    vec[0] = oArg.getNextDouble(vec[0]);
+    vec[1] = oArg.getNextDouble(vec[1]);
+    vec[2] = oArg.getNextDouble(vec[2]);
+    specified = true;
+  }
+  return 0;
+}
+
+// DataIO_Std::processReadArgs()
 int DataIO_Std::processReadArgs(ArgList& argIn) {
   mode_ = READ1D;
   if (argIn.hasKey("read1d")) mode_ = READ1D;
   else if (argIn.hasKey("read2d")) mode_ = READ2D;
+  else if (argIn.hasKey("read3d")) mode_ = READ3D;
   else if (argIn.hasKey("vector")) mode_ = READVEC;
   else if (argIn.hasKey("mat3x3")) mode_ = READMAT3X3;
   indexcol_ = argIn.getKeyInt("index", -1);
@@ -56,6 +95,42 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
     return 1;
   }
   if (indexcol_ > 0) --indexcol_;
+  // Options for 3d
+  if (mode_ == READ3D) {
+    if (Get3Double(argIn.GetStringKey("origin"), origin_, originSpecified_)) return 1;
+    if (Get3Double(argIn.GetStringKey("delta"),  delta_,  deltaSpecified_ )) return 1;
+
+    std::string dimKey = argIn.GetStringKey("dims");
+    if (!dimKey.empty()) {
+      ArgList oArg(dimKey, ",");
+      if (oArg.Nargs() != 3) {
+        mprinterr("Error: Expected 3 comma-separated values for 'dims'.\n");
+        return 1;
+      }
+      dims_[0] = oArg.getNextInteger(dims_[0]);
+      dims_[1] = oArg.getNextInteger(dims_[1]);
+      dims_[2] = oArg.getNextInteger(dims_[2]);
+    }
+    // TODO precision for 1d and 2d too
+    std::string precKey = argIn.GetStringKey("prec");
+    if (!precKey.empty()) {
+      if (precKey == "flt") prec_ = FLOAT;
+      else if (precKey == "dbl") prec_ = DOUBLE;
+      else {
+        mprinterr("Error: Expected only 'flt' or 'dbl' for keyword 'prec'\n");
+        return 1;
+      }
+    }
+    std::string binKey = argIn.GetStringKey("bin");
+    if (!binKey.empty()) {
+      if (binKey == "center") binCorners_ = false;
+      else if (binKey == "corner") binCorners_ = true;
+      else {
+        mprinterr("Error: Expected only 'center' or 'corner' for keyword 'bin'\n");
+        return 1;
+      }
+    }
+  }
   return 0;
 }
   
@@ -68,6 +143,7 @@ int DataIO_Std::ReadData(FileName const& fname,
   switch ( mode_ ) {
     case READ1D: err = Read_1D(fname.Full(), dsl, dsname); break;
     case READ2D: err = Read_2D(fname.Full(), dsl, dsname); break;
+    case READ3D: err = Read_3D(fname.Full(), dsl, dsname); break;
     case READVEC: err = Read_Vector(fname.Full(), dsl, dsname); break;
     case READMAT3X3: err = Read_Mat3x3(fname.Full(), dsl, dsname); break;
   }
@@ -251,7 +327,156 @@ int DataIO_Std::Read_2D(std::string const& fname,
 int DataIO_Std::Read_3D(std::string const& fname, 
                         DataSetList& datasetlist, std::string const& dsname)
 {
-  return 1;
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("\tData will be read as 3D grid: X Y Z Value\n");
+  if (binCorners_)
+    mprintf("\tAssuming X Y Z are bin corners\n");
+  else
+    mprintf("\tAssuming X Y Z are bin centers\n");
+  const char* ptr = buffer.Line();
+  // Check if #counts is present
+  if (strncmp(ptr,"#counts",7)==0) {
+    mprintf("\tReading grid dimensions.\n");
+    unsigned int counts[3];
+    sscanf(ptr+7,"%u %u %u", counts, counts+1, counts+2);
+    for (int i = 0; i < 3; i++) {
+      if (dims_[i] == 0)
+        dims_[i] = counts[i];
+      else if (dims_[i] != (size_t)counts[i])
+        mprintf("Warning: Specified size for dim %i (%zu) differs from size in file (%u)\n",
+                i, dims_[i], counts[i]);
+    }
+    ptr = buffer.Line();
+  }
+  if (dims_[0] == 0 || dims_[1] == 0 || dims_[2] == 0) {
+    mprinterr("Error: 'dims' not specified for 'read3d' and no dims in file\n");
+    return 1;
+  }
+  // Check if #origin is present
+  if (strncmp(ptr,"#origin",7)==0) {
+    mprintf("\tReading grid origin.\n");
+    double oxyz[3];
+    sscanf(ptr+7,"%lf %lf %lf", oxyz, oxyz+1, oxyz+2);
+    for (int i = 0; i < 3; i++) {
+      if (!originSpecified_)
+        origin_[i] = oxyz[i];
+      else if (origin_[i] != oxyz[i])
+        mprintf("Warning: Specified origin for dim %i (%g) differs from origin in file (%g)\n",
+                i, origin_[i], oxyz[i]);
+    }
+    ptr = buffer.Line();
+  }
+  // Check if #delta is present
+  bool nonortho = false;
+  Box gridBox;
+  if (strncmp(ptr,"#delta",6)==0) {
+    mprintf("\tReading grid deltas.\n");
+    double dvals[9];
+    int ndvals = sscanf(ptr+6,"%lf %lf %lf %lf %lf %lf %lf %lf %lf", dvals,
+                        dvals+1, dvals+2, dvals+3, dvals+4, dvals+5,
+                        dvals+6, dvals+7, dvals+8);
+    if (ndvals == 3) {
+      for (int i = 0; i < 3; i++) {
+        if (!deltaSpecified_)
+          delta_[i] = dvals[i];
+        else if (delta_[i] != dvals[i])
+          mprintf("Warning: Specified delta for dim %i (%g) differs from delta in file (%g)\n",
+                  i, delta_[i], dvals[i]);
+      }
+    } else {
+      nonortho = true;
+      dvals[0] *= (double)dims_[0]; dvals[1] *= (double)dims_[0]; dvals[2] *= (double)dims_[0];
+      dvals[3] *= (double)dims_[1]; dvals[4] *= (double)dims_[1]; dvals[5] *= (double)dims_[1];
+      dvals[6] *= (double)dims_[2]; dvals[7] *= (double)dims_[2]; dvals[8] *= (double)dims_[2];
+      gridBox = Box(Matrix_3x3(dvals));
+    }
+    ptr = buffer.Line();
+  }
+  // Get or allocate data set
+  DataSet::DataType dtype;
+  if (prec_ == DOUBLE) {
+    dtype = DataSet::GRID_DBL;
+    mprintf("\tGrid is double precision.\n");
+  } else {
+    dtype = DataSet::GRID_FLT;
+    mprintf("\tGrid is single precision.\n");
+  }
+  MetaData md( dsname );
+  DataSet_3D* ds = 0;
+  DataSet* set = datasetlist.CheckForSet( md );
+  if (set == 0) {
+    ds = (DataSet_3D*)datasetlist.AddSet(dtype, dsname);
+    if (ds == 0) return 1;
+    int err = 0;
+    if (nonortho)
+      err = ds->Allocate_N_O_Box(dims_[0], dims_[1], dims_[2], origin_, gridBox);
+    else
+      err = ds->Allocate_N_O_D(dims_[0], dims_[1], dims_[2], origin_, delta_);
+    if (err != 0) return 1;
+  } else {
+    mprintf("\tAppending to existing set '%s'\n", set->legend());
+    if (set->Group() != DataSet::GRID_3D) {
+      mprinterr("Error: Set '%s' is not a grid set, cannot append.\n", set->legend());
+      return 1;
+    }
+    ds = (DataSet_3D*)set;
+    // Check that dimensions line up. TODO check origin etc too?
+    if (dims_[0] != ds->NX() ||
+        dims_[1] != ds->NY() ||
+        dims_[2] != ds->NZ())
+    {
+      mprintf("Warning: Specified grid dimensions (%zu %zu %zu) do not match\n"
+              "Warning:   '%s' dimensions (%zu %zu %zu)\n", dims_[0], dims_[1], dims_[2],
+              ds->legend(), dims_[0], dims_[1], dims_[2]);
+    }
+  }
+  ds->GridInfo();
+  // Determine if an offset is needed
+  Vec3 offset(0.0);
+  if (binCorners_) {
+    // Assume XYZ coords are of bin corners. Need to offset coords by half
+    // the voxel size.
+    if (!ds->Bin().IsOrthoGrid()) {
+      GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( ds->Bin() );
+      offset = b.Ucell().TransposeMult(Vec3( 1/(2*(double)ds->NX()),
+                                             1/(2*(double)ds->NY()),
+                                             1/(2*(double)ds->NZ()) ));
+    } else {
+      GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( ds->Bin() );
+      offset = Vec3(b.DX()/2, b.DY()/2, b.DZ()/2);
+    }
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG: Offset: %E %E %E\n", offset[0], offset[1], offset[2]);
+  // Read file
+  unsigned int nvals = 0;
+  while (ptr != 0) {
+    if (ptr[0] != '#') {
+      int ntokens = buffer.TokenizeLine( SEPARATORS );
+      if (ntokens != 4) {
+        mprinterr("Error: Expected 4 columns (X, Y, Z, data), got %i\n", ntokens);
+        return 1;
+      }
+      nvals++;
+      double xyzv[4];
+      xyzv[0] = atof( buffer.NextToken() );
+      xyzv[1] = atof( buffer.NextToken() );
+      xyzv[2] = atof( buffer.NextToken() );
+      xyzv[3] = atof( buffer.NextToken() );
+      size_t ix, iy, iz;
+      if ( ds->Bin().Calc(xyzv[0]+offset[0],
+                          xyzv[1]+offset[1],
+                          xyzv[2]+offset[2], ix, iy, iz ) )
+        ds->UpdateVoxel(ds->CalcIndex(ix, iy, iz), xyzv[3]);
+      else
+        mprintf("Warning: Coordinate out of bounds (%g %g %g, ), line %i\n",
+                xyzv[0], xyzv[1], xyzv[2], buffer.LineNumber());
+    }
+    ptr = buffer.Line();
+  }
+  mprintf("\tRead %u values.\n", nvals);
+  return 0;
 }
 
 // DataIO_Std::Read_Vector()
@@ -375,11 +600,14 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
 
 // -----------------------------------------------------------------------------
 void DataIO_Std::WriteHelp() {
-  mprintf("\tinvert:     Flip X/Y axes.\n"
-          "\tnoxcol:     Do not print X (index) column.\n"
-          "\tnoheader:   Do not print header line.\n"
-          "\tsquare2d:   Write 2D data sets in matrix-like format.\n"
-          "\tnosquare2d: Write 2D data sets as '<X> <Y> <Value>'.\n");
+  mprintf("\tnoheader   : Do not print header line.\n"
+          "\tinvert     : Flip X/Y axes (1D).\n"
+          "\tnoxcol     : Do not print X (index) column (1D).\n"
+          "\tsquare2d   : Write 2D data sets in matrix-like format.\n"
+          "\tnosquare2d : Write 2D data sets as '<X> <Y> <Value>'.\n"
+          "\tnosparse   : Write all 3D grid voxels (default).\n"
+          "\tsparse     : Only write 3D grid voxels with value > cutoff (default 0).\n"
+          "\t\tcut : Cutoff for 'sparse'; default 0.\n");
 }
 
 // DataIO_Std::processWriteArgs()
@@ -394,6 +622,12 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
     square2d_ = true;
   else if (square2d_ && argIn.hasKey("nosquare2d"))
     square2d_ = false;
+  if (!sparse_ && argIn.hasKey("sparse"))
+    sparse_ = true;
+  else if (sparse_ && argIn.hasKey("nosparse"))
+    sparse_ = false;
+  if (sparse_)
+    cut_ = argIn.getKeyDouble("cut", cut_);
   return 0;
 }
 
@@ -721,13 +955,36 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   Dimension const& Ydim = static_cast<Dimension const&>(set.Dim(1));
   Dimension const& Zdim = static_cast<Dimension const&>(set.Dim(2));
   //if (Xdim.Step() == 1.0) xcol_precision = 0;
-  
+  if (sparse_)
+    mprintf("\tOnly writing voxels with value > %g\n", cut_);
   // Print X Y Z Values
   // x y z val(x,y,z)
   DataSet::SizeArray pos(3);
-  if (writeHeader_)
+  if (writeHeader_) {
+    file.Printf("#counts %zu %zu %zu\n", set.NX(), set.NY(), set.NZ());
+    file.Printf("#origin %12.7f %12.7f %12.7f\n",
+                set.Bin().GridOrigin()[0],
+                set.Bin().GridOrigin()[1],
+                set.Bin().GridOrigin()[2]);
+    if (set.Bin().IsOrthoGrid()) {
+      GridBin_Ortho const& b = static_cast<GridBin_Ortho const&>( set.Bin() );
+      file.Printf("#delta %12.7f %12.7f %12.7f\n", b.DX(), b.DY(), b.DZ());
+    } else {
+      GridBin_Nonortho const& b = static_cast<GridBin_Nonortho const&>( set.Bin() );
+      file.Printf("#delta %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f %12.7f\n",
+                  b.Ucell()[0]/set.NX(),
+                  b.Ucell()[1]/set.NX(),
+                  b.Ucell()[2]/set.NX(),
+                  b.Ucell()[3]/set.NY(),
+                  b.Ucell()[4]/set.NY(),
+                  b.Ucell()[5]/set.NY(),
+                  b.Ucell()[6]/set.NZ(),
+                  b.Ucell()[7]/set.NZ(),
+                  b.Ucell()[8]/set.NZ());
+    }
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
                 Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());
+  }
   std::string xyz_fmt;
   if (XcolPrecSet()) {
     TextFormat nfmt( XcolFmt(), XcolWidth(), XcolPrec() );
@@ -738,13 +995,29 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
     TextFormat zfmt( XcolFmt(), set.NZ(), Zdim.Min(), Zdim.Step(), 8, 3 );
     xyz_fmt = xfmt.Fmt() + " " + yfmt.Fmt() + " " + zfmt.Fmt() + " ";
   }
-  for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
-    for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
-      for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
-        file.Printf( xyz_fmt.c_str(), set.Coord(0, pos[0]),
-                     set.Coord(1, pos[1]), set.Coord(2, pos[2]) );
-        set.WriteBuffer( file, pos );
-        file.Printf("\n");
+  if (sparse_) {
+    for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
+      for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
+        for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
+          double val = set.GetElement(pos[0], pos[1], pos[2]);
+          if (val > cut_) {
+            Vec3 xyz = set.Bin().Corner(pos[0], pos[1], pos[2]);
+            file.Printf( xyz_fmt.c_str(), xyz[0], xyz[1], xyz[2] );
+            set.WriteBuffer( file, pos );
+            file.Printf("\n");
+          }
+        }
+      }
+    }
+  } else {
+    for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
+      for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
+        for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
+          Vec3 xyz = set.Bin().Corner(pos[0], pos[1], pos[2]);
+          file.Printf( xyz_fmt.c_str(), xyz[0], xyz[1], xyz[2] );
+          set.WriteBuffer( file, pos );
+          file.Printf("\n");
+        }
       }
     }
   }

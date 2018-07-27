@@ -129,7 +129,9 @@ class DataSet {
 
     /// Clear any associated data.
     void ClearAssociatedData();
-
+    // FIXME dim_ and associated functions like Coord need to be reworked
+    //       depending on the set type. For example, dim_ doesnt really work
+    //       for non-orthogonal grids.
     DimArray dim_;              ///< Holds info for each dimension in the DataSet.
     AdataArray associatedData_; ///< Holds any additonal data associated with this DataSet
     DataType dType_;            ///< The DataSet type

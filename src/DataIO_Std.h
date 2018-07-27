@@ -15,6 +15,7 @@ class DataIO_Std : public DataIO {
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     static const char* SEPARATORS;
+    static int Get3Double(std::string const&, Vec3&, bool&);
     int Read_1D(std::string const&,DataSetList&,std::string const&);
     int Read_2D(std::string const&,DataSetList&,std::string const&);
     int Read_3D(std::string const&,DataSetList&,std::string const&);
@@ -28,12 +29,22 @@ class DataIO_Std : public DataIO {
     int WriteData3D(CpptrajFile&, DataSetList const&);
     int WriteSet2D(DataSet const&, CpptrajFile&);
     int WriteSet3D(DataSet const&, CpptrajFile&);
-    enum modeType {READ1D=0, READ2D, READVEC, READMAT3X3};
-    modeType mode_;
-    int indexcol_;
+    enum modeType {READ1D=0, READ2D, READ3D, READVEC, READMAT3X3};
+    enum precType {UNSPEC, FLOAT, DOUBLE};
+    modeType mode_;    ///< Read mode
+    precType prec_;    ///< 3d reads, data set precision
+    int indexcol_;     ///< Read: column containing index (X) values
     bool isInverted_;  ///< For 1D writes invert X/Y.
     bool hasXcolumn_;
     bool writeHeader_;
     bool square2d_;
+    bool sparse_;          ///< 3d writes, only write voxels with value > cut_
+    bool originSpecified_; ///< 3d reads, true if origin specified
+    bool deltaSpecified_;  ///< 3d reads, true if delta specified.
+    bool binCorners_;      ///< 3d reads, if true assume coordinates are bin corners
+    Vec3 origin_;          ///< 3d reads, grid origin
+    Vec3 delta_;           ///< 3d reads, grid delta
+    size_t dims_[3];       ///< 3d reads, grid dims
+    double cut_;           ///< 3d writes, when 'sparse_', only write voxels > cut_
 };
 #endif

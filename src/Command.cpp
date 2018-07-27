@@ -677,6 +677,23 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
         break;
     }
   }
+# ifdef MPI
+  // Check that everyone had same return value from command
+  int iret = (int)ret_val;
+  std::vector<int> rvals(Parallel::World().Size(), 0);
+  Parallel::World().AllGather(&iret, 1, MPI_INT, &rvals[0]);
+  for (std::vector<int>::const_iterator it = rvals.begin(); it != rvals.end(); ++it)
+  {
+    if (*it != rvals.front()) {
+      // This thread had a return value different than thread 0 - notify and
+      // set the overall return value to error.
+      mprinterr("Internal Error: Thread %u command return value %i differs from world master %i\n",
+                it-rvals.begin(), *it, rvals.front());
+      ret_val = CpptrajState::ERR;
+    }
+  }
+  Parallel::World().Barrier();
+# endif
   return ret_val;
 }
 

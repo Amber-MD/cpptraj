@@ -6,7 +6,7 @@ class GridBin {
   public:
     GridBin() : OXYZ_(0.0) {}
     virtual ~GridBin() {}
-    /// Given coordinates, set corresponding bin indices; check bounds.
+    /// \return true if given coordinates are on grid; set corresponding bin indices.
     virtual bool Calc(double, double, double, size_t&, size_t&, size_t&) const = 0;
     /// Given coordinates, set corresponding bin indices; no bounds check.
     virtual void Indices(double, double, double, long int&, long int&, long int&) const = 0;
@@ -113,13 +113,13 @@ class GridBin_Nonortho : public GridBin {
     }
     Vec3 Corner(long int i, long int j, long int k) const {
       Vec3 frac( (double)i / nx_, (double)j / ny_, (double)k / nz_ );
-      return ucell_.TransposeMult( frac );
+      return ucell_.TransposeMult( frac ) + OXYZ_;
     }
     Vec3 Center(long int i, long int j, long int k) const {
       Vec3 frac_half((1.0 + 2.0 * (double)i) / (2.0 * nx_),  //(0.5 * (1.0 / nx_)) + ((double)i / nx_),
                      (1.0 + 2.0 * (double)j) / (2.0 * ny_), 
                      (1.0 + 2.0 * (double)k) / (2.0 * nz_));
-      return ucell_.TransposeMult( frac_half );
+      return ucell_.TransposeMult( frac_half ) + OXYZ_;
     }
     Matrix_3x3 Ucell() const { return ucell_; }
     bool IsOrthoGrid() const { return false; }
