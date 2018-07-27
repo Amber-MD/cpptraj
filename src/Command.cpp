@@ -677,6 +677,10 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
         break;
     }
   }
+# ifdef MPI
+  // Ensure everyone is on the same page.
+  Parallel::World().Barrier();
+# endif
   return ret_val;
 }
 
