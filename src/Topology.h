@@ -63,6 +63,8 @@ class Topology {
     inline mol_iterator MolStart() const { return molecules_.begin(); }
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
+    /// Determine molecules based on bond information
+    int DetermineMolecules();
     // ----- Bond-specific routines --------------
     size_t Nbonds()                            const { return bonds_.size()+bondsh_.size(); }
     BondArray         const& Bonds()        const { return bonds_;        }
@@ -174,7 +176,6 @@ class Topology {
     int RecursiveMolSearch();
     int NonrecursiveMolSearch();
     void ClearMolecules();
-    int DetermineMolecules();
     void AtomDistance(int, int, int, std::set<int>&) const;
     void DetermineExcludedAtoms();
     void DetermineNumExtraPoints();
