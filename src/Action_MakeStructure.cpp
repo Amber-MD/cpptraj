@@ -137,6 +137,9 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
                                   REF->RefFrame().XYZ(dih->A2()),
                                   REF->RefFrame().XYZ(dih->A3()) );
         ss_holder.thetas_.push_back( (float)torsion );
+        if (debug_ > 0)
+          mprintf("\t    Res %i %s = %g\n", dih->ResNum()+1, dih->Name().c_str(),
+                  torsion*Constants::RADDEG);
       }
       secstruct_.push_back( ss_holder );
 
@@ -240,9 +243,10 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
           mprintf("\tDihedral value of %.2f will be applied to %s dihedrals in residue(s) %s\n",
                   myType.phi, myType.type_arg.c_str(), ss->resRange.RangeArg());
       }
-    } else 
+    } else {
       mprintf("\tBackbone angles from reference will be applied to residue(s) %s\n",
               ss->resRange.RangeArg());
+    }
     if (!ss->dihSearch_.NoDihedralTokens()) {
       mprintf("\tSet up for types:");
       ss->dihSearch_.PrintTypes();
@@ -352,6 +356,9 @@ Action::RetType Action_MakeStructure::Setup(ActionSetup& setup) {
       if ( ss->dihSearch_.Ndihedrals() != (int)ss->thetas_.size() ) {
         mprinterr("Error: Number of found dihedrals (%i) != number reference dihedrals (%u)\n",
                   ss->dihSearch_.Ndihedrals(), ss->thetas_.size());
+        for (DihedralSearch::mask_it dih = ss->dihSearch_.begin();
+                                     dih != ss->dihSearch_.end(); ++dih)
+          mprinterr("\t    Found Res %i %s\n", dih->ResNum()+1, dih->Name().c_str());
         return Action::ERR;
       }
       std::vector<float>::const_iterator theta = ss->thetas_.begin();
