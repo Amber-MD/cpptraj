@@ -19,7 +19,7 @@ Action::RetType Action_Align::Init(ArgList& actionArgs, ActionInit& init, int de
   // Check for keywords
   useMass_ = actionArgs.hasKey("mass");
   // Reference keywords: always fitting
-  REF_.InitRef(actionArgs, init.DSL(), true, useMass_ );
+  if (REF_.InitRef(actionArgs, init.DSL(), true, useMass_ )) return Action::ERR;
   // Get the fit mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
   tgtMask_.SetMaskString(tMaskExpr);

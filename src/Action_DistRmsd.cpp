@@ -16,7 +16,7 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, ActionInit& init, int
   // Check for keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Reference keywords
-  REF_.InitRef(actionArgs, init.DSL(), false, false);
+  if (REF_.InitRef(actionArgs, init.DSL(), false, false)) return Action::ERR;
   // Get the RMS mask string for target 
   std::string tMaskExpr = actionArgs.GetMaskNext();
   TgtMask_.SetMaskString( tMaskExpr );
