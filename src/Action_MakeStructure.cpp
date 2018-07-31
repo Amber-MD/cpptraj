@@ -93,9 +93,21 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
         mprinterr("Error: Ref backbone types must be unique [%s]\n", ss_arg[0].c_str());
         return Action::ERR;
       }
-      // Use backbone phi/psi from reference structure
-      ss_holder.dihSearch_.SearchFor(MetaData::PHI);
-      ss_holder.dihSearch_.SearchFor(MetaData::PSI);
+      if (ss_arg.Nargs() < 5) {
+        // Use backbone phi/psi from reference structure
+        ss_holder.dihSearch_.SearchFor(MetaData::PHI);
+        ss_holder.dihSearch_.SearchFor(MetaData::PSI);
+      } else {
+        // Parse comma-separated list of desired types
+        ArgList typeArgs(ss_arg[4], ",");
+        ss_arg.MarkArg(4);
+        if (typeArgs.Nargs() < 1) {
+          mprinterr("Error: Expected comma-separated list of dihedral types, got '%s'\n",
+                    ss_arg[4].c_str());
+          return Action::ERR;
+        }
+        ss_holder.dihSearch_.SearchForArgs(typeArgs);
+      }
       // Get reference structure
       DataSet_Coords_REF* REF = (DataSet_Coords_REF*)
                                 init.DSL().FindSetOfType(ss_arg.GetStringNext(),
@@ -115,9 +127,7 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
       } else
         refRange = ss_holder.resRange;
       // Look for phi/psi only in reference
-      DihedralSearch refSearch;
-      refSearch.SearchFor(MetaData::PHI);
-      refSearch.SearchFor(MetaData::PSI);
+      DihedralSearch refSearch( ss_holder.dihSearch_ );
       if (refSearch.FindDihedrals( REF->Top(), refRange )) return Action::ERR;
       // For each found dihedral, set theta 
       for (DihedralSearch::mask_it dih = refSearch.begin(); dih != refSearch.end(); ++dih)
@@ -233,6 +243,11 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
     } else 
       mprintf("\tBackbone angles from reference will be applied to residue(s) %s\n",
               ss->resRange.RangeArg());
+    if (!ss->dihSearch_.NoDihedralTokens()) {
+      mprintf("\tSet up for types:");
+      ss->dihSearch_.PrintTypes();
+      mprintf("\n");
+    }
   }
   return Action::OK;
 }
