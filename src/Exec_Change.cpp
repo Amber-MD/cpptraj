@@ -4,10 +4,12 @@
 // Exec_Change::Help()
 void Exec_Change::Help() const
 {
-  mprintf("\t[%s]\n"
+  mprintf("\t[ {%s |\n"
+          "\t   crdset <COORDS set>\n"
           "\t{ resname from <mask> to <value> |\n"
           "\t  atomname from <mask> to <value> }\n"
-          "  Change specified parts of topology.\n", DataSetList::TopIdxArgs);
+          "  Change specified parts of topology or topology of a COORDS data set.\n",
+          DataSetList::TopIdxArgs);
 }
 
 // Exec_Change::Execute()
@@ -26,7 +28,18 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No change type specified.\n");
     return CpptrajState::ERR;
   }
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
+  // Are we doing a COORDS set or a topology?
+  Topology* parm = 0;
+  std::string crdset = argIn.GetStringKey("crdset");
+  if (!crdset.empty()) {
+    DataSet_Coords* cset = (DataSet_Coords*)State.DSL().FindCoordsSet( crdset );
+    if (cset == 0) {
+      mprinterr("Error: No COORDS set with name '%s' found.\n", crdset.c_str());
+      return CpptrajState::ERR;
+    }
+    parm = cset->TopPtr();
+  } else
+    parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   int err = 0;
   switch (type) {
