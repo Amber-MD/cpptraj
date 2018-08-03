@@ -4,11 +4,12 @@
 // CONSTRUCTOR
 Action_Align::Action_Align() :
   debug_(0),
-  useMass_(false)
+  useMass_(false),
+  moveSpecified_(false)
 {}
 
 void Action_Align::Help() const {
-  mprintf("\t[<name>] <mask> [<refmask>] [mass]\n\t%s\n", ReferenceAction::Help());
+  mprintf("\t[<name>] <mask> [<refmask>] [move <mask>][mass]\n\t%s\n", ReferenceAction::Help());
   mprintf("  Align structure using specified <mask> onto reference.\n");
 }
 
@@ -20,6 +21,8 @@ Action::RetType Action_Align::Init(ArgList& actionArgs, ActionInit& init, int de
   useMass_ = actionArgs.hasKey("mass");
   // Reference keywords: always fitting
   if (REF_.InitRef(actionArgs, init.DSL(), true, useMass_ )) return Action::ERR;
+  // Get the mask expression for moving atoms
+  std::string mMaskExpr = actionArgs.GetStringKey("move");
   // Get the fit mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
   tgtMask_.SetMaskString(tMaskExpr);
@@ -28,11 +31,20 @@ Action::RetType Action_Align::Init(ArgList& actionArgs, ActionInit& init, int de
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
   REF_.SetRefMask( rMaskExpr );
+  // Set the mask for moving atoms
+  if (mMaskExpr.empty()) {
+    moveSpecified_ = false;
+    mMaskExpr = tMaskExpr;
+  } else
+    moveSpecified_ = true;
+  movMask_.SetMaskString( mMaskExpr );
 
 # ifdef MPI
   if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
 # endif
   mprintf("    ALIGN: Aligning atoms selected by mask '%s'\n", tgtMask_.MaskString());
+  if (moveSpecified_)
+    mprintf("\tOnly moving atoms in mask '%s'\n", movMask_.MaskString());
   mprintf("\tReference is %s\n", REF_.RefModeString().c_str());
   if (useMass_)
     mprintf("\tFit will be mass-weighted.\n");
@@ -52,6 +64,17 @@ Action::RetType Action_Align::Setup(ActionSetup& setup) {
   mprintf("\n");
   if ( tgtMask_.None() ) {
     mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
+    return Action::SKIP;
+  }
+  // Move setup
+  if ( setup.Top().SetupIntegerMask( movMask_ ) ) return Action::ERR;
+  if (moveSpecified_) {
+    mprintf("\tMove mask  :");
+    movMask_.BriefMaskInfo();
+    mprintf("\n");
+  }
+  if ( movMask_.None() ) {
+    mprintf("Warning: No atoms in mask '%s'.\n", movMask_.MaskString());
     return Action::SKIP;
   }
   // Allocate space for selected atoms in the frame. This will also put the
@@ -77,7 +100,7 @@ Action::RetType Action_Align::DoAction(int frameNum, ActionFrame& frm) {
   // Set selected frame atoms. Masses have already been set.
   tgtFrame_.SetCoordinates(frm.Frm(), tgtMask_);
   tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
-  frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
+  frm.ModifyFrm().Trans_Rot_Trans(movMask_, tgtTrans_, rot_, REF_.RefTrans());
   REF_.PreviousRef( frm.Frm() );
   return Action::MODIFY_COORDS;
 }
