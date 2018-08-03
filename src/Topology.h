@@ -150,6 +150,10 @@ class Topology {
     int SetupCharMask(CharMask &) const;
     int SetupIntegerMask(AtomMask &, Frame const&) const;
     int SetupCharMask(CharMask &, Frame const&) const;
+    /// \return Array of residue numbers selected by given atom mask
+    std::vector<int> ResnumsSelectedBy(AtomMask const&) const;
+    /// \return Array of molecule numbers selected by given atom mask
+    std::vector<int> MolnumsSelectedBy(AtomMask const&) const;
     // ----- Topology modification routines ------
     int ScaleDihedralK(double, std::string const&, bool);
     /// Strip atoms outside given mask, do not keep parameters.

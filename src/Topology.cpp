@@ -1066,6 +1066,34 @@ int Topology::SetupCharMask(CharMask &mask, Frame const& frame) const {
   return mask.SetupMask(atoms_, residues_, molecules_, frame.xAddress());
 }
 
+//  Topology::ResnumsSelectedBy()
+std::vector<int> Topology::ResnumsSelectedBy(AtomMask const& mask) const {
+  std::vector<int> resnums;
+  int res = -1;
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+    if (atoms_[*at].ResNum() > res) {
+      res = atoms_[*at].ResNum();
+      resnums.push_back( res );
+    }
+  return resnums;
+}
+
+// Topology::MolnumsSelectedBy()
+std::vector<int> Topology::MolnumsSelectedBy(AtomMask const& mask) const {
+  std::vector<int> molnums;
+  if (molecules_.empty()) {
+    mprintf("Warning: Topology has no molecule information.\n");
+  } else {
+    int mol = -1;
+    for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+      if (atoms_[*at].MolNum() > mol) {
+        mol = atoms_[*at].MolNum();
+        molnums.push_back( mol );
+      }
+  }
+  return molnums;
+}
+
 // -----------------------------------------------------------------------------
 int Topology::scale_dihedral_K(DihedralArray& dihedrals, CharMask const& Mask,
                                double scale_factor, bool useAll)
