@@ -34,7 +34,7 @@ Action::RetType Action_Align::Init(ArgList& actionArgs, ActionInit& init, int de
   // Set the mask for moving atoms
   if (mMaskExpr.empty()) {
     moveSpecified_ = false;
-    mMaskExpr = tMaskExpr;
+    mMaskExpr.assign("*");
   } else
     moveSpecified_ = true;
   movMask_.SetMaskString( mMaskExpr );
