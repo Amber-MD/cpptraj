@@ -73,8 +73,8 @@ const
   if (topIn.SetupCharMask( mask )) return 1;
   mask.MaskInfo();
   if (mask.None()) {
-    mprinterr("Error: No atoms selected by mask.\n");
-    return 1;
+    mprintf("Warning: No atoms selected by mask.\n");
+    return 0;
   }
   for (int res = 0; res != topIn.Nres(); res++)
     if ( mask.AtomsInCharMask( topIn.Res(res).FirstAtom(), topIn.Res(res).LastAtom()-1 ) )
