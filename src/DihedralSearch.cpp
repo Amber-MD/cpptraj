@@ -173,6 +173,11 @@ DihedralSearch::DihedralMask
 // CONSTRUCTOR
 DihedralSearch::DihedralSearch() {}
 
+/** COPY CONSTRUCTOR - Set up for same tokens. */
+DihedralSearch::DihedralSearch(DihedralSearch const& rhs) :
+  dihedralTokens_(rhs.dihedralTokens_)
+{}
+
 // DihedralSearch::SearchFor()
 /** Search for all types matching typeIn. */
 int DihedralSearch::SearchFor(DihedralType typeIn) {

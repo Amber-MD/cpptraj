@@ -212,6 +212,8 @@ class Frame {
     inline void InverseRotate(Matrix_3x3 const&, AtomMask const&);
     /// Apply translation followed by rotation followed by second translation
     inline void Trans_Rot_Trans(Vec3 const&, Matrix_3x3 const&, Vec3 const&);
+    /// Apply translation, rotation, 2nd translation for atoms in mask
+    inline void Trans_Rot_Trans(AtomMask const&, Vec3 const&, Matrix_3x3 const&, Vec3 const&);
     // -------------------------------------------------------------------------
     /// Scale coordinates of atoms in mask by given X|Y|Z constants
     void Scale(AtomMask const&, double, double, double);
@@ -420,6 +422,20 @@ void Frame::InverseRotate(Matrix_3x3 const& RotMatrix, AtomMask const& mask) {
 
 void Frame::Trans_Rot_Trans(Vec3 const& t1, Matrix_3x3 const& R, Vec3 const& t2) {
   for (int i = 0; i < ncoord_; i+=3) {
+    double x = X_[i  ] + t1[0];
+    double y = X_[i+1] + t1[1];
+    double z = X_[i+2] + t1[2];
+    X_[i  ] = x*R[0] + y*R[1] + z*R[2] + t2[0];
+    X_[i+1] = x*R[3] + y*R[4] + z*R[5] + t2[1];
+    X_[i+2] = x*R[6] + y*R[7] + z*R[8] + t2[2];
+  }
+}
+
+void Frame::Trans_Rot_Trans(AtomMask const& mask, Vec3 const& t1, Matrix_3x3 const& R,
+                            Vec3 const& t2)
+{
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
+    int i = *at * 3;
     double x = X_[i  ] + t1[0];
     double y = X_[i+1] + t1[1];
     double z = X_[i+2] + t1[2];
