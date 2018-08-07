@@ -38,19 +38,31 @@ void Action_MakeStructure::Help() const {
   mprintf("\t<List of Args>\n"
           "  Apply dihedrals to specified residues using arguments found in <List of Args>,\n"
           "  where an argument is 1 or more of the following arg types:\n"
-          "\t'<sstype>:<res range>' Apply SS type (phi/psi) to residue range.\n"
+          "\t1) '<sstype>:<res range>'\n"
+          "\t  Apply secondary structure type (phi/psi) to residue range. Can use a\n"
+          "\t  standard type (applied to each residue) or a turn type (applied to\n"
+          "\t  consecutive residue pairs, so resrange must be divisible by 2).\n"
           "\t\t<sstype> standard = alpha, left, pp2, hairpin, extended\n"
           "\t\t<sstype> turn = typeI, typeII, typeVIII, typeI', typeII,\n"
           "\t\t                typeVIa1, typeVIa2, typeVIb\n"
-          "\t\tTurns are applied to 2 residues at a time, so resrange must be divisible by 4.\n"
-          "\t'<custom ss>:<res range>:<phi>:<psi>' Apply custom <phi>/<psi> to residue range.\n"
-          "\t'<custom turn>:<res range>:<phi1>:<psi1>:<phi2>:<psi2>' Apply custom turn <phi>/<psi> pair to residue range.\n"
-          "\t'<custom dih>:<res range>:<dih type>:<angle>' Apply <angle> to dihedrals in range.\n"
-          "\t\t<dih type> =");
-  DihedralSearch::ListKnownTypes();
-  mprintf("\t'<custom dih>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]' Apply <angle> to dihedral defined by atoms <at1>, <at2>, <at3>, and <at4>.\n");
+          "\t2) '<custom ss name>:<res range>:<phi>:<psi>'\n"
+          "\t  Apply custom <phi>/<psi> to residue range.\n"
+          "\t3) '<custom turn name>:<res range>:<phi1>:<psi1>:<phi2>:<psi2>'\n"
+          "\t  Apply custom turn <phi>/<psi> pair to residue range.\n"
+          "\t4) '<custom dih name>:<res range>:<dih type>:<angle>'\n"
+          "\t  Apply <angle> to dihedrals of type <dih type> in range. See below for\n"
+          "\t  recognized dihedral types.\n"
+          "\t5) '<custom dih name>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]'\n"
+          "\t  Apply <angle> to dihedral defined by atoms <at1>, <at2>, <at3>, and <at4>.\n");
   DihedralSearch::OffsetHelp();
-  mprintf("\t'ref:<range>:<refname>[:<ref range>]' Apply dihedrals from reference <refname>.\n");
+  mprintf("\t6) 'ref:<range>:<refname>[:<ref range>[:<dih types>]]'\n"
+          "\t  Apply dihedrals from reference <refname> to residues in range <range>.\n"
+          "\t  If <ref range> is specified, use those residues from reference. The\n"
+          "\t  dihedral types to be used can be specified in a comma-separated list;\n"
+          "\t  default is phi/psi. Note that in order to specify <dih types>,\n"
+          "\t  <ref range> must be specified.\n");
+  mprintf("  Dihedral type keywords=");
+  DihedralSearch::ListKnownTypes();
 }
 
 // Action_MakeStructure::Init()
