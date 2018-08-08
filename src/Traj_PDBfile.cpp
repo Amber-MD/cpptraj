@@ -283,9 +283,9 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         rname = "CYS ";
       else if (rname == "MEM ") 
         rname = "MET ";
-      else if (rname == "ASH ")
+      else if (rname == "ASH " || rname == "AS4 ")
         rname = "ASP ";
-      else if (rname == "GLH ")
+      else if (rname == "GLH " || rname == "GL4 ")
         rname = "GLU ";
       // also for nucleic acid names:
       else if ( rname == "C3  " )  rname = "  C ";
