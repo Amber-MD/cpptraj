@@ -7,6 +7,7 @@ void Exec_Change::Help() const
   mprintf("\t[ {%s |\n"
           "\t   crdset <COORDS set>\n"
           "\t{ resname from <mask> to <value> |\n"
+          "\t{ chainid of <mask> to <value> |\n"
           "\t  atomname from <mask> to <value> }\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
           DataSetList::TopIdxArgs);
@@ -16,10 +17,12 @@ void Exec_Change::Help() const
 Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Change type
-  enum ChangeType { UNKNOWN = 0, RESNAME, ATOMNAME, ADDBOND };
+  enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ATOMNAME, ADDBOND };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
+  else if (argIn.hasKey("chainid"))
+    type = CHAINID;
   else if (argIn.hasKey("atomname"))
     type = ATOMNAME;
   else if (argIn.hasKey("addbond"))
@@ -44,6 +47,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   int err = 0;
   switch (type) {
     case RESNAME  : err = ChangeResidueName(*parm, argIn); break;
+    case CHAINID  : err = ChangeChainID(*parm, argIn); break;
     case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
     case ADDBOND  : err = AddBond(*parm, argIn); break;
     case UNKNOWN  : err = 1; // sanity check
@@ -69,19 +73,55 @@ const
     mprinterr("Error: Specify residue(s) to change names of ('from <mask>').\n");
     return 1;
   }
-  CharMask mask(mexpr);
-  if (topIn.SetupCharMask( mask )) return 1;
-  mask.MaskInfo();
+  AtomMask mask(mexpr);
+  if (topIn.SetupIntegerMask( mask )) return 1;
   if (mask.None()) {
     mprintf("Warning: No atoms selected by mask.\n");
     return 0;
   }
-  for (int res = 0; res != topIn.Nres(); res++)
-    if ( mask.AtomsInCharMask( topIn.Res(res).FirstAtom(), topIn.Res(res).LastAtom()-1 ) )
-    {
-      mprintf("\tChanging residue %s to %s\n", topIn.Res(res).c_str(), *rname);
-      topIn.SetRes(res).SetName( rname );
-    }
+  std::vector<int> resNums = topIn.ResnumsSelectedBy( mask );
+  for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
+  {
+    mprintf("\tChanging residue %s to %s\n", topIn.Res(*rnum).c_str(), *rname);
+    topIn.SetRes(*rnum).SetName( rname );
+  }
+  return 0;
+}
+
+// Exec_Change::ChangeChainID()
+int Exec_Change::ChangeChainID(Topology& topIn, ArgList& argIn)
+const
+{
+  // ID to change to.
+  std::string name = argIn.GetStringKey("to");
+  if (name.empty()) {
+    mprinterr("Error: Specify chain ID to change to ('to <ID>').\n");
+    return 1;
+  }
+  if (name.size() != 1) {
+    mprinterr("Error: Chain ID can only be a single character.\n");
+    return 1;
+  }
+  char cid = name[0];
+  // Residues to change
+  std::string mexpr = argIn.GetStringKey("of");
+  if (mexpr.empty()) {
+    mprinterr("Error: Specify residue(s) to change chain IDs of ('of <mask>').\n");
+    return 1;
+  }
+  AtomMask mask(mexpr);
+  if (topIn.SetupIntegerMask( mask )) return 1;
+  if (mask.None()) {
+    mprintf("Warning: No atoms selected by mask.\n");
+    return 0;
+  }
+  std::vector<int> resNums = topIn.ResnumsSelectedBy( mask );
+  for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
+  {
+    mprintf("\tChanging chain ID of residue %s from %c to %c\n", topIn.Res(*rnum).c_str(),
+            topIn.Res(*rnum).ChainID(), cid);
+    topIn.SetRes(*rnum).SetChainID( cid );
+  }
   return 0;
 }
 
@@ -106,7 +146,7 @@ const
   if (topIn.SetupIntegerMask( mask )) return 1;
   mask.MaskInfo();
   if (mask.None()) {
-    mprinterr("Error: No atoms selected by mask.\n");
+    mprintf("Warning: No atoms selected by mask.\n");
     return 1;
   }
   for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
@@ -117,6 +157,7 @@ const
   return 0;
 }
 
+/** Ensure given mask once set up selects exactly one atom. */
 int Exec_Change::Setup1atomMask(AtomMask& mask1, Topology const& topIn,
                                 std::string const& mask1expr)
 {
@@ -132,6 +173,7 @@ int Exec_Change::Setup1atomMask(AtomMask& mask1, Topology const& topIn,
   return 0;
 }
 
+/** \return parameter index of tgtType if found in bonds, -1 otherwise. */
 int Exec_Change::FindBondTypeIdx(Topology const& topIn, BondArray const& bonds,
                                  AtomTypeHolder const& tgtType)
 {
@@ -150,6 +192,7 @@ int Exec_Change::FindBondTypeIdx(Topology const& topIn, BondArray const& bonds,
   return bidx;
 }
 
+// Exec_Change::AddBond()
 int Exec_Change::AddBond(Topology& topIn, ArgList& argIn) const {
   AtomMask mask1, mask2;
   // Mask1
