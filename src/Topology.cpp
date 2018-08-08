@@ -270,7 +270,9 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
   if ( residues_.empty() || 
        residues_.back().OriginalResNum() != resIn.OriginalResNum() ||
        residues_.back().SegID() != resIn.SegID() ||
-       residues_.back().Icode() != resIn.Icode() )
+       residues_.back().Icode() != resIn.Icode() ||
+       ( residues_.back().OriginalResNum() == resIn.OriginalResNum() &&
+         residues_.back().Name() != resIn.Name() ) )
   {
     // Last atom of old residue is == current # atoms.
     if (!residues_.empty())
