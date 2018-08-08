@@ -180,7 +180,9 @@ void Traj_PDBfile::WriteHelp() {
           "\tsg <group> : Space group for CRYST1 record, only if box coordinates written.\n"
           "\tinclude_ep : Include extra points.\n"
           "\tconect     : Write CONECT records using bond information.\n"
-          "\tkeepext    : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n");
+          "\tkeepext    : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
+          "\tusecol21   : Use column 21 for 4-letter residue names.\n"
+  );
 }
 
 // Traj_PDBfile::processWriteArgs()
@@ -224,6 +226,8 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   space_group_ = argIn.GetStringKey("sg");
   std::string temp = argIn.GetStringKey("chainid");
   if (!temp.empty()) chainchar_ = temp[0];
+  if (argIn.hasKey("usecol21"))
+    file_.SetUseCol21( true );
   return 0;
 }
 
@@ -689,6 +693,8 @@ void Traj_PDBfile::Info() {
       mprintf(", using PDB V3 residue names");
     else if (pdbatom_)
       mprintf(", using PDB V3 atom names");
+    if (file_.UseCol21())
+      mprintf(", using column 21 for 4-letter residue names");
   }
 }
 #ifdef MPI
