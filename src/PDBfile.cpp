@@ -15,7 +15,8 @@ PDBfile::PDBfile() :
   anum_(1),
   recType_(UNKNOWN),
   lineLengthWarning_(false),
-  coordOverflow_(false)
+  coordOverflow_(false),
+  useCol21_(false)
 {}
 
 // PDBfile::IsPDBkeyword()
@@ -248,27 +249,34 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
                                 char altLoc, NameType const& resnameIn, char chain, 
                                 int resnum, char icode, const char* Elt)
 {
-  char resName[5], atomName[5];
+  char resName[6], atomName[5];
 
-  resName[4]='\0';
+  resName[5]='\0';
   atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
   if (resnum > 9999) resnum = resnum % 10000;
   // Atom number in PDB format can only be 5 digits wide
   if (anum > 99999) anum = anum % 100000;
   // Residue names in PDB format are 3 chars long, right-justified, starting
-  // at column 18, while the alternate location indicator is column 17. 
-  // However in Amber residues can be 4 characters long; in this case overwrite
-  // the alternate location indicator.
+  // at column 18, while the alternate location indicator is column 17.
+  // In theory, 4 character residue names are not supported. In practice, there
+  // are two ways to do this. One is to hijack the alternate location 
+  // indicator. The other is to make use of column 21. Neither way is strictly
+  // PDB format compliant.
   resName[0] = altLoc;
   resName[1] = ' ';
-  resName[2] = ' '; // TODO set location 3 as well?
+  resName[2] = ' '; // NOTE location 3 is always set
+  resName[4] = ' ';
   const char* ptr = *resnameIn;
   while (*ptr != ' ' && *ptr != '\0') ++ptr;
   int rn_size = (int)(ptr - *resnameIn);
   // Protect against residue names larger than 4 chars.
   if (rn_size > 4) rn_size = 4;
-  int rn_idx = 3;
+  int rn_idx;
+  if (rn_size == 4 && useCol21_)
+    rn_idx = 4;
+  else
+    rn_idx = 3;
   for (int i = rn_size - 1; i > -1; i--, rn_idx--)
     resName[rn_idx] = resnameIn[i];
   // Determine size in characters of element name if given.
@@ -289,7 +297,7 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
     atomName[3] = name[2];
   }
 
-  Printf("%-6s%5i %-4s%4s %c%4i%c",PDB_RECNAME[Record], anum, atomName,
+  Printf("%-6s%5i %-4s%5s%c%4i%c",PDB_RECNAME[Record], anum, atomName,
                resName, chain, resnum, icode);
   if (Record == TER) Printf("\n");
 }

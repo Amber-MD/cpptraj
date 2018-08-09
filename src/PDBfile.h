@@ -35,6 +35,10 @@ class PDBfile : public CpptrajFile {
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
     // -------------------------------------------
+    /// Set whether column 21 can be used for 4-letter residue names.
+    void SetUseCol21(bool b) { useCol21_ = b; }
+    /// \return true if using column 21 for 4-letter residue names.
+    bool UseCol21() const { return useCol21_; }
     /// Write PDB record header.
     void WriteRecordHeader(PDB_RECTYPE, int, NameType const&, char,
                            NameType const&, char, int, char, const char*);
@@ -82,6 +86,7 @@ class PDBfile : public CpptrajFile {
     PDB_RECTYPE recType_;    ///< Current record type.
     bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
     bool coordOverflow_;     ///< True if coords on write exceed field width
+    bool useCol21_;          ///< If true, use column 21 for 4-char res name
     /// Recognized PDB record types; corresponds to PDB_RECTYPE
     static const char* PDB_RECNAME[];
 };
