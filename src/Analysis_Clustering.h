@@ -74,8 +74,9 @@ class Analysis_Clustering: public Analysis {
     TrajectoryFile::TrajFormatType singlerepfmt_; ///< Cluster all rep single trajectory format.
     TrajectoryFile::TrajFormatType reptrajfmt_;   ///< Cluster rep to separate trajectory format.
     TrajectoryFile::TrajFormatType avgfmt_;       ///< Cluster traj average structure file format.
-    static const TrajectoryFile::TrajFormatType DEF_TRAJ_FMT_;
     int debug_;
+
+    static const TrajectoryFile::TrajFormatType DEF_TRAJ_FMT_;
     static const char* PAIRDISTFILE_;              ///< Default pairwise dist file name.
     static DataFile::DataFormatType PAIRDISTTYPE_; ///< Default pairwise dist file type.
 };
