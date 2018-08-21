@@ -40,13 +40,27 @@ Analysis_Clustering::Analysis_Clustering() :
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
   includeSieveInCalc_(false),
+  suppressInfo_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  avgfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   debug_(0)
 { } 
 
+/** The default output trajectory format. */
 const TrajectoryFile::TrajFormatType Analysis_Clustering::DEF_TRAJ_FMT_ = TrajectoryFile::AMBERTRAJ;
+
+/** The default pairwise distance file name. */
+const char* Analysis_Clustering::PAIRDISTFILE_ = "CpptrajPairDist";
+
+/** The default pairwise distance file type. */
+DataFile::DataFormatType Analysis_Clustering::PAIRDISTTYPE_ =
+# ifdef BINTRAJ
+  DataFile::NCCMATRIX;
+# else
+  DataFile::CMATRIX;
+# endif
 
 // DESTRUCTOR
 Analysis_Clustering::~Analysis_Clustering() {
@@ -84,14 +98,6 @@ void Analysis_Clustering::Help() const {
           "  <crd set> can be created with the 'createcrd' command.\n");
           /// pytraj can turn off cluster info by specifying 'noinfo' keyword
 }
-
-const char* Analysis_Clustering::PAIRDISTFILE_ = "CpptrajPairDist";
-DataFile::DataFormatType Analysis_Clustering::PAIRDISTTYPE_ =
-# ifdef BINTRAJ
-  DataFile::NCCMATRIX;
-# else
-  DataFile::CMATRIX;
-# endif
 
 // Analysis_Clustering::GetClusterTrajArgs()
 void Analysis_Clustering::GetClusterTrajArgs(ArgList& argIn,
