@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
-           nh.dat rms.nofit.dat
+           nh.dat rms.nofit.dat last10.dat
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
