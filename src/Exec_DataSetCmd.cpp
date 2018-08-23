@@ -4,6 +4,7 @@
 #include "DataSet_1D.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_Vector.h"
+#include "DataSet_string.h"
 #include "StringRoutines.h"
 
 void Exec_DataSetCmd::Help() const {
@@ -789,7 +790,20 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
 Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
   DataSetList& DSL = State.DSL();
   // Get keywords
-  std::string dsname = argIn.GetStringKey("name");
+  DataSet* inputNames = 0;
+  std::string dsname = argIn.GetStringKey("legendset");
+  if (!dsname.empty()) {
+    inputNames = DSL.GetDataSet( dsname );
+    if (inputNames == 0) {
+      mprinterr("Error: Name set '%s' not found.\n", dsname.c_str());
+      return CpptrajState::ERR;
+    }
+    if (inputNames->Type() != DataSet::STRING) {
+      mprinterr("Error: Set '%s' does not contain strings.\n", inputNames->legend());
+      return CpptrajState::ERR;
+    }
+  }
+  dsname = argIn.GetStringKey("name");
   if (dsname.empty()) {
     mprinterr("Error: 'invert' requires that 'name <new set name>' be specified.\n");
     return CpptrajState::ERR;
@@ -824,18 +838,28 @@ Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: No sets selected.\n");
     return CpptrajState::ERR;
   }
+  if (inputNames != 0 && inputNames->Size() != input_sets.front()->Size()) {
+    mprinterr("Error: Name set '%s' size (%zu) differs from # data points (%zu).\n",
+              inputNames->legend(), inputNames->Size(), input_sets.front()->Size());
+    return CpptrajState::ERR;
+  }
   // Need an output data set for each point in input sets
   std::vector<DataSet*> output_sets;
   int column = 1;
   for (int idx = 0; idx != (int)input_sets[0]->Size(); idx++, column++) {
-    DataSet* ds = DSL.AddSet(outtype, MetaData(dsname, column));
+    DataSet* ds = 0;
+    ds = DSL.AddSet(outtype, MetaData(dsname, column));
     if (ds == 0) return CpptrajState::ERR;
+    if (inputNames != 0)
+      ds->SetLegend( (*((DataSet_string*)inputNames))[idx] );
     output_sets.push_back( ds );
     if (outfile != 0) outfile->AddDataSet( ds );
   }
   // Create a data set containing names of each input data set
   DataSet* nameset = DSL.AddSet(DataSet::STRING, MetaData(dsname, column));
   if (nameset == 0) return CpptrajState::ERR;
+  if (inputNames != 0)
+    nameset->SetLegend("Names");
   if (outfile != 0) outfile->AddDataSet( nameset );
   // Populate output data sets
   for (int jdx = 0; jdx != (int)input_sets.size(); jdx++)
