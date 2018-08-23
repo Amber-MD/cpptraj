@@ -280,10 +280,8 @@ Analysis::RetType Analysis_State::Analyze() {
               trans->first.second, trans->second.Max(), trans->second.Sum(),
               trans->second.Nlifetimes(), trans->second.Avg());
   }
-  //countOut_->Printf("%-8s %12s %12s %s\n", "#Index", "Count", "Frac", "State");
+  // Calculate state-dependent stuff
   for (int idx = 0; idx != numStates; idx++) {
-    /*countOut_->Printf("%-8i %12i %12.4f %s\n", idx-1, stateFrames[idx],
-                      (double)stateFrames[idx]/(double)nframes, stateName(idx-1));*/
     state_counts_->Add(idx, &(stateFrames[idx]));
     double dval = (double)stateFrames[idx]/(double)nframes;
     state_fracs_->Add(idx, &dval);
@@ -295,10 +293,7 @@ Analysis::RetType Analysis_State::Analyze() {
     ival = Status[idx].Max();
     state_maxlife_->Add(idx, &ival);
   }
-  /*stateOut_->Printf("%-8s %12s %12s %12s %s\n", "#Index", "N", "Average", "Max", "State");
-  for (int idx = 0; idx != (int)Status.size(); idx++)
-    stateOut_->Printf("%-8i %12i %12.4f %12i %s\n", idx-1, Status[idx].Nlifetimes(),
-                      Status[idx].Avg(), Status[idx].Max(), stateName(idx-1));*/
+  // Calculate transitions
   transOut_->Printf("%-12s %12s %12s %s\n", "#N", "Average", "Max", "Transition");
   for (TransMapType::const_iterator trans = TransitionMap_.begin();
                                     trans != TransitionMap_.end(); ++trans)
