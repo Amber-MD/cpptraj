@@ -7,7 +7,7 @@
 /// Analyze transitions between states
 class Analysis_State : public Analysis {
   public:
-    Analysis_State() : state_data_(0), curveOut_(0), stateOut_(0), transOut_(0), debug_(0) {}
+    Analysis_State();
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_State(); }
     void Help() const;
   
@@ -113,6 +113,7 @@ class Analysis_State : public Analysis {
     DataFile* curveOut_;
     CpptrajFile* stateOut_;
     CpptrajFile* transOut_;
+    CpptrajFile* countOut_;
     int debug_;
     bool normalize_;
 };

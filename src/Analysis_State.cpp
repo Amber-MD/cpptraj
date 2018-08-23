@@ -2,6 +2,15 @@
 #include "Analysis_State.h"
 #include "CpptrajStdio.h"
 
+Analysis_State::Analysis_State() :
+  state_data_(0),
+  curveOut_(0),
+  stateOut_(0),
+  transOut_(0),
+  countOut_(0),
+  debug_(0)
+{}
+
 void Analysis_State::Help() const {
   mprintf("\t{state <ID>,<dataset>,<min>,<max>} [out <state v time file>] [name <setname>]\n"
           "\t[curveout <curve file>] [stateout <states file>] [transout <transitions file>]\n"
@@ -15,10 +24,12 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   masterDSL_ = setup.DslPtr();
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   curveOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("curveout"), analyzeArgs );
-  stateOut_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("stateout"), "State Output",
-                                     DataFileList::TEXT, true);
-  transOut_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("transout"), "Transitions Output",
-                                     DataFileList::TEXT, true);
+  stateOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("stateout"),
+                                         "State Lifetime Output", DataFileList::TEXT, true);
+  transOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("transout"),
+                                         "Transitions Output", DataFileList::TEXT, true);
+  countOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("countout"),
+                                         "State Count Output", DataFileList::TEXT, true);
   normalize_ = analyzeArgs.hasKey("norm");
   // Get definitions of states if present.
   // Define states as 'state <#>,<dataset>,<min>,<max>'
@@ -81,8 +92,9 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     mprintf("\tStates vs time output to file '%s'\n", outfile->DataFilename().full());
   if (curveOut_ != 0)
     mprintf("\tCurves output to file '%s'\n", curveOut_->DataFilename().full());
-  mprintf("\tState output to file '%s'\n", stateOut_->Filename().full());
+  mprintf("\tState lifetime output to file '%s'\n", stateOut_->Filename().full());
   mprintf("\tTransitions output to file '%s'\n", transOut_->Filename().full());
+  mprintf("\tState counts output to file '%s'\n", countOut_->Filename().full());
   if (normalize_)
     mprintf("\tCurves will be normalized to 1.0\n");
 
@@ -129,6 +141,7 @@ Analysis::RetType Analysis_State::Analyze() {
   int last_state = -2;
   size_t last_State_Start = 0;
   size_t final_frame = nframes - 1;
+  std::vector<unsigned int> stateFrames(States_.size()+1, 0);
   for (size_t frm = 0; frm != nframes; frm++) {
     // Determine which state we are in.
     int state_num = -1;
@@ -145,6 +158,7 @@ Analysis::RetType Analysis_State::Analyze() {
       }
     }
     state_data_->Add( frm, &state_num );
+    stateFrames[state_num+1]++;
 
     // Determine if there has been a transition.
     if (last_state == -2)
@@ -195,6 +209,10 @@ Analysis::RetType Analysis_State::Analyze() {
               trans->first.second, trans->second.Max(), trans->second.Sum(),
               trans->second.Nlifetimes(), trans->second.Avg());
   }
+  countOut_->Printf("%-8s %12s %12s %s\n", "#Index", "Count", "Frac", "State");
+  for (int idx = 0; idx != (int)stateFrames.size(); idx++)
+    countOut_->Printf("%-8i %12i %12.4f %s\n", idx-1, stateFrames[idx],
+                      (double)stateFrames[idx]/(double)nframes, stateName(idx-1));
   stateOut_->Printf("%-8s %12s %12s %12s %s\n", "#Index", "N", "Average", "Max", "State");
   for (int idx = 0; idx != (int)Status.size(); idx++)
     stateOut_->Printf("%-8i %12i %12.4f %12i %s\n", idx-1, Status[idx].Nlifetimes(),
