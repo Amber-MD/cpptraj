@@ -120,6 +120,7 @@ class Analysis_State : public Analysis {
     Sarray StateNames_;
     TransMapType TransitionMap_;
     DataSet* state_data_;
+    DataSet* state_counts_;
     DataSetList* masterDSL_;
     DataFile* curveOut_;
     CpptrajFile* stateOut_;

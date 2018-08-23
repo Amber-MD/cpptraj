@@ -18,6 +18,7 @@ void Analysis_State::Help() const {
           "  will be assigned state <#>.\n");
 }
 
+// Analysis_State::Setup()
 Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
@@ -90,6 +91,13 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   state_data_ = setup.DSL().AddSet(DataSet::INTEGER, analyzeArgs.GetStringKey("name"), "State");
   if (state_data_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( state_data_ );
+  // Set up state data sets
+  Dimension Xdim(-1, 1, "Index");
+  DataSet* ds = setup.DSL().AddSet(DataSet::INTEGER,
+                                   MetaData(state_data_->Meta().Name(), "Count"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  state_counts_ = ds;
 
   mprintf("    STATE: The following state definitions have been set up:\n");
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
@@ -111,8 +119,10 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   return Analysis::OK;
 }
 
+/** Default state name for state -1 */
 std::string Analysis_State::UNDEFINED_ = "Undefined";
 
+// Analysis_State::StateName()
 std::string const& Analysis_State::StateName(int idx) const {
   if (idx > -1)
     return StateNames_[idx];
@@ -120,6 +130,7 @@ std::string const& Analysis_State::StateName(int idx) const {
     return UNDEFINED_;
 }
 
+//  Analysis_State::Analyze()
 Analysis::RetType Analysis_State::Analyze() {
   // Only process as much data as is in the smallest data set.
   size_t nframes = States_.front().Nframes();
@@ -221,9 +232,11 @@ Analysis::RetType Analysis_State::Analyze() {
               trans->second.Nlifetimes(), trans->second.Avg());
   }
   countOut_->Printf("%-8s %12s %12s %s\n", "#Index", "Count", "Frac", "State");
-  for (int idx = 0; idx != (int)stateFrames.size(); idx++)
+  for (int idx = 0; idx != (int)stateFrames.size(); idx++) {
     countOut_->Printf("%-8i %12i %12.4f %s\n", idx-1, stateFrames[idx],
                       (double)stateFrames[idx]/(double)nframes, stateName(idx-1));
+    state_counts_->Add(idx, &(stateFrames[idx]));
+  }
   stateOut_->Printf("%-8s %12s %12s %12s %s\n", "#Index", "N", "Average", "Max", "State");
   for (int idx = 0; idx != (int)Status.size(); idx++)
     stateOut_->Printf("%-8i %12i %12.4f %12i %s\n", idx-1, Status[idx].Nlifetimes(),
