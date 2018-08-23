@@ -2,6 +2,7 @@
 #define INC_ANALYSIS_STATE_H
 #include <map>
 #include "Analysis.h"
+#include "Array1D.h"
 #include "DataSet_double.h"
 /// Analyze transitions between states
 class Analysis_State : public Analysis {
@@ -17,19 +18,37 @@ class Analysis_State : public Analysis {
     /// Hold the definition of a state and associated data
     class StateType {
       public:
-        StateType() : set_(0), min_(0.0), max_(0.0) {}
-        StateType(std::string const& i, DataSet_1D* d, double m, double x) :
-                  id_(i), set_(d), min_(m), max_(x) {}
+        StateType() {}
+        StateType(std::string const& i) : id_(i) {}
+        /// Add criterion for state
+        void AddCriterion(DataSet_1D* d, double m, double x) {
+          Sets_.push_back( d );
+          Min_.push_back( m );
+          Max_.push_back( x );
+        }
+        /// \return smallest number of frames among all criterion DataSets
+        size_t Nframes() const;
+        /// \return State ID
         std::string const& ID() const { return id_; }
+        /// \return State ID as const char*
         const char* id()        const { return id_.c_str(); }
-        DataSet_1D const& DS()  const { return *set_; }
-        double Min()            const { return min_; }
-        double Max()            const { return max_; }
+        /// \return true if given frame satifies all criteria
+        bool InState(int n) const {
+          for (unsigned int idx = 0; idx != Sets_.size(); idx++) {
+            double dval = Sets_[idx]->Dval(n);
+            if (dval < Min_[idx] || dval >= Max_[idx]) // TODO periodic
+              return false;
+          }
+          return true;
+        }
+        /// Print state info to stdout
+        void PrintState() const;
       private:
+        typedef std::vector<double> Darray;
         std::string id_;
-        DataSet_1D* set_;
-        double min_;
-        double max_;
+        Array1D Sets_;   ///< DataSets used to determine if we are in State
+        Darray Min_;    ///< Above this value we are in state.
+        Darray Max_;    ///< Below this value we are in state.
     };
     /// Hold information about a transition from state0 to state1
     class Transition {

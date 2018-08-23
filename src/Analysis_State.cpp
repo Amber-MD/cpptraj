@@ -27,9 +27,12 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     while (!state_arg.empty()) {
       // Expect form <#>,<dataset>
       ArgList argtmp(state_arg, ",");
-      if (argtmp.Nargs() != 4) {
+      if (argtmp.Nargs() < 4) {
         mprinterr("Error: Malformed state argument '%s': expect <ID>,<dataset>,<min>,<max>\n",
                   state_arg.c_str());
+        return Analysis::ERR;
+      } else if (((argtmp.Nargs()-1) % 3) != 0) {
+        mprinterr("Error: Each state <dataset> arg must have a <min> and <max> value.\n");
         return Analysis::ERR;
       }
       std::string state_id = argtmp.GetStringNext();
@@ -38,19 +41,24 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
         mprinterr("Error: In state argument, could not get ID.\n");
         return Analysis::ERR;
       }
-      DataSet* ds = setup.DSL().GetDataSet( argtmp.GetStringNext() );
-      if (ds == 0) return Analysis::ERR;
-      if (ds->Ndim() != 1) {
-        mprinterr("Error: Only 1D data sets allowed.\n");
-        return Analysis::ERR;
+      StateType currentState( state_id );
+      int nSets = (argtmp.Nargs()-1) / 3;
+      for (int setArg = 0; setArg < nSets; setArg++) {
+        DataSet* ds = setup.DSL().GetDataSet( argtmp.GetStringNext() );
+        if (ds == 0) return Analysis::ERR;
+        if (ds->Ndim() != 1) {
+          mprinterr("Error: Only 1D data sets allowed.\n");
+          return Analysis::ERR;
+        }
+        double min = argtmp.getNextDouble(0.0);
+        double max = argtmp.getNextDouble(0.0);
+        if (max < min) {
+          mprinterr("Error: max value cannot be less than min.\n");
+          return Analysis::ERR;
+        }
+        currentState.AddCriterion( (DataSet_1D*)ds, min, max );
       }
-      double min = argtmp.getNextDouble(0.0);
-      double max = argtmp.getNextDouble(0.0);
-      if (max < min) {
-        mprinterr("Error: max value cannot be less than min.\n");
-        return Analysis::ERR;
-      }
-      States_.push_back( StateType(state_id, (DataSet_1D*)ds, min, max) );
+      States_.push_back( currentState );
       state_arg = analyzeArgs.GetStringKey("state");
     }
   }
@@ -64,8 +72,10 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
 
   mprintf("    STATE: The following states have been set up:\n");
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
-    mprintf("\t%u: %20s %12.4f <= %-20s < %12.4f\n", state - States_.begin(), state->DS().legend(),
-            state->Min(), state->id(), state->Max());
+  {
+    mprintf("\t%u: ", state - States_.begin());
+    state->PrintState();
+  }
   mprintf("\tState data set: %s\n", state_data_->legend());
   if (outfile != 0)
     mprintf("\tStates vs time output to file '%s'\n", outfile->DataFilename().full());
@@ -90,14 +100,17 @@ std::string const& Analysis_State::StateName(int idx) const {
 
 Analysis::RetType Analysis_State::Analyze() {
   // Only process as much data as is in the smallest data set.
-  size_t nframes = States_.front().DS().Size();
+  size_t nframes = States_.front().Nframes();
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
   {
-    if ( state != States_.begin() && nframes != state->DS().Size() )
-      mprintf("Warning: Set '%s' for state '%s' has a different # of frames (%zu)"
-              " than previous sets (%zu).\n", state->DS().legend(), state->id(),
-              state->DS().Size(), nframes);
-    nframes = std::min( nframes, state->DS().Size() );
+    if ( state != States_.begin() ) {
+      size_t nf = state->Nframes();
+      if (nframes != nf) {
+        mprintf("Warning: State '%s' has a different # of frames (%zu) "
+                "than previous states (%zu).\n", state->id(), nf, nframes);
+        nframes = std::min( nframes, nf );
+      }
+    }
   }
   mprintf("\tProcessing %zu frames.\n", nframes);
   if (nframes < 1) return Analysis::ERR;
@@ -121,12 +134,13 @@ Analysis::RetType Analysis_State::Analyze() {
     int state_num = -1;
     for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
     {
-      double dVal = state->DS().Dval( frm );
-      if (dVal >= state->Min() && dVal < state->Max()) { // TODO: Periodic
-        if (state_num != -1)
+      if (state->InState( frm )) {
+        if (state_num != -1) {
           mprintf("Warning: Frame %zu already defined as state '%s', also matches state '%s'.\n",
                   frm, States_[state_num].id(), state->id());
-        else
+          mprintf("Warning: Overriding previous state.\n");
+          state_num = (int)(state - States_.begin());
+        } else
           state_num = (int)(state - States_.begin());
       }
     }
@@ -200,4 +214,26 @@ Analysis::RetType Analysis_State::Analyze() {
       trans->second.NormalizeCurve();
   }
   return Analysis::OK;
-} 
+}
+
+// ----- Analysis_State::StateType ---------------------------------------------
+size_t Analysis_State::StateType::Nframes() const
+{
+  if (Sets_.empty()) return 0;
+  size_t nframes = Sets_[0]->Size();
+  for (unsigned int idx = 1; idx < Sets_.size(); idx++)
+    if (nframes != Sets_[idx]->Size()) {
+      mprintf("Warning: State '%s', set '%s' has differing # frames (%zu).",
+              id(), Sets_[idx]->legend(), Sets_[idx]->Size());
+      nframes = std::min( nframes, Sets_[idx]->Size() );
+      mprintf(" Only using %zu frames.\n", nframes);
+    }
+  return nframes;
+}
+
+void Analysis_State::StateType::PrintState() const {
+  mprintf("%s", id());
+  for (unsigned int idx = 0; idx != Sets_.size(); idx++)
+    mprintf(" {%.4f <= %s < %.4f}", Min_[idx], Sets_[idx]->legend(), Max_[idx]);
+  mprintf("\n");
+}
