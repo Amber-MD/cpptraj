@@ -243,13 +243,23 @@ Analysis::RetType Analysis_State::Analyze() {
         } else
           // Update previous transition
           entry->second.Update(length);
-      }
+        // If final frame, this new state length has to be 1 and may not be
+        // representative of a "real" lifetime - print a warning and ignore.
+        if (frm == final_frame)
+          mprintf("Warning: Transition occurred on final frame. Final frame will"
+                  "Warning:   not count as a lifetime for state %i '%s' since it"
+                  "Warning:   likely does not represent a \"real\" lifetime.\n",
+                  state_num, stateName(state_num));
+      } else if (frm == final_frame)
+        // No transition - include last frame in current state length
+        length++;
       // Update single state information.
+      //mprintf("DEBUG: Calling update at %zu for state %i with length %i\n", frm+1, last_state, length);
       Status[last_state + 1].Update(length); 
       last_State_Start = frm;
       last_state = state_num;
     }
-  }
+  } // END loop over frames
 
   // DEBUG: Print single state info.
   if (debug_ > 0) {
