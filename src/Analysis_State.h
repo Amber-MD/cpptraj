@@ -15,11 +15,12 @@ class Analysis_State : public Analysis {
     Analysis::RetType Analyze();
   private:
     // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
+    // -------------------------------------------
     /// Hold the definition of a state and associated data
     class StateType {
       public:
-        StateType() {}
-        StateType(std::string const& i) : id_(i) {}
+        StateType() : num_(-1) {}
+        StateType(std::string const& i, int n) : id_(i), num_(n) {}
         /// Add criterion for state
         void AddCriterion(DataSet_1D* d, double m, double x) {
           Sets_.push_back( d );
@@ -32,6 +33,8 @@ class Analysis_State : public Analysis {
         std::string const& ID() const { return id_; }
         /// \return State ID as const char*
         const char* id()        const { return id_.c_str(); }
+        /// \return Unique state number
+        int Num() const { return num_; }
         /// \return true if given frame satifies all criteria
         bool InState(int n) const {
           for (unsigned int idx = 0; idx != Sets_.size(); idx++) {
@@ -47,9 +50,11 @@ class Analysis_State : public Analysis {
         typedef std::vector<double> Darray;
         std::string id_;
         Array1D Sets_;   ///< DataSets used to determine if we are in State
-        Darray Min_;    ///< Above this value we are in state.
-        Darray Max_;    ///< Below this value we are in state.
+        Darray Min_;     ///< Above this value we are in state.
+        Darray Max_;     ///< Below this value we are in state.
+        int num_;        ///< Unique state identifier
     };
+    // -------------------------------------------
     /// Hold information about a transition from state0 to state1
     class Transition {
       public:
@@ -95,18 +100,24 @@ class Analysis_State : public Analysis {
         int Nlifetimes_; ///< Number of state0 lifetimes before going to state1
         DataSet_double* curve_; ///< Lifetime curve for state0->state1
     };
+    // -------------------------------------------
 
     typedef std::vector<StateType> StateArray;
     typedef std::pair<int,int> StatePair;
     typedef std::map<StatePair, Transition> TransMapType;
     typedef std::pair<StatePair, Transition> TransPair;
     typedef std::vector<int> Iarray;
+    typedef std::pair<std::string, int> IdxPair;
+    typedef std::map<std::string, int> IdxMapType;
+    typedef std::vector<std::string> Sarray;
 
     std::string const& StateName(int) const;
     const char* stateName(int i) const { return StateName(i).c_str(); }
 
     static std::string UNDEFINED_;
     StateArray States_;
+    IdxMapType NameMap_;
+    Sarray StateNames_;
     TransMapType TransitionMap_;
     DataSet* state_data_;
     DataSetList* masterDSL_;

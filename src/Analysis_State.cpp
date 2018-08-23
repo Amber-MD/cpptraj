@@ -52,7 +52,17 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
         mprinterr("Error: In state argument, could not get ID.\n");
         return Analysis::ERR;
       }
-      StateType currentState( state_id );
+      // Determine state number
+      int state_num = -1;
+      IdxMapType::const_iterator it = NameMap_.find( state_id );
+      if (it == NameMap_.end()) {
+        state_num = NameMap_.size();
+        NameMap_.insert( IdxPair( state_id, state_num ) );
+        // For mapping state number back to name
+        StateNames_.push_back( state_id );
+      } else
+        state_num = it->second;
+      StateType currentState( state_id, state_num );
       int nSets = (argtmp.Nargs()-1) / 3;
       for (int setArg = 0; setArg < nSets; setArg++) {
         DataSet* ds = setup.DSL().GetDataSet( argtmp.GetStringNext() );
@@ -81,7 +91,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   if (state_data_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( state_data_ );
 
-  mprintf("    STATE: The following states have been set up:\n");
+  mprintf("    STATE: The following state definitions have been set up:\n");
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
   {
     mprintf("\t%u: ", state - States_.begin());
@@ -105,7 +115,7 @@ std::string Analysis_State::UNDEFINED_ = "Undefined";
 
 std::string const& Analysis_State::StateName(int idx) const {
   if (idx > -1)
-    return States_[idx].ID();
+    return StateNames_[idx];
   else // Should never be called with any other negative number but -1
     return UNDEFINED_;
 }
@@ -128,8 +138,9 @@ Analysis::RetType Analysis_State::Analyze() {
   if (nframes < 1) return Analysis::ERR;
 
   std::vector<Transition> Status;
-  Status.reserve( States_.size() + 1 ); // +1 for state -1, undefined
-  for (int i = 0; i != (int)States_.size() + 1; i++) {
+  int numStates = (int)NameMap_.size() + 1; // + 1 for state -1 (undefined)
+  Status.reserve( numStates );
+  for (int i = 0; i != numStates; i++) {
     DataSet* ds = masterDSL_->AddSet(DataSet::DOUBLE, 
                                      MetaData(state_data_->Meta().Name(), "sCurve", i));
     if (ds == 0) return Analysis::ERR;
@@ -141,7 +152,7 @@ Analysis::RetType Analysis_State::Analyze() {
   int last_state = -2;
   size_t last_State_Start = 0;
   size_t final_frame = nframes - 1;
-  std::vector<unsigned int> stateFrames(States_.size()+1, 0);
+  std::vector<unsigned int> stateFrames(numStates, 0);
   for (size_t frm = 0; frm != nframes; frm++) {
     // Determine which state we are in.
     int state_num = -1;
@@ -152,9 +163,9 @@ Analysis::RetType Analysis_State::Analyze() {
           mprintf("Warning: Frame %zu already defined as state '%s', also matches state '%s'.\n",
                   frm, States_[state_num].id(), state->id());
           mprintf("Warning: Overriding previous state.\n");
-          state_num = (int)(state - States_.begin());
+          state_num = state->Num();
         } else
-          state_num = (int)(state - States_.begin());
+          state_num = state->Num();
       }
     }
     state_data_->Add( frm, &state_num );
@@ -250,7 +261,7 @@ size_t Analysis_State::StateType::Nframes() const
 }
 
 void Analysis_State::StateType::PrintState() const {
-  mprintf("%s", id());
+  mprintf("%s (%i)", id(), num_);
   for (unsigned int idx = 0; idx != Sets_.size(); idx++)
     mprintf(" {%.4f <= %s < %.4f}", Min_[idx], Sets_[idx]->legend(), Max_[idx]);
   mprintf("\n");
