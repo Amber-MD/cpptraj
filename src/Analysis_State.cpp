@@ -4,10 +4,16 @@
 
 Analysis_State::Analysis_State() :
   state_data_(0),
+  state_counts_(0),
+  state_fracs_(0),
+  state_lifetimes_(0),
+  state_avglife_(0),
+  state_maxlife_(0),
+  state_names_(0),
   curveOut_(0),
-  stateOut_(0),
-  transOut_(0),
+  lifeOut_(0),
   countOut_(0),
+  transOut_(0),
   debug_(0)
 {}
 
@@ -25,12 +31,10 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   masterDSL_ = setup.DslPtr();
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   curveOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("curveout"), analyzeArgs );
-  stateOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("stateout"),
-                                         "State Lifetime Output", DataFileList::TEXT, true);
+  lifeOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("stateout"), analyzeArgs );
+  countOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("countout"), analyzeArgs );
   transOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("transout"),
                                          "Transitions Output", DataFileList::TEXT, true);
-  countOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("countout"),
-                                         "State Count Output", DataFileList::TEXT, true);
   normalize_ = analyzeArgs.hasKey("norm");
   // Get definitions of states if present.
   // Define states as 'state <#>,<dataset>,<min>,<max>'
@@ -119,6 +123,18 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   ds->SetDim(0, Xdim);
   state_names_ = ds;
 
+  if (countOut_ != 0) {
+    countOut_->AddDataSet( state_counts_ );
+    countOut_->AddDataSet( state_fracs_ );
+    if (lifeOut_ != countOut_) countOut_->AddDataSet( state_names_ );
+  }
+  if (lifeOut_ != 0) {
+    lifeOut_->AddDataSet( state_lifetimes_ );
+    lifeOut_->AddDataSet( state_avglife_ );
+    lifeOut_->AddDataSet( state_maxlife_ );
+    lifeOut_->AddDataSet( state_names_ );
+  }
+
   mprintf("    STATE: The following state definitions have been set up:\n");
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
   {
@@ -130,9 +146,11 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     mprintf("\tStates vs time output to file '%s'\n", outfile->DataFilename().full());
   if (curveOut_ != 0)
     mprintf("\tCurves output to file '%s'\n", curveOut_->DataFilename().full());
-  mprintf("\tState lifetime output to file '%s'\n", stateOut_->Filename().full());
+  if (lifeOut_ != 0)
+    mprintf("\tState lifetime output to file '%s'\n", lifeOut_->DataFilename().full());
+  if (countOut_ != 0)
+    mprintf("\tState counts output to file '%s'\n", countOut_->DataFilename().full());
   mprintf("\tTransitions output to file '%s'\n", transOut_->Filename().full());
-  mprintf("\tState counts output to file '%s'\n", countOut_->Filename().full());
   if (normalize_)
     mprintf("\tCurves will be normalized to 1.0\n");
 
@@ -172,6 +190,7 @@ Analysis::RetType Analysis_State::Analyze() {
   int numStates = (int)NameMap_.size() + 1; // + 1 for state -1 (undefined)
   Status.reserve( numStates );
   for (int i = 0; i != numStates; i++) {
+    // TODO can this be done in Setup()
     DataSet* ds = masterDSL_->AddSet(DataSet::DOUBLE, 
                                      MetaData(state_data_->Meta().Name(), "sCurve", i));
     if (ds == 0) return Analysis::ERR;
@@ -251,10 +270,10 @@ Analysis::RetType Analysis_State::Analyze() {
               trans->first.second, trans->second.Max(), trans->second.Sum(),
               trans->second.Nlifetimes(), trans->second.Avg());
   }
-  countOut_->Printf("%-8s %12s %12s %s\n", "#Index", "Count", "Frac", "State");
+  //countOut_->Printf("%-8s %12s %12s %s\n", "#Index", "Count", "Frac", "State");
   for (int idx = 0; idx != numStates; idx++) {
-    countOut_->Printf("%-8i %12i %12.4f %s\n", idx-1, stateFrames[idx],
-                      (double)stateFrames[idx]/(double)nframes, stateName(idx-1));
+    /*countOut_->Printf("%-8i %12i %12.4f %s\n", idx-1, stateFrames[idx],
+                      (double)stateFrames[idx]/(double)nframes, stateName(idx-1));*/
     state_counts_->Add(idx, &(stateFrames[idx]));
     double dval = (double)stateFrames[idx]/(double)nframes;
     state_fracs_->Add(idx, &dval);
@@ -266,10 +285,10 @@ Analysis::RetType Analysis_State::Analyze() {
     ival = Status[idx].Max();
     state_maxlife_->Add(idx, &ival);
   }
-  stateOut_->Printf("%-8s %12s %12s %12s %s\n", "#Index", "N", "Average", "Max", "State");
+  /*stateOut_->Printf("%-8s %12s %12s %12s %s\n", "#Index", "N", "Average", "Max", "State");
   for (int idx = 0; idx != (int)Status.size(); idx++)
     stateOut_->Printf("%-8i %12i %12.4f %12i %s\n", idx-1, Status[idx].Nlifetimes(),
-                      Status[idx].Avg(), Status[idx].Max(), stateName(idx-1));
+                      Status[idx].Avg(), Status[idx].Max(), stateName(idx-1));*/
   transOut_->Printf("%-12s %12s %12s %s\n", "#N", "Average", "Max", "Transition");
   for (TransMapType::const_iterator trans = TransitionMap_.begin();
                                     trans != TransitionMap_.end(); ++trans)

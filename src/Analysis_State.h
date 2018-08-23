@@ -128,9 +128,9 @@ class Analysis_State : public Analysis {
     DataSet* state_names_;
     DataSetList* masterDSL_;
     DataFile* curveOut_;
-    CpptrajFile* stateOut_;
+    DataFile* lifeOut_;
+    DataFile* countOut_;
     CpptrajFile* transOut_;
-    CpptrajFile* countOut_;
     int debug_;
     bool normalize_;
 };
