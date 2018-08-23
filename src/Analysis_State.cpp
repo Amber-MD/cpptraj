@@ -98,6 +98,26 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   if (ds == 0) return Analysis::ERR;
   ds->SetDim(0, Xdim);
   state_counts_ = ds;
+  ds = setup.DSL().AddSet(DataSet::DOUBLE, MetaData(state_data_->Meta().Name(), "Frac"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  state_fracs_ = ds;
+  ds = setup.DSL().AddSet(DataSet::INTEGER, MetaData(state_data_->Meta().Name(), "Nlifetimes"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  state_lifetimes_ = ds;
+  ds = setup.DSL().AddSet(DataSet::DOUBLE, MetaData(state_data_->Meta().Name(), "Avglife"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  state_avglife_ = ds;
+  ds = setup.DSL().AddSet(DataSet::INTEGER, MetaData(state_data_->Meta().Name(), "Maxlife"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  state_maxlife_ = ds;
+  ds = setup.DSL().AddSet(DataSet::STRING, MetaData(state_data_->Meta().Name(), "Name"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  state_names_ = ds;
 
   mprintf("    STATE: The following state definitions have been set up:\n");
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
@@ -232,10 +252,19 @@ Analysis::RetType Analysis_State::Analyze() {
               trans->second.Nlifetimes(), trans->second.Avg());
   }
   countOut_->Printf("%-8s %12s %12s %s\n", "#Index", "Count", "Frac", "State");
-  for (int idx = 0; idx != (int)stateFrames.size(); idx++) {
+  for (int idx = 0; idx != numStates; idx++) {
     countOut_->Printf("%-8i %12i %12.4f %s\n", idx-1, stateFrames[idx],
                       (double)stateFrames[idx]/(double)nframes, stateName(idx-1));
     state_counts_->Add(idx, &(stateFrames[idx]));
+    double dval = (double)stateFrames[idx]/(double)nframes;
+    state_fracs_->Add(idx, &dval);
+    state_names_->Add(idx, stateName(idx-1));
+    int ival = Status[idx].Nlifetimes();
+    state_lifetimes_->Add(idx, &ival);
+    dval = Status[idx].Avg();
+    state_avglife_->Add(idx, &dval);
+    ival = Status[idx].Max();
+    state_maxlife_->Add(idx, &ival);
   }
   stateOut_->Printf("%-8s %12s %12s %12s %s\n", "#Index", "N", "Average", "Max", "State");
   for (int idx = 0; idx != (int)Status.size(); idx++)

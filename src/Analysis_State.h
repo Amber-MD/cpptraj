@@ -121,6 +121,11 @@ class Analysis_State : public Analysis {
     TransMapType TransitionMap_;
     DataSet* state_data_;
     DataSet* state_counts_;
+    DataSet* state_fracs_;
+    DataSet* state_lifetimes_;
+    DataSet* state_avglife_;
+    DataSet* state_maxlife_;
+    DataSet* state_names_;
     DataSetList* masterDSL_;
     DataFile* curveOut_;
     CpptrajFile* stateOut_;
