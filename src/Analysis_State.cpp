@@ -18,10 +18,12 @@ Analysis_State::Analysis_State() :
 {}
 
 void Analysis_State::Help() const {
-  mprintf("\t{state <ID>,<dataset>,<min>,<max>} [out <state v time file>] [name <setname>]\n"
-          "\t[curveout <curve file>] [stateout <states file>] [transout <transitions file>]\n"
+  mprintf("\t{state <ID>,<dataset>,<min>,<max>[,<dataset1>,<min1>,<max1>]} ...\n"
+          "\t[out <state v time file>] [name <setname>]\n"
+          "\t[curveout <curve file>] [stateout <states file>]\n"
+          "\t[transout <transitions file>] [countout <count file>]\n"
           "  Data for the specified data set(s) that matches the given criteria\n"
-          "  will be assigned state <#>.\n");
+          "  will be assigned state <ID>.\n");
 }
 
 // Analysis_State::Setup()
