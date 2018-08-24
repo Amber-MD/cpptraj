@@ -38,6 +38,8 @@ class DataSetList {
     const_iterator end()   const { return DataList_.end();   }
     /// Clear all non-Topology and non-Reference DataSets
     void Clear();
+    /// Clear entire DataSetList
+    void ClearAll();
     /// Sort sets in the DataSetList
     void Sort();
     /// True if no DataSets in list.
@@ -144,8 +146,6 @@ class DataSetList {
     void Timing() const;
 #   endif
   private:
-    /// Clear entire DataSetList
-    void ClearAll();
     /// Search for and remove specified data set if found, optionally free memory.
     DataSet* EraseSet( DataSet*, bool );
     /// Warn if DataSet not found but may be pending.
