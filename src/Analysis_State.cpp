@@ -203,6 +203,7 @@ Analysis::RetType Analysis_State::Analyze() {
   size_t last_State_Start = 0;
   size_t final_frame = nframes - 1;
   std::vector<unsigned int> stateFrames(numStates, 0);
+  std::vector<unsigned int> overwriteCount(NameMap_.size(), 0);
   for (size_t frm = 0; frm != nframes; frm++) {
     // Determine which state we are in.
     int state_num = -1;
@@ -210,9 +211,12 @@ Analysis::RetType Analysis_State::Analyze() {
     {
       if (state->InState( frm )) {
         if (state_num != -1) {
-          mprintf("Warning: Frame %zu already defined as state '%s', also matches state '%s'.\n",
-                  frm, States_[state_num].id(), state->id());
-          mprintf("Warning: Overriding previous state.\n");
+          if (debug_ > 0) {
+            mprintf("Warning: Frame %zu already defined as state '%s', also matches state '%s'.\n",
+                    frm, States_[state_num].id(), state->id());
+            mprintf("Warning: Overriding previous state.\n");
+          }
+          overwriteCount[state_num]++;
           state_num = state->Num();
         } else
           state_num = state->Num();
@@ -260,6 +264,10 @@ Analysis::RetType Analysis_State::Analyze() {
       last_state = state_num;
     }
   } // END loop over frames
+  for (unsigned int idx = 0; idx != overwriteCount.size(); idx++)
+    if (overwriteCount[idx] > 0)
+      mprintf("\tState %s (%u) was superseded by a subsequent state %u times\n",
+              stateName(idx), idx, overwriteCount[idx]);
 
   // DEBUG: Print single state info.
   if (debug_ > 0) {
