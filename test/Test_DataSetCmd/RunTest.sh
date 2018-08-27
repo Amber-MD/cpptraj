@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles data.in avg.dat matrix.dat matrix2.dat VXYZ.dat Keep?.dat Drop?.dat D4.dat
+CleanFiles data.in avg.dat matrix.dat matrix2.dat VXYZ.dat Keep?.dat \
+           Drop?.dat D4.dat Invert.dat
 
 INPUT='-i data.in'
 cat > data.in <<EOF
@@ -13,6 +14,8 @@ readdata data2.dat name D2
 readdata data3.dat name D3
 readdata data3.dat name D4
 readdata ../Test_Vector/vtest.dat.6.save name Vec vector
+
+dataset invert D1 D2 name Invert out Invert.dat
 
 # Test mode/type setting
 dataset MyData2 mode torsion type alpha
@@ -71,5 +74,6 @@ DoTest Keep2.dat.save Keep2.dat
 DoTest Keep1.dat.save Drop1.dat
 DoTest Keep2.dat.save Drop2.dat
 DoTest VXYZ.dat.save VXYZ.dat
+DoTest Invert.dat.save Invert.dat
 
 EndTest
