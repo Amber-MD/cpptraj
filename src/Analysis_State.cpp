@@ -274,14 +274,11 @@ Analysis::RetType Analysis_State::Analyze() {
   // DEBUG: Print single state info.
   if (debug_ > 0) {
     mprintf("  States:\n");
-    mprintf("\t%i: %s  max= %i  sum= %i  n= %i  Avg= %g\n", -1, "Undefined",
-            Status.front().Max(), Status.front().Sum(),
-            Status.front().Nlifetimes(), Status.front().Avg());
-    StateArray::const_iterator state = States_.begin();
-    for (std::vector<Transition>::const_iterator s = Status.begin() + 1;
-                                                 s != Status.end(); ++s, ++state)
-    mprintf("\t%u: %s  max= %i  sum= %i  n= %i  Avg= %g\n", state - States_.begin(),
-            state->id(), s->Max(), s->Sum(), s->Nlifetimes(), s->Avg());
+    for (int stateid = -1; stateid < (int)NameMap_.size(); stateid++)
+      mprintf("\t%i: %s  max= %i  sum= %i  n= %i  Avg= %g\n",
+              stateid, stateName(stateid), Status[stateid+1].Max(),
+              Status[stateid+1].Sum(), Status[stateid+1].Nlifetimes(),
+              Status[stateid+1].Avg());
     // DEBUG: Print transitions.
     mprintf("  Transitions:\n");
     for (TransMapType::const_iterator trans = TransitionMap_.begin();
