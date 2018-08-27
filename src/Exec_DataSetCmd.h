@@ -30,6 +30,7 @@ class Exec_DataSetCmd : public Exec {
     static void Help_ChangeDim();
     RetType ChangeDim(CpptrajState const&, ArgList&);
     RetType ChangeModeType(CpptrajState const&, ArgList&);
+    static void Help_InvertSets();
     RetType InvertSets(CpptrajState&, ArgList&);
 };
 #endif

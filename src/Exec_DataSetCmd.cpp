@@ -9,7 +9,7 @@
 
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
-          "\t dim|outformat|mode|type} <options>\n");
+          "\t dim|outformat|invert|mode|type} <options>\n");
   mprintf("  legend <legend> <set>\n"
           "    Set the legend for a single data set.\n");
   mprintf("  makexy <Xset> <Yset> [name <name>]\n"
@@ -35,6 +35,7 @@ void Exec_DataSetCmd::Help() const {
           "      double     - \"Normal\" output, e.g. 0.4032\n"
           "      scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
           "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
+  Help_InvertSets();
   mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
   mprintf("      <mode>: ");
   for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
@@ -786,6 +787,12 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
   return CpptrajState::OK;
 }
 
+void Exec_DataSetCmd::Help_InvertSets() {
+  mprintf("  invert <set arg0> ... name <new name> [legendset <set>]\n"
+          "    Given M input sets of length N, create N new sets of length M by\n"
+          "    inverting the input sets.\n");
+}
+
 /** Syntax: dataset invert <set arg0> ... name <new name> */
 Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
   DataSetList& DSL = State.DSL();
@@ -802,13 +809,17 @@ Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
       mprinterr("Error: Set '%s' does not contain strings.\n", inputNames->legend());
       return CpptrajState::ERR;
     }
+    mprintf("\tUsing names from set '%s' as legends for inverted sets.\n", inputNames->legend());
   }
   dsname = argIn.GetStringKey("name");
   if (dsname.empty()) {
     mprinterr("Error: 'invert' requires that 'name <new set name>' be specified.\n");
     return CpptrajState::ERR;
   }
+  mprintf("\tNew sets will be named '%s'\n", dsname.c_str());
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
+  if (outfile != 0)
+    mprintf("\tNew sets will be output to '%s'\n", outfile->DataFilename().full());
   // TODO determine type some other way
   DataSet::DataType outtype = DataSet::DOUBLE;
   // Get input DataSets
@@ -843,6 +854,8 @@ Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
               inputNames->legend(), inputNames->Size(), input_sets.front()->Size());
     return CpptrajState::ERR;
   }
+  mprintf("\t%zu input sets; creating %zu output sets.\n",
+          input_sets.size(), input_sets.front()->Size());
   // Need an output data set for each point in input sets
   std::vector<DataSet*> output_sets;
   int column = 1;
