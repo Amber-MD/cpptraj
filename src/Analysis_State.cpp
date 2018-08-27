@@ -140,7 +140,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   mprintf("    STATE: The following state definitions have been set up:\n");
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
   {
-    mprintf("\t%u: ", state - States_.begin());
+    mprintf("\t  ", state - States_.begin());
     state->PrintState();
   }
   mprintf("\tState data set: %s\n", state_data_->legend());
