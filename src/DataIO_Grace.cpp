@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
 #include "DataSet_double.h"
+#include "DataSet_string.h"
 
 // TODO: Set dimension labels
 // Dont assume anything about set ordering
@@ -130,10 +131,29 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   file.Printf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n"
               "@  legend 0.2, 0.995\n@  legend char size 0.60\n",
               Sets[0]->Dim(0).Label().c_str(), "");
+  // Determine if we have a single STRING DataSet. Assume these contain labels.
+  DataSet_string* labelSet = 0;
+  for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set)
+  {
+    if (labelSet == 0) {
+      if ( (*set)->Type() == DataSet::STRING )
+        labelSet = (DataSet_string*)(*set);
+    } else {
+      if ( (*set)->Type() == DataSet::STRING ) {
+        labelSet = 0;
+        break;
+      }
+    }
+  }
+  if (labelSet != 0)
+    mprintf("\tUsing string set '%s' for data point labels\n", labelSet->legend());
   // Loop over DataSets
   unsigned int setnum = 0;
   DataSet::SizeArray frame(1);
-  for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set, ++setnum) {
+  for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set, ++setnum)
+  {
+    // Skip the label set if defined.
+    if (*set == labelSet) continue;
     size_t maxFrames = (*set)->Size();
     // Set information
     file.Printf("@  s%u legend \"%s\"\n@target G0.S%u\n@type xy\n",
@@ -148,6 +168,8 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
     for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
       file.Printf(xfmt.fmt(), (*set)->Coord(0, frame[0]));
       (*set)->WriteBuffer(file, frame);
+      if (labelSet != 0)
+        file.Printf(" \"%s\"", (*labelSet)[frame[0]].c_str());
       file.Printf("\n");
     }
   }
