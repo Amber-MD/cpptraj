@@ -69,6 +69,7 @@ class Analysis_Clustering: public Analysis {
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
     bool includeSieveInCalc_;   ///< If true use sieved frames in certain calculations.
     bool suppressInfo_;         ///< If true, do not print cluster info to STDOUT
+    bool pw_mismatch_fatal_;    ///< If true, existing PW matrix size must match expected size.
     ClusterDist::DsArray cluster_dataset_;        ///< DataSet(s) to use for clustering.
     TrajectoryFile::TrajFormatType clusterfmt_;   ///< Cluster trajectory format.
     TrajectoryFile::TrajFormatType singlerepfmt_; ///< Cluster all rep single trajectory format.
