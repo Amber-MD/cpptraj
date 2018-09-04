@@ -2,7 +2,7 @@
 #include <cstdlib> // atoi, atof
 #include <cstring> // strchr
 #include <cctype>  // isdigit, isalpha
-#include <algorithm> // std::min, std::max
+#include <algorithm> // std::max
 #include <cmath>   // modf TODO put function in StringRoutines?
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
@@ -736,7 +736,7 @@ int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
     }
     DataSet_Cmatrix const& cm = static_cast<DataSet_Cmatrix const&>( *(*ds) );
     int nrows = cm.Nrows();
-    int col_width = std::min(3, DigitWidth( nrows ) + 1);
+    int col_width = std::max(3, DigitWidth( nrows ) + 1);
     int dat_width = std::max(cm.Format().Width(), (int)cm.Meta().Legend().size()) + 1;
     WriteNameToBuffer(file, "F1",               col_width, true);
     WriteNameToBuffer(file, "F2",               col_width, false);
