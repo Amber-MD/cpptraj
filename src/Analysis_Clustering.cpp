@@ -582,8 +582,33 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     if ( (cluster_dataset_[0]->Size() % (unsigned int)sval) != 0 )
       expected_nrows++;
     if ( ((DataSet_Cmatrix*)pw_dist_)->Nrows() != expected_nrows ) {
-      mprintf("Warning: ClusterMatrix has %zu rows, expected %zu; recalculating matrix.\n",
-              ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+      if (sval == 1) {
+        // No sieve value specified by user.
+        if ( ((DataSet_Cmatrix*)pw_dist_)->SieveValue() != 1 ) {
+          // Cluster matrix is sieved.
+          mprintf("Warning: Sieved ClusterMatrix has %zu rows, expected %zu; did you forget\n"
+                  "Warning:   to specify 'sieve <#>'?\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+        } else {
+          // Cluster matrix is not sieved.
+          mprintf("Warning: ClusterMatrix has %zu rows, expected %zu.\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+        }
+      } else {
+        // Sieve value specified by user.
+        if ( ((DataSet_Cmatrix*)pw_dist_)->SieveValue() != 1 ) {
+          // Cluster matrix is sieved.
+          mprintf("Warning: Sieved ClusterMatrix has %zu rows, expected %zu based on\n"
+                  "Warning:   specified sieve value (%i)\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows, sval);
+        } else {
+          // Cluster matrix is not sieved.
+          mprintf("Warning: ClusterMatrix has %zu rows, expected %zu based on\n"
+                  "Warning:   specified sieve value (%i).\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows, sval);
+        }
+      }
+      mprintf("Warning: Recalculating matrix.\n");
       pw_dist_ = masterDSL_->AddSet(DataSet::CMATRIX, "", "CMATRIX");
       if (pw_dist_ == 0) return Analysis::ERR;
     }
