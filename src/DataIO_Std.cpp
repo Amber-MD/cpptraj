@@ -15,7 +15,7 @@
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_2D.h"
 #include "DataSet_3D.h"
-#include "DataSet_Cmatrix.h"
+#include "DataSet_Cmatrix_MEM.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
@@ -302,44 +302,77 @@ int DataIO_Std::Read_1D(std::string const& fname,
 int DataIO_Std::ReadCmatrix(FileName const& fname,
                             DataSetList& datasetlist, std::string const& dsname)
 {
+  // Allocate output data set
+  DataSet* ds = datasetlist.AddSet( DataSet::CMATRIX, dsname );
+  if (ds == 0) return 1;
+  DataSet_Cmatrix_MEM& Mat = static_cast<DataSet_Cmatrix_MEM&>( *ds );
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
   // Read past title
   const char* ptr = buffer.Line();
   // Need to keep track of frame indices so we can check for sieving.
-  std::vector<bool> sieveStatus;
+  std::vector<char> sieveStatus;
   // Keep track of matrix values.
-  std::vector<double> Vals;
+  std::vector<float> Vals;
   // Read file
   bool checkSieve = true;
   int f1 = -1, f2 = -1, firstf1 = -1;
-  double val = 0;
+  float val = 0;
   while ( (ptr = buffer.Line()) != 0 )
   {
     if (checkSieve) {
-      sscanf(ptr, "%i %i %lf", &f1, &f2, &val);
+      sscanf(ptr, "%i %i %f", &f1, &f2, &val);
       if (f2 > (int)sieveStatus.size())
-        sieveStatus.resize(f2, false);
+        sieveStatus.resize(f2, 'T');
       if (firstf1 == -1) {
         // First values.
-        sieveStatus[f1-1] = true;
-        sieveStatus[f2-1] = true;
+        sieveStatus[f1-1] = 'F';
+        sieveStatus[f2-1] = 'F';
         firstf1 = f1;
       } else if (f1 > firstf1) {
           checkSieve = false;
       } else {
-        sieveStatus[f2-1] = true;
+        sieveStatus[f2-1] = 'F';
       }
     } else {
-      sscanf(ptr, "%*i %*i %lf", &val);
+      sscanf(ptr, "%*i %*i %f", &val);
     }
     Vals.push_back( val );
   }
   // DEBUG
   mprintf("Sieved array:\n");
   for (unsigned int i = 0; i < sieveStatus.size(); i++)
-    mprintf("\t%6u %i\n", i+1, (int)sieveStatus[i]);
+    mprintf("\t%6u %c\n", i+1, sieveStatus[i]);
+  // Try to determine if sieve is random or not.
+  int sieveDelta = 1;
+  f1 = -1;
+  f2 = -1;
+  for (int i = 0; i < (int)sieveStatus.size(); i++) {
+    if (sieveStatus[i] == 'F') {
+      if (f1 == -1) {
+        f1 = i;
+      } else if (f2 == -1) {
+        sieveDelta = i - f1;
+        f1 = i;
+        f2 = i;
+      } else {
+        int newDelta = i - f1;
+        if (newDelta != sieveDelta) {
+          // Random
+          sieveDelta = -2;
+          break;
+        }
+        f1 = i;
+      }
+    }
+  }
+  mprintf("DEBUG: sieve %i\n", sieveDelta);
+  
+  // Save cluster matrix
+  if (Mat.Allocate( DataSet::SizeArray(1, sieveStatus.size()) )) return 1;
+  std::copy( Vals.begin(), Vals.end(), Mat.Ptr() );
+  Mat.SetSieveFromArray(sieveStatus, sieveDelta);
 
   return 0;
 }
