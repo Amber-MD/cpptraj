@@ -134,6 +134,8 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   }
   return 0;
 }
+
+const int DataIO_Std::IS_ASCII_CMATRIX = -2;
   
 // TODO: Set dimension labels
 // DataIO_Std::ReadData()
@@ -142,7 +144,11 @@ int DataIO_Std::ReadData(FileName const& fname,
 {
   int err = 0;
   switch ( mode_ ) {
-    case READ1D: err = Read_1D(fname.Full(), dsl, dsname); break;
+    case READ1D:
+      err = Read_1D(fname.Full(), dsl, dsname);
+      if (err == IS_ASCII_CMATRIX)
+        err = ReadCmatrix(fname, dsl, dsname);
+      break;
     case READ2D: err = Read_2D(fname.Full(), dsl, dsname); break;
     case READ3D: err = Read_3D(fname.Full(), dsl, dsname); break;
     case READVEC: err = Read_Vector(fname.Full(), dsl, dsname); break;
@@ -195,6 +201,12 @@ int DataIO_Std::Read_1D(std::string const& fname,
     } else 
       // Not a recognized comment character, assume data.
       isCommentLine = false;
+  }
+  // Special case: check if labels are '#F1   F2 <something>'. If so, assume
+  // this is a cluster matrix file.
+  if (labels.Nargs() == 3 && labels[0] == "F1" && labels[1] == "F2") {
+    mprintf("Warning: Header format '#F1 F2 <name>' detected, assuming cluster pairwise matrix.\n");
+    return IS_ASCII_CMATRIX;
   }
   // Column user args start from 1
   if (indexcol_ > -1)
@@ -278,6 +290,22 @@ int DataIO_Std::Read_1D(std::string const& fname,
     datasetlist.AddOrAppendSets(Xlabel, Xptr->Data(), mySets);
     delete Xptr;
   }
+
+  return 0;
+}
+
+/** Read cluster matrix file. Can only get here if file has already been
+  * determined to be in the proper format, so do no further error checking.
+  * Expected format:
+  *   <int> <int> <name>
+  */
+int DataIO_Std::ReadCmatrix(FileName const& fname,
+                            DataSetList& datasetlist, std::string const& dsname)
+{
+  // Buffer file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  // Need to keep track of frame indices so we can check for sieving.
 
   return 0;
 }
@@ -735,7 +763,7 @@ int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
       continue;
     }
     DataSet_Cmatrix const& cm = static_cast<DataSet_Cmatrix const&>( *(*ds) );
-    int nrows = cm.Nrows();
+    int nrows = cm.OriginalNframes();
     int col_width = std::max(3, DigitWidth( nrows ) + 1);
     int dat_width = std::max(cm.Format().Width(), (int)cm.Meta().Legend().size()) + 1;
     WriteNameToBuffer(file, "F1",               col_width, true);
