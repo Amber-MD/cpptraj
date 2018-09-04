@@ -126,11 +126,15 @@ class Analysis_State : public Analysis {
     DataSet* state_avglife_;
     DataSet* state_maxlife_;
     DataSet* state_names_;
+    DataSet* trans_lifetimes_;
+    DataSet* trans_avglife_;
+    DataSet* trans_maxlife_;
+    DataSet* trans_names_;
     DataSetList* masterDSL_;
     DataFile* curveOut_;
     DataFile* lifeOut_;
     DataFile* countOut_;
-    CpptrajFile* transOut_;
+    DataFile* transOut_;
     int debug_;
     bool normalize_;
 };
