@@ -41,6 +41,7 @@ Analysis_Clustering::Analysis_Clustering() :
   writeRepFrameNum_(false),
   includeSieveInCalc_(false),
   suppressInfo_(false),
+  pw_mismatch_fatal_(true),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -79,7 +80,7 @@ void Analysis_Clustering::Help() const {
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
           "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <name>]\n"
-          "\t[pairwisecache {mem | disk | none}] [includesieveincalc]\n"
+          "\t[pairwisecache {mem | disk | none}] [includesieveincalc] [pwrecalc]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
@@ -192,12 +193,72 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (CList_ == 0) return Analysis::ERR;
   CList_->SetDebug(debug_);
   // Get algorithm-specific keywords
-  if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
+  if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR;
+  // ---------------------------------------------
+  // Options for loading/saving pairwise distance file
+  DataSet::DataType pw_type = DataSet::CMATRIX;
+  std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
+  if (!pw_typeString.empty()) {
+    if (pw_typeString == "mem")
+      pw_type = DataSet::CMATRIX;
+    else if (pw_typeString == "disk")
+      pw_type = DataSet::CMATRIX_DISK;
+    else if (pw_typeString == "none")
+      pw_type = DataSet::CMATRIX_NOMEM;
+    else {
+      mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
+      return Analysis::ERR;
+    }
+  }
+  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
+  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
+  bool load_pair = analyzeArgs.hasKey("loadpairdist");
+  bool save_pair = analyzeArgs.hasKey("savepairdist");
+  pw_dist_ = 0;
+  if (load_pair) {
+    // If 'loadpairdist' specified, assume we want to load from file.
+    if (pairdistname.empty()) {
+      pairdistname = PAIRDISTFILE_;
+      pairdisttype = PAIRDISTTYPE_;
+    }
+    if (File::Exists( pairdistname )) {
+      DataFile dfIn;
+      if (dfIn.ReadDataIn( pairdistname, ArgList(), setup.DSL() )) return Analysis::ERR;
+      pw_dist_ = setup.DSL().GetDataSet( pairdistname );
+      if (pw_dist_ == 0) return Analysis::ERR;
+    } else
+      pairdisttype = PAIRDISTTYPE_;
+  }
+  if (pw_dist_ == 0 && !pairdistname.empty()) {
+    // Just 'pairdist' specified or loadpairdist specified and file not found.
+    // Look for Cmatrix data set. 
+    pw_dist_ = setup.DSL().FindSetOfType( pairdistname, DataSet::CMATRIX );
+    //if (pw_dist_ == 0) { // TODO: Convert general matrix to cluster matrix
+    //  mprinterr("Error: Cluster matrix with name '%s' not found.\n");
+    //  return Analysis::ERR;
+    //}
+    if (pw_dist_ == 0 && load_pair) {
+    // If the file (or dataset) does not yet exist we will assume we want to save.
+      mprintf("Warning: 'loadpairdist' specified but '%s' not found; will save distances.\n",
+              pairdistname.c_str());
+      save_pair = true;
+    }
+  }
+  // Create file for saving pairwise distances
+  pwd_file_ = 0;
+  if (save_pair) {
+    if (pairdistname.empty()) {
+      pairdistname = PAIRDISTFILE_;
+      pairdisttype = PAIRDISTTYPE_;
+    }
+    pwd_file_ = setup.DFL().AddDataFile( pairdistname, pairdisttype, ArgList() );
+  }
+  // ---------------------------------------------
   // Get keywords
+  useMass_ = analyzeArgs.hasKey("mass");
   includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
   if (includeSieveInCalc_)
     mprintf("Warning: 'includesieveincalc' may be very slow.\n");
-  useMass_ = analyzeArgs.hasKey("mass");
   sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
   sieve_ = analyzeArgs.getKeyInt("sieve", 1);
   if (sieve_ < 1) {
@@ -206,6 +267,19 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   }
   if (analyzeArgs.hasKey("random") && sieve_ > 1)
     sieve_ = -sieve_; // negative # indicates random sieve
+  // Override sieve value
+  if (pw_dist_ != 0) {
+    if (sieve_ == 1) {
+      mprintf("Warning: Using sieve options from specified pairwise distance set '%s'\n",
+              pw_dist_->legend());
+      sieve_ = ((DataSet_Cmatrix*)pw_dist_)->SieveValue();
+    } else if (sieve_ != ((DataSet_Cmatrix*)pw_dist_)->SieveValue()) {
+      mprintf("Warning: Specified sieve options do not match pairwise distance set '%s'\n",
+              pw_dist_->legend());
+    }
+  }
+  if (analyzeArgs.hasKey("pwrecalc"))
+    pw_mismatch_fatal_ = false;
   halffile_ = analyzeArgs.GetStringKey("summarysplit");
   if (halffile_.empty()) // For backwards compat.
     halffile_ = analyzeArgs.GetStringKey("summaryhalf");
@@ -277,66 +351,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       norm_pop_ = NONE;
   }
   sil_file_ = analyzeArgs.GetStringKey("sil");
-  // ---------------------------------------------
-  // Options for loading/saving pairwise distance file
-  DataSet::DataType pw_type = DataSet::CMATRIX;
-  std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
-  if (!pw_typeString.empty()) {
-    if (pw_typeString == "mem")
-      pw_type = DataSet::CMATRIX;
-    else if (pw_typeString == "disk")
-      pw_type = DataSet::CMATRIX_DISK;
-    else if (pw_typeString == "none")
-      pw_type = DataSet::CMATRIX_NOMEM;
-    else {
-      mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
-      return Analysis::ERR;
-    }
-  }
-  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
-  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
-  bool load_pair = analyzeArgs.hasKey("loadpairdist");
-  bool save_pair = analyzeArgs.hasKey("savepairdist");
-  pw_dist_ = 0;
-  if (load_pair) {
-    // If 'loadpairdist' specified, assume we want to load from file.
-    if (pairdistname.empty()) {
-      pairdistname = PAIRDISTFILE_;
-      pairdisttype = PAIRDISTTYPE_;
-    }
-    if (File::Exists( pairdistname )) {
-      DataFile dfIn;
-      if (dfIn.ReadDataIn( pairdistname, ArgList(), setup.DSL() )) return Analysis::ERR;
-      pw_dist_ = setup.DSL().GetDataSet( pairdistname );
-      if (pw_dist_ == 0) return Analysis::ERR;
-    } else
-      pairdisttype = PAIRDISTTYPE_;
-  }
-  if (pw_dist_ == 0 && !pairdistname.empty()) {
-    // Just 'pairdist' specified or loadpairdist specified and file not found.
-    // Look for Cmatrix data set. 
-    pw_dist_ = setup.DSL().FindSetOfType( pairdistname, DataSet::CMATRIX );
-    //if (pw_dist_ == 0) { // TODO: Convert general matrix to cluster matrix
-    //  mprinterr("Error: Cluster matrix with name '%s' not found.\n");
-    //  return Analysis::ERR;
-    //}
-    if (pw_dist_ == 0 && load_pair) {
-    // If the file (or dataset) does not yet exist we will assume we want to save.
-      mprintf("Warning: 'loadpairdist' specified but '%s' not found; will save distances.\n",
-              pairdistname.c_str());
-      save_pair = true;
-    }
-  }
-  // Create file for saving pairwise distances
-  pwd_file_ = 0;
-  if (save_pair) {
-    if (pairdistname.empty()) {
-      pairdistname = PAIRDISTFILE_;
-      pairdisttype = PAIRDISTTYPE_;
-    }
-    pwd_file_ = setup.DFL().AddDataFile( pairdistname, pairdisttype, ArgList() );
-  }
-  // ---------------------------------------------
+
   // Output trajectory stuff
   writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
   GetClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,   clusterfmt_);
@@ -445,6 +460,14 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     mprintf("\tPairwise distances will not be cached (will slow clustering calcs)\n");
   else if (pw_dist_->Type() == DataSet::CMATRIX_DISK)
     mprintf("\tPairwise distances will be cached to disk (will slow clustering calcs)\n");
+  if (pw_dist_->Size() > 0) {
+    if (pw_mismatch_fatal_)
+      mprintf("\tCalculation will be halted if # frames does not match '%s'\n",
+              pw_dist_->legend());
+    else
+      mprintf("\tPairwise distances will be recalculated if # frames does not match '%'s\n",
+              pw_dist_->legend());
+  }
   if (pwd_file_ != 0)
     mprintf("\tSaving pair-wise distances to '%s'\n", pwd_file_->DataFilename().full());
   if (!clusterinfo_.empty())
@@ -582,8 +605,41 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     if ( (cluster_dataset_[0]->Size() % (unsigned int)sval) != 0 )
       expected_nrows++;
     if ( ((DataSet_Cmatrix*)pw_dist_)->Nrows() != expected_nrows ) {
-      mprintf("Warning: ClusterMatrix has %zu rows, expected %zu; recalculating matrix.\n",
-              ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+      if (sval == 1) {
+        // No sieve value specified by user.
+        if ( ((DataSet_Cmatrix*)pw_dist_)->SieveValue() != 1 ) {
+          // Cluster matrix is sieved.
+          mprintf("Warning: Sieved ClusterMatrix has %zu rows, expected %u; did you forget\n"
+                  "Warning:   to specify 'sieve <#>'?\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+        } else {
+          // Cluster matrix is not sieved.
+          mprintf("Warning: ClusterMatrix has %zu rows, expected %u.\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+        }
+      } else {
+        // Sieve value specified by user.
+        if ( ((DataSet_Cmatrix*)pw_dist_)->SieveValue() != 1 ) {
+          // Cluster matrix is sieved.
+          mprintf("Warning: Sieved ClusterMatrix has %zu rows, expected %u based on\n"
+                  "Warning:   specified sieve value (%i)\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows, sval);
+        } else {
+          // Cluster matrix is not sieved.
+          mprintf("Warning: ClusterMatrix has %zu rows, expected %u based on\n"
+                  "Warning:   specified sieve value (%i).\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows, sval);
+        }
+      }
+      if (pw_mismatch_fatal_) {
+        mprinterr("Error: Input pairwise matrix '%s' size (%zu) does not match expected size (%u)\n"
+                  "Error:   Check that input number of frames and sieve value are consistent.\n",
+                  pw_dist_->legend(),
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+        mprinterr("Error: Check warnings in cpptraj output for more details.\n");
+        return Analysis::ERR;
+      }
+      mprintf("Warning: Recalculating matrix.\n");
       pw_dist_ = masterDSL_->AddSet(DataSet::CMATRIX, "", "CMATRIX");
       if (pw_dist_ == 0) return Analysis::ERR;
     }

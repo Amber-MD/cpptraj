@@ -2,7 +2,7 @@
 #include <cstdlib> // atoi, atof
 #include <cstring> // strchr
 #include <cctype>  // isdigit, isalpha
-#include <algorithm> // std::min, std::max
+#include <algorithm> // std::max
 #include <cmath>   // modf TODO put function in StringRoutines?
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
@@ -15,7 +15,7 @@
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_2D.h"
 #include "DataSet_3D.h"
-#include "DataSet_Cmatrix.h"
+#include "DataSet_Cmatrix_MEM.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
@@ -134,6 +134,8 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   }
   return 0;
 }
+
+const int DataIO_Std::IS_ASCII_CMATRIX = -2;
   
 // TODO: Set dimension labels
 // DataIO_Std::ReadData()
@@ -142,7 +144,11 @@ int DataIO_Std::ReadData(FileName const& fname,
 {
   int err = 0;
   switch ( mode_ ) {
-    case READ1D: err = Read_1D(fname.Full(), dsl, dsname); break;
+    case READ1D:
+      err = Read_1D(fname.Full(), dsl, dsname);
+      if (err == IS_ASCII_CMATRIX)
+        err = ReadCmatrix(fname, dsl, dsname);
+      break;
     case READ2D: err = Read_2D(fname.Full(), dsl, dsname); break;
     case READ3D: err = Read_3D(fname.Full(), dsl, dsname); break;
     case READVEC: err = Read_Vector(fname.Full(), dsl, dsname); break;
@@ -195,6 +201,13 @@ int DataIO_Std::Read_1D(std::string const& fname,
     } else 
       // Not a recognized comment character, assume data.
       isCommentLine = false;
+  }
+  // Special case: check if labels are '#F1   F2 <name> [nframes <#>]'. If so, assume
+  // this is a cluster matrix file.
+  if ((labels.Nargs() == 3 || labels.Nargs() == 5) && labels[0] == "F1" && labels[1] == "F2")
+  {
+    mprintf("Warning: Header format '#F1 F2 <name>' detected, assuming cluster pairwise matrix.\n");
+    return IS_ASCII_CMATRIX;
   }
   // Column user args start from 1
   if (indexcol_ > -1)
@@ -278,6 +291,111 @@ int DataIO_Std::Read_1D(std::string const& fname,
     datasetlist.AddOrAppendSets(Xlabel, Xptr->Data(), mySets);
     delete Xptr;
   }
+
+  return 0;
+}
+
+/** Read cluster matrix file. Can only get here if file has already been
+  * determined to be in the proper format, so do no further error checking.
+  * Expected format:
+  *   <int> <int> <name>
+  */
+int DataIO_Std::ReadCmatrix(FileName const& fname,
+                            DataSetList& datasetlist, std::string const& dsname)
+{
+  // Allocate output data set
+  DataSet* ds = datasetlist.AddSet( DataSet::CMATRIX, dsname );
+  if (ds == 0) return 1;
+  DataSet_Cmatrix_MEM& Mat = static_cast<DataSet_Cmatrix_MEM&>( *ds );
+  // Buffer file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  // Read past title. See if optional 'nframes' key is there.
+  const char* ptr = buffer.Line();
+  ArgList header;
+  header.SetList(ptr+1, SEPARATORS );
+  int nframes = header.getKeyInt("nframes", -1);
+  // Need to keep track of frame indices so we can check for sieving.
+  std::vector<char> sieveStatus;
+  if (nframes > 0)
+    sieveStatus.assign(nframes, 'T');
+  // Keep track of matrix values.
+  std::vector<float> Vals;
+  // Read file
+  bool checkSieve = true;
+  int f1 = -1, f2 = -1, firstf1 = -1;
+  float val = 0;
+  while ( (ptr = buffer.Line()) != 0 )
+  {
+    if (checkSieve) {
+      sscanf(ptr, "%i %i %f", &f1, &f2, &val);
+      if (f2 > (int)sieveStatus.size())
+        sieveStatus.resize(f2, 'T');
+      if (firstf1 == -1) {
+        // First values.
+        sieveStatus[f1-1] = 'F';
+        sieveStatus[f2-1] = 'F';
+        firstf1 = f1;
+      } else if (f1 > firstf1) {
+          checkSieve = false;
+      } else {
+        sieveStatus[f2-1] = 'F';
+      }
+    } else {
+      sscanf(ptr, "%*i %*i %f", &val);
+    }
+    Vals.push_back( val );
+  }
+  // DEBUG
+  //mprintf("Sieved array:\n");
+  //for (unsigned int i = 0; i < sieveStatus.size(); i++)
+  //  mprintf("\t%6u %c\n", i+1, sieveStatus[i]);
+  // Try to determine if sieve is random or not.
+  int sieveDelta = 1;
+  f1 = -1;
+  f2 = -1;
+  int actual_nrows = 0;
+  for (int i = 0; i < (int)sieveStatus.size(); i++) {
+    if (sieveStatus[i] == 'F') {
+      actual_nrows++;
+      if (sieveDelta != -2) {
+        if (f1 == -1) {
+          f1 = i;
+        } else if (f2 == -1) {
+          sieveDelta = i - f1;
+          f1 = i;
+          f2 = i;
+        } else {
+          int newDelta = i - f1;
+          if (newDelta != sieveDelta) {
+            // Random. No need to calculate sieveDelta anymore.
+            sieveDelta = -2;
+          }
+          f1 = i;
+        }
+      }
+    }
+  }
+  if (sieveDelta == -2) {
+    // Random sieve. Try to figure out original sieve value.
+    int o_frames = (int)sieveStatus.size();
+    int o_sieve_value = o_frames / actual_nrows;
+    if ( (o_frames % actual_nrows) != 0 )
+      o_sieve_value++;
+    sieveDelta = -o_sieve_value;
+  }
+  mprintf("DEBUG: sieve %i, actual_nrows= %i\n", sieveDelta, actual_nrows);
+  if (sieveDelta != 1 && nframes == -1)
+    mprintf("Warning: Pairwise distance matrix file contains sieved frames but\n"
+            "Warning:   number of original frames is not present in file - this\n"
+            "Warning:   may lead to ignored frames in cluster output. Please add\n"
+            "Warning:   'nframes <# original frames>' to the pairwise distance\n"
+            "Warning:   matrix file header, e.g. '#F1 F2 pw.dat nframes 1000'.\n");
+  
+  // Save cluster matrix
+  if (Mat.Allocate( DataSet::SizeArray(1, actual_nrows) )) return 1;
+  std::copy( Vals.begin(), Vals.end(), Mat.Ptr() );
+  Mat.SetSieveFromArray(sieveStatus, sieveDelta);
 
   return 0;
 }
@@ -735,12 +853,14 @@ int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
       continue;
     }
     DataSet_Cmatrix const& cm = static_cast<DataSet_Cmatrix const&>( *(*ds) );
-    int nrows = cm.Nrows();
-    int col_width = std::min(3, DigitWidth( nrows ) + 1);
+    int nrows = cm.OriginalNframes();
+    int col_width = std::max(3, DigitWidth( nrows ) + 1);
     int dat_width = std::max(cm.Format().Width(), (int)cm.Meta().Legend().size()) + 1;
     WriteNameToBuffer(file, "F1",               col_width, true);
     WriteNameToBuffer(file, "F2",               col_width, false);
     WriteNameToBuffer(file, cm.Meta().Legend(), dat_width, false);
+    if (cm.SieveType() != ClusterSieve::NONE)
+      file.Printf(" nframes %i", cm.OriginalNframes());
     file.Printf("\n");
     TextFormat col_fmt(TextFormat::INTEGER, col_width);
     TextFormat dat_fmt = cm.Format();

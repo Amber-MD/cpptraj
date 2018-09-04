@@ -6,7 +6,7 @@
 # NOTE: CpptrajPairDist name defined in Action_Clustering.cpp
 CleanFiles cluster.in cnumvtime.dat avg.summary.dat summary.dat CpptrajPairDist \
            cpop.agr summary2.dat Cmatrix.nccmatrix Cmatrix.cmatrix summary3.dat \
-           normpop.agr normframe.agr
+           normpop.agr normframe.agr cascii.dat.save cascii.dat pw.out
 
 TESTNAME='Hierarchical agglomerative clustering tests'
 Requires netcdf
@@ -50,6 +50,21 @@ EOF
 RunCpptraj "Cluster command test, read NetCDF pairwise distances."
 DoTest summary.dat.save summary3.dat
 DoTest normframe.agr.save normframe.agr
+# Test writing/reading ASCII cluster pairwise file
+cat > cluster.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat.save nofit savepairdist pairdist pw.out \
+  sieve 6 random sieveseed 2
+EOF
+RunCpptraj "Cluster command test, write ASCII pairwise distances."
+cat > cluster.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.out
+EOF
+RunCpptraj "Cluster command test, read ASCII pairwise distances."
+DoTest cascii.dat.save cascii.dat
 
 EndTest
 

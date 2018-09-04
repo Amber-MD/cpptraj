@@ -15,8 +15,10 @@ class DataIO_Std : public DataIO {
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     static const char* SEPARATORS;
+    static const int IS_ASCII_CMATRIX;
     static int Get3Double(std::string const&, Vec3&, bool&);
     int Read_1D(std::string const&,DataSetList&,std::string const&);
+    int ReadCmatrix(FileName const&, DataSetList&, std::string const&);
     int Read_2D(std::string const&,DataSetList&,std::string const&);
     int Read_3D(std::string const&,DataSetList&,std::string const&);
     int Read_Vector(std::string const&,DataSetList&,std::string const&);
