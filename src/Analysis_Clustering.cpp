@@ -193,12 +193,72 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (CList_ == 0) return Analysis::ERR;
   CList_->SetDebug(debug_);
   // Get algorithm-specific keywords
-  if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
+  if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR;
+  // ---------------------------------------------
+  // Options for loading/saving pairwise distance file
+  DataSet::DataType pw_type = DataSet::CMATRIX;
+  std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
+  if (!pw_typeString.empty()) {
+    if (pw_typeString == "mem")
+      pw_type = DataSet::CMATRIX;
+    else if (pw_typeString == "disk")
+      pw_type = DataSet::CMATRIX_DISK;
+    else if (pw_typeString == "none")
+      pw_type = DataSet::CMATRIX_NOMEM;
+    else {
+      mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
+      return Analysis::ERR;
+    }
+  }
+  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
+  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
+  bool load_pair = analyzeArgs.hasKey("loadpairdist");
+  bool save_pair = analyzeArgs.hasKey("savepairdist");
+  pw_dist_ = 0;
+  if (load_pair) {
+    // If 'loadpairdist' specified, assume we want to load from file.
+    if (pairdistname.empty()) {
+      pairdistname = PAIRDISTFILE_;
+      pairdisttype = PAIRDISTTYPE_;
+    }
+    if (File::Exists( pairdistname )) {
+      DataFile dfIn;
+      if (dfIn.ReadDataIn( pairdistname, ArgList(), setup.DSL() )) return Analysis::ERR;
+      pw_dist_ = setup.DSL().GetDataSet( pairdistname );
+      if (pw_dist_ == 0) return Analysis::ERR;
+    } else
+      pairdisttype = PAIRDISTTYPE_;
+  }
+  if (pw_dist_ == 0 && !pairdistname.empty()) {
+    // Just 'pairdist' specified or loadpairdist specified and file not found.
+    // Look for Cmatrix data set. 
+    pw_dist_ = setup.DSL().FindSetOfType( pairdistname, DataSet::CMATRIX );
+    //if (pw_dist_ == 0) { // TODO: Convert general matrix to cluster matrix
+    //  mprinterr("Error: Cluster matrix with name '%s' not found.\n");
+    //  return Analysis::ERR;
+    //}
+    if (pw_dist_ == 0 && load_pair) {
+    // If the file (or dataset) does not yet exist we will assume we want to save.
+      mprintf("Warning: 'loadpairdist' specified but '%s' not found; will save distances.\n",
+              pairdistname.c_str());
+      save_pair = true;
+    }
+  }
+  // Create file for saving pairwise distances
+  pwd_file_ = 0;
+  if (save_pair) {
+    if (pairdistname.empty()) {
+      pairdistname = PAIRDISTFILE_;
+      pairdisttype = PAIRDISTTYPE_;
+    }
+    pwd_file_ = setup.DFL().AddDataFile( pairdistname, pairdisttype, ArgList() );
+  }
+  // ---------------------------------------------
   // Get keywords
+  useMass_ = analyzeArgs.hasKey("mass");
   includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
   if (includeSieveInCalc_)
     mprintf("Warning: 'includesieveincalc' may be very slow.\n");
-  useMass_ = analyzeArgs.hasKey("mass");
   sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
   sieve_ = analyzeArgs.getKeyInt("sieve", 1);
   if (sieve_ < 1) {
@@ -207,6 +267,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   }
   if (analyzeArgs.hasKey("random") && sieve_ > 1)
     sieve_ = -sieve_; // negative # indicates random sieve
+  // Override sieve value
+  if (pw_dist_ != 0) {
+    if (sieve_ == 1) {
+      mprintf("Warning: Using sieve options from specified pairwise distance set '%s'\n",
+              pw_dist_->legend());
+      sieve_ = ((DataSet_Cmatrix*)pw_dist_)->SieveValue();
+    } else if (sieve_ != ((DataSet_Cmatrix*)pw_dist_)->SieveValue()) {
+      mprintf("Warning: Specified sieve options do not match pairwise distance set '%s'\n",
+              pw_dist_->legend());
+    }
+  }
   if (analyzeArgs.hasKey("pwrecalc"))
     pw_mismatch_fatal_ = false;
   halffile_ = analyzeArgs.GetStringKey("summarysplit");
@@ -280,66 +351,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       norm_pop_ = NONE;
   }
   sil_file_ = analyzeArgs.GetStringKey("sil");
-  // ---------------------------------------------
-  // Options for loading/saving pairwise distance file
-  DataSet::DataType pw_type = DataSet::CMATRIX;
-  std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
-  if (!pw_typeString.empty()) {
-    if (pw_typeString == "mem")
-      pw_type = DataSet::CMATRIX;
-    else if (pw_typeString == "disk")
-      pw_type = DataSet::CMATRIX_DISK;
-    else if (pw_typeString == "none")
-      pw_type = DataSet::CMATRIX_NOMEM;
-    else {
-      mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
-      return Analysis::ERR;
-    }
-  }
-  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
-  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
-  bool load_pair = analyzeArgs.hasKey("loadpairdist");
-  bool save_pair = analyzeArgs.hasKey("savepairdist");
-  pw_dist_ = 0;
-  if (load_pair) {
-    // If 'loadpairdist' specified, assume we want to load from file.
-    if (pairdistname.empty()) {
-      pairdistname = PAIRDISTFILE_;
-      pairdisttype = PAIRDISTTYPE_;
-    }
-    if (File::Exists( pairdistname )) {
-      DataFile dfIn;
-      if (dfIn.ReadDataIn( pairdistname, ArgList(), setup.DSL() )) return Analysis::ERR;
-      pw_dist_ = setup.DSL().GetDataSet( pairdistname );
-      if (pw_dist_ == 0) return Analysis::ERR;
-    } else
-      pairdisttype = PAIRDISTTYPE_;
-  }
-  if (pw_dist_ == 0 && !pairdistname.empty()) {
-    // Just 'pairdist' specified or loadpairdist specified and file not found.
-    // Look for Cmatrix data set. 
-    pw_dist_ = setup.DSL().FindSetOfType( pairdistname, DataSet::CMATRIX );
-    //if (pw_dist_ == 0) { // TODO: Convert general matrix to cluster matrix
-    //  mprinterr("Error: Cluster matrix with name '%s' not found.\n");
-    //  return Analysis::ERR;
-    //}
-    if (pw_dist_ == 0 && load_pair) {
-    // If the file (or dataset) does not yet exist we will assume we want to save.
-      mprintf("Warning: 'loadpairdist' specified but '%s' not found; will save distances.\n",
-              pairdistname.c_str());
-      save_pair = true;
-    }
-  }
-  // Create file for saving pairwise distances
-  pwd_file_ = 0;
-  if (save_pair) {
-    if (pairdistname.empty()) {
-      pairdistname = PAIRDISTFILE_;
-      pairdisttype = PAIRDISTTYPE_;
-    }
-    pwd_file_ = setup.DFL().AddDataFile( pairdistname, pairdisttype, ArgList() );
-  }
-  // ---------------------------------------------
+
   // Output trajectory stuff
   writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
   GetClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,   clusterfmt_);
