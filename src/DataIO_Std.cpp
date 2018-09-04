@@ -376,7 +376,15 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
       }
     }
   }
-  //mprintf("DEBUG: sieve %i, actual_nrows= %i\n", sieveDelta, actual_nrows);
+  if (sieveDelta == -2) {
+    // Random sieve. Try to figure out original sieve value.
+    int o_frames = (int)sieveStatus.size();
+    int o_sieve_value = o_frames / actual_nrows;
+    if ( (o_frames % actual_nrows) != 0 )
+      o_sieve_value++;
+    sieveDelta = -o_sieve_value;
+  }
+  mprintf("DEBUG: sieve %i, actual_nrows= %i\n", sieveDelta, actual_nrows);
   if (sieveDelta != 1 && nframes == -1)
     mprintf("Warning: Pairwise distance matrix file contains sieved frames but\n"
             "Warning:   number of original frames is not present in file - this\n"
