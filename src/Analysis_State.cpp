@@ -37,6 +37,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   countOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("countout"), analyzeArgs );
   transOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("transout"),
                                          "Transitions Output", DataFileList::TEXT, true);
+  if (transOut_ == 0) return Analysis::ERR;
   normalize_ = analyzeArgs.hasKey("norm");
   // Get definitions of states if present.
   // Define states as 'state <#>,<dataset>,<min>,<max>'
