@@ -348,29 +348,32 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
   int sieveDelta = 1;
   f1 = -1;
   f2 = -1;
+  int actual_nrows = 0;
   for (int i = 0; i < (int)sieveStatus.size(); i++) {
     if (sieveStatus[i] == 'F') {
-      if (f1 == -1) {
-        f1 = i;
-      } else if (f2 == -1) {
-        sieveDelta = i - f1;
-        f1 = i;
-        f2 = i;
-      } else {
-        int newDelta = i - f1;
-        if (newDelta != sieveDelta) {
-          // Random
-          sieveDelta = -2;
-          break;
+      actual_nrows++;
+      if (sieveDelta != -2) {
+        if (f1 == -1) {
+          f1 = i;
+        } else if (f2 == -1) {
+          sieveDelta = i - f1;
+          f1 = i;
+          f2 = i;
+        } else {
+          int newDelta = i - f1;
+          if (newDelta != sieveDelta) {
+            // Random. No need to calculate sieveDelta anymore.
+            sieveDelta = -2;
+          }
+          f1 = i;
         }
-        f1 = i;
       }
     }
   }
-  mprintf("DEBUG: sieve %i\n", sieveDelta);
+  mprintf("DEBUG: sieve %i, actual_nrows= %i\n", sieveDelta, actual_nrows);
   
   // Save cluster matrix
-  if (Mat.Allocate( DataSet::SizeArray(1, sieveStatus.size()) )) return 1;
+  if (Mat.Allocate( DataSet::SizeArray(1, actual_nrows) )) return 1;
   std::copy( Vals.begin(), Vals.end(), Mat.Ptr() );
   Mat.SetSieveFromArray(sieveStatus, sieveDelta);
 
