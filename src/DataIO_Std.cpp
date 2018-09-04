@@ -305,7 +305,41 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
+  // Read past title
+  const char* ptr = buffer.Line();
   // Need to keep track of frame indices so we can check for sieving.
+  std::vector<bool> sieveStatus;
+  // Keep track of matrix values.
+  std::vector<double> Vals;
+  // Read file
+  bool checkSieve = true;
+  int f1 = -1, f2 = -1, firstf1 = -1;
+  double val = 0;
+  while ( (ptr = buffer.Line()) != 0 )
+  {
+    if (checkSieve) {
+      sscanf(ptr, "%i %i %lf", &f1, &f2, &val);
+      if (f2 > (int)sieveStatus.size())
+        sieveStatus.resize(f2, false);
+      if (firstf1 == -1) {
+        // First values.
+        sieveStatus[f1-1] = true;
+        sieveStatus[f2-1] = true;
+        firstf1 = f1;
+      } else if (f1 > firstf1) {
+          checkSieve = false;
+      } else {
+        sieveStatus[f2-1] = true;
+      }
+    } else {
+      sscanf(ptr, "%*i %*i %lf", &val);
+    }
+    Vals.push_back( val );
+  }
+  // DEBUG
+  mprintf("Sieved array:\n");
+  for (unsigned int i = 0; i < sieveStatus.size(); i++)
+    mprintf("\t%6u %i\n", i+1, (int)sieveStatus[i]);
 
   return 0;
 }
