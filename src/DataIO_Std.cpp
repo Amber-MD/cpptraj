@@ -202,9 +202,10 @@ int DataIO_Std::Read_1D(std::string const& fname,
       // Not a recognized comment character, assume data.
       isCommentLine = false;
   }
-  // Special case: check if labels are '#F1   F2 <something>'. If so, assume
+  // Special case: check if labels are '#F1   F2 <name> [nframes <#>]'. If so, assume
   // this is a cluster matrix file.
-  if (labels.Nargs() == 3 && labels[0] == "F1" && labels[1] == "F2") {
+  if ((labels.Nargs() == 3 || labels.Nargs() == 5) && labels[0] == "F1" && labels[1] == "F2")
+  {
     mprintf("Warning: Header format '#F1 F2 <name>' detected, assuming cluster pairwise matrix.\n");
     return IS_ASCII_CMATRIX;
   }
@@ -309,10 +310,15 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
-  // Read past title
+  // Read past title. See if optional 'nframes' key is there.
   const char* ptr = buffer.Line();
+  ArgList header;
+  header.SetList(ptr+1, SEPARATORS );
+  int nframes = header.getKeyInt("nframes", -1);
   // Need to keep track of frame indices so we can check for sieving.
   std::vector<char> sieveStatus;
+  if (nframes > 0)
+    sieveStatus.assign(nframes, 'T');
   // Keep track of matrix values.
   std::vector<float> Vals;
   // Read file
@@ -341,9 +347,9 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
     Vals.push_back( val );
   }
   // DEBUG
-  mprintf("Sieved array:\n");
-  for (unsigned int i = 0; i < sieveStatus.size(); i++)
-    mprintf("\t%6u %c\n", i+1, sieveStatus[i]);
+  //mprintf("Sieved array:\n");
+  //for (unsigned int i = 0; i < sieveStatus.size(); i++)
+  //  mprintf("\t%6u %c\n", i+1, sieveStatus[i]);
   // Try to determine if sieve is random or not.
   int sieveDelta = 1;
   f1 = -1;
@@ -370,7 +376,13 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
       }
     }
   }
-  mprintf("DEBUG: sieve %i, actual_nrows= %i\n", sieveDelta, actual_nrows);
+  //mprintf("DEBUG: sieve %i, actual_nrows= %i\n", sieveDelta, actual_nrows);
+  if (sieveDelta != 1 && nframes == -1)
+    mprintf("Warning: Pairwise distance matrix file contains sieved frames but\n"
+            "Warning:   number of original frames is not present in file - this\n"
+            "Warning:   may lead to ignored frames in cluster output. Please add\n"
+            "Warning:   'nframes <# original frames>' to the pairwise distance\n"
+            "Warning:   matrix file header, e.g. '#F1 F2 pw.dat nframes 1000'.\n");
   
   // Save cluster matrix
   if (Mat.Allocate( DataSet::SizeArray(1, actual_nrows) )) return 1;
@@ -839,6 +851,8 @@ int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
     WriteNameToBuffer(file, "F1",               col_width, true);
     WriteNameToBuffer(file, "F2",               col_width, false);
     WriteNameToBuffer(file, cm.Meta().Legend(), dat_width, false);
+    if (cm.SieveType() != ClusterSieve::NONE)
+      file.Printf(" nframes %i", cm.OriginalNframes());
     file.Printf("\n");
     TextFormat col_fmt(TextFormat::INTEGER, col_width);
     TextFormat dat_fmt = cm.Format();
