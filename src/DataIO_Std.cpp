@@ -719,14 +719,16 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
 
 // -----------------------------------------------------------------------------
 void DataIO_Std::WriteHelp() {
-  mprintf("\tnoheader    : Do not print header line.\n"
-          "\tinvert      : Flip X/Y axes (1D).\n"
-          "\tgroupbyname : (1D) group data sets by name,\n"
-          "\tnoxcol      : Do not print X (index) column (1D).\n"
-          "\tsquare2d    : Write 2D data sets in matrix-like format.\n"
-          "\tnosquare2d  : Write 2D data sets as '<X> <Y> <Value>'.\n"
-          "\tnosparse    : Write all 3D grid voxels (default).\n"
-          "\tsparse      : Only write 3D grid voxels with value > cutoff (default 0).\n"
+  mprintf("\tnoheader       : Do not print header line.\n"
+          "\tinvert         : Flip X/Y axes (1D).\n"
+          "\tgroupby <type> : (1D) group data sets by <type>.\n"
+          "\t\t name : Group by name.\n"
+          "\t\t dim  : Group by dimension.\n"
+          "\tnoxcol         : Do not print X (index) column (1D).\n"
+          "\tsquare2d       : Write 2D data sets in matrix-like format.\n"
+          "\tnosquare2d     : Write 2D data sets as '<X> <Y> <Value>'.\n"
+          "\tnosparse       : Write all 3D grid voxels (default).\n"
+          "\tsparse         : Only write 3D grid voxels with value > cutoff (default 0).\n"
           "\t\tcut : Cutoff for 'sparse'; default 0.\n");
 }
 
