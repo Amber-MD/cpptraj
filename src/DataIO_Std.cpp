@@ -729,7 +729,7 @@ void DataIO_Std::WriteHelp() {
           "\tnosquare2d     : Write 2D data sets as '<X> <Y> <Value>'.\n"
           "\tnosparse       : Write all 3D grid voxels (default).\n"
           "\tsparse         : Only write 3D grid voxels with value > cutoff (default 0).\n"
-          "\t\tcut : Cutoff for 'sparse'; default 0.\n");
+          "\t\tcut <cut> : Cutoff for 'sparse'; default 0.\n");
 }
 
 // DataIO_Std::processWriteArgs()
