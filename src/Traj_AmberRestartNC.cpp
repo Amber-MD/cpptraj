@@ -206,6 +206,39 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
   return 0;
 }
 
+// Traj_AmberRestartNC::readVelocity()
+int Traj_AmberRestartNC::readVelocity(int set, Frame& frameIn) {
+  start_[0] = 0;
+  start_[1] = 0;
+  count_[0] = Ncatom();
+  count_[1] = 3;
+  // Read Velocity
+  if (velocityVID_!=-1 && frameIn.HasVelocity()) {
+    if (NC::CheckErr(nc_get_vara_double(ncid_, velocityVID_, start_, count_, frameIn.vAddress())))
+    {
+      mprinterr("Error: Getting velocities, frame %i.\n", set+1);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+// Traj_AmberRestartNC::readForce()
+int Traj_AmberRestartNC::readForce(int set, Frame& frameIn) {
+  start_[0] = 0;
+  start_[1] = 0;
+  count_[0] = Ncatom();
+  count_[1] = 3;
+  // Read Force
+  if (frcVID_ != -1 && frameIn.HasForce()) {
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, frcVID_, start_, count_, frameIn.fAddress())) ) {
+      mprinterr("Error: Getting forces, frame %i\n", set+1);
+      return 1;
+    }
+  }
+  return 0;
+}
+
 // Traj_AmberRestartNC::writeFrame() 
 int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   // Set up file for this set
