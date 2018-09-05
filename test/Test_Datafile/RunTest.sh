@@ -52,7 +52,7 @@ cat > prec.in <<EOF
 readdata ../Test_RemdTraj/d1.offset.dat.save name d1
 readdata ../Test_Diffusion/diff.2.dat.save index 1 name Diff
 list dataset
-writedata byname.dat d1 Diff groupbyname
+writedata byname.dat d1 Diff groupby name
 EOF
 RunCpptraj "Data file group by name test"
 DoTest byname.dat.save byname.dat

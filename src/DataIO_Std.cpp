@@ -22,9 +22,9 @@ DataIO_Std::DataIO_Std() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
   mode_(READ1D),
   prec_(UNSPEC),
+  group_(NO_TYPE),
   indexcol_(-1),
   isInverted_(false), 
-  groupByName_(false),
   hasXcolumn_(true), 
   writeHeader_(true), 
   square2d_(false),
@@ -734,8 +734,16 @@ void DataIO_Std::WriteHelp() {
 int DataIO_Std::processWriteArgs(ArgList &argIn) {
   if (!isInverted_ && argIn.hasKey("invert"))
     isInverted_ = true;
-  if (!groupByName_ && argIn.hasKey("groupbyname"))
-    groupByName_ = true;
+  std::string grouparg = argIn.GetStringKey("groupby");
+  if (!grouparg.empty()) {
+    if (group_ != BY_NAME && grouparg == "name")
+      group_ = BY_NAME;
+    else if (group_ != BY_DIM && grouparg == "dim")
+      group_ = BY_DIM;
+    else {
+      mprintf("Warning: Unrecognized arg for 'groupby' (%s), ignoring.\n", grouparg.c_str());
+    }
+  }
   if (hasXcolumn_ && argIn.hasKey("noxcol"))
     hasXcolumn_ = false;
   if (writeHeader_ && argIn.hasKey("noheader"))
@@ -850,14 +858,13 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
       // Special case of 2D - may have sieved frames.
       err = WriteCmatrix(file, SetList);
     } else if (SetList[0]->Ndim() == 1) {
-      if (groupByName_) {
-        WriteByGroup(file, SetList, BY_NAME);
-      } else {
+      if (group_ == NO_TYPE) {
         if (isInverted_)
           err = WriteDataInverted(file, SetList);
         else
           err = WriteDataNormal(file, SetList);
-      }
+      } else
+        err = WriteByGroup(file, SetList, group_);
     } else if (SetList[0]->Ndim() == 2)
       err = WriteData2D(file, SetList);
     else if (SetList[0]->Ndim() == 3)

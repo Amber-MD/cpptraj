@@ -18,6 +18,8 @@ class DataIO_Std : public DataIO {
     static const int IS_ASCII_CMATRIX;
 
     enum GroupType { NO_TYPE = 0, BY_NAME, BY_DIM };
+    enum modeType {READ1D=0, READ2D, READ3D, READVEC, READMAT3X3};
+    enum precType {UNSPEC, FLOAT, DOUBLE};
 
     static int Get3Double(std::string const&, Vec3&, bool&);
     int Read_1D(std::string const&,DataSetList&,std::string const&);
@@ -35,13 +37,12 @@ class DataIO_Std : public DataIO {
     int WriteData3D(CpptrajFile&, DataSetList const&);
     int WriteSet2D(DataSet const&, CpptrajFile&);
     int WriteSet3D(DataSet const&, CpptrajFile&);
-    enum modeType {READ1D=0, READ2D, READ3D, READVEC, READMAT3X3};
-    enum precType {UNSPEC, FLOAT, DOUBLE};
+
     modeType mode_;    ///< Read mode
     precType prec_;    ///< 3d reads, data set precision
+    GroupType group_;  ///< 1D, control data set grouping
     int indexcol_;     ///< Read: column containing index (X) values
     bool isInverted_;  ///< For 1D writes invert X/Y.
-    bool groupByName_; ///< For 1D writes, group sets with same name together
     bool hasXcolumn_;
     bool writeHeader_;
     bool square2d_;
