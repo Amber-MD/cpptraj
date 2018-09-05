@@ -16,6 +16,9 @@ class DataIO_Std : public DataIO {
   private:
     static const char* SEPARATORS;
     static const int IS_ASCII_CMATRIX;
+
+    enum GroupType { NO_TYPE = 0, BY_NAME, BY_DIM };
+
     static int Get3Double(std::string const&, Vec3&, bool&);
     int Read_1D(std::string const&,DataSetList&,std::string const&);
     int ReadCmatrix(FileName const&, DataSetList&, std::string const&);
@@ -24,6 +27,7 @@ class DataIO_Std : public DataIO {
     int Read_Vector(std::string const&,DataSetList&,std::string const&);
     int Read_Mat3x3(std::string const&,DataSetList&,std::string const&);
     static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
+    int WriteByGroup(CpptrajFile&, DataSetList const&, GroupType);
     int WriteCmatrix(CpptrajFile&, DataSetList const&);
     int WriteDataNormal(CpptrajFile&,DataSetList const&);
     int WriteDataInverted(CpptrajFile&,DataSetList const&);

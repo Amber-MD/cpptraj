@@ -32,6 +32,11 @@ class Dimension {
       if (min_ != rhs.min_ || step_ != rhs.step_) return true;
       return false;
     }
+    /// \return true if this dim min/step equal to given min/step.
+    bool operator==(const Dimension& rhs) const {
+      if (min_ != rhs.min_ || step_ != rhs.step_) return false;
+      return true;
+    }
     /// Set dimension with given min, step, and label.
     void SetDimension(double m, double s, std::string const& l) {
       label_ = l;

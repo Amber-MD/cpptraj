@@ -786,6 +786,57 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
   }
 }
 
+int DataIO_Std::WriteByGroup(CpptrajFile& file, DataSetList const& SetList, GroupType gtype)
+{
+  int err = 0;
+  bool firstWrite = true;
+  DataSetList tmpdsl;
+  std::vector<bool> setIsWritten(SetList.size(), false);
+  unsigned int startIdx = 0;
+  unsigned int nWritten = 0;
+  while (nWritten < SetList.size()) {
+    std::string currentName;
+    Dimension currentDim;
+    switch (gtype) {
+      case BY_NAME : currentName = SetList[startIdx]->Meta().Name(); break;
+      case BY_DIM  : currentDim = SetList[startIdx]->Dim(0); break;
+      case NO_TYPE : return 1;
+    }
+    int firstNonMatch = -1;
+    for (unsigned int idx = startIdx; idx != SetList.size(); idx++)
+    {
+      if (!setIsWritten[idx])
+      {
+        bool match = false;
+        switch (gtype) {
+          case BY_NAME : match = (currentName == SetList[idx]->Meta().Name()); break;
+          case BY_DIM  : match = (currentDim  == SetList[idx]->Dim(0)); break;
+          case NO_TYPE : return 1;
+        }
+        if (match)
+        {
+          tmpdsl.AddCopyOfSet( SetList[idx] );
+          setIsWritten[idx] = true;
+          nWritten++;
+        } else if (firstNonMatch == -1)
+          firstNonMatch = (int)idx;
+      }
+    }
+    if (firstNonMatch > -1)
+      startIdx = (unsigned int)firstNonMatch;
+    if (!firstWrite)
+      file.Printf("\n");
+    else
+      firstWrite = false;
+    if (isInverted_)
+      err += WriteDataInverted(file, tmpdsl);
+    else
+      err += WriteDataNormal(file, tmpdsl);
+    tmpdsl.ClearAll();
+  }
+  return err;
+}
+
 // DataIO_Std::WriteData()
 int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
 {
@@ -800,34 +851,7 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
       err = WriteCmatrix(file, SetList);
     } else if (SetList[0]->Ndim() == 1) {
       if (groupByName_) {
-        DataSetList tmpdsl;
-        std::vector<bool> setIsWritten(SetList.size(), false);
-        unsigned int startIdx = 0;
-        unsigned int nWritten = 0;
-        while (nWritten < SetList.size()) {
-          std::string currentName = SetList[startIdx]->Meta().Name();
-          int firstNonMatch = -1;
-          for (unsigned int idx = startIdx; idx != SetList.size(); idx++)
-          {
-            if (!setIsWritten[idx])
-            {
-              if (currentName == SetList[idx]->Meta().Name())
-              {
-                tmpdsl.AddCopyOfSet( SetList[idx] );
-                setIsWritten[idx] = true;
-                nWritten++;
-              } else if (firstNonMatch == -1)
-                firstNonMatch = (int)idx;
-            }
-          }
-          if (firstNonMatch > -1)
-            startIdx = (unsigned int)firstNonMatch;
-          if (isInverted_)
-            err += WriteDataInverted(file, tmpdsl);
-          else
-            err += WriteDataNormal(file, tmpdsl);
-          tmpdsl.ClearAll();
-        }
+        WriteByGroup(file, SetList, BY_NAME);
       } else {
         if (isInverted_)
           err = WriteDataInverted(file, SetList);
