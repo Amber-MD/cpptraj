@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles prec.in prec.dat a1.dat a1.agr xprec.dat byname.dat dssp.dat
+CleanFiles prec.in prec.dat a1.dat a1.agr xprec.dat byname.dat dssp.dat \
+           byidx.dat
 
 TESTNAME='Data file tests'
 
@@ -66,8 +67,11 @@ trajin ../DPDP.nc 1 10
 secstruct DSSP
 run
 create dssp.dat DSSP*[*] groupby aspect
+create byidx.dat DSSP*[*] groupby idx
 EOF
   RunCpptraj "Data file group by aspect test" 
+  DoTest dssp.dat.save dssp.dat
+  DoTest byidx.dat.save byidx.dat
 fi
 
 EndTest
