@@ -722,8 +722,11 @@ void DataIO_Std::WriteHelp() {
   mprintf("\tnoheader       : Do not print header line.\n"
           "\tinvert         : Flip X/Y axes (1D).\n"
           "\tgroupby <type> : (1D) group data sets by <type>.\n"
-          "\t\t name : Group by name.\n"
-          "\t\t dim  : Group by dimension.\n"
+          "\t\tname   : Group by name.\n"
+          "\t\taspect : Group by aspect.\n"
+          "\t\tidx    : Group by index.\n"
+          "\t\tens    : Group by ensemble number.\n"
+          "\t\tdim    : Group by dimension.\n"
           "\tnoxcol         : Do not print X (index) column (1D).\n"
           "\tsquare2d       : Write 2D data sets in matrix-like format.\n"
           "\tnosquare2d     : Write 2D data sets as '<X> <Y> <Value>'.\n"
@@ -742,6 +745,10 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
       group_ = BY_NAME;
     else if (group_ != BY_ASPECT && grouparg == "aspect")
       group_ = BY_ASPECT;
+    else if (group_ != BY_IDX && grouparg == "idx")
+      group_ = BY_IDX;
+    else if (group_ != BY_ENS && grouparg == "ens")
+      group_ = BY_ENS;
     else if (group_ != BY_DIM && grouparg == "dim")
       group_ = BY_DIM;
     else {
@@ -810,9 +817,12 @@ int DataIO_Std::WriteByGroup(CpptrajFile& file, DataSetList const& SetList, Grou
   while (nWritten < SetList.size()) {
     std::string currentName;
     Dimension currentDim;
+    int currentNum = -1;
     switch (gtype) {
       case BY_NAME   : currentName = SetList[startIdx]->Meta().Name(); break;
       case BY_ASPECT : currentName = SetList[startIdx]->Meta().Aspect(); break;
+      case BY_IDX    : currentNum  = SetList[startIdx]->Meta().Idx(); break;
+      case BY_ENS    : currentNum  = SetList[startIdx]->Meta().EnsembleNum(); break;
       case BY_DIM    : currentDim  = SetList[startIdx]->Dim(0); break;
       case NO_TYPE   : return 1;
     }
@@ -825,6 +835,8 @@ int DataIO_Std::WriteByGroup(CpptrajFile& file, DataSetList const& SetList, Grou
         switch (gtype) {
           case BY_NAME   : match = (currentName == SetList[idx]->Meta().Name()); break;
           case BY_ASPECT : match = (currentName == SetList[idx]->Meta().Aspect()); break;
+          case BY_IDX    : match = (currentNum  == SetList[idx]->Meta().Idx()); break;
+          case BY_ENS    : match = (currentNum  == SetList[idx]->Meta().EnsembleNum()); break;
           case BY_DIM    : match = (currentDim  == SetList[idx]->Dim(0)); break;
           case NO_TYPE   : return 1;
         }

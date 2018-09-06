@@ -17,7 +17,7 @@ class DataIO_Std : public DataIO {
     static const char* SEPARATORS;
     static const int IS_ASCII_CMATRIX;
 
-    enum GroupType { NO_TYPE = 0, BY_NAME, BY_ASPECT, BY_DIM };
+    enum GroupType { NO_TYPE = 0, BY_NAME, BY_ASPECT, BY_IDX, BY_ENS, BY_DIM };
     enum modeType {READ1D=0, READ2D, READ3D, READVEC, READMAT3X3};
     enum precType {UNSPEC, FLOAT, DOUBLE};
 
