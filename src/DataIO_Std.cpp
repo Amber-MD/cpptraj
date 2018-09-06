@@ -22,9 +22,9 @@ DataIO_Std::DataIO_Std() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
   mode_(READ1D),
   prec_(UNSPEC),
+  group_(NO_TYPE),
   indexcol_(-1),
   isInverted_(false), 
-  groupByName_(false),
   hasXcolumn_(true), 
   writeHeader_(true), 
   square2d_(false),
@@ -719,23 +719,42 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
 
 // -----------------------------------------------------------------------------
 void DataIO_Std::WriteHelp() {
-  mprintf("\tnoheader    : Do not print header line.\n"
-          "\tinvert      : Flip X/Y axes (1D).\n"
-          "\tgroupbyname : (1D) group data sets by name,\n"
-          "\tnoxcol      : Do not print X (index) column (1D).\n"
-          "\tsquare2d    : Write 2D data sets in matrix-like format.\n"
-          "\tnosquare2d  : Write 2D data sets as '<X> <Y> <Value>'.\n"
-          "\tnosparse    : Write all 3D grid voxels (default).\n"
-          "\tsparse      : Only write 3D grid voxels with value > cutoff (default 0).\n"
-          "\t\tcut : Cutoff for 'sparse'; default 0.\n");
+  mprintf("\tnoheader       : Do not print header line.\n"
+          "\tinvert         : Flip X/Y axes (1D).\n"
+          "\tgroupby <type> : (1D) group data sets by <type>.\n"
+          "\t\tname   : Group by name.\n"
+          "\t\taspect : Group by aspect.\n"
+          "\t\tidx    : Group by index.\n"
+          "\t\tens    : Group by ensemble number.\n"
+          "\t\tdim    : Group by dimension.\n"
+          "\tnoxcol         : Do not print X (index) column (1D).\n"
+          "\tsquare2d       : Write 2D data sets in matrix-like format.\n"
+          "\tnosquare2d     : Write 2D data sets as '<X> <Y> <Value>'.\n"
+          "\tnosparse       : Write all 3D grid voxels (default).\n"
+          "\tsparse         : Only write 3D grid voxels with value > cutoff (default 0).\n"
+          "\t\tcut <cut> : Cutoff for 'sparse'; default 0.\n");
 }
 
 // DataIO_Std::processWriteArgs()
 int DataIO_Std::processWriteArgs(ArgList &argIn) {
   if (!isInverted_ && argIn.hasKey("invert"))
     isInverted_ = true;
-  if (!groupByName_ && argIn.hasKey("groupbyname"))
-    groupByName_ = true;
+  std::string grouparg = argIn.GetStringKey("groupby");
+  if (!grouparg.empty()) {
+    if (group_ != BY_NAME && grouparg == "name")
+      group_ = BY_NAME;
+    else if (group_ != BY_ASPECT && grouparg == "aspect")
+      group_ = BY_ASPECT;
+    else if (group_ != BY_IDX && grouparg == "idx")
+      group_ = BY_IDX;
+    else if (group_ != BY_ENS && grouparg == "ens")
+      group_ = BY_ENS;
+    else if (group_ != BY_DIM && grouparg == "dim")
+      group_ = BY_DIM;
+    else {
+      mprintf("Warning: Unrecognized arg for 'groupby' (%s), ignoring.\n", grouparg.c_str());
+    }
+  }
   if (hasXcolumn_ && argIn.hasKey("noxcol"))
     hasXcolumn_ = false;
   if (writeHeader_ && argIn.hasKey("noheader"))
@@ -786,6 +805,65 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
   }
 }
 
+// DataIO_Std::WriteByGroup()
+int DataIO_Std::WriteByGroup(CpptrajFile& file, DataSetList const& SetList, GroupType gtype)
+{
+  int err = 0;
+  bool firstWrite = true;
+  DataSetList tmpdsl;
+  std::vector<bool> setIsWritten(SetList.size(), false);
+  unsigned int startIdx = 0;
+  unsigned int nWritten = 0;
+  while (nWritten < SetList.size()) {
+    std::string currentName;
+    Dimension currentDim;
+    int currentNum = -1;
+    switch (gtype) {
+      case BY_NAME   : currentName = SetList[startIdx]->Meta().Name(); break;
+      case BY_ASPECT : currentName = SetList[startIdx]->Meta().Aspect(); break;
+      case BY_IDX    : currentNum  = SetList[startIdx]->Meta().Idx(); break;
+      case BY_ENS    : currentNum  = SetList[startIdx]->Meta().EnsembleNum(); break;
+      case BY_DIM    : currentDim  = SetList[startIdx]->Dim(0); break;
+      case NO_TYPE   : return 1;
+    }
+    int firstNonMatch = -1;
+    for (unsigned int idx = startIdx; idx != SetList.size(); idx++)
+    {
+      if (!setIsWritten[idx])
+      {
+        bool match = false;
+        switch (gtype) {
+          case BY_NAME   : match = (currentName == SetList[idx]->Meta().Name()); break;
+          case BY_ASPECT : match = (currentName == SetList[idx]->Meta().Aspect()); break;
+          case BY_IDX    : match = (currentNum  == SetList[idx]->Meta().Idx()); break;
+          case BY_ENS    : match = (currentNum  == SetList[idx]->Meta().EnsembleNum()); break;
+          case BY_DIM    : match = (currentDim  == SetList[idx]->Dim(0)); break;
+          case NO_TYPE   : return 1;
+        }
+        if (match)
+        {
+          tmpdsl.AddCopyOfSet( SetList[idx] );
+          setIsWritten[idx] = true;
+          nWritten++;
+        } else if (firstNonMatch == -1)
+          firstNonMatch = (int)idx;
+      }
+    }
+    if (firstNonMatch > -1)
+      startIdx = (unsigned int)firstNonMatch;
+    if (!firstWrite)
+      file.Printf("\n");
+    else
+      firstWrite = false;
+    if (isInverted_)
+      err += WriteDataInverted(file, tmpdsl);
+    else
+      err += WriteDataNormal(file, tmpdsl);
+    tmpdsl.ClearAll();
+  }
+  return err;
+}
+
 // DataIO_Std::WriteData()
 int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
 {
@@ -799,41 +877,13 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
       // Special case of 2D - may have sieved frames.
       err = WriteCmatrix(file, SetList);
     } else if (SetList[0]->Ndim() == 1) {
-      if (groupByName_) {
-        DataSetList tmpdsl;
-        std::vector<bool> setIsWritten(SetList.size(), false);
-        unsigned int startIdx = 0;
-        unsigned int nWritten = 0;
-        while (nWritten < SetList.size()) {
-          std::string currentName = SetList[startIdx]->Meta().Name();
-          int firstNonMatch = -1;
-          for (unsigned int idx = startIdx; idx != SetList.size(); idx++)
-          {
-            if (!setIsWritten[idx])
-            {
-              if (currentName == SetList[idx]->Meta().Name())
-              {
-                tmpdsl.AddCopyOfSet( SetList[idx] );
-                setIsWritten[idx] = true;
-                nWritten++;
-              } else if (firstNonMatch == -1)
-                firstNonMatch = (int)idx;
-            }
-          }
-          if (firstNonMatch > -1)
-            startIdx = (unsigned int)firstNonMatch;
-          if (isInverted_)
-            err += WriteDataInverted(file, tmpdsl);
-          else
-            err += WriteDataNormal(file, tmpdsl);
-          tmpdsl.ClearAll();
-        }
-      } else {
+      if (group_ == NO_TYPE) {
         if (isInverted_)
           err = WriteDataInverted(file, SetList);
         else
           err = WriteDataNormal(file, SetList);
-      }
+      } else
+        err = WriteByGroup(file, SetList, group_);
     } else if (SetList[0]->Ndim() == 2)
       err = WriteData2D(file, SetList);
     else if (SetList[0]->Ndim() == 3)

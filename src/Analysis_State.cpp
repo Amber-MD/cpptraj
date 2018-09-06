@@ -35,9 +35,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   curveOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("curveout"), analyzeArgs );
   lifeOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("stateout"), analyzeArgs );
   countOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("countout"), analyzeArgs );
-  transOut_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("transout"),
-                                         "Transitions Output", DataFileList::TEXT, true);
-  if (transOut_ == 0) return Analysis::ERR;
+  transOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("transout"), analyzeArgs );
   normalize_ = analyzeArgs.hasKey("norm");
   // Get definitions of states if present.
   // Define states as 'state <#>,<dataset>,<min>,<max>'
@@ -125,6 +123,24 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   if (ds == 0) return Analysis::ERR;
   ds->SetDim(0, Xdim);
   state_names_ = ds;
+  // Set up transition data sets
+  Xdim = Dimension(1, 1, "Index");
+  ds = setup.DSL().AddSet(DataSet::INTEGER, MetaData(state_data_->Meta().Name(), "Xlifetimes"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  trans_lifetimes_ = ds;
+  ds = setup.DSL().AddSet(DataSet::DOUBLE, MetaData(state_data_->Meta().Name(), "Xavglife"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  trans_avglife_ = ds;
+  ds = setup.DSL().AddSet(DataSet::INTEGER, MetaData(state_data_->Meta().Name(), "Xmaxlife"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  trans_maxlife_ = ds;
+  ds = setup.DSL().AddSet(DataSet::STRING, MetaData(state_data_->Meta().Name(), "Xname"));
+  if (ds == 0) return Analysis::ERR;
+  ds->SetDim(0, Xdim);
+  trans_names_ = ds;
 
   if (countOut_ != 0) {
     countOut_->AddDataSet( state_counts_ );
@@ -136,6 +152,13 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     lifeOut_->AddDataSet( state_avglife_ );
     lifeOut_->AddDataSet( state_maxlife_ );
     lifeOut_->AddDataSet( state_names_ );
+  }
+  if (transOut_ != 0) {
+    transOut_->ProcessArgs("noxcol");
+    transOut_->AddDataSet( trans_lifetimes_ );
+    transOut_->AddDataSet( trans_avglife_ );
+    transOut_->AddDataSet( trans_maxlife_ );
+    transOut_->AddDataSet( trans_names_ );
   }
 
   mprintf("    STATE: The following state definitions have been set up:\n");
@@ -153,7 +176,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     mprintf("\tState lifetime output to file '%s'\n", lifeOut_->DataFilename().full());
   if (countOut_ != 0)
     mprintf("\tState counts output to file '%s'\n", countOut_->DataFilename().full());
-  mprintf("\tTransitions output to file '%s'\n", transOut_->Filename().full());
+  mprintf("\tTransitions output to file '%s'\n", transOut_->DataFilename().full());
   if (normalize_)
     mprintf("\tCurves will be normalized to 1.0\n");
 
@@ -302,12 +325,18 @@ Analysis::RetType Analysis_State::Analyze() {
     state_maxlife_->Add(idx, &ival);
   }
   // Calculate transitions
-  transOut_->Printf("%-12s %12s %12s %s\n", "#N", "Average", "Max", "Transition");
+  int jdx = 0;
   for (TransMapType::const_iterator trans = TransitionMap_.begin();
-                                    trans != TransitionMap_.end(); ++trans)
-    transOut_->Printf("%-12i %12.4f %12i %s\n", trans->second.Nlifetimes(),
-                      trans->second.Avg(), trans->second.Max(), 
-                      trans->second.DS().legend());
+                                    trans != TransitionMap_.end(); ++trans, jdx++)
+  {
+    int ival = trans->second.Nlifetimes();
+    trans_lifetimes_->Add(jdx, &ival);
+    double dval = trans->second.Avg();
+    trans_avglife_->Add(jdx, &dval);
+    ival = trans->second.Max();
+    trans_maxlife_->Add(jdx, &ival);
+    trans_names_->Add(jdx, trans->second.DS().legend());
+  }
   if (normalize_) {
     for (std::vector<Transition>::const_iterator s = Status.begin();
                                                  s != Status.end(); ++s)
