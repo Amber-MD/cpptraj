@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles prec.in prec.dat a1.dat a1.agr xprec.dat byname.dat
+CleanFiles prec.in prec.dat a1.dat a1.agr xprec.dat byname.dat dssp.dat
 
 TESTNAME='Data file tests'
 
@@ -48,6 +48,7 @@ EOF
 RunCpptraj "X column format/precision test."
 DoTest xprec.dat.save xprec.dat
 
+# Grouping
 cat > prec.in <<EOF
 readdata ../Test_RemdTraj/d1.offset.dat.save name d1
 readdata ../Test_Diffusion/diff.2.dat.save index 1 name Diff
@@ -56,6 +57,18 @@ writedata byname.dat d1 Diff groupby name
 EOF
 RunCpptraj "Data file group by name test"
 DoTest byname.dat.save byname.dat
+
+CheckFor netcdf maxthreads 10
+if [ $? -eq 0 ] ; then
+  TOP="../DPDP.parm7"
+  cat > prec.in <<EOF
+trajin ../DPDP.nc 1 10
+secstruct DSSP
+run
+create dssp.dat DSSP*[*] groupby aspect
+EOF
+  RunCpptraj "Data file group by aspect test" 
+fi
 
 EndTest
 
