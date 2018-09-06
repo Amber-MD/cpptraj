@@ -740,6 +740,8 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
   if (!grouparg.empty()) {
     if (group_ != BY_NAME && grouparg == "name")
       group_ = BY_NAME;
+    else if (group_ != BY_ASPECT && grouparg == "aspect")
+      group_ = BY_ASPECT;
     else if (group_ != BY_DIM && grouparg == "dim")
       group_ = BY_DIM;
     else {
@@ -796,6 +798,7 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
   }
 }
 
+// DataIO_Std::WriteByGroup()
 int DataIO_Std::WriteByGroup(CpptrajFile& file, DataSetList const& SetList, GroupType gtype)
 {
   int err = 0;
@@ -808,9 +811,10 @@ int DataIO_Std::WriteByGroup(CpptrajFile& file, DataSetList const& SetList, Grou
     std::string currentName;
     Dimension currentDim;
     switch (gtype) {
-      case BY_NAME : currentName = SetList[startIdx]->Meta().Name(); break;
-      case BY_DIM  : currentDim = SetList[startIdx]->Dim(0); break;
-      case NO_TYPE : return 1;
+      case BY_NAME   : currentName = SetList[startIdx]->Meta().Name(); break;
+      case BY_ASPECT : currentName = SetList[startIdx]->Meta().Aspect(); break;
+      case BY_DIM    : currentDim  = SetList[startIdx]->Dim(0); break;
+      case NO_TYPE   : return 1;
     }
     int firstNonMatch = -1;
     for (unsigned int idx = startIdx; idx != SetList.size(); idx++)
@@ -819,9 +823,10 @@ int DataIO_Std::WriteByGroup(CpptrajFile& file, DataSetList const& SetList, Grou
       {
         bool match = false;
         switch (gtype) {
-          case BY_NAME : match = (currentName == SetList[idx]->Meta().Name()); break;
-          case BY_DIM  : match = (currentDim  == SetList[idx]->Dim(0)); break;
-          case NO_TYPE : return 1;
+          case BY_NAME   : match = (currentName == SetList[idx]->Meta().Name()); break;
+          case BY_ASPECT : match = (currentName == SetList[idx]->Meta().Aspect()); break;
+          case BY_DIM    : match = (currentDim  == SetList[idx]->Dim(0)); break;
+          case NO_TYPE   : return 1;
         }
         if (match)
         {
