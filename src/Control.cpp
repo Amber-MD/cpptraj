@@ -6,21 +6,28 @@
 void ControlBlock_For::Help() const {
   mprintf("\t{ {atoms|residues|molecules|molfirstres|mollastres}\n"
           "\t    <var> inmask <mask> [%s] ... |\n"
+          "\t    <var> in <list>\n"
           "\t  <var>=<start>;[<var><end OP><end>;]<var><increment OP>[<value>] ... }\n",
           DataSetList::TopIdxArgs);
   mprintf("\tEND KEYWORD: 'done'\n");
-  mprintf("  Create a 'for' loop around specified mask(s) and/or integer value(s).\n"
-          "  Any number and combination of masks and integers can be specified.\n"
+  mprintf("  Create a 'for' loop around specified mask(s), comma-separated list of\n"
+          "  strings and/or integer value(s). Any number and combination of masks,\n"
+          "  lists, and integers can be specified. Strings in lists can be file\n"
+          "  names containing wildcard characters ('*' or '?').\n"
           "  Variables created in the for loop can be referenced by prefacing\n"
           "  the name with a '$' character.\n"
           "  Available 'end OP'       : '<' '>'\n"
           "  Available 'increment OP' : '++', '--', '+=', '-='\n"
           "  Note that variables are NOT incremented after the final loop iteration,\n"
           "  i.e. loop variables always retain their final value.\n"
-          "  Example:\n"
+          "  Examples:\n"
           "\tfor atoms A0 inmask :1-27&!@H= i=1;i++\n"
           "\t  distance d$i :TCS $A0 out $i.dat\n"
-          "\tdone\n");
+          "\tdone\n"
+          "\tfor TRAJ in trajA*.nc,trajB*.nc\n"
+          "\t  trajin $TRAJ 1 last 10\n"
+          "\tdone\n"
+          );
 }
 
 /** Set up each mask/integer loop. */

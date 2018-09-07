@@ -6,7 +6,9 @@
 // Exec_SplitCoords::Help()
 void Exec_SplitCoords::Help() const
 {
-  mprintf("\t<crd set> name <output set name>\n");
+  mprintf("\t<crd set> name <output set name>\n"
+          "  Split trajectory specified by <crd set> by molecule into a new\n"
+          "  COORDS set. All molecules in <crd set> must be the same size.\n");
 }
 
 // Exec_SplitCoords::Execute()
