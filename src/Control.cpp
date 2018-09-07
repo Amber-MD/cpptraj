@@ -280,9 +280,17 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
         mprinterr("Error: Could not parse '%s' for 'for in'\n", listArg.c_str());
         return 1;
       }
-      for (int il = 0; il != list.Nargs(); il++)
-        MH.List_.push_back( list[il] );
+      for (int il = 0; il != list.Nargs(); il++) {
+        // Check if file name expansion should occur
+        if (list[il].find_first_of("*?") != std::string::npos) {
+          File::NameArray files = File::ExpandToFilenames( list[il] );
+          for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
+            MH.List_.push_back( fn->Full() );
+        } else
+          MH.List_.push_back( list[il] );
+      }
       Niterations = (int)MH.List_.size();
+      // Description
       description_.append( MH.varname_ + " in " + listArg );
 
     }
