@@ -49,14 +49,17 @@ class ControlBlock_For : public ControlBlock {
     void Start();
     DoneType CheckDone(Varray&);
   private:
-    enum ForType {ATOMS=0, RESIDUES, MOLECULES, MOLFIRSTRES, MOLLASTRES, INTEGER, UNKNOWN};
+    enum ForType {ATOMS=0, RESIDUES, MOLECULES, MOLFIRSTRES, MOLLASTRES, INTEGER, LIST, UNKNOWN};
     enum OpType { INCREMENT, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
     typedef std::vector<int> Iarray;
+    typedef std::vector<std::string> Sarray;
     class LoopVar {
       public:
       LoopVar() : varType_(UNKNOWN) {}
       Iarray Idxs_;                ///< (MASK only) Selected atom/residue/molecule indices
       Iarray::const_iterator idx_; ///< (MASK only) Current atom/residue/molecule index
+      Sarray List_;                ///< (LIST only) List of strings to iterate over.
+      Sarray::const_iterator sdx_; ///< (LIST only) Iterator to current list item.
       std::string varname_;        ///< Loop variable name
       ForType varType_;            ///< Loop variable type
       OpType endOp_;               ///< (INTEGER only) end operator

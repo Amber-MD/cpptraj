@@ -38,6 +38,7 @@
 #include "Exec_LoadTraj.h"
 #include "Exec_PermuteDihedrals.h"
 #include "Exec_RotateDihedral.h"
+#include "Exec_SplitCoords.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -236,6 +237,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
+  Command::AddCmd( new Exec_SplitCoords(),      Cmd::EXE, 1, "splitcoords" );
   // TRAJECTORY
   Command::AddCmd( new Exec_Ensemble(),     Cmd::EXE, 1, "ensemble" );
   Command::AddCmd( new Exec_EnsembleSize(), Cmd::EXE, 1, "ensemblesize" );

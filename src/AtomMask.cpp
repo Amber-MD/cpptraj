@@ -39,6 +39,11 @@ void AtomMask::InvertMaskExpression() {
 
 // AtomMask::InvertMask()
 void AtomMask::InvertMask() {
+  // Sanity check
+  if (Natom_ < 1) {
+    mprinterr("Internal Error: AtomMask::InvertMask() called with Natom_ < 1.\n");
+    return;
+  }
   // Invert the integer mask.
   std::vector<int> invert;
   invert.reserve( Natom_ - (int)Selected_.size() );
