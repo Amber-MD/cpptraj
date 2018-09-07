@@ -1,6 +1,7 @@
 #include "Exec_SplitCoords.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_CRD.h"
+#include "ProgressBar.h"
 
 // Exec_SplitCoords::Help()
 void Exec_SplitCoords::Help() const
@@ -22,6 +23,7 @@ Exec::RetType Exec_SplitCoords::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   mprintf("\tUsing set '%s'\n", CRD->legend());
+  mprintf("\tSplitting by molecule.\n");
   // Output COORDS set
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) {
@@ -31,6 +33,7 @@ Exec::RetType Exec_SplitCoords::Execute(CpptrajState& State, ArgList& argIn)
   DataSet_Coords_CRD* OUT = (DataSet_Coords_CRD*)
                             State.DSL().AddSet(DataSet::COORDS, MetaData(dsname));
   if (OUT == 0) return CpptrajState::ERR;
+  mprintf("\tOutput to COORDS set '%s'\n", OUT->legend());
   // In order for this to work, currently must have all molecules be the same
   // size. TODO check that residue names match as well?
   Topology const& topIn = CRD->Top();
@@ -59,23 +62,22 @@ Exec::RetType Exec_SplitCoords::Execute(CpptrajState& State, ArgList& argIn)
   // Create a mask for each input molecule.
   std::vector<AtomMask> Masks;
   Masks.reserve( topIn.Nmol() );
+  Topology* topOut = 0;
   for (Topology::mol_iterator mol = topIn.MolStart(); mol != topIn.MolEnd(); ++mol)
   {
     Masks.push_back( AtomMask(mol->BeginAtom(), mol->EndAtom()) );
-    Masks.back().InvertMask();
+    // Set total number of atoms
+    Masks.back().SetNatoms( topIn.Natom() );
+    // First time around set up the output topology.
+    if (topOut == 0) {
+      topOut = topIn.modifyStateByMask( Masks.back() );
+      if (topOut == 0) return CpptrajState::ERR;
+    }
   }
-  // Create the output topology.
-  //AtomMask notFirstMol("!^1");
-  //if (topIn.SetupIntegerMask( notFirstMol )) return CpptrajState::ERR;
-  //notFirstMol.MaskInfo();
-  //if (notFirstMol.None()) { // Sanity check
-  //  mprinterr("Error: Molecule selection failed.\n");
-  //  return CpptrajState::ERR;
-  //}
-  Topology* topOut = topIn.modifyStateByMask( Masks[0] );
-  if (topOut == 0) return CpptrajState::ERR;
+  topOut->Brief("Split topology");
   // Set up output COORDS
   if (OUT->CoordsSetup( *topOut, CRD->CoordsInfo() )) return CpptrajState::ERR;
+  OUT->Allocate( DataSet::SizeArray(1, CRD->Size() * topIn.Nmol()) );
   // OUT now has a copy of topOut, so it is no longer needed here.
   delete topOut;
   // Set up output frame
@@ -83,11 +85,14 @@ Exec::RetType Exec_SplitCoords::Execute(CpptrajState& State, ArgList& argIn)
   frameOut.SetupFrameV(OUT->Top().Atoms(), OUT->CoordsInfo());
   // Loop over all input frames.
   Frame frameIn = CRD->AllocateFrame();
+  ProgressBar progress( CRD->Size() * topIn.Nmol() );
+  int idx = 0;
   for (unsigned int frm = 0; frm != CRD->Size(); frm++)
   {
     CRD->GetFrame(frm, frameIn);
     for (std::vector<AtomMask>::const_iterator mask = Masks.begin(); mask != Masks.end(); ++mask)
     {
+      progress.Update( idx++ );
       frameOut.SetFrame( frameIn, *mask );
       OUT->AddFrame( frameOut );
     }
