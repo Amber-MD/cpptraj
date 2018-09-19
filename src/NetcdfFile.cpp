@@ -546,10 +546,12 @@ int NetcdfFile::NC_setupRead(std::string const& fname, NCTYPE expectedType, int 
 
 /** \return Coordinate info corresponding to current setup. */
 CoordinateInfo NetcdfFile::NC_coordInfo() const {
+  // TODO the 'false' is for step info. Enable this in the future when time
+  //      is present.
   return CoordinateInfo( ensembleSize_, remDimType_, nc_box_,
                          HasCoords(), HasVelocities(), HasForces(), 
                          HasTemperatures(), Has_pH(), HasRedOx(),
-                         HasTimes(), (repidxVID_ != -1), (crdidxVID_ != -1),
+                         HasTimes(), false, (repidxVID_ != -1), (crdidxVID_ != -1),
                          (RemdValuesVID_ != -1) );
 }
 

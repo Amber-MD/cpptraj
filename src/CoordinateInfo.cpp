@@ -11,6 +11,7 @@ CoordinateInfo::CoordinateInfo() :
   has_pH_(false),
   hasRedox_(false),
   hasTime_(false),
+  hasStep_(false),
   hasrepidx_(false),
   hascrdidx_(false),
   useRemdValues_(false)
@@ -27,6 +28,7 @@ CoordinateInfo::CoordinateInfo(Box const& b, bool v, bool t, bool m) :
   has_pH_(false),
   hasRedox_(false),
   hasTime_(m),
+  hasStep_(false),
   hasrepidx_(false),
   hascrdidx_(false),
   useRemdValues_(false)
@@ -43,6 +45,7 @@ CoordinateInfo::CoordinateInfo(Box const& b, bool c, bool v, bool f, bool m) :
   has_pH_(false),
   hasRedox_(false),
   hasTime_(m),
+  hasStep_(false),
   hasrepidx_(false),
   hascrdidx_(false),
   useRemdValues_(false)
@@ -51,7 +54,7 @@ CoordinateInfo::CoordinateInfo(Box const& b, bool c, bool v, bool f, bool m) :
 /** Constructor - All */
 CoordinateInfo::CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b,
                                bool c, bool v, bool f, bool t, bool p, bool o, bool m, 
-                               bool ri, bool ci, bool u) :
+                               bool s, bool ri, bool ci, bool u) :
   remdDim_(r),
   box_(b),
   ensembleSize_(e),
@@ -62,6 +65,7 @@ CoordinateInfo::CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b,
   has_pH_(p),
   hasRedox_(o),
   hasTime_(m),
+  hasStep_(s),
   hasrepidx_(ri),
   hascrdidx_(ci),
   useRemdValues_(u)
@@ -78,6 +82,7 @@ void CoordinateInfo::PrintCoordInfo(const char* name, const char* parm) const {
   if (has_pH_) mprintf(", pH");
   if (hasRedox_) mprintf(", redox");
   if (hasTime_) mprintf(", times");
+  if (hasStep_) mprintf(", steps");
   if (hasrepidx_) mprintf(", repidx");
   if (hascrdidx_) mprintf(", crdidx");
   if (ensembleSize_ > 0) mprintf(", ensemble size %i", ensembleSize_);
@@ -109,7 +114,7 @@ std::string CoordinateInfo::InfoString() const {
 }
 
 #ifdef MPI
-#define CINFOMPISIZE 11
+#define CINFOMPISIZE 12
 int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
   // ensSize, hasvel, hastemp, hastime, hasfrc, NrepDims, Dim1, ..., DimN, 
   int* iArray;
@@ -122,13 +127,14 @@ int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
     iArray[1]  = (int)hasVel_;
     iArray[2]  = (int)hasTemp_;
     iArray[3]  = (int)hasTime_;
-    iArray[4]  = (int)hasFrc_;
-    iArray[5]  = (int)has_pH_;
-    iArray[6]  = (int)hasRedox_;
-    iArray[7]  = (int)useRemdValues_;
-    iArray[8]  = (int)hasrepidx_;
-    iArray[9]  = (int)hascrdidx_;
-    iArray[10] = remdDim_.Ndims();
+    iArray[4]  = (int)hasStep_;
+    iArray[5]  = (int)hasFrc_;
+    iArray[6]  = (int)has_pH_;
+    iArray[7]  = (int)hasRedox_;
+    iArray[8]  = (int)useRemdValues_;
+    iArray[9]  = (int)hasrepidx_;
+    iArray[10] = (int)hascrdidx_;
+    iArray[11] = remdDim_.Ndims();
     unsigned int ii = CINFOMPISIZE;
     for (int ir = 0; ir != remdDim_.Ndims(); ir++, ii++)
       iArray[ii] = remdDim_[ir];
@@ -141,15 +147,16 @@ int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
     hasVel_        = (bool)iArray[1];
     hasTemp_       = (bool)iArray[2];
     hasTime_       = (bool)iArray[3];
-    hasFrc_        = (bool)iArray[4];
-    has_pH_        = (bool)iArray[5];
-    hasRedox_      = (bool)iArray[6];
-    useRemdValues_ = (bool)iArray[7];
-    hasrepidx_     = (bool)iArray[8];
-    hascrdidx_     = (bool)iArray[9];
+    hasStep_       = (bool)iArray[4];
+    hasFrc_        = (bool)iArray[5];
+    has_pH_        = (bool)iArray[6];
+    hasRedox_      = (bool)iArray[7];
+    useRemdValues_ = (bool)iArray[8];
+    hasrepidx_     = (bool)iArray[9];
+    hascrdidx_     = (bool)iArray[10];
     remdDim_.clear();
     unsigned int ii = CINFOMPISIZE;
-    for (int ir = 0; ir != iArray[10]; ir++, ii++)
+    for (int ir = 0; ir != iArray[11]; ir++, ii++)
       remdDim_.AddRemdDimension( iArray[ii] );
   }
   delete[] iArray;
