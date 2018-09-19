@@ -29,7 +29,7 @@ Traj_GmxTrX::Traj_GmxTrX() :
   lambda_(0.0),
   frameSize_(0),
   headerBytes_(0),
-  timestepPos_(0),
+  headerOffset_(0),
   arraySize_(0),
   farray_(0),
   darray_(0) 
@@ -247,6 +247,8 @@ int Traj_GmxTrX::ReadTrxHeader(int& magic) {
     return 1;
   }
   natom3_ = natoms_ * 3;
+  // Save position just before step/nre
+  headerOffset_ = (size_t)file_.Tell();
   if ( read_int( step_ ) ) return 1;
   if ( read_int( nre_ ) ) return 1;
   // Determine precision
@@ -266,8 +268,6 @@ int Traj_GmxTrX::ReadTrxHeader(int& magic) {
     mprinterr("Error: TRX precision %i not recognized.\n", precision_);
     return 1;
   }
-  // Save position just before timestep/lambda
-  timestepPos_ = (size_t)file_.Tell();
   // Read timestep and lambda
   if ( read_real( timestep_ ) ) return 1;
   if ( read_real( lambda_ ) ) return 1;
@@ -390,8 +390,10 @@ int Traj_GmxTrX::setupTrajin(FileName const& fname, Topology* trajParm)
   if ( box_size_ > 0 ) {
     if ( ReadBox( box ) ) return TRAJIN_ERR;
   }
-  // Box, coords, velocity, force, time 
-  SetCoordInfo( CoordinateInfo(Box(box), true, (v_size_ > 0), (f_size_ > 0), true) );
+  // Box, coords, velocity, force, time
+  CoordinateInfo myCoordInfo(Box(box), true, (v_size_ > 0), (f_size_ > 0), true);
+  myCoordInfo.SetStep( true ); 
+  SetCoordInfo( myCoordInfo );
   closeTraj();
   return nframes;
 }
@@ -488,7 +490,11 @@ const double Traj_GmxTrX::AMBER_VEL_TO_GMX = Constants::ANG_TO_NM * Constants::A
 
 // Traj_GmxTrX::readFrame()
 int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
-  file_.Seek( (frameSize_ * set) + timestepPos_ );
+  file_.Seek( (frameSize_ * set) + headerOffset_ );
+  // Read step and nre
+  if ( read_int( step_ ) ) return 1;
+  frameIn.SetStep( step_ );
+  if ( read_int( nre_ ) ) return 1;
   // Read timestep and lambda
   if ( read_real( timestep_ ) ) return 1;
   if ( read_real( lambda_ ) ) return 1;
@@ -635,7 +641,10 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   write_int( v_size_ );
   write_int( f_size_ );
   write_int( natoms_ );
-  write_int( step_ );
+  if (CoordInfo().HasStep())
+    write_int( frameOut.Step() );
+  else
+    write_int( step_ );
   write_int( nre_ );
   float time;
   if (CoordInfo().HasTime()) 

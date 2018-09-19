@@ -72,12 +72,12 @@ class Traj_GmxTrX : public TrajectoryIO {
     int precision_;
     float timestep_;
     float lambda_;
-    size_t frameSize_;   ///< Size of single trajectory frame in bytes
-    size_t headerBytes_; ///< Size of header in bytes
-    size_t timestepPos_; ///< Size of header just before timestep in bytes (read only)
-    size_t arraySize_;   ///< # elements in {d|f}array_; total # of position/veloc/force coords.
-    float* farray_;      ///< Array for reading/writing single precision.
-    double* darray_;     ///< Array for reading/writine double precision.
+    size_t frameSize_;    ///< Size of single trajectory frame in bytes
+    size_t headerBytes_;  ///< Size of header in bytes
+    size_t headerOffset_; ///< Offset to just before value we want to start reading in bytes (read only)
+    size_t arraySize_;    ///< # elements in {d|f}array_; total # of position/veloc/force coords.
+    float* farray_;       ///< Array for reading/writing single precision.
+    double* darray_;      ///< Array for reading/writine double precision.
 
     static const double GMX_FRC_TO_AMBER;
     static const double AMBER_FRC_TO_GMX;

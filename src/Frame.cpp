@@ -12,6 +12,7 @@ Frame::Frame( ) :
   natom_(0),
   maxnatom_(0),
   ncoord_(0),
+  step_(0),
   T_(0.0),
   pH_(0.0),
   redox_(0.0),
@@ -38,7 +39,8 @@ Frame::~Frame( ) {
 Frame::Frame(int natomIn) :
   natom_(natomIn),
   maxnatom_(natomIn),
-  ncoord_(natomIn*3), 
+  ncoord_(natomIn*3),
+  step_(0), 
   T_(0.0),
   pH_(0.0),
   redox_(0.0),
@@ -60,6 +62,7 @@ Frame::Frame(std::vector<Atom> const& atoms) :
   natom_(atoms.size()),
   maxnatom_(natom_),
   ncoord_(natom_*3),
+  step_(0),
   T_(0.0),
   pH_(0.0),
   redox_(0.0),
@@ -84,6 +87,7 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   natom_( maskIn.Nselected() ),
   maxnatom_(natom_),
   ncoord_(natom_*3),
+  step_(0),
   box_(frameIn.box_),
   T_( frameIn.T_ ),
   pH_( frameIn.pH_ ),
@@ -140,6 +144,7 @@ Frame::Frame(int natom, double* Xptr) :
   natom_(natom),
   maxnatom_(natom),
   ncoord_(natom*3),
+  step_(0),
   X_(Xptr),
   V_(0),
   F_(0),
@@ -157,6 +162,7 @@ Frame::Frame(const Frame& rhs) :
   natom_(rhs.natom_),
   maxnatom_(rhs.maxnatom_),
   ncoord_(rhs.ncoord_),
+  step_(rhs.step_),
   box_(rhs.box_),
   T_(rhs.T_),
   pH_(rhs.pH_),
@@ -193,6 +199,7 @@ void Frame::swap(Frame &first, Frame &second) {
   swap(first.natom_, second.natom_);
   swap(first.maxnatom_, second.maxnatom_);
   swap(first.ncoord_, second.ncoord_);
+  swap(first.step_, second.step_);
   swap(first.T_, second.T_);
   swap(first.repidx_, second.repidx_);
   swap(first.crdidx_, second.crdidx_);
@@ -220,6 +227,7 @@ Frame &Frame::operator=(Frame rhs) {
     natom_ = rhs.natom_;
     maxnatom_ = rhs.maxnatom_;
     ncoord_ = rhs.ncoord_;
+    step_ = rhs.step_;
     box_ = rhs.box_;
     T_ = rhs.T_;
     repidx_ = rhs.repidx_;
@@ -552,6 +560,7 @@ void Frame::SetCoordinates(Frame const& frameIn, AtomMask const& maskIn) {
   }
   natom_ = maskIn.Nselected();
   ncoord_ = natom_ * 3;
+  step_ = frameIn.step_;
   box_ = frameIn.box_;
   T_ = frameIn.T_;
   repidx_ = frameIn.repidx_;
@@ -607,6 +616,7 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   }
   natom_ = maskIn.Nselected();
   ncoord_ = natom_ * 3;
+  step_ = frameIn.step_;
   // Copy T/box
   box_ = frameIn.box_;
   T_ = frameIn.T_;
@@ -667,6 +677,7 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   }
   natom_ = tgtIn.natom_;
   ncoord_ = natom_ * 3;
+  step_ = tgtIn.step_;
   box_ = tgtIn.box_;
   T_ = tgtIn.T_;
   repidx_ = tgtIn.repidx_;
@@ -723,6 +734,7 @@ void Frame::StripUnmappedAtoms(Frame const& refIn, std::vector<int> const& mapIn
               mapIn.size(), refIn.natom_);
     return;
   }
+  step_ = refIn.step_;
   box_ = refIn.box_;
   T_ = refIn.T_;
   repidx_ = refIn.repidx_;
@@ -757,6 +769,7 @@ void Frame::ModifyByMap(Frame const& frameIn, std::vector<int> const& mapIn) {
               mapIn.size(), maxnatom_);
     return;
   }
+  step_ = frameIn.step_;
   box_ = frameIn.box_;
   T_ = frameIn.T_;
   repidx_ = frameIn.repidx_;
@@ -1355,6 +1368,7 @@ int Frame::SendFrame(int recvrank, Parallel::Comm const& commIn) {
   commIn.Send( &remd_indices_[0], remd_indices_.size(), MPI_INT, recvrank, 1216 );
   commIn.Send( &repidx_,          1,       MPI_INT,    recvrank, 1221 );
   commIn.Send( &crdidx_,          1,       MPI_INT,    recvrank, 1222 );
+  commIn.Send( &step_,            1,       MPI_INT,    recvrank, 1223 );
   return 0;
 }
 
@@ -1374,6 +1388,7 @@ int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
   commIn.Recv( &remd_indices_[0], remd_indices_.size(), MPI_INT, sendrank, 1216 );
   commIn.Recv( &repidx_,          1,       MPI_INT,    sendrank, 1221 );
   commIn.Recv( &crdidx_,          1,       MPI_INT,    sendrank, 1222 );
+  commIn.Recv( &step_,            1,       MPI_INT,    sendrank, 1223 );
   return 0;
 }
 
