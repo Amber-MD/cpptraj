@@ -1327,6 +1327,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   int strandNum = 0;
   int strandBeg = -1;
   std::vector<int> Visited( setup.Top().Res(Bases_.back().ResNum()).LastAtom(), 0 );
+  Barray::iterator lastBase = Bases_.end() - 1;
   for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
     Residue const& res = setup.Top().Res( base->ResNum() );
     int c5neighbor = -1;
@@ -1348,10 +1349,11 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
       if (c3neighbor == Bases_[idx].ResNum()) base->SetC3Idx( idx );
     }
-    // Set NA strand number. If no 3' neighbor increment the strand number.
+    // Set NA strand number. If no 3' neighbor or this is the last base then
+    // increment the strand number.
     base->SetStrandNum( strandNum );
     if (c5neighbor == -1) strandBeg = (int)(base - Bases_.begin());
-    if (c3neighbor == -1) {
+    if (c3neighbor == -1 || base == lastBase ) {
       strandNum++;
       Strands_.push_back( Rpair(strandBeg, (int)(base - Bases_.begin())) );
     }
