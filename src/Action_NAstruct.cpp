@@ -407,16 +407,22 @@ int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2, int& 
         {
           const double* xyz2 = base2.HBxyz(b2);
           double dist2 = DIST2_NoImage(xyz1, xyz2);
+#         ifdef NASTRUCTDEBUG
+          mprintf("\t\t%s:%s -- %s:%s = %f",
+                    base1.ResName(), base1.atomName(b1),
+                    base2.ResName(), base2.atomName(b2), sqrt(dist2));
+#         endif
           if (dist2 < HBdistCut2_) {
             ++Nhbonds;
             HbondType hbtype = ID_HBtype(base1, b1, base2, b2);
             if (hbtype == WC) n_WC++;
 #           ifdef NASTRUCTDEBUG
-            mprintf("\t\t%s:%s -- %s:%s = %f (%i)\n",
-                    base1.ResName(), base1.atomName(b1),
-                    base2.ResName(), base2.atomName(b2), sqrt(dist2), (int)hbtype);
+            mprintf(" (%i)", (int)hbtype);
 #           endif
           }
+#         ifdef NASTRUCTDEBUG
+          mprintf("\n");
+#         endif
         }
       }
     }
@@ -492,12 +498,17 @@ int Action_NAstruct::DetermineBasePairing() {
     for (Barray::const_iterator base2 = base1 + 1; base2 != Bases_.end(); ++base2)
     {
       double dist2 = DIST2_NoImage(base1->Axis().Oxyz(), base2->Axis().Oxyz());
+#     ifdef NASTRUCTDEBUG
+      mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
+              base1->ResNum()+1, base1->ResName(), 
+              base2->ResNum()+1, base2->ResName(), sqrt(dist2));
+#     endif
       if (dist2 < originCut2_) {
-#       ifdef NASTRUCTDEBUG
-        mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
-                base1->ResNum()+1, base1->ResName(), 
-                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
-#       endif
+//#       ifdef NASTRUCTDEBUG
+//        mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
+//                base1->ResNum()+1, base1->ResName(), 
+//                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
+//#       endif
         // Calculate parameters between axes.
         double Param[6];
         calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
