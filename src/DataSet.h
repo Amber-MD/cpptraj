@@ -119,6 +119,8 @@ class DataSet {
         return *first < *second;
       }
     };
+    /// \return Text description based on DataType
+    static const char* description(DataType t) { return Descriptions_[t]; }
   protected:
     TextFormat format_;         ///< Text output data format.
   private:
@@ -129,6 +131,8 @@ class DataSet {
 
     /// Clear any associated data.
     void ClearAssociatedData();
+    /// Text descriptions of DataType
+    static const char* Descriptions_[];
     // FIXME dim_ and associated functions like Coord need to be reworked
     //       depending on the set type. For example, dim_ doesnt really work
     //       for non-orthogonal grids.
