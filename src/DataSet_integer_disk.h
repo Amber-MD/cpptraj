@@ -20,7 +20,8 @@ class DataSet_integer_disk : public DataSet_integer {
     /// This function is invalid for DataSet_integer_disk
     const void* VoidPtr(size_t) const;
     // ----- DataSet_integer functions -----------
-    int& operator[](size_t);
+    //int& operator[](size_t);
+    void SetElement(size_t, int);
     int  operator[](size_t) const;
     void AddElement(int);
     void Resize(size_t);
@@ -31,7 +32,11 @@ class DataSet_integer_disk : public DataSet_integer {
     //iterator end()                    { return Data_.end();        }
     //int* Ptr()                        { return &(Data_[0]);        }
   private:
+    inline int getVal(size_t) const;
+    inline void setVal(size_t, int);
+
     int ncid_;
+    int framevid_;
     size_t start_[1]; ///< Hold current index
     size_t count_[1]; ///< Current size to read/write
     unsigned int nvals_; ///< Total number of values in data set
