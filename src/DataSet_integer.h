@@ -12,6 +12,8 @@ class DataSet_integer : public DataSet_1D {
     virtual void AddElement(int) = 0;
     /// Make set size sizeIn, all values set to 0.0.
     virtual void Resize(size_t) = 0;
+    /// Make set size sizeIn, all values set to val.
+    virtual void Assign(size_t,int) = 0;
     virtual void AddVal(size_t, int) = 0;
     // ----- DataSet_1D functions ----------------
     double Xcrd(size_t idx)     const { return Dim(0).Coord(idx);  }

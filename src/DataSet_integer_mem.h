@@ -12,6 +12,8 @@ class DataSet_integer_mem : public DataSet_integer {
     void AddElement(int i)            { Data_.push_back( i );      }
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)        { Data_.resize(sizeIn, 0);   }
+    /// Make set size sizeIn, all values set to val.
+    void Assign(size_t sizeIn, int val) { Data_.resize(sizeIn, -1); }
     inline void AddVal(size_t, int);
     // ----- DataSet functions -------------------
     size_t Size()               const { return Data_.size();       }
@@ -25,7 +27,7 @@ class DataSet_integer_mem : public DataSet_integer {
     int Append(DataSet*);
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)     const { return (double)Data_[idx]; }
-    double Xcrd(size_t idx)     const { return Dim(0).Coord(idx);  }
+    //double Xcrd(size_t idx)     const { return Dim(0).Coord(idx);  }
     const void* VoidPtr(size_t idx) const { return (void*)(&(Data_[0])+idx); }
     // -------------------------------------------
     typedef std::vector<int>::iterator iterator;

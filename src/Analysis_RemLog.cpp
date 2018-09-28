@@ -195,7 +195,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   // Variables for calculating replica lifetimes
   Analysis_Lifetime Lifetime;
   Array1D dsLifetime;
-  std::vector< std::vector<DataSet_integer> > series; // 2D - repidx, crdidx
+  std::vector< std::vector<DataSet_integer_mem> > series; // 2D - repidx, crdidx
   if (calculateLifetimes_) {
     mprintf("\tData size used for lifetime analysis= %zu bytes.\n",
             remlog_->Size() * remlog_->Size() * remlog_->NumExchange() * sizeof(int));

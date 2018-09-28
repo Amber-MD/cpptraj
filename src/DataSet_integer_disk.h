@@ -24,6 +24,7 @@ class DataSet_integer_disk : public DataSet_integer {
     int  operator[](size_t) const;
     void AddElement(int);
     void Resize(size_t);
+    void Assign(size_t,int);
     void AddVal(size_t, int);
     //typedef std::vector<int>::iterator iterator;
     //iterator begin()                  { return Data_.begin();      }

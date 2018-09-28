@@ -745,11 +745,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // Change cluster num v time to grace-compatible colors if specified.
     if (grace_color_) {
       DataSet_integer& cnum_temp = static_cast<DataSet_integer&>( *cnumvtime_ );
-      for (DataSet_integer::iterator ival = cnum_temp.begin();
-                                     ival != cnum_temp.end(); ++ival)
+      for (unsigned int idx = 0; idx != cnum_temp.Size(); idx++)
       {
-        *ival += 1;
-        if (*ival > 15) *ival = 15;
+        cnum_temp[idx] += 1;
+        if (cnum_temp[idx] > 15) cnum_temp[idx] = 15;
       }
     }
     // Coordinate output.
@@ -849,10 +848,9 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, unsigned in
   // access specific integer dataset functions for resizing and []
   // operator. Should this eventually be generic to all atomic DataSets? 
   DataSet_integer& cnum_temp = static_cast<DataSet_integer&>( *cnumvtime_ );
-  cnum_temp.Resize( maxFrames );
   // Make all clusters start at -1. This way cluster algorithms that
   // have noise points (i.e. no cluster assigned) will be distinguished.
-  std::fill(cnum_temp.begin(), cnum_temp.end(), -1);
+  cnum_temp.Assign( maxFrames, -1 );
 
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); C++)
