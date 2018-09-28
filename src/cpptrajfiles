@@ -212,7 +212,8 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_Vector.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
-        DataSet_integer.cpp \
+        DataSet_integer_disk.cpp \
+        DataSet_integer_mem.cpp \
         DataSet_string.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
