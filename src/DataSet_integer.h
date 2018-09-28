@@ -7,7 +7,8 @@ class DataSet_integer : public DataSet_1D {
     DataSet_integer() : DataSet_1D(INTEGER, TextFormat(TextFormat::INTEGER, 12)) {}
     virtual ~DataSet_integer() {} // Virtual bc inherited
     //static DataSet* Alloc() { return (DataSet*)new DataSet_integer();} TODO fix
-    virtual int& operator[](size_t) = 0;
+    //virtual int& operator[](size_t) = 0;
+    virtual void SetElement(size_t, int);
     virtual int  operator[](size_t) const = 0;
     virtual void AddElement(int) = 0;
     /// Make set size sizeIn, all values set to 0.0.

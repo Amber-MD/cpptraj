@@ -7,7 +7,8 @@ class DataSet_integer_mem : public DataSet_integer {
   public:
     DataSet_integer_mem() {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_integer_mem();}
-    int& operator[](size_t idx)       { return Data_[idx];         }
+    //int& operator[](size_t idx)       { return Data_[idx];         }
+    void SetElement(size_t idx, int val) { Data_[idx] = val; }
     int  operator[](size_t idx) const { return Data_[idx];         }
     void AddElement(int i)            { Data_.push_back( i );      }
     /// Make set size sizeIn, all values set to 0.0.
