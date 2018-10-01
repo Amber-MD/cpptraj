@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <list>
 #include "File_TempName.h"
 #include "StringRoutines.h"
@@ -39,6 +40,7 @@ FileName GenTempName() {
 /** Free the given temporary file name. */
 void FreeTempName(FileName const& temp) {
   TempFileNames_.remove( temp );
+  if (Exists(temp)) remove(temp.full());
 }
  
 } /* END namespace File */
