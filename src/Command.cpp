@@ -223,6 +223,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
   Command::AddCmd( new Exec_SortEnsembleData(),Cmd::EXE, 1, "sortensembledata" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
+  Command::AddCmd( new Exec_UseDiskCache(),    Cmd::EXE, 1, "usediskcache" );
   Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
 # ifdef MPI
   Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" );

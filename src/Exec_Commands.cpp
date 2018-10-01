@@ -153,3 +153,22 @@ Exec::RetType Exec_EnsFileExt::Execute(CpptrajState& State, ArgList& argIn) {
   }
   return CpptrajState::OK;
 }
+// -----------------------------------------------------------------------------
+void Exec_UseDiskCache::Help() const {
+  mprintf("\t{on|off}\n"
+          "  If on, CPPTRAJ will attempt to cache data sets to disk if possible.\n");
+}
+
+Exec::RetType Exec_UseDiskCache::Execute(CpptrajState& State, ArgList& argIn) {
+  if (argIn.hasKey("on")) {
+    State.DSL().SetDiskCache(true);
+    mprintf("\tWill attempt to cache data sets to disk if possible.\n");
+  } else if (argIn.hasKey("off")) {
+    State.DSL().SetDiskCache(false);
+    mprintf("\tData sets will be stored in memory.\n");
+  } else {
+    mprinterr("Error: Expect 'on' or 'off'\n");
+    return CpptrajState::ERR;
+  }
+  return CpptrajState::OK;
+}

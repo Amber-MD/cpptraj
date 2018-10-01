@@ -56,6 +56,8 @@ class DataSetList {
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Set whether set has copies (no ds mem free) or not (will free ds mem).
     void SetHasCopies(bool b)       { hasCopies_ = b;       }
+    /// Set whether DataSets should be cached to disk if possible.
+    void SetDiskCache(bool b)       { useDiskCache_ = b; }
     /// Make all sets not part of an ensemble part of given ensemble.
     //void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble
