@@ -33,6 +33,10 @@ DataSet_integer_disk::DataSet_integer_disk() :
   if (NC::CheckErr(nc_def_var(ncid_, "values", NC_INT, 1, dimensionID, &framevid_))) {
     mprinterr("Internal Error: Could not define frame variable for disk integer data set.\n");
   }
+  // End definitions
+  if (NC::CheckErr(nc_enddef(ncid_))) {
+    mprinterr("Internal Error: Ending definitions for disk integer data set.");
+  }
 }
 
 DataSet_integer_disk::~DataSet_integer_disk() {
@@ -70,6 +74,7 @@ void DataSet_integer_disk::setVal(size_t idx, int val) {
   start_[0] = idx;
   count_[0] = 1;
   nc_put_vara_int(ncid_, framevid_, start_, count_, &val);
+  //nc_sync(ncid_);
 }
 
 void DataSet_integer_disk::Add(size_t frame, const void* vIn) {
@@ -78,6 +83,7 @@ void DataSet_integer_disk::Add(size_t frame, const void* vIn) {
   start_[0] = nvals_;
   count_[0] = 1;
   nc_put_vara_int(ncid_, framevid_, start_, count_, (const int*)vIn);
+  //nc_sync(ncid_);
   nvals_++;
 }
 
