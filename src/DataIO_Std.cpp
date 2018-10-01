@@ -47,6 +47,8 @@ static void PrintColumnError(int idx) {
 
 void DataIO_Std::ReadHelp() {
   mprintf("\tread1d:      Read data as 1D data sets (default).\n"
+          "\t\tindex <col>      : (1D) Use column # (starting from 1) as index (X) column.\n"
+          "\t\tonlycols <range> : Only read columns in range.\n"
           "\tread2d:      Read data as 2D square matrix.\n"
           "\tread3d:      Read data as 3D grid. If no dimension data in file must also\n"
           "\t             specify 'dims'; can also specify 'origin' and 'delta'.\n"
@@ -56,8 +58,7 @@ void DataIO_Std::ReadHelp() {
           "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
           "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
           "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
-          "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
-          "\tindex <col>: (1D) Use column # (starting from 1) as index (X) column.\n");
+          "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
 
 }
 
@@ -96,6 +97,11 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
     return 1;
   }
   if (indexcol_ > 0) --indexcol_;
+  std::string ocarg = argIn.GetStringKey("onlycols");
+  if (!ocarg.empty()) {
+    onlycols_.SetRange( ocarg );
+    onlycols_.ShiftBy( -1 );
+  }
   // Options for 3d
   if (mode_ == READ3D) {
     if (Get3Double(argIn.GetStringKey("origin"), origin_, originSpecified_)) return 1;
@@ -220,35 +226,50 @@ int DataIO_Std::Read_1D(std::string const& fname,
     labels.ClearList();
     hasLabels = false;
   }
-  if (indexcol_ != -1 && indexcol_ >= ntoken) {
-    mprinterr("Error: Specified index column %i is out of range (%i columns).\n",
-              indexcol_+1, ntoken);
-    return 1;
+  // Index column checks
+  if (indexcol_ != -1 ) {
+    if (indexcol_ >= ntoken) {
+      mprinterr("Error: Specified index column %i is out of range (%i columns).\n",
+                indexcol_+1, ntoken);
+      return 1;
+    }
+    if (!onlycols_.Empty() && !onlycols_.InRange(indexcol_)) {
+      mprinterr("Error: Index column %i specified, but not in given column range '%s'\n",
+                indexcol_+1, onlycols_.RangeArg());
+      return 1;
+    }
   }
 
   // Determine the type of data stored in each column. Assume numbers should
   // be read with double precision.
   MetaData md( dsname );
   DataSetList::DataListType inputSets;
+  unsigned int nsets = 0;
   for (int col = 0; col != ntoken; ++col) {
-    md.SetIdx( col+1 );
-    if (hasLabels) md.SetLegend( labels[col] );
     std::string token( buffer.NextToken() );
-    if (validInteger(token) || validDouble(token)) {
-      // Number
-      inputSets.push_back( new DataSet_double() );
+    if (!onlycols_.Empty() && !onlycols_.InRange( col )) {
+      mprintf("\tSkipping column %i\n", col+1);
+      inputSets.push_back( 0 );
     } else {
-      // Assume string. Not allowed for index column.
-      if (col == indexcol_) {
-        mprintf("Warning: '%s' index column %i has string values. No indices will be read.\n", 
-                  buffer.Filename().full(), indexcol_+1);
-        indexcol_ = -1;
+      md.SetIdx( col+1 );
+      if (hasLabels) md.SetLegend( labels[col] );
+      if (validInteger(token) || validDouble(token)) {
+        // Number
+        inputSets.push_back( new DataSet_double() );
+      } else {
+        // Assume string. Not allowed for index column.
+        if (col == indexcol_) {
+          mprintf("Warning: '%s' index column %i has string values. No indices will be read.\n", 
+                    buffer.Filename().full(), indexcol_+1);
+          indexcol_ = -1;
+        }
+        inputSets.push_back( new DataSet_string() );
       }
-      inputSets.push_back( new DataSet_string() );
+      inputSets.back()->SetMeta( md );
+      nsets++;
     }
-    inputSets.back()->SetMeta( md );
   }
-  if (inputSets.empty()) {
+  if (inputSets.empty() || nsets == 0) {
     mprinterr("Error: No data detected.\n");
     return 1;
   }
@@ -262,10 +283,12 @@ int DataIO_Std::Read_1D(std::string const& fname,
     // Convert data in columns
     for (int i = 0; i < ntoken; ++i) {
       const char* token = buffer.NextToken();
-      if (inputSets[i]->Type() == DataSet::DOUBLE)
-        ((DataSet_double*)inputSets[i])->AddElement( atof(token) );
-      else
-        ((DataSet_string*)inputSets[i])->AddElement( std::string(token) );
+      if (inputSets[i] != 0) {
+        if (inputSets[i]->Type() == DataSet::DOUBLE)
+          ((DataSet_double*)inputSets[i])->AddElement( atof(token) );
+        else
+          ((DataSet_string*)inputSets[i])->AddElement( std::string(token) );
+      }
     }
     //Ndata++;
     linebuffer = buffer.Line();
@@ -277,11 +300,15 @@ int DataIO_Std::Read_1D(std::string const& fname,
   // Create list containing only data sets.
   DataSetList::DataListType mySets;
   DataSet_double* Xptr = 0;
-  for (int idx = 0; idx != (int)inputSets.size(); idx++)
-    if ( idx != indexcol_ )
-      mySets.push_back( inputSets[idx] );
-    else
-      Xptr = (DataSet_double*)inputSets[idx];
+  for (int idx = 0; idx != (int)inputSets.size(); idx++) {
+    if (inputSets[idx] != 0) {
+      if ( idx != indexcol_ )
+        mySets.push_back( inputSets[idx] );
+      else
+        Xptr = (DataSet_double*)inputSets[idx];
+    }
+  }
+  mprintf("\tRead %zu data sets.\n", mySets.size());
   std::string Xlabel;
   if (indexcol_ != -1 && indexcol_ < labels.Nargs())
     Xlabel = labels[indexcol_];
