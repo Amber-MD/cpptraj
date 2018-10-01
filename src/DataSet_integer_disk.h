@@ -4,6 +4,7 @@
 class DataSet_integer_disk : public DataSet_integer {
   public:
     DataSet_integer_disk();
+    ~DataSet_integer_disk();
     static DataSet* Alloc() { return (DataSet*)new DataSet_integer_disk(); }
     // ----- DataSet functions -------------------
     size_t Size() const { return nvals_; }
@@ -35,6 +36,7 @@ class DataSet_integer_disk : public DataSet_integer {
     inline int getVal(size_t) const;
     inline void setVal(size_t, int);
 
+    FileName tfname_;
     int ncid_;
     int framevid_;
     size_t start_[1]; ///< Hold current index

@@ -1,8 +1,8 @@
-#include <cstdio>
 #include <netcdf.h>
 #include "DataSet_integer_disk.h"
 #include "CpptrajStdio.h"
 #include "NC_Routines.h"
+#include "File_TempName.h"
 
 // TODO NetCDF protect
 /// CONSTRUCTOR
@@ -13,12 +13,17 @@ DataSet_integer_disk::DataSet_integer_disk() :
 {
   start_[0] = 0;
   count_[0] = 0;
-  char buffer[L_tmpnam];
-  if (tmpnam(buffer) == 0) return;
-  if (NC::CheckErr( nc_create( buffer, NC_64BIT_OFFSET, &ncid_ ) )) {
+  // NOTE: Since tmpnam() use is considered dangerous, use the
+  //       DataSetDiskCache name in its place.
+  tfname_ = File::GenTempName();
+  if (tfname_.empty()) {
+    mprinterr("Internal Error: Could not get temporary file name of dist integer data set.\n");
+    return;
+  }
+  if (NC::CheckErr( nc_create( tfname_.full(), NC_64BIT_OFFSET, &ncid_ ) )) {
     mprinterr("Internal Error: Could not disk cache integer data set.\n");
   }
-  mprintf("DEBUG: Integer data set being cached in file: %s\n", buffer);
+  mprintf("DEBUG: Integer data set being cached in file: %s\n", tfname_.full());
   int frameDID;
   if (NC::CheckErr(nc_def_dim(ncid_, "frame", NC_UNLIMITED, &frameDID))) {
     mprinterr("Internal Error: Could not define frame dimension for disk integer data set.\n");
@@ -29,6 +34,11 @@ DataSet_integer_disk::DataSet_integer_disk() :
     mprinterr("Internal Error: Could not define frame variable for disk integer data set.\n");
   }
 }
+
+DataSet_integer_disk::~DataSet_integer_disk() {
+  if (ncid_ != -1) nc_close( ncid_ );
+  if (!tfname_.empty()) File::FreeTempName( tfname_ );
+} 
 
 #ifdef MPI
 // TODO
