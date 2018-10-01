@@ -747,8 +747,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       DataSet_integer& cnum_temp = static_cast<DataSet_integer&>( *cnumvtime_ );
       for (unsigned int idx = 0; idx != cnum_temp.Size(); idx++)
       {
-        cnum_temp[idx] += 1;
-        if (cnum_temp[idx] > 15) cnum_temp[idx] = 15;
+        cnum_temp.AddVal(idx, 1);
+        if (cnum_temp[idx] > 15) cnum_temp.SetElement(idx, 15);
       }
     }
     // Coordinate output.
@@ -862,7 +862,7 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, unsigned in
                                      frame != (*C).endframe(); frame++)
     {
       //mprinterr("%i,",*frame);
-      cnum_temp[ *frame ] = cnum;
+      cnum_temp.SetElement(*frame, cnum);
     }
     //mprinterr("\n");
     //break;
@@ -943,7 +943,7 @@ void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, unsigned i
     int cluster_num = cnum_temp[frame];
     // Noise points are -1
     if (cluster_num > -1)
-      (*DSL[ cluster_num ])[ frame ] = 1;
+      DSL[ cluster_num ]->SetElement( frame, 1 );
   }
 }
 

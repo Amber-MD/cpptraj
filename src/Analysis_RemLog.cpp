@@ -252,13 +252,13 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       }
       if (mode_ == CRDIDX) {
         DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[repidx]) );
-        ds[frame] = frm.CoordsIdx();
+        ds.SetElement(frame, frm.CoordsIdx());
       } else if (mode_ == REPIDX) {
         DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[crdidx]) );
-        ds[frame] = frm.ReplicaIdx();
+        ds.SetElement(frame, frm.ReplicaIdx());
       }
       if (calculateLifetimes_)
-        series[repidx][crdidx][frame] = 1;
+        series[repidx][crdidx].SetElement(frame, 1);
       if (calculateStats_) {
         TripStats& trip = static_cast<TripStats&>( DimTrips[dim] );
         // Fraction spent at each replica

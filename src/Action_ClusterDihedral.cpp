@@ -314,7 +314,7 @@ void Action_ClusterDihedral::Print() {
     num = 0;
     for (std::vector<long int>::const_iterator cnum = framecluster.begin();
                                                cnum != framecluster.end(); ++cnum)
-      (*iCVT)[ num++ ] = (int)*cnum + 1;
+      iCVT->SetElement( num++, (int)*cnum + 1 );
   }
 
   // Print cluster for each frame
