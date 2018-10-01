@@ -215,22 +215,23 @@ DataIO_Gnuplot::LabelArray DataIO_Gnuplot::LabelArg( std::string const& labelarg
 }
 
 void DataIO_Gnuplot::WriteHelp() {
-  mprintf("\tnolabels:      Do not print axis labels.\n"
-          "\tusemap:        pm3d output with 1 extra empty row/col (may improve look).\n"
-          "\tpm3d:          Normal pm3d map output.\n"
-          "\tnopm3d:        Turn off pm3d\n"
-          "\tjpeg:          Plot will write to a JPEG file when used with gnuplot.\n"
+  mprintf("\tnolabels       : Do not print axis labels.\n"
+          "\tusemap         : pm3d output with 1 extra empty row/col (may improve look).\n"
+          "\tpm3d           : Normal pm3d map output.\n"
+          "\tnopm3d         : Turn off pm3d\n"
+          "\tjpeg           : Plot will write to a JPEG file when used with gnuplot.\n"
 //          "\tbinary:   Use binary output\n"
-          "\tnoheader:      Do not format plot; data output only.\n"
-          "\tpalette <arg>: Change gnuplot pm3d palette to <arg>:\n"
+          "\tnoheader       : Do not format plot; data output only.\n"
+          "\ttitle <title>  : Set plot title (default file base name).\n"
+          "\tpalette <arg>  : Change gnuplot pm3d palette to <arg>:\n"
           "\t          'rgb'   - Red, yellow, green, cyan, blue, magenta, red.\n"
           "\t          'kbvyw' - Black, blue, violet, yellow, white.\n"
           "\t          'bgyr'  - Blue, green, yellow, red.\n"
           "\t          'gray'  - Grayscale.\n"
-          "\txlabels <labellist>: Set x axis labels with comma-separated list, e.g.\n"
+          "\txlabels <list> : Set x axis labels with comma-separated list, e.g.\n"
           "\t                     'xlabels X1,X2,X3'\n"
-          "\tylabels <labellist>: Set y axis labels.\n"
-          "\tzlabels <labellist>: Set z axis labels.\n");
+          "\tylabels <list> : Set y axis labels.\n"
+          "\tzlabels <list> : Set z axis labels.\n");
 }
 
 // DataIO_Gnuplot::processWriteArgs()
@@ -246,6 +247,7 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
     mprintf("Warning: jpeg output not supported with 'noheader' option.\n");
     jpegout_ = false;
   }
+  title_ = argIn.GetStringKey("title");
   palette_ = argIn.GetStringKey("palette");
   if (!palette_.empty()) {
     if (pm3d_ == OFF) {
@@ -309,7 +311,13 @@ void DataIO_Gnuplot::WriteRangeAndHeader(Dimension const& Xdim, size_t Xmax,
   file_.Printf("set yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\n", 
          Ydim.Coord(0) - Ydim.Step(), Ydim.Coord(Ymax + 1),
          Xdim.Coord(0) - Xdim.Step(), Xdim.Coord(Xmax + 1));
-  file_.Printf("splot \"%s\"%s%s title \"%s\"\n", data_fname_.full(), binaryFlag, pm3dstr.c_str(), file_.Filename().base());
+  const char* tout;
+  if (title_.empty())
+    tout = file_.Filename().base();
+  else
+    tout = title_.c_str();
+  file_.Printf("splot \"%s\"%s%s title \"%s\"\n", data_fname_.full(),
+               binaryFlag, pm3dstr.c_str(), tout);
 }
 
 // DataIO_Gnuplot::Finish()

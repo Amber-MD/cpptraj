@@ -25,6 +25,7 @@ class DataIO_Gnuplot : public DataIO {
     static const char* BasicPalette[];
     PM3D_OPT pm3d_;
     std::string palette_;
+    std::string title_;
     bool printLabels_; 
     bool useMap_;
     bool jpegout_;
