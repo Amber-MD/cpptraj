@@ -9,6 +9,7 @@
 #include "StringRoutines.h" // SetStringFormatString
 #include "BufferedLine.h"
 #include "TextFormat.h"
+#include "DataSet_integer.h"
 #include "DataSet_double.h" // For reading TODO remove dependency?
 #include "DataSet_string.h" // For reading TODO remove dependency?
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
@@ -253,8 +254,14 @@ int DataIO_Std::Read_1D(std::string const& fname,
     } else {
       md.SetIdx( col+1 );
       if (hasLabels) md.SetLegend( labels[col] );
-      if (validInteger(token) || validDouble(token)) {
-        // Number
+      if ( col == indexcol_ ) {
+        // Always save the index column as floating point
+        inputSets.push_back( new DataSet_double() );
+      } else if (validInteger(token)) {
+        // Integer number
+        inputSets.push_back( datasetlist.Allocate(DataSet::INTEGER) );
+      } else if (validDouble(token)) {
+        // Floating point number
         inputSets.push_back( new DataSet_double() );
       } else {
         // Assume string. Not allowed for index column.
@@ -286,6 +293,8 @@ int DataIO_Std::Read_1D(std::string const& fname,
       if (inputSets[i] != 0) {
         if (inputSets[i]->Type() == DataSet::DOUBLE)
           ((DataSet_double*)inputSets[i])->AddElement( atof(token) );
+        else if (inputSets[i]->Type() == DataSet::INTEGER)
+          ((DataSet_integer*)inputSets[i])->AddElement( atoi(token) );
         else
           ((DataSet_string*)inputSets[i])->AddElement( std::string(token) );
       }
