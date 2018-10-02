@@ -7,7 +7,7 @@ class DataSet_integer_mem : public DataSet_integer {
   public:
     DataSet_integer_mem() {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_integer_mem();}
-    //int& operator[](size_t idx)       { return Data_[idx];         }
+    // ----- DataSet_integer functions -----------
     void SetElement(size_t idx, int val) { Data_[idx] = val; }
     int  operator[](size_t idx) const { return Data_[idx];         }
     void AddElement(int i)            { Data_.push_back( i );      }
@@ -16,6 +16,9 @@ class DataSet_integer_mem : public DataSet_integer {
     /// Make set size sizeIn, all values set to val.
     void Assign(size_t sizeIn, int val) { Data_.resize(sizeIn, -1); }
     inline void AddVal(size_t, int);
+    // ----- DataSet_1D functions ----------------
+    double Dval(size_t idx)     const { return (double)Data_[idx]; }
+    const void* VoidPtr(size_t idx) const { return (void*)(&(Data_[0])+idx); }
     // ----- DataSet functions -------------------
     size_t Size()               const { return Data_.size();       }
 #   ifdef MPI
@@ -26,15 +29,11 @@ class DataSet_integer_mem : public DataSet_integer {
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
-    // ----- DataSet_1D functions ----------------
-    double Dval(size_t idx)     const { return (double)Data_[idx]; }
-    //double Xcrd(size_t idx)     const { return Dim(0).Coord(idx);  }
-    const void* VoidPtr(size_t idx) const { return (void*)(&(Data_[0])+idx); }
     // -------------------------------------------
-    typedef std::vector<int>::iterator iterator;
-    iterator begin()                  { return Data_.begin();      }
-    iterator end()                    { return Data_.end();        }
-    int* Ptr()                        { return &(Data_[0]);        }
+    //typedef std::vector<int>::iterator iterator;
+    //iterator begin()                  { return Data_.begin();      }
+    //iterator end()                    { return Data_.end();        }
+    //int* Ptr()                        { return &(Data_[0]);        }
   private:
     std::vector<int> Data_;
 };
