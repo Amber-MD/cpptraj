@@ -1,3 +1,4 @@
+#ifdef BINTRAJ
 #include <netcdf.h>
 #include "DataSet_integer_disk.h"
 #include "CpptrajStdio.h"
@@ -151,3 +152,4 @@ void DataSet_integer_disk::AddVal(size_t idx, int val) {
   } else
     Add(idx, &val);
 }
+#endif /* BINTRAJ */

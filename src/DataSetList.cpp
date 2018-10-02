@@ -6,7 +6,9 @@
 #include "DataSet_double.h"
 #include "DataSet_float.h"
 #include "DataSet_integer_mem.h"
+#ifdef BINTRAJ
 #include "DataSet_integer_disk.h"
+#endif
 #include "DataSet_string.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_MatrixFlt.h"
@@ -41,11 +43,17 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::DOUBLE  : ds = DataSet_double::Alloc(); break;
     case DataSet::FLOAT   : ds = DataSet_float::Alloc(); break;
     case DataSet::INTEGER :
+#     ifdef BINTRAJ
       if (useDiskCache_) {
         ds = DataSet_integer_disk::Alloc();
         cannotUseDiskCache = false;
       } else
         ds = DataSet_integer_mem::Alloc();
+#     else
+      if (useDiskCache_)
+        mprintf("Warning: Integer data set disk cache requires NetCDF. Using memory.\n"
+      ds = DataSet_integer_mem::Alloc();
+#     endif
       break;
     case DataSet::STRING  : ds = DataSet_string::Alloc(); break;
     case DataSet::MATRIX_DBL : ds = DataSet_MatrixDbl::Alloc(); break;

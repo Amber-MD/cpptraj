@@ -1,5 +1,6 @@
 #ifndef INC_DATASET_INTEGER_DISK_H
 #define INC_DATASET_INTEGER_DISK_H
+#ifdef BINTRAJ
 #include "DataSet_integer.h"
 class DataSet_integer_disk : public DataSet_integer {
   public:
@@ -43,4 +44,5 @@ class DataSet_integer_disk : public DataSet_integer {
     size_t count_[1]; ///< Current size to read/write
     unsigned int nvals_; ///< Total number of values in data set
 };
+#endif
 #endif
