@@ -2,7 +2,7 @@
 #define INC_DATASET_INTEGER_MEM_H
 #include <vector>
 #include "DataSet_integer.h"
-/// Hold an array of integer values.
+/// Hold an array of integer values in memory.
 class DataSet_integer_mem : public DataSet_integer {
   public:
     DataSet_integer_mem() {}

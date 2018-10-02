@@ -2,6 +2,7 @@
 #define INC_DATASET_INTEGER_DISK_H
 #ifdef BINTRAJ
 #include "DataSet_integer.h"
+/// Integer data set, cached to disk with NetCDF
 class DataSet_integer_disk : public DataSet_integer {
   public:
     DataSet_integer_disk();
