@@ -34,6 +34,14 @@ For more information (or to cite CPPTRAJ) see the following publication:
   Processing and Analysis of Molecular Dynamics Trajectory Data". J. Chem.
   Theory Comput., 2013, 9 (7), pp 3084-3095](http://pubs.acs.org/doi/abs/10.1021/ct400341p).
 
+For more information regarding trajectory/ensemble parallelism via MPI in
+CPPTRAJ see the following publication:
+
+[Daniel R. Roe and Thomas E. Cheatham, III, \"Parallelization of CPPTRAJ enables
+  large scale analysis of molecular dynamics trajectory data\". J. Comp.
+  Chem., 2018, DOI: 10.1002/jcc25382](https://doi.org/10.1002/jcc.25382).
+
+
 Disclaimer and Copyright
 ========================
 
