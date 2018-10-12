@@ -64,22 +64,28 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
           mode = PARAM; 
         } else if (args.hasKey("ATOMS"))     {
           currentSection = ATOMS; mode = PARAM;
-          mprintf("DEBUG: Section ATOMS, line %i\n", infile.LineNumber());
+          if (debugIn > 0)
+            mprintf("DEBUG: Section ATOMS, line %i\n", infile.LineNumber());
         } else if (args.hasKey("BONDS"))     {
           currentSection = BONDS; mode = PARAM;
-          mprintf("DEBUG: Section BONDS, line %i\n", infile.LineNumber());
+          if (debugIn > 0)
+            mprintf("DEBUG: Section BONDS, line %i\n", infile.LineNumber());
         } else if (args.hasKey("ANGLES"))    {
           currentSection = ANGLES; mode = PARAM;
-          mprintf("DEBUG: Section ANGLES, line %i\n", infile.LineNumber());
+          if (debugIn > 0)
+            mprintf("DEBUG: Section ANGLES, line %i\n", infile.LineNumber());
         } else if (args.hasKey("DIHEDRALS")) {
           currentSection = DIHEDRALS; mode = PARAM;
-          mprintf("DEBUG: Section DIHEDRALS, line %i\n", infile.LineNumber());
+          if (debugIn > 0)
+            mprintf("DEBUG: Section DIHEDRALS, line %i\n", infile.LineNumber());
         } else if (args.hasKey("IMPROPER") || args.hasKey("IMPROPERS")) {
           currentSection = IMPROPERS; mode = PARAM;
-          mprintf("DEBUG: Section IMPROPERS, line %i\n", infile.LineNumber());
+          if (debugIn > 0)
+            mprintf("DEBUG: Section IMPROPERS, line %i\n", infile.LineNumber());
         } else if (args.hasKey("NONBONDED")) {
           currentSection = NONBONDED; mode = PARAM;
-          mprintf("DEBUG: Section NONBONDED, line %i\n", infile.LineNumber());
+          if (debugIn > 0)
+            mprintf("DEBUG: Section NONBONDED, line %i\n", infile.LineNumber());
         } else if (args.hasKey("HBOND")) {
           currentSection = IGNORE; mode = NONE;
           mprintf("Warning: Ignoring HBOND section.\n");
