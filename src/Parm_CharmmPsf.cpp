@@ -8,6 +8,13 @@
 #include "Mol.h" // UniqueCount()
 #include "CharmmParamFile.h"
 
+/// CONSTRUCTOR
+Parm_CharmmPsf::Parm_CharmmPsf() :
+  extfmt_(false),
+  cheq_(false),
+  xplor_(true)
+{}
+
 // Parm_CharmmPsf::ID_ParmFormat()
 bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
   // Assumes already set up
@@ -327,6 +334,19 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   return 0;
 }
 
+// =============================================================================
+// Parm_CharmmPsf::WriteHelp()
+void Parm_CharmmPsf::WriteHelp() {
+  mprintf("\toldpsf : Write atom type indices instead of type names (not recommended).\n");
+}
+
+// Parm_CharmmPsf::processWriteArgs()
+int Parm_CharmmPsf::processWriteArgs(ArgList& argIn) {
+  if (argIn.hasKey("oldpsf")) xplor_ = false;
+  return 0;
+}
+
+//  FindMolType()
 static int FindMolType(int molNum, Mol::Marray const& mols) {
   for (Mol::Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol)
     for (Mol::Iarray::const_iterator it = mol->idxs_.begin();
@@ -335,12 +355,17 @@ static int FindMolType(int molNum, Mol::Marray const& mols) {
   return -1;
 }
 
+// Parm_CharmmPsf::WriteParm()
 int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   // TODO: CMAP etc info
   CpptrajFile outfile;
   if (outfile.OpenWrite(fname)) return 1;
-  // Write PSF
-  outfile.Printf("PSF\n\n");
+  // Write PSF header
+  std::string header("PSF");
+  if (extfmt_) header.append(" EXT");
+  if (cheq_)   header.append(" CHEQ");
+  if (xplor_)  header.append(" XPLOR");
+  outfile.Printf("%s\n\n", header.c_str());
   // Write title
   std::string titleOut = parm.ParmName();
   titleOut.resize(78);
@@ -366,16 +391,23 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
         segid = mols[currentMtype].name_.c_str();
       }
     }
-    // TODO: Print type name for xplor-like PSF
-    int typeindex = atom->TypeIndex() + 1;
-    // If type begins with digit, assume charmm numbers were read as
-    // type. Currently Amber types all begin with letters.
-    if (isdigit(atom->Type()[0]))
-      typeindex = convertToInteger( *(atom->Type()) );
-    // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    outfile.Printf("%8i %-4s %-4i %-4s %-4s %4i %14.6G %9g  %10i\n", idx, segid,
+    // Figure out how atom type is being printed.
+    std::string psftype;
+    if (xplor_)
+      psftype.assign( *(atom->Type()) );
+    else
+      psftype = integerToString( atom->TypeIndex() + 1 );
+    // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS IMOVE
+    // IMOVE : 1 = fixed atom, 0 = mobile, -1 = a lonepair (may move, no DoF).
+    // Remaining columns (CHEQ)
+    //   XPLOR  & DRUDE  : ALPHADP THOLEI
+    //   XPLOR  & !DRUDE : ECH     EHA
+    //   !XPLOR & DRUDE  : ALPHADP THOLEI ISDRUDE
+    //   !XPLOR & !DRUDE : ECH     EHA
+    // Where ECH is electronegativity for atoms and EHA is hardness for atoms.
+    outfile.Printf("%8i %-4s %-4i %-4s %-4s %4s %14.6G %9g  %10i\n", idx, segid,
                    parm.Res(resnum).OriginalResNum(), parm.Res(resnum).c_str(),
-                   atom->c_str(), typeindex, atom->Charge(),
+                   atom->c_str(), psftype.c_str(), atom->Charge(),
                    atom->Mass(), 0);
   }
   outfile.Printf("\n");
