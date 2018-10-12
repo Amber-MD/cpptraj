@@ -158,7 +158,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   typedef std::vector<std::string> Sarray;
   // TODO AtomTypeArray should eventually be in Topology
   AtomTypeArray atomTypes;
-  atomTypes.SetDebug( 1 );
+  atomTypes.SetDebug( debug_ );
   Sarray SegIDs;
   for (int atom=0; atom < natom; atom++) {
     if ( (buffer=infile.NextLine()) == 0 ) {
