@@ -74,6 +74,7 @@ parm ala3.psf
 parmwrite out cpptraj.psf
 EOF
 RunCpptraj "$UNITNAME"
+DoTest cpptraj.psf.save cpptraj.psf
 
 EndTest
 
