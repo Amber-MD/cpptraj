@@ -17,6 +17,8 @@ class Parm_CharmmPsf : public ParmIO {
     static inline int FindTag(char*, const char*, CpptrajFile&);
     int ReadDihedrals(CpptrajFile&, int, const char*, Topology&) const;
 
+    inline void WriteSectionHeader(CpptrajFile&, const char*, int) const;
+
     ParameterSet params_;
     bool extfmt_; ///< (write) If true use extended format
     bool cheq_;   ///< (write) If true include extra columns for polarization (CHarge EQuilibration)

@@ -337,12 +337,14 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
 // =============================================================================
 // Parm_CharmmPsf::WriteHelp()
 void Parm_CharmmPsf::WriteHelp() {
-  mprintf("\toldpsf : Write atom type indices instead of type names (not recommended).\n");
+  mprintf("\toldpsf : Write atom type indices instead of type names (not recommended).\n"
+          "\text    : Use extended format.\n");
 }
 
 // Parm_CharmmPsf::processWriteArgs()
 int Parm_CharmmPsf::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("oldpsf")) xplor_ = false;
+  if (argIn.hasKey("ext")) extfmt_ = true;
   return 0;
 }
 
@@ -353,6 +355,16 @@ static int FindMolType(int molNum, Mol::Marray const& mols) {
                                      it != mol->idxs_.end(); ++it)
       if (*it == molNum) return (mol - mols.begin());
   return -1;
+}
+
+//  Parm_CharmmPsf::WriteSectionHeader()
+void Parm_CharmmPsf::WriteSectionHeader(CpptrajFile& outfile, const char* title, int ival)
+const
+{
+  if (extfmt_)
+    outfile.Printf("%10i %s\n", ival, title);
+  else
+    outfile.Printf("%8i %s\n", ival, title);
 }
 
 // Parm_CharmmPsf::WriteParm()
@@ -366,12 +378,15 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   if (cheq_)   header.append(" CHEQ");
   if (xplor_)  header.append(" XPLOR");
   outfile.Printf("%s\n\n", header.c_str());
-  // Write title
+  // Write title FIXME spread out long title over multiple lines
+  WriteSectionHeader(outfile, "!NTITLE", 1);
   std::string titleOut = parm.ParmName();
+  if (titleOut.size() > 78)
+    mprintf("Warning: PSF title will be truncated.\n");
   titleOut.resize(78);
-  outfile.Printf("%8i !NTITLE\n* %-78s\n\n", 1, titleOut.c_str());
+  outfile.Printf("* %-78s\n\n", titleOut.c_str());
   // Write NATOM section
-  outfile.Printf("%8i !NATOM\n", parm.Natom());
+  WriteSectionHeader(outfile, "!NATOM", parm.Natom());
   unsigned int idx = 1;
   // Make segment ids based on molecule type for now.
   Mol::Marray mols = Mol::UniqueCount(parm);
@@ -381,6 +396,26 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   const char* segid = mols[currentMtype].name_.c_str();
   Mol::Iarray::const_iterator mit = mols[currentMtype].idxs_.begin();
 //  bool inSolvent = false;
+  // Output format.
+  // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS IMOVE
+  // Remaining columns (CHEQ)
+  //   XPLOR  & DRUDE  : ALPHADP THOLEI
+  //   XPLOR  & !DRUDE : ECH     EHA
+  //   !XPLOR & DRUDE  : ALPHADP THOLEI ISDRUDE
+  //   !XPLOR & !DRUDE : ECH     EHA
+  // Where ECH is electronegativity for atoms and EHA is hardness for atoms.
+  const char* atmfmt = 0;
+  if (extfmt_) {
+    if (xplor_)
+      atmfmt = "%10i %-8s %-8i %-8s %-8s %-6s %14.6G%14.6G%8i\n";
+    else
+      atmfmt = "%10i %-8s %-8i %-8s %-8s %4s %14.6G%14.6G%8i\n";
+  } else {
+    if (xplor_)
+      atmfmt = "%8i %-4s %-4i %-4s %-4s %-4s %14.6G%14.6G%8i\n";
+    else
+      atmfmt = "%8i %-4s %-4i %-4s %-4s %4s %14.6G%14.6G%8i\n";
+  }
   for (Topology::atom_iterator atom = parm.begin(); atom != parm.end(); ++atom, ++idx) {
     int resnum = atom->ResNum();
     if (atom->MolNum() != currentMol) {
@@ -404,21 +439,15 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
       imove = -1;
     else
       imove = 0;
-    // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS IMOVE
-    // Remaining columns (CHEQ)
-    //   XPLOR  & DRUDE  : ALPHADP THOLEI
-    //   XPLOR  & !DRUDE : ECH     EHA
-    //   !XPLOR & DRUDE  : ALPHADP THOLEI ISDRUDE
-    //   !XPLOR & !DRUDE : ECH     EHA
-    // Where ECH is electronegativity for atoms and EHA is hardness for atoms.
-    outfile.Printf("%8i %-4s %-4i %-4s %-4s %4s %14.6G %9g  %10i\n", idx, segid,
+    // Write atom line
+    outfile.Printf(atmfmt, idx, segid,
                    parm.Res(resnum).OriginalResNum(), parm.Res(resnum).c_str(),
                    atom->c_str(), psftype.c_str(), atom->Charge(),
                    atom->Mass(), imove);
   }
   outfile.Printf("\n");
   // Write NBOND section
-  outfile.Printf("%8u !NBOND: bonds\n", parm.Bonds().size() + parm.BondsH().size());
+  WriteSectionHeader(outfile, "!NBOND: bonds", parm.Bonds().size() + parm.BondsH().size());
   idx = 1;
   for (BondArray::const_iterator bond = parm.BondsH().begin();
                                  bond != parm.BondsH().end(); ++bond, ++idx)
@@ -435,7 +464,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   if ((idx % 4)!=0) outfile.Printf("\n");
   outfile.Printf("\n");
   // Write NTHETA section
-  outfile.Printf("%8u !NTHETA: angles\n", parm.Angles().size() + parm.AnglesH().size());
+  WriteSectionHeader(outfile, "!NTHETA: angles", parm.Angles().size() + parm.AnglesH().size());
   idx = 1;
   for (AngleArray::const_iterator ang = parm.AnglesH().begin();
                                   ang != parm.AnglesH().end(); ++ang, ++idx)
@@ -452,7 +481,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   if ((idx % 3)==0) outfile.Printf("\n");
   outfile.Printf("\n");
   // Write out NPHI section
-  outfile.Printf("%8u !NPHI: dihedrals\n", parm.Dihedrals().size() + parm.DihedralsH().size());
+  WriteSectionHeader(outfile, "!NPHI: dihedrals", parm.Dihedrals().size() + parm.DihedralsH().size());
   idx = 1;
   for (DihedralArray::const_iterator dih = parm.DihedralsH().begin();
                                      dih != parm.DihedralsH().end(); ++dih, ++idx)
