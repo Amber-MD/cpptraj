@@ -397,8 +397,14 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
       psftype.assign( *(atom->Type()) );
     else
       psftype = integerToString( atom->TypeIndex() + 1 );
-    // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS IMOVE
+    // Figure out what IMOVE should be.
     // IMOVE : 1 = fixed atom, 0 = mobile, -1 = a lonepair (may move, no DoF).
+    int imove;
+    if (atom->Element() == Atom::EXTRAPT) // TODO is this OK?
+      imove = -1;
+    else
+      imove = 0;
+    // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS IMOVE
     // Remaining columns (CHEQ)
     //   XPLOR  & DRUDE  : ALPHADP THOLEI
     //   XPLOR  & !DRUDE : ECH     EHA
@@ -408,7 +414,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
     outfile.Printf("%8i %-4s %-4i %-4s %-4s %4s %14.6G %9g  %10i\n", idx, segid,
                    parm.Res(resnum).OriginalResNum(), parm.Res(resnum).c_str(),
                    atom->c_str(), psftype.c_str(), atom->Charge(),
-                   atom->Mass(), 0);
+                   atom->Mass(), imove);
   }
   outfile.Printf("\n");
   // Write NBOND section
