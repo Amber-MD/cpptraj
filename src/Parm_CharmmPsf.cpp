@@ -448,51 +448,66 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   outfile.Printf("\n");
   // Write NBOND section
   WriteSectionHeader(outfile, "!NBOND: bonds", parm.Bonds().size() + parm.BondsH().size());
+  const char* bndfmt = 0;
+  if (extfmt_)
+    bndfmt = "%10i%10i";
+  else
+    bndfmt = "%8i%8i";
   idx = 1;
   for (BondArray::const_iterator bond = parm.BondsH().begin();
                                  bond != parm.BondsH().end(); ++bond, ++idx)
   {
-    outfile.Printf("%8i%8i", bond->A1()+1, bond->A2()+1);
+    outfile.Printf(bndfmt, bond->A1()+1, bond->A2()+1);
     if ((idx % 4)==0) outfile.Printf("\n"); 
   }
   for (BondArray::const_iterator bond = parm.Bonds().begin();
                                  bond != parm.Bonds().end(); ++bond, ++idx)
   {
-    outfile.Printf("%8i%8i", bond->A1()+1, bond->A2()+1);
+    outfile.Printf(bndfmt, bond->A1()+1, bond->A2()+1);
     if ((idx % 4)==0) outfile.Printf("\n"); 
   }
   if ((idx % 4)!=0) outfile.Printf("\n");
   outfile.Printf("\n");
   // Write NTHETA section
   WriteSectionHeader(outfile, "!NTHETA: angles", parm.Angles().size() + parm.AnglesH().size());
+  const char* angfmt = 0;
+  if (extfmt_)
+    angfmt = "%10i%10i%10i";
+  else
+    angfmt = "%8i%8i%8i";
   idx = 1;
   for (AngleArray::const_iterator ang = parm.AnglesH().begin();
                                   ang != parm.AnglesH().end(); ++ang, ++idx)
   {
-    outfile.Printf("%8i%8i%8i", ang->A1()+1, ang->A2()+1, ang->A3()+1);
+    outfile.Printf(angfmt, ang->A1()+1, ang->A2()+1, ang->A3()+1);
     if ((idx % 3)==0) outfile.Printf("\n");
   }
   for (AngleArray::const_iterator ang = parm.Angles().begin();
                                   ang != parm.Angles().end(); ++ang, ++idx)
   {
-    outfile.Printf("%8i%8i%8i", ang->A1()+1, ang->A2()+1, ang->A3()+1);
+    outfile.Printf(angfmt, ang->A1()+1, ang->A2()+1, ang->A3()+1);
     if ((idx % 3)==0) outfile.Printf("\n");
   }
   if ((idx % 3)==0) outfile.Printf("\n");
   outfile.Printf("\n");
   // Write out NPHI section
   WriteSectionHeader(outfile, "!NPHI: dihedrals", parm.Dihedrals().size() + parm.DihedralsH().size());
+  const char* dihfmt = 0;
+  if (extfmt_)
+    dihfmt = "%10i%10i%10i%10i";
+  else
+    dihfmt = "%8i%8i%8i%8i";
   idx = 1;
   for (DihedralArray::const_iterator dih = parm.DihedralsH().begin();
                                      dih != parm.DihedralsH().end(); ++dih, ++idx)
   {
-    outfile.Printf("%8i%8i%8i%8i", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
+    outfile.Printf(dihfmt, dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
     if ((idx % 2)==0) outfile.Printf("\n");
   }
   for (DihedralArray::const_iterator dih = parm.Dihedrals().begin();
                                      dih != parm.Dihedrals().end(); ++dih, ++idx)
   {
-    outfile.Printf("%8i%8i%8i%8i", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
+    outfile.Printf(dihfmt, dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
     if ((idx % 2)==0) outfile.Printf("\n");
   }
   if ((idx % 2)==0) outfile.Printf("\n");
