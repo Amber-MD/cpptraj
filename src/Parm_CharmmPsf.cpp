@@ -74,15 +74,23 @@ int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char
       int ndihread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
                               bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
                               bondatoms+6,bondatoms+7);
-      if (params_.DP().empty())
-        for (int dihidx=0; dihidx < ndihread; dihidx += 4)
+      if (params_.DP().empty()) {
+        for (int dihidx=0; dihidx < ndihread; dihidx += 4) {
           // TODO: Determine end dihedrals
-          parmOut.AddDihedral( DihedralType(bondatoms[dihidx  ]-1,
-                                            bondatoms[dihidx+1]-1,
-                                            bondatoms[dihidx+2]-1,
-                                            bondatoms[dihidx+3]-1,
-                                            DihedralType::NORMAL) );
-      else {
+          if (typestr[0] == 'd')
+            parmOut.AddDihedral( DihedralType(bondatoms[dihidx  ]-1,
+                                              bondatoms[dihidx+1]-1,
+                                              bondatoms[dihidx+2]-1,
+                                              bondatoms[dihidx+3]-1,
+                                              DihedralType::NORMAL) );
+          else
+            parmOut.AddCharmmImproper( DihedralType(bondatoms[dihidx  ]-1,
+                                              bondatoms[dihidx+1]-1,
+                                              bondatoms[dihidx+2]-1,
+                                              bondatoms[dihidx+3]-1,
+                                              DihedralType::IMPROPER), -1 );
+        }
+      } else {
         for (int dihidx=0; dihidx < ndihread; dihidx += 4) {
           int a1 = bondatoms[dihidx]-1;
           int a2 = bondatoms[dihidx+1]-1;
@@ -143,6 +151,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     psftitle.assign( ptr );
   }
   parmOut.SetParmName( NoTrailingWhitespace(psftitle), infile.Filename() );
+  parmOut.SetChamber().SetHasChamber(true);
   // Advance to <natom> !NATOM
   int natom = FindTag(tag, "!NATOM", infile);
   if (debug_>0) mprintf("\tPSF: !NATOM tag found, natom=%i\n", natom);
@@ -367,6 +376,20 @@ const
     outfile.Printf("%8i %s\n", ival, title);
 }
 
+// WriteDihedrals() // FIXME sort out impropers
+static inline void WriteDihedrals(
+  DihedralArray const& dihedrals,
+  unsigned int& idx,
+  CpptrajFile& outfile,
+  const char* dihfmt)
+{
+  for (DihedralArray::const_iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih, ++idx)
+  {
+    outfile.Printf(dihfmt, dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
+    if ((idx % 2)==0) outfile.Printf("\n");
+  }
+}
+
 // Parm_CharmmPsf::WriteParm()
 int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   // TODO: CMAP etc info
@@ -498,18 +521,14 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   else
     dihfmt = "%8i%8i%8i%8i";
   idx = 1;
-  for (DihedralArray::const_iterator dih = parm.DihedralsH().begin();
-                                     dih != parm.DihedralsH().end(); ++dih, ++idx)
-  {
-    outfile.Printf(dihfmt, dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
-    if ((idx % 2)==0) outfile.Printf("\n");
-  }
-  for (DihedralArray::const_iterator dih = parm.Dihedrals().begin();
-                                     dih != parm.Dihedrals().end(); ++dih, ++idx)
-  {
-    outfile.Printf(dihfmt, dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
-    if ((idx % 2)==0) outfile.Printf("\n");
-  }
+  WriteDihedrals(parm.DihedralsH(), idx, outfile, dihfmt);
+  WriteDihedrals(parm.Dihedrals(), idx, outfile, dihfmt);
+  if ((idx % 2)==0) outfile.Printf("\n");
+  outfile.Printf("\n");
+  // Write out NIMPHI section
+  WriteSectionHeader(outfile, "!NIMPHI: impropers", parm.Chamber().Impropers().size());
+  idx = 1;
+  WriteDihedrals(parm.Chamber().Impropers(), idx, outfile, dihfmt);
   if ((idx % 2)==0) outfile.Printf("\n");
   outfile.Printf("\n");
 
