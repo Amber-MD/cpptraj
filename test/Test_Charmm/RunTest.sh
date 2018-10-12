@@ -4,7 +4,7 @@
 
 CleanFiles charmm.in test.ala3.pdb.? test.ala3.pdb.10 first.ala3.crd \
            test.psf test.ala3.dcd second.ala3.crd strip.chamber.parm7 \
-           run0.res_0.mol2
+           run0.res_0.mol2 cpptraj.psf
 
 TESTNAME='Charmm DCD tests'
 Requires maxthreads 10
@@ -64,9 +64,16 @@ parm ala3.psf
 trajin run0.res_0
 trajout run0.res_0.mol2
 EOF
-  RunCpptraj "$TESTNAME"
+  RunCpptraj "$UNITNAME"
   DoTest run0.res_0.mol2.save run0.res_0.mol2
 fi
+
+UNITNAME='CHARMM PSF write'
+cat > charmm.in <<EOF
+parm ala3.psf
+parmwrite out cpptraj.psf
+EOF
+RunCpptraj "$UNITNAME"
 
 EndTest
 
