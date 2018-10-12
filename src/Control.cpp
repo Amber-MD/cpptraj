@@ -6,21 +6,28 @@
 void ControlBlock_For::Help() const {
   mprintf("\t{ {atoms|residues|molecules|molfirstres|mollastres}\n"
           "\t    <var> inmask <mask> [%s] ... |\n"
+          "\t    <var> in <list>\n"
           "\t  <var>=<start>;[<var><end OP><end>;]<var><increment OP>[<value>] ... }\n",
           DataSetList::TopIdxArgs);
   mprintf("\tEND KEYWORD: 'done'\n");
-  mprintf("  Create a 'for' loop around specified mask(s) and/or integer value(s).\n"
-          "  Any number and combination of masks and integers can be specified.\n"
+  mprintf("  Create a 'for' loop around specified mask(s), comma-separated list of\n"
+          "  strings and/or integer value(s). Any number and combination of masks,\n"
+          "  lists, and integers can be specified. Strings in lists can be file\n"
+          "  names containing wildcard characters ('*' or '?').\n"
           "  Variables created in the for loop can be referenced by prefacing\n"
           "  the name with a '$' character.\n"
           "  Available 'end OP'       : '<' '>'\n"
           "  Available 'increment OP' : '++', '--', '+=', '-='\n"
           "  Note that variables are NOT incremented after the final loop iteration,\n"
           "  i.e. loop variables always retain their final value.\n"
-          "  Example:\n"
+          "  Examples:\n"
           "\tfor atoms A0 inmask :1-27&!@H= i=1;i++\n"
           "\t  distance d$i :TCS $A0 out $i.dat\n"
-          "\tdone\n");
+          "\tdone\n"
+          "\tfor TRAJ in trajA*.nc,trajB*.nc\n"
+          "\t  trajin $TRAJ 1 last 10\n"
+          "\tdone\n"
+          );
 }
 
 /** Set up each mask/integer loop. */
@@ -42,20 +49,30 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
     // Determine 'for' type
     ForType ftype = UNKNOWN;
     bool isMaskFor = true;
-    if      ( argIn[iarg] == "atoms"     ) ftype = ATOMS;
-    else if ( argIn[iarg] == "residues"  ) ftype = RESIDUES;
-    else if ( argIn[iarg] == "molecules" ) ftype = MOLECULES;
+    int argToMark = iarg;
+    if      ( argIn[iarg] == "atoms"       ) ftype = ATOMS;
+    else if ( argIn[iarg] == "residues"    ) ftype = RESIDUES;
+    else if ( argIn[iarg] == "molecules"   ) ftype = MOLECULES;
     else if ( argIn[iarg] == "molfirstres" ) ftype = MOLFIRSTRES;
     else if ( argIn[iarg] == "mollastres"  ) ftype = MOLLASTRES;
     else if ( argIn[iarg].find(";") != std::string::npos ) {
       isMaskFor = false;
       ftype = INTEGER;
     }
+    // If type is still unknown, check for list.
+    if (ftype == UNKNOWN) {
+      if (iarg+1 < argIn.Nargs() && argIn[iarg+1] == "in") {
+        ftype = LIST;
+        isMaskFor = false;
+        argToMark = iarg+1;
+      }
+    }
+    // Exit if type could not be determined.
     if (ftype == UNKNOWN) {
       mprinterr("Error: for loop type not specfied.\n");
       return 1;
     }
-    argIn.MarkArg(iarg);
+    argIn.MarkArg(argToMark);
     Vars_.push_back( LoopVar() );
     LoopVar& MH = Vars_.back();
     int Niterations = -1;
@@ -248,6 +265,41 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
       //mprintf("DEBUG: start=%i endOp=%i end=%i incOp=%i val=%i startArg=%s endArg=%s\n",
       //        MH.start_, (int)MH.endOp_, MH.end_, (int)MH.incOp_, MH.inc_,
       //        MH.startArg_.c_str(), MH.endArg_.c_str());
+    // -------------------------------------------
+    } else if (ftype == LIST) {
+      // <var> in <string0>[,<string1>...]
+      MH.varType_ = ftype;
+      // Variable name
+      MH.varname_ = argIn.GetStringNext();
+      if (MH.varname_.empty()) {
+        mprinterr("Error: 'for in': missing variable name.\n");
+        return 1;
+      }
+      MH.varname_ = "$" + MH.varname_;
+      // Comma-separated list of strings
+      std::string listArg = argIn.GetStringNext();
+      if (listArg.empty()) {
+        mprinterr("Error: 'for in': missing comma-separated list of strings.\n");
+        return 1;
+      }
+      ArgList list(listArg, ",");
+      if (list.Nargs() < 1) {
+        mprinterr("Error: Could not parse '%s' for 'for in'\n", listArg.c_str());
+        return 1;
+      }
+      for (int il = 0; il != list.Nargs(); il++) {
+        // Check if file name expansion should occur
+        if (list[il].find_first_of("*?") != std::string::npos) {
+          File::NameArray files = File::ExpandToFilenames( list[il] );
+          for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
+            MH.List_.push_back( fn->Full() );
+        } else
+          MH.List_.push_back( list[il] );
+      }
+      Niterations = (int)MH.List_.size();
+      // Description
+      description_.append( MH.varname_ + " in " + listArg );
+
     }
     // Check number of values
     if (MaxIterations == -1)
@@ -273,6 +325,8 @@ void ControlBlock_For::Start() {
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
     if (MH->varType_ == INTEGER)
       MH->currentVal_ = MH->start_; // TODO search currentvars
+    else if ( MH->varType_ == LIST)
+      MH->sdx_ = MH->List_.begin();
     else
       MH->idx_ = MH->Idxs_.begin();
   }
@@ -293,6 +347,12 @@ ControlBlock::DoneType ControlBlock_For::CheckDone(Varray& CurrentVars) {
       CurrentVars.UpdateVariable( MH->varname_, integerToString( MH->currentVal_ ));
       // Increment
       MH->currentVal_ += MH->inc_;
+    } else if (MH->varType_ == LIST) {
+      if (MH->sdx_ == MH->List_.end()) return DONE;
+      // Get variable value
+      CurrentVars.UpdateVariable( MH->varname_, *(MH->sdx_) );
+      // Increment
+      ++(MH->sdx_);
     } else {
       if (MH->idx_ == MH->Idxs_.end()) return DONE;
       // Get variable value

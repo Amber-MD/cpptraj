@@ -4,11 +4,12 @@
 #include "DataSet_1D.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_Vector.h"
+#include "DataSet_string.h"
 #include "StringRoutines.h"
 
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
-          "\t dim|outformat|mode|type} <options>\n");
+          "\t dim|outformat|invert|mode|type} <options>\n");
   mprintf("  legend <legend> <set>\n"
           "    Set the legend for a single data set.\n");
   mprintf("  makexy <Xset> <Yset> [name <name>]\n"
@@ -34,6 +35,7 @@ void Exec_DataSetCmd::Help() const {
           "      double     - \"Normal\" output, e.g. 0.4032\n"
           "      scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
           "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
+  Help_InvertSets();
   mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
   mprintf("      <mode>: ");
   for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
@@ -85,6 +87,9 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   // ---------------------------------------------
   } else if (argIn.hasKey("dim")) {        // Modify dimension of set(s)
     err = ChangeDim(State, argIn);
+  // ---------------------------------------------
+  } else if (argIn.hasKey("invert")) {     // Invert set(s) X/Y, create new sets
+    err = InvertSets(State, argIn);
   // ---------------------------------------------
   } else {                                // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
@@ -622,10 +627,7 @@ Exec::RetType Exec_DataSetCmd::Concatenate(CpptrajState& State, ArgList& argIn) 
     double XY[2];
     for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
     {
-      if ( (*ds)->Type() != DataSet::INTEGER &&
-           (*ds)->Type() != DataSet::DOUBLE &&
-           (*ds)->Type() != DataSet::FLOAT &&
-           (*ds)->Type() != DataSet::XYMESH )
+      if ( (*ds)->Group() != DataSet::SCALAR_1D )
       {
         mprintf("Warning: '%s': Concatenation only supported for 1D scalar data sets.\n",
                 (*ds)->legend());
@@ -782,5 +784,107 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
     }
     ds_arg = argIn.GetStringNext();
   }
+  return CpptrajState::OK;
+}
+
+void Exec_DataSetCmd::Help_InvertSets() {
+  mprintf("  invert <set arg0> ... name <new name> [legendset <set>]\n"
+          "    Given M input sets of length N, create N new sets of length M by\n"
+          "    inverting the input sets.\n");
+}
+
+/** Syntax: dataset invert <set arg0> ... name <new name> */
+Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
+  DataSetList& DSL = State.DSL();
+  // Get keywords
+  DataSet* inputNames = 0;
+  std::string dsname = argIn.GetStringKey("legendset");
+  if (!dsname.empty()) {
+    inputNames = DSL.GetDataSet( dsname );
+    if (inputNames == 0) {
+      mprinterr("Error: Name set '%s' not found.\n", dsname.c_str());
+      return CpptrajState::ERR;
+    }
+    if (inputNames->Type() != DataSet::STRING) {
+      mprinterr("Error: Set '%s' does not contain strings.\n", inputNames->legend());
+      return CpptrajState::ERR;
+    }
+    mprintf("\tUsing names from set '%s' as legends for inverted sets.\n", inputNames->legend());
+  }
+  dsname = argIn.GetStringKey("name");
+  if (dsname.empty()) {
+    mprinterr("Error: 'invert' requires that 'name <new set name>' be specified.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\tNew sets will be named '%s'\n", dsname.c_str());
+  DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
+  if (outfile != 0)
+    mprintf("\tNew sets will be output to '%s'\n", outfile->DataFilename().full());
+  // TODO determine type some other way
+  DataSet::DataType outtype = DataSet::DOUBLE;
+  // Get input DataSets
+  std::vector<DataSet_1D*> input_sets; 
+  std::string dsarg = argIn.GetStringNext();
+  while (!dsarg.empty()) {
+    DataSetList sets = DSL.GetMultipleSets( dsarg );
+    for (DataSetList::const_iterator ds = sets.begin(); ds != sets.end(); ++ds)
+    {
+      if ( (*ds)->Group() != DataSet::SCALAR_1D ) {
+        mprintf("Warning: '%s': Inversion only supported for 1D scalar data sets.\n",
+                (*ds)->legend());
+      } else {
+        if (!input_sets.empty()) {
+          if ( (*ds)->Size() != input_sets.back()->Size() ) {
+            mprinterr("Error: Set '%s' has different size (%zu) than previous set (%zu)\n",
+                      (*ds)->legend(), (*ds)->Size(), input_sets.back()->Size());
+            return CpptrajState::ERR;
+          }
+        }
+        input_sets.push_back( (DataSet_1D*)*ds );
+      }
+    }
+    dsarg = argIn.GetStringNext();
+  }
+  if (input_sets.empty()) {
+    mprinterr("Error: No sets selected.\n");
+    return CpptrajState::ERR;
+  }
+  if (inputNames != 0 && inputNames->Size() != input_sets.front()->Size()) {
+    mprinterr("Error: Name set '%s' size (%zu) differs from # data points (%zu).\n",
+              inputNames->legend(), inputNames->Size(), input_sets.front()->Size());
+    return CpptrajState::ERR;
+  }
+  mprintf("\t%zu input sets; creating %zu output sets.\n",
+          input_sets.size(), input_sets.front()->Size());
+  // Need an output data set for each point in input sets
+  std::vector<DataSet*> output_sets;
+  int column = 1;
+  for (int idx = 0; idx != (int)input_sets[0]->Size(); idx++, column++) {
+    DataSet* ds = 0;
+    ds = DSL.AddSet(outtype, MetaData(dsname, column));
+    if (ds == 0) return CpptrajState::ERR;
+    if (inputNames != 0)
+      ds->SetLegend( (*((DataSet_string*)inputNames))[idx] );
+    output_sets.push_back( ds );
+    if (outfile != 0) outfile->AddDataSet( ds );
+  }
+  // Create a data set containing names of each input data set
+  DataSet* nameset = DSL.AddSet(DataSet::STRING, MetaData(dsname, column));
+  if (nameset == 0) return CpptrajState::ERR;
+  if (inputNames != 0)
+    nameset->SetLegend("Names");
+  if (outfile != 0) outfile->AddDataSet( nameset );
+  // Populate output data sets
+  for (int jdx = 0; jdx != (int)input_sets.size(); jdx++)
+  {
+    DataSet_1D const& INP = static_cast<DataSet_1D const&>( *(input_sets[jdx]) );
+    nameset->Add( jdx, INP.legend() );
+    for (unsigned int idx = 0; idx != INP.Size(); idx++)
+    {
+      double dval = INP.Dval( idx );
+      output_sets[idx]->Add( jdx, &dval );
+    }
+  }
+
   return CpptrajState::OK;
 }

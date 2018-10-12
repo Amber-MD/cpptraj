@@ -75,6 +75,7 @@ int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const
   return Allocate_N_C_D( nx, ny, nz, center, dxyz );
 }
 
+// DataSet_3D::GridInfo()
 void DataSet_3D::GridInfo() const {
   if (gridBin_ == 0) return;
   Vec3 const& oxyz = gridBin_->GridOrigin();

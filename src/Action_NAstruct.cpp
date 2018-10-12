@@ -407,16 +407,22 @@ int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2, int& 
         {
           const double* xyz2 = base2.HBxyz(b2);
           double dist2 = DIST2_NoImage(xyz1, xyz2);
+#         ifdef NASTRUCTDEBUG
+          mprintf("\t\t%s:%s -- %s:%s = %f",
+                    base1.ResName(), base1.atomName(b1),
+                    base2.ResName(), base2.atomName(b2), sqrt(dist2));
+#         endif
           if (dist2 < HBdistCut2_) {
             ++Nhbonds;
             HbondType hbtype = ID_HBtype(base1, b1, base2, b2);
             if (hbtype == WC) n_WC++;
 #           ifdef NASTRUCTDEBUG
-            mprintf("\t\t%s:%s -- %s:%s = %f (%i)\n",
-                    base1.ResName(), base1.atomName(b1),
-                    base2.ResName(), base2.atomName(b2), sqrt(dist2), (int)hbtype);
+            mprintf(" (%i)", (int)hbtype);
 #           endif
           }
+#         ifdef NASTRUCTDEBUG
+          mprintf("\n");
+#         endif
         }
       }
     }
@@ -492,12 +498,17 @@ int Action_NAstruct::DetermineBasePairing() {
     for (Barray::const_iterator base2 = base1 + 1; base2 != Bases_.end(); ++base2)
     {
       double dist2 = DIST2_NoImage(base1->Axis().Oxyz(), base2->Axis().Oxyz());
+#     ifdef NASTRUCTDEBUG
+      mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
+              base1->ResNum()+1, base1->ResName(), 
+              base2->ResNum()+1, base2->ResName(), sqrt(dist2));
+#     endif
       if (dist2 < originCut2_) {
-#       ifdef NASTRUCTDEBUG
-        mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
-                base1->ResNum()+1, base1->ResName(), 
-                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
-#       endif
+//#       ifdef NASTRUCTDEBUG
+//        mprintf("  Axes distance for %i:%s -- %i:%s is %f\n",
+//                base1->ResNum()+1, base1->ResName(), 
+//                base2->ResNum()+1, base2->ResName(), sqrt(dist2));
+//#       endif
         // Calculate parameters between axes.
         double Param[6];
         calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
@@ -1316,6 +1327,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   int strandNum = 0;
   int strandBeg = -1;
   std::vector<int> Visited( setup.Top().Res(Bases_.back().ResNum()).LastAtom(), 0 );
+  Barray::iterator lastBase = Bases_.end() - 1;
   for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
     Residue const& res = setup.Top().Res( base->ResNum() );
     int c5neighbor = -1;
@@ -1337,10 +1349,11 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
       if (c3neighbor == Bases_[idx].ResNum()) base->SetC3Idx( idx );
     }
-    // Set NA strand number. If no 3' neighbor increment the strand number.
+    // Set NA strand number. If no 3' neighbor or this is the last base then
+    // increment the strand number.
     base->SetStrandNum( strandNum );
     if (c5neighbor == -1) strandBeg = (int)(base - Bases_.begin());
-    if (c3neighbor == -1) {
+    if (c3neighbor == -1 || base == lastBase ) {
       strandNum++;
       Strands_.push_back( Rpair(strandBeg, (int)(base - Bases_.begin())) );
     }

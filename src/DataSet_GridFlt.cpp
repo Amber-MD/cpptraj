@@ -1,5 +1,6 @@
 #include "DataSet_GridFlt.h"
-#include "CpptrajStdio.h" // DEBUG
+#include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 DataSet_GridFlt::DataSet_GridFlt(DataSet_GridFlt const& rhs) : DataSet_3D(rhs), grid_(rhs.grid_) {}
 
@@ -11,6 +12,10 @@ void DataSet_GridFlt::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) co
     outfile.Printf(format_.fmt(), 0.0);
   else
     outfile.Printf(format_.fmt(), grid_.element(x,y,z));
+}
+
+void DataSet_GridFlt::Info() const {
+  mprintf(" (%s)", ByteString(Grid<float>::sizeInBytes(NX(), NY(), NZ()), BYTE_DECIMAL).c_str());
 }
 
 #ifdef MPI

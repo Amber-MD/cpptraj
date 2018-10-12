@@ -148,15 +148,9 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
     }
     // If mask pertains to only one molecule, do not include that molecule
     // in the fixed region.
-    AtomMask::const_iterator at = anchorMask_.begin();
-    anchormolnum = setup.Top()[ *at ].MolNum();
-    ++at;
-    for (; at != anchorMask_.end(); ++at) {
-      if ( setup.Top()[ *at ].MolNum() != anchormolnum ) {
-        anchormolnum = 1;
-        break;
-      }
-    }
+    std::vector<int> molnums = setup.Top().MolnumsSelectedBy( anchorMask_ );
+    if (molnums.size() == 1)
+      anchormolnum = molnums.front();
     if (anchormolnum != -1)
       mprintf("\tMask [%s] corresponds to molecule %i\n",
               anchorMask_.MaskString(), anchormolnum+1);

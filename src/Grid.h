@@ -13,6 +13,8 @@ template <class T> class Grid {
     const T& operator[](size_t idx) const { return grid_[idx];  }
     /// \ return total number of grid points.
     size_t size()                   const { return nelements_;  }
+    /// \return estimated size in bytes for given dimensions.
+    static size_t sizeInBytes(size_t, size_t, size_t);
     /// Set up grid for given X, Y, and Z dimensions.
     int resize(size_t,size_t,size_t);
     /// \return Size of X dimension.
@@ -52,6 +54,10 @@ template <class T> class Grid {
     size_t nelements_; ///< Total number of grid points.
     T* grid_;          ///< Array of grid points.
 };
+/** \return estimated size in bytes for given dimensions. */
+template <class T> size_t Grid<T>::sizeInBytes(size_t nX, size_t nY, size_t nZ) {
+  return ((4*sizeof(size_t)) + sizeof(T*) + (nX*nY*nZ*sizeof(T)));
+}
 // COPY CONSTRUCTOR
 template <class T> Grid<T>::Grid(const Grid& rhs) :
   nx_(rhs.nx_),

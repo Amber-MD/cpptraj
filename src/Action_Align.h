@@ -16,8 +16,10 @@ class Action_Align: public Action {
 
     ReferenceAction REF_; ///< Hold reference frame/traj/options
     AtomMask tgtMask_;    ///< Mask of selected target atoms.
+    AtomMask movMask_;    ///< Mask of atoms that will be moved.
     int debug_;
     bool useMass_;        ///< If true, mass-weight the fit.
+    bool moveSpecified_;  ///< If true, move mask was specified.
     Vec3 tgtTrans_;       ///< Hold translation to origin.
     Matrix_3x3 rot_;      ///< Hold best-fit rotation matrix.
     Frame tgtFrame_;      ///< Hold selected target atoms.

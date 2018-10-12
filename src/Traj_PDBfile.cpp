@@ -180,7 +180,9 @@ void Traj_PDBfile::WriteHelp() {
           "\tsg <group> : Space group for CRYST1 record, only if box coordinates written.\n"
           "\tinclude_ep : Include extra points.\n"
           "\tconect     : Write CONECT records using bond information.\n"
-          "\tkeepext    : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n");
+          "\tkeepext    : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
+          "\tusecol21   : Use column 21 for 4-letter residue names.\n"
+  );
 }
 
 // Traj_PDBfile::processWriteArgs()
@@ -224,6 +226,8 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   space_group_ = argIn.GetStringKey("sg");
   std::string temp = argIn.GetStringKey("chainid");
   if (!temp.empty()) chainchar_ = temp[0];
+  if (argIn.hasKey("usecol21"))
+    file_.SetUseCol21( true );
   return 0;
 }
 
@@ -283,9 +287,9 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         rname = "CYS ";
       else if (rname == "MEM ") 
         rname = "MET ";
-      else if (rname == "ASH ")
+      else if (rname == "ASH " || rname == "AS4 ")
         rname = "ASP ";
-      else if (rname == "GLH ")
+      else if (rname == "GLH " || rname == "GL4 ")
         rname = "GLU ";
       // also for nucleic acid names:
       else if ( rname == "C3  " )  rname = "  C ";
@@ -627,6 +631,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (atomName == "H3T ") atomName = "HO3'";
         else if (atomName == "HO'2") atomName = "HO2'";
         // CHARMM atom names
+        else if (atomName == "OT1 ") atomName = "O";
+        else if (atomName == "OT2 ") atomName = "OXT";
         else if (pdbTop_->Res(res).Name() == "ILE" && atomName == "CD")
                  atomName = "CD1";
       }
@@ -689,6 +695,8 @@ void Traj_PDBfile::Info() {
       mprintf(", using PDB V3 residue names");
     else if (pdbatom_)
       mprintf(", using PDB V3 atom names");
+    if (file_.UseCol21())
+      mprintf(", using column 21 for 4-letter residue names");
   }
 }
 #ifdef MPI

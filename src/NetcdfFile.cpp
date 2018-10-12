@@ -328,36 +328,38 @@ int NetcdfFile::SetupMultiD() {
       mprintf("\tNetCDF file has multi-D REMD info, %i dimensions.\n",remd_dimension_);
     // Ensure valid # dimensions
     if (remd_dimension_ < 1) {
-      mprinterr("Error: Number of REMD dimensions is less than 1!\n");
-      return -1;
+      if (ncdebug_ > 0)
+        mprintf("\tNumber of REMD dimensions is less than 1.\n");
+      remd_dimension_ = 0;
+    } else {
+      // Start and count for groupnum and dimtype, allocate mem
+      start_[0]=0; 
+      start_[1]=0; 
+      start_[2]=0;
+      count_[0]=remd_dimension_; 
+      count_[1]=0; 
+      count_[2]=0;
+      std::vector<int> remd_dimtype( remd_dimension_ );
+      // Get dimension types
+      int dimtypeVID;
+      if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
+        mprinterr("Error: Getting dimension type variable ID for each dimension.\n");
+        return -1;
+      }
+      if ( NC::CheckErr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, &remd_dimtype[0])) ) {
+        mprinterr("Error: Getting dimension type in each dimension.\n");
+        return -1;
+      }
+      // Get VID for replica indices
+      if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_INDICES, &indicesVID_)) ) {
+        mprinterr("Error: Getting replica indices variable ID.\n");
+        return -1;
+      }
+      // Store type of each dimension TODO should just have one netcdf coordinfo
+      remDimType_.clear();
+      for (int dim = 0; dim < remd_dimension_; ++dim)
+        remDimType_.AddRemdDimension( remd_dimtype[dim] );
     }
-    // Start and count for groupnum and dimtype, allocate mem
-    start_[0]=0; 
-    start_[1]=0; 
-    start_[2]=0;
-    count_[0]=remd_dimension_; 
-    count_[1]=0; 
-    count_[2]=0;
-    std::vector<int> remd_dimtype( remd_dimension_ );
-    // Get dimension types
-    int dimtypeVID;
-    if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_DIMTYPE, &dimtypeVID)) ) {
-      mprinterr("Error: Getting dimension type variable ID for each dimension.\n");
-      return -1;
-    }
-    if ( NC::CheckErr(nc_get_vara_int(ncid_, dimtypeVID, start_, count_, &remd_dimtype[0])) ) {
-      mprinterr("Error: Getting dimension type in each dimension.\n");
-      return -1;
-    }
-    // Get VID for replica indices
-    if ( NC::CheckErr(nc_inq_varid(ncid_, NCREMD_INDICES, &indicesVID_)) ) {
-      mprinterr("Error: Getting replica indices variable ID.\n");
-      return -1;
-    }
-    // Store type of each dimension TODO should just have one netcdf coordinfo
-    remDimType_.clear();
-    for (int dim = 0; dim < remd_dimension_; ++dim)
-      remDimType_.AddRemdDimension( remd_dimtype[dim] );
   }
 
   // Get VID for replica values

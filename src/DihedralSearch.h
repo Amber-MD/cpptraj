@@ -18,6 +18,8 @@ class DihedralSearch {
     /// Recognized dihedral types
     typedef MetaData::scalarType DihedralType;
     DihedralSearch();
+    /// COPY CONSTRUCTOR - Set up for same types as input
+    DihedralSearch(DihedralSearch const&);
     static void ListKnownTypes();
     static void OffsetHelp();
     static DihedralType GetType(std::string const&);

@@ -7,12 +7,14 @@ char Residue::ConvertResName(std::string const& r) {
   if (r.compare(0,3,"ASN")==0) return 'N';
   if (r.compare(0,3,"ASP")==0) return 'D';
   if (r.compare(0,3,"ASH")==0) return 'D'; // Protonated ASP
+  if (r.compare(0,3,"AS4")==0) return 'D'; // Constant pH ASP
   if (r.compare(0,3,"CYS")==0) return 'C';
   if (r.compare(0,3,"CYM")==0) return 'C'; // Deprotonated CYS
   if (r.compare(0,3,"CYX")==0) return 'C';
   if (r.compare(0,3,"GLN")==0) return 'Q';
   if (r.compare(0,3,"GLU")==0) return 'E';
   if (r.compare(0,3,"GLH")==0) return 'E'; // Protonated GLU
+  if (r.compare(0,3,"GL4")==0) return 'E'; // Constant pH GLU 
   if (r.compare(0,3,"GLY")==0) return 'G';
   if (r.compare(0,3,"HIS")==0) return 'H';
   if (r.compare(0,3,"HIE")==0) return 'H'; // NE-protonated (HIS)

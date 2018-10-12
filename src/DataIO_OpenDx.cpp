@@ -21,6 +21,7 @@ bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
 int DataIO_OpenDx::ReadData(FileName const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
+  // TODO append?
   // Add grid data set. Default to float for now.
   DataSet* ds = datasetlist.AddSet( DataSet::GRID_FLT, dsname, "GRID" );
   if (ds==0) return 1;
@@ -148,11 +149,6 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
     }
     progress.Update( ndata );
   }
-  // Set dimensions
-  // FIXME: This should be integrated with allocation
-  //grid.SetDim(Dimension::X, Dimension(oxyz[0], dx, nx, "X"));
-  //grid.SetDim(Dimension::Y, Dimension(oxyz[1], dy, ny, "Y"));
-  //grid.SetDim(Dimension::Z, Dimension(oxyz[2], dz, nz, "Z"));
   return 0;
 }
 

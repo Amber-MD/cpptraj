@@ -67,7 +67,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (tvecType_ != NO_TVEC)
     vecsOut = init.DFL().AddDataFile(actionArgs.GetStringKey("vecsout"));
   // Reference keywords
-  REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ );
+  if (REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ )) return Action::ERR;
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {

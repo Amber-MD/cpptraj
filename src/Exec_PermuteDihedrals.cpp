@@ -43,6 +43,7 @@ void Exec_PermuteDihedrals::Help() const {
 
 // Exec_PermuteDihedrals::Execute()
 Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn) {
+  debug_ = State.Debug();
   mode_ = INTERVAL;
   // Get Keywords - first determine mode
   if (argIn.hasKey("random"))
@@ -418,7 +419,7 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
   int debugframenum=0;
   Trajout_Single DebugTraj;
   DebugTraj.PrepareTrajWrite("debugtraj.nc",ArgList(),(Topology*)&topIn,
-                             topIn.ParmCoordInfo(), topIn.Nframes(),
+                             CoordinateInfo(), BB_dihedrals_.size()*max_factor_,
                              TrajectoryFile::AMBERNETCDF);
   DebugTraj.WriteSingle(debugframenum++,currentFrame);
 # endif
