@@ -41,11 +41,12 @@ int AtomTypeArray::CheckForAtomType(NameType const& nameIn, AtomType const& type
   return idx;
 }
 
+// AtomTypeArray::CheckForAtomType()
 int AtomTypeArray::CheckForAtomType(NameType const& nameIn) {
   return CheckForAtomType( nameIn, AtomType() );
 }
 
-/** \return Atom type index if it exists, -1 otherwise. */
+/** \return Atom type index if given atom type name is present, -1 otherwise. */
 int AtomTypeArray::AtomTypeIndex(NameType const& nameIn) {
   int idx = -1;
   Tmap::iterator it = nameToIdx_.find( nameIn );
