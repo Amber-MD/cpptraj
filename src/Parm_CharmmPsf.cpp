@@ -151,7 +151,6 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     psftitle.assign( ptr );
   }
   parmOut.SetParmName( NoTrailingWhitespace(psftitle), infile.Filename() );
-  parmOut.SetChamber().SetHasChamber(true);
   // Advance to <natom> !NATOM
   int natom = FindTag(tag, "!NATOM", infile);
   if (debug_>0) mprintf("\tPSF: !NATOM tag found, natom=%i\n", natom);

@@ -1410,7 +1410,6 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
   // CHAMBER info
   if (chamber_.HasChamber()) {
-    newParm->chamber_.SetHasChamber( true );
     newParm->chamber_.SetDescription( chamber_.Description() );
     // Urey-Bradley
     newParm->chamber_.SetUB() = StripBondArray(chamber_.UB(),atomMap);
