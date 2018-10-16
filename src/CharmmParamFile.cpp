@@ -55,41 +55,54 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
         if (debugIn > 1)
           mprintf("DBG: %s\n", args.ArgLine());
         // Determine input
-        if (args.hasKey("END")) {
+        if (args.CommandIs("END")) {
           // END read
           currentSection = UNKNOWN;
           mode = NONE;
+        } else if (args.CommandIs("MASS") && args.Nargs() == 4) {
+          args.MarkArg(0); // TODO merge with ATOMS section below?
+          args.MarkArg(1);
+          args.MarkArg(2);
+          prm.AT().AddAtomType(args[2], AtomType(args.getNextDouble(0)));
+        } else if (args.CommandIs("DECL")) {
+          mprintf("Warning: Skipping DECL %s\n", args[1].c_str());
         } else if (args.Nargs() >= 2 && args[0] == "read" && args.hasKey("param")) {
           // 'read param' command
-          mode = PARAM; 
-        } else if (args.hasKey("ATOMS"))     {
+          mode = PARAM;
+        } else if (args.CommandIs("RESI")) {
+          // Residue definition
+          mode = TOP;
+        } else if (args.CommandIs("ATOMS"))     {
           currentSection = ATOMS; mode = PARAM;
           if (debugIn > 0)
             mprintf("DEBUG: Section ATOMS, line %i\n", infile.LineNumber());
-        } else if (args.hasKey("BONDS"))     {
+        } else if (args.CommandIs("BONDS"))     {
           currentSection = BONDS; mode = PARAM;
           if (debugIn > 0)
             mprintf("DEBUG: Section BONDS, line %i\n", infile.LineNumber());
-        } else if (args.hasKey("ANGLES"))    {
+        } else if (args.CommandIs("ANGLES") || args.CommandIs("THETAS")) {
           currentSection = ANGLES; mode = PARAM;
           if (debugIn > 0)
             mprintf("DEBUG: Section ANGLES, line %i\n", infile.LineNumber());
-        } else if (args.hasKey("DIHEDRALS")) {
+        } else if (args.CommandIs("DIHEDRALS") || args.CommandIs("PHI")) {
           currentSection = DIHEDRALS; mode = PARAM;
           if (debugIn > 0)
             mprintf("DEBUG: Section DIHEDRALS, line %i\n", infile.LineNumber());
-        } else if (args.hasKey("IMPROPER") || args.hasKey("IMPROPERS")) {
+        } else if (args.CommandIs("IMPROPER") ||
+                   args.CommandIs("IMPROPERS") ||
+                   args.CommandIs("IMPHI"))
+        {
           currentSection = IMPROPERS; mode = PARAM;
           if (debugIn > 0)
             mprintf("DEBUG: Section IMPROPERS, line %i\n", infile.LineNumber());
-        } else if (args.hasKey("NONBONDED")) {
+        } else if (args.CommandIs("NONBONDED")) {
           currentSection = NONBONDED; mode = PARAM;
           if (debugIn > 0)
             mprintf("DEBUG: Section NONBONDED, line %i\n", infile.LineNumber());
-        } else if (args.hasKey("HBOND")) {
+        } else if (args.CommandIs("HBOND")) {
           currentSection = IGNORE; mode = NONE;
           mprintf("Warning: Ignoring HBOND section.\n");
-        } else if (args.hasKey("CMAP")) {
+        } else if (args.CommandIs("CMAP")) {
           currentSection = IGNORE; mode = NONE;
           mprintf("Warning: Ignoring CMAP section.\n");
         } else if (mode == PARAM) {
@@ -185,6 +198,9 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
           }
           // -------------------------------------
         } // END input determination 
+      } else {
+        // Blank line.
+        if (mode == TOP) mode = NONE; 
       }
     }
     line = infile.Line();
