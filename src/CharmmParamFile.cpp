@@ -16,7 +16,8 @@ static inline std::string Input(const char* line) {
 }
 
 /** Read a single line of CHARMM input from file, respecting any line
-  * continuation and ignoring any comments.
+  * continuation and ignoring any comments. All letters are converted to
+  * upper case.
   * \return 1 if there is more input, 0 if EOF.
   */
 int CharmmParamFile::ReadInput( std::string& input, BufferedLine& infile ) const {
@@ -40,7 +41,7 @@ int CharmmParamFile::ReadInput( std::string& input, BufferedLine& infile ) const
     const char* ptr = line;
     while (*ptr != '\0') {
       if (*ptr == '!') break;
-      input += *ptr;
+      input += toupper(*ptr);
       ++ptr;
     }
     // Remove trailing whitespace
@@ -103,11 +104,11 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
           // END read FIXME is it ok for this to end everything?
           currentSection = UNKNOWN;
           mode = NONE;
-        } else if (ChmCmd(args[0],"read")) {
+        } else if (ChmCmd(args[0],"READ")) {
           currentSection = UNKNOWN;
-          if (args.hasKey("rtf"))
+          if (args.hasKey("RTF"))
             mode = TOP;
-          else if (args.hasKey("param")) // FIXME really only need para
+          else if (args.hasKey("PARAM")) // FIXME really only need para
             mode = PARAM;
           else
             mode = NONE;
@@ -226,6 +227,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               prm.AT().CheckForAtomType( types[0] );
               prm.AT().CheckForAtomType( types[1] );
               prm.AT().CheckForAtomType( types[2] );
+              prm.AT().CheckForAtomType( types[3] );
               double pk = args.getNextDouble(0);
               double pn = args.getNextDouble(0);
               double phase = args.getNextDouble(0) * Constants::DEGRAD;
