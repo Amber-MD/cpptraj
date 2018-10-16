@@ -11,17 +11,17 @@ class AtomTypeHolder {
     typedef std::vector<NameType> Narray;
     typedef Narray::const_iterator const_iterator;
     AtomTypeHolder() {}
+    /// CONSTRUCTOR - Take array of atom type names
     AtomTypeHolder(Narray const& namesIn) : types_(namesIn) {}
+    /// CONSTRUCTOR - Reserve space for given number of type names
     AtomTypeHolder(int size) { types_.clear(); types_.reserve(size); }
+    /// CONSTRUCTOR - Set wildcard name and reserve space for given number of type names.
     AtomTypeHolder(int size, NameType const& wc) : wildcard_(wc) { types_.clear(); types_.reserve(size); }
+    /// Add atom type name.
     void AddName(NameType const& n) { types_.push_back( n ); }
-/*    int SetTypes(Narray const& namesIn) {
-      if (namesIn.size() != types_.size()) return 1;
-      for (unsigned int idx = 0; idx != namesIn.size(); idx++)
-        types_[idx] = namesIn[idx];
-      return 0;
-    }*/
+    /// \return Iterator to beginning of type name array.
     const_iterator begin() const { return types_.begin(); }
+    /// \return Iterator to end of type name array.
     const_iterator end() const { return types_.end(); }
     /// \return number of types in holder
     unsigned int Size() const { return types_.size(); }
