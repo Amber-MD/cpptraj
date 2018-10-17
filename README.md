@@ -39,7 +39,7 @@ CPPTRAJ see the following publication:
 
 [Daniel R. Roe and Thomas E. Cheatham, III, \"Parallelization of CPPTRAJ enables
   large scale analysis of molecular dynamics trajectory data\". J. Comp.
-  Chem., 2018, DOI: 10.1002/jcc25382](https://doi.org/10.1002/jcc.25382).
+  Chem., 2018, DOI: 10.1002/jcc25382](https://onlinelibrary.wiley.com/doi/full/10.1002/jcc.25382).
 
 
 Disclaimer and Copyright
