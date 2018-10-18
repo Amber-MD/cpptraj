@@ -72,6 +72,7 @@ class AtomTypeHolder {
     Narray types_;
     NameType wildcard_;
 };
+
 // -----------------------------------------------------------------------------
 /// Used to associate atom type names with an object (parameter etc)
 template <class T> class ParmHolder {
@@ -129,6 +130,82 @@ template <class T> class ParmHolder {
         if (it->first == types) return it->second;
       found = false;
       return T();
+    }
+  private:
+    Bmap bpmap_;
+};
+
+// -----------------------------------------------------------------------------
+/// Specialized class for holding dihedral parameters.
+/** NOTE: Instead of using a specialize template here I'm creating a new
+  *       class because while I want AddParm() to accept DihedralParmType,
+  *       I want FindParam to return an array of DihedralParmType, one for
+  *       each unique multiplicity.
+  */
+class DihedralParmHolder {
+    typedef std::pair<AtomTypeHolder,DihedralParmArray> Bpair;
+    typedef std::vector<Bpair> Bmap;
+  public:
+    DihedralParmHolder() {}
+    void clear()              { bpmap_.clear();        }
+    unsigned int size() const { return bpmap_.size();  }
+    bool empty()        const { return bpmap_.empty(); }
+/*
+    static inline void PrintTypes(AtomTypeHolder const& types) {
+      for (AtomTypeHolder::const_iterator it = types.begin(); it != types.end(); ++it)
+        mprintf(" %s", *(*it));
+      mprintf("\n");
+    }
+*/
+    int AddParm(AtomTypeHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
+      // Check if parm for these types exist
+      Bmap::iterator it0 = bpmap_.begin();
+      for (; it0 != bpmap_.end(); ++it0)
+      {
+        if (it0->first == types)
+          break;
+      }
+      if (it0 == bpmap_.end()) {
+        // Brand new dihedral for these types.
+        bpmap_.push_back( Bpair(types, DihedralParmArray(1, dp)) );
+        return 0;
+      }
+      // If we are here types match - check multiplicity.
+      DihedralParmArray::iterator it1 = it0->second.begin();
+      for (; it1 != it0->second.end(); ++it1)
+      {
+        if (it1->Pn() == dp.Pn())
+          break;
+      }
+      if (it1 == it0->second.end()) {
+        // Brand new multiplicity for this dihedral.
+        it0->second.push_back( dp );
+      } else {
+        if (allowUpdate) {
+          //mprintf("\tUpdating dihedral parameters for ");
+          //PrintTypes(types);
+          //mprintf("\tMultiplicity %g\n", dp.Pn());
+          *it1 = dp;
+        } else {
+          //mprinterr("Error: Update of dihedral params not allowed for ");
+          //PrintTypes(types);
+          //mprintf("\tMultiplicity %g\n", dp.Pn());
+          return 1;
+        }
+      }
+      return 0;
+    }
+
+    typedef typename Bmap::const_iterator const_iterator;
+    const_iterator begin() const { return bpmap_.begin(); }
+    const_iterator end()   const { return bpmap_.end();   }
+
+    DihedralParmArray FindParam(AtomTypeHolder const& types, bool& found) const {
+      found = true;
+      for (const_iterator it = begin(); it != end(); ++it)
+        if (it->first == types) return it->second;
+      found = false;
+      return DihedralParmArray();
     }
   private:
     Bmap bpmap_;

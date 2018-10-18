@@ -102,26 +102,28 @@ int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char
           types.AddName( parmOut[a2].Type() );
           types.AddName( parmOut[a3].Type() );
           types.AddName( parmOut[a4].Type() );
-          DihedralParmType dpt;
-          if (typestr[0] == 'd')
-            dpt = params_.DP().FindParam( types, found );
-          else
-            dpt = params_.IP().FindParam( types, found );
-          if (found) {
-            if (typestr[0] == 'd')
-              parmOut.AddDihedral( dih, dpt );
-            else
-              parmOut.AddCharmmImproper( dih, dpt );
+          if (typestr[0] == 'd') {
+            // Dihedral. Can have multiple multiplicities.
+            DihedralParmArray dpa = params_.DP().FindParam( types, found );
+            if (found) {
+              for (DihedralParmArray::const_iterator dp = dpa.begin(); dp != dpa.end(); ++dp)
+                parmOut.AddDihedral( dih, *dp );
+            }
           } else {
+            // Charmm Improper. Expect only one paramter per type.
+            DihedralParmType ipt = params_.IP().FindParam( types, found );
+            parmOut.AddCharmmImproper( dih, ipt );
+          } 
+          if (!found) {
             mprintf("Warning: Parameters not found for %s %s - %s - %s - %s\n", typestr, parmOut.AtomMaskName(a1).c_str(), parmOut.AtomMaskName(a2).c_str(), parmOut.AtomMaskName(a3).c_str(), parmOut.AtomMaskName(a4).c_str());
             if (typestr[0] == 'd')
               parmOut.AddDihedral( dih );
             else
               parmOut.AddCharmmImproper( dih );
           }
-        }
-      }
-    }
+        } // END loop over number of dihedrals read
+      } // END if dihedral params present
+    } // END loop over lines
   return 0;
 }
 

@@ -29,8 +29,10 @@ void ParameterSet::Debug() const {
   if (!dihParm_.empty()) {
     mprintf("Dihedral parameters:\n");
     mprintf("\t%6s %6s %6s %6s %12s %12s %12s\n", "Type1", "Type2", "Type3", "Type4", "Pk", "Pn", "Phase");
-    for (ParmHolder<DihedralParmType>::const_iterator bp = dihParm_.begin(); bp != dihParm_.end(); ++bp)
-      mprintf("\t%6s %6s %6s %6s : %12.4f %12.4f %12.4f\n", *(bp->first[0]), *(bp->first[1]), *(bp->first[2]), *(bp->first[3]), bp->second.Pk(), bp->second.Pn(), bp->second.Phase());
+    for (DihedralParmHolder::const_iterator it0 = dihParm_.begin(); it0 != dihParm_.end(); ++it0)
+      for (DihedralParmArray::const_iterator it1 = it0->second.begin();
+                                             it1 != it0->second.end(); ++it0)
+        mprintf("\t%6s %6s %6s %6s : %12.4f %12.4f %12.4f\n", *(it0->first[0]), *(it0->first[1]), *(it0->first[2]), *(it0->first[3]), it1->Pk(), it1->Pn(), it1->Phase());
   }
   if (!impParm_.empty()) {
     mprintf("Improper parameters:\n");

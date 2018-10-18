@@ -43,7 +43,7 @@ static inline void DihedralTypes(ParmHolder<int>& ParmIndices, Topology const& t
     if (b->Idx() == -1)
       skipCount++;
     else {
-      AtomTypeHolder types(3);
+      AtomTypeHolder types(4);
       types.AddName( top[b->A1()].Type() );
       types.AddName( top[b->A2()].Type() );
       types.AddName( top[b->A3()].Type() );
@@ -139,8 +139,8 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
   DihedralTypes(ParmIndices, top, top.DihedralsH(), skipCount);
   if (skipCount > 0)
     mprintf("Warning: %i dihedrals were missing parameters and were skipped.\n", skipCount);
-  for (ParmHolder<DihedralParmType>::const_iterator it1 = prm.DP().begin();
-                                                    it1 != prm.DP().end(); ++it1)
+  for (DihedralParmHolder::const_iterator it1 = prm.DP().begin();
+                                          it1 != prm.DP().end(); ++it1)
   {
     for (ParmHolder<int>::const_iterator it0 = ParmIndices.begin();
                                          it0 != ParmIndices.end(); ++it0)
