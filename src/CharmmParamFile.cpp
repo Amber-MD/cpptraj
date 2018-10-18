@@ -330,12 +330,13 @@ int CharmmParamFile::WriteParams(ParameterSet& prm, FileName const& nameIn, int 
   // DIHEDRALS
   if (!prm.DP().empty()) {
     outfile.Printf("\nDIHEDRALS\n");
-    for (ParmHolder<DihedralParmType>::const_iterator it = prm.DP().begin();
-                                                      it != prm.DP().end(); ++it)
-      outfile.Printf("%-8s %-8s %-8s %-8s %10.4f %2i %8.2f\n",
-                     *(it->first[0]), *(it->first[1]), *(it->first[2]), *(it->first[3]),
-                     it->second.Pk(), (int)it->second.Pn(),
-                     it->second.Phase()*Constants::RADDEG);
+    for (DihedralParmHolder::const_iterator it = prm.DP().begin();
+                                            it != prm.DP().end(); ++it)
+      for (DihedralParmArray::const_iterator dp = it->second.begin();
+                                             dp != it->second.end(); ++dp)
+        outfile.Printf("%-8s %-8s %-8s %-8s %10.4f %2i %8.2f\n",
+                       *(it->first[0]), *(it->first[1]), *(it->first[2]), *(it->first[3]),
+                       dp->Pk(), (int)dp->Pn(), dp->Phase()*Constants::RADDEG);
   }
 
   // END

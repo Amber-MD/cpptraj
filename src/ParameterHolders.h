@@ -5,7 +5,7 @@
 #include "NameType.h"
 #include "ParameterTypes.h"
 //#inc lude "CpptrajStdio.h" // DEBUG
-/// Used to hold two or more atom type names.
+/// Used to hold two or more atom type names. TODO rename to TypeNameHolder?
 class AtomTypeHolder {
   public:
     typedef std::vector<NameType> Narray;
@@ -68,6 +68,18 @@ class AtomTypeHolder {
         idx1 = lastidx;
       return (types_[idx0] < rhs.types_[idx1]);
     }*/
+    /// Sort in order
+    bool operator<(AtomTypeHolder const& rhs) const {
+      if (types_.size() != rhs.types_.size()) {
+        return (types_.size() < rhs.types_.size());
+      }
+      for (unsigned int idx = 0; idx != types_.size(); idx++)
+        if (types_[idx] < rhs.types_[idx])
+          return true;
+        else if (types_[idx] != rhs.types_[idx])
+          return false;
+      return false;
+    }
   private:
     Narray types_;
     NameType wildcard_;
