@@ -4,7 +4,10 @@
 #include <utility>
 #include "NameType.h"
 #include "ParameterTypes.h"
-//#inc lude "CpptrajStdio.h" // DEBUG
+namespace ParameterHolders {
+  enum RetType { ADDED = 0, SAME, UPDATED, ERR };
+} /* END namespace ParameterHolders */
+
 /// Used to hold two or more atom type names. TODO rename to TypeNameHolder?
 class AtomTypeHolder {
   public:
@@ -27,7 +30,7 @@ class AtomTypeHolder {
     unsigned int Size() const { return types_.size(); }
     /// \return Type name at index
     NameType const& operator[](int idx) const { return types_[idx]; }
-    /// \return true if either direction is a match.
+    /// \return true if either direction is a match, taking into account wildcard.
     bool operator==(AtomTypeHolder const& rhs) const {
       // Sanity check
       if (types_.size() != rhs.types_.size()) return false;
@@ -49,26 +52,7 @@ class AtomTypeHolder {
         }
       return match;
     }
-/*
-    /// The lowest type name of either end is used for sorting.
-    bool operator<(AtomTypeHolder const& rhs) const {
-      if (types_.size() != rhs.types_.size()) {
-        return (types_.size() < rhs.types_.size());
-      }
-      int lastidx = types_.size() - 1;
-      int idx0;
-      if (types_[0] < types_[lastidx])
-        idx0 = 0;
-      else
-        idx0 = lastidx;
-      int idx1;
-      if (rhs.types_[0] < rhs.types_[lastidx])
-        idx1 = 0;
-      else
-        idx1 = lastidx;
-      return (types_[idx0] < rhs.types_[idx1]);
-    }*/
-    /// Sort in order
+    /// Will sort by type names in ascending order.
     bool operator<(AtomTypeHolder const& rhs) const {
       if (types_.size() != rhs.types_.size()) {
         return (types_.size() < rhs.types_.size());
@@ -79,6 +63,13 @@ class AtomTypeHolder {
         else if (types_[idx] != rhs.types_[idx])
           return false;
       return false;
+    }
+    /// \return string containing atom type names.
+    std::string TypeString() const {
+      std::string tstr;
+      for (Narray::const_iterator it = types_.begin(); it != types_.end(); ++it)
+        tstr.append( " " + std::string( *(*it) ) );
+      return tstr;
     }
   private:
     Narray types_;
@@ -93,22 +84,11 @@ template <class T> class ParmHolder {
     typedef std::vector<Bpair> Bmap;
   public:
     ParmHolder() {}
-    void clear() { bpmap_.clear(); }
+    void clear()              { bpmap_.clear(); }
     unsigned int size() const { return bpmap_.size(); }
-    bool empty() const { return bpmap_.empty(); }
-/*
-    static inline void PrintTypes(AtomTypeHolder const& types) {
-      for (AtomTypeHolder::const_iterator it = types.begin(); it != types.end(); ++it)
-        mprintf(" %s", *(*it));
-      mprintf("\n");
-    }
-*/
-    int AddParm(AtomTypeHolder const& types, T const& bp, bool allowUpdate) {
-//       if (types.Size() != 2) {
-//    mprinterr("Internal Error: ParmHolder::AddParm(): # types is not 2 (%zu)\n",
-//              types.Size());
-//    return -1;
-//  }
+    bool empty()        const { return bpmap_.empty(); }
+    /// Add (or update if allowed) given parameter to holder.
+    ParameterHolders::RetType AddParm(AtomTypeHolder const& types, T const& bp, bool allowUpdate) {
       // Check if parm for these types exist
       typename Bmap::iterator it = bpmap_.begin();
       for (; it != bpmap_.end(); ++it)
@@ -116,26 +96,24 @@ template <class T> class ParmHolder {
       if (it == bpmap_.end()) {
         // New parm
         bpmap_.push_back( Bpair(types, bp) );
-        //mprintf("\tAdded new bond params for ");
-        //PrintTypes(types);
       } else {
-        if (allowUpdate) {
-          //mprintf("\tUpdating bond parameters for ");
-          //PrintTypes(types);
-          it->second = bp;
-        } else {
-          //mprinterr("Error: Update of bond params not allowed for ");
-          //PrintTypes( types);
-          return 1;
-        }
+        if (bp < it->second || it->second < bp) {
+          if (allowUpdate) {
+            it->second = bp;
+            return ParameterHolders::UPDATED;
+          } else {
+            return ParameterHolders::ERR;
+          }
+        } else
+          return ParameterHolders::SAME;
       }
-      return 0;
+      return ParameterHolders::ADDED;
     }
 
     typedef typename Bmap::const_iterator const_iterator;
     const_iterator begin() const { return bpmap_.begin(); }
     const_iterator end()   const { return bpmap_.end();   }
-
+    /// \return Parameter matching given types, or empty parameter if not found.
     T FindParam(AtomTypeHolder const& types, bool& found) const {
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
@@ -143,12 +121,22 @@ template <class T> class ParmHolder {
       found = false;
       return T();
     }
+/*
+    typedef typename Bmap::iterator iterator;
+    iterator begin() { return bpmap_.begin(); }
+    iterator end()   { return bpmap_.end();   }
+    iterator GetParam(AtomTypeHolder const& types) {
+      for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+        if (it->first == types) return it;
+      return bpmap_.end();
+    }
+*/
   private:
     Bmap bpmap_;
 };
 
 // -----------------------------------------------------------------------------
-/// Specialized class for holding dihedral parameters.
+/// Specialized class for associating atom types with dihedral parameters.
 /** NOTE: Instead of using a specialize template here I'm creating a new
   *       class because while I want AddParm() to accept DihedralParmType,
   *       I want FindParam to return an array of DihedralParmType, one for
@@ -162,14 +150,9 @@ class DihedralParmHolder {
     void clear()              { bpmap_.clear();        }
     unsigned int size() const { return bpmap_.size();  }
     bool empty()        const { return bpmap_.empty(); }
-/*
-    static inline void PrintTypes(AtomTypeHolder const& types) {
-      for (AtomTypeHolder::const_iterator it = types.begin(); it != types.end(); ++it)
-        mprintf(" %s", *(*it));
-      mprintf("\n");
-    }
-*/
-    int AddParm(AtomTypeHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
+    /** Add (or update) a single dihedral parameter for given atom types. */
+    ParameterHolders::RetType
+    AddParm(AtomTypeHolder const& types, DihedralParmType const& dp, bool allowUpdate) {
       // Check if parm for these types exist
       Bmap::iterator it0 = bpmap_.begin();
       for (; it0 != bpmap_.end(); ++it0)
@@ -180,38 +163,70 @@ class DihedralParmHolder {
       if (it0 == bpmap_.end()) {
         // Brand new dihedral for these types.
         bpmap_.push_back( Bpair(types, DihedralParmArray(1, dp)) );
-        return 0;
-      }
-      // If we are here types match - check multiplicity.
-      DihedralParmArray::iterator it1 = it0->second.begin();
-      for (; it1 != it0->second.end(); ++it1)
-      {
-        if (it1->Pn() == dp.Pn())
-          break;
-      }
-      if (it1 == it0->second.end()) {
-        // Brand new multiplicity for this dihedral.
-        it0->second.push_back( dp );
       } else {
-        if (allowUpdate) {
-          //mprintf("\tUpdating dihedral parameters for ");
-          //PrintTypes(types);
-          //mprintf("\tMultiplicity %g\n", dp.Pn());
-          *it1 = dp;
+        // If we are here types match - check multiplicity.
+        DihedralParmArray::iterator it1 = it0->second.begin();
+        for (; it1 != it0->second.end(); ++it1)
+        {
+          if (it1->Pn() == dp.Pn())
+            break;
+        }
+        if (it1 == it0->second.end()) {
+          // Brand new multiplicity for this dihedral.
+          it0->second.push_back( dp );
         } else {
-          //mprinterr("Error: Update of dihedral params not allowed for ");
-          //PrintTypes(types);
-          //mprintf("\tMultiplicity %g\n", dp.Pn());
-          return 1;
+          if (allowUpdate) {
+            *it1 = dp;
+            return ParameterHolders::UPDATED;
+          } else {
+            return ParameterHolders::ERR;
+          }
         }
       }
-      return 0;
+      return ParameterHolders::ADDED;
+    }
+
+    /** This version takes an array of dihedral parameters. */
+    ParameterHolders::RetType
+    AddParm(AtomTypeHolder const& types, DihedralParmArray const& dpa, bool allowUpdate) {
+      // Check if parm for these types exist
+      Bmap::iterator it0 = bpmap_.begin();
+      for (; it0 != bpmap_.end(); ++it0)
+      {
+        if (it0->first == types)
+          break;
+      }
+      if (it0 == bpmap_.end()) {
+        // Brand new dihedral for these types.
+        bpmap_.push_back( Bpair(types, dpa) );
+      } else {
+        if (!allowUpdate) return ParameterHolders::ERR;
+        // Check if sizes are the same.
+        bool update = false;
+        if (it0->second.size() != dpa.size())
+          update = true;
+        else {
+          // Sizes are the same. See if parameters are the same.
+          for (unsigned int i = 0; i != it0->second.size(); i++) {
+            if (it0->second[i] < dpa[i] || dpa[i] < it0->second[i]) {
+              update = true;
+              break;
+            }
+          }
+        }
+        if (update) {
+          it0->second = dpa;
+          return ParameterHolders::UPDATED;
+        } else
+          return ParameterHolders::SAME;
+      }
+      return ParameterHolders::ADDED;
     }
 
     typedef typename Bmap::const_iterator const_iterator;
     const_iterator begin() const { return bpmap_.begin(); }
     const_iterator end()   const { return bpmap_.end();   }
-
+    /// \return Array of dihedral parameters matching given atom types.
     DihedralParmArray FindParam(AtomTypeHolder const& types, bool& found) const {
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
