@@ -1562,7 +1562,6 @@ void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& par
     bnd->SetIdx( newidx );
   }
 }
-
 // Topology::StripAngleParmArray()
 void Topology::StripAngleParmArray(AngleArray& newAngleArray, std::vector<int>& parmMap,
                                    AngleParmArray& newAngleParm) const
@@ -1870,3 +1869,125 @@ int Topology::AppendTop(Topology const& NewTop) {
   // TODO: Could get expensive for multiple appends.
   return CommonSetup();
 }
+
+// -----------------------------------------------------------------------------
+/** Set parameters in array V for objects in array U using parameters from array T. 
+  */
+/*
+template<typename T, typename U, typename V>
+void AssignParm(std::vector<Atom> const& atoms,
+                ParmHolder<T> const& newParams,  // BondParmType
+                ParmHolder<int>& currentIndices,
+                U& objects,                      // BondArray
+                V& currentParams)                // BondParmArray
+{
+  for (typename U::iterator obj = objects.begin(); obj != objects.end(); ++obj) {
+    AtomTypeHolder types(obj->Nidx());
+    for (unsigned int idx = 0; idx != obj->Nidx(); idx++)
+      types.AddName( atoms[obj->Atom(idx)].Type() );
+    bool found;
+    // See if parameter already present.
+    int idx = currentIndices.FindParam( types, found );
+    if (!found) {
+      // Search in new
+      T param = newParams.FindParam( types, found );
+      if (found) {
+        // Add parameter
+        idx = (int)currentParams.size();
+        currentParams.push_back( param );
+      } else
+        idx = -1;
+    }
+    //if (idx == -1)
+    //  mprintf("Warning: Bond parameter not found for bond %s-%s (%s-%s)\n",
+    //          TruncResAtomNameNum(bnd->A1()).c_str(),
+    //          TruncResAtomNameNum(bnd->A2()).c_str(),
+    //          *types[0], *types[1]);
+    obj->SetIdx( idx );
+  }
+}*/
+
+/** Set parameters for bonds in given bond array. */
+void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
+                              ParmHolder<int>& currentIndices,
+                              BondArray& bonds)
+{
+  for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
+    AtomTypeHolder types(2);
+    types.AddName( atoms_[bnd->A1()].Type() );
+    types.AddName( atoms_[bnd->A2()].Type() );
+    bool found;
+    // See if parameter already present.
+    int idx = currentIndices.FindParam( types, found );
+    if (!found) {
+      // Search in new
+      BondParmType bp = newBondParams.FindParam( types, found );
+      if (found) {
+        // Add parameter
+        idx = (int)bondparm_.size();
+        bondparm_.push_back( bp );
+        currentIndices.AddParm( types, idx, false );
+      } else
+        idx = -1;
+    }
+    if (idx == -1)
+      mprintf("Warning: Bond parameter not found for bond %s-%s (%s-%s)\n",
+              TruncResAtomNameNum(bnd->A1()).c_str(),
+              TruncResAtomNameNum(bnd->A2()).c_str(),
+              *types[0], *types[1]);
+    bnd->SetIdx( idx );
+  }
+}
+
+/** Replace any current bond parameters with given bond parameters. */
+void Topology::AssignBondParams(ParmHolder<BondParmType> const& newBondParams) {
+  bondparm_.clear();
+  ParmHolder<int> currentIndices;
+  //AssignParm<BondParmType, BondArray, BondParmArray>( atoms, newBondParams, currentIndices, bonds_, bondparm_ );
+  AssignBondParm( newBondParams, currentIndices, bonds_ );
+  AssignBondParm( newBondParams, currentIndices, bondsh_ );
+}
+
+/** Set parameters for angles in given angle array. */
+void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
+                              ParmHolder<int>& currentIndices,
+                              AngleArray& angles)
+{
+  for (AngleArray::iterator ang = angles.begin(); ang != angles.end(); ++ang) {
+    AtomTypeHolder types(3);
+    types.AddName( atoms_[ang->A1()].Type() );
+    types.AddName( atoms_[ang->A2()].Type() );
+    types.AddName( atoms_[ang->A3()].Type() );
+    bool found;
+    // See if parameter already present.
+    int idx = currentIndices.FindParam( types, found );
+    if (!found) {
+      // Search in new
+      AngleParmType ap = newAngleParams.FindParam( types, found );
+      if (found) {
+        // Add parameter
+        idx = (int)angleparm_.size();
+        angleparm_.push_back( ap );
+        currentIndices.AddParm( types, idx, false );
+      } else
+        idx = -1;
+    }
+    if (idx == -1)
+      mprintf("Warning: Angle parameter not found for angle %s-%s-%s (%s-%s-%s)\n",
+              TruncResAtomNameNum(ang->A1()).c_str(),
+              TruncResAtomNameNum(ang->A2()).c_str(),
+              TruncResAtomNameNum(ang->A3()).c_str(),
+              *types[0], *types[1], *types[3]);
+    ang->SetIdx( idx );
+  }
+}
+
+/** Replace any current angle parameters with given angle parameters. */
+void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams) {
+  angleparm_.clear();
+  ParmHolder<int> currentIndices;
+  AssignAngleParm( newAngleParams, currentIndices, angles_ );
+  AssignAngleParm( newAngleParams, currentIndices, anglesh_ );
+}
+
+

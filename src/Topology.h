@@ -6,6 +6,7 @@
 #include "Residue.h"
 #include "Molecule.h"
 #include "ParameterTypes.h"
+#include "ParameterHolders.h"
 #include "AtomMask.h"
 #include "CharMask.h"
 #include "Frame.h"
@@ -76,6 +77,7 @@ class Topology {
     void AddBond(int, int, int);
     void AddBond(BondType const&, bool);
     void AddBond(int, int, BondParmType const&);
+    void AssignBondParams(ParmHolder<BondParmType> const&);
     // ----- Angle-specific routines -------------
     size_t Nangles()                           const { return angles_.size()+anglesh_.size(); }
     AngleArray        const& Angles()       const { return angles_;       }
@@ -86,6 +88,7 @@ class Topology {
     void AddAngle(int, int, int, int);
     void AddAngle(AngleType const&, bool);
     void AddAngle(int, int, int, AngleParmType const&); 
+    void AssignAngleParams(ParmHolder<AngleParmType> const&);
     // ----- Dihedral-specific routines ----------
     size_t Ndihedrals()                        const { return dihedrals_.size()+dihedralsh_.size(); }
     DihedralArray     const& Dihedrals()    const { return dihedrals_;       }
@@ -210,6 +213,9 @@ class Topology {
     inline void AddBondArray(BondArray const&, BondParmArray const&, int);
     inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
     inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
+
+    void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&);
+    void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;
