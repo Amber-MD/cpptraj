@@ -221,7 +221,7 @@ class Topology {
     void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&);
     void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
     void AssignDihedralParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
-    void AssignDihedralParm(DihedralParmHolder const&, ParmHolder<int>&, DihedralArray&);
+    void AssignDihedralParm(DihedralParmHolder const&, DihedralArray&);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

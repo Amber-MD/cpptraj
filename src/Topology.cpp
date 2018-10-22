@@ -2036,10 +2036,7 @@ void Topology::AssignDihedralParams(ParmHolder<DihedralParmType> const& newDihed
 
 /** Set parameters for dihedrals in given dihedral array. */
 void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
-                                  ParmHolder<int>& currentIndices,
-                                  DihedralArray& dihedralsIn//,
-                                 // std::vector<DihedralParmArray> dihedralParms
-                                 )
+                                  DihedralArray& dihedralsIn)
 {
   // Dihedrals can be a bit of a pain since there can be multiple
   // multiplicities for a single dihedral type. In case multiplicities
@@ -2062,8 +2059,9 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
   }
   mprintf("DEBUG: %zu incoming dihedrals, %zu unique dihedrals.\n",
           dihedralsIn.size(), dihedrals.size());
-/*
 
+  ParmHolder< std::vector<int> > currentIndices;
+  dihedralsIn.clear();
   for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
     AtomTypeHolder types(4);
     types.AddName( atoms_[dih->A1()].Type() );
@@ -2072,36 +2070,57 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
     types.AddName( atoms_[dih->A4()].Type() );
     bool found;
     // See if parameter already present.
-    int idx = currentIndices.FindParam( types, found );
+    std::vector<int> idxs = currentIndices.FindParam( types, found );
     if (!found) {
-      // Search in new
+      // Not yet present; search in newDihedralParams for parameter(s).
       DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
       if (found) {
-        // Add parameter
-        idx = (int)dihedralParms.size();
-        dihedralParms.push_back( dpa );
-        currentIndices.AddParm( types, idx, false );
-      } else
-        idx = -1;
+        for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it)
+        {
+          // Add parameter and save the index
+          int idx = (int)dihedralparm_.size();
+          idxs.push_back( idx );
+          dihedralparm_.push_back( *it );
+        }
+        currentIndices.AddParm( types, idxs, false );
+      }
     }
-    if (idx == -1)
-      mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-% (%s-%s-%s-%s)\n",
+    if (idxs.empty()) {
+      mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
               TruncResAtomNameNum(dih->A1()).c_str(),
               TruncResAtomNameNum(dih->A2()).c_str(),
               TruncResAtomNameNum(dih->A3()).c_str(),
               TruncResAtomNameNum(dih->A4()).c_str(),
               *types[0], *types[1], *types[3], *types[4]);
-    dih->SetIdx( idx );
+      DihedralType mydih = *dih;
+      mydih.SetIdx( -1 );
+      dihedralsIn.push_back( mydih );
+    } else {
+      bool multi = idxs.size() > 1;
+      // Actually add the dihedrals
+      for (std::vector<int>::const_iterator dpidx = idxs.begin(); dpidx != idxs.end(); ++dpidx)
+      {
+        DihedralType mydih = *dih;
+        mydih.SetIdx( *dpidx );
+        if (multi) {
+          // If there are multiple parameters for the same dihedral, all but
+          // one of the 1-4 calcs need to be skipped.
+          if (dpidx+1 != idxs.end())
+            mydih.SetSkip14(true);
+          else
+            mydih.SetSkip14(false);
+        }
+        dihedralsIn.push_back( mydih );
+      }
+    }
   }
-  */
 }
 
 /** Replace any current dihedral parameters with given dihedral parameters. */
 void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams) {
   dihedralparm_.clear();
-  ParmHolder<int> currentIndices;
-  AssignDihedralParm( newDihedralParams, currentIndices, dihedrals_ );
-  AssignDihedralParm( newDihedralParams, currentIndices, dihedralsh_ );
+  AssignDihedralParm( newDihedralParams, dihedrals_ );
+  AssignDihedralParm( newDihedralParams, dihedralsh_ );
 }
 
 // -----------------------------------------------------------------------------
