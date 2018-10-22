@@ -175,12 +175,15 @@ class DihedralParmHolder {
           // Brand new multiplicity for this dihedral.
           it0->second.push_back( dp );
         } else {
-          if (allowUpdate) {
-            *it1 = dp;
-            return ParameterHolders::UPDATED;
-          } else {
-            return ParameterHolders::ERR;
-          }
+          if (dp < *it1 || *it1 < dp) {
+            if (allowUpdate) {
+              *it1 = dp;
+              return ParameterHolders::UPDATED;
+            } else {
+              return ParameterHolders::ERR;
+            }
+          } else
+            return ParameterHolders::SAME;
         }
       }
       return ParameterHolders::ADDED;
