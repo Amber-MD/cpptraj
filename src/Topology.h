@@ -6,7 +6,7 @@
 #include "Residue.h"
 #include "Molecule.h"
 #include "ParameterTypes.h"
-#include "ParameterHolders.h"
+#include "ParameterSet.h"
 #include "AtomMask.h"
 #include "CharMask.h"
 #include "Frame.h"
@@ -100,6 +100,8 @@ class Topology {
     void AddDihedral(int i, int j, int k, int l) { AddDihedral(DihedralType(i,j,k,l,-1), -1); }
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
+    void AssignDihedralParams(ParmHolder<DihedralParmType> const&);
+    void AssignDihedralParams(DihedralParmHolder const&);
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
     NonbondParmType&        SetNonbond()           { return nonbond_;      }
@@ -134,6 +136,8 @@ class Topology {
     int FindAtomInResidue(int, NameType const&) const;
     /// Mark all molecules matching given mask expression as solvent.
     int SetSolvent(std::string const&);
+    /// \return ParameterSet for this Topology
+    ParameterSet GetParameters() const;
     // ----- Print topology info -----------------
     void Summary() const;
     void Brief(const char*) const;
@@ -216,6 +220,8 @@ class Topology {
 
     void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&);
     void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
+    void AssignDihedralParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
+    void AssignDihedralParm(DihedralParmHolder const&, ParmHolder<int>&, DihedralArray&);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;
