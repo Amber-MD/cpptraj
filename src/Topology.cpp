@@ -1998,47 +1998,46 @@ void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams
 }
 
 /** Set parameters for dihedrals in given dihedral array. */
-void Topology::AssignDihedralParm(ParmHolder<DihedralParmType> const& newDihedralParams,
+void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImproperParams,
                                   ParmHolder<int>& currentIndices,
-                                  DihedralArray& dihedrals)
+                                  DihedralArray& impropers)
 {
-  for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
+  for (DihedralArray::iterator imp = impropers.begin(); imp != impropers.end(); ++imp) {
     AtomTypeHolder types(4);
-    types.AddName( atoms_[dih->A1()].Type() );
-    types.AddName( atoms_[dih->A2()].Type() );
-    types.AddName( atoms_[dih->A3()].Type() );
-    types.AddName( atoms_[dih->A4()].Type() );
+    types.AddName( atoms_[imp->A1()].Type() );
+    types.AddName( atoms_[imp->A2()].Type() );
+    types.AddName( atoms_[imp->A3()].Type() );
+    types.AddName( atoms_[imp->A4()].Type() );
     bool found;
     // See if parameter already present.
     int idx = currentIndices.FindParam( types, found );
     if (!found) {
       // Search in new
-      DihedralParmType dp = newDihedralParams.FindParam( types, found );
+      DihedralParmType ip = newImproperParams.FindParam( types, found );
       if (found) {
         // Add parameter
-        idx = (int)dihedralparm_.size();
-        dihedralparm_.push_back( dp );
+        idx = (int)chamber_.ImproperParm().size();
+        chamber_.SetImproperParm().push_back( ip );
         currentIndices.AddParm( types, idx, false );
       } else
         idx = -1;
     }
     if (idx == -1)
-      mprintf("Warning: Dihedral parameter not found for dihedral %s-%s-%s-% (%s-%s-%s-%s)\n",
-              TruncResAtomNameNum(dih->A1()).c_str(),
-              TruncResAtomNameNum(dih->A2()).c_str(),
-              TruncResAtomNameNum(dih->A3()).c_str(),
-              TruncResAtomNameNum(dih->A4()).c_str(),
+      mprintf("Warning: Parameter not found for improper %s-%s-%s-%s (%s-%s-%s-%s)\n",
+              TruncResAtomNameNum(imp->A1()).c_str(),
+              TruncResAtomNameNum(imp->A2()).c_str(),
+              TruncResAtomNameNum(imp->A3()).c_str(),
+              TruncResAtomNameNum(imp->A4()).c_str(),
               *types[0], *types[1], *types[3], *types[4]);
-    dih->SetIdx( idx );
+    imp->SetIdx( idx );
   }
 }
 
-/** Replace any current dihedral parameters with given dihedral parameters. */
-void Topology::AssignDihedralParams(ParmHolder<DihedralParmType> const& newDihedralParams) {
+/** Replace any current improper parameters with given improper parameters. */
+void Topology::AssignImproperParams(ParmHolder<DihedralParmType> const& newImproperParams) {
   dihedralparm_.clear();
   ParmHolder<int> currentIndices;
-  AssignDihedralParm( newDihedralParams, currentIndices, dihedrals_ );
-  AssignDihedralParm( newDihedralParams, currentIndices, dihedralsh_ );
+  AssignImproperParm( newImproperParams, currentIndices, chamber_.SetImpropers() );
 }
 
 /** Set parameters for dihedrals in given dihedral array. */

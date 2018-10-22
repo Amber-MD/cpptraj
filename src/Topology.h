@@ -100,7 +100,7 @@ class Topology {
     void AddDihedral(int i, int j, int k, int l) { AddDihedral(DihedralType(i,j,k,l,-1), -1); }
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
-    void AssignDihedralParams(ParmHolder<DihedralParmType> const&);
+    void AssignImproperParams(ParmHolder<DihedralParmType> const&);
     void AssignDihedralParams(DihedralParmHolder const&);
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
@@ -221,7 +221,7 @@ class Topology {
 
     void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&, BondParmArray&, const char*);
     void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
-    void AssignDihedralParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
+    void AssignImproperParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
     void AssignDihedralParm(DihedralParmHolder const&, DihedralArray&);
 
     static const NonbondType LJ_EMPTY;
