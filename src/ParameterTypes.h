@@ -127,30 +127,62 @@ class DihedralParmType {
 };
 typedef std::vector<DihedralParmType> DihedralParmArray;
 /// Hold dihedral atom indices and parameter index
+/** Dihedrals can be marked normal (A1-A2-A3-A4), end (meaning 1-4 calc should
+  * be skipped to avoid overcounting, e.g. for dihedrals with multiple 
+  * multiplicities or certain ring dihedrals), improper, or both end and improper.
+  */
 class DihedralType {
   public:
     enum Dtype { NORMAL=0, IMPROPER, END, BOTH };
-    DihedralType() : a1_(0), a2_(0), a3_(0), a4_(0), type_(NORMAL), idx_(0) {}
+    /// Set skip 1-4 (end) and improper status
+    inline void SetFromType(Dtype t) {
+      switch (t) {
+        case NORMAL   : skip14_ = false; improper_ = false; break;
+        case IMPROPER : skip14_ = false; improper_ = true; break;
+        case END      : skip14_ = true;  improper_ = false; break;
+        case BOTH     : skip14_ = true;  improper_ = true; break;
+      }
+    }
+    /// Default constructor
+    DihedralType() : a1_(0), a2_(0), a3_(0), a4_(0), idx_(0), skip14_(false), improper_(false) {}
     /// For use with Amber-style dihedral array; a3_ < 0 = E, a4_ < 0 = I
     DihedralType(int a1, int a2, int a3, int a4, int idx) :
                   a1_(a1), a2_(a2), a3_(a3), a4_(a4), idx_(idx)
     {
-      if (a3_ < 0 && a4_ < 0) { a3_ = -a3_; a4_ = -a4_; type_ = BOTH;    }
-      else if (a3_ < 0)       { a3_ = -a3;              type_ = END;     }
-      else if (a4_ < 0)       { a4_ = -a4;              type_ = IMPROPER;}
-      else                                              type_ = NORMAL;
+      if (a3_ < 0 && a4_ < 0) { a3_ = -a3_; a4_ = -a4_; skip14_ = true;  improper_ = true;  }
+      else if (a3_ < 0)       { a3_ = -a3;              skip14_ = true;  improper_ = false; }
+      else if (a4_ < 0)       { a4_ = -a4;              skip14_ = false; improper_ = true;  }
+      else                    {                         skip14_ = false; improper_ = false; }
     }
+    /// Takes type, no index
     DihedralType(int a1, int a2, int a3, int a4, Dtype t) :
-                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), type_(t), idx_(-1) {}
+                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), idx_(-1)
+    {
+      SetFromType(t);
+    }
+    /// Takes type and index
     DihedralType(int a1, int a2, int a3, int a4, Dtype t, int i) :
-                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), type_(t), idx_(i) {}
-    inline int A1()     const { return a1_;   }
-    inline int A2()     const { return a2_;   }
-    inline int A3()     const { return a3_;   }
-    inline int A4()     const { return a4_;   }
-    inline Dtype Type() const { return type_; }
-    inline int Idx()    const { return idx_;  }
-    void SetIdx(int i)        { idx_ = i;     }
+                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), idx_(i)
+    {
+      SetFromType(t);
+    }
+
+    inline int A1()     const { return a1_;    }
+    inline int A2()     const { return a2_;    }
+    inline int A3()     const { return a3_;    }
+    inline int A4()     const { return a4_;    }
+    inline int Idx()    const { return idx_;   }  
+    void SetIdx(int i)        { idx_ = i;      }
+    void SetSkip14(bool b)    { skip14_ = b;   }
+    void SetImproper(bool b)  { improper_ = b; }
+    /// \return type based on skip 1-4 (end) and improper status
+    inline Dtype Type() const {
+      if (skip14_ && improper_) return BOTH;
+      else if (skip14_)         return END;
+      else if (improper_)       return IMPROPER;
+      else                      return NORMAL;
+    }
+    /// Sort based on atom indices
     bool operator<(DihedralType const& rhs) const {
       if (a1_ == rhs.a1_) {
         if (a2_ == rhs.a2_) {
@@ -165,8 +197,9 @@ class DihedralType {
     int a2_;
     int a3_;
     int a4_;
-    Dtype type_;
     int idx_;
+    bool skip14_; ///< If true the 1-4 interaction for this dihedral should be skipped.
+    bool improper_; ///< If true this is an improper dihedral.
 };
 typedef std::vector<DihedralType> DihedralArray;
 // ----- NON-BONDED PARAMETERS -------------------------------------------------
