@@ -121,6 +121,7 @@ class Topology {
     void AddCharmmImproper(DihedralType const&, DihedralParmType const&);
     void AddCharmmImproper(DihedralType const&, int);
     void AddCharmmImproper(DihedralType const& i) { AddCharmmImproper(i, -1); }
+    void AssignUBParams(ParmHolder<BondParmType> const&);
     // ----- Misc routines -----------------------
     /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;
@@ -218,7 +219,7 @@ class Topology {
     inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
     inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
 
-    void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&);
+    void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&, BondParmArray&, const char*);
     void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
     void AssignDihedralParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
     void AssignDihedralParm(DihedralParmHolder const&, DihedralArray&);

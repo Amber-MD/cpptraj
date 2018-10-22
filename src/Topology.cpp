@@ -1910,7 +1910,7 @@ void AssignParm(std::vector<Atom> const& atoms,
 /** Set parameters for bonds in given bond array. */
 void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
                               ParmHolder<int>& currentIndices,
-                              BondArray& bonds)
+                              BondArray& bonds, BondParmArray& bpa, const char* desc)
 {
   for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
     AtomTypeHolder types(2);
@@ -1924,14 +1924,14 @@ void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
       BondParmType bp = newBondParams.FindParam( types, found );
       if (found) {
         // Add parameter
-        idx = (int)bondparm_.size();
-        bondparm_.push_back( bp );
+        idx = (int)bpa.size();
+        bpa.push_back( bp );
         currentIndices.AddParm( types, idx, false );
       } else
         idx = -1;
     }
     if (idx == -1)
-      mprintf("Warning: Bond parameter not found for bond %s-%s (%s-%s)\n",
+      mprintf("Warning: parameter not found for %s %s-%s (%s-%s)\n", desc,
               TruncResAtomNameNum(bnd->A1()).c_str(),
               TruncResAtomNameNum(bnd->A2()).c_str(),
               *types[0], *types[1]);
@@ -1944,8 +1944,15 @@ void Topology::AssignBondParams(ParmHolder<BondParmType> const& newBondParams) {
   bondparm_.clear();
   ParmHolder<int> currentIndices;
   //AssignParm<BondParmType, BondArray, BondParmArray>( atoms, newBondParams, currentIndices, bonds_, bondparm_ );
-  AssignBondParm( newBondParams, currentIndices, bonds_ );
-  AssignBondParm( newBondParams, currentIndices, bondsh_ );
+  AssignBondParm( newBondParams, currentIndices, bonds_,  bondparm_, "bond" );
+  AssignBondParm( newBondParams, currentIndices, bondsh_, bondparm_, "bond" );
+}
+
+/** Replace any current Urey-Bradley parameters with given UB parameters. */
+void Topology::AssignUBParams(ParmHolder<BondParmType> const& newBondParams) {
+  chamber_.SetUBparm().clear();
+  ParmHolder<int> currentIndices;
+  AssignBondParm( newBondParams, currentIndices, chamber_.SetUB(), chamber_.SetUBparm(), "UB term" );
 }
 
 /** Set parameters for angles in given angle array. */
