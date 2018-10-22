@@ -264,8 +264,8 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                 {
                   if (it->first.Match( at )) {
                     int idx = it->second;
-                    prm.AT().UpdateType(idx).SetRadius( radius );
-                    prm.AT().UpdateType(idx).SetDepth( -epsilon );
+                    prm.AT().UpdateType(idx).SetLJ().SetRadius( radius );
+                    prm.AT().UpdateType(idx).SetLJ().SetDepth( -epsilon );
                   }
                 }
               } else {
@@ -275,8 +275,8 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                   mprintf("Warning: Nonbond parameters defined for type '%s' without MASS card."
                           " Skipping.\n", *at);
                 } else {
-                  prm.AT().UpdateType(idx).SetRadius( radius );
-                  prm.AT().UpdateType(idx).SetDepth( -epsilon );
+                  prm.AT().UpdateType(idx).SetLJ().SetRadius( radius );
+                  prm.AT().UpdateType(idx).SetLJ().SetDepth( -epsilon );
                 }
               }
             }

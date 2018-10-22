@@ -129,7 +129,6 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
-        AtomType.cpp \
         AtomTypeArray.cpp \
         AxisType.cpp \
         BondSearch.cpp \

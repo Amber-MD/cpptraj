@@ -314,14 +314,14 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       if (idx0 < 0)
         mprintf("Warning: No LJ parameters for type '%s'\n", *(it->first));
       else {
-        atomTypes.UpdateType(idx1).SetRadius( params_.AT()[idx0].Radius() );
-        atomTypes.UpdateType(idx1).SetDepth( params_.AT()[idx0].Depth() );
+        atomTypes.UpdateType(idx1).SetLJ().SetRadius( params_.AT()[idx0].LJ().Radius() );
+        atomTypes.UpdateType(idx1).SetLJ().SetDepth( params_.AT()[idx0].LJ().Depth() );
       }
       mprintf("\t\t%3i '%s' mass=%10.4f radius=%10.4f depth=%10.4f\n",
               idx1, *(it->first),
               atomTypes[idx1].Mass(),
-              atomTypes[idx1].Radius(),
-              atomTypes[idx1].Depth());
+              atomTypes[idx1].LJ().Radius(),
+              atomTypes[idx1].LJ().Depth());
     }
     mprintf("\tAdding Lennard-Jones parameters using Lorentz-Berthelot combining rules.\n");
     for (AtomTypeArray::const_iterator it1 = atomTypes.begin(); it1 != atomTypes.end(); ++it1)
@@ -330,11 +330,11 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       for (AtomTypeArray::const_iterator it2 = it1; it2 != atomTypes.end(); it2++)
       {
         int type2 = it2->second;
-        NonbondType LJ = atomTypes[type1].Combine_LB( atomTypes[type2] );
+        NonbondType LJ = atomTypes[type1].LJ().Combine_LB( atomTypes[type2].LJ() );
         mprintf("\t%3i - %3i : Ri=%10.4f Ei=%10.4f Rj=%10.4f Ej=%10.4f A=%10.4f B=%10.4f\n",
                 type1, type2,
-                atomTypes[type1].Radius(), atomTypes[type1].Depth(),
-                atomTypes[type2].Radius(), atomTypes[type2].Depth(),
+                atomTypes[type1].LJ().Radius(), atomTypes[type1].LJ().Depth(),
+                atomTypes[type2].LJ().Radius(), atomTypes[type2].LJ().Depth(),
                 LJ.A(), LJ.B());
         parmOut.SetNonbond().AddLJterm(type1, type2, LJ);
       }

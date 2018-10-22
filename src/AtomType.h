@@ -4,26 +4,32 @@
 /// Hold parameters for a unique atom type TODO LJ off diagonal
 class AtomType {
   public:
-    AtomType() : radius_(0.0), depth_(0.0), mass_(0.0), oidx_(-1) {}
-    AtomType(double r, double d, int o) : radius_(r), depth_(d), mass_(0.0), oidx_(o) {}
-    AtomType(double m) : radius_(0.0), depth_(0.0), mass_(m), oidx_(-1) {}
-    AtomType(double r, double d, double m) : radius_(r), depth_(d), mass_(m), oidx_(-1) {}
-    double Radius() const { return radius_; }
-    double Depth()  const { return depth_;  }
-    double Mass()   const { return mass_;   }
-    void SetRadius(double r) { radius_ = r; }
-    void SetDepth(double d)  { depth_ = d; }
-    int OriginalIdx() const { return oidx_; }
-    bool operator<(AtomType const& rhs)  const {
-      return ( (radius_ < rhs.radius_) && (depth_ < rhs.depth_) );
-    }
-    /// \return true if radius and depth are the same
-    bool operator==(AtomType const&) const;
-    /// Combine LJ params with this and another type using Lorentz-Berthelot rules
-    NonbondType Combine_LB(AtomType const&) const;
+    AtomType() : mass_(0.0), oidx_(-1) {}
+    AtomType(double r, double d, int o) : lj_(r, d), mass_(0.0), oidx_(o) {} // TODO deprecate
+    /// Mass only
+    AtomType(double m) : mass_(m), oidx_(-1) {}
+    /// Radius, well depth, mass, original type index
+    AtomType(double r, double d, double m, int i) : lj_(r, d), mass_(m), oidx_(i) {}
+    /// \return default LJ parameters
+    LJparmType const& LJ() const { return lj_; }
+    /// \return Atom mass in amu
+    double Mass()          const { return mass_;   }
+    /// \return Original atom type index. Useful when checking for off-diagonal NB parameters.
+    int OriginalIdx()      const { return oidx_; }
+    /// \return true if LJ params are less than incoming
+    bool operator<(AtomType const& rhs) const { return lj_ < rhs.lj_; }
+    /// \return true if LJ params are the same
+    bool operator==(AtomType const& rhs) const { return lj_ == rhs.lj_; }
+    /// Used to modify LJ params
+    LJparmType& SetLJ() { return lj_; }
   private:
-    double radius_; ///< VDW radius
-    double depth_;  ///< LJ well-depth
+    /// For pairing atom type with LJ parameters.
+    typedef std::pair<NameType, LJparmType> LJpair;
+    /// For mapping atom type to LJ parameters.
+    typedef std::map<NameType, LJparmType> LJmap;
+
+    LJparmType lj_; ///< Default Lennard-Jones parameters (always valid for self).
+    LJmap offDiag_; ///< Off-diagonal Lennard-Jones parameters.
     double mass_;   ///< Mass in amu
     int oidx_; ///< Original atom type index.
 };

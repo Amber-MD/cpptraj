@@ -1710,7 +1710,7 @@ int Topology::AppendTop(Topology const& NewTop) {
       mprintf("DEBUG: %zu existing atom type indices:\n", ExistingTypes.size());
       for (TypeArray::const_iterator ti = ExistingTypes.begin();
                                      ti != ExistingTypes.end(); ++ti)
-        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.LJ().Radius(), ti->second.LJ().Depth());
     }
   }
   int NexistingAtomTypes = (int)ExistingTypes.size();
@@ -1785,7 +1785,7 @@ int Topology::AppendTop(Topology const& NewTop) {
       mprintf("DEBUG: %zu new atom type indices:\n", NewTypes.size());
       for (TypeArray::const_iterator ti = NewTypes.begin();
                                      ti != NewTypes.end(); ++ti)
-        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.LJ().Radius(), ti->second.LJ().Depth());
       mprintf("DEBUG: New to existing mapping:\n");
       for (TypeMap::const_iterator it = type_newToExisting.begin();
                                    it != type_newToExisting.end(); ++it)
@@ -1794,8 +1794,8 @@ int Topology::AppendTop(Topology const& NewTop) {
       for (TypeArray::const_iterator it = ExistingTypes.begin();
                                      it != ExistingTypes.end(); ++it)
       {
-        mprintf("\t%8i %12.5g %12.5g (%8i)", it->first, it->second.Radius(),
-                it->second.Depth(), it->second.OriginalIdx());
+        mprintf("\t%8i %12.5g %12.5g (%8i)", it->first, it->second.LJ().Radius(),
+                it->second.LJ().Depth(), it->second.OriginalIdx());
         if (it->first >= NexistingAtomTypes)
           mprintf(" (NEW)\n");
         else
@@ -1831,7 +1831,7 @@ int Topology::AppendTop(Topology const& NewTop) {
               LJ = nonbond_.NBarray( nbidx );
           } else {
             // Mix new and existing.
-            LJ = t1->second.Combine_LB( t2->second );
+            LJ = t1->second.LJ().Combine_LB( t2->second.LJ() );
           }
           if (debug_ > 1)
             mprintf("DEBUG: Adding LJ term for %i %i A=%g B=%g\n", t1->first, t2->first,
@@ -2186,10 +2186,41 @@ static inline void GetLJAtomTypes( AtomTypeArray& atomTypes, std::vector<Atom> c
       int idx = NB.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
       if (idx > -1) {
         NonbondType const& LJ = NB.NBarray( idx );
-        atomTypes.AddAtomType( atm->Type(), AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()) );
+        atomTypes.AddAtomType( atm->Type(), AtomType(LJ.Radius(), LJ.Depth(), atm->Mass(), atm->TypeIndex()) );
       } else
         atomTypes.AddAtomType( atm->Type(), AtomType(atm->Mass()) );
-    } 
+    }
+    // For each unique atom type check for off-diagonal NB
+    for (AtomTypeArray::const_iterator i1 = atomTypes.begin(); i1 != atomTypes.end(); ++i1)
+    {
+      for (AtomTypeArray::const_iterator i2 = i1; i2 != atomTypes.end(); ++i2)
+      {
+        if (i1 != i2) {
+          // Determine what A and B parameters would be.
+          AtomType const& type1 = atomTypes[i1->second];
+          AtomType const& type2 = atomTypes[i2->second];
+          NonbondType lj0 = type1.LJ().Combine_LB( type2.LJ() );
+          // Extract original A and B parameters.
+          int idx1 = atomTypes[i1->second].OriginalIdx();
+          int idx2 = atomTypes[i2->second].OriginalIdx();
+          int idx = NB.GetLJindex( idx1, idx2 );
+          if (idx < 0) {
+            mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
+                      *(i1->first), *(i2->first), idx1, idx2);
+            return;
+          }
+          NonbondType lj1 = NB.NBarray( idx );
+          // Compare them
+          if (lj0 != lj1) {
+            mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
+                    *(i1->first), *(i2->first), lj0.A(), lj0.B(), lj1.A(), lj1.B());
+            double deltaA = fabs(lj0.A() - lj1.A());
+            double deltaB = fabs(lj0.B() - lj1.B());
+            mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
+          }
+        }
+      }
+    }     
   } else {
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
       atomTypes.AddAtomType( atm->Type(), AtomType(atm->Mass()) );

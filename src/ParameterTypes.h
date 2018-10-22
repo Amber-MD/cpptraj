@@ -1,8 +1,9 @@
 #ifndef INC_PARAMETERTYPES_H
 #define INC_PARAMETERTYPES_H
 #include <vector>
-#include <cmath> // pow
-#include "NameType.h" 
+#include <cmath> // pow, sqrt, fabs
+#include "NameType.h"
+#include "Constants.h" // SMALL
 // ----- BOND/ANGLE/DIHEDRAL PARAMETERS ----------------------------------------
 /// Hold bond parameters
 class BondParmType {
@@ -243,11 +244,56 @@ class NonbondType {
       else
         return 0.0;
     }
+    /// \return True if A and B match
+    bool operator==(NonbondType const& rhs) const {
+      return ( (fabs(A_ - rhs.A_) < Constants::SMALL) &&
+               (fabs(B_ - rhs.B_) < Constants::SMALL) );
+    }
+    /// \return True if A and B do not match
+    bool operator!=(NonbondType const& rhs) const {
+      return ( (fabs(A_ - rhs.A_) > Constants::SMALL) ||
+               (fabs(B_ - rhs.B_) > Constants::SMALL) );
+    }
   private:
     double A_;
     double B_;
 };
 typedef std::vector<NonbondType> NonbondArray;
+/// Hold Lennard-Jones radius and well-depth
+class LJparmType {
+  public:
+    LJparmType() : radius_(0.0), depth_(0.0) {}
+    LJparmType(double r, double d) : radius_(r), depth_(d) {}
+    double Radius() const { return radius_; }
+    double Depth()  const { return depth_;  }
+    void SetRadius(double r) { radius_ = r; }
+    void SetDepth(double d)  { depth_ = d;  }
+    /// \return True if radius and well depth match
+    bool operator==(LJparmType const& rhs) const {
+      return ( (fabs(radius_ - rhs.radius_) < Constants::SMALL) &&
+               (fabs(depth_  - rhs.depth_ ) < Constants::SMALL) );
+    }
+    /// \return true if radius and well depth are less in that order
+    bool operator<(LJparmType const& rhs) const {
+      if (radius_ == rhs.radius_)
+        return (depth_ < rhs.depth_);
+      else
+        return (radius_ < rhs.radius_);
+    }
+    /// Combine these LJ params with another using Lorentz-Berthelot rules.
+    NonbondType Combine_LB(LJparmType const& rhs) const {
+      double dR = radius_ + rhs.radius_;
+      double dE = sqrt( depth_ * rhs.depth_ );
+      double dR2 = dR * dR;
+      double dR6 = dR2 * dR2 * dR2;
+      double dER6 = dE * dR6;
+      return NonbondType( dER6*dR6, 2.0*dER6 );
+    }
+  private:
+    double radius_;
+    double depth_;
+};
+typedef std::vector<LJparmType> LJparmArray;
 /// Hold nonbonded interaction parameters
 /** The nbindex array holds indices into nbarray (>=0) or hbarray (<0).
   * nbarray size should be (ntypes*(ntypes+1))/2 (half matrix).

@@ -8,7 +8,7 @@ void ParameterSet::Debug(const char* fnameIn) const {
   Out.Printf("\t%6s %8s %12s %12s %12s\n", "Name", "TypeIdx", "Radius", "Depth", "Mass");
   for (AtomTypeArray::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
     int idx = at->second;
-    Out.Printf("\t%6s %8i %12.4f %12.4f %12.4f\n", *(at->first), idx, atomTypes_[idx].Radius(), atomTypes_[idx].Depth(), atomTypes_[idx].Mass());
+    Out.Printf("\t%6s %8i %12.4f %12.4f %12.4f\n", *(at->first), idx, atomTypes_[idx].LJ().Radius(), atomTypes_[idx].LJ().Depth(), atomTypes_[idx].Mass());
   }
   if (!bondParm_.empty()) {
     Out.Printf("Bond parameters:\n");
