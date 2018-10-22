@@ -225,6 +225,10 @@ class HB_ParmType {
 typedef std::vector<HB_ParmType> HB_ParmArray;
 /// Hold Lennard-Jones 6-12 interaction A and B parameters
 class NonbondType {
+    /** Tolerance for comparison. A little larger than SMALL because A
+      * and B tend to be large.
+      */
+      static const double tol_ = 0.00000001;
   public:
     NonbondType() : A_(0), B_(0) {}
     NonbondType(double a, double b) : A_(a), B_(b) {}
@@ -246,13 +250,13 @@ class NonbondType {
     }
     /// \return True if A and B match
     bool operator==(NonbondType const& rhs) const {
-      return ( (fabs(A_ - rhs.A_) < Constants::SMALL) &&
-               (fabs(B_ - rhs.B_) < Constants::SMALL) );
+      return ( (fabs(A_ - rhs.A_) < tol_) &&
+               (fabs(B_ - rhs.B_) < tol_) );
     }
     /// \return True if A and B do not match
     bool operator!=(NonbondType const& rhs) const {
-      return ( (fabs(A_ - rhs.A_) > Constants::SMALL) ||
-               (fabs(B_ - rhs.B_) > Constants::SMALL) );
+      return ( (fabs(A_ - rhs.A_) > tol_) ||
+               (fabs(B_ - rhs.B_) > tol_) );
     }
   private:
     double A_;

@@ -9,6 +9,7 @@ class ParameterSet {
     ParameterSet() : hasLJparams_(false) {}
 
     AtomTypeArray& AT()                { return atomTypes_; }
+    ParmHolder<NonbondType>& NB()      { return nbParm_;    }
     ParmHolder<BondParmType>& BP()     { return bondParm_; }
     ParmHolder<AngleParmType>& AP()    { return angleParm_; }
     ParmHolder<BondParmType>& UB()     { return ubParm_; }
@@ -20,6 +21,7 @@ class ParameterSet {
     bool HasLJparams() const { return hasLJparams_; }
 
     AtomTypeArray const& AT()                const { return atomTypes_; }
+    ParmHolder<NonbondType> const& NB()      const { return nbParm_;    }
     ParmHolder<BondParmType> const& BP()     const { return bondParm_; }
     ParmHolder<AngleParmType> const& AP()    const { return angleParm_; }
     ParmHolder<BondParmType> const& UB()     const { return ubParm_; }
@@ -31,6 +33,7 @@ class ParameterSet {
     void Debug() const { return Debug(""); }
   private:
     AtomTypeArray atomTypes_;
+    ParmHolder<NonbondType> nbParm_;
     ParmHolder<BondParmType> bondParm_;
     ParmHolder<AngleParmType> angleParm_;
     ParmHolder<BondParmType> ubParm_;

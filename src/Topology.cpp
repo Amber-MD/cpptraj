@@ -2178,19 +2178,20 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
   }
 }
 
-static inline void GetLJAtomTypes( AtomTypeArray& atomTypes, std::vector<Atom> const& atoms, NonbondParmType const& NB) {
+static inline void GetLJAtomTypes( AtomTypeArray& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0) {
+  static const double tol = 0.00000001;
   // TODO check for off-diagonal terms
-  if (NB.HasNonbond()) {
+  if (NB0.HasNonbond()) {
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
-      int idx = NB.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
+      int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
       if (idx > -1) {
-        NonbondType const& LJ = NB.NBarray( idx );
-        atomTypes.AddAtomType( atm->Type(), AtomType(LJ.Radius(), LJ.Depth(), atm->Mass(), atm->TypeIndex()) );
+        NonbondType const& LJ = NB0.NBarray( idx );
+        atomTypes.AddAtomType( atm->Type(), AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()) );
       } else
         atomTypes.AddAtomType( atm->Type(), AtomType(atm->Mass()) );
     }
-    // For each unique atom type check for off-diagonal NB
+    // Do atom type pairs
     for (AtomTypeArray::const_iterator i1 = atomTypes.begin(); i1 != atomTypes.end(); ++i1)
     {
       for (AtomTypeArray::const_iterator i2 = i1; i2 != atomTypes.end(); ++i2)
@@ -2203,13 +2204,13 @@ static inline void GetLJAtomTypes( AtomTypeArray& atomTypes, std::vector<Atom> c
           // Extract original A and B parameters.
           int idx1 = atomTypes[i1->second].OriginalIdx();
           int idx2 = atomTypes[i2->second].OriginalIdx();
-          int idx = NB.GetLJindex( idx1, idx2 );
+          int idx = NB0.GetLJindex( idx1, idx2 );
           if (idx < 0) {
             mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
                       *(i1->first), *(i2->first), idx1, idx2);
             return;
           }
-          NonbondType lj1 = NB.NBarray( idx );
+          NonbondType lj1 = NB0.NBarray( idx );
           // Compare them
           if (lj0 != lj1) {
             mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
@@ -2218,6 +2219,7 @@ static inline void GetLJAtomTypes( AtomTypeArray& atomTypes, std::vector<Atom> c
             double deltaB = fabs(lj0.B() - lj1.B());
             mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
           }
+          NB1.AddParm
         }
       }
     }     
