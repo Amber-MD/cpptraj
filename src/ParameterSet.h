@@ -27,7 +27,8 @@ class ParameterSet {
     ParmHolder<DihedralParmType> const& IP() const { return impParm_; }
     DihedralParmHolder const& DP()           const { return dihParm_; }
 
-    void Debug() const;
+    void Debug(const char*) const;
+    void Debug() const { return Debug(""); }
   private:
     AtomTypeArray atomTypes_;
     ParmHolder<BondParmType> bondParm_;
