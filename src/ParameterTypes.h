@@ -1,6 +1,7 @@
 #ifndef INC_PARAMETERTYPES_H
 #define INC_PARAMETERTYPES_H
 #include <vector>
+#include <cmath> // pow
 #include "NameType.h" 
 // ----- BOND/ANGLE/DIHEDRAL PARAMETERS ----------------------------------------
 /// Hold bond parameters
@@ -230,6 +231,18 @@ class NonbondType {
     inline double B() const { return B_; }
     void SetA(double a) { A_ = a; }
     void SetB(double b) { B_ = b; }
+    double Radius() const {
+      if (B_ > 0.0)
+        return (0.5 * pow(2.0 * A_ / B_, (1.0/6.0)));
+      else
+        return 0.0;
+    }
+    double Depth() const {
+      if (A_ > 0.0)
+        return ( (B_ * B_) / (4.0 * A_) );
+      else
+        return 0.0;
+    }
   private:
     double A_;
     double B_;

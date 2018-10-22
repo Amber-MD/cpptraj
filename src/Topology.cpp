@@ -1,4 +1,3 @@
-#include <cmath> // pow
 #include <algorithm> // find
 #include <map> // For atom types in append
 #include <stack> // For large system molecule search
@@ -498,19 +497,11 @@ void Topology::Resize(Pointers const& pIn) {
 
 double Topology::GetVDWradius(int a1) const {
   //TODO: return zero when no params?
-  NonbondType const& LJ = GetLJparam(a1, a1);
-  if (LJ.B() > 0.0)
-    return ( 0.5 * pow(2.0 * LJ.A() / LJ.B(), (1.0/6.0)) );
-  else
-    return 0.0;
+  return GetLJparam(a1, a1).Radius();
 }
 
 double Topology::GetVDWdepth(int a1) const {
-  NonbondType const& LJ = GetLJparam(a1, a1);
-  if (LJ.A() > 0.0)
-    return ( (LJ.B() * LJ.B()) / (4.0 * LJ.A()) );
-  else
-    return 0.0;
+  return GetLJparam(a1, a1).Depth();
 }
 
 // Topology::SetAtomBondInfo()
@@ -2187,9 +2178,29 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
   }
 }
 
+static inline void GetLJAtomTypes( AtomTypeArray& atomTypes, std::vector<Atom> const& atoms, NonbondParmType const& NB) {
+  // TODO check for off-diagonal terms
+  if (NB.HasNonbond()) {
+    for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
+    {
+      int idx = NB.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
+      if (idx > -1) {
+        NonbondType const& LJ = NB.NBarray( idx );
+        atomTypes.AddAtomType( atm->Type(), AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()) );
+      } else
+        atomTypes.AddAtomType( atm->Type(), AtomType(atm->Mass()) );
+    } 
+  } else {
+    for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
+      atomTypes.AddAtomType( atm->Type(), AtomType(atm->Mass()) );
+  }
+}
+
 /** \return ParameterSet for this Topology. */
 ParameterSet Topology::GetParameters() const {
   ParameterSet Params;
+  // Atom LJ types
+  GetLJAtomTypes( Params.AT(), atoms_, nonbond_ );
   // Bond parameters.
   GetBondParams( Params.BP(), atoms_, bonds_, bondparm_ );
   GetBondParams( Params.BP(), atoms_, bondsh_, bondparm_ );
