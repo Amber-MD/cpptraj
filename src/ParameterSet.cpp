@@ -6,9 +6,8 @@ void ParameterSet::Debug(const char* fnameIn) const {
   Out.OpenWrite( fnameIn );
   Out.Printf("Atom Types:\n");
   Out.Printf("\t%6s %8s %12s %12s %12s\n", "Name", "TypeIdx", "Radius", "Depth", "Mass");
-  for (AtomTypeArray::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
-    int idx = at->second;
-    Out.Printf("\t%6s %8i %12.4f %12.4f %12.4f\n", *(at->first), idx, atomTypes_[idx].LJ().Radius(), atomTypes_[idx].LJ().Depth(), atomTypes_[idx].Mass());
+  for (ParmHolder<AtomType>::const_iterator at = atomTypes_.begin(); at != atomTypes_.end(); ++at) {
+    Out.Printf("\t%6s %8i %12.4f %12.4f %12.4f\n", *(at->first[0]), at - atomTypes_.begin(), at->second.LJ().Radius(), at->second.LJ().Depth(), at->second.Mass());
   }
   if (!nbParm_.empty()) {
     Out.Printf("LJ parameters:\n");

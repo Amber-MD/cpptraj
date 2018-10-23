@@ -4,6 +4,7 @@
 #include <utility>
 #include "NameType.h"
 #include "ParameterTypes.h"
+#include "AtomType.h"
 namespace ParameterHolders {
   enum RetType { ADDED = 0, SAME, UPDATED, ERR };
 } /* END namespace ParameterHolders */
@@ -14,6 +15,8 @@ class AtomTypeHolder {
     typedef std::vector<NameType> Narray;
     typedef Narray::const_iterator const_iterator;
     AtomTypeHolder() {}
+    /// CONSTRUCTOR - Take single atom type name
+    AtomTypeHolder(NameType const& nameIn) : types_(1, nameIn) {}
     /// CONSTRUCTOR - Take array of atom type names
     AtomTypeHolder(Narray const& namesIn) : types_(namesIn) {}
     /// CONSTRUCTOR - Reserve space for given number of type names
@@ -109,28 +112,38 @@ template <class T> class ParmHolder {
       }
       return ParameterHolders::ADDED;
     }
-
+    /// Constant iterator
     typedef typename Bmap::const_iterator const_iterator;
+    /// \return constant iterator to beginning
     const_iterator begin() const { return bpmap_.begin(); }
+    /// \return constant iterator to end.
     const_iterator end()   const { return bpmap_.end();   }
+    /// Iterator
+    typedef typename Bmap::iterator iterator;
+    /// \return iterator to beginning
+    iterator begin() { return bpmap_.begin(); }
+    /// \return iterator to end
+    iterator end()   { return bpmap_.end();   }
     /// \return Parameter matching given types, or empty parameter if not found.
-    T FindParam(AtomTypeHolder const& types, bool& found) const {
+    T FindParam(AtomTypeHolder const& types, bool& found) const { // TODO only use GetParam()?
       found = true;
       for (const_iterator it = begin(); it != end(); ++it)
         if (it->first == types) return it->second;
       found = false;
       return T();
     }
-/*
-    typedef typename Bmap::iterator iterator;
-    iterator begin() { return bpmap_.begin(); }
-    iterator end()   { return bpmap_.end();   }
+    /// \return iterator to parameter matching the given types.
     iterator GetParam(AtomTypeHolder const& types) {
       for (iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
         if (it->first == types) return it;
       return bpmap_.end();
     }
-*/
+    /// \return const iterator to parameter matching the given types.
+    const_iterator GetParam(AtomTypeHolder const& types) const {
+      for (const_iterator it = bpmap_.begin(); it != bpmap_.end(); ++it)
+        if (it->first == types) return it;
+      return bpmap_.end();
+    }
   private:
     Bmap bpmap_;
 };
@@ -240,4 +253,10 @@ class DihedralParmHolder {
   private:
     Bmap bpmap_;
 };
+// -----------------------------------------------------------------------------
+/** This function can be used to check if an atom type is present based
+  * on type name. If not present, a placeholder is added.
+  * \return 1 if a placeholder atom was added, 0 otherwise.
+  */
+void CheckForAtomType(ParmHolder<AtomType>&, AtomTypeHolder const&);
 #endif

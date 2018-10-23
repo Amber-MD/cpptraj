@@ -8,7 +8,7 @@ class AtomType {
     AtomType(double r, double d, int o) : lj_(r, d), mass_(0.0), oidx_(o) {} // TODO deprecate
     /// Mass only
     AtomType(double m) : mass_(m), oidx_(-1) {}
-    /// Radius, well depth, mass
+    /// Radius, well depth, mass TODO take LJparmType instead
     AtomType(double r, double d, double m) : lj_(r, d), mass_(m), oidx_(-1) {}
     /// \return default LJ parameters
     LJparmType const& LJ() const { return lj_; }

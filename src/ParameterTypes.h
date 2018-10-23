@@ -295,7 +295,7 @@ class LJparmType {
       else
         return (radius_ < rhs.radius_);
     }
-    /// Combine these LJ params with another using Lorentz-Berthelot rules.
+    /// \return LJ A/B params using Lorentz-Berthelot rules.
     NonbondType Combine_LB(LJparmType const& rhs) const {
       double dR = radius_ + rhs.radius_;
       double dE = sqrt( depth_ * rhs.depth_ );

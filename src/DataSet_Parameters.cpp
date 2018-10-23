@@ -7,7 +7,7 @@ DataSet_Parameters::DataSet_Parameters() :
 {}
 
 size_t DataSet_Parameters::Size() const {
-  return (AT().Size() +
+  return (AT().size() +
           BP().size() +
           AP().size() +
           UB().size() +
@@ -18,7 +18,7 @@ size_t DataSet_Parameters::Size() const {
 void DataSet_Parameters::Info() const {
   if (Size() > 0) {
     mprintf(" (");
-    if (AT().Size() > 0) mprintf(" types=%zu", AT().Size());
+    if (AT().size() > 0) mprintf(" types=%zu", AT().size());
     if (BP().size() > 0) mprintf(" bnd=%zu", BP().size());
     if (AP().size() > 0) mprintf(" ang=%zu", AP().size());
     if (UB().size() > 0) mprintf(" UB=%zu", UB().size());

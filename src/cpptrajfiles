@@ -129,7 +129,6 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
-        AtomTypeArray.cpp \
         AxisType.cpp \
         BondSearch.cpp \
         Box.cpp \
@@ -293,6 +292,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
+        ParameterHolders.cpp \
         ParameterSet.cpp \
         PDBfile.cpp \
         PairList.cpp \

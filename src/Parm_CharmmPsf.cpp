@@ -174,8 +174,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   double psfmass;
   typedef std::vector<std::string> Sarray;
   // TODO AtomTypeArray should eventually be in Topology
-  AtomTypeArray atomTypes;
-  atomTypes.SetDebug( debug_ );
+  ParmHolder<AtomType>& atomTypes = params_.AT();
   Sarray SegIDs;
   for (int atom=0; atom < natom; atom++) {
     if ( (buffer=infile.NextLine()) == 0 ) {
@@ -198,10 +197,8 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       SegIDs.push_back( segmentID );
       if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
     }
-    // TODO the type index stuff should be in Topology
-    int typeidx = atomTypes.CheckForAtomType( NameType(psftype), AtomType(psfmass) );
+    atomTypes.AddParm( AtomTypeHolder(NameType(psftype)), AtomType(psfmass), false );
     Atom chmAtom( psfname, psfcharge, psfmass, psftype );
-    chmAtom.SetTypeIndex( typeidx );
     parmOut.AddTopAtom( chmAtom, Residue( psfresname, psfresnum, idx) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
@@ -304,6 +301,8 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
 
   // Add nonbonded parameters
   if (params_.HasLJparams()) {
+    parmOut.AssignNonbondParams( atomTypes, params_.NB() );
+/*
     int ntypes = (int)atomTypes.Size();
     parmOut.SetNonbond().SetupLJforNtypes( ntypes );
     mprintf("\tAtom Types:\n");
@@ -339,6 +338,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
         parmOut.SetNonbond().AddLJterm(type1, type2, LJ);
       }
     }
+*/
   }
 
   return 0;

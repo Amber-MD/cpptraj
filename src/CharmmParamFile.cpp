@@ -116,7 +116,11 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
           args.MarkArg(0);
           args.MarkArg(1);
           args.MarkArg(2);
-          prm.AT().AddAtomType(args[2], AtomType(args.getNextDouble(0)));
+          ParameterHolders::RetType ret = prm.AT().AddParm( AtomTypeHolder(args[2]),
+                                                            AtomType(args.getNextDouble(0)),
+                                                            true );
+          if (ret == ParameterHolders::UPDATED)
+            mprintf("Warning: Redefining atom type %s\n", args[2].c_str());
         } else if (ChmCmd(args[0], "ATOM")) {
           if (mode != TOP) {
             currentSection = ATOMS; //mode = PARAM;
@@ -183,8 +187,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               AtomTypeHolder types(2);
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
-              prm.AT().CheckForAtomType( types[0] );
-              prm.AT().CheckForAtomType( types[1] );
+              CheckForAtomType(prm.AT(), types );
               double rk = args.getNextDouble(0);
               double req = args.getNextDouble(0);
               prm.BP().AddParm(types, BondParmType(rk, req), false);
@@ -198,9 +201,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
-              prm.AT().CheckForAtomType( types[0] );
-              prm.AT().CheckForAtomType( types[1] );
-              prm.AT().CheckForAtomType( types[2] );
+              CheckForAtomType(prm.AT(), types );
               double tk = args.getNextDouble(0);
               double teq = args.getNextDouble(0);
               prm.AP().AddParm(types, AngleParmType(tk, teq*Constants::DEGRAD), false);
@@ -224,10 +225,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
-              prm.AT().CheckForAtomType( types[0] );
-              prm.AT().CheckForAtomType( types[1] );
-              prm.AT().CheckForAtomType( types[2] );
-              prm.AT().CheckForAtomType( types[3] );
+              CheckForAtomType(prm.AT(), types );
               double pk = args.getNextDouble(0);
               double pn = args.getNextDouble(0);
               double phase = args.getNextDouble(0) * Constants::DEGRAD;
@@ -259,24 +257,23 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               }
               if (hasWC) {
                 // Check against all current atom types.
-                for (AtomTypeArray::const_iterator it = prm.AT().begin();
-                                                   it != prm.AT().end(); ++it)
+                for (ParmHolder<AtomType>::iterator it = prm.AT().begin();
+                                                    it != prm.AT().end(); ++it)
                 {
-                  if (it->first.Match( at )) {
-                    int idx = it->second;
-                    prm.AT().UpdateType(idx).SetLJ().SetRadius( radius );
-                    prm.AT().UpdateType(idx).SetLJ().SetDepth( -epsilon );
+                  if (it->first[0].Match( at )) {
+                    it->second.SetLJ().SetRadius( radius );
+                    it->second.SetLJ().SetDepth( -epsilon );
                   }
                 }
               } else {
                 // Single type
-                int idx = prm.AT().AtomTypeIndex( at );
-                if (idx == -1) {
+                ParmHolder<AtomType>::iterator it = prm.AT().GetParam( AtomTypeHolder(at) );
+                if (it == prm.AT().end()) {
                   mprintf("Warning: Nonbond parameters defined for type '%s' without MASS card."
                           " Skipping.\n", *at);
                 } else {
-                  prm.AT().UpdateType(idx).SetLJ().SetRadius( radius );
-                  prm.AT().UpdateType(idx).SetLJ().SetDepth( -epsilon );
+                  it->second.SetLJ().SetRadius( radius );
+                  it->second.SetLJ().SetDepth( -epsilon );
                 }
               }
             }
@@ -303,9 +300,9 @@ int CharmmParamFile::WriteParams(ParameterSet& prm, FileName const& nameIn, int 
                  "*\n");
   // ATOMS
   outfile.Printf("\nATOMS\n");
-  for (AtomTypeArray::const_iterator it = prm.AT().begin();
-                                     it != prm.AT().end(); ++it)
-    outfile.Printf("%-4s %3i  %-8s%10.5f\n", "MASS", -1, *(it->first), prm.AT()[it->second].Mass());
+  for (ParmHolder<AtomType>::const_iterator it = prm.AT().begin();
+                                            it != prm.AT().end(); ++it)
+    outfile.Printf("%-4s %3i  %-8s%10.5f\n", "MASS", -1, *(it->first[0]), it->second.Mass());
 
   // BONDS
   if (!prm.BP().empty()) {

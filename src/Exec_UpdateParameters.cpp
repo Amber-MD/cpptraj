@@ -8,30 +8,40 @@ void Exec_UpdateParameters::Help() const
   mprintf("\t%s setname <parm set>\n", DataSetList::TopArgs);
 }
 
-/** Add/update bond parameters.
-  * \param bp0 Bond parameters to add to/update.
-  * \param bp1 New bond parameters.
-  * \return number of bond parameters added or updated.
+static inline void PrintParmType(BondParmType const& bp) { mprintf(" %12.4f %12.4f\n", bp.Rk(), bp.Req()); }
+static inline void PrintParmType(AngleParmType const& ap) { mprintf(" %12.4f %12.4f\n", ap.Tk(), ap.Teq()); }
+static inline void PrintParmType(DihedralParmType const& dp) { mprintf(" %12.4f %12.4f %12.4f\n", dp.Pk(), dp.Pn(), dp.Phase()); }
+static inline void PrintParmType(DihedralParmArray const& dpa) {
+  mprintf("\n");
+  for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it)
+    mprintf("\t\t%12.4f %12.4f %12.4f\n", it->Pk(), it->Pn(), it->Phase());
+}
+static inline void PrintParmType(AtomType const& at) { mprintf(" %12.4f %12.4f %12.4f\n", at.LJ().Radius(), at.LJ().Depth(), at.Mass()); }
+
+/** Add update parameters.
+  * \param0 Parameters to add to/update.
+  * \param1 New parameters.
+  * \param desc Description of parameters.
   */
-int Exec_UpdateParameters::UpdateBondParams(ParmHolder<BondParmType>& bp0,
-                                            ParmHolder<BondParmType> const& bp1) const
+template <typename T> int UpdateParameters(T& param0, T const& param1, const char* desc)
 {
   int updateCount = 0;
-  for (ParmHolder<BondParmType>::const_iterator newp = bp1.begin();
-                                                newp != bp1.end(); ++newp)
+  for (typename T::const_iterator newp = param1.begin(); newp != param1.end(); ++newp)
   {
-    ParameterHolders::RetType ret = bp0.AddParm( newp->first, newp->second, true );
+    ParameterHolders::RetType ret = param0.AddParm( newp->first, newp->second, true );
     if (ret != ParameterHolders::ERR) {
       if (ret == ParameterHolders::ADDED) {
-        mprintf("\tAdded NEW bond parameter:");
+        mprintf("\tAdded NEW %s parameter:", desc);
         updateCount++;
       } else if (ret == ParameterHolders::UPDATED) {
-        mprintf("\tUpdated bond parameter:");
+        mprintf("\tUpdated %s parameter:", desc);
         updateCount++;
       } else if (ret == ParameterHolders::SAME)
-        mprintf("\tBond parameter already present:");
-      mprintf(" %s %s %12.4f %12.4f\n", 
-              *(newp->first[0]), *(newp->first[1]), newp->second.Rk(), newp->second.Req());
+        mprintf("\tParameter for %s already present:", desc);
+      mprintf(" %s", newp->first.TypeString().c_str());
+      PrintParmType( newp->second );
+      //mprintf(" %s %s %12.4f %12.4f\n", 
+      //        *(newp->first[0]), *(newp->first[1]), newp->second.Rk(), newp->second.Req());
     }
   }
   return updateCount;
@@ -46,92 +56,39 @@ int Exec_UpdateParameters::UpdateParams(Topology& top, ParameterSet const& set1)
   ParameterSet set0 = top.GetParameters();
   set0.Debug("originalp.dat");
 
-  //StatArray status;
-  //status = UpdateParamX<ParmHolder<BondParmType>>(set0.BP(), set1.BP());
   unsigned int updateCount;
   // Bond parameters
-  updateCount = UpdateBondParams(set0.BP(), set1.BP());
+  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond");
   if (updateCount > 0) {
     mprintf("\tRegenerating bond parameters.\n");
     top.AssignBondParams( set0.BP() );
   }
   // Angle parameters
-  updateCount = 0;
-  for (ParmHolder<AngleParmType>::const_iterator newp = set1.AP().begin();
-                                                 newp != set1.AP().end(); ++newp)
-  {
-    ParameterHolders::RetType ret = set0.AP().AddParm( newp->first, newp->second, true );
-    if (ret != ParameterHolders::ERR) {
-      if (ret == ParameterHolders::ADDED) {
-        mprintf("\tAdded NEW angle parameter:");
-        updateCount++;
-      } else if (ret == ParameterHolders::UPDATED) {
-        mprintf("\tUpdated angle parameter:");
-        updateCount++;
-      } else if (ret == ParameterHolders::SAME)
-        mprintf("\tAngle parameter already present:");
-      mprintf(" %s %s %s %12.4f %12.4f\n", 
-              *(newp->first[0]), *(newp->first[1]), *(newp->first[2]), newp->second.Tk(), newp->second.Teq());
-    }
-  }
+  updateCount = UpdateParameters< ParmHolder<AngleParmType> >(set0.AP(), set1.AP(), "angle");
   if (updateCount > 0) {
     mprintf("\tRegenerating angle parameters.\n");
     top.AssignAngleParams( set0.AP() );
   }
   // Dihedral parameters
-  updateCount = 0;
-  for (DihedralParmHolder::const_iterator newp = set1.DP().begin();
-                                          newp != set1.DP().end(); ++newp)
-  {
-    ParameterHolders::RetType ret = set0.DP().AddParm( newp->first, newp->second, true );
-    if (ret != ParameterHolders::ERR) {
-      if (ret == ParameterHolders::ADDED) {
-        mprintf("\tAdded NEW dihedral parameters:\n");
-        updateCount++;
-      } else if (ret == ParameterHolders::UPDATED) {
-        mprintf("\tUpdated dihedral parameters:\n");
-        updateCount++;
-      } else if (ret == ParameterHolders::SAME)
-        mprintf("\tDihedral parameters already present:\n");
-      for (DihedralParmArray::const_iterator it = newp->second.begin();
-                                             it != newp->second.end(); ++it)
-        mprintf("\t\t%s %s %s %s %12.4f %12.4f %12.4f\n", 
-                *(newp->first[0]), *(newp->first[1]), *(newp->first[2]), *(newp->first[3]), it->Pk(), it->Pn(), it->Phase());
-    }
-  }
+  updateCount = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral");
   if (updateCount > 0) {
     mprintf("\tRegenerating dihedral parameters.\n");
     top.AssignDihedralParams( set0.DP() );
   }
   // Urey-Bradley
-  updateCount = UpdateBondParams( set0.UB(), set1.UB() );
+  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");
   if (updateCount > 0) {
     mprintf("\tRegenerating UB parameters.\n");
     top.AssignUBParams( set0.UB() );
   }
   // Improper parameters
-  updateCount = 0;
-  for (ParmHolder<DihedralParmType>::const_iterator newp = set1.IP().begin();
-                                                    newp != set1.IP().end(); ++newp)
-  {
-    ParameterHolders::RetType ret = set0.IP().AddParm( newp->first, newp->second, true );
-    if (ret != ParameterHolders::ERR) {
-      if (ret == ParameterHolders::ADDED) {
-        mprintf("\tAdded NEW improper parameter:\n");
-        updateCount++;
-      } else if (ret == ParameterHolders::UPDATED) {
-        mprintf("\tUpdated improper parameter:\n");
-        updateCount++;
-      } else if (ret == ParameterHolders::SAME)
-        mprintf("\tImproper parameter already present:\n");
-        mprintf("\t\t%s %s %s %s %12.4f %12.4f\n", 
-                *(newp->first[0]), *(newp->first[1]), *(newp->first[2]), *(newp->first[3]), newp->second.Pk(), newp->second.Phase());
-    }
-  }
+  updateCount = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper");
   if (updateCount > 0) {
-    mprintf("\tRegenerating dihedral parameters.\n");
+    mprintf("\tRegenerating improper parameters.\n");
     top.AssignImproperParams( set0.IP() );
   }
+  // Atom types
+  updateCount = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
 
   set0.Debug("newp.dat");
   return 0;

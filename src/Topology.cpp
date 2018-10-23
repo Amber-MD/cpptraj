@@ -2120,6 +2120,62 @@ void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams)
   AssignDihedralParm( newDihedralParams, dihedralsh_ );
 }
 
+/** Used to map type names to type indices to access nonbond parameters. */
+typedef std::map<NameType, int> NameIdxMapType;
+
+/** Replace current nonbond parameters with given nonbond parameters. */
+void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHolder<NonbondType> const& newNB) {
+  nonbond_.Clear();
+  nonbond_.SetupLJforNtypes( newTypes.size() );
+  int nidx1 = 0;
+  NameIdxMapType nameIdxMap;
+  for (ParmHolder<AtomType>::const_iterator t1 = newTypes.begin(); t1 != newTypes.end(); ++t1, nidx1++)
+  {
+    NameType const& name1 = t1->first[0];
+    AtomType const& type1 = t1->second;
+    nameIdxMap.insert( std::pair<NameType, int>(name1, nidx1) );
+    int nidx2 = nidx1;
+    for (ParmHolder<AtomType>::const_iterator t2 = t1; t2 != newTypes.end(); ++t2, nidx2++)
+    {
+      NameType const& name2 = t2->first[0];
+      AtomType const& type2 = t2->second;
+      AtomTypeHolder types(2);
+      types.AddName( name1 );
+      types.AddName( name2 );
+      // See if this parameter exists in the given nonbond array.
+      NonbondType LJAB;
+      ParmHolder<NonbondType>::const_iterator it = newNB.GetParam( types );
+      if (it == newNB.end()) {
+        mprintf("NB parameter for %s %s not found. Generating.\n", *name1, *name2);
+        LJAB = type1.LJ().Combine_LB( type2.LJ() );
+      } else {
+        mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
+        LJAB = it->second;
+      }
+      nonbond_.AddLJterm(nidx1, nidx2, LJAB);
+    }
+  }
+  // Reset the atom type indices.
+  for (std::vector<Atom>::iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+  {
+    int tidx = -1;
+    NameIdxMapType::const_iterator it = nameIdxMap.find( atm->Type() );
+    if (it == nameIdxMap.end()) {
+      mprintf("Warning: Atom type not found for %s (type %s)\n",
+              TruncResAtomNameNum( atm - atoms_.begin() ).c_str(),
+              *(atm->Type()));
+    } else {
+      if (it->second < 0 || it->second >= (int)newTypes.size()) {
+        mprinterr("Internal Error: Type index for %s (type %s) out of range: %i\n",
+                  TruncResAtomNameNum( atm - atoms_.begin() ).c_str(),
+                  *(atm->Type()), it->second);
+      } else
+        tidx = it->second;
+    }
+    atm->SetTypeIndex( tidx );
+  }
+}
+
 // -----------------------------------------------------------------------------
 // GetBondParams()
 static inline void GetBondParams(ParmHolder<BondParmType>& BP, std::vector<Atom> const& atoms, BondArray const& bonds, BondParmArray const& bpa) {
@@ -2183,60 +2239,65 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
   * \param atoms Array of atoms.
   * \param NB0 Output array of nonbond parameters.
   */
-static inline void GetLJAtomTypes( AtomTypeArray& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0) {
+static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0) {
   // TODO check for off-diagonal terms
   if (NB0.HasNonbond()) {
     // Map type names to type indices to access nonbond parameters.
-    std::map<NameType, int> nameIdxMap;
+    NameIdxMapType nameIdxMap;
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
+      AtomTypeHolder types(1);
+      types.AddName( atm->Type() );
       int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
-      bool present;
+      ParameterHolders::RetType ret;
       if (idx > -1) {
         NonbondType const& LJ = NB0.NBarray( idx );
-        present = atomTypes.AddAtomType( atm->Type(), AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()) );
+        ret = atomTypes.AddParm( types, AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()), true );
       } else
-        present = atomTypes.AddAtomType( atm->Type(), AtomType(atm->Mass()) );
-      if (!present) nameIdxMap.insert( std::pair<NameType, int>(atm->Type(), atm->TypeIndex()) );
+        ret = atomTypes.AddParm( types, AtomType(atm->Mass()), true );
+      if (ret == ParameterHolders::ADDED)
+        nameIdxMap.insert( std::pair<NameType, int>(atm->Type(), atm->TypeIndex()) );
     }
     // Do atom type pairs
-    for (AtomTypeArray::const_iterator i1 = atomTypes.begin(); i1 != atomTypes.end(); ++i1)
+    for (ParmHolder<AtomType>::const_iterator i1 = atomTypes.begin(); i1 != atomTypes.end(); ++i1)
     {
-      for (AtomTypeArray::const_iterator i2 = i1; i2 != atomTypes.end(); ++i2)
+      for (ParmHolder<AtomType>::const_iterator i2 = i1; i2 != atomTypes.end(); ++i2)
       {
         // Determine what A and B parameters would be.
-        AtomType const& type1 = atomTypes[i1->second];
-        AtomType const& type2 = atomTypes[i2->second];
+        NameType const& name1 = i1->first[0];
+        NameType const& name2 = i2->first[0];
+        AtomType const& type1 = i1->second;
+        AtomType const& type2 = i2->second;
         NonbondType lj0 = type1.LJ().Combine_LB( type2.LJ() );
         // Extract original A and B parameters.
-        std::map<NameType, int>::const_iterator t1 = nameIdxMap.find( i1->first );
-        std::map<NameType, int>::const_iterator t2 = nameIdxMap.find( i2->first );
+        NameIdxMapType::const_iterator t1 = nameIdxMap.find( name1 );
+        NameIdxMapType::const_iterator t2 = nameIdxMap.find( name2 );
         int idx1 = t1->second;
         int idx2 = t2->second;
         int idx = NB0.GetLJindex( idx1, idx2 );
         if (idx < 0) {
           mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
-                    *(i1->first), *(i2->first), idx1, idx2);
+                    *name1, *name2, idx1, idx2);
           return;
         }
         NonbondType lj1 = NB0.NBarray( idx );
         // Compare them
         if (lj0 != lj1) {
           mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
-                  *(i1->first), *(i2->first), lj0.A(), lj0.B(), lj1.A(), lj1.B());
+                  *name1, *name2, lj0.A(), lj0.B(), lj1.A(), lj1.B());
           double deltaA = fabs(lj0.A() - lj1.A());
           double deltaB = fabs(lj0.B() - lj1.B());
           mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
         }
         AtomTypeHolder types(2);
-        types.AddName( i1->first );
-        types.AddName( i2->first );
+        types.AddName( name1 );
+        types.AddName( name2 );
         NB1.AddParm( types, lj1, false );
       }
     }     
   } else {
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
-      atomTypes.AddAtomType( atm->Type(), AtomType(atm->Mass()) );
+      atomTypes.AddParm( AtomTypeHolder(atm->Type()), AtomType(atm->Mass()), true );
   }
 }
 
