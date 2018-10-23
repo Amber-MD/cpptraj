@@ -228,7 +228,10 @@ class NonbondType {
     /** Tolerance for comparison. A little larger than SMALL because A
       * and B tend to be large.
       */
-      static const double tol_ = 0.00000001;
+    // NOTE: Probably should check __cpluscplus here instead of using a
+    //       define, but this is guaranteed to be portable.
+#     define tol_ 0.00000001
+      //static const double tol_ = 0.00000001;
   public:
     NonbondType() : A_(0), B_(0) {}
     NonbondType(double a, double b) : A_(a), B_(b) {}
@@ -258,9 +261,17 @@ class NonbondType {
       return ( (fabs(A_ - rhs.A_) > tol_) ||
                (fabs(B_ - rhs.B_) > tol_) );
     }
+    /// \return True if A less than zero, or B if A is equal.
+    bool operator<(NonbondType const& rhs) const {
+      if (A_ == rhs.A_)
+        return (B_ < rhs.B_);
+      else
+        return (A_ < rhs.A_);
+    }
   private:
     double A_;
     double B_;
+#   undef tol_
 };
 typedef std::vector<NonbondType> NonbondArray;
 /// Hold Lennard-Jones radius and well-depth

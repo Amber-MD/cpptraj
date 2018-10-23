@@ -2178,49 +2178,60 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
   }
 }
 
+/** \param atomTypes Output array of atom types.
+  * \param NB1 Current nonbond parameters.
+  * \param atoms Array of atoms.
+  * \param NB0 Output array of nonbond parameters.
+  */
 static inline void GetLJAtomTypes( AtomTypeArray& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0) {
-  static const double tol = 0.00000001;
   // TODO check for off-diagonal terms
   if (NB0.HasNonbond()) {
+    // Map type names to type indices to access nonbond parameters.
+    std::map<NameType, int> nameIdxMap;
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
       int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
+      bool present;
       if (idx > -1) {
         NonbondType const& LJ = NB0.NBarray( idx );
-        atomTypes.AddAtomType( atm->Type(), AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()) );
+        present = atomTypes.AddAtomType( atm->Type(), AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()) );
       } else
-        atomTypes.AddAtomType( atm->Type(), AtomType(atm->Mass()) );
+        present = atomTypes.AddAtomType( atm->Type(), AtomType(atm->Mass()) );
+      if (!present) nameIdxMap.insert( std::pair<NameType, int>(atm->Type(), atm->TypeIndex()) );
     }
     // Do atom type pairs
     for (AtomTypeArray::const_iterator i1 = atomTypes.begin(); i1 != atomTypes.end(); ++i1)
     {
       for (AtomTypeArray::const_iterator i2 = i1; i2 != atomTypes.end(); ++i2)
       {
-        if (i1 != i2) {
-          // Determine what A and B parameters would be.
-          AtomType const& type1 = atomTypes[i1->second];
-          AtomType const& type2 = atomTypes[i2->second];
-          NonbondType lj0 = type1.LJ().Combine_LB( type2.LJ() );
-          // Extract original A and B parameters.
-          int idx1 = atomTypes[i1->second].OriginalIdx();
-          int idx2 = atomTypes[i2->second].OriginalIdx();
-          int idx = NB0.GetLJindex( idx1, idx2 );
-          if (idx < 0) {
-            mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
-                      *(i1->first), *(i2->first), idx1, idx2);
-            return;
-          }
-          NonbondType lj1 = NB0.NBarray( idx );
-          // Compare them
-          if (lj0 != lj1) {
-            mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
-                    *(i1->first), *(i2->first), lj0.A(), lj0.B(), lj1.A(), lj1.B());
-            double deltaA = fabs(lj0.A() - lj1.A());
-            double deltaB = fabs(lj0.B() - lj1.B());
-            mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
-          }
-          NB1.AddParm
+        // Determine what A and B parameters would be.
+        AtomType const& type1 = atomTypes[i1->second];
+        AtomType const& type2 = atomTypes[i2->second];
+        NonbondType lj0 = type1.LJ().Combine_LB( type2.LJ() );
+        // Extract original A and B parameters.
+        std::map<NameType, int>::const_iterator t1 = nameIdxMap.find( i1->first );
+        std::map<NameType, int>::const_iterator t2 = nameIdxMap.find( i2->first );
+        int idx1 = t1->second;
+        int idx2 = t2->second;
+        int idx = NB0.GetLJindex( idx1, idx2 );
+        if (idx < 0) {
+          mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
+                    *(i1->first), *(i2->first), idx1, idx2);
+          return;
         }
+        NonbondType lj1 = NB0.NBarray( idx );
+        // Compare them
+        if (lj0 != lj1) {
+          mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
+                  *(i1->first), *(i2->first), lj0.A(), lj0.B(), lj1.A(), lj1.B());
+          double deltaA = fabs(lj0.A() - lj1.A());
+          double deltaB = fabs(lj0.B() - lj1.B());
+          mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
+        }
+        AtomTypeHolder types(2);
+        types.AddName( i1->first );
+        types.AddName( i2->first );
+        NB1.AddParm( types, lj1, false );
       }
     }     
   } else {
@@ -2233,7 +2244,7 @@ static inline void GetLJAtomTypes( AtomTypeArray& atomTypes, ParmHolder<NonbondT
 ParameterSet Topology::GetParameters() const {
   ParameterSet Params;
   // Atom LJ types
-  GetLJAtomTypes( Params.AT(), atoms_, nonbond_ );
+  GetLJAtomTypes( Params.AT(), Params.NB(), atoms_, nonbond_ );
   // Bond parameters.
   GetBondParams( Params.BP(), atoms_, bonds_, bondparm_ );
   GetBondParams( Params.BP(), atoms_, bondsh_, bondparm_ );

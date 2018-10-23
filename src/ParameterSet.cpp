@@ -10,6 +10,12 @@ void ParameterSet::Debug(const char* fnameIn) const {
     int idx = at->second;
     Out.Printf("\t%6s %8i %12.4f %12.4f %12.4f\n", *(at->first), idx, atomTypes_[idx].LJ().Radius(), atomTypes_[idx].LJ().Depth(), atomTypes_[idx].Mass());
   }
+  if (!nbParm_.empty()) {
+    Out.Printf("LJ parameters:\n");
+    Out.Printf("\t%6s %6s : %12s %12s\n", "Type1", "Type2", "A", "B");
+    for (ParmHolder<NonbondType>::const_iterator nb = nbParm_.begin(); nb != nbParm_.end(); ++nb)
+      Out.Printf("\t%6s %6s : %12.4E %12.4E\n", (*nb->first[0]), (*nb->first[1]), nb->second.A(), nb->second.B());
+  }
   if (!bondParm_.empty()) {
     Out.Printf("Bond parameters:\n");
     Out.Printf("\t%6s %6s : %12s %12s\n", "Type1", "Type2", "Rk", "Req");

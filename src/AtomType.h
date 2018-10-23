@@ -23,14 +23,8 @@ class AtomType {
     /// Used to modify LJ params
     LJparmType& SetLJ() { return lj_; }
   private:
-    /// For pairing atom type with LJ parameters.
-    typedef std::pair<NameType, LJparmType> LJpair;
-    /// For mapping atom type to LJ parameters.
-    typedef std::map<NameType, LJparmType> LJmap;
-
     LJparmType lj_; ///< Default Lennard-Jones parameters (always valid for self).
-    LJmap offDiag_; ///< Off-diagonal Lennard-Jones parameters.
     double mass_;   ///< Mass in amu
-    int oidx_; ///< Original atom type index.
+    int oidx_; ///< Original atom type index. TODO deprecate
 };
 #endif
