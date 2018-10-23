@@ -1,15 +1,15 @@
 #ifndef INC_ATOMTYPE_H
 #define INC_ATOMTYPE_H
 #include "ParameterTypes.h"
-/// Hold parameters for a unique atom type TODO LJ off diagonal
+/// Hold parameters for a unique atom type
 class AtomType {
   public:
     AtomType() : mass_(0.0), oidx_(-1) {}
     AtomType(double r, double d, int o) : lj_(r, d), mass_(0.0), oidx_(o) {} // TODO deprecate
     /// Mass only
     AtomType(double m) : mass_(m), oidx_(-1) {}
-    /// Radius, well depth, mass, original type index
-    AtomType(double r, double d, double m, int i) : lj_(r, d), mass_(m), oidx_(i) {}
+    /// Radius, well depth, mass
+    AtomType(double r, double d, double m) : lj_(r, d), mass_(m), oidx_(-1) {}
     /// \return default LJ parameters
     LJparmType const& LJ() const { return lj_; }
     /// \return Atom mass in amu
