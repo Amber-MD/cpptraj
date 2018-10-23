@@ -263,10 +263,13 @@ class NonbondType {
     }
     /// \return True if A less than zero, or B if A is equal.
     bool operator<(NonbondType const& rhs) const {
-      if (A_ == rhs.A_)
-        return (B_ < rhs.B_);
-      else
-        return (A_ < rhs.A_);
+      if (*this != rhs) {
+        if ( (fabs(A_ - rhs.A_) < tol_) )
+          return (B_ < rhs.B_);
+        else
+          return (A_ < rhs.A_);
+      } else
+        return false;
     }
   private:
     double A_;
@@ -288,12 +291,19 @@ class LJparmType {
       return ( (fabs(radius_ - rhs.radius_) < Constants::SMALL) &&
                (fabs(depth_  - rhs.depth_ ) < Constants::SMALL) );
     }
+    bool operator!=(LJparmType const& rhs) const {
+      return ( (fabs(radius_ - rhs.radius_) > Constants::SMALL) ||
+               (fabs(depth_  - rhs.depth_ ) > Constants::SMALL) );
+    }
     /// \return true if radius and well depth are less in that order
     bool operator<(LJparmType const& rhs) const {
-      if (fabs(radius_ - rhs.radius_) < Constants::SMALL)
-        return (depth_ < rhs.depth_);
-      else
-        return (radius_ < rhs.radius_);
+      if (*this != rhs) {
+        if (fabs(radius_ - rhs.radius_) < Constants::SMALL)
+          return (depth_ < rhs.depth_);
+        else
+          return (radius_ < rhs.radius_);
+      } else
+        return false;
     }
     /// \return LJ A/B params using Lorentz-Berthelot rules.
     NonbondType Combine_LB(LJparmType const& rhs) const {
