@@ -187,7 +187,6 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               AtomTypeHolder types(2);
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
-              CheckForAtomType(prm.AT(), types );
               double rk = args.getNextDouble(0);
               double req = args.getNextDouble(0);
               prm.BP().AddParm(types, BondParmType(rk, req), false);
@@ -201,7 +200,6 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
-              CheckForAtomType(prm.AT(), types );
               double tk = args.getNextDouble(0);
               double teq = args.getNextDouble(0);
               prm.AP().AddParm(types, AngleParmType(tk, teq*Constants::DEGRAD), false);
@@ -225,7 +223,6 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
-              CheckForAtomType(prm.AT(), types );
               double pk = args.getNextDouble(0);
               double pn = args.getNextDouble(0);
               double phase = args.getNextDouble(0) * Constants::DEGRAD;

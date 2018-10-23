@@ -253,10 +253,4 @@ class DihedralParmHolder {
   private:
     Bmap bpmap_;
 };
-// -----------------------------------------------------------------------------
-/** This function can be used to check if an atom type is present based
-  * on type name. If not present, a placeholder is added.
-  * \return 1 if a placeholder atom was added, 0 otherwise.
-  */
-void CheckForAtomType(ParmHolder<AtomType>&, AtomTypeHolder const&);
 #endif

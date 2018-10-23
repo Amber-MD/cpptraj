@@ -17,6 +17,7 @@ static inline void PrintParmType(DihedralParmArray const& dpa) {
     mprintf("\t\t%12.4f %12.4f %12.4f\n", it->Pk(), it->Pn(), it->Phase());
 }
 static inline void PrintParmType(AtomType const& at) { mprintf(" %12.4f %12.4f %12.4f\n", at.LJ().Radius(), at.LJ().Depth(), at.Mass()); }
+static inline void PrintParmType(NonbondType const& nb) { mprintf(" %12.4E %12.4E\n", nb.A(), nb.B()); }
 
 /** Add update parameters.
   * \param0 Parameters to add to/update.
@@ -89,6 +90,11 @@ int Exec_UpdateParameters::UpdateParams(Topology& top, ParameterSet const& set1)
   }
   // Atom types
   updateCount = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
+  updateCount += UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
+  if (updateCount > 0) {
+    mprintf("\tRegenerating nonbond parameters.\n");
+    top.AssignNonbondParams( set0.AT(), set0.NB() );
+  }
 
   set0.Debug("newp.dat");
   return 0;

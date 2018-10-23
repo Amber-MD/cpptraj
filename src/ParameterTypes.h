@@ -290,7 +290,7 @@ class LJparmType {
     }
     /// \return true if radius and well depth are less in that order
     bool operator<(LJparmType const& rhs) const {
-      if (radius_ == rhs.radius_)
+      if (fabs(radius_ - rhs.radius_) < Constants::SMALL)
         return (depth_ < rhs.depth_);
       else
         return (radius_ < rhs.radius_);
