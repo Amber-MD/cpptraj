@@ -2124,20 +2124,46 @@ void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams)
 typedef std::map<NameType, int> NameIdxMapType;
 
 /** Replace current nonbond parameters with given nonbond parameters. */
+//TODO Accept array of atom type names?
 void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHolder<NonbondType> const& newNB) {
+  // Generate array of existing types.
+  ParmHolder<AtomType> atomTypes;
+  for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+  {
+    if (atm->Type().len() > 0) {
+      AtomTypeHolder types(1);
+      types.AddName(atm->Type());
+      // Find in newTypes.
+      bool found;
+      AtomType newAT = newTypes.FindParam( types, found );
+      if (!found) {
+        mprintf("Warning: No atom type information for type '%s'\n", *types[0]);
+        newAT = AtomType(atm->Mass());
+      }
+      atomTypes.AddParm( types, newAT, true );
+    }
+  }
+  if (atomTypes.size() < 1) {
+    mprintf("Warning: No atom type information in %s - cannot assign nonbond parameters.\n",
+            c_str());
+    return;
+  }
+  // Regenerate nonbond params for existing types
   nonbond_.Clear();
-  nonbond_.SetupLJforNtypes( newTypes.size() );
+  nonbond_.SetupLJforNtypes( atomTypes.size() );
   int nidx1 = 0;
   NameIdxMapType nameIdxMap;
-  for (ParmHolder<AtomType>::const_iterator t1 = newTypes.begin(); t1 != newTypes.end(); ++t1, nidx1++)
+  for (ParmHolder<AtomType>::const_iterator t1 = atomTypes.begin(); t1 != atomTypes.end(); ++t1, nidx1++)
   {
     NameType const& name1 = t1->first[0];
+    //mprintf("DEBUG: Type1= %s (%i)\n", *name1, nidx1);
     AtomType const& type1 = t1->second;
     nameIdxMap.insert( std::pair<NameType, int>(name1, nidx1) );
     int nidx2 = nidx1;
-    for (ParmHolder<AtomType>::const_iterator t2 = t1; t2 != newTypes.end(); ++t2, nidx2++)
+    for (ParmHolder<AtomType>::const_iterator t2 = t1; t2 != atomTypes.end(); ++t2, nidx2++)
     {
       NameType const& name2 = t2->first[0];
+      //mprintf("DEBUG:\t\tType2= %s (%i)\n", *name2, nidx2);
       AtomType const& type2 = t2->second;
       AtomTypeHolder types(2);
       types.AddName( name1 );
@@ -2165,7 +2191,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHol
               TruncResAtomNameNum( atm - atoms_.begin() ).c_str(),
               *(atm->Type()));
     } else {
-      if (it->second < 0 || it->second >= (int)newTypes.size()) {
+      if (it->second < 0 || it->second >= (int)atomTypes.size()) {
         mprinterr("Internal Error: Type index for %s (type %s) out of range: %i\n",
                   TruncResAtomNameNum( atm - atoms_.begin() ).c_str(),
                   *(atm->Type()), it->second);
@@ -2246,6 +2272,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
     NameIdxMapType nameIdxMap;
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
+      // TODO check for blank type name?
       AtomTypeHolder types(1);
       types.AddName( atm->Type() );
       int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
@@ -2294,10 +2321,11 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
         types.AddName( name2 );
         NB1.AddParm( types, lj1, false );
       }
-    }     
+    }
   } else {
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
-      atomTypes.AddParm( AtomTypeHolder(atm->Type()), AtomType(atm->Mass()), true );
+      if (atm->Type().len() > 0)
+        atomTypes.AddParm( AtomTypeHolder(atm->Type()), AtomType(atm->Mass()), true );
   }
 }
 
@@ -2325,4 +2353,3 @@ ParameterSet Topology::GetParameters() const {
 
   return Params;
 }
-
