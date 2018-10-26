@@ -9,8 +9,5 @@ class Exec_UpdateParameters : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_UpdateParameters(); }
     RetType Execute(CpptrajState&, ArgList&);
-  private:
-    ParameterSet GetParameters(Topology const&) const;
-    int UpdateParams(Topology&, ParameterSet const&) const;
 };
 #endif
