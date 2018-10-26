@@ -1,6 +1,7 @@
 #include "Exec_UpdateParameters.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Parameters.h"
+#include "DataSet_Topology.h"
 
 // Exec_UpdateParameters::Help()
 void Exec_UpdateParameters::Help() const
@@ -55,6 +56,9 @@ template <typename T> int UpdateParameters(T& param0, T const& param1, const cha
 int Exec_UpdateParameters::UpdateParams(Topology& top, ParameterSet const& set1) const
 {
   ParameterSet set0 = top.GetParameters();
+  // Check
+  if (set0.AT().size() < 1)
+    mprintf("Warning: No atom type information in '%s'\n", top.c_str());
   set0.Debug("originalp.dat");
 
   unsigned int updateCount;
@@ -113,11 +117,10 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
     mprinterr("Error: Parameter data set '%s' not found.\n", dsname.c_str());
     return CpptrajState::ERR;
   }
-  if (ds->Type() != DataSet::PARAMETERS) {
-    mprinterr("Error: Set '%s' is not a parameter data set.\n", ds->legend());
+  if (ds->Type() != DataSet::PARAMETERS && ds->Type() != DataSet::TOPOLOGY) {
+    mprinterr("Error: Set '%s' is not a parameter or topology data set.\n", ds->legend());
     return CpptrajState::ERR;
   }
-  DataSet_Parameters const& prm = static_cast<DataSet_Parameters const&>( *ds );
   Topology* dstop = State.DSL().GetTopology( argIn );
   if (dstop == 0) {
     mprinterr("Error: No topology specified.\n");
@@ -125,11 +128,16 @@ Exec::RetType Exec_UpdateParameters::Execute(CpptrajState& State, ArgList& argIn
   }
   Topology& top = static_cast<Topology&>( *dstop );
 
-
   mprintf("\tUpdating parameters in topology '%s' using those in set '%s'\n",
-          top.c_str(), prm.legend());
+          top.c_str(), ds->legend());
 
-  UpdateParams(top, prm);
+  if (ds->Type() == DataSet::PARAMETERS)
+    UpdateParams(top, static_cast<DataSet_Parameters const&>( *ds ));
+  else if (ds->Type() == DataSet::TOPOLOGY) {
+    DataSet_Topology const& topds = static_cast<DataSet_Topology const&>( *ds );
+    UpdateParams(top, topds.Top().GetParameters());
+  } else // Sanity check
+    return CpptrajState::ERR;
 
   return CpptrajState::OK;
 }
