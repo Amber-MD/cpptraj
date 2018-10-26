@@ -11,7 +11,6 @@ class Exec_UpdateParameters : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     ParameterSet GetParameters(Topology const&) const;
-    int UpdateBondParams(ParmHolder<BondParmType>&, ParmHolder<BondParmType> const&) const;
     int UpdateParams(Topology&, ParameterSet const&) const;
 };
 #endif
