@@ -140,6 +140,8 @@ class Topology {
     int SetSolvent(std::string const&);
     /// \return ParameterSet for this Topology
     ParameterSet GetParameters() const;
+    /// Update parameters in this Topology with those in given set.
+    int UpdateParams(ParameterSet const&);
     // ----- Print topology info -----------------
     void Summary() const;
     void Brief(const char*) const;
