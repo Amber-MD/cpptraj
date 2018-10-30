@@ -27,8 +27,9 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, ActionInit& init, int d
 {
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
-  if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
-  else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
+  if      (actionArgs.hasKey("altona")) puckerMethod_ = ALTONA;
+  else if (actionArgs.hasKey("cremer")) puckerMethod_ = CREMER;
+  else                                  puckerMethod_ = UNSPECIFIED;
   bool calc_amp = actionArgs.hasKey("amplitude");
   bool calc_theta = actionArgs.hasKey("theta");
   offset_ = actionArgs.getKeyDouble("offset",0.0);
@@ -38,10 +39,11 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, ActionInit& init, int d
     puckerMin_ = -180.0;
   puckerMax_ = puckerMin_ + 360.0;
   useMass_ = !actionArgs.hasKey("geom");
-  MetaData::scalarType stype = MetaData::UNDEFINED;
+  // DEPRECATED - 'type pucker', now always set.
   std::string stypename = actionArgs.GetStringKey("type");
-  if ( stypename == "pucker" ) stype = MetaData::PUCKER;
-
+  if (!stypename.empty())
+    mprintf("Warning: 'type' keyword is no longer necessary for 'pucker' and will be\n"
+            "Warning:   deprecated in the future.\n");
   // Get Masks
   Masks_.clear();
   std::string mask_expression = actionArgs.GetMaskNext();
@@ -54,8 +56,20 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, ActionInit& init, int d
               Masks_.size());
     return Action::ERR;
   }
-  if (Masks_.size() > 5 && puckerMethod_ != CREMER) {
-    mprinterr("Error: Pucker with %zu masks only supported with 'cremer'\n");
+  // Choose default method
+  if (puckerMethod_ == UNSPECIFIED) {
+    mprintf("Warning: Pucker method not specified");
+    if (Masks_.size() == 6) {
+      mprintf(" and 6 masks present, defaulting to 'cremer'.\n");
+      puckerMethod_ = CREMER;
+    } else {
+      mprintf(", defaulting to 'altona'.\n");
+      puckerMethod_ = ALTONA;
+    }
+  }
+  // 6 masks only supported by cremer method right now
+  if (Masks_.size() == 6 && puckerMethod_ != CREMER) {
+    mprinterr("Error: Pucker with 6 masks only supported with 'cremer'\n");
     return Action::ERR;
   }
   // Set up array to hold coordinate vectors.
@@ -64,7 +78,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, ActionInit& init, int d
   // Setup dataset
   MetaData md(actionArgs.GetStringNext());
   md.SetScalarMode( MetaData::M_PUCKER );
-  md.SetScalarType( stype );
+  md.SetScalarType( MetaData::PUCKER );
   pucker_ = init.DSL().AddSet(DataSet::DOUBLE, md, "Pucker");
   if (pucker_ == 0) return Action::ERR;
   amplitude_ = 0;
@@ -103,7 +117,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, ActionInit& init, int d
   if (theta_!=0)
     mprintf("\tThetas will be stored.\n");
   if (offset_!=0)
-    mprintf("\tOffset: %f deg. will be added to values.\n");
+    mprintf("\tOffset: %f deg. will be added to values.\n", offset_);
   if (puckerMin_ > -180.0)
     mprintf("\tOutput range is 0 to 360 degrees.\n");
   else

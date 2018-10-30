@@ -21,7 +21,7 @@ class Action_Pucker: public Action {
     double offset_;
     std::vector<AtomMask> Masks_;
     std::vector<Vec3> AX_;
-    enum PmethodType { ALTONA=0, CREMER };
+    enum PmethodType { UNSPECIFIED = 0, ALTONA, CREMER };
     PmethodType puckerMethod_;
     bool useMass_;
 };

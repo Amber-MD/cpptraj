@@ -115,6 +115,12 @@ void Cpptraj::Finalize() {
     "Daniel R. Roe and Thomas E. Cheatham, III, \"PTRAJ and CPPTRAJ: Software for\n"
     "  Processing and Analysis of Molecular Dynamics Trajectory Data\". J. Chem.\n"
     "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n");
+# ifdef MPI
+  mprintf(
+    "Daniel R. Roe and Thomas E. Cheatham, III, \"Parallelization of CPPTRAJ enables\n"
+    "  large scale analysis of molecular dynamics trajectory data\". J. Comp.\n"
+    "  Chem., 2018, DOI: 10.1002/jcc25382.\n");
+# endif
 }
 
 /** Main routine for running cpptraj. */
