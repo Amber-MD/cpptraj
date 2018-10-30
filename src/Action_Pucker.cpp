@@ -69,7 +69,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   // 6 masks only supported by cremer method right now
   if (Masks_.size() == 6 && puckerMethod_ != CREMER) {
-    mprinterr("Error: Pucker with %zu masks only supported with 'cremer'\n");
+    mprinterr("Error: Pucker with 6 masks only supported with 'cremer'\n");
     return Action::ERR;
   }
   // Set up array to hold coordinate vectors.
@@ -117,7 +117,7 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, ActionInit& init, int d
   if (theta_!=0)
     mprintf("\tThetas will be stored.\n");
   if (offset_!=0)
-    mprintf("\tOffset: %f deg. will be added to values.\n");
+    mprintf("\tOffset: %f deg. will be added to values.\n", offset_);
   if (puckerMin_ > -180.0)
     mprintf("\tOutput range is 0 to 360 degrees.\n");
   else
