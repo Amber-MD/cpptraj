@@ -4,6 +4,20 @@
 #include <cmath> // pow, sqrt, fabs
 #include "NameType.h"
 #include "Constants.h" // SMALL
+// ----- Floating point comparison routines ------------------------------------
+/// Floating point equals
+static inline bool FEQ(double v1, double v2) {
+  double delta = v1 - v2;
+  if (delta < 0.0) delta = -delta;
+  return (delta < Constants::SMALL);
+}
+/// Floating point not equals.
+static inline bool FNE(double v1, double v2) {
+  double delta = v1 - v2;
+  if (delta < 0.0) delta = -delta;
+  return (delta > Constants::SMALL);
+}
+
 // ----- BOND/ANGLE/DIHEDRAL PARAMETERS ----------------------------------------
 /// Hold bond parameters
 class BondParmType {
@@ -14,10 +28,21 @@ class BondParmType {
     inline double Req() const { return req_; }
     inline void SetRk(double rk)   { rk_ = rk;   }
     inline void SetReq(double req) { req_ = req; }
+    bool operator==(const BondParmType& rhs) const {
+      return ( FEQ(rk_,  rhs.rk_ ) &&
+               FEQ(req_, rhs.req_) );
+    }
+    bool operator!=(const BondParmType& rhs) const {
+      return ( FNE(rk_,  rhs.rk_ ) ||
+               FNE(req_, rhs.req_) );
+    }
     bool operator<(const BondParmType& rhs) const {
-      if (rk_ == rhs.rk_) {
-        return (req_ < rhs.req_);
-      } else return (rk_ < rhs.rk_);
+      if (*this != rhs) {
+        if (FEQ(rk_, rhs.rk_)) {
+          return (req_ < rhs.req_);
+        } else return (rk_ < rhs.rk_);
+      } else
+        return false;
     }
   private:
     double rk_;
@@ -52,11 +77,22 @@ class AngleParmType {
     inline double Tk()  const { return tk_;  }
     inline double Teq() const { return teq_; }
     inline void SetTk(double tk)   { tk_ = tk;   }
-    inline void SetTeq(double teq) { teq_ = teq; } 
+    inline void SetTeq(double teq) { teq_ = teq; }
+    bool operator==(const AngleParmType& rhs) const {
+      return ( FEQ(tk_,  rhs.tk_ ) &&
+               FEQ(teq_, rhs.teq_) );
+    }
+    bool operator!=(const AngleParmType& rhs) const {
+      return ( FNE(tk_,  rhs.tk_ ) ||
+               FNE(teq_, rhs.teq_) );
+    }
     bool operator<(const AngleParmType& rhs) const {
-      if (tk_ == rhs.tk_) {
-        return (teq_ < rhs.teq_);
-      } else return (tk_ < rhs.tk_);
+      if (*this != rhs) {
+        if (FEQ(tk_, rhs.tk_)) {
+          return (teq_ < rhs.teq_);
+        } else return (tk_ < rhs.tk_);
+      } else
+        return false;
     }
   private:
     double tk_;
@@ -109,6 +145,13 @@ class DihedralParmType {
     void SetPhase(double p)     { phase_ = p;    }
     void SetSCEE(double s)      { scee_ = s;     }
     void SetSCNB(double s)      { scnb_ = s;     }
+    bool operator==(DihedralParmType const& rhs) const {
+      return ( FEQ(pk_, rhs.pk_) &&
+               FEQ(pn_, rhs.pn_) &&
+               FEQ(phase_, rhs.phase_) &&
+               FEQ(scee_, rhs.scee_) &&
+               FEQ(scnb_, rhs.scnb_) );
+    }
     bool operator<(DihedralParmType const& rhs) const {
       if (pk_ == rhs.pk_) {
         if (pn_ == rhs.pn_) {
@@ -184,6 +227,8 @@ class DihedralType {
       else if (improper_)       return IMPROPER;
       else                      return NORMAL;
     }
+    inline bool Skip14()     const { return skip14_; }
+    inline bool IsImproper() const { return improper_; }
     /// Sort based on atom indices
     bool operator<(DihedralType const& rhs) const {
       if (a1_ == rhs.a1_) {
@@ -288,17 +333,17 @@ class LJparmType {
     void SetDepth(double d)  { depth_ = d;  }
     /// \return True if radius and well depth match
     bool operator==(LJparmType const& rhs) const {
-      return ( (fabs(radius_ - rhs.radius_) < Constants::SMALL) &&
-               (fabs(depth_  - rhs.depth_ ) < Constants::SMALL) );
+      return ( FEQ(radius_, rhs.radius_) &&
+               FEQ(depth_,  rhs.depth_) );
     }
     bool operator!=(LJparmType const& rhs) const {
-      return ( (fabs(radius_ - rhs.radius_) > Constants::SMALL) ||
-               (fabs(depth_  - rhs.depth_ ) > Constants::SMALL) );
+      return ( FNE(radius_, rhs.radius_) ||
+               FNE(depth_,  rhs.depth_) );
     }
     /// \return true if radius and well depth are less in that order
     bool operator<(LJparmType const& rhs) const {
       if (*this != rhs) {
-        if (fabs(radius_ - rhs.radius_) < Constants::SMALL)
+        if (FEQ(radius_, rhs.radius_))
           return (depth_ < rhs.depth_);
         else
           return (radius_ < rhs.radius_);
