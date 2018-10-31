@@ -31,6 +31,24 @@ class ParameterSet {
 
     void Debug(const char*) const;
     void Debug() const { return Debug(""); }
+
+    /// Used to track what parameters were updated during UpdateParams
+    class UpdateCount {
+      public:
+        UpdateCount() : nBondsUpdated_(0), nAnglesUpdated_(0),
+                        nDihedralsUpdated_(0), nImpropersUpdated_(0),
+                        nUreyBradleyUpdated_(0), nAtomTypeUpdated_(0),
+                        nLJparamsUpdated_(0) {}
+        unsigned int nBondsUpdated_;
+        unsigned int nAnglesUpdated_;
+        unsigned int nDihedralsUpdated_;
+        unsigned int nImpropersUpdated_;
+        unsigned int nUreyBradleyUpdated_;
+        unsigned int nAtomTypeUpdated_;
+        unsigned int nLJparamsUpdated_;
+    };
+    /// Update this set with parameters from given set
+    int UpdateParams(ParameterSet const&, UpdateCount&);
   private:
     //AtomTypeArray atomTypes_;
     ParmHolder<AtomType> atomTypes_;
