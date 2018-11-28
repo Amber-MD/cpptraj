@@ -463,6 +463,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
             ene = ENE_.E_Kinetic(frm.Frm(), Imask_);
           time_ke_.Stop();
           Energy_[KE]->Add(frameNum, &ene);
+          Etot += ene;
         }
         break;
       case C_KEVEL:
@@ -470,12 +471,14 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         ene = ENE_.E_Kinetic(frm.Frm(), Imask_);
         time_ke_.Stop();
         Energy_[KE]->Add(frameNum, &ene);
+        Etot += ene;
         break;
       case C_KEVV:
         time_ke_.Start();
         ene = ENE_.E_Kinetic_VV(frm.Frm(), Imask_, dt_);
         time_ke_.Stop();
         Energy_[KE]->Add(frameNum, &ene);
+        Etot += ene;
         break;
     }
   }
