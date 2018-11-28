@@ -22,6 +22,7 @@
 #include "Traj_Gro.h"
 #include "Traj_GmxXtc.h"
 #include "Traj_CharmmRestart.h"
+#include "Traj_XYZ.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -57,6 +58,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "Amber Trajectory",   0, Traj_AmberCoord::WriteHelp, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, Traj_SQM::WriteHelp, Traj_SQM::Alloc            },
   { "SDF",                0, 0, Traj_SDF::Alloc            },
+  { "XYZ",                0, 0, Traj_XYZ::Alloc            },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
   { "Unknown trajectory", 0, 0, 0                          }
 };

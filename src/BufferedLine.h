@@ -20,6 +20,12 @@ class BufferedLine : private CpptrajFile {
       if ( OpenRead( fname ) ) return 1;
       return ResetBuffer();
     }
+    /// Open the file (must be set up), set up buffer.
+    int OpenFile() {
+      if (Filename().empty()) return 1;
+      if ( OpenFile() ) return 1;
+      return ResetBuffer();
+    }
     int LineNumber()          const { return nline_;          }
     const char* Buffer()      const { return buffer_;         }
     /// \return Pointer to current buffer position.
