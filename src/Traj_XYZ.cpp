@@ -82,9 +82,9 @@ int Traj_XYZ::processReadArgs(ArgList& argIn) {
   return 0;
 }
 
-const char* FMT_XYZ_ = "%lf %lf %lf";
+const char* Traj_XYZ::FMT_XYZ_ = "%lf %lf %lf";
 
-const char* FMT_ATOM_XYZ_ = "%*i %lf %lf %lf";
+const char* Traj_XYZ::FMT_ATOM_XYZ_ = "%*i %lf %lf %lf";
 
 /** Set up trajectory for reading.
   * \return Number of frames in trajectory.
