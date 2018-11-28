@@ -61,9 +61,14 @@ bool Traj_AmberCoord::ID_TrajFormat(CpptrajFile& fileIn) {
     tEnd_   = 43; // 44 - 1
     return true;
   }
-  // Check if we can read at least 3 coords of width 8, Amber trajectory
-  float TrajCoord[3];
-  if ( sscanf(buffer2.c_str(), "%8f%8f%8f", TrajCoord, TrajCoord+1, TrajCoord+2) == 3 )
+  // Check if we can read 3, 6, 9, or 10 coords (corresponding to 1, 2, 3 or
+  // > 3 atoms) of width 8; Amber trajectory.
+  float TrajCoord[10];
+  int nscan = sscanf(buffer2.c_str(), "%8f%8f%8f%8f%8f%8f%8f%8f%8f%8f",
+                     TrajCoord,   TrajCoord+1, TrajCoord+2, TrajCoord+3,
+                     TrajCoord+4, TrajCoord+5, TrajCoord+6, TrajCoord+7,
+                     TrajCoord+8, TrajCoord+9);
+  if (nscan == 3 || nscan == 6 || nscan == 9 || nscan == 10)
   {
     if (debug_>0) mprintf("  AMBER TRAJECTORY file\n");
     return true;

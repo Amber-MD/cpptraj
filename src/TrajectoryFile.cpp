@@ -87,6 +87,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { CONFLIB,        "conflib",   ".conflib" },
   { SQM,            "sqm",       ".sqm"     },
   { SDF,            "sdf",       ".sdf"     },
+  { XYZ,            "xyz",       ".xyz"     },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 
