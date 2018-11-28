@@ -136,7 +136,21 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
 
 /** Read specified trajectory frame. */
 int Traj_XYZ::readFrame(int set, Frame& frameIn) {
+  // TODO deal with seeking
+  if (titleType_ == SINGLE) {
+    infile_.Line();
+    titleType_ = NO_TITLE;
+  } else if (titleType_ == MULTIPLE)
+    infile_.Line();
 
+  double* xyz = frameIn.xAddress();
+  for (int at = 0; at != frameIn.Natom(); at++) {
+    const char* ptr = infile_.Line();
+    if (ptr == 0) return 1;
+    if (sscanf(ptr, fmt_, xyz, xyz+1, xyz+2) != 3) return 1;
+    xyz += 3;
+  }
+  
   return 0;
 }
 
