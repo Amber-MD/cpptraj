@@ -23,7 +23,7 @@ class BufferedLine : private CpptrajFile {
     /// Open the file (must be set up), set up buffer.
     int OpenFile() {
       if (Filename().empty()) return 1;
-      if ( OpenFile() ) return 1;
+      if ( CpptrajFile::OpenFile() ) return 1;
       return ResetBuffer();
     }
     int LineNumber()          const { return nline_;          }
