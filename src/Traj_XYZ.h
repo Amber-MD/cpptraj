@@ -41,6 +41,7 @@ class Traj_XYZ : public TrajectoryIO {
 
     Type DetermineFormat(std::string&, std::string const&) const;
     inline void ReadTitle();
+    int readXYZ(int, int, double*);
 
     static const char* FMT_XYZ_;
     static const char* FMT_ATOM_XYZ_;

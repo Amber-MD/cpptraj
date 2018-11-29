@@ -141,6 +141,7 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
   return nframes;
 }
 
+/** Read title. */
 void Traj_XYZ::ReadTitle() {
   if (titleType_ == SINGLE) {
     infile_.Line();
@@ -149,8 +150,8 @@ void Traj_XYZ::ReadTitle() {
     infile_.Line();
 }
 
-/** Read specified trajectory frame. */
-int Traj_XYZ::readFrame(int set, Frame& frameIn) {
+/** Read specified frame into given buffer. */
+int Traj_XYZ::readXYZ(int set, int natom, double* xAddress) {
   // If an earlier set is being requested, reopen the file. 
   if (set < set_) {
     closeTraj();
@@ -159,14 +160,14 @@ int Traj_XYZ::readFrame(int set, Frame& frameIn) {
   // Perform any seeking needed
   while (set_ < set) {
     ReadTitle();
-    for (int at = 0; at != frameIn.Natom(); at++)
+    for (int at = 0; at != natom; at++)
       infile_.Line();
     set_++;
   }
   ReadTitle(); 
   // Read coordinates into frame
-  double* xyz = frameIn.xAddress();
-  for (int at = 0; at != frameIn.Natom(); at++) {
+  double* xyz = xAddress;
+  for (int at = 0; at != natom; at++) {
     const char* ptr = infile_.Line();
     if (ptr == 0) return 1;
     if (sscanf(ptr, fmt_, xyz, xyz+1, xyz+2) != 3) return 1;
@@ -176,16 +177,19 @@ int Traj_XYZ::readFrame(int set, Frame& frameIn) {
   return 0;
 }
 
+/** Read specified trajectory frame. */
+int Traj_XYZ::readFrame(int set, Frame& frameIn) {
+  return readXYZ(set, frameIn.Natom(), frameIn.xAddress());
+}
+
 /** Read velocities from specified frame. */
 int Traj_XYZ::readVelocity(int set, Frame& frameIn) {
-
-  return 0;
+  return readXYZ(set, frameIn.Natom(), frameIn.vAddress());
 }
 
 /** Read forces from specified frame. */
 int Traj_XYZ::readForce(int set, Frame& frameIn) {
-
-  return 0;
+  return readXYZ(set, frameIn.Natom(), frameIn.fAddress());
 }
 
 // -----------------------------------------------------------------------------
