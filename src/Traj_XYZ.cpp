@@ -60,7 +60,11 @@ bool Traj_XYZ::ID_TrajFormat(CpptrajFile& fileIn) {
 
 /** Print trajectory info to stdout. */
 void Traj_XYZ::Info() {
-  mprintf("is an XYZ trajectory");
+  switch (ftype_) {
+    case UNKNOWN  :
+    case XYZ      : mprintf("is an XYZ trajectory"); break;
+    case ATOM_XYZ : mprintf("is an Atom-XYZ trajectory"); break;
+  }
 }
 
 /** Close file. */
