@@ -261,7 +261,10 @@ int Traj_XYZ::setupTrajout(FileName const& fname, Topology* trajParm,
   else if (ftype_ == XYZ)
     ofmt_ = ffmt.Fmt();
   ofmt_.append("\n");
-  mprintf("DEBUG: output format string: '%s'\n", ofmt_.c_str()); 
+  //mprintf("DEBUG: output format string: '%s'\n", ofmt_.c_str()); 
+  if (titleType_ != NO_TITLE && Title().empty())
+    SetTitle("Cpptraj Generated XYZ file.");
+
   return outfile_.OpenWrite( fname );
 }
 
