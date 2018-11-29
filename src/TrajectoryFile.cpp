@@ -140,3 +140,26 @@ TrajectoryFile::TrajFormatType TrajectoryFile::DetectFormat(FileName const& fnam
   delete tio;
   return ttype;
 }
+
+/** This version of DetectFormat() optionally takes a format keyword in
+  * place of automatic type determination.
+  */
+TrajectoryIO* TrajectoryFile::DetectFormat(FileName const& fname, std::string const& fmtarg,
+                                           TrajFormatType& ttype)
+{
+  TrajectoryIO* tio = 0;
+  if (!fmtarg.empty()) {
+    ttype = (TrajFormatType)FileTypes::GetFormatFromString( TF_KeyArray, fmtarg, UNKNOWN_TRAJ );
+    if (ttype == UNKNOWN_TRAJ) {
+      mprinterr("Error: Trajectory format '%s' is not recognized.\n", fmtarg.c_str());
+      return 0;
+    }
+    tio = (TrajectoryIO*)FileTypes::AllocIO( TF_AllocArray, ttype, false );
+  } else {
+    if ( (tio = DetectFormat( fname, ttype )) == 0 ) {
+      mprinterr("Error: Could not determine trajectory '%s' format.\n", fname.full());
+      return 0;
+    }
+  }
+  return tio;
+}

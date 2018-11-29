@@ -61,5 +61,7 @@ class TrajectoryFile {
     }
     /// \return TrajFormatType of given file or UNKNOWN_TRAJ
     static TrajFormatType DetectFormat(FileName const&);
+    /// \return Allocated TrajectoryIO for given file with optional format keyword.
+    static TrajectoryIO* DetectFormat(FileName const&, std::string const&, TrajFormatType&);
 };
 #endif
