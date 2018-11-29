@@ -598,6 +598,15 @@ SetupFinalFlags() {
       DIRECTIVES="$DIRECTIVES -DLIBPME -DHAVE_FFTWD=1"
     fi
   fi
+  # Determine if this is a GitHub or AmberTools build
+  if [ ! -z "$AMBERHOME" ] ; then
+    AMBCFGDIR=`pwd | grep "AmberTools/src"`
+    if [ ! -z "$AMBCFGDIR" ] ; then
+      DIRECTIVES="$DIRECTIVES -DBUILDTYPE='\"AmberTools\"'"
+    else
+      DIRECTIVES="$DIRECTIVES -DBUILDTYPE='\"GitHub\"'"
+    fi
+  fi
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''
