@@ -5,6 +5,7 @@
 /// CONSTRUCTOR
 Traj_XYZ::Traj_XYZ() :
   titleType_(NO_TITLE),
+  ftype_(UNKNOWN),
   set_(0),
   fmt_(0)
 {}
@@ -99,8 +100,8 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
   // Initial format determiniation.
   std::string line1 = infile_.GetLine();
   std::string line2 = infile_.GetLine();
-  Type ftype = DetermineFormat(line1, line2);
-  switch (ftype) {
+  ftype_ = DetermineFormat(line1, line2);
+  switch (ftype_) {
     case XYZ      : fmt_ = FMT_XYZ_; break;
     case ATOM_XYZ : fmt_ = FMT_ATOM_XYZ_; break;
     case UNKNOWN  :

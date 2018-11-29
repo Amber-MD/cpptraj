@@ -47,6 +47,7 @@ class Traj_XYZ : public TrajectoryIO {
 
     BufferedLine infile_;
     TitleType titleType_;
+    Type ftype_;
     int set_;
     const char* fmt_; ///< Format for reading
 };
