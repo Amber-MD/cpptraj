@@ -19,7 +19,8 @@ const
 {
   std::string line = line1;
   // This line will either be a title line, atom XYZ, or XYZ
-  RemoveAllWhitespace( line );
+  RemoveLeadingWhitespace( line );
+  RemoveTrailingWhitespace( line );
   if (!line.empty() && line[0] == '#') {
     line1 = line;
     // Ignore the title. Get the next line, which must be atom XYZ or XYZ
@@ -32,6 +33,7 @@ const
   char tk2[tkSize];
   char tk3[tkSize];
   int nscan = sscanf(line.c_str(), "%s %s %s %s", tk0, tk1, tk2, tk3);
+  //mprintf("DEBUG: '%s' '%s' '%s' '%s'\n", tk0, tk1, tk2, tk3);
   if (nscan == 4) {
     if ( validInteger( std::string(tk0) ) &&
          validDouble( std::string(tk1) ) &&
@@ -132,7 +134,8 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
   }
   line2 = infile_.GetLine();
   if (!line2.empty()) {
-    RemoveAllWhitespace( line2 );
+    RemoveLeadingWhitespace( line2 );
+    RemoveTrailingWhitespace( line2 );
     if (line2[0] == '#')
       titleType_ = MULTIPLE;
   } else
