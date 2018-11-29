@@ -65,6 +65,7 @@ void Traj_XYZ::Info() {
 
 /** Close file. */
 void Traj_XYZ::closeTraj() {
+  outfile_.CloseFile();
   infile_.CloseFile();
 }
 
@@ -209,13 +210,27 @@ int Traj_XYZ::setupTrajout(FileName const& fname, Topology* trajParm,
                                    CoordinateInfo const& cInfoIn, 
                                    int NframesToWrite, bool append)
 {
-
-  return 1;
+  titleType_ = SINGLE;
+  ftype_ = ATOM_XYZ;
+  return outfile_.OpenWrite( fname );
 }
 
 /** Write specified trajectory frame. */
 int Traj_XYZ::writeFrame(int set, Frame const& frameOut) {
+  if (titleType_ == SINGLE) {
+    outfile_.Printf("#%s\n", Title().c_str());
+    titleType_ = NO_TITLE;
+  } else if (titleType_ == MULTIPLE)
+    outfile_.Printf("#%s\n", Title().c_str());
 
+  const double* xyz = frameOut.xAddress();
+  if (ftype_ == ATOM_XYZ) {
+    for (int at = 0; at != frameOut.Natom(); at++, xyz += 3)
+      outfile_.Printf("%i %f %f %f\n", at+1, xyz[0], xyz[1], xyz[2]);
+  } else if (ftype_ == XYZ) {
+    for (int at = 0; at != frameOut.Natom(); at++, xyz += 3)
+      outfile_.Printf("%f %f %f\n", xyz[0], xyz[1], xyz[2]);
+  }
   return 0;
 }
 

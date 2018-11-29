@@ -47,6 +47,7 @@ class Traj_XYZ : public TrajectoryIO {
     static const char* FMT_ATOM_XYZ_;
 
     BufferedLine infile_;
+    CpptrajFile outfile_;
     TitleType titleType_;
     Type ftype_;
     int set_;
