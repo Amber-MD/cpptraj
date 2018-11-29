@@ -4,7 +4,7 @@
 
 /// CONSTRUCTOR
 Traj_XYZ::Traj_XYZ() :
-  titleType_(NO_TITLE),
+  titleType_(UNKNOWN_TITLE),
   ftype_(UNKNOWN),
   set_(0),
   fmt_(0)
@@ -137,6 +137,12 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
       titleType_ = MULTIPLE;
   } else
     nframes = 1;
+  switch (titleType_) {
+    case UNKNOWN_TITLE :
+    case NO_TITLE : mprintf("\tNo title detected.\n"); break;
+    case SINGLE   : mprintf("\tSingle title detected.\n"); break;
+    case MULTIPLE : mprintf("\tTitle before each frame detected.\n"); break;
+  }
 
   if (!line1.empty()) SetTitle( line1 );
   SetCoordInfo( CoordinateInfo(Box(), false, false, false) );
@@ -205,7 +211,30 @@ void Traj_XYZ::WriteHelp() {
 
 /** Process write arguments. */
 int Traj_XYZ::processWriteArgs(ArgList& argIn) {
-
+  std::string arg = argIn.GetStringKey("ftype");
+  if (!arg.empty()) {
+    if (arg == "xyz")
+      ftype_ = XYZ;
+    else if (arg == "atomxyz")
+      ftype_ = ATOM_XYZ;
+    else {
+      mprinterr("Error: Unrecognized key for 'ftype' = '%s'\n", arg.c_str());
+      return 1;
+    }
+  }
+  arg = argIn.GetStringKey("titletype");
+  if (!arg.empty()) {
+    if (arg == "none")
+      titleType_ = NO_TITLE;
+    else if (arg == "single")
+      titleType_ = SINGLE;
+    else if (arg == "perframe")
+      titleType_ = MULTIPLE;
+    else {
+      mprinterr("Error: Unrecognized key for 'titletype' = '%s'\b", arg.c_str());
+      return 1;
+    }
+  }
   return 0;
 }
 
@@ -214,8 +243,10 @@ int Traj_XYZ::setupTrajout(FileName const& fname, Topology* trajParm,
                                    CoordinateInfo const& cInfoIn, 
                                    int NframesToWrite, bool append)
 {
-  titleType_ = SINGLE;
-  ftype_ = ATOM_XYZ;
+  if (titleType_ == UNKNOWN_TITLE)
+    titleType_ = SINGLE;
+  if (ftype_ == UNKNOWN)
+    ftype_ = ATOM_XYZ;
   return outfile_.OpenWrite( fname );
 }
 

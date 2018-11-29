@@ -37,7 +37,7 @@ class Traj_XYZ : public TrajectoryIO {
 #   endif
 
     enum Type { UNKNOWN=0, XYZ, ATOM_XYZ };
-    enum TitleType { NO_TITLE = 0, SINGLE, MULTIPLE };
+    enum TitleType { NO_TITLE = 0, SINGLE, MULTIPLE, UNKNOWN_TITLE };
 
     Type DetermineFormat(std::string&, std::string const&) const;
     inline void ReadTitle();
