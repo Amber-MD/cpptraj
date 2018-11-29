@@ -48,9 +48,12 @@ class Traj_XYZ : public TrajectoryIO {
 
     BufferedLine infile_;
     CpptrajFile outfile_;
+    std::string ofmt_;
     TitleType titleType_;
     Type ftype_;
     int set_;
+    int width_;
+    int prec_;
     const char* fmt_; ///< Format for reading
 };
 #endif

@@ -1,12 +1,15 @@
 #include "Traj_XYZ.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "TextFormat.h"
 
 /// CONSTRUCTOR
 Traj_XYZ::Traj_XYZ() :
   titleType_(UNKNOWN_TITLE),
   ftype_(UNKNOWN),
   set_(0),
+  width_(0),
+  prec_(-1),
   fmt_(0)
 {}
 
@@ -238,6 +241,8 @@ int Traj_XYZ::processWriteArgs(ArgList& argIn) {
       return 1;
     }
   }
+  width_ = argIn.getKeyInt("width", width_);
+  prec_ = argIn.getKeyInt("prec", prec_);
   return 0;
 }
 
@@ -250,6 +255,13 @@ int Traj_XYZ::setupTrajout(FileName const& fname, Topology* trajParm,
     titleType_ = SINGLE;
   if (ftype_ == UNKNOWN)
     ftype_ = ATOM_XYZ;
+  TextFormat ffmt(TextFormat::DOUBLE, width_, prec_, 3);
+  if (ftype_ == ATOM_XYZ)
+    ofmt_ = "%i " + ffmt.Fmt();
+  else if (ftype_ == XYZ)
+    ofmt_ = ffmt.Fmt();
+  ofmt_.append("\n");
+  mprintf("DEBUG: output format string: '%s'\n", ofmt_.c_str()); 
   return outfile_.OpenWrite( fname );
 }
 
@@ -264,10 +276,10 @@ int Traj_XYZ::writeFrame(int set, Frame const& frameOut) {
   const double* xyz = frameOut.xAddress();
   if (ftype_ == ATOM_XYZ) {
     for (int at = 0; at != frameOut.Natom(); at++, xyz += 3)
-      outfile_.Printf("%i %f %f %f\n", at+1, xyz[0], xyz[1], xyz[2]);
+      outfile_.Printf(ofmt_.c_str(), at+1, xyz[0], xyz[1], xyz[2]);
   } else if (ftype_ == XYZ) {
     for (int at = 0; at != frameOut.Natom(); at++, xyz += 3)
-      outfile_.Printf("%f %f %f\n", xyz[0], xyz[1], xyz[2]);
+      outfile_.Printf(ofmt_.c_str(), xyz[0], xyz[1], xyz[2]);
   }
   return 0;
 }
