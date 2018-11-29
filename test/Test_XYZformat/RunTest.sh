@@ -19,22 +19,25 @@ trajout tz2.xyz
 # Single title, xyz
 trajout tz2.st.xyz    titletype single   ftype xyz
 # No title, atom-xyz
-trajout tz2.nt.at.xyz titletype none     ftype atomxyz
+trajout tz2.nt.at.xyz titletype none     ftype atomxyz prec 3
 # No title, xyz
 trajout tz2.nt.xyz    titletype none     ftype xyz
 # Multi title, atom-xyz
 trajout tz2.mt.at.xyz titletype perframe ftype atomxyz
 # Multi title, xyz
-trajout tz2.mt.xyz    titletype perframe ftype xyz
+trajout tz2.mt.xyz    titletype perframe ftype xyz width 12 prec 4
 EOF
 RunCpptraj "$UNITNAME"
 
 UNITNAME='Atom XYZ format read'
 N=1
 for FILE in tz2.xyz tz2.st.xyz tz2.nt.at.xyz tz2.nt.xyz tz2.mt.at.xyz tz2.mt.xyz ; do
+  if [ $N -eq 6 ] ; then
+    AS='as xyz'
+  fi
   cat > xyz.in <<EOF
 parm ../tz2.parm7
-trajin $FILE 
+trajin $FILE $AS
 trajout test$N.crd
 EOF
   RunCpptraj "$UNITNAME, test $N"
