@@ -607,6 +607,17 @@ SetupFinalFlags() {
       DIRECTIVES="$DIRECTIVES -DBUILDTYPE='\"GitHub\"'"
     fi
   fi
+  # For GIT, record the current hash
+  if [ -f '.git/HEAD' ] ; then
+    REFFILE=`awk '{print $2; exit 0;}' .git/HEAD`
+    REFFILE=".git/$REFFILE"
+    if [ -f "$REFFILE" ] ; then
+      HASH=`cat $REFFILE`
+      if [ ! -z "$HASH" ] ; then
+        DIRECTIVES="$DIRECTIVES -DGITHASH='\"$HASH\"'"
+      fi
+    fi
+  fi
   # Set up include and linking flags
   ldf=''
   CPPTRAJ_LIB=''

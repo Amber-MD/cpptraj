@@ -373,7 +373,11 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     if ( arg == "--internal-version" ) {
       // --internal-version: Print internal version number and quit.
       SetWorldSilent( true );
+#     ifdef GITHASH
+      loudPrintf("CPPTRAJ: Internal version # %s GIT hash %s\n", CPPTRAJ_INTERNAL_VERSION, GITHASH);
+#     else
       loudPrintf("CPPTRAJ: Internal version # %s\n", CPPTRAJ_INTERNAL_VERSION);
+#     endif
       return QUIT;
     }
     if ( arg == "--defines" ) {
