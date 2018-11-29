@@ -2,10 +2,11 @@
 
 . ../MasterTest.sh
 
-TESTNAME='XYZ format tests'
-
 CleanFiles xyz.in tz2.xyz test1.crd.save test?.crd tz2.st.xyz tz2.nt.at.xyz \
            tz2.nt.xyz tz2.mt.at.xyz tz2.mt.xyz
+
+TESTNAME='XYZ format tests'
+Requires notparallel
 
 INPUT='-i xyz.in'
 
