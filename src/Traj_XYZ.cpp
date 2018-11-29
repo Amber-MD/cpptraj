@@ -4,6 +4,8 @@
 
 /// CONSTRUCTOR
 Traj_XYZ::Traj_XYZ() :
+  titleType_(NO_TITLE),
+  set_(0),
   fmt_(0)
 {}
 
@@ -68,7 +70,9 @@ void Traj_XYZ::closeTraj() {
 // -----------------------------------------------------------------------------
 /** Open trajectory for reading. */
 int Traj_XYZ::openTrajin() {
-  return infile_.OpenFile();
+  if (infile_.OpenFile()) return 1;
+  set_ = 0;
+  return 0;
 }
 
 /** Read help */
@@ -130,19 +134,36 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
 
   if (!line1.empty()) SetTitle( line1 );
   SetCoordInfo( CoordinateInfo(Box(), false, false, false) );
-  
+ 
+  set_ = 0;
+ 
   return nframes;
 }
 
-/** Read specified trajectory frame. */
-int Traj_XYZ::readFrame(int set, Frame& frameIn) {
-  // TODO deal with seeking
+void Traj_XYZ::ReadTitle() {
   if (titleType_ == SINGLE) {
     infile_.Line();
     titleType_ = NO_TITLE;
   } else if (titleType_ == MULTIPLE)
     infile_.Line();
+}
 
+/** Read specified trajectory frame. */
+int Traj_XYZ::readFrame(int set, Frame& frameIn) {
+  // If an earlier set is being requested, reopen the file. 
+  if (set < set_) {
+    closeTraj();
+    openTrajin();
+  }
+  // Perform any seeking needed
+  while (set_ < set) {
+    ReadTitle();
+    for (int at = 0; at != frameIn.Natom(); at++)
+      infile_.Line();
+    set_++;
+  }
+  ReadTitle(); 
+  // Read coordinates into frame
   double* xyz = frameIn.xAddress();
   for (int at = 0; at != frameIn.Natom(); at++) {
     const char* ptr = infile_.Line();
@@ -150,7 +171,7 @@ int Traj_XYZ::readFrame(int set, Frame& frameIn) {
     if (sscanf(ptr, fmt_, xyz, xyz+1, xyz+2) != 3) return 1;
     xyz += 3;
   }
-  
+  set_++;
   return 0;
 }
 

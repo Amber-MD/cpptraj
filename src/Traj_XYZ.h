@@ -40,12 +40,14 @@ class Traj_XYZ : public TrajectoryIO {
     enum TitleType { NO_TITLE = 0, SINGLE, MULTIPLE };
 
     Type DetermineFormat(std::string&, std::string const&) const;
+    inline void ReadTitle();
 
     static const char* FMT_XYZ_;
     static const char* FMT_ATOM_XYZ_;
 
     BufferedLine infile_;
-    const char* fmt_; ///< Format for reading
     TitleType titleType_;
+    int set_;
+    const char* fmt_; ///< Format for reading
 };
 #endif
