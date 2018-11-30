@@ -212,7 +212,10 @@ int Traj_XYZ::readForce(int set, Frame& frameIn) {
 // -----------------------------------------------------------------------------
 /** Write help. */
 void Traj_XYZ::WriteHelp() {
-
+  mprintf("\tftype {atomxyz|xyz}              : Choose either 'ATOM X Y Z' (default) or 'X Y Z' output format.\n"
+          "\ttitletype {none|single|perframe} : No title, one title (default), or title before every frame.\n"
+          "\twidth <#>                        : Output format width.\n"
+          "\tprec <#>                         : Output format precision.\n");
 }
 
 /** Process write arguments. */

@@ -58,7 +58,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "Amber Trajectory",   0, Traj_AmberCoord::WriteHelp, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, Traj_SQM::WriteHelp, Traj_SQM::Alloc            },
   { "SDF",                0, 0, Traj_SDF::Alloc            },
-  { "XYZ",                0, 0, Traj_XYZ::Alloc            },
+  { "XYZ",                0, Traj_XYZ::WriteHelp, Traj_XYZ::Alloc            },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
   { "Unknown trajectory", 0, 0, 0                          }
 };
