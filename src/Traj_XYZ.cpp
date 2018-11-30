@@ -74,14 +74,13 @@ void Traj_XYZ::Info() {
 
 /** Close file. */
 void Traj_XYZ::closeTraj() {
-  outfile_.CloseFile();
-  infile_.CloseFile();
+  file_.CloseFile();
 }
 
 // -----------------------------------------------------------------------------
 /** Open trajectory for reading. */
 int Traj_XYZ::openTrajin() {
-  if (infile_.OpenFile()) return 1;
+  if (file_.OpenFile()) return 1;
   set_ = 0;
   return 0;
 }
@@ -106,17 +105,17 @@ const char* Traj_XYZ::FMT_ATOM_XYZ_ = "%*i %lf %lf %lf";
   */
 int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
 {
-  if (infile_.OpenFileRead( fname )) return TRAJIN_ERR;
+  if (file_.OpenFileRead( fname )) return TRAJIN_ERR;
   // Initial format determiniation.
-  std::string line1 = infile_.GetLine();
-  std::string line2 = infile_.GetLine();
+  std::string line1 = file_.GetLine();
+  std::string line2 = file_.GetLine();
   ftype_ = DetermineFormat(line1, line2);
   switch (ftype_) {
     case XYZ      : fmt_ = FMT_XYZ_; break;
     case ATOM_XYZ : fmt_ = FMT_ATOM_XYZ_; break;
     case UNKNOWN  :
       mprinterr("Internal Error: '%s' does not appear to be XYZ format anymore.\n",
-                infile_.Filename().full());
+                file_.Filename().full());
       return TRAJIN_ERR;
   }
   if (line1.empty())
@@ -127,15 +126,15 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
   closeTraj();
   int nframes = TRAJIN_UNK;
   if (openTrajin()) return TRAJIN_ERR;
-  if (titleType_ != NO_TITLE) infile_.Line();
+  if (titleType_ != NO_TITLE) file_.Line();
   for (int at = 0; at != trajParm->Natom(); at++) {
-    const char* atline = infile_.Line();
+    const char* atline = file_.Line();
     if (atline == 0) {
       mprinterr("Error: Unexpected EOF when reading first frame of '%s'\n", atline);
       return TRAJIN_ERR;
     }
   }
-  line2 = infile_.GetLine();
+  line2 = file_.GetLine();
   if (!line2.empty()) {
     RemoveLeadingWhitespace( line2 );
     RemoveTrailingWhitespace( line2 );
@@ -161,10 +160,10 @@ int Traj_XYZ::setupTrajin(FileName const& fname, Topology* trajParm)
 /** Read title. */
 void Traj_XYZ::ReadTitle() {
   if (titleType_ == SINGLE) {
-    infile_.Line();
+    file_.Line();
     titleType_ = NO_TITLE;
   } else if (titleType_ == MULTIPLE)
-    infile_.Line();
+    file_.Line();
 }
 
 /** Read specified frame into given buffer. */
@@ -178,14 +177,14 @@ int Traj_XYZ::readXYZ(int set, int natom, double* xAddress) {
   while (set_ < set) {
     ReadTitle();
     for (int at = 0; at != natom; at++)
-      infile_.Line();
+      file_.Line();
     set_++;
   }
   ReadTitle(); 
   // Read coordinates into frame
   double* xyz = xAddress;
   for (int at = 0; at != natom; at++) {
-    const char* ptr = infile_.Line();
+    const char* ptr = file_.Line();
     if (ptr == 0) return 1;
     if (sscanf(ptr, fmt_, xyz, xyz+1, xyz+2) != 3) return 1;
     xyz += 3;
@@ -268,24 +267,24 @@ int Traj_XYZ::setupTrajout(FileName const& fname, Topology* trajParm,
   if (titleType_ != NO_TITLE && Title().empty())
     SetTitle("Cpptraj Generated XYZ file.");
 
-  return outfile_.OpenWrite( fname );
+  return file_.OpenWrite( fname );
 }
 
 /** Write specified trajectory frame. */
 int Traj_XYZ::writeFrame(int set, Frame const& frameOut) {
   if (titleType_ == SINGLE) {
-    outfile_.Printf("#%s\n", Title().c_str());
+    file_.Printf("#%s\n", Title().c_str());
     titleType_ = NO_TITLE;
   } else if (titleType_ == MULTIPLE)
-    outfile_.Printf("#%s\n", Title().c_str());
+    file_.Printf("#%s\n", Title().c_str());
 
   const double* xyz = frameOut.xAddress();
   if (ftype_ == ATOM_XYZ) {
     for (int at = 0; at != frameOut.Natom(); at++, xyz += 3)
-      outfile_.Printf(ofmt_.c_str(), at+1, xyz[0], xyz[1], xyz[2]);
+      file_.Printf(ofmt_.c_str(), at+1, xyz[0], xyz[1], xyz[2]);
   } else if (ftype_ == XYZ) {
     for (int at = 0; at != frameOut.Natom(); at++, xyz += 3)
-      outfile_.Printf(ofmt_.c_str(), xyz[0], xyz[1], xyz[2]);
+      file_.Printf(ofmt_.c_str(), xyz[0], xyz[1], xyz[2]);
   }
   return 0;
 }

@@ -2,7 +2,7 @@
 #define INC_BUFFEREDLINE_H
 #include <vector>
 #include "CpptrajFile.h"
-/// Used to buffer text files that will be read line-by-line
+/// Used to buffer text files that will be read line-by-line. No buffering for writes.
 class BufferedLine : private CpptrajFile {
   public:
     BufferedLine();
@@ -34,6 +34,8 @@ class BufferedLine : private CpptrajFile {
     // Members of CpptrajFile that should be public
     using CpptrajFile::Filename;
     using CpptrajFile::CloseFile;
+    using CpptrajFile::OpenWrite;
+    using CpptrajFile::Printf;
   private:
     int ResetBuffer();
     static const size_t DEFAULT_BUFFERSIZE = 16384;

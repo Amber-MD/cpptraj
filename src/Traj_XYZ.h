@@ -46,8 +46,7 @@ class Traj_XYZ : public TrajectoryIO {
     static const char* FMT_XYZ_;
     static const char* FMT_ATOM_XYZ_;
 
-    BufferedLine infile_;
-    CpptrajFile outfile_;
+    BufferedLine file_;
     std::string ofmt_;
     TitleType titleType_;
     Type ftype_;
