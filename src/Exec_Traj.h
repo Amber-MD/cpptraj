@@ -8,7 +8,6 @@
 class Exec_Trajin : public Exec {
   public:
     Exec_Trajin() : Exec(TRAJ) {}
-    void Help() const {};
     void Help(ArgList&) const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Trajin(); }
     RetType Execute(CpptrajState& State, ArgList& argIn) {

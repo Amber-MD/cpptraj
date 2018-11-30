@@ -19,8 +19,9 @@ class DispatchObject {
     /// DESTRUCTOR - virtual since this will be inherited
     virtual ~DispatchObject() {}
     /// Print help for this object to screen.
-    virtual void Help() const = 0;
+    virtual void Help() const {}
     /// Print help for this object, optionally with subtopics.
+    // TODO make this the only version and virtual
     virtual void Help(ArgList&) const { return Help(); }
     /// \return Pointer to new instance of this object.
     virtual DispatchObject* Alloc() const = 0;
