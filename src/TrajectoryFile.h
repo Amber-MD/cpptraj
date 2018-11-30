@@ -30,9 +30,9 @@ class TrajectoryFile {
     TrajectoryFile() {}
     virtual ~TrajectoryFile() {}
     /// List read options for each format.
-    static void ReadOptions(std::string const& fkey) { FileTypes::ReadOptions(TF_KeyArray,TF_AllocArray, UNKNOWN_TRAJ, fkey); }
+    static void ReadOptions(std::string const& fkey) { FileTypes::Options(TF_KeyArray,TF_AllocArray, UNKNOWN_TRAJ, fkey, FileTypes::READOPT); }
     /// List write options for each format.
-    static void WriteOptions(){ FileTypes::WriteOptions(TF_WriteKeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
+    static void WriteOptions(std::string const& fkey){ FileTypes::Options(TF_WriteKeyArray,TF_AllocArray,UNKNOWN_TRAJ, fkey, FileTypes::WRITEOPT); }
     /// \return write format type corresponding to given string, or default if no match.
     static TrajFormatType WriteFormatFromString(std::string const& s, TrajFormatType def) {
       return (TrajFormatType)FileTypes::GetFormatFromString(TF_WriteKeyArray,s,def);

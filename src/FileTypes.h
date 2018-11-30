@@ -7,6 +7,7 @@
   */
 class FileTypes {
   public:
+    enum OptType { READOPT=0, WRITEOPT };
     typedef int FileFormatType;
     /// Allocator and description for file types.
     /** This array should be constructed with one entry per allocatable
@@ -44,8 +45,8 @@ class FileTypes {
     static const char* FormatDescription(AllocPtr, FileFormatType);
     /// \return Allocator for given type. MUST BE CAST TO PROPER TYPE.
     static BaseIOtype* AllocIO(AllocPtr, FileFormatType, bool);
+    static void Options(KeyPtr, AllocPtr, FileFormatType, std::string const&, OptType);
     /// List all defined read options.
-    static void ReadOptions(KeyPtr, AllocPtr, FileFormatType, std::string const&);
     static void ReadOptions(KeyPtr k, AllocPtr a, FileFormatType f) {
       return ReadOptions(k, a, f);
     }

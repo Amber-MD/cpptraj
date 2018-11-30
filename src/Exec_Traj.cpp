@@ -53,16 +53,19 @@ void Exec_Reference::Help() const {
           "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
 // -----------------------------------------------------------------------------
-void Exec_Trajout::Help() const {
-  mprintf("\t<filename> [<fileformat>] [append] [nobox] [novelocity]\n"
-          "\t           [notemperature] [notime] [noforce] [noreplicadim]\n"
-          "\t           [%s] [onlyframes <range>] [title <title>]\n"
-          "\t           [onlymembers <memberlist>]\n", DataSetList::TopArgs);
-  mprintf("\t           %s\n", ActionFrameCounter::HelpText);
-  mprintf("\t           [ <Format Options> ]\n"
-          "  Write frames after all actions have been processed to output trajectory\n"
-          "  specified by <filename>.\n");
-  TrajectoryFile::WriteOptions();
+void Exec_Trajout::Help(ArgList& argIn) const {
+  std::string fkey = argIn.GetStringNext();
+  if (fkey.empty()) {
+    mprintf("\t<filename> [<fileformat>] [append] [nobox] [novelocity]\n"
+            "\t           [notemperature] [notime] [noforce] [noreplicadim]\n"
+            "\t           [%s] [onlyframes <range>] [title <title>]\n"
+            "\t           [onlymembers <memberlist>]\n", DataSetList::TopArgs);
+    mprintf("\t           %s\n", ActionFrameCounter::HelpText);
+    mprintf("\t           [ <Format Options> ]\n"
+            "  Write frames after all actions have been processed to output trajectory\n"
+            "  specified by <filename>.\n");
+  }
+  TrajectoryFile::WriteOptions( fkey );
 }
 // -----------------------------------------------------------------------------
 void Exec_EnsembleSize::Help() const {

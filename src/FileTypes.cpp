@@ -79,9 +79,9 @@ std::string FileTypes::FormatExtensions(KeyPtr begin, FileFormatType ftype) {
   }
   return extensions;
 }
-// FileTypes::ReadOptions()
-void FileTypes::ReadOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
-                            std::string const& fkey)
+// FileTypes::Options()
+void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
+                            std::string const& fkey, OptType otype)
 {
   if (fkey.empty()) {
     // Everything
@@ -109,7 +109,12 @@ void FileTypes::ReadOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UN
       if (!fmtExtensions.empty()) fmtKeywords.append(",");
       mprintf("    Options for %s: %s %s\n", allocArray[i].Description,
               fmtKeywords.c_str(), fmtExtensions.c_str());
-      if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp();
+      switch (otype) {
+        case READOPT:
+          if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp(); break;
+        case WRITEOPT:
+          if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp(); break;
+      }
     }
   }
 }
