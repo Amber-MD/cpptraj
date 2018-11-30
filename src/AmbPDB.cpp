@@ -64,7 +64,11 @@ static bool Unsupported(std::string const& arg) {
 }
 
 static void WriteVersion() {
+# ifdef BUILDTYPE
   mprinterr("| ambpdb (C++) Version %s (%s)\n", VERSION_STRING, BUILDTYPE);
+# else
+  mprinterr("| ambpdb (C++) Version %s\n", VERSION_STRING);
+# endif
 }
 
 // ----- M A I N ---------------------------------------------------------------

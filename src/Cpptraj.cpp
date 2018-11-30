@@ -72,7 +72,10 @@ void Cpptraj::Usage() {
 }
 
 void Cpptraj::Intro() {
-  mprintf("\nCPPTRAJ: Trajectory Analysis. %s (%s)"
+  mprintf("\nCPPTRAJ: Trajectory Analysis. %s"
+# ifdef BUILDTYPE
+          " (%s)"
+# endif
 # ifdef MPI
           " MPI"
 # endif
@@ -83,7 +86,11 @@ void Cpptraj::Intro() {
           " CUDA"
 # endif
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
-          CPPTRAJ_VERSION_STRING, BUILDTYPE);
+          CPPTRAJ_VERSION_STRING
+# ifdef BUILDTYPE
+          , BUILDTYPE
+# endif
+         );
 # ifdef MPI
   mprintf("| Running on %i processes.\n", Parallel::World().Size());
 # endif
@@ -367,7 +374,11 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit
       SetWorldSilent( true );
+#     ifdef BUILDTYPE
       loudPrintf("CPPTRAJ: Version %s (%s)\n", CPPTRAJ_VERSION_STRING, BUILDTYPE);
+#     else
+      loudPrintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
+#     endif
       return QUIT;
     }
     if ( arg == "--internal-version" ) {
