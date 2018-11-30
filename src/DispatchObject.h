@@ -1,5 +1,6 @@
 #ifndef INC_DISPATCHOBJECT_H
 #define INC_DISPATCHOBJECT_H
+#include "ArgList.h"
 /// Abstract base class that all dispatchable objects will inherit.
 /** A DispatchObject is the most basic unit of command in cpptraj. This
   * base class only contains a category used to sort the command - all
@@ -19,6 +20,8 @@ class DispatchObject {
     virtual ~DispatchObject() {}
     /// Print help for this object to screen.
     virtual void Help() const = 0;
+    /// Print help for this object, optionally with subtopics.
+    virtual void Help(ArgList&) const { return Help(); }
     /// \return Pointer to new instance of this object.
     virtual DispatchObject* Alloc() const = 0;
     /// \return Keyword for given object category.

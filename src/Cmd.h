@@ -34,7 +34,7 @@ class Cmd {
     /// \return const reference to underlying DispatchObject
     DispatchObject const& Obj() const { return *object_; }
     /// Execute Help for underlying DispatchObject
-    void Help() const { object_->Help(); }
+    void Help(ArgList& argIn) const { object_->Help(argIn); }
     /// \return Copy of underlying DispatchObject
     DispatchObject* Alloc() const { return object_->Alloc(); }
   private:

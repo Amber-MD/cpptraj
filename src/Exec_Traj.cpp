@@ -1,28 +1,32 @@
 #include "Exec_Traj.h"
 #include "CpptrajStdio.h"
 
-void Exec_Trajin::Help() const {
-  mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
-          "\t           [%s]\n", DataSetList::TopArgs);
-  mprintf("\t           [mdvel <velocities>] [mdfrc <forces>]\n"
-          "\t           [as <format keyword>] [ <Format Options> ]\n"
-          "\t           [ remdtraj {remdtrajtemp <T> |\n"
-          "\t                       remdtrajidx <indices list> |\n"
-          "\t                       remdtrajvalues <values list>}\n"
-          "\t             [trajnames <rep1>,<rep2>,...,<repN>] ]\n"
-          "  Load trajectory specified by <filename> to the input trajectory list.\n"
-          "  If desired, additional velocity or force information can be read from\n"
-          "  files specified by 'mdvel' and/or 'mdfrc'.\n"
-          "  The 'remdtraj' keyword can be used to extract frames for a specific replica\n"
-          "  from an ensemble of replica trajectories. In this case, if only <filename> is\n"
-          "  specified it is assumed <filename> has format <name>.<ext> where <ext> is\n"
-          "  a numerical suffix; other members of the ensemble will be automatically\n"
-          "  searched for. Otherwise, additional members can be specified with 'trajnames'.\n"
-          "  'remdtrajtemp' can be used to extract frames from 1D T-REMD simulations.\n"
-          "  'remdtrajidx' and 'remdtrajvalues' can be used to extract frames from multi-\n"
-          "  dimensional REMD simulations; <indices list> and <values list> are comma-\n"
-          "  separated lists.\n");
-  TrajectoryFile::ReadOptions();
+void Exec_Trajin::Help(ArgList& argIn) const {
+  std::string fkey = argIn.GetStringNext();
+  if (fkey.empty()) {
+    mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
+            "\t           [%s]\n", DataSetList::TopArgs);
+    mprintf("\t           [mdvel <velocities>] [mdfrc <forces>]\n"
+            "\t           [as <format keyword>] [ <Format Options> ]\n"
+            "\t           [ remdtraj {remdtrajtemp <T> |\n"
+            "\t                       remdtrajidx <indices list> |\n"
+            "\t                       remdtrajvalues <values list>}\n"
+            "\t             [trajnames <rep1>,<rep2>,...,<repN>] ]\n"
+            "  Load trajectory specified by <filename> to the input trajectory list.\n"
+            "  If desired, additional velocity or force information can be read from\n"
+            "  files specified by 'mdvel' and/or 'mdfrc'.\n"
+            "  The 'remdtraj' keyword can be used to extract frames for a specific replica\n"
+            "  from an ensemble of replica trajectories. In this case, if only <filename> is\n"
+            "  specified it is assumed <filename> has format <name>.<ext> where <ext> is\n"
+            "  a numerical suffix; other members of the ensemble will be automatically\n"
+            "  searched for. Otherwise, additional members can be specified with 'trajnames'.\n"
+            "  'remdtrajtemp' can be used to extract frames from 1D T-REMD simulations.\n"
+            "  'remdtrajidx' and 'remdtrajvalues' can be used to extract frames from multi-\n"
+            "  dimensional REMD simulations; <indices list> and <values list> are comma-\n"
+            "  separated lists.\n"
+            "  Type 'help %s <format keyword>' for individual format options.\n", argIn.Command());
+  }
+  TrajectoryFile::ReadOptions(fkey);
 }
 // -----------------------------------------------------------------------------
 void Exec_Ensemble::Help() const {

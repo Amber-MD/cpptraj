@@ -1,4 +1,6 @@
 #include <set>
+#include <algorithm> // std::max
+#include <cstring> // strlen
 #include "FileTypes.h"
 #include "CpptrajStdio.h"
 // FileTypes::GetFormatFromArg()
@@ -78,17 +80,40 @@ std::string FileTypes::FormatExtensions(KeyPtr begin, FileFormatType ftype) {
   return extensions;
 }
 // FileTypes::ReadOptions()
-void FileTypes::ReadOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
-  for (int i = 0; i < UNK; i++) {
-    std::string fmtExtensions = FormatExtensions(begin, i);
-    if (allocArray[i].ReadHelp || !fmtExtensions.empty()) {
-      mprintf("    Options for %s:", allocArray[i].Description);
-      if (!fmtExtensions.empty()) mprintf(" %s", fmtExtensions.c_str());
-      mprintf("\n");
+void FileTypes::ReadOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
+                            std::string const& fkey)
+{
+  if (fkey.empty()) {
+    // Everything
+    // For nice formatting, get size of largest string
+    unsigned int maxsize = 0;
+    for (int i = 0; i < UNK; i++)
+      maxsize = std::max(maxsize, (unsigned int)strlen(allocArray[i].Description));
+    mprintf("    Available formats:\n");
+    for (int i = 0; i < UNK; i++) {
+      mprintf("      %*s:", maxsize, allocArray[i].Description);
+      std::string fmtKeywords   = FormatKeywords(begin, i);
+      std::string fmtExtensions = FormatExtensions(begin, i);
+      if (!fmtExtensions.empty()) fmtKeywords.append(",");
+      mprintf(" %s %s\n", fmtKeywords.c_str(), fmtExtensions.c_str());
+    }
+  } else {
+    // Specific format
+    FileFormatType ft = GetFormatFromString(begin, fkey, UNK);
+    if (ft == UNK)
+      mprintf("    Invalid format specifier: %s\n", fkey.c_str());
+    else {
+      int i = (int)ft;
+      std::string fmtKeywords   = FormatKeywords(begin, i);
+      std::string fmtExtensions = FormatExtensions(begin, i);
+      if (!fmtExtensions.empty()) fmtKeywords.append(",");
+      mprintf("    Options for %s: %s %s\n", allocArray[i].Description,
+              fmtKeywords.c_str(), fmtExtensions.c_str());
       if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp();
     }
   }
 }
+
 // FileTypes::WriteOptions()
 void FileTypes::WriteOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
   for (int i = 0; i < UNK; i++) {
