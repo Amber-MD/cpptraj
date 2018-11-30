@@ -23,7 +23,7 @@ class TrajectoryFile {
     enum TrajFormatType {
       AMBERNETCDF = 0, AMBERRESTARTNC, AMBERNCENSEMBLE, PDBFILE, MOL2FILE, CIF, CHARMMDCD, 
       GMXTRX, GMXXTC, BINPOS, AMBERRESTART, GRO, TINKER, CHARMMCOR, CHARMMREST,AMBERTRAJ,
-      SQM, SDF, CONFLIB,
+      SQM, SDF, XYZ, CONFLIB,
       UNKNOWN_TRAJ
     };
 
@@ -61,5 +61,7 @@ class TrajectoryFile {
     }
     /// \return TrajFormatType of given file or UNKNOWN_TRAJ
     static TrajFormatType DetectFormat(FileName const&);
+    /// \return Allocated TrajectoryIO for given file with optional format keyword.
+    static TrajectoryIO* DetectFormat(FileName const&, std::string const&, TrajFormatType&);
 };
 #endif

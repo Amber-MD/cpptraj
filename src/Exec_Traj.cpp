@@ -5,7 +5,7 @@ void Exec_Trajin::Help() const {
   mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t           [%s]\n", DataSetList::TopArgs);
   mprintf("\t           [mdvel <velocities>] [mdfrc <forces>]\n"
-          "\t           [ <Format Options> ]\n"
+          "\t           [as <format keyword>] [ <Format Options> ]\n"
           "\t           [ remdtraj {remdtrajtemp <T> |\n"
           "\t                       remdtrajidx <indices list> |\n"
           "\t                       remdtrajvalues <values list>}\n"

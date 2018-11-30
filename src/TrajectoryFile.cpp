@@ -22,6 +22,7 @@
 #include "Traj_Gro.h"
 #include "Traj_GmxXtc.h"
 #include "Traj_CharmmRestart.h"
+#include "Traj_XYZ.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -57,6 +58,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "Amber Trajectory",   0, Traj_AmberCoord::WriteHelp, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, Traj_SQM::WriteHelp, Traj_SQM::Alloc            },
   { "SDF",                0, 0, Traj_SDF::Alloc            },
+  { "XYZ",                0, Traj_XYZ::WriteHelp, Traj_XYZ::Alloc            },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
   { "Unknown trajectory", 0, 0, 0                          }
 };
@@ -85,6 +87,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { CONFLIB,        "conflib",   ".conflib" },
   { SQM,            "sqm",       ".sqm"     },
   { SDF,            "sdf",       ".sdf"     },
+  { XYZ,            "xyz",       ".xyz"     },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 
@@ -108,6 +111,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_WriteKeyArray[] = {
   { AMBERRESTART,   "rest",      ".rst7"    },
   { AMBERTRAJ,      "crd",       ".crd"     },
   { SQM,            "sqm",       ".sqm"     },
+  { XYZ,            "xyz",       ".xyz"     },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 
@@ -135,4 +139,27 @@ TrajectoryFile::TrajFormatType TrajectoryFile::DetectFormat(FileName const& fnam
   TrajectoryIO* tio = DetectFormat(fname, ttype);
   delete tio;
   return ttype;
+}
+
+/** This version of DetectFormat() optionally takes a format keyword in
+  * place of automatic type determination.
+  */
+TrajectoryIO* TrajectoryFile::DetectFormat(FileName const& fname, std::string const& fmtarg,
+                                           TrajFormatType& ttype)
+{
+  TrajectoryIO* tio = 0;
+  if (!fmtarg.empty()) {
+    ttype = (TrajFormatType)FileTypes::GetFormatFromString( TF_KeyArray, fmtarg, UNKNOWN_TRAJ );
+    if (ttype == UNKNOWN_TRAJ) {
+      mprinterr("Error: Trajectory format '%s' is not recognized.\n", fmtarg.c_str());
+      return 0;
+    }
+    tio = (TrajectoryIO*)FileTypes::AllocIO( TF_AllocArray, ttype, false );
+  } else {
+    if ( (tio = DetectFormat( fname, ttype )) == 0 ) {
+      mprinterr("Error: Could not determine trajectory '%s' format.\n", fname.full());
+      return 0;
+    }
+  }
+  return tio;
 }
