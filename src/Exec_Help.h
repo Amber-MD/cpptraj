@@ -8,5 +8,9 @@ class Exec_Help : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Help(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    int Formats(ArgList&) const;
+    int Masks(ArgList&) const;
+    int Topics(ArgList&) const;
 };
 #endif

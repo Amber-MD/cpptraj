@@ -21,8 +21,6 @@ class DispatchObject {
     virtual void Help() const = 0;
     /// \return Pointer to new instance of this object.
     virtual DispatchObject* Alloc() const = 0;
-    /// \return Keyword for given object category.
-    static const char* ObjKeyword(Otype);
     /// \return Object category
     Otype Type() const { return type_; }
   private:

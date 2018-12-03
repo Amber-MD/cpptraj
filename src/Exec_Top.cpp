@@ -5,8 +5,8 @@
 
 void Exec_LoadParm::Help() const {
   mprintf("\t<filename> [{[TAG] | name <setname>}] [nobondsearch | bondsearch [<offset>]]\n"
-          "  Add <filename> to the topology list.\n");
-  ParmFile::ReadOptions();
+          "  Add <filename> to the topology list.\n"
+          "  Use 'help Formats parm' for format-specific options.\n");
 }
 // -----------------------------------------------------------------------------
 void Exec_ParmInfo::Help() const {
