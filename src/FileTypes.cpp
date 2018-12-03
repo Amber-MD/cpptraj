@@ -85,7 +85,9 @@ std::string FileTypes::FormatExtensions(KeyPtr begin, FileFormatType ftype) {
   }
   return extensions;
 }
+
 // FileTypes::Options()
+/** \return 1 if all options listed, 0 if specific option was listed. */
 void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
                             std::string const& fkey, OptType otype)
 {
@@ -95,10 +97,6 @@ void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
     unsigned int maxsize = 0;
     for (int i = 0; i < UNK; i++)
       maxsize = std::max(maxsize, (unsigned int)strlen(allocArray[i].Description));
-    switch (otype) {
-      case READOPT  : mprintf("    Available input formats:\n"); break;
-      case WRITEOPT : mprintf("    Available output formats:\n"); break;
-    }
     for (int i = 0; i < UNK; i++) {
       mprintf("      %*s:", maxsize, allocArray[i].Description);
       std::string fmtKeywords   = FormatKeywords(begin, i);

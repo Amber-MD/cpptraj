@@ -675,7 +675,7 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
       case Cmd::ANA: ret_val = State.AddToAnalysisQueue( (Analysis*)obj, cmdArg ); break;
       case Cmd::DEP:
         mprinterr("Error: '%s' is deprecated.\n", cmdArg.Command());
-        cmd.Help(cmdArg);
+        cmd.Help();
         break;
     }
   }

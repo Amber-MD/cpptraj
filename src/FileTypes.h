@@ -45,10 +45,11 @@ class FileTypes {
     static const char* FormatDescription(AllocPtr, FileFormatType);
     /// \return Allocator for given type. MUST BE CAST TO PROPER TYPE.
     static BaseIOtype* AllocIO(AllocPtr, FileFormatType, bool);
+    /// List all formats or help for a specific format.
     static void Options(KeyPtr, AllocPtr, FileFormatType, std::string const&, OptType);
     /// List all defined read options.
     static void ReadOptions(KeyPtr k, AllocPtr a, FileFormatType f) {
-      return ReadOptions(k, a, f);
+      return Options(k, a, f, std::string(), READOPT);
     }
     /// List all defined write options.
     static void WriteOptions(KeyPtr, AllocPtr, FileFormatType);

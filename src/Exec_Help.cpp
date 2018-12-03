@@ -18,11 +18,17 @@ void Exec_Help::Help() const {
 int Exec_Help::Formats(ArgList& argIn) const {
   std::string ftype = argIn.GetStringNext();
   if (ftype == "trajin") {
-    mprintf("    Available input trajectory formats:\n");
-    TrajectoryFile::ReadOptions(argIn.GetStringNext());
+    std::string fkey = argIn.GetStringNext();
+    if (fkey.empty()) mprintf("    Available input trajectory formats:\n");
+    TrajectoryFile::ReadOptions(fkey);
+    if (fkey.empty())
+      mprintf("    Use 'help Formats trajin <format key> for format-specific help.\n");
   } else if (ftype == "trajout") {
-    mprintf("    Available output trajectory formats:\n");
-    TrajectoryFile::WriteOptions(argIn.GetStringNext());
+    std::string fkey = argIn.GetStringNext();
+    if (fkey.empty()) mprintf("    Available output trajectory formats:\n");
+    TrajectoryFile::WriteOptions(fkey);
+    if (fkey.empty())
+      mprintf("    Use 'help Formats trajout <format key> for format-specific help.\n");
   } else {
     mprintf("\t[{trajin|trajout} [<format keyword>]]\n"
             "  trajin           : List available input trajectory formats.\n"
@@ -68,7 +74,7 @@ Exec::RetType Exec_Help::Execute(CpptrajState& State, ArgList& argIn) {
       if (cmd.Obj().Type() == DispatchObject::DEPRECATED)
         mprintf("Warning: '%s' is deprecated.\n", arg.Command());
       //arg.MarkArg(0);
-      cmd.Help( arg );
+      cmd.Help();
     }
   }
   return CpptrajState::OK;

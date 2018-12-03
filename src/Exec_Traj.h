@@ -8,7 +8,7 @@
 class Exec_Trajin : public Exec {
   public:
     Exec_Trajin() : Exec(TRAJ) {}
-    void Help(ArgList&) const;
+    void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Trajin(); }
     RetType Execute(CpptrajState& State, ArgList& argIn) {
       return (RetType)State.AddInputTrajectory( argIn );
@@ -38,7 +38,7 @@ class Exec_Reference : public Exec {
 class Exec_Trajout : public Exec {
   public:
     Exec_Trajout() : Exec(TRAJ) {}
-    void Help(ArgList&) const;
+    void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Trajout(); }
     RetType Execute(CpptrajState& State, ArgList& argIn) {
       return (RetType)State.AddOutputTrajectory( argIn );
