@@ -8,7 +8,8 @@ void Exec_Help::Help() const {
           "\t    <cmd> |\n"
           "\t    <command category> |\n"
           "\t    Formats [{read|write}] |\n"
-          "\t    Formats [{trajin|trajout|readdata|writedata|parm|parmwrite} [<fmt key>]]\n"
+          "\t    Formats [{trajin|trajout|readdata|writedata|parm|parmwrite} [<fmt key>]] |\n"
+          "\t    Masks\n"
           "\t   } ]\n"
           "\tCommand Categories:");
   for (int i = 0; i != (int)DEPRECATED; i++) {
@@ -20,7 +21,8 @@ void Exec_Help::Help() const {
   mprintf("  all                : Print all known commands.\n"
           "  <cmd>              : Print help for command <cmd>.\n"
           "  <command category> : Print all commands in specified category.\n"
-          "  Formats            : Help for file formats.\n");
+          "  Formats            : Help for file formats.\n"
+          "  Masks              : Help for mask syntax.\n");
 }
 
 /** Print help for file formats. */
@@ -92,6 +94,44 @@ int Exec_Help::Formats(ArgList& argIn) const {
   return 1;
 }
 
+/** Help for atom masks. */
+int Exec_Help::Masks(ArgList& argIn) const {
+  mprintf("    CPPTRAJ mask syntax.\n"
+          "  *** Basic selection ***\n"
+          "    @{list}  : Select atoms by number/name. E.g. '@1-5,12-17,20', '@CA', '@CA,C,O,N,H'\n"
+          "    @%{list} : Select atom types. E.g. '@%%CT'\n"
+          "    @/{list} : Select atom elements. E.g. '@/N'\n"
+          "    :{list}  : Select residues by number/name. E.g. ':1-10,15,19-22', ':LYS', ':ASP,ALA'\n"
+          "    :/{list} : Select residues by chain ID. E.g. ':/B', ':/A,D'.\n"
+          "    :;{list} : Select by PDB residue number.\n"
+          "    ^{list}  : Select by molecule number. E.g. '^1-10', '^2-4,8'\n"
+          "  Combinations of atom/residue/molecule masks are interpreted as if 'AND'\n"
+          "  is specified, e.g. ':WAT@O' is 'residues named WAT and atoms named O'.\n"
+          "  *** Distance-based masks ***\n"
+          "    <mask><distance op><distance>\n"
+          "      <mask>        : Specify atoms to select around.\n"
+          "      <distance op> : Distance operator.\n"
+          "                      @< means 'atoms within'\n"
+          "                      @> means 'atoms outside of'\n"
+          "                      :< means 'residues within'\n"
+          "                      :> means 'residues outside of'\n"
+          "                      ^< means 'molecules within'\n"
+          "                      ^> means 'molecules outside of'\n"
+          "      <distance>    : Cutoff for distance operator.\n"
+          "    E.g. ':11-17<@2.4' means 'select atoms within 2.4 Ang. distance of atoms\n"
+          "      selected by ':11-17' (residues numbered 11 through 17).\n"
+          "  *** Operators ***\n"
+          "    ( ) : Open/close parentheses.\n"
+          "    &   : AND operator.\n"
+          "    |   : OR operator.\n"
+          "    !   : NOT operator.\n"
+          "  *** Wildcards ***\n"
+          "    * : Zero or more characters. Can be used to select all. E.g. '@H*'.\n"
+          "    = : Same as '*'\n"
+          "    ? : Single character. E.g. ':?0', ':AS?'\n");
+  return 1;
+}
+
 /** \return 1 if a help topic was found, 0 otherwise. */
 int Exec_Help::Topics(ArgList& argIn) const {
   // By convention, Topics will start with uppercase letters and
@@ -99,6 +139,8 @@ int Exec_Help::Topics(ArgList& argIn) const {
   if ( isupper(argIn[0][0]) ) {
     if (argIn[0].compare(0,6,"Format")==0)
       return Formats(argIn);
+    else if (argIn[0].compare(0,4,"Mask")==0)
+      return Masks(argIn);
   }
   return 0;
 }
