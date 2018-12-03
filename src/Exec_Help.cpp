@@ -7,7 +7,8 @@ void Exec_Help::Help() const {
   mprintf("\t[ { all |\n"
           "\t    <cmd> |\n"
           "\t    <command category> |\n"
-          "\t    Formats [{trajin|trajout|readdata|writedata|parm|parmwrite} [<format key>]]\n"
+          "\t    Formats [{read|write}] |\n"
+          "\t    Formats [{trajin|trajout|readdata|writedata|parm|parmwrite} [<fmt key>]]\n"
           "\t   } ]\n"
           "\tCommand Categories:");
   for (int i = 0; i != (int)DEPRECATED; i++) {
@@ -27,49 +28,66 @@ int Exec_Help::Formats(ArgList& argIn) const {
   std::string ftype = argIn.GetStringNext();
   if (ftype == "trajin") {
     std::string fkey = argIn.GetStringNext();
-    if (fkey.empty()) mprintf("    Available input trajectory formats:\n");
+    if (fkey.empty()) mprintf("    *** Available input trajectory formats ***\n");
     TrajectoryFile::ReadOptions(fkey);
     if (fkey.empty())
       mprintf("    Use 'help Formats trajin <format key> for format-specific help.\n");
   } else if (ftype == "trajout") {
     std::string fkey = argIn.GetStringNext();
-    if (fkey.empty()) mprintf("    Available output trajectory formats:\n");
+    if (fkey.empty()) mprintf("    *** Available output trajectory formats ***\n");
     TrajectoryFile::WriteOptions(fkey);
     if (fkey.empty())
       mprintf("    Use 'help Formats trajout <format key> for format-specific help.\n");
   } else if (ftype == "readdata") {
     std::string fkey = argIn.GetStringNext();
-    if (fkey.empty()) mprintf("    Available input datafile formats:\n");
+    if (fkey.empty()) mprintf("    *** Available input datafile formats ***\n");
     DataFile::ReadOptions(fkey);
     if (fkey.empty())
       mprintf("    Use 'help Formats readdata <format key> for format-specific help.\n");
   } else if (ftype == "writedata") {
     std::string fkey = argIn.GetStringNext();
-    if (fkey.empty()) mprintf("    Available output datafile formats:\n");
+    if (fkey.empty()) mprintf("    *** Available output datafile formats ***\n");
     DataFile::WriteOptions(fkey);
     if (fkey.empty())
       mprintf("    Use 'help Formats writedata <format key> for format-specific help.\n");
   } else if (ftype == "parm") {
     std::string fkey = argIn.GetStringNext();
-    if (fkey.empty()) mprintf("    Available input topology formats:\n");
+    if (fkey.empty()) mprintf("    *** Available input topology formats ***\n");
     ParmFile::ReadOptions(fkey);
     if (fkey.empty())
       mprintf("    Use 'help Formats parm <format key> for format-specific help.\n");
   } else if (ftype == "parmwrite") {
     std::string fkey = argIn.GetStringNext();
-    if (fkey.empty()) mprintf("    Available output topology formats:\n");
+    if (fkey.empty()) mprintf("    *** Available output topology formats ***\n");
     ParmFile::WriteOptions(fkey);
     if (fkey.empty())
       mprintf("    Use 'help Formats parmwrite <format key> for format-specific help.\n");
+  } else if (ftype == "read") {
+    mprintf("    *** Available input trajectory formats ***\n");
+    TrajectoryFile::ReadOptions("");
+    mprintf("    *** Available input datafile formats ***\n");
+    DataFile::ReadOptions("");
+    mprintf("    *** Available input topology formats ***\n");
+    ParmFile::ReadOptions("");
+  } else if (ftype == "write") {
+    mprintf("    *** Available output trajectory formats ***\n");
+    TrajectoryFile::WriteOptions("");
+    mprintf("    *** Available output datafile formats ***\n");
+    DataFile::WriteOptions("");
+    mprintf("    *** Available output topology formats ***\n");
+    ParmFile::WriteOptions("");
   } else {
-    mprintf("\t[{trajin|trajout|readdata|writedata|parm|parmwrite} [<format keyword>]]\n"
+    mprintf("\t[{read|write}] |\n"
+            "\t[{trajin|trajout|readdata|writedata|parm|parmwrite} [<fmt key>]]\n"
+            "  read      : List available input formats.\n"
+            "  write     : List available output formats.\n"
             "  trajin    : List available input trajectory formats.\n"
             "  trajout   : List available output trajectory formats.\n"
             "  readdata  : List available input datafile formats.\n"
             "  writedata : List available output datafile formats.\n"
             "  parm      : List available input topology formats.\n"
             "  parmwrite : List available output topology formats.\n"
-            "  <format keyword> : If specified provide specific help for that format.\n");
+            "  <fmt key> : If specified provide specific help for that format.\n");
   }
   return 1;
 }
