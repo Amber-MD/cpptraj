@@ -3,15 +3,22 @@
 #include "Command.h"
 
 void Exec_Help::Help() const {
-  mprintf("\t[{ <cmd> | <category>}]\n\tCategories:");
+  mprintf("\t[ { all |\n"
+          "\t    <cmd> |\n"
+          "\t    <command category> |\n"
+          "\t    Formats [{trajin|trajout} [<format key>]]\n"
+          "\t   } ]\n"
+          "\tCommand Categories:");
   for (int i = 0; i != (int)DEPRECATED; i++) {
     const char* catKey = ObjKeyword((Otype)i);
     if (catKey != 0)
       mprintf(" %s", catKey);
   }
   mprintf("\n");
-  mprintf("  With no arguments list all known commands, otherwise display help for specified\n"
-          "  command. If a category is specified list only commands in that category.\n");
+  mprintf("  all                : Print all known commands.\n"
+          "  <cmd>              : Print help for command <cmd>.\n"
+          "  <command category> : Print all commands in specified category.\n"
+          "  Formats            : Help for file formats.\n");
 }
 
 /** Print help for file formats. */
@@ -53,7 +60,8 @@ Exec::RetType Exec_Help::Execute(CpptrajState& State, ArgList& argIn) {
   ArgList arg = argIn;
   arg.RemoveFirstArg();
   if (arg.empty())
-    // NONE in this context means list all commands
+    Help();
+  else if (arg.CommandIs("all"))
     Command::ListCommands( NONE );
   else {
     arg.MarkArg(0);
