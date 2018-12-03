@@ -114,34 +114,21 @@ void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
   } else {
     // Specific format
     FileFormatType ft = GetFormatFromString(begin, fkey, UNK);
+    static const char* Ostr[] = {"read", "write"};
     if (ft == UNK)
-      mprintf("    Invalid format specifier: %s\n", fkey.c_str());
+      mprintf("    Invalid %s format specifier: %s\n", Ostr[otype], fkey.c_str());
     else {
       std::string fmtstr = FmtString(begin, ft);
       // Will this ever be empty?
       int i = (int)ft;
-      mprintf("    Options for %s: %s\n", allocArray[i].Description, fmtstr.c_str());
+      static const char* Ustr[] = {"Read", "Write"};
+      mprintf("    %s options for %s: %s\n", Ustr[otype],allocArray[i].Description, fmtstr.c_str());
       switch (otype) {
         case READOPT:
           if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp(); break;
         case WRITEOPT:
           if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp(); break;
       }
-    }
-  }
-}
-
-// FileTypes::WriteOptions()
-void FileTypes::WriteOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
-  for (int i = 0; i < UNK; i++) {
-    std::string fmtExtensions = FormatExtensions(begin, i);
-    std::string fmtKeywords =  FormatKeywords(begin, i);
-    if (allocArray[i].WriteHelp || !fmtExtensions.empty() || !fmtKeywords.empty()) {
-      mprintf("    Options for %s:", allocArray[i].Description);
-      if (!fmtKeywords.empty()) mprintf(" %s,", fmtKeywords.c_str());
-      if (!fmtExtensions.empty()) mprintf(" %s", fmtExtensions.c_str()); 
-      mprintf("\n");
-      if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp();
     }
   }
 }

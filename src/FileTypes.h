@@ -47,12 +47,6 @@ class FileTypes {
     static BaseIOtype* AllocIO(AllocPtr, FileFormatType, bool);
     /// List all formats or help for a specific format.
     static void Options(KeyPtr, AllocPtr, FileFormatType, std::string const&, OptType);
-    /// List all defined read options.
-    static void ReadOptions(KeyPtr k, AllocPtr a, FileFormatType f) {
-      return Options(k, a, f, std::string(), READOPT);
-    }
-    /// List all defined write options.
-    static void WriteOptions(KeyPtr, AllocPtr, FileFormatType);
   private:
     static std::string FormatKeywords(KeyPtr, FileFormatType);
     static std::string FormatExtensions(KeyPtr, FileFormatType);
