@@ -56,5 +56,6 @@ class FileTypes {
   private:
     static std::string FormatKeywords(KeyPtr, FileFormatType);
     static std::string FormatExtensions(KeyPtr, FileFormatType);
+    static inline std::string FmtString(KeyPtr, FileFormatType);
 };
 #endif

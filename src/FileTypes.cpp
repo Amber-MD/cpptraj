@@ -86,6 +86,14 @@ std::string FileTypes::FormatExtensions(KeyPtr begin, FileFormatType ftype) {
   return extensions;
 }
 
+/** \return String containing format keywords and extensions. */
+std::string FileTypes::FmtString(KeyPtr begin, FileFormatType ftype) {
+  std::string keys = FormatKeywords(begin, ftype);
+  std::string exts = FormatExtensions(begin, ftype);
+  if (!exts.empty()) keys.append("; " + exts);
+  return keys;
+}
+
 // FileTypes::Options()
 /** \return 1 if all options listed, 0 if specific option was listed. */
 void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
@@ -98,11 +106,10 @@ void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
     for (int i = 0; i < UNK; i++)
       maxsize = std::max(maxsize, (unsigned int)strlen(allocArray[i].Description));
     for (int i = 0; i < UNK; i++) {
-      mprintf("      %*s:", maxsize, allocArray[i].Description);
-      std::string fmtKeywords   = FormatKeywords(begin, i);
-      std::string fmtExtensions = FormatExtensions(begin, i);
-      if (!fmtExtensions.empty()) fmtKeywords.append(";");
-      mprintf(" %s %s\n", fmtKeywords.c_str(), fmtExtensions.c_str());
+      std::string fmtstr = FmtString(begin, i);
+      // No string means do not print format; no keys or extensions.
+      if (!fmtstr.empty())
+        mprintf("      %*s: %s\n", maxsize, allocArray[i].Description, fmtstr.c_str());
     }
   } else {
     // Specific format
@@ -110,12 +117,10 @@ void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
     if (ft == UNK)
       mprintf("    Invalid format specifier: %s\n", fkey.c_str());
     else {
+      std::string fmtstr = FmtString(begin, ft);
+      // Will this ever be empty?
       int i = (int)ft;
-      std::string fmtKeywords   = FormatKeywords(begin, i);
-      std::string fmtExtensions = FormatExtensions(begin, i);
-      if (!fmtExtensions.empty()) fmtKeywords.append(",");
-      mprintf("    Options for %s: %s %s\n", allocArray[i].Description,
-              fmtKeywords.c_str(), fmtExtensions.c_str());
+      mprintf("    Options for %s: %s\n", allocArray[i].Description, fmtstr.c_str());
       switch (otype) {
         case READOPT:
           if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp(); break;
