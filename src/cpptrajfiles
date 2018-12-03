@@ -216,7 +216,6 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_string.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
-        DispatchObject.cpp \
         DistRoutines.cpp \
         Energy.cpp \
         EnsembleIn.cpp \

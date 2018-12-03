@@ -4,25 +4,20 @@
 #include "ParmFile.h"
 
 void Exec_Help::Help() const {
-  mprintf("\t[ { all |\n"
+  mprintf("\t[ { All |\n"
           "\t    <cmd> |\n"
           "\t    <command category> |\n"
-          "\t    Formats [{read|write}] |\n"
-          "\t    Formats [{trajin|trajout|readdata|writedata|parm|parmwrite} [<fmt key>]] |\n"
-          "\t    Masks\n"
+          "\t    Form[ats] [{read|write}] |\n"
+          "\t    Form[ats] [{trajin|trajout|readdata|writedata|parm|parmwrite} [<fmt key>]] |\n"
+          "\t    Mask\n"
           "\t   } ]\n"
-          "\tCommand Categories:");
-  for (int i = 0; i != (int)DEPRECATED; i++) {
-    const char* catKey = ObjKeyword((Otype)i);
-    if (catKey != 0)
-      mprintf(" %s", catKey);
-  }
-  mprintf("\n");
-  mprintf("  all                : Print all known commands.\n"
+          "\tCommand Categories: Gen[eral] Sys[tem] Coor[ds] Traj[ectory] Top[ology]\n"
+          "\t                    Act[ion] Ana[lysis] Con[trol]\n"
+          "  All                : Print all known commands.\n"
           "  <cmd>              : Print help for command <cmd>.\n"
           "  <command category> : Print all commands in specified category.\n"
-          "  Formats            : Help for file formats.\n"
-          "  Masks              : Help for mask syntax.\n");
+          "  Form[ats]          : Help for file formats.\n"
+          "  Mask               : Help for mask syntax.\n");
 }
 
 /** Print help for file formats. */
@@ -137,10 +132,38 @@ int Exec_Help::Topics(ArgList& argIn) const {
   // By convention, Topics will start with uppercase letters and
   // commands will start with lower case.
   if ( isupper(argIn[0][0]) ) {
-    if (argIn[0].compare(0,6,"Format")==0)
+    if (argIn[0].compare(0,4,"Form")==0)
       return Formats(argIn);
     else if (argIn[0].compare(0,4,"Mask")==0)
       return Masks(argIn);
+    else if (argIn.CommandIs("All")) {
+      Command::ListCommands( NONE );
+      return 1;
+    } else if (argIn[0].compare(0,3,"Top")==0) {
+      Command::ListCommands( DispatchObject::PARM );
+      return 1;
+    } else if (argIn[0].compare(0,4,"Traj")==0) {
+      Command::ListCommands( DispatchObject::TRAJ );
+      return 1;
+    } else if (argIn[0].compare(0,4,"Coor")==0) {
+      Command::ListCommands( DispatchObject::COORDS );
+      return 1;
+    } else if (argIn[0].compare(0,3,"Act")==0) {
+      Command::ListCommands( DispatchObject::ACTION );
+      return 1;
+    } else if (argIn[0].compare(0,3,"Ana")==0) {
+      Command::ListCommands( DispatchObject::ANALYSIS );
+      return 1;
+    } else if (argIn[0].compare(0,3,"Gen")==0) {
+      Command::ListCommands( DispatchObject::GENERAL );
+      return 1;
+    } else if (argIn[0].compare(0,3,"Sys")==0) {
+      Command::ListCommands( DispatchObject::SYSTEM );
+      return 1;
+    } else if (argIn[0].compare(0,3,"Con")==0) {
+      Command::ListCommands( DispatchObject::CONTROL );
+      return 1;
+    }
   }
   return 0;
 }
@@ -150,19 +173,10 @@ Exec::RetType Exec_Help::Execute(CpptrajState& State, ArgList& argIn) {
   arg.RemoveFirstArg();
   if (arg.empty())
     Help();
-  else if (arg.CommandIs("all"))
-    Command::ListCommands( NONE );
   else {
     arg.MarkArg(0);
     // Check for help topic.
     if (Topics(arg)) return CpptrajState::OK;
-    // Check for command category.
-    for (int i = 1; i != (int)DEPRECATED; i++) {
-      if (arg.CommandIs( ObjKeyword((Otype)i) )) {
-        Command::ListCommands( (Otype)i );
-        return CpptrajState::OK;
-      }
-    }
     // Find help for specified command.
     Cmd const& cmd = Command::SearchToken( arg );
     if (cmd.Empty())
