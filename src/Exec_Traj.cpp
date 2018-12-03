@@ -21,9 +21,10 @@ void Exec_Trajin::Help() const {
           "  'remdtrajtemp' can be used to extract frames from 1D T-REMD simulations.\n"
           "  'remdtrajidx' and 'remdtrajvalues' can be used to extract frames from multi-\n"
           "  dimensional REMD simulations; <indices list> and <values list> are comma-\n"
-          "  separated lists.\n");
-  TrajectoryFile::ReadOptions();
+          "  separated lists.\n"
+          "  Use 'help Formats trajin' for help with specific formats.\n");
 }
+
 // -----------------------------------------------------------------------------
 void Exec_Ensemble::Help() const {
   mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n"
@@ -39,15 +40,19 @@ void Exec_Ensemble::Help() const {
           "  'nstlim' specifies the number of steps between exchanges and 'ntwx'\n"
           "  specifies the number of steps between trajectory writes.\n"
           "  When running in parallel, the 'ensemblesize' command can be used to specify\n"
-          "  the number of members in the ensemble, which may improve set-up performance.\n");
+          "  the number of members in the ensemble, which may improve set-up performance.\n"
+          "  Use 'help Formats trajin' for help with specific formats.\n");
 }
+
 // -----------------------------------------------------------------------------
 void Exec_Reference::Help() const {
   mprintf("\t<name> [<frame#>] [<mask>] [{[TAG] | name <setname>}] [lastframe] [crdset]\n"
           "\t       [%s]\n", DataSetList::TopArgs);
   mprintf("  Load trajectory file <name> as a reference frame.\n"
-          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
+          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n"
+          "  Use 'help Formats trajin' for help with specific formats.\n");
 }
+
 // -----------------------------------------------------------------------------
 void Exec_Trajout::Help() const {
   mprintf("\t<filename> [<fileformat>] [append] [nobox] [novelocity]\n"
@@ -57,9 +62,10 @@ void Exec_Trajout::Help() const {
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
   mprintf("\t           [ <Format Options> ]\n"
           "  Write frames after all actions have been processed to output trajectory\n"
-          "  specified by <filename>.\n");
-  TrajectoryFile::WriteOptions();
+          "  specified by <filename>.\n"
+          "  Use 'help Formats trajout' for help with specific formats.\n");
 }
+
 // -----------------------------------------------------------------------------
 void Exec_EnsembleSize::Help() const {
   mprintf("\t<#>\n  Set expected ensemble size to <#> in order to improve ensemble setup efficiency in parallel.\n");

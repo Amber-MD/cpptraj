@@ -3,8 +3,8 @@
 
 void Exec_ReadData::Help() const {
   mprintf("\t<filename> [name <dsname>] [as <fmt>] [separate] [<format options>]\n"
-          "  Read data from <filename> into data sets.\n");
-  DataFile::ReadOptions();
+          "  Read data from <filename> into data sets.\n"
+          "  Use 'help Formats readdata' for help with specific formats.\n");
 }
 
 Exec::RetType Exec_ReadData::Execute(CpptrajState& State, ArgList& argIn) {

@@ -26,6 +26,7 @@
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
+/** Static array containing traj allocators, optionally read/write help functions. */
 const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # ifdef BINTRAJ
   { "Amber NetCDF",       Traj_AmberNetcdf::ReadHelp, Traj_AmberNetcdf::WriteHelp, Traj_AmberNetcdf::Alloc    },
@@ -63,6 +64,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "Unknown trajectory", 0, 0, 0                          }
 };
 
+/** Input file formats. */
 const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { AMBERNETCDF,    "netcdf",    ".nc"      },
   { AMBERNETCDF,    "cdf",       ".nc"      },
@@ -83,6 +85,9 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { AMBERRESTART,   "restrt",    ".rst7"    },
   { AMBERRESTART,   "rest",      ".rst7"    },
   { GRO,            "gro",       ".gro"     },
+  { TINKER,         "arc",       ".arc"     },
+  { CHARMMCOR,      "cor",       ".cor"     },
+  { CHARMMREST,     "charmmres", ".res"     },
   { AMBERTRAJ,      "crd",       ".crd"     },
   { CONFLIB,        "conflib",   ".conflib" },
   { SQM,            "sqm",       ".sqm"     },
@@ -91,6 +96,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { UNKNOWN_TRAJ,   0,           0          }
 };
 
+/** Output file formats. */
 const FileTypes::KeyToken TrajectoryFile::TF_WriteKeyArray[] = {
   { AMBERNETCDF,    "netcdf",    ".nc"      },
   { AMBERNETCDF,    "cdf",       ".nc"      },
