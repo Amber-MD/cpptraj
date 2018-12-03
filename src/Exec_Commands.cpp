@@ -92,7 +92,7 @@ void Exec_DataFileCmd::Help() const {
   mprintf("\t{<data filename> | *} <datafile cmd>\n");
   DataFile::WriteHelp();
   mprintf("  Pass <datafile cmd> to specified data file currently in data file list.\n"
-          "  Use 'help formats writedata' for help with specific formats.\n");
+          "  Use 'help Formats writedata' for help with specific formats.\n");
 }
 // -----------------------------------------------------------------------------
 void Exec_SelectAtoms::Help() const {

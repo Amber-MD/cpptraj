@@ -119,8 +119,7 @@ void DataFile::WriteHelp() {
           "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>] [sort]\n"
           "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n"
           "\t[xprec <width>[.<precision>]] [xfmt {double|scientific|general}]\n"
-          "\t[noensextension]\n"
-          "  Use 'help formats writedata' for help with specific formats.\n");
+          "\t[noensextension]\n");
 }
 
 // DataFile::DetectFormat()

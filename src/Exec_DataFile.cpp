@@ -30,7 +30,7 @@ void Exec_CreateDataFile::Help() const {
   DataFile::WriteHelp();
   mprintf("  Add a file with specified data sets to the data file list. Does not\n"
           "  immediately write the data.\n"
-          "  Use 'help formats writedata' for help with specific formats.\n");
+          "  Use 'help Formats writedata' for help with specific formats.\n");
 }
 
 Exec::RetType Exec_CreateDataFile::Execute(CpptrajState& State, ArgList& argIn)
@@ -51,7 +51,7 @@ void Exec_WriteDataFile::Help() const {
   DataFile::WriteHelp();
   mprintf("  With no arguments, write all files currently in the data file list.\n"
           "  Otherwise, write specified data sets to <filename> immediately.\n"
-          "  Use 'help formats writedata' for help with specific formats.\n");
+          "  Use 'help Formats writedata' for help with specific formats.\n");
 }
 
 Exec::RetType Exec_WriteDataFile::Execute(CpptrajState& State, ArgList& argIn)
