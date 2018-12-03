@@ -61,7 +61,10 @@ std::string FileTypes::FormatKeywords(KeyPtr begin, FileFormatType ftype) {
     keywords.assign("Keywords:");
     for (std::set<std::string>::const_iterator key = Keys.begin();
                                                key != Keys.end(); ++key)
+    {
+      if (key != Keys.begin()) keywords.append(",");
       keywords.append(" " + *key);
+    }
   }
   return keywords;
 }
@@ -75,7 +78,10 @@ std::string FileTypes::FormatExtensions(KeyPtr begin, FileFormatType ftype) {
     extensions.assign("Extensions:");
     for (std::set<std::string>::const_iterator ext = Exts.begin();
                                                ext != Exts.end(); ++ext)
+    {
+      if (ext != Exts.begin()) extensions.append(",");
       extensions.append(" '" + *ext + "'");
+    }
   }
   return extensions;
 }
@@ -89,12 +95,15 @@ void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
     unsigned int maxsize = 0;
     for (int i = 0; i < UNK; i++)
       maxsize = std::max(maxsize, (unsigned int)strlen(allocArray[i].Description));
-    mprintf("    Available formats:\n");
+    switch (otype) {
+      case READOPT  : mprintf("    Available input formats:\n"); break;
+      case WRITEOPT : mprintf("    Available output formats:\n"); break;
+    }
     for (int i = 0; i < UNK; i++) {
       mprintf("      %*s:", maxsize, allocArray[i].Description);
       std::string fmtKeywords   = FormatKeywords(begin, i);
       std::string fmtExtensions = FormatExtensions(begin, i);
-      if (!fmtExtensions.empty()) fmtKeywords.append(",");
+      if (!fmtExtensions.empty()) fmtKeywords.append(";");
       mprintf(" %s %s\n", fmtKeywords.c_str(), fmtExtensions.c_str());
     }
   } else {
