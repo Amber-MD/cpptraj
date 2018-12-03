@@ -22,9 +22,9 @@ class DataFile {
     // -------------------------------------------
     static void WriteHelp();
     /// List read options for each format.
-    static void ReadOptions() { FileTypes::ReadOptions(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA); }
+    static void ReadOptions(std::string const& fkey) { FileTypes::Options(DF_KeyArray,DF_AllocArray, UNKNOWN_DATA, fkey, FileTypes::READOPT); }
     /// List write options for each format.
-    static void WriteOptions(){ FileTypes::WriteOptions(DF_WriteKeyArray,DF_AllocArray,UNKNOWN_DATA); }
+    static void WriteOptions(std::string const& fkey){ FileTypes::Options(DF_WriteKeyArray,DF_AllocArray,UNKNOWN_DATA, fkey, FileTypes::WRITEOPT); }
     /// \return Write format type from keyword in ArgList, or default
     static DataFormatType WriteFormatFromArg(ArgList& a, DataFormatType def) {
       return (DataFormatType)FileTypes::GetFormatFromArg(DF_WriteKeyArray,a,def);

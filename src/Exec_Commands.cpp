@@ -89,10 +89,10 @@ void Exec_ListAll::Help() const {
 void Exec_SilenceActions::Help() const { mprintf("Silence Actions Init/Setup output.\n"); }
 // -----------------------------------------------------------------------------
 void Exec_DataFileCmd::Help() const {
-  mprintf("\t{<data filename> | *} <datafile cmd>\n"
-          "  Pass <datafile cmd> to specified data file currently in data file list.\n");
+  mprintf("\t{<data filename> | *} <datafile cmd>\n");
   DataFile::WriteHelp();
-  DataFile::WriteOptions();
+  mprintf("  Pass <datafile cmd> to specified data file currently in data file list.\n"
+          "  Use 'help formats writedata' for help with specific formats.\n");
 }
 // -----------------------------------------------------------------------------
 void Exec_SelectAtoms::Help() const {
