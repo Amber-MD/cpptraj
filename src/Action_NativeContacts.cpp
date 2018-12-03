@@ -276,6 +276,10 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   saveNonNative_ = actionArgs.hasKey("savenonnative");
   if (actionArgs.hasKey("skipnative"))
     determineNativeContacts_ = false;
+  if (!determineNativeContacts_ && !saveNonNative_) {
+    mprintf("Warning: 'skipnative' specified; implies 'savenonnative'.\n");
+    saveNonNative_ = true;
+  }
 # ifdef MPI
   if (saveNonNative_) {
     mprinterr("Error: Saving non-native contact data not yet supported for MPI\n");
