@@ -23,6 +23,7 @@ Action_NativeContacts::Action_NativeContacts() :
   usepdbcut_(false),
   seriesUpdated_(false),
   saveNonNative_(false),
+  determineNativeContacts_(true),
   cfile_(0), pfile_(0), nfile_(0), rfile_(0),
   seriesout_(0),
   seriesNNout_(0),
@@ -37,22 +38,6 @@ Action_NativeContacts::Action_NativeContacts() :
   refParm_(0),
   masterDSL_(0)
 {}
-// TODO: mapout, avg contacts over traj, 1=native, -1=nonnative
-void Action_NativeContacts::Help() const {
-  mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>] [resout <resfile>]\n"
-          "\t[noimage] [distance <cut>] [out <filename>] [includesolvent]\n"
-          "\t[ first | %s ]\n"
-          "\t[resoffset <n>] [contactpdb <file>] [pdbcut <cut>] [mindist] [maxdist]\n"
-          "\t[name <dsname>] [byresidue] [map [mapout <mapfile>]] [series [seriesout <file>]]\n"
-          "\t[savenonnative [seriesnnout <file>] [nncontactpdb <file>]]\n"
-          "\t[resseries { present | sum } [resseriesout <file>]]\n"
-          "  Calculate number of contacts in <mask1>, or between <mask1> and <mask2>\n"
-          "  if both are specified. Native contacts are determined based on the given\n"
-          "  reference structure (or first frame if not specified) and the specified\n"
-          "  distance cut-off (7.0 Ang. default). If [byresidue] is specified contacts\n"
-          "  between two residues spaced <resoffset> residues apart are ignored, and\n"
-          "  the map (if specified) is written per-residue.\n", DataSetList::RefArgs);
-}
 
 /** Set up atom/residue indices corresponding to atoms selected in mask.
   * This is done to make creating an atom/residue contact map easier.
@@ -211,19 +196,21 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
   double maxDist2 = 0.0;
   double minDist2 = DBL_MAX;
   nativeContacts_.clear();
-  std::pair<contactListType::iterator, bool> ret; 
-  if ( Mask2_.MaskStringSet() ) {
-    for (AtomMask::const_iterator c1 = Mask1_.begin(); c1 != Mask1_.end(); ++c1)
-      for (AtomMask::const_iterator c2 = Mask2_.begin(); c2 != Mask2_.end(); ++c2)
-      {
-        SetNativeContact();
-      }
-  } else {
-    for (AtomMask::const_iterator c1 = Mask1_.begin(); c1 != Mask1_.end(); ++c1)
-      for (AtomMask::const_iterator c2 = c1 + 1; c2 != Mask1_.end(); ++c2)
-      {
-        SetNativeContact();
-      }
+  std::pair<contactListType::iterator, bool> ret;
+  if (determineNativeContacts_) {
+    if ( Mask2_.MaskStringSet() ) {
+      for (AtomMask::const_iterator c1 = Mask1_.begin(); c1 != Mask1_.end(); ++c1)
+        for (AtomMask::const_iterator c2 = Mask2_.begin(); c2 != Mask2_.end(); ++c2)
+        {
+          SetNativeContact();
+        }
+    } else {
+      for (AtomMask::const_iterator c1 = Mask1_.begin(); c1 != Mask1_.end(); ++c1)
+        for (AtomMask::const_iterator c2 = c1 + 1; c2 != Mask1_.end(); ++c2)
+        {
+          SetNativeContact();
+        }
+    }
   }
   //mprintf("\tMinimum observed distance= %f, maximum observed distance= %f\n",
   //        sqrt(minDist2), sqrt(maxDist2));
@@ -248,6 +235,25 @@ inline bool KeywordError(ArgList& argIn, const char* key) {
   return false;
 }
 
+// TODO: mapout, avg contacts over traj, 1=native, -1=nonnative
+void Action_NativeContacts::Help() const {
+  mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>] [resout <resfile>]\n"
+          "\t[noimage] [distance <cut>] [out <filename>] [includesolvent]\n"
+          "\t[ first | %s ]\n"
+          "\t[resoffset <n>] [contactpdb <file>] [pdbcut <cut>] [mindist] [maxdist]\n"
+          "\t[name <dsname>] [byresidue] [map [mapout <mapfile>]] [series [seriesout <file>]]\n"
+          "\t[savenonnative [seriesnnout <file>] [nncontactpdb <file>]]\n"
+          "\t[resseries { present | sum } [resseriesout <file>]] [skipnative]\n"
+          "  Calculate number of contacts in <mask1>, or between <mask1> and <mask2>\n"
+          "  if both are specified. Native contacts are determined based on the given\n"
+          "  reference structure (or first frame if not specified) and the specified\n"
+          "  distance cut-off (7.0 Ang. default). If [byresidue] is specified contacts\n"
+          "  between two residues spaced <resoffset> residues apart are ignored, and\n"
+          "  the map (if specified) is written per-residue. If 'skipnative' is specified\n"
+          "  the native contacts determination is skipped and all contacts are considered\n"
+          "  non-native.\n", DataSetList::RefArgs);
+}
+
 // Action_NativeContacts::Init()
 Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
@@ -268,6 +274,12 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   includeSolvent_ = actionArgs.hasKey("includesolvent");
   series_ = actionArgs.hasKey("series");
   saveNonNative_ = actionArgs.hasKey("savenonnative");
+  if (actionArgs.hasKey("skipnative"))
+    determineNativeContacts_ = false;
+  if (!determineNativeContacts_ && !saveNonNative_) {
+    mprintf("Warning: 'skipnative' specified; implies 'savenonnative'.\n");
+    saveNonNative_ = true;
+  }
 # ifdef MPI
   if (saveNonNative_) {
     mprinterr("Error: Saving non-native contact data not yet supported for MPI\n");
@@ -313,7 +325,8 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   if (cfile_ == 0 || rfile_ == 0) return Action::ERR;
   pdbcut_ = (float)actionArgs.getKeyDouble("pdbcut", -1.0);
   usepdbcut_ = (pdbcut_ > -1.0);
-  // Get reference
+  // Get reference for native contacts. Do this even if we wont be
+  // determining native contacts in order to set up contact lists.
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (!first_) {
     if (REF.error()) return Action::ERR;
@@ -327,6 +340,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
       return Action::ERR;
     }
   }
+  
   // Create data sets
   std::string name = actionArgs.GetStringKey("name");
   if (name.empty())
@@ -371,11 +385,15 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   mprintf("    NATIVECONTACTS: Mask1='%s'", Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
     mprintf(" Mask2='%s'", Mask2_.MaskString());
-  mprintf(", contacts set up based on");
-  if (first_)
-    mprintf(" first frame.\n");
-  else
-    mprintf("'%s'.\n", REF.refName());
+  if (determineNativeContacts_) {
+    mprintf(", native contacts set up based on");
+    if (first_)
+      mprintf(" first frame.\n");
+    else
+      mprintf("'%s'.\n", REF.refName());
+  } else {
+    mprintf(", skipping native contacts set up.\n");
+  }
   if (byResidue_) {
     mprintf("\tContacts will be ignored for residues spaced < %i apart.\n", resoffset_);
     if (nativeMap_ != 0)
