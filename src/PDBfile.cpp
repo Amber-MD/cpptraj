@@ -21,6 +21,15 @@ PDBfile::PDBfile() :
 
 // PDBfile::IsPDBkeyword()
 bool PDBfile::IsPDBkeyword(std::string const& recname) {
+  // Coordinate Section
+  if (recname.compare(0,6,"MODEL ")==0) return true;
+  if (recname.compare(0,6,"ATOM  ")==0) return true;
+  if (recname.compare(0,6,"ANISOU")==0) return true;
+  if (recname.compare(0,3,"TER"   )==0) return true; // To recognize blank TER cards.
+  if (recname.compare(0,6,"HETATM")==0) return true;
+  if (recname.compare(0,6,"ENDMDL")==0) return true;
+  // Connectivity section
+  if (recname.compare(0,6,"CONECT")==0) return true;
   // Title Section
   if (recname.compare(0,6,"HEADER")==0) return true;
   if (recname.compare(0,6,"SOURCE")==0) return true;
@@ -43,12 +52,20 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   if (recname.compare(0,6,"SEQADV")==0) return true;
   if (recname.compare(0,6,"MODRES")==0) return true;
   if (recname.compare(0,6,"SEQRES")==0) return true;
-  // Coordinate Section
-  if (recname.compare(0,6,"MODEL ")==0) return true;
-  if (recname.compare(0,6,"ATOM  ")==0) return true;
-  if (recname.compare(0,6,"ANISOU")==0) return true;
-  if (recname.compare(0,3,"TER"   )==0) return true; // To recognize blank TER cards.
-  if (recname.compare(0,6,"HETATM")==0) return true;
+  // Heterogen Section
+  if (recname.compare(0,6,"HET   ")==0) return true;
+  if (recname.compare(0,6,"HETNAM")==0) return true;
+  if (recname.compare(0,6,"HETSYN")==0) return true;
+  if (recname.compare(0,6,"FORMUL")==0) return true;
+  // Secondary structure section
+  if (recname.compare(0,6,"HELIX ")==0) return true;
+  if (recname.compare(0,6,"SHEET ")==0) return true;
+  // Connectivity Annotation section
+  if (recname.compare(0,6,"SSBOND")==0) return true;
+  if (recname.compare(0,6,"LINK  ")==0) return true;
+  if (recname.compare(0,6,"CISPEP")==0) return true;
+  // Miscellaneuous Features section
+  if (recname.compare(0,6,"SITE  ")==0) return true;
   // Crystallographic and Coordinate Transformation Section 
   if (recname.compare(0,6,"CRYST1")==0) return true;
   if (recname.compare(0,5,"SCALE" )==0) return true; // SCALEn
