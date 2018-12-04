@@ -8,7 +8,7 @@
 // NOTE: Must correspond with PDB_RECTYPE
 const char* PDBfile::PDB_RECNAME[] = { 
   "ATOM  ", "HETATM", "CRYST1", "TER   ", "END   ", "ANISOU", "EndRec",
-  "CONECT", 0 };
+  "CONECT", "LINK  ", 0 };
 
 /// CONSTRUCTOR
 PDBfile::PDBfile() :
@@ -104,6 +104,8 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
     recType_ = ATOM;
   else if (strncmp(linebuffer_,"CONECT",6)==0)
     recType_ = CONECT;
+  else if (strncmp(linebuffer_,"LINK  ",6)==0)
+    recType_ = LINK;
   else if (strncmp(linebuffer_,"CRYST1",6)==0)
     recType_ = CRYST1;
   else if (linebuffer_[0]=='T' && linebuffer_[1]=='E' && linebuffer_[2]=='R')

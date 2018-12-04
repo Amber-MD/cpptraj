@@ -9,7 +9,7 @@ class PDBfile : public CpptrajFile {
     class SSBOND;
     // NOTE: PDB_RECNAME must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
-                      CONECT, UNKNOWN};
+                      CONECT, LINK, UNKNOWN};
     /// CONSTRUCTOR
     PDBfile();
     /// Check if either of the first two lines contain valid PDB records.
