@@ -33,6 +33,8 @@ class PDBfile : public CpptrajFile {
     void pdb_Box(double*);
     /// Set given array with atom and #s of bonded atoms from CONECT record.
     int pdb_Bonds(int*);
+    /// \return Link record.
+    Link pdb_Link();
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
     // -------------------------------------------
@@ -125,6 +127,8 @@ class PDBfile::SSBOND {
 class PDBfile::Link {
   public:
     Link();
+    Link(const char*, char, const char*, char, int, char,
+         const char*, char, const char*, char, int, char);
     Link(Link const&);
     Link operator=(Link const&);
     int Rnum1() const { return rnum1_; }
@@ -137,6 +141,8 @@ class PDBfile::Link {
     const char* rname2() const { return rname2_; }
     char Chain1()        const { return chain1_; }
     char Chain2()        const { return chain2_; }
+    char Icode1()        const { return icode1_; }
+    char Icode2()        const { return icode2_; }
   private:
     // TODO symmop
     int rnum1_;
@@ -149,5 +155,7 @@ class PDBfile::Link {
     char rname2_[4];
     char chain1_;
     char chain2_;
+    char icode1_;
+    char icode2_;
 };
 #endif

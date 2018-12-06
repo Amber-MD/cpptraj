@@ -268,6 +268,23 @@ int PDBfile::pdb_Bonds(int* bnd) {
   return Nscan;
 }
 
+/** \return PDB LINK record. */
+PDBfile::Link PDBfile::pdb_Link() {
+//         1         2         3         4         5         6         7         8
+//12345678901234567890123456789012345678901234567890123456789012345678901234567890
+//LINK         O   GLY A  49                NA    NA A6001     1555   1555  2.98  
+  // NOTE: ignoring symops and distance here.
+  char a1[4], a2[4], r1[3], r2[3], alt1, alt2, ch1, ch2, code1, code2;
+  int rnum1, rnum2;
+  int nscan = sscanf(linebuffer_, "%*6s%4s%c%3s%c%4i%c%4s%c%3s%c%4i%c",
+                                  a1, &alt1, r1, &ch1, &rnum1, &code1,
+                                  a2, &alt2, r2, &ch2, &rnum2, &code2);
+  if (nscan < 12)
+    mprintf("Warning: Malformed LINK record: %s", linebuffer_);
+  return Link( a1, alt1, r1, ch1, rnum1, code1,
+               a2, alt2, r2, ch2, rnum2, code2 );
+}
+
 // -----------------------------------------------------------------------------
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
@@ -528,7 +545,7 @@ PDBfile::SSBOND PDBfile::SSBOND::operator=(SSBOND const& rhs) {
 }
 // -----------------------------------------------------------------------------
 PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
-                        chain1_(' '), chain2_(' ')
+                        chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
 {
   std::fill(aname1_, aname1_+5, '\0');
   std::fill(aname2_, aname2_+5, '\0');
@@ -536,9 +553,21 @@ PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
   std::fill(rname2_, rname2_+4, '\0');
 }
 
+PDBfile::Link::Link(const char* a1, char alt1, const char* r1, char ch1, int rnum1, char code1,
+                    const char* a2, char alt2, const char* r2, char ch2, int rnum2, char code2) :
+  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2),
+  icode1_(code1), icode2_(code2)
+{
+  std::copy(a1, a1+4, aname1_); aname1_[4] = '\0'; 
+  std::copy(a2, a2+4, aname2_); aname2_[4] = '\0'; 
+  std::copy(r1, r1+3, rname1_); rname1_[3] = '\0'; 
+  std::copy(r2, r2+3, rname2_); rname2_[3] = '\0';
+} 
+
 PDBfile::Link::Link(Link const& rhs) : rnum1_(rhs.rnum1_), rnum2_(rhs.rnum2_),
                                        altloc1_(rhs.altloc1_), altloc2_(rhs.altloc2_),
-                                       chain1_(rhs.chain1_), chain2_(rhs.chain2_)
+                                       chain1_(rhs.chain1_), chain2_(rhs.chain2_),
+                                       icode1_(rhs.icode1_), icode2_(rhs.icode2_)
 {
   std::copy(rhs.aname1_, rhs.aname1_+5, aname1_);
   std::copy(rhs.aname2_, rhs.aname2_+5, aname2_);
@@ -554,6 +583,8 @@ PDBfile::Link PDBfile::Link::operator=(Link const& rhs) {
     altloc2_ = rhs.altloc2_;
     chain1_ = rhs.chain1_;
     chain2_ = rhs.chain2_;
+    icode1_ = rhs.icode1_;
+    icode2_ = rhs.icode2_;
     std::copy(rhs.aname1_, rhs.aname1_+4, aname1_);
     std::copy(rhs.aname2_, rhs.aname2_+4, aname2_);
     std::copy(rhs.rname1_, rhs.rname1_+3, rname1_);

@@ -53,6 +53,12 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
           if (barray[i] > barray[0])
             bonds.push_back( BondType(barray[0], barray[i], -1) );
       }
+    } else if (infile.RecType() == PDBfile::LINK && readConect_) {
+      // LINK
+      PDBfile::Link lr = infile.pdb_Link();
+      mprintf("DEBUG: Link record: %s %s %i to %s %s %i\n",
+              lr.aname1(), lr.rname1(), lr.Rnum1(),
+              lr.aname2(), lr.rname2(), lr.Rnum2());
     } else if (infile.RecType() == PDBfile::ATOM) {
 #     ifdef TIMER
       time_atom.Start();
