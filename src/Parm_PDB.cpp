@@ -20,10 +20,12 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
 } 
 
 int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
+  typedef std::vector<PDBfile::Link> Larray;
   PDBfile infile;
   double XYZ[6]; // Hold XYZ/box coords.
   float occupancy, bfactor; // Read in occ/bfac
   BondArray bonds;              // Hold bonds
+  Larray links;                 // Hold LINK bonds
   std::vector<int> serial;      // Map ATOM/HETATM serial number to actual atom number.
   int atnum;                    // Read in ATOM/HETATM serial number.
   int barray[5];                // Hold CONECT atom and bonds
@@ -55,7 +57,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       }
     } else if (infile.RecType() == PDBfile::LINK && readConect_) {
       // LINK
-      PDBfile::Link lr = infile.pdb_Link();
+      links.push_back( infile.pdb_Link() );
+      PDBfile::Link const& lr = links.back();
       mprintf("DEBUG: Link record: %s %s %i to %s %s %i\n",
               lr.aname1(), lr.rname1(), lr.Rnum1(),
               lr.aname2(), lr.rname2(), lr.Rnum2());
@@ -103,6 +106,49 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
         TopIn.AddBond( serial[bnd->A1()], serial[bnd->A2()] );
   }
+  // Add LINK bonds. Need to search for original residue numbers here.
+  if (!links.empty()) {
+    for (Larray::const_iterator link = links.begin(); link != links.end(); ++link) {
+      Topology::res_iterator r1 = TopIn.ResEnd();
+      Topology::res_iterator r2 = TopIn.ResEnd();
+      for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res) {
+        if (r1 == TopIn.ResEnd()) {
+          if (link->Rnum1() == res->OriginalResNum()) {
+            r1 = res;
+            if (r2 != TopIn.ResEnd()) break;
+          }
+        }
+        if (r2 == TopIn.ResEnd()) {
+          if (link->Rnum2() == res->OriginalResNum()) {
+            r2 = res;
+            if (r1 != TopIn.ResEnd()) break;
+          }
+        }
+      } // END loop over topology residues
+      // SANITY CHECK
+      if (r1 == TopIn.ResEnd()) {
+        mprintf("Warning: Could not find 1st residue %i %s for LINK record.\n", link->Rnum1(), link->rname1());
+      } else if (r2 == TopIn.ResEnd()) {
+        mprintf("Warning: Could not find 2nd residue %i %s for LINK record.\n", link->Rnum2(), link->rname2());
+      } else {
+        int idx1 = TopIn.FindAtomInResidue(r1 - TopIn.ResStart(), NameType(link->aname1()));
+        if (idx1 < 0) {
+          mprintf("Warning: Could not find 1st atom %s in residue %i %s for LINK record.\n", link->aname1(), link->Rnum1(), link->rname1());
+        } else {
+          int idx2 = TopIn.FindAtomInResidue(r2 - TopIn.ResStart(), NameType(link->aname2()));
+          if (idx2 < 0) {
+            mprintf("Warning: Could not find 2nd atom %s in residue %i %s for LINK record.\n", link->aname2(), link->Rnum2(), link->rname2());
+          } else {
+            mprintf("DEBUG: Adding bond %s to %s\n",
+                    TopIn.TruncResAtomNameNum(idx1).c_str(),
+                    TopIn.TruncResAtomNameNum(idx2).c_str());
+            TopIn.AddBond(idx1, idx2);
+          }
+        }
+      }
+    } // END loop over Link records
+  } // END PDB has link records.
+  // Fill in bonds
   BondSearch( TopIn, Coords, Offset_, debug_ );
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
