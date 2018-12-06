@@ -276,11 +276,38 @@ PDBfile::Link PDBfile::pdb_Link() {
   // NOTE: ignoring symops and distance here.
   char a1[4], a2[4], r1[3], r2[3], alt1, alt2, ch1, ch2, code1, code2;
   int rnum1, rnum2;
-  int nscan = sscanf(linebuffer_, "%*6s%4s%c%3s%c%4i%c%4s%c%3s%c%4i%c",
+  // TODO check linebuffer length
+  // Site 1
+  std::copy(linebuffer_+12, linebuffer_+16, a1);
+  alt1 = linebuffer_[16];
+  std::copy(linebuffer_+17, linebuffer_+20, r1);
+  ch1 = linebuffer_[21];
+  code1 = linebuffer_[26];
+  // Site 2
+  std::copy(linebuffer_+42, linebuffer_+46, a2);
+  alt2 = linebuffer_[46];
+  std::copy(linebuffer_+47, linebuffer_+50, r2);
+  ch2 = linebuffer_[51];
+  code2 = linebuffer_[56];
+  // Residue numbers TODO restore nulled chars?
+  linebuffer_[26] = '\0';
+  rnum1 = atoi(linebuffer_+22);
+  linebuffer_[56] = '\0';
+  rnum2 = atoi(linebuffer_+52);
+/*
+  NOTE: sscanf may not reliable when width absolutely matters.
+  int nscan = sscanf(linebuffer_+12, "%4s%c%3s%c%4i%c%4s%c%3s%c%4i%c",
                                   a1, &alt1, r1, &ch1, &rnum1, &code1,
                                   a2, &alt2, r2, &ch2, &rnum2, &code2);
-  if (nscan < 12)
-    mprintf("Warning: Malformed LINK record: %s", linebuffer_);
+  if (nscan < 12) {*/
+    //mprintf("Warning: Malformed LINK record: %s", linebuffer_);
+    mprintf("DEBUG:  a1=%c%c%c%c\n", a1[0], a1[1], a1[2], a1[3]);
+    mprintf("DEBUG:  alt1=%c\n", alt1);
+    mprintf("DEBUG:  r1=%c%c%c\n", r1[0], r1[1], r1[2]);
+    mprintf("DEBUG:  ch1=%c\n", ch1);
+    mprintf("DEBUG:  rnum1=%i\n", rnum1);
+    mprintf("DEBUG:  code1=%c\n", code1);
+  //}
   return Link( a1, alt1, r1, ch1, rnum1, code1,
                a2, alt2, r2, ch2, rnum2, code2 );
 }
