@@ -10,7 +10,9 @@ void Parm_PDB::ReadHelp() {
   mprintf("\tpqr      : Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
           "\treadbox  : Read unit cell information from CRYST1 record if present.\n"
           "\tconect   : Read CONECT records if present (default).\n"
-          "\tnoconect : Do not read CONECT records if present.\n");
+          "\tnoconect : Do not read CONECT records if present.\n"
+          "\tlink     : Read LINK records if present.\n"
+          "\tnolink   : Do not read LINK records if present (default).\n");
 }
 
 int Parm_PDB::processReadArgs(ArgList& argIn) {
@@ -20,6 +22,10 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
     ConectMode_ = READ;
   else if (argIn.hasKey("noconect"))
     ConectMode_ = SKIP;
+  if (argIn.hasKey("link"))
+    LinkMode_ = READ;
+  else if (argIn.hasKey("nolink"))
+    LinkMode_ = SKIP;
   return 0;
 }
 
@@ -41,10 +47,23 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     readConect = false;
   else
     readConect = true;
+  // Determine if LINK records should be read.
+  bool readLink;
+  if (LinkMode_ == READ)
+    readLink = true;
+  else
+    readLink = false;
   if (infile.OpenRead(fname)) return 1;
   if (readAsPQR_)  mprintf("\tReading as PQR file.\n");
   if (readBox_)    mprintf("\tUnit cell info will be read from any CRYST1 record.\n");
-  if (!readConect) mprintf("\tNot reading bond info from CONECT records.\n");
+  if (readConect)
+    mprintf("\tReading bond info from CONECT records.\n");
+  else
+    mprintf("\tNot reading bond info from CONECT records.\n");
+  if (readLink)
+    mprintf("\tReading bond info from LINK records.\n");
+  else
+    mprintf("\tNot reading bond info from LINK records.\n");
 # ifdef TIMER
   Timer time_total, time_atom;
   time_total.Start();
@@ -66,7 +85,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
           if (barray[i] > barray[0])
             bonds.push_back( BondType(barray[0], barray[i], -1) );
       }
-    } else if (infile.RecType() == PDBfile::LINK && readConect) {
+    } else if (infile.RecType() == PDBfile::LINK && readLink) {
       // LINK
       links.push_back( infile.pdb_Link() );
       if (debug_ > 0) {
@@ -111,10 +130,12 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         mprintf("Warning: Not reading any connectivity (CONECT etc).\n"
                 "Warning: Use the 'conect' option to force reading of these records.\n");
         readConect = false;
-        links.clear();
+        //links.clear();
         bonds.clear();
       } else if (ConectMode_ == READ)
         mprintf("Warning: If molecule determination fails try specifying 'noconect' instead.\n");
+      if (LinkMode_ == READ)
+        mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");
     }
   }
   // Sanity check
