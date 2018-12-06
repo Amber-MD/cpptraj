@@ -7,6 +7,7 @@
 class PDBfile : public CpptrajFile {
   public:
     class SSBOND;
+    class Link;
     // NOTE: PDB_RECNAME must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
                       CONECT, LINK, UNKNOWN};
@@ -109,15 +110,44 @@ class PDBfile::SSBOND {
     char Icode2() const { return icode2_; }
   private:
     // TODO SymOP
-    int idx1_; ///< Index into Topology for first SG
-    int idx2_; ///< Index into Topology for second SG
+    int idx1_;      ///< Index into Topology for first SG
+    int idx2_;      ///< Index into Topology for second SG
+    int rnum1_;     ///< Residue sequence number 1
+    int rnum2_;     ///< Residue sequence number 2
+    char chain1_;   ///< Chain ID 1
+    char chain2_;   ///< Chain ID 2
+    char icode1_;   ///< Residue insertion code 1
+    char icode2_;   ///< Residue insertion code 2
+    char name1_[4]; ///< Residue name 1
+    char name2_[4]; ///< Residue name 2
+};
+/// Hold information for a LINK record.
+class PDBfile::Link {
+  public:
+    Link();
+    Link(Link const&);
+    Link operator=(Link const&);
+    int Rnum1() const { return rnum1_; }
+    int Rnum2() const { return rnum2_; }
+    const char* aname1() const { return aname1_; }
+    const char* aname2() const { return aname2_; }
+    char AltLoc1()       const { return altloc1_;}
+    char AltLoc2()       const { return altloc2_;}
+    const char* rname1() const { return rname1_; }
+    const char* rname2() const { return rname2_; }
+    char Chain1()        const { return chain1_; }
+    char Chain2()        const { return chain2_; }
+  private:
+    // TODO symmop
     int rnum1_;
     int rnum2_;
+    char aname1_[5];
+    char aname2_[5];
+    char altloc1_;
+    char altloc2_;
+    char rname1_[4];
+    char rname2_[4];
     char chain1_;
     char chain2_;
-    char icode1_;
-    char icode2_;
-    char name1_[4];
-    char name2_[4];
 };
 #endif

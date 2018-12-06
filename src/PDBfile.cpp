@@ -526,3 +526,38 @@ PDBfile::SSBOND PDBfile::SSBOND::operator=(SSBOND const& rhs) {
   }
   return *this;
 }
+// -----------------------------------------------------------------------------
+PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
+                        chain1_(' '), chain2_(' ')
+{
+  std::fill(aname1_, aname1_+5, '\0');
+  std::fill(aname2_, aname2_+5, '\0');
+  std::fill(rname1_, rname1_+4, '\0');
+  std::fill(rname2_, rname2_+4, '\0');
+}
+
+PDBfile::Link::Link(Link const& rhs) : rnum1_(rhs.rnum1_), rnum2_(rhs.rnum2_),
+                                       altloc1_(rhs.altloc1_), altloc2_(rhs.altloc2_),
+                                       chain1_(rhs.chain1_), chain2_(rhs.chain2_)
+{
+  std::copy(rhs.aname1_, rhs.aname1_+5, aname1_);
+  std::copy(rhs.aname2_, rhs.aname2_+5, aname2_);
+  std::copy(rhs.rname1_, rhs.rname1_+4, rname1_);
+  std::copy(rhs.rname2_, rhs.rname2_+4, rname2_);
+}
+
+PDBfile::Link PDBfile::Link::operator=(Link const& rhs) {
+  if (this != &rhs) {
+    rnum1_ = rhs.rnum1_;
+    rnum2_ = rhs.rnum2_;
+    altloc1_ = rhs.altloc1_;
+    altloc2_ = rhs.altloc2_;
+    chain1_ = rhs.chain1_;
+    chain2_ = rhs.chain2_;
+    std::copy(rhs.aname1_, rhs.aname1_+4, aname1_);
+    std::copy(rhs.aname2_, rhs.aname2_+4, aname2_);
+    std::copy(rhs.rname1_, rhs.rname1_+3, rname1_);
+    std::copy(rhs.rname2_, rhs.rname2_+3, rname2_);
+  }
+  return *this;
+}
