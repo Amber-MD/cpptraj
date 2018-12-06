@@ -157,9 +157,9 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       } // END loop over topology residues
       // SANITY CHECK
       if (r1 == TopIn.ResEnd()) {
-        mprintf("Warning: Could not find 1st residue %i %s for LINK record.\n", link->Rnum1(), link->rname1());
+        mprintf("Warning: Could not find 1st residue %i %s '%c' '%c' for LINK record.\n", link->Rnum1(), link->rname1(), link->Chain1(), link->Icode1());
       } else if (r2 == TopIn.ResEnd()) {
-        mprintf("Warning: Could not find 2nd residue %i %s for LINK record.\n", link->Rnum2(), link->rname2());
+        mprintf("Warning: Could not find 2nd residue %i %s '%c' '%c' for LINK record.\n", link->Rnum2(), link->rname2(), link->Chain2(), link->Icode2());
       } else {
         int idx1 = TopIn.FindAtomInResidue(r1 - TopIn.ResStart(), NameType(link->aname1()));
         if (idx1 < 0) {

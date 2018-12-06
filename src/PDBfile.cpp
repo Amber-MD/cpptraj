@@ -280,9 +280,19 @@ PDBfile::Link PDBfile::pdb_Link() {
 //12345678901234567890123456789012345678901234567890123456789012345678901234567890
 //LINK         O   GLY A  49                NA    NA A6001     1555   1555  2.98  
   // NOTE: ignoring symops and distance here.
+  // Make 56 chars the minimum length for an acceptable LINK record
+  // since this includes 2nd res sequence.
+  unsigned int lb_size = strlen(linebuffer_);
+  if (lb_size < 57) {
+    mprintf("Warning: Malformed LINK record: %s", linebuffer_);
+    return Link();
+  } else if (lb_size < 80) {
+    // For short records, make sure 2nd icode is not a newline
+    if (linebuffer_[56] == '\n' || linebuffer_[56] == '\r')
+      lb_size = 56;
+  }
   char a1[4], a2[4], r1[3], r2[3], alt1, alt2, ch1, ch2, code1, code2;
   int rnum1, rnum2;
-  // TODO check linebuffer length
   // Site 1
   std::copy(linebuffer_+12, linebuffer_+16, a1);
   alt1 = linebuffer_[16];
@@ -294,7 +304,10 @@ PDBfile::Link PDBfile::pdb_Link() {
   alt2 = linebuffer_[46];
   std::copy(linebuffer_+47, linebuffer_+50, r2);
   ch2 = linebuffer_[51];
-  code2 = linebuffer_[56];
+  if (lb_size > 56)
+    code2 = linebuffer_[56];
+  else
+    code2 = ' ';
   // Residue numbers TODO restore nulled chars?
   linebuffer_[26] = '\0';
   rnum1 = atoi(linebuffer_+22);
