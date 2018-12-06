@@ -113,13 +113,19 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       Topology::res_iterator r2 = TopIn.ResEnd();
       for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res) {
         if (r1 == TopIn.ResEnd()) {
-          if (link->Rnum1() == res->OriginalResNum()) {
+          if (link->Rnum1() == res->OriginalResNum() &&
+              link->Chain1() == res->ChainID() &&
+              link->Icode1() == res->Icode())
+          {
             r1 = res;
             if (r2 != TopIn.ResEnd()) break;
           }
         }
         if (r2 == TopIn.ResEnd()) {
-          if (link->Rnum2() == res->OriginalResNum()) {
+          if (link->Rnum2() == res->OriginalResNum() &&
+              link->Chain2() == res->ChainID() &&
+              link->Icode2() == res->Icode())
+          {
             r2 = res;
             if (r1 != TopIn.ResEnd()) break;
           }
