@@ -20,6 +20,12 @@ PDBfile::PDBfile() :
 {}
 
 // PDBfile::IsPDBkeyword()
+/** \return true if given string is a recognized PDB record keyword.
+  * PDB record keywords are typically 6 characters long (including spaces),
+  * so typically that is what CPPTRAJ looks for. However, in some cases
+  * for various reasons CPPTRAJ will scan fewer characters (e.g. TER,
+  * DBREF1, DBREF2, etc).
+  */
 bool PDBfile::IsPDBkeyword(std::string const& recname) {
   // Coordinate Section
   if (recname.compare(0,6,"MODEL ")==0) return true;
