@@ -39,6 +39,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   Timer time_total, time_atom;
   time_total.Start();
 # endif
+  bool missingResidues = false;
   // Loop over PDB records
   while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
     if (readBox_ && infile.RecType() == PDBfile::CRYST1) {
@@ -91,6 +92,9 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       // Indicate end of molecule for TER/END. Finish if END.
       TopIn.StartNewMol();
       if (infile.RecType() == PDBfile::END) break;
+    } else if ( !missingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
+      missingResidues = true;
+      mprintf("Warning: PDB file has MISSING RESIDUES section.\n");
     }
   }
   // Sanity check

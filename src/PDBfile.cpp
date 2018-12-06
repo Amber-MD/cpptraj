@@ -8,7 +8,7 @@
 // NOTE: Must correspond with PDB_RECTYPE
 const char* PDBfile::PDB_RECNAME[] = { 
   "ATOM  ", "HETATM", "CRYST1", "TER   ", "END   ", "ANISOU", "EndRec",
-  "CONECT", "LINK  ", 0 };
+  "CONECT", "LINK  ", "REMARK", 0 };
 
 /// CONSTRUCTOR
 PDBfile::PDBfile() :
@@ -118,6 +118,12 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
     recType_ = TER;
   else if (linebuffer_[0]=='E' && linebuffer_[1]=='N' && linebuffer_[2]=='D')
     recType_ = END;
+  else if (strncmp(linebuffer_,"REMARK",6)==0) {
+    // REMARK record.
+    if (linebuffer_[7] == '4' && linebuffer_[8] == '6' &&
+        linebuffer_[9] == '5' && linebuffer_[11] == 'M')
+      recType_ = MISSING_RES;
+  }
   return recType_;
 }
 
