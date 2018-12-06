@@ -69,10 +69,12 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     } else if (infile.RecType() == PDBfile::LINK && readConect) {
       // LINK
       links.push_back( infile.pdb_Link() );
-      PDBfile::Link const& lr = links.back();
-      mprintf("DEBUG: Link record: %s %s %i to %s %s %i\n",
-              lr.aname1(), lr.rname1(), lr.Rnum1(),
-              lr.aname2(), lr.rname2(), lr.Rnum2());
+      if (debug_ > 0) {
+        PDBfile::Link const& lr = links.back();
+        mprintf("DEBUG: Link record: %s %s %i to %s %s %i\n",
+                lr.aname1(), lr.rname1(), lr.Rnum1(),
+                lr.aname2(), lr.rname2(), lr.Rnum2());
+      }
     } else if (infile.RecType() == PDBfile::ATOM) {
 #     ifdef TIMER
       time_atom.Start();
@@ -111,7 +113,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         readConect = false;
         links.clear();
         bonds.clear();
-      }
+      } else if (ConectMode_ == READ)
+        mprintf("Warning: If molecule determination fails try specifying 'noconect' instead.\n");
     }
   }
   // Sanity check
@@ -166,9 +169,10 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
           if (idx2 < 0) {
             mprintf("Warning: Could not find 2nd atom %s in residue %i %s for LINK record.\n", link->aname2(), link->Rnum2(), link->rname2());
           } else {
-            mprintf("DEBUG: Adding bond %s to %s\n",
-                    TopIn.TruncResAtomNameNum(idx1).c_str(),
-                    TopIn.TruncResAtomNameNum(idx2).c_str());
+            if (debug_ > 0)
+              mprintf("DEBUG: Adding bond %s to %s\n",
+                      TopIn.TruncResAtomNameNum(idx1).c_str(),
+                      TopIn.TruncResAtomNameNum(idx2).c_str());
             TopIn.AddBond(idx1, idx2);
           }
         }

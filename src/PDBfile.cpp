@@ -305,7 +305,7 @@ PDBfile::Link PDBfile::pdb_Link() {
   int nscan = sscanf(linebuffer_+12, "%4s%c%3s%c%4i%c%4s%c%3s%c%4i%c",
                                   a1, &alt1, r1, &ch1, &rnum1, &code1,
                                   a2, &alt2, r2, &ch2, &rnum2, &code2);
-  if (nscan < 12) {*/
+  if (nscan < 12) {
     //mprintf("Warning: Malformed LINK record: %s", linebuffer_);
     mprintf("DEBUG:  a1=%c%c%c%c\n", a1[0], a1[1], a1[2], a1[3]);
     mprintf("DEBUG:  alt1=%c\n", alt1);
@@ -313,7 +313,8 @@ PDBfile::Link PDBfile::pdb_Link() {
     mprintf("DEBUG:  ch1=%c\n", ch1);
     mprintf("DEBUG:  rnum1=%i\n", rnum1);
     mprintf("DEBUG:  code1=%c\n", code1);
-  //}
+  }
+*/
   return Link( a1, alt1, r1, ch1, rnum1, code1,
                a2, alt2, r2, ch2, rnum2, code2 );
 }
