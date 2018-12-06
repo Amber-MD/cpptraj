@@ -7,17 +7,21 @@
 #endif
 
 void Parm_PDB::ReadHelp() {
-  mprintf("\tpqr     : Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
-          "\treadbox : Read unit cell information from CRYST1 record if present.\n"
-          "\tnoconect: Do not read CONECT records if present.\n");
+  mprintf("\tpqr      : Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
+          "\treadbox  : Read unit cell information from CRYST1 record if present.\n"
+          "\tconect   : Read CONECT records if present (default).\n"
+          "\tnoconect : Do not read CONECT records if present.\n");
 }
 
 int Parm_PDB::processReadArgs(ArgList& argIn) {
   readAsPQR_ = argIn.hasKey("pqr");
   readBox_ = argIn.hasKey("readbox");
-  readConect_ = !argIn.hasKey("noconect");
+  if (argIn.hasKey("conect"))
+    ConectMode_ = READ;
+  else if (argIn.hasKey("noconect"))
+    ConectMode_ = SKIP;
   return 0;
-} 
+}
 
 int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   typedef std::vector<PDBfile::Link> Larray;
@@ -31,10 +35,16 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   int barray[5];                // Hold CONECT atom and bonds
   char altLoc = ' ';            // For reading in altLoc.
   Frame Coords;
+  // Determine if CONECT records should be read.
+  bool readConect;
+  if (ConectMode_ == SKIP)
+    readConect = false;
+  else
+    readConect = true;
   if (infile.OpenRead(fname)) return 1;
-  if (readAsPQR_)   mprintf("\tReading as PQR file.\n");
-  if (readBox_)     mprintf("\tUnit cell info will be read from any CRYST1 record.\n");
-  if (!readConect_) mprintf("\tNot reading bond info from CONECT records.\n");
+  if (readAsPQR_)  mprintf("\tReading as PQR file.\n");
+  if (readBox_)    mprintf("\tUnit cell info will be read from any CRYST1 record.\n");
+  if (!readConect) mprintf("\tNot reading bond info from CONECT records.\n");
 # ifdef TIMER
   Timer time_total, time_atom;
   time_total.Start();
@@ -46,7 +56,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       // Box info from CRYST1 record.
       infile.pdb_Box( XYZ );
       TopIn.SetParmBox( XYZ );
-    } else if (infile.RecType() == PDBfile::CONECT && readConect_) {
+    } else if (infile.RecType() == PDBfile::CONECT && readConect) {
       // BOND - first element will be atom, next few are bonded atoms.
       // To avoid duplicates only add the bond if atom2 > atom1
       int nscan = infile.pdb_Bonds(barray);
@@ -56,7 +66,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
           if (barray[i] > barray[0])
             bonds.push_back( BondType(barray[0], barray[i], -1) );
       }
-    } else if (infile.RecType() == PDBfile::LINK && readConect_) {
+    } else if (infile.RecType() == PDBfile::LINK && readConect) {
       // LINK
       links.push_back( infile.pdb_Link() );
       PDBfile::Link const& lr = links.back();
@@ -95,6 +105,13 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     } else if ( !missingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
       missingResidues = true;
       mprintf("Warning: PDB file has MISSING RESIDUES section.\n");
+      if (ConectMode_ == UNSPECIFIED) {
+        mprintf("Warning: Not reading any connectivity (CONECT etc).\n"
+                "Warning: Use the 'conect' option to force reading of these records.\n");
+        readConect = false;
+        links.clear();
+        bonds.clear();
+      }
     }
   }
   // Sanity check
