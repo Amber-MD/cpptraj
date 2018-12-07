@@ -103,7 +103,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
   // Set title
   title_ = actionArgs.GetStringKey("title");
   if (title_.empty())
-    title_.assign("Cpptraj generated structure reservoir");
+    title_.assign("Cpptraj Generated structure reservoir");
 
   mprintf("    CREATERESERVOIR: '%s', energy data '%s'", filename_.full(), ene_->legend());
   if (bin_ != 0)

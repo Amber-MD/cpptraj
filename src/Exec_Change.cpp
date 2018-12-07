@@ -7,10 +7,11 @@ void Exec_Change::Help() const
   mprintf("\t[ {%s |\n"
           "\t   crdset <COORDS set>\n"
           "\t{ resname from <mask> to <value> |\n"
-          "\t{ chainid of <mask> to <value> |\n"
-          "\t  atomname from <mask> to <value> }\n"
+          "\t  chainid of <mask> to <value> |\n"
+          "\t  atomname from <mask> to <value> |\n"
+          "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] }\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
-          DataSetList::TopIdxArgs);
+          DataSetList::TopArgs);
 }
 
 // Exec_Change::Execute()
@@ -42,7 +43,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     }
     parm = cset->TopPtr();
   } else
-    parm = State.DSL().GetTopByIndex( argIn );
+    parm = State.DSL().GetTopology( argIn );
   if (parm == 0) return CpptrajState::ERR;
   int err = 0;
   switch (type) {
@@ -203,6 +204,15 @@ int Exec_Change::AddBond(Topology& topIn, ArgList& argIn) const {
     return 1;
   }
   if (err1 == 1 || err2 == 1) return 1;
+  // Get parameter if specified.
+  BondParmType bp;
+  bool hasBondParm = false;
+  double req = argIn.getKeyDouble("req", -1.0);
+  if (req > 0.0) {
+    hasBondParm = true;
+    double rk = argIn.getKeyDouble("rk", 0.0);
+    bp = BondParmType(rk, req);
+  }
   // Check if bond already exists
   for (Atom::bond_iterator ba = topIn[mask1[0]].bondbegin();
                            ba != topIn[mask1[0]].bondend(); ++ba)
@@ -216,26 +226,29 @@ int Exec_Change::AddBond(Topology& topIn, ArgList& argIn) const {
           topIn.TruncResAtomNameNum(mask1[0]).c_str(),
           topIn.TruncResAtomNameNum(mask2[0]).c_str());
   // See if parameters exist for this bond type
-  BondParmType bp;
-  int bpidx = -1;
-  if (!topIn.BondParm().empty()) {
-    AtomTypeHolder tgtType(2);
-    tgtType.AddName( topIn[mask1[0]].Type() );
-    tgtType.AddName( topIn[mask2[0]].Type() );
-    if (topIn[mask1[0]].Element() == Atom::HYDROGEN ||
-        topIn[mask2[0]].Element() == Atom::HYDROGEN)
-      bpidx = FindBondTypeIdx( topIn, topIn.BondsH(), tgtType );
-    else
-      bpidx = FindBondTypeIdx( topIn, topIn.Bonds(), tgtType );
-  }
-  if (bpidx == -1) {
-    bp = BondParmType(0.0, Atom::GetBondLength(topIn[mask1[0]].Element(),
-                                               topIn[mask2[0]].Element()));
-    mprintf("Warning: No bond current bond parameters exist for these atoms.\n"
-            "Warning: Using length %g.\n", bp.Req());
+  if (!hasBondParm) {
+    int bpidx = -1;
+    if (!topIn.BondParm().empty()) {
+      AtomTypeHolder tgtType(2);
+      tgtType.AddName( topIn[mask1[0]].Type() );
+      tgtType.AddName( topIn[mask2[0]].Type() );
+      if (topIn[mask1[0]].Element() == Atom::HYDROGEN ||
+          topIn[mask2[0]].Element() == Atom::HYDROGEN)
+        bpidx = FindBondTypeIdx( topIn, topIn.BondsH(), tgtType );
+      else
+        bpidx = FindBondTypeIdx( topIn, topIn.Bonds(), tgtType );
+    }
+    if (bpidx == -1) {
+      bp = BondParmType(0.0, Atom::GetBondLength(topIn[mask1[0]].Element(),
+                                                 topIn[mask2[0]].Element()));
+      mprintf("Warning: No bond current bond parameters exist for these atoms.\n"
+              "Warning: Using length %g.\n", bp.Req());
+    } else {
+      bp = topIn.BondParm()[bpidx];
+      mprintf("\tUsing existing bond parameters: length= %g, K= %g\n", bp.Req(), bp.Rk());
+    }
   } else {
-    bp = topIn.BondParm()[bpidx];
-    mprintf("\tUsing existing bond parameters: length= %g, K= %g\n", bp.Req(), bp.Rk());
+    mprintf("\tUsing specified bond parameters: length= %g, K= %g\n", bp.Req(), bp.Rk());
   }
   // Try to add the bond
   topIn.AddBond( mask1[0], mask2[0], bp );

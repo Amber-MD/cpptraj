@@ -76,4 +76,5 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Traj_PDBfile.cpp \
               Traj_Tinker.cpp \
               Traj_NcEnsemble.cpp \
+              Traj_XYZ.cpp \
               Vec3.cpp

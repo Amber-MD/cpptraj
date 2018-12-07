@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles ene.in ene.agr short.dat
+CleanFiles ene.in ene.agr short.dat tz2.dat
 
 INPUT="-i ene.in"
 
@@ -28,5 +28,18 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest short.dat.save short.dat
 fi
+
+UNITNAME='Test total energy calculation'
+CheckFor maxthreads 2
+if [ $? -eq 0 ] ; then
+  cat > ene.in <<EOF
+parm ../tz2.nhe.parm7
+trajin ../Test_VelFrc/short.crd mdvel ../Test_VelFrc/short.vel mdfrc ../Test_VelFrc/short.frc
+energy Tz2 out tz2.dat dt 0.002
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest tz2.dat.save tz2.dat
+fi
+
 EndTest
 exit 0

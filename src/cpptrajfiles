@@ -215,7 +215,6 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_string.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
-        DispatchObject.cpp \
         DistRoutines.cpp \
         Energy.cpp \
         EnsembleIn.cpp \
@@ -348,6 +347,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Traj_SDF.cpp \
         Traj_SQM.cpp \
         Traj_Tinker.cpp \
+        Traj_XYZ.cpp \
         TrajectoryFile.cpp \
         TrajectoryIO.cpp \
         TrajFrameCounter.cpp \
