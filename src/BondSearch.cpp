@@ -172,12 +172,16 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
       {
         Vec3 const& xyz0 = it0->ImageCoords();
         Atom::AtomicElementType a0Elt = top[it0->Idx()].Element();
+        // If hydrogen and already bonded, skip it.
+        if (a0Elt == Atom::HYDROGEN && top[it0->Idx()].Nbonds() > 0) continue;
         // Check bonds to all other atoms in thisCell
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
           Vec3 const& xyz1 = it1->ImageCoords();
           Atom::AtomicElementType a1Elt = top[it1->Idx()].Element();
+          // If hydrogen and already bonded, skip it.
+          if (a1Elt == Atom::HYDROGEN && top[it1->Idx()].Nbonds() > 0) continue;
           Vec3 dxyz = xyz1 - xyz0;
           double rij2 = dxyz.Magnitude2();
           double cutoff2 = Atom::GetBondLength(a0Elt, a1Elt) + offset;
@@ -204,6 +208,8 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
           {
             Vec3 const& xyz1 = it1->ImageCoords();
             Atom::AtomicElementType a1Elt = top[it1->Idx()].Element();
+            // If hydrogen and already bonded, skip it.
+            if (a1Elt == Atom::HYDROGEN && top[it1->Idx()].Nbonds() > 0) continue;
             Vec3 dxyz = xyz1 + tVec - xyz0;
             double rij2 = dxyz.Magnitude2();
             double cutoff2 = Atom::GetBondLength(a0Elt, a1Elt) + offset;
