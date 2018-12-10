@@ -149,7 +149,7 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
   static const double cutoff = 8.0;
   static const double skinnb = 0.1;
   PairList PL;
-  PL.InitPairList( cutoff, skinnb, 10 );
+  PL.InitPairList( cutoff, skinnb, debug );
   PL.SetupPairList( box );
   Matrix_3x3 ucell, recip;
   box.ToRecip( ucell, recip );
