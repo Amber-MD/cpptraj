@@ -233,3 +233,14 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
 # endif
   return 0;
 }
+
+// BondSearch()
+int BondSearch(Topology& top, BondSearchType type, Frame const& frameIn, double offset, int debug)
+{
+  int err = 0;
+  switch (type) {
+    case REGULAR  : err = BondSearch(top, frameIn, offset, debug); break;
+    case PAIRLIST : err = BondSearch_PL(top, frameIn, offset, debug); break;
+  }
+  return err;
+}

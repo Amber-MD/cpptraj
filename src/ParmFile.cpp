@@ -9,6 +9,7 @@
 #include "Parm_SDF.h"
 #include "Parm_Tinker.h"
 #include "Parm_Gromacs.h"
+#include "BondSearch.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as ParmFormatType
@@ -84,6 +85,13 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   ParmFormatType pfType;
   ParmIO* parmio = 0;
   Top.SetDebug( debugIn );
+  BondSearchType bstype = REGULAR;
+  std::string bsarg = argIn.GetStringKey("searchtype");
+  if (bsarg == "pairlist") {
+    mprintf("\tWill use pair list to search for bonds between atoms.\n");
+    mprintf("Warning: Searching for bonds via pair list is still experimental.\n");
+    bstype = PAIRLIST;
+  }
   double bondoffset = argIn.getKeyDouble("bondsearch", -1.0);
   bool molsearch = !argIn.hasKey("nomolsearch");
   if (!molsearch)
@@ -113,6 +121,7 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
           FileTypes::FormatDescription(PF_AllocArray, pfType) );
   parmio->SetDebug( debugIn );
   parmio->SetOffset( bondoffset );
+  parmio->SetBondSearchType( bstype );
   if (parmio->processReadArgs(argIn)) return 1;
   int err = parmio->ReadParm( parmName_.Full(), Top);
   // Perform setup common to all parm files.
