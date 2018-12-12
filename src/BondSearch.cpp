@@ -47,6 +47,26 @@ int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
 # ifdef TIMER
   Timer time_total, time_within, time_between, time_box;
   time_total.Start();
+  time_box.Start();
+  Box box = frameIn.BoxCrd();
+  if (box.Type() == Box::NOBOX)
+    box = CreateBoundingBox( frameIn );
+  box.PrintInfo();
+  // Create grid indices.
+  int nx = (int)(box.BoxX() / 3.0);
+  int ny = (int)(box.BoxY() / 3.0);
+  int nz = (int)(box.BoxZ() / 3.0);
+  typedef std::vector<int> Iarray;
+  typedef std::vector<Iarray> I2array;
+  I2array GridIdx(nx * ny * nz);
+  for (int x = 0; x < nx; x++) {
+    for (int y = 0; y < ny; y++) {
+      for (int z = 0; z < nz; z++) {
+        int idx = (x*(ny*nz))+(y*nz)+z;
+      } 
+    }
+  } 
+  time_box.Stop();
   time_within.Start();
 # endif
   // ----- STEP 1: Determine bonds within residues
@@ -126,6 +146,7 @@ int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
 # ifdef TIMER
   time_between.Stop();
   time_total.Stop();
+  time_box.WriteTiming(2, "Box creation", time_total.Total());
   time_within.WriteTiming(2, "Distances within residues", time_total.Total());
   time_between.WriteTiming(2, "Distances between residues", time_total.Total());
   time_total.WriteTiming(1, "Total for determining bonds via distances");
