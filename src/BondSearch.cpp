@@ -1,3 +1,4 @@
+#include <algorithm> // std::min,max
 #include "BondSearch.h"
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
@@ -5,6 +6,30 @@
 #ifdef TIMER
 # include "Timer.h"
 #endif
+
+Box CreateBoundingBox(Frame const& frameIn)
+{
+  Box box;
+  mprintf("\tCreating bounding box.\n");
+  Vec3 min( frameIn.XYZ(0) );
+  Vec3 max = min;
+  for (int at = 1; at != frameIn.Natom(); at++)
+  {
+    const double* xyz = frameIn.XYZ(at);
+    for (int i = 0; i < 3; i++) {
+      min[i] = std::min( min[i], xyz[i] );
+      max[i] = std::max( max[i], xyz[i] );
+    }
+  }
+  // Make the offset 4 angstroms in each direction
+  static const double boffset = 4.0;
+  max += boffset;
+  min -= boffset;
+  Vec3 len = max - min;
+  box.SetBetaLengths(90.0, len[0], len[1], len[2]);
+  return box;
+}
+
 
 /** Search for bonds between atoms in residues and atoms in adjacent residues
   * using distance-based criterion that depends on atomic elements.
@@ -20,7 +45,7 @@ int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
     return 1;
   }
 # ifdef TIMER
-  Timer time_total, time_within, time_between;
+  Timer time_total, time_within, time_between, time_box;
   time_total.Start();
   time_within.Start();
 # endif
@@ -124,25 +149,8 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
 # endif
   // Pair list setup requires a box. Will need to create one if not present.
   Box box = frameIn.BoxCrd();
-  if (box.Type() == Box::NOBOX) {
-    mprintf("\tCreating bounding box.\n");
-    Vec3 min( frameIn.XYZ(0) );
-    Vec3 max = min;
-    for (int at = 1; at != frameIn.Natom(); at++)
-    {
-      const double* xyz = frameIn.XYZ(at);
-      for (int i = 0; i < 3; i++) {
-        min[i] = std::min( min[i], xyz[i] );
-        max[i] = std::max( max[i], xyz[i] );
-      }
-    }
-    // Make the offset 4 angstroms in each direction
-    static const double boffset = 4.0;
-    max += boffset;
-    min -= boffset;
-    Vec3 len = max - min;
-    box.SetBetaLengths(90.0, len[0], len[1], len[2]);
-  }
+  if (box.Type() == Box::NOBOX)
+   box = CreateBoundingBox(frameIn); 
   box.PrintInfo();
 
   // Initialize and set up pair list. TODO determine cutoff from spacing, maybe 3x3x3 ang voxels?
