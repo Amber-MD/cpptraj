@@ -3,10 +3,12 @@
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
 #include "PairList.h"
+#include "StringRoutines.h" // ByteString
 #ifdef TIMER
 # include "Timer.h"
 #endif
 
+/** Create a bounding box around atoms in frameIn. */
 Box CreateBoundingBox(Frame const& frameIn)
 {
   Box box;
@@ -30,45 +32,8 @@ Box CreateBoundingBox(Frame const& frameIn)
   return box;
 }
 
-
-/** Search for bonds between atoms in residues and atoms in adjacent residues
-  * using distance-based criterion that depends on atomic elements.
-  * \param top Topology to add bonds to.
-  * \param frameIn Frame containing atomic coordinates.
-  * \param offset Offset to add when determining if a bond is present.
-  * \param debug If > 0 print extra info.
-  */
-int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
-  mprintf("\tDetermining bond info from distances.\n");
-  if (frameIn.empty()) {
-    mprinterr("Internal Error: No coordinates set; cannot search for bonds.\n");
-    return 1;
-  }
-# ifdef TIMER
-  Timer time_total, time_within, time_between, time_box;
-  time_total.Start();
-  time_box.Start();
-  Box box = frameIn.BoxCrd();
-  if (box.Type() == Box::NOBOX)
-    box = CreateBoundingBox( frameIn );
-  box.PrintInfo();
-  // Create grid indices.
-  int nx = (int)(box.BoxX() / 3.0);
-  int ny = (int)(box.BoxY() / 3.0);
-  int nz = (int)(box.BoxZ() / 3.0);
-  typedef std::vector<int> Iarray;
-  typedef std::vector<Iarray> I2array;
-  I2array GridIdx(nx * ny * nz);
-  for (int x = 0; x < nx; x++) {
-    for (int y = 0; y < ny; y++) {
-      for (int z = 0; z < nz; z++) {
-        int idx = (x*(ny*nz))+(y*nz)+z;
-      } 
-    }
-  } 
-  time_box.Stop();
-  time_within.Start();
-# endif
+/** Add bonds within residues to top using coords in frameIn. */
+void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
   // ----- STEP 1: Determine bonds within residues
   for (Topology::res_iterator res = top.ResStart(); res != top.ResEnd(); ++res)
   {
@@ -92,6 +57,109 @@ int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
       }
     }
   }
+}
+
+/** Search for bonds within residues, then bonds between residues using a Grid. */
+int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debug) {
+  mprintf("\tDetermining bond info from distances using Grid.\n");
+  if (frameIn.empty()) {
+    mprinterr("Internal Error: No coordinates set; cannot search for bonds.\n");
+    return 1;
+  }
+# ifdef TIMER
+  Timer time_total, time_within, time_between, time_box;
+  time_total.Start();
+  time_box.Start();
+# endif
+  Box box = frameIn.BoxCrd();
+  if (box.Type() == Box::NOBOX)
+    box = CreateBoundingBox( frameIn );
+  box.PrintInfo();
+  // Create grid indices.
+  static const double spacing = 3.0;
+  int nx = (int)(box.BoxX() / spacing);
+  int ny = (int)(box.BoxY() / spacing);
+  int nz = (int)(box.BoxZ() / spacing);
+  int nynz = ny*nz;
+  typedef std::vector<int> Iarray;
+  typedef std::vector<Iarray> I2array;
+  I2array GridIdx(nx * ny * nz);
+  unsigned int nentries = 0;
+  mprintf("\t%6s %6s %6s %6s\n", "X", "Y", "Z", "IDX");
+  for (int x = 0; x < nx; x++) {
+    int mx = std::max(0,  x-1);
+    int px = std::min(nx, x+2);
+    for (int y = 0; y < ny; y++) {
+      int my = std::max(0,  y-1);
+      int py = std::min(ny, y+2);
+      int ynz = y*nz;
+      for (int z = 0; z < nz; z++) {
+        int idx = (x*(nynz))+(ynz)+z;
+        int mz = std::max(0,  z-1);
+        int pz = std::min(nz, z+2);
+        mprintf("\t%6i %6i %6i %6i {", x, y, z, idx);
+        // Who are my neighbors? TODO make faster by only looking forwards
+        for (int xx = mx; xx < px; xx++) {
+          for (int yy = my; yy < py; yy++) {
+            int yynz = yy*nz;
+            for (int zz = mz; zz < pz; zz++) {
+              int ndx = (xx*(nynz))+(yynz)+zz;
+              GridIdx[idx].push_back( ndx );
+              nentries++;
+              mprintf(" %5i", ndx);
+            }
+          }
+        }
+        mprintf(" }\n");
+      } 
+    }
+  }
+  // Approximate the memory used by the grid
+  size_t totalgmem = (GridIdx.size()*sizeof(Iarray) + nentries*sizeof(int));
+  mprintf("\tGrid index memory: %s\n", ByteString(totalgmem, BYTE_DECIMAL).c_str());
+# ifdef TIMER
+  time_box.Stop();
+  time_within.Start();
+# endif
+  // ----- STEP 1: Determine bonds within residues
+  BondsWithinResidues(top, frameIn, offset);
+# ifdef TIMER
+  time_within.Stop();
+  time_between.Stop();
+# endif
+
+# ifdef TIMER
+  time_between.Stop();
+  time_total.Stop();
+  time_box.WriteTiming(2, "Box creation", time_total.Total());
+  time_within.WriteTiming(2, "Distances within residues", time_total.Total());
+  time_between.WriteTiming(2, "Distances between residues", time_total.Total());
+  time_total.WriteTiming(1, "Total for determining bonds via distances");
+# endif
+
+  return 0;
+}
+
+/** Search for bonds between atoms in residues and atoms in adjacent residues
+  * using distance-based criterion that depends on atomic elements.
+  * \param top Topology to add bonds to.
+  * \param frameIn Frame containing atomic coordinates.
+  * \param offset Offset to add when determining if a bond is present.
+  * \param debug If > 0 print extra info.
+  */
+int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
+  mprintf("\tDetermining bond info from distances.\n");
+  if (frameIn.empty()) {
+    mprinterr("Internal Error: No coordinates set; cannot search for bonds.\n");
+    return 1;
+  }
+# ifdef TIMER
+  Timer time_total, time_within, time_between;
+  time_total.Start();
+  time_within.Start();
+# endif
+  // ----- STEP 1: Determine bonds within residues
+  BondsWithinResidues( top, frameIn, offset );
 # ifdef TIMER
   time_within.Stop();
   time_between.Start();
@@ -146,7 +214,6 @@ int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
 # ifdef TIMER
   time_between.Stop();
   time_total.Stop();
-  time_box.WriteTiming(2, "Box creation", time_total.Total());
   time_within.WriteTiming(2, "Distances within residues", time_total.Total());
   time_between.WriteTiming(2, "Distances between residues", time_total.Total());
   time_total.WriteTiming(1, "Total for determining bonds via distances");
@@ -270,6 +337,7 @@ int BondSearch(Topology& top, BondSearchType type, Frame const& frameIn, double 
   switch (type) {
     case REGULAR  : err = BondSearch(top, frameIn, offset, debug); break;
     case PAIRLIST : err = BondSearch_PL(top, frameIn, offset, debug); break;
+    case GRID     : err = BondSearch_Grid(top, frameIn, offset, debug); break;
   }
   return err;
 }
