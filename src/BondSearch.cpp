@@ -342,7 +342,7 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
   box.PrintInfo();
 
   // Initialize and set up pair list. TODO determine cutoff from spacing, maybe 3x3x3 ang voxels?
-  static const double cutoff = 8.0;
+  static const double cutoff = 12.0;
   static const double skinnb = 0.1;
   PairList PL;
   PL.InitPairList( cutoff, skinnb, debug );
