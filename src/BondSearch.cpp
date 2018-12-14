@@ -32,6 +32,7 @@ Box CreateBoundingBox(Frame const& frameIn, Vec3& min)
   return box;
 }
 
+// CreateBoundingBox()
 Box CreateBoundingBox(Frame const& frameIn) {
   Vec3 min;
   return CreateBoundingBox(frameIn, min);
@@ -64,6 +65,7 @@ void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
   }
 }
 
+/** \return what seems to be a reasonable number of max bonds based on element. */
 int MaxBonds(Atom::AtomicElementType elt) {
   switch (elt) {
     case Atom::HYDROGEN   :
@@ -87,7 +89,7 @@ int MaxBonds(Atom::AtomicElementType elt) {
 
 /** Search for bonds within residues, then bonds between residues using a Grid. */
 int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debug) {
-  mprintf("\tDetermining bond info from distances using Grid.\n");
+  mprintf("\tDetermining bond info from distances using grid search.\n");
   if (frameIn.empty()) {
     mprinterr("Internal Error: No coordinates set; cannot search for bonds.\n");
     return 1;
@@ -191,7 +193,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
     }
   }
 */
-  // Loop over grid bins
+  // Loop over grid bins to look for bonds
   for (unsigned int ig = 0; ig != GridAtm.size(); ig++)
   {
     Iarray const& Bin1 = GridAtm[ig];
@@ -230,7 +232,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   time_box.WriteTiming(2, "Grid creation", time_total.Total());
   time_within.WriteTiming(2, "Distances within residues", time_total.Total());
   time_between.WriteTiming(2, "Distances between residues", time_total.Total());
-  time_total.WriteTiming(1, "Total for determining bonds via distances");
+  time_total.WriteTiming(1, "Total for determining bonds via grid search");
 # endif
 
   return 0;
@@ -243,7 +245,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   * \param offset Offset to add when determining if a bond is present.
   * \param debug If > 0 print extra info.
   */
-int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
+int BondSearch_ByResidue( Topology& top, Frame const& frameIn, double offset, int debug) {
   mprintf("\tDetermining bond info from distances.\n");
   if (frameIn.empty()) {
     mprinterr("Internal Error: No coordinates set; cannot search for bonds.\n");
@@ -320,7 +322,9 @@ int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
   return 0;
 }
 
-/** Bond search with pair list. */
+/** Bond search with pair list. Can potentially find bonds across periodic
+  * boundaries.
+  */
 int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug) {
   mprintf("\tDetermining bond info from distances using pair list.\n");
   if (frameIn.empty()) {
@@ -410,9 +414,9 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
               //mprintf("DEBUG: BETWEEN CELL BOND: %s - %s\n",
               //  top.TruncResAtomNameNum(it0->Idx()).c_str(),
               //  top.TruncResAtomNameNum(it1->Idx()).c_str());
-              //top.AddBond(it0->Idx(), it1->Idx());
+              top.AddBond(it0->Idx(), it1->Idx());
               // DEBUG - Add low, high
-              top.AddBond(std::min(it0->Idx(), it1->Idx()), std::max(it0->Idx(), it1->Idx()));
+              //top.AddBond(std::min(it0->Idx(), it1->Idx()), std::max(it0->Idx(), it1->Idx()));
             }
           } // END loop over atoms in neighbor cell
         } // END loop over neighbor cells
@@ -431,7 +435,7 @@ int BondSearch(Topology& top, BondSearchType type, Frame const& frameIn, double 
 {
   int err = 0;
   switch (type) {
-    case SEARCH_REGULAR  : err = BondSearch(top, frameIn, offset, debug); break;
+    case SEARCH_REGULAR  : err = BondSearch_ByResidue(top, frameIn, offset, debug); break;
     case SEARCH_PAIRLIST : err = BondSearch_PL(top, frameIn, offset, debug); break;
     case SEARCH_GRID     : err = BondSearch_Grid(top, frameIn, offset, debug); break;
   }
