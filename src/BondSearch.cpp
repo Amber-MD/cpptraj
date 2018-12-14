@@ -9,11 +9,11 @@
 #endif
 
 /** Create a bounding box around atoms in frameIn. */
-Box CreateBoundingBox(Frame const& frameIn)
+Box CreateBoundingBox(Frame const& frameIn, Vec3& min)
 {
   Box box;
   mprintf("\tCreating bounding box.\n");
-  Vec3 min( frameIn.XYZ(0) );
+  min = Vec3( frameIn.XYZ(0) );
   Vec3 max = min;
   for (int at = 1; at != frameIn.Natom(); at++)
   {
@@ -30,6 +30,11 @@ Box CreateBoundingBox(Frame const& frameIn)
   Vec3 len = max - min;
   box.SetBetaLengths(90.0, len[0], len[1], len[2]);
   return box;
+}
+
+Box CreateBoundingBox(Frame const& frameIn) {
+  Vec3 min;
+  return CreateBoundingBox(frameIn, min);
 }
 
 /** Add bonds within residues to top using coords in frameIn. */
@@ -71,9 +76,9 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   time_total.Start();
   time_box.Start();
 # endif
-  Box box = frameIn.BoxCrd();
-  if (box.Type() == Box::NOBOX)
-    box = CreateBoundingBox( frameIn );
+  //Box box = frameIn.BoxCrd();
+  Vec3 min(0.0);
+  Box box = CreateBoundingBox( frameIn, min );
   box.PrintInfo();
   // Create grid indices.
   static const double spacing = 3.0;
@@ -103,6 +108,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
           for (int yy = my; yy < py; yy++) {
             int yynz = yy*nz;
             for (int zz = mz; zz < pz; zz++) {
+              // NOTE: SELF NOT EXCLUDED HERE
               int ndx = (xx*(nynz))+(yynz)+zz;
               GridIdx[idx].push_back( ndx );
               nentries++;
@@ -121,13 +127,75 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   time_box.Stop();
   time_within.Start();
 # endif
-  // ----- STEP 1: Determine bonds within residues
+  // ----- STEP 1: Determine bonds within residues.
   BondsWithinResidues(top, frameIn, offset);
 # ifdef TIMER
   time_within.Stop();
-  time_between.Stop();
+  time_between.Start();
 # endif
+  // ----- STEP 2: Determine which atoms are eligible to form bonds
+  //               with other residues.
+  mprintf("DEBUG: Min= %8.3f %8.3f %8.3f\n", min[0], min[1], min[2]);
+  I2array GridAtm(nx * ny * nz);
+  for (int at = 0; at != top.Natom(); at++) {
+    Atom const& atm = top[at];
+    if (atm.Element() != Atom::HYDROGEN) {
+      // TODO determine sane number of bonds based on element
+      const double* XYZ = frameIn.XYZ( at );
+      int ix = (int)((XYZ[0]-min[0]) / spacing); // TODO wrap
+      int iy = (int)((XYZ[1]-min[1]) / spacing);
+      int iz = (int)((XYZ[2]-min[2]) / spacing);
+      if (ix < 0 || ix >= nx) mprintf("Warning: Atom %i X out of bounds\n", at+1);
+      if (iy < 0 || iy >= ny) mprintf("Warning: Atom %i Y out of bounds\n", at+1);
+      if (iz < 0 || iz >= nz) mprintf("Warning: Atom %i Z out of bounds\n", at+1);
+      int idx = (ix*(nynz))+(iy*nz)+iz;
+      //mprintf("GRID ATOM %6i {%8.3f %8.3f %8.3f} {%6i %6i %6i} %6i\n",
+      //        at+1, XYZ[0], XYZ[1], XYZ[2], ix, iy, iz, idx);
+      GridAtm[idx].push_back( at );
+    }
+  }
+  mprintf("DEBUG: Populated grid bins:\n");
+  for (I2array::const_iterator bin = GridAtm.begin(); bin != GridAtm.end(); ++bin)
+  {
+    if (!bin->empty()) {
+      mprintf("\t%6u", bin-GridAtm.begin());
+      for (Iarray::const_iterator atm = bin->begin(); atm != bin->end(); ++atm)
+        mprintf(" %6i", *atm);
+      mprintf("\n");
+    }
+  }
+  // Loop over grid bins
+  for (unsigned int ig = 0; ig != GridAtm.size(); ig++)
+  {
+    Iarray const& Bin1 = GridAtm[ig];
+    if (!Bin1.empty()) {
+      // Nbr contains indices for this and neighboring cells. 
+      Iarray const& Nbr = GridIdx[ig];
+      for (Iarray::const_iterator at1 = Bin1.begin(); at1 != Bin1.end(); ++at1)
+      {
+        Atom::AtomicElementType a1Elt = top[*at1].Element();
+        for (Iarray::const_iterator nidx = Nbr.begin(); nidx != Nbr.end(); ++nidx)
+        {
+          Iarray const& Bin2 = GridAtm[*nidx];
+          for (Iarray::const_iterator at2 = Bin2.begin(); at2 != Bin2.end(); ++at2)
+          {
+            if (*at1 != *at2) {
+              Atom::AtomicElementType a2Elt = top[*at2].Element();
+              double D2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2) );
+              double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
+              cutoff2 *= cutoff2;
+              if (D2 < cutoff2)
+                //top.AddBond(*at1, *at2);
+                // DEBUG - add low, high
+                top.AddBond(std::min(*at1, *at2), std::max(*at1, *at2));
+            }
+          } // END loop over Bin2 atoms
+        } // END inner loop over neighbor+self bins
+      } // END loop over Bin1 atoms
+    } // END if Bin1 not empty
+  } // END loop over all grid points
 
+      
 # ifdef TIMER
   time_between.Stop();
   time_total.Stop();
@@ -335,9 +403,9 @@ int BondSearch(Topology& top, BondSearchType type, Frame const& frameIn, double 
 {
   int err = 0;
   switch (type) {
-    case REGULAR  : err = BondSearch(top, frameIn, offset, debug); break;
-    case PAIRLIST : err = BondSearch_PL(top, frameIn, offset, debug); break;
-    case GRID     : err = BondSearch_Grid(top, frameIn, offset, debug); break;
+    case SEARCH_REGULAR  : err = BondSearch(top, frameIn, offset, debug); break;
+    case SEARCH_PAIRLIST : err = BondSearch_PL(top, frameIn, offset, debug); break;
+    case SEARCH_GRID     : err = BondSearch_Grid(top, frameIn, offset, debug); break;
   }
   return err;
 }
