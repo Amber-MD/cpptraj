@@ -203,12 +203,14 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
       for (Iarray::const_iterator at1 = Bin1.begin(); at1 != Bin1.end(); ++at1)
       {
         Atom::AtomicElementType a1Elt = top[*at1].Element();
+        int a1res = top[*at1].ResNum();
         for (Iarray::const_iterator nidx = Nbr.begin(); nidx != Nbr.end(); ++nidx)
         {
           Iarray const& Bin2 = GridAtm[*nidx];
           for (Iarray::const_iterator at2 = Bin2.begin(); at2 != Bin2.end(); ++at2)
           {
-            if (*at1 != *at2) { // TODO check that atoms are in different residues.
+            int a2res = top[*at2].ResNum();
+            if (a1res != a2res) { // *at1 != *at2
               Atom::AtomicElementType a2Elt = top[*at2].Element();
               double D2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2) );
               double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
