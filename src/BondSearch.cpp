@@ -64,6 +64,27 @@ void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
   }
 }
 
+int MaxBonds(Atom::AtomicElementType elt) {
+  switch (elt) {
+    case Atom::HYDROGEN   :
+    case Atom::HELIUM     :
+    case Atom::FLUORINE   :
+    case Atom::CHLORINE   :
+    case Atom::BROMINE    :
+    case Atom::LITHIUM    : return 1;
+    case Atom::OXYGEN     :
+    case Atom::BERYLLIUM  : return 2;
+    case Atom::BORON      : return 3;
+    case Atom::NITROGEN   :
+    case Atom::CARBON     : return 4;
+    case Atom::PHOSPHORUS : return 5;
+    case Atom::SULFUR     : return 6;
+    // Should be ok for all but the most strange structures
+    default               : return 8;
+  }
+  return 8;
+}
+
 /** Search for bonds within residues, then bonds between residues using a Grid. */
 int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debug) {
   mprintf("\tDetermining bond info from distances using Grid.\n");
@@ -139,10 +160,13 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   I2array GridAtm(nx * ny * nz);
   for (int at = 0; at != top.Natom(); at++) {
     Atom const& atm = top[at];
-    if (atm.Element() != Atom::HYDROGEN) {
-      // TODO determine sane number of bonds based on element
+    // Do not form between-residue bonds using hydrogen.
+    // Do not form more bonds than atom can actually hold.
+    if (atm.Element() != Atom::HYDROGEN &&
+        atm.Nbonds() < MaxBonds(atm.Element()))
+    {
       const double* XYZ = frameIn.XYZ( at );
-      int ix = (int)((XYZ[0]-min[0]) / spacing); // TODO wrap
+      int ix = (int)((XYZ[0]-min[0]) / spacing);
       int iy = (int)((XYZ[1]-min[1]) / spacing);
       int iz = (int)((XYZ[2]-min[2]) / spacing);
       if (ix < 0 || ix >= nx) mprintf("Warning: Atom %i X out of bounds\n", at+1);
@@ -179,11 +203,14 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
           Iarray const& Bin2 = GridAtm[*nidx];
           for (Iarray::const_iterator at2 = Bin2.begin(); at2 != Bin2.end(); ++at2)
           {
-            if (*at1 != *at2) {
+            if (*at1 != *at2) { // TODO check that atoms are in different residues.
               Atom::AtomicElementType a2Elt = top[*at2].Element();
               double D2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2) );
               double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
               cutoff2 *= cutoff2;
+              // TODO instead of creating the bond here put it as a potential
+              // bond between the two residues and evaluate how good the bond
+              // seems later.
               if (D2 < cutoff2)
                 //top.AddBond(*at1, *at2);
                 // DEBUG - add low, high
@@ -194,8 +221,6 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
       } // END loop over Bin1 atoms
     } // END if Bin1 not empty
   } // END loop over all grid points
-
-      
 # ifdef TIMER
   time_between.Stop();
   time_total.Stop();
