@@ -41,16 +41,22 @@ Box CreateBoundingBox(Frame const& frameIn) {
 /** Add bonds within residues to top using coords in frameIn. */
 void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
   // ----- STEP 1: Determine bonds within residues
+  std::vector<AtomExtra> const& Extra = top.Extra();
   for (Topology::res_iterator res = top.ResStart(); res != top.ResEnd(); ++res)
   {
     int stopatom = res->LastAtom();
     // Check for bonds between each atom in the residue.
     for (int atom1 = res->FirstAtom(); atom1 != stopatom; ++atom1) {
       Atom::AtomicElementType a1Elt = top[atom1].Element();
+      // Check for alternate location information
+      bool hasAltLoc = (!Extra.empty() && Extra[atom1].AtomAltLoc() != ' ');
       // If this is a hydrogen and it already has a bond, move on.
       if (a1Elt==Atom::HYDROGEN && top[atom1].Nbonds() > 0 )
         continue;
       for (int atom2 = atom1 + 1; atom2 != stopatom; ++atom2) {
+        // If alternate location info present, make sure the alternate
+        // location IDs match.
+        if (hasAltLoc && Extra[atom1].AtomAltLoc() != Extra[atom2].AtomAltLoc()) continue;
         Atom::AtomicElementType a2Elt = top[atom2].Element();
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
         double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
