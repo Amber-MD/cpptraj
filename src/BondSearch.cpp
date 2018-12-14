@@ -102,7 +102,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   Box box = CreateBoundingBox( frameIn, min );
   box.PrintInfo();
   // Create grid indices.
-  static const double spacing = 3.0;
+  static const double spacing = 6.0; // TODO make this a parameter?
   int nx = (int)(box.BoxX() / spacing);
   int ny = (int)(box.BoxY() / spacing);
   int nz = (int)(box.BoxZ() / spacing);
@@ -111,7 +111,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   typedef std::vector<Iarray> I2array;
   I2array GridIdx(nx * ny * nz);
   unsigned int nentries = 0;
-  mprintf("\t%6s %6s %6s %6s\n", "X", "Y", "Z", "IDX");
+  //mprintf("\t%6s %6s %6s %6s\n", "X", "Y", "Z", "IDX"); // DEBUG
   for (int x = 0; x < nx; x++) {
     int mx = std::max(0,  x-1);
     int px = std::min(nx, x+2);
@@ -123,7 +123,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
         int idx = (x*(nynz))+(ynz)+z;
         int mz = std::max(0,  z-1);
         int pz = std::min(nz, z+2);
-        mprintf("\t%6i %6i %6i %6i {", x, y, z, idx);
+        //mprintf("\t%6i %6i %6i %6i {", x, y, z, idx); // DEBUG
         // Who are my neighbors? TODO make faster by only looking forwards
         for (int xx = mx; xx < px; xx++) {
           for (int yy = my; yy < py; yy++) {
@@ -133,11 +133,11 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
               int ndx = (xx*(nynz))+(yynz)+zz;
               GridIdx[idx].push_back( ndx );
               nentries++;
-              mprintf(" %5i", ndx);
+              //mprintf(" %5i", ndx); // DEBUG
             }
           }
         }
-        mprintf(" }\n");
+        //mprintf(" }\n"); // DEBUG
       } 
     }
   }
@@ -156,7 +156,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
 # endif
   // ----- STEP 2: Determine which atoms are eligible to form bonds
   //               with other residues.
-  mprintf("DEBUG: Min= %8.3f %8.3f %8.3f\n", min[0], min[1], min[2]);
+  //mprintf("DEBUG: Min= %8.3f %8.3f %8.3f\n", min[0], min[1], min[2]); // DEBUG
   I2array GridAtm(nx * ny * nz);
   for (int at = 0; at != top.Natom(); at++) {
     Atom const& atm = top[at];
@@ -169,15 +169,17 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
       int ix = (int)((XYZ[0]-min[0]) / spacing);
       int iy = (int)((XYZ[1]-min[1]) / spacing);
       int iz = (int)((XYZ[2]-min[2]) / spacing);
-      if (ix < 0 || ix >= nx) mprintf("Warning: Atom %i X out of bounds\n", at+1);
-      if (iy < 0 || iy >= ny) mprintf("Warning: Atom %i Y out of bounds\n", at+1);
-      if (iz < 0 || iz >= nz) mprintf("Warning: Atom %i Z out of bounds\n", at+1);
+      // NOTE should never be out of bounds now
+      //if (ix < 0 || ix >= nx) mprintf("Warning: Atom %i X out of bounds\n", at+1);
+      //if (iy < 0 || iy >= ny) mprintf("Warning: Atom %i Y out of bounds\n", at+1);
+      //if (iz < 0 || iz >= nz) mprintf("Warning: Atom %i Z out of bounds\n", at+1);
       int idx = (ix*(nynz))+(iy*nz)+iz;
-      //mprintf("GRID ATOM %6i {%8.3f %8.3f %8.3f} {%6i %6i %6i} %6i\n",
+      //mprintf("GRID ATOM %6i {%8.3f %8.3f %8.3f} {%6i %6i %6i} %6i\n", // DEBUG
       //        at+1, XYZ[0], XYZ[1], XYZ[2], ix, iy, iz, idx);
       GridAtm[idx].push_back( at );
     }
   }
+/*
   mprintf("DEBUG: Populated grid bins:\n");
   for (I2array::const_iterator bin = GridAtm.begin(); bin != GridAtm.end(); ++bin)
   {
@@ -188,6 +190,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
       mprintf("\n");
     }
   }
+*/
   // Loop over grid bins
   for (unsigned int ig = 0; ig != GridAtm.size(); ig++)
   {
@@ -212,9 +215,9 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
               // bond between the two residues and evaluate how good the bond
               // seems later.
               if (D2 < cutoff2)
-                //top.AddBond(*at1, *at2);
+                top.AddBond(*at1, *at2);
                 // DEBUG - add low, high
-                top.AddBond(std::min(*at1, *at2), std::max(*at1, *at2));
+                //top.AddBond(std::min(*at1, *at2), std::max(*at1, *at2));
             }
           } // END loop over Bin2 atoms
         } // END inner loop over neighbor+self bins
@@ -224,7 +227,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
 # ifdef TIMER
   time_between.Stop();
   time_total.Stop();
-  time_box.WriteTiming(2, "Box creation", time_total.Total());
+  time_box.WriteTiming(2, "Grid creation", time_total.Total());
   time_within.WriteTiming(2, "Distances within residues", time_total.Total());
   time_between.WriteTiming(2, "Distances between residues", time_total.Total());
   time_total.WriteTiming(1, "Total for determining bonds via distances");
