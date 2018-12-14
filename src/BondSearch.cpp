@@ -438,6 +438,9 @@ int BondSearch(Topology& top, BondSearchType type, Frame const& frameIn, double 
     case SEARCH_REGULAR  : err = BondSearch_ByResidue(top, frameIn, offset, debug); break;
     case SEARCH_PAIRLIST : err = BondSearch_PL(top, frameIn, offset, debug); break;
     case SEARCH_GRID     : err = BondSearch_Grid(top, frameIn, offset, debug); break;
+    case SEARCH_NONE:
+      mprintf("Warning: Skipping bond search.\n");
+      break;
   }
   return err;
 }

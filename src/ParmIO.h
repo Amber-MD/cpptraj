@@ -8,7 +8,7 @@
 /// Abstract base class that all ParmIO objects inherit from
 class ParmIO : public BaseIOtype {
   public:
-    ParmIO() : debug_(0), Offset_(0.20) {}
+    ParmIO() : debug_(0), Offset_(0.20), searchType_(SEARCH_REGULAR) {}
     virtual ~ParmIO() { }
     virtual bool ID_ParmFormat(CpptrajFile&) = 0;
     virtual int processReadArgs(ArgList&) = 0; 
