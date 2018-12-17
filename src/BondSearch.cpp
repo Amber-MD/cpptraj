@@ -1,4 +1,5 @@
 #include <algorithm> // std::min,max
+#include <cmath> // ceil
 #include "BondSearch.h"
 #include "DistRoutines.h"
 #include "CpptrajStdio.h"
@@ -29,6 +30,8 @@ Box CreateBoundingBox(Frame const& frameIn, Vec3& min)
   min -= boffset;
   Vec3 len = max - min;
   box.SetBetaLengths(90.0, len[0], len[1], len[2]);
+  //mprintf("DEBUG: Min={%8.3f, %8.3f, %8.3f} Max={%8.3f, %8.3f, %8.3f}\n",
+  //        min[0], min[1], min[2], max[0], max[1], max[2]);
   return box;
 }
 
@@ -48,15 +51,13 @@ void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
     // Check for bonds between each atom in the residue.
     for (int atom1 = res->FirstAtom(); atom1 != stopatom; ++atom1) {
       Atom::AtomicElementType a1Elt = top[atom1].Element();
-      // Check for alternate location information
-      bool hasAltLoc = (!Extra.empty() && Extra[atom1].AtomAltLoc() != ' ');
       // If this is a hydrogen and it already has a bond, move on.
       if (a1Elt==Atom::HYDROGEN && top[atom1].Nbonds() > 0 )
         continue;
       for (int atom2 = atom1 + 1; atom2 != stopatom; ++atom2) {
         // If alternate location info present, make sure the alternate
         // location IDs match.
-        if (hasAltLoc && Extra[atom1].AtomAltLoc() != Extra[atom2].AtomAltLoc()) continue;
+        if (!Extra.empty() && Extra[atom1].AtomAltLoc() != Extra[atom2].AtomAltLoc()) continue;
         Atom::AtomicElementType a2Elt = top[atom2].Element();
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
         double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
@@ -111,9 +112,9 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   box.PrintInfo();
   // Create grid indices.
   static const double spacing = 6.0; // TODO make this a parameter?
-  int nx = (int)(box.BoxX() / spacing);
-  int ny = (int)(box.BoxY() / spacing);
-  int nz = (int)(box.BoxZ() / spacing);
+  int nx = (int)ceil(box.BoxX() / spacing);
+  int ny = (int)ceil(box.BoxY() / spacing);
+  int nz = (int)ceil(box.BoxZ() / spacing);
   int nynz = ny*nz;
   typedef std::vector<int> Iarray;
   typedef std::vector<Iarray> I2array;
@@ -178,7 +179,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
       int iy = (int)((XYZ[1]-min[1]) / spacing);
       int iz = (int)((XYZ[2]-min[2]) / spacing);
       // NOTE should never be out of bounds now
-      //if (ix < 0 || ix >= nx) mprintf("Warning: Atom %i X out of bounds\n", at+1);
+      //if (ix < 0 || ix >= nx) mprintf("Warning: Atom %i X out of bounds (%i)\n", at+1, ix);
       //if (iy < 0 || iy >= ny) mprintf("Warning: Atom %i Y out of bounds\n", at+1);
       //if (iz < 0 || iz >= nz) mprintf("Warning: Atom %i Z out of bounds\n", at+1);
       int idx = (ix*(nynz))+(iy*nz)+iz;
