@@ -687,10 +687,14 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
   return cut;
 }
 
+/** \return PARSE (PARameters for Solvation Energy) radius for atom based on the element.
+  * Citation: Sitkoff D, Sharp KA, Honig B. J. Phys. Chem. 1994;98(7):1978–1988.
+  */
 double Atom::ParseRadius() const {
   double radius = 0.0;
   switch (element_) {
     case HYDROGEN:   radius = 1.0; break;
+    // TODO: The CHn radius for PARSE is 2.0
     case CARBON:     radius = 1.7; break;
     case NITROGEN:   radius = 1.5; break;
     case OXYGEN:     radius = 1.4; break;
