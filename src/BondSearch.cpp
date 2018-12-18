@@ -402,9 +402,9 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
             //mprintf("DEBUG: IN CELL BOND: %s - %s\n",
             //  top.TruncResAtomNameNum(it0->Idx()).c_str(),
             //  top.TruncResAtomNameNum(it1->Idx()).c_str());
-            //top.AddBond(it0->Idx(), it1->Idx());
+            top.AddBond(it0->Idx(), it1->Idx());
             // DEBUG - Add low, high
-            top.AddBond(std::min(it0->Idx(), it1->Idx()), std::max(it0->Idx(), it1->Idx()));
+            //top.AddBond(std::min(it0->Idx(), it1->Idx()), std::max(it0->Idx(), it1->Idx()));
           }
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
