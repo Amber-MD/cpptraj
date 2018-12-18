@@ -581,6 +581,10 @@ void Atom::WarnBondLengthDefault(AtomicElementType atom1, AtomicElementType atom
   *       No. 31, Washington, DC, 1970; S.W. Benson, J. Chem. Educ., 42, 502 (1965).
   * Can be found on the web at:
   * - http://www.wiredchemist.com/chemistry/data/bond_energies_lengths.html
+  * - http://www.wiredchemist.com/chemistry/data/fluorine-iodine-compounds
+  * For bonds estimated from covalent radii:
+  * - https://www.webelements.com/periodicity/covalent_rad_2008
+  * -  Dalton Trans., 2008,0, 2832-2838, DOI:  10.1039/B801115J
   */
 // NOTE: Store cut^2 instead??
 double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
@@ -595,6 +599,7 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
       case OXYGEN    : cut=1.48; break;
       case PHOSPHORUS: cut=2.21; break;
       case SULFUR    : cut=2.05; break; // S-S gas-phase value; S=S is 1.49
+      case FLUORINE  : cut=1.42; break;
       default: WarnBondLengthDefault(atom1,atom2,cut);
     }
   } else {
@@ -626,6 +631,7 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
           case SULFUR    : cut=1.82; break;
           case CHLORINE  : cut=1.77; break;
           case BROMINE   : cut=1.94; break;
+          case MAGNESIUM : cut=2.14; break; // Est. from covalent radii C .75 + Mg 1.39
           default: WarnBondLengthDefault(e1,e2,cut);
         }
         break;
@@ -636,6 +642,8 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
           case PHOSPHORUS: cut=1.71; // Avg over all nX-pX from gaff.dat
           case SULFUR    : cut=1.68; break; // Postma & Vos, Acta Cryst. (1973) B29, 915
           case CHLORINE  : cut=1.75; break;
+          case BROMINE   : cut=1.85; break; // Est. from covalent radii N .71 + Br 1.14
+          case MAGNESIUM : cut=2.10; break; // Est. from covalent radii N .71 + Mg 1.39
           default: WarnBondLengthDefault(e1,e2,cut);
         }
         break;
@@ -644,6 +652,8 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
           case FLUORINE  : cut=1.42; break;
           case PHOSPHORUS: cut=1.63; break;
           case SULFUR    : cut=1.48; break;
+          case BROMINE   : cut=1.77; break; // Est. from covalent radii O .63 + Br 1.14
+          case MAGNESIUM : cut=2.02; break; // Est. from covalent radii O .63 + Mg 1.39
           default: WarnBondLengthDefault(e1,e2,cut);
         }
         break;
@@ -658,12 +668,14 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
         switch (e2) {
           case SULFUR  : cut=1.86; break;
           case CHLORINE: cut=2.03; break;
+          case BROMINE : cut=2.25; break; // Est. from covalent radii P 1.11 + Br 1.14
           default: WarnBondLengthDefault(e1,e2,cut);
         }
         break;
       case SULFUR: // Bonds to S
         switch (e2) {
-          case CHLORINE: cut=2.07; break;
+          case CHLORINE : cut=2.07; break;
+          case MAGNESIUM: cut=2.42; break; // Est. from covalent radii S 1.03 + Mg 1.39
           default: WarnBondLengthDefault(e1,e2,cut);
         }
         break;
