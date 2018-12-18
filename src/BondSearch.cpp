@@ -54,10 +54,17 @@ void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
       // If this is a hydrogen and it already has a bond, move on.
       if (a1Elt==Atom::HYDROGEN && top[atom1].Nbonds() > 0 )
         continue;
+      // Determine if atom1 has an alternate location
+      bool hasAltLoc1 = (!Extra.empty() && Extra[atom1].AtomAltLoc() != ' ');
+      // Loop over all other atoms in the residue
       for (int atom2 = atom1 + 1; atom2 != stopatom; ++atom2) {
-        // If alternate location info present, make sure the alternate
-        // location IDs match.
-        if (!Extra.empty() && Extra[atom1].AtomAltLoc() != Extra[atom2].AtomAltLoc()) continue;
+        // Determine if atom2 has an alternate location. Only matters if
+        // atom1 has an alternate location.
+        if (hasAltLoc1 && Extra[atom2].AtomAltLoc() != ' ') {
+          // If alternate location info present for both atoms, make sure the
+          // location IDs match.
+          if (Extra[atom1].AtomAltLoc() != Extra[atom2].AtomAltLoc()) continue;
+        }
         Atom::AtomicElementType a2Elt = top[atom2].Element();
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
         double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset;
