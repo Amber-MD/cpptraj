@@ -8,7 +8,7 @@
 // NOTE: Must correspond with PDB_RECTYPE
 const char* PDBfile::PDB_RECNAME[] = { 
   "ATOM  ", "HETATM", "CRYST1", "TER   ", "END   ", "ANISOU", "EndRec",
-  "CONECT", 0 };
+  "CONECT", "LINK  ", "REMARK", 0 };
 
 /// CONSTRUCTOR
 PDBfile::PDBfile() :
@@ -20,7 +20,22 @@ PDBfile::PDBfile() :
 {}
 
 // PDBfile::IsPDBkeyword()
+/** \return true if given string is a recognized PDB record keyword.
+  * PDB record keywords are typically 6 characters long (including spaces),
+  * so typically that is what CPPTRAJ looks for. However, in some cases
+  * for various reasons CPPTRAJ will scan fewer characters (e.g. TER,
+  * DBREF1, DBREF2, etc).
+  */
 bool PDBfile::IsPDBkeyword(std::string const& recname) {
+  // Coordinate Section
+  if (recname.compare(0,6,"MODEL ")==0) return true;
+  if (recname.compare(0,6,"ATOM  ")==0) return true;
+  if (recname.compare(0,6,"ANISOU")==0) return true;
+  if (recname.compare(0,3,"TER"   )==0) return true; // To recognize blank TER cards.
+  if (recname.compare(0,6,"HETATM")==0) return true;
+  if (recname.compare(0,6,"ENDMDL")==0) return true;
+  // Connectivity section
+  if (recname.compare(0,6,"CONECT")==0) return true;
   // Title Section
   if (recname.compare(0,6,"HEADER")==0) return true;
   if (recname.compare(0,6,"SOURCE")==0) return true;
@@ -43,12 +58,20 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   if (recname.compare(0,6,"SEQADV")==0) return true;
   if (recname.compare(0,6,"MODRES")==0) return true;
   if (recname.compare(0,6,"SEQRES")==0) return true;
-  // Coordinate Section
-  if (recname.compare(0,6,"MODEL ")==0) return true;
-  if (recname.compare(0,6,"ATOM  ")==0) return true;
-  if (recname.compare(0,6,"ANISOU")==0) return true;
-  if (recname.compare(0,3,"TER"   )==0) return true; // To recognize blank TER cards.
-  if (recname.compare(0,6,"HETATM")==0) return true;
+  // Heterogen Section
+  if (recname.compare(0,6,"HET   ")==0) return true;
+  if (recname.compare(0,6,"HETNAM")==0) return true;
+  if (recname.compare(0,6,"HETSYN")==0) return true;
+  if (recname.compare(0,6,"FORMUL")==0) return true;
+  // Secondary structure section
+  if (recname.compare(0,6,"HELIX ")==0) return true;
+  if (recname.compare(0,6,"SHEET ")==0) return true;
+  // Connectivity Annotation section
+  if (recname.compare(0,6,"SSBOND")==0) return true;
+  if (recname.compare(0,6,"LINK  ")==0) return true;
+  if (recname.compare(0,6,"CISPEP")==0) return true;
+  // Miscellaneuous Features section
+  if (recname.compare(0,6,"SITE  ")==0) return true;
   // Crystallographic and Coordinate Transformation Section 
   if (recname.compare(0,6,"CRYST1")==0) return true;
   if (recname.compare(0,5,"SCALE" )==0) return true; // SCALEn
@@ -87,12 +110,20 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
     recType_ = ATOM;
   else if (strncmp(linebuffer_,"CONECT",6)==0)
     recType_ = CONECT;
+  else if (strncmp(linebuffer_,"LINK  ",6)==0)
+    recType_ = LINK;
   else if (strncmp(linebuffer_,"CRYST1",6)==0)
     recType_ = CRYST1;
   else if (linebuffer_[0]=='T' && linebuffer_[1]=='E' && linebuffer_[2]=='R')
     recType_ = TER;
   else if (linebuffer_[0]=='E' && linebuffer_[1]=='N' && linebuffer_[2]=='D')
     recType_ = END;
+  else if (strncmp(linebuffer_,"REMARK",6)==0) {
+    // REMARK record.
+    if (linebuffer_[7] == '4' && linebuffer_[8] == '6' &&
+        linebuffer_[9] == '5' && linebuffer_[11] == 'M')
+      recType_ = MISSING_RES;
+  }
   return recType_;
 }
 
@@ -241,6 +272,64 @@ int PDBfile::pdb_Bonds(int* bnd) {
   //  mprintf(" %i", bnd[i]);
   //mprintf("\n");
   return Nscan;
+}
+
+/** \return PDB LINK record. */
+PDBfile::Link PDBfile::pdb_Link() {
+//         1         2         3         4         5         6         7         8
+//12345678901234567890123456789012345678901234567890123456789012345678901234567890
+//LINK         O   GLY A  49                NA    NA A6001     1555   1555  2.98  
+  // NOTE: ignoring symops and distance here.
+  // Make 56 chars the minimum length for an acceptable LINK record
+  // since this includes 2nd res sequence.
+  unsigned int lb_size = strlen(linebuffer_);
+  if (lb_size < 57) {
+    mprintf("Warning: Malformed LINK record: %s", linebuffer_);
+    return Link();
+  } else if (lb_size < 80) {
+    // For short records, make sure 2nd icode is not a newline
+    if (linebuffer_[56] == '\n' || linebuffer_[56] == '\r')
+      lb_size = 56;
+  }
+  char a1[4], a2[4], r1[3], r2[3], alt1, alt2, ch1, ch2, code1, code2;
+  int rnum1, rnum2;
+  // Site 1
+  std::copy(linebuffer_+12, linebuffer_+16, a1);
+  alt1 = linebuffer_[16];
+  std::copy(linebuffer_+17, linebuffer_+20, r1);
+  ch1 = linebuffer_[21];
+  code1 = linebuffer_[26];
+  // Site 2
+  std::copy(linebuffer_+42, linebuffer_+46, a2);
+  alt2 = linebuffer_[46];
+  std::copy(linebuffer_+47, linebuffer_+50, r2);
+  ch2 = linebuffer_[51];
+  if (lb_size > 56)
+    code2 = linebuffer_[56];
+  else
+    code2 = ' ';
+  // Residue numbers TODO restore nulled chars?
+  linebuffer_[26] = '\0';
+  rnum1 = atoi(linebuffer_+22);
+  linebuffer_[56] = '\0';
+  rnum2 = atoi(linebuffer_+52);
+/*
+  NOTE: sscanf may not reliable when width absolutely matters.
+  int nscan = sscanf(linebuffer_+12, "%4s%c%3s%c%4i%c%4s%c%3s%c%4i%c",
+                                  a1, &alt1, r1, &ch1, &rnum1, &code1,
+                                  a2, &alt2, r2, &ch2, &rnum2, &code2);
+  if (nscan < 12) {
+    //mprintf("Warning: Malformed LINK record: %s", linebuffer_);
+    mprintf("DEBUG:  a1=%c%c%c%c\n", a1[0], a1[1], a1[2], a1[3]);
+    mprintf("DEBUG:  alt1=%c\n", alt1);
+    mprintf("DEBUG:  r1=%c%c%c\n", r1[0], r1[1], r1[2]);
+    mprintf("DEBUG:  ch1=%c\n", ch1);
+    mprintf("DEBUG:  rnum1=%i\n", rnum1);
+    mprintf("DEBUG:  code1=%c\n", code1);
+  }
+*/
+  return Link( a1, alt1, r1, ch1, rnum1, code1,
+               a2, alt2, r2, ch2, rnum2, code2 );
 }
 
 // -----------------------------------------------------------------------------
@@ -498,6 +587,55 @@ PDBfile::SSBOND PDBfile::SSBOND::operator=(SSBOND const& rhs) {
     icode2_ = rhs.icode2_;
     std::copy(rhs.name1_, rhs.name1_+3, name1_);
     std::copy(rhs.name2_, rhs.name2_+3, name2_);
+  }
+  return *this;
+}
+// -----------------------------------------------------------------------------
+PDBfile::Link::Link() : rnum1_(-1), rnum2_(-1), altloc1_(' '), altloc2_(' '),
+                        chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
+{
+  std::fill(aname1_, aname1_+5, '\0');
+  std::fill(aname2_, aname2_+5, '\0');
+  std::fill(rname1_, rname1_+4, '\0');
+  std::fill(rname2_, rname2_+4, '\0');
+}
+
+PDBfile::Link::Link(const char* a1, char alt1, const char* r1, char ch1, int rnum1, char code1,
+                    const char* a2, char alt2, const char* r2, char ch2, int rnum2, char code2) :
+  rnum1_(rnum1), rnum2_(rnum2), altloc1_(alt1), altloc2_(alt2), chain1_(ch1), chain2_(ch2),
+  icode1_(code1), icode2_(code2)
+{
+  std::copy(a1, a1+4, aname1_); aname1_[4] = '\0'; 
+  std::copy(a2, a2+4, aname2_); aname2_[4] = '\0'; 
+  std::copy(r1, r1+3, rname1_); rname1_[3] = '\0'; 
+  std::copy(r2, r2+3, rname2_); rname2_[3] = '\0';
+} 
+
+PDBfile::Link::Link(Link const& rhs) : rnum1_(rhs.rnum1_), rnum2_(rhs.rnum2_),
+                                       altloc1_(rhs.altloc1_), altloc2_(rhs.altloc2_),
+                                       chain1_(rhs.chain1_), chain2_(rhs.chain2_),
+                                       icode1_(rhs.icode1_), icode2_(rhs.icode2_)
+{
+  std::copy(rhs.aname1_, rhs.aname1_+5, aname1_);
+  std::copy(rhs.aname2_, rhs.aname2_+5, aname2_);
+  std::copy(rhs.rname1_, rhs.rname1_+4, rname1_);
+  std::copy(rhs.rname2_, rhs.rname2_+4, rname2_);
+}
+
+PDBfile::Link PDBfile::Link::operator=(Link const& rhs) {
+  if (this != &rhs) {
+    rnum1_ = rhs.rnum1_;
+    rnum2_ = rhs.rnum2_;
+    altloc1_ = rhs.altloc1_;
+    altloc2_ = rhs.altloc2_;
+    chain1_ = rhs.chain1_;
+    chain2_ = rhs.chain2_;
+    icode1_ = rhs.icode1_;
+    icode2_ = rhs.icode2_;
+    std::copy(rhs.aname1_, rhs.aname1_+4, aname1_);
+    std::copy(rhs.aname2_, rhs.aname2_+4, aname2_);
+    std::copy(rhs.rname1_, rhs.rname1_+3, rname1_);
+    std::copy(rhs.rname2_, rhs.rname2_+3, rname2_);
   }
   return *this;
 }

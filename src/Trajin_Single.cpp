@@ -53,10 +53,8 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   // Detect file format
   TrajectoryFile::TrajFormatType tformat;
-  if ( (trajio_ = TrajectoryFile::DetectFormat( Traj().Filename(), tformat )) == 0 ) {
-    mprinterr("Error: Could not determine trajectory %s format.\n", Traj().Filename().full());
-    return 1;
-  }
+  trajio_ = TrajectoryFile::DetectFormat( Traj().Filename(), argIn.GetStringKey("as"), tformat );
+  if (trajio_ == 0) return 1;
   trajio_->SetDebug( debug_ );
   mprintf("\tReading '%s' as %s\n", Traj().Filename().full(), TrajectoryFile::FormatString(tformat));
   // Process format-specific read args

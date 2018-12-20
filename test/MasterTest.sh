@@ -698,6 +698,11 @@ Required() {
 CheckDefines() {
   CPPTRAJ_XDRFILE='yes'
   CPPTRAJ_MATHLIB='yes'
+  CPPTRAJDEFINES=`$CPPTRAJ --defines`
+  if [ $? -ne 0 ] ; then
+    echo "Error: Could not execute '$CPPTRAJ --defines'" > /dev/stderr
+    exit 1
+  fi
   for DEFINE in `$CPPTRAJ --defines` ; do
     case "$DEFINE" in
       '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;

@@ -118,7 +118,7 @@ int Traj_Tinker::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   // Set Title
   if (Title().empty())
-    SetTitle("Cpptraj generated mol2 file.");
+    SetTitle("Cpptraj Generated mol2 file.");
   file_.SetMol2Title( Title() );
   // Set up number of bonds
   file_.SetMol2Nbonds( mol2Top_->Bonds().size() + mol2Top_->BondsH().size() );

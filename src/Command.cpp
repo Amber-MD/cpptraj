@@ -476,13 +476,31 @@ Cmd const& Command::SearchToken(ArgList& argIn) {
   return EMPTY_;
 }
 
+/** 0 are hidden categories (i.e. should not appear in help). */
+static const char* ObjKeyword(DispatchObject::Otype typeIn) {
+  switch (typeIn) {
+    case DispatchObject::NONE: return 0;
+    case DispatchObject::PARM: return "Topology";
+    case DispatchObject::TRAJ: return "Trajectory";
+    case DispatchObject::COORDS: return "Coords";
+    case DispatchObject::ACTION: return "Action";
+    case DispatchObject::ANALYSIS: return "Analysis";
+    case DispatchObject::GENERAL: return "General";
+    case DispatchObject::SYSTEM: return "System";
+    case DispatchObject::CONTROL: return "Control";
+    case DispatchObject::HIDDEN: return 0;
+    case DispatchObject::DEPRECATED: return 0;
+  }
+  return 0;
+}
+
 /** First list the command category, then the commands for that category
   * in alphabetical order. Should not be called with NONE, HIDDEN, or
   * DEPRECATED.
   */
 void Command::ListCommandsForType(DispatchObject::Otype typeIn) {
   std::vector< std::string > command_keys;
-  mprintf("%s Commands:\n", DispatchObject::ObjKeyword(typeIn));
+  mprintf("%s Commands:\n", ObjKeyword(typeIn));
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
     if (cmd->Obj().Type() == typeIn)
