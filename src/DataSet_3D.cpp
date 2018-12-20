@@ -1,3 +1,4 @@
+#include <cmath> // ceil
 #include "DataSet_3D.h"
 #include "CpptrajStdio.h"
 
@@ -69,9 +70,9 @@ int DataSet_3D::Allocate_N_C_D(size_t nx, size_t ny, size_t nz,
 int DataSet_3D::Allocate_X_C_D(Vec3 const& sizes, Vec3 const& center, Vec3 const& dxyz)
 {
   // Calculate bin counts
-  size_t nx = (size_t)(sizes[0] / dxyz[0]);
-  size_t ny = (size_t)(sizes[1] / dxyz[1]);
-  size_t nz = (size_t)(sizes[2] / dxyz[2]);
+  size_t nx = (size_t)ceil(sizes[0] / dxyz[0]);
+  size_t ny = (size_t)ceil(sizes[1] / dxyz[1]);
+  size_t nz = (size_t)ceil(sizes[2] / dxyz[2]);
   return Allocate_N_C_D( nx, ny, nz, center, dxyz );
 }
 

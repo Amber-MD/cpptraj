@@ -1,5 +1,6 @@
 #include "ParmFile.h"
 #include "CpptrajStdio.h"
+#include "BondSearch.h"
 // All ParmIO classes go here
 #include "Parm_Amber.h"
 #include "Parm_PDB.h"
@@ -87,6 +88,25 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   ParmFormatType pfType;
   ParmIO* parmio = 0;
   Top.SetDebug( debugIn );
+  BondSearchType bstype;
+  if (argIn.hasKey("nobondsearch"))
+    bstype = SEARCH_NONE;
+  else {
+    bstype = SEARCH_REGULAR;
+    std::string bsarg = argIn.GetStringKey("searchtype");
+    if (!bsarg.empty()) {
+      if (bsarg == "pairlist") {
+        mprintf("\tWill use pair list to search for bonds between atoms.\n");
+        mprintf("Warning: Searching for bonds via pair list is still experimental.\n");
+        bstype = SEARCH_PAIRLIST;
+      } else if (bsarg == "grid") {
+        mprintf("\tWill use grid to search for bonds between residues.\n");
+        mprintf("Warning: Searching for bonds via grid is still experimental.\n");
+        bstype = SEARCH_GRID;
+      } else
+        mprintf("Warning: Unrecognized search type '%s'. Ignoring.\n", bsarg.c_str());
+    }
+  }
   double bondoffset = argIn.getKeyDouble("bondsearch", -1.0);
   bool molsearch = !argIn.hasKey("nomolsearch");
   if (!molsearch)
@@ -116,6 +136,7 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
           FileTypes::FormatDescription(PF_AllocArray, pfType) );
   parmio->SetDebug( debugIn );
   parmio->SetOffset( bondoffset );
+  parmio->SetBondSearchType( bstype );
   if (parmio->processReadArgs(argIn)) return 1;
   int err = parmio->ReadParm( parmName_.Full(), Top);
   // Perform setup common to all parm files.

@@ -933,7 +933,7 @@ int Topology::DetermineMolecules() {
       molecule->SetFirst( atomNum );
       lastMol = atom->MolNum();
     } else if ( atom->MolNum()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n"
+      mprinterr("Error: Atom %u was assigned a lower molecule # (%i) than previous atom (%i).\n"
                 "Error:   This can happen if bond information is incorrect or missing, or if the\n"
                 "Error:   atom numbering in molecules is not sequential. Try one of the\n"
                 "Error:   following:\n"
@@ -943,7 +943,8 @@ int Topology::DetermineMolecules() {
                 "Error: - Use the 'fixatomorder' command to reorder the topology and any\n"
                 "Error:   associated coordinates.\n"
                 "Error: - Use the 'setMolecules' command in parmed to reorder only the\n"
-                "Error:   topology.\n", atom - atoms_.begin() + 1);
+                "Error:   topology.\n", atom - atoms_.begin() + 1,
+                atom->MolNum()+1, lastMol+1);
       ClearMolecules();
       return 1;
     }

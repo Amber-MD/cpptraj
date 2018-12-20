@@ -33,6 +33,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               NetcdfFile.cpp \
               OutputTrajCommon.cpp \
               ParameterSet.cpp \
+              PairList.cpp \
               ParmFile.cpp \
               Parm_Amber.cpp \
               Parm_CIF.cpp \
