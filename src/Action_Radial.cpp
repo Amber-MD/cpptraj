@@ -204,40 +204,40 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
   mprintf("\n");
   if (outfile != 0)
-    mprintf("            Output to %s.\n", outfile->DataFilename().full());
+    mprintf("\tOutput to %s.\n", outfile->DataFilename().full());
   if (intrdf_ != 0)
-    mprintf("            Integral of mask2 atoms will be output to %s\n",
+    mprintf("\tIntegral of mask2 atoms will be output to %s\n",
             intrdfFile->DataFilename().full());
   if (rawrdf_ != 0)
-    mprintf("            Raw RDF bin values will be output to %s\n",
+    mprintf("\tRaw RDF bin values will be output to %s\n",
             rawrdfFile->DataFilename().full());
   if (rmode_ == BYSITE) {
     if (siteMode1_ == BYRES)
-      mprintf("\tUsing center of residues selected by '%s'\n", Mask1_.MaskString());
+      mprintf("\tUsing center of residues selected by mask1 '%s'\n", Mask1_.MaskString());
     else if (siteMode1_ == BYMOL)
-      mprintf("\tUsing center of molecules selected by '%s'\n", Mask1_.MaskString());
+      mprintf("\tUsing center of molecules selected by mask1 '%s'\n", Mask1_.MaskString());
     if (siteMode2_ == BYRES)
-      mprintf("\tUsing center of residues selected by '%s'\n", Mask2_.MaskString());
+      mprintf("\tUsing center of residues selected by mask2 '%s'\n", Mask2_.MaskString());
     else if (siteMode2_ == BYMOL)
-      mprintf("\tUsing center of molecules selected by '%s'\n", Mask2_.MaskString());
+      mprintf("\tUsing center of molecules selected by mask2 '%s'\n", Mask2_.MaskString());
   } else {
     if (rmode_==CENTER1)
-      mprintf("            Using center of atoms in mask1.\n");
+      mprintf("\tUsing center of all atoms selected by mask1.\n");
     else if (rmode_==CENTER2)
-      mprintf("            Using center of atoms in mask2.\n");
+      mprintf("\tUsing center of all atoms selected by mask2.\n");
     else if (rmode_==NO_INTRAMOL)
       mprintf("\tIgnoring intramolecular distances.\n");
   }
-  mprintf("            Histogram max %f, spacing %f, bins %i.\n",maximum,
+  mprintf("\tHistogram max %f, spacing %f, bins %i.\n",maximum,
           spacing_,numBins_);
   if (useVolume_)
-    mprintf("            Normalizing based on cell volume.\n");
+    mprintf("\tNormalizing based on cell volume.\n");
   else
-    mprintf("            Normalizing using particle density of %f molecules/Ang^3.\n",density_);
+    mprintf("\tNormalizing using particle density of %f molecules/Ang^3.\n",density_);
   if (!image_.UseImage()) 
-    mprintf("            Imaging disabled.\n");
+    mprintf("\tImaging disabled.\n");
   if (numthreads_ > 1)
-    mprintf("            Parallelizing RDF calculation with %i threads.\n",numthreads_);
+    mprintf("\tParallelizing RDF calculation with %i threads.\n",numthreads_);
 
   return Action::OK;
 }
@@ -401,8 +401,8 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
 
   // Print mask and imaging info for this parm
   if (rmode_ == BYSITE) {
-    mprintf("    RADIAL: %zu sites selected by Mask1, %zu sites selected by Mask2\n",
-            Sites1_.size(), Sites2_.size());
+    mprintf("    RADIAL: %zu sites selected by Mask1 (%i atoms), %zu sites selected by Mask2 (%i atoms)\n",
+            Sites1_.size(), Mask1_.Nselected(), Sites2_.size(), Mask2_.Nselected());
   } else {
     mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",
             Mask1_.Nselected(), Mask2_.Nselected());
