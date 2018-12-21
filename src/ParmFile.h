@@ -12,8 +12,8 @@ class ParmFile {
   public :
     enum ParmFormatType { AMBERPARM=0, PDBFILE, MOL2FILE, CHARMMPSF, CIFFILE,
                           GMXTOP, SDFFILE, TINKER, UNKNOWN_PARM };
-    static void ReadOptions() { FileTypes::ReadOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM); }
-    static void WriteOptions(){ FileTypes::WriteOptions(PF_WriteKeyArray,PF_AllocArray,UNKNOWN_PARM);}
+    static void ReadOptions(std::string const& fkey) { FileTypes::Options(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM,fkey,FileTypes::READOPT); }
+    static void WriteOptions(std::string const& fkey){ FileTypes::Options(PF_WriteKeyArray,PF_AllocArray,UNKNOWN_PARM,fkey,FileTypes::WRITEOPT);}
     ParmFile() {}
     int ReadTopology(Topology&, FileName const&, ArgList const&,int);
     int ReadTopology(Topology& t, FileName const& n, int d) {
@@ -25,8 +25,12 @@ class ParmFile {
       return WriteTopology(t, n, ArgList(), f, d);
     }
     FileName const& ParmFilename() { return parmName_; }
+    /// \return ParmFormatType of given file or UNKNOWN_PARM.
+    static ParmFormatType DetectFormat(FileName const&);
   private :
-    ParmIO* DetectFormat(FileName const&, ParmFormatType&); 
+    /// \return Allocated ParmIO if given file matches known type, 0 otherwise.
+    static ParmIO* DetectFormat(FileName const&, ParmFormatType&);
+
     FileName parmName_; ///< Topology input/output file name. 
 };
 #endif

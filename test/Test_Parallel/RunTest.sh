@@ -30,7 +30,7 @@ EOF
 
 Test2() {
   UNITNAME='Parallel test with trajectory offset'
-  CheckFor pnetcdf
+  CheckFor pnetcdf maxthreads 22
   if [ $? -eq 0 ] ; then
     cat > para.in <<EOF
 noprogress

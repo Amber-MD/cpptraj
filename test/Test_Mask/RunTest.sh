@@ -6,7 +6,7 @@
 CleanFiles mask.in mask.out mask.pdb.1 mask.mol2.1 M.dat
 
 TESTNAME='Mask command tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 
 INPUT="-i mask.in"
 # Test 1

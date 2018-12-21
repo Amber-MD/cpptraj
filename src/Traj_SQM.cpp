@@ -33,7 +33,7 @@ int Traj_SQM::setupTrajout(FileName const& fname, Topology* trajParm,
   // Set up title
   std::string outTitle = Title();
   if (outTitle.empty()) {
-    outTitle.assign("Cpptraj generated SQM input");
+    outTitle.assign("Cpptraj Generated SQM input");
   } else {
     if ( outTitle.size() > 80) {
       mprintf("Warning: Amber SQM title for '%s' too long: truncating.\n[%s]\n",

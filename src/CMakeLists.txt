@@ -120,6 +120,44 @@ install_libraries(libcpptraj)
 #tell others where to find the cpptraj includes
 target_include_directories(libcpptraj INTERFACE .)
 
+#------------------------------------------------------------------------------------------
+# DLL exports/imports
+
+if(SHARED)
+	# CMake automatically sets up the libcpptraj_EXPORTS definition for libcpptraj.
+	# We just have to apply it to the common obj as well.
+	target_compile_definitions(cpptraj_common_obj PRIVATE libcpptraj_EXPORTS)
+
+	# now set up the definition for other people to use
+	target_compile_definitions(libcpptraj INTERFACE CPPTRAJ_USE_DLL)
+endif()
+
+#------------------------------------------------------------------------------------------
+# Header installation
+
+if(INSTALL_HEADERS)
+	# grab all .h files from the main directory.
+	file(GLOB CPPTRAJ_HEADERS "*.h")
+	list(REMOVE_ITEM CPPTRAJ_HEADERS "SymbolExporting.h")
+	
+	# also grab xdrfile headers since some of them are used by cpptraj headers
+	file(GLOB XDRFILE_HEADERS "xdrfile/*.h")
+
+	install(FILES ${CPPTRAJ_HEADERS} DESTINATION ${INCDIR}/cpptraj)
+	install(FILES ${XDRFILE_HEADERS} DESTINATION ${INCDIR}/cpptraj/xdrfile)
+	
+	# configure SymbolExporting.h specially for the current install type
+	if(SHARED)
+		set(CPPTRAJ_IS_SHARED 1)
+	else()
+		set(CPPTRAJ_IS_SHARED 0)
+	endif()
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/SymbolExporting-installversion.h.in ${CMAKE_CURRENT_BINARY_DIR}/SymbolExporting-installversion.h @ONLY)
+	
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/SymbolExporting-installversion.h DESTINATION ${INCDIR}/cpptraj RENAME SymbolExporting.h)
+	
+endif()
+
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Deal with external libraries
 

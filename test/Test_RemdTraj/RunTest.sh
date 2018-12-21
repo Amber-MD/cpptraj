@@ -6,6 +6,9 @@
 CleanFiles remd.in d1.offset.dat d1.crd.dat d1.nc.dat temp.crd.* \
            temp0.crd.* d1.ensemble.dat d1.ensemble.dat.? all.dat 
 
+TESTNAME='Replica exchange trajectory tests'
+Requires maxthreads 10
+
 INPUT="-i remd.in"
 
 # Test 0

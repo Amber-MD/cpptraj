@@ -155,7 +155,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   if (calculateLifetimes_)
     mprintf("\tThe lifetime of each crd at each replica will be calculated.\n");
   if (acceptout_ != 0)
-    mprintf("\tOverall exchange acceptance % will be written to %s\n",
+    mprintf("\tOverall exchange acceptance %% will be written to %s\n",
             acceptout_->Filename().full());
   if (!eSets_.empty()) {
     mprintf("\tPotential energies from replica log will be saved to sets named '%s[E]'\n",

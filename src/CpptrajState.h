@@ -85,7 +85,7 @@ class CpptrajState {
     int RunNormal();
     int RunEnsemble();
 #   ifdef MPI
-    void DivideFramesAmongThreads(int&, int&, int&, int, Parallel::Comm const&) const;
+    void DivideFramesAmongProcesses(int&, int&, int&, int, Parallel::Comm const&) const;
     int PreloadCheck(int, int, int&, int&) const;
     int RunParallel();
     int RunParaEnsemble();

@@ -6,7 +6,6 @@
 ClusterNode::ClusterNode() :
   eccentricity_(0),
   num_(0),
-  repFrame_(0),
   centroid_(0)
 {}
 
@@ -22,7 +21,7 @@ ClusterNode::~ClusterNode() {
 ClusterNode::ClusterNode(ClusterDist* Cdist, ClusterDist::Cframes const& frameListIn, int numIn) :
   eccentricity_(0.0),
   num_(numIn),
-  repFrame_(frameListIn.front()),
+  bestReps_(1, RepPair(frameListIn.front(), 0.0)),
   frameList_(frameListIn),
   centroid_(Cdist->NewCentroid(frameList_))
 {}
@@ -31,7 +30,7 @@ ClusterNode::ClusterNode(ClusterDist* Cdist, ClusterDist::Cframes const& frameLi
 ClusterNode::ClusterNode(const ClusterNode& rhs) :
   eccentricity_( rhs.eccentricity_ ),
   num_( rhs.num_ ),
-  repFrame_( rhs.repFrame_ ),
+  bestReps_( rhs.bestReps_ ),
   frameList_( rhs.frameList_ ),
   centroid_(0)
 {
@@ -44,7 +43,7 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   if (&rhs == this) return *this;
   eccentricity_ = rhs.eccentricity_;
   num_ = rhs.num_;
-  repFrame_ = rhs.repFrame_;
+  bestReps_ = rhs.bestReps_;
   frameList_ = rhs.frameList_;
   if (centroid_ != 0) delete centroid_;
   if (rhs.centroid_ != 0)
@@ -59,6 +58,7 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   * Should NOT be used if cluster contains sieved frames.
   * \return best representative frame number, or -1 on error.
   */
+/*
 int ClusterNode::SetBestRep_CumulativeDist(DataSet_Cmatrix const& FrameDistancesIn) {
   double mindist = DBL_MAX;
   int minframe = -1;
@@ -79,7 +79,7 @@ int ClusterNode::SetBestRep_CumulativeDist(DataSet_Cmatrix const& FrameDistances
     return -1;
   repFrame_ = minframe;
   return minframe;
-}
+}*/
 
 /** Calculate the eccentricity of this cluster (i.e. the largest distance
   * between any two points in the cluster).

@@ -270,7 +270,9 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
   if ( residues_.empty() || 
        residues_.back().OriginalResNum() != resIn.OriginalResNum() ||
        residues_.back().SegID() != resIn.SegID() ||
-       residues_.back().Icode() != resIn.Icode() )
+       residues_.back().Icode() != resIn.Icode() ||
+       ( residues_.back().OriginalResNum() == resIn.OriginalResNum() &&
+         residues_.back().Name() != resIn.Name() ) )
   {
     // Last atom of old residue is == current # atoms.
     if (!residues_.empty())
@@ -894,7 +896,7 @@ int Topology::DetermineMolecules() {
       molecule->SetFirst( atomNum );
       lastMol = atom->MolNum();
     } else if ( atom->MolNum()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n"
+      mprinterr("Error: Atom %u was assigned a lower molecule # (%i) than previous atom (%i).\n"
                 "Error:   This can happen if bond information is incorrect or missing, or if the\n"
                 "Error:   atom numbering in molecules is not sequential. Try one of the\n"
                 "Error:   following:\n"
@@ -904,7 +906,8 @@ int Topology::DetermineMolecules() {
                 "Error: - Use the 'fixatomorder' command to reorder the topology and any\n"
                 "Error:   associated coordinates.\n"
                 "Error: - Use the 'setMolecules' command in parmed to reorder only the\n"
-                "Error:   topology.\n", atom - atoms_.begin() + 1);
+                "Error:   topology.\n", atom - atoms_.begin() + 1,
+                atom->MolNum()+1, lastMol+1);
       ClearMolecules();
       return 1;
     }
@@ -1064,6 +1067,34 @@ int Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
 int Topology::SetupCharMask(CharMask &mask, Frame const& frame) const {
   if (frame.empty()) return mask.SetupMask(atoms_, residues_, molecules_, 0);
   return mask.SetupMask(atoms_, residues_, molecules_, frame.xAddress());
+}
+
+//  Topology::ResnumsSelectedBy()
+std::vector<int> Topology::ResnumsSelectedBy(AtomMask const& mask) const {
+  std::vector<int> resnums;
+  int res = -1;
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+    if (atoms_[*at].ResNum() > res) {
+      res = atoms_[*at].ResNum();
+      resnums.push_back( res );
+    }
+  return resnums;
+}
+
+// Topology::MolnumsSelectedBy()
+std::vector<int> Topology::MolnumsSelectedBy(AtomMask const& mask) const {
+  std::vector<int> molnums;
+  if (molecules_.empty()) {
+    mprintf("Warning: Topology has no molecule information.\n");
+  } else {
+    int mol = -1;
+    for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+      if (atoms_[*at].MolNum() > mol) {
+        mol = atoms_[*at].MolNum();
+        molnums.push_back( mol );
+      }
+  }
+  return molnums;
 }
 
 // -----------------------------------------------------------------------------

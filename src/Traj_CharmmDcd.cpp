@@ -605,7 +605,7 @@ int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
     dcdframes_ = 0;
     // Set up title
     if (Title().empty())
-      SetTitle("Cpptraj generated dcd file.");
+      SetTitle("Cpptraj Generated dcd file.");
     // Allocate space for atom arrays
     AllocateCoords();
     // Calculate total dcd header size so we can seek past it on subsequent opens

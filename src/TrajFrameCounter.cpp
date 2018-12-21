@@ -49,9 +49,25 @@ int TrajFrameCounter::CheckFrameArgs(int nframes, ArgList &argIn) {
   }
   // Check that start argument is valid.
   if (start_ != 1) {
-    if (start_ < 1) {
-      mprintf("Warning: start argument %i < 1, setting to 1.\n", start_);
+    if (start_ == 0) {
+      mprintf("Warning: start argument is 0, setting to 1.\n", start_);
       start_ = 1; //start_ = 0;
+    } else if (start_ < 0) {
+      // Negative start means we want that many frames before stop
+      if (stop_ == -1) {
+        if (total_frames_ >=0)
+          stop_ = total_frames_;
+        else {
+          mprinterr("Error: For start < 0, stop argument must be specified when # frames unknown.\n");
+          return 1;
+        }
+      }
+      mprintf("\tStarting %i frames before frame %i\n", -start_, stop_);
+      start_ = stop_ + start_;
+      if (start_ < 1) {
+        mprintf("Warning: would start before frame 1, setting start to 1.\n");
+        start_ = 1;
+      }
     } else if (total_frames_ >= 0 && start_ > total_frames_) {
       // start_==stop_ and greater than # frames, archaic 'lastframe'.
       if (start_ == stop_) {

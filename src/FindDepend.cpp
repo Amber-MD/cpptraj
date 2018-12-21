@@ -1,189 +1,159 @@
 /*
- * FindDepend 
- * Dan Roe 2010
- * Given a file with #include directives, print a list of dependencies.
+ * FindDepend2
+ * Dan Roe 2018
+ * Given a list of source files with include directives, print a list of
+ * dependencies. Will ignore headers that are not directly a part of
+ * CPPTRAJ.
  */
 #include <cstdio>
 #include <cctype>
 #include <cstring>
-#include <list>
 #include <string>
+#include <set>
+#include <map>
 
 using namespace std;
 
-#define BUFFERSIZE 1024
+#define BUFFERSIZE 1023
 
-// Return true if first goes before second
-bool compareNames( string const& first, string const& second) {
-  if ( first.compare(second) < 0)
-    return true;
-  else
-    return false;
+/// List of strings
+typedef set<string> Slist;
+
+/// Pair string to list of strings
+typedef pair<string, Slist> Spair;
+
+/// Map string to list of strings
+typedef map<string, Slist> Smap;
+
+/// Hold dependencies for source files
+Smap Sources;
+
+/// Hold dependencies for headers
+Smap Headers;
+
+enum FileType { SOURCE = 0, HEADER };
+
+/** \return true if this header should be ignored. */
+bool IgnoreHeader(const char* headername) {
+  if (strcmp(headername,"mpi.h")==0) return true;
+  if (strcmp(headername,"zlib.h")==0) return true;
+  if (strcmp(headername,"bzlib.h")==0) return true;
+  if (strcmp(headername,"netcdf.h")==0) return true;
+  if (strcmp(headername,"pnetcdf.h")==0) return true;
+  if (strcmp(headername,"sander.h")==0) return true;
+  if (strcmp(headername,"omp.h")==0) return true;
+  if (strncmp(headername,"readline",8)==0) return true;
+  if (strncmp(headername,"xdrfile",7)==0) return true;
+  return false;
 }
 
-/*
- * Given a file, put all headers into a list.
- */
-list<string> *PeakHeader(char *filename, int indent, bool includeStdHeaders) {
-  FILE *infile;
-  char buffer[BUFFERSIZE];
-  char headername[BUFFERSIZE];
-  char *ptr, *includePosition;
-  size_t pos;
-  list<string> *HeaderList;
-  list<string> *SecondList;
-  list<string> SpliceList;
-  list<string>::iterator it;
-  string temp;
+/** Add list of dependencies for the given file to appropriate map. */
+void GetDependencies(string const& filename) {
+  char buffer[BUFFERSIZE+1];
+  char headername[BUFFERSIZE+1];
+  // Determine type
+  FileType type;
+  string ext;
+  size_t found = filename.find_last_of(".");
+  if (found != string::npos)
+    ext = filename.substr(found);
 
-  // Safety valve
-  if (indent > 100) {
-    fprintf(stderr,"Recursion > 100! Bailing out!\n");
-    return NULL;
+  //printf("FILE: %s  EXT: %s\n", filename.c_str(), ext.c_str());
+  if (ext == ".cpp" || ext == ".c") {
+    type = SOURCE;
+    // Each source file should only be accessed once
+    Smap::iterator it = Sources.find( filename );
+    if (it != Sources.end()) {
+      fprintf(stderr,"Error: Source '%s' is being looked at more than once.\n", filename.c_str());
+      return;
+    }
+  } else if (ext == ".h") {
+    type = HEADER;
+    // If this header was already looked at return
+    Smap::iterator it = Headers.find( filename );
+    if (it != Headers.end()) {
+      //printf("\tSkipping already-seen header %s\n", filename.c_str());
+      return;
+    }
+  } else // Ignore all others for now
+    return;
+
+  FILE* infile = fopen(filename.c_str(), "rb");
+  if (infile == 0) {
+    fprintf(stderr,"Error: Could not open '%s'\n", filename.c_str());
+    return;
   }
-
-  infile = fopen(filename,"r");
-  if (infile==NULL) {
-    fprintf(stderr,"Could not open %s\n",filename);
-    return NULL;
-  }
-  HeaderList = new list<string>();
-
-  // Go through file and grab includes
-  while ( fgets(buffer, BUFFERSIZE, infile)!=NULL ) {
-    ptr=buffer;
-    // skip leading whitespace - necessary??
+  // Go through file and grab includes.
+  Slist depends;
+  while ( fgets(buffer, BUFFERSIZE, infile) != 0 )
+  {
+    char* ptr = buffer;
+    // Skip leading whitespace.
     while ( isspace(*ptr) ) {
       ptr++;
       if (*ptr=='\n' || *ptr=='\0') break;
     }
     // First non-whitespace charcter must be '#'
-    if (*ptr != '#') continue;
-    // Ignore commented lines
-//    if (strncmp(ptr,"//",2)==0) continue;
-    // Check if this is an include line - if not, skip
-    includePosition = strstr(ptr,"include");
-    if ( includePosition==NULL ) continue;
-//    if ( includePosition==NULL || strchr(ptr,'#')==NULL ) continue;
-    //if ( strncmp(ptr,"#include",8)!=0 ) continue; 
-    // Record standard libs but dont process them
-    if ( strchr(ptr, '<')==NULL ) {
-      // Get header name - assume it is second string - dont include first "
-      sscanf(includePosition, "%*s \"%s", headername);
-      // Get rid of last "
-      pos=strlen(headername);
-      if (headername[pos-1]=='"') headername[pos-1]='\0';
-    } else {
-      if (includeStdHeaders)
-        sscanf(includePosition,"%*s %s", headername);
-      else
-        continue;
-    }
-    // Check for system headers that might be in quotes
-    if (!includeStdHeaders) {
-      if (strcmp(headername,"mpi.h")==0) continue;
-      if (strcmp(headername,"zlib.h")==0) continue;
-      if (strcmp(headername,"bzlib.h")==0) continue;
-      if (strcmp(headername,"netcdf.h")==0) continue;
-      if (strcmp(headername,"pnetcdf.h")==0) continue;
-      if (strcmp(headername,"sander.h")==0) continue;
-      if (strcmp(headername,"omp.h")==0) continue;
-      if (strncmp(headername,"readline",8)==0) continue;
-      if (strncmp(headername,"xdrfile",7)==0) continue;
-    }
-    temp.assign(headername);
-    HeaderList->push_back(temp);
-  }
-  fclose(infile);
-
-  // DEBUG
-  //fprintf(stdout,"%i:%s ",indent,filename);
-  //for (it=HeaderList->begin(); it!=HeaderList->end(); it++) 
-  //  fprintf(stdout,"[%s]",it->c_str());
-  //fprintf(stdout,"\n");
-
-  // Go through each header in the list, skipping standard headers
-  // Use a copy of HeaderList so the iterator wont go on forever
-  SpliceList = *HeaderList;
-  for (it=SpliceList.begin(); it!=SpliceList.end(); it++) {
-    if ( it->find('<')==string::npos && *it != "libpme_standalone.h" ) {
-      SecondList = PeakHeader((char*)it->c_str(),indent+1,includeStdHeaders);
-      if (SecondList!=NULL) {
-        HeaderList->splice( HeaderList->end(), *SecondList );
-        delete SecondList;
+    if (*ptr == '#') {
+      // Check if this is an include line - if not, skip
+      char* includePosition = strstr(ptr,"include");
+      if ( includePosition != 0 ) {
+        // Skip over system headers
+        if ( strchr(ptr, '<') == 0 ) {
+          // Get header name - assume it is second string - dont include first "
+          sscanf(includePosition, "%*s \"%s", headername);
+          // Get rid of last "
+          size_t pos = strlen(headername);
+          if (headername[pos-1]=='"') headername[pos-1]='\0';
+          if (!IgnoreHeader(headername))
+            depends.insert( string(headername) );
+        } //else
+          //printf("\tSkipping system header line: %s", buffer);
       }
     }
   }
-  // Assign this filename, only if indent>0
-  if (indent>0) {
-    temp.assign(filename);
-    HeaderList->push_front(temp);
-  }
-
-  return HeaderList;
+  fclose( infile );
+  //printf("  %s depends:", filename.c_str());
+  //for (Slist::const_iterator it = depends.begin(); it != depends.end(); ++it)
+  //  printf(" %s", it->c_str());
+  //printf("\n");
+  //pair<Smap::iterator, bool> ret;
+  if (type == SOURCE)
+    Sources.insert( Spair(filename, depends) );
+  else
+    Headers.insert( Spair(filename, depends) );
+  for (Slist::const_iterator it = depends.begin(); it != depends.end(); ++it)
+     GetDependencies( *it ); 
 }
 
-// Print a list of dependencies for the given file
-void GetDependencies(char *filename) {
-  list<string> *HeaderList;
-  list<string>::iterator it;
-  size_t pos;
-  char tempname[BUFFERSIZE];
-
-
-  HeaderList = PeakHeader(filename,0,false);
-  if (HeaderList==NULL) return;
-  HeaderList->sort(compareNames);
-  // Remove duplicates
-  HeaderList->unique();
-
-  // Show the initial filename
-  strcpy(tempname, filename);
-  // Replace cpp with o
-  pos = strlen(filename);
-  if ( filename[pos-1] == 'p' &&
-       filename[pos-2] == 'p' &&
-       filename[pos-3] == 'c' &&
-       filename[pos-4] == '.'    ) {
-    tempname[pos-3]='o';
-    tempname[pos-2]=' ';
-    tempname[pos-1]=':';
-    tempname[pos]=' ';
-    tempname[pos+1]='\0';
-    strcat(tempname,filename);
+/** Recursive function for expanding dependencies. */
+void FillDependencies(Slist& depends, Slist const& dlist) {
+  for (Slist::const_iterator hdr = dlist.begin(); hdr != dlist.end(); ++hdr) {
+    depends.insert( *hdr );
+    Smap::iterator ret = Headers.find( *hdr );
+    if (ret != Headers.end())
+      FillDependencies(depends, ret->second);
   }
-  // Replace c with o
-  else if ( filename[pos-1] == 'c' &&
-            filename[pos-2] == '.' ) { 
-    tempname[pos-1]='o';
-    tempname[pos]=' ';
-    tempname[pos+1]=':';
-    tempname[pos+2]=' ';
-    tempname[pos+3]='\0';
-    strcat(tempname,filename);
-  }
-  // Skip f files for now
-  else if ( filename[pos-1] == 'f' &&
-            filename[pos-2] == '.' ) {
-    return;
-  }
-  fprintf(stdout,"%s",tempname);
-
-  // Print the headers
-  for (it=HeaderList->begin(); it!=HeaderList->end(); it++)
-    fprintf(stdout," %s",(*it).c_str());
-  fprintf(stdout,"\n");
-  delete HeaderList;
 }
 
 // M A I N
-int main(int argc, char **argv) {
-  int i;
-
-  if (argc<2) return 0;
-
-  for (i=1; i<argc; i++)
+int main(int argc, char** argv) {
+  if (argc < 2) return  0;
+  // Read through all source files; get dependencies and header dependencies.
+  for (int i=1; i<argc; i++)
     GetDependencies(argv[i]);
+  // Write out source dependencies and fill in header dependencies.
+  for (Smap::const_iterator src = Sources.begin(); src != Sources.end(); ++src)
+  {
+    Slist depends;
+    FillDependencies(depends, src->second);
+    size_t found = src->first.find_last_of(".");
+    string objname = src->first.substr(0,found) + ".o";
+    printf("%s : %s", objname.c_str(), src->first.c_str());
+    for (Slist::const_iterator it = depends.begin(); it != depends.end(); ++it)
+      printf(" %s", it->c_str());
+    printf("\n");
+  }
 
   return 0;
-}  
+}

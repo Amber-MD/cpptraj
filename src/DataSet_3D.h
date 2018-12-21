@@ -35,6 +35,15 @@ class DataSet_3D : public DataSet {
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }
+    /*
+    double Coord(unsigned int d, size_t p) const {
+      long int idx[3];
+      for (unsigned int i = 0; i < 3; i++)
+        if (i == d) idx[i] = p; else idx[i] = 0;
+      Vec3 crd = gridBin_->Corner(idx[0], idx[1], idx[2]);
+      return crd[d];
+    }*/
+    // -------------------------------------------
     /// Set up grid from dims, origin, and spacing.
     int Allocate_N_O_D(size_t,size_t,size_t,Vec3 const&,Vec3 const&);
     /// Set up grid from dims, center, and spacing.

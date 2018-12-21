@@ -1,5 +1,6 @@
 #include "DataSet_GridDbl.h"
-#include "CpptrajStdio.h" // DEBUG
+#include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 DataSet_GridDbl::DataSet_GridDbl(DataSet_GridDbl const& rhs) : DataSet_3D(rhs), grid_(rhs.grid_) {}
 
@@ -11,6 +12,10 @@ void DataSet_GridDbl::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) co
     outfile.Printf(format_.fmt(), 0.0);
   else
     outfile.Printf(format_.fmt(), grid_.element(x,y,z));
+}
+
+void DataSet_GridDbl::Info() const {
+  mprintf(" (%s)", ByteString(Grid<double>::sizeInBytes(NX(), NY(), NZ()), BYTE_DECIMAL).c_str());
 }
 
 #ifdef MPI

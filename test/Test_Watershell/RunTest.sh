@@ -5,7 +5,7 @@
 CleanFiles ws.in ws.agr ws.ortho.agr ws.noimage.agr
 
 TESTNAME='Watershell tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 INPUT="ws.in"
 
 # Non-orthorhombic imaging

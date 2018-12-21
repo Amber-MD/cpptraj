@@ -54,7 +54,7 @@ class Parallel {
     static int Abort(int);
     /// Set up ensemble and trajectory communicators for given ensemble size
     static int SetupComms(int, bool);
-    /// Set up communicators - do not allow fewer threads than groups. TODO remove
+    /// Set up communicators - do not allow fewer processes than groups. TODO remove
     static int SetupComms(int n) { return SetupComms(n, false); }
     /// For DEBUG: infinite loop, gives time to attach a debugger.
     static void Lock();
@@ -64,11 +64,11 @@ class Parallel {
     static bool EnsembleIsSetup()       { return ensemble_size_ > -1; }
     /// \return total ensemble size.
     static int Ensemble_Size()          { return ensemble_size_;  }
-    /// \return First ensemble member this thread is responsible for.
+    /// \return First ensemble member this process is responsible for.
     static int Ensemble_Beg()           { return ensemble_beg_;   }
-    /// \return Last+1 ensemble member this thread is responsible for.
+    /// \return Last+1 ensemble member this process is responsible for.
     static int Ensemble_End()           { return ensemble_end_;   }
-    /// \return Total number of ensemble members this thread is responsible for.
+    /// \return Total number of ensemble members this process is responsible for.
     static int N_Ens_Members()          { return n_ens_members_;  }
     /// \return Rank in ensemble comm. for given member.
     static int MemberEnsCommRank(int i) { return memberEnsRank_[i];}
@@ -85,9 +85,9 @@ class Parallel {
     static void printMPIerr(int, const char*, int);
     static int checkMPIerr(int, const char*, int);
     static int ensemble_size_;  ///< Total number of ensemble members.
-    static int ensemble_beg_;   ///< Starting member for this ensemble thread.
-    static int ensemble_end_;   ///< Ending member for this ensemble thread.
-    static int n_ens_members_;  ///< Number of ensemble members thread is responsible for.
+    static int ensemble_beg_;   ///< Starting member for this ensemble process.
+    static int ensemble_end_;   ///< Ending member for this ensemble process.
+    static int n_ens_members_;  ///< Number of ensemble members process is responsible for.
     static int* memberEnsRank_; ///< Rank in ensemble comm for each member.
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static void dbgprintf(const char*, ...);
@@ -121,7 +121,7 @@ class Parallel::Comm {
     Comm Split(int) const;
     void Reset();
     /// my_start, my_stop, maxElts
-    int DivideAmongThreads(int&, int&, int) const;
+    int DivideAmongProcesses(int&, int&, int) const;
     /// RecvBuffer, SendBuffer, Count, DataType, Op
     int ReduceMaster(void*, void*, int, MPI_Datatype, MPI_Op) const;
     /// Rank, RecvBuffer, SendBuffer, Count, DataType, Op

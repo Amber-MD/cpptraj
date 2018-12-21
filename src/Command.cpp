@@ -39,6 +39,7 @@
 #include "Exec_LoadTraj.h"
 #include "Exec_PermuteDihedrals.h"
 #include "Exec_RotateDihedral.h"
+#include "Exec_SplitCoords.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -239,6 +240,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
+  Command::AddCmd( new Exec_SplitCoords(),      Cmd::EXE, 1, "splitcoords" );
   // TRAJECTORY
   Command::AddCmd( new Exec_Ensemble(),     Cmd::EXE, 1, "ensemble" );
   Command::AddCmd( new Exec_EnsembleSize(), Cmd::EXE, 1, "ensemblesize" );
@@ -477,13 +479,31 @@ Cmd const& Command::SearchToken(ArgList& argIn) {
   return EMPTY_;
 }
 
+/** 0 are hidden categories (i.e. should not appear in help). */
+static const char* ObjKeyword(DispatchObject::Otype typeIn) {
+  switch (typeIn) {
+    case DispatchObject::NONE: return 0;
+    case DispatchObject::PARM: return "Topology";
+    case DispatchObject::TRAJ: return "Trajectory";
+    case DispatchObject::COORDS: return "Coords";
+    case DispatchObject::ACTION: return "Action";
+    case DispatchObject::ANALYSIS: return "Analysis";
+    case DispatchObject::GENERAL: return "General";
+    case DispatchObject::SYSTEM: return "System";
+    case DispatchObject::CONTROL: return "Control";
+    case DispatchObject::HIDDEN: return 0;
+    case DispatchObject::DEPRECATED: return 0;
+  }
+  return 0;
+}
+
 /** First list the command category, then the commands for that category
   * in alphabetical order. Should not be called with NONE, HIDDEN, or
   * DEPRECATED.
   */
 void Command::ListCommandsForType(DispatchObject::Otype typeIn) {
   std::vector< std::string > command_keys;
-  mprintf("%s Commands:\n", DispatchObject::ObjKeyword(typeIn));
+  mprintf("%s Commands:\n", ObjKeyword(typeIn));
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
     if (cmd->Obj().Type() == typeIn)
@@ -681,6 +701,23 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
         break;
     }
   }
+# ifdef MPI
+  // Check that everyone had same return value from command
+  int iret = (int)ret_val;
+  std::vector<int> rvals(Parallel::World().Size(), 0);
+  Parallel::World().AllGather(&iret, 1, MPI_INT, &rvals[0]);
+  for (std::vector<int>::const_iterator it = rvals.begin(); it != rvals.end(); ++it)
+  {
+    if (*it != rvals.front()) {
+      // This thread had a return value different than thread 0 - notify and
+      // set the overall return value to error.
+      mprinterr("Internal Error: Thread %u command return value %i differs from world master %i\n",
+                it-rvals.begin(), *it, rvals.front());
+      ret_val = CpptrajState::ERR;
+    }
+  }
+  Parallel::World().Barrier();
+# endif
   return ret_val;
 }
 

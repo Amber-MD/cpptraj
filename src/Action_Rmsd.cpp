@@ -67,7 +67,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (tvecType_ != NO_TVEC)
     vecsOut = init.DFL().AddDataFile(actionArgs.GetStringKey("vecsout"));
   // Reference keywords
-  REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ );
+  if (REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ )) return Action::ERR;
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
@@ -319,6 +319,14 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
   if ( tgtMask_.None() ) {
     mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
     return Action::SKIP;
+  }
+  if ( tgtMask_.Nselected() < 3 ) {
+    mprintf("Warning: Less than 3 atoms selected for RMSD. Cannot fully"
+            "Warning:   populate the coordinate covariance matrix.\n");
+    if (debug_ == 0) {
+      mprintf("Warning: Skipping.\n");
+      return Action::SKIP;
+    }
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.

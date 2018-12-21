@@ -16,13 +16,17 @@ static inline int SetNatomAndTitle(ArgList& lineIn, int& natom, std::string& tit
   if (!validInteger(lineIn[0])) return 1;
   natom = lineIn.getNextInteger( -1 );
   if (natom < 1) return 1;
+  int nNumbers = 1;
   std::string nextWord = lineIn.GetStringNext();
 //if (nextWord.empty()) return 1;
   while (!nextWord.empty()) {
+    if (validDouble(nextWord)) ++nNumbers;
     if (!title.empty()) title += ' ';
     title.append( nextWord );
     nextWord = lineIn.GetStringNext();
   }
+  // If all arguments were numbers this is probably not a title line after all.
+  if (nNumbers == lineIn.Nargs()) return 1;
   return 0;
 }
 
