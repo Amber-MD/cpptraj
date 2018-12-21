@@ -401,16 +401,16 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
 
   // Print mask and imaging info for this parm
   if (rmode_ == BYSITE) {
-    mprintf("    RADIAL: %zu sites selected by Mask1 (%i atoms), %zu sites selected by Mask2 (%i atoms)\n",
+    mprintf("\t%zu sites selected by Mask1 (%i atoms), %zu sites selected by Mask2 (%i atoms)\n",
             Sites1_.size(), Mask1_.Nselected(), Sites2_.size(), Mask2_.Nselected());
   } else {
-    mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",
+    mprintf("\t%i atoms in Mask1, %i atoms in Mask2\n",
             Mask1_.Nselected(), Mask2_.Nselected());
   }
   if (image_.ImagingEnabled())
-    mprintf("Imaging on.\n");
+    mprintf("\tImaging on.\n");
   else
-    mprintf("Imaging off.\n");
+    mprintf("\tImaging off.\n");
   return Action::OK;  
 }
 
@@ -544,6 +544,9 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
         } // END site1 != site2
       } // END inner loop over Sites2
     } // END outer loop over Sites1
+#   ifdef _OPENMP
+    }
+#   endif
   // ---------------------------------------------
   } else { // CENTER1 || CENTER2
     // Calculation of center of one Mask to all atoms in other Mask
@@ -663,13 +666,13 @@ void Action_Radial::Print() {
   // If useVolume, calculate the density from the average volume
   if (useVolume_) {
     double avgVol = volume_ / numFrames_;
-    mprintf("            Average volume is %f Ang^3.\n",avgVol);
+    mprintf("\tAverage volume is %f Ang^3.\n",avgVol);
     density_ = (nmask1 * nmask2 - (double)numSameAtoms) / avgVol;
-    mprintf("            Average density is %f distances / Ang^3.\n",density_);
+    mprintf("\tAverage density is %f distances / Ang^3.\n",density_);
   } else {
     density_ = density_ * 
                (nmask1 * nmask2 - (double)numSameAtoms) / nmask1;
-    mprintf("            Density is %f distances / Ang^3.\n",density_);
+    mprintf("\tDensity is %f distances / Ang^3.\n",density_);
   }
   // Need to normalize each bin, which holds the particle count at that
   // distance. Calculate the expected number of molecules for that 
