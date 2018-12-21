@@ -46,7 +46,7 @@ class AtomMask : public MaskTokenArray {
     /// Invert current mask
     void InvertMask();
     /// \return the number of atoms mask has in common with another mask
-    int NumAtomsInCommon(AtomMask const&);
+    int NumAtomsInCommon(AtomMask const&) const;
     /// Add atom to Selected array; assumes atoms will be in order.
     void AddSelectedAtom(int i) { Selected_.push_back( i ); }
     /// Add given atom to Selected array 

@@ -64,7 +64,7 @@ void AtomMask::InvertMask() {
 /** Given an atom mask, determine how many selected atoms this mask
   * has in common with it.
   */
-int AtomMask::NumAtomsInCommon(AtomMask const& maskIn) {
+int AtomMask::NumAtomsInCommon(AtomMask const& maskIn) const {
   std::vector<int> intersect;
   std::vector<int>::iterator intersect_end;
 
