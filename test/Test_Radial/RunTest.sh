@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles radial.in Radial.agr cRadial.agr WatO-Trp4.agr WatO-Trp4.raw.agr WatO-Trp4.byres.agr
+CleanFiles radial.in Radial.agr cRadial.agr WatO-Trp4.agr WatO-Trp4.raw.agr \
+           WatO-Trp4.byres.agr WatO-Trp.agr
 
 TESTNAME='Radial test'
 Requires netcdf maxthreads 10
@@ -16,6 +17,7 @@ radial cRadial.agr   0.5 10.0 :5     :WAT@O center1
 radial WatO-Trp4.agr 0.5 10.0 :WAT@O :4&!@C,O,CA,HA,N,H center2 \
        intrdf WatO-Trp4.raw.agr rawrdf WatO-Trp4.raw.agr
 radial WatO-Trp4.byres.agr 0.5 10.0 :WAT@O :4&!@C,O,CA,HA,N,H byres2
+radial out WatO-Trp.agr 0.5 10.0 :WAT@O :TRP byres2 
 EOF
 
 INPUT="-i radial.in"
@@ -25,7 +27,7 @@ DoTest cRadial.agr.save cRadial.agr
 DoTest WatO-Trp4.agr.save WatO-Trp4.agr
 DoTest WatO-Trp4.raw.agr.save WatO-Trp4.raw.agr
 DoTest WatO-Trp4.agr.save WatO-Trp4.byres.agr
-
+DoTest WatO-Trp.agr.save WatO-Trp.agr
 
 EndTest
 
