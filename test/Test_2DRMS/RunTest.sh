@@ -6,7 +6,7 @@
 CleanFiles rms.in rmsd1.dat rmsd2.dat ref.nc rmsd.mass.dat dme.dat trp.dat nofit.dat
 
 TESTNAME='2D RMSD tests'
-Requires netcdf
+Requires netcdf maxthreads 10
 TOP="../tz2.parm7"
 CRD="../tz2.nc"
 INPUT="rms.in"

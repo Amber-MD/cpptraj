@@ -18,6 +18,8 @@ class DihedralSearch {
     /// Recognized dihedral types
     typedef MetaData::scalarType DihedralType;
     DihedralSearch();
+    /// COPY CONSTRUCTOR - Set up for same types as input
+    DihedralSearch(DihedralSearch const&);
     static void ListKnownTypes();
     static void OffsetHelp();
     static DihedralType GetType(std::string const&);
@@ -55,7 +57,7 @@ class DihedralSearch {
 /// Hold dihedral type information used for searching.
 class DihedralSearch::DihedralToken {
   public:
-    DihedralToken() : offset_(0), type_(MetaData::UNDEFINED) {}
+    DihedralToken() : centerIdx_(2), type_(MetaData::UNDEFINED) {}
     /// Constructor for custom dihedral type
     DihedralToken(int, NameType const&, NameType const&, NameType const&, NameType const&,
                   std::string const&);
@@ -67,7 +69,7 @@ class DihedralSearch::DihedralToken {
     DihedralType Type()       const { return type_; }
     void SetAtomName(int i, NameType const& n) { aname_[i] = n; }
   private:
-    int offset_;       ///< -1|0|1: Dihedral starts at prev.|stays in current|ends at next res.
+    int centerIdx_;           ///< Index of the "central" dihedral atom (determines res#).
     NameType aname_[4];       ///< Dihedral atom names. 
     std::string name_;        ///< Dihedral type name.
     DihedralType type_;       ///< Dihedral type.

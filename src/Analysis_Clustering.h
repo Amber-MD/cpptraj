@@ -39,6 +39,7 @@ class Analysis_Clustering: public Analysis {
     int windowSize_;            ///< Window size for # clusters seen vs time.
     int drawGraph_;
     int draw_maxit_;
+    int nRepsToSave_;           ///< Number of best representative structures to save
     double draw_tol_;
     double refCut_;             ///< RMSD cutoff for assigning reference names to clusters.
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
@@ -68,13 +69,15 @@ class Analysis_Clustering: public Analysis {
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
     bool includeSieveInCalc_;   ///< If true use sieved frames in certain calculations.
     bool suppressInfo_;         ///< If true, do not print cluster info to STDOUT
+    bool pw_mismatch_fatal_;    ///< If true, existing PW matrix size must match expected size.
     ClusterDist::DsArray cluster_dataset_;        ///< DataSet(s) to use for clustering.
     TrajectoryFile::TrajFormatType clusterfmt_;   ///< Cluster trajectory format.
     TrajectoryFile::TrajFormatType singlerepfmt_; ///< Cluster all rep single trajectory format.
     TrajectoryFile::TrajFormatType reptrajfmt_;   ///< Cluster rep to separate trajectory format.
     TrajectoryFile::TrajFormatType avgfmt_;       ///< Cluster traj average structure file format.
-    static const TrajectoryFile::TrajFormatType DEF_TRAJ_FMT_;
     int debug_;
+
+    static const TrajectoryFile::TrajFormatType DEF_TRAJ_FMT_;
     static const char* PAIRDISTFILE_;              ///< Default pairwise dist file name.
     static DataFile::DataFormatType PAIRDISTTYPE_; ///< Default pairwise dist file type.
 };

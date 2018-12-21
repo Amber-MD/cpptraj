@@ -18,8 +18,9 @@ class Cpptraj {
     static void Usage();
     static void Intro();
     static void Finalize();
+    static inline void AddArgs(Sarray&, ArgList const&, int&);
+    static inline void ResizeArgs(Sarray const&, Sarray&, const char*);
     int ProcessMask(Sarray const&, Sarray const&, std::string const&, bool,bool) const;
-    static inline void AddFiles(Sarray&, int, char**, int&);
     Mode ProcessCmdLineArgs(int, char**);
     int Interactive();
 

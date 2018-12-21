@@ -23,16 +23,16 @@ class TrajectoryFile {
     enum TrajFormatType {
       AMBERNETCDF = 0, AMBERRESTARTNC, AMBERNCENSEMBLE, PDBFILE, MOL2FILE, CIF, CHARMMDCD, 
       GMXTRX, GMXXTC, BINPOS, AMBERRESTART, GRO, TINKER, CHARMMCOR, CHARMMREST,AMBERTRAJ,
-      SQM, SDF, CONFLIB,
+      SQM, SDF, XYZ, CONFLIB,
       UNKNOWN_TRAJ
     };
 
     TrajectoryFile() {}
     virtual ~TrajectoryFile() {}
     /// List read options for each format.
-    static void ReadOptions() { FileTypes::ReadOptions(TF_KeyArray,TF_AllocArray, UNKNOWN_TRAJ); }
+    static void ReadOptions(std::string const& fkey) { FileTypes::Options(TF_KeyArray,TF_AllocArray, UNKNOWN_TRAJ, fkey, FileTypes::READOPT); }
     /// List write options for each format.
-    static void WriteOptions(){ FileTypes::WriteOptions(TF_WriteKeyArray,TF_AllocArray,UNKNOWN_TRAJ); }
+    static void WriteOptions(std::string const& fkey){ FileTypes::Options(TF_WriteKeyArray,TF_AllocArray,UNKNOWN_TRAJ, fkey, FileTypes::WRITEOPT); }
     /// \return write format type corresponding to given string, or default if no match.
     static TrajFormatType WriteFormatFromString(std::string const& s, TrajFormatType def) {
       return (TrajFormatType)FileTypes::GetFormatFromString(TF_WriteKeyArray,s,def);
@@ -59,5 +59,9 @@ class TrajectoryFile {
     static TrajectoryIO* AllocTrajIO(TrajFormatType t) {
       return (TrajectoryIO*)FileTypes::AllocIO(TF_AllocArray, t, true);
     }
+    /// \return TrajFormatType of given file or UNKNOWN_TRAJ
+    static TrajFormatType DetectFormat(FileName const&);
+    /// \return Allocated TrajectoryIO for given file with optional format keyword.
+    static TrajectoryIO* DetectFormat(FileName const&, std::string const&, TrajFormatType&);
 };
 #endif

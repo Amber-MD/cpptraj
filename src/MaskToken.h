@@ -3,6 +3,8 @@
 #include "Atom.h"
 #include "Residue.h"
 #include "Molecule.h"
+#include "SymbolExporting.h"
+
 /// Hold information used in mask selection. 
 class MaskToken {
   public:
@@ -89,8 +91,8 @@ class MaskTokenArray {
     void ClearTokens() { maskTokens_.clear(); maskExpression_.clear(); }
     /// \return array of characters with selected atoms marked with SelectedChar_
     char* ParseMask(AtomArrayT const&, ResArrayT const&, MolArrayT const&, const double*) const;
-    static char SelectedChar_;
-    static char UnselectedChar_; 
+    static CPPTRAJ_EXPORT char SelectedChar_;
+    static CPPTRAJ_EXPORT char UnselectedChar_;
   private:
     typedef std::vector<MaskToken> MTarray;
     typedef MTarray::const_iterator token_iterator;

@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
+#include "DataSet_float.h"
 #include "Trajout_Single.h"
 #include "Timer.h"
 // Clustering Algorithms
@@ -22,6 +23,7 @@ Analysis_Clustering::Analysis_Clustering() :
   windowSize_(0),
   drawGraph_(0),
   draw_maxit_(0),
+  nRepsToSave_(1),
   draw_tol_(0.0),
   refCut_(1.0),
   cnumvtime_(0),
@@ -38,13 +40,28 @@ Analysis_Clustering::Analysis_Clustering() :
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
   includeSieveInCalc_(false),
+  suppressInfo_(false),
+  pw_mismatch_fatal_(true),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  avgfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   debug_(0)
 { } 
 
+/** The default output trajectory format. */
 const TrajectoryFile::TrajFormatType Analysis_Clustering::DEF_TRAJ_FMT_ = TrajectoryFile::AMBERTRAJ;
+
+/** The default pairwise distance file name. */
+const char* Analysis_Clustering::PAIRDISTFILE_ = "CpptrajPairDist";
+
+/** The default pairwise distance file type. */
+DataFile::DataFormatType Analysis_Clustering::PAIRDISTTYPE_ =
+# ifdef BINTRAJ
+  DataFile::NCCMATRIX;
+# else
+  DataFile::CMATRIX;
+# endif
 
 // DESTRUCTOR
 Analysis_Clustering::~Analysis_Clustering() {
@@ -63,11 +80,11 @@ void Analysis_Clustering::Help() const {
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
           "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <name>]\n"
-          "\t[pairwisecache {mem | disk | none}] [includesieveincalc]\n"
+          "\t[pairwisecache {mem | disk | none}] [includesieveincalc] [pwrecalc]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
-          "\t[bestrep {cumulative|centroid|cumulative_nosieve}]\n"
+          "\t[bestrep {cumulative|centroid|cumulative_nosieve}] [savenreps <#>]\n"
           "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
           "\t[sil <silhouette file prefix>] [assignrefs [refcut <rms>] [refmask <mask>]]\n"
@@ -82,14 +99,6 @@ void Analysis_Clustering::Help() const {
           "  <crd set> can be created with the 'createcrd' command.\n");
           /// pytraj can turn off cluster info by specifying 'noinfo' keyword
 }
-
-const char* Analysis_Clustering::PAIRDISTFILE_ = "CpptrajPairDist";
-DataFile::DataFormatType Analysis_Clustering::PAIRDISTTYPE_ =
-# ifdef BINTRAJ
-  DataFile::NCCMATRIX;
-# else
-  DataFile::CMATRIX;
-# endif
 
 // Analysis_Clustering::GetClusterTrajArgs()
 void Analysis_Clustering::GetClusterTrajArgs(ArgList& argIn,
@@ -184,86 +193,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (CList_ == 0) return Analysis::ERR;
   CList_->SetDebug(debug_);
   // Get algorithm-specific keywords
-  if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
-  // Get keywords
-  includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
-  if (includeSieveInCalc_)
-    mprintf("Warning: 'includesieveincalc' may be very slow.\n");
-  useMass_ = analyzeArgs.hasKey("mass");
-  sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
-  sieve_ = analyzeArgs.getKeyInt("sieve", 1);
-  if (sieve_ < 1) {
-    mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
-    return Analysis::ERR;
-  }
-  if (analyzeArgs.hasKey("random") && sieve_ > 1)
-    sieve_ = -sieve_; // negative # indicates random sieve
-  halffile_ = analyzeArgs.GetStringKey("summarysplit");
-  if (halffile_.empty()) // For backwards compat.
-    halffile_ = analyzeArgs.GetStringKey("summaryhalf");
-  if (!halffile_.empty()) {
-    ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
-    if (!splits.empty()) {
-      splitFrames_.clear();
-      int sf = splits.getNextInteger(-1); // User frame #s start at 1
-      while (sf > 0) {
-        splitFrames_.push_back( sf );
-        sf = splits.getNextInteger(-1);
-      }
-      if ((int)splitFrames_.size() < splits.Nargs()) {
-        mprinterr("Error: Invalid split frame arguments.\n");
-        splits.CheckForMoreArgs();
-        return Analysis::ERR;
-      }
-    }
-  }
-  std::string bestRepStr = analyzeArgs.GetStringKey("bestrep");
-  if (bestRepStr.empty()) {
-    // For sieving, cumulative can get very expensive. Default to centroid.
-    if (sieve_ != 1)
-      bestRep_ = CENTROID;
-    else
-      bestRep_ = CUMULATIVE;
-  } else {
-    if (bestRepStr == "cumulative")
-      bestRep_ = CUMULATIVE;
-    else if (bestRepStr == "centroid")
-      bestRep_ = CENTROID;
-    else if (bestRepStr == "cumulative_nosieve")
-      bestRep_ = CUMULATIVE_NOSIEVE;
-    else {
-      mprinterr("Error: Invalid 'bestRep' option (%s)\n", bestRepStr.c_str());
-      return Analysis::ERR;
-    }
-  }
-  if (analyzeArgs.hasKey("drawgraph"))
-    drawGraph_ = 1;
-  else if (analyzeArgs.hasKey("drawgraph3d"))
-    drawGraph_ = 2;
-  else
-    drawGraph_ = 0;
-  draw_maxit_ = analyzeArgs.getKeyInt("draw_maxit", 1000);
-  draw_tol_ = analyzeArgs.getKeyDouble("draw_tol", 1.0E-5);
-  
-  DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  DataFile* clustersvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
-                                                   analyzeArgs);
-  windowSize_ = analyzeArgs.getKeyInt("cvtwindow", 0);
-  cpopvtimefile_ = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
-  clusterinfo_ = analyzeArgs.GetStringKey("info");
-  summaryfile_ = analyzeArgs.GetStringKey("summary");
-  nofitrms_ = analyzeArgs.hasKey("nofit");
-  grace_color_ = analyzeArgs.hasKey("gracecolor");
-  calc_lifetimes_ = analyzeArgs.hasKey("lifetime");
-  if (cpopvtimefile_ != 0) {
-    if (analyzeArgs.hasKey("normpop"))
-      norm_pop_ = CLUSTERPOP;
-    else if (analyzeArgs.hasKey("normframe"))
-      norm_pop_ = FRAME;
-    else
-      norm_pop_ = NONE;
-  }
-  sil_file_ = analyzeArgs.GetStringKey("sil");
+  if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR;
   // ---------------------------------------------
   // Options for loading/saving pairwise distance file
   DataSet::DataType pw_type = DataSet::CMATRIX;
@@ -324,6 +254,104 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     pwd_file_ = setup.DFL().AddDataFile( pairdistname, pairdisttype, ArgList() );
   }
   // ---------------------------------------------
+  // Get keywords
+  useMass_ = analyzeArgs.hasKey("mass");
+  includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
+  if (includeSieveInCalc_)
+    mprintf("Warning: 'includesieveincalc' may be very slow.\n");
+  sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
+  sieve_ = analyzeArgs.getKeyInt("sieve", 1);
+  if (sieve_ < 1) {
+    mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
+    return Analysis::ERR;
+  }
+  if (analyzeArgs.hasKey("random") && sieve_ > 1)
+    sieve_ = -sieve_; // negative # indicates random sieve
+  // Override sieve value
+  if (pw_dist_ != 0) {
+    if (sieve_ == 1) {
+      mprintf("Warning: Using sieve options from specified pairwise distance set '%s'\n",
+              pw_dist_->legend());
+      sieve_ = ((DataSet_Cmatrix*)pw_dist_)->SieveValue();
+    } else if (sieve_ != ((DataSet_Cmatrix*)pw_dist_)->SieveValue()) {
+      mprintf("Warning: Specified sieve options do not match pairwise distance set '%s'\n",
+              pw_dist_->legend());
+    }
+  }
+  if (analyzeArgs.hasKey("pwrecalc"))
+    pw_mismatch_fatal_ = false;
+  halffile_ = analyzeArgs.GetStringKey("summarysplit");
+  if (halffile_.empty()) // For backwards compat.
+    halffile_ = analyzeArgs.GetStringKey("summaryhalf");
+  if (!halffile_.empty()) {
+    ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
+    if (!splits.empty()) {
+      splitFrames_.clear();
+      int sf = splits.getNextInteger(-1); // User frame #s start at 1
+      while (sf > 0) {
+        splitFrames_.push_back( sf );
+        sf = splits.getNextInteger(-1);
+      }
+      if ((int)splitFrames_.size() < splits.Nargs()) {
+        mprinterr("Error: Invalid split frame arguments.\n");
+        splits.CheckForMoreArgs();
+        return Analysis::ERR;
+      }
+    }
+  }
+  std::string bestRepStr = analyzeArgs.GetStringKey("bestrep");
+  if (bestRepStr.empty()) {
+    // For sieving, cumulative can get very expensive. Default to centroid.
+    if (sieve_ != 1)
+      bestRep_ = CENTROID;
+    else
+      bestRep_ = CUMULATIVE;
+  } else {
+    if (bestRepStr == "cumulative")
+      bestRep_ = CUMULATIVE;
+    else if (bestRepStr == "centroid")
+      bestRep_ = CENTROID;
+    else if (bestRepStr == "cumulative_nosieve")
+      bestRep_ = CUMULATIVE_NOSIEVE;
+    else {
+      mprinterr("Error: Invalid 'bestRep' option (%s)\n", bestRepStr.c_str());
+      return Analysis::ERR;
+    }
+  }
+  nRepsToSave_ = analyzeArgs.getKeyInt("savenreps", 1);
+  if (nRepsToSave_ < 1) {
+    mprinterr("Error: 'savenreps' must be > 0\n");
+    return Analysis::ERR;
+  }
+  if (analyzeArgs.hasKey("drawgraph"))
+    drawGraph_ = 1;
+  else if (analyzeArgs.hasKey("drawgraph3d"))
+    drawGraph_ = 2;
+  else
+    drawGraph_ = 0;
+  draw_maxit_ = analyzeArgs.getKeyInt("draw_maxit", 1000);
+  draw_tol_ = analyzeArgs.getKeyDouble("draw_tol", 1.0E-5);
+  
+  DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* clustersvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
+                                                   analyzeArgs);
+  windowSize_ = analyzeArgs.getKeyInt("cvtwindow", 0);
+  cpopvtimefile_ = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
+  clusterinfo_ = analyzeArgs.GetStringKey("info");
+  summaryfile_ = analyzeArgs.GetStringKey("summary");
+  nofitrms_ = analyzeArgs.hasKey("nofit");
+  grace_color_ = analyzeArgs.hasKey("gracecolor");
+  calc_lifetimes_ = analyzeArgs.hasKey("lifetime");
+  if (cpopvtimefile_ != 0) {
+    if (analyzeArgs.hasKey("normpop"))
+      norm_pop_ = CLUSTERPOP;
+    else if (analyzeArgs.hasKey("normframe"))
+      norm_pop_ = FRAME;
+    else
+      norm_pop_ = NONE;
+  }
+  sil_file_ = analyzeArgs.GetStringKey("sil");
+
   // Output trajectory stuff
   writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
   GetClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,   clusterfmt_);
@@ -432,6 +460,14 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     mprintf("\tPairwise distances will not be cached (will slow clustering calcs)\n");
   else if (pw_dist_->Type() == DataSet::CMATRIX_DISK)
     mprintf("\tPairwise distances will be cached to disk (will slow clustering calcs)\n");
+  if (pw_dist_->Size() > 0) {
+    if (pw_mismatch_fatal_)
+      mprintf("\tCalculation will be halted if # frames does not match '%s'\n",
+              pw_dist_->legend());
+    else
+      mprintf("\tPairwise distances will be recalculated if # frames does not match '%'s\n",
+              pw_dist_->legend());
+  }
   if (pwd_file_ != 0)
     mprintf("\tSaving pair-wise distances to '%s'\n", pwd_file_->DataFilename().full());
   if (!clusterinfo_.empty())
@@ -467,6 +503,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       mprintf(" lowest cumulative distance to all other frames (ignore sieved frames).\n");
       break;
   }
+  if (nRepsToSave_ > 1)
+    mprintf("\tThe top %i representative frames will be determined.\n", nRepsToSave_);
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
@@ -567,8 +605,41 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     if ( (cluster_dataset_[0]->Size() % (unsigned int)sval) != 0 )
       expected_nrows++;
     if ( ((DataSet_Cmatrix*)pw_dist_)->Nrows() != expected_nrows ) {
-      mprintf("Warning: ClusterMatrix has %zu rows, expected %zu; recalculating matrix.\n",
-              ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+      if (sval == 1) {
+        // No sieve value specified by user.
+        if ( ((DataSet_Cmatrix*)pw_dist_)->SieveValue() != 1 ) {
+          // Cluster matrix is sieved.
+          mprintf("Warning: Sieved ClusterMatrix has %zu rows, expected %u; did you forget\n"
+                  "Warning:   to specify 'sieve <#>'?\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+        } else {
+          // Cluster matrix is not sieved.
+          mprintf("Warning: ClusterMatrix has %zu rows, expected %u.\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+        }
+      } else {
+        // Sieve value specified by user.
+        if ( ((DataSet_Cmatrix*)pw_dist_)->SieveValue() != 1 ) {
+          // Cluster matrix is sieved.
+          mprintf("Warning: Sieved ClusterMatrix has %zu rows, expected %u based on\n"
+                  "Warning:   specified sieve value (%i)\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows, sval);
+        } else {
+          // Cluster matrix is not sieved.
+          mprintf("Warning: ClusterMatrix has %zu rows, expected %u based on\n"
+                  "Warning:   specified sieve value (%i).\n",
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows, sval);
+        }
+      }
+      if (pw_mismatch_fatal_) {
+        mprinterr("Error: Input pairwise matrix '%s' size (%zu) does not match expected size (%u)\n"
+                  "Error:   Check that input number of frames and sieve value are consistent.\n",
+                  pw_dist_->legend(),
+                  ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+        mprinterr("Error: Check warnings in cpptraj output for more details.\n");
+        return Analysis::ERR;
+      }
+      mprintf("Warning: Recalculating matrix.\n");
       pw_dist_ = masterDSL_->AddSet(DataSet::CMATRIX, "", "CMATRIX");
       if (pw_dist_ == 0) return Analysis::ERR;
     }
@@ -599,9 +670,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // Find best representative frames for each cluster.
     cluster_post_bestrep.Start();
     switch (bestRep_) {
-      case CUMULATIVE: CList_->FindBestRepFrames_CumulativeDist(); break;
-      case CENTROID  : CList_->FindBestRepFrames_Centroid(); break;
-      case CUMULATIVE_NOSIEVE: CList_->FindBestRepFrames_NoSieve_CumulativeDist(); break;
+      case CUMULATIVE: CList_->FindBestRepFrames_CumulativeDist(nRepsToSave_); break;
+      case CENTROID  : CList_->FindBestRepFrames_Centroid(nRepsToSave_); break;
+      case CUMULATIVE_NOSIEVE: CList_->FindBestRepFrames_NoSieve_CumulativeDist(nRepsToSave_); break;
     }
     cluster_post_bestrep.Stop();
     // DEBUG
@@ -803,45 +874,53 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, unsigned in
 // Analysis_Clustering::CreateCpopvtime()
 // NOTE: Should not be called if cpopvtimefile is NULL
 void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, unsigned int maxFrames ) {
-  std::vector<int> Pop(CList.Nclusters(), 0);
+  mprintf("\tCalculating cluster population vs time for each cluster.\n");
   // Set up output data sets
-  std::vector<DataSet*> DSL;
+  std::vector<DataSet_float*> Cpop;
   MetaData md(cnumvtime_->Meta().Name(), "Pop");
+  DataSet::SizeArray dsize(1, maxFrames);
   for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
     md.SetIdx( cnum );
-    DSL.push_back(masterDSL_->AddSet( DataSet::FLOAT, md ));
-    if (DSL.back() == 0) {
+    DataSet_float* ds = (DataSet_float*)masterDSL_->AddSet( DataSet::FLOAT, md );
+    if (ds == 0) {
       mprinterr("Error: Could not allocate cluster pop v time DataSet.\n");
       return;
     }
-    cpopvtimefile_->AddDataSet( DSL.back() );
+    ds->Allocate( dsize );
+    Cpop.push_back( ds );
+    // SANITY CHECK
+    if (cpopvtimefile_ != 0)
+      cpopvtimefile_->AddDataSet( ds );
   }
-  // Set up normalization
-  std::vector<double> Norm;
-  if (norm_pop_ == CLUSTERPOP) {
-    int cnum = 0;
-    Norm.resize(CList.Nclusters(), 1.0);
-    for (ClusterList::cluster_iterator C = CList.begincluster(); 
-                                       C != CList.endcluster(); ++C)
-      Norm[cnum++] = (double)((*C).Nframes());
-  }
-  // Assumes cnumvtime has been calcd and not gracecolor!
-  double norm = 1.0;
-  DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>( *cnumvtime_ );
-  for (unsigned int frame = 0; frame < maxFrames; ++frame) {
-    int cluster_num = cnum_temp[frame];
-    // Noise points are -1
-    if (cluster_num > -1)
-      Pop[cluster_num]++;
-    for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
-      // Normalization
-      if (norm_pop_ == CLUSTERPOP)
-        norm = Norm[cnum];
-      else if (norm_pop_ == FRAME)
-        norm = (double)(frame + 1);
-      //float f = ((double)Pop[cnum] * Norm[cnum]);
-      float f = (float)((double)Pop[cnum] / norm);
-      DSL[cnum]->Add(frame, &f);
+  int cnum = 0;
+  // Loop over all clusters
+  for (ClusterList::cluster_iterator C = CList.begincluster(); C != CList.endcluster(); ++C, ++cnum)
+  {
+    DataSet_float& pvt = static_cast<DataSet_float&>( *(Cpop[cnum]) );
+    float pop = 0.0;
+    // Loop over all frames in cluster
+    for (ClusterNode::frame_iterator f = C->beginframe(); f != C->endframe(); ++f)
+    {
+      if (*f > (int)pvt.Size())
+        pvt.Resize( *f, pop );
+      pop = pop + 1.0;
+      pvt[*f] = pop;
+    }
+    // Ensure pop v time set is maxFrames long
+    if (pvt.Size() < maxFrames)
+      pvt.Resize( maxFrames, pop );
+    // Normalization
+    if (norm_pop_ == CLUSTERPOP) {
+      float norm = 1.0 / (float)C->Nframes();
+      for (unsigned int frm = 0; frm < maxFrames; ++frm)
+        pvt[frm] = pvt[frm] * norm;
+    } else if (norm_pop_ == FRAME) {
+      float norm = 1.0;
+      for (unsigned int frm = 0; frm < maxFrames; ++frm)
+      {
+        pvt[frm] = pvt[frm] / norm;
+        norm = norm + 1.0;
+      }
     }
   }
 }
@@ -999,7 +1078,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = coords_->TopPtr();
   if (clusterout.PrepareTrajWrite(singlerepfile_, ArgList(), clusterparm,
-                                  coords_->CoordsInfo(), CList.Nclusters(),
+                                  coords_->CoordsInfo(), CList.Nclusters() * nRepsToSave_,
                                   singlerepfmt_)) 
   {
     mprinterr("Error: Could not set up single trajectory for represenatatives %s for write.\n",
@@ -1013,8 +1092,12 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator cluster = CList.begincluster(); 
                                      cluster != CList.endcluster(); ++cluster) 
   {
-   coords_->GetFrame( cluster->BestRepFrame(), clusterframe );
-   clusterout.WriteSingle(framecounter++, clusterframe);
+    for (ClusterNode::RepPairArray::const_iterator rep = cluster->BestReps().begin();
+                                                   rep != cluster->BestReps().end(); ++rep)
+    {
+      coords_->GetFrame( rep->first, clusterframe );
+      clusterout.WriteSingle(framecounter++, clusterframe);
+    }
   }
   // Close traj
   clusterout.EndTraj();
@@ -1034,25 +1117,54 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
-    Trajout_Single clusterout;
-    // Get best rep frame # 
-    int framenum = C->BestRepFrame();
-    // Create filename based on frame #
-    std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
-    if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
-    cfilename += tmpExt;
-    // Set up trajectory file.
-    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
-                                    coords_->CoordsInfo(), 1, reptrajfmt_))
-    {
-      mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
-                cfilename.c_str());
-       return;
+    if (writeRepFrameNum_) {
+      // Each rep from cluster to separate file.
+      for (ClusterNode::RepPairArray::const_iterator rep = C->BestReps().begin();
+                                                     rep != C->BestReps().end(); ++rep)
+      {
+        Trajout_Single clusterout;
+        // Get best rep frame # 
+        int framenum = rep->first;
+        // Create filename based on cluster number and frame #
+        std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num()) +
+                                ("." + integerToString(framenum+1)) + tmpExt;
+        // Set up trajectory file.
+        if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+                                        coords_->CoordsInfo(), 1, reptrajfmt_))
+        {
+          mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
+                    cfilename.c_str());
+          return;
+        }
+        // Write cluster rep frame
+        coords_->GetFrame( framenum, clusterframe );
+        clusterout.WriteSingle(framenum, clusterframe);
+        // Close traj
+        clusterout.EndTraj();
+      }
+    } else {
+      // Each rep from cluster to single file.
+      Trajout_Single clusterout;
+      // Create filename based on cluster number
+      std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num()) + tmpExt;
+      // Set up trajectory file.
+      if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+                                      coords_->CoordsInfo(), nRepsToSave_, reptrajfmt_))
+      {
+        mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
+                  cfilename.c_str());
+        return;
+      }
+      int framecounter = 0;
+      for (ClusterNode::RepPairArray::const_iterator rep = C->BestReps().begin();
+                                                     rep != C->BestReps().end(); ++rep)
+      {
+        // Write cluster rep frame
+        coords_->GetFrame( rep->first, clusterframe );
+        clusterout.WriteSingle( framecounter++, clusterframe );
+      }
+      // Close traj
+      clusterout.EndTraj();
     }
-    // Write cluster rep frame
-    coords_->GetFrame( framenum, clusterframe );
-    clusterout.WriteSingle(framenum, clusterframe);
-    // Close traj
-    clusterout.EndTraj();
   }
 }

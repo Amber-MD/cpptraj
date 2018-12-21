@@ -58,10 +58,10 @@ void Parallel::dbgprintf(const char* format, ...) {
   return;
 }
 
-/** Open a file named Thread.worldrank for this thread */
+/** Open a file named Process.worldrank for this process */
 int Parallel::debug_init() {
   char outfilename[32];
-  sprintf(outfilename, "Thread.%03i", world_.Rank());
+  sprintf(outfilename, "Process.%03i", world_.Rank());
   mpidebugfile_ = fopen(outfilename, "w");
   if (mpidebugfile_ == NULL) {
     fprintf(stderr,"[%i]\tCould not open debug file:\n", world_.Rank());
@@ -74,7 +74,7 @@ int Parallel::debug_init() {
   return 0;
 }
 
-/** Close Thread.worldrank file.  */
+/** Close Process.worldrank file.  */
 int Parallel::debug_end() {
   if (mpidebugfile_ != 0)
     fclose(mpidebugfile_);
@@ -97,7 +97,7 @@ int Parallel::Init(int argc, char** argv) {
   //char processor_name[MPI_MAX_PROCESSOR_NAME];
   //int namelen;
   //MPI_Get_processor_name(processor_name, &namelen);
-  //printf("DEBUG: Thread %i of %i on %s\n", world_.Rank(), world_.Size(), processor_name);
+  //printf("DEBUG: Process %i of %i on %s\n", world_.Rank(), world_.Size(), processor_name);
   return 0;
 }
 
@@ -125,13 +125,13 @@ int Parallel::Abort(int errcode) {
 /** Trajectory and Ensemble communicators are set up orthogonal to one
   * another. In row-major notation, Trajectory communicators are set up
   * across rows, and Ensemble communicators are set up down columns. For
-  * example, if reading in 2 ensemble members with 3 threads per member
+  * example, if reading in 2 ensemble members with 3 processes per member
   * (world size 6), the layout would be:
   *   0 1 2 (member 0)
   *   3 4 5 (member 1)
-  * Threads 0 and 3 would read the first third of the trajectories, etc.
+  * Processes 0 and 3 would read the first third of the trajectories, etc.
   */
-int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
+int Parallel::SetupComms(int ngroups, bool allowFewerProcessesThanGroups) {
   if (ngroups < 1) {
     // If ngroups < 1 assume we want to reset comm info
     //fprintf(stdout, "DEBUG: Resetting ensemble/traj comm info.\n");
@@ -152,32 +152,32 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
       return 1;
     }
   } else if (world_.Size() < ngroups) {
-    // Fewer threads than groups. Make sure that # threads is a
+    // Fewer processes than groups. Make sure that # processes is a
     // multiple of ngroups. This is required for things like AllGather to work
     // properly.
-    if (!allowFewerThreadsThanGroups) {
-      fprintf(stderr,"Error: Fewer threads than groups currently not allowed.\n");
+    if (!allowFewerProcessesThanGroups) {
+      fprintf(stderr,"Error: Fewer processes than groups currently not allowed.\n");
       return 1;
     }
     trajComm_.Reset();
     ensembleComm_.Reset();
     if ( (ngroups % world_.Size()) != 0 ) {
-      fprintf(stderr,"Error: # of replicas (%i) must be a multiple of # threads (%i)\n",
+      fprintf(stderr,"Error: # of replicas (%i) must be a multiple of # processes (%i)\n",
               ngroups, world_.Size());
       return 1;
     }
     ensemble_size_ = ngroups;
-    n_ens_members_ = world_.DivideAmongThreads( ensemble_beg_, ensemble_end_, ensemble_size_ );
+    n_ens_members_ = world_.DivideAmongProcesses( ensemble_beg_, ensemble_end_, ensemble_size_ );
     int ID = world_.Rank();
     trajComm_ = world_.Split( ID );
     // NOTE: This effectively duplicates World
     ensembleComm_ = world_.Split( 0 );
     world_.Barrier();
   } else {
-    // Threads >= groups. Make sure that ngroups is a multiple of total # threads.
+    // Processes >= groups. Make sure that ngroups is a multiple of total # processes.
     if ( (world_.Size() % ngroups) != 0 ) {
       if ( world_.Master() )
-        fprintf(stderr,"Error: # of threads (%i) must be a multiple of # replicas (%i)\n",
+        fprintf(stderr,"Error: # of processes (%i) must be a multiple of # replicas (%i)\n",
                 world_.Size(), ngroups);
       return 1;
     }
@@ -233,7 +233,7 @@ int Parallel::SetupComms(int ngroups, bool allowFewerThreadsThanGroups) {
 
 /** Can be placed inside the code so debugger can be attached. */
 void Parallel::Lock() {
-  fprintf(stdout,"[%i] Thread is locked. Waiting for debugger.\n", world_.Rank());
+  fprintf(stdout,"[%i] Process is locked. Waiting for debugger.\n", world_.Rank());
   int PleaseWait = 1;
   while (PleaseWait == 1)
     PleaseWait *= 1;
@@ -300,20 +300,20 @@ void Parallel::Comm::Reset() {
 }
 
 /** Split given number of elements as evenly as possible among ranks.
-  * \return Number of elements this thread is responsible for.
+  * \return Number of elements this process is responsible for.
   */
-int Parallel::Comm::DivideAmongThreads(int& my_start, int& my_stop, int maxElts) const
+int Parallel::Comm::DivideAmongProcesses(int& my_start, int& my_stop, int maxElts) const
 {
-  int frames_per_thread = maxElts / size_;
+  int frames_per_process = maxElts / size_;
   int remainder         = maxElts % size_;
-  int my_frames         = frames_per_thread + (int)(rank_ < remainder);
-  // Figure out where this thread starts and stops
+  int my_frames         = frames_per_process + (int)(rank_ < remainder);
+  // Figure out where this process starts and stops
   my_start = 0;
   for (int rnk = 0; rnk != rank_; rnk++)
     if (rnk < remainder)
-      my_start += (frames_per_thread + 1);
+      my_start += (frames_per_process + 1);
     else
-      my_start += (frames_per_thread);
+      my_start += (frames_per_process);
   my_stop = my_start + my_frames;
   return my_frames;
 }

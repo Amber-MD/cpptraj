@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
-           nh.dat rms.nofit.dat
+           nh.dat rms.nofit.dat last10.dat distance.dat
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
@@ -39,6 +39,15 @@ set Natom = atoms inmask *
 last10 = \$Natom - 10
 show
 atoms "@\$last10 - \$Natom" out last10.dat
+run
+
+# Test reading in a comma-separated list of strings
+clear trajin
+for TRAJ in ../tz2.nc,../tz2.crd,../tz2.pdb,../tz2.rst7
+  trajin \$TRAJ lastframe
+done
+distance D1-12 :1 :12 out distance.dat
+run
 EOF
 RunCpptraj "$TESTNAME"
 DoTest TRP.vec.dat.save TRP.vec.dat
@@ -48,6 +57,7 @@ DoTest TRP.tocenter.dat.save TRP.tocenter.dat
 DoTest nh.dat.save nh.dat
 DoTest rms.nofit.dat.save rms.nofit.dat
 DoTest last10.dat.save last10.dat
+DoTest distance.dat.save distance.dat
 
 EndTest
 exit 0

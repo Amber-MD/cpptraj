@@ -3,8 +3,11 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles cpptraj.offset.in rem.crd.combined gzip.rem.crd.combined bzip2.rem.crd.combined
+CleanFiles cpptraj.offset.in rem.crd.combined gzip.rem.crd.combined \
+           bzip2.rem.crd.combined phi.dat.save phi.dat
 
+TESTNAME='Trajectory read with offset tests'
+Requires maxthreads 13
 # Test 1
 cat > cpptraj.offset.in <<EOF
 noprogress
@@ -51,9 +54,23 @@ trajin rem.crd.003.bz2 1 10 5
 trajout bzip2.rem.crd.combined 
 EOF
   INPUT="-i cpptraj.offset.in"
-  RunCpptraj "Bzip2ed trajectory read with offsets."
+  RunCpptraj "$UNITNAME"
   DoTest rem.crd.save bzip2.rem.crd.combined
 fi
+
+# Test 4
+UNITNAME='Start argument offset'
+cat > cpptraj.offset.in <<EOF
+parm ala2.99sb.mbondi2.parm7
+trajin rem.crd.000 5 10
+dihedral phi0 :1@C :2@N :2@CA :2@C out phi.dat.save noheader
+run
+clear trajin
+trajin rem.crd.000 -5
+dihedral phi1 :1@C :2@N :2@CA :2@C out phi.dat noheader
+EOF
+RunCpptraj "$UNITNAME"
+DoTest phi.dat.save phi.dat
 
 EndTest
 

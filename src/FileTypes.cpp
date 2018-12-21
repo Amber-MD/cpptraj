@@ -1,4 +1,6 @@
 #include <set>
+#include <algorithm> // std::max
+#include <cstring> // strlen
 #include "FileTypes.h"
 #include "CpptrajStdio.h"
 // FileTypes::GetFormatFromArg()
@@ -59,7 +61,10 @@ std::string FileTypes::FormatKeywords(KeyPtr begin, FileFormatType ftype) {
     keywords.assign("Keywords:");
     for (std::set<std::string>::const_iterator key = Keys.begin();
                                                key != Keys.end(); ++key)
+    {
+      if (key != Keys.begin()) keywords.append(",");
       keywords.append(" " + *key);
+    }
   }
   return keywords;
 }
@@ -73,33 +78,57 @@ std::string FileTypes::FormatExtensions(KeyPtr begin, FileFormatType ftype) {
     extensions.assign("Extensions:");
     for (std::set<std::string>::const_iterator ext = Exts.begin();
                                                ext != Exts.end(); ++ext)
+    {
+      if (ext != Exts.begin()) extensions.append(",");
       extensions.append(" '" + *ext + "'");
+    }
   }
   return extensions;
 }
-// FileTypes::ReadOptions()
-void FileTypes::ReadOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
-  for (int i = 0; i < UNK; i++) {
-    std::string fmtExtensions = FormatExtensions(begin, i);
-    if (allocArray[i].ReadHelp || !fmtExtensions.empty()) {
-      mprintf("    Options for %s:", allocArray[i].Description);
-      if (!fmtExtensions.empty()) mprintf(" %s", fmtExtensions.c_str());
-      mprintf("\n");
-      if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp();
-    }
-  }
+
+/** \return String containing format keywords and extensions. */
+std::string FileTypes::FmtString(KeyPtr begin, FileFormatType ftype) {
+  std::string keys = FormatKeywords(begin, ftype);
+  std::string exts = FormatExtensions(begin, ftype);
+  if (!exts.empty()) keys.append("; " + exts);
+  return keys;
 }
-// FileTypes::WriteOptions()
-void FileTypes::WriteOptions(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK) {
-  for (int i = 0; i < UNK; i++) {
-    std::string fmtExtensions = FormatExtensions(begin, i);
-    std::string fmtKeywords =  FormatKeywords(begin, i);
-    if (allocArray[i].WriteHelp || !fmtExtensions.empty() || !fmtKeywords.empty()) {
-      mprintf("    Options for %s:", allocArray[i].Description);
-      if (!fmtKeywords.empty()) mprintf(" %s,", fmtKeywords.c_str());
-      if (!fmtExtensions.empty()) mprintf(" %s", fmtExtensions.c_str()); 
-      mprintf("\n");
-      if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp();
+
+// FileTypes::Options()
+/** \return 1 if all options listed, 0 if specific option was listed. */
+void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
+                            std::string const& fkey, OptType otype)
+{
+  if (fkey.empty()) {
+    // Everything
+    // For nice formatting, get size of largest string
+    unsigned int maxsize = 0;
+    for (int i = 0; i < UNK; i++)
+      maxsize = std::max(maxsize, (unsigned int)strlen(allocArray[i].Description));
+    for (int i = 0; i < UNK; i++) {
+      std::string fmtstr = FmtString(begin, i);
+      // No string means do not print format; no keys or extensions.
+      if (!fmtstr.empty())
+        mprintf("      %*s: %s\n", maxsize, allocArray[i].Description, fmtstr.c_str());
+    }
+  } else {
+    // Specific format
+    FileFormatType ft = GetFormatFromString(begin, fkey, UNK);
+    static const char* Ostr[] = {"read", "write"};
+    if (ft == UNK)
+      mprintf("    Invalid %s format specifier: %s\n", Ostr[otype], fkey.c_str());
+    else {
+      std::string fmtstr = FmtString(begin, ft);
+      // Will this ever be empty?
+      int i = (int)ft;
+      static const char* Ustr[] = {"Read", "Write"};
+      mprintf("    %s options for %s: %s\n", Ustr[otype],allocArray[i].Description, fmtstr.c_str());
+      switch (otype) {
+        case READOPT:
+          if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp(); break;
+        case WRITEOPT:
+          if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp(); break;
+      }
     }
   }
 }

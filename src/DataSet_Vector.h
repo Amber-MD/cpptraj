@@ -4,10 +4,11 @@
 #include "DataSet_1D.h" // FIXME remove after Correlation gone
 #include "Vec3.h"
 #include "ComplexArray.h"
+#include "SymbolExporting.h"
 class DataSet_Vector : public DataSet {
     static const ComplexArray COMPLEXBLANK;
   public:
-    static const Vec3 ZERO; ///< Vector of {0,0,0}
+    static CPPTRAJ_EXPORT const Vec3 ZERO; ///< Vector of {0,0,0}
     typedef std::vector<Vec3> Varray;
     DataSet_Vector();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Vector();}

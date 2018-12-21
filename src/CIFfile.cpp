@@ -49,6 +49,11 @@ static inline bool HasEndQuote(std::string const& strIn) {
   return false;
 }
 
+static inline std::string RemoveEndQuote(std::string const& strIn) {
+  std::string tmps = strIn.substr(0, strIn.size()-1);
+  return tmps;
+}
+
 /** Split given line into a certain number of tokens. Data might be
   * split across multiple lines.
   * \param NexpectedCols Number of expected data cols.
@@ -91,6 +96,8 @@ int CIFfile::DataBlock::GetColumnData(int NexpectedCols, BufferedLine& infile, b
       columnData_.back().back().append( " " + std::string(tkn) );
       // Check for an end quote.
       if (HasEndQuote( columnData_.back().back() )) {
+        // Remove that end quote.
+        columnData_.back().back() = RemoveEndQuote( columnData_.back().back() );
         insideQuote = false;
         nReadCols++;
       }
@@ -110,8 +117,18 @@ int CIFfile::DataBlock::GetColumnData(int NexpectedCols, BufferedLine& infile, b
       } else {
         columnData_.back().push_back( std::string(tkn) );
         // Check if column began and did not end with a quote.
-        if ( IsQuoteChar(columnData_.back().back()[0]) && !HasEndQuote(columnData_.back().back()) )
-        insideQuote = true;
+        if (IsQuoteChar(columnData_.back().back()[0])) {
+          // Remove leading quote.
+          std::string tmps = columnData_.back().back().substr(1);
+          columnData_.back().back() = tmps;
+          if ( !HasEndQuote((columnData_.back().back())) ) {
+            // Still need to look for the end quote.
+            insideQuote = true;
+          } else {
+            // We have the end quote. Remove it.
+            columnData_.back().back() = RemoveEndQuote( columnData_.back().back() );
+          }
+        }
       }
       if (!insideSemi && !insideQuote) nReadCols++;
     }

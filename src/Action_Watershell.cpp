@@ -1,4 +1,5 @@
 #include <cmath> // floor
+#include <algorithm> // min, max
 #ifdef _OPENMP
 #  include <omp.h>
 #endif

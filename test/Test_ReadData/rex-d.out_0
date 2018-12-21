@@ -1,0 +1,472 @@
+  
+ CHARMM>    energy DOMDEC split off
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+
+ <MKIMAT2>: updating the image atom lists and remapping
+ Transformation   Atoms  Groups  Residues  Min-Distance
+    1  C001 has     111      37      37        1.76
+    2  C002 has    1023     341     341        0.00
+    3  C003 has      87      29      29        0.00
+    4  C004 has    1038     346     346        0.00
+    5  C005 has    6840    2280    2280        0.00
+    6  C006 has    1041     347     347        0.00
+    7  C007 has    1056     351     351        0.00
+    8  C008 has    6876    2289    2283        0.00
+    9  C009 has    1023     341     341        0.00
+   10  C010 has    6840    2279    2279        0.00
+   12  C012 has     171      56      56        0.66
+   13  C013 has    1092     361     355        0.00
+   14  C014 has      99      33      33        1.29
+ Total of59817 atoms and19927 groups and19909 residues were included
+
+ <MAKGRP> found      0 image group exclusions.
+ <PME> Total heap storage needed =     1846527
+
+ NONBOND OPTION FLAGS: 
+     ELEC     VDW      ATOMs    CDIElec  FSHIft   VATOm    VFSWIt  
+     BYCB     NOEXtnd  EWALd   
+ CUTNB  = 14.000 CTEXNB =999.000 CTONNB =  8.000 CTOFNB = 12.000
+ CGONNB =  0.000 CGOFNB = 10.000
+ WMIN   =  1.500 WRNMXD =  0.500 E14FAC =  1.000 EPS    =  1.000
+ NBXMOD =      5
+ PME EWALD OPTIONS: KAPPA  =  0.320  QCOR =  0.000  Bspline order = 6
+ FFTX=  80  FFTY=  80  FFTZ=  80
+                Using Pub FFT
+                Real-to-Complex FFT
+                Using Column FFT 
+ There are 14667658 atom  pairs and    32633 atom  exclusions.
+ There are        0 group pairs and       13 group exclusions.
+<domdec_dr_common> No direct/recip split, using all nodes on both
+Intel CPU | Using AVX version of non-bonded force loops
+Initializing DOMDEC with NDIR =   1  1  1
+Dynamic Load Balancing disabled
+Splitting recip cores into (y by z):   1 by    1
+ Generating nonbond list with Exclusion mode = 5
+ == PRIMARY == SPACE FOR 19067954 ATOM PAIRS AND        0 GROUP PAIRS
+ NBLIST_BUILDER Allocating grid, nx,ny,nz, local nx,ny,nz= 10 10 10  8  8  8
+ENER ENR:  Eval#     ENERgy      Delta-E         GRMS
+ENER INTERN:          BONDs       ANGLes       UREY-b    DIHEdrals    IMPRopers
+ENER EXTERN:        VDWaals         ELEC       HBONds          ASP         USER
+ENER EWALD:          EWKSum       EWSElf       EWEXcl       EWQCor       EWUTil
+ ----------       ---------    ---------    ---------    ---------    ---------
+ENER>        0-104167.70637      0.00000      3.60762
+ENER INTERN>        6.52461     14.72964      0.73955     13.36393      0.58568
+ENER EXTERN>    11647.98699-105586.17886      0.00000      0.00000      0.00000
+ENER EWALD>       749.15176-677583.23052 666568.62085      0.00000      0.00000
+ ----------       ---------    ---------    ---------    ---------    ---------
+  
+ CHARMM>     
+  
+ CHARMM>    dynamics restart -
+ CHARMM>             leap -
+ CHARMM>             cpt -
+ CHARMM>             firstt 300. -
+ CHARMM>             finalt 300. -
+ CHARMM>             tbath 300. -       ! former firstt 240
+ CHARMM>             nstep 20 -
+ CHARMM>             timestep 0.001 -
+ CHARMM>             ntrfrq 1000 -
+ CHARMM>             pcons -
+ CHARMM>             pmass 0.0 -
+ CHARMM>             pgamma 20.0 -
+ CHARMM>             pref 1.0 -     ! DO NVT, pmass = 0.0
+ CHARMM>             hoover -
+ CHARMM>             reft 300.0 -
+ CHARMM>             tmass @mytmass -              ! constant temperature
+ CHARMM>             echeck 1000.0 -
+ CHARMM>             nprint 5 -
+ CHARMM>             iprfreq 40000 -
+ CHARMM>             kunit 71 -
+ CHARMM>             isvfrq 0 -
+ CHARMM>             iunwri 32 -
+ CHARMM>             iunread 17 -
+ CHARMM>             nsavc  1000 -
+ CHARMM>             iuncrd 16 !-
+ Parameter: MYTMASS -> "39063.6054"
+REPD> Using pressure/volume correction for exchange calc.
+  IUNREA = 17         IUNWRI = 32          IUNOS = -1
+  IUNCRD = 16         IUNVEL = -1          KUNIT = 71
+ TITLE>  * NPT AT 310 K
+ TITLE>  *  DATE:    11/18/16     19:36:53      CREATED BY USER: pourmousa
+ TITLE>  *
+ READYN> dynamics restart file was read. Current step=10000000
+ READYN> Stored seeds for random number generator ignored.
+ READYN> Maybe restarting from different count of processors.
+ NSTEP  =******  JHSTRT =     0
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+
+ NONBOND OPTION FLAGS: 
+     ELEC     VDW      ATOMs    CDIElec  FSHIft   VATOm    VFSWIt  
+     BYCB     NOEXtnd  EWALd   
+ CUTNB  = 14.000 CTEXNB =999.000 CTONNB =  8.000 CTOFNB = 12.000
+ CGONNB =  0.000 CGOFNB = 10.000
+ WMIN   =  1.500 WRNMXD =  0.500 E14FAC =  1.000 EPS    =  1.000
+ NBXMOD =      5
+ PME EWALD OPTIONS: KAPPA  =  0.320  QCOR =  0.000  Bspline order = 6
+ FFTX=  80  FFTY=  80  FFTZ=  80
+                Using Pub FFT
+                Real-to-Complex FFT
+                Using Column FFT 
+ There are 24248542 atom  pairs and    32633 atom  exclusions.
+ There are        0 group pairs and       13 group exclusions.
+Intel CPU | Using AVX version of non-bonded force loops
+Initializing DOMDEC with NDIR =   1  1  1
+Dynamic Load Balancing disabled
+ PRNHBD: CUToff Hydrogen Bond  distance =    0.5000   Angle =   90.0000
+         CuT switching ON HB dist. =     3.5000  OFf HB dist. =    4.0000
+         CuT switching ON Hb Angle =    50.0000  OFf Hb Angle =   70.0000
+         ACCEptor antecedents included
+         All hydrogen bonds for each hydrogen will be found
+         Hydrogen bonds between excluded atoms will be kept
+
+ DCNTRL> Constant pressure requested.
+         Reference pressure tensor (XX,YY,ZZ)=        1.0       1.0       1.0 atm.
+
+         Reference pressure tensor (XY,XZ,YZ)=        0.0       0.0       0.0 atm.
+
+REPD> Setting temperature from REPD input:   300.0000
+   NSTEP =       20    NSAVC =     1000    NSAVV =        0
+  ISCALE =        0   ISCVEL =        0   IASORS =        0
+  IASVEL =        1   ICHECW =        1   NTRFRQ =     1000
+  IHTFRQ =        0   IEQFRQ =        0   NPRINT =        5
+  INBFRQ =       -1   IHBFRQ =        0   IPRFRQ =       20
+  ILBFRQ =       50   IMGFRQ =       -1
+  ISVFRQ =        0   NCYCLE =        5    NSNOS =       10
+  FIRSTT =   300.000  TEMINC =     5.000  TSTRUC =  -999.000
+  FINALT =   300.000  TWINDH =    10.000  TWINDL =   -10.000
+
+  TIME STEP =  2.04548E-02 AKMA       1.00000E-03 PS
+
+  RANDOM NUM. GEN. SEED(S) = 31415927 62831854 94247781 125663708
+
+           SHAKE TOLERANCE =     0.10000E-09
+ NUMBER OF DEGREES OF FREEDOM =  65052
+DYNA DYN: Step         Time      TOTEner        TOTKe       ENERgy  TEMPerature
+DYNA PROP:             GRMS      HFCTote        HFCKe       EHFCor        VIRKe
+DYNA INTERN:          BONDs       ANGLes       UREY-b    DIHEdrals    IMPRopers
+DYNA EXTERN:        VDWaals         ELEC       HBONds          ASP         USER
+DYNA EWALD:          EWKSum       EWSElf       EWEXcl       EWQCor       EWUTil
+DYNA PRESS:            VIRE         VIRI       PRESSE       PRESSI       VOLUme
+DYNA XTLE:                       XTLTe         SURFtension  XTLPe        XTLtemp
+ ----------       ---------    ---------    ---------    ---------    ---------
+DYNA>        0  10000.00000 -84223.70378  19944.00259-104167.70637    308.56172
+DYNA PROP>         16.41896 -84213.76201  19973.84324      9.94176      0.00000
+DYNA INTERN>        6.52461     14.72964      0.73955     13.36393      0.58568
+DYNA EXTERN>    11647.98699-105586.17886      0.00000      0.00000      0.00000
+DYNA EWALD>       749.15176-677583.23052 666568.62085      0.00000      0.00000
+DYNA PRESS>         0.00000 -12906.28748      0.00000     86.60058 324317.81038
+DYNA XTLE>                  -84218.59427     41.43527     71.62980     65.62035
+ ----------       ---------    ---------    ---------    ---------    ---------
+ Crystal Parameters : Crystal Type = CUBI
+      DYNA A     =   68.70530 B    =   68.70530 C     =   68.70530
+      DYNA Alpha =   90.00000 Beta =   90.00000 Gamma =   90.00000
+      DYNA PIXX =       84.19 PIYY =       3.77 PIZZ =     171.84
+      DYNA PIXY =      161.49 PIXZ =      59.21 PIYZ =     122.38
+      DYNA Gradient Norm =    0.00000
+
+DYNA>        5  10000.00500 -84207.86444  19970.15078-104178.01522    308.96627
+DYNA PROP>         16.42032 -84199.05319  19998.77799      8.81125      0.00000
+DYNA INTERN>        2.88474     15.76484      0.79507     15.79600      0.69054
+DYNA EXTERN>    11683.86500-105625.33296      0.00000      0.00000      0.00000
+DYNA EWALD>       742.01483-677583.23052 666568.73725      0.00000      0.00000
+DYNA PRESS>         0.00000 -12777.45815      0.00000    117.50733 324322.37797
+DYNA XTLE>                  -84156.12010     50.39267     52.71347      0.00000
+ ----------       ---------    ---------    ---------    ---------    ---------
+ Crystal Parameters : Crystal Type = CUBI
+      DYNA A     =   68.70563 B    =   68.70563 C     =   68.70563
+      DYNA Alpha =   90.00000 Beta =   90.00000 Gamma =   90.00000
+      DYNA PIXX =       89.57 PIYY =      49.21 PIZZ =     213.73
+      DYNA PIXY =      192.46 PIXZ =      23.81 PIYZ =     104.62
+      DYNA Gradient Norm =    0.00000
+
+REPD> New exchange calculation in use, dimension      1
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+Intel CPU | Using AVX version of non-bonded force loops
+Initializing DOMDEC with NDIR =   1  1  1
+Dynamic Load Balancing disabled
+DYNA>       10  10000.01000 -84203.99573  19981.35934-104185.35506    309.13969
+DYNA PROP>         16.42441 -84194.09690  20011.46700      9.89882      0.00000
+DYNA INTERN>        3.46517     14.38108      0.78324     17.44079      0.36211
+DYNA EXTERN>    11695.21367-105643.85018      0.00000      0.00000      0.00000
+DYNA EWALD>       741.11506-677583.23052 666568.96452      0.00000      0.00000
+DYNA PRESS>         0.00000 -12726.41367      0.00000    129.91013 324326.51092
+DYNA XTLE>                  -84156.02767     41.28360     47.89190      0.00000
+ ----------       ---------    ---------    ---------    ---------    ---------
+ Crystal Parameters : Crystal Type = CUBI
+      DYNA A     =   68.70592 B    =   68.70592 C     =   68.70592
+      DYNA Alpha =   90.00000 Beta =   90.00000 Gamma =   90.00000
+      DYNA PIXX =       77.15 PIYY =     110.73 PIZZ =     201.85
+      DYNA PIXY =      247.48 PIXZ =      11.50 PIYZ =     104.66
+      DYNA Gradient Norm =    0.00000
+
+REPD> New exchange calculation in use, dimension      1
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+Intel CPU | Using AVX version of non-bonded force loops
+Initializing DOMDEC with NDIR =   1  1  1
+Dynamic Load Balancing disabled
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+Intel CPU | Using AVX version of non-bonded force loops
+Initializing DOMDEC with NDIR =   1  1  1
+Dynamic Load Balancing disabled
+DYNA DYN: Step         Time      TOTEner        TOTKe       ENERgy  TEMPerature
+DYNA PROP:             GRMS      HFCTote        HFCKe       EHFCor        VIRKe
+DYNA INTERN:          BONDs       ANGLes       UREY-b    DIHEdrals    IMPRopers
+DYNA EXTERN:        VDWaals         ELEC       HBONds          ASP         USER
+DYNA EWALD:          EWKSum       EWSElf       EWEXcl       EWQCor       EWUTil
+DYNA PRESS:            VIRE         VIRI       PRESSE       PRESSI       VOLUme
+DYNA XTLE:                       XTLTe         SURFtension  XTLPe        XTLtemp
+ ----------       ---------    ---------    ---------    ---------    ---------
+DYNA>       10  10000.01000 -84207.28689  19976.12660-104183.41349    309.05873
+DYNA PROP>         16.42419 -84197.28950  20006.09220      9.99739      0.00000
+DYNA INTERN>        3.33066     14.24853      0.75713     17.45209      0.35614
+DYNA EXTERN>    11695.34970-105644.72060      0.00000      0.00000      0.00000
+DYNA EWALD>       744.08064-677583.23052 666568.96274      0.00000      0.00000
+DYNA PRESS>         0.00000 -12721.81950      0.00000    130.14332 324326.51092
+DYNA XTLE>                  -84156.02767     41.28360     47.89190      0.00000
+ ----------       ---------    ---------    ---------    ---------    ---------
+ Crystal Parameters : Crystal Type = CUBI
+      DYNA A     =   68.70592 B    =   68.70592 C     =   68.70592
+      DYNA Alpha =   90.00000 Beta =   90.00000 Gamma =   90.00000
+      DYNA PIXX =       77.25 PIYY =     111.04 PIZZ =     202.14
+      DYNA PIXY =      246.60 PIXZ =      11.65 PIYZ =     104.53
+      DYNA Gradient Norm =    0.00000
+
+DYNA>       15  10000.01500 -84216.13790  20031.88115-104248.01906    309.92133
+DYNA PROP>         16.42885 -84205.05978  20063.39165     11.07812      0.00000
+DYNA INTERN>        7.00758     10.67024      0.91596     15.72966      0.37975
+DYNA EXTERN>    11684.76105-105700.13370      0.00000      0.00000      0.00000
+DYNA EWALD>       746.56794-677583.23052 666569.31298      0.00000      0.00000
+DYNA PRESS>         0.00000 -12873.84647      0.00000    105.87722 324330.25059
+DYNA XTLE>                  -84159.18593     27.09743     55.28272      0.00000
+ ----------       ---------    ---------    ---------    ---------    ---------
+ Crystal Parameters : Crystal Type = CUBI
+      DYNA A     =   68.70618 B    =   68.70618 C     =   68.70618
+      DYNA Alpha =   90.00000 Beta =   90.00000 Gamma =   90.00000
+      DYNA PIXX =        4.24 PIYY =     155.21 PIZZ =     158.19
+      DYNA PIXY =      224.53 PIXZ =       5.78 PIYZ =     126.04
+      DYNA Gradient Norm =    0.00000
+
+REPD> New exchange calculation in use, dimension      1
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+Intel CPU | Using AVX version of non-bonded force loops
+Initializing DOMDEC with NDIR =   1  1  1
+Dynamic Load Balancing disabled
+DYNA>       20  10000.02000 -84239.29141  20146.29734-104385.58875    311.69151
+DYNA PROP>         16.43087 -84226.27863  20178.96586     13.01279      0.00000
+DYNA INTERN>        7.05259      9.78591      0.89045     13.52407      1.00394
+DYNA EXTERN>    11668.81726-105818.14102      0.00000      0.00000      0.00000
+DYNA EWALD>       745.33443-677583.23052 666569.37413      0.00000      0.00000
+DYNA PRESS>         0.00000 -13209.74304      0.00000     50.94675 324333.63439
+DYNA XTLE>                  -84159.64660     41.11865     75.72501      0.00000
+ ----------       ---------    ---------    ---------    ---------    ---------
+ Crystal Parameters : Crystal Type = CUBI
+      DYNA A     =   68.70642 B    =   68.70642 C     =   68.70642
+      DYNA Alpha =   90.00000 Beta =   90.00000 Gamma =   90.00000
+      DYNA PIXX =     -107.56 PIYY =     119.95 PIZZ =     140.45
+      DYNA PIXY =      153.18 PIXZ =     -25.36 PIYZ =     122.97
+      DYNA Gradient Norm =    0.00000
+
+ DYNAMC> Averages for the last 20 steps:
+AVER DYN: Step         Time      TOTEner        TOTKe       ENERgy  TEMPerature
+AVER PROP:             GRMS      HFCTote        HFCKe       EHFCor        VIRKe
+AVER INTERN:          BONDs       ANGLes       UREY-b    DIHEdrals    IMPRopers
+AVER EXTERN:        VDWaals         ELEC       HBONds          ASP         USER
+AVER EWALD:          EWKSum       EWSElf       EWEXcl       EWQCor       EWUTil
+AVER PRESS:            VIRE         VIRI       PRESSE       PRESSI       VOLUme
+AVER XTLE:                       XTLTe         SURFtension  XTLPe        XTLtemp
+ ----------       ---------    ---------    ---------    ---------    ---------
+AVER>       20  10000.02000 -84214.54270  20010.14723-104224.68992    309.58507
+AVER PROP>         16.42477 -84204.39933  20040.35442     10.14337      0.00000
+AVER INTERN>        4.97352     13.13766      0.83717     15.64835      0.56144
+AVER EXTERN>    11682.29361-105672.30224      0.00000      0.00000      0.00000
+AVER EWALD>       744.36222-677583.23052 666569.02885      0.00000      0.00000
+AVER PRESS>         0.00000 -12856.04885      0.00000    106.55132 324326.64271
+AVER XTLE>                  -84157.68923     39.78874     56.27504      0.00000
+ ----------       ---------    ---------    ---------    ---------    ---------
+ Lattice Parameters> Averages for the last 20 steps:
+ Crystal Parameters : Crystal Type = CUBI
+      AVER A     =   68.70593 B    =   68.70593 C     =   68.70593
+      AVER Alpha =   90.00000 Beta =   90.00000 Gamma =   90.00000
+      AVER PIXX =       37.39 PIYY =      99.29 PIZZ =     182.97
+      AVER PIXY =      206.37 PIXZ =      12.47 PIYZ =     114.68
+      AVER Gradient Norm =    0.00000
+
+ DYNAMC> RMS fluctuations for the last 20 steps:
+FLUC>       20  10000.02000      9.86953     57.65458     66.32319      0.89200
+FLUC PROP>          0.00401      8.90277     59.05195      1.47429      0.00000
+FLUC INTERN>        1.84019      2.40801      0.08973      1.34373      0.20745
+FLUC EXTERN>       10.98620     63.50694      0.00000      0.00000      0.00000
+FLUC EWALD>         2.40731      0.00000      0.27732      0.00000      0.00000
+FLUC PRESS>         0.00000    140.42235      0.00000     22.60642      4.51073
+FLUC XTLE>                       1.63013      8.40378      7.94813      0.00000
+ ----------       ---------    ---------    ---------    ---------    ---------
+ Lattice Parameters> RMS fluctuations for the last 20 steps:
+ Crystal Parameters : Crystal Type = CUBI
+      FLUC A     =    0.00032 B    =    0.00032 C     =    0.00032
+      FLUC Alpha =    0.00000 Beta =    0.00000 Gamma =    0.00000
+      FLUC PIXX =       64.03 PIYY =      47.98 PIZZ =      27.21
+      FLUC PIXY =       32.11 PIXZ =      19.85 PIYZ =      10.30
+      FLUC Gradient Norm =    0.00000
+
+
+     DRIFT/STEP (LAST-TOTAL):   -0.80793273      -0.80793273    
+     E AT STEP 0            :    -84195.916       -84195.916    
+     CORR. COEFFICIENT      :   -0.52329392      -0.52329392    
+REPD> New exchange calculation in use, dimension      1
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+Intel CPU | Using AVX version of non-bonded force loops
+Initializing DOMDEC with NDIR =   1  1  1
+Dynamic Load Balancing disabled
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+
+ SELECTED IMAGES ATOMS BEING CENTERED ABOUT  0.000000  0.000000  0.000000
+Intel CPU | Using AVX version of non-bonded force loops
+Initializing DOMDEC with NDIR =   1  1  1
+Dynamic Load Balancing disabled
+ WRIDYN: RESTart file was written at step10000020
+ VCLOSE: Closing unit   32 with status "keep"
+ERROR in DISPOS argument to VCLOSE: keep
+     Changing to KEEP
+
+     DETAILS ABOUT CENTRE OF MASS
+     POSITION          :   0.18993653       6.98074098E-02  -4.19307951E-02
+     VELOCITY          :  -1.36495741E-07  -1.82290899E-08  -2.38064702E-08
+     ANGULAR MOMENTUM  :   -10285.748       -3355.8265       -11635.781    
+     KINETIC ENERGY    :   1.90729372E-09
+  
+ CHARMM>    !         iasvel 1 -    ! Method for the assignment of velocities during heating and equil (gaussian)
+ CHARMM>    !         start
+ CHARMM>     
+  
+ CHARMM>    print energy
+PRIN ENR:  Eval#     ENERgy      Delta-E         GRMS
+PRIN INTERN:          BONDs       ANGLes       UREY-b    DIHEdrals    IMPRopers
+PRIN EXTERN:        VDWaals         ELEC       HBONds          ASP         USER
+PRIN EWALD:          EWKSum       EWSElf       EWEXcl       EWQCor       EWUTil
+ ----------       ---------    ---------    ---------    ---------    ---------
+PRIN>        1-104385.58736      0.00000     13.41699
+PRIN INTERN>        7.05327      9.78610      0.89058     13.52403      1.00389
+PRIN EXTERN>    11668.81763-105818.14085      0.00000      0.00000      0.00000
+PRIN EWALD>       745.33443-677583.23052 666569.37409      0.00000      0.00000
+ ----------       ---------    ---------    ---------    ---------    ---------
+  
+ CHARMM>     
+  
+ CHARMM>    !! Write Coordinates
+ CHARMM>    !OPEN UNIT 1 WRITe FORMatted NAME rex-d.pdb
+ CHARMM>    !WRITe COORdinate PDB UNIT 1
+ CHARMM>    !*  COORdinates
+ CHARMM>    !*
+ CHARMM>     
+  
+ CHARMM>    open unit 1 card write name rex-d.crd
+ VOPEN> Attempting to open::rex-d.crd_0::
+ OPNLGU> Unit  1 opened for WRITE access to /u/droe/Charmm/Tests/New-Testcases/c36/repdstr/HREMD-THAM-DOMDEC-4rep-TIP3P/rex-d.crd_0
+  
+ CHARMM>    write coor card unit 1
+ RDTITL> * PROTEIN
+ RDTITL> *
+ VCLOSE: Closing unit    1 with status "KEEP"
+  
+ CHARMM>    close unit 1
+ CLOLGU>  *****  WARNING  ***** Attempt to close unit that was not open.
+  
+ CHARMM>     
+  
+ CHARMM>    stop
+ VCLOSE: Closing unit    6 with status "KEEP"
+ VCLOSE: Closing unit   10 with status "KEEP"
+ VCLOSE: Closing unit   16 with status "KEEP"
+ VCLOSE: Closing unit   17 with status "KEEP"
+ VCLOSE: Closing unit   20 with status "KEEP"
+ VCLOSE: Closing unit   21 with status "KEEP"
+ VCLOSE: Closing unit   71 with status "KEEP"
+      $$$$$$  New timer profile Local Direct node$$$$$
+   Shake Setup                     0.05 Other:            0.00
+   First List                      0.78 Other:            0.00
+   Shake time                      0.19 Other:            0.00
+      Comm coords                     0.02 Other:            0.00
+         Constant pressure               0.42 Other:            0.00
+         Comm variables                  0.04 Other:            0.00
+         Save shake coords               0.12 Other:            0.00
+         Heuristic check                 0.01 Other:            0.00
+         Temp and virial calc            0.03 Other:            0.00
+      dynamc                          0.66 Other:            0.05
+   Dynamics total                 14.92 Other:           14.25
+      xdistm setup                    0.00 Other:            0.00
+      xdistm Build list               5.00 Other:            0.00
+   List time                       5.01 Other:            0.00
+            Direct Ewald time               8.30 Other:            0.00
+         Ewald time                     20.22 Other:           11.92
+      Nonbond force                  20.41 Other:            0.19
+         Bond energy                     0.11 Other:            0.00
+         Angle energy                    0.09 Other:            0.00
+         Dihedral energy                 0.02 Other:            0.00
+         Restraints energy               0.00 Other:            0.00
+      INTRNL energy                   0.24 Other:            0.02
+      Comm energy                     0.00 Other:            0.00
+      Comm force                      0.00 Other:            0.00
+         Fill charge grid                2.87 Other:            0.00
+         Scalar sum                      0.44 Other:            0.00
+         Grad sum                        3.20 Other:            0.00
+            FFTcomm                         0.50 Other:            0.00
+         FFT                             5.41 Other:            4.91
+      Recip Ewald time               11.92 Other:            0.01
+   Energy time                    32.58 Other:            0.00
+ Total time                     53.53 Other:            0.00
+         $$$$$$  Average   profile Direct $$$$$
+   Shake Setup                     0.05 Other:            0.00
+   First List                      0.78 Other:            0.00
+   Shake time                      0.19 Other:            0.00
+      Comm coords                     0.02 Other:            0.00
+         Constant pressure               0.42 Other:            0.00
+         Comm variables                  0.04 Other:            0.00
+         Save shake coords               0.12 Other:            0.00
+         Heuristic check                 0.01 Other:            0.00
+         Temp and virial calc            0.03 Other:            0.00
+      dynamc                          0.66 Other:            0.05
+   Dynamics total                 14.92 Other:           14.25
+      xdistm setup                    0.00 Other:            0.00
+      xdistm Build list               5.00 Other:            0.00
+   List time                       5.01 Other:            0.00
+            Direct Ewald time               8.30 Other:            0.00
+         Ewald time                     20.22 Other:           11.92
+      Nonbond force                  20.41 Other:            0.19
+         Bond energy                     0.11 Other:            0.00
+         Angle energy                    0.09 Other:            0.00
+         Dihedral energy                 0.02 Other:            0.00
+         Restraints energy               0.00 Other:            0.00
+      INTRNL energy                   0.24 Other:            0.02
+      Comm energy                     0.00 Other:            0.00
+      Comm force                      0.00 Other:            0.00
+         Fill charge grid                2.87 Other:            0.00
+         Scalar sum                      0.44 Other:            0.00
+         Grad sum                        3.20 Other:            0.00
+            FFTcomm                         0.50 Other:            0.00
+         FFT                             5.41 Other:            4.91
+      Recip Ewald time               11.92 Other:            0.01
+   Energy time                    32.58 Other:            0.00
+ Total time                     53.53 Other:            0.00
+
+                    NORMAL TERMINATION BY NORMAL STOP
+                    MOST SEVERE WARNING WAS AT LEVEL  0
+
+                    $$$$$ JOB ACCOUNTING INFORMATION $$$$$
+                     ELAPSED TIME:    42.62  SECONDS 
+                         CPU TIME:    42.42  SECONDS 

@@ -47,6 +47,7 @@ class Action_NativeContacts : public Action {
     bool usepdbcut_;      ///< If true only print pdb atoms with bfac > pdbcut.
     bool seriesUpdated_;  ///< True once time series have been updated for total # frames.
     bool saveNonNative_;  ///< If true save details for non native contacts as well.
+    bool determineNativeContacts_; ///< If false, skip native contact determination.
     ImagedAction image_;  ///< Hold imaging-related info/routines.
     AtomMask Mask1_;      ///< First mask in which to search
     AtomMask Mask2_;      ///< Second mask in which to search
