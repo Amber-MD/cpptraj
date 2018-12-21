@@ -37,6 +37,7 @@ class Action_Radial: public Action {
     int intramol_distances_;  ///< # of intra-molecular distances for NO_INTERMOL.
     bool useVolume_;          ///< If true normalize based on input volume.
     bool byres1_;             ///< Treat mask 1 by residue
+    bool byres2_;             ///< Treat mask 2 by residue
     double volume_;           ///< Hold sum of volume for averaging.
     double maximum2_;         ///< Largest distance squared that can be binned.
     double spacing_;          ///< Bin spacing.

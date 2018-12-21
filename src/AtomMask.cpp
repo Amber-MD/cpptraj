@@ -27,6 +27,15 @@ bool AtomMask::operator==(AtomMask const& rhs) const {
   return true;
 }
 
+/** \return true if masks are not equal. */
+bool AtomMask::operator!=(AtomMask const& rhs) const {
+  if (Selected_.size() != rhs.Selected_.size()) return true;
+  for (unsigned int idx = 0; idx != Selected_.size(); idx++) {
+    if (Selected_[idx] != rhs.Selected_[idx]) return true;
+  }
+  return false;
+}
+
 /** Flip the current character used to select atoms. Useful when you want 
   * the mask to select the inverse of the given expression, like in 'strip'.
   */

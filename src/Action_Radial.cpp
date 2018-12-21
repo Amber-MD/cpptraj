@@ -69,9 +69,15 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   density_ = actionArgs.getKeyDouble("density",0.033456);
   // Determine mode, by residue TODO better integrate with other modes
   RmodeType byresMode = NORMAL;
+  byres1_ = false;
+  byres2_ = false;
   if (actionArgs.hasKey("byres1")) {
     byresMode = BYRES;
     byres1_ = true;
+  }
+  if (actionArgs.hasKey("byres2")) {
+    byresMode = BYRES;
+    byres2_ = true;
   }
   // Determine mode, other
   if (actionArgs.hasKey("center1"))
@@ -209,6 +215,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (rmode_ == BYRES) {
     if (byres1_)
       mprintf("\tUsing center of residues selected by '%s'\n", Mask1_.MaskString());
+    if (byres2_)
+      mprintf("\tUsing center of residues selected by '%s'\n", Mask2_.MaskString());
   } else {
     if (rmode_==CENTER1)
       mprintf("            Using center of atoms in mask1.\n");
@@ -308,6 +316,10 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
       SetupSiteArrayByRes(Sites1_, setup.Top(), Mask1_);
     else
       SetupSiteArrayByAtom(Sites1_, Mask1_);
+    if (byres2_)
+      SetupSiteArrayByRes(Sites2_, setup.Top(), Mask2_);
+    else
+      SetupSiteArrayByAtom(Sites2_, Mask2_);
   } 
 
   // If ignoring intra-molecular distances, need to count how many we
@@ -337,8 +349,13 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   }
 
   // Print mask and imaging info for this parm
-  mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",
-          Mask1_.Nselected(), Mask2_.Nselected());
+  if (rmode_ == BYRES) {
+    mprintf("    RADIAL: %zu sites selected by Mask1, %zu sites selected by Mask2\n",
+            Sites1_.size(), Sites2_.size());
+  } else {
+    mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",
+            Mask1_.Nselected(), Mask2_.Nselected());
+  }
   if (image_.ImagingEnabled())
     mprintf("Imaging on.\n");
   else
@@ -367,7 +384,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     D = frm.Frm().BoxCrd().ToRecip(ucell,recip);
     if (useVolume_)  volume_ += D;
   }
-
+  // ---------------------------------------------
   if ( rmode_ == NORMAL ) { 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
     int outer_max = OuterMask_.Nselected();
@@ -403,7 +420,8 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     } // END loop over 1st mask
 #   ifdef _OPENMP
     } // END pragma omp parallel
-#   endif 
+#   endif
+  // ---------------------------------------------
   } else if ( rmode_ == NO_INTRAMOL ) {
     // Calculation of all atoms in Mask1 to all atoms in Mask2, ignoring
     // intra-molecular distances.
@@ -441,6 +459,41 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif
+  // ---------------------------------------------
+  } else if (rmode_ == BYRES) {
+    // Calculation of center of masks in Sites1 to center of masks in Sites2
+    int mask1_max = (int)Sites1_.size();
+#   ifdef _OPENMP
+#   pragma omp parallel private(nmask1,D,idx,mythread)
+    {
+    mythread = omp_get_thread_num();
+#   pragma omp for
+#   endif
+    for (nmask1 = 0; nmask1 < mask1_max; nmask1++)
+    {
+      AtomMask const& site1 = Sites1_[nmask1];
+      Vec3 com1 = frm.Frm().VGeometricCenter( site1 );
+      for (Marray::const_iterator site2 = Sites2_.begin(); site2 != Sites2_.end(); ++site2)
+      {
+        if (site1 != *site2) {
+          Vec3 com2 = frm.Frm().VGeometricCenter( *site2 );
+          D = DIST2(com1.Dptr(), com2.Dptr(), image_.ImageType(),
+                    frm.Frm().BoxCrd(), ucell, recip);
+          if (D <= maximum2_) {
+            D = sqrt(D);
+            //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
+            idx = (int) (D * one_over_spacing_);
+            if (idx > -1 && idx < numBins_)
+#             ifdef _OPENMP
+              ++rdf_thread_[mythread][idx];
+#             else
+              ++RDF_[idx];
+#             endif
+          }
+        } // END site1 != site2
+      } // END inner loop over Sites2
+    } // END outer loop over Sites1
+  // ---------------------------------------------
   } else { // CENTER1 || CENTER2
     // Calculation of center of one Mask to all atoms in other Mask
     Vec3 coord_center = frm.Frm().VGeometricCenter(OuterMask_);
@@ -543,6 +596,15 @@ void Action_Radial::Print() {
     // from mask 2. Assume COM of mask 2 != atom(s) in mask1.
     nmask2 = 1.0;
     numSameAtoms = 0;
+  } else if (rmode_ == BYRES) {
+    // Count sites in common
+    nmask1 = (double)Sites1_.size();
+    nmask2 = (double)Sites2_.size();
+    numSameAtoms = 0;
+    for (Marray::const_iterator site1 = Sites1_.begin(); site1 != Sites1_.end(); ++site1)
+      for (Marray::const_iterator site2 = Sites2_.begin(); site2 != Sites2_.end(); ++site2)
+        if (*site1 == *site2)
+          numSameAtoms++;
   }
   mprintf(" # in mask1= %.0f, # in mask2 = %.0f, # in common = %i\n",
           nmask1, nmask2, numSameAtoms);
