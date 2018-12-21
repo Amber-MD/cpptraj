@@ -31,13 +31,14 @@ class Action_Radial: public Action {
     typedef std::vector<AtomMask> Marray;
     Marray Sites1_;
     Marray Sites2_;
-    enum RmodeType { NORMAL=0, NO_INTRAMOL, CENTER1, CENTER2, BYRES };
+    enum RmodeType { NORMAL=0, NO_INTRAMOL, CENTER1, CENTER2, BYSITE };
     RmodeType rmode_;         ///< Type of calculation to perform.
+    enum SmodeType { OFF = 0, BYRES, BYMOL };
+    SmodeType siteMode1_;
+    SmodeType siteMode2_;
     Topology* currentParm_;   ///< Current topology, needed for NO_INTERMOL
     int intramol_distances_;  ///< # of intra-molecular distances for NO_INTERMOL.
     bool useVolume_;          ///< If true normalize based on input volume.
-    bool byres1_;             ///< Treat mask 1 by residue
-    bool byres2_;             ///< Treat mask 2 by residue
     double volume_;           ///< Hold sum of volume for averaging.
     double maximum2_;         ///< Largest distance squared that can be binned.
     double spacing_;          ///< Bin spacing.
@@ -53,5 +54,6 @@ class Action_Radial: public Action {
 
     int SetupSiteArrayByAtom(Marray&, AtomMask const&) const;
     int SetupSiteArrayByRes(Marray&, Topology const&, AtomMask const&) const;
+    int SetupSiteArrayByMol(Marray&, Topology const&, AtomMask const&) const;
 };
 #endif  
