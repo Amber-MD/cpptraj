@@ -115,6 +115,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_WriteKeyArray[] = {
   { AMBERRESTART,   "restart",   ".rst7"    },
   { AMBERRESTART,   "restrt",    ".rst7"    },
   { AMBERRESTART,   "rest",      ".rst7"    },
+  { AMBERRESTART,   "rest",      ".rst"     },
   { AMBERTRAJ,      "crd",       ".crd"     },
   { SQM,            "sqm",       ".sqm"     },
   { XYZ,            "xyz",       ".xyz"     },

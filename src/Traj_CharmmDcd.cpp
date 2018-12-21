@@ -12,6 +12,7 @@ Traj_CharmmDcd::Traj_CharmmDcd() :
   dcdframes_(0),
   isBigEndian_(false),
   is64bit_(false),
+  isVel_(false),
   blockSize_(4),
   dcd_dim_(3),
   boxBytes_(0),
@@ -45,8 +46,20 @@ static inline bool CORD_64BIT(const unsigned char* buffer) {
   return false;
 }
 
-/** Charmm DCD is 32 or 64 bit int (84) followed by 'CORD'. Determine
-  * endianness and bit size.
+static inline bool VELD_32BIT(const unsigned char* buffer) {
+  if (buffer[4] == 'V' && buffer[5] == 'E' && buffer[ 6] == 'L' && buffer[ 7] == 'D')
+    return true; // 32 bit
+  return false;
+}
+
+static inline bool VELD_64BIT(const unsigned char* buffer) {
+  if (buffer[8] == 'V' && buffer[9] == 'E' && buffer[10] == 'L' && buffer[11] == 'D')
+    return true; // 64 bit
+  return false;
+}
+
+/** Charmm DCD is 32 or 64 bit int (84) followed by 'CORD' for coordinates or
+  * 'VELD' for velocities. Determine endianness and bit size.
   */
 bool Traj_CharmmDcd::ID_TrajFormat(CpptrajFile& fileIn) {
   byte8 firstbyte;
@@ -55,16 +68,27 @@ bool Traj_CharmmDcd::ID_TrajFormat(CpptrajFile& fileIn) {
   if (fileIn.OpenFile()) return false;
   if (fileIn.Read(buffer, 12) != 12) return false;
   fileIn.CloseFile();
-  // If the second 4 or last 4 chars are C O R D, charmm DCD
-  if (CORD_32BIT(buffer)) { 
+  // If the second 4 or last 4 chars are C O R D or V E L D, charmm DCD
+  if (CORD_32BIT(buffer)) {
     is64bit_ = false;
+    isVel_ = false;
     firstbyte.i[1] = 0;
     blockSize_ = 4; 
   } else if (CORD_64BIT(buffer)) {
     is64bit_ = true;
+    isVel_ = false;
+    blockSize_ = 8;
+  } else if (VELD_32BIT(buffer)) {
+    is64bit_ = false;
+    isVel_ = true;
+    firstbyte.i[1] = 0;
+    blockSize_ = 4;
+  } else if (VELD_64BIT(buffer)) {
+    is64bit_ = true;
+    isVel_ = true;
     blockSize_ = 8;
   } else
-    return false; // CORD not found.
+    return false; // CORD/VELD not found.
   // Determine 32/64 bit
   memcpy(firstbyte.c, buffer, blockSize_ * sizeof(unsigned char));
   if (firstbyte.i[0] == 84)
@@ -533,13 +557,8 @@ void Traj_CharmmDcd::seekToFrame(int set) {
     file_.Seek( headerBytes_ + frame1Bytes_ + ((size_t)(set - 1) * frameNBytes_) );
 }
 
-// Traj_CharmmDcd::readFrame()
-int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
-  seekToFrame( set );
-  // Load box info
-  if (boxBytes_ != 0) {
-    if (ReadBox( frameIn.bAddress() )) return 1;
-  }
+/** Read coordinate section of DCD into given array. */
+int Traj_CharmmDcd::readXYZ(double* xyzIn) {
   // NOTE: Only checking for file errors on X read attempt - is this OK?
   // Read X coordinates
   if (ReadBlock(-1) == -1) return 1;
@@ -556,20 +575,43 @@ int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
   // Swap little->big endian if necessary
   if (isBigEndian_) 
     endian_swap(xcoord_, dcdatom_*3);
-  // Put xyz values into coord array
-  int x = 0;
+  // Put xyz values into given array
+  double* xyz = xyzIn;
   for (int n=0; n < dcdatom_; n++) {
-    frameIn[x++] = (double) xcoord_[n];
-    frameIn[x++] = (double) ycoord_[n];
-    frameIn[x++] = (double) zcoord_[n];
+    *(xyz++) = (double)xcoord_[n];
+    *(xyz++) = (double)ycoord_[n];
+    *(xyz++) = (double)zcoord_[n];
   }
   return 0;
 }
 
+// Traj_CharmmDcd::readFrame()
+int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
+  seekToFrame( set );
+  // Load box info
+  if (boxBytes_ != 0) {
+    if (ReadBox( frameIn.bAddress() )) return 1;
+  }
+  return readXYZ(frameIn.xAddress());
+}
+
+// Traj_CharmmDcd::readVelocity()
+int Traj_CharmmDcd::readVelocity(int set, Frame& frameIn) {
+  seekToFrame( set );
+  // Load box info
+  if (boxBytes_ != 0) {
+    if (ReadBox( frameIn.bAddress() )) return 1;
+  }
+  return readXYZ(frameIn.vAddress());
+}
+
+// Traj_CharmmDcd::WriteHelp()
 void Traj_CharmmDcd::WriteHelp() {
-  mprintf("\tx64   : Use 8 byte block size (default 4 bytes).\n");
-  mprintf("\tucell : Write older (v21) format trajectory that stores unit cell params\n"
-          "\t        instead of shape matrix.\n");
+  mprintf("\tx64     : Use 8 byte block size (default 4 bytes).\n"
+          "\tucell   : Write older (v21) format trajectory that stores unit cell params\n"
+          "\t          instead of shape matrix.\n"
+          "\tveltraj : Write velocity trajectory instead of coordinates.\n"
+         );
 }
 
 // Traj_CharmmDcd::processWriteArgs()
@@ -585,6 +627,11 @@ int Traj_CharmmDcd::processWriteArgs(ArgList& argIn) {
   isBigEndian_ = false;
   if (argIn.hasKey("ucell"))
     charmmCellType_ = UCELL;
+  // See if we want to write as a velocity trajectory
+  if (argIn.hasKey("veltraj"))
+    isVel_ = true;
+  else
+    isVel_ = false;
   return 0;
 }
 
@@ -637,12 +684,19 @@ int Traj_CharmmDcd::writeDcdHeader() {
   headerbyte buffer;
   // Write 84 - CORD + header size
   WriteBlock(84);
-  // Write CORD header, 4 bytes only
+  // Write CORD/VELD header, 4 bytes only
   dcdkey.i[1] = 0;
-  dcdkey.c[0]='C';
-  dcdkey.c[1]='O';
-  dcdkey.c[2]='R';
-  dcdkey.c[3]='D';
+  if (isVel_) {
+    dcdkey.c[0]='V';
+    dcdkey.c[1]='E';
+    dcdkey.c[2]='L';
+    dcdkey.c[3]='D';
+  } else {
+    dcdkey.c[0]='C';
+    dcdkey.c[1]='O';
+    dcdkey.c[2]='R';
+    dcdkey.c[3]='D';
+  }
   file_.Write(dcdkey.c, sizeof(unsigned char)*4);
   // Set up header information, 80 bytes
   memset(buffer.c, 0, 80*sizeof(unsigned char));
@@ -653,6 +707,9 @@ int Traj_CharmmDcd::writeDcdHeader() {
   buffer.i[1] = 1;
   // Number of steps between frames
   buffer.i[2] = 1;
+  // For velocity traj only
+  if (isVel_)
+    buffer.i[4] = 1;
   // Number of fixed atoms
   buffer.i[8] = 0;
   // Timestep
@@ -725,11 +782,15 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
     WriteBlock(48);
   }
   // Put X coords into xyz arrays
-  int x = 0;
+  const double* XYZ;
+  if (isVel_)
+    XYZ = frameOut.vAddress();
+  else
+    XYZ = frameOut.xAddress();
   for (int i = 0; i < dcdatom_; i++) {
-    xcoord_[i] = (float)frameOut[x++];
-    ycoord_[i] = (float)frameOut[x++];
-    zcoord_[i] = (float)frameOut[x++];
+    xcoord_[i] = (float)*(XYZ++);
+    ycoord_[i] = (float)*(XYZ++);
+    zcoord_[i] = (float)*(XYZ++);
   }
   // Write x coords
   WriteBlock(coordinate_size_);
@@ -751,6 +812,10 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
 // Traj_CharmmDcd::info()
 void Traj_CharmmDcd::Info() {
   mprintf("is a CHARMM DCD file");
+  if (isVel_)
+    mprintf(" (velocities)");
+  else
+    mprintf(" (coords)");
   if (isBigEndian_)
     mprintf(" Big Endian");
   else
@@ -803,7 +868,7 @@ int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajPa
   // Synchronize info on non-master threads.
   SyncTrajIO( commIn );
   // TODO for simplicity converting everything to int. Should be double for larger #s?
-  static const unsigned int BCAST_SIZE = 14;
+  static const unsigned int BCAST_SIZE = 15;
   std::vector<int> buf( BCAST_SIZE );
   if (commIn.Master()) {
     master_ = true;
@@ -811,16 +876,17 @@ int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajPa
     buf[1]  = dcdframes_;
     buf[2]  = (int)isBigEndian_;
     buf[3]  = (int)is64bit_;
-    buf[4]  = (int)blockSize_;
-    buf[5]  = (int)dcd_dim_;
-    buf[6]  = (int)boxBytes_;
-    buf[7]  = (int)frame1Bytes_;
-    buf[8]  = (int)frameNBytes_;
-    buf[9]  = (int)headerBytes_;
-    buf[10] = (int)coordinate_size_;
-    buf[11] = nfixedat_;
-    buf[12] = nfreeat_;
-    buf[13] = (int)charmmCellType_;
+    buf[4]  = (int)isVel_;
+    buf[5]  = (int)blockSize_;
+    buf[6]  = (int)dcd_dim_;
+    buf[7]  = (int)boxBytes_;
+    buf[8]  = (int)frame1Bytes_;
+    buf[9]  = (int)frameNBytes_;
+    buf[10] = (int)headerBytes_;
+    buf[11] = (int)coordinate_size_;
+    buf[12] = nfixedat_;
+    buf[13] = nfreeat_;
+    buf[14] = (int)charmmCellType_;
     commIn.MasterBcast(&buf[0], buf.size(), MPI_INT);
     if (nfixedat_ != 0)
       commIn.MasterBcast(freeat_, nfreeat_, MPI_INT);
@@ -831,16 +897,17 @@ int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajPa
     dcdframes_       = buf[1];
     isBigEndian_     = (bool)buf[2];
     is64bit_         = (bool)buf[3];
-    blockSize_       = (size_t)buf[4];
-    dcd_dim_         = (size_t)buf[5];
-    boxBytes_        = (size_t)buf[6];
-    frame1Bytes_     = (size_t)buf[7];
-    frameNBytes_     = (size_t)buf[8];
-    headerBytes_     = (size_t)buf[9];
-    coordinate_size_ = (size_t)buf[10];
-    nfixedat_        = buf[11];
-    nfreeat_         = buf[12];
-    charmmCellType_  = (CType)buf[13];
+    isVel_           = (bool)buf[4];
+    blockSize_       = (size_t)buf[5];
+    dcd_dim_         = (size_t)buf[6];
+    boxBytes_        = (size_t)buf[7];
+    frame1Bytes_     = (size_t)buf[8];
+    frameNBytes_     = (size_t)buf[9];
+    headerBytes_     = (size_t)buf[10];
+    coordinate_size_ = (size_t)buf[11];
+    nfixedat_        = buf[12];
+    nfreeat_         = buf[13];
+    charmmCellType_  = (CType)buf[14];
     if (nfixedat_ > 0) {
       freeat_ = new int[ nfreeat_ ];
       commIn.MasterBcast(freeat_, nfreeat_, MPI_INT);

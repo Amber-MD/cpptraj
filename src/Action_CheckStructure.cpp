@@ -53,6 +53,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
     !(actionArgs.hasKey("noimage")),
     !actionArgs.hasKey("nobondcheck"),
     (outfile_ != 0), // saveProblems
+    debugIn,
     actionArgs.GetMaskNext(),
     around,
     nonbondcut,
