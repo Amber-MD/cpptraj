@@ -67,6 +67,13 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   std::string outfilename = actionArgs.GetStringKey("out");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
+  // Determine mode, by residue TODO better integrate with other modes
+  RmodeType byresMode = NORMAL;
+  if (actionArgs.hasKey("byres1")) {
+    byresMode = BYRES;
+    byres1_ = true;
+  }
+  // Determine mode, other
   if (actionArgs.hasKey("center1"))
     rmode_ = CENTER1;
   else if (actionArgs.hasKey("center2"))
@@ -75,6 +82,14 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     rmode_ = NO_INTRAMOL;
   else
     rmode_ = NORMAL;
+  // Check for mode incompatibility
+  if (byresMode != NORMAL) {
+    if (rmode_ != NORMAL) {
+      mprinterr("Error: 'byres' mode cannot be active with other modes (center, nointramol).\n");
+      return Action::ERR;
+    }
+    rmode_ = byresMode;
+  }
   useVolume_ = actionArgs.hasKey("volume");
   DataFile* intrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("intrdf"));
   DataFile* rawrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("rawrdf"));
@@ -191,10 +206,17 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (rawrdf_ != 0)
     mprintf("            Raw RDF bin values will be output to %s\n",
             rawrdfFile->DataFilename().full());
-  if (rmode_==CENTER1)
-    mprintf("            Using center of atoms in mask1.\n");
-  else if (rmode_==CENTER2)
-    mprintf("            Using center of atoms in mask2.\n");
+  if (rmode_ == BYRES) {
+    if (byres1_)
+      mprintf("\tUsing center of residues selected by '%s'\n", Mask1_.MaskString());
+  } else {
+    if (rmode_==CENTER1)
+      mprintf("            Using center of atoms in mask1.\n");
+    else if (rmode_==CENTER2)
+      mprintf("            Using center of atoms in mask2.\n");
+    else if (rmode_==NO_INTRAMOL)
+      mprintf("\tIgnoring intramolecular distances.\n");
+  }
   mprintf("            Histogram max %f, spacing %f, bins %i.\n",maximum,
           spacing_,numBins_);
   if (useVolume_)
@@ -207,6 +229,43 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("            Parallelizing RDF calculation with %i threads.\n",numthreads_);
 
   return Action::OK;
+}
+
+int Action_Radial::SetupSiteArrayByAtom(Marray& sites, AtomMask const& mask)
+const
+{
+  sites.clear();
+  sites.reserve(mask.Nselected());
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+    sites.push_back( AtomMask(*at) );
+  return 0;
+}
+
+int Action_Radial::SetupSiteArrayByRes(Marray& sites, Topology const& top, AtomMask const& mask)
+const
+{
+  if (mask.Nselected() < 1) return 1;
+  sites.clear();
+  int lastRes = top[ mask[0] ].ResNum();
+  sites.push_back( AtomMask() );
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+  {
+    int currentRes = top[ *at ].ResNum();
+    if (currentRes != lastRes) {
+      sites.push_back( AtomMask() );
+      lastRes = currentRes;
+    }
+    sites.back().AddSelectedAtom( *at );
+  }
+  // DEBUG
+  mprintf("DEBUG: Sites selected by residue for '%s'\n", mask.MaskString());
+  for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
+    mprintf("%8u :", m - sites.begin());
+    for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
+      mprintf(" %i", *at);
+    mprintf("\n");
+  }
+  return 0;
 }
 
 // Action_Radial::Setup()
@@ -243,7 +302,13 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   } else if (rmode_ == CENTER2) {
     OuterMask_ = Mask2_;
     InnerMask_ = Mask1_;
-  }
+  } else if (rmode_ == BYRES) {
+    // One or both masks will be by residue.
+    if (byres1_)
+      SetupSiteArrayByRes(Sites1_, setup.Top(), Mask1_);
+    else
+      SetupSiteArrayByAtom(Sites1_, Mask1_);
+  } 
 
   // If ignoring intra-molecular distances, need to count how many we
   // are ignoring.
