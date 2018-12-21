@@ -28,8 +28,14 @@ class Action_Radial: public Action {
     AtomMask Mask2_;          ///< Optional mask to calc RDF to atoms in Mask1.
     AtomMask OuterMask_;      ///< Mask with the most atoms.
     AtomMask InnerMask_;      ///< Mask with the fewest atoms.
-    enum RmodeType { NORMAL=0, NO_INTRAMOL, CENTER1, CENTER2 };
+    typedef std::vector<AtomMask> Marray;
+    Marray Sites1_;
+    Marray Sites2_;
+    enum RmodeType { NORMAL=0, NO_INTRAMOL, CENTER1, CENTER2, BYSITE };
     RmodeType rmode_;         ///< Type of calculation to perform.
+    enum SmodeType { OFF = 0, BYRES, BYMOL };
+    SmodeType siteMode1_;
+    SmodeType siteMode2_;
     Topology* currentParm_;   ///< Current topology, needed for NO_INTERMOL
     int intramol_distances_;  ///< # of intra-molecular distances for NO_INTERMOL.
     bool useVolume_;          ///< If true normalize based on input volume.
@@ -45,5 +51,9 @@ class Action_Radial: public Action {
     DataSet* intrdf_;
     DataSet* rawrdf_;
     int debug_;
+
+    int SetupSiteArrayByAtom(Marray&, AtomMask const&) const;
+    int SetupSiteArrayByRes(Marray&, Topology const&, AtomMask const&) const;
+    int SetupSiteArrayByMol(Marray&, Topology const&, AtomMask const&) const;
 };
 #endif  
