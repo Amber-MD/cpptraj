@@ -40,7 +40,7 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
 */
   // Naively divide up all analyses among threads.
   int my_start, my_stop;
-  int nelts = Parallel::World().DivideAmongThreads( my_start, my_stop, State.Analyses().size() );
+  int nelts = Parallel::World().DivideAmongProcesses( my_start, my_stop, State.Analyses().size() );
   rprintf("Dividing %zu analyses among %i threads: %i to %i (%i)\n",
           State.Analyses().size(), Parallel::World().Size(), my_start, my_stop, nelts);
 
