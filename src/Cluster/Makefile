@@ -3,7 +3,8 @@ include ../../config.h
 
 # Source files to be compiled
 SOURCES= \
- Centroid_Coord.cpp 
+  Centroid_Coord.cpp \
+  Metric_RMS.cpp 
 
 # Objects 
 OBJECTS=$(SOURCES:.cpp=.o)

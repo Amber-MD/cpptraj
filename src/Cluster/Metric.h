@@ -1,5 +1,7 @@
 #ifndef INC_CLUSTER_METRIC_H
 #define INC_CLUSTER_METRIC_H
+#include <vector>
+#include "../DataSet.h"
 #include "Centroid.h"
 namespace Cpptraj {
 namespace Cluster {
@@ -12,7 +14,7 @@ class Metric {
     typedef std::vector<int> Cframes;
     typedef Cframes::const_iterator Cframes_it;
     typedef std::vector<DataSet*> DsArray; // TODO should this be here?
-    virtual ~ClusterDist() {}
+    virtual ~Metric() {}
     /// \return distance between given frames.
     virtual double FrameDist(int, int) = 0;
     /// \return distance between given centroids.
@@ -23,8 +25,8 @@ class Metric {
     virtual void CalculateCentroid(Centroid*, Cframes const&) = 0;
     /// \return new centroid from given frames.
     virtual Centroid* NewCentroid(Cframes const&) = 0;
-    /// \return copy of this ClusterDist
-    virtual ClusterDist* Copy() = 0;
+    /// \return copy of this Metric
+    virtual Metric* Copy() = 0;
     /// Update centroid by performing given operation between given frame and centroid.
     virtual void FrameOpCentroid(int, Centroid*, double, CentOpType) = 0;
     /// \return string containing description of the distance metric

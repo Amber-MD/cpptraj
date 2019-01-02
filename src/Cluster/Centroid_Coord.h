@@ -13,9 +13,8 @@ class Centroid_Coord : public Centroid {
     Centroid_Coord(int natom)          : cframe_(natom) {}
     Centroid* Copy() { return (Centroid*)new Centroid_Coord(cframe_); }
     void Print(std::string const&) const;
-    //friend class ClusterDist_DME;
-    //friend class ClusterDist_RMS;
-    //friend class ClusterDist_SRMSD;
+    Frame const& Cframe() const { return cframe_; }
+    Frame&       Cframe()       { return cframe_; }
   private:
     Frame cframe_;
 };
