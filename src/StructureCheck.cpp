@@ -14,18 +14,20 @@ StructureCheck::StructureCheck() :
   //       to give a good balance between speed and grid size.
   plcut_(4.0),
   checkType_(NO_PL_1_MASK),
+  debug_(0),
   bondcheck_(true),
   saveProblems_(false)
 {}
 
 // StructureCheck::SetOptions()
-int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsIn,
+int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsIn, int debugIn,
                                std::string const& mask1, std::string const& mask2,
                                double overlapCut, double bondLengthOffset, double pairListCut)
 {
   image_.InitImaging( imageOn );
   bondcheck_ = checkBonds;
   saveProblems_ = saveProblemsIn;
+  debug_ = debugIn;
   bondoffset_ = bondLengthOffset;
   nonbondcut2_ = overlapCut * overlapCut; // Save cutoff squared.
   plcut_ = pairListCut;
@@ -113,7 +115,7 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   }
   // Check if pairlist should be used.
   if (image_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
-    if (pairList_.InitPairList( plcut_, 0.1, 0 )) return 1;
+    if (pairList_.InitPairList( plcut_, 0.1, debug_ )) return 1;
     if (pairList_.SetupPairList( boxIn )) return 1;
     mprintf("\tUsing pair list.\n");
     checkType_ = PL_1_MASK;
