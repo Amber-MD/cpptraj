@@ -1,0 +1,1 @@
+Centroid_Coord.o : Centroid_Coord.cpp ../Atom.h ../AtomMask.h ../Box.h ../CoordinateInfo.h ../CpptrajFile.h ../FileIO.h ../FileName.h ../Frame.h ../MaskToken.h ../Matrix_3x3.h ../Molecule.h ../NameType.h ../Parallel.h ../ReplicaDimArray.h ../Residue.h ../SymbolExporting.h ../Vec3.h Centroid.h Centroid_Coord.h
