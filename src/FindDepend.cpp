@@ -61,7 +61,7 @@ void GetDependencies(string const& filename) {
     baseName = filename.substr(found+1);
     dirPrefix = filename.substr(0, found+1);
   }
-  printf("DEBUG: Dir='%s' Base='%s'\n", dirPrefix.c_str(), baseName.c_str());
+  //printf("DEBUG: Dir='%s' Base='%s'\n", dirPrefix.c_str(), baseName.c_str());
   // Determine type
   FileType type;
   string ext;
