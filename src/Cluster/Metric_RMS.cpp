@@ -1,6 +1,7 @@
 #include "Metric_RMS.h"
 #include "Centroid_Coord.h"
 
+/// CONSTRUCTOR
 Cpptraj::Cluster::Metric_RMS::Metric_RMS(DataSet_Coords* dIn, AtomMask const& maskIn, 
                                  bool nofit, bool useMass) :
   coords_(dIn),
@@ -12,6 +13,7 @@ Cpptraj::Cluster::Metric_RMS::Metric_RMS(DataSet_Coords* dIn, AtomMask const& ma
   frm2_ = frm1_;
 }
 
+/** \return RMSD between two given frames. */
 double Cpptraj::Cluster::Metric_RMS::FrameDist(int f1, int f2) {
   coords_->GetFrame( f1, frm1_, mask_ );
   coords_->GetFrame( f2, frm2_, mask_ );
@@ -21,6 +23,7 @@ double Cpptraj::Cluster::Metric_RMS::FrameDist(int f1, int f2) {
     return frm1_.RMSD( frm2_, useMass_ );
 }
 
+/** \return RMSD between two given centroids. */
 double Cpptraj::Cluster::Metric_RMS::CentroidDist(Centroid* c1, Centroid* c2) {
   if (nofit_)
     return ((Centroid_Coord*)c1)->Cframe().RMSD_NoFit( ((Centroid_Coord*)c2)->Cframe(), useMass_ );
@@ -29,6 +32,7 @@ double Cpptraj::Cluster::Metric_RMS::CentroidDist(Centroid* c1, Centroid* c2) {
                                                             useMass_ );
 }
 
+/** \return RMSD between given frame and centroid. */
 double Cpptraj::Cluster::Metric_RMS::FrameCentroidDist(int f1, Centroid* c1) {
   coords_->GetFrame( f1, frm1_, mask_ );
   if (nofit_)
@@ -66,6 +70,7 @@ void Cpptraj::Cluster::Metric_RMS::CalculateCentroid(Centroid* centIn,  Cframes 
   //        cent->cent->Cframe()[0], cent->Cframe()[1],cent->Cframe()[2]);
 }
 
+/** \return Average structure of given frames. */
 Cpptraj::Cluster::Centroid* Cpptraj::Cluster::Metric_RMS::NewCentroid( Cframes const& cframesIn ) {
   // TODO: Incorporate mass?
   Centroid_Coord* cent = new Centroid_Coord( mask_.Nselected() );
@@ -97,10 +102,10 @@ void Cpptraj::Cluster::Metric_RMS::FrameOpCentroid(int frame, Centroid* centIn, 
   }
 }
 
+/** \return Description of RMS calc. */
 std::string Cpptraj::Cluster::Metric_RMS::Description() const {
   std::string description("rms " + mask_.MaskExpression());
   if (nofit_) description.append(" nofit");
   if (useMass_) description.append(" mass");
   return description;
 }
-
