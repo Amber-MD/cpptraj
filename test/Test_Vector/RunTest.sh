@@ -68,6 +68,20 @@ EOF
   DoTest vtest.dat.10.save vtest.dat.10
 fi
 
+# Test force vector.
+UNITNAME="Force vector test."
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > vector.in <<EOF
+parm ../tz2.nhe.parm7
+trajin ../Test_VelFrc/CrdFrcVel.nc 1 1
+vector v11 force @1-3 out vtest.dat.11
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest vtest.dat.11.save vtest.dat.11
+fi
+
+
 EndTest
   
 exit 0
