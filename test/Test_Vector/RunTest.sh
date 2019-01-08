@@ -73,8 +73,8 @@ UNITNAME="Force vector test."
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > vector.in <<EOF
-parm ../tz2.nhe.parm7
-trajin ../Test_VelFrc/CrdFrcVel.nc 1 1
+parm ../Test_systemVF/systemVF.parm7
+trajin ../Test_systemVF/systemVF.nc 1 1
 vector v11 force @1-3 out vtest.dat.11
 EOF
   RunCpptraj "$UNITNAME"
