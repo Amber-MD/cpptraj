@@ -15,13 +15,14 @@ class Action_SetVelocity : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    enum ModeType { SET = 0, ZERO, MODIFY };
+    enum ModeType { SET = 0, ZERO, MODIFY, SCALE };
 
     typedef std::vector<double> Darray;
 
     AtomMask Mask_;    ///< Atoms to set/modify velocities of
     Darray SD_;        ///< Hold sqrt(kB*(1/mass)) for each atom
     double tempi_;     ///< Temperature to generate velocity distribution at.
+    Vec3 scaleFac_;    ///< Velocity scaling factors.
     ModeType mode_;    ///< Set velocity, zero velocity, modify existing velocity.
     Constraints cons_; ///< Hold constraint info 
     Random_Number RN_;

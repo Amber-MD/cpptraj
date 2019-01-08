@@ -6,12 +6,17 @@
 Action_SetVelocity::Action_SetVelocity() : tempi_(0.0), zeroMomentum_(false) {}
 
 void Action_SetVelocity::Help() const {
-  mprintf("\t[<mask>] [{tempi <temperature> | modify}] [ig <random seed>]\n"
+  mprintf("\t[<mask>] [{ tempi <temperature> |\n"
+          "\t            scale [factor <fac>] [sx <xfac>] [sy <yfac>] [sz <zfac>] |\n"
+          "\t            none | \n"
+          "\t            modify}] [ig <random seed>]\n"
           "\t[%s] [%s]\n", Constraints::constraintArgs, Constraints::rattleArgs);
-  mprintf("\t[zeromomentum]\n");
+  mprintf("\t[zeromomentum] [ig <random seed>]\n");
   mprintf("  Set velocities in frame for atoms in <mask> using Maxwellian distribution\n" 
           "  based on given temperature; default 300.0 K. If tempi is 0.0 set\n"
           "  velocities of atoms in mask to 0.0.\n"
+          "  If 'scale' is specified scale the velocities by the given factor(s).\n"
+          "  If 'none' or a temperature of 0.0 is specified, velocities will be zeroed.\n"
           "  If 'modify' is specified do not set; only modify existing velocities.\n"
           "  This is useful e.g. with 'ntc' or 'zeromomentum'.\n"
           "  If 'ntc' is specified attempt to correct velocities for constraints.\n"
@@ -24,11 +29,17 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
 {
   // Keywords
   tempi_ = actionArgs.getKeyDouble("tempi", 300.0);
-  if (tempi_ < Constants::SMALL)
+  if (actionArgs.hasKey("none") || tempi_ < Constants::SMALL)
     mode_ = ZERO;
   else if (actionArgs.hasKey("modify"))
     mode_ = MODIFY;
-  else
+  else if (actionArgs.hasKey("scale")) {
+    double sf = actionArgs.getKeyDouble("factor", 1.0);
+    scaleFac_[0] = actionArgs.getKeyDouble("sx", sf);
+    scaleFac_[1] = actionArgs.getKeyDouble("sy", sf);
+    scaleFac_[2] = actionArgs.getKeyDouble("sz", sf);
+    mode_ = SCALE;
+  } else
     mode_ = SET;
   int ig_ = actionArgs.getKeyInt("ig", -1);
   RN_.rn_set( ig_ );
@@ -56,6 +67,9 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
       mprintf("\tRandom seed is %i\n", ig_);
   } else if (mode_ == MODIFY)
     mprintf(" Modifying any existing velocities for atoms in mask '%s'\n", Mask_.MaskString());
+  else if (mode_ == SCALE)
+    mprintf(" Scaling velocities by X= %g, Y= %g, Z= %g\n",
+            scaleFac_[0], scaleFac_[1], scaleFac_[2]);
   else if (mode_ == ZERO)
     mprintf(" Zeroing velocities for atoms in mask '%s'\n", Mask_.MaskString());
   if (cons_.Type() != Constraints::OFF) {
@@ -101,6 +115,11 @@ Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
     mprintf("Warning: 'modify' specified but no velocity info, skipping.\n");
     return Action::SKIP;
   }
+  // If scale need to have existing velocity info
+  if (mode_ == SCALE && !setup.CoordInfo().HasVel()) {
+    mprintf("Warning: 'scale' specified but no velocity info, skipping.\n");
+    return Action::SKIP;
+  }
   // Always add velocity info even if not strictly necessary
   cInfo_ = setup.CoordInfo();
   cInfo_.SetVelocity( true );
@@ -131,6 +150,14 @@ Action::RetType Action_SetVelocity::DoAction(int frameNum, ActionFrame& frm) {
       V[0] = RN_.rn_gauss(0.0, *sd);
       V[1] = RN_.rn_gauss(0.0, *sd);
       V[2] = RN_.rn_gauss(0.0, *sd);
+    }
+  } else if (mode_ == SCALE) {
+    for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
+    {
+      double* V = newFrame_.vAddress() + (*atom * 3);
+      V[0] *= scaleFac_[0];
+      V[1] *= scaleFac_[1];
+      V[2] *= scaleFac_[2];
     }
   }
   // Correct velocities for constraints
