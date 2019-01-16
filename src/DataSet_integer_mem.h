@@ -23,6 +23,8 @@ class DataSet_integer_mem : public DataSet_integer {
     size_t Size()               const { return Data_.size();       }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+    int Recv(size_t, unsigned int, int, int, int, Parallel::Comm const&);
+    int Send(int, int, Parallel::Comm const&) const;
 #   endif
     void Info()                 const { return;                    }
     int Allocate(SizeArray const&);

@@ -1,4 +1,5 @@
 #include "DataSet_integer_mem.h"
+//#inc lude "CpptrajStdio.h" // DEBUG
 
 // DataSet_integer_mem::Allocate()
 /** Reserve space in the Data and Frames arrays. */
@@ -62,5 +63,25 @@ int DataSet_integer_mem::Sync(size_t total, std::vector<int> const& rank_frames,
   } else // Send data to master //TODO adjust for repeated additions?
     commIn.SendMaster( &(Data_[0]), Data_.size(), commIn.Rank(), MPI_INT );
   return 0;
+}
+
+/** Receive integer data from rank, append to after offset. */
+int DataSet_integer_mem::Recv(size_t total, unsigned int offset, int nframes,
+                              int fromRank, int tag, Parallel::Comm const& commIn)
+{
+  Data_.resize( total );
+  int* d_beg = &(Data_[0]) + offset;
+  //rprintf("DEBUG: Receive %i frames fromRank %i tag %i\n", nframes, fromRank, tag);
+  if (commIn.Recv( d_beg, nframes, MPI_INT, fromRank, tag )) return 1;
+  // TODO Do SetNeedsSync false here?
+  return 0;
+}
+
+/** Send integer data to rank. */
+int DataSet_integer_mem::Send(int toRank, int tag, Parallel::Comm const& commIn)
+const
+{
+  //rprintf("DEBUG: Send %zu frames toRank %i tag %i\n", Data_.size(), toRank, tag);
+  return commIn.Send( (void*)&(Data_[0]), Data_.size(), MPI_INT, toRank, tag );
 }
 #endif

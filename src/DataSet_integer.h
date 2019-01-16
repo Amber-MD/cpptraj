@@ -16,6 +16,10 @@ class DataSet_integer : public DataSet_1D {
     /// Make set size sizeIn, all values set to val.
     virtual void Assign(size_t,int) = 0;
     virtual void AddVal(size_t, int) = 0;
+#   ifdef MPI
+    virtual int Recv(size_t, unsigned int, int, int, int, Parallel::Comm const&) { return 1; }
+    virtual int Send(int, int, Parallel::Comm const&) const { return 1; }
+#   endif
     // ----- DataSet_1D functions ----------------
     double Xcrd(size_t idx)     const { return Dim(0).Coord(idx);  }
     // -------------------------------------------
