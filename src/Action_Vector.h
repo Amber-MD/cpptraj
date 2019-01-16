@@ -13,7 +13,7 @@ class Action_Vector : public Action {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
       DIPOLE,    BOX,         MASK,        IRED,
       CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z,
-      BOX_CTR,   MINIMAGE,    MOMENTUM
+      BOX_CTR,   MINIMAGE,    MOMENTUM,    VELOCITY,    FORCE
     };
     static const char* ModeString[];
 

@@ -6,8 +6,8 @@
 class StructureCheck {
   public:
     StructureCheck();
-    /// Options: imageOn, checkBonds, saveProblems, mask1, mask2, ovrlpCut, bndLenOffset, PListCut
-    int SetOptions(bool, bool, bool, std::string const&, std::string const&,
+    /// Options: imageOn, checkBonds, saveProblems, debug, mask1, mask2, ovrlpCut, bndLenOffset, PListCut
+    int SetOptions(bool, bool, bool, int, std::string const&, std::string const&,
                    double, double, double);
     /// Setup for given topology and box.
     int Setup(Topology const&, Box const&);
@@ -95,6 +95,7 @@ class StructureCheck {
     double nonbondcut2_;    ///< Report distance^2 less than nonbondcut2
     double plcut_;          ///< Pairlist cutoff
     CheckType checkType_;   ///< Type of atom overlap check
+    int debug_;             ///< Debug level.
     bool bondcheck_;        ///< If true check bonds as well
     bool saveProblems_;     ///< If true save problems in problemAtoms_
 };
