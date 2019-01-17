@@ -5,6 +5,7 @@ include ../../config.h
 SOURCES= \
   Centroid_Coord.cpp \
   Metric_RMS.cpp \
+  Node.cpp \
   PairwiseMatrix.cpp \
   PairwiseMatrix_MEM.cpp
 
