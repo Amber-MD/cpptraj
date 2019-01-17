@@ -4,7 +4,9 @@ include ../../config.h
 # Source files to be compiled
 SOURCES= \
   Centroid_Coord.cpp \
-  Metric_RMS.cpp 
+  Metric_RMS.cpp \
+  PairwiseMatrix.cpp \
+  PairwiseMatrix_MEM.cpp
 
 # Objects 
 OBJECTS=$(SOURCES:.cpp=.o)
