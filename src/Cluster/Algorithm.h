@@ -2,6 +2,7 @@
 #define INC_CLUSTER_ALGORITHM_H
 #include "PairwiseMatrix.h"
 #include "List.h"
+#include "../CpptrajFile.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -14,12 +15,17 @@ class Algorithm {
     virtual int Setup(ArgList&) = 0;
     /// Report details on algorithm setup.
     virtual void Info() const = 0;
-    /// Report details on algorithm setup as a string.
-    virtual void Results(std::string&) const = 0;
+    /// Report brief details on algorithm setup to a file.
+    virtual void Results(CpptrajFile&) const = 0;
     /// Perform clustering on specified frames using given distance matrix.
     virtual int DoClustering(List&, Cframes const&, PairwiseMatrix const&) = 0;
     /// Report any timing data
     virtual void Timing(double) const = 0;
+    // -------------------------------------------
+    /// Set debug level for algorithm
+    void SetDebug(int d) { debug_ = d; }
+  protected:
+    int debug_;
 };
 
 } /* END namespace Cluster */

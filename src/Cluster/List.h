@@ -26,6 +26,8 @@ class List {
     const cluster_iterator endcluster()   const { return clusters_.end();   }
     /// \return current number of clusters.
     int Nclusters()        const { return (int)clusters_.size(); }
+    /// \return true if no clusters
+    bool empty()           const { return clusters_.empty(); }
     /// \return Array containing noise points
     Cframes const& Noise() const { return noise_; }
     /// Add new cluster

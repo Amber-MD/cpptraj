@@ -1,5 +1,7 @@
+#include <limits> // double max
 #include "Algorithm_HierAgglo.h"
 #include "../CpptrajStdio.h"
+#include "../ProgressBar.h"
 
 Cpptraj::Cluster::Algorithm_HierAgglo::Algorithm_HierAgglo() :
   nclusters_(-1),
@@ -53,5 +55,156 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::Info() const {
             "Warning: 'includesieved_cdist' may be very slow.\n");
   else
     mprintf("\tSieved frames will not be included in final cluster distance calculation.\n");*/
+}
+
+void Cpptraj::Cluster::Algorithm_HierAgglo::Results(CpptrajFile& outfile) const {
+  outfile.Printf("#Algorithm: HierAgglo linkage %s nclusters %i epsilon %g\n",
+                 LinkageString[linkage_], nclusters_, epsilon_);
+}
+
+void Cpptraj::Cluster::Algorithm_HierAgglo::Timing(double total) const {
+# ifdef TIMER
+  time_findMin_.WriteTiming(2, "Find min distance", total);
+  time_mergeFrames_.WriteTiming(2, "Merge cluster frames", total);
+  time_calcLinkage_.WriteTiming(2, "Calculate new linkage", total);
+# endif
+}
+
+/** Default: put all frames in their own starting cluster. */
+void Cpptraj::Cluster::Algorithm_HierAgglo::buildInitialClusters(List& clusters,
+                                                                 Cframes const& framesToCluster,
+                                                                 Metric& metric)
+{
+  int num = 0;
+  for (Cframes_it frm = framesToCluster.begin(); frm != framesToCluster.end(); ++frm)
+  {
+    Cframes oneframe(1, *frm);
+    clusters.AddCluster( Node(metric, oneframe, num++) );
+  }
+}
+
+/** Cluster using a hierarchical agglomerative (bottom-up) approach. All frames
+  * start in their own cluster. The closest two clusters are merged, and 
+  * distances between the newly merged cluster and all remaining clusters are
+  * recalculated according to one of the following metrics:
+  * - single-linkage  : The minimum distance between frames in clusters are used.
+  * - average-linkage : The average distance between frames in clusters are used.
+  * - complete-linkage: The maximum distance between frames in clusters are used.
+  */
+int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
+                                                        Cframes const& framesToCluster,
+                                                        PairwiseMatrix const& pmatrix)
+{
+  // If epsilon not given make it huge
+  if (epsilon_ == -1.0) epsilon_ = std::numeric_limits<double>::max();
+  // If target clusters not given make it 1
+  if (nclusters_ == -1) nclusters_ = 1;
+  mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
+  ProgressBar cluster_progress(-10);
+  // Build initial clusters.
+  if (clusters.empty())
+    buildInitialClusters(clusters, framesToCluster, pmatrix.DistMetric());
+  mprintf("\t%i initial clusters.\n", clusters.Nclusters());
+  // Build initial cluster distance matrix.
+  InitializeClusterDistances();
+  // DEBUG - print initial clusters
+  if (debug_ > 1)
+    PrintClusters();
+  bool clusteringComplete = false;
+  int iterations = 0;
+  while (!clusteringComplete) {
+    // Merge 2 closest clusters. Clustering complete if closest dist > epsilon.
+    if (MergeClosest()) break;
+    // If the target number of clusters is reached we are done
+    if (Nclusters() <= nclusters_) {
+      mprintf("\n\tTarget # of clusters (%i) met (%u), clustering complete.\n", nclusters_,
+              Nclusters());
+      break;
+    }
+    if (Nclusters() == 1) clusteringComplete = true; // Sanity check
+    cluster_progress.Update( iterations++ );
+  }
+  mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
+          Nclusters());
+  return 0;
+}
+
+/** Find and merge the two closest clusters.
+  * \return 1 if clustering is complete, 0 otherwise.
+  */
+int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters) {
+  int C1, C2;
+  // Find the minimum distance between clusters. C1 will be lower than C2.
+# ifdef TIMER
+  time_findMin_.Start();
+# endif
+  double min = ClusterDistances_.FindMin(C1, C2);
+# ifdef TIMER
+  time_findMin_.Stop();
+# endif
+  if (eps_v_n_.IsOpen())
+    eps_v_n_.Printf("%12g %12i\n", min, clusters.Nclusters());
+  if (debug_>0)
+    mprintf("\tMinimum found between clusters %i and %i (%f)\n",C1,C2,min);
+  // If the minimum distance is greater than epsilon we are done
+  if (min > epsilon_) {
+    mprintf("\n\tMinimum distance (%f) is greater than epsilon (%f), clustering complete.\n",
+            min, epsilon_);
+    return 1;
+  }
+
+  // Find C1, the number of the cluster to be merged into.
+  cluster_it C1_it = clusters.begin();
+  for (; C1_it != clusters.end(); ++C1_it)
+  {
+    if ( C1_it->Num() == C1 ) break;
+  }
+  if (C1_it == clusters.end()) {
+    mprinterr("Error: MergeClosest: C1 (%i) not found.\n",C1);
+    return 1;
+  }
+  // Find C2 - start from C1 since C1 < C2
+  cluster_it C2_it = C1_it;
+  for (; C2_it != clusters.end(); ++C2_it) {
+    if ( C2_it->Num() == C2 ) break;
+  }
+  if (C2_it == clusters.end()) {
+    mprinterr("Error: MergeClosest: C2 (%i) not found.\n",C2);
+    return 1;
+  }
+
+  // Merge the closest clusters, C2 -> C1, remove C2
+# ifdef TIMER
+  time_mergeFrames_.Start();
+# endif
+  C1_it->MergeFrames( *C2_it );
+  clusters.erase( C2_it );
+# ifdef TIMER
+  time_mergeFrames_.Stop();
+# endif
+  // DEBUG
+  if (debug_>1) {
+    mprintf("\nAFTER MERGE of %i and %i:\n",C1,C2);
+    PrintClusters();
+  }
+  // Remove all distances having to do with C2
+  ClusterDistances_.Ignore(C2);
+# ifdef TIMER
+  time_calcLinkage_.Start();
+# endif
+  switch (linkage_) {
+    case AVERAGELINK : calcAvgDist(C1_it); break;
+    case SINGLELINK  : calcMinDist(C1_it); break;
+    case COMPLETELINK: calcMaxDist(C1_it); break;
+  }
+# ifdef TIMER
+  time_calcLinkage_.Stop();
+# endif
+  if (debug_>2) {
+    mprintf("NEW CLUSTER DISTANCES:\n");
+    ClusterDistances_.PrintElements();
+  }
+
+  return 0;
 }
 

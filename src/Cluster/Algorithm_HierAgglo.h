@@ -3,7 +3,6 @@
 #include "Algorithm.h"
 #include "../Timer.h"
 #include "../ClusterMatrix.h"
-#include "../CpptrajFile.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -14,12 +13,13 @@ class Algorithm_HierAgglo : public Algorithm {
     static void Help();
     int Setup(ArgList&);
     void Info() const;
-    void Results(std::string&) const;
+    void Results(CpptrajFile&) const;
     int DoClustering(List&, Cframes const&, PairwiseMatrix const&);
     void Timing(double) const;
   private:
+    void buildInitialClusters(List&, Cframes const&, Metric&);
     void InitializeClusterDistances();
-    int MergeClosest();
+    int MergeClosest(List&);
     void calcMinDist(List::cluster_it&);
     void calcMaxDist(List::cluster_it&);
     void calcAvgDist(List::cluster_it&);

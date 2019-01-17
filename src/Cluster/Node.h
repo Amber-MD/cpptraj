@@ -9,7 +9,7 @@ class Node {
   public:
     Node();
     ~Node();
-    Node(Metric*, Cframes const&, int);
+    Node(Metric&, Cframes const&, int);
     Node(const Node&);
     Node& operator=(const Node&);
     /// Used to pair a representative frame number with a score.
@@ -25,15 +25,15 @@ class Node {
     /// Calculate eccentricity for frames in this cluster.
     void CalcEccentricity(PairwiseMatrix const&);
     /// Calculate centroid of members of this cluster.
-    void CalculateCentroid(Metric* Cdist) {
+    void CalculateCentroid(Metric& Cdist) {
       // FIXME: Could potentially get rid of this branch.
       if (centroid_ == 0)
-        centroid_ = Cdist->NewCentroid( frameList_ );
+        centroid_ = Cdist.NewCentroid( frameList_ );
       else
-        Cdist->CalculateCentroid( centroid_, frameList_ );
+        Cdist.CalculateCentroid( centroid_, frameList_ );
     }
     /// Calculate average distance of all members to centroid
-    double CalcAvgToCentroid( Metric*) const;
+    double CalcAvgToCentroid( Metric&) const;
     // Iterator over frame numbers
     typedef Cframes::const_iterator frame_iterator;
     frame_iterator beginframe() const { return frameList_.begin(); }
@@ -70,9 +70,9 @@ class Node {
     /// Remove specified frame from cluster if present.
     void RemoveFrameFromCluster(int);
     /// Remove specified frame from cluster and update centroid.
-    void RemoveFrameUpdateCentroid(Metric*, int);
+    void RemoveFrameUpdateCentroid(Metric&, int);
     /// Add specified frame to cluster and update centroid.
-    void AddFrameUpdateCentroid(Metric*, int);
+    void AddFrameUpdateCentroid(Metric&, int);
   private:
     Cframes frameList_;     ///< List of frames belonging to this cluster.
     Centroid* centroid_;    ///< Centroid of all frames in this cluster.

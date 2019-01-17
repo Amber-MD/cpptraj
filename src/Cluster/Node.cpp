@@ -19,9 +19,9 @@ Cpptraj::Cluster::Node::~Node() {
   * initial centroid and set initial best rep frame to front, even though 
   * that will probably be wrong when number of frames in the list > 1.
   */
-Cpptraj::Cluster::Node::Node(Metric* Cdist, Cframes const& frameListIn, int numIn) :
+Cpptraj::Cluster::Node::Node(Metric& Cdist, Cframes const& frameListIn, int numIn) :
   frameList_(frameListIn),
-  centroid_(Cdist->NewCentroid(frameList_)),
+  centroid_(Cdist.NewCentroid(frameList_)),
   bestReps_(1, RepPair(frameListIn.front(), 0.0)),
   eccentricity_(0.0),
   num_(numIn),
@@ -108,14 +108,14 @@ void Cpptraj::Cluster::Node::CalcEccentricity(PairwiseMatrix const& FrameDistanc
 /** Calculate average distance between all members in cluster and
   * the centroid. 
   */
-double Cpptraj::Cluster::Node::CalcAvgToCentroid( Metric* Cdist ) const
+double Cpptraj::Cluster::Node::CalcAvgToCentroid( Metric& Cdist ) const
 {
   double avgdist = 0.0;
   //int idx = 0; // DEBUG
   //mprintf("AVG DISTANCES FOR CLUSTER %d:\n", Num()); // DEBUG
   for (frame_iterator frm = frameList_.begin(); frm != frameList_.end(); ++frm)
   {
-    double dist = Cdist->FrameCentroidDist( *frm, centroid_ );
+    double dist = Cdist.FrameCentroidDist( *frm, centroid_ );
     //mprintf("\tDist to %i is %f\n", idx++, dist); // DEBUG
     avgdist += dist;
   }
@@ -139,14 +139,14 @@ void Cpptraj::Cluster::Node::RemoveFrameFromCluster(int frame) {
   frameList_.resize( newsize );
 }
 
-void Cpptraj::Cluster::Node::RemoveFrameUpdateCentroid(Metric* Cdist, int frame) {
-  Cdist->FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
+void Cpptraj::Cluster::Node::RemoveFrameUpdateCentroid(Metric& Cdist, int frame) {
+  Cdist.FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
                          Metric::SUBTRACTFRAME);
   RemoveFrameFromCluster( frame );
 }
 
-void Cpptraj::Cluster::Node::AddFrameUpdateCentroid(Metric* Cdist, int frame) {
-  Cdist->FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
+void Cpptraj::Cluster::Node::AddFrameUpdateCentroid(Metric& Cdist, int frame) {
+  Cdist.FrameOpCentroid(frame, centroid_, (double)frameList_.size(),
                          Metric::ADDFRAME);
   AddFrameToCluster( frame );
 }
