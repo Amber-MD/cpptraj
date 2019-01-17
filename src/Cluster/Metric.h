@@ -33,6 +33,8 @@ class Metric {
     virtual void FrameOpCentroid(int, Centroid*, double, CentOpType) = 0;
     /// \return string containing description of the distance metric
     virtual std::string Description() const = 0;
+    /// \return total number of frames.
+    virtual unsigned int Ntotal() const = 0;
   protected:
     typedef double (*DistCalc)(double,double);
 };

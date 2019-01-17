@@ -19,6 +19,7 @@ class Metric_RMS : public Metric {
     Centroid* NewCentroid(Cframes const&);
     Metric* Copy() { return new Metric_RMS( *this ); }
     std::string Description() const;
+    unsigned int Ntotal() const { return (unsigned int)coords_->Size(); }
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;
