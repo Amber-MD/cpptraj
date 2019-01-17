@@ -14,16 +14,28 @@ class List {
     List() {}
     /// Iterator over clusters
     typedef std::list<Node>::iterator cluster_it;
+    /// Iterator to beginning
     cluster_it begin() { return clusters_.begin(); }
+    /// Iterator to end
     cluster_it end()   { return clusters_.end();   }
-    /// Const Iterator over clusters
+    /// Const iterator over clusters
     typedef std::list<Node>::const_iterator cluster_iterator;
+    /// Const iterator to beginning
     const cluster_iterator begincluster() const { return clusters_.begin(); }
+    /// Const iterator to end
     const cluster_iterator endcluster()   const { return clusters_.end();   }
+    /// \return current number of clusters.
+    int Nclusters()        const { return (int)clusters_.size(); }
+    /// \return Array containing noise points
+    Cframes const& Noise() const { return noise_; }
+    /// Add new cluster
+    void AddCluster( Node const& n ) { clusters_.push_back( n ); }
+    /// Print clusters to stdout
+    void PrintClusters() const;
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.
-    Node noise_;      ///< Hold any frames classified as noise.
+    Cframes noise_;   ///< Hold any frames classified as noise.
 };
 
 } /* END namespace Cluster */
