@@ -10,6 +10,8 @@ namespace Cluster {
 typedef std::vector<int> Cframes;
 /// Iterator for Cframes
 typedef Cframes::const_iterator Cframes_it;
+/// Definition of a noise point.
+const int NOISE = -1;
 
 /// Abstract base class for calculating distance between points or determining centroid.
 class Metric {
