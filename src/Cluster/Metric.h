@@ -6,13 +6,15 @@
 namespace Cpptraj {
 namespace Cluster {
 
+/// This will hold cluster frame numbers.
+typedef std::vector<int> Cframes;
+/// Iterator for Cframes
+typedef Cframes::const_iterator Cframes_it;
+
 /// Abstract base class for calculating distance between points or determining centroid.
 class Metric {
   public:
     enum CentOpType { ADDFRAME=0, SUBTRACTFRAME };
-    /// Used to pass in absolute frame numbers for centroid calculations.
-    typedef std::vector<int> Cframes;
-    typedef Cframes::const_iterator Cframes_it;
     typedef std::vector<DataSet*> DsArray; // TODO should this be here?
     virtual ~Metric() {}
     /// \return distance between given frames.
