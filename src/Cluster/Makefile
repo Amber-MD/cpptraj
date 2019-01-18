@@ -1,6 +1,11 @@
 # Cpptraj Cluster Makefile
 include ../../config.h
 
+# Variables
+AR       = ar cqs
+DEL_FILE = /bin/rm -f
+TARGET   = libcpptraj_cluster.a
+
 # Source files to be compiled
 SOURCES= \
   Algorithm_HierAgglo.cpp \
@@ -16,7 +21,12 @@ SOURCES= \
 OBJECTS=$(SOURCES:.cpp=.o)
 
 # Default target
-all: $(OBJECTS)
+all: $(TARGET)
+
+# Library target
+$(TARGET): $(OBJECTS)
+	-$(DEL_FILE) $(TARGET)
+	$(AR) $(TARGET) $(OBJECTS)
 
 # Install all targets
 install: all
@@ -33,7 +43,7 @@ depend: ../findDepend
 
 # Clean/uninstall targets
 clean:
-	/bin/rm -f $(OBJECTS) 
+	$(DEL_FILE) $(OBJECTS)
 
 uninstall: clean
 

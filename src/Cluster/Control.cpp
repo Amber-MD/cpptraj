@@ -152,3 +152,9 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
 
   return 0;
 }
+
+// -----------------------------------------------------------------------------
+void Cpptraj::Cluster::Control::Info() const {
+  if (metric_    != 0) metric_->Info();
+  if (algorithm_ != 0) algorithm_->Info();
+}

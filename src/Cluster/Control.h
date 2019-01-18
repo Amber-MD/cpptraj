@@ -17,6 +17,8 @@ class Control {
     static const char* AlgorithmArgs;
 
     int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, int);
+
+    void Info() const;
   private:
     static PairwiseMatrix* AllocatePairwise(PairwiseMatrix::Type, Metric*);
     int AllocatePairwise(ArgList&, Metric*);
