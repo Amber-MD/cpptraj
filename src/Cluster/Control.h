@@ -16,6 +16,8 @@ class Control {
 
     int SetupForCoordsDataSet(DataSet_Coords*, ArgList&, int);
   private:
+    int allocatePairwise(ArgList&, Metric::Type);
+
     List clusters_;
     PairwiseMatrix* pmatrix_;
     Algorithm* algorithm_;
