@@ -17,7 +17,7 @@ class Algorithm_HierAgglo : public Algorithm {
     int DoClustering(List&, Cframes const&, PairwiseMatrix const&);
     void Timing(double) const;
   private:
-    void buildInitialClusters(List&, Cframes const&, Metric&);
+    void buildInitialClusters(List&, Cframes const&, Metric*);
     void InitializeClusterDistances();
     int MergeClosest(List&);
     void calcMinDist(List::cluster_it&);

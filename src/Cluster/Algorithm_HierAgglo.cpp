@@ -73,7 +73,7 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::Timing(double total) const {
 /** Default: put all frames in their own starting cluster. */
 void Cpptraj::Cluster::Algorithm_HierAgglo::buildInitialClusters(List& clusters,
                                                                  Cframes const& framesToCluster,
-                                                                 Metric& metric)
+                                                                 Metric* metric)
 {
   int num = 0;
   for (Cframes_it frm = framesToCluster.begin(); frm != framesToCluster.end(); ++frm)
@@ -103,29 +103,29 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
   ProgressBar cluster_progress(-10);
   // Build initial clusters.
   if (clusters.empty())
-    buildInitialClusters(clusters, framesToCluster, pmatrix.DistMetric());
+    buildInitialClusters(clusters, framesToCluster, pmatrix.MetricPtr());
   mprintf("\t%i initial clusters.\n", clusters.Nclusters());
   // Build initial cluster distance matrix.
   InitializeClusterDistances();
   // DEBUG - print initial clusters
   if (debug_ > 1)
-    PrintClusters();
+    clusters.PrintClusters();
   bool clusteringComplete = false;
   int iterations = 0;
   while (!clusteringComplete) {
     // Merge 2 closest clusters. Clustering complete if closest dist > epsilon.
-    if (MergeClosest()) break;
+    if (MergeClosest(clusters)) break;
     // If the target number of clusters is reached we are done
-    if (Nclusters() <= nclusters_) {
+    if (clusters.Nclusters() <= nclusters_) {
       mprintf("\n\tTarget # of clusters (%i) met (%u), clustering complete.\n", nclusters_,
-              Nclusters());
+              clusters.Nclusters());
       break;
     }
-    if (Nclusters() == 1) clusteringComplete = true; // Sanity check
+    if (clusters.Nclusters() == 1) clusteringComplete = true; // Sanity check
     cluster_progress.Update( iterations++ );
   }
   mprintf("\tCompleted after %i iterations, %u clusters.\n",iterations,
-          Nclusters());
+          clusters.Nclusters());
   return 0;
 }
 
@@ -154,7 +154,7 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters) {
   }
 
   // Find C1, the number of the cluster to be merged into.
-  cluster_it C1_it = clusters.begin();
+  List::cluster_it C1_it = clusters.begin();
   for (; C1_it != clusters.end(); ++C1_it)
   {
     if ( C1_it->Num() == C1 ) break;
@@ -164,7 +164,7 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters) {
     return 1;
   }
   // Find C2 - start from C1 since C1 < C2
-  cluster_it C2_it = C1_it;
+  List::cluster_it C2_it = C1_it;
   for (; C2_it != clusters.end(); ++C2_it) {
     if ( C2_it->Num() == C2 ) break;
   }
@@ -178,14 +178,14 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters) {
   time_mergeFrames_.Start();
 # endif
   C1_it->MergeFrames( *C2_it );
-  clusters.erase( C2_it );
+  clusters.RemoveCluster( C2_it );
 # ifdef TIMER
   time_mergeFrames_.Stop();
 # endif
   // DEBUG
   if (debug_>1) {
     mprintf("\nAFTER MERGE of %i and %i:\n",C1,C2);
-    PrintClusters();
+    clusters.PrintClusters();
   }
   // Remove all distances having to do with C2
   ClusterDistances_.Ignore(C2);

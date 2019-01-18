@@ -10,7 +10,7 @@ double Cpptraj::Cluster::PairwiseMatrix_MEM::Frame_Distance(int f1, int f2) cons
     }
   }
   // If here, distance was not cached.
-  return distMetric()->FrameDist(f1, f2);
+  return MetricPtr()->FrameDist(f1, f2);
 }
 
 /** Requests that distances between given frames be cached in memory. */

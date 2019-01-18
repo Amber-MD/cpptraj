@@ -20,15 +20,15 @@ class PairwiseMatrix {
     /// \return internal metric, const.
     Metric const& DistMetric() const { return *metric_; }
     /// \return internal metric.
-    Metric&       DistMetric()       { return *metric_; }
+//    Metric&       DistMetric()       { return *metric_; }
+    /// \return Pointer to distance metric
+    Metric* MetricPtr() const { return metric_; }
   protected:
     /// Used to cache distances; expect internal indices, not absolute cluster frames.
     virtual void SetElement(int, int, double) = 0;
     // -------------------------------------------
     /// Internal routine used to cache pairwise distances.
     int CalcFrameDistances(Cframes const&);
-    /// \return Pointer to distance metric
-    Metric* distMetric() const { return metric_; }
   private:
     Metric* metric_; ///< The current distance metric.
 };

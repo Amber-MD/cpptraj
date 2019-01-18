@@ -30,10 +30,12 @@ class List {
     bool empty()           const { return clusters_.empty(); }
     /// \return Array containing noise points
     Cframes const& Noise() const { return noise_; }
-    /// Add new cluster
-    void AddCluster( Node const& n ) { clusters_.push_back( n ); }
     /// Print clusters to stdout
     void PrintClusters() const;
+    /// Add new cluster
+    void AddCluster( Node const& n )     { clusters_.push_back( n ); }
+    /// Remove existing cluster via iterator
+    void RemoveCluster( cluster_it& it ) { clusters_.erase( it ); }
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.
