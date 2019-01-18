@@ -19,10 +19,10 @@ class Algorithm_HierAgglo : public Algorithm {
   private:
     void buildInitialClusters(List&, Cframes const&, Metric*);
     void InitializeClusterDistances();
-    int MergeClosest(List&);
-    void calcMinDist(List::cluster_it&);
-    void calcMaxDist(List::cluster_it&);
-    void calcAvgDist(List::cluster_it&);
+    int MergeClosest(List&, PairwiseMatrix const&);
+    void calcMinDist(List::cluster_it&, List&, PairwiseMatrix const&);
+    void calcMaxDist(List::cluster_it&, List&, PairwiseMatrix const&);
+    void calcAvgDist(List::cluster_it&, List&, PairwiseMatrix const&);
 
     /// Type of distance calculation between clusters.
     enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };

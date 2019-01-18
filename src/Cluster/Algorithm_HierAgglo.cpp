@@ -114,7 +114,7 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
   int iterations = 0;
   while (!clusteringComplete) {
     // Merge 2 closest clusters. Clustering complete if closest dist > epsilon.
-    if (MergeClosest(clusters)) break;
+    if (MergeClosest(clusters, pmatrix)) break;
     // If the target number of clusters is reached we are done
     if (clusters.Nclusters() <= nclusters_) {
       mprintf("\n\tTarget # of clusters (%i) met (%u), clustering complete.\n", nclusters_,
@@ -132,7 +132,8 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
 /** Find and merge the two closest clusters.
   * \return 1 if clustering is complete, 0 otherwise.
   */
-int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters) {
+int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters, PairwiseMatrix const& pmatrix)
+{
   int C1, C2;
   // Find the minimum distance between clusters. C1 will be lower than C2.
 # ifdef TIMER
@@ -193,9 +194,9 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters) {
   time_calcLinkage_.Start();
 # endif
   switch (linkage_) {
-    case AVERAGELINK : calcAvgDist(C1_it); break;
-    case SINGLELINK  : calcMinDist(C1_it); break;
-    case COMPLETELINK: calcMaxDist(C1_it); break;
+    case AVERAGELINK : calcAvgDist(C1_it, clusters, pmatrix); break;
+    case SINGLELINK  : calcMinDist(C1_it, clusters, pmatrix); break;
+    case COMPLETELINK: calcMaxDist(C1_it, clusters, pmatrix); break;
   }
 # ifdef TIMER
   time_calcLinkage_.Stop();
@@ -208,3 +209,99 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::MergeClosest(List& clusters) {
   return 0;
 }
 
+/** Calculate the minimum distance between frames in cluster specified by
+  * iterator C1 and frames in all other clusters.
+  */
+void Cpptraj::Cluster::Algorithm_HierAgglo::calcMinDist(List::cluster_it& C1_it, List& clusters,
+                                                        PairwiseMatrix const& pmatrix)
+{
+  // All cluster distances to C1 must be recalcd.
+  for (List::cluster_it C2_it = clusters.begin();
+                        C2_it != clusters.end(); ++C2_it)
+  {
+    if (C2_it == C1_it) continue;
+    //mprintf("\t\tRecalc distance between %i and %i:\n",C1,newc2);
+    // Pick the minimum distance between newc2 and C1
+    double min = std::numeric_limits<double>::max();
+    for (Node::frame_iterator c1frames = C1_it->beginframe();
+                              c1frames != C1_it->endframe();
+                            ++c1frames)
+    {
+      for (Node::frame_iterator c2frames = C2_it->beginframe();
+                                c2frames != C2_it->endframe();
+                              ++c2frames)
+      {
+        double Dist = pmatrix.GetFdist(*c1frames, *c2frames);
+        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
+        if ( Dist < min ) min = Dist;
+      }
+    }
+    //mprintf("\t\tMin distance between %i and %i: %f\n",C1,newc2,min);
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), min );
+  }
+}
+
+/** Calculate the maximum distance between frames in cluster specified by
+  * iterator C1 and frames in all other clusters.
+  */
+void Cpptraj::Cluster::Algorithm_HierAgglo::calcMaxDist(List::cluster_it& C1_it, List& clusters,
+                                                        PairwiseMatrix const& pmatrix)
+{
+  // All cluster distances to C1 must be recalcd.
+  for (List::cluster_it C2_it = clusters.begin();
+                        C2_it != clusters.end(); ++C2_it)
+  {
+    if (C2_it == C1_it) continue;
+    //mprintf("\t\tRecalc distance between %i and %i:\n",C1,newc2);
+    // Pick the maximum distance between newc2 and C1
+    double max = -1.0;
+    for (Node::frame_iterator c1frames = C1_it->beginframe();
+                              c1frames != C1_it->endframe();
+                            ++c1frames)
+    {
+      for (Node::frame_iterator c2frames = C2_it->beginframe();
+                                c2frames != C2_it->endframe();
+                              ++c2frames)
+      {
+        double Dist = pmatrix.GetFdist(*c1frames, *c2frames);
+        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
+        if ( Dist > max ) max = Dist;
+      }
+    }
+    //mprintf("\t\tMax distance between %i and %i: %f\n",C1,newc2,max);
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), max );
+  }
+}
+
+/** Calculate the average distance between frames in cluster specified by
+  * iterator C1 and frames in all other clusters.
+  */
+void Cpptraj::Cluster::Algorithm_HierAgglo::calcAvgDist(List::cluster_it& C1_it, List& clusters,
+                                                        PairwiseMatrix const& pmatrix)
+{
+  // All cluster distances to C1 must be recalcd.
+  for (List::cluster_it C2_it = clusters.begin();
+                        C2_it != clusters.end(); ++C2_it)
+  {
+    if (C2_it == C1_it) continue;
+    //mprintf("\t\tRecalc distance between %i and %i:\n",(*C1_it).Num(),(*C2_it).Num());
+    // Pick the minimum distance between newc2 and C1
+    double sumDist = 0;
+    for (Node::frame_iterator c1frames = C1_it->beginframe();
+                              c1frames != C1_it->endframe();
+                            ++c1frames)
+    {
+      for (Node::frame_iterator c2frames = C2_it->beginframe();
+                                c2frames != C2_it->endframe();
+                              ++c2frames)
+      {
+        double Dist = pmatrix.GetFdist(*c1frames, *c2frames);
+        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
+        sumDist += Dist;
+      }
+    }
+    double Dist = sumDist / (double)(C1_it->Nframes() * C2_it->Nframes());
+    //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), Dist );
+  }
+}
