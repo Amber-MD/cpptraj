@@ -4,6 +4,8 @@
 namespace Cpptraj {
 namespace Cluster {
 
+// TODO implement needsUpdate_
+
 /// Hold frame indices for a given cluster.
 class Node {
   public:
@@ -14,8 +16,11 @@ class Node {
     //       allowing Metric to be used. Metric needs to be non-const because
     //       things like calculating RMSD modify Metric itself to avoid
     //       always reallocating Frames.
+    /// CONSTRUCTOR - Take Metric for calculating centroid, frames, and cluster index.
     Node(Metric*, Cframes const&, int);
+    /// COPY CONSTRUCTOR
     Node(const Node&);
+    /// ASSIGNMENT
     Node& operator=(const Node&);
     /// Used to pair a representative frame number with a score.
     typedef std::pair<int,float> RepPair;
@@ -39,9 +44,11 @@ class Node {
     }
     /// Calculate average distance of all members to centroid
     double CalcAvgToCentroid( Metric*) const;
-    // Iterator over frame numbers
+    /// Const iterator over frame numbers
     typedef Cframes::const_iterator frame_iterator;
+    /// Const iterator to beginning of frames
     frame_iterator beginframe() const { return frameList_.begin(); }
+    /// Const iteratir to end of frames.
     frame_iterator endframe()   const { return frameList_.end();   }
     /// \return Frame number at given index.
     int ClusterFrame(int idx)   const { return frameList_[idx];    }
@@ -67,6 +74,7 @@ class Node {
     /// Access representative frame list
     RepPairArray const& BestReps() const { return bestReps_; }
     RepPairArray&       BestReps()       { return bestReps_; }
+    /// Set cluster name and RMS to reference
     inline void SetNameAndRms(std::string const&, double);
     /// Sort internal frame list
     void SortFrameList();
@@ -82,7 +90,7 @@ class Node {
     Cframes frameList_;     ///< List of frames belonging to this cluster.
     Centroid* centroid_;    ///< Centroid of all frames in this cluster.
     std::string name_;      ///< Cluster name assigned from reference.
-    RepPairArray bestReps_;
+    RepPairArray bestReps_; ///< Hold best representative frames and their score. 
     double eccentricity_;   ///< Maximum distance between any 2 frames.
     double refRms_;         ///< Cluster rms to reference (if assigned).
     int num_;               ///< Cluster number, used for bookkeeping.
