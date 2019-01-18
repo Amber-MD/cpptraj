@@ -8,10 +8,7 @@
 // Algorithms
 #include "Algorithm_HierAgglo.h"
 
-void Cpptraj::Cluster::Control::Help() {
-  mprintf("[crdset <COORDS set>]\n");
-}
-
+// -----------------------------------------------------------------------------
 /** \return pointer to PairwiseMatrix of specified type. */
 Cpptraj::Cluster::PairwiseMatrix* 
   Cpptraj::Cluster::Control::AllocatePairwise(PairwiseMatrix::Type ptype, Metric* metric)
@@ -24,6 +21,9 @@ Cpptraj::Cluster::PairwiseMatrix*
   }
   return pmatrix;
 }
+
+const char* Cpptraj::Cluster::Control::PairwiseArgs =
+  "pairwisecache {mem|disk|none}";
 
 /** Set up PairwiseMatrix from arguments. */
 int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, Metric* metricIn)
@@ -61,6 +61,9 @@ Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algori
   return alg;
 }
 
+const char* Cpptraj::Cluster::Control::AlgorithmArgs =
+  "{hieragglo|dbscan|kmeans|dpeaks";
+
 /** Set up Algorithm from keyword + arguments. */
 int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
   Algorithm::Type atype;
@@ -68,6 +71,7 @@ int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
   else if (analyzeArgs.hasKey("dbscan"   )) atype = Algorithm::DBSCAN;
   else if (analyzeArgs.hasKey("kmeans") ||
            analyzeArgs.hasKey("means")    ) atype = Algorithm::KMEANS;
+  else if (analyzeArgs.hasKey("dpeaks"   )) atype = Algorithm::DPEAKS;
   else {
     mprintf("Warning: No clustering algorithm specified; defaulting to 'hieragglo'\n");
     atype = Algorithm::HIERAGGLO;

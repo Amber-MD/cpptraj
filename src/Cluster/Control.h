@@ -13,7 +13,8 @@ class Control {
   public:
     Control() : metric_(0), pmatrix_(0), algorithm_(0) {}
 
-    static void Help();
+    static const char* PairwiseArgs;
+    static const char* AlgorithmArgs;
 
     int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, int);
   private:
