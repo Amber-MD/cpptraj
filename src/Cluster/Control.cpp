@@ -49,17 +49,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, Metric* me
   return 0;
 }
 
-/** /return Pointer to Metric of given type. */
-Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type mtype)
-{
-  Metric* met = 0;
-  switch (mtype) {
-    case Metric::RMS : met = new Metric_RMS(); break;
-    default: mprinterr("Error: Unhandled Metric in AllocateMetric.\n");
-  }
-  return met;
-}
-
+// -----------------------------------------------------------------------------
 /** \return Pointer to Algorithm of given type. */
 Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algorithm::Type atype)
 {
@@ -71,7 +61,7 @@ Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algori
   return alg;
 }
 
-/** Set up Algorithm from keyword. */
+/** Set up Algorithm from keyword + arguments. */
 int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
   Algorithm::Type atype;
   if      (analyzeArgs.hasKey("hieragglo")) atype = Algorithm::HIERAGGLO;
@@ -85,7 +75,20 @@ int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
   if (algorithm_ != 0) delete algorithm_;
   algorithm_ = AllocateAlgorithm( atype );
   if (algorithm_ == 0) return 1;
+  if (algorithm_->Setup( analyzeArgs )) return 1;
   return 0;
+}
+
+// -----------------------------------------------------------------------------
+/** /return Pointer to Metric of given type. */
+Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type mtype)
+{
+  Metric* met = 0;
+  switch (mtype) {
+    case Metric::RMS : met = new Metric_RMS(); break;
+    default: mprinterr("Error: Unhandled Metric in AllocateMetric.\n");
+  }
+  return met;
 }
 
 /** Set up clustering for a COORDS DataSet.*/
@@ -134,6 +137,12 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   // Allocate PairwiseMatrix.
   if (AllocatePairwise( analyzeArgs, metric_ )) {
     mprinterr("Error: PairwiseMatrix setup failed.\n");
+    return 1;
+  }
+
+  // Allocate algorithm
+  if (AllocateAlgorithm( analyzeArgs )) {
+    mprinterr("Error: Algorithm setup failed.\n");
     return 1;
   }
 

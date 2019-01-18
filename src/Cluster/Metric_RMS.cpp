@@ -1,5 +1,6 @@
 #include "Metric_RMS.h"
 #include "Centroid_Coord.h"
+#include "../CpptrajStdio.h"
 
 /** Set up the metric. */
 int Cpptraj::Cluster::Metric_RMS::Setup(DataSet_Coords* dIn, AtomMask const& maskIn, 
@@ -112,4 +113,18 @@ std::string Cpptraj::Cluster::Metric_RMS::Description() const {
   if (nofit_) description.append(" nofit");
   if (useMass_) description.append(" mass");
   return description;
+}
+
+void Cpptraj::Cluster::Metric_RMS::Info() const {
+  mprintf(" RMSD");
+  if (mask_.MaskExpression() == "*")
+    mprintf(" (all atoms)");
+  else
+    mprintf(" (mask '%s')", mask_.MaskString());
+  if (useMass_)
+    mprintf(", mass-weighted");
+  if (nofit_)
+    mprintf(", no fitting");
+  else
+    mprintf(" best-fit");
 }

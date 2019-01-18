@@ -18,6 +18,7 @@ class Metric_RMS : public Metric {
     Metric* Copy() { return new Metric_RMS( *this ); }
     void FrameOpCentroid(int, Centroid*, double, CentOpType);
     std::string Description() const;
+    void Info() const;
     unsigned int Ntotal() const { return (unsigned int)coords_->Size(); }
     // -------------------------------------------
     int Setup(DataSet_Coords*, AtomMask const&, bool, bool);
