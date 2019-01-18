@@ -9,7 +9,9 @@ namespace Cluster {
 /// Abstract base class for implementing clustering algorithms.
 class Algorithm {
   public:
-    Algorithm() {}
+    enum Type { HIERAGGLO = 0, DBSCAN, DPEAKS, KMEANS };
+
+    Algorithm(Type t) : type_(t) {}
     virtual ~Algorithm() {}
     /// Set up clustering algorithm
     virtual int Setup(ArgList&) = 0;
@@ -26,6 +28,8 @@ class Algorithm {
     void SetDebug(int d) { debug_ = d; }
   protected:
     int debug_;
+  private:
+    Type type_;
 };
 
 } /* END namespace Cluster */

@@ -19,7 +19,11 @@ class Control {
   private:
     static PairwiseMatrix* AllocatePairwise(PairwiseMatrix::Type, Metric*);
     int AllocatePairwise(ArgList&, Metric*);
+
     static Metric* AllocateMetric(Metric::Type);
+
+    static Algorithm* AllocateAlgorithm(Algorithm::Type);
+    int AllocateAlgorithm(ArgList&);    
 
     List clusters_;
     Metric* metric_;

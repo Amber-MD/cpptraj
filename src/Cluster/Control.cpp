@@ -5,6 +5,8 @@
 #include "PairwiseMatrix_MEM.h"
 // Metric classes
 #include "Metric_RMS.h"
+// Algorithms
+#include "Algorithm_HierAgglo.h"
 
 void Cpptraj::Cluster::Control::Help() {
   mprintf("[crdset <COORDS set>]\n");
@@ -58,6 +60,34 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
   return met;
 }
 
+/** \return Pointer to Algorithm of given type. */
+Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algorithm::Type atype)
+{
+  Algorithm* alg = 0;
+  switch (atype) {
+    case Algorithm::HIERAGGLO : alg = new Algorithm_HierAgglo(); break;
+    default : mprinterr("Error: Unhandled Algorithm in AllocateAlgorithm.\n");
+  }
+  return alg;
+}
+
+/** Set up Algorithm from keyword. */
+int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
+  Algorithm::Type atype;
+  if      (analyzeArgs.hasKey("hieragglo")) atype = Algorithm::HIERAGGLO;
+  else if (analyzeArgs.hasKey("dbscan"   )) atype = Algorithm::DBSCAN;
+  else if (analyzeArgs.hasKey("kmeans") ||
+           analyzeArgs.hasKey("means")    ) atype = Algorithm::KMEANS;
+  else {
+    mprintf("Warning: No clustering algorithm specified; defaulting to 'hieragglo'\n");
+    atype = Algorithm::HIERAGGLO;
+  }
+  if (algorithm_ != 0) delete algorithm_;
+  algorithm_ = AllocateAlgorithm( atype );
+  if (algorithm_ == 0) return 1;
+  return 0;
+}
+
 /** Set up clustering for a COORDS DataSet.*/
 int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
                                                      std::string const& maskExpr,
@@ -96,10 +126,16 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
       mprinterr("Error: Unhandled Metric setup.\n");
       err = 1;
   }
-  if (err != 0) return 1;
+  if (err != 0) {
+    mprinterr("Error: Metric setup failed.\n");
+    return 1;
+  }
 
   // Allocate PairwiseMatrix.
-  if (AllocatePairwise( analyzeArgs, metric_ )) return 1;
+  if (AllocatePairwise( analyzeArgs, metric_ )) {
+    mprinterr("Error: PairwiseMatrix setup failed.\n");
+    return 1;
+  }
 
   return 0;
 }

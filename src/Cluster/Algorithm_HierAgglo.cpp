@@ -4,6 +4,7 @@
 #include "../ProgressBar.h"
 
 Cpptraj::Cluster::Algorithm_HierAgglo::Algorithm_HierAgglo() :
+  Algorithm(HIERAGGLO),
   nclusters_(-1),
   epsilon_(-1.0),
   linkage_(AVERAGELINK)//,
