@@ -18,8 +18,11 @@ class Algorithm_HierAgglo : public Algorithm {
     void Timing(double) const;
   private:
     void buildInitialClusters(List&, Cframes const&, Metric*);
-    void InitializeClusterDistances();
+    //void InitializeClusterDistances();
     int MergeClosest(List&, PairwiseMatrix const&);
+    static inline double minDist(Node const&, Node const&, PairwiseMatrix const&);
+    static inline double maxDist(Node const&, Node const&, PairwiseMatrix const&);
+    static inline double avgDist(Node const&, Node const&, PairwiseMatrix const&);
     void calcMinDist(List::cluster_it&, List&, PairwiseMatrix const&);
     void calcMaxDist(List::cluster_it&, List&, PairwiseMatrix const&);
     void calcAvgDist(List::cluster_it&, List&, PairwiseMatrix const&);
