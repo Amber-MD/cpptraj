@@ -5,6 +5,7 @@ include ../../config.h
 SOURCES= \
   Algorithm_HierAgglo.cpp \
   Centroid_Coord.cpp \
+  Control.cpp \
   List.cpp \
   Metric_RMS.cpp \
   Node.cpp \

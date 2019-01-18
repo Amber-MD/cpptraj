@@ -9,7 +9,7 @@ namespace Cluster {
 /// RMS cluster distance calc for Coords DataSet
 class Metric_RMS : public Metric {
   public:
-    Metric_RMS() : coords_(0), nofit_(false), useMass_(false) {}
+    Metric_RMS() : Metric(RMS), coords_(0), nofit_(false), useMass_(false) {}
     Metric_RMS(DataSet_Coords*,AtomMask const&,bool,bool);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );

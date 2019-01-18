@@ -4,6 +4,7 @@
 /// CONSTRUCTOR
 Cpptraj::Cluster::Metric_RMS::Metric_RMS(DataSet_Coords* dIn, AtomMask const& maskIn, 
                                  bool nofit, bool useMass) :
+  Metric(RMS),
   coords_(dIn),
   mask_(maskIn),
   nofit_(nofit),

@@ -3,6 +3,25 @@
 #include <omp.h>
 #endif
 #include "../ProgressBar.h"
+#include "../CpptrajStdio.h"
+// Distance Metric classes
+#include "Metric_RMS.h"
+
+Cpptraj::Cluster::PairwiseMatrix::PairwiseMatrix(Type t, Metric::Type mtype) :
+  type_(t)
+{
+  metric_ = AllocateMetric( mtype );
+}
+
+Cpptraj::Cluster::Metric* Cpptraj::Cluster::PairwiseMatrix::AllocateMetric(Metric::Type mtype)
+{
+  Metric* met = 0;
+  switch (mtype) {
+    case Metric::RMS : met = new Metric_RMS(); break;
+    default: mprinterr("Error: Unhandled Metric in AllocateMetric.\n");
+  }
+  return met;
+}
 
 int Cpptraj::Cluster::PairwiseMatrix::CalcFrameDistances(Cframes const& framesToCache)
 {

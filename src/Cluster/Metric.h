@@ -16,8 +16,13 @@ const int NOISE = -1;
 /// Abstract base class for calculating distance between points or determining centroid.
 class Metric {
   public:
+    enum Type { RMS=0, DME, SRMSD, DATA, DATA_EUCLID };
     enum CentOpType { ADDFRAME=0, SUBTRACTFRAME };
     typedef std::vector<DataSet*> DsArray; // TODO should this be here?
+
+    /// CONSTRUCTOR
+    Metric(Type t) { type_ = t; }
+    /// DESTRUCTOR
     virtual ~Metric() {}
     /// \return distance between given frames.
     virtual double FrameDist(int, int) = 0;
@@ -39,6 +44,8 @@ class Metric {
     virtual unsigned int Ntotal() const = 0;
   protected:
     typedef double (*DistCalc)(double,double);
+  private:
+    Type type_;
 };
 
 } // END namespace Cluster
