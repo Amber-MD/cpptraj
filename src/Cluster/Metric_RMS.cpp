@@ -1,17 +1,20 @@
 #include "Metric_RMS.h"
 #include "Centroid_Coord.h"
 
-/// CONSTRUCTOR
-Cpptraj::Cluster::Metric_RMS::Metric_RMS(DataSet_Coords* dIn, AtomMask const& maskIn, 
-                                 bool nofit, bool useMass) :
-  Metric(RMS),
-  coords_(dIn),
-  mask_(maskIn),
-  nofit_(nofit),
-  useMass_(useMass)
+/** Set up the metric. */
+int Cpptraj::Cluster::Metric_RMS::Setup(DataSet_Coords* dIn, AtomMask const& maskIn, 
+                                        bool nofit, bool useMass)
 {
-  frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
+  // TODO better error handles
+  if (dIn == 0) return 1;
+  coords_ = dIn;
+  mask_ = maskIn;
+  nofit_ = nofit;
+  useMass_ = useMass;
+
+  if (frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms())) return 1;
   frm2_ = frm1_;
+  return 0;
 }
 
 /** \return RMSD between two given frames. */

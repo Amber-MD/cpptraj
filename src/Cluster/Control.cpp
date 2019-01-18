@@ -59,10 +59,16 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
 }
 
 /** Set up clustering for a COORDS DataSet.*/
-int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds, ArgList& analyzeArgs,
+int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
+                                                     std::string const& maskExpr,
+                                                     ArgList& analyzeArgs,
                                                      int verbose)
 {
-  // Determine metric. Valid ones for COORDS are RMS, DME, SRMSD
+  if (ds == 0) {
+    mprinterr("Internal Error: Control::SetupForCoordsDataSet() called with null DataSet.\n");
+    return 1;
+  }
+  // Determine Metric. Valid ones for COORDS are RMS, DME, SRMSD
   int usedme = (int)analyzeArgs.hasKey("dme");
   int userms = (int)analyzeArgs.hasKey("rms");
   int usesrms = (int)analyzeArgs.hasKey("srmsd");
@@ -78,7 +84,21 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds, ArgList
   metric_ = 0;
   metric_ = AllocateMetric( mtype );
   if (metric_ == 0) return 1;
+  // Metric setup.
+  bool useMass = analyzeArgs.hasKey("mass");
+  bool nofit   = analyzeArgs.hasKey("nofit");
 
+  int err = 0;
+  switch (mtype) {
+    case Metric::RMS :
+      err = ((Metric_RMS*)metric_)->Setup(ds, AtomMask(maskExpr), nofit, useMass); break;
+    default:
+      mprinterr("Error: Unhandled Metric setup.\n");
+      err = 1;
+  }
+  if (err != 0) return 1;
+
+  // Allocate PairwiseMatrix.
   if (AllocatePairwise( analyzeArgs, metric_ )) return 1;
 
   return 0;

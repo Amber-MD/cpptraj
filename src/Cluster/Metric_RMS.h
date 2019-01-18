@@ -10,16 +10,17 @@ namespace Cluster {
 class Metric_RMS : public Metric {
   public:
     Metric_RMS() : Metric(RMS), coords_(0), nofit_(false), useMass_(false) {}
-    Metric_RMS(DataSet_Coords*,AtomMask const&,bool,bool);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
     void CalculateCentroid(Centroid*, Cframes const&);
-    void FrameOpCentroid(int, Centroid*, double, CentOpType);
     Centroid* NewCentroid(Cframes const&);
     Metric* Copy() { return new Metric_RMS( *this ); }
+    void FrameOpCentroid(int, Centroid*, double, CentOpType);
     std::string Description() const;
     unsigned int Ntotal() const { return (unsigned int)coords_->Size(); }
+    // -------------------------------------------
+    int Setup(DataSet_Coords*, AtomMask const&, bool, bool);
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;

@@ -15,7 +15,7 @@ class Control {
 
     static void Help();
 
-    int SetupForCoordsDataSet(DataSet_Coords*, ArgList&, int);
+    int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, int);
   private:
     static PairwiseMatrix* AllocatePairwise(PairwiseMatrix::Type, Metric*);
     int AllocatePairwise(ArgList&, Metric*);
