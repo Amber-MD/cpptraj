@@ -3,6 +3,7 @@
 #include "List.h"
 #include "PairwiseMatrix.h"
 #include "Algorithm.h"
+#include "Metric.h"
 #include "../DataSet_Coords.h"
 namespace Cpptraj {
 namespace Cluster {
@@ -10,15 +11,18 @@ namespace Cluster {
 /// Hold clusters, algorithm, and pairwise matrix.
 class Control {
   public:
-    Control() : pmatrix_(0), algorithm_(0) {}
+    Control() : metric_(0), pmatrix_(0), algorithm_(0) {}
 
     static void Help();
 
     int SetupForCoordsDataSet(DataSet_Coords*, ArgList&, int);
   private:
-    int allocatePairwise(ArgList&, Metric::Type);
+    static PairwiseMatrix* AllocatePairwise(PairwiseMatrix::Type, Metric*);
+    int AllocatePairwise(ArgList&, Metric*);
+    static Metric* AllocateMetric(Metric::Type);
 
     List clusters_;
+    Metric* metric_;
     PairwiseMatrix* pmatrix_;
     Algorithm* algorithm_;
 };

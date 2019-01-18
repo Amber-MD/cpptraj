@@ -10,7 +10,7 @@ class PairwiseMatrix {
     enum Type { MEM = 0, DISK, NOCACHE };
 
     //PairwiseMatrix() : metric_(0) {}
-    PairwiseMatrix(Type, Metric::Type);
+    PairwiseMatrix(Type, Metric*);
     virtual ~PairwiseMatrix() {}
     // -------------------------------------------
     /// \return distance between given cached frames.
@@ -33,8 +33,6 @@ class PairwiseMatrix {
     /// Internal routine used to cache pairwise distances.
     int CalcFrameDistances(Cframes const&);
   private:
-    static Metric* AllocateMetric(Metric::Type);
-
     Type type_;      ///< The current pairwise type.
     Metric* metric_; ///< The current distance metric.
 };
