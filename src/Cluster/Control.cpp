@@ -150,6 +150,8 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
     return 1;
   }
 
+  Info();
+
   return 0;
 }
 

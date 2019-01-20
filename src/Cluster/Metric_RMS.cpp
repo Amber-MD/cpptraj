@@ -116,7 +116,7 @@ std::string Cpptraj::Cluster::Metric_RMS::Description() const {
 }
 
 void Cpptraj::Cluster::Metric_RMS::Info() const {
-  mprintf(" RMSD");
+  mprintf("\tMetric: RMSD");
   if (mask_.MaskExpression() == "*")
     mprintf(" (all atoms)");
   else
@@ -127,4 +127,5 @@ void Cpptraj::Cluster::Metric_RMS::Info() const {
     mprintf(", no fitting");
   else
     mprintf(" best-fit");
+  mprintf("\n");
 }
