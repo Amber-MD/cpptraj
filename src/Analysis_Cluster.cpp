@@ -40,5 +40,8 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 
 // Analysis_Cluster::Analyze()
 Analysis::RetType Analysis_Cluster::Analyze() {
-  return Analysis::ERR;
+  int err = control_.Run();
+  if (err != 0)
+    return Analysis::ERR;
+  return Analysis::OK;
 }

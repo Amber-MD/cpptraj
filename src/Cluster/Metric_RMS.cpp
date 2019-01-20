@@ -15,6 +15,7 @@ int Cpptraj::Cluster::Metric_RMS::Setup(DataSet_Coords* dIn, AtomMask const& mas
 
   if (frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms())) return 1;
   frm2_ = frm1_;
+  mprintf("DEBUG: Setup\n");
   return 0;
 }
 

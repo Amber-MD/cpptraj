@@ -160,3 +160,18 @@ void Cpptraj::Cluster::Control::Info() const {
   if (metric_    != 0) metric_->Info();
   if (algorithm_ != 0) algorithm_->Info();
 }
+
+int Cpptraj::Cluster::Control::Run() {
+  // Figure out which frames to cluster TODO sieve
+  Cframes framesToCluster;
+  for (unsigned int i = 0; i < metric_->Ntotal(); i++)
+    framesToCluster.push_back( i );
+
+  // Cache distances if necessary
+  pmatrix_->CacheDistances( framesToCluster );
+
+  // Cluster
+  int err = algorithm_->DoClustering(clusters_, framesToCluster, *pmatrix_);
+
+  return err;
+}
