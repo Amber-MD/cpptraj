@@ -1,6 +1,18 @@
+# Files related to new clustering code
+CLUSTER_SOURCES= \
+  Cluster/Algorithm_HierAgglo.cpp \
+  Cluster/Centroid_Coord.cpp \
+  Cluster/Control.cpp \
+  Cluster/List.cpp \
+  Cluster/Metric_RMS.cpp \
+  Cluster/Node.cpp \
+  Cluster/PairwiseMatrix.cpp \
+  Cluster/PairwiseMatrix_MEM.cpp
+
 # These files are common to cpptraj/libcpptraj. Files that need to be built
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
-COMMON_SOURCES=ActionFrameCounter.cpp \
+COMMON_SOURCES= $(CLUSTER_SOURCES) \
+        ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Align.cpp \
         Action_Angle.cpp \

@@ -3,7 +3,7 @@ include ../config.h
 
 include cpptrajfiles
 
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) 
 
 include ambpdbfiles
 
@@ -11,7 +11,7 @@ AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o)
 
 CUDA_SOURCES=cuda_kernels/core_kernels.cu cuda_kernels/kernel_wrappers.cu
 
-CLUSTER_TARGET=Cluster/libcpptraj_cluster.a
+#CLUSTER_TARGET=Cluster/libcpptraj_cluster.a
 
 # Default target: cpptraj only
 all: cpptraj$(SFX)$(EXE)
@@ -23,8 +23,8 @@ install: $(INSTALL_TARGETS)
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(CLUSTER_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
-	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(CLUSTER_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
+	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # AmbPDB -------------------------------
 install_ambpdb: ambpdb$(EXE)
@@ -40,8 +40,8 @@ ambpdb$(EXE): $(AMBPDB_OBJECTS) $(XDRFILE_TARGET)
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(CLUSTER_TARGET)
-	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CPPTRAJ_LIB) $(CLUSTER_TARGET) $(LDFLAGS)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
+	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 nolibcpptraj:
 	@echo ""
@@ -84,8 +84,8 @@ noarpack:
 cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)
 	cd cuda_kernels && $(MAKE) all
 
-Cluster/libcpptraj_cluster.a:
-	cd Cluster && $(MAKE) all
+#Cluster/libcpptraj_cluster.a:
+#	cd Cluster && $(MAKE) all
 
 # Dependency targets
 findDepend: FindDepend.o 
