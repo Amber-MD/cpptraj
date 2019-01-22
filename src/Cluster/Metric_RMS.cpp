@@ -2,7 +2,7 @@
 #include "Centroid_Coord.h"
 #include "../CpptrajStdio.h"
 
-/** Set up the metric. */
+/** Initialize the metric. */
 int Cpptraj::Cluster::Metric_RMS::Init(DataSet_Coords* dIn, AtomMask const& maskIn, 
                                         bool nofit, bool useMass)
 {
@@ -21,7 +21,11 @@ int Cpptraj::Cluster::Metric_RMS::Init(DataSet_Coords* dIn, AtomMask const& mask
   return 0;
 }
 
+/** Set up the metric. */
 int Cpptraj::Cluster::Metric_RMS::Setup() {
+  if (coords_->Top().SetupIntegerMask( mask_ )) return 1;
+  mprintf("DEBUG: RMS metric topology: %s %s %i\n", coords_->legend(),
+          coords_->Top().c_str(), coords_->Top().Natom());
   if (frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms())) return 1;
   frm2_ = frm1_;
   mprintf("DEBUG: Setup RMS metric for %i atoms, %zu frames.\n", frm1_.Natom(), coords_->Size());
