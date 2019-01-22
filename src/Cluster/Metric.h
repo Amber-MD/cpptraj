@@ -18,7 +18,7 @@ const int UNCLASSIFIED = -2;
 /// Abstract base class for calculating distance between points or determining centroid.
 class Metric {
   public:
-    enum Type { RMS=0, DME, SRMSD, DATA, DATA_EUCLID };
+    enum Type { RMS=0, DME, SRMSD, DATA, DATA_EUCLID, MATRIX2D };
     enum CentOpType { ADDFRAME=0, SUBTRACTFRAME };
     typedef std::vector<DataSet*> DsArray; // TODO should this be here?
 
