@@ -41,6 +41,8 @@ class List {
     int CreateCnumVsTime(DataSet_integer*, unsigned int) const;
     /// Sort clusters by population and renumber.
     int Sort();
+    /// Add given frame as noise.
+    void AddNoise(int f) { noise_.push_back( f ); }
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.

@@ -12,6 +12,8 @@ typedef std::vector<int> Cframes;
 typedef Cframes::const_iterator Cframes_it;
 /// Definition of a noise point.
 const int NOISE = -1;
+/// Definition of an unclassified point.
+const int UNCLASSIFIED = -2;
 
 /// Abstract base class for calculating distance between points or determining centroid.
 class Metric {

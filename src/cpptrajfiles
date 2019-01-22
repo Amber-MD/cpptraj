@@ -1,5 +1,6 @@
 # Files related to new clustering code
 CLUSTER_SOURCES= \
+  Cluster/Algorithm_DBscan.cpp \
   Cluster/Algorithm_HierAgglo.cpp \
   Cluster/Centroid_Coord.cpp \
   Cluster/Control.cpp \

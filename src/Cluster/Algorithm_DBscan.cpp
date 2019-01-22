@@ -84,14 +84,27 @@ int Cpptraj::Cluster::Algorithm_DBscan::DoClustering(List& clusters,
   }
   // Actual clustering
   unsigned int nPtsToCluster = framesToCluster.size();
-  // FIXME handle case where clusters is not empty
-  if (!clusters.empty()) {
-    mprinterr("Internal Error: DBSCAN not yet set up for reclustering.\n");
-    return 1;
-  }
   // SetOfPoints is UNCLASSIFIED
   Status_.assign( nPtsToCluster, UNCLASSIFIED );
   int ClusterId = 0;
+  // If incoming clusters are not empty, set status of frames as appropriate.
+  if (!clusters.empty()) {
+    // Find highest cluster num
+    for (List::cluster_iterator node = clusters.begincluster();
+                                node != clusters.endcluster(); ++node)
+      if (node->Num() > ClusterId) ClusterId = node->Num();
+    ClusterId++;
+    // See if any frames to be clustered are already in clusters.
+    for (Cframes::const_iterator it = framesToCluster.begin(); it != framesToCluster.end(); ++it)
+    {
+      for (List::cluster_iterator node = clusters.begincluster();
+                                  node != clusters.endcluster(); ++node)
+      {
+        if (node->HasFrame( *it ))
+          Status_[it-framesToCluster.begin()] = node->Num();
+      }
+    }
+  }
   ProgressBar progress( nPtsToCluster );
   for (unsigned int idx = 0; idx != nPtsToCluster; idx++)
   {

@@ -7,6 +7,7 @@
 #include "Metric_RMS.h"
 // Algorithms
 #include "Algorithm_HierAgglo.h"
+#include "Algorithm_DBscan.h"
 
 // -----------------------------------------------------------------------------
 /** \return pointer to PairwiseMatrix of specified type. */
@@ -56,6 +57,7 @@ Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algori
   Algorithm* alg = 0;
   switch (atype) {
     case Algorithm::HIERAGGLO : alg = new Algorithm_HierAgglo(); break;
+    case Algorithm::DBSCAN    : alg = new Algorithm_DBscan(); break;
     default : mprinterr("Error: Unhandled Algorithm in AllocateAlgorithm.\n");
   }
   return alg;
