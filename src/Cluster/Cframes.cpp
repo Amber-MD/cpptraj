@@ -34,31 +34,39 @@ int Cpptraj::Cluster::Cframes::SetFramesToCluster(int sieveIn, size_t maxFrames,
 {
   if (maxFrames < 1) return 1;
   DetermineTypeFromSieve( sieveIn );
-//  frameToIdx_.clear();
+  frames_.clear();
+  sievedOut_.clear();
   // ---------------------------------------------
   if (type_ == NONE) 
-  { // No sieving; frame == index
+  {
+    // No sieving; frame == index
     frames_.reserve( maxFrames );
     for (unsigned int i = 0; i < maxFrames; i++)
       frames_.push_back( i );
-    //actualNframes_ = (int)maxFrames;
   }
   // ---------------------------------------------
   else if (type_ == REGULAR)
-  { // Regular sieveing; index = frame / sieve
-    //frames_.assign( maxFrames, -1 );
+  {
+    // Regular sieveing; index = frame / sieve
     frames_.reserve( maxFrames / sieve_ + 1 );
-    //int idx = 0;
-    for (unsigned int i = 0; i < maxFrames; i += sieve_)
-      frames_.push_back( i );
-      //frameToIdx_[i] = idx++;
-    //actualNframes_ = idx;
+    sievedOut_.reserve( maxFrames - (maxFrames / sieve_) );
+    unsigned int tgt = 0;
+    for (unsigned int i = 0; i < maxFrames; i++)
+    {
+      if (i == tgt) {
+        frames_.push_back( i );
+        tgt += sieve_;
+      } else
+        sievedOut_.push_back( i );
+    }
   }
   // ---------------------------------------------
   else if (type_ == RANDOM)
-  { // Random sieving; maxframes / sieve random indices
+  {
+    // Random sieving; maxframes / sieve random indices
     Iarray frameToIdx( maxFrames, -1 );
     frames_.reserve( maxFrames / sieve_ + 1 );
+    sievedOut_.reserve( maxFrames - (maxFrames / sieve_) );
     double dmax = (double)maxFrames;
     Random_Number random;
     random.rn_set( iseed );
@@ -76,11 +84,11 @@ int Cpptraj::Cluster::Cframes::SetFramesToCluster(int sieveIn, size_t maxFrames,
       }
     }
     // Put indices in order
-    //int idx = 0;
     for (unsigned int i = 0; i < maxFrames; i++)
       if (frameToIdx[i] == 1)
         frames_.push_back( i );
-    //actualNframes_ = idx;
+      else
+        sievedOut_.push_back( i );
   }
   // ---------------------------------------------
 //  MakeIdxToFrame();

@@ -35,9 +35,10 @@ class Cframes {
   private:
     void DetermineTypeFromSieve(int);
 
-    Iarray frames_;
-    SieveType type_;
-    int sieve_;
+    Iarray frames_;    ///< Frames to cluster.
+    Iarray sievedOut_; ///< Frames that will not be clustered.
+    SieveType type_;   ///< Sieving type.
+    int sieve_;        ///< Sieving value.
 };
 
 typedef Cframes::const_iterator Cframes_it;
