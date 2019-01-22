@@ -39,6 +39,8 @@ class List {
     void RemoveCluster( cluster_it& it ) { clusters_.erase( it ); }
     /// Generate cluster number vs time data set
     int CreateCnumVsTime(DataSet_integer*, unsigned int) const;
+    /// Sort clusters by population and renumber.
+    int Sort();
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.

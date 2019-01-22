@@ -14,6 +14,7 @@ void Cpptraj::Cluster::List::PrintClusters() const {
   }
 }
 
+/** Create cluster number vs time data set. */
 int Cpptraj::Cluster::List::CreateCnumVsTime(DataSet_integer* ds, unsigned int maxFrames)
 const
 {
@@ -40,5 +41,14 @@ const
     //mprinterr("\n");
     //break;
   }
+  return 0;
+}
+
+/** Sort clusters by population and renumber. */
+int Cpptraj::Cluster::List::Sort() {
+  clusters_.sort();
+  int newNum = 0;
+  for (cluster_it it = clusters_.begin(); it != clusters_.end(); ++it)
+    it->SetNum( newNum++ );
   return 0;
 }

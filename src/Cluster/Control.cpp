@@ -183,5 +183,8 @@ int Cpptraj::Cluster::Control::Run() {
   // Cluster
   int err = algorithm_->DoClustering(clusters_, framesToCluster, *pmatrix_);
 
+  // Sort by population and renumber
+  clusters_.Sort();
+
   return err;
 }
