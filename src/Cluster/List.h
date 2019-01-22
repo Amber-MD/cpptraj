@@ -43,6 +43,10 @@ class List {
     int Sort();
     /// Add given frame as noise.
     void AddNoise(int f) { noise_.push_back( f ); }
+    /// Update centroids TODO check if they need updating
+    void UpdateCentroids(Metric*);
+    /// Add given frames to clusters based on distance to centroid.
+    void AddFramesByCentroid(Cframes const&, Metric*);
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.

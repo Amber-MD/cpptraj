@@ -1,5 +1,7 @@
+#include <limits>
 #include "List.h"
 #include "../CpptrajStdio.h"
+#include "../ProgressBar.h"
 
 void Cpptraj::Cluster::List::PrintClusters() const {
   //mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(),
@@ -52,3 +54,68 @@ int Cpptraj::Cluster::List::Sort() {
     it->SetNum( newNum++ );
   return 0;
 }
+
+/** Update centroids. */
+void Cpptraj::Cluster::List::UpdateCentroids( Metric* metric ) {
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
+    node->SortFrameList();
+    node->CalculateCentroid( metric );
+  }
+}
+
+// -----------------------------------------------------------------------------
+void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric* metricIn)
+{
+  // NOTE: All cluster centroids must be up to date.
+  int idx;
+  int nframes = (int)framesIn.size();
+  double mindist, dist;
+  cluster_it minNode, Cnode;
+  ParallelProgress progress( nframes );
+  // For OMP, every other thread will need its own Cdist.
+  Metric* MyCdist = metricIn;
+# ifdef _OPENMP
+  // For OMP need a temp. array to hold which frame goes to which cluster to avoid clashes
+  std::vector<cluster_it> idxToCluster( nframes, clusters_.end() );
+# pragma omp parallel private(MyCdist, idx, dist, mindist, minNode, Cnode) firstprivate(progress)
+  {
+  int mythread = omp_get_thread_num();
+  progress.SetThread( mythread );
+  if (mythread == 0) {
+    mprintf("\tParallelizing sieve restore calc with %i threads\n", omp_get_num_threads());
+    MyCdist = metricIn;
+  } else
+    MyCdist = metricIn->Copy();
+# pragma omp for schedule(dynamic)
+# endif
+  for (idx = 0; idx < nframes; ++idx) {
+    progress.Update( idx );
+    int frame = framesIn[idx];
+    // Which clusters centroid is closest to this frame?
+    mindist = std::numeric_limits<double>::max();
+    minNode = clusters_.end();
+    for (Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
+      dist = MyCdist->FrameCentroidDist(frame, Cnode->Cent());
+      if (dist < mindist) {
+        mindist = dist;
+        minNode = Cnode;
+      }
+    }
+    // Add sieved frame to the closest cluster.
+#   ifdef _OPENMP
+    idxToCluster[idx] = minNode;
+#   else
+    minNode->AddFrameToCluster( frame );
+#   endif
+  } // END loop over frames
+# ifdef _OPENMP
+  if (mythread > 0)
+    delete MyCdist;
+  } // END pragma omp parallel
+  // Now actually add sieved frames to their appropriate clusters
+  for (idx = 0; idx < nframes; idx++)
+    idxToCluster[idx]->AddFrameToCluster( framesIn[idx] );
+# endif
+  progress.Finish();
+}
+

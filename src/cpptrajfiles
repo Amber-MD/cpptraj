@@ -9,7 +9,8 @@ CLUSTER_SOURCES= \
   Cluster/Metric_RMS.cpp \
   Cluster/Node.cpp \
   Cluster/PairwiseMatrix.cpp \
-  Cluster/PairwiseMatrix_MEM.cpp
+  Cluster/PairwiseMatrix_MEM.cpp \
+  Cluster/Sieve.cpp
 
 # These files are common to cpptraj/libcpptraj. Files that need to be built
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.

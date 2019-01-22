@@ -1,6 +1,7 @@
 #include "Control.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h"
+#include "Sieve.h"
 // PairwiseMatrix classes
 #include "PairwiseMatrix_MEM.h"
 // Metric classes
@@ -213,8 +214,9 @@ int Cpptraj::Cluster::Control::Run() {
   }
 
   // Figure out which frames to cluster
-  Cframes framesToCluster;
-  framesToCluster.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
+  Sieve frameSieve;
+  frameSieve.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
+  Cframes const& framesToCluster = frameSieve.FramesToCluster();
 
   // Cache distances if necessary
   pmatrix_->CacheDistances( framesToCluster );
@@ -222,6 +224,21 @@ int Cpptraj::Cluster::Control::Run() {
 
   // Cluster
   int err = algorithm_->DoClustering(clusters_, framesToCluster, *pmatrix_);
+
+  if ( sieveRestore_ != NO_RESTORE ) {
+    // Update cluster centroids in case they need to be used to restore sieved frames
+    clusters_.UpdateCentroids( metric_ );
+    // Restore sieved frames
+    mprintf("\tRestoring sieved frames.\n");
+    switch (sieveRestore_) {
+      case CLOSEST_CENTROID :
+        clusters_.AddFramesByCentroid( frameSieve.SievedOut(), metric_ );
+        break;
+      default:
+        mprinterr("Internal Error: Unhandled sieve restore type.\n");
+        return 1;
+    }
+  }
 
   // Sort by population and renumber
   clusters_.Sort();

@@ -8,10 +8,8 @@ namespace Cluster {
 class Cframes {
     typedef std::vector<int> Iarray;
   public:
-    enum SieveType { NONE=0, REGULAR, RANDOM };
-
-    Cframes()                : type_(NONE), sieve_(1) {}
-    Cframes(size_t n, int i) : frames_(n, i), type_(NONE), sieve_(1) {}
+    Cframes() {}
+    Cframes(size_t n, int i) : frames_(n, i) {}
 
     size_t size()                    const { return frames_.size(); }
     typedef Iarray::const_iterator const_iterator;
@@ -25,20 +23,15 @@ class Cframes {
     int& operator[](unsigned int idx)      { return frames_[idx];    }
     void push_back(int i)                  { frames_.push_back( i ); }
     void assign(size_t n, int i)           { frames_.assign(n, i);   }
+    void clear()                           { frames_.clear();        }
+    void reserve(size_t n)                 { frames_.reserve(n);     }
 
     bool HasFrame(int) const;
     void Insert(Cframes const& rhs) { frames_.insert(frames_.end(), rhs.begin(), rhs.end()); }
     void Remove(int);
     void Sort();
-
-    int SetFramesToCluster(int, size_t, int);
   private:
-    void DetermineTypeFromSieve(int);
-
     Iarray frames_;    ///< Frames to cluster.
-    Iarray sievedOut_; ///< Frames that will not be clustered.
-    SieveType type_;   ///< Sieving type.
-    int sieve_;        ///< Sieving value.
 };
 
 typedef Cframes::const_iterator Cframes_it;
