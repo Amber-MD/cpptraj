@@ -35,20 +35,23 @@ int Cpptraj::Cluster::Metric_RMS::Setup() {
 /** \return RMSD between two given frames. */
 double Cpptraj::Cluster::Metric_RMS::FrameDist(int f1, int f2) {
   coords_->GetFrame( f1, frm1_, mask_ );
-  frm1_.printAtomCoord(0);
   coords_->GetFrame( f2, frm2_, mask_ );
-  frm2_.printAtomCoord(0);
-  //if (nofit_)
-  //  return frm1_.RMSD_NoFit( frm2_, useMass_ );
-  //else
-  //  return frm1_.RMSD( frm2_, useMass_ );
+# ifdef DEBUG_CLUSTER
   double rms;
+  frm1_.printAtomCoord(0);
+  frm2_.printAtomCoord(0);
   if (nofit_)
     rms = frm1_.RMSD_NoFit( frm2_, useMass_ );
   else
     rms = frm1_.RMSD( frm2_, useMass_ );
   mprintf("\tMetric_RMS::FrameDist(%i, %i)= %g\n", f1, f2, rms);
   return rms;
+# else
+  if (nofit_)
+    return frm1_.RMSD_NoFit( frm2_, useMass_ );
+  else
+    return frm1_.RMSD( frm2_, useMass_ );
+# endif
 }
 
 /** \return RMSD between two given centroids. */
