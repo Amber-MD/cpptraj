@@ -142,6 +142,11 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   }
   mprintf("DEBUG: metric memory: %x\n", metric_);
 
+  return Common(analyzeArgs);
+}
+
+/** Common setup. */
+int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
   // Allocate PairwiseMatrix.
   if (AllocatePairwise( analyzeArgs, metric_ )) {
     mprinterr("Error: PairwiseMatrix setup failed.\n");
@@ -155,8 +160,18 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   }
   algorithm_->SetDebug( verbose_ );
 
-  Info();
+  // Sieve options
+  sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
+  sieve_ = analyzeArgs.getKeyInt("sieve", 1);
+  if (sieve_ < 1) {
+    mprinterr("Error: 'sieve <#>' must be >= 1 (%i)\n", sieve_);
+    return 1;
+  }
+  if (analyzeArgs.hasKey("random") && sieve_ > 1)
+    sieve_ = -sieve_; // negative # indicates random sieve
 
+
+  Info();
   return 0;
 }
 
@@ -173,10 +188,9 @@ int Cpptraj::Cluster::Control::Run() {
     return 1;
   }
 
-  // Figure out which frames to cluster TODO sieve
+  // Figure out which frames to cluster
   Cframes framesToCluster;
-  for (unsigned int i = 0; i < metric_->Ntotal(); i++)
-    framesToCluster.push_back( i );
+  framesToCluster.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
 
   // Cache distances if necessary
   pmatrix_->CacheDistances( framesToCluster );

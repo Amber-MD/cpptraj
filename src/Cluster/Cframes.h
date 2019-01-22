@@ -8,8 +8,11 @@ namespace Cluster {
 class Cframes {
     typedef std::vector<int> Iarray;
   public:
-    Cframes() {}
-    Cframes(size_t n, int i) : frames_(n, i) {}
+    enum SieveType { NONE=0, REGULAR, RANDOM };
+
+    Cframes()                : type_(NONE), sieve_(1) {}
+    Cframes(size_t n, int i) : frames_(n, i), type_(NONE), sieve_(1) {}
+
     size_t size()                    const { return frames_.size(); }
     typedef Iarray::const_iterator const_iterator;
     const_iterator begin()           const { return frames_.begin(); }
@@ -27,8 +30,14 @@ class Cframes {
     void Insert(Cframes const& rhs) { frames_.insert(frames_.end(), rhs.begin(), rhs.end()); }
     void Remove(int);
     void Sort();
+
+    int SetFramesToCluster(int, size_t, int);
   private:
+    void DetermineTypeFromSieve(int);
+
     Iarray frames_;
+    SieveType type_;
+    int sieve_;
 };
 
 typedef Cframes::const_iterator Cframes_it;

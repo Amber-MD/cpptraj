@@ -11,7 +11,9 @@ namespace Cluster {
 /// Hold clusters, algorithm, and pairwise matrix.
 class Control {
   public:
-    Control() : metric_(0), pmatrix_(0), algorithm_(0), verbose_(0) {}
+    Control() : metric_(0), pmatrix_(0), algorithm_(0), verbose_(0),
+                sieve_(1), sieveSeed_(-1)
+      {}
 
     static const char* PairwiseArgs;
     static const char* AlgorithmArgs;
@@ -32,11 +34,16 @@ class Control {
     static Algorithm* AllocateAlgorithm(Algorithm::Type);
     int AllocateAlgorithm(ArgList&);    
 
+    int Common(ArgList&);
+
     List clusters_;
     Metric* metric_;
     PairwiseMatrix* pmatrix_;
     Algorithm* algorithm_;
     int verbose_;
+
+    int sieve_; ///< Sieve value
+    int sieveSeed_; ///< Seed if doing random sieve
 };
 
 } /** END namespace Cluster. */
