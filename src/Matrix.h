@@ -27,6 +27,8 @@ template <class T> class Matrix {
     //MType Type()                         const { return type_;           }
     /// \return estimated size in bytes.
     static size_t sizeInBytes(size_t,size_t);
+    /// \return current size in bytes.
+    size_t sizeInBytes() const { return sizeInBytes(Ncols(), Nrows()); }
     /// Set up matrix for given number of cols and rows.
     int resize(size_t,size_t);
     /// \return element at specified col and row.

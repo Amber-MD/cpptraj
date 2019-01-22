@@ -24,6 +24,8 @@ class Metric {
     Metric(Type t) { type_ = t; }
     /// DESTRUCTOR
     virtual ~Metric() {}
+    /// Set up the Metric prior to clustering.
+    virtual int Setup() = 0;
     /// \return distance between given frames.
     virtual double FrameDist(int, int) = 0;
     /// \return distance between given centroids.

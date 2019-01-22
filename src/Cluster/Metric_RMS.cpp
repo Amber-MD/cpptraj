@@ -3,30 +3,48 @@
 #include "../CpptrajStdio.h"
 
 /** Set up the metric. */
-int Cpptraj::Cluster::Metric_RMS::Setup(DataSet_Coords* dIn, AtomMask const& maskIn, 
+int Cpptraj::Cluster::Metric_RMS::Init(DataSet_Coords* dIn, AtomMask const& maskIn, 
                                         bool nofit, bool useMass)
 {
   // TODO better error handles
-  if (dIn == 0) return 1;
+  if (dIn == 0) {
+    mprinterr("Internal Error: Metric_RMS::Init() called with null data set.\n");
+    return 1;
+  }
+  mprintf("DEBUG: Init RMS metric for '%s', mask '%s', nofit=%i, usemass=%i\n",
+          dIn->legend(), maskIn.MaskString(), (int)nofit, (int)useMass);
   coords_ = dIn;
   mask_ = maskIn;
   nofit_ = nofit;
   useMass_ = useMass;
 
+  return 0;
+}
+
+int Cpptraj::Cluster::Metric_RMS::Setup() {
   if (frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms())) return 1;
   frm2_ = frm1_;
-  mprintf("DEBUG: Setup\n");
+  mprintf("DEBUG: Setup RMS metric for %i atoms, %zu frames.\n", frm1_.Natom(), coords_->Size());
   return 0;
 }
 
 /** \return RMSD between two given frames. */
 double Cpptraj::Cluster::Metric_RMS::FrameDist(int f1, int f2) {
   coords_->GetFrame( f1, frm1_, mask_ );
+  frm1_.printAtomCoord(0);
   coords_->GetFrame( f2, frm2_, mask_ );
+  frm2_.printAtomCoord(0);
+  //if (nofit_)
+  //  return frm1_.RMSD_NoFit( frm2_, useMass_ );
+  //else
+  //  return frm1_.RMSD( frm2_, useMass_ );
+  double rms;
   if (nofit_)
-    return frm1_.RMSD_NoFit( frm2_, useMass_ );
+    rms = frm1_.RMSD_NoFit( frm2_, useMass_ );
   else
-    return frm1_.RMSD( frm2_, useMass_ );
+    rms = frm1_.RMSD( frm2_, useMass_ );
+  mprintf("\tMetric_RMS::FrameDist(%i, %i)= %g\n", f1, f2, rms);
+  return rms;
 }
 
 /** \return RMSD between two given centroids. */

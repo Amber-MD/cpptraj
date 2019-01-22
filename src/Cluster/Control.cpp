@@ -128,7 +128,7 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   int err = 0;
   switch (mtype) {
     case Metric::RMS :
-      err = ((Metric_RMS*)metric_)->Setup(ds, AtomMask(maskExpr), nofit, useMass); break;
+      err = ((Metric_RMS*)metric_)->Init(ds, AtomMask(maskExpr), nofit, useMass); break;
     default:
       mprinterr("Error: Unhandled Metric setup.\n");
       err = 1;
@@ -137,6 +137,7 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
     mprinterr("Error: Metric setup failed.\n");
     return 1;
   }
+  mprintf("DEBUG: metric memory: %x\n", metric_);
 
   // Allocate PairwiseMatrix.
   if (AllocatePairwise( analyzeArgs, metric_ )) {
@@ -162,6 +163,12 @@ void Cpptraj::Cluster::Control::Info() const {
 }
 
 int Cpptraj::Cluster::Control::Run() {
+  // Set up the Metric
+  if (metric_->Setup()) {
+    mprinterr("Error: Metric setup failed.\n");
+    return 1;
+  }
+
   // Figure out which frames to cluster TODO sieve
   Cframes framesToCluster;
   for (unsigned int i = 0; i < metric_->Ntotal(); i++)

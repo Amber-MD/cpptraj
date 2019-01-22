@@ -10,6 +10,7 @@ namespace Cluster {
 class Metric_RMS : public Metric {
   public:
     Metric_RMS() : Metric(RMS), coords_(0), nofit_(false), useMass_(false) {}
+    int Setup();
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -21,7 +22,7 @@ class Metric_RMS : public Metric {
     void Info() const;
     unsigned int Ntotal() const { return (unsigned int)coords_->Size(); }
     // -------------------------------------------
-    int Setup(DataSet_Coords*, AtomMask const&, bool, bool);
+    int Init(DataSet_Coords*, AtomMask const&, bool, bool);
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;
