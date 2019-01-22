@@ -16,7 +16,7 @@ class Analysis_Cluster : public Analysis {
     Cpptraj::Cluster::Control control_;
 
     DataSet_Coords* coords_;
-
+    DataSet* cnumvtime_;
     
 };
 #endif

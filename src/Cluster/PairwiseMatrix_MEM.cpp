@@ -1,7 +1,5 @@
 #include "PairwiseMatrix_MEM.h"
-#ifdef DEBUG_CLUSTER
-#include "../CpptrajStdio.h" // DEBUG
-#endif
+#include "../CpptrajStdio.h"
 
 /** \return distance between frames (cached or uncached). */
 double Cpptraj::Cluster::PairwiseMatrix_MEM::Frame_Distance(int f1, int f2) const {
@@ -35,3 +33,18 @@ int Cpptraj::Cluster::PairwiseMatrix_MEM::CacheDistances(Cframes const& framesTo
 # endif
   return CalcFrameDistances( framesToCache );
 }
+
+/** Print cached distances to stdout. */
+void Cpptraj::Cluster::PairwiseMatrix_MEM::PrintCached() const {
+  for (Cframes::const_iterator it1 = frameToMat_.begin(); it1 != frameToMat_.end(); ++it1)
+  {
+    if (*it1 != -1) {
+      for (Cframes::const_iterator it2 = it1 + 1; it2 != frameToMat_.end(); ++it2)
+      {
+        if (*it2 != -1)
+          mprintf("\t%i %i %f\n", *it1+1, *it2+1, Mat_.element(*it1, *it2));
+      }
+    }
+  }
+}
+

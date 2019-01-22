@@ -99,8 +99,9 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
 int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
                                                      std::string const& maskExpr,
                                                      ArgList& analyzeArgs,
-                                                     int verbose)
+                                                     int verboseIn)
 {
+  verbose_ = verboseIn;
   if (ds == 0) {
     mprinterr("Internal Error: Control::SetupForCoordsDataSet() called with null DataSet.\n");
     return 1;
@@ -150,6 +151,7 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
     mprinterr("Error: Algorithm setup failed.\n");
     return 1;
   }
+  algorithm_->SetDebug( verbose_ );
 
   Info();
 
@@ -176,6 +178,7 @@ int Cpptraj::Cluster::Control::Run() {
 
   // Cache distances if necessary
   pmatrix_->CacheDistances( framesToCluster );
+  if (verbose_ > 1) pmatrix_->PrintCached();
 
   // Cluster
   int err = algorithm_->DoClustering(clusters_, framesToCluster, *pmatrix_);

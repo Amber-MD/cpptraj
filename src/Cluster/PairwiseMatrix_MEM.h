@@ -12,6 +12,7 @@ class PairwiseMatrix_MEM : public PairwiseMatrix {
     double GetFdist(int f1, int f2) const { return Mat_.element(frameToMat_[f1], frameToMat_[f2]); }
     double Frame_Distance(int, int) const;
     int CacheDistances(Cframes const&);
+    void PrintCached() const;
     // -------------------------------------------
   protected:
     void SetElement(int col, int row, double val) { Mat_.setElement(col, row, val); }

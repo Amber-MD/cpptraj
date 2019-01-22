@@ -11,7 +11,7 @@ namespace Cluster {
 /// Hold clusters, algorithm, and pairwise matrix.
 class Control {
   public:
-    Control() : metric_(0), pmatrix_(0), algorithm_(0) {}
+    Control() : metric_(0), pmatrix_(0), algorithm_(0), verbose_(0) {}
 
     static const char* PairwiseArgs;
     static const char* AlgorithmArgs;
@@ -20,6 +20,9 @@ class Control {
 
     void Info() const;
     int Run();
+
+    List const& Clusters()     const { return clusters_; }
+    Metric const& DistMetric() const { return *metric_;  }
   private:
     static PairwiseMatrix* AllocatePairwise(PairwiseMatrix::Type, Metric*);
     int AllocatePairwise(ArgList&, Metric*);
@@ -33,6 +36,7 @@ class Control {
     Metric* metric_;
     PairwiseMatrix* pmatrix_;
     Algorithm* algorithm_;
+    int verbose_;
 };
 
 } /** END namespace Cluster. */

@@ -2,6 +2,7 @@
 #define INC_CLUSTER_LIST_H
 #include <list>
 #include "Node.h"
+#include "../DataSet_integer.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -36,6 +37,8 @@ class List {
     void AddCluster( Node const& n )     { clusters_.push_back( n ); }
     /// Remove existing cluster via iterator
     void RemoveCluster( cluster_it& it ) { clusters_.erase( it ); }
+    /// Generate cluster number vs time data set
+    int CreateCnumVsTime(DataSet_integer*, unsigned int) const;
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.

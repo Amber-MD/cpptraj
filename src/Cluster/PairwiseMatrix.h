@@ -19,6 +19,8 @@ class PairwiseMatrix {
     virtual double Frame_Distance(int, int) const = 0;
     /// Request that distances for the specified frames be cached.
     virtual int CacheDistances(Cframes const&) = 0;
+    /// Print only cached distances.
+    virtual void PrintCached() const = 0;
     // -------------------------------------------
     /// \return internal metric, const.
     Metric const& DistMetric() const { return *metric_; }

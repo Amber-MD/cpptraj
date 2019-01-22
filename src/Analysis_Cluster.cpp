@@ -34,6 +34,14 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 
   control_.SetupForCoordsDataSet(coords_, maskexpr, analyzeArgs, debugIn);
 
+  // Output files
+  DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+
+  // Dataset to store cluster number v time
+  cnumvtime_ = setup.DSL().AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
+  if (cnumvtime_==0) return Analysis::ERR;
+  if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
+
   return Analysis::OK;
 
 }
@@ -41,7 +49,18 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 // Analysis_Cluster::Analyze()
 Analysis::RetType Analysis_Cluster::Analyze() {
   int err = control_.Run();
-  if (err != 0)
+  if (err != 0) {
+    mprinterr("Error: Clustering failed.\n");
     return Analysis::ERR;
+  }
+  // Cluster number vs time
+  if (cnumvtime_ != 0) {
+    if (control_.Clusters().CreateCnumVsTime( (DataSet_integer*)cnumvtime_,
+                                              control_.DistMetric().Ntotal() ))
+    {
+      mprinterr("Error: Creation of cluster num vs time data set failed.\n");
+      return Analysis::ERR;
+    }
+  }
   return Analysis::OK;
 }
