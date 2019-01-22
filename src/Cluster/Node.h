@@ -103,7 +103,8 @@ bool Node::operator<(const Node& rhs) const {
 }
 /** Frames from rhs go to this cluster. */
 void Node::MergeFrames( Node const& rhs) {
-  frameList_.insert(frameList_.end(), rhs.frameList_.begin(), rhs.frameList_.end());
+  frameList_.Insert( rhs.frameList_ );
+  //frameList_.insert(frameList_.end(), rhs.frameList_.begin(), rhs.frameList_.end());
 }
 /** Set reference name and RMS. */
 void Node::SetNameAndRms(std::string const& nameIn, double rmsIn) {

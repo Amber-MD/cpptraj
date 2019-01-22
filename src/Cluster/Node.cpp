@@ -1,5 +1,4 @@
-#include <cfloat> // DBL_MAX
-#include <algorithm> // sort
+//#include <cfloat> // DBL_MAX
 #include "Node.h"
 
 // CONSTRUCTOR
@@ -123,20 +122,23 @@ double Cpptraj::Cluster::Node::CalcAvgToCentroid( Metric* Cdist ) const
 }
 
 void Cpptraj::Cluster::Node::SortFrameList() {
-  std::sort(frameList_.begin(), frameList_.end());
+  //std::sort(frameList_.begin(), frameList_.end());
+  frameList_.Sort();
 }
 
 // Cpptraj::Cluster::Node::HasFrame()
 bool Cpptraj::Cluster::Node::HasFrame(int frame) const {
-  Cframes::const_iterator it = std::find(frameList_.begin(), frameList_.end(), frame);
-  return !(it == frameList_.end());
+  //Cframes::const_iterator it = std::find(frameList_.begin(), frameList_.end(), frame);
+  //return !(it == frameList_.end());
+  return frameList_.HasFrame( frame );
 }
 
 // Cpptraj::Cluster::Node::RemoveFrameFromCluster()
 void Cpptraj::Cluster::Node::RemoveFrameFromCluster(int frame) {
-  Cframes::iterator pend = std::remove( frameList_.begin(), frameList_.end(), frame);
+  frameList_.Remove( frame );
+/*  Cframes::iterator pend = std::remove( frameList_.begin(), frameList_.end(), frame);
   size_t newsize = pend - frameList_.begin();
-  frameList_.resize( newsize );
+  frameList_.resize( newsize );*/
 }
 
 void Cpptraj::Cluster::Node::RemoveFrameUpdateCentroid(Metric* Cdist, int frame) {

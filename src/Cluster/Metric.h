@@ -2,14 +2,11 @@
 #define INC_CLUSTER_METRIC_H
 #include <vector>
 #include "../DataSet.h"
+#include "Cframes.h"
 #include "Centroid.h"
 namespace Cpptraj {
 namespace Cluster {
 
-/// This will hold cluster frame numbers.
-typedef std::vector<int> Cframes;
-/// Iterator for Cframes
-typedef Cframes::const_iterator Cframes_it;
 /// Definition of a noise point.
 const int NOISE = -1;
 /// Definition of an unclassified point.

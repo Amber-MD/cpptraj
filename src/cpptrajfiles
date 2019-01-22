@@ -3,6 +3,7 @@ CLUSTER_SOURCES= \
   Cluster/Algorithm_DBscan.cpp \
   Cluster/Algorithm_HierAgglo.cpp \
   Cluster/Centroid_Coord.cpp \
+  Cluster/Cframes.cpp \
   Cluster/Control.cpp \
   Cluster/List.cpp \
   Cluster/Metric_RMS.cpp \
