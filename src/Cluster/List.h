@@ -47,6 +47,8 @@ class List {
     void UpdateCentroids(Metric*);
     /// Add given frames to clusters based on distance to centroid.
     void AddFramesByCentroid(Cframes const&, Metric*);
+    /// Add given frames to clusters based on distance to centroid and cutoff.
+    void AddFramesByCentroid(Cframes const&, Metric*, bool, double);
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.
