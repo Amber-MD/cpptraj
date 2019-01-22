@@ -9,6 +9,16 @@
 #include "Algorithm_HierAgglo.h"
 #include "Algorithm_DBscan.h"
 
+Cpptraj::Cluster::Control::Control() :
+  metric_(0),
+  pmatrix_(0),
+  algorithm_(0),
+  verbose_(0),
+  sieve_(1),
+  sieveSeed_(-1),
+  sieveRestore_(NO_RESTORE)
+{}
+
 // -----------------------------------------------------------------------------
 /** \return pointer to PairwiseMatrix of specified type. */
 Cpptraj::Cluster::PairwiseMatrix* 
@@ -52,7 +62,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, Metric* me
 
 // -----------------------------------------------------------------------------
 /** \return Pointer to Algorithm of given type. */
-Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algorithm::Type atype)
+Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algorithm::AType atype)
 {
   Algorithm* alg = 0;
   switch (atype) {
@@ -68,7 +78,7 @@ const char* Cpptraj::Cluster::Control::AlgorithmArgs =
 
 /** Set up Algorithm from keyword + arguments. */
 int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
-  Algorithm::Type atype;
+  Algorithm::AType atype;
   if      (analyzeArgs.hasKey("hieragglo")) atype = Algorithm::HIERAGGLO;
   else if (analyzeArgs.hasKey("dbscan"   )) atype = Algorithm::DBSCAN;
   else if (analyzeArgs.hasKey("kmeans") ||
@@ -169,6 +179,16 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
   }
   if (analyzeArgs.hasKey("random") && sieve_ > 1)
     sieve_ = -sieve_; // negative # indicates random sieve
+  // Choose sieve restore option based on algorithm.
+  if (sieve_ != 1) {
+    sieveRestore_ = CLOSEST_CENTROID;
+    if (algorithm_->Type() == Algorithm::DBSCAN) {
+      if (!analyzeArgs.hasKey("sievetoframe"))
+        sieveRestore_ = EPSILON_CENTROID;
+      else
+        sieveRestore_ = EPSILON_FRAME;
+    }
+  }
 
 
   Info();
@@ -182,6 +202,10 @@ void Cpptraj::Cluster::Control::Info() const {
 }
 
 int Cpptraj::Cluster::Control::Run() {
+  if (metric_ == 0 || pmatrix_ == 0 || algorithm_ == 0) {
+    mprinterr("Internal Error: Cluster::Control is not set up.\n");
+    return 1;
+  }
   // Set up the Metric
   if (metric_->Setup()) {
     mprinterr("Error: Metric setup failed.\n");

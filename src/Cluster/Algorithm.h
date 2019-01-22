@@ -9,9 +9,9 @@ namespace Cluster {
 /// Abstract base class for implementing clustering algorithms.
 class Algorithm {
   public:
-    enum Type { HIERAGGLO = 0, DBSCAN, DPEAKS, KMEANS };
+    enum AType { HIERAGGLO = 0, DBSCAN, DPEAKS, KMEANS };
 
-    Algorithm(Type t) : debug_(0), type_(t) {}
+    Algorithm(AType t) : debug_(0), type_(t) {}
     virtual ~Algorithm() {}
     /// Set up clustering algorithm
     virtual int Setup(ArgList&) = 0;
@@ -26,10 +26,12 @@ class Algorithm {
     // -------------------------------------------
     /// Set debug level for algorithm
     void SetDebug(int d) { debug_ = d; }
+    /// \return Algorithm type
+    AType Type() const { return type_; }
   protected:
     int debug_;
   private:
-    Type type_;
+    AType type_;
 };
 
 } /* END namespace Cluster */
