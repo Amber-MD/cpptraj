@@ -213,16 +213,17 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   * between cluster centroids.
   * NOTE: To use this, cluster centroids should be fully up-to-date.
   */
-double Cpptraj::Cluster::List::ComputeDBI(CpptrajFile& outfile, Metric* metricIn) const
+double Cpptraj::Cluster::List::ComputeDBI(std::vector<double>& averageDist, Metric* metricIn)
+const
 {
-  std::vector<double> averageDist;
+  averageDist.clear();
   averageDist.reserve( clusters_.size() );
   for (cluster_iterator C1 = begincluster(); C1 != endcluster(); ++C1) {
     // Calculate average distance to centroid for this cluster
     averageDist.push_back( C1->CalcAvgToCentroid( metricIn ) );
-    if (outfile.IsOpen())
-      outfile.Printf("#Cluster %i has average-distance-to-centroid %f\n", 
-                     C1->Num(), averageDist.back());
+    //if (outfile.IsOpen())
+    //  outfile.Printf("#Cluster %i has average-distance-to-centroid %f\n", 
+    //                 C1->Num(), averageDist.back());
   }
   double DBITotal = 0.0;
   unsigned int nc1 = 0;
@@ -240,7 +241,7 @@ double Cpptraj::Cluster::List::ComputeDBI(CpptrajFile& outfile, Metric* metricIn
     DBITotal += MaxFred;
   }
   DBITotal /= (double)clusters_.size();
-  if (outfile.IsOpen()) outfile.Printf("#DBI: %f\n", DBITotal);
+  //if (outfile.IsOpen()) outfile.Printf("#DBI: %f\n", DBITotal);
   return DBITotal;
 }
 
@@ -258,7 +259,7 @@ double Cpptraj::Cluster::List::ComputeDBI(CpptrajFile& outfile, Metric* metricIn
   * NOTE: This calc differs slightly from PTRAJ in that real centroids are used
   *       instead of representative structures.
   */
-double Cpptraj::Cluster::List::ComputePseudoF(CpptrajFile& outfile, Metric* metricIn) const
+double Cpptraj::Cluster::List::ComputePseudoF(double& SSRSST, Metric* metricIn) const
 {
   // Calculation makes no sense with fewer than 2 clusters.
   if (Nclusters() < 2) {
@@ -308,12 +309,12 @@ double Cpptraj::Cluster::List::ComputePseudoF(CpptrajFile& outfile, Metric* metr
             "Pseudo-f: Cluster distance to centroid is %.4f\n"
             "Pseudo-f: Numerator %.4f over denominator %.4f gives %.4f\n", 
             gss, wss, num, den, pseudof);
-  if (outfile.IsOpen()) {
-    outfile.Printf("#pSF: %f\n", pseudof);
+  //if (outfile.IsOpen()) {
+  //  outfile.Printf("#pSF: %f\n", pseudof);
     // This calculation taken directly from ptraj
-    double SSRSST = pseudof*(d_nclusters-1)/(d_ntotal-d_nclusters+pseudof*(d_nclusters-1));
-    outfile.Printf("#SSR/SST: %f\n", SSRSST);
-  }
+    SSRSST = pseudof*(d_nclusters-1)/(d_ntotal-d_nclusters+pseudof*(d_nclusters-1));
+  //  outfile.Printf("#SSR/SST: %f\n", SSRSST);
+  //}
 
   return pseudof;
 }

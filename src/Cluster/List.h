@@ -53,9 +53,9 @@ class List {
     /// Add given frames to clusters based on distance to centroid and cutoff.
     void AddFramesByCentroid(Cframes const&, Metric*, bool, double);
     /// Calculate the Davies-Bouldin index.
-    double ComputeDBI(CpptrajFile&, Metric*) const;
+    double ComputeDBI(std::vector<double>&, Metric*) const;
     /// Calculate pseudo-F
-    double ComputePseudoF(CpptrajFile&, Metric*) const;
+    double ComputePseudoF(double&, Metric*) const;
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.
