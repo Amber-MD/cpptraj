@@ -19,7 +19,7 @@ class Control {
     enum SieveRestoreType { NO_RESTORE = 0, CLOSEST_CENTROID, EPSILON_CENTROID, EPSILON_FRAME };
     enum SieveType { NONE=0, REGULAR, RANDOM };
 
-    static int SetFramesToCluster(Cframes&, Cframes&, int, size_t, int);
+    static int SetFramesToCluster(Cframes&, Cframes&, int, std::size_t, int);
 
     int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, int);
 

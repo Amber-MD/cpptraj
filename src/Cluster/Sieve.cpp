@@ -14,7 +14,7 @@ void Cpptraj::Cluster::Sieve::DetermineTypeFromSieve( int sieveIn ) {
 }
 
 /** Setup which frames should be clustered.*/
-int Cpptraj::Cluster::Sieve::SetFramesToCluster(int sieveIn, size_t maxFrames, int iseed)
+int Cpptraj::Cluster::Sieve::SetFramesToCluster(int sieveIn, std::size_t maxFrames, int iseed)
 {
   if (maxFrames < 1) return 1;
   DetermineTypeFromSieve( sieveIn );

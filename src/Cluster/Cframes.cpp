@@ -8,7 +8,7 @@ bool Cpptraj::Cluster::Cframes::HasFrame(int frame) const {
 
 void Cpptraj::Cluster::Cframes::Remove(int frame) {
   Iarray::iterator pend = std::remove( frames_.begin(), frames_.end(), frame);
-  size_t newsize = pend - frames_.begin();
+  std::size_t newsize = pend - frames_.begin();
   frames_.resize( newsize );
 }
 
