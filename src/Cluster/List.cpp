@@ -119,7 +119,9 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   progress.Finish();
 }
 
-
+/** Add frames to clusters that are within epsilon of a cluster centroid (if
+  * sieveToCentroid) or epsilon of any frame in a cluster otherwise.
+  */
 void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric* metricIn,
                                                  bool sieveToCentroid, double epsilon)
 {
@@ -200,3 +202,44 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   mprintf("\t%i of %i sieved frames were discarded as noise.\n", 
           n_sieved_noise, Nsieved);
 }
+
+// -----------------------------------------------------------------------------
+/** The Davies-Bouldin Index (DBI) measures the average similarity between each
+  * cluster and its most similar one; the smaller the DBI, the better. The DBI 
+  * is defined as the average, for all clusters X, of fred, where fred(X) = max,
+  * across other clusters Y, of (Cx + Cy)/dXY. Here Cx is the average distance
+  * from points in X to the centroid, similarly Cy, and dXY is the distance 
+  * between cluster centroids.
+  * NOTE: To use this, cluster centroids should be fully up-to-date.
+  */
+double Cpptraj::Cluster::List::ComputeDBI(CpptrajFile& outfile, Metric* metricIn) const
+{
+  std::vector<double> averageDist;
+  averageDist.reserve( clusters_.size() );
+  for (cluster_iterator C1 = begincluster(); C1 != endcluster(); ++C1) {
+    // Calculate average distance to centroid for this cluster
+    averageDist.push_back( C1->CalcAvgToCentroid( metricIn ) );
+    if (outfile.IsOpen())
+      outfile.Printf("#Cluster %i has average-distance-to-centroid %f\n", 
+                     C1->Num(), averageDist.back());
+  }
+  double DBITotal = 0.0;
+  unsigned int nc1 = 0;
+  for (cluster_iterator c1 = begincluster(); c1 != endcluster(); ++c1, ++nc1) {
+    double MaxFred = 0;
+    unsigned int nc2 = 0;
+    for (cluster_iterator c2 = begincluster(); c2 != endcluster(); ++c2, ++nc2) {
+      if (c1 != c2) {
+        double Fred = averageDist[nc1] + averageDist[nc2];
+        Fred /= metricIn->CentroidDist( c1->Cent(), c2->Cent() );
+        if (Fred > MaxFred)
+          MaxFred = Fred;
+      }
+    }
+    DBITotal += MaxFred;
+  }
+  DBITotal /= (double)clusters_.size();
+  if (outfile.IsOpen()) outfile.Printf("#DBI: %f\n", DBITotal);
+  return DBITotal;
+}
+

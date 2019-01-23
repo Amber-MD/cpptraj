@@ -300,5 +300,9 @@ int Cpptraj::Cluster::Control::Run() {
     clusters_.PrintClusters();
   }
 
+  // TODO assign reference names
+
+  
+
   return 0;
 }

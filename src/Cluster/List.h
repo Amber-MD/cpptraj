@@ -3,6 +3,7 @@
 #include <list>
 #include "Node.h"
 #include "../DataSet_integer.h"
+#include "../CpptrajFile.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -49,6 +50,8 @@ class List {
     void AddFramesByCentroid(Cframes const&, Metric*);
     /// Add given frames to clusters based on distance to centroid and cutoff.
     void AddFramesByCentroid(Cframes const&, Metric*, bool, double);
+    /// Calculate the Davies-Bouldin index.
+    double ComputeDBI(CpptrajFile&, Metric*) const;
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.
