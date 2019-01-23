@@ -9,6 +9,7 @@ CLUSTER_SOURCES= \
   Cluster/List.cpp \
   Cluster/Metric_RMS.cpp \
   Cluster/Node.cpp \
+  Cluster/Output.cpp \
   Cluster/PairwiseMatrix.cpp \
   Cluster/PairwiseMatrix_MEM.cpp \
   Cluster/Sieve.cpp

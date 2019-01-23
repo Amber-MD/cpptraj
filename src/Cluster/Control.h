@@ -53,6 +53,9 @@ class Control {
 
     BestReps::RepMethodType bestRep_; ///< How to determine best rep frames.
     int nRepsToSave_;                 ///< How many rep frames to save.
+
+    bool suppressInfo_;               ///< If true do not write cluster info
+    std::string clusterinfo_;         ///< Cluster info file name.
 };
 
 } /** END namespace Cluster. */

@@ -3,7 +3,6 @@
 #include <list>
 #include "Node.h"
 #include "../DataSet_integer.h"
-#include "../CpptrajFile.h"
 namespace Cpptraj {
 namespace Cluster {
 

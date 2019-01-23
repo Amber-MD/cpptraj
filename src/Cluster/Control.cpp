@@ -2,6 +2,7 @@
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h"
 #include "Sieve.h"
+#include "Output.h"
 // PairwiseMatrix classes
 #include "PairwiseMatrix_MEM.h"
 // Metric classes
@@ -20,7 +21,8 @@ Cpptraj::Cluster::Control::Control() :
   sieveRestore_(NO_RESTORE),
   restoreEpsilon_(0.0),
   bestRep_(BestReps::NO_REPS),
-  nRepsToSave_(1)
+  nRepsToSave_(1),
+  suppressInfo_(false)
 {}
 
 // -----------------------------------------------------------------------------
@@ -223,6 +225,10 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
     return 1;
   }
 
+  // Output options
+  suppressInfo_ = analyzeArgs.hasKey("noinfo");
+  if (!suppressInfo_)
+    clusterinfo_ = analyzeArgs.GetStringKey("info");
 
   Info();
   return 0;
@@ -239,20 +245,35 @@ int Cpptraj::Cluster::Control::Run() {
     mprinterr("Internal Error: Cluster::Control is not set up.\n");
     return 1;
   }
+  // Timers
+  
   // Set up the Metric
   if (metric_->Setup()) {
     mprinterr("Error: Metric setup failed.\n");
     return 1;
   }
+  Timer cluster_setup;
+  Timer cluster_pairwise;
+  Timer cluster_cluster;
+  Timer cluster_post;
+  Timer cluster_total;
+  cluster_total.Start();
+  cluster_setup.Start();
 
   // Figure out which frames to cluster
   Sieve frameSieve;
   frameSieve.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
   Cframes const& framesToCluster = frameSieve.FramesToCluster();
 
+  cluster_setup.Stop();
+  cluster_pairwise.Start();
+
   // Cache distances if necessary
   pmatrix_->CacheDistances( framesToCluster );
   if (verbose_ > 1) pmatrix_->PrintCached();
+
+  cluster_pairwise.Stop();
+  cluster_cluster.Start();
 
   // Cluster
   if (algorithm_->DoClustering(clusters_, framesToCluster, *pmatrix_) != 0) {
@@ -260,7 +281,16 @@ int Cpptraj::Cluster::Control::Run() {
     return 1;
   }
 
+  cluster_cluster.Stop();
+
   // ---------------------------------------------
+  cluster_post.Start();
+  Timer cluster_post_renumber;
+  Timer cluster_post_bestrep;
+  Timer cluster_post_info;
+  //Timer cluster_post_summary;
+  //Timer cluster_post_coords;
+  cluster_post_renumber.Start();
   // Update cluster centroids here in case they need to be used to 
   // restore sieved frames
   clusters_.UpdateCentroids( metric_ );
@@ -289,6 +319,9 @@ int Cpptraj::Cluster::Control::Run() {
   // Sort by population and renumber
   clusters_.Sort();
 
+  cluster_post_renumber.Stop();
+  cluster_post_bestrep.Start();
+
   // Find best representative frames for each cluster.
   if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, *pmatrix_,
                                   frameSieve.SievedOut(), verbose_))
@@ -297,6 +330,8 @@ int Cpptraj::Cluster::Control::Run() {
     return 1;
   }
 
+  cluster_post_bestrep.Stop();
+
   // DEBUG - print clusters to stdout
   if (verbose_ > 0) {
     mprintf("\nFINAL CLUSTERS:\n");
@@ -304,6 +339,17 @@ int Cpptraj::Cluster::Control::Run() {
   }
 
   // TODO assign reference names
+
+  // Info
+  if (!suppressInfo_) {
+    CpptrajFile outfile;
+    if (outfile.OpenWrite( clusterinfo_ )) return 1;
+    cluster_post_info.Start();
+    Output::PrintClustersToFile(outfile, clusters_, *algorithm_, metric_, 
+                                frameSieve.SieveValue(), frameSieve.SievedOut());
+    cluster_post_info.Stop();
+    outfile.CloseFile();
+  }
 
   
 

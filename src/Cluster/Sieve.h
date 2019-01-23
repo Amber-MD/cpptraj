@@ -15,6 +15,7 @@ class Sieve {
 
     Cframes const& FramesToCluster() const { return framesToCluster_; }
     Cframes const& SievedOut()       const { return sievedOut_;       }
+    int SieveValue()                 const { return sieve_;           }
   private:
     void DetermineTypeFromSieve(int);
 
