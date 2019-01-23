@@ -161,6 +161,8 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
 
 /** Common setup. */
 int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
+  clusters_.SetDebug( verbose_ );
+
   // Allocate PairwiseMatrix.
   if (AllocatePairwise( analyzeArgs, metric_ )) {
     mprinterr("Error: PairwiseMatrix setup failed.\n");

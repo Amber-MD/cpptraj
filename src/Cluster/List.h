@@ -14,6 +14,8 @@ namespace Cluster {
 class List {
   public:
     List() {}
+    /// Set debug level
+    void SetDebug(int d) { debug_ = d; }
     /// Iterator over clusters
     typedef std::list<Node>::iterator cluster_it;
     /// Iterator to beginning
@@ -52,10 +54,13 @@ class List {
     void AddFramesByCentroid(Cframes const&, Metric*, bool, double);
     /// Calculate the Davies-Bouldin index.
     double ComputeDBI(CpptrajFile&, Metric*) const;
+    /// Calculate pseudo-F
+    double ComputePseudoF(CpptrajFile&, Metric*) const;
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.
     Cframes noise_;   ///< Hold any frames classified as noise.
+    int debug_;
 };
 
 } /* END namespace Cluster */
