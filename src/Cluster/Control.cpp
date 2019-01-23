@@ -210,8 +210,8 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
       bestRep_ = BestReps::CUMULATIVE;
     else if (bestRepStr == "centroid")
       bestRep_ = BestReps::CENTROID;
-    //else if (bestRepStr == "cumulative_nosieve")
-    //  bestRep_ = CUMULATIVE_NOSIEVE;
+    else if (bestRepStr == "cumulative_nosieve")
+      bestRep_ = BestReps::CUMULATIVE_NOSIEVE;
     else {
       mprinterr("Error: Invalid 'bestRep' option (%s)\n", bestRepStr.c_str());
       return 1;
@@ -289,8 +289,9 @@ int Cpptraj::Cluster::Control::Run() {
   // Sort by population and renumber
   clusters_.Sort();
 
-  // Find best representative frames for each cluster. TODO option to ignore sieved?
-  if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, *pmatrix_, verbose_))
+  // Find best representative frames for each cluster.
+  if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, *pmatrix_,
+                                  frameSieve.SievedOut(), verbose_))
   {
     mprinterr("Error: Finding best representative frames for clusters failed.\n");
     return 1;

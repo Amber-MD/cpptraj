@@ -34,16 +34,22 @@ void Cpptraj::Cluster::BestReps::SetBestRepFrame(Node& node, RepMap const& reps)
 /** Find best representative frames for each cluster. */
 int Cpptraj::Cluster::BestReps::FindBestRepFrames(RepMethodType type, int nToSave,
                                                   List& clusters, PairwiseMatrix const& pmatrix,
-                                                  int debug)
+                                                  Cframes const& sievedFrames, int debug)
 {
   int err = 0;
   switch (type) {
     case CUMULATIVE:
-      err = FindBestRepFrames_CumulativeDist(nToSave, clusters, pmatrix); break;
+      err = FindBestRepFrames_CumulativeDist(nToSave, clusters, pmatrix);
+      break;
     case CENTROID:
-      err = FindBestRepFrames_Centroid(nToSave, clusters, pmatrix); break;
+      err = FindBestRepFrames_Centroid(nToSave, clusters, pmatrix);
+      break;
+    case CUMULATIVE_NOSIEVE:
+      err = FindBestRepFrames_NoSieve_CumulativeDist(nToSave, clusters, pmatrix, sievedFrames);
+      break;
     case NO_REPS:
-      mprintf("Warning: Skipping best representative frame calc.\n"); break;
+      mprintf("Warning: Skipping best representative frame calc.\n");
+      break;
     default:
       mprinterr("Internal Error: BestReps::FindBestRepFrames: Unhandled type.\n");
       err = 1;
@@ -88,6 +94,42 @@ int Cpptraj::Cluster::BestReps::FindBestRepFrames_CumulativeDist(int nToSave, Li
       //tmp.Printf("%i %g %g\n", *f1+1, cdist, Cdist_->FrameCentroidDist(*f1, node->Cent()));
     }
     //tmp.CloseFile();
+    if (bestReps.empty()) {
+      mprinterr("Error: Could not determine represenative frame for cluster %i\n",
+                node->Num());
+      err++;
+    }
+    SetBestRepFrame( *node, bestReps );
+  }
+  return err;
+}
+
+/** Find the frame in each cluster that is the best representative by
+  * having the lowest cumulative distance to every other point in the cluster,
+  * ignoring sieved frames.
+  */
+int Cpptraj::Cluster::BestReps::
+    FindBestRepFrames_NoSieve_CumulativeDist(int nToSave, List& clusters,
+                                             PairwiseMatrix const& pmatrix,
+                                             Cframes const& sievedFrames)
+{
+  if (sievedFrames.size() > 0)
+    mprintf("Warning: Ignoring sieved frames while looking for best representative.\n");
+  int err = 0;
+  for (List::cluster_it node = clusters.begin(); node != clusters.end(); ++node) {
+    RepMap bestReps;
+    for (Node::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1)
+    {
+      if (!sievedFrames.HasFrame( *f1 )) {
+        double cdist = 0.0;
+        for (Node::frame_iterator f2 = node->beginframe(); f2 != node->endframe(); ++f2)
+        {
+          if (f1 != f2 && !sievedFrames.HasFrame( *f2 ))
+            cdist += pmatrix.GetFdist(*f1, *f2);
+        }
+        SaveBestRep(bestReps, RepPair(cdist, *f1), nToSave);
+      }
+    }
     if (bestReps.empty()) {
       mprinterr("Error: Could not determine represenative frame for cluster %i\n",
                 node->Num());
