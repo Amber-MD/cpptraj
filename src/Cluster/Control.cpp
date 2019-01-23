@@ -25,6 +25,12 @@ Cpptraj::Cluster::Control::Control() :
   suppressInfo_(false)
 {}
 
+Cpptraj::Cluster::Control::~Control() {
+  if (algorithm_ != 0) delete algorithm_;
+  if (pmatrix_ != 0  ) delete pmatrix_;
+  if (metric_ != 0   ) delete metric_;
+}
+
 // -----------------------------------------------------------------------------
 /** \return pointer to PairwiseMatrix of specified type. */
 Cpptraj::Cluster::PairwiseMatrix* 

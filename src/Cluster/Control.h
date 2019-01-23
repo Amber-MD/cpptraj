@@ -13,6 +13,7 @@ namespace Cluster {
 class Control {
   public:
     Control();
+    ~Control();
 
     static const char* PairwiseArgs;
     static const char* AlgorithmArgs;
@@ -56,6 +57,7 @@ class Control {
 
     bool suppressInfo_;               ///< If true do not write cluster info
     std::string clusterinfo_;         ///< Cluster info file name.
+
 };
 
 } /** END namespace Cluster. */
