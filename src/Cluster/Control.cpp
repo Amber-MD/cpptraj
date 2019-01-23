@@ -18,6 +18,7 @@ Cpptraj::Cluster::Control::Control() :
   sieve_(1),
   sieveSeed_(-1),
   sieveRestore_(NO_RESTORE),
+  restoreEpsilon_(0.0),
   bestRep_(BestReps::NO_REPS),
   nRepsToSave_(1)
 {}
@@ -190,6 +191,7 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
         sieveRestore_ = EPSILON_CENTROID;
       else
         sieveRestore_ = EPSILON_FRAME;
+      restoreEpsilon_ = ((Algorithm_DBscan*)algorithm_)->Epsilon();
     }
   }
 
@@ -264,18 +266,25 @@ int Cpptraj::Cluster::Control::Run() {
     mprintf("\tRestoring sieved frames.\n");
     switch (sieveRestore_) {
       case CLOSEST_CENTROID :
-        clusters_.AddFramesByCentroid( frameSieve.SievedOut(), metric_ );
+        clusters_.AddFramesByCentroid( frameSieve.SievedOut(), metric_ ); break;
+      case EPSILON_CENTROID :
+      case EPSILON_FRAME    :
+        clusters_.AddFramesByCentroid( frameSieve.SievedOut(), metric_,
+                                       (sieveRestore_ == EPSILON_CENTROID),
+                                       restoreEpsilon_ );
         break;
       default:
         mprinterr("Internal Error: Unhandled sieve restore type.\n");
         return 1;
     }
+    // Re-calculate the cluster centroids
+    clusters_.UpdateCentroids( metric_ );
   }
 
   // Sort by population and renumber
   clusters_.Sort();
 
-  // Find best representative frames for each cluster.
+  // Find best representative frames for each cluster. TODO option to ignore sieved?
   if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, *pmatrix_, verbose_))
   {
     mprinterr("Error: Finding best representative frames for clusters failed.\n");

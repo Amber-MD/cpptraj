@@ -18,6 +18,7 @@ class Algorithm_DBscan : public Algorithm {
     void Timing(double) const {}
 
     //void AddSievedFrames(); // TODO fix this
+    double Epsilon() const { return epsilon_; }
   private:
     typedef std::vector<int> Iarray;
 
