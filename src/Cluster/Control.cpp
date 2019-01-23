@@ -17,7 +17,9 @@ Cpptraj::Cluster::Control::Control() :
   verbose_(0),
   sieve_(1),
   sieveSeed_(-1),
-  sieveRestore_(NO_RESTORE)
+  sieveRestore_(NO_RESTORE),
+  bestRep_(BestReps::NO_REPS),
+  nRepsToSave_(1)
 {}
 
 // -----------------------------------------------------------------------------
@@ -191,6 +193,32 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
     }
   }
 
+  // Best rep options
+  std::string bestRepStr = analyzeArgs.GetStringKey("bestrep");
+  if (bestRepStr.empty()) {
+    // For sieving, cumulative can get very expensive. Default to centroid.
+    if (sieve_ != 1)
+      bestRep_ = BestReps::CENTROID;
+    else
+      bestRep_ = BestReps::CUMULATIVE;
+  } else {
+    if (bestRepStr == "cumulative")
+      bestRep_ = BestReps::CUMULATIVE;
+    else if (bestRepStr == "centroid")
+      bestRep_ = BestReps::CENTROID;
+    //else if (bestRepStr == "cumulative_nosieve")
+    //  bestRep_ = CUMULATIVE_NOSIEVE;
+    else {
+      mprinterr("Error: Invalid 'bestRep' option (%s)\n", bestRepStr.c_str());
+      return 1;
+    }
+  }
+  nRepsToSave_ = analyzeArgs.getKeyInt("savenreps", 1);
+  if (nRepsToSave_ < 1) {
+    mprinterr("Error: 'savenreps' must be > 0\n");
+    return 1;
+  }
+
 
   Info();
   return 0;
@@ -223,8 +251,12 @@ int Cpptraj::Cluster::Control::Run() {
   if (verbose_ > 1) pmatrix_->PrintCached();
 
   // Cluster
-  int err = algorithm_->DoClustering(clusters_, framesToCluster, *pmatrix_);
+  if (algorithm_->DoClustering(clusters_, framesToCluster, *pmatrix_) != 0) {
+    mprinterr("Error: Clustering failed.\n");
+    return 1;
+  }
 
+  // Add sieved frames to existing clusters.
   if ( sieveRestore_ != NO_RESTORE ) {
     // Update cluster centroids in case they need to be used to restore sieved frames
     clusters_.UpdateCentroids( metric_ );
@@ -243,5 +275,12 @@ int Cpptraj::Cluster::Control::Run() {
   // Sort by population and renumber
   clusters_.Sort();
 
-  return err;
+  // Find best representative frames for each cluster.
+  if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, *pmatrix_, verbose_))
+  {
+    mprinterr("Error: Finding best representative frames for clusters failed.\n");
+    return 1;
+  }
+
+  return 0;
 }

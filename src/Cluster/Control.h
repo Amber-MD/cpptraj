@@ -4,6 +4,7 @@
 #include "PairwiseMatrix.h"
 #include "Algorithm.h"
 #include "Metric.h"
+#include "BestReps.h"
 #include "../DataSet_Coords.h"
 namespace Cpptraj {
 namespace Cluster {
@@ -48,6 +49,9 @@ class Control {
     int sieve_;                     ///< Sieve value
     int sieveSeed_;                 ///< Seed if doing random sieve
     SieveRestoreType sieveRestore_; ///< Specify if/how sieved frames should be restored.
+
+    BestReps::RepMethodType bestRep_; ///< How to determine best rep frames.
+    int nRepsToSave_;                 ///< How many rep frames to save.
 };
 
 } /** END namespace Cluster. */

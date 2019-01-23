@@ -10,7 +10,7 @@ namespace Cluster {
 /// Used to find best representative structures for a cluster.
 class BestReps {
   public:
-    enum RepMethodType { CUMULATIVE = 0, CENTROID };
+    enum RepMethodType { NO_REPS = 0, CUMULATIVE, CENTROID };
 
     static int FindBestRepFrames(RepMethodType, int, List&, PairwiseMatrix const&, int);
   private:

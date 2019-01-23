@@ -42,6 +42,8 @@ int Cpptraj::Cluster::BestReps::FindBestRepFrames(RepMethodType type, int nToSav
       err = FindBestRepFrames_CumulativeDist(nToSave, clusters, pmatrix); break;
     case CENTROID:
       err = FindBestRepFrames_Centroid(nToSave, clusters, pmatrix); break;
+    case NO_REPS:
+      mprintf("Warning: Skipping best representative frame calc.\n"); break;
     default:
       mprinterr("Internal Error: BestReps::FindBestRepFrames: Unhandled type.\n");
       err = 1;
