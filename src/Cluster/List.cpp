@@ -319,3 +319,13 @@ double Cpptraj::Cluster::List::ComputePseudoF(double& SSRSST, Metric* metricIn) 
   return pseudof;
 }
 
+/** The cluster silhouette is a measure of how well each point fits within
+  * a cluster. Values of 1 indicate the point is very similar to other points
+  * in the cluster, i.e. it is well-clustered. Values of -1 indicate the point
+  * is dissimilar and may fit better in a neighboring cluster. Values of 0
+  * indicate the point is on a border between two clusters. 
+  * \param SiVals For each cluster, the silhouette value for each individual frame.
+  */
+//void Cpptraj::Cluster::List::CalcSilhouette(std::vector< std::vector<double> >& SiVals,
+//                                            std::vector<double>& AvgSi,
+                                            
