@@ -258,10 +258,13 @@ int Cpptraj::Cluster::Control::Run() {
     return 1;
   }
 
+  // ---------------------------------------------
+  // Update cluster centroids here in case they need to be used to 
+  // restore sieved frames
+  clusters_.UpdateCentroids( metric_ );
+
   // Add sieved frames to existing clusters.
   if ( sieveRestore_ != NO_RESTORE ) {
-    // Update cluster centroids in case they need to be used to restore sieved frames
-    clusters_.UpdateCentroids( metric_ );
     // Restore sieved frames
     mprintf("\tRestoring sieved frames.\n");
     switch (sieveRestore_) {
@@ -289,6 +292,12 @@ int Cpptraj::Cluster::Control::Run() {
   {
     mprinterr("Error: Finding best representative frames for clusters failed.\n");
     return 1;
+  }
+
+  // DEBUG - print clusters to stdout
+  if (verbose_ > 0) {
+    mprintf("\nFINAL CLUSTERS:\n");
+    clusters_.PrintClusters();
   }
 
   return 0;
