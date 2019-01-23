@@ -12,7 +12,7 @@ class BestReps {
   public:
     enum RepMethodType { CUMULATIVE = 0, CENTROID };
 
-    static int FindBestRepFrames(RepMethodType, int, List&, PairwiseMatrix const&);
+    static int FindBestRepFrames(RepMethodType, int, List&, PairwiseMatrix const&, int);
   private:
     /// Used to pair representative score with frame number.
     typedef std::pair<double, int> RepPair;
