@@ -92,3 +92,26 @@ void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
   outfile.CloseFile();
 }
 
+int Cpptraj::Cluster::Output::PrintSilhouetteFrames(CpptrajFile& Ffile,
+                                               std::vector< std::vector<double> > const& SiFrames)
+{
+  unsigned int idx = 0;
+  for (std::vector< std::vector<double> >::const_iterator cs = SiFrames.begin();
+                                                          cs != SiFrames.end(); ++cs, ++idx)
+  {
+    for (std::vector<double>::const_iterator fs = cs->begin(); fs != cs->end(); ++fs, ++idx)
+      Ffile.Printf("%8u %g\n", idx, *fs);
+    Ffile.Printf("\n");
+  }
+  return 0;
+}
+
+int Cpptraj::Cluster::Output::PrintSilhouettes(CpptrajFile& Cfile,
+                                               std::vector<double> const& SiAvg)
+{
+  // TODO is it ok to assume clusters are in order?
+  unsigned int idx = 0;
+  for (std::vector<double>::const_iterator si = SiAvg.begin(); si != SiAvg.end(); ++si, ++idx)
+    Cfile.Printf("%8u %g\n", idx, *si);
+  return 0;
+}

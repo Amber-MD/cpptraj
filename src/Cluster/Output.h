@@ -14,6 +14,8 @@ class Output {
   public:
     static void PrintClustersToFile(CpptrajFile&, List const&, Algorithm const&, Metric*,
                                     int, Cframes const&);
+    static int PrintSilhouetteFrames(CpptrajFile&, std::vector< std::vector<double> > const&);
+    static int PrintSilhouettes(CpptrajFile&, std::vector<double> const&);
 };
 
 }
