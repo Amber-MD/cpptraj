@@ -290,28 +290,11 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcMinDist(List::cluster_it& C1_it,
   for (List::cluster_it C2_it = clusters.begin();
                         C2_it != clusters.end(); ++C2_it)
   {
-    if (C2_it == C1_it) continue;
-/*
-    //mprintf("\t\tRecalc distance between %i and %i:\n",C1,newc2);
-    // Pick the minimum distance between newc2 and C1
-    double min = std::numeric_limits<double>::max();
-    for (Node::frame_iterator c1frames = C1_it->beginframe();
-                              c1frames != C1_it->endframe();
-                            ++c1frames)
-    {
-      for (Node::frame_iterator c2frames = C2_it->beginframe();
-                                c2frames != C2_it->endframe();
-                              ++c2frames)
-      {
-        double Dist = pmatrix.GetFdist(*c1frames, *c2frames);
-        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
-        if ( Dist < min ) min = Dist;
-      }
+    if (C2_it != C1_it) {
+      double min =  minDist(*C1_it, *C2_it, pmatrix);
+      //mprintf("\t\tMin distance between %i and %i: %f\n",C1,newc2,min);
+      ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), min );
     }
-*/
-    double min =  minDist(*C1_it, *C2_it, pmatrix);
-    //mprintf("\t\tMin distance between %i and %i: %f\n",C1,newc2,min);
-    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), min );
   }
 }
 
@@ -325,28 +308,11 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcMaxDist(List::cluster_it& C1_it,
   for (List::cluster_it C2_it = clusters.begin();
                         C2_it != clusters.end(); ++C2_it)
   {
-    if (C2_it == C1_it) continue;
-/*
-    //mprintf("\t\tRecalc distance between %i and %i:\n",C1,newc2);
-    // Pick the maximum distance between newc2 and C1
-    double max = -1.0;
-    for (Node::frame_iterator c1frames = C1_it->beginframe();
-                              c1frames != C1_it->endframe();
-                            ++c1frames)
-    {
-      for (Node::frame_iterator c2frames = C2_it->beginframe();
-                                c2frames != C2_it->endframe();
-                              ++c2frames)
-      {
-        double Dist = pmatrix.GetFdist(*c1frames, *c2frames);
-        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
-        if ( Dist > max ) max = Dist;
-      }
+    if (C2_it != C1_it) {
+      double max = maxDist( *C1_it, *C2_it, pmatrix );
+      //mprintf("\t\tMax distance between %i and %i: %f\n",C1,newc2,max);
+      ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), max );
     }
-*/
-    double max = maxDist( *C1_it, *C2_it, pmatrix );
-    //mprintf("\t\tMax distance between %i and %i: %f\n",C1,newc2,max);
-    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), max );
   }
 }
 
@@ -360,28 +326,10 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcAvgDist(List::cluster_it& C1_it,
   for (List::cluster_it C2_it = clusters.begin();
                         C2_it != clusters.end(); ++C2_it)
   {
-    if (C2_it == C1_it) continue;
-/*
-    //mprintf("\t\tRecalc distance between %i and %i:\n",(*C1_it).Num(),(*C2_it).Num());
-    // Pick the minimum distance between newc2 and C1
-    double sumDist = 0;
-    for (Node::frame_iterator c1frames = C1_it->beginframe();
-                              c1frames != C1_it->endframe();
-                            ++c1frames)
-    {
-      for (Node::frame_iterator c2frames = C2_it->beginframe();
-                                c2frames != C2_it->endframe();
-                              ++c2frames)
-      {
-        double Dist = pmatrix.GetFdist(*c1frames, *c2frames);
-        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
-        sumDist += Dist;
-      }
+    if (C2_it != C1_it) {
+      double Dist = avgDist( *C1_it, *C2_it, pmatrix );
+      //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
+      ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), Dist );
     }
-    double Dist = sumDist / (double)(C1_it->Nframes() * C2_it->Nframes());
-*/
-    double Dist = avgDist( *C1_it, *C2_it, pmatrix );
-    //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
-    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), Dist );
   }
 }
