@@ -1,8 +1,9 @@
-#include <limits>
+#include <algorithm> // std::max
+#include <limits> // double max
 #include "List.h"
 #include "../CpptrajStdio.h"
 #include "../ProgressBar.h"
-#include "../Constants.h" // SMALL
+#include "../Constants.h" // SMALL TODO use limits?
 
 void Cpptraj::Cluster::List::PrintClusters() const {
   //mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(),
@@ -324,8 +325,105 @@ double Cpptraj::Cluster::List::ComputePseudoF(double& SSRSST, Metric* metricIn) 
   * in the cluster, i.e. it is well-clustered. Values of -1 indicate the point
   * is dissimilar and may fit better in a neighboring cluster. Values of 0
   * indicate the point is on a border between two clusters. 
-  * \param SiVals For each cluster, the silhouette value for each individual frame.
+  * \param SiFrames For each cluster, the silhouette value for each individual frame.
+  * \param AvgSi For each cluster, the average silhouette value.
   */
-//void Cpptraj::Cluster::List::CalcSilhouette(std::vector< std::vector<double> >& SiVals,
-//                                            std::vector<double>& AvgSi,
+void Cpptraj::Cluster::List::CalcSilhouette(std::vector< std::vector<double> >& SiFrames,
+                                            std::vector<double>& AvgSi,
+                                            PairwiseMatrix const& pmatrix,
+                                            Cframes const& sievedFrames,
+                                            bool includeSieved)
+const
+{
+  SiFrames.clear();
+  SiFrames.reserve( Nclusters() );
+  AvgSi.clear();
+  AvgSi.reserve( Nclusters() );
+  unsigned int idx = 0;
+  for (cluster_iterator Ci = begincluster(); Ci != endcluster(); ++Ci)
+  {
+    //Ffile.Printf("#C%-6i %10s\n", Ci->Num(), "Silhouette");
+    double avg_si = 0.0;
+    int ci_frames = 0;
+    SiFrames.push_back( std::vector<double>() );
+    std::vector<double>& SiVals = SiFrames.back();
+    for (Node::frame_iterator f1 = Ci->beginframe(); f1 != Ci->endframe(); ++f1)
+    {
+      if (includeSieved || !sievedFrames.HasFrame( *f1 )) {
+        // Calculate the average dissimilarity of this frame with all other
+        // points in this frames cluster.
+        double ai = 0.0;
+        int self_frames = 0;
+        if (includeSieved) {
+          for (Node::frame_iterator f2 = Ci->beginframe(); f2 != Ci->endframe(); ++f2)
+          {
+            if (f1 != f2) {
+              ai += pmatrix.Frame_Distance(*f1, *f2);
+              ++self_frames;
+            }
+          }
+        } else {
+          for (Node::frame_iterator f2 = Ci->beginframe(); f2 != Ci->endframe(); ++f2)
+          {
+            if (f1 != f2 && !sievedFrames.HasFrame(*f2)) {
+              ai += pmatrix.GetFdist(*f1, *f2); // TODO any benefit from GetFdist vs Frame_Distance
+              ++self_frames;
+            }
+          }
+        }
+        if (self_frames > 0)
+          ai /= (double)self_frames;
+        //mprintf("\t\tFrame %i cluster %i ai = %g\n", *f1+1, Ci->Num(), ai);
+        // Determine lowest average dissimilarity of this frame with all
+        // other clusters.
+        double min_bi = std::numeric_limits<double>::max();
+        for (cluster_iterator Cj = begincluster(); Cj != endcluster(); ++Cj)
+        {
+          if (Ci != Cj)
+          {
+            double bi = 0.0;
+            // NOTE: ASSUMING NO EMPTY CLUSTERS
+            if (includeSieved) {
+              for (Node::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
+                bi += pmatrix.Frame_Distance(*f1, *f2);
+              bi /= (double)Cj->Nframes();
+            } else {
+              int cj_frames = 0;
+              for (Node::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
+              {
+                if (sievedFrames.HasFrame(*f2)) {
+                  bi += pmatrix.GetFdist(*f1, *f2);
+                  ++cj_frames;
+                }
+              }
+              bi /= (double)cj_frames;
+            }
+            //mprintf("\t\tFrame %i to cluster %i bi = %g\n", *f1 + 1, Cj->Num(), bi);
+            if (bi < min_bi)
+              min_bi = bi;
+          }
+        }
+        double max_ai_bi = std::max( ai, min_bi );
+        if (max_ai_bi == 0.0)
+          mprinterr("Error: Divide by zero in silhouette calculation for frame %i\n", *f1 + 1);
+        else {
+          double si = (min_bi - ai) / max_ai_bi;
+          SiVals.push_back( si );
+          //Ffile.Printf("%8i %10.4f\n", *f1 + 1, si);
+          avg_si += si;
+          ++ci_frames;
+        }
+      }
+    } // END loop over cluster frames
+    std::sort( SiVals.begin(), SiVals.end() );
+    //for (std::vector<double>::const_iterator it = SiVals.begin(); it != SiVals.end(); ++it, ++idx)
+    //  Ffile.Printf("%8i %g\n", idx, *it);
+    //Ffile.Printf("\n");
+    ++idx;
+    if (ci_frames > 0)
+      avg_si /= (double)ci_frames;
+    //Cfile.Printf("%8i %g\n", Ci->Num(), avg_si);
+    AvgSi.push_back( avg_si );
+  } // END outer loop over clusters
+}
                                             
