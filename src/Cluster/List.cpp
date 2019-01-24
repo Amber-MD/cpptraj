@@ -391,7 +391,7 @@ const
               int cj_frames = 0;
               for (Node::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
               {
-                if (sievedFrames.HasFrame(*f2)) {
+                if (!sievedFrames.HasFrame(*f2)) {
                   bi += pmatrix.GetFdist(*f1, *f2);
                   ++cj_frames;
                 }
@@ -422,8 +422,7 @@ const
     ++idx;
     if (ci_frames > 0)
       avg_si /= (double)ci_frames;
-    //Cfile.Printf("%8i %g\n", Ci->Num(), avg_si);
+    //mprintf("DEBUG: Cluster silhouette: %8i %g\n", Ci->Num(), avg_si);
     AvgSi.push_back( avg_si );
   } // END outer loop over clusters
 }
-                                            

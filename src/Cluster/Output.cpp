@@ -99,6 +99,7 @@ int Cpptraj::Cluster::Output::PrintSilhouetteFrames(CpptrajFile& Ffile,
   for (std::vector< std::vector<double> >::const_iterator cs = SiFrames.begin();
                                                           cs != SiFrames.end(); ++cs, ++idx)
   {
+    Ffile.Printf("#C%-6u %10s\n", cs - SiFrames.begin(), "Silhouette");
     for (std::vector<double>::const_iterator fs = cs->begin(); fs != cs->end(); ++fs, ++idx)
       Ffile.Printf("%8u %g\n", idx, *fs);
     Ffile.Printf("\n");
@@ -110,6 +111,7 @@ int Cpptraj::Cluster::Output::PrintSilhouettes(CpptrajFile& Cfile,
                                                std::vector<double> const& SiAvg)
 {
   // TODO is it ok to assume clusters are in order?
+  Cfile.Printf("%-8s %10s\n", "#Cluster", "<Si>");
   unsigned int idx = 0;
   for (std::vector<double>::const_iterator si = SiAvg.begin(); si != SiAvg.end(); ++si, ++idx)
     Cfile.Printf("%8u %g\n", idx, *si);
