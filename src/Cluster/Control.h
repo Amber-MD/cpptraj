@@ -51,12 +51,14 @@ class Control {
     int sieveSeed_;                 ///< Seed if doing random sieve
     SieveRestoreType sieveRestore_; ///< Specify if/how sieved frames should be restored.
     double restoreEpsilon_;         ///< Cutoff to use if restoring by epsilon to centroids.
+    bool includeSieveInCalc_;       ///< If true include sieved frames in later calculations.
 
     BestReps::RepMethodType bestRep_; ///< How to determine best rep frames.
     int nRepsToSave_;                 ///< How many rep frames to save.
 
     bool suppressInfo_;               ///< If true do not write cluster info
     std::string clusterinfo_;         ///< Cluster info file name.
+    std::string sil_file_;            ///< File prefix for writing silhouette data
 
 };
 

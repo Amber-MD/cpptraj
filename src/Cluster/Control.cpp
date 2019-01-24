@@ -20,6 +20,7 @@ Cpptraj::Cluster::Control::Control() :
   sieveSeed_(-1),
   sieveRestore_(NO_RESTORE),
   restoreEpsilon_(0.0),
+  includeSieveInCalc_(false),
   bestRep_(BestReps::NO_REPS),
   nRepsToSave_(1),
   suppressInfo_(false)
@@ -204,6 +205,10 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
       restoreEpsilon_ = ((Algorithm_DBscan*)algorithm_)->Epsilon();
     }
   }
+  // TODO incorporate with cumulative_nosieve? Or keep granular?
+  includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
+  if (includeSieveInCalc_)
+    mprintf("Warning: 'includesieveincalc' may be very slow.\n");
 
   // Best rep options
   std::string bestRepStr = analyzeArgs.GetStringKey("bestrep");
@@ -235,6 +240,8 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
   suppressInfo_ = analyzeArgs.hasKey("noinfo");
   if (!suppressInfo_)
     clusterinfo_ = analyzeArgs.GetStringKey("info");
+  sil_file_ = analyzeArgs.GetStringKey("sil");
+
 
   Info();
   return 0;
@@ -357,7 +364,39 @@ int Cpptraj::Cluster::Control::Run() {
     outfile.CloseFile();
   }
 
-  
+  // Silhouette
+  if (!sil_file_.empty()) {
+    if (frameSieve.SieveValue() != 1 && !includeSieveInCalc_)
+      mprintf("Warning: Silhouettes do not include sieved frames.\n");
+    std::vector< std::vector<double> > SiFrames;
+    std::vector<double> SiAvg;
+    clusters_.CalcSilhouette(SiFrames, SiAvg, *pmatrix_, frameSieve.SievedOut(),
+                             includeSieveInCalc_);
+    CpptrajFile Ffile, Cfile;
+    if (Ffile.OpenWrite(sil_file_ + ".frame.dat")) return 1;
+    Output::PrintSilhouetteFrames(Ffile, SiFrames);
+    Ffile.CloseFile();
+    if (Cfile.OpenWrite(sil_file_ + ".cluster.dat")) return 1;
+    Output::PrintSilhouettes(Cfile, SiAvg);
+    Cfile.CloseFile();
+  }
+
+  cluster_post.Stop();
+  cluster_total.Stop();
+
+  // Timing data
+  mprintf("\tCluster timing data:\n");
+  cluster_setup.WriteTiming(1,    "  Cluster Init. :", cluster_total.Total());
+  cluster_pairwise.WriteTiming(1, "  Pairwise Calc.:", cluster_total.Total());
+  cluster_cluster.WriteTiming(1,  "  Clustering    :", cluster_total.Total());
+  algorithm_->Timing( cluster_cluster.Total() );
+  cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
+  cluster_post_renumber.WriteTiming(2, "Cluster renumbering/sieve restore", cluster_post.Total());
+  cluster_post_bestrep.WriteTiming(2, "Find best rep.", cluster_post.Total());
+  cluster_post_info.WriteTiming(2, "Info calc", cluster_post.Total());
+  //cluster_post_summary.WriteTiming(2, "Summary calc", cluster_post.Total());
+  //cluster_post_coords.WriteTiming(2, "Coordinate writes", cluster_post.Total());
+  cluster_total.WriteTiming(1,    "Total:");
 
   return 0;
 }
