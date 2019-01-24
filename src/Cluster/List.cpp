@@ -176,7 +176,7 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
     else if ( !sieveToCentroid ) {
       // Check if any frames in the cluster are closer than epsilon to sieved frame.
       for (int cidx=0; cidx < minNode->Nframes(); cidx++)
-      {
+      { //TODO just use PairwiseMatrix::Frame_Distance here?
         if ( MyCdist->FrameDist(frame, minNode->ClusterFrame(cidx)) < epsilon )
         {
           goodFrame = true;
