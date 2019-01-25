@@ -69,6 +69,10 @@ class Node {
     bool HasFrame(int f)           const { return frameList_.HasFrame(f); }
     /// Access representative frame list, const
     RepPairArray const& BestReps() const { return bestReps_;              }
+    /// Access frame silhouette list
+    SilPairArray const& FrameSilhouettes() const { return frameSil_;      }
+    /// \return cluster silhoueete vaule
+    double Silhouette()            const { return avgSil_;                }
 
     /// Calculate centroid of members of this cluster.
     void CalculateCentroid(Metric* Cdist) {
@@ -84,6 +88,10 @@ class Node {
     void SetNum(int numIn)             { num_ = numIn;                  }
     /// Access representative frame list
     RepPairArray& BestReps()           { return bestReps_;              }
+    /// Access frame silhouette list
+    SilPairArray& FrameSilhouettes()   { return frameSil_;              }
+    /// Set cluster silhouette value
+    void SetSilhouette(double s)       { avgSil_ = s;                   }
     /// Sort internal frame list
     void SortFrameList()               { frameList_.Sort();             }
     /// Remove specified frame from cluster if present.

@@ -325,28 +325,18 @@ double Cpptraj::Cluster::List::ComputePseudoF(double& SSRSST, Metric* metricIn) 
   * in the cluster, i.e. it is well-clustered. Values of -1 indicate the point
   * is dissimilar and may fit better in a neighboring cluster. Values of 0
   * indicate the point is on a border between two clusters. 
-  * \param SiFrames For each cluster, the silhouette value for each individual frame.
-  * \param AvgSi For each cluster, the average silhouette value.
   */
-void Cpptraj::Cluster::List::CalcSilhouette(std::vector< std::vector<double> >& SiFrames,
-                                            std::vector<double>& AvgSi,
-                                            PairwiseMatrix const& pmatrix,
+int Cpptraj::Cluster::List::CalcSilhouette(PairwiseMatrix const& pmatrix,
                                             Cframes const& sievedFrames,
                                             bool includeSieved)
-const
 {
-  SiFrames.clear();
-  SiFrames.reserve( Nclusters() );
-  AvgSi.clear();
-  AvgSi.reserve( Nclusters() );
-  unsigned int idx = 0;
-  for (cluster_iterator Ci = begincluster(); Ci != endcluster(); ++Ci)
+  for (cluster_it Ci = begin(); Ci != end(); ++Ci)
   {
-    //Ffile.Printf("#C%-6i %10s\n", Ci->Num(), "Silhouette");
+    Node::SilPairArray& SiVals = Ci->FrameSilhouettes();
+    SiVals.clear();
+    SiVals.reserve( Ci->Nframes() );
     double avg_si = 0.0;
     int ci_frames = 0;
-    SiFrames.push_back( std::vector<double>() );
-    std::vector<double>& SiVals = SiFrames.back();
     for (Node::frame_iterator f1 = Ci->beginframe(); f1 != Ci->endframe(); ++f1)
     {
       if (includeSieved || !sievedFrames.HasFrame( *f1 )) {
@@ -408,21 +398,22 @@ const
           mprinterr("Error: Divide by zero in silhouette calculation for frame %i\n", *f1 + 1);
         else {
           double si = (min_bi - ai) / max_ai_bi;
-          SiVals.push_back( si );
-          //Ffile.Printf("%8i %10.4f\n", *f1 + 1, si);
+          SiVals.push_back( Node::SilPair(*f1, si) );
           avg_si += si;
           ++ci_frames;
         }
-      }
+      } // END if frame should be calcd
     } // END loop over cluster frames
-    std::sort( SiVals.begin(), SiVals.end() );
-    //for (std::vector<double>::const_iterator it = SiVals.begin(); it != SiVals.end(); ++it, ++idx)
-    //  Ffile.Printf("%8i %g\n", idx, *it);
-    //Ffile.Printf("\n");
-    ++idx;
+    //std::sort( SiVals.begin(), SiVals.end() );
+    // DEBUG
+    mprintf("DEBUG: Cluster frame silhouette values for cluster %i\n", Ci->Num());
+    for (Node::SilPairArray::const_iterator it = Ci->FrameSilhouettes().begin();
+                                            it != Ci->FrameSilhouettes().end(); ++it)
+      mprintf("\t%8i %g\n", it->first+1, it->second);
     if (ci_frames > 0)
       avg_si /= (double)ci_frames;
     //mprintf("DEBUG: Cluster silhouette: %8i %g\n", Ci->Num(), avg_si);
-    AvgSi.push_back( avg_si );
+    Ci->SetSilhouette( avg_si );
   } // END outer loop over clusters
+  return 0;
 }

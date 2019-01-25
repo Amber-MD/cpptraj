@@ -368,16 +368,13 @@ int Cpptraj::Cluster::Control::Run() {
   if (!sil_file_.empty()) {
     if (frameSieve.SieveValue() != 1 && !includeSieveInCalc_)
       mprintf("Warning: Silhouettes do not include sieved frames.\n");
-    std::vector< std::vector<double> > SiFrames;
-    std::vector<double> SiAvg;
-    clusters_.CalcSilhouette(SiFrames, SiAvg, *pmatrix_, frameSieve.SievedOut(),
-                             includeSieveInCalc_);
+    clusters_.CalcSilhouette(*pmatrix_, frameSieve.SievedOut(), includeSieveInCalc_);
     CpptrajFile Ffile, Cfile;
     if (Ffile.OpenWrite(sil_file_ + ".frame.dat")) return 1;
-    Output::PrintSilhouetteFrames(Ffile, SiFrames);
+    Output::PrintSilhouetteFrames(Ffile, clusters_);
     Ffile.CloseFile();
     if (Cfile.OpenWrite(sil_file_ + ".cluster.dat")) return 1;
-    Output::PrintSilhouettes(Cfile, SiAvg);
+    Output::PrintSilhouettes(Cfile, clusters_);
     Cfile.CloseFile();
   }
 

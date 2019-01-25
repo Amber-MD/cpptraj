@@ -55,9 +55,8 @@ class List {
     double ComputeDBI(std::vector<double>&, Metric*) const;
     /// Calculate pseudo-F
     double ComputePseudoF(double&, Metric*) const;
-    /// Calculate cluster silhouettes
-    void CalcSilhouette(std::vector< std::vector<double> >&, std::vector<double>&,
-                        PairwiseMatrix const&, Cframes const&, bool) const;
+    /// Calculate cluster and cluster frame silhouettes
+    int CalcSilhouette(PairwiseMatrix const&, Cframes const&, bool);
   private:
     typedef std::list<Node> Narray;
     Narray clusters_; ///< Hold all clusters.
