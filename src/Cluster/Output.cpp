@@ -1,5 +1,6 @@
-#include <algorithm> // sort
+#include <algorithm> // sort, max
 #include "Output.h"
+#include "../Matrix.h"
 // -----------------------------------------------------------------------------
 // ClusterList::PrintClustersToFile()
 /** Print list of clusters in a style similar to ptraj; each cluster is
@@ -134,3 +135,134 @@ int Cpptraj::Cluster::Output::PrintSilhouettes(CpptrajFile& Cfile, List const& c
     Cfile.Printf("%8i %g\n", Ci->Num(), Ci->Silhouette());
   return 0;
 }
+
+/** Quick pass through clusters to determine max width of cluster names. */
+unsigned int Cpptraj::Cluster::Output::DetermineNameWidth(List const& clusters)
+{
+  unsigned int nWidth = 0;
+  for (List::cluster_iterator node = clusters.begincluster();
+                              node != clusters.endcluster(); ++node)
+    nWidth = std::max(nWidth, (unsigned int)node->Cname().size());
+  return nWidth;
+}
+
+/** Print a summary of clusters. */
+int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters,
+                                      Algorithm const& algorithm,
+                                      PairwiseMatrix const& pmatrix, bool includeSieved,
+                                      Cframes const& sievedOut)
+{
+  double fmax = (double)pmatrix.DistMetric().Ntotal();
+  //if (FrameDistances().SieveValue() != 1 && !includeSieveInAvg)
+  //  mprintf("Warning: Within cluster average distance (AvgDist) does not include sieved frames.\n");
+  outfile.Printf("%-8s %8s %8s %8s %8s","#Cluster","Frames","Frac", "AvgDist","Stdev");
+  if (!clusters.empty() && clusters.front().BestReps().size() > 1) {
+    int nBestReps = clusters.front().BestReps().size();
+    for (int i = 0; i != nBestReps; i++)
+      outfile.Printf(" %8s %8s", "Rep", "RepScore");
+  } else
+    outfile.Printf(" %8s", "Centroid");
+  outfile.Printf(" %8s", "AvgCDist");
+  unsigned int nWidth = DetermineNameWidth(clusters);
+  if (nWidth > 0) {
+    if (nWidth < 8) nWidth = 8;
+    outfile.Printf(" %*s %8s", nWidth, "Name", "RMS");
+  }
+  outfile.Printf("\n");
+  //Timer t_fdist; // DEBUG
+  //Timer t_cdist; // DEBUG
+  //t_cdist.Start();
+  // Calculate distances between clusters.
+  Matrix<double> cluster_distances;
+  cluster_distances.resize( 0, clusters.Nclusters() );
+  for (List::cluster_iterator c1 = clusters.begincluster(); c1 != clusters.endcluster(); ++c1)
+    for (List::cluster_iterator c2 = c1; c2 != clusters.endcluster(); ++c2)
+      if (c2 != c1)
+        cluster_distances.addElement( algorithm.ClusterDistance( *c1, *c2, pmatrix,
+                                                                includeSieved, sievedOut ) );
+  //t_cdist.Stop();
+
+  unsigned int idx1 = 0;
+  for (List::cluster_iterator node = clusters.begincluster();
+                              node != clusters.endcluster(); ++node, ++idx1)
+  {
+    // Calculate the average distance of this cluster to every other cluster.
+    //t_cdist.Start();
+    double avgclusterdist = 0.0;
+    if (clusters.Nclusters() > 1) {
+      unsigned int idx2 = 0;
+      for (List::cluster_iterator node2 = clusters.begincluster();
+                                  node2 != clusters.endcluster(); ++node2, ++idx2)
+      {
+        if (node != node2)
+          avgclusterdist += cluster_distances.element(idx1, idx2);
+      }
+      avgclusterdist /= (double)(clusters.Nclusters() - 1);
+      //mprintf("CLUSTER %i avgclusterdist= %g\n", node->Num(), avgclusterdist);
+    }
+    //t_cdist.Stop();
+    // Since there may be a lot of frames do not calculate SD from the
+    // mean (which requires either storing distances or two double loops), 
+    // instead use SD = sqrt( (SUM[x^2] - ((SUM[x])^2)/N)/N )
+    //t_fdist.Start();
+    double internalAvg = 0.0;
+    double internalSD = 0.0;
+    unsigned int Nelements = 0;
+    if (node->Nframes() > 1) {
+      // Calculate average distance between all frames in this cluster.
+      if (includeSieved) {
+        for (Node::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1) {
+          for (Node::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
+            double dist = pmatrix.Frame_Distance(*f1, *f2);
+            internalAvg += dist;
+            internalSD += (dist * dist);
+            ++Nelements;
+          }
+        }
+      } else {
+        for (Node::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1) {
+          if (!sievedOut.HasFrame( *f1 )) {
+            for (Node::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
+              if (!sievedOut.HasFrame( *f2 )) {
+                double dist = pmatrix.GetFdist(*f1, *f2);
+                internalAvg += dist;
+                internalSD += (dist * dist);
+                ++Nelements;
+              }
+            }
+          }
+        }
+      }
+      if (Nelements > 0) {
+        double norm = 1.0 / ((double)Nelements);
+        internalAvg *= norm;
+        internalSD *= norm;
+        internalSD -= (internalAvg * internalAvg);
+        if (internalSD > 0.0)
+          internalSD = sqrt( internalSD );
+        else
+          internalSD = 0.0;
+      }
+      //t_fdist.Stop();
+    }
+    // OUTPUT - TODO handle case when clusters dont have same number best reps
+    outfile.Printf("%8i %8i %8.3f %8.3f %8.3f",
+                   node->Num(), node->Nframes(), (double)node->Nframes()/fmax,
+                   internalAvg, internalSD);
+    if (node->BestReps().size() < 2)
+      outfile.Printf(" %8i", node->BestRepFrame()+1);
+    else {
+      for (Node::RepPairArray::const_iterator rep = node->BestReps().begin();
+                                              rep != node->BestReps().end(); ++rep)
+        outfile.Printf(" %8i %8.3f", rep->first+1, rep->second);
+    }
+    outfile.Printf(" %8.3f", avgclusterdist);
+    if (nWidth > 0)
+      outfile.Printf(" %*s %8.3f", nWidth, node->Cname().c_str(), node->RefRms());
+    outfile.Printf("\n");
+  } // END loop over clusters
+  //t_cdist.WriteTiming(1, "Between-cluster distance calc.");
+  //t_fdist.WriteTiming(1, "Within-cluster distance calc.");
+  return 0;
+}
+

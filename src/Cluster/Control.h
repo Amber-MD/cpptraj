@@ -58,6 +58,7 @@ class Control {
 
     bool suppressInfo_;               ///< If true do not write cluster info
     std::string clusterinfo_;         ///< Cluster info file name.
+    std::string summaryfile_;         ///< Cluster summary file name.
     std::string sil_file_;            ///< File prefix for writing silhouette data
 
 };

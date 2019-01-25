@@ -27,6 +27,8 @@ class List {
     const cluster_iterator begincluster() const { return clusters_.begin(); }
     /// Const iterator to end
     const cluster_iterator endcluster()   const { return clusters_.end();   }
+    /// \return first cluster
+    Node const& front()                   const { return clusters_.front(); }
     /// \return current number of clusters.
     int Nclusters()        const { return (int)clusters_.size(); }
     /// \return true if no clusters

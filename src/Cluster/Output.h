@@ -5,6 +5,7 @@
 #include "Algorithm.h"
 #include "Metric.h"
 #include "Cframes.h"
+#include "PairwiseMatrix.h" // TODO anything that needs this calcd outside here?
 
 namespace Cpptraj {
 namespace Cluster {
@@ -16,6 +17,10 @@ class Output {
                                     int, Cframes const&);
     static int PrintSilhouetteFrames(CpptrajFile&, List const&);
     static int PrintSilhouettes(CpptrajFile&, List const&);
+    static int Summary(CpptrajFile&, List const&, Algorithm const&, PairwiseMatrix const&,
+                        bool, Cframes const&);
+  private:
+    static unsigned int DetermineNameWidth(List const&);
 };
 
 }

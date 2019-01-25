@@ -240,6 +240,7 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
   suppressInfo_ = analyzeArgs.hasKey("noinfo");
   if (!suppressInfo_)
     clusterinfo_ = analyzeArgs.GetStringKey("info");
+  summaryfile_ = analyzeArgs.GetStringKey("summary");
   sil_file_ = analyzeArgs.GetStringKey("sil");
 
 
@@ -301,7 +302,7 @@ int Cpptraj::Cluster::Control::Run() {
   Timer cluster_post_renumber;
   Timer cluster_post_bestrep;
   Timer cluster_post_info;
-  //Timer cluster_post_summary;
+  Timer cluster_post_summary;
   //Timer cluster_post_coords;
   cluster_post_renumber.Start();
   // Update cluster centroids here in case they need to be used to 
@@ -378,6 +379,19 @@ int Cpptraj::Cluster::Control::Run() {
     Cfile.CloseFile();
   }
 
+  // Print a summary of clusters
+  if (!summaryfile_.empty()) {
+    cluster_post_summary.Start();
+    CpptrajFile outfile;
+    if (outfile.OpenWrite(summaryfile_)) {
+      mprinterr("Error: Could not set up cluster summary file.\n");
+      return 1;
+    }
+    Output::Summary(outfile, clusters_, *algorithm_, *pmatrix_, includeSieveInCalc_,
+                    frameSieve.SievedOut());
+    cluster_post_summary.Stop();
+  }
+
   cluster_post.Stop();
   cluster_total.Stop();
 
@@ -391,7 +405,7 @@ int Cpptraj::Cluster::Control::Run() {
   cluster_post_renumber.WriteTiming(2, "Cluster renumbering/sieve restore", cluster_post.Total());
   cluster_post_bestrep.WriteTiming(2, "Find best rep.", cluster_post.Total());
   cluster_post_info.WriteTiming(2, "Info calc", cluster_post.Total());
-  //cluster_post_summary.WriteTiming(2, "Summary calc", cluster_post.Total());
+  cluster_post_summary.WriteTiming(2, "Summary calc", cluster_post.Total());
   //cluster_post_coords.WriteTiming(2, "Coordinate writes", cluster_post.Total());
   cluster_total.WriteTiming(1,    "Total:");
 
