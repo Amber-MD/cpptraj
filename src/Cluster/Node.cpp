@@ -4,7 +4,9 @@
 // CONSTRUCTOR
 Cpptraj::Cluster::Node::Node() :
   centroid_(0),
+  avgSil_(0),
   eccentricity_(0),
+  refRms_(0),
   num_(-1),
   needsUpdate_(true)
 {}
@@ -119,26 +121,6 @@ double Cpptraj::Cluster::Node::CalcAvgToCentroid( Metric* Cdist ) const
     avgdist += dist;
   }
   return ( avgdist / (double)frameList_.size() );
-}
-
-void Cpptraj::Cluster::Node::SortFrameList() {
-  //std::sort(frameList_.begin(), frameList_.end());
-  frameList_.Sort();
-}
-
-// Cpptraj::Cluster::Node::HasFrame()
-bool Cpptraj::Cluster::Node::HasFrame(int frame) const {
-  //Cframes::const_iterator it = std::find(frameList_.begin(), frameList_.end(), frame);
-  //return !(it == frameList_.end());
-  return frameList_.HasFrame( frame );
-}
-
-// Cpptraj::Cluster::Node::RemoveFrameFromCluster()
-void Cpptraj::Cluster::Node::RemoveFrameFromCluster(int frame) {
-  frameList_.Remove( frame );
-/*  Cframes::iterator pend = std::remove( frameList_.begin(), frameList_.end(), frame);
-  size_t newsize = pend - frameList_.begin();
-  frameList_.resize( newsize );*/
 }
 
 void Cpptraj::Cluster::Node::RemoveFrameUpdateCentroid(Metric* Cdist, int frame) {
