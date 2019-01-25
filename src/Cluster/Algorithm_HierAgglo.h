@@ -16,6 +16,8 @@ class Algorithm_HierAgglo : public Algorithm {
     void Results(CpptrajFile&) const;
     int DoClustering(List&, Cframes const&, PairwiseMatrix const&);
     void Timing(double) const;
+    double ClusterDistance(Node const&, Node const&, PairwiseMatrix const&,
+                           bool, Cframes const&) const;
   private:
     void buildInitialClusters(List&, Cframes const&, Metric*);
     //void InitializeClusterDistances();

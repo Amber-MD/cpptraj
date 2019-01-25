@@ -23,6 +23,9 @@ class Algorithm {
     virtual int DoClustering(List&, Cframes const&, PairwiseMatrix const&) = 0;
     /// Report any timing data
     virtual void Timing(double) const = 0;
+    /// /return Algorithm-specific between-cluster distance. Default to centroid distance.
+    virtual double ClusterDistance(Node const&, Node const&, PairwiseMatrix const&,
+                                   bool, Cframes const&) const;
     // -------------------------------------------
     /// Set debug level for algorithm
     void SetDebug(int d) { debug_ = d; }

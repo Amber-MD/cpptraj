@@ -333,3 +333,58 @@ void Cpptraj::Cluster::Algorithm_HierAgglo::calcAvgDist(List::cluster_it& C1_it,
     }
   }
 }
+
+double Cpptraj::Cluster::Algorithm_HierAgglo::ClusterDistance(Node const& C1, Node const& C2,
+                                                              PairwiseMatrix const& pmatrix,
+                                                              bool includeSieved,
+                                                              Cframes const& sievedOut)
+const
+{
+  double dval = -1.0;
+  switch (linkage_) {
+    case SINGLELINK   : dval = std::numeric_limits<double>::max(); break;
+    case COMPLETELINK : dval = -1.0; break;
+    case AVERAGELINK  : dval = 0.0; break;
+  }
+  unsigned int nvals = 0;
+
+  if (includeSieved) {
+    // Include sieved frames
+    for (Node::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+    {
+      for (Node::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+      {
+        double Dist = pmatrix.Frame_Distance(*f1, *f2);
+        //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
+        switch (linkage_) {
+          case SINGLELINK   : if ( Dist < dval ) dval = Dist; break;
+          case COMPLETELINK : if ( Dist > dval ) dval = Dist; break;
+          case AVERAGELINK  : dval += Dist; nvals++; break;
+        }
+      }
+    }
+  } else {
+    // No sieved frames included.
+    for (Node::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+    {
+      if (!sievedOut.HasFrame(*f1)) {
+        for (Node::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+        {
+          if (!sievedOut.HasFrame(*f2)) {
+            double Dist = pmatrix.GetFdist(*f1, *f2);
+            //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
+            switch (linkage_) {
+              case SINGLELINK   : if ( Dist < dval ) dval = Dist; break;
+              case COMPLETELINK : if ( Dist > dval ) dval = Dist; break;
+              case AVERAGELINK  : dval += Dist; nvals++; break;
+            }
+          }
+        }
+      }
+    }
+  }
+  if (linkage_ == AVERAGELINK)
+    dval /= (double)nvals;
+
+  return dval;
+}
