@@ -1,3 +1,4 @@
+#include <cmath> // sqrt
 #include <algorithm> // sort, max
 #include "Output.h"
 #include "../Matrix.h"
