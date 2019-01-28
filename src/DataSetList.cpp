@@ -27,6 +27,7 @@
 #include "DataSet_PHREMD_Explicit.h"
 #include "DataSet_PHREMD_Implicit.h"
 #include "DataSet_Parameters.h"
+#include "DataSet_Pmatrix_MEM.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
 const DataSetList::DataToken DataSetList::DataArray[] = {
@@ -55,6 +56,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "pH REMD (explicit)",DataSet_PHREMD_Explicit::Alloc}, // PH_EXPL
   { "pH REMD (implicit)",DataSet_PHREMD_Implicit::Alloc}, // PH_IMPL
   { "parameters",    DataSet_Parameters::Alloc }, // PARAMETERS
+  { "pairwise matrix (mem)",DataSet_Pmatrix_MEM::Alloc}, // PMATRIX_MEM
   { 0, 0 }
 };
 

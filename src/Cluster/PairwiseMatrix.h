@@ -8,8 +8,9 @@ namespace Cluster {
 class PairwiseMatrix {
   public:
     enum Type { MEM = 0, DISK, NOCACHE };
-
-    //PairwiseMatrix() : metric_(0) {}
+    /// CONSTRUCTOR - No metric
+    PairwiseMatrix(Type t) : type_(t), metric_(0) {}
+    /// CONSTRUCTOR - with metric
     PairwiseMatrix(Type, Metric*);
     virtual ~PairwiseMatrix() {}
     // -------------------------------------------
@@ -22,8 +23,9 @@ class PairwiseMatrix {
     /// Print only cached distances.
     virtual void PrintCached() const = 0;
     // -------------------------------------------
+    bool HasMetric()           const { return (metric_ != 0); }
     /// \return internal metric, const.
-    Metric const& DistMetric() const { return *metric_; }
+    Metric const& DistMetric() const { return *metric_;       }
     /// \return internal metric.
 //    Metric&       DistMetric()       { return *metric_; }
     /// \return Pointer to distance metric

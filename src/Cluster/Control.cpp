@@ -259,13 +259,8 @@ int Cpptraj::Cluster::Control::Run() {
     mprinterr("Internal Error: Cluster::Control is not set up.\n");
     return 1;
   }
+
   // Timers
-  
-  // Set up the Metric
-  if (metric_->Setup()) {
-    mprinterr("Error: Metric setup failed.\n");
-    return 1;
-  }
   Timer cluster_setup;
   Timer cluster_pairwise;
   Timer cluster_cluster;
@@ -273,6 +268,11 @@ int Cpptraj::Cluster::Control::Run() {
   Timer cluster_total;
   cluster_total.Start();
   cluster_setup.Start();
+  // Set up the Metric
+  if (metric_->Setup()) {
+    mprinterr("Error: Metric setup failed.\n");
+    return 1;
+  }
 
   // Figure out which frames to cluster
   Sieve frameSieve;

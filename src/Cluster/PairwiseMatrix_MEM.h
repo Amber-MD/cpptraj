@@ -7,6 +7,7 @@ namespace Cluster {
 
 class PairwiseMatrix_MEM : public PairwiseMatrix {
   public:
+    PairwiseMatrix_MEM()          : PairwiseMatrix(MEM)    {}
     PairwiseMatrix_MEM(Metric* m) : PairwiseMatrix(MEM, m) {}
     // -------------------------------------------
     double GetFdist(int f1, int f2) const { return Mat_.element(frameToMat_[f1], frameToMat_[f2]); }
