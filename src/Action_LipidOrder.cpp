@@ -87,6 +87,7 @@ int Action_LipidOrder::FindChain( Npair const& chain ) {
     if ( Types_[idx] == chain ) {
       if (debug_ > 0)
         mprintf("DEBUG: Existing chain: %s %s\n", *(Types_[idx].first), *(Types_[idx].second));
+      Nchains_[idx]++;
       return idx;
     }
   // New chain type
@@ -94,6 +95,7 @@ int Action_LipidOrder::FindChain( Npair const& chain ) {
     mprintf("DEBUG: New chain: %s %s\n", *(chain.first), *(chain.second));
   Types_.push_back( chain );
   Chains_.push_back( ChainType() );
+  Nchains_.push_back( 1 );
   return Types_.size()-1;
 }
 
@@ -111,6 +113,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   }
   // Clear existing sites, but not data.
   Sites_.clear();
+  Nchains_.clear();
   // Loop over all molecules.
   unsigned int nChains = 0;
   for (Topology::mol_iterator mol = setup.Top().MolStart();
@@ -216,7 +219,8 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   mprintf("\t%zu chain types:\n", Types_.size());
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
-    mprintf("\t[%u] Residue %s, carboxyl atom %s (%zu)\n", idx,
+    mprintf("\t[%u] %i chains, Residue %s, carboxyl atom %s (%zu)\n", idx,
+            Nchains_[idx],
             Types_[idx].first.Truncated().c_str(),
             Types_[idx].second.Truncated().c_str(), Chains_[idx].size());
     mprintf("\t  %-4s %-4s %2s\n", "Pos.", "Name", "#H");
@@ -224,12 +228,17 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it, ++pos)
       mprintf("\t  %-4u %-4s %2u\n", pos, it->name(), it->NumH());
   }
+
   return Action::OK;
 }
 
 // Action_LipidOrder::DoAction()
 Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 {
+  // Zero all temp arrays.
+  for (ChainArray::iterator chn = Chains_.begin(); chn != Chains_.end(); ++chn)
+    for (ChainType::iterator it = chn->begin(); it != chn->end(); ++it)
+      it->AllocateTempSpace();
   // Loop over all carbon sites
 # ifdef _OPENMP
   int maxIdx = (int)Sites_.size();
@@ -267,14 +276,34 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
       Vec3 sx = Vec3(frm.Frm().XYZ( site->Hidx(i) )) - Cvec;
       sx.Normalize();
 //      mprintf("DBG: %8i %8i %8.3f\n",site->Cidx(), site->Hidx(i), sx[axis_]);
-      cdata.UpdateAngle(i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
+      //mprintf("DBG: Cidx= %8i %4s Hidx= %8i Val= %16.8f\n", site->Cidx(), *(cdata.Name()),
+      //        site->Hidx(i),
+      //        0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
+      double scdval = 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0);
+      //cdata.UpdateAngle(i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
+      cdata.IncrementTempBy( i, scdval );
     }
     // NOTE: # values is stored with each carbon data instead of for each
     //       chain to allow chain types to "disappear" between Setup() calls,
     //       i.e. to allow for different topologies. May be overkill.
-    cdata.UpdateNvals();
+    //cdata.UpdateNvals();
   }
 # endif
+  for (unsigned int cidx = 0; cidx != Chains_.size(); cidx++)
+  {
+    double dval = 1.0 / (double)Nchains_[cidx];
+    for (unsigned int pos = 0; pos != Chains_[cidx].size(); pos++)
+    {
+      CarbonData& cdata = Chains_[cidx][pos];
+      //tempScd_.elt(cidx, pos, 0) *= dval;
+      //tempScd_.elt(cidx, pos, 1) *= dval;
+      //tempScd_.elt(cidx, pos, 2) *= dval;
+      for (unsigned int i = 0; i != cdata.NumH(); i++)
+        cdata.UpdateAngle(i, cdata.TempSCD(i) * dval);
+      cdata.UpdateNvals();
+    }
+  }
+    
   return Action::OK;
 }
 

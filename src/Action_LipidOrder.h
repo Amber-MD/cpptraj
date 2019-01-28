@@ -21,6 +21,9 @@ class Action_LipidOrder : public Action {
     typedef std::pair<NameType, NameType> Npair;
     typedef std::vector<Npair> Narray;
 
+    typedef std::vector<int> Iarray;
+    typedef std::vector<double> Darray;
+
     /// Hold data for unique carbon type
     class CarbonData;
 
@@ -40,19 +43,19 @@ class Action_LipidOrder : public Action {
     CharMask mask_;
     Narray Types_;      ///< Array of chain types (res name, atom name)
     ChainArray Chains_; ///< Hold unique chains
+    Iarray Nchains_;    ///< How many of each chain type?
     Carray Sites_;      ///< Hold all carbon sites
     AxisType axis_;
     std::string dsname_;
     DataSetList* masterDSL_;
     DataFile* outfile_;
     int debug_;
-    bool report_p2_;    ///> If true report raw <P2> instead of |<P2>|
+    bool report_p2_;       ///< If true report raw <P2> instead of |<P2>|
 #   ifdef MPI
     int SyncAction();
     Parallel::Comm trajComm_;
 #   endif
 #   ifdef _OPENMP
-    typedef std::vector<double> Darray;
     typedef std::vector<unsigned int> Uarray;
     int nthreads_;
 #   endif
@@ -85,6 +88,9 @@ class Action_LipidOrder::CarbonData {
     }
     void SetNumH(unsigned int n) { nH_ = n; }
     double Avg(int, double&) const;
+    void AllocateTempSpace()              { tempScd_.assign( nH_, 0 ); }
+    void IncrementTempBy(int i, double d) { tempScd_[i] += d;          }
+    double TempSCD(int i)           const { return tempScd_[i];        }
 #   ifdef MPI
     double* Sptr()       { return &sum_[0];    }
     double* S2ptr()      { return &sum2_[0];   }
@@ -96,6 +102,7 @@ class Action_LipidOrder::CarbonData {
 #   endif /* MPI */
   private:
     NameType name_;      ///< Carbon name
+    Darray tempScd_;     ///< temporary space for calculating SCD values each frame.
 #   ifdef _OPENMP
     Darray sum_;
     Darray sum2_;
