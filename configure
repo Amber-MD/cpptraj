@@ -12,14 +12,15 @@
 UsageSimple() {
   echo "Usage: ./configure <OPTIONS> [gnu | intel | pgi | clang | cray]"
   echo "  OPTIONS:"
-  echo "    --help      : Display this message."
-  echo "    -openmp     : Use OpenMP for parallelization of certain routines."
-  echo "    -mpi        : Use mpicc/mpicxx to compile."
-  echo "    -intelmpi   : Use mpiicc/mpiicpc to compile."
-  echo "    -cuda       : Enable support for CUDA. See SHADER_MODEL in --full-help for more info."
-  echo "    -cray       : Use cray compiler wrappers (cc/CC/ftn)."
-  echo "    -amberlib   : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
-  echo "    --full-help : Display additional options."
+  echo "    --help         : Display this message."
+  echo "    --prefix <dir> : Install CPPTRAJ to specified directory (default is this directory)."
+  echo "    -openmp        : Use OpenMP for parallelization of certain routines."
+  echo "    -mpi           : Use mpicc/mpicxx to compile."
+  echo "    -intelmpi      : Use mpiicc/mpiicpc to compile."
+  echo "    -cuda          : Enable CUDA support. See SHADER_MODEL in --full-help for more info."
+  echo "    -cray          : Use cray compiler wrappers (cc/CC/ftn)."
+  echo "    -amberlib      : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
+  echo "    --full-help    : Display additional options."
   echo ""
 }
 
