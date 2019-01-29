@@ -7,7 +7,7 @@ namespace Cluster {
 /// Interface for calculating/caching pairwise distances according to a given metric.
 class PairwiseMatrix {
   public:
-    enum Type { MEM = 0, DISK, NOCACHE };
+    enum Type { MEM = 0, NC, NOCACHE };
     /// CONSTRUCTOR - No metric
     PairwiseMatrix(Type t) : type_(t), metric_(0) {}
     /// CONSTRUCTOR - with metric
@@ -34,8 +34,12 @@ class PairwiseMatrix {
     /// Used to cache distances; expect internal indices, not absolute cluster frames.
     virtual void SetElement(int, int, double) = 0;
     // -------------------------------------------
+    /// Internal routine used to setup frameToMat_ array.
+    int setupFrameToMat(Cframes const&);
     /// Internal routine used to cache pairwise distances.
     int CalcFrameDistances(Cframes const&);
+
+    Cframes frameToMat_; ///< Hold indices for all cached frames, -1 for non-cached.
   private:
     Type type_;      ///< The current pairwise type.
     Metric* metric_; ///< The current distance metric.

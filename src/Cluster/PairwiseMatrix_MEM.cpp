@@ -21,16 +21,8 @@ int Cpptraj::Cluster::PairwiseMatrix_MEM::CacheDistances(Cframes const& framesTo
   mprintf("DEBUG: PairwiseMatrix_MEM set up for %i rows, size= %zu bytes.\n",
           Mat_.Nrows(), Mat_.sizeInBytes());
 # endif
-  frameToMat_.assign(DistMetric().Ntotal(), -1);
-  int idx = 0;
-  for (Cframes_it it = framesToCache.begin(); it != framesToCache.end(); ++it)
-    frameToMat_[*it] = idx++;
-# ifdef DEBUG_CLUSTER
-  // DEBUG
-  mprintf("DEBUG: frameToMat\n");
-  for (Cframes_it it = frameToMat_.begin(); it != frameToMat_.end(); ++it)
-    mprintf("\tframeToMat_[%u] = %i\n", it - frameToMat_.begin(), *it);
-# endif
+  if (setupFrameToMat( framesToCache )) return 1;
+
   return CalcFrameDistances( framesToCache );
 }
 
