@@ -5,6 +5,7 @@
 #include "Output.h"
 // PairwiseMatrix classes
 #include "PairwiseMatrix_MEM.h"
+#include "PairwiseMatrix_NC.h"
 // Metric classes
 #include "Metric_RMS.h"
 // Algorithms
@@ -41,6 +42,7 @@ Cpptraj::Cluster::PairwiseMatrix*
   // TODO check for null metric
   switch (ptype) {
     case PairwiseMatrix::MEM : pmatrix = new PairwiseMatrix_MEM(metric); break;
+    case PairwiseMatrix::NC  : pmatrix = new PairwiseMatrix_NC(metric); break;
     default: mprinterr("Error: Unhandled PairwiseMatrix in AllocatePairwise.\n");
   }
   return pmatrix;
@@ -53,13 +55,21 @@ const char* Cpptraj::Cluster::Control::PairwiseArgs =
 int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, Metric* metricIn)
 {
   if (metricIn == 0) return 1;
+
+  // Determine if we are saving/loading pairwise distances
+  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
+  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
+  bool load_pair = analyzeArgs.hasKey("loadpairdist");
+  bool save_pair = analyzeArgs.hasKey("savepairdist");
+
+  // Process DataSet type arguments
   PairwiseMatrix::Type pw_type = PairwiseMatrix::MEM;
   std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
   if (!pw_typeString.empty()) {
     if (pw_typeString == "mem")
       pw_type = PairwiseMatrix::MEM;
     else if (pw_typeString == "disk")
-      pw_type = PairwiseMatrix::DISK;
+      pw_type = PairwiseMatrix::NC;
     else if (pw_typeString == "none")
       pw_type = PairwiseMatrix::NOCACHE;
     else {
@@ -67,6 +77,8 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, Metric* me
       return 1;
     }
   }
+
+  // Allocate pairwise matrix
   if (pmatrix_ != 0) delete pmatrix_;
   pmatrix_ = AllocatePairwise( pw_type, metricIn );
   if (pmatrix_ == 0) return 1;
@@ -124,6 +136,7 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
 int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
                                                      std::string const& maskExpr,
                                                      ArgList& analyzeArgs,
+                                                     DataSetList& DSL,
                                                      int verboseIn)
 {
   verbose_ = verboseIn;
@@ -164,11 +177,11 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
     return 1;
   }
 
-  return Common(analyzeArgs);
+  return Common(analyzeArgs, DSL);
 }
 
 /** Common setup. */
-int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs) {
+int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL) {
   clusters_.SetDebug( verbose_ );
 
   // Allocate PairwiseMatrix.

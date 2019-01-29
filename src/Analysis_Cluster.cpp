@@ -32,7 +32,7 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   }*/
 
 
-  control_.SetupForCoordsDataSet(coords_, maskexpr, analyzeArgs, debugIn);
+  control_.SetupForCoordsDataSet(coords_, maskexpr, analyzeArgs, setup.DSL(), debugIn);
 
   // Output files
   DataFile* cnumvtimefile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);

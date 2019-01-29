@@ -5,6 +5,7 @@
 #include "Algorithm.h"
 #include "Metric.h"
 #include "BestReps.h"
+#include "../DataSetList.h"
 #include "../DataSet_Coords.h"
 namespace Cpptraj {
 namespace Cluster {
@@ -20,7 +21,7 @@ class Control {
 
     enum SieveRestoreType { NO_RESTORE = 0, CLOSEST_CENTROID, EPSILON_CENTROID, EPSILON_FRAME };
 
-    int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, int);
+    int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, DataSetList&,int);
 
     void Info() const;
     int Run();
@@ -36,7 +37,7 @@ class Control {
     static Algorithm* AllocateAlgorithm(Algorithm::AType);
     int AllocateAlgorithm(ArgList&);    
 
-    int Common(ArgList&);
+    int Common(ArgList&, DataSetList&);
 
     List clusters_;
     Metric* metric_;
