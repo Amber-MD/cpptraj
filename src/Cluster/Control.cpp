@@ -163,7 +163,6 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
     mprinterr("Error: Metric setup failed.\n");
     return 1;
   }
-  mprintf("DEBUG: metric memory: %x\n", metric_);
 
   return Common(analyzeArgs);
 }

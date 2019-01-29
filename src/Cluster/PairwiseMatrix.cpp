@@ -20,7 +20,6 @@ int Cpptraj::Cluster::PairwiseMatrix::CalcFrameDistances(Cframes const& framesTo
   int f1, f2;
   // For OMP, every other thread will need its own Cdist.
   Metric* MyMetric = metric_;
-  mprintf("DEBUG: PairwiseMatrix::CalcFrameDistances(): MyMetric= %x\n", MyMetric);
 # ifdef _OPENMP
 # pragma omp parallel private(MyMetric, f1, f2) firstprivate(progress)
   {
