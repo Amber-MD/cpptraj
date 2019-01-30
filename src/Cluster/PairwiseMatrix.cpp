@@ -4,15 +4,15 @@
 #endif
 #include "../ProgressBar.h"
 #include "../CpptrajStdio.h"
-// Distance Metric classes
-#include "Metric_RMS.h"
 
+/*
 Cpptraj::Cluster::PairwiseMatrix::PairwiseMatrix(Type t, Metric* metric) :
   type_(t),
   metric_(metric)
-{}
+{}*/
 
 /** Set up frame number to matrix index for caching. */
+/*
 int Cpptraj::Cluster::PairwiseMatrix::setupFrameToMat(Cframes const& framesToCache)
 {
   if (metric_ == 0) {
@@ -30,6 +30,20 @@ int Cpptraj::Cluster::PairwiseMatrix::setupFrameToMat(Cframes const& framesToCac
     mprintf("\tframeToMat_[%u] = %i\n", it - frameToMat_.begin(), *it);
 # endif
   return 0;
+}
+*/
+
+int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCache) {
+  if (framesToCache.size() < 1) return 0;
+  if (cache_ == 0) {
+    mprinterr("Internal Error: PairwiseMatrix::CacheDistances(): Cache set is null.\n");
+    return 1;
+  }
+  if (metric_ == 0) {
+    mprinterr("Internal Error: PairwiseMatrix::CacheDistances(): Metric is null.\n");
+    return 1;
+  }
+  return CalcFrameDistances(framesToCache);
 }
 
 /** Cache distances between given frames using SetElement(). */
@@ -56,7 +70,7 @@ int Cpptraj::Cluster::PairwiseMatrix::CalcFrameDistances(Cframes const& framesTo
   for (f1 = 0; f1 < f1end; f1++) {
     progress.Update(f1);
     for (f2 = f1 + 1; f2 < f2end; f2++)
-      SetElement( f1, f2, MyMetric->FrameDist(framesToCache[f1], framesToCache[f2]) );
+      cache_->SetElement( f1, f2, MyMetric->FrameDist(framesToCache[f1], framesToCache[f2]) );
   }
 # ifdef _OPENMP
   if (mythread > 0)
