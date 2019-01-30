@@ -13,11 +13,11 @@ class DataSet_PairwiseCache : public DataSet {
     typedef Cpptraj::Cluster::Cframes Cframes;
     //static DataSet* Alloc() { return (DataSet*)new DataSet_PairwiseCache(); }
     // ----- DataSet functions -------------------
-    size_t Size()                                    const { return 0; }
-    void Info()                                      const { return; }
-    int Allocate(SizeArray const&)                         { return 1; }
-    void Add(size_t, const void*)                          { return; }
-    void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
+    //size_t Size()                                    const { return 0; }
+    //void Info()                                      const { return; }
+    //int Allocate(SizeArray const&)                         { return 1; }
+    //void Add(size_t, const void*)                          { return; }
+    //void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Append(DataSet*)                                   { return 1; }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
@@ -29,6 +29,8 @@ class DataSet_PairwiseCache : public DataSet {
     virtual void PrintCached() const = 0;
     /// Used to cache distances; expect internal indices, not absolute cluster frames.
     virtual void SetElement(int, int, double) = 0;
+
+    Cframes const& FrameToMat() const { return frameToMat_; }
   private:
     /// Set which frames will be cached; sets up the frameToMat_ array.
     int setupFrameToMat(Cframes const&, unsigned int);
