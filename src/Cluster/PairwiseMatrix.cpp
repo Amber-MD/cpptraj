@@ -53,20 +53,32 @@ double Cpptraj::Cluster::PairwiseMatrix::Frame_Distance(int f1, int f2) const {
 
 int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCache) {
   if (framesToCache.size() < 1) return 0;
-  if (cache_ == 0) {
-    mprinterr("Internal Error: PairwiseMatrix::CacheDistances(): Cache set is null.\n");
-    return 1;
+  // If no cache we can leave.
+  if (cache_ == 0) return 0;
+
+  int err = 0;
+  if (cache_->Size() > 0) {
+    // If cache is already populated, check that it is valid.
+
+  } else {
+    // Sanity check
+    if (metric_ == 0) {
+      mprinterr("Internal Error: PairwiseMatrix::CacheDistances(): Metric is null.\n");
+      return 1;
+    }
+    err = CalcFrameDistances(framesToCache);
   }
-  if (metric_ == 0) {
-    mprinterr("Internal Error: PairwiseMatrix::CacheDistances(): Metric is null.\n");
-    return 1;
-  }
-  return CalcFrameDistances(framesToCache);
+  return err;
 }
 
 /** Cache distances between given frames using SetElement(). */
 int Cpptraj::Cluster::PairwiseMatrix::CalcFrameDistances(Cframes const& framesToCache)
 {
+  if (cache_->SetupFrameToIdx( framesToCache, metric_->Ntotal() )) {
+    mprinterr("Error: Unable to set up frame to index array for pairwise cache.\n");
+    return 1;
+  }
+
   int f2end = (int)framesToCache.size();
   int f1end = f2end - 1;
   ParallelProgress progress(f1end);
