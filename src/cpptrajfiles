@@ -223,6 +223,8 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataSet_MatrixFlt.cpp \
         DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
+        DataSet_PairwiseCache.cpp \
+        DataSet_PairwiseCache_MEM.cpp \
         DataSet_Parameters.cpp \
         DataSet_pH.cpp \
         DataSet_PHREMD_Explicit.cpp \

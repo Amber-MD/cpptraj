@@ -32,11 +32,14 @@ class DataSet_PairwiseCache : public DataSet {
     /// Used to cache distances; expect internal indices, not absolute cluster frames.
     virtual void SetElement(int, int, double) = 0;
 
-    Cframes const& FrameToMat() const { return frameToMat_; }
-  private:
-    /// Set which frames will be cached; sets up the frameToMat_ array.
-    int setupFrameToMat(Cframes const&, unsigned int);
+    // -------------------------------------------
 
-    Cframes frameToMat_; ///< Hold indices for all cached frames, -1 for non-cached.
+    /// \return The array for converting frame numbers to internal cache indices.
+    Cframes const& FrameToIdx() const { return frameToIdx_; }
+
+    /// Set up frame to internal index array using given frames and total frames.
+    int SetupFrameToIdx(Cframes const&, unsigned int);
+  private:
+    Cframes frameToIdx_; ///< Hold indices for all cached frames, -1 for non-cached.
 };
 #endif
