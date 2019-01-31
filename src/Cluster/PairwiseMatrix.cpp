@@ -33,6 +33,21 @@ int Cpptraj::Cluster::PairwiseMatrix::setupFrameToMat(Cframes const& framesToCac
 }
 */
 
+/** \return distance between frames (cached or uncached). */ // TODO inline?
+double Cpptraj::Cluster::PairwiseMatrix::Frame_Distance(int f1, int f2) const {
+  if (cache_ != 0)
+  {
+    int idx1 = cache_->FrameToMat()[f1];
+    if (idx1 != -1) {
+      int idx2 = cache_->FrameToMat()[f2];
+      if (idx2 != -1)
+        return cache_->CachedDistance(idx1, idx2);
+    }
+  }
+  // If here, distance was not cached or no cache.
+  return metric_->FrameDist(f1, f2);
+}
+
 int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCache) {
   if (framesToCache.size() < 1) return 0;
   if (cache_ == 0) {

@@ -7,6 +7,7 @@
 #include "BestReps.h"
 #include "../DataSetList.h"
 #include "../DataSet_Coords.h"
+#include "../DataSet_PairwiseCache.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -39,10 +40,11 @@ class Control {
 
     int Common(ArgList&, DataSetList&);
 
-    List clusters_;
-    Metric* metric_;
-    PairwiseMatrix* pmatrix_;
-    Algorithm* algorithm_;
+    List clusters_;                ///< Hold cluster results.
+    Metric* metric_;               ///< Hold the distance metric.
+    DataSet_PairwiseCache* cache_; ///< Hold any cached pairwise distances.
+    PairwiseMatrix* pmatrix_;      ///< Encapsulates the metric and any cached distances.
+    Algorithm* algorithm_;         ///< Hold the clustering algorithm.
     int verbose_;
 
     int sieve_;                     ///< Sieve value

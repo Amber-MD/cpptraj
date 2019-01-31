@@ -24,7 +24,9 @@ class DataSet_PairwiseCache : public DataSet {
 #   endif
     // -------------------------------------------
     /// \return distance between given cached frames (absolute frame numbers).
-    virtual double GetFdist(int, int) const = 0;
+    //virtual double GetFdist(int, int) const = 0;
+    /// \return distance between cached frames (internal indices).
+    virtual double CachedDistance(unsigned int, unsigned int) const;
     /// Print only cached distances.
     virtual void PrintCached() const = 0;
     /// Used to cache distances; expect internal indices, not absolute cluster frames.

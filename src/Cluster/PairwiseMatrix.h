@@ -5,19 +5,21 @@
 namespace Cpptraj {
 namespace Cluster {
 
-/// Interface for calculating/caching pairwise distances according to a given metric.
+/// Used to calculate/caching pairwise distances according to a given metric.
 class PairwiseMatrix {
   public:
     PairwiseMatrix() : cache_(0), metric_(0) {}
     /// CONSTRUCTOR - with cache and metric
     PairwiseMatrix(DataSet_PairwiseCache*, Metric*);
+
     // -------------------------------------------
     /// \return distance between given frames.TODO const?
-    double Frame_Distance(int, int);
+    double Frame_Distance(int, int) const;
     /// Request that distances for the specified frames be cached.
     int CacheDistances(Cframes const&);
     /// Print only cached distances. TODO const?
     //virtual void PrintCached() const = 0;
+
     // -------------------------------------------
     bool HasMetric()           const { return (metric_ != 0); }
     /// \return internal metric, const.
