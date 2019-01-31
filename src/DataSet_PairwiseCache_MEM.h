@@ -8,7 +8,7 @@ class DataSet_PairwiseCache_MEM : public DataSet_PairwiseCache {
     DataSet_PairwiseCache_MEM() : DataSet_PairwiseCache(PMATRIX_MEM) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_PairwiseCache_MEM(); }
     // ----- DataSet functions -------------------
-    size_t Size()                                    const { return 0; }
+    size_t Size()                                    const { return Mat_.size(); }
     void Info()                                      const { return; }
     int Allocate(SizeArray const&)                         { return 1; }
     void Add(size_t, const void*)                          { return; }

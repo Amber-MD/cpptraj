@@ -9,8 +9,9 @@ namespace Cluster {
 class PairwiseMatrix {
   public:
     PairwiseMatrix() : cache_(0), metric_(0) {}
-    /// CONSTRUCTOR - with cache and metric
-    PairwiseMatrix(DataSet_PairwiseCache*, Metric*);
+
+    /// Set up with given metric and optional cache.
+    int Setup(Metric*, DataSet_PairwiseCache*);
 
     // -------------------------------------------
     /// \return distance between given frames.TODO const?
@@ -21,7 +22,7 @@ class PairwiseMatrix {
     //virtual void PrintCached() const = 0;
 
     // -------------------------------------------
-    bool HasMetric()           const { return (metric_ != 0); }
+    //bool HasMetric()           const { return (metric_ != 0); }
     /// \return internal metric, const.
     Metric const& DistMetric() const { return *metric_;       }
     /// \return internal metric.

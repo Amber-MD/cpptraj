@@ -5,11 +5,14 @@
 #include "../ProgressBar.h"
 #include "../CpptrajStdio.h"
 
-/*
-Cpptraj::Cluster::PairwiseMatrix::PairwiseMatrix(Type t, Metric* metric) :
-  type_(t),
-  metric_(metric)
-{}*/
+/** Set up PairwiseMatrix with Metric and optional cache. */
+int Cpptraj::Cluster::PairwiseMatrix::Setup(Metric* metric, DataSet_PairwiseCache* cache)
+{
+  if (metric == 0) return 1;
+  metric_ = metric;
+  cache_  = cache;
+  return 0;
+}
 
 /** Set up frame number to matrix index for caching. */
 /*
@@ -37,9 +40,9 @@ int Cpptraj::Cluster::PairwiseMatrix::setupFrameToMat(Cframes const& framesToCac
 double Cpptraj::Cluster::PairwiseMatrix::Frame_Distance(int f1, int f2) const {
   if (cache_ != 0)
   {
-    int idx1 = cache_->FrameToMat()[f1];
+    int idx1 = cache_->FrameToIdx()[f1];
     if (idx1 != -1) {
-      int idx2 = cache_->FrameToMat()[f2];
+      int idx2 = cache_->FrameToIdx()[f2];
       if (idx2 != -1)
         return cache_->CachedDistance(idx1, idx2);
     }
