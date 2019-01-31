@@ -3,9 +3,7 @@
 #include "../DataSet_Coords.h"
 #include "Sieve.h"
 #include "Output.h"
-// PairwiseMatrix classes
-#include "PairwiseMatrix_MEM.h"
-#include "PairwiseMatrix_NC.h"
+#include "../DataFile.h" // For loading pairwise cache
 // Metric classes
 #include "Metric_RMS.h"
 // Algorithms
@@ -14,7 +12,6 @@
 
 Cpptraj::Cluster::Control::Control() :
   metric_(0),
-  pmatrix_(0),
   algorithm_(0),
   verbose_(0),
   sieve_(1),
@@ -29,35 +26,20 @@ Cpptraj::Cluster::Control::Control() :
 
 Cpptraj::Cluster::Control::~Control() {
   if (algorithm_ != 0) delete algorithm_;
-  if (pmatrix_ != 0  ) delete pmatrix_;
   if (metric_ != 0   ) delete metric_;
 }
 
 // -----------------------------------------------------------------------------
-/** \return pointer to PairwiseMatrix of specified type. */
-/*
-Cpptraj::Cluster::PairwiseMatrix* 
-  Cpptraj::Cluster::Control::AllocatePairwise(PairwiseMatrix::Type ptype, Metric* metric)
-{
-  PairwiseMatrix* pmatrix = 0;
-  // TODO check for null metric
-  switch (ptype) {
-    case PairwiseMatrix::MEM : pmatrix = new PairwiseMatrix_MEM(metric); break;
-    case PairwiseMatrix::NC  : pmatrix = new PairwiseMatrix_NC(metric); break;
-    default: mprinterr("Error: Unhandled PairwiseMatrix in AllocatePairwise.\n");
-  }
-  return pmatrix;
-}
-*/
-
 const char* Cpptraj::Cluster::Control::PairwiseArgs =
   "pairwisecache {mem|disk|none}";
 
 /** Set up PairwiseMatrix from arguments. */
-int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetList& DSL,
-                                                Metric* metricIn)
+int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetList& DSL)
 {
-  if (metricIn == 0) return 1;
+  if (metric_ == 0) {
+    mprinterr("Internal Error: AllocatePairwise(): Metric is null.\n");
+    return 1;
+  }
 
   // Determine if we are saving/loading pairwise distances
   std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
@@ -65,26 +47,64 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
   bool load_pair = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
 
-  // Process DataSet type arguments
-  PairwiseMatrix::Type pw_type = PairwiseMatrix::MEM;
-  std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
-  if (!pw_typeString.empty()) {
-    if (pw_typeString == "mem")
-      pw_type = PairwiseMatrix::MEM;
-    else if (pw_typeString == "disk")
-      pw_type = PairwiseMatrix::NC;
-    else if (pw_typeString == "none")
-      pw_type = PairwiseMatrix::NOCACHE;
-    else {
-      mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
-      return 1;
+  cache_ = 0;
+  if (load_pair) {
+    // Check if the pairdistname refers to a DataSet
+    DataSetList selected = DSL.SelectGroupSets( pairdistname, DataSet::PWCACHE );
+    if (selected.empty()) {
+      // No DataSet; check if we can load from a file.
+      if (File::Exists( pairdistname )) {
+        DataFile dfIn;
+        if (dfIn.ReadDataIn( pairdistname, ArgList(), DSL )) return 1;
+        DataSet* ds = DSL.GetDataSet( pairdistname );
+        if (ds == 0) return 1;
+        if (ds->Group() != DataSet::PWCACHE) {
+          mprinterr("Internal Error: AllocatePairwise(): Set is not a pairwise cache.\n");
+          return 1;
+        }
+        cache_ = (DataSet_PairwiseCache*)ds;
+      }
+    } else {
+      if (selected.size() > 1)
+        mprintf("Warning: '%s' matches multiple sets; only using '%s'\n",
+                pairdistname.c_str(), selected[0]->legend());
+      cache_ = (DataSet_PairwiseCache*)selected[0];
+    }
+    if (cache_ == 0) {
+      mprintf("Warning: 'loadpairdist' specified but '%s' not found.\n",
+              pairdistname.c_str());
+    }
+  } // END if load_pair
+
+  if (cache_ == 0) {
+    // Process DataSet type arguments
+    DataSet::DataType pw_type = DataSet::UNKNOWN_DATA;
+    std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
+    if (!pw_typeString.empty()) {
+      if (pw_typeString == "mem")
+        pw_type = DataSet::PMATRIX_MEM; 
+      else if (pw_typeString == "disk")
+        pw_type = DataSet::PMATRIX_NC;
+      else if (pw_typeString == "none")
+        pw_type = DataSet::UNKNOWN_DATA;
+      else {
+        mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
+        return 1;
+      }
+    }
+    // Allocate cache if necessary
+    if (pw_type != DataSet::UNKNOWN_DATA) {
+      cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, pairdistname );
+      if (cache_ == 0) {
+        mprinterr("Error: Could not allocate pairwise cache.\n");
+        return 1;
+      }
     }
   }
 
-  // Allocate pairwise matrix
-  if (pmatrix_ != 0) delete pmatrix_;
-  pmatrix_ = AllocatePairwise( pw_type, metricIn );
-  if (pmatrix_ == 0) return 1;
+  // Setup pairwise matrix
+  if (pmatrix_.Setup(metric_, cache_)) return 1;
+
   return 0;
 }
 
@@ -188,8 +208,8 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
 int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL) {
   clusters_.SetDebug( verbose_ );
 
-  // Allocate PairwiseMatrix.
-  if (AllocatePairwise( analyzeArgs, metric_ )) {
+  // Allocate PairwiseMatrix. Metric must already be set up.
+  if (AllocatePairwise( analyzeArgs, DSL )) {
     mprinterr("Error: PairwiseMatrix setup failed.\n");
     return 1;
   }
@@ -271,7 +291,7 @@ void Cpptraj::Cluster::Control::Info() const {
 }
 
 int Cpptraj::Cluster::Control::Run() {
-  if (metric_ == 0 || pmatrix_ == 0 || algorithm_ == 0) {
+  if (metric_ == 0 || algorithm_ == 0) { // TODO check pmatrix_?
     mprinterr("Internal Error: Cluster::Control is not set up.\n");
     return 1;
   }
@@ -299,14 +319,15 @@ int Cpptraj::Cluster::Control::Run() {
   cluster_pairwise.Start();
 
   // Cache distances if necessary
-  pmatrix_->CacheDistances( framesToCluster );
-  if (verbose_ > 1) pmatrix_->PrintCached();
+  pmatrix_.CacheDistances( framesToCluster );
+  if (pmatrix_.HasCache() && verbose_ > 1)
+    pmatrix_.Cache().PrintCached();
 
   cluster_pairwise.Stop();
   cluster_cluster.Start();
 
   // Cluster
-  if (algorithm_->DoClustering(clusters_, framesToCluster, *pmatrix_) != 0) {
+  if (algorithm_->DoClustering(clusters_, framesToCluster, pmatrix_) != 0) {
     mprinterr("Error: Clustering failed.\n");
     return 1;
   }
@@ -353,7 +374,7 @@ int Cpptraj::Cluster::Control::Run() {
   cluster_post_bestrep.Start();
 
   // Find best representative frames for each cluster.
-  if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, *pmatrix_,
+  if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, pmatrix_,
                                   frameSieve.SievedOut(), verbose_))
   {
     mprinterr("Error: Finding best representative frames for clusters failed.\n");
@@ -385,7 +406,7 @@ int Cpptraj::Cluster::Control::Run() {
   if (!sil_file_.empty()) {
     if (frameSieve.SieveValue() != 1 && !includeSieveInCalc_)
       mprintf("Warning: Silhouettes do not include sieved frames.\n");
-    clusters_.CalcSilhouette(*pmatrix_, frameSieve.SievedOut(), includeSieveInCalc_);
+    clusters_.CalcSilhouette(pmatrix_, frameSieve.SievedOut(), includeSieveInCalc_);
     CpptrajFile Ffile, Cfile;
     if (Ffile.OpenWrite(sil_file_ + ".frame.dat")) return 1;
     Output::PrintSilhouetteFrames(Ffile, clusters_);
@@ -403,7 +424,7 @@ int Cpptraj::Cluster::Control::Run() {
       mprinterr("Error: Could not set up cluster summary file.\n");
       return 1;
     }
-    Output::Summary(outfile, clusters_, *algorithm_, *pmatrix_, includeSieveInCalc_,
+    Output::Summary(outfile, clusters_, *algorithm_, pmatrix_, includeSieveInCalc_,
                     frameSieve.SievedOut());
     cluster_post_summary.Stop();
   }

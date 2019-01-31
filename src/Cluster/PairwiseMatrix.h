@@ -29,6 +29,11 @@ class PairwiseMatrix {
 //    Metric&       DistMetric()       { return *metric_; }
     /// \return Pointer to distance metric
     Metric* MetricPtr() const { return metric_; }
+
+    /// \return true if PairwiseMatrix contains a cache.
+    bool HasCache()                      const { return (cache_ != 0); }
+    /// \return internal cache, const.
+    DataSet_PairwiseCache const& Cache() const { return *cache_; }
   private:
     /// Internal routine used to cache pairwise distances.
     int CalcFrameDistances(Cframes const&);

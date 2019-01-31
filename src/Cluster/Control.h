@@ -30,8 +30,7 @@ class Control {
     List const& Clusters()     const { return clusters_; }
     Metric const& DistMetric() const { return *metric_;  }
   private:
-    //static PairwiseMatrix* AllocatePairwise(PairwiseMatrix::Type, Metric*);
-    int AllocatePairwise(ArgList&, DataSetList&, Metric*);
+    int AllocatePairwise(ArgList&, DataSetList&);
 
     static Metric* AllocateMetric(Metric::Type);
 
@@ -43,7 +42,7 @@ class Control {
     List clusters_;                ///< Hold cluster results.
     Metric* metric_;               ///< Hold the distance metric.
     DataSet_PairwiseCache* cache_; ///< Hold any cached pairwise distances.
-    PairwiseMatrix* pmatrix_;      ///< Encapsulates the metric and any cached distances.
+    PairwiseMatrix pmatrix_;       ///< Encapsulates the metric and any cached distances.
     Algorithm* algorithm_;         ///< Hold the clustering algorithm.
     int verbose_;
 
