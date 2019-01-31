@@ -125,7 +125,8 @@ int Cpptraj::Cluster::BestReps::
         for (Node::frame_iterator f2 = node->beginframe(); f2 != node->endframe(); ++f2)
         {
           if (f1 != f2 && !sievedFrames.HasFrame( *f2 ))
-            cdist += pmatrix.GetFdist(*f1, *f2);
+            //cdist += pmatrix.Cache().CachedDistance(*f1, *f2); // TODO benchmark the two ways
+            cdist += pmatrix.Frame_Distance(*f1, *f2);
         }
         SaveBestRep(bestReps, RepPair(cdist, *f1), nToSave);
       }

@@ -29,6 +29,8 @@ Cpptraj::Cluster::Control::~Control() {
   if (metric_ != 0   ) delete metric_;
 }
 
+const char* Cpptraj::Cluster::Control::DEFAULT_PAIRDIST_NAME_ = "CpptrajPairDist";
+
 // -----------------------------------------------------------------------------
 const char* Cpptraj::Cluster::Control::PairwiseArgs =
   "pairwisecache {mem|disk|none}";
@@ -42,7 +44,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
   }
 
   // Determine if we are saving/loading pairwise distances
-  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
+  std::string pairdistname = analyzeArgs.GetStringKey("pairdist", DEFAULT_PAIRDIST_NAME_);
   DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
   bool load_pair = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
@@ -63,6 +65,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
           return 1;
         }
         cache_ = (DataSet_PairwiseCache*)ds;
+        mprintf("DEBUG: Loaded cache from file: %s\n", cache_->legend());
       }
     } else {
       if (selected.size() > 1)
@@ -78,7 +81,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
 
   if (cache_ == 0) {
     // Process DataSet type arguments
-    DataSet::DataType pw_type = DataSet::UNKNOWN_DATA;
+    DataSet::DataType pw_type = DataSet::PMATRIX_MEM;
     std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
     if (!pw_typeString.empty()) {
       if (pw_typeString == "mem")
@@ -99,6 +102,7 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
         mprinterr("Error: Could not allocate pairwise cache.\n");
         return 1;
       }
+      mprintf("DEBUG: Allocated pairwise distance cache: %s\n", cache_->legend());
     }
   }
 

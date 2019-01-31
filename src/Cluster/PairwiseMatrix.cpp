@@ -58,8 +58,14 @@ int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCach
 
   int err = 0;
   if (cache_->Size() > 0) {
+    mprintf("DEBUG: Using existing cache '%s'\n", cache_->legend());
     // If cache is already populated, check that it is valid.
-
+    // The frames to cache must match cached frames.
+    if (!cache_->CachedFramesMatch( framesToCache )) {
+      mprinterr("Error: Frames to cache do not match those in existing cache.\n");
+      return 1;
+    }
+    // TODO Check metric? Total frames?
   } else {
     // Sanity check
     if (metric_ == 0) {
@@ -74,6 +80,7 @@ int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCach
 /** Cache distances between given frames using SetElement(). */
 int Cpptraj::Cluster::PairwiseMatrix::CalcFrameDistances(Cframes const& framesToCache)
 {
+  mprintf("DEBUG: Caching distances for %zu frames.\n", framesToCache.size());
   if (cache_->SetupFrameToIdx( framesToCache, metric_->Ntotal() )) {
     mprinterr("Error: Unable to set up frame to index array for pairwise cache.\n");
     return 1;

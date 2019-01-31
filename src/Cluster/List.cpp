@@ -356,7 +356,7 @@ int Cpptraj::Cluster::List::CalcSilhouette(PairwiseMatrix const& pmatrix,
           for (Node::frame_iterator f2 = Ci->beginframe(); f2 != Ci->endframe(); ++f2)
           {
             if (f1 != f2 && !sievedFrames.HasFrame(*f2)) {
-              ai += pmatrix.GetFdist(*f1, *f2); // TODO any benefit from GetFdist vs Frame_Distance
+              ai += pmatrix.Frame_Distance(*f1, *f2); // TODO any benefit from GetFdist vs Frame_Distance
               ++self_frames;
             }
           }
@@ -382,7 +382,7 @@ int Cpptraj::Cluster::List::CalcSilhouette(PairwiseMatrix const& pmatrix,
               for (Node::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
               {
                 if (!sievedFrames.HasFrame(*f2)) {
-                  bi += pmatrix.GetFdist(*f1, *f2);
+                  bi += pmatrix.Frame_Distance(*f1, *f2);
                   ++cj_frames;
                 }
               }

@@ -6,7 +6,7 @@
 class DataSet_PairwiseCache : public DataSet {
   public:
     DataSet_PairwiseCache() {}
-    DataSet_PairwiseCache(DataType t) : DataSet(t, CLUSTERMATRIX,
+    DataSet_PairwiseCache(DataType t) : DataSet(t, PWCACHE,
                                                 TextFormat(TextFormat::DOUBLE, 12, 4), 2) {}
     virtual ~DataSet_PairwiseCache() {}
 
@@ -26,7 +26,7 @@ class DataSet_PairwiseCache : public DataSet {
     /// \return distance between given cached frames (absolute frame numbers).
     //virtual double GetFdist(int, int) const = 0;
     /// \return distance between cached frames (internal indices).
-    virtual double CachedDistance(unsigned int, unsigned int) const;
+    virtual double CachedDistance(unsigned int, unsigned int) const = 0;
     /// Print only cached distances.
     virtual void PrintCached() const = 0;
     /// Used to cache distances; expect internal indices, not absolute cluster frames.
@@ -35,7 +35,9 @@ class DataSet_PairwiseCache : public DataSet {
     // -------------------------------------------
 
     /// \return The array for converting frame numbers to internal cache indices.
-    Cframes const& FrameToIdx() const { return frameToIdx_; }
+    Cframes const& FrameToIdx()            const { return frameToIdx_; }
+    /// \return True if given frames array matches cached frames.
+    bool CachedFramesMatch(Cframes const&) const;
 
     /// Set up frame to internal index array using given frames and total frames.
     int SetupFrameToIdx(Cframes const&, unsigned int);

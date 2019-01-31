@@ -20,3 +20,16 @@ int DataSet_PairwiseCache::SetupFrameToIdx(Cframes const& framesToCache, unsigne
   return Allocate(SizeArray(1, framesToCache.size()));
 }
 
+/** Check that the given frames match the already-cached frames. */
+bool DataSet_PairwiseCache::CachedFramesMatch(Cframes const& frames) const
+{
+  Cframes_it it0 = frames.begin();
+  for (Cframes_it it1 = frameToIdx_.begin(); it0 != frameToIdx_.end(); ++it1)
+  {
+    if (*it1 != -1) {
+      if (it0 == frames.end() || *it1 != *it0) return false;
+      ++it0;
+    }
+  }
+  return true;
+}

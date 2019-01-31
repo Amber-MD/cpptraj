@@ -218,7 +218,7 @@ void Cpptraj::Cluster::Algorithm_DBscan::RegionQuery(Iarray& NeighborPts,
   {
     if (point != otherpoint) {
       int f2 = framesToCluster[ otherpoint ];
-      if ( pmatrix.GetFdist(f1, f2) < epsilon_ )
+      if ( pmatrix.Frame_Distance(f1, f2) < epsilon_ )
         NeighborPts.push_back( otherpoint );
     }
   }
@@ -351,7 +351,7 @@ const
     for (std::vector<int>::const_iterator otherpoint = FramesToCluster.begin();
                                           otherpoint != FramesToCluster.end();
                                           ++otherpoint)
-      dists.push_back( pmatrix.GetFdist(*point, *otherpoint) );
+      dists.push_back( pmatrix.Frame_Distance(*point, *otherpoint) );
     // Sort distances - first dist should always be 0
     std::sort(dists.begin(), dists.end());
     Kdist.push_back( dists[Kval] );
@@ -408,7 +408,7 @@ const
     d_idx = 0;
     // Store distances from pt1 to pt2
     for (pt2_idx = 0; pt2_idx != nframes; pt2_idx++)
-      kdist_array[d_idx++] = pmatrix.GetFdist(point, FramesToCluster[pt2_idx]);
+      kdist_array[d_idx++] = pmatrix.Frame_Distance(point, FramesToCluster[pt2_idx]);
     // Sort distances; will be smallest to largest
     std::sort( kdist_array, kdist_array + nframes );
     // Save the distance of specified nearest neighbors to this point.

@@ -225,7 +225,7 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
           if (!sievedOut.HasFrame( *f1 )) {
             for (Node::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
               if (!sievedOut.HasFrame( *f2 )) {
-                double dist = pmatrix.GetFdist(*f1, *f2);
+                double dist = pmatrix.Frame_Distance(*f1, *f2);
                 internalAvg += dist;
                 internalSD += (dist * dist);
                 ++Nelements;

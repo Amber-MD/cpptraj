@@ -236,7 +236,7 @@ double Cpptraj::Cluster::Algorithm_HierAgglo::minDist(Node const& C1,
   {
     for (Node::frame_iterator c2frames = C2.beginframe(); c2frames != C2.endframe(); ++c2frames)
     {
-      double Dist = pmatrix.GetFdist(*c1frames, *c2frames);
+      double Dist = pmatrix.Frame_Distance(*c1frames, *c2frames);
       //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
       if ( Dist < min ) min = Dist;
     }
@@ -254,7 +254,7 @@ double Cpptraj::Cluster::Algorithm_HierAgglo::maxDist(Node const& C1,
   {
     for (Node::frame_iterator c2frames = C2.beginframe(); c2frames != C2.endframe(); ++c2frames)
     {
-      double Dist = pmatrix.GetFdist(*c1frames, *c2frames);
+      double Dist = pmatrix.Frame_Distance(*c1frames, *c2frames);
       //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
       if ( Dist > max ) max = Dist;
     }
@@ -272,7 +272,7 @@ double Cpptraj::Cluster::Algorithm_HierAgglo::avgDist(Node const& C1,
   {
     for (Node::frame_iterator c2frames = C2.beginframe(); c2frames != C2.endframe(); ++c2frames)
     {
-      double Dist = pmatrix.GetFdist(*c1frames, *c2frames);
+      double Dist = pmatrix.Frame_Distance(*c1frames, *c2frames);
       //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
       sum += Dist;
     }
@@ -371,7 +371,7 @@ const
         for (Node::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
         {
           if (!sievedOut.HasFrame(*f2)) {
-            double Dist = pmatrix.GetFdist(*f1, *f2);
+            double Dist = pmatrix.Frame_Distance(*f1, *f2);
             //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
             switch (linkage_) {
               case SINGLELINK   : if ( Dist < dval ) dval = Dist; break;

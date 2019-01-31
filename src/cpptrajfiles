@@ -12,7 +12,6 @@ CLUSTER_SOURCES= \
   Cluster/Node.cpp \
   Cluster/Output.cpp \
   Cluster/PairwiseMatrix.cpp \
-  Cluster/PairwiseMatrix_NC.cpp \
   Cluster/Sieve.cpp
 
 # These files are common to cpptraj/libcpptraj. Files that need to be built

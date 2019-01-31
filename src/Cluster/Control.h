@@ -39,6 +39,8 @@ class Control {
 
     int Common(ArgList&, DataSetList&);
 
+    static const char* DEFAULT_PAIRDIST_NAME_;
+
     List clusters_;                ///< Hold cluster results.
     Metric* metric_;               ///< Hold the distance metric.
     DataSet_PairwiseCache* cache_; ///< Hold any cached pairwise distances.
