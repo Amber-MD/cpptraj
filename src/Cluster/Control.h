@@ -29,8 +29,8 @@ class Control {
     List const& Clusters()     const { return clusters_; }
     Metric const& DistMetric() const { return *metric_;  }
   private:
-    static PairwiseMatrix* AllocatePairwise(PairwiseMatrix::Type, Metric*);
-    int AllocatePairwise(ArgList&, Metric*);
+    //static PairwiseMatrix* AllocatePairwise(PairwiseMatrix::Type, Metric*);
+    int AllocatePairwise(ArgList&, DataSetList&, Metric*);
 
     static Metric* AllocateMetric(Metric::Type);
 

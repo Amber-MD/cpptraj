@@ -35,6 +35,7 @@ Cpptraj::Cluster::Control::~Control() {
 
 // -----------------------------------------------------------------------------
 /** \return pointer to PairwiseMatrix of specified type. */
+/*
 Cpptraj::Cluster::PairwiseMatrix* 
   Cpptraj::Cluster::Control::AllocatePairwise(PairwiseMatrix::Type ptype, Metric* metric)
 {
@@ -47,12 +48,14 @@ Cpptraj::Cluster::PairwiseMatrix*
   }
   return pmatrix;
 }
+*/
 
 const char* Cpptraj::Cluster::Control::PairwiseArgs =
   "pairwisecache {mem|disk|none}";
 
 /** Set up PairwiseMatrix from arguments. */
-int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, Metric* metricIn)
+int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetList& DSL,
+                                                Metric* metricIn)
 {
   if (metricIn == 0) return 1;
 
@@ -180,6 +183,7 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   return Common(analyzeArgs, DSL);
 }
 
+// -----------------------------------------------------------------------------
 /** Common setup. */
 int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL) {
   clusters_.SetDebug( verbose_ );
