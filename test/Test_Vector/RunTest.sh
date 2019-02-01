@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles vector.in vtest.dat.? v8.mol2 corr.v0.v8.dat avgcoord.out res5.out
+CleanFiles vector.in vtest.dat.? vtest.dat.?? v8.mol2 corr.v0.v8.dat \
+           avgcoord.out res5.out
 
 INPUT="-i vector.in"
 # Test Vector mask, principle xyz, dipole, box 
@@ -53,17 +54,33 @@ EOF
 fi
 
 # Test momentum vector.
-UNITNAME="Momentum vector test."
+UNITNAME="Momentum/velocity vector test."
 CheckFor maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > vector.in <<EOF
 parm ../tz2.parm7
 trajin ../Test_SetVelocity/tz2.vel.rst7.save
 vector v9 momentum out vtest.dat.9
+vector v10 velocity @1-3 out vtest.dat.10
 EOF
   RunCpptraj "$UNITNAME"
   DoTest vtest.dat.9.save vtest.dat.9
+  DoTest vtest.dat.10.save vtest.dat.10
 fi
+
+# Test force vector.
+UNITNAME="Force vector test."
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > vector.in <<EOF
+parm ../Test_systemVF/systemVF.parm7
+trajin ../Test_systemVF/systemVF.nc 1 1
+vector v11 force @1-3 out vtest.dat.11
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest vtest.dat.11.save vtest.dat.11
+fi
+
 
 EndTest
   

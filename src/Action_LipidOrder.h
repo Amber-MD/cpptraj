@@ -21,6 +21,9 @@ class Action_LipidOrder : public Action {
     typedef std::pair<NameType, NameType> Npair;
     typedef std::vector<Npair> Narray;
 
+    typedef std::vector<int> Iarray;
+    typedef std::vector<double> Darray;
+
     /// Hold data for unique carbon type
     class CarbonData;
 
@@ -40,41 +43,33 @@ class Action_LipidOrder : public Action {
     CharMask mask_;
     Narray Types_;      ///< Array of chain types (res name, atom name)
     ChainArray Chains_; ///< Hold unique chains
+    Iarray Nchains_;    ///< How many of each chain type?
     Carray Sites_;      ///< Hold all carbon sites
     AxisType axis_;
     std::string dsname_;
     DataSetList* masterDSL_;
     DataFile* outfile_;
     int debug_;
-    bool report_p2_;    ///> If true report raw <P2> instead of |<P2>|
+    bool report_p2_;       ///< If true report raw <P2> instead of |<P2>|
 #   ifdef MPI
     int SyncAction();
     Parallel::Comm trajComm_;
 #   endif
-#   ifdef _OPENMP
-    typedef std::vector<double> Darray;
-    typedef std::vector<unsigned int> Uarray;
     int nthreads_;
-#   endif
 };
 
 /// Hold data for carbon position in a chain.
 class Action_LipidOrder::CarbonData {
   public:
-#   ifdef _OPENMP
-    CarbonData(int);
-    unsigned int Nvals()   const { return nvals_[0]; }
-    void UpdateNvals(int thread) { nvals_[thread]++; }
-    void Consolidate();
-#   else
     CarbonData();
+
     unsigned int Nvals()   const { return nvals_; }
-    void UpdateNvals() { nvals_++; }
-#   endif
     bool Init()            const { return init_;  }
     NameType const& Name() const { return name_;  }
     const char* name()     const { return *name_; }
     unsigned int NumH()    const { return nH_;    }
+    double Avg(int, double&) const;
+
     void UpdateAngle(int i, double val) {
       sum_[i] += val;
       sum2_[i] += val * val;
@@ -83,28 +78,35 @@ class Action_LipidOrder::CarbonData {
       name_ = n;
       init_ = true;
     }
-    void SetNumH(unsigned int n) { nH_ = n; }
-    double Avg(int, double&) const;
+    void UpdateNvals()                    { nvals_++;                   }
+    void SetNumH(unsigned int n)          { nH_ = n;                    }
+#   ifdef _OPENMP
+    /// Each thread needs its own scratch space
+    void AllocateTempSpace(int n)         { tempScd_.assign( nH_*n, 0 ); }
+    /// Sum scratch space back to main thread
+    void ConsolidateTemp(int n) {
+      for (int thread = 1; thread < n; thread++) {
+        int offset = thread * nH_;
+        for (unsigned int i = 0; i < nH_; i++)
+          tempScd_[i] += tempScd_[offset+i];
+      }
+    }
+#   else
+    void AllocateTempSpace()              { tempScd_.assign( nH_, 0 );  }
+#   endif
+    void IncrementTempBy(int i, double d) { tempScd_[i] += d;           }
+    double TempSCD(int i)           const { return tempScd_[i];         }
 #   ifdef MPI
     double* Sptr()       { return &sum_[0];    }
     double* S2ptr()      { return &sum2_[0];   }
-#   ifdef _OPENMP
-    unsigned int* Nptr() { return &nvals_[0];  }
-#   else
     unsigned int* Nptr() { return &nvals_;     }
-#   endif
 #   endif /* MPI */
   private:
     NameType name_;      ///< Carbon name
-#   ifdef _OPENMP
-    Darray sum_;
-    Darray sum2_;
-    Uarray nvals_;
-#   else
+    Darray tempScd_;     ///< temporary space for calculating SCD values each frame.
     double sum_[3];      ///< Hold order param sum for each C-HX
     double sum2_[3];     ///< Hold order param sum^2 for each C-HX
     unsigned int nvals_; ///< # times this list has been updated, used to calc avg. from sum
-#   endif
     unsigned int nH_;    ///< Number of hydrogens
     bool init_;          ///< False if name has not yet been set.
 };

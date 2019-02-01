@@ -20,20 +20,22 @@ Action_Vector::Action_Vector() :
 void Action_Vector::Help() const {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired]\n"
-          "\t<Type> = { mask     | minimage  | dipole | center | corrplane | \n"
-          "\t           box      | boxcenter | ucellx | ucelly | ucellz    | \n"
-          "\t           momentum | principal [x|y|z] }\n" 
+          "\t<Type> = { mask     | minimage  | dipole | center   | corrplane | \n"
+          "\t           box      | boxcenter | ucellx | ucelly   | ucellz    | \n"
+          "\t           momentum | principal [x|y|z]  | velocity | force       }\n" 
           "  Calculate the specified coordinate vector.\n"
           "    mask: (Default) Vector from <mask1> to <mask2>.\n"
-          "    minimage: Store the minimum image vector between atoms in <mask1> and <mask2>.\n"
-          "    dipole: Dipole and center of mass of the atoms specified in <mask1>\n"
-          "    center: Store the center of mass of atoms in <mask1>.\n"
-          "    corrplane: Vector perpendicular to plane through the atoms in <mask1>.\n"
-          "    box: (No mask needed) Store the box lengths of the trajectory.\n"
-          "    boxcenter: (No mask needed) Store box center as vector.\n"
-          "    ucell{x|y|z}: (No mask needed) Store specified unit cell vector.\n"
-          "    momentum : Store total momentum vector of atoms in <mask1> (requires velocities).\n"
-          "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n");
+          "    minimage         : Store the minimum image vector between atoms in <mask1> and <mask2>.\n"
+          "    dipole           : Dipole and center of mass of the atoms specified in <mask1>\n"
+          "    center           : Store the center of mass of atoms in <mask1>.\n"
+          "    corrplane        : Vector perpendicular to plane through the atoms in <mask1>.\n"
+          "    box              : (No mask needed) Store the box lengths of the trajectory.\n"
+          "    boxcenter        : (No mask needed) Store box center as vector.\n"
+          "    ucell{x|y|z}     : (No mask needed) Store specified unit cell vector.\n"
+          "    momentum         : Store total momentum vector of atoms in <mask1> (requires velocities).\n"
+          "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n"
+          "    velocity         : Store velocity of atoms in <mask1> (requires velocities).\n"
+          "    force            : Store force of atoms in <mask1> (requires forces).\n");
 }
 
 // DESTRUCTOR
@@ -45,7 +47,7 @@ const char* Action_Vector::ModeString[] = {
   "NO_OP", "Principal X", "Principal Y", "Principal Z",
   "Dipole", "Box", "Mask", "Ired",
   "CorrPlane", "Center", "Unit cell X", "Unit cell Y", "Unit cell Z",
-  "Box Center", "MinImage", "Momentum"
+  "Box Center", "MinImage", "Momentum", "Velocity", "Force"
 };
 
 static Action::RetType WarnDeprecated() {
@@ -96,6 +98,10 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     mode_ = CENTER;
   else if (actionArgs.hasKey("momentum"))
     mode_ = MOMENTUM;
+  else if (actionArgs.hasKey("velocity"))
+    mode_ = VELOCITY;
+  else if (actionArgs.hasKey("force"))
+    mode_ = FORCE;
   else if (actionArgs.hasKey("dipole"))
     mode_ = DIPOLE;
   else if (actionArgs.hasKey("box"))
@@ -183,6 +189,15 @@ Action::RetType Action_Vector::Setup(ActionSetup& setup) {
                 setup.Top().c_str());
       return Action::ERR;
     }
+  }
+  // Check for velocity/force
+  if ((mode_ == MOMENTUM || mode_ == VELOCITY) && !setup.CoordInfo().HasVel()) {
+    mprintf("Warning: vector %s requires velocity information. Skipping.\n", ModeString[mode_]);
+    return Action::SKIP;
+  }
+  if (mode_ == FORCE && !setup.CoordInfo().HasForce()) {
+    mprintf("Warning: vector %s requires force information. Skipping.\n", ModeString[mode_]);
+    return Action::SKIP;
   }
   if (mask_.MaskStringSet()) {
     // Setup mask 1
@@ -407,13 +422,29 @@ void Action_Vector::MinImage(Frame const& frm) {
   Vec3 com1 = frm.VCenterOfMass(mask_);
   Vec_->AddVxyz( MinImagedVec(com1, frm.VCenterOfMass(mask2_), ucell, recip), com1 );
 }
-                 
+
+/// \return The center of selected elements in given array.
+static inline Vec3 CalcCenter(const double* xyz, AtomMask const& maskIn) {
+  Vec3 Coord(0.0);
+  for (AtomMask::const_iterator at = maskIn.begin(); at != maskIn.end(); ++at)
+  {
+    int idx = *at * 3;
+    Coord[0] += xyz[idx  ];
+    Coord[1] += xyz[idx+1];
+    Coord[2] += xyz[idx+2];
+  }
+  Coord /= (double)maskIn.Nselected();
+  return Coord;
+}
+
 // Action_Vector::DoAction()
 Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
   switch ( mode_ ) {
     case MASK        : Mask(frm.Frm()); break;
     case CENTER      : Vec_->AddVxyz( frm.Frm().VCenterOfMass(mask_) ); break;
-    case MOMENTUM    : Vec_->AddVxyz( frm.Frm().VMomentum(mask_) ); break; 
+    case MOMENTUM    : Vec_->AddVxyz( frm.Frm().VMomentum(mask_) ); break;
+    case VELOCITY    : Vec_->AddVxyz( CalcCenter(frm.Frm().vAddress(), mask_) ); break;
+    case FORCE       : Vec_->AddVxyz( CalcCenter(frm.Frm().fAddress(), mask_) ); break; 
     case DIPOLE      : Dipole(frm.Frm()); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :
