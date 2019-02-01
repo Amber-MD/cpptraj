@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles matrix.dat hd.in hd.dat rms2d.dat rms2d.gnu hausdorff.matrix.dat \
-           hausdoff.matrix.gnu
+           hausdoff.matrix.gnu hausdorff.fullmatrix.gnu
 
 INPUT='-i hd.in'
 
@@ -23,12 +23,12 @@ RunCpptraj "Simple Hausdorff distance test."
 DoTest hd.dat.save hd.dat
 
 # 2D RMS
-cat > hd.in <<EOF
-parm ../DPDP.parm7
-trajin ../DPDP.nc
-rms2d DPDP out rms2d.gnu
-EOF
-RunCpptraj "2D RMS"
+#cat > hd.in <<EOF
+#parm ../DPDP.parm7
+#trajin ../DPDP.nc
+#rms2d DPDP out rms2d.gnu
+#EOF
+#RunCpptraj "2D RMS"
 
 # Create 10 traectory chunks, do Hausdorff between 2D rms sets
 cat > hd.in <<EOF
@@ -54,6 +54,26 @@ quit
 EOF
 RunCpptraj "Hausdorff distance of 2D rms output test."
 DoTest hausdorff.matrix.gnu.save hausdorff.matrix.gnu
+
+# Create 10 traectory chunks, do Hausdorff between 2D rms sets, full matrix
+cat > hd.in <<EOF
+parm ../DPDP.parm7
+for beg=1;beg<100;beg+=10 end=10;end+=10 i=1;i++
+  loadcrd ../DPDP.nc \$beg \$end name Chunk\$i
+done
+# Do the 2drms in chunks
+for i=1;i<11;i++
+  for j=1;j<11;j++
+    2drms crdset Chunk\$i reftraj Chunk\$j M\$i.\$j
+  done
+done
+hausdorff M* out hausdorff.fullmatrix.gnu title hausdorff.matrix.gnu outtype fullmatrix nrows 10
+runanalysis
+list dataset
+quit
+EOF
+RunCpptraj "Hausdorff distance of 2D rms output test."
+DoTest hausdorff.matrix.gnu.save hausdorff.fullmatrix.gnu
 
 EndTest
 exit 0
