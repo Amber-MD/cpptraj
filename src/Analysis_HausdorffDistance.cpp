@@ -99,7 +99,16 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
   // Get input data sets
   std::string dsarg = analyzeArgs.GetStringNext();
   while (!dsarg.empty()) {
-    inputSets_ += setup.DSL().GetMultipleSets( dsarg );
+    DataSetList selected = setup.DSL().GetMultipleSets( dsarg );
+    for (DataSetList::const_iterator set = selected.begin(); set != selected.end(); ++set)
+    {
+      if ((*set)->Group() == DataSet::MATRIX_2D)
+        inputSets_.AddCopyOfSet( *set );
+      else
+        mprintf("Warning: Currently only 2D matrices supported; skipping set '%s'\n",
+                (*set)->legend());
+    }
+    //inputSets_ += setup.DSL().GetMultipleSets( dsarg );
     dsarg = analyzeArgs.GetStringNext();
   }
   if (inputSets_.empty()) {
