@@ -1,7 +1,7 @@
 #ifndef INC_DATASET_PAIRWISECACHE_NC_H
 #define INC_DATASET_PAIRWISECACHE_NC_H
 #include "DataSet_PairwiseCache.h"
-#include "../NC_Cmatrix.h"
+#include "NC_Cmatrix.h"
 /// Cache pairwise distances in NetCDF file. 
 class DataSet_PairwiseCache_NC : public DataSet_PairwiseCache {
   public:
