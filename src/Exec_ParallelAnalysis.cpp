@@ -2,11 +2,14 @@
 #include "CpptrajStdio.h"
 #ifdef MPI
 #include "Timer.h"
-#include <cstdio> // DEBUG
+
 // Exec_ParallelAnalysis::Help()
 void Exec_ParallelAnalysis::Help() const
 {
-  mprintf("\t[sync]\n");
+  mprintf("\t[sync]\n"
+          "  Divide all currently set up Analyses among available MPI processes and run.\n"
+          "  If 'sync' is specifed, sync all results back to master process; this may be\n"
+          " required if performing subsequent analyses.\n");
 }
 
 // Exec_ParallelAnalysis::Execute()
@@ -38,6 +41,10 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
   }
   Parallel::World().Barrier();
 */
+  mprintf("    PARALLELANALYSIS: Will attempt to run current Analyses in parallel.\n\n"
+          "*** THIS COMMAND IS STILL EXPERIMENTAL! ***\n\n");
+  if (syncToMaster)
+    mprintf("\tResulting data sets will be synced back to master.\n");
   // Naively divide up all analyses among threads.
   int my_start, my_stop;
   int nelts = Parallel::World().DivideAmongProcesses( my_start, my_stop, State.Analyses().size() );
@@ -67,8 +74,9 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
         int setHasChanged = 0;
         if (!Parallel::World().Master()) {
           if (setSizesBefore[idx] != State.DSL()[idx]->Size()) {
-            rprintf("Set '%s' size has changed from %u to %zu\n",
-                    State.DSL()[idx]->legend(), setSizesBefore[idx], State.DSL()[idx]->Size());
+            if (State.Debug() > 0)
+              rprintf("Set '%s' size has changed from %u to %zu\n",
+                      State.DSL()[idx]->legend(), setSizesBefore[idx], State.DSL()[idx]->Size());
             setHasChanged = 1;
           }
         }
@@ -80,13 +88,14 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
             if (setHasChanged == 1)
               setHasChanged = Parallel::World().Rank();
             Parallel::World().ReduceMaster(&sourceRank, &setHasChanged, 1, MPI_INT, MPI_SUM);
-            mprintf("DEBUG: Need to sync '%s' from %i\n", State.DSL()[idx]->legend(), sourceRank);
+            if (State.Debug() > 0)
+              mprintf("DEBUG: Need to sync '%s' from %i\n", State.DSL()[idx]->legend(), sourceRank);
             if (Parallel::World().Master())
               State.DSL()[idx]->RecvSet( sourceRank, Parallel::World() );
             else if (setHasChanged == Parallel::World().Rank())
               State.DSL()[idx]->SendSet( 0,          Parallel::World() );
           } else
-            mprintf("DEBUG: '%s' exists on multiple threads. Not syncing.\n",
+            mprintf("Warning: '%s' exists on multiple threads. Not syncing.\n",
                     State.DSL()[idx]->legend());
         }
       }
@@ -94,12 +103,14 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
     t_sync.Stop();
   }
   t_total.Stop();
-  t_total.WriteTiming(1, "Total:");
   if (syncToMaster)
     t_sync.WriteTiming(2, "Sync:", t_total.Total());
+  t_total.WriteTiming(1, "Total:");
   return CpptrajState::OK;
 }
-#else
+#else /* MPI */
+// =============================================================================
+// NON-MPI CODE BELOW
 // Exec_ParallelAnalysis::Help()
 void Exec_ParallelAnalysis::Help() const
 {
@@ -112,4 +123,4 @@ Exec::RetType Exec_ParallelAnalysis::Execute(CpptrajState& State, ArgList& argIn
   mprinterr("Error: This command is only available in MPI-enabled builds.\n");
   return CpptrajState::ERR;
 }
-#endif
+#endif /* MPI */
