@@ -294,6 +294,11 @@ int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) const {
   return 0;
 }
 
+int NC_Cmatrix::WriteFramesArray(Cpptraj::Cluster::Cframes const& actualFrames) const {
+  // TODO have Cframes return a pointer?
+  return WriteFramesArray(actualFrames.Data());
+}
+
 // NC_Cmatrix::WriteCmatrixElement()
 int NC_Cmatrix::WriteCmatrixElement(unsigned int xIn, unsigned int yIn, double dval) const
 {

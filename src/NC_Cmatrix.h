@@ -1,6 +1,7 @@
 #ifndef INC_NC_CMATRIX_H
 #define INC_NC_CMATRIX_H
 #include "FileName.h"
+#include "Cluster/Cframes.h"
 /// NetCDF cluster matrix file.
 class NC_Cmatrix {
   public:
@@ -27,6 +28,7 @@ class NC_Cmatrix {
     int ReopenSharedWrite(FileName const&);
     /// Write non-sieved frames array.
     int WriteFramesArray(std::vector<int> const&) const;
+    int WriteFramesArray(Cpptraj::Cluster::Cframes const&) const;
     /// Write cluster matrix element (col, row)
     int WriteCmatrixElement(unsigned int, unsigned int, double) const;
     /// Write cluster matrix using given pointer

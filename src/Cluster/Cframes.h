@@ -26,6 +26,7 @@ class Cframes {
     void assign(std::size_t n, int i)      { frames_.assign(n, i);   }
     void clear()                           { frames_.clear();        }
     void reserve(std::size_t n)            { frames_.reserve(n);     }
+    Iarray const& Data()             const { return frames_;         }
 
     bool HasFrame(int) const;
     void Insert(Cframes const& rhs) { frames_.insert(frames_.end(), rhs.begin(), rhs.end()); }
