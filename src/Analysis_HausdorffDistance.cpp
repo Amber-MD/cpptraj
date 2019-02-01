@@ -61,7 +61,8 @@ double Analysis_HausdorffDistance::CalcHausdorffFromMatrix(DataSet_2D const& m1,
 
 // Analysis_HausdorffDistance::Help()
 void Analysis_HausdorffDistance::Help() const {
-  mprintf("\t<set arg0> [<set arg1> ...] [outtype {basic|trimatrix nrows <#>}]\n"
+  mprintf("\t<set arg0> [<set arg1> ...]\n"
+          "\t[outtype {basic|trimatrix nrows <#>|fullmatrix nrows <#> [ncols <#>]}]\n"
           "\t[name <output set name>] [out <file>] [outab <file>] [outba <file>]\n"
           "  Given 1 or more 2D matrices containing distances between two sets\n"
           "  A and B, calculate the symmetric Hausdorff distance for each matrix.\n"
@@ -75,6 +76,7 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
 {
   // Keywords
   int nrows = -1;
+  int ncols = -1;
   std::string outtypearg = analyzeArgs.GetStringKey("outtype");
   if (!outtypearg.empty()) {
     if (outtypearg == "basic")
@@ -84,6 +86,18 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
       nrows = analyzeArgs.getKeyInt("nrows", -1);
       if (nrows < 1) {
         mprinterr("Error: 'nrows' must be specified and > 0 for 'trimatrix'\n");
+        return Analysis::ERR;
+      }
+    } else if (outtypearg == "fullmatrix") {
+      outType_ = FULL_MATRIX;
+      nrows = analyzeArgs.getKeyInt("nrows", -1);
+      if (nrows < 1) {
+        mprinterr("Error: 'nrows' must be specified and > 0 for 'fullmatrix'\n");
+        return Analysis::ERR;
+      }
+      ncols = analyzeArgs.getKeyInt("ncols", nrows);
+      if (ncols < 1) {
+        mprinterr("Error: 'ncols' must be > 0 for 'fullmatrix'\n");
         return Analysis::ERR;
       }
     } else {
@@ -125,17 +139,27 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
     if (ab_out_ == 0) return Analysis::ERR;
     ba_out_ = setup.DSL().AddSet(DataSet::FLOAT, MetaData(out_->Meta().Name(),"BA"));
     if (ba_out_ == 0) return Analysis::ERR;
-  } else if (outType_ == UPPER_TRI_MATRIX) {
+  } else if (outType_ == UPPER_TRI_MATRIX || outType_ == FULL_MATRIX) {
     out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, dsname, "HAUSDORFF");
-    if (out_ == 0 || ((DataSet_2D*)out_)->AllocateTriangle( nrows )) return Analysis::ERR;
-    if (out_->Size() != inputSets_.size())
-      mprintf("Warning: Number of input data sets (%zu) != number of expected sets in matrix (%zu)\n",
-              inputSets_.size(), out_->Size());
-    // Directed sets
     ab_out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(out_->Meta().Name(),"AB"));
-    if (ab_out_ == 0 || ((DataSet_2D*)ab_out_)->AllocateTriangle( nrows )) return Analysis::ERR;
     ba_out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(out_->Meta().Name(),"BA"));
-    if (ba_out_ == 0 || ((DataSet_2D*)ba_out_)->AllocateTriangle( nrows )) return Analysis::ERR;
+    if (out_ == 0 || ab_out_ == 0 || ba_out_ == 0) return Analysis::ERR;
+    if (outType_ == UPPER_TRI_MATRIX) {
+      if (((DataSet_2D*)out_)->AllocateTriangle( nrows )) return Analysis::ERR;
+      if (((DataSet_2D*)ab_out_)->AllocateTriangle( nrows )) return Analysis::ERR;
+      if (((DataSet_2D*)ba_out_)->AllocateTriangle( nrows )) return Analysis::ERR;
+    } else if (outType_ == FULL_MATRIX) {
+      if (((DataSet_2D*)out_)->Allocate2D( nrows,ncols )) return Analysis::ERR;
+      if (((DataSet_2D*)ab_out_)->Allocate2D( nrows,ncols )) return Analysis::ERR;
+      if (((DataSet_2D*)ba_out_)->Allocate2D( nrows,ncols )) return Analysis::ERR;
+    }
+    if (out_->Size() != inputSets_.size()) {
+      mprinterr("Warning: Number of input data sets (%zu) != number of expected"
+                " sets in matrix (%zu)\n", inputSets_.size(), out_->Size());
+      return Analysis::ERR;
+    }
+    // Directed sets
+ 
   }
   if (df != 0)
     df->AddDataSet( out_ );
@@ -189,7 +213,10 @@ Analysis::RetType Analysis_HausdorffDistance::Analyze() {
         ba_out_->Add(idx++, &fba);
         break;
       case UPPER_TRI_MATRIX :
+      case FULL_MATRIX :
         ((DataSet_MatrixFlt*)out_)->AddElement( fhd );
+        ((DataSet_MatrixFlt*)ab_out_)->AddElement( fhd );
+        ((DataSet_MatrixFlt*)ba_out_)->AddElement( fhd );
         break;
     }
   }

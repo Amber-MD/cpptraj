@@ -17,7 +17,7 @@ class Analysis_HausdorffDistance : public Analysis {
   private:
     static double CalcHausdorffFromMatrix(DataSet_2D const&, double&, double&);
 
-    enum OutType { BASIC = 0, UPPER_TRI_MATRIX };
+    enum OutType { BASIC = 0, UPPER_TRI_MATRIX, FULL_MATRIX };
 
     DataSetList inputSets_;
     OutType outType_;
