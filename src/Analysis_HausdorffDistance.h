@@ -15,12 +15,14 @@ class Analysis_HausdorffDistance : public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
-    static double CalcHausdorffFromMatrix(DataSet_2D const&);
+    static double CalcHausdorffFromMatrix(DataSet_2D const&, double&, double&);
 
     enum OutType { BASIC = 0, UPPER_TRI_MATRIX };
 
     DataSetList inputSets_;
     OutType outType_;
     DataSet* out_;
+    DataSet* ab_out_;
+    DataSet* ba_out_;
 };
 #endif
