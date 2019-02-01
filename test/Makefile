@@ -440,6 +440,9 @@ test.cmdline:
 test.xyzfmt:
 	@-cd Test_XYZformat && ./RunTest.sh $(OPT)
 
+test.hausdorff:
+	@-cd Test_Hausdorff && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -581,7 +584,8 @@ COMPLETETESTS=test.general \
               test.infraredspec \
               test.cphstats \
               test.cmdline \
-              test.xyzfmt
+              test.xyzfmt \
+              test.hausdorff
 
 test.all:
 	$(MAKE) test.complete summary
