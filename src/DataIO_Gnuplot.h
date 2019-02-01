@@ -16,6 +16,7 @@ class DataIO_Gnuplot : public DataIO {
   private:
     CpptrajFile file_;
     FileName data_fname_; ///< Data file name
+    std::string title_;   ///< Plot title (output)
     typedef std::vector<std::string> LabelArray;
     LabelArray Xlabels_;
     LabelArray Ylabels_;
