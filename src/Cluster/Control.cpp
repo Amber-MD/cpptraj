@@ -97,7 +97,11 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
     }
     // Allocate cache if necessary
     if (pw_type != DataSet::UNKNOWN_DATA) {
-      cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, pairdistname );
+      MetaData meta( pairdistname );
+      // Cache-specific setup.
+      if (pw_type == DataSet::PMATRIX_NC)
+        meta.SetFileName( pairdistname );
+      cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, meta );
       if (cache_ == 0) {
         mprinterr("Error: Could not allocate pairwise cache.\n");
         return 1;
