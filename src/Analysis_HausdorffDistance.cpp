@@ -169,14 +169,18 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
     df->AddDataSet( ba_out_ );
 
   mprintf("    HAUSDORFF:\n");
-  mprintf("\tCalculating Hausdorff distances from the following 2D distance matrices:\n");
+  mprintf("\tCalculating Hausdorff distances from the following 2D distance matrices:\n\t  ");
   for (DataSetList::const_iterator it = inputSets_.begin(); it != inputSets_.end(); ++it)
-    mprintf("\t  %s\n", (*it)->legend());
+    mprintf(" %s", (*it)->legend());
+  mprintf("\n");
   if (outType_ == BASIC)
     mprintf("\tOutput will be stored in 1D array set '%s'\n", out_->legend());
   else if (outType_ == UPPER_TRI_MATRIX)
     mprintf("\tOutput will be stored in upper-triangular matrix set '%s' with %i rows.\n",
             out_->legend(), nrows);
+  else if (outType_ == FULL_MATRIX)
+    mprintf("\tOutput will be stored in matrix set '%s' with %i rows, %i columns.\n",
+            out_->legend(), nrows, ncols);
   mprintf("\tDirected A->B distance output set: %s\n", ab_out_->legend());
   mprintf("\tDirected B->A distance output set: %s\n", ba_out_->legend());
   if (df != 0) mprintf("\tOutput set written to '%s'\n", df->DataFilename().full());
