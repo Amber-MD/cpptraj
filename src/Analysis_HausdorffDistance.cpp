@@ -8,7 +8,12 @@ Analysis_HausdorffDistance::Analysis_HausdorffDistance() :
 {}
 
 /** Assume input matrix contains all distances beween sets A and B.
-  * The Hausdorff distance will be the maximum of all minimums in each row.
+  * The directed Hausdorff distance from A to B will be the maximum of all
+  * minimums in each row.
+  * The directed Hausdorff distance from B to A will be the maximum of all
+  * minimums in each column.
+  * The symmetric Hausdorff distance is the max of the two directed distances.
+  * \return the symmetric Hausdorff distance. 
   */
 double Analysis_HausdorffDistance::h_Matrix(DataSet_2D* m1) {
   if (m1 == 0) {
@@ -19,16 +24,31 @@ double Analysis_HausdorffDistance::h_Matrix(DataSet_2D* m1) {
     mprinterr("Error: '%s' is empty.\n", m1->legend());
     return -1.0;
   }
-  double hd = 0.0;
-  // Row 1 - initial value.
+  // Hausdorff distance from A to B. 
+  double hd_ab = 0.0;
   for (unsigned int row = 0; row != m1->Nrows(); row++)
   {
     double minRow = m1->GetElement(0, row);
     for (unsigned int col = 1; col != m1->Ncols(); col++)
       minRow = std::min( minRow, m1->GetElement(col, row) );
-    //mprintf("DEBUG: Min row %6u is %12.4f\n", row, minRow);
-    hd = std::max( hd, minRow );
+    mprintf("DEBUG: Min row %6u is %12.4f\n", row, minRow);
+    hd_ab = std::max( hd_ab, minRow );
   }
+  mprintf("DEBUG: Hausdorff A to B= %12.4f\n", hd_ab);
+  // Hausdorff distance from B to A.
+  double hd_ba = 0.0;
+  for (unsigned int col = 0; col != m1->Ncols(); col++)
+  {
+    double minCol = m1->GetElement(col, 0);
+    for (unsigned int row = 1; row != m1->Nrows(); row++)
+      minCol = std::min( minCol, m1->GetElement(col, row) );
+    mprintf("DEBUG: Min col %6u is %12.4f\n", col, minCol);
+    hd_ba = std::max( hd_ba, minCol);
+  }
+  mprintf("DEBUG: Hausdorff B to A= %12.4f\n", hd_ba);
+  // Symmetric Hausdorff distance
+  double hd = std::max( hd_ab, hd_ba );
+    
   return hd;
 }
 
