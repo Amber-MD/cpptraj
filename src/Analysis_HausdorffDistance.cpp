@@ -62,7 +62,7 @@ double Analysis_HausdorffDistance::CalcHausdorffFromMatrix(DataSet_2D const& m1,
 // Analysis_HausdorffDistance::Help()
 void Analysis_HausdorffDistance::Help() const {
   mprintf("\t<set arg0> [<set arg1> ...] [outtype {basic|trimatrix nrows <#>}]\n"
-          "\t[name <output set name>] [out <filename>]\n"
+          "\t[name <output set name>] [out <file>] [outab <file>] [outba <file>]\n"
           "  Given 1 or more 2D matrices containing distances between two sets\n"
           "  A and B, calculate the symmetric Hausdorff distance for each matrix.\n"
           "  The results can be saved as an array or as an upper-triangular\n"
@@ -94,6 +94,8 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
     outType_ = BASIC;
   std::string dsname = analyzeArgs.GetStringKey("name");
   DataFile* df = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  DataFile* dfab = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("outab"), analyzeArgs );
+  DataFile* dfba = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("outba"), analyzeArgs );
   // Get input data sets
   std::string dsarg = analyzeArgs.GetStringNext();
   while (!dsarg.empty()) {
@@ -120,12 +122,18 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
     if (out_->Size() != inputSets_.size())
       mprintf("Warning: Number of input data sets (%zu) != number of expected sets in matrix (%zu)\n",
               inputSets_.size(), out_->Size());
+    // Directed sets
+    ab_out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(out_->Meta().Name(),"AB"));
+    if (ab_out_ == 0 || ((DataSet_2D*)ab_out_)->AllocateTriangle( nrows )) return Analysis::ERR;
+    ba_out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(out_->Meta().Name(),"BA"));
+    if (ba_out_ == 0 || ((DataSet_2D*)ba_out_)->AllocateTriangle( nrows )) return Analysis::ERR;
   }
-  if (df != 0) {
+  if (df != 0)
     df->AddDataSet( out_ );
+  if (dfab != 0) 
     df->AddDataSet( ab_out_ );
+  if (dfba != 0)
     df->AddDataSet( ba_out_ );
-  }
 
   mprintf("    HAUSDORFF:\n");
   mprintf("\tCalculating Hausdorff distances from the following 2D distance matrices:\n");
@@ -139,6 +147,8 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
   mprintf("\tDirected A->B distance output set: %s\n", ab_out_->legend());
   mprintf("\tDirected B->A distance output set: %s\n", ba_out_->legend());
   if (df != 0) mprintf("\tOutput set written to '%s'\n", df->DataFilename().full());
+  if (dfab != 0) mprintf("\tA->B output set written to '%s'\n", dfab->DataFilename().full());
+  if (dfba != 0) mprintf("\tB->A output set written to '%s'\n", dfba->DataFilename().full());
 
   return Analysis::OK;
 }
