@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles matrix.dat hd.in hd.dat rms2d.dat rms2d.gnu hausdorff.matrix.dat \
-           hausdoff.matrix.gnu hausdorff.fullmatrix.gnu
+           hausdorff.matrix.gnu hausdorff.fullmatrix.gnu
 
 INPUT='-i hd.in'
 
