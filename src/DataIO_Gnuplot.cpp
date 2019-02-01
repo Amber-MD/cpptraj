@@ -220,6 +220,7 @@ void DataIO_Gnuplot::WriteHelp() {
           "\tpm3d:          Normal pm3d map output.\n"
           "\tnopm3d:        Turn off pm3d\n"
           "\tjpeg:          Plot will write to a JPEG file when used with gnuplot.\n"
+          "\ttitle:         Plot title. Default is file name.\n"
 //          "\tbinary:   Use binary output\n"
           "\tnoheader:      Do not format plot; data output only.\n"
           "\tpalette <arg>: Change gnuplot pm3d palette to <arg>:\n"
@@ -242,6 +243,7 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   if (argIn.hasKey("jpeg")) jpegout_ = true;
   if (argIn.hasKey("binary")) binary_ = true;
   if (argIn.hasKey("noheader")) writeHeader_ = false;
+  title_ = argIn.GetStringKey("title");
   if (!writeHeader_ && jpegout_) {
     mprintf("Warning: jpeg output not supported with 'noheader' option.\n");
     jpegout_ = false;
@@ -309,7 +311,13 @@ void DataIO_Gnuplot::WriteRangeAndHeader(Dimension const& Xdim, size_t Xmax,
   file_.Printf("set yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\n", 
          Ydim.Coord(0) - Ydim.Step(), Ydim.Coord(Ymax + 1),
          Xdim.Coord(0) - Xdim.Step(), Xdim.Coord(Xmax + 1));
-  file_.Printf("splot \"%s\"%s%s title \"%s\"\n", data_fname_.full(), binaryFlag, pm3dstr.c_str(), file_.Filename().base());
+  const char* tout;
+  if (!title_.empty())
+    tout = title_.c_str();
+  else
+    tout = file_.Filename().base();
+  file_.Printf("splot \"%s\"%s%s title \"%s\"\n", data_fname_.full(), binaryFlag, pm3dstr.c_str(),
+               tout);
 }
 
 // DataIO_Gnuplot::Finish()

@@ -13,6 +13,8 @@ class DataSet_MatrixFlt : public DataSet_2D {
 #   ifdef MPI
     // FIXME: Currently just sums up. Should this be a separate Sync function?
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+    int SendSet(int, Parallel::Comm const&);
+    int RecvSet(int, Parallel::Comm const&);
 #   endif
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;

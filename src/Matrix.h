@@ -24,7 +24,7 @@ template <class T> class Matrix {
     /// \return total number of elements in the matrix.
     size_t size()                        const { return nelements_;      }
     /// \return current matrix type.
-    //MType Type()                         const { return type_;           }
+    MType Type()                         const { return type_;           }
     /// \return estimated size in bytes.
     static size_t sizeInBytes(size_t,size_t);
     /// \return current size in bytes.
