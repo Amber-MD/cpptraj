@@ -10,7 +10,7 @@ class DataSet_PairwiseCache_MEM : public DataSet_PairwiseCache {
     // ----- DataSet functions -------------------
     size_t Size()                                    const { return Mat_.size(); }
     void Info()                                      const { return; }
-    int Allocate(SizeArray const&);
+    int Allocate(SizeArray const&); // TODO use SetupCache instead
     void Add(size_t, const void*)                          { return; }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
 //    int Append(DataSet*)                                   { return 1; }

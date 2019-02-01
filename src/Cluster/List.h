@@ -49,7 +49,7 @@ class List {
     void AddNoise(int f) { noise_.push_back( f ); }
     /// Update centroids TODO check if they need updating
     void UpdateCentroids(Metric*);
-    /// Add given frames to clusters based on distance to centroid.
+    /// Add given frames to clusters based on distance to centroid. TODO save original frames
     void AddFramesByCentroid(Cframes const&, Metric*);
     /// Add given frames to clusters based on distance to centroid and cutoff.
     void AddFramesByCentroid(Cframes const&, Metric*, bool, double);
