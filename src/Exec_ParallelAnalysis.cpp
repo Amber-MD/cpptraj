@@ -1,3 +1,4 @@
+#include <vector>
 #include "Exec_ParallelAnalysis.h"
 #include "CpptrajStdio.h"
 #ifdef MPI

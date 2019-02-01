@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, max
 #include "Analysis_HausdorffDistance.h"
 #include "CpptrajStdio.h"
 #include "DataSet_MatrixFlt.h"
