@@ -38,10 +38,10 @@ double Analysis_HausdorffDistance::CalcHausdorffFromMatrix(DataSet_2D const& m1,
     double minRow = m1.GetElement(0, row);
     for (unsigned int col = 1; col != m1.Ncols(); col++)
       minRow = std::min( minRow, m1.GetElement(col, row) );
-    mprintf("DEBUG: Min row %6u is %12.4f\n", row, minRow);
+    //mprintf("DEBUG: Min row %6u is %12.4f\n", row, minRow);
     hd_ab = std::max( hd_ab, minRow );
   }
-  mprintf("DEBUG: Hausdorff A to B= %12.4f\n", hd_ab);
+  //mprintf("DEBUG: Hausdorff A to B= %12.4f\n", hd_ab);
   // Hausdorff distance from B to A.
   hd_ba = 0.0;
   for (unsigned int col = 0; col != m1.Ncols(); col++)
@@ -49,10 +49,10 @@ double Analysis_HausdorffDistance::CalcHausdorffFromMatrix(DataSet_2D const& m1,
     double minCol = m1.GetElement(col, 0);
     for (unsigned int row = 1; row != m1.Nrows(); row++)
       minCol = std::min( minCol, m1.GetElement(col, row) );
-    mprintf("DEBUG: Min col %6u is %12.4f\n", col, minCol);
+    //mprintf("DEBUG: Min col %6u is %12.4f\n", col, minCol);
     hd_ba = std::max( hd_ba, minCol);
   }
-  mprintf("DEBUG: Hausdorff B to A= %12.4f\n", hd_ba);
+  //mprintf("DEBUG: Hausdorff B to A= %12.4f\n", hd_ba);
   // Symmetric Hausdorff distance
   double hd = std::max( hd_ab, hd_ba );
     
