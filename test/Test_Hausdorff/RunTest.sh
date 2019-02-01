@@ -5,6 +5,9 @@
 CleanFiles matrix.dat hd.in hd.dat rms2d.dat rms2d.gnu hausdorff.matrix.dat \
            hausdorff.matrix.gnu hausdorff.fullmatrix.gnu
 
+TESTNAME='Hausdorff distance tests.'
+Requires netcdf
+
 INPUT='-i hd.in'
 
 # Simple Hausdorff distance from matrix.
@@ -67,11 +70,22 @@ for i=1;i<11;i++
     2drms crdset Chunk\$i reftraj Chunk\$j M\$i.\$j
   done
 done
+EOF
+if [ -z "$DO_PARALLEL" ] ; then
+  cat >> hd.in <<EOF
 hausdorff M* out hausdorff.fullmatrix.gnu title hausdorff.matrix.gnu outtype fullmatrix nrows 10
 runanalysis
 list dataset
 quit
 EOF
+else
+  cat >> hd.in <<EOF
+parallelanalysis sync
+runanalysis hausdorff M* out hausdorff.fullmatrix.gnu title hausdorff.matrix.gnu outtype fullmatrix nrows 10
+list dataset
+quit
+EOF
+fi
 RunCpptraj "Hausdorff distance of 2D rms output test."
 DoTest hausdorff.matrix.gnu.save hausdorff.fullmatrix.gnu
 
