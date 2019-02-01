@@ -15,7 +15,7 @@ class Analysis_HausdorffDistance : public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
-    static double h_Matrix(DataSet_2D*);
+    static double CalcHausdorffFromMatrix(DataSet_2D const&);
 
     enum OutType { BASIC = 0, UPPER_TRI_MATRIX };
 
