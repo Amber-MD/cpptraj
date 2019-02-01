@@ -117,6 +117,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Analysis_CurveFit.cpp \
         Analysis_Divergence.cpp \
         Analysis_FFT.cpp \
+        Analysis_HausdorffDistance.cpp \
         Analysis_Hist.cpp \
         Analysis_Integrate.cpp \
         Analysis_IRED.cpp \
@@ -266,6 +267,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
+        Exec_ParallelAnalysis.cpp \
         Exec_ParmBox.cpp \
         Exec_ParmSolvent.cpp \
         Exec_ParmStrip.cpp \

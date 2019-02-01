@@ -19,6 +19,7 @@
 #include "Exec_DataSetCmd.h"
 #include "Exec_GenerateAmberRst.h"
 #include "Exec_Help.h"
+#include "Exec_ParallelAnalysis.h"
 #include "Exec_Precision.h"
 #include "Exec_PrintData.h"
 #include "Exec_ReadData.h"
@@ -175,6 +176,7 @@
 #include "Analysis_TI.h"
 #include "Analysis_ConstantPHStats.h"
 #include "Analysis_Cluster.h"
+#include "Analysis_HausdorffDistance.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -207,6 +209,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ListAll(),         Cmd::EXE, 1, "list" );
   Command::AddCmd( new Exec_NoExitOnError(),   Cmd::EXE, 1, "noexitonerror" );
   Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
+  Command::AddCmd( new Exec_ParallelAnalysis(),Cmd::EXE, 1, "parallelanalysis" );
   Command::AddCmd( new Exec_Precision(),       Cmd::EXE, 1, "precision" );
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
@@ -366,6 +369,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
+  Command::AddCmd( new Analysis_HausdorffDistance,Cmd::ANA,1,"hausdorff" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
   Command::AddCmd( new Analysis_Integrate(),   Cmd::ANA, 1, "integrate" );
   Command::AddCmd( new Analysis_IRED(),        Cmd::ANA, 1, "ired" );

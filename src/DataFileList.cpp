@@ -339,6 +339,34 @@ void DataFileList::WriteAllDF() {
 # endif
 }
 
+#ifdef MPI
+// DataFileList::WriteAllDF()
+/** Call write for all DataFiles in list for which writeFile is true. Once
+  * a file has been written set writeFile to false; it can be reset to
+  * true if new DataSets are added to it. All threads are allowed to try
+  * writing files. FIXME this is a hack until a better way of determining
+  * write threads is found.
+  */
+void DataFileList::AllThreads_WriteAllDF() {
+  if (fileList_.empty()) return;
+# ifdef TIMER
+  Timer datafile_time;
+  datafile_time.Start();
+# endif
+  for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
+    if ( (*df)->DFLwrite() ) {
+      (*df)->SetThreadCanWrite( true );
+      (*df)->WriteDataOut();
+      (*df)->SetDFLwrite( false );
+    }
+  }
+# ifdef TIMER
+  datafile_time.Stop();
+  mprintf("TIME: Write of all data files took %.4f seconds.\n", datafile_time.Total());
+# endif
+}
+#endif
+
 // DataFileList::UnwrittenData()
 bool DataFileList::UnwrittenData() const {
   for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
