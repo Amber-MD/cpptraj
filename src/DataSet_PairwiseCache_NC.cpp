@@ -23,7 +23,7 @@ int DataSet_PairwiseCache_NC::SetupCache(unsigned int Ntotal, Cframes const& fra
   // Reopen in SHARE mode for random access
   if (file_.ReopenSharedWrite( Meta().Fname() )) return 1;
 
-  return 0;
+  return SetupFrameToIdx(framesToCache, Ntotal);
 }
 
 

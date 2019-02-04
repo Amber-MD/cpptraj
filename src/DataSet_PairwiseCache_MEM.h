@@ -10,7 +10,7 @@ class DataSet_PairwiseCache_MEM : public DataSet_PairwiseCache {
     // ----- DataSet functions -------------------
     size_t Size()                                    const { return Mat_.size(); }
     void Info()                                      const { return; }
-    int Allocate(SizeArray const&); // TODO use SetupCache instead
+    int Allocate(SizeArray const&)                         { return 0; }
     void Add(size_t, const void*)                          { return; }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
 //    int Append(DataSet*)                                   { return 1; }
@@ -20,6 +20,7 @@ class DataSet_PairwiseCache_MEM : public DataSet_PairwiseCache {
     // -------------------------------------------
     //double GetFdist(int f1, int f2) const { return Mat_.element(FrameToMat()[f1], FrameToMat()[f2]); }
     //double Frame_Distance(int, int) const;
+    int SetupCache(unsigned int, Cframes const&, int, std::string const&);
     double CachedDistance(unsigned int i1, unsigned int i2) const { return Mat_.element(i1, i2); }
     //int CacheDistances(Cframes const&);
     void PrintCached() const;

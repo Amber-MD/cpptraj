@@ -4,7 +4,9 @@
 using namespace Cpptraj;
 using namespace Cluster;
 
-/** Set up frame number to matrix index for caching. Also allocate cache. */
+/** Set up frame number to matrix index for caching. This should be called
+  * by each inheriting DataSet_PairwiseCache's SetupCache routine.
+  */
 int DataSet_PairwiseCache::SetupFrameToIdx(Cframes const& framesToCache, unsigned int Ntotal)
 {
   frameToIdx_.assign(Ntotal, -1);
@@ -17,7 +19,7 @@ int DataSet_PairwiseCache::SetupFrameToIdx(Cframes const& framesToCache, unsigne
   for (Cframes_it it = frameToIdx_.begin(); it != frameToIdx_.end(); ++it)
     mprintf("\tframeToIdx_[%u] = %i\n", it - frameToIdx_.begin(), *it);
 # endif
-  return Allocate(SizeArray(1, framesToCache.size()));
+  return 0;
 }
 
 /** Check that the given frames match the already-cached frames. */

@@ -51,12 +51,17 @@ double Cpptraj::Cluster::PairwiseMatrix::Frame_Distance(int f1, int f2) const {
   return metric_->FrameDist(f1, f2);
 }
 
-int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCache) {
+/** Request that distances for frames in given array be cached.
+  * \param framesToCache the frames to cache.
+  * \param sieveIn Sieve value (if any) used to generate framesToCache. This is
+  *        purely for bookkeeping inside DataSet_PairwiseCache.
+  */
+int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCache, int sieveIn)
+{
   if (framesToCache.size() < 1) return 0;
   // If no cache we can leave.
   if (cache_ == 0) return 0;
 
-  int err = 0;
   if (cache_->Size() > 0) {
     mprintf("DEBUG: Using existing cache '%s'\n", cache_->legend());
     // If cache is already populated, check that it is valid.
@@ -72,19 +77,20 @@ int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCach
       mprinterr("Internal Error: PairwiseMatrix::CacheDistances(): Metric is null.\n");
       return 1;
     }
-    err = CalcFrameDistances(framesToCache);
+    // Cache setup
+    if (cache_->SetupCache( metric_->Ntotal(), framesToCache, sieveIn, metric_->Description() ))
+      return 1;
+    // Fill cache
+    if (CalcFrameDistances(framesToCache))
+      return 1;
   }
-  return err;
+  return 0;
 }
 
 /** Cache distances between given frames using SetElement(). */
 int Cpptraj::Cluster::PairwiseMatrix::CalcFrameDistances(Cframes const& framesToCache)
 {
   mprintf("DEBUG: Caching distances for %zu frames.\n", framesToCache.size());
-  if (cache_->SetupFrameToIdx( framesToCache, metric_->Ntotal() )) {
-    mprinterr("Error: Unable to set up frame to index array for pairwise cache.\n");
-    return 1;
-  }
 
   int f2end = (int)framesToCache.size();
   int f1end = f2end - 1;

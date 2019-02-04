@@ -17,7 +17,7 @@ class PairwiseMatrix {
     /// \return distance between given frames.TODO const?
     double Frame_Distance(int, int) const;
     /// Request that distances for the specified frames be cached.
-    int CacheDistances(Cframes const&);
+    int CacheDistances(Cframes const&, int);
     /// Print only cached distances. TODO const?
     //virtual void PrintCached() const = 0;
 

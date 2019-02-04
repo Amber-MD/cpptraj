@@ -31,14 +31,15 @@ class DataSet_PairwiseCache : public DataSet {
     virtual void PrintCached() const = 0;
     /// Used to cache distances; expect internal indices, not absolute cluster frames.
     virtual void SetElement(int, int, double) = 0;
-
+    /// Used to set up and allocate cache
+    virtual int SetupCache(unsigned int, Cframes const&, int, std::string const&) = 0;
     // -------------------------------------------
 
     /// \return The array for converting frame numbers to internal cache indices.
     Cframes const& FrameToIdx()            const { return frameToIdx_; }
     /// \return True if given frames array matches cached frames.
     bool CachedFramesMatch(Cframes const&) const;
-
+  protected:
     /// Set up frame to internal index array using given frames and total frames.
     int SetupFrameToIdx(Cframes const&, unsigned int);
   private:
