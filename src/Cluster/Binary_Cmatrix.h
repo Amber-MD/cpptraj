@@ -24,7 +24,7 @@ class Binary_Cmatrix {
     /// Open cluster matrix file for reading. Set sieve and actual # rows. 
     int OpenCmatrixRead(FileName const&);
     /// Get cluster matrix element (col, row)
-    double GetCmatrixElement(unsigned int, unsigned int) const;
+    double GetCmatrixElement(unsigned int, unsigned int);
     /// Get cluster matrix element (raw index)
     double GetCmatrixElement(unsigned int) const;
     /// Read cmatrix into given pointer
@@ -39,6 +39,7 @@ class Binary_Cmatrix {
     CpptrajFile file_;
     int sieve_;
     size_t actual_nrows_;
+    off_t headerOffset_;
 };
 
 }

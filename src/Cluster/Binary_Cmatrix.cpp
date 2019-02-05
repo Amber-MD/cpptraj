@@ -1,7 +1,10 @@
 #include "Binary_Cmatrix.h"
 #include "../CpptrajStdio.h"
 
-Cpptraj::Cluster::Binary_Cmatrix::Binary_Cmatrix() 
+Cpptraj::Cluster::Binary_Cmatrix::Binary_Cmatrix() :
+  sieve_(0),
+  actual_nrows_(0),
+  headerOffset_(0) 
 {}
 
 // NOTES:
@@ -68,6 +71,9 @@ int Cpptraj::Cluster::Binary_Cmatrix::OpenCmatrixRead(FileName const& fname)
     mprinterr("Error: ClusterMatrix version %u is not recognized.\n", (unsigned int)magic[3]);
     return 1;
   }
+  // Save current header position
+  headerOffset_ = file_.Tell();
+  // Checks
   if (magic[3] == 0 || magic[3] == 1) {
     // Version 0/1: Actual # of rows is not known yet. Check that the # elements
     // in the file match the original # elements (i.e. matrix is not sieved).
@@ -82,3 +88,28 @@ int Cpptraj::Cluster::Binary_Cmatrix::OpenCmatrixRead(FileName const& fname)
   }
   return 0;
 }
+
+static long int calcTriIndex(size_t nX, size_t xIn, size_t yIn) {
+      size_t i, j;
+      if (yIn > xIn) {
+        i = xIn;
+        j = yIn;
+      } else if (xIn > yIn) {
+        i = yIn;
+        j = xIn;
+      } else // iIn == jIn, triangle matrix diagonal is indicated by -1 
+        return -1L;
+      size_t i1 = i + 1UL;
+      return (long int)(( (nX * i) - ((i1 * i) / 2UL) ) + j - i1);
+}
+
+double Cpptraj::Cluster::Binary_Cmatrix::GetCmatrixElement(unsigned int col, unsigned int row)
+{
+  // Determine absolute index
+  long int idx = calcTriIndex(actual_nrows_, col, row);
+  file_.Seek( headerOffset_ + idx * sizeof(float) );
+  float fvar;
+  file_.Read( &fvar, sizeof(float) );
+  return (double)fvar;
+}
+
