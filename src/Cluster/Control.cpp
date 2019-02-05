@@ -29,14 +29,24 @@ Cpptraj::Cluster::Control::~Control() {
   if (metric_ != 0   ) delete metric_;
 }
 
+// -----------------------------------------------------------------------------
+/** The default pairwise cache file name. */
 const char* Cpptraj::Cluster::Control::DEFAULT_PAIRDIST_NAME_ = "CpptrajPairDist";
 
-// -----------------------------------------------------------------------------
+/** The default pairwise distance file type. */
+DataFile::DataFormatType Cpptraj::Cluster::Control::DEFAULT_PAIRDIST_TYPE_ =
+# ifdef BINTRAJ
+  DataFile::NCCMATRIX;
+# else
+  DataFile::CMATRIX;
+# endif
+
 const char* Cpptraj::Cluster::Control::PairwiseArgs =
   "pairwisecache {mem|disk|none}";
 
 /** Set up PairwiseMatrix from arguments. */
-int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetList& DSL)
+int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetList& DSL,
+                                                DataFileList& DFL)
 {
   if (metric_ == 0) {
     mprinterr("Internal Error: AllocatePairwise(): Metric is null.\n");
@@ -45,7 +55,6 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
 
   // Determine if we are saving/loading pairwise distances
   std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
-  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
   bool load_pair = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
   // Check if we need to set a default file name
@@ -75,6 +84,12 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
         cache_ = (DataSet_PairwiseCache*)ds;
         mprintf("DEBUG: Loaded cache set '%s' from file: %s\n",
                 cache_->legend(), dfIn.DataFilename().full());
+        // No need to save pw cache if we just loaded one.
+        if (save_pair) {
+          mprintf("Warning: 'savepairdist' specified but pairwise cache loaded from file.\n"
+                  "Warning: Disabling 'savepairdist'.\n");
+          save_pair = false;
+        }
       }
     } else {
       if (selected.size() > 1)
@@ -119,6 +134,21 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
 
   // Setup pairwise matrix
   if (pmatrix_.Setup(metric_, cache_)) return 1;
+
+  if (save_pair) {
+    if (cache_ == 0) {
+      mprintf("Warning: Not caching distances; ignoring 'savepairdist'\n");
+    } else {
+      DataFile::DataFormatType pw_file_type = DataFile::UNKNOWN_DATA;
+      if (pairdistname.empty())
+        pw_file_type = DEFAULT_PAIRDIST_TYPE_;
+      DataFile* pwd_file = DFL.AddDataFile( fname, pw_file_type, ArgList() );
+      if (pwd_file == 0) return 1;
+      pwd_file->AddDataSet( cache_ );
+      mprintf("DEBUG: Saving pw distance cache '%s' to file '%s'\n", cache_->legend(),
+              pwd_file->DataFilename().full());
+    }
+  }
 
   return 0;
 }
@@ -175,6 +205,7 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
                                                      std::string const& maskExpr,
                                                      ArgList& analyzeArgs,
                                                      DataSetList& DSL,
+                                                     DataFileList& DFL,
                                                      int verboseIn)
 {
   verbose_ = verboseIn;
@@ -215,16 +246,17 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
     return 1;
   }
 
-  return Common(analyzeArgs, DSL);
+  return Common(analyzeArgs, DSL, DFL);
 }
 
 // -----------------------------------------------------------------------------
 /** Common setup. */
-int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL) {
+int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
+{
   clusters_.SetDebug( verbose_ );
 
   // Allocate PairwiseMatrix. Metric must already be set up.
-  if (AllocatePairwise( analyzeArgs, DSL )) {
+  if (AllocatePairwise( analyzeArgs, DSL, DFL )) {
     mprinterr("Error: PairwiseMatrix setup failed.\n");
     return 1;
   }

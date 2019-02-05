@@ -6,6 +6,7 @@
 #include "Metric.h"
 #include "BestReps.h"
 #include "../DataSetList.h"
+#include "../DataFileList.h"
 #include "../DataSet_Coords.h"
 #include "../DataSet_PairwiseCache.h"
 namespace Cpptraj {
@@ -22,7 +23,8 @@ class Control {
 
     enum SieveRestoreType { NO_RESTORE = 0, CLOSEST_CENTROID, EPSILON_CENTROID, EPSILON_FRAME };
 
-    int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, DataSetList&,int);
+    int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, DataSetList&,
+                              DataFileList&, int);
 
     void Info() const;
     int Run();
@@ -30,16 +32,18 @@ class Control {
     List const& Clusters()     const { return clusters_; }
     Metric const& DistMetric() const { return *metric_;  }
   private:
-    int AllocatePairwise(ArgList&, DataSetList&);
+    int AllocatePairwise(ArgList&, DataSetList&, DataFileList&);
 
     static Metric* AllocateMetric(Metric::Type);
 
     static Algorithm* AllocateAlgorithm(Algorithm::AType);
     int AllocateAlgorithm(ArgList&);    
 
-    int Common(ArgList&, DataSetList&);
+    int Common(ArgList&, DataSetList&, DataFileList&);
 
     static const char* DEFAULT_PAIRDIST_NAME_;
+
+    static DataFile::DataFormatType DEFAULT_PAIRDIST_TYPE_;
 
     List clusters_;                ///< Hold cluster results.
     Metric* metric_;               ///< Hold the distance metric.
