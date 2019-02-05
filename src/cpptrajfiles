@@ -4,6 +4,7 @@ CLUSTER_SOURCES= \
   Cluster/Algorithm_DBscan.cpp \
   Cluster/Algorithm_HierAgglo.cpp \
   Cluster/BestReps.cpp \
+  Cluster/Binary_Cmatrix.cpp \
   Cluster/Centroid_Coord.cpp \
   Cluster/Cframes.cpp \
   Cluster/Control.cpp \
