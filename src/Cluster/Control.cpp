@@ -44,28 +44,37 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
   }
 
   // Determine if we are saving/loading pairwise distances
-  std::string pairdistname = analyzeArgs.GetStringKey("pairdist", DEFAULT_PAIRDIST_NAME_);
+  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
   DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
   bool load_pair = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
+  // Check if we need to set a default file name
+  std::string fname;
+  if (pairdistname.empty())
+    fname = DEFAULT_PAIRDIST_NAME_;
+  else
+    fname = pairdistname;
 
   cache_ = 0;
   if (load_pair) {
-    // Check if the pairdistname refers to a DataSet
-    DataSetList selected = DSL.SelectGroupSets( pairdistname, DataSet::PWCACHE );
+    DataSetList selected;
+    // If specified, check if the pairdistname refers to a DataSet
+    if (!pairdistname.empty())
+      selected = DSL.SelectGroupSets( pairdistname, DataSet::PWCACHE );
     if (selected.empty()) {
       // No DataSet; check if we can load from a file.
-      if (File::Exists( pairdistname )) {
+      if (File::Exists( fname )) {
         DataFile dfIn;
-        if (dfIn.ReadDataIn( pairdistname, ArgList(), DSL )) return 1;
-        DataSet* ds = DSL.GetDataSet( pairdistname );
+        if (dfIn.ReadDataIn( fname, ArgList(), DSL )) return 1;
+        DataSet* ds = DSL.GetDataSet( fname );
         if (ds == 0) return 1;
         if (ds->Group() != DataSet::PWCACHE) {
           mprinterr("Internal Error: AllocatePairwise(): Set is not a pairwise cache.\n");
           return 1;
         }
         cache_ = (DataSet_PairwiseCache*)ds;
-        mprintf("DEBUG: Loaded cache from file: %s\n", cache_->legend());
+        mprintf("DEBUG: Loaded cache set '%s' from file: %s\n",
+                cache_->legend(), dfIn.DataFilename().full());
       }
     } else {
       if (selected.size() > 1)
@@ -73,10 +82,8 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
                 pairdistname.c_str(), selected[0]->legend());
       cache_ = (DataSet_PairwiseCache*)selected[0];
     }
-    if (cache_ == 0) {
-      mprintf("Warning: 'loadpairdist' specified but '%s' not found.\n",
-              pairdistname.c_str());
-    }
+    if (cache_ == 0)
+      mprintf("Warning: 'loadpairdist' specified but cache set/file not found.\n");
   } // END if load_pair
 
   if (cache_ == 0) {
@@ -100,8 +107,8 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
       MetaData meta( pairdistname );
       // Cache-specific setup.
       if (pw_type == DataSet::PMATRIX_NC)
-        meta.SetFileName( pairdistname );
-      cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, meta );
+        meta.SetFileName( fname );
+      cache_ = (DataSet_PairwiseCache*)DSL.AddSet( pw_type, meta, "CMATRIX" );
       if (cache_ == 0) {
         mprinterr("Error: Could not allocate pairwise cache.\n");
         return 1;
