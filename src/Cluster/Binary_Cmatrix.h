@@ -26,9 +26,9 @@ class Binary_Cmatrix {
     /// Get cluster matrix element (col, row)
     double GetCmatrixElement(unsigned int, unsigned int);
     /// Get cluster matrix element (raw index)
-    double GetCmatrixElement(unsigned int) const;
+    double GetCmatrixElement(unsigned int);
     /// Read cmatrix into given pointer
-    int GetCmatrix(float*) const;
+    int GetCmatrix(float*);
   private:
     static const unsigned char Magic_[];
     /// For reading/writing 8 byte unsigned integers

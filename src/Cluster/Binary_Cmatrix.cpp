@@ -113,3 +113,15 @@ double Cpptraj::Cluster::Binary_Cmatrix::GetCmatrixElement(unsigned int col, uns
   return (double)fvar;
 }
 
+double Cpptraj::Cluster::Binary_Cmatrix::GetCmatrixElement(unsigned int idx)
+{
+  file_.Seek( headerOffset_ + idx * sizeof(float) );
+  float fvar;
+  file_.Read( &fvar, sizeof(float) );
+  return (double)fvar;
+}
+
+int Cpptraj::Cluster::Binary_Cmatrix::GetCmatrix(float* ptr) {
+  size_t nelements =  ( actual_nrows_ * (actual_nrows_ - 1UL) ) / 2UL;
+  return file_.Read( ptr, nelements * sizeof(float) );
+}
