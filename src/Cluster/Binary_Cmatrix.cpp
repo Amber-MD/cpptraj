@@ -121,7 +121,54 @@ double Cpptraj::Cluster::Binary_Cmatrix::GetCmatrixElement(unsigned int idx)
   return (double)fvar;
 }
 
+static inline size_t Nelements(size_t nrows) {
+  return ( nrows * (nrows - 1UL) ) / 2UL;
+}
+
 int Cpptraj::Cluster::Binary_Cmatrix::GetCmatrix(float* ptr) {
-  size_t nelements =  ( actual_nrows_ * (actual_nrows_ - 1UL) ) / 2UL;
+  size_t nelements =  Nelements( actual_nrows_ );
   return file_.Read( ptr, nelements * sizeof(float) );
+}
+
+int Cpptraj::Cluster::Binary_Cmatrix::WriteCmatrix(FileName const& fname,
+                                                   const float* ptr,
+                                                   size_t OriginalNframes,
+                                                   size_t Nrows,
+                                                   int sieveValue,
+                                                   Cframes const& actualFrames)
+{
+  CpptrajFile outfile;
+  uint_8 ntemp;
+  // No stdout write allowed.
+  if (fname.empty()) {
+    mprinterr("Internal Error: DataIO_Cmatrix::WriteData() called with no filename.\n");
+    return 1;
+  }
+  if (outfile.OpenWrite(fname)) {
+    mprinterr("Error: Could not open %s for write.\n", fname.full());
+    return 1;
+  }
+  // Write magic byte
+  outfile.Write( Magic_, 4 );
+  // Write original number of frames.
+  ntemp = (uint_8)OriginalNframes;
+  outfile.Write( &ntemp, sizeof(uint_8) );
+  // Write actual nrows
+  ntemp = (uint_8)Nrows;
+  outfile.Write( &ntemp, sizeof(uint_8) );
+  // Write out sieve value
+  sint_8 stemp = (sint_8)sieveValue;
+  outfile.Write( &stemp, sizeof(sint_8) );
+  // Write matrix elements
+  size_t nelements =  Nelements( Nrows );
+  outfile.Write( ptr, nelements*sizeof(float) );
+  // If this is a reduced matrix, write whether each frame was sieved (T) or not (F). 
+  if (sieveValue != 1) {
+    std::vector<char> sieveStatus( OriginalNframes, 'F' );
+    for (unsigned int idx = 0; idx != OriginalNframes; idx++) 
+      if (actualFrames.HasFrame(idx))
+        sieveStatus[idx] = 'T';
+    outfile.Write( &sieveStatus[0], OriginalNframes*sizeof(char) );
+  }
+  return 0;
 }

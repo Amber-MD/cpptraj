@@ -29,6 +29,9 @@ class Binary_Cmatrix {
     double GetCmatrixElement(unsigned int);
     /// Read cmatrix into given pointer
     int GetCmatrix(float*);
+
+    /// Write cluster matrix TODO add a setup routine
+    static int WriteCmatrix(FileName const&, const float*, size_t, size_t, int, Cframes const&);
   private:
     static const unsigned char Magic_[];
     /// For reading/writing 8 byte unsigned integers
