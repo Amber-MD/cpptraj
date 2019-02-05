@@ -126,9 +126,15 @@ static inline size_t Nelements(size_t nrows) {
   return ( nrows * (nrows - 1UL) ) / 2UL;
 }
 
-int Cpptraj::Cluster::Binary_Cmatrix::GetCmatrix(float* ptr) {
+int Cpptraj::Cluster::Binary_Cmatrix::GetCmatrix(float* ptr, char* sieveStatus) {
+  file_.Seek( headerOffset_  );
   size_t nelements =  Nelements( actual_nrows_ );
-  return file_.Read( ptr, nelements * sizeof(float) );
+  if (file_.Read( ptr, nelements * sizeof(float) ) < 1) return 1;
+  // Read sieve if needed
+  if (sieveStatus != 0) {
+    if (file_.Read( sieveStatus, ntotal_ * sizeof(char) ) < 1) return 1;
+  }
+  return 0;
 }
 
 int Cpptraj::Cluster::Binary_Cmatrix::WriteCmatrix(FileName const& fname,

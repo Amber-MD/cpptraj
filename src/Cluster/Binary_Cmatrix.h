@@ -20,6 +20,8 @@ class Binary_Cmatrix {
     int Sieve()          const { return sieve_; }
     /// \return Actual number of rows in matrix.
     size_t ActualNrows() const { return actual_nrows_; }
+    /// \return Number of total frames originally.
+    size_t Ntotal()      const { return ntotal_;} 
 
     /// Open cluster matrix file for reading. Set sieve and actual # rows. 
     int OpenCmatrixRead(FileName const&);
@@ -28,7 +30,7 @@ class Binary_Cmatrix {
     /// Get cluster matrix element (raw index)
     double GetCmatrixElement(unsigned int);
     /// Read cmatrix into given pointer
-    int GetCmatrix(float*);
+    int GetCmatrix(float*, char*);
 
     /// Write cluster matrix TODO add a setup routine
     static int WriteCmatrix(FileName const&, const float*, size_t, size_t, int, Cframes const&);

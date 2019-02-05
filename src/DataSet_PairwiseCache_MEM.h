@@ -25,6 +25,8 @@ class DataSet_PairwiseCache_MEM : public DataSet_PairwiseCache {
     //int CacheDistances(Cframes const&);
     void PrintCached() const;
     void SetElement(int col, int row, double val) { Mat_.setElement(col, row, val); }
+    // -------------------------------------------
+    float* Ptr() { return Mat_.Ptr(); }
   private:
     Matrix<float> Mat_;  ///< Hold cached distances
 };
