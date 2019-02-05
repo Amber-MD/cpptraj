@@ -4,6 +4,7 @@
 Cpptraj::Cluster::Binary_Cmatrix::Binary_Cmatrix() :
   sieve_(0),
   actual_nrows_(0),
+  ntotal_(0),
   headerOffset_(0) 
 {}
 
@@ -18,13 +19,12 @@ Cpptraj::Cluster::Binary_Cmatrix::Binary_Cmatrix() :
 //                     of bytes so should be backwards-compatible.
 const unsigned char Cpptraj::Cluster::Binary_Cmatrix::Magic_[4] = {'C', 'T', 'M', 2};
 
-
-bool Cpptraj::Cluster::Binary_Cmatrix::ID_Cmatrix(FileName const& fname)
+/** File must be set up read. */
+bool Cpptraj::Cluster::Binary_Cmatrix::ID_Cmatrix(CpptrajFile& infile)
 {
   unsigned char magic[4];
   
-  CpptrajFile infile;
-  if (infile.OpenRead(fname)) return false;
+  if (infile.OpenFile()) return false;
   infile.Read( magic, 4 );
   infile.CloseFile();
   return (magic[0]==Magic_[0] && magic[1]==Magic_[1] && magic[2]==Magic_[2]);
@@ -86,6 +86,7 @@ int Cpptraj::Cluster::Binary_Cmatrix::OpenCmatrixRead(FileName const& fname)
     }
     sieve_ = 1;
   }
+  ntotal_ = (size_t)ROWS;
   return 0;
 }
 

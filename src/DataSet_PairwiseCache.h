@@ -31,7 +31,7 @@ class DataSet_PairwiseCache : public DataSet {
     virtual void PrintCached() const = 0;
     /// Used to cache distances; expect internal indices, not absolute cluster frames.
     virtual void SetElement(int, int, double) = 0;
-    /// Used to set up and allocate cache
+    /// Used to set up and allocate cache for total, frames to cache, sieve, and metric descrip.
     virtual int SetupCache(unsigned int, Cframes const&, int, std::string const&) = 0;
     // -------------------------------------------
 

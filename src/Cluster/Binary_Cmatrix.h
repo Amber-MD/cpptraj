@@ -14,7 +14,7 @@ class Binary_Cmatrix {
     Binary_Cmatrix();
 
     /// \return true if file is binary cpptraj cluster matrix file.
-    static bool ID_Cmatrix(FileName const&);
+    static bool ID_Cmatrix(CpptrajFile&);
 
     /// \return Sieve value.
     int Sieve()          const { return sieve_; }
@@ -42,6 +42,7 @@ class Binary_Cmatrix {
     CpptrajFile file_;
     int sieve_;
     size_t actual_nrows_;
+    size_t ntotal_;       ///< Total number of frames in original data.
     off_t headerOffset_;
 };
 
