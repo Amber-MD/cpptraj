@@ -1,7 +1,7 @@
 #ifndef INC_DATASET_PAIRWISECACHE_NC_H
 #define INC_DATASET_PAIRWISECACHE_NC_H
 #include "DataSet_PairwiseCache.h"
-#include "NC_Cmatrix.h"
+#include "Cluster/Cmatrix_NC.h"
 /// Cache pairwise distances in NetCDF file. 
 class DataSet_PairwiseCache_NC : public DataSet_PairwiseCache {
   public:
@@ -25,6 +25,6 @@ class DataSet_PairwiseCache_NC : public DataSet_PairwiseCache {
     void PrintCached() const;
     void SetElement(int x, int y, double val) { file_.WriteCmatrixElement(x, y, val); }
   private:
-    NC_Cmatrix file_;  ///< Hold cached distances on disk
+    Cpptraj::Cluster::Cmatrix_NC file_;  ///< Hold cached distances on disk
 };
 #endif

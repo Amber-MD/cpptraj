@@ -1,13 +1,13 @@
 #ifdef BINTRAJ
 # include <netcdf.h>
-# include "NC_Routines.h"
+# include "../NC_Routines.h"
 #endif
-#include "NC_Cmatrix.h"
-#include "CpptrajStdio.h"
+#include "Cmatrix_NC.h"
+#include "../CpptrajStdio.h"
 
 #ifdef BINTRAJ
 /// CONSTRUCTOR
-NC_Cmatrix::NC_Cmatrix() :
+Cpptraj::Cluster::Cmatrix_NC::Cmatrix_NC() :
   ncid_(-1),
   n_original_frames_DID_(-1),
   n_rows_DID_(-1),
@@ -20,17 +20,17 @@ NC_Cmatrix::NC_Cmatrix() :
   mode_(READ)
 {}
 
-NC_Cmatrix::~NC_Cmatrix() {
+Cpptraj::Cluster::Cmatrix_NC::~Cmatrix_NC() {
   CloseCmatrix();
 }
 
-bool NC_Cmatrix::IsCpptrajCmatrix(int NCID) {
+bool Cpptraj::Cluster::Cmatrix_NC::IsCpptrajCmatrix(int NCID) {
   return (NC::GetAttrText(NCID, "Conventions") == "CPPTRAJ_CMATRIX");
 }
 #endif
 
 // NC_Cmatrix::ID_Cmatrix()
-bool NC_Cmatrix::ID_Cmatrix(FileName const& fname) {
+bool Cpptraj::Cluster::Cmatrix_NC::ID_Cmatrix(FileName const& fname) {
 # ifdef BINTRAJ
   int NCID;
   if ( nc_open( fname.full(), NC_NOWRITE, &NCID ) != NC_NOERR )
@@ -54,7 +54,7 @@ bool NC_Cmatrix::ID_Cmatrix(FileName const& fname) {
 #define NC_CMATRIX_FRAMES "actual_frames"
 
 // NC_Cmatrix::OpenCmatrixRead()
-int NC_Cmatrix::OpenCmatrixRead(FileName const& fname, int& sieve) {
+int Cpptraj::Cluster::Cmatrix_NC::OpenCmatrixRead(FileName const& fname, int& sieve) {
   if (ncid_ != -1) CloseCmatrix();
   if (fname.empty()) return 1;
   if (NC::CheckErr( nc_open( fname.full(), NC_NOWRITE, &ncid_ ) ))
@@ -114,7 +114,7 @@ int NC_Cmatrix::OpenCmatrixRead(FileName const& fname, int& sieve) {
 
 // NC_Cmatrix::CalcIndex()
 // TODO Consolidate code in Matrix.h?
-long int NC_Cmatrix::CalcIndex(unsigned int xIn, unsigned int yIn) const {
+long int Cpptraj::Cluster::Cmatrix_NC::CalcIndex(unsigned int xIn, unsigned int yIn) const {
   // Calculate upper-triangle matrix index
   unsigned int i, j;
   if (yIn > xIn) {
@@ -132,7 +132,7 @@ long int NC_Cmatrix::CalcIndex(unsigned int xIn, unsigned int yIn) const {
 }
 
 // NC_Cmatrix::GetCmatrixElement()
-double NC_Cmatrix::GetCmatrixElement(unsigned int xIn, unsigned int yIn) const {
+double Cpptraj::Cluster::Cmatrix_NC::GetCmatrixElement(unsigned int xIn, unsigned int yIn) const {
   float fval;
   size_t index[1];
   long int idx = CalcIndex(xIn, yIn);
@@ -144,7 +144,7 @@ double NC_Cmatrix::GetCmatrixElement(unsigned int xIn, unsigned int yIn) const {
 }
 
 // NC_Cmatrix::GetCmatrixElement()
-double NC_Cmatrix::GetCmatrixElement(unsigned int idxIn) const {
+double Cpptraj::Cluster::Cmatrix_NC::GetCmatrixElement(unsigned int idxIn) const {
   float fval;
   size_t index[1] = { idxIn };
   if (NC::CheckErr( nc_get_var1_float(ncid_, cmatrix_VID_, index, &fval) ))
@@ -153,7 +153,7 @@ double NC_Cmatrix::GetCmatrixElement(unsigned int idxIn) const {
 }
 
 // NC_Cmatrix::GetSieveStatus()
-std::vector<char> NC_Cmatrix::GetSieveStatus() const {
+std::vector<char> Cpptraj::Cluster::Cmatrix_NC::GetSieveStatus() const {
   if (nFrames_ < 1) return std::vector<char>();
   if (actualFrames_VID_ == -1)
     // No frames array. All frames present, none sieved.
@@ -175,7 +175,7 @@ std::vector<char> NC_Cmatrix::GetSieveStatus() const {
 }
 
 // NC_Cmatrix::GetCmatrix()
-int NC_Cmatrix::GetCmatrix(float* ptr) const {
+int Cpptraj::Cluster::Cmatrix_NC::GetCmatrix(float* ptr) const {
   if (cmatrix_VID_ == -1) return 1;
   size_t start[1] = { 0      };
   size_t count[1] = { mSize_ };
@@ -183,8 +183,9 @@ int NC_Cmatrix::GetCmatrix(float* ptr) const {
 }
 
 // NC_Cmatrix::CreateCmatrix()
-int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFramesIn, unsigned int nRowsIn,
-                              int sieve, std::string const& metricDescripIn)
+int Cpptraj::Cluster::Cmatrix_NC::CreateCmatrix(FileName const& fname, unsigned int nFramesIn,
+                                                unsigned int nRowsIn,
+                                                int sieve, std::string const& metricDescripIn)
 {
   //mprinterr("DEBUG: Cmatrix file '%s', nFrames %u, nRows %u, sieve %i\n",
   //        fname.full(), nFrames, nRowsIn, sieve);
@@ -262,12 +263,12 @@ int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFramesIn, uns
 }
 
 // NC_Cmatrix::Sync()
-void NC_Cmatrix::Sync() const {
+void Cpptraj::Cluster::Cmatrix_NC::Sync() const {
   if (ncid_ != -1)
     NC::CheckErr( nc_sync(ncid_) );
 }
 
-int NC_Cmatrix::ReopenSharedWrite(FileName const& fname) {
+int Cpptraj::Cluster::Cmatrix_NC::ReopenSharedWrite(FileName const& fname) {
   if (ncid_ == -1) return 1;
   // Close and re-open shared
   nc_close( ncid_ );
@@ -276,7 +277,7 @@ int NC_Cmatrix::ReopenSharedWrite(FileName const& fname) {
 }
 
 // NC_Cmatrix::WriteFramesArray()
-int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) const {
+int Cpptraj::Cluster::Cmatrix_NC::WriteFramesArray(std::vector<int> const& actualFrames) const {
   if (ncid_ == -1) return 1; // Sanity check
   if (actualFrames_VID_ == -1) {
     mprinterr("Error: No cluster frames variable ID defined.\n");
@@ -294,13 +295,16 @@ int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) const {
   return 0;
 }
 
-int NC_Cmatrix::WriteFramesArray(Cpptraj::Cluster::Cframes const& actualFrames) const {
+int Cpptraj::Cluster::Cmatrix_NC::WriteFramesArray(Cpptraj::Cluster::Cframes const& actualFrames)
+const
+{
   // TODO have Cframes return a pointer?
   return WriteFramesArray(actualFrames.Data());
 }
 
 // NC_Cmatrix::WriteCmatrixElement()
-int NC_Cmatrix::WriteCmatrixElement(unsigned int xIn, unsigned int yIn, double dval) const
+int Cpptraj::Cluster::Cmatrix_NC::WriteCmatrixElement(unsigned int xIn, unsigned int yIn,
+                                                      double dval) const
 {
   int err = 0;
 # ifdef _OPENMP
@@ -326,7 +330,7 @@ int NC_Cmatrix::WriteCmatrixElement(unsigned int xIn, unsigned int yIn, double d
 }
 
 // NC_Cmatrix::WriteCmatrix()
-int NC_Cmatrix::WriteCmatrix(const float* ptr) const {
+int Cpptraj::Cluster::Cmatrix_NC::WriteCmatrix(const float* ptr) const {
   if (cmatrix_VID_ == -1) return 1;
   size_t start[1] = { 0      };
   size_t count[1] = { mSize_ };
@@ -334,7 +338,7 @@ int NC_Cmatrix::WriteCmatrix(const float* ptr) const {
 }
 
 // NC_Cmatrix::CloseCmatrix()
-void NC_Cmatrix::CloseCmatrix() {
+void Cpptraj::Cluster::Cmatrix_NC::CloseCmatrix() {
   if (ncid_ != -1) {
     nc_close( ncid_ );
     ncid_ = -1;
@@ -342,22 +346,22 @@ void NC_Cmatrix::CloseCmatrix() {
   }
 }
 #else
-NC_Cmatrix::NC_Cmatrix() {}
-NC_Cmatrix::~NC_Cmatrix() {}
-int NC_Cmatrix::OpenCmatrixRead(FileName const&, int&) { return 1; }
-double NC_Cmatrix::GetCmatrixElement(unsigned int, unsigned int) const { return 0.0; }
-double NC_Cmatrix::GetCmatrixElement(unsigned int) const { return 0.0; }
-std::vector<char> NC_Cmatrix::GetSieveStatus() const { return std::vector<char>(); }
-int NC_Cmatrix::GetCmatrix(float*) const { return 1; }
-int NC_Cmatrix::CreateCmatrix(FileName const&, unsigned int, unsigned int, int, std::string const&)
+Cpptraj::Cluster::Cmatrix_NC::NC_Cmatrix() {}
+Cpptraj::Cluster::Cmatrix_NC::~NC_Cmatrix() {}
+int Cpptraj::Cluster::Cmatrix_NC::OpenCmatrixRead(FileName const&, int&) { return 1; }
+double Cpptraj::Cluster::Cmatrix_NC::GetCmatrixElement(unsigned int, unsigned int) const { return 0.0; }
+double Cpptraj::Cluster::Cmatrix_NC::GetCmatrixElement(unsigned int) const { return 0.0; }
+std::vector<char> Cpptraj::Cluster::Cmatrix_NC::GetSieveStatus() const { return std::vector<char>(); }
+int Cpptraj::Cluster::Cmatrix_NC::GetCmatrix(float*) const { return 1; }
+int Cpptraj::Cluster::Cmatrix_NC::CreateCmatrix(FileName const&, unsigned int, unsigned int, int, std::string const&)
 {
   mprinterr("Error: Cpptraj was compiled without NetCDF. Cannot create NetCDF matrix file.\n");
   return 1;
 }
-int NC_Cmatrix::WriteFramesArray(std::vector<int> const&) const { return 1; }
-int NC_Cmatrix::WriteCmatrixElement(unsigned int, unsigned int, double) const { return 1; }
-int NC_Cmatrix::WriteCmatrix(const float*) const { return 1; }
-void NC_Cmatrix::CloseCmatrix() {}
-void NC_Cmatrix::Sync() const {}
-int NC_Cmatrix::ReopenSharedWrite(FileName const&) { return 1; }
+int Cpptraj::Cluster::Cmatrix_NC::WriteFramesArray(std::vector<int> const&) const { return 1; }
+int Cpptraj::Cluster::Cmatrix_NC::WriteCmatrixElement(unsigned int, unsigned int, double) const { return 1; }
+int Cpptraj::Cluster::Cmatrix_NC::WriteCmatrix(const float*) const { return 1; }
+void Cpptraj::Cluster::Cmatrix_NC::CloseCmatrix() {}
+void Cpptraj::Cluster::Cmatrix_NC::Sync() const {}
+int Cpptraj::Cluster::Cmatrix_NC::ReopenSharedWrite(FileName const&) { return 1; }
 #endif

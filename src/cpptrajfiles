@@ -7,6 +7,7 @@ CLUSTER_SOURCES= \
   Cluster/Centroid_Coord.cpp \
   Cluster/Cframes.cpp \
   Cluster/Cmatrix_Binary.cpp \
+  Cluster/Cmatrix_NC.cpp \
   Cluster/Control.cpp \
   Cluster/DynamicMatrix.cpp \
   Cluster/List.cpp \
@@ -297,7 +298,6 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \
-        NC_Cmatrix.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \

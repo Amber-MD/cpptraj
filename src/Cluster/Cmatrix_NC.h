@@ -1,13 +1,16 @@
-#ifndef INC_NC_CMATRIX_H
-#define INC_NC_CMATRIX_H
-#include "FileName.h"
-#include "Cluster/Cframes.h"
+#ifndef INC_CLUSTER_CMATRIX_NC_H
+#define INC_CLUSTER_CMATRIX_NC_H
+#include "../FileName.h"
+#include "Cframes.h"
+namespace Cpptraj {
+namespace Cluster {
+
 /// NetCDF cluster matrix file.
-class NC_Cmatrix {
+class Cmatrix_NC {
   public:
     enum ModeType { READ=0, WRITE };
-    NC_Cmatrix();
-    ~NC_Cmatrix();
+    Cmatrix_NC();
+    ~Cmatrix_NC();
     /// \return true if file is NetCDF cluster matrix file.
     static bool ID_Cmatrix(FileName const&);
     /// Open cluster matrix file for reading. Set sieve ID.
@@ -27,8 +30,8 @@ class NC_Cmatrix {
     /// Reopen in shared write mode for random access
     int ReopenSharedWrite(FileName const&);
     /// Write non-sieved frames array.
-    int WriteFramesArray(std::vector<int> const&) const;
-    int WriteFramesArray(Cpptraj::Cluster::Cframes const&) const;
+    int WriteFramesArray(std::vector<int> const&) const; // TODO deprecate
+    int WriteFramesArray(Cframes const&) const;
     /// Write cluster matrix element (col, row)
     int WriteCmatrixElement(unsigned int, unsigned int, double) const;
     /// Write cluster matrix using given pointer
@@ -64,4 +67,7 @@ class NC_Cmatrix {
     ModeType mode_;             ///< Access mode.
 #   endif
 };
+
+}
+}
 #endif
