@@ -304,6 +304,17 @@ double Ewald::Self(double volume) {
   return ene;
 }
 
+double Ewald::Self6() {
+  t_self_.Start(); // TODO precalc
+  double ew2 = ew_coeff_ * ew_coeff_;
+  double ew6 = ew2 * ew2 * ew2;
+  double c6sum = 0.0;
+  for (Darray::const_iterator it = Cparam_.begin(); it != Cparam_.end(); ++it)
+    c6sum += ew6 * (*it * *it);
+  t_self_.Stop();
+  return c6sum / 12.0;
+}
+
 // Ewald::Adjust()
 # ifdef _OPENMP
 double Ewald::Adjust(double q0, double q1, double rij) const {

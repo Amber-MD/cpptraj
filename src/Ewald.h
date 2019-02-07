@@ -37,6 +37,8 @@ class Ewald {
     inline double ERFC(double) const;
     /// Ewald "self" energy
     double Self(double);
+    /// Ewald "self" energy for C6 term
+    double Self6();
     /// Get analytical estimate of energy due to dispersion interactions > cutoff
     double Vdw_Correction(double);
     /// Box, debug, cutoff, dsum tol, ew coeff, erfc dx, nb skin
@@ -80,7 +82,7 @@ class Ewald {
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges
     double sumq2_;        ///< Sum of charges squared
-    double ew_coeff_;     ///< Ewald coefficient
+    double ew_coeff_;     ///< Ewald coefficient TODO separate one for dispersion.
     double cutoff_;       ///< Direct space cutoff
     double dsumTol_;      ///< Direct space sum tolerance.
     double erfcTableDx_;  ///< Spacing of X values in Erfc table.

@@ -205,6 +205,9 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
   double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
   double e_self = Self( volume );
   double e_vdwr = Vdw_Correction( volume );
+  // TODO branch
+  double e_vdw6self = Self6();
+  mprintf("DEBUG: e_vdw6self = %16.8f\n", e_vdw6self);
 
   pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
 
