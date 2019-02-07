@@ -29,7 +29,7 @@ class Cmatrix_Binary {
     double GetCmatrixElement(unsigned int, unsigned int);
     /// Get cluster matrix element (raw index)
     double GetCmatrixElement(unsigned int);
-    /// Read cmatrix into given pointer
+    /// Read cmatrix into given pointer TODO should this take Matrix/StatusArray?
     int GetCmatrix(float*, char*);
 
     /// Write cluster matrix TODO add a setup routine

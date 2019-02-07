@@ -12,7 +12,7 @@ DataIO_Cmatrix_Binary::DataIO_Cmatrix_Binary()
 }
 
 bool DataIO_Cmatrix_Binary::ID_DataFormat(CpptrajFile& infile) {
-  return Binary_Cmatrix::ID_Cmatrix( infile );
+  return Cmatrix_Binary::ID_Cmatrix( infile );
 }
 
 // -----------------------------------------------------------------------------
@@ -41,7 +41,7 @@ int DataIO_Cmatrix_Binary::ReadData(FileName const& fname,
 
 // DataIO_Cmatrix_Binary::ReadCmatrix()
 int DataIO_Cmatrix_Binary::ReadCmatrix(FileName const& fname, DataSet_PairwiseCache_MEM& Mat) {
-  Binary_Cmatrix infile;
+  Cmatrix_Binary infile;
 
   if (infile.OpenCmatrixRead( fname )) return 1;
 
@@ -49,7 +49,7 @@ int DataIO_Cmatrix_Binary::ReadCmatrix(FileName const& fname, DataSet_PairwiseCa
   if ( Mat.Allocate( DataSet::SizeArray(1, infile.ActualNrows()) ) ) return 1;
   // Allocate sieve status array if needed
   char* sieveStatus = 0;
-  std::vector<char> ssArray; // TODO just pass in char array?
+  DataSet_PairwiseCache::StatusArray ssArray; // TODO just pass in char array instead of ptr?
   if (infile.Sieve() != 1) {
     ssArray.resize( infile.Ntotal() );
     sieveStatus = &ssArray[0];
@@ -58,7 +58,7 @@ int DataIO_Cmatrix_Binary::ReadCmatrix(FileName const& fname, DataSet_PairwiseCa
   if (infile.GetCmatrix( Mat.Ptr(), sieveStatus )) return 1;
 
   // Set sieve status.
-//  if (Mat.SetSieveFromArray(sieveStatus, sieve)) return 1;
+  if (Mat.SetupFromStatus(ssArray, infile.Sieve())) return 1;
 
   return 0;
 }

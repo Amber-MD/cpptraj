@@ -4,6 +4,16 @@
 using namespace Cpptraj;
 using namespace Cluster;
 
+DataSet_PairwiseCache::DataSet_PairwiseCache() :
+  sieve_(0)
+{}
+
+DataSet_PairwiseCache::DataSet_PairwiseCache(DataType t) :
+  DataSet(t, PWCACHE, TextFormat(TextFormat::DOUBLE, 12, 4), 2),
+  sieve_(0)
+{}
+
+
 /** Set up frame number to matrix index for caching. This should be called
   * by each inheriting DataSet_PairwiseCache's SetupCache routine.
   */
@@ -34,4 +44,20 @@ bool DataSet_PairwiseCache::CachedFramesMatch(Cframes const& frames) const
     }
   }
   return true;
+}
+
+/** In given StatusArray, T means frame is present, F means not present. */
+int DataSet_PairwiseCache::SetupFromStatus(StatusArray const& frameIsPresent, int sieveIn)
+{
+  frameToIdx_.clear();
+  frameToIdx_.reserve( frameIsPresent.size() );
+  int idx = 0;
+  for (StatusArray::const_iterator it = frameIsPresent.begin();
+                                   it != frameIsPresent.end(); ++it)
+    if (*it == 'T')
+      frameToIdx_.push_back( idx++ );
+    else
+      frameToIdx_.push_back( -1 );
+  sieve_ = sieveIn;
+  return 0;
 }
