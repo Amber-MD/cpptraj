@@ -6,7 +6,7 @@
 /// <Enter description of Analysis_Cluster here>
 class Analysis_Cluster : public Analysis {
   public:
-    Analysis_Cluster() : Analysis(HIDDEN) {}
+    Analysis_Cluster() : Analysis(HIDDEN), coords_(0), masterDSL_(0) {}
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Cluster(); }
     void Help() const;
 
@@ -16,5 +16,6 @@ class Analysis_Cluster : public Analysis {
     Cpptraj::Cluster::Control control_;
 
     DataSet_Coords* coords_;
+    DataSetList* masterDSL_;
 };
 #endif

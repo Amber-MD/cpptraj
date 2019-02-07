@@ -31,8 +31,8 @@ class Control {
     void Info() const;
     /// Perform clustering.
     int Run();
-    /// Do any clustering output.
-    int Output();
+    /// Do any clustering output. TODO make const?
+    int Output(DataSetList&);
     /// Print timing data
     void Timing(double) const;
 
@@ -58,6 +58,7 @@ class Control {
     DataSet_PairwiseCache* cache_; ///< Hold any cached pairwise distances.
     PairwiseMatrix pmatrix_;       ///< Encapsulates the metric and any cached distances.
     Algorithm* algorithm_;         ///< Hold the clustering algorithm.
+    std::string dsname_;           ///< Name for output data sets.
     int verbose_;
 
     int sieve_;                     ///< Sieve value

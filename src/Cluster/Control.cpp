@@ -345,7 +345,9 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
 
   // Cluster number vs time 
   DataFile* cnumvtimefile = DFL.AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  cnumvtime_ = DSL.AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
+  // NOTE overall set name extracted here. This should be the last thing done.
+  dsname_ = analyzeArgs.GetStringNext();
+  cnumvtime_ = DSL.AddSet(DataSet::INTEGER, dsname_, "Cnum");
   if (cnumvtime_ == 0) return 1;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
@@ -460,7 +462,7 @@ int Cpptraj::Cluster::Control::Run() {
   return 0;
 }
 
-int Cpptraj::Cluster::Control::Output() {
+int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   timer_output_.Start();
   // Info
   if (!suppressInfo_) {
@@ -508,7 +510,25 @@ int Cpptraj::Cluster::Control::Output() {
       return 1;
     }
   }
-    
+
+  // Cluster population vs time
+  if (cpopvtimefile_ != 0) {
+    MetaData md( dsname_, "Pop" );
+    DataSet::SizeArray setsize(1, metric_->Ntotal());
+    for (List::cluster_iterator node = clusters_.begin();
+                                node != clusters_.end(); ++node)
+    {
+      md.SetIdx( node->Num() );
+      DataSet_float* ds = (DataSet_float*)DSL.AddSet( DataSet::FLOAT, md );
+      if (ds == 0) {
+        mprinterr("Error: Could not allocate cluster pop vs time DataSet\n");
+        return 1;
+      }
+      ds->Allocate( setsize );
+      if (cpopvtimefile_ != 0) cpopvtimefile_->AddDataSet( ds );
+      node->CalcCpopVsTime( *ds, metric_->Ntotal(), norm_pop_ );
+    }
+  }
 
   timer_output_.Stop();
   return 0;

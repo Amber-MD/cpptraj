@@ -38,6 +38,8 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 
   control_.Info();
 
+  masterDSL_ = setup.DslPtr();
+
   return Analysis::OK;
 
 }
@@ -51,7 +53,7 @@ Analysis::RetType Analysis_Cluster::Analyze() {
     return Analysis::ERR;
   }
   // Output
-  if (control_.Output() != 0) {
+  if (control_.Output(*masterDSL_) != 0) {
     mprinterr("Error: Cluster output failed.\n");
     return Analysis::ERR;
   }
