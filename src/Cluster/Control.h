@@ -5,6 +5,7 @@
 #include "Algorithm.h"
 #include "Metric.h"
 #include "BestReps.h"
+#include "../Timer.h"
 #include "../DataSetList.h"
 #include "../DataFileList.h"
 #include "../DataSet_Coords.h"
@@ -25,9 +26,14 @@ class Control {
 
     int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, DataSetList&,
                               DataFileList&, int);
-
+    /// Provide information on how clustering calculation is currently set up.
     void Info() const;
+    /// Perform clustering.
     int Run();
+    /// Do any clustering output. TODO
+    //int Output();
+    /// Print timing data
+    void Timing(double) const;
 
     List const& Clusters()     const { return clusters_; }
     Metric const& DistMetric() const { return *metric_;  }
@@ -66,6 +72,17 @@ class Control {
     std::string summaryfile_;         ///< Cluster summary file name.
     std::string sil_file_;            ///< File prefix for writing silhouette data
 
+    // Timers
+    Timer timer_setup_;          ///< Run - metric, frames to cluster setup 
+    Timer timer_pairwise_;       ///< Run - pairwise caching
+    Timer timer_cluster_;        ///< Run - clustering
+    Timer timer_post_;           ///< Run - post-clustering calcs (rep frames etc)
+    Timer timer_post_renumber_;  ///< Run Post - cluster sort/renumber
+    Timer timer_post_bestrep_;   ///< Run Post - best rep frame calc
+    Timer timer_run_;            ///< Total Run time
+    Timer timer_output_info_;    ///< Output - info file write
+    Timer timer_output_summary_; ///< Output - summary write
+    Timer timer_output_;         ///< Total output time
 };
 
 } /** END namespace Cluster. */

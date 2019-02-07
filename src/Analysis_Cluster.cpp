@@ -48,6 +48,8 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 
 // Analysis_Cluster::Analyze()
 Analysis::RetType Analysis_Cluster::Analyze() {
+  Timer t_total;
+  t_total.Start();
   int err = control_.Run();
   if (err != 0) {
     mprinterr("Error: Clustering failed.\n");
@@ -62,5 +64,7 @@ Analysis::RetType Analysis_Cluster::Analyze() {
       return Analysis::ERR;
     }
   }
+  t_total.Stop();
+  control_.Timing(t_total.Total());
   return Analysis::OK;
 }

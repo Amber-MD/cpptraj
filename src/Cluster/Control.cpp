@@ -344,13 +344,8 @@ int Cpptraj::Cluster::Control::Run() {
   }
 
   // Timers
-  Timer cluster_setup;
-  Timer cluster_pairwise;
-  Timer cluster_cluster;
-  Timer cluster_post;
-  Timer cluster_total;
-  cluster_total.Start();
-  cluster_setup.Start();
+  timer_run_.Start();
+  timer_setup_.Start();
   // Set up the Metric
   if (metric_->Setup()) {
     mprinterr("Error: Metric setup failed.\n");
@@ -362,16 +357,16 @@ int Cpptraj::Cluster::Control::Run() {
   frameSieve.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
   Cframes const& framesToCluster = frameSieve.FramesToCluster();
 
-  cluster_setup.Stop();
-  cluster_pairwise.Start();
+  timer_setup_.Stop();
+  timer_pairwise_.Start();
 
   // Cache distances if necessary
   pmatrix_.CacheDistances( framesToCluster, sieve_ );
   if (pmatrix_.HasCache() && verbose_ > 1)
     pmatrix_.Cache().PrintCached();
 
-  cluster_pairwise.Stop();
-  cluster_cluster.Start();
+  timer_pairwise_.Stop();
+  timer_cluster_.Start();
 
   // Cluster
   if (algorithm_->DoClustering(clusters_, framesToCluster, pmatrix_) != 0) {
@@ -379,16 +374,12 @@ int Cpptraj::Cluster::Control::Run() {
     return 1;
   }
 
-  cluster_cluster.Stop();
+  timer_cluster_.Stop();
 
   // ---------------------------------------------
-  cluster_post.Start();
-  Timer cluster_post_renumber;
-  Timer cluster_post_bestrep;
-  Timer cluster_post_info;
-  Timer cluster_post_summary;
+  timer_post_.Start();
   //Timer cluster_post_coords;
-  cluster_post_renumber.Start();
+  timer_post_renumber_.Start();
   // Update cluster centroids here in case they need to be used to 
   // restore sieved frames
   clusters_.UpdateCentroids( metric_ );
@@ -417,8 +408,8 @@ int Cpptraj::Cluster::Control::Run() {
   // Sort by population and renumber
   clusters_.Sort();
 
-  cluster_post_renumber.Stop();
-  cluster_post_bestrep.Start();
+  timer_post_renumber_.Stop();
+  timer_post_bestrep_.Start();
 
   // Find best representative frames for each cluster.
   if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, pmatrix_,
@@ -428,7 +419,7 @@ int Cpptraj::Cluster::Control::Run() {
     return 1;
   }
 
-  cluster_post_bestrep.Stop();
+  timer_post_bestrep_.Stop();
 
   // DEBUG - print clusters to stdout
   if (verbose_ > 0) {
@@ -437,15 +428,20 @@ int Cpptraj::Cluster::Control::Run() {
   }
 
   // TODO assign reference names
-
+  timer_run_.Stop();
+//  return 0;
+//}
+//
+//int Cpptraj::Cluster::Control::Output() {
+  timer_output_.Start();
   // Info
   if (!suppressInfo_) {
     CpptrajFile outfile;
     if (outfile.OpenWrite( clusterinfo_ )) return 1;
-    cluster_post_info.Start();
+    timer_output_info_.Start();
     Output::PrintClustersToFile(outfile, clusters_, *algorithm_, metric_, 
                                 frameSieve.SieveValue(), frameSieve.SievedOut());
-    cluster_post_info.Stop();
+    timer_output_info_.Stop();
     outfile.CloseFile();
   }
 
@@ -465,7 +461,7 @@ int Cpptraj::Cluster::Control::Run() {
 
   // Print a summary of clusters
   if (!summaryfile_.empty()) {
-    cluster_post_summary.Start();
+    timer_output_summary_.Start();
     CpptrajFile outfile;
     if (outfile.OpenWrite(summaryfile_)) {
       mprinterr("Error: Could not set up cluster summary file.\n");
@@ -473,25 +469,27 @@ int Cpptraj::Cluster::Control::Run() {
     }
     Output::Summary(outfile, clusters_, *algorithm_, pmatrix_, includeSieveInCalc_,
                     frameSieve.SievedOut());
-    cluster_post_summary.Stop();
+    timer_output_summary_.Stop();
   }
 
-  cluster_post.Stop();
-  cluster_total.Stop();
-
-  // Timing data
-  mprintf("\tCluster timing data:\n");
-  cluster_setup.WriteTiming(1,    "  Cluster Init. :", cluster_total.Total());
-  cluster_pairwise.WriteTiming(1, "  Pairwise Calc.:", cluster_total.Total());
-  cluster_cluster.WriteTiming(1,  "  Clustering    :", cluster_total.Total());
-  algorithm_->Timing( cluster_cluster.Total() );
-  cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
-  cluster_post_renumber.WriteTiming(2, "Cluster renumbering/sieve restore", cluster_post.Total());
-  cluster_post_bestrep.WriteTiming(2, "Find best rep.", cluster_post.Total());
-  cluster_post_info.WriteTiming(2, "Info calc", cluster_post.Total());
-  cluster_post_summary.WriteTiming(2, "Summary calc", cluster_post.Total());
-  //cluster_post_coords.WriteTiming(2, "Coordinate writes", cluster_post.Total());
-  cluster_total.WriteTiming(1,    "Total:");
-
+  timer_output_.Stop();
   return 0;
+}
+
+void Cpptraj::Cluster::Control::Timing(double ttotal) const {
+  mprintf("\tCluster timing data:\n");
+  // Run Timing data
+  timer_setup_.WriteTiming(       2, "Cluster Init.  :", timer_run_.Total());
+  timer_pairwise_.WriteTiming(    2, "Pairwise Calc. :", timer_run_.Total());
+  timer_cluster_.WriteTiming(     2, "Clustering     :", timer_run_.Total());
+  algorithm_->Timing( timer_cluster_.Total() );
+  timer_post_.WriteTiming(        2, "Cluster Post.  :", timer_run_.Total());
+  timer_post_renumber_.WriteTiming( 3, "Cluster renumbering/sieve restore :", timer_post_.Total());
+  timer_post_bestrep_.WriteTiming(  3, "Find best rep.                    :", timer_post_.Total());
+  timer_run_.WriteTiming(   1, "Run Total    :", ttotal);
+  // Output Timing data
+  timer_output_info_.WriteTiming(   2, "Info calc      :", timer_output_.Total());
+  timer_output_summary_.WriteTiming(2, "Summary calc   :", timer_output_.Total());
+  //cluster_post_coords.WriteTiming(2, "Coordinate writes", cluster_post.Total());
+  timer_output_.WriteTiming(1, "Output Total :", ttotal);
 }
