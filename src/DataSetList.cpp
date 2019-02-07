@@ -20,9 +20,6 @@
 #include "DataSet_Mat3x3.h"
 #include "DataSet_Topology.h"
 #include "DataSet_GridDbl.h"
-#include "DataSet_Cmatrix_MEM.h"
-#include "DataSet_Cmatrix_NOMEM.h"
-#include "DataSet_Cmatrix_DISK.h"
 #include "DataSet_pH.h"
 #include "DataSet_PHREMD_Explicit.h"
 #include "DataSet_PHREMD_Implicit.h"
@@ -50,9 +47,6 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "reference",     DataSet_Coords_REF::Alloc }, // REF_FRAME
   { "3x3 matrices",  DataSet_Mat3x3::Alloc     }, // MAT3X3
   { "topology",      DataSet_Topology::Alloc   }, // TOPOLOGY
-  { "cluster matrix",DataSet_Cmatrix_MEM::Alloc}, // CMATRIX
-  { "cluster matrix (no memory)",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
-  { "cluster matrix (disk)",     DataSet_Cmatrix_DISK::Alloc},  // CMATRIX_DISK
   { "pH",            DataSet_pH::Alloc         }, // PH
   { "pH REMD (explicit)",DataSet_PHREMD_Explicit::Alloc}, // PH_EXPL
   { "pH REMD (implicit)",DataSet_PHREMD_Implicit::Alloc}, // PH_IMPL

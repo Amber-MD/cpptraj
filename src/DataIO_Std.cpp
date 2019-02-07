@@ -15,7 +15,6 @@
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_2D.h"
 #include "DataSet_3D.h"
-#include "DataSet_Cmatrix_MEM.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
@@ -303,6 +302,10 @@ int DataIO_Std::Read_1D(std::string const& fname,
 int DataIO_Std::ReadCmatrix(FileName const& fname,
                             DataSetList& datasetlist, std::string const& dsname)
 {
+  mprinterr("Internal Error: ReadCmatrix() must be reimplemented!\n");
+  // TODO re-implement
+  return 1;
+/*
   // Allocate output data set
   DataSet* ds = datasetlist.AddSet( DataSet::CMATRIX, dsname );
   if (ds == 0) return 1;
@@ -399,6 +402,7 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
   Mat.SetSieveFromArray(sieveStatus, sieveDelta);
 
   return 0;
+*/
 }
 
 // DataIO_Std::Read_2D()
@@ -896,6 +900,9 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
 
 // DataIO_Std::WriteCmatrix()
 int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
+  mprinterr("Internal Error: WriteCmatrix() must be reimplemented!\n");
+  return 1; // TODO re-implement
+/*
   for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
   {
     if ( (*ds)->Group() != DataSet::CLUSTERMATRIX) {
@@ -930,6 +937,7 @@ int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
     }
   }
   return 0;
+*/
 }
 
 // DataIO_Std::WriteDataNormal()

@@ -20,13 +20,12 @@
 #include "DataIO_VecTraj.h"
 #include "DataIO_XVG.h"
 #include "DataIO_CCP4.h"
-#include "DataIO_Cmatrix.h"
-#include "DataIO_NC_Cmatrix.h"
 #include "DataIO_CharmmRepLog.h"
 #include "DataIO_CharmmFastRep.h"
 #include "DataIO_CharmmOutput.h"
 #include "DataIO_Cpout.h"
 #include "DataIO_CharmmRtfPrm.h"
+#include "DataIO_Cmatrix_Binary.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -61,17 +60,12 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Vector pseudo-traj", 0,                       DataIO_VecTraj::WriteHelp,DataIO_VecTraj::Alloc},
   { "XVG file",           0,                       0,                        DataIO_XVG::Alloc    },
   { "CCP4 file",          0,                       DataIO_CCP4::WriteHelp,   DataIO_CCP4::Alloc   },
-  { "Cluster matrix file",0,                       0,                        DataIO_Cmatrix::Alloc},
-# ifdef BINTRAJ
-  { "NetCDF Cluster matrix file", 0,               0,                     DataIO_NC_Cmatrix::Alloc},
-# else
-  { "NetCDF Cluster matrix file", 0, 0, 0 },
-# endif
   { "CHARMM REM log",     DataIO_CharmmRepLog::ReadHelp, 0,             DataIO_CharmmRepLog::Alloc},
   { "CHARMM Fast REM log",0,                             0,            DataIO_CharmmFastRep::Alloc},
   { "CHARMM Output",      0,                             0,             DataIO_CharmmOutput::Alloc},
   { "Amber CPOUT",        DataIO_Cpout::ReadHelp, DataIO_Cpout::WriteHelp, DataIO_Cpout::Alloc},
   { "CHARMM RTF/PRM",     0,                             0,            DataIO_CharmmRtfPrm::Alloc },
+  { "Pairwise Cache (binary)", 0,                        0,          DataIO_Cmatrix_Binary::Alloc },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -88,11 +82,11 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
-  { CMATRIX,      "cmatrix",".cmatrix" },
-  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
+//  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CHARMMREPD,   "charmmrepd",".exch" },
   { CHARMMOUT,    "charmmout", ".charmmout"},
   { CHARMMRTFPRM, "charmmrtfprm", ".rtfprm"},
+  { CMATRIX_BINARY,"cmatrix",".cmatrix" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -108,9 +102,9 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { VECTRAJ,      "vectraj",".vectraj" },
   { CCP4,         "ccp4",   ".ccp4"  },
-  { CMATRIX,      "cmatrix",".cmatrix" },
-  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
+//  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CPOUT,        "cpout",  ".cpout" },
+  { CMATRIX_BINARY,      "cmatrix",".cmatrix" },
   { UNKNOWN_DATA, 0,        0        }
 };
 

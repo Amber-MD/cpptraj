@@ -107,7 +107,6 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
         Analysis_Average.cpp \
-        Analysis_Clustering.cpp \
         Analysis_Cluster.cpp \
         Analysis_Corr.cpp \
         Analysis_ConstantPHStats.cpp \
@@ -160,17 +159,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         ByteRoutines.cpp \
         CharMask.cpp \
         CIFfile.cpp \
-        ClusterDist.cpp \
-        ClusterList.cpp \
         ClusterMap.cpp \
-        ClusterMatrix.cpp \
-        ClusterNode.cpp \
-        ClusterSieve.cpp \
-        Cluster_DBSCAN.cpp \
-        Cluster_DPeaks.cpp \
-        Cluster_HierAgglo.cpp \
-        Cluster_Kmeans.cpp \
-        Cluster_ReadInfo.cpp \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
@@ -192,7 +181,6 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataIO_CharmmOutput.cpp \
         DataIO_CharmmRepLog.cpp \
         DataIO_CharmmRtfPrm.cpp \
-        DataIO_Cmatrix.cpp \
         DataIO_Cmatrix_Binary.cpp \
         DataIO_Cpout.cpp \
         DataIO_Evecs.cpp \
@@ -200,7 +188,6 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataIO_Grace.cpp \
         DataIO_OpenDx.cpp \
         DataIO_Mdout.cpp \
-        DataIO_NC_Cmatrix.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
@@ -210,10 +197,6 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataSetList.cpp \
         DataSet_1D.cpp \
         DataSet_3D.cpp \
-        DataSet_Cmatrix.cpp \
-        DataSet_Cmatrix_DISK.cpp \
-        DataSet_Cmatrix_MEM.cpp \
-        DataSet_Cmatrix_NOMEM.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
         DataSet_Coords_REF.cpp \
