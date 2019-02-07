@@ -64,64 +64,33 @@ int DataIO_Cmatrix_Binary::ReadCmatrix(FileName const& fname, DataSet_PairwiseCa
 }
 
 // -----------------------------------------------------------------------------
-/*
-// DataIO_Cmatrix::WriteHelp()
-void DataIO_Cmatrix::WriteHelp() {
+// DataIO_Cmatrix_Binary::WriteHelp()
+void DataIO_Cmatrix_Binary::WriteHelp() {
 
 }
 
-// DataIO_Cmatrix::processWriteArgs()
-int DataIO_Cmatrix::processWriteArgs(ArgList &argIn) {
+// DataIO_Cmatrix_Binary::processWriteArgs()
+int DataIO_Cmatrix_Binary::processWriteArgs(ArgList &argIn) {
 
   return 0;
 }
 
-// DataIO_Cmatrix::WriteData()
-int DataIO_Cmatrix::WriteData(FileName const& fname, DataSetList const& SetList)
+// DataIO_Cmatrix_Binary::WriteData()
+int DataIO_Cmatrix_Binary::WriteData(FileName const& fname, DataSetList const& SetList)
 {
   if (SetList.empty()) return 1;
   if (SetList.size() > 1)
     mprintf("Warning: Multiple sets not yet supported for cluster matrix write.\n");
-  DataSet_Cmatrix_MEM const& Mat = static_cast<DataSet_Cmatrix_MEM const&>( *(*(SetList.begin())) );
+  DataSet_PairwiseCache_MEM const& Mat = 
+    static_cast<DataSet_PairwiseCache_MEM const&>( *(*(SetList.begin())) );
   return WriteCmatrix( fname, Mat );
 }
 
-// DataIO_Cmatrix::WriteCmatrix()
-int DataIO_Cmatrix::WriteCmatrix(FileName const& fname, DataSet_Cmatrix_MEM const& Mat) {
-  CpptrajFile outfile;
-  uint_8 ntemp;
-  // No stdout write allowed.
-  if (fname.empty()) {
-    mprinterr("Internal Error: DataIO_Cmatrix::WriteData() called with no filename.\n");
-    return 1;
-  }
-  if (outfile.OpenWrite(fname)) {
-    mprinterr("Error: Could not open %s for write.\n", fname.full());
-    return 1;
-  }
-  // Write magic byte
-  outfile.Write( Magic_, 4 );
-  // Write original number of frames.
-  ntemp = (uint_8)Mat.OriginalNframes();
-  outfile.Write( &ntemp, sizeof(uint_8) );
-  // Write actual nrows
-  ntemp = (uint_8)Mat.Nrows();
-  outfile.Write( &ntemp, sizeof(uint_8) );
-  // Write out sieve value
-  sint_8 stemp = (sint_8)Mat.SieveValue();
-  outfile.Write( &stemp, sizeof(sint_8) );
-  // Write matrix elements
-  outfile.Write( Mat.Ptr(), Mat.Size()*sizeof(float) );
-  // If this is a reduced matrix, write whether each frame was sieved (T) or not (F). 
-  if (Mat.SieveType() != ClusterSieve::NONE) {
-    std::vector<char> sieveStatus( Mat.OriginalNframes() );
-    for (int idx = 0; idx != Mat.OriginalNframes(); idx++) 
-      if (Mat.FrameWasSieved(idx))
-        sieveStatus[idx] = 'T';
-      else
-        sieveStatus[idx] = 'F';
-    outfile.Write( &sieveStatus[0], Mat.OriginalNframes()*sizeof(char) );
-  }
-  return 0;
+// DataIO_Cmatrix_Binary::WriteCmatrix()
+int DataIO_Cmatrix_Binary::WriteCmatrix(FileName const& fname,
+                                        DataSet_PairwiseCache_MEM const& Mat)
+{
+  int err = Cmatrix_Binary::WriteCmatrix( fname, Mat.Ptr(), Mat.FrameToIdx(),
+                                          Mat.Nrows(), Mat.SieveVal() );
+  return err;
 }
-*/

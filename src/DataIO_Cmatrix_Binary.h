@@ -11,12 +11,12 @@ class DataIO_Cmatrix_Binary : public DataIO {
     static void WriteHelp();
     int processReadArgs(ArgList&);
     int ReadData(FileName const&,DataSetList&,std::string const&);
-    int processWriteArgs(ArgList&) { return 0; } // TODO
-    int WriteData(FileName const&,DataSetList const&) { return 1; } // TODO
+    int processWriteArgs(ArgList&);
+    int WriteData(FileName const&,DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
     // -------------------------------------------
     int ReadCmatrix(FileName const&, DataSet_PairwiseCache_MEM&);
-    int WriteCmatrix(FileName const&, DataSet_PairwiseCache const&); 
+    int WriteCmatrix(FileName const&, DataSet_PairwiseCache_MEM const&); 
   private:
 };
 #endif
