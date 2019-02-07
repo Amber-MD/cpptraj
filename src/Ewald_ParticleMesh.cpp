@@ -183,6 +183,16 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(Box const& boxIn)
                                 boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
                                 PMEInstanceD::LatticeType::XAligned);
   double erecip = pme_object->computeERec(0, chargesD, coordsD);
+
+  // LJ PME
+  Mat cparamD(&Cparam_[0], Cparam_.size(), 1);
+  auto pme_vdw = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
+  pme_vdw->setup(6, ew_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
+  pme_vdw->setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
+                             boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+                             PMEInstanceD::LatticeType::XAligned);
+  double evdwrecip = pme_vdw->computeERec(0, cparamD, coordsD);
+  mprintf("DEBUG: Evdwrecip = %16.8f\n", evdwrecip);
   t_recip_.Stop();
   return erecip;
 }
