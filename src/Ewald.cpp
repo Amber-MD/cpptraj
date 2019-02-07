@@ -347,6 +347,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
   double Eelec = 0.0;
   double e_adjust = 0.0;
   double Evdw = 0.0;
+  double Eljpme_correction = 0.0;
   int cidx;
 # ifdef _OPENMP
 # pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust)
@@ -419,10 +420,28 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                 double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
                 Evdw += e_vdw;
                 //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
+                // LJ PME direct space correction
+                double kr2 = ew_coeff_ * ew_coeff_ * rij2;
+                double kr4 = kr2 * kr2;
+                //double kr6 = kr2 * kr4;
+                double expterm = exp(-kr2);
+                double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+                Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * Cij;
               }
             }
-          } else
+          } else {
             e_adjust += Adjust(q0, q1, sqrt(rij2));
+            // LJ PME direct space correction
+            // NOTE: Assuming excluded pair is within cutoff
+            double kr2 = ew_coeff_ * ew_coeff_ * rij2;
+            double kr4 = kr2 * kr2;
+            //double kr6 = kr2 * kr4;
+            double expterm = exp(-kr2);
+            double r4 = rij2 * rij2;
+            double r6 = rij2 * r4;
+            double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+            Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
+          }
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
         for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
@@ -484,10 +503,28 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                   double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
                   Evdw += e_vdw;
                   //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
+                  // LJ PME direct space correction
+                  double kr2 = ew_coeff_ * ew_coeff_ * rij2;
+                  double kr4 = kr2 * kr2;
+                  //double kr6 = kr2 * kr4;
+                  double expterm = exp(-kr2);
+                  double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+                  Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * Cij;
                 }
               }
-            } else
+            } else {
               e_adjust += Adjust(q0, q1, sqrt(rij2));
+              // LJ PME direct space correction
+              // NOTE: Assuming excluded pair is within cutoff
+              double kr2 = ew_coeff_ * ew_coeff_ * rij2;
+              double kr4 = kr2 * kr2;
+              //double kr6 = kr2 * kr4;
+              double expterm = exp(-kr2);
+              double r4 = rij2 * rij2;
+              double r6 = rij2 * r4;
+              double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
+              Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
+            }
           } // END loop over neighbor cell atoms
         } // END Loop over neighbor cells
       } // Loop over thisCell atoms
@@ -499,6 +536,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
   t_direct_.Stop();
   e_adjust_out = e_adjust;
   evdw_out = Evdw;
+  mprintf("DEBUG: LJ vdw correction = %16.8f\n", Eljpme_correction);
   return Eelec;
 }
 
