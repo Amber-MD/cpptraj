@@ -8,6 +8,7 @@ CLUSTER_SOURCES= \
   Cluster/Cframes.cpp \
   Cluster/Cmatrix_Binary.cpp \
   Cluster/Control.cpp \
+  Cluster/DynamicMatrix.cpp \
   Cluster/List.cpp \
   Cluster/Metric_RMS.cpp \
   Cluster/Node.cpp \

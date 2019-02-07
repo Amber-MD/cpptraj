@@ -1,8 +1,8 @@
 #ifndef INC_CLUSTER_ALGORITHM_HIERAGGLO_H
 #define INC_CLUSTER_ALGORITHM_HIERAGGLO_H
 #include "Algorithm.h"
+#include "DynamicMatrix.h"
 #include "../Timer.h"
-#include "../ClusterMatrix.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -35,7 +35,7 @@ class Algorithm_HierAgglo : public Algorithm {
     double epsilon_;      ///< Once the min distance between clusters is > epsilon, stop.
     LINKAGETYPE linkage_; ///< Cluster Linkage type.
     CpptrajFile eps_v_n_; ///< Write epsilon vs # clusters.
-    ClusterMatrix ClusterDistances_;
+    DynamicMatrix ClusterDistances_;
 #   ifdef TIMER
     Timer time_findMin_;
     Timer time_mergeFrames_;
