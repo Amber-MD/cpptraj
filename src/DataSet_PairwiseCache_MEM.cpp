@@ -29,6 +29,8 @@ int DataSet_PairwiseCache_MEM::SetupCache(unsigned int Ntotal, Cframes const& fr
     // TODO probably need to save metricDescription and sieve here for potential file write.
   } else
     Mat_.clear();
+  SetSieveVal( sieve );
+  SetMetricDescrip( metricDescription );
   return SetupFrameToIdx(framesToCache, Ntotal);
 }
 

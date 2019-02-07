@@ -47,11 +47,20 @@ class DataSet_PairwiseCache : public DataSet {
     Cframes const& FrameToIdx()            const { return frameToIdx_; }
     /// \return True if given frames array matches cached frames.
     bool CachedFramesMatch(Cframes const&) const;
+    /// \return Internal sieve value for bookkeeping
+    int SieveVal()                         const { return sieve_; }
+    /// \return Internal metric description for bookkeeping
+    std::string const& MetricDescrip()     const { return metricDescription_; }
+
     /// Used to set up frame indices from given status array. Record sieve value.
     int SetupFromStatus(StatusArray const&, int);
   protected:
     /// Set up frame to internal index array using given frames and total frames.
     int SetupFrameToIdx(Cframes const&, unsigned int);
+    /// Set internal sieve value for bookkeeping (should call from SetupCache).
+    void SetSieveVal(int s)                     { sieve_ = s;             }
+    /// Set internal metric description for bookkeeping (should call from SetupCache).
+    void SetMetricDescrip(std::string const& m) { metricDescription_ = m; }
   private:
     Cframes frameToIdx_; ///< Hold indices for all cached frames, -1 for non-cached.
     std::string metricDescription_; ///< Optional description of metric used to gen matrix.

@@ -22,6 +22,9 @@ int DataSet_PairwiseCache_NC::SetupCache(unsigned int Ntotal, Cframes const& fra
   }
   // Reopen in SHARE mode for random access
   if (file_.ReopenSharedWrite( Meta().Fname() )) return 1;
+  // TODO - these are saved in the NetCDF file as well - remove redundancy?
+  SetSieveVal( sieve );
+  SetMetricDescrip( metricDescription );
 
   return SetupFrameToIdx(framesToCache, Ntotal);
 }
