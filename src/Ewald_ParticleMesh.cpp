@@ -127,6 +127,8 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
 /** Setup PME calculation. */
 int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
+  // TODO put branch here
+  CalculateC6params( topIn, maskIn );
   coordsD_.clear();
   coordsD_.reserve( maskIn.Nselected() * 3);
   SetupExcluded(topIn, maskIn);

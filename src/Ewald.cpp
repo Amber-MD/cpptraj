@@ -177,6 +177,17 @@ void Ewald::CalculateCharges(Topology const& topIn, AtomMask const& maskIn) {
   Setup_VDW_Correction( topIn, maskIn );
 }
 
+void Ewald::CalculateC6params(Topology const& topIn, AtomMask const& maskIn) {
+  Cparam_.clear();
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+  {
+    double rmin = topIn.GetVDWradius( *atom );
+    double eps  = topIn.GetVDWdepth( *atom );
+    Cparam_.push_back( 8.0 * (rmin*rmin*rmin) * sqrt(2 * eps) );
+    mprintf("DEBUG: C6 param atom %8i = %16.8f\n", *atom+1, Cparam_.back());
+  }
+}
+
 /** Set up exclusion lists for selected atoms. */
 void Ewald::SetupExcluded(Topology const& topIn, AtomMask const& maskIn)
 {

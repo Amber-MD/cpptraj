@@ -45,6 +45,8 @@ class Ewald {
     int Setup_Pairlist(Box const&, Vec3 const&, double);
     /// Calculate sum q, sum q^2. Calls setup for vdw correction
     void CalculateCharges(Topology const&, AtomMask const&);
+    /// Calculate VDW C6 parameters for LJ PME
+    void CalculateC6params(Topology const&, AtomMask const&);
     /// Setup main excluded atom list
     void SetupExcluded(Topology const&, AtomMask const&);
     /// Setup VDW correction for selected atom types
@@ -68,6 +70,7 @@ class Ewald {
     Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
 #   endif
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
+    Darray Cparam_;       ///< Hold selected atomic C6 coefficients for LJ PME
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each selected atom.
