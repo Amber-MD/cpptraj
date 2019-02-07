@@ -72,6 +72,9 @@ class Control {
     std::string summaryfile_;         ///< Cluster summary file name.
     std::string sil_file_;            ///< File prefix for writing silhouette data
 
+    DataFile* cpopvtimefile_;
+    Node::CnormType norm_pop_;
+
     // Timers
     Timer timer_setup_;          ///< Run - metric, frames to cluster setup 
     Timer timer_pairwise_;       ///< Run - pairwise caching

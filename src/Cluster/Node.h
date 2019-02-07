@@ -25,7 +25,7 @@ class Node {
     Node& operator=(const Node&);
 
     /// Types of normalization for cluster pop v time.
-    enum CnormType { CLUSTERPOP = 0, FRAME };
+    enum CnormType { NONE = 0, CLUSTERPOP, FRAME };
 
     /// Used to pair a representative frame number with a score.
     typedef std::pair<int,float> RepPair;

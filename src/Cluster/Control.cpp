@@ -21,7 +21,9 @@ Cpptraj::Cluster::Control::Control() :
   includeSieveInCalc_(false),
   bestRep_(BestReps::NO_REPS),
   nRepsToSave_(1),
-  suppressInfo_(false)
+  suppressInfo_(false),
+  cpopvtimefile_(0),
+  norm_pop_(Node::NONE)
 {}
 
 Cpptraj::Cluster::Control::~Control() {
@@ -325,6 +327,16 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
     clusterinfo_ = analyzeArgs.GetStringKey("info");
   summaryfile_ = analyzeArgs.GetStringKey("summary");
   sil_file_ = analyzeArgs.GetStringKey("sil");
+  cpopvtimefile_ = DFL.AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
+  if (cpopvtimefile_ != 0) {
+    if (analyzeArgs.hasKey("normpop"))
+      norm_pop_ = Node::CLUSTERPOP;
+    else if (analyzeArgs.hasKey("normframe"))
+      norm_pop_ = Node::FRAME;
+    else
+      norm_pop_ = Node::NONE;
+  }
+
 
 
   Info();
