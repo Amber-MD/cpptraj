@@ -33,7 +33,7 @@ class Cmatrix_Binary {
     int GetCmatrix(float*, char*);
 
     /// Write cluster matrix TODO add a setup routine
-    static int WriteCmatrix(FileName const&, const float*, size_t, size_t, int, Cframes const&);
+    static int WriteCmatrix(FileName const&, const float*, Cframes const&, size_t, int);
   private:
     static const unsigned char Magic_[];
     /// For reading/writing 8 byte unsigned integers

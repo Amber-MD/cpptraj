@@ -126,23 +126,22 @@ static inline size_t Nelements(size_t nrows) {
   return ( nrows * (nrows - 1UL) ) / 2UL;
 }
 
-int Cpptraj::Cluster::Cmatrix_Binary::GetCmatrix(float* ptr, char* sieveStatus) {
+int Cpptraj::Cluster::Cmatrix_Binary::GetCmatrix(float* ptr, char* frameIsPresent) {
   file_.Seek( headerOffset_  );
   size_t nelements =  Nelements( actual_nrows_ );
   if (file_.Read( ptr, nelements * sizeof(float) ) < 1) return 1;
   // Read sieve if needed
-  if (sieveStatus != 0) {
-    if (file_.Read( sieveStatus, ntotal_ * sizeof(char) ) < 1) return 1;
+  if (frameIsPresent != 0) {
+    if (file_.Read( frameIsPresent, ntotal_ * sizeof(char) ) < 1) return 1;
   }
   return 0;
 }
 
 int Cpptraj::Cluster::Cmatrix_Binary::WriteCmatrix(FileName const& fname,
                                                    const float* ptr,
-                                                   size_t OriginalNframes,
+                                                   Cframes const& frameToIdx,
                                                    size_t Nrows,
-                                                   int sieveValue,
-                                                   Cframes const& actualFrames)
+                                                   int sieveValue)
 {
   CpptrajFile outfile;
   uint_8 ntemp;
@@ -155,6 +154,7 @@ int Cpptraj::Cluster::Cmatrix_Binary::WriteCmatrix(FileName const& fname,
     mprinterr("Error: Could not open %s for write.\n", fname.full());
     return 1;
   }
+  size_t OriginalNframes = frameToIdx.size();
   // Write magic byte
   outfile.Write( Magic_, 4 );
   // Write original number of frames.
@@ -171,11 +171,16 @@ int Cpptraj::Cluster::Cmatrix_Binary::WriteCmatrix(FileName const& fname,
   outfile.Write( ptr, nelements*sizeof(float) );
   // If this is a reduced matrix, write whether each frame was sieved (T) or not (F). 
   if (sieveValue != 1) {
-    std::vector<char> sieveStatus( OriginalNframes, 'F' );
-    for (unsigned int idx = 0; idx != OriginalNframes; idx++) 
-      if (actualFrames.HasFrame(idx))
-        sieveStatus[idx] = 'T';
-    outfile.Write( &sieveStatus[0], OriginalNframes*sizeof(char) );
+    //DataSet_PairwiseMatrix::StatusArray frameIsPresent;
+    std::vector<char> frameIsPresent;
+    frameIsPresent.reserve( OriginalNframes );
+    for (Cframes::const_iterator it = frameToIdx.begin();
+                                 it != frameToIdx.end(); ++it)
+      if (*it == -1)
+        frameIsPresent.push_back( 'F' );
+      else
+        frameIsPresent.push_back( 'T' );
+    outfile.Write( &frameIsPresent[0], OriginalNframes*sizeof(char) );
   }
   return 0;
 }
