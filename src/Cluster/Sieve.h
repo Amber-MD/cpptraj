@@ -12,6 +12,7 @@ class Sieve {
     Sieve() : type_(NONE), sieve_(1) {}
 
     int SetFramesToCluster(int, std::size_t, int);
+    void Clear() { framesToCluster_.clear(); sievedOut_.clear(); type_ = NONE; sieve_ = 1; }
 
     Cframes const& FramesToCluster() const { return framesToCluster_; }
     Cframes const& SievedOut()       const { return sievedOut_;       }

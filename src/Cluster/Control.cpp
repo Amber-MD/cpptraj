@@ -1,7 +1,6 @@
 #include "Control.h"
 #include "../CpptrajStdio.h"
 #include "../DataSet_Coords.h"
-#include "Sieve.h"
 #include "Output.h"
 #include "../DataFile.h" // For loading pairwise cache
 // Metric classes
@@ -22,6 +21,7 @@ Cpptraj::Cluster::Control::Control() :
   bestRep_(BestReps::NO_REPS),
   nRepsToSave_(1),
   suppressInfo_(false),
+  cnumvtime_(0),
   cpopvtimefile_(0),
   norm_pop_(Node::NONE)
 {}
@@ -321,12 +321,18 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
     return 1;
   }
 
-  // Output options
+  // Cluster info output
   suppressInfo_ = analyzeArgs.hasKey("noinfo");
   if (!suppressInfo_)
     clusterinfo_ = analyzeArgs.GetStringKey("info");
+
+  // Cluster summary output
   summaryfile_ = analyzeArgs.GetStringKey("summary");
+
+  // Cluster silhouette output
   sil_file_ = analyzeArgs.GetStringKey("sil");
+
+  // Cluster pop v time output
   cpopvtimefile_ = DFL.AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
   if (cpopvtimefile_ != 0) {
     if (analyzeArgs.hasKey("normpop"))
@@ -337,9 +343,12 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
       norm_pop_ = Node::NONE;
   }
 
+  // Cluster number vs time 
+  DataFile* cnumvtimefile = DFL.AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  cnumvtime_ = DSL.AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
+  if (cnumvtime_ == 0) return 1;
+  if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
-
-  Info();
   return 0;
 }
 
@@ -365,9 +374,16 @@ int Cpptraj::Cluster::Control::Run() {
   }
 
   // Figure out which frames to cluster
-  Sieve frameSieve;
-  frameSieve.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
-  Cframes const& framesToCluster = frameSieve.FramesToCluster();
+  frameSieve_.Clear();
+  frameSieve_.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
+  if (verbose_ >= 0) {
+    if (frameSieve_.FramesToCluster().size() < metric_->Ntotal())
+      mprintf("\tClustering %zu of %u points.\n", frameSieve_.FramesToCluster().size(),
+              metric_->Ntotal());
+    else
+      mprintf("\tClustering %u points.\n", metric_->Ntotal());
+  }
+  Cframes const& framesToCluster = frameSieve_.FramesToCluster();
 
   timer_setup_.Stop();
   timer_pairwise_.Start();
@@ -402,10 +418,10 @@ int Cpptraj::Cluster::Control::Run() {
     mprintf("\tRestoring sieved frames.\n");
     switch (sieveRestore_) {
       case CLOSEST_CENTROID :
-        clusters_.AddFramesByCentroid( frameSieve.SievedOut(), metric_ ); break;
+        clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metric_ ); break;
       case EPSILON_CENTROID :
       case EPSILON_FRAME    :
-        clusters_.AddFramesByCentroid( frameSieve.SievedOut(), metric_,
+        clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metric_,
                                        (sieveRestore_ == EPSILON_CENTROID),
                                        restoreEpsilon_ );
         break;
@@ -425,7 +441,7 @@ int Cpptraj::Cluster::Control::Run() {
 
   // Find best representative frames for each cluster.
   if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, pmatrix_,
-                                  frameSieve.SievedOut(), verbose_))
+                                  frameSieve_.SievedOut(), verbose_))
   {
     mprinterr("Error: Finding best representative frames for clusters failed.\n");
     return 1;
@@ -441,10 +457,10 @@ int Cpptraj::Cluster::Control::Run() {
 
   // TODO assign reference names
   timer_run_.Stop();
-//  return 0;
-//}
-//
-//int Cpptraj::Cluster::Control::Output() {
+  return 0;
+}
+
+int Cpptraj::Cluster::Control::Output() {
   timer_output_.Start();
   // Info
   if (!suppressInfo_) {
@@ -452,16 +468,16 @@ int Cpptraj::Cluster::Control::Run() {
     if (outfile.OpenWrite( clusterinfo_ )) return 1;
     timer_output_info_.Start();
     Output::PrintClustersToFile(outfile, clusters_, *algorithm_, metric_, 
-                                frameSieve.SieveValue(), frameSieve.SievedOut());
+                                frameSieve_.SieveValue(), frameSieve_.SievedOut());
     timer_output_info_.Stop();
     outfile.CloseFile();
   }
 
   // Silhouette
   if (!sil_file_.empty()) {
-    if (frameSieve.SieveValue() != 1 && !includeSieveInCalc_)
+    if (frameSieve_.SieveValue() != 1 && !includeSieveInCalc_)
       mprintf("Warning: Silhouettes do not include sieved frames.\n");
-    clusters_.CalcSilhouette(pmatrix_, frameSieve.SievedOut(), includeSieveInCalc_);
+    clusters_.CalcSilhouette(pmatrix_, frameSieve_.SievedOut(), includeSieveInCalc_);
     CpptrajFile Ffile, Cfile;
     if (Ffile.OpenWrite(sil_file_ + ".frame.dat")) return 1;
     Output::PrintSilhouetteFrames(Ffile, clusters_);
@@ -480,9 +496,19 @@ int Cpptraj::Cluster::Control::Run() {
       return 1;
     }
     Output::Summary(outfile, clusters_, *algorithm_, pmatrix_, includeSieveInCalc_,
-                    frameSieve.SievedOut());
+                    frameSieve_.SievedOut());
     timer_output_summary_.Stop();
   }
+
+  // Cluster number vs time
+  if (cnumvtime_ != 0) {
+    if (clusters_.CreateCnumVsTime( (DataSet_integer*)cnumvtime_, metric_->Ntotal() ))
+    {
+      mprinterr("Error: Creation of cluster num vs time data set failed.\n");
+      return 1;
+    }
+  }
+    
 
   timer_output_.Stop();
   return 0;

@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTER_CONTROL_H
 #define INC_CLUSTER_CONTROL_H
 #include "List.h"
+#include "Sieve.h"
 #include "PairwiseMatrix.h"
 #include "Algorithm.h"
 #include "Metric.h"
@@ -30,8 +31,8 @@ class Control {
     void Info() const;
     /// Perform clustering.
     int Run();
-    /// Do any clustering output. TODO
-    //int Output();
+    /// Do any clustering output.
+    int Output();
     /// Print timing data
     void Timing(double) const;
 
@@ -52,6 +53,7 @@ class Control {
     static DataFile::DataFormatType DEFAULT_PAIRDIST_TYPE_;
 
     List clusters_;                ///< Hold cluster results.
+    Sieve frameSieve_;             ///< Hold frames to cluster, frames to "sieve" out.
     Metric* metric_;               ///< Hold the distance metric.
     DataSet_PairwiseCache* cache_; ///< Hold any cached pairwise distances.
     PairwiseMatrix pmatrix_;       ///< Encapsulates the metric and any cached distances.
@@ -72,8 +74,10 @@ class Control {
     std::string summaryfile_;         ///< Cluster summary file name.
     std::string sil_file_;            ///< File prefix for writing silhouette data
 
-    DataFile* cpopvtimefile_;
-    Node::CnormType norm_pop_;
+    DataSet* cnumvtime_;              ///< Cluster number vs time data set.
+
+    DataFile* cpopvtimefile_;         ///< Cluster population vs time file.
+    Node::CnormType norm_pop_;        ///< Cluster pop vs time normalization type
 
     // Timers
     Timer timer_setup_;          ///< Run - metric, frames to cluster setup 
