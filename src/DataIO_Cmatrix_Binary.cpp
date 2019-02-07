@@ -1,6 +1,6 @@
 #include "DataIO_Cmatrix_Binary.h"
 #include "CpptrajStdio.h"
-#include "Cluster/Binary_Cmatrix.h"
+#include "Cluster/Cmatrix_Binary.h"
 
 using namespace Cpptraj;
 using namespace Cluster; 

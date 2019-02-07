@@ -1,7 +1,7 @@
-#include "Binary_Cmatrix.h"
+#include "Cmatrix_Binary.h"
 #include "../CpptrajStdio.h"
 
-Cpptraj::Cluster::Binary_Cmatrix::Binary_Cmatrix() :
+Cpptraj::Cluster::Cmatrix_Binary::Cmatrix_Binary() :
   sieve_(0),
   actual_nrows_(0),
   ntotal_(0),
@@ -17,10 +17,10 @@ Cpptraj::Cluster::Binary_Cmatrix::Binary_Cmatrix() :
 //   Version 2 Update: Read/write sieve value as signed, negative
 //                     value is random sieve. Variable is same #
 //                     of bytes so should be backwards-compatible.
-const unsigned char Cpptraj::Cluster::Binary_Cmatrix::Magic_[4] = {'C', 'T', 'M', 2};
+const unsigned char Cpptraj::Cluster::Cmatrix_Binary::Magic_[4] = {'C', 'T', 'M', 2};
 
 /** File must be set up read. */
-bool Cpptraj::Cluster::Binary_Cmatrix::ID_Cmatrix(CpptrajFile& infile)
+bool Cpptraj::Cluster::Cmatrix_Binary::ID_Cmatrix(CpptrajFile& infile)
 {
   unsigned char magic[4];
   
@@ -30,7 +30,7 @@ bool Cpptraj::Cluster::Binary_Cmatrix::ID_Cmatrix(CpptrajFile& infile)
   return (magic[0]==Magic_[0] && magic[1]==Magic_[1] && magic[2]==Magic_[2]);
 }
 
-int Cpptraj::Cluster::Binary_Cmatrix::OpenCmatrixRead(FileName const& fname)
+int Cpptraj::Cluster::Cmatrix_Binary::OpenCmatrixRead(FileName const& fname)
 {
   unsigned char magic[4];
   uint_8 ROWS, ELTS;
@@ -104,7 +104,7 @@ static long int calcTriIndex(size_t nX, size_t xIn, size_t yIn) {
       return (long int)(( (nX * i) - ((i1 * i) / 2UL) ) + j - i1);
 }
 
-double Cpptraj::Cluster::Binary_Cmatrix::GetCmatrixElement(unsigned int col, unsigned int row)
+double Cpptraj::Cluster::Cmatrix_Binary::GetCmatrixElement(unsigned int col, unsigned int row)
 {
   // Determine absolute index
   long int idx = calcTriIndex(actual_nrows_, col, row);
@@ -114,7 +114,7 @@ double Cpptraj::Cluster::Binary_Cmatrix::GetCmatrixElement(unsigned int col, uns
   return (double)fvar;
 }
 
-double Cpptraj::Cluster::Binary_Cmatrix::GetCmatrixElement(unsigned int idx)
+double Cpptraj::Cluster::Cmatrix_Binary::GetCmatrixElement(unsigned int idx)
 {
   file_.Seek( headerOffset_ + idx * sizeof(float) );
   float fvar;
@@ -126,7 +126,7 @@ static inline size_t Nelements(size_t nrows) {
   return ( nrows * (nrows - 1UL) ) / 2UL;
 }
 
-int Cpptraj::Cluster::Binary_Cmatrix::GetCmatrix(float* ptr, char* sieveStatus) {
+int Cpptraj::Cluster::Cmatrix_Binary::GetCmatrix(float* ptr, char* sieveStatus) {
   file_.Seek( headerOffset_  );
   size_t nelements =  Nelements( actual_nrows_ );
   if (file_.Read( ptr, nelements * sizeof(float) ) < 1) return 1;
@@ -137,7 +137,7 @@ int Cpptraj::Cluster::Binary_Cmatrix::GetCmatrix(float* ptr, char* sieveStatus) 
   return 0;
 }
 
-int Cpptraj::Cluster::Binary_Cmatrix::WriteCmatrix(FileName const& fname,
+int Cpptraj::Cluster::Cmatrix_Binary::WriteCmatrix(FileName const& fname,
                                                    const float* ptr,
                                                    size_t OriginalNframes,
                                                    size_t Nrows,

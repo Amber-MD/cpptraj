@@ -1,5 +1,5 @@
-#ifndef INC_CLUSTER_BINARY_CMATRIX_H
-#define INC_CLUSTER_BINARY_CMATRIX_H
+#ifndef INC_CLUSTER_CMATRIX_BINARY_H
+#define INC_CLUSTER_CMATRIX_BINARY_H
 #include <cstddef> // size_t
 #include "../CpptrajFile.h" 
 #include "../FileName.h"
@@ -9,9 +9,9 @@ namespace Cpptraj {
 namespace Cluster {
 
 /// Used to read pairwise distance cache files in cpptraj binary format.
-class Binary_Cmatrix {
+class Cmatrix_Binary {
   public:
-    Binary_Cmatrix();
+    Cmatrix_Binary();
 
     /// \return true if file is binary cpptraj cluster matrix file.
     static bool ID_Cmatrix(CpptrajFile&);
