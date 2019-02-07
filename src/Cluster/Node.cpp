@@ -134,3 +134,36 @@ void Cpptraj::Cluster::Node::AddFrameUpdateCentroid(Metric* Cdist, int frame) {
                          Metric::ADDFRAME);
   AddFrameToCluster( frame );
 }
+
+/** Calculate cluster population vs time. */
+void Cpptraj::Cluster::Node::CalcCpopVsTime(DataSet_float& pvt, unsigned int maxFrames,
+                                            CnormType normType)
+const
+{
+  // TODO clear pvt array?
+  float pop = 0.0;
+  // Loop over all frames in cluster
+  for (frame_iterator f = beginframe(); f != endframe(); ++f)
+  {
+    if (*f > (int)pvt.Size())
+      pvt.Resize( *f, pop );
+    pop = pop + 1.0;
+    pvt[*f] = pop;
+  }
+  // Ensure pop v time set is maxFrames long
+  if (pvt.Size() < maxFrames)
+    pvt.Resize( maxFrames, pop );
+  // Normalization
+  if (normType == CLUSTERPOP) {
+    float norm = 1.0 / (float)Nframes();
+    for (unsigned int frm = 0; frm < maxFrames; ++frm)
+      pvt[frm] = pvt[frm] * norm;
+  } else if (normType == FRAME) {
+    float norm = 1.0;
+    for (unsigned int frm = 0; frm < maxFrames; ++frm)
+    {
+      pvt[frm] = pvt[frm] / norm;
+      norm = norm + 1.0;
+    }
+  }
+}

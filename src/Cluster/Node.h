@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTER_NODE_H
 #define INC_CLUSTER_NODE_H
 #include "PairwiseMatrix.h"
+#include "../DataSet_float.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -22,6 +23,9 @@ class Node {
     Node(const Node&);
     /// ASSIGNMENT
     Node& operator=(const Node&);
+
+    /// Types of normalization for cluster pop v time.
+    enum CnormType { CLUSTERPOP = 0, FRAME };
 
     /// Used to pair a representative frame number with a score.
     typedef std::pair<int,float> RepPair;
@@ -106,6 +110,9 @@ class Node {
     void RemoveFrameUpdateCentroid(Metric*, int);
     /// Add specified frame to cluster and update centroid.
     void AddFrameUpdateCentroid(Metric*, int);
+
+    /// Calculate cluster population vs time.
+    void CalcCpopVsTime(DataSet_float&, unsigned int, CnormType) const;
   private:
     Cframes frameList_;     ///< List of frames belonging to this cluster.
     Centroid* centroid_;    ///< Centroid of all frames in this cluster.

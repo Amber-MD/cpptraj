@@ -53,11 +53,12 @@ class List {
     void AddFramesByCentroid(Cframes const&, Metric*);
     /// Add given frames to clusters based on distance to centroid and cutoff.
     void AddFramesByCentroid(Cframes const&, Metric*, bool, double);
+
     /// Calculate the Davies-Bouldin index.
     double ComputeDBI(std::vector<double>&, Metric*) const;
     /// Calculate pseudo-F
     double ComputePseudoF(double&, Metric*) const;
-    /// Calculate cluster and cluster frame silhouettes
+    /// Calculate cluster and cluster frame silhouettes TODO data sets
     int CalcSilhouette(PairwiseMatrix const&, Cframes const&, bool);
   private:
     typedef std::list<Node> Narray;
