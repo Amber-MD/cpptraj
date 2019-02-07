@@ -33,7 +33,7 @@ int DataIO_Cmatrix_Binary::ReadData(FileName const& fname,
 {
   // Allocate data set
   MetaData md( dsname, MetaData::M_MATRIX );
-  DataSet* ds = dsl.AddSet(DataSet::PMATRIX_MEM, md, "Cmatrix");
+  DataSet* ds = dsl.AddSet(DataSet::PMATRIX_MEM, md );
   if (ds == 0) return 1;
   DataSet_PairwiseCache_MEM& Mat = static_cast<DataSet_PairwiseCache_MEM&>( *ds );
   return ReadCmatrix(fname, Mat);

@@ -183,6 +183,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataIO_CharmmRepLog.cpp \
         DataIO_CharmmRtfPrm.cpp \
         DataIO_Cmatrix_Binary.cpp \
+        DataIO_Cmatrix_NC.cpp \
         DataIO_Cpout.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \

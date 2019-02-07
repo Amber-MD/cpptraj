@@ -26,6 +26,7 @@
 #include "DataIO_Cpout.h"
 #include "DataIO_CharmmRtfPrm.h"
 #include "DataIO_Cmatrix_Binary.h"
+#include "DataIO_Cmatrix_NC.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -66,6 +67,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Amber CPOUT",        DataIO_Cpout::ReadHelp, DataIO_Cpout::WriteHelp, DataIO_Cpout::Alloc},
   { "CHARMM RTF/PRM",     0,                             0,            DataIO_CharmmRtfPrm::Alloc },
   { "Pairwise Cache (binary)", 0,                        0,          DataIO_Cmatrix_Binary::Alloc },
+  { "Pairwise Cache (NetCDF)", 0,                        0,          DataIO_Cmatrix_NC::Alloc },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -82,11 +84,11 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
-//  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CHARMMREPD,   "charmmrepd",".exch" },
   { CHARMMOUT,    "charmmout", ".charmmout"},
   { CHARMMRTFPRM, "charmmrtfprm", ".rtfprm"},
   { CMATRIX_BINARY,"cmatrix",".cmatrix" },
+  { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -102,9 +104,9 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { VECTRAJ,      "vectraj",".vectraj" },
   { CCP4,         "ccp4",   ".ccp4"  },
-//  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CPOUT,        "cpout",  ".cpout" },
-  { CMATRIX_BINARY,      "cmatrix",".cmatrix" },
+  { CMATRIX_BINARY,"cmatrix",".cmatrix" },
+  { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
   { UNKNOWN_DATA, 0,        0        }
 };
 

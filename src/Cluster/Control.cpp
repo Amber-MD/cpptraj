@@ -35,11 +35,11 @@ const char* Cpptraj::Cluster::Control::DEFAULT_PAIRDIST_NAME_ = "CpptrajPairDist
 
 /** The default pairwise distance file type. */
 DataFile::DataFormatType Cpptraj::Cluster::Control::DEFAULT_PAIRDIST_TYPE_ =
-//# ifdef BINTRAJ
-//  DataFile::NCCMATRIX;
-//# else
+# ifdef BINTRAJ
+  DataFile::CMATRIX_NETCDF;
+# else
   DataFile::CMATRIX_BINARY;
-//# endif
+# endif
 
 const char* Cpptraj::Cluster::Control::PairwiseArgs =
   "pairwisecache {mem|disk|none}";
