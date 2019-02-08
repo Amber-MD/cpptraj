@@ -19,6 +19,11 @@ class DataSet_PairwiseCache : public DataSet {
     /// Class used to hold frame statuses (T = present)
     typedef std::vector<char> StatusArray;
 
+    /// Character that means frame "present"; 'F' meaning frame was not sieve.
+    static const char PRESENT_;
+    /// Character that means frame "absent" - 'T' meaning frame was sieved.
+    static const char ABSENT_; 
+
     //static DataSet* Alloc() { return (DataSet*)new DataSet_PairwiseCache(); }
     // ----- DataSet functions -------------------
     //size_t Size()                                    const { return 0; }

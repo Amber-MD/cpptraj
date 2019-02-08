@@ -13,6 +13,9 @@ DataSet_PairwiseCache::DataSet_PairwiseCache(DataType t) :
   sieve_(0)
 {}
 
+const char DataSet_PairwiseCache::PRESENT_ = 'F';
+
+const char DataSet_PairwiseCache::ABSENT_ = 'T';
 
 /** Set up frame number to matrix index for caching. This should be called
   * by each inheriting DataSet_PairwiseCache's SetupCache routine.
@@ -54,7 +57,7 @@ int DataSet_PairwiseCache::SetupFromStatus(StatusArray const& frameIsPresent, in
   int idx = 0;
   for (StatusArray::const_iterator it = frameIsPresent.begin();
                                    it != frameIsPresent.end(); ++it)
-    if (*it == 'T')
+    if (*it == PRESENT_)
       frameToIdx_.push_back( idx++ );
     else
       frameToIdx_.push_back( -1 );

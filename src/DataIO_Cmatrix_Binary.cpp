@@ -53,6 +53,9 @@ int DataIO_Cmatrix_Binary::ReadCmatrix(FileName const& fname, DataSet_PairwiseCa
   if (infile.Sieve() != 1) {
     ssArray.resize( infile.Ntotal() );
     sieveStatus = &ssArray[0];
+  } else {
+    // All present
+    ssArray.assign( infile.Ntotal(), DataSet_PairwiseCache::PRESENT_ );
   }
   // Read in matrix elements
   if (infile.GetCmatrix( Mat.Ptr(), sieveStatus )) return 1;

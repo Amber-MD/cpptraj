@@ -169,7 +169,8 @@ int Cpptraj::Cluster::Cmatrix_Binary::WriteCmatrix(FileName const& fname,
   // Write matrix elements
   size_t nelements =  Nelements( Nrows );
   outfile.Write( ptr, nelements*sizeof(float) );
-  // If this is a reduced matrix, write whether each frame was sieved (T) or not (F). 
+  // If this is a reduced matrix, write whether each frame was sieved (T) or not (F).
+  // NOTE: definitions are in DataSet_PairwiseCache.h
   if (sieveValue != 1) {
     //DataSet_PairwiseMatrix::StatusArray frameIsPresent;
     std::vector<char> frameIsPresent;
@@ -177,9 +178,9 @@ int Cpptraj::Cluster::Cmatrix_Binary::WriteCmatrix(FileName const& fname,
     for (Cframes::const_iterator it = frameToIdx.begin();
                                  it != frameToIdx.end(); ++it)
       if (*it == -1)
-        frameIsPresent.push_back( 'F' );
-      else
         frameIsPresent.push_back( 'T' );
+      else
+        frameIsPresent.push_back( 'F' );
     outfile.Write( &frameIsPresent[0], OriginalNframes*sizeof(char) );
   }
   return 0;

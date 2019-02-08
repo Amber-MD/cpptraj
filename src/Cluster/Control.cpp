@@ -63,8 +63,16 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
   std::string fname;
   if (pairdistname.empty())
     fname = DEFAULT_PAIRDIST_NAME_;
-  else
+  else {
     fname = pairdistname;
+    // To remain backwards compatible, assume we want to load if
+    // a pairdist name was specified.
+    if (!load_pair && !save_pair) {
+      mprintf("Warning: 'pairdist' specified but 'loadpairdist'/'savepairdist' not specified."
+              "Warning: Assuming 'loadpairdist'.\n");
+      load_pair = true;
+    }
+  }
 
   cache_ = 0;
   if (load_pair) {
