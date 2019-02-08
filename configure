@@ -39,7 +39,7 @@ UsageFull() {
   echo "    -nolfs     : Do not enable large file support."
   echo "    -shared    : Configure for generating libcpptraj (implies -nosanderlib)."
   echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
-  echo "    -windows   : Set up for use with MinGW compilers for a native Windows build"
+  echo "    -windows   : Set up for use with MinGW compilers for a native Windows build."
   echo "  LIBRARY OPTIONS"
   echo "    -<lib>             : Enable library."
   echo "    --with-<lib>=<DIR> : Use library in specified directory."
@@ -51,9 +51,10 @@ UsageFull() {
   echo "    -static        : Use static linking."
   echo "    -libstatic     : Use static linking only for specified libraries."
   echo "    -mkl           : Use Intel MKL for BLAS/LAPACK (requires MKL_HOME/MKLROOT set)."
-  echo "    -openblas      : Use OpenBLAS for BLAS/LAPACK/ARPACK (may require '--with-blas' or '-lblas')"
-  echo "    -macAccelerate : Use Accelerate framework for BLAS/LAPACK"
-  echo "    -libsci        : Use Cray LibSci for BLAS/LAPACK"
+  echo "    -openblas      : Use OpenBLAS for BLAS/LAPACK (may require '--with-blas' or '-lblas')."
+  echo "                     May also want to specify '-larpack' if included in OpenBLAS."
+  echo "    -macAccelerate : Use Accelerate framework for BLAS/LAPACK."
+  echo "    -libsci        : Use Cray LibSci for BLAS/LAPACK."
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX          : Name of the C++ compiler."
   echo "    CC           : Name of the C compiler."
@@ -84,7 +85,7 @@ UsageFull() {
   echo "    --compile-verbose : Turn on compile details."
   echo "    -profile          : Use Gnu compiler profiling (>= V4.5)*"
   echo "    -gprofile         : Use Gnu compiler GLIBC profiling (>= V4.5)*"
-  echo "    -vtune            : Enable options for use with Intel Vtune"
+  echo "    -vtune            : Enable options for use with Intel Vtune."
   echo "    -single-ensemble  : Enable support for reading/writing single ensemble trajectories."
   echo ""
   echo "*NOTE: -profile and -gprofile are mutually exclusive."
@@ -1094,6 +1095,7 @@ SetupProfiling() {
 #-------------------------------------------------------------------------------
 # Basic compiler tests
 TestCompilers() {
+  echo ""
   # C++ OpenMP
   if [ $USE_OPENMP -eq 1 ] ; then
     cat > testp.cpp <<EOF
