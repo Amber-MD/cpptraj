@@ -884,8 +884,9 @@ SetupCompilers() {
       SPECIFIED_COMPILER=$COMPILERS
       echo "Determining compilers from CXX ($CXX)"
       case "$CXX" in
-        *g++*     ) COMPILERS='gnu' ;;
+        # NOTE - Have to look for clang++ first since it overlaps with g++
         *clang++* ) COMPILERS='clang' ;;
+        *g++*     ) COMPILERS='gnu' ;;
         *icpc*    ) COMPILERS='intel' ;;
         *pgc++*   ) COMPILERS='pgi' ;;
         *CC*      ) COMPILERS='cray' ;;
