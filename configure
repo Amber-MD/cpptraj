@@ -1824,7 +1824,7 @@ EXE=$EXE
 
 EOF
 if [ $COMPILE_VERBOSE -eq 1 ] ; then
-  cat >> config.h <<EOF
+  cat > buildrules.h <<EOF
 .cpp.o:
 	\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
 
@@ -1832,7 +1832,7 @@ if [ $COMPILE_VERBOSE -eq 1 ] ; then
 	\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
 EOF
 else
-  cat >> config.h <<EOF
+  cat > buildrules.h <<EOF
 .cpp.o:
 	@echo CXX \$<
 	@\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
