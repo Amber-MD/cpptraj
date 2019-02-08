@@ -290,6 +290,10 @@ CheckLibraryKeys() {
   for ((i=0; i < $NLIB; i++)) ; do
     LKEY="-"${LIB_CKEY[$i]}
     if [ "$1" = "$LKEY" ] ; then
+      # If previously bundled, clear home
+      if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
+        LIB_HOME[$i]=''
+      fi
       LIB_STAT[$i]='enabled'
       echo "  ${LIB_CKEY[$i]} enabled."
       return 0
@@ -753,6 +757,7 @@ SetupLibraries() {
     lhome=''
     linc=''
     lflag=''
+    #echo "DEBUG: ${LIB_CKEY[$i]} flag=${LIB_FLAG[$i]} stat=${LIB_STAT[$i]} home=${LIB_HOME[$i]}"
     if [ "${LIB_STAT[$i]}" = 'off' ] ; then
       #echo "${LIB_CKEY[$i]} disabled." # DEBUG
       LIB_TEST[$i]='no'
