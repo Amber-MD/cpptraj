@@ -144,11 +144,15 @@ int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetLis
       DataFile::DataFormatType pw_file_type = DataFile::UNKNOWN_DATA;
       if (pairdistname.empty())
         pw_file_type = DEFAULT_PAIRDIST_TYPE_;
-      DataFile* pwd_file = DFL.AddDataFile( fname, pw_file_type, ArgList() );
-      if (pwd_file == 0) return 1;
-      pwd_file->AddDataSet( cache_ );
-      mprintf("DEBUG: Saving pw distance cache '%s' to file '%s'\n", cache_->legend(),
-              pwd_file->DataFilename().full());
+      // TODO enable saving for other set types?
+      if (cache_->Type() == DataSet::PMATRIX_MEM) {
+        DataFile* pwd_file = DFL.AddDataFile( fname, pw_file_type, ArgList() );
+        if (pwd_file == 0) return 1;
+        pwd_file->AddDataSet( cache_ );
+        mprintf("DEBUG: Saving pw distance cache '%s' to file '%s'\n", cache_->legend(),
+                pwd_file->DataFilename().full());
+      } else
+        mprintf("Warning: Can only save pairwise distance cache for in-memory caches.\n");
     }
   }
 

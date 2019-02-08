@@ -63,7 +63,7 @@ int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCach
   if (cache_ == 0) return 0;
 
   if (cache_->Size() > 0) {
-    mprintf("DEBUG: Using existing cache '%s'\n", cache_->legend());
+    mprintf("\tUsing existing cache '%s'\n", cache_->legend());
     // If cache is already populated, check that it is valid.
     // The frames to cache must match cached frames.
     if (!cache_->CachedFramesMatch( framesToCache )) {
@@ -90,7 +90,7 @@ int Cpptraj::Cluster::PairwiseMatrix::CacheDistances(Cframes const& framesToCach
 /** Cache distances between given frames using SetElement(). */
 int Cpptraj::Cluster::PairwiseMatrix::CalcFrameDistances(Cframes const& framesToCache)
 {
-  mprintf("DEBUG: Caching distances for %zu frames.\n", framesToCache.size());
+  mprintf("\tCaching distances for %zu frames.\n", framesToCache.size());
 
   int f2end = (int)framesToCache.size();
   int f1end = f2end - 1;
