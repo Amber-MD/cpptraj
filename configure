@@ -733,7 +733,7 @@ SetupLibraries() {
     if [ "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
       LIB_FLAG[$LBLAS]='-lopenblas'
     fi
-    if [ -z "${LIB_HOME[$LBLAS]}" ] ; then
+    if [ -z "${LIB_HOME[$LBLAS]}" -a "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
       echo "Warning: '-openblas' may require specifying location with '--with-blas=<DIR>' or '-lblas='"
     fi
     LIB_STAT[$LLAPACK]='off'
