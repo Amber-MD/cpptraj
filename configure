@@ -738,8 +738,6 @@ SetupLibraries() {
     fi
     LIB_STAT[$LLAPACK]='off'
     LIB_FLAG[$LLAPACK]=''
-    #LIB_STAT[$LARPACK]='enabled' DBG
-    #LIB_HOME[$LARPACK]='' DBG
   elif [ "$BLAS_TYPE" = 'macAccelerate' ] ; then
     LIB_FLAG[$LBLAS]='-framework Accelerate'
     LIB_STAT[$LLAPACK]='off'
