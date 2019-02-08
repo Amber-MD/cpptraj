@@ -93,9 +93,10 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
-COMPILERS=''      # User-specified compiler suite to use.
-FLINK=''          # Flag for linking in Fortran code
-REQUIRES_FLINK=0  # If 1 FLINK flag required during link phase
+COMPILERS=''       # User-specified compiler suite to use.
+FLINK=''           # Flag for linking in Fortran code
+REQUIRES_FLINK=0   # If 1 FLINK flag required during link phase
+REQUIRES_PTHREAD=0 # If 1 -lpthread required during link phase
 C11FLAG=''        # Flag for compiling C++11 code
 C11_SUPPORT='yes' # Support C++11 code
 SHARED_SUFFIX=''  # Suffix for shared libraries
@@ -415,20 +416,49 @@ EOF
 DetermineFlink() {
   desc="$1"
   flibs="$2"
+  # Do we already need FLINK?
   if [ $REQUIRES_FLINK -eq 0 ] ; then
-    # Try without FLINK
-    TestProgram quiet "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs"
-    if [ $? -eq 1 ] ; then
-      # That failed. Try with FLINK
-      TestProgram "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
-      REQUIRES_FLINK=1
-    else
-      # That worked. Print OK."
-      echo "$desc: OK"
-    fi
+    flink_opts="no yes"
   else
-    # FLINK already present
-    TestProgram "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
+    flink_opts="yes"
+  fi
+  # Go through combinations of FLINK/pthread
+  flink_success=0
+  for use_flink in $flink_opts ; do
+    for use_pthread in no yes ; do
+      libs_to_use="$flibs"
+      if [ "$use_flink" = 'yes' ] ; then
+        libs_to_use="$libs_to_use $FLINK"
+      fi
+      if [ "$use_pthread" = 'yes' ] ; then
+        libs_to_use="$libs_to_use -lpthread"
+      fi
+      if [ "$use_flink" = 'yes' -a "$use_pthread" = 'yes' ] ; then
+        # Final try. Report errors here
+        report=''
+      else
+        report='quiet'
+      fi
+      echo "DEBUG: Testing flink $use_flink pthread $use_pthread $report"
+      TestProgram $report "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$libs_to_use"
+      if [ $? -eq 0 ] ; then
+        # Compile/run worked.
+        if [ "$use_flink" = 'yes' ] ; then
+          REQUIRES_FLINK=1
+        fi
+        if [ "$use_pthread" = 'yes' ] ; then
+          REQUIRES_PTHREAD=1
+        fi
+        flink_success=1
+        if [ "$report" = 'quiet' ] ; then
+          echo "$desc: OK"
+        fi
+      fi
+    done
+  done
+  if [ $flink_success -eq 0 ] ; then
+    # Sanity check. Should not make it here.
+    exit 1
   fi
 }
     
@@ -668,6 +698,9 @@ SetupFinalFlags() {
   done
   if [ $REQUIRES_FLINK -eq 1 ] ; then
     CPPTRAJ_LIB="$CPPTRAJ_LIB $FLINK"
+  fi
+  if [ $REQUIRES_PTHREAD -eq 1 ] ; then
+    CPPTRAJ_LIB="$CPPTRAJ_LIB -lpthread"
   fi
   LDFLAGS="$ldf $LDFLAGS"
 }
@@ -1185,6 +1218,8 @@ SetupMKL() {
         mklthread='libmkl_gnu_thread.a'
         mklomp='-lgomp'
       fi
+      # Turn off pthread since we are adding it here.
+      REQUIRES_PTHREAD=0
       mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/$mklthread $mkldir/libmkl_core.a -Wl,--end-group $MKLOMP -lpthread -lm -ldl"
     else
       mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/libmkl_sequential.a $mkldir/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl"
