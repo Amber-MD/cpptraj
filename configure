@@ -51,6 +51,7 @@ UsageFull() {
   echo "    -static        : Use static linking."
   echo "    -libstatic     : Use static linking only for specified libraries."
   echo "    -mkl           : Use Intel MKL for BLAS/LAPACK (requires MKL_HOME/MKLROOT set)."
+  echo "    -nomklfftw     : Prevent use of FFTW from MKL."
   echo "    -openblas      : Use OpenBLAS for BLAS/LAPACK (may require '--with-blas' or '-lblas')."
   echo "                     May also want to specify '-larpack' if included in OpenBLAS."
   echo "    -macAccelerate : Use Accelerate framework for BLAS/LAPACK."
@@ -114,7 +115,7 @@ USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations, 2 = optimize/tune.
 BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray) etc
 MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
-MKL_FFTW=''       # If yes, use FFTW from MKL if not otherwise specified.
+MKL_FFTW=''       # If yes, use FFTW from MKL if not otherwise specified. If 'no' prevent this.
 USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
@@ -1238,7 +1239,7 @@ SetupMKL() {
   LIB_STAT[$LLAPACK]='off'
   LIB_FLAG[$LLAPACK]=''
   # If no FFTW, try using MKL
-  if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
+  if [ "${LIB_STAT[$LFFTW3]}" = 'off' -a "$MKL_FFTW" != 'no' ] ; then
     MKL_FFTW='yes'
     LIB_STAT[$LFFTW3]='enabled'
     LIB_FLAG[$LFFTW3]=''
@@ -1518,6 +1519,7 @@ while [ ! -z "$1" ] ; do
     '-cuda'          ) SetupCUDA ;;
     '-cray'          ) PLATFORM='cray' ;;
     '-mkl'           ) BLAS_TYPE='mkl' ;;
+    '-nomklfftw'     ) MKL_FFTW='no' ;;
     '-libsci'        ) BLAS_TYPE='libsci' ;;
     '-openblas'      ) BLAS_TYPE='openblas' ;;
     '-macAccelerate' ) BLAS_TYPE='macAccelerate' ;;
