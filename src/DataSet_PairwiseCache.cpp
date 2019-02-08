@@ -33,14 +33,14 @@ int DataSet_PairwiseCache::SetupFrameToIdx(Cframes const& framesToCache, unsigne
 }
 
 /** Check that the given frames match the already-cached frames. */
-bool DataSet_PairwiseCache::CachedFramesMatch(Cframes const& frames) const
+bool DataSet_PairwiseCache::CachedFramesMatch(Cframes const& framesIn) const
 {
-  Cframes_it it0 = frames.begin();
-  for (Cframes_it it1 = frameToIdx_.begin(); it0 != frameToIdx_.end(); ++it1)
+  Cframes_it frm0 = framesIn.begin();
+  for (int frm1 = 0; frm1 != (int)frameToIdx_.size(); frm1++)
   {
-    if (*it1 != -1) {
-      if (it0 == frames.end() || *it1 != *it0) return false;
-      ++it0;
+    if (frameToIdx_[frm1] != -1) {
+      if (frm0 == framesIn.end() || *frm0 != frm1) return false;
+      ++frm0;
     }
   }
   return true;
