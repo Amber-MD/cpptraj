@@ -332,6 +332,14 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
       return Action::ERR;
     EW_->Setup( setup.Top(), Imask_ );
   }
+# ifdef LIBPME
+  else if (elecType_ == PME) {
+    if (((Ewald_ParticleMesh*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
+                                         ewcoeff_, skinnb_, erfcDx_, npoints_, debug_, mlimits_))
+      return Action::ERR;
+    EW_->Setup( setup.Top(), Imask_ );
+  }
+# endif
   // For KE, check for velocities/forces
   if (KEtype_ != KE_NONE) {
     if (!setup.CoordInfo().HasVel()) {
@@ -348,14 +356,6 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
               "Warning: 'ketype vv' to estimate kinetic energy.\n");
     }
   }
-# ifdef LIBPME
-  else if (elecType_ == PME) {
-    if (((Ewald_ParticleMesh*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
-                                         ewcoeff_, skinnb_, erfcDx_, npoints_, debug_, mlimits_))
-      return Action::ERR;
-    EW_->Setup( setup.Top(), Imask_ );
-  }
-# endif
   currentParm_ = setup.TopAddress();
   return Action::OK;
 }
