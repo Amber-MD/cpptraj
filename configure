@@ -114,6 +114,7 @@ USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations, 2 = optimize/tune.
 BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray) etc
 MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
+MKL_FFTW=''       # If yes, use FFTW from MKL if not otherwise specified.
 USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
@@ -525,6 +526,9 @@ EOF
       echo "Warning: FFTW3 test failed. CPPTRAJ will be built without FFTW3."
       LIB_STAT[$LFFTW3]='off'
     fi
+  elif [ "$MKL_FFTW" = 'yes' ] ; then
+    # Using FFTW from MKL
+    TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
   else
     TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
   fi
@@ -1233,6 +1237,12 @@ SetupMKL() {
   LIB_FLAG[$LBLAS]="$mkllib"
   LIB_STAT[$LLAPACK]='off'
   LIB_FLAG[$LLAPACK]=''
+  # If no FFTW, try using MKL
+  if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
+    MKL_FFTW='yes'
+    LIB_STAT[$LFFTW3]='enabled'
+    LIB_FLAG[$LFFTW3]=''
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -1646,6 +1656,9 @@ if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then
 fi
 echo "  Target platform: $PLATFORM, $NBITS-bit."
 echo "  $COMPILERS compilers in use."
+if [ "$MKL_FFTW" = 'yes' ] ; then
+  echo "  Using FFTW from MKL."
+fi
 if [ "$C11_SUPPORT" = 'yes' ] ; then
   echo "  C++11 support enabled."
   if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
