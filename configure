@@ -439,7 +439,7 @@ DetermineFlink() {
       else
         report='quiet'
       fi
-      echo "DEBUG: Testing flink $use_flink pthread $use_pthread $report"
+      #echo "DEBUG: Testing $desc flink $use_flink pthread $use_pthread $report"
       TestProgram $report "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$libs_to_use"
       if [ $? -eq 0 ] ; then
         # Compile/run worked.
@@ -453,6 +453,7 @@ DetermineFlink() {
         if [ "$report" = 'quiet' ] ; then
           echo "$desc: OK"
         fi
+        return 0
       fi
     done
   done
@@ -460,6 +461,7 @@ DetermineFlink() {
     # Sanity check. Should not make it here.
     exit 1
   fi
+  return 0
 }
     
 TestMathlib() {
