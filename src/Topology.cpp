@@ -456,11 +456,6 @@ int Topology::Setup_NoResInfo() {
   return 0;
 }
 
-static inline int NoAtomsErr(const char* msg) {
-  mprinterr("Error: Cannot set up %s, no atoms present.\n");
-  return 1;
-}
-
 // Topology::Resize()
 void Topology::Resize(Pointers const& pIn) {
   atoms_.clear();
