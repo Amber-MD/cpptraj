@@ -880,20 +880,22 @@ SetupCompilers() {
   if [ ! -z "$FC"  ] ; then echo "Fortran compiler (FC) set to $FC" ; fi
   # If no compiler type specified try to guess
   if [ -z "$COMPILERS" -o ! -z "$CXX" ] ; then
-    echo "Determining compilers from CXX ($CXX)"
-    SPECIFIED_COMPILER=$COMPILERS
-    case "$CXX" in
-      *g++*     ) COMPILERS='gnu' ;;
-      *clang++* ) COMPILERS='clang' ;;
-      *icpc*    ) COMPILERS='intel' ;;
-      *pgc++*   ) COMPILERS='pgi' ;;
-      *CC*      ) COMPILERS='cray' ;;
-      * ) echo "Warning: Could not detect compiler type ($CXX); assuming GNU" > /dev/stderr;;
-    esac
-    # If compiler was also specified make sure it matches as a sanity check
-    if [ ! -z "$SPECIFIED_COMPILER" -a "$SPECIFIED_COMPILER" != "$COMPILERS" ] ; then
-      echo "Error: $SPECIFIED_COMPILER compilers specified but need $COMPILERS based on CXX = $CXX" > /dev/stderr
-      exit 1
+    if [ ! -z "$CXX" ] ; then
+      SPECIFIED_COMPILER=$COMPILERS
+      echo "Determining compilers from CXX ($CXX)"
+      case "$CXX" in
+        *g++*     ) COMPILERS='gnu' ;;
+        *clang++* ) COMPILERS='clang' ;;
+        *icpc*    ) COMPILERS='intel' ;;
+        *pgc++*   ) COMPILERS='pgi' ;;
+        *CC*      ) COMPILERS='cray' ;;
+        * ) echo "Warning: Could not detect compiler type ($CXX); assuming GNU" > /dev/stderr;;
+      esac
+      # If compiler was also specified make sure it matches as a sanity check
+      if [ ! -z "$SPECIFIED_COMPILER" -a "$SPECIFIED_COMPILER" != "$COMPILERS" ] ; then
+        echo "Error: $SPECIFIED_COMPILER compilers specified but need $COMPILERS based on CXX = $CXX" > /dev/stderr
+        exit 1
+      fi
     fi
   fi
   # If still no compiler default to gnu
