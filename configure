@@ -51,7 +51,7 @@ UsageFull() {
   echo "    -static        : Use static linking."
   echo "    -libstatic     : Use static linking only for specified libraries."
   echo "    -mkl           : Use Intel MKL for BLAS/LAPACK (requires MKL_HOME/MKLROOT set)."
-  echo "    -openblas      : Use OpenBLAS for BLAS/LAPACK/ARPACK (may require '--with-blas')"
+  echo "    -openblas      : Use OpenBLAS for BLAS/LAPACK/ARPACK (may require '--with-blas' or '-lblas')"
   echo "    -macAccelerate : Use Accelerate framework for BLAS/LAPACK"
   echo "    -libsci        : Use Cray LibSci for BLAS/LAPACK"
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
@@ -346,7 +346,7 @@ TestProgram() {
   if [ $? -ne 0 ] ; then
     if [ $silent -eq 0 ] ; then
       echo ""
-      echo "Compile failed: $COMPILELINE" > /dev/stderr
+      echo "Test compile failed: $COMPILELINE" > /dev/stderr
       echo "Error follows:" > /dev/stderr
       cat compile.err > /dev/stderr
       exit 1
@@ -359,7 +359,7 @@ TestProgram() {
     ./testp > /dev/null
     if [ $? -ne 0 ] ; then
       echo ""
-      echo "Program failed, compiled with: $COMPILELINE" > /dev/stderr
+      echo "Run of test program failed, compiled with: $COMPILELINE" > /dev/stderr
       exit 1
     fi
   fi
@@ -685,11 +685,16 @@ SetupLibraries() {
     LIB_STAT[$LLAPACK]='off'
     LIB_FLAG[$LLAPACK]=''
   elif [ "$BLAS_TYPE" = 'openblas' ] ; then
-    LIB_FLAG[$LBLAS]='-lopenblas'
+    if [ "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
+      LIB_FLAG[$LBLAS]='-lopenblas'
+    fi
+    if [ -z "${LIB_HOME[$LBLAS]}" ] ; then
+      echo "Warning: '-openblas' may require specifying location with '--with-blas=<DIR>' or '-lblas='"
+    fi
     LIB_STAT[$LLAPACK]='off'
     LIB_FLAG[$LLAPACK]=''
-    LIB_STAT[$LARPACK]='enabled'
-    LIB_HOME[$LARPACK]=''
+    #LIB_STAT[$LARPACK]='enabled' DBG
+    #LIB_HOME[$LARPACK]='' DBG
   elif [ "$BLAS_TYPE" = 'macAccelerate' ] ; then
     LIB_FLAG[$LBLAS]='-framework Accelerate'
     LIB_STAT[$LLAPACK]='off'
