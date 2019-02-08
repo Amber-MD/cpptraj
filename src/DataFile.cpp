@@ -67,7 +67,11 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Amber CPOUT",        DataIO_Cpout::ReadHelp, DataIO_Cpout::WriteHelp, DataIO_Cpout::Alloc},
   { "CHARMM RTF/PRM",     0,                             0,            DataIO_CharmmRtfPrm::Alloc },
   { "Pairwise Cache (binary)", 0,                        0,          DataIO_Cmatrix_Binary::Alloc },
+# ifdef BINTRAJ
   { "Pairwise Cache (NetCDF)", 0,                        0,          DataIO_Cmatrix_NC::Alloc },
+# else
+  { "Pairwise Cache (NetCDF)", 0,                        0,          0 },
+# endif
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
