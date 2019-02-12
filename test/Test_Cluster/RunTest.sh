@@ -7,7 +7,7 @@
 CleanFiles cluster.in cnumvtime.dat avg.summary.dat summary.dat CpptrajPairDist \
            cpop.agr summary2.dat Cmatrix.nccmatrix Cmatrix.cmatrix summary3.dat \
            normpop.agr normframe.agr cascii.dat.save cascii.dat pw.out \
-           cinfo.dat
+           cinfo.dat mysil.cluster.dat mysil.frame.dat
 
 TESTNAME='Hierarchical agglomerative clustering tests'
 Requires netcdf
@@ -17,15 +17,18 @@ cat > cluster.in <<EOF
 noprogress
 parm ../tz2.parm7
 trajin ../tz2.nc
-cluster C1 :2-10 clusters 3 epsilon 4.0 out cnumvtime.dat info cinfo.dat summary avg.summary.dat nofit savepairdist cpopvtime cpop.agr pairdist Cmatrix.cmatrix 
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cnumvtime.dat info cinfo.dat sil mysil summary avg.summary.dat nofit savepairdist cpopvtime cpop.agr pairdist Cmatrix.cmatrix 
 cluster crd1 :2-10 clusters 3 epsilon 4.0 summary summary.dat complete nofit loadpairdist pairdist Cmatrix.cmatrix
 EOF
 RunCpptraj "Cluster command test, in-memory pairwise distances."
 DoTest cnumvtime.dat.save cnumvtime.dat
 DoTest cinfo.dat.save cinfo.dat
+DoTest mysil.cluster.dat.save mysil.cluster.dat
+DoTest mysil.frame.dat.save mysil.frame.dat
 DoTest avg.summary.dat.save avg.summary.dat 
 DoTest summary.dat.save summary.dat
 DoTest cpop.agr.save cpop.agr
+
 # Test loading PW distances from Cmatrix file
 cat > cluster.in <<EOF
 readdata Cmatrix.cmatrix name PW
@@ -39,6 +42,7 @@ EOF
 RunCpptraj "Cluster command test, read pairwise distances."
 DoTest summary.dat.save summary2.dat
 DoTest normpop.agr.save normpop.agr
+
 # Test loading PW distances from NetCDF cmatrix file
 cat > cluster.in <<EOF
 readdata Cmatrix.nccmatrix name PW
@@ -52,6 +56,7 @@ EOF
 RunCpptraj "Cluster command test, read NetCDF pairwise distances."
 DoTest summary.dat.save summary3.dat
 DoTest normframe.agr.save normframe.agr
+
 # Test writing/reading ASCII cluster pairwise file
 cat > cluster.in <<EOF
 parm ../tz2.parm7
