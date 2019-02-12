@@ -13,6 +13,7 @@ Cpptraj::Cluster::Control::Control() :
   metric_(0),
   algorithm_(0),
   verbose_(0),
+  frameSelect_(UNSPECIFIED),
   sieve_(1),
   sieveSeed_(-1),
   sieveRestore_(NO_RESTORE),
@@ -372,6 +373,10 @@ void Cpptraj::Cluster::Control::Info() const {
   if (algorithm_ != 0) algorithm_->Info();
 }
 
+/** Figure out which frames to cluster, cache distances if necessary, then
+  * perform clustering. Afterwards sieved frames will be added in if necessary
+  * and representative frames will be determined.
+  */
 int Cpptraj::Cluster::Control::Run() {
   if (metric_ == 0 || algorithm_ == 0) { // TODO check pmatrix_?
     mprinterr("Internal Error: Cluster::Control is not set up.\n");
@@ -389,7 +394,31 @@ int Cpptraj::Cluster::Control::Run() {
 
   // Figure out which frames to cluster
   frameSieve_.Clear();
-  frameSieve_.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
+  if (frameSelect_ == UNSPECIFIED) {
+    if (sieve_ != 1)
+      frameSelect_ = SIEVE;
+    else if (pmatrix_.HasCache() && pmatrix_.Cache().Size() > 0)
+      frameSelect_ = FROM_CACHE;
+    else
+      frameSelect_ = ALL;
+  }
+  int frameSelectErr = 1;
+  switch ( frameSelect_ ) {
+    case ALL :
+    case SIEVE :
+      frameSelectErr = frameSieve_.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
+      break;
+    case FROM_CACHE :
+      mprintf("\tClustering frames present in pairwise cache '%s'\n", pmatrix_.Cache().legend());
+      frameSelectErr = frameSieve_.SetupFromCache( pmatrix_.Cache() );
+      break;
+    default :
+      mprinterr("Internal Error: Cluster::Control::Run(): Unhandled frame selection type.\n");
+  }
+  if (frameSelectErr != 0) {
+    mprinterr("Error: Cluster frame selection failed.\n");
+    return 1;
+  } 
   if (verbose_ >= 0) {
     if (frameSieve_.FramesToCluster().size() < metric_->Ntotal())
       mprintf("\tClustering %zu of %u points.\n", frameSieve_.FramesToCluster().size(),
@@ -482,7 +511,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
     if (outfile.OpenWrite( clusterinfo_ )) return 1;
     timer_output_info_.Start();
     Output::PrintClustersToFile(outfile, clusters_, *algorithm_, metric_, 
-                                frameSieve_.SieveValue(), frameSieve_.SievedOut());
+                                frameSieve_.SieveValue(), frameSieve_.FramesToCluster());
     timer_output_info_.Stop();
     outfile.CloseFile();
   }

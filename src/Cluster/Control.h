@@ -23,7 +23,10 @@ class Control {
     static const char* PairwiseArgs;
     static const char* AlgorithmArgs;
 
+    /// For determining how any sieved frames should be restored.
     enum SieveRestoreType { NO_RESTORE = 0, CLOSEST_CENTROID, EPSILON_CENTROID, EPSILON_FRAME };
+    /// For determining how frames to cluster will be determined.
+    enum FrameSelectType { UNSPECIFIED = 0, ALL, SIEVE, FROM_CACHE };
 
     int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, DataSetList&,
                               DataFileList&, int);
@@ -61,11 +64,12 @@ class Control {
     std::string dsname_;           ///< Name for output data sets.
     int verbose_;
 
-    int sieve_;                     ///< Sieve value
-    int sieveSeed_;                 ///< Seed if doing random sieve
-    SieveRestoreType sieveRestore_; ///< Specify if/how sieved frames should be restored.
-    double restoreEpsilon_;         ///< Cutoff to use if restoring by epsilon to centroids.
-    bool includeSieveInCalc_;       ///< If true include sieved frames in later calculations.
+    FrameSelectType frameSelect_;    ///< How frames to cluster should be determined.
+    int sieve_;                      ///< Sieve value
+    int sieveSeed_;                  ///< Seed if doing random sieve
+    SieveRestoreType sieveRestore_;  ///< Specify if/how sieved frames should be restored.
+    double restoreEpsilon_;          ///< Cutoff to use if restoring by epsilon to centroids.
+    bool includeSieveInCalc_;        ///< If true include sieved frames in later calculations.
 
     BestReps::RepMethodType bestRep_; ///< How to determine best rep frames.
     int nRepsToSave_;                 ///< How many rep frames to save.

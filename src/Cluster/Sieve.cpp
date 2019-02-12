@@ -78,3 +78,22 @@ int Cpptraj::Cluster::Sieve::SetFramesToCluster(int sieveIn, std::size_t maxFram
 //  MakeIdxToFrame();
   return 0;
 }
+
+/** Set frames to cluster and sieved out frames from pairwise cache. */
+int Cpptraj::Cluster::Sieve::SetupFromCache(DataSet_PairwiseCache const& cache) {
+  if (cache.Size() < 1) {
+    //mprinterr("Error: Cannot setup frames to cluster from empty cache.\n");
+    return 1;
+  }
+  framesToCluster_.clear();
+  sievedOut_.clear();
+  DetermineTypeFromSieve( cache.SieveVal() );
+  for (int frm = 0; frm != (int)cache.FrameToIdx().size(); frm++)
+  {
+    if (cache.FrameToIdx()[frm] == -1)
+      sievedOut_.push_back( frm );
+    else
+      framesToCluster_.push_back( frm );
+  }
+  return 0;
+}

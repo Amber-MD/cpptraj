@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTER_SIEVE_H
 #define INC_CLUSTER_SIEVE_H
 #include "Cframes.h"
+#include "../DataSet_PairwiseCache.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -12,6 +13,7 @@ class Sieve {
     Sieve() : type_(NONE), sieve_(1) {}
 
     int SetFramesToCluster(int, std::size_t, int);
+    int SetupFromCache( DataSet_PairwiseCache const& );
     void Clear() { framesToCluster_.clear(); sievedOut_.clear(); type_ = NONE; sieve_ = 1; }
 
     Cframes const& FramesToCluster() const { return framesToCluster_; }

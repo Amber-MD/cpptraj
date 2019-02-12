@@ -396,6 +396,7 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
   // Save cluster matrix
   if (Mat.Allocate( DataSet::SizeArray(1, actual_nrows) )) return 1;
   std::copy( Vals.begin(), Vals.end(), Mat.Ptr() );
+  // TODO may need to pass in actual sieve here
   Mat.SetupFromStatus(sieveStatus, sieveDelta);
 
   return 0;
