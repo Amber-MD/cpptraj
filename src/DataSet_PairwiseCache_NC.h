@@ -17,13 +17,14 @@ class DataSet_PairwiseCache_NC : public DataSet_PairwiseCache {
 //#   ifdef MPI
 //    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 //#   endif
-    // -------------------------------------------
-    int SetupCache(unsigned int, Cframes const&, int, std::string const&);
+    // ----- PairwiseCache functions ------------- 
     double CachedDistance(unsigned int i1, unsigned int i2) const {
       return file_.GetCmatrixElement(i1, i2);
     }
-    void PrintCached() const;
+    size_t Nrows() const { return file_.MatrixRows(); }
     void SetElement(int x, int y, double val) { file_.WriteCmatrixElement(x, y, val); }
+    int SetupCache(unsigned int, Cframes const&, int, std::string const&);
+    // -------------------------------------------
   private:
     Cpptraj::Cluster::Cmatrix_NC file_;  ///< Hold cached distances on disk
 };

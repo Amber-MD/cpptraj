@@ -13,6 +13,7 @@
 #include "DataSet_string.h" // For reading TODO remove dependency?
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
+#include "DataSet_PairwiseCache_MEM.h" // For reading
 #include "DataSet_2D.h"
 #include "DataSet_3D.h"
 
@@ -302,14 +303,10 @@ int DataIO_Std::Read_1D(std::string const& fname,
 int DataIO_Std::ReadCmatrix(FileName const& fname,
                             DataSetList& datasetlist, std::string const& dsname)
 {
-  mprinterr("Internal Error: ReadCmatrix() must be reimplemented!\n");
-  // TODO re-implement
-  return 1;
-/*
   // Allocate output data set
-  DataSet* ds = datasetlist.AddSet( DataSet::CMATRIX, dsname );
+  DataSet* ds = datasetlist.AddSet( DataSet::PMATRIX_MEM, dsname );
   if (ds == 0) return 1;
-  DataSet_Cmatrix_MEM& Mat = static_cast<DataSet_Cmatrix_MEM&>( *ds );
+  DataSet_PairwiseCache_MEM& Mat = static_cast<DataSet_PairwiseCache_MEM&>( *ds );
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
@@ -319,9 +316,9 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
   header.SetList(ptr+1, SEPARATORS );
   int nframes = header.getKeyInt("nframes", -1);
   // Need to keep track of frame indices so we can check for sieving.
-  std::vector<char> sieveStatus;
+  DataSet_PairwiseCache::StatusArray sieveStatus;
   if (nframes > 0)
-    sieveStatus.assign(nframes, 'T');
+    sieveStatus.assign(nframes, DataSet_PairwiseCache::ABSENT_);
   // Keep track of matrix values.
   std::vector<float> Vals;
   // Read file
@@ -333,16 +330,16 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
     if (checkSieve) {
       sscanf(ptr, "%i %i %f", &f1, &f2, &val);
       if (f2 > (int)sieveStatus.size())
-        sieveStatus.resize(f2, 'T');
+        sieveStatus.resize(f2, DataSet_PairwiseCache::ABSENT_);
       if (firstf1 == -1) {
         // First values.
-        sieveStatus[f1-1] = 'F';
-        sieveStatus[f2-1] = 'F';
+        sieveStatus[f1-1] = DataSet_PairwiseCache::PRESENT_;
+        sieveStatus[f2-1] = DataSet_PairwiseCache::PRESENT_;
         firstf1 = f1;
       } else if (f1 > firstf1) {
           checkSieve = false;
       } else {
-        sieveStatus[f2-1] = 'F';
+        sieveStatus[f2-1] = DataSet_PairwiseCache::PRESENT_;
       }
     } else {
       sscanf(ptr, "%*i %*i %f", &val);
@@ -350,16 +347,16 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
     Vals.push_back( val );
   }
   // DEBUG
-  //mprintf("Sieved array:\n");
-  //for (unsigned int i = 0; i < sieveStatus.size(); i++)
-  //  mprintf("\t%6u %c\n", i+1, sieveStatus[i]);
+  mprintf("Sieved array:\n");
+  for (unsigned int i = 0; i < sieveStatus.size(); i++)
+    mprintf("\t%6u %c\n", i+1, sieveStatus[i]);
   // Try to determine if sieve is random or not.
   int sieveDelta = 1;
   f1 = -1;
   f2 = -1;
   int actual_nrows = 0;
   for (int i = 0; i < (int)sieveStatus.size(); i++) {
-    if (sieveStatus[i] == 'F') {
+    if (sieveStatus[i] == DataSet_PairwiseCache::PRESENT_) {
       actual_nrows++;
       if (sieveDelta != -2) {
         if (f1 == -1) {
@@ -399,10 +396,9 @@ int DataIO_Std::ReadCmatrix(FileName const& fname,
   // Save cluster matrix
   if (Mat.Allocate( DataSet::SizeArray(1, actual_nrows) )) return 1;
   std::copy( Vals.begin(), Vals.end(), Mat.Ptr() );
-  Mat.SetSieveFromArray(sieveStatus, sieveDelta);
+  Mat.SetupFromStatus(sieveStatus, sieveDelta);
 
   return 0;
-*/
 }
 
 // DataIO_Std::Read_2D()
@@ -878,7 +874,7 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
     CpptrajFile file;
     if (file.OpenWrite( fname )) return 1;
     // Base write type off first data set dimension FIXME
-    if (SetList[0]->Group() == DataSet::CLUSTERMATRIX) {
+    if (SetList[0]->Group() == DataSet::PWCACHE) {
       // Special case of 2D - may have sieved frames.
       err = WriteCmatrix(file, SetList);
     } else if (SetList[0]->Ndim() == 1) {
@@ -900,25 +896,22 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
 
 // DataIO_Std::WriteCmatrix()
 int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
-  mprinterr("Internal Error: WriteCmatrix() must be reimplemented!\n");
-  return 1; // TODO re-implement
-/*
   for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
   {
-    if ( (*ds)->Group() != DataSet::CLUSTERMATRIX) {
+    if ( (*ds)->Group() != DataSet::PWCACHE) {
       mprinterr("Error: Write of cluster matrix and other sets to same file not supported.\n"
                 "Error: Skipping '%s'\n", (*ds)->legend());
       continue;
     }
-    DataSet_Cmatrix const& cm = static_cast<DataSet_Cmatrix const&>( *(*ds) );
-    int nrows = cm.OriginalNframes();
+    DataSet_PairwiseCache const& cm = static_cast<DataSet_PairwiseCache const&>( *(*ds) );
+    int nrows = cm.Nrows();
     int col_width = std::max(3, DigitWidth( nrows ) + 1);
     int dat_width = std::max(cm.Format().Width(), (int)cm.Meta().Legend().size()) + 1;
     WriteNameToBuffer(file, "F1",               col_width, true);
     WriteNameToBuffer(file, "F2",               col_width, false);
     WriteNameToBuffer(file, cm.Meta().Legend(), dat_width, false);
-    if (cm.SieveType() != ClusterSieve::NONE)
-      file.Printf(" nframes %i", cm.OriginalNframes());
+    if (cm.SieveVal() != 1)
+      file.Printf(" nframes %i", nrows);
     file.Printf("\n");
     TextFormat col_fmt(TextFormat::INTEGER, col_width);
     TextFormat dat_fmt = cm.Format();
@@ -926,18 +919,17 @@ int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
     dat_fmt.SetFormatWidth( dat_width );
     std::string total_fmt = col_fmt.Fmt() + col_fmt.Fmt() + dat_fmt.Fmt() + "\n";
     //mprintf("DEBUG: format '%s'\n", total_fmt.c_str());
-    ClusterSieve::SievedFrames const& frames = cm.FramesToCluster();
+    DataSet_PairwiseCache::Cframes frames = cm.PresentFrames();
     int ntotal = (int)frames.size();
     for (int idx1 = 0; idx1 != ntotal; idx1++) {
       int row = frames[idx1];
       for (int idx2 = idx1 + 1; idx2 != ntotal; idx2++) {
         int col = frames[idx2];
-        file.Printf(total_fmt.c_str(), row+1, col+1, cm.GetFdist(col, row)); 
+        file.Printf(total_fmt.c_str(), row+1, col+1, cm.CachedDistance(idx1, idx2)); 
       }
     }
   }
   return 0;
-*/
 }
 
 // DataIO_Std::WriteDataNormal()

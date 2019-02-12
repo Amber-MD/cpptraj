@@ -29,10 +29,9 @@ class DataSet {
       MAT3X3, TOPOLOGY, PH, PH_EXPL, PH_IMPL,
       PARAMETERS, PMATRIX_MEM, PMATRIX_NC
     };
-    /// Group DataSet belongs to. TODO remove CLUSTERMATRIX
+    /// Group DataSet belongs to.
     enum DataGroup {
-      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, CLUSTERMATRIX,
-      PHREMD,    PWCACHE
+      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, PHREMD, PWCACHE
     };
 
     DataSet();

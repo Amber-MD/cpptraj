@@ -26,12 +26,12 @@ int DataSet_PairwiseCache::SetupFrameToIdx(Cframes const& framesToCache, unsigne
   int idx = 0;
   for (Cframes_it it = framesToCache.begin(); it != framesToCache.end(); ++it)
     frameToIdx_[*it] = idx++;
-# ifdef DEBUG_CLUSTER
+//# ifdef DEBUG_CLUSTER
   // DEBUG
   mprintf("DEBUG: frameToMat\n");
   for (Cframes_it it = frameToIdx_.begin(); it != frameToIdx_.end(); ++it)
     mprintf("\tframeToIdx_[%u] = %i\n", it - frameToIdx_.begin(), *it);
-# endif
+//# endif
   return 0;
 }
 
@@ -63,4 +63,30 @@ int DataSet_PairwiseCache::SetupFromStatus(StatusArray const& frameIsPresent, in
       frameToIdx_.push_back( -1 );
   sieve_ = sieveIn;
   return 0;
+}
+
+/** \return Array containing frames present in the pairwise cache. */
+DataSet_PairwiseCache::Cframes DataSet_PairwiseCache::PresentFrames() const {
+  Cframes presentFrames;
+  presentFrames.reserve( Nrows() );
+  int frm = 0;
+  for (frm = 0; frm != (int)frameToIdx_.size(); ++frm)
+    if (frameToIdx_[frm] != -1)
+      presentFrames.push_back( frm );
+  return presentFrames;
+}
+
+/** Print cached distances to stdout. */
+void DataSet_PairwiseCache::PrintCached() const {
+  for (Cframes::const_iterator it1 = FrameToIdx().begin(); it1 != FrameToIdx().end(); ++it1)
+  {
+    if (*it1 != -1) {
+      for (Cframes::const_iterator it2 = it1 + 1; it2 != FrameToIdx().end(); ++it2)
+      {
+        if (*it2 != -1)
+          mprintf("\t%zu %i %f\n", it1-FrameToIdx().begin()+1, it2-FrameToIdx().begin()+1,
+                  CachedDistance(*it1, *it2));
+      }
+    }
+  }
 }

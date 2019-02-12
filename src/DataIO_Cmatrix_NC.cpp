@@ -45,13 +45,7 @@ int DataIO_Cmatrix_NC::WriteData(FileName const& fname, DataSetList const& SetLi
   if (file_.WriteCmatrix( Mat.Ptr() )) return 1;
   // Write present frames
   if (Mat.SieveVal() != 1) {
-    Cpptraj::Cluster::Cframes presentFrames;
-    presentFrames.reserve( Mat.Nrows() );
-    for (Cpptraj::Cluster::Cframes::const_iterator it = Mat.FrameToIdx().begin();
-                                                   it != Mat.FrameToIdx().end(); ++it)
-      if (*it != -1)
-        presentFrames.push_back( *it );
-    if (file_.WriteFramesArray( presentFrames )) return 1;
+    if (file_.WriteFramesArray( Mat.PresentFrames() )) return 1;
   }
 
   file_.CloseCmatrix();

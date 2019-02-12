@@ -18,15 +18,14 @@ class DataSet_PairwiseCache_MEM : public DataSet_PairwiseCache {
 //    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 //#   endif
     // -------------------------------------------
-    size_t Nrows() const { return Mat_.Nrows(); }
-    // -------------------------------------------
     //double GetFdist(int f1, int f2) const { return Mat_.element(FrameToMat()[f1], FrameToMat()[f2]); }
     //double Frame_Distance(int, int) const;
-    int SetupCache(unsigned int, Cframes const&, int, std::string const&);
+    // ----- PairwiseCache functions -------------
     double CachedDistance(unsigned int i1, unsigned int i2) const { return Mat_.element(i1, i2); }
     //int CacheDistances(Cframes const&);
-    void PrintCached() const;
+    size_t Nrows() const { return Mat_.Nrows(); }
     void SetElement(int col, int row, double val) { Mat_.setElement(col, row, val); }
+    int SetupCache(unsigned int, Cframes const&, int, std::string const&);
     // -------------------------------------------
     float*       Ptr()       { return Mat_.Ptr(); }
     float const* Ptr() const { return Mat_.Ptr(); }

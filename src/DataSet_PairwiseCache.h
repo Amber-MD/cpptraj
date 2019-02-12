@@ -40,8 +40,8 @@ class DataSet_PairwiseCache : public DataSet {
     //virtual double GetFdist(int, int) const = 0;
     /// \return distance between cached frames (internal indices).
     virtual double CachedDistance(unsigned int, unsigned int) const = 0;
-    /// Print only cached distances.
-    virtual void PrintCached() const = 0;
+    /// \return Number of rows (i.e. number of frames cached) in pairwise cache. TODO DataSet_2D
+    virtual size_t Nrows() const = 0;
     /// Used to cache distances; expect internal indices, not absolute cluster frames.
     virtual void SetElement(int, int, double) = 0;
     /// Used to set up and allocate cache for total, frames to cache, sieve, and metric descrip.
@@ -56,6 +56,10 @@ class DataSet_PairwiseCache : public DataSet {
     int SieveVal()                         const { return sieve_; }
     /// \return Internal metric description for bookkeeping
     std::string const& MetricDescrip()     const { return metricDescription_; }
+    /// \return Array of frames present in the cache.
+    Cframes PresentFrames()                const;
+    /// Print only cached distances.
+    void PrintCached() const;
 
     /// Used to set up frame indices from given status array. Record sieve value.
     int SetupFromStatus(StatusArray const&, int);
