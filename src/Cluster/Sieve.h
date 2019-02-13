@@ -13,7 +13,7 @@ class Sieve {
     Sieve() : type_(NONE), sieve_(1) {}
 
     int SetFramesToCluster(int, std::size_t, int);
-    int SetupFromCache( DataSet_PairwiseCache const& );
+    int SetupFromCache( DataSet_PairwiseCache const&, std::size_t );
     void Clear() { framesToCluster_.clear(); sievedOut_.clear(); type_ = NONE; sieve_ = 1; }
 
     Cframes const& FramesToCluster() const { return framesToCluster_; }
