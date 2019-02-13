@@ -40,6 +40,7 @@ int Cpptraj::Cluster::PairwiseMatrix::setupFrameToMat(Cframes const& framesToCac
 double Cpptraj::Cluster::PairwiseMatrix::Frame_Distance(int f1, int f2) const {
   if (cache_ != 0)
   {
+    // TODO protect against f1/f2 out of bounds.
     int idx1 = cache_->FrameToIdx()[f1];
     if (idx1 != -1) {
       int idx2 = cache_->FrameToIdx()[f2];
