@@ -41,8 +41,8 @@ class Ewald {
     double Self6();
     /// Get analytical estimate of energy due to dispersion interactions > cutoff
     double Vdw_Correction(double);
-    /// Box, debug, cutoff, dsum tol, ew coeff, erfc dx, nb skin
-    int CheckInput(Box const&, int, double, double, double, double, double);
+    /// Box, debug, cutoff, dsum tol, ew coeff, lj coeff, switch window, erfc dx, nb skin
+    int CheckInput(Box const&, int, double, double, double, double, double, double, double);
     /// Set up pair list
     int Setup_Pairlist(Box const&, Vec3 const&, double);
     /// Calculate sum q, sum q^2. Calls setup for vdw correction
@@ -82,7 +82,9 @@ class Ewald {
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges
     double sumq2_;        ///< Sum of charges squared
-    double ew_coeff_;     ///< Ewald coefficient TODO separate one for dispersion.
+    double ew_coeff_;     ///< Ewald coefficient for electrostatics
+    double lw_coeff_;     ///< Ewald coefficient for LJ
+    double switch_width_; ///< Switching window size for LJ switch if active
     double cutoff_;       ///< Direct space cutoff
     double dsumTol_;      ///< Direct space sum tolerance.
     double erfcTableDx_;  ///< Spacing of X values in Erfc table.

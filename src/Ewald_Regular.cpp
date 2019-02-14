@@ -100,7 +100,7 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
                      double ew_coeffIn, double maxexpIn, double skinnbIn,
                      double erfcTableDxIn, int debugIn, const int* mlimitsIn)
 {
-  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, erfcTableDxIn, skinnbIn))
+  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, -1.0, 0.0, erfcTableDxIn, skinnbIn))
     return 1;
   rsumTol_ = rsumTolIn;
   maxexp_ = maxexpIn;

@@ -19,6 +19,8 @@ class Ewald_ParticleMesh : public Ewald {
     int DetermineNfft(int&, int&, int&, Box const&) const;
     /// Particle mesh Ewald reciprocal energy
     double Recip_ParticleMesh(Box const&);
+    /// Particle mesh Ewald LJ recip energy
+    double LJ_Recip_ParticleMesh(Box const&);
 
     Darray coordsD_;   ///< Hold coordinates for selected atoms
 

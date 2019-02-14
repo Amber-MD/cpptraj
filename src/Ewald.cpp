@@ -13,6 +13,8 @@ Ewald::Ewald() :
   sumq_(0.0),
   sumq2_(0.0),
   ew_coeff_(0.0),
+  lw_coeff_(0.0),
+  switch_width_(0.0),
   cutoff_(0.0),
   dsumTol_(0.0),
   erfcTableDx_(0.0),
@@ -230,12 +232,15 @@ void Ewald::SetupExcluded(Topology const& topIn, AtomMask const& maskIn)
 
 /** Check some common input. */
 int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsumTolIn,
-                      double ew_coeffIn, double erfcTableDxIn, double skinnbIn)
+                      double ew_coeffIn, double lw_coeffIn, double switch_widthIn,
+                      double erfcTableDxIn, double skinnbIn)
 {
   debug_ = debugIn;
   cutoff_ = cutoffIn;
   dsumTol_ = dsumTolIn;
   ew_coeff_ = ew_coeffIn;
+  lw_coeff_ = lw_coeffIn;
+  switch_width_ = switch_widthIn;
   erfcTableDx_ = erfcTableDxIn;
   // Check input
   if (cutoff_ < Constants::SMALL) {
@@ -254,6 +259,11 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
     mprinterr("Error: skinnb is less than 0.0\n");
     return 1;
   }
+  if (switch_width_ < 0.0) switch_width_ = 0.0;
+  if (switch_width_ > cutoff_) {
+    mprinterr("Error: Switch width must be less than the cutoff.\n");
+    return 1;
+  }
 
   // Set defaults if necessary
   if (dsumTol_ < Constants::SMALL)
@@ -262,7 +272,13 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
     ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
   if (erfcTableDx_ <= 0.0) erfcTableDx_ = 1.0 / 5000;
   // TODO make this optional
-  FillErfcTable( cutoff_, ew_coeff_ );
+  FillErfcTable( cutoff_, ew_coeff_ ); 
+  // TODO do for C6 as well
+  // TODO for C6 correction term
+  if (lw_coeff_ < 0.0)
+    lw_coeff_ = 0.0;
+  else if (DABS(lw_coeff_) < Constants::SMALL)
+    lw_coeff_ = ew_coeff_;
 
   return 0;
 }
@@ -291,7 +307,7 @@ int Ewald::Setup_Pairlist(Box const& boxIn, Vec3 const& recipLengths, double ski
   return 0;
 }
 
-/** Self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
+/** Electrostatic self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
 double Ewald::Self(double volume) {
   t_self_.Start();
   double d0 = -ew_coeff_ * INVSQRTPI_;
@@ -304,9 +320,10 @@ double Ewald::Self(double volume) {
   return ene;
 }
 
+/** Lennard-Jones self energy. */
 double Ewald::Self6() {
   t_self_.Start(); // TODO precalc
-  double ew2 = ew_coeff_ * ew_coeff_;
+  double ew2 = lw_coeff_ * lw_coeff_;
   double ew6 = ew2 * ew2 * ew2;
   double c6sum = 0.0;
   for (Darray::const_iterator it = Cparam_.begin(); it != Cparam_.end(); ++it)
@@ -335,6 +352,7 @@ double Ewald::Adjust(double q0, double q1, double rij) {
 }
 # endif
 
+/** Switching function for Lennard-Jones. */
 static inline double switch_fn(double rij2, double cut2_0, double cut2_1)
 {
   if (rij2 <= cut2_0)
@@ -352,6 +370,9 @@ static inline double switch_fn(double rij2, double cut2_0, double cut2_1)
 /** Calculate direct space energy. This is the faster version that uses
   * a pair list. Also calculate the energy adjustment for excluded
   * atoms.
+  * \param PL The pairlist used to calculate energy.
+  * \param e_adjust_out The electrostatic adjust energy for excluded atoms.
+  * \param evdw_out The direct space van der Waals term
   */
 double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
 {
@@ -364,14 +385,8 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
   double Eljpme_correction_excl = 0.0;
   int cidx;
 
-  double vswitch = 1.0;
-  bool use_switch = false; // TODO enable? maybe
-  double window_width;
-  if (use_switch)
-    window_width = 2.0;
-  else
-    window_width = 0.0;
-  double cut0 = cutoff_ - window_width; // TODO check for negative
+  double vswitch;
+  double cut0 = cutoff_ - switch_width_;
   double cut2_0 = cut0 * cut0;
   double cut2_1 = cut2;
 # ifdef _OPENMP
@@ -446,7 +461,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                 Evdw += e_vdw;
                 //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
                 // LJ PME direct space correction
-                double kr2 = ew_coeff_ * ew_coeff_ * rij2;
+                double kr2 = lw_coeff_ * lw_coeff_ * rij2;
                 double kr4 = kr2 * kr2;
                 //double kr6 = kr2 * kr4;
                 double expterm = exp(-kr2);
@@ -459,7 +474,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
             e_adjust += Adjust(q0, q1, sqrt(rij2));
             // LJ PME direct space correction
             // NOTE: Assuming excluded pair is within cutoff
-            double kr2 = ew_coeff_ * ew_coeff_ * rij2;
+            double kr2 = lw_coeff_ * lw_coeff_ * rij2;
             double kr4 = kr2 * kr2;
             //double kr6 = kr2 * kr4;
             double expterm = exp(-kr2);
@@ -530,7 +545,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                   Evdw += e_vdw;
                   //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
                   // LJ PME direct space correction
-                  double kr2 = ew_coeff_ * ew_coeff_ * rij2;
+                  double kr2 = lw_coeff_ * lw_coeff_ * rij2;
                   double kr4 = kr2 * kr2;
                   //double kr6 = kr2 * kr4;
                   double expterm = exp(-kr2);
@@ -543,7 +558,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
               e_adjust += Adjust(q0, q1, sqrt(rij2));
               // LJ PME direct space correction
               // NOTE: Assuming excluded pair is within cutoff
-              double kr2 = ew_coeff_ * ew_coeff_ * rij2;
+              double kr2 = lw_coeff_ * lw_coeff_ * rij2;
               double kr4 = kr2 * kr2;
               //double kr6 = kr2 * kr4;
               double expterm = exp(-kr2);
@@ -562,7 +577,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
 # endif
   t_direct_.Stop();
   e_adjust_out = e_adjust;
-  evdw_out = Evdw;
+  evdw_out = Evdw + Eljpme_correction + Eljpme_correction_excl;
   mprintf("DEBUG: LJ vdw correction            = %16.8f\n", Eljpme_correction);
   mprintf("DEBUG: LJ vdw correction (excluded) = %16.8f\n", Eljpme_correction_excl);
   return Eelec;

@@ -91,7 +91,7 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
                     double ew_coeffIn, double skinnbIn, double erfcTableDxIn, 
                     int orderIn, int debugIn, const int* nfftIn)
 {
-  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, erfcTableDxIn, skinnbIn))
+  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, -1.0, 0.0, erfcTableDxIn, skinnbIn))
     return 1;
   if (nfftIn != 0)
     std::copy(nfftIn, nfftIn+3, nfft_);
@@ -184,8 +184,25 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(Box const& boxIn)
                                 PMEInstanceD::LatticeType::XAligned);
   double erecip = pme_object->computeERec(0, chargesD, coordsD);
 
-  // LJ PME
+  t_recip_.Stop();
+  return erecip;
+}
+
+/** The LJ PME reciprocal term. */
+double Ewald_ParticleMesh::LJ_Recip_ParticleMesh(Box const& boxIn)
+{
+  t_recip_.Start();
+  int nfft1 = nfft_[0];
+  int nfft2 = nfft_[1];
+  int nfft3 = nfft_[2];
+  if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
+    mprinterr("Error: Could not determine grid spacing.\n");
+    return 0.0;
+  }
+
+  Mat coordsD(&coordsD_[0], Charge_.size(), 3);
   Mat cparamD(&Cparam_[0], Cparam_.size(), 1);
+
   auto pme_vdw = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
   pme_vdw->setup(6, ew_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
   pme_vdw->setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
@@ -194,7 +211,7 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(Box const& boxIn)
   double evdwrecip = pme_vdw->computeERec(0, cparamD, coordsD);
   mprintf("DEBUG: Evdwrecip = %16.8f\n", evdwrecip);
   t_recip_.Stop();
-  return erecip;
+  return evdwrecip;
 }
 
 /** Calculate full nonbonded energy with PME */
@@ -204,10 +221,7 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
   Matrix_3x3 ucell, recip;
   double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
   double e_self = Self( volume );
-  double e_vdwr = Vdw_Correction( volume );
-  // TODO branch
-  double e_vdw6self = Self6();
-  mprintf("DEBUG: e_vdw6self = %16.8f\n", e_vdw6self);
+  double e_vdw_lr_correction;
 
   pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
 
@@ -223,13 +237,27 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_ParticleMesh( frameIn.BoxCrd() );
+
+  // TODO branch
+  double e_vdw6self, e_vdw6recip;
+  if (lw_coeff_ > 0.0) {
+    e_vdw6self = Self6();
+    mprintf("DEBUG: e_vdw6self = %16.8f\n", e_vdw6self);
+    e_vdw6recip = LJ_Recip_ParticleMesh( frameIn.BoxCrd() );
+    e_vdw_lr_correction = 0.0;
+  } else {
+    e_vdw6self = 0.0;
+    e_vdw6recip = 0.0;
+    e_vdw_lr_correction = Vdw_Correction( volume );
+  }
+
   double e_adjust = 0.0;
          e_vdw = 0.0;
   double e_direct = Direct( pairList_, e_adjust, e_vdw );
   if (debug_ > 0)
     mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f  Evdw= %20.10f\n",
             e_self, e_recip, e_direct, e_adjust, e_vdw);
-  e_vdw += e_vdwr;
+  e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
   t_total_.Stop();
   return e_self + e_recip + e_direct + e_adjust;
 }
