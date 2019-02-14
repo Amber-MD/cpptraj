@@ -589,7 +589,8 @@ COMPLETETESTS=test.general \
               test.cphstats \
               test.cmdline \
               test.xyzfmt \
-              test.hausdorff
+              test.hausdorff \
+              test.catcrd
 
 test.all:
 	$(MAKE) test.complete summary
