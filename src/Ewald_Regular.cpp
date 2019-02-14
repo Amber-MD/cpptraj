@@ -158,6 +158,8 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
 /** Setup regular Ewald calculation. */
 int Ewald_Regular::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
+  // Blank C6 Arrays. TODO actually blank them
+  CalculateC6params( topIn, maskIn );
 
   // Build exponential factors for use in structure factors.
   // These arrays are laid out in 1D; value for each atom at each m, i.e.
