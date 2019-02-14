@@ -23,7 +23,7 @@ void Action_Energy::Help() const {
           "\t          ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
           "\t                [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]\n"
           "\t                [mlimits <X>,<Y>,<Z>] [erfcdx <dx>]\n"
-          "\t          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>]\n"
+          "\t          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>] [ljswidth <width>]\n"
           "\t              [ewcoeff <coeff>] [ljpme] [ewcoefflj] [skinnb <skinnb>]\n"
           "\t              [nfft <nfft1>,<nfft2>,<nfft3>] [erfcdx <dx>]\n"
           "\t        } ]\n"
@@ -144,7 +144,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       if (actionArgs.hasKey("ljpme"))
         lwcoeff_ = 0.4;
       lwcoeff_ = actionArgs.getKeyDouble("ewcoefflj", lwcoeff_);
-      // TODO arguments for switching
+      ljswidth_ = actionArgs.getKeyDouble("ljswidth", 0.0);
       skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
       erfcDx_ = actionArgs.getKeyDouble("erfcdx", 0.0);
       npoints_ = actionArgs.getKeyInt("order", 6);
@@ -306,6 +306,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       else
         mprintf("\tLennard-Jones PME Ewald coefficient will be set to elec. Ewald coefficient.\n");
     }
+    if (ljswidth_ > 0.0)
+      mprintf("\tWidth of LJ switch region: %.4f Ang.\n", ljswidth_);
   }
   if (KEtype_ != KE_NONE) {
     if (KEtype_ == KE_AUTO)
@@ -350,7 +352,7 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
 # ifdef LIBPME
   else if (elecType_ == PME) {
     if (((Ewald_ParticleMesh*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_,
-                                         ewcoeff_, lwcoeff_, skinnb_, erfcDx_, npoints_,
+                                         ewcoeff_, lwcoeff_, ljswidth_, skinnb_, erfcDx_, npoints_,
                                          debug_, mlimits_))
       return Action::ERR;
     EW_->Setup( setup.Top(), Imask_ );

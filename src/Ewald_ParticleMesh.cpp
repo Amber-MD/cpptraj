@@ -88,10 +88,12 @@ int Ewald_ParticleMesh::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box co
 
 /** Set up PME parameters. */
 int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
-                    double ew_coeffIn, double lw_coeffIn,double skinnbIn, double erfcTableDxIn, 
+                    double ew_coeffIn, double lw_coeffIn, double switch_widthIn,
+                    double skinnbIn, double erfcTableDxIn, 
                     int orderIn, int debugIn, const int* nfftIn)
 {
-  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, lw_coeffIn, 0.0, erfcTableDxIn, skinnbIn))
+  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, lw_coeffIn, switch_widthIn,
+                 erfcTableDxIn, skinnbIn))
     return 1;
   if (nfftIn != 0)
     std::copy(nfftIn, nfftIn+3, nfft_);
