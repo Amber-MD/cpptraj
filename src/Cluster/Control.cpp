@@ -270,7 +270,7 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
 {
   clusters_.SetDebug( verbose_ );
 
-  // Allocate PairwiseMatrix. Metric must already be set up.
+  // Allocate PairwiseMatrix (and optionally a cache). Metric must already be set up.
   if (AllocatePairwise( analyzeArgs, DSL, DFL )) {
     mprinterr("Error: PairwiseMatrix setup failed.\n");
     return 1;
@@ -292,8 +292,32 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
   }
   if (analyzeArgs.hasKey("random") && sieve_ > 1)
     sieve_ = -sieve_; // negative # indicates random sieve
-  // Choose sieve restore option based on algorithm.
-  if (sieve_ != 1) {
+
+  // TODO incorporate with cumulative_nosieve? Or keep granular?
+  includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
+  if (includeSieveInCalc_)
+    mprintf("Warning: 'includesieveincalc' may be very slow.\n");
+
+  // Determine how frames to cluster will be chosen
+  if (frameSelect_ == UNSPECIFIED) {
+    if (sieve_ != 1)
+      frameSelect_ = SIEVE;
+    else if (pmatrix_.HasCache() && pmatrix_.Cache().Size() > 0)
+      frameSelect_ = FROM_CACHE;
+    else
+      frameSelect_ = ALL;
+  }
+
+  bool allFramesCached;
+  if (sieve_ != 1 || (frameSelect_ == FROM_CACHE && pmatrix_.Cache().SieveVal() != 1))
+    allFramesCached = false;
+  else
+    allFramesCached = true;
+  // TODO just determine if # frames to cluster == total frames?
+
+  // Choose sieve restore option based on algorithm and frames to cluster.
+  if (!allFramesCached)
+  {
     sieveRestore_ = CLOSEST_CENTROID;
     if (algorithm_->Type() == Algorithm::DBSCAN) {
       if (!analyzeArgs.hasKey("sievetoframe"))
@@ -303,16 +327,12 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
       restoreEpsilon_ = ((Algorithm_DBscan*)algorithm_)->Epsilon();
     }
   }
-  // TODO incorporate with cumulative_nosieve? Or keep granular?
-  includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
-  if (includeSieveInCalc_)
-    mprintf("Warning: 'includesieveincalc' may be very slow.\n");
 
   // Best rep options
   std::string bestRepStr = analyzeArgs.GetStringKey("bestrep");
   if (bestRepStr.empty()) {
     // For sieving, cumulative can get very expensive. Default to centroid.
-    if (sieve_ != 1)
+    if (!allFramesCached)
       bestRep_ = BestReps::CENTROID;
     else
       bestRep_ = BestReps::CUMULATIVE;
@@ -394,14 +414,6 @@ int Cpptraj::Cluster::Control::Run() {
 
   // Figure out which frames to cluster
   frameSieve_.Clear();
-  if (frameSelect_ == UNSPECIFIED) {
-    if (sieve_ != 1)
-      frameSelect_ = SIEVE;
-    else if (pmatrix_.HasCache() && pmatrix_.Cache().Size() > 0)
-      frameSelect_ = FROM_CACHE;
-    else
-      frameSelect_ = ALL;
-  }
   int frameSelectErr = 1;
   switch ( frameSelect_ ) {
     case ALL :
@@ -410,7 +422,7 @@ int Cpptraj::Cluster::Control::Run() {
       break;
     case FROM_CACHE :
       mprintf("\tClustering frames present in pairwise cache '%s'\n", pmatrix_.Cache().legend());
-      frameSelectErr = frameSieve_.SetupFromCache( pmatrix_.Cache() );
+      frameSelectErr = frameSieve_.SetupFromCache( pmatrix_.Cache(), metric_->Ntotal() );
       break;
     default :
       mprinterr("Internal Error: Cluster::Control::Run(): Unhandled frame selection type.\n");
