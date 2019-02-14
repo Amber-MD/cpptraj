@@ -109,6 +109,8 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
           cutoff_, dsumTol_, ew_coeff_, skinnbIn);
   if (lw_coeff_ > 0.0)
     mprintf("\t  LJ Ewald coeff.= %g\n", lw_coeff_);
+  if (switch_width_ > 0.0)
+    mprintf("\t  LJ switch width= %g\n", switch_width_);
   mprintf("\t  Bspline order= %i\n", order_);
   mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t ");
