@@ -43,6 +43,7 @@ Exec::RetType Exec_CatCrd::Execute(CpptrajState& State, ArgList& argIn)
         inputSets.push_back( coordsIn );
       }
     }
+    dsarg = argIn.GetStringNext();
   }
   if (inputSets.empty()) {
     mprinterr("Error: No input COORDS sets.\n");

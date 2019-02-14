@@ -40,6 +40,7 @@
 #include "Exec_PermuteDihedrals.h"
 #include "Exec_RotateDihedral.h"
 #include "Exec_SplitCoords.h"
+#include "Exec_CatCrd.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -233,6 +234,7 @@ void Command::Init() {
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
+  Command::AddCmd( new Exec_CatCrd(),           Cmd::EXE, 1, "catcrd" );
   Command::AddCmd( new Exec_CombineCoords(),    Cmd::EXE, 1, "combinecrd" ); 
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
