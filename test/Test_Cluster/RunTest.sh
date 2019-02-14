@@ -7,7 +7,7 @@
 CleanFiles cluster.in cnumvtime.dat avg.summary.dat summary.dat CpptrajPairDist \
            cpop.agr summary2.dat Cmatrix.nccmatrix Cmatrix.cmatrix summary3.dat \
            normpop.agr normframe.agr cascii.dat.save cascii.dat pw.out \
-           cinfo.dat mysil.cluster.dat mysil.frame.dat
+           cinfo.dat mysil.cluster.dat mysil.frame.dat cascii?.info
 
 TESTNAME='Hierarchical agglomerative clustering tests'
 Requires netcdf
@@ -62,13 +62,14 @@ cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
 cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat.save nofit savepairdist pairdist pw.out \
-  sieve 6 random sieveseed 2
+  sieve 6 random sieveseed 2 info cascii1.info
 EOF
 RunCpptraj "Cluster command test, write ASCII pairwise distances."
 cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
-cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.out
+cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdist pw.out \
+  info cascii2.info
 EOF
 RunCpptraj "Cluster command test, read ASCII pairwise distances."
 DoTest cascii.dat.save cascii.dat
