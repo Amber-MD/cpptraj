@@ -335,6 +335,19 @@ double Ewald::Adjust(double q0, double q1, double rij) {
 }
 # endif
 
+static inline double switch_fn(double rij2, double cut2_0, double cut2_1)
+{
+  if (rij2 <= cut2_0)
+    return 1.0;
+  else if (rij2 > cut2_1)
+    return 0.0;
+  else {
+    double xoff_m_x = cut2_1 - rij2;
+    double fac = 1.0 / (cut2_1 - cut2_0);
+    return (xoff_m_x*xoff_m_x) * (cut2_1 + 2.0*rij2 - 3.0*cut2_0) * (fac*fac*fac);
+  }
+}
+
 //  Ewald::Direct()
 /** Calculate direct space energy. This is the faster version that uses
   * a pair list. Also calculate the energy adjustment for excluded
@@ -350,8 +363,19 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
   double Eljpme_correction = 0.0;
   double Eljpme_correction_excl = 0.0;
   int cidx;
+
+  double vswitch = 1.0;
+  bool use_switch = false; // TODO enable? maybe
+  double window_width;
+  if (use_switch)
+    window_width = 2.0;
+  else
+    window_width = 0.0;
+  double cut0 = cutoff_ - window_width; // TODO check for negative
+  double cut2_0 = cut0 * cut0;
+  double cut2_1 = cut2;
 # ifdef _OPENMP
-# pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust)
+# pragma omp parallel private(cidx, vswitch) reduction(+: Eelec, Evdw, e_adjust,Eljpme_correction,Eljpme_correction_excl )
   {
 # pragma omp for
 # endif
@@ -427,7 +451,8 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                 //double kr6 = kr2 * kr4;
                 double expterm = exp(-kr2);
                 double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-                Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * Cij;
+                vswitch = switch_fn(rij2, cut2_0, cut2_1);
+                Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
               }
             }
           } else {
@@ -510,7 +535,8 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                   //double kr6 = kr2 * kr4;
                   double expterm = exp(-kr2);
                   double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-                  Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * Cij;
+                  vswitch = switch_fn(rij2, cut2_0, cut2_1);
+                  Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
                 }
               }
             } else {
