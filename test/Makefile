@@ -444,6 +444,9 @@ test.xyzfmt:
 test.hausdorff:
 	@-cd Test_Hausdorff && ./RunTest.sh $(OPT)
 
+test.catcrd:
+	@-cd Test_CatCrd && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
