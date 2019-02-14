@@ -105,6 +105,8 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   mprintf("\tParticle Mesh Ewald params:\n");
   mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g  NB skin= %g\n",
           cutoff_, dsumTol_, ew_coeff_, skinnbIn);
+  if (lw_coeff_ > 0.0)
+    mprintf("\t  LJ Ewald coeff.= %g\n", lw_coeff_);
   mprintf("\t  Bspline order= %i\n", order_);
   mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t ");
@@ -205,7 +207,7 @@ double Ewald_ParticleMesh::LJ_Recip_ParticleMesh(Box const& boxIn)
   Mat cparamD(&Cparam_[0], Cparam_.size(), 1);
 
   auto pme_vdw = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
-  pme_vdw->setup(6, ew_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
+  pme_vdw->setup(6, lw_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
   pme_vdw->setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
                              boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
                              PMEInstanceD::LatticeType::XAligned);
