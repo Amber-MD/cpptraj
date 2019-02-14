@@ -581,9 +581,12 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
 # endif
   t_direct_.Stop();
   e_adjust_out = e_adjust;
+# ifdef DEBUG_PAIRLIST
+  mprintf("DEBUG: LJ vdw                           = %16.8f\n", Evdw);
+  mprintf("DEBUG: LJ vdw PME correction            = %16.8f\n", Eljpme_correction);
+  mprintf("DEBUG: LJ vdw PME correction (excluded) = %16.8f\n", Eljpme_correction_excl);
+# endif
   evdw_out = Evdw + Eljpme_correction + Eljpme_correction_excl;
-  mprintf("DEBUG: LJ vdw correction            = %16.8f\n", Eljpme_correction);
-  mprintf("DEBUG: LJ vdw correction (excluded) = %16.8f\n", Eljpme_correction_excl);
   return Eelec;
 }
 

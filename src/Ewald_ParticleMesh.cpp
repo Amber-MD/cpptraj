@@ -212,7 +212,6 @@ double Ewald_ParticleMesh::LJ_Recip_ParticleMesh(Box const& boxIn)
                              boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
                              PMEInstanceD::LatticeType::XAligned);
   double evdwrecip = pme_vdw->computeERec(0, cparamD, coordsD);
-  mprintf("DEBUG: Evdwrecip = %16.8f\n", evdwrecip);
   t_recip_.Stop();
   return evdwrecip;
 }
@@ -245,8 +244,11 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
   double e_vdw6self, e_vdw6recip;
   if (lw_coeff_ > 0.0) {
     e_vdw6self = Self6();
-    mprintf("DEBUG: e_vdw6self = %16.8f\n", e_vdw6self);
     e_vdw6recip = LJ_Recip_ParticleMesh( frameIn.BoxCrd() );
+    if (debug_ > 0) {
+      mprintf("DEBUG: e_vdw6self = %16.8f\n", e_vdw6self);
+      mprintf("DEBUG: Evdwrecip = %16.8f\n", e_vdw6recip);
+    }
     e_vdw_lr_correction = 0.0;
   } else {
     e_vdw6self = 0.0;
