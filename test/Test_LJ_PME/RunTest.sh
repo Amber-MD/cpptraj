@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles lj.in ene.dat ene.dat.?
+CleanFiles lj.in ene.dat ene.dat.? switch.dat
 
 INPUT='-i lj.in'
 TESTNAME='LJ PME tests.'
@@ -39,6 +39,21 @@ EOF
   ((i++))
 done
 
+# Test with switching
+cat > lj.in <<EOF
+parm water_2.parm7
+trajin water_2.crd
+
+box x 20 y 20 z 20 alpha 90 beta 90 gamma 90
+energy pmeswitch vdw etype pme cut 8.0 dsumtol 0.0000001 skinnb 0.01 \
+       ewcoeff 0.3 ljswidth 2.0 ljpme
+energy lrswitch  vdw etype pme cut 8.0 dsumtol 0.0000001 skinnb 0.01 \
+       ewcoeff 0.3 ljswidth 2.0
+run
+writedata switch.dat *[vdw] prec 16.8
+EOF
+RunCpptraj "LJ with switch function test"
+DoTest switch.dat.save switch.dat
 
 EndTest
 exit 0
