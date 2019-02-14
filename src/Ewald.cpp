@@ -455,6 +455,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
               int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
                                             TypeIndices_[it1->Idx()]);
               if (nbindex > -1) {
+                vswitch = switch_fn(rij2, cut2_0, cut2_1);
                 NonbondType const& LJ = NB_->NBarray()[ nbindex ];
                 double r2    = 1.0 / rij2;
                 double r6    = r2 * r2 * r2;
@@ -462,7 +463,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                 double f12   = LJ.A() * r12;  // A/r^12
                 double f6    = LJ.B() * r6;   // B/r^6
                 double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
-                Evdw += e_vdw;
+                Evdw += (e_vdw * vswitch);
                 //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
                 // LJ PME direct space correction
                 double kr2 = lw_coeff_ * lw_coeff_ * rij2;
@@ -470,7 +471,6 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                 //double kr6 = kr2 * kr4;
                 double expterm = exp(-kr2);
                 double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-                vswitch = switch_fn(rij2, cut2_0, cut2_1);
                 Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
               }
             }
@@ -539,6 +539,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                 int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
                                               TypeIndices_[it1->Idx()]);
                 if (nbindex > -1) {
+                  vswitch = switch_fn(rij2, cut2_0, cut2_1);
                   NonbondType const& LJ = NB_->NBarray()[ nbindex ];
                   double r2    = 1.0 / rij2;
                   double r6    = r2 * r2 * r2;
@@ -546,7 +547,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                   double f12   = LJ.A() * r12;  // A/r^12
                   double f6    = LJ.B() * r6;   // B/r^6
                   double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
-                  Evdw += e_vdw;
+                  Evdw += (e_vdw * vswitch);
                   //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
                   // LJ PME direct space correction
                   double kr2 = lw_coeff_ * lw_coeff_ * rij2;
@@ -554,7 +555,6 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
                   //double kr6 = kr2 * kr4;
                   double expterm = exp(-kr2);
                   double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-                  vswitch = switch_fn(rij2, cut2_0, cut2_1);
                   Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
                 }
               }
