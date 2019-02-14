@@ -8,6 +8,7 @@ INPUT='-i lj.in'
 TESTNAME='LJ PME tests.'
 Requires libpme maxthreads 1
 
+# Basic test
 cat > lj.in <<EOF
 parm water_2.parm7
 trajin water_2.crd
@@ -37,6 +38,7 @@ EOF
   fi
   ((i++))
 done
+
 
 EndTest
 exit 0
