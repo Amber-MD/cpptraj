@@ -348,6 +348,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
   double e_adjust = 0.0;
   double Evdw = 0.0;
   double Eljpme_correction = 0.0;
+  double Eljpme_correction_excl = 0.0;
   int cidx;
 # ifdef _OPENMP
 # pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust)
@@ -440,7 +441,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
             double r4 = rij2 * rij2;
             double r6 = rij2 * r4;
             double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-            Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
+            Eljpme_correction_excl += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
           }
         } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
@@ -523,7 +524,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
               double r4 = rij2 * rij2;
               double r6 = rij2 * r4;
               double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
-              Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
+              Eljpme_correction_excl += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) / r6 * Cij;
             }
           } // END loop over neighbor cell atoms
         } // END Loop over neighbor cells
@@ -536,7 +537,8 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
   t_direct_.Stop();
   e_adjust_out = e_adjust;
   evdw_out = Evdw;
-  mprintf("DEBUG: LJ vdw correction = %16.8f\n", Eljpme_correction);
+  mprintf("DEBUG: LJ vdw correction            = %16.8f\n", Eljpme_correction);
+  mprintf("DEBUG: LJ vdw correction (excluded) = %16.8f\n", Eljpme_correction_excl);
   return Eelec;
 }
 
