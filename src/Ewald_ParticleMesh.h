@@ -6,8 +6,8 @@
 class Ewald_ParticleMesh : public Ewald {
   public:
     Ewald_ParticleMesh();
-    /// Box, cut, dsum tol, ew coeff, NB skin, erfc dx, order, debug, nfft
-    int Init(Box const&, double, double, double, double, double, int, int, const int*);
+    /// Box, cut, dsum tol, ew coeff, lj ew coeff, NB skin, erfc dx, order, debug, nfft
+    int Init(Box const&, double, double, double, double, double, double, int, int, const int*);
     // ----- Inherited ---------------------------
     int Setup(Topology const&, AtomMask const&);
     double CalcEnergy(Frame const&, AtomMask const&, double&); // TODO const?
