@@ -87,6 +87,9 @@ class Control {
     DataFile* cpopvtimefile_;         ///< Cluster population vs time file.
     Node::CnormType norm_pop_;        ///< Cluster pop vs time normalization type
 
+    std::string splitfile_;           ///< Output file for splitting cluster results
+    Cframes splitFrames_;             ///< Frames at which to split
+
     // Timers
     Timer timer_setup_;          ///< Run - metric, frames to cluster setup 
     Timer timer_pairwise_;       ///< Run - pairwise caching

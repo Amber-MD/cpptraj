@@ -413,6 +413,28 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
   if (cnumvtime_ == 0) return 1;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
+  // Cluster split analysis
+  splitfile_ = analyzeArgs.GetStringKey("summarysplit");
+  if (splitfile_.empty()) // For backwards compat.
+    splitfile_ = analyzeArgs.GetStringKey("summaryhalf");
+  if (!splitfile_.empty()) {
+    ArgList splits( analyzeArgs.GetStringKey("splitframe"), "," );
+    if (!splits.empty()) {
+      splitFrames_.clear();
+      int sf = splits.getNextInteger(-1); // User frame #s start at 1
+      while (sf > 0) {
+        splitFrames_.push_back( sf );
+        sf = splits.getNextInteger(-1);
+      }
+      if ((int)splitFrames_.size() < splits.Nargs()) {
+        mprinterr("Error: Invalid split frame arguments.\n");
+        splits.CheckForMoreArgs();
+        return 1;
+      }
+    }
+  }
+
+
   return 0;
 }
 
@@ -472,6 +494,18 @@ void Cpptraj::Cluster::Control::Info() const {
       else
         mprintf("\tSilhouette calculation will use non-sieved frames ONLY.\n");
     }
+  }
+
+  if (!splitfile_.empty()) {
+    mprintf("\tSummary comparing parts of trajectory data for clusters will be written to %s\n",
+            splitfile_.c_str());
+    if (!splitFrames_.empty()) {
+      mprintf("\t\tFrames will be split at:");
+      for (std::vector<int>::const_iterator f = splitFrames_.begin(); f != splitFrames_.end(); ++f)
+        mprintf(" %i", *f);
+      mprintf("\n");
+    } else
+      mprintf("\t\tFrames will be split at the halfway point.\n");
   }
 
 
