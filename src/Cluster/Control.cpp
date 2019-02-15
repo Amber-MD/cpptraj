@@ -216,11 +216,10 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
 }
 
 const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
-  "{dme|rms|srmsd} [mass] [nofit]";
+  "{dme|rms|srmsd} [mass] [nofit] [<mask>]";
 
 /** Set up clustering for a COORDS DataSet.*/
 int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
-                                                     std::string const& maskExpr,
                                                      ArgList& analyzeArgs,
                                                      DataSetList& DSL,
                                                      DataFileList& DFL,
@@ -250,6 +249,16 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   // Metric setup.
   bool useMass = analyzeArgs.hasKey("mass");
   bool nofit   = analyzeArgs.hasKey("nofit");
+  // Get the mask string 
+  std::string maskExpr = analyzeArgs.GetMaskNext();
+  /*if (!refs_.empty() && refmaskexpr_.empty()) { TODO enable
+    refmaskexpr_ = maskexpr_;
+    if (refmaskexpr_.empty()) {
+      refmaskexpr_.assign("!@H=");
+      mprintf("Warning: 'assignrefs' specified but no 'refmask' given.\n"
+              "Warning:   Using default mask expression: '%s'\n", refmaskexpr_.c_str());
+    }
+  }*/
 
   int err = 0;
   switch (mtype) {

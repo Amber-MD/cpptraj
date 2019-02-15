@@ -20,20 +20,7 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     return Analysis::ERR;
   }
 
-  // Get the mask string 
-  std::string maskexpr = analyzeArgs.GetMaskNext();
-  /*if (!refs_.empty() && refmaskexpr_.empty()) {
-    refmaskexpr_ = maskexpr_;
-    if (refmaskexpr_.empty()) {
-      refmaskexpr_.assign("!@H=");
-      mprintf("Warning: 'assignrefs' specified but no 'refmask' given.\n"
-              "Warning:   Using default mask expression: '%s'\n", refmaskexpr_.c_str());
-    }
-  }*/
-
-
-  if (control_.SetupForCoordsDataSet(coords_, maskexpr, analyzeArgs,
-                                     setup.DSL(), setup.DFL(), debugIn))
+  if (control_.SetupForCoordsDataSet(coords_, analyzeArgs, setup.DSL(), setup.DFL(), debugIn))
     return Analysis::ERR;
 
   control_.Info();
