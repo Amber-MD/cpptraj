@@ -1,8 +1,7 @@
 #ifdef LIBPME
 #include <algorithm> // copy/fill
-#include <memory> // unique_ptr
+//#incl ude <memory> // unique_ptr
 #include "Ewald_ParticleMesh.h"
-#include "helpme_standalone.h"
 #include "CpptrajStdio.h"
 
 typedef helpme::Matrix<double> Mat;
@@ -88,10 +87,12 @@ int Ewald_ParticleMesh::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box co
 
 /** Set up PME parameters. */
 int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn,
-                    double ew_coeffIn, double skinnbIn, double erfcTableDxIn, 
+                    double ew_coeffIn, double lw_coeffIn, double switch_widthIn,
+                    double skinnbIn, double erfcTableDxIn, 
                     int orderIn, int debugIn, const int* nfftIn)
 {
-  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, erfcTableDxIn, skinnbIn))
+  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, lw_coeffIn, switch_widthIn,
+                 erfcTableDxIn, skinnbIn))
     return 1;
   if (nfftIn != 0)
     std::copy(nfftIn, nfftIn+3, nfft_);
@@ -105,6 +106,10 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   mprintf("\tParticle Mesh Ewald params:\n");
   mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g  NB skin= %g\n",
           cutoff_, dsumTol_, ew_coeff_, skinnbIn);
+  if (lw_coeff_ > 0.0)
+    mprintf("\t  LJ Ewald coeff.= %g\n", lw_coeff_);
+  if (switch_width_ > 0.0)
+    mprintf("\t  LJ switch width= %g\n", switch_width_);
   mprintf("\t  Bspline order= %i\n", order_);
   mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t ");
@@ -127,6 +132,9 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
 /** Setup PME calculation. */
 int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
+  // NOTE: These dont need to actually be calculated if the lj ewald coeff
+  //       is 0.0, but do it here anyway to avoid segfaults.
+  CalculateC6params( topIn, maskIn );
   coordsD_.clear();
   coordsD_.reserve( maskIn.Nselected() * 3);
   SetupExcluded(topIn, maskIn);
@@ -167,8 +175,8 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(Box const& boxIn)
   //       8 = max # threads to use for each MPI instance; 0 = all available threads used.
   // NOTE: Scale factor for Charmm is 332.0716
   // NOTE: The electrostatic constant has been baked into the Charge_ array already.
-  auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
-  pme_object->setup(1, ew_coeff_, order_, nfft1, nfft2, nfft3, 1.0, 0);
+  //auto pme_object = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
+  pme_object_.setup(1, ew_coeff_, order_, nfft1, nfft2, nfft3, 1.0, 0);
   // Sets the unit cell lattice vectors, with units consistent with those used to specify coordinates.
   // Args: 1 = the A lattice parameter in units consistent with the coordinates.
   //       2 = the B lattice parameter in units consistent with the coordinates.
@@ -177,12 +185,38 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(Box const& boxIn)
   //       5 = the beta lattice parameter in degrees.
   //       6 = the gamma lattice parameter in degrees.
   //       7 = lattice type
-  pme_object->setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
+  pme_object_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
                                 boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
                                 PMEInstanceD::LatticeType::XAligned);
-  double erecip = pme_object->computeERec(0, chargesD, coordsD);
+  double erecip = pme_object_.computeERec(0, chargesD, coordsD);
+
   t_recip_.Stop();
   return erecip;
+}
+
+/** The LJ PME reciprocal term. */
+double Ewald_ParticleMesh::LJ_Recip_ParticleMesh(Box const& boxIn)
+{
+  t_recip_.Start();
+  int nfft1 = nfft_[0];
+  int nfft2 = nfft_[1];
+  int nfft3 = nfft_[2];
+  if ( DetermineNfft(nfft1, nfft2, nfft3, boxIn) ) {
+    mprinterr("Error: Could not determine grid spacing.\n");
+    return 0.0;
+  }
+
+  Mat coordsD(&coordsD_[0], Charge_.size(), 3);
+  Mat cparamD(&Cparam_[0], Cparam_.size(), 1);
+
+  //auto pme_vdw = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
+  pme_vdw_.setup(6, lw_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
+  pme_vdw_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
+                             boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+                             PMEInstanceD::LatticeType::XAligned);
+  double evdwrecip = pme_vdw_.computeERec(0, cparamD, coordsD);
+  t_recip_.Stop();
+  return evdwrecip;
 }
 
 /** Calculate full nonbonded energy with PME */
@@ -192,7 +226,7 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
   Matrix_3x3 ucell, recip;
   double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
   double e_self = Self( volume );
-  double e_vdwr = Vdw_Correction( volume );
+  double e_vdw_lr_correction;
 
   pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
 
@@ -208,15 +242,31 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_ParticleMesh( frameIn.BoxCrd() );
-  double e_adjust = 0.0;
-         e_vdw = 0.0;
-  double e_direct = Direct( pairList_, e_adjust, e_vdw );
+
+  // TODO branch
+  double e_vdw6self, e_vdw6recip;
+  if (lw_coeff_ > 0.0) {
+    e_vdw6self = Self6();
+    e_vdw6recip = LJ_Recip_ParticleMesh( frameIn.BoxCrd() );
+    if (debug_ > 0) {
+      mprintf("DEBUG: e_vdw6self = %16.8f\n", e_vdw6self);
+      mprintf("DEBUG: Evdwrecip = %16.8f\n", e_vdw6recip);
+    }
+    e_vdw_lr_correction = 0.0;
+  } else {
+    e_vdw6self = 0.0;
+    e_vdw6recip = 0.0;
+    e_vdw_lr_correction = Vdw_Correction( volume );
+  }
+
+  e_vdw = 0.0;
+  double e_direct = Direct( pairList_, e_vdw );
   if (debug_ > 0)
-    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f  Evdw= %20.10f\n",
-            e_self, e_recip, e_direct, e_adjust, e_vdw);
-  e_vdw += e_vdwr;
+    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Evdw= %20.10f\n",
+            e_self, e_recip, e_direct, e_vdw);
+  e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
   t_total_.Stop();
-  return e_self + e_recip + e_direct + e_adjust;
+  return e_self + e_recip + e_direct;
 }
 
 #endif /* LIBPME */

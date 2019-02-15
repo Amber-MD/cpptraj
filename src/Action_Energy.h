@@ -45,6 +45,8 @@ class Action_Energy: public Action {
     double dsumtol_;               ///< Ewald direct sum tolerance.
     double rsumtol_;               ///< Regular Ewald reciprocal sum tolerance.
     double ewcoeff_;               ///< Ewald coefficient.
+    double lwcoeff_;               ///< LJ Ewald coefficient.
+    double ljswidth_;              ///< Size of LJ switch region
     double maxexp_;
     double skinnb_;                ///< Size of non-bonded "skin"
     double erfcDx_;                ///< Spacing for ERFC table (default 1/5000)
