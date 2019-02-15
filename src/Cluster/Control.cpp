@@ -303,22 +303,18 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
     // If no other frame selection option like sieve provided and an already
     // set up cache is present, use the cached frames.
     if (sieve_ == 1 && pmatrix_.HasCache() && pmatrix_.Cache().Size() > 0)
+    {
       frameSelect_ = FROM_CACHE;
+      if (pmatrix_.Cache().SieveVal() != 1) {
+        sieve_ = pmatrix_.Cache().SieveVal();
+        mprintf("Warning: No sieve specified; using sieve value from cache '%s': %i\n",
+                pmatrix_.Cache().legend(), sieve_);
+      }
+    }
   }
 
-  // Determine if all frames will be cached or not. If not, certain
-  // calculations get very expensive - we may only want to do them
-  // on cached frames.
-  bool allFramesCached;
-  if (sieve_ != 1 || (frameSelect_ == FROM_CACHE && pmatrix_.Cache().SieveVal() != 1))
-    allFramesCached = false;
-  else
-    allFramesCached = true;
-  // TODO handle no-cache situation
-  // TODO just determine if # frames to cluster == total frames?
-
   // Choose sieve restore option based on algorithm and frames to cluster.
-  if (!allFramesCached)
+  if (sieve_ != 1)
   {
     sieveRestore_ = CLOSEST_CENTROID;
     if (algorithm_->Type() == Algorithm::DBSCAN) {
@@ -334,7 +330,7 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
   std::string bestRepStr = analyzeArgs.GetStringKey("bestrep");
   if (bestRepStr.empty()) {
     // For sieving, cumulative can get very expensive. Default to centroid.
-    if (!allFramesCached)
+    if (sieve_ != 1)
       bestRep_ = BestReps::CENTROID;
     else
       bestRep_ = BestReps::CUMULATIVE;
