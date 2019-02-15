@@ -445,6 +445,15 @@ void Cpptraj::Cluster::Control::Info() const {
   }
   if (nRepsToSave_ > 1)
     mprintf("\tThe top %i representative frames will be determined.\n", nRepsToSave_);
+
+  if (!clusterinfo_.empty())
+    mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
+  if (!summaryfile_.empty())
+    mprintf("\tSummary of cluster results will be written to %s\n",summaryfile_.c_str());
+  if (!sil_file_.empty()) {
+    mprintf("\tFrame silhouettes will be written to %s.frame.dat, cluster silhouettes\n"
+            "\t  will be written to %s.cluster.dat\n", sil_file_.c_str(), sil_file_.c_str());
+
 }
 
 /** Figure out which frames to cluster, cache distances if necessary, then
