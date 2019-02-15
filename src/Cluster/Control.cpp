@@ -453,6 +453,14 @@ void Cpptraj::Cluster::Control::Info() const {
   if (!sil_file_.empty()) {
     mprintf("\tFrame silhouettes will be written to %s.frame.dat, cluster silhouettes\n"
             "\t  will be written to %s.cluster.dat\n", sil_file_.c_str(), sil_file_.c_str());
+    if (sieve_ != 1) {
+      if (includeSieveInCalc_)
+        mprintf("\tSilhouette calculation will use all frames.\n");
+      else
+        mprintf("\tSilhouette calculation will use non-sieved frames ONLY.\n");
+    }
+  }
+
 
 }
 
