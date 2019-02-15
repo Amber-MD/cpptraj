@@ -59,7 +59,7 @@ class Ewald {
     double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
 #   endif
     /// Fast version of direct space energy using a pairlist
-    double Direct(PairList const&, double&, double&);
+    double Direct(PairList const&, double&);
     /// \return adjusted energy for excluded atom pair
 #   ifdef _OPENMP
     inline double Adjust(double,double,double) const;
@@ -101,7 +101,7 @@ class Ewald {
     Timer t_erfc_;
     Timer t_adjust_;
   private:
-    double Direct_VDW_LongRangeCorrection(PairList const&, double&, double&);
-    double Direct_VDW_LJPME(PairList const&, double&, double&);
+    double Direct_VDW_LongRangeCorrection(PairList const&, double&);
+    double Direct_VDW_LJPME(PairList const&, double&);
 };
 #endif
