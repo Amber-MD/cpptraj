@@ -54,7 +54,7 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
     cInfo_.SetBox( pbox );
   }
   setup.SetCoordInfo( &cInfo_ );
-  return Action::OK;
+  return Action::MODIFY_TOPOLOGY;
 }
 
 Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
