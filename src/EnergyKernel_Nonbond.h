@@ -21,7 +21,7 @@
                 int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
                                               TypeIndices_[it1->Idx()]);
                 if (nbindex > -1) {
-                  vswitch = switch_fn(rij2, cut2_0, cut2_1);
+                  double vswitch = switch_fn(rij2, cut2_0, cut2_1);
                   NonbondType const& LJ = NB_->NBarray()[ nbindex ];
                   double r2    = 1.0 / rij2;
                   double r6    = r2 * r2 * r2;
@@ -31,6 +31,7 @@
                   double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
                   Evdw += (e_vdw * vswitch);
                   //mprintf("PVDW %8i%8i%20.6f%20.6f\n", ta0+1, ta1+1, e_vdw, r2);
+#                 ifdef CPPTRAJ_EKERNEL_LJPME
                   // LJ PME direct space correction
                   double kr2 = lw_coeff_ * lw_coeff_ * rij2;
                   double kr4 = kr2 * kr2;
@@ -38,4 +39,5 @@
                   double expterm = exp(-kr2);
                   double Cij = Cparam_[it0->Idx()] * Cparam_[it1->Idx()];
                   Eljpme_correction += (1.0 - (1.0 +  kr2 + kr4/2.0)*expterm) * r6 * vswitch * Cij;
+#                 endif
                 }

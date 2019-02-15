@@ -370,6 +370,71 @@ static inline double switch_fn(double rij2, double cut2_0, double cut2_1)
   }
 }
 
+double Ewald::Direct_VDW_LongRangeCorrection(PairList const& PL, double& e_adjust_out, double& evdw_out)
+{
+  t_direct_.Start();
+  double cut2 = cutoff_ * cutoff_;
+  double Eelec = 0.0;
+  double e_adjust = 0.0;
+  double Evdw = 0.0;
+  int cidx;
+  double cut0 = cutoff_ - switch_width_;
+  double cut2_0 = cut0 * cut0;
+  double cut2_1 = cut2;
+# ifdef _OPENMP
+# pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust)
+  {
+# pragma omp for
+# endif
+# include "PairListLoop.h"
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+  t_direct_.Stop();
+  e_adjust_out = e_adjust;
+# ifdef DEBUG_PAIRLIST
+  mprintf("DEBUG: LJ vdw                           = %16.8f\n", Evdw);
+# endif
+  evdw_out = Evdw;
+  return Eelec;
+}
+
+double Ewald::Direct_VDW_LJPME(PairList const& PL, double& e_adjust_out, double& evdw_out)
+{
+  t_direct_.Start();
+  double cut2 = cutoff_ * cutoff_;
+  double Eelec = 0.0;
+  double e_adjust = 0.0;
+  double Evdw = 0.0;
+  double Eljpme_correction = 0.0;
+  double Eljpme_correction_excl = 0.0;
+  int cidx;
+  double cut0 = cutoff_ - switch_width_;
+  double cut2_0 = cut0 * cut0;
+  double cut2_1 = cut2;
+# define CPPTRAJ_EKERNEL_LJPME
+# ifdef _OPENMP
+# pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust, Eljpme_correction,Eljpme_correction_excl)
+  {
+# pragma omp for
+# endif
+# include "PairListLoop.h"
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+# undef CPPTRAJ_EKERNEL_LJPME
+  t_direct_.Stop();
+  e_adjust_out = e_adjust;
+# ifdef DEBUG_PAIRLIST
+  mprintf("DEBUG: LJ vdw                           = %16.8f\n", Evdw);
+  mprintf("DEBUG: LJ vdw PME correction            = %16.8f\n", Eljpme_correction);
+  mprintf("DEBUG: LJ vdw PME correction (excluded) = %16.8f\n", Eljpme_correction_excl);
+# endif
+  evdw_out = Evdw + Eljpme_correction + Eljpme_correction_excl;
+  return Eelec;
+}
+
+
 //  Ewald::Direct()
 /** Calculate direct space energy. This is the faster version that uses
   * a pair list. Also calculate the energy adjustment for excluded
@@ -380,6 +445,11 @@ static inline double switch_fn(double rij2, double cut2_0, double cut2_1)
   */
 double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
 {
+  if (lw_coeff_ > 0.0)
+    return Direct_VDW_LJPME(PL, e_adjust_out, evdw_out);
+  else
+    return Direct_VDW_LongRangeCorrection(PL, e_adjust_out, evdw_out);
+/*
   t_direct_.Start();
   double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
@@ -489,6 +559,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out, double& evdw_out)
 # endif
   evdw_out = Evdw + Eljpme_correction + Eljpme_correction_excl;
   return Eelec;
+*/
 }
 
 /** Determine VDW long range correction prefactor. */

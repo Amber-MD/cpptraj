@@ -91,12 +91,15 @@ class Ewald {
     double one_over_Dx_;  ///< One over erfcTableDx_.
     double Vdw_Recip_term_; ///< VDW recip correction term from # types and B parameters
     int debug_;
-    Timer t_total_;
+    Timer t_total_; // TODO make timing external
     Timer t_self_;
     Timer t_recip_;
     Timer t_trig_tables_;
     Timer t_direct_;
     Timer t_erfc_;
     Timer t_adjust_;
+  private:
+    double Direct_VDW_LongRangeCorrection(PairList const&, double&, double&);
+    double Direct_VDW_LJPME(PairList const&, double&, double&);
 };
 #endif
