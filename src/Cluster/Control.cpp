@@ -8,10 +8,13 @@
 // Algorithms
 #include "Algorithm_HierAgglo.h"
 #include "Algorithm_DBscan.h"
+// Results
+#include "Results_Coords.h"
 
 Cpptraj::Cluster::Control::Control() :
   metric_(0),
   algorithm_(0),
+  results_(0),
   verbose_(0),
   frameSelect_(UNSPECIFIED),
   sieve_(1),
@@ -30,6 +33,7 @@ Cpptraj::Cluster::Control::Control() :
 Cpptraj::Cluster::Control::~Control() {
   if (algorithm_ != 0) delete algorithm_;
   if (metric_ != 0   ) delete metric_;
+  if (results_ != 0  ) delete results_;
 }
 
 // -----------------------------------------------------------------------------
@@ -273,6 +277,10 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
     return 1;
   }
 
+  // Set up results for COORDS DataSet
+  results_ = (Results*)new Results_Coords( ds );
+  if (results_ == 0) return 1;
+
   return Common(analyzeArgs, DSL, DFL);
 }
 
@@ -288,6 +296,10 @@ const char* Cpptraj::Cluster::Control::CommonArgs_ =
 int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
 {
   clusters_.SetDebug( verbose_ );
+
+  if (results_ != 0) {
+    if (results_->GetOptions(analyzeArgs)) return 1;
+  }
 
   // Allocate PairwiseMatrix (and optionally a cache). Metric must already be set up.
   if (AllocatePairwise( analyzeArgs, DSL, DFL )) {
@@ -408,6 +420,7 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
 void Cpptraj::Cluster::Control::Info() const {
   if (metric_    != 0) metric_->Info();
   if (algorithm_ != 0) algorithm_->Info();
+  if (results_   != 0) results_->Info();
 
   // TODO frameSelect
   if (sieve_ > 1)
@@ -653,6 +666,12 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
     }
   }
 
+  if (results_ != 0) {
+    timer_output_results_.Start();
+    results_->DoOutput( clusters_ );
+    timer_output_results_.Stop();
+  }
+
   timer_output_.Stop();
   return 0;
 }
@@ -671,6 +690,6 @@ void Cpptraj::Cluster::Control::Timing(double ttotal) const {
   // Output Timing data
   timer_output_info_.WriteTiming(   2, "Info calc      :", timer_output_.Total());
   timer_output_summary_.WriteTiming(2, "Summary calc   :", timer_output_.Total());
-  //cluster_post_coords.WriteTiming(2, "Coordinate writes", cluster_post.Total());
+  timer_output_results_.WriteTiming(2, "Results Output :", timer_output_.Total());
   timer_output_.WriteTiming(1, "Output Total :", ttotal);
 }

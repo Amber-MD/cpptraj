@@ -5,6 +5,7 @@
 #include "PairwiseMatrix.h"
 #include "Algorithm.h"
 #include "Metric.h"
+#include "Results.h"
 #include "BestReps.h"
 #include "../Timer.h"
 #include "../DataSetList.h"
@@ -62,6 +63,7 @@ class Control {
     DataSet_PairwiseCache* cache_; ///< Hold any cached pairwise distances.
     PairwiseMatrix pmatrix_;       ///< Encapsulates the metric and any cached distances.
     Algorithm* algorithm_;         ///< Hold the clustering algorithm.
+    Results* results_;             ///< Hold output routines specific to data being clustered.
     std::string dsname_;           ///< Name for output data sets.
     int verbose_;
 
@@ -95,6 +97,7 @@ class Control {
     Timer timer_run_;            ///< Total Run time
     Timer timer_output_info_;    ///< Output - info file write
     Timer timer_output_summary_; ///< Output - summary write
+    Timer timer_output_results_; ///< Output - results (e.g. coords writes).
     Timer timer_output_;         ///< Total output time
 };
 
