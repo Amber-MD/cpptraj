@@ -408,6 +408,43 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
 void Cpptraj::Cluster::Control::Info() const {
   if (metric_    != 0) metric_->Info();
   if (algorithm_ != 0) algorithm_->Info();
+
+  // TODO frameSelect
+  if (sieve_ > 1)
+    mprintf("\tInitial clustering sieve value is %i frames.\n", sieve_);
+  else if (sieve_ < -1) {
+    mprintf("\tInitial clustering will be randomly sieved (with value %i)", -sieve_);
+    if (sieveSeed_ > 0) mprintf(" using random seed %i", sieveSeed_);
+    mprintf(".\n");
+  }
+  if (sieve_ != 1) {
+    if (includeSieveInCalc_)
+      mprintf("\tAll frames (including sieved) will be used to calc within-cluster average.\n");
+    else
+      mprintf("\tOnly non-sieved frames will be used to calc within-cluster average.\n");
+  }
+  if (sieveRestore_ != NO_RESTORE) {
+    mprintf("\tRestoring sieved frames");
+    if (sieveRestore_ == CLOSEST_CENTROID)
+      mprintf(" by closest distance to centroid.\n");
+    else if (sieveRestore_ == EPSILON_CENTROID)
+      mprintf(" if within epsilon %f of a centroid.\n", restoreEpsilon_);
+    else if (sieveRestore_ == EPSILON_FRAME)
+      mprintf(" if within epsilon %f of a frame.\n", restoreEpsilon_);
+  }
+
+  mprintf("\tRepresentative frames will be chosen by");
+  switch (bestRep_) {
+    case BestReps::CUMULATIVE: mprintf(" lowest cumulative distance to all other frames.\n"); break;
+    case BestReps::CENTROID  : mprintf(" closest distance to cluster centroid.\n"); break;
+    case BestReps::CUMULATIVE_NOSIEVE:
+      mprintf(" lowest cumulative distance to all other frames (ignore sieved frames).\n");
+      break;
+    default: // sanity check
+      mprintf("\n");
+  }
+  if (nRepsToSave_ > 1)
+    mprintf("\tThe top %i representative frames will be determined.\n", nRepsToSave_);
 }
 
 /** Figure out which frames to cluster, cache distances if necessary, then
