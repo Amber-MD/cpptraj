@@ -16,6 +16,8 @@ Ewald::Ewald() :
   lw_coeff_(0.0),
   switch_width_(0.0),
   cutoff_(0.0),
+  cut2_(0.0),
+  cut2_0_(0.0),
   dsumTol_(0.0),
   erfcTableDx_(0.0),
   one_over_Dx_(0.0),
@@ -284,6 +286,11 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
   else if (DABS(lw_coeff_) < Constants::SMALL)
     lw_coeff_ = ew_coeff_;
 
+  // Calculate some common factors.
+  cut2_ = cutoff_ * cutoff_;
+  double cut0 = cutoff_ - switch_width_;
+  cut2_0_ = cut0 * cut0;
+
   return 0;
 }
 
@@ -373,14 +380,10 @@ static inline double switch_fn(double rij2, double cut2_0, double cut2_1)
 double Ewald::Direct_VDW_LongRangeCorrection(PairList const& PL, double& e_adjust_out, double& evdw_out)
 {
   t_direct_.Start();
-  double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
   double e_adjust = 0.0;
   double Evdw = 0.0;
   int cidx;
-  double cut0 = cutoff_ - switch_width_;
-  double cut2_0 = cut0 * cut0;
-  double cut2_1 = cut2;
 # ifdef _OPENMP
 # pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust)
   {
@@ -402,16 +405,12 @@ double Ewald::Direct_VDW_LongRangeCorrection(PairList const& PL, double& e_adjus
 double Ewald::Direct_VDW_LJPME(PairList const& PL, double& e_adjust_out, double& evdw_out)
 {
   t_direct_.Start();
-  double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
   double e_adjust = 0.0;
   double Evdw = 0.0;
   double Eljpme_correction = 0.0;
   double Eljpme_correction_excl = 0.0;
   int cidx;
-  double cut0 = cutoff_ - switch_width_;
-  double cut2_0 = cut0 * cut0;
-  double cut2_1 = cut2;
 # define CPPTRAJ_EKERNEL_LJPME
 # ifdef _OPENMP
 # pragma omp parallel private(cidx) reduction(+: Eelec, Evdw, e_adjust, Eljpme_correction,Eljpme_correction_excl)

@@ -32,7 +32,7 @@
           // If atom excluded, calc adjustment, otherwise calc elec. energy.
           if (excluded.find( it1->Idx() ) == excluded.end())
           {
-            if ( rij2 < cut2 ) {
+            if ( rij2 < cut2_ ) {
 #             include "EnergyKernel_Nonbond.h"
             }
           } else {
@@ -66,7 +66,7 @@
             if (excluded.find( it1->Idx() ) == excluded.end())
             {
               //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
-              if ( rij2 < cut2 ) {
+              if ( rij2 < cut2_ ) {
 #               include "EnergyKernel_Nonbond.h"
               }
             } else {

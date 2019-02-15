@@ -86,6 +86,8 @@ class Ewald {
     double lw_coeff_;     ///< Ewald coefficient for LJ
     double switch_width_; ///< Switching window size for LJ switch if active
     double cutoff_;       ///< Direct space cutoff
+    double cut2_;         ///< Direct space cutoff squared.
+    double cut2_0_;       ///< Direct space cutoff minus switch width, squared.
     double dsumTol_;      ///< Direct space sum tolerance.
     double erfcTableDx_;  ///< Spacing of X values in Erfc table.
     double one_over_Dx_;  ///< One over erfcTableDx_.

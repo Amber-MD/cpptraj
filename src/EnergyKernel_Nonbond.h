@@ -21,7 +21,7 @@
                 int nbindex = NB_->GetLJindex(TypeIndices_[it0->Idx()],
                                               TypeIndices_[it1->Idx()]);
                 if (nbindex > -1) {
-                  double vswitch = switch_fn(rij2, cut2_0, cut2_1);
+                  double vswitch = switch_fn(rij2, cut2_0_, cut2_);
                   NonbondType const& LJ = NB_->NBarray()[ nbindex ];
                   double r2    = 1.0 / rij2;
                   double r6    = r2 * r2 * r2;
