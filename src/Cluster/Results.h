@@ -13,6 +13,7 @@ class Results {
     virtual ~Results() {}
 
     virtual int GetOptions(ArgList&) = 0;
+    virtual void Info() const = 0;
     virtual int DoOutput() const = 0;
   private:
     Type type_;

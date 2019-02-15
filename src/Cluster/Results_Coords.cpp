@@ -1,4 +1,5 @@
 #include "Results_Coords.h"
+#include "../CpptrajStdio.h"
 
 /** The default output trajectory format. */
 const TrajectoryFile::TrajFormatType Cpptraj::Cluster::Results_Coords::DEF_TRAJ_FMT_ =
@@ -25,4 +26,23 @@ int Cpptraj::Cluster::Results_Coords::GetOptions(ArgList& analyzeArgs) {
   GetClusterTrajArgs(analyzeArgs, "avgout",       "avgfmt",       avgfile_,       avgfmt_);
 
   return 0;
+}
+
+void Cpptraj::Cluster::Results_Coords::Info() const {
+    if (!clusterfile_.empty())
+    mprintf("\tCluster trajectories will be written to %s, format %s\n",
+            clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
+  if (!singlerepfile_.empty())
+    mprintf("\tCluster representatives will be written to 1 traj (%s), format %s\n",
+            singlerepfile_.c_str(), TrajectoryFile::FormatString(singlerepfmt_));
+  if (!reptrajfile_.empty()) {
+    mprintf("\tCluster representatives will be written to separate trajectories,\n");
+    mprintf("\t\tprefix (%s), format %s",reptrajfile_.c_str(), 
+            TrajectoryFile::FormatString(reptrajfmt_));
+    if (writeRepFrameNum_) mprintf(", with frame #s");
+    mprintf("\n");
+  }
+  if (!avgfile_.empty())
+    mprintf("\tAverage structures for clusters will be written to %s, format %s\n",
+            avgfile_.c_str(), TrajectoryFile::FormatString(avgfmt_));
 }
