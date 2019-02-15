@@ -26,7 +26,7 @@ class Control {
     /// For determining how any sieved frames should be restored.
     enum SieveRestoreType { NO_RESTORE = 0, CLOSEST_CENTROID, EPSILON_CENTROID, EPSILON_FRAME };
     /// For determining how frames to cluster will be determined.
-    enum FrameSelectType { UNSPECIFIED = 0, ALL, SIEVE, FROM_CACHE };
+    enum FrameSelectType { UNSPECIFIED = 0, FROM_CACHE };
 
     int SetupForCoordsDataSet(DataSet_Coords*, std::string const&, ArgList&, DataSetList&,
                               DataFileList&, int);

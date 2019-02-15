@@ -300,19 +300,21 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
 
   // Determine how frames to cluster will be chosen
   if (frameSelect_ == UNSPECIFIED) {
-    if (sieve_ != 1)
-      frameSelect_ = SIEVE;
-    else if (pmatrix_.HasCache() && pmatrix_.Cache().Size() > 0)
+    // If no other frame selection option like sieve provided and an already
+    // set up cache is present, use the cached frames.
+    if (sieve_ == 1 && pmatrix_.HasCache() && pmatrix_.Cache().Size() > 0)
       frameSelect_ = FROM_CACHE;
-    else
-      frameSelect_ = ALL;
   }
 
+  // Determine if all frames will be cached or not. If not, certain
+  // calculations get very expensive - we may only want to do them
+  // on cached frames.
   bool allFramesCached;
   if (sieve_ != 1 || (frameSelect_ == FROM_CACHE && pmatrix_.Cache().SieveVal() != 1))
     allFramesCached = false;
   else
     allFramesCached = true;
+  // TODO handle no-cache situation
   // TODO just determine if # frames to cluster == total frames?
 
   // Choose sieve restore option based on algorithm and frames to cluster.
@@ -416,8 +418,7 @@ int Cpptraj::Cluster::Control::Run() {
   frameSieve_.Clear();
   int frameSelectErr = 1;
   switch ( frameSelect_ ) {
-    case ALL :
-    case SIEVE :
+    case UNSPECIFIED:
       frameSelectErr = frameSieve_.SetFramesToCluster(sieve_, metric_->Ntotal(), sieveSeed_);
       break;
     case FROM_CACHE :
