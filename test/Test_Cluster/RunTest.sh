@@ -73,6 +73,7 @@ cluster C1 :2-10 clusters 3 epsilon 4.0 out cascii.dat nofit loadpairdist pairdi
 EOF
 RunCpptraj "Cluster command test, read ASCII pairwise distances."
 DoTest cascii.dat.save cascii.dat
+DoTest cascii1.info cascii2.info
 
 EndTest
 
