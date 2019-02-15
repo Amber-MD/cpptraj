@@ -2881,7 +2881,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy, Vxx, Vxy, Vyy, Vxz, Vyz, Vzz) num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -2976,7 +2978,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -3587,7 +3591,9 @@ class PMEInstance {
         }
 
         transformedGrid[0] = Complex(0, 0);
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy) num_threads(nThreads_)
+#endif
         for (size_t yxz = 0; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             int kx = startX + xz / nz;
@@ -3765,7 +3771,9 @@ class PMEInstance {
         size_t rowSize = std::ceil(nForceComponents / cacheLineSizeInReals_) * cacheLineSizeInReals_;
         RealMat fractionalPhis(nThreads_, rowSize);
         size_t nAtoms = atomList_.size();
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t relativeAtomNumber = 0; relativeAtomNumber < nAtoms; ++relativeAtomNumber) {
             const auto &entry = splineCache_[relativeAtomNumber];
             const int &atom = entry.absoluteAtomNumber;
