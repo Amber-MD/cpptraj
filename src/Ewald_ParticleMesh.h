@@ -2,6 +2,7 @@
 #define INC_EWALD_PARTICLEMESH_H
 #ifdef LIBPME
 #include "Ewald.h"
+#include "helpme_standalone.h"
 /// Class for calculating electrostatics with particle mesh Ewald.
 class Ewald_ParticleMesh : public Ewald {
   public:
@@ -27,6 +28,9 @@ class Ewald_ParticleMesh : public Ewald {
 
     int nfft_[3]; ///< Number of FFT grid points in each direction
     int order_;   ///< PME B spline order
+
+    PMEInstanceD pme_object_;
+    PMEInstanceD pme_vdw_;
 };
 #endif /* LIBPME */
 #endif
