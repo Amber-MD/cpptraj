@@ -17,3 +17,12 @@ void Cpptraj::Cluster::Results_Coords::GetClusterTrajArgs(ArgList& argIn,
     fmt = TrajectoryFile::WriteFormatFromFname( trajName, DEF_TRAJ_FMT_ );
 }
 
+int Cpptraj::Cluster::Results_Coords::GetOptions(ArgList& analyzeArgs) {
+  writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
+  GetClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,   clusterfmt_);
+  GetClusterTrajArgs(analyzeArgs, "singlerepout", "singlerepfmt", singlerepfile_, singlerepfmt_);
+  GetClusterTrajArgs(analyzeArgs, "repout",       "repfmt",       reptrajfile_,   reptrajfmt_);
+  GetClusterTrajArgs(analyzeArgs, "avgout",       "avgfmt",       avgfile_,       avgfmt_);
+
+  return 0;
+}
