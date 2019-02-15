@@ -44,8 +44,8 @@ DataFile::DataFormatType Cpptraj::Cluster::Control::DEFAULT_PAIRDIST_TYPE_ =
   DataFile::CMATRIX_BINARY;
 # endif
 
-const char* Cpptraj::Cluster::Control::PairwiseArgs =
-  "pairwisecache {mem|disk|none}";
+const char* Cpptraj::Cluster::Control::PairwiseArgs_ =
+  "[pairdist <name>] [loadpairdist] [savepairdist] [pairwisecache {mem|disk|none}]";
 
 /** Set up PairwiseMatrix from arguments. */
 int Cpptraj::Cluster::Control::AllocatePairwise(ArgList& analyzeArgs, DataSetList& DSL,
@@ -181,8 +181,8 @@ Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algori
   return alg;
 }
 
-const char* Cpptraj::Cluster::Control::AlgorithmArgs =
-  "{hieragglo|dbscan|kmeans|dpeaks";
+const char* Cpptraj::Cluster::Control::AlgorithmArgs_ =
+  "{hieragglo|dbscan|kmeans|dpeaks}";
 
 /** Set up Algorithm from keyword + arguments. */
 int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
@@ -214,6 +214,9 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
   }
   return met;
 }
+
+const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
+  "{dme|rms|srmsd} [mass] [nofit]";
 
 /** Set up clustering for a COORDS DataSet.*/
 int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
@@ -265,6 +268,13 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
 }
 
 // -----------------------------------------------------------------------------
+const char* Cpptraj::Cluster::Control::CommonArgs_ =
+  "[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [sievetoframe]] "
+  "[bestrep {cumulative|centroid|cumulative_nosieve} [savenreps <#>]] "
+  "[noinfo|info <file>] [summary <file>] [sil <prefix>] "
+  "[cpopvtime <file> [{normpop|normframe}]] "
+  "[out <cnumvtime file>] [<ds name>] ";
+
 /** Common setup. */
 int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
 {

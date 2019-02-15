@@ -20,8 +20,10 @@ class Control {
     Control();
     ~Control();
 
-    static const char* PairwiseArgs;
-    static const char* AlgorithmArgs;
+    static const char* PairwiseArgs_;
+    static const char* AlgorithmArgs_;
+    static const char* CoordsDataSetArgs_;
+    static const char* CommonArgs_;
 
     /// For determining how any sieved frames should be restored.
     enum SieveRestoreType { NO_RESTORE = 0, CLOSEST_CENTROID, EPSILON_CENTROID, EPSILON_FRAME };
