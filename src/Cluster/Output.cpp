@@ -2,6 +2,14 @@
 #include <algorithm> // sort, max
 #include "Output.h"
 #include "../Matrix.h"
+#include "../CpptrajStdio.h"
+
+// XMGRACE colors
+const char* XMGRACE_COLOR[] = {
+  "white", "black", "red", "green", "blue", "yellow", "brown", "grey", "violet",
+  "cyan", "magenta", "orange", "indigo", "maroon", "turquoise", "darkgreen"
+};
+
 // -----------------------------------------------------------------------------
 // ClusterList::PrintClustersToFile()
 /** Print list of clusters in a style similar to ptraj; each cluster is
@@ -267,3 +275,128 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
   return 0;
 }
 
+/** Cluster summary by parts. */
+void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
+                                            unsigned int clusterDataSetSize,
+                                            Cframes const& splitFrames,
+                                            List const& clusters)
+{
+  // If no split frames were specified, use halfway point.
+  Cframes actualSplitFrames;
+  if (splitFrames.empty())
+    actualSplitFrames.push_back( clusterDataSetSize / 2 );
+  else {
+    // Check that none of the split values are invalid.
+    for (Cframes::const_iterator f = splitFrames.begin();
+                                 f != splitFrames.end(); ++f)
+      if ( *f < 1 || *f >= (int)clusterDataSetSize )
+        mprintf("Warning: split frame %i is out of bounds; ignoring.\n", *f);
+      else
+        actualSplitFrames.push_back( *f );
+  }
+
+  const char* nExt[] = {"st", "nd", "rd", "th"};
+  if (actualSplitFrames.empty()) return; // Sanity check.
+  double fmax = (double)clusterDataSetSize;
+
+  // Determine number of frames and traj offset for each part.
+  outfile.Printf("# 1st");
+  std::vector<double> partMax;
+  partMax.reserve( actualSplitFrames.size() + 1 );
+  std::vector<int> trajOffset;
+  trajOffset.reserve( actualSplitFrames.size() + 1);
+  trajOffset.push_back( 0 );
+  int lastMax = 0;
+  unsigned int eidx = 1;
+  for (unsigned int sf = 0; sf < actualSplitFrames.size(); sf++)
+  {
+    partMax.push_back( (double)(actualSplitFrames[sf] - lastMax) );
+    lastMax = actualSplitFrames[sf];
+    trajOffset.push_back( lastMax );
+    outfile.Printf(" <= %i < %u%s", trajOffset.back(), sf+2, nExt[eidx]);
+    if (eidx < 3) ++eidx;
+  }
+  partMax.push_back( (double)(clusterDataSetSize - lastMax) );
+  outfile.Printf("\n# ");
+  // Print # of frames in each section
+  eidx=0;
+  for (std::vector<double>::const_iterator pm = partMax.begin(); pm != partMax.end(); ++pm) {
+    if (pm != partMax.begin()) outfile.Printf("  ");
+    outfile.Printf("%u%s= %.0f", pm - partMax.begin() + 1, nExt[eidx], *pm);
+    if (eidx < 3) ++eidx;
+  }
+  outfile.Printf("\n");
+  // DEBUG
+  //mprintf("DEBUG: # Frames (offset):");
+  //std::vector<int>::const_iterator of = trajOffset.begin();
+  //for (std::vector<double>::const_iterator it = partMax.begin();
+  //                                         it != partMax.end(); ++it, ++of)
+  //  mprintf(" %.0f (%i)", *it, *of);
+  //mprintf("\n");
+  // Set up bins
+  std::vector<int> numInPart(  actualSplitFrames.size() + 1, 0 );
+  std::vector<int> firstFrame( actualSplitFrames.size() + 1, -1);
+
+  // Header
+  outfile.Printf("#%-7s %8s %8s %2s %10s", "Cluster", "Total", "Frac", "C#", "Color");
+  eidx = 0;
+  for (unsigned int pm = 1; pm <= partMax.size(); ++pm) {
+    outfile.Printf(" %5s%u%2s", "NumIn", pm, nExt[eidx]);
+    if (eidx < 3) ++eidx;
+  }
+  for (unsigned int pm = 1; pm <= partMax.size(); ++pm)
+    outfile.Printf(" %7s%u", "Frac", pm);
+  for (unsigned int pm = 1; pm <= partMax.size(); ++pm)
+    outfile.Printf(" %7s%u", "First", pm);
+  // Determine if cluster names will be output.
+  unsigned int nWidth = DetermineNameWidth(clusters);
+  if (nWidth > 0) {
+    if (nWidth < 8) nWidth = 8;
+    outfile.Printf(" %*s %6s", nWidth, "Name", "RMS");
+  }
+  outfile.Printf("\n");
+  // LOOP OVER CLUSTERS
+  int color = 1; // xmgrace color, 1-15
+  for (List::cluster_iterator node = clusters.begincluster();
+                              node != clusters.endcluster(); ++node)
+  {
+    // Calculate size and fraction of total size of this cluster
+    int numframes = node->Nframes();
+    double frac = (double)numframes / fmax;
+    std::fill( numInPart.begin(), numInPart.end(), 0 );
+    std::fill( firstFrame.begin(), firstFrame.end(), -1 );
+    // DEBUG
+    //mprintf("\tCluster %i\n",node->num);
+    // Count how many frames are in each part. 
+    for (Node::frame_iterator frame1 = node->beginframe();
+                                     frame1 != node->endframe();
+                                     frame1++)
+    {
+      unsigned int bin = actualSplitFrames.size();
+      for (unsigned int sf = 0; sf < actualSplitFrames.size(); ++sf) {
+        if ( *frame1 < actualSplitFrames[sf] ) {
+          bin = sf;
+          break;
+        }
+      }
+      if (numInPart[ bin ] == 0)
+        firstFrame[ bin ] = *frame1 - trajOffset[ bin ] + 1;
+      ++numInPart[ bin ];
+    }
+    outfile.Printf("%-8i %8i %8.4f %2i %10s", node->Num(), numframes, frac,
+                   color, XMGRACE_COLOR[color]);
+    for (std::vector<int>::const_iterator np = numInPart.begin();
+                                          np != numInPart.end(); ++np)
+      outfile.Printf(" %8i", *np);
+    for (unsigned int pm = 0; pm < partMax.size(); ++pm)
+      outfile.Printf(" %8.4f", ((double)numInPart[pm]) / partMax[pm]);
+    for (std::vector<int>::const_iterator ff = firstFrame.begin();
+                                          ff != firstFrame.end(); ++ff)
+      outfile.Printf(" %8i", *ff);
+    if (nWidth > 0)
+      outfile.Printf(" %*s %6.2f", nWidth, node->Cname().c_str(), node->RefRms());
+    outfile.Printf("\n");
+    if (color<15) ++color;
+  }
+  outfile.CloseFile();
+}

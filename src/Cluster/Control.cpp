@@ -672,6 +672,16 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
     timer_output_summary_.Stop();
   }
 
+  // Summary by parts
+  if (!splitfile_.empty()) {
+    CpptrajFile outfile;
+    if (outfile.OpenWrite(splitfile_)) {
+      mprinterr("Error: Could not set up summary split file.\n");
+      return 1;
+    }
+    Output::Summary_Part(outfile, metric_->Ntotal(), splitFrames_, clusters_);
+  }
+
   // Cluster number vs time
   if (cnumvtime_ != 0) {
     if (clusters_.CreateCnumVsTime( (DataSet_integer*)cnumvtime_, metric_->Ntotal() ))
