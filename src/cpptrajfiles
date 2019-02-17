@@ -11,6 +11,7 @@ CLUSTER_SOURCES= \
   Cluster/Control.cpp \
   Cluster/DynamicMatrix.cpp \
   Cluster/List.cpp \
+  Cluster/Metric_DME.cpp \
   Cluster/Metric_RMS.cpp \
   Cluster/Node.cpp \
   Cluster/Output.cpp \

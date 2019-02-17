@@ -5,6 +5,7 @@
 #include "../DataFile.h" // For loading pairwise cache
 // Metric classes
 #include "Metric_RMS.h"
+#include "Metric_DME.h"
 // Algorithms
 #include "Algorithm_HierAgglo.h"
 #include "Algorithm_DBscan.h"
@@ -214,6 +215,7 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
   Metric* met = 0;
   switch (mtype) {
     case Metric::RMS : met = new Metric_RMS(); break;
+    case Metric::DME : met = new Metric_DME(); break;
     default: mprinterr("Error: Unhandled Metric in AllocateMetric.\n");
   }
   return met;
@@ -268,6 +270,8 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   switch (mtype) {
     case Metric::RMS :
       err = ((Metric_RMS*)metric_)->Init(ds, AtomMask(maskExpr), nofit, useMass); break;
+    case Metric::DME :
+      err = ((Metric_DME*)metric_)->Init(ds, AtomMask(maskExpr)); break;
     default:
       mprinterr("Error: Unhandled Metric setup.\n");
       err = 1;
