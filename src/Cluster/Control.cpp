@@ -7,6 +7,7 @@
 #include "Metric_RMS.h"
 #include "Metric_DME.h"
 #include "Metric_Data_Euclid.h"
+#include "Metric_Data_Manhattan.h"
 // Algorithms
 #include "Algorithm_HierAgglo.h"
 #include "Algorithm_DBscan.h"
@@ -215,9 +216,10 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
 {
   Metric* met = 0;
   switch (mtype) {
-    case Metric::RMS    : met = new Metric_RMS(); break;
-    case Metric::DME    : met = new Metric_DME(); break;
-    case Metric::EUCLID : met = new Metric_Data_Euclid(); break;
+    case Metric::RMS       : met = new Metric_RMS(); break;
+    case Metric::DME       : met = new Metric_DME(); break;
+    case Metric::EUCLID    : met = new Metric_Data_Euclid(); break;
+    case Metric::MANHATTAN : met = new Metric_Data_Manhattan(); break;
     default: mprinterr("Error: Unhandled Metric in AllocateMetric.\n");
   }
   return met;

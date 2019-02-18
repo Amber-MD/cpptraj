@@ -12,7 +12,6 @@ class Metric_Data_Manhattan : public Metric_Data {
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
-    Centroid* NewCentroid(Cframes const&);
     Metric* Copy() { return new Metric_Data_Manhattan( *this ); }
     std::string Description() const;
     void Info() const;
