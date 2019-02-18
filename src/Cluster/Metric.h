@@ -15,9 +15,8 @@ const int UNCLASSIFIED = -2;
 /// Abstract base class for calculating distance between points or determining centroid.
 class Metric {
   public:
-    enum Type { RMS=0, DME, SRMSD, DATA, DATA_EUCLID, MATRIX2D };
+    enum Type { RMS=0, DME, SRMSD, EUCLID, MATRIX2D };
     enum CentOpType { ADDFRAME=0, SUBTRACTFRAME };
-    typedef std::vector<DataSet*> DsArray; // TODO should this be here?
 
     /// CONSTRUCTOR
     Metric(Type t) { type_ = t; }
@@ -45,8 +44,6 @@ class Metric {
     virtual void Info() const = 0;
     /// \return total number of frames.
     virtual unsigned int Ntotal() const = 0;
-  protected:
-    typedef double (*DistCalc)(double,double);
   private:
     Type type_;
 };
