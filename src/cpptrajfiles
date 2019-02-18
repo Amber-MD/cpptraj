@@ -16,6 +16,7 @@ CLUSTER_SOURCES= \
   Cluster/Metric_Data_Manhattan.cpp \
   Cluster/Metric_DME.cpp \
   Cluster/Metric_RMS.cpp \
+  Cluster/Metric_SRMSD.cpp \
   Cluster/Node.cpp \
   Cluster/Output.cpp \
   Cluster/PairwiseMatrix.cpp \
