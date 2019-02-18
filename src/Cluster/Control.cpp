@@ -278,6 +278,9 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
       err = ((Metric_RMS*)metric_)->Init(ds, AtomMask(maskExpr), nofit, useMass); break;
     case Metric::DME :
       err = ((Metric_DME*)metric_)->Init(ds, AtomMask(maskExpr)); break;
+    case Metric::SRMSD :
+      err = ((Metric_SRMSD*)metric_)->Init(ds, AtomMask(maskExpr), nofit, useMass, verbose_);
+      break;
     default:
       mprinterr("Error: Unhandled Metric setup.\n");
       err = 1;
