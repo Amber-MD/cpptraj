@@ -230,6 +230,38 @@ Cpptraj::Cluster::Metric* Cpptraj::Cluster::Control::AllocateMetric(Metric::Type
 const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
   "{dme|rms|srmsd} [mass] [nofit] [<mask>]";
 
+/** Set up clustering for 1D scalar sets. */
+int Cpptraj::Cluster::Control::SetupForDataSets(Metric_Data::DsArray const& inputSets,
+                                                ArgList& analyzeArgs,
+                                                DataSetList& DSL,
+                                                DataFileList& DFL,
+                                                int verboseIn)
+{
+  verbose_ = verboseIn;
+  if (inputSets.empty()) {
+    mprinterr("Internal Error: Control::SetupForDataSets() called with no DataSets.\n");
+    return 1;
+  }
+  Metric::Type mtype = Metric::EUCLID; // Default
+  if (analyzeArgs.hasKey("euclid"))
+    mtype = Metric::EUCLID;
+  else if (analyzeArgs.hasKey("manhattan"))
+    mtype = Metric::MANHATTAN;
+  if (metric_ != 0) delete metric_;
+  metric_ = 0;
+  metric_ = AllocateMetric( mtype );
+  if (metric_ == 0) return 1;
+  // Metric init.
+  int err = ((Metric_Data*)metric_)->Init( inputSets );
+  if (err != 0) return 1;
+
+  // No results for data sets yet
+  if (results_ != 0) delete results_;
+  results_ = 0;
+
+  return Common(analyzeArgs, DSL, DFL);
+}
+
 /** Set up clustering for a COORDS DataSet.*/
 int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
                                                      ArgList& analyzeArgs,
@@ -258,7 +290,7 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   metric_ = 0;
   metric_ = AllocateMetric( mtype );
   if (metric_ == 0) return 1;
-  // Metric setup.
+  // Metric init.
   bool useMass = analyzeArgs.hasKey("mass");
   bool nofit   = analyzeArgs.hasKey("nofit");
   // Get the mask string 
@@ -291,6 +323,7 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
   }
 
   // Set up results for COORDS DataSet
+  if (results_ != 0) delete results_;
   results_ = (Results*)new Results_Coords( ds );
   if (results_ == 0) return 1;
 

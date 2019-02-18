@@ -7,6 +7,7 @@
 #include "Metric.h"
 #include "Results.h"
 #include "BestReps.h"
+#include "Metric_Data.h"
 #include "../Timer.h"
 #include "../DataSetList.h"
 #include "../DataFileList.h"
@@ -30,6 +31,8 @@ class Control {
     enum SieveRestoreType { NO_RESTORE = 0, CLOSEST_CENTROID, EPSILON_CENTROID, EPSILON_FRAME };
     /// For determining how frames to cluster will be determined.
     enum FrameSelectType { UNSPECIFIED = 0, FROM_CACHE };
+
+    int SetupForDataSets(Metric_Data::DsArray const&, ArgList&, DataSetList&, DataFileList&, int);
 
     int SetupForCoordsDataSet(DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
     /// Provide information on how clustering calculation is currently set up.
