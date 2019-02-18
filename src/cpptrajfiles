@@ -13,6 +13,7 @@ CLUSTER_SOURCES= \
   Cluster/List.cpp \
   Cluster/Metric_Data.cpp \
   Cluster/Metric_Data_Euclid.cpp \
+  Cluster/Metric_Data_Manhattan.cpp \
   Cluster/Metric_DME.cpp \
   Cluster/Metric_RMS.cpp \
   Cluster/Node.cpp \

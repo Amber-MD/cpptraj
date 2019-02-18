@@ -2,15 +2,40 @@
 #include "Metric_Data.h"
 #include "Centroid_Multi.h"
 #include "../Constants.h" // RADDEG, DEGRAD
+#include "../CpptrajStdio.h"
 
 int Cpptraj::Cluster::Metric_Data::Init(DsArray const& dsIn)
 {
+  ntotal_ = 0;
   for (DsArray::const_iterator ds = dsIn.begin(); ds != dsIn.end(); ++ds) {
+    if ( (*ds)->Group() != DataSet::SCALAR_1D) {
+      mprinterr("Error: Set '%s' is not 1D scalar - cannot use for clustering.\n",
+                (*ds)->legend());
+      return 1;
+    }
     dsets_.push_back( (DataSet_1D*)*ds );
     if ( dsets_.back()->Meta().IsTorsionArray() )
       dcalcs_.push_back( DistCalc_Dih );
     else
       dcalcs_.push_back( DistCalc_Std );
+  }
+  return 0;
+}
+
+/** Total number of points is number in smallest set. */
+int Cpptraj::Cluster::Metric_Data::Setup() {
+  ntotal_ = 0;
+  for (D1Array::const_iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds)
+  {
+    if (ntotal_ == 0)
+      ntotal_ = (*ds)->Size();
+    else {
+      if ( (*ds)->Size() < ntotal_ ) {
+        mprintf("Warning: Set '%s' size %zu is smaller than current size %u.\n",
+                (*ds)->legend(), (*ds)->Size(), ntotal_);
+        ntotal_ = (*ds)->Size();
+      }
+    }
   }
   return 0;
 }
