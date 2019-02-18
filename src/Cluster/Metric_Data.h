@@ -14,14 +14,26 @@ class Metric_Data : public Metric {
 
     /// Input to Metric_Data
     typedef std::vector<DataSet*> DsArray;
+    // ----- Metric ------------------------------
+    void CalculateCentroid(Centroid*, Cframes const&);
+    Centroid* NewCentroid(Cframes const&);
+    void FrameOpCentroid(int, Centroid*, double, CentOpType);
+    // -------------------------------------------
+    int Init(DsArray const&);
   protected:
     typedef double (*DistCalc)(double,double);
+    typedef std::vector<DataSet_1D*> D1Array;
+    typedef std::vector<DistCalc> DcArray;
 
     static double DistCalc_Dih(double,double);
     static double DistCalc_Std(double,double);
     static double AvgCalc_Dih(DataSet_1D const&, Cframes const&, double&, double&);
     static double AvgCalc_Std(DataSet_1D const&, Cframes const&);
     static double DistCalc_FrameCentroid(double, double, bool, double, CentOpType, double&, double&);
+    std::string SetNames(std::string const&) const;
+    // TODO private
+    D1Array dsets_;  ///< The input data sets
+    DcArray dcalcs_; ///< Distance calc for each set
 };
 
 }

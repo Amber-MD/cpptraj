@@ -20,13 +20,6 @@ class Metric_Data_Euclid : public Metric_Data {
     std::string Description() const;
     void Info() const;
     unsigned int Ntotal() const;
-    // -------------------------------------------
-    int Init(DsArray const&);
-  private:
-    typedef std::vector<DataSet_1D*> D1Array;
-    D1Array dsets_;
-    typedef std::vector<DistCalc> DcArray;
-    DcArray dcalcs_;
 };
 
 }

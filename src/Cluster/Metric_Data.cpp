@@ -1,6 +1,19 @@
 #include <cmath> // fabs, atan2, sin, cos
 #include "Metric_Data.h"
+#include "Centroid_Multi.h"
 #include "../Constants.h" // RADDEG, DEGRAD
+
+int Cpptraj::Cluster::Metric_Data::Init(DsArray const& dsIn)
+{
+  for (DsArray::const_iterator ds = dsIn.begin(); ds != dsIn.end(); ++ds) {
+    dsets_.push_back( (DataSet_1D*)*ds );
+    if ( dsets_.back()->Meta().IsTorsionArray() )
+      dcalcs_.push_back( DistCalc_Dih );
+    else
+      dcalcs_.push_back( DistCalc_Std );
+  }
+  return 0;
+}
 
 /// Calculate smallest difference between two angles (in degrees).
 double Cpptraj::Cluster::Metric_Data::DistCalc_Dih(double d1, double d2) {
@@ -79,4 +92,59 @@ double Cpptraj::Cluster::Metric_Data::DistCalc_FrameCentroid(double fval, double
     }
   }
   return newcval;
+}
+
+void Cpptraj::Cluster::Metric_Data::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
+  Centroid_Multi* cent = (Centroid_Multi*)centIn;
+  cent->Cvals().resize( dsets_.size(), 0.0 );
+  cent->SumX().resize( dsets_.size(), 0.0 );
+  cent->SumY().resize( dsets_.size(), 0.0 );
+  for (unsigned int idx = 0; idx != dsets_.size(); ++idx) {
+    if (dsets_[idx]->Meta().IsTorsionArray())
+      cent->Cvals()[idx] = AvgCalc_Dih(*dsets_[idx], cframesIn,
+                                       cent->SumX()[idx], cent->SumY()[idx]);
+    else
+      cent->Cvals()[idx] = AvgCalc_Std(*dsets_[idx], cframesIn);
+  }
+//  mprintf("DEBUG: Centroids:");
+//  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
+//    mprintf("   %f (sumy=%f sumx=%f)", cent->cvals_[i], cent->Sumy_[i], cent->Sumx_[i]);
+//  mprintf("\n");
+}
+
+Cpptraj::Cluster::Centroid* Cpptraj::Cluster::Metric_Data::NewCentroid(Cframes const& cframesIn) {
+  Centroid_Multi* cent = new Centroid_Multi();
+  CalculateCentroid(cent, cframesIn);
+  return cent;
+}
+
+//static const char* OPSTRING[] = {"ADD", "SUBTRACT"}; // DEBUG
+
+void Cpptraj::Cluster::Metric_Data::FrameOpCentroid(int frame, Centroid* centIn,
+                                                           double oldSize, CentOpType OP)
+{
+  Centroid_Multi* cent = (Centroid_Multi*)centIn;
+//  mprintf("DEBUG: Old Centroids:");
+//  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
+//    mprintf("   sumy=%f sumx=%f", cent->Sumy_[i], cent->Sumx_[i]);
+//    //mprintf(" %f", cent->cvals_[i]);
+//  mprintf("\n");
+  for (unsigned int i = 0; i != dsets_.size(); ++i)
+    cent->Cvals()[i] = DistCalc_FrameCentroid(dsets_[i]->Dval(frame), 
+                          cent->Cvals()[i], dsets_[i]->Meta().IsTorsionArray(), oldSize, OP,
+                          cent->SumX()[i], cent->SumY()[i]);
+//  mprintf("DEBUG: New Centroids after %s frame %i:", OPSTRING[OP], frame);
+//  for (unsigned int i = 0; i != cent->cvals_.size(); i++)
+//    mprintf(" %f", cent->cvals_[i]);
+//  mprintf("\n");
+}
+
+std::string Cpptraj::Cluster::Metric_Data::SetNames(std::string const& descrip) const {
+  std::string description(descrip);
+  for (D1Array::const_iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds)
+    if (ds == dsets_.begin())
+      description.append( (*ds)->Meta().PrintName() );
+    else
+      description.append( "," + (*ds)->Meta().PrintName() );
+  return description;
 }
