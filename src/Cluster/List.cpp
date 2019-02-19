@@ -192,7 +192,8 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   } // END pragma omp parallel
   // Now actually add sieved frames to their appropriate clusters
   for (idx = 0; idx < nframes; idx++)
-    idxToCluster[idx]->AddFrameToCluster( framesIn[idx] );
+    if (idxToCluster[idx] != clusters_.end())
+      idxToCluster[idx]->AddFrameToCluster( framesIn[idx] );
 # endif
   progress.Finish();
 }
