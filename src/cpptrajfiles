@@ -2,6 +2,7 @@
 CLUSTER_SOURCES= \
   Cluster/Algorithm.cpp \
   Cluster/Algorithm_DBscan.cpp \
+  Cluster/Algorithm_DPeaks.cpp \
   Cluster/Algorithm_HierAgglo.cpp \
   Cluster/Algorithm_Kmeans.cpp \
   Cluster/BestReps.cpp \
