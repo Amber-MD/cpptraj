@@ -112,6 +112,9 @@ int Cpptraj::Cluster::Algorithm_DPeaks::DoClustering(List& clusters,
             "Info:   '%s'. Re-run the algorithm with appropriate distancecut and densitycut.\n",
             dvdfile_.c_str());
     return 0;
+  } else if (clusters.Nclusters() > 0) {
+    nclusters = clusters.Nclusters();
+    ChoosePointsFromClusters( clusters, framesToCluster );
   } else if (choosePoints_ == MANUAL)
     nclusters = ChoosePointsManually();
   else
@@ -418,6 +421,19 @@ int Cpptraj::Cluster::Algorithm_DPeaks::Cluster_DiscreteDensity(Cframes const& f
     }
   }
 
+  return 0;
+}
+
+int Cpptraj::Cluster::Algorithm_DPeaks::ChoosePointsFromClusters(List const& clusters,
+                                                                 Cframes const& framesToCluster)
+{
+  for (List::cluster_iterator C = clusters.begincluster(); C != clusters.endcluster(); ++C)
+    for (Node::frame_iterator frm = C->beginframe(); frm != C->endframe(); ++frm)
+    {
+      int idx = framesToCluster.FrameIdx( *frm );
+      if (idx != -1)
+        Points_[idx].SetCluster( C->Num() );
+    }
   return 0;
 }
 

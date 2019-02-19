@@ -30,6 +30,7 @@ class Cframes {
     bool empty()                     const { return frames_.empty(); }
 
     bool HasFrame(int) const;
+    int FrameIdx(int) const;
     void Insert(Cframes const& rhs) { frames_.insert(frames_.end(), rhs.begin(), rhs.end()); }
     void Remove(int);
     void Sort();

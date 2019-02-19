@@ -21,6 +21,7 @@ class Algorithm_DPeaks : public Algorithm {
     int Cluster_DiscreteDensity(Cframes const&, PairwiseMatrix const&);
     int ChoosePointsAutomatically();
     int ChoosePointsManually();
+    int ChoosePointsFromClusters(List const&, Cframes const&);
 
     enum ChooseType {PLOT_ONLY = 0, MANUAL, AUTOMATIC};
     std::string dvdfile_;
