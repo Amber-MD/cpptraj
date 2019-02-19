@@ -37,7 +37,8 @@ Cpptraj::Cluster::Control::Control() :
   clustersVtime_(0),
   windowSize_(0),
   cpopvtimefile_(0),
-  norm_pop_(Node::NONE)
+  norm_pop_(Node::NONE),
+  calc_lifetimes_(false)
 {}
 
 Cpptraj::Cluster::Control::~Control() {
@@ -471,6 +472,10 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
   DataFile* clustersvtimefile = DFL.AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
                                                 analyzeArgs);
   windowSize_ = analyzeArgs.getKeyInt("cvtwindow", 0);
+
+  // Create cluster lifetime data sets?
+  calc_lifetimes_ = analyzeArgs.hasKey("lifetime");
+
   // Cluster number vs time
   grace_color_ = analyzeArgs.hasKey("gracecolor"); 
   DataFile* cnumvtimefile = DFL.AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
@@ -597,6 +602,9 @@ void Cpptraj::Cluster::Control::Info() const {
       mprintf(" (normalized by frame)");
     mprintf("\n");
   }
+
+  if (calc_lifetimes_)
+    mprintf("\tCluster lifetime data sets will be created with aspect 'Lifetime'\n");
 
   if (!splitfile_.empty()) {
     mprintf("\tSummary comparing parts of trajectory data for clusters will be written to %s\n",
@@ -734,6 +742,7 @@ int Cpptraj::Cluster::Control::Run() {
   return 0;
 }
 
+/** Write results to files etc. */
 int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   timer_output_.Start();
   // Info
@@ -828,6 +837,25 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
     }
   }
 
+  // Cluster lifetime sets
+  if (calc_lifetimes_) {
+    MetaData md( dsname_, "Lifetime" );
+    DataSet::SizeArray setsize(1, metric_->Ntotal());
+    for (List::cluster_iterator node = clusters_.begin();
+                                node != clusters_.end(); ++node)
+    {
+      md.SetIdx( node->Num() );
+      DataSet_integer* ds = (DataSet_integer*)DSL.AddSet( DataSet::INTEGER, md );
+      if (ds == 0) {
+        mprinterr("Error: Could not allocate cluster lifetime DataSet\n");
+        return 1;
+      }
+      ds->Allocate( setsize );
+      node->CreateLifetimeSet( *ds, metric_->Ntotal() );
+    }
+  }
+
+  // Any other results
   if (results_ != 0) {
     timer_output_results_.Start();
     results_->DoOutput( clusters_ );

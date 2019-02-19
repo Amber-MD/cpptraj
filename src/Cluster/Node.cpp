@@ -167,3 +167,12 @@ const
     }
   }
 }
+
+/** Create cluster "lifetime" set, with 1 for cluster present and 0 for absent. */
+void Cpptraj::Cluster::Node::CreateLifetimeSet(DataSet_integer& life, unsigned int maxFrames)
+const
+{
+  life.Resize( maxFrames );
+  for (frame_iterator f = beginframe(); f != endframe(); ++f)
+    life[ *f ] = 1;
+}

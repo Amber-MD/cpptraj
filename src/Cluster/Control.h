@@ -95,6 +95,8 @@ class Control {
     DataFile* cpopvtimefile_;         ///< Cluster population vs time file.
     Node::CnormType norm_pop_;        ///< Cluster pop vs time normalization type
 
+    bool calc_lifetimes_;             ///< If true create cluster lifetime data sets
+
     std::string splitfile_;           ///< Output file for splitting cluster results
     Cframes splitFrames_;             ///< Frames at which to split
 

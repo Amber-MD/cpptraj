@@ -2,6 +2,7 @@
 #define INC_CLUSTER_NODE_H
 #include "PairwiseMatrix.h"
 #include "../DataSet_float.h"
+#include "../DataSet_integer.h"
 namespace Cpptraj {
 namespace Cluster {
 
@@ -113,6 +114,8 @@ class Node {
 
     /// Calculate cluster population vs time.
     void CalcCpopVsTime(DataSet_float&, unsigned int, CnormType) const;
+    /// Create cluster lifetime set.
+    void CreateLifetimeSet(DataSet_integer&, unsigned int) const;
   private:
     Cframes frameList_;     ///< List of frames belonging to this cluster.
     Centroid* centroid_;    ///< Centroid of all frames in this cluster.
