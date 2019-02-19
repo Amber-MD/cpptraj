@@ -32,6 +32,7 @@ Cpptraj::Cluster::Control::Control() :
   nRepsToSave_(1),
   suppressInfo_(false),
   cnumvtime_(0),
+  grace_color_(false),
   cpopvtimefile_(0),
   norm_pop_(Node::NONE)
 {}
@@ -346,7 +347,7 @@ const char* Cpptraj::Cluster::Control::CommonArgs_ =
   "[bestrep {cumulative|centroid|cumulative_nosieve} [savenreps <#>]] "
   "[noinfo|info <file>] [summary <file>] [sil <prefix>] "
   "[cpopvtime <file> [{normpop|normframe}]] "
-  "[out <cnumvtime file>] [<ds name>] ";
+  "[out <cnumvtime file> [gracecolor]] [<ds name>] ";
 
 /** Common setup. */
 int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
@@ -461,7 +462,8 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
       norm_pop_ = Node::NONE;
   }
 
-  // Cluster number vs time 
+  // Cluster number vs time
+  grace_color_ = analyzeArgs.hasKey("gracecolor"); 
   DataFile* cnumvtimefile = DFL.AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // NOTE overall set name extracted here. This should be the last thing done.
   dsname_ = analyzeArgs.GetStringNext();
@@ -740,8 +742,12 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
 
   // Cluster number vs time
   if (cnumvtime_ != 0) {
-    if (clusters_.CreateCnumVsTime( (DataSet_integer*)cnumvtime_, metric_->Ntotal() ))
-    {
+    int err = 0;
+    if (grace_color_)
+      err = clusters_.CreateCnumVsTime((DataSet_integer*)cnumvtime_, metric_->Ntotal(), 1, 15);
+    else
+      err = clusters_.CreateCnumVsTime((DataSet_integer*)cnumvtime_, metric_->Ntotal(), 0, -1);
+    if (err != 0) {
       mprinterr("Error: Creation of cluster num vs time data set failed.\n");
       return 1;
     }

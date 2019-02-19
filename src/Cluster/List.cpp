@@ -18,8 +18,14 @@ void Cpptraj::Cluster::List::PrintClusters() const {
   }
 }
 
-/** Create cluster number vs time data set. */
-int Cpptraj::Cluster::List::CreateCnumVsTime(DataSet_integer* ds, unsigned int maxFrames)
+/** Create cluster number vs time data set. 
+  * \param ds The output integer DataSet
+  * \param maxFrames The maximum number of frames.
+  * \param offset If specified, add offset to cluster numbers.
+  * \param maxCluster If specified, number clusters beyond maxCluster equal to maxCluster
+  */
+int Cpptraj::Cluster::List::CreateCnumVsTime(DataSet_integer* ds, unsigned int maxFrames,
+                                             int offset, int maxCluster)
 const
 {
   if (ds == 0) {
@@ -32,18 +38,30 @@ const
   // have noise points (i.e. no cluster assigned) will be distinguished.
   std::fill(cnum_temp.begin(), cnum_temp.end(), -1);
 
-  for (cluster_iterator C = begincluster(); C != endcluster(); C++)
-  {
-    //mprinterr("Cluster %i:\n",CList->CurrentNum());
-    int cnum = C->Num();
-    // Loop over all frames in the cluster
-    for (Node::frame_iterator frame = C->beginframe(); frame != C->endframe(); frame++)
+  if (offset == 0 && maxCluster < 0) {
+    for (cluster_iterator C = begincluster(); C != endcluster(); C++)
     {
-      //mprinterr("%i,",*frame);
-      cnum_temp[ *frame ] = cnum;
+      //mprinterr("Cluster %i:\n",CList->CurrentNum());
+      int cnum = C->Num();
+      // Loop over all frames in the cluster
+      for (Node::frame_iterator frame = C->beginframe(); frame != C->endframe(); frame++)
+      {
+        //mprinterr("%i,",*frame);
+        cnum_temp[ *frame ] = cnum;
+      }
+      //mprinterr("\n");
+      //break;
     }
-    //mprinterr("\n");
-    //break;
+  } else {
+    for (cluster_iterator C = begincluster(); C != endcluster(); C++)
+    {
+      int cnum = C->Num() + offset;
+      if (cnum > maxCluster)
+        cnum = maxCluster;
+       // Loop over all frames in the cluster
+      for (Node::frame_iterator frame = C->beginframe(); frame != C->endframe(); frame++)
+        cnum_temp[ *frame ] = cnum;
+    }
   }
   return 0;
 }

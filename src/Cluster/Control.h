@@ -86,6 +86,7 @@ class Control {
     std::string sil_file_;            ///< File prefix for writing silhouette data
 
     DataSet* cnumvtime_;              ///< Cluster number vs time data set.
+    bool grace_color_;                ///< If true change cluster number to grace color
 
     DataFile* cpopvtimefile_;         ///< Cluster population vs time file.
     Node::CnormType norm_pop_;        ///< Cluster pop vs time normalization type
