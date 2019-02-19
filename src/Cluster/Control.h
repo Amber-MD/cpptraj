@@ -88,6 +88,9 @@ class Control {
     DataSet* cnumvtime_;              ///< Cluster number vs time data set.
     bool grace_color_;                ///< If true change cluster number to grace color
 
+    DataSet* clustersVtime_;          ///< Number of unique clusters vs time
+    int windowSize_;                  ///< Window size for determining number unique clusters v time
+
     DataFile* cpopvtimefile_;         ///< Cluster population vs time file.
     Node::CnormType norm_pop_;        ///< Cluster pop vs time normalization type
 

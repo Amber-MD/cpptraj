@@ -33,6 +33,8 @@ Cpptraj::Cluster::Control::Control() :
   suppressInfo_(false),
   cnumvtime_(0),
   grace_color_(false),
+  clustersVtime_(0),
+  windowSize_(0),
   cpopvtimefile_(0),
   norm_pop_(Node::NONE)
 {}
@@ -347,7 +349,8 @@ const char* Cpptraj::Cluster::Control::CommonArgs_ =
   "[bestrep {cumulative|centroid|cumulative_nosieve} [savenreps <#>]] "
   "[noinfo|info <file>] [summary <file>] [sil <prefix>] "
   "[cpopvtime <file> [{normpop|normframe}]] "
-  "[out <cnumvtime file> [gracecolor]] [<ds name>] ";
+  "[out <cnumvtime file> [gracecolor]] [<ds name>] "
+  "[clustersvtime <file> cvtwindow <#> ";
 
 /** Common setup. */
 int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
@@ -462,15 +465,33 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
       norm_pop_ = Node::NONE;
   }
 
+  // Number of unique clusters vs time
+  DataFile* clustersvtimefile = DFL.AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
+                                                analyzeArgs);
+  windowSize_ = analyzeArgs.getKeyInt("cvtwindow", 0);
   // Cluster number vs time
   grace_color_ = analyzeArgs.hasKey("gracecolor"); 
   DataFile* cnumvtimefile = DFL.AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // NOTE overall set name extracted here. This should be the last thing done.
   dsname_ = analyzeArgs.GetStringNext();
+  // ---------------------------------------------
+
+  // Cluster number vs time data set
   cnumvtime_ = DSL.AddSet(DataSet::INTEGER, dsname_, "Cnum");
   if (cnumvtime_ == 0) return 1;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
 
+  // Set up number of unique clusters vs time DataSet
+  if (clustersvtimefile != 0) {
+    if (windowSize_ < 2) {
+      mprinterr("Error: For # clusters seen vs time, cvtwindow must be specified and > 1\n");
+      return 1;
+    }
+    clustersVtime_ = DSL.AddSet(DataSet::INTEGER, MetaData(cnumvtime_->Meta().Name(), "NCVT"));
+    if (clustersVtime_ == 0) return 1;
+    clustersvtimefile->AddDataSet( clustersVtime_ );
+  }
+  
   // Cluster split analysis
   splitfile_ = analyzeArgs.GetStringKey("summarysplit");
   if (splitfile_.empty()) // For backwards compat.
@@ -744,11 +765,23 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
   if (cnumvtime_ != 0) {
     int err = 0;
     if (grace_color_)
-      err = clusters_.CreateCnumVsTime((DataSet_integer*)cnumvtime_, metric_->Ntotal(), 1, 15);
+      err = clusters_.CreateCnumVsTime(*((DataSet_integer*)cnumvtime_), metric_->Ntotal(), 1, 15);
     else
-      err = clusters_.CreateCnumVsTime((DataSet_integer*)cnumvtime_, metric_->Ntotal(), 0, -1);
+      err = clusters_.CreateCnumVsTime(*((DataSet_integer*)cnumvtime_), metric_->Ntotal(), 0, -1);
     if (err != 0) {
       mprinterr("Error: Creation of cluster num vs time data set failed.\n");
+      return 1;
+    }
+  }
+
+  // TODO DrawGraph
+
+  // # unique clusters vs time
+  if (clustersVtime_ != 0) {
+    if (clusters_.NclustersObserved(*((DataSet_integer*)clustersVtime_), metric_->Ntotal(),
+                                    windowSize_))
+    {
+      mprinterr("Error: Creation of # unique clusters vs time data set failed.\n");
       return 1;
     }
   }

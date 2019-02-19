@@ -46,7 +46,9 @@ class List {
     /// Remove clusters with no population
     void RemoveEmptyClusters();
     /// Generate cluster number vs time data set
-    int CreateCnumVsTime(DataSet_integer*, unsigned int, int, int) const;
+    int CreateCnumVsTime(DataSet_integer&, unsigned int, int, int) const;
+    /// Generate number unique clusters vs time data set
+    int NclustersObserved(DataSet_integer&, unsigned int, int) const;
     /// Sort clusters by population and renumber.
     int Sort();
     /// Add given frame as noise.

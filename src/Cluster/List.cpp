@@ -24,15 +24,10 @@ void Cpptraj::Cluster::List::PrintClusters() const {
   * \param offset If specified, add offset to cluster numbers.
   * \param maxCluster If specified, number clusters beyond maxCluster equal to maxCluster
   */
-int Cpptraj::Cluster::List::CreateCnumVsTime(DataSet_integer* ds, unsigned int maxFrames,
+int Cpptraj::Cluster::List::CreateCnumVsTime(DataSet_integer& cnum_temp, unsigned int maxFrames,
                                              int offset, int maxCluster)
 const
 {
-  if (ds == 0) {
-    mprinterr("Internal Error: CreateCnumVsTime() called with null data set\n");
-    return 1;
-  }
-  DataSet_integer& cnum_temp = static_cast<DataSet_integer&>( *ds );
   cnum_temp.Resize( maxFrames );
   // Make all clusters start at -1. This way cluster algorithms that
   // have noise points (i.e. no cluster assigned) will be distinguished.
@@ -63,6 +58,58 @@ const
         cnum_temp[ *frame ] = cnum;
     }
   }
+  return 0;
+}
+
+/** Determine how many different clusters are observed within a given time
+  * window.
+  */
+int Cpptraj::Cluster::List::NclustersObserved(DataSet_integer& clustersVtime,
+                                              unsigned int maxFrames,
+                                              int windowSize)
+const
+{
+  if (windowSize < 1) {
+    mprinterr("Error: Invalid window size for number clusters observed vs time.\n");
+    return 1;
+  }
+  // Determine number of windows
+  int nwindows = (int)maxFrames / windowSize;
+  if (((int)maxFrames % windowSize) != 0) nwindows++;
+  mprintf("DEBUG: %u frames, %i windows, window size %i.\n", maxFrames, nwindows, windowSize);
+
+  // Create a bool array for each window that will record if cluster is present
+  // during that window.
+  typedef std::vector<bool> Barray;
+  typedef std::vector<Barray> Warray;
+  Warray Windows;
+  Windows.reserve( nwindows );
+  for (int cnum = 0; cnum != Nclusters(); cnum++)
+    Windows.push_back( Barray(Nclusters(), false) );
+
+  // Loop over clusters
+  for (cluster_iterator C = begincluster(); C != endcluster(); C++)
+  {
+    // Loop over cluster frames
+    for (Node::frame_iterator frame = C->beginframe(); frame != C->endframe(); frame++)
+    {
+      int wndw = *frame / windowSize;
+      Windows[wndw][C->Num()] = true;
+    }
+  }
+
+  // Count number of unique clusters in each window
+  clustersVtime.Allocate( DataSet::SizeArray(1, nwindows) );
+  int wndw = 0;
+  for (Warray::const_iterator window = Windows.begin(); window != Windows.end(); ++window, ++wndw)
+  {
+    int nunique = 0;
+    for (Barray::const_iterator cpresent = window->begin(); cpresent != window->end(); ++cpresent)
+      if (*cpresent) ++nunique;
+    clustersVtime.Add(wndw, &nunique);
+  }
+
+  clustersVtime.SetDim(Dimension::X, Dimension(windowSize, windowSize, "Frame"));
   return 0;
 }
 
