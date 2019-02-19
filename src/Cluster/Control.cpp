@@ -203,7 +203,7 @@ const char* Cpptraj::Cluster::Control::AlgorithmArgs_ =
 
 /** Set up Algorithm from keyword + arguments. */
 int Cpptraj::Cluster::Control::AllocateAlgorithm(ArgList& analyzeArgs) {
-  Algorithm::AType atype;
+  Algorithm::AType atype = Algorithm::UNSPECIFIED;
   if      (analyzeArgs.hasKey("hieragglo")) atype = Algorithm::HIERAGGLO;
   else if (analyzeArgs.hasKey("dbscan"   )) atype = Algorithm::DBSCAN;
   else if (analyzeArgs.hasKey("kmeans") ||

@@ -9,7 +9,7 @@ namespace Cluster {
 /// Abstract base class for implementing clustering algorithms.
 class Algorithm {
   public:
-    enum AType { HIERAGGLO = 0, DBSCAN, DPEAKS, KMEANS };
+    enum AType { HIERAGGLO = 0, DBSCAN, DPEAKS, KMEANS, UNSPECIFIED };
 
     Algorithm(AType t) : debug_(0), type_(t) {}
     virtual ~Algorithm() {}
