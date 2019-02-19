@@ -84,7 +84,7 @@ const
   typedef std::vector<Barray> Warray;
   Warray Windows;
   Windows.reserve( nwindows );
-  for (int cnum = 0; cnum != Nclusters(); cnum++)
+  for (int w = 0; w != nwindows; w++)
     Windows.push_back( Barray(Nclusters(), false) );
 
   // Loop over clusters
