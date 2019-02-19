@@ -31,7 +31,7 @@ const
   cnum_temp.Resize( maxFrames );
   // Make all clusters start at -1. This way cluster algorithms that
   // have noise points (i.e. no cluster assigned) will be distinguished.
-  std::fill(cnum_temp.begin(), cnum_temp.end(), -1);
+  std::fill(cnum_temp.begin(), cnum_temp.end(), NOISE + offset);
 
   if (offset == 0 && maxCluster < 0) {
     for (cluster_iterator C = begincluster(); C != endcluster(); C++)
@@ -276,7 +276,8 @@ void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric
   progress.Finish();
   // Now actually add sieved frames to their appropriate clusters
   for (idx = 0; idx < nframes; idx++)
-    idxToCluster[idx]->AddFrameToCluster( framesIn[idx] );
+    if (idxToCluster[idx] != clusters_.end())
+      idxToCluster[idx]->AddFrameToCluster( framesIn[idx] );
   mprintf("\t%i of %i sieved frames were discarded as noise.\n", 
           n_sieved_noise, Nsieved);
 }

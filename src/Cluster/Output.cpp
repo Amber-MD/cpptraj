@@ -44,10 +44,13 @@ void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
     outfile.Printf("#Cluster %i has average-distance-to-centroid %f\n", C->Num(), *avgd);
   outfile.Printf("#DBI: %f\n", DBITotal);
   // Pseudo-F
-  double SSRSST = 0.0;
-  double pseudof = clusters.ComputePseudoF( SSRSST, metricIn );
-  outfile.Printf("#pSF: %f\n", pseudof);
-  outfile.Printf("#SSR/SST: %f\n", SSRSST);
+  if (clusters.Nclusters() > 1) {
+    double SSRSST = 0.0;
+    double pseudof = clusters.ComputePseudoF( SSRSST, metricIn );
+    outfile.Printf("#pSF: %f\n", pseudof);
+    outfile.Printf("#SSR/SST: %f\n", SSRSST);
+  } else
+    mprintf("Warning: Fewer than 2 cluster. Not calculating pseudo-F.\n");
 
   // Call internal info routine.
   algorithmIn.Results( outfile );
