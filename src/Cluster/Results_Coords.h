@@ -9,7 +9,7 @@ namespace Cluster {
 /// Class for handling cluster results specific to COORDS input data.
 class Results_Coords : public Results {
   public:
-    Results_Coords(DataSet_Coords* ds) : Results(COORDS), coords_(ds) {}
+    Results_Coords(DataSet_Coords*);
     // ----- Results functions -------------------
     int GetOptions(ArgList&);
     void Info() const;

@@ -7,6 +7,17 @@
 const TrajectoryFile::TrajFormatType Cpptraj::Cluster::Results_Coords::DEF_TRAJ_FMT_ =
   TrajectoryFile::AMBERTRAJ;
 
+/// CONSTRUCTOR
+Cpptraj::Cluster::Results_Coords::Results_Coords(DataSet_Coords* ds) :
+  Results(COORDS),
+  coords_(ds),
+  writeRepFrameNum_(false),
+  clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  avgfmt_(TrajectoryFile::UNKNOWN_TRAJ)
+{}
+
 
 void Cpptraj::Cluster::Results_Coords::GetClusterTrajArgs(ArgList& argIn,
                                              const char* trajKey, const char* fmtKey,
