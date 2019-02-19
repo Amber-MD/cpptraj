@@ -14,19 +14,15 @@ class PairwiseMatrix {
     int Setup(Metric*, DataSet_PairwiseCache*);
 
     // -------------------------------------------
-    /// \return distance between given frames.TODO const?
+    /// \return distance between given frames.
     double Frame_Distance(int, int) const;
     /// Request that distances for the specified frames be cached.
     int CacheDistances(Cframes const&, int);
-    /// Print only cached distances. TODO const?
-    //virtual void PrintCached() const = 0;
 
     // -------------------------------------------
     //bool HasMetric()           const { return (metric_ != 0); }
     /// \return internal metric, const.
     Metric const& DistMetric() const { return *metric_;       }
-    /// \return internal metric.
-//    Metric&       DistMetric()       { return *metric_; }
     /// \return Pointer to distance metric
     Metric* MetricPtr() const { return metric_; }
 
