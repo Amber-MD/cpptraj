@@ -57,15 +57,6 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
                                                      Cframes const& framesToCluster,
                                                      PairwiseMatrix const& pmatrix)
 {
-  // TODO handle case where there are existing clusters.
-  if (!clusters.empty()) {
-    mprinterr("Internal Error: Kmeans not set up for existing clusters yet.\n");
-    return 1;
-  }
-
-  // Determine seeds
-  FindKmeansSeeds( framesToCluster, pmatrix );
-
   if (mode_ == RANDOM)
     RN_.rn_set( kseed_ );
 
@@ -79,18 +70,26 @@ int Cpptraj::Cluster::Algorithm_Kmeans::DoClustering(List& clusters,
   for (int processIdx = 0; processIdx != pointCount; processIdx++)
     PointIndices.push_back( processIdx );
 
-  // Add the seed clusters
-  for (Iarray::const_iterator seedIdx = SeedIndices_.begin();
-                              seedIdx != SeedIndices_.end(); ++seedIdx)
-  {
-    int seedFrame = framesToCluster[ *seedIdx ];
-    // A centroid is created for new clusters.
-    clusters.AddCluster( Node(pmatrix.MetricPtr(), Cframes(1, seedFrame), clusters.Nclusters()) );
-    // NOTE: No need to calc best rep frame, only 1 frame.
-    if (debug_ > 0)
-      mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
-              seedFrame, clusters.back().Num(), *seedIdx);
+  if (clusters.empty()) {
+    // Determine seeds
+    FindKmeansSeeds( framesToCluster, pmatrix );
+    // Add the seed clusters
+    for (Iarray::const_iterator seedIdx = SeedIndices_.begin();
+                                seedIdx != SeedIndices_.end(); ++seedIdx)
+    {
+      int seedFrame = framesToCluster[ *seedIdx ];
+      // A centroid is created for new clusters.
+      clusters.AddCluster( Node(pmatrix.MetricPtr(), Cframes(1, seedFrame), clusters.Nclusters()) );
+      // NOTE: No need to calc best rep frame, only 1 frame.
+      if (debug_ > 0)
+        mprintf("Put frame %i in cluster %i (seed index=%i).\n", 
+                seedFrame, clusters.back().Num(), *seedIdx);
+    }
+  } else {
+    // Ensure centroids are up to date.
+    clusters.UpdateCentroids( pmatrix.MetricPtr() );
   }
+
   // Assign points in 3 passes. If a point looked like it belonged to cluster A
   // at first, but then we added many other points and altered our cluster 
   // shapes, its possible that we will want to reassign it to cluster B.
