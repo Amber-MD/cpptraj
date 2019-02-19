@@ -3,6 +3,7 @@
 #include "../DataSet_Coords.h"
 #include "Output.h"
 #include "../DataFile.h" // For loading pairwise cache
+#include "../BufferedLine.h" // For loading info file
 // Metric classes
 #include "Metric_RMS.h"
 #include "Metric_DME.h"
@@ -346,6 +347,66 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
 }
 
 // -----------------------------------------------------------------------------
+static int Err(int code) {
+  switch (code) {
+    case 0: mprinterr("Error: Could not open info file.\n"); break;
+    case 1: mprinterr("Error: Unexpected end of info file.\n"); break;
+    case 2: mprinterr("Error: Invalid number of clusters in info file.\n"); break;
+    case 3: mprinterr("Error: Invalid number of frames in info file.\n"); break;
+  }
+  return 1;
+}
+
+/** Read clustering info from existing info file. */
+int Cpptraj::Cluster::Control::ReadInfo(std::string const& fname) {
+  if (fname.empty()) {
+    mprinterr("Error: No cluster info filename given.\n");
+    return 1;
+  }
+  BufferedLine infile;
+  if (infile.OpenFileRead( fname )) return Err(0);
+  const char* ptr = infile.Line();
+  if (ptr == 0) return Err(1);
+  ArgList infoLine( ptr, " " );
+  int nclusters = infoLine.getKeyInt("#Clustering:", -1);
+  if (nclusters == -1) return Err(2);
+  int nframes = infoLine.getKeyInt("clusters", -1);
+  if (nframes == -1) return Err(3);
+  mprintf("\tNumber of frames in info file: %i\n", nframes);
+//  if (nframes != (int)FrameDistances().OriginalNframes()) {
+//    mprinterr("Error: # frames in cluster info file (%i) does not match"
+//              " current # frames (%zu)\n", nframes, FrameDistances().OriginalNframes());
+//    return 1;
+//  }
+  // Scan down to clusters
+  std::string algorithmStr;
+  while (ptr[0] == '#') {
+    ptr = infile.Line();
+    if (ptr == 0) return Err(1);
+    // Save previous clustering info. Includes newline.
+    if (ptr[1] == 'A' && ptr[2] == 'l' && ptr[3] == 'g')
+      algorithmStr.assign( ptr + 12 ); // Right past '#Algorithm: '
+  }
+  if (!algorithmStr.empty()) mprintf("\tAlgorithm in info file: %s\n", algorithmStr.c_str());
+  // Read clusters
+  Cframes frames;
+  for (int cnum = 0; cnum != nclusters; cnum++) {
+    if (ptr == 0) return Err(1);
+    frames.clear();
+    // TODO: Check for busted lines?
+    for (int fidx = 0; fidx != nframes; fidx++) {
+      if (ptr[fidx] == 'X')
+        frames.push_back( fidx );
+    }
+    clusters_.AddCluster( Node(metric_, frames, cnum) );
+    mprintf("\tRead cluster %i, %zu frames.\n", cnum, frames.size());
+    ptr = infile.Line();
+  }
+  infile.CloseFile();
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 const char* Cpptraj::Cluster::Control::CommonArgs_ =
   "[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [includesieved_cdist] [sievetoframe]] "
   "[bestrep {cumulative|centroid|cumulative_nosieve} [savenreps <#>]] "
@@ -358,6 +419,13 @@ const char* Cpptraj::Cluster::Control::CommonArgs_ =
 int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, DataFileList& DFL)
 {
   clusters_.SetDebug( verbose_ );
+
+  // Initialize clusters from existing info file. Metric must already be set up.
+  if (analyzeArgs.hasKey("readinfo") ||
+      analyzeArgs.hasKey("readtxt"))
+  {
+    if (ReadInfo( analyzeArgs.GetStringKey("infofile") )) return 1;
+  }
 
   if (results_ != 0) {
     if (results_->GetOptions(analyzeArgs)) return 1;

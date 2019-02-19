@@ -54,6 +54,8 @@ class Control {
     static Algorithm* AllocateAlgorithm(Algorithm::AType);
     int AllocateAlgorithm(ArgList&);    
 
+    int ReadInfo(std::string const&);
+
     int Common(ArgList&, DataSetList&, DataFileList&);
 
     static const char* DEFAULT_PAIRDIST_NAME_;

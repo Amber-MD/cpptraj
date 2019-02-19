@@ -105,6 +105,11 @@ int Cpptraj::Cluster::Algorithm_HierAgglo::DoClustering(List& clusters,
   // Build initial clusters.
   if (clusters.empty())
     buildInitialClusters(clusters, framesToCluster, pmatrix.MetricPtr());
+  else if (clusters.Nclusters() <= nclusters_) {
+    mprintf("\tTarget number of clusters (%i) already reached (%i).\n",
+            nclusters_, clusters.Nclusters());
+    return 0;
+  }
   mprintf("\t%i initial clusters.\n", clusters.Nclusters());
   // Build initial cluster distance matrix.
   ClusterDistances_.SetupMatrix( clusters.Nclusters() );
