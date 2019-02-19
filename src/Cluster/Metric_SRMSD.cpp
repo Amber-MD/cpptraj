@@ -12,7 +12,7 @@ int Cpptraj::Cluster::Metric_SRMSD::Init(DataSet_Coords* dIn, AtomMask const& ma
   }
   coords_ = dIn;
   mask_ = maskIn;
-  SRMSD_ = SymmetricRmsdCalc(mask_, !nofit, useMass, coords_->Top(), debugIn);
+  SRMSD_.InitSymmRMSD(!nofit, useMass, debugIn);
   return 0;
 }
 
@@ -20,6 +20,8 @@ int Cpptraj::Cluster::Metric_SRMSD::Setup() {
   if (coords_->Top().SetupIntegerMask( mask_ )) return 1;
   mprintf("DEBUG: SRMSD metric topology: %s %s %i\n", coords_->legend(),
           coords_->Top().c_str(), coords_->Top().Natom());
+  // false = no remap warning
+  if (SRMSD_.SetupSymmRMSD(coords_->Top(), mask_, false)) return 1;
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
   frm2_ = frm1_;
   return 0;
