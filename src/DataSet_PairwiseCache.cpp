@@ -26,12 +26,12 @@ int DataSet_PairwiseCache::SetupFrameToIdx(Cframes const& framesToCache, unsigne
   int idx = 0;
   for (Cframes_it it = framesToCache.begin(); it != framesToCache.end(); ++it)
     frameToIdx_[*it] = idx++;
-//# ifdef DEBUG_CLUSTER
+# ifdef DEBUG_CLUSTER
   // DEBUG
   mprintf("DEBUG: frameToMat\n");
   for (Cframes_it it = frameToIdx_.begin(); it != frameToIdx_.end(); ++it)
     mprintf("\tframeToIdx_[%u] = %i\n", it - frameToIdx_.begin(), *it);
-//# endif
+# endif
   return 0;
 }
 
