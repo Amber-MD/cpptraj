@@ -38,18 +38,23 @@ Analysis::RetType Analysis_Cluster::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       cluster_dataset.push_back( *ds );
     }
 
-    if (control_.SetupForDataSets(cluster_dataset, analyzeArgs, setup.DSL(), setup.DFL(), debugIn))
-      return Analysis::ERR;
-  } else {
-    // Attempt to get coords dataset from datasetlist
-    std::string setname = analyzeArgs.GetStringKey("crdset");
+  }
+  // Attempt to get coords DataSet from datasetlist. Do this
+  // if crdset is specified or no other DataSets specified.
+  std::string setname = analyzeArgs.GetStringKey("crdset");
+  if (!setname.empty() || cluster_dataset.empty()) {
     coords = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
     if (coords == 0) {
       mprinterr("Error: Could not locate COORDS set corresponding to %s\n",
                 setname.c_str());
       return Analysis::ERR;
     }
+  }
 
+  if (!cluster_dataset.empty()) {
+    if (control_.SetupForDataSets(cluster_dataset, coords, analyzeArgs, setup.DSL(), setup.DFL(), debugIn))
+      return Analysis::ERR;
+  } else {
     if (control_.SetupForCoordsDataSet(coords, analyzeArgs, setup.DSL(), setup.DFL(), debugIn))
       return Analysis::ERR;
   }

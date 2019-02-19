@@ -32,7 +32,7 @@ class Control {
     /// For determining how frames to cluster will be determined.
     enum FrameSelectType { UNSPECIFIED = 0, FROM_CACHE };
 
-    int SetupForDataSets(Metric_Data::DsArray const&, ArgList&, DataSetList&, DataFileList&, int);
+    int SetupForDataSets(Metric_Data::DsArray const&, DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
 
     int SetupForCoordsDataSet(DataSet_Coords*, ArgList&, DataSetList&, DataFileList&, int);
     /// Provide information on how clustering calculation is currently set up.

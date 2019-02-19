@@ -236,6 +236,7 @@ const char* Cpptraj::Cluster::Control::CoordsDataSetArgs_ =
 
 /** Set up clustering for 1D scalar sets. */
 int Cpptraj::Cluster::Control::SetupForDataSets(Metric_Data::DsArray const& inputSets,
+                                                DataSet_Coords* ds,
                                                 ArgList& analyzeArgs,
                                                 DataSetList& DSL,
                                                 DataFileList& DFL,
@@ -262,6 +263,11 @@ int Cpptraj::Cluster::Control::SetupForDataSets(Metric_Data::DsArray const& inpu
   // No results for data sets yet
   if (results_ != 0) delete results_;
   results_ = 0;
+  // Set up results for COORDS DataSet
+  if (ds != 0) {
+    results_ = (Results*)new Results_Coords( ds );
+    if (results_ == 0) return 1;
+  }
 
   return Common(analyzeArgs, DSL, DFL);
 }
