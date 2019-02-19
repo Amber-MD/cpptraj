@@ -479,12 +479,14 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
   if (sieve_ != 1)
   {
     sieveRestore_ = CLOSEST_CENTROID;
-    if (algorithm_->Type() == Algorithm::DBSCAN) {
+    if (algorithm_->Type() == Algorithm::DBSCAN ||
+        algorithm_->Type() == Algorithm::DPEAKS)
+    {
       if (!analyzeArgs.hasKey("sievetoframe"))
         sieveRestore_ = EPSILON_CENTROID;
       else
         sieveRestore_ = EPSILON_FRAME;
-      restoreEpsilon_ = ((Algorithm_DBscan*)algorithm_)->Epsilon();
+      restoreEpsilon_ = algorithm_->Epsilon();
     }
   }
 
@@ -755,63 +757,68 @@ int Cpptraj::Cluster::Control::Run() {
   timer_cluster_.Stop();
 
   // ---------------------------------------------
-  timer_post_.Start();
-  //Timer cluster_post_coords;
-  timer_post_renumber_.Start();
-  // Update cluster centroids here in case they need to be used to 
-  // restore sieved frames
-  clusters_.UpdateCentroids( metric_ );
-
-  // Add sieved frames to existing clusters.
-  if ( sieveRestore_ != NO_RESTORE ) {
-    // Restore sieved frames
-    mprintf("\tRestoring sieved frames.\n");
-    switch (sieveRestore_) {
-      case CLOSEST_CENTROID :
-        clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metric_ ); break;
-      case EPSILON_CENTROID :
-      case EPSILON_FRAME    :
-        clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metric_,
-                                       (sieveRestore_ == EPSILON_CENTROID),
-                                       restoreEpsilon_ );
-        break;
-      default:
-        mprinterr("Internal Error: Unhandled sieve restore type.\n");
-        return 1;
-    }
-    // Re-calculate the cluster centroids
+  if (clusters_.Nclusters() == 0) {
+    mprintf("\tNo clusters found.\n");
+  } else {
+    timer_post_.Start();
+    //Timer cluster_post_coords;
+    timer_post_renumber_.Start();
+    // Update cluster centroids here in case they need to be used to 
+    // restore sieved frames
     clusters_.UpdateCentroids( metric_ );
+
+    // Add sieved frames to existing clusters.
+    if ( sieveRestore_ != NO_RESTORE ) {
+      // Restore sieved frames
+      mprintf("\tRestoring sieved frames.\n");
+      switch (sieveRestore_) {
+        case CLOSEST_CENTROID :
+          clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metric_ ); break;
+        case EPSILON_CENTROID :
+        case EPSILON_FRAME    :
+          clusters_.AddFramesByCentroid( frameSieve_.SievedOut(), metric_,
+                                         (sieveRestore_ == EPSILON_CENTROID),
+                                         restoreEpsilon_ );
+          break;
+        default:
+          mprinterr("Internal Error: Unhandled sieve restore type.\n");
+          return 1;
+      }
+      // Re-calculate the cluster centroids
+      clusters_.UpdateCentroids( metric_ );
+    }
+
+    // Sort by population and renumber
+    clusters_.Sort();
+
+    timer_post_renumber_.Stop();
+    timer_post_bestrep_.Start();
+
+    // Find best representative frames for each cluster.
+    if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, pmatrix_,
+                                    frameSieve_.SievedOut(), verbose_))
+    {
+      mprinterr("Error: Finding best representative frames for clusters failed.\n");
+      return 1;
+    }
+
+    timer_post_bestrep_.Stop();
+
+    // DEBUG - print clusters to stdout
+    if (verbose_ > 0) {
+      mprintf("\nFINAL CLUSTERS:\n");
+      clusters_.PrintClusters();
+    }
+
+    // TODO assign reference names
   }
-
-  // Sort by population and renumber
-  clusters_.Sort();
-
-  timer_post_renumber_.Stop();
-  timer_post_bestrep_.Start();
-
-  // Find best representative frames for each cluster.
-  if (BestReps::FindBestRepFrames(bestRep_, nRepsToSave_, clusters_, pmatrix_,
-                                  frameSieve_.SievedOut(), verbose_))
-  {
-    mprinterr("Error: Finding best representative frames for clusters failed.\n");
-    return 1;
-  }
-
-  timer_post_bestrep_.Stop();
-
-  // DEBUG - print clusters to stdout
-  if (verbose_ > 0) {
-    mprintf("\nFINAL CLUSTERS:\n");
-    clusters_.PrintClusters();
-  }
-
-  // TODO assign reference names
   timer_run_.Stop();
   return 0;
 }
 
 /** Write results to files etc. */
 int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
+  if (clusters_.Nclusters() == 0) return 0;
   timer_output_.Start();
   // Info
   if (!suppressInfo_) {

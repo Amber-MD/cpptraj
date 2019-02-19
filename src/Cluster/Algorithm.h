@@ -26,6 +26,8 @@ class Algorithm {
     /// /return Algorithm-specific between-cluster distance. Default to centroid distance.
     virtual double ClusterDistance(Node const&, Node const&, PairwiseMatrix const&,
                                    bool, Cframes const&) const;
+    /// /return Epsilon for density-based algorithms; intended for use with sieve restore.
+    virtual double Epsilon() const { return 0.0; }
     // -------------------------------------------
     /// Set debug level for algorithm
     void SetDebug(int d) { debug_ = d; }

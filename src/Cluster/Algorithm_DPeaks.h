@@ -14,6 +14,7 @@ class Algorithm_DPeaks : public Algorithm {
     void Results(CpptrajFile&) const;
     int DoClustering(List&, Cframes const&, PairwiseMatrix const&);
     void Timing(double) const {}
+    double Epsilon() const { return epsilon_; }
   private:
     void AssignClusterNum(int, int&);
     int Cluster_GaussianKernel(Cframes const&, PairwiseMatrix const&);
