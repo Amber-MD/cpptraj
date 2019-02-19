@@ -43,9 +43,6 @@ class Control {
     int Output(DataSetList&);
     /// Print timing data
     void Timing(double) const;
-
-    List const& Clusters()     const { return clusters_; }
-    Metric const& DistMetric() const { return *metric_;  }
   private:
     int AllocatePairwise(ArgList&, DataSetList&, DataFileList&);
 
