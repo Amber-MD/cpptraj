@@ -161,7 +161,8 @@ unsigned int Cpptraj::Cluster::Output::DetermineNameWidth(List const& clusters)
 /** Print a summary of clusters. */
 int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters,
                                       Algorithm const& algorithm,
-                                      PairwiseMatrix const& pmatrix, bool includeSieved,
+                                      PairwiseMatrix const& pmatrix,
+                                      bool includeSieved, bool includeSieveCdist,
                                       Cframes const& sievedOut)
 {
   double fmax = (double)pmatrix.DistMetric().Ntotal();
@@ -191,7 +192,7 @@ int Cpptraj::Cluster::Output::Summary(CpptrajFile& outfile, List const& clusters
     for (List::cluster_iterator c2 = c1; c2 != clusters.endcluster(); ++c2)
       if (c2 != c1)
         cluster_distances.addElement( algorithm.ClusterDistance( *c1, *c2, pmatrix,
-                                                                includeSieved, sievedOut ) );
+                                                                includeSieveCdist, sievedOut ) );
   //t_cdist.Stop();
 
   unsigned int idx1 = 0;

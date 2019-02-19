@@ -76,6 +76,7 @@ class Control {
     SieveRestoreType sieveRestore_;  ///< Specify if/how sieved frames should be restored.
     double restoreEpsilon_;          ///< Cutoff to use if restoring by epsilon to centroids.
     bool includeSieveInCalc_;        ///< If true include sieved frames in later calculations.
+    bool includeSieveCdist_;         ///< If true include sieved frames in cluster distance calc.
 
     BestReps::RepMethodType bestRep_; ///< How to determine best rep frames.
     int nRepsToSave_;                 ///< How many rep frames to save.

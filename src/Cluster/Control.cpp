@@ -28,6 +28,7 @@ Cpptraj::Cluster::Control::Control() :
   sieveRestore_(NO_RESTORE),
   restoreEpsilon_(0.0),
   includeSieveInCalc_(false),
+  includeSieveCdist_(false),
   bestRep_(BestReps::NO_REPS),
   nRepsToSave_(1),
   suppressInfo_(false),
@@ -345,7 +346,7 @@ int Cpptraj::Cluster::Control::SetupForCoordsDataSet(DataSet_Coords* ds,
 
 // -----------------------------------------------------------------------------
 const char* Cpptraj::Cluster::Control::CommonArgs_ =
-  "[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [sievetoframe]] "
+  "[sieve <#> [sieveseed <#>] [random] [includesieveincalc] [includesieved_cdist] [sievetoframe]] "
   "[bestrep {cumulative|centroid|cumulative_nosieve} [savenreps <#>]] "
   "[noinfo|info <file>] [summary <file>] [sil <prefix>] "
   "[cpopvtime <file> [{normpop|normframe}]] "
@@ -388,6 +389,7 @@ int Cpptraj::Cluster::Control::Common(ArgList& analyzeArgs, DataSetList& DSL, Da
   includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
   if (includeSieveInCalc_)
     mprintf("Warning: 'includesieveincalc' may be very slow.\n");
+  includeSieveCdist_ = analyzeArgs.hasKey("includesieved_cdist");
 
   // Determine how frames to cluster will be chosen
   if (frameSelect_ == UNSPECIFIED) {
@@ -531,12 +533,6 @@ void Cpptraj::Cluster::Control::Info() const {
     if (sieveSeed_ > 0) mprintf(" using random seed %i", sieveSeed_);
     mprintf(".\n");
   }
-  if (sieve_ != 1) {
-    if (includeSieveInCalc_)
-      mprintf("\tAll frames (including sieved) will be used to calc within-cluster average.\n");
-    else
-      mprintf("\tOnly non-sieved frames will be used to calc within-cluster average.\n");
-  }
   if (sieveRestore_ != NO_RESTORE) {
     mprintf("\tRestoring sieved frames");
     if (sieveRestore_ == CLOSEST_CENTROID)
@@ -562,8 +558,15 @@ void Cpptraj::Cluster::Control::Info() const {
 
   if (!clusterinfo_.empty())
     mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
-  if (!summaryfile_.empty())
+  if (!summaryfile_.empty()) {
     mprintf("\tSummary of cluster results will be written to %s\n",summaryfile_.c_str());
+    if (sieve_ != 1) {
+      if (includeSieveInCalc_)
+        mprintf("\tInternal cluster averages will include sieved frames.\n");
+      if (includeSieveCdist_)
+        mprintf("\tBetween-cluster distances will include sieved frames.\n");
+    }
+  }
   if (!sil_file_.empty()) {
     mprintf("\tFrame silhouettes will be written to %s.frame.dat, cluster silhouettes\n"
             "\t  will be written to %s.cluster.dat\n", sil_file_.c_str(), sil_file_.c_str());
@@ -573,6 +576,26 @@ void Cpptraj::Cluster::Control::Info() const {
       else
         mprintf("\tSilhouette calculation will use non-sieved frames ONLY.\n");
     }
+  }
+
+  if (cnumvtime_ != 0) {
+    mprintf("\tCluster number vs time data set: %s\n", cnumvtime_->legend());
+    if (grace_color_)
+      mprintf("\tGrace color instead of cluster number (1-15, 0 = noise) will be saved.\n");
+  }
+
+  if (clustersVtime_ != 0) {
+    mprintf("\tNumber of unique clusters observed over windows of size %i data set: %s\n",
+            windowSize_, clustersVtime_->legend());
+  }
+
+  if (cpopvtimefile_ != 0) {
+    mprintf("\tCluster pop vs time will be written to %s", cpopvtimefile_->DataFilename().base());
+    if (norm_pop_ == Node::CLUSTERPOP)
+      mprintf(" (normalized by cluster size)");
+    else if (norm_pop_ == Node::FRAME)
+      mprintf(" (normalized by frame)");
+    mprintf("\n");
   }
 
   if (!splitfile_.empty()) {
@@ -747,7 +770,7 @@ int Cpptraj::Cluster::Control::Output(DataSetList& DSL) {
       return 1;
     }
     Output::Summary(outfile, clusters_, *algorithm_, pmatrix_, includeSieveInCalc_,
-                    frameSieve_.SievedOut());
+                    includeSieveCdist_, frameSieve_.SievedOut());
     timer_output_summary_.Stop();
   }
 
