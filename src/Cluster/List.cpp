@@ -65,6 +65,17 @@ void Cpptraj::Cluster::List::UpdateCentroids( Metric* metric ) {
   }
 }
 
+/** Remove clusters with no population. */
+void Cpptraj::Cluster::List::RemoveEmptyClusters() {
+  cluster_it cnode = clusters_.begin();
+  while (cnode != clusters_.end()) {
+    if (cnode->Nframes() == 0)
+      cnode = clusters_.erase( cnode );
+    else
+      ++cnode;
+  }
+}
+
 // -----------------------------------------------------------------------------
 void Cpptraj::Cluster::List::AddFramesByCentroid(Cframes const& framesIn, Metric* metricIn)
 {

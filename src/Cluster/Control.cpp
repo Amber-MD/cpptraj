@@ -12,6 +12,7 @@
 // Algorithms
 #include "Algorithm_HierAgglo.h"
 #include "Algorithm_DBscan.h"
+#include "Algorithm_Kmeans.h"
 // Results
 #include "Results_Coords.h"
 
@@ -184,6 +185,7 @@ Cpptraj::Cluster::Algorithm* Cpptraj::Cluster::Control::AllocateAlgorithm(Algori
   switch (atype) {
     case Algorithm::HIERAGGLO : alg = new Algorithm_HierAgglo(); break;
     case Algorithm::DBSCAN    : alg = new Algorithm_DBscan(); break;
+    case Algorithm::KMEANS    : alg = new Algorithm_Kmeans(); break;
     default : mprinterr("Error: Unhandled Algorithm in AllocateAlgorithm.\n");
   }
   return alg;

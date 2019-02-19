@@ -29,6 +29,8 @@ class List {
     const cluster_iterator endcluster()   const { return clusters_.end();   }
     /// \return first cluster
     Node const& front()                   const { return clusters_.front(); }
+    /// \return last cluster
+    Node const& back()                    const { return clusters_.back();  }
     /// \return current number of clusters.
     int Nclusters()        const { return (int)clusters_.size(); }
     /// \return true if no clusters
@@ -41,6 +43,8 @@ class List {
     void AddCluster( Node const& n )     { clusters_.push_back( n ); }
     /// Remove existing cluster via iterator
     void RemoveCluster( cluster_it& it ) { clusters_.erase( it ); }
+    /// Remove clusters with no population
+    void RemoveEmptyClusters();
     /// Generate cluster number vs time data set
     int CreateCnumVsTime(DataSet_integer*, unsigned int) const;
     /// Sort clusters by population and renumber.
