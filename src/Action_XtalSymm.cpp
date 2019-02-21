@@ -387,8 +387,8 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       for (k = 0; k < nMaskAtom; k++) {
         int basepos = baseMask[k];
         int candpos = j + baseMask[k] - baseMask[0];
-        if (occupancy[candpos] == 0 && setup.Top().TruncNumberlessResAtomName(candpos) ==
-                                       setup.Top().TruncNumberlessResAtomName(basepos)) {
+        if (occupancy[candpos] == 0 && setup.Top().TruncResNameAtomName(candpos) ==
+                                       setup.Top().TruncResNameAtomName(basepos)) {
           nmatched++;
         }
         else {
