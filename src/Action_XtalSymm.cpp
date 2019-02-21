@@ -76,7 +76,7 @@ Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& ope
   std::vector<double> b;
   A.resize(3, stride * operID.capacity());
   b.resize(stride * operID.capacity());
-  unsigned int i, j;
+  int i, j;
   for (i = 0; i < operID.capacity(); i++) {
     int opIDi = operID[i];
     for (j = 0; j < orig.Natom(); j++) {
@@ -95,7 +95,7 @@ Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& ope
 	printf("opIDi = %d out of %d ops\n", opIDi, nops);
       }
       if (j >= othr[i].Natom() || j < 0) {
-	printf("j = %d out of %d atoms, i = %d out of %d capacity.\n", j, othr[i].Natom(),
+	printf("j = %d out of %d atoms, i = %d out of %zu capacity.\n", j, othr[i].Natom(),
 	       i, operID.capacity());
       }
       // END CHECK
@@ -134,7 +134,7 @@ Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& ope
 //              transformation of the entire system
 //   nLead:     the number of leads found thus far
 //---------------------------------------------------------------------------------------------
-double Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads, int& nLead)
+void Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads, int& nLead)
 {
   // Set up frames for the original and symmetry-related subunits
   Frame orig, othr;

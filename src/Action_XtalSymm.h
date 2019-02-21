@@ -112,7 +112,7 @@ class Action_XtalSymm : public Action {
     Action::RetType LoadSpaceGroupSymOps();
     bool OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr);
     bool OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr);
-    double BestSuperposition(int, int, XtalDock*, int&);
+    void BestSuperposition(int, int, XtalDock*, int&);
     Vec3 BestOrigin(Frame&, Frame*, std::vector<int>&);
     TransOp DetectAsuResidence(double x, double y, double z);
     Action::RetType BuildAsuGrid();
