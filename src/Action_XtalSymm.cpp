@@ -365,9 +365,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   std::vector<int> newMask = Masks[0].Selected();
 
   // Create an array to hold whether each atom has been included in a mask
-  int* occupancy;
-  occupancy = new int[nTopolAtom];
-  memset(occupancy, 0, nTopolAtom * sizeof(int));
+  std::vector<int> occupancy(nTopolAtom, 0);
   for (i = 0; i < nMaskAtom; i++) {
     occupancy[baseMask[i]] = 1;
   }
