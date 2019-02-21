@@ -7,6 +7,8 @@
 
 const int Action_XtalSymm::IASU_GRID_BINS_ = 192;
 
+const double Action_XtalSymm::DASU_GRID_BINS_ = 192;
+
 //---------------------------------------------------------------------------------------------
 // Action_XtalSymm::Help()
 //---------------------------------------------------------------------------------------------
@@ -261,9 +263,9 @@ void Action_XtalSymm::BuildAsuGrid()
       for (k = 0; k < IASU_GRID_BINS_; k++) {
 
         // First, select a point in the middle of the grid bin and find its ASU.
-        double ptx = ((double)i + 0.5) / DASU_GRID_BINS;
-        double pty = ((double)j + 0.5) / DASU_GRID_BINS;
-        double ptz = ((double)k + 0.5) / DASU_GRID_BINS;
+        double ptx = ((double)i + 0.5) / DASU_GRID_BINS_;
+        double pty = ((double)j + 0.5) / DASU_GRID_BINS_;
+        double ptz = ((double)k + 0.5) / DASU_GRID_BINS_;
         Vec3 pt = Vec3(ptx + prevTx, pty + prevTy, ptz + prevTz);
         pt = pt - T[prevOpID];
         pt = Rinv[prevOpID] * pt;
@@ -297,9 +299,9 @@ void Action_XtalSymm::BuildAsuGrid()
         for (ii = 0; ii < 2; ii++) {
           for (jj = 0; jj < 2; jj++) {
             for (kk = 0; kk < 2; kk++) {
-              pt = Vec3(ptx + (double)ii/DASU_GRID_BINS + prevTx,
-                        pty + (double)jj/DASU_GRID_BINS + prevTy,
-                        ptz + (double)kk/DASU_GRID_BINS + prevTz);
+              pt = Vec3(ptx + (double)ii/DASU_GRID_BINS_ + prevTx,
+                        pty + (double)jj/DASU_GRID_BINS_ + prevTy,
+                        ptz + (double)kk/DASU_GRID_BINS_ + prevTz);
               pt = pt - T[prevOpID];
               pt = Rinv[prevOpID] * pt;
               if (PointInPrimaryASU(pt[0], pt[1], pt[2]) == false) {
@@ -840,9 +842,9 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
           
           // Use the grid to determine the asymmetric unit (if the grid says "operation -1",
           // an intensive search will be done to find the correct ASU)
-          int gidx = (int)(x * DASU_GRID_BINS);
-          int gidy = (int)(y * DASU_GRID_BINS);
-          int gidz = (int)(z * DASU_GRID_BINS);
+          int gidx = (int)(x * DASU_GRID_BINS_);
+          int gidy = (int)(y * DASU_GRID_BINS_);
+          int gidz = (int)(z * DASU_GRID_BINS_);
           gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
           TransOp Vm = (AsuGrid[gidx].opID == -1) ? DetectAsuResidence(x, y, z) :
                                                     AsuGrid[gidx];
@@ -867,9 +869,9 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 
       // Use the grid to determine the asymmetric unit (if the grid says "operation -1",
       // an intensive search will be done to find the correct ASU)
-      int gidx = (int)(x * DASU_GRID_BINS);
-      int gidy = (int)(y * DASU_GRID_BINS);
-      int gidz = (int)(z * DASU_GRID_BINS);
+      int gidx = (int)(x * DASU_GRID_BINS_);
+      int gidy = (int)(y * DASU_GRID_BINS_);
+      int gidz = (int)(z * DASU_GRID_BINS_);
       gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
       TransOp Vm = (AsuGrid[gidx].opID == -1) ? DetectAsuResidence(x, y, z) : AsuGrid[gidx];
       frm.ModifyFrm().Translate(Vec3(Vm.tr_x, Vm.tr_y, Vm.tr_z) - T[Vm.opID], iatm);

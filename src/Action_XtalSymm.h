@@ -5,8 +5,6 @@
 #include "ReferenceAction.h"
 #include "Vec3.h"
 
-#define DASU_GRID_BINS   192.0
-
 //---------------------------------------------------------------------------------------------
 // XtalDock: stores the results of crystal symmetry operations on solitary subunits,
 //           attempting to align them back to the original asymmetric unit.  The goal
@@ -60,6 +58,7 @@ class Action_XtalSymm : public Action {
     ~Action_XtalSymm();
   private:
     static const int IASU_GRID_BINS_;
+    static const double DASU_GRID_BINS_;
 
     // The space group
     int nops;              // The number of symmetry operations in the canonical space group
