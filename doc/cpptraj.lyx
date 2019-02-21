@@ -87,30 +87,6 @@
 
 \begin_body
 
-\begin_layout Title
-CPPTRAJ
-\end_layout
-
-\begin_layout Author
-Daniel R.
- Roe
-\end_layout
-
-\begin_layout Standard
-\align center
-\begin_inset Flex URL
-status open
-
-\begin_layout Plain Layout
-
-https://github.com/Amber-MD/cpptraj
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
 \begin_layout Standard
 
 \emph on
@@ -164,6 +140,9 @@ hbond
 \begin_inset CommandInset ref
 LatexCommand vref
 reference "subsec:cpptraj-hbond"
+plural "false"
+caps "false"
+noprefix "false"
 
 \end_inset
 
@@ -41445,10 +41424,6 @@ projection evecs DIHMODES out dih.project.dat beg 1 end 4 dihedrals BB[*]
 
 \begin_layout LyX-Code
 run
-\end_layout
-
-\begin_layout Standard
-
 \end_layout
 
 \end_body
