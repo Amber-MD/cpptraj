@@ -5,7 +5,6 @@
 #include "ReferenceAction.h"
 #include "Vec3.h"
 
-#define IASU_GRID_BINS   192
 #define DASU_GRID_BINS   192.0
 
 //---------------------------------------------------------------------------------------------
@@ -60,6 +59,7 @@ class Action_XtalSymm : public Action {
     void Help() const;
     ~Action_XtalSymm();
   private:
+    static const int IASU_GRID_BINS_;
 
     // The space group
     int nops;              // The number of symmetry operations in the canonical space group

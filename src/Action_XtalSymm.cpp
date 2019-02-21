@@ -5,6 +5,8 @@
 #include "Topology.h"
 #include <cmath> // floor
 
+const int Action_XtalSymm::IASU_GRID_BINS_ = 192;
+
 //---------------------------------------------------------------------------------------------
 // Action_XtalSymm::Help()
 //---------------------------------------------------------------------------------------------
@@ -253,10 +255,10 @@ void Action_XtalSymm::BuildAsuGrid()
   double prevTx = 0.0;
   double prevTy = 0.0;
   double prevTz = 0.0;
-  AsuGrid = new TransOp[IASU_GRID_BINS * IASU_GRID_BINS * IASU_GRID_BINS];
-  for (i = 0; i < IASU_GRID_BINS; i++) {
-    for (j = 0; j < IASU_GRID_BINS; j++) {
-      for (k = 0; k < IASU_GRID_BINS; k++) {
+  AsuGrid = new TransOp[IASU_GRID_BINS_ * IASU_GRID_BINS_ * IASU_GRID_BINS_];
+  for (i = 0; i < IASU_GRID_BINS_; i++) {
+    for (j = 0; j < IASU_GRID_BINS_; j++) {
+      for (k = 0; k < IASU_GRID_BINS_; k++) {
 
         // First, select a point in the middle of the grid bin and find its ASU.
         double ptx = ((double)i + 0.5) / DASU_GRID_BINS;
@@ -311,7 +313,7 @@ void Action_XtalSymm::BuildAsuGrid()
         }
 
         // Record the result
-        int idx = (i*IASU_GRID_BINS + j)*IASU_GRID_BINS + k;
+        int idx = (i*IASU_GRID_BINS_ + j)*IASU_GRID_BINS_ + k;
         if (complete) {
           AsuGrid[idx].opID = prevOpID;
           AsuGrid[idx].tr_x = prevTx;
@@ -841,7 +843,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
           int gidx = (int)(x * DASU_GRID_BINS);
           int gidy = (int)(y * DASU_GRID_BINS);
           int gidz = (int)(z * DASU_GRID_BINS);
-          gidx = (gidx*IASU_GRID_BINS + gidy)*IASU_GRID_BINS + gidz;
+          gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
           TransOp Vm = (AsuGrid[gidx].opID == -1) ? DetectAsuResidence(x, y, z) :
                                                     AsuGrid[gidx];
           frm.ModifyFrm().Translate(Vec3(Vm.tr_x, Vm.tr_y, Vm.tr_z) - T[Vm.opID],
@@ -868,7 +870,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       int gidx = (int)(x * DASU_GRID_BINS);
       int gidy = (int)(y * DASU_GRID_BINS);
       int gidz = (int)(z * DASU_GRID_BINS);
-      gidx = (gidx*IASU_GRID_BINS + gidy)*IASU_GRID_BINS + gidz;
+      gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
       TransOp Vm = (AsuGrid[gidx].opID == -1) ? DetectAsuResidence(x, y, z) : AsuGrid[gidx];
       frm.ModifyFrm().Translate(Vec3(Vm.tr_x, Vm.tr_y, Vm.tr_z) - T[Vm.opID], iatm);
       frm.ModifyFrm().Rotate(Rinv[Vm.opID], iatm);
