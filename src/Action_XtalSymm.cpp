@@ -1,10 +1,9 @@
-#include <string.h>
-#include <math.h>
 #include "Action_XtalSymm.h"
 #include "CpptrajStdio.h"
 #include "Matrix.h"
 #include "Molecule.h"
 #include "Topology.h"
+#include <cmath> // floor
 
 //---------------------------------------------------------------------------------------------
 // Action_XtalSymm::Help()
@@ -77,8 +76,8 @@ Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& ope
   std::vector<double> b;
   A.resize(3, stride * operID.capacity());
   b.resize(stride * operID.capacity());
-  unsigned int i, j;
-  for (i = 0; i < operID.capacity(); i++) {
+  int i, j;
+  for (i = 0; i < (int)operID.capacity(); i++) {
     int opIDi = operID[i];
     for (j = 0; j < orig.Natom(); j++) {
       A.setElement(0, i*stride + 3*j    , 1.0 - Rinv[opIDi][0]);
@@ -96,7 +95,7 @@ Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& ope
 	printf("opIDi = %d out of %d ops\n", opIDi, nops);
       }
       if (j >= othr[i].Natom() || j < 0) {
-	printf("j = %d out of %d atoms, i = %d out of %d capacity.\n", j, othr[i].Natom(),
+	printf("j = %i out of %i atoms, i = %i out of %zu capacity.\n", j, othr[i].Natom(),
 	       i, operID.capacity());
       }
       // END CHECK
