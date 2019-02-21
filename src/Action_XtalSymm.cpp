@@ -414,9 +414,6 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
     }
   }
 
-  // Free allocated memory
-  delete[] occupancy;
-  
   // Determine which rotations are identity matrices
   rotIdentity = new bool[nops];
   for (i = 0; i < nops; i++) {
