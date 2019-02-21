@@ -77,7 +77,7 @@ Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& ope
   A.resize(3, stride * operID.capacity());
   b.resize(stride * operID.capacity());
   int i, j;
-  for (i = 0; i < operID.capacity(); i++) {
+  for (i = 0; i < (int)operID.capacity(); i++) {
     int opIDi = operID[i];
     for (j = 0; j < orig.Natom(); j++) {
       A.setElement(0, i*stride + 3*j    , 1.0 - Rinv[opIDi][0]);
