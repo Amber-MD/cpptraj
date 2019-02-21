@@ -84,6 +84,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_Volmap.cpp \
         Action_Volume.cpp \
         Action_Watershell.cpp \
+        Action_XtalSymm.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
