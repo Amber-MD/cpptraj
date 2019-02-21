@@ -114,7 +114,7 @@ Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& ope
                                Rinv[opIDi][8] * (*othr[i].CRD(3*j + 2)));
     }
   }
-  A.llsp(b.data());
+  A.LinearLeastSquares(b.data());
 
   return Vec3(b[0], b[1], b[2]);
 }
