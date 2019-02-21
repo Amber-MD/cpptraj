@@ -115,7 +115,7 @@ class Action_XtalSymm : public Action {
     void BestSuperposition(int, int, XtalDock*, int&);
     Vec3 BestOrigin(Frame&, Frame*, std::vector<int>&);
     TransOp DetectAsuResidence(double x, double y, double z);
-    Action::RetType BuildAsuGrid();
+    void BuildAsuGrid();
     void Print() {}
     void ClearMemory();
     double dmin(double, double);

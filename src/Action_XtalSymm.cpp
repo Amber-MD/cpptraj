@@ -245,7 +245,7 @@ TransOp Action_XtalSymm::DetectAsuResidence(double x, double y, double z)
 //               one asymmetric unit will be labelled as wildcards and any coordinates that
 //               fall in those bins will have to be checked against all asymmetric units.
 //---------------------------------------------------------------------------------------------
-Action::RetType Action_XtalSymm::BuildAsuGrid()
+void Action_XtalSymm::BuildAsuGrid()
 {
   int i, j, k, ii, jj, kk, m;
 
