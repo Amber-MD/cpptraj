@@ -1,5 +1,5 @@
-#LyX 2.2 created this file. For more info see http://www.lyx.org/
-\lyxformat 508
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
 \begin_document
 \begin_header
 \save_transient_properties true
@@ -21,6 +21,8 @@
 \font_osf false
 \font_sf_scale 100 100
 \font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures false
 \graphics default
 \default_output_format default
 \output_sync 0
@@ -60,6 +62,7 @@
 \suppress_date false
 \justification true
 \use_refstyle 1
+\use_minted 0
 \index Index
 \shortcut idx
 \color #008000
@@ -68,7 +71,10 @@
 \tocdepth 3
 \paragraph_separation indent
 \paragraph_indentation default
-\quotes_language english
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
@@ -106,15 +112,6 @@ https://github.com/Amber-MD/cpptraj
 \end_layout
 
 \begin_layout Standard
-\begin_inset CommandInset toc
-LatexCommand tableofcontents
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
 
 \emph on
 Cpptraj
@@ -123,6 +120,7 @@ Cpptraj
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Roe13"
+literal "true"
 
 \end_inset
 
@@ -4667,6 +4665,7 @@ For more information on Grace see
 LatexCommand href
 name "http://plasma-gate.weizmann.ac.il/Grace/"
 target "http://plasma-gate.weizmann.ac.il/Grace/"
+literal "false"
 
 \end_inset
 
@@ -4720,6 +4719,7 @@ For more information on these options it helps to look at the PM3D options
 LatexCommand href
 name "http://www.gnuplot.info/"
 target "http://www.gnuplot.info/"
+literal "false"
 
 \end_inset
 
@@ -20030,6 +20030,7 @@ gist
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Chatterjee"
+literal "true"
 
 \end_inset
 
@@ -20270,6 +20271,7 @@ Grid Inhomogeneous Solvation Theory
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Lazaridis,Nguyen-gist"
+literal "true"
 
 \end_inset
 
@@ -20450,6 +20452,7 @@ ext
 \begin_inset CommandInset citation
 LatexCommand citep
 key "humprey"
+literal "true"
 
 \end_inset
 
@@ -20796,6 +20799,7 @@ Order-norm
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Chatterjee"
+literal "true"
 
 \end_inset
 
@@ -20864,6 +20868,7 @@ doorder
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Sindhikara"
+literal "true"
 
 \end_inset
 
@@ -21385,6 +21390,7 @@ GIST is a research tool, and its applications (to, for example, protein-ligand
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Lazaridis"
+literal "true"
 
 \end_inset
 
@@ -21449,6 +21455,7 @@ ons of the waters in this voxel with all other waters in the system, including
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Nguyen-gist"
+literal "true"
 
 \end_inset
 
@@ -21464,6 +21471,7 @@ key "Nguyen-gist"
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Nguyen-gist"
+literal "true"
 
 \end_inset
 
@@ -22932,6 +22940,7 @@ The first line defines the parameter set for a dihedral.
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Chou03"
+literal "true"
 
 \end_inset
 
@@ -22939,6 +22948,7 @@ key "Chou03"
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Perez01"
+literal "true"
 
 \end_inset
 
@@ -24543,6 +24553,7 @@ correl
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Hunenberger1995"
+literal "true"
 
 \end_inset
 
@@ -24591,6 +24602,7 @@ idea
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Prompers02"
+literal "true"
 
 \end_inset
 
@@ -24610,6 +24622,7 @@ ired
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Prompers02a"
+literal "true"
 
 \end_inset
 
@@ -24982,6 +24995,7 @@ Calculate the Connolly surface area
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Connolly83"
+literal "true"
 
 \end_inset
 
@@ -25414,6 +25428,7 @@ simple Use P-P distance for major groove, O4-O4 distance for minor groove.
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Hassan1998"
+literal "true"
 
 \end_inset
 
@@ -25664,6 +25679,7 @@ The procedure used to calculate NA structural parameters is the same as
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Lu2003"
+literal "true"
 
 \end_inset
 
@@ -25671,6 +25687,7 @@ key "Lu2003"
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Babcock94"
+literal "true"
 
 \end_inset
 
@@ -25678,6 +25695,7 @@ key "Babcock94"
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Olson2001"
+literal "true"
 
 \end_inset
 
@@ -27347,6 +27365,7 @@ Calculate the pucker (in degrees) for atoms in <mask1>, <mask2>, <mask3>,
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Altona1972,Harvey1986"
+literal "true"
 
 \end_inset
 
@@ -27358,6 +27377,7 @@ altona
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Cremer1975"
+literal "true"
 
 \end_inset
 
@@ -28984,6 +29004,7 @@ Calculate secondary structural propensities for residues in
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Kabsch83"
+literal "true"
 
 \end_inset
 
@@ -29630,6 +29651,7 @@ Perform profiling of bound water molecules via SPAM analysis
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Cui2013"
+literal "true"
 
 \end_inset
 
@@ -30069,6 +30091,7 @@ Calculate the surface area in Å
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Weiser99"
+literal "true"
 
 \end_inset
 
@@ -33745,6 +33768,7 @@ dbscan Use DBSCAN clustering algorithm of Ester et al.
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Ester96"
+literal "true"
 
 \end_inset
 
@@ -33800,6 +33824,7 @@ dpeaks Use the density peaks algorithm of Rodriguez and Laio
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Rodriguez2014"
+literal "true"
 
 \end_inset
 
@@ -34751,6 +34776,7 @@ The 'dpeaks' (density peaks) algorithm attempts to find clusters by identifying
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Rodriguez2014"
+literal "true"
 
 \end_inset
 
@@ -35722,6 +35748,7 @@ Note that this converts the units of the calculated eigenvalues to frequencies
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Bakan11"
+literal "true"
 
 \end_inset
 
@@ -35791,6 +35818,7 @@ For quasi-harmonic analysis the input must be a mass-weighted covariance
 \begin_inset CommandInset citation
 LatexCommand citep
 key "McQuarrie1973"
+literal "true"
 
 \end_inset
 
@@ -35799,6 +35827,7 @@ key "McQuarrie1973"
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Chang2005"
+literal "true"
 
 \end_inset
 
@@ -36502,6 +36531,7 @@ Peform IRED
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Prompers02a"
+literal "true"
 
 \end_inset
 
@@ -36599,6 +36629,7 @@ cpptraj
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Prompers02a"
+literal "true"
 
 \end_inset
 
@@ -38601,6 +38632,7 @@ remlog
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Roe2014"
+literal "true"
 
 \end_inset
 
@@ -38981,6 +39013,7 @@ The RMS average correlation
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Roe13"
+literal "true"
 
 \end_inset
 
@@ -39052,6 +39085,7 @@ One thing to keep in mind that since the underlying metric is RMSD, it can
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Galindo2015"
+literal "true"
 
 \end_inset
 
@@ -39429,6 +39463,7 @@ Evaluate rotational diffusion properties of a molecule over a trajectory
 \begin_inset CommandInset citation
 LatexCommand citep
 key "wong2008"
+literal "true"
 
 \end_inset
 
@@ -39971,6 +40006,7 @@ A table will be written in ASCII format showing the distribution of torsion
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Schneider1997"
+literal "true"
 
 \end_inset
 
@@ -39979,6 +40015,7 @@ key "Schneider1997"
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Schneider2004"
+literal "true"
 
 \end_inset
 
@@ -40961,6 +40998,7 @@ Wavelet analysis contains two main steps which performs continues wavelet
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Torrence1998"
+literal "true"
 
 \end_inset
 
@@ -41005,6 +41043,7 @@ nts over every atom's displacement is calculated using the following formula
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Benson2012"
+literal "true"
 
 \end_inset
 
@@ -41099,6 +41138,7 @@ Wavelet analysis feature extraction (WAFEX)
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Heidari2016"
+literal "true"
 
 \end_inset
 
@@ -41408,13 +41448,6 @@ run
 \end_layout
 
 \begin_layout Standard
-\begin_inset CommandInset bibtex
-LatexCommand bibtex
-bibfiles "cpptraj"
-options "unsrt"
-
-\end_inset
-
 
 \end_layout
 
