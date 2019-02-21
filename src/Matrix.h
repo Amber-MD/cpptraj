@@ -258,7 +258,7 @@ template<class T> T& Matrix<T>::element(size_t xIn, size_t yIn) {
   * decomposition. */
 template<class T> void Matrix<T>::LinearLeastSquares(T* b)
 {
-  unsigned int i, j, k;
+  int i, j, k;
   double tnm_v, tnm_v2, tempval, sign_v;
   double multval, temp_b, pivot;
 
@@ -306,7 +306,7 @@ template<class T> void Matrix<T>::LinearLeastSquares(T* b)
       solnID[i] = -1;
     }
   }
-  unsigned int nVar = k;
+  int nVar = k;
   
   // Scratch arrays
   double* v;
