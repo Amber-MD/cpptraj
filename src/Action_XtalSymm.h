@@ -29,8 +29,8 @@ class Action_XtalSymm : public Action {
     int nCopyB_;            //   This generalizes the space group into supercells based on that
     int nCopyC_;            //   space group, and allows us to talk about symmetry operations
                             //   in terms of the supercell.
-    std::string spaceGrp;
-    int sgID;              // The space group identification number
+    std::string spaceGrp_;
+    int sgID_;              ///< The space group identification number
  
     // Reference frame
     AtomMask tgtMask_;

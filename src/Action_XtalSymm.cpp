@@ -28,7 +28,7 @@ void Action_XtalSymm::Help() const {
 Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get the space group (user must supply this) and fill out the symmetry operations
-  spaceGrp = actionArgs.GetStringKey("group");
+  spaceGrp_ = actionArgs.GetStringKey("group");
   nCopyA_ = actionArgs.getKeyInt("na", 1);
   nCopyB_ = actionArgs.getKeyInt("nb", 1);
   nCopyC_ = actionArgs.getKeyInt("nc", 1);
@@ -936,8 +936,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
       for (k = 0; k < nCopyC_; k++) {
         double dk = (double)k;
         int iuc = (i*nCopyB_ + j)*nCopyC_ + k;
-        if (spaceGrp.compare("P1") == 0) {
-          sgID = 0;
+        if (spaceGrp_.compare("P1") == 0) {
+          sgID_ = 0;
           nops_ = 1 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 1;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -947,8 +947,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  0 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-1") == 0) {
-          sgID = 1;
+        else if (spaceGrp_.compare("P-1") == 0) {
+          sgID_ = 1;
           nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -964,8 +964,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  1 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2") == 0 || spaceGrp.compare("P121") == 0) {
-          sgID = 2;
+        else if (spaceGrp_.compare("P2") == 0 || spaceGrp_.compare("P121") == 0) {
+          sgID_ = 2;
           nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -981,8 +981,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  1 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)") == 0 || spaceGrp.compare("P12(1)1") == 0) {
-          sgID = 3;
+        else if (spaceGrp_.compare("P2(1)") == 0 || spaceGrp_.compare("P12(1)1") == 0) {
+          sgID_ = 3;
           nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -998,8 +998,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  1 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("C2") == 0 || spaceGrp.compare("C121") == 0) {
-          sgID = 4;
+        else if (spaceGrp_.compare("C2") == 0 || spaceGrp_.compare("C121") == 0) {
+          sgID_ = 4;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1027,8 +1027,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pm") == 0) {
-          sgID = 5;
+        else if (spaceGrp_.compare("Pm") == 0) {
+          sgID_ = 5;
           nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1044,8 +1044,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  1 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pc") == 0) {
-          sgID = 6;
+        else if (spaceGrp_.compare("Pc") == 0) {
+          sgID_ = 6;
           nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1061,8 +1061,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  1 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Cm") == 0) {
-          sgID = 7;
+        else if (spaceGrp_.compare("Cm") == 0) {
+          sgID_ = 7;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1090,8 +1090,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Cc") == 0) {
-          sgID = 8;
+        else if (spaceGrp_.compare("Cc") == 0) {
+          sgID_ = 8;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1119,8 +1119,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2/m") == 0) {
-          sgID = 9;
+        else if (spaceGrp_.compare("P2/m") == 0) {
+          sgID_ = 9;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1148,8 +1148,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)/m") == 0) {
-          sgID = 10;
+        else if (spaceGrp_.compare("P2(1)/m") == 0) {
+          sgID_ = 10;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1177,8 +1177,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("C2/m") == 0) {
-          sgID = 11;
+        else if (spaceGrp_.compare("C2/m") == 0) {
+          sgID_ = 11;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1230,8 +1230,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2/c") == 0) {
-          sgID = 12;
+        else if (spaceGrp_.compare("P2/c") == 0) {
+          sgID_ = 12;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1259,8 +1259,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)/c") == 0 || spaceGrp.compare("P12(1)/c1") == 0) {
-          sgID = 13;
+        else if (spaceGrp_.compare("P2(1)/c") == 0 || spaceGrp_.compare("P12(1)/c1") == 0) {
+          sgID_ = 13;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1288,8 +1288,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("C2/c") == 0 || spaceGrp.compare("C12/c1") == 0) {
-          sgID = 14;
+        else if (spaceGrp_.compare("C2/c") == 0 || spaceGrp_.compare("C12/c1") == 0) {
+          sgID_ = 14;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1341,8 +1341,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P222") == 0) {
-          sgID = 15;
+        else if (spaceGrp_.compare("P222") == 0) {
+          sgID_ = 15;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1370,8 +1370,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P222(1)") == 0) {
-          sgID = 16;
+        else if (spaceGrp_.compare("P222(1)") == 0) {
+          sgID_ = 16;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1399,8 +1399,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)22_NSO") == 0) {
-          sgID = 17;
+        else if (spaceGrp_.compare("P2(1)22_NSO") == 0) {
+          sgID_ = 17;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1428,8 +1428,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)2(1)2") == 0) {
-          sgID = 18;
+        else if (spaceGrp_.compare("P2(1)2(1)2") == 0) {
+          sgID_ = 18;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1457,8 +1457,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)2(1)2_NSO") == 0) {
-          sgID = 19;
+        else if (spaceGrp_.compare("P2(1)2(1)2_NSO") == 0) {
+          sgID_ = 19;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1486,8 +1486,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)2(1)2(1)") == 0) {
-          sgID = 20;
+        else if (spaceGrp_.compare("P2(1)2(1)2(1)") == 0) {
+          sgID_ = 20;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1515,8 +1515,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("C222(1)") == 0) {
-          sgID = 21;
+        else if (spaceGrp_.compare("C222(1)") == 0) {
+          sgID_ = 21;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1568,8 +1568,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("C222") == 0) {
-          sgID = 22;
+        else if (spaceGrp_.compare("C222") == 0) {
+          sgID_ = 22;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1621,8 +1621,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("F222") == 0) {
-          sgID = 23;
+        else if (spaceGrp_.compare("F222") == 0) {
+          sgID_ = 23;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1722,8 +1722,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I222") == 0) {
-          sgID = 24;
+        else if (spaceGrp_.compare("I222") == 0) {
+          sgID_ = 24;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1775,8 +1775,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I2(1)2(1)2(1)") == 0) {
-          sgID = 25;
+        else if (spaceGrp_.compare("I2(1)2(1)2(1)") == 0) {
+          sgID_ = 25;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1828,8 +1828,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pmm2") == 0) {
-          sgID = 26;
+        else if (spaceGrp_.compare("Pmm2") == 0) {
+          sgID_ = 26;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1857,8 +1857,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pmc2(1)") == 0) {
-          sgID = 27;
+        else if (spaceGrp_.compare("Pmc2(1)") == 0) {
+          sgID_ = 27;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1886,8 +1886,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pcc2") == 0) {
-          sgID = 28;
+        else if (spaceGrp_.compare("Pcc2") == 0) {
+          sgID_ = 28;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1915,8 +1915,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pma2") == 0) {
-          sgID = 29;
+        else if (spaceGrp_.compare("Pma2") == 0) {
+          sgID_ = 29;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1944,8 +1944,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pca2(1)") == 0) {
-          sgID = 30;
+        else if (spaceGrp_.compare("Pca2(1)") == 0) {
+          sgID_ = 30;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -1973,8 +1973,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pnc2") == 0) {
-          sgID = 31;
+        else if (spaceGrp_.compare("Pnc2") == 0) {
+          sgID_ = 31;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2002,8 +2002,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pmn2(1)") == 0) {
-          sgID = 32;
+        else if (spaceGrp_.compare("Pmn2(1)") == 0) {
+          sgID_ = 32;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2031,8 +2031,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pba2") == 0) {
-          sgID = 33;
+        else if (spaceGrp_.compare("Pba2") == 0) {
+          sgID_ = 33;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2060,8 +2060,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pna2(1)") == 0) {
-          sgID = 34;
+        else if (spaceGrp_.compare("Pna2(1)") == 0) {
+          sgID_ = 34;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2089,8 +2089,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pnn2") == 0) {
-          sgID = 35;
+        else if (spaceGrp_.compare("Pnn2") == 0) {
+          sgID_ = 35;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2118,8 +2118,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Cmm2") == 0) {
-          sgID = 36;
+        else if (spaceGrp_.compare("Cmm2") == 0) {
+          sgID_ = 36;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2171,8 +2171,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Cmc2(1)") == 0) {
-          sgID = 37;
+        else if (spaceGrp_.compare("Cmc2(1)") == 0) {
+          sgID_ = 37;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2224,8 +2224,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Ccc2") == 0) {
-          sgID = 38;
+        else if (spaceGrp_.compare("Ccc2") == 0) {
+          sgID_ = 38;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2277,8 +2277,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Amm2") == 0) {
-          sgID = 39;
+        else if (spaceGrp_.compare("Amm2") == 0) {
+          sgID_ = 39;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2330,8 +2330,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Abm2") == 0) {
-          sgID = 40;
+        else if (spaceGrp_.compare("Abm2") == 0) {
+          sgID_ = 40;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2383,8 +2383,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Ama2") == 0) {
-          sgID = 41;
+        else if (spaceGrp_.compare("Ama2") == 0) {
+          sgID_ = 41;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2436,8 +2436,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Aba2") == 0) {
-          sgID = 42;
+        else if (spaceGrp_.compare("Aba2") == 0) {
+          sgID_ = 42;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2489,8 +2489,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Fmm2") == 0) {
-          sgID = 43;
+        else if (spaceGrp_.compare("Fmm2") == 0) {
+          sgID_ = 43;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2590,8 +2590,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Fdd2") == 0) {
-          sgID = 44;
+        else if (spaceGrp_.compare("Fdd2") == 0) {
+          sgID_ = 44;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2691,8 +2691,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.7500000000 + di) / dnA, (  0.7500000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Imm2") == 0) {
-          sgID = 45;
+        else if (spaceGrp_.compare("Imm2") == 0) {
+          sgID_ = 45;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2744,8 +2744,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Iba2") == 0) {
-          sgID = 46;
+        else if (spaceGrp_.compare("Iba2") == 0) {
+          sgID_ = 46;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2797,8 +2797,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Ima2") == 0) {
-          sgID = 47;
+        else if (spaceGrp_.compare("Ima2") == 0) {
+          sgID_ = 47;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2850,8 +2850,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pmmm") == 0) {
-          sgID = 48;
+        else if (spaceGrp_.compare("Pmmm") == 0) {
+          sgID_ = 48;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2903,8 +2903,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pnnn") == 0) {
-          sgID = 49;
+        else if (spaceGrp_.compare("Pnnn") == 0) {
+          sgID_ = 49;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -2956,8 +2956,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pccm") == 0) {
-          sgID = 50;
+        else if (spaceGrp_.compare("Pccm") == 0) {
+          sgID_ = 50;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3009,8 +3009,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pban") == 0) {
-          sgID = 51;
+        else if (spaceGrp_.compare("Pban") == 0) {
+          sgID_ = 51;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3062,8 +3062,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pmma") == 0) {
-          sgID = 52;
+        else if (spaceGrp_.compare("Pmma") == 0) {
+          sgID_ = 52;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3115,8 +3115,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pnna") == 0) {
-          sgID = 53;
+        else if (spaceGrp_.compare("Pnna") == 0) {
+          sgID_ = 53;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3168,8 +3168,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pmna") == 0) {
-          sgID = 54;
+        else if (spaceGrp_.compare("Pmna") == 0) {
+          sgID_ = 54;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3221,8 +3221,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pcca") == 0) {
-          sgID = 55;
+        else if (spaceGrp_.compare("Pcca") == 0) {
+          sgID_ = 55;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3274,8 +3274,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pbam") == 0) {
-          sgID = 56;
+        else if (spaceGrp_.compare("Pbam") == 0) {
+          sgID_ = 56;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3327,8 +3327,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pccn") == 0) {
-          sgID = 57;
+        else if (spaceGrp_.compare("Pccn") == 0) {
+          sgID_ = 57;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3380,8 +3380,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pbcm") == 0) {
-          sgID = 58;
+        else if (spaceGrp_.compare("Pbcm") == 0) {
+          sgID_ = 58;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3433,8 +3433,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pnnm") == 0) {
-          sgID = 59;
+        else if (spaceGrp_.compare("Pnnm") == 0) {
+          sgID_ = 59;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3486,8 +3486,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pmmn") == 0) {
-          sgID = 60;
+        else if (spaceGrp_.compare("Pmmn") == 0) {
+          sgID_ = 60;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3539,8 +3539,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pmmn_NSO") == 0) {
-          sgID = 61;
+        else if (spaceGrp_.compare("Pmmn_NSO") == 0) {
+          sgID_ = 61;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3592,8 +3592,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pbcn") == 0) {
-          sgID = 62;
+        else if (spaceGrp_.compare("Pbcn") == 0) {
+          sgID_ = 62;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3645,8 +3645,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pbca") == 0) {
-          sgID = 63;
+        else if (spaceGrp_.compare("Pbca") == 0) {
+          sgID_ = 63;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3698,8 +3698,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pnma") == 0) {
-          sgID = 64;
+        else if (spaceGrp_.compare("Pnma") == 0) {
+          sgID_ = 64;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3751,8 +3751,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Cmcm") == 0) {
-          sgID = 65;
+        else if (spaceGrp_.compare("Cmcm") == 0) {
+          sgID_ = 65;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3852,8 +3852,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Cmca") == 0) {
-          sgID = 66;
+        else if (spaceGrp_.compare("Cmca") == 0) {
+          sgID_ = 66;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -3953,8 +3953,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Cmmm") == 0) {
-          sgID = 67;
+        else if (spaceGrp_.compare("Cmmm") == 0) {
+          sgID_ = 67;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -4054,8 +4054,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Cccm") == 0) {
-          sgID = 68;
+        else if (spaceGrp_.compare("Cccm") == 0) {
+          sgID_ = 68;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -4155,8 +4155,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Cmma") == 0) {
-          sgID = 69;
+        else if (spaceGrp_.compare("Cmma") == 0) {
+          sgID_ = 69;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -4256,8 +4256,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Ccca") == 0) {
-          sgID = 70;
+        else if (spaceGrp_.compare("Ccca") == 0) {
+          sgID_ = 70;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -4357,8 +4357,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Fmmm") == 0) {
-          sgID = 71;
+        else if (spaceGrp_.compare("Fmmm") == 0) {
+          sgID_ = 71;
           nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -4554,8 +4554,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 31 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Fddd") == 0) {
-          sgID = 72;
+        else if (spaceGrp_.compare("Fddd") == 0) {
+          sgID_ = 72;
           nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -4751,8 +4751,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 31 + iuc] = Vec3((  0.7500000000 + di) / dnA, (  0.7500000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Immm") == 0) {
-          sgID = 73;
+        else if (spaceGrp_.compare("Immm") == 0) {
+          sgID_ = 73;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -4852,8 +4852,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Ibam") == 0) {
-          sgID = 74;
+        else if (spaceGrp_.compare("Ibam") == 0) {
+          sgID_ = 74;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -4953,8 +4953,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Ibca") == 0) {
-          sgID = 75;
+        else if (spaceGrp_.compare("Ibca") == 0) {
+          sgID_ = 75;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5054,8 +5054,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Imma") == 0) {
-          sgID = 76;
+        else if (spaceGrp_.compare("Imma") == 0) {
+          sgID_ = 76;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5155,8 +5155,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4") == 0) {
-          sgID = 77;
+        else if (spaceGrp_.compare("P4") == 0) {
+          sgID_ = 77;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5184,8 +5184,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(1)") == 0) {
-          sgID = 78;
+        else if (spaceGrp_.compare("P4(1)") == 0) {
+          sgID_ = 78;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5213,8 +5213,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.7500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)") == 0) {
-          sgID = 79;
+        else if (spaceGrp_.compare("P4(2)") == 0) {
+          sgID_ = 79;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5242,8 +5242,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(3)") == 0) {
-          sgID = 80;
+        else if (spaceGrp_.compare("P4(3)") == 0) {
+          sgID_ = 80;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5271,8 +5271,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4") == 0) {
-          sgID = 81;
+        else if (spaceGrp_.compare("I4") == 0) {
+          sgID_ = 81;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5324,8 +5324,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4(1)") == 0) {
-          sgID = 82;
+        else if (spaceGrp_.compare("I4(1)") == 0) {
+          sgID_ = 82;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5377,8 +5377,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-4") == 0) {
-          sgID = 83;
+        else if (spaceGrp_.compare("P-4") == 0) {
+          sgID_ = 83;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5406,8 +5406,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I-4") == 0) {
-          sgID = 84;
+        else if (spaceGrp_.compare("I-4") == 0) {
+          sgID_ = 84;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5459,8 +5459,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/m") == 0) {
-          sgID = 85;
+        else if (spaceGrp_.compare("P4/m") == 0) {
+          sgID_ = 85;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5512,8 +5512,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/m") == 0) {
-          sgID = 86;
+        else if (spaceGrp_.compare("P4(2)/m") == 0) {
+          sgID_ = 86;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5565,8 +5565,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/n") == 0) {
-          sgID = 87;
+        else if (spaceGrp_.compare("P4/n") == 0) {
+          sgID_ = 87;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5618,8 +5618,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/n") == 0) {
-          sgID = 88;
+        else if (spaceGrp_.compare("P4(2)/n") == 0) {
+          sgID_ = 88;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5671,8 +5671,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4/m") == 0) {
-          sgID = 89;
+        else if (spaceGrp_.compare("I4/m") == 0) {
+          sgID_ = 89;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5772,8 +5772,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4(1)/a") == 0) {
-          sgID = 90;
+        else if (spaceGrp_.compare("I4(1)/a") == 0) {
+          sgID_ = 90;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5873,8 +5873,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P422") == 0) {
-          sgID = 91;
+        else if (spaceGrp_.compare("P422") == 0) {
+          sgID_ = 91;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5926,8 +5926,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P42(1)2") == 0) {
-          sgID = 92;
+        else if (spaceGrp_.compare("P42(1)2") == 0) {
+          sgID_ = 92;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -5979,8 +5979,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(1)22") == 0) {
-          sgID = 93;
+        else if (spaceGrp_.compare("P4(1)22") == 0) {
+          sgID_ = 93;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6032,8 +6032,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(1)2(1)2") == 0) {
-          sgID = 94;
+        else if (spaceGrp_.compare("P4(1)2(1)2") == 0) {
+          sgID_ = 94;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6085,8 +6085,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)22") == 0) {
-          sgID = 95;
+        else if (spaceGrp_.compare("P4(2)22") == 0) {
+          sgID_ = 95;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6138,8 +6138,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)2(1)2") == 0) {
-          sgID = 96;
+        else if (spaceGrp_.compare("P4(2)2(1)2") == 0) {
+          sgID_ = 96;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6191,8 +6191,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(3)22") == 0) {
-          sgID = 97;
+        else if (spaceGrp_.compare("P4(3)22") == 0) {
+          sgID_ = 97;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6244,8 +6244,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.7500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(3)2(1)2") == 0) {
-          sgID = 98;
+        else if (spaceGrp_.compare("P4(3)2(1)2") == 0) {
+          sgID_ = 98;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6297,8 +6297,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I422") == 0) {
-          sgID = 99;
+        else if (spaceGrp_.compare("I422") == 0) {
+          sgID_ = 99;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6398,8 +6398,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4(1)22") == 0) {
-          sgID = 100;
+        else if (spaceGrp_.compare("I4(1)22") == 0) {
+          sgID_ = 100;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6499,8 +6499,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4mm") == 0) {
-          sgID = 101;
+        else if (spaceGrp_.compare("P4mm") == 0) {
+          sgID_ = 101;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6552,8 +6552,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4bm") == 0) {
-          sgID = 102;
+        else if (spaceGrp_.compare("P4bm") == 0) {
+          sgID_ = 102;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6605,8 +6605,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)cm") == 0) {
-          sgID = 103;
+        else if (spaceGrp_.compare("P4(2)cm") == 0) {
+          sgID_ = 103;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6658,8 +6658,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)nm") == 0) {
-          sgID = 104;
+        else if (spaceGrp_.compare("P4(2)nm") == 0) {
+          sgID_ = 104;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6711,8 +6711,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4cc") == 0) {
-          sgID = 105;
+        else if (spaceGrp_.compare("P4cc") == 0) {
+          sgID_ = 105;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6764,8 +6764,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4nc") == 0) {
-          sgID = 106;
+        else if (spaceGrp_.compare("P4nc") == 0) {
+          sgID_ = 106;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6817,8 +6817,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)mc") == 0) {
-          sgID = 107;
+        else if (spaceGrp_.compare("P4(2)mc") == 0) {
+          sgID_ = 107;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6870,8 +6870,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)bc") == 0) {
-          sgID = 108;
+        else if (spaceGrp_.compare("P4(2)bc") == 0) {
+          sgID_ = 108;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -6923,8 +6923,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4mm") == 0) {
-          sgID = 109;
+        else if (spaceGrp_.compare("I4mm") == 0) {
+          sgID_ = 109;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7024,8 +7024,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4cm") == 0) {
-          sgID = 110;
+        else if (spaceGrp_.compare("I4cm") == 0) {
+          sgID_ = 110;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7125,8 +7125,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4(1)md") == 0) {
-          sgID = 111;
+        else if (spaceGrp_.compare("I4(1)md") == 0) {
+          sgID_ = 111;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7226,8 +7226,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4(1)cd") == 0) {
-          sgID = 112;
+        else if (spaceGrp_.compare("I4(1)cd") == 0) {
+          sgID_ = 112;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7327,8 +7327,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.7500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-42m") == 0) {
-          sgID = 113;
+        else if (spaceGrp_.compare("P-42m") == 0) {
+          sgID_ = 113;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7380,8 +7380,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-42c") == 0) {
-          sgID = 114;
+        else if (spaceGrp_.compare("P-42c") == 0) {
+          sgID_ = 114;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7433,8 +7433,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-42(1)m") == 0) {
-          sgID = 115;
+        else if (spaceGrp_.compare("P-42(1)m") == 0) {
+          sgID_ = 115;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7486,8 +7486,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-42(1)c") == 0) {
-          sgID = 116;
+        else if (spaceGrp_.compare("P-42(1)c") == 0) {
+          sgID_ = 116;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7539,8 +7539,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-4m2") == 0) {
-          sgID = 117;
+        else if (spaceGrp_.compare("P-4m2") == 0) {
+          sgID_ = 117;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7592,8 +7592,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-4c2") == 0) {
-          sgID = 118;
+        else if (spaceGrp_.compare("P-4c2") == 0) {
+          sgID_ = 118;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7645,8 +7645,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-4b2") == 0) {
-          sgID = 119;
+        else if (spaceGrp_.compare("P-4b2") == 0) {
+          sgID_ = 119;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7698,8 +7698,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-4n2") == 0) {
-          sgID = 120;
+        else if (spaceGrp_.compare("P-4n2") == 0) {
+          sgID_ = 120;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7751,8 +7751,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I-4m2") == 0) {
-          sgID = 121;
+        else if (spaceGrp_.compare("I-4m2") == 0) {
+          sgID_ = 121;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7852,8 +7852,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I-4c2") == 0) {
-          sgID = 122;
+        else if (spaceGrp_.compare("I-4c2") == 0) {
+          sgID_ = 122;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -7953,8 +7953,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I-42m") == 0) {
-          sgID = 123;
+        else if (spaceGrp_.compare("I-42m") == 0) {
+          sgID_ = 123;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8054,8 +8054,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I-42d") == 0) {
-          sgID = 124;
+        else if (spaceGrp_.compare("I-42d") == 0) {
+          sgID_ = 124;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8155,8 +8155,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/mmm") == 0) {
-          sgID = 125;
+        else if (spaceGrp_.compare("P4/mmm") == 0) {
+          sgID_ = 125;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8256,8 +8256,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/mcc") == 0) {
-          sgID = 126;
+        else if (spaceGrp_.compare("P4/mcc") == 0) {
+          sgID_ = 126;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8357,8 +8357,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/nbm") == 0) {
-          sgID = 127;
+        else if (spaceGrp_.compare("P4/nbm") == 0) {
+          sgID_ = 127;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8458,8 +8458,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/nnc") == 0) {
-          sgID = 128;
+        else if (spaceGrp_.compare("P4/nnc") == 0) {
+          sgID_ = 128;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8559,8 +8559,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/mbm") == 0) {
-          sgID = 129;
+        else if (spaceGrp_.compare("P4/mbm") == 0) {
+          sgID_ = 129;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8660,8 +8660,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/mnc") == 0) {
-          sgID = 130;
+        else if (spaceGrp_.compare("P4/mnc") == 0) {
+          sgID_ = 130;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8761,8 +8761,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/nmm") == 0) {
-          sgID = 131;
+        else if (spaceGrp_.compare("P4/nmm") == 0) {
+          sgID_ = 131;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8862,8 +8862,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4/ncc") == 0) {
-          sgID = 132;
+        else if (spaceGrp_.compare("P4/ncc") == 0) {
+          sgID_ = 132;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -8963,8 +8963,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/mmc") == 0) {
-          sgID = 133;
+        else if (spaceGrp_.compare("P4(2)/mmc") == 0) {
+          sgID_ = 133;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -9064,8 +9064,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/mcm") == 0) {
-          sgID = 134;
+        else if (spaceGrp_.compare("P4(2)/mcm") == 0) {
+          sgID_ = 134;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -9165,8 +9165,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/nbc") == 0) {
-          sgID = 135;
+        else if (spaceGrp_.compare("P4(2)/nbc") == 0) {
+          sgID_ = 135;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -9266,8 +9266,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/nnm") == 0) {
-          sgID = 136;
+        else if (spaceGrp_.compare("P4(2)/nnm") == 0) {
+          sgID_ = 136;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -9367,8 +9367,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/mbc") == 0) {
-          sgID = 137;
+        else if (spaceGrp_.compare("P4(2)/mbc") == 0) {
+          sgID_ = 137;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -9468,8 +9468,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/mnm") == 0) {
-          sgID = 138;
+        else if (spaceGrp_.compare("P4(2)/mnm") == 0) {
+          sgID_ = 138;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -9569,8 +9569,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/nmc") == 0) {
-          sgID = 139;
+        else if (spaceGrp_.compare("P4(2)/nmc") == 0) {
+          sgID_ = 139;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -9670,8 +9670,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)/ncm") == 0) {
-          sgID = 140;
+        else if (spaceGrp_.compare("P4(2)/ncm") == 0) {
+          sgID_ = 140;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -9771,8 +9771,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 15 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4/mmm") == 0) {
-          sgID = 141;
+        else if (spaceGrp_.compare("I4/mmm") == 0) {
+          sgID_ = 141;
           nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -9968,8 +9968,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 31 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4/mcm") == 0) {
-          sgID = 142;
+        else if (spaceGrp_.compare("I4/mcm") == 0) {
+          sgID_ = 142;
           nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10165,8 +10165,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 31 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4(1)/amd") == 0) {
-          sgID = 143;
+        else if (spaceGrp_.compare("I4(1)/amd") == 0) {
+          sgID_ = 143;
           nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10362,8 +10362,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 31 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.7500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4(1)/acd") == 0) {
-          sgID = 144;
+        else if (spaceGrp_.compare("I4(1)/acd") == 0) {
+          sgID_ = 144;
           nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10559,8 +10559,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 31 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P3") == 0) {
-          sgID = 145;
+        else if (spaceGrp_.compare("P3") == 0) {
+          sgID_ = 145;
           nops_ = 3 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 3;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10582,8 +10582,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  2 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P3(1)") == 0) {
-          sgID = 146;
+        else if (spaceGrp_.compare("P3(1)") == 0) {
+          sgID_ = 146;
           nops_ = 3 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 3;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10605,8 +10605,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  2 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.6666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P3(2)") == 0) {
-          sgID = 147;
+        else if (spaceGrp_.compare("P3(2)") == 0) {
+          sgID_ = 147;
           nops_ = 3 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 3;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10628,8 +10628,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  2 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.3333333333 + dk) / dnC);
         }
-        else if (spaceGrp.compare("R3") == 0) {
-          sgID = 148;
+        else if (spaceGrp_.compare("R3") == 0) {
+          sgID_ = 148;
           nops_ = 9 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 9;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10687,8 +10687,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  8 + iuc] = Vec3((  0.3333333333 + di) / dnA, (  0.6666666667 + dj) / dnB, 
                               (  0.6666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-3") == 0) {
-          sgID = 149;
+        else if (spaceGrp_.compare("P-3") == 0) {
+          sgID_ = 149;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10728,8 +10728,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("R-3") == 0) {
-          sgID = 150;
+        else if (spaceGrp_.compare("R-3") == 0) {
+          sgID_ = 150;
           nops_ = 18 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 18;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10841,8 +10841,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 17 + iuc] = Vec3((  0.3333333333 + di) / dnA, (  0.6666666667 + dj) / dnB, 
                               (  0.6666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P312") == 0) {
-          sgID = 151;
+        else if (spaceGrp_.compare("P312") == 0) {
+          sgID_ = 151;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10882,8 +10882,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P321") == 0) {
-          sgID = 152;
+        else if (spaceGrp_.compare("P321") == 0) {
+          sgID_ = 152;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10923,8 +10923,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P3(1)12") == 0) {
-          sgID = 153;
+        else if (spaceGrp_.compare("P3(1)12") == 0) {
+          sgID_ = 153;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -10964,8 +10964,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P3(1)21") == 0) {
-          sgID = 154;
+        else if (spaceGrp_.compare("P3(1)21") == 0) {
+          sgID_ = 154;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11005,8 +11005,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.3333333333 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P3(2)12") == 0) {
-          sgID = 155;
+        else if (spaceGrp_.compare("P3(2)12") == 0) {
+          sgID_ = 155;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11046,8 +11046,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P3(2)21") == 0) {
-          sgID = 156;
+        else if (spaceGrp_.compare("P3(2)21") == 0) {
+          sgID_ = 156;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11087,8 +11087,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.6666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("R32") == 0) {
-          sgID = 157;
+        else if (spaceGrp_.compare("R32") == 0) {
+          sgID_ = 157;
           nops_ = 18 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 18;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11200,8 +11200,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 17 + iuc] = Vec3((  0.3333333333 + di) / dnA, (  0.6666666667 + dj) / dnB, 
                               (  0.6666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P3m1") == 0) {
-          sgID = 158;
+        else if (spaceGrp_.compare("P3m1") == 0) {
+          sgID_ = 158;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11241,8 +11241,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P31m") == 0) {
-          sgID = 159;
+        else if (spaceGrp_.compare("P31m") == 0) {
+          sgID_ = 159;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11282,8 +11282,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P3c1") == 0) {
-          sgID = 160;
+        else if (spaceGrp_.compare("P3c1") == 0) {
+          sgID_ = 160;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11323,8 +11323,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P31c") == 0) {
-          sgID = 161;
+        else if (spaceGrp_.compare("P31c") == 0) {
+          sgID_ = 161;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11364,8 +11364,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("R3m") == 0) {
-          sgID = 162;
+        else if (spaceGrp_.compare("R3m") == 0) {
+          sgID_ = 162;
           nops_ = 18 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 18;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11477,8 +11477,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 17 + iuc] = Vec3((  0.3333333333 + di) / dnA, (  0.6666666667 + dj) / dnB, 
                               (  0.6666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("R3c") == 0) {
-          sgID = 163;
+        else if (spaceGrp_.compare("R3c") == 0) {
+          sgID_ = 163;
           nops_ = 18 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 18;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11590,8 +11590,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 17 + iuc] = Vec3((  0.3333333333 + di) / dnA, (  0.6666666667 + dj) / dnB, 
                               (  0.1666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-31m") == 0) {
-          sgID = 164;
+        else if (spaceGrp_.compare("P-31m") == 0) {
+          sgID_ = 164;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11667,8 +11667,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-31c") == 0) {
-          sgID = 165;
+        else if (spaceGrp_.compare("P-31c") == 0) {
+          sgID_ = 165;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11744,8 +11744,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-3m1") == 0) {
-          sgID = 166;
+        else if (spaceGrp_.compare("P-3m1") == 0) {
+          sgID_ = 166;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11821,8 +11821,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-3c1") == 0) {
-          sgID = 167;
+        else if (spaceGrp_.compare("P-3c1") == 0) {
+          sgID_ = 167;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -11898,8 +11898,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("R-3m") == 0) {
-          sgID = 168;
+        else if (spaceGrp_.compare("R-3m") == 0) {
+          sgID_ = 168;
           nops_ = 36 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 36;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12119,8 +12119,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 35 + iuc] = Vec3((  0.3333333333 + di) / dnA, (  0.6666666667 + dj) / dnB, 
                               (  0.6666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("R-3c") == 0) {
-          sgID = 169;
+        else if (spaceGrp_.compare("R-3c") == 0) {
+          sgID_ = 169;
           nops_ = 36 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 36;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12340,8 +12340,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 35 + iuc] = Vec3((  0.3333333333 + di) / dnA, (  0.6666666667 + dj) / dnB, 
                               (  0.1666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6") == 0) {
-          sgID = 170;
+        else if (spaceGrp_.compare("P6") == 0) {
+          sgID_ = 170;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12381,8 +12381,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(1)") == 0) {
-          sgID = 171;
+        else if (spaceGrp_.compare("P6(1)") == 0) {
+          sgID_ = 171;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12422,8 +12422,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.1666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(5)") == 0) {
-          sgID = 172;
+        else if (spaceGrp_.compare("P6(5)") == 0) {
+          sgID_ = 172;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12463,8 +12463,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.8333333333 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(2)") == 0) {
-          sgID = 173;
+        else if (spaceGrp_.compare("P6(2)") == 0) {
+          sgID_ = 173;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12504,8 +12504,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.3333333333 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(4)") == 0) {
-          sgID = 174;
+        else if (spaceGrp_.compare("P6(4)") == 0) {
+          sgID_ = 174;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12545,8 +12545,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.6666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(3)") == 0) {
-          sgID = 175;
+        else if (spaceGrp_.compare("P6(3)") == 0) {
+          sgID_ = 175;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12586,8 +12586,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-6") == 0) {
-          sgID = 176;
+        else if (spaceGrp_.compare("P-6") == 0) {
+          sgID_ = 176;
           nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12627,8 +12627,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  5 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6/m") == 0) {
-          sgID = 177;
+        else if (spaceGrp_.compare("P6/m") == 0) {
+          sgID_ = 177;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12704,8 +12704,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(3)/m") == 0) {
-          sgID = 178;
+        else if (spaceGrp_.compare("P6(3)/m") == 0) {
+          sgID_ = 178;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12781,8 +12781,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P622") == 0) {
-          sgID = 179;
+        else if (spaceGrp_.compare("P622") == 0) {
+          sgID_ = 179;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12858,8 +12858,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(1)22") == 0) {
-          sgID = 180;
+        else if (spaceGrp_.compare("P6(1)22") == 0) {
+          sgID_ = 180;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -12935,8 +12935,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.1666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(5)22") == 0) {
-          sgID = 181;
+        else if (spaceGrp_.compare("P6(5)22") == 0) {
+          sgID_ = 181;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13012,8 +13012,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.8333333333 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(2)22") == 0) {
-          sgID = 182;
+        else if (spaceGrp_.compare("P6(2)22") == 0) {
+          sgID_ = 182;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13089,8 +13089,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.3333333333 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(4)22") == 0) {
-          sgID = 183;
+        else if (spaceGrp_.compare("P6(4)22") == 0) {
+          sgID_ = 183;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13166,8 +13166,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.6666666667 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(3)22") == 0) {
-          sgID = 184;
+        else if (spaceGrp_.compare("P6(3)22") == 0) {
+          sgID_ = 184;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13243,8 +13243,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6mm") == 0) {
-          sgID = 185;
+        else if (spaceGrp_.compare("P6mm") == 0) {
+          sgID_ = 185;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13320,8 +13320,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6cc") == 0) {
-          sgID = 186;
+        else if (spaceGrp_.compare("P6cc") == 0) {
+          sgID_ = 186;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13397,8 +13397,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(3)cm") == 0) {
-          sgID = 187;
+        else if (spaceGrp_.compare("P6(3)cm") == 0) {
+          sgID_ = 187;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13474,8 +13474,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(3)mc") == 0) {
-          sgID = 188;
+        else if (spaceGrp_.compare("P6(3)mc") == 0) {
+          sgID_ = 188;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13551,8 +13551,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-6m2") == 0) {
-          sgID = 189;
+        else if (spaceGrp_.compare("P-6m2") == 0) {
+          sgID_ = 189;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13628,8 +13628,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-6c2") == 0) {
-          sgID = 190;
+        else if (spaceGrp_.compare("P-6c2") == 0) {
+          sgID_ = 190;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13705,8 +13705,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-62m") == 0) {
-          sgID = 191;
+        else if (spaceGrp_.compare("P-62m") == 0) {
+          sgID_ = 191;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13782,8 +13782,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-62c") == 0) {
-          sgID = 192;
+        else if (spaceGrp_.compare("P-62c") == 0) {
+          sgID_ = 192;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -13859,8 +13859,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6/mmm") == 0) {
-          sgID = 193;
+        else if (spaceGrp_.compare("P6/mmm") == 0) {
+          sgID_ = 193;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -14008,8 +14008,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6/mcc") == 0) {
-          sgID = 194;
+        else if (spaceGrp_.compare("P6/mcc") == 0) {
+          sgID_ = 194;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -14157,8 +14157,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(3)/mcm") == 0) {
-          sgID = 195;
+        else if (spaceGrp_.compare("P6(3)/mcm") == 0) {
+          sgID_ = 195;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -14306,8 +14306,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P6(3)/mmc") == 0) {
-          sgID = 196;
+        else if (spaceGrp_.compare("P6(3)/mmc") == 0) {
+          sgID_ = 196;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -14455,8 +14455,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P23") == 0) {
-          sgID = 197;
+        else if (spaceGrp_.compare("P23") == 0) {
+          sgID_ = 197;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -14532,8 +14532,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("F23") == 0) {
-          sgID = 198;
+        else if (spaceGrp_.compare("F23") == 0) {
+          sgID_ = 198;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -14825,8 +14825,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I23") == 0) {
-          sgID = 199;
+        else if (spaceGrp_.compare("I23") == 0) {
+          sgID_ = 199;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -14974,8 +14974,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)3") == 0) {
-          sgID = 200;
+        else if (spaceGrp_.compare("P2(1)3") == 0) {
+          sgID_ = 200;
           nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -15051,8 +15051,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 11 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I2(1)3") == 0) {
-          sgID = 201;
+        else if (spaceGrp_.compare("I2(1)3") == 0) {
+          sgID_ = 201;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -15200,8 +15200,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pm-3") == 0) {
-          sgID = 202;
+        else if (spaceGrp_.compare("Pm-3") == 0) {
+          sgID_ = 202;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -15349,8 +15349,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pn-3") == 0) {
-          sgID = 203;
+        else if (spaceGrp_.compare("Pn-3") == 0) {
+          sgID_ = 203;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -15498,8 +15498,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Fm-3") == 0) {
-          sgID = 204;
+        else if (spaceGrp_.compare("Fm-3") == 0) {
+          sgID_ = 204;
           nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -16079,8 +16079,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 95 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Fd-3") == 0) {
-          sgID = 205;
+        else if (spaceGrp_.compare("Fd-3") == 0) {
+          sgID_ = 205;
           nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -16660,8 +16660,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 95 + iuc] = Vec3((  0.7500000000 + di) / dnA, (  0.7500000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Im-3") == 0) {
-          sgID = 206;
+        else if (spaceGrp_.compare("Im-3") == 0) {
+          sgID_ = 206;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -16953,8 +16953,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pa-3") == 0) {
-          sgID = 207;
+        else if (spaceGrp_.compare("Pa-3") == 0) {
+          sgID_ = 207;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -17102,8 +17102,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Ia-3") == 0) {
-          sgID = 208;
+        else if (spaceGrp_.compare("Ia-3") == 0) {
+          sgID_ = 208;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -17395,8 +17395,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P432") == 0) {
-          sgID = 209;
+        else if (spaceGrp_.compare("P432") == 0) {
+          sgID_ = 209;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -17544,8 +17544,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(2)32") == 0) {
-          sgID = 210;
+        else if (spaceGrp_.compare("P4(2)32") == 0) {
+          sgID_ = 210;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -17693,8 +17693,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("F432") == 0) {
-          sgID = 211;
+        else if (spaceGrp_.compare("F432") == 0) {
+          sgID_ = 211;
           nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -18274,8 +18274,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 95 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("F4(1)32") == 0) {
-          sgID = 212;
+        else if (spaceGrp_.compare("F4(1)32") == 0) {
+          sgID_ = 212;
           nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -18855,8 +18855,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 95 + iuc] = Vec3((  0.7500000000 + di) / dnA, (  0.7500000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I432") == 0) {
-          sgID = 213;
+        else if (spaceGrp_.compare("I432") == 0) {
+          sgID_ = 213;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -19148,8 +19148,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(3)32") == 0) {
-          sgID = 214;
+        else if (spaceGrp_.compare("P4(3)32") == 0) {
+          sgID_ = 214;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -19297,8 +19297,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.2500000000 + di) / dnA, (  0.2500000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P4(1)32") == 0) {
-          sgID = 215;
+        else if (spaceGrp_.compare("P4(1)32") == 0) {
+          sgID_ = 215;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -19446,8 +19446,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.7500000000 + di) / dnA, (  0.7500000000 + dj) / dnB, 
                               (  0.7500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I4(1)32") == 0) {
-          sgID = 216;
+        else if (spaceGrp_.compare("I4(1)32") == 0) {
+          sgID_ = 216;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -19739,8 +19739,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.2500000000 + di) / dnA, (  0.2500000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-43m") == 0) {
-          sgID = 217;
+        else if (spaceGrp_.compare("P-43m") == 0) {
+          sgID_ = 217;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -19888,8 +19888,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("F4-3m") == 0) {
-          sgID = 218;
+        else if (spaceGrp_.compare("F4-3m") == 0) {
+          sgID_ = 218;
           nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -20469,8 +20469,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 95 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I-43m") == 0) {
-          sgID = 219;
+        else if (spaceGrp_.compare("I-43m") == 0) {
+          sgID_ = 219;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -20762,8 +20762,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P-43n") == 0) {
-          sgID = 220;
+        else if (spaceGrp_.compare("P-43n") == 0) {
+          sgID_ = 220;
           nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -20911,8 +20911,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 23 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("F-43c") == 0) {
-          sgID = 221;
+        else if (spaceGrp_.compare("F-43c") == 0) {
+          sgID_ = 221;
           nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -21492,8 +21492,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 95 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I-43d") == 0) {
-          sgID = 222;
+        else if (spaceGrp_.compare("I-43d") == 0) {
+          sgID_ = 222;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -21785,8 +21785,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.7500000000 + di) / dnA, (  0.2500000000 + dj) / dnB, 
                               (  0.2500000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pm-3m") == 0) {
-          sgID = 223;
+        else if (spaceGrp_.compare("Pm-3m") == 0) {
+          sgID_ = 223;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -22078,8 +22078,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pn-3n") == 0) {
-          sgID = 224;
+        else if (spaceGrp_.compare("Pn-3n") == 0) {
+          sgID_ = 224;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -22371,8 +22371,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pm-3n") == 0) {
-          sgID = 225;
+        else if (spaceGrp_.compare("Pm-3n") == 0) {
+          sgID_ = 225;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -22664,8 +22664,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pn-3m") == 0) {
-          sgID = 226;
+        else if (spaceGrp_.compare("Pn-3m") == 0) {
+          sgID_ = 226;
           nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -22957,8 +22957,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[ 47 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P22(1)2(1)") == 0) {
-          sgID = 227;
+        else if (spaceGrp_.compare("P22(1)2(1)") == 0) {
+          sgID_ = 227;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -22986,8 +22986,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I121") == 0) {
-          sgID = 228;
+        else if (spaceGrp_.compare("I121") == 0) {
+          sgID_ = 228;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -23015,8 +23015,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("B112") == 0) {
-          sgID = 229;
+        else if (spaceGrp_.compare("B112") == 0) {
+          sgID_ = 229;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -23044,8 +23044,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)/n") == 0 || spaceGrp.compare("P12(1)/n1") == 0) {
-          sgID = 230;
+        else if (spaceGrp_.compare("P2(1)/n") == 0 || spaceGrp_.compare("P12(1)/n1") == 0) {
+          sgID_ = 230;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -23073,8 +23073,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("Pcab") == 0) {
-          sgID = 231;
+        else if (spaceGrp_.compare("Pcab") == 0) {
+          sgID_ = 231;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -23126,8 +23126,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  7 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("H32") == 0) {
-          sgID = 232;
+        else if (spaceGrp_.compare("H32") == 0) {
+          sgID_ = 232;
           nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -23227,8 +23227,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
 	  T[ 15 + iuc] = Vec3((  0.3333333333 + di) / dnA, (  0.6666666667 + dj) / dnB,
 			      (  0.6666666667 + di) / dnC);
         }
-        else if (spaceGrp.compare("P22(1)2") == 0) {
-          sgID = 233;
+        else if (spaceGrp_.compare("P22(1)2") == 0) {
+          sgID_ = 233;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -23256,8 +23256,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.0000000000 + di) / dnA, (  0.0000000000 + dj) / dnB, 
                               (  0.0000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("I2") == 0 || spaceGrp.compare("I121") == 0) {
-          sgID = 234;
+        else if (spaceGrp_.compare("I2") == 0 || spaceGrp_.compare("I121") == 0) {
+          sgID_ = 234;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -23285,8 +23285,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
           T[  3 + iuc] = Vec3((  0.5000000000 + di) / dnA, (  0.5000000000 + dj) / dnB, 
                               (  0.5000000000 + dk) / dnC);
         }
-        else if (spaceGrp.compare("H3") == 0) {
-          sgID = 235;
+        else if (spaceGrp_.compare("H3") == 0) {
+          sgID_ = 235;
           nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
 	  Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -23338,8 +23338,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
 	  T[  7 + iuc] = Vec3((  0.3333333333 + di) / dnA, (  0.6666666667 + dj) / dnB,
 			      (  0.6666666667 + di) / dnC);
         }
-        else if (spaceGrp.compare("P2(1)22(1)") == 0) {
-          sgID = 236;
+        else if (spaceGrp_.compare("P2(1)22(1)") == 0) {
+          sgID_ = 236;
           nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
@@ -23491,7 +23491,7 @@ bool Action_XtalSymm::PointInPrimaryASU(double x, double y, double z)
   z *= (double)nCopyC_;
 
   // Giant case switch to test each space group
-  switch(sgID) {
+  switch(sgID_) {
     case 0:
       if (0.0 > x || x > 1.0 || 0.0 > y || y > 1.0 || 0.0 > z || z > 1.0) return false;
       break;
