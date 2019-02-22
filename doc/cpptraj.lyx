@@ -117,6 +117,14 @@ Cpptraj
  has a wide range of functionality, and makes use of OpenMP/MPI to speed
  up many calculations, including processing ensembles of trajectories and/or
  conducting multiple analyses in parallel with MPI.
+
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2018"
+literal "true"
+
+\end_inset
+
 \end_layout
 
 \begin_layout Standard
