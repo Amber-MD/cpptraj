@@ -205,7 +205,7 @@ void Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads,
 // Arguments:
 //   [x,y,z]:    the fractional coordinates of the point
 //---------------------------------------------------------------------------------------------
-TransOp Action_XtalSymm::DetectAsuResidence(double x, double y, double z)
+Action_XtalSymm::TransOp Action_XtalSymm::DetectAsuResidence(double x, double y, double z)
 {
   int i, j, k, m;
   Vec3 pt;

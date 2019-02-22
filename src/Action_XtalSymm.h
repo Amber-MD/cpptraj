@@ -6,47 +6,6 @@
 #include "Vec3.h"
 
 //---------------------------------------------------------------------------------------------
-// XtalDock: stores the results of crystal symmetry operations on solitary subunits,
-//           attempting to align them back to the original asymmetric unit.  The goal
-//           is to cluster the origins of multiple operations such that one cluster
-//           has all of its required origins in about the same spot and gives
-//           consistently low atom positional RMSDs.
-//---------------------------------------------------------------------------------------------
-class XtalDock {
-  public:
-    int subunit_;  // The subunit that this is operating on
-    int opID_;     // The operation in use, indexing the lists R and T in Action_XtalSymm
-    double rmsd_;  // The un-fitted rmsd between the original and superimposed subunits
-    Vec3 displc_;  // The optimal displacement beteen the two subunits' centers of mass,
-                  //   scaled to simulation cell fractional coordinates
-    Vec3 origin_;  // The origin that got the best rmsd
-
-    /// Assignment
-    XtalDock& operator=(const XtalDock& rhs) {
-      if (this == &rhs) return *this;
-      subunit_ = rhs.subunit_;
-      opID_    = rhs.opID_;
-      rmsd_    = rhs.rmsd_;
-      displc_  = rhs.displc_;
-      origin_  = rhs.origin_;
-      return *this;
-    }
-};
-
-//---------------------------------------------------------------------------------------------
-// TransOp: stores an initial translation (as three doubles) plus the index of an operation.
-//          This information will help guide points (or entire coordinate sets) from some
-//          starting position into one of the regions of space for a given asymmetric unit.
-//---------------------------------------------------------------------------------------------
-class TransOp {
-  public:
-    int opID_;      // Operation index
-    double tr_x_;   // Initial X translation
-    double tr_y_;   // Initial Y translation
-    double tr_z_;   // Initial Z translation
-};
-
-//---------------------------------------------------------------------------------------------
 // XtalSymm: an action to superimpose symmetry-related parts of a simulation system using
 //           crystallographic symmetry operations
 //---------------------------------------------------------------------------------------------
@@ -57,6 +16,10 @@ class Action_XtalSymm : public Action {
     void Help() const;
     ~Action_XtalSymm();
   private:
+    // Forward declarations
+    class XtalDock;
+    class TransOp;
+
     static const int IASU_GRID_BINS_;
     static const double DASU_GRID_BINS_;
 
@@ -124,5 +87,46 @@ class Action_XtalSymm : public Action {
     double dmax(double, double, double);
     double dmax(double, double, double, double);
     bool PointInPrimaryASU(double x, double y, double z);
+};
+
+//---------------------------------------------------------------------------------------------
+/** XtalDock: stores the results of crystal symmetry operations on solitary subunits,
+  *           attempting to align them back to the original asymmetric unit.  The goal
+  *           is to cluster the origins of multiple operations such that one cluster
+  *           has all of its required origins in about the same spot and gives
+  *           consistently low atom positional RMSDs.
+  */
+class Action_XtalSymm::XtalDock {
+  public:
+    int subunit_;  ///< The subunit that this is operating on
+    int opID_;     ///< The operation in use, indexing the lists R and T in Action_XtalSymm
+    double rmsd_;  ///< The un-fitted rmsd between the original and superimposed subunits
+    Vec3 displc_;  /**< The optimal displacement beteen the two subunits' centers of mass,
+                        scaled to simulation cell fractional coordinates. */
+    Vec3 origin_;  ///< The origin that got the best rmsd
+
+    /// Assignment
+    XtalDock& operator=(const XtalDock& rhs) {
+      if (this == &rhs) return *this;
+      subunit_ = rhs.subunit_;
+      opID_    = rhs.opID_;
+      rmsd_    = rhs.rmsd_;
+      displc_  = rhs.displc_;
+      origin_  = rhs.origin_;
+      return *this;
+    }
+};
+
+//---------------------------------------------------------------------------------------------
+/** TransOp: stores an initial translation (as three doubles) plus the index of an operation.
+  *          This information will help guide points (or entire coordinate sets) from some
+  *          starting position into one of the regions of space for a given asymmetric unit.
+  */
+class Action_XtalSymm::TransOp {
+  public:
+    int opID_;      ///< Operation index
+    double tr_x_;   ///< Initial X translation
+    double tr_y_;   ///< Initial Y translation
+    double tr_z_;   ///< Initial Z translation
 };
 #endif
