@@ -45,7 +45,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   
   // Set the masks for all symmetry-related subunits
   Masks_ = new AtomMask[nops_];
-  subunitOpID.reserve(nops_);
+  subunitOpID_.reserve(nops_);
   nmasks_ = 0;
   std::string mask = actionArgs.GetMaskNext();
   if (mask.empty()) {
@@ -492,7 +492,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
         SolventList.push_back(i);
       }
     }
-    SolventParticles = AtomMask(SolventList, nnonasu);
+    SolventParticles_ = AtomMask(SolventList, nnonasu);
     if (molCentToASU_) {
       SolventList.clear();
       SolventList.reserve(nnonasu);
@@ -501,7 +501,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
 	  SolventList.push_back(i);
 	}
       }
-      SolventMolecules = AtomMask(SolventList, nnonasu);
+      SolventMolecules_ = AtomMask(SolventList, nnonasu);
     }
     
     // Free allocated memory
@@ -654,7 +654,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       for (i = 0; i < nops_; i++) {
         for (j = 0; j < nLead; j++) {
           if (leads[j].subunit_ == i) {
-            subunitOpID[i] = leads[j].opID_;
+            subunitOpID_[i] = leads[j].opID_;
             RefT[i] = leads[j].displc_;
             break;
           }
@@ -728,7 +728,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
                 bestRmsd = trmsd;
                 bestOrig = torig;
                 for (j = 0; j < nops_; j++) {
-                  subunitOpID[j] = trialOpID[j];
+                  subunitOpID_[j] = trialOpID[j];
                   RefT[j] = leads[HowToGetThere[j]].displc_;
                 }
               }
@@ -776,7 +776,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   }
   orig.SetCoordinates(frm.Frm(), Masks_[0]);
   for (i = 0; i < nops_; i++) {
-    int opID = subunitOpID[i];
+    int opID = subunitOpID_[i];
     
     // Get each subunit and the box transformations
     othr[i].SetCoordinates(frm.Frm(), Masks_[i]);
@@ -802,12 +802,12 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     othr[i].Translate(cmove);
     frm.ModifyFrm().Translate(cmove, Masks_[i]);
   }
-  Vec3 Ovec = BestOrigin(orig, othr, subunitOpID);
+  Vec3 Ovec = BestOrigin(orig, othr, subunitOpID_);
 
   // Apply the final result, the origin at which all of these transformations are valid
   frm.ModifyFrm().NegTranslate(Ovec);  
   for (i = 0; i < nops_; i++) {
-    int opID = subunitOpID[i];
+    int opID = subunitOpID_[i];
     frm.ModifyFrm().Rotate(Rinv[opID], Masks_[i]);
   }
 
@@ -815,9 +815,9 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   // specified asymmetric units), and then determine to which asymmetric unit they
   // belong.
   if (allToFirstASU_) {
-    frm.ModifyFrm().Rotate(invU, SolventParticles);
+    frm.ModifyFrm().Rotate(invU, SolventParticles_);
     if (molCentToASU_) {
-      frm.ModifyFrm().Rotate(invU, SolventMolecules);
+      frm.ModifyFrm().Rotate(invU, SolventMolecules_);
       for (i = 0; i < nMolecule_; i++) {
         if (molInSolvent_[i]) {
 
@@ -853,10 +853,10 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
           frm.ModifyFrm().Rotate(Rinv[Vm.opID_], molLimits_[2*i], molLimits_[2*i + 1]);
         }
       }
-      frm.ModifyFrm().Rotate(U, SolventMolecules);
+      frm.ModifyFrm().Rotate(U, SolventMolecules_);
     }
-    for (i = 0; i < SolventParticles.Nselected(); i++) {
-      int iatm = SolventParticles.Selected()[i];
+    for (i = 0; i < SolventParticles_.Nselected(); i++) {
+      int iatm = SolventParticles_.Selected()[i];
 
       // Re-image the ith solvent atom
       double x = *frm.Frm().CRD(3*iatm);
@@ -877,7 +877,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       frm.ModifyFrm().Translate(Vec3(Vm.tr_x_, Vm.tr_y_, Vm.tr_z_) - T[Vm.opID_], iatm);
       frm.ModifyFrm().Rotate(Rinv[Vm.opID_], iatm);
     }
-    frm.ModifyFrm().Rotate(U, SolventParticles);
+    frm.ModifyFrm().Rotate(U, SolventParticles_);
   }
   
   // Free allocated memory

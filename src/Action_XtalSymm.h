@@ -53,9 +53,9 @@ class Action_XtalSymm : public Action {
     // Masks for the asymmetric units and solvent particles
     int nmasks_;
     AtomMask* Masks_; // TODO should probably use vector here
-    AtomMask  SolventParticles;
-    AtomMask  SolventMolecules;
-    std::vector<int> subunitOpID;
+    AtomMask  SolventParticles_;
+    AtomMask  SolventMolecules_;
+    std::vector<int> subunitOpID_;
   
     // Rotation matrices and translation vectors
     Matrix_3x3* R;
