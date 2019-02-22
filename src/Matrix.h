@@ -261,24 +261,24 @@ template<class T> void Matrix<T>::LinearLeastSquares(T* b)
   int i, j, k;
   double tnm_v, tnm_v2, tempval, sign_v;
   double multval, temp_b, pivot;
-
+  // NOTE: correct code behavior relies on loop counters being int
   // Eliminate zero rows
   k = 0;
-  for (i = 0; i < nrows_; i++) {
+  for (i = 0; i < (int)nrows_; i++) {
     double msum = 0.0;
-    for (j = 0; j < ncols_; j++) {
+    for (j = 0; j < (int)ncols_; j++) {
       msum += fabs(elements_[i*ncols_ + j]);
     }
     if (msum >= 1.0e-6) {
-      for (j = 0; j < ncols_; j++) {
+      for (j = 0; j < (int)ncols_; j++) {
         elements_[k*ncols_ + j] = elements_[i*ncols_ + j];
       }
       b[k] = b[i];
       k++;
     }
   }
-  if (k == 0 || k < ncols_) {
-    for (i = 0; i < nrows_; i++) {
+  if (k == 0 || k < (int)ncols_) {
+    for (i = 0; i < (int)nrows_; i++) {
       b[i] = 0.0;
     }
     return;
@@ -290,13 +290,13 @@ template<class T> void Matrix<T>::LinearLeastSquares(T* b)
   k = 0;
   int* solnID;
   solnID = new int[ncols_];
-  for (i = 0; i < ncols_; i++) {
+  for (i = 0; i < (int)ncols_; i++) {
     double msum = 0.0;
-    for (j = 0; j < nrows_; j++) {
+    for (j = 0; j < (int)nrows_; j++) {
       msum += fabs(elements_[j*ncols_ + i]);
     }
     if (msum >= 1.0e-6) {
-      for (j = 0; j < nrows_; j++) {
+      for (j = 0; j < (int)nrows_; j++) {
 	elements_[j*ncols_ + k] = elements_[j*ncols_ + i];
       }
       solnID[i] = k;
