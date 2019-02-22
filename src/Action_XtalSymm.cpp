@@ -187,11 +187,11 @@ void Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads,
         othr.Translate(Ovec);
         leads[nLead].subunit_ = maskID;
         leads[nLead].opID_    = operID;
-        leads[nLead].rmsd    = orig.RMSD_NoFit(othr, false);
-        leads[nLead].origin  = Ovec;
+        leads[nLead].rmsd_    = orig.RMSD_NoFit(othr, false);
+        leads[nLead].origin_  = Ovec;
         Tvec = Vec3(cdiff[0] - dx, cdiff[1] - dy, cdiff[2] - dz);
-        leads[nLead].displc  = Tvec;
-        if (leads[nLead].rmsd < 10.0) {
+        leads[nLead].displc_  = Tvec;
+        if (leads[nLead].rmsd_ < 10.0) {
           nLead++;
         }
       }
@@ -563,31 +563,31 @@ bool Action_XtalSymm::OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncur
     if (fabs(R[thisSU].Row1()[0] - 1.0) >= 1.0e-6 || fabs(R[thisSU].Row2()[0]) >= 1.0e-6 ||
         fabs(R[thisSU].Row3()[0]) >= 1.0e-6) {
       if (oxfound == false) {
-        origx = leads[HowToGetThere[i]].origin[0];
+        origx = leads[HowToGetThere[i]].origin_[0];
         oxfound = true;
       }
       else {
-        dx = origx - leads[HowToGetThere[i]].origin[0];
+        dx = origx - leads[HowToGetThere[i]].origin_[0];
       }
     }
     if (fabs(R[thisSU].Row1()[1]) >= 1.0e-6 || fabs(R[thisSU].Row2()[1] - 1.0) >= 1.0e-6 ||
         fabs(R[thisSU].Row3()[1]) >= 1.0e-6) {
       if (oyfound == false) {
-        origy = leads[HowToGetThere[i]].origin[1];
+        origy = leads[HowToGetThere[i]].origin_[1];
         oyfound = true;
       }
       else {
-        dy = origy - leads[HowToGetThere[i]].origin[1];
+        dy = origy - leads[HowToGetThere[i]].origin_[1];
       }
     }
     if (fabs(R[thisSU].Row1()[2]) >= 1.0e-6 || fabs(R[thisSU].Row2()[2]) >= 1.0e-6 ||
         fabs(R[thisSU].Row3()[2] - 1.0) >= 1.0e-6) {
       if (ozfound == false) {
-        origz = leads[HowToGetThere[i]].origin[2];
+        origz = leads[HowToGetThere[i]].origin_[2];
         ozfound = true;
       }
       else {
-        dz = origz - leads[HowToGetThere[i]].origin[2];
+        dz = origz - leads[HowToGetThere[i]].origin_[2];
       }
     }
     if (dx*dx + dy*dy + dz*dz >= 100.0) {
@@ -655,7 +655,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
         for (j = 0; j < nLead; j++) {
           if (leads[j].subunit_ == i) {
             subunitOpID[i] = leads[j].opID_;
-            RefT[i] = leads[j].displc;
+            RefT[i] = leads[j].displc_;
             break;
           }
         }
@@ -699,7 +699,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
               Vec3 cothr = othr[j].VCenterOfMass(0, othr[j].Natom());
               Vec3 cdiff = cothr - corig;
               cdiff = invU * cdiff;
-              Vec3 cmove = leads[HowToGetThere[j]].displc - cdiff;
+              Vec3 cmove = leads[HowToGetThere[j]].displc_ - cdiff;
               cmove[0] = round(cmove[0]);
               cmove[1] = round(cmove[1]);
               cmove[2] = round(cmove[2]);
@@ -720,7 +720,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
             if (trmsd < bestRmsd + 0.1) {
               double torig = 0.0;
               for (j = 0; j < nops; j++) {
-                Vec3 dsp = U * leads[HowToGetThere[j]].displc;
+                Vec3 dsp = U * leads[HowToGetThere[j]].displc_;
                 torig += dsp[0]*dsp[0] + dsp[1]*dsp[1] + dsp[2]*dsp[2];
               }
               torig += trOvec[0]*trOvec[0] + trOvec[1]*trOvec[1]+ trOvec[2]*trOvec[2];
@@ -729,7 +729,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
                 bestOrig = torig;
                 for (j = 0; j < nops; j++) {
                   subunitOpID[j] = trialOpID[j];
-                  RefT[j] = leads[HowToGetThere[j]].displc;
+                  RefT[j] = leads[HowToGetThere[j]].displc_;
                 }
               }
             }
