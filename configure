@@ -1553,6 +1553,7 @@ while [ ! -z "$1" ] ; do
       ;;
     '-nomathlib'        ) BLAS_TYPE='none' ;;
     '--requires-flink'  ) REQUIRES_FLINK=1 ;;
+    '--requires-pthread') REQUIRES_PTHREAD=1 ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
