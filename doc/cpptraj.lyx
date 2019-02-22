@@ -110,79 +110,9 @@ ptraj
 \shape italic
 Cpptraj
 \shape default
- has been developed to be almost completely backwards-compatible with 
-\shape italic
-ptraj
-\shape default
- input.
- In general, if a command in 
-\shape italic
-ptraj
-\shape default
- has been implemented in 
-\shape italic
-cpptraj
-\shape default
- it should produce similar results, although the output format may be different.
- 
-\shape italic
-\emph on
-A notable exception is the 
-\series bold
-\emph default
-hbond
-\series default
-\emph on
- command
-\shape default
-\emph default
-, for which the syntax is quite different (see 
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj-hbond"
-plural "false"
-caps "false"
-noprefix "false"
-
-\end_inset
-
- for details).
-
-\emph on
- Cpptraj
-\emph default
- is at least as fast as 
-\emph on
-ptraj
-\emph default
- was, and is in many cases significantly faster, particularly when processing
- NetCDF trajectories.
- In addition, several actions have been parallelized with OpenMP to take
- advantage of multi-core machines for even more speedup (see section 
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:CpptrajOpenMP"
-
-\end_inset
-
-), and ensembles of trajectories can be processed in parallel with MPI (see
- section 
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:CpptrajMPI"
-
-\end_inset
-
-).
- Currently the only functionality from 
-\emph on
-ptraj
-\emph default
- not implemented in 
-\emph on
-cpptraj
-\emph default
- are certain clustering algorithms.
+ has a wide range of functionality, and makes use of OpenMP/MPI to speed
+ up many calculations, including processing ensembles of trajectories and/or
+ conducting multiple analyses in parallel with MPI.
 \end_layout
 
 \begin_layout Standard
@@ -316,6 +246,29 @@ reference "subsec:cpptraj-Data-Set-Math"
  for details.
 \end_layout
 
+\begin_layout Enumerate
+There is some support for creating internal loops over e.g.
+ mask expressions and setting internal variables (see 
+\series bold
+\emph on
+for
+\series default
+\emph default
+, 
+\series bold
+\emph on
+set
+\series default
+\emph default
+, and 
+\series bold
+\emph on
+show
+\series default
+\emph default
+ commands).
+\end_layout
+
 \begin_layout Subsection
 Manual Syntax Format
 \end_layout
@@ -385,7 +338,11 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \end_layout
 
 \begin_layout LyX-Code
-        [-c <reference>]
+        [-ya <args>] [-xa <args>] [<file>]
+\end_layout
+
+\begin_layout LyX-Code
+        [-c <reference>] [-d <datain>] [-w <dataout>] [-o <output>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -405,13 +362,20 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \end_layout
 
 \begin_deeper
+\begin_layout Standard
+
+\series bold
+*
+\series default
+ denotes a flag may be specified multiple times.
+\end_layout
+
 \begin_layout Description
 -p
 \begin_inset space ~
 \end_inset
 
-<Top0> Load <Top0> as a topology file.
- May be specified more than once.
+<Top0>* Load <Top0> as a topology file.
 \end_layout
 
 \begin_layout Description
@@ -419,8 +383,7 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \begin_inset space ~
 \end_inset
 
-<Input0> Read input from <Input0>.
- May be specified more than once.
+<Input0>* Read input from <Input0>.
 \end_layout
 
 \begin_layout Description
@@ -428,7 +391,7 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \begin_inset space ~
 \end_inset
 
-<trajin> Read from trajectory file <trajin>; same as input 'trajin <trajin>'.
+<trajin>* Read from trajectory file <trajin>; same as input 'trajin <trajin>'.
 \end_layout
 
 \begin_layout Description
@@ -436,7 +399,27 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \begin_inset space ~
 \end_inset
 
-<trajout> Write trajectory file <trajout>; same as input 'trajout <trajout>'.
+<trajout>* Write trajectory file <trajout>; same as input 'trajout <trajout>'.
+\end_layout
+
+\begin_layout Description
+-ya
+\begin_inset space ~
+\end_inset
+
+<args>* Input trajectory file arguments.
+\end_layout
+
+\begin_layout Description
+-xa
+\begin_inset space ~
+\end_inset
+
+<args>* Output trajectory file arguments.
+\end_layout
+
+\begin_layout Description
+<file>* A topology, input trajectory, or file containing cpptraj input.
 \end_layout
 
 \begin_layout Description
@@ -444,8 +427,32 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \begin_inset space ~
 \end_inset
 
-<reference> Read <reference> as reference coordinates; same as input 'reference
+<reference>* Read <reference> as reference coordinates; same as input 'reference
  <reference>'.
+\end_layout
+
+\begin_layout Description
+-d
+\begin_inset space ~
+\end_inset
+
+<datain>* Read data in from file <datain> ('readdata <datain>').
+\end_layout
+
+\begin_layout Description
+-w
+\begin_inset space ~
+\end_inset
+
+<dataout> Write data from <datain> as file <dataout> ('writedata <dataout>).
+\end_layout
+
+\begin_layout Description
+-o
+\begin_inset space ~
+\end_inset
+
+<output> Write CPPTRAJ STDOUT output to file <output>.
 \end_layout
 
 \begin_layout Description
@@ -529,18 +536,6 @@ cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]
 \end_layout
 
 \end_deeper
-\begin_layout Standard
-For backwards compatibility with 
-\shape italic
-ptraj
-\shape default
-, the following syntax is also accepted:
-\end_layout
-
-\begin_layout LyX-Code
-cpptraj <Top> <Input>
-\end_layout
-
 \begin_layout Standard
 Note that unlike 
 \shape italic
@@ -667,6 +662,12 @@ Analysis (Queued) These commands specify analyses that will be performed
  source.
 \end_layout
 
+\begin_layout Description
+Control (Immediate) These commands set up control blocks that can be used
+ to e.g.
+ loop over a set of commands.
+\end_layout
+
 \begin_layout Standard
 In addition to normal commands, 
 \emph on
@@ -726,6 +727,10 @@ trajin mdcrd
 
 \begin_layout LyX-Code
 rms first out rmsd.dat :1-10
+\end_layout
+
+\begin_layout Subsection
+Getting Help
 \end_layout
 
 \begin_layout Standard
@@ -810,7 +815,8 @@ this brings up the interactive interface.
  If no log file name has been given (with '–log <logfile>'), all commands
  used in interactive mode will be logged to a file named 'cpptraj.log', which
  can subsequently be used as input if desired.
- Command histories will be read from any existing logs.
+ When starting cpptraj, command histories will be read from any existing
+ logs.
 \end_layout
 
 \begin_layout Subsection
