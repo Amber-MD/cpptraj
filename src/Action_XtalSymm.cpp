@@ -461,20 +461,20 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
 
       // If solvent molecules are to be re-imaged whole into the primary ASU, mark them
       // separately and remove them from the list of individual atoms to remove.
-      nMolecule = setup.Top().Nmol();
-      molLimits = new int[2 * nMolecule];
-      molInSolvent = new bool[nMolecule];
-      for (i = 0; i < nMolecule; i++) {
-        molLimits[2*i    ] = setup.Top().Mol(i).BeginAtom();
-        molLimits[2*i + 1] = setup.Top().Mol(i).EndAtom();
-        molInSolvent[i] = true;
-        for (j = molLimits[2*i]; j < molLimits[2*i + 1]; j++) {
+      nMolecule_ = setup.Top().Nmol();
+      molLimits_ = new int[2 * nMolecule_];
+      molInSolvent_ = new bool[nMolecule_];
+      for (i = 0; i < nMolecule_; i++) {
+        molLimits_[2*i    ] = setup.Top().Mol(i).BeginAtom();
+        molLimits_[2*i + 1] = setup.Top().Mol(i).EndAtom();
+        molInSolvent_[i] = true;
+        for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
           if (LoneAtoms[j] == 0) {
-            molInSolvent[i] = false;
+            molInSolvent_[i] = false;
           }
         }
-        if (molInSolvent[i]) {
-          for (j = molLimits[2*i]; j < molLimits[2*i + 1]; j++) {
+        if (molInSolvent_[i]) {
+          for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
             LoneAtoms[j] = 0;
 	    MoleAtoms[j] = 1;
           }
@@ -482,7 +482,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       }
     }
     else {
-      nMolecule = 0;
+      nMolecule_ = 0;
     }
 
     std::vector<int> SolventList;
@@ -818,24 +818,24 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     frm.ModifyFrm().Rotate(invU, SolventParticles);
     if (molCentToASU_) {
       frm.ModifyFrm().Rotate(invU, SolventMolecules);
-      for (i = 0; i < nMolecule; i++) {
-        if (molInSolvent[i]) {
+      for (i = 0; i < nMolecule_; i++) {
+        if (molInSolvent_[i]) {
 
           // Re-image the entire molecule
           double x = 0.0;
           double y = 0.0;
           double z = 0.0;
-          for (j = molLimits[2*i]; j < molLimits[2*i + 1]; j++) {
+          for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
             x += *frm.Frm().CRD(3*j);
             y += *frm.Frm().CRD(3*j + 1);
             z += *frm.Frm().CRD(3*j + 2);
           }
-          double dfac = 1.0 / (double)(molLimits[2*i + 1] - molLimits[2*i]);
+          double dfac = 1.0 / (double)(molLimits_[2*i + 1] - molLimits_[2*i]);
           x *= dfac;
           y *= dfac;
           z *= dfac;
           frm.ModifyFrm().Translate(Vec3(0.5 - round(x), 0.5 - round(y), 0.5 - round(z)),
-                                    molLimits[2*i], molLimits[2*i + 1]);
+                                    molLimits_[2*i], molLimits_[2*i + 1]);
           x += 0.5 - round(x);
           y += 0.5 - round(y);
           z += 0.5 - round(z);
@@ -849,8 +849,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
           TransOp Vm = (AsuGrid[gidx].opID_ == -1) ? DetectAsuResidence(x, y, z) :
                                                     AsuGrid[gidx];
           frm.ModifyFrm().Translate(Vec3(Vm.tr_x_, Vm.tr_y_, Vm.tr_z_) - T[Vm.opID_],
-                                    molLimits[2*i], molLimits[2*i + 1]);
-          frm.ModifyFrm().Rotate(Rinv[Vm.opID_], molLimits[2*i], molLimits[2*i + 1]);
+                                    molLimits_[2*i], molLimits_[2*i + 1]);
+          frm.ModifyFrm().Rotate(Rinv[Vm.opID_], molLimits_[2*i], molLimits_[2*i + 1]);
         }
       }
       frm.ModifyFrm().Rotate(U, SolventMolecules);
@@ -899,8 +899,8 @@ Action_XtalSymm::~Action_XtalSymm()
   if (allToFirstASU_) {
     delete[] AsuGrid;
     if (molCentToASU_) {
-      delete[] molLimits;
-      delete[] molInSolvent;
+      delete[] molLimits_;
+      delete[] molInSolvent_;
     }
   }
 }

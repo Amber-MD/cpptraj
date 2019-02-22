@@ -35,20 +35,20 @@ class Action_XtalSymm : public Action {
     // Reference frame
     AtomMask tgtMask_;
     ReferenceAction REF_;  
-    Frame RefFrame_;       // The reference (or first trajectory) frame
-    bool useFirst_;        // Flag to use first trajectory frame, true if no reference frame
+    Frame RefFrame_;       ///< The reference (or first trajectory) frame
+    bool useFirst_;        ///< Flag to use first trajectory frame, true if no reference frame
 
     // Re-imaging for solvent atoms
-    int nMolecule;         // Total number of molecules in the system, taken from the topology
-    bool allToFirstASU_;   // Flag to have all atoms not explicitly in a designated asymmetric
-                           //   unit re-imaged to the primary ASU volume
-    bool molCentToASU_;    // Flag to use molecule centroids, not individual atoms, in the
-                           //   above re-imaging
-    int* molLimits;        // Start and end points for each molecule (all molecules are assumed
-                           //   to be contiguous within the topology, but it is not assumed
-                           //   that molecule i+1 starts where molecule i ends)
-    bool* molInSolvent;    // Flags to indicate whether each molecule is part of the non-ASU,
-                           //   free-floating "solvent" component
+    int nMolecule_;        ///< Total number of molecules in the system, taken from the topology
+    bool allToFirstASU_;   /**< Flag to have all atoms not explicitly in a designated asymmetric
+                                unit re-imaged to the primary ASU volume. */
+    bool molCentToASU_;    /**< Flag to use molecule centroids, not individual atoms, in the
+                                above re-imaging. */
+    int* molLimits_;       /**< Start and end points for each molecule (all molecules are assumed
+                                to be contiguous within the topology, but it is not assumed
+                                that molecule i+1 starts where molecule i ends). */
+    bool* molInSolvent_;   /**< Flags to indicate whether each molecule is part of the non-ASU,
+                                free-floating "solvent" component. */
   
     // Masks for the asymmetric units and solvent particles
     int nmasks;
