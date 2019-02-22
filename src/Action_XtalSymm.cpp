@@ -29,9 +29,9 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
 {
   // Get the space group (user must supply this) and fill out the symmetry operations
   spaceGrp = actionArgs.GetStringKey("group");
-  nCopyA = actionArgs.getKeyInt("na", 1);
-  nCopyB = actionArgs.getKeyInt("nb", 1);
-  nCopyC = actionArgs.getKeyInt("nc", 1);
+  nCopyA_ = actionArgs.getKeyInt("na", 1);
+  nCopyB_ = actionArgs.getKeyInt("nb", 1);
+  nCopyC_ = actionArgs.getKeyInt("nc", 1);
   allToFirstASU_ = actionArgs.hasKey("collect");  
   molCentToASU_ = actionArgs.hasKey("centroid");  
   LoadSpaceGroupSymOps();
@@ -44,8 +44,8 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   useFirst_ = REF_.CurrentReference().empty();
   
   // Set the masks for all symmetry-related subunits
-  Masks = new AtomMask[nops];
-  subunitOpID.reserve(nops);
+  Masks = new AtomMask[nops_];
+  subunitOpID.reserve(nops_);
   nmasks = 0;
   std::string mask = actionArgs.GetMaskNext();
   if (mask.empty()) {
@@ -95,8 +95,8 @@ Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& ope
       A.setElement(2, i*stride + 3*j + 2, 1.0 - Rinv[opIDi][8]);
 
       // CHECK
-      if (opIDi < 0 || opIDi >= nops) {
-	printf("opIDi = %d out of %d ops\n", opIDi, nops);
+      if (opIDi < 0 || opIDi >= nops_) {
+	printf("opIDi = %d out of %d ops\n", opIDi, nops_);
       }
       if (j >= othr[i].Natom() || j < 0) {
 	printf("j = %d out of %d atoms, i = %d out of %zu capacity.\n", j, othr[i].Natom(),
@@ -214,7 +214,7 @@ Action_XtalSymm::TransOp Action_XtalSymm::DetectAsuResidence(double x, double y,
   for (i = -1; i <= 1; i++) {
     for (j = -1; j <= 1; j++) {
       for (k = -1; k <= 1; k++) {
-        for (m = 0; m < nops; m++) {
+        for (m = 0; m < nops_; m++) {
           pt = Vec3(x + (double)i, y + (double)j, z + (double)k);
           pt = pt - T[m];
           pt = Rinv[m] * pt;
@@ -274,7 +274,7 @@ void Action_XtalSymm::BuildAsuGrid()
           for (ii = -1; ii <= 1; ii++) {
             for (jj = -1; jj <= 1; jj++) {
               for (kk = -1; kk <= 1; kk++) {
-                for (m = 0; m < nops; m++) {
+                for (m = 0; m < nops_; m++) {
                   pt = Vec3(ptx + (double)ii, pty + (double)jj, ptz + (double)kk);
                   pt = pt - T[m];
                   pt = Rinv[m] * pt;
@@ -288,7 +288,7 @@ void Action_XtalSymm::BuildAsuGrid()
                     ii = 2;
                     jj = 2;
                     kk = 2;
-                    m = nops;
+                    m = nops_;
                   }
                 }
               }
@@ -385,7 +385,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       maskwidth = baseMask[i] - baseMask[0];
     }
   }
-  for (i = 1; i < nops; i++) {
+  for (i = 1; i < nops_; i++) {
     for (j = startpos; j < nTopolAtom - maskwidth; j++) {
       int nmatched = 0;
       for (k = 0; k < nMaskAtom; k++) {
@@ -419,8 +419,8 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   }
 
   // Determine which rotations are identity matrices
-  rotIdentity = new bool[nops];
-  for (i = 0; i < nops; i++) {
+  rotIdentity = new bool[nops_];
+  for (i = 0; i < nops_; i++) {
     if (fabs(R[i].Row1()[0] - 1.0) < 1.0e-6 && fabs(R[i].Row2()[1] - 1.0) < 1.0e-6 &&
         fabs(R[i].Row3()[2] - 1.0) < 1.0e-6 && fabs(R[i].Row1()[1]) < 1.0e-6 &&
         fabs(R[i].Row1()[2]) < 1.0e-6 && fabs(R[i].Row2()[0]) < 1.0e-6 &&
@@ -446,7 +446,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       LoneAtoms[i] = 1;
       MoleAtoms[i] = 0;
     }
-    for (i = 0; i < nops; i++) {
+    for (i = 0; i < nops_; i++) {
       for (j = 0; j < Masks[i].Nselected(); j++) {
         LoneAtoms[Masks[i].Selected()[j]] = 0;
       }
@@ -605,12 +605,12 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 {
   int i, j;
   Frame orig;
-  Frame* othr = new Frame[nops];
+  Frame* othr = new Frame[nops_]; // TODO class var?
   Matrix_3x3 U, invU;
 
   // Allocate space for the subunit frames
   orig = Frame(Masks[0].Nselected());
-  for (i = 0; i < nops; i++) {
+  for (i = 0; i < nops_; i++) {
     othr[i] = Frame(Masks[i].Nselected());
   }
 
@@ -630,10 +630,10 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     }    
     U = RefFrame_.BoxCrd().UnitCell(1.0);
     RefFrame_.BoxCrd().ToRecip(U, invU);
-    XtalDock* leads = new XtalDock[nops * nops * 125];
+    XtalDock* leads = new XtalDock[nops_ * nops_ * 125];
     int nLead = 0;
-    for (i = 0; i < nops; i++) {
-      for (j = 0; j < nops; j++) {
+    for (i = 0; i < nops_; i++) {
+      for (j = 0; j < nops_; j++) {
         BestSuperposition(i, j, leads, nLead);
       }
     }
@@ -642,7 +642,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     // and subunits, which of that group contains the tightest cluster of origins, and which
     // contains the lowest overall atom positional RMSD.  
     int fnidXfrm = -1;
-    for (i = 0; i < nops; i++) {
+    for (i = 0; i < nops_; i++) {
       if (rotIdentity[i] == false) {
         fnidXfrm = i;
         break;
@@ -651,7 +651,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     if (fnidXfrm == -1) {
 
       // This was a P1 crystal.  Any origin will work for applying the symmetry operations.
-      for (i = 0; i < nops; i++) {
+      for (i = 0; i < nops_; i++) {
         for (j = 0; j < nLead; j++) {
           if (leads[j].subunit_ == i) {
             subunitOpID[i] = leads[j].opID_;
@@ -666,15 +666,15 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       // This is not a P1 crystal, and there are many possible combinations of the discovered
       // leads that could paint the correct picture of how to reassemble the unit (super)
       // cell.
-      int HowToGetThere[nops];
-      for (i = 0; i < nops; i++) {
+      int HowToGetThere[nops_];
+      for (i = 0; i < nops_; i++) {
         HowToGetThere[i] = 0;
       }
       double bestRmsd = 1.0e8;
       double bestOrig = 1.0e8;
       i = 0;
       while (HowToGetThere[0] < nLead) {
-        while (i < nops) {
+        while (i < nops_) {
           while (HowToGetThere[0] < nLead &&
                  (leads[HowToGetThere[i]].subunit_ != i ||
                   OperationAvailable(leads, HowToGetThere, i) == false ||
@@ -687,14 +687,14 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
             }
           }
           i++;
-          if (i == nops) {
+          if (i == nops_) {
             
             // Check the RMSD that would result from this situation
             orig.SetCoordinates(RefFrame_, Masks[0]);
             Vec3 corig = orig.VCenterOfMass(0, orig.Natom());
             std::vector<int> trialOpID;
-            trialOpID.reserve(nops);
-            for (j = 0; j < nops; j++) {
+            trialOpID.reserve(nops_);
+            for (j = 0; j < nops_; j++) {
               othr[j].SetCoordinates(RefFrame_, Masks[leads[HowToGetThere[j]].subunit_]);
               Vec3 cothr = othr[j].VCenterOfMass(0, othr[j].Natom());
               Vec3 cdiff = cothr - corig;
@@ -709,17 +709,17 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
             }
             Vec3 trOvec = BestOrigin(orig, othr, trialOpID);
             orig.NegTranslate(trOvec);
-            for (j = 0; j < nops; j++) {
+            for (j = 0; j < nops_; j++) {
               othr[j].NegTranslate(trOvec);
               othr[j].Rotate(Rinv[trialOpID[j]]);
             }
             double trmsd = 0.0;
-            for (j = 0; j < nops; j++) {
+            for (j = 0; j < nops_; j++) {
               trmsd += orig.RMSD_NoFit(othr[j], false);
             }
             if (trmsd < bestRmsd + 0.1) {
               double torig = 0.0;
-              for (j = 0; j < nops; j++) {
+              for (j = 0; j < nops_; j++) {
                 Vec3 dsp = U * leads[HowToGetThere[j]].displc_;
                 torig += dsp[0]*dsp[0] + dsp[1]*dsp[1] + dsp[2]*dsp[2];
               }
@@ -727,7 +727,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
               if (torig < bestOrig) {
                 bestRmsd = trmsd;
                 bestOrig = torig;
-                for (j = 0; j < nops; j++) {
+                for (j = 0; j < nops_; j++) {
                   subunitOpID[j] = trialOpID[j];
                   RefT[j] = leads[HowToGetThere[j]].displc_;
                 }
@@ -737,7 +737,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 	    // Exit if the standard solution works well enough
 	    if (bestRmsd < 1.0) {
 	      bool stdworks = true;
-              for (j = 0; j < nops; j++) {
+              for (j = 0; j < nops_; j++) {
 		if (trialOpID[j] != j) {
 		  stdworks = false;
 		}
@@ -771,11 +771,11 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   U = frm.Frm().BoxCrd().UnitCell(1.0);
   frm.Frm().BoxCrd().ToRecip(U, invU);
   orig = Frame(Masks[0].Nselected());
-  for (i = 0; i < nops; i++) {
+  for (i = 0; i < nops_; i++) {
     othr[i] = Frame(Masks[i].Nselected());
   }
   orig.SetCoordinates(frm.Frm(), Masks[0]);
-  for (i = 0; i < nops; i++) {
+  for (i = 0; i < nops_; i++) {
     int opID = subunitOpID[i];
     
     // Get each subunit and the box transformations
@@ -806,7 +806,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 
   // Apply the final result, the origin at which all of these transformations are valid
   frm.ModifyFrm().NegTranslate(Ovec);  
-  for (i = 0; i < nops; i++) {
+  for (i = 0; i < nops_; i++) {
     int opID = subunitOpID[i];
     frm.ModifyFrm().Rotate(Rinv[opID], Masks[i]);
   }
@@ -916,12 +916,12 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
 
   // Allocate space to hold all of the symmetry operations.
   // No space group has more than 96.
-  R = new Matrix_3x3[96 * nCopyA * nCopyB * nCopyC];
-  T = new Vec3[96 * nCopyA * nCopyB * nCopyC];
-  RefT = new Vec3[96 * nCopyA * nCopyB * nCopyC];
-  double dnA = (double)nCopyA;
-  double dnB = (double)nCopyB;
-  double dnC = (double)nCopyC;
+  R = new Matrix_3x3[96 * nCopyA_ * nCopyB_ * nCopyC_];
+  T = new Vec3[96 * nCopyA_ * nCopyB_ * nCopyC_];
+  RefT = new Vec3[96 * nCopyA_ * nCopyB_ * nCopyC_];
+  double dnA = (double)nCopyA_;
+  double dnB = (double)nCopyB_;
+  double dnC = (double)nCopyC_;
   double Rdata[9];
 
   // Loop over all unit cell replicas, then all possible space groups to find a match.
@@ -929,16 +929,16 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
   // sheer amount of code.  Writing the same loops for every case would make the file
   // even longer, even though the computer will now have to evaluate the switch for
   // each replica of the unit cell during setup.
-  for (i = 0; i < nCopyA; i++) {
+  for (i = 0; i < nCopyA_; i++) {
     double di = (double)i;
-    for (j = 0; j < nCopyB; j++) {
+    for (j = 0; j < nCopyB_; j++) {
       double dj = (double)j;
-      for (k = 0; k < nCopyC; k++) {
+      for (k = 0; k < nCopyC_; k++) {
         double dk = (double)k;
-        int iuc = (i*nCopyB + j)*nCopyC + k;
+        int iuc = (i*nCopyB_ + j)*nCopyC_ + k;
         if (spaceGrp.compare("P1") == 0) {
           sgID = 0;
-          nops = 1 * nCopyA * nCopyB * nCopyC;
+          nops_ = 1 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 1;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -949,7 +949,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-1") == 0) {
           sgID = 1;
-          nops = 2 * nCopyA * nCopyB * nCopyC;
+          nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -966,7 +966,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2") == 0 || spaceGrp.compare("P121") == 0) {
           sgID = 2;
-          nops = 2 * nCopyA * nCopyB * nCopyC;
+          nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -983,7 +983,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)") == 0 || spaceGrp.compare("P12(1)1") == 0) {
           sgID = 3;
-          nops = 2 * nCopyA * nCopyB * nCopyC;
+          nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1000,7 +1000,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("C2") == 0 || spaceGrp.compare("C121") == 0) {
           sgID = 4;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1029,7 +1029,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pm") == 0) {
           sgID = 5;
-          nops = 2 * nCopyA * nCopyB * nCopyC;
+          nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1046,7 +1046,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pc") == 0) {
           sgID = 6;
-          nops = 2 * nCopyA * nCopyB * nCopyC;
+          nops_ = 2 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 2;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1063,7 +1063,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Cm") == 0) {
           sgID = 7;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1092,7 +1092,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Cc") == 0) {
           sgID = 8;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1121,7 +1121,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2/m") == 0) {
           sgID = 9;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1150,7 +1150,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)/m") == 0) {
           sgID = 10;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1179,7 +1179,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("C2/m") == 0) {
           sgID = 11;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1232,7 +1232,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2/c") == 0) {
           sgID = 12;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1261,7 +1261,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)/c") == 0 || spaceGrp.compare("P12(1)/c1") == 0) {
           sgID = 13;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1290,7 +1290,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("C2/c") == 0 || spaceGrp.compare("C12/c1") == 0) {
           sgID = 14;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1343,7 +1343,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P222") == 0) {
           sgID = 15;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1372,7 +1372,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P222(1)") == 0) {
           sgID = 16;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1401,7 +1401,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)22_NSO") == 0) {
           sgID = 17;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1430,7 +1430,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)2(1)2") == 0) {
           sgID = 18;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1459,7 +1459,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)2(1)2_NSO") == 0) {
           sgID = 19;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1488,7 +1488,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)2(1)2(1)") == 0) {
           sgID = 20;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1517,7 +1517,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("C222(1)") == 0) {
           sgID = 21;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1570,7 +1570,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("C222") == 0) {
           sgID = 22;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1623,7 +1623,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("F222") == 0) {
           sgID = 23;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1724,7 +1724,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I222") == 0) {
           sgID = 24;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1777,7 +1777,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I2(1)2(1)2(1)") == 0) {
           sgID = 25;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1830,7 +1830,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pmm2") == 0) {
           sgID = 26;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1859,7 +1859,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pmc2(1)") == 0) {
           sgID = 27;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1888,7 +1888,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pcc2") == 0) {
           sgID = 28;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1917,7 +1917,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pma2") == 0) {
           sgID = 29;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1946,7 +1946,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pca2(1)") == 0) {
           sgID = 30;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -1975,7 +1975,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pnc2") == 0) {
           sgID = 31;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2004,7 +2004,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pmn2(1)") == 0) {
           sgID = 32;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2033,7 +2033,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pba2") == 0) {
           sgID = 33;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2062,7 +2062,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pna2(1)") == 0) {
           sgID = 34;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2091,7 +2091,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pnn2") == 0) {
           sgID = 35;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2120,7 +2120,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Cmm2") == 0) {
           sgID = 36;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2173,7 +2173,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Cmc2(1)") == 0) {
           sgID = 37;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2226,7 +2226,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Ccc2") == 0) {
           sgID = 38;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2279,7 +2279,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Amm2") == 0) {
           sgID = 39;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2332,7 +2332,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Abm2") == 0) {
           sgID = 40;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2385,7 +2385,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Ama2") == 0) {
           sgID = 41;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2438,7 +2438,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Aba2") == 0) {
           sgID = 42;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2491,7 +2491,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Fmm2") == 0) {
           sgID = 43;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2592,7 +2592,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Fdd2") == 0) {
           sgID = 44;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2693,7 +2693,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Imm2") == 0) {
           sgID = 45;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2746,7 +2746,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Iba2") == 0) {
           sgID = 46;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2799,7 +2799,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Ima2") == 0) {
           sgID = 47;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2852,7 +2852,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pmmm") == 0) {
           sgID = 48;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2905,7 +2905,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pnnn") == 0) {
           sgID = 49;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -2958,7 +2958,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pccm") == 0) {
           sgID = 50;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3011,7 +3011,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pban") == 0) {
           sgID = 51;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3064,7 +3064,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pmma") == 0) {
           sgID = 52;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3117,7 +3117,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pnna") == 0) {
           sgID = 53;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3170,7 +3170,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pmna") == 0) {
           sgID = 54;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3223,7 +3223,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pcca") == 0) {
           sgID = 55;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3276,7 +3276,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pbam") == 0) {
           sgID = 56;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3329,7 +3329,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pccn") == 0) {
           sgID = 57;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3382,7 +3382,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pbcm") == 0) {
           sgID = 58;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3435,7 +3435,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pnnm") == 0) {
           sgID = 59;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3488,7 +3488,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pmmn") == 0) {
           sgID = 60;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3541,7 +3541,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pmmn_NSO") == 0) {
           sgID = 61;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3594,7 +3594,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pbcn") == 0) {
           sgID = 62;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3647,7 +3647,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pbca") == 0) {
           sgID = 63;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3700,7 +3700,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pnma") == 0) {
           sgID = 64;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3753,7 +3753,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Cmcm") == 0) {
           sgID = 65;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3854,7 +3854,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Cmca") == 0) {
           sgID = 66;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -3955,7 +3955,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Cmmm") == 0) {
           sgID = 67;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -4056,7 +4056,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Cccm") == 0) {
           sgID = 68;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -4157,7 +4157,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Cmma") == 0) {
           sgID = 69;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -4258,7 +4258,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Ccca") == 0) {
           sgID = 70;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -4359,7 +4359,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Fmmm") == 0) {
           sgID = 71;
-          nops = 32 * nCopyA * nCopyB * nCopyC;
+          nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -4556,7 +4556,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Fddd") == 0) {
           sgID = 72;
-          nops = 32 * nCopyA * nCopyB * nCopyC;
+          nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -4753,7 +4753,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Immm") == 0) {
           sgID = 73;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -4854,7 +4854,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Ibam") == 0) {
           sgID = 74;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -4955,7 +4955,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Ibca") == 0) {
           sgID = 75;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5056,7 +5056,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Imma") == 0) {
           sgID = 76;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5157,7 +5157,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4") == 0) {
           sgID = 77;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5186,7 +5186,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(1)") == 0) {
           sgID = 78;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5215,7 +5215,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)") == 0) {
           sgID = 79;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5244,7 +5244,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(3)") == 0) {
           sgID = 80;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5273,7 +5273,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4") == 0) {
           sgID = 81;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5326,7 +5326,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4(1)") == 0) {
           sgID = 82;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5379,7 +5379,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-4") == 0) {
           sgID = 83;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5408,7 +5408,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I-4") == 0) {
           sgID = 84;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5461,7 +5461,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/m") == 0) {
           sgID = 85;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5514,7 +5514,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/m") == 0) {
           sgID = 86;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5567,7 +5567,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/n") == 0) {
           sgID = 87;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5620,7 +5620,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/n") == 0) {
           sgID = 88;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5673,7 +5673,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4/m") == 0) {
           sgID = 89;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5774,7 +5774,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4(1)/a") == 0) {
           sgID = 90;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5875,7 +5875,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P422") == 0) {
           sgID = 91;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5928,7 +5928,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P42(1)2") == 0) {
           sgID = 92;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -5981,7 +5981,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(1)22") == 0) {
           sgID = 93;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6034,7 +6034,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(1)2(1)2") == 0) {
           sgID = 94;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6087,7 +6087,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)22") == 0) {
           sgID = 95;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6140,7 +6140,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)2(1)2") == 0) {
           sgID = 96;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6193,7 +6193,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(3)22") == 0) {
           sgID = 97;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6246,7 +6246,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(3)2(1)2") == 0) {
           sgID = 98;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6299,7 +6299,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I422") == 0) {
           sgID = 99;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6400,7 +6400,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4(1)22") == 0) {
           sgID = 100;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6501,7 +6501,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4mm") == 0) {
           sgID = 101;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6554,7 +6554,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4bm") == 0) {
           sgID = 102;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6607,7 +6607,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)cm") == 0) {
           sgID = 103;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6660,7 +6660,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)nm") == 0) {
           sgID = 104;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6713,7 +6713,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4cc") == 0) {
           sgID = 105;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6766,7 +6766,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4nc") == 0) {
           sgID = 106;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6819,7 +6819,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)mc") == 0) {
           sgID = 107;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6872,7 +6872,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)bc") == 0) {
           sgID = 108;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -6925,7 +6925,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4mm") == 0) {
           sgID = 109;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7026,7 +7026,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4cm") == 0) {
           sgID = 110;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7127,7 +7127,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4(1)md") == 0) {
           sgID = 111;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7228,7 +7228,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4(1)cd") == 0) {
           sgID = 112;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7329,7 +7329,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-42m") == 0) {
           sgID = 113;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7382,7 +7382,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-42c") == 0) {
           sgID = 114;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7435,7 +7435,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-42(1)m") == 0) {
           sgID = 115;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7488,7 +7488,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-42(1)c") == 0) {
           sgID = 116;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7541,7 +7541,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-4m2") == 0) {
           sgID = 117;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7594,7 +7594,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-4c2") == 0) {
           sgID = 118;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7647,7 +7647,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-4b2") == 0) {
           sgID = 119;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7700,7 +7700,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-4n2") == 0) {
           sgID = 120;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7753,7 +7753,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I-4m2") == 0) {
           sgID = 121;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7854,7 +7854,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I-4c2") == 0) {
           sgID = 122;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -7955,7 +7955,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I-42m") == 0) {
           sgID = 123;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8056,7 +8056,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I-42d") == 0) {
           sgID = 124;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8157,7 +8157,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/mmm") == 0) {
           sgID = 125;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8258,7 +8258,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/mcc") == 0) {
           sgID = 126;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8359,7 +8359,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/nbm") == 0) {
           sgID = 127;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8460,7 +8460,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/nnc") == 0) {
           sgID = 128;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8561,7 +8561,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/mbm") == 0) {
           sgID = 129;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8662,7 +8662,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/mnc") == 0) {
           sgID = 130;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8763,7 +8763,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/nmm") == 0) {
           sgID = 131;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8864,7 +8864,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4/ncc") == 0) {
           sgID = 132;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -8965,7 +8965,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/mmc") == 0) {
           sgID = 133;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -9066,7 +9066,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/mcm") == 0) {
           sgID = 134;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -9167,7 +9167,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/nbc") == 0) {
           sgID = 135;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -9268,7 +9268,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/nnm") == 0) {
           sgID = 136;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -9369,7 +9369,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/mbc") == 0) {
           sgID = 137;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -9470,7 +9470,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/mnm") == 0) {
           sgID = 138;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -9571,7 +9571,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/nmc") == 0) {
           sgID = 139;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -9672,7 +9672,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)/ncm") == 0) {
           sgID = 140;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -9773,7 +9773,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4/mmm") == 0) {
           sgID = 141;
-          nops = 32 * nCopyA * nCopyB * nCopyC;
+          nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -9970,7 +9970,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4/mcm") == 0) {
           sgID = 142;
-          nops = 32 * nCopyA * nCopyB * nCopyC;
+          nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10167,7 +10167,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4(1)/amd") == 0) {
           sgID = 143;
-          nops = 32 * nCopyA * nCopyB * nCopyC;
+          nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10364,7 +10364,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4(1)/acd") == 0) {
           sgID = 144;
-          nops = 32 * nCopyA * nCopyB * nCopyC;
+          nops_ = 32 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 32;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10561,7 +10561,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P3") == 0) {
           sgID = 145;
-          nops = 3 * nCopyA * nCopyB * nCopyC;
+          nops_ = 3 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 3;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10584,7 +10584,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P3(1)") == 0) {
           sgID = 146;
-          nops = 3 * nCopyA * nCopyB * nCopyC;
+          nops_ = 3 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 3;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10607,7 +10607,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P3(2)") == 0) {
           sgID = 147;
-          nops = 3 * nCopyA * nCopyB * nCopyC;
+          nops_ = 3 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 3;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10630,7 +10630,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("R3") == 0) {
           sgID = 148;
-          nops = 9 * nCopyA * nCopyB * nCopyC;
+          nops_ = 9 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 9;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10689,7 +10689,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-3") == 0) {
           sgID = 149;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10730,7 +10730,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("R-3") == 0) {
           sgID = 150;
-          nops = 18 * nCopyA * nCopyB * nCopyC;
+          nops_ = 18 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 18;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10843,7 +10843,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P312") == 0) {
           sgID = 151;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10884,7 +10884,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P321") == 0) {
           sgID = 152;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10925,7 +10925,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P3(1)12") == 0) {
           sgID = 153;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -10966,7 +10966,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P3(1)21") == 0) {
           sgID = 154;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11007,7 +11007,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P3(2)12") == 0) {
           sgID = 155;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11048,7 +11048,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P3(2)21") == 0) {
           sgID = 156;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11089,7 +11089,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("R32") == 0) {
           sgID = 157;
-          nops = 18 * nCopyA * nCopyB * nCopyC;
+          nops_ = 18 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 18;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11202,7 +11202,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P3m1") == 0) {
           sgID = 158;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11243,7 +11243,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P31m") == 0) {
           sgID = 159;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11284,7 +11284,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P3c1") == 0) {
           sgID = 160;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11325,7 +11325,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P31c") == 0) {
           sgID = 161;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11366,7 +11366,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("R3m") == 0) {
           sgID = 162;
-          nops = 18 * nCopyA * nCopyB * nCopyC;
+          nops_ = 18 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 18;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11479,7 +11479,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("R3c") == 0) {
           sgID = 163;
-          nops = 18 * nCopyA * nCopyB * nCopyC;
+          nops_ = 18 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 18;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11592,7 +11592,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-31m") == 0) {
           sgID = 164;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11669,7 +11669,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-31c") == 0) {
           sgID = 165;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11746,7 +11746,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-3m1") == 0) {
           sgID = 166;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11823,7 +11823,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-3c1") == 0) {
           sgID = 167;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -11900,7 +11900,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("R-3m") == 0) {
           sgID = 168;
-          nops = 36 * nCopyA * nCopyB * nCopyC;
+          nops_ = 36 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 36;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12121,7 +12121,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("R-3c") == 0) {
           sgID = 169;
-          nops = 36 * nCopyA * nCopyB * nCopyC;
+          nops_ = 36 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 36;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12342,7 +12342,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6") == 0) {
           sgID = 170;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12383,7 +12383,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(1)") == 0) {
           sgID = 171;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12424,7 +12424,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(5)") == 0) {
           sgID = 172;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12465,7 +12465,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(2)") == 0) {
           sgID = 173;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12506,7 +12506,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(4)") == 0) {
           sgID = 174;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12547,7 +12547,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(3)") == 0) {
           sgID = 175;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12588,7 +12588,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-6") == 0) {
           sgID = 176;
-          nops = 6 * nCopyA * nCopyB * nCopyC;
+          nops_ = 6 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 6;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12629,7 +12629,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6/m") == 0) {
           sgID = 177;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12706,7 +12706,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(3)/m") == 0) {
           sgID = 178;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12783,7 +12783,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P622") == 0) {
           sgID = 179;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12860,7 +12860,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(1)22") == 0) {
           sgID = 180;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -12937,7 +12937,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(5)22") == 0) {
           sgID = 181;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13014,7 +13014,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(2)22") == 0) {
           sgID = 182;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13091,7 +13091,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(4)22") == 0) {
           sgID = 183;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13168,7 +13168,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(3)22") == 0) {
           sgID = 184;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13245,7 +13245,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6mm") == 0) {
           sgID = 185;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13322,7 +13322,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6cc") == 0) {
           sgID = 186;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13399,7 +13399,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(3)cm") == 0) {
           sgID = 187;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13476,7 +13476,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(3)mc") == 0) {
           sgID = 188;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13553,7 +13553,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-6m2") == 0) {
           sgID = 189;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13630,7 +13630,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-6c2") == 0) {
           sgID = 190;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13707,7 +13707,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-62m") == 0) {
           sgID = 191;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13784,7 +13784,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-62c") == 0) {
           sgID = 192;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -13861,7 +13861,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6/mmm") == 0) {
           sgID = 193;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -14010,7 +14010,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6/mcc") == 0) {
           sgID = 194;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -14159,7 +14159,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(3)/mcm") == 0) {
           sgID = 195;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -14308,7 +14308,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P6(3)/mmc") == 0) {
           sgID = 196;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -14457,7 +14457,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P23") == 0) {
           sgID = 197;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -14534,7 +14534,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("F23") == 0) {
           sgID = 198;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -14827,7 +14827,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I23") == 0) {
           sgID = 199;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -14976,7 +14976,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)3") == 0) {
           sgID = 200;
-          nops = 12 * nCopyA * nCopyB * nCopyC;
+          nops_ = 12 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 12;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -15053,7 +15053,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I2(1)3") == 0) {
           sgID = 201;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -15202,7 +15202,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pm-3") == 0) {
           sgID = 202;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -15351,7 +15351,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pn-3") == 0) {
           sgID = 203;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -15500,7 +15500,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Fm-3") == 0) {
           sgID = 204;
-          nops = 96 * nCopyA * nCopyB * nCopyC;
+          nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -16081,7 +16081,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Fd-3") == 0) {
           sgID = 205;
-          nops = 96 * nCopyA * nCopyB * nCopyC;
+          nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -16662,7 +16662,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Im-3") == 0) {
           sgID = 206;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -16955,7 +16955,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pa-3") == 0) {
           sgID = 207;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -17104,7 +17104,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Ia-3") == 0) {
           sgID = 208;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -17397,7 +17397,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P432") == 0) {
           sgID = 209;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -17546,7 +17546,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(2)32") == 0) {
           sgID = 210;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -17695,7 +17695,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("F432") == 0) {
           sgID = 211;
-          nops = 96 * nCopyA * nCopyB * nCopyC;
+          nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -18276,7 +18276,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("F4(1)32") == 0) {
           sgID = 212;
-          nops = 96 * nCopyA * nCopyB * nCopyC;
+          nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -18857,7 +18857,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I432") == 0) {
           sgID = 213;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -19150,7 +19150,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(3)32") == 0) {
           sgID = 214;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -19299,7 +19299,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P4(1)32") == 0) {
           sgID = 215;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -19448,7 +19448,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I4(1)32") == 0) {
           sgID = 216;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -19741,7 +19741,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-43m") == 0) {
           sgID = 217;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -19890,7 +19890,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("F4-3m") == 0) {
           sgID = 218;
-          nops = 96 * nCopyA * nCopyB * nCopyC;
+          nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -20471,7 +20471,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I-43m") == 0) {
           sgID = 219;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -20764,7 +20764,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P-43n") == 0) {
           sgID = 220;
-          nops = 24 * nCopyA * nCopyB * nCopyC;
+          nops_ = 24 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 24;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -20913,7 +20913,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("F-43c") == 0) {
           sgID = 221;
-          nops = 96 * nCopyA * nCopyB * nCopyC;
+          nops_ = 96 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 96;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -21494,7 +21494,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I-43d") == 0) {
           sgID = 222;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -21787,7 +21787,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pm-3m") == 0) {
           sgID = 223;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -22080,7 +22080,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pn-3n") == 0) {
           sgID = 224;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -22373,7 +22373,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pm-3n") == 0) {
           sgID = 225;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -22666,7 +22666,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pn-3m") == 0) {
           sgID = 226;
-          nops = 48 * nCopyA * nCopyB * nCopyC;
+          nops_ = 48 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 48;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -22959,7 +22959,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P22(1)2(1)") == 0) {
           sgID = 227;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -22988,7 +22988,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I121") == 0) {
           sgID = 228;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -23017,7 +23017,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("B112") == 0) {
           sgID = 229;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -23046,7 +23046,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)/n") == 0 || spaceGrp.compare("P12(1)/n1") == 0) {
           sgID = 230;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -23075,7 +23075,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("Pcab") == 0) {
           sgID = 231;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -23128,7 +23128,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("H32") == 0) {
           sgID = 232;
-          nops = 16 * nCopyA * nCopyB * nCopyC;
+          nops_ = 16 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 16;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -23229,7 +23229,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P22(1)2") == 0) {
           sgID = 233;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -23258,7 +23258,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("I2") == 0 || spaceGrp.compare("I121") == 0) {
           sgID = 234;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -23287,7 +23287,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("H3") == 0) {
           sgID = 235;
-          nops = 8 * nCopyA * nCopyB * nCopyC;
+          nops_ = 8 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 8;
 	  Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
 	  Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -23340,7 +23340,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
         }
         else if (spaceGrp.compare("P2(1)22(1)") == 0) {
           sgID = 236;
-          nops = 4 * nCopyA * nCopyB * nCopyC;
+          nops_ = 4 * nCopyA_ * nCopyB_ * nCopyC_;
           iuc *= 4;
           Rdata[0] =   1.0000000000;  Rdata[1] =   0.0000000000;  Rdata[2] =   0.0000000000;
           Rdata[3] =   0.0000000000;  Rdata[4] =   1.0000000000;  Rdata[5] =   0.0000000000;
@@ -23375,8 +23375,8 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps()
   }
 
   // Prepare a table of transposed (inverse) rotation matrices
-  Rinv = new Matrix_3x3[96 * nCopyA * nCopyB * nCopyC];
-  for (i = 0; i < nops; i++) {
+  Rinv = new Matrix_3x3[96 * nCopyA_ * nCopyB_ * nCopyC_];
+  for (i = 0; i < nops_; i++) {
     Rinv[i] = R[i];
     Rinv[i].Transpose();
   }
@@ -23486,9 +23486,9 @@ bool Action_XtalSymm::PointInPrimaryASU(double x, double y, double z)
   bool result = true;
 
   // Scale the coordinates by the number of times the unit cell has been replicated.
-  x *= (double)nCopyA;
-  y *= (double)nCopyB;
-  z *= (double)nCopyC;
+  x *= (double)nCopyA_;
+  y *= (double)nCopyB_;
+  z *= (double)nCopyC_;
 
   // Giant case switch to test each space group
   switch(sgID) {

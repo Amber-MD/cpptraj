@@ -5,10 +5,10 @@
 #include "ReferenceAction.h"
 #include "Vec3.h"
 
-//---------------------------------------------------------------------------------------------
-// XtalSymm: an action to superimpose symmetry-related parts of a simulation system using
-//           crystallographic symmetry operations
-//---------------------------------------------------------------------------------------------
+/** XtalSymm: an action to superimpose symmetry-related parts of a simulation system using
+  *           crystallographic symmetry operations
+  * \author David S. Cerutti
+  */
 class Action_XtalSymm : public Action {
   public:
     Action_XtalSymm() {}
@@ -24,12 +24,12 @@ class Action_XtalSymm : public Action {
     static const double DASU_GRID_BINS_;
 
     // The space group
-    int nops;              // The number of symmetry operations in the canonical space group
-    int nCopyA;            // The number of unit cell replicas along each of three dimensions.
-    int nCopyB;            //   This generalizes the space group into supercells based on that
-    int nCopyC;            //   space group, and allows us to talk about symmetry operations
-                           //   in terms of the supercell.
-    std::string spaceGrp;  //
+    int nops_;              ///< The number of symmetry operations in the canonical space group
+    int nCopyA_;            // The number of unit cell replicas along each of three dimensions.
+    int nCopyB_;            //   This generalizes the space group into supercells based on that
+    int nCopyC_;            //   space group, and allows us to talk about symmetry operations
+                            //   in terms of the supercell.
+    std::string spaceGrp;
     int sgID;              // The space group identification number
  
     // Reference frame
