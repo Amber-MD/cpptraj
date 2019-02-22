@@ -20,6 +20,27 @@ class Action_XtalSymm : public Action {
     class XtalDock;
     class TransOp;
 
+    // Methods
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
+    void Print() {}
+
+    Action::RetType LoadSpaceGroupSymOps(Matrix_3x3*, Vec3*, Vec3*);
+    bool OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr);
+    bool OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr);
+    void BestSuperposition(int, int, XtalDock*, int&);
+    Vec3 BestOrigin(Frame&, Frame*, std::vector<int>&);
+    TransOp DetectAsuResidence(double x, double y, double z);
+    void BuildAsuGrid();
+    double dmin(double, double);
+    double dmin(double, double, double);
+    double dmin(double, double, double, double);
+    double dmax(double, double);
+    double dmax(double, double, double);
+    double dmax(double, double, double, double);
+    bool PointInPrimaryASU(double x, double y, double z);
+
     static const int IASU_GRID_BINS_;
     static const double DASU_GRID_BINS_;
 
@@ -58,35 +79,14 @@ class Action_XtalSymm : public Action {
     std::vector<int> subunitOpID_;
   
     // Rotation matrices and translation vectors
-    Matrix_3x3* R;
-    Matrix_3x3* Rinv;
-    Vec3* T;
-    Vec3* RefT;
-    bool* rotIdentity;
+    Matrix_3x3* R_;
+    Matrix_3x3* Rinv_;
+    Vec3* T_;
+    Vec3* RefT_;
+    bool* rotIdentity_;
 
     // Grid for ASU assignment of loose molecules
-    TransOp* AsuGrid;
-  
-    // Methods
-    Action::RetType Init(ArgList&, ActionInit&, int);
-    Action::RetType Setup(ActionSetup&);
-    Action::RetType DoAction(int, ActionFrame&);
-    Action::RetType LoadSpaceGroupSymOps();
-    bool OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr);
-    bool OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr);
-    void BestSuperposition(int, int, XtalDock*, int&);
-    Vec3 BestOrigin(Frame&, Frame*, std::vector<int>&);
-    TransOp DetectAsuResidence(double x, double y, double z);
-    void BuildAsuGrid();
-    void Print() {}
-    void ClearMemory();
-    double dmin(double, double);
-    double dmin(double, double, double);
-    double dmin(double, double, double, double);
-    double dmax(double, double);
-    double dmax(double, double, double);
-    double dmax(double, double, double, double);
-    bool PointInPrimaryASU(double x, double y, double z);
+    TransOp* AsuGrid_;
 };
 
 //---------------------------------------------------------------------------------------------
