@@ -51,8 +51,8 @@ class Action_XtalSymm : public Action {
                                 free-floating "solvent" component. */
   
     // Masks for the asymmetric units and solvent particles
-    int nmasks;
-    AtomMask* Masks;
+    int nmasks_;
+    AtomMask* Masks_; // TODO should probably use vector here
     AtomMask  SolventParticles;
     AtomMask  SolventMolecules;
     std::vector<int> subunitOpID;

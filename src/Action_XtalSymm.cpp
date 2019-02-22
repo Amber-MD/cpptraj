@@ -44,16 +44,16 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   useFirst_ = REF_.CurrentReference().empty();
   
   // Set the masks for all symmetry-related subunits
-  Masks = new AtomMask[nops_];
+  Masks_ = new AtomMask[nops_];
   subunitOpID.reserve(nops_);
-  nmasks = 0;
+  nmasks_ = 0;
   std::string mask = actionArgs.GetMaskNext();
   if (mask.empty()) {
     mprintf("Error.  A mask for the asymmetric unit must be specified.\n");
     return Action::ERR;
   }
-  Masks[nmasks].SetMaskString(mask);
-  nmasks++;
+  Masks_[nmasks_].SetMaskString(mask);
+  nmasks_++;
 
   return Action::OK;
 }
@@ -142,10 +142,10 @@ void Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads,
 {
   // Set up frames for the original and symmetry-related subunits
   Frame orig, othr;
-  orig = Frame(Masks[0].Nselected());
-  othr = Frame(Masks[maskID].Nselected());
-  orig.SetCoordinates(RefFrame_, Masks[0]);
-  othr.SetCoordinates(RefFrame_, Masks[maskID]);
+  orig = Frame(Masks_[0].Nselected());
+  othr = Frame(Masks_[maskID].Nselected());
+  orig.SetCoordinates(RefFrame_, Masks_[0]);
+  othr.SetCoordinates(RefFrame_, Masks_[maskID]);
   Vec3 corig = orig.VCenterOfMass(0, orig.Natom());
   Vec3 cothr = othr.VCenterOfMass(0, othr.Natom());
   Vec3 cdiff = cothr - corig;
@@ -174,7 +174,7 @@ void Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads,
         // unique frame of reference.
         Vec3 Tvec = Vec3(-dx - T[operID][0], -dy - T[operID][1], -dz - T[operID][2]);
         Tvec = U * Tvec;
-        othr.SetCoordinates(RefFrame_, Masks[maskID]);
+        othr.SetCoordinates(RefFrame_, Masks_[maskID]);
         othr.Translate(Tvec);
         Vec3 Ovec = BestOrigin(orig, &othr, operIDv);
         orig.NegTranslate(Ovec);
@@ -346,7 +346,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   }
   
   // Set up the integer mask for the first, required, mask string
-  if (setup.Top().SetupIntegerMask(Masks[0])) {
+  if (setup.Top().SetupIntegerMask(Masks_[0])) {
     return Action::ERR;
   }
 
@@ -363,10 +363,10 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
 
   // If there are not enough masks specified (it's tedious to do, and would make
   // the action command lengthy), then generate all the rest based on the first.
-  int nMaskAtom = Masks[0].Nselected();
+  int nMaskAtom = Masks_[0].Nselected();
   int nTopolAtom = setup.Top().Natom();
-  std::vector<int> baseMask = Masks[0].Selected();
-  std::vector<int> newMask = Masks[0].Selected();
+  std::vector<int> baseMask = Masks_[0].Selected();
+  std::vector<int> newMask = Masks_[0].Selected();
 
   // Create an array to hold whether each atom has been included in a mask
   std::vector<int> occupancy(nTopolAtom, 0);
@@ -404,12 +404,12 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       // Otherwise, increment the starting position so that future searches do not run
       // back over the same atoms again.
       if (nmatched == nMaskAtom) {
-        Masks[i].ClearSelected();
+        Masks_[i].ClearSelected();
         for (k = 0; k < nMaskAtom; k++) {
           newMask[k] = j + baseMask[k] - baseMask[0];
           occupancy[j + baseMask[k] - baseMask[0]] = 1;
         }
-        Masks[i].AddAtoms(newMask);
+        Masks_[i].AddAtoms(newMask);
         break;
       }
       else {
@@ -447,8 +447,8 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       MoleAtoms[i] = 0;
     }
     for (i = 0; i < nops_; i++) {
-      for (j = 0; j < Masks[i].Nselected(); j++) {
-        LoneAtoms[Masks[i].Selected()[j]] = 0;
+      for (j = 0; j < Masks_[i].Nselected(); j++) {
+        LoneAtoms[Masks_[i].Selected()[j]] = 0;
       }
     }
     int nnonasu = 0;
@@ -609,9 +609,9 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   Matrix_3x3 U, invU;
 
   // Allocate space for the subunit frames
-  orig = Frame(Masks[0].Nselected());
+  orig = Frame(Masks_[0].Nselected());
   for (i = 0; i < nops_; i++) {
-    othr[i] = Frame(Masks[i].Nselected());
+    othr[i] = Frame(Masks_[i].Nselected());
   }
 
   // Determine the optimal strategy for superimposing subunits.  This has to be
@@ -690,12 +690,12 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
           if (i == nops_) {
             
             // Check the RMSD that would result from this situation
-            orig.SetCoordinates(RefFrame_, Masks[0]);
+            orig.SetCoordinates(RefFrame_, Masks_[0]);
             Vec3 corig = orig.VCenterOfMass(0, orig.Natom());
             std::vector<int> trialOpID;
             trialOpID.reserve(nops_);
             for (j = 0; j < nops_; j++) {
-              othr[j].SetCoordinates(RefFrame_, Masks[leads[HowToGetThere[j]].subunit_]);
+              othr[j].SetCoordinates(RefFrame_, Masks_[leads[HowToGetThere[j]].subunit_]);
               Vec3 cothr = othr[j].VCenterOfMass(0, othr[j].Natom());
               Vec3 cdiff = cothr - corig;
               cdiff = invU * cdiff;
@@ -770,16 +770,16 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   // the original subunits (imaging considerations), and apply the transformations.
   U = frm.Frm().BoxCrd().UnitCell(1.0);
   frm.Frm().BoxCrd().ToRecip(U, invU);
-  orig = Frame(Masks[0].Nselected());
+  orig = Frame(Masks_[0].Nselected());
   for (i = 0; i < nops_; i++) {
-    othr[i] = Frame(Masks[i].Nselected());
+    othr[i] = Frame(Masks_[i].Nselected());
   }
-  orig.SetCoordinates(frm.Frm(), Masks[0]);
+  orig.SetCoordinates(frm.Frm(), Masks_[0]);
   for (i = 0; i < nops_; i++) {
     int opID = subunitOpID[i];
     
     // Get each subunit and the box transformations
-    othr[i].SetCoordinates(frm.Frm(), Masks[i]);
+    othr[i].SetCoordinates(frm.Frm(), Masks_[i]);
 
     // Get the displacement between the two subunits' centers of mass
     Vec3 corig = orig.VCenterOfMass(0, orig.Natom());
@@ -800,7 +800,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     // removed, a consensus origin for the whole system will be computed in order
     // to apply the reverse rotations.
     othr[i].Translate(cmove);
-    frm.ModifyFrm().Translate(cmove, Masks[i]);
+    frm.ModifyFrm().Translate(cmove, Masks_[i]);
   }
   Vec3 Ovec = BestOrigin(orig, othr, subunitOpID);
 
@@ -808,7 +808,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   frm.ModifyFrm().NegTranslate(Ovec);  
   for (i = 0; i < nops_; i++) {
     int opID = subunitOpID[i];
-    frm.ModifyFrm().Rotate(Rinv[opID], Masks[i]);
+    frm.ModifyFrm().Rotate(Rinv[opID], Masks_[i]);
   }
 
   // It is now possible to re-image all solvent molecules (those not in one of the
