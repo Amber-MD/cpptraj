@@ -14,8 +14,8 @@
 //---------------------------------------------------------------------------------------------
 class XtalDock {
   public:
-    int subunit;  // The subunit that this is operating on
-    int opID;     // The operation in use, indexing the lists R and T in Action_XtalSymm
+    int subunit_;  // The subunit that this is operating on
+    int opID_;     // The operation in use, indexing the lists R and T in Action_XtalSymm
     double rmsd;  // The un-fitted rmsd between the original and superimposed subunits
     Vec3 displc;  // The optimal displacement beteen the two subunits' centers of mass,
                   //   scaled to simulation cell fractional coordinates
@@ -24,8 +24,8 @@ class XtalDock {
     /// Assignment
     XtalDock& operator=(const XtalDock& rhs) {
       if (this == &rhs) return *this;
-      subunit = rhs.subunit;
-      opID    = rhs.opID;
+      subunit_ = rhs.subunit_;
+      opID_    = rhs.opID_;
       rmsd    = rhs.rmsd;
       displc  = rhs.displc;
       origin  = rhs.origin;
@@ -40,7 +40,7 @@ class XtalDock {
 //---------------------------------------------------------------------------------------------
 class TransOp {
   public:
-    int opID;      // Operation index
+    int opID_;      // Operation index
     double tr_x;   // Initial X translation
     double tr_y;   // Initial Y translation
     double tr_z;   // Initial Z translation

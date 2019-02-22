@@ -185,8 +185,8 @@ void Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads,
         // put the original subunit back in its official frame of reference.
         orig.Translate(Ovec);
         othr.Translate(Ovec);
-        leads[nLead].subunit = maskID;
-        leads[nLead].opID    = operID;
+        leads[nLead].subunit_ = maskID;
+        leads[nLead].opID_    = operID;
         leads[nLead].rmsd    = orig.RMSD_NoFit(othr, false);
         leads[nLead].origin  = Ovec;
         Tvec = Vec3(cdiff[0] - dx, cdiff[1] - dy, cdiff[2] - dz);
@@ -221,7 +221,7 @@ TransOp Action_XtalSymm::DetectAsuResidence(double x, double y, double z)
           if (PointInPrimaryASU(pt[0], pt[1], pt[2])) {
 
             // This is a solution, break out of all loops
-            amove.opID = m;
+            amove.opID_ = m;
             amove.tr_x = (double)i;
             amove.tr_y = (double)j;
             amove.tr_z = (double)k;
@@ -233,7 +233,7 @@ TransOp Action_XtalSymm::DetectAsuResidence(double x, double y, double z)
   }
 
   // Raise a warning if this didn't fall into any ASU
-  amove.opID = 0;
+  amove.opID_ = 0;
   amove.tr_x = 0.0;
   amove.tr_y = 0.0;
   amove.tr_z = 0.0;
@@ -317,13 +317,13 @@ void Action_XtalSymm::BuildAsuGrid()
         // Record the result
         int idx = (i*IASU_GRID_BINS_ + j)*IASU_GRID_BINS_ + k;
         if (complete) {
-          AsuGrid[idx].opID = prevOpID;
+          AsuGrid[idx].opID_ = prevOpID;
           AsuGrid[idx].tr_x = prevTx;
           AsuGrid[idx].tr_y = prevTy;
           AsuGrid[idx].tr_z = prevTz;
         }
         else {
-          AsuGrid[idx].opID = -1;
+          AsuGrid[idx].opID_ = -1;
           AsuGrid[idx].tr_x = 0.0;
           AsuGrid[idx].tr_y = 0.0;
           AsuGrid[idx].tr_z = 0.0;
@@ -530,7 +530,7 @@ bool Action_XtalSymm::OperationAvailable(XtalDock* leads, int* HowToGetThere, in
   int i;
 
   for (i = 0; i < ncurr; i++) {
-    if (leads[HowToGetThere[i]].opID == leads[HowToGetThere[ncurr]].opID) {
+    if (leads[HowToGetThere[i]].opID_ == leads[HowToGetThere[ncurr]].opID_) {
       return false;
     }
   }
@@ -556,7 +556,7 @@ bool Action_XtalSymm::OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncur
   // actual rotation, where the origin would matter
   bool oxfound = false, oyfound = false, ozfound = false;
   for (i = 0; i <= ncurr; i++) {
-    int thisSU = leads[HowToGetThere[i]].subunit;
+    int thisSU = leads[HowToGetThere[i]].subunit_;
     double dx = 0.0;
     double dy = 0.0;
     double dz = 0.0;
@@ -653,8 +653,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       // This was a P1 crystal.  Any origin will work for applying the symmetry operations.
       for (i = 0; i < nops; i++) {
         for (j = 0; j < nLead; j++) {
-          if (leads[j].subunit == i) {
-            subunitOpID[i] = leads[j].opID;
+          if (leads[j].subunit_ == i) {
+            subunitOpID[i] = leads[j].opID_;
             RefT[i] = leads[j].displc;
             break;
           }
@@ -676,7 +676,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       while (HowToGetThere[0] < nLead) {
         while (i < nops) {
           while (HowToGetThere[0] < nLead &&
-                 (leads[HowToGetThere[i]].subunit != i ||
+                 (leads[HowToGetThere[i]].subunit_ != i ||
                   OperationAvailable(leads, HowToGetThere, i) == false ||
                   OriginsAlign(leads, HowToGetThere, i) == false)) {
             HowToGetThere[i] += 1;
@@ -695,7 +695,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
             std::vector<int> trialOpID;
             trialOpID.reserve(nops);
             for (j = 0; j < nops; j++) {
-              othr[j].SetCoordinates(RefFrame_, Masks[leads[HowToGetThere[j]].subunit]);
+              othr[j].SetCoordinates(RefFrame_, Masks[leads[HowToGetThere[j]].subunit_]);
               Vec3 cothr = othr[j].VCenterOfMass(0, othr[j].Natom());
               Vec3 cdiff = cothr - corig;
               cdiff = invU * cdiff;
@@ -703,9 +703,9 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
               cmove[0] = round(cmove[0]);
               cmove[1] = round(cmove[1]);
               cmove[2] = round(cmove[2]);
-              cmove = (U * cmove) - (U * T[leads[HowToGetThere[j]].opID]);
+              cmove = (U * cmove) - (U * T[leads[HowToGetThere[j]].opID_]);
               othr[j].Translate(cmove);
-              trialOpID[j] = leads[HowToGetThere[j]].opID;
+              trialOpID[j] = leads[HowToGetThere[j]].opID_;
             }
             Vec3 trOvec = BestOrigin(orig, othr, trialOpID);
             orig.NegTranslate(trOvec);
@@ -846,11 +846,11 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
           int gidy = (int)(y * DASU_GRID_BINS_);
           int gidz = (int)(z * DASU_GRID_BINS_);
           gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
-          TransOp Vm = (AsuGrid[gidx].opID == -1) ? DetectAsuResidence(x, y, z) :
+          TransOp Vm = (AsuGrid[gidx].opID_ == -1) ? DetectAsuResidence(x, y, z) :
                                                     AsuGrid[gidx];
-          frm.ModifyFrm().Translate(Vec3(Vm.tr_x, Vm.tr_y, Vm.tr_z) - T[Vm.opID],
+          frm.ModifyFrm().Translate(Vec3(Vm.tr_x, Vm.tr_y, Vm.tr_z) - T[Vm.opID_],
                                     molLimits[2*i], molLimits[2*i + 1]);
-          frm.ModifyFrm().Rotate(Rinv[Vm.opID], molLimits[2*i], molLimits[2*i + 1]);
+          frm.ModifyFrm().Rotate(Rinv[Vm.opID_], molLimits[2*i], molLimits[2*i + 1]);
         }
       }
       frm.ModifyFrm().Rotate(U, SolventMolecules);
@@ -873,9 +873,9 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       int gidy = (int)(y * DASU_GRID_BINS_);
       int gidz = (int)(z * DASU_GRID_BINS_);
       gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
-      TransOp Vm = (AsuGrid[gidx].opID == -1) ? DetectAsuResidence(x, y, z) : AsuGrid[gidx];
-      frm.ModifyFrm().Translate(Vec3(Vm.tr_x, Vm.tr_y, Vm.tr_z) - T[Vm.opID], iatm);
-      frm.ModifyFrm().Rotate(Rinv[Vm.opID], iatm);
+      TransOp Vm = (AsuGrid[gidx].opID_ == -1) ? DetectAsuResidence(x, y, z) : AsuGrid[gidx];
+      frm.ModifyFrm().Translate(Vec3(Vm.tr_x, Vm.tr_y, Vm.tr_z) - T[Vm.opID_], iatm);
+      frm.ModifyFrm().Rotate(Rinv[Vm.opID_], iatm);
     }
     frm.ModifyFrm().Rotate(U, SolventParticles);
   }
