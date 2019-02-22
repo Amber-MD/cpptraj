@@ -27735,7 +27735,7 @@ The RDF is calculated from the histogram of the number of particles found
 
 \begin_layout Standard
 \align center
-\begin_inset Formula $Density*\left(\left[\frac{4\pi}{3}\left(R+dR\right)^{3}\right]-\left[\frac{4\pi}{3}dR^{3}\right]\right)$
+\begin_inset Formula $Density*\frac{4\pi}{3}\left(\left(R+dR\right)^{3}-R^{3}\right)$
 \end_inset
 
 
