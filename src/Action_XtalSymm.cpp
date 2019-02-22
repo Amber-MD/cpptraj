@@ -222,9 +222,9 @@ TransOp Action_XtalSymm::DetectAsuResidence(double x, double y, double z)
 
             // This is a solution, break out of all loops
             amove.opID_ = m;
-            amove.tr_x = (double)i;
-            amove.tr_y = (double)j;
-            amove.tr_z = (double)k;
+            amove.tr_x_ = (double)i;
+            amove.tr_y_ = (double)j;
+            amove.tr_z_ = (double)k;
             return amove;
           }
         }
@@ -234,9 +234,9 @@ TransOp Action_XtalSymm::DetectAsuResidence(double x, double y, double z)
 
   // Raise a warning if this didn't fall into any ASU
   amove.opID_ = 0;
-  amove.tr_x = 0.0;
-  amove.tr_y = 0.0;
-  amove.tr_z = 0.0;
+  amove.tr_x_ = 0.0;
+  amove.tr_y_ = 0.0;
+  amove.tr_z_ = 0.0;
   mprintf("Warning: point %9.4lf %9.4lf %9.4lf did not fall into any asymmteric unit.\n",
           x, y, z);
 
@@ -318,15 +318,15 @@ void Action_XtalSymm::BuildAsuGrid()
         int idx = (i*IASU_GRID_BINS_ + j)*IASU_GRID_BINS_ + k;
         if (complete) {
           AsuGrid[idx].opID_ = prevOpID;
-          AsuGrid[idx].tr_x = prevTx;
-          AsuGrid[idx].tr_y = prevTy;
-          AsuGrid[idx].tr_z = prevTz;
+          AsuGrid[idx].tr_x_ = prevTx;
+          AsuGrid[idx].tr_y_ = prevTy;
+          AsuGrid[idx].tr_z_ = prevTz;
         }
         else {
           AsuGrid[idx].opID_ = -1;
-          AsuGrid[idx].tr_x = 0.0;
-          AsuGrid[idx].tr_y = 0.0;
-          AsuGrid[idx].tr_z = 0.0;
+          AsuGrid[idx].tr_x_ = 0.0;
+          AsuGrid[idx].tr_y_ = 0.0;
+          AsuGrid[idx].tr_z_ = 0.0;
         }
       }
     }
@@ -848,7 +848,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
           gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
           TransOp Vm = (AsuGrid[gidx].opID_ == -1) ? DetectAsuResidence(x, y, z) :
                                                     AsuGrid[gidx];
-          frm.ModifyFrm().Translate(Vec3(Vm.tr_x, Vm.tr_y, Vm.tr_z) - T[Vm.opID_],
+          frm.ModifyFrm().Translate(Vec3(Vm.tr_x_, Vm.tr_y_, Vm.tr_z_) - T[Vm.opID_],
                                     molLimits[2*i], molLimits[2*i + 1]);
           frm.ModifyFrm().Rotate(Rinv[Vm.opID_], molLimits[2*i], molLimits[2*i + 1]);
         }
@@ -874,7 +874,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       int gidz = (int)(z * DASU_GRID_BINS_);
       gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
       TransOp Vm = (AsuGrid[gidx].opID_ == -1) ? DetectAsuResidence(x, y, z) : AsuGrid[gidx];
-      frm.ModifyFrm().Translate(Vec3(Vm.tr_x, Vm.tr_y, Vm.tr_z) - T[Vm.opID_], iatm);
+      frm.ModifyFrm().Translate(Vec3(Vm.tr_x_, Vm.tr_y_, Vm.tr_z_) - T[Vm.opID_], iatm);
       frm.ModifyFrm().Rotate(Rinv[Vm.opID_], iatm);
     }
     frm.ModifyFrm().Rotate(U, SolventParticles);

@@ -41,9 +41,9 @@ class XtalDock {
 class TransOp {
   public:
     int opID_;      // Operation index
-    double tr_x;   // Initial X translation
-    double tr_y;   // Initial Y translation
-    double tr_z;   // Initial Z translation
+    double tr_x_;   // Initial X translation
+    double tr_y_;   // Initial Y translation
+    double tr_z_;   // Initial Z translation
 };
 
 //---------------------------------------------------------------------------------------------
