@@ -19933,7 +19933,25 @@ fixatomorder [outprefix <name>]
 \begin_layout Standard
 Cpptraj (and most of Amber) expects that atom indices in molecules to increase
  monotonically.
- However, occasionally atom indices in molecules can become disordered.
+ However, occasionally atom indices in molecules can become disordered or
+ non-sequential, in which case cpptraj will print an error message such
+ as the following:
+\end_layout
+
+\begin_layout LyX-Code
+Error: Atom 45 was assigned a lower molecule # (1) than previous atom (2).
+\end_layout
+
+\begin_layout Standard
+and:
+\end_layout
+
+\begin_layout LyX-Code
+Error: Could not determine molecule information for <topology file>.
+\end_layout
+
+\begin_layout Standard
+.
  This command fixes atom ordering so that all atoms in molecules are sequential.
  The 
 \series bold
@@ -19944,6 +19962,29 @@ outprefix
 <name>.<original name>
 \series default
 .
+\end_layout
+
+\begin_layout Standard
+For example, given an out of order topology named 'outoforder.parm7' and
+ a corresponding trajectory 'min1.crd', the following will produce a reordered
+ topology named 'reorder.outoforder.parm7' and a reordered trajectory named
+ 'reorder.mdcrd':
+\end_layout
+
+\begin_layout LyX-Code
+parm outoforder.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin min1.crd 1 10
+\end_layout
+
+\begin_layout LyX-Code
+fixatomorder outprefix reorder
+\end_layout
+
+\begin_layout LyX-Code
+trajout reorder.mdcrd 
 \end_layout
 
 \begin_layout Subsection
