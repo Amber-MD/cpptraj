@@ -45,7 +45,7 @@ CPPTRAJ see the following publication:
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2018 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2019 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
