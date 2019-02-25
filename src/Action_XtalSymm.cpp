@@ -247,12 +247,12 @@ const
   return amove;
 }
 
-//---------------------------------------------------------------------------------------------
-// BuildAsuGrid: build a grid spanning the unit cell to indicate the approximate extent of
-//               each asymmetric unit's volume.  Grid bins that do not fall entirely within
-//               one asymmetric unit will be labelled as wildcards and any coordinates that
-//               fall in those bins will have to be checked against all asymmetric units.
-//---------------------------------------------------------------------------------------------
+// Action_XtalSymm::BuildAsuGrid()
+/** Build a grid spanning the unit cell to indicate the approximate extent of
+  * each asymmetric unit's volume.  Grid bins that do not fall entirely within
+  * one asymmetric unit will be labelled as wildcards and any coordinates that
+  * fall in those bins will have to be checked against all asymmetric units.
+  */
 void Action_XtalSymm::BuildAsuGrid()
 {
   int i, j, k, ii, jj, kk, m;
@@ -337,9 +337,7 @@ void Action_XtalSymm::BuildAsuGrid()
   }
 }
 
-//---------------------------------------------------------------------------------------------
 // Action_XtalSymm::Setup()
-//---------------------------------------------------------------------------------------------
 Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
 {
   int i, j, k;
@@ -517,19 +515,15 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   return Action::OK;
 }
 
-//---------------------------------------------------------------------------------------------
-// Action_XtalSymm::OperationAvailable
-//
-// Test whether a given symmetry operation is available for use in an approach to reconstruct
-// the unit cell.
-//
-// Arguments:
-//   leads:          the list of leads, each specifying an operation that will take one subunit
-//                   back onto the original subunit given a properly imaged displacement and
-//                   an origin
-//   HowToGetThere:  list of leads accumulated thus far
-//   ncurr:          the position to add the candidate lead to the list
-//---------------------------------------------------------------------------------------------
+// Action_XtalSymm::OperationAvailable()
+/** Test whether a given symmetry operation is available for use in an approach to reconstruct
+  * the unit cell.
+  * \param leads:          The list of leads, each specifying an operation that will take one subunit
+                           back onto the original subunit given a properly imaged displacement and
+                           an origin.
+  * \param HowToGetThere:  List of leads accumulated thus far.
+  * \param ncurr:          The position to add the candidate lead to the list.
+  */
 bool Action_XtalSymm::OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr)
 {
   int i;
@@ -543,16 +537,12 @@ bool Action_XtalSymm::OperationAvailable(XtalDock* leads, int* HowToGetThere, in
   return true;
 }
 
-//---------------------------------------------------------------------------------------------
-// Action_XtalSymm::OriginsAlign
-//
-// Test whether the origin of a particular lead will work in the context of the others
-// accumulated thus far.
-//
-// Arguments:
-//   
-//---------------------------------------------------------------------------------------------
+// Action_XtalSymm::OriginsAlign()
+/** Test whether the origin of a particular lead will work in the context of the others
+  * accumulated thus far.
+  */
 bool Action_XtalSymm::OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr)
+const
 {
   int i;
   double origx, origy, origz;
@@ -603,9 +593,7 @@ bool Action_XtalSymm::OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncur
   return true;
 }
 
-//---------------------------------------------------------------------------------------------
 // Action_XtalSymm::DoAction()
-//---------------------------------------------------------------------------------------------
 Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 {
   int i, j;
