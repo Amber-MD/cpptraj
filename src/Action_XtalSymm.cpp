@@ -23,7 +23,7 @@ Action_XtalSymm::Action_XtalSymm() :
 
 // Action_XtalSymm::Help()
 void Action_XtalSymm::Help() const {
-  mprintf("\t<mask> [reference] group <space group> [collect]\n"
+  mprintf("\t<mask> [reference] group <space group> [collect [centroid]]\n"
           "\t[na <# replicas along a vector>]\n"
           "\t[nb <# replicas along b vector>] [nc <# replicas along c vector>]\n",
           ReferenceAction::Help());
@@ -72,8 +72,14 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   mprintf("    XTALSYMM: Mask is %s\n", Masks_[0].MaskString());
   mprintf("\tReference is %s\n", REF_.RefModeString().c_str());
   mprintf("\tSpace group '%s'\n", spaceGrp_.c_str());
-  mprintf("\tNA= %8i  NB= %i  NC= %i  Nops= %i\n", nCopyA_, nCopyB_, nCopyC_, nops_);
-  
+  mprintf("\tNA= %8i  NB= %8i  NC= %8i  Nops= %8i\n", nCopyA_, nCopyB_, nCopyC_, nops_);
+  if (allToFirstASU_) {
+    mprintf("\tReimaging");
+    if (molCentToASU_)
+      mprintf(" by molecule\n");
+    else
+      mprintf(" by atom\n");
+  }
 
   return Action::OK;
 }
