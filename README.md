@@ -165,6 +165,9 @@ Code for the reciprocal part of the particle mesh Ewald calculation.
 * Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)  
 Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearch).
 
+* David S. Cerutti (Rutgers University, Piscataway, NJ, USA)  
+Original code for the 'xtalsymm' Action.
+
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)
 * Hai Nguyen (Rutgers University, Piscataway, NJ, USA)
