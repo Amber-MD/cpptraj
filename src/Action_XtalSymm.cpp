@@ -28,8 +28,8 @@ void Action_XtalSymm::Help() const {
           "\t[nb <# replicas along b vector>] [nc <# replicas along c vector>]\n",
           ReferenceAction::Help());
   mprintf("  Calculate the optimal approach for superimposing symmetry-related subunits\n"
-          "  of the simulation back onto one another.  This modifies the coordinate state\n");
-  mprintf("  for all future actions.\n");
+          "  of the simulation back onto one another.  This modifies the coordinate state\n"
+          "  for all future actions.\n");
 }
 
 // Action_XtalSymm::Init()
@@ -58,7 +58,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   useFirst_ = REF_.CurrentReference().empty();
   
   // Set the masks for all symmetry-related subunits
-  Masks_.assign(nops_, AtomMask());;
+  Masks_.assign(nops_, AtomMask());
   subunitOpID_.reserve(nops_);
   std::string mask = actionArgs.GetMaskNext();
   if (mask.empty()) {
@@ -68,6 +68,12 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   Masks_[0].SetMaskString(mask);
   // Allocate memory for subunits
   other_.assign( nops_, Frame() );
+
+  mprintf("    XTALSYMM: Mask is %s\n", Masks_[0].MaskString());
+  mprintf("\tReference is %s\n", REF_.RefModeString().c_str());
+  mprintf("\tSpace group '%s'\n", spaceGrp_.c_str());
+  mprintf("\tNA= %8i  NB= %i  NC= %i  Nops= %i\n", nCopyA_, nCopyB_, nCopyC_, nops_);
+  
 
   return Action::OK;
 }
