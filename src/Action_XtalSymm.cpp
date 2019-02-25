@@ -274,7 +274,7 @@ void Action_XtalSymm::BuildAsuGrid()
   double prevTx = 0.0;
   double prevTy = 0.0;
   double prevTz = 0.0;
-  AsuGrid_ = new TransOp[IASU_GRID_BINS_ * IASU_GRID_BINS_ * IASU_GRID_BINS_];
+  AsuGrid_.assign(IASU_GRID_BINS_ * IASU_GRID_BINS_ * IASU_GRID_BINS_, TransOp());
   for (i = 0; i < IASU_GRID_BINS_; i++) {
     for (j = 0; j < IASU_GRID_BINS_; j++) {
       for (k = 0; k < IASU_GRID_BINS_; k++) {
@@ -436,17 +436,18 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   }
 
   // Determine which rotations are identity matrices
-  rotIdentity_ = new bool[nops_];
+  rotIdentity_.clear();
+  rotIdentity_.reserve( nops_ );
   for (i = 0; i < nops_; i++) {
     if (fabs(R_[i].Row1()[0] - 1.0) < 1.0e-6 && fabs(R_[i].Row2()[1] - 1.0) < 1.0e-6 &&
         fabs(R_[i].Row3()[2] - 1.0) < 1.0e-6 && fabs(R_[i].Row1()[1]) < 1.0e-6 &&
         fabs(R_[i].Row1()[2]) < 1.0e-6 && fabs(R_[i].Row2()[0]) < 1.0e-6 &&
         fabs(R_[i].Row2()[2]) < 1.0e-6 && fabs(R_[i].Row3()[0]) < 1.0e-6 &&
         fabs(R_[i].Row3()[1]) < 1.0e-6) {
-      rotIdentity_[i] = true;
+      rotIdentity_.push_back( true );
     }
     else {
-      rotIdentity_[i] = false;
+      rotIdentity_.push_back( false );
     }
   }
   
@@ -908,9 +909,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 //---------------------------------------------------------------------------------------------
 Action_XtalSymm::~Action_XtalSymm()
 {
-  delete[] rotIdentity_;
   if (allToFirstASU_) {
-    delete[] AsuGrid_;
     if (molCentToASU_) {
       delete[] molLimits_;
       delete[] molInSolvent_;

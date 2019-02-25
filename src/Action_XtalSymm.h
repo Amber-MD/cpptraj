@@ -83,10 +83,10 @@ class Action_XtalSymm : public Action {
     std::vector<Matrix_3x3> Rinv_;
     std::vector<Vec3> T_;
     std::vector<Vec3> RefT_;
-    bool* rotIdentity_;
+    std::vector<bool> rotIdentity_;
 
     // Grid for ASU assignment of loose molecules
-    TransOp* AsuGrid_;
+    std::vector<TransOp> AsuGrid_;
 };
 
 //---------------------------------------------------------------------------------------------
@@ -124,6 +124,7 @@ class Action_XtalSymm::XtalDock {
   */
 class Action_XtalSymm::TransOp {
   public:
+    TransOp() : opID_(-1), tr_x_(0.0), tr_y_(0.0), tr_z_(0.0) {}
     int opID_;      ///< Operation index
     double tr_x_;   ///< Initial X translation
     double tr_y_;   ///< Initial Y translation
