@@ -21,9 +21,7 @@ Action_XtalSymm::Action_XtalSymm() :
   molCentToASU_(false)
 {}
 
-//---------------------------------------------------------------------------------------------
 // Action_XtalSymm::Help()
-//---------------------------------------------------------------------------------------------
 void Action_XtalSymm::Help() const {
   mprintf("\t<mask> [reference] group <space group> [collect]\n"
           "\t[na <# replicas along a vector>]\n"
@@ -34,9 +32,7 @@ void Action_XtalSymm::Help() const {
   mprintf("  for all future actions.\n");
 }
 
-//---------------------------------------------------------------------------------------------
 // Action_XtalSymm::Init()
-//---------------------------------------------------------------------------------------------
 Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get the space group (user must supply this) and fill out the symmetry operations
@@ -76,20 +72,16 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   return Action::OK;
 }
 
-//---------------------------------------------------------------------------------------------
-// Action_XtalSymm::BestOrigin()
-//
-// Find the best location for the origin at which to make the rotation that will take one
-// asymmetric unit back onto the original.  Return the result as a three-element vector.
-// The two frames must have already been translated as expected relative to one another for
-// this to work.
-//
-// Arguments:
-//   orig:    the original frame
-//   othr:    the other frames to superimpose.  This is an array because the problem may need
-//            to simultaneously deal with multiple operations at once.
-//   operID:  the list of IDs of the rotation for each symmetry operation
-//---------------------------------------------------------------------------------------------
+//  Action_XtalSymm::BestOrigin()
+/** Find the best location for the origin at which to make the rotation that will take one
+  * asymmetric unit back onto the original.  Return the result as a three-element vector.
+  * The two frames must have already been translated as expected relative to one another for
+  * this to work.
+  * \param orig   The original frame
+  * \param othr   The other frames to superimpose.  This is an array because the problem may need
+  *               to simultaneously deal with multiple operations at once.
+  * \param operID The list of IDs of the rotation for each symmetry operation.
+  */
 Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& operID)
 const
 {
@@ -142,22 +134,19 @@ const
   return Vec3(b[0], b[1], b[2]);
 }
 
-//---------------------------------------------------------------------------------------------
 // Action_XtalSymm::BestSuperposition()
-//
-// Take a symmetry operation and find how well it could possibly make a superposition of the
-// given asymmetric unit back onto the original.  Return the result as mass-weighted atom
-// positional RMSD plus a three-element vector describing the optimal displacement between
-// centers of mass for the two subunits.
-//
-// Arguments:
-//   maskID:    the number of the mask for the asymmetric unit to superimpose, >= 1
-//   operID:    the number of the operation to try, >= 1
-//   leads:     a growing array of leads that will ultimately produce an origin for the
-//              transformation of the entire system
-//   nLead:     the number of leads found thus far
-//---------------------------------------------------------------------------------------------
+/** Take a symmetry operation and find how well it could possibly make a superposition of the
+  * given asymmetric unit back onto the original.  Return the result as mass-weighted atom
+  * positional RMSD plus a three-element vector describing the optimal displacement between
+  * centers of mass for the two subunits.
+  * \param  maskID The number of the mask for the asymmetric unit to superimpose, >= 1
+  * \param  operID The number of the operation to try, >= 1
+  * \param  leads  A growing array of leads that will ultimately produce an origin for the
+  *                transformation of the entire system.
+  * \param  nLead  The number of leads found thus far.
+  */
 void Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads, int& nLead)
+const
 {
   // Set up frames for the original and symmetry-related subunits
   Frame orig, othr;
@@ -172,8 +161,6 @@ void Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads,
   U = RefFrame_.BoxCrd().UnitCell(1.0);
   RefFrame_.BoxCrd().ToRecip(U, invU);
   cdiff = invU * cdiff;
-
-  // Compute the displacement, high and low limits
   const double nearTwo = 1.999999999;  
   double minx = floor(cdiff[0] - nearTwo);
   double miny = floor(cdiff[1] - nearTwo);
@@ -218,13 +205,11 @@ void Action_XtalSymm::BestSuperposition(int maskID, int operID, XtalDock* leads,
   }
 }
 
-//---------------------------------------------------------------------------------------------
-// DetectAsuResidence: detect which ASU the given point lies in.
-//
-// Arguments:
-//   [x,y,z]:    the fractional coordinates of the point
-//---------------------------------------------------------------------------------------------
+// Action_XtalSymm::DetectAsuResidence
+/** Detect which ASU the given point lies in given the fractional coordinates of the point.
+  */
 Action_XtalSymm::TransOp Action_XtalSymm::DetectAsuResidence(double x, double y, double z)
+const
 {
   int i, j, k, m;
   Vec3 pt;
@@ -23455,14 +23440,12 @@ double Action_XtalSymm::dmax(double a, double b, double c, double d)
   return dmax(ab, cd);
 }
 
-//---------------------------------------------------------------------------------------------
-// PointInPrimaryASU: function for determining whether a given point lies within the primary
-//                    asymmetric unit as defined by the space group's geometry.
-//
-// Arguments:
-//   [x,y,z]:    the fractional coordinates of the point
-//---------------------------------------------------------------------------------------------
+// Action_XtalSymm::PointInPrimaryASU()
+/** Given the fractional coordinates of a point, determine whether it lies 
+  * within the primary asymmetric unit as defined by the space group's geometry.
+  */
 bool Action_XtalSymm::PointInPrimaryASU(double x, double y, double z)
+const
 {
   const double twothr  = 0.66666666666667;
   const double half    = 0.5;

@@ -28,17 +28,17 @@ class Action_XtalSymm : public Action {
     Action::RetType LoadSpaceGroupSymOps(std::vector<Matrix_3x3>&, std::vector<Vec3>&);
     bool OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr);
     bool OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr);
-    void BestSuperposition(int, int, XtalDock*, int&);
+    void BestSuperposition(int, int, XtalDock*, int&) const;
     Vec3 BestOrigin(Frame&, Frame*, std::vector<int>&) const;
-    TransOp DetectAsuResidence(double x, double y, double z);
+    TransOp DetectAsuResidence(double x, double y, double z) const;
     void BuildAsuGrid();
-    double dmin(double, double);
-    double dmin(double, double, double);
-    double dmin(double, double, double, double);
-    double dmax(double, double);
-    double dmax(double, double, double);
-    double dmax(double, double, double, double);
-    bool PointInPrimaryASU(double x, double y, double z);
+    static inline double dmin(double, double);
+    static inline double dmin(double, double, double);
+    static inline double dmin(double, double, double, double);
+    static inline double dmax(double, double);
+    static inline double dmax(double, double, double);
+    static inline double dmax(double, double, double, double);
+    bool PointInPrimaryASU(double x, double y, double z) const;
 
     static const int IASU_GRID_BINS_;
     static const double DASU_GRID_BINS_;
