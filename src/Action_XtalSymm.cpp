@@ -456,8 +456,8 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   // into one at any given time.
   if (allToFirstASU_) {
     BuildAsuGrid();
-    int* LoneAtoms = new int[setup.Top().Natom()];
-    int* MoleAtoms = new int[setup.Top().Natom()];
+    std::vector<int> LoneAtoms( setup.Top().Natom() );
+    std::vector<int> MoleAtoms( setup.Top().Natom() );
     for (i = 0; i < setup.Top().Natom(); i++) {
       LoneAtoms[i] = 1;
       MoleAtoms[i] = 0;
@@ -519,10 +519,6 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       }
       SolventMolecules_ = AtomMask(SolventList, nnonasu);
     }
-    
-    // Free allocated memory
-    delete[] LoneAtoms;
-    delete[] MoleAtoms;
   }
   
   return Action::OK;
