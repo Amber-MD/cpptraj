@@ -61,16 +61,14 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   useFirst_ = REF_.CurrentReference().empty();
   
   // Set the masks for all symmetry-related subunits
-  Masks_ = new AtomMask[nops_];
+  Masks_.assign(nops_, AtomMask());;
   subunitOpID_.reserve(nops_);
-  nmasks_ = 0;
   std::string mask = actionArgs.GetMaskNext();
   if (mask.empty()) {
     mprintf("Error.  A mask for the asymmetric unit must be specified.\n");
     return Action::ERR;
   }
-  Masks_[nmasks_].SetMaskString(mask);
-  nmasks_++;
+  Masks_[0].SetMaskString(mask);
 
   return Action::OK;
 }
@@ -480,12 +478,12 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       // If solvent molecules are to be re-imaged whole into the primary ASU, mark them
       // separately and remove them from the list of individual atoms to remove.
       nMolecule_ = setup.Top().Nmol();
-      molLimits_ = new int[2 * nMolecule_];
-      molInSolvent_ = new bool[nMolecule_];
+      molLimits_.clear();
+      molLimits_.reserve(2 * nMolecule_);
+      molInSolvent_.assign(nMolecule_, true);
       for (i = 0; i < nMolecule_; i++) {
-        molLimits_[2*i    ] = setup.Top().Mol(i).BeginAtom();
-        molLimits_[2*i + 1] = setup.Top().Mol(i).EndAtom();
-        molInSolvent_[i] = true;
+        molLimits_.push_back( setup.Top().Mol(i).BeginAtom() );
+        molLimits_.push_back( setup.Top().Mol(i).EndAtom()   );
         for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
           if (LoneAtoms[j] == 0) {
             molInSolvent_[i] = false;
@@ -902,19 +900,6 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   delete[] othr;
   
   return Action::MODIFY_COORDS;
-}
-
-//---------------------------------------------------------------------------------------------
-// DESTRUCTOR
-//---------------------------------------------------------------------------------------------
-Action_XtalSymm::~Action_XtalSymm()
-{
-  if (allToFirstASU_) {
-    if (molCentToASU_) {
-      delete[] molLimits_;
-      delete[] molInSolvent_;
-    }
-  }
 }
 
 //---------------------------------------------------------------------------------------------

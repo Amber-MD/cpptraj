@@ -14,7 +14,6 @@ class Action_XtalSymm : public Action {
     Action_XtalSymm();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_XtalSymm(); }
     void Help() const;
-    ~Action_XtalSymm();
   private:
     // Forward declarations
     class XtalDock;
@@ -65,15 +64,16 @@ class Action_XtalSymm : public Action {
                                 unit re-imaged to the primary ASU volume. */
     bool molCentToASU_;    /**< Flag to use molecule centroids, not individual atoms, in the
                                 above re-imaging. */
-    int* molLimits_;       /**< Start and end points for each molecule (all molecules are assumed
-                                to be contiguous within the topology, but it is not assumed
-                                that molecule i+1 starts where molecule i ends). */
-    bool* molInSolvent_;   /**< Flags to indicate whether each molecule is part of the non-ASU,
-                                free-floating "solvent" component. */
+    /** Start and end points for each molecule (all molecules are assumed
+        to be contiguous within the topology, but it is not assumed
+        that molecule i+1 starts where molecule i ends). */
+    std::vector<int> molLimits_;
+    /**< Flags to indicate whether each molecule is part of the non-ASU,
+         free-floating "solvent" component. */
+    std::vector<bool> molInSolvent_;
   
     // Masks for the asymmetric units and solvent particles
-    int nmasks_;
-    AtomMask* Masks_; // TODO should probably use vector here
+    std::vector<AtomMask> Masks_;
     AtomMask  SolventParticles_;
     AtomMask  SolventMolecules_;
     std::vector<int> subunitOpID_;
