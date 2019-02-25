@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles mdXtal.pdb xtals.in test.out
+CleanFiles xtals.in mdAsuOnly.pdb mdSolventByAtom.pdb mdSolventByMolecule.pdb
 
 TESTNAME='XtalSymm tests'
 Requires netcdf
@@ -14,10 +14,10 @@ parm ../x6dky.parm7
 trajin ../mdXtal.nc
 reference ../mdXtal.inpcrd
 xtalsymm :1-16 reference group P22(1)2(1) na 2 nb 1 nc 1
-trajout mdXtal.pdb
+trajout mdAsuOnly.pdb
 EOF
 RunCpptraj "XtalSymm Reference"
-DoTest mdAsuOnly.pdb.save mdXtal.pdb
+DoTest mdAsuOnly.pdb.save mdAsuOnly.pdb
 
 # Reimaging of the entire solvent, atom by atom
 cat > xtals.in << EOF
@@ -25,10 +25,10 @@ parm ../x6dky.parm7
 trajin ../mdXtal.nc
 reference ../mdXtal.inpcrd
 xtalsymm :1-16 reference group P22(1)2(1) na 2 nb 1 nc 1 collect
-trajout mdXtal.pdb
+trajout mdSolventByAtom.pdb
 EOF
 RunCpptraj "XtalSymm Reimaging by Atom"
-DoTest mdSolventByAtom.pdb.save mdXtal.pdb
+DoTest mdSolventByAtom.pdb.save mdSolventByAtom.pdb
 
 # Reimaging of the entire solvent, atom by atom
 cat > xtals.in << EOF
@@ -36,10 +36,10 @@ parm ../x6dky.parm7
 trajin ../mdXtal.nc
 reference ../mdXtal.inpcrd
 xtalsymm :1-16 reference group P22(1)2(1) na 2 nb 1 nc 1 collect centroid
-trajout mdXtal.pdb
+trajout mdSolventByMolecule.pdb
 EOF
 RunCpptraj "XtalSymm Reimaging by Molecule"
-DoTest mdSolventByMolecule.pdb.save mdXtal.pdb
+DoTest mdSolventByMolecule.pdb.save mdSolventByMolecule.pdb
 
 EndTest
 
