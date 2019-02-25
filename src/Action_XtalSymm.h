@@ -29,7 +29,7 @@ class Action_XtalSymm : public Action {
     bool OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr);
     bool OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr);
     void BestSuperposition(int, int, XtalDock*, int&);
-    Vec3 BestOrigin(Frame&, Frame*, std::vector<int>&);
+    Vec3 BestOrigin(Frame&, Frame*, std::vector<int>&) const;
     TransOp DetectAsuResidence(double x, double y, double z);
     void BuildAsuGrid();
     double dmin(double, double);
@@ -87,6 +87,8 @@ class Action_XtalSymm : public Action {
 
     // Grid for ASU assignment of loose molecules
     std::vector<TransOp> AsuGrid_;
+
+    std::vector<Frame> other_; ///< Hold subunit frames
 };
 
 //---------------------------------------------------------------------------------------------

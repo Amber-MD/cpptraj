@@ -51,6 +51,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   R_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Matrix_3x3());
   T_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
   RefT_.assign(96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
+  // NOTE: nops_ is set by LoadSpaceGroupSymOps
   LoadSpaceGroupSymOps(R_, T_);
 
   // Get the reference frame if possible (if there is no reference, the first
@@ -69,6 +70,8 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
     return Action::ERR;
   }
   Masks_[0].SetMaskString(mask);
+  // Allocate memory for subunits
+  other_.assign( nops_, Frame() );
 
   return Action::OK;
 }
@@ -88,6 +91,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
 //   operID:  the list of IDs of the rotation for each symmetry operation
 //---------------------------------------------------------------------------------------------
 Vec3 Action_XtalSymm::BestOrigin(Frame& orig, Frame* othr, std::vector<int>& operID)
+const
 {
   int stride = 3 * orig.Natom();
   
@@ -520,7 +524,11 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       SolventMolecules_ = AtomMask(SolventList, nnonasu);
     }
   }
-  
+
+  // Allocate space for subunit frames
+  for (i = 0; i < nops_; i++)
+    other_[i].SetupFrame(Masks_[i].Nselected());
+
   return Action::OK;
 }
 
@@ -617,14 +625,10 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 {
   int i, j;
   Frame orig;
-  Frame* othr = new Frame[nops_]; // TODO class var?
   Matrix_3x3 U, invU;
 
   // Allocate space for the subunit frames
   orig = Frame(Masks_[0].Nselected());
-  for (i = 0; i < nops_; i++) {
-    othr[i] = Frame(Masks_[i].Nselected());
-  }
 
   // Determine the optimal strategy for superimposing subunits.  This has to be
   // done here, rather than in Setup, because the reference frame for determining
@@ -707,8 +711,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
             std::vector<int> trialOpID;
             trialOpID.reserve(nops_);
             for (j = 0; j < nops_; j++) {
-              othr[j].SetCoordinates(RefFrame_, Masks_[leads[HowToGetThere[j]].subunit_]);
-              Vec3 cothr = othr[j].VCenterOfMass(0, othr[j].Natom());
+              other_[j].SetCoordinates(RefFrame_, Masks_[leads[HowToGetThere[j]].subunit_]);
+              Vec3 cothr = other_[j].VCenterOfMass(0, other_[j].Natom());
               Vec3 cdiff = cothr - corig;
               cdiff = invU * cdiff;
               Vec3 cmove = leads[HowToGetThere[j]].displc_ - cdiff;
@@ -716,18 +720,18 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
               cmove[1] = round(cmove[1]);
               cmove[2] = round(cmove[2]);
               cmove = (U * cmove) - (U * T_[leads[HowToGetThere[j]].opID_]);
-              othr[j].Translate(cmove);
+              other_[j].Translate(cmove);
               trialOpID[j] = leads[HowToGetThere[j]].opID_;
             }
-            Vec3 trOvec = BestOrigin(orig, othr, trialOpID);
+            Vec3 trOvec = BestOrigin(orig, &other_[0], trialOpID);
             orig.NegTranslate(trOvec);
             for (j = 0; j < nops_; j++) {
-              othr[j].NegTranslate(trOvec);
-              othr[j].Rotate(Rinv_[trialOpID[j]]);
+              other_[j].NegTranslate(trOvec);
+              other_[j].Rotate(Rinv_[trialOpID[j]]);
             }
             double trmsd = 0.0;
             for (j = 0; j < nops_; j++) {
-              trmsd += orig.RMSD_NoFit(othr[j], false);
+              trmsd += orig.RMSD_NoFit(other_[j], false);
             }
             if (trmsd < bestRmsd + 0.1) {
               double torig = 0.0;
@@ -783,19 +787,17 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   U = frm.Frm().BoxCrd().UnitCell(1.0);
   frm.Frm().BoxCrd().ToRecip(U, invU);
   orig = Frame(Masks_[0].Nselected());
-  for (i = 0; i < nops_; i++) {
-    othr[i] = Frame(Masks_[i].Nselected());
-  }
+
   orig.SetCoordinates(frm.Frm(), Masks_[0]);
   for (i = 0; i < nops_; i++) {
     int opID = subunitOpID_[i];
     
     // Get each subunit and the box transformations
-    othr[i].SetCoordinates(frm.Frm(), Masks_[i]);
+    other_[i].SetCoordinates(frm.Frm(), Masks_[i]);
 
     // Get the displacement between the two subunits' centers of mass
     Vec3 corig = orig.VCenterOfMass(0, orig.Natom());
-    Vec3 cothr = othr[i].VCenterOfMass(0, othr[i].Natom());
+    Vec3 cothr = other_[i].VCenterOfMass(0, other_[i].Natom());
     Vec3 cdiff = cothr - corig;
     cdiff = invU * cdiff;
 
@@ -811,10 +813,10 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     // reverse symmetry operation.  After all subunits have had their translations
     // removed, a consensus origin for the whole system will be computed in order
     // to apply the reverse rotations.
-    othr[i].Translate(cmove);
+    other_[i].Translate(cmove);
     frm.ModifyFrm().Translate(cmove, Masks_[i]);
   }
-  Vec3 Ovec = BestOrigin(orig, othr, subunitOpID_);
+  Vec3 Ovec = BestOrigin(orig, &other_[0], subunitOpID_);
 
   // Apply the final result, the origin at which all of these transformations are valid
   frm.ModifyFrm().NegTranslate(Ovec);  
@@ -891,9 +893,6 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     }
     frm.ModifyFrm().Rotate(U, SolventParticles_);
   }
-  
-  // Free allocated memory
-  delete[] othr;
   
   return Action::MODIFY_COORDS;
 }
