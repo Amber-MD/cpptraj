@@ -26,7 +26,7 @@ class Action_XtalSymm : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    Action::RetType LoadSpaceGroupSymOps(std::vector<Matrix_3x3>&, Vec3*, Vec3*);
+    Action::RetType LoadSpaceGroupSymOps(std::vector<Matrix_3x3>&, std::vector<Vec3>&);
     bool OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr);
     bool OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr);
     void BestSuperposition(int, int, XtalDock*, int&);
@@ -80,9 +80,9 @@ class Action_XtalSymm : public Action {
   
     // Rotation matrices and translation vectors
     std::vector<Matrix_3x3> R_;
-    Matrix_3x3* Rinv_;
-    Vec3* T_;
-    Vec3* RefT_;
+    std::vector<Matrix_3x3> Rinv_;
+    std::vector<Vec3> T_;
+    std::vector<Vec3> RefT_;
     bool* rotIdentity_;
 
     // Grid for ASU assignment of loose molecules

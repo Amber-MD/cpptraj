@@ -48,10 +48,10 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   molCentToASU_ = actionArgs.hasKey("centroid");
   // Allocate space to hold all of the symmetry operations.
   // No space group has more than 96.
-  R_.assign(96 * nCopyA_ * nCopyB_ * nCopyC_, Matrix_3x3());
-  T_    = new       Vec3[96 * nCopyA_ * nCopyB_ * nCopyC_];
-  RefT_ = new       Vec3[96 * nCopyA_ * nCopyB_ * nCopyC_];
-  LoadSpaceGroupSymOps(R_, T_, RefT_);
+  R_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Matrix_3x3());
+  T_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
+  RefT_.assign(96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
+  LoadSpaceGroupSymOps(R_, T_);
 
   // Get the reference frame if possible (if there is no reference, the first
   // frame of the trajectory will fill in for it much later, in DoAction)
@@ -908,9 +908,6 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 //---------------------------------------------------------------------------------------------
 Action_XtalSymm::~Action_XtalSymm()
 {
-  delete[] Rinv_;
-  delete[] T_;
-  delete[] RefT_;
   delete[] rotIdentity_;
   if (allToFirstASU_) {
     delete[] AsuGrid_;
@@ -926,9 +923,10 @@ Action_XtalSymm::~Action_XtalSymm()
   *                       group specified in an xtalsymm command.  This code was created by a
   *                       python script and should not be edited by hand.
   */
+// NOTE: RefT was being passed here but had nothing done to it.
 // FIXME: To avoid massive recode, pass in R, T, and RefT; these were renamed to follow
 //        existing cpptraj Class variable naming conventions.
-Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps(std::vector<Matrix_3x3>& R, Vec3* T, Vec3* RefT)
+Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps(std::vector<Matrix_3x3>& R, std::vector<Vec3>& T)
 {
   int i, j, k;
 
@@ -23388,11 +23386,10 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps(std::vector<Matrix_3x3>& R
   }
 
   // Prepare a table of transposed (inverse) rotation matrices
-  Rinv_ = new Matrix_3x3[96 * nCopyA_ * nCopyB_ * nCopyC_];
-  for (i = 0; i < nops_; i++) {
-    Rinv_[i] = R[i];
-    Rinv_[i].Transpose();
-  }
+  Rinv_.clear();
+  Rinv_.reserve( 96 * nCopyA_ * nCopyB_ * nCopyC_ );
+  for (i = 0; i < nops_; i++)
+    Rinv_.push_back( R[i].Transposed() );
 
   return Action::OK;
 }
