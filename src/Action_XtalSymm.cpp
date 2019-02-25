@@ -9,6 +9,18 @@ const int Action_XtalSymm::IASU_GRID_BINS_ = 192;
 
 const double Action_XtalSymm::DASU_GRID_BINS_ = 192;
 
+Action_XtalSymm::Action_XtalSymm() :
+  nops_(0),
+  nCopyA_(0),
+  nCopyB_(0),
+  nCopyC_(0),
+  sgID_(0),
+  useFirst_(false),
+  nMolecule_(0),
+  allToFirstASU_(false),
+  molCentToASU_(false)
+{}
+
 //---------------------------------------------------------------------------------------------
 // Action_XtalSymm::Help()
 //---------------------------------------------------------------------------------------------
@@ -36,7 +48,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   molCentToASU_ = actionArgs.hasKey("centroid");
   // Allocate space to hold all of the symmetry operations.
   // No space group has more than 96.
-  R_    = new Matrix_3x3[96 * nCopyA_ * nCopyB_ * nCopyC_];
+  R_.assign(96 * nCopyA_ * nCopyB_ * nCopyC_, Matrix_3x3());
   T_    = new       Vec3[96 * nCopyA_ * nCopyB_ * nCopyC_];
   RefT_ = new       Vec3[96 * nCopyA_ * nCopyB_ * nCopyC_];
   LoadSpaceGroupSymOps(R_, T_, RefT_);
@@ -896,7 +908,6 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 //---------------------------------------------------------------------------------------------
 Action_XtalSymm::~Action_XtalSymm()
 {
-  delete[] R_;
   delete[] Rinv_;
   delete[] T_;
   delete[] RefT_;
@@ -917,7 +928,7 @@ Action_XtalSymm::~Action_XtalSymm()
   */
 // FIXME: To avoid massive recode, pass in R, T, and RefT; these were renamed to follow
 //        existing cpptraj Class variable naming conventions.
-Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps(Matrix_3x3* R, Vec3* T, Vec3* RefT)
+Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps(std::vector<Matrix_3x3>& R, Vec3* T, Vec3* RefT)
 {
   int i, j, k;
 

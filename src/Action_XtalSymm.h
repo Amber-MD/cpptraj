@@ -11,7 +11,7 @@
   */
 class Action_XtalSymm : public Action {
   public:
-    Action_XtalSymm() {}
+    Action_XtalSymm();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_XtalSymm(); }
     void Help() const;
     ~Action_XtalSymm();
@@ -26,7 +26,7 @@ class Action_XtalSymm : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    Action::RetType LoadSpaceGroupSymOps(Matrix_3x3*, Vec3*, Vec3*);
+    Action::RetType LoadSpaceGroupSymOps(std::vector<Matrix_3x3>&, Vec3*, Vec3*);
     bool OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr);
     bool OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr);
     void BestSuperposition(int, int, XtalDock*, int&);
@@ -79,7 +79,7 @@ class Action_XtalSymm : public Action {
     std::vector<int> subunitOpID_;
   
     // Rotation matrices and translation vectors
-    Matrix_3x3* R_;
+    std::vector<Matrix_3x3> R_;
     Matrix_3x3* Rinv_;
     Vec3* T_;
     Vec3* RefT_;
