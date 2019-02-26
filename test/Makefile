@@ -199,9 +199,6 @@ test.gist:
 test.readdata:
 	@-cd Test_ReadData && ./RunTest.sh $(OPT)
 
-test.ambpdb:
-	@-cd Test_AmbPDB && ./RunTest.sh $(OPT)
-
 test.systemVF:
 	@-cd Test_systemVF && ./RunTest.sh $(OPT)
 
