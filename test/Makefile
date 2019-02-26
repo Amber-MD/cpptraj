@@ -506,7 +506,6 @@ COMPLETETESTS=test.general \
               test.pairdist \
               test.readdata \
               test.gist \
-              test.ambpdb \
               test.systemVF \
               test.atomiccorr \
               test.autocorr \
