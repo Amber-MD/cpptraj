@@ -6,10 +6,6 @@ include cpptrajfiles
 
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
-include ambpdbfiles
-
-AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o)
-
 CUDA_SOURCES=cuda_kernels/core_kernels.cu cuda_kernels/kernel_wrappers.cu
 
 # Default target: cpptraj only
@@ -24,13 +20,6 @@ install_cpptraj: cpptraj$(SFX)$(EXE)
 
 cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
 	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
-
-# AmbPDB -------------------------------
-install_ambpdb: ambpdb$(EXE)
-	mv ambpdb$(EXE) $(CPPTRAJBIN)
-
-ambpdb$(EXE): $(AMBPDB_OBJECTS) $(XDRFILE_TARGET)
-	$(CXX) -o ambpdb$(EXE) $(AMBPDB_OBJECTS) $(LDFLAGS)
 
 # libcpptraj ---------------------------
 # Rule to make libcpptraj-specific objects
@@ -88,14 +77,14 @@ findDepend: FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
 
 depend: findDepend
-	./findDepend $(SOURCES) $(CSOURCES) AmbPDB.cpp > cpptrajdepend
+	./findDepend $(SOURCES) $(CSOURCES) > cpptrajdepend
 
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
 # Clean/uninstall targets
 clean:
-	/bin/rm -f $(OBJECTS) $(FFT_TARGET) cpptraj$(SFX) AmbPDB.o ambpdb *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
+	/bin/rm -f $(OBJECTS) $(FFT_TARGET) cpptraj$(SFX) *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
 	cd readline && $(MAKE) clean
 	cd xdrfile && $(MAKE) clean
 	cd arpack && $(MAKE) clean
@@ -103,7 +92,6 @@ clean:
 
 uninstall:
 	/bin/rm -f $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
-	/bin/rm -f $(CPPTRAJBIN)/ambpdb$(EXE)
 	/bin/rm -f $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 	cd readline && make uninstall
 	cd xdrfile && make uninstall

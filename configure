@@ -1720,18 +1720,12 @@ fi
 
 # ----- Determine which targets to build ---------
 CPPTRAJ_TARGET=""
-AMBPDB_TARGET=""
 LIBCPPTRAJ_TARGET=""
 NPROC_TARGET=""
 INSTALL_TARGETS=""
 # Always build cpptraj
 CPPTRAJ_TARGET=cpptraj$SFX$EXE
 INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
-# Only build ambpdb in serial
-if [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -eq 0 ] ; then
-  AMBPDB_TARGET=ambpdb
-  INSTALL_TARGETS=$INSTALL_TARGETS" install_ambpdb"
-fi
 # Can we build libcpptraj? TODO serial/OpenMP only?
 if [ $USE_SHARED -eq 1 ] ; then
   LIBCPPTRAJ_TARGET='$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)'
