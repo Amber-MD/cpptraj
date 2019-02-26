@@ -352,6 +352,7 @@ test.gromacs:
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
 	@-cd Test_LibPME && ./RunTest.sh $(OPT)
+	@-cd Test_LJ_PME && ./RunTest.sh $(OPT)
 
 test.ti:
 	@-cd Test_TI && ./RunTest.sh $(OPT)
@@ -439,6 +440,12 @@ test.cmdline:
 
 test.xyzfmt:
 	@-cd Test_XYZformat && ./RunTest.sh $(OPT)
+
+test.hausdorff:
+	@-cd Test_Hausdorff && ./RunTest.sh $(OPT)
+
+test.catcrd:
+	@-cd Test_CatCrd && ./RunTest.sh $(OPT)
 
 # Every test target should go here.
 COMPLETETESTS=test.general \
@@ -581,7 +588,9 @@ COMPLETETESTS=test.general \
               test.infraredspec \
               test.cphstats \
               test.cmdline \
-              test.xyzfmt
+              test.xyzfmt \
+              test.hausdorff \
+              test.catcrd
 
 test.all:
 	$(MAKE) test.complete summary

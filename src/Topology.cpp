@@ -456,11 +456,6 @@ int Topology::Setup_NoResInfo() {
   return 0;
 }
 
-static inline int NoAtomsErr(const char* msg) {
-  mprinterr("Error: Cannot set up %s, no atoms present.\n");
-  return 1;
-}
-
 // Topology::Resize()
 void Topology::Resize(Pointers const& pIn) {
   atoms_.clear();
@@ -496,6 +491,7 @@ void Topology::Resize(Pointers const& pIn) {
   dihedralparm_.resize( pIn.nDihParm_ );
 }
 
+/** \return Rmin for given atom. */
 double Topology::GetVDWradius(int a1) const {
   //TODO: return zero when no params?
   NonbondType const& LJ = GetLJparam(a1, a1);
@@ -505,6 +501,17 @@ double Topology::GetVDWradius(int a1) const {
     return 0.0;
 }
 
+/** \return sigma for given atom. */
+double Topology::GetVDWsigma(int a1) const {
+  //TODO: return zero when no params?
+  NonbondType const& LJ = GetLJparam(a1, a1);
+  if (LJ.B() > 0.0)
+    return ( 0.5 * pow(LJ.A() / LJ.B(), (1.0/6.0)) );
+  else
+    return 0.0;
+}
+
+/** \return epsilon for given atom. */
 double Topology::GetVDWdepth(int a1) const {
   NonbondType const& LJ = GetLJparam(a1, a1);
   if (LJ.A() > 0.0)

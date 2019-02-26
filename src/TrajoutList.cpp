@@ -74,13 +74,6 @@ int TrajoutList::SetupTrajout(Topology* CurrentParm, CoordinateInfo const& cInfo
   return 0;
 }
 
-static inline void Append(std::string& meta, std::string const& str) {
-  if (meta.empty())
-    meta.assign( str );
-  else
-    meta.append(", " + str);
-}
-
 /** List only active output trajectories. */
 void TrajoutList::ListActive() const {
   if (!trajout_.empty()) {

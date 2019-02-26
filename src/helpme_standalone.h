@@ -207,7 +207,8 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
     Real threshold_norm;
     Real threshold;
     Real tan_phi, sin_phi, cos_phi, tan2_phi, sin2_phi, cos2_phi;
-    Real sin_2phi, cos_2phi, cot_2phi;
+    Real sin_2phi, cot_2phi;
+    //Real cos_2phi 
     Real dum1;
     Real dum2;
     Real dum3;
@@ -260,7 +261,7 @@ void JacobiCyclicDiagonalization(Real *eigenvalues, Real *eigenvectors, const Re
                 if (tan_phi < 0) sin_phi = -sin_phi;
                 cos_phi = sqrt(cos2_phi);
                 sin_2phi = 2 * sin_phi * cos_phi;
-                cos_2phi = cos2_phi - sin2_phi;
+                //cos_2phi = cos2_phi - sin2_phi;
 
                 // Rotate columns k and m for both the matrix A
                 //     and the matrix of eigenvectors.
@@ -787,8 +788,8 @@ class Matrix {
      */
     void assertSymmetric(const Real& threshold = 1e-10f) const {
         assertSquare();
-        for (int row = 0; row < nRows_; ++row) {
-            for (int col = 0; col < row; ++col) {
+        for (unsigned int row = 0; row < nRows_; ++row) {
+            for (unsigned int col = 0; col < row; ++col) {
                 if (std::abs(data_[row * nCols_ + col] - data_[col * nCols_ + row]) > threshold)
                     throw std::runtime_error("Unexpected non-symmetric matrix found.");
             }
@@ -817,7 +818,7 @@ class Matrix {
         Matrix evecs = std::get<1>(eigenPairs);
         evalsReal.applyOperationToEachElement(function);
         Matrix evecsT = evecs.transpose();
-        for (int row = 0; row < nRows_; ++row) {
+        for (unsigned int row = 0; row < nRows_; ++row) {
             Real transformedEigenvalue = evalsReal[row][0];
             std::for_each(evecsT.data_ + row * nCols_, evecsT.data_ + (row + 1) * nCols_,
                           [&](Real& val) { val *= transformedEigenvalue; });
@@ -853,10 +854,10 @@ class Matrix {
             throw std::runtime_error("Attempting to multiply matrices with incompatible dimensions.");
         Matrix product(nRows_, other.nCols_);
         Real* output = product.data_;
-        for (int row = 0; row < nRows_; ++row) {
+        for (unsigned int row = 0; row < nRows_; ++row) {
             const Real* rowPtr = data_ + row * nCols_;
-            for (int col = 0; col < other.nCols_; ++col) {
-                for (int link = 0; link < nCols_; ++link) {
+            for (unsigned int col = 0; col < other.nCols_; ++col) {
+                for (unsigned int link = 0; link < nCols_; ++link) {
                     *output += rowPtr[link] * other.data_[link * other.nCols_ + col];
                 }
                 ++output;
@@ -987,10 +988,10 @@ class Matrix {
         unsortedEigenVectors.transposeInPlace();
 
         std::vector<std::pair<Real, const Real*>> eigenPairs;
-        for (int val = 0; val < nRows_; ++val) eigenPairs.push_back({eigenValues[val][0], unsortedEigenVectors[val]});
+        for (unsigned int val = 0; val < nRows_; ++val) eigenPairs.push_back({eigenValues[val][0], unsortedEigenVectors[val]});
         std::sort(eigenPairs.begin(), eigenPairs.end());
         if (order == SortOrder::Descending) std::reverse(eigenPairs.begin(), eigenPairs.end());
-        for (int val = 0; val < nRows_; ++val) {
+        for (unsigned int val = 0; val < nRows_; ++val) {
             const auto& e = eigenPairs[val];
             eigenValues.data_[val] = std::get<0>(e);
             std::copy(std::get<1>(e), std::get<1>(e) + nCols_, sortedEigenVectors[val]);
@@ -2497,7 +2498,7 @@ class PMEInstance {
 
         atomList_.clear();
         size_t nAtoms = coords.nRows();
-        for (int atom = 0; atom < nAtoms; ++atom) {
+        for (unsigned int atom = 0; atom < nAtoms; ++atom) {
             const Real *atomCoords = coords[atom];
             constexpr float EPS = 1e-6;
             Real aCoord =
@@ -2527,11 +2528,11 @@ class PMEInstance {
         nAtoms = atomList_.size();
         if (splineCache_.size() < nAtoms) {
             size_t newSize = static_cast<size_t>(1.2 * nAtoms);
-            for (int atom = splineCache_.size(); atom < newSize; ++atom)
+            for (unsigned int atom = splineCache_.size(); atom < newSize; ++atom)
                 splineCache_.emplace_back(splineOrder_, splineDerivativeLevel);
         }
 
-        for (int atomListNum = 0; atomListNum < nAtoms; ++atomListNum) {
+        for (unsigned int atomListNum = 0; atomListNum < nAtoms; ++atomListNum) {
             const auto &entry = atomList_[atomListNum];
             const int absoluteAtomNumber = std::get<0>(entry);
             const Real aCoord = std::get<1>(entry);
@@ -2814,7 +2815,7 @@ class PMEInstance {
         if (coordinates.nRows() != parameters.nRows())
             throw std::runtime_error(
                 "Inconsistent number of coordinates and parameters; there should be nAtoms of each.");
-        if (parameters.nCols() != nCartesian(parameterAngMom))
+        if ((int)parameters.nCols() != nCartesian(parameterAngMom))
             throw std::runtime_error(
                 "Mismatch in the number of parameters provided and the parameter angular momentum");
     }
@@ -2881,7 +2882,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy, Vxx, Vxy, Vyy, Vxz, Vyz, Vzz) num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -2976,7 +2979,9 @@ class PMEInstance {
         // Exclude m=0 cell.
         int start = (nodeZero ? 1 : 0);
 // Writing the three nested loops in one allows for better load balancing in parallel.
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads)
+#endif
         for (size_t yxz = start; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             short ky = yxz / nxz;
@@ -3280,14 +3285,20 @@ class PMEInstance {
      * \return Pointer to the transformed grid, which is stored in one of the buffers in BAC order.
      */
     Complex *forwardTransform(Real *realGrid) {
+#       if HAVE_MPI == 1
         Real *realCBA;
+#       endif
         Complex *buffer1, *buffer2;
         if (realGrid == reinterpret_cast<Real *>(workSpace1_.data())) {
+#           if HAVE_MPI == 1
             realCBA = reinterpret_cast<Real *>(workSpace2_.data());
+#           endif
             buffer1 = workSpace2_.data();
             buffer2 = workSpace1_.data();
         } else {
+#           if HAVE_MPI == 1
             realCBA = reinterpret_cast<Real *>(workSpace2_.data());
+#           endif
             buffer1 = workSpace2_.data();
             buffer2 = workSpace1_.data();
         }
@@ -3587,13 +3598,15 @@ class PMEInstance {
         }
 
         transformedGrid[0] = Complex(0, 0);
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : energy) num_threads(nThreads_)
+#endif
         for (size_t yxz = 0; yxz < nyxz; ++yxz) {
             size_t xz = yxz % nxz;
             int kx = startX + xz / nz;
             // We only loop over the first nx/2+1 x values; this
             // accounts for the "missing" complex conjugate values.
-            Real permPrefac = kx != 0 && kx != halfNx - 1 ? 2 : 1;
+            Real permPrefac = kx != 0 && kx != (int)halfNx - 1 ? 2 : 1;
             Real structFactorNorm = std::norm(transformedGrid[yxz]);
             energy += permPrefac * structFactorNorm * influenceFunction[yxz];
             transformedGrid[yxz] *= influenceFunction[yxz];
@@ -3765,7 +3778,9 @@ class PMEInstance {
         size_t rowSize = std::ceil(nForceComponents / cacheLineSizeInReals_) * cacheLineSizeInReals_;
         RealMat fractionalPhis(nThreads_, rowSize);
         size_t nAtoms = atomList_.size();
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(nThreads_)
+#endif
         for (size_t relativeAtomNumber = 0; relativeAtomNumber < nAtoms; ++relativeAtomNumber) {
             const auto &entry = splineCache_[relativeAtomNumber];
             const int &atom = entry.absoluteAtomNumber;

@@ -16,6 +16,7 @@ class DataIO_Gnuplot : public DataIO {
   private:
     CpptrajFile file_;
     FileName data_fname_; ///< Data file name
+    std::string title_;   ///< Plot title (output)
     typedef std::vector<std::string> LabelArray;
     LabelArray Xlabels_;
     LabelArray Ylabels_;
@@ -25,7 +26,6 @@ class DataIO_Gnuplot : public DataIO {
     static const char* BasicPalette[];
     PM3D_OPT pm3d_;
     std::string palette_;
-    std::string title_;
     bool printLabels_; 
     bool useMap_;
     bool jpegout_;

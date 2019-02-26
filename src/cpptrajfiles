@@ -97,6 +97,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Analysis_CurveFit.cpp \
         Analysis_Divergence.cpp \
         Analysis_FFT.cpp \
+        Analysis_HausdorffDistance.cpp \
         Analysis_Hist.cpp \
         Analysis_Integrate.cpp \
         Analysis_IRED.cpp \
@@ -232,6 +233,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Ewald_Regular.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
+        Exec_CatCrd.cpp \
         Exec_Change.cpp \
         Exec_ClusterMap.cpp \
         Exec_CombineCoords.cpp \
@@ -247,6 +249,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
+        Exec_ParallelAnalysis.cpp \
         Exec_ParmBox.cpp \
         Exec_ParmSolvent.cpp \
         Exec_ParmStrip.cpp \
