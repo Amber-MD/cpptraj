@@ -249,7 +249,6 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
     mprintf("Warning: jpeg output not supported with 'noheader' option.\n");
     jpegout_ = false;
   }
-  title_ = argIn.GetStringKey("title");
   palette_ = argIn.GetStringKey("palette");
   if (!palette_.empty()) {
     if (pm3d_ == OFF) {
