@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat \
+CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat solutehb2.agr \
            nbb.dat hbavg.dat solutehb.agr lifehb.gnu avg.lifehb.gnu max.lifehb.gnu \
            crv.lifehb.gnu hb?.dat hbond.mol.dat mol.avg.dat \
            ud.dat uh.dat ua.dat \
@@ -36,6 +36,25 @@ EOF
     DoTest avg.lifehb.gnu.save avg.lifehb.gnu
     DoTest max.lifehb.gnu.save max.lifehb.gnu
     DoTest crv.lifehb.gnu.save crv.lifehb.gnu
+  fi
+}
+
+# Solute-solute, disk cache
+TestUUcache() {
+  UNITNAME='Solute Hbond test with disk caching'
+  CheckFor netcdf
+  if [ $? -eq 0 ] ; then
+    cat > hbond.in <<EOF
+noprogress
+parm ../DPDP.parm7
+trajin ../DPDP.nc
+usediskcache on
+hbond BB @N,H,C,O series
+run
+write solutehb2.agr BB[solutehb] sort
+EOF
+    RunCpptraj "$UNITNAME"
+    DoTest solutehb.agr.save solutehb2.agr
   fi
 }
 
@@ -140,6 +159,7 @@ EOF
 }
 
 TestUU
+TestUUcache
 TestUV
 TestNointramol
 SpecifiedSoluteMask
