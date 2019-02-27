@@ -23,7 +23,7 @@ DataSet_integer_disk::DataSet_integer_disk() :
   if (NC::CheckErr( nc_create( tfname_.full(), NC_64BIT_OFFSET, &ncid_ ) )) {
     mprinterr("Internal Error: Could not disk cache integer data set.\n");
   }
-  mprintf("DEBUG: Integer data set being cached in file: %s\n", tfname_.full());
+  //mprintf("DEBUG: Integer data set being cached in file: %s\n", tfname_.full());
   int frameDID;
   if (NC::CheckErr(nc_def_dim(ncid_, "frame", NC_UNLIMITED, &frameDID))) {
     mprinterr("Internal Error: Could not define frame dimension for disk integer data set.\n");
