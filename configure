@@ -1292,9 +1292,11 @@ SetupCUDA() {
     fi
   fi
   if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="$DBFLAG -arch=$SHADER_MODEL"; fi
+  if [ ! -z "$picflag" ] ; then
+    NVCCFLAGS="--compiler-options $picflag $NVCCFLAGS"
+  fi
   LIB_STAT[$LCUDA]='specified'
   LIB_HOME[$LCUDA]=$CUDA_HOME
-  USE_CUDA=1
 }
 
 # ------------------------------------------------------------------------------
@@ -1517,7 +1519,7 @@ while [ ! -z "$1" ] ; do
     '-mpi'           ) USE_MPI=1 ;;
     '-intelmpi'      ) USE_MPI=2 ;;
     '-openmp'        ) USE_OPENMP=1 ;;
-    '-cuda'          ) SetupCUDA ;;
+    '-cuda'          ) USE_CUDA=1 ;;
     '-cray'          ) PLATFORM='cray' ;;
     '-mkl'           ) BLAS_TYPE='mkl' ;;
     '-nomklfftw'     ) MKL_FFTW='no' ;;
@@ -1598,6 +1600,11 @@ BasicChecks
 
 # Set up compilers and compiler options
 SetupCompilers
+
+# Set up CUDA if needed
+if [ "$USE_CUDA" -eq 1 ] ; then
+  SetupCUDA
+fi
 
 # Set up profiling if specified
 SetupProfiling
