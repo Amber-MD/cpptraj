@@ -1453,6 +1453,35 @@ EOF
   fi
 }
 
+#-------------------------------------------------------------------------------
+# BuildRules <config file>
+# Write build rules for config files.
+BuildRules() {
+  if [ -z "$1" ] ; then
+    echo "Internal Error: BuildRules(): No output file." > /dev/stderr
+    exit 1
+  fi
+  if [ $COMPILE_VERBOSE -eq 1 ] ; then
+    cat >> $1 <<EOF
+.cpp.o:
+	\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
+
+.c.o:
+	\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
+EOF
+  else
+    cat >> $1 <<EOF
+.cpp.o:
+	@echo CXX \$<
+	@\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
+
+.c.o:
+	@echo CC \$<
+	@\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
+EOF
+  fi
+}
+
 # ==============================================================================
 # MAIN SCRIPT
 
@@ -1751,6 +1780,13 @@ fi
 # Readline
 if [ "${LIB_STAT[$LREADLINE]}" = 'bundled' ] ; then
   READLINE_TARGET=${LIB_FLAG[$LREADLINE]}
+  cat > src/readline/readline.config.h <<EOF
+CC=$CC
+CFLAGS=$CFLAGS \$(DBGFLAGS)
+CXX=$CXX
+CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
+EOF
+  BuildRules src/readline/readline.config.h
 else
   READLINE_TARGET='noreadline'
 fi
