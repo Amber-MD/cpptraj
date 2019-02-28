@@ -128,6 +128,9 @@ USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
 CLEAN='yes'          # yes = clean after configure, no = do not
 PERFORM_CHECKS='yes' # yes = Check compilers/libraries, no = do not
 
+AR_CMD='ar cqs'      # Archive command for creating static libraries.
+RM_CMD='/bin/rm -f'  # Command for removing files.
+
 # Flags for large file support
 LFS='-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64'
 
@@ -1787,6 +1790,8 @@ CC=$CC
 CFLAGS=$CFLAGS \$(DBGFLAGS)
 CXX=$CXX
 CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
+AR = $AR_CMD
+DEL_FILE = $RM_CMD
 EOF
   BuildRules src/readline/readline.config.h
 else
@@ -1795,6 +1800,15 @@ fi
 # Xdrfile
 if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
   XDRFILE_TARGET=${LIB_FLAG[$LXDRFILE]}
+  cat > src/xdrfile/xdrfile.config.h <<EOF
+CC=$CC
+CFLAGS=$CFLAGS \$(DBGFLAGS)
+CXX=$CXX
+CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
+AR = $AR_CMD
+DEL_FILE = $RM_CMD
+EOF
+  BuildRules src/xdrfile/xdrfile.config.h
 else
   XDRFILE_TARGET='noxdrfile'
 fi
