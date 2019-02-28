@@ -1,20 +1,18 @@
 add_subdirectory(xdrfile)
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Parse cpptrajfiles and ambpdbfiles
+# Parse cpptrajfiles
 
 # read each non-empty line into an element of a list
 file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/cpptrajfiles CPPTRAJFILES_CONTENTS)
-file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/ambpdbfiles AMBPDBFILES_CONTENTS)
 
 # get rid of backslashes
 string(REPLACE "\\" "" CPPTRAJFILES_CONTENTS "${CPPTRAJFILES_CONTENTS}")
-string(REPLACE "\\" "" AMBPDBFILES_CONTENTS "${AMBPDBFILES_CONTENTS}")
 
 # name of list that we are curreently appending to
 set(LIST_NAME "")
 
-foreach(LINE ${CPPTRAJFILES_CONTENTS} ${AMBPDBFILES_CONTENTS})
+foreach(LINE ${CPPTRAJFILES_CONTENTS}
 
 	# ignore comment lines
 	if(NOT "${LINE}" MATCHES "^#")
@@ -55,7 +53,6 @@ endforeach()
 # CSOURCES - all C source files used for cpptraj and libcpptraj
 # SOURCES - C++ sources for cpptraj only
 # LIBCPPTRAJ_OBJECTS - C++ sources for libcpptraj that should be compiled with the LIBCPPTRAJ definition 
-# AMBPDBSOURCES - C++ sources for AMBPDB
 
 # pub_fft.F90 is not in the source lists
 set(PUBFFT_FORTRAN_SOURCE pub_fft.F90)
@@ -63,7 +60,7 @@ set(PUBFFT_FORTRAN_SOURCE pub_fft.F90)
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 set_property(SOURCE ${PUBFFT_FORTRAN_SOURCE} PROPERTY COMPILE_FLAGS "${OPT_FFLAGS_SPC}")
-set_property(SOURCE ${COMMON_SOURCES} ${AMBPDBSOURCES} ${SOURCES} ${LIBCPPTRAJ_OBJECTS} PROPERTY COMPILE_FLAGS "${OPT_CXXFLAGS_SPC}")
+set_property(SOURCE ${COMMON_SOURCES} ${SOURCES} ${LIBCPPTRAJ_OBJECTS} PROPERTY COMPILE_FLAGS "${OPT_CXXFLAGS_SPC}")
 set_property(SOURCE ${CSOURCES} PROPERTY COMPILE_FLAGS "${OPT_CFLAGS_SPC}")
 
 include_directories(${AMBERTOOLS_INC_DIR})
@@ -99,13 +96,6 @@ target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:xdrfile,
 add_executable(cpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${SOURCES})
 
 target_link_libraries(cpptraj netcdf netlib)
-
-#------------------------------------------------------------------------------------------
-# ambpdb executable
-
-add_executable(ambpdb ${AMBPDBSOURCES})
-target_link_libraries(ambpdb netcdf)
-install(TARGETS cpptraj ambpdb DESTINATION ${BINDIR})
 
 #------------------------------------------------------------------------------------------
 # libcpptraj library
@@ -168,13 +158,13 @@ endif()
 if(libbz2_ENABLED)
 	add_definitions(-DHASBZ2)
 	include_directories(${BZIP2_INCLUDE_DIR})
-	targets_link_libraries(cpptraj libcpptraj ambpdb LIBRARIES bzip2)
+	targets_link_libraries(cpptraj libcpptraj LIBRARIES bzip2)
 endif()
 
 if(zlib_ENABLED)
 	add_definitions(-DHASGZ)
 	include_directories(${ZLIB_INCLUDE_DIRS})
-	targets_link_libraries(cpptraj libcpptraj ambpdb LIBRARIES ${ZLIB_LIBRARIES})
+	targets_link_libraries(cpptraj libcpptraj LIBRARIES ${ZLIB_LIBRARIES})
 endif()
 
 if(fftw_ENABLED)
@@ -191,7 +181,7 @@ else()
 endif()
 
 #xdrfile
-targets_link_libraries(cpptraj libcpptraj ambpdb LIBRARIES xdrfile)
+targets_link_libraries(cpptraj libcpptraj LIBRARIES xdrfile)
 
 # libsander
 if(INSIDE_AMBER AND ("${AMBER_TOOLS}" MATCHES "sander" AND BUILD_SANDER_API))
