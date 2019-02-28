@@ -1464,6 +1464,16 @@ BuildRules() {
     echo "Internal Error: BuildRules(): No output file." > /dev/stderr
     exit 1
   fi
+  cat >> $1 <<EOF
+CC=$CC
+CXX=$CXX
+FC=$FC
+CFLAGS=$CFLAGS \$(DBGFLAGS)
+CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
+FFLAGS=$FFLAGS \$(DBGFLAGS)
+F77FLAGS=$F77FLAGS \$(DBGFLAGS)
+
+EOF
   if [ $COMPILE_VERBOSE -eq 1 ] ; then
     cat >> $1 <<EOF
 .cpp.o:
@@ -1471,6 +1481,10 @@ BuildRules() {
 
 .c.o:
 	\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
+
+.f.o:
+	\$(FC) -c \$(DIRECTIVES) \$(F77FLAGS) -o \$@ \$<
+
 EOF
   else
     cat >> $1 <<EOF
@@ -1481,6 +1495,10 @@ EOF
 .c.o:
 	@echo CC \$<
 	@\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
+
+.f.o:
+	@echo FC \$<
+	@\$(FC) -c \$(DIRECTIVES) \$(F77FLAGS) -o \$@ \$<
 EOF
   fi
 }
@@ -1786,10 +1804,6 @@ if [ "${LIB_STAT[$LREADLINE]}" = 'bundled' ] ; then
   cat > src/readline/readline.config.h <<EOF
 DIRECTIVES = -DHAVE_CONFIG_H
 INCLUDE = -I.
-CC=$CC
-CFLAGS=$CFLAGS \$(DBGFLAGS)
-CXX=$CXX
-CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
 AR = $AR_CMD
 DEL_FILE = $RM_CMD
 EOF
@@ -1801,10 +1815,6 @@ fi
 if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
   XDRFILE_TARGET=${LIB_FLAG[$LXDRFILE]}
   cat > src/xdrfile/xdrfile.config.h <<EOF
-CC=$CC
-CFLAGS=$CFLAGS \$(DBGFLAGS)
-CXX=$CXX
-CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
 AR = $AR_CMD
 DEL_FILE = $RM_CMD
 EOF
@@ -1815,6 +1825,10 @@ fi
 # Arpack
 if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
   ARPACK_TARGET=${LIB_FLAG[$LARPACK]}
+  cat > src/arpack/arpack.config.h <<EOF
+DEL_FILE = $RM_CMD
+EOF
+  BuildRules src/arpack/arpack.config.h
 else
   ARPACK_TARGET='noarpack'
 fi
