@@ -1781,6 +1781,8 @@ fi
 if [ "${LIB_STAT[$LREADLINE]}" = 'bundled' ] ; then
   READLINE_TARGET=${LIB_FLAG[$LREADLINE]}
   cat > src/readline/readline.config.h <<EOF
+DIRECTIVES = -DHAVE_CONFIG_H
+INCLUDE = -I.
 CC=$CC
 CFLAGS=$CFLAGS \$(DBGFLAGS)
 CXX=$CXX

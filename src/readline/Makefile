@@ -2,8 +2,6 @@
 include readline.config.h
 
 AR = ar cqs
-CFLAGS += -DHAVE_CONFIG_H
-CFLAGS += -I.
 
 SOURCES       = bind.c \
 		callback.c \
