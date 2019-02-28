@@ -1,13 +1,10 @@
-include ../../config.h
+include cuda.config.h
 
 # Variables
 
 TARGET        = libcpptraj_cuda.a
 
 # General rules
-
-%.o : %.cu
-	$(NVCC) $(DBGFLAGS) -c $(NVCCFLAGS) -o $@ $<
 
 # Source files
 

@@ -1472,21 +1472,21 @@ BuildRules() {
       cxx )
         echo "CXX=$CXX" >> $configfile
         echo "CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)" >> $configfile
-        rule='.cpp.o'
+        rule='.cpp.o:'
         cmd='CXX'
         line='$(CXX) $(DIRECTIVES) $(INCLUDE) $(CXXFLAGS)'
         ;;
       cc )
         echo "CC=$CC" >> $configfile
         echo "CFLAGS=$CFLAGS \$(DBGFLAGS)" >> $configfile
-        rule='.c.o'
+        rule='.c.o:'
         cmd='CC'
         line='$(CC) $(DIRECTIVES) $(INCLUDE) $(CFLAGS)'
         ;;
       f77 )
         echo "FC=$FC" >> $configfile
         echo "F77FLAGS=$F77FLAGS \$(DBGFLAGS)" >> $configfile
-        rule='.f.o'
+        rule='.f.o:'
         cmd='FC'
         line='$(FC) $(DIRECTIVES) $(INCLUDE) $(F77FLAGS)'
         ;;
@@ -1495,11 +1495,18 @@ BuildRules() {
         echo "FFLAGS=$FFLAGS \$(DBGFLAGS)" >> $configfile
         # No rule needed for pub_fft.F90
         ;;
+      nvcc )
+        echo "NVCC=$NVCC" >> $configfile
+        echo "NVCCFLAGS=$NVCCFLAGS" >> $configfile
+        rule='%%.o : %%.cu'
+        cmd='NVCC'
+        line='$(NVCC) $(DBGFLAGS) $(NVCCFLAGS)'
+        ;;
     esac
       if [ ! -z "$rule" ] ; then
-        echo "$rule:" >> $configfile
+        printf "\n$rule\n" >> $configfile
         if [ $COMPILE_VERBOSE -eq 0 ] ; then
-          printf "\n\t@echo $cmd \$<\n" >> $configfile
+          printf "\t@echo $cmd \$<\n" >> $configfile
           printf "\t@$line -c -o \$@ \$<\n\n" >> $configfile
         else
           printf "\n\t$line -c -o \$@ \$<\n\n" >> $configfile
@@ -1803,6 +1810,11 @@ fi
 # CUDA
 if [ $USE_CUDA -eq 1 ] ; then
   CUDA_TARGET='cuda_kernels/libcpptraj_cuda.a'
+  cat > src/cuda_kernels/cuda.config.h <<EOF
+AR = $AR_CMD
+DEL_FILE = $RM_CMD
+EOF
+  BuildRules src/cuda_kernels/cuda.config.h nvcc
 fi
 # Readline
 if [ "${LIB_STAT[$LREADLINE]}" = 'bundled' ] ; then
@@ -1866,7 +1878,6 @@ if [ ! -z "$DBGFLAGS" ] ; then
   echo "DBGFLAGS=$DBGFLAGS" >> config.h
 fi
 cat >> config.h <<EOF
-AR = $AR_CMD
 DEL_FILE = $RM_CMD
 
 SHARED_SUFFIX=$SHARED_SUFFIX
@@ -1875,8 +1886,6 @@ INCLUDE=$INCLUDE
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 
-NVCC=$NVCC
-NVCCFLAGS=$NVCCFLAGS \$(DBGFLAGS)
 CUDA_TARGET=$CUDA_TARGET
 
 READLINE_TARGET=$READLINE_TARGET

@@ -5,8 +5,6 @@ include cpptrajfiles
 
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
-CUDA_SOURCES=cuda_kernels/core_kernels.cu cuda_kernels/kernel_wrappers.cu
-
 # Default target: cpptraj only
 all: cpptraj$(SFX)$(EXE)
 
@@ -44,13 +42,13 @@ nproc:
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
 
-readline/libreadline.a: readline/Makefile
+readline/libreadline.a: readline/readline.config.h
 	cd readline && $(MAKE) all
 
-xdrfile/libxdrfile.a: xdrfile/Makefile
+xdrfile/libxdrfile.a: xdrfile/xdrfile.config.h
 	cd xdrfile && $(MAKE) all
 
-arpack/libarpack.a: arpack/Makefile
+arpack/libarpack.a: arpack/arpack.config.h
 	cd arpack && $(MAKE) install
 
 noreadline:
@@ -68,7 +66,7 @@ noarpack:
 	@echo "Skipping bundled ARPACK build"
 	@echo ""
 
-cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)
+cuda_kernels/libcpptraj_cuda.a: cuda/cuda.config.h
 	cd cuda_kernels && $(MAKE) all
 
 # Dependency targets

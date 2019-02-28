@@ -1,3 +1,4 @@
+# Makefile for ARPACK bundled with cpptraj
 include arpack.config.h
 LIBDIR  = .
 
