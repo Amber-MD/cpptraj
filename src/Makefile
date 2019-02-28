@@ -1,6 +1,5 @@
 # Cpptraj standalone Makefile
 include ../config.h
-include ../buildrules.h
 
 include cpptrajfiles
 

@@ -1457,50 +1457,56 @@ EOF
 }
 
 #-------------------------------------------------------------------------------
-# BuildRules <config file>
+# BuildRules <config file> {cxx|cc|f77} ...
 # Write build rules for config files.
 BuildRules() {
   if [ -z "$1" ] ; then
     echo "Internal Error: BuildRules(): No output file." > /dev/stderr
     exit 1
   fi
-  cat >> $1 <<EOF
-CC=$CC
-CXX=$CXX
-FC=$FC
-CFLAGS=$CFLAGS \$(DBGFLAGS)
-CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
-FFLAGS=$FFLAGS \$(DBGFLAGS)
-F77FLAGS=$F77FLAGS \$(DBGFLAGS)
-
-EOF
-  if [ $COMPILE_VERBOSE -eq 1 ] ; then
-    cat >> $1 <<EOF
-.cpp.o:
-	\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
-
-.c.o:
-	\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
-
-.f.o:
-	\$(FC) -c \$(DIRECTIVES) \$(F77FLAGS) -o \$@ \$<
-
-EOF
-  else
-    cat >> $1 <<EOF
-.cpp.o:
-	@echo CXX \$<
-	@\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
-
-.c.o:
-	@echo CC \$<
-	@\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
-
-.f.o:
-	@echo FC \$<
-	@\$(FC) -c \$(DIRECTIVES) \$(F77FLAGS) -o \$@ \$<
-EOF
-  fi
+  configfile=$1
+  shift
+  while [ ! -z "$1" ] ; do
+    rule=''
+    case "$1" in
+      cxx )
+        echo "CXX=$CXX" >> $configfile
+        echo "CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)" >> $configfile
+        rule='.cpp.o'
+        cmd='CXX'
+        line='$(CXX) $(DIRECTIVES) $(INCLUDE) $(CXXFLAGS)'
+        ;;
+      cc )
+        echo "CC=$CC" >> $configfile
+        echo "CFLAGS=$CFLAGS \$(DBGFLAGS)" >> $configfile
+        rule='.c.o'
+        cmd='CC'
+        line='$(CC) $(DIRECTIVES) $(INCLUDE) $(CFLAGS)'
+        ;;
+      f77 )
+        echo "FC=$FC" >> $configfile
+        echo "F77FLAGS=$F77FLAGS \$(DBGFLAGS)" >> $configfile
+        rule='.f.o'
+        cmd='FC'
+        line='$(FC) $(DIRECTIVES) $(INCLUDE) $(F77FLAGS)'
+        ;;
+      f90 )
+        echo "FC=$FC" >> $configfile
+        echo "FFLAGS=$FFLAGS \$(DBGFLAGS)" >> $configfile
+        # No rule needed for pub_fft.F90
+        ;;
+    esac
+      if [ ! -z "$rule" ] ; then
+        echo "$rule:" >> $configfile
+        if [ $COMPILE_VERBOSE -eq 0 ] ; then
+          printf "\n\t@echo $cmd \$<\n" >> $configfile
+          printf "\t@$line -c -o \$@ \$<\n\n" >> $configfile
+        else
+          printf "\n\t$line -c -o \$@ \$<\n\n" >> $configfile
+        fi
+      fi
+    shift
+  done
 }
 
 # ==============================================================================
@@ -1807,7 +1813,7 @@ INCLUDE = -I.
 AR = $AR_CMD
 DEL_FILE = $RM_CMD
 EOF
-  BuildRules src/readline/readline.config.h
+  BuildRules src/readline/readline.config.h cc
 else
   READLINE_TARGET='noreadline'
 fi
@@ -1818,7 +1824,7 @@ if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
 AR = $AR_CMD
 DEL_FILE = $RM_CMD
 EOF
-  BuildRules src/xdrfile/xdrfile.config.h
+  BuildRules src/xdrfile/xdrfile.config.h cc
 else
   XDRFILE_TARGET='noxdrfile'
 fi
@@ -1828,7 +1834,7 @@ if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
   cat > src/arpack/arpack.config.h <<EOF
 DEL_FILE = $RM_CMD
 EOF
-  BuildRules src/arpack/arpack.config.h
+  BuildRules src/arpack/arpack.config.h f77
 else
   ARPACK_TARGET='noarpack'
 fi
@@ -1863,13 +1869,6 @@ cat >> config.h <<EOF
 AR = $AR_CMD
 DEL_FILE = $RM_CMD
 
-CC=$CC
-CXX=$CXX
-FC=$FC
-CFLAGS=$CFLAGS \$(DBGFLAGS)
-CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
-FFLAGS=$FFLAGS \$(DBGFLAGS)
-F77FLAGS=$F77FLAGS \$(DBGFLAGS)
 SHARED_SUFFIX=$SHARED_SUFFIX
 DIRECTIVES=$DIRECTIVES
 INCLUDE=$INCLUDE
@@ -1895,25 +1894,11 @@ SFX=$SFX
 EXE=$EXE
 
 EOF
-if [ $COMPILE_VERBOSE -eq 1 ] ; then
-  cat > buildrules.h <<EOF
-.cpp.o:
-	\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
-
-.c.o:
-	\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
-EOF
-else
-  cat > buildrules.h <<EOF
-.cpp.o:
-	@echo CXX \$<
-	@\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
-
-.c.o:
-	@echo CC \$<
-	@\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
-EOF
-fi
+#if [ "$FFT_TARGET" = 'pub_fft.o' ] ; then
+  BuildRules config.h cc cxx f90
+#else
+#  BuildRules config.h cc cxx
+#fi
 
 # ----- Create directories if necessary ----------
 if [ ! -e "$CPPTRAJBIN" ] ; then
