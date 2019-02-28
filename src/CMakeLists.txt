@@ -12,7 +12,7 @@ string(REPLACE "\\" "" CPPTRAJFILES_CONTENTS "${CPPTRAJFILES_CONTENTS}")
 # name of list that we are curreently appending to
 set(LIST_NAME "")
 
-foreach(LINE ${CPPTRAJFILES_CONTENTS}
+foreach(LINE ${CPPTRAJFILES_CONTENTS})
 
 	# ignore comment lines
 	if(NOT "${LINE}" MATCHES "^#")
