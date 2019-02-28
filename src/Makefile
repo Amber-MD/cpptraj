@@ -77,19 +77,19 @@ depend: findDepend
 	./findDepend $(SOURCES) $(CSOURCES) > cpptrajdepend
 
 dependclean:
-	/bin/rm -f FindDepend.o findDepend
+	$(DEL_FILE) FindDepend.o findDepend
 
 # Clean/uninstall targets
 clean:
-	/bin/rm -f $(OBJECTS) $(FFT_TARGET) cpptraj$(SFX) *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
+	$(DEL_FILE) $(OBJECTS) $(FFT_TARGET) cpptraj$(SFX) *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
 	cd readline && $(MAKE) clean
 	cd xdrfile && $(MAKE) clean
 	cd arpack && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
 
 uninstall:
-	/bin/rm -f $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
-	/bin/rm -f $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
+	$(DEL_FILE) $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
+	$(DEL_FILE) $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 	cd readline && make uninstall
 	cd xdrfile && make uninstall
 	cd cuda_kernels && make uninstall
