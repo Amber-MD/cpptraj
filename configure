@@ -94,6 +94,7 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
+WORKDIR=`dirname $0` # Working directory of the configure script
 COMPILERS=''       # User-specified compiler suite to use.
 FLINK=''           # Flag for linking in Fortran code
 REQUIRES_FLINK=0   # If 1 FLINK flag required during link phase
@@ -108,6 +109,7 @@ SFX=''            # Binary suffix
 EXE=''            # Binary executable suffix
 
 # ----- Configure options ------------------------
+USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
@@ -127,6 +129,9 @@ USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
 
 CLEAN='yes'          # yes = clean after configure, no = do not
 PERFORM_CHECKS='yes' # yes = Check compilers/libraries, no = do not
+
+AR_CMD='ar cqs'      # Archive command for creating static libraries.
+RM_CMD='/bin/rm -f'  # Command for removing files.
 
 # Flags for large file support
 LFS='-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64'
@@ -1453,6 +1458,151 @@ EOF
   fi
 }
 
+#-------------------------------------------------------------------------------
+# BuildRules <config file> {cxx|cc|f77} ...
+# Write build rules for config files.
+BuildRules() {
+  if [ -z "$1" ] ; then
+    echo "Internal Error: BuildRules(): No output file." > /dev/stderr
+    exit 1
+  fi
+  configfile=$1
+  shift
+  while [ ! -z "$1" ] ; do
+    rule=''
+    case "$1" in
+      cxx )
+        echo "CXX=$CXX" >> $configfile
+        echo "CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)" >> $configfile
+        rule='.cpp.o:'
+        cmd='CXX'
+        line='$(CXX) $(DIRECTIVES) $(INCLUDE) $(CXXFLAGS)'
+        ;;
+      cc )
+        echo "CC=$CC" >> $configfile
+        echo "CFLAGS=$CFLAGS \$(DBGFLAGS)" >> $configfile
+        rule='.c.o:'
+        cmd='CC'
+        line='$(CC) $(DIRECTIVES) $(INCLUDE) $(CFLAGS)'
+        ;;
+      f77 )
+        echo "FC=$FC" >> $configfile
+        echo "F77FLAGS=$F77FLAGS \$(DBGFLAGS)" >> $configfile
+        rule='.f.o:'
+        cmd='FC'
+        line='$(FC) $(DIRECTIVES) $(INCLUDE) $(F77FLAGS)'
+        ;;
+      f90 )
+        echo "FC=$FC" >> $configfile
+        echo "FFLAGS=$FFLAGS \$(DBGFLAGS)" >> $configfile
+        # No rule needed for pub_fft.F90
+        ;;
+      nvcc )
+        echo "NVCC=$NVCC" >> $configfile
+        echo "NVCCFLAGS=$NVCCFLAGS" >> $configfile
+        rule='%%.o : %%.cu'
+        cmd='NVCC'
+        line='$(NVCC) $(DBGFLAGS) $(NVCCFLAGS)'
+        ;;
+    esac
+      if [ ! -z "$rule" ] ; then
+        printf "\n$rule\n" >> $configfile
+        if [ $COMPILE_VERBOSE -eq 0 ] ; then
+          printf "\t@echo $cmd \$<\n" >> $configfile
+          printf "\t@$line -c -o \$@ \$<\n\n" >> $configfile
+        else
+          printf "\n\t$line -c -o \$@ \$<\n\n" >> $configfile
+        fi
+      fi
+    shift
+  done
+}
+
+#-------------------------------------------------------------------------------
+# Use cmake to configure build.
+SetupCmake() {
+  CMAKE=`which cmake`
+  if [ -z "$CMAKE" ] ; then
+    echo "Error: 'cmake' binary not found. Cannot configure with cmake." > /dev/stderr
+    exit 1
+  fi
+  # Not recommended to run in same directory as configure
+  if [ "$WORKDIR" = '.' ] ; then
+    echo "Error: 'cmake' configure should be done in a separate directory." > /dev/stderr
+    echo "       e.g. $ cd \$CPPTRAJHOME" > /dev/stderr
+    echo "            $ mkdir build" > /dev/stderr
+    echo "            $ cd build" > /dev/stderr
+    echo "            $ ../configure -cmake <options>" > /dev/stderr
+    exit 1
+  fi
+  # Ensure cmake bnuild system exists
+  if [ ! -f "$WORKDIR/cmake/AmberBuildSystemInit.cmake" ] ; then
+    echo "Error: cmake build system is not present." > /dev/stderr
+    echo "       If this is a GIT repostitory, you may need to initialize the" > /dev/stderr
+    echo "       cmake submodule:" > /dev/stderr
+    echo " $ git submodule update --init --recursive" > /dev/stderr
+    exit 1
+  fi
+  # Set up cmake options
+  cmake_options=''
+  # Figure out compilers
+  if [ "$COMPILERS" = 'gnu' ] ; then
+    cmake_options='-DCOMPILER=GNU'
+  elif [ "$COMPILERS" = 'intel' ] ; then
+    cmake_options='-DCOMPILER=INTEL'
+  elif [ "$COMPILERS" = 'pgi' ] ; then
+    cmake_options='-DCOMPILER=PGI'
+  elif [ "$COMPILERS" = 'clang' ] ; then
+    cmake_options='-DCOMPILER=CLANG'
+  elif [ "$COMPILERS" = 'cray' ] ; then
+    cmake_options='-DCOMPILER=CRAY'
+  fi
+  # Build options
+  if [ "$USE_MPI" -eq 0 ] ; then
+    cmake_options="$cmake_options -DMPI=FALSE"
+  else
+    cmake_options="$cmake_options -DMPI=TRUE"
+  fi
+  if [ "$USE_OPENMP" -eq 0 ] ; then
+    cmake_options="$cmake_options -DOPENMP=FALSE"
+  else
+    cmake_options="$cmake_options -DOPENMP=TRUE"
+  fi
+  if [ "$USE_CUDA" -eq 0 ] ; then
+    cmake_options="$cmake_options -DCUDA=FALSE"
+  else
+    cmake_options="$cmake_options -DCUDA=TRUE"
+  fi
+  #if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
+  #  cmake_options="$cmake_options -DUSE_FFT=FALSE"
+  #fi
+  if [ $USE_STATIC -eq 1 ] ; then
+    cmake_options="$cmake_options -DSTATIC=TRUE"
+  fi
+  if [ ! -z "$CPPTRAJHOME" ] ; then
+    cmake_options="$cmake_options -DCMAKE_INSTALL_PREFIX=$CPPTRAJHOME"
+  else
+    cmake_options="$cmake_options -DCMAKE_INSTALL_PREFIX=$WORKDIR"
+  fi
+  if [ $USE_OPT -eq 0 ] ; then
+    cmake_options="$cmake_options -DOPTIMIZE=FALSE"
+  else
+    cmake_options="$cmake_options -DOPTIMIZE=TRUE"
+  fi
+  if [ $USE_DEBUG -eq 0 ] ; then
+    cmake_options="$cmake_options -DCMAKE_BUILD_TYPE=Release"
+  else
+    cmake_options="$cmake_options -DCMAKE_BUILD_TYPE=Debug"
+  fi
+  if [ $COMPILE_VERBOSE -eq 1 ] ; then
+    cmake_options="$cmake_options -DCMAKE_VERBOSE_MAKEFILE=TRUE"
+  fi
+  echo "  Cmake options: $WORKDIR $cmake_options"
+  # Run cmake 
+  $CMAKE $WORKDIR $cmake_options
+  exit $?
+}
+ 
 # ==============================================================================
 # MAIN SCRIPT
 
@@ -1516,6 +1666,7 @@ while [ ! -z "$1" ] ; do
     'NVCCFLAGS'  ) NVCCFLAGS="$VALUE" ;;
     'SHADER_MODEL') SHADER_MODEL="$VALUE" ;;
     # Build options
+    '-cmake'         ) USE_CMAKE=1 ;;
     '-mpi'           ) USE_MPI=1 ;;
     '-intelmpi'      ) USE_MPI=2 ;;
     '-openmp'        ) USE_OPENMP=1 ;;
@@ -1593,6 +1744,11 @@ if [ -z "$NBITS" ] ; then
   else
     NBITS=32
   fi
+fi
+
+# Should we use cmake instead?
+if [ $USE_CMAKE -eq 1 ] ; then
+  SetupCmake
 fi
 
 # Basic checks and directives
@@ -1727,18 +1883,12 @@ fi
 
 # ----- Determine which targets to build ---------
 CPPTRAJ_TARGET=""
-AMBPDB_TARGET=""
 LIBCPPTRAJ_TARGET=""
 NPROC_TARGET=""
 INSTALL_TARGETS=""
 # Always build cpptraj
 CPPTRAJ_TARGET=cpptraj$SFX$EXE
 INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
-# Only build ambpdb in serial
-if [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -eq 0 ] ; then
-  AMBPDB_TARGET=ambpdb
-  INSTALL_TARGETS=$INSTALL_TARGETS" install_ambpdb"
-fi
 # Can we build libcpptraj? TODO serial/OpenMP only?
 if [ $USE_SHARED -eq 1 ] ; then
   LIBCPPTRAJ_TARGET='$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)'
@@ -1753,22 +1903,43 @@ fi
 # CUDA
 if [ $USE_CUDA -eq 1 ] ; then
   CUDA_TARGET='cuda_kernels/libcpptraj_cuda.a'
+  cat > src/cuda_kernels/cuda.config.h <<EOF
+AR = $AR_CMD
+DEL_FILE = $RM_CMD
+EOF
+  BuildRules src/cuda_kernels/cuda.config.h nvcc
 fi
 # Readline
 if [ "${LIB_STAT[$LREADLINE]}" = 'bundled' ] ; then
   READLINE_TARGET=${LIB_FLAG[$LREADLINE]}
+  cat > src/readline/readline.config.h <<EOF
+DIRECTIVES = -DHAVE_CONFIG_H
+INCLUDE = -I.
+AR = $AR_CMD
+DEL_FILE = $RM_CMD
+EOF
+  BuildRules src/readline/readline.config.h cc
 else
   READLINE_TARGET='noreadline'
 fi
 # Xdrfile
 if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
   XDRFILE_TARGET=${LIB_FLAG[$LXDRFILE]}
+  cat > src/xdrfile/xdrfile.config.h <<EOF
+AR = $AR_CMD
+DEL_FILE = $RM_CMD
+EOF
+  BuildRules src/xdrfile/xdrfile.config.h cc
 else
   XDRFILE_TARGET='noxdrfile'
 fi
 # Arpack
 if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
   ARPACK_TARGET=${LIB_FLAG[$LARPACK]}
+  cat > src/arpack/arpack.config.h <<EOF
+DEL_FILE = $RM_CMD
+EOF
+  BuildRules src/arpack/arpack.config.h f77
 else
   ARPACK_TARGET='noarpack'
 fi
@@ -1800,21 +1971,14 @@ if [ ! -z "$DBGFLAGS" ] ; then
   echo "DBGFLAGS=$DBGFLAGS" >> config.h
 fi
 cat >> config.h <<EOF
-CC=$CC
-CXX=$CXX
-FC=$FC
-CFLAGS=$CFLAGS \$(DBGFLAGS)
-CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
-FFLAGS=$FFLAGS \$(DBGFLAGS)
-F77FLAGS=$F77FLAGS \$(DBGFLAGS)
+DEL_FILE = $RM_CMD
+
 SHARED_SUFFIX=$SHARED_SUFFIX
 DIRECTIVES=$DIRECTIVES
 INCLUDE=$INCLUDE
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 
-NVCC=$NVCC
-NVCCFLAGS=$NVCCFLAGS \$(DBGFLAGS)
 CUDA_TARGET=$CUDA_TARGET
 
 READLINE_TARGET=$READLINE_TARGET
@@ -1832,25 +1996,11 @@ SFX=$SFX
 EXE=$EXE
 
 EOF
-if [ $COMPILE_VERBOSE -eq 1 ] ; then
-  cat > buildrules.h <<EOF
-.cpp.o:
-	\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
-
-.c.o:
-	\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
-EOF
-else
-  cat > buildrules.h <<EOF
-.cpp.o:
-	@echo CXX \$<
-	@\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
-
-.c.o:
-	@echo CC \$<
-	@\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
-EOF
-fi
+#if [ "$FFT_TARGET" = 'pub_fft.o' ] ; then
+  BuildRules config.h cc cxx f90
+#else
+#  BuildRules config.h cc cxx
+#fi
 
 # ----- Create directories if necessary ----------
 if [ ! -e "$CPPTRAJBIN" ] ; then
