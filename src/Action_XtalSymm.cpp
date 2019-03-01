@@ -15,7 +15,7 @@ Action_XtalSymm::Action_XtalSymm() :
   nCopyB_(0),
   nCopyC_(0),
   sgID_(0),
-  useFirst_(false),
+  refType_(NONE),
   nMolecule_(0),
   allToFirstASU_(false),
   molCentToASU_(false)
@@ -23,10 +23,10 @@ Action_XtalSymm::Action_XtalSymm() :
 
 // Action_XtalSymm::Help()
 void Action_XtalSymm::Help() const {
-  mprintf("\t<mask> [reference] group <space group> [collect [centroid]]\n"
-          "\t[na <# replicas along a vector>]\n"
-          "\t[nb <# replicas along b vector>] [nc <# replicas along c vector>]\n",
-          ReferenceAction::Help());
+  mprintf("\t<mask> group <space group> [collect [centroid]]\n"
+          "\t[ first | %s ]\n"
+          "\t[na <na>] [nb <nb>] [nc <nc>]\n",
+          DataSetList::RefArgs);
   mprintf("  Calculate the optimal approach for superimposing symmetry-related subunits\n"
           "  of the simulation back onto one another.  This modifies the coordinate state\n"
           "  for all future actions.\n");
@@ -52,10 +52,18 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
 
   // Get the reference frame if possible (if there is no reference, the first
   // frame of the trajectory will fill in for it much later, in DoAction)
-  if (REF_.InitRef(actionArgs, init.DSL(), false, false)) {
-    return Action::ERR;
+  refType_ = NONE;
+  if (actionArgs.hasKey("first"))
+    refType_ = FIRST;
+  else {
+    REF_ = init.DSL().GetReferenceFrame( actionArgs );
+    if (REF_.error()) return Action::ERR;
+    if (REF_.empty()) {
+      mprintf("Warning: No reference structure specified. Defaulting to first.\n");
+      refType_ = FIRST;
+    } else
+      refType_ = SPECIFIED;
   }
-  useFirst_ = REF_.CurrentReference().empty();
   
   // Set the masks for all symmetry-related subunits
   Masks_.assign(nops_, AtomMask());
@@ -70,7 +78,10 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   other_.assign( nops_, Frame() );
 
   mprintf("    XTALSYMM: Mask is %s\n", Masks_[0].MaskString());
-  mprintf("\tReference is %s\n", REF_.RefModeString().c_str());
+  if (refType_ == FIRST)
+    mprintf("\tReference is first frame.\n");
+  else
+    mprintf("\tReference is %s\n", REF_.refName());
   mprintf("\tSpace group '%s'\n", spaceGrp_.c_str());
   mprintf("\tNA= %8i  NB= %8i  NC= %8i  Nops= %8i\n", nCopyA_, nCopyB_, nCopyC_, nops_);
   if (allToFirstASU_) {
@@ -368,11 +379,18 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   std::string str;
   str.assign(":*");
   tgtMask_.SetMaskString(str);
-  if (setup.Top().SetupIntegerMask(tgtMask_) || REF_.SetRefMask(str)) {
+  if (setup.Top().SetupIntegerMask(tgtMask_)) {
     return Action::ERR;
   }
-  if (!useFirst_ && REF_.SetupRef(setup.Top(), tgtMask_.Nselected()) != Action::OK) {
-    return Action::ERR;
+  if (refType_ == SPECIFIED) {
+    // The way masks are currently used, the reference topology must match
+    // current topology. For now just check same # atoms.
+    if (REF_.Parm().Natom() != setup.Top().Natom())
+      mprintf("Warning: Reference '%s' # atoms %i does not match current # atoms %i.\n",
+              REF_.refName(), REF_.Parm().Natom(), setup.Top().Natom());
+
+    RefFrame_.SetupFrame( REF_.Parm().Natom() );
+    RefFrame_.SetCoordinates( REF_.Coord(), tgtMask_ );
   }
 
   // If there are not enough masks specified (it's tedious to do, and would make
@@ -618,17 +636,16 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   // Determine the optimal strategy for superimposing subunits.  This has to be
   // done here, rather than in Setup, because the reference frame for determining
   // the strategy may have to be the first frame.
-  if (frameNum == 0) {
-
+  if (refType_ != NONE) {
     // Use the reference if supplied.  Otherwise use the first frame.
-    if (useFirst_) {
+    if (refType_ == FIRST)
+    {
       RefFrame_.SetupFrame(frm.Frm().Natom());
       RefFrame_.SetCoordinates(frm.Frm(), tgtMask_);
     }
-    else {
-      RefFrame_.SetupFrame(REF_.CurrentReference().Natom());
-      RefFrame_.SetCoordinates(REF_.CurrentReference(), tgtMask_);
-    }    
+    // Ensure this is only done once FIXME ok?
+    refType_ = NONE;
+
     U = RefFrame_.BoxCrd().UnitCell(1.0);
     RefFrame_.BoxCrd().ToRecip(U, invU);
     XtalDock* leads = new XtalDock[nops_ * nops_ * 125];

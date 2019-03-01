@@ -2,7 +2,7 @@
 #define INC_ACTION_XTALSYMM_H
 #include "Action.h"
 #include "Matrix_3x3.h"
-#include "ReferenceAction.h"
+#include "ReferenceFrame.h"
 #include "Vec3.h"
 
 /** XtalSymm: an action to superimpose symmetry-related parts of a simulation system using
@@ -53,10 +53,11 @@ class Action_XtalSymm : public Action {
     int sgID_;              ///< The space group identification number
  
     // Reference frame
+    enum RefType { NONE = 0, FIRST, SPECIFIED };
+    RefType refType_;      ///< Indicate where reference comes from.
     AtomMask tgtMask_;
-    ReferenceAction REF_;  
+    ReferenceFrame REF_;  
     Frame RefFrame_;       ///< The reference (or first trajectory) frame
-    bool useFirst_;        ///< Flag to use first trajectory frame, true if no reference frame
 
     // Re-imaging for solvent atoms
     int nMolecule_;        ///< Total number of molecules in the system, taken from the topology
