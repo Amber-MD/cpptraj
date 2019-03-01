@@ -1,5 +1,5 @@
 # Makefile for xdrfile bundled with cpptraj
-include xdrfile.config.h
+include ../../external.config.h
 
 # Variables
 DEL_FILE      = /bin/rm -f

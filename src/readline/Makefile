@@ -1,5 +1,7 @@
 # Makefile for readline bundled with cpptraj.
-include readline.config.h
+include ../../external.config.h
+DIRECTIVES   += -DHAVE_CONFIG_H
+INCLUDE      += -I.
 DEL_FILE      = /bin/rm -f
 AR            = ar cqs
 TARGET        = libreadline.a

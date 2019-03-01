@@ -1,5 +1,5 @@
 # Makefile for ARPACK bundled with cpptraj
-include arpack.config.h
+include ../../external.config.h
 LIBDIR  = .
 
 AR       = ar rv 

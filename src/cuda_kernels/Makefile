@@ -1,4 +1,5 @@
-include cuda.config.h
+# Makefile for cpptraj cuda sources
+include ../../external.config.h
 
 # Variables
 DEL_FILE      = /bin/rm -f

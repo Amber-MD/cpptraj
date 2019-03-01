@@ -1900,34 +1900,22 @@ fi
 # CUDA
 if [ $USE_CUDA -eq 1 ] ; then
   CUDA_TARGET='cuda_kernels/libcpptraj_cuda.a'
-  echo "# cpptraj cuda config file" > src/cuda_kernels/cuda.config.h
-  BuildRules src/cuda_kernels/cuda.config.h nvcc
 fi
 # Readline
 if [ "${LIB_STAT[$LREADLINE]}" = 'bundled' ] ; then
   READLINE_TARGET=${LIB_FLAG[$LREADLINE]}
-  cat > src/readline/readline.config.h <<EOF
-# cpptraj readline config file
-DIRECTIVES = -DHAVE_CONFIG_H
-INCLUDE = -I.
-EOF
-  BuildRules src/readline/readline.config.h cc
 else
   READLINE_TARGET='noreadline'
 fi
 # Xdrfile
 if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
   XDRFILE_TARGET=${LIB_FLAG[$LXDRFILE]}
-  echo "# cpptraj xdrfile config file" > src/xdrfile/xdrfile.config.h 
-  BuildRules src/xdrfile/xdrfile.config.h cc
 else
   XDRFILE_TARGET='noxdrfile'
 fi
 # Arpack
 if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
   ARPACK_TARGET=${LIB_FLAG[$LARPACK]}
-  echo "# cpptraj arpack config file" > src/arpack/arpack.config.h
-  BuildRules src/arpack/arpack.config.h f77
 else
   ARPACK_TARGET='noarpack'
 fi
@@ -1987,6 +1975,14 @@ EOF
 #else
 #  BuildRules config.h cc cxx
 #fi
+
+# ----- Create config for external libraries -----
+external_config='external.config.h'
+cat > $external_config <<EOF
+# CPPTRAJ config for external libraries.
+# configured using: $CONFIGURECMD
+EOF
+BuildRules $external_config nvcc cc f77
 
 # ----- Create directories if necessary ----------
 if [ ! -e "$CPPTRAJBIN" ] ; then
