@@ -1528,13 +1528,22 @@ SetupCmake() {
   fi
   # Not recommended to run in same directory as configure
   if [ "$WORKDIR" = '.' ] ; then
-    echo "Error: 'cmake' configure should be done in a separate directory."
-    echo "       e.g. $ cd \$CPPTRAJHOME"
-    echo "            $ mkdir build"
-    echo "            $ cd build"
-    echo "            $ ../configure -cmake <options>"
+    echo "Error: 'cmake' configure should be done in a separate directory." > /dev/stderr
+    echo "       e.g. $ cd \$CPPTRAJHOME" > /dev/stderr
+    echo "            $ mkdir build" > /dev/stderr
+    echo "            $ cd build" > /dev/stderr
+    echo "            $ ../configure -cmake <options>" > /dev/stderr
     exit 1
   fi
+  # Ensure cmake bnuild system exists
+  if [ ! -f "$WORKDIR/cmake/AmberBuildSystemInit.cmake" ] ; then
+    echo "Error: cmake build system is not present." > /dev/stderr
+    echo "       If this is a GIT repostitory, you may need to initialize the" > /dev/stderr
+    echo "       cmake submodule:" > /dev/stderr
+    echo " $ git submodule update --init --recursive" > /dev/stderr
+    exit 1
+  fi
+  # Set up cmake options
   cmake_options=''
   # Figure out compilers
   if [ "$COMPILERS" = 'gnu' ] ; then
@@ -1564,11 +1573,16 @@ SetupCmake() {
   else
     cmake_options="$cmake_options -DCUDA=TRUE"
   fi
+  #if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
+  #  cmake_options="$cmake_options -DUSE_FFT=FALSE"
+  #fi
   if [ $USE_STATIC -eq 1 ] ; then
     cmake_options="$cmake_options -DSTATIC=TRUE"
   fi
   if [ ! -z "$CPPTRAJHOME" ] ; then
     cmake_options="$cmake_options -DCMAKE_INSTALL_PREFIX=$CPPTRAJHOME"
+  else
+    cmake_options="$cmake_options -DCMAKE_INSTALL_PREFIX=$WORKDIR"
   fi
   if [ $USE_OPT -eq 0 ] ; then
     cmake_options="$cmake_options -DOPTIMIZE=FALSE"
@@ -1580,9 +1594,12 @@ SetupCmake() {
   else
     cmake_options="$cmake_options -DCMAKE_BUILD_TYPE=Debug"
   fi
-  echo "DEBUG: cmake options: $WORKDIR $cmake_options"
+  if [ $COMPILE_VERBOSE -eq 1 ] ; then
+    cmake_options="$cmake_options -DCMAKE_VERBOSE_MAKEFILE=TRUE"
+  fi
+  echo "  Cmake options: $WORKDIR $cmake_options"
   # Run cmake 
-  cmake $WORKDIR $cmake_options
+  $CMAKE $WORKDIR $cmake_options
   exit $?
 }
  
