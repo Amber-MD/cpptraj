@@ -1,18 +1,13 @@
-include ../../config.h
-# Variables
+# Makefile for xdrfile bundled with cpptraj
+include xdrfile.config.h
 
-AR            = ar cqs
-DEL_FILE      = /bin/rm -f
+# Variables
 TARGET        = libxdrfile.a
 
-# General rules
-
 # Source files
-
 XDR_SOURCES=xdrfile.c xdr_seek.c xdrfile_trr.c xdrfile_xtc.c
 
 # Objects
-
 OBJECTS=$(XDR_SOURCES:.c=.o)
 
 # Specific rules
@@ -23,15 +18,12 @@ $(TARGET): $(OBJECTS)
 	-$(DEL_FILE) $(TARGET)
 	$(AR) $(TARGET) $(OBJECTS)
 
-.c.o:
-	$(CC) $(CFLAGS) -c -o $@ $<
-
 test: $(TARGET) xdrfile_c_test.o
 	$(CC) -o a.out xdrfile_c_test.c $(TARGET) -lm
 	./a.out
 
 clean:
-	/bin/rm -f *.o $(TARGET) a.out test.trr test.xtc test.xdr
+	$(DEL_FILE) *.o $(TARGET) a.out test.trr test.xtc test.xdr
 
 uninstall: clean
 
