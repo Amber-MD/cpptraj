@@ -94,6 +94,7 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
+WORKDIR=`dirname $0` # Working directory of the configure script
 COMPILERS=''       # User-specified compiler suite to use.
 FLINK=''           # Flag for linking in Fortran code
 REQUIRES_FLINK=0   # If 1 FLINK flag required during link phase
@@ -108,6 +109,7 @@ SFX=''            # Binary suffix
 EXE=''            # Binary executable suffix
 
 # ----- Configure options ------------------------
+USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
@@ -1516,6 +1518,74 @@ BuildRules() {
   done
 }
 
+#-------------------------------------------------------------------------------
+# Use cmake to configure build.
+SetupCmake() {
+  CMAKE=`which cmake`
+  if [ -z "$CMAKE" ] ; then
+    echo "Error: 'cmake' binary not found. Cannot configure with cmake." > /dev/stderr
+    exit 1
+  fi
+  # Not recommended to run in same directory as configure
+  if [ "$WORKDIR" = '.' ] ; then
+    echo "Error: 'cmake' configure should be done in a separate directory."
+    echo "       e.g. $ cd \$CPPTRAJHOME"
+    echo "            $ mkdir build"
+    echo "            $ cd build"
+    echo "            $ ../configure -cmake <options>"
+    exit 1
+  fi
+  cmake_options=''
+  # Figure out compilers
+  if [ "$COMPILERS" = 'gnu' ] ; then
+    cmake_options='-DCOMPILER=GNU'
+  elif [ "$COMPILERS" = 'intel' ] ; then
+    cmake_options='-DCOMPILER=INTEL'
+  elif [ "$COMPILERS" = 'pgi' ] ; then
+    cmake_options='-DCOMPILER=PGI'
+  elif [ "$COMPILERS" = 'clang' ] ; then
+    cmake_options='-DCOMPILER=CLANG'
+  elif [ "$COMPILERS" = 'cray' ] ; then
+    cmake_options='-DCOMPILER=CRAY'
+  fi
+  # Build options
+  if [ "$USE_MPI" -eq 0 ] ; then
+    cmake_options="$cmake_options -DMPI=FALSE"
+  else
+    cmake_options="$cmake_options -DMPI=TRUE"
+  fi
+  if [ "$USE_OPENMP" -eq 0 ] ; then
+    cmake_options="$cmake_options -DOPENMP=FALSE"
+  else
+    cmake_options="$cmake_options -DOPENMP=TRUE"
+  fi
+  if [ "$USE_CUDA" -eq 0 ] ; then
+    cmake_options="$cmake_options -DCUDA=FALSE"
+  else
+    cmake_options="$cmake_options -DCUDA=TRUE"
+  fi
+  if [ $USE_STATIC -eq 1 ] ; then
+    cmake_options="$cmake_options -DSTATIC=TRUE"
+  fi
+  if [ ! -z "$CPPTRAJHOME" ] ; then
+    cmake_options="$cmake_options -DCMAKE_INSTALL_PREFIX=$CPPTRAJHOME"
+  fi
+  if [ $USE_OPT -eq 0 ] ; then
+    cmake_options="$cmake_options -DOPTIMIZE=FALSE"
+  else
+    cmake_options="$cmake_options -DOPTIMIZE=TRUE"
+  fi
+  if [ $USE_DEBUG -eq 0 ] ; then
+    cmake_options="$cmake_options -DCMAKE_BUILD_TYPE=Release"
+  else
+    cmake_options="$cmake_options -DCMAKE_BUILD_TYPE=Debug"
+  fi
+  echo "DEBUG: cmake options: $WORKDIR $cmake_options"
+  # Run cmake 
+  cmake $WORKDIR $cmake_options
+  exit $?
+}
+ 
 # ==============================================================================
 # MAIN SCRIPT
 
@@ -1579,6 +1649,7 @@ while [ ! -z "$1" ] ; do
     'NVCCFLAGS'  ) NVCCFLAGS="$VALUE" ;;
     'SHADER_MODEL') SHADER_MODEL="$VALUE" ;;
     # Build options
+    '-cmake'         ) USE_CMAKE=1 ;;
     '-mpi'           ) USE_MPI=1 ;;
     '-intelmpi'      ) USE_MPI=2 ;;
     '-openmp'        ) USE_OPENMP=1 ;;
@@ -1656,6 +1727,11 @@ if [ -z "$NBITS" ] ; then
   else
     NBITS=32
   fi
+fi
+
+# Should we use cmake instead?
+if [ $USE_CMAKE -eq 1 ] ; then
+  SetupCmake
 fi
 
 # Basic checks and directives
