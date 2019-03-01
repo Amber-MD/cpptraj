@@ -2,6 +2,8 @@
 include xdrfile.config.h
 
 # Variables
+DEL_FILE      = /bin/rm -f
+AR            = ar cqs
 TARGET        = libxdrfile.a
 
 # Source files

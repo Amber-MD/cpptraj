@@ -3,6 +3,8 @@ include ../config.h
 
 include cpptrajfiles
 
+DEL_FILE = /bin/rm -f
+
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
 # Default target: cpptraj only

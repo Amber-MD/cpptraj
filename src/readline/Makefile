@@ -1,7 +1,8 @@
 # Makefile for readline bundled with cpptraj.
 include readline.config.h
-
-TARGET=libreadline.a
+DEL_FILE      = /bin/rm -f
+AR            = ar cqs
+TARGET        = libreadline.a
 
 SOURCES       = bind.c \
 		callback.c \

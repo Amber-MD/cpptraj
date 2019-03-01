@@ -130,9 +130,6 @@ USE_CPPTRAJDEBUG=0   # Enable internal cpptraj debug flags
 CLEAN='yes'          # yes = clean after configure, no = do not
 PERFORM_CHECKS='yes' # yes = Check compilers/libraries, no = do not
 
-AR_CMD='ar cqs'      # Archive command for creating static libraries.
-RM_CMD='/bin/rm -f'  # Command for removing files.
-
 # Flags for large file support
 LFS='-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64'
 
@@ -1903,20 +1900,16 @@ fi
 # CUDA
 if [ $USE_CUDA -eq 1 ] ; then
   CUDA_TARGET='cuda_kernels/libcpptraj_cuda.a'
-  cat > src/cuda_kernels/cuda.config.h <<EOF
-AR = $AR_CMD
-DEL_FILE = $RM_CMD
-EOF
+  echo "# cpptraj cuda config file" > src/cuda_kernels/cuda.config.h
   BuildRules src/cuda_kernels/cuda.config.h nvcc
 fi
 # Readline
 if [ "${LIB_STAT[$LREADLINE]}" = 'bundled' ] ; then
   READLINE_TARGET=${LIB_FLAG[$LREADLINE]}
   cat > src/readline/readline.config.h <<EOF
+# cpptraj readline config file
 DIRECTIVES = -DHAVE_CONFIG_H
 INCLUDE = -I.
-AR = $AR_CMD
-DEL_FILE = $RM_CMD
 EOF
   BuildRules src/readline/readline.config.h cc
 else
@@ -1925,10 +1918,7 @@ fi
 # Xdrfile
 if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
   XDRFILE_TARGET=${LIB_FLAG[$LXDRFILE]}
-  cat > src/xdrfile/xdrfile.config.h <<EOF
-AR = $AR_CMD
-DEL_FILE = $RM_CMD
-EOF
+  echo "# cpptraj xdrfile config file" > src/xdrfile/xdrfile.config.h 
   BuildRules src/xdrfile/xdrfile.config.h cc
 else
   XDRFILE_TARGET='noxdrfile'
@@ -1936,9 +1926,7 @@ fi
 # Arpack
 if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
   ARPACK_TARGET=${LIB_FLAG[$LARPACK]}
-  cat > src/arpack/arpack.config.h <<EOF
-DEL_FILE = $RM_CMD
-EOF
+  echo "# cpptraj arpack config file" > src/arpack/arpack.config.h
   BuildRules src/arpack/arpack.config.h f77
 else
   ARPACK_TARGET='noarpack'
@@ -1971,8 +1959,6 @@ if [ ! -z "$DBGFLAGS" ] ; then
   echo "DBGFLAGS=$DBGFLAGS" >> config.h
 fi
 cat >> config.h <<EOF
-DEL_FILE = $RM_CMD
-
 SHARED_SUFFIX=$SHARED_SUFFIX
 DIRECTIVES=$DIRECTIVES
 INCLUDE=$INCLUDE

@@ -1,7 +1,8 @@
 include cuda.config.h
 
 # Variables
-
+DEL_FILE      = /bin/rm -f
+AR            = ar cqs
 TARGET        = libcpptraj_cuda.a
 
 # General rules
