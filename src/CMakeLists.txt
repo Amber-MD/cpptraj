@@ -97,6 +97,7 @@ add_executable(cpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${SOURCES})
 
 target_link_libraries(cpptraj netcdf netlib)
 
+install(TARGETS cpptraj DESTINATION ${BINDIR})
 #------------------------------------------------------------------------------------------
 # libcpptraj library
 
