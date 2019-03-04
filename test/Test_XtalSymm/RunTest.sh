@@ -5,7 +5,7 @@
 CleanFiles xtals.in mdAsuOnly.pdb mdSolventByAtom.pdb mdSolventByMolecule.pdb
 
 TESTNAME='XtalSymm tests'
-Requires netcdf
+Requires netcdf notparallel
 INPUT="-i xtals.in"
 
 # Simple reimaging of just the asymmetric unit
