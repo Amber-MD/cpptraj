@@ -155,10 +155,10 @@ const
 
       // CHECK
       if (opIDi < 0 || opIDi >= nops_) {
-        printf("opIDi = %d out of %d ops\n", opIDi, nops_);
+        mprintf("opIDi = %d out of %d ops\n", opIDi, nops_);
       }
       if (j >= othr[i].Natom() || j < 0) {
-        printf("j = %d out of %d atoms, i = %d out of %zu capacity.\n", j, othr[i].Natom(),
+        mprintf("j = %d out of %d atoms, i = %d out of %zu capacity.\n", j, othr[i].Natom(),
         i, operID.capacity());
       }
       // END CHECK
