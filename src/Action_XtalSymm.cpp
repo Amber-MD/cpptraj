@@ -655,7 +655,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 
     U = RefFrame_.BoxCrd().UnitCell(1.0);
     RefFrame_.BoxCrd().ToRecip(U, invU);
-    XtalDock* leads = new XtalDock[nops_ * nops_ * 125];
+    XtalDock* leads = new XtalDock[nops_ * nops_ * 125]; // TODO vector?
     int nLead = 0;
     for (i = 0; i < nops_; i++) {
       for (j = 0; j < nops_; j++) {
