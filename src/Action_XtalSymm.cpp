@@ -561,7 +561,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   * \param HowToGetThere:  List of leads accumulated thus far.
   * \param ncurr:          The position to add the candidate lead to the list.
   */
-bool Action_XtalSymm::OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr)
+bool Action_XtalSymm::OperationAvailable(XtalDock* leads, std::vector<int> const& HowToGetThere, int ncurr)
 {
   int i;
 
@@ -578,7 +578,7 @@ bool Action_XtalSymm::OperationAvailable(XtalDock* leads, int* HowToGetThere, in
 /** Test whether the origin of a particular lead will work in the context of the others
   * accumulated thus far.
   */
-bool Action_XtalSymm::OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr)
+bool Action_XtalSymm::OriginsAlign(XtalDock* leads, std::vector<int> const& HowToGetThere, int ncurr)
 const
 {
   int i;
@@ -691,10 +691,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
       // This is not a P1 crystal, and there are many possible combinations of the discovered
       // leads that could paint the correct picture of how to reassemble the unit (super)
       // cell.
-      int HowToGetThere[nops_];
-      for (i = 0; i < nops_; i++) {
-        HowToGetThere[i] = 0;
-      }
+      std::vector<int> HowToGetThere(nops_, 0);
       double bestRmsd = 1.0e8;
       double bestOrig = 1.0e8;
       i = 0;

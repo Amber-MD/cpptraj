@@ -26,8 +26,8 @@ class Action_XtalSymm : public Action {
     void Print() {}
 
     Action::RetType LoadSpaceGroupSymOps(std::vector<Matrix_3x3>&, std::vector<Vec3>&);
-    static inline bool OperationAvailable(XtalDock* leads, int* HowToGetThere, int ncurr);
-    bool OriginsAlign(XtalDock* leads, int* HowToGetThere, int ncurr) const;
+    static inline bool OperationAvailable(XtalDock* leads, std::vector<int> const& HowToGetThere, int ncurr);
+    bool OriginsAlign(XtalDock* leads, std::vector<int> const& HowToGetThere, int ncurr) const;
     void BestSuperposition(int, int, XtalDock*, int&) const;
     Vec3 BestOrigin(Frame&, Frame*, std::vector<int>&) const;
     TransOp DetectAsuResidence(double x, double y, double z) const;
