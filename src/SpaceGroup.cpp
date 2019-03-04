@@ -254,8 +254,10 @@ SpaceGroup::SpaceGroup() :
 int SpaceGroup::ID(std::string const& sgIn) {
   MapType::const_iterator it = IdMap_.find(sgIn);
   if (it == IdMap_.end())
-    return -1;
-  return it->second;
+    sgID_ = -1;
+  else
+    sgID_ = it->second;
+  return sgID_;
 }
 
 //---------------------------------------------------------------------------------------------
