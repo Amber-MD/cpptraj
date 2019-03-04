@@ -125,7 +125,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     findBPmode_ = FIRST;
 # ifdef MPI
   if (findBPmode_ == ALL && trajComm_.Size() > 1) {
-    mprinterr("Error: Currently 'allframes' does not work with > 1 thread per traj"
+    mprinterr("Error: Currently 'allframes' does not work with > 1 process per trajectory"
               " (currently %i)\n", trajComm_.Size());
     return Action::ERR;
   }

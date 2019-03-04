@@ -47,7 +47,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
 {
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'nmrrst' action does not work with > 1 thread (%i threads currently).\n",
+    mprinterr("Error: 'nmrrst' action does not work with > 1 process (%i processes currently).\n",
               init.TrajComm().Size());
     return Action::ERR;
   }

@@ -107,8 +107,8 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
   } else {
 #   ifdef MPI
     if (init.TrajComm().Size() > 1) {
-      mprinterr("Error: 'density' with masks does not work with > 1 thread"
-                " (%i threads currently).\n", init.TrajComm().Size());
+      mprinterr("Error: 'density' with masks does not work with > 1 process"
+                " (%i processes currently).\n", init.TrajComm().Size());
       return Action::ERR;
     }
 # endif
