@@ -37,6 +37,7 @@ class Action_XtalSymm : public Action {
     static inline double dmax(double, double);
     static inline double dmax(double, double, double);
     static inline double dmax(double, double, double, double);
+    inline void FindPrevious(int&, double&, double&, double&, double, double, double) const;
     bool PointInPrimaryASU(double x, double y, double z) const;
 
     static const int IASU_GRID_BINS_;

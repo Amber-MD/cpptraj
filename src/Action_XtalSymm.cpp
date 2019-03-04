@@ -295,6 +295,31 @@ const
   return amove;
 }
 
+void Action_XtalSymm::FindPrevious(int& prevOpID, double& prevTx, double& prevTy, double& prevTz,
+                                   double ptx, double pty, double ptz) const
+{
+  for (int ii = -1; ii <= 1; ii++) {
+    for (int jj = -1; jj <= 1; jj++) {
+      for (int kk = -1; kk <= 1; kk++) {
+        for (int m = 0; m < nops_; m++) {
+          Vec3 pt(ptx + (double)ii, pty + (double)jj, ptz + (double)kk);
+          pt = pt - T_[m];
+          pt = Rinv_[m] * pt;
+          if (PointInPrimaryASU(pt[0], pt[1], pt[2])) {
+
+            // This is a solution, break out of all loops
+            prevOpID = m;
+            prevTx = (double)ii;
+            prevTy = (double)jj;
+            prevTz = (double)kk;
+            return;
+          }
+        }
+      }
+    }
+  }
+}
+
 // Action_XtalSymm::BuildAsuGrid()
 /** Build a grid spanning the unit cell to indicate the approximate extent of
   * each asymmetric unit's volume.  Grid bins that do not fall entirely within
@@ -303,7 +328,7 @@ const
   */
 void Action_XtalSymm::BuildAsuGrid()
 {
-  int i, j, k, ii, jj, kk, m;
+  int i, j, k, ii, jj, kk;
 
   int prevOpID = 0;
   double prevTx = 0.0;
@@ -323,6 +348,8 @@ void Action_XtalSymm::BuildAsuGrid()
         pt = Rinv_[prevOpID] * pt;
         bool success = PointInPrimaryASU(pt[0], pt[1], pt[2]);
         if (!success) {
+          FindPrevious(prevOpID, prevTx, prevTy, prevTz, ptx, pty, ptz);
+/*
           for (ii = -1; ii <= 1; ii++) {
             for (jj = -1; jj <= 1; jj++) {
               for (kk = -1; kk <= 1; kk++) {
@@ -346,6 +373,7 @@ void Action_XtalSymm::BuildAsuGrid()
               }
             }
           }
+*/
         }
         bool complete = true;
         for (ii = 0; ii < 2; ii++) {
