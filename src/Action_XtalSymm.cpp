@@ -3,6 +3,7 @@
 #include "Matrix.h"
 #include "Molecule.h"
 #include "Topology.h"
+#include "SpaceGroup.h"
 #include <cmath> // floor
 
 const int Action_XtalSymm::IASU_GRID_BINS_ = 192;
@@ -54,8 +55,23 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   R_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Matrix_3x3());
   T_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
   RefT_.assign(96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
+
+  SpaceGroup SG;
+  sgID_ = SG.ID( spaceGrp_ );
+  if (sgID_ == -1) {
+    mprinterr("Error: Could not ID space group string '%s'\n", spaceGrp_.c_str());
+    return Action::ERR;
+  }
+  nops_ = SG.LoadSymmOps(nCopyA_, nCopyB_, nCopyC_, R_, T_);
+  if (nops_ < 1) return Action::ERR;
+  // Prepare a table of transposed (inverse) rotation matrices
+  Rinv_.clear();
+  Rinv_.reserve( 96 * nCopyA_ * nCopyB_ * nCopyC_ );
+  for (int i = 0; i < nops_; i++)
+    Rinv_.push_back( R_[i].Transposed() );
+
   // NOTE: nops_ is set by LoadSpaceGroupSymOps
-  LoadSpaceGroupSymOps(R_, T_);
+  //LoadSpaceGroupSymOps(R_, T_);
 
   // Get the reference frame if possible (if there is no reference, the first
   // frame of the trajectory will fill in for it much later, in DoAction)
@@ -911,6 +927,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 // NOTE: RefT was being passed here but had nothing done to it.
 // FIXME: To avoid massive recode, pass in R, T, and RefT; these were renamed to follow
 //        existing cpptraj Class variable naming conventions.
+/*
 Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps(std::vector<Matrix_3x3>& R, std::vector<Vec3>& T)
 {
   int i, j, k;
@@ -23378,6 +23395,7 @@ Action::RetType Action_XtalSymm::LoadSpaceGroupSymOps(std::vector<Matrix_3x3>& R
 
   return Action::OK;
 }
+*/
 
 //---------------------------------------------------------------------------------------------
 // dmin: Various functions for overloading the min function from the std library

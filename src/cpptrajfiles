@@ -320,6 +320,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Residue.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \
+        SpaceGroup.cpp \
         Spline.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \
