@@ -117,13 +117,13 @@ Cpptraj
  has a wide range of functionality, and makes use of OpenMP/MPI to speed
  up many calculations, including processing ensembles of trajectories and/or
  conducting multiple analyses in parallel with MPI.
-
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Roe2018"
 literal "true"
 
 \end_inset
+
 
 \end_layout
 
@@ -13580,7 +13580,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="82" columns="3">
+<lyxtabular version="3" rows="83" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="1.3in">
 <column alignment="center" valignment="top" width="4.5in">
@@ -16021,7 +16021,7 @@ Calculate unit cell volume.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -16030,7 +16030,7 @@ watershell
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -16040,11 +16040,41 @@ Calculate the number of waters in the first and second solvation shells
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+xtalsymm
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Superimpose symmetry-related parts of a system using crystallographic symmetry
+ operations.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+X
 \end_layout
 
 \end_inset
@@ -31500,6 +31530,134 @@ closest
 
 \begin_layout Standard
 As of version 17 this command is CUDA-enabled in CUDA versions of CPPTRAJ.
+\end_layout
+
+\begin_layout Subsection
+xtalsymm
+\end_layout
+
+\begin_layout LyX-Code
+xtalsymm <mask> group <space group> [collect [centroid]]
+\end_layout
+
+\begin_layout LyX-Code
+     	[ first | reference | ref <name> | refindex <#> ]
+\end_layout
+
+\begin_layout LyX-Code
+     	[na <na>] [nb <nb>] [nc <nc>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<mask> Select atoms to perform symmetry operations on.
+\end_layout
+
+\begin_layout Description
+group
+\begin_inset space ~
+\end_inset
+
+<space
+\begin_inset space ~
+\end_inset
+
+group> Symmetry space group (e.g.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+P1
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\begin_inset Quotes eld
+\end_inset
+
+P121
+\begin_inset Quotes erd
+\end_inset
+
+, etc.)
+\end_layout
+
+\begin_layout Description
+[collect] If specified, reimage solvent molecules by atom.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[centroid] If specified along with collect, reimage solvent molecules by
+ molecule.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[first
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+reference
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+ref
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+refindex
+\begin_inset space ~
+\end_inset
+
+<#>] Reference structure to use for determining crystal symmetry.
+\end_layout
+
+\begin_layout Description
+[na
+\begin_inset space ~
+\end_inset
+
+<na>] Number of replicas along the A vector (default 1).
+\end_layout
+
+\begin_layout Description
+[nb
+\begin_inset space ~
+\end_inset
+
+<nb>] Number of replicas along the B vector (default 1).
+\end_layout
+
+\begin_layout Description
+[nc
+\begin_inset space ~
+\end_inset
+
+<nc>] Number of replicas along the C vector (default 1).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate the optimal approach for superimposing symmetry-related subunits
+ of the simulation back onto one another.
+ This modifies the coordinate state for all future actions.
 \end_layout
 
 \begin_layout Section

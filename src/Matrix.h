@@ -1,6 +1,7 @@
 #ifndef INC_MATRIX_H
 #define INC_MATRIX_H
 #include "ArrayIterator.h"
+#include <cmath> // For linear least squares
 /// Two-dimensional matrix template.
 template <class T> class Matrix {
 // TODO: Type may not be necessary here if in DataSet_2D
@@ -70,6 +71,8 @@ template <class T> class Matrix {
       maxElements_ = 0;
       currentElement_ = 0;
     }
+    /// Solve linear least-squares problem
+    void LinearLeastSquares(T* b);
   private:
     T* elements_;           ///< Array of elements
     T diagElt_;             ///< For TRIANGLE, the value of the diagonal.
@@ -246,5 +249,141 @@ template<class T> T& Matrix<T>::element(size_t xIn, size_t yIn) {
   long int idx = indexFxn_(ncols_, xIn, yIn);
   if (idx < 0) return diagElt_; // In case of xIn == yIn for TRIANGLE
   return elements_[idx];
+}
+// Matrix::LinearLeastSquares()
+/** Produce a vector containing the solution to an over-determined system of linear equations
+  * represented by the matrix itself and an input vector.  This will work for float and
+  * double-precision matrices.  The input vector will be overwritten with the solution, and
+  * the matrix itself will be turned into an upper-triangular "R" result of the QR
+  * decomposition. */
+template<class T> void Matrix<T>::LinearLeastSquares(T* b)
+{
+  int i, j, k;
+  double tnm_v, tnm_v2, tempval, sign_v;
+  double multval, temp_b, pivot;
+  // NOTE: correct code behavior relies on loop counters being int
+  // Eliminate zero rows
+  k = 0;
+  for (i = 0; i < (int)nrows_; i++) {
+    double msum = 0.0;
+    for (j = 0; j < (int)ncols_; j++) {
+      msum += fabs(elements_[i*ncols_ + j]);
+    }
+    if (msum >= 1.0e-6) {
+      for (j = 0; j < (int)ncols_; j++) {
+        elements_[k*ncols_ + j] = elements_[i*ncols_ + j];
+      }
+      b[k] = b[i];
+      k++;
+    }
+  }
+  if (k == 0 || k < (int)ncols_) {
+    for (i = 0; i < (int)nrows_; i++) {
+      b[i] = 0.0;
+    }
+    return;
+  }
+  int nEq = k;
+
+  // Eliminate zero columns, but remember the original order of variables
+  // so that variables correspnding to zero columns will get set to zero
+  k = 0;
+  int* solnID;
+  solnID = new int[ncols_];
+  for (i = 0; i < (int)ncols_; i++) {
+    double msum = 0.0;
+    for (j = 0; j < (int)nrows_; j++) {
+      msum += fabs(elements_[j*ncols_ + i]);
+    }
+    if (msum >= 1.0e-6) {
+      for (j = 0; j < (int)nrows_; j++) {
+	elements_[j*ncols_ + k] = elements_[j*ncols_ + i];
+      }
+      solnID[i] = k;
+      k++;
+    }
+    else {
+      solnID[i] = -1;
+    }
+  }
+  int nVar = k;
+  
+  // Scratch arrays
+  double* v;
+  double* vprime;
+  v = new double[nEq];
+  vprime = new double[nEq];
+  double *tmp;
+
+  // Loop over columns
+  for (k = 0; k < nVar; k++) {
+
+    // Compute the kth column of Q*
+    tnm_v2 = 0.0;
+    for (i = 0; i < nEq - k; i++) {
+      v[i] = elements_[(i + k)*ncols_ + k];
+      tnm_v2 += v[i] * v[i];
+    }
+    sign_v = (v[0] >= 0.0) ? 1.0 : -1.0;
+    tnm_v = sqrt(tnm_v2);
+    tnm_v2 -= v[0] * v[0];
+    v[0] += sign_v * tnm_v;
+    tnm_v = 1.0/sqrt(tnm_v2 + v[0]*v[0]);
+    for (i = 0; i < nEq - k; i++) {
+      v[i] = v[i] * tnm_v;
+    }
+
+    // Update A as R evolves
+    for (i = 0; i < nVar - k; i++) {
+      vprime[i] = 0.0;
+    }
+    for (i = 0; i < nEq - k; i++) {
+      tmp = &elements_[(i + k)*ncols_ + k];
+      tempval = v[i];
+      for (j = 0; j < nVar - k; j++) {
+	vprime[j] += tempval * tmp[j];
+      }
+    }
+    for (i = 0; i < nEq - k; i++) {
+      tmp = &elements_[(i + k)*ncols_ + k];
+      tempval = 2.0 * v[i];
+      for (j = 0; j < nVar - k; j++) {
+	tmp[j] -= tempval * vprime[j];
+      }
+    }
+
+    // Update b as Q* evolves
+    tmp = &b[k];
+    tempval = 0.0;
+    for (i = 0; i < nEq - k; i++) {
+      tempval += v[i] * tmp[i];
+    }
+    tempval *= 2.0;
+    for (i = 0; i < nEq - k; i++) {
+      tmp[i] -= tempval * v[i];
+    }
+  }
+
+  // Back-substitution for the solution
+  for (i = nVar - 1; i > 0; i--) {
+    pivot = 1.0 / elements_[i*ncols_ + i];
+    temp_b = b[i];
+    for (j = i-1; j >= 0; j--) {
+      multval = elements_[j*ncols_ + i] * pivot;
+      b[j] -= multval * temp_b;
+    }
+    b[i] *= pivot;
+  }
+  b[0] /= elements_[0];
+
+  // Re-order the solved variables, placing zeroes if any columns were skipped
+  for (i = ncols_ - 1; i >= 0; i--) {
+    b[i] = (solnID[i] >= 0) ? b[solnID[i]] : 0.0;
+  }
+  
+  // Free allocated memory
+  delete[] solnID;
+  delete[] v;
+  delete[] vprime;
 }
 #endif

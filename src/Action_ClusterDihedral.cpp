@@ -62,7 +62,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& in
 {
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'clusterdihedral' not supported with > 1 thread (%i threads currently)\n",
+    mprinterr("Error: 'clusterdihedral' not supported with > 1 process (%i processes currently)\n",
               init.TrajComm().Size());
     return Action::ERR;
   }

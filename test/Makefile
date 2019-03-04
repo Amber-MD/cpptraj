@@ -444,6 +444,9 @@ test.hausdorff:
 test.catcrd:
 	@-cd Test_CatCrd && ./RunTest.sh $(OPT)
 
+test.xtalsymm:
+	@-cd Test_XtalSymm && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -586,7 +589,8 @@ COMPLETETESTS=test.general \
               test.cmdline \
               test.xyzfmt \
               test.hausdorff \
-              test.catcrd
+              test.catcrd \
+              test.xtalsymm
 
 test.all:
 	$(MAKE) test.complete summary

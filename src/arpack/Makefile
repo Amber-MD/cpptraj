@@ -1,9 +1,10 @@
 # Makefile for ARPACK bundled with cpptraj
-include arpack.config.h
+include ../../external.config.h
 LIBDIR  = .
 
 AR       = ar rv 
 RANLIB   = ranlib
+DEL_FILE = /bin/rm -f
 
 TARGET = libarpack.a
 

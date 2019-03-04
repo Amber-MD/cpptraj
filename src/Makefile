@@ -3,6 +3,8 @@ include ../config.h
 
 include cpptrajfiles
 
+DEL_FILE = /bin/rm -f
+
 OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
 # Default target: cpptraj only
@@ -42,13 +44,13 @@ nproc:
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
 
-readline/libreadline.a: readline/readline.config.h
+readline/libreadline.a: ../external.config.h
 	cd readline && $(MAKE) all
 
-xdrfile/libxdrfile.a: xdrfile/xdrfile.config.h
+xdrfile/libxdrfile.a: ../external.config.h
 	cd xdrfile && $(MAKE) all
 
-arpack/libarpack.a: arpack/arpack.config.h
+arpack/libarpack.a: ../external.config.h
 	cd arpack && $(MAKE) install
 
 noreadline:
@@ -66,7 +68,7 @@ noarpack:
 	@echo "Skipping bundled ARPACK build"
 	@echo ""
 
-cuda_kernels/libcpptraj_cuda.a: cuda_kernels/cuda.config.h
+cuda_kernels/libcpptraj_cuda.a: ../external.config.h
 	cd cuda_kernels && $(MAKE) all
 
 # Dependency targets
