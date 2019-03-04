@@ -155,11 +155,11 @@ const
 
       // CHECK
       if (opIDi < 0 || opIDi >= nops_) {
-	printf("opIDi = %d out of %d ops\n", opIDi, nops_);
+        printf("opIDi = %d out of %d ops\n", opIDi, nops_);
       }
       if (j >= othr[i].Natom() || j < 0) {
-	printf("j = %d out of %d atoms, i = %d out of %zu capacity.\n", j, othr[i].Natom(),
-	       i, operID.capacity());
+        printf("j = %d out of %d atoms, i = %d out of %zu capacity.\n", j, othr[i].Natom(),
+        i, operID.capacity());
       }
       // END CHECK
       
@@ -295,6 +295,7 @@ const
   return amove;
 }
 
+// Action_XtalSymm::FindPrevious()
 void Action_XtalSymm::FindPrevious(int& prevOpID, double& prevTx, double& prevTy, double& prevTz,
                                    double ptx, double pty, double ptz) const
 {
@@ -349,31 +350,6 @@ void Action_XtalSymm::BuildAsuGrid()
         bool success = PointInPrimaryASU(pt[0], pt[1], pt[2]);
         if (!success) {
           FindPrevious(prevOpID, prevTx, prevTy, prevTz, ptx, pty, ptz);
-/*
-          for (ii = -1; ii <= 1; ii++) {
-            for (jj = -1; jj <= 1; jj++) {
-              for (kk = -1; kk <= 1; kk++) {
-                for (m = 0; m < nops_; m++) {
-                  pt = Vec3(ptx + (double)ii, pty + (double)jj, ptz + (double)kk);
-                  pt = pt - T_[m];
-                  pt = Rinv_[m] * pt;
-                  if (PointInPrimaryASU(pt[0], pt[1], pt[2])) {
-
-                    // This is a solution, break out of all loops
-                    prevOpID = m;
-                    prevTx = (double)ii;
-                    prevTy = (double)jj;
-                    prevTz = (double)kk;
-                    ii = 2;
-                    jj = 2;
-                    kk = 2;
-                    m = nops_;
-                  }
-                }
-              }
-            }
-          }
-*/
         }
         bool complete = true;
         for (ii = 0; ii < 2; ii++) {
@@ -562,7 +538,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
         if (molInSolvent_[i]) {
           for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
             LoneAtoms[j] = 0;
-	    MoleAtoms[j] = 1;
+            MoleAtoms[j] = 1;
           }
         }
       }
@@ -583,9 +559,9 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       SolventList.clear();
       SolventList.reserve(nnonasu);
       for (i = 0; i < setup.Top().Natom(); i++) {
-	if (MoleAtoms[i] == 1) {
-	  SolventList.push_back(i);
-	}
+        if (MoleAtoms[i] == 1) {
+          SolventList.push_back(i);
+        }
       }
       SolventMolecules_ = AtomMask(SolventList, nnonasu);
     }
@@ -801,20 +777,20 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
                 }
               }
             }
-	    
-	    // Exit if the standard solution works well enough
-	    if (bestRmsd < 1.0) {
-	      bool stdworks = true;
+      
+            // Exit if the standard solution works well enough
+            if (bestRmsd < 1.0) {
+              bool stdworks = true;
               for (j = 0; j < nops_; j++) {
-		if (trialOpID[j] != j) {
-		  stdworks = false;
-		}
-	      }
-	      if (stdworks) {
-		HowToGetThere[0] = nLead;
-	      }
-	    }
-	    
+                if (trialOpID[j] != j) {
+                  stdworks = false;
+                }
+              }
+              if (stdworks) {
+                HowToGetThere[0] = nLead;
+              }
+            }
+      
             // If there is more to do, decrement i and keep on going
             if (HowToGetThere[0] < nLead && i > 0) {
               i--;
