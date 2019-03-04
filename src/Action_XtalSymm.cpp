@@ -35,6 +35,13 @@ void Action_XtalSymm::Help() const {
 // Action_XtalSymm::Init()
 Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'xtalsymm' action does not work with > 1 process (%i processes currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   // Get the space group (user must supply this) and fill out the symmetry operations
   spaceGrp_ = actionArgs.GetStringKey("group");
   nCopyA_ = actionArgs.getKeyInt("na", 1);
