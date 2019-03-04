@@ -45,7 +45,7 @@ CPPTRAJ see the following publication:
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2018 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2019 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
@@ -164,6 +164,9 @@ Code for the reciprocal part of the particle mesh Ewald calculation.
 
 * Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)  
 Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearch).
+
+* David S. Cerutti (Rutgers University, Piscataway, NJ, USA)  
+Original code for the 'xtalsymm' Action.
 
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)

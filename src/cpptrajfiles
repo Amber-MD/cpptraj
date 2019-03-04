@@ -112,6 +112,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Action_Volmap.cpp \
         Action_Volume.cpp \
         Action_Watershell.cpp \
+        Action_XtalSymm.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
@@ -335,6 +336,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Residue.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \
+        SpaceGroup.cpp \
         Spline.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \

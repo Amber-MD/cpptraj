@@ -137,6 +137,7 @@
 #include "Action_FixImagedBonds.h"
 #include "Action_LipidOrder.h"
 #include "Action_InfraredSpectrum.h"
+#include "Action_XtalSymm.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -354,6 +355,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Volmap(),        Cmd::ACT, 1, "volmap" );
   Command::AddCmd( new Action_Volume(),        Cmd::ACT, 1, "volume" );
   Command::AddCmd( new Action_Watershell(),    Cmd::ACT, 1, "watershell" );
+  Command::AddCmd( new Action_XtalSymm(),      Cmd::ACT, 1, "xtalsymm" );
   // ANALYSIS
   Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // HIDDEN
   Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
