@@ -37,7 +37,6 @@ private:
   void PrintDensity();
 
   typedef StatsMap<long,double> statmap;
-  void Output(long, long, std::vector<statmap>&);
 
   static const std::string emptystring;
   static const char* PropertyStr_[];
