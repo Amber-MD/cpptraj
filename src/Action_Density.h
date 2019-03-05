@@ -36,7 +36,18 @@ private:
   void PrintHist();
   void PrintDensity();
 
-  typedef StatsMap<long,double> statmap;
+  /// Used to accumulate histogram bins.
+  typedef Stats<double> BinType;
+  /// Used to map histogram indices to histogram bins.
+  typedef std::map<long,BinType> HistType;
+  /// Used to hold all histograms
+  typedef std::vector<HistType> HistArray;
+  /// Used to hold output DataSets
+  typedef std::vector<DataSet*> DSarray;
+  /// Array of double values
+  typedef std::vector<double> Darray;
+  /// Used to hold properties for each mask.
+  typedef std::vector<Darray> PropArray;
 
   static const std::string emptystring;
   static const char* PropertyStr_[];
@@ -46,29 +57,22 @@ private:
   enum DirectionType {DX = 0, DY, DZ};
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};
 
-  DirectionType axis_;
-  DirectionType area_coord_[2];
-  PropertyType property_;
+  DirectionType axis_;          ///< Which axis to bin along.
+  DirectionType area_coord_[2]; ///< Hold which two axes used to calc. area
+  PropertyType property_;       ///< Property being binned.
 
-  double delta_;
-  Stats<double> area_;
+  double delta_;                ///< Histogram spacing
+  Stats<double> area_;          ///< Used to accumulate average area
 
-  std::vector<AtomMask> masks_;
+  std::vector<AtomMask> masks_; ///< Hold masks of things to bin.
 
-  typedef std::vector<DataSet*> DSarray;
-  DSarray AvSets_; ///< Hold average data sets for each mask
-  DSarray SdSets_; ///< Hold SD data sets for each mask
+  DSarray AvSets_;              ///< Hold normalized histogram bin average data sets for each mask
+  DSarray SdSets_;              ///< Hold histogram bin SD data sets for each mask
+  HistArray histograms_;        ///< Hold raw histograms for each mask
 
-  // std::unordered_map may be better but it is C++11, some STL's may have
-  // hash_map but not same number of params,
-  // two separate maps are used to ensure we store negative and positive zeros,
-  // i.e. to properly bin ]-1,0[ and [0,1[
-  std::vector<statmap> minus_histograms_, plus_histograms_;
-
-  std::vector<std::vector<double> > properties_;
-
-  /// Hold total system density, separate calc
-  DataSet* density_;
-  ImagedAction image_;
+  PropArray properties_;        ///< Hold properties for each mask.
+  
+  DataSet* density_;            ///< Hold total system density (if not binning)
+  ImagedAction image_;          ///< Used to calculate system volume for total density.
 };
 #endif    
