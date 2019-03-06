@@ -36,10 +36,8 @@ private:
   void PrintHist();
   void PrintDensity();
 
-  /// Used to accumulate histogram bins.
-  typedef Stats<double> BinType;
   /// Used to map histogram indices to histogram bins.
-  typedef std::map<long,BinType> HistType;
+  typedef StatsMap<long,double> HistType;
   /// Used to hold all histograms
   typedef std::vector<HistType> HistArray;
   /// Used to hold output DataSets

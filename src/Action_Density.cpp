@@ -228,9 +228,7 @@ Action::RetType Action_Density::HistAction(int frameNum, ActionFrame& frm) {
       Sum[bin] += properties_[idx][midx];
     }
     // Accumulate sums
-    for (std::map<long int, double>::const_iterator it = Sum.begin();
-                                                    it != Sum.end(); ++it)
-      hist[it->first].accumulate( it->second );
+    hist.accumulate( Sum );
   }
 
   // Accumulate area
@@ -296,8 +294,8 @@ void Action_Density::PrintHist()
       continue;
     }
     // Find lowest bin
-    HistType::const_iterator bin0 = hist.begin();
-    HistType::const_iterator bin1 = hist.end();
+    HistType::const_iterator bin0 = hist.mean_begin();
+    HistType::const_iterator bin1 = hist.mean_end();
     --bin1;
     if (idx == 0) {
       lowest_idx  = bin0->first;
@@ -322,16 +320,16 @@ void Action_Density::PrintHist()
       continue;
     }
     // Get sum over histogram
-    double sumOverBins = 0;
-    double sumN = 0;
-    for (HistType::const_iterator bin = hist.begin(); bin != hist.end(); ++bin)
-    {
-      sumOverBins += bin->second.mean();
-      sumN += bin->second.nData();
-      mprintf("DEBUG:\tbin=%6li mean=%8.3g N=%12.0f\n", bin->first, bin->second.mean(), bin->second.nData());
-    }
-    mprintf("DEBUG: '%s' sum over bins= %g  sumN= %g\n", masks_[idx].MaskString(), sumOverBins, sumN);
-    sumOverBins = 1.0; // DEBUG
+//    double sumOverBins = 0;
+//    double sumN = 0;
+//    for (HistType::const_iterator bin = hist.begin(); bin != hist.end(); ++bin)
+//    {
+//      sumOverBins += bin->second.mean();
+//      sumN += bin->second.nData();
+//      mprintf("DEBUG:\tbin=%6li mean=%8.3g N=%12.0f\n", bin->first, bin->second.mean(), bin->second.nData());
+//    }
+//    mprintf("DEBUG: '%s' sum over bins= %g  sumN= %g\n", masks_[idx].MaskString(), sumOverBins, sumN);
+    double sumOverBins = 1.0; // DEBUG
     // Calculate normalization
     double fac   = (sumOverBins * delta_);
     double sdfac = 1.0;
@@ -347,12 +345,18 @@ void Action_Density::PrintHist()
     out_sd.Allocate(DataSet::SizeArray(1, Nbins));
     out_av.SetDim(Dimension::X, Xdim);
     out_sd.SetDim(Dimension::X, Xdim);
-    for (HistType::const_iterator bin = hist.begin(); bin != hist.end(); ++bin)
+    HistType::const_iterator var = hist.variance_begin();
+    for (HistType::const_iterator mean = hist.mean_begin();
+                                  mean != hist.mean_end(); ++mean, ++var)
     {
-      long int frm = bin->first + offset;
-      double density  = bin->second.mean() * fac;
+      long int frm = mean->first + offset;
+      double density  = mean->second * fac;
       out_av.Add(frm, &density);
-      double variance = bin->second.variance();
+      double variance;
+      if (hist.nData() < 2)
+        variance = 0;
+      else
+        variance = var->second / (hist.nData() - 1);
       if (variance > 0) {
         variance = sqrt(variance);
         variance *= sdfac;

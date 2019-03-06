@@ -75,6 +75,7 @@ public:
   {}
 
   typedef typename std::map<Key,Value>::iterator iterator;
+  typedef typename std::map<Key,Value>::const_iterator const_iterator;
 
   void accumulate(std::map<Key,Value> a)
   {
@@ -110,14 +111,21 @@ public:
     return M2_[i] / (n_ - 1.0); 
   };
 
-  iterator mean_begin() { return mean_.begin(); };
-  iterator mean_end() { return mean_.end(); };
+  iterator mean_begin()             { return mean_.begin(); }
+  iterator mean_end()               { return mean_.end();   }
+  const_iterator mean_begin() const { return mean_.begin(); }
+  const_iterator mean_end()   const { return mean_.end();   }
+
 
   // not really the variance so will have to be divided by n - 1
-  iterator variance_begin() { return M2_.begin(); };
-  iterator variance_end() { return M2_.end(); };
+  iterator variance_begin()             { return M2_.begin(); }
+  iterator variance_end()               { return M2_.end();   }
+  const_iterator variance_begin() const { return M2_.begin(); }
+  const_iterator variance_end()   const { return M2_.end();   }
 
   Value nData() const { return n_; };
+
+  bool empty() const { return n_ < 1; }
 
 private:
   Value n_;
