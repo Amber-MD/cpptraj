@@ -5,7 +5,9 @@
 
 #include <map>
 
-
+/** Class that allows numerically stable calculation of mean/variance
+  * via Welford's Online algorithm.
+  */
 template <class Float>
 class Stats {
 public:
@@ -31,12 +33,27 @@ public:
     return M2_ / (n_ - 1.0); 
   };
   Float nData() const { return n_; };
-# ifdef MPI
-  Float M2()    const { return M2_; }; // Needed for MPI reduce
-  void SetVals(double m0, double m2, double n) {
-    n_ = n; mean_ = m0; M2_ = m2;
+  /// Combine two averages and variances into this Stats
+  void Combine(Stats<Float> const& rhs) {
+    // Combined mean
+    Float combinedAvg = ((n_ * mean_) + (rhs.n_*mean_)) / (n_ + rhs.n_);
+    // Combined variance
+    Float delta = rhs.mean_ - mean_;
+    Float var_a = variance();
+    Float var_b = rhs.variance();
+    Float m_a = var_a * (n_ - 1);
+    Float m_b - var_b * (rhs.n_ - 1);
+    M2_ = m_a + m_b + (delta * delta) * n_ * rhs.n_ / (n_ + rhs.n_);
+    n_ = (n_ + rhs.n_);
+    mean_ = combinedAvg;
   }
-# endif
+//# ifdef MPI
+  
+  //Float M2()    const { return M2_; }; // Needed for MPI reduce
+  //void SetVals(double m0, double m2, double n) {
+  //  n_ = n; mean_ = m0; M2_ = m2;
+  //}
+//# endif
 private:
   Float n_;
   Float mean_;
@@ -44,10 +61,12 @@ private:
 };
 
 
-// statistic map: both Key and Value are of primitive type
-// Key should be of integer type
-// Value should be of floating point type
-
+/** Class that allows numerically stable accumulation of bin values
+  * (average and variance) using Welford's Online algorithm. Intended
+  * for use in e.g. histograms. Both Key and Value are of primitive type
+  * \param Key should be of integer type
+  *\param Value should be of floating point type
+  */
 template <typename Key, typename Value>
 class StatsMap {
 public:
