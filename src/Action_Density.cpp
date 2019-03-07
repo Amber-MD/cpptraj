@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, std::max
 #include <cmath>
 #include "Action_Density.h"
 #include "CpptrajStdio.h"
