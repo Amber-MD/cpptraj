@@ -10,7 +10,6 @@ const std::string Action_Density::emptystring = "";
 // CONSTRUCTOR
 Action_Density::Action_Density() :
   axis_(DZ),
-  //area_coord_{DZ, DY},    // this is C++11!
   property_(NUMBER),
   binType_(CENTER),
   delta_(0.0),
@@ -323,8 +322,8 @@ void Action_Density::PrintHist()
   long int Nbins = (highest_idx - lowest_idx + 1);
   long int offset = -lowest_idx;
   double Xmin = (delta_ * lowest_idx) + xshift;
-  mprintf("DEBUG: Lowest idx= %li  Xmin= %g  Highest idx= %li  Bins= %li\n",
-          lowest_idx, Xmin, highest_idx, Nbins);
+  //mprintf("DEBUG: Lowest idx= %li  Xmin= %g  Highest idx= %li  Bins= %li\n",
+  //        lowest_idx, Xmin, highest_idx, Nbins);
   Dimension Xdim(Xmin, delta_, AxisStr_[axis_]);
   // Loop over all histograms. Normalize and populate output sets.
   for (unsigned int idx = 0; idx != histograms_.size(); idx++) 
