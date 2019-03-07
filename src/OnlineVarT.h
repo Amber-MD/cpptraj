@@ -6,7 +6,11 @@
 #include <map>
 
 /** Class that allows numerically stable calculation of mean/variance
-  * via Welford's Online algorithm.
+  * via Welford's Online algorithm. The Combine routine uses the parallel
+  * form of the Online algorithm ( Chan, T.F.; Golub, G.H.; LeVeque, R.J.
+  * (1979), "Updating Formulae and a Pairwise Algorithm for Computing Sample
+  * Variances.", Technical Report STAN-CS-79-773, Department of Computer
+  * Science, Stanford University ).
   */
 template <class Float>
 class Stats {
@@ -58,7 +62,7 @@ private:
   * (average and variance) using Welford's Online algorithm. Intended
   * for use in e.g. histograms. Both Key and Value are of primitive type
   * \param Key should be of integer type
-  *\param Value should be of floating point type
+  * \param Value should be of floating point type
   */
 template <typename Key, typename Value>
 class StatsMap {
@@ -66,6 +70,18 @@ public:
   StatsMap() :
     n_(0.0), min_(0), max_(0)
   {}
+# ifdef MPI
+  /// CONSTRUCTOR - intended to create StatsMap from data transfered via MPI.
+  /** the Value array should contain n, mean[], m2[]. */
+  StatsMap(std::vector<Key> keys, std::vector<Value> vals) {
+    typename std::vector<Value>::const_iterator vit = vals.begin();
+    n_ = *(vit++);
+    for (typename std::vector<Key>::const_iterator kit = keys.begin(); kit != keys.end(); ++kit, ++vit)
+      mean_[*kit] = *vit;
+    for (typename std::vector<Key>::const_iterator kit = keys.begin(); kit != keys.end(); ++kit, ++vit)
+      M2_[*kit] = *vit;
+  }
+# endif
 
   typedef typename std::map<Key,Value>::iterator iterator;
   typedef typename std::map<Key,Value>::const_iterator const_iterator;
@@ -92,13 +108,14 @@ public:
 # ifdef MPI
   void Combine(StatsMap<Key,Value> const& mapIn)
   {
-    Key min = mapIn.begin()->first;
-    Key max = mapIn.rbegin()->first;
+    Key min = mapIn.lowestKey();
+    Key max = mapIn.highestKey();
     if (min < min_) min_ = min;
     if (max > max_) max_ = max;
     Value nX = n_ + mapIn.n_;
-    std::map<Key,Value> const& meanIn = mapIn.mean_;
-    std::map<Key,Value> const& m2In   = mapIn.M2_;
+    // Create copies of input maps in case values are missing
+    std::map<Key,Value> meanIn = mapIn.mean_;
+    std::map<Key,Value> m2In   = mapIn.M2_;
     for (Key i = min_; i <= max_; i++)
     {
       Value delta = meanIn[i] - mean_[i];
@@ -130,8 +147,13 @@ public:
 
   Value nData() const { return n_; };
 
+  // \return Current number of populated bins
+  size_t nBins() const { return mean_.size(); }
+
   bool empty() const { return n_ < 1; }
 
+  Key lowestKey()  const { return mean_.begin()->first;  }
+  Key highestKey() const { return mean_.rbegin()->first; }
 private:
   Value n_;
   Key min_, max_;

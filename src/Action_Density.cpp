@@ -35,6 +35,9 @@ const char* Action_Density::AxisStr_[] = { "X", "Y", "Z" };
 // Action_Density::Init()
 Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
 
   std::string dsname = actionArgs.GetStringKey("name");
@@ -115,13 +118,6 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     delta_ = 0.0;
   } else {
     // Density selected by mask(s) along an axis
-#   ifdef MPI
-    if (init.TrajComm().Size() > 1) {
-      mprinterr("Error: 'density' with masks does not work with > 1 process"
-                " (%i processes currently).\n", init.TrajComm().Size());
-      return Action::ERR;
-    }
-# endif
     density_ = 0;
     histograms_.resize(masks_.size() );
   }
@@ -270,6 +266,62 @@ Action::RetType Action_Density::DoAction(int frameNum, ActionFrame& frm) {
   else
     return DensityAction(frameNum, frm);
 }
+
+#ifdef MPI
+/** Combine histogram data. */
+int Action_Density::SyncAction() {
+  if (trajComm_.Size() < 2) return 0;
+  std::vector<double> dbuffer;
+  std::vector<long int> ibuffer;
+  unsigned long rank_size;
+  // Should always be same number of histograms on each rank
+  if (trajComm_.Master()) {
+    // Master.
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+    {
+      for (HistArray::iterator hist = histograms_.begin(); hist != histograms_.end(); ++hist)
+      {
+        // 1. Receive number of bins for hist from rank
+        //rprintf("DEBUG: Receiving bins from rank %i\n", rank);
+        trajComm_.SendMaster(&rank_size, 1, rank, MPI_UNSIGNED_LONG);
+        //rprintf("DEBUG: %lu bins on rank %i\n", rank_size, rank);
+        // 2. Recieve histogram Keys and values from rank
+        // Double values: n, mean[], m2[]
+        dbuffer.resize( 1 + (2*rank_size) );
+        ibuffer.resize( rank_size );
+        trajComm_.SendMaster(&ibuffer[0], rank_size,       rank, MPI_LONG);
+        trajComm_.SendMaster(&dbuffer[0], 1+(2*rank_size), rank, MPI_DOUBLE);
+        // Combine histograms
+        hist->Combine( HistType(ibuffer, dbuffer) );
+      } // END loop over master histograms
+    } // END loop over ranks
+  } else {
+    // Not master. Send histogram data to master.
+    for (HistArray::const_iterator hist = histograms_.begin(); hist != histograms_.end(); ++hist)
+    {
+      // 1. Send number of bins for hist on this rank to master
+      rank_size = (unsigned long)hist->nBins();
+      trajComm_.SendMaster(&rank_size, 1, trajComm_.Rank(), MPI_UNSIGNED_LONG);
+      // 2. Send histogram Keys and values to master.
+      ibuffer.clear();
+      dbuffer.clear();
+      // Double values: n, mean[], m2[]
+      dbuffer.reserve( 1 + (2*hist->nBins()) );
+      ibuffer.reserve( hist->nBins() );
+      dbuffer.push_back( hist->nData() );
+      for (HistType::const_iterator it = hist->mean_begin(); it != hist->mean_end(); ++it) {
+        ibuffer.push_back( it->first );
+        dbuffer.push_back( it->second );
+      }
+      for (HistType::const_iterator it = hist->variance_begin(); it != hist->variance_end(); ++it)
+        dbuffer.push_back( it->second );
+      trajComm_.SendMaster(&ibuffer[0], hist->nBins(),       trajComm_.Rank(), MPI_LONG);
+      trajComm_.SendMaster(&dbuffer[0], 1+(2*hist->nBins()), trajComm_.Rank(), MPI_DOUBLE);
+    } // END loop over rank histograms
+  }
+  return 0;
+}
+#endif /* MPI */
 
 // Action_Density::PrintHist()
 /** Do histogram normalization. */

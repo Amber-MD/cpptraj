@@ -28,6 +28,9 @@ private:
   Action::RetType Setup(ActionSetup&);
   Action::RetType DoAction(int, ActionFrame&);
   void Print();
+# ifdef MPI
+  int SyncAction();
+# endif
 
   Action::RetType HistSetup(ActionSetup&);
   Action::RetType DensitySetup(ActionSetup&);
@@ -74,5 +77,8 @@ private:
   
   DataSet* density_;            ///< Hold total system density (if not binning)
   ImagedAction image_;          ///< Used to calculate system volume for total density.
+# ifdef MPI
+  Parallel::Comm trajComm_;
+# endif
 };
 #endif    
