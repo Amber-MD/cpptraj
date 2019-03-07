@@ -19,9 +19,9 @@ Action_Density::Action_Density() :
 }
 
 void Action_Density::Help() const {
-  mprintf("\t[out <filename>]\n"
-          "\t[ <mask1> ... <maskN> [name <set name>] [delta <resolution>] [x|y|z]\n"
-          "\t[{number|mass|charge|electron}] [bincenter|binedge]\n"
+  mprintf("\t[out <filename>] [name <set name>]\n"
+          "\t[ <mask1> ... <maskN> [delta <resolution>] [{x|y|z}]\n"
+          "\t  [{number|mass|charge|electron}] [{bincenter|binedge}] ]\n"
           "  If one or more masks are specified, calculate specified density of selected\n"
           "  atoms along a coordinate. Otherwise calculate the total system density.\n");
 }
