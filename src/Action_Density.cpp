@@ -21,7 +21,7 @@ Action_Density::Action_Density() :
 void Action_Density::Help() const {
   mprintf("\t[out <filename>]\n"
           "\t[ <mask1> ... <maskN> [name <set name>] [delta <resolution>] [x|y|z]\n"
-          "\t  [number|mass|charge|electron] ]\n"
+          "\t[{number|mass|charge|electron}] [bincenter|binedge]\n"
           "  If one or more masks are specified, calculate specified density of selected\n"
           "  atoms along a coordinate. Otherwise calculate the total system density.\n");
 }
@@ -107,7 +107,7 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     idx++;
   }
   if (masks_.empty()) {
-    // Total system density
+    // If no masks assume we want total system density.
     if (dsname.empty())
       dsname = actionArgs.GetStringNext();
     density_ = init.DSL().AddSet(DataSet::DOUBLE, dsname, "DENSITY");
@@ -130,6 +130,7 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     mprintf("\tDelta is %f\n", delta_);
     mprintf("\tAxis is %s\n", AxisStr_[axis_]);
     mprintf("\tData set name is '%s'\n", dsname.c_str());
+    mprintf("\tData set aspect [avg] holds the mean, aspect [sd] holds standard deviation.\n");
     mprintf("\tBin coordinates will be to bin %s.\n", binStr[binType_]);
   } else {
     mprintf(" No masks specified, calculating total system density in g/cm^3.\n");
