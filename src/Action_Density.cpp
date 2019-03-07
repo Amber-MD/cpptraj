@@ -333,19 +333,8 @@ void Action_Density::PrintHist()
     if (hist.empty()) {
       continue;
     }
-    // Get sum over histogram
-//    double sumOverBins = 0;
-//    double sumN = 0;
-//    for (HistType::const_iterator bin = hist.begin(); bin != hist.end(); ++bin)
-//    {
-//      sumOverBins += bin->second.mean();
-//      sumN += bin->second.nData();
-//      mprintf("DEBUG:\tbin=%6li mean=%8.3g N=%12.0f\n", bin->first, bin->second.mean(), bin->second.nData());
-//    }
-//    mprintf("DEBUG: '%s' sum over bins= %g  sumN= %g\n", masks_[idx].MaskString(), sumOverBins, sumN);
-    double sumOverBins = 1.0; // DEBUG
     // Calculate normalization
-    double fac   = (sumOverBins * delta_);
+    double fac   = delta_;
     double sdfac = 1.0;
     if (scale_area) {
       fac *= avgArea;

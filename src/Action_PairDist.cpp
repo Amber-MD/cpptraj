@@ -230,18 +230,10 @@ int Action_PairDist::SyncAction() {
         // Only sum for bins where master and rank both have data
         unsigned long Nbins = std::min( master_size, rank_size );
         for (unsigned long i = 0; i < Nbins; i++, idx += 3) {
-          //double mA = (double)histogram_[i].mean();
-          //double sA = (double)histogram_[i].M2();
-          //double nA = (double)histogram_[i].nData();
           double mB = buffer[idx  ];
           double sB = buffer[idx+1];
           double nB = buffer[idx+2];
           histogram_[i].Combine( Stats<double>(nB, mB, sB) );
-          //double nX = nA + nB;
-          //double delta    = mB - mA;
-          //double new_mean = mA + delta * (nB / nX);
-          //double new_sd   = sA + sB + ((delta*delta) * ((nA*nB) / nX));
-          //histogram_[i].SetVals( new_mean, new_sd, nX );
         }
         // If rank had more data than master, fill in data
         if (rank_size > master_size) {

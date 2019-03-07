@@ -16,9 +16,10 @@ public:
 # ifdef MPI
   /// CONSTRUCTOR taking N, mean, and M2
   Stats(Float n, Float mean, Float m2) : n_(n), mean_(mean), M2_(m2) {}
+  /// \return Internal M2 value
   Float M2()    const { return M2_; }; // Needed for MPI send 
 # endif
-
+  /// Update mean and variance with given value
   void accumulate(const Float x)
   {
     Float delta;
@@ -28,14 +29,16 @@ public:
     mean_ += delta / n_;
     M2_ += delta * (x - mean_);
   }
-
+  /// \return Current mean
   Float mean() const { return mean_; };
+  /// \return Current variance
   Float variance() const { 
     if (n_ < 2) return 0.0;
     return M2_ / (n_ - 1.0); 
   };
+  /// \return Current number of data points in mean/variance
   Float nData() const { return n_; };
-  /// Combine two averages and variances into this Stats
+  /// Combine given Stats with this Stats
   void Combine(Stats<Float> const& rhs) {
     Float nX = n_ + rhs.n_;
     Float delta = rhs.mean_ - mean_;
@@ -45,13 +48,6 @@ public:
     M2_ = M2_ + rhs.M2_ + ((delta*delta) * ((n_*rhs.n_) / nX));
     n_ = nX; 
   }
-//# ifdef MPI
-  
-  //Float M2()    const { return M2_; }; // Needed for MPI reduce
-  //void SetVals(double m0, double m2, double n) {
-  //  n_ = n; mean_ = m0; M2_ = m2;
-  //}
-//# endif
 private:
   Float n_;
   Float mean_;
