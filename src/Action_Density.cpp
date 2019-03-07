@@ -353,15 +353,12 @@ void Action_Density::PrintHist()
       continue;
     }
     // Find lowest bin
-    HistType::const_iterator bin0 = hist.mean_begin();
-    HistType::const_iterator bin1 = hist.mean_end();
-    --bin1;
     if (idx == 0) {
-      lowest_idx  = bin0->first;
-      highest_idx = bin1->first;
+      lowest_idx  = hist.lowestKey();
+      highest_idx = hist.highestKey();
     } else {
-      lowest_idx  = std::min(lowest_idx,  bin0->first);
-      highest_idx = std::max(highest_idx, bin1->first);
+      lowest_idx  = std::min(lowest_idx,  hist.lowestKey());
+      highest_idx = std::max(highest_idx, hist.highestKey());
     }
   }
   // If using center of bins, put blank bins at either end.
