@@ -923,7 +923,6 @@ Note that any combination of the '-openmp', '-cuda', and '-mpi' flags may
  additional runtime setup (e.g.
  setting OMP_NUM_THREADS for OpenMP) to work properly and not oversubscribe
  cores.
- 
 \end_layout
 
 \begin_layout Subsubsection
@@ -955,6 +954,15 @@ trajin
  thread 0 reads frames 1-500 of trajectory 1, thread 1 reads frames 501-1000
  of trajectory 1, thread 2 reads frames 1-500 of trajectory 2, and thread
  3 reads frames 501-1000 of trajectory 2.
+ Most Actions will work with across-trajectory parallelization with the
+ exception of the following:
+\end_layout
+
+\begin_layout Standard
+'clusterdihedral', 'contacts', 'createreservoir', 'gist', 'lipidorder',
+ 'pairwise', 'stfcdiffusion', 'unwrap', and 'xtalsymm'.
+ Note that 'diffusion' will only work with across-trajectory parallelism
+ if no imaging is to be performed.
 \end_layout
 
 \begin_layout Standard
@@ -18271,16 +18279,16 @@ density
 \end_layout
 
 \begin_layout LyX-Code
-density [out <filename>] [name <set name>] [delta <resolution>] [x|y|z]
+density [out <filename>] 
 \end_layout
 
 \begin_layout LyX-Code
-        [number|mass|charge|electron] [efile <filename>]
+        [ <mask1> ...
+ <maskN> [name <set name>] [delta <resolution>] [{x|y|z}]
 \end_layout
 
 \begin_layout LyX-Code
-        [<mask1> ...
- <maskN>]
+          [{number|mass|charge|electron}] [{bincenter|binedge}] ]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -18289,32 +18297,28 @@ density [out <filename>] [name <set name>] [delta <resolution>] [x|y|z]
 
 \begin_deeper
 \begin_layout Description
-out Output file for histogram: relative distances vs.
- densities for each mask.
- 
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] Output file for histogram (relative distances vs.
+ densities for each mask) or total density.
 \end_layout
 
 \begin_layout Description
-delta Resolution, i.e.
- determines number of slices.
- (0.25 Å) 
+[name
+\begin_inset space ~
+\end_inset
+
+<set
+\begin_inset space ~
+\end_inset
+
+name>] Output data set name.
 \end_layout
 
 \begin_layout Description
-x|y|z Coordinate for density calculation.
- (z) 
-\end_layout
-
-\begin_layout Description
-number|mass|charge|electron Number, mass, partial charge (q) or electron
- (Ne - q) density.
- To convert the electron density to e-/Å3 divide by the (average) area spanned
- by the other two dimensions.
- (number)
-\end_layout
-
-\begin_layout Description
-mask1
+<mask1>
 \begin_inset space ~
 \end_inset
 
@@ -18322,10 +18326,41 @@ mask1
 \begin_inset space ~
 \end_inset
 
-maskN Arbitrary number of masks for atom selection; a dataset is created
+<maskN> Arbitrary number of masks for atom selection; a dataset is created
  and the output will contain entries for each mask.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[delta
+\begin_inset space ~
+\end_inset
+
+<resolution>] Resolution, i.e.
+ determines number of slices (i.e.
+ histogram bins).
+ (default 0.25 Å)
+\end_layout
+
+\begin_layout Description
+[{x|y|z}] Coordinate for density calculation.
+ (default z)
+\end_layout
+
+\begin_layout Description
+[{number|mass|charge|electron}] Number, mass, partial charge (q) or electron
+ (Ne - q) density.
+ Electron density will be converted to e-/Å3 by dividing the average area
+ spanned by the other two dimensions.
+ (default number)
+\end_layout
+
+\begin_layout Description
+[{bincenter|binedge}] Determine whether histogram bin coordinates will be
+ based on bin center (default) or bin edges.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
@@ -18339,13 +18374,10 @@ DataSet Aspects:
 \end_layout
 
 \end_deeper
-\begin_layout LyX-Code
-
-\end_layout
-
 \begin_layout Standard
 If no arguments are specified, calculate the total system density.
- Otherwise, calculate specified density for system.
+ Otherwise, calculate specified density along the given axis for atoms in
+ specified mask(s).
  Defaults are shown in parentheses above.
  The format of the file is as follows.
  Comments are lines starting with '#' or empty lines.

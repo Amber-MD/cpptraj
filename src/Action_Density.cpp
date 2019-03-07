@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, std::max
 #include <cmath>
 #include "Action_Density.h"
 #include "CpptrajStdio.h"
@@ -10,8 +11,8 @@ const std::string Action_Density::emptystring = "";
 // CONSTRUCTOR
 Action_Density::Action_Density() :
   axis_(DZ),
-  //area_coord_{DZ, DY},    // this is C++11!
   property_(NUMBER),
+  binType_(CENTER),
   delta_(0.0),
   density_(0)
 {
@@ -19,9 +20,9 @@ Action_Density::Action_Density() :
 }
 
 void Action_Density::Help() const {
-  mprintf("\t[out <filename>]\n"
-          "\t[ <mask1> ... <maskN> [name <set name>] [delta <resolution>] [x|y|z]\n"
-          "\t  [number|mass|charge|electron] ]\n"
+  mprintf("\t[out <filename>] [name <set name>]\n"
+          "\t[ <mask1> ... <maskN> [delta <resolution>] [{x|y|z}]\n"
+          "\t  [{number|mass|charge|electron}] [{bincenter|binedge}] ]\n"
           "  If one or more masks are specified, calculate specified density of selected\n"
           "  atoms along a coordinate. Otherwise calculate the total system density.\n");
 }
@@ -35,6 +36,9 @@ const char* Action_Density::AxisStr_[] = { "X", "Y", "Z" };
 // Action_Density::Init()
 Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
 
   std::string dsname = actionArgs.GetStringKey("name");
@@ -54,12 +58,20 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
   }
 
   property_ = NUMBER;
-  if (actionArgs.hasKey("number") )   property_ = NUMBER;
-  if (actionArgs.hasKey("mass") )     property_ = MASS;
-  if (actionArgs.hasKey("charge") )   property_ = CHARGE;
-  if (actionArgs.hasKey("electron") ) property_ = ELECTRON;
+  if      (actionArgs.hasKey("number") )   property_ = NUMBER;
+  else if (actionArgs.hasKey("mass") )     property_ = MASS;
+  else if (actionArgs.hasKey("charge") )   property_ = CHARGE;
+  else if (actionArgs.hasKey("electron") ) property_ = ELECTRON;
+
+  binType_ = CENTER;
+  if      (actionArgs.hasKey("bincenter")) binType_ = CENTER;
+  else if (actionArgs.hasKey("binedge")  ) binType_ = EDGE;
 
   delta_ = actionArgs.getKeyDouble("delta", 0.01);
+  if (delta_ <= 0) {
+    mprinterr("Error: Delta must be > 0.0\n");
+    return Action::ERR;
+  }
 
   // for compatibility with ptraj, ignored because we rely on the atom code to
   // do the right thing, see Atom.{h,cpp}
@@ -96,6 +108,7 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     idx++;
   }
   if (masks_.empty()) {
+    // If no masks assume we want total system density.
     if (dsname.empty())
       dsname = actionArgs.GetStringNext();
     density_ = init.DSL().AddSet(DataSet::DOUBLE, dsname, "DENSITY");
@@ -105,25 +118,21 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     // Hijack delta for storing sum of masses
     delta_ = 0.0;
   } else {
-#   ifdef MPI
-    if (init.TrajComm().Size() > 1) {
-      mprinterr("Error: 'density' with masks does not work with > 1 process"
-                " (%i processes currently).\n", init.TrajComm().Size());
-      return Action::ERR;
-    }
-# endif
+    // Density selected by mask(s) along an axis
     density_ = 0;
-    minus_histograms_.resize(masks_.size() );
-    plus_histograms_.resize(masks_.size() );
+    histograms_.resize(masks_.size() );
   }
 
   mprintf("    DENSITY:");
   if (density_ == 0) {
+    const char* binStr[] = {"center", "edge"};
     mprintf(" Determining %s density for %zu masks.\n", PropertyStr_[property_], masks_.size());
     mprintf("\troutine version: %s\n", ROUTINE_VERSION_STRING);
     mprintf("\tDelta is %f\n", delta_);
     mprintf("\tAxis is %s\n", AxisStr_[axis_]);
     mprintf("\tData set name is '%s'\n", dsname.c_str());
+    mprintf("\tData set aspect [avg] holds the mean, aspect [sd] holds standard deviation.\n");
+    mprintf("\tBin coordinates will be to bin %s.\n", binStr[binType_]);
   } else {
     mprintf(" No masks specified, calculating total system density in g/cm^3.\n");
     mprintf("\tData set name is '%s'\n", density_->legend());
@@ -135,37 +144,29 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
 }
 
 // Action_Density::HistSetup()
+/** Set up masks and properties for selected atoms. */
 Action::RetType Action_Density::HistSetup(ActionSetup& setup) {
-  properties_.resize(0);
+  properties_.clear();
+  properties_.reserve( masks_.size() );
 
   for (std::vector<AtomMask>::iterator mask = masks_.begin();
-       mask != masks_.end();
-       mask++) {
+                                       mask != masks_.end();
+                                       mask++)
+  {
     if (setup.Top().SetupIntegerMask(*mask) ) return Action::ERR;
 
     std::vector<double> property;
 
     for (AtomMask::const_iterator idx = mask->begin();
-      idx != mask->end(); idx++)
+                                  idx != mask->end(); idx++)
     {
       const Atom& atom = setup.Top()[*idx];
 
       switch (property_) {
-      case NUMBER:
-        property.push_back(1.0);
-        break;
-
-      case MASS:
-        property.push_back(atom.Mass() );
-        break;
-
-      case CHARGE:
-        property.push_back(atom.Charge() );
-        break;
-
-      case ELECTRON:
-        property.push_back(atom.AtomicNumber() - atom.Charge() );
-        break;
+        case NUMBER   : property.push_back(1.0); break;
+        case MASS     : property.push_back(atom.Mass() ); break;
+        case CHARGE   : property.push_back(atom.Charge() ); break;
+        case ELECTRON : property.push_back(atom.AtomicNumber() - atom.Charge() ); break;
       }
     }
 
@@ -207,47 +208,35 @@ Action::RetType Action_Density::Setup(ActionSetup& setup) {
 
 // Action_Density::HistAction()
 Action::RetType Action_Density::HistAction(int frameNum, ActionFrame& frm) {
-  long slice;
-  unsigned long i, j;
-  Vec3 coord;
-  Box box;
-
-  i = 0;
-
-  for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
-       mask != masks_.end();
-       mask++)
+  long int bin = 0;
+  // Loop over masks
+  for (unsigned int idx = 0; idx != masks_.size(); ++idx)
   {
-    j = 0;
-
-    std::map<long,double> minus_histo, plus_histo;
-
-    for (AtomMask::const_iterator idx = mask->begin();
-         idx != mask->end();
-         idx++)
+    AtomMask const& mask = masks_[idx];
+    HistType&       hist = histograms_[idx];
+    std::map<long int, double> Sum;
+    // Loop over mask atoms
+    unsigned int midx = 0;
+    for (AtomMask::const_iterator atm = mask.begin(); atm != mask.end(); ++atm, midx++)
     {
-      coord = frm.Frm().XYZ(*idx);
-      slice = (unsigned long) (coord[axis_] / delta_);
-
-      if (coord[axis_] < 0) {
-        minus_histo[slice] += properties_[i][j];
+      const double* XYZ = frm.Frm().XYZ( *atm );
+      if (XYZ[axis_] < 0) {
+        // Coordinate is negative. Need to subtract off delta so that proper bin
+        // is populated (-delta to 0.0).
+        bin = (XYZ[axis_] - delta_) / delta_;
       } else {
-        plus_histo[slice] += properties_[i][j];
+        // Coordinate is positive.
+        bin = XYZ[axis_] / delta_;
       }
-
-      j++;
+      //mprintf("DEBUG: frm=%6i mask=%3u atm=%8i crd=%8.3f bin=%li\n", frameNum+1, idx, *atm+1, XYZ[axis_], bin);
+      Sum[bin] += properties_[idx][midx];
     }
-
-    if (minus_histo.size() > 0)
-      minus_histograms_[i].accumulate(minus_histo);
-
-    if (plus_histo.size() > 0)
-      plus_histograms_[i].accumulate(plus_histo);
-
-    i++;
+    // Accumulate sums
+    hist.accumulate( Sum );
   }
 
-  box = frm.Frm().BoxCrd();
+  // Accumulate area
+  Box const& box = frm.Frm().BoxCrd();
   area_.accumulate(box[area_coord_[0]] * box[area_coord_[1]]);
 
   return Action::OK;
@@ -280,106 +269,167 @@ Action::RetType Action_Density::DoAction(int frameNum, ActionFrame& frm) {
     return DensityAction(frameNum, frm);
 }
 
+#ifdef MPI
+/** Combine histogram data. */
+int Action_Density::SyncAction() {
+  if (trajComm_.Size() < 2) return 0;
+  std::vector<double> dbuffer;
+  std::vector<long int> ibuffer;
+  unsigned long rank_size;
+  // Should always be same number of histograms on each rank
+  if (trajComm_.Master()) {
+    // Master.
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+    {
+      for (HistArray::iterator hist = histograms_.begin(); hist != histograms_.end(); ++hist)
+      {
+        // 1. Receive number of bins for hist from rank
+        //rprintf("DEBUG: Receiving bins from rank %i\n", rank);
+        trajComm_.SendMaster(&rank_size, 1, rank, MPI_UNSIGNED_LONG);
+        //rprintf("DEBUG: %lu bins on rank %i\n", rank_size, rank);
+        // 2. Recieve histogram Keys and values from rank
+        // Double values: n, mean[], m2[]
+        dbuffer.resize( 1 + (2*rank_size) );
+        ibuffer.resize( rank_size );
+        trajComm_.SendMaster(&ibuffer[0], rank_size,       rank, MPI_LONG);
+        trajComm_.SendMaster(&dbuffer[0], 1+(2*rank_size), rank, MPI_DOUBLE);
+        // Combine histograms
+        hist->Combine( HistType(ibuffer, dbuffer) );
+      } // END loop over master histograms
+    } // END loop over ranks
+  } else {
+    // Not master. Send histogram data to master.
+    for (HistArray::const_iterator hist = histograms_.begin(); hist != histograms_.end(); ++hist)
+    {
+      // 1. Send number of bins for hist on this rank to master
+      rank_size = (unsigned long)hist->nBins();
+      trajComm_.SendMaster(&rank_size, 1, trajComm_.Rank(), MPI_UNSIGNED_LONG);
+      // 2. Send histogram Keys and values to master.
+      ibuffer.clear();
+      dbuffer.clear();
+      // Double values: n, mean[], m2[]
+      dbuffer.reserve( 1 + (2*hist->nBins()) );
+      ibuffer.reserve( hist->nBins() );
+      dbuffer.push_back( hist->nData() );
+      for (HistType::const_iterator it = hist->mean_begin(); it != hist->mean_end(); ++it) {
+        ibuffer.push_back( it->first );
+        dbuffer.push_back( it->second );
+      }
+      for (HistType::const_iterator it = hist->variance_begin(); it != hist->variance_end(); ++it)
+        dbuffer.push_back( it->second );
+      trajComm_.SendMaster(&ibuffer[0], hist->nBins(),       trajComm_.Rank(), MPI_LONG);
+      trajComm_.SendMaster(&dbuffer[0], 1+(2*hist->nBins()), trajComm_.Rank(), MPI_DOUBLE);
+    } // END loop over rank histograms
+  }
+  return 0;
+}
+#endif /* MPI */
+
 // Action_Density::PrintHist()
+/** Do histogram normalization. */
 void Action_Density::PrintHist()
 {
+  // Determine if area scaling should occur
   const unsigned int SMALL = 1.0;
 
-  long minus_minidx = 0, minus_maxidx = 0, plus_minidx = 0, plus_maxidx = 0;
-  double density, sd, area;
-
-  std::map<long,double>::iterator first_idx, last_idx;
-  statmap curr;
-
-  area = area_.mean();
-  sd = sqrt(area_.variance());
-  bool scale_area = (property_ == ELECTRON && area > SMALL);
+  double avgArea = area_.mean();
+  double sdArea  = sqrt(area_.variance());
+  bool scale_area = (property_ == ELECTRON && avgArea > SMALL);
 
   mprintf("    DENSITY: The average box area in %c/%c is %.2f Angstrom (sd = %.2f).\n",
-          area_coord_[0] + 88, area_coord_[1] + 88, area, sd);
+          area_coord_[0] + 88, area_coord_[1] + 88, avgArea, sdArea);
 
   if (scale_area)
     mprintf("The electron density will be scaled by this area.\n");
 
-  // the search for minimum and maximum indices relies on ordered map
-  for (unsigned long i = 0; i < minus_histograms_.size(); i++) {
-    first_idx = minus_histograms_[i].mean_begin(); 
-    last_idx = minus_histograms_[i].mean_end();
-
-    if (first_idx->first < minus_minidx)
-      minus_minidx = first_idx->first;
-
-    if (last_idx != first_idx) {
-      last_idx--;
-      if (last_idx->first > minus_maxidx)
-        minus_maxidx = last_idx->first;
+  // Loop over all histograms. Find lowest and highest bin idx out of all
+  // histograms. All output histograms will have the same dimensions.
+  long int lowest_idx = 0;
+  long int highest_idx = 0;
+  for (unsigned int idx = 0; idx != histograms_.size(); idx++) 
+  {
+    HistType const& hist = histograms_[idx];
+    if (hist.empty()) {
+      mprintf("Warning: Histogram for '%s' is empty; skipping.\n", masks_[idx].MaskString());
+      continue;
+    }
+    // Find lowest bin
+    if (idx == 0) {
+      lowest_idx  = hist.lowestKey();
+      highest_idx = hist.highestKey();
+    } else {
+      lowest_idx  = std::min(lowest_idx,  hist.lowestKey());
+      highest_idx = std::max(highest_idx, hist.highestKey());
     }
   }
-
-  for (unsigned long i = 0; i < plus_histograms_.size(); i++) {
-    first_idx = plus_histograms_[i].mean_begin(); 
-    last_idx = plus_histograms_[i].mean_end();
-
-    if (first_idx->first < plus_minidx)
-      plus_minidx = first_idx->first;
-
-    if (last_idx != first_idx) {
-      last_idx--;
-      if (last_idx->first > plus_maxidx)
-        plus_maxidx = last_idx->first;
-    }
+  // If using center of bins, put blank bins at either end.
+  double xshift = 0.0;
+  if (binType_ == CENTER) {
+    lowest_idx--;
+    highest_idx++;
+    xshift = delta_ / 2;
   }
-
-  // make sure we have zero values at beginning and end as this
-  // "correctly" integrates the histogram
-  minus_minidx--;
-  plus_maxidx++;
-
-  // Set up data set dimensions
-  double Xmin = -delta_ + ((double) minus_minidx + 0.5) * delta_;
+  // Set up common output dimensions
+  long int Nbins = (highest_idx - lowest_idx + 1);
+  long int offset = -lowest_idx;
+  double Xmin = (delta_ * lowest_idx) + xshift;
+  //mprintf("DEBUG: Lowest idx= %li  Xmin= %g  Highest idx= %li  Bins= %li\n",
+  //        lowest_idx, Xmin, highest_idx, Nbins);
   Dimension Xdim(Xmin, delta_, AxisStr_[axis_]);
-  for (unsigned int j = 0; j != AvSets_.size(); j++) {
-    AvSets_[j]->SetDim(Dimension::X, Xdim);
-    SdSets_[j]->SetDim(Dimension::X, Xdim);
-  }
-  unsigned int didx = 0;
-  for (long i = minus_minidx; i <= minus_maxidx; i++, didx++) {
-
-    for (unsigned long j = 0; j < minus_histograms_.size(); j++) {
-      curr = minus_histograms_[j];
-
-      density = curr.mean(i) / delta_;
-      sd = sqrt(curr.variance(i) );
-
-      if (scale_area) {
-        density /= area;
-        sd /= area;
-      }
-
-      AvSets_[j]->Add( didx, &density );
-      SdSets_[j]->Add( didx, &sd      );
+  // Loop over all histograms. Normalize and populate output sets.
+  for (unsigned int idx = 0; idx != histograms_.size(); idx++) 
+  {
+    HistType const& hist = histograms_[idx];
+    if (hist.empty()) {
+      continue;
     }
-
-  }
-
-  for (long i = plus_minidx; i <= plus_maxidx; i++, didx++) {
-
-    for (unsigned long j = 0; j < plus_histograms_.size(); j++) {
-      curr = plus_histograms_[j];
-
-      density = curr.mean(i) / delta_;
-      sd = sqrt(curr.variance(i) );
-
-      if (scale_area) {
-        density /= area;
-        sd /= area;
-      }
-
-      AvSets_[j]->Add( didx, &density );
-      SdSets_[j]->Add( didx, &sd      );
+    // Calculate normalization
+    double fac   = delta_;
+    double sdfac = 1.0;
+    if (scale_area) {
+      fac *= avgArea;
+      sdfac = 1.0 / avgArea;
     }
-
-  }
+    fac = 1.0 / fac;
+    // Populate output data sets
+    DataSet_1D& out_av = static_cast<DataSet_1D&>( *(AvSets_[idx]) );
+    DataSet_1D& out_sd = static_cast<DataSet_1D&>( *(SdSets_[idx]) );
+    out_av.Allocate(DataSet::SizeArray(1, Nbins));
+    out_sd.Allocate(DataSet::SizeArray(1, Nbins));
+    out_av.SetDim(Dimension::X, Xdim);
+    out_sd.SetDim(Dimension::X, Xdim);
+    // Blank bin for bin center
+    if (binType_ == CENTER) {
+      double dzero = 0.0;
+      out_av.Add(0, &dzero);
+      out_sd.Add(0, &dzero);
+    }
+    // Loop over populated bins
+    HistType::const_iterator var = hist.variance_begin();
+    for (HistType::const_iterator mean = hist.mean_begin();
+                                  mean != hist.mean_end(); ++mean, ++var)
+    {
+      long int frm = mean->first + offset;
+      double density  = mean->second * fac;
+      out_av.Add(frm, &density);
+      double variance;
+      if (hist.nData() < 2)
+        variance = 0;
+      else
+        variance = var->second / (hist.nData() - 1);
+      if (variance > 0) {
+        variance = sqrt(variance);
+        variance *= sdfac;
+      }
+      out_sd.Add(frm, &variance);
+    }
+    // Blank bin for bin center
+    if (binType_ == CENTER) {
+      double dzero = 0.0;
+      out_av.Add(Nbins-1, &dzero);
+      out_sd.Add(Nbins-1, &dzero);
+    }
+  } // END loop over all histograms
 }
 
 // Action_Density::PrintDensity()
