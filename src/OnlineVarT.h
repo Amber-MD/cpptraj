@@ -54,7 +54,6 @@ private:
   Float M2_;
 };
 
-
 /** Class that allows numerically stable accumulation of bin values
   * (average and variance) using Welford's Online algorithm. Intended
   * for use in e.g. histograms. Both Key and Value are of primitive type
@@ -75,29 +74,42 @@ public:
   {
     Value delta;
     Key min, max;
-
-
     // FIXME: This is ugly but we must make sure that _all_ indices from min to
     //        max are generated so that the mean can be calculated for every
     //        iteration.
-
     min = a.begin()->first;
     max = a.rbegin()->first;
-
-    if (min < min_)
-      min_ = min;
-    
-    if (max > max_)
-      max_ = max;
-
+    if (min < min_) min_ = min;
+    if (max > max_) max_ = max;
     n_++;
-
     for (Key i = min_; i <= max_; i++) {
       delta = a[i] - mean_[i];
       mean_[i] += delta / n_;
       M2_[i] += delta * (a[i] - mean_[i]);
     }
   }
+
+# ifdef MPI
+  void Combine(StatsMap<Key,Value> const& mapIn)
+  {
+    Key min = mapIn.begin()->first;
+    Key max = mapIn.rbegin()->first;
+    if (min < min_) min_ = min;
+    if (max > max_) max_ = max;
+    Value nX = n_ + mapIn.n_;
+    std::map<Key,Value> const& meanIn = mapIn.mean_;
+    std::map<Key,Value> const& m2In   = mapIn.M2_;
+    for (Key i = min_; i <= max_; i++)
+    {
+      Value delta = meanIn[i] - mean_[i];
+      // Combined mean
+      mean_[i] = mean_[i] + delta * (mapIn.n_ / nX);
+      // Combined variance
+      M2_[i] = M2_[i] + m2In[i] + ((delta*delta) * ((n_*mapIn.n_) / nX));
+    }
+    n_ = nX; 
+  }
+# endif
 
   Value mean(Key i) { return mean_[i]; };
   Value variance(Key i) {
@@ -109,7 +121,6 @@ public:
   iterator mean_end()               { return mean_.end();   }
   const_iterator mean_begin() const { return mean_.begin(); }
   const_iterator mean_end()   const { return mean_.end();   }
-
 
   // not really the variance so will have to be divided by n - 1
   iterator variance_begin()             { return M2_.begin(); }
