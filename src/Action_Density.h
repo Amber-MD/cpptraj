@@ -54,10 +54,12 @@ private:
 
   enum DirectionType {DX = 0, DY, DZ};
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};
+  enum BinCoordType {CENTER = 0, EDGE};
 
   DirectionType axis_;          ///< Which axis to bin along.
   DirectionType area_coord_[2]; ///< Hold which two axes used to calc. area
   PropertyType property_;       ///< Property being binned.
+  BinCoordType binType_;        ///< Specify whether bin coordinates should be center or edge.
 
   double delta_;                ///< Histogram spacing
   Stats<double> area_;          ///< Used to accumulate average area

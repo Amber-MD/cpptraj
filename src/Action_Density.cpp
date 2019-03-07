@@ -12,6 +12,7 @@ Action_Density::Action_Density() :
   axis_(DZ),
   //area_coord_{DZ, DY},    // this is C++11!
   property_(NUMBER),
+  binType_(CENTER),
   delta_(0.0),
   density_(0)
 {
@@ -54,10 +55,14 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
   }
 
   property_ = NUMBER;
-  if (actionArgs.hasKey("number") )   property_ = NUMBER;
-  if (actionArgs.hasKey("mass") )     property_ = MASS;
-  if (actionArgs.hasKey("charge") )   property_ = CHARGE;
-  if (actionArgs.hasKey("electron") ) property_ = ELECTRON;
+  if      (actionArgs.hasKey("number") )   property_ = NUMBER;
+  else if (actionArgs.hasKey("mass") )     property_ = MASS;
+  else if (actionArgs.hasKey("charge") )   property_ = CHARGE;
+  else if (actionArgs.hasKey("electron") ) property_ = ELECTRON;
+
+  binType_ = CENTER;
+  if      (actionArgs.hasKey("bincenter")) binType_ = CENTER;
+  else if (actionArgs.hasKey("binedge")  ) binType_ = EDGE;
 
   delta_ = actionArgs.getKeyDouble("delta", 0.01);
   if (delta_ <= 0) {
@@ -124,11 +129,13 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
 
   mprintf("    DENSITY:");
   if (density_ == 0) {
+    const char* binStr[] = {"center", "edge"};
     mprintf(" Determining %s density for %zu masks.\n", PropertyStr_[property_], masks_.size());
     mprintf("\troutine version: %s\n", ROUTINE_VERSION_STRING);
     mprintf("\tDelta is %f\n", delta_);
     mprintf("\tAxis is %s\n", AxisStr_[axis_]);
     mprintf("\tData set name is '%s'\n", dsname.c_str());
+    mprintf("\tBin coordinates will be to bin %s.\n", binStr[binType_]);
   } else {
     mprintf(" No masks specified, calculating total system density in g/cm^3.\n");
     mprintf("\tData set name is '%s'\n", density_->legend());
@@ -305,10 +312,17 @@ void Action_Density::PrintHist()
       highest_idx = std::max(highest_idx, bin1->first);
     }
   }
+  // If using center of bins, put blank bins at either end.
+  double xshift = 0.0;
+  if (binType_ == CENTER) {
+    lowest_idx--;
+    highest_idx++;
+    xshift = delta_ / 2;
+  }
   // Set up common output dimensions
   long int Nbins = (highest_idx - lowest_idx + 1);
   long int offset = -lowest_idx;
-  double Xmin = (delta_ * lowest_idx);
+  double Xmin = (delta_ * lowest_idx) + xshift;
   mprintf("DEBUG: Lowest idx= %li  Xmin= %g  Highest idx= %li  Bins= %li\n",
           lowest_idx, Xmin, highest_idx, Nbins);
   Dimension Xdim(Xmin, delta_, AxisStr_[axis_]);
@@ -345,6 +359,13 @@ void Action_Density::PrintHist()
     out_sd.Allocate(DataSet::SizeArray(1, Nbins));
     out_av.SetDim(Dimension::X, Xdim);
     out_sd.SetDim(Dimension::X, Xdim);
+    // Blank bin for bin center
+    if (binType_ == CENTER) {
+      double dzero = 0.0;
+      out_av.Add(0, &dzero);
+      out_sd.Add(0, &dzero);
+    }
+    // Loop over populated bins
     HistType::const_iterator var = hist.variance_begin();
     for (HistType::const_iterator mean = hist.mean_begin();
                                   mean != hist.mean_end(); ++mean, ++var)
@@ -362,6 +383,12 @@ void Action_Density::PrintHist()
         variance *= sdfac;
       }
       out_sd.Add(frm, &variance);
+    }
+    // Blank bin for bin center
+    if (binType_ == CENTER) {
+      double dzero = 0.0;
+      out_av.Add(Nbins-1, &dzero);
+      out_sd.Add(Nbins-1, &dzero);
     }
   } // END loop over all histograms
 }

@@ -42,7 +42,7 @@ public:
     Float var_a = variance();
     Float var_b = rhs.variance();
     Float m_a = var_a * (n_ - 1);
-    Float m_b - var_b * (rhs.n_ - 1);
+    Float m_b = var_b * (rhs.n_ - 1);
     M2_ = m_a + m_b + (delta * delta) * n_ * rhs.n_ / (n_ + rhs.n_);
     n_ = (n_ + rhs.n_);
     mean_ = combinedAvg;
