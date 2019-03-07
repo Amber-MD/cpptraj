@@ -11,11 +11,13 @@
 template <class Float>
 class Stats {
 public:
-  Stats() :
-    n_(0.0),
-    mean_(0.0),
-    M2_(0.0)
-  {}
+  /// Default CONSTRUCTOR
+  Stats() : n_(0.0), mean_(0.0), M2_(0.0) {}
+# ifdef MPI
+  /// CONSTRUCTOR taking N, mean, and M2
+  Stats(Float n, Float mean, Float m2) : n_(n), mean_(mean), M2_(m2) {}
+  Float M2()    const { return M2_; }; // Needed for MPI send 
+# endif
 
   void accumulate(const Float x)
   {
@@ -35,17 +37,13 @@ public:
   Float nData() const { return n_; };
   /// Combine two averages and variances into this Stats
   void Combine(Stats<Float> const& rhs) {
-    // Combined mean
-    Float combinedAvg = ((n_ * mean_) + (rhs.n_*mean_)) / (n_ + rhs.n_);
-    // Combined variance
+    Float nX = n_ + rhs.n_;
     Float delta = rhs.mean_ - mean_;
-    Float var_a = variance();
-    Float var_b = rhs.variance();
-    Float m_a = var_a * (n_ - 1);
-    Float m_b = var_b * (rhs.n_ - 1);
-    M2_ = m_a + m_b + (delta * delta) * n_ * rhs.n_ / (n_ + rhs.n_);
-    n_ = (n_ + rhs.n_);
-    mean_ = combinedAvg;
+    // Combined mean
+    mean_ = mean_ + delta * (rhs.n_ / nX);
+    // Combined variance
+    M2_ = M2_ + rhs.M2_ + ((delta*delta) * ((n_*rhs.n_) / nX));
+    n_ = nX; 
   }
 //# ifdef MPI
   
