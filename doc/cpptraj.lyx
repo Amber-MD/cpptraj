@@ -13570,6 +13570,36 @@ strip
 \end_layout
 
 \begin_layout Standard
+Note that for commands which can use a reference mask as well as a target
+ mask (e.g.
+ 
+\series bold
+\emph on
+rms
+\series default
+\emph default
+, 
+\series bold
+\emph on
+drmsd
+\series default
+\emph default
+, 
+\series bold
+\emph on
+symmrmsd
+\series default
+\emph default
+, etc.) there must be a 1 to 1 correspondence between the atoms in each mask,
+ i.e.
+ the 
+\emph on
+number of atoms and the ordering of selected atoms must be the same
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
 The following Actions are available.
  If an Action may modify coordinate/topology information for subsequent
  Actions it is denoted with an X in the 
