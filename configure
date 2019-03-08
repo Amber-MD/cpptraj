@@ -651,6 +651,9 @@ SetupFinalFlags() {
     else
       DIRECTIVES="$DIRECTIVES -DBUILDTYPE='\"GitHub\"'"
     fi
+  else
+    # Assume GitHub
+    DIRECTIVES="$DIRECTIVES -DBUILDTYPE='\"GitHub\"'"
   fi
   # For GIT, record the current hash
   if [ -f '.git/HEAD' ] ; then
