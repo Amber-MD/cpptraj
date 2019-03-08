@@ -320,8 +320,8 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
     return Action::SKIP;
   }
-  if ( tgtMask_.Nselected() < 3 ) {
-    mprintf("Warning: Less than 3 atoms selected for RMSD. Cannot fully"
+  if ( fit_ && tgtMask_.Nselected() < 3 ) {
+    mprintf("Warning: Less than 3 atoms selected for best-fit RMSD. Cannot fully\n"
             "Warning:   populate the coordinate covariance matrix.\n");
     if (debug_ == 0) {
       mprintf("Warning: Skipping.\n");
