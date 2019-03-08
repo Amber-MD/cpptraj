@@ -1,6 +1,8 @@
 # These files are common to cpptraj/libcpptraj. Files that need to be built
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
-COMMON_SOURCES=ActionFrameCounter.cpp \
+COMMON_SOURCES= \
+        Action.cpp \
+        ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Align.cpp \
         Action_Angle.cpp \

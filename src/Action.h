@@ -58,5 +58,8 @@ class Action : public DispatchObject {
     /// Process array of frames before start required by ranks > 0 (not called by master)
     virtual int ParallelPreloadFrames(FArray const&) { return 0; } // TODO: pure virtual
 #   endif
+  protected:
+    /// Print a warning that imaging will not be possible if coordinates are being rotated.
+    static void CheckImageRotationWarning(ActionSetup const&, const char*);
 };
 #endif
