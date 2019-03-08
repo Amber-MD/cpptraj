@@ -208,6 +208,7 @@ Action::RetType Action_AtomMap::Setup(ActionSetup& setup) {
   }
   if (rmsfit_) {
     mprintf("\trmsfit specified, %i atoms.\n",rmsRefFrame_.Natom());
+    Action::CheckImageRotationWarning(setup, "the RMS-fit");
     return Action::OK;
   }
   mprintf("\tMap for parm %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),
@@ -234,12 +235,11 @@ Action::RetType Action_AtomMap::DoAction(int frameNum, ActionFrame& frm) {
     frm.ModifyFrm().Trans_Rot_Trans(Trans, Rot, refTrans);
     if (rmsdata_!=0)
       rmsdata_->Add(frameNum, &R);
-    return Action::OK;
+  } else {
+    // Modify the current frame
+    // TODO: Fix this since its probably busted for unmapped atoms
+    newFrame_->SetCoordinatesByMap(frm.Frm(), AMap_);
+    frm.SetFrame( newFrame_ );
   }
-
-  // Modify the current frame
-  // TODO: Fix this since its probably busted for unmapped atoms
-  newFrame_->SetCoordinatesByMap(frm.Frm(), AMap_);
-  frm.SetFrame( newFrame_ );
   return Action::MODIFY_COORDS;
 }
