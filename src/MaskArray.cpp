@@ -3,6 +3,28 @@
 #include "Topology.h"
 #include "CpptrajStdio.h"
 
+/// CONSTRUCTOR
+Cpptraj::MaskArray::MaskArray() :
+  type_(BY_ATOM),
+  maxAtomsPerMask_(0),
+  sameNumAtomsPerMask_(false)
+{}
+
+/** Save max atoms per mask, check if # atoms is the same as last time. */
+void Cpptraj::MaskArray::checkAtomsPerMask( int nselected ) {
+  if (maxAtomsPerMask_ == 0) {
+    maxAtomsPerMask_ = nselected;
+    sameNumAtomsPerMask_ = true;
+  } else {
+    if (sameNumAtomsPerMask_) {
+      if (nselected != maxAtomsPerMask_)
+        sameNumAtomsPerMask_ = false;
+    }
+    if (nselected > maxAtomsPerMask_)
+      maxAtomsPerMask_ = nselected;
+  }
+}
+
 /** Set up masks. */
 int Cpptraj::MaskArray::SetupMasks(AtomMask const& maskIn, Topology const& topIn)
 {
@@ -18,6 +40,8 @@ int Cpptraj::MaskArray::SetupMasks(AtomMask const& maskIn, Topology const& topIn
   }
   int last = -1;
   int current = 0;
+  maxAtomsPerMask_ = 0;
+  sameNumAtomsPerMask_ = true;
   for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm)
   {
     switch (type_) {
@@ -26,15 +50,20 @@ int Cpptraj::MaskArray::SetupMasks(AtomMask const& maskIn, Topology const& topIn
       case BY_MOLECULE : current = topIn[*atm].MolNum(); break;
     }
     if (current != last) {
+      if (!masks_.empty())
+        checkAtomsPerMask( masks_.back().Nselected() );
       masks_.push_back( AtomMask() );
       masks_.back().SetNatoms( topIn.Natom() );
     }
     masks_.back().AddSelectedAtom( *atm );
     last = current;
   }
+  if (!masks_.empty())
+    checkAtomsPerMask( masks_.back().Nselected() );
 
   // DEBUG
-  mprintf("DEBUG: %zu masks created\n", masks_.size());
+  mprintf("DEBUG: %zu masks created (max atoms=%i, same=%i)\n", masks_.size(),
+          maxAtomsPerMask_, (int)sameNumAtomsPerMask_);
   for (Marray::const_iterator it = masks_.begin(); it != masks_.end(); ++it)
   {
     mprintf("  %6u :", it-masks_.begin());

@@ -3,6 +3,7 @@
 #include "Action.h"
 #include "DataSet_GridFlt.h"
 #include "GridAction.h"
+#include "MaskArray.h"
 class Action_Grid : public Action, private GridAction {
   public:
     Action_Grid();
@@ -26,6 +27,8 @@ class Action_Grid : public Action, private GridAction {
     int debug_;
     bool invert_;
     AtomMask mask_;
+    Cpptraj::MaskArray mArray_; ///< For by residue/molecule selection
+    bool useMaskArray_;         ///< True if using mask array
     CpptrajFile* pdbfile_;
     DataSet_GridFlt* grid_;
 };
