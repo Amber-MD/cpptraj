@@ -3,6 +3,7 @@
 #include "Action_Grid.h"
 #include "CpptrajStdio.h"
 #include "PDBfile.h"
+#include "MaskArray.h"
 
 // CONSTRUCTOR
 Action_Grid::Action_Grid() :
@@ -101,6 +102,11 @@ Action::RetType Action_Grid::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms selected for topology %s\n", setup.Top().c_str());
     return Action::SKIP;
   }
+
+  // TEST
+  Cpptraj::MaskArray mArray;
+  mArray.SetType( Cpptraj::MaskArray::BY_RESIDUE );
+  mArray.SetupMasks( mask_, setup.Top() );
 
   return Action::OK;
 }

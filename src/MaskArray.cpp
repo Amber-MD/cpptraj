@@ -1,32 +1,24 @@
 #include "MaskArray.h"
+#include "AtomMask.h"
 #include "Topology.h"
 #include "CpptrajStdio.h"
 
-int Cpptraj::MaskArray::SetMaskExpression(std::string const& exprIn, SelectType typeIn)
-{
-  // Set the mask expression first.
-  mainMask_.ResetMask();
-  if (mainMask_.SetMaskString( exprIn )) {
-    mprinterr("Error: '%s' is an invalid mask string.\n", exprIn.c_str());
-    return 1;
-  }
-  type_ = typeIn;
-  return 0;
-}
-
 /** Set up masks. */
-int Cpptraj::MaskArray::SetupMasks(Topology const& topIn)
+int Cpptraj::MaskArray::SetupMasks(AtomMask const& maskIn, Topology const& topIn)
 {
   if (type_ == BY_MOLECULE && topIn.Nmol() < 1) {
     mprintf("Warning: '%s' has no molecule information, cannot setup by molecule.\n",
              topIn.c_str());
     return 1;
   }
-  if (topIn.SetupIntegerMask( mainMask_ )) return 1;
   masks_.clear();
+  if ( maskIn.None() ) {
+    mprintf("Warning: Nothing selected by mask '%s'\n", maskIn.MaskString());
+    return 0;
+  }
   int last = -1;
   int current = 0;
-  for (AtomMask::const_iterator atm = mainMask_.begin(); atm != mainMask_.end(); ++atm)
+  for (AtomMask::const_iterator atm = maskIn.begin(); atm != maskIn.end(); ++atm)
   {
     switch (type_) {
       case BY_ATOM     : current = *atm; break;

@@ -1,10 +1,9 @@
 #ifndef INC_MASKARRAY_H
 #define INC_MASKARRAY_H
 #include <vector>
-#include <string>
-#include "AtomMask.h"
 // Forward declarations
 class Topology;
+class AtomMask;
 namespace Cpptraj {
 
 /// Hold array of atom masks, intended for 'bymol' or 'byres' type selection
@@ -20,14 +19,14 @@ class MaskArray {
     const_iterator begin() const { return masks_.begin(); }
     const_iterator end()   const { return masks_.end();   }
 
-    int SetMaskExpression(std::string const&, SelectType);
-    int SetupMasks(Topology const&);
+    void SetType(SelectType typeIn) { type_ = typeIn; }
+    /// Given an already set up mask, set up internal masks
+    int SetupMasks(AtomMask const&, Topology const&);
 
     unsigned int Nmasks() const { return masks_.size(); }
   private:
-    AtomMask mainMask_; ///< The overall atom mask
-    Marray masks_;
-    SelectType type_;   ///< The selection type
+    Marray masks_;    ///< Array containing mask selections by residue/molecule
+    SelectType type_; ///< The selection type
 };
 
 }
