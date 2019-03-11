@@ -21692,7 +21692,7 @@ grid <filename>
 \end_layout
 
 \begin_layout LyX-Code
-	 [pdb <pdbout> [max <fraction>]]
+	 [pdb <pdbout> [max <fraction>]] [{byres|mymol}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -21887,6 +21887,11 @@ Other options:
 
 <fraction>]] Write a pseudo-PDB of grid points that have density greater
  than <fraction> (default 0.80) of the grid max value.
+\end_layout
+
+\begin_layout Description
+[{byres|bymol}] Grid the centers of mass of residues or molecules selected
+ by <mask>.
 \end_layout
 
 \begin_layout Standard

@@ -22,7 +22,7 @@ Action_Grid::Action_Grid() :
 void Action_Grid::Help() const {
   mprintf("\t[out <filename>]\n%s\n", GridAction::HelpText);
   mprintf("\t<mask> [normframe | normdensity [density <density>]]\n"
-          "\t[pdb <pdbout> [max <fraction>]] \n"
+          "\t[pdb <pdbout> [max <fraction>]] [{byres|mymol}]\n"
           "\t[[smoothdensity <value>] [invert]] [madura <madura>]\n"
           "  Bin atoms in <mask> into a 3D grid written to <filename>.\n");
 }
@@ -55,6 +55,13 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
     init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
+  if (actionArgs.hasKey("byres"))
+    mArray_.SetType( Cpptraj::MaskArray::BY_RESIDUE );
+  else if (actionArgs.hasKey("bymol"))
+    mArray_.SetType( Cpptraj::MaskArray::BY_MOLECULE );
+  else
+    mArray_.SetType( Cpptraj::MaskArray::BY_ATOM );
+  useMaskArray_ = (mArray_.Type() != Cpptraj::MaskArray::BY_ATOM);
   // Get mask
   std::string maskexpr = actionArgs.GetMaskNext();
   if (maskexpr.empty()) {
@@ -74,6 +81,10 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Info
   mprintf("    GRID:\n");
   GridInfo( *grid_ );
+  if (mArray_.Type() == Cpptraj::MaskArray::BY_RESIDUE)
+    mprintf("\tGridding the center of mass of residues selected by the mask.\n");
+  else if (mArray_.Type() == Cpptraj::MaskArray::BY_MOLECULE)
+    mprintf("\tGridding the center of mass of molecules selected by the mask.\n");
   if (outfile != 0) mprintf("\tGrid will be printed to file %s\n", outfile->DataFilename().full());
   mprintf("\tGrid data set: '%s'\n", grid_->legend());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
@@ -102,12 +113,33 @@ Action::RetType Action_Grid::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
 
+  useMaskArray_ = false;
+  if (mArray_.Type() != Cpptraj::MaskArray::BY_ATOM) {
+    if (mArray_.SetupMasks( mask_, setup.Top() )) return Action::ERR;
+    mprintf("\tSelected %u %ss.\n", mArray_.Nmasks(), mArray_.typeStr());
+    if (mArray_.SameNumAtomsPerMask() && mArray_.MaxAtomsPerMask() == 1)
+      mprintf("Warning: Only 1 atom selected per %s.\n", mArray_.typeStr());
+    else
+      useMaskArray_ = true;
+  }
+
   return Action::OK;
 }
 
 // Action_Grid::DoAction()
 Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
-  GridFrame( frm.Frm(), mask_, *grid_ );
+  if (useMaskArray_) {
+    Vec3 offset(0.0);
+    if (GridMode() == BOX)
+      offset = frm.Frm().BoxCrd().Center();
+    else if (GridMode() == MASKCENTER)
+      offset = frm.Frm().VGeometricCenter( CenterMask() );
+    for (Cpptraj::MaskArray::const_iterator mask = mArray_.begin();
+                                            mask != mArray_.end(); ++mask)
+      grid_->Increment( frm.Frm().VCenterOfMass(*mask) - offset, Increment() );
+  } else {
+    GridFrame( frm.Frm(), mask_, *grid_ );
+  }
   ++nframes_;
   return Action::OK;
 }
