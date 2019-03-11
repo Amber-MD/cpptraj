@@ -61,6 +61,10 @@ int Cpptraj::MaskArray::SetupMasks(AtomMask const& maskIn, Topology const& topIn
   if (!masks_.empty())
     checkAtomsPerMask( masks_.back().Nselected() );
 
+  return 0;
+}
+
+void Cpptraj::MaskArray::Debug() const {
   // DEBUG
   mprintf("DEBUG: %zu masks created (max atoms=%i, same=%i)\n", masks_.size(),
           maxAtomsPerMask_, (int)sameNumAtomsPerMask_);
@@ -71,6 +75,4 @@ int Cpptraj::MaskArray::SetupMasks(AtomMask const& maskIn, Topology const& topIn
       mprintf(" %i", *atm + 1);
     mprintf("\n");
   }
-
-  return 0;
 }

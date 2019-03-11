@@ -22,6 +22,8 @@ class MaskArray {
     void SetType(SelectType typeIn) { type_ = typeIn; }
     /// Given an already set up mask, set up internal masks
     int SetupMasks(AtomMask const&, Topology const&);
+    /// Print some debug info
+    void Debug() const;
 
     unsigned int Nmasks()      const { return masks_.size(); }
     SelectType Type()          const { return type_;         }
