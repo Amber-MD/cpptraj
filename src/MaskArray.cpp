@@ -25,6 +25,12 @@ void Cpptraj::MaskArray::checkAtomsPerMask( int nselected ) {
   }
 }
 
+static const char* typeStr_[] = {"atom", "residue", "molecule"};
+
+const char* Cpptraj::MaskArray::typeStr() const {
+  return typeStr_[type_];
+}
+
 /** Set up masks. */
 int Cpptraj::MaskArray::SetupMasks(AtomMask const& maskIn, Topology const& topIn)
 {

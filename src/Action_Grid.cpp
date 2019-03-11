@@ -116,8 +116,9 @@ Action::RetType Action_Grid::Setup(ActionSetup& setup) {
   useMaskArray_ = false;
   if (mArray_.Type() != Cpptraj::MaskArray::BY_ATOM) {
     if (mArray_.SetupMasks( mask_, setup.Top() )) return Action::ERR;
+    mprintf("\tSelected %u %ss.\n", mArray_.Nmasks(), mArray_.typeStr());
     if (mArray_.SameNumAtomsPerMask() && mArray_.MaxAtomsPerMask() == 1)
-      mprintf("Warning: Only 1 atom selected per residue/molecule.\n");
+      mprintf("Warning: Only 1 atom selected per %s.\n", mArray_.typeStr());
     else
       useMaskArray_ = true;
   }

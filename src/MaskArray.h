@@ -27,6 +27,8 @@ class MaskArray {
 
     unsigned int Nmasks()      const { return masks_.size(); }
     SelectType Type()          const { return type_;         }
+    /// \return 'atom', 'residue', or 'molecule' depending on selection type
+    const char* typeStr() const;
     /// \return the max number of atoms in any mask
     int MaxAtomsPerMask()      const { return maxAtomsPerMask_; }
     /// \return true if all masks select same number of atoms
