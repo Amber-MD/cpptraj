@@ -289,6 +289,7 @@ ImageRoutines.o : ImageRoutines.cpp Atom.h AtomExtra.h AtomMask.h Box.h CharMask
 InputTrajCommon.o : InputTrajCommon.cpp ArgList.h Atom.h AtomExtra.h AtomMask.h Box.h CharMask.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h InputTrajCommon.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h SymbolExporting.h Topology.h TrajFrameCounter.h Vec3.h
 KDE.o : KDE.cpp ArgList.h AssociatedData.h Constants.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_1D.h DataSet_double.h Dimension.h FileIO.h FileName.h HistBin.h KDE.h MetaData.h Parallel.h Range.h TextFormat.h
 MapAtom.o : MapAtom.cpp Atom.h MapAtom.h NameType.h SymbolExporting.h
+MaskArray.o : MaskArray.cpp Atom.h AtomExtra.h AtomMask.h Box.h CharMask.h CoordinateInfo.h CpptrajStdio.h FileName.h Frame.h MaskArray.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h SymbolExporting.h Topology.h Vec3.h
 MaskToken.o : MaskToken.cpp ArgList.h Atom.h Box.h CpptrajStdio.h DistRoutines.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h Parallel.h Residue.h StringRoutines.h SymbolExporting.h Vec3.h
 Matrix_3x3.o : Matrix_3x3.cpp Constants.h CpptrajStdio.h Matrix_3x3.h Vec3.h
 MetaData.o : MetaData.cpp CpptrajStdio.h FileName.h MetaData.h Range.h StringRoutines.h

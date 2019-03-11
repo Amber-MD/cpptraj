@@ -288,6 +288,7 @@ COMMON_SOURCES= \
         InputTrajCommon.cpp \
         KDE.cpp \
         MapAtom.cpp \
+        MaskArray.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MetaData.cpp \
