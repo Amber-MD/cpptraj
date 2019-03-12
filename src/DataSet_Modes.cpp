@@ -42,6 +42,20 @@ DataSet_Modes::~DataSet_Modes() {
   if (evectors_!=0) delete[] evectors_;
 }
 
+/** \return current memory usage in bytes. */
+size_t DataSet_Modes::MemUsageInBytes() const {
+  size_t mySize = (avgcrd_.size() * sizeof(double)) +
+                  (mass_.size() * sizeof(double)) +
+                  (2 * sizeof(double*)) +
+                  (2 * sizeof(int)) +
+                  (3 * sizeof(bool));
+  if (evalues_ != 0)
+    mySize += (nmodes_ * sizeof(double));
+  if (evectors_ != 0)
+    mySize += (nmodes_ * vecsize_ * sizeof(double));
+  return mySize;
+}
+
 // DataSet_Modes::SetAvgCoords()
 int DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   avgcrd_.clear();

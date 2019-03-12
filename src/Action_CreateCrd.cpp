@@ -72,7 +72,7 @@ Action::RetType Action_CreateCrd::Setup(ActionSetup& setup) {
     // Estimate memory usage
     mprintf("\tEstimated memory usage (%i frames): %s\n",
             setup.Nframes(),
-            ByteString(coords_->SizeInBytes(setup.Nframes()), BYTE_DECIMAL).c_str());
+            ByteString(coords_->EstSizeInBytes(setup.Nframes()), BYTE_DECIMAL).c_str());
   }
   // If # atoms in currentParm does not match coords, warn user.
   if (setup.Top().Natom() != coords_->Top().Natom()) {

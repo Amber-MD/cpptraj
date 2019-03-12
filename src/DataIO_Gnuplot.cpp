@@ -215,23 +215,24 @@ DataIO_Gnuplot::LabelArray DataIO_Gnuplot::LabelArg( std::string const& labelarg
 }
 
 void DataIO_Gnuplot::WriteHelp() {
-  mprintf("\tnolabels:      Do not print axis labels.\n"
-          "\tusemap:        pm3d output with 1 extra empty row/col (may improve look).\n"
-          "\tpm3d:          Normal pm3d map output.\n"
-          "\tnopm3d:        Turn off pm3d\n"
-          "\tjpeg:          Plot will write to a JPEG file when used with gnuplot.\n"
-          "\ttitle:         Plot title. Default is file name.\n"
+  mprintf("\tnolabels       : Do not print axis labels.\n"
+          "\tusemap         : pm3d output with 1 extra empty row/col (may improve look).\n"
+          "\tpm3d           : Normal pm3d map output.\n"
+          "\tnopm3d         : Turn off pm3d\n"
+          "\tjpeg           : Plot will write to a JPEG file when used with gnuplot.\n"
+          "\ttitle          : Plot title. Default is file name.\n"
 //          "\tbinary:   Use binary output\n"
-          "\tnoheader:      Do not format plot; data output only.\n"
-          "\tpalette <arg>: Change gnuplot pm3d palette to <arg>:\n"
+          "\tnoheader       : Do not format plot; data output only.\n"
+          "\ttitle <title>  : Set plot title (default file base name).\n"
+          "\tpalette <arg>  : Change gnuplot pm3d palette to <arg>:\n"
           "\t          'rgb'   - Red, yellow, green, cyan, blue, magenta, red.\n"
           "\t          'kbvyw' - Black, blue, violet, yellow, white.\n"
           "\t          'bgyr'  - Blue, green, yellow, red.\n"
           "\t          'gray'  - Grayscale.\n"
-          "\txlabels <labellist>: Set x axis labels with comma-separated list, e.g.\n"
+          "\txlabels <list> : Set x axis labels with comma-separated list, e.g.\n"
           "\t                     'xlabels X1,X2,X3'\n"
-          "\tylabels <labellist>: Set y axis labels.\n"
-          "\tzlabels <labellist>: Set z axis labels.\n");
+          "\tylabels <list> : Set y axis labels.\n"
+          "\tzlabels <list> : Set z axis labels.\n");
 }
 
 // DataIO_Gnuplot::processWriteArgs()

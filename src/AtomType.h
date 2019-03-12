@@ -20,6 +20,8 @@ class AtomType {
     bool operator==(AtomType const&) const;
     /// Combine LJ params with this and another type using Lorentz-Berthelot rules
     NonbondType Combine_LB(AtomType const&) const;
+    /// \return data size
+    static size_t DataSize() { return (3*sizeof(double)) + sizeof(int); }
   private:
     double radius_; ///< VDW radius
     double depth_;  ///< LJ well-depth

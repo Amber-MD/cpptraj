@@ -12,6 +12,18 @@ DataSet_Vector::DataSet_Vector() :
   DataSet(VECTOR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
   order_(0) {}
 
+size_t DataSet_Vector::MemUsageInBytes() const {
+  size_t mySize = (vectors_.size() * Vec3::DataSize()) +
+                  (origins_.size() * Vec3::DataSize()) +
+                  sizeof(int);
+  for (std::vector<ComplexArray>::const_iterator SH = sphericalHarmonics_.begin();
+                                                 SH != sphericalHarmonics_.end();
+                                               ++SH)
+    mySize += (SH->DataSize());
+  return mySize;
+}
+         
+
 // DataSet_Vector::Allocate()
 int DataSet_Vector::Allocate(SizeArray const& Nin) {
   if (!Nin.empty()) {
