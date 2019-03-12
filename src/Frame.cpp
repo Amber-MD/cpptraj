@@ -467,8 +467,8 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
     Mass_.resize(maxnatom_);
   Darray::iterator mass = Mass_.begin();
   for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); ++atom)
-    *(mass++) = (*atom).Mass();
+                                         atom != atoms.end(); ++atom, ++mass)
+    *mass = atom->Mass();
   // Box
   box_ = cinfo.TrajBox();
   // Replica indices
@@ -488,8 +488,8 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
     Mass_.resize(maxnatom_);
   // Copy masses according to maskIn
   Darray::iterator mass = Mass_.begin();
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) 
-    *(mass++) = atoms[ *atom ].Mass();
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom, ++mass) 
+    *mass = atoms[ *atom ].Mass();
   return 0; 
 }
 
@@ -679,11 +679,11 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   double* newXptr = X_;
   Darray::iterator newmass = Mass_.begin();
   for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
-                                        refatom != mapIn.end(); ++refatom)
+                                        refatom != mapIn.end(); ++refatom, ++newmass)
   {
     memcpy( newXptr, tgtIn.X_ + ((*refatom) * 3), COORDSIZE_ );
     newXptr += 3;
-    *(newmass++) = tgtIn.Mass_[*refatom];
+    *newmass = tgtIn.Mass_[*refatom];
   }
   if (tgtIn.V_ != 0 && V_ != 0) {
     // Copy Velocities
