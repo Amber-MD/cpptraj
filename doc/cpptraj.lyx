@@ -6188,7 +6188,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="30" columns="2">
+<lyxtabular version="3" rows="31" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -6772,6 +6772,26 @@ sortensembledata
 
 \begin_layout Plain Layout
 Sort data sets using replica information (currently constant pH only).
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+usediskcache
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Turn caching of data sets to disk on or off.
 \end_layout
 
 \end_inset
@@ -9219,6 +9239,30 @@ arg1>
 \begin_layout Standard
 Sort unsorted data sets.
  Currently only works for constant pH REMD data.
+\end_layout
+
+\begin_layout Subsection
+usediskcache
+\end_layout
+
+\begin_layout LyX-Code
+usediskcache {on|off}
+\end_layout
+
+\begin_layout Standard
+If on, CPPTRAJ will attempt to cache data sets to disk if possible.
+ This currently only works for integer data sets (e.g.
+ 
+\series bold
+\emph on
+hbond
+\series default
+\emph default
+ 
+\series bold
+series
+\series default
+ data sets, etc).
 \end_layout
 
 \begin_layout Subsection
