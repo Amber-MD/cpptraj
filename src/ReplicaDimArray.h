@@ -51,6 +51,7 @@ class ReplicaDimArray {
     void assign( unsigned int n, RemDimType t ) { remDims_.assign(n, t); }
     int* Ptr() { return (int*)&remDims_[0]; }
 #   endif
+    size_t DataSize() const { return remDims_.size() * sizeof(RemDimType); }
   private:
     std::vector<RemDimType> remDims_;
 };
