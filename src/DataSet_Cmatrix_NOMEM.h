@@ -12,6 +12,8 @@ class DataSet_Cmatrix_NOMEM : public DataSet_Cmatrix {
     void Info()                          const { return;   }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Allocate(SizeArray const&) { return 0; }
+    /// \return Size in bytes of set
+    size_t MemUsageInBytes() const { return 0; }
     // ----- Cmatrix functions -------------------
     /// \return an element indexed by sievedFrames.
     inline double GetFdist(int f1, int f2) const { return cdist_->FrameDist(f1, f2); }

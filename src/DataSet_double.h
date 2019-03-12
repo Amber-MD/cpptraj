@@ -30,6 +30,7 @@ class DataSet_double : public DataSet_1D {
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
+    size_t MemUsageInBytes() const { return Data_.size() * sizeof(double); }
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)        const { return Data_[idx];         }
     double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }

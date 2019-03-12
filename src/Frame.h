@@ -55,6 +55,8 @@ class Frame {
     /// Convert this frame to CRDtype.
     CRDtype ConvertToCRD(int, bool) const;
     // -------------------------------------------
+    /// \return Size of Frame in memory
+    size_t DataSize() const;
     /// Print XYZ coordinates for given atom.
     void printAtomCoord(int) const;
     /// Print information about the frame.

@@ -11,6 +11,7 @@ class TrajFrameIndex {
     inline int CurrentTrajNum()  const { return currentTrajNum_; }
     inline int MaxFrames()       const { return maxFrames_;      }
     inline bool TrajHasChanged() const { return trajHasChanged_; }
+    inline size_t DataSize()     const;
   private:
     typedef std::vector<int> Iarray;
     Iarray TotalReadFrames_; ///< Total number of read frames in each trajectory.
@@ -46,5 +47,12 @@ void TrajFrameIndex::AddTraj(int total, int start, int offset) {
   maxFrames_ += total;
   Starts_.push_back( start );
   Offsets_.push_back( offset );
+}
+// TrajFrameIndex::DataSize()
+size_t TrajFrameIndex::DataSize() const {
+  return (TotalReadFrames_.size() * sizeof(int)) +
+         (Starts_.size() * sizeof(int)) +
+         (Offsets_.size() * sizeof(int)) +
+         (2*sizeof(int) + sizeof(bool));
 }
 #endif

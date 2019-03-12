@@ -24,6 +24,7 @@ class DataSet_float : public DataSet_1D {
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
+    size_t MemUsageInBytes() const { return Data_.size() * sizeof(float); }
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)        const { return (double)Data_[idx]; }
     double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }
