@@ -1038,7 +1038,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   Trans[0] /= total_mass;
   Trans[1] /= total_mass;
   Trans[2] /= total_mass;
-  //mprinterr("  FRAME COM: %lf %lf %lf\n",Trans[0],Trans[1],Trans[2]); //DEBUG
+  //mprintf("  FRAME COM: %f %f %f\n",Trans[0],Trans[1],Trans[2]); //DEBUG
 
   // Shift to common COM
   Trans.Neg();
@@ -1156,13 +1156,13 @@ double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) const {
   
   Darray::const_iterator mass = Mass_.begin();
   double atom_mass = 1.0;
-  for (int i = 0; i < ncoord_; i += 3)
+  for (int i = 0; i < ncoord_; i += 3, ++mass)
   {
     double xx = Ref.X_[i  ] - X_[i  ];
     double yy = Ref.X_[i+1] - X_[i+1];
     double zz = Ref.X_[i+2] - X_[i+2];
     if (useMass) 
-      atom_mass = *(mass++);
+      atom_mass = *mass;
     total_mass += atom_mass;
     rms_return += (atom_mass * (xx*xx + yy*yy + zz*zz));
   }
