@@ -6,12 +6,12 @@ class TrajFrameIndex {
   public:
     TrajFrameIndex() : currentTrajNum_(-1), maxFrames_(0), trajHasChanged_(false) {}
     /// \return Internal index for current traj given a global index
-    int FindIndex(int);
-    void AddTraj(int, int, int); 
-    int CurrentTrajNum()  const { return currentTrajNum_; }
-    int MaxFrames()       const { return maxFrames_;      }
-    bool TrajHasChanged() const { return trajHasChanged_; }
-    size_t DataSize()     const;
+    inline int FindIndex(int);
+    inline void AddTraj(int, int, int); 
+    inline int CurrentTrajNum()  const { return currentTrajNum_; }
+    inline int MaxFrames()       const { return maxFrames_;      }
+    inline bool TrajHasChanged() const { return trajHasChanged_; }
+    inline size_t DataSize()     const;
   private:
     typedef std::vector<int> Iarray;
     Iarray TotalReadFrames_; ///< Total number of read frames in each trajectory.
