@@ -1,6 +1,7 @@
 #ifndef INC_SPLINE_H
 #define INC_SPLINE_H
 #include <vector>
+#include <cstddef> // size_t
 /// Approximate curve using splines. 
 class Spline {
   public:
