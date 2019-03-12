@@ -279,7 +279,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tComputing and printing water-water Eij matrix, output to '%s'\n",
             eijfile_->Filename().full());
     mprintf("\tWater-water Eij matrix size is %s\n",
-            ByteString(ww_Eij_->SizeInBytes(), BYTE_DECIMAL).c_str());
+            ByteString(ww_Eij_->MemUsageInBytes(), BYTE_DECIMAL).c_str());
   } else
     mprintf("\tSkipping water-water Eij matrix.\n");
   mprintf("\tWater reference density: %6.4f molecules/Ang^3\n", BULK_DENS_);

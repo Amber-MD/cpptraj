@@ -15,10 +15,8 @@ class DataSet_Cmatrix_MEM : public DataSet_Cmatrix {
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Allocate(SizeArray const&);
-    /// \return estimated size in bytes.
-    size_t SizeInBytes(SizeArray const& dim) const { return Mat_.sizeInBytes(dim[0], dim[1]); }
     /// \return Size in bytes of set
-    size_t SizeInBytes() const { return Mat_.DataSize(); }
+    size_t MemUsageInBytes() const { return Mat_.DataSize(); }
     // ----- Cmatrix functions -------------------
     /// \return an element indexed by sievedFrames.
     inline double GetFdist(int, int) const;

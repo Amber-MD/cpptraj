@@ -12,10 +12,8 @@ class DataSet_Cmatrix_DISK : public DataSet_Cmatrix {
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const {}
     int Allocate(SizeArray const&) { return 0; }
-    /// \return estimated size in bytes
-    size_t SizeInBytes(SizeArray const&) const { return 0; }
     /// \return Size in bytes of set
-    size_t SizeInBytes() const { return 0; }
+    size_t MemUsageInBytes() const { return 0; }
     // ----- Cmatrix functions -------------------
     /// \return an element indexed by sievedFrames.
     inline double GetFdist(int, int) const;

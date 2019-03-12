@@ -63,10 +63,8 @@ class DataSet {
     virtual void Add( size_t, const void* ) = 0;
     /// Can be used to append given data set to this one.
     virtual int Append(DataSet*) = 0;
-    /// \return Estimated size of data set in bytes for given dimensions
-    virtual size_t SizeInBytes(SizeArray const&) const = 0;
-    /// \return Size of data set in bytes.
-    virtual size_t SizeInBytes() const = 0;
+    /// \return Size of data set in memory (in bytes).
+    virtual size_t MemUsageInBytes() const = 0;
 #   ifdef MPI
     /// Piece this DataSet together from multiple threads.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;

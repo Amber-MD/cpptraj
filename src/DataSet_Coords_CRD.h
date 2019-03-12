@@ -13,10 +13,8 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     void Info() const;
     void Add(size_t, const void*) {}
     int Allocate(SizeArray const&);
-    /// \return estimated size in bytes for given # of frames.
-    size_t SizeInBytes(SizeArray const& dim) const { return sizeInBytes(dim[0], Top().Natom(), numBoxCrd_); }
     /// \return Size in bytes of set
-    size_t SizeInBytes() const { return SizeInBytes(SizeArray(1,Size())); }
+    size_t MemUsageInBytes() const { return EstSizeInBytes(Size()); }
     // ----- DataSet_Coords functions ------------
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { 
@@ -37,6 +35,8 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     /// Set topology and coordinate information
     int CoordsSetup(Topology const&, CoordinateInfo const&);
     // -------------------------------------------
+    /// \return estimated size in bytes for given # of frames.
+    size_t EstSizeInBytes(size_t nframes) const { return sizeInBytes(nframes, Top().Natom(), numBoxCrd_); }
   private:
     static size_t sizeInBytes(size_t, size_t, size_t);
 
