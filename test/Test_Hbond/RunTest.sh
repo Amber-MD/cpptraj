@@ -42,7 +42,7 @@ EOF
 # Solute-solute, disk cache
 TestUUcache() {
   UNITNAME='Solute Hbond test with disk caching'
-  CheckFor netcdf
+  CheckFor netcdf notparallel
   if [ $? -eq 0 ] ; then
     cat > hbond.in <<EOF
 noprogress
