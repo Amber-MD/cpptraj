@@ -1055,7 +1055,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
   Darray::iterator mass = Mass_.begin();
   double atom_mass = 1.0;
-  for (int i = 0; i < ncoord_; i += 3)
+  for (int i = 0; i < ncoord_; i += 3, ++mass)
   {
     double xt = X_[i  ];
     double yt = X_[i+1];
@@ -1064,8 +1064,8 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
     double yr = Ref.X_[i+1];
     double zr = Ref.X_[i+2];
     // Use atom_mass to hold mass for this atom if specified
-    if (useMassIn) 
-      atom_mass = *(mass++);
+    if (useMassIn)
+      atom_mass = *mass;
     mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
     // Calculate the Kabsch matrix: R = (rij) = Sum(yni*xnj)
     rot[0] += atom_mass*xt*xr;
