@@ -642,11 +642,17 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
 }
 
 void DataSetList::PrintList(DataListType const& dlist) {
+  size_t memTotal = 0;
   for (DataListType::const_iterator ds = dlist.begin(); ds != dlist.end(); ++ds) {
     DataSet const& dset = static_cast<DataSet const&>( *(*ds) );
-    mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), dset.legend(),
-            DataSet::description(dset.Type()), dset.Meta().ScalarDescription().c_str(),
+    mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), 
+            dset.legend(), DataSet::description(dset.Type()),
+            dset.Meta().ScalarDescription().c_str(),
             dset.Size());
+    size_t memUsage = dset.MemUsageInBytes();
+    if (memUsage > 0)
+      mprintf(" (%s)", ByteString(memUsage, BYTE_DECIMAL).c_str());
+    memTotal += memUsage;
     dset.Info();
     mprintf("\n");
   }
@@ -669,6 +675,7 @@ void DataSetList::PrintList(DataListType const& dlist) {
     Parallel::EnsembleComm().Barrier();
   }
 # endif
+  mprintf("    Total data set memory usage is at least %s\n", ByteString(memTotal, BYTE_DECIMAL).c_str());
 }
 
 // DataSetList::List()

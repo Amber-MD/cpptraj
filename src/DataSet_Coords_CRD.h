@@ -10,7 +10,7 @@ class DataSet_Coords_CRD : public DataSet_Coords {
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
-    void Info() const;
+    void Info() const { return; }
     void Add(size_t, const void*) {}
     int Allocate(SizeArray const&);
     /// \return Size in bytes of set

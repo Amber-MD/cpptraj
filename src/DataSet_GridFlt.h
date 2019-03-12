@@ -16,7 +16,7 @@ class DataSet_GridFlt : public DataSet_3D {
     // FIXME: Currently just sums up. Should this be a separate Sync function?
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
-    void Info()                          const;
+    void Info()                          const { return; }
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     size_t MemUsageInBytes() const { return grid_.DataSize(); }
     // ----- DataSet_3D functions ----------------
