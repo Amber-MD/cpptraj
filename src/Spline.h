@@ -18,6 +18,8 @@ class Spline {
     Darray const& C_coeff() const { return c_; }
     /// \return D coefficient array.
     Darray const& D_coeff() const { return d_; }
+    /// /return memory usage in bytes
+    size_t DataSize() const { return (b_.size() + c_.size() + d_.size()) * sizeof(double); }
   private:
     // Cubic spline coefficients.
     Darray b_;

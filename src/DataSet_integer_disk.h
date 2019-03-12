@@ -18,6 +18,7 @@ class DataSet_integer_disk : public DataSet_integer {
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
+    size_t MemUsageInBytes() const { return 0; }
     // ----- DataSet_1D functions ----------------
     double Dval(size_t) const;
     /// This function is invalid for DataSet_integer_disk
