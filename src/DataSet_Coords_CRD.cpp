@@ -38,7 +38,7 @@ size_t DataSet_Coords_CRD::sizeInBytes(size_t nframes, size_t natom, size_t nbox
   return ((nframes * frame_size_bytes) + sizeof(CRDarray));
 }
 
-void DataSet_Coords_CRD::Info() const {
+void DataSet_Coords_CRD::Info() const { // TODO remove
   mprintf(" (%s)",
           ByteString(sizeInBytes(coords_.size(), top_.Natom(), numBoxCrd_), BYTE_DECIMAL).c_str());
   CommonInfo();

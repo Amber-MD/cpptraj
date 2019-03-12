@@ -18,6 +18,7 @@ class DataSet_GridFlt : public DataSet_3D {
 #   endif
     void Info()                          const;
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
+    size_t MemUsageInBytes() const { return grid_.DataSize(); }
     // ----- DataSet_3D functions ----------------
     int Allocate3D(size_t x, size_t y, size_t z)          { return grid_.resize(x,y,z); }
     double GetElement(size_t x, size_t y, size_t z) const { return (double)grid_.element(x,y,z); }
