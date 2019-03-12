@@ -26,7 +26,7 @@ Action_DSSP::Action_DSSP() :
 
 void Action_DSSP::Help() const {
   mprintf("\t[<name>] [out <filename>] [<mask>] [sumout <filename>]\n"
-          "\t[assignout <filename>] [totalout <filename> [ptrajformat]\n"
+          "\t[assignout <filename>] [totalout <filename>] [ptrajformat]\n"
           "\t[namen <N name>] [nameh <H name>] [nameca <CA name>]\n"
           "\t[namec <C name>] [nameo <O name>]\n"
           "  Calculate secondary structure content for residues in <mask>.\n"

@@ -117,6 +117,8 @@ class Topology {
     // ----- Misc routines -----------------------
     /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;
+    /// Format: <res name>@<atom name>
+    std::string TruncResNameAtomName(int) const;
     /// Format:  <res name>_<res num>@<atom name>_<atom num>
     std::string TruncResAtomNameNum(int) const;
     /// Format: :<res num>@<atom name>

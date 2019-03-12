@@ -282,7 +282,8 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   // Set up the solvent_residues_ vector
   mask_.ResetMask();
   int idx = 0;
-  watidx_.resize( setup.Top().Natom(), -1 );
+  watidx_.clear();
+  watidx_.reserve( setup.Top().Natom() );
   for (Topology::res_iterator res = setup.Top().ResStart();
                               res != setup.Top().ResEnd(); res++)
   {
@@ -292,7 +293,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
       double mass = 0.0;
       for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
         mask_.AddAtom( i );
-        watidx_[i] = idx; // TODO currently purewater only - skip if not purewater?
+        watidx_.push_back( idx ); // TODO currently purewater only - skip if not purewater?
         mass += setup.Top()[i].Mass();
       }
       idx++;

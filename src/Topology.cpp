@@ -145,6 +145,17 @@ std::string Topology::TruncResAtomName(int atom) const {
   return res_name;
 }
 
+/** Given an atom number, return a string containing the corresponding
+  * residue name and atom name with format:
+  * "<resname>@<atom name>"
+  * Truncate the residue and atom names so there are no blanks.
+  */
+std::string Topology::TruncResNameAtomName(int atom) const {
+  if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
+  int res = atoms_[atom].ResNum();
+  return residues_[res].Name().Truncated() + "@" + atoms_[atom].Name().Truncated();
+}
+
 // Topology::TruncResAtomNameNum()
 /** Given an atom number, return a string containing the corresponding 
   * residue name and number (starting from 1) along with the atom name 

@@ -44,6 +44,7 @@ bool IgnoreHeader(const char* headername) {
   if (strcmp(headername,"omp.h")==0) return true;
   if (strncmp(headername,"readline",8)==0) return true;
   if (strncmp(headername,"xdrfile",7)==0) return true;
+  if (strncmp(headername,"lisp",4)==0) return true; // for readline
   return false;
 }
 

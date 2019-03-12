@@ -93,6 +93,7 @@ Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
       return Action::SKIP;
     }
   }
+  Action::CheckImageRotationWarning(setup, "the rotation");
   return Action::OK;
 }
 

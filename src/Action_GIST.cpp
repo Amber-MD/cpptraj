@@ -58,7 +58,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 {
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'gist' action does not work with > 1 thread (%i threads currently).\n",
+    mprinterr("Error: 'gist' action does not work with > 1 process (%i processes currently).\n",
               init.TrajComm().Size());
     return Action::ERR;
   }

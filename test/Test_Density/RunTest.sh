@@ -8,12 +8,15 @@ out2=mass_density.dat
 out3=charge_density.dat
 out4=electron_density.dat
 
-CleanFiles $in $out1 $out2 $out3 $out4 total.dat
+CleanFiles $in $out1 $out2 $out3 $out4 total.dat tz2.wato.agr
 
 INPUT="-i $in"
-TESTNAME='Density test'
-Requires notparallel
+TESTNAME='Density tests'
+Requires maxthreads 10
 
+# Density along an axis
+UNITNAME='Density along axis tests'
+CheckFor maxthreads 1 
 if [ $? -eq 0 ] ; then
   del='delta 0.25'
   masks='":PC@P31" ":PC@N31" ":PC@C2" ":PC | :OL | :OL2"'
@@ -30,12 +33,25 @@ density out $out2 mass $del $masks
 density out $out3 charge $del $masks
 density out $out4 electron $del $masks
 EOF
-
-  RunCpptraj "Density Test."
+  RunCpptraj "$UNITNAME"
   DoTest ${out1}.save $out1
   DoTest ${out2}.save $out2
   DoTest ${out3}.save $out3
   DoTest ${out4}.save $out4
+fi
+
+# Density along an axis, multiple frames
+UNITNAME='Multi-frame density along axis test'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+   cat > $in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+autoimage origin
+density :WAT@O out tz2.wato.agr xydy
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest tz2.wato.agr.save tz2.wato.agr
 fi
 
 # Total system density test

@@ -117,13 +117,13 @@ Cpptraj
  has a wide range of functionality, and makes use of OpenMP/MPI to speed
  up many calculations, including processing ensembles of trajectories and/or
  conducting multiple analyses in parallel with MPI.
-
 \begin_inset CommandInset citation
 LatexCommand citep
 key "Roe2018"
 literal "true"
 
 \end_inset
+
 
 \end_layout
 
@@ -923,7 +923,6 @@ Note that any combination of the '-openmp', '-cuda', and '-mpi' flags may
  additional runtime setup (e.g.
  setting OMP_NUM_THREADS for OpenMP) to work properly and not oversubscribe
  cores.
- 
 \end_layout
 
 \begin_layout Subsubsection
@@ -955,6 +954,15 @@ trajin
  thread 0 reads frames 1-500 of trajectory 1, thread 1 reads frames 501-1000
  of trajectory 1, thread 2 reads frames 1-500 of trajectory 2, and thread
  3 reads frames 501-1000 of trajectory 2.
+ Most Actions will work with across-trajectory parallelization with the
+ exception of the following:
+\end_layout
+
+\begin_layout Standard
+'clusterdihedral', 'contacts', 'createreservoir', 'gist', 'lipidorder',
+ 'pairwise', 'stfcdiffusion', 'unwrap', and 'xtalsymm'.
+ Note that 'diffusion' will only work with across-trajectory parallelism
+ if no imaging is to be performed.
 \end_layout
 
 \begin_layout Standard
@@ -13562,6 +13570,36 @@ strip
 \end_layout
 
 \begin_layout Standard
+Note that for commands which can use a reference mask as well as a target
+ mask (e.g.
+ 
+\series bold
+\emph on
+rms
+\series default
+\emph default
+, 
+\series bold
+\emph on
+drmsd
+\series default
+\emph default
+, 
+\series bold
+\emph on
+symmrmsd
+\series default
+\emph default
+, etc.) there must be a 1 to 1 correspondence between the atoms in each mask,
+ i.e.
+ the 
+\emph on
+number of atoms and the ordering of selected atoms must be the same
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
 The following Actions are available.
  If an Action may modify coordinate/topology information for subsequent
  Actions it is denoted with an X in the 
@@ -13580,7 +13618,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="82" columns="3">
+<lyxtabular version="3" rows="83" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="1.3in">
 <column alignment="center" valignment="top" width="4.5in">
@@ -16021,7 +16059,7 @@ Calculate unit cell volume.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -16030,7 +16068,7 @@ watershell
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -16040,11 +16078,41 @@ Calculate the number of waters in the first and second solvation shells
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+xtalsymm
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Superimpose symmetry-related parts of a system using crystallographic symmetry
+ operations.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+X
 \end_layout
 
 \end_inset
@@ -18241,16 +18309,16 @@ density
 \end_layout
 
 \begin_layout LyX-Code
-density [out <filename>] [name <set name>] [delta <resolution>] [x|y|z]
+density [out <filename>] 
 \end_layout
 
 \begin_layout LyX-Code
-        [number|mass|charge|electron] [efile <filename>]
+        [ <mask1> ...
+ <maskN> [name <set name>] [delta <resolution>] [{x|y|z}]
 \end_layout
 
 \begin_layout LyX-Code
-        [<mask1> ...
- <maskN>]
+          [{number|mass|charge|electron}] [{bincenter|binedge}] ]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -18259,32 +18327,28 @@ density [out <filename>] [name <set name>] [delta <resolution>] [x|y|z]
 
 \begin_deeper
 \begin_layout Description
-out Output file for histogram: relative distances vs.
- densities for each mask.
- 
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] Output file for histogram (relative distances vs.
+ densities for each mask) or total density.
 \end_layout
 
 \begin_layout Description
-delta Resolution, i.e.
- determines number of slices.
- (0.25 Å) 
+[name
+\begin_inset space ~
+\end_inset
+
+<set
+\begin_inset space ~
+\end_inset
+
+name>] Output data set name.
 \end_layout
 
 \begin_layout Description
-x|y|z Coordinate for density calculation.
- (z) 
-\end_layout
-
-\begin_layout Description
-number|mass|charge|electron Number, mass, partial charge (q) or electron
- (Ne - q) density.
- To convert the electron density to e-/Å3 divide by the (average) area spanned
- by the other two dimensions.
- (number)
-\end_layout
-
-\begin_layout Description
-mask1
+<mask1>
 \begin_inset space ~
 \end_inset
 
@@ -18292,10 +18356,41 @@ mask1
 \begin_inset space ~
 \end_inset
 
-maskN Arbitrary number of masks for atom selection; a dataset is created
+<maskN> Arbitrary number of masks for atom selection; a dataset is created
  and the output will contain entries for each mask.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[delta
+\begin_inset space ~
+\end_inset
+
+<resolution>] Resolution, i.e.
+ determines number of slices (i.e.
+ histogram bins).
+ (default 0.25 Å)
+\end_layout
+
+\begin_layout Description
+[{x|y|z}] Coordinate for density calculation.
+ (default z)
+\end_layout
+
+\begin_layout Description
+[{number|mass|charge|electron}] Number, mass, partial charge (q) or electron
+ (Ne - q) density.
+ Electron density will be converted to e-/Å3 by dividing the average area
+ spanned by the other two dimensions.
+ (default number)
+\end_layout
+
+\begin_layout Description
+[{bincenter|binedge}] Determine whether histogram bin coordinates will be
+ based on bin center (default) or bin edges.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
@@ -18309,13 +18404,10 @@ DataSet Aspects:
 \end_layout
 
 \end_deeper
-\begin_layout LyX-Code
-
-\end_layout
-
 \begin_layout Standard
 If no arguments are specified, calculate the total system density.
- Otherwise, calculate specified density for system.
+ Otherwise, calculate specified density along the given axis for atoms in
+ specified mask(s).
  Defaults are shown in parentheses above.
  The format of the file is as follows.
  Comments are lines starting with '#' or empty lines.
@@ -21600,7 +21692,7 @@ grid <filename>
 \end_layout
 
 \begin_layout LyX-Code
-	 [pdb <pdbout> [max <fraction>]]
+	 [pdb <pdbout> [max <fraction>]] [{byres|mymol}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -21795,6 +21887,11 @@ Other options:
 
 <fraction>]] Write a pseudo-PDB of grid points that have density greater
  than <fraction> (default 0.80) of the grid max value.
+\end_layout
+
+\begin_layout Description
+[{byres|bymol}] Grid the centers of mass of residues or molecules selected
+ by <mask>.
 \end_layout
 
 \begin_layout Standard
@@ -31500,6 +31597,134 @@ closest
 
 \begin_layout Standard
 As of version 17 this command is CUDA-enabled in CUDA versions of CPPTRAJ.
+\end_layout
+
+\begin_layout Subsection
+xtalsymm
+\end_layout
+
+\begin_layout LyX-Code
+xtalsymm <mask> group <space group> [collect [centroid]]
+\end_layout
+
+\begin_layout LyX-Code
+     	[ first | reference | ref <name> | refindex <#> ]
+\end_layout
+
+\begin_layout LyX-Code
+     	[na <na>] [nb <nb>] [nc <nc>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<mask> Select atoms to perform symmetry operations on.
+\end_layout
+
+\begin_layout Description
+group
+\begin_inset space ~
+\end_inset
+
+<space
+\begin_inset space ~
+\end_inset
+
+group> Symmetry space group (e.g.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+P1
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\begin_inset Quotes eld
+\end_inset
+
+P121
+\begin_inset Quotes erd
+\end_inset
+
+, etc.)
+\end_layout
+
+\begin_layout Description
+[collect] If specified, reimage solvent molecules by atom.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[centroid] If specified along with collect, reimage solvent molecules by
+ molecule.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[first
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+reference
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+ref
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+refindex
+\begin_inset space ~
+\end_inset
+
+<#>] Reference structure to use for determining crystal symmetry.
+\end_layout
+
+\begin_layout Description
+[na
+\begin_inset space ~
+\end_inset
+
+<na>] Number of replicas along the A vector (default 1).
+\end_layout
+
+\begin_layout Description
+[nb
+\begin_inset space ~
+\end_inset
+
+<nb>] Number of replicas along the B vector (default 1).
+\end_layout
+
+\begin_layout Description
+[nc
+\begin_inset space ~
+\end_inset
+
+<nc>] Number of replicas along the C vector (default 1).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate the optimal approach for superimposing symmetry-related subunits
+ of the simulation back onto one another.
+ This modifies the coordinate state for all future actions.
 \end_layout
 
 \begin_layout Section
