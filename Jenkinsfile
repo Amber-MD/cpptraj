@@ -48,26 +48,26 @@ pipeline {
                         sh "bash -ex devtools/ci/jenkins/install.sh"
                     }
                 }
-                stage("Linux PGI serial build") {
-                    agent {
-                        dockerfile {
-                            dir "devtools/ci/jenkins"
-                            label "pgi"
-                            // Pull the licensed PGI compilers from the host machine (must have
-                            // the compilers installed in /opt/pgi)
-                            args "-v /opt/pgi:/opt/pgi"
-                        }
-                    }
+//              stage("Linux PGI serial build") {
+//                  agent {
+//                      dockerfile {
+//                          dir "devtools/ci/jenkins"
+//                          label "pgi"
+//                          // Pull the licensed PGI compilers from the host machine (must have
+//                          // the compilers installed in /opt/pgi)
+//                          args "-v /opt/pgi:/opt/pgi"
+//                      }
+//                  }
 
-                    environment {
-                        COMPILER = "pgi"
-                        OPERATING_SYSTEM = "linux"
-                    }
+//                  environment {
+//                      COMPILER = "pgi"
+//                      OPERATING_SYSTEM = "linux"
+//                  }
 
-                    steps {
-                        sh "bash -ex devtools/ci/jenkins/install.sh"
-                    }
-                }
+//                  steps {
+//                      sh "bash -ex devtools/ci/jenkins/install.sh"
+//                  }
+//              }
                 stage("Linux GNU parallel build") {
                     // Insert parallel build here
                     agent {
