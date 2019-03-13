@@ -10,7 +10,7 @@ test -d $MKL_HOME || unset MKL_HOME
 env
 
 if [ "${OPERATING_SYSTEM}" = "linux" ]; then
-  bash +e ./configure --with-fftw3=/usr ${COMPILER_FLAGS} ${COMPILER}
+  bash +ex ./configure --with-fftw3=/usr ${COMPILER_FLAGS} ${COMPILER}
 else
   # Mac OS X
   bash +e ./configure -macAccelerate --with-fftw3=/opt/local --with-netcdf=/opt/local -noarpack ${COMPILER_FLAGS} clang
