@@ -1,5 +1,13 @@
 #include "DataSet_string.h"
 
+size_t DataSet_string::MemUsageInBytes() const {
+  size_t mySize = 0;
+  for (std::vector<std::string>::const_iterator it = Data_.begin();
+                                                it != Data_.end(); ++it)
+    mySize += (it->size() * sizeof(char));
+  return mySize;
+}
+
 // DataSet_string::Allocate()
 /** Reserve space in the Data and Frames arrays. */
 int DataSet_string::Allocate( SizeArray const& sizeIn ) {

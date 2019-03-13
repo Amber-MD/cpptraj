@@ -4602,11 +4602,23 @@ Read
 \end_layout
 
 \begin_layout LyX-Code
-[index <col>] [read2d] [vector] [mat3x3]
+[ read1d [index <col>] [onlycols <range>] ]
+\end_layout
+
+\begin_layout LyX-Code
+[read2d] [vector] [mat3x3]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+[ read3d [dims <nx>,<ny>,<nz>] [origin <ox>,<oy>,<oz>]
+\end_layout
+
+\begin_layout LyX-Code
+ [delta <dx>,<dy>,dz>] [prec {dbl|flt}] [bin {center|corner}]
 \end_layout
 
 \begin_deeper
@@ -4622,6 +4634,24 @@ index
 read1d Read data as 1D data sets (default).
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+index
+\begin_inset space ~
+\end_inset
+
+<col> Use column <col> (starting from 1) as index column (1D data only).
+\end_layout
+
+\begin_layout Description
+onlycols
+\begin_inset space ~
+\end_inset
+
+<range> Only read columns in range.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 read2d Read data as 2D square matrix.
 \end_layout
@@ -4641,6 +4671,53 @@ mat3x3 Read data as 3x3 matrix.
  M(3,2) M(3,3).
 \end_layout
 
+\begin_layout Description
+read3d Read data as 3D grid.
+ If no dimension data in file must also speify 'dims'.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+dims
+\begin_inset space ~
+\end_inset
+
+<dx>,<dy>,<dz> Grid dimensions.
+\end_layout
+
+\begin_layout Description
+origin
+\begin_inset space ~
+\end_inset
+
+<ox>,<oy>,<oz> Grid origins (default 0,0,0).
+\end_layout
+
+\begin_layout Description
+delta
+\begin_inset space ~
+\end_inset
+
+<dx>,<dy>,dz> Grid spacings (default 1,1,1).
+\end_layout
+
+\begin_layout Description
+prec
+\begin_inset space ~
+\end_inset
+
+{dbl|flt} Grid precision, double or float (default float).
+\end_layout
+
+\begin_layout Description
+bin
+\begin_inset space ~
+\end_inset
+
+{center|corner} Coords specify bin centers or corners (default corners).
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 By default, standard data files are assumed to contain 1D data in columns.
@@ -4736,11 +4813,11 @@ Write
 \end_layout
 
 \begin_layout LyX-Code
-[nolabels] [usemap] [pm3d] [nopm3d] [jpeg] [noheader]
+[nolabels] [usemap] [pm3d] [nopm3d] [title <title>]
 \end_layout
 
 \begin_layout LyX-Code
-[{xlabels|ylabels|zlabels} <labellist>]
+[jpeg] [noheader] [{xlabels|ylabels|zlabels} <labellist>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -4766,6 +4843,14 @@ nopm3d Turn off pm3d
 
 \begin_layout Description
 jpeg Plot will write to a JPEG file when used with gnuplot.
+\end_layout
+
+\begin_layout Description
+title
+\begin_inset space ~
+\end_inset
+
+<title> Set plot title (default is file name).
 \end_layout
 
 \begin_layout Description
@@ -6188,7 +6273,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="30" columns="2">
+<lyxtabular version="3" rows="31" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -6772,6 +6857,26 @@ sortensembledata
 
 \begin_layout Plain Layout
 Sort data sets using replica information (currently constant pH only).
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+usediskcache
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Turn caching of data sets to disk on or off.
 \end_layout
 
 \end_inset
@@ -9219,6 +9324,30 @@ arg1>
 \begin_layout Standard
 Sort unsorted data sets.
  Currently only works for constant pH REMD data.
+\end_layout
+
+\begin_layout Subsection
+usediskcache
+\end_layout
+
+\begin_layout LyX-Code
+usediskcache {on|off}
+\end_layout
+
+\begin_layout Standard
+If on, CPPTRAJ will attempt to cache data sets to disk if possible.
+ This currently only works for integer data sets (e.g.
+ 
+\series bold
+\emph on
+hbond
+\series default
+\emph default
+ 
+\series bold
+series
+\series default
+ data sets, etc).
 \end_layout
 
 \begin_layout Subsection

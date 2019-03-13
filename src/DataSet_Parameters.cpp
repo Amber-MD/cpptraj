@@ -6,6 +6,15 @@ DataSet_Parameters::DataSet_Parameters() :
   DataSet(PARAMETERS, GENERIC, TextFormat(), 0)
 {}
 
+size_t DataSet_Parameters::MemUsageInBytes() const {
+  return (atomTypes_.DataSize() +
+          bondParm_.DataSize() +
+          angleParm_.DataSize() +
+          ubParm_.DataSize() +
+          dihParm_.DataSize() +
+          impParm_.DataSize());
+}
+
 size_t DataSet_Parameters::Size() const {
   return (atomTypes_.Size() +
           bondParm_.size() +

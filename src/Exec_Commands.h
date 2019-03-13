@@ -162,4 +162,13 @@ class Exec_EnsFileExt : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_EnsFileExt(); }
     RetType Execute(CpptrajState&, ArgList&);
 };
+
+/// Enabled/disable caching of DataSets to disk.
+class Exec_UseDiskCache : public Exec {
+  public:
+    Exec_UseDiskCache() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_UseDiskCache(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
 #endif

@@ -63,7 +63,8 @@ class DataSet {
     virtual void Add( size_t, const void* ) = 0;
     /// Can be used to append given data set to this one.
     virtual int Append(DataSet*) = 0;
-    // TODO SizeInMB?
+    /// \return Size of data set in memory (in bytes).
+    virtual size_t MemUsageInBytes() const = 0;
 #   ifdef MPI
     /// Piece this DataSet together from multiple threads.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
@@ -122,6 +123,8 @@ class DataSet {
         return *first < *second;
       }
     };
+    /// \return Text description based on DataType
+    static const char* description(DataType t) { return Descriptions_[t]; }
   protected:
     TextFormat format_;         ///< Text output data format.
   private:
@@ -132,6 +135,8 @@ class DataSet {
 
     /// Clear any associated data.
     void ClearAssociatedData();
+    /// Text descriptions of DataType
+    static const char* Descriptions_[];
     // FIXME dim_ and associated functions like Coord need to be reworked
     //       depending on the set type. For example, dim_ doesnt really work
     //       for non-orthogonal grids.

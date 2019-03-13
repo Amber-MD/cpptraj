@@ -3,8 +3,9 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "Matrix_3x3.h"
-#include "Vec3.h"
+// Forward declarations
+class Matrix_3x3;
+class Vec3;
 class SpaceGroup {
   public:
     SpaceGroup();
