@@ -7,7 +7,7 @@ test -d $MKL_HOME || unset MKL_HOME
 # set, as is label. This is set up exclusively to test the Intel compilers.
 
 if [ "${OPERATING_SYSTEM}" = "linux" ]; then
-  ./configure ${COMPILER_FLAGS} ${COMPILER}
+  ./configure --with-fftw3=/usr ${COMPILER_FLAGS} ${COMPILER}
 else
   # Mac OS X
   env
@@ -26,6 +26,9 @@ compiler_flags_contains() {
 # If the compiler flag is -mpi, set DO_PARALLEL. Test both 2 and 4 CPUs for
 # parallel builds.
 make -j4 install
+
+echo "cpptraj build is complete!"
+
 if [ `compiler_flags_contains -mpi` = "yes" ]; then
   export DO_PARALLEL='mpirun -np 2'
   make check
