@@ -6,13 +6,14 @@ test -d $MKL_HOME || unset MKL_HOME
 # is the top-level cpptraj directory. The environment variable COMPILER_FLAGS is
 # set, as is label. This is set up exclusively to test the Intel compilers.
 
+# Debug -- print environment
+env
+
 if [ "${OPERATING_SYSTEM}" = "linux" ]; then
-  ./configure --with-fftw3=/usr ${COMPILER_FLAGS} ${COMPILER}
+  bash +e ./configure --with-fftw3=/usr ${COMPILER_FLAGS} ${COMPILER}
 else
   # Mac OS X
-  env
-  which ncdump
-  ./configure -macAccelerate --with-fftw3=/opt/local --with-netcdf=/opt/local -noarpack ${COMPILER_FLAGS} clang
+  bash +e ./configure -macAccelerate --with-fftw3=/opt/local --with-netcdf=/opt/local -noarpack ${COMPILER_FLAGS} clang
 fi
 
 compiler_flags_contains() {
