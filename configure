@@ -1741,7 +1741,8 @@ if [ -z "$NBITS" ] ; then
   if [ -z "$architecture" ] ; then
     echo "Warning: Could not determine 32 vs 64-bit OS - assuming 64-bit."
     NBITS=64
-  elif [ "$architecture" = 'x86_64' -o "$architecture" = 'em64t' ] ; then
+  elif [ ! -z "`echo $architecture | grep 64`" ] ; then
+    # Assume if the machine from uname has a 64 it is 64 bit.
     NBITS=64
   else
     NBITS=32
