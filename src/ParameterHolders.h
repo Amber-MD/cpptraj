@@ -48,6 +48,8 @@ class AtomTypeHolder {
         }
       return match;
     }
+    /// \return size used in memory
+    size_t DataSize() const { return types_.size() * NameType::DataSize(); } 
 /*
     /// The lowest type name of either end is used for sorting.
     bool operator<(AtomTypeHolder const& rhs) const {
@@ -119,6 +121,15 @@ template <class T> class ParmHolder {
     typedef typename Bmap::const_iterator const_iterator;
     const_iterator begin() const { return bpmap_.begin(); }
     const_iterator end()   const { return bpmap_.end();   }
+
+    size_t DataSize() const {
+      if (bpmap_.empty()) return 0;
+      const_iterator elt0 = begin();
+      // Assume all AtomTypeHolders are the same size
+      return (bpmap_.size() * elt0->first.DataSize()) +
+             (bpmap_.size() * sizeof(T)) +
+             sizeof(Bmap);
+    }
   private:
     Bmap bpmap_;
 };

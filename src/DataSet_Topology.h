@@ -17,6 +17,7 @@ class DataSet_Topology : public DataSet {
     void Add( size_t, const void* ) {}
     void WriteBuffer(CpptrajFile&, SizeArray const&) const {}
     int Append(DataSet*)                 { return 1;                    }
+    size_t MemUsageInBytes() const { return 0; } // FIXME
     // -------------------------------------------
     int LoadTopFromFile(ArgList const&, int);
     int StripTop( std::string const& );

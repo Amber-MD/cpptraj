@@ -17,6 +17,7 @@ class DataSet_pH : public DataSet_1D {
     int Allocate(SizeArray const&);
     void Add( size_t, const void* ) { return; }
     int Append(DataSet*)            { return 1; }
+    size_t MemUsageInBytes() const;
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
     /// Sum data to the specified rank in communicator

@@ -216,7 +216,8 @@ COMMON_SOURCES= \
         DataSet_Vector.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
-        DataSet_integer.cpp \
+        DataSet_integer_disk.cpp \
+        DataSet_integer_mem.cpp \
         DataSet_string.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
@@ -273,6 +274,7 @@ COMMON_SOURCES= \
         Exec_Traj.cpp \
         Exec_UpdateParameters.cpp \
         Exec_ViewRst.cpp \
+        File_TempName.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \

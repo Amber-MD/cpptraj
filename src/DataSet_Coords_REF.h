@@ -17,6 +17,7 @@ class DataSet_Coords_REF : public DataSet_Coords {
     void Add( size_t, const void* )              { return;     }
     // Size is only ever 1, no need to allocate.
     int Allocate(SizeArray const&)               { return 0;   }
+    size_t MemUsageInBytes() const { return frame_.DataSize(); }
     // ----- DataSet_Coords functions ------------
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { frame_ = fIn; }

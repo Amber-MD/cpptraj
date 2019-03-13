@@ -18,6 +18,7 @@ class DataSet_MatrixFlt : public DataSet_2D {
 #   endif
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
+    size_t MemUsageInBytes() const { return mat_.DataSize(); }
     // ----- DataSet_2D functions ----------------
     void UpdateElement(size_t x,size_t y,double v) { mat_.updateElement(x,y,v);       }
     int Allocate2D(size_t x,size_t y)          { kind_=FULL; return mat_.resize(x,y); }
@@ -36,7 +37,6 @@ class DataSet_MatrixFlt : public DataSet_2D {
     typedef Matrix<float>::iterator iterator;
     iterator begin()                           { return mat_.begin();       }
     iterator end()                             { return mat_.end();         }
-    size_t SizeInBytes()                       { return mat_.sizeInBytes(Ncols(), Nrows()); }
   private:
     Matrix<float> mat_;
     MatrixKindType kind_;

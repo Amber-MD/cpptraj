@@ -14,10 +14,6 @@ void DataSet_GridFlt::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) co
     outfile.Printf(format_.fmt(), grid_.element(x,y,z));
 }
 
-void DataSet_GridFlt::Info() const {
-  mprintf(" (%s)", ByteString(Grid<float>::sizeInBytes(NX(), NY(), NZ()), BYTE_DECIMAL).c_str());
-}
-
 #ifdef MPI
 int DataSet_GridFlt::Sync(size_t total, std::vector<int> const& rank_frames,
                           Parallel::Comm const& commIn)

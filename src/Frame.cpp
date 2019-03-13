@@ -322,6 +322,22 @@ Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd, bool hasVel) const {
 }
 
 // ---------- ACCESS INTERNAL DATA ---------------------------------------------
+// Frame::DataSize()
+/** Size of Frame in memory. */
+size_t Frame::DataSize() const {
+  size_t mySize = (5  * sizeof(int)) +
+                  (10 * sizeof(double)) + // box + class vars
+                  (remd_indices_.size() * sizeof(int)) +
+                  (Mass_.size() * sizeof(double));
+  if (!memIsExternal_ && X_ != 0)
+    mySize += (maxnatom_ * 3 * sizeof(double));
+  if (V_ != 0)
+    mySize += (maxnatom_ * 3 * sizeof(double));
+  if (F_ != 0)
+    mySize += (maxnatom_ * 3 * sizeof(double));
+  return mySize;
+}
+
 // Frame::printAtomCoord()
 void Frame::printAtomCoord(int atom) const {
   int atmidx = atom * 3;
