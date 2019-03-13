@@ -1,3 +1,7 @@
+# MKL_HOME gets set by the Jenkinsfile even if it's not actually installed. So unset
+# it if it's set and not actually a directory
+test -d $MKL_HOME || unset MKL_HOME
+
 # This script is sourced from the main build script, and the executing directory
 # is the top-level cpptraj directory. The environment variable COMPILER_FLAGS is
 # set, as is label. This is set up exclusively to test the Intel compilers.
@@ -10,7 +14,7 @@ else
 fi
 
 compiler_flags_contains() {
-  if [ `echo "${COMPILER_FLAGS}" | sed -e "s/$1//g"` = "${COMPILER_FLAGS}" ]; then
+  if [ "x`echo "${COMPILER_FLAGS}" | sed -e "s/$1//g"`" = "x${COMPILER_FLAGS}" ]; then
     echo "0" # It's the same, so $1 cannot be in COMPILER_FLAGS
   else
     echo "1"
