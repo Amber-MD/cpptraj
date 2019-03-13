@@ -90,7 +90,7 @@ pipeline {
                     agent {
                         dockerfile {
                             dir "devtools/ci/jenkins"
-                            additionalBuildArgs "--build-arg BASEIMAGE=nvidia/cuda:10.0-devel-ubuntu18.04"
+                            filename "Dockerfile.cuda"
                         }
                     }
 

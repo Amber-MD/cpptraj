@@ -1,5 +1,4 @@
-ARG BASEIMAGE=ubuntu:18.04
-FROM ${BASEIMAGE}
+FROM ubuntu:18.04
 
 RUN mkdir -p /opt/intel && \
     mkdir -p /opt/pgi && \
