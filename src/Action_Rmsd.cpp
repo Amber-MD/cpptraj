@@ -96,7 +96,10 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   REF_.SetRefMask( rMaskExpr );
 
   // Set up the RMSD data set.
-  MetaData md( actionArgs.GetStringNext(), MetaData::M_RMS ); 
+  std::string dsname = actionArgs.GetStringNext();
+  if (dsname.empty())
+    dsname = init.DSL().GenerateDefaultName("RMSD");
+  MetaData md( dsname, MetaData::M_RMS ); 
   rmsd_ = init.DSL().AddSet(DataSet::DOUBLE, md, "RMSD");
   if (rmsd_==0) return Action::ERR;
   // Add dataset to data file list
