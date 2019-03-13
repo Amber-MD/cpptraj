@@ -4,8 +4,8 @@ RUN mkdir -p /opt/intel && \
     mkdir -p /opt/pgi && \
     apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y gfortran gcc g++ bzip2 libfftw3-dev automake make libbz2-dev openmpi-bin \
-                       openmpi-common libopenmpi-dev zlib1g-dev netcdf-bin libnetcdf-dev \
+    apt-get install -y gfortran gcc g++ bzip2 libfftw3-dev automake make libbz2-dev \
+                       mpich libmpich-dev zlib1g-dev netcdf-bin libnetcdf-dev \
                        liblapack-dev libarpack2-dev
 
 # Set up for the Intel compilers. This won't do anything if they're not mounted
