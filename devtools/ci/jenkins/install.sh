@@ -10,31 +10,33 @@ if [ "${OPERATING_SYSTEM}" = "linux" ]; then
   ./configure ${COMPILER_FLAGS} ${COMPILER}
 else
   # Mac OS X
+  env
+  which ncdump
   ./configure -macAccelerate --with-fftw3=/opt/local --with-netcdf=/opt/local -noarpack ${COMPILER_FLAGS} clang
 fi
 
 compiler_flags_contains() {
   if [ "x`echo "${COMPILER_FLAGS}" | sed -e "s/$1//g"`" = "x${COMPILER_FLAGS}" ]; then
-    echo "0" # It's the same, so $1 cannot be in COMPILER_FLAGS
+    echo "no" # It's the same, so $1 cannot be in COMPILER_FLAGS
   else
-    echo "1"
+    echo "yes"
   fi
 }
 
 # If the compiler flag is -mpi, set DO_PARALLEL. Test both 2 and 4 CPUs for
 # parallel builds.
 make -j4 install
-if [ `compiler_flags_contains -mpi` -eq 1 ]; then
+if [ `compiler_flags_contains -mpi` = "yes" ]; then
   export DO_PARALLEL='mpirun -np 2'
   make check
   export DO_PARALLEL='mpirun -np 4'
   make check
-elif [ `compiler_flags_contains -openmp` -eq 1 ]; then
+elif [ `compiler_flags_contains -openmp` = "yes" ]; then
   export OPT=openmp OMP_NUM_THREADS=2
   make check
   export OMP_NUM_THREADS=4
   make check
-elif [ `compiler_flags_contains -cuda` -eq 1 ]; then
+elif [ `compiler_flags_contains -cuda` = "yes" ]; then
   export OPT=cuda
   make check
 else
