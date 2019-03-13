@@ -10,8 +10,8 @@ RUN mkdir -p /opt/intel && \
 
 # Set up for the Intel compilers. This won't do anything if they're not mounted
 ENV PATH=/opt/intel/compilers_and_libraries/linux/bin/intel64:/opt/intel/openmpi/bin:${PATH}
-ENV LD_LIBRARY_PATH=/opt/intel/compilers_and_libraries/linux/lib/intel64:/opt/intel/openmpi/lib
 ENV MKL_HOME=/opt/intel/compilers_and_libraries/linux/mkl
+ENV LD_LIBRARY_PATH=${MKL_HOME}/lib/intel64:/opt/intel/compilers_and_libraries/linux/lib/intel64:/opt/intel/openmpi/lib
 
 # Set up for the PGI compilers. This won't do anything if they're not mounted
 ENV PATH=/opt/pgi/linux86-64/2018/bin:/opt/pgi/linux86-64/2018/mpi/bin:${PATH}
