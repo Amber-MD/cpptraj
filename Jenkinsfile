@@ -16,13 +16,10 @@ pipeline {
                         }
                     }
 
-                    environment {
-                        COMPILER = "gnu"
-                        OPERATING_SYSTEM = "linux"
-                    }
-
                     steps {
-                        sh "bash -ex devtools/ci/jenkins/install.sh"
+                        sh "./configure --with-netcdf --with-fftw3 gnu"
+                        sh "make -j4 install"
+                        sh "make check"
                     }
                 }
                 stage("Linux Intel Serial Build") {
@@ -39,51 +36,44 @@ pipeline {
                     }
 
                     environment {
-                        COMPILER = "intel"
-                        OPERATING_SYSTEM = "linux"
-                        COMPILER_FLAGS = "-mkl"
+                        MKL_HOME = "/opt/intel/compilers_and_libraries/linux/mkl"
                     }
 
                     steps {
-                        sh "bash -ex devtools/ci/jenkins/install.sh"
+                        sh "./configure --with-netcdf -mkl intel"
+                        sh "make -j4 install"
+                        sh "make check"
                     }
                 }
-//              stage("Linux PGI serial build") {
-//                  agent {
-//                      dockerfile {
-//                          dir "devtools/ci/jenkins"
-//                          label "pgi"
-//                          // Pull the licensed PGI compilers from the host machine (must have
-//                          // the compilers installed in /opt/pgi)
-//                          args "-v /opt/pgi:/opt/pgi"
-//                      }
-//                  }
+                stage("Linux PGI serial build") {
+                    agent {
+                        dockerfile {
+                            dir "devtools/ci/jenkins"
+                            label "pgi"
+                            // Pull the licensed PGI compilers from the host machine (must have
+                            // the compilers installed in /opt/pgi)
+                            args "-v /opt/pgi:/opt/pgi"
+                        }
+                    }
 
-//                  environment {
-//                      COMPILER = "pgi"
-//                      OPERATING_SYSTEM = "linux"
-//                  }
-
-//                  steps {
-//                      sh "bash -ex devtools/ci/jenkins/install.sh"
-//                  }
-//              }
+                    steps {
+                        sh "./configure --with-netcdf --with-fftw3 pgi"
+                        sh "make -j6 install"
+                        sh "make check"
+                    }
+                }
                 stage("Linux GNU parallel build") {
-                    // Insert parallel build here
                     agent {
                         dockerfile {
                             dir "devtools/ci/jenkins"
                         }
                     }
 
-                    environment {
-                        COMPILER = "gnu"
-                        OPERATING_SYSTEM = "linux"
-                        COMPILER_FLAGS = "-mpi"
-                    }
-
                     steps {
-                        sh "bash -ex devtools/ci/jenkins/install.sh"
+                        sh "./configure --with-netcdf --with-fftw3 -mpi gnu"
+                        sh "make -j4 install"
+                        sh "make -e DO_PARALLEL='mpiexec -n 2' check"
+                        sh "make -e DO_PARALLEL='mpiexec -n 4' check"
                     }
                 }
                 stage("Linux CUDA build") {
@@ -94,26 +84,10 @@ pipeline {
                         }
                     }
 
-                    environment {
-                        COMPILER = "gnu"
-                        COMPILER_FLAGS = "-cuda"
-                        OPERATING_SYSTEM = "linux"
-                    }
-
                     steps {
-                        sh "bash -ex devtools/ci/jenkins/install.sh"
-                    }
-                }
-                stage("macOS build") {
-                    // No docker on Macs :'(
-                    agent { label "mac" }
-
-                    environment {
-                        OPERATING_SYSTEM = "macOS"
-                    }
-
-                    steps {
-                        sh "bash -ex devtools/ci/jenkins/install.sh"
+                        sh "./configure --with-netcdf --with-fftw3 -cuda gnu"
+                        sh "make -j4 install"
+                        sh "make -e OPT=cuda check"
                     }
                 }
                 stage("Linux GNU OpenMP build") {
@@ -123,14 +97,10 @@ pipeline {
                         }
                     }
 
-                    environment {
-                        COMPILER = "gnu"
-                        OPERATING_SYSTEM = "linux"
-                        COMPILER_FLAGS = "-openmp"
-                    }
-
                     steps {
-                        sh "bash -ex devtools/ci/jenkins/install.sh"
+                        sh "./configure --with-netcdf --with-fftw3 -openmp gnu"
+                        sh "make -j4 install"
+                        sh "make -e OPT=openmp check"
                     }
                 }
             }

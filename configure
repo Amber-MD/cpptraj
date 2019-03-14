@@ -1,4 +1,4 @@
-#!/bin/bash +e
+#!/bin/bash
 # CPPTRAJ standalone configure script.
 # Daniel R. Roe
 # 2010-11-18
