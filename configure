@@ -987,8 +987,8 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=pgcc; fi
       if [ -z "$CXX" ]; then CXX=pgc++; fi
       if [ -z "$FC" ]; then FC=pgf90; fi
-      CXXFLAGS="-Kieee $CXXFLAGS"
-      CFLAGS="-Kieee $CFLAGS"
+      CXXFLAGS="-Kieee -Mnoflushz $CXXFLAGS"
+      CFLAGS="-Kieee -Mnoflushz $CFLAGS"
       hostflags='-fastsse'
       optflags='-fast'
       foptflags='-fast'
