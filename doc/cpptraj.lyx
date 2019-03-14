@@ -8685,7 +8685,7 @@ cpptraj
 .
  If given with a command, print help for that command.
  Otherwise, list all commands of a certain category (General, System, Coords,
- Trajecotyr, Topology, Action, Analysis, or Control), help for various file
+ Trajectory, Topology, Action, Analysis, or Control), help for various file
  formats, or help with atom mask syntax.
 \end_layout
 
