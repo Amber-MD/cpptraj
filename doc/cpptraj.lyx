@@ -8625,7 +8625,56 @@ help
 
 \end_inset
 
- {[<command>] | General | Action | Analysis | Topology | Trajectory}
+ [ { All |
+\end_layout
+
+\begin_layout LyX-Code
+	     <cmd> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	    <command category> |
+\end_layout
+
+\begin_layout LyX-Code
+ 	    Form[ats] [{read|write}] |
+\end_layout
+
+\begin_layout LyX-Code
+ 	    Form[ats] [{trajin|trajout|readdata|writedata|parm|parmwrite} [<fmt
+ key>]] |
+\end_layout
+
+\begin_layout LyX-Code
+ 	    Mask 	   } ]
+\end_layout
+
+\begin_layout LyX-Code
+	Command Categories: Gen[eral] Sys[tem] Coor[ds] Traj[ectory] Top[ology]
+\end_layout
+
+\begin_layout LyX-Code
+	                    Act[ion] Ana[lysis] Con[trol]
+\end_layout
+
+\begin_layout LyX-Code
+  All                : Print all known commands.
+\end_layout
+
+\begin_layout LyX-Code
+  <cmd>              : Print help for command <cmd>.
+\end_layout
+
+\begin_layout LyX-Code
+  <command category> : Print all commands in specified category.
+\end_layout
+
+\begin_layout LyX-Code
+  Form[ats]          : Help for file formats.
+\end_layout
+
+\begin_layout LyX-Code
+  Mask               : Help for mask syntax.
 \end_layout
 
 \begin_layout Standard
@@ -8635,8 +8684,9 @@ cpptraj
 \shape default
 .
  If given with a command, print help for that command.
- Otherwise, list all commands of a certain category (General, Action, Analysis,
- Topology, or Trajectory).
+ Otherwise, list all commands of a certain category (General, System, Coords,
+ Trajecotyr, Topology, Action, Analysis, or Control), help for various file
+ formats, or help with atom mask syntax.
 \end_layout
 
 \begin_layout Subsection
@@ -8653,6 +8703,7 @@ list <type>
 
 \begin_layout Standard
 List the currently loaded objects of <type>.
+ If no type is given then list all loaded objects.
 \end_layout
 
 \begin_layout Subsection
@@ -25166,6 +25217,8 @@ Calculate the shortest distance to an image, i.e.
 maskcenter
 \series default
  is specified the center of the masks is used.
+ By convention, the lower atom number is saved as A1 and the higher is saved
+ as A2.
 \end_layout
 
 \begin_layout Subsection
