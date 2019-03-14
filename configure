@@ -1299,7 +1299,7 @@ SetupCUDA() {
     sm35flags='-gencode arch=compute_35,code=sm_35'
     sm30flags='-gencode arch=compute_30,code=sm_30'
     sm20flags='-gencode arch=compute_20,code=sm_20'
-    if [ "$cuda_version" = '9.0' -o "$cuda_version" = '9.1' -o "$cuda_version" = '9.2' ] ; then
+    if [ "$cuda_version" = '9.0' -o "$cuda_version" = '9.1' -o "$cuda_version" = '9.2' -o "$cuda_version" = "10.0" -o "$cuda_version" = "10.1" ] ; then
       SM_CONFIG="Configuring for SM3.0, SM5.0, SM5.2, SM5.3, SM6.0, SM6.1, and SM7.0"
       NVCCFLAGS="$sm30flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags $sm70flags"
     elif [ "$cuda_version" = '8.0' ] ; then

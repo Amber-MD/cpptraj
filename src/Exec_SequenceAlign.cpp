@@ -153,10 +153,11 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
       if (Query[qres] == Sbjct[sres]) { // Exact match. All non-H atoms.
         for (int qat = QR.FirstAtom(); qat != QR.LastAtom(); qat++)
         {
-          if (qref.Parm()[qat].Element() != Atom::HYDROGEN)
+          if (qref.Parm()[qat].Element() != Atom::HYDROGEN) {
             sTop.AddTopAtom( qref.Parm()[qat], SR );
             sFrame.AddXYZ( qref.Coord().XYZ(qat) );
             //sMask.AddAtom(qat);
+          }
         }
       } else { // Partial match. Copy only backbone and CB.
         for (int qat = QR.FirstAtom(); qat != QR.LastAtom(); qat++)
