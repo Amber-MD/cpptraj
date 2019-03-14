@@ -1,6 +1,7 @@
 # These files are common to cpptraj/libcpptraj. Files that need to be built
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
 COMMON_SOURCES= \
+        SpaceGroup.cpp \
         Action.cpp \
         ActionFrameCounter.cpp \
         ActionList.cpp \
@@ -325,7 +326,6 @@ COMMON_SOURCES= \
         Residue.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \
-        SpaceGroup.cpp \
         Spline.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \
