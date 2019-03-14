@@ -847,7 +847,7 @@ SetupLibraries() {
           else
             lflag="-L$lhdir ${LIB_FLAG[$i]}"
           fi
-          # Library-specific INCLUDE fixes
+          # Library-specific INCLUDE fixes when home specified.
           if [ $i -eq $LREADLINE ] ; then
             linc="$linc/readline"
           fi
@@ -870,7 +870,11 @@ SetupLibraries() {
           lflag="${LIB_HOME[$LSANDER]}/lib/libsander$SHARED_SUFFIX"
         fi
       fi
-      #echo "${LIB_CKEY[$i]} ${LIB_STAT[$i]} linc $linc lflag $lflag" # DEBUG
+      # Special case. If library had include path set already, do not override it.
+      if [ ! -z "${LIB_INCL[$i]}" ] ; then
+        linc=${LIB_INCL[$i]}
+      fi
+      #echo "DEBUG lib ${LIB_CKEY[$i]} stat=\"${LIB_STAT[$i]}\" linc=\"$linc\" lflag=\"$lflag\"" # DEBUG
       LIB_FLAG[$i]="$lflag"
       LIB_INCL[$i]="$linc"
     fi
@@ -1194,21 +1198,27 @@ SetupMKL() {
   if [ "$MKL_TYPE" = 'mkl' -a "$COMPILERS" != 'intel' ] ; then
      MKL_TYPE='line'
   fi
+  # Determine mkl home directory
+  mklroot=''
+  if [ ! -z "$MKLROOT" ] ; then
+    mklroot=$MKLROOT
+  elif [ ! -z "$MKL_HOME" ] ; then
+    mklroot=$MKL_HOME
+  fi
+  if [ ! -z "$mklroot" ] ; then
+    echo "  Using MKL for BLAS/LAPACK in $mklroot"
+  fi
+  # Determine link style
   if [ "$MKL_TYPE" = 'mkl' ] ; then
     # Simple flag for Intel compilers
     mkllib='-mkl'
   else
     # Link-line advisor style
-    if [ -z "$MKLROOT" ] ; then
-      if [ -z "$MKL_HOME" ] ; then
-        echo "MKLROOT/MKL_HOME not set."
-        exit 1
-      fi
-      mkldir=$MKL_HOME
-    else
-      mkldir=$MKLROOT
+    if [ -z "$mklroot" ] ; then
+      echo "MKLROOT/MKL_HOME not set."
+      exit 1
     fi
-    echo "  Using MKL for BLAS/LAPACK in $mkldir"
+    mkldir=$mklroot
     # Determine architecture
     if [ "$NBITS" -eq 64 ] ; then
       mkldir="$mkldir/lib/intel64"
@@ -1251,6 +1261,9 @@ SetupMKL() {
     MKL_FFTW='yes'
     LIB_STAT[$LFFTW3]='enabled'
     LIB_FLAG[$LFFTW3]=''
+    if [ ! -z "$mklroot" ] ; then
+      LIB_INCL[$LBLAS]="-I$mklroot/include/fftw"
+    fi
   fi
 }
 
