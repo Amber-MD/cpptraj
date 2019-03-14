@@ -33,7 +33,7 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest rmsd.dat.save rmsd.dat
   DoTest rmsd.mass.dat.save rmsd.mass.dat
-  DoTest vecs.dat.save vecs.dat
+  DoTest vecs.dat.save vecs.dat -a 0.000001
   DoTest rmsd.reftraj.dat.save rmsd.reftraj.dat
   DoTest rmsd.reftraj.dat.save rmsd.refcoords.dat
 fi
