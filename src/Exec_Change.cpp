@@ -5,7 +5,7 @@
 void Exec_Change::Help() const
 {
   mprintf("\t[ {%s |\n"
-          "\t   crdset <COORDS set>\n"
+          "\t   crdset <COORDS set> ]\n"
           "\t{ resname from <mask> to <value> |\n"
           "\t  chainid of <mask> to <value> |\n"
           "\t  atomname from <mask> to <value> |\n"
