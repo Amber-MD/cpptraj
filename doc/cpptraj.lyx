@@ -10499,7 +10499,11 @@ change
 \end_layout
 
 \begin_layout LyX-Code
-change [parm <name> | parmindex <#> | <#>]
+change [parm <name> | parmindex <#> | <#> |
+\end_layout
+
+\begin_layout LyX-Code
+        crdset <COORDS set> ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -10507,7 +10511,15 @@ change [parm <name> | parmindex <#> | <#>]
 \end_layout
 
 \begin_layout LyX-Code
-	  atomname from <mask> to <value> }
+      chainid of <mask> to <value> |
+\end_layout
+
+\begin_layout LyX-Code
+	  atomname from <mask> to <value> |
+\end_layout
+
+\begin_layout LyX-Code
+      addbond <mask1> <mask2> [req <length> <rk> <force constant>] }
 \end_layout
 
 \begin_deeper
@@ -10536,7 +10548,23 @@ parmindex
 \begin_inset space ~
 \end_inset
 
-<#> Topology to change.
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+crdset
+\begin_inset space ~
+\end_inset
+
+<COORDS
+\begin_inset space ~
+\end_inset
+
+set> Topology to change.
 \end_layout
 
 \begin_layout Description
@@ -10560,6 +10588,26 @@ to
 \end_layout
 
 \begin_layout Description
+chainid
+\begin_inset space ~
+\end_inset
+
+of
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+to
+\begin_inset space ~
+\end_inset
+
+<value> Change the chain ID of residues in <mask> to given <value>.
+\end_layout
+
+\begin_layout Description
 atomname
 \begin_inset space ~
 \end_inset
@@ -10579,6 +10627,41 @@ to
 <value> Change atom names for atoms in <mask> to the given <value>.
 \end_layout
 
+\begin_layout Description
+addbond
+\begin_inset space ~
+\end_inset
+
+<mask1>
+\begin_inset space ~
+\end_inset
+
+<mask2> Add bond between atom specified by <mask1> and atom specified by
+ <mask2>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[req
+\begin_inset space ~
+\end_inset
+
+<length>] The equilibrium bond length in Angstroms.
+\end_layout
+
+\begin_layout Description
+[rk
+\begin_inset space ~
+\end_inset
+
+<force
+\begin_inset space ~
+\end_inset
+
+constant>] The bond force constant in kcal/mol*Angstrom.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Change specified parts of the specified topology.
@@ -13334,16 +13417,6 @@ Options for pdb format:
 
 \begin_deeper
 \begin_layout Description
-model (Default) Frames will be written to a single PDB file separated by
- MODEL/ENDMDL keywords.
-\end_layout
-
-\begin_layout Description
-multi Each frame will be written to a separate file with the frame # appended
- to <filename>.
-\end_layout
-
-\begin_layout Description
 dumpq PQR format; write charges (in units of e-) and GB radii to occupancy
  and B-factor columns respectively.
 \end_layout
@@ -13386,6 +13459,16 @@ noter: Do not write TER cards.
 \end_layout
 
 \begin_layout Description
+model (Default) Frames will be written to a single PDB file separated by
+ MODEL/ENDMDL keywords.
+\end_layout
+
+\begin_layout Description
+multi Each frame will be written to a separate file with the frame # appended
+ to <filename>.
+\end_layout
+
+\begin_layout Description
 chainid
 \begin_inset space ~
 \end_inset
@@ -13412,7 +13495,10 @@ conect Write CONECT records for all bonds.
 \begin_layout Description
 keepext Keep filename extension; write '<name>.<num>.<ext>' instead (implies
  'multi').
- 
+\end_layout
+
+\begin_layout Description
+usecol21 Use column 21 for 4-letter residue names.
 \end_layout
 
 \end_deeper
@@ -24436,7 +24522,11 @@ typeVIb
 \begin_inset space ~
 \end_inset
 
-ss>:<res
+ss
+\begin_inset space ~
+\end_inset
+
+name>:<res
 \begin_inset space ~
 \end_inset
 
@@ -24455,7 +24545,11 @@ If <phi> and <psi> are given, define a custom secondary structure conformation
 \begin_inset space ~
 \end_inset
 
-turn>:<res
+turn
+\begin_inset space ~
+\end_inset
+
+name>:<res
 \begin_inset space ~
 \end_inset
 
@@ -24475,7 +24569,11 @@ ion named <custom_turn> and apply to residues in range (range must correspond
 \begin_inset space ~
 \end_inset
 
-dih>:<res
+dih
+\begin_inset space ~
+\end_inset
+
+name>:<res
 \begin_inset space ~
 \end_inset
 
@@ -24487,8 +24585,11 @@ type>:<angle>]
 \end_layout
 
 \begin_layout LyX-Code
-<dih type> = phi psi chip omega alpha beta gamma delta epsilon zeta nu1
- nu2 chin 
+<dih type> = alpha beta gamma delta epsilon zeta nu0 nu1 nu2 nu3 nu4 
+\end_layout
+
+\begin_layout LyX-Code
+             h1p c2p chin phi psi chip omega chi2 chi3 chi4 chi5
 \end_layout
 
 \begin_layout Standard
@@ -24503,7 +24604,11 @@ If <dih type> and <angle> are given, apply <angle> to selected dihedrals
 \begin_inset space ~
 \end_inset
 
-dih>:<res
+dih
+\begin_inset space ~
+\end_inset
+
+name>:<res
 \begin_inset space ~
 \end_inset
 
@@ -24653,12 +24758,19 @@ ref:<range>:<refname>[:<ref
 \begin_inset space ~
 \end_inset
 
-range>]
+range>[:<dih types>]]
 \end_layout
 
 \begin_layout Standard
 Apply dihedrals from residues <ref_range> in previously loaded reference
  structure <refname> to dihedrals in <range>.
+ If <ref range> is specified, use those residues from reference.
+ The dihedral types to be used (see 
+\series bold
+<dih_type>
+\series default
+ above) can be specified in a comma-separated list; default is phi/psi.
+ Note that in order to specify <dih types>, <ref range> must be specified.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -25583,12 +25695,15 @@ multidihedral [<name>] <dihedral types> [resrange <range>] [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-              <dihedral types> =  phi psi chip omega alpha beta gamma delta
- 
+              <dihedral types> =  alpha beta gamma delta epsilon zeta 
 \end_layout
 
 \begin_layout LyX-Code
-                                  epsilon zeta nu1 nu2 chin
+                                  nu0 nu1 nu2 nu3 nu4 h1p c2p chin 
+\end_layout
+
+\begin_layout LyX-Code
+                                  phi psi chip omega chi2 chi3 chi4 chi5
 \begin_inset Separator latexpar
 \end_inset
 
