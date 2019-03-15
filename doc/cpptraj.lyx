@@ -9182,6 +9182,17 @@ sync
 \series default
  is specified all data will be synced back to the master thread (for e.g.
  subsequent analysis).
+ For an example of how to use the parallelanalysis command, see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_hausdorff"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsection
@@ -33050,7 +33061,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="45" columns="3">
+<lyxtabular version="3" rows="46" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -33549,6 +33560,35 @@ Perform a fast Fourier transform on data sets.
 
 \begin_layout Plain Layout
 N 1D scalar
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hausdorff
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate the Hausdorff distance for given matrix data set(s).
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+N 2D matrices
 \end_layout
 
 \end_inset
@@ -37641,6 +37681,326 @@ fft <dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] [dt <samp_int>]
 \begin_layout Standard
 Perform fast Fourier transform (FFT) on specified data set(s).
  If more than 1 data set, they must all have the same size.
+\end_layout
+
+\begin_layout Subsection
+hausdorff
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj_hausdorff"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+hausdorff <set arg0> [<set arg1> ...]
+\end_layout
+
+\begin_layout LyX-Code
+          [outtype {basic|trimatrix nrows <#>|fullmatrix nrows <#> [ncols
+ <#>]}]
+\end_layout
+
+\begin_layout LyX-Code
+      	[name <output set name>] [out <file>] [outab <file>] [outba <file>]
+ 
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<set
+\begin_inset space ~
+\end_inset
+
+arg0>
+\begin_inset space ~
+\end_inset
+
+...
+ Input matrix data set(s) to calculate Hausdorff distance(s) for.
+\end_layout
+
+\begin_layout Description
+[outtype] Specify the output type.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+basic Output the Hausdorff distance for each input matrix as scalar 1D data.
+\end_layout
+
+\begin_layout Description
+trimatrix
+\begin_inset space ~
+\end_inset
+
+nrows
+\begin_inset space ~
+\end_inset
+
+<#> Output Hausdorff distances for each input matrix as a 2D upper-triangular
+ matrix with the given number of rows.
+ Must have (nrows * (nrows-1)) / 2 input sets.
+\end_layout
+
+\begin_layout Description
+fullmatrix
+\begin_inset space ~
+\end_inset
+
+nrows
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+ncols
+\begin_inset space ~
+\end_inset
+
+<#> Output Hausdorff distances for each input matrix as a full matrix with
+ the given number of columns and rows.
+ If 
+\series bold
+ncols
+\series default
+ is not given, use 
+\series bold
+nrows
+\series default
+.
+ Must have nrows * ncols input sets.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name>] Name of output data sets.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write Hausdorff distances to.
+\end_layout
+
+\begin_layout Description
+[outab
+\begin_inset space ~
+\end_inset
+
+<file>] File to write directed A->B Hausdorff distances to.
+\end_layout
+
+\begin_layout Description
+[outba
+\begin_inset space ~
+\end_inset
+
+<file>] File to write directed B->A Hausdorff distances to.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate the symmetric Hausdorff distance for one or more matrices.
+ The results can be saved as an array or as a full or upper-triangular matrix
+ with the specified dimensions.
+ The Hausdorff distance H is determined from:
+\end_layout
+
+\begin_layout LyX-Code
+H = max{dH(A,B), dH(B,A)]
+\end_layout
+
+\begin_layout Standard
+Where dH(A,B) is the directed Hausdorff distance between sets A and B, etc.
+ Colloquially speaking, the directed Hausdorff distance between A and B
+ is determined as follows:
+\end_layout
+
+\begin_layout Enumerate
+What is the closest approach (distance) of each point in A to any point
+ in B?
+\end_layout
+
+\begin_layout Enumerate
+Choose the largest distance from among those distances.
+\end_layout
+
+\begin_layout Standard
+If desired, the output can be formed into a matrix, which can be useful
+ e.g.
+ when doing multiple 2D rms calculations on different regions of a trajectory.
+ For example, the following input divides a 100 frame trajectory into 10
+ frame chunks, calcultes the 2D RMS matrix for each chunk, then performs
+ Hausdorff analysis on the resulting matrices and forms a full output matrix.
+\end_layout
+
+\begin_layout LyX-Code
+parm ../DPDP.parm7
+\end_layout
+
+\begin_layout LyX-Code
+for beg=1;beg<100;beg+=10 end=10;end+=10 i=1;i++
+\end_layout
+
+\begin_layout LyX-Code
+  loadcrd ../DPDP.nc 
+\backslash
+$beg 
+\backslash
+$end name Chunk
+\backslash
+$i 
+\end_layout
+
+\begin_layout LyX-Code
+done 
+\end_layout
+
+\begin_layout LyX-Code
+# Do the 2drms in chunks 
+\end_layout
+
+\begin_layout LyX-Code
+for i=1;i<11;i++ 
+\end_layout
+
+\begin_layout LyX-Code
+  for j=1;j<11;j++ 
+\end_layout
+
+\begin_layout LyX-Code
+    2drms crdset Chunk
+\backslash
+$i reftraj Chunk
+\backslash
+$j M
+\backslash
+$i.
+\backslash
+$j 
+\end_layout
+
+\begin_layout LyX-Code
+  done
+\end_layout
+
+\begin_layout LyX-Code
+done 
+\end_layout
+
+\begin_layout LyX-Code
+hausdorff M* out hausdorff.fullmatrix.gnu title hausdorff.matrix.gnu 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  outtype fullmatrix nrows 10
+\end_layout
+
+\begin_layout LyX-Code
+runanalysis
+\end_layout
+
+\begin_layout Standard
+This type of calculation lends itself well to parallelization.
+ The 
+\series bold
+parallelanalysis
+\series default
+ command can be used to run all the 
+\series bold
+2drms
+\series default
+ calculations in parallel with MPI-enabled cpptraj:
+\end_layout
+
+\begin_layout LyX-Code
+parm ../DPDP.parm7
+\end_layout
+
+\begin_layout LyX-Code
+for beg=1;beg<100;beg+=10 end=10;end+=10 i=1;i++
+\end_layout
+
+\begin_layout LyX-Code
+  loadcrd ../DPDP.nc 
+\backslash
+$beg 
+\backslash
+$end name Chunk
+\backslash
+$i 
+\end_layout
+
+\begin_layout LyX-Code
+done 
+\end_layout
+
+\begin_layout LyX-Code
+# Do the 2drms in chunks 
+\end_layout
+
+\begin_layout LyX-Code
+for i=1;i<11;i++ 
+\end_layout
+
+\begin_layout LyX-Code
+  for j=1;j<11;j++ 
+\end_layout
+
+\begin_layout LyX-Code
+    2drms crdset Chunk
+\backslash
+$i reftraj Chunk
+\backslash
+$j M
+\backslash
+$i.
+\backslash
+$j 
+\end_layout
+
+\begin_layout LyX-Code
+  done
+\end_layout
+
+\begin_layout LyX-Code
+done
+\end_layout
+
+\begin_layout LyX-Code
+parallelanalysis sync
+\end_layout
+
+\begin_layout LyX-Code
+runanalysis hausdorff M* out hausdorff.fullmatrix.gnu title hausdorff.matrix.gnu
+ 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+  outtype fullmatrix nrows 10
 \end_layout
 
 \begin_layout Subsection
