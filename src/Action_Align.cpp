@@ -9,8 +9,9 @@ Action_Align::Action_Align() :
 {}
 
 void Action_Align::Help() const {
-  mprintf("\t[<name>] <mask> [<refmask>] [move <mask>][mass]\n\t%s\n", ReferenceAction::Help());
-  mprintf("  Align structure using specified <mask> onto reference.\n");
+  mprintf("\t<mask> [<refmask>] [move <mask>] [mass]\n\t%s\n", ReferenceAction::Help());
+  mprintf("  Align structure using specified <mask> onto reference. If 'move'\n"
+          "  is specified, only move atoms in the move mask.\n");
 }
 
 // Action_Align::Init()
