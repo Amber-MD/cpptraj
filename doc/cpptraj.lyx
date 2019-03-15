@@ -4869,6 +4869,11 @@ xydy Combine consecutive pairs of sets into XYDY sets.
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+If a single string data set is specified when writing Grace format, it is
+ assumed they are data point labels.
+\end_layout
+
 \begin_layout Subsubsection*
 Read
 \end_layout
@@ -7527,19 +7532,40 @@ dataset { legend <legend> <set> |
 \end_layout
 
 \begin_layout LyX-Code
-    	  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }
+          invert <set arg0> ...
+ name <new name> [legendset <set>] |
 \end_layout
 
 \begin_layout LyX-Code
-  <mode>:  distance angle torsion pucker rms
+    	  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]
 \end_layout
 
 \begin_layout LyX-Code
-  <type>:  alpha beta gamma delta epsilon zeta pucker chi h1p c2p 
+        }
 \end_layout
 
 \begin_layout LyX-Code
-           phi psi pchi omega noe
+  <mode>:  'distance' 'angle' 'torsion' 'pucker' 'rms' 'matrix' 'vector'
+\end_layout
+
+\begin_layout LyX-Code
+  <type>:  'alpha' 'beta' 'gamma' 'delta' 'epsilon' 'zeta' 'nu0' 'nu1' 'nu2'
+ 'nu3'
+\end_layout
+
+\begin_layout LyX-Code
+           'nu4' 'h1p' 'c2p' 'chin' 'phi' 'psi' 'chip' 'omega' 'chi2' 'chi3'
+ 'chi4'
+\end_layout
+
+\begin_layout LyX-Code
+           'chi5' 'pucker' 'noe' 'distance' 'covariance' 'mass-weighted
+ covariance'
+\end_layout
+
+\begin_layout LyX-Code
+           'correlation' 'distance covariance' 'IDEA' 'IRED' 'dihedral covarianc
+e'
 \end_layout
 
 \begin_layout LyX-Code
@@ -7802,6 +7828,77 @@ step
 \end_inset
 
 <step> Change dimension step to <step>.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+invert
+\begin_inset space ~
+\end_inset
+
+<set
+\begin_inset space ~
+\end_inset
+
+arg0>
+\begin_inset space ~
+\end_inset
+
+...
+\begin_inset space ~
+\end_inset
+
+name
+\begin_inset space ~
+\end_inset
+
+<new
+\begin_inset space ~
+\end_inset
+
+name>
+\begin_inset space ~
+\end_inset
+
+[legendset
+\begin_inset space ~
+\end_inset
+
+<set>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<set
+\begin_inset space ~
+\end_inset
+
+arg0>
+\begin_inset space ~
+\end_inset
+
+...
+ Specify sets to invert.
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<new
+\begin_inset space ~
+\end_inset
+
+name> Inverted output set name.
+\end_layout
+
+\begin_layout Description
+[legendset
+\begin_inset space ~
+\end_inset
+
+<set>] String data set containing legends
 \end_layout
 
 \end_deeper
@@ -8774,6 +8871,73 @@ IRED vector.
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+The invert mode takes a group of M 1D data sets of size N and create N new
+ "inverted" data sets of size M.
+ This is similar to the invert keyword already available for standard and
+ Grace data writes, but operates directly on data sets.
+ For example, given the following two data sets:
+\end_layout
+
+\begin_layout LyX-Code
+D0 D1
+\end_layout
+
+\begin_layout LyX-Code
+ 1  4
+\end_layout
+
+\begin_layout LyX-Code
+ 2  5
+\end_layout
+
+\begin_layout LyX-Code
+ 3  6
+\end_layout
+
+\begin_layout Standard
+The new data sets will be laid out like so:
+\end_layout
+
+\begin_layout LyX-Code
+N0 N1 N2
+\end_layout
+
+\begin_layout LyX-Code
+ 1  2  3
+\end_layout
+
+\begin_layout LyX-Code
+ 4  5  6
+\end_layout
+
+\begin_layout Standard
+The dataset invert command can be useful if you want to easily view output
+ from multiple analysis commands in a single graph.
+ For example, to view state counts from two different simulations side by
+ side:
+\end_layout
+
+\begin_layout LyX-Code
+calcstate name Sim1 state bound1,dist1,0.0,2.0
+\end_layout
+
+\begin_layout LyX-Code
+calcstate name Sim2 state bound1,dist1,0.0,2.0
+\end_layout
+
+\begin_layout LyX-Code
+runanalysis dataset invert Sim*[Count] name Inverted legendset Sim1[Name]
+\end_layout
+
+\begin_layout LyX-Code
+dataset dim xdim label Simulation min 1 step 1 Inverted*
+\end_layout
+
+\begin_layout LyX-Code
+writedata statecount.agr Inverted* 
 \end_layout
 
 \begin_layout Subsection
