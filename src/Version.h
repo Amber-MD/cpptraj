@@ -13,4 +13,6 @@
  * numbers should be reset to 0.
  */
 #define CPPTRAJ_INTERNAL_VERSION "V4.12.0"
+/// PYTRAJ relies on this
+#define CPPTRAJ_VERSION_STRING CPPTRAJ_INTERNAL_VERSION
 #endif
