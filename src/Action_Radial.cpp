@@ -32,11 +32,15 @@ Action_Radial::Action_Radial() :
 
 void Action_Radial::Help() const {
   mprintf("\t[out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
-          "\t[density <density> | volume] [center1 | center2 | nointramol] [<name>]\n"
-          "\t[intrdf <file>] [rawrdf <file>]\n"
+          "\t[density <density> | volume] [<dataset name>] [intrdf <file>] [rawrdf <file>]\n"
+          "\t[{{center1|center2|nointramol} | [byres1] [byres2] [bymol1] [bymol2]}]\n"
           "  Calculate the radial distribution function (RDF) of atoms in <solvent mask1>.\n"
           "  If <solute mask2> is given calculate RDF of all atoms in <solvent mask1>\n"
-          "  to each atom in <solute mask2>.\n");
+          "  to each atom in <solute mask2>.\n"
+          "  center1|center2 will use the center of *all* atoms selected by masks 1 and 2 respectively.\n"
+          "  nointramol will ignore distances when both atoms are part of the same molecule.\n"
+          "  If byresX or bymolX are specified, distances will be between the centers of mass\n"
+          "  of residues/molecules selected by mask1 or mask2.\n");
 }
 
 // DESTRUCTOR
@@ -67,6 +71,14 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   std::string outfilename = actionArgs.GetStringKey("out");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
+  // Determine mode, by site TODO better integrate with other modes
+  siteMode1_ = OFF;
+  siteMode2_ = OFF;
+  if (actionArgs.hasKey("byres1")) siteMode1_ = BYRES;
+  if (actionArgs.hasKey("bymol1")) siteMode1_ = BYMOL;
+  if (actionArgs.hasKey("byres2")) siteMode2_ = BYRES; 
+  if (actionArgs.hasKey("bymol2")) siteMode2_ = BYMOL; 
+  // Determine mode, other
   if (actionArgs.hasKey("center1"))
     rmode_ = CENTER1;
   else if (actionArgs.hasKey("center2"))
@@ -75,6 +87,14 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     rmode_ = NO_INTRAMOL;
   else
     rmode_ = NORMAL;
+  // Check for mode incompatibility
+  if (siteMode1_ != OFF || siteMode2_ != OFF) {
+    if (rmode_ != NORMAL) {
+      mprinterr("Error: 'byres'/'bymol' mode cannot be active with other modes (center, nointramol).\n");
+      return Action::ERR;
+    }
+    rmode_ = BYSITE;
+  }
   useVolume_ = actionArgs.hasKey("volume");
   DataFile* intrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("intrdf"));
   DataFile* rawrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("rawrdf"));
@@ -184,29 +204,117 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
   mprintf("\n");
   if (outfile != 0)
-    mprintf("            Output to %s.\n", outfile->DataFilename().full());
+    mprintf("\tOutput to %s.\n", outfile->DataFilename().full());
   if (intrdf_ != 0)
-    mprintf("            Integral of mask2 atoms will be output to %s\n",
+    mprintf("\tIntegral of mask2 atoms will be output to %s\n",
             intrdfFile->DataFilename().full());
   if (rawrdf_ != 0)
-    mprintf("            Raw RDF bin values will be output to %s\n",
+    mprintf("\tRaw RDF bin values will be output to %s\n",
             rawrdfFile->DataFilename().full());
-  if (rmode_==CENTER1)
-    mprintf("            Using center of atoms in mask1.\n");
-  else if (rmode_==CENTER2)
-    mprintf("            Using center of atoms in mask2.\n");
-  mprintf("            Histogram max %f, spacing %f, bins %i.\n",maximum,
+  if (rmode_ == BYSITE) {
+    if (siteMode1_ == BYRES)
+      mprintf("\tUsing center of residues selected by mask1 '%s'\n", Mask1_.MaskString());
+    else if (siteMode1_ == BYMOL)
+      mprintf("\tUsing center of molecules selected by mask1 '%s'\n", Mask1_.MaskString());
+    if (siteMode2_ == BYRES)
+      mprintf("\tUsing center of residues selected by mask2 '%s'\n", Mask2_.MaskString());
+    else if (siteMode2_ == BYMOL)
+      mprintf("\tUsing center of molecules selected by mask2 '%s'\n", Mask2_.MaskString());
+  } else {
+    if (rmode_==CENTER1)
+      mprintf("\tUsing center of all atoms selected by mask1.\n");
+    else if (rmode_==CENTER2)
+      mprintf("\tUsing center of all atoms selected by mask2.\n");
+    else if (rmode_==NO_INTRAMOL)
+      mprintf("\tIgnoring intramolecular distances.\n");
+  }
+  mprintf("\tHistogram max %f, spacing %f, bins %i.\n",maximum,
           spacing_,numBins_);
   if (useVolume_)
-    mprintf("            Normalizing based on cell volume.\n");
+    mprintf("\tNormalizing based on cell volume.\n");
   else
-    mprintf("            Normalizing using particle density of %f molecules/Ang^3.\n",density_);
+    mprintf("\tNormalizing using particle density of %f molecules/Ang^3.\n",density_);
   if (!image_.UseImage()) 
-    mprintf("            Imaging disabled.\n");
+    mprintf("\tImaging disabled.\n");
   if (numthreads_ > 1)
-    mprintf("            Parallelizing RDF calculation with %i threads.\n",numthreads_);
+    mprintf("\tParallelizing RDF calculation with %i threads.\n",numthreads_);
 
   return Action::OK;
+}
+
+/** Set up site array by atom. */
+int Action_Radial::SetupSiteArrayByAtom(Marray& sites, AtomMask const& mask)
+const
+{
+  sites.clear();
+  sites.reserve(mask.Nselected());
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+    sites.push_back( AtomMask(*at) );
+  return 0;
+}
+
+/** Set up site array by residue. */
+int Action_Radial::SetupSiteArrayByRes(Marray& sites, Topology const& top, AtomMask const& mask)
+const
+{
+  if (mask.Nselected() < 1) return 1;
+  sites.clear();
+  int lastRes = top[ mask[0] ].ResNum();
+  sites.push_back( AtomMask() );
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+  {
+    int currentRes = top[ *at ].ResNum();
+    if (currentRes != lastRes) {
+      sites.push_back( AtomMask() );
+      lastRes = currentRes;
+    }
+    sites.back().AddSelectedAtom( *at );
+  }
+  // DEBUG
+  if (debug_ > 1) {
+    mprintf("DEBUG: Sites selected by residue for '%s'\n", mask.MaskString());
+    for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
+      mprintf("%8u :", m - sites.begin());
+      for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
+        mprintf(" %i", *at);
+      mprintf("\n");
+    }
+  }
+  return 0;
+}
+
+/** Set up site array by molecule. */
+int Action_Radial::SetupSiteArrayByMol(Marray& sites, Topology const& top, AtomMask const& mask)
+const
+{
+  if (mask.Nselected() < 1) return 1;
+  if (top.Nmol() < 1) {
+    mprinterr("Error: No topology info for '%s', cannot set up sites by molecule.\n");
+    return -1;
+  }
+  sites.clear();
+  int lastMol = top[ mask[0] ].MolNum();
+  sites.push_back( AtomMask() );
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+  {
+    int currentMol = top[ *at ].MolNum();
+    if (currentMol != lastMol) {
+      sites.push_back( AtomMask() );
+      lastMol = currentMol;
+    }
+    sites.back().AddSelectedAtom( *at );
+  }
+  // DEBUG
+  if (debug_ > 1) {
+    mprintf("DEBUG: Sites selected by molecule for '%s'\n", mask.MaskString());
+    for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
+      mprintf("%8u :", m - sites.begin());
+      for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
+        mprintf(" %i", *at);
+      mprintf("\n");
+    }
+  }
+  return 0;
 }
 
 // Action_Radial::Setup()
@@ -243,8 +351,28 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   } else if (rmode_ == CENTER2) {
     OuterMask_ = Mask2_;
     InnerMask_ = Mask1_;
+  } else if (rmode_ == BYSITE) {
+    // One or both masks will be by residue.
+    int err = 0;
+    if (siteMode1_ == BYRES)
+      err = SetupSiteArrayByRes(Sites1_, setup.Top(), Mask1_);
+    else if (siteMode1_ == BYMOL)
+      err = SetupSiteArrayByMol(Sites1_, setup.Top(), Mask1_);
+    else
+      err = SetupSiteArrayByAtom(Sites1_, Mask1_);
+    if (err != 0) return Action::ERR;
+    if (siteMode2_ == BYRES)
+      err = SetupSiteArrayByRes(Sites2_, setup.Top(), Mask2_);
+    else if (siteMode2_ == BYMOL)
+      err = SetupSiteArrayByMol(Sites2_, setup.Top(), Mask2_);
+    else
+      err = SetupSiteArrayByAtom(Sites2_, Mask2_);
+    if (err != 0) return Action::ERR;
+  } else {
+    // SANITY CHECK
+    mprinterr("Internal Error: Action_Radial: No mode set!\n");
+    return Action::ERR;
   }
-
   // If ignoring intra-molecular distances, need to count how many we
   // are ignoring.
   if (rmode_ == NO_INTRAMOL) {
@@ -272,12 +400,17 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   }
 
   // Print mask and imaging info for this parm
-  mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",
-          Mask1_.Nselected(), Mask2_.Nselected());
+  if (rmode_ == BYSITE) {
+    mprintf("\t%zu sites selected by Mask1 (%i atoms), %zu sites selected by Mask2 (%i atoms)\n",
+            Sites1_.size(), Mask1_.Nselected(), Sites2_.size(), Mask2_.Nselected());
+  } else {
+    mprintf("\t%i atoms in Mask1, %i atoms in Mask2\n",
+            Mask1_.Nselected(), Mask2_.Nselected());
+  }
   if (image_.ImagingEnabled())
-    mprintf("Imaging on.\n");
+    mprintf("\tImaging on.\n");
   else
-    mprintf("Imaging off.\n");
+    mprintf("\tImaging off.\n");
   return Action::OK;  
 }
 
@@ -302,7 +435,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     D = frm.Frm().BoxCrd().ToRecip(ucell,recip);
     if (useVolume_)  volume_ += D;
   }
-
+  // ---------------------------------------------
   if ( rmode_ == NORMAL ) { 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
     int outer_max = OuterMask_.Nselected();
@@ -338,7 +471,8 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     } // END loop over 1st mask
 #   ifdef _OPENMP
     } // END pragma omp parallel
-#   endif 
+#   endif
+  // ---------------------------------------------
   } else if ( rmode_ == NO_INTRAMOL ) {
     // Calculation of all atoms in Mask1 to all atoms in Mask2, ignoring
     // intra-molecular distances.
@@ -376,6 +510,44 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   ifdef _OPENMP
     } // END pragma omp parallel
 #   endif
+  // ---------------------------------------------
+  } else if (rmode_ == BYSITE) {
+    // Calculation of center of masks in Sites1 to center of masks in Sites2
+    int mask1_max = (int)Sites1_.size();
+#   ifdef _OPENMP
+#   pragma omp parallel private(nmask1,D,idx,mythread)
+    {
+    mythread = omp_get_thread_num();
+#   pragma omp for
+#   endif
+    for (nmask1 = 0; nmask1 < mask1_max; nmask1++)
+    {
+      AtomMask const& site1 = Sites1_[nmask1];
+      Vec3 com1 = frm.Frm().VGeometricCenter( site1 );
+      for (Marray::const_iterator site2 = Sites2_.begin(); site2 != Sites2_.end(); ++site2)
+      {
+        if (site1 != *site2) {
+          Vec3 com2 = frm.Frm().VGeometricCenter( *site2 );
+          D = DIST2(com1.Dptr(), com2.Dptr(), image_.ImageType(),
+                    frm.Frm().BoxCrd(), ucell, recip);
+          if (D <= maximum2_) {
+            D = sqrt(D);
+            //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
+            idx = (int) (D * one_over_spacing_);
+            if (idx > -1 && idx < numBins_)
+#             ifdef _OPENMP
+              ++rdf_thread_[mythread][idx];
+#             else
+              ++RDF_[idx];
+#             endif
+          }
+        } // END site1 != site2
+      } // END inner loop over Sites2
+    } // END outer loop over Sites1
+#   ifdef _OPENMP
+    }
+#   endif
+  // ---------------------------------------------
   } else { // CENTER1 || CENTER2
     // Calculation of center of one Mask to all atoms in other Mask
     Vec3 coord_center = frm.Frm().VGeometricCenter(OuterMask_);
@@ -478,6 +650,15 @@ void Action_Radial::Print() {
     // from mask 2. Assume COM of mask 2 != atom(s) in mask1.
     nmask2 = 1.0;
     numSameAtoms = 0;
+  } else if (rmode_ == BYSITE) {
+    // Count sites in common
+    nmask1 = (double)Sites1_.size();
+    nmask2 = (double)Sites2_.size();
+    numSameAtoms = 0;
+    for (Marray::const_iterator site1 = Sites1_.begin(); site1 != Sites1_.end(); ++site1)
+      for (Marray::const_iterator site2 = Sites2_.begin(); site2 != Sites2_.end(); ++site2)
+        if (*site1 == *site2)
+          numSameAtoms++;
   }
   mprintf(" # in mask1= %.0f, # in mask2 = %.0f, # in common = %i\n",
           nmask1, nmask2, numSameAtoms);
@@ -485,13 +666,13 @@ void Action_Radial::Print() {
   // If useVolume, calculate the density from the average volume
   if (useVolume_) {
     double avgVol = volume_ / numFrames_;
-    mprintf("            Average volume is %f Ang^3.\n",avgVol);
+    mprintf("\tAverage volume is %f Ang^3.\n",avgVol);
     density_ = (nmask1 * nmask2 - (double)numSameAtoms) / avgVol;
-    mprintf("            Average density is %f distances / Ang^3.\n",density_);
+    mprintf("\tAverage density is %f distances / Ang^3.\n",density_);
   } else {
     density_ = density_ * 
                (nmask1 * nmask2 - (double)numSameAtoms) / nmask1;
-    mprintf("            Density is %f distances / Ang^3.\n",density_);
+    mprintf("\tDensity is %f distances / Ang^3.\n",density_);
   }
   // Need to normalize each bin, which holds the particle count at that
   // distance. Calculate the expected number of molecules for that 

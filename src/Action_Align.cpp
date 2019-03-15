@@ -85,11 +85,8 @@ Action::RetType Action_Align::Setup(ActionSetup& setup) {
     return Action::SKIP;
  
   // Warn if PBC and rotating
-  if (setup.CoordInfo().TrajBox().Type() != Box::NOBOX) {
-    mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
-            "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
-            "Warning:  after the alignment is performed.\n");
-  }
+  Action::CheckImageRotationWarning(setup, "the alignment");
+
   return Action::OK;
 }
 

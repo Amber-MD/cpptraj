@@ -13,7 +13,8 @@ Action_LipidOrder::Action_LipidOrder() :
   axis_(DX),
   outfile_(0),
   debug_(0),
-  report_p2_(false)
+  report_p2_(false),
+  nthreads_(1)
 {}
 
 // Action_LipidOrder::Help()
@@ -49,7 +50,7 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
   dsname_ = actionArgs.GetStringNext();
 
 # ifdef _OPENMP
-  // Each thread needs space to calc sum/sum2
+  // Each thread needs space to calc scd each frame 
 # pragma omp parallel
   {
 # pragma omp master
@@ -73,10 +74,8 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
     mprintf("\tData saved in sets named '%s'\n", dsname_.c_str());
   if (outfile_ != 0)
     mprintf("\tOutput to file '%s'\n", outfile_->DataFilename().full());
-# ifdef _OPENMP
   if (nthreads_ > 1)
     mprintf("\tParallelizing calculation with %i threads.\n", nthreads_);
-# endif
 
   return Action::OK;
 }
@@ -87,6 +86,7 @@ int Action_LipidOrder::FindChain( Npair const& chain ) {
     if ( Types_[idx] == chain ) {
       if (debug_ > 0)
         mprintf("DEBUG: Existing chain: %s %s\n", *(Types_[idx].first), *(Types_[idx].second));
+      Nchains_[idx]++;
       return idx;
     }
   // New chain type
@@ -94,6 +94,7 @@ int Action_LipidOrder::FindChain( Npair const& chain ) {
     mprintf("DEBUG: New chain: %s %s\n", *(chain.first), *(chain.second));
   Types_.push_back( chain );
   Chains_.push_back( ChainType() );
+  Nchains_.push_back( 1 );
   return Types_.size()-1;
 }
 
@@ -111,6 +112,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   }
   // Clear existing sites, but not data.
   Sites_.clear();
+  Nchains_.clear();
   // Loop over all molecules.
   unsigned int nChains = 0;
   for (Topology::mol_iterator mol = setup.Top().MolStart();
@@ -173,11 +175,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
                 Atom const& curr_atm = setup.Top()[current_at];
                 // Add carbon if it does not yet exist in chain.
                 if (position >= (int)Chain.size())
-#                 ifdef _OPENMP
-                  Chain.resize( position+1, CarbonData(nthreads_) );
-#                 else
                   Chain.resize( position+1 );
-#                 endif
                 CarbonData& Cdata = Chain[position];
                 if (!Cdata.Init())
                   Cdata.SetName( curr_atm.Name() );
@@ -216,7 +214,8 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   mprintf("\t%zu chain types:\n", Types_.size());
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
-    mprintf("\t[%u] Residue %s, carboxyl atom %s (%zu)\n", idx,
+    mprintf("\t[%u] %i chains, Residue %s, carboxyl atom %s (%zu carbons)\n", idx,
+            Nchains_[idx],
             Types_[idx].first.Truncated().c_str(),
             Types_[idx].second.Truncated().c_str(), Chains_[idx].size());
     mprintf("\t  %-4s %-4s %2s\n", "Pos.", "Name", "#H");
@@ -224,75 +223,82 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it, ++pos)
       mprintf("\t  %-4u %-4s %2u\n", pos, it->name(), it->NumH());
   }
+
   return Action::OK;
 }
 
 // Action_LipidOrder::DoAction()
 Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 {
+  // Zero all temp arrays.
+  for (ChainArray::iterator chn = Chains_.begin(); chn != Chains_.end(); ++chn)
+    for (ChainType::iterator it = chn->begin(); it != chn->end(); ++it)
+#     ifdef _OPENMP
+      it->AllocateTempSpace(nthreads_);
+#     else
+      it->AllocateTempSpace();
+#     endif
+
   // Loop over all carbon sites
-# ifdef _OPENMP
+  int idx;
   int maxIdx = (int)Sites_.size();
-  int idx, mythread, offset;
+  int offset = 0;
+# ifdef _OPENMP
+  int mythread;
 # pragma omp parallel private(mythread, offset, idx)
   {
     mythread = omp_get_thread_num();
-    offset = mythread * 3;
 #   pragma omp for
+# endif
     for (idx = 0; idx < maxIdx; idx++)
     {
       CarbonSite const& site = Sites_[idx];
       Vec3 Cvec( frm.Frm().XYZ( site.Cidx() ) );
       CarbonData& cdata = Chains_[site.ChainIdx()][site.Position()];
+#     ifdef _OPENMP
+      offset = mythread * cdata.NumH();
+#     endif
       // Loop over hydrogens
       for (unsigned int i = 0; i != site.NumH(); i++)
       {
         // C-H unit vector
         Vec3 sx = Vec3(frm.Frm().XYZ( site.Hidx(i) )) - Cvec; 
         sx.Normalize();
-        cdata.UpdateAngle(offset+i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
+        //cdata.UpdateAngle(offset+i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
+        double scdval = 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0);
+        cdata.IncrementTempBy( offset+i, scdval );
       }
-      cdata.UpdateNvals( mythread );
+      //cdata.UpdateNvals( mythread );
     }
+# ifdef _OPENMP
   } // END pragma omp parallel
-# else
-  for (Carray::const_iterator site = Sites_.begin(); site != Sites_.end(); ++site)
-  {
-    Vec3 Cvec( frm.Frm().XYZ( site->Cidx() ) );
-    CarbonData& cdata = Chains_[site->ChainIdx()][site->Position()];
-    // Loop over hydrogens
-    for (unsigned int i = 0; i != site->NumH(); i++)
-    {
-      // C-H unit vector
-      Vec3 sx = Vec3(frm.Frm().XYZ( site->Hidx(i) )) - Cvec;
-      sx.Normalize();
-//      mprintf("DBG: %8i %8i %8.3f\n",site->Cidx(), site->Hidx(i), sx[axis_]);
-      cdata.UpdateAngle(i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
-    }
-    // NOTE: # values is stored with each carbon data instead of for each
-    //       chain to allow chain types to "disappear" between Setup() calls,
-    //       i.e. to allow for different topologies. May be overkill.
-    cdata.UpdateNvals();
-  }
 # endif
+
+  // Normalize by number of chains
+  for (unsigned int cidx = 0; cidx != Chains_.size(); cidx++)
+  {
+    double dval = 1.0 / (double)Nchains_[cidx];
+    for (unsigned int pos = 0; pos != Chains_[cidx].size(); pos++)
+    {
+      CarbonData& cdata = Chains_[cidx][pos];
+#     ifdef _OPENMP
+      cdata.ConsolidateTemp( nthreads_ );
+#     endif
+      for (unsigned int i = 0; i != cdata.NumH(); i++)
+        cdata.UpdateAngle(i, cdata.TempSCD(i) * dval);
+      cdata.UpdateNvals();
+    }
+  }
+
   return Action::OK;
 }
 
 #ifdef MPI
 // Action_LipidOrder::SyncAction()
 int Action_LipidOrder::SyncAction() {
-# ifdef _OPENMP
-  int total = nthreads_ * 3;
-  Darray DBUFFER(total);
-  Uarray UBUFFER(nthreads_);
-  double* dbuf = &DBUFFER[0];
-  unsigned int* ubuf = &UBUFFER[0];
-# else
-  int nthreads_ = 1;
   int total = 3;
   double dbuf[3];
   unsigned int ubuf[1];
-# endif
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
     for (ChainType::iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
@@ -301,8 +307,8 @@ int Action_LipidOrder::SyncAction() {
       if (trajComm_.Master()) std::copy( dbuf, dbuf+total, it->Sptr() );
       trajComm_.ReduceMaster( dbuf, it->S2ptr(), total, MPI_DOUBLE, MPI_SUM );
       if (trajComm_.Master()) std::copy( dbuf, dbuf+total, it->S2ptr() );
-      trajComm_.ReduceMaster( ubuf, it->Nptr(), nthreads_, MPI_UNSIGNED, MPI_SUM );
-      if (trajComm_.Master()) std::copy( ubuf, ubuf+nthreads_, it->Nptr() );
+      trajComm_.ReduceMaster( ubuf, it->Nptr(), 1, MPI_UNSIGNED, MPI_SUM );
+      if (trajComm_.Master()) std::copy( ubuf, ubuf+1, it->Nptr() );
     }
   }
   return 0;
@@ -351,11 +357,7 @@ void Action_LipidOrder::Print() {
       DS[nn]->SetDim(Dimension::X, Xaxis);
       SD[nn]->SetDim(Dimension::X, Xaxis);
     }
-#   ifdef _OPENMP
-    // This sums individual thread values back to thread 0.
-    for (ChainType::iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
-      it->Consolidate();
-#   endif
+
     // Loop over carbons in chain
     int pos = 0;
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
@@ -409,31 +411,7 @@ void Action_LipidOrder::CarbonSite::AddHindex(int h) {
 }
 
 // =============================================================================
-# ifdef _OPENMP
-/// CONSTRUCTOR
-Action_LipidOrder::CarbonData::CarbonData(int nthreads) :
-  sum_(nthreads*3, 0.0),
-  sum2_(nthreads*3, 0.0),
-  nvals_(nthreads, 0),
-  nH_(0),
-  init_(false)
-{}
 
-// Action_LipidOrder::CarbonData::Consolidate()
-void Action_LipidOrder::CarbonData::Consolidate() {
-  unsigned int idx = 3;
-  for (unsigned int thread = 1; thread != nvals_.size(); thread++, idx += 3) {
-    sum_[0] += sum_[idx  ];
-    sum_[1] += sum_[idx+1];
-    sum_[2] += sum_[idx+2];
-    sum2_[0] += sum2_[idx  ];
-    sum2_[1] += sum2_[idx+1];
-    sum2_[2] += sum2_[idx+2];
-    nvals_[0] += nvals_[thread];
-  }
-}
-
-#else
 /// CONSTRUCTOR
 Action_LipidOrder::CarbonData::CarbonData() :
   nvals_(0), nH_(0), init_(false)
@@ -441,15 +419,10 @@ Action_LipidOrder::CarbonData::CarbonData() :
   std::fill( sum_,  sum_  + MAX_H_, 0.0 );
   std::fill( sum2_, sum2_ + MAX_H_, 0.0 );
 }
-#endif
 
 /** \return average and calc standard dev. for specified hydrogen */
 double Action_LipidOrder::CarbonData::Avg(int i, double& stdev) const {
-# ifdef _OPENMP
-  double dnvals = (double)nvals_[0];
-# else
   double dnvals = (double)nvals_;
-# endif
   double avg = sum_[i] / dnvals;
   stdev = sum2_[i] / dnvals;
   stdev -= (avg * avg);

@@ -35,7 +35,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
 # endif
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'createreservoir' action does not work with > 1 thread (%i threads currently).\n", init.TrajComm().Size());
+    mprinterr("Error: 'createreservoir' action does not work with > 1 process (%i processes currently).\n", init.TrajComm().Size());
     return Action::ERR;
   }
 # endif

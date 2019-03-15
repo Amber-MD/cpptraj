@@ -14,6 +14,7 @@ class DataSet_Parameters : public DataSet, public ParameterSet  {
     void Add(size_t, const void*)                          { return; }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Append(DataSet*)                                   { return 1; }
+    size_t MemUsageInBytes() const { return DataSize(); }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif

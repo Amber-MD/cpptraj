@@ -49,6 +49,8 @@ class ParameterSet {
     };
     /// Update this set with parameters from given set
     int UpdateParams(ParameterSet const&, UpdateCount&);
+    /// \return Size in memory in bytes
+    size_t DataSize() const;
   private:
     //AtomTypeArray atomTypes_;
     ParmHolder<AtomType> atomTypes_;

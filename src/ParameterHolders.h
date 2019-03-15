@@ -31,6 +31,8 @@ class AtomTypeHolder {
     const_iterator end() const { return types_.end(); }
     /// \return number of types in holder
     unsigned int Size() const { return types_.size(); }
+    /// \return size used in memory
+    size_t DataSize() const { return (types_.size() * NameType::DataSize()) + NameType::DataSize(); } 
     /// \return Type name at index
     NameType const& operator[](int idx) const { return types_[idx]; }
     /// \return true if either direction is a match, taking into account wildcard.
@@ -144,6 +146,15 @@ template <class T> class ParmHolder {
         if (it->first == types) return it;
       return bpmap_.end();
     }
+    /// \return size in memory in bytes
+    size_t DataSize() const {
+      if (bpmap_.empty()) return 0;
+      const_iterator elt0 = begin();
+      // Assume all AtomTypeHolders are the same size
+      return (bpmap_.size() * elt0->first.DataSize()) +
+             (bpmap_.size() * sizeof(T)) +
+             sizeof(Bmap);
+    }
   private:
     Bmap bpmap_;
 };
@@ -249,6 +260,15 @@ class DihedralParmHolder {
         if (it->first == types) return it->second;
       found = false;
       return DihedralParmArray();
+    }
+    /// \return size in memory in bytes
+    size_t DataSize() const {
+      if (bpmap_.empty()) return 0;
+      const_iterator elt0 = begin();
+      // Assume all AtomTypeHolders are the same size
+      return (bpmap_.size() * elt0->first.DataSize()) +
+             (bpmap_.size() * sizeof(DihedralParmArray)) +
+             sizeof(Bmap);
     }
   private:
     Bmap bpmap_;

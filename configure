@@ -12,14 +12,15 @@
 UsageSimple() {
   echo "Usage: ./configure <OPTIONS> [gnu | intel | pgi | clang | cray]"
   echo "  OPTIONS:"
-  echo "    --help      : Display this message."
-  echo "    -openmp     : Use OpenMP for parallelization of certain routines."
-  echo "    -mpi        : Use mpicc/mpicxx to compile."
-  echo "    -intelmpi   : Use mpiicc/mpiicpc to compile."
-  echo "    -cuda       : Enable support for CUDA. See SHADER_MODEL in --full-help for more info."
-  echo "    -cray       : Use cray compiler wrappers (cc/CC/ftn)."
-  echo "    -amberlib   : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
-  echo "    --full-help : Display additional options."
+  echo "    --help         : Display this message."
+  echo "    --prefix <dir> : Install CPPTRAJ to specified directory (default is this directory)."
+  echo "    -openmp        : Use OpenMP for parallelization of certain routines."
+  echo "    -mpi           : Use mpicc/mpicxx to compile."
+  echo "    -intelmpi      : Use mpiicc/mpiicpc to compile."
+  echo "    -cuda          : Enable CUDA support. See SHADER_MODEL in --full-help for more info."
+  echo "    -cray          : Use cray compiler wrappers (cc/CC/ftn)."
+  echo "    -amberlib      : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
+  echo "    --full-help    : Display additional options."
   echo ""
 }
 
@@ -38,7 +39,7 @@ UsageFull() {
   echo "    -nolfs     : Do not enable large file support."
   echo "    -shared    : Configure for generating libcpptraj (implies -nosanderlib)."
   echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
-  echo "    -windows   : Set up for use with MinGW compilers for a native Windows build"
+  echo "    -windows   : Set up for use with MinGW compilers for a native Windows build."
   echo "  LIBRARY OPTIONS"
   echo "    -<lib>             : Enable library."
   echo "    --with-<lib>=<DIR> : Use library in specified directory."
@@ -50,9 +51,11 @@ UsageFull() {
   echo "    -static        : Use static linking."
   echo "    -libstatic     : Use static linking only for specified libraries."
   echo "    -mkl           : Use Intel MKL for BLAS/LAPACK (requires MKL_HOME/MKLROOT set)."
-  echo "    -openblas      : Use OpenBLAS for BLAS/LAPACK/ARPACK (may require '--with-blas')"
-  echo "    -macAccelerate : Use Accelerate framework for BLAS/LAPACK"
-  echo "    -libsci        : Use Cray LibSci for BLAS/LAPACK"
+  echo "    -nomklfftw     : Prevent use of FFTW from MKL."
+  echo "    -openblas      : Use OpenBLAS for BLAS/LAPACK (may require '--with-blas' or '-lblas')."
+  echo "                     May also want to specify '-larpack' if included in OpenBLAS."
+  echo "    -macAccelerate : Use Accelerate framework for BLAS/LAPACK."
+  echo "    -libsci        : Use Cray LibSci for BLAS/LAPACK."
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX          : Name of the C++ compiler."
   echo "    CC           : Name of the C compiler."
@@ -83,7 +86,7 @@ UsageFull() {
   echo "    --compile-verbose : Turn on compile details."
   echo "    -profile          : Use Gnu compiler profiling (>= V4.5)*"
   echo "    -gprofile         : Use Gnu compiler GLIBC profiling (>= V4.5)*"
-  echo "    -vtune            : Enable options for use with Intel Vtune"
+  echo "    -vtune            : Enable options for use with Intel Vtune."
   echo "    -single-ensemble  : Enable support for reading/writing single ensemble trajectories."
   echo ""
   echo "*NOTE: -profile and -gprofile are mutually exclusive."
@@ -91,9 +94,11 @@ UsageFull() {
 }
 
 # ----- Script variables -------------------------------------------------------
-COMPILERS=''      # User-specified compiler suite to use.
-FLINK=''          # Flag for linking in Fortran code
-REQUIRES_FLINK=0  # If 1 FLINK flag required during link phase
+WORKDIR=`dirname $0` # Working directory of the configure script
+COMPILERS=''       # User-specified compiler suite to use.
+FLINK=''           # Flag for linking in Fortran code
+REQUIRES_FLINK=0   # If 1 FLINK flag required during link phase
+REQUIRES_PTHREAD=0 # If 1 -lpthread required during link phase
 C11FLAG=''        # Flag for compiling C++11 code
 C11_SUPPORT='yes' # Support C++11 code
 SHARED_SUFFIX=''  # Suffix for shared libraries
@@ -104,6 +109,7 @@ SFX=''            # Binary suffix
 EXE=''            # Binary executable suffix
 
 # ----- Configure options ------------------------
+USE_CMAKE=0       # 1 = use cmake for build
 COMPILE_VERBOSE=0 # 1 = show details during compile
 USE_MPI=0         # 0 = no MPI, 1 = mpicc etc, 2 = mpiicc etc
 USE_OPENMP=0      # 0 = no OpenMP, 1 = OpenMP
@@ -111,6 +117,7 @@ USE_CUDA=0        # 0 = no CUDA, 1 = CUDA
 USE_OPT=1         # 0 = no optimization, 1 = use compiler optimizations, 2 = optimize/tune.
 BLAS_TYPE='other' # other=normal BLAS, mkl, libsci (cray) etc
 MKL_TYPE='mkl'    # mkl = -mkl for Intel compilers, line = link-line advisor style
+MKL_FFTW=''       # If yes, use FFTW from MKL if not otherwise specified. If 'no' prevent this.
 USE_DEBUG=0       # 0 = no debug info, 1 = enable compiler debug info
 USE_STATIC=0      # 0 = dynamic linking, 1 = static linking, 2 = static link for specified libraries
 USE_SHARED=0      # 1 = Use flag for position-independent code (required for libcpptraj)
@@ -289,6 +296,10 @@ CheckLibraryKeys() {
   for ((i=0; i < $NLIB; i++)) ; do
     LKEY="-"${LIB_CKEY[$i]}
     if [ "$1" = "$LKEY" ] ; then
+      # If previously bundled, clear home
+      if [ "${LIB_STAT[$i]}" = 'bundled' ] ; then
+        LIB_HOME[$i]=''
+      fi
       LIB_STAT[$i]='enabled'
       echo "  ${LIB_CKEY[$i]} enabled."
       return 0
@@ -345,7 +356,7 @@ TestProgram() {
   if [ $? -ne 0 ] ; then
     if [ $silent -eq 0 ] ; then
       echo ""
-      echo "Compile failed: $COMPILELINE" > /dev/stderr
+      echo "Test compile failed: $COMPILELINE" > /dev/stderr
       echo "Error follows:" > /dev/stderr
       cat compile.err > /dev/stderr
       exit 1
@@ -358,7 +369,7 @@ TestProgram() {
     ./testp > /dev/null
     if [ $? -ne 0 ] ; then
       echo ""
-      echo "Program failed, compiled with: $COMPILELINE" > /dev/stderr
+      echo "Run of test program failed, compiled with: $COMPILELINE" > /dev/stderr
       exit 1
     fi
   fi
@@ -409,21 +420,52 @@ EOF
 DetermineFlink() {
   desc="$1"
   flibs="$2"
+  # Do we already need FLINK?
   if [ $REQUIRES_FLINK -eq 0 ] ; then
-    # Try without FLINK
-    TestProgram quiet "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs"
-    if [ $? -eq 1 ] ; then
-      # That failed. Try with FLINK
-      TestProgram "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
-      REQUIRES_FLINK=1
-    else
-      # That worked. Print OK."
-      echo "$desc: OK"
-    fi
+    flink_opts="no yes"
   else
-    # FLINK already present
-    TestProgram "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$flibs $FLINK"
+    flink_opts="yes"
   fi
+  # Go through combinations of FLINK/pthread
+  flink_success=0
+  for use_flink in $flink_opts ; do
+    for use_pthread in no yes ; do
+      libs_to_use="$flibs"
+      if [ "$use_flink" = 'yes' ] ; then
+        libs_to_use="$libs_to_use $FLINK"
+      fi
+      if [ "$use_pthread" = 'yes' ] ; then
+        libs_to_use="$libs_to_use -lpthread"
+      fi
+      if [ "$use_flink" = 'yes' -a "$use_pthread" = 'yes' ] ; then
+        # Final try. Report errors here
+        report=''
+      else
+        report='quiet'
+      fi
+      #echo "DEBUG: Testing $desc flink $use_flink pthread $use_pthread $report"
+      TestProgram $report "$desc" "$CXX" "$CXXFLAGS" testp.cpp "$libs_to_use"
+      if [ $? -eq 0 ] ; then
+        # Compile/run worked.
+        if [ "$use_flink" = 'yes' ] ; then
+          REQUIRES_FLINK=1
+        fi
+        if [ "$use_pthread" = 'yes' ] ; then
+          REQUIRES_PTHREAD=1
+        fi
+        flink_success=1
+        if [ "$report" = 'quiet' ] ; then
+          echo "$desc: OK"
+        fi
+        return 0
+      fi
+    done
+  done
+  if [ $flink_success -eq 0 ] ; then
+    # Sanity check. Should not make it here.
+    exit 1
+  fi
+  return 0
 }
     
 TestMathlib() {
@@ -487,6 +529,9 @@ EOF
       echo "Warning: FFTW3 test failed. CPPTRAJ will be built without FFTW3."
       LIB_STAT[$LFFTW3]='off'
     fi
+  elif [ "$MKL_FFTW" = 'yes' ] ; then
+    # Using FFTW from MKL
+    TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LBLAS]}" testp.cpp "${LIB_FLAG[$LBLAS]}"
   else
     TestProgram "  Checking FFTW3" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
   fi
@@ -606,6 +651,9 @@ SetupFinalFlags() {
     else
       DIRECTIVES="$DIRECTIVES -DBUILDTYPE='\"GitHub\"'"
     fi
+  else
+    # Assume GitHub
+    DIRECTIVES="$DIRECTIVES -DBUILDTYPE='\"GitHub\"'"
   fi
   # For GIT, record the current hash
   if [ -f '.git/HEAD' ] ; then
@@ -663,6 +711,9 @@ SetupFinalFlags() {
   if [ $REQUIRES_FLINK -eq 1 ] ; then
     CPPTRAJ_LIB="$CPPTRAJ_LIB $FLINK"
   fi
+  if [ $REQUIRES_PTHREAD -eq 1 ] ; then
+    CPPTRAJ_LIB="$CPPTRAJ_LIB -lpthread"
+  fi
   LDFLAGS="$ldf $LDFLAGS"
 }
 
@@ -684,11 +735,14 @@ SetupLibraries() {
     LIB_STAT[$LLAPACK]='off'
     LIB_FLAG[$LLAPACK]=''
   elif [ "$BLAS_TYPE" = 'openblas' ] ; then
-    LIB_FLAG[$LBLAS]='-lopenblas'
+    if [ "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
+      LIB_FLAG[$LBLAS]='-lopenblas'
+    fi
+    if [ -z "${LIB_HOME[$LBLAS]}" -a "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
+      echo "Warning: '-openblas' may require specifying location with '--with-blas=<DIR>' or '-lblas='"
+    fi
     LIB_STAT[$LLAPACK]='off'
     LIB_FLAG[$LLAPACK]=''
-    LIB_STAT[$LARPACK]='enabled'
-    LIB_HOME[$LARPACK]=''
   elif [ "$BLAS_TYPE" = 'macAccelerate' ] ; then
     LIB_FLAG[$LBLAS]='-framework Accelerate'
     LIB_STAT[$LLAPACK]='off'
@@ -747,6 +801,7 @@ SetupLibraries() {
     lhome=''
     linc=''
     lflag=''
+    #echo "DEBUG: ${LIB_CKEY[$i]} flag=${LIB_FLAG[$i]} stat=${LIB_STAT[$i]} home=${LIB_HOME[$i]}"
     if [ "${LIB_STAT[$i]}" = 'off' ] ; then
       #echo "${LIB_CKEY[$i]} disabled." # DEBUG
       LIB_TEST[$i]='no'
@@ -792,7 +847,7 @@ SetupLibraries() {
           else
             lflag="-L$lhdir ${LIB_FLAG[$i]}"
           fi
-          # Library-specific INCLUDE fixes
+          # Library-specific INCLUDE fixes when home specified.
           if [ $i -eq $LREADLINE ] ; then
             linc="$linc/readline"
           fi
@@ -815,7 +870,11 @@ SetupLibraries() {
           lflag="${LIB_HOME[$LSANDER]}/lib/libsander$SHARED_SUFFIX"
         fi
       fi
-      #echo "${LIB_CKEY[$i]} ${LIB_STAT[$i]} linc $linc lflag $lflag" # DEBUG
+      # Special case. If library had include path set already, do not override it.
+      if [ ! -z "${LIB_INCL[$i]}" ] ; then
+        linc=${LIB_INCL[$i]}
+      fi
+      #echo "DEBUG lib ${LIB_CKEY[$i]} stat=\"${LIB_STAT[$i]}\" linc=\"$linc\" lflag=\"$lflag\"" # DEBUG
       LIB_FLAG[$i]="$lflag"
       LIB_INCL[$i]="$linc"
     fi
@@ -829,17 +888,24 @@ SetupCompilers() {
   if [ ! -z "$CC"  ] ; then echo "C compiler (CC) set to $CC" ; fi
   if [ ! -z "$FC"  ] ; then echo "Fortran compiler (FC) set to $FC" ; fi
   # If no compiler type specified try to guess
-  if [ -z "$COMPILERS" ] ; then
+  if [ -z "$COMPILERS" -o ! -z "$CXX" ] ; then
     if [ ! -z "$CXX" ] ; then
+      SPECIFIED_COMPILER=$COMPILERS
       echo "Determining compilers from CXX ($CXX)"
       case "$CXX" in
-        *g++*     ) COMPILERS='gnu' ;;
+        # NOTE - Have to look for clang++ first since it overlaps with g++
         *clang++* ) COMPILERS='clang' ;;
+        *g++*     ) COMPILERS='gnu' ;;
         *icpc*    ) COMPILERS='intel' ;;
         *pgc++*   ) COMPILERS='pgi' ;;
         *CC*      ) COMPILERS='cray' ;;
         * ) echo "Warning: Could not detect compiler type ($CXX); assuming GNU" > /dev/stderr;;
       esac
+      # If compiler was also specified make sure it matches as a sanity check
+      if [ ! -z "$SPECIFIED_COMPILER" -a "$SPECIFIED_COMPILER" != "$COMPILERS" ] ; then
+        echo "Error: $SPECIFIED_COMPILER compilers specified but need $COMPILERS based on CXX = $CXX" > /dev/stderr
+        exit 1
+      fi
     fi
   fi
   # If still no compiler default to gnu
@@ -925,6 +991,8 @@ SetupCompilers() {
       if [ -z "$CC" ]; then CC=pgcc; fi
       if [ -z "$CXX" ]; then CXX=pgc++; fi
       if [ -z "$FC" ]; then FC=pgf90; fi
+      CXXFLAGS="-Kieee -Mnoflushz $CXXFLAGS"
+      CFLAGS="-Kieee -Mnoflushz $CFLAGS"
       hostflags='-fastsse'
       optflags='-fast'
       foptflags='-fast'
@@ -1079,6 +1147,7 @@ SetupProfiling() {
 #-------------------------------------------------------------------------------
 # Basic compiler tests
 TestCompilers() {
+  echo ""
   # C++ OpenMP
   if [ $USE_OPENMP -eq 1 ] ; then
     cat > testp.cpp <<EOF
@@ -1129,21 +1198,27 @@ SetupMKL() {
   if [ "$MKL_TYPE" = 'mkl' -a "$COMPILERS" != 'intel' ] ; then
      MKL_TYPE='line'
   fi
+  # Determine mkl home directory
+  mklroot=''
+  if [ ! -z "$MKLROOT" ] ; then
+    mklroot=$MKLROOT
+  elif [ ! -z "$MKL_HOME" ] ; then
+    mklroot=$MKL_HOME
+  fi
+  if [ ! -z "$mklroot" ] ; then
+    echo "  Using MKL for BLAS/LAPACK in $mklroot"
+  fi
+  # Determine link style
   if [ "$MKL_TYPE" = 'mkl' ] ; then
     # Simple flag for Intel compilers
     mkllib='-mkl'
   else
     # Link-line advisor style
-    if [ -z "$MKLROOT" ] ; then
-      if [ -z "$MKL_HOME" ] ; then
-        echo "MKLROOT/MKL_HOME not set."
-        exit 1
-      fi
-      mkldir=$MKL_HOME
-    else
-      mkldir=$MKLROOT
+    if [ -z "$mklroot" ] ; then
+      echo "Error: MKLROOT/MKL_HOME not set." > /dev/stderr
+      exit 1
     fi
-    echo "  Using MKL for BLAS/LAPACK in $mkldir"
+    mkldir=$mklroot
     # Determine architecture
     if [ "$NBITS" -eq 64 ] ; then
       mkldir="$mkldir/lib/intel64"
@@ -1168,6 +1243,8 @@ SetupMKL() {
         mklthread='libmkl_gnu_thread.a'
         mklomp='-lgomp'
       fi
+      # Turn off pthread since we are adding it here.
+      REQUIRES_PTHREAD=0
       mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/$mklthread $mkldir/libmkl_core.a -Wl,--end-group $MKLOMP -lpthread -lm -ldl"
     else
       mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/libmkl_sequential.a $mkldir/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl"
@@ -1179,6 +1256,15 @@ SetupMKL() {
   LIB_FLAG[$LBLAS]="$mkllib"
   LIB_STAT[$LLAPACK]='off'
   LIB_FLAG[$LLAPACK]=''
+  # If no FFTW, try using MKL
+  if [ "${LIB_STAT[$LFFTW3]}" = 'off' -a "$MKL_FFTW" != 'no' ] ; then
+    MKL_FFTW='yes'
+    LIB_STAT[$LFFTW3]='enabled'
+    LIB_FLAG[$LFFTW3]=''
+    if [ ! -z "$mklroot" ] ; then
+      LIB_INCL[$LBLAS]="-I$mklroot/include/fftw"
+    fi
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -1213,7 +1299,7 @@ SetupCUDA() {
     sm35flags='-gencode arch=compute_35,code=sm_35'
     sm30flags='-gencode arch=compute_30,code=sm_30'
     sm20flags='-gencode arch=compute_20,code=sm_20'
-    if [ "$cuda_version" = '9.0' -o "$cuda_version" = '9.1' -o "$cuda_version" = '9.2' ] ; then
+    if [ "$cuda_version" = '9.0' -o "$cuda_version" = '9.1' -o "$cuda_version" = '9.2' -o "$cuda_version" = "10.0" -o "$cuda_version" = "10.1" ] ; then
       SM_CONFIG="Configuring for SM3.0, SM5.0, SM5.2, SM5.3, SM6.0, SM6.1, and SM7.0"
       NVCCFLAGS="$sm30flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags $sm70flags"
     elif [ "$cuda_version" = '8.0' ] ; then
@@ -1226,9 +1312,11 @@ SetupCUDA() {
     fi
   fi
   if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="$DBFLAG -arch=$SHADER_MODEL"; fi
+  if [ ! -z "$picflag" ] ; then
+    NVCCFLAGS="--compiler-options $picflag $NVCCFLAGS"
+  fi
   LIB_STAT[$LCUDA]='specified'
   LIB_HOME[$LCUDA]=$CUDA_HOME
-  USE_CUDA=1
 }
 
 # ------------------------------------------------------------------------------
@@ -1241,7 +1329,7 @@ BasicChecks() {
     CPPTRAJBIN=$CPPTRAJHOME/bin
     CPPTRAJLIB=$CPPTRAJHOME/lib
   elif [ ! -d "$CPPTRAJHOME" ] ; then
-    echo "Error: Install directory '$CPPTRAJHOME' does not exist."
+    echo "Error: Install directory '$CPPTRAJHOME' does not exist." > /dev/stderr
     exit 1
   fi
   # Test incompatible options
@@ -1333,7 +1421,7 @@ extern "C" { void mytest_(int&); } int main() { int ival=14; printf("Testing"); 
 EOF
         $CXX $CXXFLAGS -c -o testc.o testc.cpp > /dev/null 2> compile.err
         if [ $? -ne 0 ] ; then
-          cat compile.err
+          cat compile.err > /dev/stderr
           exit 1
         fi
         cat > testf.f <<EOF
@@ -1345,7 +1433,7 @@ end subroutine mytest
 EOF
         $FC $FFLAGS -c -o testf.o testf.f > /dev/null 2> compile.err
         if [ $? -ne 0 ] ; then
-          cat compile.err
+          cat compile.err > /dev/stderr
           exit 1
         fi
         TestProgram quiet "clang++/gfortran link" "$CXX" " " "testc.o testf.o" "$FLINK"
@@ -1385,6 +1473,151 @@ EOF
   fi
 }
 
+#-------------------------------------------------------------------------------
+# BuildRules <config file> {cxx|cc|f77} ...
+# Write build rules for config files.
+BuildRules() {
+  if [ -z "$1" ] ; then
+    echo "Internal Error: BuildRules(): No output file." > /dev/stderr
+    exit 1
+  fi
+  configfile=$1
+  shift
+  while [ ! -z "$1" ] ; do
+    rule=''
+    case "$1" in
+      cxx )
+        echo "CXX=$CXX" >> $configfile
+        echo "CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)" >> $configfile
+        rule='.cpp.o:'
+        cmd='CXX'
+        line='$(CXX) $(DIRECTIVES) $(INCLUDE) $(CXXFLAGS)'
+        ;;
+      cc )
+        echo "CC=$CC" >> $configfile
+        echo "CFLAGS=$CFLAGS \$(DBGFLAGS)" >> $configfile
+        rule='.c.o:'
+        cmd='CC'
+        line='$(CC) $(DIRECTIVES) $(INCLUDE) $(CFLAGS)'
+        ;;
+      f77 )
+        echo "FC=$FC" >> $configfile
+        echo "F77FLAGS=$F77FLAGS \$(DBGFLAGS)" >> $configfile
+        rule='.f.o:'
+        cmd='FC'
+        line='$(FC) $(DIRECTIVES) $(INCLUDE) $(F77FLAGS)'
+        ;;
+      f90 )
+        echo "FC=$FC" >> $configfile
+        echo "FFLAGS=$FFLAGS \$(DBGFLAGS)" >> $configfile
+        # No rule needed for pub_fft.F90
+        ;;
+      nvcc )
+        echo "NVCC=$NVCC" >> $configfile
+        echo "NVCCFLAGS=$NVCCFLAGS" >> $configfile
+        rule='%%.o : %%.cu'
+        cmd='NVCC'
+        line='$(NVCC) $(DBGFLAGS) $(NVCCFLAGS)'
+        ;;
+    esac
+      if [ ! -z "$rule" ] ; then
+        printf "\n$rule\n" >> $configfile
+        if [ $COMPILE_VERBOSE -eq 0 ] ; then
+          printf "\t@echo $cmd \$<\n" >> $configfile
+          printf "\t@$line -c -o \$@ \$<\n\n" >> $configfile
+        else
+          printf "\n\t$line -c -o \$@ \$<\n\n" >> $configfile
+        fi
+      fi
+    shift
+  done
+}
+
+#-------------------------------------------------------------------------------
+# Use cmake to configure build.
+SetupCmake() {
+  CMAKE=`which cmake`
+  if [ -z "$CMAKE" ] ; then
+    echo "Error: 'cmake' binary not found. Cannot configure with cmake." > /dev/stderr
+    exit 1
+  fi
+  # Not recommended to run in same directory as configure
+  if [ "$WORKDIR" = '.' ] ; then
+    echo "Error: 'cmake' configure should be done in a separate directory." > /dev/stderr
+    echo "       e.g. $ cd \$CPPTRAJHOME" > /dev/stderr
+    echo "            $ mkdir build" > /dev/stderr
+    echo "            $ cd build" > /dev/stderr
+    echo "            $ ../configure -cmake <options>" > /dev/stderr
+    exit 1
+  fi
+  # Ensure cmake bnuild system exists
+  if [ ! -f "$WORKDIR/cmake/AmberBuildSystemInit.cmake" ] ; then
+    echo "Error: cmake build system is not present." > /dev/stderr
+    echo "       If this is a GIT repostitory, you may need to initialize the" > /dev/stderr
+    echo "       cmake submodule:" > /dev/stderr
+    echo " $ git submodule update --init --recursive" > /dev/stderr
+    exit 1
+  fi
+  # Set up cmake options
+  cmake_options=''
+  # Figure out compilers
+  if [ "$COMPILERS" = 'gnu' ] ; then
+    cmake_options='-DCOMPILER=GNU'
+  elif [ "$COMPILERS" = 'intel' ] ; then
+    cmake_options='-DCOMPILER=INTEL'
+  elif [ "$COMPILERS" = 'pgi' ] ; then
+    cmake_options='-DCOMPILER=PGI'
+  elif [ "$COMPILERS" = 'clang' ] ; then
+    cmake_options='-DCOMPILER=CLANG'
+  elif [ "$COMPILERS" = 'cray' ] ; then
+    cmake_options='-DCOMPILER=CRAY'
+  fi
+  # Build options
+  if [ "$USE_MPI" -eq 0 ] ; then
+    cmake_options="$cmake_options -DMPI=FALSE"
+  else
+    cmake_options="$cmake_options -DMPI=TRUE"
+  fi
+  if [ "$USE_OPENMP" -eq 0 ] ; then
+    cmake_options="$cmake_options -DOPENMP=FALSE"
+  else
+    cmake_options="$cmake_options -DOPENMP=TRUE"
+  fi
+  if [ "$USE_CUDA" -eq 0 ] ; then
+    cmake_options="$cmake_options -DCUDA=FALSE"
+  else
+    cmake_options="$cmake_options -DCUDA=TRUE"
+  fi
+  #if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
+  #  cmake_options="$cmake_options -DUSE_FFT=FALSE"
+  #fi
+  if [ $USE_STATIC -eq 1 ] ; then
+    cmake_options="$cmake_options -DSTATIC=TRUE"
+  fi
+  if [ ! -z "$CPPTRAJHOME" ] ; then
+    cmake_options="$cmake_options -DCMAKE_INSTALL_PREFIX=$CPPTRAJHOME"
+  else
+    cmake_options="$cmake_options -DCMAKE_INSTALL_PREFIX=$WORKDIR"
+  fi
+  if [ $USE_OPT -eq 0 ] ; then
+    cmake_options="$cmake_options -DOPTIMIZE=FALSE"
+  else
+    cmake_options="$cmake_options -DOPTIMIZE=TRUE"
+  fi
+  if [ $USE_DEBUG -eq 0 ] ; then
+    cmake_options="$cmake_options -DCMAKE_BUILD_TYPE=Release"
+  else
+    cmake_options="$cmake_options -DCMAKE_BUILD_TYPE=Debug"
+  fi
+  if [ $COMPILE_VERBOSE -eq 1 ] ; then
+    cmake_options="$cmake_options -DCMAKE_VERBOSE_MAKEFILE=TRUE"
+  fi
+  echo "  Cmake options: $WORKDIR $cmake_options"
+  # Run cmake 
+  $CMAKE $WORKDIR $cmake_options
+  exit $?
+}
+ 
 # ==============================================================================
 # MAIN SCRIPT
 
@@ -1448,12 +1681,14 @@ while [ ! -z "$1" ] ; do
     'NVCCFLAGS'  ) NVCCFLAGS="$VALUE" ;;
     'SHADER_MODEL') SHADER_MODEL="$VALUE" ;;
     # Build options
+    '-cmake'         ) USE_CMAKE=1 ;;
     '-mpi'           ) USE_MPI=1 ;;
     '-intelmpi'      ) USE_MPI=2 ;;
     '-openmp'        ) USE_OPENMP=1 ;;
-    '-cuda'          ) SetupCUDA ;;
+    '-cuda'          ) USE_CUDA=1 ;;
     '-cray'          ) PLATFORM='cray' ;;
     '-mkl'           ) BLAS_TYPE='mkl' ;;
+    '-nomklfftw'     ) MKL_FFTW='no' ;;
     '-libsci'        ) BLAS_TYPE='libsci' ;;
     '-openblas'      ) BLAS_TYPE='openblas' ;;
     '-macAccelerate' ) BLAS_TYPE='macAccelerate' ;;
@@ -1486,6 +1721,7 @@ while [ ! -z "$1" ] ; do
       ;;
     '-nomathlib'        ) BLAS_TYPE='none' ;;
     '--requires-flink'  ) REQUIRES_FLINK=1 ;;
+    '--requires-pthread') REQUIRES_PTHREAD=1 ;;
     # Install options
     '--compile-verbose' ) COMPILE_VERBOSE=1 ;;
     '-noclean'          ) CLEAN='no' ;;
@@ -1518,11 +1754,17 @@ if [ -z "$NBITS" ] ; then
   if [ -z "$architecture" ] ; then
     echo "Warning: Could not determine 32 vs 64-bit OS - assuming 64-bit."
     NBITS=64
-  elif [ "$architecture" = 'x86_64' -o "$architecture" = 'em64t' ] ; then
+  elif [ ! -z "`echo $architecture | grep 64`" ] ; then
+    # Assume if the machine from uname has a 64 it is 64 bit.
     NBITS=64
   else
     NBITS=32
   fi
+fi
+
+# Should we use cmake instead?
+if [ $USE_CMAKE -eq 1 ] ; then
+  SetupCmake
 fi
 
 # Basic checks and directives
@@ -1530,6 +1772,11 @@ BasicChecks
 
 # Set up compilers and compiler options
 SetupCompilers
+
+# Set up CUDA if needed
+if [ "$USE_CUDA" -eq 1 ] ; then
+  SetupCUDA
+fi
 
 # Set up profiling if specified
 SetupProfiling
@@ -1592,6 +1839,9 @@ if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then
 fi
 echo "  Target platform: $PLATFORM, $NBITS-bit."
 echo "  $COMPILERS compilers in use."
+if [ "$MKL_FFTW" = 'yes' ] ; then
+  echo "  Using FFTW from MKL."
+fi
 if [ "$C11_SUPPORT" = 'yes' ] ; then
   echo "  C++11 support enabled."
   if [ "${LIB_STAT[$LFFTW3]}" = 'off' ] ; then
@@ -1649,18 +1899,12 @@ fi
 
 # ----- Determine which targets to build ---------
 CPPTRAJ_TARGET=""
-AMBPDB_TARGET=""
 LIBCPPTRAJ_TARGET=""
 NPROC_TARGET=""
 INSTALL_TARGETS=""
 # Always build cpptraj
 CPPTRAJ_TARGET=cpptraj$SFX$EXE
 INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
-# Only build ambpdb in serial
-if [ $USE_MPI -eq 0 -a $USE_OPENMP -eq 0 -a $USE_CUDA -eq 0 ] ; then
-  AMBPDB_TARGET=ambpdb
-  INSTALL_TARGETS=$INSTALL_TARGETS" install_ambpdb"
-fi
 # Can we build libcpptraj? TODO serial/OpenMP only?
 if [ $USE_SHARED -eq 1 ] ; then
   LIBCPPTRAJ_TARGET='$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)'
@@ -1722,21 +1966,12 @@ if [ ! -z "$DBGFLAGS" ] ; then
   echo "DBGFLAGS=$DBGFLAGS" >> config.h
 fi
 cat >> config.h <<EOF
-CC=$CC
-CXX=$CXX
-FC=$FC
-CFLAGS=$CFLAGS \$(DBGFLAGS)
-CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
-FFLAGS=$FFLAGS \$(DBGFLAGS)
-F77FLAGS=$F77FLAGS \$(DBGFLAGS)
 SHARED_SUFFIX=$SHARED_SUFFIX
 DIRECTIVES=$DIRECTIVES
 INCLUDE=$INCLUDE
 
 LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 
-NVCC=$NVCC
-NVCCFLAGS=$NVCCFLAGS \$(DBGFLAGS)
 CUDA_TARGET=$CUDA_TARGET
 
 READLINE_TARGET=$READLINE_TARGET
@@ -1754,25 +1989,19 @@ SFX=$SFX
 EXE=$EXE
 
 EOF
-if [ $COMPILE_VERBOSE -eq 1 ] ; then
-  cat >> config.h <<EOF
-.cpp.o:
-	\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
+#if [ "$FFT_TARGET" = 'pub_fft.o' ] ; then
+  BuildRules config.h cc cxx f90
+#else
+#  BuildRules config.h cc cxx
+#fi
 
-.c.o:
-	\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
+# ----- Create config for external libraries -----
+external_config='external.config.h'
+cat > $external_config <<EOF
+# CPPTRAJ config for external libraries.
+# configured using: $CONFIGURECMD
 EOF
-else
-  cat >> config.h <<EOF
-.cpp.o:
-	@echo CXX \$<
-	@\$(CXX) \$(DIRECTIVES) \$(INCLUDE) \$(CXXFLAGS) -c -o \$@ \$<
-
-.c.o:
-	@echo CC \$<
-	@\$(CC) \$(DIRECTIVES) \$(INCLUDE) \$(CFLAGS) -c -o \$@ \$<
-EOF
-fi
+BuildRules $external_config nvcc cc f77
 
 # ----- Create directories if necessary ----------
 if [ ! -e "$CPPTRAJBIN" ] ; then

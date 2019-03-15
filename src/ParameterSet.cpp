@@ -2,6 +2,15 @@
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 
+size_t ParameterSet::DataSize() const {
+  return (atomTypes_.DataSize() +
+          bondParm_.DataSize() +
+          angleParm_.DataSize() +
+          ubParm_.DataSize() +
+          dihParm_.DataSize() +
+          impParm_.DataSize());
+}
+
 void ParameterSet::Debug(const char* fnameIn) const {
   CpptrajFile Out;
   Out.OpenWrite( fnameIn );

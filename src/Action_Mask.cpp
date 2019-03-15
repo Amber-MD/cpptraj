@@ -34,7 +34,7 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
 # ifdef MPI
   trajComm_ = init.TrajComm();
   if ( trajComm_.Size() > 1 && outfile_ != 0) {
-    mprinterr("Error: 'maskout' currently only works with 1 thread (currently %i)\n"
+    mprinterr("Error: 'maskout' currently only works with 1 process (currently %i)\n"
               "Error:   Consider using the 'name'/'out' keywords instead\n", trajComm_.Size());
     return Action::ERR;
   }

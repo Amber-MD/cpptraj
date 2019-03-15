@@ -22,6 +22,7 @@ class DataSet_Vector : public DataSet {
     inline void Add(size_t, const void*);
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     int Append( DataSet* );
+    size_t MemUsageInBytes() const;
     // -------------------------------------------
     void reset();
     void Resize(size_t s)               { vectors_.resize( s );    }

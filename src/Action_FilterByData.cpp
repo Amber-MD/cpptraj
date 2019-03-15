@@ -96,7 +96,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
 # ifdef MPI
   if (!multi_ && init.TrajComm().Size() > 1)
     mprintf("Warning: Trajectories written after 'filter' may have issues if\n"
-            "Warning:   the number of threads writing is > 1 (currently %i threads)\n",
+            "Warning:   the number of processes writing is > 1 (currently %i processes)\n",
             init.TrajComm().Size());
 # endif
   return Action::OK;

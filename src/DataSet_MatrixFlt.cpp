@@ -26,4 +26,32 @@ int DataSet_MatrixFlt::Sync(size_t total, std::vector<int> const& rank_frames,
     commIn.ReduceMaster( 0,         &(mat_[0]),  mat_.size(),  MPI_FLOAT, MPI_SUM );
   return 0;
 }
+
+int DataSet_MatrixFlt::SendSet(int dest, Parallel::Comm const& commIn) {
+  // First send the size + type
+  int size[3];
+  size[0] = mat_.Ncols();
+  size[1] = mat_.Nrows();
+  size[2] = (int)mat_.Type();
+  commIn.Send( &size, 3, MPI_INT, dest, 1700 );
+  // Then send the matrix
+  commIn.Send( &(mat_[0]), mat_.size(), MPI_FLOAT, dest, 1701 );
+  return 0;
+}
+
+int DataSet_MatrixFlt::RecvSet(int src, Parallel::Comm const& commIn) {
+  // First receive the size + type
+  int size[3];
+  commIn.Recv( &size, 3, MPI_INT, src, 1700 );
+  if (size[2] == 0) // FULL
+    mat_.resize(size[0], size[1]);
+  else if (size[2] == 1) // HALF
+    mat_.resize(size[0], 0);
+  else // TRI
+    mat_.resize(0, size[1]);
+  // Then receive the matrix
+  commIn.Recv( &(mat_[0]), mat_.size(), MPI_FLOAT, src, 1701);
+  return 0;
+}
+  
 #endif

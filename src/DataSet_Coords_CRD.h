@@ -10,9 +10,11 @@ class DataSet_Coords_CRD : public DataSet_Coords {
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
-    void Info() const;
+    void Info() const { return; }
     void Add(size_t, const void*) {}
     int Allocate(SizeArray const&);
+    /// \return Size in bytes of set
+    size_t MemUsageInBytes() const { return EstSizeInBytes(Size()); }
     // ----- DataSet_Coords functions ------------
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { 
@@ -34,7 +36,7 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     int CoordsSetup(Topology const&, CoordinateInfo const&);
     // -------------------------------------------
     /// \return estimated size in bytes for given # of frames.
-    size_t SizeInBytes(size_t n) const { return sizeInBytes(n, Top().Natom(), numBoxCrd_); }
+    size_t EstSizeInBytes(size_t nframes) const { return sizeInBytes(nframes, Top().Natom(), numBoxCrd_); }
   private:
     static size_t sizeInBytes(size_t, size_t, size_t);
 

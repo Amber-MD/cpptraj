@@ -49,7 +49,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
 {
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'pairwise' action does not work with > 1 thread (%i threads currently).\n",
+    mprinterr("Error: 'pairwise' action does not work with > 1 process (%i processes currently).\n",
               init.TrajComm().Size());
     return Action::ERR;
   }

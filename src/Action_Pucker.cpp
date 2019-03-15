@@ -170,6 +170,8 @@ Action::RetType Action_Pucker::DoAction(int frameNum, ActionFrame& frm) {
                         AX_[3].Dptr(), AX_[4].Dptr(), AX_[5].Dptr(), 
                         AX_.size(), aval, tval );
       break;
+    case UNSPECIFIED : // Sanity check
+      return Action::ERR;
   }
   if ( amplitude_ != 0 )
     amplitude_->Add(frameNum, &aval);
