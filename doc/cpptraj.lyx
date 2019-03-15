@@ -281,6 +281,14 @@ show
  commands).
 \end_layout
 
+\begin_layout Standard
+See the README.md file in the 
+\emph on
+cpptraj
+\emph default
+ home directory for information on how to build, authors, and so on.
+\end_layout
+
 \begin_layout Subsection
 Manual Syntax Format
 \end_layout
