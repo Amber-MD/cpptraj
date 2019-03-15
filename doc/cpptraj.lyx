@@ -2038,6 +2038,10 @@ for { {atoms|residues|molecules|molfirstres|mollastres}
 \end_layout
 
 \begin_layout LyX-Code
+      <var> in <list> |
+\end_layout
+
+\begin_layout LyX-Code
 	  <var>=<start>;[<var><end OP><end>;]<var><increment OP>[<value>] ...
  }
 \end_layout
@@ -2107,6 +2111,19 @@ parmindex
 \end_layout
 
 \end_deeper
+\begin_layout Description
+<var>
+\begin_inset space ~
+\end_inset
+
+in
+\begin_inset space ~
+\end_inset
+
+<list> Loop over a comma-separated list of strings.
+ File name wildcards can be used.
+\end_layout
+
 \begin_layout Description
 <var>=<start>;[<var><end
 \begin_inset space ~
@@ -2202,6 +2219,22 @@ distance d2 :TCS :2@CA out 2.dat
 
 \begin_layout LyX-Code
 distance d3 :TCS :3@CA out 3.dat
+\end_layout
+
+\begin_layout Standard
+To loop over files named trajA*.nc and trajB*.nc:
+\end_layout
+
+\begin_layout LyX-Code
+for TRAJ in trajA*.nc,trajB*.nc
+\end_layout
+
+\begin_layout LyX-Code
+  trajin $TRAJ 1 last 10
+\end_layout
+
+\begin_layout LyX-Code
+done 
 \end_layout
 
 \begin_layout Subsection
@@ -5438,7 +5471,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="10" columns="2">
+<lyxtabular version="3" rows="12" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -5461,6 +5494,26 @@ Command
 
 \series bold
 Description
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+catcrd
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Concatenate two or more COORDS sets.
 \end_layout
 
 \end_inset
@@ -5628,7 +5681,7 @@ Load a single trajectory frame as a reference.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -5637,11 +5690,31 @@ rotatedihedral
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Rotate specified dihedral to specified value or by given increment.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+splitcoords
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Split molecules in a COORDS set into a trajectory.
 \end_layout
 
 \end_inset
@@ -5652,6 +5725,36 @@ Rotate specified dihedral to specified value or by given increment.
 \end_inset
 
 
+\end_layout
+
+\begin_layout Subsection
+catcrd
+\end_layout
+
+\begin_layout LyX-Code
+catcrd <crd1> <crd2> ...
+ name <name>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<crdX> COORDS data sets to concatentate, specify 2 or more.
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<name> New COORDS set name
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Concatentate two or more COORDS data sets into a single COORDS data set.
+ The topologies must have the same number of atoms for this to work.
+ If the topologies differ in other ways, the topology of the first COORDS
+ set takes priority.
 \end_layout
 
 \begin_layout Subsection
@@ -5669,7 +5772,7 @@ combinecrd <crd1> <crd2> ...
 
 \begin_deeper
 \begin_layout Description
-<crdX> COORDS data set to combine, specify 2 or more.
+<crdX> COORDS data sets to combine, specify 2 or more.
 \end_layout
 
 \begin_layout Description
@@ -6311,7 +6414,60 @@ rotatedihedral crdset TZ2 value 35 res 8 type chip
 \end_layout
 
 \begin_layout LyX-Code
-crdout TZ2 tz2.rotate.1.mol2 
+crdout TZ2 tz2.rotate.1.mol2
+\end_layout
+
+\begin_layout Subsection
+splitcoords
+\end_layout
+
+\begin_layout LyX-Code
+splitcoords <crd set> name <output set name>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<crd
+\begin_inset space ~
+\end_inset
+
+set> COORDS set to split.
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Name of new set to create.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Split trajectory specified by <crd set> by molecule into a new COORDS set.
+ All molecules in <crd set> must be the same size.
+ For example, if there are 10 molecules and 10 frames in COORDS set 
+\begin_inset Quotes eld
+\end_inset
+
+Set0
+\begin_inset Quotes erd
+\end_inset
+
+, the following would create a new COORDS set with 100 frames (original
+ molecules 1-10 frame 1, original molecules 1-10 frame 2, etc):
+\end_layout
+
+\begin_layout LyX-Code
+splitcoords Set0 name Set0Split
 \end_layout
 
 \begin_layout Section
@@ -34658,7 +34814,7 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
-    [pairwisecache {mem | none}] [includesieveincalc]
+    [pairwisecache {mem | none}] [includesieveincalc] [pwrecalc]
 \end_layout
 
 \begin_layout LyX-Code
@@ -35253,6 +35409,11 @@ none}] Cache pairwise distance data in memory (default), to disk, or disable
 may be very slow
 \bar default
 ).
+\end_layout
+
+\begin_layout Description
+[pwrecalc] If a loaded pairwise distance file does not match the current
+ setup, force recalculation.
 \end_layout
 
 \begin_layout Standard
