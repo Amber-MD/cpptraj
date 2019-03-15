@@ -20178,11 +20178,12 @@ energy [<name>] [<mask1>] [out <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-   	          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>]
+   	          pme [cut <cutoff>] [dsumtol <dtol>] [order <order>] [ljswidth
+ <width>]
 \end_layout
 
 \begin_layout LyX-Code
-   	              [ewcoeff <coeff>] [skinnb <skinnb>]
+   	              [ewcoeff <coeff>] [ljpme] [ewcoefflj] [skinnb <skinnb>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -20243,11 +20244,11 @@ energy [<name>] [<mask1>] [out <filename>]
 \end_layout
 
 \begin_layout Description
-[elec] Calculate electrostatic energy.
+[elec] Calculate electrostatic energy (Coulomb potential).
 \end_layout
 
 \begin_layout Description
-[vdw] Calculate van der Waals energy.
+[vdw] Calculate van der Waals energy (Lennard-Jones 6-12 potential).
 \end_layout
 
 \begin_layout Description
@@ -20328,7 +20329,6 @@ cut
 skinnb
 \series default
 ); included in order to maintain consistency with results from sander.
- 
 \end_layout
 
 \begin_layout Description
@@ -20339,6 +20339,14 @@ mlimits
 <X>,<Y>,<Z> Explicitly set the number of reciprocal space vectors in each
  dimension.
  Will be determined automatically if not specified.
+\end_layout
+
+\begin_layout Description
+erfcdx
+\begin_inset space ~
+\end_inset
+
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \end_deeper
@@ -20375,11 +20383,29 @@ order
 \end_layout
 
 \begin_layout Description
+ljswidth
+\begin_inset space ~
+\end_inset
+
+<width> If specified, use a force-switching form for the Lennard-Jones calculati
+on from <cutoff>-<width> to <cutoff>.
+\end_layout
+
+\begin_layout Description
 ewcoeff
 \begin_inset space ~
 \end_inset
 
 <coeff> Ewald coefficient in 1/Ang.
+\end_layout
+
+\begin_layout Description
+ljpme If specified use particle mesh Ewald for calculating Lennard-Jones
+ interactions.
+\end_layout
+
+\begin_layout Description
+ewcoefflj Ewald coefficient for Lennard-Jones PME.
 \end_layout
 
 \begin_layout Description
@@ -20393,7 +20419,6 @@ cut
 skinnb
 \series default
 ); included in order to maintain consistency with results from sander.
- 
 \end_layout
 
 \begin_layout Description
@@ -20404,6 +20429,14 @@ nfft
 <nfft1>,<nfft2>,<nfft3> Explicitly set the number of FFT grid points in
  each dimension.
  Will be determined automatically if not specified.
+\end_layout
+
+\begin_layout Description
+erfcdx
+\begin_inset space ~
+\end_inset
+
+<dx> Spacing to use for the ERFC splines (default 0.0002 Ang.).
 \end_layout
 
 \end_deeper
@@ -28267,6 +28300,7 @@ pucker
 
 \begin_layout Description
 [cremer] Use method of Cremer and Pople (5 or 6 masks).
+ This is the default when 6 masks are specified.
 \end_layout
 
 \begin_layout Description
@@ -28324,7 +28358,7 @@ literal "true"
 
 \end_inset
 
- (default, or if 
+ (default for 5 masks, or if 
 \series bold
 altona
 \series default
@@ -28336,21 +28370,21 @@ literal "true"
 
 \end_inset
 
- if 
+ (default for 6 masks, or if 
 \series bold
 cremer
 \series default
- is specified.
- If <mask6> is specified calculate the pucker (and optionally theta if 
-\series bold
-theta
-\series default
- specified) according to the method of Cremer & Pople.
+ is specified).
  If the 
 \series bold
 amplitude
 \series default
- keyword is given, amplitudes will be calculated in addition to pucker.
+ or 
+\series bold
+theta
+\series default
+ keywords are given, amplitudes/thetas will be calculated in addition to
+ pucker.
  The results from 
 \series bold
 \shape italic
