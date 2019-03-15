@@ -648,6 +648,33 @@ SetupFinalFlags() {
     AMBCFGDIR=`pwd | grep "AmberTools/src"`
     if [ ! -z "$AMBCFGDIR" ] ; then
       DIRECTIVES="$DIRECTIVES -DBUILDTYPE='\"AmberTools\"'"
+      # Attempt to find update_amber
+      amber_base_dir=${AMBCFGDIR%"AmberTools/src/cpptraj"}
+      update_amber="$amber_base_dir"/updateutils/main.py
+      ambertools_major=''
+      if [ -f "$update_amber" ] ; then
+        ambertools_major=`grep "_AMBERTOOLS_VERSION =" $update_amber | awk '{print $3;}'`
+        echo "AT major: $ambertools_major"
+      fi
+      if [ ! -z "$ambertools_major" ] ; then
+        # Try to determine minor version
+        ambertools_minor=0
+        at_dir=AmberTools"$ambertools_major"_Applied_Patches
+        patch_dir=$amber_base_dir/.patches/$at_dir
+        if [ -d "$patch_dir" ] ; then
+          update=1
+          ufile=$patch_dir/update.$update
+          while [ -f "$ufile" ] ; do
+            ambertools_minor=$update
+            ((update++))
+            ufile=$patch_dir/update.$update
+          done
+          cpptraj_version_string=`printf "V%i.%02i" $ambertools_major $ambertools_minor`
+          cpptraj_version_strlen=${#cpptraj_version_string}
+          DIRECTIVES="$DIRECTIVES -DCPPTRAJ_VERSION_STRING='\"$cpptraj_version_string\"'"
+          DIRECTIVES="$DIRECTIVES -DCPPTRAJ_VERSION_STRLEN=$cpptraj_version_strlen"
+        fi
+      fi
     else
       DIRECTIVES="$DIRECTIVES -DBUILDTYPE='\"GitHub\"'"
     fi
