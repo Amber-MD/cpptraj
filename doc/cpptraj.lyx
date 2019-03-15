@@ -949,10 +949,10 @@ trajin
 \series default
 \emph default
 ' trajectory input, where the trajectory read is divided as evenly as possible
- among all input frames.
- For example, if given two trajectories of 1000 frames each and 4 MPI threads,
- thread 0 reads frames 1-500 of trajectory 1, thread 1 reads frames 501-1000
- of trajectory 1, thread 2 reads frames 1-500 of trajectory 2, and thread
+ among all input frames (across-trajectory parallelism).
+ For example, if given two trajectories of 1000 frames each and 4 MPI processes,
+ process 0 reads frames 1-500 of trajectory 1, process 1 reads frames 501-1000
+ of trajectory 1, process 2 reads frames 1-500 of trajectory 2, and process
  3 reads frames 501-1000 of trajectory 2.
  Most Actions will work with across-trajectory parallelization with the
  exception of the following:
@@ -976,13 +976,14 @@ The second is for
 \series default
 \shape default
  trajectory input, where the reading/processing/writing of each member of
- the ensemble is divided up among MPI threads.
- The number of MPI threads must be a multiple of the ensemble size.
- If the number of threads is greater than the ensemble size then the processing
- of each ensemble member will be divided among MPI threads.
- For example, given an ensemble of 4 trajectories and 8 threads, threads
- 0 and 1 are assigned to the first ensemble trajectory, threads 2 and 3
- are assigned to the second ensemble trajectory, and so on.
+ the ensemble is divided up among MPI processes.
+ The number of MPI processes must be a multiple of the ensemble size.
+ If the number of processes is greater than the ensemble size then the processin
+g of each ensemble member will be divided among MPI processes (i.e.
+ across-trajectory parallelism will be used).
+ For example, given an ensemble of 4 trajectories and 8 processes, processes
+ 0 and 1 are assigned to the first ensemble trajectory, processes 2 and
+ 3 are assigned to the second ensemble trajectory, and so on.
  When using ensemble mode in parallel it is recommended that the 
 \series bold
 \emph on
@@ -6485,7 +6486,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="31" columns="2">
+<lyxtabular version="3" rows="32" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -6829,6 +6830,26 @@ noprogress
 
 \begin_layout Plain Layout
 Do not print a progress bar during a Run.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parallelanalysis
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+(MPI only) Divide current Analyses among MPI processes.
 \end_layout
 
 \end_inset
@@ -8976,7 +8997,27 @@ noprogress
 
 \begin_layout Standard
 Do not display read progress during trajectory processing.
- 
+\end_layout
+
+\begin_layout Subsection
+parallelanalysis
+\end_layout
+
+\begin_layout LyX-Code
+parallelanalysis [sync]
+\end_layout
+
+\begin_layout Standard
+MPI only.
+ Divide all currently set up analyses as evenly as possible among available
+ MPI processes and execute.
+ Each analysis will get a single MPI process.
+ If 
+\series bold
+sync
+\series default
+ is specified all data will be synced back to the master thread (for e.g.
+ subsequent analysis).
 \end_layout
 
 \begin_layout Subsection
@@ -31818,15 +31859,15 @@ vector [<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]
 \end_layout
 
 \begin_layout LyX-Code
-       <Type> = { mask | minimage  | dipole | center | corrplane |
+       <Type> = { mask     | minimage  | dipole | center   | corrplane |
 \end_layout
 
 \begin_layout LyX-Code
-                  box  | boxcenter | ucellx | ucelly | ucellz
+                  box      | boxcenter | ucellx | ucelly   | ucellz
 \end_layout
 
 \begin_layout LyX-Code
-   	           principal [x|y|z] }
+   	           momentum | principal [x|y|z]  | velocity | force }
 \begin_inset Separator latexpar
 \end_inset
 
@@ -31997,6 +32038,10 @@ ucell{x|y|z}: (No mask needed) Store specified unit cell (i.e.
 \end_layout
 
 \begin_layout Description
+momentum Store momentum of atoms selected by <mask1> (requires velocities).
+\end_layout
+
+\begin_layout Description
 principal
 \begin_inset space ~
 \end_inset
@@ -32059,6 +32104,14 @@ x
 <mask1>
 \series default
 .
+\end_layout
+
+\begin_layout Description
+velocity Store velocity of atoms in <mask1> (requires velocities).
+\end_layout
+
+\begin_layout Description
+force Store force of atoms in <mask1> (requires forces).
 \end_layout
 
 \begin_layout Standard
