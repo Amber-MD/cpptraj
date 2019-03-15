@@ -8890,7 +8890,7 @@ help
 \end_layout
 
 \begin_layout Standard
-By itself, list all commands known to 
+If 'All' is specifed, list all commands known to 
 \shape italic
 cpptraj
 \shape default
@@ -11083,11 +11083,23 @@ parm
 
 \end_inset
 
- <filename> [{[TAG] | name <setname>}] [nobondsearch | bondsearch [<offset>]]
+ <filename> [{[TAG] | name <setname>}] 
+\end_layout
+
+\begin_layout LyX-Code
+     [{ nobondsearch |
+\end_layout
+
+\begin_layout LyX-Code
+        [bondsearch <offset>] [searchtype {grid|pairlist}]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+      }]
 \end_layout
 
 \begin_deeper
@@ -11127,6 +11139,16 @@ reference "subsec:Parameter/Reference-Tagging"
 \begin_layout Description
 
 \series bold
+[nobondsearch]
+\series default
+ Optional; if specified do not search for bonds via geometry if Topology
+ does not include bond information.
+ May cause some Actions to fail.
+\end_layout
+
+\begin_layout Description
+
+\series bold
 [bondsearch <offset>]
 \series default
  Optional; when searching for bonds via geometry search (default for Topologies
@@ -11135,16 +11157,28 @@ reference "subsec:Parameter/Reference-Tagging"
 \end_layout
 
 \begin_layout Description
+[searchtype
+\begin_inset space ~
+\end_inset
 
-\series bold
-[nobondsearch]
-\series default
- Optional; if specified do not search for bonds via geometry if Topology
- does not include bond information.
- May cause some actions to fail.
- 
+{grid|pairlist}] Change search algorithm from the default search between
+ residues algorithm:
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+grid Uses a grid when searching for bonds between residues.
+ This can find bonds between residues that are not sequential (e.g.
+ disulfide bonds).
+\end_layout
+
+\begin_layout Description
+pairlist Uses a pair list to search for bonds between atoms.
+ This can potentially find bonds across periodic boundaries, but is the
+ more experimental of the two.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Read in parameter file.
@@ -11890,7 +11924,7 @@ restart
 \begin_inset Text
 
 \begin_layout Plain Layout
-.rst7
+.rst7, .rst
 \end_layout
 
 \end_inset
@@ -13059,7 +13093,7 @@ trajin
 \end_layout
 
 \begin_layout LyX-Code
-       [ <Format Options> ]
+       [as <format keyword>] [ <Format Options> ]
 \end_layout
 
 \begin_layout LyX-Code
@@ -13149,6 +13183,19 @@ last] Frame to stop reading at; if not specified or 'last' specified, end
 \end_inset
 
 <forces>] Use forces from specified file.
+\end_layout
+
+\begin_layout Description
+[as
+\begin_inset space ~
+\end_inset
+
+<format
+\begin_inset space ~
+\end_inset
+
+keyword>] Force file to be read as specified format; overrides file autodetectio
+n.
 \end_layout
 
 \begin_layout Description
@@ -26936,7 +26983,7 @@ nativecontacts [<mask1> [<mask2>]] [writecontacts <outfile>] [resout <resfile>]
 \end_layout
 
 \begin_layout LyX-Code
-               [resseries { present | sum } [resseriesout <file>]]
+               [resseries { present | sum } [resseriesout <file>]] [skipnative]
 \end_layout
 
 \begin_deeper
@@ -27143,6 +27190,11 @@ mapfile>' respectively.
 series
 \series default
  must also be specified.
+ This is enabled by default if 
+\series bold
+skipnative
+\series default
+ specified.
 \end_layout
 
 \begin_deeper
@@ -27206,6 +27258,14 @@ sum The sum of all individual contacts is recorded for the residue pair.
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[skipnative] If specified, skip native contacts determination, i.e.
+ treat all sonctacts as non-native contacts.
+ Implies 
+\series bold
+savenonnative.
+\end_layout
+
 \begin_layout Standard
 Data Sets Created:
 \end_layout
@@ -27285,7 +27345,11 @@ native
 \series bold
 savenonnative
 \series default
- keyword.
+ keyword or by specifying 
+\series bold
+skipnative
+\series default
+.
  The time series for contacts can be saved using the 
 \series bold
 series
@@ -28548,19 +28612,20 @@ radial
 
 \end_inset
 
- <outfilename> <spacing> <maximum> <solvent mask1>
+ [out <outfilename>] <spacing> <maximum> <solvent mask1>
 \end_layout
 
 \begin_layout LyX-Code
-       [<solute mask2>] [noimage] [density <density> | volume]
-\end_layout
-
-\begin_layout LyX-Code
-       [center1 | center2 | nointramol] [<name>]
+       [<solute mask2>] [noimage] [density <density> | volume] [<dataset
+ name>]
 \end_layout
 
 \begin_layout LyX-Code
        [intrdf <file>] [rawrdf <file>]
+\end_layout
+
+\begin_layout LyX-Code
+       [{{center1|center2|nointramol} | [byres1] [byres2] [bymol1] [bymol2]}]]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -28569,7 +28634,11 @@ radial
 
 \begin_deeper
 \begin_layout Description
-<outfilename> File to write RDF to, required.
+[out
+\begin_inset space ~
+\end_inset
+
+<outfilename>] File to write RDF to.
 \end_layout
 
 \begin_layout Description
@@ -28624,6 +28693,10 @@ mask2>] (Optional) If specified calculate RDF of all atoms in <solvent mask1>
 \end_layout
 
 \begin_layout Description
+[<setname>] Name of output data sets.
+\end_layout
+
+\begin_layout Description
 [center1] Calculate RDF from geometric center of atoms in <solvent mask1>
  to all atoms in <solute mask2>.
 \end_layout
@@ -28635,10 +28708,6 @@ mask2>] (Optional) If specified calculate RDF of all atoms in <solvent mask1>
 
 \begin_layout Description
 [nointramol] Ignore intra-molecular distances.
-\end_layout
-
-\begin_layout Description
-[<name>] Name radial dataset.
 \end_layout
 
 \begin_layout Description
@@ -28659,12 +28728,36 @@ ame>).
 <file>] Write raw (non-normalized) RDF values to <file>.
 \end_layout
 
+\begin_layout Description
+[byres1] Calculate using the centers of mass of each residue in the first
+ mask.
+\end_layout
+
+\begin_layout Description
+[bymol1] Calculate using the centers of mass of each molecule in the first
+ mask.
+\end_layout
+
+\begin_layout Description
+[byres2] Calculate using the centers of mass of each residue in the second
+ mask.
+\end_layout
+
+\begin_layout Description
+[bymol2] Calculate using the centers of mass of each molecule in the second
+ mask.
+\end_layout
+
 \begin_layout Standard
 DataSet Aspects:
 \end_layout
 
 \begin_layout Description
-[int] (
+<setname> The radial distribution function.
+\end_layout
+
+\begin_layout Description
+<setname>[int] (
 \series bold
 intrdf
 \series default
@@ -28672,7 +28765,7 @@ intrdf
 \end_layout
 
 \begin_layout Description
-[raw] (
+<setname>[raw] (
 \series bold
 rawrdf
 \series default
@@ -28723,7 +28816,6 @@ center2
 nointramol
 \series default
  keyword.
- 
 \end_layout
 
 \begin_layout Standard
@@ -30706,11 +30798,24 @@ setvelocity
 \end_layout
 
 \begin_layout LyX-Code
-setvelocity [<mask>] [tempi <temperature> | modify] [ig <random seed>]
-\begin_inset Separator latexpar
-\end_inset
+setvelocity [<mask>]
+\end_layout
 
+\begin_layout LyX-Code
+            [{ tempi <temperature> |
+\end_layout
 
+\begin_layout LyX-Code
+               scale [factor <fac>] [sx <xfac>] [sy <yfac>] [sz <zfac>]
+ |
+\end_layout
+
+\begin_layout LyX-Code
+               none |
+\end_layout
+
+\begin_layout LyX-Code
+               modify}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -30718,7 +30823,7 @@ setvelocity [<mask>] [tempi <temperature> | modify] [ig <random seed>]
 \end_layout
 
 \begin_layout LyX-Code
-        	[zeromomentum]
+        	[zeromomentum] [ig <random seed>] 
 \end_layout
 
 \begin_deeper
@@ -30732,6 +30837,48 @@ tempi
 \end_inset
 
 <temperature> Assign velocities at specified temperature (default 300.0 K).
+\end_layout
+
+\begin_layout Description
+scale Scale existing velocities
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[factor
+\begin_inset space ~
+\end_inset
+
+<fac>] Factor to scale velocities by.
+\end_layout
+
+\begin_layout Description
+[sx
+\begin_inset space ~
+\end_inset
+
+<xfac>] Factor to scale X component of velocities by.
+\end_layout
+
+\begin_layout Description
+[sy
+\begin_inset space ~
+\end_inset
+
+<yfac>] Factor to scale Y component of velocities by.
+\end_layout
+
+\begin_layout Description
+[sz
+\begin_inset space ~
+\end_inset
+
+<zfac>] Factor to scale Z component of velocities by.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+none Remove any velocities.
 \end_layout
 
 \begin_layout Description
