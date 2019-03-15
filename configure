@@ -654,7 +654,6 @@ SetupFinalFlags() {
       ambertools_major=''
       if [ -f "$update_amber" ] ; then
         ambertools_major=`grep "_AMBERTOOLS_VERSION =" $update_amber | awk '{print $3;}'`
-        echo "AT major: $ambertools_major"
       fi
       if [ ! -z "$ambertools_major" ] ; then
         # Try to determine minor version
@@ -670,9 +669,7 @@ SetupFinalFlags() {
             ufile=$patch_dir/update.$update
           done
           cpptraj_version_string=`printf "V%i.%02i" $ambertools_major $ambertools_minor`
-          cpptraj_version_strlen=${#cpptraj_version_string}
           DIRECTIVES="$DIRECTIVES -DAT_VERSION_STRING='\"$cpptraj_version_string\"'"
-          DIRECTIVES="$DIRECTIVES -DAT_VERSION_STRLEN=$cpptraj_version_strlen"
         fi
       fi
     else
