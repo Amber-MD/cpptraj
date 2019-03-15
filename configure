@@ -671,8 +671,8 @@ SetupFinalFlags() {
           done
           cpptraj_version_string=`printf "V%i.%02i" $ambertools_major $ambertools_minor`
           cpptraj_version_strlen=${#cpptraj_version_string}
-          DIRECTIVES="$DIRECTIVES -DCPPTRAJ_VERSION_STRING='\"$cpptraj_version_string\"'"
-          DIRECTIVES="$DIRECTIVES -DCPPTRAJ_VERSION_STRLEN=$cpptraj_version_strlen"
+          DIRECTIVES="$DIRECTIVES -DAT_VERSION_STRING='\"$cpptraj_version_string\"'"
+          DIRECTIVES="$DIRECTIVES -DAT_VERSION_STRLEN=$cpptraj_version_strlen"
         fi
       fi
     else
