@@ -1,15 +1,12 @@
-include ../../config.h
+# Makefile for cpptraj cuda sources
+include ../../external.config.h
 
 # Variables
-
-AR            = ar cqs
 DEL_FILE      = /bin/rm -f
+AR            = ar cqs
 TARGET        = libcpptraj_cuda.a
 
 # General rules
-
-%.o : %.cu
-	$(NVCC) $(DBGFLAGS) -c $(NVCCFLAGS) -o $@ $<
 
 # Source files
 
@@ -28,7 +25,7 @@ $(TARGET): $(OBJECTS)
 	$(AR) $(TARGET) $(OBJECTS)
 
 clean:
-	/bin/rm -f *.o $(TARGET)
+	$(DEL_FILE) *.o $(TARGET)
 
 uninstall: clean
 

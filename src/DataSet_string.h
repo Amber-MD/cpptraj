@@ -26,6 +26,7 @@ class DataSet_string : public DataSet {
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
+    size_t MemUsageInBytes() const;
   private:
     std::vector<std::string> Data_;
 };

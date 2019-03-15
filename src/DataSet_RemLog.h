@@ -71,6 +71,7 @@ class DataSet_RemLog : public DataSet {
     // TODO: Remove
     void Add( size_t, const void* ) { return;      }
     int Append(DataSet*) { return 1; }
+    size_t MemUsageInBytes() const;
     // -------------------------------------------
   private:
     /// Hold info for all exchanges of a single replica.
@@ -107,6 +108,7 @@ class DataSet_RemLog::ReplicaFrame {
     double Temp0()   const { return temp0_;      }
     double PE_X1()   const { return PE_x1_;      }
     double PE_X2()   const { return PE_x2_;      }
+    static size_t DataSize() { return 3*sizeof(double)+4*sizeof(int)*sizeof(bool); }
   private:
     double temp0_;   ///< Replica bath temperature.
     double PE_x1_;   ///< (HREMD) Potential energy with coords 1.
@@ -128,6 +130,7 @@ class DataSet_RemLog::GroupReplica {
     int L_partner() const { return l_partner_; }
     int Me()        const { return me_;        }
     int R_partner() const { return r_partner_; }
+    static size_t DataSize() { return 3*sizeof(int); }
   private:
     int l_partner_, me_, r_partner_;
 };
@@ -141,6 +144,7 @@ class DataSet_RemLog::RepInfo {
     int LeftID()  const { return lp_;  }
     int RightID() const { return rp_;  }
     LocationType Location() const { return loc_; }
+    static size_t DataSize() { return 4*sizeof(int); }
   private:
     int grp_; ///< Group this replica belongs to in this dim
     int lp_;  ///< Left partner of this replica in this dim

@@ -1,6 +1,9 @@
 # These files are common to cpptraj/libcpptraj. Files that need to be built
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
-COMMON_SOURCES=ActionFrameCounter.cpp \
+COMMON_SOURCES= \
+        SpaceGroup.cpp \
+        Action.cpp \
+        ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Align.cpp \
         Action_Angle.cpp \
@@ -84,6 +87,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_Volmap.cpp \
         Action_Volume.cpp \
         Action_Watershell.cpp \
+        Action_XtalSymm.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
@@ -97,6 +101,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Analysis_CurveFit.cpp \
         Analysis_Divergence.cpp \
         Analysis_FFT.cpp \
+        Analysis_HausdorffDistance.cpp \
         Analysis_Hist.cpp \
         Analysis_Integrate.cpp \
         Analysis_IRED.cpp \
@@ -212,11 +217,11 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_Vector.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
-        DataSet_integer.cpp \
+        DataSet_integer_disk.cpp \
+        DataSet_integer_mem.cpp \
         DataSet_string.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
-        DispatchObject.cpp \
         DistRoutines.cpp \
         Energy.cpp \
         EnsembleIn.cpp \
@@ -232,6 +237,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Ewald_Regular.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
+        Exec_CatCrd.cpp \
         Exec_Change.cpp \
         Exec_ClusterMap.cpp \
         Exec_CombineCoords.cpp \
@@ -247,6 +253,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
+        Exec_ParallelAnalysis.cpp \
         Exec_ParmBox.cpp \
         Exec_ParmSolvent.cpp \
         Exec_ParmStrip.cpp \
@@ -268,6 +275,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_Traj.cpp \
         Exec_UpdateParameters.cpp \
         Exec_ViewRst.cpp \
+        File_TempName.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
@@ -283,6 +291,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
         MapAtom.cpp \
+        MaskArray.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MetaData.cpp \
@@ -347,6 +356,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Traj_SDF.cpp \
         Traj_SQM.cpp \
         Traj_Tinker.cpp \
+        Traj_XYZ.cpp \
         TrajectoryFile.cpp \
         TrajectoryIO.cpp \
         TrajFrameCounter.cpp \

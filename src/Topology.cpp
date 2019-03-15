@@ -145,6 +145,17 @@ std::string Topology::TruncResAtomName(int atom) const {
   return res_name;
 }
 
+/** Given an atom number, return a string containing the corresponding
+  * residue name and atom name with format:
+  * "<resname>@<atom name>"
+  * Truncate the residue and atom names so there are no blanks.
+  */
+std::string Topology::TruncResNameAtomName(int atom) const {
+  if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
+  int res = atoms_[atom].ResNum();
+  return residues_[res].Name().Truncated() + "@" + atoms_[atom].Name().Truncated();
+}
+
 // Topology::TruncResAtomNameNum()
 /** Given an atom number, return a string containing the corresponding 
   * residue name and number (starting from 1) along with the atom name 
@@ -456,11 +467,6 @@ int Topology::Setup_NoResInfo() {
   return 0;
 }
 
-static inline int NoAtomsErr(const char* msg) {
-  mprinterr("Error: Cannot set up %s, no atoms present.\n");
-  return 1;
-}
-
 // Topology::Resize()
 void Topology::Resize(Pointers const& pIn) {
   atoms_.clear();
@@ -496,6 +502,7 @@ void Topology::Resize(Pointers const& pIn) {
   dihedralparm_.resize( pIn.nDihParm_ );
 }
 
+/** \return Rmin for given atom. */
 double Topology::GetVDWradius(int a1) const {
   //TODO: return zero when no params?
   NonbondType const& LJ = GetLJparam(a1, a1);
@@ -505,6 +512,17 @@ double Topology::GetVDWradius(int a1) const {
     return 0.0;
 }
 
+/** \return sigma for given atom. */
+double Topology::GetVDWsigma(int a1) const {
+  //TODO: return zero when no params?
+  NonbondType const& LJ = GetLJparam(a1, a1);
+  if (LJ.B() > 0.0)
+    return ( 0.5 * pow(LJ.A() / LJ.B(), (1.0/6.0)) );
+  else
+    return 0.0;
+}
+
+/** \return epsilon for given atom. */
 double Topology::GetVDWdepth(int a1) const {
   NonbondType const& LJ = GetLJparam(a1, a1);
   if (LJ.A() > 0.0)
@@ -896,7 +914,7 @@ int Topology::DetermineMolecules() {
       molecule->SetFirst( atomNum );
       lastMol = atom->MolNum();
     } else if ( atom->MolNum()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n"
+      mprinterr("Error: Atom %u was assigned a lower molecule # (%i) than previous atom (%i).\n"
                 "Error:   This can happen if bond information is incorrect or missing, or if the\n"
                 "Error:   atom numbering in molecules is not sequential. Try one of the\n"
                 "Error:   following:\n"
@@ -906,7 +924,8 @@ int Topology::DetermineMolecules() {
                 "Error: - Use the 'fixatomorder' command to reorder the topology and any\n"
                 "Error:   associated coordinates.\n"
                 "Error: - Use the 'setMolecules' command in parmed to reorder only the\n"
-                "Error:   topology.\n", atom - atoms_.begin() + 1);
+                "Error:   topology.\n", atom - atoms_.begin() + 1,
+                atom->MolNum()+1, lastMol+1);
       ClearMolecules();
       return 1;
     }

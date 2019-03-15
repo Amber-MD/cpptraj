@@ -54,7 +54,7 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, ActionInit& init, int
 # ifdef MPI
   // Since output is to CpptrajFiles, not practical in parallel.
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'contacts' action does not work with > 1 thread (%i threads currently).\n"
+    mprinterr("Error: 'contacts' action does not work with > 1 process (%i processes currently).\n"
               "Error:   Consider using 'nativecontacts' instead.\n", init.TrajComm().Size());
     return Action::ERR;
   }

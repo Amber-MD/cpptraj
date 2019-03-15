@@ -35,7 +35,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
 # endif
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'createreservoir' action does not work with > 1 thread (%i threads currently).\n", init.TrajComm().Size());
+    mprinterr("Error: 'createreservoir' action does not work with > 1 process (%i processes currently).\n", init.TrajComm().Size());
     return Action::ERR;
   }
 # endif
@@ -103,7 +103,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
   // Set title
   title_ = actionArgs.GetStringKey("title");
   if (title_.empty())
-    title_.assign("Cpptraj generated structure reservoir");
+    title_.assign("Cpptraj Generated structure reservoir");
 
   mprintf("    CREATERESERVOIR: '%s', energy data '%s'", filename_.full(), ene_->legend());
   if (bin_ != 0)

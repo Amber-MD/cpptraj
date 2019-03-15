@@ -29,6 +29,8 @@ class AtomMask : public MaskTokenArray {
     std::vector<int> const& Selected()  const { return Selected_;             }
     /// \return true if masks select the same atoms
     bool operator==(AtomMask const&) const;
+    /// \return true if masks do not select the same atoms.
+    bool operator!=(AtomMask const&) const;
     /// AtomMask default iterator
     typedef std::vector<int>::const_iterator const_iterator;
     /// \return const iterator to the beginning of Selected
@@ -46,7 +48,7 @@ class AtomMask : public MaskTokenArray {
     /// Invert current mask
     void InvertMask();
     /// \return the number of atoms mask has in common with another mask
-    int NumAtomsInCommon(AtomMask const&);
+    int NumAtomsInCommon(AtomMask const&) const;
     /// Add atom to Selected array; assumes atoms will be in order.
     void AddSelectedAtom(int i) { Selected_.push_back( i ); }
     /// Add given atom to Selected array 

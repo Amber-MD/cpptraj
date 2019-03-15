@@ -69,8 +69,8 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
 # ifdef MPI
   trajComm_ = init.TrajComm();
   if (trajComm_.Size() > 1 && !Dsets_.empty()) {
-    mprinterr("Error: outtraj 'maxmin' currently does not work when using > 1 thread\n"
-              "Error:   to write trajectory (currently %i threads)\n", trajComm_.Size());
+    mprinterr("Error: outtraj 'maxmin' currently does not work when using > 1 process\n"
+              "Error:   to write trajectory (currently %i processes)\n", trajComm_.Size());
     return Action::ERR;
   }
   outtraj_.SetTrajComm( trajComm_ );

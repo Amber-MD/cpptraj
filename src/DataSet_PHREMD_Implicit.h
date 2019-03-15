@@ -13,6 +13,7 @@ class DataSet_PHREMD_Implicit : public DataSet_PHREMD {
     void Add(size_t, const void*)                          { return; }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Append(DataSet*)                                   { return 1; }
+    size_t MemUsageInBytes()                         const;
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
@@ -30,6 +31,7 @@ class DataSet_PHREMD_Implicit : public DataSet_PHREMD {
         float pH()                const { return pH_;        }
         int RecType()             const { return recType_;   }
         Iarray const& ResStates() const { return resStates_; }
+        size_t DataSize() const { return sizeof(int)+sizeof(float)+(resStates_.size()*sizeof(int)); }
       private:
         float pH_;         ///< solvent pH
         int recType_;      ///< Record type

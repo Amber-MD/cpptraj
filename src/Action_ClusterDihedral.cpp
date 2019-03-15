@@ -62,7 +62,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& in
 {
 # ifdef MPI
   if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'clusterdihedral' not supported with > 1 thread (%i threads currently)\n",
+    mprinterr("Error: 'clusterdihedral' not supported with > 1 process (%i processes currently)\n",
               init.TrajComm().Size());
     return Action::ERR;
   }
@@ -314,7 +314,7 @@ void Action_ClusterDihedral::Print() {
     num = 0;
     for (std::vector<long int>::const_iterator cnum = framecluster.begin();
                                                cnum != framecluster.end(); ++cnum)
-      (*iCVT)[ num++ ] = (int)*cnum + 1;
+      iCVT->SetElement( num++, (int)*cnum + 1 );
   }
 
   // Print cluster for each frame

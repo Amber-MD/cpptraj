@@ -330,6 +330,22 @@ Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd, bool hasVel) const {
 }
 
 // ---------- ACCESS INTERNAL DATA ---------------------------------------------
+// Frame::DataSize()
+/** Size of Frame in memory. */
+size_t Frame::DataSize() const {
+  size_t mySize = (5  * sizeof(int)) +
+                  (10 * sizeof(double)) + // box + class vars
+                  (remd_indices_.size() * sizeof(int)) +
+                  (Mass_.size() * sizeof(double));
+  if (!memIsExternal_ && X_ != 0)
+    mySize += (maxnatom_ * 3 * sizeof(double));
+  if (V_ != 0)
+    mySize += (maxnatom_ * 3 * sizeof(double));
+  if (F_ != 0)
+    mySize += (maxnatom_ * 3 * sizeof(double));
+  return mySize;
+}
+
 // Frame::printAtomCoord()
 void Frame::printAtomCoord(int atom) const {
   int atmidx = atom * 3;
@@ -475,8 +491,8 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
     Mass_.resize(maxnatom_);
   Darray::iterator mass = Mass_.begin();
   for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); ++atom)
-    *(mass++) = (*atom).Mass();
+                                         atom != atoms.end(); ++atom, ++mass)
+    *mass = atom->Mass();
   // Box
   box_ = cinfo.TrajBox();
   // Replica indices
@@ -496,8 +512,8 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
     Mass_.resize(maxnatom_);
   // Copy masses according to maskIn
   Darray::iterator mass = Mass_.begin();
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) 
-    *(mass++) = atoms[ *atom ].Mass();
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom, ++mass) 
+    *mass = atoms[ *atom ].Mass();
   return 0; 
 }
 
@@ -690,11 +706,11 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   double* newXptr = X_;
   Darray::iterator newmass = Mass_.begin();
   for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
-                                        refatom != mapIn.end(); ++refatom)
+                                        refatom != mapIn.end(); ++refatom, ++newmass)
   {
     memcpy( newXptr, tgtIn.X_ + ((*refatom) * 3), COORDSIZE_ );
     newXptr += 3;
-    *(newmass++) = tgtIn.Mass_[*refatom];
+    *newmass = tgtIn.Mass_[*refatom];
   }
   if (tgtIn.V_ != 0 && V_ != 0) {
     // Copy Velocities
@@ -1051,7 +1067,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   Trans[0] /= total_mass;
   Trans[1] /= total_mass;
   Trans[2] /= total_mass;
-  //mprinterr("  FRAME COM: %lf %lf %lf\n",Trans[0],Trans[1],Trans[2]); //DEBUG
+  //mprintf("  FRAME COM: %f %f %f\n",Trans[0],Trans[1],Trans[2]); //DEBUG
 
   // Shift to common COM
   Trans.Neg();
@@ -1068,7 +1084,7 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
   // Calculate covariance matrix of Coords and Reference (R = Xt * Ref)
   Darray::iterator mass = Mass_.begin();
   double atom_mass = 1.0;
-  for (int i = 0; i < ncoord_; i += 3)
+  for (int i = 0; i < ncoord_; i += 3, ++mass)
   {
     double xt = X_[i  ];
     double yt = X_[i+1];
@@ -1077,8 +1093,8 @@ double Frame::RMSD_CenteredRef( Frame const& Ref, Matrix_3x3& U, Vec3& Trans, bo
     double yr = Ref.X_[i+1];
     double zr = Ref.X_[i+2];
     // Use atom_mass to hold mass for this atom if specified
-    if (useMassIn) 
-      atom_mass = *(mass++);
+    if (useMassIn)
+      atom_mass = *mass;
     mwss += atom_mass * ( (xt*xt)+(yt*yt)+(zt*zt)+(xr*xr)+(yr*yr)+(zr*zr) );
     // Calculate the Kabsch matrix: R = (rij) = Sum(yni*xnj)
     rot[0] += atom_mass*xt*xr;
@@ -1169,13 +1185,13 @@ double Frame::RMSD_NoFit( Frame const& Ref, bool useMass) const {
   
   Darray::const_iterator mass = Mass_.begin();
   double atom_mass = 1.0;
-  for (int i = 0; i < ncoord_; i += 3)
+  for (int i = 0; i < ncoord_; i += 3, ++mass)
   {
     double xx = Ref.X_[i  ] - X_[i  ];
     double yy = Ref.X_[i+1] - X_[i+1];
     double zz = Ref.X_[i+2] - X_[i+2];
     if (useMass) 
-      atom_mass = *(mass++);
+      atom_mass = *mass;
     total_mass += atom_mass;
     rms_return += (atom_mass * (xx*xx + yy*yy + zz*zz));
   }

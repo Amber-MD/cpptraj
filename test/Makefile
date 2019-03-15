@@ -199,9 +199,6 @@ test.gist:
 test.readdata:
 	@-cd Test_ReadData && ./RunTest.sh $(OPT)
 
-test.ambpdb:
-	@-cd Test_AmbPDB && ./RunTest.sh $(OPT)
-
 test.systemVF:
 	@-cd Test_systemVF && ./RunTest.sh $(OPT)
 
@@ -352,6 +349,7 @@ test.gromacs:
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
 	@-cd Test_LibPME && ./RunTest.sh $(OPT)
+	@-cd Test_LJ_PME && ./RunTest.sh $(OPT)
 
 test.ti:
 	@-cd Test_TI && ./RunTest.sh $(OPT)
@@ -437,6 +435,18 @@ test.cphstats:
 test.cmdline:
 	@-cd Test_CmdLine && ./RunTest.sh $(OPT)
 
+test.xyzfmt:
+	@-cd Test_XYZformat && ./RunTest.sh $(OPT)
+
+test.hausdorff:
+	@-cd Test_Hausdorff && ./RunTest.sh $(OPT)
+
+test.catcrd:
+	@-cd Test_CatCrd && ./RunTest.sh $(OPT)
+
+test.xtalsymm:
+	@-cd Test_XtalSymm && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -499,7 +509,6 @@ COMPLETETESTS=test.general \
               test.pairdist \
               test.readdata \
               test.gist \
-              test.ambpdb \
               test.systemVF \
               test.atomiccorr \
               test.autocorr \
@@ -577,7 +586,11 @@ COMPLETETESTS=test.general \
               test.control \
               test.infraredspec \
               test.cphstats \
-              test.cmdline
+              test.cmdline \
+              test.xyzfmt \
+              test.hausdorff \
+              test.catcrd \
+              test.xtalsymm
 
 test.all:
 	$(MAKE) test.complete summary

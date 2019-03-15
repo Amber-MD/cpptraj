@@ -5,8 +5,8 @@
 void Exec_ParmWrite::Help() const {
   mprintf("\tout <filename> [{%s | crdset <setname>}] [<fmt>]\n\t[<Format Options>]\n",
           DataSetList::TopIdxArgs);
-  mprintf("  Write specified topology or topology from COORDS set to <filename>.\n");
-  ParmFile::WriteOptions();
+  mprintf("  Write specified topology or topology from COORDS set to <filename>.\n"
+          "  Use 'help Formats parmwrite' for format-specific help.\n");
 }
 
 Exec::RetType Exec_ParmWrite::Execute(CpptrajState& State, ArgList& argIn) {

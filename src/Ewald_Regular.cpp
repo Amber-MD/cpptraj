@@ -100,7 +100,7 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
                      double ew_coeffIn, double maxexpIn, double skinnbIn,
                      double erfcTableDxIn, int debugIn, const int* mlimitsIn)
 {
-  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, erfcTableDxIn, skinnbIn))
+  if (CheckInput(boxIn, debugIn, cutoffIn, dsumTolIn, ew_coeffIn, -1.0, 0.0, erfcTableDxIn, skinnbIn))
     return 1;
   rsumTol_ = rsumTolIn;
   maxexp_ = maxexpIn;
@@ -158,6 +158,8 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
 /** Setup regular Ewald calculation. */
 int Ewald_Regular::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateCharges(topIn, maskIn);
+  // Blank C6 Arrays. TODO actually blank them
+  CalculateC6params( topIn, maskIn );
 
   // Build exponential factors for use in structure factors.
   // These arrays are laid out in 1D; value for each atom at each m, i.e.
@@ -388,13 +390,12 @@ double Ewald_Regular::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn, d
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_Regular( recip, volume );
-  double e_adjust = 0.0;
-         e_vdw = 0.0;
-  double e_direct = Direct( pairList_, e_adjust, e_vdw );
+  e_vdw = 0.0;
+  double e_direct = Direct( pairList_, e_vdw );
   if (debug_ > 0)
-    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f  Evdw= %20.10f\n",
-            e_self, e_recip, e_direct, e_adjust, e_vdw);
+    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Evdw= %20.10f\n",
+            e_self, e_recip, e_direct, e_vdw);
   e_vdw += e_vdwr;
   t_total_.Stop();
-  return e_self + e_recip + e_direct + e_adjust;
+  return e_self + e_recip + e_direct;
 }

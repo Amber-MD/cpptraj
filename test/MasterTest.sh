@@ -7,7 +7,6 @@
 # ----- Environment variables ------------------------------
 # Binary locations
 #   CPPTRAJ              : Set to cpptraj binary being tested.
-#   AMBPDB               : Set to ambpdb binary being tested.
 #   VALGRIND             : Set to 'valgrind' command if memory check requested.
 #   CPPTRAJ_DIFF         : Command used to check for test differences.
 #   CPPTRAJ_DACDIF       : Set if testing inside AmberTools.
@@ -593,7 +592,6 @@ Help() {
   echo "  -d              : Run CPPTRAJ with global debug level 4."
   echo "  -debug <#>      : Run CPPTRAJ with global debug level #."
   echo "  -cpptraj <file> : Use CPPTRAJ binary <file>."
-  echo "  -ambpdb <file>  : Use AMBPDB binary <file>."
   echo "  -profile        : Profile results with 'gprof' (requires special compile)."
   echo "Important environment variables"
   echo "  DO_PARALLEL     : MPI run command."
@@ -634,7 +632,6 @@ CmdLineOpts() {
       "-debug"    ) shift ; CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug $1" ;;
       "-nodacdif" ) USE_DACDIF=0 ;;
       "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
-      "-ambpdb"   ) shift ; export AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
       "--target"  ) shift ; TARGET=$1 ;;
      "-profile"   ) CPPTRAJ_PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
@@ -698,6 +695,11 @@ Required() {
 CheckDefines() {
   CPPTRAJ_XDRFILE='yes'
   CPPTRAJ_MATHLIB='yes'
+  CPPTRAJDEFINES=`$CPPTRAJ --defines`
+  if [ $? -ne 0 ] ; then
+    echo "Error: Could not execute '$CPPTRAJ --defines'" > /dev/stderr
+    exit 1
+  fi
   for DEFINE in `$CPPTRAJ --defines` ; do
     case "$DEFINE" in
       '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
@@ -780,14 +782,6 @@ SetBinaries() {
     fi
     export VALGRIND
   fi
-  # Determine location of AMBPDB if not specified.
-  if [ -z "$AMBPDB" ] ; then
-    AMBPDB=$DIRPREFIX/bin/ambpdb
-    if [ ! -f "$AMBPDB" ] ; then
-      echo "Warning: AMBPDB not present."
-    fi
-    export AMBPDB
-  fi
   # Determine location of ndiff.awk
   if [ -z "$CPPTRAJ_NDIFF" ] ; then
     if [ $STANDALONE -eq 0 ] ; then
@@ -825,9 +819,6 @@ SetBinaries() {
   # Report binary details
   if [ $STANDALONE -eq 1 ] ; then
     ls -l $CPPTRAJ
-    if [ ! -z "$AMBPDB" ] ; then
-      ls -l $AMBPDB
-    fi
   fi
   # Print DEBUG info
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
@@ -837,7 +828,6 @@ SetBinaries() {
       echo "DEBUG: AmberTools mode."
     fi
     echo "DEBUG: CPPTRAJ: $CPPTRAJ"
-    echo "DEBUG: AMBPDB:  $AMBPDB"
     echo "DEBUG: NPROC:   $CPPTRAJ_NPROC"
     echo "DEBUG: NCDUMP:  $CPPTRAJ_NCDUMP"
     echo "DEBUG: DIFFCMD: $CPPTRAJ_DIFF"
@@ -848,7 +838,6 @@ SetBinaries() {
   # directories the path needs to be incremented one dir up.
   if [ "$PATH_TYPE" = 'relative' -a "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     CPPTRAJ="../$CPPTRAJ"
-    AMBPDB="../$AMBPDB"
     CPPTRAJ_NDIFF="../$CPPTRAJ_NDIFF"
     CPPTRAJ_NPROC="../$CPPTRAJ_NPROC"
   fi
@@ -910,7 +899,6 @@ TestLibrary() {
 # nthreads <#>   : Test requires multiples of <#> MPI threads in parallel
 # threads <#>    : Test requires exactly <#> threads in parallel.
 # amberhome      : Test requires AMBERHOME set
-# ambpdb         : Test requires ambpdb
 # inpath <name>  : Test requires <name> to be in PATH
 # testos <os>    : Test requires specific OS
 # file <file>    : Test requires specified file
@@ -986,12 +974,6 @@ CheckEnv() {
       'amberhome' )
         if [ -z "$AMBERHOME" ] ; then
           echo "  $DESCRIP requires AMBERHOME to be set."
-          ((CHECKERR++))
-        fi
-        ;;
-      'ambpdb' )
-        if [ ! -f "$AMBPDB" ] ; then
-          echo "  $DESCRIP requires AMBPDB."
           ((CHECKERR++))
         fi
         ;;

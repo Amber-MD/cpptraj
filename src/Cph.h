@@ -31,6 +31,11 @@ class CpRes {
     static const int FULL_RECORD;
     /// Indicate partial record written.
     static const int PARTIAL_RECORD;
+    /// \return data size
+    size_t DataSize() const { return NameType::DataSize() +
+                              sizeof(int) +
+                              (protcnts_.size() * sizeof(int)) +
+                              (protonated_.size() * sizeof(int)); }
   private:
     NameType resname_;  ///< Residue name.
     int resid_;         ///< Residue number.
@@ -46,6 +51,7 @@ class CpTime {
     int MonteCarloStepSize()   const { return mc_stepsize_; }
     float InitialTime()        const { return t0_; }
     float TimeStep()           const { return dt_; }
+    static size_t DataSize() { return 2*sizeof(float) + sizeof(int); }
   private:
     float t0_;             ///< Initial time
     float dt_;             ///< Time step

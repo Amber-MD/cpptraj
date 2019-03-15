@@ -385,6 +385,7 @@ Action::RetType Action_MakeStructure::Setup(ActionSetup& setup) {
     mprintf("\n");
   } // END loop over SS types
   CurrentParm_ = setup.TopAddress();
+  Action::CheckImageRotationWarning(setup, "structure modification");
   return Action::OK;
 }
 

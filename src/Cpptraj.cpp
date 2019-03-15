@@ -73,6 +73,9 @@ void Cpptraj::Usage() {
 
 void Cpptraj::Intro() {
   mprintf("\nCPPTRAJ: Trajectory Analysis. %s"
+# ifdef BUILDTYPE
+          " (%s)"
+# endif
 # ifdef MPI
           " MPI"
 # endif
@@ -83,7 +86,11 @@ void Cpptraj::Intro() {
           " CUDA"
 # endif
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
-          CPPTRAJ_VERSION_STRING);
+          CPPTRAJ_VERSION_STRING
+# ifdef BUILDTYPE
+          , BUILDTYPE
+# endif
+         );
 # ifdef MPI
   mprintf("| Running on %i processes.\n", Parallel::World().Size());
 # endif
@@ -115,6 +122,12 @@ void Cpptraj::Finalize() {
     "Daniel R. Roe and Thomas E. Cheatham, III, \"PTRAJ and CPPTRAJ: Software for\n"
     "  Processing and Analysis of Molecular Dynamics Trajectory Data\". J. Chem.\n"
     "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n");
+# ifdef MPI
+  mprintf(
+    "Daniel R. Roe and Thomas E. Cheatham, III, \"Parallelization of CPPTRAJ enables\n"
+    "  large scale analysis of molecular dynamics trajectory data\". J. Comp.\n"
+    "  Chem., 2018, DOI: 10.1002/jcc25382.\n");
+# endif
 }
 
 /** Main routine for running cpptraj. */
@@ -361,13 +374,21 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit
       SetWorldSilent( true );
+#     ifdef BUILDTYPE
+      loudPrintf("CPPTRAJ: Version %s (%s)\n", CPPTRAJ_VERSION_STRING, BUILDTYPE);
+#     else
       loudPrintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
+#     endif
       return QUIT;
     }
     if ( arg == "--internal-version" ) {
       // --internal-version: Print internal version number and quit.
       SetWorldSilent( true );
+#     ifdef GITHASH
+      loudPrintf("CPPTRAJ: Internal version # %s GIT hash %s\n", CPPTRAJ_INTERNAL_VERSION, GITHASH);
+#     else
       loudPrintf("CPPTRAJ: Internal version # %s\n", CPPTRAJ_INTERNAL_VERSION);
+#     endif
       return QUIT;
     }
     if ( arg == "--defines" ) {

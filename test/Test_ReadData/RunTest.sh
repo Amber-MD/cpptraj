@@ -115,6 +115,15 @@ EOF
   DoTest truncoct.dat.save temp2.dat
 fi
 
+# Read specific columns
+UNITNAME='Read specific columns test.'
+cat > vector.in <<EOF
+readdata ../Test_Diffusion/diff.1.dat.save onlycols 1,6-9 index 1 name XYZ
+writedata xyz.dat XYZ
+EOF
+RunCpptraj "$UNITNAME"
+DoTest xyz.dat.save xyz.dat
+
 EndTest
   
 exit 0

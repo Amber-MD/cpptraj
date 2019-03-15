@@ -57,9 +57,9 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, ActionInit& init, in
     mprintf("\tNot strictly enforcing that all frames have same # atoms.\n");
 # ifdef MPI
   if (init.TrajComm().Size() > 1)
-    mprintf("Warning: Synchronization of COORDS data sets over multiple threads is\n"
+    mprintf("Warning: Synchronization of COORDS data sets over multiple processes is\n"
             "Warning:   experimental and may be slower than reading in via a single\n"
-            "Warning:   thread. Users are encouraged to run benchmarks before\n"
+            "Warning:   process. Users are encouraged to run benchmarks before\n"
             "Warning:   extensive usage.\n");
 # endif
   return Action::OK;
@@ -72,7 +72,7 @@ Action::RetType Action_CreateCrd::Setup(ActionSetup& setup) {
     // Estimate memory usage
     mprintf("\tEstimated memory usage (%i frames): %s\n",
             setup.Nframes(),
-            ByteString(coords_->SizeInBytes(setup.Nframes()), BYTE_DECIMAL).c_str());
+            ByteString(coords_->EstSizeInBytes(setup.Nframes()), BYTE_DECIMAL).c_str());
   }
   // If # atoms in currentParm does not match coords, warn user.
   if (setup.Top().Natom() != coords_->Top().Natom()) {

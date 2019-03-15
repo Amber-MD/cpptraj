@@ -44,6 +44,7 @@ class NameType {
       }
       return false;
     }
+    static size_t DataSize() { return NameSize_ * sizeof(char); }
   private:
     char c_array_[NameSize_];
 

@@ -34,10 +34,18 @@ For more information (or to cite CPPTRAJ) see the following publication:
   Processing and Analysis of Molecular Dynamics Trajectory Data". J. Chem.
   Theory Comput., 2013, 9 (7), pp 3084-3095](http://pubs.acs.org/doi/abs/10.1021/ct400341p).
 
+For more information regarding trajectory/ensemble parallelism via MPI in
+CPPTRAJ see the following publication:
+
+[Daniel R. Roe and Thomas E. Cheatham, III, \"Parallelization of CPPTRAJ enables
+  large scale analysis of molecular dynamics trajectory data\". J. Comp.
+  Chem., 2018, DOI: 10.1002/jcc25382](https://onlinelibrary.wiley.com/doi/full/10.1002/jcc.25382).
+
+
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2018 Daniel R. Roe.
+CPPTRAJ is Copyright (c) 2010-2019 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
@@ -156,6 +164,9 @@ Code for the reciprocal part of the particle mesh Ewald calculation.
 
 * Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)  
 Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearch).
+
+* David S. Cerutti (Rutgers University, Piscataway, NJ, USA)  
+Original code for the 'xtalsymm' Action.
 
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)

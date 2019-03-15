@@ -8,6 +8,12 @@ class Matrix_3x3 {
     Matrix_3x3(const double*);
     Matrix_3x3(double);
     Matrix_3x3(double,double,double);
+    Matrix_3x3(double m0, double m1, double m2, double m3, double m4,
+               double m5, double m6, double m7, double m8)
+    {
+      M_[0] = m0; M_[1] = m1; M_[2] = m2; M_[3] = m3; M_[4] = m4;
+      M_[5] = m5; M_[6] = m6; M_[7] = m7; M_[8] = m8;
+    }
     Matrix_3x3& operator=(const Matrix_3x3&);
  
     // NOTE: No bounds check!
@@ -28,6 +34,7 @@ class Matrix_3x3 {
     int Diagonalize_Sort_Chirality(Vec3&,int);
 
     void Transpose();
+    inline Matrix_3x3 Transposed() const;
     Matrix_3x3& operator*=(const Matrix_3x3&);
     void RotationAroundZ(double, double);
     void RotationAroundY(double, double);
@@ -91,4 +98,10 @@ class Matrix_3x3 {
 
     int jacobiCheckChirality();
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+Matrix_3x3 Matrix_3x3::Transposed() const {
+  return Matrix_3x3( M_[0], M_[3], M_[6],
+                     M_[1], M_[4], M_[7],
+                     M_[2], M_[5], M_[8] );
+}
 #endif
