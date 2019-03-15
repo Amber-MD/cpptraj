@@ -9638,7 +9638,7 @@ amber
 \begin_inset Text
 
 \begin_layout Plain Layout
-Only fully-supported format.
+Only fully-supported format for write.
 \end_layout
 
 \end_inset
@@ -9828,7 +9828,7 @@ gromacs
 \begin_inset Text
 
 \begin_layout Plain Layout
-Limited Write
+Read only
 \end_layout
 
 \end_inset
@@ -11561,7 +11561,7 @@ Cpptraj currently understands the following trajectory file formats:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="18" columns="4">
+<lyxtabular version="3" rows="20" columns="4">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -11827,6 +11827,44 @@ cor
 
 \begin_layout Plain Layout
 .cor
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Charmm Restart
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+charmmres
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.res
 \end_layout
 
 \end_inset
@@ -12216,6 +12254,44 @@ sdf
 
 \begin_layout Plain Layout
 Read Only
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+XYZ
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+xyz
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.xyz
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
 \end_layout
 
 \end_inset
@@ -13408,7 +13484,7 @@ Options for pdb format:
 \end_layout
 
 \begin_layout LyX-Code
-  [pdbres] [pdbatom] [pdbv3] [teradvance]
+  [pdbres] [pdbatom] [pdbv3] [teradvance] [usecol21]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -13509,7 +13585,7 @@ Options for Amber ASCII format:
 \end_layout
 
 \begin_layout LyX-Code
-  [remdtraj] [highprecision]
+  [remdtraj] [highprecision] [mdvel|mdfrc]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -13534,6 +13610,14 @@ highprecision: (EXPERT USE ONLY) Write with 8.6 precision instead of 8.3.
  may be lower than 6.
 \end_layout
 
+\begin_layout Description
+mdvel Write velocities instead of coordinates.
+\end_layout
+
+\begin_layout Description
+mdfrc Write forces instead of coordinates.
+\end_layout
+
 \end_deeper
 \begin_layout Subsubsection
 
@@ -13542,7 +13626,7 @@ Options for Amber NetCDF format:
 \end_layout
 
 \begin_layout LyX-Code
-  [remdtraj] [velocity] [force]
+  [remdtraj] [mdvel] [mdfrc] [mdcrd]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -13555,11 +13639,11 @@ remdtraj Write replica temperature to trajectory.
 \end_layout
 
 \begin_layout Description
-velocity Write only velocity information in trajectory.
+mdvel Write only velocity information in trajectory.
 \end_layout
 
 \begin_layout Description
-force Write only force information in trajectory.
+mdfrc Write only force information in trajectory.
 \end_layout
 
 \begin_layout Description
@@ -13575,6 +13659,7 @@ Options for Amber Restart/NetCDF Restart format:
 
 \begin_layout LyX-Code
   [remdtraj] [novelocity] [notime] [time0 <initial time>] [dt <timestep>]
+ [keepext]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -13628,7 +13713,7 @@ Options for CHARMM DCD:
 \end_layout
 
 \begin_layout LyX-Code
-[x64] [ucell]
+[x64] [ucell] [veltraj]
 \end_layout
 
 \begin_deeper
@@ -13639,6 +13724,10 @@ x64 Use 8 byte block size (default 4 bytes).
 \begin_layout Description
 ucell Write older (v21) format trajectory that stores unit cell params instead
  of shape matrix.
+\end_layout
+
+\begin_layout Description
+veltraj Write velocity trajectory instead of coordinates.
 \end_layout
 
 \end_deeper
@@ -13666,7 +13755,7 @@ Options for mol2 format:
 \end_layout
 
 \begin_layout LyX-Code
-  [single | multi] [sybyltype] [keepext]
+  [single | multi] [sybyltype] [sybylatom <file>] [sybylbond <file>] [keepext]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -13723,6 +13812,49 @@ charge
 
 <c> Set total integer charge.
  If not specified it will be calculated from atomic charges.
+\end_layout
+
+\end_deeper
+\begin_layout Subsubsection
+Options for XYZ format:
+\end_layout
+
+\begin_layout LyX-Code
+ftype {atomxyz|xyz} titletype {none|single|perframe} width <#> prec <#>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+ftype
+\begin_inset space ~
+\end_inset
+
+{atomxyz|xyz} Choose either 'ATOM X Y Z' (default) or 'X Y Z' output format.
+\end_layout
+
+\begin_layout Description
+titletype
+\begin_inset space ~
+\end_inset
+
+{none|single|perframe} No title, one title (default), or title before every
+ frame.
+\end_layout
+
+\begin_layout Description
+width
+\begin_inset space ~
+\end_inset
+
+<#> Output format width.
+\end_layout
+
+\begin_layout Description
+prec
+\begin_inset space ~
+\end_inset
+
+<#> Output format precision.
 \end_layout
 
 \end_deeper
