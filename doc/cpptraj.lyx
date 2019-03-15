@@ -4499,7 +4499,7 @@ Write
 \end_layout
 
 \begin_layout LyX-Code
-[nosparse|sparse]
+[nosparse|sparse [cut <cutoff>]]
 \end_layout
 
 \begin_deeper
@@ -4630,7 +4630,29 @@ nosquare2d Write 2D data in 3 columns as:
 \end_layout
 
 \end_deeper
+\begin_layout Description
+sparse Only write 3D grid voxels with value > cutoff (default 0).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cut
+\begin_inset space ~
+\end_inset
+
+<cut> Cutoff for 'sparse'; default 0.
+\end_layout
+
 \end_deeper
+\begin_layout Description
+nosparse Write all 3D voxels (default).
+\end_layout
+
+\end_deeper
+\begin_layout LyX-Code
+
+\end_layout
+
 \begin_layout Subsubsection*
 Read
 \end_layout
@@ -4652,7 +4674,7 @@ Read
 \end_layout
 
 \begin_layout LyX-Code
- [delta <dx>,<dy>,dz>] [prec {dbl|flt}] [bin {center|corner}]
+  [delta <dx>,<dy>,dz>] [prec {dbl|flt}] [bin {center|corner} ]
 \end_layout
 
 \begin_deeper
@@ -34049,13 +34071,20 @@ calcstate
 \end_layout
 
 \begin_layout LyX-Code
-calcstate {state <ID>,<dataset>,<min>,<max>} [out <state v time file>] [name
- <setname>]
+calcstate {state <ID>,<dataset>,<min>,<max>[,<dataset1>,<min1>,<max1>]}
+ ...
 \end_layout
 
 \begin_layout LyX-Code
-          [curveout <curve file>] [stateout <states file>] [transout <transition
-s file>]
+      	[out <state v time file>] [name <setname>]
+\end_layout
+
+\begin_layout LyX-Code
+      	[curveout <curve file>] [stateout <states file>]
+\end_layout
+
+\begin_layout LyX-Code
+      	[transout <transitions file>] [countout <count file>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -34070,7 +34099,11 @@ state
 
 <ID>,<dataset>,<min>,<max> Define a state according to given data set and
  criteria.
- Multiple states can be given.
+ Multiple states can be given, and each state can have multiple criteria.
+ If multiple criteria are specified, each one must be satisfied in order
+ to assign the state.
+ If the same state is defined multiple times, the state will be assigned
+ if either criteria match.
 \begin_inset Separator latexpar
 \end_inset
 
@@ -34079,8 +34112,7 @@ state
 
 \begin_deeper
 \begin_layout Description
-<ID> ID to give each state index (e.g.
- 1, 2, etc).
+<ID> Name to give each state index.
  State indices start at 0.
  -1 means 
 \begin_inset Quotes eld
@@ -34167,12 +34199,80 @@ file>] File to write state lifetime data to.
 file>] File to write state transition data to.
 \end_layout
 
+\begin_layout Description
+[countout
+\begin_inset space ~
+\end_inset
+
+<state
+\begin_inset space ~
+\end_inset
+
+count
+\begin_inset space ~
+\end_inset
+
+file>] File to write state counts (i.e.
+ how many frames each state was observed) to.
+\end_layout
+
 \begin_layout Standard
 DataSets Created:
 \end_layout
 
 \begin_layout Description
 <setname> State index vs frame.
+\end_layout
+
+\begin_layout Description
+<setname>[Count] Number of frames each state was observed.
+\end_layout
+
+\begin_layout Description
+<setname>[Frac] Fraction of time each state was observed
+\end_layout
+
+\begin_layout Description
+<setname>[Nlifetimes] Number of times each state was reached.
+\end_layout
+
+\begin_layout Description
+<setname>[Avglife] Average lifetime length for each state.
+\end_layout
+
+\begin_layout Description
+<setname>[Maxlife] Maximum lifetime of each state.
+\end_layout
+
+\begin_layout Description
+<setname>[Name] Name (<ID>) of each state.
+\end_layout
+
+\begin_layout Description
+<setname>[Xlifetimes] Number of times each state transitioned to each other
+ state.
+\end_layout
+
+\begin_layout Description
+<setname>[Xavglife] Average lifetime of each state before transitioning
+ to each other state.
+\end_layout
+
+\begin_layout Description
+<setname>[Xmaxlife] Maximum lifetime of each state before transitioning
+ to each other state.
+\end_layout
+
+\begin_layout Description
+<setname>[Xname] Name of each transition, format 
+\begin_inset Quotes eld
+\end_inset
+
+StateA->StateB
+\begin_inset Quotes erd
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Description
@@ -34194,6 +34294,15 @@ Data for the specified data set(s) that matches the given criteria will
 state
 \series default
  keywords were given.
+ The -1 state index is reserved for 
+\begin_inset Quotes eld
+\end_inset
+
+undefined state
+\begin_inset Quotes erd
+\end_inset
+
+.
  For example, the following input:
 \end_layout
 
@@ -34238,7 +34347,8 @@ D
 \begin_inset Quotes erd
 \end_inset
 
- based on the distance from ':19@O' to ':12@N' being between 3 and 4 Angstroms.
+ based on the distance from ':19@O' to ':12@N' (data set d1) being between
+ 3 and 4 Angstroms.
  State index 1 is defined as a state named 
 \begin_inset Quotes eld
 \end_inset
@@ -34247,8 +34357,8 @@ A
 \begin_inset Quotes erd
 \end_inset
 
- based on the angle between ':19@O', ':12@H', and ':12@N' being between
- 100 and 120 degrees.
+ based on the angle between ':19@O', ':12@H', and ':12@N' (data set a1)
+ being between 100 and 120 degrees.
  The output in state.dat might look like:
 \end_layout
 
@@ -34315,6 +34425,45 @@ A
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Standard
+To define a state State1 as having a distance named 
+\begin_inset Quotes eld
+\end_inset
+
+dist
+\begin_inset Quotes erd
+\end_inset
+
+ between 2.5 and 5.0 Ang.
+ and an angle named 
+\begin_inset Quotes eld
+\end_inset
+
+ang
+\begin_inset Quotes erd
+\end_inset
+
+ between 30 and 60 degrees OR having a distance named 
+\begin_inset Quotes eld
+\end_inset
+
+distA
+\begin_inset Quotes erd
+\end_inset
+
+ between 0.0 and 3.0 Ang.:
+\end_layout
+
+\begin_layout LyX-Code
+calcstate state State1,dist,2.5,5.0,ang,30,60 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+          state State1,distA,0.0,3.0
 \end_layout
 
 \begin_layout Standard
