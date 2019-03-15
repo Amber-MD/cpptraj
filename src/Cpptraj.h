@@ -16,7 +16,7 @@ class Cpptraj {
     typedef std::vector<std::string> Sarray;
     enum Mode { BATCH = 0, ERROR, QUIT, INTERACTIVE };
     static void Usage();
-    static void Intro();
+    void Intro() const;
     static void Finalize();
     static inline void AddArgs(Sarray&, ArgList const&, int&);
     static inline void ResizeArgs(Sarray const&, Sarray&, const char*);
@@ -26,6 +26,7 @@ class Cpptraj {
 
     CpptrajState State_;
     FileName logfilename_; // TODO: Put in CpptrajState?
-    std::string commandLine_; ///< Used to save command line args
+    std::string commandLine_;   ///< Used to save command line args
+    std::string versionString_; ///< The current version string
 };
 #endif
