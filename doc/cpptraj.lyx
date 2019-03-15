@@ -4491,11 +4491,15 @@ Write
 \end_layout
 
 \begin_layout LyX-Code
-[invert] [noxcol] [noheader] [square2d] [nosquare2d]
+[invert] [noxcol] [groupby <type>] [noheader] [square2d|nosquare2d]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+[nosparse|sparse]
 \end_layout
 
 \begin_deeper
@@ -4508,6 +4512,36 @@ invert Normally, data is written out with X-values pertaining to frames
  data over all trajectories is printed in rows).
 \end_layout
 
+\begin_layout Description
+groupby
+\begin_inset space ~
+\end_inset
+
+<type> (1D) group data sets by <type>:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name Group by name.
+\end_layout
+
+\begin_layout Description
+aspect Group by aspect.
+\end_layout
+
+\begin_layout Description
+idx Group by index.
+\end_layout
+
+\begin_layout Description
+ens Group by ensemble number.
+\end_layout
+
+\begin_layout Description
+dim Group by dimension.
+\end_layout
+
+\end_deeper
 \begin_layout Description
 noxcol Prevent printing of indices (i.e.
  the #Frame column in most datafiles) for the specified datafile.
@@ -12715,6 +12749,15 @@ trajin
 
 \begin_layout Description
 [<start>] Frame to begin reading at (default 1).
+ If a negative value is given it means 
+\begin_inset Quotes eld
+\end_inset
+
+<start> frames before <stop>
+\begin_inset Quotes erd
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Description
@@ -13798,7 +13841,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="83" columns="3">
+<lyxtabular version="3" rows="84" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="1.3in">
 <column alignment="center" valignment="top" width="4.5in">
@@ -13833,6 +13876,35 @@ Description
 
 \series bold
 Mod
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+align
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Align structure to a reference.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+X
 \end_layout
 
 \end_inset
@@ -16303,6 +16375,147 @@ X
 \end_inset
 
 
+\end_layout
+
+\begin_layout Subsection
+align
+\end_layout
+
+\begin_layout LyX-Code
+align <mask> [<refmask>] [move <mask>] [mass]
+\end_layout
+
+\begin_layout LyX-Code
+  	[ first | reference | ref <name> | refindex <#> | previous |
+\end_layout
+
+\begin_layout LyX-Code
+        reftraj <name> [parm <name> | parmindex <#>] ]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<mask> Target atoms to fit.
+\end_layout
+
+\begin_layout Description
+[<refmask>] Reference atoms to fit (default is target mask).
+\end_layout
+
+\begin_layout Description
+[move
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms to move when aligning (default is target mask).
+\end_layout
+
+\begin_layout Description
+[mass] Mass-weight the fit.
+\end_layout
+
+\begin_layout Standard
+Reference keywords:
+\end_layout
+
+\begin_layout Description
+
+\series bold
+first
+\series default
+ Use the first trajectory frame processed as reference.
+\end_layout
+
+\begin_layout Description
+
+\series bold
+reference
+\series default
+ Use the first previously read in reference structure (refindex 0).
+\end_layout
+
+\begin_layout Description
+
+\series bold
+ref
+\begin_inset space ~
+\end_inset
+
+<name>
+\series default
+ Use previously read in reference structure specified by filename/tag.
+\end_layout
+
+\begin_layout Description
+
+\series bold
+refindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\series default
+ Use previously read in reference structure specified by <#> (based on order
+ read in).
+\end_layout
+
+\begin_layout Description
+previous Use frame prior to current frame as reference.
+\end_layout
+
+\begin_layout Description
+
+\series bold
+reftraj
+\series default
+
+\begin_inset space ~
+\end_inset
+
+<name> Use frames from COORDS set <name> or read in from trajectory file
+ <name> as references.
+ Each frame from <name> is used in turn, so that frame 1 is compared to
+ frame 1 from <name>, frame 2 is compared to frame 2 from <name> and so
+ on.
+ If <trajname> runs out of frames before processing is complete, the last
+ frame of <trajname> continues to be used as the reference.
+\begin_inset Separator latexpar
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<parmname>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#> If 
+\series bold
+reftraj
+\series default
+ specifies a trajectory file, associate it with specified topology; if not
+ specified the first topology is used.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+Align structure using specified <mask> onto reference.
+ If 'move' is specified, only move atoms in the move mask.
 \end_layout
 
 \begin_layout Subsection
@@ -34065,6 +34278,10 @@ cluster
 \end_layout
 
 \begin_layout LyX-Code
+    [bestrep {cumulative|centroid|cumulative_nosieve}] [savenreps <#>]
+\end_layout
+
+\begin_layout LyX-Code
     [clustersvtime <filename> cvtwindow <window size>]
 \end_layout
 
@@ -34862,6 +35079,14 @@ cumulative_nosieve Choose by lowest cumulative distance to all other frames,
 \end_layout
 
 \end_deeper
+\begin_layout Description
+[savenreps
+\begin_inset space ~
+\end_inset
+
+<#>] Number of best representative frames to choose (default 1).
+\end_layout
+
 \begin_layout Description
 [clustersvtime
 \begin_inset space ~
