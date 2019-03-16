@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM continuumio/miniconda:latest
 
 RUN mkdir /cpptraj && \
     apt-get update && \

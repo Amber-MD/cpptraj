@@ -132,7 +132,18 @@ pipeline {
                     }
                 }
             }
+        }
 
+        stage("Check pytraj with this version of libcpptraj") {
+            environment {
+                DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.ghprbActualCommit}"
+            }
+
+            steps {
+                build job: '/amber-github/pytraj',
+                           parameters: [string(name: 'LIBCPPTRAJ_IMAGE_TAG', value: "${DOCKER_IMAGE_TAG}"),
+                                        string(name: 'BRANCH_TO_BUILD', value: 'master')]
+            }
         }
     }
 }
