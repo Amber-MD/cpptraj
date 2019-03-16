@@ -1,0 +1,17 @@
+FROM ubuntu:18.04
+
+RUN mkdir /cpptraj && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y gfortran gcc g++ bzip2 libfftw3-dev automake make libbz2-dev \
+                       mpich libmpich-dev zlib1g-dev netcdf-bin libnetcdf-dev \
+                       liblapack-dev libarpack2-dev
+
+COPY . /cpptraj
+
+ENV CPPTRAJHOME "/cpptraj"
+
+RUN cd /cpptraj && \
+    ./configure -openmp -shared gnu && \
+    make -j4 libcpptraj
+

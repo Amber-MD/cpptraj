@@ -8,6 +8,15 @@ pipeline {
 
     stages {
         stage("Build and test") {
+            when {
+                // Testing needs to be done as a merge gate. Since this is a
+                // somewhat pricey operation in the number of executors used,
+                // assume sufficient testing was already done for the master
+                // branch
+                not {
+                    branch "master"
+                }
+            }
             parallel {
                 stage("Linux GNU serial build") {
                     agent {
@@ -104,6 +113,26 @@ pipeline {
                     }
                 }
             }
+        }
+
+        stage("Build libcpptraj docker container") {
+            agent { label "linux && docker" }
+
+            environment {
+                DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.ghprbActualCommit}"
+            }
+
+            steps {
+                echo "Building and pushing ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}"
+                script {
+                    def image = docker.build("ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}"
+                                             "-f Dockerfile.libcpptraj ./devtools/ci/jenkins")
+//                  docker.withRegistry("", "amber-docker-credentials") {
+//                      image.push()
+//                  }
+                }
+            }
+
         }
     }
 }
