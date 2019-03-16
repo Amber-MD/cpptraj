@@ -90,6 +90,7 @@ pipeline {
                         dockerfile {
                             dir "devtools/ci/jenkins"
                             filename "Dockerfile.cuda"
+                            label "cuda"
                         }
                     }
 
