@@ -7,6 +7,9 @@ RUN mkdir /cpptraj && \
                        mpich libmpich-dev zlib1g-dev netcdf-bin libnetcdf-dev \
                        liblapack-dev libarpack2-dev
 
+RUN conda install -yn base libnetcdf hdf4 pyflakes cython numpy h5py &&
+    pip install -y auditwheel mock
+
 COPY . /cpptraj
 
 ENV CPPTRAJHOME "/cpptraj"
