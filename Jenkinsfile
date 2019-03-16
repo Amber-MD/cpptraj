@@ -125,7 +125,7 @@ pipeline {
             steps {
                 echo "Building and pushing ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}"
                 script {
-                    def image = docker.build("ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}"
+                    def image = docker.build("ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}",
                                              "-f Dockerfile.libcpptraj ./devtools/ci/jenkins")
 //                  docker.withRegistry("", "amber-docker-credentials") {
 //                      image.push()
