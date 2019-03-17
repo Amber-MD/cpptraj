@@ -1,7 +1,7 @@
 FROM continuumio/miniconda:latest
 
 RUN mkdir /cpptraj && \
-    mkdir /.conda && \
+    mkdir /.conda /.local && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y gfortran gcc g++ bzip2 libfftw3-dev automake make libbz2-dev \
@@ -10,7 +10,8 @@ RUN mkdir /cpptraj && \
 
 # Make it so Jenkins UIDs can install python packages to miniconda
 RUN chmod -R a+w /opt/conda && \
-    chmod -R a+w /.conda
+    chmod -R a+w /.conda && \
+    chmod -R a+w /.local
 
 COPY . /cpptraj
 
