@@ -8,7 +8,7 @@ RUN mkdir /cpptraj && \
                        liblapack-dev libarpack2-dev
 
 # Make it so Jenkins UIDs can install python packages to miniconda
-RUN chown -R a+w /opt/conda
+RUN chmod -R a+w /opt/conda
 
 COPY . /cpptraj
 
