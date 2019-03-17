@@ -10,6 +10,9 @@ RUN mkdir /cpptraj && \
 RUN conda install -yn base libnetcdf hdf4 pyflakes cython numpy h5py &&
     pip install -y auditwheel mock
 
+# Make it so Jenkins UIDs can install python packages to miniconda
+RUN chown -R a+w /opt/conda
+
 COPY . /cpptraj
 
 ENV CPPTRAJHOME "/cpptraj"
