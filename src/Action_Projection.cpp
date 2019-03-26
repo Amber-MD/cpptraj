@@ -89,9 +89,10 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, i
                 " number of average elements %i\n", DihedralSets_.size()*2, modinfo_->NavgCrd());
       return Action::ERR;
     }
-  } else
+  } else {
     // Get mask
-    mask_.SetMaskString( actionArgs.GetMaskNext() );
+    if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
+  }
 
   // Set up data sets
   std::string setname = actionArgs.GetStringNext();

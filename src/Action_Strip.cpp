@@ -33,7 +33,7 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
     mprinterr("Error: Requires atom mask.\n");
     return Action::ERR;
   }
-  M1_.SetMaskString(mask1);
+  if (M1_.SetMaskString(mask1)) return Action::ERR;
   // We want to strip the atoms inside the mask and keep those outside
   // the mask. Since modifyStateByMask needs to know the kept atoms,
   // invert the mask selection.
