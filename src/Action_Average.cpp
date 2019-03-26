@@ -53,7 +53,7 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, ActionInit& init, int 
   if (InitFrameCounter(actionArgs)) return Action::ERR;
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Initialize output trajectory from remaining arguments.
   if (crdset_ == 0) {

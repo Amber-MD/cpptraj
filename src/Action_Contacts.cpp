@@ -83,9 +83,9 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, ActionInit& init, int
   // Get Mask
   std::string mask0 = actionArgs.GetMaskNext();
   if (mask0.empty() && byResidue_)
-    Mask_.SetMaskString("@CA");
+    if (Mask_.SetMaskString("@CA")) return Action::ERR;
   else
-    Mask_.SetMaskString( mask0 );
+    if (Mask_.SetMaskString( mask0 )) return Action::ERR;
   
   // Initialize reference. If no reference mask is given mask0 will be used.
   // First arg 'nofit' set to true, no fitting with contacts. Allows last arg

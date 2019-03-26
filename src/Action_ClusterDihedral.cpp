@@ -94,7 +94,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& in
   if (!dihedralIn.empty()) {
     if ( ReadDihedrals( dihedralIn ) != 0) return Action::ERR;
   } else {
-    mask_.SetMaskString( actionArgs.GetMaskNext() );
+    if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   }
 
   // CVT dataset

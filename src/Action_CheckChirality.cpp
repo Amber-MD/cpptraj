@@ -14,7 +14,7 @@ Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, ActionInit& ini
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   // Set up DataSets
   setname_ = actionArgs.GetStringNext();
   if (setname_.empty())
