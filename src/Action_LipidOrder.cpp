@@ -46,7 +46,7 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
     axis_ = DZ;
   report_p2_ = actionArgs.hasKey("p2");
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   dsname_ = actionArgs.GetStringNext();
 
 # ifdef _OPENMP

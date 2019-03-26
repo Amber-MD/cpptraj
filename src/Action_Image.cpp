@@ -62,7 +62,7 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, ActionInit& init, int de
     std::string maskexpr = actionArgs.GetStringKey("com");
     if (!maskexpr.empty()) {
       ComMask_ = new AtomMask();
-      ComMask_->SetMaskString(maskexpr);
+      if (ComMask_->SetMaskString(maskexpr)) return Action::ERR;
     }
   }
   maskExpression_ = actionArgs.GetMaskNext();

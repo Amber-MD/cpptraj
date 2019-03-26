@@ -77,7 +77,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
   nframes_ = 0;
 
   // Atom Mask
-  Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Pairs specified on command line.
   std::string pair1 = actionArgs.GetStringKey("pair");
