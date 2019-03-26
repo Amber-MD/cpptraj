@@ -19,7 +19,7 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, ActionInit& init, int
   if (REF_.InitRef(actionArgs, init.DSL(), false, false)) return Action::ERR;
   // Get the RMS mask string for target 
   std::string tMaskExpr = actionArgs.GetMaskNext();
-  TgtMask_.SetMaskString( tMaskExpr );
+  if (TgtMask_.SetMaskString( tMaskExpr )) return Action::ERR;
   // Get the RMS mask string for reference
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())

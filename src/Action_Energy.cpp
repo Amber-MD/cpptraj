@@ -230,7 +230,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     lj_longrange_correction = false;
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // DataSet
   setname_ = actionArgs.GetStringNext();

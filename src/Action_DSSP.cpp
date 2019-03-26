@@ -62,7 +62,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
   temp = actionArgs.GetStringKey("nameca");
   if (!temp.empty()) BB_CA_ = temp;
   // Get masks
-  Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Set up the DSSP data set
   dsetname_ = actionArgs.GetStringNext();
