@@ -24,7 +24,7 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, ActionInit& init, int
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
  
   // Set up the RMSD data set
   drmsd_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"DRMSD");

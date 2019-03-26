@@ -26,20 +26,19 @@ Action::RetType Action_Align::Init(ArgList& actionArgs, ActionInit& init, int de
   std::string mMaskExpr = actionArgs.GetStringKey("move");
   // Get the fit mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
-  tgtMask_.SetMaskString(tMaskExpr);
+  if (tgtMask_.SetMaskString(tMaskExpr)) return Action::ERR;
   // Get the fit mask string for reference
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
   // Set the mask for moving atoms
   if (mMaskExpr.empty()) {
     moveSpecified_ = false;
     mMaskExpr.assign("*");
   } else
     moveSpecified_ = true;
-  movMask_.SetMaskString( mMaskExpr );
-
+  if (movMask_.SetMaskString( mMaskExpr )) return Action::ERR;
 # ifdef MPI
   if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
 # endif
