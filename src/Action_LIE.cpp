@@ -46,10 +46,10 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, ActionInit& init, int debu
   }
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   std::string refmask = actionArgs.GetMaskNext();
   if (!refmask.empty()) {
-    Mask2_.SetMaskString(refmask);
+    if (Mask2_.SetMaskString(refmask)) return Action::ERR;
     has_mask2 = true;
   }
   else {

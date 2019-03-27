@@ -51,7 +51,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int d
     init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
-  mask_.SetMaskString(maskexpr);
+  if (mask_.SetMaskString(maskexpr)) return Action::ERR;
 
   // Info
   mprintf("    DIPOLE:\n");

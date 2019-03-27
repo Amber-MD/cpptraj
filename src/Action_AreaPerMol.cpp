@@ -35,7 +35,7 @@ Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, ActionInit& init, i
       mprinterr("Error: Number of layers must be > 0\n");
       return Action::ERR;
     }
-    Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+    if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   }
 
   // DataSet

@@ -504,9 +504,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   // Loop over all solute + solvent atoms
 # ifdef _OPENMP
   int mythread;
-  Iarray* eij_v1;
-  Iarray* eij_v2;
-  Farray* eij_en;
+  Iarray* eij_v1 = 0;
+  Iarray* eij_v2 = 0;
+  Farray* eij_en = 0;
 # pragma omp parallel private(aidx, mythread, E_UV_VDW, E_UV_Elec, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec, eij_v1, eij_v2, eij_en)
   {
   mythread = omp_get_thread_num();

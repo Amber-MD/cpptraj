@@ -145,7 +145,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
                                           analyzeArgs );
   }
   // Atom mask
-  mask_.SetMaskString( analyzeArgs.GetMaskNext() );
+  if (mask_.SetMaskString( analyzeArgs.GetMaskNext() )) return Analysis::ERR;
   // Set up output data set
   output_ = setup.DSL().AddSet( DataSet::MATRIX_FLT, setname, "WAVELET" );
   if (output_ == 0) return Analysis::ERR;

@@ -68,7 +68,7 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
   } else
     writeTraj_ = false;
   // Get Mask
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   // Set up data sets
   if (!dsname.empty() || !dsout.empty()) {
     if (dsname.empty()) dsname = init.DSL().GenerateDefaultName("MASK");

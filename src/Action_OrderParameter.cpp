@@ -87,7 +87,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
       return Action::ERR;
     }
 
-    tailstart_mask_.SetMaskString(mask);
+    if (tailstart_mask_.SetMaskString(mask)) return Action::ERR;
 
     mask = actionArgs.GetStringKey("tailend");
 
@@ -96,7 +96,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
       return Action::ERR;
     }
 
-    tailend_mask_.SetMaskString(mask);
+    if (tailend_mask_.SetMaskString(mask)) return Action::ERR;
   }
 
   scd_ = actionArgs.hasKey("scd");
@@ -104,7 +104,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
   mask = actionArgs.GetStringKey("unsat");
 
   if (!mask.empty() ) {
-    unsat_mask_.SetMaskString(mask);
+    if (unsat_mask_.SetMaskString(mask)) return Action::ERR;
   }
 
   // rest of the command line is the masks for each atom

@@ -74,10 +74,10 @@ Action::RetType Action_MRT::Init(ArgList& actionArgs, ActionInit& init, int debu
 
   // Get solvent mask expression. 
   // If it is a solute,  mask will be used as a single site.
-  solventmask_.SetMaskString( actionArgs.GetStringKey("solvent") );
+  if (solventmask_.SetMaskString( actionArgs.GetStringKey("solvent") )) return Action::ERR;
     
   // Check if MRT to another solute is requested
-  solutemask_.SetMaskString( actionArgs.GetStringKey("solute") );
+  if (solutemask_.SetMaskString( actionArgs.GetStringKey("solute") )) return Action::ERR;
 
   // Process reference sites. Currently:
   //   1) siteatoms <mask> which expands to mutliple sites per atom in mask

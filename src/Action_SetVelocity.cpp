@@ -57,7 +57,7 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
     return Action::ERR;
   }
   // Masks
-  Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   mprintf("    SETVELOCITY:");
   if (mode_ == SET) {

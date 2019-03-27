@@ -52,15 +52,15 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
     return Action::ERR;
   }
 
-  mask1_.SetMaskString(mask1);
+  if (mask1_.SetMaskString(mask1)) return Action::ERR;
 
   std::string mask2 = actionArgs.GetStringKey("mask2");
 
   if (mask2.empty()) {
     same_mask_ = true;
-    mask2_.SetMaskString(mask1);
+    if (mask2_.SetMaskString(mask1)) return Action::ERR;
   } else {
-    mask2_.SetMaskString(mask2);
+    if (mask2_.SetMaskString(mask2)) return Action::ERR;
 
     if (mask1_.MaskExpression() != mask2_.MaskExpression() )
       same_mask_ = false;

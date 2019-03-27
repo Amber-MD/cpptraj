@@ -98,7 +98,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("Error.  A mask for the asymmetric unit must be specified.\n");
     return Action::ERR;
   }
-  Masks_[0].SetMaskString(mask);
+  if (Masks_[0].SetMaskString(mask)) return Action::ERR;
   // Allocate memory for subunits
   other_.assign( nops_, Frame() );
 
@@ -407,7 +407,7 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
   // Set up the mask for the entire topology, for making the RefFrame_ clone of it later
   std::string str;
   str.assign(":*");
-  tgtMask_.SetMaskString(str);
+  if (tgtMask_.SetMaskString(str)) return Action::ERR;
   if (setup.Top().SetupIntegerMask(tgtMask_)) {
     return Action::ERR;
   }

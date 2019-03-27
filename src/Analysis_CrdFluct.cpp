@@ -32,7 +32,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
   // Get mask
-  mask_.SetMaskString( analyzeArgs.GetMaskNext() );
+  if (mask_.SetMaskString( analyzeArgs.GetMaskNext() )) return Analysis::ERR;
 
   mprintf("    CRDFLUCT: Atomic fluctuations will be calcd for set %s, mask [%s]\n", 
           coords_->legend(), mask_.MaskString());

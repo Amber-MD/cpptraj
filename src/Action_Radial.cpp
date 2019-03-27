@@ -120,14 +120,15 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprinterr("Error: Radial: No mask given.\n");
     return Action::ERR;
   }
-  Mask1_.SetMaskString(mask1);
+  if (Mask1_.SetMaskString(mask1)) return Action::ERR;
 
   // Check for second mask - if none specified use first mask
   std::string mask2 = actionArgs.GetMaskNext();
-  if (!mask2.empty()) 
-    Mask2_.SetMaskString(mask2);
-  else
-    Mask2_.SetMaskString(mask1);
+  if (!mask2.empty()) {
+    if (Mask2_.SetMaskString(mask2)) return Action::ERR;
+  } else {
+    if (Mask2_.SetMaskString(mask1)) return Action::ERR;
+  }
   // If filename not yet specified check for backwards compat.
   if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
     outfilename = actionArgs.GetStringNext();

@@ -31,7 +31,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, ActionInit& init
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
   // Initialize Symmetric RMSD calc.
   if (SRMSD_.InitSymmRMSD( fit, useMass, debugIn )) return Action::ERR;
 

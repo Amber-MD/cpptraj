@@ -73,7 +73,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, AnalysisSetup
     }
   }
   // Get Mask
-  tgtMask_.SetMaskString( analyzeArgs.GetMaskNext() );
+  if (tgtMask_.SetMaskString( analyzeArgs.GetMaskNext() )) return Analysis::ERR;
   if (!useFirst_) {
     // Check for reference mask
     std::string refMaskExpr = analyzeArgs.GetMaskNext();
