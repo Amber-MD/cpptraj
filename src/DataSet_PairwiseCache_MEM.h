@@ -13,6 +13,7 @@ class DataSet_PairwiseCache_MEM : public DataSet_PairwiseCache {
     int Allocate(SizeArray const&);
     void Add(size_t, const void*)                          { return; }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
+    size_t MemUsageInBytes()                         const { return Mat_.sizeInBytes(); }
 //    int Append(DataSet*)                                   { return 1; }
 //#   ifdef MPI
 //    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }

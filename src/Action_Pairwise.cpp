@@ -81,12 +81,13 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   
   // Get Masks
-  Mask0_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask0_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   std::string refmask = actionArgs.GetMaskNext();
-  if (!refmask.empty())
-    RefMask_.SetMaskString(refmask);
-  else
-    RefMask_.SetMaskString( Mask0_.MaskString() );
+  if (!refmask.empty()) {
+    if (RefMask_.SetMaskString(refmask)) return Action::ERR;
+  } else {
+    if (RefMask_.SetMaskString( Mask0_.MaskString() )) return Action::ERR;
+  }
 
   // Datasets
   std::string ds_name = actionArgs.GetStringNext();

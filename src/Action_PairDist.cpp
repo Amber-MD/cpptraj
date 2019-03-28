@@ -52,15 +52,15 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
     return Action::ERR;
   }
 
-  mask1_.SetMaskString(mask1);
+  if (mask1_.SetMaskString(mask1)) return Action::ERR;
 
   std::string mask2 = actionArgs.GetStringKey("mask2");
 
   if (mask2.empty()) {
     same_mask_ = true;
-    mask2_.SetMaskString(mask1);
+    if (mask2_.SetMaskString(mask1)) return Action::ERR;
   } else {
-    mask2_.SetMaskString(mask2);
+    if (mask2_.SetMaskString(mask2)) return Action::ERR;
 
     if (mask1_.MaskExpression() != mask2_.MaskExpression() )
       same_mask_ = false;
@@ -230,17 +230,10 @@ int Action_PairDist::SyncAction() {
         // Only sum for bins where master and rank both have data
         unsigned long Nbins = std::min( master_size, rank_size );
         for (unsigned long i = 0; i < Nbins; i++, idx += 3) {
-          double mA = (double)histogram_[i].mean();
-          double sA = (double)histogram_[i].M2();
-          double nA = (double)histogram_[i].nData();
           double mB = buffer[idx  ];
           double sB = buffer[idx+1];
           double nB = buffer[idx+2];
-          double nX = nA + nB;
-          double delta    = mB - mA;
-          double new_mean = mA + delta * (nB / nX);
-          double new_sd   = sA + sB + ((delta*delta) * ((nA*nB) / nX));
-          histogram_[i].SetVals( new_mean, new_sd, nX );
+          histogram_[i].Combine( Stats<double>(nB, mB, sB) );
         }
         // If rank had more data than master, fill in data
         if (rank_size > master_size) {
@@ -248,7 +241,7 @@ int Action_PairDist::SyncAction() {
           maxbin_ = (unsigned long)histogram_.size() - 1;
           idx = master_size * 3;
           for (unsigned long i = master_size; i < rank_size; i++, idx += 3)
-            histogram_[i].SetVals( buffer[idx], buffer[idx+1], buffer[idx+2] );
+            histogram_[i] = Stats<double>( buffer[idx+2], buffer[idx], buffer[idx+1] );
         }
       }
     } else {

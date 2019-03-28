@@ -41,10 +41,10 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, ActionInit& init
     mprinterr("Error: dnaiontracker requires 4 masks.\n");
     return Action::ERR;
   }
-  p1_.SetMaskString(m1);
-  p2_.SetMaskString(m2);
-  base_.SetMaskString(m3);
-  ions_.SetMaskString(m4);
+  if (p1_.SetMaskString(m1)) return Action::ERR;
+  if (p2_.SetMaskString(m2)) return Action::ERR;
+  if (base_.SetMaskString(m3)) return Action::ERR;
+  if (ions_.SetMaskString(m4)) return Action::ERR;
 
   // Add dataset to dataset list (and datafile list if filename specified)
   distance_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),

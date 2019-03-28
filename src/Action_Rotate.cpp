@@ -54,7 +54,7 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
                                    zrot * Constants::DEGRAD );
   }
   // Get mask
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   mprintf("    ROTATE: Rotating atoms in mask %s\n", mask_.MaskString());
   switch (mode_) {
@@ -93,6 +93,7 @@ Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
       return Action::SKIP;
     }
   }
+  Action::CheckImageRotationWarning(setup, "the rotation");
   return Action::OK;
 }
 

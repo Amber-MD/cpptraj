@@ -77,7 +77,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
   nframes_ = 0;
 
   // Atom Mask
-  Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Pairs specified on command line.
   std::string pair1 = actionArgs.GetStringKey("pair");
@@ -109,8 +109,8 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
     TranslateAmbiguous( noe->aName1_ ); 
     TranslateAmbiguous( noe->aName2_ );
     // Create mask expressions from resnum/atom name
-    noe->dMask1_.SetMaskString( MaskExpression( noe->resNum1_, noe->aName1_ ) ); 
-    noe->dMask2_.SetMaskString( MaskExpression( noe->resNum2_, noe->aName2_ ) ); 
+    if (noe->dMask1_.SetMaskString( MaskExpression( noe->resNum1_, noe->aName1_ ) )) return Action::ERR; 
+    if (noe->dMask2_.SetMaskString( MaskExpression( noe->resNum2_, noe->aName2_ ) )) return Action::ERR; 
     // Dataset to store distances
     AssociatedData_NOE noeData(noe->bound_, noe->boundh_, noe->rexp_);
     MetaData md(setname_, "NOE", num_noe);

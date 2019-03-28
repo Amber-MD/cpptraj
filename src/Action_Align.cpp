@@ -9,8 +9,9 @@ Action_Align::Action_Align() :
 {}
 
 void Action_Align::Help() const {
-  mprintf("\t[<name>] <mask> [<refmask>] [move <mask>][mass]\n\t%s\n", ReferenceAction::Help());
-  mprintf("  Align structure using specified <mask> onto reference.\n");
+  mprintf("\t<mask> [<refmask>] [move <mask>] [mass]\n\t%s\n", ReferenceAction::Help());
+  mprintf("  Align structure using specified <mask> onto reference. If 'move'\n"
+          "  is specified, only move atoms in the move mask.\n");
 }
 
 // Action_Align::Init()
@@ -25,20 +26,19 @@ Action::RetType Action_Align::Init(ArgList& actionArgs, ActionInit& init, int de
   std::string mMaskExpr = actionArgs.GetStringKey("move");
   // Get the fit mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
-  tgtMask_.SetMaskString(tMaskExpr);
+  if (tgtMask_.SetMaskString(tMaskExpr)) return Action::ERR;
   // Get the fit mask string for reference
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
   // Set the mask for moving atoms
   if (mMaskExpr.empty()) {
     moveSpecified_ = false;
     mMaskExpr.assign("*");
   } else
     moveSpecified_ = true;
-  movMask_.SetMaskString( mMaskExpr );
-
+  if (movMask_.SetMaskString( mMaskExpr )) return Action::ERR;
 # ifdef MPI
   if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
 # endif
@@ -85,11 +85,8 @@ Action::RetType Action_Align::Setup(ActionSetup& setup) {
     return Action::SKIP;
  
   // Warn if PBC and rotating
-  if (setup.CoordInfo().TrajBox().Type() != Box::NOBOX) {
-    mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
-            "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
-            "Warning:  after the alignment is performed.\n");
-  }
+  Action::CheckImageRotationWarning(setup, "the alignment");
+
   return Action::OK;
 }
 

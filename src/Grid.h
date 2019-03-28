@@ -47,6 +47,10 @@ template <class T> class Grid {
     typedef ArrayIterator<T> iterator;
     iterator begin() { return grid_;              }
     iterator end()   { return grid_ + nelements_; }
+    /// \return memory usage in bytes
+    size_t DataSize() const {
+      return ( (4*sizeof(size_t)) + (nelements_ * sizeof(T)) );
+    }
   private:
     size_t nx_;        ///< Grid X dimension.
     size_t ny_;        ///< Grid Y dimension.

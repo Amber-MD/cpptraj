@@ -96,37 +96,37 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   // Get donor mask
   std::string mask = actionArgs.GetStringKey("donormask");
   if (!mask.empty()) {
-    DonorMask_.SetMaskString(mask);
+    if (DonorMask_.SetMaskString(mask)) return Action::ERR;
     hasDonorMask_=true;
     // Get donorH mask (if specified)
     mask = actionArgs.GetStringKey("donorhmask");
     if (!mask.empty()) {
-      DonorHmask_.SetMaskString(mask);
+      if (DonorHmask_.SetMaskString(mask)) return Action::ERR;
       hasDonorHmask_=true;
     }
   }
   // Get acceptor mask
   mask = actionArgs.GetStringKey("acceptormask");
   if (!mask.empty()) {
-    AcceptorMask_.SetMaskString(mask);
+    if (AcceptorMask_.SetMaskString(mask)) return Action::ERR;
     hasAcceptorMask_=true;
   }
   // Get solvent donor mask
   mask = actionArgs.GetStringKey("solventdonor");
   if (!mask.empty()) {
-    SolventDonorMask_.SetMaskString(mask);
+    if (SolventDonorMask_.SetMaskString(mask)) return Action::ERR;
     hasSolventDonor_ = true;
     calcSolvent_ = true;
   }
   // Get solvent acceptor mask
   mask = actionArgs.GetStringKey("solventacceptor");
   if (!mask.empty()) {
-    SolventAcceptorMask_.SetMaskString(mask);
+    if (SolventAcceptorMask_.SetMaskString(mask)) return Action::ERR;
     hasSolventAcceptor_ = true;
     calcSolvent_ = true;
   }
   // Get generic mask
-  Mask_.SetMaskString(actionArgs.GetMaskNext());
+  if (Mask_.SetMaskString(actionArgs.GetMaskNext())) return Action::ERR;
 
   // Setup datasets
   hbsetname_ = actionArgs.GetStringNext();
@@ -1086,11 +1086,13 @@ int Action_HydrogenBond::SyncAction() {
         if (series_) {
           for (int in = 0; in != n_total_on_rank; in++) {
             DataSet_integer* ds = Svals[in]; 
-            ds->Resize( Nframes_ );
-            int* d_beg = ds->Ptr() + rank_offsets[ rank ];
-            //mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
-            //        Nframes_, rank_offsets[rank], rank_frames[rank]);
-            trajComm_.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
+            //ds->Resize( Nframes_ );
+            //int* d_beg = ds->Ptr() + rank_offsets[ rank ];
+            //rprintf("Resizing hbond series data to %i, starting frame %i, # frames %i from rank %i (%i)\n",
+            //        Nframes_, rank_offsets[rank], rank_frames[rank], rank, 1304 + in);
+            ds->Recv(Nframes_, rank_offsets[ rank ], rank_frames[ rank ],
+                     rank, 1304 + in, trajComm_);
+            //trajComm_.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
             ds->SetNeedsSync( false );
           }
         }
@@ -1134,11 +1136,15 @@ int Action_HydrogenBond::SyncAction() {
       if (series_) {
         int in = 0; // For tag
         for (UUmapType::const_iterator hb = UU_Map_.begin(); hb != UU_Map_.end(); ++hb, in++) {
-          trajComm_.Send( hb->second.Data()->Ptr(), hb->second.Data()->Size(), MPI_INT, 0, 1304 + in );
+          //rprintf("Sending %zu frames to master (%i).\n", hb->second.Data()->Size(), 1304+in);
+          hb->second.Data()->Send( 0, 1304 + in, trajComm_ );
+          //trajComm_.Send( hb->second.Data()->Ptr(), hb->second.Data()->Size(), MPI_INT, 0, 1304 + in );
           hb->second.Data()->SetNeedsSync( false );
         }
         for (UVmapType::const_iterator hb = UV_Map_.begin(); hb != UV_Map_.end(); ++hb, in++) {
-          trajComm_.Send( hb->second.Data()->Ptr(), hb->second.Data()->Size(), MPI_INT, 0, 1304 + in );
+          //rprintf("Sending %zu frames to master (%i).\n", hb->second.Data()->Size(), 1304+in);
+          hb->second.Data()->Send( 0, 1304 + in, trajComm_ );
+          //trajComm_.Send( hb->second.Data()->Ptr(), hb->second.Data()->Size(), MPI_INT, 0, 1304 + in );
           hb->second.Data()->SetNeedsSync( false );
         }
       }

@@ -24,12 +24,12 @@ Action::RetType Action_Channel::Init(ArgList& actionArgs, ActionInit& init, int 
     mprinterr("Error: No solute mask specified.\n");
     return Action::ERR;
   }
-  soluteMask_.SetMaskString( sMask );
+  if (soluteMask_.SetMaskString( sMask )) return Action::ERR;
   // solvent mask
   sMask = actionArgs.GetMaskNext();
   if (sMask.empty())
     sMask.assign(":WAT@O");
-  solventMask_.SetMaskString( sMask );
+  if (solventMask_.SetMaskString( sMask )) return Action::ERR;
 
   // Grid Data Set
   grid_ = init.DSL().AddSet(DataSet::GRID_FLT, actionArgs.GetStringNext(), "Channel");

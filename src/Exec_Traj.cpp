@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 
 void Exec_Trajin::Help() const {
-  mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
+  mprintf("\t<filename> {[<start>] [<stop> | last] [<offset>]} | lastframe\n"
           "\t           [%s]\n", DataSetList::TopArgs);
   mprintf("\t           [mdvel <velocities>] [mdfrc <forces>]\n"
           "\t           [as <format keyword>] [ <Format Options> ]\n"
@@ -11,6 +11,10 @@ void Exec_Trajin::Help() const {
           "\t                       remdtrajvalues <values list>}\n"
           "\t             [trajnames <rep1>,<rep2>,...,<repN>] ]\n"
           "  Load trajectory specified by <filename> to the input trajectory list.\n"
+          "  <start> specifies the start frame (default 1), <stop> specifies the\n"
+          "  stop frame (default last frame), and <offset> the frame offset (default 1).\n"
+          "  If a negative value is given for <start> it means begin <start> frames\n"
+          "  before <stop>.\n"
           "  If desired, additional velocity or force information can be read from\n"
           "  files specified by 'mdvel' and/or 'mdfrc'.\n"
           "  The 'remdtraj' keyword can be used to extract frames for a specific replica\n"

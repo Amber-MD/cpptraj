@@ -9,7 +9,7 @@ void Action_SetVelocity::Help() const {
   mprintf("\t[<mask>] [{ tempi <temperature> |\n"
           "\t            scale [factor <fac>] [sx <xfac>] [sy <yfac>] [sz <zfac>] |\n"
           "\t            none | \n"
-          "\t            modify}] [ig <random seed>]\n"
+          "\t            modify}]\n"
           "\t[%s] [%s]\n", Constraints::constraintArgs, Constraints::rattleArgs);
   mprintf("\t[zeromomentum] [ig <random seed>]\n");
   mprintf("  Set velocities in frame for atoms in <mask> using Maxwellian distribution\n" 
@@ -57,7 +57,7 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
     return Action::ERR;
   }
   // Masks
-  Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   mprintf("    SETVELOCITY:");
   if (mode_ == SET) {

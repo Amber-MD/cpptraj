@@ -26,7 +26,7 @@ Action_DSSP::Action_DSSP() :
 
 void Action_DSSP::Help() const {
   mprintf("\t[<name>] [out <filename>] [<mask>] [sumout <filename>]\n"
-          "\t[assignout <filename>] [totalout <filename> [ptrajformat]\n"
+          "\t[assignout <filename>] [totalout <filename>] [ptrajformat]\n"
           "\t[namen <N name>] [nameh <H name>] [nameca <CA name>]\n"
           "\t[namec <C name>] [nameo <O name>]\n"
           "  Calculate secondary structure content for residues in <mask>.\n"
@@ -62,7 +62,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
   temp = actionArgs.GetStringKey("nameca");
   if (!temp.empty()) BB_CA_ = temp;
   // Get masks
-  Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Set up the DSSP data set
   dsetname_ = actionArgs.GetStringNext();

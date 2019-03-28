@@ -378,10 +378,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
     }
   }
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   std::string mask2 = actionArgs.GetMaskNext();
-  if (!mask2.empty())
-    Mask2_.SetMaskString( mask2 );
+  if (!mask2.empty()) {
+    if (Mask2_.SetMaskString( mask2 )) return Action::ERR;
+  }
   mprintf("    NATIVECONTACTS: Mask1='%s'", Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
     mprintf(" Mask2='%s'", Mask2_.MaskString());

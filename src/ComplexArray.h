@@ -33,6 +33,8 @@ class ComplexArray {
     typedef ArrayIterator<double> iterator;
     const iterator begin() const { return data_;          }
     const iterator end()   const { return data_ + ndata_; }
+
+    size_t DataSize() const { return ndata_*sizeof(double) + 2*sizeof(int) + sizeof(double*); }
   private:
     double* data_;
     int ndata_;    ///< Actual size of data

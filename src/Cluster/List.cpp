@@ -28,10 +28,9 @@ int Cpptraj::Cluster::List::CreateCnumVsTime(DataSet_integer& cnum_temp, unsigne
                                              int offset, int maxCluster)
 const
 {
-  cnum_temp.Resize( maxFrames );
   // Make all clusters start at -1. This way cluster algorithms that
   // have noise points (i.e. no cluster assigned) will be distinguished.
-  std::fill(cnum_temp.begin(), cnum_temp.end(), NOISE + offset);
+  cnum_temp.Assign( maxFrames, NOISE + offset );
 
   if (offset == 0 && maxCluster < 0) {
     for (cluster_iterator C = begincluster(); C != endcluster(); C++)
@@ -42,7 +41,7 @@ const
       for (Node::frame_iterator frame = C->beginframe(); frame != C->endframe(); frame++)
       {
         //mprinterr("%i,",*frame);
-        cnum_temp[ *frame ] = cnum;
+        cnum_temp.SetElement( *frame, cnum );
       }
       //mprinterr("\n");
       //break;
@@ -55,7 +54,7 @@ const
         cnum = maxCluster;
        // Loop over all frames in the cluster
       for (Node::frame_iterator frame = C->beginframe(); frame != C->endframe(); frame++)
-        cnum_temp[ *frame ] = cnum;
+        cnum_temp.SetElement( *frame , cnum );
     }
   }
   return 0;

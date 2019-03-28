@@ -19,6 +19,7 @@ class DataSet_Parameters : public DataSet {
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
+    size_t MemUsageInBytes() const;
     // -------------------------------------------
     AtomTypeArray& AT()  { return atomTypes_; }
     ParmHolder<BondParmType>& BP() { return bondParm_; }

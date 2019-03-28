@@ -42,6 +42,7 @@ class DataIO_Std : public DataIO {
     precType prec_;    ///< 3d reads, data set precision
     GroupType group_;  ///< 1D, control data set grouping
     int indexcol_;     ///< Read: column containing index (X) values
+    Range onlycols_;   ///< 1D reads, columns to read 
     bool isInverted_;  ///< For 1D writes invert X/Y.
     bool hasXcolumn_;
     bool writeHeader_;

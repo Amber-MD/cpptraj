@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "Traj_XYZ.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"

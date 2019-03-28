@@ -33,7 +33,7 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, ActionInit& init, in
     return Action::ERR;
   }
   // Masks
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   // Set up data
   if (!dsname.empty()) {
      vecData_ = (DataSet_Mat3x3*)init.DSL().AddSet(DataSet::MAT3X3, MetaData(dsname, "evec"));
@@ -77,6 +77,8 @@ Action::RetType Action_Principal::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms selected for %s [%s].\n",setup.Top().c_str(), mask_.MaskString());
     return Action::SKIP;
   }
+  if (doRotation_)
+    Action::CheckImageRotationWarning(setup, "principal alignment");
   return Action::OK;
 }
 

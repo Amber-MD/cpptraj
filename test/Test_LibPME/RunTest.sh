@@ -120,7 +120,7 @@ energy Pme nonbond out $TFILE etype pme   skinnb 0.01 order 6 !:WAT \
 precision $TFILE 20 10
 EOF
     RunCpptraj "$UNITNAME"
-    DoTest "$TFILE".save "$TFILE"
+    DoTest "$TFILE".save "$TFILE" -a 0.0000001
   fi
 }
 

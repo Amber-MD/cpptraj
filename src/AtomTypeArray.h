@@ -23,6 +23,13 @@ class AtomTypeArray {
     typedef Tmap::const_iterator const_iterator;
     const_iterator begin() const { return nameToIdx_.begin(); }
     const_iterator end()   const { return nameToIdx_.end();   }
+
+    size_t DataSize() const { return (types_.size() * AtomType::DataSize()) +
+                                     (nameToIdx_.size() * NameType::DataSize()) +
+                                     (nameToIdx_.size() * sizeof(int)) +
+                                     sizeof(Tmap) +
+                                     sizeof(int);
+    }
   private:
     typedef std::pair<NameType, int> Tpair;
 

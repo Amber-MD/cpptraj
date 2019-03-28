@@ -45,7 +45,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
   else if (actionArgs.hasKey("byatom") || actionArgs.hasKey("byatm"))
     outtype_ = BYATOM;
   // Get Mask
-  Mask_.SetMaskString( actionArgs.GetMaskNext()  );
+  if (Mask_.SetMaskString( actionArgs.GetMaskNext()  )) return Action::ERR;
   // Get DataSet name
   std::string setname = actionArgs.GetStringNext();
   // Add output dataset

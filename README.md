@@ -160,7 +160,7 @@ Enhancements to entropy calculation in original Action\_Gist.
 Code for the CUDA version of the 'closest' Action.
 
 * Andrew Simmonett (National Institutes of Health)  
-Code for the reciprocal part of the particle mesh Ewald calculation.
+Code for the reciprocal part of the particle mesh Ewald calculation (electrostatic and Lennard-Jones).
 
 * Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)  
 Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearch).

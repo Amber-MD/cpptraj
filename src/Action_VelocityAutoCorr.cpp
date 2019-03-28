@@ -40,7 +40,7 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& i
     return Action::ERR;
   }
   useVelInfo_ = !actionArgs.hasKey("usecoords");
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   DataFile* outfile =  init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   diffout_ = init.DFL().AddCpptrajFile( actionArgs.GetStringKey("diffout"),
                                         "VAC diffusion constants", DataFileList::TEXT, true );

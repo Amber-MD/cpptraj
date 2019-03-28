@@ -28,6 +28,8 @@ CLUSTER_SOURCES= \
 # These files are common to cpptraj/libcpptraj. Files that need to be built
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
 COMMON_SOURCES= $(CLUSTER_SOURCES) \
+        SpaceGroup.cpp \
+        Action.cpp \
         ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Align.cpp \
@@ -231,7 +233,8 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataSet_Vector.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
-        DataSet_integer.cpp \
+        DataSet_integer_disk.cpp \
+        DataSet_integer_mem.cpp \
         DataSet_string.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
@@ -288,6 +291,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Exec_Traj.cpp \
         Exec_UpdateParameters.cpp \
         Exec_ViewRst.cpp \
+        File_TempName.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
@@ -303,6 +307,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         InputTrajCommon.cpp \
         KDE.cpp \
         MapAtom.cpp \
+        MaskArray.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MetaData.cpp \
@@ -336,7 +341,6 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Residue.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \
-        SpaceGroup.cpp \
         Spline.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \

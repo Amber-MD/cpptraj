@@ -132,8 +132,9 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
   // Check if IRED vector
   bool isIred = actionArgs.hasKey("ired"); 
   // Vector Mask
-  if (mode_ != BOX && mode_ != BOX_X && mode_ != BOX_Y && mode_ != BOX_Z)
-    mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mode_ != BOX && mode_ != BOX_X && mode_ != BOX_Y && mode_ != BOX_Z) {
+    if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
+  }
   // Get second mask if necessary
   if (mode_ == MASK || mode_ == MINIMAGE) {
     std::string maskexpr = actionArgs.GetMaskNext();
@@ -142,7 +143,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
                 ModeString[ mode_ ]);
       return Action::ERR;
     }
-    mask2_.SetMaskString( maskexpr );
+    if (mask2_.SetMaskString( maskexpr )) return Action::ERR;
   }
   // Set up vector dataset and IRED status
   MetaData md(actionArgs.GetStringNext(), MetaData::M_VECTOR);

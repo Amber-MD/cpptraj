@@ -35,8 +35,8 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int
     mprinterr("Error: Requires 2 masks\n");
     return Action::ERR;
   }
-  Mask1_.SetMaskString(mask1);
-  Mask2_.SetMaskString(mask2);
+  if (Mask1_.SetMaskString(mask1)) return Action::ERR;
+  if (Mask2_.SetMaskString(mask2)) return Action::ERR;
 
   // Dataset to store distances
   MetaData md(actionArgs.GetStringNext());
@@ -211,8 +211,8 @@ Action::RetType Action_MinImage::DoAction(int frameNum, ActionFrame& frm) {
           minDist_[mythread] = Dist2;
           minAtom1_[mythread] = Mask1_[m1];
           minAtom2_[mythread] = Mask2_[m2];
-//          rprintf("DEBUG: New Min Dist: Atom %i to %i (%g)\n",
-//                  Mask1_[m1]+1,Mask2_[m2]+1,sqrt(Dist2));
+          //rprintf("DEBUG: New Min Dist: Atom %i to %i (%g)\n",
+          //        Mask1_[m1]+1,Mask2_[m2]+1,sqrt(Dist2));
           //pdbout_.WriteHET(1, minxyz_[0], minxyz_[1], minxyz_[2]);
         }
       }
@@ -232,8 +232,11 @@ Action::RetType Action_MinImage::DoAction(int frameNum, ActionFrame& frm) {
       }
     ++min1;
     ++min2;
-    atom1_->Add(frameNum, &min1);
-    atom2_->Add(frameNum, &min2);
+    // By convention make atom 1 the lowest number
+    int lowest_num = std::min(min1, min2);
+    int highest_num = std::max(min1, min2);
+    atom1_->Add(frameNum, &lowest_num);
+    atom2_->Add(frameNum, &highest_num);
     Dist2 = sqrt( globalMin );
   }
 

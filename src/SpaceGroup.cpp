@@ -1,4 +1,6 @@
 #include "SpaceGroup.h"
+#include "Matrix_3x3.h"
+#include "Vec3.h"
 
 /// CONSTRUCTOR
 SpaceGroup::SpaceGroup() :

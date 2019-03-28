@@ -31,7 +31,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, ActionInit& init
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
   // Initialize Symmetric RMSD calc.
   if (SRMSD_.InitSymmRMSD( fit, useMass, debugIn )) return Action::ERR;
 
@@ -83,6 +83,8 @@ Action::RetType Action_SymmetricRmsd::Setup(ActionSetup& setup) {
   // Reference frame setup
   if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected()))
     return Action::ERR;
+  if (SRMSD_.Fit())
+    Action::CheckImageRotationWarning(setup, "the RMS fit");
   return Action::OK;
 }
 

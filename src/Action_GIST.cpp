@@ -279,7 +279,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tComputing and printing water-water Eij matrix, output to '%s'\n",
             eijfile_->Filename().full());
     mprintf("\tWater-water Eij matrix size is %s\n",
-            ByteString(ww_Eij_->SizeInBytes(), BYTE_DECIMAL).c_str());
+            ByteString(ww_Eij_->MemUsageInBytes(), BYTE_DECIMAL).c_str());
   } else
     mprintf("\tSkipping water-water Eij matrix.\n");
   mprintf("\tWater reference density: %6.4f molecules/Ang^3\n", BULK_DENS_);
@@ -504,9 +504,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   // Loop over all solute + solvent atoms
 # ifdef _OPENMP
   int mythread;
-  Iarray* eij_v1;
-  Iarray* eij_v2;
-  Farray* eij_en;
+  Iarray* eij_v1 = 0;
+  Iarray* eij_v2 = 0;
+  Farray* eij_en = 0;
 # pragma omp parallel private(aidx, mythread, E_UV_VDW, E_UV_Elec, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec, eij_v1, eij_v2, eij_en)
   {
   mythread = omp_get_thread_num();

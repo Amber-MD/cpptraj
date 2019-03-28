@@ -22,6 +22,7 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     void Info() const;
     void Add( size_t, const void* )              { return;            }
     int Allocate(SizeArray const&)               { return 0;          }
+    size_t MemUsageInBytes() const { return IDX_.DataSize() + readFrame_.DataSize(); } // FIXME
     // ----- DataSet_Coords functions ------------
     /// DISABLED: Add a frame.
     void AddFrame(Frame const& fIn) { }

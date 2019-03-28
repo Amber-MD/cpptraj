@@ -94,7 +94,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& in
   if (!dihedralIn.empty()) {
     if ( ReadDihedrals( dihedralIn ) != 0) return Action::ERR;
   } else {
-    mask_.SetMaskString( actionArgs.GetMaskNext() );
+    if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   }
 
   // CVT dataset
@@ -314,7 +314,7 @@ void Action_ClusterDihedral::Print() {
     num = 0;
     for (std::vector<long int>::const_iterator cnum = framecluster.begin();
                                                cnum != framecluster.end(); ++cnum)
-      (*iCVT)[ num++ ] = (int)*cnum + 1;
+      iCVT->SetElement( num++, (int)*cnum + 1 );
   }
 
   // Print cluster for each frame
