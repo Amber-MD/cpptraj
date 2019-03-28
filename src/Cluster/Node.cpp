@@ -174,5 +174,5 @@ const
 {
   life.Resize( maxFrames );
   for (frame_iterator f = beginframe(); f != endframe(); ++f)
-    life[ *f ] = 1;
+    life.SetElement( *f, 1);
 }
