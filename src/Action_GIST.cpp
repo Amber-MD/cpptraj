@@ -393,13 +393,13 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       isFirstSolvent = false;
     } else {
       // This is a non-solvent molecule. Save atom indices unless 1 atom (probably ion).
-      if (mol->NumAtoms() > 1) {
+      //if (mol->NumAtoms() > 1) {
         for (int u_idx = mol->BeginAtom(); u_idx != mol->EndAtom(); ++u_idx) {
           A_idxs_.push_back( u_idx );
           atom_voxel_.push_back( SOLUTE_ );
           NsoluteAtoms++;
         }
-      }
+      //}
     }
   }
   NSOLVENT_ = O_idxs_.size();
