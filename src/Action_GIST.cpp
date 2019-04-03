@@ -791,7 +791,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
 
         Vec3 H_temp;
         H_temp[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H1_wat[0];
-        H_temp[0] = (2*(x2*y2 - w2*z2)*H1_wat[1]) + H_temp[0];
+        H_temp[0] = (2*(x2*y2 + w2*z2)*H1_wat[1]) + H_temp[0];
         H_temp[0] = (2*(x2*z2-w2*y2)*H1_wat[2]) + H_temp[0];
 
         H_temp[1] = 2*(x2*y2 - w2*z2)* H1_wat[0];
@@ -807,7 +807,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         Vec3 H_temp2;
         H_temp2[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H2_wat[0];
         H_temp2[0] = (2*(x2*y2 + w2*z2)*H2_wat[1]) + H_temp2[0];
-        H_temp2[0] = (2*(x2*z2-w2*y2)+H2_wat[2]) +H_temp2[0];
+        H_temp2[0] = (2*(x2*z2-w2*y2)*H2_wat[2]) +H_temp2[0];
 
         H_temp2[1] = 2*(x2*y2 - w2*z2) *H2_wat[0];
         H_temp2[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H2_wat[1]) +H_temp2[1];
