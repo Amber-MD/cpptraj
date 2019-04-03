@@ -5,9 +5,9 @@ Fast, parallelized molecular dynamics trajectory data analysis.
 
 Build Status
 =============
-[![Travis Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
-[![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
-[![Jenkins Build Status](https://jenkins.jasonswails.com/buildStatus/icon?job=amber-github%2Fcpptraj-master?style=plastic)](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj-master/)
+* Travis-CI: [![Travis Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
+* AppVeyor: [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
+* Jenkins: [![Jenkins Build Status](https://jenkins.jasonswails.com/buildStatus/icon?job=amber-github%2Fcpptraj-master?style=plastic)](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj-master/)
 
 Description
 ===========
