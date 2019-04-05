@@ -17021,8 +17021,8 @@ xtalsymm
 \begin_inset Text
 
 \begin_layout Plain Layout
-Superimpose symmetry-related parts of a system using crystallographic symmetry
- operations.
+Re-image coordinates based on crystal space group symmetry operations and
+ asymmetric unit volume.
 \end_layout
 
 \end_inset
@@ -21228,7 +21228,7 @@ gist
 \end_layout
 
 \begin_layout LyX-Code
-     [noimage] [gridcntr <xval> <yval> <zval>]
+     [noimage] [gridcntr <xval> <yval> <zval>] [excludeions]
 \end_layout
 
 \begin_layout LyX-Code
@@ -21312,6 +21312,10 @@ rdval>]
 
 \begin_layout Description
 [noimage] Disable distance imaging in energy calculation.
+\end_layout
+
+\begin_layout Description
+[excludeions] If specified, exclude any ions from the calculation.
 \end_layout
 
 \begin_layout Description
@@ -32854,7 +32858,8 @@ xtalsymm <mask> group <space group> [collect [centroid]]
 
 \begin_deeper
 \begin_layout Description
-<mask> Select atoms to perform symmetry operations on.
+<mask> Atom mask defining the asymmetric unit within the larger system (required
+).
 \end_layout
 
 \begin_layout Description
@@ -32866,34 +32871,34 @@ group
 \begin_inset space ~
 \end_inset
 
-group> Symmetry space group (e.g.
- 
+group> The space group to which the system belongs.
+ Omit spaces in the name.
+ Example: 
 \begin_inset Quotes eld
 \end_inset
 
-P1
+P22(1)2(1)
 \begin_inset Quotes erd
 \end_inset
 
-, 
-\begin_inset Quotes eld
-\end_inset
-
-P121
-\begin_inset Quotes erd
-\end_inset
-
-, etc.)
+.
 \end_layout
 
 \begin_layout Description
-[collect] If specified, reimage solvent molecules by atom.
+[collect] Optional flag to have all solvent particles, not just the asymmetric
+ units, re-imaged.
+ This will trigger cpptraj to compute the unit cell volume that constitutes
+ the aymmetric unit and thereby classify all particles for re-imaging.
 \end_layout
 
 \begin_deeper
 \begin_layout Description
-[centroid] If specified along with collect, reimage solvent molecules by
- molecule.
+[centroid] If specified along with 
+\series bold
+collect
+\series default
+, re-image solvent molecules by centroids, not individual atom coordinates.
+ This is useful for keeping water molecules intact.
 \end_layout
 
 \end_deeper
@@ -32938,30 +32943,57 @@ refindex
 \begin_inset space ~
 \end_inset
 
-<na>] Number of replicas along the A vector (default 1).
-\end_layout
+<na>]
+\begin_inset space ~
+\end_inset
 
-\begin_layout Description
 [nb
 \begin_inset space ~
 \end_inset
 
-<nb>] Number of replicas along the B vector (default 1).
-\end_layout
+<nb>]
+\begin_inset space ~
+\end_inset
 
-\begin_layout Description
 [nc
 \begin_inset space ~
 \end_inset
 
-<nc>] Number of replicas along the C vector (default 1).
+<nc>] The number of times the crystal unit cell is replicated along the
+ “a,” “b,” or “c” axes (for orthorhombic unti cells, these are the x, y,
+ and z axes) of the simulation; default is 1.
+ Many crystal unit cells are too small in one or more dimensions for our
+ simulation cutoffs, and replicating the unit cell is an effective way to
+ counter imaging artifacts even for larger unit cells.
 \end_layout
 
 \end_deeper
 \begin_layout Standard
 Calculate the optimal approach for superimposing symmetry-related subunits
  of the simulation back onto one another.
- This modifies the coordinate state for all future actions.
+ The calculation assumes that the system is a simulation of an X-ray structure
+ in its native crystal lattice, finds all copies of the asymmetric unit
+ among the entire system, and devises plans for re-imagining their coordinates
+ to superimpose them back on the original asymmetric unit.
+ The space group information can be found in a PDB X-ray structure used
+ as the initial coordinates for a simulation.
+ All 230 space groups are supported, and a scan of the PDB was made to ensure
+ that common variants of the names are included (P2(1)22(1) is the same
+ as P22(1)2(1), but with different axis conventions).
+ If your space group is not understood, contact the Amber mailing list.
+ This command is compute intensive, especially for simulations that are
+ “supercells” containing many crystallographic unit cells.
+\end_layout
+
+\begin_layout Standard
+This command will cause cpptraj to locate all asymmetric units from within
+ the topology, then determine what wrapping, if any, has occurred in order
+ to bring about an optimal re-alignment based on the space group symmetry
+ operations.
+ The user need not worry about wrapping or drift of the simulation over
+ time–the asymmetric units will be re-imaged frame by frame.
+ Coordinate modifications due to this action are permanent and will affect
+ the results of subsequent actions and analyses.
 \end_layout
 
 \begin_layout Section
