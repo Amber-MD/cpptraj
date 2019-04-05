@@ -120,5 +120,6 @@ class Action_GIST : public Action {
     bool doOrder_;             ///< If true do the order calc
     bool doEij_;               ///< If true do the i-j energy calc
     bool skipE_;               ///< If true skip the nonbond energy calc
+    bool includeIons_;         ///< If true include ions in solute region.
 };
 #endif
