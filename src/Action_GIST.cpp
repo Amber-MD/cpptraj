@@ -43,15 +43,17 @@ Action_GIST::Action_GIST() :
   max_nwat_(0),
   doOrder_(false),
   doEij_(false),
-  skipE_(false)
+  skipE_(false),
+  includeIons_(true)
 {}
 
 void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [refdens <rdval>] [temp <tval>]\n"
-          "\t[noimage] [gridcntr <xval> <yval> <zval>]\n"
+          "\t[noimage] [gridcntr <xval> <yval> <zval>] [excludeions]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output>]\n"
-          "\t[info <info>]\n");
+          "\t[info <info>]\n"
+          "Perform Grid Inhomogenous Solvation Theory calculation.\n");
 }
 
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -92,6 +94,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   DataFile* file_dipoley = init.DFL().AddDataFile(prefix_ + "-dipoley-dens" + ext);
   DataFile* file_dipolez = init.DFL().AddDataFile(prefix_ + "-dipolez-dens" + ext);
   // Other keywords
+  includeIons_ = !actionArgs.hasKey("excludeions");
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
@@ -275,6 +278,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (numthreads > 1)
       mprintf("\tParallelizing energy calculation with %i threads.\n", numthreads);
   }
+  if (includeIons_)
+    mprintf("\tIons will be included in the solute region.\n");
+  else
+    mprintf("\tIons will be excluded from the calculation.\n");
   if (doEij_) {
     mprintf("\tComputing and printing water-water Eij matrix, output to '%s'\n",
             eijfile_->Filename().full());
@@ -392,14 +399,15 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       }
       isFirstSolvent = false;
     } else {
-      // This is a non-solvent molecule. Save atom indices unless 1 atom (probably ion).
-      //if (mol->NumAtoms() > 1) {
+      // This is a non-solvent molecule. Save atom indices. May want to exclude
+      // if only 1 atom (probably ion).
+      if (mol->NumAtoms() > 1 || includeIons_) {
         for (int u_idx = mol->BeginAtom(); u_idx != mol->EndAtom(); ++u_idx) {
           A_idxs_.push_back( u_idx );
           atom_voxel_.push_back( SOLUTE_ );
           NsoluteAtoms++;
         }
-      //}
+      }
     }
   }
   NSOLVENT_ = O_idxs_.size();
