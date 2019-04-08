@@ -10,6 +10,16 @@ DataSet_3D::DataSet_3D(DataSet_3D const& rhs) : DataSet(rhs), gridBin_(0) {
   if (rhs.gridBin_ != 0) gridBin_ = rhs.gridBin_->Copy();
 }
 
+// ASSIGNMENT
+DataSet_3D& DataSet_3D::operator=(DataSet_3D const& rhs) {
+  if (this == &rhs) return *this;
+  DataSet::operator=(rhs);
+  if (gridBin_ != 0) delete gridBin_;
+  gridBin_ = 0;
+  if (rhs.gridBin_ != 0) gridBin_ = rhs.gridBin_->Copy();
+  return *this;
+}
+
 // DataSet_3D::Allocate_N_O_Box()
 int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz, 
                                  Vec3 const& oxyz, Box const& boxIn)
