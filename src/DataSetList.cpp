@@ -821,10 +821,10 @@ int DataSetList::SetActiveReference(ArgList &argIn) {
   return SetActiveReference( ds );
 }
 
-int DataSetList::SetActiveReference(DataSet* ds) {
-  if (ds == 0) return 1;
-  activeRef_ = ds;
-  ReferenceFrame REF((DataSet_Coords_REF*)ds);
+int DataSetList::SetActiveReference(DataSet* dsIn) {
+  if (dsIn == 0) return 1;
+  activeRef_ = dsIn;
+  ReferenceFrame REF((DataSet_Coords_REF*)dsIn);
   mprintf("\tSetting active reference for distance-based masks: '%s'\n", REF.refName());
   // Set in all Topologies and COORDS data sets.
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)

@@ -78,13 +78,13 @@ int ViewRst::WriteRstMol2(std::string const& mol2out, Frame const& frameIn) {
   return 0;
 }
 
-int ViewRst::WriteRstTop(std::string const& topOut) {
+int ViewRst::WriteRstTop(std::string const& topOutName) {
   if (Pseudo_.empty()) return 0;
-  if (topOut.empty()) {
+  if (topOutName.empty()) {
     mprinterr("Internal Error: No topology output name given.\n");
     return 1;
   }
-  std::vector< FileName > OutNames = GenerateOutNames(topOut);
+  std::vector< FileName > OutNames = GenerateOutNames(topOutName);
 
   for (unsigned int nt = 0; nt != Pseudo_.size(); nt++) {
     ParmFile topOut;
