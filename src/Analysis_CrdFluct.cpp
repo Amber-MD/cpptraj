@@ -84,28 +84,30 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, AnalysisSetup& 
 }
 
 // Analysis_CrdFluct::CalcBfactors()
-void Analysis_CrdFluct::CalcBfactors( Frame SumCoords, Frame SumCoords2, double Nsets,
+void Analysis_CrdFluct::CalcBfactors( Frame const& SumCoords, Frame const& SumCoords2, double Nsets,
                                       DataSet& outset )
 {
-  SumCoords.Divide(Nsets);
-  SumCoords2.Divide(Nsets);
-  //SumCoords2 = SumCoords2 - (SumCoords * SumCoords);
-  SumCoords *= SumCoords;
-  SumCoords2 -= SumCoords;
+  for (int ix = 0; ix != SumCoords.size(); ix++) {
+    sum_[ix]  = SumCoords[ix]  / Nsets;
+    sum2_[ix] = SumCoords2[ix] / Nsets;
+  }
+  //sum2_ = sum2_ - (sum_ * sum_);
+  sum_ *= sum_;
+  sum2_ -= sum_;
   AtomMask::const_iterator maskat = mask_.begin();
   if (bfactor_) {
     // Set up b factor normalization
     // B-factors are (8/3)*PI*PI * <r>**2 hence we do not sqrt the fluctuations
     double bfac = (8.0/3.0)*Constants::PI*Constants::PI;
-    for (int i = 0; i < SumCoords2.size(); i+=3) {
-      double fluct = (SumCoords2[i] + SumCoords2[i+1] + SumCoords2[i+2]) * bfac;
+    for (int i = 0; i < sum2_.size(); i+=3) {
+      double fluct = (sum2_[i] + sum2_[i+1] + sum2_[i+2]) * bfac;
       outset.Add( *maskat, &fluct );
       ++maskat; 
     }
   } else {
     // Atomic fluctuations
-    for (int i = 0; i < SumCoords2.size(); i+=3) {
-      double fluct = SumCoords2[i] + SumCoords2[i+1] + SumCoords2[i+2];
+    for (int i = 0; i < sum2_.size(); i+=3) {
+      double fluct = sum2_[i] + sum2_[i+1] + sum2_[i+2];
       if (fluct > 0)
         outset.Add( *maskat, &fluct );
       ++maskat;
@@ -127,6 +129,8 @@ Analysis::RetType Analysis_CrdFluct::Analyze() {
   SumCoords.ZeroCoords();
   Frame SumCoords2( mask_.Nselected() );
   SumCoords2.ZeroCoords();
+  sum_ = SumCoords;
+  sum2_ = SumCoords2;
   int w_count = 0;
   SetList::iterator out = outSets_.begin();
   for (int frame = 0; frame < end; frame++) {
