@@ -35,8 +35,8 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int
     mprinterr("Error: Requires 2 masks\n");
     return Action::ERR;
   }
-  Mask1_.SetMaskString(mask1);
-  Mask2_.SetMaskString(mask2);
+  if (Mask1_.SetMaskString(mask1)) return Action::ERR;
+  if (Mask2_.SetMaskString(mask2)) return Action::ERR;
 
   // Dataset to store distances
   MetaData md(actionArgs.GetStringNext());

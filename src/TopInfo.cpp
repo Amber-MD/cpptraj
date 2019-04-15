@@ -271,7 +271,7 @@ int TopInfo::SetupMask(CharMask& maskIn) const {
 // TopInfo::SetupMask()
 int TopInfo::SetupMask(std::string const& maskexp, CharMask& maskIn) const {
   if (maskexp.empty()) return 0;
-  maskIn.SetMaskString( maskexp );
+  if (maskIn.SetMaskString( maskexp )) return 1;
   return SetupMask( maskIn );
 }
 

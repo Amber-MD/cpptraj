@@ -51,10 +51,10 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, ActionInit& init, int
     mprinterr("Error: dihedral requires 4 masks\n");
     return Action::ERR;
   }
-  M1_.SetMaskString(mask1);
-  M2_.SetMaskString(mask2);
-  M3_.SetMaskString(mask3);
-  M4_.SetMaskString(mask4);
+  if (M1_.SetMaskString(mask1)) return Action::ERR;
+  if (M2_.SetMaskString(mask2)) return Action::ERR;
+  if (M3_.SetMaskString(mask3)) return Action::ERR;
+  if (M4_.SetMaskString(mask4)) return Action::ERR;
 
   // Setup dataset
   dih_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(), dsidx,

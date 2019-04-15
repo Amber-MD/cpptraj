@@ -32,7 +32,7 @@ Action::RetType Action_InfraredSpectrum::Init(ArgList& actionArgs, ActionInit& i
   useFFT_ = !actionArgs.hasKey("direct");
   maxLag_ = actionArgs.getKeyInt("maxlag", -1);
   tstep_ = actionArgs.getKeyDouble("tstep", 1.0);
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   previousNselected_ = -1;
   // DataSet
   Vel_ = (DataSet_Vector*)

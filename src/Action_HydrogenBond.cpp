@@ -96,37 +96,37 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   // Get donor mask
   std::string mask = actionArgs.GetStringKey("donormask");
   if (!mask.empty()) {
-    DonorMask_.SetMaskString(mask);
+    if (DonorMask_.SetMaskString(mask)) return Action::ERR;
     hasDonorMask_=true;
     // Get donorH mask (if specified)
     mask = actionArgs.GetStringKey("donorhmask");
     if (!mask.empty()) {
-      DonorHmask_.SetMaskString(mask);
+      if (DonorHmask_.SetMaskString(mask)) return Action::ERR;
       hasDonorHmask_=true;
     }
   }
   // Get acceptor mask
   mask = actionArgs.GetStringKey("acceptormask");
   if (!mask.empty()) {
-    AcceptorMask_.SetMaskString(mask);
+    if (AcceptorMask_.SetMaskString(mask)) return Action::ERR;
     hasAcceptorMask_=true;
   }
   // Get solvent donor mask
   mask = actionArgs.GetStringKey("solventdonor");
   if (!mask.empty()) {
-    SolventDonorMask_.SetMaskString(mask);
+    if (SolventDonorMask_.SetMaskString(mask)) return Action::ERR;
     hasSolventDonor_ = true;
     calcSolvent_ = true;
   }
   // Get solvent acceptor mask
   mask = actionArgs.GetStringKey("solventacceptor");
   if (!mask.empty()) {
-    SolventAcceptorMask_.SetMaskString(mask);
+    if (SolventAcceptorMask_.SetMaskString(mask)) return Action::ERR;
     hasSolventAcceptor_ = true;
     calcSolvent_ = true;
   }
   // Get generic mask
-  Mask_.SetMaskString(actionArgs.GetMaskNext());
+  if (Mask_.SetMaskString(actionArgs.GetMaskNext())) return Action::ERR;
 
   // Setup datasets
   hbsetname_ = actionArgs.GetStringNext();

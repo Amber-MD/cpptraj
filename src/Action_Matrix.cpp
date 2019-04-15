@@ -112,7 +112,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
     }
   } else {
     // Get masks if not IRED/DIHCOVAR
-    mask1_.SetMaskString( actionArgs.GetMaskNext() );
+    if (mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
     std::string maskexpr = actionArgs.GetMaskNext();
     if (!maskexpr.empty()) useMask2_ = true;
     if ( useMask2_ && (mtype == MetaData::IDEA || mtype == MetaData::DISTCOVAR) )
@@ -123,7 +123,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       return Action::ERR;
     }
     if (useMask2_) {
-      mask2_.SetMaskString( maskexpr );
+      if (mask2_.SetMaskString( maskexpr )) return Action::ERR;
       mkind = DataSet_2D::FULL;
     }
   }

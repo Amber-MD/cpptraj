@@ -128,7 +128,7 @@ Action::RetType Action_Molsurf::Init(ArgList& actionArgs, ActionInit& init, int 
   }
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Dataset to store angles
   sasa_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"MSURF");

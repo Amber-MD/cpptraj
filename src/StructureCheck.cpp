@@ -31,9 +31,10 @@ int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsI
   bondoffset_ = bondLengthOffset;
   nonbondcut2_ = overlapCut * overlapCut; // Save cutoff squared.
   plcut_ = pairListCut;
-  Mask1_.SetMaskString( mask1 );
-  if (!mask2.empty())
-    Mask2_.SetMaskString( mask2 );
+  if (Mask1_.SetMaskString( mask1 )) return 1;
+  if (!mask2.empty()) {
+    if (Mask2_.SetMaskString( mask2 )) return 1;
+  }
   // TODO error checking
   # ifdef _OPENMP
   // Each thread needs space to store problems to prevent clashes

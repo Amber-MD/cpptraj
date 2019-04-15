@@ -41,7 +41,7 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, ActionInit& ini
     init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
-  mask_.SetMaskString(maskexpr);
+  if (mask_.SetMaskString(maskexpr)) return Action::ERR;
 
   // Get extra args
   tempInKevin_ = actionArgs.getKeyDouble("temp", 293.0);

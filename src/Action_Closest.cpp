@@ -112,7 +112,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
     mprinterr("Error: No mask specified.\n");
     return Action::ERR;
   }
-  distanceMask_.SetMaskString(mask1);
+  if (distanceMask_.SetMaskString(mask1)) return Action::ERR;
 
   mprintf("    CLOSEST: Finding closest %i solvent molecules to atoms in mask %s\n",
           closestWaters_, distanceMask_.MaskString());
