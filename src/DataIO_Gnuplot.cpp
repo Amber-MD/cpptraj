@@ -396,7 +396,7 @@ const char* DataIO_Gnuplot::BasicPalette[]= {
 void DataIO_Gnuplot::WriteDefinedPalette(int ncolors) {
   float mincolor = -0.5;
   float maxcolor = (float)ncolors - 0.5;
-  file_.Printf("set cbrange [%8.3f:%8.3f]\nset cbtics %8.3f %8.3f 1.0\n",
+  file_.Printf("set cbrange [%8.3f:%8.3f]\nset cbtics %8.3f,%8.3f,1.0\n",
                mincolor, maxcolor, mincolor + 0.5, maxcolor - 0.5);
   file_.Printf("set palette maxcolors %i\n", ncolors);
   // NOTE: Giving gnuplot too many colors can mess up the palette 
