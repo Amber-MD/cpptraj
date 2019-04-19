@@ -1081,7 +1081,7 @@ void Action_GIST::Print() {
       bool cannotAddX = (gr_pt >= addx * (nx-1) && gr_pt < addx * nx );
       bool cannotSubZ = (nz == 0 || gr_pt%nz == 0);
       bool cannotSubY = ((nz == 0 || ny == 0) || (gr_pt%addx < nz));
-      bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt >= 0 && gr_pt < addx));
+      bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt < addx));
       bool boundary = ( cannotAddZ || cannotAddY || cannotAddX ||
                         cannotSubZ || cannotSubY || cannotSubX );
       if (!boundary) {
