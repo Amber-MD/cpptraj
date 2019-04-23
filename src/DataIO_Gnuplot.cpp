@@ -63,15 +63,15 @@ int DataIO_Gnuplot::ReadBinaryData(FileName const& fname,
   bIn.Read( &Vals[0], ncols*sizeof(float) );
   for (std::vector<float>::const_iterator it = Vals.begin(); it != Vals.end(); ++it)
     Xvals.push_back( (double)*it );
-  // Keep reading rows until no more found.
-  int nread = 1;
-  while (nread > 0) {
-    // Read Y value
-    if (bIn.Read( &fval, sizeof(float) ) != sizeof(float)) break;
+  // Read Y value. Keep reading rows until no more found.
+  unsigned int nread = bIn.Read( &fval, sizeof(float) );
+  while (nread == sizeof(float)) {
     Yvals.push_back( (double)fval );
     bIn.Read( &Vals[0], ncols*sizeof(float) );
     for (std::vector<float>::const_iterator it = Vals.begin(); it != Vals.end(); ++it)
       matrix_Rmajor.push_back( (double)*it );
+    // Read next Y value
+    nread = bIn.Read( &fval, sizeof(float) );
   }
   bIn.CloseFile();
   mprintf("\t%zu rows, %i cols (%zu), %zu vals\n", Yvals.size(), ncols, Xvals.size(), matrix_Rmajor.size());
