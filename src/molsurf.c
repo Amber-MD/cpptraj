@@ -5141,15 +5141,15 @@ static int cusp_match (int lastvert, int ncusps, int cusp_index[],
 }
 
 // -----------------------------------------------------------------------------
-static int normal_match (CONCAVE_CYCLE tmp_cycle, EDGE concave_edge[], 
+static int normal_match (CONCAVE_CYCLE const* tmp_cycle, EDGE concave_edge[], 
                          int lastvert, int edge_used[])
 {
   int i, ie;
 
-  for (i = 0; i < tmp_cycle.nedges; ++i) {
+  for (i = 0; i < tmp_cycle->nedges; ++i) {
 	if (edge_used[i])
 	  continue;
-	ie = tmp_cycle.edge[i];
+	ie = tmp_cycle->edge[i];
 	if (concave_edge[ie].alive == 0)
 	  continue;
 	if (concave_edge[ie].vert1 == lastvert ||
@@ -5233,7 +5233,7 @@ static int split_face (int iface,
     while (nextvert != firstvert) {
       // 1st look through "normal" edges for next vertex 
       // also include cusp edges that are not dead 
-      ie = normal_match (tmp_cycle, concave_edge, nextvert, edge_used);
+      ie = normal_match (&tmp_cycle, concave_edge, nextvert, edge_used);
       // ie != -1: normal cusp was found
       if (ie != -1) {
         concave_cycle[two_cycle[jj]].edge[i] = tmp_cycle.edge[ie];
