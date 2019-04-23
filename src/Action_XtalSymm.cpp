@@ -52,9 +52,10 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   molCentToASU_ = actionArgs.hasKey("centroid");
   // Allocate space to hold all of the symmetry operations.
   // No space group has more than 96.
-  R_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Matrix_3x3());
-  T_.assign(   96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
-  RefT_.assign(96 * nCopyA_ * nCopyB_ * nCopyC_, Vec3());
+  size_t nCopyTotal = (96 * (size_t)nCopyA_ * (size_t)nCopyB_ * (size_t)nCopyC_);
+  R_.assign(   nCopyTotal, Matrix_3x3());
+  T_.assign(   nCopyTotal, Vec3());
+  RefT_.assign(nCopyTotal, Vec3());
   // Load symmetry operations for space group
   SpaceGroup SG;
   sgID_ = SG.ID( spaceGrp_ );
@@ -71,7 +72,7 @@ Action::RetType Action_XtalSymm::Init(ArgList& actionArgs, ActionInit& init, int
   }
   // Prepare a table of transposed (inverse) rotation matrices
   Rinv_.clear();
-  Rinv_.reserve( 96 * nCopyA_ * nCopyB_ * nCopyC_ );
+  Rinv_.reserve( nCopyTotal );
   for (int i = 0; i < nops_; i++)
     Rinv_.push_back( R_[i].Transposed() );
 
