@@ -504,9 +504,9 @@ Analysis::RetType Analysis_Hist::Analyze() {
   return Analysis::OK;
 }
 
-/** Calculate free energy based on bin populations.  */
+/** Calculate free energy based on bin populations.  */ // TODO add refbin
 int Analysis_Hist::CalcFreeE() {
-  int refbin = -1; // TODO: re-enable
+//  int refbin = -1; // TODO: re-enable
     mprintf("\tHistogram: Calculating free E at %f K.\n",Temp_);
   // TODO: Make Kb a constant
   double KT = (-Constants::GASK_KCAL * Temp_);
@@ -524,14 +524,14 @@ int Analysis_Hist::CalcFreeE() {
     return 1;
   }
 
-  // If requested, set up reference bin other than max
+/*  // If requested, set up reference bin other than max
   if (refbin>-1) {
     if (Bins_[refbin] > 0) {
       binmax = Bins_[refbin];
       mprintf("\t           Calculating free E w.r.t bin %i, population %f\n",refbin,binmax);
     } else
       mprintf("Warning: Reference bin %i has no population. Using %f\n",refbin,binmax);
-  }
+  }*/
 
   // Set artificial ceiling for bins with 0 population. Make it equivalent
   // to a bin population of 0.5. 
