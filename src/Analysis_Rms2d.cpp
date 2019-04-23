@@ -167,7 +167,8 @@ Analysis::RetType Analysis_Rms2d::Analyze() {
   // Ensure # ref atoms == # tgt atoms
   if (RefMask_.Nselected() != TgtMask_.Nselected()) {
     mprinterr("Error: # Selected atoms in '%s' not equal to selected # atoms in\n"
-              "Error:   '%s' (%i)\n", TgtMask_.MaskString(), RefMask_.MaskString());
+              "Error:   '%s' (%i)\n", TgtMask_.MaskString(), RefMask_.MaskString(),
+              RefMask_.Nselected());
     return Analysis::ERR;
   }
   // Set up symmetry-corrected RMSD calc if necessary - always fit!

@@ -724,7 +724,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               if (T->Type() == OP_MINUS || T->Type() == OP_PLUS) {
                 if (M1.Nrows() != M2.Nrows() || M1.Ncols() != M2.Ncols()) {
                   mprinterr("Error: Matrix operation '%s' requires both matrices have same #"
-                            " of rows and columns.\n");
+                            " of rows and columns.\n", T->Description());
                   return 1;
                 }
               } else {
@@ -754,7 +754,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               if (T->Type() == OP_MINUS || T->Type() == OP_PLUS) {
                 if (G1.NX() != G2.NX() || G1.NY() != G2.NY() || G1.NZ() != G2.NZ()) {
                   mprinterr("Error: Grid operation '%s' requires both grids have"
-                            " same dimensions.\n");
+                            " same dimensions.\n", T->Description());
                   return 1;
                 }
               } else {

@@ -79,7 +79,7 @@ const {
     }
   }
   if (numexchg < 1) {
-    mprinterr("Error: Invalid number of exchanges (%i) in rem log.\n");
+    mprinterr("Error: Invalid number of exchanges (%i) in rem log.\n", numexchg);
     return -1;
   }
   if (type == UNKNOWN) {

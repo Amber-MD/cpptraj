@@ -464,7 +464,8 @@ void Ewald::Setup_VDW_Correction(Topology const& topIn, AtomMask const& maskIn) 
   Vdw_Recip_term_ = 0.0;
   NB_ = static_cast<NonbondParmType const*>( &(topIn.Nonbond()) );
   if (!NB_->HasNonbond()) {
-    mprintf("Warning: '%s' has no nonbonded parameters. Cannot calculate VDW correction.\n");
+    mprintf("Warning: '%s' has no nonbonded parameters. Cannot calculate VDW correction.\n",
+            topIn.c_str());
     return;
   }
   // Count the number of each unique nonbonded type.

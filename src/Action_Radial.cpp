@@ -290,7 +290,7 @@ const
 {
   if (mask.Nselected() < 1) return 1;
   if (top.Nmol() < 1) {
-    mprinterr("Error: No topology info for '%s', cannot set up sites by molecule.\n");
+    mprinterr("Error: No topology info for '%s', cannot set up sites by molecule.\n", top.c_str());
     return -1;
   }
   sites.clear();

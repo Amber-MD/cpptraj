@@ -94,7 +94,7 @@ int Exec_Help::Masks(ArgList& argIn) const {
   mprintf("    CPPTRAJ mask syntax.\n"
           "  *** Basic selection ***\n"
           "    @{list}  : Select atoms by number/name. E.g. '@1-5,12-17,20', '@CA', '@CA,C,O,N,H'\n"
-          "    @%{list} : Select atom types. E.g. '@%%CT'\n"
+          "    @%%{list} : Select atom types. E.g. '@%%CT'\n"
           "    @/{list} : Select atom elements. E.g. '@/N'\n"
           "    :{list}  : Select residues by number/name. E.g. ':1-10,15,19-22', ':LYS', ':ASP,ALA'\n"
           "    :/{list} : Select residues by chain ID. E.g. ':/B', ':/A,D'.\n"

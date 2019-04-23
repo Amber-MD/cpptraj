@@ -225,7 +225,8 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
   if (OXYZ[0] < 0.0 || OXYZ[1] < 0.0 || OXYZ[2] < 0.0 ||
       OXYZ[0] > 0.0 || OXYZ[1] > 0.0 || OXYZ[2] > 0.0)
     mprintf("Warning: Grid '%s' origin is not 0.0, 0.0, 0.0\n"
-            "Warning:  Origin other than 0.0 not yet supported for CCP4 write.\n");
+            "Warning:  Origin other than 0.0 not yet supported for CCP4 write.\n",
+             grid.legend());
   // Set default title if none set 
   if (title_.empty())
     title_.assign("CPPTRAJ CCP4 map volumetric data, set '" + grid.Meta().Legend() +
