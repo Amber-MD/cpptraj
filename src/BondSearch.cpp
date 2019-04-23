@@ -125,7 +125,8 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   int nynz = ny*nz;
   typedef std::vector<int> Iarray;
   typedef std::vector<Iarray> I2array;
-  I2array GridIdx(nx * ny * nz);
+  size_t gridSize = ((size_t)nx * (size_t)ny * (size_t)nz);
+  I2array GridIdx( gridSize );
   unsigned int nentries = 0;
   //mprintf("\t%6s %6s %6s %6s\n", "X", "Y", "Z", "IDX"); // DEBUG
   for (int x = 0; x < nx; x++) {
@@ -173,7 +174,7 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   // ----- STEP 2: Determine which atoms are eligible to form bonds
   //               with other residues.
   //mprintf("DEBUG: Min= %8.3f %8.3f %8.3f\n", min[0], min[1], min[2]); // DEBUG
-  I2array GridAtm(nx * ny * nz);
+  I2array GridAtm( gridSize );
   for (int at = 0; at != top.Natom(); at++) {
     Atom const& atm = top[at];
     // Do not form between-residue bonds using hydrogen.
