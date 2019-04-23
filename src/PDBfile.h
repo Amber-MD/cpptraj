@@ -99,7 +99,7 @@ class PDBfile::SSBOND {
     SSBOND();
     SSBOND(int, int, Residue const&, Residue const&);
     SSBOND(SSBOND const&);
-    SSBOND operator=(SSBOND const&);
+    SSBOND& operator=(SSBOND const&);
     const char* name1() const { return name1_; }
     const char* name2() const { return name2_; }
     int Idx1()  const { return idx1_;  }
@@ -130,7 +130,7 @@ class PDBfile::Link {
     Link(const char*, char, const char*, char, int, char,
          const char*, char, const char*, char, int, char);
     Link(Link const&);
-    Link operator=(Link const&);
+    Link& operator=(Link const&);
     int Rnum1() const { return rnum1_; }
     int Rnum2() const { return rnum2_; }
     const char* aname1() const { return aname1_; }
