@@ -156,7 +156,7 @@ int DataIO_CCP4::ReadData(FileName const& fname,
   }
   // FIXME: Grids are currently indexed so Z is fastest changing.
   //        Should be able to change indexing in grid DataSet.
-  size_t mapSize = buffer.i[7] * buffer.i[8] * buffer.i[9];
+  size_t mapSize = (size_t)buffer.i[7] * (size_t)buffer.i[8] * (size_t)buffer.i[9];
   mprintf("\tCCP4 map has %zu elements\n", mapSize);
   mprintf("\tDensity: Min=%f  Max=%f  Mean=%f  RMS=%f\n",
           buffer.f[19], buffer.f[20], buffer.f[21], buffer.f[54]);

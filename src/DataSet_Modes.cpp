@@ -50,9 +50,9 @@ size_t DataSet_Modes::MemUsageInBytes() const {
                   (2 * sizeof(int)) +
                   (3 * sizeof(bool));
   if (evalues_ != 0)
-    mySize += (nmodes_ * sizeof(double));
+    mySize += ((size_t)nmodes_ * sizeof(double));
   if (evectors_ != 0)
-    mySize += (nmodes_ * vecsize_ * sizeof(double));
+    mySize += ((size_t)nmodes_ * (size_t)vecsize_ * sizeof(double));
   return mySize;
 }
 

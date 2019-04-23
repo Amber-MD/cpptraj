@@ -283,7 +283,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
   // Each SH value has a real + imaginary component.
   // [m-2R0][m-2I0][m-2R1][m-2I1] ... [m-2RN][m-2IN][m-1R0][m-1I0] ... [m+2RN][m+2IN]
   int ltot = 2 * order_ + 1; // Total # l values
-  std::vector<double> cf_tmp( modinfo_->Nmodes() * ltot * Nframes * 2, 0.0 );
+  std::vector<double> cf_tmp( (size_t)modinfo_->Nmodes() *
+                              (size_t)ltot *
+                              (size_t)Nframes * 2, 0.0 );
   // Project SH for each IRED vector on eigenvectors
   for (unsigned int vidx = 0; vidx != IredVectors_.size(); vidx++)
   {
