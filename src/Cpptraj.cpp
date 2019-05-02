@@ -630,7 +630,7 @@ int Cpptraj::Interactive() {
     // Write logfile header entry: date, cmd line opts, topologies
     logfile_.Printf("# %s\n", TimeString().c_str());
     if (!commandLine_.empty())
-      logfile_.Printf("#%s\n", commandLine_.c_str());
+      logfile_.Write(commandLine_.c_str(), commandLine_.size()*sizeof(char));
     DataSetList tops = State_.DSL().GetSetsOfType("*", DataSet::TOPOLOGY);
     if (!tops.empty()) {
       logfile_.Printf("# Loaded topologies:\n");
