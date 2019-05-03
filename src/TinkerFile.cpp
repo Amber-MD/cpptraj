@@ -166,7 +166,7 @@ int TinkerFile::CheckTitleLine() {
   file_.TokenizeLine(" ");
   int lineNatom = atoi( file_.NextToken() );
   if (lineNatom != natom_) {
-    mprinterr("Error: Number of atoms in Tinker file changes from %i to %i\n",
+    mprinterr("Error: Number of atoms in Tinker file changes from %i to %i\n"
               "Error: at line %i\n", natom_, lineNatom, file_.LineNumber());
     return 1;
   }
