@@ -382,14 +382,14 @@ Analysis::RetType Analysis_Hist::Analyze() {
   {
     //mprintf("DEBUG: DS %s size %i\n",histdata[hd]->Name(),histdata[hd]->Xmax()+1);
     if (Ndata != (*ds)->Size()) {
-      mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%u), expected %u.\n",
+      mprinterr("Error: Hist: Dataset %s has inconsistent # data points (%zu), expected %zu.\n",
                 (*ds)->legend(), (*ds)->Size(), Ndata);
       return Analysis::ERR;
     }
   }
-  mprintf("\tHist: %u data points in each dimension.\n", Ndata);
+  mprintf("\tHist: %zu data points in each dimension.\n", Ndata);
   if (calcAMD_ && Ndata != amddata_->Size()) {
-    mprinterr("Error: Hist: AMD data set size (%i) does not match # expected data points (%i).\n",
+    mprinterr("Error: Hist: AMD data set size (%zu) does not match # expected data points (%zu).\n",
               amddata_->Size(), Ndata);
     return Analysis::ERR;
   }
@@ -414,7 +414,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
       }
       // Calculate index for this particular dimension (idx)
       long int idx = (long int)((dval - dim->Min()) / dim->Step());
-      if (debug_>1) mprintf(" [%s:%f (%i)],", dim->label(), dval, idx);
+      if (debug_>1) mprintf(" [%s:%f (%li)],", dim->label(), dval, idx);
       // Calculate overall index in Bins, offset has already been calcd.
       index += (idx * (*bOff));
     }
@@ -426,7 +426,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
       else
         Bins_[index]++;
     } else {
-      mprintf("\tWarning: Frame %u Coordinates out of bounds (%li)\n", n+1, index);
+      mprintf("\tWarning: Frame %zu Coordinates out of bounds (%li)\n", n+1, index);
     }
     if (debug_>1) mprintf("}\n");
   }

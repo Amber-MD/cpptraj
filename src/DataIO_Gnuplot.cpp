@@ -593,13 +593,13 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
       // Set up X and Y labels
       if (!Ylabels_.empty()) {
         if ( Ylabels_.size() != set.Nrows() )
-          mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%u)\n",
+          mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%zu)\n",
                   Ylabels_.size(), set.Nrows());
         WriteLabels(Ylabels_, Ydim, 'y');
       }
       if (!Xlabels_.empty()) {
         if ( Xlabels_.size() != set.Ncols() )
-          mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%u)\n",
+          mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%zu)\n",
                   Xlabels_.size(), set.Ncols());
         WriteLabels(Xlabels_, Xdim, 'x'); 
       }

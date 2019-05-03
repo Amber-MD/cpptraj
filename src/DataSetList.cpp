@@ -842,7 +842,7 @@ void DataSetList::ListReferenceFrames() const {
   if (!RefList_.empty()) {
     mprintf("\nREFERENCE FRAMES (%zu total):\n", RefList_.size());
     for (DataListType::const_iterator ref = RefList_.begin(); ref != RefList_.end(); ++ref)
-      mprintf("    %u: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
+      mprintf("    %li: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
     if (activeRef_ != 0)
       mprintf("\tActive reference frame for distance-based masks is '%s'\n", activeRef_->legend());
   }
