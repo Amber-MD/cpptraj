@@ -275,7 +275,7 @@ const
   if (debug_ > 1) {
     mprintf("DEBUG: Sites selected by residue for '%s'\n", mask.MaskString());
     for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
-      mprintf("%8u :", m - sites.begin());
+      mprintf("%8li :", m - sites.begin());
       for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
         mprintf(" %i", *at);
       mprintf("\n");
@@ -309,7 +309,7 @@ const
   if (debug_ > 1) {
     mprintf("DEBUG: Sites selected by molecule for '%s'\n", mask.MaskString());
     for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
-      mprintf("%8u :", m - sites.begin());
+      mprintf("%8li :", m - sites.begin());
       for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
         mprintf(" %i", *at);
       mprintf("\n");

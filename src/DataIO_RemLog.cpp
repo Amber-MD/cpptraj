@@ -595,7 +595,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
       for (unsigned int grp = 0; grp < GroupDims[dim].size(); grp++) {
         if (group_size != (int)GroupDims[dim][grp].size()) {
           mprinterr("Error: Number of replicas in dimension %i (%i) does not match\n"
-                    "Error: number of replicas in remd.dim file (%u)\n",
+                    "Error: number of replicas in remd.dim file (%zu)\n",
                     dim+1, group_size, GroupDims[dim][grp].size());
           return 1;
         }
