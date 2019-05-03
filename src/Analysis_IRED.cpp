@@ -138,7 +138,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   }
 
   // Print Status
-  mprintf("    IRED: %u iRED vectors.\n", IredVectors_.size());
+  mprintf("    IRED: %zu iRED vectors.\n", IredVectors_.size());
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (orderout != 0)
     mprintf("\tOrder parameters will be written to '%s'\n", orderout->DataFilename().full());
@@ -248,7 +248,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
       Nframes = (*Vtmp)->Size();
     else if (Nframes != (int)(*Vtmp)->Size()) {
       mprinterr("Error: All iRED vectors must have the same size.\n"
-                "Error:   Vector %s size = %i, first vector size = %i\n",
+                "Error:   Vector %s size = %zu, first vector size = %i\n",
                 (*Vtmp)->legend(), (*Vtmp)->Size(), Nframes);
       return Analysis::ERR;
     }

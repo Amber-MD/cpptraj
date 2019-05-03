@@ -186,8 +186,8 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     if (info != 0) {
       if (info < 0) {
         mprinterr("Internal Error: from dspev: Argument %i had illegal value.\n", -info);
-        mprinterr("Args: %c %c %i matrix %x %x %i work %i\n", jobz, uplo, ncols,
-                  evalues_, evectors_, vecsize_, info);
+        mprinterr("Args: %c %c %i matrix %p %p %i work %i\n", jobz, uplo, ncols,
+                  (void*)evalues_, (void*)evectors_, vecsize_, info);
       } else { // info > 0
         mprinterr("Internal Error: from dspev: The algorithm failed to converge.\n");
         mprinterr("%i off-diagonal elements of an intermediate tridiagonal form\n", info);
