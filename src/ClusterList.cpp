@@ -381,7 +381,7 @@ void ClusterList::Summary_Part(std::string const& summaryfile,
   eidx=0;
   for (std::vector<double>::const_iterator pm = partMax.begin(); pm != partMax.end(); ++pm) {
     if (pm != partMax.begin()) outfile.Printf("  ");
-    outfile.Printf("%u%s= %.0f", pm - partMax.begin() + 1, nExt[eidx], *pm);
+    outfile.Printf("%li%s= %.0f", pm - partMax.begin() + 1, nExt[eidx], *pm);
     if (eidx < 3) ++eidx;
   }
   outfile.Printf("\n");
@@ -474,7 +474,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename) const {
               filename.c_str());
     return;
   }
-  outfile.Printf("#Clustering: %u clusters %i frames\n",
+  outfile.Printf("#Clustering: %zu clusters %i frames\n",
                  clusters_.size(), FrameDistances().OriginalNframes());
   ComputeDBI( outfile );
   ComputePseudoF( outfile );
@@ -524,7 +524,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename) const {
 /** Print list of clusters and frame numbers belonging to each cluster.
   */
 void ClusterList::PrintClusters() const {
-  mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(),
+  mprintf("CLUSTER: %zu clusters, %u frames.\n", clusters_.size(),
           FrameDistances().OriginalNframes() );
   for (cluster_iterator C = begincluster(); C != endcluster(); C++) {
     mprintf("\t%8i : ",C->Num());
@@ -973,7 +973,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
     if (graph0.OpenWrite("InitialGraph.dat")) return;
     for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
                                            XV != Xarray.end(); ++XV)
-      graph0.Printf("%g %g %u\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1);
+      graph0.Printf("%g %g %li\n", (*XV)[0], (*XV)[1], XV - Xarray.begin() + 1);
     graph0.CloseFile();
   }
   // Degrees of freedom. If Z ever initialized needs to be 3N
@@ -1071,7 +1071,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
     if (graph.OpenWrite("DrawGraph.dat")) return;
     for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
                                            XV != Xarray.end(); ++XV)
-      graph.Printf("%g %g %i \"%u\"\n", (*XV)[0], (*XV)[1], 
+      graph.Printf("%g %g %i \"%li\"\n", (*XV)[0], (*XV)[1], 
                    Nums[XV - Xarray.begin()], XV - Xarray.begin() + 1);
     graph.CloseFile();
   } else {
