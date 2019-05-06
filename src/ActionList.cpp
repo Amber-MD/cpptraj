@@ -55,7 +55,7 @@ int ActionList::SetupActions(ActionSetup& setup, bool exitOnError) {
   {
     // Only attempt to set up action if active 
     if (act->status_ != INACTIVE) {
-      mprintf("  %u: [%s]\n", act - actionList_.begin(), act->args_.ArgLine());
+      mprintf("  %li: [%s]\n", act - actionList_.begin(), act->args_.ArgLine());
       act->status_ = SETUP;
       Action::RetType err = act->ptr_->Setup(setup);
       if (err == Action::ERR) {
@@ -163,6 +163,6 @@ void ActionList::List() const {
   if (!actionList_.empty()) {
     mprintf("\nACTIONS (%zu total):\n", actionList_.size());
     for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
-      mprintf("  %u: [%s]\n", act - actionList_.begin(), act->args_.ArgLine());
+      mprintf("  %li: [%s]\n", act - actionList_.begin(), act->args_.ArgLine());
   }
 }
