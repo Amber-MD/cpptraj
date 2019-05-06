@@ -223,7 +223,7 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup) {
     }
   }
   if (!missingResidues.empty()) {
-    mprintf("Warning: Not all BB atoms found for %u residues:", missingResidues.size());
+    mprintf("Warning: Not all BB atoms found for %zu residues:", missingResidues.size());
     for (std::vector<std::string>::const_iterator mr = missingResidues.begin();
                                                   mr != missingResidues.end(); ++mr)
       mprintf(" %s", mr->c_str());
