@@ -176,7 +176,7 @@ int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
                    set.Bin().Ucell());
   // Print grid bins
   for (size_t k = 0; k < set.NZ(); ++k) {
-    outfile.Printf("%8i\n", k);
+    outfile.Printf("%8zu\n", k);
     for (size_t j = 0; j < set.NY(); ++j) {
       int nvals = 0; // Keep track of how many values printed on current line.
       for (size_t i = 0; i < set.NX(); ++i) {

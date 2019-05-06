@@ -41,7 +41,7 @@ int DataIO::CheckAllDims(DataSetList const& array, unsigned int tgtDim) {
   for (DataSetList::const_iterator set = array.begin(); set != array.end(); ++set)
   {
     if ( (*set)->Ndim() != tgtDim ) {
-      mprinterr("Error: Set '%s' dimension is %i, expected only %iD.\n",
+      mprinterr("Error: Set '%s' dimension is %zu, expected only %uD.\n",
                 (*set)->legend(), (*set)->Ndim(), tgtDim);
       return 1;
     }
