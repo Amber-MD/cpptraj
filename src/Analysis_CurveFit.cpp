@@ -324,7 +324,7 @@ Analysis::RetType Analysis_CurveFit::Internal_setup(std::string const& suffixIn,
   if (n_specified_params_ > 0) {
     mprintf("\tInitial parameters:\n");
     for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
-      mprintf("\t  A%u = %g\n", ip - Params_.begin(), *ip);
+      mprintf("\t  A%li = %g\n", ip - Params_.begin(), *ip);
   }
 
   return Analysis::OK;
@@ -387,7 +387,7 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     }
     mprintf("\tInitial parameters:\n");
     for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
-      mprintf("\t  A%u = %g\n", ip - Params_.begin(), *ip);
+      mprintf("\t  A%li = %g\n", ip - Params_.begin(), *ip);
   }
 
   // TODO: Set initial parameters and bounds if necessary.
@@ -407,7 +407,7 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
                    equation_.c_str(), dset_->legend());
   int ia = 0;
   for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip, ++ia) {
-    Results_->Printf("%sFinal Param A%u = %g\n", HASH_TAB, ip - Params_.begin(), *ip);
+    Results_->Printf("%sFinal Param A%li = %g\n", HASH_TAB, ip - Params_.begin(), *ip);
     A_param_sets_[ia]->Add(0, &(*ip));
   }
 
