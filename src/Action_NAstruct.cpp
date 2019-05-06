@@ -1371,7 +1371,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     }
     mprintf("\tNucleic acid strands (%zu):\n", Strands_.size());
     for (StrandArray::const_iterator st = Strands_.begin(); st != Strands_.end(); ++st)
-      mprintf("\t  %u: Base index %i to %i\n", st-Strands_.begin(), st->first, st->second);
+      mprintf("\t  %li: Base index %i to %i\n", st-Strands_.begin(), st->first, st->second);
   }
   if (findBPmode_ == GUESS) {
     if (GuessBasePairing(setup.Top())) return Action::ERR;

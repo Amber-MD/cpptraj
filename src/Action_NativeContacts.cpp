@@ -58,7 +58,7 @@ Action_NativeContacts::Iarray Action_NativeContacts::SetupContactIndices(
 static void DebugContactList(AtomMask const& mask, Topology const& parmIn)
 {
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
-    mprintf("\tPotential Contact %u: %s\n", atom - mask.begin(),
+    mprintf("\tPotential Contact %li: %s\n", atom - mask.begin(),
             parmIn.AtomMaskName(*atom).c_str());
 }
 
