@@ -7,13 +7,15 @@
 #include "CpptrajStdio.h"
 #ifdef _MSC_VER
 # include <windows.h>
-# include <time.h>
 #else
 # include <unistd.h>
 #endif
 #ifdef __APPLE__
 # include <sys/sysctl.h>
 # include <mach/mach_host.h>
+#endif
+#ifdef _WIN32
+# include <time.h>
 #endif
 
 /** \param fname Input string.
@@ -229,7 +231,7 @@ std::string TimeString() {
   time_t rawtime;
   time( &rawtime );
   struct tm timeinfo;
-# ifdef _MSC_VER
+# ifdef _WIN32
   localtime_s( &timeinfo, &rawtime );
 # else
   localtime_r( &rawtime, &timeinfo );
