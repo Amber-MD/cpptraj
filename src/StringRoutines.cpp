@@ -7,6 +7,7 @@
 #include "CpptrajStdio.h"
 #ifdef _MSC_VER
 # include <windows.h>
+# include <time.h>
 #else
 # include <unistd.h>
 #endif
@@ -228,7 +229,11 @@ std::string TimeString() {
   time_t rawtime;
   time( &rawtime );
   struct tm timeinfo;
+# ifdef _MSC_VER
+  localtime_s( &timeinfo, &rawtime );
+# else
   localtime_r( &rawtime, &timeinfo );
+# endif
   std::ostringstream oss;
   oss.fill('0');
   oss.width(2);
