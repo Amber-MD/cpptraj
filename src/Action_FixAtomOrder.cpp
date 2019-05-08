@@ -65,7 +65,7 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   }
   if (debug_ > 0) {
     for (MapType::const_iterator mnum = molNums_.begin(); mnum != molNums_.end(); ++mnum)
-      mprintf("\t\tAtom %u assigned to molecule %i\n", mnum - molNums_.begin() + 1, *mnum + 1);
+      mprintf("\t\tAtom %li assigned to molecule %i\n", mnum - molNums_.begin() + 1, *mnum + 1);
   }
   // Figure out which atoms should go in which molecules 
   std::vector<MapType> molecules(Nmol);
@@ -82,7 +82,7 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
     mprintf("\tNew atom mapping:\n");
     for (MapType::const_iterator atom = atomMap_.begin();
                                  atom != atomMap_.end(); ++atom)
-      mprintf("\t\tNew atom %8u => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
+      mprintf("\t\tNew atom %8li => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
   }
   // Create new topology based on map
   if (newParm_ != 0) delete newParm_;

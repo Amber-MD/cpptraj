@@ -1696,7 +1696,7 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
       rmout.CloseFile();
     }
   }
-  mprintf("\t%i vectors, %u rotation matrices.\n",nvecs_,Rmatrices_->Size());
+  mprintf("\t%i vectors, %zu rotation matrices.\n",nvecs_,Rmatrices_->Size());
   if (usefft_) {
     // ---------------------------------------------
     // Test calculation; determine constants directly with SH and curve fitting.

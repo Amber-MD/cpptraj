@@ -11,13 +11,15 @@ class Analysis_CrdFluct : public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
+    void CalcBfactors( Frame const&, Frame const&, double, DataSet& );
+
     DataSet_Coords* coords_;
     AtomMask mask_;
+    Frame sum_;  ///< Temp. space for calculating average
+    Frame sum2_; ///< Temp. space for calculating average of squares
     typedef std::vector<DataSet*> SetList;
     SetList outSets_;
     bool bfactor_;
     int windowSize_;
-
-    void CalcBfactors( Frame, Frame, double, DataSet& );
 };
 #endif

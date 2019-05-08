@@ -425,7 +425,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   double max_mols = totalVolume * BULK_DENS_;
   //mprintf("\tEstimating grid can fit a max of %.0f solvent molecules (w/ 10%% buffer).\n",
   //        max_mols);
-  OnGrid_idxs_.reserve( (unsigned int)max_mols * nMolAtoms_ );
+  OnGrid_idxs_.reserve( (size_t)max_mols * (size_t)nMolAtoms_ );
   N_ON_GRID_ = 0;
 
   if (!skipE_) {
@@ -1004,7 +1004,8 @@ void Action_GIST::Print() {
       //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
       dTSorient_norm[gr_pt] = Constants::GASK_KCAL * temperature_ * 
                                ((dTSorient_norm[gr_pt]/nw_total) + Constants::EULER_MASC);
-      dTSorient_dens[gr_pt] = dTSorient_norm[gr_pt] * nw_total / (NFRAME_ * Vvox);
+      double dtso_norm_nw = (double)dTSorient_norm[gr_pt] * (double)nw_total;
+      dTSorient_dens[gr_pt] = (dtso_norm_nw / (NFRAME_ * Vvox));
       dTSorienttot += dTSorient_dens[gr_pt];
       //mprintf("DEBUG1: %f\n", dTSorienttot);
     }
@@ -1081,7 +1082,7 @@ void Action_GIST::Print() {
       bool cannotAddX = (gr_pt >= addx * (nx-1) && gr_pt < addx * nx );
       bool cannotSubZ = (nz == 0 || gr_pt%nz == 0);
       bool cannotSubY = ((nz == 0 || ny == 0) || (gr_pt%addx < nz));
-      bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt >= 0 && gr_pt < addx));
+      bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt < addx));
       bool boundary = ( cannotAddZ || cannotAddY || cannotAddX ||
                         cannotSubZ || cannotSubY || cannotSubX );
       if (!boundary) {
@@ -1125,8 +1126,10 @@ void Action_GIST::Print() {
       dTSsix_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTSsix_norm[gr_pt]/nw_total) +
                                                                Constants::EULER_MASC );
     }
-    dTStrans[gr_pt] = dTStrans_norm[gr_pt]*nw_total/(NFRAME_*Vvox);
-    dTSsix[gr_pt] = dTSsix_norm[gr_pt]*nw_total/(NFRAME_*Vvox);
+    double dtst_norm_nw = (double)dTStrans_norm[gr_pt] * (double)nw_total;
+    dTStrans[gr_pt] = (dtst_norm_nw / (NFRAME_*Vvox));
+    double dtss_norm_nw = (double)dTSsix_norm[gr_pt] * (double)nw_total;
+    dTSsix[gr_pt] = (dtss_norm_nw / (NFRAME_*Vvox));
     dTStranstot += dTStrans[gr_pt];
   } // END loop over all grid points (voxels)
 

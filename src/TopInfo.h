@@ -1,4 +1,5 @@
 #ifndef INC_TOPINFO_H
+#define INC_TOPINFO_H
 #include "CpptrajFile.h"
 #include "DataSet_Coords.h"
 /// Class for printing formatted topology info to a file.

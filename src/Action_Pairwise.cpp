@@ -416,7 +416,7 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
                                    Frame const& frame, std::string const& outfilename) 
 {
   if (CutMask.Nselected() != (int)CutCharges.size()) {
-    mprinterr("Error: WriteCutFrame: # of charges (%u) != # mask atoms (%i)\n",
+    mprinterr("Error: WriteCutFrame: # of charges (%zu) != # mask atoms (%i)\n",
               CutCharges.size(), CutMask.Nselected());
     return 1;
   }

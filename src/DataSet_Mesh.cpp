@@ -154,12 +154,12 @@ double DataSet_Mesh::Integrate_Trapezoid() const {
 /** Assumes mesh X values already set with CalculateMeshX. */
 int DataSet_Mesh::SetSplinedMeshY(std::vector<double> const& x, std::vector<double> const& y) {
   if (x.size() != y.size()) {
-    mprinterr("Error: X size (%u) != Y size (%u)\n", x.size(), y.size());
+    mprinterr("Error: X size (%zu) != Y size (%zu)\n", x.size(), y.size());
     return 1;
   }
   // No point if 1 or less values
   if (x.size() < 2) {
-    mprinterr("Error: Requires > 1 values (%u specified).\n", x.size());
+    mprinterr("Error: Requires > 1 values (%zu specified).\n", x.size());
     return 1;
   }
   cspline_.CubicSpline_Coeff(x, y);
@@ -172,7 +172,7 @@ int DataSet_Mesh::SetSplinedMeshY(std::vector<double> const& x, std::vector<doub
 int DataSet_Mesh::SetSplinedMesh(DataSet_1D const& dsIn)
 {
   if (dsIn.Size() < 2) {
-    mprinterr("Error: Requires > 1 values (%u specified).\n", dsIn.Size());
+    mprinterr("Error: Requires > 1 values (%zu specified).\n", dsIn.Size());
     return 1;
   }
   // Create X and Y values for dsIn

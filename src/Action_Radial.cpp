@@ -275,7 +275,7 @@ const
   if (debug_ > 1) {
     mprintf("DEBUG: Sites selected by residue for '%s'\n", mask.MaskString());
     for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
-      mprintf("%8u :", m - sites.begin());
+      mprintf("%8li :", m - sites.begin());
       for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
         mprintf(" %i", *at);
       mprintf("\n");
@@ -290,7 +290,7 @@ const
 {
   if (mask.Nselected() < 1) return 1;
   if (top.Nmol() < 1) {
-    mprinterr("Error: No topology info for '%s', cannot set up sites by molecule.\n");
+    mprinterr("Error: No topology info for '%s', cannot set up sites by molecule.\n", top.c_str());
     return -1;
   }
   sites.clear();
@@ -309,7 +309,7 @@ const
   if (debug_ > 1) {
     mprintf("DEBUG: Sites selected by molecule for '%s'\n", mask.MaskString());
     for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
-      mprintf("%8u :", m - sites.begin());
+      mprintf("%8li :", m - sites.begin());
       for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
         mprintf(" %i", *at);
       mprintf("\n");

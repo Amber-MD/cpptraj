@@ -111,7 +111,7 @@ int DataSet_1D::CrossCorr( DataSet_1D const& D2, DataSet_1D& Ct,
   if (Nelements != (int)D2.Size()) {
     mprinterr("Error: CrossCorr: # elements in dataset %s (%i) not equal to\n",
               legend(), Nelements);
-    mprinterr("Error:            # elements in dataset %s (%u)\n",
+    mprinterr("Error:            # elements in dataset %s (%zu)\n",
               D2.legend(), D2.Size());
     return 1;
   }
@@ -216,7 +216,7 @@ double DataSet_1D::CorrCoeff( DataSet_1D const& D2 ) const {
   if (Nelements != (int)D2.Size()) {
     mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",
               legend(), Nelements);
-    mprinterr("Error:       # elements in dataset %s (%u)\n",
+    mprinterr("Error:       # elements in dataset %s (%zu)\n",
               D2.legend(), D2.Size());
     return 0;
   }
@@ -289,7 +289,7 @@ int DataSet_1D::LinearRegression( double& slope, double& intercept,
          slope = sxy / sxx;
          intercept = yavg - slope * xavg;
   if (outfile != 0)
-    outfile->Printf("\tData points= %u\n"
+    outfile->Printf("\tData points= %zu\n"
                     "\t<X>= %g\n\t<Y>= %g\n"
                     "\tSDx= %g\n\tSDy= %g\n"
                     "\tCorrelation coefficient= %g\n"
@@ -324,9 +324,9 @@ int DataSet_1D::LinearRegression( double& slope, double& intercept,
             "Source", "d.f", "Sum of squares", "Mean square", "F");
     outfile->Printf("\t%-10s %5d %14.7g %14.7g %14.7g\n", "Regression",
             1, sumSqRegression, sumSqRegression, Fval);
-    outfile->Printf("\t%-10s %5u %14.7g %14.7g\n", "Residual",
+    outfile->Printf("\t%-10s %5zu %14.7g %14.7g\n", "Residual",
             Size() - 2, residualSumSq, residualMeanSq);
-    outfile->Printf("\t%-10s %5u %14.7g\n", "Total",  Size() - 1, syy);
+    outfile->Printf("\t%-10s %5zu %14.7g\n", "Total",  Size() - 1, syy);
   }
   return 0;
 }

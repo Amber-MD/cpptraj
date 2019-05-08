@@ -182,10 +182,10 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       mprintf("\tAverages will not be mass-weighted.\n");
   }
   if (mtype == MetaData::IREDMAT)
-    mprintf("\t%u IRED vecs, Order of Legendre polynomials: %i\n",
+    mprintf("\t%zu IRED vecs, Order of Legendre polynomials: %i\n",
             IredVectors_.size(), order_);
   else if (mtype == MetaData::DIHCOVAR)
-    mprintf("\t%u data sets.\n", DihedralSets_.size());
+    mprintf("\t%zu data sets.\n", DihedralSets_.size());
   if (outfile_ != 0)
     mprintf("\tPrinting to file %s\n", outfile_->DataFilename().full());
   if (byMaskOut_ != 0)
@@ -1026,7 +1026,7 @@ void Action_Matrix::Print() {
     }
     // Always allocate full matrix for BYRESIDUE
     matByRes_->Allocate2D( residues1_.size(), residues2_.size() ); // cols, rows
-    mprintf("    MATRIX: By-residue matrix has %u rows, %u columns.\n", 
+    mprintf("    MATRIX: By-residue matrix has %zu rows, %zu columns.\n", 
             matByRes_->Nrows(), matByRes_->Ncols());
     for (MatResArray::const_iterator resj = residues2_.begin(); resj != residues2_.end(); ++resj)
     {

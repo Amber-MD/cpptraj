@@ -423,7 +423,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     if (cluster_dataset_.size() == 1)
       mprintf(" dataset %s", cluster_dataset_[0]->legend());
     else
-      mprintf(" %u datasets.", cluster_dataset_.size());
+      mprintf(" %zu datasets.", cluster_dataset_.size());
   }
   mprintf("\n");
   CList_->ClusteringInfo();

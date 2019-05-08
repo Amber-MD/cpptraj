@@ -303,7 +303,7 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   PubFFT pubfft;
   pubfft.SetupFFTforN( nframes );
   mprintf("\tMemory required for scaled wavelet array: %s\n",
-          ByteString(2 * nframes * nb_ * sizeof(double), BYTE_DECIMAL).c_str());
+          ByteString(2 * (size_t)nframes * (size_t)nb_ * sizeof(double), BYTE_DECIMAL).c_str());
   typedef std::vector<ComplexArray> WaveletArray;
   WaveletArray FFT_of_Scaled_Wavelets;
   FFT_of_Scaled_Wavelets.reserve( nb_ );

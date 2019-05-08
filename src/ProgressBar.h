@@ -20,6 +20,7 @@ class ParallelProgress {
     ParallelProgress()      : C_over_max_(1.0), tgt_(0.0), thread_(0) {}
     ParallelProgress(int m) : C_over_max_(100.0/(float)m), tgt_(0.0), thread_(0) {}
     ParallelProgress(const ParallelProgress&);
+    ParallelProgress& operator=(ParallelProgress const&);
     void SetThread(int t) { thread_ = t;                       }
     void Update(int it)   { if (thread_==0) printProgress(it); }
     void Finish();

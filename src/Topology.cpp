@@ -893,7 +893,7 @@ int Topology::DetermineMolecules() {
     mprintf("\t%i molecules.\n", numberOfMolecules);
     if (debug_ > 1)
     for (std::vector<Atom>::const_iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom)
-      mprintf("\t\tAtom %i assigned to molecule %i\n", atom - atoms_.begin(), atom->MolNum());
+      mprintf("\t\tAtom %li assigned to molecule %i\n", atom - atoms_.begin(), atom->MolNum());
   }
 
   // Update molecule information
@@ -914,7 +914,7 @@ int Topology::DetermineMolecules() {
       molecule->SetFirst( atomNum );
       lastMol = atom->MolNum();
     } else if ( atom->MolNum()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # (%i) than previous atom (%i).\n"
+      mprinterr("Error: Atom %li was assigned a lower molecule # (%i) than previous atom (%i).\n"
                 "Error:   This can happen if bond information is incorrect or missing, or if the\n"
                 "Error:   atom numbering in molecules is not sequential. Try one of the\n"
                 "Error:   following:\n"
@@ -1707,7 +1707,7 @@ int Topology::AppendTop(Topology const& NewTop) {
   for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
   {
     if (debug_ > 1)
-      mprintf("DBG: %6u %s %s %4i\n", atom-NewTop.begin(), 
+      mprintf("DBG: %6li %s %s %4i\n", atom-NewTop.begin(), 
               *(atom->Name()), *(atom->Type()), atom->TypeIndex());
     Atom CurrentAtom = *atom;
     Residue const& res = NewTop.Res( CurrentAtom.ResNum() );

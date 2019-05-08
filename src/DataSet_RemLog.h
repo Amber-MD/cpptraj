@@ -126,6 +126,13 @@ class DataSet_RemLog::GroupReplica {
     GroupReplica() : l_partner_(-1), me_(-1), r_partner_(-1) {}
     GroupReplica(const GroupReplica& rhs) :
       l_partner_(rhs.l_partner_), me_(rhs.me_), r_partner_(rhs.r_partner_) {}
+    GroupReplica& operator=(GroupReplica const& rhs) {
+      if (this == &rhs) return *this;
+      l_partner_ = rhs.l_partner_;
+      me_ = rhs.me_;
+      r_partner_ = rhs.r_partner_;
+      return *this;
+    }
     GroupReplica(int l, int m, int r) : l_partner_(l), me_(m), r_partner_(r) {}
     int L_partner() const { return l_partner_; }
     int Me()        const { return me_;        }

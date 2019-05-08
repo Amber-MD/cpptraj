@@ -620,7 +620,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       ctlidx_--;
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).
-        mprintf("CONTROL: Executing %u control block(s).\n", control_.size());
+        mprintf("CONTROL: Executing %zu control block(s).\n", control_.size());
         if (State.QuietBlocks()) SetWorldSilent(true);
         int cbret = ExecuteControlBlock(0, State);
         ClearControlBlocks();

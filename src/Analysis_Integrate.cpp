@@ -35,7 +35,7 @@ Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, AnalysisSetup&
     }
   }
   
-  mprintf("    INTEGRATE: Calculating integral of %i data sets.\n",
+  mprintf("    INTEGRATE: Calculating integral of %zu data sets.\n",
           input_dsets_.size());
   if (outfile_ != 0) {
     if (!setname.empty())

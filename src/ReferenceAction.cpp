@@ -159,7 +159,7 @@ int ReferenceAction::SetupRef(Topology const& topIn, int Ntgt) {
   if (refMode_ == FIRST) {
     if ( SetupRefMask( topIn ) ) return 1;
   } else if (previous_) {
-    mprintf("Warning: %s: 'previous' may not work properly for changing topologies.\n");
+    mprintf("Warning: 'previous' may not work properly for changing topologies.\n");
     if ( SetupRefMask( topIn ) ) return 1;
   } else if (needsSetup_) { // FRAME, TRAJ; only set up once.
     if ( SetupRefMask( refCrd_->Top() ) ) return 1;

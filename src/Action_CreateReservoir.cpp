@@ -79,7 +79,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
     return Action::ERR;
   }
   if (dstmp->Ndim() != 1) {
-    mprinterr("Error: energy data set is not 1D (%u)\n", dstmp->Ndim());
+    mprinterr("Error: energy data set is not 1D (%zu)\n", dstmp->Ndim());
     return Action::ERR;
   }
   ene_ = static_cast<DataSet_1D*>( dstmp );
@@ -158,7 +158,7 @@ Action::RetType Action_CreateReservoir::DoAction(int frameNum, ActionFrame& frm)
 
 // Action_CreateReservoir::Print()
 void Action_CreateReservoir::Print() {
-  mprintf("\tReservoir %s: %u frames.\n", filename_.base(), nframes_);
+  mprintf("\tReservoir %s: %zu frames.\n", filename_.base(), nframes_);
   reservoir_.CloseReservoir();
   trajIsOpen_ = false;
 }

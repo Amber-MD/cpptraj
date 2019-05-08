@@ -37,14 +37,14 @@ static inline bool IsAtomLine(ArgList& lineIn) {
       try {
         convertToInteger( item );
       }
-      catch (std::runtime_error e) {
+      catch (std::runtime_error const& e) {
         return false;
       }
     } else if (i >= 2 && i < 5) {
       try {
         convertToDouble( item );
       }
-      catch (std::runtime_error e) {
+      catch (std::runtime_error const& e) {
         return false;
       }
     }
@@ -75,7 +75,7 @@ bool TinkerFile::ID_Tinker(CpptrajFile& fileIn) {
       try {
         convertToDouble( secondLine.GetStringNext() );
       } 
-      catch (std::runtime_error e) {
+      catch (std::runtime_error const& e) {
         if (i != 1) return false;
         // We found a non-double on the second character -- it could be an atom
         // name. Check that the rest of the line matches an atom record
@@ -166,7 +166,7 @@ int TinkerFile::CheckTitleLine() {
   file_.TokenizeLine(" ");
   int lineNatom = atoi( file_.NextToken() );
   if (lineNatom != natom_) {
-    mprinterr("Error: Number of atoms in Tinker file changes from %i to %i\n",
+    mprinterr("Error: Number of atoms in Tinker file changes from %i to %i\n"
               "Error: at line %i\n", natom_, lineNatom, file_.LineNumber());
     return 1;
   }

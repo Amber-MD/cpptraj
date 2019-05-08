@@ -211,7 +211,7 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   // If 2 vectors, ensure they have the same # of frames
   if (vinfo2_!=0) {
     if (vinfo1_->Size() != vinfo2_->Size()) {
-      mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
+      mprinterr("Error: # Frames in vec %s (%zu) != # Frames in vec %s (%zu)\n",
                 vinfo1_->legend(), vinfo1_->Size(), 
                 vinfo2_->legend(), vinfo2_->Size());
       return Analysis::ERR;
