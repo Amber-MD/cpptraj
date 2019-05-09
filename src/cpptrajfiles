@@ -439,6 +439,12 @@ LIBCPPTRAJ_FILE_OBJECTS= \
   SDFfile.o \
   TinkerFile.o
 
+# These objects are required for Gromacs XTC support in libcpptraj_traj.a
+XDRFILE_OBJECTS= \
+  xdrfile/xdrfile.o \
+  xdrfile/xdr_seek.o \
+  xdrfile/xdrfile_xtc.o
+
 # These objects contain trajectory file functionality. Requires core and file libraries.
 LIBCPPTRAJ_TRAJ_OBJECTS= \
   TrajectoryFile.o \
@@ -446,6 +452,9 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
   Trajout_Single.o \
   InputTrajCommon.o \
   OutputTrajCommon.o \
+  ActionFrameCounter.o \
+  NC_Routines.o \
+  NetcdfFile.o \
   TrajFrameCounter.o \
   Traj_AmberCoord.o \
   Traj_AmberNetcdf.o \
