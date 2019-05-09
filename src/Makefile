@@ -30,10 +30,24 @@ libcpptraj: $(LIBCPPTRAJ_TARGET)
 $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
 	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
 
-$(CPPTRAJLIB)/libcpptraj.a: $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)
-	ar rv $(CPPTRAJLIB)/libcpptraj.a $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)
+# Static libraries ---------------------
+#$(CPPTRAJLIB)/libcpptraj.a: $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)
+#	ar rv $(CPPTRAJLIB)/libcpptraj.a $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)
 
-libstatic: $(CPPTRAJLIB)/libcpptraj.a
+$(CPPTRAJLIB)/libcpptraj_core.a: $(LIBCPPTRAJ_CORE_OBJECTS)
+	ar rv $(CPPTRAJLIB)/libcpptraj_core.a $(LIBCPPTRAJ_CORE_OBJECTS)
+
+$(CPPTRAJLIB)/libcpptraj_file.a: $(LIBCPPTRAJ_FILE_OBJECTS)
+	ar rv $(CPPTRAJLIB)/libcpptraj_file.a $(LIBCPPTRAJ_FILE_OBJECTS)
+
+$(CPPTRAJLIB)/libcpptraj_traj.a: $(LIBCPPTRAJ_TRAJ_OBJECTS)
+	ar rv $(CPPTRAJLIB)/libcpptraj_traj.a $(LIBCPPTRAJ_TRAJ_OBJECTS)
+
+$(CPPTRAJLIB)/libcpptraj_parm.a: $(LIBCPPTRAJ_PARM_OBJECTS)
+	ar rv $(CPPTRAJLIB)/libcpptraj_parm.a $(LIBCPPTRAJ_PARM_OBJECTS)
+
+libstatic: $(CPPTRAJLIB)/libcpptraj_core.a $(CPPTRAJLIB)/libcpptraj_traj.a \
+           $(CPPTRAJLIB)/libcpptraj_file.a $(CPPTRAJLIB)/libcpptraj_parm.a
 
 nolibcpptraj:
 	@echo ""

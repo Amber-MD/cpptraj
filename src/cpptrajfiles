@@ -392,3 +392,93 @@ LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) \
         Energy_Sander.LIBCPPTRAJ.o \
         ReadLine.LIBCPPTRAJ.o
 
+# These objects contain "core" functionality.
+# NOTE: From Topology down could be separate.
+# NOTE: Topology does not depend on ArgList but makes sense to have it in Core
+# NOTE: Ditto for DistRoutines.o, TextFormat.o, PairList.o, Timer.o, ByteRoutines.o
+LIBCPPTRAJ_CORE_OBJECTS= \
+  CpptrajStdio.o \
+  StringRoutines.o \
+  DistRoutines.o \
+  ArgList.o \
+  TextFormat.o \
+  PairList.o \
+  Timer.o \
+  ByteRoutines.o \
+  Topology.o \
+  Atom.o \
+  AtomMask.o \
+  AtomType.o \
+  Box.o \
+  CharMask.o \
+  CoordinateInfo.o \
+  FileName.o \
+  Frame.o \
+  MaskToken.o \
+  Matrix_3x3.o \
+  NameType.o \
+  Parallel.o \
+  Range.o \
+  Residue.o \
+  Vec3.o
+
+# These objects contain basic file-related functionality. Requires core library
+LIBCPPTRAJ_FILE_OBJECTS= \
+  CpptrajFile.o \
+  BufferedFrame.o \
+  BufferedLine.o \
+  FileIO_Bzip2.o \
+  FileIO_Gzip.o \
+  FileIO_Mpi.o \
+  FileIO_MpiShared.o \
+  FileIO_Std.o \
+  FileTypes.o \
+  CIFfile.o \
+  Mol2File.o \
+  PDBfile.o \
+  SDFfile.o \
+  TinkerFile.o
+
+# These objects contain trajectory file functionality. Requires core and file libraries.
+LIBCPPTRAJ_TRAJ_OBJECTS= \
+  TrajectoryFile.o \
+  Trajin_Single.o \
+  Trajout_Single.o \
+  InputTrajCommon.o \
+  OutputTrajCommon.o \
+  TrajFrameCounter.o \
+  Traj_AmberCoord.o \
+  Traj_AmberNetcdf.o \
+  Traj_AmberRestart.o \
+  Traj_AmberRestartNC.o \
+  Traj_Binpos.o \
+  Traj_CharmmCor.o \
+  Traj_CharmmDcd.o \
+  Traj_CharmmRestart.o \
+  Traj_CIF.o \
+  Traj_Conflib.o \
+  Traj_GmxTrX.o \
+  Traj_GmxXtc.o \
+  Traj_Gro.o \
+  Traj_Mol2File.o \
+  Traj_NcEnsemble.o \
+  Traj_PDBfile.o \
+  Traj_SDF.o \
+  Traj_SQM.o \
+  Traj_Tinker.o \
+  Traj_XYZ.o
+
+# These objects contain parameter file functionality. Requires core and file libraries.
+LIBCPPTRAJ_PARM_OBJECTS= \
+  BondSearch.o \
+  Mol.o \
+  ParmFile.o \
+  Parm_Amber.o \
+  Parm_CharmmPsf.o \
+  Parm_CIF.o \
+  Parm_Gromacs.o \
+  Parm_Mol2.o \
+  Parm_PDB.o \
+  Parm_SDF.o \
+  Parm_Tinker.o
+
