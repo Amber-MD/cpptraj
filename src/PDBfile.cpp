@@ -575,7 +575,7 @@ PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
   std::copy(rhs.name2_, rhs.name2_+4, name2_);
 }
 
-PDBfile::SSBOND PDBfile::SSBOND::operator=(SSBOND const& rhs) {
+PDBfile::SSBOND& PDBfile::SSBOND::operator=(SSBOND const& rhs) {
   if (this != &rhs) {
     idx1_ = rhs.idx1_;
     idx2_ = rhs.idx2_;
@@ -622,7 +622,7 @@ PDBfile::Link::Link(Link const& rhs) : rnum1_(rhs.rnum1_), rnum2_(rhs.rnum2_),
   std::copy(rhs.rname2_, rhs.rname2_+4, rname2_);
 }
 
-PDBfile::Link PDBfile::Link::operator=(Link const& rhs) {
+PDBfile::Link& PDBfile::Link::operator=(Link const& rhs) {
   if (this != &rhs) {
     rnum1_ = rhs.rnum1_;
     rnum2_ = rhs.rnum2_;

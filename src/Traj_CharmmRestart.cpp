@@ -64,7 +64,7 @@ int Traj_CharmmRestart::processReadArgs(ArgList& argIn) {
 }
 
 static inline int ErrEOF(int line) {
-  mprinterr("Error: Unexpected end of file, line %i\n");
+  mprinterr("Error: Unexpected end of file, line %i\n", line);
   return TrajectoryIO::TRAJIN_ERR;
 }
 

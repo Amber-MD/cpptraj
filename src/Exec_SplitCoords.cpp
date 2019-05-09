@@ -52,11 +52,11 @@ Exec::RetType Exec_SplitCoords::Execute(CpptrajState& State, ArgList& argIn)
       molNatoms = mol->NumAtoms();
       molNres = nres;
     } else if (molNatoms != mol->NumAtoms()) {
-      mprinterr("Error: Molecule %u has different number of atoms (%i) than first molecule (%i)\n",
+      mprinterr("Error: Molecule %li has different number of atoms (%i) than first molecule (%i)\n",
                 mol - topIn.MolStart() + 1, mol->NumAtoms(), molNatoms);
       return CpptrajState::ERR;
     } else if (molNres != nres) {
-      mprinterr("Error: Molecule %u has different number of residues (%i) than first molecule (%i)\n",
+      mprinterr("Error: Molecule %li has different number of residues (%i) than first molecule (%i)\n",
                 mol - topIn.MolStart() + 1, nres, molNres);
       return CpptrajState::ERR;
     } 

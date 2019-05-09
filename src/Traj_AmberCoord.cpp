@@ -175,7 +175,7 @@ int Traj_AmberCoord::setupTrajin(FileName const& fname, Topology* trajParm)
   natom3_ = trajParm->Natom() * 3;
   file_.SetupFrameBuffer( natom3_, 8, 10, headerSize_, title.size() );
   if (debug_ > 0) {
-    mprintf("Each frame is %u bytes", file_.FrameSize());
+    mprintf("Each frame is %zu bytes", file_.FrameSize());
     if (headerSize_ != 0) mprintf(" (including REMD header)");
     mprintf(".\n");
   }

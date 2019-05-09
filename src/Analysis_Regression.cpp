@@ -65,7 +65,7 @@ Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, AnalysisSetup
     int_dsets_.push_back( outint );
   }
 
-  mprintf("    REGRESSION: Calculating linear regression of %i data sets.\n",
+  mprintf("    REGRESSION: Calculating linear regression of %zu data sets.\n",
           input_dsets_.size());
   if (outfile != 0)
     mprintf("\tFit line output to %s\n", outfile->DataFilename().full());

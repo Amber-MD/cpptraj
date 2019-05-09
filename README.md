@@ -5,9 +5,10 @@ Fast, parallelized molecular dynamics trajectory data analysis.
 
 Build Status
 =============
-[![Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
-[![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
-[![Pytraj Compatibility Status](https://circleci.com/gh/Amber-MD/cpptraj.svg?style=svg)](https://circleci.com/gh/Amber-MD/cpptraj)
+* Travis-CI: [![Travis Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
+* AppVeyor: [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
+* Jenkins: [![Jenkins Build Status](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj-master/badge/icon?style=plastic)](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj-master/)
+* LGTM: [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/Amber-MD/cpptraj.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Amber-MD/cpptraj/context:cpp)
 
 Description
 ===========
@@ -46,7 +47,7 @@ Disclaimer and Copyright
 ========================
 
 CPPTRAJ is Copyright (c) 2010-2019 Daniel R. Roe.
-The terms for using, copying, modifying, and distributing CPPTRAJ are 
+The terms for using, copying, modifying, and distributing CPPTRAJ are
 specified in the file LICENSE.
 
 Documentation
@@ -57,7 +58,7 @@ is also limited help for commands in interactive mode via `help [<command>]`;
 `help` with no arguments lists all known commands.
 
   Code documentation can be generated via Doxygen by typing `make docs`. This
-will install HTML and Latex documentation at `doc/html/index.html` and in 
+will install HTML and Latex documentation at `doc/html/index.html` and in
 the `doc/latex` respectively. A limited developers guide is available in
 Lyx/PDF formats in the `doc/` subdirectory and in HTML format
 [here](https://amber-md.github.io/cpptraj/).
@@ -85,7 +86,7 @@ an AmberTools installation (`$AMBERHOME` must be set), e.g.
 `./configure -amberlib gnu`. For multicore systems, the `-openmp` flag can
 be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
 An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag.
-CPPTRAJ can be built with both MPI and OpenMP; when running this build users 
+CPPTRAJ can be built with both MPI and OpenMP; when running this build users
 should take care to properly set OMP_NUM_THREADS if using more than 1 MPI
 thread per node. A CUDA build is now also available via the `-cuda` flag.
 By default CPPTRAJ will be configured for multiple shader models; to restrict
@@ -95,10 +96,10 @@ Any combination of `-cuda`, `-mpi`, and `-openmp` may be used.
 The configure script by default sets everything up to link dynamically. The
 `-static` flag can be used to force static linking. If linking errors are
 encountered you may need to specify library locations using the `--with-LIB=`
-options. For example, to use NetCDF compiled in `/opt/netcdf` use the option 
-`--with-netcdf=/opt/netcdf`. Alternatively, individual libraries can be 
+options. For example, to use NetCDF compiled in `/opt/netcdf` use the option
+`--with-netcdf=/opt/netcdf`. Alternatively, individual libraries can be
 disabled with the `-no<LIB>` options. The `-libstatic` flag
-can be used to static link only libraries that have been specified. 
+can be used to static link only libraries that have been specified.
 
 After `configure` has been successfully run, `make install` will
 compile and place the cpptraj binary in the `bin/` subdirectory. Note that
@@ -112,11 +113,11 @@ CPPTRAJ Authors
 **Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>)
 Laboratory of Computational Biology
 National Heart Lung and Blood Institute
-National Institutes of Health, Bethesda, MD. 
+National Institutes of Health, Bethesda, MD.
 
   CPPTRAJ began as a C++ rewrite of PTRAJ by Thomas E. Cheatham, III
 (Department of Medicinal Chemistry, University of Utah, Salt Lake City,
- UT, USA) and many routines from PTRAJ were adapted for 
+ UT, USA) and many routines from PTRAJ were adapted for
 use in CPPTRAJ, including code used in the following classes:
 Analysis\_CrankShaft, Analysis\_Statistics, Action\_DNAionTracker,
 Action\_RandomizeIons, Action\_Principal, Action\_Grid, GridAction,
@@ -124,48 +125,48 @@ Action\_Image, and ImageRoutines.
 
 ## Contributors to CPPTRAJ
 
-* James Maier (Stony Brook University, Stony Brook, NY, USA)  
+* James Maier (Stony Brook University, Stony Brook, NY, USA)
 Code for calculating J-couplings (used in Action\_Jcoupling).
 
-* Jason M. Swails (University of Florida, Gainesville, FL, USA)  
+* Jason M. Swails (University of Florida, Gainesville, FL, USA)
 Action\_LIE, Analysis\_RunningAvg, Action\_Volmap, Grid OpenDX output.
 
-* Jason M. Swails (University of Florida, Gainesville, FL, USA)  
-Guanglei Cui (GlaxoSmithKline, Upper Providence, PA, USA)  
+* Jason M. Swails (University of Florida, Gainesville, FL, USA)
+Guanglei Cui (GlaxoSmithKline, Upper Providence, PA, USA)
 Action\_SPAM.
 
-* Mark J. Williamson (Unilever Centre for Molecular Informatics, Department of Chemistry, Cambridge, UK)  
+* Mark J. Williamson (Unilever Centre for Molecular Informatics, Department of Chemistry, Cambridge, UK)
 Action\_GridFreeEnergy.
 
-* Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)  
+* Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)
 Action\_Density, Action\_OrderParameter, Action\_PairDist.
 
-* Crystal N. Nguyen (University of California, San Diego)  
-Romelia F. Salomon (University of California, San Diego)  
+* Crystal N. Nguyen (University of California, San Diego)
+Romelia F. Salomon (University of California, San Diego)
 Original Action\_Gist.
 
-* Pawel Janowski (Rutgers University, NJ, USA)  
+* Pawel Janowski (Rutgers University, NJ, USA)
 Normal mode wizard (nmwiz) output, original code for ADP calculation in Action\_AtomicFluct.
 
-* Zahra Heidari (Faculty of Chemistry, K. N. Toosi University of Technology, Tehran, Iran)  
+* Zahra Heidari (Faculty of Chemistry, K. N. Toosi University of Technology, Tehran, Iran)
 Original code for Analysis\_Wavelet.
 
-* Chris Lee (University of California, San Diego)  
+* Chris Lee (University of California, San Diego)
 Support for processing force information in NetCDF trajectories.
 
-* Steven Ramsey (CUNY Lehman College, Bronx, NY)  
+* Steven Ramsey (CUNY Lehman College, Bronx, NY)
 Enhancements to entropy calculation in original Action\_Gist.
 
-* Amit Roy (University of Utah, UT)  
+* Amit Roy (University of Utah, UT)
 Code for the CUDA version of the 'closest' Action.
 
-* Andrew Simmonett (National Institutes of Health)  
+* Andrew Simmonett (National Institutes of Health)
 Code for the reciprocal part of the particle mesh Ewald calculation (electrostatic and Lennard-Jones).
 
-* Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)  
+* Christina Bergonzo (National Institute of Standards and Technology, Gaithersburg, MD)
 Fixes and improvements to nucleic acid dihedral angle definitions (DihedralSearch).
 
-* David S. Cerutti (Rutgers University, Piscataway, NJ, USA)  
+* David S. Cerutti (Rutgers University, Piscataway, NJ, USA)
 Original code for the 'xtalsymm' Action.
 
 #### Various Contributions
@@ -175,23 +176,23 @@ Original code for the 'xtalsymm' Action.
 
 ## Code in CPPTRAJ that originated in PTRAJ
 
-* Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)  
-Alrun N. Koller (Heinrich-Heine-University, Düsseldorf, Germany)   
+* Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
+Alrun N. Koller (Heinrich-Heine-University, Düsseldorf, Germany)
 Original implementation of matrix/vector functionality in PTRAJ, including matrix diagonalization, IRED analysis, eigenmode analysis, and vector time correlations.
 
-* Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)  
+* Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
 Original code for DSSP (secstruct).
 
-* Michael Crowley (University of Southern California, Los Angeles, CA, USA)  
+* Michael Crowley (University of Southern California, Los Angeles, CA, USA)
 Original code for dealing with truncated octahedral unit cells.
 
-* Viktor Hornak (Merck, NJ, USA)  
+* Viktor Hornak (Merck, NJ, USA)
 Original code for mask expression parser.
 
-* John Mongan (UCSD, San Diego, CA, USA)  
+* John Mongan (UCSD, San Diego, CA, USA)
 Original implementation of the Amber NetCDF trajectory format.
 
-* Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)  
+* Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)
 Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
 External libraries bundled with CPPTRAJ

@@ -43,15 +43,17 @@ Action_GIST::Action_GIST() :
   max_nwat_(0),
   doOrder_(false),
   doEij_(false),
-  skipE_(false)
+  skipE_(false),
+  includeIons_(true)
 {}
 
 void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [refdens <rdval>] [temp <tval>]\n"
-          "\t[noimage] [gridcntr <xval> <yval> <zval>]\n"
+          "\t[noimage] [gridcntr <xval> <yval> <zval>] [excludeions]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output>]\n"
-          "\t[info <info>]\n");
+          "\t[info <info>]\n"
+          "Perform Grid Inhomogenous Solvation Theory calculation.\n");
 }
 
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -92,6 +94,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   DataFile* file_dipoley = init.DFL().AddDataFile(prefix_ + "-dipoley-dens" + ext);
   DataFile* file_dipolez = init.DFL().AddDataFile(prefix_ + "-dipolez-dens" + ext);
   // Other keywords
+  includeIons_ = !actionArgs.hasKey("excludeions");
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
@@ -275,6 +278,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (numthreads > 1)
       mprintf("\tParallelizing energy calculation with %i threads.\n", numthreads);
   }
+  if (includeIons_)
+    mprintf("\tIons will be included in the solute region.\n");
+  else
+    mprintf("\tIons will be excluded from the calculation.\n");
   if (doEij_) {
     mprintf("\tComputing and printing water-water Eij matrix, output to '%s'\n",
             eijfile_->Filename().full());
@@ -392,8 +399,9 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       }
       isFirstSolvent = false;
     } else {
-      // This is a non-solvent molecule. Save atom indices unless 1 atom (probably ion).
-      if (mol->NumAtoms() > 1) {
+      // This is a non-solvent molecule. Save atom indices. May want to exclude
+      // if only 1 atom (probably ion).
+      if (mol->NumAtoms() > 1 || includeIons_) {
         for (int u_idx = mol->BeginAtom(); u_idx != mol->EndAtom(); ++u_idx) {
           A_idxs_.push_back( u_idx );
           atom_voxel_.push_back( SOLUTE_ );
@@ -417,7 +425,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   double max_mols = totalVolume * BULK_DENS_;
   //mprintf("\tEstimating grid can fit a max of %.0f solvent molecules (w/ 10%% buffer).\n",
   //        max_mols);
-  OnGrid_idxs_.reserve( (unsigned int)max_mols * nMolAtoms_ );
+  OnGrid_idxs_.reserve( (size_t)max_mols * (size_t)nMolAtoms_ );
   N_ON_GRID_ = 0;
 
   if (!skipE_) {
@@ -791,7 +799,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
 
         Vec3 H_temp;
         H_temp[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H1_wat[0];
-        H_temp[0] = (2*(x2*y2 - w2*z2)*H1_wat[1]) + H_temp[0];
+        H_temp[0] = (2*(x2*y2 + w2*z2)*H1_wat[1]) + H_temp[0];
         H_temp[0] = (2*(x2*z2-w2*y2)*H1_wat[2]) + H_temp[0];
 
         H_temp[1] = 2*(x2*y2 - w2*z2)* H1_wat[0];
@@ -807,7 +815,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         Vec3 H_temp2;
         H_temp2[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H2_wat[0];
         H_temp2[0] = (2*(x2*y2 + w2*z2)*H2_wat[1]) + H_temp2[0];
-        H_temp2[0] = (2*(x2*z2-w2*y2)+H2_wat[2]) +H_temp2[0];
+        H_temp2[0] = (2*(x2*z2-w2*y2)*H2_wat[2]) +H_temp2[0];
 
         H_temp2[1] = 2*(x2*y2 - w2*z2) *H2_wat[0];
         H_temp2[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H2_wat[1]) +H_temp2[1];
@@ -996,7 +1004,8 @@ void Action_GIST::Print() {
       //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
       dTSorient_norm[gr_pt] = Constants::GASK_KCAL * temperature_ * 
                                ((dTSorient_norm[gr_pt]/nw_total) + Constants::EULER_MASC);
-      dTSorient_dens[gr_pt] = dTSorient_norm[gr_pt] * nw_total / (NFRAME_ * Vvox);
+      double dtso_norm_nw = (double)dTSorient_norm[gr_pt] * (double)nw_total;
+      dTSorient_dens[gr_pt] = (dtso_norm_nw / (NFRAME_ * Vvox));
       dTSorienttot += dTSorient_dens[gr_pt];
       //mprintf("DEBUG1: %f\n", dTSorienttot);
     }
@@ -1073,7 +1082,7 @@ void Action_GIST::Print() {
       bool cannotAddX = (gr_pt >= addx * (nx-1) && gr_pt < addx * nx );
       bool cannotSubZ = (nz == 0 || gr_pt%nz == 0);
       bool cannotSubY = ((nz == 0 || ny == 0) || (gr_pt%addx < nz));
-      bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt >= 0 && gr_pt < addx));
+      bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt < addx));
       bool boundary = ( cannotAddZ || cannotAddY || cannotAddX ||
                         cannotSubZ || cannotSubY || cannotSubX );
       if (!boundary) {
@@ -1117,8 +1126,10 @@ void Action_GIST::Print() {
       dTSsix_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTSsix_norm[gr_pt]/nw_total) +
                                                                Constants::EULER_MASC );
     }
-    dTStrans[gr_pt] = dTStrans_norm[gr_pt]*nw_total/(NFRAME_*Vvox);
-    dTSsix[gr_pt] = dTSsix_norm[gr_pt]*nw_total/(NFRAME_*Vvox);
+    double dtst_norm_nw = (double)dTStrans_norm[gr_pt] * (double)nw_total;
+    dTStrans[gr_pt] = (dtst_norm_nw / (NFRAME_*Vvox));
+    double dtss_norm_nw = (double)dTSsix_norm[gr_pt] * (double)nw_total;
+    dTSsix[gr_pt] = (dtss_norm_nw / (NFRAME_*Vvox));
     dTStranstot += dTStrans[gr_pt];
   } // END loop over all grid points (voxels)
 

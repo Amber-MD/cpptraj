@@ -1454,7 +1454,7 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
   if (fnameIn.empty()) return 1;
   File::NameArray fnames = File::ExpandToFilenames( fnameIn );
   if (fnames.empty()) {
-    mprinterr("Error: '%s' corresponds to no files.\n");
+    mprinterr("Error: '%s' corresponds to no files.\n", fnameIn.c_str());
     return 1;
   }
   ArgList argIn = args;

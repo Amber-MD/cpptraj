@@ -192,7 +192,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::DoClustering(List& clusters,
     {
       int c0 = Points_[*idx].Cnum();
       if (debug_ > 0)
-        mprintf("\tCluster %u: %u frames: %u border frames:", c0, *(idx+1) - *idx,
+        mprintf("\tCluster %i: %u frames: %zu border frames:", c0, *(idx+1) - *idx,
                 borderIndices[c0].size());
       if (borderIndices[c0].empty()) {
         if (debug_ > 0) mprintf(" No border points.\n");
@@ -415,7 +415,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::Cluster_DiscreteDensity(Cframes const& f
                     "Frame", "Idx", "Neighbor");
       for (Carray::const_iterator point = Points_.begin();
                                   point != Points_.end(); ++point)
-        output.Printf("%-10i %10g \"%i\" %10u %10i\n", point->PointsWithinEps(), point->Dist(),
+        output.Printf("%-10i %10g \"%i\" %10li %10i\n", point->PointsWithinEps(), point->Dist(),
                       point->Fnum()+1, point-Points_.begin(), point->NearestIdx());
       output.CloseFile();
     }
@@ -447,7 +447,7 @@ int Cpptraj::Cluster::Algorithm_DPeaks::ChoosePointsManually() {
       density = (double)point->PointsWithinEps();
     if ( density >= densityCut_ && point->Dist() >= distanceCut_ ) {
       point->SetCluster( cnum++ );
-      mprintf("\tPoint %u (frame %i, density %g) selected as candidate for cluster %i\n",
+      mprintf("\tPoint %li (frame %i, density %g) selected as candidate for cluster %i\n",
               point - Points_.begin(), point->Fnum() + 1, density, cnum - 1);
     }
   }

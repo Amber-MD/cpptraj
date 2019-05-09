@@ -61,7 +61,7 @@ Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     return Analysis::ERR;
   }
 
-  mprintf("    PHIPSI: Calculating average/stdev of %i phi/psi pairs (%zu sets).\n",
+  mprintf("    PHIPSI: Calculating average/stdev of %zu phi/psi pairs (%zu sets).\n",
           input_dsets_.size() / 2, input_dsets_.size());
   if (debugIn > 0)
     for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)

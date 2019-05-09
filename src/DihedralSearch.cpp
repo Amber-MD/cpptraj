@@ -178,6 +178,14 @@ DihedralSearch::DihedralSearch(DihedralSearch const& rhs) :
   dihedralTokens_(rhs.dihedralTokens_)
 {}
 
+/// ASSIGNMENT
+DihedralSearch& DihedralSearch::operator=(DihedralSearch const& rhs) {
+  if (this == &rhs) return *this;
+  dihedralTokens_ = rhs.dihedralTokens_;
+  dihedrals_ = rhs.dihedrals_;
+  return *this;
+}
+
 // DihedralSearch::SearchFor()
 /** Search for all types matching typeIn. */
 int DihedralSearch::SearchFor(DihedralType typeIn) {

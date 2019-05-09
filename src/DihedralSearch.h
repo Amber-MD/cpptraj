@@ -20,6 +20,7 @@ class DihedralSearch {
     DihedralSearch();
     /// COPY CONSTRUCTOR - Set up for same types as input
     DihedralSearch(DihedralSearch const&);
+    DihedralSearch& operator=(DihedralSearch const&);
     static void ListKnownTypes();
     static void OffsetHelp();
     static DihedralType GetType(std::string const&);

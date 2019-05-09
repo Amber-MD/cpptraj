@@ -390,7 +390,7 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
     for (SiteArray::const_iterator site = potentialSites.begin();
                                    site != potentialSites.end(); ++site)
     {
-      mprintf("  %u\tRes %i:", site - potentialSites.begin(), site->ResNum()+1);
+      mprintf("  %li\tRes %i:", site - potentialSites.begin(), site->ResNum()+1);
       for (unsigned int idx = 0; idx != site->Nindices(); ++idx)
         mprintf(" %s", setup.Top().TruncAtomNameNum( site->Idx(idx) ).c_str());
       mprintf("\n");

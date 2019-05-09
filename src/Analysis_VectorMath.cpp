@@ -127,7 +127,7 @@ Analysis::RetType Analysis_VectorMath::Analyze() {
     else if (vinfo2_->Size() == 1)
       v2inc = 0;
     else {
-      mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
+      mprinterr("Error: # Frames in vec %s (%zu) != # Frames in vec %s (%zu)\n",
                 vinfo1_->legend(), vinfo1_->Size(),
                 vinfo2_->legend(), vinfo2_->Size());
       return Analysis::ERR;

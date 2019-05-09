@@ -1,0 +1,16 @@
+path_classifiers:
+  test:
+    - "src/readline/*"
+extraction:
+  cpp:
+    prepare:
+      packages:
+        - gfortran
+        - libbz2-dev
+        - libnetcdf-dev
+        - libblas-dev
+        - liblapack-dev
+        - libfftw3-dev
+    configure:
+      command:
+        - ./configure -fftw3 gnu

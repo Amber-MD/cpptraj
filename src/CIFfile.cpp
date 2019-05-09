@@ -179,11 +179,11 @@ void CIFfile::DataBlock::ListData() const {
   mprintf("DataBlock: %s\n", dataHeader_.c_str());
   for (Sarray::const_iterator colname = columnHeaders_.begin();
                               colname != columnHeaders_.end(); ++colname)
-    mprintf("  Col %u name: %s\n", colname - columnHeaders_.begin(), colname->c_str());
+    mprintf("  Col %li name: %s\n", colname - columnHeaders_.begin(), colname->c_str());
   for (std::vector<Sarray>::const_iterator rec = columnData_.begin();
                                            rec != columnData_.end(); ++rec)
   {
-    mprintf("    [%u] ", rec - columnData_.begin());
+    mprintf("    [%li] ", rec - columnData_.begin());
     for (Sarray::const_iterator col = rec->begin();
                                 col != rec->end(); ++col)
       mprintf(" {%s}", col->c_str());

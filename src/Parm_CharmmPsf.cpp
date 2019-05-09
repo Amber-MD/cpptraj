@@ -224,7 +224,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   }
   outfile.Printf("\n");
   // Write NBOND section
-  outfile.Printf("%8u !NBOND: bonds\n", parm.Bonds().size() + parm.BondsH().size());
+  outfile.Printf("%8zu !NBOND: bonds\n", parm.Bonds().size() + parm.BondsH().size());
   idx = 1;
   for (BondArray::const_iterator bond = parm.BondsH().begin();
                                  bond != parm.BondsH().end(); ++bond, ++idx)
@@ -241,7 +241,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   if ((idx % 4)!=0) outfile.Printf("\n");
   outfile.Printf("\n");
   // Write NTHETA section
-  outfile.Printf("%8u !NTHETA: angles\n", parm.Angles().size() + parm.AnglesH().size());
+  outfile.Printf("%8zu !NTHETA: angles\n", parm.Angles().size() + parm.AnglesH().size());
   idx = 1;
   for (AngleArray::const_iterator ang = parm.AnglesH().begin();
                                   ang != parm.AnglesH().end(); ++ang, ++idx)
@@ -258,7 +258,7 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   if ((idx % 3)==0) outfile.Printf("\n");
   outfile.Printf("\n");
   // Write out NPHI section
-  outfile.Printf("%8u !NPHI: dihedrals\n", parm.Dihedrals().size() + parm.DihedralsH().size());
+  outfile.Printf("%8zu !NPHI: dihedrals\n", parm.Dihedrals().size() + parm.DihedralsH().size());
   idx = 1;
   for (DihedralArray::const_iterator dih = parm.DihedralsH().begin();
                                      dih != parm.DihedralsH().end(); ++dih, ++idx)

@@ -32,7 +32,7 @@ void Cpptraj::Cluster::Output::PrintClustersToFile(CpptrajFile& outfile,
               filename.c_str());
     return;
   }*/
-  outfile.Printf("#Clustering: %i clusters %i frames\n",
+  outfile.Printf("#Clustering: %i clusters %u frames\n",
                  clusters.Nclusters(), metricIn->Ntotal());
   // DBI
   std::vector<double> averageDist;
@@ -326,7 +326,7 @@ void Cpptraj::Cluster::Output::Summary_Part(CpptrajFile& outfile,
   eidx=0;
   for (std::vector<double>::const_iterator pm = partMax.begin(); pm != partMax.end(); ++pm) {
     if (pm != partMax.begin()) outfile.Printf("  ");
-    outfile.Printf("%u%s= %.0f", pm - partMax.begin() + 1, nExt[eidx], *pm);
+    outfile.Printf("%li%s= %.0f", pm - partMax.begin() + 1, nExt[eidx], *pm);
     if (eidx < 3) ++eidx;
   }
   outfile.Printf("\n");

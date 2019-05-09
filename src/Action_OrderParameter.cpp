@@ -117,12 +117,12 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
 
   if (nGroups < 3) {
     mprinterr("Error: OrderParameter: number of atoms must be at least 3 "
-	      "(not %i)\n", nGroups);
+	      "(not %zu)\n", nGroups);
     return Action::ERR;
   }
 
   if (scd_ && (nGroups % 3) ) {
-    mprinterr("Error: OrderParameter: scd set but number of masks (%i) "
+    mprinterr("Error: OrderParameter: scd set but number of masks (%zu) "
 	      "not a multiple of 3\n", nGroups);
     return Action::ERR;
   }

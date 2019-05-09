@@ -157,7 +157,7 @@ Action::RetType Action_ClusterDihedral::Setup(ActionSetup& setup) {
           DCmasks_.push_back( DCmask(C1, N2, CA, C2,    phibins_, minimum_) ); // PHI
           DCmasks_.push_back( DCmask(N2, CA, C2, *atom, psibins_, minimum_) ); // PSI
           if (debug_ > 0)
-            mprintf("DIHEDRAL PAIR FOUND: C1= %i, N2= %i, CA= %i, C2= %i, N3= %li\n",
+            mprintf("DIHEDRAL PAIR FOUND: C1= %i, N2= %i, CA= %i, C2= %i, N3= %i\n",
                     C1, N2, CA, C2, *atom);
           // Since the carbonyl C/amide N probably starts a new dihedral,
           // reset to those.
@@ -325,7 +325,7 @@ void Action_ClusterDihedral::Print() {
                                                cnum != framecluster.end(); ++cnum)
     {
       // Frame, cluster num, cluster count
-      framefile_->Printf("%10li %10i %10li ", num++, *cnum + 1, dcarray_[*cnum].Count());
+      framefile_->Printf("%10li %10li %10li ", num++, *cnum + 1, dcarray_[*cnum].Count());
       // Print binID
       for (DCnode::bin_it binid = dcarray_[*cnum].binbegin();
                           binid != dcarray_[*cnum].binend(); ++binid)

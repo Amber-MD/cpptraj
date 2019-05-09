@@ -475,7 +475,7 @@ Exec::RetType Exec_DataSetCmd::Remove(CpptrajState& State, ArgList& argIn) {
     mprinterr("Internal Error: Criterion not yet implemented.\n");
     return CpptrajState::ERR;
   }
-  mprintf("\tRemoved %u of %u sets.\n", Nremoved, tempDSL.size());
+  mprintf("\tRemoved %u of %zu sets.\n", Nremoved, tempDSL.size());
   return CpptrajState::OK;
 }
 

@@ -820,10 +820,10 @@ int DataSetList::SetActiveReference(ArgList &argIn) {
   return SetActiveReference( ds );
 }
 
-int DataSetList::SetActiveReference(DataSet* ds) {
-  if (ds == 0) return 1;
-  activeRef_ = ds;
-  ReferenceFrame REF((DataSet_Coords_REF*)ds);
+int DataSetList::SetActiveReference(DataSet* dsIn) {
+  if (dsIn == 0) return 1;
+  activeRef_ = dsIn;
+  ReferenceFrame REF((DataSet_Coords_REF*)dsIn);
   mprintf("\tSetting active reference for distance-based masks: '%s'\n", REF.refName());
   // Set in all Topologies and COORDS data sets.
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
@@ -841,7 +841,7 @@ void DataSetList::ListReferenceFrames() const {
   if (!RefList_.empty()) {
     mprintf("\nREFERENCE FRAMES (%zu total):\n", RefList_.size());
     for (DataListType::const_iterator ref = RefList_.begin(); ref != RefList_.end(); ++ref)
-      mprintf("    %u: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
+      mprintf("    %li: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
     if (activeRef_ != 0)
       mprintf("\tActive reference frame for distance-based masks is '%s'\n", activeRef_->legend());
   }
