@@ -1,4 +1,5 @@
 #include "ViewRst.h"
+#include "DataSetList.h"
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
 #include "ParmFile.h"
@@ -68,7 +69,7 @@ int ViewRst::WriteRstMol2(std::string const& mol2out, Frame const& frameIn) {
 
   for (unsigned int nt = 0; nt != Pseudo_.size(); nt++) {
     Trajout_Single trajout;
-    if (trajout.PrepareTrajWrite(OutNames[nt], ArgList(), &(Pseudo_[nt]), CoordinateInfo(), 1,
+    if (trajout.PrepareTrajWrite(OutNames[nt], ArgList(), DataSetList(), &(Pseudo_[nt]), CoordinateInfo(), 1,
                                  TrajectoryFile::MOL2FILE))
       return 1;
     if (trajout.WriteSingle(0, frameIn)) return 1;

@@ -428,7 +428,8 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
     CutParm->SetAtom(i).SetCharge( CutCharges[i] );
   int err = 0;
   Trajout_Single tout;
-  if (tout.PrepareTrajWrite(outfilename, "multi", CutParm, CoordinateInfo(), 1,
+  // NOTE: Since no user-specified arguments, pass in blank data set list.
+  if (tout.PrepareTrajWrite(outfilename, "multi", DataSetList(), CutParm, CoordinateInfo(), 1,
                             TrajectoryFile::MOL2FILE))
   {
     mprinterr("Error: Could not set up cut mol2 file %s\n", outfilename.c_str());

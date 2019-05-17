@@ -9,7 +9,7 @@ class TrajoutList {
     void SetDebug(int d) { debug_ = d; }
     void Clear();
     /// Add output trajectory to the list and associate with given topology.
-    int AddTrajout(std::string const&, ArgList const&, Topology*);
+    int AddTrajout(std::string const&, ArgList const&, DataSetList const&, Topology*);
     /// Set up trajectories for given topology.
     int SetupTrajout(Topology*, CoordinateInfo const&, int);
     /// Write frame to normal output trajectories.

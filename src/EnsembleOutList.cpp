@@ -1,4 +1,5 @@
 #include "EnsembleOutList.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
 #include "EnsembleOut_Single.h"
 #include "EnsembleOut_Multi.h"
@@ -14,6 +15,7 @@ void EnsembleOutList::Clear() {
 
 // TODO Pass in more ensemble information, maps etc?
 int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& args,
+                                    DataSetList const& DSLin,
                                     Topology* eParm, int ensembleSize)
 {
   if (eParm == 0) {
@@ -44,7 +46,7 @@ int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& arg
     // Create new multi output trajectory
     ens = new EnsembleOut_Multi();
   if (ens == 0) return 1;
-  if (ens->InitEnsembleWrite(fname, argIn, ensembleSize, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (ens->InitEnsembleWrite(fname, argIn, DSLin, ensembleSize, TrajectoryFile::UNKNOWN_TRAJ)) {
     delete ens;
     return 1;
   }

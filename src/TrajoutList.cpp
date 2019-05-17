@@ -1,4 +1,5 @@
 #include "TrajoutList.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
 
 void TrajoutList::Clear() {
@@ -15,7 +16,7 @@ void TrajoutList::Clear() {
   * is because during the course of a Run the Topology may be modified, by
   * e.g. a 'strip' command.
   */
-int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, Topology* tParm)
+int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, DataSetList const& DSLin, Topology* tParm)
 {
   if (tParm == 0) {
     mprinterr("Error: No topology information.\n");
@@ -39,7 +40,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, T
   to->SetDebug( debug_ );
   // Initialize output trajectory
   ArgList args = argIn;
-  if (to->InitTrajWrite(filename, args, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (to->InitTrajWrite(filename, args, DSLin, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: Could not set up output trajectory.\n");
     delete to;
     return 1;

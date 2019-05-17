@@ -3,6 +3,7 @@
 #include "TrajectoryIO.h"
 #ifndef NO_XDRFILE
 # include <xdrfile_xtc.h>
+# include "FileName.h"
 #endif
 /// Read/write Gromacs XTC trajectories
 class Traj_GmxXtc : public TrajectoryIO {
