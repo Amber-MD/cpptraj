@@ -1,4 +1,6 @@
 #include "Traj_PDBfile.h"
+#include "Topology.h"
+#include "ArgList.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 
@@ -186,7 +188,7 @@ void Traj_PDBfile::WriteHelp() {
 }
 
 // Traj_PDBfile::processWriteArgs()
-int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
+int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   pdbWriteMode_ = SINGLE;
   if (argIn.hasKey("dumpq")) {
     dumpq_ = true; 
