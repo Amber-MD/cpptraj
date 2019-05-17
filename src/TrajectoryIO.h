@@ -1,13 +1,20 @@
 #ifndef INC_TRAJECTORYIO_H
 #define INC_TRAJECTORYIO_H
-#include "Topology.h" // Box
-#include "FrameArray.h"
-#include "FramePtrArray.h"
-#include "CpptrajFile.h"
-#include "ArgList.h"
+#include <string>
 #include "BaseIOtype.h"
+#include "CoordinateInfo.h"
 #ifdef MPI
 # include "Parallel.h"
+#endif
+// Forward declarations
+class CpptrajFile;
+class FileName;
+class Topology;
+class Frame;
+class ArgList;
+#ifdef ENABLE_SINGLE_ENSEMBLE
+class FrameArray;
+class FramePtrArray;
 #endif
 /// Abstract base class for performing trajectory reading and writing.
 /** This is the generic interface for a trajectory format used by 
