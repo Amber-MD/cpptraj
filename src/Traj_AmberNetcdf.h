@@ -22,7 +22,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int readForce(int, Frame&);
     int writeFrame(int,Frame const&);
     void Info();
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&);
 #   ifdef MPI
     // Parallel functions

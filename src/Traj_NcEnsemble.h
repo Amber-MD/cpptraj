@@ -23,7 +23,7 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     int readForce(int, Frame&) { return 1; } //FIXME implement
     int writeFrame(int,Frame const&);
     void Info();
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&);
     bool CanProcessEnsemble() { return true; }
     int readArray(int, FrameArray&);

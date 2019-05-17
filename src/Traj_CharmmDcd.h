@@ -55,7 +55,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int writeFrame(int,Frame const&);
     void Info();
     int processReadArgs(ArgList&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
 
     int readForce(int, Frame&)    { return 1; }
 #   ifdef MPI
