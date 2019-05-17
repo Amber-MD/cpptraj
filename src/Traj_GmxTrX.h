@@ -1,6 +1,7 @@
 #ifndef INC_TRAJ_GMXTRR_H
 #define INC_TRAJ_GMXTRR_H
 #include "TrajectoryIO.h"
+#include "CpptrajFile.h"
 /// Read/write Gromacs TRR/TRJ trajectories
 class Traj_GmxTrX : public TrajectoryIO {
   public:

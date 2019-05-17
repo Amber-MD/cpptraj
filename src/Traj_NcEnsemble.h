@@ -4,6 +4,7 @@
 #ifdef ENABLE_SINGLE_ENSEMBLE
 #include "TrajectoryIO.h"
 #include "NetcdfFile.h"
+#include "FileName.h"
 /// Read/write single NetCDF ensemble trajectory.
 class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
   public:

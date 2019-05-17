@@ -6,6 +6,10 @@
 #ifdef MPI
 # include "Parallel.h"
 #endif
+#ifdef ENABLE_SINGLE_ENSEMBLE
+  // This is not forward declared because it is a typedef, not a class
+# include "FramePtrArray.h"
+#endif
 // Forward declarations
 class CpptrajFile;
 class FileName;
@@ -15,7 +19,6 @@ class ArgList;
 class DataSetList;
 #ifdef ENABLE_SINGLE_ENSEMBLE
 class FrameArray;
-class FramePtrArray;
 #endif
 /// Abstract base class for performing trajectory reading and writing.
 /** This is the generic interface for a trajectory format used by 

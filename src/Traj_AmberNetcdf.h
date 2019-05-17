@@ -3,6 +3,7 @@
 #ifdef BINTRAJ
 #include "TrajectoryIO.h"
 #include "NetcdfFile.h"
+#include "FileName.h"
 /// Reads and writes Amber Netcdf format trajectories. 
 class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
   public:

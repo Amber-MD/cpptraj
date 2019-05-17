@@ -1,5 +1,9 @@
 #include <cstdio>
 #include "Traj_XYZ.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "TextFormat.h"
@@ -219,7 +223,7 @@ void Traj_XYZ::WriteHelp() {
 }
 
 /** Process write arguments. */
-int Traj_XYZ::processWriteArgs(ArgList& argIn) {
+int Traj_XYZ::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   std::string arg = argIn.GetStringKey("ftype");
   if (!arg.empty()) {
     if (arg == "xyz")

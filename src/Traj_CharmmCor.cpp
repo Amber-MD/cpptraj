@@ -1,5 +1,9 @@
 #include <cstdio> // sscanf
 #include "Traj_CharmmCor.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
 

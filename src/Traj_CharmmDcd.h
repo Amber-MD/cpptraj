@@ -1,7 +1,7 @@
 #ifndef INC_TRAJ_CHARMMDCD_H
 #define INC_TRAJ_CHARMMDCD_H
 #include "TrajectoryIO.h"
-// Class: Traj_CharmmDcd
+#include "CpptrajFile.h"
 /// TrajectoryIO class for reading coordinates from charmm dcd files.
 class Traj_CharmmDcd : public TrajectoryIO {
   public :
