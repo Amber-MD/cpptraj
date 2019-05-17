@@ -2,7 +2,8 @@
 #define INC_TRAJ_PDBFILE_H
 #include "TrajectoryIO.h"
 #include "PDBfile.h"
-// Class: Traj_PDBfile
+// Forward declarations
+class DataSet;
 /// TrajectoryIO class for reading coordinates from PDB files.
 class Traj_PDBfile: public TrajectoryIO {
   public:
@@ -74,5 +75,6 @@ class Traj_PDBfile: public TrajectoryIO {
     std::vector<char> chainID_;      ///< Hold chainID for each residue.
     std::vector<NameType> resNames_; ///< Hold residue names.
     char chainchar_;
+    DataSet* bfacdata_;
 };
 #endif

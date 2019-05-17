@@ -1,6 +1,7 @@
 #include "Traj_PDBfile.h"
 #include "Topology.h"
 #include "ArgList.h"
+#include "DataSetList.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 
@@ -166,24 +167,25 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 }
 
 void Traj_PDBfile::WriteHelp() {
-  mprintf("\tdumpq      : Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
-          "\tparse      : Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
-          "\tvdw        : Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
-          "\tpdbres     : Use PDB V3 residue names.\n"
-          "\tpdbatom    : Use PDB V3 atom names.\n"
-          "\tpdbv3      : Use PDB V3 residue/atom names.\n"
-          "\tteradvance : Increment record (atom) # for TER records (default no).\n"
-          "\tterbyres   : Print TER cards based on residue sequence instead of molecules.\n"
-          "\tpdbter     : Print TER cards according to original PDB TER (if available).\n"
-          "\tnoter      : Do not write TER cards.\n"
-          "\tmodel      : Write to single file separated by MODEL records.\n"
-          "\tmulti      : Write each frame to separate files.\n"
-          "\tchainid <c>: Write character 'c' in chain ID column.\n"
-          "\tsg <group> : Space group for CRYST1 record, only if box coordinates written.\n"
-          "\tinclude_ep : Include extra points.\n"
-          "\tconect     : Write CONECT records using bond information.\n"
-          "\tkeepext    : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
-          "\tusecol21   : Use column 21 for 4-letter residue names.\n"
+  mprintf("\tdumpq          : Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
+          "\tparse          : Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
+          "\tvdw            : Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
+          "\tpdbres         : Use PDB V3 residue names.\n"
+          "\tpdbatom        : Use PDB V3 atom names.\n"
+          "\tpdbv3          : Use PDB V3 residue/atom names.\n"
+          "\tteradvance     : Increment record (atom) # for TER records (default no).\n"
+          "\tterbyres       : Print TER cards based on residue sequence instead of molecules.\n"
+          "\tpdbter         : Print TER cards according to original PDB TER (if available).\n"
+          "\tnoter          : Do not write TER cards.\n"
+          "\tmodel          : Write to single file separated by MODEL records.\n"
+          "\tmulti          : Write each frame to separate files.\n"
+          "\tchainid <c>    : Write character 'c' in chain ID column.\n"
+          "\tsg <group>     : Space group for CRYST1 record, only if box coordinates written.\n"
+          "\tinclude_ep     : Include extra points.\n"
+          "\tconect         : Write CONECT records using bond information.\n"
+          "\tkeepext        : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
+          "\tusecol21       : Use column 21 for 4-letter residue names.\n"
+          "\tbfacdata <set> : Use data in <set> for B-factor column.\n"
   );
 }
 
@@ -230,6 +232,15 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   if (!temp.empty()) chainchar_ = temp[0];
   if (argIn.hasKey("usecol21"))
     file_.SetUseCol21( true );
+  // Check for data sets
+  temp = argIn.GetStringKey("bfacdata");
+  if (!temp.empty()) {
+    bfacdata_ = DSLin.GetDataSet( temp );
+    if (bfacdata_ == 0) {
+      mprinterr("Error: No data set selected for 'bfacdata %s'\n", temp.c_str());
+      return 1;
+    }
+  }
   return 0;
 }
 
