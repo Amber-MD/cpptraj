@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in withtime.rst7 withtime.nc
+CleanFiles cpptraj.in withtime.rst7 withtime.nc modtime.rst7
 
 INPUT='-i cpptraj.in'
 
@@ -34,6 +34,20 @@ go
 EOF
   RunCpptraj "$UNITNAME"
   NcTest withtime.nc.save withtime.nc
+fi
+
+UNITNAME='Modify time info test.'
+CheckFor netcdf maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > cpptraj.in <<EOF
+parm ../tz2.parm7
+trajin withtime.nc.save 1 1
+time time0 -50 update
+trajout modtime.rst7
+go
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest modtime.rst7.save modtime.rst7
 fi
 
 EndTest
