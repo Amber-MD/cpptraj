@@ -540,9 +540,9 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     if (space_group_.empty())
       mprintf("Warning: No PDB space group specified.\n");
   }
-  radii_.clear();
+  Bfactors_.clear();
   if (bfacdata_ != 0) {
-    radii_.assign(trajParm->Natom(), 0);
+    Bfactors_.assign(trajParm->Natom(), 0);
     if ( bfacdata_->Size() < 1) {
       mprinterr("Error: 'bfacdata' set '%s' is empty.\n", bfacdata_->legend());
       return 1;
@@ -563,18 +563,18 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       if (dsidx >= data.Size()) break;
       double xcrd = data.Xcrd( dsidx );
       if ( Eqv(xcrd, dat) ) {
-        radii_[iat] = data.Dval( dsidx++ );
+        Bfactors_[iat] = data.Dval( dsidx++ );
       }
       dat = dat + 1;
     }
   } else if (dumpq_) {
-    radii_.reserve( trajParm->Natom() );
+    Bfactors_.reserve( trajParm->Natom() );
     // Set up radii
     for (int iat = 0; iat != trajParm->Natom(); iat++) {
       switch (radiiMode_) {
-        case GB:    radii_.push_back( (*trajParm)[iat].GBRadius() ); break;
-        case PARSE: radii_.push_back( (*trajParm)[iat].ParseRadius() ); break;
-        case VDW:   radii_.push_back( trajParm->GetVDWradius(iat) ); break;
+        case GB:    Bfactors_.push_back( (*trajParm)[iat].GBRadius() ); break;
+        case PARSE: Bfactors_.push_back( (*trajParm)[iat].ParseRadius() ); break;
+        case VDW:   Bfactors_.push_back( trajParm->GetVDWradius(iat) ); break;
       }
     }
   }
@@ -670,8 +670,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         Bfac = pdbTop_->Extra()[aidx].Bfactor();
         altLoc = pdbTop_->Extra()[aidx].AtomAltLoc();
       }
-      if (!radii_.empty())
-        Bfac = (float) radii_[aidx];
+      if (!Bfactors_.empty())
+        Bfac = (float) Bfactors_[aidx];
       if (dumpq_)
         Occ  = (float) atom.Charge();
       // If pdbatom change amber atom names to pdb v3

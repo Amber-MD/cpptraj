@@ -64,10 +64,10 @@ class Traj_PDBfile: public TrajectoryIO {
     bool prependExt_;
     bool firstframe_;   ///< Set to false after first call to writeFrame
     std::string space_group_;
-    std::vector<double> radii_;  ///< Hold radii for PQR format.
-    Iarray TER_idxs_;  ///< TER card indices.
-    Iarray atrec_;     ///< Hold ATOM record #s for CONECT
-    std::vector<bool> resIsHet_; ///< True if residue needs HETATM records
+    std::vector<double> Bfactors_; ///< Hold data for B-factor column.
+    Iarray TER_idxs_;              ///< TER card indices.
+    Iarray atrec_;                 ///< Hold ATOM record #s for CONECT
+    std::vector<bool> resIsHet_;   ///< True if residue needs HETATM records
     std::vector<SSBOND> ss_residues_;
     Iarray ss_atoms_;
     Topology *pdbTop_;
