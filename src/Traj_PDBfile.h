@@ -43,6 +43,8 @@ class Traj_PDBfile: public TrajectoryIO {
 #   endif
     void WriteDisulfides(Frame const&);
     void WriteBonds();
+    /// Used to set up B-factor/occupancy data from DataSets
+    int AssignData(std::vector<double>&, DataSet*, Topology const&, const char*) const;
 
     typedef std::vector<int> Iarray;
     typedef PDBfile::SSBOND SSBOND;

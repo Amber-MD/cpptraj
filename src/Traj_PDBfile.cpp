@@ -260,6 +260,38 @@ static inline bool Eqv(double d0, double d1) {
   return (diff < Constants::SMALL);
 }
 
+/** Assign data to specified output array using given input array. */
+int Traj_PDBfile::AssignData(std::vector<double>& DataOut, DataSet* dataIn, Topology const& topIn, const char* desc)
+const
+{
+  DataOut.assign(topIn.Natom(), 0);
+  if ( dataIn->Size() < 1) {
+    mprinterr("Error: '%s' set '%s' is empty.\n", desc, dataIn->legend());
+    return 1;
+  }
+  // Set up output data set. Assume X coord of data set matches up 
+  // with atom numbers and that atom numbers start from 1.
+  DataSet_1D const& data = static_cast<DataSet_1D const&>( *dataIn );
+  unsigned int dsidx = 0;
+  double dat = 1.0; // Double precision version of atom number for comparing to set X coord
+  double xcrd = data.Xcrd( dsidx );
+  // Advance if necessary
+  while (xcrd < dat && dsidx < data.Size()) {
+    xcrd = data.Xcrd( dsidx );
+    dsidx++;
+  }
+  // Set data for all atoms
+  for (int iat = 0; iat != topIn.Natom(); iat++) {
+    if (dsidx >= data.Size()) break;
+    double xcrd = data.Xcrd( dsidx );
+    if ( Eqv(xcrd, dat) ) {
+      DataOut[iat] = data.Dval( dsidx++ );
+    }
+    dat = dat + 1;
+  }
+  return 0;
+}
+
 // Traj_PDBfile::setupTrajout()
 /** Set parm information needed for write, and check write mode against
   * number of frames to be written.
@@ -542,31 +574,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   Bfactors_.clear();
   if (bfacdata_ != 0) {
-    Bfactors_.assign(trajParm->Natom(), 0);
-    if ( bfacdata_->Size() < 1) {
-      mprinterr("Error: 'bfacdata' set '%s' is empty.\n", bfacdata_->legend());
-      return 1;
-    }
-    // Set up B factor data set. Assume X coord of data set matches up 
-    // with atom numbers and that atom numbers start from 1.
-    DataSet_1D const& data = static_cast<DataSet_1D const&>( *bfacdata_ );
-    unsigned int dsidx = 0;
-    double dat = 1.0; // Double precision version of atom number for comparing to set X coord
-    double xcrd = data.Xcrd( dsidx );
-    // Advance if necessary
-    while (xcrd < dat && dsidx < data.Size()) {
-      xcrd = data.Xcrd( dsidx );
-      dsidx++;
-    }
-    // Set bfactor for all atoms
-    for (int iat = 0; iat != trajParm->Natom(); iat++) {
-      if (dsidx >= data.Size()) break;
-      double xcrd = data.Xcrd( dsidx );
-      if ( Eqv(xcrd, dat) ) {
-        Bfactors_[iat] = data.Dval( dsidx++ );
-      }
-      dat = dat + 1;
-    }
+    if (AssignData(Bfactors_, bfacdata_, *trajParm, "bfacdata")) return 1;
   } else if (dumpq_) {
     Bfactors_.reserve( trajParm->Natom() );
     // Set up radii
