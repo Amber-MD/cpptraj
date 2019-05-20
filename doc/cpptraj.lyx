@@ -14508,7 +14508,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="84" columns="3">
+<lyxtabular version="3" rows="85" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="1.3in">
 <column alignment="center" valignment="top" width="4.5in">
@@ -16715,6 +16715,35 @@ Calculate system temperature using velocities of specified atoms.
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+time
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Add/remove/modify time information in frames.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+X
 \end_layout
 
 \end_inset
@@ -31756,7 +31785,57 @@ Calculate temperature in frame based on velocity information.
 \series default
  is specified just use frame temperature (read in from e.g.
  REMD trajectory).
- 
+\end_layout
+
+\begin_layout Subsection
+time
+\end_layout
+
+\begin_layout LyX-Code
+time {time0 <initial time> dt <step> [update] | remove}
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+time0
+\begin_inset space ~
+\end_inset
+
+<initial
+\begin_inset space ~
+\end_inset
+
+time> Time of the first frame (ps).
+\end_layout
+
+\begin_layout Description
+dt
+\begin_inset space ~
+\end_inset
+
+<step> Time step between frames (ps).
+\end_layout
+
+\begin_layout Description
+[update] If specified, modify any existing time info.
+\end_layout
+
+\begin_layout Description
+remove Remove any time info from frame.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Either add time information to frames, modify existing time information
+ in frames, or remove existing time information from frames.
+ Note that currently COORDS data sets do not store time information, so
+ using this command with the 
+\series bold
+\emph on
+crdaction
+\series default
+\emph default
+ command will have no effect.
 \end_layout
 
 \begin_layout Subsection
