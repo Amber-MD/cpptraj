@@ -20,7 +20,11 @@ go
 EOF
   RunCpptraj "$UNITNAME"
   DoTest withtime.rst7.save withtime.rst7
-  UNITNAME='Remove time from restart test'
+fi
+
+UNITNAME='Remove time from restart test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
   cat > cpptraj.in <<EOF
 parm ../tz2.parm7
 trajin withtime.rst7.save
@@ -33,7 +37,7 @@ EOF
 fi
 
 UNITNAME='Add time to trajectory test'
-CheckFor netcdf maxthreads 10
+CheckFor netcdf pnetcdf maxthreads 10
 if [ $? -eq 0 ] ; then
   cat > cpptraj.in <<EOF
 parm ../tz2.parm7
