@@ -5,7 +5,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "Constants.h"
-#include "DataSet_1D.h" // for bfacdata
+#include "DataSet_1D.h" // for bfacdata, occdata
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
@@ -25,7 +25,8 @@ Traj_PDBfile::Traj_PDBfile() :
   firstframe_(false),
   pdbTop_(0),
   chainchar_(' '),
-  bfacdata_(0)
+  bfacdata_(0),
+  occdata_(0)
 {}
 
 //------------------------------------------------------------------------
@@ -189,6 +190,7 @@ void Traj_PDBfile::WriteHelp() {
           "\tkeepext        : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
           "\tusecol21       : Use column 21 for 4-letter residue names.\n"
           "\tbfacdata <set> : Use data in <set> for B-factor column.\n"
+          "\toccdata <set>  : Use data in <set> for occupancy column.\n"
   );
 }
 
@@ -250,6 +252,21 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     if (dumpq_)
       mprintf("Warning: Both a PQR option and 'bfacdata' specified. B-factor column will contain '%s'\n", bfacdata_->legend());
   }
+  temp = argIn.GetStringKey("occdata");
+  if (!temp.empty()) {
+    occdata_ = DSLin.GetDataSet( temp );
+    if (occdata_ == 0) {
+      mprinterr("Error: No data set selected for 'occdata %s'\n", temp.c_str());
+      return 1;
+    }
+    if (occdata_->Group() != DataSet::SCALAR_1D) {
+      mprinterr("Error: Only scalar 1D data can be used for 'occdata'\n");
+      return 1;
+    }
+    if (dumpq_)
+      mprintf("Warning: Both a PQR option and 'occdata' specified. Occupancy column will contain '%s'\n", occdata_->legend());
+  }
+
   return 0;
 }
 
@@ -261,7 +278,7 @@ static inline bool Eqv(double d0, double d1) {
 }
 
 /** Assign data to specified output array using given input array. */
-int Traj_PDBfile::AssignData(std::vector<double>& DataOut, DataSet* dataIn, Topology const& topIn, const char* desc)
+int Traj_PDBfile::AssignData(Darray& DataOut, DataSet* dataIn, Topology const& topIn, const char* desc)
 const
 {
   DataOut.assign(topIn.Natom(), 0);
@@ -586,6 +603,15 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       }
     }
   }
+  Occupancy_.clear();
+  if (occdata_ != 0) {
+    if (AssignData(Occupancy_, occdata_, *trajParm, "occdata")) return 1;
+  } else if (dumpq_) {
+    Occupancy_.reserve( trajParm->Natom() );
+    // Set up charges
+    for (Topology::atom_iterator atm = trajParm->begin(); atm != trajParm->end(); ++atm)
+      Occupancy_.push_back( atm->Charge() );
+  }
   // If not including extra points, warn if topology has them.
   if (!include_ep_) {
     unsigned int n_not_included = 0;
@@ -680,8 +706,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       }
       if (!Bfactors_.empty())
         Bfac = (float) Bfactors_[aidx];
-      if (dumpq_)
-        Occ  = (float) atom.Charge();
+      if (!Occupancy_.empty())
+        Occ  = (float) Occupancy_[aidx];
       // If pdbatom change amber atom names to pdb v3
       NameType atomName = atom.Name();
       if (pdbatom_) {
@@ -746,15 +772,18 @@ void Traj_PDBfile::Info() {
     if (conectMode_ != NO_CONECT) mprintf(" with CONECT records");
     if (bfacdata_ != 0)
       mprintf(", B-factor data from '%s'", bfacdata_->legend());
-    if (dumpq_) {
-      mprintf(", writing charges to occupancy column and ");
+    else if (dumpq_) {
+      mprintf(", B-factor column contains ");
       switch (radiiMode_) {
         case GB: mprintf("GB radii"); break;
         case PARSE: mprintf("PARSE radii"); break;
         case VDW: mprintf("vdW radii"); break;
       }
-      mprintf(" to B-factor column");
     }
+    if (occdata_ != 0)
+      mprintf(", occupancy data from '%s'", occdata_->legend());
+    else if (dumpq_)
+      mprintf(", occupancy column contains charges");
     if (pdbres_ && pdbatom_)
       mprintf(", using PDB V3 res/atom names");
     else if (pdbres_)

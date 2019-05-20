@@ -20,6 +20,8 @@ class Traj_PDBfile: public TrajectoryIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
     static void WriteHelp();
   private:
+    typedef std::vector<int> Iarray;
+    typedef std::vector<double> Darray;
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(FileName const&, Topology*);
@@ -41,12 +43,12 @@ class Traj_PDBfile: public TrajectoryIO {
     int parallelWriteFrame(int, Frame const&);
     void parallelCloseTraj() {}
 #   endif
+
     void WriteDisulfides(Frame const&);
     void WriteBonds();
     /// Used to set up B-factor/occupancy data from DataSets
-    int AssignData(std::vector<double>&, DataSet*, Topology const&, const char*) const;
+    int AssignData(Darray&, DataSet*, Topology const&, const char*) const;
 
-    typedef std::vector<int> Iarray;
     typedef PDBfile::SSBOND SSBOND;
     enum TER_Mode { BY_MOL = 0, BY_RES, ORIGINAL_PDB, NO_TER };
     enum Radii_Mode { GB = 0, PARSE, VDW };
@@ -66,7 +68,8 @@ class Traj_PDBfile: public TrajectoryIO {
     bool prependExt_;
     bool firstframe_;   ///< Set to false after first call to writeFrame
     std::string space_group_;
-    std::vector<double> Bfactors_; ///< Hold data for B-factor column.
+    Darray Bfactors_;              ///< Hold data for B-factor column.
+    Darray Occupancy_;             ///< Hold data for occupancy column.
     Iarray TER_idxs_;              ///< TER card indices.
     Iarray atrec_;                 ///< Hold ATOM record #s for CONECT
     std::vector<bool> resIsHet_;   ///< True if residue needs HETATM records
@@ -78,5 +81,6 @@ class Traj_PDBfile: public TrajectoryIO {
     std::vector<NameType> resNames_; ///< Hold residue names.
     char chainchar_;
     DataSet* bfacdata_;
+    DataSet* occdata_;
 };
 #endif
