@@ -28,7 +28,7 @@ Action::RetType Action_Time::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (!actionArgs.Contains("time0") &&
         !actionArgs.Contains("dt"))
     {
-      mprinterr("Error: Both 'time0' and 'dt' must be specified.\n");
+      mprinterr("Error: Must specify either 'time0', 'dt', or both if 'notime' not specified.\n");
       return Action::ERR;
     }
     time0_ = actionArgs.getKeyDouble("time0", 0.0);
@@ -78,7 +78,7 @@ Action::RetType Action_Time::Setup(ActionSetup& setup)
   else
     cInfo_.SetTime( true );
   setup.SetCoordInfo( &cInfo_ );
-  return Action::OK;
+  return Action::MODIFY_TOPOLOGY;
 }
 
 // Action_Time::DoAction()
