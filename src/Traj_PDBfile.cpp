@@ -26,6 +26,8 @@ Traj_PDBfile::Traj_PDBfile() :
   firstframe_(false),
   bfacscale_(false),
   occscale_(false),
+  bfacbyres_(false),
+  occbyres_(false),
   pdbTop_(0),
   chainchar_(' '),
   bfacdata_(0),
@@ -196,6 +198,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tusecol21       : Use column 21 for 4-letter residue names.\n"
           "\tbfacdata <set> : Use data in <set> for B-factor column.\n"
           "\toccdata <set>  : Use data in <set> for occupancy column.\n"
+          "\tbfacbyres      : If specified assume X values in B-factor data set are residue numbers.\n"
+          "\toccbyres       : If specified assume X values in occupancy data set are residue numbers.\n"
           "\tbfacscale      : If specified scale values in B-factor column between 0 and <bfacmax>.\n"
           "\toccscale       : If specified scale values in occupancy column between 0 and <occmax>.\n"
           "\tbfacmax <max>  : Max value for bfacscale.\n"
@@ -260,6 +264,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     }
     if (dumpq_)
       mprintf("Warning: Both a PQR option and 'bfacdata' specified. B-factor column will contain '%s'\n", bfacdata_->legend());
+    bfacbyres_ = argIn.hasKey("bfacbyres");
   }
   temp = argIn.GetStringKey("occdata");
   if (!temp.empty()) {
@@ -274,6 +279,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     }
     if (dumpq_)
       mprintf("Warning: Both a PQR option and 'occdata' specified. Occupancy column will contain '%s'\n", occdata_->legend());
+    occbyres_ = argIn.hasKey("occbyres");
   }
   bfacscale_ = argIn.hasKey("bfacscale");
   if (bfacscale_) bfacmax_ = argIn.getKeyDouble("bfacmax", 99.99);
@@ -312,7 +318,7 @@ const
 }
 
 /** Assign data to specified output array using given input array. */
-int Traj_PDBfile::AssignData(Darray& DataOut, DataSet* dataIn, Topology const& topIn, const char* desc)
+int Traj_PDBfile::AssignData(Darray& DataOut, DataSet* dataIn, Topology const& topIn, bool byres, const char* desc)
 const
 {
   DataOut.assign(topIn.Natom(), 0);
@@ -331,14 +337,27 @@ const
     xcrd = data.Xcrd( dsidx );
     dsidx++;
   }
-  // Set data for all atoms
-  for (int iat = 0; iat != topIn.Natom(); iat++) {
-    if (dsidx >= data.Size()) break;
-    double xcrd = data.Xcrd( dsidx );
-    if ( Eqv(xcrd, dat) ) {
-      DataOut[iat] = data.Dval( dsidx++ );
+  if (byres) {
+    for (int ires = 0; ires != topIn.Nres(); ires++) {
+      if (dsidx >= data.Size()) break;
+      double xcrd = data.Xcrd( dsidx );
+      if ( Eqv(xcrd, dat) ) {
+        for (int iat = topIn.Res(ires).FirstAtom(); iat < topIn.Res(ires).LastAtom(); iat++)
+          DataOut[iat] = data.Dval( dsidx );
+        dsidx++;
+      }
+      dat = dat + 1; // dat is residue num in this context
     }
-    dat = dat + 1;
+  } else {
+    // Set data for all atoms
+    for (int iat = 0; iat != topIn.Natom(); iat++) {
+      if (dsidx >= data.Size()) break;
+      double xcrd = data.Xcrd( dsidx );
+      if ( Eqv(xcrd, dat) ) {
+        DataOut[iat] = data.Dval( dsidx++ );
+      }
+      dat = dat + 1;
+    }
   }
   return 0;
 }
@@ -625,7 +644,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   Bfactors_.clear();
   if (bfacdata_ != 0) {
-    if (AssignData(Bfactors_, bfacdata_, *trajParm, "bfacdata")) return 1;
+    if (AssignData(Bfactors_, bfacdata_, *trajParm, bfacbyres_, "bfacdata")) return 1;
   } else if (dumpq_) {
     Bfactors_.reserve( trajParm->Natom() );
     // Set up radii
@@ -639,7 +658,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   Occupancy_.clear();
   if (occdata_ != 0) {
-    if (AssignData(Occupancy_, occdata_, *trajParm, "occdata")) return 1;
+    if (AssignData(Occupancy_, occdata_, *trajParm, occbyres_, "occdata")) return 1;
   } else if (dumpq_) {
     Occupancy_.reserve( trajParm->Natom() );
     // Set up charges
