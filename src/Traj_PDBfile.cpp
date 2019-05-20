@@ -4,6 +4,8 @@
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "Constants.h"
+#include "DataSet_1D.h" // for bfacdata
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
@@ -22,7 +24,8 @@ Traj_PDBfile::Traj_PDBfile() :
   prependExt_(false),
   firstframe_(false),
   pdbTop_(0),
-  chainchar_(' ')
+  chainchar_(' '),
+  bfacdata_(0)
 {}
 
 //------------------------------------------------------------------------
@@ -240,8 +243,21 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
       mprinterr("Error: No data set selected for 'bfacdata %s'\n", temp.c_str());
       return 1;
     }
+    if (bfacdata_->Group() != DataSet::SCALAR_1D) {
+      mprinterr("Error: Only scalar 1D data can be used for 'bfacdata'\n");
+      return 1;
+    }
+    if (dumpq_)
+      mprintf("Warning: Both a PQR option and 'bfacdata' specified. B-factor column will contain '%s'\n", bfacdata_->legend());
   }
   return 0;
+}
+
+/// \return true if two double-precision numbers are equivalent with tolerance.
+static inline bool Eqv(double d0, double d1) {
+  double diff = (d1 - d0);
+  if (diff < 0.0) diff = -diff;
+  return (diff < Constants::SMALL);
 }
 
 // Traj_PDBfile::setupTrajout()
@@ -524,9 +540,36 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     if (space_group_.empty())
       mprintf("Warning: No PDB space group specified.\n");
   }
-  // Set up radii
-  if (dumpq_) {
-    radii_.clear();
+  radii_.clear();
+  if (bfacdata_ != 0) {
+    radii_.assign(trajParm->Natom(), 0);
+    if ( bfacdata_->Size() < 1) {
+      mprinterr("Error: 'bfacdata' set '%s' is empty.\n", bfacdata_->legend());
+      return 1;
+    }
+    // Set up B factor data set. Assume X coord of data set matches up 
+    // with atom numbers and that atom numbers start from 1.
+    DataSet_1D const& data = static_cast<DataSet_1D const&>( *bfacdata_ );
+    unsigned int dsidx = 0;
+    double dat = 1.0; // Double precision version of atom number for comparing to set X coord
+    double xcrd = data.Xcrd( dsidx );
+    // Advance if necessary
+    while (xcrd < dat && dsidx < data.Size()) {
+      xcrd = data.Xcrd( dsidx );
+      dsidx++;
+    }
+    // Set bfactor for all atoms
+    for (int iat = 0; iat != trajParm->Natom(); iat++) {
+      if (dsidx >= data.Size()) break;
+      double xcrd = data.Xcrd( dsidx );
+      if ( Eqv(xcrd, dat) ) {
+        radii_[iat] = data.Dval( dsidx++ );
+      }
+      dat = dat + 1;
+    }
+  } else if (dumpq_) {
+    radii_.reserve( trajParm->Natom() );
+    // Set up radii
     for (int iat = 0; iat != trajParm->Natom(); iat++) {
       switch (radiiMode_) {
         case GB:    radii_.push_back( (*trajParm)[iat].GBRadius() ); break;
@@ -607,8 +650,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   if (pdbWriteMode_==MODEL)
     file_.WriteMODEL(set + 1); 
 
-  float Occ = 1.0; 
-  float B = 0.0;
+  float Occ  = 1.0; 
+  float Bfac = 0.0;
   char altLoc = ' ';
   int anum = 1; // Actual PDB ATOM record number
   const double *Xptr = frameOut.xAddress();
@@ -623,14 +666,14 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       else
         rectype = PDBfile::ATOM;
       if (!pdbTop_->Extra().empty()) {
-        Occ = pdbTop_->Extra()[aidx].Occupancy();
-        B   = pdbTop_->Extra()[aidx].Bfactor();
+        Occ  = pdbTop_->Extra()[aidx].Occupancy();
+        Bfac = pdbTop_->Extra()[aidx].Bfactor();
         altLoc = pdbTop_->Extra()[aidx].AtomAltLoc();
       }
-      if (dumpq_) {
-        Occ = (float) atom.Charge();
-        B = (float) radii_[aidx];
-      }
+      if (!radii_.empty())
+        Bfac = (float) radii_[aidx];
+      if (dumpq_)
+        Occ  = (float) atom.Charge();
       // If pdbatom change amber atom names to pdb v3
       NameType atomName = atom.Name();
       if (pdbatom_) {
@@ -652,7 +695,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),
-                       Xptr[0], Xptr[1], Xptr[2], Occ, B,
+                       Xptr[0], Xptr[1], Xptr[2], Occ, Bfac,
                        atom.ElementName(), 0, dumpq_);
       if (conectMode_ != NO_CONECT)
         atrec_[aidx] = anum; // Store ATOM record #
@@ -693,6 +736,8 @@ void Traj_PDBfile::Info() {
     else if (pdbWriteMode_==MODEL)
       mprintf(" (1 MODEL per frame)");
     if (conectMode_ != NO_CONECT) mprintf(" with CONECT records");
+    if (bfacdata_ != 0)
+      mprintf(", B-factor data from '%s'", bfacdata_->legend());
     if (dumpq_) {
       mprintf(", writing charges to occupancy column and ");
       switch (radiiMode_) {
