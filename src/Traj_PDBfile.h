@@ -48,6 +48,8 @@ class Traj_PDBfile: public TrajectoryIO {
     void WriteBonds();
     /// Used to set up B-factor/occupancy data from DataSets
     int AssignData(Darray&, DataSet*, Topology const&, const char*) const;
+    /// Used to scale Bfactor/occupancy data between set values
+    void ScaleData(Darray&, double, double) const;
 
     typedef PDBfile::SSBOND SSBOND;
     enum TER_Mode { BY_MOL = 0, BY_RES, ORIGINAL_PDB, NO_TER };
@@ -67,6 +69,8 @@ class Traj_PDBfile: public TrajectoryIO {
     bool include_ep_;   ///< If true include extra points.
     bool prependExt_;
     bool firstframe_;   ///< Set to false after first call to writeFrame
+    bool bfacscale_;               ///< If specified scale B-factor data
+    bool occscale_;                ///< If specified scale occupancy data
     std::string space_group_;
     Darray Bfactors_;              ///< Hold data for B-factor column.
     Darray Occupancy_;             ///< Hold data for occupancy column.

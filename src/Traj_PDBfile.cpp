@@ -1,4 +1,5 @@
 #include "Traj_PDBfile.h"
+#include <algorithm> // min, max
 #include "Topology.h"
 #include "ArgList.h"
 #include "DataSetList.h"
@@ -23,6 +24,8 @@ Traj_PDBfile::Traj_PDBfile() :
   include_ep_(false),
   prependExt_(false),
   firstframe_(false),
+  bfacscale_(false),
+  occscale_(false),
   pdbTop_(0),
   chainchar_(' '),
   bfacdata_(0),
@@ -191,6 +194,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tusecol21       : Use column 21 for 4-letter residue names.\n"
           "\tbfacdata <set> : Use data in <set> for B-factor column.\n"
           "\toccdata <set>  : Use data in <set> for occupancy column.\n"
+          "\tbfacscale      : If specified scale values in B-factor column between 0 and 999.99.\n"
+          "\toccscale       : If specified scale values in occupancy column between 0 and 999.99.\n"
   );
 }
 
@@ -266,6 +271,8 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     if (dumpq_)
       mprintf("Warning: Both a PQR option and 'occdata' specified. Occupancy column will contain '%s'\n", occdata_->legend());
   }
+  bfacscale_ = argIn.hasKey("bfacscale");
+  occscale_  = argIn.hasKey("occscale");
 
   return 0;
 }
@@ -275,6 +282,27 @@ static inline bool Eqv(double d0, double d1) {
   double diff = (d1 - d0);
   if (diff < 0.0) diff = -diff;
   return (diff < Constants::SMALL);
+}
+
+/** Scale data in given set so that it falls within minVal and maxVal. */
+void Traj_PDBfile::ScaleData(Darray& DataOut, double minVal, double maxVal)
+const
+{
+  if (DataOut.empty()) return;
+  double rangeSize = maxVal - minVal;
+  // Get original min and max val
+  double min = DataOut.front();
+  double max = DataOut.front();
+  for (Darray::const_iterator it = DataOut.begin(); it != DataOut.end(); ++it) {
+    min = std::min(min, *it);
+    max = std::max(max, *it);
+  }
+  double fac = 1 / (max - min);
+  // Scale values
+  for (Darray::iterator it = DataOut.begin(); it != DataOut.end(); ++it) {
+    double dval = (*it - min) * fac;
+    *it = (dval * rangeSize) + minVal;
+  }
 }
 
 /** Assign data to specified output array using given input array. */
@@ -612,6 +640,8 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     for (Topology::atom_iterator atm = trajParm->begin(); atm != trajParm->end(); ++atm)
       Occupancy_.push_back( atm->Charge() );
   }
+  if (bfacscale_) ScaleData(Bfactors_, 0.0, 999.99);
+  if (occscale_ ) ScaleData(Occupancy_, 0.0, 999.99);
   // If not including extra points, warn if topology has them.
   if (!include_ep_) {
     unsigned int n_not_included = 0;
