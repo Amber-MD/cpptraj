@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat \
-           fluct.2.pdb occ.2.pdb
+           fluct.2.pdb occ.2.pdb scale.2.pdb
 TESTNAME='Atomic fluctuations tests' 
 Requires netcdf
 
@@ -42,10 +42,12 @@ average crdset MyAvg
 run
 crdout MyAvg fluct.2.pdb bfacdata A0
 crdout MyAvg occ.2.pdb occdata A0
+crdout MyAvg scale.2.pdb bfacdata A0 bfacscale
 EOF
 RunCpptraj "Atomicfluct test with PDB B-factor/occupancy output."
 DoTest fluct.2.pdb.save fluct.2.pdb
 DoTest occ.2.pdb.save occ.2.pdb
+DoTest scale.2.pdb.save scale.2.pdb
 
 EndTest
 
