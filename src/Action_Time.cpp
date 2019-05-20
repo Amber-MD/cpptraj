@@ -90,7 +90,7 @@ Action::RetType Action_Time::DoAction(int frameNum, ActionFrame& frm)
     case REMOVE : frm.ModifyFrm().SetTime( currTime ); break;
     case MODIFY : currTime = frm.Frm().Time();
     case ADD    :
-      newTime = currTime + time0_ + ((double)frameNum * dt_);
+      newTime = currTime + time0_ + ((double)frm.TrajoutNum() * dt_);
       frm.ModifyFrm().SetTime( newTime );
       break;
   }
