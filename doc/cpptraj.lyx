@@ -13945,11 +13945,11 @@ Options for pdb format:
 \end_layout
 
 \begin_layout LyX-Code
-  [bfacdata <set>] [occdata <set>] [bfacscale] [occscale]
+  [bfacdata <set>] [occdata <set>] [bfacbyres] [occbyres]
 \end_layout
 
 \begin_layout LyX-Code
-  [bfacmax <max>] [occmax <max>]
+  [bfacscale] [occscale] [bfacmax <max>] [occmax <max>]
 \end_layout
 
 \begin_deeper
@@ -14052,6 +14052,16 @@ occdata
 \end_inset
 
 <set> Use data in <set> for occupancy column.
+\end_layout
+
+\begin_layout Description
+bfacbyres If specified assume X values in B-factor data set are residue
+ numbers.
+\end_layout
+
+\begin_layout Description
+occbyres If specified assume X values in occupancy data set are residue
+ numbers.
 \end_layout
 
 \begin_layout Description
