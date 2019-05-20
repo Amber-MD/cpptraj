@@ -29,7 +29,9 @@ Traj_PDBfile::Traj_PDBfile() :
   pdbTop_(0),
   chainchar_(' '),
   bfacdata_(0),
-  occdata_(0)
+  occdata_(0),
+  bfacmax_(99.99),
+  occmax_(99.99)
 {}
 
 //------------------------------------------------------------------------
@@ -194,8 +196,10 @@ void Traj_PDBfile::WriteHelp() {
           "\tusecol21       : Use column 21 for 4-letter residue names.\n"
           "\tbfacdata <set> : Use data in <set> for B-factor column.\n"
           "\toccdata <set>  : Use data in <set> for occupancy column.\n"
-          "\tbfacscale      : If specified scale values in B-factor column between 0 and 999.99.\n"
-          "\toccscale       : If specified scale values in occupancy column between 0 and 999.99.\n"
+          "\tbfacscale      : If specified scale values in B-factor column between 0 and <bfacmax>.\n"
+          "\toccscale       : If specified scale values in occupancy column between 0 and <occmax>.\n"
+          "\tbfacmax <max>  : Max value for bfacscale.\n"
+          "\toccmax <max>   : Max value for occscale.\n"
   );
 }
 
@@ -272,7 +276,9 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
       mprintf("Warning: Both a PQR option and 'occdata' specified. Occupancy column will contain '%s'\n", occdata_->legend());
   }
   bfacscale_ = argIn.hasKey("bfacscale");
+  if (bfacscale_) bfacmax_ = argIn.getKeyDouble("bfacmax", 99.99);
   occscale_  = argIn.hasKey("occscale");
+  if (occscale_) occmax_ = argIn.getKeyDouble("occmax", 99.99);
 
   return 0;
 }
@@ -640,8 +646,8 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     for (Topology::atom_iterator atm = trajParm->begin(); atm != trajParm->end(); ++atm)
       Occupancy_.push_back( atm->Charge() );
   }
-  if (bfacscale_) ScaleData(Bfactors_, 0.0, 999.99);
-  if (occscale_ ) ScaleData(Occupancy_, 0.0, 999.99);
+  if (bfacscale_) ScaleData(Bfactors_, 0.0, bfacmax_);
+  if (occscale_ ) ScaleData(Occupancy_, 0.0, occmax_);
   // If not including extra points, warn if topology has them.
   if (!include_ep_) {
     unsigned int n_not_included = 0;

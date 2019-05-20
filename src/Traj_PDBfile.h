@@ -86,5 +86,7 @@ class Traj_PDBfile: public TrajectoryIO {
     char chainchar_;
     DataSet* bfacdata_;
     DataSet* occdata_;
+    double bfacmax_;
+    double occmax_;
 };
 #endif
