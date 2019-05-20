@@ -450,6 +450,9 @@ test.xtalsymm:
 test.time:
 	@-cd Test_Time && ./RunTest.sh $(OPT)
 
+test.splitcoords:
+	@-cd Test_SplitCoords && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -594,7 +597,8 @@ COMPLETETESTS=test.general \
               test.hausdorff \
               test.catcrd \
               test.xtalsymm \
-              test.time
+              test.time \
+              test.splitcoords
 
 test.all:
 	$(MAKE) test.complete summary
