@@ -1,4 +1,5 @@
 #include "Exec_CrdOut.h"
+#include "Trajout_Single.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 

@@ -1,7 +1,18 @@
 #include "TrajoutList.h"
+#include "Trajout_Single.h"
 #include "Topology.h"
 #include "CpptrajStdio.h"
 
+/// CONSTRUCTOR
+TrajoutList::TrajoutList() : debug_(0) {}
+
+/// DESTRUCTOR
+TrajoutList::~TrajoutList() { Clear(); }
+
+/** Set the list debug level; passed to new output trajectories. */
+void TrajoutList::SetDebug(int d) { debug_ = d; }
+
+/** Clear the output trajectory list, free all memory. */
 void TrajoutList::Clear() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
     delete *traj;
