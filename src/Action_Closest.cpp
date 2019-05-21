@@ -39,9 +39,9 @@ Action_Closest::Action_Closest() :
 {} 
 
 void Action_Closest::Help() const {
-  mprintf("\t<# to keep> <mask> [noimage] [first | oxygen] [center]\n"
-          "\t[closestout <filename> [name <setname>]] [outprefix <parmprefix>]\n"
-          "\t[parmout <file>]\n"
+  mprintf("\t<# to keep> <mask> [solventmask <solvent mask>] [noimage]\n"
+          "\t[first | oxygen] [center] [closestout <filename> [name <setname>]]\n"
+          "\t[outprefix <parmprefix>] [parmout <file>]\n"
           "  Keep only the closest <# to keep> solvent molecules to atoms in <mask>.\n"
           "  Molecules can be marked as solvent with the 'solvent' command.\n"
           "  If 'center' specified use geometric center of atoms in <mask>.\n");
@@ -107,7 +107,10 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
   }
 
   // Get Masks
-  std::string mask1 = actionArgs.GetMaskNext();
+  std::string mask1 = actionArgs.GetStringKey("solventmask");
+  if (!mask1.empty())
+    solventMask_.SetMaskString( mask1 );
+  mask1 = actionArgs.GetMaskNext();
   if (mask1.empty()) {
     mprinterr("Error: No mask specified.\n");
     return Action::ERR;
@@ -120,6 +123,8 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
     mprintf("\tGeometric center of atoms in mask will be used.\n");
   if (!image_.UseImage()) 
     mprintf("\tImaging will be turned off.\n");
+  if (solventMask_.MaskStringSet())
+    mprintf("\tSolvent will be selected by mask '%s'\n", solventMask_.MaskString());
   if (firstAtom_)
     mprintf("\tOnly first atom of solvent molecule used for distance calc.\n");
   if (outFile_!=0)
@@ -140,20 +145,51 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
   * parm file. Atom masks for each solvent molecule will be set up.
   */
 Action::RetType Action_Closest::Setup(ActionSetup& setup) {
+  if (setup.Top().Nmol() < 1) {
+    mprintf("Warning: 'closest' requires molecule information. Skipping.\n");
+    return Action::SKIP;
+  }
   closestWaters_ = targetNclosest_;
+  // Determine solvent molecules
+  std::vector<bool> IsSolventMol;
+  IsSolventMol.reserve( setup.Top().Nmol() );
+  int nSolvent = 0;
+  if (solventMask_.MaskStringSet()) {
+    if (setup.Top().SetupCharMask( solventMask_ )) return Action::ERR;
+    solventMask_.MaskInfo();
+    if (solventMask_.None()) {
+      mprintf("Warning: No solvent selected by mask '%s'. Skipping.\n", solventMask_.MaskString());
+      return Action::SKIP;
+    }
+    for (Topology::mol_iterator Mol = setup.Top().MolStart();
+                                Mol != setup.Top().MolEnd(); ++Mol)
+    {
+      if ( solventMask_.AtomsInCharMask(Mol->BeginAtom(), Mol->EndAtom()) ) {
+        IsSolventMol.push_back( true );
+        nSolvent++;
+      } else
+        IsSolventMol.push_back( false );
+    }
+  } else {
+    for (Topology::mol_iterator Mol = setup.Top().MolStart();
+                                Mol != setup.Top().MolEnd(); ++Mol)
+      IsSolventMol.push_back( Mol->IsSolvent() );
+    nSolvent = setup.Top().Nsolvent();
+  }
+  mprintf("\t%i molecules out of %i selected as solvent.\n", nSolvent, setup.Top().Nmol());
   // If there are no solvent molecules this action is not valid.
-  if (setup.Top().Nsolvent()==0) {
-    mprintf("Warning: Parm %s does not contain solvent.\n",setup.Top().c_str());
+  if (nSolvent == 0) {
+    mprintf("Warning: Topology %s does not contain solvent.\n", setup.Top().c_str());
     return Action::SKIP;
   }
   // If # solvent to keep >= solvent in this parm the action is not valid.
-  if (closestWaters_ == setup.Top().Nsolvent()) {
+  if (closestWaters_ == nSolvent) {
     mprintf("Warning: # solvent to keep (%i) == # solvent molecules in '%s' (%i)\n",
-            closestWaters_, setup.Top().c_str(), setup.Top().Nsolvent());
-  } else if (closestWaters_ > setup.Top().Nsolvent()) {
+            closestWaters_, setup.Top().c_str(), nSolvent);
+  } else if (closestWaters_ > nSolvent) {
     mprintf("Warning: # solvent to keep (%i) > # solvent molecules in '%s' (%i)\n",
-              closestWaters_, setup.Top().c_str(), setup.Top().Nsolvent());
-    closestWaters_ = setup.Top().Nsolvent();
+              closestWaters_, setup.Top().c_str(), nSolvent);
+    closestWaters_ = nSolvent;
     mprintf("Warning:  Keeping %i solvent molecules.\n", closestWaters_);
   }
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
@@ -171,8 +207,9 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   MolDist solvent;
   solvent.D = 0.0;
   solvent.mol = 0;
-  SolventMols_.resize(setup.Top().Nsolvent(), solvent);
+  SolventMols_.resize(nSolvent, solvent);
   std::vector<MolDist>::iterator mdist = SolventMols_.begin();
+  std::vector<bool>::iterator isSolvent = IsSolventMol.begin();
   // 3: Set up the soluteMask for all non-solvent molecules.
   stripMask_.ResetMask();
   int molnum = 1;
@@ -181,9 +218,9 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   int NsolventAtoms = -1;
   keptWaterAtomNum_.resize(closestWaters_);
   for (Topology::mol_iterator Mol = setup.Top().MolStart();
-                              Mol != setup.Top().MolEnd(); ++Mol)
+                              Mol != setup.Top().MolEnd(); ++Mol, ++isSolvent)
   {
-    if ( !Mol->IsSolvent() ) { // Not solvent, add to solute mask.
+    if ( !(*isSolvent) ) { // Not solvent, add to solute mask.
       stripMask_.AddAtomRange( Mol->BeginAtom(), Mol->EndAtom() );
       newnatom += Mol->NumAtoms();
     } else {                   // Solvent, check for same # of atoms.
@@ -242,7 +279,7 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   // Store original # of molecules.
   // NOTE: This is stored so that it can be used in the OpenMP section
   //       of action. I dont think iterators are thread-safe.
-  NsolventMolecules_ = setup.Top().Nsolvent();
+  NsolventMolecules_ = nSolvent;
   // Create stripped Parm
   if (newParm_!=0) delete newParm_;
   newParm_ = setup.Top().modifyStateByMask(stripMask_);
