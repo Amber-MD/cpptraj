@@ -1,4 +1,5 @@
 #include "Trajin_Single.h"
+#include "Topology.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 
