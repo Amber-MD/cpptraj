@@ -6,7 +6,7 @@ RUN mkdir -p /opt/intel && \
     apt-get upgrade -y && \
     apt-get install -y gfortran gcc g++ bzip2 libfftw3-dev automake make libbz2-dev \
                        mpich libmpich-dev zlib1g-dev netcdf-bin libnetcdf-dev \
-                       liblapack-dev libarpack2-dev libpnetcdf-dev
+                       liblapack-dev libarpack2-dev libpnetcdf-dev ssh
 
 # Set up for the Intel compilers. This won't do anything if they're not mounted
 ENV PATH=/opt/intel/compilers_and_libraries/linux/bin/intel64:/opt/intel/openmpi/bin:${PATH}
