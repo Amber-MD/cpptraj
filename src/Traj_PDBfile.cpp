@@ -1,6 +1,12 @@
 #include "Traj_PDBfile.h"
+#include <algorithm> // min, max
+#include "Topology.h"
+#include "ArgList.h"
+#include "DataSetList.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "Constants.h"
+#include "DataSet_1D.h" // for bfacdata, occdata
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
@@ -18,8 +24,16 @@ Traj_PDBfile::Traj_PDBfile() :
   include_ep_(false),
   prependExt_(false),
   firstframe_(false),
+  bfacscale_(false),
+  occscale_(false),
+  bfacbyres_(false),
+  occbyres_(false),
   pdbTop_(0),
-  chainchar_(' ')
+  chainchar_(' '),
+  bfacdata_(0),
+  occdata_(0),
+  bfacmax_(99.99),
+  occmax_(99.99)
 {}
 
 //------------------------------------------------------------------------
@@ -164,29 +178,37 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 }
 
 void Traj_PDBfile::WriteHelp() {
-  mprintf("\tdumpq      : Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
-          "\tparse      : Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
-          "\tvdw        : Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
-          "\tpdbres     : Use PDB V3 residue names.\n"
-          "\tpdbatom    : Use PDB V3 atom names.\n"
-          "\tpdbv3      : Use PDB V3 residue/atom names.\n"
-          "\tteradvance : Increment record (atom) # for TER records (default no).\n"
-          "\tterbyres   : Print TER cards based on residue sequence instead of molecules.\n"
-          "\tpdbter     : Print TER cards according to original PDB TER (if available).\n"
-          "\tnoter      : Do not write TER cards.\n"
-          "\tmodel      : Write to single file separated by MODEL records.\n"
-          "\tmulti      : Write each frame to separate files.\n"
-          "\tchainid <c>: Write character 'c' in chain ID column.\n"
-          "\tsg <group> : Space group for CRYST1 record, only if box coordinates written.\n"
-          "\tinclude_ep : Include extra points.\n"
-          "\tconect     : Write CONECT records using bond information.\n"
-          "\tkeepext    : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
-          "\tusecol21   : Use column 21 for 4-letter residue names.\n"
+  mprintf("\tdumpq          : Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
+          "\tparse          : Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
+          "\tvdw            : Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
+          "\tpdbres         : Use PDB V3 residue names.\n"
+          "\tpdbatom        : Use PDB V3 atom names.\n"
+          "\tpdbv3          : Use PDB V3 residue/atom names.\n"
+          "\tteradvance     : Increment record (atom) # for TER records (default no).\n"
+          "\tterbyres       : Print TER cards based on residue sequence instead of molecules.\n"
+          "\tpdbter         : Print TER cards according to original PDB TER (if available).\n"
+          "\tnoter          : Do not write TER cards.\n"
+          "\tmodel          : Write to single file separated by MODEL records.\n"
+          "\tmulti          : Write each frame to separate files.\n"
+          "\tchainid <c>    : Write character 'c' in chain ID column.\n"
+          "\tsg <group>     : Space group for CRYST1 record, only if box coordinates written.\n"
+          "\tinclude_ep     : Include extra points.\n"
+          "\tconect         : Write CONECT records using bond information.\n"
+          "\tkeepext        : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
+          "\tusecol21       : Use column 21 for 4-letter residue names.\n"
+          "\tbfacdata <set> : Use data in <set> for B-factor column.\n"
+          "\toccdata <set>  : Use data in <set> for occupancy column.\n"
+          "\tbfacbyres      : If specified assume X values in B-factor data set are residue numbers.\n"
+          "\toccbyres       : If specified assume X values in occupancy data set are residue numbers.\n"
+          "\tbfacscale      : If specified scale values in B-factor column between 0 and <bfacmax>.\n"
+          "\toccscale       : If specified scale values in occupancy column between 0 and <occmax>.\n"
+          "\tbfacmax <max>  : Max value for bfacscale.\n"
+          "\toccmax <max>   : Max value for occscale.\n"
   );
 }
 
 // Traj_PDBfile::processWriteArgs()
-int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
+int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   pdbWriteMode_ = SINGLE;
   if (argIn.hasKey("dumpq")) {
     dumpq_ = true; 
@@ -228,6 +250,115 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   if (!temp.empty()) chainchar_ = temp[0];
   if (argIn.hasKey("usecol21"))
     file_.SetUseCol21( true );
+  // Check for data sets
+  temp = argIn.GetStringKey("bfacdata");
+  if (!temp.empty()) {
+    bfacdata_ = DSLin.GetDataSet( temp );
+    if (bfacdata_ == 0) {
+      mprinterr("Error: No data set selected for 'bfacdata %s'\n", temp.c_str());
+      return 1;
+    }
+    if (bfacdata_->Group() != DataSet::SCALAR_1D) {
+      mprinterr("Error: Only scalar 1D data can be used for 'bfacdata'\n");
+      return 1;
+    }
+    if (dumpq_)
+      mprintf("Warning: Both a PQR option and 'bfacdata' specified. B-factor column will contain '%s'\n", bfacdata_->legend());
+    bfacbyres_ = argIn.hasKey("bfacbyres");
+  }
+  temp = argIn.GetStringKey("occdata");
+  if (!temp.empty()) {
+    occdata_ = DSLin.GetDataSet( temp );
+    if (occdata_ == 0) {
+      mprinterr("Error: No data set selected for 'occdata %s'\n", temp.c_str());
+      return 1;
+    }
+    if (occdata_->Group() != DataSet::SCALAR_1D) {
+      mprinterr("Error: Only scalar 1D data can be used for 'occdata'\n");
+      return 1;
+    }
+    if (dumpq_)
+      mprintf("Warning: Both a PQR option and 'occdata' specified. Occupancy column will contain '%s'\n", occdata_->legend());
+    occbyres_ = argIn.hasKey("occbyres");
+  }
+  bfacscale_ = argIn.hasKey("bfacscale");
+  if (bfacscale_) bfacmax_ = argIn.getKeyDouble("bfacmax", 99.99);
+  occscale_  = argIn.hasKey("occscale");
+  if (occscale_) occmax_ = argIn.getKeyDouble("occmax", 99.99);
+
+  return 0;
+}
+
+/// \return true if two double-precision numbers are equivalent with tolerance.
+static inline bool Eqv(double d0, double d1) {
+  double diff = (d1 - d0);
+  if (diff < 0.0) diff = -diff;
+  return (diff < Constants::SMALL);
+}
+
+/** Scale data in given set so that it falls within minVal and maxVal. */
+void Traj_PDBfile::ScaleData(Darray& DataOut, double minVal, double maxVal)
+const
+{
+  if (DataOut.empty()) return;
+  double rangeSize = maxVal - minVal;
+  // Get original min and max val
+  double min = DataOut.front();
+  double max = DataOut.front();
+  for (Darray::const_iterator it = DataOut.begin(); it != DataOut.end(); ++it) {
+    min = std::min(min, *it);
+    max = std::max(max, *it);
+  }
+  double fac = 1 / (max - min);
+  // Scale values
+  for (Darray::iterator it = DataOut.begin(); it != DataOut.end(); ++it) {
+    double dval = (*it - min) * fac;
+    *it = (dval * rangeSize) + minVal;
+  }
+}
+
+/** Assign data to specified output array using given input array. */
+int Traj_PDBfile::AssignData(Darray& DataOut, DataSet* dataIn, Topology const& topIn, bool byres, const char* desc)
+const
+{
+  DataOut.assign(topIn.Natom(), 0);
+  if ( dataIn->Size() < 1) {
+    mprinterr("Error: '%s' set '%s' is empty.\n", desc, dataIn->legend());
+    return 1;
+  }
+  // Set up output data set. Assume X coord of data set matches up 
+  // with atom numbers and that atom numbers start from 1.
+  DataSet_1D const& data = static_cast<DataSet_1D const&>( *dataIn );
+  unsigned int dsidx = 0;
+  double dat = 1.0; // Double precision version of atom number for comparing to set X coord
+  double xcrd = data.Xcrd( dsidx );
+  // Advance if necessary
+  while (xcrd < dat && dsidx < data.Size()) {
+    xcrd = data.Xcrd( dsidx );
+    dsidx++;
+  }
+  if (byres) {
+    for (int ires = 0; ires != topIn.Nres(); ires++) {
+      if (dsidx >= data.Size()) break;
+      double xcrd = data.Xcrd( dsidx );
+      if ( Eqv(xcrd, dat) ) {
+        for (int iat = topIn.Res(ires).FirstAtom(); iat < topIn.Res(ires).LastAtom(); iat++)
+          DataOut[iat] = data.Dval( dsidx );
+        dsidx++;
+      }
+      dat = dat + 1; // dat is residue num in this context
+    }
+  } else {
+    // Set data for all atoms
+    for (int iat = 0; iat != topIn.Natom(); iat++) {
+      if (dsidx >= data.Size()) break;
+      double xcrd = data.Xcrd( dsidx );
+      if ( Eqv(xcrd, dat) ) {
+        DataOut[iat] = data.Dval( dsidx++ );
+      }
+      dat = dat + 1;
+    }
+  }
   return 0;
 }
 
@@ -511,17 +642,31 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     if (space_group_.empty())
       mprintf("Warning: No PDB space group specified.\n");
   }
-  // Set up radii
-  if (dumpq_) {
-    radii_.clear();
+  Bfactors_.clear();
+  if (bfacdata_ != 0) {
+    if (AssignData(Bfactors_, bfacdata_, *trajParm, bfacbyres_, "bfacdata")) return 1;
+  } else if (dumpq_) {
+    Bfactors_.reserve( trajParm->Natom() );
+    // Set up radii
     for (int iat = 0; iat != trajParm->Natom(); iat++) {
       switch (radiiMode_) {
-        case GB:    radii_.push_back( (*trajParm)[iat].GBRadius() ); break;
-        case PARSE: radii_.push_back( (*trajParm)[iat].ParseRadius() ); break;
-        case VDW:   radii_.push_back( trajParm->GetVDWradius(iat) ); break;
+        case GB:    Bfactors_.push_back( (*trajParm)[iat].GBRadius() ); break;
+        case PARSE: Bfactors_.push_back( (*trajParm)[iat].ParseRadius() ); break;
+        case VDW:   Bfactors_.push_back( trajParm->GetVDWradius(iat) ); break;
       }
     }
   }
+  Occupancy_.clear();
+  if (occdata_ != 0) {
+    if (AssignData(Occupancy_, occdata_, *trajParm, occbyres_, "occdata")) return 1;
+  } else if (dumpq_) {
+    Occupancy_.reserve( trajParm->Natom() );
+    // Set up charges
+    for (Topology::atom_iterator atm = trajParm->begin(); atm != trajParm->end(); ++atm)
+      Occupancy_.push_back( atm->Charge() );
+  }
+  if (bfacscale_) ScaleData(Bfactors_, 0.0, bfacmax_);
+  if (occscale_ ) ScaleData(Occupancy_, 0.0, occmax_);
   // If not including extra points, warn if topology has them.
   if (!include_ep_) {
     unsigned int n_not_included = 0;
@@ -594,8 +739,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   if (pdbWriteMode_==MODEL)
     file_.WriteMODEL(set + 1); 
 
-  float Occ = 1.0; 
-  float B = 0.0;
+  float Occ  = 1.0; 
+  float Bfac = 0.0;
   char altLoc = ' ';
   int anum = 1; // Actual PDB ATOM record number
   const double *Xptr = frameOut.xAddress();
@@ -610,14 +755,14 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       else
         rectype = PDBfile::ATOM;
       if (!pdbTop_->Extra().empty()) {
-        Occ = pdbTop_->Extra()[aidx].Occupancy();
-        B   = pdbTop_->Extra()[aidx].Bfactor();
+        Occ  = pdbTop_->Extra()[aidx].Occupancy();
+        Bfac = pdbTop_->Extra()[aidx].Bfactor();
         altLoc = pdbTop_->Extra()[aidx].AtomAltLoc();
       }
-      if (dumpq_) {
-        Occ = (float) atom.Charge();
-        B = (float) radii_[aidx];
-      }
+      if (!Bfactors_.empty())
+        Bfac = (float) Bfactors_[aidx];
+      if (!Occupancy_.empty())
+        Occ  = (float) Occupancy_[aidx];
       // If pdbatom change amber atom names to pdb v3
       NameType atomName = atom.Name();
       if (pdbatom_) {
@@ -639,7 +784,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),
-                       Xptr[0], Xptr[1], Xptr[2], Occ, B,
+                       Xptr[0], Xptr[1], Xptr[2], Occ, Bfac,
                        atom.ElementName(), 0, dumpq_);
       if (conectMode_ != NO_CONECT)
         atrec_[aidx] = anum; // Store ATOM record #
@@ -680,15 +825,20 @@ void Traj_PDBfile::Info() {
     else if (pdbWriteMode_==MODEL)
       mprintf(" (1 MODEL per frame)");
     if (conectMode_ != NO_CONECT) mprintf(" with CONECT records");
-    if (dumpq_) {
-      mprintf(", writing charges to occupancy column and ");
+    if (bfacdata_ != 0)
+      mprintf(", B-factor data from '%s'", bfacdata_->legend());
+    else if (dumpq_) {
+      mprintf(", B-factor column contains ");
       switch (radiiMode_) {
         case GB: mprintf("GB radii"); break;
         case PARSE: mprintf("PARSE radii"); break;
         case VDW: mprintf("vdW radii"); break;
       }
-      mprintf(" to B-factor column");
     }
+    if (occdata_ != 0)
+      mprintf(", occupancy data from '%s'", occdata_->legend());
+    else if (dumpq_)
+      mprintf(", occupancy column contains charges");
     if (pdbres_ && pdbatom_)
       mprintf(", using PDB V3 res/atom names");
     else if (pdbres_)

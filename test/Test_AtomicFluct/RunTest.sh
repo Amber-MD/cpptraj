@@ -2,13 +2,15 @@
 
 . ../MasterTest.sh
 
-CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat
+CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat \
+           fluct.2.pdb occ.2.pdb scale.2.pdb fluct.1.pdb
 TESTNAME='Atomic fluctuations tests' 
 Requires netcdf
+
 INPUT="atomic.in"
-TOP="../tz2.parm7"
 
 WriteInput() {
+  TOP="../tz2.parm7"
   cat > $INPUT <<EOF
 trajin ../tz2.nc
 atomicfluct out fluct.$2.dat $1
@@ -31,6 +33,24 @@ EOF
 RunCpptraj "Atomicfluct test with ADP output"
 DoTest dpdp.fluct.dat.save dpdp.fluct.dat
 DoTest dpdp.adp.dat.save dpdp.adp.dat
+
+TOP=../tz2.parm7
+cat > $INPUT <<EOF
+trajin ../tz2.nc
+atomicfluct A0 :2-12
+atomicfluct A1 @C,CA,N byres bfactor
+average crdset MyAvg
+run
+crdout MyAvg fluct.2.pdb bfacdata A0
+crdout MyAvg occ.2.pdb occdata A0
+crdout MyAvg scale.2.pdb bfacdata A0 bfacscale
+crdout MyAvg fluct.1.pdb bfacdata A1 bfacbyres
+EOF
+RunCpptraj "Atomicfluct test with PDB B-factor/occupancy output."
+DoTest fluct.2.pdb.save fluct.2.pdb
+DoTest occ.2.pdb.save occ.2.pdb
+DoTest scale.2.pdb.save scale.2.pdb
+DoTest fluct.1.pdb.save fluct.1.pdb
 
 EndTest
 

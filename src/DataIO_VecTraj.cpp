@@ -84,7 +84,7 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
   }
   // Write out vectors
   Trajout_Single out;
-  if (out.PrepareTrajWrite(fname, ArgList(), &pseudo, CoordinateInfo(),
+  if (out.PrepareTrajWrite(fname, ArgList(), DataSetList(), &pseudo, CoordinateInfo(),
                            vec_size, trajoutFmt_) == 0)
   {
     Frame outFrame(pseudo.Natom());

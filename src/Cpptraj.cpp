@@ -14,6 +14,7 @@
 #include "TopInfo.h" // ProcessMask
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
+#include "TrajectoryFile.h" // for autodetect
 #ifdef CUDA
 # include <cuda_runtime_api.h>
 #endif

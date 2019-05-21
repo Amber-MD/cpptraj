@@ -1,4 +1,6 @@
 #include "OutputTrajCommon.h"
+#include "TrajectoryIO.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists
 

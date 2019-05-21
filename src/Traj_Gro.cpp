@@ -1,6 +1,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include "Traj_Gro.h"
+#include "Topology.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"

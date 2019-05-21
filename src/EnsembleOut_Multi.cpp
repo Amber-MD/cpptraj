@@ -1,4 +1,6 @@
 #include "EnsembleOut_Multi.h"
+#include "TrajectoryIO.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // AppendNumber
 #ifdef MPI
@@ -25,7 +27,8 @@ void EnsembleOut_Multi::Clear() {
   * and process arguments.
   */
 int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
-                                         ArgList const& argIn, int ensembleSizeIn,
+                                         ArgList const& argIn, DataSetList const& DSLin,
+                                         int ensembleSizeIn,
                                          TrajectoryFile::TrajFormatType writeFormatIn)
 {
   // Require a base filename
@@ -104,7 +107,7 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
     // Process any write arguments specific to certain formats not related
     // to parm file. Options related to parm file are handled in SetupTrajWrite 
     ArgList rep_args = trajout_args;
-    if (ioarray_.back()->processWriteArgs( rep_args )) {
+    if (ioarray_.back()->processWriteArgs( rep_args, DSLin )) {
       mprinterr("Error: trajout %s: Could not process arguments.\n",fileNames_[m].c_str());
       return 1;
     }

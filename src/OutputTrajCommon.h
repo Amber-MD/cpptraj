@@ -3,6 +3,9 @@
 #include "TrajectoryFile.h"
 #include "Range.h"
 #include "ActionFrameCounter.h"
+#include "CoordinateInfo.h"
+// Forward declarations
+class Topology;
 /// Output trajectory/ensemble common functionality.
 class OutputTrajCommon {
   public:

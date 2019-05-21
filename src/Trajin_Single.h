@@ -1,7 +1,9 @@
 #ifndef INC_TRAJIN_SINGLE_H
 #define INC_TRAJIN_SINGLE_H
 #include "Trajin.h"
-#include "TrajectoryIO.h"
+#include "CoordinateInfo.h"
+// Forward declarations
+class TrajectoryIO;
 /// Read in 1 frame at a time from a single file.
 class Trajin_Single : public Trajin {
   public:
@@ -21,7 +23,7 @@ class Trajin_Single : public Trajin {
     /// \return trajectory metadata.
     CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
     // ---------------------------------------------
-    std::string const& Title() const { return trajio_->Title(); } //TODO Check for segfault
+    std::string const& Title() const;
 #   ifdef MPI
     int ParallelBeginTraj( Parallel::Comm const& );
     int ParallelReadTrajFrame(int, Frame&);

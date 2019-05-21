@@ -1,4 +1,6 @@
 #include "Traj_Tinker.h"
+#include "Topology.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR

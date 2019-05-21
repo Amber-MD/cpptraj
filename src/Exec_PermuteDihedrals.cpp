@@ -94,7 +94,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
       return CpptrajState::ERR;
     }
     // Setup output trajectory FIXME: Correct frames for # of rotations
-    if (outtraj_.PrepareTrajWrite(outfilename, argIn, CRD->TopPtr(), CRD->CoordsInfo(),
+    if (outtraj_.PrepareTrajWrite(outfilename, argIn, State.DSL(), CRD->TopPtr(), CRD->CoordsInfo(),
                                   CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
       return CpptrajState::ERR;
   }

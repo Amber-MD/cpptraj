@@ -1,4 +1,7 @@
 #include "Traj_SQM.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 
@@ -7,7 +10,7 @@ void Traj_SQM::WriteHelp() {
 }
 
 // Traj_SQM::processWriteArgs()
-int Traj_SQM::processWriteArgs(ArgList& argIn) {
+int Traj_SQM::processWriteArgs(ArgList& argIn, DataSetList const&) {
   if (argIn.Contains("charge")) {
     charge_ = argIn.getKeyInt( "charge", 0 );
     chargeIsSet_ = true;

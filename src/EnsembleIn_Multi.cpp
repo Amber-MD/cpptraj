@@ -1,4 +1,5 @@
 #include "EnsembleIn_Multi.h"
+#include "FrameArray.h"
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove

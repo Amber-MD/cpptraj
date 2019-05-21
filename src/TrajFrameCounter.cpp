@@ -1,4 +1,5 @@
 #include "TrajFrameCounter.h"
+#include "ArgList.h"
 #include "CpptrajStdio.h"
 
 TrajFrameCounter::TrajFrameCounter() :

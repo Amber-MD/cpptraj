@@ -1,6 +1,10 @@
 // Traj_AmberRestart
 #include <cstdio> // sscanf
 #include "Traj_AmberRestart.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // NoTrailingWhitespace
 
@@ -63,7 +67,7 @@ void Traj_AmberRestart::WriteHelp() {
 }
 
 // Traj_AmberRestart::processWriteArgs()
-int Traj_AmberRestart::processWriteArgs(ArgList& argIn) {
+int Traj_AmberRestart::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   outputTemp_ = argIn.hasKey("remdtraj");
   time0_ = argIn.getKeyDouble("time0", -1.0);
   dt_ = argIn.getKeyDouble("dt",1.0);
