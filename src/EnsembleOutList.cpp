@@ -4,6 +4,16 @@
 #include "EnsembleOut_Single.h"
 #include "EnsembleOut_Multi.h"
 
+/// CONSTRUCTOR
+EnsembleOutList::EnsembleOutList() : debug_(0) {}
+
+/// DESTRUCTOR
+EnsembleOutList::~EnsembleOutList() { Clear(); }
+
+/** Set the list debug level. Will apply to new output ensembles. */
+void EnsembleOutList::SetDebug(int d) { debug_ = d; }
+
+/** Clear the output ensemble list and free memory. */
 void EnsembleOutList::Clear() {
   for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
     delete *ens;
