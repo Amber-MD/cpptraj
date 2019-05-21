@@ -4,6 +4,9 @@
 #include <vector>
 // Not forward-declared since its only a typedef
 #include "FramePtrArray.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
 // Forward declarations
 class EnsembleOut;
 class ArgList;

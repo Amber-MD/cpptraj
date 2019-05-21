@@ -2,6 +2,9 @@
 #define INC_TRAJOUTLIST_H
 #include <string>
 #include <vector>
+#ifdef MPI
+# include "Parallel.h"
+#endif
 // Forward declarations
 class Trajout_Single;
 class Topology;
