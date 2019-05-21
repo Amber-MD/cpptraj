@@ -1,5 +1,6 @@
 #include "Trajin_Single.h"
 #include "Topology.h"
+#include "TrajectoryIO.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 
@@ -15,6 +16,9 @@ Trajin_Single::~Trajin_Single() {
   if (velio_!=0) delete velio_;
   if (frcio_!=0) delete frcio_;
 }
+
+/** \return Trajectory title. */
+std::string const& Trajin_Single::Title() const { return trajio_->Title(); } //TODO Check for segfault
 
 /** Used to set up separate traj for forces/velocities. */
 TrajectoryIO* Trajin_Single::SetupSeparateTraj(FileName const& fname, const char* type) const
