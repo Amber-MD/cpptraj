@@ -2,6 +2,8 @@
 #include "Trajout_Single.h"
 #include "Topology.h"
 #include "CpptrajStdio.h"
+// FIXME for pytraj compatibility
+#include "DataSetList.h"
 
 /// CONSTRUCTOR
 TrajoutList::TrajoutList() : debug_(0) {}
@@ -20,6 +22,13 @@ void TrajoutList::Clear() {
   active_.clear();
   trajoutTops_.clear();
   open_.clear();
+}
+
+// FIXME legacy function to maintain pytraj compatibility
+int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, Topology* tParm)
+{
+  DataSetList blank;
+  return AddTrajout(filename, argIn, blank, tParm);
 }
 
 /** Add output trajectory to list as single output trajectory. Associate it

@@ -16,6 +16,8 @@ class TrajoutList {
     ~TrajoutList();
     void SetDebug(int);
     void Clear();
+    /// FIXME legacy function to maintain pytraj compatibility
+    int AddTrajout(std::string const&, ArgList const&, Topology*);
     /// Add output trajectory to the list and associate with given topology.
     int AddTrajout(std::string const&, ArgList const&, DataSetList const&, Topology*);
     /// Set up trajectories for given topology.
