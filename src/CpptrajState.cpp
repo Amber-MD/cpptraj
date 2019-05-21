@@ -3,6 +3,7 @@
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
+#include "FrameArray.h" // RunEnsemble
 #include "ProgressBar.h"
 #ifdef MPI
 # include "Parallel.h"
