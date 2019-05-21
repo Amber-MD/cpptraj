@@ -1,4 +1,6 @@
 #include "Trajin_Multi.h"
+#include "ArgList.h"
+#include "Topology.h"
 #include "StringRoutines.h" // convertToInteger
 #include "CpptrajStdio.h"
 

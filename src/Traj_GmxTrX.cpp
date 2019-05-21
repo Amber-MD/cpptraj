@@ -1,5 +1,8 @@
 #include <cmath>
 #include "Traj_GmxTrX.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 #include "ByteRoutines.h"
 #include "Constants.h" // PIOVER2
@@ -402,7 +405,7 @@ void Traj_GmxTrX::WriteHelp() {
 }
 
 // Traj_GmxTrX::processWriteArgs()
-int Traj_GmxTrX::processWriteArgs(ArgList& argIn) {
+int Traj_GmxTrX::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   dt_ = argIn.getKeyDouble( "dt", 1.0 );
   isBigEndian_ = true;
   if (!IsBigEndian()) swapBytes_ = true;

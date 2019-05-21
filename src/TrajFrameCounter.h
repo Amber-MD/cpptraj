@@ -1,6 +1,7 @@
 #ifndef INC_TRAJFRAMECOUNTER_H
 #define INC_TRAJFRAMECOUNTER_H
-#include "ArgList.h"
+// Forward declarations
+class ArgList;
 /// Used to keep track of frame # during traj read.
 class TrajFrameCounter {
   public:

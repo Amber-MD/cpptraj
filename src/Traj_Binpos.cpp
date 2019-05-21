@@ -1,4 +1,6 @@
 #include "Traj_Binpos.h"
+#include "Topology.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR

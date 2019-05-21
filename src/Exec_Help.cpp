@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "Command.h"
 #include "ParmFile.h"
+#include "TrajectoryFile.h"
 
 void Exec_Help::Help() const {
   mprintf("\t[ { All |\n"

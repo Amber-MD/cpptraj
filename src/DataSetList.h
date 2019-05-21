@@ -1,12 +1,13 @@
 #ifndef INC_DATASETLIST_H
 #define INC_DATASETLIST_H
 #include <vector>
-#include "DataSet.h"
-#include "ArgList.h" // GetReferenceFrame, GetTopology
 #include "ReferenceFrame.h" // GetReferenceFrame
 #ifdef TIMER
 # include "Timer.h"
 #endif
+// Forward declarations
+class DataSet;
+class ArgList;
 /// Hold list of DataSets.
 /** Main class for handling DataSets. All DataSet types can be allocated 
   * by DataSetList. There is a master DataSetList in CpptrajState that will

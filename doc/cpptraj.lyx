@@ -13929,15 +13929,27 @@ Options for pdb format:
 \end_layout
 
 \begin_layout LyX-Code
-  [model | multi] [dumpq | parse | vdw] [chainid <ID>]
+  [dumpq | parse | vdw] [pdbres] [pdbatom]
 \end_layout
 
 \begin_layout LyX-Code
-  [pdbres] [pdbatom] [pdbv3] [teradvance] [usecol21]
-\begin_inset Separator latexpar
-\end_inset
+  [pdbv3] [teradvance] [terbyres | pdbter | noter] 
+\end_layout
 
+\begin_layout LyX-Code
+  [model | multi] [chainid <ID>] [sg <group>]
+\end_layout
 
+\begin_layout LyX-Code
+  [include_ep] [conect] [keepext] [usecol21]
+\end_layout
+
+\begin_layout LyX-Code
+  [bfacdata <set>] [occdata <set>] [bfacbyres] [occbyres]
+\end_layout
+
+\begin_layout LyX-Code
+  [bfacscale] [occscale] [bfacmax <max>] [occmax <max>]
 \end_layout
 
 \begin_deeper
@@ -14024,6 +14036,56 @@ keepext Keep filename extension; write '<name>.<num>.<ext>' instead (implies
 
 \begin_layout Description
 usecol21 Use column 21 for 4-letter residue names.
+\end_layout
+
+\begin_layout Description
+bfacdata
+\begin_inset space ~
+\end_inset
+
+<set> Use data in <set> for B-factor column.
+\end_layout
+
+\begin_layout Description
+occdata
+\begin_inset space ~
+\end_inset
+
+<set> Use data in <set> for occupancy column.
+\end_layout
+
+\begin_layout Description
+bfacbyres If specified assume X values in B-factor data set are residue
+ numbers.
+\end_layout
+
+\begin_layout Description
+occbyres If specified assume X values in occupancy data set are residue
+ numbers.
+\end_layout
+
+\begin_layout Description
+bfacscale If specified scale values in B-factor column between 0 and <bfacmax>.
+\end_layout
+
+\begin_layout Description
+occscale If specified scale values in occupancy column between 0 and <occmax>.
+\end_layout
+
+\begin_layout Description
+bfacmax
+\begin_inset space ~
+\end_inset
+
+<max> Max value for bfacscale.
+\end_layout
+
+\begin_layout Description
+occmax
+\begin_inset space ~
+\end_inset
+
+<max> Max value for occscale.
 \end_layout
 
 \end_deeper

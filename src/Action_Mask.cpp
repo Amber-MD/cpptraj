@@ -62,7 +62,7 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
       trajFmt = TrajectoryFile::MOL2FILE;
       trajArgs = ArgList("multi nobox");
     }
-    if (outtraj_.InitEnsembleTrajWrite(maskpdb, trajArgs, trajFmt, init.DSL().EnsembleNum()))
+    if (outtraj_.InitEnsembleTrajWrite(maskpdb, trajArgs, init.DSL(), trajFmt, init.DSL().EnsembleNum()))
       return Action::ERR;
     writeTraj_ = true;
   } else

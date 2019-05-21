@@ -3,6 +3,7 @@
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
+#include "FrameArray.h" // RunEnsemble
 #include "ProgressBar.h"
 #ifdef MPI
 # include "Parallel.h"
@@ -127,9 +128,9 @@ int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
   Topology* top = DSL_.GetTopology( argIn );
   int err = 1;
   if (mode_ == NORMAL)
-    err = trajoutList_.AddTrajout( fname, argIn, top );
+    err = trajoutList_.AddTrajout( fname, argIn, DSL_, top );
   else if (mode_ == ENSEMBLE)
-    err = ensembleOut_.AddEnsembleOut( fname, argIn, top, trajinList_.EnsembleSize() );
+    err = ensembleOut_.AddEnsembleOut( fname, argIn, DSL_, top, trajinList_.EnsembleSize() );
   return err;
 }
 

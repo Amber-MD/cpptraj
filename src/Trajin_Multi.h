@@ -3,6 +3,11 @@
 #include "Trajin.h"
 #include "TrajIOarray.h"
 #include "ReplicaInfo.h"
+#include "Frame.h" // For RemdIdxType
+// Forward declares
+class ArgList;
+class Topology;
+class FileName;
 /// Read in 1 frame at a time from multiple files.
 class Trajin_Multi : public Trajin {
   public:
@@ -24,7 +29,7 @@ class Trajin_Multi : public Trajin {
     // ---------------------------------------------
   private:
     /// Type that will hold REMD indices
-    typedef Frame::RemdIdxType RemdIdxType;
+    typedef Frame::RemdIdxType RemdIdxType; // TODO put in ReplicaInfo
 
     TrajIOarray REMDtraj_;
     CoordinateInfo cInfo_; ///< Collective coord information for all replicas TODO Trajin?

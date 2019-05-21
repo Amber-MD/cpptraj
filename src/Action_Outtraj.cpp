@@ -78,7 +78,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
   // Initialize output trajectory with remaining arguments
   if (isActive_) {
     outtraj_.SetDebug(debugIn);
-    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(),
+    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(), init.DSL(), 
                                         TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
       return Action::ERR;
   }

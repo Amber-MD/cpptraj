@@ -520,7 +520,7 @@ int Analysis_Wavelet::WAFEX(DataSet_MatrixFlt const& matrix) {
       // Set up trajectory file
       int nframes = CL->MaxCol() - CL->MinCol() + 1;
       Trajout_Single clusterout;
-      if (clusterout.PrepareTrajWrite(cfilename, ArgList(), regionTop,
+      if (clusterout.PrepareTrajWrite(cfilename, ArgList(), DataSetList(), regionTop,
                                       CoordinateInfo(), nframes, TrajectoryFile::PDBFILE))
         return Analysis::ERR;
       // Setup frame for region
@@ -564,6 +564,7 @@ int Analysis_Wavelet::WAFEX(DataSet_MatrixFlt const& matrix) {
     int nframes = (int)coords_->Size();
     Trajout_Single overlay;
     if (overlay.PrepareTrajWrite(overlayName_, "title 'Wavelet trajectory'",
+                                 DataSetList(),
                                  maskTop, CoordinateInfo(), nframes,
                                  TrajectoryFile::UNKNOWN_TRAJ))
       return Analysis::ERR; 

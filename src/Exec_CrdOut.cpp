@@ -1,4 +1,5 @@
 #include "Exec_CrdOut.h"
+#include "Trajout_Single.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 
@@ -52,7 +53,7 @@ Exec::RetType Exec_CrdOut::WriteCrd(CpptrajState& State, ArgList& argIn) {
   if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return CpptrajState::ERR;
   frameCount.PrintInfoLine( CRD->legend() );
   Trajout_Single outtraj;
-  if (outtraj.PrepareTrajWrite( setname, argIn, CRD->TopPtr(), CRD->CoordsInfo(),
+  if (outtraj.PrepareTrajWrite( setname, argIn, State.DSL(), CRD->TopPtr(), CRD->CoordsInfo(),
                                 CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
   {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");

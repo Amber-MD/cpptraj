@@ -1,6 +1,9 @@
 // Traj_AmberCoord
 #include <cstdio> // sscanf
 #include "Traj_AmberCoord.h"
+#include "Frame.h"
+#include "Topology.h"
+#include "ArgList.h"
 #include "CpptrajStdio.h"
 
 /// Size of REMD header
@@ -326,7 +329,7 @@ void Traj_AmberCoord::WriteHelp() {
 }
 
 // Traj_AmberCoord::processWriteArgs()
-int Traj_AmberCoord::processWriteArgs(ArgList& argIn) {
+int Traj_AmberCoord::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   outputTemp_ = argIn.hasKey("remdtraj");
   if (argIn.hasKey("highprecision")) { 
     outfmt_ = "%8.6f";

@@ -2,8 +2,12 @@
 // This file contains a collection of routines designed for reading
 // (and writing?) netcdf restart files used with amber.
 // Dan Roe 2011-01-07
-#include "Traj_AmberRestartNC.h"
 #include <netcdf.h>
+#include "Traj_AmberRestartNC.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "NC_Routines.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
@@ -88,7 +92,7 @@ void Traj_AmberRestartNC::WriteHelp() {
 }
 
 // Traj_AmberRestartNC::processWriteArgs()
-int Traj_AmberRestartNC::processWriteArgs(ArgList& argIn) {
+int Traj_AmberRestartNC::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   outputTemp_ = argIn.hasKey("remdtraj");
   prependExt_ = argIn.hasKey("keepext");
   time0_ = argIn.getKeyDouble("time0", -1.0);

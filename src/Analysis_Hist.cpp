@@ -483,7 +483,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
             mprinterr("Error: Could not write pseudo topology to '%s'\n", parmoutName_.c_str());
         }
         Trajout_Single out;
-        if (out.PrepareTrajWrite(traj3dName_, ArgList(), &pseudo, CoordinateInfo(),
+        if (out.PrepareTrajWrite(traj3dName_, ArgList(), DataSetList(), &pseudo, CoordinateInfo(),
                                  Ndata, traj3dFmt_) == 0)
         {
           Frame outFrame(1);

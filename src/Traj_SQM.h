@@ -1,6 +1,7 @@
 #ifndef INC_TRAJ_SQM_H
 #define INC_TRAJ_SQM_H
 #include "TrajectoryIO.h"
+#include "CpptrajFile.h"
 /// Write out sqm input file.
 class Traj_SQM : public TrajectoryIO {
   public:
@@ -17,7 +18,7 @@ class Traj_SQM : public TrajectoryIO {
     int readVelocity(int, Frame&)                  { return 1;     }
     int readForce(int, Frame&)                     { return 1;     }
     void closeTraj()                               { return;       }
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool);
     int writeFrame(int,Frame const&);
     void Info();
