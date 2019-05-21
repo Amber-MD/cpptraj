@@ -79,7 +79,7 @@ pipeline {
                     }
 
                     steps {
-                        sh "./configure --with-netcdf --with-fftw3 -mpi gnu"
+                        sh "./configure --with-netcdf --with-fftw3 --with-pnetcdf -mpi gnu"
                         sh "make -j4 install"
                         sh "make -e DO_PARALLEL='mpiexec -n 2' check"
                         sh "make -e DO_PARALLEL='mpiexec -n 4' check"
