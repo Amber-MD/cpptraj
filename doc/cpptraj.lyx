@@ -18812,19 +18812,15 @@ closest
 
 \end_inset
 
- <# to keep> <mask> [noimage] [first | oxygen] [center]
+ <# to keep> <mask> [solventmask <solvent mask>] [noimage]
 \end_layout
 
 \begin_layout LyX-Code
-        [closestout <filename>] [name <setname>] [outprefix <parmprefix>]
-\begin_inset Separator latexpar
-\end_inset
-
-
+    	[first | oxygen] [center] [closestout <filename> [name <setname>]]
 \end_layout
 
 \begin_layout LyX-Code
-        [parmout <file>]
+    	[outprefix <parmprefix>] [parmout <file>]
 \end_layout
 
 \begin_deeper
@@ -18842,6 +18838,27 @@ keep> Number of solvent molecules to keep around <mask>
 
 \begin_layout Description
 <mask> Mask of atoms to search for closest waters around.
+\end_layout
+
+\begin_layout Description
+[solventmask
+\begin_inset space ~
+\end_inset
+
+<solvent
+\begin_inset space ~
+\end_inset
+
+mask>] Optional mask for selecting solvent atoms.
+ If not specified, atoms in all molecules marked as 
+\begin_inset Quotes eld
+\end_inset
+
+solvent
+\begin_inset Quotes erd
+\end_inset
+
+ will be used.
 \end_layout
 
 \begin_layout Description
@@ -18867,7 +18884,7 @@ oxygen] Calculate distances between all atoms in
 \end_layout
 
 \begin_layout Description
-[center] Search for waters closest to center of 
+[center] Search for waters closest to geometric center of 
 \series bold
 <mask>
 \series default
@@ -18945,8 +18962,8 @@ strip
 \shape italic
 cpptraj
 \shape default
- (by default residues named WAT, HOH, or TIP3) or can be specified prior
- via the 
+ (by default residues named WAT, HOH, or TIP3), can be specified prior via
+ the 
 \series bold
 \shape italic
 solvent
@@ -18959,8 +18976,15 @@ reference "subsec:cpptraj_solvent"
 
 \end_inset
 
-).
- The format of the 
+), or can be selected by 
+\series bold
+solventmask
+\series default
+.
+\end_layout
+
+\begin_layout Standard
+The format of the 
 \series bold
 closestout
 \series default

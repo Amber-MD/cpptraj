@@ -1,6 +1,14 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h" // PrintMaskAtoms
 
+/** Use to initialize the mask without a mask expression. */
+void CharMask::InitCharMask(int natoms, bool initSelected) {
+  if (initSelected)
+    CharMask_.assign(natoms, SelectedChar_);
+  else
+    CharMask_.assign(natoms, UnselectedChar_);
+}
+
 /** Given atom and residue info and coordinates, setup character mask
   * based on current mask tokens.
   */
