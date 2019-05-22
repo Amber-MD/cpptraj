@@ -155,6 +155,7 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   IsSolventMol.reserve( setup.Top().Nmol() );
   int nSolvent = 0;
   if (solventMask_.MaskStringSet()) {
+    // Use only atoms selected by solventMask
     if (setup.Top().SetupCharMask( solventMask_ )) return Action::ERR;
     solventMask_.MaskInfo();
     if (solventMask_.None()) {
@@ -171,6 +172,9 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
         IsSolventMol.push_back( false );
     }
   } else {
+    // Select everything; all solvent atoms are fair game.
+    solventMask_.ResetMask();
+    solventMask_.InitCharMask(setup.Top().Natom(), true);
     for (Topology::mol_iterator Mol = setup.Top().MolStart();
                                 Mol != setup.Top().MolEnd(); ++Mol)
       IsSolventMol.push_back( Mol->IsSolvent() );
@@ -220,10 +224,12 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   for (Topology::mol_iterator Mol = setup.Top().MolStart();
                               Mol != setup.Top().MolEnd(); ++Mol, ++isSolvent)
   {
-    if ( !(*isSolvent) ) { // Not solvent, add to solute mask.
+    if ( !(*isSolvent) ) {
+      // Not solvent, add to solute mask.
       stripMask_.AddAtomRange( Mol->BeginAtom(), Mol->EndAtom() );
       newnatom += Mol->NumAtoms();
-    } else {                   // Solvent, check for same # of atoms.
+    } else {
+      // Solvent, check for same # of atoms.
       if (NsolventAtoms == -1)
         NsolventAtoms = Mol->NumAtoms();
       else if ( NsolventAtoms != Mol->NumAtoms() ) {
@@ -234,7 +240,7 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
       }
       // mol here is the output molecule number which is why it starts from 1.
       mdist->mol = molnum;
-      // Solvent molecule mask
+      // Entire solvent molecule mask
       mdist->mask.AddAtomRange( Mol->BeginAtom(), Mol->EndAtom() );
       // Atoms in the solvent molecule to actually calculate distances to.
       if (firstAtom_) {
@@ -243,7 +249,8 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
         mdist->solventAtoms.clear();
         mdist->solventAtoms.reserve( Mol->NumAtoms() );
         for (int svatom = Mol->BeginAtom(); svatom < Mol->EndAtom(); svatom++)
-          mdist->solventAtoms.push_back( svatom );
+          if (solventMask_.AtomInCharMask(svatom))
+            mdist->solventAtoms.push_back( svatom );
       }
       // For solvent molecules that will be kept, record what the atom number
       // will be in the new stripped parm.
