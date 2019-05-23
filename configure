@@ -1243,36 +1243,58 @@ SetupMKL() {
       exit 1
     fi
     mkldir=$mklroot
+    # Platform-dependent stuff
+    if [ "$PLATFORM" = 'Darwin' ] ; then
+      mkldir="$mkldir/lib"
+      wlstart=''
+      wlend=''
+    else
+      if [ "$NBITS" -eq 64 ] ; then
+        mkldir="$mkldir/lib/intel64"
+      else
+        mkldir="$mkldir/lib/32"
+      fi
+      wlstart='-Wl,--start-group'
+      wlend='-Wl,--end-group'
+    fi
     # Determine architecture
     if [ "$NBITS" -eq 64 ] ; then
-      mkldir="$mkldir/lib/intel64"
       mklinterface=libmkl_intel_lp64.a
       mklblas="-lmkl_blas95_lp64"
       mkllapack="-lmkl_lapack95_lp64"
     else
-      mkldir="$mkldir/lib/32"
       mklinterface=libmkl_intel.a
       mklblas="-lmkl_blas95"
       mkllapack="-lmkl_lapack95"
-   fi
+    fi
     # Assume GNU linker.
+    mklthread=''
+    mklomp=''
     if [ $USE_OPENMP -eq 1 ] ; then
       if [ "$COMPILERS" = 'intel' ] ; then
-        mklthread='libmkl_intel_thread.a'
+        mklthread="$mkldir/libmkl_intel_thread.a"
         mklomp='-liomp5'
       elif [ "$COMPILERS" = 'pgi' ] ; then
-        mklthread='libmkl_pgi_thread.a'
+        mklthread="$mkldir/libmkl_pgi_thread.a"
         mklomp='-pgf90libs -mp'
-      else
-        mklthread='libmkl_gnu_thread.a'
+      elif [ "$COMPILERS" = 'gnu' ] ; then
+        mklthread="$mkldir/libmkl_gnu_thread.a"
         mklomp='-lgomp'
+      else
+        echo "Warning: OpenMP MKL not supported for $COMPILERS. Using sequential."
+        mklthread="$mkldir/libmkl_sequential.a"
       fi
-      # Turn off pthread since we are adding it here.
-      REQUIRES_PTHREAD=0
-      mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/$mklthread $mkldir/libmkl_core.a -Wl,--end-group $MKLOMP -lpthread -lm -ldl"
+      if [ "$PLATFORM" = 'Darwin' -a "$COMPILERS" != 'intel' ] ; then
+        echo "Warning: OpenMP MKL not supported on OSX without Intel compilers. Using sequential."
+        mklthread="$mkldir/libmkl_sequential.a"
+      fi
     else
-      mkllib="-L$mkldir $mkllapack $mklblas -Wl,--start-group $mkldir/$mklinterface $mkldir/libmkl_sequential.a $mkldir/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl"
+      mklthread="$mkldir/libmkl_sequential.a"
     fi
+    # Create the link line
+    mkllib="-L$mkldir $mkllapack $mklblas $wlstart $mkldir/$mklinterface $mklthread $mkldir/libmkl_core.a $wlend $mklomp -lpthread -lm -ldl"
+    # Turn off pthread since we are adding it here.
+    REQUIRES_PTHREAD=0
   fi
   LIB_STAT[$LBLAS]='enabled'
   LIB_HOME[$LBLAS]=''
