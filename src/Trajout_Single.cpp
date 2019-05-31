@@ -26,18 +26,6 @@ int Trajout_Single::InitTrajWrite(FileName const& tnameIn, ArgList const& argIn,
   return InitTrajout(tnameIn, argIn, DSLin, writeFormatIn);
 }
 
-// Trajout_Single::PrepareStdoutTrajWrite()
-/** Initialize and set up output trajectory for STDOUT write. */
-int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, DataSetList const& DSLin,
-                                           Topology *tparmIn,
-                                           CoordinateInfo const& cInfoIn, int nFrames,
-                                           TrajectoryFile::TrajFormatType writeFormatIn)
-{
-  if (InitTrajout("", argIn, DSLin, writeFormatIn)) return 1;
-  if (SetupTrajWrite(tparmIn, cInfoIn, nFrames)) return 1;
-  return 0;
-}
-
 /** Initialize trajectory for write. Append ensemble number to filename if given. */
 int Trajout_Single::InitEnsembleTrajWrite(FileName const& tnameIn, ArgList const& argIn,
                                           DataSetList const& DSLin, 
