@@ -296,7 +296,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   else
     mprintf("\tDistances will not be imaged.\n");
   gO_->GridInfo();
-  mprintf("\tNumber of voxels: %zu, voxel volume: %f Ang^3\n",
+  mprintf("\tNumber of voxels: %u, voxel volume: %f Ang^3\n",
           MAX_GRID_PT_, gO_->Bin().VoxelVolume());
   mprintf("#Please cite these papers if you use GIST results in a publication:\n"
           "#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman J. Comp. Chem. 37 (21) 2016\n"

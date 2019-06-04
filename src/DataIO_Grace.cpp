@@ -185,7 +185,7 @@ int DataIO_Grace::WriteDataXYDY(CpptrajFile& file, DataSetList const& Sets) {
     maxSets = maxSets - 1;
     mprintf("Warning: XYDY output requires even number of sets.\n");
     if (maxSets < 1) return 1;
-    mprintf("Warning: Only using the first %zu sets.\n", maxSets);
+    mprintf("Warning: Only using the first %u sets.\n", maxSets);
   }
   // Grace header. Use first data set for labels
   // TODO: DataFile should pass in axis information 

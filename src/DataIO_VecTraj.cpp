@@ -42,7 +42,7 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
       if (vec_size == -1)
         vec_size = (int)Vec.Size();
       else if (vec_size != (int)Vec.Size()) {
-        mprinterr("Error: Vector '%s' size %zu != first vector size %zu.\n"
+        mprinterr("Error: Vector '%s' size %zu != first vector size %i.\n"
                   "Error:   All vectors must have same size.\n",
                   Vec.legend(), Vec.Size(), vec_size);
         return 1;

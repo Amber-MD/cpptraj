@@ -134,7 +134,7 @@ Analysis::RetType Analysis_VectorMath::Analyze() {
     }
   }
   unsigned int vmax = std::max( vinfo1_->Size(), vinfo2_->Size() );
-  mprintf("\t'%s' size %zu, '%s' size %zu, output size %zu\n",
+  mprintf("\t'%s' size %zu, '%s' size %zu, output size %u\n",
           vinfo1_->legend(), vinfo1_->Size(), vinfo2_->legend(), vinfo2_->Size(), vmax);
   int err = 0;
   if (mode_ == CROSSPRODUCT)

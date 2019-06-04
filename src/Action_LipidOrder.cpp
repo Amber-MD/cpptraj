@@ -363,7 +363,7 @@ void Action_LipidOrder::Print() {
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
     {
       if (debug_ > 0)
-        mprintf("\t%s %s (%zu)", resName, it->name(), it->Nvals());
+        mprintf("\t%s %s (%u)", resName, it->name(), it->Nvals());
       if (it->Nvals() > 0) {
         double avg, stdev;
         for (unsigned int i = 0; i != MAX_H_; i++) {
