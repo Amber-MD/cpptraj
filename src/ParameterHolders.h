@@ -23,7 +23,7 @@ class AtomTypeHolder {
     const_iterator begin() const { return types_.begin(); }
     const_iterator end() const { return types_.end(); }
     /// \return number of types in holder
-    unsigned int Size() const { return types_.size(); }
+    size_t Size() const { return types_.size(); }
     /// \return Type name at index
     NameType const& operator[](int idx) const { return types_[idx]; }
     /// \return true if either direction is a match.

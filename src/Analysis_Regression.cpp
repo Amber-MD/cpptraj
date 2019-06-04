@@ -91,7 +91,7 @@ Analysis::RetType Analysis_Regression::Analyze() {
     else {
       DataSet_1D* dsout = output_dsets_[idx];
       double slope, intercept, correl;
-      mprintf("  %zu: %s\n", idx, DS->legend());
+      mprintf("  %u: %s\n", idx, DS->legend());
       if (!statsout_->IsStream())
         statsout_->Printf("#Stats for %s\n", DS->legend());
       int err = DS->LinearRegression( slope, intercept, correl, statsout_ );

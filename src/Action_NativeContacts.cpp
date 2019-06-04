@@ -469,9 +469,9 @@ Action::RetType Action_NativeContacts::Setup(ActionSetup& setup) {
   // Setup potential contact lists for this topology
   if (SetupContactLists( setup.Top(), Frame()))
     return Action::SKIP;
-  mprintf("\t%zu potential contact sites for '%s'\n", Mask1_.Nselected(), Mask1_.MaskString());
+  mprintf("\t%i potential contact sites for '%s'\n", Mask1_.Nselected(), Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
-    mprintf("\t%zu potential contact sites for '%s'\n", Mask2_.Nselected(), Mask2_.MaskString());
+    mprintf("\t%i potential contact sites for '%s'\n", Mask2_.Nselected(), Mask2_.MaskString());
   // Set up imaging info for this parm
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (image_.ImagingEnabled())
