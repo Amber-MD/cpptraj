@@ -19,7 +19,7 @@ class DataSetList;
 class Trajout_Single {
   public:
     Trajout_Single() : trajio_(0), debug_(0) {}
-    ~Trajout_Single();
+    virtual ~Trajout_Single(); // NOTE: virtual because it can be inherited
     void SetDebug(int d) { debug_ = d; }
     // ----- Inherited functions -----------------
     /// Prepare trajectory for writing to the given format, but no Topology setup.
@@ -38,9 +38,6 @@ class Trajout_Single {
     /// Init and setup/open traj.
     int PrepareTrajWrite(FileName const&, ArgList const&, DataSetList const&, Topology*,
                          CoordinateInfo const&, int, TrajectoryFile::TrajFormatType);
-    /// Init and setup/open traj for writing to STDOUT (e.g. ambpdb mode)
-    int PrepareStdoutTrajWrite(ArgList const&, DataSetList const&, Topology*,
-                               CoordinateInfo const&, int, TrajectoryFile::TrajFormatType);
     /// Init traj; if given, append ensemble number to name (use in Actions)
     int InitEnsembleTrajWrite(FileName const&, ArgList const&, DataSetList const&,
                               TrajectoryFile::TrajFormatType, int);
@@ -48,8 +45,9 @@ class Trajout_Single {
     // Set the parallel communicator.
     int SetTrajComm(Parallel::Comm const& c) { trajComm_ = c; return 0; }
 #   endif
-  private:
+  protected:
     int InitTrajout(FileName const&, ArgList const&, DataSetList const&, TrajectoryFile::TrajFormatType);
+  private:
 #   ifdef MPI
     /// Peform Topology-related setup for trajectory and open in parallel.
     int ParallelSetupTrajWrite();
