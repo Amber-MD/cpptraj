@@ -355,6 +355,17 @@ DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType
   return dsetOut[0];
 }
 
+/** \return single set belonging to specified group. */
+DataSet* DataSetList::FindSetOfGroup(std::string const& nameIn, DataSet::DataGroup groupIn) const
+{
+  DataSetList dsetOut = SelectGroupSets( nameIn, groupIn );
+  if (dsetOut.empty())
+    return 0;
+  else if (dsetOut.size() > 1)
+    mprintf("Warning: '%s' selects multiple sets. Only using first.\n", nameIn.c_str());
+  return dsetOut[0];
+}
+
 /** Search for a COORDS DataSet. If no name specified, create a default
   * COORDS DataSet named _DEFAULTCRD_.
   */

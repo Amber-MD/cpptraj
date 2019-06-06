@@ -91,6 +91,8 @@ class DataSetList {
     DataSetList SelectGroupSets( std::string const&, DataSet::DataGroup ) const;
     /// Find next set of specified type with given name.
     DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
+    /// Find next set of specified group with given name.
+    DataSet* FindSetOfGroup(std::string const&, DataSet::DataGroup) const;
     /// Find COORDS DataSet or create default COORDS DataSet.
     DataSet* FindCoordsSet(std::string const&);
 
