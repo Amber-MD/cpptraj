@@ -19,7 +19,7 @@ Exec::RetType Exec_SplitCoords::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
     return CpptrajState::ERR;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindCoordsSet( setname );
+  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindSetOfGroup( setname, DataSet::COORDINATES );
   if (CRD == 0) {
     mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return CpptrajState::ERR;

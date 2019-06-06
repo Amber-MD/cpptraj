@@ -1405,11 +1405,15 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   Topology* refParm = 0;
   DataSet_Coords* CRD = 0;
   if (argIn.hasKey("crdset")) {
-    CRD = (DataSet_Coords*)DSL_.FindCoordsSet( fname );
-    if (CRD == 0) {
-      mprinterr("COORDS set with name %s not found.\n", fname.c_str());
+    DataSet* dset = DSL_.FindSetOfGroup( fname, DataSet::COORDINATES );
+    if (dset == 0) {
+      mprinterr("Error: COORDS set with name %s not found.\n", fname.c_str());
       return 1;
+    } else if (dset->Type() == DataSet::REF_FRAME) {
+      mprintf("Warning: '%s' is already a reference.\n", fname.c_str());
+      return 0;
     }
+    CRD = static_cast<DataSet_Coords*>( dset );
   } else {
     // Get topology file.
     refParm = DSL_.GetTopology( argIn );

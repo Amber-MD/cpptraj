@@ -81,7 +81,7 @@ template <class T> class ParmHolder {
   public:
     ParmHolder() {}
     void clear() { bpmap_.clear(); }
-    unsigned int size() const { return bpmap_.size(); }
+    size_t size() const { return bpmap_.size(); }
 /*
     static inline void PrintTypes(AtomTypeHolder const& types) {
       for (AtomTypeHolder::const_iterator it = types.begin(); it != types.end(); ++it)

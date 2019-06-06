@@ -56,7 +56,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     mprinterr("Error: Specify COORDS dataset name with 'crdset'.\n");
     return CpptrajState::ERR;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindCoordsSet( setname );
+  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindSetOfGroup( setname, DataSet::COORDINATES );
   if (CRD == 0) {
     mprinterr("Error: Could not find COORDS set '%s'\n", setname.c_str());
     return CpptrajState::ERR;
@@ -100,12 +100,18 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
   }
 
   // Setup output coords
-  outfilename = argIn.GetStringKey("crdout");
-  if (!outfilename.empty()) {
-    mprintf("\tCoordinates saved to set '%s'\n", outfilename.c_str());
-    crdout_ = (DataSet_Coords_CRD*)State.DSL().AddSet(DataSet::COORDS, outfilename);
+  std::string outcrdname = argIn.GetStringKey("crdout");
+  if (!outcrdname.empty()) {
+    mprintf("\tCoordinates saved to set '%s'\n", outcrdname.c_str());
+    crdout_ = (DataSet_Coords_CRD*)State.DSL().AddSet(DataSet::COORDS, outcrdname);
     if (crdout_ == 0) return CpptrajState::ERR;
     crdout_->CoordsSetup( CRD->Top(), CRD->CoordsInfo() );
+  }
+
+  // Require an output option
+  if (outfilename.empty() && outcrdname.empty()) {
+    mprinterr("Error: No output option specified. Use either 'outtraj' and/or 'crdout'\n");
+    return CpptrajState::ERR;
   }
 
   // Get specific mode options.
