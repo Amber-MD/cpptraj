@@ -2,6 +2,7 @@
 #include "Analysis_VectorMath.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "DataSet_Vector.h"
 #include "DataSet_double.h"
 
 /// Strings corresponding to modes, used in output.
@@ -72,11 +73,11 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup
 }
 
 // Analysis_VectorMath::DotProduct()
-int Analysis_VectorMath::DotProduct(unsigned int vmax, unsigned int v1inc, unsigned int v2inc)
+int Analysis_VectorMath::DotProduct(DataSet* Dout, DataSet_Vector& V1, DataSet_Vector& V2,
+                                    unsigned int vmax, unsigned int v1inc, unsigned int v2inc)
+const
 {
-  DataSet_double& Out = static_cast<DataSet_double&>( *DataOut_ );
-  DataSet_Vector& V1 = static_cast<DataSet_Vector&>( *vinfo1_ );
-  DataSet_Vector& V2 = static_cast<DataSet_Vector&>( *vinfo2_ );
+  DataSet_double& Out = static_cast<DataSet_double&>( *Dout );
   Out.Resize( vmax );
   unsigned int v1 = 0;
   unsigned int v2 = 0;
@@ -94,11 +95,11 @@ int Analysis_VectorMath::DotProduct(unsigned int vmax, unsigned int v1inc, unsig
 }
 
 // Analysis_VectorMath::CrossProduct()
-int Analysis_VectorMath::CrossProduct(unsigned int vmax, unsigned int v1inc, unsigned int v2inc)
+int Analysis_VectorMath::CrossProduct(DataSet* Dout, DataSet_Vector& V1, DataSet_Vector& V2,
+                                      unsigned int vmax, unsigned int v1inc, unsigned int v2inc)
+const
 {
-  DataSet_Vector& Out = static_cast<DataSet_Vector&>( *DataOut_ );
-  DataSet_Vector& V1 = static_cast<DataSet_Vector&>( *vinfo1_ );
-  DataSet_Vector& V2 = static_cast<DataSet_Vector&>( *vinfo2_ );
+  DataSet_Vector& Out = static_cast<DataSet_Vector&>( *Dout );
   Out.ReserveVecs( V1.Size() );
   unsigned int v1 = 0;
   unsigned int v2 = 0;
@@ -112,35 +113,45 @@ int Analysis_VectorMath::CrossProduct(unsigned int vmax, unsigned int v1inc, uns
   return 0;
 }
 
-// Analysis_VectorMath::Analyze()
-Analysis::RetType Analysis_VectorMath::Analyze() {
-  if (vinfo1_->Size() == 0 || vinfo2_->Size() == 0) {
+/** Perform specified operation on two vectors, store result.
+  * NOTE: Not passed in as const ref in case normalization is specified.
+  */
+int Analysis_VectorMath::DoMath(DataSet* Dout, DataSet_Vector& v1, DataSet_Vector& v2)
+const
+{
+  if (v1.Size() == 0 || v2.Size() == 0) {
     mprinterr("Error: One or both vectors is empty.\n");
-    return Analysis::ERR;
+    return 1;
   }
   // Either vec1 or vec2 can be size 1, else both need to have same size.
   unsigned int v1inc = 1;
   unsigned int v2inc = 1;
-  if (vinfo1_->Size() != vinfo2_->Size()) {
-    if (vinfo1_->Size() == 1)
+  if (v1.Size() != v2.Size()) {
+    if (v1.Size() == 1)
       v1inc = 0;
-    else if (vinfo2_->Size() == 1)
+    else if (v2.Size() == 1)
       v2inc = 0;
     else {
       mprinterr("Error: # Frames in vec %s (%zu) != # Frames in vec %s (%zu)\n",
-                vinfo1_->legend(), vinfo1_->Size(),
-                vinfo2_->legend(), vinfo2_->Size());
-      return Analysis::ERR;
+                v1.legend(), v1.Size(),
+                v2.legend(), v2.Size());
+      return 1;
     }
   }
-  unsigned int vmax = std::max( vinfo1_->Size(), vinfo2_->Size() );
+  unsigned int vmax = std::max( v1.Size(), v2.Size() );
   mprintf("\t'%s' size %zu, '%s' size %zu, output size %u\n",
-          vinfo1_->legend(), vinfo1_->Size(), vinfo2_->legend(), vinfo2_->Size(), vmax);
+          v1.legend(), v1.Size(), v2.legend(), v2.Size(), vmax);
   int err = 0;
   if (mode_ == CROSSPRODUCT)
-    err = CrossProduct(vmax, v1inc, v2inc);
+    err = CrossProduct(Dout, v1, v2, vmax, v1inc, v2inc);
   else // DOTPRODUCT || DOTANGLE
-    err = DotProduct(vmax, v1inc, v2inc);
+    err = DotProduct(Dout, v1, v2, vmax, v1inc, v2inc);
+  return err;
+}
+
+// Analysis_VectorMath::Analyze()
+Analysis::RetType Analysis_VectorMath::Analyze() {
+  int err = DoMath( DataOut_, *vinfo1_, *vinfo2_ );
   if (err != 0) return Analysis::ERR;
   return Analysis::OK;
 }

@@ -1,7 +1,8 @@
 #ifndef INC_ANALYSIS_VECTORMATH_H
 #define INC_ANALYSIS_VECTORMATH_H
 #include "Analysis.h"
-#include "DataSet_Vector.h"
+// Forward declarations
+class DataSet_Vector;
 class Analysis_VectorMath : public Analysis {
   public:
     Analysis_VectorMath();
@@ -13,8 +14,11 @@ class Analysis_VectorMath : public Analysis {
     enum ModeType {  DOTPRODUCT = 0, DOTANGLE, CROSSPRODUCT };
     static const char* ModeString[];
 
-    int DotProduct(unsigned int, unsigned int, unsigned int);
-    int CrossProduct(unsigned int, unsigned int, unsigned int);
+    int DotProduct(DataSet*, DataSet_Vector&, DataSet_Vector&,
+                   unsigned int, unsigned int, unsigned int) const;
+    int CrossProduct(DataSet*, DataSet_Vector&, DataSet_Vector&,
+                     unsigned int, unsigned int, unsigned int) const;
+    int DoMath(DataSet*, DataSet_Vector&, DataSet_Vector&) const;
 
     ModeType mode_;
     DataSet_Vector* vinfo1_;
