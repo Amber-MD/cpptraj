@@ -615,6 +615,10 @@ int CpptrajState::RunEnsemble() {
         // Silence action output for all beyond first member.
         if (member > 0)
           SetWorldSilent( true );
+#       ifndef MPI
+        // All DataSets that will be set up will be part of this ensemble 
+        DSL_.SetEnsembleNum( member );
+#       endif
         if (ActionEnsemble[member]->SetupActions( EnsembleParm[member], exitOnError_ )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
@@ -661,6 +665,10 @@ int CpptrajState::RunEnsemble() {
           if ( currentFrame.Frm().CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
                     member, (*ens)->Traj().Counter().PreviousFrameNumber()+1);
+#         ifndef MPI
+          // All DataSets that will be set up will be part of this ensemble 
+          DSL_.SetEnsembleNum( member );
+#         endif
 #         ifdef TIMER
           actions_time.Start();
 #         endif
@@ -729,8 +737,13 @@ int CpptrajState::RunEnsemble() {
   post_time_.Start();
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
-  for (int member = 0; member < ensembleSize; ++member)
+  for (int member = 0; member < ensembleSize; ++member) {
+#   ifndef MPI
+    // All DataSets that will be set up will be part of this ensemble 
+    DSL_.SetEnsembleNum( member );
+#   endif
     ActionEnsemble[member]->PrintActions();
+  }
   post_time_.Stop();
   // Clean up ensemble action lists
   for (int member = 1; member < ensembleSize; member++)
