@@ -250,13 +250,9 @@ Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) 
     return CpptrajState::ERR;
   }
   // Data set(s)
+  typedef std::vector<DataSet_Vector*> DVarray;
+  DVarray inputSets;
   DataSetList dsl1 = State.DSL().GetMultipleSets( argIn.GetStringNext() );
-  if (dsl1.empty()) {
-    mprinterr("Error: 'vectorcoord': No data sets selected.\n");
-    return CpptrajState::ERR;
-  }
-  DataSet* firstSet = 0;
-  int idx = 0;
   while (!dsl1.empty()) {
     for (DataSetList::const_iterator it = dsl1.begin(); it != dsl1.end(); ++it)
     {
@@ -265,35 +261,40 @@ Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) 
       } else if ( (*it)->Size() < 1) {
         mprintf("Warning: '%s' is empty.\n", (*it)->legend());
       } else {
-        // Create output set.
-        if (name.empty())
-          name = State.DSL().GenerateDefaultName( "COORD" );
-        MetaData md( name );
-        if (idx >= 1) {
-          if (idx == 1) {
-            MetaData fmd = firstSet->Meta();
-            fmd.SetIdx( 0 );
-            firstSet->SetMeta( fmd );
-          }
-          md.SetIdx( idx );
-        }
-        static const char* XYZchar[3] = { "X", "Y", "Z" };
-        DataSet* out = State.DSL().AddSet( DataSet::DOUBLE, md );
-        if (out == 0) return CpptrajState::ERR;
-        if (firstSet == 0)
-          firstSet = out;
-        idx++;
-        // Extract data
-        mprintf("\tExtracting %s coordinate from vector %s to %s\n",
-                XYZchar[tgtIdx], (*it)->legend(), out->Meta().PrintName().c_str());
-        DataSet_Vector const& vec = static_cast<DataSet_Vector const&>( *(*it) );
-        for (unsigned int n = 0; n != vec.Size(); n++) {
-          double d = vec.VXYZ(n)[tgtIdx];
-          out->Add( n, &d );
-        }
+        inputSets.push_back( static_cast<DataSet_Vector*>( *it ) );
       }
     }
     dsl1 = State.DSL().GetMultipleSets( argIn.GetStringNext() );
+  }
+  if (inputSets.empty()) {
+    mprinterr("Error: 'vectorcoord': No data sets selected.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\t%zu sets.\n", inputSets.size());
+  // Default name
+  if (name.empty())
+    name = State.DSL().GenerateDefaultName( "COORD" );
+  // Loop over input sets
+  int idx = -1;
+  if (inputSets.size() > 1)
+    idx = 0;
+  for (DVarray::const_iterator it = inputSets.begin(); it != inputSets.end(); ++it)
+  {
+    // Create output set.
+    MetaData md( name );
+    if (idx > -1) 
+      md.SetIdx( idx++ );
+    static const char* XYZchar[3] = { "X", "Y", "Z" };
+    DataSet* out = State.DSL().AddSet( DataSet::DOUBLE, md );
+    if (out == 0) return CpptrajState::ERR;
+    // Extract data
+    mprintf("\tExtracting %s coordinate from vector %s to %s\n",
+            XYZchar[tgtIdx], (*it)->legend(), out->Meta().PrintName().c_str());
+    DataSet_Vector const& vec = static_cast<DataSet_Vector const&>( *(*it) );
+    for (unsigned int n = 0; n != vec.Size(); n++) {
+      double d = vec.VXYZ(n)[tgtIdx];
+      out->Add( n, &d );
+    }
   }
   return CpptrajState::OK;
 }
