@@ -60,7 +60,9 @@ fi
 
 # Test 4
 UNITNAME='Start argument offset'
-cat > cpptraj.offset.in <<EOF
+CheckFor maxthreads 6
+if [ $? -eq 0 ] ; then
+  cat > cpptraj.offset.in <<EOF
 parm ala2.99sb.mbondi2.parm7
 trajin rem.crd.000 5 10
 dihedral phi0 :1@C :2@N :2@CA :2@C out phi.dat.save noheader
@@ -69,8 +71,9 @@ clear trajin
 trajin rem.crd.000 -5
 dihedral phi1 :1@C :2@N :2@CA :2@C out phi.dat noheader
 EOF
-RunCpptraj "$UNITNAME"
-DoTest phi.dat.save phi.dat
+  RunCpptraj "$UNITNAME"
+  DoTest phi.dat.save phi.dat
+fi
 
 EndTest
 
