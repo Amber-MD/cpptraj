@@ -748,6 +748,10 @@ int CpptrajState::RunEnsemble() {
   // Clean up ensemble action lists
   for (int member = 1; member < ensembleSize; member++)
     delete ActionEnsemble[member];
+# ifndef MPI
+  // Reset ensemble number
+  DSL_.SetEnsembleNum( -1 );
+# endif
 
   return 0;
 }
