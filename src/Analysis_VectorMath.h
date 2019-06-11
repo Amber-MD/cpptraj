@@ -21,9 +21,11 @@ class Analysis_VectorMath : public Analysis {
     int DoMath(DataSet*, DataSet_Vector&, DataSet_Vector&) const;
 
     ModeType mode_;
-    DataSet_Vector* vinfo1_;
-    DataSet_Vector* vinfo2_;
-    DataSet* DataOut_;       ///< Output data set
+    typedef std::vector<DataSet_Vector*> DVarray;
+    DVarray vinfo1_;
+    DVarray vinfo2_;
+    typedef std::vector<DataSet*> DSarray;
+    DSarray DataOut_;                      ///< Output data set(s)
     bool norm_;
 };
 #endif

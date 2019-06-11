@@ -11,7 +11,9 @@ const char* Analysis_VectorMath::ModeString[] = {
 
 // CONSTRUCTOR
 Analysis_VectorMath::Analysis_VectorMath() :
-  mode_(DOTPRODUCT), vinfo1_(0), vinfo2_(0), DataOut_(0), norm_(false) {}
+  mode_(DOTPRODUCT),
+  norm_(false)
+{}
 
 void Analysis_VectorMath::Help() const {
   mprintf("\tvec1 <vecname1> vec2 <vecname2> [out <filename>] [norm] [name <setname>]\n"
@@ -25,22 +27,33 @@ void Analysis_VectorMath::Help() const {
 Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   // Get Vectors
-  vinfo1_ = (DataSet_Vector*)setup.DSL().FindSetOfType( analyzeArgs.GetStringKey("vec1"),
-                                                   DataSet::VECTOR );
-  vinfo2_ = (DataSet_Vector*)setup.DSL().FindSetOfType( analyzeArgs.GetStringKey("vec2"),
-                                                   DataSet::VECTOR );
-  if (vinfo1_ == 0 ) {
+  DataSetList vsets1 = setup.DSL().GetSetsOfType( analyzeArgs.GetStringKey("vec1"),
+                                                  DataSet::VECTOR );
+  if (vsets1.empty()) {
     mprinterr("Error: 'vec1' not found.\n");
     return Analysis::ERR;
   }
-  if (vinfo2_ == 0) {
+  DataSetList vsets2 = setup.DSL().GetSetsOfType( analyzeArgs.GetStringKey("vec2"),
+                                                  DataSet::VECTOR );
+  if (vsets2.empty()) {
     mprinterr("Error: 'vec2' not found.\n");
     return Analysis::ERR;
   }
+
+  if (vsets1.size() != vsets2.size()) {
+    mprinterr("Error: 'vec1' (%zu) and 'vec2' (%zu) do not select the same number of sets.\n",
+              vsets1.size(), vsets2.size());
+    return Analysis::ERR;
+  }
+
+  for (DataSetList::const_iterator it = vsets1.begin(); it != vsets1.end(); ++it)
+    vinfo1_.push_back( static_cast<DataSet_Vector*>( *it ) );
+  for (DataSetList::const_iterator it = vsets2.begin(); it != vsets2.end(); ++it)
+    vinfo2_.push_back( static_cast<DataSet_Vector*>( *it ) );
+
   std::string setname = analyzeArgs.GetStringKey("name");
   norm_ = analyzeArgs.hasKey("norm");
   // Check for dotproduct/crossproduct keywords. Default is dotproduct.
-  DataOut_ = 0;
   mode_ = DOTPRODUCT;
   DataSet::DataType dtype = DataSet::DOUBLE;
   const char* dname = "Dot";
@@ -55,16 +68,34 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup
     dtype = DataSet::VECTOR;
     dname = "Cross";
   }
-  // Set up output data set based on mode
-  DataOut_ = setup.DSL().AddSet(dtype, setname, dname);
-  if (DataOut_ == 0) return Analysis::ERR;
   // Set up output file in DataFileList if necessary
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
-  if (outfile != 0) outfile->AddDataSet( DataOut_ );
+  // Set up output data sets based on mode
+  if (setname.empty())
+    setname = setup.DSL().GenerateDefaultName( dname );
+  MetaData md(setname);
+  int idx = -1;
+  if (vinfo1_.size() > 1)
+    idx = 0;
+  for (unsigned int ii = 0; ii < vinfo1_.size(); ii++)
+  {
+    if (idx > -1)
+      md.SetIdx( idx++ );
+    DataSet* dsout = setup.DSL().AddSet(dtype, md);
+    if (dsout == 0) return Analysis::ERR;
+    if (outfile != 0) outfile->AddDataSet( dsout );
+    DataOut_.push_back( dsout );
+  }
 
   // Print Status
-  mprintf("    VECTORMATH: Calculating %s of vectors %s and %s\n", 
-            ModeString[mode_], vinfo1_->legend(), vinfo2_->legend());
+  mprintf("    VECTORMATH:");
+  if (vinfo1_.size() == 1)
+    mprintf(" Calculating %s of vectors %s and %s\n", ModeString[mode_], vinfo1_[0]->legend(), vinfo2_[0]->legend());
+  else {
+    mprintf(" Calculating %s of:\n", ModeString[mode_]);
+    for (unsigned int ii = 0; ii < vinfo1_.size(); ii++)
+      mprintf("\t  %s and %s\n", vinfo1_[ii]->legend(), vinfo2_[ii]->legend());
+  }
   if (norm_) mprintf("\tVectors will be normalized.\n");
   if (outfile != 0)
     mprintf("\tResults are written to %s\n", outfile->DataFilename().full());
@@ -151,7 +182,10 @@ const
 
 // Analysis_VectorMath::Analyze()
 Analysis::RetType Analysis_VectorMath::Analyze() {
-  int err = DoMath( DataOut_, *vinfo1_, *vinfo2_ );
-  if (err != 0) return Analysis::ERR;
+  for (unsigned int ii = 0; ii < vinfo1_.size(); ii++)
+  {
+    int err = DoMath( DataOut_[ii], *(vinfo1_[ii]), *(vinfo2_[ii]) );
+    if (err != 0) return Analysis::ERR;
+  }
   return Analysis::OK;
 }
