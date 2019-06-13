@@ -31287,7 +31287,7 @@ stfcdiffusion mask <mask> [out <file>] [time <time per frame>]
 \end_layout
 
 \begin_layout LyX-Code
-              [mask2 <mask>] [lower <distance>] [upper <distance>]
+              [mask2 <mask> [lower <distance>] [upper <distance>]]
 \end_layout
 
 \begin_layout LyX-Code
