@@ -140,6 +140,7 @@
 #include "Action_InfraredSpectrum.h"
 #include "Action_XtalSymm.h"
 #include "Action_Time.h"
+#include "Action_DihedralRMS.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -297,6 +298,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Density(),       Cmd::ACT, 1, "density" );
   Command::AddCmd( new Action_Diffusion(),     Cmd::ACT, 1, "diffusion" );
   Command::AddCmd( new Action_Dihedral(),      Cmd::ACT, 1, "dihedral" );
+  Command::AddCmd( new Action_DihedralRMS(),   Cmd::ACT, 1, "dihrms" );
   Command::AddCmd( new Action_Dipole(),        Cmd::ACT, 1, "dipole" );
   Command::AddCmd( new Action_Distance(),      Cmd::ACT, 1, "distance" );
   Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // HIDDEN
