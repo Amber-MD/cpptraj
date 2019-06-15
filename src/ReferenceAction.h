@@ -1,12 +1,21 @@
 #ifndef INC_REFERENCEACTION_H
 #define INC_REFERENCEACTION_H
-#include "DataSetList.h"
+#include <string>
+#include "Frame.h"
 #include "DataSet_Coords.h"
+// Forward declarations
+class DataSetList;
+class ArgList;
+class Topology;
 /// Class that can be used by Actions to hold a COORDS DataSet to use as reference.
 class ReferenceAction {
   public:
     ReferenceAction();
     ~ReferenceAction();
+
+    /// Modes: FIRST=first frame, FRAME=given frame, TRAJ=reference traj
+    enum RefModeType { FIRST = 0, FRAME, TRAJ };
+
     /// Process all reference-related arguments, figure out reference mode.
     int InitRef(ArgList&, DataSetList const&, bool, bool);
 #   ifdef MPI
@@ -29,6 +38,8 @@ class ReferenceAction {
     Frame const& SelectedRef()      const { return selectedRef_; }
     /// \return Translation vector from origin to original ref center.
     Vec3 const& RefTrans()          const { return refTrans_;    }
+    /// \return Current reference mode
+    RefModeType RefMode()           const { return refMode_;     }
     /// \return Help text
     static const char* Help() { return help_.c_str(); }
     /// \return Pointer to reference COORDS topology if possible.
@@ -41,8 +52,6 @@ class ReferenceAction {
     void SelectRefAtoms(Frame const&);
     /// Set up ref mask for given topology. Allocate space for selected ref atoms.
     int SetupRefMask(Topology const&);
-    /// Modes: FIRST=first frame, FRAME=given frame, TRAJ=reference traj
-    enum RefModeType { FIRST = 0, FRAME, TRAJ };
 
     RefModeType refMode_;    ///< Reference mode.
     DataSet_Coords* refCrd_; ///< Reference COORDS DataSet.

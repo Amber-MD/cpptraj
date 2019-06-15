@@ -1,4 +1,5 @@
 #include "ReferenceAction.h"
+#include "DataSetList.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_TRJ.h"
 #include "ReferenceFrame.h"
