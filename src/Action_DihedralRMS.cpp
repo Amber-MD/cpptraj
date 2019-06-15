@@ -53,6 +53,7 @@ Action::RetType Action_DihedralRMS::Init(ArgList& actionArgs, ActionInit& init, 
   return Action::OK;
 }
 
+/** Fill the refVals_ array with reference dihedral values. */
 int Action_DihedralRMS::GetRefDihedrals(Topology const& top, Frame const& frm) {
   Range actualRange = GetActualRange(top, refRange_);
   if (actualRange.Empty()) {
@@ -64,6 +65,7 @@ int Action_DihedralRMS::GetRefDihedrals(Topology const& top, Frame const& frm) {
     mprinterr("Error: No dihedrals found in reference topology %s\n", top.c_str());
     return 1;
   }
+  mprintf("DEBUG: %i reference dihedrals\n", dihSearch_.Ndihedrals());
   // Calculate dihedrals
   refVals_.clear();
   refVals_.reserve( dihSearch_.Ndihedrals() );
@@ -79,6 +81,9 @@ int Action_DihedralRMS::GetRefDihedrals(Topology const& top, Frame const& frm) {
   return 0;
 }
 
+/** \return Range with actual residues to search for dihedrals in. If the
+  *         given range is not set, will use all solute residues.
+  */
 Range Action_DihedralRMS::GetActualRange(Topology const& top, Range const& resRange) const {
   Range actualRange;
   // If range is empty (i.e. no resrange arg given) look through all 
@@ -97,8 +102,34 @@ Range Action_DihedralRMS::GetActualRange(Topology const& top, Range const& resRa
 // Action_DihedralRMS::Setup()
 Action::RetType Action_DihedralRMS::Setup(ActionSetup& setup)
 {
+  // Fill the reference values if needed
+  if (refVals_.empty() && REF_.RefMode() == ReferenceAction::FRAME) {
+    // Sanity check
+    Topology* refTop = REF_.RefCrdTopPtr();
+    if (refTop == 0) {
+      mprinterr("Internal Error: Reference topology is null.\n");
+      return Action::ERR;
+    }
+    if (GetRefDihedrals( *refTop, REF_.CurrentReference() )) return Action::ERR;
+    // DEBUG
+    mprintf("DEBUG: Reference dihedral values (radians):\n");
+    for (Darray::const_iterator it = refVals_.begin(); it != refVals_.end(); ++it)
+      mprintf("\t%8li %12.4f\n", it-refVals_.begin(), *it);
+  }
+  // Get the target range
+  Range actualRange = GetActualRange(setup.Top(), tgtRange_);
+  if (actualRange.Empty()) {
+    mprinterr("Error: No residues in topology %s\n", setup.Top().c_str());
+    return Action::ERR;
+  }
+  // Search for specified dihedrals in each residue in the range
+  if (dihSearch_.FindDihedrals(setup.Top(), actualRange)) {
+    mprinterr("Error: No dihedrals found in topology %s\n", setup.Top().c_str());
+    return Action::ERR;
+  }
+  mprintf("DEBUG: %i dihedrals\n", dihSearch_.Ndihedrals());
 
-  return Action::ERR;
+  return Action::OK;
 }
 
 // Action_DihedralRMS::DoAction()
