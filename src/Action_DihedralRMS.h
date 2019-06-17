@@ -18,9 +18,11 @@ class Action_DihedralRMS : public Action {
     typedef std::vector<double> Darray;
 
     Range GetActualRange(Topology const&, Range const&) const;
-    int GetRefDihedrals(Topology const&, Frame const&);
+    int SetupRefDihedrals(Topology const&);
+    int CalcRefDihedrals(Frame const&);
 
-    DihedralSearch dihSearch_; ///< Used to select specified dihedrals
+    DihedralSearch dihSearch_; ///< Used to select specified dihedrals in target
+    DihedralSearch refSearch_; ///< Used to select specified dihedrals in reference
     ReferenceAction REF_;      ///< Hold reference structure
     Darray refVals_;           ///< Reference dihedral values in radians
     Range tgtRange_;

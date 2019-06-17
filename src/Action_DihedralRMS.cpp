@@ -1,6 +1,8 @@
+#include <cmath> // fabs, sqrt
 #include "Action_DihedralRMS.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
+#include "Constants.h"
 
 // Action_DihedralRMS::Help()
 void Action_DihedralRMS::Help() const {
@@ -32,6 +34,8 @@ Action::RetType Action_DihedralRMS::Init(ArgList& actionArgs, ActionInit& init, 
   if (dihSearch_.SearchForNewTypeArgs(actionArgs)) return Action::ERR;
   // If no dihedral types yet selected, this will select all.
   dihSearch_.SearchForAll();
+  // Reference will try to select same types as target
+  refSearch_ = dihSearch_;
   // Setup DataSet(s) name
   std::string dsetname = actionArgs.GetStringNext();
   // Setup output data set
@@ -44,6 +48,7 @@ Action::RetType Action_DihedralRMS::Init(ArgList& actionArgs, ActionInit& init, 
 
   mprintf("    DIHEDRAL RMSD: Calculating dihedral RMS for dihedrals:");
   dihSearch_.PrintTypes();
+  refSearch_.PrintTypes(); // DEBUG
   mprintf("\n");
   if (!tgtRange_.Empty())
     mprintf("\tTarget residue range: %s\n", tgtRange_.RangeArg());
@@ -51,34 +56,6 @@ Action::RetType Action_DihedralRMS::Init(ArgList& actionArgs, ActionInit& init, 
     mprintf("\tReference residue range: %s\n", refRange_.RangeArg());
   mprintf("\tReference is %s\n", REF_.RefModeString().c_str());
   return Action::OK;
-}
-
-/** Fill the refVals_ array with reference dihedral values. */
-int Action_DihedralRMS::GetRefDihedrals(Topology const& top, Frame const& frm) {
-  Range actualRange = GetActualRange(top, refRange_);
-  if (actualRange.Empty()) {
-    mprinterr("Error: No residues in reference topology %s\n", top.c_str());
-    return 1;
-  }
-  // Search for specified dihedrals in each residue in the range
-  if (dihSearch_.FindDihedrals(top, actualRange)) {
-    mprinterr("Error: No dihedrals found in reference topology %s\n", top.c_str());
-    return 1;
-  }
-  mprintf("DEBUG: %i reference dihedrals\n", dihSearch_.Ndihedrals());
-  // Calculate dihedrals
-  refVals_.clear();
-  refVals_.reserve( dihSearch_.Ndihedrals() );
-  for (DihedralSearch::mask_it dih = dihSearch_.begin();
-                               dih != dihSearch_.end(); ++dih)
-  {
-    double torsion = Torsion( frm.XYZ(dih->A0()),
-                              frm.XYZ(dih->A1()),
-                              frm.XYZ(dih->A2()),
-                              frm.XYZ(dih->A3()) );
-    refVals_.push_back( torsion );
-  }
-  return 0;
 }
 
 /** \return Range with actual residues to search for dihedrals in. If the
@@ -99,6 +76,39 @@ Range Action_DihedralRMS::GetActualRange(Topology const& top, Range const& resRa
   return actualRange;
 }
 
+/** Find dihedrals in the reference structure.*/
+int Action_DihedralRMS::SetupRefDihedrals(Topology const& top) {
+  Range actualRange = GetActualRange(top, refRange_);
+  if (actualRange.Empty()) {
+    mprinterr("Error: No residues in reference topology %s\n", top.c_str());
+    return 1;
+  }
+  // Search for specified dihedrals in each residue in the range
+  if (refSearch_.FindDihedrals(top, actualRange)) {
+    mprinterr("Error: No dihedrals found in reference topology %s\n", top.c_str());
+    return 1;
+  }
+  mprintf("\tSelected %i reference dihedrals\n", refSearch_.Ndihedrals());
+  return 0;
+}
+
+/**Fill the refVals_ array with reference dihedral values. */
+int Action_DihedralRMS::CalcRefDihedrals(Frame const& frm) {
+  // Calculate dihedrals
+  refVals_.clear();
+  refVals_.reserve( refSearch_.Ndihedrals() );
+  for (DihedralSearch::mask_it dih = refSearch_.begin();
+                               dih != refSearch_.end(); ++dih)
+  {
+    double torsion = Torsion( frm.XYZ(dih->A0()),
+                              frm.XYZ(dih->A1()),
+                              frm.XYZ(dih->A2()),
+                              frm.XYZ(dih->A3()) );
+    refVals_.push_back( torsion );
+  }
+  return 0;
+}
+
 // Action_DihedralRMS::Setup()
 Action::RetType Action_DihedralRMS::Setup(ActionSetup& setup)
 {
@@ -107,20 +117,30 @@ Action::RetType Action_DihedralRMS::Setup(ActionSetup& setup)
   // not atoms.
   if (REF_.SetupRef(setup.Top(), -1))
     return Action::SKIP;
+  // Perform any dihedral-specific setup for reference.
   // Fill the reference values if needed
-  if (refVals_.empty() && REF_.RefMode() == ReferenceAction::FRAME) {
-    // Sanity check
-    Topology* refTop = REF_.RefCrdTopPtr();
-    if (refTop == 0) {
-      mprinterr("Internal Error: Reference topology is null.\n");
-      return Action::ERR;
+  if (refVals_.empty()) {
+    if (REF_.RefMode() == ReferenceAction::FRAME ||
+        REF_.RefMode() == ReferenceAction::TRAJ)
+    {
+      // Sanity check
+      Topology* refTop = REF_.RefCrdTopPtr();
+      if (refTop == 0) {
+        mprinterr("Internal Error: Reference topology is null.\n");
+        return Action::ERR;
+      }
+      if (SetupRefDihedrals( *refTop )) return Action::ERR;
+      if (CalcRefDihedrals( REF_.CurrentReference() )) return Action::ERR;
+      // DEBUG
+      mprintf("DEBUG: Reference dihedral values (radians):\n");
+      for (Darray::const_iterator it = refVals_.begin(); it != refVals_.end(); ++it)
+        mprintf("\t%8li %12.4f\n", it-refVals_.begin(), *it);
+    } else {
+      // FIRST, PREVIOUS
+      if (SetupRefDihedrals( setup.Top() )) return Action::ERR;
     }
-    if (GetRefDihedrals( *refTop, REF_.CurrentReference() )) return Action::ERR;
-    // DEBUG
-    mprintf("DEBUG: Reference dihedral values (radians):\n");
-    for (Darray::const_iterator it = refVals_.begin(); it != refVals_.end(); ++it)
-      mprintf("\t%8li %12.4f\n", it-refVals_.begin(), *it);
   }
+
   // Get the target range
   Range actualRange = GetActualRange(setup.Top(), tgtRange_);
   if (actualRange.Empty()) {
@@ -134,12 +154,47 @@ Action::RetType Action_DihedralRMS::Setup(ActionSetup& setup)
   }
   mprintf("\tSelected %i dihedrals\n", dihSearch_.Ndihedrals());
 
+  if (dihSearch_.Ndihedrals() != refSearch_.Ndihedrals()) {
+    mprintf("Warning: # target dihedrals %i != # reference dihedrals %i. Skipping.\n",
+            dihSearch_.Ndihedrals(), refSearch_.Ndihedrals());
+    return Action::SKIP;
+  }
   return Action::OK;
 }
 
 // Action_DihedralRMS::DoAction()
 Action::RetType Action_DihedralRMS::DoAction(int frameNum, ActionFrame& frm)
 {
+  // Perform any needed reference actions
+  REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
+  if (REF_.RefMode() == ReferenceAction::TRAJ || refVals_.empty())
+    CalcRefDihedrals( REF_.CurrentReference() );
+  // Calculate dihedral rmsd
+  mprintf("DEBUG: Frame %i\n", frameNum);
+  double rms = 0.0;
+  double total_mass = (double)refVals_.size();
+  Darray::const_iterator refv = refVals_.begin();
+  for (DihedralSearch::mask_it dih = dihSearch_.begin();
+                               dih != dihSearch_.end(); ++dih, ++refv)
+  {
+    double torsion = Torsion( frm.Frm().XYZ(dih->A0()),
+                              frm.Frm().XYZ(dih->A1()),
+                              frm.Frm().XYZ(dih->A2()),
+                              frm.Frm().XYZ(dih->A3()) );
+    double diff = fabs(torsion - *refv);
+    mprintf("DEBUG:\t\tTgt = %12.4f  Ref = %12.4f  Diff = %12.4f",
+            torsion*Constants::RADDEG,
+            (*refv)*Constants::RADDEG,
+            diff*Constants::RADDEG);
+    if (diff > Constants::PI)
+      diff = Constants::TWOPI - diff; // TODO what if diff is > TWOPI? Can that happen?
+    mprintf("  AdjDiff = %12.4f\n", diff * Constants::RADDEG);
+    rms += (diff*diff);
+  }
+  rms = sqrt(rms / total_mass);
 
-  return Action::ERR;
+  rms = rms * Constants::RADDEG;
+
+  dataOut_->Add(frameNum, &rms);
+  return Action::OK;
 }
