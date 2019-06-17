@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles dih.in 
+CleanFiles dih.in dihrms.dat toref.dat
 
 TESTNAME='Dihedral RMSD tests'
 Requires maxthreads 10
@@ -14,11 +14,13 @@ if [ $? -eq 0 ] ; then
   cat > dih.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc 1 10
-dihrms out dihrms.dat phi psi
+reference ../tz2.nc 1 [MyRef]
+dihrms ToFirst out dihrms.dat noheader phi psi
+dihrms ToRef ref [MyRef] out toref.dat noheader phi psi
 EOF
-
   RunCpptraj "$UNITNAME"
-  #DoTest dihedral.dat multidih.dat
+  DoTest dihrms.dat.save dihrms.dat
+  DoTest dihrms.dat.save toref.dat 
 fi
 
 Disable() {
