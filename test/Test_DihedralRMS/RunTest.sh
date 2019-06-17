@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles dih.in dihrms.dat toref.dat previous.dat
+CleanFiles dih.in dihrms.dat toref.dat previous.dat totraj.dat
 
 TESTNAME='Dihedral RMSD tests'
 Requires maxthreads 10
@@ -18,11 +18,14 @@ reference ../tz2.nc 1 [MyRef]
 dihrms ToFirst out dihrms.dat noheader phi psi
 dihrms ToRef ref [MyRef] out toref.dat noheader phi psi
 dihrms ToPrev previous out previous.dat phi psi
+# NOTE: All calculated values for same traj should be 0.0
+dihrms ToTraj reftraj ../tz2.nc out totraj.dat phi psi
 EOF
   RunCpptraj "$UNITNAME"
   DoTest dihrms.dat.save dihrms.dat
   DoTest dihrms.dat.save toref.dat
   DoTest previous.dat.save previous.dat
+  DoTest totraj.dat.save totraj.dat
 fi
 
 Disable() {
