@@ -8,7 +8,6 @@ ReferenceAction::ReferenceAction() :
   refMode_( FIRST ),
   refCrd_( 0 ),
   traj_( 0 ),
-  previous_( false ),
   needsSetup_( false),
   fitRef_( false ),
   useMass_( false )
@@ -19,7 +18,7 @@ ReferenceAction::~ReferenceAction() { if (traj_ != 0) delete traj_; }
 // ReferenceAction::RefModeString()
 std::string ReferenceAction::RefModeString() const {
   std::string modeString;
-  if (previous_)
+  if (refMode_ == PREVIOUS)
     modeString = "previous frame";
   else if (refMode_ == FIRST)
     modeString = "first frame";
@@ -40,7 +39,7 @@ std::string ReferenceAction::help_ =
 /** Should be called after InitRef(). */
 int ReferenceAction::SetTrajComm( Parallel::Comm const& commIn ) {
   // Does not work for previous
-  if (previous_ && commIn.Size() > 1) {
+  if (refMode_ == PREVIOUS && commIn.Size() > 1) {
     mprinterr("Error: 'previous' reference does not work in parallel.\n");
     return 1;
   }
@@ -74,10 +73,11 @@ int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
 {
   fitRef_ = fitRefIn;
   useMass_ = useMassIn;
-  previous_ = argIn.hasKey("previous");
   // Attempt to determine reference mode.
   refMode_ = FIRST; // Default
-  if (!argIn.hasKey("first")) {
+  if (argIn.hasKey("previous")) {
+    refMode_ = PREVIOUS;
+  } else if (!argIn.hasKey("first")) {
     // Attempt to set refMode_ and refCrd_
     if (argIn.Contains("reftraj")) {
       // Reference trajectory. First try to find COORDS or TRAJ.
@@ -118,9 +118,9 @@ int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
     /// Allocate space for reading Frame from COORDS if necessary
     if (refCrd_ != 0) {
       refFrame_ = refCrd_->AllocateFrame();
-      needsSetup_ = true;
     }
   }
+  needsSetup_ = true;
   return 0;
 }
 
@@ -164,16 +164,20 @@ void ReferenceAction::SelectRefAtoms(Frame const& frameIn) {
 
 // ReferenceAction::SetupRef()
 int ReferenceAction::SetupRef(Topology const& topIn, int Ntgt) {
-  if (refMode_ == FIRST) {
-    if ( SetupRefMask( topIn ) ) return 1;
-  } else if (previous_) {
-    mprintf("Warning: 'previous' may not work properly for changing topologies.\n");
-    if ( SetupRefMask( topIn ) ) return 1;
-  } else if (needsSetup_) { // FRAME, TRAJ; only set up once.
-    if ( SetupRefMask( refCrd_->Top() ) ) return 1;
-    if (refMode_ == FRAME)
-      SelectRefAtoms( ((DataSet_Coords_REF*)refCrd_)->RefFrame() );
+  if (needsSetup_) {
+    if (refMode_ == FIRST || refMode_ == PREVIOUS) {
+      // First frame or previous frame. Topology will be topIn.
+      if ( SetupRefMask( topIn ) ) return 1;
+    } else {
+      // Specified frame or trajectory. Accessed via refCrd_.
+      if ( SetupRefMask( refCrd_->Top() ) ) return 1;
+      if (refMode_ == FRAME)
+        SelectRefAtoms( ((DataSet_Coords_REF*)refCrd_)->RefFrame() );
+    }
     needsSetup_ = false;
+  } else {
+    if (refMode_ == PREVIOUS)
+      mprintf("Warning: 'previous' may not work properly for changing topologies.\n");
   }
   // Check that num atoms in target mask from this parm match ref parm mask
   if ( Ntgt != -1 && refMask_.Nselected() != Ntgt ) {
