@@ -102,6 +102,11 @@ Range Action_DihedralRMS::GetActualRange(Topology const& top, Range const& resRa
 // Action_DihedralRMS::Setup()
 Action::RetType Action_DihedralRMS::Setup(ActionSetup& setup)
 {
+  // Perform any reference setup. -1 means do not check number of selected
+  // atoms, which is not necessary because we are looking for dihedrals,
+  // not atoms.
+  if (REF_.SetupRef(setup.Top(), -1))
+    return Action::SKIP;
   // Fill the reference values if needed
   if (refVals_.empty() && REF_.RefMode() == ReferenceAction::FRAME) {
     // Sanity check
@@ -127,7 +132,7 @@ Action::RetType Action_DihedralRMS::Setup(ActionSetup& setup)
     mprinterr("Error: No dihedrals found in topology %s\n", setup.Top().c_str());
     return Action::ERR;
   }
-  mprintf("DEBUG: %i dihedrals\n", dihSearch_.Ndihedrals());
+  mprintf("\tSelected %i dihedrals\n", dihSearch_.Ndihedrals());
 
   return Action::OK;
 }

@@ -126,10 +126,16 @@ int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
 
 // ReferenceAction::SetupRefMask()
 int ReferenceAction::SetupRefMask(Topology const& topIn) {
-  if (topIn.SetupIntegerMask( refMask_ )) return 1;
-  mprintf("\tReference mask:");
-  refMask_.BriefMaskInfo();
-  mprintf("\n");
+  if (refMask_.MaskStringSet()) {
+    if (topIn.SetupIntegerMask( refMask_ )) return 1;
+    mprintf("\tReference mask:");
+    refMask_.BriefMaskInfo();
+    mprintf("\n");
+  } else {
+    refMask_.ResetMask();
+    refMask_.SetNatoms( topIn.Natom() );
+    refMask_.AddAtomRange(0, topIn.Natom() );
+  }
   if (refMask_.None()) {
     mprinterr("Error: No reference atoms selected for parm %s, [%s]\n",
               topIn.c_str(), refMask_.MaskString());
@@ -170,7 +176,7 @@ int ReferenceAction::SetupRef(Topology const& topIn, int Ntgt) {
     needsSetup_ = false;
   }
   // Check that num atoms in target mask from this parm match ref parm mask
-  if ( refMask_.Nselected() != Ntgt ) {
+  if ( Ntgt != -1 && refMask_.Nselected() != Ntgt ) {
     mprintf("Warning: Number of atoms in target mask (%i) does not equal\n"
             "Warning:   number of atoms in reference mask (%i).\n",
             Ntgt, refMask_.Nselected());
