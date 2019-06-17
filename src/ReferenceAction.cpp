@@ -27,7 +27,8 @@ std::string ReferenceAction::RefModeString() const {
     modeString = "trajectory " + refCrd_->Meta().Legend();
   else // FRAME
     modeString = "\"" + refCrd_->Meta().Legend() + "\"";
-  modeString += " (" + refMask_.MaskExpression() + ")";
+  if (refMask_.MaskStringSet())
+    modeString += " (" + refMask_.MaskExpression() + ")";
   return modeString;
 }
 
