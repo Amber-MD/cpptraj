@@ -6,7 +6,7 @@
 CleanFiles rms.in rmsd.dat rms.mass.in rmsd.mass.dat rms.reftraj.in \
            rmsd.reftraj.dat tz2.norotate.crd tz2.rotate.crd rmatrices.dat \
            rmsd.refcoords.dat rms.dat NoMod.dat NoMod.crd.save NoMod.crd \
-           vecs.dat
+           vecs.dat Previous.dat
 
 TESTNAME='RMSD tests'
 Requires netcdf
@@ -74,6 +74,21 @@ EOF
 RunCpptraj "RMS fit with no coordinates modification test."
 DoTest NoMod.dat.save NoMod.dat
 DoTest NoMod.crd.save NoMod.crd
+
+# Test RMS 'previous'
+UNITNAME='RMS fit to previous test'
+CheckFor notparallel
+if [ $? -eq 0 ] ; then
+  TOP=''
+  INPUT='-i rms.in'
+  cat > rms.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+rms ToPrevious :2-12@CA previous out Previous.dat
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest Previous.dat.save Previous.dat
+fi
 
 EndTest
 
