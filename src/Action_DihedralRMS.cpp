@@ -4,6 +4,12 @@
 #include "TorsionRoutines.h"
 #include "Constants.h"
 
+/// CONSTRUCTOR
+Action_DihedralRMS::Action_DihedralRMS() :
+  dataOut_(0),
+  debug_(0)
+{}
+
 // Action_DihedralRMS::Help()
 void Action_DihedralRMS::Help() const {
   mprintf("\t[<name>] <dihedral types> [out <file>]\n"
@@ -14,6 +20,7 @@ void Action_DihedralRMS::Help() const {
 // Action_DihedralRMS::Init()
 Action::RetType Action_DihedralRMS::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
   std::string tgtArg = actionArgs.GetStringKey("tgtrange");
@@ -48,8 +55,12 @@ Action::RetType Action_DihedralRMS::Init(ArgList& actionArgs, ActionInit& init, 
 
   mprintf("    DIHEDRAL RMSD: Calculating dihedral RMS for dihedrals:");
   dihSearch_.PrintTypes();
-  refSearch_.PrintTypes(); // DEBUG
   mprintf("\n");
+  if (debug_ > 0) {
+    mprintf("\tReference dihedrals:");
+    refSearch_.PrintTypes(); // DEBUG
+    mprintf("\n");
+  }
   if (!tgtRange_.Empty())
     mprintf("\tTarget residue range: %s\n", tgtRange_.RangeArg());
   if (!refRange_.Empty())
@@ -133,9 +144,11 @@ Action::RetType Action_DihedralRMS::Setup(ActionSetup& setup)
       if (REF_.RefMode() == ReferenceAction::FRAME) {
         if (CalcRefDihedrals( REF_.CurrentReference() )) return Action::ERR;
         // DEBUG
-        mprintf("DEBUG: Reference dihedral values (radians):\n");
-        for (Darray::const_iterator it = refVals_.begin(); it != refVals_.end(); ++it)
-          mprintf("\t%8li %12.4f\n", it-refVals_.begin(), *it);
+        if (debug_ > 0) {
+          mprintf("DEBUG: Reference dihedral values (radians):\n");
+          for (Darray::const_iterator it = refVals_.begin(); it != refVals_.end(); ++it)
+            mprintf("\t%8li %12.4f\n", it-refVals_.begin(), *it);
+        }
       }
     } else {
       // FIRST, PREVIOUS
@@ -174,7 +187,7 @@ Action::RetType Action_DihedralRMS::DoAction(int frameNum, ActionFrame& frm)
       refVals_.empty())
     CalcRefDihedrals( REF_.CurrentReference() );
   // Calculate dihedral rmsd
-  mprintf("DEBUG: Frame %i\n", frameNum);
+  //mprintf("DEBUG: Frame %i\n", frameNum);
   double rms = 0.0;
   double total_mass = (double)refVals_.size();
   Darray::const_iterator refv = refVals_.begin();
@@ -186,13 +199,13 @@ Action::RetType Action_DihedralRMS::DoAction(int frameNum, ActionFrame& frm)
                               frm.Frm().XYZ(dih->A2()),
                               frm.Frm().XYZ(dih->A3()) );
     double diff = fabs(torsion - *refv);
-    mprintf("DEBUG:\t\tTgt = %12.4f  Ref = %12.4f  Diff = %12.4f",
-            torsion*Constants::RADDEG,
-            (*refv)*Constants::RADDEG,
-            diff*Constants::RADDEG);
+    //mprintf("DEBUG:\t\tTgt = %12.4f  Ref = %12.4f  Diff = %12.4f",
+    //        torsion*Constants::RADDEG,
+    //        (*refv)*Constants::RADDEG,
+    //        diff*Constants::RADDEG);
     if (diff > Constants::PI)
       diff = Constants::TWOPI - diff; // TODO what if diff is > TWOPI? Can that happen?
-    mprintf("  AdjDiff = %12.4f\n", diff * Constants::RADDEG);
+    //mprintf("  AdjDiff = %12.4f\n", diff * Constants::RADDEG);
     rms += (diff*diff);
   }
   rms = sqrt(rms / total_mass);

@@ -6,7 +6,7 @@
 /// Calculate dihedral RMSD to reference 
 class Action_DihedralRMS : public Action {
   public:
-    Action_DihedralRMS() {}
+    Action_DihedralRMS();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_DihedralRMS(); }
     void Help() const;
   private:
@@ -28,6 +28,6 @@ class Action_DihedralRMS : public Action {
     Range tgtRange_;
     Range refRange_;
     DataSet* dataOut_;         ///< Output data set
-    
+    int debug_;
 };
 #endif
