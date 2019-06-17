@@ -167,7 +167,9 @@ Action::RetType Action_DihedralRMS::DoAction(int frameNum, ActionFrame& frm)
 {
   // Perform any needed reference actions
   REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
-  if (REF_.RefMode() == ReferenceAction::TRAJ || refVals_.empty())
+  if (REF_.RefMode() == ReferenceAction::TRAJ ||
+      REF_.RefMode() == ReferenceAction::PREVIOUS ||
+      refVals_.empty())
     CalcRefDihedrals( REF_.CurrentReference() );
   // Calculate dihedral rmsd
   mprintf("DEBUG: Frame %i\n", frameNum);
@@ -196,5 +198,7 @@ Action::RetType Action_DihedralRMS::DoAction(int frameNum, ActionFrame& frm)
   rms = rms * Constants::RADDEG;
 
   dataOut_->Add(frameNum, &rms);
+
+  REF_.PreviousRef( frm.Frm() );
   return Action::OK;
 }
