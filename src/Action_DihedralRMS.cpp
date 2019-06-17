@@ -130,11 +130,13 @@ Action::RetType Action_DihedralRMS::Setup(ActionSetup& setup)
         return Action::ERR;
       }
       if (SetupRefDihedrals( *refTop )) return Action::ERR;
-      if (CalcRefDihedrals( REF_.CurrentReference() )) return Action::ERR;
-      // DEBUG
-      mprintf("DEBUG: Reference dihedral values (radians):\n");
-      for (Darray::const_iterator it = refVals_.begin(); it != refVals_.end(); ++it)
-        mprintf("\t%8li %12.4f\n", it-refVals_.begin(), *it);
+      if (REF_.RefMode() == ReferenceAction::FRAME) {
+        if (CalcRefDihedrals( REF_.CurrentReference() )) return Action::ERR;
+        // DEBUG
+        mprintf("DEBUG: Reference dihedral values (radians):\n");
+        for (Darray::const_iterator it = refVals_.begin(); it != refVals_.end(); ++it)
+          mprintf("\t%8li %12.4f\n", it-refVals_.begin(), *it);
+      }
     } else {
       // FIRST, PREVIOUS
       if (SetupRefDihedrals( setup.Top() )) return Action::ERR;
