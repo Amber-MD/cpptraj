@@ -38,7 +38,8 @@ void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) con
     cbuffer.Printf(format_.fmt(), "NoData");
   else {
     // Protect against CpptrajFile buffer overflow.
-    if (format_.Width() >= (int)CpptrajFile::BUF_SIZE) {
+    size_t maxWidth = std::max( (size_t)format_.Width(), Data_[pIn[0]].size() );
+    if (maxWidth >= CpptrajFile::BUF_SIZE) {
       // FIXME: Data sets should not have to worry about spaces in format strings.
       if (format_.fmt()[0] == ' ') cbuffer.Printf(" ");
       cbuffer.Write(Data_[pIn[0]].c_str(), Data_[pIn[0]].size());
