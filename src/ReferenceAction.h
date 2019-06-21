@@ -1,12 +1,21 @@
 #ifndef INC_REFERENCEACTION_H
 #define INC_REFERENCEACTION_H
-#include "DataSetList.h"
+#include <string>
+#include "Frame.h"
 #include "DataSet_Coords.h"
+// Forward declarations
+class DataSetList;
+class ArgList;
+class Topology;
 /// Class that can be used by Actions to hold a COORDS DataSet to use as reference.
 class ReferenceAction {
   public:
     ReferenceAction();
     ~ReferenceAction();
+
+    /// Modes: FIRST=first frame, FRAME=given frame, TRAJ=reference traj
+    enum RefModeType { FIRST = 0, FRAME, TRAJ, PREVIOUS };
+
     /// Process all reference-related arguments, figure out reference mode.
     int InitRef(ArgList&, DataSetList const&, bool, bool);
 #   ifdef MPI
@@ -29,6 +38,8 @@ class ReferenceAction {
     Frame const& SelectedRef()      const { return selectedRef_; }
     /// \return Translation vector from origin to original ref center.
     Vec3 const& RefTrans()          const { return refTrans_;    }
+    /// \return Current reference mode
+    RefModeType RefMode()           const { return refMode_;     }
     /// \return Help text
     static const char* Help() { return help_.c_str(); }
     /// \return Pointer to reference COORDS topology if possible.
@@ -41,8 +52,6 @@ class ReferenceAction {
     void SelectRefAtoms(Frame const&);
     /// Set up ref mask for given topology. Allocate space for selected ref atoms.
     int SetupRefMask(Topology const&);
-    /// Modes: FIRST=first frame, FRAME=given frame, TRAJ=reference traj
-    enum RefModeType { FIRST = 0, FRAME, TRAJ };
 
     RefModeType refMode_;    ///< Reference mode.
     DataSet_Coords* refCrd_; ///< Reference COORDS DataSet.
@@ -52,7 +61,6 @@ class ReferenceAction {
     Frame selectedRef_;      ///< Atoms from reference frame selected by refMask_.
     Vec3 refTrans_;          ///< If fitting, translation from origin to original ref center.
     static std::string help_;///< Help text.
-    bool previous_;          ///< True if current reference is previous frame (only RMSD now)
     bool needsSetup_;        ///< True if ref from COORDS needs to be set up during SetupRef()
     bool fitRef_;            ///< If true, move reference to origin for RMS fitting
     bool useMass_;           ///< (If fitRef_) If true, move COM, otherwise geometric center.
@@ -64,18 +72,18 @@ class ReferenceAction {
 // ReferenceAction::ActionRef()
 void ReferenceAction::ActionRef(int frameNum, Frame const& frameIn)
 {
-  if (refMode_ == FIRST) {
-    SelectRefAtoms( frameIn );
-    refMode_ = FRAME;
-  } else if (refMode_ == TRAJ) {
+  if (refMode_ == TRAJ) {
     refCrd_->GetFrame( frameNum, refFrame_ );
     selectedRef_.SetCoordinates(refFrame_, refMask_);
     if (fitRef_)
       refTrans_ = selectedRef_.CenterOnOrigin(useMass_);
+  } else if (refFrame_.empty()) {
+    // FIRST or first PREVIOUS
+    SelectRefAtoms( frameIn );
   }
 }
 
 void ReferenceAction::PreviousRef(Frame const& frameIn) {
-  if (previous_) SelectRefAtoms( frameIn );
+  if (refMode_ == PREVIOUS) SelectRefAtoms( frameIn );
 }
 #endif

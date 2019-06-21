@@ -1,5 +1,8 @@
 #include "DihedralSearch.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // convertToInteger
+#include "ArgList.h"
+#include "Topology.h"
 
 const DihedralSearch::DihedralType DihedralSearch::D_FIRST = MetaData::ALPHA;
 const DihedralSearch::DihedralType DihedralSearch::D_END   = MetaData::PUCKER;
@@ -202,6 +205,29 @@ void DihedralSearch::SearchForArgs(ArgList& argIn) {
     if (argIn.hasKey( MetaData::TypeString((DihedralType)i) ))
       SearchFor( (DihedralType)i );
   }
+}
+
+const char* DihedralSearch::newTypeArgsHelp_ = "dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...";
+
+/** Get custom dihedral arguments: 
+  *   'dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>]'
+  * where <offset> determines which residue <a0>/<a3> are in.
+  */
+int DihedralSearch::SearchForNewTypeArgs(ArgList& argIn) {
+  std::string dihtype_arg = argIn.GetStringKey("dihtype");
+  while (!dihtype_arg.empty()) {
+    ArgList dihtype(dihtype_arg, ":");
+    if (dihtype.Nargs() < 5) {
+      mprinterr("Error: Malformed dihtype arg.\n");
+      return 1;
+    }
+    int offset = 0;
+    if (dihtype.Nargs() == 6) offset = convertToInteger(dihtype[5]);
+    // NOTE: Not checking return status here because worse that happens is a Warning
+    SearchForNewType(offset,dihtype[1],dihtype[2],dihtype[3],dihtype[4], dihtype[0]);
+    dihtype_arg = argIn.GetStringKey("dihtype");
+  }
+  return 0;
 }
 
 // DihedralSearch::SearchForNewType()

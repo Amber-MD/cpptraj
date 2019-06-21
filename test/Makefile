@@ -453,6 +453,9 @@ test.time:
 test.splitcoords:
 	@-cd Test_SplitCoords && ./RunTest.sh $(OPT)
 
+test.dihedralrms:
+	@-cd Test_DihedralRMS && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -598,7 +601,8 @@ COMPLETETESTS=test.general \
               test.catcrd \
               test.xtalsymm \
               test.time \
-              test.splitcoords
+              test.splitcoords \
+              test.dihedralrms
 
 test.all:
 	$(MAKE) test.complete summary
