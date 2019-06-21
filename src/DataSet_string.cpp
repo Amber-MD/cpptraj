@@ -1,3 +1,4 @@
+#include <algorithm> // std::max
 #include "DataSet_string.h"
 
 size_t DataSet_string::MemUsageInBytes() const {
