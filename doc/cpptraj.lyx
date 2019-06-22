@@ -20056,7 +20056,17 @@ Calculate dihedral angle (in degrees) between the planes defined by atoms
 multidihedral
 \series default
 \emph default
- command.
+ command on page 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "subsec:cpptraj_multidihedral"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsection
