@@ -14570,7 +14570,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="85" columns="3">
+<lyxtabular version="3" rows="86" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="1.3in">
 <column alignment="center" valignment="top" width="4.5in">
@@ -15244,6 +15244,39 @@ dihedral
 
 \begin_layout Plain Layout
 Calculate the dihedral angle using four points.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+dihrms
+\end_layout
+
+\begin_layout Plain Layout
+dihedralrms
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Calculate the RMSD of dihedrals to dihedrals in a reference structure.
 \end_layout
 
 \end_inset
@@ -20017,6 +20050,120 @@ statistics
 \begin_layout Standard
 Calculate dihedral angle (in degrees) between the planes defined by atoms
  in <mask1>, <mask2>, <mask3> and <mask2>, <mask3>, <mask4>.
+ To calculate multiple dihedral angles see the 
+\series bold
+\emph on
+multidihedral
+\series default
+\emph default
+ command.
+\end_layout
+
+\begin_layout Subsection
+dihedralrms | dihrms
+\end_layout
+
+\begin_layout LyX-Code
+	dihedralrms [<name>] <dihedral types> [out <file>]
+\end_layout
+
+\begin_layout LyX-Code
+            	[ first | reference | ref <name> | refindex <#> | previous
+ |
+\end_layout
+
+\begin_layout LyX-Code
+            	  reftraj <name> [parm <name> | parmindex <#>] ]
+\end_layout
+
+\begin_layout LyX-Code
+            	[dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>] ...]
+\end_layout
+
+\begin_layout LyX-Code
+                [tgtrange <range> [refrange <range>]]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[<name>] Output data set name.
+\end_layout
+
+\begin_layout Description
+<dihedral
+\begin_inset space ~
+\end_inset
+
+types> Dihedral types to look for.
+ Note that chip is 'protein chi', chin is 'nucleic chi'.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<filename>] Output file name.
+\end_layout
+
+\begin_layout Description
+[dihtype
+\begin_inset space ~
+\end_inset
+
+<name>:<a0>:<a1>:<a2>:<a3>[:<offset>] Search for a custom dihedral type
+ called <name> using atom names <a0>, <a1>, <a2>, and <a3>.
+\begin_inset Separator latexpar
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+Offset: -2=<a0><a1> in previous res, -1=<a0> in previous res, 0=All <aX>
+ in single res, 1=<a3> in next res, 2=<a2><a3> in next res.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[tgtrange
+\begin_inset space ~
+\end_inset
+
+<range>] Residue range to look for target dihedrals in.
+ Default is all solute residues.
+\end_layout
+
+\begin_layout Description
+[refrange
+\begin_inset space ~
+\end_inset
+
+<range>] Residues range to look for reference dihedrals in.
+ If not specified, use target range.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate RMSD of selected dihedrals to dihedrals in a reference structure.
+ See the 
+\series bold
+\emph on
+multidihedral
+\series default
+\emph default
+ command syntax on page 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "subsec:cpptraj_multidihedral"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ for a list of all available dihedral types.
 \end_layout
 
 \begin_layout Subsection
@@ -20038,13 +20185,6 @@ reference "subsec:cpptraj_permutedihedrals"
 \end_inset
 
 .
- To calculate multiple dihedral angles see the 
-\series bold
-\emph on
-multidihedral
-\series default
-\emph default
- command.
 \end_layout
 
 \begin_layout Subsection
@@ -24538,7 +24678,6 @@ out Output file for order parameters: Sx, Sy, Sz (each succeeded by the
  |SCD| = 0.5Sz and |SCD| = -(2Sx + Sy)/3.
  If scd is set then the order parameter directly computed from the C-H vectors
  is output.
- 
 \end_layout
 
 \begin_layout Description
@@ -26403,6 +26542,13 @@ reference "subsec:cpptraj_surf"
 
 \begin_layout Subsection
 multidihedral
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj_multidihedral"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -26463,6 +26609,7 @@ types> Dihedral types to look for.
 \end_inset
 
 <range>] Residue range to look for dihedrals in.
+ Default is all solute residues.
 \end_layout
 
 \begin_layout Description
@@ -26506,8 +26653,9 @@ DataSet Aspects:
 \begin_inset space ~
 \end_inset
 
-type>] Aspect corresponds to the dihedral type name (e.g.
+type>]:<#> Aspect corresponds to the dihedral type name (e.g.
  [phi], [psi], etc).
+ The index is the residue number.
 \end_layout
 
 \end_deeper
@@ -26533,11 +26681,13 @@ Calculate specified dihedral angle types for residues in given range.
 \end_layout
 
 \begin_layout LyX-Code
-multidihedral phi psi resrange 6-9 out PhiPsi_6-9.dat
+multidihedral MyTorsions phi psi resrange 6-9 out PhiPsi_6-9.dat
 \end_layout
 
 \begin_layout Standard
-Dihedrals other than those defined in 
+This will generate data sets named MyTorsions[phi]:6, MyTorsions[psi]:6,
+ MyTorsions[phi]:7, etc.
+ Dihedrals other than those defined in 
 \series bold
 <dihedral types>
 \series default
