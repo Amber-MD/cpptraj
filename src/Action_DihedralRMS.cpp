@@ -15,6 +15,7 @@ void Action_DihedralRMS::Help() const {
   mprintf("\t[<name>] <dihedral types> [out <file>]\n"
           "%s"
           "\t[%s]\n"
+          "\t[tgtrange <range> [refrange <range>]]\n"
           "  Calculate RMSD of selected dihedrals to dihedrals in a\n"
           "  reference structure.\n",
            ReferenceAction::Help(), DihedralSearch::newTypeArgsHelp_);
