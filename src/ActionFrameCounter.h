@@ -1,6 +1,7 @@
 #ifndef INC_ACTIONFRAMECOUNTER_H
 #define INC_ACTIONFRAMECOUNTER_H
-#include "ArgList.h"
+// Forward declarations
+class ArgList;
 /// Internal frame counter, for processing a subset of frames.
 class ActionFrameCounter {
   public:
