@@ -136,6 +136,8 @@ void OutputTrajCommon::CommonInfo() const {
   if (noReps_) mprintf(" no replica dimensions,");
   if (hasRange_)
     FrameRange_.PrintRange(": Writing frames", 1);
+  else if (!frameCount_.DefaultSettings())
+    frameCount_.FrameCounterBrief();
   else if (NframesToWrite_ > 0) {
     mprintf(": Writing %i frames", NframesToWrite_);
     frameCount_.FrameCounterBrief();
