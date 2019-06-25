@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles matrix.in mtest.dat.save mtest.*.dat evecs.10.dat
+CleanFiles matrix.in mtest.dat.save mtest.*.dat evecs.10.dat \
+           tz2.dist.ca.matrix.dat.save tz2.dist.ca.matrix.dat
 
 TESTNAME='Matrix Tests'
 Requires maxthreads 10
@@ -43,7 +44,6 @@ DoTest mtest.dat.12.save mtest.12.dat
 DoTest mtest.dat.13.save mtest.13.dat
 
 # Test reading symmetric matrix
-# Test reading symmetric matrix
 # NOTE: Currently disabled due to eigenvector sign flips causing false test errors.
 ReadSymmMatrix() {
 cat > matrix.in <<EOF
@@ -53,6 +53,22 @@ EOF
 RunCpptraj "Read symmetric matrix data test."
 DoTest evecs.10.dat.save evecs.10.dat
 }
+
+# Test start/stop/offset args
+cat > matrix.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc 5 100 10
+matrix dist @CA out tz2.dist.ca.matrix.dat.save
+EOF
+RunCpptraj "Generate matrix with trajectory start/stop/offset"
+cat > matrix.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+matrix dist @CA out tz2.dist.ca.matrix.dat start 5 stop 100 offset 10
+EOF
+RunCpptraj "Generate matrix with action stop/start/offset"
+DoTest tz2.dist.ca.matrix.dat.save tz2.dist.ca.matrix.dat
+
 EndTest
   
 exit 0
