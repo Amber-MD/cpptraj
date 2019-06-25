@@ -756,6 +756,8 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
 # ifdef MPI
   } // END if master
   if (Parallel::World().CheckError( cmode )) return CpptrajState::ERR;
+# else
+  if (cmode != CpptrajState::OK) return CpptrajState::ERR;
 # endif
   int readMoreInput = 1;
   while (readMoreInput == 1) {
