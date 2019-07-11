@@ -114,7 +114,7 @@ const char* Traj_CharmmCor::REGULAR_FORMAT_ =
 
 void Traj_CharmmCor::WriteHelp() {
   mprintf("\tkeepext                : Keep filename extension; write '<name>.<num>.<ext>'\n"
-          "\text                    : Use 'extended' format (default when > 99999 atoms.\n"
+          "\text                    : Use 'extended' format (default when > 99999 atoms).\n"
           "\tsegid <segid>          : Use <segid> as segment ID for all atoms.\n"
           "\tsegmask <mask> <segid> : Use <segid> as segment ID for atoms selected by <mask>.\n");
 }
