@@ -8,6 +8,12 @@ class Traj_CharmmCor : public TrajectoryIO {
     Traj_CharmmCor() : corAtom_(0), extendedFmt_(false) {}
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_CharmmCor(); }
     //static void ReadHelp();
+    static void WriteHelp();
+    /** CORWRITEMODE: Indicate how the COR should be written.
+      *  SINGLE: Writing only a single frame.
+      *  MULTI: Each frame written to a different file with name filename.frame
+      */
+    enum CORWRITEMODE {NONE = 0, SINGLE, MULTI};
   private:
     // TrajectoryIO functions
     bool ID_TrajFormat(CpptrajFile&);
@@ -18,13 +24,24 @@ class Traj_CharmmCor : public TrajectoryIO {
     int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool);
     int writeFrame(int,Frame const&);
     void Info();
-    int processWriteArgs(ArgList&, DataSetList const&) { return 0; }
+    int processWriteArgs(ArgList&, DataSetList const&);
     int readVelocity(int, Frame&)  { return 1; }
     int readForce(int, Frame&)     { return 1; }
     int processReadArgs(ArgList&)  { return 0; }
 
+    typedef std::vector<std::string> Sarray;
+
+    static const char* EXTENDED_FORMAT_;
+    static const char* REGULAR_FORMAT_;
+
     CpptrajFile file_;
-    int corAtom_;      ///< # of atoms in Cor file.
-    bool extendedFmt_; ///< True for wide columns
+    int corAtom_;               ///< # of atoms in Cor file.
+    bool extendedFmt_;          ///< True for wide columns
+    CORWRITEMODE corWriteMode_; ///< Determine if writing single or multiple files
+    Topology* corTop_;          ///< Corresponding topology
+    std::string segId_;         ///< User-specified segment ID.
+    Sarray SegmentIds_;         ///< Hold segment ID of each residue
+    const char* outputFmt_;     ///< Hold output format string
+    bool prependExt_;           ///< True if prepending file extension with frame #
 };
 #endif

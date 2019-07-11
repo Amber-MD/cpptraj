@@ -45,20 +45,20 @@ int Traj_CharmmCor::setupTrajin(FileName const& fname, Topology* trajParm)
   ArgList atomLine(buffer);
   extendedFmt_ = atomLine.hasKey("EXT"); 
   corAtom_ = atomLine.getNextInteger(-1);
-  mprintf("\tCOR file: %i atoms\n", corAtom_);
+  mprintf("\tCOOR file: %i atoms\n", corAtom_);
   if (corAtom_ < 1) {
-    mprinterr("Error: No atoms in CHARMM COR file.\n");
+    mprinterr("Error: No atoms in CHARMM COOR file.\n");
     return TRAJIN_ERR;
   }
   if (corAtom_ > 99999)
     extendedFmt_ = true;
   if (corAtom_ != trajParm->Natom()) {
-    mprinterr("Error: COR file has %i atoms, associated topology '%s' has %i\n",
+    mprinterr("Error: COOR file has %i atoms, associated topology '%s' has %i\n",
               corAtom_, trajParm->c_str(), trajParm->Natom());
     return TRAJIN_ERR;
   }
   if (extendedFmt_)
-    mprintf("\tCOR file: extended format.\n");
+    mprintf("\tCOOR file: extended format.\n");
   file_.CloseFile();
   // Just 1 frame.
   return 1;
@@ -86,7 +86,7 @@ int Traj_CharmmCor::readFrame(int set, Frame& frameIn) {
   for (int at = 0; at != corAtom_; at++, xptr += 3) {
     const char* buffer = file_.NextLine();
     if (buffer == 0) {
-      mprinterr("Error: Reading COR atom %i\n", at+1);
+      mprinterr("Error: Reading COOR atom %i\n", at+1);
       return 1;
     }
     int ncrd;
@@ -95,7 +95,7 @@ int Traj_CharmmCor::readFrame(int set, Frame& frameIn) {
     else
       ncrd = sscanf(buffer, "%*5i%*5i%*5s%*5s%10lf%10lf%10lf", xptr, xptr+1, xptr+2);
     if (ncrd != 3) {
-      mprinterr("Error: Reading coordinates for COR atom %i (got %i)\n", at+1, ncrd);
+      mprinterr("Error: Reading coordinates for COOR atom %i (got %i)\n", at+1, ncrd);
       return 1;
     }
   }
@@ -103,17 +103,130 @@ int Traj_CharmmCor::readFrame(int set, Frame& frameIn) {
 }
 
 // -----------------------------------------------------------------------------
+const char* Traj_CharmmCor::EXTENDED_FORMAT_ =
+  "%10i%10i  %8s  %8s%20.10f%20.10f%20.10f  %8s  %8s%20.10f\n";
+
+const char* Traj_CharmmCor::REGULAR_FORMAT_ =
+  "%5i%5i %4s %4s%10.5f%10.5f%10.5f %4s %4s%10.5f\n";
+
+void Traj_CharmmCor::WriteHelp() {
+  mprintf("\tkeepext : Keep filename extension; write '<name>.<num>.<ext>'\n"
+          "\text     : Use 'extended' format (default when > 99999 atoms.\n");
+}
+
+int Traj_CharmmCor::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
+  prependExt_ = argIn.hasKey("keepext");
+  extendedFmt_ = argIn.hasKey("ext");
+  return 0;
+}
+
 int Traj_CharmmCor::setupTrajout(FileName const& fname, Topology* trajParm,
                                CoordinateInfo const& cInfoIn,
                                int NframesToWrite, bool append)
 {
-  return 1;
-}
+  if (trajParm==0) return 1;
+  if (append) {
+    mprinterr("Error: Append not supported for Charmm COOR.\n");
+    return 1;
+  }
+  SetCoordInfo( cInfoIn );
+  corTop_ = trajParm;
+  corAtom_ = corTop_->Natom();
+  if (corAtom_ > 99999 && !extendedFmt_) {
+    mprintf("Info: > 99999 atoms; using extended COOR format.\n");
+    extendedFmt_ = true;
+  }
+  if (extendedFmt_)
+    outputFmt_ = EXTENDED_FORMAT_;
+  else
+    outputFmt_ = REGULAR_FORMAT_;
+  // Set up file
+  if (file_.SetupWrite( fname, debug_ )) return 1;
+  if (NframesToWrite == 1)
+    corWriteMode_ = SINGLE;
+  else
+    corWriteMode_ = MULTI;
+  // Set up seg Ids.
+  SegmentIds_.clear();
+  if (!segId_.empty())
+    // User-specified
+    SegmentIds_.assign(trajParm->Nres(), segId_);
+  else if (trajParm->Res(0).ChainID() != ' ') {
+    // Use chain IDs
+    SegmentIds_.reserve( trajParm->Nres() );
+    for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
+      SegmentIds_.push_back( std::string(1, res->ChainID()) );
+  } else
+    // Default
+    SegmentIds_.assign(trajParm->Nres(), "PRO");
+  // Set default title if needed.
+  if (Title().empty())
+    SetTitle( "Cpptraj Generated COOR file.");
+  else if (Title().size() > 78) {
+    mprintf("Warning: Title for COOR too big, truncating.\n");
+    std::string tmptitle = Title();
+    tmptitle.resize(78);
+    SetTitle( tmptitle );
+  }
 
-int Traj_CharmmCor::writeFrame(int set, Frame const& frameOut) { return 1; }
+  return 0;
+}
+/*
+void Traj_CharmmCor::writeTitle() {
+  std::string buffer;
+  const char* ptr = Title().c_str();
+  unsigned int max = Title().size();
+  unsigned int idx = 0;
+  unsigned int col = 0;
+  while (idx < max) {
+    if (col == 0) {
+      // Line start.
+      file_.Printf("* ");
+      col = 2;
+    }
+    // Find next newline or 80 chars, whatever comes first.
+    unsigned int len = 0;
+    for (; col < 80; col++, len++) {
+      idx++;
+      if ( idx == max || ptr[len] == '\n' ) {
+        len++;
+        break;
+      }
+*/
+
+int Traj_CharmmCor::writeFrame(int set, Frame const& frameOut) {
+  if (corWriteMode_ == MULTI) {
+    if (file_.OpenWriteNumbered( set + 1, prependExt_ )) return 1;
+  } else {
+    if (file_.OpenFile()) return 1;
+  }
+  // Write title
+  file_.Printf("* %s\n*\n", Title().c_str());
+  // Write # atoms and optionally EXT
+  if (extendedFmt_)
+    file_.Printf("%10i  EXT\n", corTop_->Natom());
+  else
+    file_.Printf("%5i\n", corTop_->Natom());
+  // Write each atom
+  for (int res = 0; res < corTop_->Nres(); res++) {
+    Residue const& Res = corTop_->Res(res);
+    int resNum = Res.OriginalResNum();
+    NameType const& resName = Res.Name();
+    for (int at = Res.FirstAtom(); at != Res.LastAtom(); at++)
+    {
+      Atom const& Atm = (*corTop_)[at];
+      const double* xyz = frameOut.XYZ( at );
+      // TODO when is weight (WMAIN) non-zero?
+      // Atom #, Res #,   Res name, At name, X, Y, Z,       segid,   res id, weight
+      file_.Printf(outputFmt_, at+1, res+1, *resName, *(Atm.Name()),
+                   xyz[0], xyz[1], xyz[2], SegmentIds_[res].c_str(), resNum, 0.0);
+    }
+  }
+  return 0;
+}
 
 // -----------------------------------------------------------------------------
 void Traj_CharmmCor::Info() {
-  mprintf("is a CHARMM COR file");
+  mprintf("is a CHARMM COORdinates file");
   if (extendedFmt_) mprintf(" (extended format)");
 }
