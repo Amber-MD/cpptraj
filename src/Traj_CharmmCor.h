@@ -39,7 +39,7 @@ class Traj_CharmmCor : public TrajectoryIO {
     bool extendedFmt_;          ///< True for wide columns
     CORWRITEMODE corWriteMode_; ///< Determine if writing single or multiple files
     Topology* corTop_;          ///< Corresponding topology
-    std::string segId_;         ///< User-specified segment ID.
+    Sarray MaskSegPairs_;       ///< Hold masks and user-specified segment IDs.
     Sarray SegmentIds_;         ///< Hold segment ID of each residue
     const char* outputFmt_;     ///< Hold output format string
     bool prependExt_;           ///< True if prepending file extension with frame #

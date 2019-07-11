@@ -103,20 +103,38 @@ int Traj_CharmmCor::readFrame(int set, Frame& frameIn) {
 }
 
 // -----------------------------------------------------------------------------
+// NOTE: The second-to-last field of the COOR format contains "residue ID",
+//       which in CHARMM is written as a string but in practice is almost
+//       always a number, so we will write it as such.
 const char* Traj_CharmmCor::EXTENDED_FORMAT_ =
-  "%10i%10i  %8s  %8s%20.10f%20.10f%20.10f  %8s  %8s%20.10f\n";
+  "%10i%10i  %-8s  %-8s%20.10f%20.10f%20.10f  %-8s  %-8i%20.10f\n";
 
 const char* Traj_CharmmCor::REGULAR_FORMAT_ =
-  "%5i%5i %4s %4s%10.5f%10.5f%10.5f %4s %4s%10.5f\n";
+  "%5i%5i %-4s %-4s%10.5f%10.5f%10.5f %-4s %-4i%10.5f\n";
 
 void Traj_CharmmCor::WriteHelp() {
-  mprintf("\tkeepext : Keep filename extension; write '<name>.<num>.<ext>'\n"
-          "\text     : Use 'extended' format (default when > 99999 atoms.\n");
+  mprintf("\tkeepext                : Keep filename extension; write '<name>.<num>.<ext>'\n"
+          "\text                    : Use 'extended' format (default when > 99999 atoms.\n"
+          "\tsegid <segid>          : Use <segid> as segment ID for all atoms.\n"
+          "\tsegmask <mask> <segid> : Use <segid> as segment ID for atoms selected by <mask>.\n");
 }
 
 int Traj_CharmmCor::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   prependExt_ = argIn.hasKey("keepext");
   extendedFmt_ = argIn.hasKey("ext");
+  std::string segid = argIn.GetStringKey("segid");
+  if (!segid.empty()) {
+    MaskSegPairs_.push_back("*");
+    MaskSegPairs_.push_back( segid );
+  }
+  ArgList segpair = argIn.GetNstringKey("segmask", 2);
+  while (segpair.Nargs() > 0) {
+    if (segpair.Nargs() < 2) return 1;
+    MaskSegPairs_.push_back( segpair[0] );
+    MaskSegPairs_.push_back( segpair[1] );
+    segpair = argIn.GetNstringKey("segmask", 2);
+  }
+
   return 0;
 }
 
@@ -148,12 +166,26 @@ int Traj_CharmmCor::setupTrajout(FileName const& fname, Topology* trajParm,
     corWriteMode_ = MULTI;
   // Set up seg Ids.
   SegmentIds_.clear();
-  if (!segId_.empty())
+  SegmentIds_.reserve( trajParm->Nres() );
+  if (!MaskSegPairs_.empty()) {
     // User-specified
-    SegmentIds_.assign(trajParm->Nres(), segId_);
-  else if (trajParm->Res(0).ChainID() != ' ') {
+    // First fill with default.
+    SegmentIds_.assign(trajParm->Nres(), "PRO");
+    for (Sarray::const_iterator sp = MaskSegPairs_.begin();
+                                sp != MaskSegPairs_.end();
+                                sp += 2)
+    {
+      // Mask, segid
+      AtomMask mask( *sp );
+      if (corTop_->SetupIntegerMask( mask )) return 1;
+      mask.MaskInfo();
+      for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
+        int res = (*corTop_)[ *at ].ResNum();
+        SegmentIds_[res] = *(sp+1);
+      }
+    }
+  } else if (trajParm->Res(0).ChainID() != ' ') {
     // Use chain IDs
-    SegmentIds_.reserve( trajParm->Nres() );
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
       SegmentIds_.push_back( std::string(1, res->ChainID()) );
   } else
@@ -222,6 +254,7 @@ int Traj_CharmmCor::writeFrame(int set, Frame const& frameOut) {
                    xyz[0], xyz[1], xyz[2], SegmentIds_[res].c_str(), resNum, 0.0);
     }
   }
+  file_.CloseFile();
   return 0;
 }
 

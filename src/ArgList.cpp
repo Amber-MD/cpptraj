@@ -371,6 +371,30 @@ std::string const& ArgList::GetStringKey(const char *key) {
   return emptystring;
 }
 
+ArgList ArgList::GetNstringKey(const char* key, int num) {
+  ArgList ret;
+  int nargs = (int)arglist_.size() - num;
+  for (int arg = 0; arg < nargs; arg++)
+    if (!marked_[arg]) {
+      if (arglist_[arg].compare(key)==0) {
+        // Key found. Now need it followed by num unmarked args
+        marked_[arg] = true;
+        arg++;
+        for (int i = 0; i < num; i++) {
+          if (marked_[arg+i]) {
+            mprinterr("Error: Expected '%s' to be followed by %i arguments.\n", key, num);
+            return ret;
+          } else {
+            marked_[arg+i] = true;
+            ret.arglist_.push_back( arglist_[arg+i] );
+            ret.marked_.push_back( false );
+          }
+        }
+      }
+    }
+  return ret;
+}
+
 // ArgList::GetStringKey()
 /** Search the argument list for key, return the argument following key
   * as a string if found, otherwise return default.
