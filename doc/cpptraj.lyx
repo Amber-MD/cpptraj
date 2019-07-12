@@ -12206,7 +12206,15 @@ ncrestart, restartnc
 \begin_inset Text
 
 \begin_layout Plain Layout
-Charmm DCD
+Charmm 
+\begin_inset Quotes eld
+\end_inset
+
+DCD
+\begin_inset Quotes erd
+\end_inset
+
+ Trajectory
 \end_layout
 
 \end_inset
@@ -12244,7 +12252,7 @@ dcd, charmm
 \begin_inset Text
 
 \begin_layout Plain Layout
-Charmm COR
+Charmm COORdinates
 \end_layout
 
 \end_inset
@@ -12271,7 +12279,7 @@ cor
 \begin_inset Text
 
 \begin_layout Plain Layout
-Read Only
+
 \end_layout
 
 \end_inset
@@ -14214,6 +14222,47 @@ dt
 
 \begin_layout Description
 keepext Keep filename extension; write '<name>.<num>.<ext>' instead.
+\end_layout
+
+\end_deeper
+\begin_layout Subsubsection
+
+\emph on
+Options for CHARMM COORdinates:
+\end_layout
+
+\begin_layout LyX-Code
+[keepext] [ext] [segid <segid>] [segmask <mask> <segid> ...]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+keepext Keep filename extension; write '<name>.<num>.<ext>'
+\end_layout
+
+\begin_layout Description
+ext Use 'extended' format (default when > 99999 atoms).
+\end_layout
+
+\begin_layout Description
+segid
+\begin_inset space ~
+\end_inset
+
+<segid> Use <segid> as segment ID for all atoms.
+\end_layout
+
+\begin_layout Description
+segmask
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+<segid> Use <segid> as segment ID for atoms selected by <mask>.
+ Can be specified more than once.
 \end_layout
 
 \end_deeper
