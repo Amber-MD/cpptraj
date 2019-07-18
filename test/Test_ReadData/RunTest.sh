@@ -4,7 +4,8 @@
 
 CleanFiles vector.in v6and7.dat rex-d.dat MD.ene.dat out.dx out.dat \
            truncoct.dat out?.dx append.dx append.dat temp.dat \
-           truncsparse.dat temp2.dat truncoct.dat.save sparse.dat
+           truncsparse.dat temp2.dat truncoct.dat.save sparse.dat \
+           xyz.dat
 
 TESTNAME='Read data tests'
 

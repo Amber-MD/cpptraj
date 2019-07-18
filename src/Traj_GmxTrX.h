@@ -1,6 +1,7 @@
 #ifndef INC_TRAJ_GMXTRR_H
 #define INC_TRAJ_GMXTRR_H
 #include "TrajectoryIO.h"
+#include "CpptrajFile.h"
 /// Read/write Gromacs TRR/TRJ trajectories
 class Traj_GmxTrX : public TrajectoryIO {
   public:
@@ -24,7 +25,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&)  { return 0; }
 #   ifdef MPI
     // Parallel functions

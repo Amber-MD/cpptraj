@@ -3,6 +3,9 @@
 #include "TrajectoryFile.h"
 #include "Range.h"
 #include "ActionFrameCounter.h"
+#include "CoordinateInfo.h"
+// Forward declarations
+class Topology;
 /// Output trajectory/ensemble common functionality.
 class OutputTrajCommon {
   public:
@@ -72,6 +75,7 @@ int OutputTrajCommon::CheckFrameRange(int set) {
     // This frame is next in the range. Advance FrameRange iterator.
     ++rangeframe_;
   } else {
+    //printf("DEBUG: CheckFrameRange(%i)= %i\n", set, frameCount_.CheckFrameCounter(set));
     if (frameCount_.CheckFrameCounter( set )) return 1;
   }
   // Frame will be processed. Increment frame count.

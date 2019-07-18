@@ -1,6 +1,7 @@
 #ifndef INC_BOX_H
 #define INC_BOX_H
 #include "Matrix_3x3.h"
+#include "Vec3.h"
 #ifdef MPI
 # include "Parallel.h"
 #endif

@@ -2,6 +2,7 @@
 #define INC_TRAJIOARRAY_H
 #include "TrajectoryIO.h"
 #include "TrajFrameCounter.h"
+#include "FileName.h"
 /// Hold an array of TrajectoryIO classes.
 class TrajIOarray {
   public:

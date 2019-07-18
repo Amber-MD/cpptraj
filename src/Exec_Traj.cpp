@@ -1,5 +1,6 @@
 #include "Exec_Traj.h"
 #include "CpptrajStdio.h"
+#include "ActionFrameCounter.h"
 
 void Exec_Trajin::Help() const {
   mprintf("\t<filename> {[<start>] [<stop> | last] [<offset>]} | lastframe\n"

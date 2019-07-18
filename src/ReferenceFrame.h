@@ -1,6 +1,7 @@
 #ifndef INC_REFERENCEFRAME_H
 #define INC_REFERENCEFRAME_H
 #include "DataSet_Coords_REF.h"
+// Forward declarations
 /// Wrapper around DataSet_Coords_REF DataSet.
 /** Intended as a non-modifiable holder for the DataSet_Coords_REF DataSet
   * that also can hold an error status.

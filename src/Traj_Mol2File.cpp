@@ -1,5 +1,8 @@
 #include <cstdlib> // getenv
 #include "Traj_Mol2File.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -98,7 +101,7 @@ void Traj_Mol2File::WriteHelp() {
 }
 
 // Traj_Mol2File::processWriteArgs()
-int Traj_Mol2File::processWriteArgs(ArgList& argIn) {
+int Traj_Mol2File::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   mol2WriteMode_ = SINGLE; // Default to single writes
   if (argIn.hasKey("single")) mol2WriteMode_ = MOL;
   if (argIn.hasKey("multi"))  mol2WriteMode_ = MULTI;

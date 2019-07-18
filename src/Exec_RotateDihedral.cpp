@@ -30,7 +30,7 @@ Exec::RetType Exec_RotateDihedral::Execute(CpptrajState& State, ArgList& argIn) 
     mprinterr("Error: Specify COORDS dataset name with 'crdset'.\n");
     return CpptrajState::ERR;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindCoordsSet( setname );
+  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindSetOfGroup( setname, DataSet::COORDINATES );
   if (CRD == 0) {
     mprinterr("Error: Could not find COORDS set '%s'\n", setname.c_str());
     return CpptrajState::ERR;

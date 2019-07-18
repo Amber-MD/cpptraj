@@ -1,5 +1,8 @@
 #ifdef ENABLE_SINGLE_ENSEMBLE
 #include "EnsembleIn_Single.h"
+#include "TrajectoryIO.h"
+#include "Topology.h"
+#include "FrameArray.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 

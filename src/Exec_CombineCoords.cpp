@@ -22,18 +22,21 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   std::vector<DataSet_Coords*> CRD;
   std::string setname = argIn.GetStringNext();
   while (!setname.empty()) {
-    DataSet_Coords* ds = (DataSet_Coords*)State.DSL().FindCoordsSet( setname );
-    if (ds == 0) {
-      mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
-      return CpptrajState::ERR;
-    }
-    CRD.push_back( ds );
+    DataSetList crdSets = State.DSL().SelectGroupSets( setname, DataSet::COORDINATES );
+    if (crdSets.empty())
+      mprintf("Warning: '%s' selected no COORDS sets.\n", setname.c_str());
+    for (DataSetList::const_iterator ds = crdSets.begin(); ds != crdSets.end(); ++ds)
+      CRD.push_back( (DataSet_Coords*)*ds );
     setname = argIn.GetStringNext();
   }
   if (CRD.size() < 2) {
     mprinterr("Error: %s: Must specify at least 2 COORDS data sets\n", argIn.Command());
     return CpptrajState::ERR;
   }
+  mprintf("\tCombining %zu sets:", CRD.size());
+  for (std::vector<DataSet_Coords*>::const_iterator it = CRD.begin(); it != CRD.end(); ++it)
+    mprintf(" %s", (*it)->legend());
+  mprintf("\n");
   // Only add the topology to the list if parmname specified
   bool addTop = true;
   Topology CombinedTop;

@@ -3,6 +3,7 @@
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
+#include "FrameArray.h" // RunEnsemble
 #include "ProgressBar.h"
 #ifdef MPI
 # include "Parallel.h"
@@ -127,9 +128,9 @@ int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
   Topology* top = DSL_.GetTopology( argIn );
   int err = 1;
   if (mode_ == NORMAL)
-    err = trajoutList_.AddTrajout( fname, argIn, top );
+    err = trajoutList_.AddTrajout( fname, argIn, DSL_, top );
   else if (mode_ == ENSEMBLE)
-    err = ensembleOut_.AddEnsembleOut( fname, argIn, top, trajinList_.EnsembleSize() );
+    err = ensembleOut_.AddEnsembleOut( fname, argIn, DSL_, top, trajinList_.EnsembleSize() );
   return err;
 }
 
@@ -614,6 +615,10 @@ int CpptrajState::RunEnsemble() {
         // Silence action output for all beyond first member.
         if (member > 0)
           SetWorldSilent( true );
+#       ifndef MPI
+        // All DataSets that will be set up will be part of this ensemble 
+        DSL_.SetEnsembleNum( member );
+#       endif
         if (ActionEnsemble[member]->SetupActions( EnsembleParm[member], exitOnError_ )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
@@ -660,6 +665,10 @@ int CpptrajState::RunEnsemble() {
           if ( currentFrame.Frm().CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
                     member, (*ens)->Traj().Counter().PreviousFrameNumber()+1);
+#         ifndef MPI
+          // All DataSets that will be set up will be part of this ensemble 
+          DSL_.SetEnsembleNum( member );
+#         endif
 #         ifdef TIMER
           actions_time.Start();
 #         endif
@@ -728,12 +737,21 @@ int CpptrajState::RunEnsemble() {
   post_time_.Start();
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
-  for (int member = 0; member < ensembleSize; ++member)
+  for (int member = 0; member < ensembleSize; ++member) {
+#   ifndef MPI
+    // All DataSets that will be set up will be part of this ensemble 
+    DSL_.SetEnsembleNum( member );
+#   endif
     ActionEnsemble[member]->PrintActions();
+  }
   post_time_.Stop();
   // Clean up ensemble action lists
   for (int member = 1; member < ensembleSize; member++)
     delete ActionEnsemble[member];
+# ifndef MPI
+  // Reset ensemble number
+  DSL_.SetEnsembleNum( -1 );
+# endif
 
   return 0;
 }
@@ -1404,11 +1422,15 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   Topology* refParm = 0;
   DataSet_Coords* CRD = 0;
   if (argIn.hasKey("crdset")) {
-    CRD = (DataSet_Coords*)DSL_.FindCoordsSet( fname );
-    if (CRD == 0) {
-      mprinterr("COORDS set with name %s not found.\n", fname.c_str());
+    DataSet* dset = DSL_.FindSetOfGroup( fname, DataSet::COORDINATES );
+    if (dset == 0) {
+      mprinterr("Error: COORDS set with name %s not found.\n", fname.c_str());
       return 1;
+    } else if (dset->Type() == DataSet::REF_FRAME) {
+      mprintf("Warning: '%s' is already a reference.\n", fname.c_str());
+      return 0;
     }
+    CRD = static_cast<DataSet_Coords*>( dset );
   } else {
     // Get topology file.
     refParm = DSL_.GetTopology( argIn );

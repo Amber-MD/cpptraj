@@ -37,18 +37,7 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, ActionInit& init
   // Search for known dihedral keywords
   dihSearch_.SearchForArgs(actionArgs);
   // Get custom dihedral arguments: dihtype <name>:<a0>:<a1>:<a2>:<a3>[:<offset>]
-  std::string dihtype_arg = actionArgs.GetStringKey("dihtype");
-  while (!dihtype_arg.empty()) {
-    ArgList dihtype(dihtype_arg, ":");
-    if (dihtype.Nargs() < 5) {
-      mprinterr("Error: Malformed dihtype arg.\n");
-      return Action::ERR;
-    }
-    int offset = 0;
-    if (dihtype.Nargs() == 6) offset = convertToInteger(dihtype[5]);
-    dihSearch_.SearchForNewType(offset,dihtype[1],dihtype[2],dihtype[3],dihtype[4], dihtype[0]);
-    dihtype_arg = actionArgs.GetStringKey("dihtype");
-  }
+  if (dihSearch_.SearchForNewTypeArgs(actionArgs)) return Action::ERR;
   // If no dihedral types yet selected, this will select all.
   dihSearch_.SearchForAll();
 

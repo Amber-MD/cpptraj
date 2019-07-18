@@ -23,7 +23,7 @@ class Traj_AmberRestart : public TrajectoryIO {
     int readVelocity(int, Frame&);
     int readForce(int, Frame&)     { return 1; }
     int writeFrame(int,Frame const&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     void Info();
 #   ifdef MPI
     // Parallel functions

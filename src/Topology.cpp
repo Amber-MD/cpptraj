@@ -1630,7 +1630,7 @@ class TypeArray {
     typedef Tarray::const_iterator const_iterator;
     typedef std::pair<int,AtomType> Tpair;
     TypeArray() {}
-    unsigned int size()    const { return types_.size();  }
+    size_t size()    const { return types_.size();  }
     const_iterator begin() const { return types_.begin(); }
     const_iterator end()   const { return types_.end();   }
     AtomType const& LastType() const { return lastType_->second; }

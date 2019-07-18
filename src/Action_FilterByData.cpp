@@ -60,7 +60,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
     double useMin = Min_.back();
     double useMax = Max_.back();
     mprintf("Warning: More data sets than 'min'/'max' args.\n"
-            "Warning:  Using min=%f and max=%f for last %zu data sets.\n",
+            "Warning:  Using min=%f and max=%f for last %u data sets.\n",
             useMin, useMax, Nremaining);
     for (unsigned int ds = 0; ds < Nremaining; ++ds) {
       Min_.push_back( useMin );

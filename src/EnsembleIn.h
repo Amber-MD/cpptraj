@@ -1,15 +1,19 @@
 #ifndef INC_ENSEMBLEIN_H
 #define INC_ENSEMBLEIN_H
 #include "InputTrajCommon.h"
-#include "FrameArray.h"
+// Not forward-declared because is just a typedef
 #include "FramePtrArray.h"
 #include "ReplicaInfo.h"
+#include "Frame.h" // For RemdIdxType TODO put RemdIdxType in ReplicaInfo
 #ifdef MPI
 # include "Parallel.h"
 # ifdef TIMER
 #   include "Timer.h"
 # endif
 #endif
+// Forward declarations
+class FrameArray;
+class CoordinateInfo;
 /// Read in an array of frames at a time.
 class EnsembleIn {
   public:

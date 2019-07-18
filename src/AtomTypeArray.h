@@ -18,7 +18,7 @@ class AtomTypeArray {
     int AtomTypeIndex(NameType const&);
 
     AtomType& UpdateType(int idx) { return types_[idx]; }
-    unsigned int Size() const { return types_.size(); }
+    size_t Size() const { return types_.size(); }
 
     typedef Tmap::const_iterator const_iterator;
     const_iterator begin() const { return nameToIdx_.begin(); }

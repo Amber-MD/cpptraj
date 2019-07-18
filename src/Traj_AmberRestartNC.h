@@ -3,6 +3,7 @@
 #ifdef BINTRAJ
 #include "TrajectoryIO.h"
 #include "NetcdfFile.h"
+#include "FileName.h"
 // Class: Traj_AmberRestartNC
 /// TrajectoryIO class for reading and writing Amber Netcdf Restarts
 class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
@@ -22,7 +23,7 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
     int writeFrame(int,Frame const&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&);
     void Info();
 #   ifdef MPI

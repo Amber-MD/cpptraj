@@ -5,7 +5,8 @@
 # Clean
 CleanFiles closest.in first.Closest.pdb.1 closestmols.dat \
            closest.tz2.truncoct.parm7 all.Closest.pdb.1 \
-           closest10.center2_4.crd closest10.mols.dat
+           closest10.center2_4.crd closest10.mols.dat \
+           solventmask.dat wato.dat
 
 INPUT="-i closest.in"
 TESTNAME='Closest tests'
@@ -49,6 +50,24 @@ EOF
 RunCpptraj "Closest command test, using mask center"
 DoTest closest10.center2_4.crd.save closest10.center2_4.crd
 DoTest closest10.mols.dat.save closest10.mols.dat
+
+# Test 4 - Select solvent via solventmask
+cat > closest.in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+closest 10 :2,4 solventmask :WAT center closestout solventmask.dat name C10
+EOF
+RunCpptraj "Closest command test, using mask center and solvent mask"
+DoTest closest10.mols.dat.save solventmask.dat
+
+# Test 5 - Solventmask, oxygen atoms only
+  cat > closest.in <<EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc
+closest 10 :1-13 solventmask :WAT@O closestout wato.dat name CL
+EOF
+RunCpptraj "Closest command test, solvent mask, water oxygen only"
+DoTest wato.dat.save wato.dat
 
 EndTest
 

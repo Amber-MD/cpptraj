@@ -1,4 +1,6 @@
 #include "Trajout_Single.h"
+#include "TrajectoryIO.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // AppendNumber
 
@@ -13,6 +15,7 @@ Trajout_Single::~Trajout_Single() {
   * process arguments.
   */
 int Trajout_Single::InitTrajWrite(FileName const& tnameIn, ArgList const& argIn,
+                                  DataSetList const& DSLin,
                                   TrajectoryFile::TrajFormatType writeFormatIn)
 {
   // Require a filename
@@ -20,22 +23,12 @@ int Trajout_Single::InitTrajWrite(FileName const& tnameIn, ArgList const& argIn,
     mprinterr("Internal Error: InitTrajWrite: No filename given.\n");
     return 1;
   }
-  return InitTrajout(tnameIn, argIn, writeFormatIn);
-}
-
-// Trajout_Single::PrepareStdoutTrajWrite()
-/** Initialize and set up output trajectory for STDOUT write. */
-int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, Topology *tparmIn,
-                                           CoordinateInfo const& cInfoIn, int nFrames,
-                                           TrajectoryFile::TrajFormatType writeFormatIn)
-{
-  if (InitTrajout("", argIn, writeFormatIn)) return 1;
-  if (SetupTrajWrite(tparmIn, cInfoIn, nFrames)) return 1;
-  return 0;
+  return InitTrajout(tnameIn, argIn, DSLin, writeFormatIn);
 }
 
 /** Initialize trajectory for write. Append ensemble number to filename if given. */
 int Trajout_Single::InitEnsembleTrajWrite(FileName const& tnameIn, ArgList const& argIn,
+                                          DataSetList const& DSLin, 
                                           TrajectoryFile::TrajFormatType fmtIn, int ensembleNum)
 {
   ArgList args = argIn;
@@ -47,25 +40,27 @@ int Trajout_Single::InitEnsembleTrajWrite(FileName const& tnameIn, ArgList const
     fmt = TrajectoryFile::WriteFormatFromFname( tnameIn, TrajectoryFile::UNKNOWN_TRAJ );
   int err = 0;
   if (ensembleNum > -1)
-    err = InitTrajWrite( AppendNumber(tnameIn.Full(), ensembleNum), args, fmt );
+    err = InitTrajWrite( AppendNumber(tnameIn.Full(), ensembleNum), args, DSLin, fmt );
   else
-    err = InitTrajWrite( tnameIn, args, fmt );
+    err = InitTrajWrite( tnameIn, args, DSLin, fmt );
   if (err != 0) return 1;
   return 0;
 }
 
 // Trajout_Single::PrepareTrajWrite()
 int Trajout_Single::PrepareTrajWrite(FileName const& tnameIn, ArgList const& argIn,
+                                     DataSetList const& DSLin,
                                      Topology* tparmIn, CoordinateInfo const& cInfoIn,
                                      int nFrames, TrajectoryFile::TrajFormatType fmtIn)
 {
-  if (InitTrajWrite(tnameIn, argIn, fmtIn)) return 1;
+  if (InitTrajWrite(tnameIn, argIn, DSLin, fmtIn)) return 1;
   if (SetupTrajWrite(tparmIn, cInfoIn, nFrames)) return 1;
   return 0;
 }
 
 // Trajout_Single::InitTrajout()
 int Trajout_Single::InitTrajout(FileName const& tnameIn, ArgList const& argIn,
+                                DataSetList const& DSLin,
                                 TrajectoryFile::TrajFormatType writeFormatIn)
 {
   ArgList trajout_args = argIn;
@@ -89,7 +84,7 @@ int Trajout_Single::InitTrajout(FileName const& tnameIn, ArgList const& argIn,
   trajio_->SetTitle( traj_.Title() );
   // Process any write arguments specific to certain formats not related
   // to parm file. Options related to parm file are handled in SetupTrajWrite 
-  if (trajio_->processWriteArgs(trajout_args)) {
+  if (trajio_->processWriteArgs(trajout_args, DSLin)) {
     mprinterr("Error: trajout %s: Could not process arguments.\n", traj_.Filename().full());
     return 1;
   }

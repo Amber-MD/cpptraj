@@ -8,7 +8,7 @@ class EnsembleOut_Single : public EnsembleOut {
     EnsembleOut_Single();
     ~EnsembleOut_Single();
     // ----- Inherited Functions -----------------
-    int InitEnsembleWrite(std::string const&, ArgList const&, int, TrajectoryFile::TrajFormatType);
+    int InitEnsembleWrite(std::string const&, ArgList const&, DataSetList const&, int, TrajectoryFile::TrajFormatType);
     int SetupEnsembleWrite(Topology*, CoordinateInfo const&, int);
     void EndEnsemble();
     int WriteEnsemble(int, FramePtrArray const&);

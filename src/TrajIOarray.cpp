@@ -1,4 +1,5 @@
 #include "TrajIOarray.h"
+#include "Topology.h"
 #include "StringRoutines.h" // integerToString, validInteger
 #include "CpptrajStdio.h"
 #include "TrajectoryFile.h"
