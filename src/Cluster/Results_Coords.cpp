@@ -2,6 +2,7 @@
 #include "../CpptrajStdio.h"
 #include "../StringRoutines.h"
 #include "../Trajout_Single.h"
+#include "../DataSetList.h" // For PrepareTrajWrite
 
 /** The default output trajectory format. */
 const TrajectoryFile::TrajFormatType Cpptraj::Cluster::Results_Coords::DEF_TRAJ_FMT_ =
@@ -88,7 +89,7 @@ void Cpptraj::Cluster::Results_Coords::WriteClusterTraj( List const& CList ) con
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
     Trajout_Single clusterout;
-    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), DataSetList(), clusterparm,
                                     coords_->CoordsInfo(), C->Nframes(),
                                     clusterfmt_)) 
     {
@@ -124,7 +125,7 @@ void Cpptraj::Cluster::Results_Coords::WriteAvgStruct( List const& CList ) const
     std::string cfilename = avgfile_ + ".c" + integerToString( cnum ) + tmpExt;
     // Set up trajectory file
     Trajout_Single clusterout; // FIXME CoordinateInfo OK for just coords?
-    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), &avgparm,
+    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), DataSetList(), &avgparm,
                                     CoordinateInfo(), 1, avgfmt_))
     {
       mprinterr("Error: Could not set up cluster average file %s for write.\n",
@@ -158,7 +159,7 @@ void Cpptraj::Cluster::Results_Coords::WriteSingleRepTraj( List const& CList ) c
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = coords_->TopPtr();
   int nRepsToSave = CList.front().BestReps().size();
-  if (clusterout.PrepareTrajWrite(singlerepfile_, ArgList(), clusterparm,
+  if (clusterout.PrepareTrajWrite(singlerepfile_, ArgList(), DataSetList(), clusterparm,
                                   coords_->CoordsInfo(), CList.Nclusters() * nRepsToSave,
                                   singlerepfmt_)) 
   {
@@ -209,7 +210,7 @@ void Cpptraj::Cluster::Results_Coords::WriteRepTraj( List const& CList ) const {
         std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num()) +
                                 ("." + integerToString(framenum+1)) + tmpExt;
         // Set up trajectory file.
-        if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+        if (clusterout.PrepareTrajWrite(cfilename, ArgList(), DataSetList(), clusterparm,
                                         coords_->CoordsInfo(), 1, reptrajfmt_))
         {
           mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
@@ -229,7 +230,7 @@ void Cpptraj::Cluster::Results_Coords::WriteRepTraj( List const& CList ) const {
       std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num()) + tmpExt;
       // Set up trajectory file.
       int nRepsToSave = C->BestReps().size();
-      if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+      if (clusterout.PrepareTrajWrite(cfilename, ArgList(), DataSetList(), clusterparm,
                                       coords_->CoordsInfo(), nRepsToSave, reptrajfmt_))
       {
         mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
