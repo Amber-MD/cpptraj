@@ -28999,8 +28999,8 @@ amplitude
 \series bold
 theta
 \series default
- keywords are given, amplitudes/thetas will be calculated in addition to
- pucker.
+ keywords are given, amplitudes/thetas (also in degrees) will be calculated
+ in addition to pucker.
  The results from 
 \series bold
 \shape italic
