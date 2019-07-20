@@ -113,11 +113,11 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, ActionInit& init, int d
   if (outfile != 0) 
     mprintf("\tData will be written to %s\n", outfile->DataFilename().base());
   if (amplitude_!=0)
-    mprintf("\tAmplitudes will be stored.\n");
+    mprintf("\tAmplitudes (in degrees) will be stored.\n");
   if (theta_!=0)
-    mprintf("\tThetas will be stored.\n");
+    mprintf("\tThetas (in degrees) will be stored.\n");
   if (offset_!=0)
-    mprintf("\tOffset: %f deg. will be added to values.\n", offset_);
+    mprintf("\tOffset: %f degrees will be added to values.\n", offset_);
   if (puckerMin_ > -180.0)
     mprintf("\tOutput range is 0 to 360 degrees.\n");
   else
