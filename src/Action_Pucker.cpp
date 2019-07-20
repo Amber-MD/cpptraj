@@ -173,8 +173,10 @@ Action::RetType Action_Pucker::DoAction(int frameNum, ActionFrame& frm) {
     case UNSPECIFIED : // Sanity check
       return Action::ERR;
   }
-  if ( amplitude_ != 0 )
+  if ( amplitude_ != 0 ) {
+    aval *= Constants::RADDEG;
     amplitude_->Add(frameNum, &aval);
+  }
   if ( theta_ != 0 ) {
     tval *= Constants::RADDEG;
     theta_->Add(frameNum, &tval);
