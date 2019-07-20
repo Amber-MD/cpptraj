@@ -20385,8 +20385,8 @@ refindex
 \begin_inset space ~
 \end_inset
 
-<#> If specified, calculate distance between <mask1> and <mask2> in specified
- reference.
+<#> If specified, calculate distance between <mask1> in each input frame
+ and <mask2> in the specified reference.
 \end_layout
 
 \begin_layout Description
@@ -20466,8 +20466,8 @@ bound
 \end_deeper
 \begin_layout Standard
 Calculate distance between the center of mass of atoms in <mask1> to atoms
- in <mask2>, between atoms in <mask1> and atoms in <mask2> in specified
- reference, or atoms in <mask1> and the specified point.
+ in <mask2>, between atoms in <mask1> from each input frame and atoms in
+ <mask2> in specified reference, or atoms in <mask1> and the specified point.
  If 
 \series bold
 geom
@@ -28999,8 +28999,8 @@ amplitude
 \series bold
 theta
 \series default
- keywords are given, amplitudes/thetas will be calculated in addition to
- pucker.
+ keywords are given, amplitudes/thetas (also in degrees) will be calculated
+ in addition to pucker.
  The results from 
 \series bold
 \shape italic
