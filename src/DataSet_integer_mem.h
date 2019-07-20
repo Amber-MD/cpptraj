@@ -14,7 +14,7 @@ class DataSet_integer_mem : public DataSet_integer {
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)        { Data_.resize(sizeIn, 0);   }
     /// Make set size sizeIn, all values set to val.
-    void Assign(size_t sizeIn, int val) { Data_.resize(sizeIn, -1); }
+    void Assign(size_t sizeIn, int val) { Data_.resize(sizeIn, val); }
     inline void AddVal(size_t, int);
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)     const { return (double)Data_[idx]; }

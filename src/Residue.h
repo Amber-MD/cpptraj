@@ -27,10 +27,10 @@ class Residue {
       originalResNum_(r), segID_(-1), icode_(ic), chainID_(cid),
       isTerminal_(false)
     {}
-    /// CONSTRUCTOR - Res name, original resnum, segment ID
-    Residue(NameType const& n, int r, int s) :
+    /// CONSTRUCTOR - Res name, original resnum, res icode, segment ID
+    Residue(NameType const& n, int r, char i, int s) :
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
-       icode_(' '), chainID_(' '), isTerminal_(false)
+       icode_(i), chainID_(' '), isTerminal_(false)
     {}
     inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
     inline void SetLastAtom(int i)         { lastAtom_ = i;       }
