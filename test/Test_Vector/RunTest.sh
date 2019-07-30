@@ -70,7 +70,7 @@ fi
 
 # Test force vector.
 UNITNAME="Force vector test."
-CheckFor maxthreads 1
+CheckFor netcdf maxthreads 1
 if [ $? -eq 0 ] ; then
   cat > vector.in <<EOF
 parm ../Test_systemVF/systemVF.parm7
