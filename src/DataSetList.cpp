@@ -51,7 +51,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
         ds = DataSet_integer_mem::Alloc();
 #     else
       if (useDiskCache_)
-        mprintf("Warning: Integer data set disk cache requires NetCDF. Using memory.\n"
+        mprintf("Warning: Integer data set disk cache requires NetCDF. Using memory.\n");
       ds = DataSet_integer_mem::Alloc();
 #     endif
       break;
