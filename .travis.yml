@@ -24,6 +24,7 @@ addons:
 matrix:
   include:
     - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-nonetcdf" BUILD_TYPE=install TEST_TYPE=test.showerrors }
     - { os: linux, compiler: clang, env: COMPILER=clang USE_CMAKE=0 BUILD_TYPE=install TEST_TYPE=test.showerrors }
     - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 BUILD_TYPE=install TEST_TYPE=test.showerrors }
     - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install TEST_TYPE=test.showerrors }

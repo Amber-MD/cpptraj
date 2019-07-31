@@ -55,19 +55,23 @@ DoTest evecs.10.dat.save evecs.10.dat
 }
 
 # Test start/stop/offset args
-cat > matrix.in <<EOF
+UNITNAME='Generate matrix with start/stop/offset tests'
+CheckFor netcdf
+if [ $? -eq 0 ] ; then
+  cat > matrix.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc 5 100 10
 matrix dist @CA out tz2.dist.ca.matrix.dat.save
 EOF
-RunCpptraj "Generate matrix with trajectory start/stop/offset"
+  RunCpptraj "Generate matrix with trajectory start/stop/offset"
 cat > matrix.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
 matrix dist @CA out tz2.dist.ca.matrix.dat start 5 stop 100 offset 10
 EOF
-RunCpptraj "Generate matrix with action stop/start/offset"
-DoTest tz2.dist.ca.matrix.dat.save tz2.dist.ca.matrix.dat
+  RunCpptraj "Generate matrix with action stop/start/offset"
+  DoTest tz2.dist.ca.matrix.dat.save tz2.dist.ca.matrix.dat
+fi
 
 EndTest
   

@@ -5,7 +5,7 @@
 CleanFiles cat.in cat.crd.save cat.crd
 
 TESTNAME='Concatenate COORDS data set test'
-Requires maxthreads 1
+Requires maxthreads 1 netcdf
 
 INPUT='-i cat.in'
 
