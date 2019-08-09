@@ -554,7 +554,7 @@ int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xval
                                  DataListType const& Sets)
 {
   if (debug_ > 0)
-    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= %s.\n",
+    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= '%s'.\n",
             Sets.size(), Xvals.size(), XlabelIn.c_str());
   if (Sets.empty()) return 0; // No error for now.
   // If no X label assume 'Frame' for backwards compat.
