@@ -4,7 +4,6 @@
 // Class: Residue
 /// Hold information for a residue.
 class Residue {
-    static const char DEFAULT_CHAINID_ = 'Z';
   public:
     /// CONSTRUCTOR
     Residue() :
@@ -34,6 +33,7 @@ class Residue {
        icode_(i), chainID_(BLANK_CHAINID_), isTerminal_(false)
     {}
     static const char BLANK_CHAINID_ = '\0';
+    static const char DEFAULT_CHAINID_ = 'Z';
     inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
     inline void SetLastAtom(int i)         { lastAtom_ = i;       }
     inline void SetOriginalNum(int i)      { originalResNum_ = i; }
@@ -50,6 +50,7 @@ class Residue {
     inline int SegID()            const { return segID_;          }
     inline char Icode()           const { return icode_;          }
     inline char ChainID()         const;
+    bool HasChainID()             const { return (chainID_ != BLANK_CHAINID_); }
     inline const char *c_str()    const { return *resname_;       }
     inline NameType const& Name() const { return resname_;        }
     inline bool IsTerminal()      const { return isTerminal_;     }
@@ -77,7 +78,7 @@ class Residue {
 // ----- INLINE ROUTINES -------------------------
 char Residue::ChainID() const {
   if (chainID_ == BLANK_CHAINID_)
-    return DEFAULT_CHAINID_;
+    return ' ';
   else
     return chainID_;
 }

@@ -388,7 +388,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   if (chainchar_ == Residue::BLANK_CHAINID_) {
     chainID_.reserve( trajParm->Nres() );
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
-      chainID_.push_back( res->ChainID() );
+      if (res->HasChainID())
+        chainID_.push_back( res->ChainID() );
+      else
+        chainID_.push_back( Residue::DEFAULT_CHAINID_ );
   } else
     chainID_.resize(trajParm->Nres(), chainchar_);
         
