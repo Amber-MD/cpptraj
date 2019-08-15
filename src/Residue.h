@@ -4,7 +4,6 @@
 // Class: Residue
 /// Hold information for a residue.
 class Residue {
-    static const char BLANK_CHAINID_ = '\0';
     static const char DEFAULT_CHAINID_ = 'Z';
   public:
     /// CONSTRUCTOR
@@ -34,6 +33,7 @@ class Residue {
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
        icode_(i), chainID_(BLANK_CHAINID_), isTerminal_(false)
     {}
+    static const char BLANK_CHAINID_ = '\0';
     inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
     inline void SetLastAtom(int i)         { lastAtom_ = i;       }
     inline void SetOriginalNum(int i)      { originalResNum_ = i; }
