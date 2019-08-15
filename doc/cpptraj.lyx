@@ -14097,6 +14097,12 @@ occmax
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+Note that if the input topology does not contain chain IDs, a default chain
+ ID of 'Z' will be used if no other chain ID option is specified in order
+ to remain consistent with the PDB standard.
+\end_layout
+
 \begin_layout Subsubsection
 
 \shape italic
@@ -25827,11 +25833,15 @@ mask
 
 \end_inset
 
- <mask> [maskout <filename>] [maskpdb <pdbname>] [maskmol2 <mol2name>]
-\begin_inset Separator latexpar
-\end_inset
+ <mask> [maskout <filename>]
+\end_layout
 
+\begin_layout LyX-Code
+     [ {maskpdb <filename> | maskmol2 <filename>}
+\end_layout
 
+\begin_layout LyX-Code
+       [trajargs <comma-separated args>] ]
 \end_layout
 
 \begin_deeper
@@ -25840,27 +25850,40 @@ mask
 \end_layout
 
 \begin_layout Description
-[maskout
+maskout
 \begin_inset space ~
 \end_inset
 
-<filename>] Write information on atoms in <mask> to <filename>.
+<filename> Write information on atoms in <mask> to <filename>.
 \end_layout
 
 \begin_layout Description
-[maskpdb
+maskpdb
 \begin_inset space ~
 \end_inset
 
-<name>] Write PDB of atoms in <mask> to <name>.X.
+<filename> Write PDB of atoms in <mask> to <name>.X.
 \end_layout
 
 \begin_layout Description
-[maskmol2
+maskmol2
 \begin_inset space ~
 \end_inset
 
-<name>] Write Mol2 of atoms in <mask> to <name>.X.
+<filename> Write Mol2 of atoms in <mask> to <name>.X.
+\end_layout
+
+\begin_layout Description
+trajargs
+\begin_inset space ~
+\end_inset
+
+<comma-separated
+\begin_inset space ~
+\end_inset
+
+args> When writing output PDB/Mol2, additional trajectory arguments to pass
+ to the output trajectory.
 \end_layout
 
 \end_deeper
@@ -25938,8 +25961,8 @@ maskmol2
 \end_layout
 
 \begin_layout Standard
-For example, to write out all atoms within 3.0 Angstroms of residue 195 that
- are part of residues named WAT to 
+For example, to write out all residues within 3.0 Angstroms of residue 195
+ that are named WAT to 
 \begin_inset Quotes eld
 \end_inset
 
@@ -25960,6 +25983,23 @@ mask
 \end_inset
 
  maskout Res195WAT.dat maskpdb Res195WAT.pdb
+\end_layout
+
+\begin_layout Standard
+To write all out atoms outside of 5.0 Angstroms of residues named ARG to
+ PDB files with a chain ID of 'B':
+\end_layout
+
+\begin_layout LyX-Code
+mask :ARG>@5.0 maskpdb Outside5Arg.pdb trajargs 
+\begin_inset Quotes eld
+\end_inset
+
+chainid 'B'
+\begin_inset Quotes erd
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection
