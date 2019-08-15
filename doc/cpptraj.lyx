@@ -1456,12 +1456,12 @@ namelist} e.g.
 \end_layout
 
 \begin_layout Description
-:/{chain
+::{chain
 \begin_inset space ~
 \end_inset
 
 id} e.g.
- ':/B', ':/A,D'.
+ '::B', '::A,D'.
  Requires chain ID information be present in the topology.
 \end_layout
 
@@ -1601,7 +1601,7 @@ More examples:
 \end_layout
 
 \begin_layout Description
-:/A,D@CA All atoms named 'CA' in chains A and D.
+::A,D@CA All atoms named 'CA' in chains A and D.
 \end_layout
 
 \begin_layout Subsubsection*
