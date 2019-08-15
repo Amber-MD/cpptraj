@@ -2592,11 +2592,11 @@ status open
 \begin_inset Tabular
 <lyxtabular version="3" rows="15" columns="5">
 <features tabularvalignment="middle">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
+<column alignment="center" valignment="top" width="20text%">
+<column alignment="center" valignment="top" width="20text%">
+<column alignment="center" valignment="top" width="20text%">
+<column alignment="center" valignment="top" width="20text%">
+<column alignment="center" valignment="top" width="20text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -4035,10 +4035,10 @@ would take the square root of each member of D0, add it to the corresponding
 \begin_inset Tabular
 <lyxtabular version="3" rows="5" columns="4">
 <features tabularvalignment="middle">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -5487,8 +5487,8 @@ The following COORDS data set commands are available:
 \begin_inset Tabular
 <lyxtabular version="3" rows="12" columns="2">
 <features tabularvalignment="middle">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="75text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -5989,8 +5989,11 @@ permutedihedrals crdset <COORDS set> resrange <range> [{interval | random}]
 \end_layout
 
 \begin_layout LyX-Code
-             	[outtraj <filename> [<outfmt>]] [crdout <output COORDS>] [<dihedra
-l types>]
+             	[outtraj <filename> [<outfmt>]] [crdout <output COORDS>] 
+\end_layout
+
+\begin_layout LyX-Code
+                 [<dihedral types>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -6020,7 +6023,11 @@ l types>]
 
 \begin_layout LyX-Code
   <dihedral types> =  alpha beta gamma delta epsilon zeta nu1 nu2 h1p c2p
- chin phi psi chip omega     
+ chin 
+\end_layout
+
+\begin_layout LyX-Code
+                      phi psi chip omega     
 \begin_inset Separator latexpar
 \end_inset
 
@@ -6307,8 +6314,11 @@ rotatedihedral crdset <COORDS set> [frame <#>] [name <output set name>]
 \end_layout
 
 \begin_layout LyX-Code
-<dih type> = alpha beta gamma delta epsilon zeta nu1 nu2 h1p c2p chin phi
- psi chip omega
+<dih type> = alpha beta gamma delta epsilon zeta nu1 nu2 h1p c2p chin
+\end_layout
+
+\begin_layout LyX-Code
+             phi psi chip omega
 \end_layout
 
 \begin_deeper
@@ -7582,7 +7592,10 @@ e'
 
 \begin_layout LyX-Code
     	  [bound <lower> bound <upper>] [rexp <expected>] [noe_strong] [noe_medium]
- [noe_weak]
+\end_layout
+
+\begin_layout LyX-Code
+          [noe_weak]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -7797,8 +7810,11 @@ selection>] Remove data sets from <set selection> according to specified
 \end_layout
 
 \begin_layout LyX-Code
-<select>   :  'equal' '==' 'notequal' '!=' 'lessthan' '<' 'greaterthan'
- '>' 'between' 'outside'
+<select>   :  'equal' '==' 'notequal' '!=' 'lessthan' '<' 
+\end_layout
+
+\begin_layout LyX-Code
+              'greaterthan' '>' 'between' 'outside'
 \end_layout
 
 \begin_layout Description
@@ -11999,10 +12015,10 @@ Cpptraj currently understands the following trajectory file formats:
 \begin_inset Tabular
 <lyxtabular version="3" rows="20" columns="4">
 <features tabularvalignment="middle">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -14627,9 +14643,9 @@ Mod
 \begin_inset Tabular
 <lyxtabular version="3" rows="86" columns="3">
 <features islongtable="true" longtabularalignment="center">
-<column alignment="center" valignment="top" width="1.3in">
-<column alignment="center" valignment="top" width="4.5in">
-<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="65text%">
+<column alignment="center" valignment="top" width="10text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -17428,7 +17444,10 @@ areapermol
 
 \begin_layout LyX-Code
 areapermol [<name>] {[<mask1>] [nlayers <#>] | nmols <#>} [out <filename>]
- [{xy | xz | yz}]
+\end_layout
+
+\begin_layout LyX-Code
+           [{xy | xz | yz}]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -20257,8 +20276,11 @@ dipole
 \end_layout
 
 \begin_layout LyX-Code
-dipole <filename> {data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter
- <cx> <cy> <cz>]}
+dipole <filename> {data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> 
+\end_layout
+
+\begin_layout LyX-Code
+       [gridcenter <cx> <cy> <cz>]}
 \end_layout
 
 \begin_layout LyX-Code
@@ -27562,8 +27584,11 @@ nativecontacts [<mask1> [<mask2>]] [writecontacts <outfile>] [resout <resfile>]
 \end_layout
 
 \begin_layout LyX-Code
-               [name <dsname>] [byresidue] [map [mapout <mapfile>]] [series
- [seriesout <file>]]
+               [name <dsname>] [byresidue] [map [mapout <mapfile>]]
+\end_layout
+
+\begin_layout LyX-Code
+               [series [seriesout <file>]]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -33517,9 +33542,9 @@ trajin
 \begin_inset Tabular
 <lyxtabular version="3" rows="46" columns="3">
 <features islongtable="true" longtabularalignment="center">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="50text%">
+<column alignment="center" valignment="top" width="25text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
@@ -37103,8 +37128,8 @@ Solvent pH is <pH>
 \end_layout
 
 \begin_layout LyX-Code
-<residue name> <residue number> : Offset <offset from predicted> Pred <predicted
- pH> Frac Prot <fraction> Transitions <number of transitions>
+<res name> <res num> : Offset <off> Pred <pred> Frac Prot <frac> Transitions
+ <#trans>
 \end_layout
 
 \begin_layout LyX-Code
@@ -37120,7 +37145,16 @@ Average total molecular protonation: <avg>
 \end_layout
 
 \begin_layout Standard
-A line is printed for each residue.
+Where 
+\series bold
+<off>
+\series default
+ is offset from predicted, 
+\series bold
+<pred>
+\series default
+ is predicted pH, and <#trans> is the number of transitions.
+ A line is printed for each residue.
  This functionality is similar to the 
 \series bold
 cphstats
@@ -37493,8 +37527,8 @@ curvefit <dset> { <equation>  |
 \end_layout
 
 \begin_layout LyX-Code
-                  name <dsname> { gauss | nexp <m> [form {mexp|mexpk|mexpk_penal
-ty} } }
+                  name <dsname> {gauss | nexp <m> [form {mexp|mexpk|mexpk_penalt
+y}} }
 \end_layout
 
 \begin_layout LyX-Code
@@ -39147,8 +39181,13 @@ diagmatrix matired vecs 6 out ired.vec name ired.vec
 \end_layout
 
 \begin_layout LyX-Code
-ired relax NHdist 1.02 freq 500.0 tstep 1.0 tcorr 100.0 out v0.out noefile noe
- order 2
+ired relax NHdist 1.02 freq 500.0 tstep 1.0 tcorr 100.0 out v0.out 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+     noefile noe order 2
 \end_layout
 
 \begin_layout Subsection
