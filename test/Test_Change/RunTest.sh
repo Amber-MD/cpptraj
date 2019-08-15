@@ -15,7 +15,7 @@ trajin ../Test_Charmm/ala3.dcd 1 1
 change parmindex 0 resname from :1 to NALA
 change parmindex 0 resname from :3 to CALA
 change parmindex 0 atomname from @HN to H
-trajout ala3.mod.pdb
+trajout ala3.mod.pdb chainid " "
 EOF
 RunCpptraj "Change atom and residue name tests"
 DoTest ala3.mod.pdb.save ala3.mod.pdb
