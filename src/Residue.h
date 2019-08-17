@@ -32,8 +32,6 @@ class Residue {
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
        icode_(i), chainID_(BLANK_CHAINID_), isTerminal_(false)
     {}
-    static const char BLANK_CHAINID_ = '\0';
-    static const char DEFAULT_CHAINID_ = 'Z';
     inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
     inline void SetLastAtom(int i)         { lastAtom_ = i;       }
     inline void SetOriginalNum(int i)      { originalResNum_ = i; }
@@ -63,9 +61,15 @@ class Residue {
     static char ConvertResName(std::string const&);
     /// Convert 1-letter residue code to 3 letters.
     static const char* ConvertResName(char);
+    /// \return Default chain ID
+    static char DefaultChainID() { return DEFAULT_CHAINID_; }
+    /// \return Blank (no) chain ID
+    static char BlankChainID() { return BLANK_CHAINID_; }
     /// Convert this residue name to single letter.
     char SingleCharName() const { return ConvertResName( *resname_ ); }
   private:
+    static const char BLANK_CHAINID_;
+    static const char DEFAULT_CHAINID_;
     NameType resname_;   ///< Residue name.
     int firstAtom_;      ///< Index of first atom (from 0).
     int lastAtom_;       ///< Atom index after last atom in residue.

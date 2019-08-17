@@ -213,7 +213,7 @@ void Action_AtomicFluct::Print() {
         if (fluctParm_->Res(resnum).HasChainID())
           chainid = fluctParm_->Res(resnum).ChainID();
         else
-          chainid = Residue::DEFAULT_CHAINID_;
+          chainid = Residue::DefaultChainID();
         PDBfile& adpout = static_cast<PDBfile&>( *adpoutfile_ );
         adpout.WriteANISOU(
           atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
