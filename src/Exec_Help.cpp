@@ -98,7 +98,7 @@ int Exec_Help::Masks(ArgList& argIn) const {
           "    @%%{list} : Select atom types. E.g. '@%%CT'\n"
           "    @/{list} : Select atom elements. E.g. '@/N'\n"
           "    :{list}  : Select residues by number/name. E.g. ':1-10,15,19-22', ':LYS', ':ASP,ALA'\n"
-          "    :/{list} : Select residues by chain ID. E.g. ':/B', ':/A,D'.\n"
+          "    ::{list} : Select residues by chain ID. E.g. '::B', '::A,D'.\n"
           "    :;{list} : Select by PDB residue number.\n"
           "    ^{list}  : Select by molecule number. E.g. '^1-10', '^2-4,8'\n"
           "  Combinations of atom/residue/molecule masks are interpreted as if 'AND'\n"

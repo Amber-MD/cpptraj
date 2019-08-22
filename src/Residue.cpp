@@ -1,6 +1,10 @@
 #include "Residue.h"
 #include <cctype> // tolower
 
+const char Residue::BLANK_CHAINID_ = '\0';
+
+const char Residue::DEFAULT_CHAINID_ = 'Z';
+
 char Residue::ConvertResName(std::string const& r) {
   if (r.compare(0,3,"ALA")==0) return 'A';
   if (r.compare(0,3,"ARG")==0) return 'R';
