@@ -82,9 +82,21 @@ class Action_DSSP2::SSres {
   public:
     SSres();
     int Idx() const { return idx_; }
+    int C()   const { return C_; }
+    int O()   const { return O_; }
+    int N()   const { return N_; }
+    int H()   const { return H_; }
+    int CA()  const { return CA_; }
+
+    bool MissingAtoms() const { return (C_==-1 || O_==-1 || N_==-1 || H_==-1 || CA_==-1); }
 
     void SetIdx(int i) { idx_ = i; }
     void SetSelected(bool b) { isSelected_ = b; }
+    void SetC(int i)         { C_ = i; }
+    void SetO(int i)         { O_ = i; }
+    void SetN(int i)         { N_ = i; }
+    void SetH(int i)         { H_ = i; }
+    void SetCA(int i)        { CA_ = i; }
     /// Deselect this residue and reset coordinate indices.
     void Deselect();
   private:

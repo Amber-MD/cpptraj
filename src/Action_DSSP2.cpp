@@ -180,11 +180,25 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
     // Determine if this residue is selected
     if (Mask_.AtomsInCharMask(thisRes.FirstAtom(), thisRes.LastAtom())) {
       Res->SetSelected( true );
-      Res->SetC(  setup.Top().FindAtomInResidue(*ridx, BB_C_)  );
-      Res->SetO(  setup.Top().FindAtomInResidue(*ridx, BB_O_)  );
-      Res->SetN(  setup.Top().FindAtomInResidue(*ridx, BB_N_)  );
-      Res->SetH(  setup.Top().FindAtomInResidue(*ridx, BB_H_)  );
-      Res->SetCA( setup.Top().FindAtomInResidue(*ridx, BB_CA_) );
+      // Determine atom indices
+      for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
+      {
+        if      ( setup.Top()[at].Name() == BB_C_ )  Res->SetC( at*3 );
+        else if ( setup.Top()[at].Name() == BB_O_ )  Res->SetO( at*3 );
+        else if ( setup.Top()[at].Name() == BB_N_ )  Res->SetN( at*3 );
+        else if ( setup.Top()[at].Name() == BB_H_ )  Res->SetH( at*3 );
+        else if ( setup.Top()[at].Name() == BB_CA_ ) Res->SetCA( at*3 );
+      }
+      // Check if residue is missing atoms
+      if (Res->MissingAtoms()) {
+        mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( *ridx ).c_str());
+        if (Res->C() == -1)  mprintf(" %s", *BB_C_);
+        if (Res->O() == -1)  mprintf(" %s", *BB_N_);
+        if (Res->N() == -1)  mprintf(" %s", *BB_O_);
+        if (Res->H() == -1)  mprintf(" %s", *BB_H_);
+        if (Res->CA() == -1) mprintf(" %s", *BB_CA_);
+        mprintf("\n");
+      }
     }
   }
 
