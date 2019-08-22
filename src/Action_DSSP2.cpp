@@ -1,6 +1,7 @@
 #include <algorithm> // std::fill
 #include "Action_DSSP2.h"
 #include "CpptrajStdio.h"
+#include "DataSet.h"
 
 // ----- SSres -----------------------------------------------------------------
 Action_DSSP2::SSres::SSres() :
@@ -162,6 +163,12 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
   mprintf("\tSetting up for %i solute residues.\n", soluteRes.Size());
   if ((unsigned int)soluteRes.Size() > Residues_.size())
     Residues_.resize( soluteRes.Size() );
+  MetaData md(dsetname_, "res");
+  DataSet::DataType dt;
+  if (printString_)
+    dt = DataSet::STRING;
+  else
+    dt = DataSet::INTEGER;
   SSarrayType::iterator Res = Residues_.begin();
   for (Range::const_iterator ridx = soluteRes.begin(); ridx != soluteRes.end(); ++ridx, ++Res)
   {
@@ -190,7 +197,7 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
         else if ( setup.Top()[at].Name() == BB_CA_ ) Res->SetCA( at*3 );
       }
       // Check if residue is missing atoms
-      if (Res->MissingAtoms()) {
+      if (Res->IsMissingAtoms()) {
         mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( *ridx ).c_str());
         if (Res->C() == -1)  mprintf(" %s", *BB_C_);
         if (Res->O() == -1)  mprintf(" %s", *BB_N_);
@@ -199,7 +206,19 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
         if (Res->CA() == -1) mprintf(" %s", *BB_CA_);
         mprintf("\n");
       }
-    }
+      // Set up DataSet if necessary
+      if (Res->Dset() == 0) {
+        md.SetIdx( *ridx+1 );
+        md.SetLegend( setup.Top().TruncResNameNum( *ridx ) );
+        // Setup DataSet for this residue
+        Res->SetDset( Init_.DSL().AddSet( dt, md ) );
+        if (Res->Dset() == 0) {
+          mprinterr("Error: Could not allocate DSSP data set for residue %i\n", *ridx+1);
+          return Action::ERR;
+        }
+        if (outfile_ != 0) outfile_->AddDataSet( Res->Dset() );
+      }
+    } // END residue is selected
   }
 
   return Action::OK;

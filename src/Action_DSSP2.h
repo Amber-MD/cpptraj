@@ -5,6 +5,7 @@
 #include "Action.h"
 #include "NameType.h"
 #include "CharMask.h"
+class DataSet;
 /// <Enter description of Action_DSSP2 here>
 /** Based on protein secondary structure definitions given in:
   *   Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:
@@ -81,14 +82,15 @@ class Action_DSSP2 : public Action {
 class Action_DSSP2::SSres {
   public:
     SSres();
-    int Idx() const { return idx_; }
-    int C()   const { return C_; }
-    int O()   const { return O_; }
-    int N()   const { return N_; }
-    int H()   const { return H_; }
-    int CA()  const { return CA_; }
+    int Idx()       const { return idx_; }
+    int C()         const { return C_; }
+    int O()         const { return O_; }
+    int N()         const { return N_; }
+    int H()         const { return H_; }
+    int CA()        const { return CA_; }
+    DataSet* Dset() const { return resDataSet_; }
 
-    bool MissingAtoms() const { return (C_==-1 || O_==-1 || N_==-1 || H_==-1 || CA_==-1); }
+    bool IsMissingAtoms() const { return (C_==-1 || O_==-1 || N_==-1 || H_==-1 || CA_==-1); }
 
     void SetIdx(int i) { idx_ = i; }
     void SetSelected(bool b) { isSelected_ = b; }
@@ -97,6 +99,7 @@ class Action_DSSP2::SSres {
     void SetN(int i)         { N_ = i; }
     void SetH(int i)         { H_ = i; }
     void SetCA(int i)        { CA_ = i; }
+    void SetDset(DataSet* d) { resDataSet_ = d; }
     /// Deselect this residue and reset coordinate indices.
     void Deselect();
   private:
