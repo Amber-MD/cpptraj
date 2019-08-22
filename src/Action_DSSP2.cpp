@@ -148,11 +148,12 @@ Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int de
 Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
 {
   // Set up mask for this parm
-  if ( setup.Top().SetupIntegerMask( Mask_ ) ) return Action::ERR;
+  if ( setup.Top().SetupCharMask( Mask_ ) ) return Action::ERR;
   if ( Mask_.None() ) {
     mprintf("Warning: DSSP: Mask has no atoms.\n");
     return Action::SKIP;
   }
+
   // Deselect any existing residues
   for (SSarrayType::iterator it = Residues_.begin(); it != Residues_.end(); ++it)
     it->Deselect();
@@ -163,6 +164,7 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
     Residues_.resize( soluteRes.Size() );
   SSarrayType::iterator Res = Residues_.begin();
   for (Range::const_iterator ridx = soluteRes.begin(); ridx != soluteRes.end(); ++ridx, ++Res)
+  {
     if (Res->Idx() != -1) {
       // Residue has previously been set up. Check that indices match.
       if (Res->Idx() != *ridx) {
@@ -171,9 +173,21 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
         return Action::ERR;
       }
     } else {
-      // Set up Residue.
+      // Set up Residue. TODO also molecule index?
       Res->SetIdx( *ridx );
     }
+    Residue const& thisRes = setup.Top().Res( *ridx );
+    // Determine if this residue is selected
+    if (Mask_.AtomsInCharMask(thisRes.FirstAtom(), thisRes.LastAtom())) {
+      Res->SetSelected( true );
+      Res->SetC(  setup.Top().FindAtomInResidue(*ridx, BB_C_)  );
+      Res->SetO(  setup.Top().FindAtomInResidue(*ridx, BB_O_)  );
+      Res->SetN(  setup.Top().FindAtomInResidue(*ridx, BB_N_)  );
+      Res->SetH(  setup.Top().FindAtomInResidue(*ridx, BB_H_)  );
+      Res->SetCA( setup.Top().FindAtomInResidue(*ridx, BB_CA_) );
+    }
+  }
+
   return Action::OK;
 }
 

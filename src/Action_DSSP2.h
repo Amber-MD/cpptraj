@@ -4,7 +4,7 @@
 #include <string>
 #include "Action.h"
 #include "NameType.h"
-#include "AtomMask.h"
+#include "CharMask.h"
 /// <Enter description of Action_DSSP2 here>
 /** Based on protein secondary structure definitions given in:
   *   Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:
@@ -67,7 +67,7 @@ class Action_DSSP2 : public Action {
     NameType BB_C_;        ///< Protein C atom name ('C')
     NameType BB_O_;        ///< Protein C-O atom name ('O')
     NameType BB_CA_;       ///< Protein alpha C name ('CA')
-    AtomMask Mask_;        ///< Mask used to determine selected residues.
+    CharMask Mask_;        ///< Mask used to determine selected residues.
     DataFile* outfile_;          ///< Output Data file
     DataFile* dsspFile_;         ///< Sum output file
     CpptrajFile* assignout_;     ///< Assignment output file.
@@ -84,6 +84,7 @@ class Action_DSSP2::SSres {
     int Idx() const { return idx_; }
 
     void SetIdx(int i) { idx_ = i; }
+    void SetSelected(bool b) { isSelected_ = b; }
     /// Deselect this residue and reset coordinate indices.
     void Deselect();
   private:
