@@ -310,5 +310,12 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 } // END pragma omp parallel
 #endif
 
+  for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
+  {
+    mprintf("Res %8i", it->Idx());
+    for (SSres::const_iterator hb = it->begin(); hb != it->end(); ++hb)
+      mprintf(" %8i", *hb);
+    mprintf("\n");
+  }
   return Action::OK;
 }

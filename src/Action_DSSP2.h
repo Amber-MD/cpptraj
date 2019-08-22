@@ -80,6 +80,7 @@ class Action_DSSP2 : public Action {
 
 
 class Action_DSSP2::SSres {
+    typedef std::vector<int> HbArrayType;
   public:
     SSres();
     int Idx()         const { return idx_; }
@@ -96,6 +97,10 @@ class Action_DSSP2::SSres {
     bool HasNH()          const { return (N_!=-1 && H_!=-1); }
     bool HasCA()          const { return (CA_!=-1); }
 
+    typedef HbArrayType::const_iterator const_iterator;
+    const_iterator begin() const { return CO_HN_Hbonds_.begin(); }
+    const_iterator end()   const { return CO_HN_Hbonds_.end(); }
+
     void SetIdx(int i) { idx_ = i; }
     void SetSelected(bool b) { isSelected_ = b; }
     void SetC(int i)         { C_ = i; }
@@ -111,7 +116,6 @@ class Action_DSSP2::SSres {
     /// Add hbond from this CO to specified NH
     void AddHbond(int i) { CO_HN_Hbonds_.push_back( i ); }
   private:
-    typedef std::vector<int> HbArrayType;
     HbArrayType CO_HN_Hbonds_; ///< This res C-O hbonded to these res H-N.
     DataSet* resDataSet_;      ///< DataSet for SS assignment each frame for this res.
     double chirality_;         ///< dihedral CA[i-1, i, i+1, i+2]
