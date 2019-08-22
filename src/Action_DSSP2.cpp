@@ -312,9 +312,9 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 
   for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
   {
-    mprintf("Res %8i", it->Idx());
+    mprintf("Res %8i", it->Idx()+1);
     for (SSres::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-      mprintf(" %8i", *hb);
+      mprintf(" %8i", *hb+1);
     mprintf("\n");
   }
   return Action::OK;
