@@ -1193,7 +1193,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     fi
   fi # END if not cleaning
   # Windows does not have /dev/stderr
-  if [ "$CPPTRAJ_TEST_OS" = 'windows' ] ; then
+  if [ "$CPPTRAJ_TEST_OS" = 'windows' -a "$CPPTRAJ_ERROR" = '/dev/stderr' ] ; then
     CPPTRAJ_ERROR='test.err'
   fi
   # Export test output and error file names
