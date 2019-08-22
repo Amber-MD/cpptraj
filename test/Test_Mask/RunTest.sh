@@ -17,7 +17,7 @@ if [ $? -eq 0 ] ; then
 noprogress
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 1
-mask "(:5 <:3.0) & :WAT" maskout mask.out maskpdb mask.pdb
+mask "(:5 <:3.0) & :WAT" maskout mask.out maskpdb mask.pdb trajargs 'chainid " "'
 mask "(:5 <:3.0) & :WAT" maskmol2 mask.mol2
 EOF
   RunCpptraj "$UNITNAME"
