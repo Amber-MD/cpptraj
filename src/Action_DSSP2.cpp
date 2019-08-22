@@ -51,6 +51,11 @@ const std::string Action_DSSP2::SSzlabels_ = "zlabels None,Para,Anti,3-10,Alpha,
 
 Action_DSSP2::Action_DSSP2() :
   debug_(0),
+  BB_N_("N"),
+  BB_H_("H"),
+  BB_C_("C"),
+  BB_O_("O"),
+  BB_CA_("CA"),
   outfile_(0),
   dsspFile_(0),
   assignout_(0)
@@ -140,9 +145,9 @@ Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int de
 
 static inline void PrintAtom(Topology const& top, NameType const& name, int idx) {
   if (idx > -1)
-    mprintf(" %s=%s", *name, top.AtomMaskName(idx/3).c_str());
+    mprintf(" '%s'=%-12s", *name, top.AtomMaskName(idx/3).c_str());
   else
-    mprintf(" %s=NONE", *name);
+    mprintf(" '%s'=%-12s", *name, "NONE");
 }
 
 // Action_DSSP2::Setup()
@@ -250,5 +255,5 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
 // Action_DSSP2::DoAction()
 Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 {
-
+  return Action::ERR;
 }

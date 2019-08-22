@@ -26,6 +26,7 @@ COMMON_SOURCES= \
         Action_CreateReservoir.cpp \
         Action_DNAionTracker.cpp \
         Action_DSSP.cpp \
+        Action_DSSP2.cpp \
         Action_Density.cpp \
         Action_Diffusion.cpp \
         Action_Dihedral.cpp \

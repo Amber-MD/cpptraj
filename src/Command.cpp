@@ -141,6 +141,7 @@
 #include "Action_XtalSymm.h"
 #include "Action_Time.h"
 #include "Action_DihedralRMS.h"
+#include "Action_DSSP2.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -304,6 +305,7 @@ void Command::Init() {
   Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // HIDDEN
   Command::AddCmd( new Action_DistRmsd(),      Cmd::ACT, 2, "drms", "drmsd" );
   Command::AddCmd( new Action_DSSP(),          Cmd::ACT, 2, "dssp", "secstruct" );
+  Command::AddCmd( new Action_DSSP2(),         Cmd::ACT, 1, "dssp2" );
   Command::AddCmd( new Action_Energy(),        Cmd::ACT, 1, "energy" );
   Command::AddCmd( new Action_Esander(),       Cmd::ACT, 1, "esander" );
   Command::AddCmd( new Action_FilterByData(),  Cmd::ACT, 1, "filter" );
