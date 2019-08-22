@@ -89,6 +89,18 @@ TestHeader() {
   fi
 }
 
+# ErrMsg() <message>
+# Write out error message prefaced with 'Error:'.
+# On windows, just print to STDOUT.
+# Otherwise write to /dev/stderr
+ErrMsg() {
+  if [ "$CPPTRAJ_TEST_OS" = 'windows' ] ; then
+    echo "Error: $1"
+  else
+    echo "Error: $1" > /dev/stderr
+  fi
+}
+
 # OUT() <message>
 #   Write message to CPPTRAJ_TEST_RESULTS
 OUT() {
@@ -208,7 +220,7 @@ DoTest() {
 NcTest() {
   #echo "DEBUG: NcTest $1 $2"
   if [ -z "$1" -o -z "$2" ] ; then
-    echo "Error: NcTest(): One or both files not specified." > /dev/stderr
+    ErrMsg "NcTest(): One or both files not specified."
     exit 1
   fi
   # Save remaining args for DoTest
@@ -455,7 +467,7 @@ Summary() {
 # ProgramError() <message>
 ProgramError() {
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
-    echo "Error: $1" > /dev/stderr
+    ErrMsg " $1"
     OutBoth "Error: $1"
   else
     if [ -z "$2" ] ; then
@@ -539,7 +551,7 @@ EndTest() {
     if [ $PROGERROR -ne 0 -o $ERRCOUNT -ne 0 ] ; then
       exit 1
     elif [ $NUMCOMPARISONS -eq 0 -a $TEST_SKIPPED -eq 0 ] ; then
-      echo "Error: Zero comparisons and test not skipped." > /dev/stderr
+      ErrMsg "Zero comparisons and test not skipped."
       exit 1
     fi
   fi
@@ -656,7 +668,7 @@ CmdLineOpts() {
           # Assume this is a test we want to run.
           TEST_DIRS="$TEST_DIRS $1"
         else
-          echo "Error: Unknown option: $1" > /dev/stderr
+          ErrMsg "Unknown option: $1"
           exit 1
         fi
         ;;
@@ -674,7 +686,7 @@ CmdLineOpts() {
   if [ ! -z "$DO_PARALLEL" ] ; then
     SFX_MPI=1
   elif [ $SFX_MPI -eq 1 ] ; then
-    echo "Error: 'mpi' specified but DO_PARALLEL not set." > /dev/stderr
+    ErrMsg "'mpi' specified but DO_PARALLEL not set."
     exit 1
   fi
   # Warn if using OpenMP but OMP_NUM_THREADS not set.
@@ -692,7 +704,7 @@ CmdLineOpts() {
 #   Insure that specified binary is in the PATH
 Required() {
   if [ -z "`which $1`" ] ; then
-    echo "Error: Required binary '$1' not found." > /dev/stderr
+    ErrMsg "Required binary '$1' not found."
     exit 1
   fi
 }
@@ -705,7 +717,7 @@ CheckDefines() {
   CPPTRAJ_MATHLIB='yes'
   CPPTRAJDEFINES=`$CPPTRAJ --defines`
   if [ $? -ne 0 ] ; then
-    echo "Error: Could not execute '$CPPTRAJ --defines'" > /dev/stderr
+    ErrMsg "Could not execute '$CPPTRAJ --defines'"
     exit 1
   fi
   for DEFINE in `$CPPTRAJ --defines` ; do
@@ -753,7 +765,7 @@ SetBinaries() {
   if [ -z "$CPPTRAJ" ] ; then
     CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
     if [ ! -f "$CPPTRAJ" ] ; then
-      echo "Error: CPPTRAJ $CPPTRAJ not found." > /dev/stderr
+      ErrMsg "CPPTRAJ $CPPTRAJ not found."
       exit 1
     fi
     export CPPTRAJ
@@ -774,7 +786,7 @@ SetBinaries() {
         Required "cuda-memcheck"
         VALGRIND='cuda-memcheck'
       else
-        echo "Error: 'helgrind' not supported for CUDA." > /dev/stderr
+        ErrMsg "'helgrind' not supported for CUDA."
         exit 1
       fi
     else
@@ -784,7 +796,7 @@ SetBinaries() {
       elif [ $VGMODE -eq 2 ] ; then
         VALGRIND="valgrind --tool=helgrind"
       else
-        echo "Error: Unsupported VGMODE $VGMODE" > /dev/stderr
+        ErrMsg "Unsupported VGMODE $VGMODE"
         exit 1
       fi
     fi
@@ -798,7 +810,7 @@ SetBinaries() {
       CPPTRAJ_NDIFF=$DIRPREFIX/util/ndiff/ndiff.awk
     fi
     if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
-      echo "Error: 'ndiff.awk' not present: $CPPTRAJ_NDIFF" > /dev/stderr
+      ErrMsg "'ndiff.awk' not present: $CPPTRAJ_NDIFF"
       exit 1
     fi
     export CPPTRAJ_NDIFF
@@ -812,7 +824,7 @@ SetBinaries() {
         CPPTRAJ_NPROC=$DIRPREFIX/test/nproc
       fi
       if [ -z "$CPPTRAJ_NPROC" ] ; then
-        echo "Error: nproc $CPPTRAJ_NPROC not found." > /dev/stderr
+        ErrMsg "Error: nproc $CPPTRAJ_NPROC not found."
         exit 1
       fi
       export CPPTRAJ_NPROC
@@ -917,7 +929,7 @@ TestLibrary() {
 CheckEnv() {
   #echo "DEBUG: CheckEnv() $*"
   if [ -z "$DESCRIP" ] ; then
-    echo "Warning: CheckEnv() called with TESTNAME/UNITNAME unset." > /dev/stderr
+    ErrMsg "CheckEnv() called with TESTNAME/UNITNAME unset."
     exit 1
   fi
   CHECKERR=0
@@ -1016,7 +1028,7 @@ CheckEnv() {
           echo "  $DESCRIP is disabled."
           ((CHECKERR++))
           ;;
-      * ) echo "Error: Unknown CheckEnv() option: $1" > /dev/stderr ; exit 1 ;;
+      * ) ErrMsg "Unknown CheckEnv() option: $1" ; exit 1 ;;
     esac
     shift
   done
@@ -1048,12 +1060,12 @@ CheckFor() {
 # TODO remove all deprecated functions below.
 # FIXME This is a stub and should be removed
 CheckTest() {
-  echo "ERROR: CHECKTEST DISABLED!" > /dev/stderr
+  ErrMsg "CHECKTEST DISABLED!"
   exit 1
 }
 
 Disabled() {
-  echo "ERROR: FUNCTION DISABLED. FIX IT!" > /dev/stderr
+  ErrMsg "FUNCTION DISABLED. FIX IT!"
   exit 1
 }
 
@@ -1138,11 +1150,15 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   #echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
+  # If CPPTRAJ_TEST_OS is not set, try to determine.
+  if [ -z "$CPPTRAJ_TEST_OS" ] ; then
+    export CPPTRAJ_TEST_OS=`uname -s | awk '{print $1}'`
+  fi
   # Ensure required binaries are set up
   if [ -z "$CPPTRAJ_RM" ] ; then
     # TODO is this being too paranoid?
     if [ ! -f '/bin/rm' ] ; then
-      echo "Error: Required binary '/bin/rm' not found." > /dev/stderr
+      ErrMsg "Required binary '/bin/rm' not found."
       exit 1
     fi
     export CPPTRAJ_RM='/bin/rm -f'
@@ -1163,7 +1179,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     # Assume AmberTools. Need AMBERHOME.
     STANDALONE=0
     if [ -z "$AMBERHOME" ] ; then
-      echo "Error: In AmberTools and AMBERHOME is not set. Required for tests." > /dev/stderr
+      ErrMsg "In AmberTools and AMBERHOME is not set. Required for tests."
       exit 1
     fi
   else
@@ -1192,10 +1208,6 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   if [ $CPPTRAJ_TEST_CLEAN -eq 0 -a -z "$IS_LIBCPPTRAJ" ] ; then
     # Determine binary locations
     SetBinaries
-    # If CPPTRAJ_TEST_OS is not set, try to determine. 
-    if [ -z "$CPPTRAJ_TEST_OS" ] ; then
-      export CPPTRAJ_TEST_OS=`uname -s | awk '{print $1}'`
-    fi
     if [ ! -z "$DIFFOPTS" ] ; then
       echo "Warning: DIFFOPTS is set to '$DIFFOPTS'"
     fi
@@ -1275,13 +1287,13 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     fi
     # Need a Makefile.
     if [ ! -f 'Makefile' ] ; then
-      echo "Error: test Makefile not found." > /dev/stderr
+      ErrMsg "test Makefile not found."
       exit 1
     fi
     Required "make"
     if [ -z "$TARGET" ] ; then
       # If no target specified, probably not executed via make.
-      echo "Error: No test directories specified." > /dev/stderr
+      ErrMsg "No test directories specified."
       exit 1
     fi
     make $TARGET
