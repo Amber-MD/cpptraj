@@ -81,6 +81,9 @@ class Action_DSSP2 : public Action {
 class Action_DSSP2::SSres {
   public:
     SSres();
+    int Idx() const { return idx_; }
+
+    void SetIdx(int i) { idx_ = i; }
     /// Deselect this residue and reset coordinate indices.
     void Deselect();
   private:

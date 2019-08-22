@@ -161,7 +161,20 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
   mprintf("\tSetting up for %i solute residues.\n", soluteRes.Size());
   if ((unsigned int)soluteRes.Size() > Residues_.size())
     Residues_.resize( soluteRes.Size() );
-  
+  SSarrayType::iterator Res = Residues_.begin();
+  for (Range::const_iterator ridx = soluteRes.begin(); ridx != soluteRes.end(); ++ridx, ++Res)
+    if (Res->Idx() != -1) {
+      // Residue has previously been set up. Check that indices match.
+      if (Res->Idx() != *ridx) {
+        mprinterr("Error: Solute residue index %i does not match previously setup\n"
+                  "Error: index %i\n", *ridx, Res->Idx());
+        return Action::ERR;
+      }
+    } else {
+      // Set up Residue.
+      Res->SetIdx( *ridx );
+    }
+  return Action::OK;
 }
 
 // Action_DSSP2::DoAction()
