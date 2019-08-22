@@ -77,10 +77,16 @@ DESCRIP=''               # Current test/unit name for CheckEnv routine.
 
 # ==============================================================================
 # TestHeader() <outfile>
-#   Write test header (working directory) to specified file.
+#   Write test header (working directory) to specified file. If no file
+#   specified will be written to STDOUT.
 TestHeader() {
-  echo "********************************************************************************" > $1
-  echo "TEST: $TEST_WORKDIR" >> $1
+  if [ ! -z "$1" ] ; then
+    echo "********************************************************************************" > $1
+    echo "TEST: $TEST_WORKDIR" >> $1
+  else
+    echo "********************************************************************************"
+    echo "TEST: $TEST_WORKDIR"
+  fi
 }
 
 # OUT() <message>
@@ -1318,7 +1324,7 @@ else
   fi
   if [ "$CPPTRAJ_TEST_CLEAN" -eq 0 ] ; then
     TEST_WORKDIR=`pwd`
-    TestHeader '/dev/stdout'
+    TestHeader
     if [ -z "$CPPTRAJ_DACDIF" ] ; then
       TestHeader "$CPPTRAJ_TEST_RESULTS"
     fi
