@@ -138,6 +138,13 @@ Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int de
   return Action::OK;
 }
 
+static inline void PrintAtom(Topology const& top, NameType const& name, int idx) {
+  if (idx > -1)
+    mprintf(" %s=%s", *name, top.AtomMaskName(idx/3).c_str());
+  else
+    mprintf(" %s=NONE", *name);
+}
+
 // Action_DSSP2::Setup()
 /** Set up secondary structure calculation for all residues selected by the
   * mask. A residue is selected if at least one atom in the residue is
@@ -169,6 +176,7 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
     dt = DataSet::STRING;
   else
     dt = DataSet::INTEGER;
+  unsigned int nResSelected = 0;
   SSarrayType::iterator Res = Residues_.begin();
   for (Range::const_iterator ridx = soluteRes.begin(); ridx != soluteRes.end(); ++ridx, ++Res)
   {
@@ -187,6 +195,7 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
     // Determine if this residue is selected
     if (Mask_.AtomsInCharMask(thisRes.FirstAtom(), thisRes.LastAtom())) {
       Res->SetSelected( true );
+      ++nResSelected;
       // Determine atom indices
       for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
       {
@@ -220,6 +229,20 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
       }
     } // END residue is selected
   }
+  mprintf("\t%u of %zu solute residues selected.\n", nResSelected, soluteRes.Size());
+
+  // DEBUG - print each residue set up.
+  for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
+  {
+    mprintf("    %8i", it->Idx() + 1);
+    PrintAtom(setup.Top(), BB_C_, it->C());
+    PrintAtom(setup.Top(), BB_O_, it->O());
+    PrintAtom(setup.Top(), BB_N_, it->N());
+    PrintAtom(setup.Top(), BB_H_, it->H());
+    PrintAtom(setup.Top(), BB_CA_, it->CA());
+    mprintf("\n");
+  }
+  
 
   return Action::OK;
 }
