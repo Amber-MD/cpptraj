@@ -1192,9 +1192,14 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
       echo "Warning: DIFFOPTS is set to '$DIFFOPTS'"
     fi
   fi # END if not cleaning
-  # Windows does not have /dev/stderr
-  if [ "$CPPTRAJ_TEST_OS" = 'windows' -a "$CPPTRAJ_ERROR" = '/dev/stderr' ] ; then
-    CPPTRAJ_ERROR='test.err'
+  # Windows does not have /dev/stderr or /dev/stdout
+  if [ "$CPPTRAJ_TEST_OS" = 'windows' ] ; then
+    if [ "$CPPTRAJ_ERROR" = '/dev/stderr' ] ; then
+      CPPTRAJ_ERROR='test.err'
+    fi
+    if [ "$CPPTRAJ_OUTPUT" = '/dev/stdout' ] ; then
+      CPPTRAJ_OUTPUT='test.out'
+    fi
   fi
   # Export test output and error file names
   export CPPTRAJ_OUTPUT
