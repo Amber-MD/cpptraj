@@ -82,15 +82,19 @@ class Action_DSSP2 : public Action {
 class Action_DSSP2::SSres {
   public:
     SSres();
-    int Idx()       const { return idx_; }
-    int C()         const { return C_; }
-    int O()         const { return O_; }
-    int N()         const { return N_; }
-    int H()         const { return H_; }
-    int CA()        const { return CA_; }
-    DataSet* Dset() const { return resDataSet_; }
+    int Idx()         const { return idx_; }
+    bool IsSelected() const { return isSelected_; }
+    int C()           const { return C_; }
+    int O()           const { return O_; }
+    int N()           const { return N_; }
+    int H()           const { return H_; }
+    int CA()          const { return CA_; }
+    DataSet* Dset()   const { return resDataSet_; }
 
     bool IsMissingAtoms() const { return (C_==-1 || O_==-1 || N_==-1 || H_==-1 || CA_==-1); }
+    bool HasCO()          const { return (C_!=-1 && O_!=-1); }
+    bool HasNH()          const { return (N_!=-1 && H_!=-1); }
+    bool HasCA()          const { return (CA_!=-1); }
 
     void SetIdx(int i) { idx_ = i; }
     void SetSelected(bool b) { isSelected_ = b; }
@@ -102,6 +106,10 @@ class Action_DSSP2::SSres {
     void SetDset(DataSet* d) { resDataSet_ = d; }
     /// Deselect this residue and reset coordinate indices.
     void Deselect();
+    /// Reset hbonds, pattern and SS type assignments
+    void Unassign();
+    /// Add hbond from this CO to specified NH
+    void AddHbond(int i) { CO_HN_Hbonds_.push_back( i ); }
   private:
     typedef std::vector<int> HbArrayType;
     HbArrayType CO_HN_Hbonds_; ///< This res C-O hbonded to these res H-N.

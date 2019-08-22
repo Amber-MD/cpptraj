@@ -1,7 +1,9 @@
+#include <cmath> // sqrt
 #include <algorithm> // std::fill
 #include "Action_DSSP2.h"
 #include "CpptrajStdio.h"
 #include "DataSet.h"
+#include "DistRoutines.h"
 
 // ----- SSres -----------------------------------------------------------------
 Action_DSSP2::SSres::SSres() :
@@ -27,6 +29,12 @@ void Action_DSSP2::SSres::Deselect() {
   N_ = -1;
   O_ = -1;
   CA_ = -1;
+}
+
+void Action_DSSP2::SSres::Unassign() {
+  CO_HN_Hbonds_.clear();
+  pattern_ = NOHBOND;
+  sstype_ = NONE;
 }
 
 // ----- Action_DSSP2 ----------------------------------------------------------
@@ -255,5 +263,52 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
 // Action_DSSP2::DoAction()
 Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 {
-  return Action::ERR;
+  int resi;
+  int Nres = (int)Residues_.size();
+  // The first pass is used to determine hydrogen bonding
+#ifdef _OPENMP
+#pragma omp parallel private(resi)
+{
+#pragma omp for
+#endif /* _OPENMP */
+  for (resi = 0; resi < Nres; resi++)
+  {
+    if (Residues_[resi].IsSelected())
+    {
+      SSres& ResCO = Residues_[resi];
+      ResCO.Unassign();
+      if (ResCO.HasCO())
+      {
+        const double* Cxyz = frm.Frm().CRD( ResCO.C() );
+        const double* Oxyz = frm.Frm().CRD( ResCO.O() );
+        for (int resj = 0; resj < Nres; resj++)
+        {
+          SSres& ResNH = Residues_[resj];
+          if (ResNH.IsSelected() && resi != resj && ResNH.HasNH())
+          {
+            const double* Nxyz = frm.Frm().CRD( ResNH.N() );
+            const double* Hxyz = frm.Frm().CRD( ResNH.H() );
+
+            double rON = 1.0/sqrt(DIST2_NoImage(Oxyz, Nxyz));
+            double rCH = 1.0/sqrt(DIST2_NoImage(Cxyz, Hxyz));
+            double rOH = 1.0/sqrt(DIST2_NoImage(Oxyz, Hxyz));
+            double rCN = 1.0/sqrt(DIST2_NoImage(Cxyz, Nxyz));
+
+            double E = DSSP_fac_ * (rON + rCH - rOH - rCN);
+            if (E < DSSP_cut_) {
+#             ifdef DSSPDEBUG
+              mprintf("DBG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
+#             endif
+              ResCO.AddHbond( ResNH.Idx() );
+            }
+          } // END ResNH selected
+        } // END inner loop over residues
+      } // END has CO
+    } // END ResCO selected
+  } // END outer loop over residues
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif
+
+  return Action::OK;
 }
