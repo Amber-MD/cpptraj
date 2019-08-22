@@ -270,7 +270,7 @@ GetResultsFiles() {
 
 # ------------------------------------------------------------------------------
 ParseValgrindOut() {
-  awk -v resultsfile="$CPPTRAJ_TEST_RESULTS" 'BEGIN{
+  awk 'BEGIN{
     ntests = 0;
     #n_vg_err = 0;
     #n_vg_allocs = 0;
@@ -315,9 +315,11 @@ ParseValgrindOut() {
       }
     }
   }END{
-    WriteOut("/dev/stdout");
-    WriteOut(resultsfile);
+    WriteOut("vg.summary");
   }' $1
+  cat vg.summary >> $CPPTRAJ_TEST_RESULTS
+  cat vg.summary
+  rm vg.summary
 }
 
 # ------------------------------------------------------------------------------
