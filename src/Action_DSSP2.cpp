@@ -69,7 +69,7 @@ void Action_DSSP2::SSres::SetTurn(ssCharType typeIn) {
 }
 
 void Action_DSSP2::SSres::PrintSSchar() const {
-  mprintf("\t%8i %c %c %c %c\n", idx_, resChar_,
+  mprintf("\t%8i %c %c %c %c\n", idx_+1, resChar_,
           ssChar_[T3], ssChar_[T4], ssChar_[T5]);
 }
 
