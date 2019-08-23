@@ -9,7 +9,7 @@
 Action_DSSP2::SSres::SSres() :
   resDataSet_(0),
   chirality_(0),
-  pattern_(NOHBOND),
+//  pattern_(NOHBOND),
   sstype_(NONE),
   idx_(-1),
   C_(-1),
@@ -17,6 +17,15 @@ Action_DSSP2::SSres::SSres() :
   N_(-1),
   H_(-1),
   CA_(-1),
+  bridge1idx_(-1),
+  bridge2idx_(-1),
+  resChar_(' '),
+  TURN3_(' '),
+  TURN4_(' '),
+  TURN5_(' '),
+  BRIDGE1_(' '),
+  BRIDGE2_(' '),
+  SHEET_(' '),
   isSelected_(false)
 {
   std::fill(SScount_, SScount_ + NSSTYPE_, 0); 
@@ -33,8 +42,16 @@ void Action_DSSP2::SSres::Deselect() {
 
 void Action_DSSP2::SSres::Unassign() {
   CO_HN_Hbonds_.clear();
-  pattern_ = NOHBOND;
+//  pattern_ = NOHBOND;
   sstype_ = NONE;
+  bridge1idx_ = -1;
+  bridge2idx_ = -1;
+  TURN3_ = ' ';
+  TURN4_ = ' ';
+  TURN5_ = ' ';
+  BRIDGE1_ = ' ';
+  BRIDGE2_ = ' ';
+  SHEET_ = ' ';
 }
 
 // ----- Action_DSSP2 ----------------------------------------------------------
@@ -203,6 +220,7 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
     } else {
       // Set up Residue. TODO also molecule index?
       Res->SetIdx( *ridx );
+      Res->SetResChar( setup.Top().Res(*ridx).SingleCharName() );
     }
     Residue const& thisRes = setup.Top().Res( *ridx );
     // Determine if this residue is selected
@@ -283,25 +301,30 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
         const double* Oxyz = frm.Frm().CRD( ResCO.O() );
         for (int resj = 0; resj < Nres; resj++)
         {
-          SSres& ResNH = Residues_[resj];
-          if (ResNH.IsSelected() && resi != resj && ResNH.HasNH())
-          {
-            const double* Nxyz = frm.Frm().CRD( ResNH.N() );
-            const double* Hxyz = frm.Frm().CRD( ResNH.H() );
+          // Only consider residues spaced more than 2 apart.
+          int resDelta = resi - resj;
+          if (resDelta < 0) resDelta = -resDelta;
+          if (resDelta > 2) {
+            SSres& ResNH = Residues_[resj];
+            if (ResNH.IsSelected() && ResNH.HasNH())
+            {
+              const double* Nxyz = frm.Frm().CRD( ResNH.N() );
+              const double* Hxyz = frm.Frm().CRD( ResNH.H() );
 
-            double rON = 1.0/sqrt(DIST2_NoImage(Oxyz, Nxyz));
-            double rCH = 1.0/sqrt(DIST2_NoImage(Cxyz, Hxyz));
-            double rOH = 1.0/sqrt(DIST2_NoImage(Oxyz, Hxyz));
-            double rCN = 1.0/sqrt(DIST2_NoImage(Cxyz, Nxyz));
+              double rON = 1.0/sqrt(DIST2_NoImage(Oxyz, Nxyz));
+              double rCH = 1.0/sqrt(DIST2_NoImage(Cxyz, Hxyz));
+              double rOH = 1.0/sqrt(DIST2_NoImage(Oxyz, Hxyz));
+              double rCN = 1.0/sqrt(DIST2_NoImage(Cxyz, Nxyz));
 
-            double E = DSSP_fac_ * (rON + rCH - rOH - rCN);
-            if (E < DSSP_cut_) {
-#             ifdef DSSPDEBUG
-              mprintf("DBG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
-#             endif
-              ResCO.AddHbond( ResNH.Idx() );
-            }
-          } // END ResNH selected
+              double E = DSSP_fac_ * (rON + rCH - rOH - rCN);
+              if (E < DSSP_cut_) {
+#               ifdef DSSPDEBUG
+                mprintf("DBG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
+#               endif
+                ResCO.AddHbond( resj );
+              }
+            } // END ResNH selected
+          } // END residues spaced > 2 apart
         } // END inner loop over residues
       } // END has CO
     } // END ResCO selected
@@ -309,13 +332,19 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif
-
-  for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
+  // Do basic assignment
+  for (SSarrayType::const_iterator Resi = Residues_.begin(); Resi != Residues_.end(); ++Resi)
   {
-    mprintf("Res %8i", it->Idx()+1);
-    for (SSres::const_iterator hb = it->begin(); hb != it->end(); ++hb)
-      mprintf(" %8i", *hb+1);
-    mprintf("\n");
+    mprintf("Res %8i %c", Resi->Idx()+1, Resi->ResChar()); // DBG
+    for (SSres::const_iterator rjidx = Resi->begin(); rjidx != Resi->end(); ++rjidx)
+    {
+      SSres& Resj = Residues_[*rjidx];
+      mprintf(" %8i", Resj.Idx()+1); // DBG
+      int resDelta = Resj.Idx() - Resi->Idx();
+      if (resDelta < 0) resDelta = -resDelta;
+      mprintf("(%4i)", resDelta);
+    }
+    mprintf("\n"); // DBG
   }
   return Action::OK;
 }

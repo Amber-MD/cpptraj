@@ -44,7 +44,7 @@ class Action_DSSP2 : public Action {
     static const std::string SSzlabels_; ///< Output graph Z labels corresponding to SStype
 
     /// Elementary hydrogen bond pattern
-    enum PatternType {
+/*    enum PatternType {
       NOHBOND = 0, ///< No hydrogen bond
       TURNBEG,     ///< Start of n-Turn, >
       TURNEND,     ///< End of n-Turn, <
@@ -54,7 +54,7 @@ class Action_DSSP2 : public Action {
       TURN5,       ///< Inside i to i + 5 turn (T)
       BRIDGEPARA,  ///< (i-1,j) and (j,i+1) or (j-1,i) and (i,j+1), lower case
       BRIDGEANTI   ///< (i,j) and (j,i) or (i-1,j+1) and (j-1,i+1), upper case
-    };
+    };*/
 
     static const double DSSP_fac_;  ///< Original DSSP factor for calc. H-bond "energy"
     static const double DSSP_cut_;  ///< Original DSSP H-bond energy cutoff in kcal/mol
@@ -84,6 +84,7 @@ class Action_DSSP2::SSres {
   public:
     SSres();
     int Idx()         const { return idx_; }
+    char ResChar()    const { return resChar_; }
     bool IsSelected() const { return isSelected_; }
     int C()           const { return C_; }
     int O()           const { return O_; }
@@ -101,7 +102,8 @@ class Action_DSSP2::SSres {
     const_iterator begin() const { return CO_HN_Hbonds_.begin(); }
     const_iterator end()   const { return CO_HN_Hbonds_.end(); }
 
-    void SetIdx(int i) { idx_ = i; }
+    void SetIdx(int i)       { idx_ = i; }
+    void SetResChar(char c)  { resChar_ = c; }
     void SetSelected(bool b) { isSelected_ = b; }
     void SetC(int i)         { C_ = i; }
     void SetO(int i)         { O_ = i; }
@@ -116,11 +118,12 @@ class Action_DSSP2::SSres {
     /// Add hbond from this CO to specified NH
     void AddHbond(int i) { CO_HN_Hbonds_.push_back( i ); }
   private:
-    HbArrayType CO_HN_Hbonds_; ///< This res C-O hbonded to these res H-N.
+    HbArrayType CO_HN_Hbonds_; ///< This res C-O hbonded to these res H-N (indicies into Residues_).
     DataSet* resDataSet_;      ///< DataSet for SS assignment each frame for this res.
-    double chirality_;         ///< dihedral CA[i-1, i, i+1, i+2]
+    double chirality_;         ///< Dihedral CA[i-1, i, i+1, i+2]
+    double bend_;              ///< Angle CA[i-2, i, i+2]
     int SScount_[NSSTYPE_];    ///< Hold count for each SS type
-    PatternType pattern_;      ///< Assigned hbond pattern for this frame
+    //PatternType pattern_;      ///< Assigned hbond pattern for this frame
     SStype sstype_;            ///< SS assignment for this frame
     int idx_;                  ///< Residue index in topology
     int C_;                    ///< Coord idx of BB carbon
@@ -128,6 +131,15 @@ class Action_DSSP2::SSres {
     int N_;                    ///< Coord idx of BB nitrogen
     int H_;                    ///< Coord idx of BB hydrogen
     int CA_;                   ///< Coord idx of BB alpha carbon
+    int bridge1idx_;           ///< Index in Residues_ of res this is bridged to
+    int bridge2idx_;           ///< Index in Residues_ of res this is bridged to
+    char resChar_;             ///< Single char residue ID
+    char TURN3_;               ///< Character if part of 3 turn
+    char TURN4_;               ///< Character if part of 4 turn
+    char TURN5_;               ///< Character if part of 5 turn
+    char BRIDGE1_;             ///< Bridge 1 character
+    char BRIDGE2_;             ///< Bridge 2 character
+    char SHEET_;               ///< Sheet character
     bool isSelected_;          ///< True if calculating SS for this residue.
 };
 #endif
