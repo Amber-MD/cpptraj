@@ -32,6 +32,8 @@ class Action_DSSP2 : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    bool isBonded(int,int) const;
+
     class ElemHbond;
     class SSres;
 
@@ -80,7 +82,6 @@ class Action_DSSP2 : public Action {
     ActionInit Init_;            ///< Hold pointers to master DSL/DFL
     bool printString_;           ///< If true print 1 char per residue indicating ss type
 };
-
 
 class Action_DSSP2::SSres {
     typedef std::vector<int> HbArrayType;
@@ -131,6 +132,7 @@ class Action_DSSP2::SSres {
     /// Add hbond from this CO to specified NH
     void AddHbond(int i) { CO_HN_Hbonds_.push_back( i ); }
   private:
+
     HbArrayType CO_HN_Hbonds_;  ///< This res C-O hbonded to these res H-N (indicies into Residues_).
     DataSet* resDataSet_;       ///< DataSet for SS assignment each frame for this res.
     double chirality_;          ///< Dihedral CA[i-1, i, i+1, i+2]

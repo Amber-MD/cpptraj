@@ -1,6 +1,6 @@
 #include <cmath> // sqrt
 #include <algorithm> // std::fill
-#include <set>
+//#include <set> // SET
 #include "Action_DSSP2.h"
 #include "CpptrajStdio.h"
 #include "DataSet.h"
@@ -327,6 +327,13 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
   return Action::OK;
 }
 
+/** \return true if idx1 is CO-NH bonded to idx2.
+  */
+bool Action_DSSP2::isBonded(int idx1, int idx2) const {
+  if (idx1 < 0 || idx2 < 0) return false;
+  return ( std::find( Residues_[idx1].begin(), Residues_[idx1].end(), idx2 ) != Residues_[idx1].end() );
+}
+
 // Action_DSSP2::DoAction()
 Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 {
@@ -385,19 +392,21 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif
+/* // SET
   typedef std::pair<int,int> HbondPairType;
   typedef std::set<HbondPairType> HbondMapType;
   /// Map resi (CO) to resj (NH) potential bridge hbonds
   HbondMapType bridgeHbonds;
+*/
   // Do basic assignment
-  for (unsigned int riidx = 0; riidx != Residues_.size(); riidx++)
+  for (int riidx = 0; riidx != (int)Residues_.size(); riidx++)
   {
-    SSres& Resi = Residues_[riidx];
+    SSres const& Resi = Residues_[riidx];
     mprintf("Res %8i %c", Resi.Num()+1, Resi.ResChar()); // DBG
     // Loop over all residues this residue is h-bonded to looking for turns.
     for (SSres::const_iterator rjidx = Resi.begin(); rjidx != Resi.end(); ++rjidx)
     {
-      SSres& Resj = Residues_[*rjidx];
+      SSres const& Resj = Residues_[*rjidx];
       mprintf(" %8i", Resj.Num()+1); // DBG
       int resDelta = Resj.Num() - Resi.Num();
       if (resDelta < 0) resDelta = -resDelta;
@@ -423,14 +432,34 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
         Residues_[riidx+3].SetTurn(T5);
         Residues_[riidx+4].SetTurn(T5);
         Residues_[riidx+5].SetEnd(T5);
-      } else {
+      } /*else { // SET
         // Potential bridge hbond
         bridgeHbonds.insert( HbondPairType(Resi.Num(), Resj.Num()) );
-      }
+      }*/
     } // END loop over hbonded residues
-    // Look for bridges
+    // Look for bridge to this res.
+    for (int rjidx = 0; rjidx != (int)Residues_.size(); rjidx++)
+    {
+      SSres const& Resj = Residues_[rjidx];
+      // Only consider residues spaced more than 5 apart.
+      int resDelta = Resj.Num() - Resi.Num();
+      if (resDelta < 0) resDelta = -resDelta;
+      if (resDelta > 5) {
+        if ( (isBonded(Resi.PrevIdx(), rjidx) && isBonded(rjidx, Resi.NextIdx())) ||
+             (isBonded(Resj.PrevIdx(), riidx) && isBonded(riidx, Resj.NextIdx())) )
+        {
+          mprintf("\tAssigning %i to parallel beta.\n", Resi.Num()+1);
+        } else if ( (isBonded(riidx, rjidx) && isBonded(rjidx, riidx)) ||
+                    (isBonded(Resi.PrevIdx(), Resj.NextIdx()) && isBonded(Resj.PrevIdx(), Resi.NextIdx())) )
+        {
+          mprintf("\tAssigning %i to anti-parallel beta.\n", Resi.Num()+1);
+        }
+      }
+    }
+    
     mprintf("\n"); // DBG
   }
+/* // SET
   mprintf("Potential bridge hbonds:\n");
   for (HbondMapType::const_iterator it = bridgeHbonds.begin(); it != bridgeHbonds.end(); ++it)
   {
@@ -467,6 +496,7 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
       continue;
     }
   }
+*/
 
   // DEBUG - Print basic assignment
   for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
