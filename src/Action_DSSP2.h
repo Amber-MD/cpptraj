@@ -34,6 +34,9 @@ class Action_DSSP2 : public Action {
 
     bool isBonded(int,int) const;
 
+    enum BridgeType { PARALLEL=0, ANTIPARALLEL };
+    void AssignBridge(int, int, BridgeType, char&);
+
     class ElemHbond;
     class SSres;
 
@@ -104,6 +107,8 @@ class Action_DSSP2::SSres {
     bool HasNH()          const { return (N_!=-1 && H_!=-1); }
     bool HasCA()          const { return (CA_!=-1); }
 
+    bool IsBridgedWith(int) const;
+    char StrandChar() const;
     void PrintSSchar() const;
 
     typedef HbArrayType::const_iterator const_iterator;
@@ -113,6 +118,8 @@ class Action_DSSP2::SSres {
     void SetBegin(ssCharType);
     void SetTurn(ssCharType);
     void SetEnd(ssCharType);
+
+    void SetBridge(int, char);
 
     void SetNum(int i)       { num_ = i; }
     void SetResChar(char c)  { resChar_ = c; }

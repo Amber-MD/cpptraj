@@ -1,10 +1,11 @@
 #include <cmath> // sqrt
 #include <algorithm> // std::fill
-//#include <set> // SET
+#include <set> // SET
 #include "Action_DSSP2.h"
 #include "CpptrajStdio.h"
 #include "DataSet.h"
 #include "DistRoutines.h"
+#include "Timer.h"
 
 // ----- SSres -----------------------------------------------------------------
 Action_DSSP2::SSres::SSres() :
@@ -71,9 +72,32 @@ void Action_DSSP2::SSres::SetTurn(ssCharType typeIn) {
   }
 }
 
+void Action_DSSP2::SSres::SetBridge(int idx, char bchar) {
+  if (bridge1idx_ == -1) {
+    bridge1idx_ = idx;
+    ssChar_[B1] = bchar;
+  } else if (bridge2idx_ == -1) {
+    bridge2idx_ = idx;
+    ssChar_[B2] = bchar;
+  } else
+    mprinterr("Error: Too many bridges for %i (to %i)\n", Num(), idx+1);
+}
+
+bool Action_DSSP2::SSres::IsBridgedWith(int idx2) const {
+  if (bridge1idx_ == idx2) return true;
+  if (bridge2idx_ == idx2) return true;
+  return false;
+}
+
+char Action_DSSP2::SSres::StrandChar() const {
+  // TODO ever b2?
+  return ssChar_[B1];
+}
+
 void Action_DSSP2::SSres::PrintSSchar() const {
-  mprintf("\t%8i %c %c %c %c\n", num_+1, resChar_,
-          ssChar_[T3], ssChar_[T4], ssChar_[T5]);
+  mprintf("\t%8i %c %c %c %c %c(%8i) %c(%8i)\n", num_+1, resChar_,
+          ssChar_[T3], ssChar_[T4], ssChar_[T5],
+          ssChar_[B1], bridge1idx_+1, ssChar_[B2], bridge2idx_+1);
 }
 
 // ----- Action_DSSP2 ----------------------------------------------------------
@@ -334,6 +358,31 @@ bool Action_DSSP2::isBonded(int idx1, int idx2) const {
   return ( std::find( Residues_[idx1].begin(), Residues_[idx1].end(), idx2 ) != Residues_[idx1].end() );
 }
 
+void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn, char& currentStrandChar) {
+  // By convention, always make idx1 the lower one
+  int idx1, idx2;
+  if (idx1in < idx2in) {
+    idx1 = idx1in;
+    idx2 = idx2in;
+  } else {
+    idx1 = idx2in;
+    idx2 = idx1in;
+  }
+  SSres& Resi = Residues_[idx1];
+  SSres& Resj = Residues_[idx2];
+  // Do not duplicate bridges
+  if (Resi.IsBridgedWith(idx2)) return;
+  char prevStrandChar = Residues_[Resi.PrevIdx()].StrandChar();
+  if (prevStrandChar == ' ') {
+    prevStrandChar = currentStrandChar;
+    currentStrandChar++;
+  }
+  if (btypeIn == ANTIPARALLEL)
+    prevStrandChar = toupper( prevStrandChar );
+  Resi.SetBridge( idx2, prevStrandChar );
+  Resj.SetBridge( idx1, prevStrandChar );
+}
+
 // Action_DSSP2::DoAction()
 Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 {
@@ -392,12 +441,13 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif
-/* // SET
+ // SET
   typedef std::pair<int,int> HbondPairType;
   typedef std::set<HbondPairType> HbondMapType;
   /// Map resi (CO) to resj (NH) potential bridge hbonds
   HbondMapType bridgeHbonds;
-*/
+
+  Timer t_oldBridge;
   // Do basic assignment
   for (int riidx = 0; riidx != (int)Residues_.size(); riidx++)
   {
@@ -432,12 +482,14 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
         Residues_[riidx+3].SetTurn(T5);
         Residues_[riidx+4].SetTurn(T5);
         Residues_[riidx+5].SetEnd(T5);
-      } /*else { // SET
+      } else { // SET
         // Potential bridge hbond
         bridgeHbonds.insert( HbondPairType(Resi.Num(), Resj.Num()) );
-      }*/
+      }
     } // END loop over hbonded residues
+
     // Look for bridge to this res.
+    t_oldBridge.Start();
     for (int rjidx = 0; rjidx != (int)Residues_.size(); rjidx++)
     {
       SSres const& Resj = Residues_[rjidx];
@@ -448,19 +500,23 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
         if ( (isBonded(Resi.PrevIdx(), rjidx) && isBonded(rjidx, Resi.NextIdx())) ||
              (isBonded(Resj.PrevIdx(), riidx) && isBonded(riidx, Resj.NextIdx())) )
         {
-          mprintf("\tAssigning %i to parallel beta.\n", Resi.Num()+1);
+          mprintf("\tAssigning %i to parallel beta with %i.\n", Resi.Num()+1, Resj.Num()+1);
         } else if ( (isBonded(riidx, rjidx) && isBonded(rjidx, riidx)) ||
                     (isBonded(Resi.PrevIdx(), Resj.NextIdx()) && isBonded(Resj.PrevIdx(), Resi.NextIdx())) )
         {
-          mprintf("\tAssigning %i to anti-parallel beta.\n", Resi.Num()+1);
+          mprintf("\tAssigning %i to anti-parallel beta with %i.\n", Resi.Num()+1, Resj.Num()+1);
         }
       }
     }
+    t_oldBridge.Stop();
     
     mprintf("\n"); // DBG
   }
-/* // SET
+ // SET
+  Timer t_bridgeSearch;
+  t_bridgeSearch.Start();
   mprintf("Potential bridge hbonds:\n");
+  char currentStrandChar = 'a';
   for (HbondMapType::const_iterator it = bridgeHbonds.begin(); it != bridgeHbonds.end(); ++it)
   {
     mprintf("\t%8i -- %8i\n", it->first+1, it->second+1);
@@ -469,13 +525,15 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
     // Assume (i-1, j). Check for (j, i+1) PARALLEL
     HbondMapType::iterator hb = bridgeHbonds.find( HbondPairType(it->second, it->first+2) );
     if (hb != bridgeHbonds.end()) {
-      mprintf("\t\t%i PARALLEL with %i\n", it->first+2, it->second+1);
+      mprintf("\t\t%i PARALLELa with %i (%i)\n", it->first+2, it->second+1, hb->first+1);
+      AssignBridge(it->first+1, it->second, PARALLEL, currentStrandChar);
       continue;
     }
     // Assume (j, i+1). Check for (i-1, j)
     hb = bridgeHbonds.find( HbondPairType(it->second-2, it->first) );
     if (hb != bridgeHbonds.end()) {
-      mprintf("\t\t%i PARALLEL with %i\n", it->second+2, it->first+1);
+      mprintf("\t\t%i PARALLELb with %i (%i)\n", it->second+2, it->first+1, hb->first+1);
+      AssignBridge(it->second+1, it->first, PARALLEL, currentStrandChar);
       continue;
     }
     // Assume (j-1, i). Check for (i, j+1)
@@ -486,17 +544,22 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
     // Assume (i,j). Look for (j,i)
     hb = bridgeHbonds.find( HbondPairType(it->second, it->first) );
     if (hb != bridgeHbonds.end()) {
-      mprintf("\t\t%i ANTI-PARALLEL with %i\n", it->first+1, it->second+1);
+      mprintf("\t\t%i ANTI-PARALLELa with %i (%i)\n", it->first+1, it->second+1, hb->first+1);
+      AssignBridge(it->first, it->second, ANTIPARALLEL, currentStrandChar);
       continue;
     }
     // Assume (i-1, j+1). Look for (j-1, i+1)
     hb = bridgeHbonds.find( HbondPairType(it->second-2, it->first+2) );
     if (hb != bridgeHbonds.end()) {
-      mprintf("\t\t%i ANTI-PARALLEL with %i\n", it->first+2, it->second);
+      mprintf("\t\t%i ANTI-PARALLELb with %i (%i)\n", it->first+2, it->second, hb->first+1);
+      AssignBridge(it->first+1, it->second-1, ANTIPARALLEL, currentStrandChar);
       continue;
     }
   }
-*/
+  t_bridgeSearch.Stop();
+  t_oldBridge.WriteTiming(1, "OldBridge");
+  t_bridgeSearch.WriteTiming(1, "BridgeSearch");
+
 
   // DEBUG - Print basic assignment
   for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
