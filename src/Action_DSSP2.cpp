@@ -11,7 +11,7 @@ Action_DSSP2::SSres::SSres() :
   chirality_(0),
 //  pattern_(NOHBOND),
   sstype_(NONE),
-  idx_(-1),
+  num_(-1),
   C_(-1),
   O_(-1),
   N_(-1),
@@ -69,7 +69,7 @@ void Action_DSSP2::SSres::SetTurn(ssCharType typeIn) {
 }
 
 void Action_DSSP2::SSres::PrintSSchar() const {
-  mprintf("\t%8i %c %c %c %c\n", idx_+1, resChar_,
+  mprintf("\t%8i %c %c %c %c\n", num_+1, resChar_,
           ssChar_[T3], ssChar_[T4], ssChar_[T5]);
 }
 
@@ -229,16 +229,16 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
   SSarrayType::iterator Res = Residues_.begin();
   for (Range::const_iterator ridx = soluteRes.begin(); ridx != soluteRes.end(); ++ridx, ++Res)
   {
-    if (Res->Idx() != -1) {
+    if (Res->Num() != -1) {
       // Residue has previously been set up. Check that indices match.
-      if (Res->Idx() != *ridx) {
+      if (Res->Num() != *ridx) {
         mprinterr("Error: Solute residue index %i does not match previously setup\n"
-                  "Error: index %i\n", *ridx, Res->Idx());
+                  "Error: index %i\n", *ridx, Res->Num());
         return Action::ERR;
       }
     } else {
       // Set up Residue. TODO also molecule index?
-      Res->SetIdx( *ridx );
+      Res->SetNum( *ridx );
       Res->SetResChar( setup.Top().Res(*ridx).SingleCharName() );
     }
     Residue const& thisRes = setup.Top().Res( *ridx );
@@ -284,7 +284,7 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
   // DEBUG - print each residue set up.
   for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
   {
-    mprintf("    %8i", it->Idx() + 1);
+    mprintf("    %8i", it->Num() + 1);
     PrintAtom(setup.Top(), BB_C_, it->C());
     PrintAtom(setup.Top(), BB_O_, it->O());
     PrintAtom(setup.Top(), BB_N_, it->N());
@@ -359,12 +359,13 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
   for (unsigned int riidx = 0; riidx != Residues_.size(); riidx++)
   {
     SSres& Resi = Residues_[riidx];
-    mprintf("Res %8i %c", Resi.Idx()+1, Resi.ResChar()); // DBG
+    mprintf("Res %8i %c", Resi.Num()+1, Resi.ResChar()); // DBG
+    // Loop over all residues this residue is h-bonded to looking for turns.
     for (SSres::const_iterator rjidx = Resi.begin(); rjidx != Resi.end(); ++rjidx)
     {
       SSres& Resj = Residues_[*rjidx];
-      mprintf(" %8i", Resj.Idx()+1); // DBG
-      int resDelta = Resj.Idx() - Resi.Idx();
+      mprintf(" %8i", Resj.Num()+1); // DBG
+      int resDelta = Resj.Num() - Resi.Num();
       if (resDelta < 0) resDelta = -resDelta;
       mprintf("(%4i)", resDelta);
       if (resDelta == 3) {
@@ -389,7 +390,8 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
         Residues_[riidx+4].SetTurn(T5);
         Residues_[riidx+5].SetEnd(T5);
       }
-    }
+    } // END loop over hbonded residues
+    // Look for bridges
     mprintf("\n"); // DBG
   }
 

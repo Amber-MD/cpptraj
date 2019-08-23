@@ -86,7 +86,7 @@ class Action_DSSP2::SSres {
     typedef std::vector<int> HbArrayType;
   public:
     SSres();
-    int Idx()         const { return idx_; }
+    int Num()         const { return num_; }
     char ResChar()    const { return resChar_; }
     bool IsSelected() const { return isSelected_; }
     int C()           const { return C_; }
@@ -111,7 +111,7 @@ class Action_DSSP2::SSres {
     void SetTurn(ssCharType);
     void SetEnd(ssCharType);
 
-    void SetIdx(int i)       { idx_ = i; }
+    void SetNum(int i)       { num_ = i; }
     void SetResChar(char c)  { resChar_ = c; }
     void SetSelected(bool b) { isSelected_ = b; }
     void SetC(int i)         { C_ = i; }
@@ -134,7 +134,7 @@ class Action_DSSP2::SSres {
     int SScount_[NSSTYPE_];     ///< Hold count for each SS type
     //PatternType pattern_;      ///< Assigned hbond pattern for this frame
     SStype sstype_;             ///< SS assignment for this frame
-    int idx_;                   ///< Residue index in topology
+    int num_;                   ///< Residue index in Topology
     int C_;                     ///< Coord idx of BB carbon
     int O_;                     ///< Coord idx of BB oxygen
     int N_;                     ///< Coord idx of BB nitrogen
