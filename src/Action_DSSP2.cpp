@@ -1,5 +1,6 @@
 #include <cmath> // sqrt
 #include <algorithm> // std::fill
+#include <set>
 #include "Action_DSSP2.h"
 #include "CpptrajStdio.h"
 #include "DataSet.h"
@@ -384,6 +385,10 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif
+  typedef std::pair<int,int> HbondPairType;
+  typedef std::set<HbondPairType> HbondMapType;
+  /// Map resi (CO) to resj (NH) potential bridge hbonds
+  HbondMapType bridgeHbonds;
   // Do basic assignment
   for (unsigned int riidx = 0; riidx != Residues_.size(); riidx++)
   {
@@ -418,10 +423,49 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
         Residues_[riidx+3].SetTurn(T5);
         Residues_[riidx+4].SetTurn(T5);
         Residues_[riidx+5].SetEnd(T5);
+      } else {
+        // Potential bridge hbond
+        bridgeHbonds.insert( HbondPairType(Resi.Num(), Resj.Num()) );
       }
     } // END loop over hbonded residues
     // Look for bridges
     mprintf("\n"); // DBG
+  }
+  mprintf("Potential bridge hbonds:\n");
+  for (HbondMapType::const_iterator it = bridgeHbonds.begin(); it != bridgeHbonds.end(); ++it)
+  {
+    mprintf("\t%8i -- %8i\n", it->first+1, it->second+1);
+    // Start with the premise that this bond is part of one of the 4 potential bridge patterns.
+    // Then check if the compliment exists.
+    // Assume (i-1, j). Check for (j, i+1) PARALLEL
+    HbondMapType::iterator hb = bridgeHbonds.find( HbondPairType(it->second, it->first+2) );
+    if (hb != bridgeHbonds.end()) {
+      mprintf("\t\t%i PARALLEL with %i\n", it->first+2, it->second+1);
+      continue;
+    }
+    // Assume (j, i+1). Check for (i-1, j)
+    hb = bridgeHbonds.find( HbondPairType(it->second-2, it->first) );
+    if (hb != bridgeHbonds.end()) {
+      mprintf("\t\t%i PARALLEL with %i\n", it->second+2, it->first+1);
+      continue;
+    }
+    // Assume (j-1, i). Check for (i, j+1)
+    //hb = bridgeHbonds.find( HbondPairType(it->second, it->first+2) );
+    // Assume (i, j+1). Check for (j-1, i)
+    //hb = bridgeHbonds.find( HbondPairType(it->second-2, it->first) );
+
+    // Assume (i,j). Look for (j,i)
+    hb = bridgeHbonds.find( HbondPairType(it->second, it->first) );
+    if (hb != bridgeHbonds.end()) {
+      mprintf("\t\t%i ANTI-PARALLEL with %i\n", it->first+1, it->second+1);
+      continue;
+    }
+    // Assume (i-1, j+1). Look for (j-1, i+1)
+    hb = bridgeHbonds.find( HbondPairType(it->second-2, it->first+2) );
+    if (hb != bridgeHbonds.end()) {
+      mprintf("\t\t%i ANTI-PARALLEL with %i\n", it->first+2, it->second);
+      continue;
+    }
   }
 
   // DEBUG - Print basic assignment
