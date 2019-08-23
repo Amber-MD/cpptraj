@@ -20,15 +20,10 @@ Action_DSSP2::SSres::SSres() :
   bridge1idx_(-1),
   bridge2idx_(-1),
   resChar_(' '),
-  TURN3_(' '),
-  TURN4_(' '),
-  TURN5_(' '),
-  BRIDGE1_(' '),
-  BRIDGE2_(' '),
-  SHEET_(' '),
   isSelected_(false)
 {
-  std::fill(SScount_, SScount_ + NSSTYPE_, 0); 
+  std::fill(SScount_, SScount_ + NSSTYPE_, 0);
+  std::fill(ssChar_, ssChar_ + NSSCHARTYPE_, ' ');
 }
 
 void Action_DSSP2::SSres::Deselect() {
@@ -46,12 +41,36 @@ void Action_DSSP2::SSres::Unassign() {
   sstype_ = NONE;
   bridge1idx_ = -1;
   bridge2idx_ = -1;
-  TURN3_ = ' ';
-  TURN4_ = ' ';
-  TURN5_ = ' ';
-  BRIDGE1_ = ' ';
-  BRIDGE2_ = ' ';
-  SHEET_ = ' ';
+  std::fill(ssChar_, ssChar_ + NSSCHARTYPE_, ' ');
+}
+
+/** Set turn beginning. */
+void Action_DSSP2::SSres::SetBegin(ssCharType typeIn) {
+  if (ssChar_[typeIn] == '<')
+    ssChar_[typeIn] = 'X';
+  else
+    ssChar_[typeIn] = '>';
+}
+
+void Action_DSSP2::SSres::SetEnd(ssCharType typeIn) {
+  if (ssChar_[typeIn] == '>')
+    ssChar_[typeIn] = 'X';
+  else
+    ssChar_[typeIn] = '<';
+}
+
+void Action_DSSP2::SSres::SetTurn(ssCharType typeIn) {
+  // Do not overwrite an existing end character
+  if (ssChar_[typeIn] == ' ') {
+    if      (typeIn == T3) ssChar_[typeIn] = '3';
+    else if (typeIn == T4) ssChar_[typeIn] = '4';
+    else if (typeIn == T5) ssChar_[typeIn] = '5';
+  }
+}
+
+void Action_DSSP2::SSres::PrintSSchar() const {
+  mprintf("\t%8i %c %c %c %c\n", idx_, resChar_,
+          ssChar_[T3], ssChar_[T4], ssChar_[T5]);
 }
 
 // ----- Action_DSSP2 ----------------------------------------------------------
@@ -323,6 +342,10 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 #               endif
                 ResCO.AddHbond( resj );
               }
+#             ifdef DSSPDEBUG
+              else if (resDelta < 6)
+                mprintf("DBG: No hbond %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
+#             endif
             } // END ResNH selected
           } // END residues spaced > 2 apart
         } // END inner loop over residues
@@ -333,18 +356,45 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 } // END pragma omp parallel
 #endif
   // Do basic assignment
-  for (SSarrayType::const_iterator Resi = Residues_.begin(); Resi != Residues_.end(); ++Resi)
+  for (unsigned int riidx = 0; riidx != Residues_.size(); riidx++)
   {
-    mprintf("Res %8i %c", Resi->Idx()+1, Resi->ResChar()); // DBG
-    for (SSres::const_iterator rjidx = Resi->begin(); rjidx != Resi->end(); ++rjidx)
+    SSres& Resi = Residues_[riidx];
+    mprintf("Res %8i %c", Resi.Idx()+1, Resi.ResChar()); // DBG
+    for (SSres::const_iterator rjidx = Resi.begin(); rjidx != Resi.end(); ++rjidx)
     {
       SSres& Resj = Residues_[*rjidx];
       mprintf(" %8i", Resj.Idx()+1); // DBG
-      int resDelta = Resj.Idx() - Resi->Idx();
+      int resDelta = Resj.Idx() - Resi.Idx();
       if (resDelta < 0) resDelta = -resDelta;
       mprintf("(%4i)", resDelta);
+      if (resDelta == 3) {
+        // 3-TURN
+        Residues_[riidx  ].SetBegin(T3);
+        Residues_[riidx+1].SetTurn(T3);
+        Residues_[riidx+2].SetTurn(T3);
+        Residues_[riidx+3].SetEnd(T3);
+      } else if (resDelta == 4) {
+        // 4-TURN
+        Residues_[riidx  ].SetBegin(T4);
+        Residues_[riidx+1].SetTurn(T4);
+        Residues_[riidx+2].SetTurn(T4);
+        Residues_[riidx+3].SetTurn(T4);
+        Residues_[riidx+4].SetEnd(T4);
+      } else if (resDelta == 5) {
+        // 5-TURN
+        Residues_[riidx  ].SetBegin(T5);
+        Residues_[riidx+1].SetTurn(T5);
+        Residues_[riidx+2].SetTurn(T5);
+        Residues_[riidx+3].SetTurn(T5);
+        Residues_[riidx+4].SetTurn(T5);
+        Residues_[riidx+5].SetEnd(T5);
+      }
     }
     mprintf("\n"); // DBG
   }
+
+  // DEBUG - Print basic assignment
+  for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
+    it->PrintSSchar();
   return Action::OK;
 }
