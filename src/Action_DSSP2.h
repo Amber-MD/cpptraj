@@ -94,6 +94,8 @@ class Action_DSSP2::SSres {
     int N()           const { return N_; }
     int H()           const { return H_; }
     int CA()          const { return CA_; }
+    int PrevIdx()     const { return prevIdx_; }
+    int NextIdx()     const { return nextIdx_; }
     DataSet* Dset()   const { return resDataSet_; }
 
     bool IsMissingAtoms() const { return (C_==-1 || O_==-1 || N_==-1 || H_==-1 || CA_==-1); }
@@ -119,6 +121,8 @@ class Action_DSSP2::SSres {
     void SetN(int i)         { N_ = i; }
     void SetH(int i)         { H_ = i; }
     void SetCA(int i)        { CA_ = i; }
+    void SetPrevIdx(int i)   { prevIdx_ = i; }
+    void SetNextIdx(int i)   { nextIdx_ = i; }
     void SetDset(DataSet* d) { resDataSet_ = d; }
     /// Deselect this residue and reset coordinate indices.
     void Deselect();
@@ -138,8 +142,10 @@ class Action_DSSP2::SSres {
     int C_;                     ///< Coord idx of BB carbon
     int O_;                     ///< Coord idx of BB oxygen
     int N_;                     ///< Coord idx of BB nitrogen
-    int H_;                    ///< Coord idx of BB hydrogen
+    int H_;                     ///< Coord idx of BB hydrogen
     int CA_;                    ///< Coord idx of BB alpha carbon
+    int prevIdx_;               ///< Index in Residues_ of previous residue
+    int nextIdx_;               ///< Index in Residues_ of next residue
     int bridge1idx_;            ///< Index in Residues_ of res this is bridged to
     int bridge2idx_;            ///< Index in Residues_ of res this is bridged to
     char resChar_;              ///< Single char residue ID

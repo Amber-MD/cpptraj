@@ -17,6 +17,8 @@ Action_DSSP2::SSres::SSres() :
   N_(-1),
   H_(-1),
   CA_(-1),
+  prevIdx_(-1),
+  nextIdx_(-1),
   bridge1idx_(-1),
   bridge2idx_(-1),
   resChar_(' '),
@@ -229,6 +231,7 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
   SSarrayType::iterator Res = Residues_.begin();
   for (Range::const_iterator ridx = soluteRes.begin(); ridx != soluteRes.end(); ++ridx, ++Res)
   {
+    Residue const& thisRes = setup.Top().Res( *ridx );
     if (Res->Num() != -1) {
       // Residue has previously been set up. Check that indices match.
       if (Res->Num() != *ridx) {
@@ -239,9 +242,34 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
     } else {
       // Set up Residue. TODO also molecule index?
       Res->SetNum( *ridx );
-      Res->SetResChar( setup.Top().Res(*ridx).SingleCharName() );
+      Res->SetResChar( thisRes.SingleCharName() );
+      // Determine the previous and next residues
+      int prevresnum = -1;
+      int nextresnum = -1;
+      for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++) {
+        if ( setup.Top()[at].Element() != Atom::HYDROGEN ) {
+          for (Atom::bond_iterator ib = setup.Top()[at].bondbegin();
+                                   ib != setup.Top()[at].bondend(); ++ib)
+          {
+            if ( setup.Top()[*ib].ResNum() < *ridx ) {
+              if (prevresnum != -1)
+                mprintf("Warning: Multiple previous residues for res %i\n", *ridx+1);
+              else
+                prevresnum = setup.Top()[*ib].ResNum();
+            } else if ( setup.Top()[*ib].ResNum() > *ridx ) {
+              if (nextresnum != -1)
+                mprintf("Warning: Multiple next residues for res %i\n", *ridx+1);
+              else
+                nextresnum = setup.Top()[*ib].ResNum();
+            }
+          }
+        }
+      }
+      mprintf("\t %8i < %8i < %8i\n", prevresnum+1, *ridx+1, nextresnum+1);
+      // Here we assume that residues are sequential!
+      if (prevresnum > -1) Res->SetPrevIdx( Res-Residues_.begin()-1 );
+      if (nextresnum > -1) Res->SetNextIdx( Res-Residues_.begin()+1 );
     }
-    Residue const& thisRes = setup.Top().Res( *ridx );
     // Determine if this residue is selected
     if (Mask_.AtomsInCharMask(thisRes.FirstAtom(), thisRes.LastAtom())) {
       Res->SetSelected( true );
@@ -290,6 +318,7 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
     PrintAtom(setup.Top(), BB_N_, it->N());
     PrintAtom(setup.Top(), BB_H_, it->H());
     PrintAtom(setup.Top(), BB_CA_, it->CA());
+    mprintf(" Prev=%8i Next=%8i", it->PrevIdx(), it->NextIdx());
     mprintf("\n");
   }
   
