@@ -509,7 +509,6 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
       }
     }
     t_oldBridge.Stop();
-    
     mprintf("\n"); // DBG
   }
  // SET
@@ -532,8 +531,8 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
     // Assume (j, i+1). Check for (i-1, j)
     hb = bridgeHbonds.find( HbondPairType(it->second-2, it->first) );
     if (hb != bridgeHbonds.end()) {
-      mprintf("\t\t%i PARALLELb with %i (%i)\n", it->second+2, it->first+1, hb->first+1);
-      AssignBridge(it->second+1, it->first, PARALLEL, currentStrandChar);
+      mprintf("\t\t%i PARALLELb with %i (%i)\n", it->second, it->first+1, hb->first+1);
+      AssignBridge(it->second-1, it->first, PARALLEL, currentStrandChar);
       continue;
     }
     // Assume (j-1, i). Check for (i, j+1)
