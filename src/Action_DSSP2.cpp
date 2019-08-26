@@ -125,22 +125,35 @@ void Action_DSSP2::SSres::SetTurn(ssCharType typeIn) {
   }
 }
 
+int Action_DSSP2::SSres::ssPriority(SStype typeIn) {
+  switch (typeIn) {
+    case ALPHA    : return 8;
+    case BRIDGE   : return 7;
+    case EXTENDED : return 6;
+    case H3_10    : return 5;
+    case HPI      : return 4;
+    case TURN     : return 3;
+    case BEND     : return 2;
+    case NONE     : return 1;
+  }
+  return 0;
+}
+
+void Action_DSSP2::SSres::SetSS(SStype typeIn) {
+  if (ssPriority(typeIn) > ssPriority(sstype_))
+    sstype_ = typeIn;
+}
+
 bool Action_DSSP2::SSres::HasTurnType(ssCharType typeIn) const {
   if (ssChar_[typeIn] != ' ') return true;
   return false;
 }
 
 bool Action_DSSP2::SSres::HasTurnStart(ssCharType typeIn) const {
-  if (ssChar_[typeIn] == '>') return true;
+  if (ssChar_[typeIn] == '>' ||
+      ssChar_[typeIn] == 'X')
+    return true;
   return false;
-}
-
-bool Action_DSSP2::SSres::HasNonTerminal(ssCharType typeIn) const {
-  if (ssChar_[typeIn] == ' ' ||
-      ssChar_[typeIn] == '>' ||
-      ssChar_[typeIn] == '<') 
-    return false;
-  return true;
 }
 
 void Action_DSSP2::SSres::SetBridge(int idx, char bchar) {
@@ -881,46 +894,45 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
   // Do SS assignment.
   // Priority is 'H', 'B', 'E', 'G', 'I', 'T', 'S'
   resi = 0;
-  while (resi < Nres) {
+  for (resi = 0; resi < Nres; resi++)
+  {
     mprintf("Residue %i\n", resi+1);
     SSres& Resi = Residues_[resi];
     int prevRes = resi - 1;
     int nextRes = resi + 1;
-    if ( Resi.HasTurnStart(T4) && prevRes > 0 && Residues_[prevRes].HasTurnStart(T4) )
+    if ( Resi.HasTurnStart(T4) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T4) )
     {
       // Alpha helix.
       mprintf("ALPHA helix starting at %i\n", resi+1);
-      while (Residues_[resi+1].HasTurnType(T4)) {
-        Residues_[resi++].SetSS( ALPHA );
-        if (resi+1 == Nres) break;
-      }
+      Residues_[resi  ].SetSS( ALPHA );
+      Residues_[resi+1].SetSS( ALPHA );
+      Residues_[resi+2].SetSS( ALPHA );
+      Residues_[resi+3].SetSS( ALPHA );
     } else if (Resi.HasBridge()) {
       // Beta
-      if (nextRes == Nres || !Residues_[nextRes].HasBridge()) {
+      if ( (prevRes > -1   && Residues_[prevRes].HasBridge()) ||
+           (nextRes < Nres && Residues_[nextRes].HasBridge()) )
+      {
+        mprintf("Extended BETA bridge at %i\n", resi+1);
+        Resi.SetSS( EXTENDED );
+      } else {
         mprintf("Isolated BETA bridge at %i.\n", resi+1);
         Resi.SetSS( BRIDGE );
-        resi++;
-      } else {
-        mprintf("Extended BETA bridge starting from %i\n", resi+1);
-        while (Residues_[resi].HasBridge()) {
-          Residues_[resi++].SetSS( EXTENDED );
-          if (resi == Nres) break;
-        }
       }
-    } else if ( Resi.HasTurnStart(T3) && prevRes > 0 && Residues_[prevRes].HasTurnStart(T3)) {
+    } else if ( Resi.HasTurnStart(T3) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T3)) {
       // 3-10 helix
       mprintf("3-10 helix starting at %i\n", resi+1);
-      while (Residues_[resi+1].HasTurnType(T3)) {
-        Residues_[resi++].SetSS( H3_10 );
-        if (resi+1 == Nres) break;
-      }
-    } else if ( Resi.HasTurnStart(T5) && prevRes > 0 && Residues_[prevRes].HasTurnStart(T5)) {
+      Residues_[resi  ].SetSS( H3_10 );
+      Residues_[resi+1].SetSS( H3_10 );
+      Residues_[resi+2].SetSS( H3_10 );
+    } else if ( Resi.HasTurnStart(T5) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T5)) {
       // PI helix
       mprintf("PI helix starting at %i\n", resi+1);
-      while (Residues_[resi+1].HasTurnType(T5)) {
-        Residues_[resi++].SetSS( HPI );
-        if (resi+1 == Nres) break;
-      }
+      Residues_[resi  ].SetSS( HPI );
+      Residues_[resi+1].SetSS( HPI );
+      Residues_[resi+2].SetSS( HPI );
+      Residues_[resi+3].SetSS( HPI );
+      Residues_[resi+4].SetSS( HPI );
     } else {
       if (Resi.SS() == NONE) {
         // Check for Bend, which has lowest priority.
@@ -948,7 +960,6 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
           }
         }
       }
-      resi++;
     }
   }
   

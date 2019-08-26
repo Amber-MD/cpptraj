@@ -115,7 +115,6 @@ class Action_DSSP2::SSres {
 
     bool HasTurnType(ssCharType) const;
     bool HasTurnStart(ssCharType) const;
-    bool HasNonTerminal(ssCharType) const;
     bool HasBridge() const;
     bool IsBridgedWith(int) const;
     char StrandChar() const;
@@ -131,7 +130,7 @@ class Action_DSSP2::SSres {
 
     void SetBridge(int, char);
 
-    void SetSS(SStype s)     { sstype_ = s; }
+    void SetSS(SStype);
     void SetNum(int i)       { num_ = i; }
     void SetResChar(char c)  { resChar_ = c; }
     void SetSelected(bool b) { isSelected_ = b; }
@@ -150,6 +149,7 @@ class Action_DSSP2::SSres {
     /// Add hbond from this CO to specified NH
     void AddHbond(int i) { CO_HN_Hbonds_.push_back( i ); }
   private:
+    static inline int ssPriority(SStype);
 
     HbArrayType CO_HN_Hbonds_;  ///< This res C-O hbonded to these res H-N (indicies into Residues_).
     DataSet* resDataSet_;       ///< DataSet for SS assignment each frame for this res.
