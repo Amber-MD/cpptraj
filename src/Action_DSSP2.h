@@ -113,7 +113,6 @@ class Action_DSSP2::SSres {
     bool HasNH()          const { return (N_!=-1 && H_!=-1); }
     bool HasCA()          const { return (CA_!=-1); }
 
-    bool HasTurnType(ssCharType) const;
     bool HasTurnStart(ssCharType) const;
     bool HasBridge() const;
     bool IsBridgedWith(int) const;
@@ -148,7 +147,10 @@ class Action_DSSP2::SSres {
     void Unassign();
     /// Add hbond from this CO to specified NH
     void AddHbond(int i) { CO_HN_Hbonds_.push_back( i ); }
+    /// \return Relative priority of currently assigned SS type
+    int SSpriority() const;
   private:
+    /// \return Relative priority of given SS type
     static inline int ssPriority(SStype);
 
     HbArrayType CO_HN_Hbonds_;  ///< This res C-O hbonded to these res H-N (indicies into Residues_).

@@ -139,14 +139,14 @@ int Action_DSSP2::SSres::ssPriority(SStype typeIn) {
   return 0;
 }
 
-void Action_DSSP2::SSres::SetSS(SStype typeIn) {
-  if (ssPriority(typeIn) > ssPriority(sstype_))
-    sstype_ = typeIn;
+int Action_DSSP2::SSres::SSpriority() const {
+  return ssPriority(sstype_);
 }
 
-bool Action_DSSP2::SSres::HasTurnType(ssCharType typeIn) const {
-  if (ssChar_[typeIn] != ' ') return true;
-  return false;
+void Action_DSSP2::SSres::SetSS(SStype typeIn) {
+  // TODO check if the priority check is necessary
+  if (ssPriority(typeIn) > ssPriority(sstype_))
+    sstype_ = typeIn;
 }
 
 bool Action_DSSP2::SSres::HasTurnStart(ssCharType typeIn) const {
@@ -893,6 +893,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 
   // Do SS assignment.
   // Priority is 'H', 'B', 'E', 'G', 'I', 'T', 'S'
+  //              8    7    6    5    4    3    2
   resi = 0;
   for (resi = 0; resi < Nres; resi++)
   {
@@ -900,6 +901,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
     SSres& Resi = Residues_[resi];
     int prevRes = resi - 1;
     int nextRes = resi + 1;
+    int priority = Resi.SSpriority();
     if ( Resi.HasTurnStart(T4) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T4) )
     {
       // Alpha helix.
@@ -908,7 +910,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       Residues_[resi+1].SetSS( ALPHA );
       Residues_[resi+2].SetSS( ALPHA );
       Residues_[resi+3].SetSS( ALPHA );
-    } else if (Resi.HasBridge()) {
+    } else if (Resi.SS() != ALPHA && Resi.HasBridge()) {
       // Beta
       if ( (prevRes > -1   && Residues_[prevRes].HasBridge()) ||
            (nextRes < Nres && Residues_[nextRes].HasBridge()) )
@@ -919,13 +921,13 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
         mprintf("Isolated BETA bridge at %i.\n", resi+1);
         Resi.SetSS( BRIDGE );
       }
-    } else if ( Resi.HasTurnStart(T3) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T3)) {
+    } else if ( priority < 6 && Resi.HasTurnStart(T3) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T3)) {
       // 3-10 helix
       mprintf("3-10 helix starting at %i\n", resi+1);
       Residues_[resi  ].SetSS( H3_10 );
       Residues_[resi+1].SetSS( H3_10 );
       Residues_[resi+2].SetSS( H3_10 );
-    } else if ( Resi.HasTurnStart(T5) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T5)) {
+    } else if ( priority < 5 && Resi.HasTurnStart(T5) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T5)) {
       // PI helix
       mprintf("PI helix starting at %i\n", resi+1);
       Residues_[resi  ].SetSS( HPI );
