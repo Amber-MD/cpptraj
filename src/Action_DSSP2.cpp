@@ -384,8 +384,12 @@ void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn, char
 }
 
 // Action_DSSP2::DoAction()
-Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
+int Action_DSSP2::OverResidues(int frameNum, ActionFrame& frm)
 {
+  Timer t_overresidues;
+  t_overresidues.Start();
+  Timer t_calchb;
+  t_calchb.Start();
   int resi;
   int Nres = (int)Residues_.size();
   // The first pass is used to determine hydrogen bonding
@@ -428,10 +432,10 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 #               endif
                 ResCO.AddHbond( resj );
               }
-#             ifdef DSSPDEBUG
-              else if (resDelta < 6)
-                mprintf("DBG: No hbond %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
-#             endif
+//#             ifdef DSSPDEBUG
+//              else if (resDelta < 6)
+//                mprintf("DBG: No hbond %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
+//#             endif
             } // END ResNH selected
           } // END residues spaced > 2 apart
         } // END inner loop over residues
@@ -441,26 +445,31 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif
+  t_calchb.Stop();
+
+  Timer t_assign;
+  t_assign.Start();
+/*
  // SET
   typedef std::pair<int,int> HbondPairType;
   typedef std::set<HbondPairType> HbondMapType;
   /// Map resi (CO) to resj (NH) potential bridge hbonds
   HbondMapType bridgeHbonds;
-
-  Timer t_oldBridge;
+*/
+//  Timer t_oldBridge;
   // Do basic assignment
   for (int riidx = 0; riidx != (int)Residues_.size(); riidx++)
   {
     SSres const& Resi = Residues_[riidx];
-    mprintf("Res %8i %c", Resi.Num()+1, Resi.ResChar()); // DBG
+    mprintf("Res %8i %c\n", Resi.Num()+1, Resi.ResChar()); // DBG
     // Loop over all residues this residue is h-bonded to looking for turns.
     for (SSres::const_iterator rjidx = Resi.begin(); rjidx != Resi.end(); ++rjidx)
     {
       SSres const& Resj = Residues_[*rjidx];
-      mprintf(" %8i", Resj.Num()+1); // DBG
+      mprintf("\t%8i %c", Resj.Num()+1, Resj.ResChar()); // DBG
       int resDelta = Resj.Num() - Resi.Num();
       if (resDelta < 0) resDelta = -resDelta;
-      mprintf("(%4i)", resDelta);
+      mprintf("(%4i)\n", resDelta);
       if (resDelta == 3) {
         // 3-TURN
         Residues_[riidx  ].SetBegin(T3);
@@ -482,35 +491,35 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
         Residues_[riidx+3].SetTurn(T5);
         Residues_[riidx+4].SetTurn(T5);
         Residues_[riidx+5].SetEnd(T5);
-      } else { // SET
+      } /*else { // SET
         // Potential bridge hbond
         bridgeHbonds.insert( HbondPairType(Resi.Num(), Resj.Num()) );
-      }
+      }*/
     } // END loop over hbonded residues
 
     // Look for bridge to this res.
-    t_oldBridge.Start();
+//    t_oldBridge.Start();
     for (int rjidx = 0; rjidx != (int)Residues_.size(); rjidx++)
     {
       SSres const& Resj = Residues_[rjidx];
-      // Only consider residues spaced more than 5 apart.
+      // Only consider residues spaced more than 2 apart.
       int resDelta = Resj.Num() - Resi.Num();
       if (resDelta < 0) resDelta = -resDelta;
-      if (resDelta > 5) {
+      if (resDelta > 2) {
         if ( (isBonded(Resi.PrevIdx(), rjidx) && isBonded(rjidx, Resi.NextIdx())) ||
              (isBonded(Resj.PrevIdx(), riidx) && isBonded(riidx, Resj.NextIdx())) )
         {
-          mprintf("\tAssigning %i to parallel beta with %i.\n", Resi.Num()+1, Resj.Num()+1);
+          mprintf("\t\tAssigning %i to parallel beta with %i.\n", Resi.Num()+1, Resj.Num()+1);
         } else if ( (isBonded(riidx, rjidx) && isBonded(rjidx, riidx)) ||
                     (isBonded(Resi.PrevIdx(), Resj.NextIdx()) && isBonded(Resj.PrevIdx(), Resi.NextIdx())) )
         {
-          mprintf("\tAssigning %i to anti-parallel beta with %i.\n", Resi.Num()+1, Resj.Num()+1);
+          mprintf("\t\tAssigning %i to anti-parallel beta with %i.\n", Resi.Num()+1, Resj.Num()+1);
         }
       }
     }
-    t_oldBridge.Stop();
-    mprintf("\n"); // DBG
+//    t_oldBridge.Stop();
   }
+/*
  // SET
   Timer t_bridgeSearch;
   t_bridgeSearch.Start();
@@ -556,10 +565,172 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
     }
   }
   t_bridgeSearch.Stop();
-  t_oldBridge.WriteTiming(1, "OldBridge");
-  t_bridgeSearch.WriteTiming(1, "BridgeSearch");
+*/
+  t_assign.Stop();
+  t_overresidues.Stop();
+
+  t_calchb.WriteTiming(1, "Calc Hbonds", t_overresidues.Total());
+  t_assign.WriteTiming(1, "Assignment ", t_overresidues.Total());
+//  t_oldBridge.WriteTiming(   2, "OldBridge   ", t_assign.Total());
+//  t_bridgeSearch.WriteTiming(2, "BridgeSearch", t_assign.Total());
+  t_overresidues.WriteTiming(0,"Over Residues");
+
+  return 0;
+}
 
 
+
+
+
+
+
+int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
+{
+  Timer t_overhbonds;
+  t_overhbonds.Start();
+  typedef std::pair<int,int> HbondPairType;
+  typedef std::set<HbondPairType> HbondMapType;
+  /// Map resi (CO) to resj (NH) potential bridge hbonds
+  HbondMapType CO_NH_bonds;
+
+  Timer t_calchb;
+  t_calchb.Start();
+  int resi;
+  int Nres = (int)Residues_.size();
+  // The first pass is used to determine hydrogen bonding
+#ifdef _OPENMP
+#pragma omp parallel private(resi)
+{
+#pragma omp for
+#endif /* _OPENMP */
+  for (resi = 0; resi < Nres; resi++)
+  {
+    if (Residues_[resi].IsSelected())
+    {
+      SSres& ResCO = Residues_[resi];
+      ResCO.Unassign();
+      if (ResCO.HasCO())
+      {
+        const double* Cxyz = frm.Frm().CRD( ResCO.C() );
+        const double* Oxyz = frm.Frm().CRD( ResCO.O() );
+        for (int resj = 0; resj < Nres; resj++)
+        {
+          // Only consider residues spaced more than 2 apart.
+          int resDelta = resi - resj;
+          if (resDelta < 0) resDelta = -resDelta;
+          if (resDelta > 2) {
+            SSres& ResNH = Residues_[resj];
+            if (ResNH.IsSelected() && ResNH.HasNH())
+            {
+              const double* Nxyz = frm.Frm().CRD( ResNH.N() );
+              const double* Hxyz = frm.Frm().CRD( ResNH.H() );
+
+              double rON = 1.0/sqrt(DIST2_NoImage(Oxyz, Nxyz));
+              double rCH = 1.0/sqrt(DIST2_NoImage(Cxyz, Hxyz));
+              double rOH = 1.0/sqrt(DIST2_NoImage(Oxyz, Hxyz));
+              double rCN = 1.0/sqrt(DIST2_NoImage(Cxyz, Nxyz));
+
+              double E = DSSP_fac_ * (rON + rCH - rOH - rCN);
+              if (E < DSSP_cut_) {
+#               ifdef DSSPDEBUG
+                mprintf("DBG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
+#               endif
+                CO_NH_bonds.insert( HbondPairType(resi, resj) );
+              }
+//#             ifdef DSSPDEBUG
+//              else if (resDelta < 6)
+//                mprintf("DBG: No hbond %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
+//#             endif
+            } // END ResNH selected
+          } // END residues spaced > 2 apart
+        } // END inner loop over residues
+      } // END has CO
+    } // END ResCO selected
+  } // END outer loop over residues
+#ifdef _OPENMP
+} // END pragma omp parallel
+#endif
+  t_calchb.Stop();
+
+  Timer t_assign;
+  t_assign.Start();
+  // Do basic assignment
+  char currentStrandChar = 'a';
+  for (HbondMapType::const_iterator hb0 = CO_NH_bonds.begin(); hb0 != CO_NH_bonds.end(); ++hb0)
+  {
+    int riidx = hb0->first;
+    int rjidx = hb0->second;
+    SSres const& Resi = Residues_[riidx];
+    SSres const& Resj = Residues_[rjidx];
+    mprintf("Res %8i %c -- %8i %c", Resi.Num()+1, Resi.ResChar(),
+                                    Resj.Num()+1, Resj.ResChar()); // DBG
+    // Spacing between residues i and j
+    int resDelta = Resj.Num() - Resi.Num();
+    if (resDelta < 0) resDelta = -resDelta;
+    mprintf("(%4i)\n", resDelta);
+    if (resDelta == 3) {
+      // 3-TURN
+      Residues_[riidx  ].SetBegin(T3);
+      Residues_[riidx+1].SetTurn(T3);
+      Residues_[riidx+2].SetTurn(T3);
+      Residues_[riidx+3].SetEnd(T3);
+    } else if (resDelta == 4) {
+      // 4-TURN
+      Residues_[riidx  ].SetBegin(T4);
+      Residues_[riidx+1].SetTurn(T4);
+      Residues_[riidx+2].SetTurn(T4);
+      Residues_[riidx+3].SetTurn(T4);
+      Residues_[riidx+4].SetEnd(T4);
+    } else if (resDelta == 5) {
+      // 5-TURN
+      Residues_[riidx  ].SetBegin(T5);
+      Residues_[riidx+1].SetTurn(T5);
+      Residues_[riidx+2].SetTurn(T5);
+      Residues_[riidx+3].SetTurn(T5);
+      Residues_[riidx+4].SetTurn(T5);
+      Residues_[riidx+5].SetEnd(T5);
+    }
+    // Look for bridge. Start with the premise that this bond is part of one
+    // of the 4 potential bridge patterns, then check if the compliment exists.
+    // Assume (i-1, j). Check for (j, i+1) PARALLEL
+    HbondMapType::iterator hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first+2) );
+    if (hb != CO_NH_bonds.end()) {
+      mprintf("\t\t%i PARALLELa with %i (%i)\n", hb0->first+2, hb0->second+1, hb->first+1);
+      AssignBridge(hb0->first+1, hb0->second, PARALLEL, currentStrandChar);
+    }
+    // Assume (j, i+1). Check for (i-1, j)
+    hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first) );
+    if (hb != CO_NH_bonds.end()) {
+      mprintf("\t\t%i PARALLELb with %i (%i)\n", hb0->second, hb0->first+1, hb->first+1);
+      AssignBridge(hb0->second-1, hb0->first, PARALLEL, currentStrandChar);
+    }
+    // Assume (i,j). Look for (j,i)
+    hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first) );
+    if (hb != CO_NH_bonds.end()) {
+      mprintf("\t\t%i ANTI-PARALLELa with %i (%i)\n", hb0->first+1, hb0->second+1, hb->first+1);
+      AssignBridge(hb0->first, hb0->second, ANTIPARALLEL, currentStrandChar);
+    }
+    // Assume (i-1, j+1). Look for (j-1, i+1)
+    hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first+2) );
+    if (hb != CO_NH_bonds.end()) {
+      mprintf("\t\t%i ANTI-PARALLELb with %i (%i)\n", hb0->first+2, hb0->second, hb->first+1);
+      AssignBridge(hb0->first+1, hb0->second-1, ANTIPARALLEL, currentStrandChar);
+    }
+
+  }
+  t_assign.Stop();
+
+  t_overhbonds.Stop();
+  t_calchb.WriteTiming(1, "Calc Hbonds", t_overhbonds.Total());
+  t_assign.WriteTiming(1, "Assignment ", t_overhbonds.Total());
+  t_overhbonds.WriteTiming(0,"Over Hbonds");
+  return 0;
+}
+
+Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
+{
+  OverResidues(frameNum, frm);
+  OverHbonds(frameNum, frm);
   // DEBUG - Print basic assignment
   for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
     it->PrintSSchar();

@@ -2,6 +2,9 @@
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#ifdef DSSPDEBUG
+#include "Timer.h"
+#endif
 /// Hbond energy calc prefactor for kcal/mol: q1*q2*E, 0.42*0.20*332
 const double Action_DSSP::DSSP_fac = 27.888;
 
@@ -323,6 +326,12 @@ Action::RetType Action_DSSP::DoAction(int frameNum, ActionFrame& frm) {
   int resi, resj;
   const double *C, *O, *H, *N;
   double rON, rCH, rOH, rCN, E;
+# ifdef DSSPDEBUG
+  Timer t_total;
+  t_total.Start();
+  Timer t_calchb;
+  t_calchb.Start();
+# endif
   // Determine C=O to H-N hydrogen bonds for each residue to each other residue
 #ifdef _OPENMP
 #pragma omp parallel private(resi,resj,C,O,H,N,rON, rCH, rOH, rCN, E)
@@ -363,6 +372,11 @@ Action::RetType Action_DSSP::DoAction(int frameNum, ActionFrame& frm) {
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif
+# ifdef DSSPDEBUG
+  t_calchb.Stop();
+  Timer t_assign;
+  t_assign.Start();
+# endif
 
   // Determine Secondary Structure based on Hbonding pattern.
   // In case of structural overlap, priority is given to the structure first 
@@ -507,6 +521,14 @@ Action::RetType Action_DSSP::DoAction(int frameNum, ActionFrame& frm) {
     totalDS_[i]->Add(frameNum, &fvar);
   }
   ++Nframe_;
+# ifdef DSSPDEBUG
+  t_assign.Start();
+  t_total.Stop();
+
+  t_calchb.WriteTiming(1, "Calc Hbonds", t_total.Total());
+  t_assign.WriteTiming(1, "Assignment ", t_total.Total());
+  t_total.WriteTiming(0, "Total");
+# endif
 
   return Action::OK;
 }
