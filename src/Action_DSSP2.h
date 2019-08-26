@@ -93,6 +93,9 @@ class Action_DSSP2::SSres {
     typedef std::vector<int> HbArrayType;
   public:
     SSres();
+    SSres(SSres const&);
+    SSres& operator=(SSres const&);
+    SStype SS()       const { return sstype_; }
     int Num()         const { return num_; }
     char ResChar()    const { return resChar_; }
     bool IsSelected() const { return isSelected_; }
@@ -110,6 +113,10 @@ class Action_DSSP2::SSres {
     bool HasNH()          const { return (N_!=-1 && H_!=-1); }
     bool HasCA()          const { return (CA_!=-1); }
 
+    bool HasTurnType(ssCharType) const;
+    bool HasTurnStart(ssCharType) const;
+    bool HasNonTerminal(ssCharType) const;
+    bool HasBridge() const;
     bool IsBridgedWith(int) const;
     char StrandChar() const;
     void PrintSSchar() const;
@@ -124,6 +131,7 @@ class Action_DSSP2::SSres {
 
     void SetBridge(int, char);
 
+    void SetSS(SStype s)     { sstype_ = s; }
     void SetNum(int i)       { num_ = i; }
     void SetResChar(char c)  { resChar_ = c; }
     void SetSelected(bool b) { isSelected_ = b; }

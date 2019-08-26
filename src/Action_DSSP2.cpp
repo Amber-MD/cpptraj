@@ -11,6 +11,7 @@
 Action_DSSP2::SSres::SSres() :
   resDataSet_(0),
   chirality_(0),
+  bend_(0),
 //  pattern_(NOHBOND),
   sstype_(NONE),
   num_(-1),
@@ -29,6 +30,55 @@ Action_DSSP2::SSres::SSres() :
   std::fill(SScount_, SScount_ + NSSTYPE_, 0);
   std::fill(ssChar_, ssChar_ + NSSCHARTYPE_, ' ');
 }
+
+Action_DSSP2::SSres::SSres(SSres const& rhs) :
+  CO_HN_Hbonds_(rhs.CO_HN_Hbonds_),
+  resDataSet_(rhs.resDataSet_),
+  chirality_(rhs.chirality_),
+  bend_(rhs.bend_),
+  sstype_(rhs.sstype_),
+  num_(rhs.num_),
+  C_(rhs.C_),
+  O_(rhs.O_),
+  N_(rhs.N_),
+  H_(rhs.H_),
+  CA_(rhs.CA_),
+  prevIdx_(rhs.prevIdx_),
+  nextIdx_(rhs.nextIdx_),
+  bridge1idx_(rhs.bridge1idx_),
+  bridge2idx_(rhs.bridge2idx_),
+  resChar_(rhs.resChar_),
+  isSelected_(rhs.isSelected_)
+{
+  std::copy(rhs.SScount_, rhs.SScount_ + NSSTYPE_, SScount_);
+  std::copy(rhs.ssChar_, rhs.ssChar_ + NSSCHARTYPE_, ssChar_);
+}
+  
+Action_DSSP2::SSres& Action_DSSP2::SSres::operator=(SSres const& rhs) {
+  if (this == &rhs) return *this;
+  CO_HN_Hbonds_ = rhs.CO_HN_Hbonds_;
+  resDataSet_ = rhs.resDataSet_;
+  chirality_ = rhs.chirality_;
+  bend_ = rhs.bend_;
+  sstype_ = rhs.sstype_;
+  num_ = rhs.num_;
+  C_ = rhs.C_;
+  O_ = rhs.O_;
+  N_ = rhs.N_;
+  H_ = rhs.H_;
+  CA_ = rhs.CA_;
+  prevIdx_ = rhs.prevIdx_;
+  nextIdx_ = rhs.nextIdx_;
+  bridge1idx_ = rhs.bridge1idx_;
+  bridge2idx_ = rhs.bridge2idx_;
+  resChar_ = rhs.resChar_;
+  isSelected_ = rhs.isSelected_;
+  std::copy(rhs.SScount_, rhs.SScount_ + NSSTYPE_, SScount_);
+  std::copy(rhs.ssChar_, rhs.ssChar_ + NSSCHARTYPE_, ssChar_);
+  return *this;
+}
+
+
 
 void Action_DSSP2::SSres::Deselect() {
   isSelected_ = false;
@@ -72,6 +122,24 @@ void Action_DSSP2::SSres::SetTurn(ssCharType typeIn) {
   }
 }
 
+bool Action_DSSP2::SSres::HasTurnType(ssCharType typeIn) const {
+  if (ssChar_[typeIn] != ' ') return true;
+  return false;
+}
+
+bool Action_DSSP2::SSres::HasTurnStart(ssCharType typeIn) const {
+  if (ssChar_[typeIn] == '>') return true;
+  return false;
+}
+
+bool Action_DSSP2::SSres::HasNonTerminal(ssCharType typeIn) const {
+  if (ssChar_[typeIn] == ' ' ||
+      ssChar_[typeIn] == '>' ||
+      ssChar_[typeIn] == '<') 
+    return false;
+  return true;
+}
+
 void Action_DSSP2::SSres::SetBridge(int idx, char bchar) {
   if (bridge1idx_ == -1) {
     bridge1idx_ = idx;
@@ -81,6 +149,11 @@ void Action_DSSP2::SSres::SetBridge(int idx, char bchar) {
     ssChar_[B2] = bchar;
   } else
     mprinterr("Error: Too many bridges for %i (to %i)\n", Num(), idx+1);
+}
+
+bool Action_DSSP2::SSres::HasBridge() const {
+  if (bridge1idx_ != -1) return true;
+  return false;
 }
 
 bool Action_DSSP2::SSres::IsBridgedWith(int idx2) const {
@@ -95,9 +168,10 @@ char Action_DSSP2::SSres::StrandChar() const {
 }
 
 void Action_DSSP2::SSres::PrintSSchar() const {
-  mprintf("\t%8i %c %c %c %c %c(%8i) %c(%8i)\n", num_+1, resChar_,
+  mprintf("\t%8i %c %c %c %c %c(%8i) %c(%8i) %c\n", num_+1, resChar_,
           ssChar_[T3], ssChar_[T4], ssChar_[T5],
-          ssChar_[B1], bridge1idx_+1, ssChar_[B2], bridge2idx_+1);
+          ssChar_[B1], bridge1idx_+1, ssChar_[B2], bridge2idx_+1,
+          DSSP_char_[sstype_]);
 }
 
 // ----- Action_DSSP2 ----------------------------------------------------------
@@ -714,8 +788,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 
   Timer t_assign;
   t_assign.Start();
-  // Do basic assignment
-  char currentStrandChar = 'a';
+  // Do basic assignment.
   for (HbondMapType::const_iterator hb0 = CO_NH_bonds.begin(); hb0 != CO_NH_bonds.end(); ++hb0)
   {
     int riidx = hb0->first;
@@ -734,6 +807,8 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       Residues_[riidx+1].SetTurn(T3);
       Residues_[riidx+2].SetTurn(T3);
       Residues_[riidx+3].SetEnd(T3);
+      Residues_[riidx+1].SetSS( TURN );
+      Residues_[riidx+2].SetSS( TURN );
     } else if (resDelta == 4) {
       // 4-TURN
       Residues_[riidx  ].SetBegin(T4);
@@ -741,6 +816,9 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       Residues_[riidx+2].SetTurn(T4);
       Residues_[riidx+3].SetTurn(T4);
       Residues_[riidx+4].SetEnd(T4);
+      Residues_[riidx+1].SetSS( TURN );
+      Residues_[riidx+2].SetSS( TURN );
+      Residues_[riidx+3].SetSS( TURN );
     } else if (resDelta == 5) {
       // 5-TURN
       Residues_[riidx  ].SetBegin(T5);
@@ -749,6 +827,10 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       Residues_[riidx+3].SetTurn(T5);
       Residues_[riidx+4].SetTurn(T5);
       Residues_[riidx+5].SetEnd(T5);
+      Residues_[riidx+1].SetSS( TURN );
+      Residues_[riidx+2].SetSS( TURN );
+      Residues_[riidx+3].SetSS( TURN );
+      Residues_[riidx+4].SetSS( TURN );
     }
     // Look for bridge. Start with the premise that this bond is part of one
     // of the 4 potential bridge patterns, then check if the compliment exists.
@@ -778,6 +860,80 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
     }
 
   } // END loop over Hbonds
+
+  // Do SS assignment.
+  // Priority is 'H', 'B', 'E', 'G', 'I', 'T', 'S'
+  resi = 0;
+  while (resi < Nres) {
+    mprintf("Residue %i\n", resi+1);
+    SSres& Resi = Residues_[resi];
+    int prevRes = resi - 1;
+    int nextRes = resi + 1;
+    if ( Resi.HasTurnStart(T4) && prevRes > 0 && Residues_[prevRes].HasTurnStart(T4) )
+    {
+      // Alpha helix.
+      mprintf("ALPHA helix starting at %i\n", resi+1);
+      while (Residues_[resi+1].HasTurnType(T4)) {
+        Residues_[resi++].SetSS( ALPHA );
+        if (resi+1 == Nres) break;
+      }
+    } else if (Resi.HasBridge()) {
+      // Beta
+      if (nextRes == Nres || !Residues_[nextRes].HasBridge()) {
+        mprintf("Isolated BETA bridge at %i.\n", resi+1);
+        Resi.SetSS( BRIDGE );
+      } else {
+        mprintf("Extended BETA bridge starting from %i\n", resi+1);
+        while (Residues_[resi].HasBridge()) {
+          Residues_[resi++].SetSS( EXTENDED );
+          if (resi+1 == Nres) break;
+        }
+      }
+    } else if ( Resi.HasTurnStart(T3) && prevRes > 0 && Residues_[prevRes].HasTurnStart(T3)) {
+      // 3-10 helix
+      mprintf("3-10 helix starting at %i\n", resi+1);
+      while (Residues_[resi+1].HasTurnType(T3)) {
+        Residues_[resi++].SetSS( H3_10 );
+        if (resi == Nres) break;
+      }
+    } else if ( Resi.HasTurnStart(T5) && prevRes > 0 && Residues_[prevRes].HasTurnStart(T5)) {
+      // PI helix
+      mprintf("PI helix starting at %i\n", resi+1);
+      while (Residues_[resi+1].HasTurnType(T5)) {
+        Residues_[resi++].SetSS( HPI );
+        if (resi+1 == Nres) break;
+      }
+    } else {
+      if (Resi.SS() == NONE) {
+        // Check for Bend, which has lowest priority.
+        int im2 = resi - 2;
+        if (im2 > 0) {
+          int ip2 = resi + 2;
+          if (ip2 < Nres) {
+            if (Residues_[im2].CA() != -1 && Resi.CA() != -1 && Residues_[ip2].CA() != -1) {
+              const double* CAm2 = frm.Frm().CRD(Residues_[im2].CA());
+              const double* CA0  = frm.Frm().CRD(Resi.CA());
+              const double* CAp2 = frm.Frm().CRD(Residues_[ip2].CA());
+              Vec3 CA1( CA0[0]-CAm2[0], CA0[1]-CAm2[1], CA0[2]-CAm2[2] );
+              Vec3 CA2( CAp2[0]-CA0[0], CAp2[1]-CA0[1], CAp2[2]-CA0[2] );
+              CA1.Normalize();
+              CA2.Normalize();
+              // 1.221730476 rad = 70 degrees
+              if (CA1.Angle(CA2) > 1.221730476) {
+#               ifdef DSSPDEBUG
+                mprintf("DEBUG: Bend calc %i-%i-%i: %g rad.\n", resi-1, resi+1, resi+3, CA1.Angle(CA2));
+#               endif
+                Resi.SetSS( BEND );
+              }
+            }
+          }
+        }
+      }
+      resi++;
+    }
+  }
+  
+
   t_assign.Stop();
 
   t_overhbonds.Stop();
