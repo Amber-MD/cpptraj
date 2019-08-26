@@ -38,7 +38,7 @@ class Action_DSSP2 : public Action {
     int OverHbonds(int, ActionFrame&);
 
     enum BridgeType { PARALLEL=0, ANTIPARALLEL };
-    void AssignBridge(int, int, BridgeType, char&);
+    void AssignBridge(int, int, BridgeType);
 
     class ElemHbond;
     class SSres;

@@ -358,7 +358,7 @@ bool Action_DSSP2::isBonded(int idx1, int idx2) const {
   return ( std::find( Residues_[idx1].begin(), Residues_[idx1].end(), idx2 ) != Residues_[idx1].end() );
 }
 
-void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn, char& currentStrandChar) {
+void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn) {
   // By convention, always make idx1 the lower one
   int idx1, idx2;
   if (idx1in < idx2in) {
@@ -370,18 +370,78 @@ void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn, char
   }
   SSres& Resi = Residues_[idx1];
   SSres& Resj = Residues_[idx2];
+
+  char bchar;
+  if (btypeIn == ANTIPARALLEL) {
+    mprintf("\t\tAssignBridge %i to %i, Antiparallel\n", idx1+1, idx2+1);
+    bchar = 'A';
+  } else {
+    mprintf("\t\tAssignBridge %i to %i, Parallel\n", idx1+1, idx2+1);
+    bchar = 'p';
+  }
+
   // Do not duplicate bridges
-  if (Resi.IsBridgedWith(idx2)) return;
-  char prevStrandChar = Residues_[Resi.PrevIdx()].StrandChar();
-  if (prevStrandChar == ' ') {
-    prevStrandChar = currentStrandChar;
-    currentStrandChar++;
+  if (Resi.IsBridgedWith(idx2)) {
+    mprintf("\t\tAlready present.\n");
+    return;
+  }
+
+  Resi.SetBridge( idx2, bchar );
+  Resj.SetBridge( idx1, bchar );
+}
+
+/*
+void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn, char& currentStrandChar) {
+  // By convention, always make idx1 the lower one
+  int idx1, idx2;
+  if (idx1in < idx2in) {
+    idx1 = idx1in;
+    idx2 = idx2in;
+  } else {
+    idx1 = idx2in;
+    idx2 = idx1in;
   }
   if (btypeIn == ANTIPARALLEL)
-    prevStrandChar = toupper( prevStrandChar );
-  Resi.SetBridge( idx2, prevStrandChar );
-  Resj.SetBridge( idx1, prevStrandChar );
+    mprintf("\t\tAssignBridge %i to %i, Antiparallel\n", idx1+1, idx2+1);
+  else
+    mprintf("\t\tAssignBridge %i to %i, Parallel\n", idx1+1, idx2+1);
+  SSres& Resi = Residues_[idx1];
+  SSres& Resj = Residues_[idx2];
+  // Do not duplicate bridges
+  if (Resi.IsBridgedWith(idx2)) {
+    mprintf("\t\tAlready present.\n");
+    return;
+  }
+  // Determine if we are already part of a ladder.
+  char ladderChar = ' ';
+  char resiLadderChar = Residues_[Resi.PrevIdx()].StrandChar();
+  if (resiLadderChar == ' ')
+    resiLadderChar = Residues_[Resi.NextIdx()].StrandChar();
+  char resjLadderChar = Residues_[Resj.PrevIdx()].StrandChar();
+  if (resjLadderChar == ' ')
+    resjLadderChar = Residues_[Resj.NextIdx()].StrandChar();
+  if (resiLadderChar == ' ' && resjLadderChar == ' ') {
+    // If both are blank, new ladder.
+    ladderChar = currentStrandChar;
+    ++currentStrandChar;
+  } else if (resiLadderChar != resjLadderChar) {
+    // They do not match. New ladder.
+    ladderChar = currentStrandChar;
+    ++currentStrandChar;
+  } else
+    ladderChar = resiLadderChar;
+  //else if (resiLadderChar != ' ')
+  //  ladderChar = resiLadderChar;
+  //else
+  //  ladderChar = resjLadderChar;
+  // Set the bridge; adjust character case if needed
+  if (btypeIn == ANTIPARALLEL)
+    ladderChar = toupper( ladderChar );
+  mprintf("\t\tResi strand %c, resj strand %c, ladder char %c\n", resiLadderChar, resjLadderChar, ladderChar);
+  Resi.SetBridge( idx2, ladderChar );
+  Resj.SetBridge( idx1, ladderChar );
 }
+*/
 
 // Action_DSSP2::DoAction()
 int Action_DSSP2::OverResidues(int frameNum, ActionFrame& frm)
@@ -696,28 +756,28 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
     HbondMapType::iterator hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first+2) );
     if (hb != CO_NH_bonds.end()) {
       mprintf("\t\t%i PARALLELa with %i (%i)\n", hb0->first+2, hb0->second+1, hb->first+1);
-      AssignBridge(hb0->first+1, hb0->second, PARALLEL, currentStrandChar);
+      AssignBridge(hb0->first+1, hb0->second, PARALLEL);
     }
     // Assume (j, i+1). Check for (i-1, j)
     hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first) );
     if (hb != CO_NH_bonds.end()) {
       mprintf("\t\t%i PARALLELb with %i (%i)\n", hb0->second, hb0->first+1, hb->first+1);
-      AssignBridge(hb0->second-1, hb0->first, PARALLEL, currentStrandChar);
+      AssignBridge(hb0->second-1, hb0->first, PARALLEL);
     }
     // Assume (i,j). Look for (j,i)
     hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first) );
     if (hb != CO_NH_bonds.end()) {
       mprintf("\t\t%i ANTI-PARALLELa with %i (%i)\n", hb0->first+1, hb0->second+1, hb->first+1);
-      AssignBridge(hb0->first, hb0->second, ANTIPARALLEL, currentStrandChar);
+      AssignBridge(hb0->first, hb0->second, ANTIPARALLEL);
     }
     // Assume (i-1, j+1). Look for (j-1, i+1)
     hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first+2) );
     if (hb != CO_NH_bonds.end()) {
       mprintf("\t\t%i ANTI-PARALLELb with %i (%i)\n", hb0->first+2, hb0->second, hb->first+1);
-      AssignBridge(hb0->first+1, hb0->second-1, ANTIPARALLEL, currentStrandChar);
+      AssignBridge(hb0->first+1, hb0->second-1, ANTIPARALLEL);
     }
 
-  }
+  } // END loop over Hbonds
   t_assign.Stop();
 
   t_overhbonds.Stop();
