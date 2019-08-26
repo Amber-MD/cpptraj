@@ -6,6 +6,9 @@
 #include "DataSet.h"
 #include "DistRoutines.h"
 #include "Timer.h"
+#ifdef DSSPDEBUG
+#include "Constants.h"
+#endif
 
 // ----- SSres -----------------------------------------------------------------
 Action_DSSP2::SSres::SSres() :
@@ -442,6 +445,7 @@ void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn) {
     idx1 = idx2in;
     idx2 = idx1in;
   }
+
   SSres& Resi = Residues_[idx1];
   SSres& Resj = Residues_[idx2];
 
@@ -544,10 +548,8 @@ int Action_DSSP2::OverResidues(int frameNum, ActionFrame& frm)
         const double* Oxyz = frm.Frm().CRD( ResCO.O() );
         for (int resj = 0; resj < Nres; resj++)
         {
-          // Only consider residues spaced more than 2 apart.
-          int resDelta = resi - resj;
-          if (resDelta < 0) resDelta = -resDelta;
-          if (resDelta > 2) {
+          // Need to consider adjacent residues since delta (2 res) turns possible 
+          if (resi != resj) {
             SSres& ResNH = Residues_[resj];
             if (ResNH.IsSelected() && ResNH.HasNH())
             {
@@ -714,8 +716,12 @@ int Action_DSSP2::OverResidues(int frameNum, ActionFrame& frm)
 
 
 
-
-
+// TODO use Num()?
+static inline int AbsResDelta(int idx1, int idx2) {
+  int resDelta =  idx1 - idx2;
+  if (resDelta < 0) resDelta = -resDelta;
+  return resDelta;
+}
 
 
 int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
@@ -749,10 +755,8 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
         const double* Oxyz = frm.Frm().CRD( ResCO.O() );
         for (int resj = 0; resj < Nres; resj++)
         {
-          // Only consider residues spaced more than 2 apart.
-          int resDelta = resi - resj;
-          if (resDelta < 0) resDelta = -resDelta;
-          if (resDelta > 2) {
+          // Need to consider adjacent residues since delta (2 res) turns possible 
+          if (resi != resj) {
             SSres& ResNH = Residues_[resj];
             if (ResNH.IsSelected() && ResNH.HasNH())
             {
@@ -799,8 +803,8 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
                                     Resj.Num()+1, Resj.ResChar()); // DBG
     // Spacing between residues i and j
     int resDelta = Resj.Num() - Resi.Num();
-    if (resDelta < 0) resDelta = -resDelta;
     mprintf("(%4i)\n", resDelta);
+    // Check for H bond from CO i to NH i+n
     if (resDelta == 3) {
       // 3-TURN
       Residues_[riidx  ].SetBegin(T3);
@@ -834,31 +838,44 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
     }
     // Look for bridge. Start with the premise that this bond is part of one
     // of the 4 potential bridge patterns, then check if the compliment exists.
-    // Assume (i-1, j). Check for (j, i+1) PARALLEL
-    HbondMapType::iterator hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first+2) );
-    if (hb != CO_NH_bonds.end()) {
-      mprintf("\t\t%i PARALLELa with %i (%i)\n", hb0->first+2, hb0->second+1, hb->first+1);
-      AssignBridge(hb0->first+1, hb0->second, PARALLEL);
+    HbondMapType::iterator hb;
+    // Here we want absolute value of spacing.
+    if (resDelta < 0) resDelta = -resDelta;
+    if (resDelta > 2) {
+      // Assume (i,j). Look for (j,i)
+      hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first) );
+      if (hb != CO_NH_bonds.end()) {
+        mprintf("\t\t%i ANTI-PARALLELa with %i (%i)\n", hb0->first+1, hb0->second+1, hb->first+1);
+        AssignBridge(hb0->first, hb0->second, ANTIPARALLEL);
+      }
     }
-    // Assume (j, i+1). Check for (i-1, j)
-    hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first) );
-    if (hb != CO_NH_bonds.end()) {
-      mprintf("\t\t%i PARALLELb with %i (%i)\n", hb0->second, hb0->first+1, hb->first+1);
-      AssignBridge(hb0->second-1, hb0->first, PARALLEL);
+    resDelta = AbsResDelta(hb0->first+1, hb0->second-1);
+    if (resDelta > 2) {
+      // Assume (i-1, j+1). Look for (j-1, i+1)
+      hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first+2) );
+      if (hb != CO_NH_bonds.end()) {
+        mprintf("\t\t%i ANTI-PARALLELb with %i (%i)\n", hb0->first+2, hb0->second, hb->first+1);
+        AssignBridge(hb0->first+1, hb0->second-1, ANTIPARALLEL);
+      }
     }
-    // Assume (i,j). Look for (j,i)
-    hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first) );
-    if (hb != CO_NH_bonds.end()) {
-      mprintf("\t\t%i ANTI-PARALLELa with %i (%i)\n", hb0->first+1, hb0->second+1, hb->first+1);
-      AssignBridge(hb0->first, hb0->second, ANTIPARALLEL);
+    resDelta = AbsResDelta(hb0->first+1, hb0->second);
+    if (resDelta > 2) {
+      // Assume (i-1, j). Check for (j, i+1) PARALLEL
+      hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first+2) );
+      if (hb != CO_NH_bonds.end()) {
+        mprintf("\t\t%i PARALLELa with %i (%i)\n", hb0->first+2, hb0->second+1, hb->first+1);
+        AssignBridge(hb0->first+1, hb0->second, PARALLEL);
+      }
     }
-    // Assume (i-1, j+1). Look for (j-1, i+1)
-    hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first+2) );
-    if (hb != CO_NH_bonds.end()) {
-      mprintf("\t\t%i ANTI-PARALLELb with %i (%i)\n", hb0->first+2, hb0->second, hb->first+1);
-      AssignBridge(hb0->first+1, hb0->second-1, ANTIPARALLEL);
+    resDelta = AbsResDelta(hb0->second-1, hb0->first);
+    if (resDelta > 2) {
+      // Assume (j, i+1). Check for (i-1, j)
+      hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first) );
+      if (hb != CO_NH_bonds.end()) {
+        mprintf("\t\t%i PARALLELb with %i (%i)\n", hb0->second, hb0->first+1, hb->first+1);
+        AssignBridge(hb0->second-1, hb0->first, PARALLEL);
+      }
     }
-
   } // END loop over Hbonds
 
   // Do SS assignment.
@@ -882,11 +899,12 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       if (nextRes == Nres || !Residues_[nextRes].HasBridge()) {
         mprintf("Isolated BETA bridge at %i.\n", resi+1);
         Resi.SetSS( BRIDGE );
+        resi++;
       } else {
         mprintf("Extended BETA bridge starting from %i\n", resi+1);
         while (Residues_[resi].HasBridge()) {
           Residues_[resi++].SetSS( EXTENDED );
-          if (resi+1 == Nres) break;
+          if (resi == Nres) break;
         }
       }
     } else if ( Resi.HasTurnStart(T3) && prevRes > 0 && Residues_[prevRes].HasTurnStart(T3)) {
@@ -894,7 +912,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       mprintf("3-10 helix starting at %i\n", resi+1);
       while (Residues_[resi+1].HasTurnType(T3)) {
         Residues_[resi++].SetSS( H3_10 );
-        if (resi == Nres) break;
+        if (resi+1 == Nres) break;
       }
     } else if ( Resi.HasTurnStart(T5) && prevRes > 0 && Residues_[prevRes].HasTurnStart(T5)) {
       // PI helix
@@ -907,7 +925,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       if (Resi.SS() == NONE) {
         // Check for Bend, which has lowest priority.
         int im2 = resi - 2;
-        if (im2 > 0) {
+        if (im2 > -1) {
           int ip2 = resi + 2;
           if (ip2 < Nres) {
             if (Residues_[im2].CA() != -1 && Resi.CA() != -1 && Residues_[ip2].CA() != -1) {
@@ -918,11 +936,12 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
               Vec3 CA2( CAp2[0]-CA0[0], CAp2[1]-CA0[1], CAp2[2]-CA0[2] );
               CA1.Normalize();
               CA2.Normalize();
+              double bAngle = CA1.Angle(CA2);
+#             ifdef DSSPDEBUG
+              mprintf("DEBUG: Bend calc %i-%i-%i: %g deg.\n", resi-1, resi+1, resi+3, bAngle*Constants::RADDEG);
+#             endif
               // 1.221730476 rad = 70 degrees
-              if (CA1.Angle(CA2) > 1.221730476) {
-#               ifdef DSSPDEBUG
-                mprintf("DEBUG: Bend calc %i-%i-%i: %g rad.\n", resi-1, resi+1, resi+3, CA1.Angle(CA2));
-#               endif
+              if (bAngle > 1.221730476) {
                 Resi.SetSS( BEND );
               }
             }
@@ -945,7 +964,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 
 Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 {
-  OverResidues(frameNum, frm);
+  //OverResidues(frameNum, frm);
   OverHbonds(frameNum, frm);
   // DEBUG - Print basic assignment
   for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
