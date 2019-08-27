@@ -102,6 +102,8 @@ class Action_DSSP2::SSres {
     int CA()          const { return CA_; }
     int PrevIdx()     const { return prevIdx_; }
     int NextIdx()     const { return nextIdx_; }
+    int Bridge1Idx()  const { return bridge1idx_; }
+    int Bridge2Idx()  const { return bridge2idx_; }
     DataSet* Dset()   const { return resDataSet_; }
 
     bool IsMissingAtoms() const { return (C_==-1 || O_==-1 || N_==-1 || H_==-1 || CA_==-1); }

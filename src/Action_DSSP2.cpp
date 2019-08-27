@@ -686,8 +686,8 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
   } // END loop over Hbonds
 
   // ----- Do SS assignment ----------------------
-  // Priority is 'H', 'B', 'E', 'G', 'I', 'T', 'S'
-  //              8    7    6    5    4    3    2
+  // Priority is 'H', 'B', 'E', 'G', 'I', 'T', 'S' None
+  //              8    7    6    5    4    3    2  1
   resi = 0;
   for (resi = 0; resi < Nres; resi++)
   {
@@ -704,60 +704,71 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       Residues_[resi+1].SetSS( ALPHA );
       Residues_[resi+2].SetSS( ALPHA );
       Residues_[resi+3].SetSS( ALPHA );
-    } else if (Resi.SS() != ALPHA && Resi.HasBridge()) {
-      // Beta
-      if ( (prevRes > -1   && Residues_[prevRes].HasBridge()) ||
-           (nextRes < Nres && Residues_[nextRes].HasBridge()) )
-      {
-        mprintf("Extended BETA bridge at %i\n", resi+1);
-        Resi.SetSS( EXTENDED );
-      } else {
-        mprintf("Isolated BETA bridge at %i.\n", resi+1);
-        Resi.SetSS( BRIDGE );
+    } else if (Resi.SS() != ALPHA) {
+      bool prevHasBridge = (prevRes > -1   && Residues_[prevRes].HasBridge());
+      bool nextHasBridge = (nextRes < Nres && Residues_[nextRes].HasBridge());
+      if (Resi.HasBridge()) {
+        // Beta
+        if ( prevHasBridge || nextHasBridge )  // TODO or previous is assigned bridge/extended?
+        {
+          mprintf("Extended BETA bridge at %i\n", resi+1);
+          Resi.SetSS( EXTENDED );
+        } else {
+          mprintf("Isolated BETA bridge at %i.\n", resi+1);
+          Resi.SetSS( BRIDGE );
+        }
+      } else if (prevHasBridge && nextHasBridge) {
+        // Potential Beta bulge. Check other strand.
+        int presb1 = Residues_[prevRes].Bridge1Idx();
+        int presb2 = Residues_[prevRes].Bridge2Idx();
+        int nresb1 = Residues_[nextRes].Bridge1Idx();
+        int nresb2 = Residues_[nextRes].Bridge2Idx();
+        mprintf("Potential bulge? Prev res bridge res: %i %i  Next res bridge res: %i %i\n", presb1, presb2, nresb1, nresb2);
       }
-    } else if ( priority < 6 && Resi.HasTurnStart(T3) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T3)) {
-      // 3-10 helix
-      mprintf("3-10 helix starting at %i\n", resi+1);
-      Residues_[resi  ].SetSS( H3_10 );
-      Residues_[resi+1].SetSS( H3_10 );
-      Residues_[resi+2].SetSS( H3_10 );
-    } else if ( priority < 5 && Resi.HasTurnStart(T5) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T5)) {
-      // PI helix
-      mprintf("PI helix starting at %i\n", resi+1);
-      Residues_[resi  ].SetSS( HPI );
-      Residues_[resi+1].SetSS( HPI );
-      Residues_[resi+2].SetSS( HPI );
-      Residues_[resi+3].SetSS( HPI );
-      Residues_[resi+4].SetSS( HPI );
-    } else {
-      if (Resi.SS() == NONE) {
-        // Check for Bend, which has lowest priority.
-        int im2 = resi - 2;
-        if (im2 > -1) {
-          int ip2 = resi + 2;
-          if (ip2 < Nres) {
-            if (Residues_[im2].CA() != -1 && Resi.CA() != -1 && Residues_[ip2].CA() != -1) {
-              const double* CAm2 = frm.Frm().CRD(Residues_[im2].CA());
-              const double* CA0  = frm.Frm().CRD(Resi.CA());
-              const double* CAp2 = frm.Frm().CRD(Residues_[ip2].CA());
-              Vec3 CA1( CA0[0]-CAm2[0], CA0[1]-CAm2[1], CA0[2]-CAm2[2] );
-              Vec3 CA2( CAp2[0]-CA0[0], CAp2[1]-CA0[1], CAp2[2]-CA0[2] );
-              CA1.Normalize();
-              CA2.Normalize();
-              double bAngle = CA1.Angle(CA2);
-#             ifdef DSSPDEBUG
-              mprintf("DEBUG: Bend calc %i-%i-%i: %g deg.\n", resi-1, resi+1, resi+3, bAngle*Constants::RADDEG);
-#             endif
-              // 1.221730476 rad = 70 degrees
-              if (bAngle > 1.221730476) {
-                Resi.SetSS( BEND );
+      // Update priority in case we have done beta assignment
+      priority = Resi.SSpriority();
+      if ( priority < 6 && Resi.HasTurnStart(T3) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T3)) {
+        // 3-10 helix
+        mprintf("3-10 helix starting at %i\n", resi+1);
+        Residues_[resi  ].SetSS( H3_10 );
+        Residues_[resi+1].SetSS( H3_10 );
+        Residues_[resi+2].SetSS( H3_10 );
+      } else if ( priority < 5 && Resi.HasTurnStart(T5) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T5)) {
+        // PI helix
+        mprintf("PI helix starting at %i\n", resi+1);
+        Residues_[resi  ].SetSS( HPI );
+        Residues_[resi+1].SetSS( HPI );
+        Residues_[resi+2].SetSS( HPI );
+        Residues_[resi+3].SetSS( HPI );
+        Residues_[resi+4].SetSS( HPI );
+      } else if (priority < 2) {
+          // Check for Bend, which has lowest priority.
+          int im2 = resi - 2;
+          if (im2 > -1) {
+            int ip2 = resi + 2;
+            if (ip2 < Nres) {
+              if (Residues_[im2].CA() != -1 && Resi.CA() != -1 && Residues_[ip2].CA() != -1) {
+                const double* CAm2 = frm.Frm().CRD(Residues_[im2].CA());
+                const double* CA0  = frm.Frm().CRD(Resi.CA());
+                const double* CAp2 = frm.Frm().CRD(Residues_[ip2].CA());
+                Vec3 CA1( CA0[0]-CAm2[0], CA0[1]-CAm2[1], CA0[2]-CAm2[2] );
+                Vec3 CA2( CAp2[0]-CA0[0], CAp2[1]-CA0[1], CAp2[2]-CA0[2] );
+                CA1.Normalize();
+                CA2.Normalize();
+                double bAngle = CA1.Angle(CA2);
+#               ifdef DSSPDEBUG
+                mprintf("DEBUG: Bend calc %i-%i-%i: %g deg.\n", resi-1, resi+1, resi+3, bAngle*Constants::RADDEG);
+#               endif
+                // 1.221730476 rad = 70 degrees
+                if (bAngle > 1.221730476) {
+                  Resi.SetSS( BEND );
+                }
               }
             }
           }
-        }
       }
-    }
-  }
+    } // END not alpha
+  } // END loop over residues
   
 
   t_assign.Stop();
