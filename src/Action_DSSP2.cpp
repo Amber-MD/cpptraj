@@ -717,6 +717,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       Residues_[resi+3].SetSS( ALPHA );
     } else if (Resi.SS() != ALPHA) {
       if (priority < 6) {
+        // Check for Beta structure
         bool prevHasBridge = (prevRes > -1   && Residues_[prevRes].HasBridge());
         bool nextHasBridge = (nextRes < Nres && Residues_[nextRes].HasBridge());
         if (Resi.HasBridge()) {
@@ -761,8 +762,8 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
               Residues_[sres].SetSS( EXTENDED );
           }
         }
-      }
-      // Update priority in case we have done beta assignment
+      } // END check for Beta structure
+      // Update priority in case we have done Beta assignment
       priority = Resi.SSpriority();
       if ( priority < 6 && Resi.HasTurnStart(T3) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T3)) {
         // 3-10 helix
