@@ -32,8 +32,6 @@ class Action_DSSP2 : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    bool isBonded(int,int) const;
-
     int OverHbonds(int, ActionFrame&);
 
     enum BridgeType { PARALLEL=0, ANTIPARALLEL };
@@ -89,7 +87,6 @@ class Action_DSSP2 : public Action {
 };
 
 class Action_DSSP2::SSres {
-    typedef std::vector<int> HbArrayType;
   public:
     SSres();
     SSres(SSres const&);
@@ -118,10 +115,6 @@ class Action_DSSP2::SSres {
     char StrandChar() const;
     void PrintSSchar() const;
 
-    typedef HbArrayType::const_iterator const_iterator;
-    const_iterator begin() const { return CO_HN_Hbonds_.begin(); }
-    const_iterator end()   const { return CO_HN_Hbonds_.end(); }
-
     void SetBegin(ssCharType);
     void SetTurn(ssCharType);
     void SetEnd(ssCharType);
@@ -144,15 +137,12 @@ class Action_DSSP2::SSres {
     void Deselect();
     /// Reset hbonds, pattern and SS type assignments
     void Unassign();
-    /// Add hbond from this CO to specified NH
-    void AddHbond(int i) { CO_HN_Hbonds_.push_back( i ); }
     /// \return Relative priority of currently assigned SS type
     int SSpriority() const;
   private:
     /// \return Relative priority of given SS type
     static inline int ssPriority(SStype);
 
-    HbArrayType CO_HN_Hbonds_;  ///< This res C-O hbonded to these res H-N (indicies into Residues_).
     DataSet* resDataSet_;       ///< DataSet for SS assignment each frame for this res.
     double chirality_;          ///< Dihedral CA[i-1, i, i+1, i+2]
     double bend_;               ///< Angle CA[i-2, i, i+2]

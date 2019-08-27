@@ -35,7 +35,6 @@ Action_DSSP2::SSres::SSres() :
 }
 
 Action_DSSP2::SSres::SSres(SSres const& rhs) :
-  CO_HN_Hbonds_(rhs.CO_HN_Hbonds_),
   resDataSet_(rhs.resDataSet_),
   chirality_(rhs.chirality_),
   bend_(rhs.bend_),
@@ -59,7 +58,6 @@ Action_DSSP2::SSres::SSres(SSres const& rhs) :
   
 Action_DSSP2::SSres& Action_DSSP2::SSres::operator=(SSres const& rhs) {
   if (this == &rhs) return *this;
-  CO_HN_Hbonds_ = rhs.CO_HN_Hbonds_;
   resDataSet_ = rhs.resDataSet_;
   chirality_ = rhs.chirality_;
   bend_ = rhs.bend_;
@@ -93,7 +91,6 @@ void Action_DSSP2::SSres::Deselect() {
 }
 
 void Action_DSSP2::SSres::Unassign() {
-  CO_HN_Hbonds_.clear();
 //  pattern_ = NOHBOND;
   sstype_ = NONE;
   bridge1idx_ = -1;
@@ -441,13 +438,6 @@ Action::RetType Action_DSSP2::Setup(ActionSetup& setup)
   return Action::OK;
 }
 
-/** \return true if idx1 is CO-NH bonded to idx2.
-  */
-bool Action_DSSP2::isBonded(int idx1, int idx2) const {
-  if (idx1 < 0 || idx2 < 0) return false;
-  return ( std::find( Residues_[idx1].begin(), Residues_[idx1].end(), idx2 ) != Residues_[idx1].end() );
-}
-
 void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn) {
   // By convention, always make idx1 the lower one
   int idx1, idx2;
@@ -781,7 +771,6 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 
 Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 {
-  //OverResidues(frameNum, frm);
   OverHbonds(frameNum, frm);
   // DEBUG - Print basic assignment
   for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
