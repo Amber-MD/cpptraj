@@ -142,7 +142,7 @@ int Action_DSSP2::SSres::SSpriority() const {
 
 void Action_DSSP2::SSres::SetSS(SStype typeIn) {
   // TODO check if the priority check is necessary
-  if (ssPriority(typeIn) > ssPriority(sstype_))
+  //if (ssPriority(typeIn) > ssPriority(sstype_))
     sstype_ = typeIn;
 }
 
@@ -531,6 +531,17 @@ static inline int AbsResDelta(int idx1, int idx2) {
   return resDelta;
 }
 
+static inline void SetMin(int& resGapSize, int& sres0, int& sres1, int Nres, int Pres)
+{
+  int itmp = AbsResDelta(Nres, Pres);
+  if (itmp < resGapSize) {
+    resGapSize = itmp;
+    sres0 = std::min(Pres, Nres);
+    sres1 = std::max(Pres, Nres);
+  }
+}
+
+
 int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 {
   Timer t_overhbonds;
@@ -705,25 +716,51 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       Residues_[resi+2].SetSS( ALPHA );
       Residues_[resi+3].SetSS( ALPHA );
     } else if (Resi.SS() != ALPHA) {
-      bool prevHasBridge = (prevRes > -1   && Residues_[prevRes].HasBridge());
-      bool nextHasBridge = (nextRes < Nres && Residues_[nextRes].HasBridge());
-      if (Resi.HasBridge()) {
-        // Beta
-        if ( prevHasBridge || nextHasBridge )  // TODO or previous is assigned bridge/extended?
-        {
-          mprintf("Extended BETA bridge at %i\n", resi+1);
-          Resi.SetSS( EXTENDED );
-        } else {
-          mprintf("Isolated BETA bridge at %i.\n", resi+1);
-          Resi.SetSS( BRIDGE );
+      if (priority < 6) {
+        bool prevHasBridge = (prevRes > -1   && Residues_[prevRes].HasBridge());
+        bool nextHasBridge = (nextRes < Nres && Residues_[nextRes].HasBridge());
+        if (Resi.HasBridge()) {
+          // Regular Beta
+          if ( prevHasBridge || nextHasBridge )  // TODO or previous is assigned bridge/extended?
+          {
+            mprintf("Extended BETA bridge at %i\n", resi+1);
+            Resi.SetSS( EXTENDED );
+          } else {
+            mprintf("Isolated BETA bridge at %i.\n", resi+1);
+            Resi.SetSS( BRIDGE );
+          }
+        } else if (prevHasBridge && nextHasBridge) {
+          // Potential Beta bulge. Check other strand.
+          int presb1 = Residues_[prevRes].Bridge1Idx();
+          int presb2 = Residues_[prevRes].Bridge2Idx();
+          int nresb1 = Residues_[nextRes].Bridge1Idx();
+          int nresb2 = Residues_[nextRes].Bridge2Idx();
+          mprintf("Potential bulge? Prev res bridge res: %i %i  Next res bridge res: %i %i\n", presb1, presb2, nresb1, nresb2);
+          // The largest allowed gap in the other strand is 5 residues.
+          // Since we know that next res and previous res both have at 
+          // least 1 bridge, Next B1 - Prev B1 can be the gap to beat.
+          int resGapSize = AbsResDelta(nresb1, presb1);
+          int sres0 = std::min(presb1, nresb1);
+          int sres1 = std::max(presb1, nresb1);
+          if (presb2 != -1)
+            SetMin( resGapSize, sres0, sres1, nresb1, presb2 );
+          if (nresb2 != -1) {
+            SetMin( resGapSize, sres0, sres1, nresb2, presb1 ); 
+            if (presb2 != -1)
+              SetMin( resGapSize, sres0, sres1, nresb2, presb2 );
+          }
+          mprintf("Min res gap size on other strand = %i (%i to %i)\n", resGapSize, sres0, sres1);
+          // Minimum allowed gap is 4 residues in between, so 5 residues total.
+          if (resGapSize < 6) {
+            mprintf("Beta bulge.\n");
+            Residues_[prevRes].SetSS( EXTENDED );
+            Resi.SetSS( EXTENDED );
+            Residues_[nextRes].SetSS( EXTENDED );
+            // Set extended on other strand as well
+            for (int sres = sres0; sres != sres1; sres++)
+              Residues_[sres].SetSS( EXTENDED );
+          }
         }
-      } else if (prevHasBridge && nextHasBridge) {
-        // Potential Beta bulge. Check other strand.
-        int presb1 = Residues_[prevRes].Bridge1Idx();
-        int presb2 = Residues_[prevRes].Bridge2Idx();
-        int nresb1 = Residues_[nextRes].Bridge1Idx();
-        int nresb2 = Residues_[nextRes].Bridge2Idx();
-        mprintf("Potential bulge? Prev res bridge res: %i %i  Next res bridge res: %i %i\n", presb1, presb2, nresb1, nresb2);
       }
       // Update priority in case we have done beta assignment
       priority = Resi.SSpriority();
