@@ -10,6 +10,24 @@
 #include "Constants.h"
 #endif
 
+/** From the original Kabsch & Sander 1983 paper. Obtained via
+  *   q1 = 0.42e
+  *   q2 = 0.20e
+  *   f = 332 (approximate conversion factor to get energies in kcal/mol)
+  *   fac = q1*q2*f
+  */
+const double Action_DSSP2::DSSP_fac_ = 27.888;
+
+const double Action_DSSP2::DSSP_cut_ = -0.5;
+
+const char  Action_DSSP2::DSSP_char_[] = { ' ', 'E', 'B', 'G', 'H', 'I', 'T', 'S' };
+
+const char* Action_DSSP2::SSchar_[]    = { "0", "b", "B", "G", "H", "I", "T", "S" };
+
+const char* Action_DSSP2::SSname_[]={"None", "Extended", "Bridge", "3-10", "Alpha", "Pi", "Turn", "Bend"};
+
+const std::string Action_DSSP2::SSzlabels_ = "zlabels None,Para,Anti,3-10,Alpha,Pi,Turn,Bend";
+
 // ----- SSres -----------------------------------------------------------------
 Action_DSSP2::SSres::SSres() :
   resDataSet_(0),
@@ -32,6 +50,14 @@ Action_DSSP2::SSres::SSres() :
 {
   std::fill(SScount_, SScount_ + NSSTYPE_, 0);
   std::fill(ssChar_, ssChar_ + NSSCHARTYPE_, ' ');
+}
+
+void Action_DSSP2::SSres::AccumulateData(int frameNum, bool useString) {
+  SScount_[sstype_]++;
+  if (useString)
+    resDataSet_->Add(frameNum, SSchar_[sstype_]); 
+  else
+    resDataSet_->Add(frameNum, &sstype_);
 }
 
 Action_DSSP2::SSres::SSres(SSres const& rhs) :
@@ -188,24 +214,6 @@ void Action_DSSP2::SSres::PrintSSchar() const {
 }
 
 // ----- Action_DSSP2 ----------------------------------------------------------
-
-/** From the original Kabsch & Sander 1983 paper. Obtained via
-  *   q1 = 0.42e
-  *   q2 = 0.20e
-  *   f = 332 (approximate conversion factor to get energies in kcal/mol)
-  *   fac = q1*q2*f
-  */
-const double Action_DSSP2::DSSP_fac_ = 27.888;
-
-const double Action_DSSP2::DSSP_cut_ = -0.5;
-
-const char  Action_DSSP2::DSSP_char_[] = { ' ', 'E', 'B', 'G', 'H', 'I', 'T', 'S' };
-
-const char* Action_DSSP2::SSchar_[]    = { "0", "b", "B", "G", "H", "I", "T", "S" };
-
-const char* Action_DSSP2::SSname_[]={"None", "Extended", "Bridge", "3-10", "Alpha", "Pi", "Turn", "Bend"};
-
-const std::string Action_DSSP2::SSzlabels_ = "zlabels None,Para,Anti,3-10,Alpha,Pi,Turn,Bend";
 
 Action_DSSP2::Action_DSSP2() :
   debug_(0),
@@ -699,7 +707,6 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
   // ----- Do SS assignment ----------------------
   // Priority is 'H', 'B', 'E', 'G', 'I', 'T', 'S' None
   //              8    7    6    5    4    3    2  1
-  resi = 0;
   for (resi = 0; resi < Nres; resi++)
   {
     mprintf("Residue %i\n", resi+1);
@@ -807,7 +814,23 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
       }
     } // END not alpha
   } // END loop over residues
-  
+ 
+  // ----- Store data for each res. Get stats ----
+  int totalSS[NSSTYPE_];
+  std::fill( totalSS, totalSS + NSSTYPE_, 0 ); 
+  int Nselected = 0;
+  for (resi=0; resi < Nres; resi++) {
+    if (Residues_[resi].IsSelected()) {
+      Residues_[resi].AccumulateData(frameNum, printString_);
+      Nselected++;
+    }
+  }
+  for (int i = 0; i < NSSTYPE_; i++) {
+    float fvar = (float)totalSS[i];
+    fvar /= (float)Nselected;
+    totalDS_[i]->Add(frameNum, &fvar);
+  }
+
 
   t_assign.Stop();
 
@@ -825,4 +848,88 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
   for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
     it->PrintSSchar();
   return Action::OK;
+}
+
+// Action_DSSP::Print()
+void Action_DSSP2::Print() {
+  if (dsetname_.empty()) return;
+  // Try not to print empty residues. Find the minimum and maximum residue
+  // for which there is data. Output res nums start from 1.
+  int min_res = -1;
+  int max_res = -1;
+  for (int resi = 0; resi != (int)Residues_.size(); resi++) {
+    if (Residues_[resi].Dset() != 0) {
+      if (min_res < 0) min_res = resi;
+      if (resi > max_res) max_res = resi;
+    }
+  }
+  if (min_res < 0 || max_res < min_res) {
+    mprinterr("Error: No residues have SS data.\n");
+    return;
+  }
+  // Calculate average of each SS type across all residues.
+  if (dsspFile_ != 0) {
+    std::vector<DataSet*> dsspData_(NSSTYPE_);
+    Dimension Xdim( min_res + 1, 1, "Residue" );
+    MetaData md(dsetname_, "avgss", MetaData::NOT_TS);
+    // Set up a dataset for each SS type. TODO: NONE type?
+    for (int ss = 1; ss < NSSTYPE_; ss++) {
+      md.SetIdx(ss);
+      md.SetLegend( SSname_[ss] );
+      dsspData_[ss] = Init_.DSL().AddSet(DataSet::DOUBLE, md);
+      dsspData_[ss]->SetDim(Dimension::X, Xdim);
+      dsspFile_->AddDataSet( dsspData_[ss] ); 
+    }
+    
+    // Calc the avg SS type for each residue that has data.
+    int idx = 0; 
+    for (int resi = min_res; resi < max_res+1; resi++) {
+      if (Residues_[resi].Dset() != 0) {
+        int Nframe = 0;
+        for (int ss = 0; ss < NSSTYPE_; ss++)
+          Nframe += Residues_[resi].SScount((SStype)ss);
+        for (int ss = 1; ss < NSSTYPE_; ss++) {
+          double avg = (double)Residues_[resi].SScount((SStype)ss);
+          avg /= (double)Nframe;
+          dsspData_[ss]->Add(idx, &avg);
+        }
+        ++idx;
+      }
+    }
+  }
+  // Print out SS assignment like PDB
+  if (assignout_ != 0) {
+      int total = 0;
+      int startRes = -1;
+      std::string resLine, ssLine;
+      for (int resi = min_res; resi < max_res+1; resi++) {
+        if (startRes == -1) startRes = resi;
+        // Convert residue name.
+        resLine += Residue::ConvertResName( Residues_[resi].Dset()->Meta().Legend() );
+        // Figure out which SS element is dominant for res if selected
+        if (Residues_[resi].Dset() != 0) {
+          int dominantType = 0;
+          int ssmax = 0;
+          for (int ss = 0; ss < NSSTYPE_; ss++) {
+            if ( Residues_[resi].SScount((SStype)ss) > ssmax ) {
+              ssmax = Residues_[resi].SScount((SStype)ss);
+              dominantType = ss;
+            }
+          }
+          ssLine += DSSP_char_[dominantType];
+        } else
+          ssLine += '-';
+        total++;
+        if ((total % 50) == 0 || resi == max_res) {
+          assignout_->Printf("%-8i %s\n", startRes+1, resLine.c_str());
+          assignout_->Printf("%8s %s\n\n", " ", ssLine.c_str());
+          startRes = -1;
+          resLine.clear();
+          ssLine.clear();
+        } else if ((total % 10) == 0) {
+          resLine += ' '; 
+          ssLine += ' ';
+        }
+      }
+  }
 }

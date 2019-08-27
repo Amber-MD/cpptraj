@@ -522,7 +522,7 @@ Action::RetType Action_DSSP::DoAction(int frameNum, ActionFrame& frm) {
   }
   ++Nframe_;
 # ifdef DSSPDEBUG
-  t_assign.Start();
+  t_assign.Stop();
   t_total.Stop();
 
   t_calchb.WriteTiming(1, "Calc Hbonds", t_total.Total());

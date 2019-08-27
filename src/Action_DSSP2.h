@@ -30,7 +30,7 @@ class Action_DSSP2 : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print() {}
+    void Print();
 
     int OverHbonds(int, ActionFrame&);
 
@@ -91,6 +91,7 @@ class Action_DSSP2::SSres {
     SSres();
     SSres(SSres const&);
     SSres& operator=(SSres const&);
+    int SScount(SStype t) const { return SScount_[t]; }
     SStype SS()       const { return sstype_; }
     int Num()         const { return num_; }
     char ResChar()    const { return resChar_; }
@@ -122,6 +123,8 @@ class Action_DSSP2::SSres {
     void SetEnd(ssCharType);
 
     void SetBridge(int, char);
+
+    void AccumulateData(int, bool);
 
     void SetSS(SStype);
     void SetNum(int i)       { num_ = i; }
