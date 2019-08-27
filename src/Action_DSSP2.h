@@ -34,7 +34,6 @@ class Action_DSSP2 : public Action {
 
     bool isBonded(int,int) const;
 
-    int OverResidues(int, ActionFrame&);
     int OverHbonds(int, ActionFrame&);
 
     enum BridgeType { PARALLEL=0, ANTIPARALLEL };
