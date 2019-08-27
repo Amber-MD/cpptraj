@@ -535,6 +535,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 {
   Timer t_overhbonds;
   t_overhbonds.Start();
+  // ----- Determine hydrogen bonding ------------
   typedef std::pair<int,int> HbondPairType;
   typedef std::set<HbondPairType> HbondMapType;
   /// Map resi (CO) to resj (NH) potential bridge hbonds
@@ -544,7 +545,6 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
   t_calchb.Start();
   int resi;
   int Nres = (int)Residues_.size();
-  // The first pass is used to determine hydrogen bonding
 #ifdef _OPENMP
 #pragma omp parallel private(resi)
 {
@@ -599,7 +599,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 
   Timer t_assign;
   t_assign.Start();
-  // Do basic assignment.
+  // ----- Do basic assignment -------------------
   for (HbondMapType::const_iterator hb0 = CO_NH_bonds.begin(); hb0 != CO_NH_bonds.end(); ++hb0)
   {
     int riidx = hb0->first;
@@ -685,7 +685,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
     }
   } // END loop over Hbonds
 
-  // Do SS assignment.
+  // ----- Do SS assignment ----------------------
   // Priority is 'H', 'B', 'E', 'G', 'I', 'T', 'S'
   //              8    7    6    5    4    3    2
   resi = 0;
