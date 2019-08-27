@@ -22,11 +22,11 @@ const double Action_DSSP2::DSSP_cut_ = -0.5;
 
 const char  Action_DSSP2::DSSP_char_[] = { ' ', 'E', 'B', 'G', 'H', 'I', 'T', 'S' };
 
-const char* Action_DSSP2::SSchar_[]    = { "0", "b", "B", "G", "H", "I", "T", "S" };
+const char* Action_DSSP2::SSchar_[]    = { "0", "E", "B", "G", "H", "I", "T", "S" };
 
 const char* Action_DSSP2::SSname_[]={"None", "Extended", "Bridge", "3-10", "Alpha", "Pi", "Turn", "Bend"};
 
-const std::string Action_DSSP2::SSzlabels_ = "zlabels None,Para,Anti,3-10,Alpha,Pi,Turn,Bend";
+const std::string Action_DSSP2::SSzlabels_ = "zlabels None,Ext,Bridge,3-10,Alpha,Pi,Turn,Bend";
 
 // ----- SSres -----------------------------------------------------------------
 Action_DSSP2::SSres::SSres() :
