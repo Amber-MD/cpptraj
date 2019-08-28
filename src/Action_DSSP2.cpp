@@ -1016,14 +1016,22 @@ void Action_DSSP2::Print() {
       for (int resi = min_res; resi < max_res+1; resi++) {
         if (startRes == -1) startRes = resi;
         // Convert residue name.
-        resLine += Residues_[resi].ResChar();
+        SSres& Resi = Residues_[resi];
+        resLine += Resi.ResChar();
         // Figure out which SS element is dominant for res if selected
-        if (Residues_[resi].Dset() != 0) {
+        if (Resi.Dset() != 0) {
           int dominantType = 0;
           int ssmax = 0;
           for (int ss = 0; ss < NSSTYPE_; ss++) {
-            if ( Residues_[resi].SScount((SStype)ss) > ssmax ) {
-              ssmax = Residues_[resi].SScount((SStype)ss);
+            int sscount;
+            if (betaDetail_ && (SStype)ss == EXTENDED)
+              sscount = Resi.Bcount(PARALLEL);
+            else if (betaDetail_ && (SStype)ss == BRIDGE)
+              sscount = Resi.Bcount(ANTIPARALLEL);
+            else
+              sscount = Resi.SScount((SStype)ss);
+            if ( sscount > ssmax ) {
+              ssmax = sscount;
               dominantType = ss;
             }
           }
