@@ -36,10 +36,10 @@ class Action_DSSP2 : public Action {
     class SSres;
     /// Secondary structure types
     enum SStype { NONE=0, EXTENDED, BRIDGE, H3_10, ALPHA, HPI, TURN, BEND };
-    static const int NSSTYPE_ = 8;  ///< # of secondary structure types.
-    static const char DSSP_char_[]; ///< DSSP 1 char names corresponding to SStype
-    static const char* SSname_[];   ///< Full secondary structure names corresponding to SStype
-    static const char* SSchar_[];   ///< PTRAJ 1 character names corresponding to SStype
+    static const int NSSTYPE_ = 8;   ///< # of secondary structure types.
+    static const char DSSP_char_[];  ///< DSSP 1 char names corresponding to SStype
+    static const char* DSSP_name_[]; ///< Full secondary structure names corresponding to SStype
+    static const char* SSchar_[];    ///< PTRAJ 1 character names corresponding to SStype
     /// Turn types
     enum TurnType { T3 = 0, T4, T5 };
     static const int NTURNTYPE_ = 3;
@@ -54,6 +54,7 @@ class Action_DSSP2 : public Action {
     static const double DSSP_cut_;  ///< Original DSSP H-bond energy cutoff in kcal/mol
 
     typedef std::vector<SSres> SSarrayType;
+    typedef std::vector<std::string> Sarray;
 
     int OverHbonds(int, ActionFrame&);
 
@@ -62,6 +63,7 @@ class Action_DSSP2 : public Action {
 
     int debug_;            ///< Action debug level
     SSarrayType Residues_; ///< Hold SS data for all residues.
+    Sarray SSname_;        ///< Hold full secondary structure names
     NameType BB_N_;        ///< Protein N atom name ('N')
     NameType BB_H_;        ///< Protein N-H atom name ('H')
     NameType BB_C_;        ///< Protein C atom name ('C')

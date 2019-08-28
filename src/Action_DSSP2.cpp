@@ -28,7 +28,7 @@ const char  Action_DSSP2::DSSP_char_[] = { ' ', 'E', 'B', 'G', 'H', 'I', 'T', 'S
 const char* Action_DSSP2::SSchar_[]    = { "0", "E", "B", "G", "H", "I", "T", "S" };
 
 /** Full SS names. */
-const char* Action_DSSP2::SSname_[]={"None", "Extended", "Bridge", "3-10", "Alpha", "Pi", "Turn", "Bend"};
+const char* Action_DSSP2::DSSP_name_[]={"None", "Extended", "Bridge", "3-10", "Alpha", "Pi", "Turn", "Bend"};
 
 
 // ----- SSres -----------------------------------------------------------------
@@ -317,7 +317,13 @@ Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int de
   }
   // Create data sets for total fraction SS vs time.
   for (int i = 0; i < NSSTYPE_; i++) {
-    totalDS_[i] = init.DSL().AddSet(DataSet::FLOAT, MetaData(dsetname_, SSname_[i]));
+    const char* aspect = DSSP_name_[i];
+    if (betaDetail_ && (SStype)i == EXTENDED)
+      aspect = "Para";
+    else if (betaDetail_ && (SStype)i == BRIDGE)
+      aspect = "Anti";
+    SSname_.push_back( std::string(aspect) );
+    totalDS_[i] = init.DSL().AddSet(DataSet::FLOAT, MetaData(dsetname_, aspect));
     if (totalDS_[i] == 0) {
       mprinterr("Error: Could not create DSSP total frac v time data set.\n");
       return Action::ERR;
@@ -336,11 +342,11 @@ Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int de
   if (printString_) { 
     mprintf("\tSS data for each residue will be stored as a string.\n");
     for (int i = 0; i < NSSTYPE_; i++)
-      mprintf("\t\t%s = %s\n", SSchar_[i], SSname_[i]);
+      mprintf("\t\t%s = %s\n", SSchar_[i], SSname_[i].c_str());
   } else {
     mprintf("\tSS data for each residue will be stored as integers.\n");
     for (int i = 0; i < NSSTYPE_; i++)
-      mprintf("\t\t%i = %s\n", i, SSname_[i]);
+      mprintf("\t\t%i = %s\n", i, SSname_[i].c_str());
   }
   if (assignout_ != 0)
     mprintf("\tOverall assigned SS will be written to %s\n", assignout_->Filename().full());
@@ -904,7 +910,18 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
   std::fill( totalSS, totalSS + NSSTYPE_, 0 ); 
   int Nselected = 0;
   for (resi=0; resi < Nres; resi++) {
-    if (Residues_[resi].IsSelected()) {
+    SSres& Resi = Residues_[resi];
+    if (Resi.IsSelected()) {
+      if (betaDetail_ && (Resi.SS() == EXTENDED || Resi.SS() == BRIDGE))
+      {
+        if (Resi.Bridge1Type() == ANTIPARALLEL ||
+            Resi.Bridge2Type() == ANTIPARALLEL)
+          totalSS[BRIDGE]++;
+        else if (Resi.Bridge1Type() == PARALLEL ||
+                 Resi.Bridge2Type() == PARALLEL)
+          totalSS[EXTENDED]++;
+      } else
+        totalSS[Residues_[resi].SS()]++;
       Residues_[resi].AccumulateData(frameNum, printString_, betaDetail_);
       Nselected++;
     }
@@ -959,12 +976,7 @@ void Action_DSSP2::Print() {
     // Set up a dataset for each SS type. TODO: NONE type?
     for (int ss = 1; ss < NSSTYPE_; ss++) {
       md.SetIdx(ss);
-      const char* legend = SSname_[ss];
-      if (betaDetail_ && (SStype)ss == EXTENDED)
-        legend = "Para";
-      else if (betaDetail_ && (SStype)ss == BRIDGE)
-        legend = "Anti";
-      md.SetLegend( legend );
+      md.SetLegend( SSname_[ss] );
       dsspData_[ss] = Init_.DSL().AddSet(DataSet::DOUBLE, md);
       dsspData_[ss]->SetDim(Dimension::X, Xdim);
       dsspFile_->AddDataSet( dsspData_[ss] ); 
