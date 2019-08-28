@@ -110,9 +110,9 @@ class Action_DSSP2::SSres {
 //    char StrandChar() const;
     void PrintSSchar() const;
 
-    void SetBegin(TurnType);
+    void SetTurnBegin(TurnType);
     void SetTurn(TurnType);
-    void SetEnd(TurnType);
+    void SetTurnEnd(TurnType);
     /// Set a bridge between this res and other res index into Residues_
     void SetBridge(int, BridgeType);
 

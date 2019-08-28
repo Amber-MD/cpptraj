@@ -128,14 +128,14 @@ void Action_DSSP2::SSres::Unassign() {
 }
 
 /** Set turn beginning. */
-void Action_DSSP2::SSres::SetBegin(TurnType typeIn) {
+void Action_DSSP2::SSres::SetTurnBegin(TurnType typeIn) {
   if (turnChar_[typeIn] == '<')
     turnChar_[typeIn] = 'X';
   else
     turnChar_[typeIn] = '>';
 }
 
-void Action_DSSP2::SSres::SetEnd(TurnType typeIn) {
+void Action_DSSP2::SSres::SetTurnEnd(TurnType typeIn) {
   if (turnChar_[typeIn] == '>')
     turnChar_[typeIn] = 'X';
   else
@@ -636,30 +636,30 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
     // Check for H bond from CO i to NH i+n
     if (resDelta == 3) {
       // 3-TURN
-      Residues_[riidx  ].SetBegin(T3);
+      Residues_[riidx  ].SetTurnBegin(T3);
       Residues_[riidx+1].SetTurn(T3);
       Residues_[riidx+2].SetTurn(T3);
-      Residues_[riidx+3].SetEnd(T3);
+      Residues_[riidx+3].SetTurnEnd(T3);
       Residues_[riidx+1].SetSS( TURN );
       Residues_[riidx+2].SetSS( TURN );
     } else if (resDelta == 4) {
       // 4-TURN
-      Residues_[riidx  ].SetBegin(T4);
+      Residues_[riidx  ].SetTurnBegin(T4);
       Residues_[riidx+1].SetTurn(T4);
       Residues_[riidx+2].SetTurn(T4);
       Residues_[riidx+3].SetTurn(T4);
-      Residues_[riidx+4].SetEnd(T4);
+      Residues_[riidx+4].SetTurnEnd(T4);
       Residues_[riidx+1].SetSS( TURN );
       Residues_[riidx+2].SetSS( TURN );
       Residues_[riidx+3].SetSS( TURN );
     } else if (resDelta == 5) {
       // 5-TURN
-      Residues_[riidx  ].SetBegin(T5);
+      Residues_[riidx  ].SetTurnBegin(T5);
       Residues_[riidx+1].SetTurn(T5);
       Residues_[riidx+2].SetTurn(T5);
       Residues_[riidx+3].SetTurn(T5);
       Residues_[riidx+4].SetTurn(T5);
-      Residues_[riidx+5].SetEnd(T5);
+      Residues_[riidx+5].SetTurnEnd(T5);
       Residues_[riidx+1].SetSS( TURN );
       Residues_[riidx+2].SetSS( TURN );
       Residues_[riidx+3].SetSS( TURN );
