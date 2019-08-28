@@ -18,12 +18,16 @@
   */
 const double Action_DSSP2::DSSP_fac_ = 27.888;
 
+/** DSSP default cutoff for determining hbonds, from 1983 Kabsch & Sander paper. */
 const double Action_DSSP2::DSSP_cut_ = -0.5;
 
+/** DSSP 1 character SS assignment. */
 const char  Action_DSSP2::DSSP_char_[] = { ' ', 'E', 'B', 'G', 'H', 'I', 'T', 'S' };
 
+/** Used for output to STRING data set. */
 const char* Action_DSSP2::SSchar_[]    = { "0", "E", "B", "G", "H", "I", "T", "S" };
 
+/** Full SS names. */
 const char* Action_DSSP2::SSname_[]={"None", "Extended", "Bridge", "3-10", "Alpha", "Pi", "Turn", "Bend"};
 
 const std::string Action_DSSP2::SSzlabels_ = "zlabels None,Ext,Bridge,3-10,Alpha,Pi,Turn,Bend";
@@ -763,23 +767,34 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
           int presb2 = Residues_[prevRes].Bridge2Idx();
           int nresb1 = Residues_[nextRes].Bridge1Idx();
           int nresb2 = Residues_[nextRes].Bridge2Idx();
+          int prest1 = Residues_[prevRes].Bridge1Type();
+          int prest2 = Residues_[prevRes].Bridge2Type();
+          int nrest1 = Residues_[nextRes].Bridge1Type();
+          int nrest2 = Residues_[nextRes].Bridge2Type();
           mprintf("Potential bulge? Prev res bridge res: %i %i  Next res bridge res: %i %i\n", presb1, presb2, nresb1, nresb2);
           // The largest allowed gap in the other strand is 5 residues.
           // Since we know that next res and previous res both have at 
           // least 1 bridge, Next B1 - Prev B1 can be the gap to beat.
-          int resGapSize = AbsResDelta(nresb1, presb1);
-          int sres0 = std::min(presb1, nresb1);
-          int sres1 = std::max(presb1, nresb1);
-          if (presb2 != -1)
+          // Need to also make sure the bridge types match.
+          int resGapSize = -1;
+          int sres0 = -1;
+          int sres1 = -1;
+          if (nrest1 == prest1) {
+            resGapSize = AbsResDelta(nresb1, presb1);
+            sres0 = std::min(presb1, nresb1);
+            sres1 = std::max(presb1, nresb1);
+          }
+          if (presb2 != -1 && nrest1 == prest2)
             SetMin( resGapSize, sres0, sres1, nresb1, presb2 );
           if (nresb2 != -1) {
-            SetMin( resGapSize, sres0, sres1, nresb2, presb1 ); 
-            if (presb2 != -1)
+            if (nrest2 == prest1)
+              SetMin( resGapSize, sres0, sres1, nresb2, presb1 );
+            if (presb2 != -1 && nrest2 == prest2)
               SetMin( resGapSize, sres0, sres1, nresb2, presb2 );
           }
           mprintf("Min res gap size on other strand = %i (%i to %i)\n", resGapSize, sres0, sres1);
           // Minimum allowed gap is 4 residues in between, so 5 residues total.
-          if (resGapSize < 6) {
+          if (resGapSize > -1 && resGapSize < 6) {
             mprintf("Beta bulge.\n");
             if (Residues_[prevRes].SS() != ALPHA)
               Residues_[prevRes].SetSS( EXTENDED );
