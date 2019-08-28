@@ -76,6 +76,7 @@ class Action_DSSP2 : public Action {
     DataSet* totalDS_[NSSTYPE_]; ///< Hold total SS each frame for each SS type
     ActionInit Init_;            ///< Hold pointers to master DSL/DFL
     bool printString_;           ///< If true print 1 char per residue indicating ss type
+    bool betaDetail_;            ///< If true use para/anti in place of extended/bridge
 };
 
 // =============================================================================
@@ -119,7 +120,7 @@ class Action_DSSP2::SSres {
     /// Set a bridge between this res and other res index into Residues_
     void SetBridge(int, BridgeType);
 
-    void AccumulateData(int, bool);
+    void AccumulateData(int, bool, bool);
 
     void SetSS(SStype);
     void SetNum(int i)       { num_ = i; }

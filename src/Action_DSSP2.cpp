@@ -129,20 +129,26 @@ void Action_DSSP2::SSres::Unassign() {
 }
 
 /** Accumulate SS data. */
-void Action_DSSP2::SSres::AccumulateData(int frameNum, bool useString) {
+void Action_DSSP2::SSres::AccumulateData(int frameNum, bool useString, bool betaDetail)
+{
   SScount_[sstype_]++;
+  int idata = (int)sstype_;
   if (sstype_ == EXTENDED || sstype_ == BRIDGE) {
-    if (b1type_ == ANTIPARALLEL || b2type_ == ANTIPARALLEL)
-      Bcount_[ANTIPARALLEL]++;
-    if (b1type_ == PARALLEL || b2type_ == PARALLEL)
+    if (b1type_ == PARALLEL || b2type_ == PARALLEL) {
       Bcount_[PARALLEL]++;
+      if (betaDetail) idata = (int)EXTENDED;
+    }
+    if (b1type_ == ANTIPARALLEL || b2type_ == ANTIPARALLEL) {
+      Bcount_[ANTIPARALLEL]++;
+      if (betaDetail) idata = (int)BRIDGE;
+    }
     // TODO bulge?
   } else
     Bcount_[NO_BRIDGE]++;
   if (useString)
     resDataSet_->Add(frameNum, SSchar_[sstype_]); 
   else
-    resDataSet_->Add(frameNum, &sstype_);
+    resDataSet_->Add(frameNum, &idata);
 }
 
 /** Set turn beginning. */
@@ -247,13 +253,16 @@ Action_DSSP2::Action_DSSP2() :
   BB_CA_("CA"),
   outfile_(0),
   dsspFile_(0),
-  assignout_(0)
+  assignout_(0),
+  printString_(false),
+  betaDetail_(false)
 {}
 
 // Action_DSSP2::Help()
 void Action_DSSP2::Help() const {
   mprintf("\t[<name>] [out <filename>] [<mask>] [sumout <filename>]\n"
           "\t[assignout <filename>] [totalout <filename>] [ptrajformat]\n"
+          "\t[betadetail]\n"
           "\t[namen <N name>] [nameh <H name>] [nameca <CA name>]\n"
           "\t[namec <C name>] [nameo <O name>]\n"
           "  Calculate secondary structure content for residues in <mask>.\n"
@@ -274,6 +283,7 @@ Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int de
   DataFile* totalout = init.DFL().AddDataFile( actionArgs.GetStringKey("totalout"), actionArgs );
   assignout_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("assignout"), "SS assignment");
   printString_ = actionArgs.hasKey("ptrajformat");
+  betaDetail_ = actionArgs.hasKey("betadetail");
   temp = actionArgs.GetStringKey("namen");
   if (!temp.empty()) BB_N_ = temp;
   temp = actionArgs.GetStringKey("nameh");
@@ -311,6 +321,8 @@ Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int de
     mprintf("\tDumping results to %s\n", outfile_->DataFilename().full());
   if (dsspFile_ != 0)
     mprintf("\tSum results to %s\n", dsspFile_->DataFilename().full());
+  if (betaDetail_)
+    mprintf("\tWill print parallel/anti-parallel beta in place of extended/bridge\n");
   if (printString_) { 
     mprintf("\tSS data for each residue will be stored as a string.\n");
     for (int i = 0; i < NSSTYPE_; i++)
@@ -883,7 +895,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
   int Nselected = 0;
   for (resi=0; resi < Nres; resi++) {
     if (Residues_[resi].IsSelected()) {
-      Residues_[resi].AccumulateData(frameNum, printString_);
+      Residues_[resi].AccumulateData(frameNum, printString_, betaDetail_);
       Nselected++;
     }
   }
