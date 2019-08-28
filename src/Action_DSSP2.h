@@ -85,6 +85,7 @@ class Action_DSSP2::SSres {
     SSres(SSres const&);
     SSres& operator=(SSres const&);
     int SScount(SStype t) const { return SScount_[t]; }
+    int Bcount(BridgeType t) const { return Bcount_[t]; }
     SStype SS()       const { return sstype_; }
     int Num()         const { return num_; }
     char ResChar()    const { return resChar_; }

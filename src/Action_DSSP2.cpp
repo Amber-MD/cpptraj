@@ -952,7 +952,12 @@ void Action_DSSP2::Print() {
     // Set up a dataset for each SS type. TODO: NONE type?
     for (int ss = 1; ss < NSSTYPE_; ss++) {
       md.SetIdx(ss);
-      md.SetLegend( SSname_[ss] );
+      const char* legend = SSname_[ss];
+      if (betaDetail_ && (SStype)ss == EXTENDED)
+        legend = "Para";
+      else if (betaDetail_ && (SStype)ss == BRIDGE)
+        legend = "Anti";
+      md.SetLegend( legend );
       dsspData_[ss] = Init_.DSL().AddSet(DataSet::DOUBLE, md);
       dsspData_[ss]->SetDim(Dimension::X, Xdim);
       dsspFile_->AddDataSet( dsspData_[ss] ); 
@@ -966,7 +971,17 @@ void Action_DSSP2::Print() {
         for (int ss = 0; ss < NSSTYPE_; ss++)
           Nframe += Residues_[resi].SScount((SStype)ss);
         for (int ss = 1; ss < NSSTYPE_; ss++) {
-          double avg = (double)Residues_[resi].SScount((SStype)ss);
+          double avg;
+          if (betaDetail_) {
+            if ((SStype)ss == EXTENDED)
+              avg = (double)Residues_[resi].Bcount(PARALLEL);
+            else if ((SStype)ss == BRIDGE)
+              avg = (double)Residues_[resi].Bcount(ANTIPARALLEL);
+            else
+            avg = (double)Residues_[resi].SScount((SStype)ss);
+          } else {
+            avg = (double)Residues_[resi].SScount((SStype)ss);
+          }
           avg /= (double)Nframe;
           dsspData_[ss]->Add(idx, &avg);
         }
