@@ -132,20 +132,27 @@ void Action_DSSP2::SSres::AccumulateData(int frameNum, bool useString, bool beta
 {
   SScount_[sstype_]++;
   int idata = (int)sstype_;
+  const char* sdata = SSchar_[sstype_];
   if (sstype_ == EXTENDED || sstype_ == BRIDGE) {
     if (b1type_ == PARALLEL || b2type_ == PARALLEL) {
       Bcount_[PARALLEL]++;
-      if (betaDetail) idata = (int)EXTENDED;
+      if (betaDetail) {
+        idata = (int)EXTENDED;
+        sdata = "b";
+      }
     }
     if (b1type_ == ANTIPARALLEL || b2type_ == ANTIPARALLEL) {
       Bcount_[ANTIPARALLEL]++;
-      if (betaDetail) idata = (int)BRIDGE;
+      if (betaDetail) {
+        idata = (int)BRIDGE;
+        sdata = "B";
+      }
     }
     // TODO bulge?
   } else
     Bcount_[NO_BRIDGE]++;
   if (useString)
-    resDataSet_->Add(frameNum, SSchar_[sstype_]); 
+    resDataSet_->Add(frameNum, sdata);
   else
     resDataSet_->Add(frameNum, &idata);
 }
