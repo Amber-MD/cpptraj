@@ -50,15 +50,8 @@ Action_DSSP2::SSres::SSres() :
   isSelected_(false)
 {
   std::fill(SScount_, SScount_ + NSSTYPE_, 0);
+  std::fill(Bcount_, Bcount_ + NBRIDGETYPE_, 0);
   std::fill(turnChar_, turnChar_ + NTURNTYPE_, ' ');
-}
-
-void Action_DSSP2::SSres::AccumulateData(int frameNum, bool useString) {
-  SScount_[sstype_]++;
-  if (useString)
-    resDataSet_->Add(frameNum, SSchar_[sstype_]); 
-  else
-    resDataSet_->Add(frameNum, &sstype_);
 }
 
 Action_DSSP2::SSres::SSres(SSres const& rhs) :
@@ -82,6 +75,7 @@ Action_DSSP2::SSres::SSres(SSres const& rhs) :
   isSelected_(rhs.isSelected_)
 {
   std::copy(rhs.SScount_, rhs.SScount_ + NSSTYPE_, SScount_);
+  std::copy(rhs.Bcount_, rhs.Bcount_ + NBRIDGETYPE_, Bcount_);
   std::copy(rhs.turnChar_, rhs.turnChar_ + NTURNTYPE_, turnChar_);
 }
   
@@ -106,6 +100,7 @@ Action_DSSP2::SSres& Action_DSSP2::SSres::operator=(SSres const& rhs) {
   resChar_ = rhs.resChar_;
   isSelected_ = rhs.isSelected_;
   std::copy(rhs.SScount_, rhs.SScount_ + NSSTYPE_, SScount_);
+  std::copy(rhs.Bcount_, rhs.Bcount_ + NBRIDGETYPE_, Bcount_);
   std::copy(rhs.turnChar_, rhs.turnChar_ + NTURNTYPE_, turnChar_);
   return *this;
 }
@@ -127,6 +122,23 @@ void Action_DSSP2::SSres::Unassign() {
   bridge2idx_ = -1;
   b2type_ = NO_BRIDGE;
   std::fill(turnChar_, turnChar_ + NTURNTYPE_, ' ');
+}
+
+/** Accumulate SS data. */
+void Action_DSSP2::SSres::AccumulateData(int frameNum, bool useString) {
+  SScount_[sstype_]++;
+  if (sstype_ == EXTENDED || sstype_ == BRIDGE) {
+    if (b1type_ == ANTIPARALLEL || b2type_ == ANTIPARALLEL)
+      Bcount_[ANTIPARALLEL]++;
+    if (b1type_ == PARALLEL || b2type_ == PARALLEL)
+      Bcount_[PARALLEL]++;
+    // TODO bulge?
+  } else
+    Bcount_[NO_BRIDGE]++;
+  if (useString)
+    resDataSet_->Add(frameNum, SSchar_[sstype_]); 
+  else
+    resDataSet_->Add(frameNum, &sstype_);
 }
 
 /** Set turn beginning. */
@@ -213,9 +225,10 @@ bool Action_DSSP2::SSres::IsBridgedWith(int idx2) const {
 
 void Action_DSSP2::SSres::PrintSSchar() const {
   static const char btypeChar[] = { ' ', 'p', 'A' };
-  mprintf("\t%8i %c %c %c %c %c(%8i) %c(%8i) %c\n", num_+1, resChar_,
+  mprintf("\t%6i %c %c %c %c %c(%6i) %c(%6i) %6i %6i %6i %c\n", num_+1, resChar_,
           turnChar_[T3], turnChar_[T4], turnChar_[T5],
           btypeChar[b1type_], bridge1idx_+1, btypeChar[b2type_], bridge2idx_+1,
+          Bcount_[NO_BRIDGE], Bcount_[PARALLEL], Bcount_[ANTIPARALLEL],
           DSSP_char_[sstype_]);
 }
 

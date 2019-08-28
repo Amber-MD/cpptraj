@@ -49,6 +49,7 @@ class Action_DSSP2 : public Action {
     static const int NBETATYPE_ = 3;
     /// Bridge direction types
     enum BridgeType { NO_BRIDGE = 0, PARALLEL, ANTIPARALLEL };
+    static const int NBRIDGETYPE_ = 3;
 
     static const double DSSP_fac_;  ///< Original DSSP factor for calc. H-bond "energy"
     static const double DSSP_cut_;  ///< Original DSSP H-bond energy cutoff in kcal/mol
@@ -144,6 +145,7 @@ class Action_DSSP2::SSres {
     double chirality_;          ///< Dihedral CA[i-1, i, i+1, i+2]
     double bend_;               ///< Angle CA[i-2, i, i+2]
     int SScount_[NSSTYPE_];     ///< Hold count for each SS type
+    int Bcount_[NBRIDGETYPE_];  ///< Hold count for Beta types
     SStype sstype_;             ///< SS assignment for this frame
     int num_;                   ///< Residue index in Topology
     int C_;                     ///< Coord idx of BB carbon
