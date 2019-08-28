@@ -123,7 +123,9 @@ void Action_DSSP2::SSres::Deselect() {
 void Action_DSSP2::SSres::Unassign() {
   sstype_ = NONE;
   bridge1idx_ = -1;
+  b1type_ = NO_BRIDGE;
   bridge2idx_ = -1;
+  b2type_ = NO_BRIDGE;
   std::fill(turnChar_, turnChar_ + NTURNTYPE_, ' ');
 }
 
@@ -574,10 +576,10 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 #endif /* _OPENMP */
   for (resi = 0; resi < Nres; resi++)
   {
+    Residues_[resi].Unassign();
     if (Residues_[resi].IsSelected())
     {
       SSres& ResCO = Residues_[resi];
-      ResCO.Unassign();
       if (ResCO.HasCO())
       {
         const double* Cxyz = frm.Frm().CRD( ResCO.C() );
