@@ -30,7 +30,6 @@ const char* Action_DSSP2::SSchar_[]    = { "0", "E", "B", "G", "H", "I", "T", "S
 /** Full SS names. */
 const char* Action_DSSP2::SSname_[]={"None", "Extended", "Bridge", "3-10", "Alpha", "Pi", "Turn", "Bend"};
 
-const std::string Action_DSSP2::SSzlabels_ = "zlabels None,Ext,Bridge,3-10,Alpha,Pi,Turn,Bend";
 
 // ----- SSres -----------------------------------------------------------------
 Action_DSSP2::SSres::SSres() :
@@ -303,8 +302,12 @@ Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int de
   if (dsetname_.empty())
     dsetname_ = init.DSL().GenerateDefaultName("DSSP");
   // Set up Z labels
-  if (outfile_ != 0)
-    outfile_->ProcessArgs(SSzlabels_);
+  if (outfile_ != 0) {
+    if (betaDetail_)
+      outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn,Bend");
+    else
+      outfile_->ProcessArgs("zlabels None,Ext,Bridge,3-10,Alpha,Pi,Turn,Bend");
+  }
   // Create data sets for total fraction SS vs time.
   for (int i = 0; i < NSSTYPE_; i++) {
     totalDS_[i] = init.DSL().AddSet(DataSet::FLOAT, MetaData(dsetname_, SSname_[i]));

@@ -40,7 +40,6 @@ class Action_DSSP2 : public Action {
     static const char DSSP_char_[]; ///< DSSP 1 char names corresponding to SStype
     static const char* SSname_[];   ///< Full secondary structure names corresponding to SStype
     static const char* SSchar_[];   ///< PTRAJ 1 character names corresponding to SStype
-    static const std::string SSzlabels_; ///< Output graph Z labels corresponding to SStype
     /// Turn types
     enum TurnType { T3 = 0, T4, T5 };
     static const int NTURNTYPE_ = 3;
