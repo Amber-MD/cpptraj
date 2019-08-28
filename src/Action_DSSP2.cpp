@@ -939,7 +939,7 @@ void Action_DSSP2::Print() {
       for (int resi = min_res; resi < max_res+1; resi++) {
         if (startRes == -1) startRes = resi;
         // Convert residue name.
-        resLine += Residue::ConvertResName( Residues_[resi].Dset()->Meta().Legend() );
+        resLine += Residues_[resi].ResChar();
         // Figure out which SS element is dominant for res if selected
         if (Residues_[resi].Dset() != 0) {
           int dominantType = 0;
