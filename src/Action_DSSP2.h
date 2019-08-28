@@ -32,14 +32,8 @@ class Action_DSSP2 : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
-    int OverHbonds(int, ActionFrame&);
-
-    enum BridgeType { PARALLEL=0, ANTIPARALLEL };
-    void AssignBridge(int, int, BridgeType);
-
-    class ElemHbond;
+    /// Class that will hold SS info for each residue
     class SSres;
-
     /// Secondary structure types
     enum SStype { NONE=0, EXTENDED, BRIDGE, H3_10, ALPHA, HPI, TURN, BEND };
     static const int NSSTYPE_ = 8;  ///< # of secondary structure types.
@@ -47,27 +41,24 @@ class Action_DSSP2 : public Action {
     static const char* SSname_[];   ///< Full secondary structure names corresponding to SStype
     static const char* SSchar_[];   ///< PTRAJ 1 character names corresponding to SStype
     static const std::string SSzlabels_; ///< Output graph Z labels corresponding to SStype
-
-    /// Elementary hydrogen bond pattern
-/*    enum PatternType {
-      NOHBOND = 0, ///< No hydrogen bond
-      TURNBEG,     ///< Start of n-Turn, >
-      TURNEND,     ///< End of n-Turn, <
-      TURNX,       ///< Coincidence of TURNBEG and TURNEND, X
-      TURN3,       ///< Inside i to i + 3 turn (T)
-      TURN4,       ///< Inside i to i + 4 turn (T)
-      TURN5,       ///< Inside i to i + 5 turn (T)
-      BRIDGEPARA,  ///< (i-1,j) and (j,i+1) or (j-1,i) and (i,j+1), lower case
-      BRIDGEANTI   ///< (i,j) and (j,i) or (i-1,j+1) and (j-1,i+1), upper case
-    };*/
-
-    enum ssCharType { T3 = 0, T4, T5, B1, B2, S };
-    static const int NSSCHARTYPE_ = 6;
+    /// Turn types
+    enum TurnType { T3 = 0, T4, T5 };
+    static const int NTURNTYPE_ = 3;
+    /// Beta types
+    enum BetaType { B1 = 0, B2, S };
+    static const int NBETATYPE_ = 3;
+    /// Bridge direction types
+    enum BridgeType { NO_BRIDGE = 0, PARALLEL, ANTIPARALLEL };
 
     static const double DSSP_fac_;  ///< Original DSSP factor for calc. H-bond "energy"
     static const double DSSP_cut_;  ///< Original DSSP H-bond energy cutoff in kcal/mol
 
     typedef std::vector<SSres> SSarrayType;
+
+    int OverHbonds(int, ActionFrame&);
+
+    void AssignBridge(int, int, BridgeType);
+
 
     int debug_;            ///< Action debug level
     SSarrayType Residues_; ///< Hold SS data for all residues.
@@ -86,6 +77,7 @@ class Action_DSSP2 : public Action {
     bool printString_;           ///< If true print 1 char per residue indicating ss type
 };
 
+// =============================================================================
 class Action_DSSP2::SSres {
   public:
     SSres();
@@ -112,17 +104,17 @@ class Action_DSSP2::SSres {
     bool HasNH()          const { return (N_!=-1 && H_!=-1); }
     bool HasCA()          const { return (CA_!=-1); }
 
-    bool HasTurnStart(ssCharType) const;
+    bool HasTurnStart(TurnType) const;
     bool HasBridge() const;
     bool IsBridgedWith(int) const;
-    char StrandChar() const;
+//    char StrandChar() const;
     void PrintSSchar() const;
 
-    void SetBegin(ssCharType);
-    void SetTurn(ssCharType);
-    void SetEnd(ssCharType);
-
-    void SetBridge(int, char);
+    void SetBegin(TurnType);
+    void SetTurn(TurnType);
+    void SetEnd(TurnType);
+    /// Set a bridge between this res and other res index into Residues_
+    void SetBridge(int, BridgeType);
 
     void AccumulateData(int, bool);
 
@@ -152,7 +144,6 @@ class Action_DSSP2::SSres {
     double chirality_;          ///< Dihedral CA[i-1, i, i+1, i+2]
     double bend_;               ///< Angle CA[i-2, i, i+2]
     int SScount_[NSSTYPE_];     ///< Hold count for each SS type
-    //PatternType pattern_;      ///< Assigned hbond pattern for this frame
     SStype sstype_;             ///< SS assignment for this frame
     int num_;                   ///< Residue index in Topology
     int C_;                     ///< Coord idx of BB carbon
@@ -163,9 +154,11 @@ class Action_DSSP2::SSres {
     int prevIdx_;               ///< Index in Residues_ of previous residue
     int nextIdx_;               ///< Index in Residues_ of next residue
     int bridge1idx_;            ///< Index in Residues_ of res this is bridged to
+    BridgeType b1type_;         ///< Type of bridge1
     int bridge2idx_;            ///< Index in Residues_ of res this is bridged to
+    BridgeType b2type_;         ///< Type of bridge2
     char resChar_;              ///< Single char residue ID
-    char ssChar_[NSSCHARTYPE_]; ///< Character if part of N turn/bridge/sheet
+    char turnChar_[NTURNTYPE_]; ///< Character if part of N turn
     bool isSelected_;           ///< True if calculating SS for this residue.
 };
 #endif

@@ -1,5 +1,5 @@
 #include <cmath> // sqrt
-#include <algorithm> // std::fill
+#include <algorithm> // std::fill, std::min, std::max
 #include <set> // SET
 #include "Action_DSSP2.h"
 #include "CpptrajStdio.h"
@@ -33,7 +33,6 @@ Action_DSSP2::SSres::SSres() :
   resDataSet_(0),
   chirality_(0),
   bend_(0),
-//  pattern_(NOHBOND),
   sstype_(NONE),
   num_(-1),
   C_(-1),
@@ -44,12 +43,14 @@ Action_DSSP2::SSres::SSres() :
   prevIdx_(-1),
   nextIdx_(-1),
   bridge1idx_(-1),
+  b1type_(NO_BRIDGE),
   bridge2idx_(-1),
+  b2type_(NO_BRIDGE),
   resChar_(' '),
   isSelected_(false)
 {
   std::fill(SScount_, SScount_ + NSSTYPE_, 0);
-  std::fill(ssChar_, ssChar_ + NSSCHARTYPE_, ' ');
+  std::fill(turnChar_, turnChar_ + NTURNTYPE_, ' ');
 }
 
 void Action_DSSP2::SSres::AccumulateData(int frameNum, bool useString) {
@@ -74,12 +75,14 @@ Action_DSSP2::SSres::SSres(SSres const& rhs) :
   prevIdx_(rhs.prevIdx_),
   nextIdx_(rhs.nextIdx_),
   bridge1idx_(rhs.bridge1idx_),
+  b1type_(rhs.b1type_),
   bridge2idx_(rhs.bridge2idx_),
+  b2type_(rhs.b2type_),
   resChar_(rhs.resChar_),
   isSelected_(rhs.isSelected_)
 {
   std::copy(rhs.SScount_, rhs.SScount_ + NSSTYPE_, SScount_);
-  std::copy(rhs.ssChar_, rhs.ssChar_ + NSSCHARTYPE_, ssChar_);
+  std::copy(rhs.turnChar_, rhs.turnChar_ + NTURNTYPE_, turnChar_);
 }
   
 Action_DSSP2::SSres& Action_DSSP2::SSres::operator=(SSres const& rhs) {
@@ -97,14 +100,15 @@ Action_DSSP2::SSres& Action_DSSP2::SSres::operator=(SSres const& rhs) {
   prevIdx_ = rhs.prevIdx_;
   nextIdx_ = rhs.nextIdx_;
   bridge1idx_ = rhs.bridge1idx_;
+  b1type_ = rhs.b1type_;
   bridge2idx_ = rhs.bridge2idx_;
+  b2type_ = rhs.b2type_;
   resChar_ = rhs.resChar_;
   isSelected_ = rhs.isSelected_;
   std::copy(rhs.SScount_, rhs.SScount_ + NSSTYPE_, SScount_);
-  std::copy(rhs.ssChar_, rhs.ssChar_ + NSSCHARTYPE_, ssChar_);
+  std::copy(rhs.turnChar_, rhs.turnChar_ + NTURNTYPE_, turnChar_);
   return *this;
 }
-
 
 
 void Action_DSSP2::SSres::Deselect() {
@@ -117,34 +121,33 @@ void Action_DSSP2::SSres::Deselect() {
 }
 
 void Action_DSSP2::SSres::Unassign() {
-//  pattern_ = NOHBOND;
   sstype_ = NONE;
   bridge1idx_ = -1;
   bridge2idx_ = -1;
-  std::fill(ssChar_, ssChar_ + NSSCHARTYPE_, ' ');
+  std::fill(turnChar_, turnChar_ + NTURNTYPE_, ' ');
 }
 
 /** Set turn beginning. */
-void Action_DSSP2::SSres::SetBegin(ssCharType typeIn) {
-  if (ssChar_[typeIn] == '<')
-    ssChar_[typeIn] = 'X';
+void Action_DSSP2::SSres::SetBegin(TurnType typeIn) {
+  if (turnChar_[typeIn] == '<')
+    turnChar_[typeIn] = 'X';
   else
-    ssChar_[typeIn] = '>';
+    turnChar_[typeIn] = '>';
 }
 
-void Action_DSSP2::SSres::SetEnd(ssCharType typeIn) {
-  if (ssChar_[typeIn] == '>')
-    ssChar_[typeIn] = 'X';
+void Action_DSSP2::SSres::SetEnd(TurnType typeIn) {
+  if (turnChar_[typeIn] == '>')
+    turnChar_[typeIn] = 'X';
   else
-    ssChar_[typeIn] = '<';
+    turnChar_[typeIn] = '<';
 }
 
-void Action_DSSP2::SSres::SetTurn(ssCharType typeIn) {
+void Action_DSSP2::SSres::SetTurn(TurnType typeIn) {
   // Do not overwrite an existing end character
-  if (ssChar_[typeIn] == ' ') {
-    if      (typeIn == T3) ssChar_[typeIn] = '3';
-    else if (typeIn == T4) ssChar_[typeIn] = '4';
-    else if (typeIn == T5) ssChar_[typeIn] = '5';
+  if (turnChar_[typeIn] == ' ') {
+    if      (typeIn == T3) turnChar_[typeIn] = '3';
+    else if (typeIn == T4) turnChar_[typeIn] = '4';
+    else if (typeIn == T5) turnChar_[typeIn] = '5';
   }
 }
 
@@ -172,20 +175,20 @@ void Action_DSSP2::SSres::SetSS(SStype typeIn) {
     sstype_ = typeIn;
 }
 
-bool Action_DSSP2::SSres::HasTurnStart(ssCharType typeIn) const {
-  if (ssChar_[typeIn] == '>' ||
-      ssChar_[typeIn] == 'X')
+bool Action_DSSP2::SSres::HasTurnStart(TurnType typeIn) const {
+  if (turnChar_[typeIn] == '>' ||
+      turnChar_[typeIn] == 'X')
     return true;
   return false;
 }
 
-void Action_DSSP2::SSres::SetBridge(int idx, char bchar) {
+void Action_DSSP2::SSres::SetBridge(int idx, BridgeType btypeIn) {
   if (bridge1idx_ == -1) {
     bridge1idx_ = idx;
-    ssChar_[B1] = bchar;
+    b1type_ = btypeIn;
   } else if (bridge2idx_ == -1) {
     bridge2idx_ = idx;
-    ssChar_[B2] = bchar;
+    b2type_ = btypeIn;
   } else
     mprinterr("Error: Too many bridges for %i (to %i)\n", Num(), idx+1);
 }
@@ -201,15 +204,16 @@ bool Action_DSSP2::SSres::IsBridgedWith(int idx2) const {
   return false;
 }
 
-char Action_DSSP2::SSres::StrandChar() const {
+/*char Action_DSSP2::SSres::StrandChar() const {
   // TODO ever b2?
   return ssChar_[B1];
-}
+}*/
 
 void Action_DSSP2::SSres::PrintSSchar() const {
+  static const char btypeChar[] = { ' ', 'p', 'A' };
   mprintf("\t%8i %c %c %c %c %c(%8i) %c(%8i) %c\n", num_+1, resChar_,
-          ssChar_[T3], ssChar_[T4], ssChar_[T5],
-          ssChar_[B1], bridge1idx_+1, ssChar_[B2], bridge2idx_+1,
+          turnChar_[T3], turnChar_[T4], turnChar_[T5],
+          btypeChar[b1type_], bridge1idx_+1, btypeChar[b2type_], bridge2idx_+1,
           DSSP_char_[sstype_]);
 }
 
@@ -460,13 +464,12 @@ void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn) {
   SSres& Resi = Residues_[idx1];
   SSres& Resj = Residues_[idx2];
 
-  char bchar;
   if (btypeIn == ANTIPARALLEL) {
     mprintf("\t\tAssignBridge %i to %i, Antiparallel\n", idx1+1, idx2+1);
-    bchar = 'A';
+    //bchar = 'A';
   } else {
     mprintf("\t\tAssignBridge %i to %i, Parallel\n", idx1+1, idx2+1);
-    bchar = 'p';
+    //bchar = 'p';
   }
 
   // Do not duplicate bridges
@@ -475,8 +478,8 @@ void Action_DSSP2::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn) {
     return;
   }
 
-  Resi.SetBridge( idx2, bchar );
-  Resj.SetBridge( idx1, bchar );
+  Resi.SetBridge( idx2, btypeIn );
+  Resj.SetBridge( idx1, btypeIn );
 }
 
 /*
