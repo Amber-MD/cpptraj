@@ -5,7 +5,7 @@
 # Clean
 CleanFiles cpptraj.in dssp.dat dssp.dat.sum dssp.sum.agr dssp.gnu \
            dssp2.gnu dssp2.sum.agr total.agr assign.4.dat \
-           DSSP.assign.dat
+           DSSP.assign.dat ftufabi.assign.dat
 
 INPUT="-i cpptraj.in"
 TOP="../DPDP.parm7"
@@ -62,8 +62,23 @@ parm test.4.pdb
 trajin test.4.pdb
 dssp N4 assignout assign.4.dat
 EOF
-  RunCpptraj "Secstruct (DSSP): SS assign output test"
+  RunCpptraj "$UNITNAME"
   DoTest assign.4.dat.save assign.4.dat
+fi
+
+# FtuFabI Assignment test
+UNITNAME='FtuFabI Assignment test'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  TOP=''
+  cat > cpptraj.in <<EOF
+parm ../FtuFabI.NAD.TCL.parm7
+trajin ../FtuFabI.NAD.TCL.nc
+dssp FtuFabIt assignout temp.dat
+dssp2 FtuFabI assignout ftufabi.assign.dat
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest ftufabi.assign.dat.save ftufabi.assign.dat
 fi
 
 EndTest
