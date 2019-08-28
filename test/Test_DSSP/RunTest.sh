@@ -68,13 +68,12 @@ fi
 
 # FtuFabI Assignment test
 UNITNAME='FtuFabI Assignment test'
-CheckFor maxthreads 1
+CheckFor maxthreads 10
 if [ $? -eq 0 ] ; then
   TOP=''
   cat > cpptraj.in <<EOF
 parm ../FtuFabI.NAD.TCL.parm7
 trajin ../FtuFabI.NAD.TCL.nc
-dssp FtuFabIt assignout temp.dat
 dssp2 FtuFabI assignout ftufabi.assign.dat
 EOF
   RunCpptraj "$UNITNAME"
