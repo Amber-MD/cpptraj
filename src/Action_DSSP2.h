@@ -62,6 +62,7 @@ class Action_DSSP2 : public Action {
 
 
     int debug_;            ///< Action debug level
+    unsigned int Nframes_; ///< Number of frames processed, for total SS normalization
     SSarrayType Residues_; ///< Hold SS data for all residues.
     Sarray SSname_;        ///< Hold full secondary structure names
     NameType BB_N_;        ///< Protein N atom name ('N')

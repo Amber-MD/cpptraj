@@ -279,7 +279,7 @@ void Action_DSSP2::Help() const {
 Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
-  //Nframe_ = 0;
+  Nframes_ = 0;
   // Get keywords
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   std::string temp = actionArgs.GetStringKey("sumout");
@@ -945,6 +945,7 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 {
   OverHbonds(frameNum, frm);
+  Nframes_++;
   // DEBUG - Print basic assignment
   for (SSarrayType::const_iterator it = Residues_.begin(); it != Residues_.end(); ++it)
     it->PrintSSchar();
@@ -983,25 +984,25 @@ void Action_DSSP2::Print() {
     }
     
     // Calc the avg SS type for each residue that has data.
-    int idx = 0; 
+    int idx = 0;
+    unsigned int norm = Nframes_;
     for (int resi = min_res; resi < max_res+1; resi++) {
-      if (Residues_[resi].Dset() != 0) {
-        int Nframe = 0;
-        for (int ss = 0; ss < NSSTYPE_; ss++)
-          Nframe += Residues_[resi].SScount((SStype)ss);
+      SSres& Resi = Residues_[resi];
+      if (Resi.Dset() != 0) {
+        //int Nframe = 0;
+        //for (int ss = 0; ss < NSSTYPE_; ss++)
+        //  Nframe += Resi.SScount((SStype)ss);
+        //mprintf("DEBUG: Total frames for residue %i is %i\n", Resi.Num()+1, Nframe);
         for (int ss = 1; ss < NSSTYPE_; ss++) {
           double avg;
-          if (betaDetail_) {
-            if ((SStype)ss == EXTENDED)
-              avg = (double)Residues_[resi].Bcount(PARALLEL);
-            else if ((SStype)ss == BRIDGE)
-              avg = (double)Residues_[resi].Bcount(ANTIPARALLEL);
-            else
-            avg = (double)Residues_[resi].SScount((SStype)ss);
-          } else {
-            avg = (double)Residues_[resi].SScount((SStype)ss);
-          }
-          avg /= (double)Nframe;
+          if (betaDetail_ && (SStype)ss == EXTENDED)
+            avg = (double)Resi.Bcount(PARALLEL);
+          else if (betaDetail_ && (SStype)ss == BRIDGE)
+            avg = (double)Resi.Bcount(ANTIPARALLEL);
+          else
+            avg = (double)Resi.SScount((SStype)ss);
+          //mprintf("DEBUG:\t\tCount for type %i is %f\n", ss, avg);
+          avg /= (double)norm;
           dsspData_[ss]->Add(idx, &avg);
         }
         ++idx;
