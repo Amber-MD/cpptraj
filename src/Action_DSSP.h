@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_DSSP_H
 #define INC_ACTION_DSSP_H
 #include "Action.h"
+#include "Timer.h"
 /// Calculate protein secondary structure using DSSP algorithm.
 class Action_DSSP : public Action {
   public:
@@ -57,6 +58,9 @@ class Action_DSSP : public Action {
     NameType BB_C_;
     NameType BB_O_;
     NameType BB_CA_;
+    Timer t_total_;
+    Timer t_calchb_;
+    Timer t_assign_;
     // Private fns
     inline int isBonded(int, int);
     inline void SSassign(int, int, SStype, bool);

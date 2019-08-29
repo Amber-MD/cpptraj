@@ -5,6 +5,7 @@
 #include "Action.h"
 #include "NameType.h"
 #include "CharMask.h"
+#include "Timer.h"
 class DataSet;
 /// <Enter description of Action_DSSP2 here>
 /** Based on protein secondary structure definitions given in:
@@ -79,6 +80,9 @@ class Action_DSSP2 : public Action {
     ActionInit Init_;            ///< Hold pointers to master DSL/DFL
     bool printString_;           ///< If true print 1 char per residue indicating ss type
     bool betaDetail_;            ///< If true use para/anti in place of extended/bridge
+    Timer t_total_;
+    Timer t_calchb_;
+    Timer t_assign_;
 };
 
 // =============================================================================

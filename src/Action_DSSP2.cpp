@@ -5,7 +5,6 @@
 #include "CpptrajStdio.h"
 #include "DataSet.h"
 #include "DistRoutines.h"
-#include "Timer.h"
 #ifdef DSSPDEBUG
 #include "Constants.h"
 #endif
@@ -605,16 +604,14 @@ static inline void SetMin(int& resGapSize, int& sres0, int& sres1, int Nres, int
 
 int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 {
-  Timer t_overhbonds;
-  t_overhbonds.Start();
+  t_total_.Start();
+  t_calchb_.Start();
   // ----- Determine hydrogen bonding ------------
   typedef std::pair<int,int> HbondPairType;
   typedef std::set<HbondPairType> HbondMapType;
   /// Map resi (CO) to resj (NH) potential bridge hbonds
   HbondMapType CO_NH_bonds;
 
-  Timer t_calchb;
-  t_calchb.Start();
   int resi;
   int Nres = (int)Residues_.size();
 #ifdef _OPENMP
@@ -667,10 +664,9 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 #ifdef _OPENMP
 } // END pragma omp parallel
 #endif
-  t_calchb.Stop();
+  t_calchb_.Stop();
 
-  Timer t_assign;
-  t_assign.Start();
+  t_assign_.Start();
   // ----- Do basic assignment -------------------
   for (HbondMapType::const_iterator hb0 = CO_NH_bonds.begin(); hb0 != CO_NH_bonds.end(); ++hb0)
   {
@@ -966,12 +962,8 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
   }
 
 
-  t_assign.Stop();
-
-  t_overhbonds.Stop();
-  t_calchb.WriteTiming(1, "Calc Hbonds", t_overhbonds.Total());
-  t_assign.WriteTiming(1, "Assignment ", t_overhbonds.Total());
-  t_overhbonds.WriteTiming(0,"Over Hbonds");
+  t_assign_.Stop();
+  t_total_.Stop();
   return 0;
 }
 
@@ -990,6 +982,10 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
 // Action_DSSP::Print()
 void Action_DSSP2::Print() {
   if (dsetname_.empty()) return;
+  t_total_.WriteTiming(1,"DSSP total");
+  t_calchb_.WriteTiming(2, "Calc Hbonds", t_total_.Total());
+  t_assign_.WriteTiming(2, "Assignment ", t_total_.Total());
+
   // Try not to print empty residues. Find the minimum and maximum residue
   // for which there is data. Output res nums start from 1.
   int min_res = -1;
