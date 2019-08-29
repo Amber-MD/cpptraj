@@ -250,6 +250,21 @@ void Action_DSSP2::SSres::PrintSSchar() const {
           DSSP_char_[sstype_]);
 }
 
+#ifdef MPI
+/** Sync residue SS and beta counts to master. */
+void Action_DSSP2::SSres::SyncToMaster(Parallel::Comm const& commIn) {
+  int SSprob[NSSTYPE_ + NBRIDGETYPE_];
+  int Buffer[NSSTYPE_ + NBRIDGETYPE_];
+  std::copy( SScount_, SScount_ + NSSTYPE_,    SSprob );
+  std::copy( Bcount_,  Bcount_ + NBRIDGETYPE_, SSprob + NSSTYPE_ );
+  commIn.ReduceMaster( Buffer, SSprob, NSSTYPE_ + NBRIDGETYPE_, MPI_INT, MPI_SUM );
+  if (commIn.Master()) {
+    std::copy( Buffer, Buffer + NSSTYPE_, SScount_ );
+    std::copy( Buffer + NSSTYPE_, Buffer + NSSTYPE_ + NBRIDGETYPE_, Bcount_ );
+  }
+}
+#endif
+
 // ----- Action_DSSP2 ----------------------------------------------------------
 
 Action_DSSP2::Action_DSSP2() :
@@ -1004,6 +1019,21 @@ Action::RetType Action_DSSP2::DoAction(int frameNum, ActionFrame& frm)
   }
   return Action::OK;
 }
+
+#ifdef MPI
+int Action_DSSP2::SyncAction() {
+  // Consolidate SScount data to master.
+  for (SSarrayType::iterator res = Residues_.begin(); res != Residues_.end(); ++res)
+    res->SyncToMaster( Init_.TrajComm() );
+
+  // Calc total number of frames.
+  int total_frames = 0;
+  Init_.TrajComm().ReduceMaster( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  if (Init_.TrajComm().Master())
+    Nframes_ = total_frames;
+  return 0;
+}
+#endif
 
 // Action_DSSP::Print()
 void Action_DSSP2::Print() {

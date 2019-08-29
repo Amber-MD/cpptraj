@@ -32,6 +32,9 @@ class Action_DSSP2 : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int SyncAction();
+#   endif
     void Print();
 
     /// Class that will hold SS info for each residue
@@ -155,6 +158,9 @@ class Action_DSSP2::SSres {
     void Unassign();
     /// \return Relative priority of currently assigned SS type
     int SSpriority() const;
+#   ifdef MPI
+    void SyncToMaster(Parallel::Comm const&);
+#   endif
   private:
     /// \return Relative priority of given SS type
     static inline int ssPriority(SStype);
