@@ -18,7 +18,7 @@ if [ $? -eq 0 ] ; then
 noprogress
 trajin ../DPDP.nc 
 secstruct out dssp.gnu sumout dssp.sum.agr totalout total.agr \
-          assignout DSSP.assign.dat
+          assignout DSSP.assign.dat betadetail
 EOF
   RunCpptraj "Secstruct (DSSP) command test."
   DoTest dssp.gnu.save dssp.gnu
@@ -29,7 +29,7 @@ EOF
   # Test 2
   cat > cpptraj.in <<EOF
 trajin ../DPDP.nc 
-secstruct :10-22 out dssp.dat ptrajformat 
+secstruct :10-22 out dssp.dat ptrajformat betadetail
 EOF
   RunCpptraj "Secstruct (DSSP) command test, Ptraj Format."
   DoTest dssp.dat.save dssp.dat
@@ -44,7 +44,7 @@ noprogress
 parm ../tz2.nhe.parm7
 trajin ../tz2.nhe.nc parmindex 1
 trajin ../DPDP.nc
-secstruct out dssp2.gnu sumout dssp2.sum.agr nostring
+secstruct out dssp2.gnu sumout dssp2.sum.agr nostring betadetail
 EOF
     RunCpptraj "$UNITNAME"
     DoTest dssp2.gnu.save dssp2.gnu
@@ -60,7 +60,7 @@ if [ $? -eq 0 ] ; then
   cat > cpptraj.in <<EOF
 parm test.4.pdb
 trajin test.4.pdb
-dssp N4 assignout assign.4.dat
+dssp N4 assignout assign.4.dat betadetail
 EOF
   RunCpptraj "$UNITNAME"
   DoTest assign.4.dat.save assign.4.dat
@@ -74,7 +74,7 @@ if [ $? -eq 0 ] ; then
   cat > cpptraj.in <<EOF
 parm ../FtuFabI.NAD.TCL.parm7
 trajin ../FtuFabI.NAD.TCL.nc
-dssp2 FtuFabI assignout ftufabi.assign.dat
+dssp FtuFabI assignout ftufabi.assign.dat
 EOF
   RunCpptraj "$UNITNAME"
   DoTest ftufabi.assign.dat.save ftufabi.assign.dat
