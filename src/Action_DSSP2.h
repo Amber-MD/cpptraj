@@ -1,5 +1,6 @@
 #ifndef INC_ACTION_DSSP2_H
 #define INC_ACTION_DSSP2_H
+#include <set>
 #include <vector>
 #include <string>
 #include "Action.h"
@@ -56,12 +57,19 @@ class Action_DSSP2 : public Action {
 
     typedef std::vector<SSres> SSarrayType;
     typedef std::vector<std::string> Sarray;
+    typedef std::pair<int,int> HbondPairType;
+    typedef std::set<HbondPairType> HbondMapType;
 
     int OverHbonds(int, ActionFrame&);
 
     void AssignBridge(int, int, BridgeType);
 
-
+    /// Map resi (CO) to resj (NH) hydrogen bonds
+#   ifdef _OPENMP
+    std::vector<HbondMapType> CO_NH_bondsArray_;
+#   else
+    std::vector<HbondMapType> CO_NH_bonds_;
+#   endif
     int debug_;            ///< Action debug level
     unsigned int Nframes_; ///< Number of frames processed, for total SS normalization
     SSarrayType Residues_; ///< Hold SS data for all residues.

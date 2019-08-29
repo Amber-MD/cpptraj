@@ -8,6 +8,9 @@
 #ifdef DSSPDEBUG
 #include "Constants.h"
 #endif
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 /** From the original Kabsch & Sander 1983 paper. Obtained via
   *   q1 = 0.42e
@@ -330,8 +333,22 @@ Action::RetType Action_DSSP2::Init(ArgList& actionArgs, ActionInit& init, int de
     // For now dont add 'None' so colors match up.
     if (totalout != 0 && i > 0) totalout->AddDataSet( totalDS_[i] );
   }
+# ifdef _OPENMP
+  // Each thread needs temp. space to store found hbonds every frame
+  // to avoid memory clashes when adding/updating in map.
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  CO_NH_bondsArray_.resize( omp_get_num_threads() );
+  }
+  }
+# endif
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
+# ifdef _OPENMP
+  mprintf("\tParallelizing calculation with %zu threads.\n", CO_NH_bondsArray_.size());
+# endif
   if (outfile_ != 0) 
     mprintf("\tDumping results to %s\n", outfile_->DataFilename().full());
   if (dsspFile_ != 0)
@@ -607,17 +624,17 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
   t_total_.Start();
   t_calchb_.Start();
   // ----- Determine hydrogen bonding ------------
-  typedef std::pair<int,int> HbondPairType;
-  typedef std::set<HbondPairType> HbondMapType;
-  /// Map resi (CO) to resj (NH) potential bridge hbonds
-  HbondMapType CO_NH_bonds;
-
   int resi;
   int Nres = (int)Residues_.size();
 #ifdef _OPENMP
-#pragma omp parallel private(resi)
+  int mythread;
+#pragma omp parallel private(resi, mythread)
 {
+  mythread = omp_get_thread_num();
+  CO_NH_bondsArray_[mythread].clear();
 #pragma omp for
+#else /* _OPENMP */
+  CO_NH_bonds_.clear();
 #endif /* _OPENMP */
   for (resi = 0; resi < Nres; resi++)
   {
@@ -649,7 +666,11 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
 #               ifdef DSSPDEBUG
                 mprintf("DBG: %i-CO --> %i-NH  E= %g\n", resi+1, resj+1, E);
 #               endif
-                CO_NH_bonds.insert( HbondPairType(resi, resj) );
+#               ifdef _OPENMP
+                CO_NH_bondsArray_[mythread].insert( HbondPairType(resi, resj) );
+#               else
+                CO_NH_bonds_.insert( HbondPairType(resi, resj) );
+#               endif
               }
 //#             ifdef DSSPDEBUG
 //              else if (resDelta < 6)
@@ -663,6 +684,11 @@ int Action_DSSP2::OverHbonds(int frameNum, ActionFrame& frm)
   } // END outer loop over residues
 #ifdef _OPENMP
 } // END pragma omp parallel
+  for (unsigned int thread = 1; thread < CO_NH_bondsArray_.size(); thread++)
+    for (HbondMapType::const_iterator hb = CO_NH_bondsArray_[thread].begin();
+                                      hb != CO_NH_bondsArray_[thread].end(); ++hb)
+      CO_NH_bondsArray_[0].insert( *hb );
+  HbondMapType const& CO_NH_bonds = CO_NH_bondsArray_[0];
 #endif
   t_calchb_.Stop();
 
