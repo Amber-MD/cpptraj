@@ -180,9 +180,6 @@ Original code for the 'xtalsymm' Action.
 Alrun N. Koller (Heinrich-Heine-University, Düsseldorf, Germany)
 Original implementation of matrix/vector functionality in PTRAJ, including matrix diagonalization, IRED analysis, eigenmode analysis, and vector time correlations.
 
-* Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
-Original code for DSSP (secstruct).
-
 * Michael Crowley (University of Southern California, Los Angeles, CA, USA)
 Original code for dealing with truncated octahedral unit cells.
 
