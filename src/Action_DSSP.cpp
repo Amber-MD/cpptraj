@@ -703,13 +703,13 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
     for (HbondMapType::const_iterator hb = CO_NH_bondsArray_[thread].begin();
                                       hb != CO_NH_bondsArray_[thread].end(); ++hb)
       CO_NH_bondsArray_[0].insert( *hb );
-  HbondMapType const& CO_NH_bonds = CO_NH_bondsArray_[0];
+  HbondMapType const& CO_NH_bonds_ = CO_NH_bondsArray_[0];
 #endif
   t_calchb_.Stop();
 
   t_assign_.Start();
   // ----- Do basic assignment -------------------
-  for (HbondMapType::const_iterator hb0 = CO_NH_bonds.begin(); hb0 != CO_NH_bonds.end(); ++hb0)
+  for (HbondMapType::const_iterator hb0 = CO_NH_bonds_.begin(); hb0 != CO_NH_bonds_.end(); ++hb0)
   {
     int riidx = hb0->first;
     int rjidx = hb0->second;
@@ -763,8 +763,8 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
     if (resDelta < 0) resDelta = -resDelta;
     if (resDelta > 2) {
       // Assume (i,j). Look for (j,i)
-      hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first) );
-      if (hb != CO_NH_bonds.end()) {
+      hb = CO_NH_bonds_.find( HbondPairType(hb0->second, hb0->first) );
+      if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
         mprintf("\t\t%i ANTI-PARALLELa with %i (%i)\n", hb0->first+1, hb0->second+1, hb->first+1);
 #       endif
@@ -774,8 +774,8 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
     resDelta = AbsResDelta(hb0->first+1, hb0->second-1);
     if (resDelta > 2) {
       // Assume (i-1, j+1). Look for (j-1, i+1)
-      hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first+2) );
-      if (hb != CO_NH_bonds.end()) {
+      hb = CO_NH_bonds_.find( HbondPairType(hb0->second-2, hb0->first+2) );
+      if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
         mprintf("\t\t%i ANTI-PARALLELb with %i (%i)\n", hb0->first+2, hb0->second, hb->first+1);
 #       endif
@@ -785,8 +785,8 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
     resDelta = AbsResDelta(hb0->first+1, hb0->second);
     if (resDelta > 2) {
       // Assume (i-1, j). Check for (j, i+1) PARALLEL
-      hb = CO_NH_bonds.find( HbondPairType(hb0->second, hb0->first+2) );
-      if (hb != CO_NH_bonds.end()) {
+      hb = CO_NH_bonds_.find( HbondPairType(hb0->second, hb0->first+2) );
+      if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
         mprintf("\t\t%i PARALLELa with %i (%i)\n", hb0->first+2, hb0->second+1, hb->first+1);
 #       endif
@@ -796,8 +796,8 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
     resDelta = AbsResDelta(hb0->second-1, hb0->first);
     if (resDelta > 2) {
       // Assume (j, i+1). Check for (i-1, j)
-      hb = CO_NH_bonds.find( HbondPairType(hb0->second-2, hb0->first) );
-      if (hb != CO_NH_bonds.end()) {
+      hb = CO_NH_bonds_.find( HbondPairType(hb0->second-2, hb0->first) );
+      if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
         mprintf("\t\t%i PARALLELb with %i (%i)\n", hb0->second, hb0->first+1, hb->first+1);
 #       endif

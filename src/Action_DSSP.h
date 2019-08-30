@@ -74,7 +74,7 @@ class Action_DSSP : public Action {
 #   ifdef _OPENMP
     std::vector<HbondMapType> CO_NH_bondsArray_;
 #   else
-    std::vector<HbondMapType> CO_NH_bonds_;
+    HbondMapType CO_NH_bonds_;
 #   endif
     int debug_;            ///< Action debug level
     unsigned int Nframes_; ///< Number of frames processed, for total SS normalization
