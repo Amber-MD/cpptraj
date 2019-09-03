@@ -30505,6 +30505,10 @@ secstruct
 \end_layout
 
 \begin_layout LyX-Code
+          [betadetail]
+\end_layout
+
+\begin_layout LyX-Code
           [namen <N name>] [nameh <H name>] [nameca <CA name>]
 \end_layout
 
@@ -30554,6 +30558,12 @@ secstruct
 \begin_layout Description
 [ptrajformat] Write secondary structure as a string of characters for each
  frame, similar to ptraj output.
+\end_layout
+
+\begin_layout Description
+[betadetail] Record anti-parallel beta and parallel beta in place of extended
+ and bridge secondary structure.
+ If a residue could be both only anti-parallel is reported.
 \end_layout
 
 \begin_layout Description
@@ -30680,12 +30690,20 @@ None
 \end_deeper
 \begin_layout Standard
 
-\shape italic
-Note that when not using 
 \series bold
-ptrajformat
-\series default
-, data sets are not generated until 
+As of version 4.18.0, this command now produces output that better conforms
+ with the original definitions in Kabsch and Sander 1983; namely that Extended
+ beta (i.e.
+ 2 or more consecutive beta bridges of the same type) and beta Bridge (i.e.
+ an isolated beta bridge) are now reported instead of anti-parallel and
+ parallel beta.
+ To restore the original behavior the 'betadetail' keyword must be specified.
+\end_layout
+
+\begin_layout Standard
+
+\shape italic
+Note that the residue and [avgss] data sets are not generated until 
 \series bold
 run
 \series default
@@ -30802,9 +30820,11 @@ where STRING is a string of characters (one for each residue) where each
 \shape italic
 ptraj
 \shape default
- outputs).
+ had outputed and is retained for backwards compatibility).
  The various secondary structure types and their corresponding integer/character
- are listed below:
+ are listed below.
+ If 'betadetail' is specified what is reported and the characters used change
+ slightly.
 \begin_inset Separator latexpar
 \end_inset
 
@@ -30825,7 +30845,7 @@ ptraj
 \begin_inset Text
 
 \begin_layout Plain Layout
-Character
+STRING (betadetail)
 \end_layout
 
 \end_inset
@@ -30843,7 +30863,7 @@ Integer
 \begin_inset Text
 
 \begin_layout Plain Layout
-DSSP Char
+DSSP
 \end_layout
 
 \end_inset
@@ -30852,7 +30872,7 @@ DSSP Char
 \begin_inset Text
 
 \begin_layout Plain Layout
-SS type
+SS type (betadetail)
 \end_layout
 
 \end_inset
@@ -30901,7 +30921,7 @@ None
 \begin_inset Text
 
 \begin_layout Plain Layout
-b
+E (b)
 \end_layout
 
 \end_inset
@@ -30928,7 +30948,7 @@ b
 \begin_inset Text
 
 \begin_layout Plain Layout
-Parallel Beta-sheet
+Extended beta (parallel beta)
 \end_layout
 
 \end_inset
@@ -30966,7 +30986,7 @@ B
 \begin_inset Text
 
 \begin_layout Plain Layout
-Anti-parallel Beta-sheet
+Isolated beta (anti-parallel beta)
 \end_layout
 
 \end_inset
@@ -31210,7 +31230,7 @@ totalout
 \end_layout
 
 \begin_layout LyX-Code
-    SSS   TH HHHTTSBBBB TTTBBBB SS     S 
+    SSS   TH HHHTTSEEEE TTTEEEE SS     S 
 \end_layout
 
 \begin_layout Standard
