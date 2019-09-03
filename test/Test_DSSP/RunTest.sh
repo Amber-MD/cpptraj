@@ -68,7 +68,7 @@ fi
 
 # FtuFabI Assignment test
 UNITNAME='FtuFabI Assignment test'
-CheckFor maxthreads 10
+CheckFor netcdf maxthreads 10
 if [ $? -eq 0 ] ; then
   TOP=''
   cat > cpptraj.in <<EOF
