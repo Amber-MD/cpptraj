@@ -511,7 +511,7 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
       }
     } // END residue is selected
   }
-  mprintf("\t%u of %zu solute residues selected.\n", nResSelected, soluteRes.Size());
+  mprintf("\t%u of %i solute residues selected.\n", nResSelected, soluteRes.Size());
 
   // DEBUG - print each residue set up.
   if (debug_ > 0) {
