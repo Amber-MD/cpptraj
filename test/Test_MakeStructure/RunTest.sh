@@ -49,7 +49,7 @@ trajin pp2.rst7.save
 
 makestructure "ref:1-13:tz2.rst7"
 rmsd reference 
-trajout fromref.pdb multi
+trajout fromref.pdb multi chainid ' '
 EOF
   RunCpptraj "Makestructure test with reference."
   #DoTest ../tz2.rst7 fromref.rst7

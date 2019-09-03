@@ -208,10 +208,16 @@ void Action_AtomicFluct::Print() {
         int u12 = (int)((Cross_[i  ] - SumCoords_[i  ] * SumCoords_[i+1]) * 10000);
         int u13 = (int)((Cross_[i+1] - SumCoords_[i  ] * SumCoords_[i+2]) * 10000);
         int u23 = (int)((Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]) * 10000);
+        // To make PDB as compliant as possible, ensure there is a chain ID.
+        char chainid;
+        if (fluctParm_->Res(resnum).HasChainID())
+          chainid = fluctParm_->Res(resnum).ChainID();
+        else
+          chainid = Residue::DefaultChainID();
         PDBfile& adpout = static_cast<PDBfile&>( *adpoutfile_ );
         adpout.WriteANISOU(
           atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
-          fluctParm_->Res(resnum).ChainID(), fluctParm_->Res(resnum).OriginalResNum(),
+          chainid, fluctParm_->Res(resnum).OriginalResNum(),
           u11, u22, u33, u12, u13, u23, (*fluctParm_)[atom].ElementName(), 0 );
       }
     }

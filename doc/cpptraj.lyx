@@ -1456,12 +1456,12 @@ namelist} e.g.
 \end_layout
 
 \begin_layout Description
-:/{chain
+::{chain
 \begin_inset space ~
 \end_inset
 
 id} e.g.
- ':/B', ':/A,D'.
+ '::B', '::A,D'.
  Requires chain ID information be present in the topology.
 \end_layout
 
@@ -1601,7 +1601,7 @@ More examples:
 \end_layout
 
 \begin_layout Description
-:/A,D@CA All atoms named 'CA' in chains A and D.
+::A,D@CA All atoms named 'CA' in chains A and D.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -2592,11 +2592,11 @@ status open
 \begin_inset Tabular
 <lyxtabular version="3" rows="15" columns="5">
 <features tabularvalignment="middle">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
+<column alignment="center" valignment="top" width="20text%">
+<column alignment="center" valignment="top" width="20text%">
+<column alignment="center" valignment="top" width="20text%">
+<column alignment="center" valignment="top" width="20text%">
+<column alignment="center" valignment="top" width="20text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -4035,10 +4035,10 @@ would take the square root of each member of D0, add it to the corresponding
 \begin_inset Tabular
 <lyxtabular version="3" rows="5" columns="4">
 <features tabularvalignment="middle">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -5487,8 +5487,8 @@ The following COORDS data set commands are available:
 \begin_inset Tabular
 <lyxtabular version="3" rows="12" columns="2">
 <features tabularvalignment="middle">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="75text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -5989,8 +5989,11 @@ permutedihedrals crdset <COORDS set> resrange <range> [{interval | random}]
 \end_layout
 
 \begin_layout LyX-Code
-             	[outtraj <filename> [<outfmt>]] [crdout <output COORDS>] [<dihedra
-l types>]
+             	[outtraj <filename> [<outfmt>]] [crdout <output COORDS>] 
+\end_layout
+
+\begin_layout LyX-Code
+                 [<dihedral types>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -6020,7 +6023,11 @@ l types>]
 
 \begin_layout LyX-Code
   <dihedral types> =  alpha beta gamma delta epsilon zeta nu1 nu2 h1p c2p
- chin phi psi chip omega     
+ chin 
+\end_layout
+
+\begin_layout LyX-Code
+                      phi psi chip omega     
 \begin_inset Separator latexpar
 \end_inset
 
@@ -6307,8 +6314,11 @@ rotatedihedral crdset <COORDS set> [frame <#>] [name <output set name>]
 \end_layout
 
 \begin_layout LyX-Code
-<dih type> = alpha beta gamma delta epsilon zeta nu1 nu2 h1p c2p chin phi
- psi chip omega
+<dih type> = alpha beta gamma delta epsilon zeta nu1 nu2 h1p c2p chin
+\end_layout
+
+\begin_layout LyX-Code
+             phi psi chip omega
 \end_layout
 
 \begin_deeper
@@ -7582,7 +7592,10 @@ e'
 
 \begin_layout LyX-Code
     	  [bound <lower> bound <upper>] [rexp <expected>] [noe_strong] [noe_medium]
- [noe_weak]
+\end_layout
+
+\begin_layout LyX-Code
+          [noe_weak]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -7797,8 +7810,11 @@ selection>] Remove data sets from <set selection> according to specified
 \end_layout
 
 \begin_layout LyX-Code
-<select>   :  'equal' '==' 'notequal' '!=' 'lessthan' '<' 'greaterthan'
- '>' 'between' 'outside'
+<select>   :  'equal' '==' 'notequal' '!=' 'lessthan' '<' 
+\end_layout
+
+\begin_layout LyX-Code
+              'greaterthan' '>' 'between' 'outside'
 \end_layout
 
 \begin_layout Description
@@ -11999,10 +12015,10 @@ Cpptraj currently understands the following trajectory file formats:
 \begin_inset Tabular
 <lyxtabular version="3" rows="20" columns="4">
 <features tabularvalignment="middle">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="25text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -14097,6 +14113,12 @@ occmax
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+Note that if the input topology does not contain chain IDs, a default chain
+ ID of 'Z' will be used if no other chain ID option is specified in order
+ to remain consistent with the PDB standard.
+\end_layout
+
 \begin_layout Subsubsection
 
 \shape italic
@@ -14621,9 +14643,9 @@ Mod
 \begin_inset Tabular
 <lyxtabular version="3" rows="86" columns="3">
 <features islongtable="true" longtabularalignment="center">
-<column alignment="center" valignment="top" width="1.3in">
-<column alignment="center" valignment="top" width="4.5in">
-<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="65text%">
+<column alignment="center" valignment="top" width="10text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
 \begin_inset Text
@@ -17422,7 +17444,10 @@ areapermol
 
 \begin_layout LyX-Code
 areapermol [<name>] {[<mask1>] [nlayers <#>] | nmols <#>} [out <filename>]
- [{xy | xz | yz}]
+\end_layout
+
+\begin_layout LyX-Code
+           [{xy | xz | yz}]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -20251,8 +20276,11 @@ dipole
 \end_layout
 
 \begin_layout LyX-Code
-dipole <filename> {data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> [gridcenter
- <cx> <cy> <cz>]}
+dipole <filename> {data <dsname> | <nx> <dx> <ny> <dy> <nz> <dz> 
+\end_layout
+
+\begin_layout LyX-Code
+       [gridcenter <cx> <cy> <cz>]}
 \end_layout
 
 \begin_layout LyX-Code
@@ -25827,11 +25855,15 @@ mask
 
 \end_inset
 
- <mask> [maskout <filename>] [maskpdb <pdbname>] [maskmol2 <mol2name>]
-\begin_inset Separator latexpar
-\end_inset
+ <mask> [maskout <filename>]
+\end_layout
 
+\begin_layout LyX-Code
+     [ {maskpdb <filename> | maskmol2 <filename>}
+\end_layout
 
+\begin_layout LyX-Code
+       [trajargs <comma-separated args>] ]
 \end_layout
 
 \begin_deeper
@@ -25840,27 +25872,40 @@ mask
 \end_layout
 
 \begin_layout Description
-[maskout
+maskout
 \begin_inset space ~
 \end_inset
 
-<filename>] Write information on atoms in <mask> to <filename>.
+<filename> Write information on atoms in <mask> to <filename>.
 \end_layout
 
 \begin_layout Description
-[maskpdb
+maskpdb
 \begin_inset space ~
 \end_inset
 
-<name>] Write PDB of atoms in <mask> to <name>.X.
+<filename> Write PDB of atoms in <mask> to <name>.X.
 \end_layout
 
 \begin_layout Description
-[maskmol2
+maskmol2
 \begin_inset space ~
 \end_inset
 
-<name>] Write Mol2 of atoms in <mask> to <name>.X.
+<filename> Write Mol2 of atoms in <mask> to <name>.X.
+\end_layout
+
+\begin_layout Description
+trajargs
+\begin_inset space ~
+\end_inset
+
+<comma-separated
+\begin_inset space ~
+\end_inset
+
+args> When writing output PDB/Mol2, additional trajectory arguments to pass
+ to the output trajectory.
 \end_layout
 
 \end_deeper
@@ -25938,8 +25983,8 @@ maskmol2
 \end_layout
 
 \begin_layout Standard
-For example, to write out all atoms within 3.0 Angstroms of residue 195 that
- are part of residues named WAT to 
+For example, to write out all residues within 3.0 Angstroms of residue 195
+ that are named WAT to 
 \begin_inset Quotes eld
 \end_inset
 
@@ -25960,6 +26005,23 @@ mask
 \end_inset
 
  maskout Res195WAT.dat maskpdb Res195WAT.pdb
+\end_layout
+
+\begin_layout Standard
+To write all out atoms outside of 5.0 Angstroms of residues named ARG to
+ PDB files with a chain ID of 'B':
+\end_layout
+
+\begin_layout LyX-Code
+mask :ARG>@5.0 maskpdb Outside5Arg.pdb trajargs 
+\begin_inset Quotes eld
+\end_inset
+
+chainid 'B'
+\begin_inset Quotes erd
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection
@@ -27522,8 +27584,11 @@ nativecontacts [<mask1> [<mask2>]] [writecontacts <outfile>] [resout <resfile>]
 \end_layout
 
 \begin_layout LyX-Code
-               [name <dsname>] [byresidue] [map [mapout <mapfile>]] [series
- [seriesout <file>]]
+               [name <dsname>] [byresidue] [map [mapout <mapfile>]]
+\end_layout
+
+\begin_layout LyX-Code
+               [series [seriesout <file>]]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -30440,6 +30505,10 @@ secstruct
 \end_layout
 
 \begin_layout LyX-Code
+          [betadetail]
+\end_layout
+
+\begin_layout LyX-Code
           [namen <N name>] [nameh <H name>] [nameca <CA name>]
 \end_layout
 
@@ -30489,6 +30558,12 @@ secstruct
 \begin_layout Description
 [ptrajformat] Write secondary structure as a string of characters for each
  frame, similar to ptraj output.
+\end_layout
+
+\begin_layout Description
+[betadetail] Record anti-parallel beta and parallel beta in place of extended
+ and bridge secondary structure.
+ If a residue could be both only anti-parallel is reported.
 \end_layout
 
 \begin_layout Description
@@ -30615,12 +30690,20 @@ None
 \end_deeper
 \begin_layout Standard
 
-\shape italic
-Note that when not using 
 \series bold
-ptrajformat
-\series default
-, data sets are not generated until 
+As of version 4.18.0, this command now produces output that better conforms
+ with the original definitions in Kabsch and Sander 1983; namely that Extended
+ beta (i.e.
+ 2 or more consecutive beta bridges of the same type) and beta Bridge (i.e.
+ an isolated beta bridge) are now reported instead of anti-parallel and
+ parallel beta.
+ To restore the original behavior the 'betadetail' keyword must be specified.
+\end_layout
+
+\begin_layout Standard
+
+\shape italic
+Note that the residue and [avgss] data sets are not generated until 
 \series bold
 run
 \series default
@@ -30737,9 +30820,11 @@ where STRING is a string of characters (one for each residue) where each
 \shape italic
 ptraj
 \shape default
- outputs).
+ had outputed and is retained for backwards compatibility).
  The various secondary structure types and their corresponding integer/character
- are listed below:
+ are listed below.
+ If 'betadetail' is specified what is reported and the characters used change
+ slightly.
 \begin_inset Separator latexpar
 \end_inset
 
@@ -30760,7 +30845,7 @@ ptraj
 \begin_inset Text
 
 \begin_layout Plain Layout
-Character
+STRING (betadetail)
 \end_layout
 
 \end_inset
@@ -30778,7 +30863,7 @@ Integer
 \begin_inset Text
 
 \begin_layout Plain Layout
-DSSP Char
+DSSP
 \end_layout
 
 \end_inset
@@ -30787,7 +30872,7 @@ DSSP Char
 \begin_inset Text
 
 \begin_layout Plain Layout
-SS type
+SS type (betadetail)
 \end_layout
 
 \end_inset
@@ -30836,7 +30921,7 @@ None
 \begin_inset Text
 
 \begin_layout Plain Layout
-b
+E (b)
 \end_layout
 
 \end_inset
@@ -30863,7 +30948,7 @@ b
 \begin_inset Text
 
 \begin_layout Plain Layout
-Parallel Beta-sheet
+Extended beta (parallel beta)
 \end_layout
 
 \end_inset
@@ -30901,7 +30986,7 @@ B
 \begin_inset Text
 
 \begin_layout Plain Layout
-Anti-parallel Beta-sheet
+Isolated beta (anti-parallel beta)
 \end_layout
 
 \end_inset
@@ -31145,7 +31230,7 @@ totalout
 \end_layout
 
 \begin_layout LyX-Code
-    SSS   TH HHHTTSBBBB TTTBBBB SS     S 
+    SSS   TH HHHTTSEEEE TTTEEEE SS     S 
 \end_layout
 
 \begin_layout Standard
@@ -33477,9 +33562,9 @@ trajin
 \begin_inset Tabular
 <lyxtabular version="3" rows="46" columns="3">
 <features islongtable="true" longtabularalignment="center">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top">
-<column alignment="center" valignment="top" width="0pt">
+<column alignment="center" valignment="top" width="25text%">
+<column alignment="center" valignment="top" width="50text%">
+<column alignment="center" valignment="top" width="25text%">
 <row>
 <cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
@@ -37063,8 +37148,8 @@ Solvent pH is <pH>
 \end_layout
 
 \begin_layout LyX-Code
-<residue name> <residue number> : Offset <offset from predicted> Pred <predicted
- pH> Frac Prot <fraction> Transitions <number of transitions>
+<res name> <res num> : Offset <off> Pred <pred> Frac Prot <frac> Transitions
+ <#trans>
 \end_layout
 
 \begin_layout LyX-Code
@@ -37080,7 +37165,16 @@ Average total molecular protonation: <avg>
 \end_layout
 
 \begin_layout Standard
-A line is printed for each residue.
+Where 
+\series bold
+<off>
+\series default
+ is offset from predicted, 
+\series bold
+<pred>
+\series default
+ is predicted pH, and <#trans> is the number of transitions.
+ A line is printed for each residue.
  This functionality is similar to the 
 \series bold
 cphstats
@@ -37453,8 +37547,8 @@ curvefit <dset> { <equation>  |
 \end_layout
 
 \begin_layout LyX-Code
-                  name <dsname> { gauss | nexp <m> [form {mexp|mexpk|mexpk_penal
-ty} } }
+                  name <dsname> {gauss | nexp <m> [form {mexp|mexpk|mexpk_penalt
+y}} }
 \end_layout
 
 \begin_layout LyX-Code
@@ -39107,8 +39201,13 @@ diagmatrix matired vecs 6 out ired.vec name ired.vec
 \end_layout
 
 \begin_layout LyX-Code
-ired relax NHdist 1.02 freq 500.0 tstep 1.0 tcorr 100.0 out v0.out noefile noe
- order 2
+ired relax NHdist 1.02 freq 500.0 tstep 1.0 tcorr 100.0 out v0.out 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+     noefile noe order 2
 \end_layout
 
 \begin_layout Subsection

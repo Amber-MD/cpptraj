@@ -29,7 +29,7 @@ Traj_PDBfile::Traj_PDBfile() :
   bfacbyres_(false),
   occbyres_(false),
   pdbTop_(0),
-  chainchar_(' '),
+  chainchar_(Residue::BlankChainID()),
   bfacdata_(0),
   occdata_(0),
   bfacmax_(99.99),
@@ -385,10 +385,13 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   // Set a chainID for each residue 
   // TODO: Set different chain ID for solute mols and solvent
   chainID_.clear();
-  if (chainchar_ == ' ') {
+  if (chainchar_ == Residue::BlankChainID()) {
     chainID_.reserve( trajParm->Nres() );
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
-      chainID_.push_back( res->ChainID() );
+      if (dumpq_ || res->HasChainID())
+        chainID_.push_back( res->ChainID() );
+      else
+        chainID_.push_back( Residue::DefaultChainID() );
   } else
     chainID_.resize(trajParm->Nres(), chainchar_);
         
