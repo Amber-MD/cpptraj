@@ -198,7 +198,7 @@ void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
   if (widthIn < 1)
     mprinterr("Error: Invalid data width (%i)\n", widthIn);
   else {
-    DataSetList Sets = GetMultipleSets( nameIn );
+    DataSetList Sets = SelectSets( nameIn );
     for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
       (*ds)->SetupFormat().SetFormatWidthPrecision(widthIn, precisionIn);
   }
