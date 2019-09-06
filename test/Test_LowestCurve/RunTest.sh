@@ -20,7 +20,7 @@ cat > lowest.in <<EOF
 readdata esurf_vs_rmsd.dat.txt index 1 name MyData
 list dataset
 runanalysis lowestcurve MyData points 10 step 0.2 name Lowest
-writedata All.agr MyData Lowest
+writedata All.agr MyData Lowest xprec 8.5
 EOF
 RunCpptraj "LowestCurve test"
 DoTest All.agr.save All.agr

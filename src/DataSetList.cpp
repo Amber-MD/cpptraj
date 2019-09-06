@@ -198,7 +198,7 @@ void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
   if (widthIn < 1)
     mprinterr("Error: Invalid data width (%i)\n", widthIn);
   else {
-    DataSetList Sets = GetMultipleSets( nameIn );
+    DataSetList Sets = SelectSets( nameIn );
     for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
       (*ds)->SetupFormat().SetFormatWidthPrecision(widthIn, precisionIn);
   }
@@ -554,7 +554,7 @@ int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xval
                                  DataListType const& Sets)
 {
   if (debug_ > 0)
-    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= %s.\n",
+    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= '%s'.\n",
             Sets.size(), Xvals.size(), XlabelIn.c_str());
   if (Sets.empty()) return 0; // No error for now.
   // If no X label assume 'Frame' for backwards compat.
