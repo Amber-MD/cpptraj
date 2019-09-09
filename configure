@@ -107,6 +107,8 @@ DIRECTIVES=''     # Common compiler directives
 INCLUDE=''        # Library header include line
 SFX=''            # Binary suffix
 EXE=''            # Binary executable suffix
+COMPERR='cpptrajcfg.compile.err'
+COMPOUT='cpptrajcfg.compile.out'
 
 # ----- Configure options ------------------------
 USE_CMAKE=0       # 1 = use cmake for build
@@ -284,10 +286,22 @@ for ((i=0; i < $NLIB; i++)) ; do
 done
 
 #-------------------------------------------------------------------------------
-# Print message to stderr and exit.
+# Print error message to stderr
+ErrMsg() {
+  >&2 echo "Error: $*"
+}
+
+#-------------------------------------------------------------------------------
+# Print error message to stderr and exit.
 Err() {
-  echo "Error: $*" > /dev/stderr
+  ErrMsg $*
   exit 1
+}
+
+#-------------------------------------------------------------------------------
+# Print warning message to stderr
+WrnMsg() {
+  >&2 echo "Warning: $*"
 }
 
 #-------------------------------------------------------------------------------
@@ -352,29 +366,29 @@ TestProgram() {
   if [ $silent -ne 2 ] ; then echo -n "$desc: " ; fi
   COMPILELINE="$comp $args -o testp $file $link"
   #echo "COMPILE: $COMPILELINE" #DEBUG
-  $COMPILELINE > /dev/null 2> compile.err
+  $COMPILELINE > $COMPOUT 2> $COMPERR
   if [ $? -ne 0 ] ; then
     if [ $silent -eq 0 ] ; then
       echo ""
-      echo "Test compile failed: $COMPILELINE" > /dev/stderr
-      echo "Error follows:" > /dev/stderr
-      cat compile.err > /dev/stderr
+      ErrMsg "Test compile failed: $COMPILELINE"
+      ErrMsg "Check the output below for error messages:"
+      cat $COMPERR >&2
       exit 1
     else
-      rm compile.err
+      rm $COMPERR $COMPOUT
       return 1
     fi
   fi
   if [ $silent -ne 3 ] ; then
-    ./testp > /dev/null
+    ./testp > prog.out
     if [ $? -ne 0 ] ; then
       echo ""
-      echo "Run of test program failed, compiled with: $COMPILELINE" > /dev/stderr
-      exit 1
+      Err "Run of test program failed, compiled with: $COMPILELINE"
     fi
+    rm prog.out
   fi
   if [ $silent -ne 2 ] ; then echo "OK" ; fi
-  rm -f $file testp compile.err
+  rm -f $file testp $COMPERR
   return 0
 }
 
@@ -526,7 +540,7 @@ EOF
    if [ "${LIB_STAT[$LFFTW3]}" = 'amberopt' ] ; then
     TestProgram silent "  Checking for FFTW3 from AMBERHOME" "$CXX" "$CXXFLAGS ${LIB_INCL[$LFFTW3]}" testp.cpp "${LIB_FLAG[$LFFTW3]}"
     if [ $? -eq 1 ] ; then
-      echo "Warning: FFTW3 test failed. CPPTRAJ will be built without FFTW3."
+      WrnMsg "FFTW3 test failed. CPPTRAJ will be built without FFTW3."
       LIB_STAT[$LFFTW3]='off'
     fi
   elif [ "$MKL_FFTW" = 'yes' ] ; then
@@ -587,7 +601,7 @@ EOF
   if [ "${LIB_STAT[$LSANDER]}" = 'amberopt' ] ; then
     TestProgram silent "  Checking for sanderlib" "$CXX" "$CXXFLAGS ${LIB_INCL[$LSANDER]}" testp.cpp "${LIB_FLAG[$LSANDER]}"
     if [ $? -eq 1 ] ; then
-      echo "Warning: SANDER test failed. CPPTRAJ will be built without the SANDER API."
+      WrnMsg "SANDER test failed. CPPTRAJ will be built without the SANDER API."
       LIB_STAT[$LSANDER]='off'
     fi
   else
@@ -763,7 +777,7 @@ SetupLibraries() {
       LIB_FLAG[$LBLAS]='-lopenblas'
     fi
     if [ -z "${LIB_HOME[$LBLAS]}" -a "${LIB_STAT[$LBLAS]}" != 'direct' ] ; then
-      echo "Warning: '-openblas' may require specifying location with '--with-blas=<DIR>' or '-lblas='"
+      WrnMsg "'-openblas' may require specifying location with '--with-blas=<DIR>' or '-lblas='"
     fi
     LIB_STAT[$LLAPACK]='off'
     LIB_FLAG[$LLAPACK]=''
@@ -812,8 +826,8 @@ SetupLibraries() {
   for ((i=0; i < $NLIB; i++)) ; do
     if [ "${LIB_STAT[$i]}" = 'amberopt' ] ; then
       if [ -z "$AMBERHOME" ] ; then
-        echo "Warning: Compilation of ${LIB_CKEY[$i]} requires AMBERHOME to be set"
-        echo "         if --with-${LIB_CKEY[$i]} not specified."
+        WrnMsg "Compilation of ${LIB_CKEY[$i]} requires AMBERHOME to be set"
+        WrnMsg "  if --with-${LIB_CKEY[$i]} not specified."
         LIB_STAT[$i]='off'
       else
         LIB_HOME[$i]=$AMBERHOME
@@ -863,7 +877,7 @@ SetupLibraries() {
           fi
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
             if [ -z "${LIB_STTC[$i]}" ] ; then
-              echo "Warning: Cannot link '${LIB_CKEY[$i]}' statically."
+              WrnMsg "Cannot link '${LIB_CKEY[$i]}' statically."
               lflag="-L$lhdir ${LIB_FLAG[$i]}"
             else
               lflag="$lhdir/${LIB_STTC[$i]}"
@@ -923,12 +937,11 @@ SetupCompilers() {
         *icpc*    ) COMPILERS='intel' ;;
         *pgc++*   ) COMPILERS='pgi' ;;
         *CC*      ) COMPILERS='cray' ;;
-        * ) echo "Warning: Could not detect compiler type ($CXX); assuming GNU" > /dev/stderr;;
+        * ) WrnMsg "Could not detect compiler type ($CXX); assuming GNU" ;;
       esac
       # If compiler was also specified make sure it matches as a sanity check
       if [ ! -z "$SPECIFIED_COMPILER" -a "$SPECIFIED_COMPILER" != "$COMPILERS" ] ; then
-        echo "Error: $SPECIFIED_COMPILER compilers specified but need $COMPILERS based on CXX = $CXX" > /dev/stderr
-        exit 1
+        WrnMsg "$SPECIFIED_COMPILER compilers specified but need $COMPILERS based on CXX = $CXX"
       fi
     fi
   fi
@@ -1094,7 +1107,7 @@ SetupCompilers() {
   fi
   # Sanity check
   if [ -z "$CC" -o -z "$CXX" -o -z "$FC" ] ; then
-    echo "Error: No compiler specified and CXX not set." > /dev/stderr
+    ErrMsg "No compiler specified and CXX not set."
     UsageSimple
     exit 1
   fi
@@ -1239,8 +1252,7 @@ SetupMKL() {
   else
     # Link-line advisor style
     if [ -z "$mklroot" ] ; then
-      echo "Error: MKLROOT/MKL_HOME not set." > /dev/stderr
-      exit 1
+      Err "MKLROOT/MKL_HOME not set."
     fi
     mkldir=$mklroot
     # Platform-dependent stuff
@@ -1281,11 +1293,11 @@ SetupMKL() {
         mklthread="$mkldir/libmkl_gnu_thread.a"
         mklomp='-lgomp'
       else
-        echo "Warning: OpenMP MKL not supported for $COMPILERS. Using sequential."
+        WrnMsg "OpenMP MKL not supported for $COMPILERS. Using sequential."
         mklthread="$mkldir/libmkl_sequential.a"
       fi
       if [ "$PLATFORM" = 'Darwin' -a "$COMPILERS" != 'intel' ] ; then
-        echo "Warning: OpenMP MKL not supported on OSX without Intel compilers. Using sequential."
+        WrnMsg "OpenMP MKL not supported on OSX without Intel compilers. Using sequential."
         mklthread="$mkldir/libmkl_sequential.a"
       fi
     else
@@ -1327,9 +1339,9 @@ SetupCUDA() {
   echo "  CUDA version $cuda_version detected."
   SM_CONFIG="Configuring for $SHADER_MODEL"
   if [ -z "$NVCCFLAGS" -a -z "$SHADER_MODEL" ] ; then
-    echo "Warning: SHADER_MODEL not set. Compiling for multiple architectures."
-    echo "Warning: To compile for a specific architecture set SHADER_MODEL"
-    echo "Warning: to 'sm_XX', where XX is the shader model version."
+    WrnMsg "SHADER_MODEL not set. Compiling for multiple architectures."
+    WrnMsg "To compile for a specific architecture set SHADER_MODEL"
+    WrnMsg "to 'sm_XX', where XX is the shader model version."
     # NOTE: From AmberTools configure2
     #Note at present we do not include SM3.5 or SM3.7 since they sometimes show performance
     #regressions over just using SM3.0.
@@ -1375,8 +1387,7 @@ BasicChecks() {
     CPPTRAJBIN=$CPPTRAJHOME/bin
     CPPTRAJLIB=$CPPTRAJHOME/lib
   elif [ ! -d "$CPPTRAJHOME" ] ; then
-    echo "Error: Install directory '$CPPTRAJHOME' does not exist." > /dev/stderr
-    exit 1
+    Err "Install directory '$CPPTRAJHOME' does not exist."
   fi
   # Test incompatible options
   if [ "$PLATFORM" = 'windows' ] ; then
@@ -1390,7 +1401,7 @@ BasicChecks() {
     USE_STATIC=1
   fi
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
-    echo "Warning: Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
+    WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
     USE_MPI=1
   fi
   # If we are using the bundled ARPACK then we will need C++/Fortran linking.
@@ -1465,9 +1476,9 @@ EOF
 #include <cstdio>
 extern "C" { void mytest_(int&); } int main() { int ival=14; printf("Testing"); mytest_(ival); }
 EOF
-        $CXX $CXXFLAGS -c -o testc.o testc.cpp > /dev/null 2> compile.err
+        $CXX $CXXFLAGS -c -o testc.o testc.cpp > $COMPOUT 2> $COMPERR
         if [ $? -ne 0 ] ; then
-          cat compile.err > /dev/stderr
+          cat $COMPERR >&2
           exit 1
         fi
         cat > testf.f <<EOF
@@ -1477,9 +1488,9 @@ subroutine mytest(ival)
   write(6,'(a,i6)') ' cross-link ', ival
 end subroutine mytest
 EOF
-        $FC $FFLAGS -c -o testf.o testf.f > /dev/null 2> compile.err
+        $FC $FFLAGS -c -o testf.o testf.f > $COMPOUT 2> $COMPERR
         if [ $? -ne 0 ] ; then
-          cat compile.err > /dev/stderr
+          cat $COMPERR >&2
           exit 1
         fi
         TestProgram quiet "clang++/gfortran link" "$CXX" " " "testc.o testf.o" "$FLINK"
@@ -1524,8 +1535,7 @@ EOF
 # Write build rules for config files.
 BuildRules() {
   if [ -z "$1" ] ; then
-    echo "Internal Error: BuildRules(): No output file." > /dev/stderr
-    exit 1
+    Err "BuildRules(): No output file."
   fi
   configfile=$1
   shift
@@ -1584,24 +1594,23 @@ BuildRules() {
 SetupCmake() {
   CMAKE=`which cmake`
   if [ -z "$CMAKE" ] ; then
-    echo "Error: 'cmake' binary not found. Cannot configure with cmake." > /dev/stderr
-    exit 1
+    Err "'cmake' binary not found. Cannot configure with cmake."
   fi
   # Not recommended to run in same directory as configure
   if [ "$WORKDIR" = '.' ] ; then
-    echo "Error: 'cmake' configure should be done in a separate directory." > /dev/stderr
-    echo "       e.g. $ cd \$CPPTRAJHOME" > /dev/stderr
-    echo "            $ mkdir build" > /dev/stderr
-    echo "            $ cd build" > /dev/stderr
-    echo "            $ ../configure -cmake <options>" > /dev/stderr
+    ErrMsg "Error: 'cmake' configure should be done in a separate directory."
+    ErrMsg "       e.g. $ cd \$CPPTRAJHOME"
+    ErrMsg "            $ mkdir build"
+    ErrMsg "            $ cd build"
+    ErrMsg "            $ ../configure -cmake <options>"
     exit 1
   fi
   # Ensure cmake bnuild system exists
   if [ ! -f "$WORKDIR/cmake/AmberBuildSystemInit.cmake" ] ; then
-    echo "Error: cmake build system is not present." > /dev/stderr
-    echo "       If this is a GIT repostitory, you may need to initialize the" > /dev/stderr
-    echo "       cmake submodule:" > /dev/stderr
-    echo " $ git submodule update --init --recursive" > /dev/stderr
+    ErrMsg "Error: cmake build system is not present."
+    ErrMsg "       If this is a GIT repostitory, you may need to initialize the"
+    ErrMsg "       cmake submodule:"
+    ErrMsg " $ git submodule update --init --recursive"
     exit 1
   fi
   # Set up cmake options
@@ -1696,7 +1705,8 @@ while [ ! -z "$1" ] ; do
     if [ -z "$VALUE" ] ; then
       Err "'$1': Expected <var>=<value>, missing <value>."
     fi
-    eval VALUE=$VALUE 2> /dev/null
+    eval VALUE=$VALUE 2> temp.err
+    rm temp.err
   else
     KEY=$1
   fi
@@ -1798,7 +1808,7 @@ fi
 if [ -z "$NBITS" ] ; then
   architecture=`uname -m`
   if [ -z "$architecture" ] ; then
-    echo "Warning: Could not determine 32 vs 64-bit OS - assuming 64-bit."
+    WrnMsg "Could not determine 32 vs 64-bit OS - assuming 64-bit."
     NBITS=64
   elif [ ! -z "`echo $architecture | grep 64`" ] ; then
     # Assume if the machine from uname has a 64 it is 64 bit.
@@ -2087,7 +2097,8 @@ fi
 # ----- Clean the source directory if necessary --
 if [ "$CLEAN" = 'yes' ] ; then
   echo 'Cleaning source directory.'
-  cd src && make clean > /dev/null 2> /dev/null
+  cd src && make clean > make.log 2>&1
+  rm make.log
 fi
 
 if [ ! -z "$RFILE" ] ; then
