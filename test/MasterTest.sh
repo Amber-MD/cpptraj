@@ -267,10 +267,11 @@ GetResultsFiles() {
     done
   else
     if [ "$1" = 'single' ] ; then
-      RESULTSFILES=`ls $2 2> /dev/null`
+      RESULTSFILES=`ls $2 2> tmp.cpptrajtest.devnull`
     else
-      RESULTSFILES=`ls */$2 2> /dev/null`
+      RESULTSFILES=`ls */$2 2> tmp.cpptrajtest.devnull`
     fi
+    rm tmp.cpptrajtest.devnull
   fi
 }
 
@@ -1324,7 +1325,8 @@ else
     fi
   else
     # AmberTools - remove previous .dif files
-    $CPPTRAJ_RM *.dif 2> /dev/null
+    $CPPTRAJ_RM *.dif 2> tmp.cpptrajtest.devnull
+    rm tmp.cpptrajtest.devnull
   fi
   if [ -f 'valgrind.out' ] ; then
     $CPPTRAJ_RM valgrind.out
@@ -1332,7 +1334,8 @@ else
   if [ -f 'test.out' ] ; then
     $CPPTRAJ_RM test.out
   fi
-  THREADFILES=`ls Thread.* 2> /dev/null`
+  THREADFILES=`ls Thread.* 2> tmp.cpptrajtest.devnull`
+  rm tmp.cpptrajtest.devnull
   if [ ! -z "$THREADFILES" ] ; then
     for FILE in $THREADFILES ; do
       $CPPTRAJ_RM $FILE
