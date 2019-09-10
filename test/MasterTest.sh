@@ -90,15 +90,9 @@ TestHeader() {
 }
 
 # ErrMsg() <message>
-# Write out error message prefaced with 'Error:'.
-# On windows, just print to STDOUT.
-# Otherwise write to /dev/stderr
+# Write out error message to stderr prefaced with 'Error:'.
 ErrMsg() {
-  if [ "$CPPTRAJ_TEST_OS" = 'windows' ] ; then
-    echo "Error: $1"
-  else
-    echo "Error: $1" > /dev/stderr
-  fi
+  >&2 echo "Error: $*"
 }
 
 # OUT() <message>
@@ -273,10 +267,11 @@ GetResultsFiles() {
     done
   else
     if [ "$1" = 'single' ] ; then
-      RESULTSFILES=`ls $2 2> /dev/null`
+      RESULTSFILES=`ls $2 2> tmp.cpptrajtest.devnull`
     else
-      RESULTSFILES=`ls */$2 2> /dev/null`
+      RESULTSFILES=`ls */$2 2> tmp.cpptrajtest.devnull`
     fi
+    rm tmp.cpptrajtest.devnull
   fi
 }
 
@@ -494,10 +489,27 @@ RunCpptraj() {
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  CPPTRAJ: $1"
   fi
+  cpptraj_cmd="$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG"
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
-    echo "$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
+    echo "$cpptraj_cmd >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
   fi
-  $CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG>> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR
+  # There are 4 different ways to redirect output depending on if
+  # CPPTRAJ_OUTPUT/CPPTRAJ_ERROR are defined or not.
+  if [ ! -z "$CPPTRAJ_OUTPUT" ] ; then
+    # CPPTRAJ_OUTPUT is defined.
+    if [ -z "$CPPTRAJ_ERROR" ] ; then
+      $cpptraj_cmd >> $CPPTRAJ_OUTPUT
+    else
+      $cpptraj_cmd >> $CPPTRAJ_OUTPUT 2>> $CPPTRAJ_ERROR
+    fi
+  else
+    # CPPTRAJ_OUTPUT is not defined.
+    if [ -z "$CPPTRAJ_ERROR" ] ; then
+      $cpptraj_cmd
+    else
+      $cpptraj_cmd 2>> $CPPTRAJ_ERROR
+    fi
+  fi
   STATUS=$?
   #echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ $STATUS -ne 0 ] ; then
@@ -639,7 +651,7 @@ CmdLineOpts() {
       "long"      ) CPPTRAJ_LONG_TEST=1 ;;
       "summary"   ) SUMMARY=1 ;;
       "showerrors") SHOWERRORS=1 ;;
-      "stdout"    ) CPPTRAJ_OUTPUT='/dev/stdout' ;;
+      "stdout"    ) CPPTRAJ_OUTPUT='' ;;
       "openmp"    ) SFX_OMP=1 ;;
       "cuda"      ) SFX_CUDA=1 ;;
       "mpi"       ) SFX_MPI=1 ;;
@@ -1171,7 +1183,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   export CPPTRAJ_TEST_RESULTS='Test_Results.dat'
   export CPPTRAJ_TEST_ERROR='Test_Error.dat'
   CPPTRAJ_OUTPUT='test.out'
-  CPPTRAJ_ERROR='/dev/stderr'
+  CPPTRAJ_ERROR=''
   # Process command line options
   CmdLineOpts $*
   # Determine standalone or AmberTools
@@ -1212,15 +1224,6 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
       echo "Warning: DIFFOPTS is set to '$DIFFOPTS'"
     fi
   fi # END if not cleaning
-  # Windows does not have /dev/stderr or /dev/stdout
-  if [ "$CPPTRAJ_TEST_OS" = 'windows' ] ; then
-    if [ "$CPPTRAJ_ERROR" = '/dev/stderr' ] ; then
-      CPPTRAJ_ERROR='test.err'
-    fi
-    if [ "$CPPTRAJ_OUTPUT" = '/dev/stdout' ] ; then
-      CPPTRAJ_OUTPUT='test.out'
-    fi
-  fi
   # Export test output and error file names
   export CPPTRAJ_OUTPUT
   export CPPTRAJ_ERROR
@@ -1306,10 +1309,10 @@ else
   #echo "DEBUG: Executing single test."
   # Single test.
   # Always clean up individual test output and error files
-  if [ "$CPPTRAJ_OUTPUT" != '/dev/stdout' -a -f "$CPPTRAJ_OUTPUT" ] ; then
+  if [ ! -z "$CPPTRAJ_OUTPUT" -a -f "$CPPTRAJ_OUTPUT" ] ; then
     $CPPTRAJ_RM $CPPTRAJ_OUTPUT
   fi
-  if [ "$CPPTRAJ_ERROR" != '/dev/stderr' -a -f "$CPPTRAJ_ERROR" ] ; then
+  if [ ! -z "$CPPTRAJ_ERROR" -a -f "$CPPTRAJ_ERROR" ] ; then
     $CPPTRAJ_RM $CPPTRAJ_ERROR
   fi
   if [ -f "$CPPTRAJ_TEST_RESULTS" ] ; then
@@ -1322,7 +1325,8 @@ else
     fi
   else
     # AmberTools - remove previous .dif files
-    $CPPTRAJ_RM *.dif 2> /dev/null
+    $CPPTRAJ_RM *.dif 2> tmp.cpptrajtest.devnull
+    rm tmp.cpptrajtest.devnull
   fi
   if [ -f 'valgrind.out' ] ; then
     $CPPTRAJ_RM valgrind.out
@@ -1330,7 +1334,8 @@ else
   if [ -f 'test.out' ] ; then
     $CPPTRAJ_RM test.out
   fi
-  THREADFILES=`ls Thread.* 2> /dev/null`
+  THREADFILES=`ls Thread.* 2> tmp.cpptrajtest.devnull`
+  rm tmp.cpptrajtest.devnull
   if [ ! -z "$THREADFILES" ] ; then
     for FILE in $THREADFILES ; do
       $CPPTRAJ_RM $FILE
