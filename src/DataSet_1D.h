@@ -38,7 +38,7 @@ class DataSet_1D : public DataSet {
     /// \return sum of integration over DataSet.
     double Integrate(IntegrationType) const;
     /// \return sum of integration over DataSet; compute cumulative sum.
-    double Integrate(IntegrationType, Darray&) const;
+    double Integrate(IntegrationType, Darray&, Darray&) const;
     /// Finite difference types.
     enum DiffType { FORWARD = 0, BACKWARD, CENTRAL };
     /// Calculate finite difference

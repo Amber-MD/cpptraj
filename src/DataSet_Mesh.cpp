@@ -119,17 +119,6 @@ int DataSet_Mesh::SetMeshXY(DataSet_1D const& dsIn) {
   return 0;
 }
 
-// DataSet_Mesh::SetMeshX()
-void DataSet_Mesh::SetMeshX( DataSet_1D const& ds ) {
-  mesh_x_.clear();
-  mesh_x_.reserve( ds.Size() );
-  if (ds.Size() != mesh_y_.size())
-    mprintf("Warning: Input set '%s' # x values (%zu) != set '%s' # y values (%zu)\n",
-            ds.legend(), ds.Size(), legend(), mesh_y_.size());
-  for (unsigned int i = 0; i != ds.Size(); i++)
-    mesh_x_.push_back( ds.Xcrd(i) );
-}
-
 // ---------- Cubic Spline Routines --------------------------------------------
 // DataSet_Mesh::SetSplinedMeshY()
 /** Assumes mesh X values already set with CalculateMeshX. */

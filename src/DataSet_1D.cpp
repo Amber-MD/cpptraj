@@ -348,14 +348,18 @@ double DataSet_1D::Integrate(IntegrationType itype) const {
 }
 
 /** Integration with cumulative sum. */
-double DataSet_1D::Integrate(IntegrationType itype, Darray& sumOut) const {
+double DataSet_1D::Integrate(IntegrationType itype, Darray& xOut, Darray& sumOut) const {
+  xOut.clear();
   sumOut.clear();
   double sum = 0.0;
   if (Size() < 2) return 0;
+  xOut.reserve( Size() );
+  xOut.push_back( Xcrd(0) );
   sumOut.reserve( Size() );
   sumOut.push_back( 0 );
   if (itype == TRAPEZOID) {
     for (unsigned int i = 1; i != Size(); i++) {
+      xOut.push_back( Xcrd(i) );
       double b_minus_a = Xcrd(i) - Xcrd(i-1);
       sum += (b_minus_a * (Dval(i-1) + Dval(i)) * 0.5);
       sumOut.push_back( sum );

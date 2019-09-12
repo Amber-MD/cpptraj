@@ -60,9 +60,7 @@ Analysis::RetType Analysis_Integrate::Analyze() {
       mprintf("Warning: Set [%i] \"%s\" has no data.\n", idx, (*DS)->legend());
     else {
       if (!output_dsets_.empty()) {
-        sum = (*DS)->Integrate( DataSet_1D::TRAPEZOID, output_dsets_[idx]->SetMeshY() );
-        // Set output X values from input X values.
-        output_dsets_[idx]->SetMeshX( *(*DS) );
+        sum = (*DS)->Integrate( DataSet_1D::TRAPEZOID, output_dsets_[idx]->SetMeshX(), output_dsets_[idx]->SetMeshY() );
         output_dsets_[idx]->SetDim(Dimension::X, (*DS)->Dim(0));
       } else
         sum = (*DS)->Integrate( DataSet_1D::TRAPEZOID );
