@@ -6,6 +6,8 @@
 /// Hold a mesh of X-Y values
 class DataSet_Mesh : public DataSet_1D {
   public:
+    typedef std::vector<double> Darray;
+
     DataSet_Mesh() : DataSet_1D(XYMESH, TextFormat(TextFormat::DOUBLE, 12, 4)) {}
     /// Construct mesh with preset X values
     DataSet_Mesh(int,double,double);
@@ -35,26 +37,27 @@ class DataSet_Mesh : public DataSet_1D {
     void SetY(int i, double y) { mesh_y_[i] = y; }
     /// Calculate mesh X values given size, start, and end values.
     void CalculateMeshX(int,double,double);
+    /// Allow direct access to Y values.
+    Darray& SetMeshY() { return mesh_y_; }
+    /// Allow direct access to X values.
+    Darray& SetMeshX() { return mesh_x_; }
+    /// Set mesh X values from input data set
+    void SetMeshX( DataSet_1D const& );
     /// Set mesh X and Y values from input data set.
     int SetMeshXY(DataSet_1D const&); // TODO remove
     /// Set mesh X and Y values from input arrays.
-    inline int SetMeshXY(std::vector<double> const&, std::vector<double> const&); // TODO remove
-    // -------------------------------------------
-    /// Integrate the mesh, compute cumulative sum
-    double Integrate_Trapezoid( DataSet_Mesh& ) const;
-    /// Integrate the mesh
-    double Integrate_Trapezoid() const;
+    inline int SetMeshXY(Darray const&, Darray const&); // TODO remove
     // -------------------------------------------
     /// Set mesh with splined values based on input X and Y values.
-    int SetSplinedMeshY(std::vector<double> const&, std::vector<double> const&);
+    int SetSplinedMeshY(Darray const&, Darray const&);
     /// Set mesh with splined values based on input DataSet.
     int SetSplinedMesh(DataSet_1D const&);
     // -------------------------------------------
     /// Calculate single exponential regression via log and linear regression.
     int SingleExpRegression(double&, double&, double&, CpptrajFile*);
   private:
-    std::vector<double> mesh_x_;
-    std::vector<double> mesh_y_;
+    Darray mesh_x_;
+    Darray mesh_y_;
     Spline cspline_; ///< Cubic spline coefficients. TODO Split out completely?
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
@@ -62,7 +65,8 @@ void DataSet_Mesh::AddXY(double x, double y) {
   mesh_x_.push_back( x );
   mesh_y_.push_back( y );
 }
-int DataSet_Mesh::SetMeshXY(std::vector<double> const& X, std::vector<double> const& Y) {
+
+int DataSet_Mesh::SetMeshXY(Darray const& X, Darray const& Y) {
   if (mesh_x_.size() != mesh_y_.size()) return 1;
   mesh_x_ = X;
   mesh_y_ = Y;

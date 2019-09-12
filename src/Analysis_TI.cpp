@@ -272,11 +272,11 @@ int Analysis_TI::SetQuadAndWeights(int nq) {
 }
 
 /** Integrate each curve in the curve_ array using trapezoid method. */
-void Analysis_TI::Integrate_Trapezoid(Darray& sum) const {
+void Analysis_TI::IntegrateCurves(Darray& sum) const {
   // Integrate each curve if not doing quadrature
   for (unsigned int j = 0; j != curve_.size(); j++) {
-    DataSet_Mesh const& CR = static_cast<DataSet_Mesh const&>( *(curve_[j]) );
-    sum[j] = CR.Integrate_Trapezoid();
+    DataSet_1D const& CR = static_cast<DataSet_1D const&>( *(curve_[j]) );
+    sum[j] = CR.Integrate(DataSet_1D::TRAPEZOID);
   }
 }
 
@@ -356,7 +356,7 @@ int Analysis_TI::Calc_Bootstrap() {
         sum[j] += (wgt_[idx] * Avgs[j]);
     }
   } // END loop over input data sets
-  if (mode_ == TRAPEZOID) Integrate_Trapezoid(sum);
+  if (mode_ == TRAPEZOID) IntegrateCurves(sum);
   // Calculate average DA from individual TI integration values.
   double DA_avg = 0.0;
   double DA_sd = 0.0;
@@ -421,7 +421,7 @@ int Analysis_TI::Calc_Nskip() {
         sum[j] += (wgt_[idx] * avg[j]);
     }
   } // END loop over input data sets
-  if (mode_ == TRAPEZOID) Integrate_Trapezoid(sum);
+  if (mode_ == TRAPEZOID) IntegrateCurves(sum);
   // Store final TI integration values.
   DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
   DA.ModifyDim(Dimension::X).SetLabel("PtsSkipped");
@@ -511,7 +511,7 @@ int Analysis_TI::Calc_Increment() {
         sum[j] += (wgt_[idx] * avg[j]);
     }
   } // END loop over data sets
-  if (mode_ == TRAPEZOID) Integrate_Trapezoid(sum);
+  if (mode_ == TRAPEZOID) IntegrateCurves(sum);
   // Store final integration values
   DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
   DA.ModifyDim(Dimension::X).SetLabel("Point");
@@ -536,7 +536,7 @@ int Analysis_TI::Calc_Avg() {
     if (mode_ == GAUSSIAN_QUAD)
       sum[0] += (wgt_[idx] * avg_dvdl);
   }
-  if (mode_ == TRAPEZOID) Integrate_Trapezoid(sum);
+  if (mode_ == TRAPEZOID) IntegrateCurves(sum);
   // Store final integration values
   dAout_->ModifyDim(Dimension::X).SetLabel("TI");
   dAout_->Add(0, &(sum[0]));

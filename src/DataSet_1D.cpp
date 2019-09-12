@@ -330,3 +330,35 @@ int DataSet_1D::LinearRegression( double& slope, double& intercept,
   }
   return 0;
 }
+
+// ----- Integration routines --------------------------------------------------
+/* Just integration */
+double DataSet_1D::Integrate(IntegrationType itype) const {
+  double sum = 0.0;
+  if (Size() < 2) return 0;
+  if (itype == TRAPEZOID) {
+    for (unsigned int i = 1; i != Size(); i++) {
+      double b_minus_a = Xcrd(i) - Xcrd(i-1);
+      sum += (b_minus_a * (Dval(i-1) + Dval(i)) * 0.5);
+    }
+  }
+  return sum;
+}
+
+/** Integration with cumulative sum. */
+double DataSet_1D::Integrate(IntegrationType itype, std::vector<double>& sumOut) const {
+  sumOut.clear();
+  double sum = 0.0;
+  if (Size() < 2) return 0;
+  sumOut.reserve( Size() );
+  sumOut.push_back( 0 );
+  if (itype == TRAPEZOID) {
+    for (unsigned int i = 1; i != Size(); i++) {
+      double b_minus_a = Xcrd(i) - Xcrd(i-1);
+      sum += (b_minus_a * (Dval(i-1) + Dval(i)) * 0.5);
+      sumOut.push_back( sum );
+    }
+  }
+  return sum;
+}
+
