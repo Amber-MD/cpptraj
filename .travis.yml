@@ -11,7 +11,6 @@ addons:
       - libblas-dev
       - liblapack-dev
       - libnetcdf-dev
-      - libpnetcdf-dev
       - libfftw3-dev
       - netcdf-bin
       - clang
@@ -26,7 +25,7 @@ matrix:
     - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-nonetcdf" BUILD_TYPE=install TEST_TYPE=test.showerrors }
     - { os: linux, compiler: clang, env: COMPILER=clang USE_CMAKE=0 BUILD_TYPE=install TEST_TYPE=test.showerrors }
     - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 BUILD_TYPE=install TEST_TYPE=test.showerrors }
-    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-mpi -lpnetcdf" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install TEST_TYPE=test.showerrors }
     - { os: osx, compiler: clang, env: COMPILER=clang USE_CMAKE=0 BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install TEST_TYPE=test.showerrors }
     - { os: linux, env: COMPILER=gnu USE_CMAKE=0 BUILD_FLAGS="-openmp -shared -fftw3" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj TEST_TYPE=test.libcpptraj }
     - { os: linux, env: COMPILER=GNU USE_CMAKE=1 BUILD_FLAGS="-DOPENMP=TRUE" OMP_NUM_THREADS=4 OPT=openmp TEST_TYPE=test.showerrors}
