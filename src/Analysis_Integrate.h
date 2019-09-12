@@ -14,5 +14,6 @@ class Analysis_Integrate : public Analysis {
   private:
     Array1D input_dsets_;
     std::vector<DataSet_Mesh*> output_dsets_;
+    DataSet* sumSet_; ///< Hold final sum for each set
 };
 #endif
