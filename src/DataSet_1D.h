@@ -1,7 +1,8 @@
 #ifndef INC_DATASET_1D_H
 #define INC_DATASET_1D_H
 #include "DataSet.h"
-#include "CpptrajFile.h"
+// Forward declarations
+class CpptrajFile;
 /// Class that all 1D scalar DataSets will inherit.
 class DataSet_1D : public DataSet {
   public:

@@ -4,6 +4,7 @@
 #include "Corr.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD, RADDEG
+#include "CpptrajFile.h" // Regression output
 
 /** Calculate the average over values in this set (and optionally the
   * standard deviation).
