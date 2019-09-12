@@ -13,6 +13,7 @@ datafile int.dat prec 16.8
 EOF
 RunCpptraj "Integration test."
 DoTest curve.dat.save curve.dat
+DoTest int.dat.save int.dat
 
 EndTest
 exit 0
