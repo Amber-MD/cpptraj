@@ -2,6 +2,8 @@ language: cpp
 dist: trusty
 sudo: false
 addons:
+  sources:
+    - ubuntu-toolchain-r-test
   apt:
     packages:
       - gfortran
