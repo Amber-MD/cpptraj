@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_INTEGRATE_H
 #include "Analysis.h"
 #include "Array1D.h"
-#include "DataSet_Mesh.h"
+class DataSet_Mesh;
 class Analysis_Integrate : public Analysis {
   public:
     Analysis_Integrate();

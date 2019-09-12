@@ -1,5 +1,6 @@
 #include "Analysis_Integrate.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Mesh.h"
 
 Analysis_Integrate::Analysis_Integrate() {}
 
