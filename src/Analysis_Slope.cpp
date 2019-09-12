@@ -4,7 +4,7 @@
 
 // Analysis_Slope::Help()
 void Analysis_Slope::Help() const {
-  mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>]\n"
+  mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <name>]\n"
           "\t[type {forward|backward|central}]\n"
           "  Calculate finite difference (default forward) of given data sets.\n");
 }

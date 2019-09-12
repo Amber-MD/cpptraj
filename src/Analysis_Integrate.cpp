@@ -6,7 +6,7 @@ Analysis_Integrate::Analysis_Integrate() : sumSet_(0) {}
 
 void Analysis_Integrate::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [intout <intfile>]\n"
-          "\t[name <outsetname>]\n"
+          "\t[name <name>]\n"
           "  Integrate given data sets. If 'out' is specified write cumulative\n"
           "  sum curves to <outfile>. If 'intout' is specified write final\n"
           "  integral values for each set to <intfile>.\n");
