@@ -348,7 +348,7 @@ double DataSet_1D::Integrate(IntegrationType itype) const {
 }
 
 /** Integration with cumulative sum. */
-double DataSet_1D::Integrate(IntegrationType itype, std::vector<double>& sumOut) const {
+double DataSet_1D::Integrate(IntegrationType itype, Darray& sumOut) const {
   sumOut.clear();
   double sum = 0.0;
   if (Size() < 2) return 0;
@@ -365,14 +365,16 @@ double DataSet_1D::Integrate(IntegrationType itype, std::vector<double>& sumOut)
 }
 
 // ----- Finite difference routines --------------------------------------------
-int DataSet_1D::FiniteDifference(DiffType dtype, std::vector<double>& diffOut) const {
+int DataSet_1D::FiniteDifference(DiffType dtype, Darray& xOut, Darray& diffOut) const {
   int err = 0;
+  xOut.clear();
+  xOut.reserve( Size() );
   diffOut.clear();
   diffOut.reserve( Size() );
   switch (dtype) {
-    case FORWARD  : err = ForwardDifference(diffOut); break;
-    case BACKWARD : err = BackwardDifference(diffOut); break;
-    case CENTRAL  : err = CentralDifference(diffOut); break;
+    case FORWARD  : err = ForwardDifference(xOut, diffOut); break;
+    case BACKWARD : err = BackwardDifference(xOut, diffOut); break;
+    case CENTRAL  : err = CentralDifference(xOut, diffOut); break;
   }
   if (err != 0) {
     mprinterr("Error: Infinite slope detected when calculating finite difference of '%s'\n",
@@ -381,9 +383,10 @@ int DataSet_1D::FiniteDifference(DiffType dtype, std::vector<double>& diffOut) c
   return err;
 }
 
-int DataSet_1D::ForwardDifference(std::vector<double>& diffOut) const {
+int DataSet_1D::ForwardDifference(Darray& xOut, Darray& diffOut) const {
   int err = 0;
   for (unsigned int i = 1; i < Size(); i++) {
+    xOut.push_back( Xcrd(i-1) );
     double xdiff = Xcrd(i-1) - Xcrd(i);
     if (xdiff == 0) {
       err = 1;
@@ -395,10 +398,11 @@ int DataSet_1D::ForwardDifference(std::vector<double>& diffOut) const {
   return err;
 }
 
-int DataSet_1D::BackwardDifference(std::vector<double>& diffOut) const {
+int DataSet_1D::BackwardDifference(Darray& xOut, Darray& diffOut) const {
   if (Size() == 0) return 0;
   int err = 0;
   for (unsigned int i = 0; i < Size()-1; i++) {
+    xOut.push_back( Xcrd(i) );
     double xdiff = Xcrd(i+1) - Xcrd(i);
     if (xdiff == 0) {
       err = 1;
@@ -410,10 +414,11 @@ int DataSet_1D::BackwardDifference(std::vector<double>& diffOut) const {
   return err;
 }
 
-int DataSet_1D::CentralDifference(std::vector<double>& diffOut) const {
+int DataSet_1D::CentralDifference(Darray& xOut, Darray& diffOut) const {
   if (Size() == 0) return 0;
   int err = 0;
   for (unsigned int i = 1; i < Size()-1; i++) {
+    xOut.push_back( Xcrd(i) );
     double xdiff1 = Xcrd(i  ) - Xcrd(i-1);
     double xdiff2 = Xcrd(i+1) - Xcrd(i  );
     double xdiff = xdiff1 + xdiff2;

@@ -67,8 +67,7 @@ Analysis::RetType Analysis_Slope::Analyze() {
       mprintf("Warning: Set '%s' has no data.\n", inSet.legend());
     } else {
       DataSet_Mesh& outSet = static_cast<DataSet_Mesh&>( *(output_dsets_[idx]) );
-      inSet.FiniteDifference( diffType_, outSet.SetMeshY() );
-      outSet.SetMeshX( inSet );
+      inSet.FiniteDifference( diffType_, outSet.SetMeshX(), outSet.SetMeshY() );
       outSet.SetDim(Dimension::X, inSet.Dim(0));
     }
   }

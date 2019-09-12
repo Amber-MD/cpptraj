@@ -6,6 +6,8 @@ class CpptrajFile;
 /// Class that all 1D scalar DataSets will inherit.
 class DataSet_1D : public DataSet {
   public:
+    typedef std::vector<double> Darray;
+
     DataSet_1D() {}
     DataSet_1D(DataSet::DataType tIn, TextFormat const& fIn) : DataSet(tIn, SCALAR_1D, fIn, 1) {}
     virtual ~DataSet_1D() {}
@@ -36,15 +38,15 @@ class DataSet_1D : public DataSet {
     /// \return sum of integration over DataSet.
     double Integrate(IntegrationType) const;
     /// \return sum of integration over DataSet; compute cumulative sum.
-    double Integrate(IntegrationType, std::vector<double>&) const;
+    double Integrate(IntegrationType, Darray&) const;
     /// Finite difference types.
     enum DiffType { FORWARD = 0, BACKWARD, CENTRAL };
     /// Calculate finite difference
-    int FiniteDifference(DiffType, std::vector<double>&) const;
+    int FiniteDifference(DiffType, Darray&, Darray&) const;
   private:
     double Avg(double*) const;
-    int ForwardDifference(std::vector<double>&) const;
-    int BackwardDifference(std::vector<double>&) const;
-    int CentralDifference(std::vector<double>&) const;
+    int ForwardDifference(Darray&, Darray&) const;
+    int BackwardDifference(Darray&, Darray&) const;
+    int CentralDifference(Darray&, Darray&) const;
 };
 #endif
