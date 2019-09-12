@@ -37,7 +37,14 @@ class DataSet_1D : public DataSet {
     double Integrate(IntegrationType) const;
     /// \return sum of integration over DataSet; compute cumulative sum.
     double Integrate(IntegrationType, std::vector<double>&) const;
+    /// Finite difference types.
+    enum DiffType { FORWARD = 0, BACKWARD, CENTRAL };
+    /// Calculate finite difference
+    int FiniteDifference(DiffType, std::vector<double>&) const;
   private:
     double Avg(double*) const;
+    int ForwardDifference(std::vector<double>&) const;
+    int BackwardDifference(std::vector<double>&) const;
+    int CentralDifference(std::vector<double>&) const;
 };
 #endif
