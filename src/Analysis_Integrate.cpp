@@ -52,19 +52,18 @@ Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, AnalysisSetup&
 
 Analysis::RetType Analysis_Integrate::Analyze() {
   double sum;
-  int idx = 0;
-  for (Array1D::const_iterator DS = input_dsets_.begin();
-                               DS != input_dsets_.end(); ++DS, ++idx)
-  {
-    if ( (*DS)->Size() < 1)
-      mprintf("Warning: Set [%i] \"%s\" has no data.\n", idx, (*DS)->legend());
-    else {
+  for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
+    DataSet_1D const& inSet = *(input_dsets_[idx]);
+    if (inSet.Size() < 1) {
+      mprintf("Warning: Set '%s' has no data.\n", inSet.legend());
+    } else {
       if (!output_dsets_.empty()) {
-        sum = (*DS)->Integrate( DataSet_1D::TRAPEZOID, output_dsets_[idx]->SetMeshX(), output_dsets_[idx]->SetMeshY() );
-        output_dsets_[idx]->SetDim(Dimension::X, (*DS)->Dim(0));
+        DataSet_Mesh& outSet = static_cast<DataSet_Mesh&>( *(output_dsets_[idx]) );
+        sum = inSet.Integrate( DataSet_1D::TRAPEZOID, outSet.SetMeshX(), outSet.SetMeshY() );
+        outSet.SetDim(Dimension::X, inSet.Dim(0));
       } else
-        sum = (*DS)->Integrate( DataSet_1D::TRAPEZOID );
-      mprintf("\tIntegral of %s is %g\n", (*DS)->legend(), sum);
+        sum = inSet.Integrate( DataSet_1D::TRAPEZOID );
+      mprintf("\tIntegral of %s is %g\n", inSet.legend(), sum);
     }
   }
   return Analysis::OK;
