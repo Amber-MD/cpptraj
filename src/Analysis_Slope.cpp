@@ -9,6 +9,8 @@ void Analysis_Slope::Help() const {
           "  Calculate finite difference (default forward) of given data sets.\n");
 }
 
+const char* Analysis_Slope::dTypeStr_[] = {"forward", "backward", "central"};
+
 // Analysis_Slope::Setup()
 Analysis::RetType Analysis_Slope::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
@@ -45,8 +47,8 @@ Analysis::RetType Analysis_Slope::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     output_dsets_.push_back( (DataSet_Mesh*)ds );
   }
   
-  mprintf("    SLOPE: Calculating finite difference for %zu data sets.\n",
-          input_dsets_.size());
+  mprintf("    SLOPE: Calculating %s finite difference for %zu data sets.\n", 
+          dTypeStr_[diffType_], input_dsets_.size());
   if (outfile != 0) {
     if (!setname.empty())
       mprintf("\tOutput set name: %s\n", setname.c_str());
@@ -63,6 +65,7 @@ Analysis::RetType Analysis_Slope::Setup(ArgList& analyzeArgs, AnalysisSetup& set
 Analysis::RetType Analysis_Slope::Analyze() {
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& inSet = *(input_dsets_[idx]);
+    mprintf("\t%s\n", inSet.legend());
     if (inSet.Size() < 1) {
       mprintf("Warning: Set '%s' has no data.\n", inSet.legend());
     } else {

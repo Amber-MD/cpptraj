@@ -13,6 +13,8 @@ class Analysis_Slope : public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
+    static const char* dTypeStr_[];
+
     DataSet_1D::DiffType diffType_;
     Array1D input_dsets_;
     std::vector<DataSet_Mesh*> output_dsets_;
