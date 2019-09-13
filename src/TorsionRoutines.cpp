@@ -54,7 +54,6 @@ double Pucker_AS(const double* a1, const double* a2, const double* a3,
   double v1, v2, v3, v4, v5, a, b;
 
   pucker = 0.0;
-  amp = 0.0;
 
   v4 = Torsion(a4, a5, a1, a2);
   v5 = Torsion(a5, a1, a2, a3);
