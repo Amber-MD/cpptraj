@@ -398,12 +398,12 @@ void Exec_CompareTop::CompareAtoms(Topology const& T1, Topology const& T2,
     Atom const& A2 = T2[idx];
     // Only compare a few things.
     //bool diffName = (A1.Name() != A2.Name());
-    bool diffType = (A2.Type() != A2.Type());
+    bool diffType = (A1.Type() != A2.Type());
     bool diffNbnd = (A1.Nbonds() != A2.Nbonds());
     bool diffChrg = !IsEqual(A1.Charge(),   A2.Charge());
     bool diffMass = !IsEqual(A1.Mass(),     A2.Mass());
     bool diffGBrd = !IsEqual(A1.GBRadius(), A2.GBRadius());
-    bool diffScrn = !IsEqual(A2.Screen(),   A2.Screen());
+    bool diffScrn = !IsEqual(A1.Screen(),   A2.Screen());
     bool diffPolr = !IsEqual(A1.Polar(),    A2.Polar());
     if ( diffType || diffNbnd || diffChrg || diffMass ||
          diffGBrd || diffScrn || diffPolr )

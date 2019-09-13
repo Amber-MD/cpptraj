@@ -113,11 +113,11 @@ int read_xtc_nframes(char* fn, unsigned long *nframes) {
 	*nframes = 0;
 
 	read_xtc_natoms(fn, &natoms);
-	x = malloc(natoms * sizeof(*x));
 
     xd = xdrfile_open(fn, "r");
     if (NULL == xd)
         return exdrFILENOTFOUND;
+    x = malloc(natoms * sizeof(*x));
 
     do {
         result = read_xtc(xd, natoms, &step, &time, box, x, &prec);

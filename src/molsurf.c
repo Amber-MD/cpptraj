@@ -1395,7 +1395,7 @@ static int check_data (int n_torus, TORUS toruslist[], int nat, ATOM atom[],
 		return 1; //exit (ERROR);
             }
 	  }
-	  if (convex_edge[ie].vert1 >= 0 ) {
+	  if (convex_edge[ie].vert2 >= 0 ) {
             if (vertexlist[convex_edge[ie].vert2].iatom != ia ) {
 		printf ("convex vertex atom mismatch 3\n");
 		printf ("iatom: %d\n", ia);
