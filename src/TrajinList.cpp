@@ -160,7 +160,10 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
       err++;
       continue;
     }
-    if (args.CheckForMoreArgs()) return 1;
+    if (args.CheckForMoreArgs()) {
+      delete traj;
+      return 1;
+    }
     // Add to trajin list and update # of frames.
     trajin_.push_back( traj );
     UpdateMaxFrames( traj->Traj() );
