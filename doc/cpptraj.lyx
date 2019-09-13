@@ -38804,11 +38804,79 @@ integrate
 \end_layout
 
 \begin_layout LyX-Code
-integrate <dset0> [<dset1> ...] [out <outfile>] [name <outsetname>]
+integrate <dset0> [<dset1> ...] [out <outfile>] [intout <intfile>]
+\end_layout
+
+\begin_layout LyX-Code
+          [name <name>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<dset0>
+\begin_inset space ~
+\end_inset
+
+[<dset1>
+\begin_inset space ~
+\end_inset
+
+...] Data set(s) to integrate.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<outfile>] If specified, write cumulative sum curves to <outfile>.
+\end_layout
+
+\begin_layout Description
+[intout
+\begin_inset space ~
+\end_inset
+
+<intfile>] If specified, write final integral values to <intfile>.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<name>] Output data set(s) name.
 \end_layout
 
 \begin_layout Standard
+DataSets Created:
+\end_layout
+
+\begin_layout Description
+<name> Final integral values, 1 for each input data set (indexed from 0).
+\end_layout
+
+\begin_layout Description
+<name>[Sum]:<idx> Cumulative sum curves if 
+\series bold
+out
+\series default
+ was specified, 1 for each input data set (indexed from 0).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
 Integrate specified data set(s) using trapezoid integration.
+ If 
+\series bold
+'out'
+\series default
+ is specified write cumulative sum curves to <outfile>.
+ If 
+\series bold
+'intout'
+\series default
+ is specified write final integral values for each set to <intfile>.
 \end_layout
 
 \begin_layout Subsection
@@ -42252,6 +42320,70 @@ Calculate running average over windows of given size for data in selected
 \end_layout
 
 \begin_layout Subsection
+slope
+\end_layout
+
+\begin_layout LyX-Code
+slope <dset0> [<dset1> ...] [out <outfile>] [name <name>]
+\end_layout
+
+\begin_layout LyX-Code
+  	[type {forward|backward|central}]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<dset0>
+\begin_inset space ~
+\end_inset
+
+[<dset1>
+\begin_inset space ~
+\end_inset
+
+...] Data set(s) to calculate finite difference for.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<outfile>] File to write finite difference curves to.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<name>] Output data set(s) name.
+\end_layout
+
+\begin_layout Description
+[type
+\begin_inset space ~
+\end_inset
+
+{forward|backward|central}] Specify type of finite difference to calculate
+ (default forward).
+\end_layout
+
+\begin_layout Standard
+DataSets generated:
+\end_layout
+
+\begin_layout Description
+<name>:<idx> Output finite difference curves for each input data set (indexed
+ from 0).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Calculate finite differences for each input data set.
+\end_layout
+
+\begin_layout Subsection
 spline
 \end_layout
 
@@ -42310,7 +42442,7 @@ spline <dset0> [<dset1> ...] [out <outfile>] [meshsize <n> | meshfactor <x>]
 
 \end_deeper
 \begin_layout Standard
-Cubic spline the given data sets.
+Apply cubic splines to the given input data sets to create new data sets.
 \end_layout
 
 \begin_layout Subsection

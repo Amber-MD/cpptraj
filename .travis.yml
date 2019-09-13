@@ -2,16 +2,14 @@ language: cpp
 dist: trusty
 sudo: false
 addons:
+  sources:
+    - ubuntu-toolchain-r-test
   apt:
-    sources:
-      - ubuntu-toolchain-r-test
-      - george-edison55-precise-backports
     packages:
       - gfortran
       - libbz2-dev
       - libblas-dev
       - liblapack-dev
-      - libarpack2-dev
       - libnetcdf-dev
       - libfftw3-dev
       - netcdf-bin

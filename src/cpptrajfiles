@@ -123,6 +123,7 @@ COMMON_SOURCES= \
         Analysis_RmsAvgCorr.cpp \
         Analysis_Rotdif.cpp \
         Analysis_RunningAvg.cpp \
+        Analysis_Slope.cpp \
         Analysis_Spline.cpp \
         Analysis_State.cpp \
         Analysis_Statistics.cpp \

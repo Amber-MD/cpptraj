@@ -181,6 +181,7 @@
 #include "Analysis_TI.h"
 #include "Analysis_ConstantPHStats.h"
 #include "Analysis_HausdorffDistance.h"
+#include "Analysis_Slope.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -396,6 +397,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_RmsAvgCorr(),  Cmd::ANA, 1, "rmsavgcorr" );
   Command::AddCmd( new Analysis_Rotdif(),      Cmd::ANA, 1, "rotdif" );
   Command::AddCmd( new Analysis_RunningAvg(),  Cmd::ANA, 1, "runningavg" );
+  Command::AddCmd( new Analysis_Slope(),       Cmd::ANA, 1, "slope" );
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
   Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );

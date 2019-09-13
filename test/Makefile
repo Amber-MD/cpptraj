@@ -456,6 +456,9 @@ test.splitcoords:
 test.dihedralrms:
 	@-cd Test_DihedralRMS && ./RunTest.sh $(OPT)
 
+test.slope:
+	@-cd Test_Slope && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -602,7 +605,8 @@ COMPLETETESTS=test.general \
               test.xtalsymm \
               test.time \
               test.splitcoords \
-              test.dihedralrms
+              test.dihedralrms \
+              test.slope
 
 test.all:
 	$(MAKE) test.complete summary

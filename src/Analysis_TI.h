@@ -20,7 +20,7 @@ class Analysis_TI : public Analysis {
     typedef std::vector<DataSet*> DSarray;
 
     int SetQuadAndWeights(int);
-    void Integrate_Trapezoid(Darray&) const;
+    void IntegrateCurves(Darray&) const;
     int Calc_Bootstrap();
     int Calc_Nskip();
     int Calc_Increment();
