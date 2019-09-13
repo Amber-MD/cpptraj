@@ -97,6 +97,7 @@ int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
         if (RefParm == 0) {
           mprinterr("Error: No topology found for reftraj %s. Ensure topologies are loaded.\n",
                   reftraj.c_str());
+          delete trj;
           return 1;
         }
         if (trj->AddSingleTrajin( reftraj, argIn, RefParm )) return 1;
