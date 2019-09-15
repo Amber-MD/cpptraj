@@ -73,7 +73,12 @@ pipeline {
                                 sh "make check"
                             } catch (error) {
                                 echo "PGI BUILD AND/OR TEST FAILED"
-                                pullRequest.comment("The PGI build in Jenkins failed.")
+                                // env.CHANGE_ID is only set for pull requests, so use its truthiness
+                                // to protect adding a comment to a PR so this step doesn't fail if
+                                // it's running against a basic branch
+                                if (env.CHANGE_ID) {
+                                    pullRequest.comment("The PGI build in Jenkins failed.")
+                                }
                             }
                         }
                     }
