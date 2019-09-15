@@ -73,6 +73,7 @@ pipeline {
                                 sh "make check"
                             } catch (error) {
                                 echo "PGI BUILD AND/OR TEST FAILED"
+                                pullRequest.comment("The PGI build in Jenkins failed.")
                             }
                         }
                     }
