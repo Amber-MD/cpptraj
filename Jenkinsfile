@@ -76,7 +76,7 @@ pipeline {
                                 try {
                                     pullRequest.comment("The PGI build in Jenkins failed.")
                                 } catch (err2) {
-                                    echo "Could not post a PR comment"
+                                    echo "Could not post a PR comment: ${err}"
                                 }
                             }
                         }
