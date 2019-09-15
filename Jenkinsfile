@@ -71,14 +71,11 @@ pipeline {
                                 sh "./configure --with-netcdf --with-fftw3 pgi"
                                 sh "make -j6 install"
                                 sh "make check"
-                            } catch (error) {
+                            } catch (err1) {
                                 echo "PGI BUILD AND/OR TEST FAILED"
-                                // env.CHANGE_ID is only set for pull requests, so use its truthiness
-                                // to protect adding a comment to a PR so this step doesn't fail if
-                                // it's running against a basic branch
                                 try {
                                     pullRequest.comment("The PGI build in Jenkins failed.")
-                                } catch (error) {
+                                } catch (err2) {
                                     echo "Could not post a PR comment"
                                 }
                             }
