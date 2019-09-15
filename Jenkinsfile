@@ -76,8 +76,10 @@ pipeline {
                                 // env.CHANGE_ID is only set for pull requests, so use its truthiness
                                 // to protect adding a comment to a PR so this step doesn't fail if
                                 // it's running against a basic branch
-                                if (env.CHANGE_ID) {
+                                try {
                                     pullRequest.comment("The PGI build in Jenkins failed.")
+                                } catch (error) {
+                                    echo "Could not post a PR comment"
                                 }
                             }
                         }
