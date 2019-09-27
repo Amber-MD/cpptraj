@@ -4,7 +4,24 @@
 #include "Ewald_ParticleMesh.h"
 
 /// CONSTRUCTOR
-Action_Energy::Action_Energy() : currentParm_(0), debug_(0), EW_(0)
+Action_Energy::Action_Energy() :
+  elecType_(NO_ELE),
+  KEtype_(KE_NONE),
+  currentParm_(0),
+  npoints_(0),
+  debug_(0),
+  EW_(0),
+  cutoff_(0),
+  dsumtol_(0),
+  rsumtol_(0),
+  ewcoeff_(0),
+  lwcoeff_(0),
+  ljswidth_(0),
+  maxexp_(0),
+  skinnb_(0),
+  erfcDx_(0),
+  dt_(0),
+  need_lj_params_(false)
 {
   std::fill(mlimits_, mlimits_+3, 0);
 }
