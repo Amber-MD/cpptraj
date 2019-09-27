@@ -779,10 +779,10 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   //         e-- joules/mol
   //         c-- joules/mol-kelvin
   //         s-- joules/mol-kelvin
-
-  double etot = etran + erot + evib;
-  double ctot = ctran + crot + cvib;
-  double stot = stran + srot + svib;
+  double etot, ctot, stot;
+  //etot = etran + erot + evib;
+  //ctot = ctran + crot + cvib;
+  //stot = stran + srot + svib;
 
   //     print the sum of the hartree-fock energy and the thermal energy.
 
