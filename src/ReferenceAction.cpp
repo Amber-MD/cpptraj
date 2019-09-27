@@ -100,7 +100,10 @@ int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
           delete trj;
           return 1;
         }
-        if (trj->AddSingleTrajin( reftraj, argIn, RefParm )) return 1;
+        if (trj->AddSingleTrajin( reftraj, argIn, RefParm )) {
+          delete trj;
+          return 1;
+        }
         trj->SetMeta( reftraj );
         traj_ = (DataSet_Coords*)trj;
         refCrd_ = traj_;
