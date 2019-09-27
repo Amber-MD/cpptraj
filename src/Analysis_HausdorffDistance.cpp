@@ -142,9 +142,10 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
     if (ba_out_ == 0) return Analysis::ERR;
   } else if (outType_ == UPPER_TRI_MATRIX || outType_ == FULL_MATRIX) {
     out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, dsname, "HAUSDORFF");
+    if (out_ == 0) return Analysis::ERR;
     ab_out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(out_->Meta().Name(),"AB"));
     ba_out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(out_->Meta().Name(),"BA"));
-    if (out_ == 0 || ab_out_ == 0 || ba_out_ == 0) return Analysis::ERR;
+    if (ab_out_ == 0 || ba_out_ == 0) return Analysis::ERR;
     if (outType_ == UPPER_TRI_MATRIX) {
       if (((DataSet_2D*)out_)->AllocateTriangle( nrows )) return Analysis::ERR;
       if (((DataSet_2D*)ab_out_)->AllocateTriangle( nrows )) return Analysis::ERR;
