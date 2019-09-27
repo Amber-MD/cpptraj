@@ -6868,7 +6868,10 @@ static int non_axial_trim (int nat, ATOM atom[], RES res[], // NOTE: was void
 		if (cusp_intersect (cusp_edge, icusp, jcusp, probelist, concave_cycle,
 						concave_edge, vertexlist, concave_circle_list,
 						probe_rad, cusp_pair, n_cusp_pairs))
+                {
+                  free(group);
                   return 1; // NOTE: no check prev.
+                }
 	  }
 	}
 
