@@ -704,6 +704,8 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
      iff = 5;
   else
      iff = 6;
+  if (iff > 0)
+    outfile.Printf("The first %i frequencies will be skipped.\n", iff);
   con = planck / boltz;
   double ezpe = 0.0;
   for (int i = 0; i < ndof; ++i) {
