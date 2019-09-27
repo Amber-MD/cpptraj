@@ -162,13 +162,13 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
     // Directed sets
  
   }
-  if (df != 0)
+  if (df != 0) {
     df->AddDataSet( out_ );
-  if (dfab != 0) 
-    df->AddDataSet( ab_out_ );
-  if (dfba != 0)
-    df->AddDataSet( ba_out_ );
-
+    if (dfab != 0)
+      df->AddDataSet( ab_out_ );
+    if (dfba != 0)
+      df->AddDataSet( ba_out_ );
+  }
   mprintf("    HAUSDORFF:\n");
   mprintf("\tCalculating Hausdorff distances from the following 2D distance matrices:\n\t  ");
   for (DataSetList::const_iterator it = inputSets_.begin(); it != inputSets_.end(); ++it)
