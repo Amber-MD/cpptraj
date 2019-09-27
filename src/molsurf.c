@@ -4061,7 +4061,7 @@ static int split_cycle (int *n_broken_concave_faces, BROKEN_CONCAVE_FACE broken_
         free (edge_used);
 	return 1; //exit (ERROR);
   }
-  i = broken_concave_face[iface].n_cycles;
+  //i = broken_concave_face[iface].n_cycles;
   i = *n_broken_concave_faces;
   /* create a new face */
   broken_concave_face[i].itorus[0] = broken_concave_face[iface].itorus[0];
