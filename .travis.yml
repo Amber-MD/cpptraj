@@ -42,12 +42,12 @@ before_install:
       brew install netcdf fftw arpack;
       
       curl -L https://anaconda.org/AmberMD/amber_phenix/0.9.6/download/osx-64/amber_phenix-0.9.6-0.tar.bz2 > $HOME/osx_amber.tar.bz2;
-      tar jxf $HOME/osx_amber.tar.bz2 lib/libsander.dylib src/sander/sander.h;
-      mkdir -p include && mv src/sander/sander.h include;
+      tar jxf $HOME/osx_amber.tar.bz2 lib/libsander.dylib AmberTools/src/sander/sander.h;
+      mkdir -p include && mv AmberTools/src/sander/sander.h include;
     else
       curl -OL https://anaconda.org/AmberMD/amber_phenix/0.9.6/download/linux-64/amber_phenix-0.9.6-0.tar.bz2;
-      tar jxf amber_phenix-0.9.6-0.tar.bz2 lib/libsander.so src/sander/sander.h;
-      mkdir -p include && mv src/sander/sander.h include;
+      tar jxf amber_phenix-0.9.6-0.tar.bz2 lib/libsander.so AmberTools/src/sander/sander.h;
+      mkdir -p include && mv AmberTools/src/sander/sander.h include;
     fi
   - mv lib include $HOME
 
