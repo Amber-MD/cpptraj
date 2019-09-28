@@ -1402,6 +1402,33 @@ int CpptrajState::RunAnalyses() {
 }
 
 // CpptrajState::AddReference()
+int CpptrajState::AddReference(DataSet_Coords_REF* ref, Topology* refParm,
+                               DataSet_Coords* CRD, ArgList& argIn,
+                               std::string const& fname, std::string const& tag,
+                               std::string const& maskexpr)
+{
+  if (refParm != 0) {
+    if (ref->LoadRefFromFile(fname, tag, *refParm, argIn, refDebug_)) return 1;
+  } else { // CRD != 0
+    int fnum;
+    if (argIn.hasKey("lastframe"))
+      fnum = (int)CRD->Size()-1;
+    else
+      fnum = argIn.getNextInteger(1) - 1;
+    mprintf("\tSetting up reference from COORDS set '%s', frame %i\n",
+            CRD->legend(), fnum+1);
+    if (ref->SetRefFromCoords(CRD, tag, fnum)) return 1;
+  }
+  // If a mask expression was specified, strip to match the expression.
+  if (!maskexpr.empty()) {
+    if (ref->StripRef( maskexpr )) return 1;
+  }
+  // Add DataSet to main DataSetList.
+  if (DSL_.AddSet( ref )) return 1;
+  return 0;
+}
+
+// CpptrajState::AddReference()
 int CpptrajState::AddReference( std::string const& fname ) {
   return AddReference( fname, ArgList() );
 }
@@ -1447,24 +1474,11 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   // Set up reference DataSet from file or COORDS set.
   DataSet_Coords_REF* ref = new DataSet_Coords_REF();
   if (ref==0) return 1;
-  if (refParm != 0) {
-    if (ref->LoadRefFromFile(fname, tag, *refParm, argIn, refDebug_)) return 1;
-  } else { // CRD != 0
-    int fnum;
-    if (argIn.hasKey("lastframe"))
-      fnum = (int)CRD->Size()-1;
-    else
-      fnum = argIn.getNextInteger(1) - 1;
-    mprintf("\tSetting up reference from COORDS set '%s', frame %i\n",
-            CRD->legend(), fnum+1);
-    if (ref->SetRefFromCoords(CRD, tag, fnum)) return 1;
+  // Add to main DataSetList. If successful DataSetList is responsible for free.
+  if (AddReference(ref, refParm, CRD, argIn, fname, tag, maskexpr)) {
+    delete ref;
+    return 1;
   }
-  // If a mask expression was specified, strip to match the expression.
-  if (!maskexpr.empty()) {
-    if (ref->StripRef( maskexpr )) return 1;
-  }
-  // Add DataSet to main DataSetList.
-  if (DSL_.AddSet( ref )) return 1; 
   return 0;
 }
 

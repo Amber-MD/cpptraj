@@ -142,9 +142,10 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
     if (ba_out_ == 0) return Analysis::ERR;
   } else if (outType_ == UPPER_TRI_MATRIX || outType_ == FULL_MATRIX) {
     out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, dsname, "HAUSDORFF");
+    if (out_ == 0) return Analysis::ERR;
     ab_out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(out_->Meta().Name(),"AB"));
     ba_out_ = setup.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(out_->Meta().Name(),"BA"));
-    if (out_ == 0 || ab_out_ == 0 || ba_out_ == 0) return Analysis::ERR;
+    if (ab_out_ == 0 || ba_out_ == 0) return Analysis::ERR;
     if (outType_ == UPPER_TRI_MATRIX) {
       if (((DataSet_2D*)out_)->AllocateTriangle( nrows )) return Analysis::ERR;
       if (((DataSet_2D*)ab_out_)->AllocateTriangle( nrows )) return Analysis::ERR;
@@ -162,13 +163,13 @@ Analysis::RetType Analysis_HausdorffDistance::Setup(ArgList& analyzeArgs, Analys
     // Directed sets
  
   }
-  if (df != 0)
+  if (df != 0) {
     df->AddDataSet( out_ );
-  if (dfab != 0) 
-    df->AddDataSet( ab_out_ );
-  if (dfba != 0)
-    df->AddDataSet( ba_out_ );
-
+    if (dfab != 0)
+      df->AddDataSet( ab_out_ );
+    if (dfba != 0)
+      df->AddDataSet( ba_out_ );
+  }
   mprintf("    HAUSDORFF:\n");
   mprintf("\tCalculating Hausdorff distances from the following 2D distance matrices:\n\t  ");
   for (DataSetList::const_iterator it = inputSets_.begin(); it != inputSets_.end(); ++it)

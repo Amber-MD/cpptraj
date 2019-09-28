@@ -1088,6 +1088,7 @@ const
       break;
     case 18:
       if (0.0 > x || x > half || 0.0 > y || y > half || 0.0 > z || z > 1.0) return false;
+      break;
     case 19:
       if (0.0 > x || x > half || 0.0 > y || y > half || 0.0 > z || z > 1.0) return false;
       break;
