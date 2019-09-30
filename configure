@@ -1469,7 +1469,7 @@ int main() {
 #endif /* GCC/Clang */
 }
 EOF
-      echo -n "  Testing GNU backend for C++11 support: "
+      echo -n "  Testing system headers for C++11 support: "
       $CXX $CXXFLAGS $C11FLAG -o testp testp.cpp > $COMPOUT 2> $COMPERR
       if [ $? -ne 0 ] ; then
         C11_SUPPORT='no'
