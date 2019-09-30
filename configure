@@ -1420,17 +1420,73 @@ BasicChecks() {
 PlatformTests() {
   # C++11 support
   if [ "$C11_SUPPORT" = 'yes' ] ; then
+    # First try to test a basic C++11 construct
     cat > testp.cpp <<EOF
 #include <initializer_list>
 int main() { constexpr int a = 5; auto b = a; for (auto i : {1, 2, 3}) { b += i; } return 0; }
 EOF
-    TestProgram silent "  Testing C++11 support" "$CXX" "$CXXFLAGS $C11FLAG" testp.cpp
+    TestProgram silent "  Testing basic C++11 support" "$CXX" "$CXXFLAGS $C11FLAG" testp.cpp
     if [ $? -eq 1 ] ; then
       echo "Not present"
       C11_SUPPORT='no'
     else
       C11_SUPPORT='yes'
-      CXXFLAGS="$CXXFLAGS $C11FLAG"
+      # Next, test GNU backend for at least 4.8.1 support.
+      # Clang requires >= 3.3.
+      cat > testp.cpp <<EOF
+#include <cstdio>
+int main() {
+#ifdef __clang_major__
+// Test for Clang >= 3.3
+  printf("Clang %i.%i.%i\n", __clang_major__, __clang_minor__, __clang_patchlevel__);
+  int badClang = 1;
+#if __clang_major__ > 3
+  badClang = 0;
+#elif (__clang_major__ == 3 && __clang_minor__ > 2)
+  badClang = 0;
+#endif
+  if (badClang == 1)
+    printf("Clang < 3.3 detected.\n");
+  else
+    printf("Clang >= 3.3 detected.\n");
+  return badClang;
+#else
+// Test for GCC >= 4.8.1
+  printf("GCC %i.%i.%i\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+  int badGcc = 1;
+#if __GNUC__ > 4
+  badGcc = 0;
+#elif (__GNUC__ == 4 && __GNUC_MINOR__ > 8)
+  badGcc = 0;
+#elif (__GNUC__ == 4 && __GNUC_MINOR__ == 8 && __GNUC_PATCHLEVEL__ > 0)
+  badGcc = 0;
+#endif
+  if (badGcc == 1)
+    printf("GCC < 4.8.1 detected.\n");
+  else
+    printf("GCC >= 4.8.1 detected.\n");
+  return badGcc;
+#endif /* GCC/Clang */
+}
+EOF
+      echo -n "  Testing system headers for C++11 support: "
+      $CXX $CXXFLAGS $C11FLAG -o testp testp.cpp > $COMPOUT 2> $COMPERR
+      if [ $? -ne 0 ] ; then
+        C11_SUPPORT='no'
+      else
+        ./testp > prog.out
+        if [ $? -ne 0 ] ; then
+          C11_SUPPORT='no'
+        fi
+        rm -f testp prog.out
+      fi
+      rm -f $COMPOUT $COMPERR
+      if [ "$C11_SUPPORT" = 'no' ] ; then
+        echo "Not supported"
+      else
+        echo "OK"
+        CXXFLAGS="$CXXFLAGS $C11FLAG"
+      fi
     fi
   fi
   # Some compilers (like older Intel) have a problem with the order of

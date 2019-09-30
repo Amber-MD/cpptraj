@@ -78,12 +78,16 @@ the following libraries:
 * Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
 * CUDA (-cuda build only)
 * FFTW (mostly optional; required for PME functionality)
+* [helPME](https://github.com/andysim/helpme) (optional; required for PME functionality)
 
 `./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK/ARPACK and/or NetCDF libraries installed,
 the `-amberlib` flag can be specified to use the ones already compiled in
 an AmberTools installation (`$AMBERHOME` must be set), e.g.
-`./configure -amberlib gnu`. For multicore systems, the `-openmp` flag can
+`./configure -amberlib gnu`. C++11 support is required to enable particle mesh
+Ewald (PME) calculation support.
+
+For multicore systems, the `-openmp` flag can
 be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
 An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag.
 CPPTRAJ can be built with both MPI and OpenMP; when running this build users
