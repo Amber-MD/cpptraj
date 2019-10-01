@@ -28,7 +28,7 @@ pipeline {
                     steps {
                         sh "./configure --with-netcdf --with-fftw3 gnu"
                         sh "make -j4 install"
-                        sh "make check"
+                        sh "cd test && make test.showerrors"
                     }
                 }
                 stage("Linux Intel Serial Build") {
@@ -51,7 +51,7 @@ pipeline {
                     steps {
                         sh "./configure --with-netcdf -mkl intel"
                         sh "make -j4 install"
-                        sh "make check"
+                        sh "cd test && make test.showerrors"
                     }
                 }
                 stage("Linux PGI serial build") {
@@ -70,7 +70,7 @@ pipeline {
                             try {
                                 sh "./configure --with-netcdf --with-fftw3 pgi"
                                 sh "make -j6 install"
-                                sh "make check"
+                                sh "cd test && make test.showerrors"
                             } catch (error) {
                                 echo "PGI BUILD AND/OR TEST FAILED"
                             }
