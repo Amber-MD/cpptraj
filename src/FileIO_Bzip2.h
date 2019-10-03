@@ -23,6 +23,8 @@ class FileIO_Bzip2 : public FileIO {
     int Gets(char *, int );
     int SetSize(long int) { return 0; }
   private:
+    static const char *BZerror(int);
+
     FILE *fp_;
     BZFILE *infile_;
     char *bzfilename_;
@@ -30,8 +32,6 @@ class FileIO_Bzip2 : public FileIO {
     off_t position_;
     int err_;
     bool isBzread_;
-
-    const char *BZerror();
 };
 #endif
 #endif

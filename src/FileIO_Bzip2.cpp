@@ -27,17 +27,17 @@ FileIO_Bzip2::~FileIO_Bzip2() {
 // FileIO_Bzip2::BZerror()
 /** Return a string corresponding to the current value of err.
   */
-const char *FileIO_Bzip2::BZerror() {
-  switch (err_) {
-    case BZ_OK : return "BZ_OK";
-    case BZ_PARAM_ERROR : return "BZ_PARAM_ERROR";
-    case BZ_SEQUENCE_ERROR : return "BZ_SEQUENCE_ERROR";
-    case BZ_IO_ERROR: return "BZ_IO_ERROR";
-    case BZ_UNEXPECTED_EOF : return "BZ_UNEXPECTED_EOF";
-    case BZ_DATA_ERROR : return "BZ_DATA_ERROR";
+const char *FileIO_Bzip2::BZerror(int err) {
+  switch (err) {
+    case BZ_OK               : return "BZ_OK";
+    case BZ_PARAM_ERROR      : return "BZ_PARAM_ERROR";
+    case BZ_SEQUENCE_ERROR   : return "BZ_SEQUENCE_ERROR";
+    case BZ_IO_ERROR         : return "BZ_IO_ERROR";
+    case BZ_UNEXPECTED_EOF   : return "BZ_UNEXPECTED_EOF";
+    case BZ_DATA_ERROR       : return "BZ_DATA_ERROR";
     case BZ_DATA_ERROR_MAGIC : return "BZ_DATA_ERROR_MAGIC";
-    case BZ_MEM_ERROR : return "BZ_MEM_ERROR";
-    case BZ_STREAM_END : return "BZ_MEM_ERROR";
+    case BZ_MEM_ERROR        : return "BZ_MEM_ERROR";
+    case BZ_STREAM_END       : return "BZ_STREAM_END";
   }
   return "Unknown Bzip2 error";
 }
@@ -202,8 +202,8 @@ int FileIO_Bzip2::Read(void *buffer, size_t num_bytes) {
   position_ += ((off_t) numread);
   if (err_!=BZ_OK && err_!=BZ_STREAM_END) {
     mprinterr("Error: FileIO_Bzip2::Read: BZ2_bzRead error: [%s]\n"
-              "Error:                     size=%i expected=%zu\n",
-               this->BZerror(), numread, num_bytes);
+              "Error:                     size=%i expected=%zu position=%lld\n",
+               BZerror(err_), numread, num_bytes, (long long int)position_);
     return -1;
   }
   return numread;
