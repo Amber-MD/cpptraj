@@ -425,12 +425,7 @@ static inline bool IsGrid(DataSet* ds) {
   return ds->Group()==DataSet::GRID_3D;
 }
 
-// RPNcalc::Evaluate()
-int RPNcalc::Evaluate(DataSetList& DSL) const {
-  if (tokens_.empty()) {
-    mprinterr("Error: Expression was not set.\n");
-    return 1;
-  }
+int RPNcalc::TokenLoop(DataSetList& DSL) const {
   std::stack<ValType> Stack;
   ValType Dval[2]; // NOTE: Must be able to hold max # operands.
   DataSetList LocalList;
@@ -442,7 +437,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
   else if (assignStatus == YES_ASSIGN)
     assigningResult = true;
   DataSet* output = 0;
-  // Process RPN tokens. 
+
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
   {
     if (debug_ > 0) {
@@ -467,8 +462,15 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       else {
         ds = DSL.GetDataSet( T->Name() );
         if (ds == 0) {
-          rprinterr("Error: Data set with name '%s' not found.\n", T->name());
+#         ifdef MPI
+          rprintf("Warning: Data set with name '%s' not found on this rank.\n"
+                  "Warning: Skipping calculation for this rank.\n",
+                  T->name());
+          return -1;
+#         else
+          mprinterr("Error: Data set with name '%s' not found.\n", T->name());
           return 1;
+#         endif
         }
       }
       Stack.push( ValType( ds ) );
@@ -895,6 +897,25 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
     mprintf("Result stored in '%s'\n", output->legend());
   }
   return 0;
+}
+
+// RPNcalc::Evaluate()
+int RPNcalc::Evaluate(DataSetList& DSL) const {
+  if (tokens_.empty()) {
+    mprinterr("Error: Expression was not set.\n");
+    return 1;
+  }
+  // Process RPN tokens.
+  int stat = TokenLoop( DSL );
+# ifdef MPI
+  if (stat == -1) {
+    // This means a set was not found on this rank and the calculation was skipped.
+    // A warning is printed in TokenLoop.
+    // Allow this for now.
+    stat = 0;
+  }
+# endif
+  return stat;
 }
 
 // RPNcalc::AssignStatus()
