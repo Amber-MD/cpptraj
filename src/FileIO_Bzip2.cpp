@@ -204,8 +204,8 @@ int FileIO_Bzip2::Read(void *buffer, size_t num_bytes) {
   // If BZ_STREAM_END already encountered, just return.
   if (eofStat_) return 0;
   int numread = BZ2_bzRead(&err_, infile_, buffer, num_bytes);
-  mprintf("DEBUG: bzRead '%s' num_bytes=%zu numread=%i err=%i [%s]\n",
-          bzfilename_, num_bytes, numread, err_, BZerror(err_));
+  //mprintf("DEBUG: bzRead '%s' num_bytes=%zu numread=%i err=%i [%s]\n",
+  //        bzfilename_, num_bytes, numread, err_, BZerror(err_));
   // Update position
   position_ += ((off_t) numread);
   // Check error status
