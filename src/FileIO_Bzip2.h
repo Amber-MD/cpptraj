@@ -25,13 +25,14 @@ class FileIO_Bzip2 : public FileIO {
   private:
     static const char *BZerror(int);
 
-    FILE *fp_;
-    BZFILE *infile_;
-    char *bzfilename_;
-    char *bzmode_;
-    off_t position_;
-    int err_;
-    bool isBzread_;
+    FILE *fp_;         ///< The system file handle.
+    BZFILE *infile_;   ///< The bzip file handle.
+    char *bzfilename_; ///< The file name, saved in case we need to rewind.
+    char *bzmode_;     ///< The file mode, saved in case we need to rewind.
+    off_t position_;   ///< The current position in the file, for Tell().
+    int err_;          ///< The current error status.
+    bool eofStat_;     ///< True if BZ_STREAM_END encountered during read.
+    bool isBzread_;    ///< True if reading, false otherwise.
 };
 #endif
 #endif

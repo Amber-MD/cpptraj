@@ -13,6 +13,7 @@ FileIO_Bzip2::FileIO_Bzip2() :
   bzmode_(NULL),
   position_(0L),
   err_(BZ_OK),
+  eofStat_(false),
   isBzread_(true)
 {}
 
@@ -120,6 +121,7 @@ int FileIO_Bzip2::Open(const char *filename, const char *mode) {
   if (infile_==NULL) return 1;
   //mprintf("DEBUG: BZIP2 Opened %s with mode %s\n",filename,mode);
   position_ = 0L;
+  eofStat_ = false;
   return 0;
 }
 
@@ -138,6 +140,7 @@ int FileIO_Bzip2::Close() {
   
   if (fp_!=NULL) fclose(fp_);
   fp_ = NULL;
+  eofStat_ = false;
   return 0;
 }
 
@@ -198,10 +201,17 @@ off_t FileIO_Bzip2::Size(const char *filename) {
   * \return -1 on error.
   */
 int FileIO_Bzip2::Read(void *buffer, size_t num_bytes) {
+  // If BZ_STREAM_END already encountered, just return.
+  if (eofStat_) return 0;
   int numread = BZ2_bzRead(&err_, infile_, buffer, num_bytes);
+  mprintf("DEBUG: bzRead '%s' num_bytes=%zu numread=%i err=%i [%s]\n",
+          bzfilename_, num_bytes, numread, err_, BZerror(err_));
   // Update position
   position_ += ((off_t) numread);
-  if (err_!=BZ_OK && err_!=BZ_STREAM_END) {
+  // Check error status
+  if (err_ == BZ_STREAM_END)
+    eofStat_ = true;
+  else if (err_ != BZ_OK) {
     mprinterr("Error: FileIO_Bzip2::Read: BZ2_bzRead error: [%s]\n"
               "Error:                     size=%i expected=%zu position=%lld\n",
                BZerror(err_), numread, num_bytes, (long long int)position_);
@@ -216,7 +226,7 @@ int FileIO_Bzip2::Write(const void *buffer, size_t num_bytes) {
   BZ2_bzWrite ( &err_, infile_, (void*)buffer, num_bytes );
   // Update position
   position_ += ((off_t)num_bytes);
-  if (err_ == BZ_IO_ERROR) { 
+  if (err_ != BZ_OK) {
     mprinterr("Error: FileIO_Bzip2::Write: BZ2_bzWrite error: [%s]\n"
               "Error:                      expected=%zu position=%lld\n",
               BZerror(err_), num_bytes, (long long int)position_);
