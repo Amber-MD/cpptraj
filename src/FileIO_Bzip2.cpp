@@ -90,7 +90,7 @@ int FileIO_Bzip2::Open(const char *filename, const char *mode) {
 
   fp_ = fopen(filename, mode);
   if (fp_==NULL) {
-    mprintf("Error: FileIO_Bzip2::Open: Could not open %s with mode %s\n",filename,mode);
+    mprinterr("Error: FileIO_Bzip2::Open: Could not open %s with mode %s\n",filename,mode);
     return 1;
   }
 
@@ -106,13 +106,14 @@ int FileIO_Bzip2::Open(const char *filename, const char *mode) {
       isBzread_ = false; 
       break;
     case 'a' : 
-      mprintf("Error: FileIO_Bzip2::Open: Append not supported for Bzip2.\n");
+      mprinterr("Error: FileIO_Bzip2::Open: Append not supported for Bzip2.\n");
       return 1; // No append for Bzip2
     default: return 1; 
   }
 
   if (err_ != BZ_OK) {
-    mprintf("Error: FileIO_Bzip2::Open: Could not BZOPEN %s with mode %s\n",filename,mode);
+    mprinterr("Error: FileIO_Bzip2::Open: [%s] Could not BZOPEN %s with mode %s\n",
+            BZerror(err_), filename, mode);
     return 1;
   }
 
@@ -216,7 +217,9 @@ int FileIO_Bzip2::Write(const void *buffer, size_t num_bytes) {
   // Update position
   position_ += ((off_t)num_bytes);
   if (err_ == BZ_IO_ERROR) { 
-    mprintf( "Error: FileIO_Bzip2::Write: BZ2_bzWrite error\n");
+    mprinterr("Error: FileIO_Bzip2::Write: BZ2_bzWrite error: [%s]\n"
+              "Error:                      expected=%zu position=%lld\n",
+              BZerror(err_), num_bytes, (long long int)position_);
     return 1;
   }
   return 0;
