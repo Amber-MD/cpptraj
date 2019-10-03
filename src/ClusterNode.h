@@ -11,7 +11,7 @@ class ClusterNode {
     ClusterNode(const ClusterNode&);
     ClusterNode& operator=(const ClusterNode&);
     /// Used to pair a representative frame number with a score.
-    typedef std::pair<int,float> RepPair;
+    typedef std::pair<int,double> RepPair;
     /// Used to hold a list of representative frames/scores
     typedef std::vector<RepPair> RepPairArray;
     /// Used to sort clusters by # of frames in cluster
