@@ -1,0 +1,11 @@
+#Fit equation 'FitY = (A0 * exp(X * A1)) + (A2 * exp(X * A3))' to set 'Y=(0.6*exp(-0.004*X))+(0.4*exp(-0.02*X))'
+#Final Param A0 = 0.6
+#Final Param A1 = -0.004
+#Final Param A2 = 0.4
+#Final Param A3 = -0.02
+#Correlation coefficient: 1
+#Chi squared: 7.70001e-16
+#Uncertainty coefficient: 4.03516e-09
+#RMS percent error: 4.50419e-09
+#Sum of prefactors = 1
+#Time constants (-1.0/A<n>):          250           50

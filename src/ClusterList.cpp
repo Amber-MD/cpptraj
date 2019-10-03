@@ -109,7 +109,7 @@ void SetBestRepFrame(ClusterNode& node, RepMap const& reps) {
   if (!reps.empty()) {
     node.BestReps().clear();
     for (RepMap::const_iterator it = reps.begin(); it != reps.end(); ++it) {
-      node.BestReps().push_back( ClusterNode::RepPair(it->second, (float)it->first) );
+      node.BestReps().push_back( ClusterNode::RepPair(it->second, it->first) );
     }
   }
 }
