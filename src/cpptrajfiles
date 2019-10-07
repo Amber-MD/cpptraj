@@ -359,6 +359,7 @@ COMMON_SOURCES= \
         Traj_SDF.cpp \
         Traj_SQM.cpp \
         Traj_Tinker.cpp \
+        Traj_TNG.cpp \
         Traj_XYZ.cpp \
         TrajectoryFile.cpp \
         TrajectoryIO.cpp \

@@ -1,0 +1,133 @@
+#include "Traj_TNG.h"
+#include "CpptrajStdio.h"
+
+/// CONSTRUCTOR
+Traj_TNG::Traj_TNG() {}
+
+/** Identify trajectory format. File should be setup for READ */
+bool Traj_TNG::ID_TrajFormat(CpptrajFile& fileIn) {
+
+  return false;
+}
+
+/** Print trajectory info to stdout. */
+void Traj_TNG::Info() {
+  mprintf("is a <type>");
+}
+
+/** Close file. */
+void Traj_TNG::closeTraj() {
+
+}
+
+// -----------------------------------------------------------------------------
+/** Open trajectory for reading. */
+int Traj_TNG::openTrajin() {
+
+  return 0;
+}
+
+/** Read help */
+void Traj_TNG::ReadHelp() {
+
+}
+
+/** Process read arguments. */
+int Traj_TNG::processReadArgs(ArgList& argIn) {
+
+  return 0;
+}
+
+/** Set up trajectory for reading.
+  * \return Number of frames in trajectory.
+  */
+int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
+{
+
+  return TRAJIN_ERR;
+}
+
+/** Read specified trajectory frame. */
+int Traj_TNG::readFrame(int set, Frame& frameIn) {
+
+  return 0;
+}
+
+/** Read velocities from specified frame. */
+int Traj_TNG::readVelocity(int set, Frame& frameIn) {
+
+  return 0;
+}
+
+/** Read forces from specified frame. */
+int Traj_TNG::readForce(int set, Frame& frameIn) {
+
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+/** Write help. */
+void Traj_TNG::WriteHelp() {
+
+}
+
+/** Process write arguments. */
+int Traj_TNG::processWriteArgs(ArgList& argIn) {
+
+  return 0;
+}
+
+/** Set up trajectory for write. */
+int Traj_TNG::setupTrajout(FileName const& fname, Topology* trajParm,
+                                   CoordinateInfo const& cInfoIn, 
+                                   int NframesToWrite, bool append)
+{
+
+  return 1;
+}
+
+/** Write specified trajectory frame. */
+int Traj_TNG::writeFrame(int set, Frame const& frameOut) {
+
+  return 0;
+}
+
+// =============================================================================
+#ifdef MPI
+/** Open trajectory for reading in parallel. */
+int Traj_TNG::parallelOpenTrajin(Parallel::Comm const& commIn) {
+  return 1;
+}
+
+/** Open trajectory for writing in parallel. */
+int Traj_TNG::parallelOpenTrajout(Parallel::Comm const& commIn) {
+  return 1;
+}
+
+/** Set up trajectory for write in parallel. */
+int Traj_TNG::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                           CoordinateInfo const& cInfoIn,
+                                           int NframesToWrite, bool append,
+                                           Parallel::Comm const& commIn)
+{
+
+  return 1;
+}
+
+/** Read frame in parallel. */
+int Traj_TNG::parallelReadFrame(int set, Frame& frameIn) {
+
+  return 1;
+}
+
+/** Write frame in parallel. */
+int Traj_TNG::parallelWriteFrame(int set, Frame const& frameOut) {
+
+  return 1;
+}
+
+/** Close trajectory in parallel. */
+void Traj_TNG::parallelCloseTraj() {
+
+}
+#endif
