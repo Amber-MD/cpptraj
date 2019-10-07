@@ -58,7 +58,7 @@ pipeline {
                     agent {
                         dockerfile {
                             dir "devtools/ci/jenkins"
-                            label "pgi"
+                            label "pgi && Batwoman"
                             // Pull the licensed PGI compilers from the host machine (must have
                             // the compilers installed in /opt/pgi)
                             args "-v /opt/pgi:/opt/pgi"
