@@ -2114,6 +2114,9 @@ cat > $external_config <<EOF
 # configured using: $CONFIGURECMD
 EOF
 BuildRules $external_config nvcc cc f77
+if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
+  echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> $external_config
+fi
 
 # ----- Create directories if necessary ----------
 if [ ! -e "$CPPTRAJBIN" ] ; then
