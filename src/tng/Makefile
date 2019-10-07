@@ -9,7 +9,7 @@ AR            = ar cqs
 TARGET        = libtngfile.a
 
 # Source files
-SOURCES=md5.c tng_io.c tng_compress.c coder.c warnmalloc.c
+SOURCES=md5.c tng_io.c tng_compress.c coder.c warnmalloc.c fixpoint.c
 
 # Objects
 OBJECTS=$(SOURCES:.c=.o)
@@ -41,3 +41,5 @@ tng_compress.o : tng_compress.c compression/tng_compress.h compression/coder.h c
 coder.o : coder.c compression/coder.h compression/tng_compress.h compression/bwlzh.h compression/warnmalloc.h
 
 warnmalloc.o : warnmalloc.c compression/warnmalloc.h compression/tng_compress.h
+
+fixpoint.o : fixpoint.c compression/fixpoint.h 
