@@ -51,7 +51,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # else
   { "Gromacs XTC", 0, Traj_GmxXtc::WriteHelp, Traj_GmxXtc::Alloc },
 # endif
-# ifdef NO_TRRFILE
+# ifdef NO_TNGFILE
   { "Gromacs TNG", 0, 0, 0                  },
 # else
   { "Gromacs TNG", 0, 0, Traj_TNG::Alloc },

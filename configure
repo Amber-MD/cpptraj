@@ -142,7 +142,7 @@ CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
 # Total number of external libraries
-NLIB=13
+NLIB=14
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 LNETCDF=0
@@ -158,6 +158,7 @@ LXDRFILE=9
 LSANDER=10
 LTIMER=11
 LCUDA=12
+LTNGFILE=13
 
 # LIB_STAT = Library status:
 #   off       : Do not use library.
@@ -280,6 +281,15 @@ LIB_STTC[$LCUDA]=''
 LIB_D_ON[$LCUDA]='-DCUDA'
 LIB_DOFF[$LCUDA]=''
 LIB_TYPE[$LCUDA]='cpp'
+
+LIB_STAT[$LTNGFILE]='bundled'
+LIB_CKEY[$LTNGFILE]='tng'
+LIB_HOME[$LTNGFILE]='tng'
+LIB_FLAG[$LTNGFILE]='-ltng'
+LIB_STTC[$LTNGFILE]='libtng.a'
+LIB_D_ON[$LTNGFILE]=''
+LIB_DOFF[$LTNGFILE]='-DNO_TNGFILE'
+LIB_TYPE[$LTNGFILE]='ld'
 
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
@@ -2044,6 +2054,10 @@ if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
 else
   XDRFILE_TARGET='noxdrfile'
 fi
+# TNG
+if [ "${LIB_STAT[$LTNGFILE]}" = 'bundled' ] ; then
+  TNGFILE_TARGET=${LIB_FLAG[$LTNGFILE]}
+fi
 # Arpack
 if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
   ARPACK_TARGET=${LIB_FLAG[$LARPACK]}
@@ -2090,6 +2104,8 @@ READLINE_TARGET=$READLINE_TARGET
 READLINE_LIB=${LIB_FLAG[$LREADLINE]}
 
 XDRFILE_TARGET=$XDRFILE_TARGET
+
+TNGFILE_TARGET=$TNGFILE_TARGET
 
 ARPACK_TARGET=$ARPACK_TARGET
 

@@ -1,9 +1,8 @@
 #ifndef INC_TRAJ_TNG_H
 #define INC_TRAJ_TNG_H
-#include "TrajectoryIO.h"
 #ifndef NO_TNGFILE
+#include "TrajectoryIO.h"
 # include <tng/tng_io.h>
-#endif
 /// Read Gromacs TNG trajectories 
 class Traj_TNG : public TrajectoryIO {
   public:
@@ -38,4 +37,5 @@ class Traj_TNG : public TrajectoryIO {
     // -------------------------------------------
 #   endif
 };
+#endif /* NO_TNGFILE */
 #endif

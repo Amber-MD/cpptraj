@@ -1,3 +1,4 @@
+#ifndef NO_TNGFILE
 #include "Traj_TNG.h"
 #include "CpptrajStdio.h"
 
@@ -131,3 +132,4 @@ void Traj_TNG::parallelCloseTraj() {
 
 }
 #endif
+#endif /* NO_TNGFILE */
