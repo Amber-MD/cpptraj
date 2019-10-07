@@ -27,7 +27,7 @@ test: $(TARGET) tng_io_testing.o tng_example.tng
 	./a.out
 
 clean:
-	$(DEL_FILE) *.o $(TARGET) tng_io_testing.o a.out
+	$(DEL_FILE) *.o $(TARGET) tng_io_testing.o a.out tng_example_out.tng tng_test.tng
 
 uninstall: clean
 
