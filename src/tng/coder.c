@@ -11,10 +11,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../include/compression/tng_compress.h"
-#include "../../include/compression/bwlzh.h"
-#include "../../include/compression/coder.h"
-#include "../../include/compression/warnmalloc.h"
+#include "compression/tng_compress.h"
+#include "compression/bwlzh.h"
+#include "compression/coder.h"
+#include "compression/warnmalloc.h"
 
 #ifndef USE_WINDOWS
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
