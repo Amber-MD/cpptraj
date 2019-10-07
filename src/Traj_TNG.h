@@ -22,7 +22,7 @@ class Traj_TNG : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&);
     // -------------------------------------------
 #   ifdef MPI
@@ -36,6 +36,8 @@ class Traj_TNG : public TrajectoryIO {
     void parallelCloseTraj();
     // -------------------------------------------
 #   endif
+
+    tng_trajectory_t traj_;
 };
 #endif /* NO_TNGFILE */
 #endif

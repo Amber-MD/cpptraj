@@ -73,7 +73,7 @@ void Traj_TNG::WriteHelp() {
 }
 
 /** Process write arguments. */
-int Traj_TNG::processWriteArgs(ArgList& argIn) {
+int Traj_TNG::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
 
   return 0;
 }
