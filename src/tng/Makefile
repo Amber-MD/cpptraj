@@ -9,7 +9,7 @@ AR            = ar cqs
 TARGET        = libtngfile.a
 
 # Source files
-SOURCES=md5.c tng_io.c
+SOURCES=md5.c tng_io.c tng_compress.c
 
 # Objects
 OBJECTS=$(SOURCES:.c=.o)
@@ -23,7 +23,7 @@ $(TARGET): $(OBJECTS)
 	$(AR) $(TARGET) $(OBJECTS)
 
 test: $(TARGET) tng_io_testing.o
-	$(CC) -o a.out tng_io_testing.c $(TARGET) -lm
+	$(CC) -o a.out tng_io_testing.c $(TARGET) -lm $(ZLIB_FLAG)
 	./a.out
 
 clean:
@@ -35,3 +35,5 @@ uninstall: clean
 md5.o : md5.c tng/md5.h
 
 tng_io.o : tng_io.c tng/tng_io.h tng/tng_io_fwd.h compression/tng_compress.h tng/version.h
+
+tng_compress.o : tng_compress.c compression/tng_compress.h
