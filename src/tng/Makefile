@@ -9,7 +9,7 @@ AR            = ar cqs
 TARGET        = libtngfile.a
 
 # Source files
-SOURCES=md5.c tng_io.c tng_compress.c coder.c warnmalloc.c fixpoint.c
+SOURCES=md5.c tng_io.c tng_compress.c coder.c warnmalloc.c fixpoint.c xtc3.c bwlzh.c xtc2.c widemuldiv.c huffmem.c vals16.c bwt.c mtf.c rle.c lz77.c dict.c huffman.c merge_sort.c
 
 # Objects
 OBJECTS=$(SOURCES:.c=.o)
@@ -43,3 +43,29 @@ coder.o : coder.c compression/coder.h compression/tng_compress.h compression/bwl
 warnmalloc.o : warnmalloc.c compression/warnmalloc.h compression/tng_compress.h
 
 fixpoint.o : fixpoint.c compression/fixpoint.h 
+
+xtc3.o : xtc3.c compression/warnmalloc.h compression/bwlzh.h compression/widemuldiv.h
+
+bwlzh.o : bwlzh.c compression/bwlzh.h compression/warnmalloc.h compression/tng_compress.h compression/dict.h compression/vals16.h compression/rle.h compression/mtf.h compression/bwt.h compression/lz77.h
+
+xtc2.o : xtc2.c compression/coder.h compression/widemuldiv.h compression/warnmalloc.h
+
+widemuldiv.o : widemuldiv.c compression/widemuldiv.h compression/tng_compress.h compression/my64bit.h
+
+huffmem.o : huffmem.c compression/huffman.h compression/warnmalloc.h compression/tng_compress.h compression/bwlzh.h compression/dict.h compression/rle.h compression/vals16.h
+
+vals16.o : vals16.c compression/vals16.h
+
+bwt.o : bwt.c compression/bwt.h compression/warnmalloc.h
+
+mtf.o : mtf.c compression/mtf.h compression/warnmalloc.h
+
+rle.o : rle.c compression/rle.h
+
+lz77.o : lz77.c compression/lz77.h compression/bwt.h compression/warnmalloc.h
+
+dict.o : dict.c compression/dict.h
+
+huffman.o : huffman.c compression/warnmalloc.h compression/merge_sort.h compression/huffman.h
+
+merge_sort.o : merge_sort.c compression/merge_sort.h compression/warnmalloc.h
