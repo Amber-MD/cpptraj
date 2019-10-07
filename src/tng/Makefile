@@ -6,7 +6,7 @@ CFLAGS += -I .
 # Variables
 DEL_FILE      = /bin/rm -f
 AR            = ar cqs
-TARGET        = libtngfile.a
+TARGET        = libtng.a
 
 # Source files
 SOURCES=md5.c tng_io.c tng_compress.c coder.c warnmalloc.c fixpoint.c xtc3.c bwlzh.c xtc2.c widemuldiv.c huffmem.c vals16.c bwt.c mtf.c rle.c lz77.c dict.c huffman.c merge_sort.c
