@@ -22,7 +22,7 @@ $(TARGET): $(OBJECTS)
 	-$(DEL_FILE) $(TARGET)
 	$(AR) $(TARGET) $(OBJECTS)
 
-test: $(TARGET) tng_io_testing.o
+test: $(TARGET) tng_io_testing.o tng_example.tng
 	$(CC) -o a.out tng_io_testing.c $(TARGET) -lm $(ZLIB_FLAG)
 	./a.out
 
