@@ -1,6 +1,8 @@
 #ifndef NO_TNGFILE
 #include "Traj_TNG.h"
 #include "CpptrajStdio.h"
+#include "FileName.h"
+#include "Topology.h"
 
 /// CONSTRUCTOR
 Traj_TNG::Traj_TNG() {}
@@ -44,6 +46,20 @@ int Traj_TNG::processReadArgs(ArgList& argIn) {
   */
 int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
 {
+  tng_function_status stat = tng_util_trajectory_open(fname.full(), 'r', &traj_);
+  if (stat != TNG_SUCCESS) {
+    mprinterr("Error: Could not open TNG file '%s'\n", fname.full());
+    return TRAJIN_ERR;
+  }
+
+  // Get number of atoms
+  tng_num_particles_get(traj_, &tngatoms_);
+  if (tngatoms_ != (long int)trajParm->Natom()) {
+    mprinterr("Error: Number of atoms in TNG file (%li) does not match number\n"
+              "Error:  of atoms in associated topology (%i)\n",
+               tngatoms_, trajParm->Natom());
+    return TRAJIN_ERR;
+  }
 
   return TRAJIN_ERR;
 }

@@ -38,6 +38,7 @@ class Traj_TNG : public TrajectoryIO {
 #   endif
 
     tng_trajectory_t traj_;
+    long int tngatoms_;
 };
 #endif /* NO_TNGFILE */
 #endif
