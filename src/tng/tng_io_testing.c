@@ -769,7 +769,7 @@ static tng_function_status tng_test_write_and_read_traj(tng_trajectory_t *traj,
 
     tng_trajectory_destroy(traj);
     tng_trajectory_init(traj);
-    tng_input_file_set(*traj, TNG_EXAMPLE_FILES_DIR "tng_test.tng");
+    tng_input_file_set(*traj, "tng_test.tng");
 
     stat = tng_file_headers_read(*traj, hash_mode);
 
@@ -1127,7 +1127,7 @@ tng_function_status tng_test_utility_functions(tng_trajectory_t traj, const char
     double time, multiplier;
     float *positions = 0;
 
-    stat = tng_util_trajectory_open(TNG_EXAMPLE_FILES_DIR "tng_test.tng", 'r', &traj);
+    stat = tng_util_trajectory_open("tng_test.tng", 'r', &traj);
     if(stat != TNG_SUCCESS)
     {
         return(stat);
@@ -1237,7 +1237,7 @@ tng_function_status tng_test_append(tng_trajectory_t traj, const char hash_mode)
     double time, *velocities;
     tng_function_status stat;
 
-    stat = tng_util_trajectory_open(TNG_EXAMPLE_FILES_DIR "tng_test.tng", 'a', &traj);
+    stat = tng_util_trajectory_open("tng_test.tng", 'a', &traj);
     if(stat != TNG_SUCCESS)
     {
         printf("Cannot open trajectory. %s: %d\n",
@@ -1329,7 +1329,7 @@ tng_function_status tng_test_copy_container(tng_trajectory_t traj, const char ha
     tng_trajectory_t dest;
     tng_function_status stat;
 
-    stat = tng_util_trajectory_open(TNG_EXAMPLE_FILES_DIR "tng_test.tng", 'r', &traj);
+    stat = tng_util_trajectory_open("tng_test.tng", 'r', &traj);
     if(stat != TNG_SUCCESS)
     {
         printf("Cannot open trajectory. %s: %d\n",
@@ -1390,8 +1390,8 @@ int main()
 
     printf("Creation time: %s\n", time_str);
 
-    tng_input_file_set(traj, TNG_EXAMPLE_FILES_DIR "tng_example.tng");
-    tng_output_file_set(traj, TNG_EXAMPLE_FILES_DIR "tng_example_out.tng");
+    tng_input_file_set(traj, "tng_example.tng");
+    tng_output_file_set(traj, "tng_example_out.tng");
 
     printf("Test Read and write file:\t\t\t");
     if(tng_test_read_and_write_file(traj, hash_mode) != TNG_SUCCESS)
@@ -1425,7 +1425,7 @@ int main()
     }
 
 
-    tng_output_file_set(traj, TNG_EXAMPLE_FILES_DIR "tng_test.tng");
+    tng_output_file_set(traj, "tng_test.tng");
 
     printf("Test Write and read file:\t\t\t");
     if(tng_test_write_and_read_traj(&traj, hash_mode) != TNG_SUCCESS)
