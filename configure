@@ -2057,6 +2057,8 @@ fi
 # TNG
 if [ "${LIB_STAT[$LTNGFILE]}" = 'bundled' ] ; then
   TNGFILE_TARGET=${LIB_FLAG[$LTNGFILE]}
+else
+  TNGFILE_TARGET='notngfile'
 fi
 # Arpack
 if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
