@@ -61,7 +61,12 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
 
-  return TRAJIN_ERR;
+  // Get number of frames
+  long int nframes;
+  tng_num_frames_get(traj_, &nframes);
+  mprintf("\tTNG file has %li frames.\n", nframes);
+
+  return (int)nframes;
 }
 
 /** Read specified trajectory frame. */
