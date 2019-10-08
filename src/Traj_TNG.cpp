@@ -112,14 +112,14 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   }
   mprintf("\tTNG exponential: %li\n", tngexp);
   switch (tngexp) {
-    case 9  :
+    case -9  :
+      mprintf("\tTNG has units of nm\n");
       // Input is in nm. Convert to Angstroms.
-      //tngfac_ = 1.0;
-      tngfac_ = 0.1;
+      tngfac_ = 10.0;
       break;
-    case 10 :
+    case -10 :
+      mprintf("\tTNG has units of Angstrom\n");
       // Input is in Angstroms.
-      //tngfac_ = 10.0;
       tngfac_ = 1.0;
       break;
     default :
@@ -153,7 +153,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   } else if (stat == TNG_SUCCESS) {
     convertArray(boxShape.Dptr(), boxptr, 9);
     mprintf("\tBox shape:");
-    for (unsigned int i = 0; i < 9; i++) // NOTE: Should get vector length?
+    for (unsigned int i = 0; i < 9; i++)
     {
       mprintf(" %f", boxShape[i]);
     }
