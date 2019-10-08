@@ -1,6 +1,7 @@
 #ifndef NO_TNGFILE
-#include <cmath> //pow
-#include <cstring> //strncmp
+#include <cmath>   // pow
+#include <cstring> // strncmp
+#include <cstdlib> // free
 #include "Traj_TNG.h"
 #include "CpptrajStdio.h"
 #include "FileName.h"
@@ -133,11 +134,10 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   int64_t stride = 0;
   stat = tng_util_box_shape_read_range(traj_, 0, 0, &boxptr, &stride);
   mprintf("DEBUG: Box Stride: %li\n", stride);
-  if (stat == TNG_FAILURE)
-    mprintf("DEBUG: Box minor error.\n");
-  else if (stat == TNG_CRITICAL)
-    mprintf("DEBUG: Box major error.\n");
-  else if (stat == TNG_SUCCESS) {
+  if (stat == TNG_CRITICAL) {
+    mprinterr("Error: Major error encountered reading TNG box.\n");
+    return TRAJIN_ERR;
+  } else if (stat == TNG_SUCCESS) {
     convertArray(boxShape.Dptr(), boxptr, 9);
     mprintf("\tBox shape:");
     for (unsigned int i = 0; i < 9; i++) // NOTE: Should get vector length?
@@ -146,6 +146,8 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
     }
     mprintf("\n");
   }
+  // NOTE: Use free here since thats what underlying TNG library does
+  if (boxptr != 0) free( boxptr );
 
   SetCoordInfo( CoordinateInfo( Box(boxShape), false, false, false ) );
 
