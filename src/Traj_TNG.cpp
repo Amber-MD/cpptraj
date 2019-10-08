@@ -91,6 +91,17 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   }
   mprintf("\tTNG distance scaling factor: %g\n", tngfac_);
 
+  // Get box status
+  float *boxptr = 0;
+  int64_t stride;
+  if (tng_util_box_shape_read(traj_, &boxptr, &stride) == TNG_SUCCESS) {
+    mprintf("\tBox shape:");
+    for (unsigned int i = 0; i < 9; i++) // NOTE: Should get vector length?
+      mprintf(" %f", boxptr[i]);
+    mprintf("\n");
+    delete boxptr;
+  }
+
   return (int)nframes;
 }
 
