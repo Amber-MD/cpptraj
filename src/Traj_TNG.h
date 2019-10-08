@@ -38,6 +38,8 @@ class Traj_TNG : public TrajectoryIO {
     // -------------------------------------------
 #   endif
 
+    void convertArray(double*, float*, unsigned int) const;
+
     tng_trajectory_t traj_; ///< The TNG trajectory file object
     int64_t tngatoms_;      ///< Number of atoms in the TNG trajectory file.
     double tngfac_;         ///< Coordinates scaling factor

@@ -71,6 +71,12 @@ int Traj_TNG::processReadArgs(ArgList& argIn) {
   return 0;
 }
 
+/* Utility function for properly scaling coordinates according to the factor. */
+void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals) const {
+  for (unsigned int i = 0; i != nvals; i++)
+    out[i] = ((double)in[i]) * tngfac_;
+}
+
 /** Set up trajectory for reading.
   * \return Number of frames in trajectory.
   */
@@ -122,15 +128,26 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   mprintf("\tTNG distance scaling factor: %g\n", tngfac_);
 
   // Get box status
-  float *boxptr = 0;
-  int64_t stride;
-  if (tng_util_box_shape_read(traj_, &boxptr, &stride) == TNG_SUCCESS) {
+  Matrix_3x3 boxShape(0.0);
+  float* boxptr = 0;
+  int64_t stride = 0;
+  stat = tng_util_box_shape_read_range(traj_, 0, 0, &boxptr, &stride);
+  mprintf("DEBUG: Box Stride: %li\n", stride);
+  if (stat == TNG_FAILURE)
+    mprintf("DEBUG: Box minor error.\n");
+  else if (stat == TNG_CRITICAL)
+    mprintf("DEBUG: Box major error.\n");
+  else if (stat == TNG_SUCCESS) {
+    convertArray(boxShape.Dptr(), boxptr, 9);
     mprintf("\tBox shape:");
     for (unsigned int i = 0; i < 9; i++) // NOTE: Should get vector length?
-      mprintf(" %f", boxptr[i]);
+    {
+      mprintf(" %f", boxShape[i]);
+    }
     mprintf("\n");
-    delete boxptr;
   }
+
+  SetCoordInfo( CoordinateInfo( Box(boxShape), false, false, false ) );
 
   return (int)nframes;
 }
