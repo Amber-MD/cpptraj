@@ -1,4 +1,5 @@
 #ifndef NO_TNGFILE
+#include <cmath>
 #include "Traj_TNG.h"
 #include "CpptrajStdio.h"
 #include "FileName.h"
@@ -65,6 +66,18 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   long int nframes;
   tng_num_frames_get(traj_, &nframes);
   mprintf("\tTNG file has %li frames.\n", nframes);
+
+  // Get the exponential distance scaling factor
+  long int tngexp;
+  if (tng_distance_unit_exponential_get(traj_, &tngexp) != TNG_SUCCESS) {
+    mprinterr("Error: Could not get distance scaling exponential from TNG.\n");
+    return TRAJIN_ERR;
+  }
+  switch (tngexp) {
+    case 9  : tngfac_ = 1.0; break;
+    case 10 : tngfac_ = 10.0; break;
+    default : tngfac_ = pow(10.0, tngexp + 9); break;
+  }
 
   return (int)nframes;
 }
