@@ -38,7 +38,7 @@ class Traj_TNG : public TrajectoryIO {
 #   endif
 
     tng_trajectory_t traj_; ///< The TNG trajectory file object
-    long int tngatoms_;     ///< Number of atoms in the TNG trajectory file.
+    int64_t tngatoms_;      ///< Number of atoms in the TNG trajectory file.
     double tngfac_;         ///< Coordinates scaling factor
 };
 #endif /* NO_TNGFILE */

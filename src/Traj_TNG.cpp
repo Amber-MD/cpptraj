@@ -55,7 +55,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
 
   // Get number of atoms
   tng_num_particles_get(traj_, &tngatoms_);
-  if (tngatoms_ != (long int)trajParm->Natom()) {
+  if (tngatoms_ != (int64_t)trajParm->Natom()) {
     mprinterr("Error: Number of atoms in TNG file (%li) does not match number\n"
               "Error:  of atoms in associated topology (%i)\n",
                tngatoms_, trajParm->Natom());
@@ -63,12 +63,12 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   }
 
   // Get number of frames
-  long int nframes;
+  int64_t nframes;
   tng_num_frames_get(traj_, &nframes);
   mprintf("\tTNG file has %li frames.\n", nframes);
 
   // Get the exponential distance scaling factor
-  long int tngexp;
+  int64_t tngexp;
   if (tng_distance_unit_exponential_get(traj_, &tngexp) != TNG_SUCCESS) {
     mprinterr("Error: Could not get distance scaling exponential from TNG.\n");
     return TRAJIN_ERR;
