@@ -172,7 +172,26 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
 
 /** Read specified trajectory frame. */
 int Traj_TNG::readFrame(int set, Frame& frameIn) {
+  int64_t stride;
+  // Read coordinates
+  if ( tng_util_pos_read_range(traj_, set, set, &ftmp_, &stride) != TNG_SUCCESS ) {
+    mprinterr("Error: Could not read set %i for TNG file.\n", set+1);
+    return 1;
+  }
+  convertArray(frameIn.xAddress(), ftmp_, 3*tngatoms_);
 
+  if (CoordInfo().HasBox()) {
+    float* boxptr = 0;
+    if (tng_util_box_shape_read_range(traj_, set, set, &boxptr, &stride) != TNG_SUCCESS) {
+      mprinterr("Error: Could not read set %i box for TNG file.\n", set+1);
+      return 1;
+    }
+    Matrix_3x3 boxShape(0.0);
+    convertArray(boxShape.Dptr(), boxptr, 9);
+    frameIn.SetBox( Box(boxShape) );
+    free( boxptr );
+  }
+  
   return 0;
 }
 
