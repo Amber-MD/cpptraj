@@ -10,6 +10,7 @@
 
 /// CONSTRUCTOR
 Traj_TNG::Traj_TNG() :
+  ftmp_(0),
   tngatoms_(0),
   tngfac_(0),
   isOpen_(false)
@@ -18,6 +19,7 @@ Traj_TNG::Traj_TNG() :
 /// DESTRUCTOR
 Traj_TNG::~Traj_TNG() {
   closeTraj();
+  if (ftmp_ != 0) delete[] ftmp_;
 }
 
 /** Identify trajectory format. File should be setup for READ.
@@ -128,11 +130,13 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   }
   mprintf("\tTNG distance scaling factor: %g\n", tngfac_);
 
+  // Allocate coords temp memory
+  if (ftmp_ != 0) delete[] ftmp_;
+  ftmp_ = new float[ 3*tngatoms_ ];
   // Check if there are velocities
-  float* ftmp = 0;
   int64_t stride = 0;
   bool hasVel = false;
-  stat = tng_util_vel_read_range(traj_, 0, 0, &ftmp, &stride);
+  stat = tng_util_vel_read_range(traj_, 0, 0, &ftmp_, &stride);
   mprintf("DEBUG: Velocity stride: %li\n", stride);
   if (stat == TNG_CRITICAL) {
     mprinterr("Error: Major error encountered checking TNG velocities.\n");
@@ -140,7 +144,6 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   } else if (stat == TNG_SUCCESS) {
     hasVel = true;
   }
-  if (ftmp != 0) free( ftmp );
 
   // Get box status
   Matrix_3x3 boxShape(0.0);

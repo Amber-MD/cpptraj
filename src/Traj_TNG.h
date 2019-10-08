@@ -41,6 +41,7 @@ class Traj_TNG : public TrajectoryIO {
     void convertArray(double*, float*, unsigned int) const;
 
     tng_trajectory_t traj_; ///< The TNG trajectory file object
+    float* ftmp_;           ///< Temporary array for reading in coordinates
     int64_t tngatoms_;      ///< Number of atoms in the TNG trajectory file.
     double tngfac_;         ///< Coordinates scaling factor
     bool isOpen_;           ///< Calling the TNG library close routine if file is not open is an error, so keep track ourselves.
