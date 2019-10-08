@@ -1,20 +1,41 @@
 #ifndef NO_TNGFILE
-#include <cmath>
+#include <cmath> //pow
+#include <cstring> //strncmp
 #include "Traj_TNG.h"
 #include "CpptrajStdio.h"
 #include "FileName.h"
 #include "Topology.h"
+#include "CpptrajFile.h"
 
 /// CONSTRUCTOR
-Traj_TNG::Traj_TNG() {}
+Traj_TNG::Traj_TNG() :
+  tngatoms_(0),
+  tngfac_(0),
+  isOpen_(false)
+{}
 
 /// DESTRUCTOR
 Traj_TNG::~Traj_TNG() {
   closeTraj();
 }
 
-/** Identify trajectory format. File should be setup for READ */
+/** Identify trajectory format. File should be setup for READ.
+  * Note that as of version 1.8.2 the TNG library routines provide
+  * no straightforward way to confirm that a file is indeed a TNG
+  * file; providing a non-TNG file to the routines results in lots
+  * of memory errors. Therefore, relying on the fact that the
+  * 'GENERAL INFO' block should be present in all TNG files, and that
+  * that string seems to always be in bytes 40-51.
+  */
 bool Traj_TNG::ID_TrajFormat(CpptrajFile& fileIn) {
+  char tngheader[52];
+  if (fileIn.OpenFile()) return false;
+  if (fileIn.Read(&tngheader, 52) != 52) return false;
+  fileIn.CloseFile();
+  if (strncmp(tngheader+40, "GENERAL INFO", 12)==0) {
+    mprintf("DEBUG: TNG file.\n");
+    return true;
+  }
 
   return false;
 }
@@ -26,7 +47,10 @@ void Traj_TNG::Info() {
 
 /** Close file. */
 void Traj_TNG::closeTraj() {
-  tng_util_trajectory_close(&traj_);
+  if (isOpen_) {
+    tng_util_trajectory_close(&traj_);
+  }
+  isOpen_ = false;
 }
 
 // -----------------------------------------------------------------------------
@@ -57,6 +81,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
     mprinterr("Error: Could not open TNG file '%s'\n", fname.full());
     return TRAJIN_ERR;
   }
+  isOpen_ = true;
 
   // Get number of atoms
   tng_num_particles_get(traj_, &tngatoms_);
