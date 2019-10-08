@@ -73,11 +73,23 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
     mprinterr("Error: Could not get distance scaling exponential from TNG.\n");
     return TRAJIN_ERR;
   }
+  mprintf("\tTNG exponential: %li\n", tngexp);
   switch (tngexp) {
-    case 9  : tngfac_ = 1.0; break;
-    case 10 : tngfac_ = 10.0; break;
-    default : tngfac_ = pow(10.0, tngexp + 9); break;
+    case 9  :
+      // Input is in nm. Convert to Angstroms.
+      //tngfac_ = 1.0;
+      tngfac_ = 0.1;
+      break;
+    case 10 :
+      // Input is in Angstroms.
+      //tngfac_ = 10.0;
+      tngfac_ = 1.0;
+      break;
+    default :
+      // Convert to Angstroms.
+      tngfac_ = pow(10.0, tngexp + 10); break;
   }
+  mprintf("\tTNG distance scaling factor: %g\n", tngfac_);
 
   return (int)nframes;
 }
