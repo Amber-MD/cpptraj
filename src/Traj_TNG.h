@@ -7,6 +7,7 @@
 class Traj_TNG : public TrajectoryIO {
   public:
     Traj_TNG();
+    ~Traj_TNG();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_TNG(); }
     static void WriteHelp();
     static void ReadHelp();

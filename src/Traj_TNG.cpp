@@ -8,6 +8,11 @@
 /// CONSTRUCTOR
 Traj_TNG::Traj_TNG() {}
 
+/// DESTRUCTOR
+Traj_TNG::~Traj_TNG() {
+  closeTraj();
+}
+
 /** Identify trajectory format. File should be setup for READ */
 bool Traj_TNG::ID_TrajFormat(CpptrajFile& fileIn) {
 
@@ -16,12 +21,12 @@ bool Traj_TNG::ID_TrajFormat(CpptrajFile& fileIn) {
 
 /** Print trajectory info to stdout. */
 void Traj_TNG::Info() {
-  mprintf("is a <type>");
+  mprintf("is a GROMACS TNG file");
 }
 
 /** Close file. */
 void Traj_TNG::closeTraj() {
-
+  tng_util_trajectory_close(&traj_);
 }
 
 // -----------------------------------------------------------------------------
