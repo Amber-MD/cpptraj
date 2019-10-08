@@ -128,14 +128,27 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   }
   mprintf("\tTNG distance scaling factor: %g\n", tngfac_);
 
+  // Check if there are velocities
+  float* ftmp = 0;
+  int64_t stride = 0;
+  bool hasVel = false;
+  stat = tng_util_vel_read_range(traj_, 0, 0, &ftmp, &stride);
+  mprintf("DEBUG: Velocity stride: %li\n", stride);
+  if (stat == TNG_CRITICAL) {
+    mprinterr("Error: Major error encountered checking TNG velocities.\n");
+    return TRAJIN_ERR;
+  } else if (stat == TNG_SUCCESS) {
+    hasVel = true;
+  }
+  if (ftmp != 0) free( ftmp );
+
   // Get box status
   Matrix_3x3 boxShape(0.0);
   float* boxptr = 0;
-  int64_t stride = 0;
   stat = tng_util_box_shape_read_range(traj_, 0, 0, &boxptr, &stride);
   mprintf("DEBUG: Box Stride: %li\n", stride);
   if (stat == TNG_CRITICAL) {
-    mprinterr("Error: Major error encountered reading TNG box.\n");
+    mprinterr("Error: Major error encountered checking TNG box.\n");
     return TRAJIN_ERR;
   } else if (stat == TNG_SUCCESS) {
     convertArray(boxShape.Dptr(), boxptr, 9);
@@ -149,7 +162,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   // NOTE: Use free here since thats what underlying TNG library does
   if (boxptr != 0) free( boxptr );
 
-  SetCoordInfo( CoordinateInfo( Box(boxShape), false, false, false ) );
+  SetCoordInfo( CoordinateInfo( Box(boxShape), hasVel, false, false ) );
 
   return (int)nframes;
 }
