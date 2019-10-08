@@ -59,6 +59,14 @@ void Traj_TNG::closeTraj() {
 // -----------------------------------------------------------------------------
 /** Open trajectory for reading. */
 int Traj_TNG::openTrajin() {
+  if (isOpen_) 
+    closeTraj();
+  tng_function_status stat = tng_util_trajectory_open(filename_.full(), 'r', &traj_);
+  if (stat != TNG_SUCCESS) {
+    mprinterr("Error: Could not open TNG file '%s'\n", filename_.full());
+    return TRAJIN_ERR;
+  }
+  isOpen_ = true;
 
   return 0;
 }
@@ -85,12 +93,8 @@ void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals) const {
   */
 int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
 {
-  tng_function_status stat = tng_util_trajectory_open(fname.full(), 'r', &traj_);
-  if (stat != TNG_SUCCESS) {
-    mprinterr("Error: Could not open TNG file '%s'\n", fname.full());
-    return TRAJIN_ERR;
-  }
-  isOpen_ = true;
+  filename_ = fname;
+  openTrajin();
 
   // Get number of atoms
   tng_num_particles_get(traj_, &tngatoms_);
@@ -136,7 +140,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   // Check if there are velocities
   int64_t stride = 0;
   bool hasVel = false;
-  stat = tng_util_vel_read_range(traj_, 0, 0, &ftmp_, &stride);
+  tng_function_status stat = tng_util_vel_read_range(traj_, 0, 0, &ftmp_, &stride);
   mprintf("DEBUG: Velocity stride: %li\n", stride);
   if (stat == TNG_CRITICAL) {
     mprinterr("Error: Major error encountered checking TNG velocities.\n");
@@ -164,6 +168,8 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   }
   // NOTE: Use free here since thats what underlying TNG library does
   if (boxptr != 0) free( boxptr );
+
+  closeTraj();
 
   SetCoordInfo( CoordinateInfo( Box(boxShape), hasVel, false, false ) );
 

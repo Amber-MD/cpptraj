@@ -1,8 +1,9 @@
 #ifndef INC_TRAJ_TNG_H
 #define INC_TRAJ_TNG_H
 #ifndef NO_TNGFILE
+#include <tng/tng_io.h>
 #include "TrajectoryIO.h"
-# include <tng/tng_io.h>
+#include "FileName.h"
 /// Read Gromacs TNG trajectories 
 class Traj_TNG : public TrajectoryIO {
   public:
@@ -45,6 +46,7 @@ class Traj_TNG : public TrajectoryIO {
     int64_t tngatoms_;      ///< Number of atoms in the TNG trajectory file.
     double tngfac_;         ///< Coordinates scaling factor
     bool isOpen_;           ///< Calling the TNG library close routine if file is not open is an error, so keep track ourselves.
+    FileName filename_;     ///< File name, for openTrajin
 };
 #endif /* NO_TNGFILE */
 #endif
