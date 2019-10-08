@@ -12,6 +12,7 @@
 Traj_TNG::Traj_TNG() :
   ftmp_(0),
   tngatoms_(0),
+  current_frame_(0),
   tngfac_(0),
   isOpen_(false)
 {}
@@ -67,6 +68,7 @@ int Traj_TNG::openTrajin() {
     return TRAJIN_ERR;
   }
   isOpen_ = true;
+  current_frame_ = 0;
 
   return 0;
 }
@@ -173,11 +175,39 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
 
   SetCoordInfo( CoordinateInfo( Box(boxShape), hasVel, false, false ) );
 
+  blockIds_.clear();
+  if (CoordInfo().HasBox())
+    blockIds_.push_back( TNG_TRAJ_BOX_SHAPE );
+  blockIds_.push_back( TNG_TRAJ_POSITIONS );
+  if (CoordInfo().HasVel())
+    blockIds_.push_back( TNG_TRAJ_VELOCITIES );
+
   return (int)nframes;
 }
 
 /** Read specified trajectory frame. */
 int Traj_TNG::readFrame(int set, Frame& frameIn) {
+  // Determine next frame with data
+  int64_t next_frame, n_data_blocks_in_next_frame, *block_ids_in_next_frame = 0;
+  tng_function_status stat = tng_util_trajectory_next_frame_present_data_blocks_find(
+    traj_,
+    current_frame_,
+    blockIds_.size(),
+    &blockIds_[0],
+    &next_frame,
+    &n_data_blocks_in_next_frame,
+    &block_ids_in_next_frame);
+  if (stat == TNG_CRITICAL) {
+    mprinterr("Error: could not get data blocks in next frame (set %i)\n", set+1);
+    return 1;
+  }
+  if (stat == TNG_FAILURE) {
+    mprintf("DEBUG: No more blocks.\n");
+    return 1;
+  }
+  mprintf("DEBUG: Set %i next_frame %li nblocksnext %i\n", set, next_frame, n_data_blocks_in_next_frame);
+    
+/*
   int64_t stride;
   // Read coordinates
   if ( tng_util_pos_read_range(traj_, set, set, &ftmp_, &stride) != TNG_SUCCESS ) {
@@ -197,7 +227,7 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
     frameIn.SetBox( Box(boxShape) );
     free( boxptr );
   }
-  
+  */
   return 0;
 }
 
