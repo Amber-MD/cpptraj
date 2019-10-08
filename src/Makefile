@@ -72,6 +72,9 @@ xdrfile/libxdrfile.a: ../external.config.h
 arpack/libarpack.a: ../external.config.h
 	cd arpack && $(MAKE) install
 
+tng/libtng_io.a: ../external.config.h
+	cd tng && $(MAKE) all
+
 noreadline:
 	@echo ""
 	@echo "Skipping bundled READLINE build"
@@ -112,6 +115,7 @@ clean:
 	cd xdrfile && $(MAKE) clean
 	cd arpack && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
+	cd tng && $(MAKE) clean
 
 uninstall:
 	$(DEL_FILE) $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
