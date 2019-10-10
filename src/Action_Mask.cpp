@@ -17,10 +17,13 @@ Action_Mask::Action_Mask() :
 {} 
 
 void Action_Mask::Help() const {
-  mprintf("\t<mask1> [maskout <filename>] [maskpdb <filename> | maskmol2 <filename>]\n"
+  mprintf("\t<mask1> [maskout <filename>]\n"
+          "\t[ {maskpdb <filename> | maskmol2 <filename>}\n"
+          "\t  [trajargs <comma-separated args>] ]\n"
           "  Print atoms selected by <mask1> to file specified by 'maskout' and/or\n"
-          "  the PDB or Mol2 file specified by 'maskpdb' or 'maskmol2'. Good for\n"
-          "  distance-based masks.\n");
+          "  the PDB or Mol2 file specified by 'maskpdb' or 'maskmol2'. Additional\n"
+          "  trajectory arguments can be specified in a comma-separated list via\n"
+          "  the 'trajargs' keyword. Good for distance-based masks.\n");
 }
 
 // Action_Mask::Init()
@@ -43,6 +46,7 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
   std::string maskmol2 = actionArgs.GetStringKey("maskmol2");
   std::string dsname = actionArgs.GetStringKey("name");
   std::string dsout = actionArgs.GetStringKey("out");
+  std::string additionalTrajArgs = actionArgs.GetStringKey("trajargs");
   // At least 1 of maskout, maskpdb, maskmol2, or name must be specified.
   if (outfile_ == 0 && maskpdb.empty() && maskmol2.empty() && dsname.empty()) {
     mprinterr("Error: At least one of maskout, maskpdb, maskmol2, or name must be specified.\n");
@@ -52,17 +56,26 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
   TrajectoryFile::TrajFormatType trajFmt = TrajectoryFile::PDBFILE;
   if (!maskpdb.empty() || !maskmol2.empty()) {
     outtraj_.SetDebug( debug_ );
-    ArgList trajArgs;
+    std::string trajArgs;
     if (!maskpdb.empty()) {
       // Set pdb output options: multi so that 1 file per frame is written; dumpq
       // so that charges are written out.
-      trajArgs = ArgList("multi dumpq nobox");
+      trajArgs.assign("multi dumpq nobox");
     } else if (!maskmol2.empty()) {
       maskpdb = maskmol2;
       trajFmt = TrajectoryFile::MOL2FILE;
-      trajArgs = ArgList("multi nobox");
+      trajArgs.assign("multi nobox");
     }
-    if (outtraj_.InitEnsembleTrajWrite(maskpdb, trajArgs, init.DSL(), trajFmt, init.DSL().EnsembleNum()))
+    // Process any additional trajectory arguments.
+    if (!additionalTrajArgs.empty()) {
+      ArgList additionalArgList(additionalTrajArgs, ",");
+      //additionalArgList.PrintDebug();
+      for (int iarg = 0; iarg != additionalArgList.Nargs(); iarg++)
+        trajArgs.append(" " + additionalArgList[iarg]);
+    }
+    ArgList trajArgList( trajArgs );
+    if (outtraj_.InitEnsembleTrajWrite(maskpdb, trajArgList, init.DSL(),
+                                       trajFmt, init.DSL().EnsembleNum()))
       return Action::ERR;
     writeTraj_ = true;
   } else
@@ -98,9 +111,12 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (outfile_ != 0)
     mprintf(" to file %s",outfile_->Filename().full());
   mprintf(".\n");
-  if (writeTraj_) 
+  if (writeTraj_) {
     mprintf("\t%ss of atoms in mask will be written to %s.X\n",
             TrajectoryFile::FormatString(trajFmt), outtraj_.Traj().Filename().full());
+    if (!additionalTrajArgs.empty())
+      mprintf("\tAdditional trajectory arguments: %s\n", additionalTrajArgs.c_str());
+  }
   if (fnum_ != 0)
     mprintf("\tData sets will be saved with name '%s'\n", fnum_->Meta().Name().c_str());
   // Header

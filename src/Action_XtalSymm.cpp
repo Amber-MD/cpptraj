@@ -158,7 +158,7 @@ const
       if (opIDi < 0 || opIDi >= nops_) {
         mprintf("opIDi = %d out of %d ops\n", opIDi, nops_);
       }
-      if (j >= othr[i].Natom() || j < 0) {
+      if (j >= othr[i].Natom()) {
         mprintf("j = %d out of %d atoms, i = %d out of %zu capacity.\n", j, othr[i].Natom(),
         i, operID.capacity());
       }
@@ -1088,6 +1088,7 @@ const
       break;
     case 18:
       if (0.0 > x || x > half || 0.0 > y || y > half || 0.0 > z || z > 1.0) return false;
+      break;
     case 19:
       if (0.0 > x || x > half || 0.0 > y || y > half || 0.0 > z || z > 1.0) return false;
       break;

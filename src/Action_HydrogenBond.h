@@ -233,7 +233,7 @@ class Action_HydrogenBond::Bridge {
       else if (frames_ < rhs.frames_)
         return false;
       else
-        return (frames_ < rhs.frames_);
+        return false;
     }
   private:
     DataSet_integer* data_; ///< Hold time series data

@@ -1,5 +1,6 @@
 // Parm_CharmmPsf.cpp
 #include <cstdio> // sscanf
+#include <cstdlib> // atoi
 #include <cstring> // strncmp
 #include <cctype> // isdigit
 #include "Parm_CharmmPsf.h"

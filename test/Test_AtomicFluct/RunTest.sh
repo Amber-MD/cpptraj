@@ -41,10 +41,10 @@ atomicfluct A0 :2-12
 atomicfluct A1 @C,CA,N byres bfactor
 average crdset MyAvg
 run
-crdout MyAvg fluct.2.pdb bfacdata A0
-crdout MyAvg occ.2.pdb occdata A0
-crdout MyAvg scale.2.pdb bfacdata A0 bfacscale
-crdout MyAvg fluct.1.pdb bfacdata A1 bfacbyres
+crdout MyAvg fluct.2.pdb bfacdata A0 chainid " "
+crdout MyAvg occ.2.pdb occdata A0 chainid " "
+crdout MyAvg scale.2.pdb bfacdata A0 bfacscale chainid " "
+crdout MyAvg fluct.1.pdb bfacdata A1 bfacbyres chainid " "
 EOF
 RunCpptraj "Atomicfluct test with PDB B-factor/occupancy output."
 DoTest fluct.2.pdb.save fluct.2.pdb

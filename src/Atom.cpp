@@ -639,7 +639,7 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
         switch (e2) {
           case OXYGEN    : cut=1.40; break;
           case FLUORINE  : cut=1.36; break;
-          case PHOSPHORUS: cut=1.71; // Avg over all nX-pX from gaff.dat
+          case PHOSPHORUS: cut=1.71; break; // Avg over all nX-pX from gaff.dat
           case SULFUR    : cut=1.68; break; // Postma & Vos, Acta Cryst. (1973) B29, 915
           case CHLORINE  : cut=1.75; break;
           case BROMINE   : cut=1.85; break; // Est. from covalent radii N .71 + Br 1.14

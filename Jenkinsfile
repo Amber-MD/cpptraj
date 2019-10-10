@@ -28,7 +28,7 @@ pipeline {
                     steps {
                         sh "./configure --with-netcdf --with-fftw3 gnu"
                         sh "make -j4 install"
-                        sh "make check"
+                        sh "cd test && make test.showerrors"
                     }
                 }
                 stage("Linux Intel Serial Build") {
@@ -51,14 +51,14 @@ pipeline {
                     steps {
                         sh "./configure --with-netcdf -mkl intel"
                         sh "make -j4 install"
-                        sh "make check"
+                        sh "cd test && make test.showerrors"
                     }
                 }
                 stage("Linux PGI serial build") {
                     agent {
                         dockerfile {
                             dir "devtools/ci/jenkins"
-                            label "pgi"
+                            label "pgi && Batwoman"
                             // Pull the licensed PGI compilers from the host machine (must have
                             // the compilers installed in /opt/pgi)
                             args "-v /opt/pgi:/opt/pgi"
@@ -66,9 +66,15 @@ pipeline {
                     }
 
                     steps {
-                        sh "./configure --with-netcdf --with-fftw3 pgi"
-                        sh "make -j6 install"
-                        sh "make check"
+                        script {
+                            try {
+                                sh "./configure --with-netcdf --with-fftw3 pgi"
+                                sh "make -j6 install"
+                                sh "cd test && make test.showerrors"
+                            } catch (error) {
+                                echo "PGI BUILD AND/OR TEST FAILED"
+                            }
+                        }
                     }
                 }
                 stage("Linux GNU parallel build") {

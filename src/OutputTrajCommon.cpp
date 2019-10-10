@@ -115,13 +115,13 @@ int OutputTrajCommon::SetupCoordInfo(Topology* tparmIn, int nFrames, CoordinateI
   if (noFrc_ ) cInfo_.SetForce( false );
   if (noReps_) cInfo_.SetReplicaDims( ReplicaDimArray() );
   // Determine how many frames will be written
-  NframesToWrite_ = nFrames;
-  if (hasRange_)
-    NframesToWrite_ = FrameRange_.Size();
-  //trajIsOpen_ = true;
   // If a framerange is defined set it to the beginning of the range
-  if (hasRange_)
+  if (hasRange_) {
+    NframesToWrite_ = FrameRange_.Size();
     rangeframe_ = FrameRange_.begin();
+  } else
+    NframesToWrite_ = nFrames;
+  //trajIsOpen_ = true;
   numFramesWritten_ = 0;
   return 0;
 }

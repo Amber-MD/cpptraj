@@ -1590,7 +1590,7 @@ int Analysis_Rotdif::DetermineDeffs() {
     // Calculate mesh Y values
     spline.SetSplinedMeshY(pX, pY);
     // Integrate
-    double integral = spline.Integrate_Trapezoid();
+    double integral = spline.Integrate( DataSet_1D::TRAPEZOID );
     //mprintf("DEBUG: Vec %i integral= %g\n", nvec, integral);
     // Solve for deff
     D_eff_.push_back( calcEffectiveDiffusionConst(integral) );

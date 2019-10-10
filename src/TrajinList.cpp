@@ -86,13 +86,17 @@ int TrajinList::AddEnsembleIn(std::string const& fname, Topology* topIn, ArgList
       err++;
       continue;
     }
-    if (args.CheckForMoreArgs()) return 1;
+    if (args.CheckForMoreArgs()) {
+      delete ensemble;
+      return 1;
+    }
     // Currently all input ensembles must be same size.
     if (ensembleSize_ == -1)
       ensembleSize_ = ensemble->EnsembleCoordInfo().EnsembleSize();
     else if (ensembleSize_ != ensemble->EnsembleCoordInfo().EnsembleSize()) {
       mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
                 ensemble->EnsembleCoordInfo().EnsembleSize(), ensembleSize_);
+      delete ensemble;
       return 1;
     }
     // CRDIDXARG: If trajectory is REMD ensemble and sorting by CRDIDX, need to
@@ -160,7 +164,10 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
       err++;
       continue;
     }
-    if (args.CheckForMoreArgs()) return 1;
+    if (args.CheckForMoreArgs()) {
+      delete traj;
+      return 1;
+    }
     // Add to trajin list and update # of frames.
     trajin_.push_back( traj );
     UpdateMaxFrames( traj->Traj() );

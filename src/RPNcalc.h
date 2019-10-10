@@ -51,6 +51,7 @@ class RPNcalc {
     };
 
     static inline double DoOperation(double, double, TokenType);
+    int TokenLoop(DataSetList& DSL) const;
 
     typedef std::vector<Token> Tarray;
     Tarray tokens_;

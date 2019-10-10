@@ -127,10 +127,19 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       mkind = DataSet_2D::FULL;
     }
   }
+  // Set up output file if needed
+  outfile_ = 0;
+  if (outtype_ != BYMASK)
+    outfile_ = init.DFL().AddDataFile(outfilename, "square2d noxcol noheader", actionArgs);
+  // Check for output set name if not yet provided, to match
+  // behavior of other actions.
+  if (name.empty())
+    name = actionArgs.GetStringNext();
 
   // Create matrix BYATOM DataSet
   Mat_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL,
-                                         MetaData(name, MetaData::M_MATRIX, mtype), "Mat");
+                                               MetaData(name, MetaData::M_MATRIX, mtype),
+                                               "Mat");
   if (Mat_ == 0) return Action::ERR;
   // NOTE: Type/Kind is set here so subsequent analyses/actions know about it.
   Mat_->SetMatrixKind( mkind );
@@ -139,7 +148,6 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
   Mat_->ModifyDim(Dimension::X).SetLabel("Atom");
   // Determine what will be output.
   matByRes_ = 0;
-  outfile_ = 0;
   byMaskOut_ = 0;
   if (outtype_ == BYMASK) {
     // BYMASK output - no final data set, just write to file/STDOUT.
@@ -160,7 +168,6 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       matByRes_->SetNeedsSync( false );
 #     endif
     } 
-    outfile_ = init.DFL().AddDataFile(outfilename, "square2d noxcol noheader", actionArgs);
     if (outfile_ != 0) {
       if (outtype_ == BYATOM)
         outfile_->AddDataSet( Mat_ );

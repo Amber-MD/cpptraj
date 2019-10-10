@@ -704,6 +704,8 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
      iff = 5;
   else
      iff = 6;
+  if (iff > 0)
+    outfile.Printf("The first %i frequencies will be skipped.\n", iff);
   con = planck / boltz;
   double ezpe = 0.0;
   for (int i = 0; i < ndof; ++i) {
@@ -777,10 +779,10 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   //         e-- joules/mol
   //         c-- joules/mol-kelvin
   //         s-- joules/mol-kelvin
-
-  double etot = etran + erot + evib;
-  double ctot = ctran + crot + cvib;
-  double stot = stran + srot + svib;
+  double etot, ctot, stot;
+  //etot = etran + erot + evib;
+  //ctot = ctran + crot + cvib;
+  //stot = stran + srot + svib;
 
   //     print the sum of the hartree-fock energy and the thermal energy.
 

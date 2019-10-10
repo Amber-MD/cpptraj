@@ -40,7 +40,7 @@ static inline bool IsAtomLine(ArgList& lineIn) {
       catch (std::runtime_error const& e) {
         return false;
       }
-    } else if (i >= 2 && i < 5) {
+    } else if (i >= 2) {
       try {
         convertToDouble( item );
       }

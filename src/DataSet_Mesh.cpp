@@ -119,36 +119,6 @@ int DataSet_Mesh::SetMeshXY(DataSet_1D const& dsIn) {
   return 0;
 }
 
-// ---------- Integration routines ---------------------------------------------
-// DataSet_Mesh::Integrate_Trapezoid()
-double DataSet_Mesh::Integrate_Trapezoid( DataSet_Mesh& sumOut ) const {
-  double sum = 0.0;
-  int mesh_size = (int)mesh_x_.size();
-  if (mesh_size < 2) return 0.0;
-  // Give output data set the same X mesh
-  sumOut.mesh_x_ = mesh_x_;
-  sumOut.mesh_y_.resize( mesh_x_.size() );
-  sumOut.mesh_y_[0] = 0.0;
-  for (int i = 1; i < mesh_size; i++) {
-      double b_minus_a = (mesh_x_[i] - mesh_x_[i - 1]);
-      sum += (b_minus_a * (mesh_y_[i - 1] + mesh_y_[i]) * 0.5);
-      sumOut.mesh_y_[i] = sum;
-  }
-  return sum;
-}
-
-// DataSet_Mesh::Integrate_Trapezoid()
-double DataSet_Mesh::Integrate_Trapezoid() const {
-  double sum = 0.0;
-  int mesh_size = (int)mesh_x_.size();
-  if (mesh_size < 2) return 0.0;
-  for (int i = 1; i < mesh_size; i++) {
-      double b_minus_a = (mesh_x_[i] - mesh_x_[i - 1]);
-      sum += (b_minus_a * (mesh_y_[i - 1] + mesh_y_[i]) * 0.5);
-  }
-  return sum;
-}
-
 // ---------- Cubic Spline Routines --------------------------------------------
 // DataSet_Mesh::SetSplinedMeshY()
 /** Assumes mesh X values already set with CalculateMeshX. */
