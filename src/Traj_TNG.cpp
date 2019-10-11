@@ -43,7 +43,7 @@ bool Traj_TNG::ID_TrajFormat(CpptrajFile& fileIn) {
   if (fileIn.Read(&tngheader, 52) != 52) return false;
   fileIn.CloseFile();
   if (strncmp(tngheader+40, "GENERAL INFO", 12)==0) {
-    mprintf("DEBUG: TNG file.\n");
+    //mprintf("DEBUG: TNG file.\n");
     return true;
   }
 
@@ -57,7 +57,7 @@ void Traj_TNG::Info() {
 
 /** Close file. */
 void Traj_TNG::closeTraj() {
-  mprintf("DEBUG: Calling closeTrajin() isOpen_=%1i\n", (int)isOpen_);
+  //mprintf("DEBUG: Calling closeTrajin() isOpen_=%1i\n", (int)isOpen_);
   if (isOpen_) {
     tng_util_trajectory_close(&traj_);
   }
@@ -67,7 +67,7 @@ void Traj_TNG::closeTraj() {
 // -----------------------------------------------------------------------------
 /** Open trajectory for reading. */
 int Traj_TNG::openTrajin() {
-  mprintf("DEBUG: Calling openTrajin() isOpen_=%1i\n", (int)isOpen_);
+  //mprintf("DEBUG: Calling openTrajin() isOpen_=%1i\n", (int)isOpen_);
   if (isOpen_) 
     closeTraj();
   tng_function_status stat = tng_util_trajectory_open(filename_.full(), 'r', &traj_);
@@ -75,7 +75,7 @@ int Traj_TNG::openTrajin() {
     mprinterr("Error: Could not open TNG file '%s'\n", filename_.full());
     return TRAJIN_ERR;
   }
-  mprintf("DEBUG: Successfully opened TNG file.\n");
+  //mprintf("DEBUG: Successfully opened TNG file.\n");
   isOpen_ = true;
   current_frame_ = -1;
 
@@ -119,6 +119,7 @@ int Traj_TNG::getNextBlocks(int64_t &next_frame)
   return 0;
 }
 
+/** Convert TNG data type to string. */
 static inline const char* DtypeStr(char typeIn) {
   switch (typeIn) {
     case TNG_INT_DATA : return "integer";
@@ -129,6 +130,7 @@ static inline const char* DtypeStr(char typeIn) {
   return 0;
 }
 
+/** Convert TNG block ID to string. */
 static inline const char* BtypeStr(int64_t typeIn) {
   switch (typeIn) {
     case TNG_TRAJ_BOX_SHAPE : return "box";
@@ -142,12 +144,13 @@ static inline const char* BtypeStr(int64_t typeIn) {
     case TNG_TRAJ_OCCUPANCY : return "occupancy";
     case TNG_TRAJ_GENERAL_COMMENTS : return "general comments";
     case TNG_TRAJ_MASSES : return "masses";
+    case TNG_GMX_LAMBDA : return "gromacs lambda";
     default : return "unknown";
   }
   return 0;
 }
 
-
+/* Read next set of values from specified block. */
 int Traj_TNG::readValues(int64_t blockId, int64_t& next_frame, double& frameTime, char& datatype) {
   tng_function_status stat;
   int blockDependency;
@@ -206,7 +209,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
     return 1;
   }
   // Print number of frames
-  mprintf("\tTNG file has %li frames.\n", tngframes_);
+  mprintf("\tTNG file covers %li MD frames.\n", tngframes_);
 
   // Get number of frame sets
   tngsets_ = -1;
@@ -221,7 +224,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   double tpf = 0.0;
   if (tng_time_per_frame_get( traj_, &tpf) != TNG_SUCCESS)
     tpf = 0.0;
-  mprintf("\tTNG file time per frame: %g\n", tpf);
+  mprintf("\tTNG file time per frame: %g s\n", tpf);
 
   // Get the exponential distance scaling factor
   int64_t tngexp;
@@ -246,7 +249,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
       tngfac_ = pow(10.0, tngexp + 10); break;
   }
   // Print the scaling factor
-  mprintf("\tTNG distance scaling factor: %g\n", tngfac_);
+  mprintf("\tTNG distance scaling factor (to convert to Ang): x%g\n", tngfac_);
 
   // This will be used as temp space for reading in values from TNG
   if (values_ != 0) free( values_ ); 
@@ -275,7 +278,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   for (int64_t idx = 0; idx < next_nblocks_; idx++)
   {
     int64_t blockId = next_blockIDs_[idx];
-    mprintf("DEBUG: Block '%s' detected.\n", BtypeStr(blockId));
+    if (debug_ > 0) mprintf("DEBUG: Block '%s' detected.\n", BtypeStr(blockId));
     if ( blockId == TNG_TRAJ_BOX_SHAPE ) {
       // Try to determine the box type by reading first frame values.
       double frameTime;
@@ -291,7 +294,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
         return TRAJIN_ERR;
       }
       convertArray(boxShape.Dptr(), (float*)values_, 9);
-      boxShape.Print("boxShape");
+      if (debug_ > 0) boxShape.Print("First frame Unit Cell Matrix");
     } else if ( blockId == TNG_TRAJ_POSITIONS ) {
       hasPos = true;
     } else if ( blockId == TNG_TRAJ_VELOCITIES ) {
@@ -334,7 +337,7 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
     return 1;
   }
 
-  mprintf("DEBUG: Set %i next_frame %li nblocksnext %li\n", set+1, next_frame, next_nblocks_);
+  //mprintf("DEBUG: Set %i next_frame %li nblocksnext %li\n", set+1, next_frame, next_nblocks_);
 
   if (next_nblocks_ < 1) {
     mprinterr("Error: No data blocks in next frame (set %i, TNG frame %li)\n", set+1, next_frame);
@@ -355,7 +358,7 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
       mprintf("Warning: Skipping TNG block '%s'\n", BtypeStr(blockId));
       continue;
     }
-    mprintf("DEBUG: set %i frameTime %g block %s data %s\n", set+1, frameTime, BtypeStr(blockId), DtypeStr(datatype));
+    //mprintf("DEBUG: set %i frameTime %g block %s data %s\n", set+1, frameTime, BtypeStr(blockId), DtypeStr(datatype));
     // TODO: ok to only expect float data?
     if (datatype != TNG_FLOAT_DATA) {
       mprinterr("Error: TNG block '%s' data type is %s, expected float!\n", BtypeStr(blockId), DtypeStr(datatype));
@@ -366,15 +369,15 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
       Matrix_3x3 boxShape(0.0);
       convertArray(boxShape.Dptr(), (float*)values_, 9);
       frameIn.SetBox( Box(boxShape) );
-      mprintf("DEBUG: box set %i %g %g %g\n", set,
-              frameIn.BoxCrd().BoxX(),
-              frameIn.BoxCrd().BoxY(),
-              frameIn.BoxCrd().BoxZ());
+      //mprintf("DEBUG: box set %i %g %g %g\n", set,
+      //        frameIn.BoxCrd().BoxX(),
+      //        frameIn.BoxCrd().BoxY(),
+      //        frameIn.BoxCrd().BoxZ());
     // ----- Coords --------------------
     } else if ( blockId == TNG_TRAJ_POSITIONS ) {
       convertArray( frameIn.xAddress(), (float*)values_, tngatoms_*3 );
-      const double* tmpXYZ = frameIn.XYZ(0);
-      mprintf("DEBUG: positions set %i %g %g %g\n", set, tmpXYZ[0], tmpXYZ[1], tmpXYZ[2]);
+      //const double* tmpXYZ = frameIn.XYZ(0);
+      //mprintf("DEBUG: positions set %i %g %g %g\n", set, tmpXYZ[0], tmpXYZ[1], tmpXYZ[2]);
     } else if ( blockId == TNG_TRAJ_VELOCITIES ) {
       convertArray( frameIn.vAddress(), (float*)values_, tngatoms_*3 );
     } else if ( blockId == TNG_TRAJ_FORCES ) {
@@ -382,6 +385,7 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
     }
   } // END loop over blocks in next frame
   // TODO is it OK that frameTime is potentially set multiple times?
+  // Convert time to ps
   frameIn.SetTime( frameTime / Constants::PICO );
 
   // Update current frame number
