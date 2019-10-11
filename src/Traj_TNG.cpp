@@ -300,6 +300,10 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
               frameIn.BoxCrd().BoxX(),
               frameIn.BoxCrd().BoxY(),
               frameIn.BoxCrd().BoxZ());
+    } else if ( blockId == TNG_TRAJ_POSITIONS ) {
+      convertArray( frameIn.xAddress(), (float*)values, tngatoms_*3 );
+      const double* tmpXYZ = frameIn.XYZ(0);
+      mprintf("DEBUG: positions set %i %g %g %g\n", set, tmpXYZ[0], tmpXYZ[1], tmpXYZ[2]);
     }
 
   } // END loop over blocks in next frame
@@ -318,8 +322,6 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   }
   mprintf("DEBUG: positions set %i stride %li\n", set, stride);
   convertArray(frameIn.xAddress(), ftmp_, 3*tngatoms_);
-  const double* tmpXYZ = frameIn.XYZ(0);
-  mprintf("DEBUG: positions set %i %g %g %g\n", set, tmpXYZ[0], tmpXYZ[1], tmpXYZ[2]);
 
   // Read time
   double tngtime;
