@@ -304,12 +304,16 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   // Set up coordinate info. Box, coord, vel, force, time
   SetCoordInfo( CoordinateInfo( Box(boxShape), hasPos, hasVel, hasFrc, (tpf > 0.0) ) );
 
-  // Set up blocks
-/*  if (CoordInfo().HasBox())
+  // Set up blocks that are actually there.
+  blockIds_.clear();
+  if (CoordInfo().HasBox())
     blockIds_.push_back( TNG_TRAJ_BOX_SHAPE );
-  blockIds_.push_back( TNG_TRAJ_POSITIONS );
+  if (CoordInfo().HasCrd())
+    blockIds_.push_back( TNG_TRAJ_POSITIONS );
   if (CoordInfo().HasVel())
-    blockIds_.push_back( TNG_TRAJ_VELOCITIES );*/
+    blockIds_.push_back( TNG_TRAJ_VELOCITIES );
+  if (CoordInfo().HasForce())
+    blockIds_.push_back( TNG_TRAJ_FORCES );
 
   closeTraj();
   return (int)nframes;
