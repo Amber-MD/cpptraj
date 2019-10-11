@@ -377,7 +377,7 @@ TestProgram() {
   COMPILELINE="$comp $args -o testp $file $link"
   #echo "COMPILE: $COMPILELINE" #DEBUG
   $COMPILELINE > $COMPOUT 2> $COMPERR
-  if [ $? -ne 0 ] ; then
+  if [ $? -ne 0 -o ! -f 'testp' ] ; then
     if [ $silent -eq 0 ] ; then
       echo ""
       ErrMsg "Test compile failed: $COMPILELINE"
