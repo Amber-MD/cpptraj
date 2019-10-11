@@ -7,6 +7,7 @@
 #include "FileName.h"
 #include "Topology.h"
 #include "CpptrajFile.h"
+#include "Constants.h"
 
 /// CONSTRUCTOR
 Traj_TNG::Traj_TNG() :
@@ -135,6 +136,12 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   mprintf("\tTNG file has %li frame sets.\n", tngsets_);
   int nframes = (int)tngsets_; // Could overflow here
 
+  // Get the time per frame
+  double tpf = 0.0;
+  if (tng_time_per_frame_get( traj_, &tpf) != TNG_SUCCESS)
+    tpf = 0.0;
+  mprintf("\tTNG file time per frame: %g\n", tpf);
+
   // Get the exponential distance scaling factor
   int64_t tngexp;
   if (tng_distance_unit_exponential_get(traj_, &tngexp) != TNG_SUCCESS) {
@@ -196,8 +203,8 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   // NOTE: Use free here since thats what underlying TNG library does
   if (boxptr != 0) free( boxptr );
 
-  // Set up coordinate info
-  SetCoordInfo( CoordinateInfo( Box(boxShape), hasVel, false, false ) );
+  // Set up coordinate info. Box, coord, vel, force, time
+  SetCoordInfo( CoordinateInfo( Box(boxShape), true, hasVel, false, (tpf > 0.0) ) );
 
   // Set up blocks
   blockIds_.clear();
@@ -334,8 +341,10 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   } // END loop over blocks in next frame
   if (values != 0) free(values);
   if (block_ids_in_next_frame != 0) free(block_ids_in_next_frame);
+  // TODO is it OK that frameTime is potentially set multiple times?
+  frameIn.SetTime( frameTime / Constants::PICO );
 
-  // Update current frame
+  // Update current frame number
   current_frame_ = next_frame;
 /*    
   int64_t stride;

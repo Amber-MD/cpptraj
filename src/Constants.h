@@ -65,5 +65,7 @@ namespace Constants {
     * itself is derived from sqrt(1 / ((AMU_TO_KG * NA) / (1000 * CAL_TO_J))).
     */
   const double AMBERTIME_TO_PS = 20.455;
+  // Pico prefix
+  const double PICO = 1e-12;
 }
 #endif
