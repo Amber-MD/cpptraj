@@ -46,8 +46,9 @@ class Traj_TNG : public TrajectoryIO {
     tng_trajectory_t traj_; ///< The TNG trajectory file object
     float* ftmp_;           ///< Temporary array for reading in coordinates
     int64_t tngatoms_;      ///< Number of atoms in the TNG trajectory file.
-    int64_t tngframes_;     ///< Number of frames in the TNG trajectory file.
-    int64_t current_frame_; ///< The current frame.
+    int64_t tngframes_;     ///< Number of *MD sim( frames in the TNG trajectory file.
+    int64_t tngsets_;       ///< Number of actual frames in the TNG traectory file.
+    int64_t current_frame_; ///< The current frame (relative to MD sim, not the trajectory!)
     double tngfac_;         ///< Coordinates scaling factor
     bool isOpen_;           ///< Calling the TNG library close routine if file is not open is an error, so keep track ourselves.
     FileName filename_;     ///< File name, for openTrajin

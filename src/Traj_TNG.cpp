@@ -13,7 +13,8 @@ Traj_TNG::Traj_TNG() :
   ftmp_(0),
   tngatoms_(0),
   tngframes_(-1),
-  current_frame_(0),
+  tngsets_(-1),
+  current_frame_(-1),
   tngfac_(0),
   isOpen_(false)
 {}
@@ -124,7 +125,15 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   }
   // Print number of frames
   mprintf("\tTNG file has %li frames.\n", tngframes_);
-  int nframes = (int)tngframes_; // Could overflow here
+
+  // Get number of frame sets
+  tngsets_ = -1;
+  if (tng_num_frame_sets_get(traj_, &tngsets_) != TNG_SUCCESS) {
+    mprinterr("Error: could not get number of frame sets from TNG file.\n");
+    return 1;
+  }
+  mprintf("\tTNG file has %li frame sets.\n", tngsets_);
+  int nframes = (int)tngsets_; // Could overflow here
 
   // Get the exponential distance scaling factor
   int64_t tngexp;
