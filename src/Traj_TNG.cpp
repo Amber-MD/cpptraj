@@ -16,6 +16,8 @@ Traj_TNG::Traj_TNG() :
   tngframes_(-1),
   tngsets_(-1),
   current_frame_(-1),
+  next_nblocks_(-1),
+  next_blockIDs_(0),
   tngfac_(0),
   isOpen_(false)
 {}
@@ -24,6 +26,7 @@ Traj_TNG::Traj_TNG() :
 Traj_TNG::~Traj_TNG() {
   closeTraj();
   if (values_ != 0) free( values_ );
+  if (next_blockIDs_ != 0) free( next_blockIDs_ );
 }
 
 /** Identify trajectory format. File should be setup for READ.
@@ -96,7 +99,9 @@ void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals) const {
     out[i] = ((double)in[i]) * tngfac_;
 }
 
-/*int Traj_TNG::getNextBlocks(int64_t &next_frame)
+/** \return 1 if no more blocks, -1 on error, 0 if ok.
+  */
+int Traj_TNG::getNextBlocks(int64_t &next_frame)
 {
   tng_function_status stat = tng_util_trajectory_next_frame_present_data_blocks_find(
     traj_,
@@ -104,16 +109,73 @@ void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals) const {
     blockIds_.size(),
     &blockIds_[0],
     &next_frame,
-    &n_data_blocks_in_next_frame,
-    &block_ids_in_next_frame);
+    &next_nblocks_,
+    &next_blockIDs_);
   if (stat == TNG_CRITICAL) {
-    mprinterr("Error: could not get data blocks in next frame (set %i)\n", set+1);
+    return -1;
+  } else if (stat == TNG_FAILURE) {
     return 1;
   }
-  if (stat == TNG_FAILURE) {
-    mprintf("DEBUG: No more blocks.\n");
+  return 0;
+}
+
+static inline const char* DtypeStr(char typeIn) {
+  switch (typeIn) {
+    case TNG_INT_DATA : return "integer";
+    case TNG_FLOAT_DATA : return "float";
+    case TNG_DOUBLE_DATA : return "double";
+    default : return "unknown";
+  }
+  return 0;
+}
+
+static inline const char* BtypeStr(int64_t typeIn) {
+  switch (typeIn) {
+    case TNG_TRAJ_BOX_SHAPE : return "box";
+    case TNG_TRAJ_POSITIONS : return "positions";
+    case TNG_TRAJ_VELOCITIES : return "velocities";
+    case TNG_TRAJ_FORCES     : return "forces";
+    case TNG_TRAJ_PARTIAL_CHARGES : return "partial charges";
+    case TNG_TRAJ_FORMAL_CHARGES : return "formal charges";
+    case TNG_TRAJ_B_FACTORS : return "B factors";
+    case TNG_TRAJ_ANISOTROPIC_B_FACTORS : return "anisotropic B factors";
+    case TNG_TRAJ_OCCUPANCY : return "occupancy";
+    case TNG_TRAJ_GENERAL_COMMENTS : return "general comments";
+    case TNG_TRAJ_MASSES : return "masses";
+    default : return "unknown";
+  }
+  return 0;
+}
+
+
+int Traj_TNG::readValues(int64_t blockId, int64_t& next_frame, double& frameTime, char& datatype) {
+  tng_function_status stat;
+  int blockDependency;
+  tng_data_block_dependency_get(traj_, blockId, &blockDependency);
+  if (blockDependency & TNG_PARTICLE_DEPENDENT) {
+    stat = tng_util_particle_data_next_frame_read( traj_,
+                                                   blockId,
+                                                   &values_,
+                                                   &datatype,
+                                                   &next_frame,
+                                                   &frameTime );
+  } else {
+    stat = tng_util_non_particle_data_next_frame_read( traj_,
+                                                       blockId,
+                                                       &values_,
+                                                       &datatype,
+                                                       &next_frame,
+                                                       &frameTime );
+  }
+  if (stat == TNG_CRITICAL) {
+    mprinterr("Error: Could not read TNG block '%s'\n", BtypeStr(blockId));
+    return -1;
+  } else if (stat == TNG_FAILURE) {
+    mprintf("Warning: Skipping TNG block '%s'\n", BtypeStr(blockId));
     return 1;
-  }*/
+  }
+  return 0;
+}
 
 /** Set up trajectory for reading.
   * \return Number of frames in trajectory.
@@ -189,86 +251,68 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   // This will be used as temp space for reading in values from TNG
   if (values_ != 0) free( values_ ); 
   values_ = 0;
-
-  bool hasVel = false;
-  int64_t stride = 0;
-  tng_function_status stat;
-/*  // Check if there are velocities
-  tng_function_status stat = tng_util_vel_read_range(traj_, 0, 0, &ftmp_, &stride);
-  mprintf("DEBUG: Velocity stride: %li\n", stride);
-  if (stat == TNG_CRITICAL) {
-    mprinterr("Error: Major error encountered checking TNG velocities.\n");
-    return TRAJIN_ERR;
-  } else if (stat == TNG_SUCCESS) {
-    hasVel = true;
-  }*/
-
-  // Get box status
-  Matrix_3x3 boxShape(0.0);
-  float* boxptr = 0;
-  stat = tng_util_box_shape_read_range(traj_, 0, 0, &boxptr, &stride);
-  mprintf("DEBUG: Box Stride: %li\n", stride);
-  if (stat == TNG_CRITICAL) {
-    mprinterr("Error: Major error encountered checking TNG box.\n");
-    return TRAJIN_ERR;
-  } else if (stat == TNG_SUCCESS) {
-    convertArray(boxShape.Dptr(), boxptr, 9);
-    mprintf("\tBox shape:");
-    for (unsigned int i = 0; i < 9; i++)
-    {
-      mprintf(" %f", boxShape[i]);
-    }
-    mprintf("\n");
-  }
-  // NOTE: Use free here since thats what underlying TNG library does
-  if (boxptr != 0) free( boxptr );
-
-  // Set up coordinate info. Box, coord, vel, force, time
-  SetCoordInfo( CoordinateInfo( Box(boxShape), true, hasVel, false, (tpf > 0.0) ) );
+  if (next_blockIDs_ != 0) free( next_blockIDs_ );
+  next_blockIDs_ = 0;
 
   // Set up blocks
   blockIds_.clear();
-/*  if (CoordInfo().HasBox())
-    blockIds_.push_back( TNG_TRAJ_BOX_SHAPE );
-  blockIds_.push_back( TNG_TRAJ_POSITIONS );
-  if (CoordInfo().HasVel())
-    blockIds_.push_back( TNG_TRAJ_VELOCITIES );*/
   blockIds_.push_back( TNG_TRAJ_BOX_SHAPE );
   blockIds_.push_back( TNG_TRAJ_POSITIONS );
   blockIds_.push_back( TNG_TRAJ_VELOCITIES );
   blockIds_.push_back( TNG_TRAJ_FORCES );
   blockIds_.push_back( TNG_GMX_LAMBDA );
 
+  // Get block IDs in the first frame
+  int64_t next_frame;
+  if (getNextBlocks(next_frame) != 0) {
+    mprinterr("Error: Unable to read blocks from first frame of TNG.\n");
+    return TRAJIN_ERR;
+  }
+  bool hasVel = false;
+  bool hasFrc = false;
+  bool hasPos = false;
+  Matrix_3x3 boxShape(0.0);
+  for (int64_t idx = 0; idx < next_nblocks_; idx++)
+  {
+    int64_t blockId = next_blockIDs_[idx];
+    mprintf("DEBUG: Block '%s' detected.\n", BtypeStr(blockId));
+    if ( blockId == TNG_TRAJ_BOX_SHAPE ) {
+      // Try to determine the box type by reading first frame values.
+      double frameTime;
+      char datatype;
+      int err = readValues(blockId, next_frame, frameTime, datatype);
+      if (err == -1) {
+        mprinterr("Error: Critical error encountered reading block '%s'\n", BtypeStr(blockId));
+        return TRAJIN_ERR;
+      }
+      // TODO: ok to only expect float data?
+      if (datatype != TNG_FLOAT_DATA) {
+        mprinterr("Error: TNG block '%s' data type is %s, expected float!\n", BtypeStr(blockId), DtypeStr(datatype));
+        return TRAJIN_ERR;
+      }
+      convertArray(boxShape.Dptr(), (float*)values_, 9);
+      boxShape.Print("boxShape");
+    } else if ( blockId == TNG_TRAJ_POSITIONS ) {
+      hasPos = true;
+    } else if ( blockId == TNG_TRAJ_VELOCITIES ) {
+      hasVel = true; 
+    } else if ( blockId == TNG_TRAJ_FORCES ) {
+      hasFrc = true; 
+    }
+  } // END loop over blocks
+
+  // Set up coordinate info. Box, coord, vel, force, time
+  SetCoordInfo( CoordinateInfo( Box(boxShape), hasPos, hasVel, hasFrc, (tpf > 0.0) ) );
+
+  // Set up blocks
+/*  if (CoordInfo().HasBox())
+    blockIds_.push_back( TNG_TRAJ_BOX_SHAPE );
+  blockIds_.push_back( TNG_TRAJ_POSITIONS );
+  if (CoordInfo().HasVel())
+    blockIds_.push_back( TNG_TRAJ_VELOCITIES );*/
+
   closeTraj();
   return (int)nframes;
-}
-
-static inline const char* DtypeStr(char typeIn) {
-  switch (typeIn) {
-    case TNG_INT_DATA : return "integer";
-    case TNG_FLOAT_DATA : return "float";
-    case TNG_DOUBLE_DATA : return "double";
-    default : return "unknown";
-  }
-  return 0;
-}
-
-static inline const char* BtypeStr(int64_t typeIn) {
-  switch (typeIn) {
-    case TNG_TRAJ_BOX_SHAPE : return "box";
-    case TNG_TRAJ_POSITIONS : return "positions";
-    case TNG_TRAJ_VELOCITIES : return "velocities";
-    case TNG_TRAJ_FORCES     : return "forces";
-    case TNG_TRAJ_PARTIAL_CHARGES : return "partial charges";
-    case TNG_TRAJ_FORMAL_CHARGES : return "formal charges";
-    case TNG_TRAJ_B_FACTORS : return "B factors";
-    case TNG_TRAJ_ANISOTROPIC_B_FACTORS : return "anisotropic B factors";
-    case TNG_TRAJ_OCCUPANCY : return "occupancy";
-    case TNG_TRAJ_GENERAL_COMMENTS : return "general comments";
-    case TNG_TRAJ_MASSES : return "masses";
-    default : return "unknown";
-  }
-  return 0;
 }
 
 /** Read specified trajectory frame. */

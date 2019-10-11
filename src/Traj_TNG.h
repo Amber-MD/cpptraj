@@ -40,19 +40,23 @@ class Traj_TNG : public TrajectoryIO {
 #   endif
 
     void convertArray(double*, float*, unsigned int) const;
+    int getNextBlocks(int64_t&);
+    int readValues(int64_t, int64_t&, double&, char&);
 
     typedef std::vector<int64_t> Iarray;
 
-    tng_trajectory_t traj_; ///< The TNG trajectory file object
-    void* values_;          ///< Temporary array for reading in values from TNG
-    int64_t tngatoms_;      ///< Number of atoms in the TNG trajectory file.
-    int64_t tngframes_;     ///< Number of *MD sim( frames in the TNG trajectory file.
-    int64_t tngsets_;       ///< Number of actual frames in the TNG traectory file.
-    int64_t current_frame_; ///< The current frame (relative to MD sim, not the trajectory!)
-    double tngfac_;         ///< Coordinates scaling factor
-    bool isOpen_;           ///< Calling the TNG library close routine if file is not open is an error, so keep track ourselves.
-    FileName filename_;     ///< File name, for openTrajin
-    Iarray blockIds_;       ///< Currently active block IDs
+    tng_trajectory_t traj_;  ///< The TNG trajectory file object
+    void* values_;           ///< Temporary array for reading in values from TNG
+    int64_t tngatoms_;       ///< Number of atoms in the TNG trajectory file.
+    int64_t tngframes_;      ///< Number of *MD sim( frames in the TNG trajectory file.
+    int64_t tngsets_;        ///< Number of actual frames in the TNG traectory file.
+    int64_t current_frame_;  ///< The current frame (relative to MD sim, not the trajectory!)
+    int64_t next_nblocks_;   ///< The number of data blocks in the next frame
+    int64_t* next_blockIDs_; ///< Array containing block IDs in next frame
+    double tngfac_;          ///< Coordinates scaling factor
+    bool isOpen_;            ///< Calling the TNG library close routine if file is not open is an error, so keep track ourselves.
+    FileName filename_;      ///< File name, for openTrajin
+    Iarray blockIds_;        ///< Currently active block IDs
 };
 #endif /* NO_TNGFILE */
 #endif
