@@ -12,6 +12,7 @@
 Traj_TNG::Traj_TNG() :
   ftmp_(0),
   tngatoms_(0),
+  tngframes_(-1),
   current_frame_(0),
   tngfac_(0),
   isOpen_(false)
@@ -51,6 +52,7 @@ void Traj_TNG::Info() {
 
 /** Close file. */
 void Traj_TNG::closeTraj() {
+  mprintf("DEBUG: Calling closeTrajin() isOpen_=%1i\n", (int)isOpen_);
   if (isOpen_) {
     tng_util_trajectory_close(&traj_);
   }
@@ -60,6 +62,7 @@ void Traj_TNG::closeTraj() {
 // -----------------------------------------------------------------------------
 /** Open trajectory for reading. */
 int Traj_TNG::openTrajin() {
+  mprintf("DEBUG: Calling openTrajin() isOpen_=%1i\n", (int)isOpen_);
   if (isOpen_) 
     closeTraj();
   tng_function_status stat = tng_util_trajectory_open(filename_.full(), 'r', &traj_);
@@ -69,6 +72,42 @@ int Traj_TNG::openTrajin() {
   }
   isOpen_ = true;
   current_frame_ = 0;
+
+  // Get number of atoms
+  if (tng_num_particles_get(traj_, &tngatoms_) != TNG_SUCCESS) {
+    mprinterr("Error: Could not get number of particles from TNG file.\n");
+    return 1;
+  }
+
+  // Get number of frames
+  tngframes_ = -1;
+  if (tng_num_frames_get(traj_, &tngframes_) != TNG_SUCCESS) {
+    mprinterr("Error: Could not get number of frames from TNG file.\n");
+    return 1;
+  }
+
+  // Get the exponential distance scaling factor
+  int64_t tngexp;
+  if (tng_distance_unit_exponential_get(traj_, &tngexp) != TNG_SUCCESS) {
+    mprinterr("Error: Could not get distance scaling exponential from TNG.\n");
+    return 1;
+  }
+  mprintf("\tTNG exponential: %li\n", tngexp);
+  switch (tngexp) {
+    case -9  :
+      mprintf("\tTNG has units of nm\n");
+      // Input is in nm. Convert to Angstroms.
+      tngfac_ = 10.0;
+      break;
+    case -10 :
+      mprintf("\tTNG has units of Angstrom\n");
+      // Input is in Angstroms.
+      tngfac_ = 1.0;
+      break;
+    default :
+      // Convert to Angstroms.
+      tngfac_ = pow(10.0, tngexp + 10); break;
+  }
 
   return 0;
 }
@@ -96,10 +135,10 @@ void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals) const {
 int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   filename_ = fname;
-  openTrajin();
+  // Open the trajectory
+  if (openTrajin()) return TRAJIN_ERR;
 
-  // Get number of atoms
-  tng_num_particles_get(traj_, &tngatoms_);
+  // Check number of atoms
   if (tngatoms_ != (int64_t)trajParm->Natom()) {
     mprinterr("Error: Number of atoms in TNG file (%li) does not match number\n"
               "Error:  of atoms in associated topology (%i)\n",
@@ -107,38 +146,17 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
 
-  // Get number of frames
-  int64_t nframes;
-  tng_num_frames_get(traj_, &nframes);
-  mprintf("\tTNG file has %li frames.\n", nframes);
+  // Print number of frames
+  mprintf("\tTNG file has %li frames.\n", tngframes_);
+  int nframes = (int)tngframes_; // Could overflow here
 
-  // Get the exponential distance scaling factor
-  int64_t tngexp;
-  if (tng_distance_unit_exponential_get(traj_, &tngexp) != TNG_SUCCESS) {
-    mprinterr("Error: Could not get distance scaling exponential from TNG.\n");
-    return TRAJIN_ERR;
-  }
-  mprintf("\tTNG exponential: %li\n", tngexp);
-  switch (tngexp) {
-    case -9  :
-      mprintf("\tTNG has units of nm\n");
-      // Input is in nm. Convert to Angstroms.
-      tngfac_ = 10.0;
-      break;
-    case -10 :
-      mprintf("\tTNG has units of Angstrom\n");
-      // Input is in Angstroms.
-      tngfac_ = 1.0;
-      break;
-    default :
-      // Convert to Angstroms.
-      tngfac_ = pow(10.0, tngexp + 10); break;
-  }
+  // Print the scaling factor
   mprintf("\tTNG distance scaling factor: %g\n", tngfac_);
 
   // Allocate coords temp memory
   if (ftmp_ != 0) delete[] ftmp_;
   ftmp_ = new float[ 3*tngatoms_ ];
+
   // Check if there are velocities
   int64_t stride = 0;
   bool hasVel = false;
@@ -187,6 +205,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
 
 /** Read specified trajectory frame. */
 int Traj_TNG::readFrame(int set, Frame& frameIn) {
+/*
   // Determine next frame with data
   int64_t next_frame, n_data_blocks_in_next_frame, *block_ids_in_next_frame = 0;
   tng_function_status stat = tng_util_trajectory_next_frame_present_data_blocks_find(
@@ -206,28 +225,43 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
     return 1;
   }
   mprintf("DEBUG: Set %i next_frame %li nblocksnext %i\n", set, next_frame, n_data_blocks_in_next_frame);
+*/
     
-/*
   int64_t stride;
   // Read coordinates
-  if ( tng_util_pos_read_range(traj_, set, set, &ftmp_, &stride) != TNG_SUCCESS ) {
+  tng_function_status stat = tng_util_pos_read_range(traj_, set, set, &ftmp_, &stride);
+  
+  if ( stat != TNG_SUCCESS ) {
     mprinterr("Error: Could not read set %i for TNG file.\n", set+1);
     return 1;
   }
+  mprintf("DEBUG: positions set %i stride %li\n", set, stride);
   convertArray(frameIn.xAddress(), ftmp_, 3*tngatoms_);
+  const double* tmpXYZ = frameIn.XYZ(0);
+  mprintf("DEBUG: positions set %i %g %g %g\n", set, tmpXYZ[0], tmpXYZ[1], tmpXYZ[2]);
 
-  if (CoordInfo().HasBox()) {
+  // Read time
+  double tngtime;
+  if (tng_util_time_of_frame_get(traj_, set, &tngtime) == TNG_SUCCESS) {
+    mprintf("DEBUG: TNG time: %g\n", tngtime);
+  }
+
+/*  if (CoordInfo().HasBox()) {
     float* boxptr = 0;
     if (tng_util_box_shape_read_range(traj_, set, set, &boxptr, &stride) != TNG_SUCCESS) {
       mprinterr("Error: Could not read set %i box for TNG file.\n", set+1);
       return 1;
     }
+    mprintf("DEBUG: box set %i stride %li\n", set, stride);
     Matrix_3x3 boxShape(0.0);
     convertArray(boxShape.Dptr(), boxptr, 9);
     frameIn.SetBox( Box(boxShape) );
+    mprintf("DEBUG: box set %i %g %g %g\n", set,
+            frameIn.BoxCrd().BoxX(),
+            frameIn.BoxCrd().BoxY(),
+            frameIn.BoxCrd().BoxZ());
     free( boxptr );
-  }
-  */
+  }*/
   return 0;
 }
 
