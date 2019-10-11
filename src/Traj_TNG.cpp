@@ -70,44 +70,9 @@ int Traj_TNG::openTrajin() {
     mprinterr("Error: Could not open TNG file '%s'\n", filename_.full());
     return TRAJIN_ERR;
   }
+  mprintf("DEBUG: Successfully opened TNG file.\n");
   isOpen_ = true;
-  current_frame_ = 0;
-
-  // Get number of atoms
-  if (tng_num_particles_get(traj_, &tngatoms_) != TNG_SUCCESS) {
-    mprinterr("Error: Could not get number of particles from TNG file.\n");
-    return 1;
-  }
-
-  // Get number of frames
-  tngframes_ = -1;
-  if (tng_num_frames_get(traj_, &tngframes_) != TNG_SUCCESS) {
-    mprinterr("Error: Could not get number of frames from TNG file.\n");
-    return 1;
-  }
-
-  // Get the exponential distance scaling factor
-  int64_t tngexp;
-  if (tng_distance_unit_exponential_get(traj_, &tngexp) != TNG_SUCCESS) {
-    mprinterr("Error: Could not get distance scaling exponential from TNG.\n");
-    return 1;
-  }
-  mprintf("\tTNG exponential: %li\n", tngexp);
-  switch (tngexp) {
-    case -9  :
-      mprintf("\tTNG has units of nm\n");
-      // Input is in nm. Convert to Angstroms.
-      tngfac_ = 10.0;
-      break;
-    case -10 :
-      mprintf("\tTNG has units of Angstrom\n");
-      // Input is in Angstroms.
-      tngfac_ = 1.0;
-      break;
-    default :
-      // Convert to Angstroms.
-      tngfac_ = pow(10.0, tngexp + 10); break;
-  }
+  current_frame_ = -1;
 
   return 0;
 }
@@ -138,6 +103,11 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   // Open the trajectory
   if (openTrajin()) return TRAJIN_ERR;
 
+  // Get number of atoms
+  if (tng_num_particles_get(traj_, &tngatoms_) != TNG_SUCCESS) {
+    mprinterr("Error: Could not get number of particles from TNG file.\n");
+    return 1;
+  }
   // Check number of atoms
   if (tngatoms_ != (int64_t)trajParm->Natom()) {
     mprinterr("Error: Number of atoms in TNG file (%li) does not match number\n"
@@ -146,10 +116,38 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
 
+  // Get number of frames
+  tngframes_ = -1;
+  if (tng_num_frames_get(traj_, &tngframes_) != TNG_SUCCESS) {
+    mprinterr("Error: Could not get number of frames from TNG file.\n");
+    return 1;
+  }
   // Print number of frames
   mprintf("\tTNG file has %li frames.\n", tngframes_);
   int nframes = (int)tngframes_; // Could overflow here
 
+  // Get the exponential distance scaling factor
+  int64_t tngexp;
+  if (tng_distance_unit_exponential_get(traj_, &tngexp) != TNG_SUCCESS) {
+    mprinterr("Error: Could not get distance scaling exponential from TNG.\n");
+    return 1;
+  }
+  mprintf("\tTNG exponential: %li\n", tngexp);
+  switch (tngexp) {
+    case -9  :
+      mprintf("\tTNG has units of nm\n");
+      // Input is in nm. Convert to Angstroms.
+      tngfac_ = 10.0;
+      break;
+    case -10 :
+      mprintf("\tTNG has units of Angstrom\n");
+      // Input is in Angstroms.
+      tngfac_ = 1.0;
+      break;
+    default :
+      // Convert to Angstroms.
+      tngfac_ = pow(10.0, tngexp + 10); break;
+  }
   // Print the scaling factor
   mprintf("\tTNG distance scaling factor: %g\n", tngfac_);
 
@@ -189,23 +187,30 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   // NOTE: Use free here since thats what underlying TNG library does
   if (boxptr != 0) free( boxptr );
 
-  closeTraj();
-
+  // Set up coordinate info
   SetCoordInfo( CoordinateInfo( Box(boxShape), hasVel, false, false ) );
 
+  // Set up blocks
   blockIds_.clear();
-  if (CoordInfo().HasBox())
+/*  if (CoordInfo().HasBox())
     blockIds_.push_back( TNG_TRAJ_BOX_SHAPE );
   blockIds_.push_back( TNG_TRAJ_POSITIONS );
   if (CoordInfo().HasVel())
-    blockIds_.push_back( TNG_TRAJ_VELOCITIES );
+    blockIds_.push_back( TNG_TRAJ_VELOCITIES );*/
+  blockIds_.push_back( TNG_TRAJ_BOX_SHAPE );
+  blockIds_.push_back( TNG_TRAJ_POSITIONS );
+  blockIds_.push_back( TNG_TRAJ_VELOCITIES );
+  blockIds_.push_back( TNG_TRAJ_FORCES );
+  blockIds_.push_back( TNG_GMX_LAMBDA );
 
+  closeTraj();
   return (int)nframes;
 }
 
 /** Read specified trajectory frame. */
 int Traj_TNG::readFrame(int set, Frame& frameIn) {
-/*
+  int64_t numberOfAtoms = -1;
+  tng_num_particles_get(traj_, &numberOfAtoms);
   // Determine next frame with data
   int64_t next_frame, n_data_blocks_in_next_frame, *block_ids_in_next_frame = 0;
   tng_function_status stat = tng_util_trajectory_next_frame_present_data_blocks_find(
@@ -225,8 +230,9 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
     return 1;
   }
   mprintf("DEBUG: Set %i next_frame %li nblocksnext %i\n", set, next_frame, n_data_blocks_in_next_frame);
-*/
-    
+
+  current_frame_ = next_frame;
+/*    
   int64_t stride;
   // Read coordinates
   tng_function_status stat = tng_util_pos_read_range(traj_, set, set, &ftmp_, &stride);
@@ -245,7 +251,7 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   if (tng_util_time_of_frame_get(traj_, set, &tngtime) == TNG_SUCCESS) {
     mprintf("DEBUG: TNG time: %g\n", tngtime);
   }
-
+*/
 /*  if (CoordInfo().HasBox()) {
     float* boxptr = 0;
     if (tng_util_box_shape_read_range(traj_, set, set, &boxptr, &stride) != TNG_SUCCESS) {
