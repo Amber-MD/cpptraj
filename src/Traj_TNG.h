@@ -44,7 +44,7 @@ class Traj_TNG : public TrajectoryIO {
     typedef std::vector<int64_t> Iarray;
 
     tng_trajectory_t traj_; ///< The TNG trajectory file object
-    float* ftmp_;           ///< Temporary array for reading in coordinates
+    void* values_;          ///< Temporary array for reading in values from TNG
     int64_t tngatoms_;      ///< Number of atoms in the TNG trajectory file.
     int64_t tngframes_;     ///< Number of *MD sim( frames in the TNG trajectory file.
     int64_t tngsets_;       ///< Number of actual frames in the TNG traectory file.

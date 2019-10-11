@@ -11,7 +11,7 @@
 
 /// CONSTRUCTOR
 Traj_TNG::Traj_TNG() :
-  ftmp_(0),
+  values_(0),
   tngatoms_(0),
   tngframes_(-1),
   tngsets_(-1),
@@ -23,7 +23,7 @@ Traj_TNG::Traj_TNG() :
 /// DESTRUCTOR
 Traj_TNG::~Traj_TNG() {
   closeTraj();
-  if (ftmp_ != 0) delete[] ftmp_;
+  if (values_ != 0) free( values_ );
 }
 
 /** Identify trajectory format. File should be setup for READ.
@@ -96,6 +96,25 @@ void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals) const {
     out[i] = ((double)in[i]) * tngfac_;
 }
 
+/*int Traj_TNG::getNextBlocks(int64_t &next_frame)
+{
+  tng_function_status stat = tng_util_trajectory_next_frame_present_data_blocks_find(
+    traj_,
+    current_frame_,
+    blockIds_.size(),
+    &blockIds_[0],
+    &next_frame,
+    &n_data_blocks_in_next_frame,
+    &block_ids_in_next_frame);
+  if (stat == TNG_CRITICAL) {
+    mprinterr("Error: could not get data blocks in next frame (set %i)\n", set+1);
+    return 1;
+  }
+  if (stat == TNG_FAILURE) {
+    mprintf("DEBUG: No more blocks.\n");
+    return 1;
+  }*/
+
 /** Set up trajectory for reading.
   * \return Number of frames in trajectory.
   */
@@ -167,13 +186,14 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   // Print the scaling factor
   mprintf("\tTNG distance scaling factor: %g\n", tngfac_);
 
-  // Allocate coords temp memory
-  if (ftmp_ != 0) delete[] ftmp_;
-  ftmp_ = new float[ 3*tngatoms_ ];
+  // This will be used as temp space for reading in values from TNG
+  if (values_ != 0) free( values_ ); 
+  values_ = 0;
 
-  // Check if there are velocities
-  int64_t stride = 0;
   bool hasVel = false;
+  int64_t stride = 0;
+  tng_function_status stat;
+/*  // Check if there are velocities
   tng_function_status stat = tng_util_vel_read_range(traj_, 0, 0, &ftmp_, &stride);
   mprintf("DEBUG: Velocity stride: %li\n", stride);
   if (stat == TNG_CRITICAL) {
@@ -181,7 +201,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   } else if (stat == TNG_SUCCESS) {
     hasVel = true;
-  }
+  }*/
 
   // Get box status
   Matrix_3x3 boxShape(0.0);
@@ -283,7 +303,6 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   }
 
   // Process data blocks
-  void* values = 0;
   double frameTime;
   char datatype;
   for (int64_t idx = 0; idx < n_data_blocks_in_next_frame; idx++)
@@ -294,14 +313,14 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
     if (blockDependency & TNG_PARTICLE_DEPENDENT) {
       stat = tng_util_particle_data_next_frame_read( traj_,
                                                      blockId,
-                                                     &values,
+                                                     &values_,
                                                      &datatype,
                                                      &next_frame,
                                                      &frameTime );
     } else {
       stat = tng_util_non_particle_data_next_frame_read( traj_,
                                                          blockId,
-                                                         &values,
+                                                         &values_,
                                                          &datatype,
                                                          &next_frame,
                                                          &frameTime );
@@ -316,13 +335,12 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
     // TODO: ok to only expect float data?
     if (datatype != TNG_FLOAT_DATA) {
       mprinterr("Error: TNG block '%s' data type is %s, expected float!\n", BtypeStr(blockId), DtypeStr(datatype));
-      if (values != 0) free(values);
       return 1;
     }
     // ----- Box -----------------------
     if ( blockId == TNG_TRAJ_BOX_SHAPE ) { // TODO switch?
       Matrix_3x3 boxShape(0.0);
-      convertArray(boxShape.Dptr(), (float*)values, 9);
+      convertArray(boxShape.Dptr(), (float*)values_, 9);
       frameIn.SetBox( Box(boxShape) );
       mprintf("DEBUG: box set %i %g %g %g\n", set,
               frameIn.BoxCrd().BoxX(),
@@ -330,56 +348,22 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
               frameIn.BoxCrd().BoxZ());
     // ----- Coords --------------------
     } else if ( blockId == TNG_TRAJ_POSITIONS ) {
-      convertArray( frameIn.xAddress(), (float*)values, tngatoms_*3 );
+      convertArray( frameIn.xAddress(), (float*)values_, tngatoms_*3 );
       const double* tmpXYZ = frameIn.XYZ(0);
       mprintf("DEBUG: positions set %i %g %g %g\n", set, tmpXYZ[0], tmpXYZ[1], tmpXYZ[2]);
     } else if ( blockId == TNG_TRAJ_VELOCITIES ) {
-      convertArray( frameIn.vAddress(), (float*)values, tngatoms_*3 );
+      convertArray( frameIn.vAddress(), (float*)values_, tngatoms_*3 );
     } else if ( blockId == TNG_TRAJ_FORCES ) {
-      convertArray( frameIn.fAddress(), (float*)values, tngatoms_*3 );
+      convertArray( frameIn.fAddress(), (float*)values_, tngatoms_*3 );
     }
   } // END loop over blocks in next frame
-  if (values != 0) free(values);
   if (block_ids_in_next_frame != 0) free(block_ids_in_next_frame);
   // TODO is it OK that frameTime is potentially set multiple times?
   frameIn.SetTime( frameTime / Constants::PICO );
 
   // Update current frame number
   current_frame_ = next_frame;
-/*    
-  int64_t stride;
-  // Read coordinates
-  tng_function_status stat = tng_util_pos_read_range(traj_, set, set, &ftmp_, &stride);
-  
-  if ( stat != TNG_SUCCESS ) {
-    mprinterr("Error: Could not read set %i for TNG file.\n", set+1);
-    return 1;
-  }
-  mprintf("DEBUG: positions set %i stride %li\n", set, stride);
-  convertArray(frameIn.xAddress(), ftmp_, 3*tngatoms_);
 
-  // Read time
-  double tngtime;
-  if (tng_util_time_of_frame_get(traj_, set, &tngtime) == TNG_SUCCESS) {
-    mprintf("DEBUG: TNG time: %g\n", tngtime);
-  }
-*/
-/*  if (CoordInfo().HasBox()) {
-    float* boxptr = 0;
-    if (tng_util_box_shape_read_range(traj_, set, set, &boxptr, &stride) != TNG_SUCCESS) {
-      mprinterr("Error: Could not read set %i box for TNG file.\n", set+1);
-      return 1;
-    }
-    mprintf("DEBUG: box set %i stride %li\n", set, stride);
-    Matrix_3x3 boxShape(0.0);
-    convertArray(boxShape.Dptr(), boxptr, 9);
-    frameIn.SetBox( Box(boxShape) );
-    mprintf("DEBUG: box set %i %g %g %g\n", set,
-            frameIn.BoxCrd().BoxX(),
-            frameIn.BoxCrd().BoxY(),
-            frameIn.BoxCrd().BoxZ());
-    free( boxptr );
-  }*/
   return 0;
 }
 
