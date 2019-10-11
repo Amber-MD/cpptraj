@@ -240,6 +240,45 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   }
   mprintf("DEBUG: Set %i next_frame %li nblocksnext %i\n", set, next_frame, n_data_blocks_in_next_frame);
 
+  if (n_data_blocks_in_next_frame < 1) {
+    mprinterr("Error: No data blocks in next frame (set %i, TNG frame %li)\n", set+1, next_frame);
+    return 1;
+  }
+
+  // Process data blocks
+  void* values = 0;
+  double frameTime;
+  char datatype;
+  for (int64_t idx = 0; idx < n_data_blocks_in_next_frame; idx++)
+  {
+    int64_t blockId = block_ids_in_next_frame[idx];
+    int blockDependency;
+    tng_data_block_dependency_get(traj_, blockId, &blockDependency);
+    if (blockDependency & TNG_PARTICLE_DEPENDENT) {
+      stat = tng_util_particle_data_next_frame_read( traj_,
+                                                     blockId,
+                                                     &values,
+                                                     &datatype,
+                                                     &next_frame,
+                                                     &frameTime );
+    } else {
+      stat = tng_util_non_particle_data_next_frame_read( traj_,
+                                                         blockId,
+                                                         &values,
+                                                         &datatype,
+                                                         &next_frame,
+                                                         &frameTime );
+    }
+    if (stat == TNG_CRITICAL) {
+      mprinterr("Error: Could not read TNG block %li\n", blockId);
+    } else if (stat == TNG_FAILURE) {
+      mprintf("Warning: Skipping TNG block %li\n", blockId);
+      continue;
+    }
+  } // END loop over blocks in next frame
+  if (values != 0) free(values);
+
+  // Update current frame
   current_frame_ = next_frame;
 /*    
   int64_t stride;
