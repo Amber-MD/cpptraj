@@ -325,27 +325,18 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   //tng_num_particles_get(traj_, &numberOfAtoms); TODO could this change per frame?
   // Determine next frame with data
   int64_t next_frame;                   // Will get set to the next frame (MD) with data
-  int64_t n_data_blocks_in_next_frame;  // Will get set to # blocks in next frame
-  int64_t *block_ids_in_next_frame = 0; // Will hold blocks in next frame
-  tng_function_status stat = tng_util_trajectory_next_frame_present_data_blocks_find(
-    traj_,
-    current_frame_,
-    blockIds_.size(),
-    &blockIds_[0],
-    &next_frame,
-    &n_data_blocks_in_next_frame,
-    &block_ids_in_next_frame);
-  if (stat == TNG_CRITICAL) {
+  int err = getNextBlocks( next_frame );
+  if (err == -1) {
     mprinterr("Error: could not get data blocks in next frame (set %i)\n", set+1);
     return 1;
-  }
-  if (stat == TNG_FAILURE) {
-    mprintf("DEBUG: No more blocks.\n");
+  } else if (err != 0) {
+    mprintf("Warning: TNG set %i, no more blocks.\n", set+1);
     return 1;
   }
-  mprintf("DEBUG: Set %i next_frame %li nblocksnext %i\n", set+1, next_frame, n_data_blocks_in_next_frame);
 
-  if (n_data_blocks_in_next_frame < 1) {
+  mprintf("DEBUG: Set %i next_frame %li nblocksnext %li\n", set+1, next_frame, next_nblocks_);
+
+  if (next_nblocks_ < 1) {
     mprinterr("Error: No data blocks in next frame (set %i, TNG frame %li)\n", set+1, next_frame);
     return 1;
   }
@@ -353,29 +344,14 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   // Process data blocks
   double frameTime;
   char datatype;
-  for (int64_t idx = 0; idx < n_data_blocks_in_next_frame; idx++)
+  for (int64_t idx = 0; idx < next_nblocks_; idx++)
   {
-    int64_t blockId = block_ids_in_next_frame[idx];
-    int blockDependency;
-    tng_data_block_dependency_get(traj_, blockId, &blockDependency);
-    if (blockDependency & TNG_PARTICLE_DEPENDENT) {
-      stat = tng_util_particle_data_next_frame_read( traj_,
-                                                     blockId,
-                                                     &values_,
-                                                     &datatype,
-                                                     &next_frame,
-                                                     &frameTime );
-    } else {
-      stat = tng_util_non_particle_data_next_frame_read( traj_,
-                                                         blockId,
-                                                         &values_,
-                                                         &datatype,
-                                                         &next_frame,
-                                                         &frameTime );
-    }
-    if (stat == TNG_CRITICAL) {
+    int64_t blockId = next_blockIDs_[idx];
+    err = readValues( blockId, next_frame, frameTime, datatype );
+    if (err == -1)
+    {
       mprinterr("Error: Could not read TNG block '%s'\n", BtypeStr(blockId));
-    } else if (stat == TNG_FAILURE) {
+    } else if (err == 1) {
       mprintf("Warning: Skipping TNG block '%s'\n", BtypeStr(blockId));
       continue;
     }
@@ -405,7 +381,6 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
       convertArray( frameIn.fAddress(), (float*)values_, tngatoms_*3 );
     }
   } // END loop over blocks in next frame
-  if (block_ids_in_next_frame != 0) free(block_ids_in_next_frame);
   // TODO is it OK that frameTime is potentially set multiple times?
   frameIn.SetTime( frameTime / Constants::PICO );
 
