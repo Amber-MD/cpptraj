@@ -231,7 +231,9 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   int64_t numberOfAtoms = -1;
   tng_num_particles_get(traj_, &numberOfAtoms);
   // Determine next frame with data
-  int64_t next_frame, n_data_blocks_in_next_frame, *block_ids_in_next_frame = 0;
+  int64_t next_frame;                   // Will get set to the next frame (MD) with data
+  int64_t n_data_blocks_in_next_frame;  // Will get set to # blocks in next frame
+  int64_t *block_ids_in_next_frame = 0; // Will hold blocks in next frame
   tng_function_status stat = tng_util_trajectory_next_frame_present_data_blocks_find(
     traj_,
     current_frame_,
@@ -308,6 +310,7 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
 
   } // END loop over blocks in next frame
   if (values != 0) free(values);
+  if (block_ids_in_next_frame != 0) free(block_ids_in_next_frame);
 
   // Update current frame
   current_frame_ = next_frame;
