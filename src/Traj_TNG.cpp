@@ -216,6 +216,16 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   return (int)nframes;
 }
 
+static inline const char* DtypeStr(char typeIn) {
+  switch (typeIn) {
+    case TNG_INT_DATA : return "integer";
+    case TNG_FLOAT_DATA : return "float";
+    case TNG_DOUBLE_DATA : return "double";
+    default : return "unknown";
+  }
+  return 0;
+}
+
 /** Read specified trajectory frame. */
 int Traj_TNG::readFrame(int set, Frame& frameIn) {
   int64_t numberOfAtoms = -1;
@@ -238,7 +248,7 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
     mprintf("DEBUG: No more blocks.\n");
     return 1;
   }
-  mprintf("DEBUG: Set %i next_frame %li nblocksnext %i\n", set, next_frame, n_data_blocks_in_next_frame);
+  mprintf("DEBUG: Set %i next_frame %li nblocksnext %i\n", set+1, next_frame, n_data_blocks_in_next_frame);
 
   if (n_data_blocks_in_next_frame < 1) {
     mprinterr("Error: No data blocks in next frame (set %i, TNG frame %li)\n", set+1, next_frame);
@@ -275,6 +285,23 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
       mprintf("Warning: Skipping TNG block %li\n", blockId);
       continue;
     }
+    mprintf("DEBUG: set %i frameTime %g block %li data %s\n", set+1, frameTime, blockId, DtypeStr(datatype));
+    // TODO: ok to only expect float data?
+    if (datatype != TNG_FLOAT_DATA) {
+      mprinterr("Error: TNG block %li data type is %s, expected float!\n", blockId, DtypeStr(datatype));
+      if (values != 0) free(values);
+      return 1;
+    }
+    if ( blockId == TNG_TRAJ_BOX_SHAPE ) { // TODO switch?
+      Matrix_3x3 boxShape(0.0);
+      convertArray(boxShape.Dptr(), (float*)values, 9);
+      frameIn.SetBox( Box(boxShape) );
+      mprintf("DEBUG: box set %i %g %g %g\n", set,
+              frameIn.BoxCrd().BoxX(),
+              frameIn.BoxCrd().BoxY(),
+              frameIn.BoxCrd().BoxZ());
+    }
+
   } // END loop over blocks in next frame
   if (values != 0) free(values);
 
