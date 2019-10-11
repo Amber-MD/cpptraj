@@ -253,8 +253,8 @@ static inline const char* BtypeStr(int64_t typeIn) {
 
 /** Read specified trajectory frame. */
 int Traj_TNG::readFrame(int set, Frame& frameIn) {
-  int64_t numberOfAtoms = -1;
-  tng_num_particles_get(traj_, &numberOfAtoms);
+  //int64_t numberOfAtoms = -1;
+  //tng_num_particles_get(traj_, &numberOfAtoms); TODO could this change per frame?
   // Determine next frame with data
   int64_t next_frame;                   // Will get set to the next frame (MD) with data
   int64_t n_data_blocks_in_next_frame;  // Will get set to # blocks in next frame
