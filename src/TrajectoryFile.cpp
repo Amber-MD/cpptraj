@@ -27,13 +27,15 @@
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
-/** Static array containing traj allocators, optionally read/write help functions. */
+/** Static array containing traj allocators, optionally read/write help functions.
+  * MUST BE IN SYNC WITH TrajFormatType.
+  */
 const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # ifdef BINTRAJ
-  { "Amber NetCDF",       Traj_AmberNetcdf::ReadHelp, Traj_AmberNetcdf::WriteHelp, Traj_AmberNetcdf::Alloc    },
+  { "Amber NetCDF",       Traj_AmberNetcdf::ReadHelp, Traj_AmberNetcdf::WriteHelp, Traj_AmberNetcdf::Alloc    },       // 0 = AMBERNETCDF
   { "Amber NC Restart",   Traj_AmberRestartNC::ReadHelp, Traj_AmberRestartNC::WriteHelp, Traj_AmberRestartNC::Alloc },
 # else
-  { "Amber NetCDF",       0, 0, 0                          },
+  { "Amber NetCDF",       0, 0, 0                          }, // 0 = AMBERNETCDF
   { "Amber NC Restart",   0, 0, 0                          },
 # endif
 # if defined (ENABLE_SINGLE_ENSEMBLE) && defined (BINTRAJ)

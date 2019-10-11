@@ -22,10 +22,13 @@ class TrajectoryFile {
     static const FileTypes::KeyToken TF_WriteKeyArray[];
   public:
     /// Known trajectory formats.
+    /** MUST BE IN SYNC WITH TF_AllocArray[] */
     enum TrajFormatType {
-      AMBERNETCDF = 0, AMBERRESTARTNC, AMBERNCENSEMBLE, PDBFILE, MOL2FILE, CIF, CHARMMDCD, 
-      GMXTRX, GMXXTC, BINPOS, AMBERRESTART, GRO, TINKER, CHARMMCOR, CHARMMREST,AMBERTRAJ,
-      SQM, SDF, XYZ, CONFLIB,
+      AMBERNETCDF = 0, AMBERRESTARTNC, AMBERNCENSEMBLE, PDBFILE,   MOL2FILE,
+      CIF,             CHARMMDCD,      GMXTRX,          GMXXTC,    GMXTNG,
+      BINPOS,          AMBERRESTART,   GRO,             TINKER,    CHARMMCOR,
+      CHARMMREST,      AMBERTRAJ,      SQM,             SDF,       XYZ,
+      CONFLIB,
       UNKNOWN_TRAJ
     };
 
