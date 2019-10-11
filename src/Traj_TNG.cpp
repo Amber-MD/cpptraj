@@ -226,6 +226,24 @@ static inline const char* DtypeStr(char typeIn) {
   return 0;
 }
 
+static inline const char* BtypeStr(int64_t typeIn) {
+  switch (typeIn) {
+    case TNG_TRAJ_BOX_SHAPE : return "box";
+    case TNG_TRAJ_POSITIONS : return "positions";
+    case TNG_TRAJ_VELOCITIES : return "velocities";
+    case TNG_TRAJ_FORCES     : return "forces";
+    case TNG_TRAJ_PARTIAL_CHARGES : return "partial charges";
+    case TNG_TRAJ_FORMAL_CHARGES : return "formal charges";
+    case TNG_TRAJ_B_FACTORS : return "B factors";
+    case TNG_TRAJ_ANISOTROPIC_B_FACTORS : return "anisotropic B factors";
+    case TNG_TRAJ_OCCUPANCY : return "occupancy";
+    case TNG_TRAJ_GENERAL_COMMENTS : return "general comments";
+    case TNG_TRAJ_MASSES : return "masses";
+    default : return "unknown";
+  }
+  return 0;
+}
+
 /** Read specified trajectory frame. */
 int Traj_TNG::readFrame(int set, Frame& frameIn) {
   int64_t numberOfAtoms = -1;
@@ -282,18 +300,19 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
                                                          &frameTime );
     }
     if (stat == TNG_CRITICAL) {
-      mprinterr("Error: Could not read TNG block %li\n", blockId);
+      mprinterr("Error: Could not read TNG block '%s'\n", BtypeStr(blockId));
     } else if (stat == TNG_FAILURE) {
-      mprintf("Warning: Skipping TNG block %li\n", blockId);
+      mprintf("Warning: Skipping TNG block '%s'\n", BtypeStr(blockId));
       continue;
     }
-    mprintf("DEBUG: set %i frameTime %g block %li data %s\n", set+1, frameTime, blockId, DtypeStr(datatype));
+    mprintf("DEBUG: set %i frameTime %g block %s data %s\n", set+1, frameTime, BtypeStr(blockId), DtypeStr(datatype));
     // TODO: ok to only expect float data?
     if (datatype != TNG_FLOAT_DATA) {
-      mprinterr("Error: TNG block %li data type is %s, expected float!\n", blockId, DtypeStr(datatype));
+      mprinterr("Error: TNG block '%s' data type is %s, expected float!\n", BtypeStr(blockId), DtypeStr(datatype));
       if (values != 0) free(values);
       return 1;
     }
+    // ----- Box -----------------------
     if ( blockId == TNG_TRAJ_BOX_SHAPE ) { // TODO switch?
       Matrix_3x3 boxShape(0.0);
       convertArray(boxShape.Dptr(), (float*)values, 9);
@@ -302,12 +321,16 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
               frameIn.BoxCrd().BoxX(),
               frameIn.BoxCrd().BoxY(),
               frameIn.BoxCrd().BoxZ());
+    // ----- Coords --------------------
     } else if ( blockId == TNG_TRAJ_POSITIONS ) {
       convertArray( frameIn.xAddress(), (float*)values, tngatoms_*3 );
       const double* tmpXYZ = frameIn.XYZ(0);
       mprintf("DEBUG: positions set %i %g %g %g\n", set, tmpXYZ[0], tmpXYZ[1], tmpXYZ[2]);
+    } else if ( blockId == TNG_TRAJ_VELOCITIES ) {
+      convertArray( frameIn.vAddress(), (float*)values, tngatoms_*3 );
+    } else if ( blockId == TNG_TRAJ_FORCES ) {
+      convertArray( frameIn.fAddress(), (float*)values, tngatoms_*3 );
     }
-
   } // END loop over blocks in next frame
   if (values != 0) free(values);
   if (block_ids_in_next_frame != 0) free(block_ids_in_next_frame);
