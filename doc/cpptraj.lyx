@@ -17643,11 +17643,11 @@ atomicfluct
 
 \end_inset
 
- [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]
+ [<name>] [out <filename>] [<mask>] [byres | byatom | bymask]
 \end_layout
 
 \begin_layout LyX-Code
-            [calcadp [adpout <file>]]
+            [bfactor] [calcadp [adpout <file>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -17659,6 +17659,10 @@ atomicfluct
 \end_layout
 
 \begin_deeper
+\begin_layout Description
+<name> Output data set name.
+\end_layout
+
 \begin_layout Description
 out
 \begin_inset space ~
@@ -17720,6 +17724,18 @@ graphic B-factors.
 
 \begin_layout Description
 [<offset>] Frames to skip between calculations (default 1).
+\end_layout
+
+\begin_layout Standard
+DataSets created
+\end_layout
+
+\begin_layout Description
+<name> Hold atomic fluctuations.
+\end_layout
+
+\begin_layout Description
+<name>[ADP] Hold anisotropic displacement parameters if 'calcadp' specified.
 \end_layout
 
 \end_deeper
@@ -17796,6 +17812,7 @@ calcadp
 adpout
 \series default
  (or STDOUT if not specified) using PDB ANISOU record format.
+ The displacement factors will be saved to a data set.
  Note that 
 \series bold
 calcadp
