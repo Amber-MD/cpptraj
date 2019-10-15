@@ -13976,6 +13976,10 @@ Options for pdb format:
   [bfacscale] [occscale] [bfacmax <max>] [occmax <max>]
 \end_layout
 
+\begin_layout LyX-Code
+  [adpdata <set>]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 dumpq PQR format; write charges (in units of e-) and GB radii to occupancy
@@ -14110,6 +14114,14 @@ occmax
 \end_inset
 
 <max> Max value for occscale.
+\end_layout
+
+\begin_layout Description
+adpdata
+\begin_inset space ~
+\end_inset
+
+<set> Use data in <set> for anisotropic B-factors.
 \end_layout
 
 \end_deeper

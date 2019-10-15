@@ -8,14 +8,18 @@
   * hold time values at some point.
   */
 class DataSet_Tensor : public DataSet {
-    typedef SymmetricTensor<double> Ttype;
-    typedef std::vector<Ttype> Tarray;
-    typedef std::vector<double> Farray;
   public:
+    typedef SymmetricTensor<double> Ttype;
+
     /// CONSTRUCTOR
     DataSet_Tensor();
     /// Allocator
     static DataSet* Alloc() { return (DataSet*)new DataSet_Tensor(); }
+
+    /// \return Index at specified position
+    double Xvals(unsigned int idx) const { return Xvals_[idx]; }
+    /// \return Tensor at specified position
+    Ttype Tensor(unsigned int idx) const { return Data_[idx]; }
 
     // ----- DataSet functions -------------------
     size_t Size() const { return Data_.size(); }
@@ -30,6 +34,9 @@ class DataSet_Tensor : public DataSet {
     int Append(DataSet*);
     size_t MemUsageInBytes() const;
   private:
+    typedef std::vector<Ttype> Tarray;
+    typedef std::vector<double> Farray;
+
     Farray Xvals_; /// < Hold the index values
     Tarray Data_;  ///< Hold the tensor values
 };
