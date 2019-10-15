@@ -64,7 +64,7 @@ class PDBfile : public CpptrajFile {
     bool CoordOverflow() { bool stat = coordOverflow_; coordOverflow_ = false; return stat; }
     /// Write ANISOU record.
     void WriteANISOU(int, NameType const&, NameType const&, char, int,
-                     int, int, int, int, int, int, const char *, int);
+                     const double*, const char *, int);
     /// Write TITLE
     void WriteTITLE(std::string const&);
     /// Write CRYST1

@@ -465,9 +465,17 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
 // PDBfile::WriteANISOU()
 void PDBfile::WriteANISOU(int anum, NameType const& name, 
                           NameType const& resnameIn, char chain, int resnum,
-                          int u11, int u22, int u33, int u12, int u13, int u23,
+                          const double* anisou,
                           const char* Elt, int charge)
 { // TODO icode, altLoc
+  // Convert to integers
+  int u11 = (int)(anisou[0] * 10000);
+  int u22 = (int)(anisou[1] * 10000);
+  int u33 = (int)(anisou[2] * 10000);
+  int u12 = (int)(anisou[3] * 10000);
+  int u13 = (int)(anisou[4] * 10000);
+  int u23 = (int)(anisou[5] * 10000);
+
   WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' ', Elt);
   Printf(" %7i%7i%7i%7i%7i%7i      %2s%2i\n", u11, u22, u33, 
          u12, u13, u23, Elt, charge);

@@ -221,19 +221,12 @@ void Action_AtomicFluct::Print() {
         anisou[0] = SumCoords2_[i  ]; // u11
         anisou[1] = SumCoords2_[i+1]; // u22
         anisou[2] = SumCoords2_[i+2]; // u33
+        // Calculate covariance: <XY> - <X><Y> etc.
         anisou[3] = (Cross_[i  ] - SumCoords_[i  ] * SumCoords_[i+1]); // u12
         anisou[4] = (Cross_[i+1] - SumCoords_[i  ] * SumCoords_[i+2]); // u13
         anisou[5] = (Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]); // u23
         // Store as data; index by actual atom number
         adpset_->Add(atom+1, (const void*)&anisou);
-        // Convert to integers
-        int u11 = (int)(anisou[0] * 10000);
-        int u22 = (int)(anisou[1] * 10000);
-        int u33 = (int)(anisou[2] * 10000);
-        // Calculate covariance: <XY> - <X><Y> etc.
-        int u12 = (int)(anisou[3] * 10000);
-        int u13 = (int)(anisou[4] * 10000);
-        int u23 = (int)(anisou[5] * 10000);
         // Default to a blank chain ID
         char chainid;
         if (fluctParm_->Res(resnum).HasChainID())
@@ -244,7 +237,7 @@ void Action_AtomicFluct::Print() {
         adpout.WriteANISOU(
           atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
           chainid, fluctParm_->Res(resnum).OriginalResNum(),
-          u11, u22, u33, u12, u13, u23, (*fluctParm_)[atom].ElementName(), 0 );
+          anisou, (*fluctParm_)[atom].ElementName(), 0 );
       }
     }
   } else {
