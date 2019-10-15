@@ -74,10 +74,11 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
       mprinterr("Error: Could not allocate ADP dataset.\n");
       return Action::ERR;
     }
+    adpset_->ModifyDim(Dimension::X).SetLabel("Atom");
   }
 # ifdef MPI
   dataout_->SetNeedsSync( false ); // Not a time series
-  adpset_->SetNeedsSync( false );
+  if (adpset_ != 0) adpset_->SetNeedsSync( false );
   trajComm_ = init.TrajComm();
 # endif
   if (outfile != 0) 
