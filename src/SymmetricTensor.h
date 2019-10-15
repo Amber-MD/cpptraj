@@ -11,6 +11,15 @@ template <class T> class SymmetricTensor {
   public:
     /// CONSTRUCTOR
     SymmetricTensor() {}
+    /// CONSTRUCTOR - take pointer to array of size 6
+    SymmetricTensor(T const* p) {
+      U_[0] = p[0];
+      U_[1] = p[1];
+      U_[2] = p[2];
+      U_[3] = p[3];
+      U_[4] = p[4];
+      U_[5] = p[5];
+    }
 
     T const& U11() const { return U_[0]; }
     T const& U22() const { return U_[1]; }

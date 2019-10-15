@@ -3,8 +3,14 @@
 #include <vector>
 #include "SymmetricTensor.h"
 #include "DataSet.h"
-/// Hold an array of 3x3 symmetric tensor values.
+/// Hold an array of 3x3 symmetric tensor values. The array can be sparse.
+/** NOTE: We use a floating point type array for indices in case we want to
+  * hold time values at some point.
+  */
 class DataSet_Tensor : public DataSet {
+    typedef SymmetricTensor<double> Ttype;
+    typedef std::vector<Ttype> Tarray;
+    typedef std::vector<double> Farray;
   public:
     /// CONSTRUCTOR
     DataSet_Tensor();
@@ -20,12 +26,11 @@ class DataSet_Tensor : public DataSet {
     int Allocate(SizeArray const&);
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
+    double Coord(unsigned int, size_t) const;
     int Append(DataSet*);
     size_t MemUsageInBytes() const;
   private:
-    typedef SymmetricTensor<double> Ttype;
-    typedef std::vector<Ttype> Tarray;
-
-    Tarray Data_;
+    Farray Xvals_; /// < Hold the index values
+    Tarray Data_;  ///< Hold the tensor values
 };
 #endif
