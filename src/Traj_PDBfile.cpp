@@ -816,6 +816,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         // Does this internal atom number match current X value?
         DataSet_Tensor const& ADP = static_cast<DataSet_Tensor const&>( *adpdata_ );
         unsigned int currentIdx = (unsigned int)ADP.Xvals(adpidx);
+        //mprintf("DEBUG: currentIdx %u aidx+1=%i\n", currentIdx, aidx+1);
         if ( currentIdx == (unsigned int)(aidx + 1) ) {
           DataSet_Tensor::Ttype const& UM = ADP.Tensor(adpidx);
           file_.WriteANISOU( anum, atomName, resNames_[res], chainID_[res],
