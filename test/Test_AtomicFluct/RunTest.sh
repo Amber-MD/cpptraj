@@ -4,7 +4,7 @@
 
 CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat \
            fluct.2.pdb occ.2.pdb scale.2.pdb fluct.1.pdb \
-           dpdp.adp.pdb
+           dpdp.adp.pdb myfluct.adp.dat
 TESTNAME='Atomic fluctuations tests' 
 Requires netcdf
 
@@ -39,6 +39,7 @@ RunCpptraj "Atomicfluct test with ADP output"
 DoTest dpdp.fluct.dat.save dpdp.fluct.dat
 DoTest dpdp.adp.dat.save dpdp.adp.dat
 DoTest dpdp.adp.pdb.save dpdp.adp.pdb
+DoTest myfluct.adp.dat.save myfluct.adp.dat
 
 TOP=../tz2.parm7
 cat > $INPUT <<EOF
