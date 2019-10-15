@@ -14,7 +14,8 @@ Action_AtomicFluct::Action_AtomicFluct() :
   adpoutfile_(0),
   fluctParm_(0),
   outtype_(BYATOM),
-  dataout_(0)
+  dataout_(0),
+  adpset_(0)
 {}
 
 void Action_AtomicFluct::Help() const {
@@ -62,8 +63,17 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
   }
+  if (calc_adp_) {
+    MetaData md2(dataout_->Meta().Name(), "ADP");
+    adpset_ = init.DSL().AddSet( DataSet::TENSOR, md2 );
+    if (adpset_ == 0) {
+      mprinterr("Error: Could not allocate ADP dataset.\n");
+      return Action::ERR;
+    }
+  }
 # ifdef MPI
   dataout_->SetNeedsSync( false ); // Not a time series
+  adpset_->SetNeedsSync( false );
   trajComm_ = init.TrajComm();
 # endif
   if (outfile != 0) 
@@ -201,24 +211,30 @@ void Action_AtomicFluct::Print() {
         int idx = (i/3);
         int atom = Mask_[idx];
         int resnum = (*fluctParm_)[atom].ResNum();
-        int u11 = (int)(SumCoords2_[i  ] * 10000);
-        int u22 = (int)(SumCoords2_[i+1] * 10000);
-        int u33 = (int)(SumCoords2_[i+2] * 10000);
+        // Calculate the anisotropic factors;
+        double anisou[6];
+        anisou[0] = SumCoords2_[i  ]; // u11
+        anisou[1] = SumCoords2_[i+1]; // u22
+        anisou[2] = SumCoords2_[i+2]; // u33
+        anisou[3] = (Cross_[i  ] - SumCoords_[i  ] * SumCoords_[i+1]); // u12
+        anisou[4] = (Cross_[i+1] - SumCoords_[i  ] * SumCoords_[i+2]); // u13
+        anisou[5] = (Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]); // u23
+        // Store as data; index by actual atom number
+        adpset_->Add(atom+1, (const void*)&anisou);
+        // Convert to integers
+        int u11 = (int)(anisou[0] * 10000);
+        int u22 = (int)(anisou[1] * 10000);
+        int u33 = (int)(anisou[2] * 10000);
         // Calculate covariance: <XY> - <X><Y> etc.
-        int u12 = (int)((Cross_[i  ] - SumCoords_[i  ] * SumCoords_[i+1]) * 10000);
-        int u13 = (int)((Cross_[i+1] - SumCoords_[i  ] * SumCoords_[i+2]) * 10000);
-        int u23 = (int)((Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]) * 10000);
-        PdbAnisoU anisou(u11, u22, u33, u12, u13, u23);
-        if (fluctParm_->HasExtraAtomInfo())
-          fluctParm_->SetExtraAtomInfo(atom).SetAnisoU(anisou);
-        else
-          fluctParm_->AddExtraAtomInfo( AtomExtra(anisou) );
-        // To make PDB as compliant as possible, ensure there is a chain ID.
+        int u12 = (int)(anisou[3] * 10000);
+        int u13 = (int)(anisou[4] * 10000);
+        int u23 = (int)(anisou[5] * 10000);
+        // Default to a blank chain ID
         char chainid;
         if (fluctParm_->Res(resnum).HasChainID())
           chainid = fluctParm_->Res(resnum).ChainID();
         else
-          chainid = Residue::DefaultChainID();
+          chainid = Residue::BlankChainID();
         PDBfile& adpout = static_cast<PDBfile&>( *adpoutfile_ );
         adpout.WriteANISOU(
           atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
