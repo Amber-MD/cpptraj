@@ -51,8 +51,10 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
   std::string setname = actionArgs.GetStringNext();
   // Add output dataset
   MetaData md( setname, "", MetaData::NOT_TS );
+  bool setLegend = false;
   if (setname.empty()) {
     // Only overwrite legend if no name specified.
+    setLegend = true;
     if (bfactor_)
       md.SetLegend("B-factors");
     else
@@ -65,6 +67,8 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
   }
   if (calc_adp_) {
     MetaData md2(dataout_->Meta().Name(), "ADP");
+    if (setLegend)
+      md2.SetLegend("Aniso. B-factors");
     adpset_ = init.DSL().AddSet( DataSet::TENSOR, md2 );
     if (adpset_ == 0) {
       mprinterr("Error: Could not allocate ADP dataset.\n");
