@@ -51,7 +51,6 @@ class Topology {
     extra_iterator extraEnd()                    const { return extra_.end();   }
     inline const std::vector<AtomExtra>& Extra() const { return extra_;         }
     AtomExtra& SetExtraAtomInfo(int idx)               { return extra_[idx];    }
-    bool HasExtraAtomInfo()                      const { return !(extra_.empty()); }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
