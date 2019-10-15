@@ -812,7 +812,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, Bfac,
                        atom.ElementName(), 0, dumpq_);
-      if (adpdata_ != 0) {
+      if (adpdata_ != 0 && adpidx < adpdata_->Size()) {
         // Does this internal atom number match current X value?
         DataSet_Tensor const& ADP = static_cast<DataSet_Tensor const&>( *adpdata_ );
         unsigned int currentIdx = (unsigned int)ADP.Xvals(adpidx);
@@ -823,10 +823,6 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
                              pdbTop_->Res(res).OriginalResNum(),
                              UM.Ptr(), atom.ElementName(), 0 );
           adpidx++;
-          if (adpidx >= ADP.Size()) {
-            // No more ADP values.
-            adpdata_ = 0;
-          }
         }
       }
       if (conectMode_ != NO_CONECT)
