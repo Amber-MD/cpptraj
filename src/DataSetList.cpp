@@ -30,6 +30,7 @@
 #include "DataSet_PHREMD_Explicit.h"
 #include "DataSet_PHREMD_Implicit.h"
 #include "DataSet_Parameters.h"
+#include "DataSet_Tensor.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -76,6 +77,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::PH_EXPL       : ds = DataSet_PHREMD_Explicit::Alloc(); break;
     case DataSet::PH_IMPL       : ds = DataSet_PHREMD_Implicit::Alloc(); break;
     case DataSet::PARAMETERS    : ds = DataSet_Parameters::Alloc(); break;
+    case DataSet::TENSOR        : ds = DataSet_Tensor::Alloc(); break;
     // Sanity check
     default:
       mprinterr("Internal Error: No allocator for DataSet type '%s'\n",

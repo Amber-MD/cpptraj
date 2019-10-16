@@ -7,6 +7,7 @@
 #include "DistRoutines.h"
 #include "Constants.h"
 #include "DataSet_1D.h" // for bfacdata, occdata
+#include "DataSet_Tensor.h" // for adpdata
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
@@ -32,6 +33,7 @@ Traj_PDBfile::Traj_PDBfile() :
   chainchar_(Residue::BlankChainID()),
   bfacdata_(0),
   occdata_(0),
+  adpdata_(0),
   bfacmax_(99.99),
   occmax_(99.99)
 {}
@@ -204,6 +206,7 @@ void Traj_PDBfile::WriteHelp() {
           "\toccscale       : If specified scale values in occupancy column between 0 and <occmax>.\n"
           "\tbfacmax <max>  : Max value for bfacscale.\n"
           "\toccmax <max>   : Max value for occscale.\n"
+          "\tadpdata <set>  : Use data in <set> for anisotropic B-factors.\n"
   );
 }
 
@@ -285,6 +288,18 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   if (bfacscale_) bfacmax_ = argIn.getKeyDouble("bfacmax", 99.99);
   occscale_  = argIn.hasKey("occscale");
   if (occscale_) occmax_ = argIn.getKeyDouble("occmax", 99.99);
+  temp = argIn.GetStringKey("adpdata");
+  if (!temp.empty()) {
+    adpdata_ = DSLin.GetDataSet( temp );
+    if (adpdata_ == 0) {
+      mprinterr("Error: No data set selected for 'adpdata %s'\n", temp.c_str());
+      return 1;
+    }
+    if (adpdata_->Type() != DataSet::TENSOR) {
+      mprinterr("Error: Only TENSOR data can be used for 'adpdata'\n");
+      return 1;
+    }
+  }
 
   return 0;
 }
@@ -385,13 +400,20 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   // Set a chainID for each residue 
   // TODO: Set different chain ID for solute mols and solvent
   chainID_.clear();
+  // Default to a blank chain ID unless user requested PDB v3 compliance
+  char def_chainid;
+  if (pdbres_)
+    def_chainid = Residue::DefaultChainID();
+  else
+    def_chainid = ' ';
+   // If no chain ID specified, determine chain ID.
   if (chainchar_ == Residue::BlankChainID()) {
     chainID_.reserve( trajParm->Nres() );
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
-      if (dumpq_ || res->HasChainID())
+      if (res->HasChainID())
         chainID_.push_back( res->ChainID() );
       else
-        chainID_.push_back( Residue::DefaultChainID() );
+        chainID_.push_back( def_chainid);
   } else
     chainID_.resize(trajParm->Nres(), chainchar_);
         
@@ -742,6 +764,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   if (pdbWriteMode_==MODEL)
     file_.WriteMODEL(set + 1); 
 
+  unsigned int adpidx = 0; // Index into adpout_
   float Occ  = 1.0; 
   float Bfac = 0.0;
   char altLoc = ' ';
@@ -784,11 +807,25 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (pdbTop_->Res(res).Name() == "ILE" && atomName == "CD")
                  atomName = "CD1";
       }
+      // TODO determine formal charges?
       file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, Bfac,
                        atom.ElementName(), 0, dumpq_);
+      if (adpdata_ != 0 && adpidx < adpdata_->Size()) {
+        // Does this internal atom number match current X value?
+        DataSet_Tensor const& ADP = static_cast<DataSet_Tensor const&>( *adpdata_ );
+        unsigned int currentIdx = (unsigned int)ADP.Xvals(adpidx);
+        //mprintf("DEBUG: currentIdx %u aidx+1=%i\n", currentIdx, aidx+1);
+        if ( currentIdx == (unsigned int)(aidx + 1) ) {
+          DataSet_Tensor::Ttype const& UM = ADP.Tensor(adpidx);
+          file_.WriteANISOU( anum, atomName, resNames_[res], chainID_[res],
+                             pdbTop_->Res(res).OriginalResNum(),
+                             UM.Ptr(), atom.ElementName(), 0 );
+          adpidx++;
+        }
+      }
       if (conectMode_ != NO_CONECT)
         atrec_[aidx] = anum; // Store ATOM record #
     }

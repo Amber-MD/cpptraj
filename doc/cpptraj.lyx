@@ -13976,6 +13976,10 @@ Options for pdb format:
   [bfacscale] [occscale] [bfacmax <max>] [occmax <max>]
 \end_layout
 
+\begin_layout LyX-Code
+  [adpdata <set>]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 dumpq PQR format; write charges (in units of e-) and GB radii to occupancy
@@ -13992,6 +13996,8 @@ vdw PQR format; write charges and vdW radii to occupancy/B-factor columns.
 
 \begin_layout Description
 pdbres: Use PDB V3 residue names.
+ Will write a default chain ID ('Z') for each residue if the corresponding
+ topology does not have chain ID information.
 \end_layout
 
 \begin_layout Description
@@ -14000,6 +14006,7 @@ pdbatom: Use PDB V3 atom names.
 
 \begin_layout Description
 pdbv3: Use PDB V3 residue/atom names.
+ Same as specifying 'pdbres' and 'pdbatom'.
 \end_layout
 
 \begin_layout Description
@@ -14112,13 +14119,32 @@ occmax
 <max> Max value for occscale.
 \end_layout
 
-\end_deeper
-\begin_layout Standard
-Note that if the input topology does not contain chain IDs, a default chain
- ID of 'Z' will be used if no other chain ID option is specified in order
- to remain consistent with the PDB standard.
+\begin_layout Description
+adpdata
+\begin_inset space ~
+\end_inset
+
+<set> Use data in <set> (e.g.
+ from the 
+\series bold
+\emph on
+atomicfluct
+\series default
+\emph default
+ command, 
+\begin_inset CommandInset ref
+LatexCommand vpageref
+reference "subsec:cpptraj_atomicfluct"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) for anisotropic B-factors.
 \end_layout
 
+\end_deeper
 \begin_layout Subsubsection
 
 \shape italic
@@ -17643,11 +17669,11 @@ atomicfluct
 
 \end_inset
 
- [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]
+ [<name>] [out <filename>] [<mask>] [byres | byatom | bymask]
 \end_layout
 
 \begin_layout LyX-Code
-            [calcadp [adpout <file>]]
+            [bfactor] [calcadp [adpout <file>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -17659,6 +17685,10 @@ atomicfluct
 \end_layout
 
 \begin_deeper
+\begin_layout Description
+<name> Output data set name.
+\end_layout
+
 \begin_layout Description
 out
 \begin_inset space ~
@@ -17720,6 +17750,18 @@ graphic B-factors.
 
 \begin_layout Description
 [<offset>] Frames to skip between calculations (default 1).
+\end_layout
+
+\begin_layout Standard
+DataSets created
+\end_layout
+
+\begin_layout Description
+<name> Hold atomic fluctuations.
+\end_layout
+
+\begin_layout Description
+<name>[ADP] Hold anisotropic displacement parameters if 'calcadp' specified.
 \end_layout
 
 \end_deeper
@@ -17796,6 +17838,7 @@ calcadp
 adpout
 \series default
  (or STDOUT if not specified) using PDB ANISOU record format.
+ The displacement factors will be saved to a data set.
  Note that 
 \series bold
 calcadp
@@ -17860,6 +17903,39 @@ To write the RMSF or atomic positional fluctuations of the same atoms, use
 
 \begin_layout LyX-Code
 atomicfluct out backbone-atoms.agr @C,CA,N
+\end_layout
+
+\begin_layout Standard
+To write a PDB of averaged coordinates (after fitting to the first frame)
+ with both B-factors and anisotropic temperature factors:
+\end_layout
+
+\begin_layout LyX-Code
+parm myparm.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin mytraj.nc
+\end_layout
+
+\begin_layout LyX-Code
+rms first
+\end_layout
+
+\begin_layout LyX-Code
+average crdset MyAvg
+\end_layout
+
+\begin_layout LyX-Code
+atomicfluct MyFluct calcadp
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+crdout MyAvg mypdb.pdb adpdata MyFluct[ADP] bfacdata MyFluct
 \end_layout
 
 \begin_layout Subsection

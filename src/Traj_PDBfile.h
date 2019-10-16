@@ -88,6 +88,7 @@ class Traj_PDBfile: public TrajectoryIO {
     char chainchar_;
     DataSet* bfacdata_;
     DataSet* occdata_;
+    DataSet* adpdata_; ///< Hold anisotropic B-factor data for writing.
     double bfacmax_;
     double occmax_;
 };
