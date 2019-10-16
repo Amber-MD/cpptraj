@@ -14121,7 +14121,24 @@ adpdata
 \begin_inset space ~
 \end_inset
 
-<set> Use data in <set> for anisotropic B-factors.
+<set> Use data in <set> (e.g.
+ from the 
+\series bold
+\emph on
+atomicfluct
+\series default
+\emph default
+ command, 
+\begin_inset CommandInset ref
+LatexCommand vpageref
+reference "subsec:cpptraj_atomicfluct"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) for anisotropic B-factors.
 \end_layout
 
 \end_deeper
@@ -17889,6 +17906,39 @@ To write the RMSF or atomic positional fluctuations of the same atoms, use
 
 \begin_layout LyX-Code
 atomicfluct out backbone-atoms.agr @C,CA,N
+\end_layout
+
+\begin_layout Standard
+To write a PDB of averaged coordinates (after fitting to the first frame)
+ with both B-factors and anisotropic temperature factors:
+\end_layout
+
+\begin_layout LyX-Code
+parm myparm.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin mytraj.nc
+\end_layout
+
+\begin_layout LyX-Code
+rms first
+\end_layout
+
+\begin_layout LyX-Code
+average crdset MyAvg
+\end_layout
+
+\begin_layout LyX-Code
+atomicfluct MyFluct calcadp
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+crdout MyAvg mypdb.pdb adpdata MyFluct[ADP] bfacdata MyFluct
 \end_layout
 
 \begin_layout Subsection
