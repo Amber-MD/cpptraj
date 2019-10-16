@@ -33,7 +33,7 @@ atomicfluct MyFluct out dpdp.fluct.dat adpout dpdp.adp.dat
 average crdset MyAvg
 run
 writedata myfluct.adp.dat MyFluct[ADP]
-crdout MyAvg dpdp.adp.pdb adpdata MyFluct[ADP]
+crdout MyAvg dpdp.adp.pdb adpdata MyFluct[ADP] bfacdata MyFluct
 EOF
 RunCpptraj "Atomicfluct test with ADP output"
 DoTest dpdp.fluct.dat.save dpdp.fluct.dat
