@@ -13996,6 +13996,8 @@ vdw PQR format; write charges and vdW radii to occupancy/B-factor columns.
 
 \begin_layout Description
 pdbres: Use PDB V3 residue names.
+ Will write a default chain ID ('Z') for each residue if the corresponding
+ topology does not have chain ID information.
 \end_layout
 
 \begin_layout Description
@@ -14004,6 +14006,7 @@ pdbatom: Use PDB V3 atom names.
 
 \begin_layout Description
 pdbv3: Use PDB V3 residue/atom names.
+ Same as specifying 'pdbres' and 'pdbatom'.
 \end_layout
 
 \begin_layout Description
@@ -14142,12 +14145,6 @@ noprefix "false"
 \end_layout
 
 \end_deeper
-\begin_layout Standard
-Note that if the input topology does not contain chain IDs, a default chain
- ID of 'Z' will be used if no other chain ID option is specified in order
- to remain consistent with the PDB standard.
-\end_layout
-
 \begin_layout Subsubsection
 
 \shape italic
