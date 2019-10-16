@@ -807,6 +807,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (pdbTop_->Res(res).Name() == "ILE" && atomName == "CD")
                  atomName = "CD1";
       }
+      // TODO determine formal charges?
       file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),

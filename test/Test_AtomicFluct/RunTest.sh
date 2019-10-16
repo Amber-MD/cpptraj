@@ -4,8 +4,7 @@
 
 CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat \
            fluct.2.pdb occ.2.pdb scale.2.pdb fluct.1.pdb \
-           dpdp.adp.pdb myfluct.adp.dat heavy.fluct.dat \
-           heavy.adp.dat heavy.adp.pdb
+           dpdp.adp.pdb myfluct.adp.dat heavy.adp.pdb
 TESTNAME='Atomic fluctuations tests' 
 Requires netcdf
 
@@ -31,7 +30,7 @@ cat > $INPUT <<EOF
 trajin ../DPDP.nc
 rms first mass
 atomicfluct MyFluct out dpdp.fluct.dat adpout dpdp.adp.dat
-atomicfluct Heavy out heavy.fluct.dat adpout heavy.adp.dat :2-21&!@/H
+atomicfluct Heavy calcadp :2-21&!@/H
 average crdset MyAvg
 run
 writedata myfluct.adp.dat MyFluct[ADP]
@@ -43,8 +42,6 @@ DoTest dpdp.fluct.dat.save dpdp.fluct.dat
 DoTest dpdp.adp.dat.save dpdp.adp.dat
 DoTest dpdp.adp.pdb.save dpdp.adp.pdb
 DoTest myfluct.adp.dat.save myfluct.adp.dat
-DoTest heavy.fluct.dat.save heavy.fluct.dat
-DoTest heavy.adp.dat.save heavy.adp.dat
 DoTest heavy.adp.pdb.save heavy.adp.pdb
 
 TOP=../tz2.parm7
