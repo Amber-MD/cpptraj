@@ -76,12 +76,14 @@ int Traj_GmxDump::readForce(int set, Frame& frameIn) {
 // -----------------------------------------------------------------------------
 /** Write help. */
 void Traj_GmxDump::WriteHelp() {
-  mprintf("\tlongformat : If specified, use output format with increased width/precision.\n");
+  mprintf("\tlongformat : If specified, use output format with increased width/precision.\n"
+          "\ttngformat  : If specified, output as if original trajectory was TNG.\n");
 }
 
 /** Process write arguments. */
 int Traj_GmxDump::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   longFormat_ = argIn.hasKey("longformat");
+  tngfmt_ = argIn.hasKey("tngformat");
   return 0;
 }
 
@@ -154,8 +156,13 @@ int Traj_GmxDump::writeFrame(int set, Frame const& frameOut) {
     // TNG format
     if (CoordInfo().HasCrd())
       writeVectorArray( frameOut.xAddress(), "POSITIONS", 3, 6, natoms_, 3, Constants::ANG_TO_NM );
-    
-    
+    if (CoordInfo().HasVel())
+      writeVectorArray( frameOut.vAddress(), "VELOCITIES", 0, 3, natoms_, 3, Constants::AMBER_VEL_TO_GMX );
+    if (CoordInfo().HasBox()) {
+      Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
+      // Already scaled by UnitCell()
+      writeVectorArray( Ucell.Dptr(), "BOX SHAPE", 0, 3, 1, 9, 1.0);
+    }
   } else {
     // Generic TRR format
     if (CoordInfo().HasBox()) {
