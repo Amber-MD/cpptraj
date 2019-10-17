@@ -36,11 +36,13 @@ class Traj_GmxDump : public TrajectoryIO {
     // -------------------------------------------
 #   endif
 
-    void writeVectorArray(const double*, const char*, int, int, double);
+    void indent(int);
+    void writeVectorArray(const double*, const char*, int, int, int, int, double);
 
     CpptrajFile file_;
     int natoms_; ///< Number of atoms in file
     const char* outfmt_; ///< Hold output write format
     bool longFormat_;    ///< If true use the longer format
+    bool tngfmt_;        ///< If true use TNG style output format
 };
 #endif

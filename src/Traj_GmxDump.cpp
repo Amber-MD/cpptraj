@@ -8,7 +8,8 @@
 Traj_GmxDump::Traj_GmxDump() :
   natoms_(0),
   outfmt_(0),
-  longFormat_(false)
+  longFormat_(false),
+  tngfmt_(false)
 {}
 
 /** Identify trajectory format. File should be setup for READ */
@@ -115,15 +116,21 @@ int Traj_GmxDump::setupTrajout(FileName const& fname, Topology* trajParm,
   return 0;
 }
 
-void Traj_GmxDump::writeVectorArray(const double* array, const char* title, int Nlines, int Ncols, double scale)
+void Traj_GmxDump::indent(int i) {
+  if (i > 0) file_.Printf("%*s", i, "");
+}
+
+void Traj_GmxDump::writeVectorArray(const double* array, const char* title, int tindent, int bindent, int Nlines, int Ncols, double scale)
 {
   // Print title, indent 3.
-  file_.Printf("   %s (%dx%d):\n", title, Nlines, Ncols);
+  indent(tindent);
+  file_.Printf("%s (%dx%d):\n", title, Nlines, Ncols);
   // Print each line, indent of 6
   int idx = 0;
   for (int line = 0; line != Nlines; line++)
   {
-    file_.Printf("      %s[%5d]={", title, line);
+    indent(bindent);
+    file_.Printf("%s[%5d]={", title, line);
     for (int col = 0; col != Ncols; col++)
     {
       if (col != 0) file_.Printf(", ");
@@ -138,19 +145,31 @@ int Traj_GmxDump::writeFrame(int set, Frame const& frameOut) {
   // Write file name and frame (starts from 0). No indent.
   file_.Printf("%s frame %d:\n", Title().c_str(), set);
   // Write number of atoms, step, time, lambda. Indent of 3.
-  file_.Printf("   natoms=%10d  step=%10i  time=%12.7e  lambda=%10g\n",
-               natoms_, 0, frameOut.Time(), 0);
-  if (CoordInfo().HasBox()) {
-    Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
-    // Already scaled by UnitCell()
-    writeVectorArray( Ucell.Dptr(), "box", 3, 3, 1.0);
+  indent(3);
+  const double lambda = 0;
+  const int step = 0;
+  file_.Printf("natoms=%10d  step=%10i  time=%12.7e  lambda=%10g\n",
+               natoms_, step, frameOut.Time(), lambda);
+  if (tngfmt_) {
+    // TNG format
+    if (CoordInfo().HasCrd())
+      writeVectorArray( frameOut.xAddress(), "POSITIONS", 3, 6, natoms_, 3, Constants::ANG_TO_NM );
+    
+    
+  } else {
+    // Generic TRR format
+    if (CoordInfo().HasBox()) {
+      Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
+      // Already scaled by UnitCell()
+      writeVectorArray( Ucell.Dptr(), "box", 3, 6, 3, 3, 1.0);
+    }
+    if (CoordInfo().HasCrd())
+      writeVectorArray( frameOut.xAddress(), "x", 3, 6, natoms_, 3, Constants::ANG_TO_NM );
+    if (CoordInfo().HasVel())
+      writeVectorArray( frameOut.vAddress(), "v", 3, 6, natoms_, 3, Constants::AMBER_VEL_TO_GMX );
+    if (CoordInfo().HasForce())
+      writeVectorArray( frameOut.fAddress(), "f", 3, 6, natoms_, 3, Constants::AMBER_FRC_TO_GMX );
   }
-  if (CoordInfo().HasCrd())
-    writeVectorArray( frameOut.xAddress(), "x", natoms_, 3, Constants::ANG_TO_NM );
-  if (CoordInfo().HasVel())
-    writeVectorArray( frameOut.vAddress(), "v", natoms_, 3, Constants::AMBER_VEL_TO_GMX );
-  if (CoordInfo().HasForce())
-    writeVectorArray( frameOut.fAddress(), "f", natoms_, 3, Constants::AMBER_FRC_TO_GMX );
 
   return 0;
 }
