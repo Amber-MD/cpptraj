@@ -90,6 +90,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { CHARMMDCD,      "charmm",    ".dcd"     },
   { GMXTRX,         "trr",       ".trr"     },
   { GMXXTC,         "xtc",       ".xtc"     },
+  { GMXTNG,         "tng",       ".tng"     },
   { BINPOS,         "binpos",    ".binpos"  },
   { AMBERRESTART,   "restart",   ".rst7"    },
   { AMBERRESTART,   "restrt",    ".rst7"    },
