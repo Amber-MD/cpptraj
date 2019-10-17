@@ -345,6 +345,7 @@ test.topinfo:
 test.gromacs:
 	@-cd Test_GromacsTrr && ./RunTest.sh $(OPT)
 	@-cd Test_GromacsXtc && ./RunTest.sh $(OPT)
+	@-cd Test_GromacsTNG && ./RunTest.sh $(OPT)
 
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
