@@ -351,6 +351,7 @@ COMMON_SOURCES= \
         Traj_CharmmRestart.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
+        Traj_GmxDump.cpp \
         Traj_GmxTrX.cpp \
         Traj_GmxXtc.cpp \
         Traj_Gro.cpp \
