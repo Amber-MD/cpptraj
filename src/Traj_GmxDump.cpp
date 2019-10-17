@@ -91,6 +91,13 @@ int Traj_GmxDump::setupTrajout(FileName const& fname, Topology* trajParm,
 {
   SetCoordInfo( cInfoIn );
 
+  // Set up title. Default to filename.
+  std::string title = Title();
+  if (title.empty()) {
+    title.assign( fname.Full() );
+    SetTitle( title );
+  }
+
   if (append) {
     // Appending.
     if (file_.SetupAppend( fname, debug_ )) return 1;
@@ -105,7 +112,7 @@ int Traj_GmxDump::setupTrajout(FileName const& fname, Topology* trajParm,
     outfmt_ = "%15.8e";
   else
     outfmt_ = "%12.5e";
-  return 1;
+  return 0;
 }
 
 void Traj_GmxDump::writeVectorArray(const double* array, const char* title, int Nlines, int Ncols)
@@ -129,7 +136,7 @@ void Traj_GmxDump::writeVectorArray(const double* array, const char* title, int 
 /** Write specified trajectory frame. */
 int Traj_GmxDump::writeFrame(int set, Frame const& frameOut) {
   // Write file name and frame (starts from 0). No indent.
-  file_.Printf("%s frame %d", file_.Filename().full(), set);
+  file_.Printf("%s frame %d:\n", Title().c_str(), set);
   // Write number of atoms, step, time, lambda. Indent of 4.
   file_.Printf("    natoms=%10d  step=%10i  time=%12.7e  lambda=%10g\n",
                natoms_, 0, frameOut.Time(), 0);
