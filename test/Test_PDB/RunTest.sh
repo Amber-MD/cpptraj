@@ -35,7 +35,7 @@ trajout tz2.pqr.gb.pdb dumpq    # GB radii
 trajout tz2.pqr.parse.pdb parse # PARSE radii
 trajout tz2.pqr.vdw.pdb dumpr*  # VDW radii
 # Test default chain ID write
-trajout tz2.plain.pdb
+trajout tz2.plain.pdb pdbres
 EOF
   RunCpptraj "$UNITNAME"
   DoTest tz2.pqr.gb.pdb.save tz2.pqr.gb.pdb

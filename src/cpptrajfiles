@@ -223,6 +223,7 @@ COMMON_SOURCES= \
         DataSet_integer_disk.cpp \
         DataSet_integer_mem.cpp \
         DataSet_string.cpp \
+        DataSet_Tensor.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
         DistRoutines.cpp \
