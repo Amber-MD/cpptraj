@@ -36,7 +36,7 @@ class Traj_GmxDump : public TrajectoryIO {
     // -------------------------------------------
 #   endif
 
-    void writeVectorArray(const double*, const char*, int, int);
+    void writeVectorArray(const double*, const char*, int, int, double);
 
     CpptrajFile file_;
     int natoms_; ///< Number of atoms in file

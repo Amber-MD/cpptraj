@@ -115,7 +115,7 @@ int Traj_GmxDump::setupTrajout(FileName const& fname, Topology* trajParm,
   return 0;
 }
 
-void Traj_GmxDump::writeVectorArray(const double* array, const char* title, int Nlines, int Ncols)
+void Traj_GmxDump::writeVectorArray(const double* array, const char* title, int Nlines, int Ncols, double scale)
 {
   // Print title, indent 4.
   file_.Printf("    %s (%dx%d):\n", title, Nlines, Ncols);
@@ -127,7 +127,7 @@ void Traj_GmxDump::writeVectorArray(const double* array, const char* title, int 
     for (int col = 0; col != Ncols; col++)
     {
       if (col != 0) file_.Printf(", ");
-      file_.Printf(outfmt_, array[idx++]);
+      file_.Printf(outfmt_, array[idx++] * scale);
     }
     file_.Printf("}\n");
   } // END loop over lines
@@ -142,8 +142,11 @@ int Traj_GmxDump::writeFrame(int set, Frame const& frameOut) {
                natoms_, 0, frameOut.Time(), 0);
   if (CoordInfo().HasBox()) {
     Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
-    writeVectorArray( Ucell.Dptr(), "box", 3, 3 );
+    // Already scaled by UnitCell()
+    writeVectorArray( Ucell.Dptr(), "box", 3, 3, 1.0);
   }
+  if (CoordInfo().HasCrd())
+    writeVectorArray( frameOut.xAddress(), "x", natoms_, 3, Constants::ANG_TO_NM );
 
     
   return 0;
