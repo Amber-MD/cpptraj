@@ -99,6 +99,13 @@ void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals) const {
     out[i] = ((double)in[i]) * tngfac_;
 }
 
+/* Utility function for properly scaling coordinates according to the factor
+ *  plus an additional factor.
+ */
+void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals, double scale) const {
+  for (unsigned int i = 0; i != nvals; i++)
+    out[i] = ((double)in[i]) * tngfac_ * scale;
+}
 /** \return 1 if no more blocks, -1 on error, 0 if ok.
   */
 int Traj_TNG::getNextBlocks(int64_t &next_frame)
@@ -379,9 +386,9 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
       //const double* tmpXYZ = frameIn.XYZ(0);
       //mprintf("DEBUG: positions set %i %g %g %g\n", set, tmpXYZ[0], tmpXYZ[1], tmpXYZ[2]);
     } else if ( blockId == TNG_TRAJ_VELOCITIES ) {
-      convertArray( frameIn.vAddress(), (float*)values_, tngatoms_*3 );
+      convertArray( frameIn.vAddress(), (float*)values_, tngatoms_*3, 1 / Constants::AMBERTIME_TO_PS );
     } else if ( blockId == TNG_TRAJ_FORCES ) {
-      convertArray( frameIn.fAddress(), (float*)values_, tngatoms_*3 );
+      convertArray( frameIn.fAddress(), (float*)values_, tngatoms_*3, Constants::J_TO_CAL );
     }
   } // END loop over blocks in next frame
   // TODO is it OK that frameTime is potentially set multiple times?
