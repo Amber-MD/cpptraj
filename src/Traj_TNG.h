@@ -39,7 +39,6 @@ class Traj_TNG : public TrajectoryIO {
     // -------------------------------------------
 #   endif
 
-    void convertArray(double*, float*, unsigned int) const;
     void convertArray(double*, float*, unsigned int, double) const;
     int getNextBlocks(int64_t&);
     int readValues(int64_t, int64_t&, double&, char&);

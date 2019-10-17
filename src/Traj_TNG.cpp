@@ -93,18 +93,11 @@ int Traj_TNG::processReadArgs(ArgList& argIn) {
   return 0;
 }
 
-/* Utility function for properly scaling coordinates according to the factor. */
-void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals) const {
-  for (unsigned int i = 0; i != nvals; i++)
-    out[i] = ((double)in[i]) * tngfac_;
-}
-
-/* Utility function for properly scaling coordinates according to the factor
- *  plus an additional factor.
+/* Utility function for properly scaling input array according to given factor.
  */
 void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals, double scale) const {
   for (unsigned int i = 0; i != nvals; i++)
-    out[i] = ((double)in[i]) * tngfac_ * scale;
+    out[i] = ((double)in[i]) * scale;
 }
 /** \return 1 if no more blocks, -1 on error, 0 if ok.
   */
@@ -300,7 +293,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
         mprinterr("Error: TNG block '%s' data type is %s, expected float!\n", BtypeStr(blockId), DtypeStr(datatype));
         return TRAJIN_ERR;
       }
-      convertArray(boxShape.Dptr(), (float*)values_, 9);
+      convertArray(boxShape.Dptr(), (float*)values_, 9, tngfac_);
       if (debug_ > 0) boxShape.Print("First frame Unit Cell Matrix");
     } else if ( blockId == TNG_TRAJ_POSITIONS ) {
       hasPos = true;
@@ -374,7 +367,7 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
     // ----- Box -----------------------
     if ( blockId == TNG_TRAJ_BOX_SHAPE ) { // TODO switch?
       Matrix_3x3 boxShape(0.0);
-      convertArray(boxShape.Dptr(), (float*)values_, 9);
+      convertArray(boxShape.Dptr(), (float*)values_, 9, tngfac_);
       frameIn.SetBox( Box(boxShape) );
       //mprintf("DEBUG: box set %i %g %g %g\n", set,
       //        frameIn.BoxCrd().BoxX(),
@@ -382,13 +375,13 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
       //        frameIn.BoxCrd().BoxZ());
     // ----- Coords --------------------
     } else if ( blockId == TNG_TRAJ_POSITIONS ) {
-      convertArray( frameIn.xAddress(), (float*)values_, tngatoms_*3 );
+      convertArray( frameIn.xAddress(), (float*)values_, tngatoms_*3, tngfac_ );
       //const double* tmpXYZ = frameIn.XYZ(0);
       //mprintf("DEBUG: positions set %i %g %g %g\n", set, tmpXYZ[0], tmpXYZ[1], tmpXYZ[2]);
     } else if ( blockId == TNG_TRAJ_VELOCITIES ) {
-      convertArray( frameIn.vAddress(), (float*)values_, tngatoms_*3, 1 / Constants::AMBERTIME_TO_PS );
+      convertArray( frameIn.vAddress(), (float*)values_, tngatoms_*3, tngfac_ / Constants::AMBERTIME_TO_PS );
     } else if ( blockId == TNG_TRAJ_FORCES ) {
-      convertArray( frameIn.fAddress(), (float*)values_, tngatoms_*3, Constants::J_TO_CAL );
+      convertArray( frameIn.fAddress(), (float*)values_, tngatoms_*3, (1/tngfac_) * Constants::J_TO_CAL );
     }
   } // END loop over blocks in next frame
   // TODO is it OK that frameTime is potentially set multiple times?
