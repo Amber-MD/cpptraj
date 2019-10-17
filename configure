@@ -589,6 +589,21 @@ EOF
   TestProgram "  Checking Xdrfile" "$CXX" "$CXXFLAGS ${LIB_INCL[$LXDRFILE]}" testp.cpp "${LIB_FLAG[$LXDRFILE]}"
 }
 
+TestTngfile() {
+  cat > testp.cpp <<EOF
+#include <tng/tng_io.h>
+tng_trajectory_t traj_;
+bool Unused(const char* fname) {
+  tng_function_status stat = tng_util_trajectory_open(fname, 'r', &traj_);
+  if (stat != TNG_SUCCESS)
+    return false;
+  return true;
+}
+int main() { return 0; }
+EOF
+  TestProgram "  Checking TNG" "$CXX" "$CXXFLAGS ${LIB_INCL[$LTNGFILE]}" testp.cpp "${LIB_FLAG[$LTNGFILE]}"
+}
+
 TestSanderlib() {
   cat > testp.cpp <<EOF
 #include "sander.h"
@@ -650,6 +665,7 @@ TestLibraries() {
   if [ "${LIB_TEST[$LFFTW3]}" = 'yes'    ] ; then TestFFTW3 ; fi
   if [ "${LIB_TEST[$LREADLINE]}" = 'yes' ] ; then TestReadline ; fi
   if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
+  if [ "${LIB_TEST[$LTNGFILE]}" = 'yes'  ] ; then TestTngfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   if [ "${LIB_TEST[$LCUDA]}" = 'yes'     ] ; then TestCuda ; fi
 }
@@ -886,7 +902,7 @@ SetupLibraries() {
             lhdir="$ladir"
           fi
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
-            if [ -z "${LIB_STTC[$i]}" ] ; then
+            if [ -z "${LIB_STTC[$i]}" -o ! -f "$lhdir/${LIB_STTC[$i]}" ] ; then
               WrnMsg "Cannot link '${LIB_CKEY[$i]}' statically."
               lflag="-L$lhdir ${LIB_FLAG[$i]}"
             else
