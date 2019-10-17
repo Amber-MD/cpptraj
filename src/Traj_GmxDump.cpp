@@ -158,6 +158,8 @@ int Traj_GmxDump::writeFrame(int set, Frame const& frameOut) {
       writeVectorArray( frameOut.xAddress(), "POSITIONS", 3, 6, natoms_, 3, Constants::ANG_TO_NM );
     if (CoordInfo().HasVel())
       writeVectorArray( frameOut.vAddress(), "VELOCITIES", 0, 3, natoms_, 3, Constants::AMBER_VEL_TO_GMX );
+    if (CoordInfo().HasForce())
+      writeVectorArray( frameOut.fAddress(), "FORCES", 0, 3, natoms_, 3, Constants::AMBER_FRC_TO_GMX );
     if (CoordInfo().HasBox()) {
       Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
       // Already scaled by UnitCell()
