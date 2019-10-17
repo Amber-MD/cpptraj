@@ -223,6 +223,9 @@ std::string Cpptraj::Defines() {
 #ifdef NO_XDRFILE
   defined_str.append(" -DNO_XDRFILE");
 #endif
+#ifdef NO_TNGFILE
+  defined_str.append(" -DNO_TNGFILE");
+#endif
 #if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
 #endif

@@ -4,6 +4,10 @@
 
 CleanFiles cpptraj.in temperature.dat rmsd.dat ene.dat
 
+TESTNAME='TNG read test'
+
+Requires tng notparallel
+
 INPUT='-i cpptraj.in'
 
 cat > cpptraj.in <<EOF
@@ -23,7 +27,7 @@ run
 MyRmsNm = MyRms / 10.0
 writedata rmsd.dat xmin 0 xstep 10 MyRmsNm prec 12.7
 EOF
-RunCpptraj "TNG read test"
+RunCpptraj "$TESTNAME"
 DoTest temperature.dat.save temperature.dat
 DoTest rmsd.dat.save rmsd.dat
 DoTest ene.dat.save ene.dat
