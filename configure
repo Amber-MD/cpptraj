@@ -45,7 +45,7 @@ UsageFull() {
   echo "    --with-<lib>=<DIR> : Use library in specified directory."
   echo "    -l<lib>=<FILE>     : Use specified library file."
   echo "    -no<lib>           : Disable library."
-  echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile"
+  echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
   echo "    -static        : Use static linking."
