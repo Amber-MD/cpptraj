@@ -727,7 +727,7 @@ Required() {
 #   Check how CPPTRAJ was compiled.
 CheckDefines() {
   CPPTRAJ_XDRFILE='yes'
-  CPPTRAJ_TNGFILE='yes'
+  CPPTRAJ_TNGFILE=''
   CPPTRAJ_MATHLIB='yes'
   CPPTRAJDEFINES=`$CPPTRAJ --defines`
   if [ $? -ne 0 ] ; then
@@ -748,7 +748,7 @@ CheckDefines() {
       '-DFFTW_FFT'      ) export CPPTRAJ_FFTW_FFT=$DEFINE ;;
       '-DCUDA'          ) export CPPTRAJ_CUDA=$DEFINE ;;
       '-DNO_XDRFILE'    ) CPPTRAJ_XDRFILE='' ;;
-      '-DNO_TNGFILE'    ) CPPTRAJ_TNGFILE='' ;;
+      '-DHAS_TNGFILE'   ) CPPTRAJ_TNGFILE='$DEFINE' ;;
       '-DENABLE_SINGLE_ENSEMBLE' ) export CPPTRAJ_SINGLE_ENS=$DEFINE ;;
     esac
   done

@@ -145,20 +145,22 @@ CPPTRAJLIB=''
 NLIB=14
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
+# Libraries containing definition of a function should appear *after*
+# any source files or object files which use it.
 LNETCDF=0
 LPARANC=1    # Parallel NetCDF
 LBZIP=2
-LZIP=3
-LARPACK=4
-LLAPACK=5
-LBLAS=6
-LFFTW3=7
-LREADLINE=8
-LXDRFILE=9
-LSANDER=10
-LTIMER=11
-LCUDA=12
-LTNGFILE=13
+LTNGFILE=3   # This has to come before ZLIB since it depends on ZLIB
+LZIP=4
+LARPACK=5
+LLAPACK=6
+LBLAS=7
+LFFTW3=8
+LREADLINE=9
+LXDRFILE=10
+LSANDER=11
+LTIMER=12
+LCUDA=13
 
 # LIB_STAT = Library status:
 #   off       : Do not use library.
@@ -287,8 +289,8 @@ LIB_CKEY[$LTNGFILE]='tng'
 LIB_HOME[$LTNGFILE]='tng'
 LIB_FLAG[$LTNGFILE]='-ltng_io'
 LIB_STTC[$LTNGFILE]='libtng_io.a'
-LIB_D_ON[$LTNGFILE]=''
-LIB_DOFF[$LTNGFILE]='-DNO_TNGFILE'
+LIB_D_ON[$LTNGFILE]='-DHAS_TNGFILE'
+LIB_DOFF[$LTNGFILE]=''
 LIB_TYPE[$LTNGFILE]='ld'
 
 for ((i=0; i < $NLIB; i++)) ; do
@@ -943,6 +945,12 @@ SetupLibraries() {
       LIB_INCL[$i]="$linc"
     fi
   done
+  # Take care of any library dependencies.
+  if [ "${LIB_STAT[$LZIP]}" = 'off' -a "${LIB_STAT[$LTNGFILE]}" != 'off' ] ; then
+    # TNG depends on libz
+    echo "Warning: TNG depends on libz; disabling TNG."
+    LIB_STAT[$LTNGFILE]='off'
+  fi
 }
 
 #-------------------------------------------------------------------------------

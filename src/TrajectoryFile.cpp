@@ -54,10 +54,10 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # else
   { "Gromacs XTC", 0, Traj_GmxXtc::WriteHelp, Traj_GmxXtc::Alloc },
 # endif
-# ifdef NO_TNGFILE
-  { "Gromacs TNG", 0, 0, 0                  },
-# else
+# ifdef HAS_TNGFILE
   { "Gromacs TNG", 0, 0, Traj_GmxTng::Alloc },
+# else
+  { "Gromacs TNG", 0, 0, 0                  },
 # endif
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      Traj_AmberRestart::ReadHelp, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },

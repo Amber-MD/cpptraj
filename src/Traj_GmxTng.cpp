@@ -1,4 +1,4 @@
-#ifndef NO_TNGFILE
+#ifdef HAS_TNGFILE
 #include <cmath>   // pow
 #include <cstring> // strncmp
 #include <cstdlib> // free
@@ -514,4 +514,4 @@ void Traj_GmxTng::parallelCloseTraj() {
 
 }
 #endif
-#endif /* NO_TNGFILE */
+#endif /* HAS_TNGFILE */

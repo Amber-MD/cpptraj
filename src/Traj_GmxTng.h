@@ -1,6 +1,6 @@
 #ifndef INC_TRAJ_TNG_H
 #define INC_TRAJ_TNG_H
-#ifndef NO_TNGFILE
+#ifdef HAS_TNGFILE
 #include <tng/tng_io.h>
 #include "TrajectoryIO.h"
 #include "FileName.h"
@@ -59,5 +59,5 @@ class Traj_GmxTng : public TrajectoryIO {
     FileName filename_;      ///< File name, for openTrajin
     Iarray blockIds_;        ///< Currently active block IDs
 };
-#endif /* NO_TNGFILE */
+#endif /* HAS_TNGFILE */
 #endif
