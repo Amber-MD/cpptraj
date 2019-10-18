@@ -251,6 +251,13 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
   // Print the scaling factor
   mprintf("\tTNG distance scaling factor (to convert to Ang): x%g\n", tngfac_);
 
+  // Get precision
+  double precision;
+  if (tng_compression_precision_get(traj_, &precision) != TNG_SUCCESS)
+    mprintf("Warning: Could not get precision from TNG file.\n");
+  else
+    mprintf("\tTNG precision is %g\n", precision);
+
   // This will be used as temp space for reading in values from TNG
   if (values_ != 0) free( values_ ); 
   values_ = 0;
