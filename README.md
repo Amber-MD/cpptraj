@@ -72,13 +72,18 @@ the following libraries:
 * NetCDF
 * BLAS
 * LAPACK
-* ARPACK (now bundled with CPPTRAJ)
-* Bzip2
 * Gzip
+* Bzip2
 * Parallel NetCDF (-mpi build only, for NetCDF trajectory output in parallel)
 * CUDA (-cuda build only)
-* FFTW (mostly optional; required for PME functionality)
-* [helPME](https://github.com/andysim/helpme) (optional; required for PME functionality)
+* FFTW (mostly optional; required for PME functionality and very large FFTs)
+
+CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ. External ones can be used in place of these if desired.
+
+* ARPACK; without this diagonalization of sparse matrices in `diagmatrix` will be slow
+* [helPME](https://github.com/andysim/helpme), required for PME functionality
+* XDR for reading GROMACS XTC trajectories
+* TNG for reading GROMACS TNG trajectories
 
 `./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK/ARPACK and/or NetCDF libraries installed,
@@ -92,21 +97,24 @@ be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
 An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag.
 CPPTRAJ can be built with both MPI and OpenMP; when running this build users
 should take care to properly set OMP_NUM_THREADS if using more than 1 MPI
-thread per node. A CUDA build is now also available via the `-cuda` flag.
-By default CPPTRAJ will be configured for multiple shader models; to restrict
-the CUDA build to a single shader model use the SHADER_MODEL environment variable.
-Any combination of `-cuda`, `-mpi`, and `-openmp` may be used.
+process per node (the number of processes * threads should not be greater than
+the number of physical cores on the machine).
 
-The configure script by default sets everything up to link dynamically. The
-`-static` flag can be used to force static linking. If linking errors are
-encountered you may need to specify library locations using the `--with-LIB=`
-options. For example, to use NetCDF compiled in `/opt/netcdf` use the option
-`--with-netcdf=/opt/netcdf`. Alternatively, individual libraries can be
-disabled with the `-no<LIB>` options. The `-libstatic` flag
-can be used to static link only libraries that have been specified.
+A CUDA build is now also available via the `-cuda` configure flag. However, currently
+only a few commands benefit from this (see the manual for details). By default CPPTRAJ
+will be configured for multiple shader models; to restrict the CUDA build to a single
+shader model set the SHADER_MODEL environment variable before running `configure`.
+
+Any combination of `-cuda`, `-mpi`, and `-openmp` may be used. The configure script by
+default sets everything up to link dynamically. The `-static` flag can be used to force
+static linking. If linking errors are encountered you may need to specify library locations
+using the `--with-LIB=` options. For example, to use NetCDF compiled in `/opt/netcdf`
+use the option `--with-netcdf=/opt/netcdf`. Alternatively, individual libraries can be
+disabled with the `-no<LIB>` options. The `-libstatic` flag can be used to static link
+only libraries that have been specified.
 
 After `configure` has been successfully run, `make install` will
-compile and place the cpptraj binary in the `bin/` subdirectory. Note that
+compile and place the cpptraj binary in the `$CPPTRAJHOME/bin` subdirectory. Note that
 on multithreaded systems `make -j X install` (where X is an integer > 1
 and less than the max # cores on your system) will run much faster.
 After installation, It is highly recommended that `make check` be run as
@@ -203,6 +211,8 @@ External libraries bundled with CPPTRAJ
 
 * CPPTRAJ uses the [ARPACK](https://www.caam.rice.edu//software/ARPACK/) library to calculate eigenvalues/eigenvectors from large sparse matrices.
 
-* CPPTRAJ uses the [xdrfile](http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library) library for reading XTC file; specifically a somewhat updated version from [MDTRAJ](https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
+* CPPTRAJ uses the [xdrfile](http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library) library for reading XTC files; specifically a somewhat updated version from [MDTRAJ](https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
+
+* CPPTRAJ uses the [GROMACS TNG](https://github.com/gromacs/tng) library for reading TNG files. See `sec/tng/README` for details.
 
 * The reciprocal part of the PME calculation is handled by the [helPME](https://github.com/andysim/helpme) library by Andy Simmonett.
