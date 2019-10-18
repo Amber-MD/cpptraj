@@ -16,6 +16,7 @@ Traj_TNG::Traj_TNG() :
   tngframes_(-1),
   tngsets_(-1),
   current_frame_(-1),
+  current_set_(0),
   next_nblocks_(-1),
   next_blockIDs_(0),
   tngfac_(0),
@@ -78,6 +79,7 @@ int Traj_TNG::openTrajin() {
   //mprintf("DEBUG: Successfully opened TNG file.\n");
   isOpen_ = true;
   current_frame_ = -1;
+  current_set_ = 0;
 
   return 0;
 }
@@ -333,8 +335,40 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
 int Traj_TNG::readFrame(int set, Frame& frameIn) {
   //int64_t numberOfAtoms = -1;
   //tng_num_particles_get(traj_, &numberOfAtoms); TODO could this change per frame?
+  // next_frame will get set to the next frame (MD) with data
+  int64_t next_frame;
+  double frameTime;
+  char datatype;
+  // Seek if needed.
+  if (set != current_set_) {
+    // TODO: Figure out if there is a way to point the TNG file without
+    //       sequential seeking like this.
+    if (set < current_set_) {
+      closeTraj();
+      openTrajin();
+    }
+    while (current_set_ < set) {
+      int stat = getNextBlocks( next_frame );
+      mprintf("DEBUG: Called getNextBlocks(%i) set=%i current_set_=%i next_frame=%li current_frame_=%li\n", stat, set, current_set_, next_frame, current_frame_);
+      if (stat == -1) {
+        mprinterr("Error: could not get data blocks for frame (set %i) during seek.\n", set+1);
+        return 1;
+      } else if (stat != 0) {
+        mprintf("Warning: TNG set %i, no more blocks during seek.\n", set+1);
+        return 1;
+      }
+      // Blank reads
+      for (int64_t idx = 0; idx < next_nblocks_; idx++)
+      {
+        int64_t blockId = next_blockIDs_[idx];
+        readValues( blockId, next_frame, frameTime, datatype );
+      }
+      current_set_++;
+      current_frame_ = next_frame;
+    }
+  }
+
   // Determine next frame with data
-  int64_t next_frame;                   // Will get set to the next frame (MD) with data
   int err = getNextBlocks( next_frame );
   if (err == -1) {
     mprinterr("Error: could not get data blocks in next frame (set %i)\n", set+1);
@@ -352,8 +386,6 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   }
 
   // Process data blocks
-  double frameTime;
-  char datatype;
   for (int64_t idx = 0; idx < next_nblocks_; idx++)
   {
     int64_t blockId = next_blockIDs_[idx];
@@ -397,6 +429,9 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
 
   // Update current frame number
   current_frame_ = next_frame;
+
+  // Update set number
+  current_set_++;
 
   return 0;
 }

@@ -49,8 +49,9 @@ class Traj_TNG : public TrajectoryIO {
     void* values_;           ///< Temporary array for reading in values from TNG
     int64_t tngatoms_;       ///< Number of atoms in the TNG trajectory file.
     int64_t tngframes_;      ///< Number of *MD sim( frames in the TNG trajectory file.
-    int64_t tngsets_;        ///< Number of actual frames in the TNG traectory file.
+    int64_t tngsets_;        ///< Number of actual frames in the TNG trajectory file.
     int64_t current_frame_;  ///< The current frame (relative to MD sim, not the trajectory!)
+    int current_set_;        ///< The current set in tng file. Determines if we need to seek.
     int64_t next_nblocks_;   ///< The number of data blocks in the next frame
     int64_t* next_blockIDs_; ///< Array containing block IDs in next frame
     double tngfac_;          ///< Coordinates scaling factor
