@@ -342,7 +342,7 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
   // Seek if needed.
   if (set != current_set_) {
     // TODO: Figure out if there is a way to point the TNG file without
-    //       sequential seeking like this.
+    //       having to do blank reads.
     if (set < current_set_) {
       closeTraj();
       openTrajin();
