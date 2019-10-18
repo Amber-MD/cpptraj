@@ -653,8 +653,14 @@ void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
   }
 }
 
-// NetcdfFile::NC_create()
 int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
+                          CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
+{
+  return (NC_create(NC_WRITE_3, Name, typeIn, natomIn, coordInfo, title, debugIn));
+}
+
+// NetcdfFile::NC_create()
+int NetcdfFile::NC_create(NC_WRITE_TYPE wtypeIn, std::string const& Name, NCTYPE typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
 {
   if (Name.empty()) return 1;
@@ -667,8 +673,12 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
   if (ncdebug_>1)
     mprintf("DEBUG: NC_create: '%s'  natom=%i  %s\n",
             Name.c_str(),natomIn, coordInfo.InfoString().c_str());
-
-  if ( NC::CheckErr( nc_create( Name.c_str(), NC_64BIT_OFFSET, &ncid_) ) )
+  int cmode;
+  if (wtypeIn == NC_WRITE_3)
+    cmode = NC_64BIT_OFFSET;
+  else
+    cmode = NC_NETCDF4;
+  if ( NC::CheckErr( nc_create( Name.c_str(), cmode, &ncid_) ) )
     return 1;
 
   ncatom_ = natomIn;
