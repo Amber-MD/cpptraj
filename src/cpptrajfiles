@@ -352,6 +352,7 @@ COMMON_SOURCES= \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
         Traj_GmxDump.cpp \
+        Traj_GmxTng.cpp \
         Traj_GmxTrX.cpp \
         Traj_GmxXtc.cpp \
         Traj_Gro.cpp \
@@ -361,7 +362,6 @@ COMMON_SOURCES= \
         Traj_SDF.cpp \
         Traj_SQM.cpp \
         Traj_Tinker.cpp \
-        Traj_TNG.cpp \
         Traj_XYZ.cpp \
         TrajectoryFile.cpp \
         TrajectoryIO.cpp \

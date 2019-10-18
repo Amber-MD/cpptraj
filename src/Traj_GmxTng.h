@@ -5,11 +5,11 @@
 #include "TrajectoryIO.h"
 #include "FileName.h"
 /// Read Gromacs TNG trajectories 
-class Traj_TNG : public TrajectoryIO {
+class Traj_GmxTng : public TrajectoryIO {
   public:
-    Traj_TNG();
-    ~Traj_TNG();
-    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_TNG(); }
+    Traj_GmxTng();
+    ~Traj_GmxTng();
+    static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_GmxTng(); }
     static void WriteHelp();
     static void ReadHelp();
   private:

@@ -2,7 +2,7 @@
 #include <cmath>   // pow
 #include <cstring> // strncmp
 #include <cstdlib> // free
-#include "Traj_TNG.h"
+#include "Traj_GmxTng.h"
 #include "CpptrajStdio.h"
 #include "FileName.h"
 #include "Topology.h"
@@ -10,7 +10,7 @@
 #include "Constants.h"
 
 /// CONSTRUCTOR
-Traj_TNG::Traj_TNG() :
+Traj_GmxTng::Traj_GmxTng() :
   values_(0),
   tngatoms_(0),
   tngframes_(-1),
@@ -24,7 +24,7 @@ Traj_TNG::Traj_TNG() :
 {}
 
 /// DESTRUCTOR
-Traj_TNG::~Traj_TNG() {
+Traj_GmxTng::~Traj_GmxTng() {
   closeTraj();
   if (values_ != 0) free( values_ );
   if (next_blockIDs_ != 0) free( next_blockIDs_ );
@@ -38,7 +38,7 @@ Traj_TNG::~Traj_TNG() {
   * 'GENERAL INFO' block should be present in all TNG files, and that
   * that string seems to always be in bytes 40-51.
   */
-bool Traj_TNG::ID_TrajFormat(CpptrajFile& fileIn) {
+bool Traj_GmxTng::ID_TrajFormat(CpptrajFile& fileIn) {
   char tngheader[52];
   if (fileIn.OpenFile()) return false;
   if (fileIn.Read(&tngheader, 52) != 52) return false;
@@ -52,12 +52,12 @@ bool Traj_TNG::ID_TrajFormat(CpptrajFile& fileIn) {
 }
 
 /** Print trajectory info to stdout. */
-void Traj_TNG::Info() {
+void Traj_GmxTng::Info() {
   mprintf("is a GROMACS TNG file");
 }
 
 /** Close file. */
-void Traj_TNG::closeTraj() {
+void Traj_GmxTng::closeTraj() {
   //mprintf("DEBUG: Calling closeTrajin() isOpen_=%1i\n", (int)isOpen_);
   if (isOpen_) {
     tng_util_trajectory_close(&traj_);
@@ -67,7 +67,7 @@ void Traj_TNG::closeTraj() {
 
 // -----------------------------------------------------------------------------
 /** Open trajectory for reading. */
-int Traj_TNG::openTrajin() {
+int Traj_GmxTng::openTrajin() {
   //mprintf("DEBUG: Calling openTrajin() isOpen_=%1i\n", (int)isOpen_);
   if (isOpen_) 
     closeTraj();
@@ -85,25 +85,25 @@ int Traj_TNG::openTrajin() {
 }
 
 /** Read help */
-void Traj_TNG::ReadHelp() {
+void Traj_GmxTng::ReadHelp() {
 
 }
 
 /** Process read arguments. */
-int Traj_TNG::processReadArgs(ArgList& argIn) {
+int Traj_GmxTng::processReadArgs(ArgList& argIn) {
 
   return 0;
 }
 
 /* Utility function for properly scaling input array according to given factor.
  */
-void Traj_TNG::convertArray(double* out, float* in, unsigned int nvals, double scale) const {
+void Traj_GmxTng::convertArray(double* out, float* in, unsigned int nvals, double scale) const {
   for (unsigned int i = 0; i != nvals; i++)
     out[i] = ((double)in[i]) * scale;
 }
 /** \return 1 if no more blocks, -1 on error, 0 if ok.
   */
-int Traj_TNG::getNextBlocks(int64_t &next_frame)
+int Traj_GmxTng::getNextBlocks(int64_t &next_frame)
 {
   tng_function_status stat = tng_util_trajectory_next_frame_present_data_blocks_find(
     traj_,
@@ -153,7 +153,7 @@ static inline const char* BtypeStr(int64_t typeIn) {
 }
 
 /* Read next set of values from specified block. */
-int Traj_TNG::readValues(int64_t blockId, int64_t& next_frame, double& frameTime, char& datatype) {
+int Traj_GmxTng::readValues(int64_t blockId, int64_t& next_frame, double& frameTime, char& datatype) {
   tng_function_status stat;
   int blockDependency;
   tng_data_block_dependency_get(traj_, blockId, &blockDependency);
@@ -185,7 +185,7 @@ int Traj_TNG::readValues(int64_t blockId, int64_t& next_frame, double& frameTime
 /** Set up trajectory for reading.
   * \return Number of frames in trajectory.
   */
-int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
+int Traj_GmxTng::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   filename_ = fname;
   // Open the trajectory
@@ -332,7 +332,7 @@ int Traj_TNG::setupTrajin(FileName const& fname, Topology* trajParm)
 }
 
 /** Read specified trajectory frame. */
-int Traj_TNG::readFrame(int set, Frame& frameIn) {
+int Traj_GmxTng::readFrame(int set, Frame& frameIn) {
   //int64_t numberOfAtoms = -1;
   //tng_num_particles_get(traj_, &numberOfAtoms); TODO could this change per frame?
   // next_frame will get set to the next frame (MD) with data
@@ -437,31 +437,31 @@ int Traj_TNG::readFrame(int set, Frame& frameIn) {
 }
 
 /** Read velocities from specified frame. */
-int Traj_TNG::readVelocity(int set, Frame& frameIn) {
+int Traj_GmxTng::readVelocity(int set, Frame& frameIn) {
 
   return 0;
 }
 
 /** Read forces from specified frame. */
-int Traj_TNG::readForce(int set, Frame& frameIn) {
+int Traj_GmxTng::readForce(int set, Frame& frameIn) {
 
   return 0;
 }
 
 // -----------------------------------------------------------------------------
 /** Write help. */
-void Traj_TNG::WriteHelp() {
+void Traj_GmxTng::WriteHelp() {
 
 }
 
 /** Process write arguments. */
-int Traj_TNG::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
+int Traj_GmxTng::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
 
   return 0;
 }
 
 /** Set up trajectory for write. */
-int Traj_TNG::setupTrajout(FileName const& fname, Topology* trajParm,
+int Traj_GmxTng::setupTrajout(FileName const& fname, Topology* trajParm,
                                    CoordinateInfo const& cInfoIn, 
                                    int NframesToWrite, bool append)
 {
@@ -470,7 +470,7 @@ int Traj_TNG::setupTrajout(FileName const& fname, Topology* trajParm,
 }
 
 /** Write specified trajectory frame. */
-int Traj_TNG::writeFrame(int set, Frame const& frameOut) {
+int Traj_GmxTng::writeFrame(int set, Frame const& frameOut) {
 
   return 0;
 }
@@ -478,17 +478,17 @@ int Traj_TNG::writeFrame(int set, Frame const& frameOut) {
 // =============================================================================
 #ifdef MPI
 /** Open trajectory for reading in parallel. */
-int Traj_TNG::parallelOpenTrajin(Parallel::Comm const& commIn) {
+int Traj_GmxTng::parallelOpenTrajin(Parallel::Comm const& commIn) {
   return 1;
 }
 
 /** Open trajectory for writing in parallel. */
-int Traj_TNG::parallelOpenTrajout(Parallel::Comm const& commIn) {
+int Traj_GmxTng::parallelOpenTrajout(Parallel::Comm const& commIn) {
   return 1;
 }
 
 /** Set up trajectory for write in parallel. */
-int Traj_TNG::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+int Traj_GmxTng::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
                                            CoordinateInfo const& cInfoIn,
                                            int NframesToWrite, bool append,
                                            Parallel::Comm const& commIn)
@@ -498,19 +498,19 @@ int Traj_TNG::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
 }
 
 /** Read frame in parallel. */
-int Traj_TNG::parallelReadFrame(int set, Frame& frameIn) {
+int Traj_GmxTng::parallelReadFrame(int set, Frame& frameIn) {
 
   return 1;
 }
 
 /** Write frame in parallel. */
-int Traj_TNG::parallelWriteFrame(int set, Frame const& frameOut) {
+int Traj_GmxTng::parallelWriteFrame(int set, Frame const& frameOut) {
 
   return 1;
 }
 
 /** Close trajectory in parallel. */
-void Traj_TNG::parallelCloseTraj() {
+void Traj_GmxTng::parallelCloseTraj() {
 
 }
 #endif

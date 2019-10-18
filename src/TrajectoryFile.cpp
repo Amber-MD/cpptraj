@@ -23,7 +23,7 @@
 #include "Traj_GmxXtc.h"
 #include "Traj_CharmmRestart.h"
 #include "Traj_XYZ.h"
-#include "Traj_TNG.h"
+#include "Traj_GmxTng.h"
 #include "Traj_GmxDump.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
@@ -57,7 +57,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # ifdef NO_TNGFILE
   { "Gromacs TNG", 0, 0, 0                  },
 # else
-  { "Gromacs TNG", 0, 0, Traj_TNG::Alloc },
+  { "Gromacs TNG", 0, 0, Traj_GmxTng::Alloc },
 # endif
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      Traj_AmberRestart::ReadHelp, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
