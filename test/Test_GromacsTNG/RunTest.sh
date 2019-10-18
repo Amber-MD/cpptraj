@@ -6,7 +6,7 @@ CleanFiles cpptraj.in temperature.dat rmsd.dat ene.dat offset.*.dat
 
 TESTNAME='TNG read test'
 
-Requires tng notparallel
+Requires tng maxthreads 10
 
 INPUT='-i cpptraj.in'
 
@@ -20,6 +20,7 @@ TestTng() {
   tout='temperature.dat'
   rout='rmsd.dat'
   eout='ene.dat'
+  skiptest=0
   if [ ! -z "$trajin_args" ] ; then
     UNITNAME="$TESTNAME (with offset)"
     refcmd='reference md_1_1.tng 1'
@@ -29,8 +30,11 @@ TestTng() {
     tout='offset.temperature.dat'
     rout='offset.rmsd.dat'
     eout='offset.ene.dat'
+    CheckFor maxthreads 4
+    skiptest=$?
   fi
-  cat > cpptraj.in <<EOF
+  if [ $skiptest -eq 0 ] ; then
+    cat > cpptraj.in <<EOF
 parm topol.parm7
 noprogress
 $refcmd
@@ -49,15 +53,16 @@ run
 MyRmsNm = MyRms / 10.0
 writedata $rout xmin $xmin xstep $xstep MyRmsNm prec 12.7
 EOF
-  RunCpptraj "$UNITNAME"
-  if [ -z "$trajin_args" ] ; then
-    DoTest temperature.dat.save temperature.dat
-    DoTest rmsd.dat.save rmsd.dat
-    DoTest ene.dat.save ene.dat
-  else
-    DoTest offset.temperature.dat.save offset.temperature.dat
-    DoTest offset.rmsd.dat.save offset.rmsd.dat
-    DoTest offset.ene.dat.save offset.ene.dat
+    RunCpptraj "$UNITNAME"
+    if [ -z "$trajin_args" ] ; then
+      DoTest temperature.dat.save temperature.dat
+      DoTest rmsd.dat.save rmsd.dat
+      DoTest ene.dat.save ene.dat
+    else
+      DoTest offset.temperature.dat.save offset.temperature.dat
+      DoTest offset.rmsd.dat.save offset.rmsd.dat
+      DoTest offset.ene.dat.save offset.ene.dat
+   fi
   fi
 }
 
