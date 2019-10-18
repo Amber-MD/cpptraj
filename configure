@@ -142,7 +142,7 @@ CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
 # Total number of external libraries
-NLIB=14
+NLIB=15
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 # Libraries containing definition of a function should appear *after*
@@ -161,6 +161,7 @@ LXDRFILE=10
 LSANDER=11
 LTIMER=12
 LCUDA=13
+LHDF5=14
 
 # LIB_STAT = Library status:
 #   off       : Do not use library.
@@ -293,6 +294,16 @@ LIB_D_ON[$LTNGFILE]='-DHAS_TNGFILE'
 LIB_DOFF[$LTNGFILE]=''
 LIB_TYPE[$LTNGFILE]='ld'
 
+LIB_STAT[$LHDF5]='enabled'
+LIB_CKEY[$LHDF5]='hdf5'
+LIB_HOME[$LHDF5]=''
+LIB_FLAG[$LHDF5]=''
+LIB_STTC[$LHDF5]=''
+LIB_D_ON[$LHDF5]='-DHAS_HDF5'
+LIB_DOFF[$LHDF5]=''
+LIB_LINK[$LHDF5]='dynamic'
+LIB_TYPE[$LHDF5]='ld'
+
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
 done
@@ -421,6 +432,30 @@ TestZlib() {
 int main() { gzFile gfile; gfile=NULL; printf("Testing\n"); return 0; }
 EOF
   TestProgram "  Checking ZLIB" "$CXX" "$CXXFLAGS ${LIB_INCL[$LZIP]}" testp.cpp "${LIB_FLAG[$LZIP]}"
+}
+
+TestHdf5() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include "netcdf.h"
+void unused() {
+  int ncid, varid;
+  int dims[1];
+  // Create a netcdf4 file
+  nc_create("foo.nc", NC_NETCDF4, &ncid);
+  // Create a dimension
+  dims[1] = 10;
+  nc_def_var(ncid, "MyVar", NC_DOUBLE, 1, dims, &varid);
+  // Set deflate
+  int err = nc_def_var_deflate(ncid, varid, NC_SHUFFLE, 1, 1);
+}
+int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
+EOF
+  TestProgram silent "  Checking NetCDF/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]} ${LIB_INCL[$LHDF5]}" testp.cpp "${LIB_FLAG[$LNETCDF]} ${LIB_FLAG[$LHDF5]}"
+  if [ $? -eq 1 ] ; then
+    WrnMsg "NetCDF library does not contain HDF5 support."
+    LIB_STAT[$LHDF5]='off'
+  fi
 }
 
 TestNetcdf() {
@@ -660,6 +695,7 @@ EOF
 TestLibraries() {
   if [ "${LIB_TEST[$LBZIP]}" = 'yes'     ] ; then TestBzlib ; fi
   if [ "${LIB_TEST[$LZIP]}" = 'yes'      ] ; then TestZlib ; fi
+  if [ "${LIB_TEST[$LHDF5]}" = 'yes'     ] ; then TestHdf5 ; fi
   if [ "${LIB_TEST[$LNETCDF]}" = 'yes'   ] ; then TestNetcdf ; fi
   if [ "${LIB_TEST[$LPARANC]}" = 'yes'   ] ; then TestPnetcdf ; fi
   if [ "${LIB_TEST[$LBLAS]}" = 'yes'     ] ; then TestMathlib ; fi
