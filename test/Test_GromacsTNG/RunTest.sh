@@ -49,7 +49,7 @@ run
 MyRmsNm = MyRms / 10.0
 writedata $rout xmin $xmin xstep $xstep MyRmsNm prec 12.7
 EOF
-  RunCpptraj "$TESTNAME"
+  RunCpptraj "$UNITNAME"
   if [ -z "$trajin_args" ] ; then
     DoTest temperature.dat.save temperature.dat
     DoTest rmsd.dat.save rmsd.dat
