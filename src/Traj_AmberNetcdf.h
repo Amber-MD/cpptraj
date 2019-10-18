@@ -45,6 +45,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     bool write_mdcrd_;    ///< If true write out coordinates
     bool write_mdvel_;    ///< If true write out velocities
     bool write_mdfrc_;    ///< If true write out forces
+    NC_WRITE_TYPE wtype_; ///< Allow user to specify what kind of netcdf file to create
 };
 #endif
 #endif

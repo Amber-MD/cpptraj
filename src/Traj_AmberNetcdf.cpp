@@ -24,7 +24,8 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   outputTemp_(false),
   write_mdcrd_(false),
   write_mdvel_(false),
-  write_mdfrc_(false)
+  write_mdfrc_(false),
+  wtype_(NC_WRITE_3)
 {}
 
 // DESTRUCTOR
@@ -94,10 +95,12 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
 }
 
 void Traj_AmberNetcdf::WriteHelp() {
-  mprintf("\tremdtraj: Write temperature to trajectory (makes REMD trajectory).\n"
-          "\tmdvel   : Write only velocities to trajectory.\n"
-          "\tmdfrc   : Write only forces to trajectory.\n"
-          "\tmdcrd   : Write coordinates to trajectory (only required with mdvel/mdfrc).\n");
+  mprintf("\tremdtraj : Write temperature to trajectory (makes REMD trajectory).\n"
+          "\tmdvel    : Write only velocities to trajectory.\n"
+          "\tmdfrc    : Write only forces to trajectory.\n"
+          "\tmdcrd    : Write coordinates to trajectory (only required with mdvel/mdfrc).\n"
+          "\thdf5     : Create file as NetCDF4/HDF5 instead of NetCDF4 (classic).\n"
+         );
 }
 
 // Traj_AmberNetcdf::processWriteArgs()
@@ -110,6 +113,8 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
     mprintf("Warning: The 'force' keyword is no longer necessary and has been deprecated.\n");
   write_mdvel_ = argIn.hasKey("mdvel");
   write_mdfrc_ = argIn.hasKey("mdfrc");
+  if (argIn.hasKey("hdf5"))
+    wtype_ = NC_WRITE_4;
   return 0;
 }
 
@@ -152,7 +157,7 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
     // Create NetCDF file.
-    if (NC_create( filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
+    if (NC_create( wtype_, filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
                    Title(), debug_ ))
       return 1;
     // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
