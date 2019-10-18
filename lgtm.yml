@@ -1,6 +1,7 @@
 path_classifiers:
   test:
     - "src/readline/*"
+    - "src/tng/*"
 extraction:
   cpp:
     prepare:
