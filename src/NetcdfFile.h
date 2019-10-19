@@ -13,7 +13,7 @@ class NetcdfFile {
     NetcdfFile() { }
 #   else
     /// For determining netcdf4 vs netcdf3
-    enum NC_WRITE_TYPE { NC_WRITE_3 = 0, NC_WRITE_4 };
+    enum NC_FMT_TYPE { NC_WRITE_3 = 0, NC_WRITE_4 };
     /// CONSTRUCTOR
     NetcdfFile();
     /// \return Coordinate info corresponding to current setup. TODO have in variable?
@@ -25,7 +25,7 @@ class NetcdfFile {
     /// Create NetCDF reservoir.
     int NC_createReservoir(bool, double, int, int&, int&);
     /// Create NetCDF trajectory file of given type.
-    int NC_create(NC_WRITE_TYPE, std::string const&, NCTYPE, int,
+    int NC_create(NC_FMT_TYPE, std::string const&, NCTYPE, int,
                   CoordinateInfo const&, std::string const&, int);
     /// Create NetCDF (v3) trajectory file of given type.
     int NC_create(std::string const&, NCTYPE, int, 

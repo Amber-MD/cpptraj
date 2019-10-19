@@ -28,6 +28,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
   return nctype;
 }
 
+
 #ifdef BINTRAJ
 // DEFINES
 #define NCENSEMBLE "ensemble"
@@ -660,7 +661,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
 }
 
 // NetcdfFile::NC_create()
-int NetcdfFile::NC_create(NC_WRITE_TYPE wtypeIn, std::string const& Name, NCTYPE typeIn, int natomIn,
+int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
 {
   if (Name.empty()) return 1;
