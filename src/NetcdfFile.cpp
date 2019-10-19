@@ -28,6 +28,8 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
   return nctype;
 }
 
+/** \return netcdf format type if the given magic number is recognized.
+  */
 
 #ifdef BINTRAJ
 // DEFINES
