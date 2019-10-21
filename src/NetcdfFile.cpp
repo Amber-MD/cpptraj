@@ -24,8 +24,9 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
   // Determine base type via magic number
   FILE* infile = fopen(fname, "rb");
   if (infile == 0) return nctype;
-  char buf[8];
+  unsigned char buf[8];
   unsigned int nread = fread(buf, sizeof(char), 8, infile);
+  //mprintf("DEBUG: '%s' nread=%u %x %x %x %x %x %x %x %x\n", fname, nread, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
   fclose(infile);
   if (nread > 3 && buf[0] == 'C' && buf[1] == 'D' && buf[2] == 'F') {
 #   ifdef BINTRAJ

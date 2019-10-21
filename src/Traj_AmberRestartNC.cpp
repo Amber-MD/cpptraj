@@ -23,7 +23,8 @@ Traj_AmberRestartNC::Traj_AmberRestartNC() :
   useFrcAsCoords_(false),
   outputTemp_(false),
   readAccess_(false),
-  prependExt_(false)
+  prependExt_(false),
+  ftype_(NC_V3) // Default to NetCDF 3
 {}
 
 // DESTRUCTOR
@@ -33,7 +34,8 @@ Traj_AmberRestartNC::~Traj_AmberRestartNC() {
 }
 
 bool Traj_AmberRestartNC::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERRESTART ) return true;
+  if ( GetNetcdfConventions( ftype_, fileIn.Filename().full() ) == NC_AMBERRESTART )
+    return true;
   return false;
 }
 

@@ -25,7 +25,7 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   write_mdcrd_(false),
   write_mdvel_(false),
   write_mdfrc_(false),
-  wtype_(NC_WRITE_3)
+  ftype_(NC_V3) // Default to NetCDF 3
 {}
 
 // DESTRUCTOR
@@ -37,7 +37,8 @@ Traj_AmberNetcdf::~Traj_AmberNetcdf() {
 }
 
 bool Traj_AmberNetcdf::ID_TrajFormat(CpptrajFile& fileIn) {
-  if ( GetNetcdfConventions( fileIn.Filename().full() ) == NC_AMBERTRAJ ) return true;
+  if ( GetNetcdfConventions( ftype_,  fileIn.Filename().full() ) == NC_AMBERTRAJ )
+    return true;
   return false;
 } 
 
@@ -114,7 +115,7 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
   write_mdvel_ = argIn.hasKey("mdvel");
   write_mdfrc_ = argIn.hasKey("mdfrc");
   if (argIn.hasKey("hdf5"))
-    wtype_ = NC_WRITE_4;
+    ftype_ = NC_V4;
   return 0;
 }
 
@@ -157,7 +158,7 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
     // Create NetCDF file.
-    if (NC_create( wtype_, filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
+    if (NC_create( ftype_, filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
                    Title(), debug_ ))
       return 1;
     // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
@@ -414,7 +415,8 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 
 // Traj_AmberNetcdf::Info()
 void Traj_AmberNetcdf::Info() {
-  mprintf("is a NetCDF AMBER trajectory");
+  static const char* fvstr[3] = { "?", "V3", "HDF5" };
+  mprintf("is a NetCDF (%s) AMBER trajectory", fvstr[ftype_]);
   if (readAccess_) {
     mprintf(" with %s", CoordInfo().InfoString().c_str());
     if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
