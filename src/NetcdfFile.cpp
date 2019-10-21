@@ -851,6 +851,14 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing coordinates variable units.\n");
       return 1;
     }
+#   ifdef HAS_HDF5
+    if (deflateLevels_[V_COORDS] > 0) {
+      if ( NC::CheckErr( nc_def_var_deflate(ncid_, coordVID_, 0, 1, deflateLevels_[V_COORDS]) ) ) {
+        mprinterr("Error: Setting compression for coordinates variable.\n");
+        return 1;
+      }
+    }
+#   endif
   }
   // Velocity variable
   if (coordInfo.HasVel()) {
