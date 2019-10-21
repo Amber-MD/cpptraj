@@ -438,18 +438,21 @@ TestHdf5() {
   cat > testp.cpp <<EOF
 #include <cstdio>
 #include "netcdf.h"
-void unused() {
+int checknc() {
   int ncid, varid;
   int dims[1];
   // Create a netcdf4 file
-  nc_create("foo.nc", NC_NETCDF4, &ncid);
+  if (nc_create("foo.nc", NC_NETCDF4, &ncid) != NC_NOERR) return 1;
   // Create a dimension
   dims[1] = 10;
   nc_def_var(ncid, "MyVar", NC_DOUBLE, 1, dims, &varid);
   // Set deflate
   int err = nc_def_var_deflate(ncid, varid, NC_SHUFFLE, 1, 1);
+  nc_close(ncid);
+  if (err != NC_NOERR) return 1;
+  return 0;
 }
-int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
+int main() { if (checknc()) return 1; printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
   TestProgram silent "  Checking NetCDF/HDF5" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]} ${LIB_INCL[$LHDF5]}" testp.cpp "${LIB_FLAG[$LNETCDF]} ${LIB_FLAG[$LHDF5]}"
   if [ $? -eq 1 ] ; then
