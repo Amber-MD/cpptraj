@@ -114,8 +114,14 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
     mprintf("Warning: The 'force' keyword is no longer necessary and has been deprecated.\n");
   write_mdvel_ = argIn.hasKey("mdvel");
   write_mdfrc_ = argIn.hasKey("mdfrc");
-  if (argIn.hasKey("hdf5"))
+  if (argIn.hasKey("hdf5")) {
+#   ifdef HAS_HDF5
     ftype_ = NC_V4;
+#   else
+    mprinterr("Error: HDF5 output requested but cpptraj compiled without HDF5 support.\n");
+    return 1;
+#   endif
+  }
   return 0;
 }
 
