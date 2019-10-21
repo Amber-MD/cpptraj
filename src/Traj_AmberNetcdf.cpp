@@ -25,6 +25,9 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   write_mdcrd_(false),
   write_mdvel_(false),
   write_mdfrc_(false),
+# ifdef HAS_HDF5
+  compress_(0),
+# endif
   ftype_(NC_V3) // Default to NetCDF 3
 {}
 
@@ -96,11 +99,14 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
 }
 
 void Traj_AmberNetcdf::WriteHelp() {
-  mprintf("\tremdtraj : Write temperature to trajectory (makes REMD trajectory).\n"
-          "\tmdvel    : Write only velocities to trajectory.\n"
-          "\tmdfrc    : Write only forces to trajectory.\n"
-          "\tmdcrd    : Write coordinates to trajectory (only required with mdvel/mdfrc).\n"
-          "\thdf5     : Create file as NetCDF4/HDF5 instead of NetCDF4 (classic).\n"
+  mprintf("\tremdtraj     : Write temperature to trajectory (makes REMD trajectory).\n"
+          "\tmdvel        : Write only velocities to trajectory.\n"
+          "\tmdfrc        : Write only forces to trajectory.\n"
+          "\tmdcrd        : Write coordinates to trajectory (only required with mdvel/mdfrc).\n"
+#         ifdef HAS_HDF5
+          "\thdf5         : Create file as NetCDF4/HDF5 instead of NetCDF4 (classic).\n"
+          "\tcompress <#> : HDF5 compression level.\n"
+#         endif
          );
 }
 
@@ -122,6 +128,12 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
     return 1;
 #   endif
   }
+# ifdef HAS_HDF5
+  // HDF5-specific options
+  if (ftype_ == NC_V4) {
+    compress_ = argIn.getKeyInt("compress", 0);
+  }
+# endif
   return 0;
 }
 
@@ -163,6 +175,10 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     // Set up title
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
+#   ifdef HAS_HDF5
+    // Set compression levels
+    if (compress_ > 0) SetCompression(V_COORDS, compress_);
+#   endif
     // Create NetCDF file.
     if (NC_create( ftype_, filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
                    Title(), debug_ ))

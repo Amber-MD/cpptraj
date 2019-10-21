@@ -68,8 +68,8 @@ class NetcdfFile {
     /// Enumerated type for all variable IDs.
     enum VidType { V_COORDS = 0, NVID };
 
-    /// Set variable compression levels.
-    int SetCompression(const int*);
+    /// Set variable compression level.
+    int SetCompression(VidType, int);
 #   ifdef MPI
     void Sync(Parallel::Comm const&);
 #   endif

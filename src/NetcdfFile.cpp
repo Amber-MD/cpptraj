@@ -12,7 +12,7 @@
 #  include "ParallelNetcdf.h"
 # endif
 # ifdef HAS_HDF5
-#  include <algorithm> // std::copy
+#  include <algorithm> // std::fill
 # endif
 #endif
 
@@ -710,13 +710,11 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
   return (NC_create(NC_V3, Name, typeIn, natomIn, coordInfo, title, debugIn));
 }
 
-int NetcdfFile::SetCompression(const int* deflateLevelsIn) {
+/** Set compression level for specified variable if supported. */
+int NetcdfFile::SetCompression(VidType vtype, int deflateLevelIn) {
 # ifdef HAS_HDF5
-  if (deflateLevelsIn == 0) {
-    mprinterr("InternalError: NetcdfFile::SetCompression() called with null.\n");
-    return 1;
-  }
-  std::copy( deflateLevelsIn, deflateLevelsIn + (unsigned int)NVID, deflateLevels_ );
+  mprintf("\tSetting compression for VIDTYPE %i to %i\n", (int)vtype, deflateLevelIn);
+  deflateLevels_[vtype] = deflateLevelIn;
 # else
   mprintf("Warning: NetCDF compression only supported when compiled with HDF5 support.\n");
 # endif
