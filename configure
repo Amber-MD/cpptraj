@@ -987,6 +987,10 @@ SetupLibraries() {
     echo "Warning: TNG depends on libz; disabling TNG."
     LIB_STAT[$LTNGFILE]='off'
   fi
+  if [ "${LIB_STAT[$LNETCDF]}" = 'off' -a "${LIB_STAT[$LHDF5]}" != 'off' ] ; then
+    # HDF5 needs netcdf
+    LIB_STAT[$LHDF5]='off'
+  fi
 }
 
 #-------------------------------------------------------------------------------
