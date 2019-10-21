@@ -11,6 +11,9 @@
 # ifdef MPI
 #  include "ParallelNetcdf.h"
 # endif
+# ifdef HAS_HDF5
+#  include <algorithm> // std::copy
+# endif
 #endif
 
 // NetcdfFile::GetNetcdfConventions()
@@ -90,6 +93,9 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
 
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
+# ifdef HAS_HDF5
+  deflateLevels_(0),
+# endif
   ncid_(-1),
   ncframe_(-1),
   TempVID_(-1),
@@ -124,7 +130,17 @@ NetcdfFile::NetcdfFile() :
   count_[0] = 0;
   count_[1] = 0;
   count_[2] = 0;
+# ifdef HAS_HDF5
+  deflateLevels_ = new int[ (unsigned int)NVID ];
+  std::fill( deflateLevels_, deflateLevels_ + (unsigned int)NVID, 0 );
+# endif
 }
+
+#ifdef HAS_HDF5
+NetcdfFile::~NetcdfFile() {
+  if (deflateLevels_ != 0) delete[] deflateLevels_;
+}
+#endif
 
 const char* NetcdfFile::ConventionsStr_[] = {
   "AMBER",         // NC_AMBERTRAJ
@@ -692,6 +708,19 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
 {
   return (NC_create(NC_V3, Name, typeIn, natomIn, coordInfo, title, debugIn));
+}
+
+int NetcdfFile::SetCompression(const int* deflateLevelsIn) {
+# ifdef HAS_HDF5
+  if (deflateLevelsIn == 0) {
+    mprinterr("InternalError: NetcdfFile::SetCompression() called with null.\n");
+    return 1;
+  }
+  std::copy( deflateLevelsIn, deflateLevelsIn + (unsigned int)NVID, deflateLevels_ );
+# else
+  mprintf("Warning: NetCDF compression only supported when compiled with HDF5 support.\n");
+# endif
+  return 0;
 }
 
 // NetcdfFile::NC_create()

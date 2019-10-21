@@ -17,6 +17,10 @@ class NetcdfFile {
 #   else
     /// CONSTRUCTOR
     NetcdfFile();
+#   ifdef HAS_HDF5
+    /// DESTRUCTOR
+    ~NetcdfFile();
+#   endif
     /// \return Coordinate info corresponding to current setup. TODO have in variable?
     CoordinateInfo NC_coordInfo() const;
     /// Open NetCDF file for reading.
@@ -61,8 +65,17 @@ class NetcdfFile {
     inline int Ncframe()   const { return ncframe_;             }
     inline int CoordVID()  const { return coordVID_;            }
   protected: // TODO: Make all private
+    /// Enumerated type for all variable IDs.
+    enum VidType { V_COORDS = 0, NVID };
+
+    /// Set variable compression levels.
+    int SetCompression(const int*);
 #   ifdef MPI
     void Sync(Parallel::Comm const&);
+#   endif
+
+#   ifdef HAS_HDF5
+    int* deflateLevels_; ///< Compression levels for each VID
 #   endif
     size_t start_[4];    ///< Array starting indices
     size_t count_[4];    ///< Array counts
