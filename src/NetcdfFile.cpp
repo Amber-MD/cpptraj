@@ -1,19 +1,49 @@
+#include <cstdio> // FILE, fopen, fclose
 #include "NetcdfFile.h"
+# include "CpptrajStdio.h"
 #ifdef BINTRAJ
-#  include <netcdf.h>
-#  include <cstring> // strlen
-#  include "NC_Routines.h"
+# include <netcdf.h>
+# include <cstring> // strlen
+# include "NC_Routines.h"
+# include "Constants.h"
+# include "Version.h"
+# include "Frame.h"
+# ifdef MPI
+#  include "ParallelNetcdf.h"
+# endif
 #endif
-#ifdef MPI
-# include "ParallelNetcdf.h"
-#endif
-#include "CpptrajStdio.h"
-#include "Constants.h"
-#include "Version.h"
 
 // NetcdfFile::GetNetcdfConventions()
-NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
+/** First check the base format type to determine NetCDF3 vs NetCDF/HDF5.
+  * Then check that the file has the proper conventions.
+  */
+NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const char* fname)
+{
+  btype = NC_NOTNC;
   NCTYPE nctype = NC_UNKNOWN;
+  // Determine base type via magic number
+  FILE* infile = fopen(fname, "rb");
+  if (infile == 0) return nctype;
+  char buf[8];
+  unsigned int nread = fread(buf, sizeof(char), 8, infile);
+  fclose(infile);
+  if (nread > 3 && buf[0] == 'C' && buf[1] == 'D' && buf[2] == 'F') {
+#   ifdef BINTRAJ
+    btype = NC_V3;
+#   else
+    mprintf("Warning: File '%s' appears to be NetCDF but cpptraj was compiled without NetCDF support.\n", fname);
+    return nctype;
+#   endif
+  } else if (nread > 7 && buf[0] == 0x89 && buf[1] == 0x48 && buf[2] == 0x44 && buf[3] == 0x46 &&
+                          buf[4] == 0x0d && buf[5] == 0x0a && buf[6] == 0x1a && buf[7] == 0x0a)
+  {
+#   ifdef HAS_HDF5
+    btype = NC_V4;
+#   else
+    mprintf("Warning: File '%s' appears to be NetCDF4/HDF5 but cpptraj was compiled without HDF5 support.\n", fname);
+    return nctype;
+#   endif
+  }
 # ifdef BINTRAJ
   // NOTE: Do not use checkNCerr so this fails silently. Allows routine to
   //       be used in file autodetection.
@@ -28,7 +58,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
   return nctype;
 }
 
-/** \return netcdf format type if the given magic number is recognized.
+/** \return netcdf format type if the file magic number is recognized.
   */
 
 #ifdef BINTRAJ
@@ -656,10 +686,11 @@ void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
   }
 }
 
+/** Create default NetCDF version 3 file. */
 int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
 {
-  return (NC_create(NC_WRITE_3, Name, typeIn, natomIn, coordInfo, title, debugIn));
+  return (NC_create(NC_V3, Name, typeIn, natomIn, coordInfo, title, debugIn));
 }
 
 // NetcdfFile::NC_create()
@@ -677,10 +708,14 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
     mprintf("DEBUG: NC_create: '%s'  natom=%i  %s\n",
             Name.c_str(),natomIn, coordInfo.InfoString().c_str());
   int cmode;
-  if (wtypeIn == NC_WRITE_3)
+  if (wtypeIn == NC_V3)
     cmode = NC_64BIT_OFFSET;
-  else
+  else if (wtypeIn == NC_V4)
     cmode = NC_NETCDF4;
+  else {
+    mprinterr("Internal Error: Unspecified base format type given in NC_create().\n");
+    return 1;
+  }
   if ( NC::CheckErr( nc_create( Name.c_str(), cmode, &ncid_) ) )
     return 1;
 

@@ -1,19 +1,20 @@
 #ifndef INC_NETCDFFILE_H
 #define INC_NETCDFFILE_H
 #include <string>
-#include "Frame.h"
+#include "CoordinateInfo.h"
+class Frame;
 /// The base interface to NetCDF trajectory files.
 class NetcdfFile {
   public:
     /// For determining NetCDF trajectory file type
     enum NCTYPE { NC_AMBERTRAJ = 0, NC_AMBERRESTART, NC_AMBERENSEMBLE, NC_UNKNOWN };
-    /// \return Type of given file.
-    NCTYPE GetNetcdfConventions(const char*);
+    /// For determining netcdf4/hdf5 vs netcdf3
+    enum NC_FMT_TYPE { NC_NOTNC = 0, NC_V3, NC_V4 };
+    /// \return Type of specified file.
+    static NCTYPE GetNetcdfConventions(NC_FMT_TYPE&, const char*);
 #   ifndef BINTRAJ
     NetcdfFile() { }
 #   else
-    /// For determining netcdf4 vs netcdf3
-    enum NC_FMT_TYPE { NC_WRITE_3 = 0, NC_WRITE_4 };
     /// CONSTRUCTOR
     NetcdfFile();
     /// \return Coordinate info corresponding to current setup. TODO have in variable?
@@ -86,7 +87,7 @@ class NetcdfFile {
     static const char* ConventionsStr_[];
 
     /// \return NetCDF trajectory type based on conventions.
-    NCTYPE GetNetcdfConventions(int);
+    static NCTYPE GetNetcdfConventions(int);
     /// Check NetCDF file conventions version.
     void CheckConventionsVersion();
 
