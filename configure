@@ -158,10 +158,10 @@ LBLAS=7
 LFFTW3=8
 LREADLINE=9
 LXDRFILE=10
-LSANDER=11
-LTIMER=12
-LCUDA=13
-LHDF5=14
+LTIMER=11
+LCUDA=12
+LHDF5=13
+LSANDER=14  # Make sure this comes last to avoid pulling in unnecessary symbols
 
 # LIB_STAT = Library status:
 #   off       : Do not use library.
@@ -268,7 +268,7 @@ LIB_FLAG[$LSANDER]='-lsander'
 LIB_STTC[$LSANDER]=''
 LIB_D_ON[$LSANDER]='-DUSE_SANDERLIB'
 LIB_DOFF[$LSANDER]=''
-LIB_TYPE[$LSANDER]='cpp'
+LIB_TYPE[$LSANDER]='ld'
 
 LIB_STAT[$LTIMER]='off'
 LIB_CKEY[$LTIMER]='timer'
