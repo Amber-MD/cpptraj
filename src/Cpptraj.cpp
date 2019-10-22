@@ -195,6 +195,9 @@ std::string Cpptraj::Defines() {
 #endif
 #ifdef BINTRAJ
   defined_str.append(" -DBINTRAJ");
+# ifdef HAS_HDF5
+  defined_str.append(" -DHAS_HDF5");
+# endif
 #endif
 #ifdef MPI
   defined_str.append(" -DMPI");
