@@ -721,6 +721,25 @@ int NetcdfFile::SetCompression(VidType vtype, int deflateLevelIn) {
   return 0;
 }
 
+/** Set variable compression level if supported. */
+int NetcdfFile::NC_setDeflate(VidType vtype, int varid, const char* desc) const
+{
+  // TODO static var containing VID descriptions?
+#   ifdef HAS_HDF5
+    if (deflateLevels_[vtype] > 0) {
+      // TODO shuffle integer types?
+      if ( NC::CheckErr( nc_def_var_deflate(ncid_, varid, 0, 1, deflateLevels_[vtype]) ) ) {
+        mprinterr("Error: Setting compression for '%s' variable.\n", desc);
+        return 1;
+      }
+    }
+#   else
+    mprintf("Warning: Compiled without HDF5 support; cannot set compression for '%s' variable.\n",
+            desc);
+#   endif
+  return 0;
+}
+
 // NetcdfFile::NC_create()
 int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE typeIn, int natomIn,
                           CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
@@ -849,14 +868,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing coordinates variable units.\n");
       return 1;
     }
-#   ifdef HAS_HDF5
-    if (deflateLevels_[V_COORDS] > 0) {
-      if ( NC::CheckErr( nc_def_var_deflate(ncid_, coordVID_, 0, 1, deflateLevels_[V_COORDS]) ) ) {
-        mprinterr("Error: Setting compression for coordinates variable.\n");
-        return 1;
-      }
-    }
-#   endif
+    if (NC_setDeflate(V_COORDS, coordVID_, "coordinates")) return 1;
   }
   // Velocity variable
   if (coordInfo.HasVel()) {
