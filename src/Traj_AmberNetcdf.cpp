@@ -177,7 +177,7 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
       SetTitle("Cpptraj Generated trajectory");
 #   ifdef HAS_HDF5
     // Set compression levels
-    if (compress_ > 0) SetCompression(V_COORDS, compress_);
+    if (compress_ > 0) SetCompression(compress_);
 #   endif
     // Create NetCDF file.
     if (NC_create( ftype_, filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),

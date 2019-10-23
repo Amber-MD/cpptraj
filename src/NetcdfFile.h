@@ -70,6 +70,8 @@ class NetcdfFile {
                    V_BOXA,       V_TIME, V_IND, V_RIDX, V_CIDX,
                    NVID }; // TODO RemdValues
 
+    /// Set all variables compression level.
+    int SetCompression(int);
     /// Set desired variable compression level.
     int SetCompression(VidType, int);
     /// Set compression level for variable ID

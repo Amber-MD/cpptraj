@@ -722,6 +722,14 @@ int NetcdfFile::SetCompression(VidType vtype, int deflateLevelIn) {
   return 0;
 }
 
+/** Set compression level for all variables if supported. */
+int NetcdfFile::SetCompression(int deflateLevelIn) {
+  int err = 0;
+  for (int i = 0; i != (int)NVID; i++)
+    err += SetCompression( (VidType)i, deflateLevelIn );
+  return err;
+}
+
 /** Set variable compression level if supported. */
 int NetcdfFile::NC_setDeflate(VidType vtype, int varid, const char* desc) const
 {
