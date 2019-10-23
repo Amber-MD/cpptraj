@@ -640,6 +640,7 @@ int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
     mprinterr("NetCDF error on defining temperature units.\n");
     return 1;
   }
+  if (NC_setDeflate(V_TEMP, TempVID_, "temperature")) return 1;
   return 0;
 }
 
@@ -820,6 +821,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing time VID units.\n");
       return 1;
     }
+    if (NC_setDeflate(V_TIME, timeVID_, "time")) return 1;
   }
   // Spatial dimension and variable
   if ( NC::CheckErr( nc_def_dim( ncid_, NCSPATIAL, 3, &spatialDID_)) ) {
@@ -887,6 +889,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing velocities scale factor.\n");
       return 1;
     }
+    if (NC_setDeflate(V_VEL, velocityVID_, "velocities")) return 1;
   }
   // Force variable
   if (coordInfo.HasForce()) {
@@ -899,6 +902,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing forces variable units.\n");
       return 1;
     }
+    if (NC_setDeflate(V_FRC, frcVID_, "forces")) return 1;
   }
   // Replica Temperature
   if (coordInfo.HasTemp() && !coordInfo.UseRemdValues()) {
@@ -914,6 +918,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Defining replica idx variable ID.\n");
       return 1;
     }
+    if (NC_setDeflate(V_RIDX, repidxVID_, "replica idx")) return 1;
   }
   // Overall coordinate index
   if (coordInfo.HasCrdIdx()) {
@@ -923,6 +928,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Defining coordinate idx variable ID.\n");
       return 1;
     }
+    if (NC_setDeflate(V_CIDX, crdidxVID_, "coordinate idx")) return 1;
   }
   // Replica indices
   int remDimTypeVID = -1;
@@ -948,6 +954,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Defining replica indices variable ID.\n");
       return 1;
     }
+    if (NC_setDeflate(V_IND, indicesVID_, "replica indices")) return 1;
     // TODO: Determine if groups are really necessary for restarts. If not, 
     // remove from AmberNetcdf.F90.
   }
@@ -977,7 +984,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       // FIXME assuming temperature
       remValType_.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
     }
-  } 
+  }
   // Box Info
   if (coordInfo.HasBox()) {
     // Cell Spatial
@@ -1043,6 +1050,8 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing cell angle variable units.\n");
       return 1;
     }
+    if (NC_setDeflate(V_BOXL, cellLengthVID_, "cell lengths")) return 1;
+    if (NC_setDeflate(V_BOXA, cellAngleVID_, "cell angles")) return 1;
   }
 
   // Attributes

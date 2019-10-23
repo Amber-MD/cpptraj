@@ -68,7 +68,7 @@ class NetcdfFile {
     /// Enumerated type for all variable IDs.
     enum VidType { V_COORDS = 0, V_VEL,  V_FRC, V_TEMP, V_BOXL,
                    V_BOXA,       V_TIME, V_IND, V_RIDX, V_CIDX,
-                   NVID };
+                   NVID }; // TODO RemdValues
 
     /// Set desired variable compression level.
     int SetCompression(VidType, int);
