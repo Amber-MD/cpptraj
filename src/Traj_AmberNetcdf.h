@@ -47,6 +47,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     bool write_mdfrc_;    ///< If true write out forces
 #   ifdef HAS_HDF5
     int compress_;        ///< HDF5 compression level
+    int icompress_;       ///< HDF5 integer compression level
 #   endif
     NC_FMT_TYPE ftype_;   ///< Base format type 
 };

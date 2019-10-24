@@ -27,6 +27,7 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   write_mdfrc_(false),
 # ifdef HAS_HDF5
   compress_(0),
+  icompress_(0),
 # endif
   ftype_(NC_V3) // Default to NetCDF 3
 {}
@@ -132,6 +133,11 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
   // HDF5-specific options
   if (ftype_ == NC_V4) {
     compress_ = argIn.getKeyInt("compress", 0);
+    icompress_ = argIn.getKeyInt("icompress", 0);
+    if (icompress_ < 0) {
+      mprinterr("Error: icompress cannot be negative.\n");
+      return 1;
+    }
   }
 # endif
   return 0;
@@ -183,6 +189,12 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (NC_create( ftype_, filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),
                    Title(), debug_ ))
       return 1;
+#   ifdef HAS_HDF5
+    // Set up for integer compression if necessary
+    if (icompress_ > 0) {
+      if (NC_createCompressed(icompress_)) return 1;
+    }
+#   endif
     // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
     NC_close();
     // Allocate memory
@@ -355,6 +367,11 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   count_[2] = 3;
 
   // Write coords.
+# ifdef HAS_HDF5
+  if (compressedPosVID_ != -1) {
+    if (NC_writeCompressed(frameOut)) return 1;
+  } else
+# endif
   if (coordVID_ != -1) {
     DoubleToFloat(Coord_, frameOut.xAddress());
     if (NC::CheckErr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
