@@ -13,6 +13,7 @@
 # endif
 # ifdef HAS_HDF5
 #  include <algorithm> // std::fill
+#  include <limits> // for integer compression
 # endif
 #endif
 
@@ -253,8 +254,7 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
   atomDID_ = NC::GetDimInfo( ncid_, NCATOM, ncatom_ );
   if (atomDID_==-1) return 1;
   ncatom3_ = ncatom_ * 3;
-  // Get coord info
-  coordVID_ = -1;
+  // Check for integer compression - requires HDF5
   int localCompressedPosVID = -1;
   int compressedPowVID = -1;
   if ( nc_inq_varid(ncid_, NCCOMPPOS, &localCompressedPosVID) == NC_NOERR ) {
@@ -284,6 +284,8 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
     return 1;
 #   endif /* HAS_HDF5 */
   }
+  // Get coord info
+  coordVID_ = -1;
   if ( nc_inq_varid(ncid_, NCCOORDS, &coordVID_) == NC_NOERR ) {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has coordinates.\n");
     std::string attrText = NC::GetAttrText(ncid_, coordVID_, "units");
@@ -751,8 +753,19 @@ int NetcdfFile::NC_createCompressed(int power)
 int NetcdfFile::NC_writeCompressed(Frame const& frmOut) {
 # ifdef HAS_HDF5
   // Convert to integer
+  long int maxval = (long int)std::numeric_limits<int>::max();
   for (int idx = 0; idx != frmOut.size(); idx++)
-    itmp_[idx] = (int)(frmOut[idx] * compressedFac_);
+  {
+    // Try some overflow protection
+    long int ii = (long int)(frmOut[idx] * compressedFac_);
+    if (ii > maxval || ii < -maxval) {
+      mprinterr("Error: Coordinate %i frame %i (%g) is too large to convert to int.\n",
+                idx+1, ncframe_+1, frmOut[idx]);
+      return 1;
+    }
+    itmp_[idx] = (int)ii;
+    //itmp_[idx] = (int)(frmOut[idx] * compressedFac_);
+  }
   //mprintf("DEBUG: atom 0 xyz={ %20.10f %20.10f %20.10f } ixyz= { %20i %20i %20i }\n",
   //        frmOut[0], frmOut[1], frmOut[2], itmp_[0], itmp_[1], itmp_[2]);
   //  Write array
