@@ -79,7 +79,7 @@ class NetcdfFile {
     /// Set compression level for variable ID
     int NC_setDeflate(VidType, int) const;
     /// Set chunk sizes for variable ID
-    int NC_setChunkSizes(VidType, int, const size_t*) const;
+    int NC_setFrameChunkSize(VidType, int, int) const;
     /// Create an integer compressed version of the trajectory
     int NC_createCompressed(int);
     /// Write an integer-compressed frame to the trajectory
@@ -95,10 +95,11 @@ class NetcdfFile {
 #   endif
 
 #   ifdef HAS_HDF5
-    int* deflateLevels_;  ///< Compression levels for each VID
+    int* deflateLevels_;   ///< Compression levels for each VID
     int compressedPosVID_; ///< Coordinates integer VID
     double compressedFac_; ///< Compression factor 
     int* itmp_;            ///< Temp space for converting to int
+    int fchunkSize_;       ///< Frame chunk size
 #   endif
     size_t start_[4];    ///< Array starting indices
     size_t count_[4];    ///< Array counts

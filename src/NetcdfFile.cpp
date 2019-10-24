@@ -103,6 +103,7 @@ NetcdfFile::NetcdfFile() :
   compressedPosVID_(-1),
   compressedFac_(0),
   itmp_(0),
+  fchunkSize_(1),
 # endif
   ncid_(-1),
   ncframe_(-1),
@@ -915,11 +916,26 @@ int NetcdfFile::NC_setDeflate(VidType vtype, int varid) const
   return 0;
 }
 
-/** Set variable chunk sizes if supported. */
-int NetcdfFile::NC_setChunkSizes(VidType vtype, int varid, const size_t* chunkSizes) const
+/** Set frame chunk size for variable if supported. */
+int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid, int frameChunkSize) const
 {
 # ifdef HAS_HDF5
-  if (chunkSizes != 0 && deflateLevels_[vtype] > 0) {
+  if (frameChunkSize > 0 && deflateLevels_[vtype] > 0) {
+    // Get existing chunk sizes. Going to assume frame chunk size is first dim! TODO do not assume this
+    size_t chunkSizes[4];
+    int storagep = 0;
+    if ( NC::CheckErr( nc_inq_var_chunking(ncid_, varid, &storagep, chunkSizes) ) ) {
+      mprinterr("Error: getting existing chunk sizes for '%s' variable.\n", vidDesc_[vtype]);
+      return 1;
+    }
+    if (storagep != NC_CHUNKED) {
+      mprinterr("Internal Error: NC_setFrameChunkSize called for VID that is not chunked '%s'\n",
+                vidDesc_[vtype]);
+      return 1;
+    }
+    mprintf("DEBUG: '%s' frame chunk size = %zu new size= %i\n", vidDesc_[vtype], chunkSizes[0], frameChunkSize);
+    // Set new frame chunk size
+    chunkSizes[0] = frameChunkSize;
     if ( NC::CheckErr( nc_def_var_chunking(ncid_, varid, NC_CHUNKED, chunkSizes) ) ) {
       mprinterr("Error: Setting chunk sizes for '%s' variable.\n", vidDesc_[vtype]);
       return 1;
@@ -1084,6 +1100,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       return 1;
     }
     if (NC_setDeflate(V_COORDS, coordVID_)) return 1;
+    if (NC_setFrameChunkSize(V_COORDS, coordVID_, fchunkSize_)) return 1;
   }
   // Velocity variable
   if (coordInfo.HasVel()) {
