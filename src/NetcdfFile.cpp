@@ -90,6 +90,10 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
 #define NCEPTOT "eptot"
 #define NCBINS "bins"
 #define NCREMDVALUES "remd_values"
+#ifdef HAS_HDF5
+# define NCCOMPPOS "compressedpos"
+# define NCCOMPPOW "compressedpow"
+#endif
 
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
@@ -661,7 +665,7 @@ int NetcdfFile::NC_createCompressed(int power)
   dimensionID[0] = frameDID_;
   dimensionID[1] = atomDID_;
   dimensionID[2] = spatialDID_;
-  if (NC::CheckErr( nc_def_var(ncid_, "compressedpos", NC_INT, 3, dimensionID, &compressedPosVID_) )) {
+  if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOS, NC_INT, 3, dimensionID, &compressedPosVID_) )) {
     mprinterr("Error: defining compressed positions VID.\n");
     return 1;
   }
@@ -682,7 +686,7 @@ int NetcdfFile::NC_createCompressed(int power)
   }
   // Define variable to hold conversion power
   int compressedPowVID = -1;
-  if (NC::CheckErr( nc_def_var(ncid_, "compressedpow", NC_INT, 0, dimensionID, &compressedPowVID) )) {
+  if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOW, NC_INT, 0, dimensionID, &compressedPowVID) )) {
     mprinterr("Error: defining compressed power factor VID.\n");
     return 1;
   }
