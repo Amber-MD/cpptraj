@@ -48,6 +48,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
 #   ifdef HAS_HDF5
     int compress_;        ///< HDF5 compression level
     int icompress_;       ///< HDF5 integer compression level
+    int fchunkSize_;      ///< HDF5 frame chunk size
 #   endif
     NC_FMT_TYPE ftype_;   ///< Base format type 
 };

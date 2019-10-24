@@ -78,6 +78,8 @@ class NetcdfFile {
     int SetCompression(VidType, int);
     /// Set compression level for variable ID
     int NC_setDeflate(VidType, int) const;
+    /// Set default frame chunk size
+    int SetFrameChunkSize(int);
     /// Set chunk sizes for variable ID
     int NC_setFrameChunkSize(VidType, int, int) const;
     /// Create an integer compressed version of the trajectory

@@ -28,6 +28,7 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
 # ifdef HAS_HDF5
   compress_(0),
   icompress_(0),
+  fchunkSize_(0),
 # endif
   ftype_(NC_V3) // Default to NetCDF 3
 {}
@@ -138,6 +139,11 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
       mprinterr("Error: icompress cannot be negative.\n");
       return 1;
     }
+    fchunkSize_ = argIn.getKeyInt("fchunksize", 0);
+    if (fchunkSize_ < 0) {
+      mprinterr("Error: fchunksize cannot be negative.\n");
+      return 1;
+    }
   }
 # endif
   return 0;
@@ -184,6 +190,8 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
 #   ifdef HAS_HDF5
     // Set compression levels
     if (compress_ > 0) SetCompression(compress_);
+    // Set frame chunk size
+    if (fchunkSize_ > 0) SetFrameChunkSize(fchunkSize_);
 #   endif
     // Create NetCDF file.
     if (NC_create( ftype_, filename_.Full(), NC_AMBERTRAJ, trajParm->Natom(), CoordInfo(),

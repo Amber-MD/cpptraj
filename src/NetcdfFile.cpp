@@ -726,6 +726,7 @@ int NetcdfFile::NC_createCompressed(int power)
     mprinterr("Error: Setting compression level %i for integer compressed coords.\n", deflateLevels_[V_COORDS]);
     return 1;
   }
+  if (NC_setFrameChunkSize(V_COORDS, compressedPosVID_, fchunkSize_)) return 1;
   // Define variable to hold conversion power
   int compressedPowVID = -1;
   if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOW, NC_INT, 0, dimensionID, &compressedPowVID) )) {
@@ -883,6 +884,16 @@ int NetcdfFile::SetCompression(int deflateLevelIn) {
   for (int i = 0; i != (int)NVID; i++)
     err += SetCompression( (VidType)i, deflateLevelIn );
   return err;
+}
+
+int NetcdfFile::SetFrameChunkSize(int fchunkSizeIn) {
+# ifdef HAS_HDF5
+  mprintf("\tSetting frame chunk size to %i\n", fchunkSizeIn);
+  fchunkSize_ = fchunkSizeIn;
+# else
+  mprintf("Warning: NetCDF chunk size only supported when compiled with HDF5 support.\n");
+# endif
+  return 0;
 }
 
 const char* NetcdfFile::vidDesc_[NVID] = {
