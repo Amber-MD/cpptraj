@@ -78,6 +78,8 @@ class NetcdfFile {
     int SetCompression(VidType, int);
     /// Set compression level for variable ID
     int NC_setDeflate(VidType, int) const;
+    /// Set chunk sizes for variable ID
+    int NC_setChunkSizes(VidType, int, const size_t*) const;
 #   ifdef MPI
     void Sync(Parallel::Comm const&);
 #   endif

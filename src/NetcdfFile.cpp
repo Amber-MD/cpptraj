@@ -735,19 +735,27 @@ int NetcdfFile::NC_setDeflate(VidType vtype, int varid) const
   }
 # else
   mprintf("Warning: Compiled without HDF5 support; cannot set compression for '%s' variable.\n",
-          desc);
+          vidDesc_[vtype]);
 # endif
   return 0;
 }
 
 /** Set variable chunk sizes if supported. */
-/*
 int NetcdfFile::NC_setChunkSizes(VidType vtype, int varid, const size_t* chunkSizes) const
 {
 # ifdef HAS_HDF5
   if (chunkSizes != 0 && deflateLevels_[vtype] > 0) {
     if ( NC::CheckErr( nc_def_var_chunking(ncid_, varid, NC_CHUNKED, chunkSizes) ) ) {
-      mprinterr("Error: Setting chunk sizes for '%s' variable*/
+      mprinterr("Error: Setting chunk sizes for '%s' variable.\n", vidDesc_[vtype]);
+      return 1;
+    }
+  }
+# else
+  mprintf("Warning: Compiled without HDF5 support; cannot set chunk sizes for '%s' variable.\n",
+          vidDesc_[vtype]);
+# endif
+  return 0;
+}
 
 // NetcdfFile::NC_defineTemperature()
 int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
