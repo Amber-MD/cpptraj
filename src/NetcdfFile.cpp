@@ -670,7 +670,7 @@ int NetcdfFile::NC_createCompressed(int power)
     mprintf("Warning: Using default compression level for coords.\n");
     deflateLevels_[V_COORDS] = 1;
   }
-  int ishuffle = 0;
+  int ishuffle = 1;
   if (ishuffle == 0)
     mprintf("DEBUG: Integer shuffle is off.\n");
   else
