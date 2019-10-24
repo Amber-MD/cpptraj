@@ -255,6 +255,24 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
   ncatom3_ = ncatom_ * 3;
   // Get coord info
   coordVID_ = -1;
+  int localCompressedPosVID = -1;
+  int compressedPowVID = -1;
+  if ( nc_inq_varid(ncid_, NCCOMPPOS, &localCompressedPosVID) == NC_NOERR ) {
+    if (ncdebug_ > 0) mprintf("\tNetCDF file has integer-compressed coordinates.\n");
+  }
+  if (localCompressedPosVID != -1) {
+#  ifdef HAS_HDF5
+    compressedPosVID_ = localCompressedPosVID;
+    // Get compressed power
+    if ( nc_inq_varid(ncid_, NCCOMPPOW, &compressedPowVID) != NC_NOERR ) {
+      mprinterr("Error: NetCDF file has integer-compressed coordinates but no compress power variable ID.\n");
+      return 1;
+    }
+#  else
+    mprinterr("Error: Integer-compressed NetCDF trajectories requires cpptraj compiled with HDF5 support.\n");
+    return 1;
+#   endif /* HAS_HDF5 */
+  }
   if ( nc_inq_varid(ncid_, NCCOORDS, &coordVID_) == NC_NOERR ) {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has coordinates.\n");
     std::string attrText = NC::GetAttrText(ncid_, coordVID_, "units");
