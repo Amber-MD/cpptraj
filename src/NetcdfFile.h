@@ -84,6 +84,8 @@ class NetcdfFile {
     int NC_createCompressed(int);
     /// Write an integer-compressed frame to the trajectory
     int NC_writeCompressed(Frame const&);
+    /// Read an integer-compressed frame from the trajectory
+    int NC_readCompressed(int, Frame& frmIn);
 #   ifdef MPI
     void Sync(Parallel::Comm const&);
 #   endif

@@ -728,6 +728,26 @@ int NetcdfFile::NC_writeCompressed(Frame const& frmOut) {
   return 0;
 }
 
+int NetcdfFile::NC_readCompressed(int set, Frame& frmIn) {
+# ifdef HAS_HDF5
+  // Read array
+  start_[0] = set;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = Ncatom();
+  count_[2] = 3;
+  if (NC::CheckErr(nc_get_vara_int(ncid_, compressedPosVID_, start_, count_, itmp_))) {
+    mprinterr("Error: NetCDF reading compressed coordinates frame %i\n", set+1);
+    return 1;
+  }
+  // Convert from integer
+  for (int idx = 0; idx != frmIn.size(); idx++)
+    frmIn[idx] = (double)(itmp_[idx]) / compressedFac_; // TODO convert to 1/fac first?
+# endif
+  return 0;
+}
+
 // NetcdfFile::NC_createReservoir()
 int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
                                    int& eptotVID, int& binsVID) 
