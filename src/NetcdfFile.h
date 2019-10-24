@@ -86,6 +86,10 @@ class NetcdfFile {
     int NC_writeCompressed(Frame const&);
     /// Read an integer-compressed frame from the trajectory
     int NC_readCompressed(int, Frame& frmIn);
+#   ifdef HAS_HDF5
+    /// Calculate integer compression factor of 10 from given power
+    int calcCompressFactor(int);
+#   endif
 #   ifdef MPI
     void Sync(Parallel::Comm const&);
 #   endif

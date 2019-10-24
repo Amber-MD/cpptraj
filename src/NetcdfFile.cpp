@@ -261,14 +261,25 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
     if (ncdebug_ > 0) mprintf("\tNetCDF file has integer-compressed coordinates.\n");
   }
   if (localCompressedPosVID != -1) {
-#  ifdef HAS_HDF5
+#   ifdef HAS_HDF5
     compressedPosVID_ = localCompressedPosVID;
-    // Get compressed power
+    // Get compressed power var ID
     if ( nc_inq_varid(ncid_, NCCOMPPOW, &compressedPowVID) != NC_NOERR ) {
       mprinterr("Error: NetCDF file has integer-compressed coordinates but no compress power variable ID.\n");
       return 1;
     }
-#  else
+    // Get compressed power
+    int power = 0;
+    if (NC::CheckErr(nc_get_var_int(ncid_, compressedPowVID, &power))) {
+      mprinterr("Error: Reading compressed power factor.\n");
+      return 1;
+    }
+    // Calculate compressed factor
+    if (calcCompressFactor(power)) return 1;
+    // Allocate temporary space for integer array
+    if (itmp_ != 0) delete[] itmp_;
+    itmp_ = new int[ Ncatom3() ];
+#   else
     mprinterr("Error: Integer-compressed NetCDF trajectories requires cpptraj compiled with HDF5 support.\n");
     return 1;
 #   endif /* HAS_HDF5 */
@@ -656,6 +667,21 @@ int NetcdfFile::NC_openWrite(std::string const& Name) {
   return 0;
 }
 
+#ifdef HAS_HDF5
+int NetcdfFile::calcCompressFactor(int power) {
+  if (power < 1) {
+    mprinterr("Internal Error: calcCompressFactor called with power of 10 < 1\n");
+    // TODO warn for low powers?
+    return 1;
+  }
+  compressedFac_ = 10.0;
+  for (int i = 1; i < power; i++)
+    compressedFac_ *= 10.0;
+  mprintf("\tInteger compression factor: x%g\n", compressedFac_);
+  return 0;
+}
+#endif
+
 /** Prepare trajectory for adding coords converted to integer. */
 int NetcdfFile::NC_createCompressed(int power)
 {
@@ -663,11 +689,6 @@ int NetcdfFile::NC_createCompressed(int power)
   mprinterr("Error: Cpptraj was compiled without HDF5 support, required for compressed traj.\n");
   return 1;
 # else
-  if (power < 1) {
-    mprinterr("Internal Error: NC_createCompressed() called with power of 10 < 1\n");
-    // TODO warn for low powers?
-    return 1;
-  }
   if (ncid_ == -1) {
     mprinterr("Internal Error: NC_createCompressed() called with ncid -1\n");
     return 1;
@@ -714,15 +735,13 @@ int NetcdfFile::NC_createCompressed(int power)
     return 1;
   }
   // Calculate compressed factor; write compressed power of 10
-  compressedFac_ = 10.0;
-  for (int i = 1; i < power; i++)
-    compressedFac_ *= 10.0;
+  if (calcCompressFactor(power)) return 1;
   if (NC::CheckErr(nc_put_var_int(ncid_, compressedPowVID, &power)) ) {
     mprinterr("Error: Writing compressed power factor.\n");
     return 1;
   }
-  mprintf("\tInteger compression factor: x%g\n", compressedFac_);
   // Allocate temporary space for integer array
+  if (itmp_ != 0) delete[] itmp_;
   itmp_ = new int[ Ncatom3() ];
 
   return 0;

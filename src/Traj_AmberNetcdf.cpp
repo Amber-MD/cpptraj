@@ -259,12 +259,19 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     frameIn.SetTime( (double)time );
   }
 
-  // Read Coords 
-  if ( NC::CheckErr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)) ) {
-    mprinterr("Error: Getting coordinates for frame %i\n", set+1);
-    return 1;
+  // Read Coords
+ # ifdef HAS_HDF5
+  if (compressedPosVID_ != -1) {
+    if (NC_readCompressed(set, frameIn)) return 1;
+  } else
+# endif
+  if (coordVID_ != -1) {
+    if ( NC::CheckErr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: Getting coordinates for frame %i\n", set+1);
+      return 1;
+    }
+    FloatToDouble(frameIn.xAddress(), Coord_);
   }
-  FloatToDouble(frameIn.xAddress(), Coord_);
 
   // Read Velocities
   if (velocityVID_ != -1) {
