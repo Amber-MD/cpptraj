@@ -753,6 +753,8 @@ int NetcdfFile::NC_writeCompressed(Frame const& frmOut) {
   // Convert to integer
   for (int idx = 0; idx != frmOut.size(); idx++)
     itmp_[idx] = (int)(frmOut[idx] * compressedFac_);
+  //mprintf("DEBUG: atom 0 xyz={ %20.10f %20.10f %20.10f } ixyz= { %20i %20i %20i }\n",
+  //        frmOut[0], frmOut[1], frmOut[2], itmp_[0], itmp_[1], itmp_[2]);
   //  Write array
   start_[0] = ncframe_;
   start_[1] = 0;
