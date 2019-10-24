@@ -761,6 +761,7 @@ int NetcdfFile::NC_writeCompressed(Frame const& frmOut) {
     if (ii > maxval || ii < -maxval) {
       mprinterr("Error: Coordinate %i frame %i (%g) is too large to convert to int.\n",
                 idx+1, ncframe_+1, frmOut[idx]);
+      mprinterr("Error: A smaller integer compression factor must be used.\n");
       return 1;
     }
     itmp_[idx] = (int)ii;
