@@ -630,20 +630,6 @@ int NetcdfFile::NC_openWrite(std::string const& Name) {
   return 0;
 }
 
-// NetcdfFile::NC_defineTemperature()
-int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
-  if (NC::CheckErr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM,dimensionID,&TempVID_))) {
-    mprinterr("NetCDF error on defining temperature.\n");
-    return 1;
-  }
-  if (NC::CheckErr(nc_put_att_text(ncid_,TempVID_,"units",6,"kelvin"))) {
-    mprinterr("NetCDF error on defining temperature units.\n");
-    return 1;
-  }
-  if (NC_setDeflate(V_TEMP, TempVID_, "temperature")) return 1;
-  return 0;
-}
-
 // NetcdfFile::NC_createReservoir()
 int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
                                    int& eptotVID, int& binsVID) 
@@ -704,13 +690,6 @@ void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
   }
 }
 
-/** Create default NetCDF version 3 file. */
-int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
-                          CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
-{
-  return (NC_create(NC_V3, Name, typeIn, natomIn, coordInfo, title, debugIn));
-}
-
 /** Set compression level for specified variable if supported. */
 int NetcdfFile::SetCompression(VidType vtype, int deflateLevelIn) {
 # ifdef HAS_HDF5
@@ -730,24 +709,67 @@ int NetcdfFile::SetCompression(int deflateLevelIn) {
   return err;
 }
 
+const char* NetcdfFile::vidDesc_[NVID] = {
+  "coordinates",     // V_COORDS
+  "velocities",      // V_VEL
+  "forces",          // V_FRC
+  "temperature",     // V_TEMP
+  "box lengths",     // V_BOXL
+  "box angles",      // V_BOXA
+  "time",            // V_TIME
+  "replica indices", // V_IND
+  "replica idx",     // V_RIDX
+  "coord idx"        // V_CIDX
+};
+
 /** Set variable compression level if supported. */
-int NetcdfFile::NC_setDeflate(VidType vtype, int varid, const char* desc) const
+int NetcdfFile::NC_setDeflate(VidType vtype, int varid) const
 {
-  // TODO static var containing VID descriptions?
-#   ifdef HAS_HDF5
-    if (deflateLevels_[vtype] > 0) {
-      // TODO shuffle integer types?
-      if ( NC::CheckErr( nc_def_var_deflate(ncid_, varid, 0, 1, deflateLevels_[vtype]) ) ) {
-        mprinterr("Error: Setting compression for '%s' variable.\n", desc);
-        return 1;
-      }
+# ifdef HAS_HDF5
+  if (deflateLevels_[vtype] > 0) {
+    // TODO shuffle integer types?
+    if ( NC::CheckErr( nc_def_var_deflate(ncid_, varid, 0, 1, deflateLevels_[vtype]) ) ) {
+      mprinterr("Error: Setting compression for '%s' variable.\n", vidDesc_[vtype]);
+      return 1;
     }
-#   else
-    mprintf("Warning: Compiled without HDF5 support; cannot set compression for '%s' variable.\n",
-            desc);
-#   endif
+  }
+# else
+  mprintf("Warning: Compiled without HDF5 support; cannot set compression for '%s' variable.\n",
+          desc);
+# endif
   return 0;
 }
+
+/** Set variable chunk sizes if supported. */
+/*
+int NetcdfFile::NC_setChunkSizes(VidType vtype, int varid, const size_t* chunkSizes) const
+{
+# ifdef HAS_HDF5
+  if (chunkSizes != 0 && deflateLevels_[vtype] > 0) {
+    if ( NC::CheckErr( nc_def_var_chunking(ncid_, varid, NC_CHUNKED, chunkSizes) ) ) {
+      mprinterr("Error: Setting chunk sizes for '%s' variable*/
+
+// NetcdfFile::NC_defineTemperature()
+int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {
+  if (NC::CheckErr(nc_def_var(ncid_,NCTEMPERATURE,NC_DOUBLE,NDIM,dimensionID,&TempVID_))) {
+    mprinterr("NetCDF error on defining temperature.\n");
+    return 1;
+  }
+  if (NC::CheckErr(nc_put_att_text(ncid_,TempVID_,"units",6,"kelvin"))) {
+    mprinterr("NetCDF error on defining temperature units.\n");
+    return 1;
+  }
+  if (NC_setDeflate(V_TEMP, TempVID_)) return 1;
+  return 0;
+}
+
+/** Create default NetCDF version 3 file. */
+int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
+                          CoordinateInfo const& coordInfo, std::string const& title, int debugIn) 
+{
+  return (NC_create(NC_V3, Name, typeIn, natomIn, coordInfo, title, debugIn));
+}
+
 
 // NetcdfFile::NC_create()
 int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE typeIn, int natomIn,
@@ -829,7 +851,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing time VID units.\n");
       return 1;
     }
-    if (NC_setDeflate(V_TIME, timeVID_, "time")) return 1;
+    if (NC_setDeflate(V_TIME, timeVID_)) return 1;
   }
   // Spatial dimension and variable
   if ( NC::CheckErr( nc_def_dim( ncid_, NCSPATIAL, 3, &spatialDID_)) ) {
@@ -878,7 +900,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing coordinates variable units.\n");
       return 1;
     }
-    if (NC_setDeflate(V_COORDS, coordVID_, "coordinates")) return 1;
+    if (NC_setDeflate(V_COORDS, coordVID_)) return 1;
   }
   // Velocity variable
   if (coordInfo.HasVel()) {
@@ -897,7 +919,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing velocities scale factor.\n");
       return 1;
     }
-    if (NC_setDeflate(V_VEL, velocityVID_, "velocities")) return 1;
+    if (NC_setDeflate(V_VEL, velocityVID_)) return 1;
   }
   // Force variable
   if (coordInfo.HasForce()) {
@@ -910,7 +932,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing forces variable units.\n");
       return 1;
     }
-    if (NC_setDeflate(V_FRC, frcVID_, "forces")) return 1;
+    if (NC_setDeflate(V_FRC, frcVID_)) return 1;
   }
   // Replica Temperature
   if (coordInfo.HasTemp() && !coordInfo.UseRemdValues()) {
@@ -926,7 +948,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Defining replica idx variable ID.\n");
       return 1;
     }
-    if (NC_setDeflate(V_RIDX, repidxVID_, "replica idx")) return 1;
+    if (NC_setDeflate(V_RIDX, repidxVID_)) return 1;
   }
   // Overall coordinate index
   if (coordInfo.HasCrdIdx()) {
@@ -936,7 +958,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Defining coordinate idx variable ID.\n");
       return 1;
     }
-    if (NC_setDeflate(V_CIDX, crdidxVID_, "coordinate idx")) return 1;
+    if (NC_setDeflate(V_CIDX, crdidxVID_)) return 1;
   }
   // Replica indices
   int remDimTypeVID = -1;
@@ -962,7 +984,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Defining replica indices variable ID.\n");
       return 1;
     }
-    if (NC_setDeflate(V_IND, indicesVID_, "replica indices")) return 1;
+    if (NC_setDeflate(V_IND, indicesVID_)) return 1;
     // TODO: Determine if groups are really necessary for restarts. If not, 
     // remove from AmberNetcdf.F90.
   }
@@ -1058,8 +1080,8 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       mprinterr("Error: Writing cell angle variable units.\n");
       return 1;
     }
-    if (NC_setDeflate(V_BOXL, cellLengthVID_, "cell lengths")) return 1;
-    if (NC_setDeflate(V_BOXA, cellAngleVID_, "cell angles")) return 1;
+    if (NC_setDeflate(V_BOXL, cellLengthVID_)) return 1;
+    if (NC_setDeflate(V_BOXA, cellAngleVID_)) return 1;
   }
 
   // Attributes

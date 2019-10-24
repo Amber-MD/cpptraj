@@ -65,17 +65,19 @@ class NetcdfFile {
     inline int Ncframe()   const { return ncframe_;             }
     inline int CoordVID()  const { return coordVID_;            }
   protected: // TODO: Make all private
-    /// Enumerated type for all variable IDs.
+    /// Enumerated type for all variable IDs. MUST MATCH vidDesc_.
     enum VidType { V_COORDS = 0, V_VEL,  V_FRC, V_TEMP, V_BOXL,
                    V_BOXA,       V_TIME, V_IND, V_RIDX, V_CIDX,
                    NVID }; // TODO RemdValues
+    /// Descriptions of VidType. MUST MATCH VidType.
+    static const char* vidDesc_[];
 
     /// Set all variables compression level.
     int SetCompression(int);
     /// Set desired variable compression level.
     int SetCompression(VidType, int);
     /// Set compression level for variable ID
-    int NC_setDeflate(VidType, int, const char*) const;
+    int NC_setDeflate(VidType, int) const;
 #   ifdef MPI
     void Sync(Parallel::Comm const&);
 #   endif
