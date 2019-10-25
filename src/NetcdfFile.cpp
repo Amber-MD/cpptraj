@@ -655,144 +655,6 @@ int NetcdfFile::NC_openWrite(std::string const& Name) {
   return 0;
 }
 
-#ifdef HAS_HDF5
-int NetcdfFile::calcCompressFactor(int power) {
-  if (power < 1) {
-    mprinterr("Internal Error: calcCompressFactor called with power of 10 < 1\n");
-    // TODO warn for low powers?
-    return 1;
-  }
-  compressedFac_ = 10.0;
-  for (int i = 1; i < power; i++)
-    compressedFac_ *= 10.0;
-  mprintf("\tInteger compression factor: x%g\n", compressedFac_);
-  return 0;
-}
-#endif
-
-/** Prepare trajectory for adding coords converted to integer. */
-int NetcdfFile::NC_createCompressed(int power)
-{
-# ifndef HAS_HDF5
-  mprinterr("Error: Cpptraj was compiled without HDF5 support, required for compressed traj.\n");
-  return 1;
-# else
-  if (ncid_ == -1) {
-    mprinterr("Internal Error: NC_createCompressed() called with ncid -1\n");
-    return 1;
-  }
-  if (frameDID_ == -1 || atomDID_ == -1 || spatialDID_ == -1) {
-    mprinterr("Internal Error: NC_createCompressed() called before NC_create().\n");
-    return 1;
-  }
-  int dimensionID[NC_MAX_VAR_DIMS];
-  // Place file back in define mode
-  if (NC::CheckErr( nc_redef( ncid_ ) )) return 1;
-  // Define variable to hold converted coords
-  dimensionID[0] = frameDID_;
-  dimensionID[1] = atomDID_;
-  dimensionID[2] = spatialDID_;
-  if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOS, NC_INT, 3, dimensionID, &compressedPosVID_) )) {
-    mprinterr("Error: defining compressed positions VID.\n");
-    return 1;
-  }
-  // Set compression for converted coords. Use 1 if not set.
-  if (deflateLevels_[V_COORDS] == 0) {
-    mprintf("Warning: Using default compression level for coords.\n");
-    deflateLevels_[V_COORDS] = 1;
-  }
-  // TODO should this be an option?
-  int ishuffle = 1;
-  if (ncdebug_ > 0) {
-    if (ishuffle == 0)
-      mprintf("DEBUG: Integer shuffle is off.\n");
-    else
-      mprintf("DEBUG: Integer shuffle is on.\n");
-  }
-  if ( NC::CheckErr( nc_def_var_deflate(ncid_, compressedPosVID_, ishuffle, 1, deflateLevels_[V_COORDS]) ) ) {
-    mprinterr("Error: Setting compression level %i for integer compressed coords.\n", deflateLevels_[V_COORDS]);
-    return 1;
-  }
-  if (NC_setFrameChunkSize(V_COORDS, compressedPosVID_, fchunkSize_)) return 1;
-  // Define variable to hold conversion power
-  int compressedPowVID = -1;
-  if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOW, NC_INT, 0, dimensionID, &compressedPowVID) )) {
-    mprinterr("Error: defining compressed power factor VID.\n");
-    return 1;
-  }
-  // End definitions
-  if (NC::CheckErr(nc_enddef(ncid_))) {
-    mprinterr("NetCDF error on ending definitions (NC_createCompressed).");
-    return 1;
-  }
-  // Calculate compressed factor; write compressed power of 10
-  if (calcCompressFactor(power)) return 1;
-  if (NC::CheckErr(nc_put_var_int(ncid_, compressedPowVID, &power)) ) {
-    mprinterr("Error: Writing compressed power factor.\n");
-    return 1;
-  }
-  // Allocate temporary space for integer array
-  itmp_.resize( Ncatom3() );
-
-  return 0;
-# endif /* HAS_HDF5 */
-}
-
-int NetcdfFile::NC_writeCompressed(Frame const& frmOut) {
-# ifdef HAS_HDF5
-  // Convert to integer
-  long int maxval = (long int)std::numeric_limits<int>::max();
-  for (int idx = 0; idx != frmOut.size(); idx++)
-  {
-    // Try some overflow protection
-    long int ii = (long int)(frmOut[idx] * compressedFac_);
-    if (ii > maxval || ii < -maxval) {
-      mprinterr("Error: Coordinate %i frame %i (%g) is too large to convert to int.\n",
-                idx+1, ncframe_+1, frmOut[idx]);
-      mprinterr("Error: A smaller integer compression factor must be used.\n");
-      return 1;
-    }
-    itmp_[idx] = (int)ii;
-    //itmp_[idx] = (int)(frmOut[idx] * compressedFac_);
-  }
-  //mprintf("DEBUG: atom 0 xyz={ %20.10f %20.10f %20.10f } ixyz= { %20i %20i %20i }\n",
-  //        frmOut[0], frmOut[1], frmOut[2], itmp_[0], itmp_[1], itmp_[2]);
-  //  Write array
-  start_[0] = ncframe_;
-  start_[1] = 0;
-  start_[2] = 0;
-  count_[0] = 1;
-  count_[1] = Ncatom();
-  count_[2] = 3;
-
-  if (NC::CheckErr(nc_put_vara_int(ncid_, compressedPosVID_, start_, count_, &itmp_[0]))) {
-    mprinterr("Error: NetCDF writing compressed coordinates frame %i\n", ncframe_+1);
-    return 1;
-  }
-# endif
-  return 0;
-}
-
-int NetcdfFile::NC_readCompressed(int set, Frame& frmIn) {
-# ifdef HAS_HDF5
-  // Read array
-  start_[0] = set;
-  start_[1] = 0;
-  start_[2] = 0;
-  count_[0] = 1;
-  count_[1] = Ncatom();
-  count_[2] = 3;
-  if (NC::CheckErr(nc_get_vara_int(ncid_, compressedPosVID_, start_, count_, &itmp_[0]))) {
-    mprinterr("Error: NetCDF reading compressed coordinates frame %i\n", set+1);
-    return 1;
-  }
-  // Convert from integer
-  for (int idx = 0; idx != frmIn.size(); idx++)
-    frmIn[idx] = (double)(itmp_[idx]) / compressedFac_; // TODO convert to 1/fac first?
-# endif
-  return 0;
-}
-
 // NetcdfFile::NC_createReservoir()
 int NetcdfFile::NC_createReservoir(bool hasBins, double reservoirT, int iseed,
                                    int& eptotVID, int& binsVID) 
@@ -853,36 +715,6 @@ void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
   }
 }
 
-/** Set desired compression level for specified variable if supported. */
-int NetcdfFile::SetCompression(VidType vtype, int deflateLevelIn) {
-# ifdef HAS_HDF5
-  mprintf("\tSetting compression for VIDTYPE %i to %i\n", (int)vtype, deflateLevelIn);
-  deflateLevels_[vtype] = deflateLevelIn;
-# else
-  mprintf("Warning: NetCDF compression only supported when compiled with HDF5 support.\n");
-# endif
-  return 0;
-}
-
-/** Set desired compression level for all variables if supported. */
-int NetcdfFile::SetCompression(int deflateLevelIn) {
-  int err = 0;
-  for (int i = 0; i != (int)NVID; i++)
-    err += SetCompression( (VidType)i, deflateLevelIn );
-  return err;
-}
-
-/* Set desired frame chunk size if supported. */
-int NetcdfFile::SetFrameChunkSize(int fchunkSizeIn) {
-# ifdef HAS_HDF5
-  mprintf("\tSetting frame chunk size to %i\n", fchunkSizeIn);
-  fchunkSize_ = fchunkSizeIn;
-# else
-  mprintf("Warning: NetCDF chunk size only supported when compiled with HDF5 support.\n");
-# endif
-  return 0;
-}
-
 /** Variable ID descriptions. */
 const char* NetcdfFile::vidDesc_[NVID] = {
   "coordinates",     // V_COORDS
@@ -905,6 +737,9 @@ const char* NetcdfFile::didDesc_[NDID] = {
   "spatial"          // D_SPATIAL
 };
 
+// -----------------------------------------------------------------------------
+// This section contains HDF5-related functionality
+
 /** Set variable compression level if supported. */
 int NetcdfFile::NC_setDeflate(VidType vtype, int varid) const
 {
@@ -917,13 +752,68 @@ int NetcdfFile::NC_setDeflate(VidType vtype, int varid) const
     }
   }
 # else
-  mprintf("Warning: Compiled without HDF5 support; cannot set compression for '%s' variable.\n",
-          vidDesc_[vtype]);
+  mprintf("Warning: Setting NetCDF variable compression requires compiling with HDF5 support.\n");
 # endif
   return 0;
 }
 
-#ifdef HAS_HDF5
+/** Increase frame chunk size for variable if supported. */
+int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid, int chunkFac) const
+{
+# ifdef HAS_HDF5
+  if (chunkFac > 1) {
+    // Get number of dimensions
+    int ndims = 0;
+    if ( NC::CheckErr( nc_inq_varndims(ncid_, varid, &ndims) ) ) {
+      mprinterr("Error: getting # dims for '%s' variable.\n", vidDesc_[vtype]);
+      return 1;
+    }
+    if (ndims < 1) {
+      mprintf("Warning: NC_setFrameChunkSize: Variable '%s' has no dimensions.\n",
+              vidDesc_[vtype]);
+      return 0;
+    }
+    // Get dimension IDs
+    std::vector<int> dimids(ndims);
+    if ( NC::CheckErr( nc_inq_var(ncid_, varid, 0, 0, 0, &dimids[0], 0) ) ) {
+      mprinterr("Error: getting dimension IDs for '%s' variable.\n", vidDesc_[vtype]);
+      return 1;
+    }
+    // Allocate space for chunk sizes 
+    std::vector<size_t> chunkSizes( ndims );
+    // Set frame chunk size
+    int err = NC_setVarDimChunkSizes(vtype, varid, chunkFac, dimids, frameDID_, chunkSizes);
+    return err;
+  }
+# else
+  mprintf("Warning: Setting NetCDF frame chunk size requires compiling with HDF5 support.\n");
+# endif
+  return 0;
+}
+
+# ifdef HAS_HDF5
+/** Set desired compression level for specified variable if supported. */
+int NetcdfFile::SetCompression(VidType vtype, int deflateLevelIn) {
+  mprintf("\tSetting compression for VIDTYPE %i to %i\n", (int)vtype, deflateLevelIn);
+  deflateLevels_[vtype] = deflateLevelIn;
+  return 0;
+}
+
+/** Set desired compression level for all variables if supported. */
+int NetcdfFile::SetCompression(int deflateLevelIn) {
+  int err = 0;
+  for (int i = 0; i != (int)NVID; i++)
+    err += SetCompression( (VidType)i, deflateLevelIn );
+  return err;
+}
+
+/* Set desired frame chunk size if supported. */
+int NetcdfFile::SetFrameChunkSize(int fchunkSizeIn) {
+  mprintf("\tSetting frame chunk size to %i\n", fchunkSizeIn);
+  fchunkSize_ = fchunkSizeIn;
+  return 0;
+}
+
 /** If target dimID is -1 multiply existing chunk sizes for variable
   * by chunkFac. Otherwise multiple chunk size matching target dimID
   * only.
@@ -964,42 +854,138 @@ const
   }
   return 0;
 }
-#endif
  
-/** Increase frame chunk size for variable if supported. */
-int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid, int chunkFac) const
-{
-# ifdef HAS_HDF5
-  if (chunkFac > 1) {
-    // Get number of dimensions
-    int ndims = 0;
-    if ( NC::CheckErr( nc_inq_varndims(ncid_, varid, &ndims) ) ) {
-      mprinterr("Error: getting # dims for '%s' variable.\n", vidDesc_[vtype]);
-      return 1;
-    }
-    if (ndims < 1) {
-      mprintf("Warning: NC_setFrameChunkSize: Variable '%s' has no dimensions.\n",
-              vidDesc_[vtype]);
-      return 0;
-    }
-    // Get dimension IDs
-    std::vector<int> dimids(ndims);
-    if ( NC::CheckErr( nc_inq_var(ncid_, varid, 0, 0, 0, &dimids[0], 0) ) ) {
-      mprinterr("Error: getting dimension IDs for '%s' variable.\n", vidDesc_[vtype]);
-      return 1;
-    }
-    // Allocate space for chunk sizes 
-    std::vector<size_t> chunkSizes( ndims );
-    // Set frame chunk size
-    int err = NC_setVarDimChunkSizes(vtype, varid, chunkFac, dimids, frameDID_, chunkSizes);
-    return err;
+/** Set compressedFac_ to given power of 10 (min 1). */
+int NetcdfFile::calcCompressFactor(int power) {
+  if (power < 1) {
+    mprinterr("Internal Error: calcCompressFactor called with power of 10 < 1\n");
+    // TODO warn for low powers?
+    return 1;
   }
-# else
-  mprintf("Warning: Compiled without HDF5 support; cannot set chunk sizes for '%s' variable.\n",
-          vidDesc_[vtype]);
-# endif
+  compressedFac_ = 10.0;
+  for (int i = 1; i < power; i++)
+    compressedFac_ *= 10.0;
+  mprintf("\tInteger compression factor: x%g\n", compressedFac_);
   return 0;
 }
+
+/** Prepare trajectory for adding coords converted to integer. */
+int NetcdfFile::NC_createCompressed(int power)
+{
+  if (ncid_ == -1) {
+    mprinterr("Internal Error: NC_createCompressed() called with ncid -1\n");
+    return 1;
+  }
+  if (frameDID_ == -1 || atomDID_ == -1 || spatialDID_ == -1) {
+    mprinterr("Internal Error: NC_createCompressed() called before NC_create().\n");
+    return 1;
+  }
+  int dimensionID[NC_MAX_VAR_DIMS];
+  // Place file back in define mode
+  if (NC::CheckErr( nc_redef( ncid_ ) )) return 1;
+  // Define variable to hold converted coords
+  dimensionID[0] = frameDID_;
+  dimensionID[1] = atomDID_;
+  dimensionID[2] = spatialDID_;
+  if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOS, NC_INT, 3, dimensionID, &compressedPosVID_) )) {
+    mprinterr("Error: defining compressed positions VID.\n");
+    return 1;
+  }
+  // Set compression for converted coords. Use 1 if not set.
+  if (deflateLevels_[V_COORDS] == 0) {
+    mprintf("Warning: Using default compression level for coords.\n");
+    deflateLevels_[V_COORDS] = 1;
+  }
+  // TODO should this be an option?
+  int ishuffle = 1;
+  if (ncdebug_ > 0) {
+    if (ishuffle == 0)
+      mprintf("DEBUG: Integer shuffle is off.\n");
+    else
+      mprintf("DEBUG: Integer shuffle is on.\n");
+  }
+  if ( NC::CheckErr( nc_def_var_deflate(ncid_, compressedPosVID_, ishuffle, 1, deflateLevels_[V_COORDS]) ) ) {
+    mprinterr("Error: Setting compression level %i for integer compressed coords.\n", deflateLevels_[V_COORDS]);
+    return 1;
+  }
+  if (NC_setFrameChunkSize(V_COORDS, compressedPosVID_, fchunkSize_)) return 1;
+  // Define variable to hold conversion power
+  int compressedPowVID = -1;
+  if (NC::CheckErr( nc_def_var(ncid_, NCCOMPPOW, NC_INT, 0, dimensionID, &compressedPowVID) )) {
+    mprinterr("Error: defining compressed power factor VID.\n");
+    return 1;
+  }
+  // End definitions
+  if (NC::CheckErr(nc_enddef(ncid_))) {
+    mprinterr("NetCDF error on ending definitions (NC_createCompressed).");
+    return 1;
+  }
+  // Calculate compressed factor; write compressed power of 10
+  if (calcCompressFactor(power)) return 1;
+  if (NC::CheckErr(nc_put_var_int(ncid_, compressedPowVID, &power)) ) {
+    mprinterr("Error: Writing compressed power factor.\n");
+    return 1;
+  }
+  // Allocate temporary space for integer array
+  itmp_.resize( Ncatom3() );
+
+  return 0;
+}
+
+/** Write integer-compressed coords. */
+int NetcdfFile::NC_writeCompressed(Frame const& frmOut) {
+  // Convert to integer
+  long int maxval = (long int)std::numeric_limits<int>::max();
+  for (int idx = 0; idx != frmOut.size(); idx++)
+  {
+    // Try some overflow protection
+    long int ii = (long int)(frmOut[idx] * compressedFac_);
+    if (ii > maxval || ii < -maxval) {
+      mprinterr("Error: Coordinate %i frame %i (%g) is too large to convert to int.\n",
+                idx+1, ncframe_+1, frmOut[idx]);
+      mprinterr("Error: A smaller integer compression factor must be used.\n");
+      return 1;
+    }
+    itmp_[idx] = (int)ii;
+    //itmp_[idx] = (int)(frmOut[idx] * compressedFac_);
+  }
+  //mprintf("DEBUG: atom 0 xyz={ %20.10f %20.10f %20.10f } ixyz= { %20i %20i %20i }\n",
+  //        frmOut[0], frmOut[1], frmOut[2], itmp_[0], itmp_[1], itmp_[2]);
+  //  Write array
+  start_[0] = ncframe_;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = Ncatom();
+  count_[2] = 3;
+
+  if (NC::CheckErr(nc_put_vara_int(ncid_, compressedPosVID_, start_, count_, &itmp_[0]))) {
+    mprinterr("Error: NetCDF writing compressed coordinates frame %i\n", ncframe_+1);
+    return 1;
+  }
+  return 0;
+}
+
+/** Read integer-compressed coords. */
+int NetcdfFile::NC_readCompressed(int set, Frame& frmIn) {
+  // Read array
+  start_[0] = set;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = Ncatom();
+  count_[2] = 3;
+  if (NC::CheckErr(nc_get_vara_int(ncid_, compressedPosVID_, start_, count_, &itmp_[0]))) {
+    mprinterr("Error: NetCDF reading compressed coordinates frame %i\n", set+1);
+    return 1;
+  }
+  // Convert from integer
+  for (int idx = 0; idx != frmIn.size(); idx++)
+    frmIn[idx] = (double)(itmp_[idx]) / compressedFac_; // TODO convert to 1/fac first?
+  return 0;
+}
+// -----------------------------------------------------------------------------
+#endif /* HAS_HDF5 */
 
 // NetcdfFile::NC_defineTemperature()
 int NetcdfFile::NC_defineTemperature(int* dimensionID, int NDIM) {

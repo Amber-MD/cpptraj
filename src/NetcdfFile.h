@@ -146,15 +146,16 @@ class NetcdfFile {
     void SetupTemperature();
     /// Read - Set up replica index info if present.
     int SetupMultiD();
-#   ifdef HAS_HDF5
-    /// Calculate integer compression factor of 10 from given power
-    int calcCompressFactor(int);
-    /// Set compression level for variable ID
+
+    /// Set compression level for variable ID (HDF5 only)
     int NC_setDeflate(VidType, int) const;
+    /// Set chunk sizes for variable ID (HDF5 only)
+    int NC_setFrameChunkSize(VidType, int, int) const;
+#   ifdef HAS_HDF5
     /// Set desired compression level for variable ID.
     int SetCompression(VidType, int);
-    /// Set chunk sizes for variable ID
-    int NC_setFrameChunkSize(VidType, int, int) const;
+    /// Calculate integer compression factor of 10 from given power
+    int calcCompressFactor(int);
     /// Increase variable chunk sizes
     int NC_setVarDimChunkSizes(VidType, int, int, std::vector<int> const&, int, std::vector<size_t>&) const;
 #   endif
