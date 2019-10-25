@@ -149,8 +149,8 @@ class NetcdfFile {
 
     /// Set compression level for variable ID (HDF5 only)
     int NC_setDeflate(VidType, int) const;
-    /// Set chunk sizes for variable ID (HDF5 only)
-    int NC_setFrameChunkSize(VidType, int, int) const;
+    /// Set frame chunk size for variable ID (HDF5 only)
+    int NC_setFrameChunkSize(VidType, int) const;
 #   ifdef HAS_HDF5
     /// Set desired compression level for variable ID.
     int SetCompression(VidType, int);
