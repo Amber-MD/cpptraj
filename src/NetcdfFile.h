@@ -65,12 +65,17 @@ class NetcdfFile {
     inline int Ncframe()   const { return ncframe_;             }
     inline int CoordVID()  const { return coordVID_;            }
   protected: // TODO: Make all private
-    /// Enumerated type for all variable IDs. MUST MATCH vidDesc_.
+    /// Enumerated type for variable IDs. MUST MATCH vidDesc_.
     enum VidType { V_COORDS = 0, V_VEL,  V_FRC, V_TEMP, V_BOXL,
                    V_BOXA,       V_TIME, V_IND, V_RIDX, V_CIDX,
                    NVID }; // TODO RemdValues
-    /// Descriptions of VidType. MUST MATCH VidType.
+    /// Descriptions of VidType. MUST MATCH VidType (except NVID).
     static const char* vidDesc_[];
+    /// Enumerated type for dimension IDs. MUST MATCH didDesc_.
+    enum DidType { D_FRAME = 0, D_ATOM, D_SPATIAL,
+                   NDID }; // TODO everything else
+    /// Descriptions of DidType. MUST MATCH DidType (except NDID).
+    static const char* didDesc_[];
 
     /// Set all variables compression level.
     int SetCompression(int);
@@ -91,6 +96,8 @@ class NetcdfFile {
 #   ifdef HAS_HDF5
     /// Calculate integer compression factor of 10 from given power
     int calcCompressFactor(int);
+    /// Increase variable chunk sizes
+    int NC_setVarDimChunkSizes(VidType, int, int, int, const int*, int, size_t*) const;
 #   endif
 #   ifdef MPI
     void Sync(Parallel::Comm const&);

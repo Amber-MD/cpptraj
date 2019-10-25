@@ -900,13 +900,19 @@ const char* NetcdfFile::vidDesc_[NVID] = {
   "coordinates",     // V_COORDS
   "velocities",      // V_VEL
   "forces",          // V_FRC
-  "temperature",     // V_TEMP
-  "box lengths",     // V_BOXL
-  "box angles",      // V_BOXA
+  "temp0",           // V_TEMP
+  "cell_lengths",    // V_BOXL
+  "cell_angles",     // V_BOXA
   "time",            // V_TIME
-  "replica indices", // V_IND
-  "replica idx",     // V_RIDX
-  "coord idx"        // V_CIDX
+  "remd_indices",    // V_IND
+  "remd_repidx",     // V_RIDX
+  "remd_crdidx"      // V_CIDX
+};
+
+const char* NetcdfFile::didDesc_[NDID] = {
+  "frame",           // D_FRAME
+  "atom",            // D_ATOM
+  "spatial"          // D_SPATIAL
 };
 
 /** Set variable compression level if supported. */
@@ -927,30 +933,78 @@ int NetcdfFile::NC_setDeflate(VidType vtype, int varid) const
   return 0;
 }
 
-/** Set frame chunk size for variable if supported. */
-int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid, int frameChunkSize) const
+#ifdef HAS_HDF5
+/** If target dimID is NDID multiply existing chunk sizes for variable
+  * by chunkFac. Otherwise multiple chunk size matching target dimID
+  * only.
+  */
+int NetcdfFile::NC_setVarDimChunkSizes(VidType vtype, int varid, int chunkFac, int ndims,
+                                       const int* dimids, int tgtDimId, size_t* chunkSizes)
+const
+{
+  // Sanity checks.
+  if (dimids == 0 || chunkSizes == 0) {
+    mprinterr("Internal Error: NC_setVarDimChunkSizes called with null(s)\n");
+    return 1;
+  }
+  // Get chunk sizes and storage type
+  int storagep = 0;
+  if ( NC::CheckErr( nc_inq_var_chunking(ncid_, varid, &storagep, chunkSizes) ) ) {
+    mprinterr("Error: getting existing chunk sizes for '%s' variable.\n", vidDesc_[vtype]);
+    return 1;
+  }
+  if (storagep != NC_CHUNKED) {
+    mprinterr("Internal Error: NC_setVarDimChunkSizes called for VID that is not chunked '%s'\n",
+              vidDesc_[vtype]);
+    return 1;
+  }
+  // Loop over dimension chunk sizes
+  for (int dim = 0; dim != ndims; dim++) {
+    if (tgtDimId == -1 || tgtDimId == dimids[dim]) {
+      mprintf("DEBUG: '%s' dim %i chunk size = %zu new size= %i\n",
+              vidDesc_[vtype], dim, chunkSizes[dim], chunkSizes[dim]*chunkFac);
+      // Set new chunk size
+      chunkSizes[dim] *= chunkFac;
+    }
+  }
+  if ( NC::CheckErr( nc_def_var_chunking(ncid_, varid, NC_CHUNKED, chunkSizes) ) ) {
+    mprinterr("Error: Setting chunk sizes for '%s' variable.\n", vidDesc_[vtype]);
+    return 1;
+  }
+  return 0;
+}
+#endif
+ 
+/** Increase chunk sizes for variable if supported. */
+int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid, int chunkFac) const
 {
 # ifdef HAS_HDF5
-  if (frameChunkSize > 0 && deflateLevels_[vtype] > 0) {
-    // Get existing chunk sizes. Going to assume frame chunk size is first dim! TODO do not assume this
-    size_t chunkSizes[4];
-    int storagep = 0;
-    if ( NC::CheckErr( nc_inq_var_chunking(ncid_, varid, &storagep, chunkSizes) ) ) {
-      mprinterr("Error: getting existing chunk sizes for '%s' variable.\n", vidDesc_[vtype]);
+  if (chunkFac > 0 && chunkFac > 1) {
+    // Get number of dimensions
+    int ndims = 0;
+    if ( NC::CheckErr( nc_inq_varndims(ncid_, varid, &ndims) ) ) {
+      mprinterr("Error: getting # dims for '%s' variable.\n", vidDesc_[vtype]);
       return 1;
     }
-    if (storagep != NC_CHUNKED) {
-      mprinterr("Internal Error: NC_setFrameChunkSize called for VID that is not chunked '%s'\n",
+    if (ndims < 1) {
+      mprinterr("Internal Error: NC_setFrameChunkSize: Variable '%s' has no dimensions.\n",
                 vidDesc_[vtype]);
       return 1;
     }
-    mprintf("DEBUG: '%s' frame chunk size = %zu new size= %i\n", vidDesc_[vtype], chunkSizes[0], frameChunkSize);
-    // Set new frame chunk size
-    chunkSizes[0] = frameChunkSize;
-    if ( NC::CheckErr( nc_def_var_chunking(ncid_, varid, NC_CHUNKED, chunkSizes) ) ) {
-      mprinterr("Error: Setting chunk sizes for '%s' variable.\n", vidDesc_[vtype]);
+    // Get dimension IDs
+    int* dimids = new int[ ndims ];
+    if ( NC::CheckErr( nc_inq_var(ncid_, varid, 0, 0, 0, dimids, 0) ) ) {
+      mprinterr("Error: getting dimension IDs for '%s' variable.\n", vidDesc_[vtype]);
+      delete[] dimids;
       return 1;
     }
+    // Allocate space for chunk sizes 
+    size_t* chunkSizes = new size_t[ ndims ];
+    // Set frame chunk size
+    int err = NC_setVarDimChunkSizes(vtype, varid, chunkFac, ndims, dimids, frameDID_, chunkSizes);
+    delete[] chunkSizes;
+    delete[] dimids;
+    return err;
   }
 # else
   mprintf("Warning: Compiled without HDF5 support; cannot set chunk sizes for '%s' variable.\n",
