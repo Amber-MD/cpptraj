@@ -17,10 +17,6 @@ class NetcdfFile {
 #   else
     /// CONSTRUCTOR
     NetcdfFile();
-#   ifdef HAS_HDF5
-    /// DESTRUCTOR
-    ~NetcdfFile();
-#   endif
     /// \return Coordinate info corresponding to current setup. TODO have in variable?
     CoordinateInfo NC_coordInfo() const;
     /// Open NetCDF file for reading.
@@ -104,10 +100,10 @@ class NetcdfFile {
 #   endif
 
 #   ifdef HAS_HDF5
-    int* deflateLevels_;   ///< Compression levels for each VID
+    std::vector<int> deflateLevels_;   ///< Compression levels for each VID
     int compressedPosVID_; ///< Coordinates integer VID
     double compressedFac_; ///< Compression factor 
-    int* itmp_;            ///< Temp space for converting to int
+    std::vector<int> itmp_;            ///< Temp space for converting to int
     int fchunkSize_;       ///< Frame chunk size
 #   endif
     size_t start_[4];    ///< Array starting indices

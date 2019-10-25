@@ -12,7 +12,6 @@
 #  include "ParallelNetcdf.h"
 # endif
 # ifdef HAS_HDF5
-#  include <algorithm> // std::fill
 #  include <limits> // for integer compression
 # endif
 #endif
@@ -99,10 +98,9 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(NC_FMT_TYPE& btype, const ch
 // CONSTRUCTOR
 NetcdfFile::NetcdfFile() :
 # ifdef HAS_HDF5
-  deflateLevels_(0),
+  deflateLevels_((unsigned int)NVID, 0),
   compressedPosVID_(-1),
   compressedFac_(0),
-  itmp_(0),
   fchunkSize_(1),
 # endif
   ncid_(-1),
@@ -139,18 +137,7 @@ NetcdfFile::NetcdfFile() :
   count_[0] = 0;
   count_[1] = 0;
   count_[2] = 0;
-# ifdef HAS_HDF5
-  deflateLevels_ = new int[ (unsigned int)NVID ];
-  std::fill( deflateLevels_, deflateLevels_ + (unsigned int)NVID, 0 );
-# endif
 }
-
-#ifdef HAS_HDF5
-NetcdfFile::~NetcdfFile() {
-  if (deflateLevels_ != 0) delete[] deflateLevels_;
-  if (itmp_ != 0) delete[] itmp_;
-}
-#endif
 
 const char* NetcdfFile::ConventionsStr_[] = {
   "AMBER",         // NC_AMBERTRAJ
@@ -278,8 +265,7 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
     // Calculate compressed factor
     if (calcCompressFactor(power)) return 1;
     // Allocate temporary space for integer array
-    if (itmp_ != 0) delete[] itmp_;
-    itmp_ = new int[ Ncatom3() ];
+    itmp_.resize( Ncatom3() );
 #   else
     mprinterr("Error: Integer-compressed NetCDF trajectories requires cpptraj compiled with HDF5 support.\n");
     return 1;
@@ -745,8 +731,7 @@ int NetcdfFile::NC_createCompressed(int power)
     return 1;
   }
   // Allocate temporary space for integer array
-  if (itmp_ != 0) delete[] itmp_;
-  itmp_ = new int[ Ncatom3() ];
+  itmp_.resize( Ncatom3() );
 
   return 0;
 # endif /* HAS_HDF5 */
@@ -779,7 +764,7 @@ int NetcdfFile::NC_writeCompressed(Frame const& frmOut) {
   count_[1] = Ncatom();
   count_[2] = 3;
 
-  if (NC::CheckErr(nc_put_vara_int(ncid_, compressedPosVID_, start_, count_, itmp_))) {
+  if (NC::CheckErr(nc_put_vara_int(ncid_, compressedPosVID_, start_, count_, &itmp_[0]))) {
     mprinterr("Error: NetCDF writing compressed coordinates frame %i\n", ncframe_+1);
     return 1;
   }
@@ -796,7 +781,7 @@ int NetcdfFile::NC_readCompressed(int set, Frame& frmIn) {
   count_[0] = 1;
   count_[1] = Ncatom();
   count_[2] = 3;
-  if (NC::CheckErr(nc_get_vara_int(ncid_, compressedPosVID_, start_, count_, itmp_))) {
+  if (NC::CheckErr(nc_get_vara_int(ncid_, compressedPosVID_, start_, count_, &itmp_[0]))) {
     mprinterr("Error: NetCDF reading compressed coordinates frame %i\n", set+1);
     return 1;
   }
