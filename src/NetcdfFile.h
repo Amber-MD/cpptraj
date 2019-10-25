@@ -93,7 +93,7 @@ class NetcdfFile {
     /// Calculate integer compression factor of 10 from given power
     int calcCompressFactor(int);
     /// Increase variable chunk sizes
-    int NC_setVarDimChunkSizes(VidType, int, int, int, const int*, int, size_t*) const;
+    int NC_setVarDimChunkSizes(VidType, int, int, std::vector<int> const&, int, std::vector<size_t>&) const;
 #   endif
 #   ifdef MPI
     void Sync(Parallel::Comm const&);

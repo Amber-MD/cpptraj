@@ -923,18 +923,19 @@ int NetcdfFile::NC_setDeflate(VidType vtype, int varid) const
   * by chunkFac. Otherwise multiple chunk size matching target dimID
   * only.
   */
-int NetcdfFile::NC_setVarDimChunkSizes(VidType vtype, int varid, int chunkFac, int ndims,
-                                       const int* dimids, int tgtDimId, size_t* chunkSizes)
+int NetcdfFile::NC_setVarDimChunkSizes(VidType vtype, int varid, int chunkFac,
+                                       std::vector<int> const& dimids, int tgtDimId,
+                                       std::vector<size_t>& chunkSizes)
 const
 {
   // Sanity checks.
-  if (dimids == 0 || chunkSizes == 0) {
-    mprinterr("Internal Error: NC_setVarDimChunkSizes called with null(s)\n");
+  if (dimids.empty() || chunkSizes.empty()) {
+    mprinterr("Internal Error: NC_setVarDimChunkSizes called with empty arrays.\n");
     return 1;
   }
   // Get chunk sizes and storage type
   int storagep = 0;
-  if ( NC::CheckErr( nc_inq_var_chunking(ncid_, varid, &storagep, chunkSizes) ) ) {
+  if ( NC::CheckErr( nc_inq_var_chunking(ncid_, varid, &storagep, &chunkSizes[0]) ) ) {
     mprinterr("Error: getting existing chunk sizes for '%s' variable.\n", vidDesc_[vtype]);
     return 1;
   }
@@ -944,15 +945,15 @@ const
     return 1;
   }
   // Loop over dimension chunk sizes
-  for (int dim = 0; dim != ndims; dim++) {
+  for (unsigned int dim = 0; dim != dimids.size(); dim++) {
     if (tgtDimId == -1 || tgtDimId == dimids[dim]) {
-      mprintf("DEBUG: '%s' dim %i chunk size = %zu new size= %i\n",
+      mprintf("DEBUG: '%s' dim %u chunk size = %zu new size= %i\n",
               vidDesc_[vtype], dim, chunkSizes[dim], chunkSizes[dim]*chunkFac);
       // Set new chunk size
       chunkSizes[dim] *= chunkFac;
     }
   }
-  if ( NC::CheckErr( nc_def_var_chunking(ncid_, varid, NC_CHUNKED, chunkSizes) ) ) {
+  if ( NC::CheckErr( nc_def_var_chunking(ncid_, varid, NC_CHUNKED, &chunkSizes[0]) ) ) {
     mprinterr("Error: Setting chunk sizes for '%s' variable.\n", vidDesc_[vtype]);
     return 1;
   }
@@ -977,18 +978,15 @@ int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid, int chunkFac) con
       return 1;
     }
     // Get dimension IDs
-    int* dimids = new int[ ndims ];
-    if ( NC::CheckErr( nc_inq_var(ncid_, varid, 0, 0, 0, dimids, 0) ) ) {
+    std::vector<int> dimids(ndims);
+    if ( NC::CheckErr( nc_inq_var(ncid_, varid, 0, 0, 0, &dimids[0], 0) ) ) {
       mprinterr("Error: getting dimension IDs for '%s' variable.\n", vidDesc_[vtype]);
-      delete[] dimids;
       return 1;
     }
     // Allocate space for chunk sizes 
-    size_t* chunkSizes = new size_t[ ndims ];
+    std::vector<size_t> chunkSizes( ndims );
     // Set frame chunk size
-    int err = NC_setVarDimChunkSizes(vtype, varid, chunkFac, ndims, dimids, frameDID_, chunkSizes);
-    delete[] chunkSizes;
-    delete[] dimids;
+    int err = NC_setVarDimChunkSizes(vtype, varid, chunkFac, dimids, frameDID_, chunkSizes);
     return err;
   }
 # else
