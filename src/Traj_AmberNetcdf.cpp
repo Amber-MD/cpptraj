@@ -107,7 +107,8 @@ void Traj_AmberNetcdf::WriteHelp() {
           "\tmdcrd        : Write coordinates to trajectory (only required with mdvel/mdfrc).\n"
 #         ifdef HAS_HDF5
           "\thdf5         : Create file as NetCDF4/HDF5 instead of NetCDF4 (classic).\n"
-          "\tcompress <#> : HDF5 compression level.\n"
+          "\tcompress     : Use compression in HDF5 file.\n"
+          "\ticompress    : Use lossy compression in HDF5 file via conversion to integers.\n"
 #         endif
          );
 }
@@ -133,13 +134,31 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin)
 # ifdef HAS_HDF5
   // HDF5-specific options
   if (ftype_ == NC_V4) {
-    compress_ = argIn.getKeyInt("compress", 0);
-    icompress_ = argIn.getKeyInt("icompress", 0);
+    // Regular compression
+    if (argIn.hasKey("compress"))
+      // Use recommended compression level
+      compress_ = 1;
+    else
+      compress_ = argIn.getKeyInt("deflatelvl", 0); // NOTE: Hidden option
+    if (compress_ < 0) {
+      mprinterr("Error: compress cannot be negative.\n");
+      return 1;
+    }
+    // Integer compression
+    if (argIn.hasKey("icompress"))
+      // Use recommended integer compression power
+      icompress_ = 4;
+    else
+      icompress_ = argIn.getKeyInt("icompresspow", 0); // NOTE: Hidden option
     if (icompress_ < 0) {
       mprinterr("Error: icompress cannot be negative.\n");
       return 1;
     }
-    fchunkSize_ = argIn.getKeyInt("fchunksize", 0);
+    // icompress implies compress
+    if (icompress_ > 0 && compress_ < 1)
+      compress_ = 1;
+    // Frame chunk size
+    fchunkSize_ = argIn.getKeyInt("fchunksize", 0); // NOTE: Hidden option
     if (fchunkSize_ < 0) {
       mprinterr("Error: fchunksize cannot be negative.\n");
       return 1;
