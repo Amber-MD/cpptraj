@@ -200,7 +200,7 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
 #   ifdef HAS_HDF5
     // Set up for integer compression if necessary
     if (icompress_ > 0) {
-      if (NC_createCompressed(icompress_)) return 1;
+      if (NC_createIntCompressed(icompress_)) return 1;
     }
 #   endif
     // Close Netcdf file. It will be reopened write. FIXME should NC_create leave it closed?
@@ -270,7 +270,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   // Read Coords
  # ifdef HAS_HDF5
   if (compressedPosVID_ != -1) {
-    if (NC_readCompressed(set, frameIn)) return 1;
+    if (NC_readIntCompressed(set, frameIn)) return 1;
   } else
 # endif
   if (coordVID_ != -1) {
@@ -384,7 +384,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   // Write coords.
 # ifdef HAS_HDF5
   if (compressedPosVID_ != -1) {
-    if (NC_writeCompressed(frameOut)) return 1;
+    if (NC_writeIntCompressed(frameOut)) return 1;
   } else
 # endif
   if (coordVID_ != -1) {

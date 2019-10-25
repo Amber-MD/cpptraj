@@ -870,7 +870,7 @@ int NetcdfFile::calcCompressFactor(int power) {
 }
 
 /** Prepare trajectory for adding coords converted to integer. */
-int NetcdfFile::NC_createCompressed(int power)
+int NetcdfFile::NC_createIntCompressed(int power)
 {
   if (ncid_ == -1) {
     mprinterr("Internal Error: NC_createCompressed() called with ncid -1\n");
@@ -933,7 +933,7 @@ int NetcdfFile::NC_createCompressed(int power)
 }
 
 /** Write integer-compressed coords. */
-int NetcdfFile::NC_writeCompressed(Frame const& frmOut) {
+int NetcdfFile::NC_writeIntCompressed(Frame const& frmOut) {
   // Convert to integer
   long int maxval = (long int)std::numeric_limits<int>::max();
   for (int idx = 0; idx != frmOut.size(); idx++)
@@ -967,7 +967,7 @@ int NetcdfFile::NC_writeCompressed(Frame const& frmOut) {
 }
 
 /** Read integer-compressed coords. */
-int NetcdfFile::NC_readCompressed(int set, Frame& frmIn) {
+int NetcdfFile::NC_readIntCompressed(int set, Frame& frmIn) {
   // Read array
   start_[0] = set;
   start_[1] = 0;

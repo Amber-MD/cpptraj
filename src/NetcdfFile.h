@@ -80,11 +80,11 @@ class NetcdfFile {
     /// Set default frame chunk size
     int SetFrameChunkSize(int);
     /// Create an integer compressed version of the trajectory
-    int NC_createCompressed(int);
+    int NC_createIntCompressed(int);
     /// Write an integer-compressed frame to the trajectory
-    int NC_writeCompressed(Frame const&);
+    int NC_writeIntCompressed(Frame const&);
     /// Read an integer-compressed frame from the trajectory
-    int NC_readCompressed(int, Frame& frmIn);
+    int NC_readIntCompressed(int, Frame& frmIn);
 #   endif
 #   ifdef MPI
     void Sync(Parallel::Comm const&);
