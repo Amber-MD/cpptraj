@@ -470,7 +470,6 @@ int NetcdfFile::SetupMultiD() {
 
 // NetcdfFile::SetupBox()
 /** \return 0 on success, 1 on error, -1 for no box coords. */
-// TODO: Use Box class
 int NetcdfFile::SetupBox() {
   nc_box_.SetNoBox();
   if ( nc_inq_varid(ncid_, NCCELL_LENGTHS, &cellLengthVID_) == NC_NOERR ) {
@@ -702,12 +701,14 @@ int NetcdfFile::NC_createCompressed(int power)
     mprintf("Warning: Using default compression level for coords.\n");
     deflateLevels_[V_COORDS] = 1;
   }
+  // TODO should this be an option?
   int ishuffle = 1;
-  if (ishuffle == 0)
-    mprintf("DEBUG: Integer shuffle is off.\n");
-  else
-    mprintf("DEBUG: Integer shuffle is on.\n");
-  // TODO shuffle integer types?
+  if (ncdebug_ > 0) {
+    if (ishuffle == 0)
+      mprintf("DEBUG: Integer shuffle is off.\n");
+    else
+      mprintf("DEBUG: Integer shuffle is on.\n");
+  }
   if ( NC::CheckErr( nc_def_var_deflate(ncid_, compressedPosVID_, ishuffle, 1, deflateLevels_[V_COORDS]) ) ) {
     mprinterr("Error: Setting compression level %i for integer compressed coords.\n", deflateLevels_[V_COORDS]);
     return 1;
@@ -852,7 +853,7 @@ void NetcdfFile::SetRemDimDID(int remDimDID, int* dimensionID) const {
   }
 }
 
-/** Set compression level for specified variable if supported. */
+/** Set desired compression level for specified variable if supported. */
 int NetcdfFile::SetCompression(VidType vtype, int deflateLevelIn) {
 # ifdef HAS_HDF5
   mprintf("\tSetting compression for VIDTYPE %i to %i\n", (int)vtype, deflateLevelIn);
@@ -863,7 +864,7 @@ int NetcdfFile::SetCompression(VidType vtype, int deflateLevelIn) {
   return 0;
 }
 
-/** Set compression level for all variables if supported. */
+/** Set desired compression level for all variables if supported. */
 int NetcdfFile::SetCompression(int deflateLevelIn) {
   int err = 0;
   for (int i = 0; i != (int)NVID; i++)
@@ -871,6 +872,7 @@ int NetcdfFile::SetCompression(int deflateLevelIn) {
   return err;
 }
 
+/* Set desired frame chunk size if supported. */
 int NetcdfFile::SetFrameChunkSize(int fchunkSizeIn) {
 # ifdef HAS_HDF5
   mprintf("\tSetting frame chunk size to %i\n", fchunkSizeIn);
@@ -881,6 +883,7 @@ int NetcdfFile::SetFrameChunkSize(int fchunkSizeIn) {
   return 0;
 }
 
+/** Variable ID descriptions. */
 const char* NetcdfFile::vidDesc_[NVID] = {
   "coordinates",     // V_COORDS
   "velocities",      // V_VEL
@@ -891,9 +894,11 @@ const char* NetcdfFile::vidDesc_[NVID] = {
   "time",            // V_TIME
   "remd_indices",    // V_IND
   "remd_repidx",     // V_RIDX
-  "remd_crdidx"      // V_CIDX
+  "remd_crdidx",     // V_CIDX
+  "remd_values"      // V_REMDVALS
 };
 
+/** Dimension ID descriptions. */
 const char* NetcdfFile::didDesc_[NDID] = {
   "frame",           // D_FRAME
   "atom",            // D_ATOM
@@ -919,7 +924,7 @@ int NetcdfFile::NC_setDeflate(VidType vtype, int varid) const
 }
 
 #ifdef HAS_HDF5
-/** If target dimID is NDID multiply existing chunk sizes for variable
+/** If target dimID is -1 multiply existing chunk sizes for variable
   * by chunkFac. Otherwise multiple chunk size matching target dimID
   * only.
   */
@@ -961,11 +966,11 @@ const
 }
 #endif
  
-/** Increase chunk sizes for variable if supported. */
+/** Increase frame chunk size for variable if supported. */
 int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid, int chunkFac) const
 {
 # ifdef HAS_HDF5
-  if (chunkFac > 0 && chunkFac > 1) {
+  if (chunkFac > 1) {
     // Get number of dimensions
     int ndims = 0;
     if ( NC::CheckErr( nc_inq_varndims(ncid_, varid, &ndims) ) ) {
@@ -973,9 +978,9 @@ int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid, int chunkFac) con
       return 1;
     }
     if (ndims < 1) {
-      mprinterr("Internal Error: NC_setFrameChunkSize: Variable '%s' has no dimensions.\n",
-                vidDesc_[vtype]);
-      return 1;
+      mprintf("Warning: NC_setFrameChunkSize: Variable '%s' has no dimensions.\n",
+              vidDesc_[vtype]);
+      return 0;
     }
     // Get dimension IDs
     std::vector<int> dimids(ndims);
@@ -1168,6 +1173,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       return 1;
     }
     if (NC_setDeflate(V_VEL, velocityVID_)) return 1;
+    if (NC_setFrameChunkSize(V_VEL, velocityVID_, fchunkSize_)) return 1;
   }
   // Force variable
   if (coordInfo.HasForce()) {
@@ -1181,6 +1187,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       return 1;
     }
     if (NC_setDeflate(V_FRC, frcVID_)) return 1;
+    if (NC_setFrameChunkSize(V_FRC, frcVID_, fchunkSize_)) return 1;
   }
   // Replica Temperature
   if (coordInfo.HasTemp() && !coordInfo.UseRemdValues()) {
@@ -1197,6 +1204,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       return 1;
     }
     if (NC_setDeflate(V_RIDX, repidxVID_)) return 1;
+    //if (NC_setFrameChunkSize(V_RIDX, repidxVID_, fchunkSize_)) return 1;
   }
   // Overall coordinate index
   if (coordInfo.HasCrdIdx()) {
@@ -1207,6 +1215,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       return 1;
     }
     if (NC_setDeflate(V_CIDX, crdidxVID_)) return 1;
+    //if (NC_setFrameChunkSize(V_CIDX, crdidxVID_, fchunkSize_)) return 1;
   }
   // Replica indices
   int remDimTypeVID = -1;
@@ -1233,6 +1242,7 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       return 1;
     }
     if (NC_setDeflate(V_IND, indicesVID_)) return 1;
+    if (NC_setFrameChunkSize(V_IND, indicesVID_, fchunkSize_)) return 1;
     // TODO: Determine if groups are really necessary for restarts. If not, 
     // remove from AmberNetcdf.F90.
   }
@@ -1262,6 +1272,8 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       // FIXME assuming temperature
       remValType_.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
     }
+    if (NC_setDeflate(V_REMDVALS, RemdValuesVID_)) return 1;
+    //if (NC_setFrameChunkSize(V_REMDVALS, RemdValuesVID_, fchunkSize_)) return 1;
   }
   // Box Info
   if (coordInfo.HasBox()) {
@@ -1329,7 +1341,9 @@ int NetcdfFile::NC_create(NC_FMT_TYPE wtypeIn, std::string const& Name, NCTYPE t
       return 1;
     }
     if (NC_setDeflate(V_BOXL, cellLengthVID_)) return 1;
+    if (NC_setFrameChunkSize(V_BOXL, cellLengthVID_, fchunkSize_)) return 1;
     if (NC_setDeflate(V_BOXA, cellAngleVID_)) return 1;
+    if (NC_setFrameChunkSize(V_BOXA, cellAngleVID_, fchunkSize_)) return 1;
   }
 
   // Attributes

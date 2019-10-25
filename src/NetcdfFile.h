@@ -64,7 +64,8 @@ class NetcdfFile {
     /// Enumerated type for variable IDs. MUST MATCH vidDesc_.
     enum VidType { V_COORDS = 0, V_VEL,  V_FRC, V_TEMP, V_BOXL,
                    V_BOXA,       V_TIME, V_IND, V_RIDX, V_CIDX,
-                   NVID }; // TODO RemdValues
+                   V_REMDVALS,
+                   NVID };
     /// Descriptions of VidType. MUST MATCH VidType (except NVID).
     static const char* vidDesc_[];
     /// Enumerated type for dimension IDs. MUST MATCH didDesc_.
