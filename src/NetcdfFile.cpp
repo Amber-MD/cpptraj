@@ -857,7 +857,6 @@ const
 int NetcdfFile::calcCompressFactor(int power) {
   if (power < 1) {
     mprinterr("Internal Error: calcCompressFactor called with power of 10 < 1\n");
-    // TODO warn for low powers?
     return 1;
   }
   compressedFac_ = 10.0;
@@ -878,6 +877,17 @@ int NetcdfFile::NC_createIntCompressed(int power)
     mprinterr("Internal Error: NC_createCompressed() called before NC_create().\n");
     return 1;
   }
+  // Warn about low precision powers
+  if (power < 1) {
+    mprinterr("Error: Integer compression power < 1 not allowed.\n");
+    return 1;
+  } else if (power < 4) {
+    mprintf("Warning: Using extremely low precision for integer compression.\n"
+            "Warning: Energy error will be on the order of 2E-%i kcal/mol/atom\n", power);
+    mprintf("Warning: Consider using integer power >= 4.\n");
+  } else
+    mprintf("Warning: Using lossy compression.\n"
+            "Warning: Energy error will be on the order of 2E-%i kcal/mol/atom\n", power);
   int dimensionID[NC_MAX_VAR_DIMS];
   // Place file back in define mode
   if (NC::CheckErr( nc_redef( ncid_ ) )) return 1;
