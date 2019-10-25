@@ -74,38 +74,28 @@ class NetcdfFile {
     /// Descriptions of DidType. MUST MATCH DidType (except NDID).
     static const char* didDesc_[];
 
+#   ifdef HAS_HDF5
     /// Set all variables compression level.
     int SetCompression(int);
-    /// Set desired variable compression level.
-    int SetCompression(VidType, int);
-    /// Set compression level for variable ID
-    int NC_setDeflate(VidType, int) const;
     /// Set default frame chunk size
     int SetFrameChunkSize(int);
-    /// Set chunk sizes for variable ID
-    int NC_setFrameChunkSize(VidType, int, int) const;
     /// Create an integer compressed version of the trajectory
     int NC_createCompressed(int);
     /// Write an integer-compressed frame to the trajectory
     int NC_writeCompressed(Frame const&);
     /// Read an integer-compressed frame from the trajectory
     int NC_readCompressed(int, Frame& frmIn);
-#   ifdef HAS_HDF5
-    /// Calculate integer compression factor of 10 from given power
-    int calcCompressFactor(int);
-    /// Increase variable chunk sizes
-    int NC_setVarDimChunkSizes(VidType, int, int, std::vector<int> const&, int, std::vector<size_t>&) const;
 #   endif
 #   ifdef MPI
     void Sync(Parallel::Comm const&);
 #   endif
 
 #   ifdef HAS_HDF5
-    std::vector<int> deflateLevels_;   ///< Compression levels for each VID
-    int compressedPosVID_; ///< Coordinates integer VID
-    double compressedFac_; ///< Compression factor 
-    std::vector<int> itmp_;            ///< Temp space for converting to int
-    int fchunkSize_;       ///< Frame chunk size
+    std::vector<int> deflateLevels_; ///< Compression levels for each VID
+    int compressedPosVID_;           ///< Coordinates integer VID
+    double compressedFac_;           ///< Compression factor 
+    std::vector<int> itmp_;          ///< Temp space for converting to int
+    int fchunkSize_;                 ///< Frame chunk size
 #   endif
     size_t start_[4];    ///< Array starting indices
     size_t count_[4];    ///< Array counts
@@ -156,6 +146,18 @@ class NetcdfFile {
     void SetupTemperature();
     /// Read - Set up replica index info if present.
     int SetupMultiD();
+#   ifdef HAS_HDF5
+    /// Calculate integer compression factor of 10 from given power
+    int calcCompressFactor(int);
+    /// Set compression level for variable ID
+    int NC_setDeflate(VidType, int) const;
+    /// Set desired compression level for variable ID.
+    int SetCompression(VidType, int);
+    /// Set chunk sizes for variable ID
+    int NC_setFrameChunkSize(VidType, int, int) const;
+    /// Increase variable chunk sizes
+    int NC_setVarDimChunkSizes(VidType, int, int, std::vector<int> const&, int, std::vector<size_t>&) const;
+#   endif
 
     int NC_defineTemperature(int*, int);
     inline void SetRemDimDID(int, int*) const;
@@ -179,7 +181,7 @@ class NetcdfFile {
     int spatialVID_;      ///< Spatial (x, y, z) variable ID
     int cell_spatialVID_; ///< Box lengths variable ID
     int cell_angularVID_; ///< Box angles variable ID
-    int RemdValuesVID_;  ///< Replica values variable ID.
+    int RemdValuesVID_;   ///< Replica values variable ID.
 #   endif /* BINTRAJ */
 };
 #ifdef BINTRAJ
