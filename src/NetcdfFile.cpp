@@ -792,13 +792,15 @@ int NetcdfFile::NC_setFrameChunkSize(VidType vtype, int varid) const
 # ifdef HAS_HDF5
 /** Set desired compression level for specified variable if supported. */
 int NetcdfFile::SetCompression(VidType vtype, int deflateLevelIn) {
-  mprintf("\tSetting compression for VIDTYPE %i to %i\n", (int)vtype, deflateLevelIn);
+  if (ncdebug_ > 0)
+    mprintf("DEBUG: Setting compression for VIDTYPE %i to %i\n", (int)vtype, deflateLevelIn);
   deflateLevels_[vtype] = deflateLevelIn;
   return 0;
 }
 
 /** Set desired compression level for all variables if supported. */
 int NetcdfFile::SetCompression(int deflateLevelIn) {
+  mprintf("\tSetting NetCDF variable compression level to %i\n", deflateLevelIn);
   int err = 0;
   for (int i = 0; i != (int)NVID; i++)
     err += SetCompression( (VidType)i, deflateLevelIn );
@@ -862,7 +864,7 @@ int NetcdfFile::calcCompressFactor(int power) {
   compressedFac_ = 10.0;
   for (int i = 1; i < power; i++)
     compressedFac_ *= 10.0;
-  mprintf("\tInteger compression factor: x%g\n", compressedFac_);
+  mprintf("\tConverting floats to integer using factor: x%g\n", compressedFac_);
   return 0;
 }
 
