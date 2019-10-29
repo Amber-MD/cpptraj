@@ -106,6 +106,7 @@ std::string CoordinateInfo::InfoString() const {
   if ( Has_pH() )         Append(meta, "pH");
   if ( HasRedOx() )       Append(meta, "redox");
   if ( HasTime() )        Append(meta, "time");
+  if ( HasStep() )        Append(meta, "step");
   if ( HasReplicaDims() ) Append(meta, "replicaDims");
   if ( HasRepIdx() )      Append(meta, "replica indices");
   if ( HasCrdIdx() )      Append(meta, "coordinate indices");
