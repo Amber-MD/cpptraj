@@ -81,12 +81,13 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   
   // Get Masks
-  Mask0_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask0_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   std::string refmask = actionArgs.GetMaskNext();
-  if (!refmask.empty())
-    RefMask_.SetMaskString(refmask);
-  else
-    RefMask_.SetMaskString( Mask0_.MaskString() );
+  if (!refmask.empty()) {
+    if (RefMask_.SetMaskString(refmask)) return Action::ERR;
+  } else {
+    if (RefMask_.SetMaskString( Mask0_.MaskString() )) return Action::ERR;
+  }
 
   // Datasets
   std::string ds_name = actionArgs.GetStringNext();
@@ -415,7 +416,7 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
                                    Frame const& frame, std::string const& outfilename) 
 {
   if (CutMask.Nselected() != (int)CutCharges.size()) {
-    mprinterr("Error: WriteCutFrame: # of charges (%u) != # mask atoms (%i)\n",
+    mprinterr("Error: WriteCutFrame: # of charges (%zu) != # mask atoms (%i)\n",
               CutCharges.size(), CutMask.Nselected());
     return 1;
   }
@@ -427,7 +428,8 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
     CutParm->SetAtom(i).SetCharge( CutCharges[i] );
   int err = 0;
   Trajout_Single tout;
-  if (tout.PrepareTrajWrite(outfilename, "multi", CutParm, CoordinateInfo(), 1,
+  // NOTE: Since no user-specified arguments, pass in blank data set list.
+  if (tout.PrepareTrajWrite(outfilename, "multi", DataSetList(), CutParm, CoordinateInfo(), 1,
                             TrajectoryFile::MOL2FILE))
   {
     mprinterr("Error: Could not set up cut mol2 file %s\n", outfilename.c_str());

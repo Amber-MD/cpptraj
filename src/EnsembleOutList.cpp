@@ -1,8 +1,19 @@
 #include "EnsembleOutList.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
 #include "EnsembleOut_Single.h"
 #include "EnsembleOut_Multi.h"
 
+/// CONSTRUCTOR
+EnsembleOutList::EnsembleOutList() : debug_(0) {}
+
+/// DESTRUCTOR
+EnsembleOutList::~EnsembleOutList() { Clear(); }
+
+/** Set the list debug level. Will apply to new output ensembles. */
+void EnsembleOutList::SetDebug(int d) { debug_ = d; }
+
+/** Clear the output ensemble list and free memory. */
 void EnsembleOutList::Clear() {
   for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
     delete *ens;
@@ -14,6 +25,7 @@ void EnsembleOutList::Clear() {
 
 // TODO Pass in more ensemble information, maps etc?
 int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& args,
+                                    DataSetList const& DSLin,
                                     Topology* eParm, int ensembleSize)
 {
   if (eParm == 0) {
@@ -44,7 +56,7 @@ int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& arg
     // Create new multi output trajectory
     ens = new EnsembleOut_Multi();
   if (ens == 0) return 1;
-  if (ens->InitEnsembleWrite(fname, argIn, ensembleSize, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (ens->InitEnsembleWrite(fname, argIn, DSLin, ensembleSize, TrajectoryFile::UNKNOWN_TRAJ)) {
     delete ens;
     return 1;
   }

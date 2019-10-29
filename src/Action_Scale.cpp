@@ -19,7 +19,7 @@ Action::RetType Action_Scale::Init(ArgList& actionArgs, ActionInit& init, int de
   sx_ = actionArgs.getKeyDouble("x", 1);
   sy_ = actionArgs.getKeyDouble("y", 1);
   sz_ = actionArgs.getKeyDouble("z", 1);
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   mprintf("    SCALE coordinates: X by %.3f, Y by %.3f, Z by %.3f\n", sx_, sy_, sz_);
   mprintf("                       Mask is [%s]\n", mask_.MaskString());

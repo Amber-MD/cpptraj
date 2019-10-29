@@ -98,7 +98,7 @@ int SymmetricRmsdCalc::SetupSymmRMSD(Topology const& topIn, AtomMask const& tgtM
                                         symmatoms != SymmetricAtomIndices_.end();
                                         ++symmatoms)
     {
-      mprintf("\t%8u) ", symmatoms - SymmetricAtomIndices_.begin());
+      mprintf("\t%8li) ", symmatoms - SymmetricAtomIndices_.begin());
       for (Iarray::const_iterator atom = symmatoms->begin();
                                   atom != symmatoms->end(); ++atom)
         mprintf(" %s(%i)", topIn.AtomMaskName(tgtMask[*atom]).c_str(), tgtMask[*atom] + 1);

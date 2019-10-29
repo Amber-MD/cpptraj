@@ -734,7 +734,7 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
   ds->SetMeta( dsname );
   // Read 3x3 matrix data
   double mat[9];
-  std::fill(mat, mat, 0.0);
+  std::fill(mat, mat+9, 0.0);
   size_t ndata = 0;
   while (linebuffer != 0) {
     if (hasIndex)

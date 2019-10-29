@@ -70,7 +70,7 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     output_dsets_.push_back( (DataSet_Mesh*)ds );
   }
 
-  mprintf("    SPLINE: Applying cubic splining to %u data sets\n", input_dsets_.size());
+  mprintf("    SPLINE: Applying cubic splining to %zu data sets\n", input_dsets_.size());
   if (meshfactor_ < 0)
     mprintf("\tMesh size= %i\n", meshsize_);
   else

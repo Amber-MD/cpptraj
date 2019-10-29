@@ -3,6 +3,7 @@
 #include "TrajectoryIO.h"
 #ifndef NO_XDRFILE
 # include <xdrfile_xtc.h>
+# include "FileName.h"
 #endif
 /// Read/write Gromacs XTC trajectories
 class Traj_GmxXtc : public TrajectoryIO {
@@ -23,7 +24,7 @@ class Traj_GmxXtc : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&)  { return 0; }
 #   ifdef MPI
     // Parallel functions

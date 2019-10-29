@@ -120,14 +120,15 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprinterr("Error: Radial: No mask given.\n");
     return Action::ERR;
   }
-  Mask1_.SetMaskString(mask1);
+  if (Mask1_.SetMaskString(mask1)) return Action::ERR;
 
   // Check for second mask - if none specified use first mask
   std::string mask2 = actionArgs.GetMaskNext();
-  if (!mask2.empty()) 
-    Mask2_.SetMaskString(mask2);
-  else
-    Mask2_.SetMaskString(mask1);
+  if (!mask2.empty()) {
+    if (Mask2_.SetMaskString(mask2)) return Action::ERR;
+  } else {
+    if (Mask2_.SetMaskString(mask1)) return Action::ERR;
+  }
   // If filename not yet specified check for backwards compat.
   if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
     outfilename = actionArgs.GetStringNext();
@@ -274,7 +275,7 @@ const
   if (debug_ > 1) {
     mprintf("DEBUG: Sites selected by residue for '%s'\n", mask.MaskString());
     for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
-      mprintf("%8u :", m - sites.begin());
+      mprintf("%8li :", m - sites.begin());
       for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
         mprintf(" %i", *at);
       mprintf("\n");
@@ -289,7 +290,7 @@ const
 {
   if (mask.Nselected() < 1) return 1;
   if (top.Nmol() < 1) {
-    mprinterr("Error: No topology info for '%s', cannot set up sites by molecule.\n");
+    mprinterr("Error: No topology info for '%s', cannot set up sites by molecule.\n", top.c_str());
     return -1;
   }
   sites.clear();
@@ -308,7 +309,7 @@ const
   if (debug_ > 1) {
     mprintf("DEBUG: Sites selected by molecule for '%s'\n", mask.MaskString());
     for (Marray::const_iterator m = sites.begin(); m != sites.end(); ++m) {
-      mprintf("%8u :", m - sites.begin());
+      mprintf("%8li :", m - sites.begin());
       for (AtomMask::const_iterator at = m->begin(); at != m->end(); at++)
         mprintf(" %i", *at);
       mprintf("\n");

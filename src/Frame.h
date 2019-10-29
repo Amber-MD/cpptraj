@@ -1,8 +1,11 @@
 #ifndef INC_FRAME_H
 #define INC_FRAME_H
-#include "Atom.h"
+#include <vector>
 #include "AtomMask.h"
+#include "Box.h"
 #include "CoordinateInfo.h"
+// Forward declarations
+class Atom;
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
   * along with box coordinates (used in imaging calculations), mass information,
@@ -43,7 +46,7 @@ class Frame {
     Frame(int, double*);
     Frame(const Frame&);
     Frame& operator=(Frame);
-    typedef std::vector<int> RemdIdxType; ///< For dealing with replica indices
+    typedef std::vector<int> RemdIdxType; ///< For dealing with replica indices TODO put in ReplicaInfo
     typedef std::vector<double> RemdValType; /// < For reading replica values
     // -------------------------------------------
     /// This type interfaces with DataSet_Coords_CRD

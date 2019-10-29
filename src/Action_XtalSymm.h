@@ -107,7 +107,16 @@ class Action_XtalSymm::XtalDock {
     Vec3 displc_;  /**< The optimal displacement beteen the two subunits' centers of mass,
                         scaled to simulation cell fractional coordinates. */
     Vec3 origin_;  ///< The origin that got the best rmsd
-
+    /// Constructor
+    XtalDock() : subunit_(-1), opID_(-1), rmsd_(0.0), displc_(0.0), origin_(0.0) {}
+    /// Copy constructor
+    XtalDock(XtalDock const& rhs) :
+      subunit_(rhs.subunit_),
+      opID_(rhs.opID_),
+      rmsd_(rhs.rmsd_),
+      displc_(rhs.displc_),
+      origin_(rhs.origin_)
+    {}
     /// Assignment
     XtalDock& operator=(const XtalDock& rhs) {
       if (this == &rhs) return *this;

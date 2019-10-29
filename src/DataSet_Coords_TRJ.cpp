@@ -60,10 +60,17 @@ int DataSet_Coords_TRJ::AddSingleTrajin(std::string const& fname, ArgList& argIn
   Trajin_Single* trajin = new Trajin_Single();
   if (trajin->SetupTrajRead(fname, argIn, parmIn)) {
     mprinterr("Error: Could not set up trajectory '%s'\n", fname.c_str());
+    delete trajin;
     return 1;
   }
-  if (CoordsSetup(*parmIn, trajin->TrajCoordInfo())) return 1;
-  if (UpdateTrjFrames( trajin->Traj().Counter() )) return 1;
+  if (CoordsSetup(*parmIn, trajin->TrajCoordInfo())) {
+    delete trajin;
+    return 1;
+  }
+  if (UpdateTrjFrames( trajin->Traj().Counter() )) {
+    delete trajin;
+    return 1;
+  }
   trajinList_.push_back( trajin );
   deleteTrajectories_ = true;
   return 0;

@@ -5,7 +5,7 @@
 void Exec_CatCrd::Help() const
 {
   mprintf("\t<set name0> <set name1> [<set nameX> ...] name <name>\n"
-          "  Combine 2 or more COORDS data sets into a single one.\n");
+          "  Concatenate 2 or more COORDS data sets into a single one.\n");
 }
 
 // Exec_CatCrd::Execute()

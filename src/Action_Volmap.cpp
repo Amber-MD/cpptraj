@@ -123,7 +123,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     } else if (mode == CENTERMASK) {
       // Center mask specified. Get buffer size.
       setupGridOnMask_ = true;
-      centermask_.SetMaskString( setup_arg );
+      if (centermask_.SetMaskString( setup_arg )) return Action::ERR;
       buffer_ = actionArgs.getKeyDouble("buffer", 3.0);
       if (buffer_ < 0) {
         mprinterr("Error: Volmap: The buffer must be non-negative.\n");
@@ -200,7 +200,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
      mprinterr("Error: No atom mask specified.\n");
      return Action::ERR;
   }
-  densitymask_.SetMaskString(reqmask);
+  if (densitymask_.SetMaskString(reqmask)) return Action::ERR;
   // Get output filename
   std::string outfilename = actionArgs.GetStringKey("out");
   if (outfilename.empty())

@@ -125,9 +125,11 @@ void FileTypes::Options(KeyPtr begin, AllocPtr allocArray, FileFormatType UNK,
       mprintf("    %s options for %s: %s\n", Ustr[otype],allocArray[i].Description, fmtstr.c_str());
       switch (otype) {
         case READOPT:
-          if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp(); break;
+          if (allocArray[i].ReadHelp != 0) allocArray[i].ReadHelp();
+          break;
         case WRITEOPT:
-          if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp(); break;
+          if (allocArray[i].WriteHelp != 0) allocArray[i].WriteHelp();
+          break;
       }
     }
   }

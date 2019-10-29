@@ -26,7 +26,7 @@ class Traj_Mol2File : public TrajectoryIO {
     int readFrame(int,Frame&);
     int writeFrame(int,Frame const&);
     void Info();
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
     int processReadArgs(ArgList&) { return 0; }

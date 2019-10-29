@@ -176,7 +176,8 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     mprintf("\tState lifetime output to file '%s'\n", lifeOut_->DataFilename().full());
   if (countOut_ != 0)
     mprintf("\tState counts output to file '%s'\n", countOut_->DataFilename().full());
-  mprintf("\tTransitions output to file '%s'\n", transOut_->DataFilename().full());
+  if (transOut_ != 0)
+    mprintf("\tTransitions output to file '%s'\n", transOut_->DataFilename().full());
   if (normalize_)
     mprintf("\tCurves will be normalized to 1.0\n");
 

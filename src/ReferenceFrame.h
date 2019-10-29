@@ -1,6 +1,7 @@
 #ifndef INC_REFERENCEFRAME_H
 #define INC_REFERENCEFRAME_H
 #include "DataSet_Coords_REF.h"
+// Forward declarations
 /// Wrapper around DataSet_Coords_REF DataSet.
 /** Intended as a non-modifiable holder for the DataSet_Coords_REF DataSet
   * that also can hold an error status.
@@ -11,6 +12,12 @@ class ReferenceFrame {
     ReferenceFrame(int err) : ref_(0), err_(err) {}
     ReferenceFrame(DataSet_Coords_REF* ds) : ref_(ds), err_(0) {}
     ReferenceFrame(const ReferenceFrame& rhs) : ref_(rhs.ref_), err_(rhs.err_) {}
+    ReferenceFrame& operator=(ReferenceFrame const& rhs) {
+      if (this == &rhs) return *this;
+      ref_ = rhs.ref_;
+      err_ = rhs.err_;
+      return *this;
+    }
     Frame const& Coord()        const { return ref_->RefFrame();  }
     Topology const& Parm()      const { return ref_->Top();       }
     Topology* ParmPtr()               { return ref_->TopPtr();    } // FIXME deprecate this

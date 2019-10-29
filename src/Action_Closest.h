@@ -43,6 +43,7 @@ class Action_Closest: public Action {
     bool useMaskCenter_;    ///< If true use geometric center of mask.
     AtomMask stripMask_;    ///< Mask including all solute and closest molecules.
     AtomMask distanceMask_; ///< Mask of atoms to calculate distance from solvent to.
+    CharMask solventMask_;  ///< Optional mask selecting solvent.
     Topology *newParm_;     ///< New topology with solute and closest molecules.
     int NsolventMolecules_; ///< # of solvent molecules in SolventMols.
     int debug_;
@@ -53,10 +54,10 @@ class Action_Closest: public Action {
     /** The moldist structure is used in order to preserve the original
       * solvent molecule numbers after sorting. */
     struct MolDist {
-      int mol;        ///< Original solvent molecule number (starts from 1).
-      double D;       ///< Closest distance of solvent molecule to atoms in distanceMask.
-      AtomMask mask;  ///< Original topology solvent molecule atom mask.
-      Iarray solventAtoms; ///< Actual solvent atom #s to loop over.
+      int mol;             ///< Original solvent molecule number (starts from 1).
+      double D;            ///< Closest distance of solvent molecule to atoms in distanceMask.
+      AtomMask mask;       ///< Entire solvent molecule atom mask.
+      Iarray solventAtoms; ///< Actual solvent atom #s to calc distance to.
     };
     /// Return true if the first molecule is closer than the second
     struct moldist_cmp {

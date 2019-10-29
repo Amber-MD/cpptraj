@@ -1,4 +1,6 @@
 #include "Trajin_Multi.h"
+#include "ArgList.h"
+#include "Topology.h"
 #include "StringRoutines.h" // convertToInteger
 #include "CpptrajStdio.h"
 
@@ -233,7 +235,7 @@ int Trajin_Multi::ReadTrajFrame( int currentFrame, Frame& frameIn ) {
 
 // Trajin_Multi::PrintInfo()
 void Trajin_Multi::PrintInfo(int showExtended) const {
-  mprintf("REMD trajectories (%u total), lowest replica '%s'", REMDtraj_.size(),
+  mprintf("REMD trajectories (%zu total), lowest replica '%s'", REMDtraj_.size(),
           Traj().Filename().base());
   if (showExtended == 1) Traj().Counter().PrintFrameInfo();
   mprintf("\n");

@@ -1,3 +1,4 @@
+#include <algorithm> // std::max
 #include "DataSet_string.h"
 
 size_t DataSet_string::MemUsageInBytes() const {
@@ -38,7 +39,8 @@ void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) con
     cbuffer.Printf(format_.fmt(), "NoData");
   else {
     // Protect against CpptrajFile buffer overflow.
-    if (Data_[pIn[0]].size() >= CpptrajFile::BUF_SIZE) {
+    size_t maxWidth = std::max( (size_t)format_.Width(), Data_[pIn[0]].size() );
+    if (maxWidth >= CpptrajFile::BUF_SIZE) {
       // FIXME: Data sets should not have to worry about spaces in format strings.
       if (format_.fmt()[0] == ' ') cbuffer.Printf(" ");
       cbuffer.Write(Data_[pIn[0]].c_str(), Data_[pIn[0]].size());
@@ -64,6 +66,9 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames,
                          Parallel::Comm const& commIn)
 {
   if (commIn.Size() == 1) return 0;
+  // NOTE: Using an integer type for blockSize could potentially overflow, but
+  //       since the MPI standard currently mandates that MPI_Send and MPI_Recv
+  //       take an integer as the count, that is what we use.
   if (commIn.Master()) {
     // MASTER
     char* block = 0;
@@ -74,9 +79,17 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames,
     Data_.resize( Data_.size() + additional_frames );
     // Receive data from each rank.
     for (int rank = 1; rank < commIn.Size(); rank++) {
-      // Need the size of the char* block
+      // Need the size of the char* block and max width inside that block
+      int maxWidth = 0;
       int blockSize = 0;
+      commIn.SendMaster( &maxWidth,  1, rank, MPI_INT );
+      // Check string width. Update format width if necessary.
+      if ( maxWidth > format_.Width() )
+        format_.SetWidth( maxWidth );
+      // Receive the block size
       commIn.SendMaster( &blockSize, 1, rank, MPI_INT );
+      // Bail on overflow
+      if (blockSize < 0) return 1;
       if (blockSize > currentBlockSize) {
         if (block != 0) delete[] block;
         block = new char[ blockSize ];
@@ -95,12 +108,20 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames,
     if (block != 0) delete[] block;
   } else {
     // RANK
-    // Get sum size of each string on rank (including null char).
-    size_t blockSize = 0;
+    // Get sum size of each string on rank (including null char). Also get
+    // the max size so master can correct the format width if necessary.
+    int maxWidth = 0;
+    int blockSize = 0;
     for (std::vector<std::string>::const_iterator it = Data_.begin(); it != Data_.end(); ++it)
-      blockSize += (it->size() + 1); // +1 for null char.
+    {
+      maxWidth = std::max( maxWidth, (int)it->size() );
+      blockSize += (int)(it->size() + 1); // +1 for null char.
+    }
     char* block = new char[ blockSize ];
+    commIn.SendMaster( &maxWidth,  1, commIn.Rank(), MPI_INT );
     commIn.SendMaster( &blockSize, 1, commIn.Rank(), MPI_INT );
+    // Bail on overflow
+    if (blockSize < 0) return 1;
     // Copy each string (including null char) to array
     char* ptr = block;
     for (std::vector<std::string>::const_iterator it = Data_.begin(); it != Data_.end(); ++it)

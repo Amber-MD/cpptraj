@@ -1,4 +1,5 @@
 #include "TrajIOarray.h"
+#include "Topology.h"
 #include "StringRoutines.h" // integerToString, validInteger
 #include "CpptrajStdio.h"
 #include "TrajectoryFile.h"
@@ -25,7 +26,7 @@ int TrajIOarray::SetupReplicaFilenames(FileName const& tnameIn, ArgList& argIn) 
   if (!trajnames.empty())
     return AddReplicasFromArgs( tnameIn, trajnames );
   replica_filenames_ = File::SearchForReplicas( tnameIn, debug_ );
-  mprintf("\tFound %u replicas.\n", replica_filenames_.size());
+  mprintf("\tFound %zu replicas.\n", replica_filenames_.size());
   if (replica_filenames_.empty()) return 1;
   return 0;
 }

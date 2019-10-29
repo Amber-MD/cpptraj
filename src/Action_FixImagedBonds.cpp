@@ -14,7 +14,7 @@ Action::RetType Action_FixImagedBonds::Init(ArgList& actionArgs, ActionInit& ini
 {
   // Always image
   image_.InitImaging( true );
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   mprintf("    FIXIMAGEDBONDS: Checking all bonds selected by mask '%s'\n", mask_.MaskString());
 

@@ -1,15 +1,27 @@
 #ifndef INC_ENSEMBLEOUTLIST_H
 #define INC_ENSEMBLEOUTLIST_H
-#include "EnsembleOut.h"
+#include <string>
+#include <vector>
+// Not forward-declared since its only a typedef
+#include "FramePtrArray.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
+// Forward declarations
+class EnsembleOut;
+class ArgList;
+class DataSetList;
+class Topology;
+class CoordinateInfo;
 /// Hold output ensembles.
 class EnsembleOutList {
   public:
-    EnsembleOutList() : debug_(0) {}
-    ~EnsembleOutList() { Clear(); }
-    void SetDebug(int d) { debug_ = d; }
+    EnsembleOutList();
+    ~EnsembleOutList();
+    void SetDebug(int);
     void Clear();
     /// Add output ensemble of given size to the list and associate with given Topology
-    int AddEnsembleOut(std::string const&, ArgList const&, Topology*, int);
+    int AddEnsembleOut(std::string const&, ArgList const&, DataSetList const&, Topology*, int);
     /// Set up ensembles for given topology.
     int SetupEnsembleOut(Topology*, CoordinateInfo const&, int); //TODO const Topology?
     /// Write array of Frames to ensemble

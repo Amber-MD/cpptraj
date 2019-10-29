@@ -25,8 +25,9 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, 
   }
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Masks
-  if (!getTempFromFrame_)
-    Mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (!getTempFromFrame_) {
+    if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
+  }
   // DataSet 
   Tdata_ =  init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Tdata");
   if (Tdata_ == 0) return Action::ERR;

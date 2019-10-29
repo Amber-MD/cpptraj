@@ -4,6 +4,9 @@
 #ifdef MPI
 # include "Parallel.h"
 #endif
+// Forward declarations
+class Frame;
+class CoordinateInfo;
 /// Read in 1 frame at a time.
 class Trajin {
   public:

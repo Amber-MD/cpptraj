@@ -156,7 +156,7 @@ int DataIO_CCP4::ReadData(FileName const& fname,
   }
   // FIXME: Grids are currently indexed so Z is fastest changing.
   //        Should be able to change indexing in grid DataSet.
-  size_t mapSize = buffer.i[7] * buffer.i[8] * buffer.i[9];
+  size_t mapSize = (size_t)buffer.i[7] * (size_t)buffer.i[8] * (size_t)buffer.i[9];
   mprintf("\tCCP4 map has %zu elements\n", mapSize);
   mprintf("\tDensity: Min=%f  Max=%f  Mean=%f  RMS=%f\n",
           buffer.f[19], buffer.f[20], buffer.f[21], buffer.f[54]);
@@ -225,7 +225,8 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
   if (OXYZ[0] < 0.0 || OXYZ[1] < 0.0 || OXYZ[2] < 0.0 ||
       OXYZ[0] > 0.0 || OXYZ[1] > 0.0 || OXYZ[2] > 0.0)
     mprintf("Warning: Grid '%s' origin is not 0.0, 0.0, 0.0\n"
-            "Warning:  Origin other than 0.0 not yet supported for CCP4 write.\n");
+            "Warning:  Origin other than 0.0 not yet supported for CCP4 write.\n",
+             grid.legend());
   // Set default title if none set 
   if (title_.empty())
     title_.assign("CPPTRAJ CCP4 map volumetric data, set '" + grid.Meta().Legend() +

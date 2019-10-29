@@ -19,12 +19,12 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, ActionInit& init, int
   if (REF_.InitRef(actionArgs, init.DSL(), false, false)) return Action::ERR;
   // Get the RMS mask string for target 
   std::string tMaskExpr = actionArgs.GetMaskNext();
-  TgtMask_.SetMaskString( tMaskExpr );
+  if (TgtMask_.SetMaskString( tMaskExpr )) return Action::ERR;
   // Get the RMS mask string for reference
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
  
   // Set up the RMSD data set
   drmsd_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"DRMSD");

@@ -1,6 +1,9 @@
 // Traj_AmberCoord
 #include <cstdio> // sscanf
 #include "Traj_AmberCoord.h"
+#include "Frame.h"
+#include "Topology.h"
+#include "ArgList.h"
 #include "CpptrajStdio.h"
 
 /// Size of REMD header
@@ -175,7 +178,7 @@ int Traj_AmberCoord::setupTrajin(FileName const& fname, Topology* trajParm)
   natom3_ = trajParm->Natom() * 3;
   file_.SetupFrameBuffer( natom3_, 8, 10, headerSize_, title.size() );
   if (debug_ > 0) {
-    mprintf("Each frame is %u bytes", file_.FrameSize());
+    mprintf("Each frame is %zu bytes", file_.FrameSize());
     if (headerSize_ != 0) mprintf(" (including REMD header)");
     mprintf(".\n");
   }
@@ -326,7 +329,7 @@ void Traj_AmberCoord::WriteHelp() {
 }
 
 // Traj_AmberCoord::processWriteArgs()
-int Traj_AmberCoord::processWriteArgs(ArgList& argIn) {
+int Traj_AmberCoord::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   outputTemp_ = argIn.hasKey("remdtraj");
   if (argIn.hasKey("highprecision")) { 
     outfmt_ = "%8.6f";

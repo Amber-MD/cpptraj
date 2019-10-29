@@ -44,7 +44,7 @@ int Cluster_ReadInfo::Cluster() {
   if (nframes == -1) return Err(3);
   if (nframes != (int)FrameDistances().OriginalNframes()) {
     mprinterr("Error: # frames in cluster info file (%i) does not match"
-              " current # frames (%zu)\n", nframes, FrameDistances().OriginalNframes());
+              " current # frames (%i)\n", nframes, FrameDistances().OriginalNframes());
     return 1;
   }
   // Scan down to clusters

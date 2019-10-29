@@ -8,6 +8,15 @@ pipeline {
 
     stages {
         stage("Build and test") {
+            when {
+                // Testing needs to be done as a merge gate. Since this is a
+                // somewhat pricey operation in the number of executors used,
+                // assume sufficient testing was already done for the master
+                // branch
+                not {
+                    branch "master"
+                }
+            }
             parallel {
                 stage("Linux GNU serial build") {
                     agent {
@@ -19,7 +28,7 @@ pipeline {
                     steps {
                         sh "./configure --with-netcdf --with-fftw3 gnu"
                         sh "make -j4 install"
-                        sh "make check"
+                        sh "cd test && make test.showerrors"
                     }
                 }
                 stage("Linux Intel Serial Build") {
@@ -42,14 +51,14 @@ pipeline {
                     steps {
                         sh "./configure --with-netcdf -mkl intel"
                         sh "make -j4 install"
-                        sh "make check"
+                        sh "cd test && make test.showerrors"
                     }
                 }
                 stage("Linux PGI serial build") {
                     agent {
                         dockerfile {
                             dir "devtools/ci/jenkins"
-                            label "pgi"
+                            label "pgi && Batwoman"
                             // Pull the licensed PGI compilers from the host machine (must have
                             // the compilers installed in /opt/pgi)
                             args "-v /opt/pgi:/opt/pgi"
@@ -57,9 +66,15 @@ pipeline {
                     }
 
                     steps {
-                        sh "./configure --with-netcdf --with-fftw3 pgi"
-                        sh "make -j6 install"
-                        sh "make check"
+                        script {
+                            try {
+                                sh "./configure --with-netcdf --with-fftw3 pgi"
+                                sh "make -j6 install"
+                                sh "cd test && make test.showerrors"
+                            } catch (error) {
+                                echo "PGI BUILD AND/OR TEST FAILED"
+                            }
+                        }
                     }
                 }
                 stage("Linux GNU parallel build") {
@@ -81,6 +96,7 @@ pipeline {
                         dockerfile {
                             dir "devtools/ci/jenkins"
                             filename "Dockerfile.cuda"
+                            label "cuda"
                         }
                     }
 
@@ -103,6 +119,37 @@ pipeline {
                         sh "make -e OPT=openmp check"
                     }
                 }
+            }
+        }
+
+        stage("Build libcpptraj docker container") {
+            agent { label "linux && docker" }
+
+            environment {
+                DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.ghprbActualCommit}"
+            }
+
+            steps {
+                echo "Building and pushing ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}"
+                script {
+                    def image = docker.build("ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}",
+                                             "-f ./devtools/ci/jenkins/Dockerfile.libcpptraj .")
+                    docker.withRegistry("", "amber-docker-credentials") {
+                        image.push()
+                    }
+                }
+            }
+        }
+
+        stage("Check pytraj with this version of libcpptraj") {
+            environment {
+                DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.ghprbActualCommit}"
+            }
+
+            steps {
+                build job: '/amber-github/pytraj',
+                           parameters: [string(name: 'LIBCPPTRAJ_IMAGE_TAG', value: "${DOCKER_IMAGE_TAG}"),
+                                        string(name: 'BRANCH_TO_BUILD', value: 'master')]
             }
         }
     }

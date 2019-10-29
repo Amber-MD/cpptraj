@@ -78,14 +78,14 @@ void DataSet_RemLog::AllocateReplicas(int n_replicas, GdimArray const& gdimIn,
     for (GdimArray::const_iterator Dim = groupDims_.begin();
                                    Dim != groupDims_.end(); ++Dim)
     {
-      mprintf("Dimension %u:\n", Dim - groupDims_.begin());
+      mprintf("Dimension %li:\n", Dim - groupDims_.begin());
       for (GroupDimType::const_iterator Group = Dim->begin();
                                         Group != Dim->end(); ++Group)
       {
-        mprintf("\tGroup %u:\n", Group - Dim->begin());
+        mprintf("\tGroup %li:\n", Group - Dim->begin());
         for (GroupArray::const_iterator Rep = Group->begin();
                                         Rep != Group->end(); ++Rep)
-          mprintf("\t\tReplica[%u]= %i (l=%i, r=%i)\n", Rep - Group->begin(), Rep->Me(),
+          mprintf("\t\tReplica[%li]= %i (l=%i, r=%i)\n", Rep - Group->begin(), Rep->Me(),
                   Rep->L_partner(), Rep->R_partner());
       }
     }

@@ -464,7 +464,8 @@ void Ewald::Setup_VDW_Correction(Topology const& topIn, AtomMask const& maskIn) 
   Vdw_Recip_term_ = 0.0;
   NB_ = static_cast<NonbondParmType const*>( &(topIn.Nonbond()) );
   if (!NB_->HasNonbond()) {
-    mprintf("Warning: '%s' has no nonbonded parameters. Cannot calculate VDW correction.\n");
+    mprintf("Warning: '%s' has no nonbonded parameters. Cannot calculate VDW correction.\n",
+            topIn.c_str());
     return;
   }
   // Count the number of each unique nonbonded type.
@@ -474,7 +475,7 @@ void Ewald::Setup_VDW_Correction(Topology const& topIn, AtomMask const& maskIn) 
   if (debug_ > 0) {
     mprintf("DEBUG: %zu VDW types.\n", N_vdw_type.size());
     for (Iarray::const_iterator it = N_vdw_type.begin(); it != N_vdw_type.end(); ++it)
-      mprintf("\tType %u = %i\n", it-N_vdw_type.begin(), *it);
+      mprintf("\tType %li = %i\n", it-N_vdw_type.begin(), *it);
   }
   // Determine correction term from types and LJ B parameters
   for (unsigned int itype = 0; itype != N_vdw_type.size(); itype++)

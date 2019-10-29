@@ -3,9 +3,6 @@
 #include <string>
 #include "ReplicaDimArray.h"
 #include "Box.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 /// All metadata associated with a Frame.
 class CoordinateInfo {
   public:

@@ -15,7 +15,7 @@ Action::RetType Action_Translate::Init(ArgList& actionArgs, ActionInit& init, in
   double y = actionArgs.getKeyDouble("y",0.0);
   double z = actionArgs.getKeyDouble("z",0.0);
   Trans_.SetVec(x, y, z);
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   mprintf("    TRANSLATE: Translating atoms in mask %s\n", mask_.MaskString());
   mprintf("\t%f Ang. in X, %f Ang. in Y, %f Ang. in Z\n",

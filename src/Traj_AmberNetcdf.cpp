@@ -3,8 +3,12 @@
 // netcdf trajectory files used with amber.
 // Dan Roe 10-2008
 // Original implementation of netcdf in Amber by John Mongan.
-#include "Traj_AmberNetcdf.h"
 #include <netcdf.h>
+#include "Traj_AmberNetcdf.h"
+#include "CpptrajFile.h"
+#include "ArgList.h"
+#include "Topology.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 #include "NC_Routines.h"
 #ifdef MPI
@@ -97,7 +101,7 @@ void Traj_AmberNetcdf::WriteHelp() {
 }
 
 // Traj_AmberNetcdf::processWriteArgs()
-int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
+int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   outputTemp_ = argIn.hasKey("remdtraj");
   write_mdcrd_ = argIn.hasKey("mdcrd");
   if (argIn.hasKey("velocity"))

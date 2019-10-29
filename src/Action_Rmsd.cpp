@@ -88,12 +88,12 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
   // Get the RMS mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
-  tgtMask_.SetMaskString(tMaskExpr);
+  if (tgtMask_.SetMaskString(tMaskExpr)) return Action::ERR;
   // Get the RMS mask string for reference
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  REF_.SetRefMask( rMaskExpr );
+  if (REF_.SetRefMask( rMaskExpr )) return Action::ERR;
 
   // Set up the RMSD data set.
   std::string dsname = actionArgs.GetStringNext();
@@ -248,8 +248,8 @@ int Action_Rmsd::perResSetup(Topology const& currentParm, Topology const& refPar
       }
       if (perresout_ != 0) perresout_->AddDataSet( p.data_ );
       // Setup mask strings. Note that masks are based off user residue nums
-      p.tgtResMask_.SetMaskString(":" + integerToString(tgtRes) + perresmask_);
-      p.refResMask_.SetMaskString(":" + integerToString(refRes) + perresmask_);
+      if (p.tgtResMask_.SetMaskString(":" + integerToString(tgtRes) + perresmask_)) return 2;
+      if (p.refResMask_.SetMaskString(":" + integerToString(refRes) + perresmask_)) return 2;
       ResidueRMS_.push_back( p );
       PerRes = ResidueRMS_.end() - 1;
     }

@@ -99,7 +99,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
       mprinterr("Error: 'center' requires <mask>\n");
       return 0;
     }
-    centerMask_.SetMaskString( maskexpr );
+    if (centerMask_.SetMaskString( maskexpr )) return 0;
     mode_ = MASKCENTER;
   }
   if (specifiedCenter) {

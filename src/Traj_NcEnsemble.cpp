@@ -1,8 +1,13 @@
 #ifdef BINTRAJ
 #ifdef ENABLE_SINGLE_ENSEMBLE
 #include "Traj_NcEnsemble.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "NC_Routines.h"
+#include "FrameArray.h"
 #ifdef MPI
 # include "Parallel.h"
 #endif
@@ -37,7 +42,7 @@ void Traj_NcEnsemble::ReadHelp() {
 }
 
 // Traj_NcEnsemble::processWriteArgs()
-int Traj_NcEnsemble::processWriteArgs(ArgList& argIn) {
+int Traj_NcEnsemble::processWriteArgs(ArgList& argIn, DataSetList const&) {
   //SetTemperature(argIn.hasKey("remdtraj"));
   //SetVelocity(argIn.hasKey("velocity"));
   return 0;

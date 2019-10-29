@@ -579,7 +579,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   if (debug_ > 4) {
     mprintf("DEBUG: POINTERS\n");
     for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
-      mprintf("%u\t%i\n", it-values_.begin(), *it);
+      mprintf("%li\t%i\n", it-values_.begin(), *it);
   }
   TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES], values_[NATOM],
                                    values_[NUMBND], values_[NUMANG], values_[NPTRA]) );

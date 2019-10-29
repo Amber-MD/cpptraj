@@ -31,34 +31,28 @@ Action::RetType Action_Remap::Init(ArgList& actionArgs, ActionInit& init, int de
   }
   parmoutName_ = actionArgs.GetStringKey("parmout");
   // Get dataset
-  DataSet* mapset = 0;
-  if (!mapsetname.empty()) {
-    mapset = init.DSL().GetDataSet( mapsetname );
-    if (mapset == 0) {
-      mprinterr("Error: Atom map set '%s' not found.\n", mapsetname.c_str());
-      return Action::ERR;
-    }
-    if (mapset->Group() != DataSet::SCALAR_1D) {
-      mprinterr("Error: Atom map set '%s' is not a 1D scalar set.\n", mapset->legend());
-      return Action::ERR;
-    }
-    if (mapset->Size() < 1) {
-      mprinterr("Error: Atom map set '%s' contains no data.\n", mapset->legend());
-      return Action::ERR;
-    }
-    DataSet_1D const& ds = static_cast<DataSet_1D const&>( *mapset );
-    Map_.reserve( ds.Size() );
-    // User atom #s start from 1
-    for (unsigned int i = 0; i != ds.Size(); i++)
-      Map_.push_back( (int)ds.Dval(i) - 1 );
+  DataSet* mapset = init.DSL().GetDataSet( mapsetname );
+  if (mapset == 0) {
+    mprinterr("Error: Atom map set '%s' not found.\n", mapsetname.c_str());
+    return Action::ERR;
   }
+  if (mapset->Group() != DataSet::SCALAR_1D) {
+    mprinterr("Error: Atom map set '%s' is not a 1D scalar set.\n", mapset->legend());
+    return Action::ERR;
+  }
+  if (mapset->Size() < 1) {
+    mprinterr("Error: Atom map set '%s' contains no data.\n", mapset->legend());
+    return Action::ERR;
+  }
+  DataSet_1D const& ds = static_cast<DataSet_1D const&>( *mapset );
+  Map_.reserve( ds.Size() );
+  // User atom #s start from 1
+  for (unsigned int i = 0; i != ds.Size(); i++)
+    Map_.push_back( (int)ds.Dval(i) - 1 );
 
-  mprintf("    REMAP: ");
-  if (mapset != 0) {
-    mprintf("Remapping atoms according to positions specified by data set '%s' (%zu atoms).\n",
-            mapset->legend(), Map_.size());
-  } else
-    return Action::ERR; // Sanity check
+  mprintf("    REMAP:\n"
+          "\tRemapping atoms according to positions specified by data set '%s' (%zu atoms).\n",
+          mapset->legend(), Map_.size());
   if (!parmoutName_.empty())
     mprintf("\tRe-mapped topology will be written with name '%s'\n", parmoutName_.c_str());
   return Action::OK;

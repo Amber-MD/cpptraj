@@ -1,9 +1,11 @@
 // Collection of routines to perform math on 1D datasets.
 #include <cmath> // sqrt, fabs
+#include <limits> // double max
 #include "DataSet_1D.h"
 #include "Corr.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // DEGRAD, RADDEG
+#include "CpptrajFile.h" // Regression output
 
 /** Calculate the average over values in this set (and optionally the
   * standard deviation).
@@ -111,7 +113,7 @@ int DataSet_1D::CrossCorr( DataSet_1D const& D2, DataSet_1D& Ct,
   if (Nelements != (int)D2.Size()) {
     mprinterr("Error: CrossCorr: # elements in dataset %s (%i) not equal to\n",
               legend(), Nelements);
-    mprinterr("Error:            # elements in dataset %s (%u)\n",
+    mprinterr("Error:            # elements in dataset %s (%zu)\n",
               D2.legend(), D2.Size());
     return 1;
   }
@@ -216,7 +218,7 @@ double DataSet_1D::CorrCoeff( DataSet_1D const& D2 ) const {
   if (Nelements != (int)D2.Size()) {
     mprinterr("Error: Corr: # elements in dataset %s (%i) not equal to\n",
               legend(), Nelements);
-    mprinterr("Error:       # elements in dataset %s (%u)\n",
+    mprinterr("Error:       # elements in dataset %s (%zu)\n",
               D2.legend(), D2.Size());
     return 0;
   }
@@ -289,7 +291,7 @@ int DataSet_1D::LinearRegression( double& slope, double& intercept,
          slope = sxy / sxx;
          intercept = yavg - slope * xavg;
   if (outfile != 0)
-    outfile->Printf("\tData points= %u\n"
+    outfile->Printf("\tData points= %zu\n"
                     "\t<X>= %g\n\t<Y>= %g\n"
                     "\tSDx= %g\n\tSDy= %g\n"
                     "\tCorrelation coefficient= %g\n"
@@ -324,9 +326,112 @@ int DataSet_1D::LinearRegression( double& slope, double& intercept,
             "Source", "d.f", "Sum of squares", "Mean square", "F");
     outfile->Printf("\t%-10s %5d %14.7g %14.7g %14.7g\n", "Regression",
             1, sumSqRegression, sumSqRegression, Fval);
-    outfile->Printf("\t%-10s %5u %14.7g %14.7g\n", "Residual",
+    outfile->Printf("\t%-10s %5zu %14.7g %14.7g\n", "Residual",
             Size() - 2, residualSumSq, residualMeanSq);
-    outfile->Printf("\t%-10s %5u %14.7g\n", "Total",  Size() - 1, syy);
+    outfile->Printf("\t%-10s %5zu %14.7g\n", "Total",  Size() - 1, syy);
   }
   return 0;
+}
+
+// ----- Integration routines --------------------------------------------------
+/* Just integration */
+double DataSet_1D::Integrate(IntegrationType itype) const {
+  double sum = 0.0;
+  if (Size() < 2) return 0;
+  if (itype == TRAPEZOID) {
+    for (unsigned int i = 1; i != Size(); i++) {
+      double b_minus_a = Xcrd(i) - Xcrd(i-1);
+      sum += (b_minus_a * (Dval(i-1) + Dval(i)) * 0.5);
+    }
+  }
+  return sum;
+}
+
+/** Integration with cumulative sum. */
+double DataSet_1D::Integrate(IntegrationType itype, Darray& xOut, Darray& sumOut) const {
+  xOut.clear();
+  sumOut.clear();
+  double sum = 0.0;
+  if (Size() < 2) return 0;
+  xOut.reserve( Size() );
+  xOut.push_back( Xcrd(0) );
+  sumOut.reserve( Size() );
+  sumOut.push_back( 0 );
+  if (itype == TRAPEZOID) {
+    for (unsigned int i = 1; i != Size(); i++) {
+      xOut.push_back( Xcrd(i) );
+      double b_minus_a = Xcrd(i) - Xcrd(i-1);
+      sum += (b_minus_a * (Dval(i-1) + Dval(i)) * 0.5);
+      sumOut.push_back( sum );
+    }
+  }
+  return sum;
+}
+
+// ----- Finite difference routines --------------------------------------------
+int DataSet_1D::FiniteDifference(DiffType dtype, Darray& xOut, Darray& diffOut) const {
+  int err = 0;
+  xOut.clear();
+  xOut.reserve( Size() );
+  diffOut.clear();
+  diffOut.reserve( Size() );
+  switch (dtype) {
+    case FORWARD  : err = ForwardDifference(xOut, diffOut); break;
+    case BACKWARD : err = BackwardDifference(xOut, diffOut); break;
+    case CENTRAL  : err = CentralDifference(xOut, diffOut); break;
+  }
+  if (err != 0) {
+    mprinterr("Error: Infinite slope detected when calculating finite difference of '%s'\n",
+              legend());
+  }
+  return err;
+}
+
+int DataSet_1D::ForwardDifference(Darray& xOut, Darray& diffOut) const {
+  int err = 0;
+  for (unsigned int i = 1; i < Size(); i++) {
+    xOut.push_back( Xcrd(i-1) );
+    double xdiff = Xcrd(i-1) - Xcrd(i);
+    if (xdiff == 0) {
+      err = 1;
+      diffOut.push_back( - std::numeric_limits<double>::max() );
+    } else {
+      diffOut.push_back( (Dval(i-1) - Dval(i)) / xdiff );
+    }
+  }
+  return err;
+}
+
+int DataSet_1D::BackwardDifference(Darray& xOut, Darray& diffOut) const {
+  if (Size() == 0) return 0;
+  int err = 0;
+  for (unsigned int i = 0; i < Size()-1; i++) {
+    xOut.push_back( Xcrd(i) );
+    double xdiff = Xcrd(i+1) - Xcrd(i);
+    if (xdiff == 0) {
+      err = 1;
+      diffOut.push_back( - std::numeric_limits<double>::max() );
+    } else {
+      diffOut.push_back( (Dval(i+1) - Dval(i)) / xdiff );
+    }
+  }
+  return err;
+}
+
+int DataSet_1D::CentralDifference(Darray& xOut, Darray& diffOut) const {
+  if (Size() == 0) return 0;
+  int err = 0;
+  for (unsigned int i = 1; i < Size()-1; i++) {
+    xOut.push_back( Xcrd(i) );
+    double xdiff1 = Xcrd(i  ) - Xcrd(i-1);
+    double xdiff2 = Xcrd(i+1) - Xcrd(i  );
+    double xdiff = xdiff1 + xdiff2;
+    if (xdiff == 0) {
+      err = 1;
+      diffOut.push_back( - std::numeric_limits<double>::max() );
+    } else {
+      diffOut.push_back( (Dval(i+1) - Dval(i-1)) / xdiff );
+    }
+  }
+  return err;
 }

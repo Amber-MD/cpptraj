@@ -94,11 +94,11 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 
   mprintf("    AVERAGE:");
   if (calcAvgOverSets_) {
-    mprintf(" Calculating average over %i data sets.\n", input_dsets_.size());
+    mprintf(" Calculating average over %zu data sets.\n", input_dsets_.size());
     mprintf("\tAverage stored in data set '%s'\n", avgOfSets_->legend());
     mprintf("\tStandard deviation stored in data set '%s'\n", sdOfSets_->legend());
   } else {
-    mprintf(" Calculating average of %i data sets.\n", input_dsets_.size());
+    mprintf(" Calculating average of %zu data sets.\n", input_dsets_.size());
     mprintf("\tData set base name '%s'\n", data_avg_->Meta().Name().c_str());
     if (convertToTorsion)
       mprintf("\tData sets will be marked as torsions\n");

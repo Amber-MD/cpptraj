@@ -1,6 +1,6 @@
-#ifdef BINTRAJ
 #ifndef INC_NC_ROUTINES_H
 #define INC_NC_ROUTINES_H
+#ifdef BINTRAJ
 #include <string>
 namespace NC {
   /// \return true if given code is error and print message, false otherwise.
@@ -16,5 +16,5 @@ namespace NC {
   /// Print debug info to STDOUT
   void Debug(int);
 }
-#endif
+#endif /* BINTRAJ */
 #endif

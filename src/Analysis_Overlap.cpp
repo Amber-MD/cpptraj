@@ -44,12 +44,12 @@ Analysis::RetType Analysis_Overlap::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 
 Analysis::RetType Analysis_Overlap::Analyze() {
   if (ds1_->Size() < 1 || ds2_->Size() < 1) {
-    mprinterr("Error: One or both data sets empty (ds1=%i, ds2=%i)\n",
+    mprinterr("Error: One or both data sets empty (ds1=%zu, ds2=%zu)\n",
               ds1_->Size(), ds2_->Size());
     return Analysis::ERR;
   }
   if (ds1_->Size() != ds2_->Size()) {
-    mprinterr("Error: Data set sizes do not match (ds1=%i, ds2=%i)\n",
+    mprinterr("Error: Data set sizes do not match (ds1=%zu, ds2=%zu)\n",
               ds1_->Size(), ds2_->Size());
     return Analysis::ERR;
   }
@@ -72,7 +72,7 @@ Analysis::RetType Analysis_Overlap::Analyze() {
     mprintf("\tNormalized RMSD of %s from %s is %f\n", ds1_->legend(),
             ds2_->legend(), 1.0 - sum);
   } else {  
-    int Npoints = 0;
+    unsigned int Npoints = 0;
     double sum = 0.0;
     for (unsigned int i = 0; i < D1.Size(); i++) {
       double val1 = D1.Dval(i);
@@ -95,7 +95,7 @@ Analysis::RetType Analysis_Overlap::Analyze() {
       sum = 0.0;
     else
       sum /= (double)Npoints;
-    mprintf("\t%i of %i points had no data.\n", ds1_->Size() - Npoints, ds1_->Size());
+    mprintf("\t%zu of %zu points had no data.\n", ds1_->Size() - Npoints, ds1_->Size());
     mprintf("\tPercent overlap between %s and %s is %f\n", ds1_->legend(),
             ds2_->legend(), sum);
   }

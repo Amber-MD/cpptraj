@@ -1,6 +1,20 @@
 #include "TrajoutList.h"
+#include "Trajout_Single.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
+// FIXME for pytraj compatibility
+#include "DataSetList.h"
 
+/// CONSTRUCTOR
+TrajoutList::TrajoutList() : debug_(0) {}
+
+/// DESTRUCTOR
+TrajoutList::~TrajoutList() { Clear(); }
+
+/** Set the list debug level; passed to new output trajectories. */
+void TrajoutList::SetDebug(int d) { debug_ = d; }
+
+/** Clear the output trajectory list, free all memory. */
 void TrajoutList::Clear() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
     delete *traj;
@@ -10,12 +24,19 @@ void TrajoutList::Clear() {
   open_.clear();
 }
 
+// FIXME legacy function to maintain pytraj compatibility
+int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, Topology* tParm)
+{
+  DataSetList blank;
+  return AddTrajout(filename, argIn, blank, tParm);
+}
+
 /** Add output trajectory to list as single output trajectory. Associate it
   * with the given Topology but no Topology-dependent setup will occur. This
   * is because during the course of a Run the Topology may be modified, by
   * e.g. a 'strip' command.
   */
-int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, Topology* tParm)
+int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, DataSetList const& DSLin, Topology* tParm)
 {
   if (tParm == 0) {
     mprinterr("Error: No topology information.\n");
@@ -39,7 +60,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, T
   to->SetDebug( debug_ );
   // Initialize output trajectory
   ArgList args = argIn;
-  if (to->InitTrajWrite(filename, args, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (to->InitTrajWrite(filename, args, DSLin, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: Could not set up output trajectory.\n");
     delete to;
     return 1;

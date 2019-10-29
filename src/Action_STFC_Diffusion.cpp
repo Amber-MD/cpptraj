@@ -19,7 +19,7 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
 
 void Action_STFC_Diffusion::Help() const {
   mprintf("\tmask <mask> [out <file>] [time <time per frame>]\n"
-          "\t[mask2 <mask>] [lower <distance>] [upper <distance>]\n"
+          "\t[mask2 <mask> [lower <distance>] [upper <distance>]]\n"
           "\t[nwout <file>]) [avout <file>] [distances] [com]\n"
           "\t[x|y|z|xy|xz|yz|xyz]\n"
           "  Calculate diffusion of atoms in <mask>\n");
@@ -95,6 +95,12 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
     calcType_ = DIST;
     // See if imaging is to be performed.
     image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  } else if (actionArgs.Contains("lower")) {
+    mprinterr("Error: 'lower' requires 'mask2'\n");
+    return Action::ERR;
+  } else if (actionArgs.Contains("upper")) {
+    mprinterr("Error: 'upper' requires 'mask2'\n");
+    return Action::ERR;
   }
 
   if (calcType_ != DEFAULT)

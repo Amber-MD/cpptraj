@@ -1,5 +1,7 @@
 // Traj_Conflib
 #include "Traj_Conflib.h"
+#include "Topology.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR

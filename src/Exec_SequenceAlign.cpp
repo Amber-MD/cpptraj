@@ -229,7 +229,7 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
   //Frame sFrame(qref.Coord(), sMask);
   // Write output traj
   Trajout_Single trajout;
-  if (trajout.PrepareTrajWrite(outfilename, argIn, &sTop, CoordinateInfo(), 1, fmt))
+  if (trajout.PrepareTrajWrite(outfilename, argIn, State.DSL(), &sTop, CoordinateInfo(), 1, fmt))
     return CpptrajState::ERR;
   if (trajout.WriteSingle(0, sFrame)) return CpptrajState::ERR;
   trajout.EndTraj();

@@ -68,6 +68,7 @@ class CpptrajState {
   private:
     int SetTrajMode(TrajModeType, std::string const&, Topology*, ArgList&);
     int SetTrajMode(TrajModeType);
+    int AddReference(DataSet_Coords_REF*, Topology*, DataSet_Coords*, ArgList&, std::string const&, std::string const&, std::string const&);
     /// Types of lists
     enum ListType {
       L_ACTION = 0, L_TRAJIN, L_REF, L_TRAJOUT, L_PARM, L_ANALYSIS,

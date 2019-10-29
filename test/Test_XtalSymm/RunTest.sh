@@ -14,7 +14,7 @@ parm ../x6dky.parm7
 trajin ../mdXtal.nc
 reference ../mdXtal.inpcrd
 xtalsymm :1-16 reference group P22(1)2(1) na 2 nb 1 nc 1
-trajout mdAsuOnly.pdb
+trajout mdAsuOnly.pdb chainid ' '
 EOF
 RunCpptraj "XtalSymm Reference"
 DoTest mdAsuOnly.pdb.save mdAsuOnly.pdb
@@ -25,7 +25,7 @@ parm ../x6dky.parm7
 trajin ../mdXtal.nc
 reference ../mdXtal.inpcrd
 xtalsymm :1-16 reference group P22(1)2(1) na 2 nb 1 nc 1 collect
-trajout mdSolventByAtom.pdb
+trajout mdSolventByAtom.pdb chainid ' '
 EOF
 RunCpptraj "XtalSymm Reimaging by Atom"
 DoTest mdSolventByAtom.pdb.save mdSolventByAtom.pdb
@@ -36,7 +36,7 @@ parm ../x6dky.parm7
 trajin ../mdXtal.nc
 reference ../mdXtal.inpcrd
 xtalsymm :1-16 reference group P22(1)2(1) na 2 nb 1 nc 1 collect centroid
-trajout mdSolventByMolecule.pdb
+trajout mdSolventByMolecule.pdb chainid ' '
 EOF
 RunCpptraj "XtalSymm Reimaging by Molecule"
 DoTest mdSolventByMolecule.pdb.save mdSolventByMolecule.pdb

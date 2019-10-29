@@ -87,7 +87,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
       return Action::ERR;
     }
 
-    tailstart_mask_.SetMaskString(mask);
+    if (tailstart_mask_.SetMaskString(mask)) return Action::ERR;
 
     mask = actionArgs.GetStringKey("tailend");
 
@@ -96,7 +96,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
       return Action::ERR;
     }
 
-    tailend_mask_.SetMaskString(mask);
+    if (tailend_mask_.SetMaskString(mask)) return Action::ERR;
   }
 
   scd_ = actionArgs.hasKey("scd");
@@ -104,7 +104,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
   mask = actionArgs.GetStringKey("unsat");
 
   if (!mask.empty() ) {
-    unsat_mask_.SetMaskString(mask);
+    if (unsat_mask_.SetMaskString(mask)) return Action::ERR;
   }
 
   // rest of the command line is the masks for each atom
@@ -117,12 +117,12 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
 
   if (nGroups < 3) {
     mprinterr("Error: OrderParameter: number of atoms must be at least 3 "
-	      "(not %i)\n", nGroups);
+	      "(not %zu)\n", nGroups);
     return Action::ERR;
   }
 
   if (scd_ && (nGroups % 3) ) {
-    mprinterr("Error: OrderParameter: scd set but number of masks (%i) "
+    mprinterr("Error: OrderParameter: scd set but number of masks (%zu) "
 	      "not a multiple of 3\n", nGroups);
     return Action::ERR;
   }

@@ -110,15 +110,15 @@ Analysis::RetType Analysis_Corr::Analyze() {
   // Check that D1 and D2 have same # data points.
   size_t Nelements = D1_->Size(); 
   if (Nelements != D2_->Size()) {
-    mprinterr("Error: Corr: # elements in dataset %s (%u) not equal to\n",
+    mprinterr("Error: Corr: # elements in dataset %s (%zu) not equal to\n",
               D1_->legend(), Nelements);
-    mprinterr("             # elements in dataset %s (%u)\n",
+    mprinterr("             # elements in dataset %s (%zu)\n",
               D2_->legend(), D2_->Size());
     return Analysis::ERR;
   }
   if (lagmax_==-1) lagmax_ = (int)Nelements;
 
-  mprintf("    CORR: %u elements, max lag %i\n",Nelements,lagmax_);
+  mprintf("    CORR: %zu elements, max lag %i\n",Nelements,lagmax_);
 
   Analysis::RetType err = Analysis::OK;
   if (D1_->Type() == DataSet::VECTOR) {

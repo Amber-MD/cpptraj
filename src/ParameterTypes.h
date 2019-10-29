@@ -224,9 +224,9 @@ class NonbondParmType {
       return nbindex_[ ntypes_ * type1 + type2 ];
     }
     /// Set number of types and init nonbond index array.
-    void SetNtypes(int n) {
+    void SetNtypes(unsigned int n) {
       ntypes_ = n;
-      nbindex_.assign(ntypes_ * ntypes_, -1); 
+      nbindex_.assign((size_t)ntypes_ * (size_t)ntypes_, -1); 
     }
     /// Set number of types, init NB index array, init LJ array.
     void SetupLJforNtypes(int n) { SetNtypes(n); nbarray_.assign((n*(n+1))/2, NonbondType()); }
@@ -297,13 +297,13 @@ class LES_ParmType {
   public:
     LES_ParmType() : ntypes_(0), ncopies_(0) {}
     /// Prepare LES_ParmType to receive data based on given # atoms and # LES types.
-    void Allocate(int natomsIn, int ntypesIn) {
+    void Allocate(unsigned int natomsIn, unsigned int ntypesIn) {
       ntypes_ = ntypesIn;
       ncopies_ = 0;
       array_.clear();
       array_.resize( natomsIn );
       fac_.clear();
-      fac_.resize( ntypes_ * ntypes_ );
+      fac_.resize( (size_t)ntypes_ * (size_t)ntypes_ );
     }
     inline bool HasLES()                const { return ntypes_ > 0;      }
     inline int Ntypes()                 const { return ntypes_;          }
@@ -368,7 +368,7 @@ class CapParmType {
 class CmapGridType {
   public:
     CmapGridType() : resolution_(0) {}
-    CmapGridType(int r) : resolution_(r), grid_(r*r, 0.0) {}
+    CmapGridType(unsigned int r) : resolution_(r), grid_((size_t)r*(size_t)r, 0.0) {}
     inline int Resolution()                  const { return resolution_;       }
     inline std::vector<double> const& Grid() const { return grid_;             }
     inline int Size()                        const { return (int)grid_.size(); }

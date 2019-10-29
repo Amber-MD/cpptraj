@@ -1,6 +1,7 @@
 #ifndef INC_TRAJ_GMXTRR_H
 #define INC_TRAJ_GMXTRR_H
 #include "TrajectoryIO.h"
+#include "CpptrajFile.h"
 /// Read/write Gromacs TRR/TRJ trajectories
 class Traj_GmxTrX : public TrajectoryIO {
   public:
@@ -24,7 +25,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&)  { return 0; }
 #   ifdef MPI
     // Parallel functions
@@ -78,10 +79,5 @@ class Traj_GmxTrX : public TrajectoryIO {
     size_t arraySize_;    ///< # elements in {d|f}array_; total # of position/veloc/force coords.
     float* farray_;       ///< Array for reading/writing single precision.
     double* darray_;      ///< Array for reading/writine double precision.
-
-    static const double GMX_FRC_TO_AMBER;
-    static const double AMBER_FRC_TO_GMX;
-    static const double GMX_VEL_TO_AMBER;
-    static const double AMBER_VEL_TO_GMX;
 };
 #endif

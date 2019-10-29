@@ -47,7 +47,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
     return Action::ERR;
   }
   // Get Mask
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Determine which directions to set
   if (setAll) {
@@ -98,7 +98,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
   // Initialize output trajectory with remaining arguments
   if (!trajfilename.empty()) {
     outtraj_.SetDebug( debugIn );
-    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(),
+    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(), init.DSL(),
                                         TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
       return Action::ERR;
     writeTraj_ = true;

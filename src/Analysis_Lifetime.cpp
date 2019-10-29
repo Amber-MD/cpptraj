@@ -199,7 +199,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
     mprintf("    LIFETIME: Calculating average lifetime using a cutoff of %f", cut_);
   else
     mprintf("    LIFETIME: Calculating only averages");
-  mprintf(" of data in %i sets\n", inputDsets_.size());
+  mprintf(" of data in %zu sets\n", inputDsets_.size());
   if (!sortSets) mprintf("\tInput data sets will not be sorted.\n");
   if (debugIn > 0)
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)

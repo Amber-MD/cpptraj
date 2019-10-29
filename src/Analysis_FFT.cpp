@@ -43,7 +43,7 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, AnalysisSetup& setup
     if (outfile != 0) outfile->AddDataSet( dsout );
   }
 
-  mprintf("    FFT: Calculating FFT for %u data sets.\n", input_dsets_.size());
+  mprintf("    FFT: Calculating FFT for %zu data sets.\n", input_dsets_.size());
   mprintf("\tTime step: %f\n", dt_);
   if ( !setname.empty() )
     mprintf("\tSet name: %s\n", setname.c_str() );
@@ -74,7 +74,7 @@ Analysis::RetType Analysis_FFT::Analyze() {
     if ( maxsize_ == 0 )
       maxsize_ = (*DS)->Size();
     else if ( (*DS)->Size() != maxsize_ ) {
-      mprintf("Warning: Set %s does not have same size (%u) as initial set (%u). Skipping.\n",
+      mprintf("Warning: Set %s does not have same size (%zu) as initial set (%zu). Skipping.\n",
               (*DS)->legend(), (*DS)->Size(), maxsize_ );
       continue;
     }

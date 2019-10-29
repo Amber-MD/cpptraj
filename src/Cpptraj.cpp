@@ -14,6 +14,7 @@
 #include "TopInfo.h" // ProcessMask
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
+#include "TrajectoryFile.h" // for autodetect
 #ifdef CUDA
 # include <cuda_runtime_api.h>
 #endif
@@ -31,6 +32,25 @@ Cpptraj::Cpptraj() {
   _set_output_format(_TWO_DIGIT_EXPONENT);
 # endif
 # endif
+
+  versionString_.assign(CPPTRAJ_INTERNAL_VERSION);
+# ifdef BUILDTYPE
+  versionString_.append(" (" + std::string(BUILDTYPE));
+# ifdef AT_VERSION_STRING
+  versionString_.append(" " + std::string(AT_VERSION_STRING));
+# endif
+  versionString_.append(")");
+# endif /* BUILDTYPE */
+# ifdef MPI
+  versionString_.append(" MPI");
+# endif
+# ifdef _OPENMP
+  versionString_.append(" OpenMP");
+# endif
+# ifdef CUDA
+  versionString_.append(" CUDA");
+# endif
+
   Command::Init();
 }
 
@@ -71,26 +91,10 @@ void Cpptraj::Usage() {
             "\n");
 }
 
-void Cpptraj::Intro() {
+void Cpptraj::Intro() const {
   mprintf("\nCPPTRAJ: Trajectory Analysis. %s"
-# ifdef BUILDTYPE
-          " (%s)"
-# endif
-# ifdef MPI
-          " MPI"
-# endif
-# ifdef _OPENMP
-          " OpenMP"
-# endif
-# ifdef CUDA
-          " CUDA"
-# endif
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
-          CPPTRAJ_VERSION_STRING
-# ifdef BUILDTYPE
-          , BUILDTYPE
-# endif
-         );
+          versionString_.c_str());
 # ifdef MPI
   mprintf("| Running on %i processes.\n", Parallel::World().Size());
 # endif
@@ -218,6 +222,9 @@ std::string Cpptraj::Defines() {
 #endif
 #ifdef NO_XDRFILE
   defined_str.append(" -DNO_XDRFILE");
+#endif
+#ifdef HAS_TNGFILE
+  defined_str.append(" -DHAS_TNGFILE");
 #endif
 #if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
@@ -374,11 +381,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     if ( arg == "-V" || arg == "--version" ) {
       // -V, --version: Print version number and exit
       SetWorldSilent( true );
-#     ifdef BUILDTYPE
-      loudPrintf("CPPTRAJ: Version %s (%s)\n", CPPTRAJ_VERSION_STRING, BUILDTYPE);
-#     else
-      loudPrintf("CPPTRAJ: Version %s\n", CPPTRAJ_VERSION_STRING);
-#     endif
+      loudPrintf("CPPTRAJ: Version %s\n", versionString_.c_str());
       return QUIT;
     }
     if ( arg == "--internal-version" ) {
@@ -631,7 +634,7 @@ int Cpptraj::Interactive() {
     // Write logfile header entry: date, cmd line opts, topologies
     logfile_.Printf("# %s\n", TimeString().c_str());
     if (!commandLine_.empty())
-      logfile_.Printf("#%s\n", commandLine_.c_str());
+      logfile_.Write(commandLine_.c_str(), commandLine_.size()*sizeof(char));
     DataSetList tops = State_.DSL().GetSetsOfType("*", DataSet::TOPOLOGY);
     if (!tops.empty()) {
       logfile_.Printf("# Loaded topologies:\n");

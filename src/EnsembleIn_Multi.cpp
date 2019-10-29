@@ -1,4 +1,5 @@
 #include "EnsembleIn_Multi.h"
+#include "FrameArray.h"
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove
@@ -319,7 +320,7 @@ void EnsembleIn_Multi::EndEnsemble() {
 }
 
 void EnsembleIn_Multi::EnsembleInfo(int showExtended) const {
-  mprintf("Trajectory ensemble (%u total), lowest replica '%s'", REMDtraj_.size(),
+  mprintf("Trajectory ensemble (%zu total), lowest replica '%s'", REMDtraj_.size(),
           Traj().Filename().base());
   if (showExtended == 1) Traj().Counter().PrintFrameInfo();
   mprintf("\n");

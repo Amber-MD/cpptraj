@@ -366,7 +366,7 @@ Action::RetType Action_MakeStructure::Setup(ActionSetup& setup) {
       // type was empty. Make sure the number of found dihedrals equals
       // number of reference dihedrals.
       if ( ss->dihSearch_.Ndihedrals() != (int)ss->thetas_.size() ) {
-        mprinterr("Error: Number of found dihedrals (%i) != number reference dihedrals (%u)\n",
+        mprinterr("Error: Number of found dihedrals (%i) != number reference dihedrals (%zu)\n",
                   ss->dihSearch_.Ndihedrals(), ss->thetas_.size());
         for (DihedralSearch::mask_it dih = ss->dihSearch_.begin();
                                      dih != ss->dihSearch_.end(); ++dih)

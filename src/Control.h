@@ -50,7 +50,7 @@ class ControlBlock_For : public ControlBlock {
     DoneType CheckDone(Varray&);
   private:
     enum ForType {ATOMS=0, RESIDUES, MOLECULES, MOLFIRSTRES, MOLLASTRES, INTEGER, LIST, UNKNOWN};
-    enum OpType { INCREMENT, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
+    enum OpType { INCREMENT=0, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
     typedef std::vector<int> Iarray;
     typedef std::vector<std::string> Sarray;
     class LoopVar {

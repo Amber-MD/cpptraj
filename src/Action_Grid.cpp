@@ -69,7 +69,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
     init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
-  mask_.SetMaskString(maskexpr);
+  if (mask_.SetMaskString(maskexpr)) return Action::ERR;
 
   // Setup output file
   // For backwards compat., if no 'out' assume next string is filename

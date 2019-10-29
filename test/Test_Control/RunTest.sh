@@ -41,13 +41,6 @@ show
 atoms "@\$last10 - \$Natom" out last10.dat
 run
 
-# Test reading in a comma-separated list of strings
-clear trajin
-for TRAJ in ../tz2.nc,../tz2.crd,../tz2.pdb,../tz2.rst7
-  trajin \$TRAJ lastframe
-done
-distance D1-12 :1 :12 out distance.dat
-run
 EOF
 RunCpptraj "$TESTNAME"
 DoTest TRP.vec.dat.save TRP.vec.dat
@@ -57,7 +50,23 @@ DoTest TRP.tocenter.dat.save TRP.tocenter.dat
 DoTest nh.dat.save nh.dat
 DoTest rms.nofit.dat.save rms.nofit.dat
 DoTest last10.dat.save last10.dat
-DoTest distance.dat.save distance.dat
+
+UNITNAME='Test reading comma-separated list of strings'
+CheckFor maxthreads 4
+if [ $? -eq 0 ] ; then
+  cat > for.in <<EOF
+parm ../tz2.parm7
+# Test reading in a comma-separated list of strings
+clear trajin
+for TRAJ in ../tz2.nc,../tz2.crd,../tz2.pdb,../tz2.rst7
+  trajin \$TRAJ lastframe
+done
+distance D1-12 :1 :12 out distance.dat
+run
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest distance.dat.save distance.dat
+fi
 
 EndTest
 exit 0

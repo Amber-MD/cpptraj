@@ -441,6 +441,28 @@ static inline void x_to_buf(char* coord_buf, double X, bool& coordOverflow)
     sprintf(coord_buf, "%8.3f", X);
 }
 
+static inline void SetChargeString(char* charge_buf, int charge) {
+  charge_buf[0] = ' ';
+  charge_buf[1] = ' ';
+  charge_buf[2] = '\0';
+  if (charge > 0) {
+    if (charge > 9) {
+      mprintf("Warning: Charge %i is too large. Not printing.\n", charge);
+    } else {
+      charge_buf[0] = (char)(charge + '0');
+      charge_buf[1] = '+';
+    }
+  } else if (charge < 0) {
+    if (charge < -9) {
+      mprintf("Warning: Charge %i is too large. Not printing.\n", charge);
+    } else {
+      charge = -charge;
+      charge_buf[0] = (char)(charge + '0');
+      charge_buf[1] = '-';
+    }
+  }
+}
+
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          char altLoc,
@@ -456,21 +478,32 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
   x_to_buf(coord_buf+8 , Y, coordOverflow_);
   x_to_buf(coord_buf+16, Z, coordOverflow_);
   WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode, Elt);
+  static char charge_buf[3];
+  SetChargeString(charge_buf, charge);
   if (highPrecision)
-    Printf("   %24s%8.4f%8.4f      %2s%2s\n", coord_buf, Occ, B, Elt, "");
+    Printf("   %24s%8.4f%8.4f      %2s%2s\n", coord_buf, Occ, B, Elt, charge_buf);
   else
-    Printf("   %24s%6.2f%6.2f          %2s%2s\n", coord_buf, Occ, B, Elt, "");
+    Printf("   %24s%6.2f%6.2f          %2s%2s\n", coord_buf, Occ, B, Elt, charge_buf);
 }
 
 // PDBfile::WriteANISOU()
 void PDBfile::WriteANISOU(int anum, NameType const& name, 
                           NameType const& resnameIn, char chain, int resnum,
-                          int u11, int u22, int u33, int u12, int u13, int u23,
+                          const double* anisou,
                           const char* Elt, int charge)
 { // TODO icode, altLoc
+  // Convert to integers
+  int u11 = (int)(anisou[0] * 10000);
+  int u22 = (int)(anisou[1] * 10000);
+  int u33 = (int)(anisou[2] * 10000);
+  int u12 = (int)(anisou[3] * 10000);
+  int u13 = (int)(anisou[4] * 10000);
+  int u23 = (int)(anisou[5] * 10000);
+  static char charge_buf[3];
+  SetChargeString(charge_buf, charge);
   WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' ', Elt);
-  Printf(" %7i%7i%7i%7i%7i%7i      %2s%2i\n", u11, u22, u33, 
-         u12, u13, u23, Elt, charge);
+  Printf(" %7i%7i%7i%7i%7i%7i      %2s%2s\n", u11, u22, u33,
+         u12, u13, u23, Elt, charge_buf);
 }
 
 // PDBfile::WriteTITLE()
@@ -575,7 +608,7 @@ PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
   std::copy(rhs.name2_, rhs.name2_+4, name2_);
 }
 
-PDBfile::SSBOND PDBfile::SSBOND::operator=(SSBOND const& rhs) {
+PDBfile::SSBOND& PDBfile::SSBOND::operator=(SSBOND const& rhs) {
   if (this != &rhs) {
     idx1_ = rhs.idx1_;
     idx2_ = rhs.idx2_;
@@ -622,7 +655,7 @@ PDBfile::Link::Link(Link const& rhs) : rnum1_(rhs.rnum1_), rnum2_(rhs.rnum2_),
   std::copy(rhs.rname2_, rhs.rname2_+4, rname2_);
 }
 
-PDBfile::Link PDBfile::Link::operator=(Link const& rhs) {
+PDBfile::Link& PDBfile::Link::operator=(Link const& rhs) {
   if (this != &rhs) {
     rnum1_ = rhs.rnum1_;
     rnum2_ = rhs.rnum2_;

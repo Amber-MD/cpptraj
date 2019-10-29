@@ -56,14 +56,14 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
     mprinterr("Error: Need at least 1 atom mask.\n");
     return Action::ERR;
   }
-  Mask1_.SetMaskString(maskexp);
+  if (Mask1_.SetMaskString(maskexp)) return Action::ERR;
   if (mode_ != POINT) {
     maskexp = actionArgs.GetMaskNext();
     if (maskexp.empty()) {
       mprinterr("Error: Need 2 atom masks.\n");
       return Action::ERR;
     }
-    Mask2_.SetMaskString(maskexp);
+    if (Mask2_.SetMaskString(maskexp)) return Action::ERR;
   }
 
   // Set up reference and get reference point
