@@ -26571,8 +26571,47 @@ corresponds to columns while
 \end_layout
 
 \begin_layout Standard
+Note that for backwards compatibility, output files written with '
+\series bold
+out <filename>
+\series default
+' will have the options '
+\series bold
+noheader noxcol square2d
+\series default
+' applied to them (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "sec:Datafile-Commands"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ for more details).
+ To prevent any of these from taking effect, simply specify '
+\series bold
+header
+\series default
+', '
+\series bold
+xcol
+\series default
+', and/or '
+\series bold
+nosquare2d
+\series default
+' after '
+\series bold
+out <filename>
+\series default
+'.
+\end_layout
+
+\begin_layout Standard
 As a simple example, a distance matrix of all CA atoms is generated and
- output to distmat.dat.
+ output to 'distmat.dat'.
 \end_layout
 
 \begin_layout LyX-Code
