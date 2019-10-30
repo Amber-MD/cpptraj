@@ -17810,7 +17810,31 @@ Compute the atomic positional fluctuations (also referred to as root-mean-square
 <mask>
 \series default
 .
- Note that RMS fitting is not done implicitly.
+ The RMSF of a given atom 
+\emph on
+i
+\emph default
+ is calculated as:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Formula $RMSF_{i}=\sqrt{\left\langle \left(x_{i}-\left\langle x_{i}\right\rangle \right)^{2}\right\rangle }$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\emph on
+x
+\emph default
+ denotes atomic positions and the averages are over all input frames.
+\end_layout
+
+\begin_layout Standard
+Note that RMS fitting is not done implicitly.
  If you want fluctuations without rotations or translations (for example
  to the average structure), perform an RMS fit to the average structure
  (best) or the first structure (see 
