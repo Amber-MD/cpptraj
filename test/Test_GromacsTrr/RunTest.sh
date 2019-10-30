@@ -10,16 +10,27 @@ Requires maxthreads 10
 INPUT="-i ptraj.in"
 
 GmxTrrRead() {
-  UNITNAME='TRR force/velocity read/write test'
+  UNITNAME='TRR force/velocity read -> NetCDF write test'
   CheckFor maxthreads 2 netcdf pnetcdf
   if [ $? -eq 0 ] ; then
-      cat > ptraj.in <<EOF
+    cat > ptraj.in <<EOF
 parm nvt.protein.mol2
 trajin nvt.2frame.trr
 trajout cpptraj.nc
 EOF
-      RunCpptraj "$UNITNAME"
-      NcTest cpptraj.nc.save cpptraj.nc
+    RunCpptraj "$UNITNAME"
+    NcTest cpptraj.nc.save cpptraj.nc
+  fi
+  UNITNAME='TRR force/velocity read -> TRR write test'
+  CheckFor maxthreads 2
+  if [ $? -eq 0 ] ; then
+    cat > ptraj.in <<EOF
+parm nvt.protein.mol2
+trajin nvt.2frame.trr
+trajout cpptraj.trr
+EOF
+    RunCpptraj "$UNITNAME"
+    DoTest nvt.2frame.trr cpptraj.trr
   fi
 }
 
