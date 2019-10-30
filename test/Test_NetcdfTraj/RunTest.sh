@@ -44,7 +44,7 @@ EOF
 
   cat > $INPUT <<EOF
 trajin ../tz2.truncoct.crd
-trajout compress.nc4 netcdf hdf5 compress 1
+trajout compress.nc4 netcdf hdf5 compress
 EOF
   RunCpptraj "Convert mdcrd ->NetCDF4/HDF5 with compression"
   cat > $INPUT <<EOF
