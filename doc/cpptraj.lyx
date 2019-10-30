@@ -4585,6 +4585,11 @@ dim Group by dimension.
 
 \end_deeper
 \begin_layout Description
+xcol Write indices for the specified datafile.
+ This is usually the default behavior.
+\end_layout
+
+\begin_layout Description
 noxcol Prevent printing of indices (i.e.
  the #Frame column in most datafiles) for the specified datafile.
  Useful e.g.
@@ -4619,6 +4624,11 @@ Cpptraj
 \end_layout
 
 \end_deeper
+\begin_layout Description
+header Write header line at beginning of data file.
+ This is usually the default behavior.
+\end_layout
+
 \begin_layout Description
 noheader Prevent printing of header line (e.g.
  '#Frame
@@ -4958,6 +4968,11 @@ title
 
 \begin_layout Description
 binary Plot will be written in binary format.
+\end_layout
+
+\begin_layout Description
+header Format the plot so it can be directly processed by gnuplot.
+ This is usually the default behavior.
 \end_layout
 
 \begin_layout Description
@@ -17810,7 +17825,31 @@ Compute the atomic positional fluctuations (also referred to as root-mean-square
 <mask>
 \series default
 .
- Note that RMS fitting is not done implicitly.
+ The RMSF of a given atom 
+\emph on
+i
+\emph default
+ is calculated as:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Formula $RMSF_{i}=\sqrt{\left\langle \left(x_{i}-\left\langle x_{i}\right\rangle \right)^{2}\right\rangle }$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\emph on
+x
+\emph default
+ denotes atomic positions and the averages are over all input frames.
+\end_layout
+
+\begin_layout Standard
+Note that RMS fitting is not done implicitly.
  If you want fluctuations without rotations or translations (for example
  to the average structure), perform an RMS fit to the average structure
  (best) or the first structure (see 
@@ -26547,8 +26586,47 @@ corresponds to columns while
 \end_layout
 
 \begin_layout Standard
+Note that for backwards compatibility, output files written with '
+\series bold
+out <filename>
+\series default
+' will have the options '
+\series bold
+noheader noxcol square2d
+\series default
+' applied to them (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "sec:Datafile-Commands"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ for more details).
+ To prevent any of these from taking effect, simply specify '
+\series bold
+header
+\series default
+', '
+\series bold
+xcol
+\series default
+', and/or '
+\series bold
+nosquare2d
+\series default
+' after '
+\series bold
+out <filename>
+\series default
+'.
+\end_layout
+
+\begin_layout Standard
 As a simple example, a distance matrix of all CA atoms is generated and
- output to distmat.dat.
+ output to 'distmat.dat'.
 \end_layout
 
 \begin_layout LyX-Code
