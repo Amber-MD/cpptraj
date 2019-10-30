@@ -4585,6 +4585,11 @@ dim Group by dimension.
 
 \end_deeper
 \begin_layout Description
+xcol Write indices for the specified datafile.
+ This is usually the default behavior.
+\end_layout
+
+\begin_layout Description
 noxcol Prevent printing of indices (i.e.
  the #Frame column in most datafiles) for the specified datafile.
  Useful e.g.
@@ -4619,6 +4624,11 @@ Cpptraj
 \end_layout
 
 \end_deeper
+\begin_layout Description
+header Write header line at beginning of data file.
+ This is usually the default behavior.
+\end_layout
+
 \begin_layout Description
 noheader Prevent printing of header line (e.g.
  '#Frame
@@ -4958,6 +4968,11 @@ title
 
 \begin_layout Description
 binary Plot will be written in binary format.
+\end_layout
+
+\begin_layout Description
+header Format the plot so it can be directly processed by gnuplot.
+ This is usually the default behavior.
 \end_layout
 
 \begin_layout Description
