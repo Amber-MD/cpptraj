@@ -27,9 +27,9 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, ActionInit& init, int de
     mprinterr("Error: angle: Requires 3 masks\n");
     return Action::ERR;
   }
-  Mask1_.SetMaskString(mask1);
-  Mask2_.SetMaskString(mask2);
-  Mask3_.SetMaskString(mask3);
+  if (Mask1_.SetMaskString(mask1)) return Action::ERR;
+  if (Mask2_.SetMaskString(mask2)) return Action::ERR;
+  if (Mask3_.SetMaskString(mask3)) return Action::ERR;
 
   // Dataset to store angles
   ang_ = init.DSL().AddSet(DataSet::DOUBLE,

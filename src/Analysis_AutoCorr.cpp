@@ -61,7 +61,7 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   else
     calctype = "correlation";
  
-  mprintf("    AUTOCORR: Calculating auto-%s for %i data sets:\n\t", calctype, dsets_.size());
+  mprintf("    AUTOCORR: Calculating auto-%s for %zu data sets:\n\t", calctype, dsets_.size());
   for (unsigned int idx = 0; idx != dsets_.size(); ++idx)
     mprintf(" %s", dsets_[idx]->legend());
   mprintf("\n");

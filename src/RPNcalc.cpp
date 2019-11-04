@@ -425,12 +425,7 @@ static inline bool IsGrid(DataSet* ds) {
   return ds->Group()==DataSet::GRID_3D;
 }
 
-// RPNcalc::Evaluate()
-int RPNcalc::Evaluate(DataSetList& DSL) const {
-  if (tokens_.empty()) {
-    mprinterr("Error: Expression was not set.\n");
-    return 1;
-  }
+int RPNcalc::TokenLoop(DataSetList& DSL) const {
   std::stack<ValType> Stack;
   ValType Dval[2]; // NOTE: Must be able to hold max # operands.
   DataSetList LocalList;
@@ -442,11 +437,11 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
   else if (assignStatus == YES_ASSIGN)
     assigningResult = true;
   DataSet* output = 0;
-  // Process RPN tokens. 
+
   for (Tarray::const_iterator T = tokens_.begin(); T != tokens_.end(); ++T)
   {
     if (debug_ > 0) {
-      mprintf("-------------------\n  (%u:%s) Current Stack Top:", T - tokens_.begin(), T->Description());
+      mprintf("-------------------\n  (%li:%s) Current Stack Top:", T - tokens_.begin(), T->Description());
       if (!Stack.empty()) {
         if (Stack.top().IsDataSet()) {
           if (Stack.top().DS() == 0)
@@ -467,8 +462,15 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
       else {
         ds = DSL.GetDataSet( T->Name() );
         if (ds == 0) {
+#         ifdef MPI
+          rprintf("Warning: Data set with name '%s' not found on this rank.\n"
+                  "Warning: Skipping calculation for this rank.\n",
+                  T->name());
+          return -1;
+#         else
           mprinterr("Error: Data set with name '%s' not found.\n", T->name());
           return 1;
+#         endif
         }
       }
       Stack.push( ValType( ds ) );
@@ -662,7 +664,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             DataSet* ds1 = Dval[0].DS();
             DataSet* ds2 = Dval[1].DS();
             if (debug_>0)
-              mprintf("DEBUG: '%s' [%s] '%s' => 'TEMP:%u'\n", ds2->legend(), T->Description(),
+              mprintf("DEBUG: '%s' [%s] '%s' => 'TEMP:%li'\n", ds2->legend(), T->Description(),
                       ds1->legend(), T-tokens_.begin());
             if (ScalarTimeSeries(ds1) && ScalarTimeSeries(ds2))
             {
@@ -724,7 +726,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               if (T->Type() == OP_MINUS || T->Type() == OP_PLUS) {
                 if (M1.Nrows() != M2.Nrows() || M1.Ncols() != M2.Ncols()) {
                   mprinterr("Error: Matrix operation '%s' requires both matrices have same #"
-                            " of rows and columns.\n");
+                            " of rows and columns.\n", T->Description());
                   return 1;
                 }
               } else {
@@ -754,7 +756,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               if (T->Type() == OP_MINUS || T->Type() == OP_PLUS) {
                 if (G1.NX() != G2.NX() || G1.NY() != G2.NY() || G1.NZ() != G2.NZ()) {
                   mprinterr("Error: Grid operation '%s' requires both grids have"
-                            " same dimensions.\n");
+                            " same dimensions.\n", T->Description());
                   return 1;
                 }
               } else {
@@ -786,7 +788,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               DataSet* ds2 = Dval[0].DS();
               double   d1  = Dval[1].Value();
               if (debug_ > 0)
-                mprintf("DEBUG: %f [%s] '%s' => 'TEMP:%u'\n", d1, T->Description(),
+                mprintf("DEBUG: %f [%s] '%s' => 'TEMP:%li'\n", d1, T->Description(),
                         ds2->legend(), T-tokens_.begin());
               if (ScalarTimeSeries( ds2 ))
               {
@@ -806,7 +808,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               DataSet* ds1 = Dval[1].DS();
               double   d2  = Dval[0].Value();
               if (debug_ > 0)
-                mprintf("DEBUG: '%s' [%s] '%f' => 'TEMP:%u'\n", ds1->legend(), T->Description(),
+                mprintf("DEBUG: '%s' [%s] '%f' => 'TEMP:%li'\n", ds1->legend(), T->Description(),
                         d2, T-tokens_.begin());
               if (ScalarTimeSeries( ds1 ))
               {
@@ -861,7 +863,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           // Only 1 operand and it is a DataSet
           DataSet* ds1 = Dval[0].DS();
           if (debug_ > 0)
-            mprintf("DEBUG: [%s] '%s' => 'TEMP:%u'\n", T->Description(),
+            mprintf("DEBUG: [%s] '%s' => 'TEMP:%li'\n", T->Description(),
                     ds1->legend(), T-tokens_.begin());
           if (ScalarTimeSeries( ds1 )) {
             tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
@@ -895,6 +897,25 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
     mprintf("Result stored in '%s'\n", output->legend());
   }
   return 0;
+}
+
+// RPNcalc::Evaluate()
+int RPNcalc::Evaluate(DataSetList& DSL) const {
+  if (tokens_.empty()) {
+    mprinterr("Error: Expression was not set.\n");
+    return 1;
+  }
+  // Process RPN tokens.
+  int stat = TokenLoop( DSL );
+# ifdef MPI
+  if (stat == -1) {
+    // This means a set was not found on this rank and the calculation was skipped.
+    // A warning is printed in TokenLoop.
+    // Allow this for now.
+    stat = 0;
+  }
+# endif
+  return stat;
 }
 
 // RPNcalc::AssignStatus()

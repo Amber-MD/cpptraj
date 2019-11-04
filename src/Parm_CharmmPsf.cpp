@@ -1,5 +1,6 @@
 // Parm_CharmmPsf.cpp
 #include <cstdio> // sscanf
+#include <cstdlib> // atoi
 #include <cstring> // strncmp
 #include <cctype> // isdigit
 #include "Parm_CharmmPsf.h"
@@ -125,6 +126,34 @@ int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char
       } // END if dihedral params present
     } // END loop over lines
   return 0;
+
+const unsigned int Parm_CharmmPsf::ChmStrMax_ = 9;
+
+int Parm_CharmmPsf::ParseResID(char& psficode, const char* psfresid)
+{
+  char buf[ChmStrMax_];
+  int bidx = -1;
+  const char* ptr = psfresid;
+  // Parse out residue number
+  int resnum = 0;
+  while ( isdigit( *ptr ) && bidx < (int)ChmStrMax_ )
+  {
+    buf[++bidx] = *ptr;
+    ++ptr;
+  }
+  bidx++;
+  buf[bidx] = '\0';
+  // Sanity check
+  if (bidx < 1)
+    mprintf("Warning: PSF residue ID does not begin with a digit: '%s'\n", psfresid);
+  else
+    resnum = atoi( buf );
+  // Check for icode
+  if (*ptr != '\0')
+    psficode = *ptr;
+  else
+    psficode = ' ';
+  return resnum;
 }
 
 // Parm_CharmmPsf::ReadParm()
@@ -165,11 +194,12 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   // DEBUG
   //params_.Debug();
   // Read the next natom lines
-  int psfresnum = 0;
-  char psfresname[9];
-  char psfname[9];
-  char psftype[9];
-  char segmentID[9];
+  char psfresid[ChmStrMax_];
+  char psfresname[ChmStrMax_];
+  char psfname[ChmStrMax_];
+  char psftype[ChmStrMax_];
+  char segmentID[ChmStrMax_];
+  char psficode;
   double psfcharge;
   double psfmass;
   typedef std::vector<std::string> Sarray;
@@ -182,9 +212,12 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       return 1;
     }
     // Read line
-    // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    sscanf(buffer,"%*i %s %i %s %s %s %lf %lf", segmentID, &psfresnum, psfresname, 
+    // ATOM# SEGID RESID RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
+    sscanf(buffer,"%*i %s %s %s %s %s %lf %lf", segmentID, psfresid, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
+    // Extract residue number and alternatively insertion code.
+    int psfresnum = ParseResID(psficode, psfresid);
+    //mprintf("DEBUG: resnum %10i  icode %c\n", psfresnum, psficode);
     // Search for segment ID
     int idx = -1;
     for (int i = 0; i != (int)SegIDs.size(); i++)

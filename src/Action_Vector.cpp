@@ -132,8 +132,9 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
   // Check if IRED vector
   bool isIred = actionArgs.hasKey("ired"); 
   // Vector Mask
-  if (mode_ != BOX && mode_ != BOX_X && mode_ != BOX_Y && mode_ != BOX_Z)
-    mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mode_ != BOX && mode_ != BOX_X && mode_ != BOX_Y && mode_ != BOX_Z) {
+    if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
+  }
   // Get second mask if necessary
   if (mode_ == MASK || mode_ == MINIMAGE) {
     std::string maskexpr = actionArgs.GetMaskNext();
@@ -142,7 +143,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
                 ModeString[ mode_ ]);
       return Action::ERR;
     }
-    mask2_.SetMaskString( maskexpr );
+    if (mask2_.SetMaskString( maskexpr )) return Action::ERR;
   }
   // Set up vector dataset and IRED status
   MetaData md(actionArgs.GetStringNext(), MetaData::M_VECTOR);
@@ -263,7 +264,7 @@ double Action_Vector::solve_cubic_eq(double a, double b, double c, double d) {
     u = pow(-q * 0.5 + sqrt(D), one3);
     v = -p / u * one3;
     droot = (u + v) - r * one3;
-  } else if(D <= 0){
+  } else { // D <= 0
   /* three real solutions (d < 0) | one real solution + one real double solution or 
                                                      one real triple solution (d = 0) */
     dtmp[0] = 2.0 * pow(rho, one3) * cos(phi * one3) - r * one3;

@@ -8,6 +8,7 @@
 #include "RPNcalc.h"
 #include "Deprecated.h"
 #include "Control.h"
+#include "Parallel.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Analyze.h"
 #include "Exec_Calc.h"
@@ -138,6 +139,8 @@
 #include "Action_LipidOrder.h"
 #include "Action_InfraredSpectrum.h"
 #include "Action_XtalSymm.h"
+#include "Action_Time.h"
+#include "Action_DihedralRMS.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -178,6 +181,7 @@
 #include "Analysis_TI.h"
 #include "Analysis_ConstantPHStats.h"
 #include "Analysis_HausdorffDistance.h"
+#include "Analysis_Slope.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -295,6 +299,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Density(),       Cmd::ACT, 1, "density" );
   Command::AddCmd( new Action_Diffusion(),     Cmd::ACT, 1, "diffusion" );
   Command::AddCmd( new Action_Dihedral(),      Cmd::ACT, 1, "dihedral" );
+  Command::AddCmd( new Action_DihedralRMS(),   Cmd::ACT, 2, "dihrms", "dihedralrms" );
   Command::AddCmd( new Action_Dipole(),        Cmd::ACT, 1, "dipole" );
   Command::AddCmd( new Action_Distance(),      Cmd::ACT, 1, "distance" );
   Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // HIDDEN
@@ -348,6 +353,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
   Command::AddCmd( new Action_SymmetricRmsd(), Cmd::ACT, 1, "symmrmsd" );
   Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );
+  Command::AddCmd( new Action_Time(),          Cmd::ACT, 1, "time" );
   Command::AddCmd( new Action_Translate(),     Cmd::ACT, 2, "trans", "translate" );
   Command::AddCmd( new Action_Unstrip(),       Cmd::ACT, 1, "unstrip" );
   Command::AddCmd( new Action_Unwrap(),        Cmd::ACT, 1, "unwrap" );
@@ -391,6 +397,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_RmsAvgCorr(),  Cmd::ANA, 1, "rmsavgcorr" );
   Command::AddCmd( new Analysis_Rotdif(),      Cmd::ANA, 1, "rotdif" );
   Command::AddCmd( new Analysis_RunningAvg(),  Cmd::ANA, 1, "runningavg" );
+  Command::AddCmd( new Analysis_Slope(),       Cmd::ANA, 1, "slope" );
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
   Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
@@ -620,7 +627,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
       ctlidx_--;
       if (ctlidx_ < 0) {
         // Outermost control structure is ended. Execute control block(s).
-        mprintf("CONTROL: Executing %u control block(s).\n", control_.size());
+        mprintf("CONTROL: Executing %zu control block(s).\n", control_.size());
         if (State.QuietBlocks()) SetWorldSilent(true);
         int cbret = ExecuteControlBlock(0, State);
         ClearControlBlocks();
@@ -726,27 +733,74 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
   return ret_val;
 }
 
-/** Read command input from file. */
+/** Read command input from file.
+  * NOTE: In MPI, all processes MUST call this. TODO pass in comm
+  */
 CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string const& inputFilename)
 {
-  BufferedLine infile;
-  if (infile.OpenFileRead( inputFilename )) {
-    if (!inputFilename.empty())
-      mprinterr("Error: Could not open input file '%s'\n", inputFilename.c_str());
-    return CpptrajState::ERR;
-  }
-  mprintf("INPUT: Reading input from '%s'\n", infile.Filename().full());
-  // Read in each line of input.
   int nInputErrors = 0;
   CpptrajState::RetType cmode = CpptrajState::OK;
   CmdInput input;
-  const char* ptr = infile.Line();
-  while (ptr != 0) {
-    bool moreInput = input.AddInput( ptr );
-    while (moreInput) {
-      ptr = infile.Line();
-      moreInput = input.AddInput( ptr );
+  BufferedLine infile;
+# ifdef MPI
+  // We use a char vector to communicate input lines from master
+  // since MPI routines arent really meant to take const void *.
+  std::vector<char> inpBuf;
+  if (Parallel::World().Master()) {
+# endif
+    // Open the input file. In MPI, only world master does this.
+    if (infile.OpenFileRead( inputFilename )) {
+      if (!inputFilename.empty())
+        mprinterr("Error: Could not open input file '%s'\n", inputFilename.c_str());
+      cmode = CpptrajState::ERR;
+    } else
+      mprintf("INPUT: Reading input from '%s'\n", infile.Filename().full());
+# ifdef MPI
+  } // END if master
+  if (Parallel::World().CheckError( cmode )) return CpptrajState::ERR;
+# else
+  if (cmode != CpptrajState::OK) return CpptrajState::ERR;
+# endif
+  int readMoreInput = 1;
+  while (readMoreInput == 1) {
+#   ifdef MPI
+    if (Parallel::World().Master()) {
+#   endif
+      // Read in each line of input.
+      const char* ptr = infile.Line();
+      //rprintf("DEBUG: Line: %s\n", ptr);
+      if (ptr == 0) {
+        // EOF reached
+        readMoreInput = 0;
+      } else {
+        bool moreInput = input.AddInput( ptr );
+        while (moreInput) {
+          ptr = infile.Line();
+          moreInput = input.AddInput( ptr );
+        }
+      }
+#   ifdef MPI
+    } // END if master
+    // Broadcast result to everone else
+    Parallel::World().MasterBcast(&readMoreInput, 1, MPI_INTEGER);
+#   endif
+    if (readMoreInput == 0) break;
+#   ifdef MPI
+    // Broadcast input to everyone else
+    int inpSize = (int)input.Str().size();
+    Parallel::World().MasterBcast(&inpSize, 1, MPI_INTEGER);
+    if (Parallel::World().Master()) {
+      inpBuf.clear();
+      std::copy(input.Str().begin(), input.Str().end(), std::back_inserter(inpBuf));
+      Parallel::World().MasterBcast(&inpBuf[0], inpSize, MPI_CHAR);
+    } else {
+      inpBuf.resize( inpSize );
+      Parallel::World().MasterBcast(&inpBuf[0], inpSize, MPI_CHAR);
+      inpBuf.push_back('\0');
+      input.AddInput( &inpBuf[0] );
     }
+    //rprintf("DEBUG: Input: [%s]\n", input.str());
+#   endif
     // Only attempt to execute if the command is not blank.
     if (!input.Empty()) {
 #     ifdef TIMER
@@ -767,9 +821,11 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
     }
     // Reset Input line
     input.Clear();
-    ptr = infile.Line();
-  }
-  infile.CloseFile();
+  } // END if readMoreInput
+# ifdef MPI
+  if (Parallel::World().Master())
+# endif
+    infile.CloseFile();
   if (nInputErrors > 0) {
     mprinterr("\t%i errors encountered reading input.\n", nInputErrors);
     return CpptrajState::ERR;

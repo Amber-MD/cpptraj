@@ -2,7 +2,7 @@ set pm3d map corners2color c1
 set ytics    1.000,   1.000
 set ytics("SER:1"    1.000,"TRP:2"    2.000,"THR:3"    3.000,"TRP:4"    4.000,"GLU:5"    5.000,"ASN:6"    6.000,"GLY:7"    7.000,"LYS:8"    8.000,"TRP:9"    9.000,"THR:10"   10.000,"TRP:11"   11.000,"LYS:12"   12.000,"NHE:13"   13.000,"VAL:14"   14.000,"PRO:15"   15.000,"GLY:16"   16.000,"LYS:17"   17.000,"LYS:18"   18.000,"ILE:19"   19.000,"LEU:20"   20.000,"GLN:21"   21.000,"NHE:22"   22.000)
 set cbrange [  -0.500:   7.500]
-set cbtics    0.000    7.000 1.0
+set cbtics    0.000,   7.000,1.0
 set palette maxcolors 8
 set palette defined (0 "#000000",1 "#0000FF",4 "#00FF00",7 "#FF0000")
 set cbtics("None"    0.000,"Para"    1.000,"Anti"    2.000,"3-10"    3.000,"Alpha"    4.000,"Pi"    5.000,"Turn"    6.000,"Bend"    7.000)

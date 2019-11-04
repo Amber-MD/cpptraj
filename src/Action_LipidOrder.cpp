@@ -46,7 +46,7 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
     axis_ = DZ;
   report_p2_ = actionArgs.hasKey("p2");
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   dsname_ = actionArgs.GetStringNext();
 
 # ifdef _OPENMP
@@ -363,7 +363,7 @@ void Action_LipidOrder::Print() {
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
     {
       if (debug_ > 0)
-        mprintf("\t%s %s (%zu)", resName, it->name(), it->Nvals());
+        mprintf("\t%s %s (%u)", resName, it->name(), it->Nvals());
       if (it->Nvals() > 0) {
         double avg, stdev;
         for (unsigned int i = 0; i != MAX_H_; i++) {

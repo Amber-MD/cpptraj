@@ -26,7 +26,7 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
     mprinterr("Error: randomizeions: No mask for ions specified.\n");
     return Action::ERR;
   }
-  ions_.SetMaskString( ionmask );
+  if (ions_.SetMaskString( ionmask )) return Action::ERR;
 
   // Get Keywords
   image_.InitImaging( !actionArgs.hasKey("noimage") );
@@ -38,8 +38,9 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
   min_ *= min_;
   // If no around mask specified, leave blank
   std::string aroundmask = actionArgs.GetStringKey("around");
-  if (!aroundmask.empty())
-    around_.SetMaskString( aroundmask );
+  if (!aroundmask.empty()) {
+    if (around_.SetMaskString( aroundmask )) return Action::ERR;
+  }
   
   // INFO
   mprintf("    RANDOMIZEIONS: Swapping postions of ions in mask '%s' with solvent.\n",

@@ -28,7 +28,7 @@ Action::RetType Action_Radgyr::Init(ArgList& actionArgs, ActionInit& init, int d
   calcTensor_ = actionArgs.hasKey("tensor");
 
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // Datasets to store radius of gyration and max
   // Also add datasets to data file list

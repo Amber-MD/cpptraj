@@ -121,9 +121,9 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
   // Check that scalar1 and scalar2 have same # data points.
   size_t Nelements = scalar1_->Size();
   if (Nelements != scalar2_->Size()) {
-    mprinterr("Error: crankshaft: # elements in dataset %s (%u) not equal to\n",
+    mprinterr("Error: crankshaft: # elements in dataset %s (%zu) not equal to\n",
               scalar1_->legend(), Nelements);
-    mprinterr("                   # elements in dataset %s (%u)\n",
+    mprinterr("                   # elements in dataset %s (%zu)\n",
               scalar2_->legend(), scalar2_->Size());
     return Analysis::ERR;
   }

@@ -1,6 +1,7 @@
 #ifndef INC_REPLICAINFO_H
 #define INC_REPLICAINFO_H
 #include <map>
+#include <set>
 /// Hold types/classes/functions having to do with processing ensemble/replica data.
 namespace ReplicaInfo { // TODO just Replica
 /// Replica sort target type

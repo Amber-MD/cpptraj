@@ -19,7 +19,7 @@ class Traj_SDF : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
-    int processWriteArgs(ArgList&){ return 0; }
+    int processWriteArgs(ArgList&, DataSetList const&){ return 0; }
     int processReadArgs(ArgList&) { return 0; }
 
     SDFfile file_;

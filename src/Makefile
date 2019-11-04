@@ -17,7 +17,7 @@ install: $(INSTALL_TARGETS)
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
 	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(CUDA_TARGET) $(FFT_TARGET) $(READLINE_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # libcpptraj ---------------------------
@@ -27,8 +27,27 @@ cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_TARGET) $(READLINE_TARGET) $(CUDA_TARGET) 
 
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET) $(ARPACK_TARGET) $(TNGFILE_TARGET)
 	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET) $(CPPTRAJ_LIB) $(LDFLAGS)
+
+# Static libraries ---------------------
+#$(CPPTRAJLIB)/libcpptraj.a: $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)
+#	ar rv $(CPPTRAJLIB)/libcpptraj.a $(LIBCPPTRAJ_OBJECTS) $(FFT_TARGET) $(CUDA_TARGET)
+
+$(CPPTRAJLIB)/libcpptraj_core.a: $(LIBCPPTRAJ_CORE_OBJECTS)
+	ar rv $(CPPTRAJLIB)/libcpptraj_core.a $(LIBCPPTRAJ_CORE_OBJECTS)
+
+$(CPPTRAJLIB)/libcpptraj_file.a: $(LIBCPPTRAJ_FILE_OBJECTS)
+	ar rv $(CPPTRAJLIB)/libcpptraj_file.a $(LIBCPPTRAJ_FILE_OBJECTS)
+
+$(CPPTRAJLIB)/libcpptraj_traj.a: $(LIBCPPTRAJ_TRAJ_OBJECTS) $(XDRFILE_OBJECTS)
+	ar rv $(CPPTRAJLIB)/libcpptraj_traj.a $(LIBCPPTRAJ_TRAJ_OBJECTS) $(XDRFILE_OBJECTS)
+
+$(CPPTRAJLIB)/libcpptraj_parm.a: $(LIBCPPTRAJ_PARM_OBJECTS)
+	ar rv $(CPPTRAJLIB)/libcpptraj_parm.a $(LIBCPPTRAJ_PARM_OBJECTS)
+
+libstatic: $(CPPTRAJLIB)/libcpptraj_core.a $(CPPTRAJLIB)/libcpptraj_traj.a \
+           $(CPPTRAJLIB)/libcpptraj_file.a $(CPPTRAJLIB)/libcpptraj_parm.a
 
 nolibcpptraj:
 	@echo ""
@@ -53,6 +72,9 @@ xdrfile/libxdrfile.a: ../external.config.h
 arpack/libarpack.a: ../external.config.h
 	cd arpack && $(MAKE) install
 
+tng/libtng_io.a: ../external.config.h
+	cd tng && $(MAKE) all
+
 noreadline:
 	@echo ""
 	@echo "Skipping bundled READLINE build"
@@ -61,6 +83,11 @@ noreadline:
 noxdrfile:
 	@echo ""
 	@echo "Skipping bundled XDRFILE build"
+	@echo ""
+
+notngfile:
+	@echo ""
+	@echo "Skipping bundled TNG build"
 	@echo ""
 
 noarpack:
@@ -88,6 +115,7 @@ clean:
 	cd xdrfile && $(MAKE) clean
 	cd arpack && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
+	cd tng && $(MAKE) clean
 
 uninstall:
 	$(DEL_FILE) $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)

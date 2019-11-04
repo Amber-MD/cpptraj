@@ -102,7 +102,8 @@ Action::RetType Action_Surf::Setup(ActionSetup& setup) {
           SoluteMask_.AddSelectedAtom( at );
       }
     } else {
-      mprintf("Warning: No molecule info in '%s'. Considering all atoms as solute.\n");
+      mprintf("Warning: No molecule info in '%s'. Considering all atoms as solute.\n",
+              setup.Top().c_str());
       for (int at = 0; at != setup.Top().Natom(); at++)
         SoluteMask_.AddSelectedAtom( at );
     }

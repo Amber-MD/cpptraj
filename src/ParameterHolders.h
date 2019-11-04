@@ -30,7 +30,7 @@ class AtomTypeHolder {
     /// \return Iterator to end of type name array.
     const_iterator end() const { return types_.end(); }
     /// \return number of types in holder
-    unsigned int Size() const { return types_.size(); }
+    size_t Size() const { return types_.size(); }
     /// \return size used in memory
     size_t DataSize() const { return (types_.size() * NameType::DataSize()) + NameType::DataSize(); } 
     /// \return Type name at index
@@ -90,7 +90,7 @@ template <class T> class ParmHolder {
   public:
     ParmHolder() {}
     void clear()              { bpmap_.clear(); }
-    unsigned int size() const { return bpmap_.size(); }
+    size_t size()       const { return bpmap_.size(); }
     bool empty()        const { return bpmap_.empty(); }
     /// Add (or update if allowed) given parameter to holder.
     ParameterHolders::RetType AddParm(AtomTypeHolder const& types, T const& bp, bool allowUpdate) {

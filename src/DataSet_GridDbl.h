@@ -7,6 +7,7 @@ class DataSet_GridDbl : public DataSet_3D {
   public:
     DataSet_GridDbl() : DataSet_3D(GRID_DBL, TextFormat(TextFormat::DOUBLE, 12, 4)) {}
     DataSet_GridDbl(DataSet_GridDbl const&);
+    DataSet_GridDbl& operator=(DataSet_GridDbl const&);
     double& operator[](size_t idx)              { return grid_[idx];          }
     static DataSet* Alloc()       { return (DataSet*)new DataSet_GridDbl();  }
     Grid<double> const& InternalGrid()    const { return grid_; }

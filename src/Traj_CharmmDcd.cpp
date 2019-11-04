@@ -2,6 +2,9 @@
 #include <cmath>   // for cos, acos
 #include <cstring> // memset
 #include "Traj_CharmmDcd.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
 #include "Constants.h"
 #include "CpptrajStdio.h"
 #include "ByteRoutines.h"
@@ -615,7 +618,7 @@ void Traj_CharmmDcd::WriteHelp() {
 }
 
 // Traj_CharmmDcd::processWriteArgs()
-int Traj_CharmmDcd::processWriteArgs(ArgList& argIn) {
+int Traj_CharmmDcd::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   // Default is to write 32 bit
   is64bit_ = argIn.hasKey("x64");
   if (is64bit_)

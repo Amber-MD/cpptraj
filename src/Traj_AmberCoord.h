@@ -19,7 +19,7 @@ class Traj_AmberCoord: public TrajectoryIO {
     int readFrame(int,Frame&);
     int writeFrame(int,Frame const&);
     void Info();
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
     int processReadArgs(ArgList&)  { return 0; }

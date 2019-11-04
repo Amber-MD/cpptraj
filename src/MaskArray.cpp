@@ -76,7 +76,7 @@ void Cpptraj::MaskArray::Debug() const {
           maxAtomsPerMask_, (int)sameNumAtomsPerMask_);
   for (Marray::const_iterator it = masks_.begin(); it != masks_.end(); ++it)
   {
-    mprintf("  %6u :", it-masks_.begin());
+    mprintf("  %6li :", it-masks_.begin());
     for (AtomMask::const_iterator atm = it->begin(); atm != it->end(); ++atm)
       mprintf(" %i", *atm + 1);
     mprintf("\n");

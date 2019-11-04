@@ -1,4 +1,5 @@
 #include "ActionFrameCounter.h"
+#include "ArgList.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR

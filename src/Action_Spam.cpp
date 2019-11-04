@@ -168,7 +168,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // Check that our initial number of peaks matches our parsed peaks. Warn
     // otherwise
     if (npeaks != (int)peaks_.size())
-      mprinterr("SPAM: Warning: %s claims to have %d peaks, but really has %d!\n",
+      mprinterr("SPAM: Warning: %s claims to have %d peaks, but really has %zu!\n",
                 filename.full(), npeaks, peaks_.size());
     // Now add all of the individual peak energy data sets
     for (int i = 0; i < (int)peaks_.size(); i++) {

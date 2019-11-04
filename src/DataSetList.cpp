@@ -30,6 +30,7 @@
 #include "DataSet_PHREMD_Explicit.h"
 #include "DataSet_PHREMD_Implicit.h"
 #include "DataSet_Parameters.h"
+#include "DataSet_Tensor.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -51,7 +52,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
         ds = DataSet_integer_mem::Alloc();
 #     else
       if (useDiskCache_)
-        mprintf("Warning: Integer data set disk cache requires NetCDF. Using memory.\n"
+        mprintf("Warning: Integer data set disk cache requires NetCDF. Using memory.\n");
       ds = DataSet_integer_mem::Alloc();
 #     endif
       break;
@@ -76,6 +77,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::PH_EXPL       : ds = DataSet_PHREMD_Explicit::Alloc(); break;
     case DataSet::PH_IMPL       : ds = DataSet_PHREMD_Implicit::Alloc(); break;
     case DataSet::PARAMETERS    : ds = DataSet_Parameters::Alloc(); break;
+    case DataSet::TENSOR        : ds = DataSet_Tensor::Alloc(); break;
     // Sanity check
     default:
       mprinterr("Internal Error: No allocator for DataSet type '%s'\n",
@@ -198,7 +200,7 @@ void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
   if (widthIn < 1)
     mprinterr("Error: Invalid data width (%i)\n", widthIn);
   else {
-    DataSetList Sets = GetMultipleSets( nameIn );
+    DataSetList Sets = SelectSets( nameIn );
     for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
       (*ds)->SetupFormat().SetFormatWidthPrecision(widthIn, precisionIn);
   }
@@ -348,6 +350,17 @@ DataSetList DataSetList::SelectGroupSets( std::string const& dsargIn,
 DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
 {
   DataSetList dsetOut = SelectSets( nameIn, typeIn );
+  if (dsetOut.empty())
+    return 0;
+  else if (dsetOut.size() > 1)
+    mprintf("Warning: '%s' selects multiple sets. Only using first.\n", nameIn.c_str());
+  return dsetOut[0];
+}
+
+/** \return single set belonging to specified group. */
+DataSet* DataSetList::FindSetOfGroup(std::string const& nameIn, DataSet::DataGroup groupIn) const
+{
+  DataSetList dsetOut = SelectGroupSets( nameIn, groupIn );
   if (dsetOut.empty())
     return 0;
   else if (dsetOut.size() > 1)
@@ -543,7 +556,7 @@ int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xval
                                  DataListType const& Sets)
 {
   if (debug_ > 0)
-    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= %s.\n",
+    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= '%s'.\n",
             Sets.size(), Xvals.size(), XlabelIn.c_str());
   if (Sets.empty()) return 0; // No error for now.
   // If no X label assume 'Frame' for backwards compat.
@@ -821,10 +834,10 @@ int DataSetList::SetActiveReference(ArgList &argIn) {
   return SetActiveReference( ds );
 }
 
-int DataSetList::SetActiveReference(DataSet* ds) {
-  if (ds == 0) return 1;
-  activeRef_ = ds;
-  ReferenceFrame REF((DataSet_Coords_REF*)ds);
+int DataSetList::SetActiveReference(DataSet* dsIn) {
+  if (dsIn == 0) return 1;
+  activeRef_ = dsIn;
+  ReferenceFrame REF((DataSet_Coords_REF*)dsIn);
   mprintf("\tSetting active reference for distance-based masks: '%s'\n", REF.refName());
   // Set in all Topologies and COORDS data sets.
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
@@ -842,7 +855,7 @@ void DataSetList::ListReferenceFrames() const {
   if (!RefList_.empty()) {
     mprintf("\nREFERENCE FRAMES (%zu total):\n", RefList_.size());
     for (DataListType::const_iterator ref = RefList_.begin(); ref != RefList_.end(); ++ref)
-      mprintf("    %u: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
+      mprintf("    %li: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
     if (activeRef_ != 0)
       mprintf("\tActive reference frame for distance-based masks is '%s'\n", activeRef_->legend());
   }

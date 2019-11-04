@@ -14,6 +14,9 @@ class Parm_CharmmPsf : public ParmIO {
     static void WriteHelp();
     int processWriteArgs(ArgList&);
   private:
+    static const unsigned int ChmStrMax_;
+    static inline int FindTag(char*, const char*, int, CpptrajFile&);
+    static inline int ParseResID(char&, const char*);
     static inline int FindTag(char*, const char*, CpptrajFile&);
     int ReadDihedrals(CpptrajFile&, int, const char*, Topology&) const;
 

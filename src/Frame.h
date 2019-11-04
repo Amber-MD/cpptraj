@@ -1,8 +1,11 @@
 #ifndef INC_FRAME_H
 #define INC_FRAME_H
-#include "Atom.h"
+#include <vector>
 #include "AtomMask.h"
+#include "Box.h"
 #include "CoordinateInfo.h"
+// Forward declarations
+class Atom;
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
   * along with box coordinates (used in imaging calculations), mass information,
@@ -43,7 +46,7 @@ class Frame {
     Frame(int, double*);
     Frame(const Frame&);
     Frame& operator=(Frame);
-    typedef std::vector<int> RemdIdxType; ///< For dealing with replica indices
+    typedef std::vector<int> RemdIdxType; ///< For dealing with replica indices TODO put in ReplicaInfo
     typedef std::vector<double> RemdValType; /// < For reading replica values
     // -------------------------------------------
     /// This type interfaces with DataSet_Coords_CRD
@@ -79,6 +82,7 @@ class Frame {
     int size()                        const { return ncoord_;        }
     int NrepDims()                    const { return (int)remd_indices_.size(); } // TODO: deprecate
     double Temperature()              const { return T_;             }
+    int Step()                        const { return step_;          }
     double pH()                       const { return pH_;            }
     double RedOx()                    const { return redox_;         }
     double Time()                     const { return time_;          }
@@ -106,6 +110,8 @@ class Frame {
     void SetBox( Box const& b ) { box_ = b; }
     /// Set temperature
     void SetTemperature(double tIn) { T_ = tIn;     }
+    /// Set step
+    void SetStep( int sIn )         { step_ = sIn;  }
     /// Set pH
     void Set_pH(double phIn)        { pH_ = phIn;   }
     /// Set RedOx potential
@@ -257,6 +263,7 @@ class Frame {
     int natom_;     ///< Number of atoms stored in frame.
     int maxnatom_;  ///< Maximum number of atoms this frame can store.
     int ncoord_;    ///< Number of coordinates stored in frame (natom * 3).
+    int step_;      ///< Simulation step
     Box box_;       ///< Box coords, 3xlengths, 3xangles
     double T_;      ///< Temperature
     double pH_;     ///< pH

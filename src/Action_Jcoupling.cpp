@@ -166,7 +166,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, ActionInit& init, in
   std::string karpluspath = actionArgs.GetStringKey("kfile");
   setname_ = actionArgs.GetStringKey("name");
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
   // If no Karplus params specified check environment vars. 
   if (karpluspath.empty()) {

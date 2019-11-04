@@ -1,4 +1,6 @@
 #include "Traj_SDF.h"
+#include "Topology.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 
 bool Traj_SDF::ID_TrajFormat(CpptrajFile& fileIn) {

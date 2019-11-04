@@ -1,7 +1,9 @@
 #ifndef INC_INPUTTRAJCOMMON_H
 #define INC_INPUTTRAJCOMMON_H
-#include "Topology.h"
 #include "TrajFrameCounter.h"
+#include "FileName.h"
+// Forward declarations
+class Topology;
 /// Input trajectory/ensemble common functionality.
 class InputTrajCommon {
   public:

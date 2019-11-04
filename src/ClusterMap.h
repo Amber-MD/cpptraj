@@ -1,4 +1,5 @@
 #ifndef INC_CLUSTERMAP_H
+#define INC_CLUSTERMAP_H
 #include "DataSet_2D.h"
 #ifdef TIMER
 #include "Timer.h"

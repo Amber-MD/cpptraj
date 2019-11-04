@@ -33,7 +33,7 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, ActionInit& init, in
     return Action::ERR;
   }
   // Masks
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   // Set up data
   if (!dsname.empty()) {
      vecData_ = (DataSet_Mat3x3*)init.DSL().AddSet(DataSet::MAT3X3, MetaData(dsname, "evec"));

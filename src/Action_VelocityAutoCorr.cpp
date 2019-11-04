@@ -1,7 +1,6 @@
 #include "Action_VelocityAutoCorr.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
-#include "DataSet_Mesh.h"
 #include "DataSet_double.h"
 #include "Constants.h"
 #include "Corr.h"
@@ -40,7 +39,7 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& i
     return Action::ERR;
   }
   useVelInfo_ = !actionArgs.hasKey("usecoords");
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   DataFile* outfile =  init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   diffout_ = init.DFL().AddCpptrajFile( actionArgs.GetStringKey("diffout"),
                                         "VAC diffusion constants", DataFileList::TEXT, true );
@@ -281,9 +280,7 @@ void Action_VelocityAutoCorr::Print() {
   // Integration to get diffusion coefficient.
   VAC_->SetDim(Dimension::X, Dimension(0.0, tstep_, "Time (ps)"));
   mprintf("\tIntegrating data set %s, step is %f\n", VAC_->legend(), VAC_->Dim(0).Step());
-  DataSet_Mesh mesh;
-  mesh.SetMeshXY( static_cast<DataSet_1D const&>(*VAC_) );
-  double total = mesh.Integrate_Trapezoid();
+  double total = Ct.Integrate( DataSet_1D::TRAPEZOID );
   const double ANG2_PS_TO_CM2_S = 10.0; // Convert Ang^2/ps to 1E-5 cm^2/s
   const char* tab = "\t";
   if (!diffout_->IsStream()) {

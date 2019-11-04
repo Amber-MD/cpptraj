@@ -346,6 +346,7 @@ test.topinfo:
 test.gromacs:
 	@-cd Test_GromacsTrr && ./RunTest.sh $(OPT)
 	@-cd Test_GromacsXtc && ./RunTest.sh $(OPT)
+	@-cd Test_GromacsTNG && ./RunTest.sh $(OPT)
 
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
@@ -447,6 +448,21 @@ test.catcrd:
 
 test.xtalsymm:
 	@-cd Test_XtalSymm && ./RunTest.sh $(OPT)
+
+test.time:
+	@-cd Test_Time && ./RunTest.sh $(OPT)
+
+test.splitcoords:
+	@-cd Test_SplitCoords && ./RunTest.sh $(OPT)
+
+test.dihedralrms:
+	@-cd Test_DihedralRMS && ./RunTest.sh $(OPT)
+
+test.slope:
+	@-cd Test_Slope && ./RunTest.sh $(OPT)
+
+test.diagmatrix:
+	@-cd Test_Diagmatrix && ./RunTest.sh $(OPT)
 
 # Every test target should go here.
 COMPLETETESTS=test.general \
@@ -591,7 +607,12 @@ COMPLETETESTS=test.general \
               test.xyzfmt \
               test.hausdorff \
               test.catcrd \
-              test.xtalsymm
+              test.xtalsymm \
+              test.time \
+              test.splitcoords \
+              test.dihedralrms \
+              test.slope \
+              test.diagmatrix
 
 test.all:
 	$(MAKE) test.complete summary

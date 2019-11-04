@@ -734,7 +734,7 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
   ds->SetMeta( dsname );
   // Read 3x3 matrix data
   double mat[9];
-  std::fill(mat, mat, 0.0);
+  std::fill(mat, mat+9, 0.0);
   size_t ndata = 0;
   while (linebuffer != 0) {
     if (hasIndex)
@@ -756,7 +756,8 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
 
 // -----------------------------------------------------------------------------
 void DataIO_Std::WriteHelp() {
-  mprintf("\tnoheader       : Do not print header line.\n"
+  mprintf("\theader         : Print header line.\n"
+          "\tnoheader       : Do not print header line.\n"
           "\tinvert         : Flip X/Y axes (1D).\n"
           "\tgroupby <type> : (1D) group data sets by <type>.\n"
           "\t\tname   : Group by name.\n"
@@ -764,6 +765,7 @@ void DataIO_Std::WriteHelp() {
           "\t\tidx    : Group by index.\n"
           "\t\tens    : Group by ensemble number.\n"
           "\t\tdim    : Group by dimension.\n"
+          "\txcol           : Print X (index) column (1D).\n"
           "\tnoxcol         : Do not print X (index) column (1D).\n"
           "\tsquare2d       : Write 2D data sets in matrix-like format.\n"
           "\tnosquare2d     : Write 2D data sets as '<X> <Y> <Value>'.\n"
@@ -794,8 +796,12 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
   }
   if (hasXcolumn_ && argIn.hasKey("noxcol"))
     hasXcolumn_ = false;
+  if (!hasXcolumn_ && argIn.hasKey("xcol"))
+    hasXcolumn_ = true;
   if (writeHeader_ && argIn.hasKey("noheader"))
     writeHeader_ = false;
+  if (!writeHeader_ && argIn.hasKey("header"))
+    writeHeader_ = true;
   if (!square2d_ && argIn.hasKey("square2d"))
     square2d_ = true;
   else if (square2d_ && argIn.hasKey("nosquare2d"))

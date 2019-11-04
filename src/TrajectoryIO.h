@@ -1,13 +1,24 @@
 #ifndef INC_TRAJECTORYIO_H
 #define INC_TRAJECTORYIO_H
-#include "Topology.h" // Box
-#include "FrameArray.h"
-#include "FramePtrArray.h"
-#include "CpptrajFile.h"
-#include "ArgList.h"
+#include <string>
 #include "BaseIOtype.h"
+#include "CoordinateInfo.h"
 #ifdef MPI
 # include "Parallel.h"
+#endif
+#ifdef ENABLE_SINGLE_ENSEMBLE
+  // This is not forward declared because it is a typedef, not a class
+# include "FramePtrArray.h"
+#endif
+// Forward declarations
+class CpptrajFile;
+class FileName;
+class Topology;
+class Frame;
+class ArgList;
+class DataSetList;
+#ifdef ENABLE_SINGLE_ENSEMBLE
+class FrameArray;
 #endif
 /// Abstract base class for performing trajectory reading and writing.
 /** This is the generic interface for a trajectory format used by 
@@ -31,13 +42,15 @@ class TrajectoryIO : public BaseIOtype {
       */
     virtual int setupTrajin(FileName const&, Topology*) = 0;
     /// Set up and open trajectory IO for WRITE/APPEND 
-    /** Called on the first write call. Args are: 1) trajectory file name,
-      * 2) Topology associated with this trajectory, 3) coordinate metadata
-      * (velocities, temperatures, etc), 4) number of frames expected to be
-      * written out, 5) whether trajectory should be appended to.
+    /** Called on the first write call. Args are:
+      *   - Trajectory file name
+      *   - Topology associated with this trajectory
+      *   - Coordinate metadata (velocities, temperatures, etc)
+      *   - Number of frames expected to be written out
+      *   - whether trajectory should be appended to.
       * \return 0 on success, 1 on error.
       */
-    virtual int setupTrajout(FileName const&,Topology*,CoordinateInfo const&,int,bool) = 0; 
+    virtual int setupTrajout(FileName const&, Topology*, CoordinateInfo const&, int, bool) = 0;
     /// Open previously set-up input trajectory, prepare for IO.
     virtual int openTrajin() = 0;
     /// Read a frame from trajectory
@@ -68,7 +81,7 @@ class TrajectoryIO : public BaseIOtype {
       * implemented as functions that can be called independently if need be 
       * (e.g. setting the write mode for PDB files).
       */
-    virtual int processWriteArgs(ArgList&) = 0; 
+    virtual int processWriteArgs(ArgList&, DataSetList const&) = 0;
     /// Process arguments relevant to reading trajectory (optional)
     virtual int processReadArgs(ArgList&) = 0;
 #   ifdef ENABLE_SINGLE_ENSEMBLE

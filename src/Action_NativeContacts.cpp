@@ -58,7 +58,7 @@ Action_NativeContacts::Iarray Action_NativeContacts::SetupContactIndices(
 static void DebugContactList(AtomMask const& mask, Topology const& parmIn)
 {
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom)
-    mprintf("\tPotential Contact %u: %s\n", atom - mask.begin(),
+    mprintf("\tPotential Contact %li: %s\n", atom - mask.begin(),
             parmIn.AtomMaskName(*atom).c_str());
 }
 
@@ -378,10 +378,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
     }
   }
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   std::string mask2 = actionArgs.GetMaskNext();
-  if (!mask2.empty())
-    Mask2_.SetMaskString( mask2 );
+  if (!mask2.empty()) {
+    if (Mask2_.SetMaskString( mask2 )) return Action::ERR;
+  }
   mprintf("    NATIVECONTACTS: Mask1='%s'", Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
     mprintf(" Mask2='%s'", Mask2_.MaskString());
@@ -468,9 +469,9 @@ Action::RetType Action_NativeContacts::Setup(ActionSetup& setup) {
   // Setup potential contact lists for this topology
   if (SetupContactLists( setup.Top(), Frame()))
     return Action::SKIP;
-  mprintf("\t%zu potential contact sites for '%s'\n", Mask1_.Nselected(), Mask1_.MaskString());
+  mprintf("\t%i potential contact sites for '%s'\n", Mask1_.Nselected(), Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
-    mprintf("\t%zu potential contact sites for '%s'\n", Mask2_.Nselected(), Mask2_.MaskString());
+    mprintf("\t%i potential contact sites for '%s'\n", Mask2_.Nselected(), Mask2_.MaskString());
   // Set up imaging info for this parm
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (image_.ImagingEnabled())

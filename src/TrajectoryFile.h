@@ -1,7 +1,9 @@
 #ifndef INC_TRAJECTORYFILE_H
 #define INC_TRAJECTORYFILE_H
-#include "TrajectoryIO.h"
 #include "FileTypes.h"
+#include "FileName.h"
+// Forward declarations
+class TrajectoryIO;
 /// Base class that all input and output trajectories will inherit.
 /** There are 3 steps to adding new trajectory types:
   *   - 1) Create the TrajectoryIO-derived class for the format and include
@@ -20,10 +22,13 @@ class TrajectoryFile {
     static const FileTypes::KeyToken TF_WriteKeyArray[];
   public:
     /// Known trajectory formats.
+    /** MUST BE IN SYNC WITH TF_AllocArray[] */
     enum TrajFormatType {
-      AMBERNETCDF = 0, AMBERRESTARTNC, AMBERNCENSEMBLE, PDBFILE, MOL2FILE, CIF, CHARMMDCD, 
-      GMXTRX, GMXXTC, BINPOS, AMBERRESTART, GRO, TINKER, CHARMMCOR, CHARMMREST,AMBERTRAJ,
-      SQM, SDF, XYZ, CONFLIB,
+      AMBERNETCDF = 0, AMBERRESTARTNC, AMBERNCENSEMBLE, PDBFILE,   MOL2FILE,
+      CIF,             CHARMMDCD,      GMXTRX,          GMXXTC,    GMXTNG,
+      BINPOS,          AMBERRESTART,   GRO,             TINKER,    CHARMMCOR,
+      CHARMMREST,      AMBERTRAJ,      SQM,             SDF,       XYZ,
+      CONFLIB,         GMXDUMP,
       UNKNOWN_TRAJ
     };
 

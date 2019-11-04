@@ -13,6 +13,10 @@ install: config.h
 libcpptraj: config.h
 	cd src && $(MAKE) libcpptraj
 
+# Create static libraries
+libstatic: config.h
+	cd src && $(MAKE) libstatic
+
 # Run Tests
 check: config.h
 	cd test && $(MAKE) test.complete summary

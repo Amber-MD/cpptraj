@@ -1,12 +1,13 @@
 #ifndef INC_DATASETLIST_H
 #define INC_DATASETLIST_H
 #include <vector>
-#include "DataSet.h"
-#include "ArgList.h" // GetReferenceFrame, GetTopology
 #include "ReferenceFrame.h" // GetReferenceFrame
 #ifdef TIMER
 # include "Timer.h"
 #endif
+// Forward declarations
+class DataSet;
+class ArgList;
 /// Hold list of DataSets.
 /** Main class for handling DataSets. All DataSet types can be allocated 
   * by DataSetList. There is a master DataSetList in CpptrajState that will
@@ -90,6 +91,8 @@ class DataSetList {
     DataSetList SelectGroupSets( std::string const&, DataSet::DataGroup ) const;
     /// Find next set of specified type with given name.
     DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
+    /// Find next set of specified group with given name.
+    DataSet* FindSetOfGroup(std::string const&, DataSet::DataGroup) const;
     /// Find COORDS DataSet or create default COORDS DataSet.
     DataSet* FindCoordsSet(std::string const&);
 

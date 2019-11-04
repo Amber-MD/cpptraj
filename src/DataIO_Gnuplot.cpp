@@ -63,15 +63,15 @@ int DataIO_Gnuplot::ReadBinaryData(FileName const& fname,
   bIn.Read( &Vals[0], ncols*sizeof(float) );
   for (std::vector<float>::const_iterator it = Vals.begin(); it != Vals.end(); ++it)
     Xvals.push_back( (double)*it );
-  // Keep reading rows until no more found.
-  int nread = 1;
-  while (nread > 0) {
-    // Read Y value
-    if (bIn.Read( &fval, sizeof(float) ) != sizeof(float)) break;
+  // Read Y value. Keep reading rows until no more found.
+  unsigned int nread = bIn.Read( &fval, sizeof(float) );
+  while (nread == sizeof(float)) {
     Yvals.push_back( (double)fval );
     bIn.Read( &Vals[0], ncols*sizeof(float) );
     for (std::vector<float>::const_iterator it = Vals.begin(); it != Vals.end(); ++it)
       matrix_Rmajor.push_back( (double)*it );
+    // Read next Y value
+    nread = bIn.Read( &fval, sizeof(float) );
   }
   bIn.CloseFile();
   mprintf("\t%zu rows, %i cols (%zu), %zu vals\n", Yvals.size(), ncols, Xvals.size(), matrix_Rmajor.size());
@@ -222,6 +222,7 @@ void DataIO_Gnuplot::WriteHelp() {
           "\tjpeg           : Plot will write to a JPEG file when used with gnuplot.\n"
           "\ttitle          : Plot title. Default is file name.\n"
 //          "\tbinary:   Use binary output\n"
+          "\theader         : Write gnuplot header before data.\n"
           "\tnoheader       : Do not format plot; data output only.\n"
           "\ttitle <title>  : Set plot title (default file base name).\n"
           "\tpalette <arg>  : Change gnuplot pm3d palette to <arg>:\n"
@@ -243,6 +244,7 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   if (argIn.hasKey("nopm3d")) pm3d_ = OFF;
   if (argIn.hasKey("jpeg")) jpegout_ = true;
   if (argIn.hasKey("binary")) binary_ = true;
+  if (argIn.hasKey("header")) writeHeader_ = true;
   if (argIn.hasKey("noheader")) writeHeader_ = false;
   title_ = argIn.GetStringKey("title");
   if (!writeHeader_ && jpegout_) {
@@ -396,7 +398,7 @@ const char* DataIO_Gnuplot::BasicPalette[]= {
 void DataIO_Gnuplot::WriteDefinedPalette(int ncolors) {
   float mincolor = -0.5;
   float maxcolor = (float)ncolors - 0.5;
-  file_.Printf("set cbrange [%8.3f:%8.3f]\nset cbtics %8.3f %8.3f 1.0\n",
+  file_.Printf("set cbrange [%8.3f:%8.3f]\nset cbtics %8.3f,%8.3f,1.0\n",
                mincolor, maxcolor, mincolor + 0.5, maxcolor - 0.5);
   file_.Printf("set palette maxcolors %i\n", ncolors);
   // NOTE: Giving gnuplot too many colors can mess up the palette 
@@ -593,13 +595,13 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
       // Set up X and Y labels
       if (!Ylabels_.empty()) {
         if ( Ylabels_.size() != set.Nrows() )
-          mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%u)\n",
+          mprintf("Warning: # of Ylabels (%zu) does not match Y dimension (%zu)\n",
                   Ylabels_.size(), set.Nrows());
         WriteLabels(Ylabels_, Ydim, 'y');
       }
       if (!Xlabels_.empty()) {
         if ( Xlabels_.size() != set.Ncols() )
-          mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%u)\n",
+          mprintf("Warning: # of Xlabels (%zu) does not match X dimension (%zu)\n",
                   Xlabels_.size(), set.Ncols());
         WriteLabels(Xlabels_, Xdim, 'x'); 
       }

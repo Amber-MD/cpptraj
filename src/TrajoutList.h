@@ -1,15 +1,28 @@
 #ifndef INC_TRAJOUTLIST_H
 #define INC_TRAJOUTLIST_H
-#include "Trajout_Single.h"
+#include <string>
+#include <vector>
+#ifdef MPI
+# include "Parallel.h"
+#endif
+// Forward declarations
+class Trajout_Single;
+class Topology;
+class ArgList;
+class DataSetList;
+class CoordinateInfo;
+class Frame;
 /// Hold output trajectories for a run.
 class TrajoutList {
   public:
-    TrajoutList() : debug_(0) {}
-    ~TrajoutList() { Clear(); }
-    void SetDebug(int d) { debug_ = d; }
+    TrajoutList();
+    ~TrajoutList();
+    void SetDebug(int);
     void Clear();
-    /// Add output trajectory to the list and associate with given topology.
+    /// FIXME legacy function to maintain pytraj compatibility
     int AddTrajout(std::string const&, ArgList const&, Topology*);
+    /// Add output trajectory to the list and associate with given topology.
+    int AddTrajout(std::string const&, ArgList const&, DataSetList const&, Topology*);
     /// Set up trajectories for given topology.
     int SetupTrajout(Topology*, CoordinateInfo const&, int);
     /// Write frame to normal output trajectories.

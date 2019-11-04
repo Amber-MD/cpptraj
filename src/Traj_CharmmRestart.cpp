@@ -1,6 +1,9 @@
 #include <cstdio> // sscanf
 #include <cstdlib> // atof
 #include "Traj_CharmmRestart.h"
+#include "Topology.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "BufferedLine.h"
@@ -64,7 +67,7 @@ int Traj_CharmmRestart::processReadArgs(ArgList& argIn) {
 }
 
 static inline int ErrEOF(int line) {
-  mprinterr("Error: Unexpected end of file, line %i\n");
+  mprinterr("Error: Unexpected end of file, line %i\n", line);
   return TrajectoryIO::TRAJIN_ERR;
 }
 
@@ -237,7 +240,7 @@ void Traj_CharmmRestart::WriteHelp() {
 }
 
 /** Process write arguments. */
-int Traj_CharmmRestart::processWriteArgs(ArgList& argIn) {
+int Traj_CharmmRestart::processWriteArgs(ArgList& argIn, DataSetList const&) {
 
   return 0;
 }

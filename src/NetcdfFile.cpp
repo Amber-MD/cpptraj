@@ -1,6 +1,7 @@
 #include "NetcdfFile.h"
 #ifdef BINTRAJ
 #  include <netcdf.h>
+#  include <cstring> // strlen
 #  include "NC_Routines.h"
 #endif
 #ifdef MPI
@@ -546,10 +547,12 @@ int NetcdfFile::NC_setupRead(std::string const& fname, NCTYPE expectedType, int 
 
 /** \return Coordinate info corresponding to current setup. */
 CoordinateInfo NetcdfFile::NC_coordInfo() const {
+  // TODO the 'false' is for step info. Enable this in the future when time
+  //      is present.
   return CoordinateInfo( ensembleSize_, remDimType_, nc_box_,
                          HasCoords(), HasVelocities(), HasForces(), 
                          HasTemperatures(), Has_pH(), HasRedOx(),
-                         HasTimes(), (repidxVID_ != -1), (crdidxVID_ != -1),
+                         HasTimes(), false, (repidxVID_ != -1), (crdidxVID_ != -1),
                          (RemdValuesVID_ != -1) );
 }
 
@@ -962,7 +965,7 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
     return 1;
   }
   if (NC::CheckErr(nc_put_att_text(ncid_,NC_GLOBAL,"programVersion",
-                                   CPPTRAJ_VERSION_STRLEN, CPPTRAJ_VERSION_STRING)))
+                                   strlen(CPPTRAJ_INTERNAL_VERSION), CPPTRAJ_INTERNAL_VERSION)))
   {
     mprinterr("Error: Writing program version.\n");
     return 1;

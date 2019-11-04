@@ -4,6 +4,13 @@
 
 DataSet_GridDbl::DataSet_GridDbl(DataSet_GridDbl const& rhs) : DataSet_3D(rhs), grid_(rhs.grid_) {}
 
+DataSet_GridDbl& DataSet_GridDbl::operator=(DataSet_GridDbl const& rhs) {
+  if (this == &rhs) return *this;
+  DataSet_3D::operator=(rhs);
+  grid_ = rhs.grid_;
+  return *this;
+}
+
 void DataSet_GridDbl::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) const {
   size_t x = pIn[0];
   size_t y = pIn[1];

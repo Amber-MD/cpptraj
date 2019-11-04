@@ -40,7 +40,7 @@ int DataSet_Cmatrix::SetSieveFromArray(std::vector<char> const& sieveStatus, int
     mprinterr("Error: Could not set sieve from cluster matrix file.\n");
     return 1;
   }
-  mprintf("\tSet up %s: %u original frames, %u actual frames, %u elements",
+  mprintf("\tSet up %s: %zu original frames, %u actual frames, %zu elements",
           legend(), sievedFrames_.MaxFrames(), sievedFrames_.ActualNframes(), Nelements());
   if (sievedFrames_.Type() == ClusterSieve::REGULAR)
     mprintf(", sieve= %i.\n", sievedFrames_.Sieve());

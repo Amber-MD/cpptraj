@@ -50,9 +50,9 @@ size_t DataSet_Modes::MemUsageInBytes() const {
                   (2 * sizeof(int)) +
                   (3 * sizeof(bool));
   if (evalues_ != 0)
-    mySize += (nmodes_ * sizeof(double));
+    mySize += ((size_t)nmodes_ * sizeof(double));
   if (evectors_ != 0)
-    mySize += (nmodes_ * vecsize_ * sizeof(double));
+    mySize += ((size_t)nmodes_ * (size_t)vecsize_ * sizeof(double));
   return mySize;
 }
 
@@ -186,8 +186,8 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     if (info != 0) {
       if (info < 0) {
         mprinterr("Internal Error: from dspev: Argument %i had illegal value.\n", -info);
-        mprinterr("Args: %c %c %i matrix %x %x %i work %i\n", jobz, uplo, ncols,
-                  evalues_, evectors_, vecsize_, info);
+        mprinterr("Args: %c %c %i matrix %p %p %i work %i\n", jobz, uplo, ncols,
+                  (void*)evalues_, (void*)evectors_, vecsize_, info);
       } else { // info > 0
         mprinterr("Internal Error: from dspev: The algorithm failed to converge.\n");
         mprinterr("%i off-diagonal elements of an intermediate tridiagonal form\n", info);
@@ -704,6 +704,8 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
      iff = 5;
   else
      iff = 6;
+  if (iff > 0)
+    outfile.Printf("The first %i frequencies will be skipped.\n", iff);
   con = planck / boltz;
   double ezpe = 0.0;
   for (int i = 0; i < ndof; ++i) {
@@ -777,10 +779,10 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   //         e-- joules/mol
   //         c-- joules/mol-kelvin
   //         s-- joules/mol-kelvin
-
-  double etot = etran + erot + evib;
-  double ctot = ctran + crot + cvib;
-  double stot = stran + srot + svib;
+  double etot, ctot, stot;
+  //etot = etran + erot + evib;
+  //ctot = ctran + crot + cvib;
+  //stot = stran + srot + svib;
 
   //     print the sum of the hartree-fock energy and the thermal energy.
 

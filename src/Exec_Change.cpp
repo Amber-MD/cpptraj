@@ -5,7 +5,7 @@
 void Exec_Change::Help() const
 {
   mprintf("\t[ {%s |\n"
-          "\t   crdset <COORDS set>\n"
+          "\t   crdset <COORDS set> ]\n"
           "\t{ resname from <mask> to <value> |\n"
           "\t  chainid of <mask> to <value> |\n"
           "\t  atomname from <mask> to <value> |\n"
@@ -36,7 +36,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   Topology* parm = 0;
   std::string crdset = argIn.GetStringKey("crdset");
   if (!crdset.empty()) {
-    DataSet_Coords* cset = (DataSet_Coords*)State.DSL().FindCoordsSet( crdset );
+    DataSet_Coords* cset = (DataSet_Coords*)State.DSL().FindSetOfGroup( crdset, DataSet::COORDINATES );
     if (cset == 0) {
       mprinterr("Error: No COORDS set with name '%s' found.\n", crdset.c_str());
       return CpptrajState::ERR;

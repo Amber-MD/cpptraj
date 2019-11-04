@@ -1,5 +1,9 @@
 #include "Traj_GmxXtc.h"
 #ifndef NO_XDRFILE
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include <cstdio> // SEEK_SET, SEEK_CUR
@@ -162,7 +166,7 @@ void Traj_GmxXtc::WriteHelp() {
 }
 
 // Traj_GmxXtc::processWriteArgs()
-int Traj_GmxXtc::processWriteArgs(ArgList& argIn) {
+int Traj_GmxXtc::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   dt_ = argIn.getKeyDouble( "dt", 1.0 );
   return 0;
 }

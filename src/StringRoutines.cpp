@@ -14,6 +14,9 @@
 # include <sys/sysctl.h>
 # include <mach/mach_host.h>
 #endif
+#ifdef _WIN32
+# include <time.h>
+#endif
 
 /** \param fname Input string.
   * \param number Input number.
@@ -227,26 +230,31 @@ bool validDouble(std::string const& argument) {
 std::string TimeString() {
   time_t rawtime;
   time( &rawtime );
-  struct tm* timeinfo = localtime( &rawtime );
+  struct tm timeinfo;
+# ifdef _WIN32
+  localtime_s( &timeinfo, &rawtime );
+# else
+  localtime_r( &rawtime, &timeinfo );
+# endif
   std::ostringstream oss;
   oss.fill('0');
   oss.width(2);
-  oss << std::right << timeinfo->tm_mon+1;
+  oss << std::right << timeinfo.tm_mon+1;
   oss.put('/');
   oss.width(2);
-  oss << std::right << timeinfo->tm_mday;
+  oss << std::right << timeinfo.tm_mday;
   oss.put('/');
   oss.width(2);
-  oss << std::right << timeinfo->tm_year%100;
+  oss << std::right << timeinfo.tm_year%100;
   oss.put(' ');
   oss.width(2);
-  oss << std::right << timeinfo->tm_hour;
+  oss << std::right << timeinfo.tm_hour;
   oss.put(':');
   oss.width(2);
-  oss << std::right << timeinfo->tm_min;
+  oss << std::right << timeinfo.tm_min;
   oss.put(':');
   oss.width(2);
-  oss << std::right << timeinfo->tm_sec;
+  oss << std::right << timeinfo.tm_sec;
   return oss.str();
 }
 

@@ -1,9 +1,11 @@
 #ifndef INC_DIHEDRALSEARCH_H
 #define INC_DIHEDRALSEARCH_H
-#include "Topology.h"
-#include "DataSet.h"
-#include "Range.h"
-#include "ArgList.h"
+#include "MetaData.h"
+#include "AtomMask.h"
+// Forward declarations
+class ArgList;
+class Range;
+class Topology;
 /// Class that can be used to search for dihedral angles in a range.
 // Thanks to C. Bergonzo for the NA angle definitions.
 class DihedralSearch {
@@ -20,6 +22,7 @@ class DihedralSearch {
     DihedralSearch();
     /// COPY CONSTRUCTOR - Set up for same types as input
     DihedralSearch(DihedralSearch const&);
+    DihedralSearch& operator=(DihedralSearch const&);
     static void ListKnownTypes();
     static void OffsetHelp();
     static DihedralType GetType(std::string const&);
@@ -27,6 +30,10 @@ class DihedralSearch {
     int SearchFor(DihedralType);
     /// Search for known dihedral type keywords.
     void SearchForArgs(ArgList&);
+    /// Contains keywords for SearchNewTypeArgs()
+    static const char* newTypeArgsHelp_;
+    /// Search for new type via args
+    int SearchForNewTypeArgs(ArgList&);
     /// Add a new dihedral type to be searched for.
     int SearchForNewType(int, std::string const&, std::string const&, std::string const&, 
                          std::string const&, std::string const&);

@@ -1395,7 +1395,7 @@ static int check_data (int n_torus, TORUS toruslist[], int nat, ATOM atom[],
 		return 1; //exit (ERROR);
             }
 	  }
-	  if (convex_edge[ie].vert1 >= 0 ) {
+	  if (convex_edge[ie].vert2 >= 0 ) {
             if (vertexlist[convex_edge[ie].vert2].iatom != ia ) {
 		printf ("convex vertex atom mismatch 3\n");
 		printf ("iatom: %d\n", ia);
@@ -3906,14 +3906,14 @@ static void dump_cycle ( CONCAVE_CYCLE *concave_cycle, EDGE concave_edge[])
 */
 
 // -----------------------------------------------------------------
-static int next_cycle_edge (CONCAVE_CYCLE cycle, EDGE concave_edge[], 
+static int next_cycle_edge (CONCAVE_CYCLE *cycle, EDGE concave_edge[], 
                             int next_vert, int edge_used[])
 {
   int i;
-  for (i = 0; i < cycle.nedges; ++i) {
+  for (i = 0; i < cycle->nedges; ++i) {
 	if (!edge_used[i] &&
-		(concave_edge[cycle.edge[i]].vert1 == next_vert ||
-		 concave_edge[cycle.edge[i]].vert2 == next_vert)) {
+		(concave_edge[cycle->edge[i]].vert1 == next_vert ||
+		 concave_edge[cycle->edge[i]].vert2 == next_vert)) {
 	  edge_used[i] = 1;
 	  return i;
 	}
@@ -3958,7 +3958,7 @@ static int split_cycle (int *n_broken_concave_faces, BROKEN_CONCAVE_FACE broken_
   concave_cycle[icycle].cusp_edge[0] = tmp_cycle.cusp_edge[0];
   concave_cycle[icycle].edge_direction[0] = tmp_cycle.edge_direction[0];
   concave_cycle[icycle].iprobe = tmp_cycle.iprobe;
-  concave_cycle[icycle].iface = concave_cycle[icycle].iface;
+  concave_cycle[icycle].iface = tmp_cycle.iface;
 
   if (concave_cycle[icycle].edge_direction[0] == 1) {
 	first_vert = concave_edge[concave_cycle[icycle].edge[0]].vert1;
@@ -3970,7 +3970,7 @@ static int split_cycle (int *n_broken_concave_faces, BROKEN_CONCAVE_FACE broken_
   edge_used[0] = 1;
   ne = 1;
   while (next_vert != first_vert) {
-	iedge = next_cycle_edge (tmp_cycle, concave_edge, next_vert, edge_used);
+	iedge = next_cycle_edge (&tmp_cycle, concave_edge, next_vert, edge_used);
         if (iedge==-1) { free (edge_used); return 1;} // NOTE: no check prev.
 	concave_cycle[icycle].edge[ne] = tmp_cycle.edge[iedge];
 	concave_cycle[icycle].cusp_edge[ne] = tmp_cycle.cusp_edge[iedge];
@@ -4025,7 +4025,7 @@ static int split_cycle (int *n_broken_concave_faces, BROKEN_CONCAVE_FACE broken_
 
   ne = 1;
   while (next_vert != first_vert) {
-	iedge = next_cycle_edge (tmp_cycle, concave_edge, next_vert, edge_used);
+	iedge = next_cycle_edge (&tmp_cycle, concave_edge, next_vert, edge_used);
         if (iedge==-1) { free (edge_used); return 1;} // NOTE: no check prev.
 	concave_cycle[ncycle].edge[ne] = tmp_cycle.edge[iedge];
 	icusp = tmp_cycle.cusp_edge[iedge];
@@ -4061,7 +4061,7 @@ static int split_cycle (int *n_broken_concave_faces, BROKEN_CONCAVE_FACE broken_
         free (edge_used);
 	return 1; //exit (ERROR);
   }
-  i = broken_concave_face[iface].n_cycles;
+  //i = broken_concave_face[iface].n_cycles;
   i = *n_broken_concave_faces;
   /* create a new face */
   broken_concave_face[i].itorus[0] = broken_concave_face[iface].itorus[0];
@@ -5141,15 +5141,15 @@ static int cusp_match (int lastvert, int ncusps, int cusp_index[],
 }
 
 // -----------------------------------------------------------------------------
-static int normal_match (CONCAVE_CYCLE tmp_cycle, EDGE concave_edge[], 
+static int normal_match (CONCAVE_CYCLE const* tmp_cycle, EDGE concave_edge[], 
                          int lastvert, int edge_used[])
 {
   int i, ie;
 
-  for (i = 0; i < tmp_cycle.nedges; ++i) {
+  for (i = 0; i < tmp_cycle->nedges; ++i) {
 	if (edge_used[i])
 	  continue;
-	ie = tmp_cycle.edge[i];
+	ie = tmp_cycle->edge[i];
 	if (concave_edge[ie].alive == 0)
 	  continue;
 	if (concave_edge[ie].vert1 == lastvert ||
@@ -5233,7 +5233,7 @@ static int split_face (int iface,
     while (nextvert != firstvert) {
       // 1st look through "normal" edges for next vertex 
       // also include cusp edges that are not dead 
-      ie = normal_match (tmp_cycle, concave_edge, nextvert, edge_used);
+      ie = normal_match (&tmp_cycle, concave_edge, nextvert, edge_used);
       // ie != -1: normal cusp was found
       if (ie != -1) {
         concave_cycle[two_cycle[jj]].edge[i] = tmp_cycle.edge[ie];
@@ -6868,7 +6868,10 @@ static int non_axial_trim (int nat, ATOM atom[], RES res[], // NOTE: was void
 		if (cusp_intersect (cusp_edge, icusp, jcusp, probelist, concave_cycle,
 						concave_edge, vertexlist, concave_circle_list,
 						probe_rad, cusp_pair, n_cusp_pairs))
+                {
+                  free(group);
                   return 1; // NOTE: no check prev.
+                }
 	  }
 	}
 

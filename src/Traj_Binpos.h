@@ -1,7 +1,7 @@
 #ifndef INC_TRAJ_BINPOS
 #define INC_TRAJ_BINPOS
 #include "TrajectoryIO.h"
-// Class: Traj_Binpos
+#include "CpptrajFile.h"
 /// Read and write SCRIPPS BINPOS format
 class Traj_Binpos : public TrajectoryIO {
   public:
@@ -18,7 +18,7 @@ class Traj_Binpos : public TrajectoryIO {
     int readFrame(int,Frame&);
     int writeFrame(int,Frame const&);
     void Info();
-    int processWriteArgs(ArgList&) { return 0; }
+    int processWriteArgs(ArgList&, DataSetList const&) { return 0; }
 
     int bpnatom_;
     int bpnatom3_;

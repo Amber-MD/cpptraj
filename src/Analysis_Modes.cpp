@@ -155,7 +155,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
       return Analysis::ERR;
     }
     // Setup output traj
-    if (trajout_.InitTrajWrite( tOutName, ArgList(), tOutFmt ) != 0) {
+    if (trajout_.InitTrajWrite( tOutName, ArgList(), DataSetList(), tOutFmt ) != 0) {
       mprinterr("Error: Could not init output trajectory.\n");
       return Analysis::ERR;
     }

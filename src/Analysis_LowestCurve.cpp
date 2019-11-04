@@ -46,7 +46,7 @@ Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, AnalysisSetu
 
   mprintf("    LOWESTCURVE: Calculating curve of average of %i lowest points in bins of size %g.\n",
           points_, step_);
-  mprintf("\t%i data sets.\n", input_dsets_.size());
+  mprintf("\t%zu data sets.\n", input_dsets_.size());
   if (outfile != 0)
     mprintf("\tWriting results to %s\n", outfile->DataFilename().full());
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)

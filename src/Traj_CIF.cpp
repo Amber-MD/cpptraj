@@ -1,5 +1,7 @@
 // Traj_CIF
 #include "Traj_CIF.h"
+#include "Topology.h"
+#include "Frame.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // convertToInteger, convertToDouble
 

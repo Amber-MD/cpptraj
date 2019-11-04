@@ -27,6 +27,7 @@ class Action_LESsplit : public Action {
     Frame lesFrame_;            ///< Frame for LES split
     Frame avgFrame_;            ///< Frame for LES average
     Topology* lesParm_;         ///< Topology for LES split/average
+    DataSetList* masterDSL_;
 #   ifdef MPI
     Parallel::Comm trajComm_;
 #   endif
