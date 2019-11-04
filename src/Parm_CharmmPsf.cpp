@@ -126,6 +126,7 @@ int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char
       } // END if dihedral params present
     } // END loop over lines
   return 0;
+}
 
 const unsigned int Parm_CharmmPsf::ChmStrMax_ = 9;
 
@@ -232,7 +233,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     }
     atomTypes.AddParm( AtomTypeHolder(NameType(psftype)), AtomType(psfmass), false );
     Atom chmAtom( psfname, psfcharge, psfmass, psftype );
-    parmOut.AddTopAtom( chmAtom, Residue( psfresname, psfresnum, idx) );
+    parmOut.AddTopAtom( chmAtom, Residue(psfresname, psfresnum, ' ', idx) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int bondatoms[9];
