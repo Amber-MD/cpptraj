@@ -22,8 +22,6 @@ class AtomType {
     bool operator==(AtomType const& rhs) const { return lj_ == rhs.lj_; }
     /// Used to modify LJ params
     LJparmType& SetLJ() { return lj_; }
-    /// Combine LJ params with this and another type using Lorentz-Berthelot rules
-    NonbondType Combine_LB(AtomType const&) const;
     /// \return data size
     static size_t DataSize() { return (3*sizeof(double)) + sizeof(int); }
   private:
