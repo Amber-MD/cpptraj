@@ -1,10 +1,9 @@
 #ifndef INC_PARAMETERHOLDERS_H
 #define INC_PARAMETERHOLDERS_H
 #include <vector>
-#include <utility>
+#include <utility> // std::pair
 #include "NameType.h"
 #include "ParameterTypes.h"
-#include "AtomType.h"
 namespace ParameterHolders {
   enum RetType { ADDED = 0, SAME, UPDATED, ERR };
 } /* END namespace ParameterHolders */
