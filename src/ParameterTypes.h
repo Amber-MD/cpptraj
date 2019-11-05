@@ -1,8 +1,9 @@
 #ifndef INC_PARAMETERTYPES_H
 #define INC_PARAMETERTYPES_H
-#include <vector>
+#include <cstddef> // size_t
 #include <cmath> // pow, sqrt, fabs
-#include "NameType.h"
+#include <vector>
+#include <string>
 #include "Constants.h" // SMALL
 // ----- Floating point comparison routines ------------------------------------
 /// Floating point equals
