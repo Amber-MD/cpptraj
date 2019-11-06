@@ -4,6 +4,7 @@
 #include "Constants.h" // For FOURPI, TWOPI
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "CharMask.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif

@@ -5,6 +5,8 @@
 #include "Constants.h" // SMALL, DEGRAD
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
+#include "DataSet_Coords_CRD.h"
+#include "CharMask.h"
 // Activate DEBUG info
 //#define DEBUG_PERMUTEDIHEDRALS
 
