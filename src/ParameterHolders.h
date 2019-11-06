@@ -171,7 +171,7 @@ class DihedralParmHolder {
   public:
     DihedralParmHolder() {}
     void clear()              { bpmap_.clear();        }
-    unsigned int size() const { return bpmap_.size();  }
+    size_t size()       const { return bpmap_.size();  }
     bool empty()        const { return bpmap_.empty(); }
     /** Add (or update) a single dihedral parameter for given atom types. */
     ParameterHolders::RetType
