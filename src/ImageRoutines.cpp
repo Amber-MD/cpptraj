@@ -1,6 +1,8 @@
 #include <cmath> // floor
 #include "ImageRoutines.h"
 #include "DistRoutines.h"
+#include "Topology.h"
+#include "CharMask.h"
 
 /** Check that at least 1 atom in the range is in Mask1 */
 static inline void CheckRange(Image::PairType& atomPairs, CharMask const& MaskIn, 
