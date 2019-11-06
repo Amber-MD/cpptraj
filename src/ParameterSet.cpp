@@ -1,6 +1,7 @@
 #include "ParameterSet.h"
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
 
 size_t ParameterSet::DataSize() const {
   return (atomTypes_.DataSize() +
@@ -60,12 +61,12 @@ void ParameterSet::Debug(const char* fnameIn) const {
 }
 
 static inline void PrintParmType(BondParmType const& bp) { mprintf(" %12.4f %12.4f\n", bp.Rk(), bp.Req()); }
-static inline void PrintParmType(AngleParmType const& ap) { mprintf(" %12.4f %12.4f\n", ap.Tk(), ap.Teq()); }
-static inline void PrintParmType(DihedralParmType const& dp) { mprintf(" %12.4f %12.4f %12.4f\n", dp.Pk(), dp.Pn(), dp.Phase()); }
+static inline void PrintParmType(AngleParmType const& ap) { mprintf(" %12.4f %12.4f\n", ap.Tk(), ap.Teq()*Constants::RADDEG); }
+static inline void PrintParmType(DihedralParmType const& dp) { mprintf(" %12.4f %12.4f %12.4f\n", dp.Pk(), dp.Pn(), dp.Phase()*Constants::RADDEG); }
 static inline void PrintParmType(DihedralParmArray const& dpa) {
   mprintf("\n");
   for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it)
-    mprintf("\t\t%12.4f %12.4f %12.4f\n", it->Pk(), it->Pn(), it->Phase());
+    mprintf("\t\t%12.4f %12.4f %12.4f\n", it->Pk(), it->Pn(), it->Phase()*Constants::RADDEG);
 }
 static inline void PrintParmType(AtomType const& at) { mprintf(" %12.4f %12.4f %12.4f\n", at.LJ().Radius(), at.LJ().Depth(), at.Mass()); }
 static inline void PrintParmType(NonbondType const& nb) { mprintf(" %12.4E %12.4E\n", nb.A(), nb.B()); }
