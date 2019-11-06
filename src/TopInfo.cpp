@@ -8,6 +8,7 @@
 #include "DistRoutines.h" // DIST_NoImage
 #include "TorsionRoutines.h" // CalcAngle, Torsion
 #include "Mol.h"
+#include "CharMask.h"
 
 /// DESTRUCTOR
 TopInfo::~TopInfo() {
