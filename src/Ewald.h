@@ -1,6 +1,8 @@
 #ifndef INC_EWALD_H
 #define INC_EWALD_H
-#include "Topology.h"
+class Topology;
+class AtomMask;
+class Frame;
 #include "Timer.h"
 #include "PairList.h"
 /// Base class for calculating electrostatics using Ewald methods.
