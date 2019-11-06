@@ -3,6 +3,8 @@
 #include "StringRoutines.h" // RemoveTrailingWhitespace()
 #include "ArgList.h"
 #include "Constants.h"
+#include "BufferedLine.h"
+#include "ParameterSet.h"
 
 static inline std::string Input(const char* line) {
   std::string input;

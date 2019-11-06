@@ -1,7 +1,9 @@
 #ifndef INC_CHARMMPARAMFILE_H
 #define INC_CHARMMPARAMFILE_H
-#include "ParameterSet.h"
-#include "BufferedLine.h"
+#include <string>
+class ParameterSet;
+class BufferedLine;
+class FileName;
 /// Used to read in CHARMM parameters from CHARMM parameter file.
 class CharmmParamFile {
   public:
