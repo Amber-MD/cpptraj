@@ -1,6 +1,10 @@
 #ifndef INC_ENERGY_H
 #define INC_ENERGY_H
-#include "Topology.h"
+#include "ParameterTypes.h"
+class Topology;
+class AtomMask;
+class CharMask;
+class Frame;
 /// Calculate energy/force from coordinates.
 class Energy_Amber {
   public:
