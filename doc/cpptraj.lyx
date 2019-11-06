@@ -11470,16 +11470,35 @@ PDB format:
 
 \begin_deeper
 \begin_layout Description
-[pqr]: Read charge and radius information from the occupancy and B-factor
+[pqr] Read charge and radius information from the occupancy and B-factor
  columns.
 \end_layout
 
 \begin_layout Description
-[readbox]: Read unit cell information from CRYST1 record if present.
+[readbox] Read unit cell information from CRYST1 record if present.
 \end_layout
 
 \begin_layout Description
 [noconect] Do not read in CONECT records from PDB file.
+\end_layout
+
+\end_deeper
+\begin_layout Subsubsection
+Charmm PSF:
+\end_layout
+
+\begin_layout LyX-Code
+[param <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[param
+\begin_inset space ~
+\end_inset
+
+<file>] Read CHARMM parameters from given file.
+ Can do multiple times.
 \end_layout
 
 \end_deeper
@@ -11869,6 +11888,43 @@ Write out specified topology (first topology loaded by default) to
  for topology writes.
 \end_layout
 
+\begin_layout Subsubsection
+Amber Topology
+\end_layout
+
+\begin_layout LyX-Code
+[nochamber] [writeempty]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[nochamber] Do not write CHAMBER information to topology (useful for e.g.
+ using topology for visualization with older versions of VMD).
+\end_layout
+
+\begin_layout Description
+[writeempty] Write Amber tree, join, and rotate info even if not present.
+\end_layout
+
+\end_deeper
+\begin_layout Subsubsection
+Charmm PSF
+\end_layout
+
+\begin_layout LyX-Code
+[oldpsf] [ext]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[oldpsf] Write atom type indices instead of type names (not recommended).
+\end_layout
+
+\begin_layout Description
+[ext] Use extended format.
+\end_layout
+
+\end_deeper
 \begin_layout Subsection
 resinfo
 \end_layout
