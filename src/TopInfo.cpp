@@ -1,5 +1,7 @@
 #include <algorithm> // std::min, std::max
 #include "TopInfo.h"
+#include "CpptrajFile.h"
+#include "DataSet_Coords.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth
 #include "Constants.h" // RADDEG
