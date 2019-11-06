@@ -3,17 +3,18 @@
 #include "CpptrajStdio.h"
 #include "CharmmParamFile.h"
 #include "DataSet_Parameters.h"
+#include "DataSet_Topology.h"
 
 /// CONSTRUCTOR
 DataIO_CharmmRtfPrm::DataIO_CharmmRtfPrm()
 {
-
+  SetValid( DataSet::PARAMETERS );
+  SetValid( DataSet::TOPOLOGY );
 }
 
 // DataIO_CharmmRtfPrm::ID_DataFormat()
 bool DataIO_CharmmRtfPrm::ID_DataFormat(CpptrajFile& infile)
 {
-
   return false;
 }
 
@@ -70,6 +71,28 @@ int DataIO_CharmmRtfPrm::processWriteArgs(ArgList& argIn)
 // DataIO_CharmmRtfPrm::WriteData()
 int DataIO_CharmmRtfPrm::WriteData(FileName const& fname, DataSetList const& dsl)
 {
-
-  return 1;
+  ParameterSet pout;
+  ParameterSet::UpdateCount ucount;
+  for (DataSetList::const_iterator it = dsl.begin(); it != dsl.end(); ++it)
+  {
+    if ( (*it)->Type() == DataSet::PARAMETERS )
+    {
+      mprintf("\tUsing parameter set '%s'\n", (*it)->legend());
+      DataSet_Parameters const& dsPrm = static_cast<DataSet_Parameters const&>( *(*it) );
+      pout.UpdateParams( dsPrm, ucount );
+    }
+    else if ( (*it)->Type() == DataSet::TOPOLOGY )
+    {
+      mprintf("\tUsing parameters from topology '%s'\n", (*it)->legend());
+      // Convert topology to parameter set
+      DataSet_Topology const& dsTop = static_cast<DataSet_Topology const&>( *(*it) );
+      pout.UpdateParams( dsTop.Top().GetParameters(), ucount );
+    } else {
+      mprintf("Warning: '%s' is not a valid parameter/topology set, skipping.\n",
+              (*it)->legend());
+    }
+  }
+  // TODO check if any parameters were added
+  CharmmParamFile outfile;
+  return outfile.WriteParams( pout, fname, debug_ );
 }
