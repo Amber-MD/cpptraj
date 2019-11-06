@@ -12154,6 +12154,7 @@ updateparameters
 parm <name> | parmindex <#> setname <parm set>
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 parm
 \begin_inset space ~
@@ -12186,11 +12187,56 @@ setname
 set> Topology or parameter data set containing parameters to use.
 \end_layout
 
+\end_deeper
+\begin_layout Standard
+
+\emph on
+NOTE: This command is provided for convenience only.
+ For editing topology files, ParmEd is a much better alternative.
+\end_layout
+
 \begin_layout Standard
 Update parameters in specified topology with those from <parm set>.
  <parm set> can either be a parameter set or a topology.
  If a parameter from <parm set> does not exist in the topology it will be
  added.
+\end_layout
+
+\begin_layout Standard
+For example, to modify parameters in a topology file named lys.parm7 with
+ those from parameter file kcx.str:
+\end_layout
+
+\begin_layout LyX-Code
+# Read Topology to modify
+\end_layout
+
+\begin_layout LyX-Code
+parm lys.parm7
+\end_layout
+
+\begin_layout LyX-Code
+# Read CHARMM parameters
+\end_layout
+
+\begin_layout LyX-Code
+readdata kcx.str as charmmrtfprm name MyParm
+\end_layout
+
+\begin_layout LyX-Code
+# Update parameters in Topology with those from kcx.str
+\end_layout
+
+\begin_layout LyX-Code
+updateparameters parmindex 0 setname MyParm
+\end_layout
+
+\begin_layout LyX-Code
+# Write out the updated Topology
+\end_layout
+
+\begin_layout LyX-Code
+parmwrite out lys.kcx.parm7 
 \end_layout
 
 \begin_layout Section
