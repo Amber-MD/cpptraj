@@ -10388,7 +10388,7 @@ The following topology related commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="18" columns="2">
+<lyxtabular version="3" rows="21" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -10561,6 +10561,26 @@ Print dihedral info for selected atoms.
 \begin_inset Text
 
 \begin_layout Plain Layout
+improperinfo, impropers, printimpropers
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Print improper info for selected atoms.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 mass
 \end_layout
 
@@ -10701,6 +10721,26 @@ Write selected topology to file.
 \begin_inset Text
 
 \begin_layout Plain Layout
+printub, ubinfo
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Print Urey-Bradley info for selected atoms.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 resinfo
 \end_layout
 
@@ -10737,7 +10777,7 @@ Scale selected dihedral force constants.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -10746,11 +10786,31 @@ solvent
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Change which molecules are considered solvent.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+updateparameters
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Update/add parameters in/to a topology.
 \end_layout
 
 \end_inset
@@ -11265,6 +11325,26 @@ and
 
 \begin_layout LyX-Code
 dihedrals @%N3,CT,OH and
+\end_layout
+
+\begin_layout Subsection
+improperinfo | impropers | printimpropers
+\end_layout
+
+\begin_layout LyX-Code
+improperinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2> <mask3>
+ <mask4>]
+\end_layout
+
+\begin_layout LyX-Code
+             [out <file>]
+\end_layout
+
+\begin_layout Standard
+For specified topology (first by default) either print CHARMM improper info
+ for all atoms in <mask1>, or print info for dihedrals with first atom in
+ <mask1>, second atom in <mask2>, third atom in <mask3>, and fourth atom
+ in <mask4>.
 \end_layout
 
 \begin_layout Subsection
@@ -11926,6 +12006,20 @@ Charmm PSF
 
 \end_deeper
 \begin_layout Subsection
+printub | ubinfo
+\end_layout
+
+\begin_layout LyX-Code
+printub [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2>] [out <file>]
+\end_layout
+
+\begin_layout Standard
+For specified topology (first by default) either print CHARMM Urey-Bradley
+ info for all atoms in <mask1>, or print info for bonds with first atom
+ in <mask1> and second atom in <mask2>.
+\end_layout
+
+\begin_layout Subsection
 resinfo
 \end_layout
 
@@ -12050,6 +12144,53 @@ Set solvent for selected topology (first loaded topology by default) based
 none
 \series default
  is specified.
+\end_layout
+
+\begin_layout Subsection
+updateparameters
+\end_layout
+
+\begin_layout LyX-Code
+parm <name> | parmindex <#> setname <parm set>
+\end_layout
+
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#> Topology to update.
+\end_layout
+
+\begin_layout Description
+setname
+\begin_inset space ~
+\end_inset
+
+<parm
+\begin_inset space ~
+\end_inset
+
+set> Topology or parameter data set containing parameters to use.
+\end_layout
+
+\begin_layout Standard
+Update parameters in specified topology with those from <parm set>.
+ <parm set> can either be a parameter set or a topology.
+ If a parameter from <parm set> does not exist in the topology it will be
+ added.
 \end_layout
 
 \begin_layout Section

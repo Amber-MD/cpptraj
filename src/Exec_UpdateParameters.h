@@ -8,5 +8,7 @@ class Exec_UpdateParameters : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_UpdateParameters(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    static const char* disclaimer_;
 };
 #endif
