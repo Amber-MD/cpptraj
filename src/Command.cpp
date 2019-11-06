@@ -275,7 +275,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
   Command::AddCmd( new Exec_UBInfo(),        Cmd::EXE, 2, "ubinfo", "printub" );
-  Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters"); // HIDDEN
+  Command::AddCmd( new Exec_UpdateParameters(), Cmd::EXE, 1, "updateparameters");
   // ACTION
   Command::AddCmd( new Action_Align(),         Cmd::ACT, 1, "align" );
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );

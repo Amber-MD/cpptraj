@@ -7,6 +7,10 @@
 void Exec_UpdateParameters::Help() const
 {
   mprintf("\t%s setname <parm set>\n", DataSetList::TopArgs);
+  mprintf("  Update parameters in specified topology with those from <parm set>.\n"
+          "  <parm set> can either be a parameter set or a topology. If a\n"
+          "  parameter from <parm set> does not exist in the topology it\n"
+          "  will be added.\n");
 }
 
 // Exec_UpdateParameters::Execute()
