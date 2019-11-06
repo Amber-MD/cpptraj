@@ -6,6 +6,8 @@
 #include "StringRoutines.h" // integerToString 
 #include "Constants.h" // RADDEG, SMALL
 #include "AtomType.h"
+#include "AtomMask.h"
+#include "CharMask.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 

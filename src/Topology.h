@@ -7,11 +7,11 @@
 #include "Molecule.h"
 #include "ParameterTypes.h"
 #include "ParameterSet.h"
-#include "AtomMask.h"
-#include "CharMask.h"
 #include "Frame.h"
 #include "FileName.h"
 #include "Range.h"
+class AtomMask;
+class CharMask;
 /// Hold information for all atoms
 class Topology {
   public:
