@@ -1948,7 +1948,8 @@ typedef std::map<NameType, int> NameIdxMapType;
   * \param atoms Array of atoms.
   * \param NB0 Output array of nonbond parameters.
   */
-static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0) {
+static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0, int debugIn)
+{
   // TODO check for off-diagonal terms
   if (NB0.HasNonbond()) {
     // Map type names to type indices to access nonbond parameters.
@@ -1969,6 +1970,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
         nameIdxMap.insert( std::pair<NameType, int>(atm->Type(), atm->TypeIndex()) );
     }
     // Do atom type pairs
+    unsigned int nModifiedOffDiagonal = 0;
     for (ParmHolder<AtomType>::const_iterator i1 = atomTypes.begin(); i1 != atomTypes.end(); ++i1)
     {
       for (ParmHolder<AtomType>::const_iterator i2 = i1; i2 != atomTypes.end(); ++i2)
@@ -1993,18 +1995,23 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
         NonbondType lj1 = NB0.NBarray( idx );
         // Compare them
         if (lj0 != lj1) {
-          mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
-                  *name1, *name2, lj0.A(), lj0.B(), lj1.A(), lj1.B());
-          double deltaA = fabs(lj0.A() - lj1.A());
-          double deltaB = fabs(lj0.B() - lj1.B());
-          mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
+          nModifiedOffDiagonal++;
+          if (debugIn > 0) {
+            double deltaA = fabs(lj0.A() - lj1.A());
+            double deltaB = fabs(lj0.B() - lj1.B());
+            mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
+                    *name1, *name2, lj0.A(), lj0.B(), lj1.A(), lj1.B());
+            mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
+          }
         }
         AtomTypeHolder types(2);
         types.AddName( name1 );
         types.AddName( name2 );
         NB1.AddParm( types, lj1, false );
-      }
-    }
+      } // END inner loop over atom types
+    } // END outer loop over atom types
+    if (nModifiedOffDiagonal > 0)
+      mprintf("Warning: %u modified off-diagonal LJ terms present.\n", nModifiedOffDiagonal);
   } else {
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
       if (atm->Type().len() > 0)
@@ -2016,7 +2023,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
 ParameterSet Topology::GetParameters() const {
   ParameterSet Params;
   // Atom LJ types
-  GetLJAtomTypes( Params.AT(), Params.NB(), atoms_, nonbond_ );
+  GetLJAtomTypes( Params.AT(), Params.NB(), atoms_, nonbond_, debug_ );
   // Bond parameters.
   GetBondParams( Params.BP(), atoms_, bonds_, bondparm_ );
   GetBondParams( Params.BP(), atoms_, bondsh_, bondparm_ );
@@ -2230,8 +2237,9 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
         dihedrals.push_back( *dih );
     }
   }
-  mprintf("DEBUG: %zu incoming dihedrals, %zu unique dihedrals.\n",
-          dihedralsIn.size(), dihedrals.size());
+  if (debug_ > 0)
+    mprintf("DEBUG: %zu incoming dihedrals, %zu unique dihedrals.\n",
+            dihedralsIn.size(), dihedrals.size());
 
   ParmHolder< std::vector<int> > currentIndices;
   dihedralsIn.clear();
