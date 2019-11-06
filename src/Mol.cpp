@@ -1,5 +1,7 @@
 #include "Mol.h"
 #include "CpptrajStdio.h"
+#include "Topology.h"
+#include "CharMask.h"
 
 /** \return An array of unique molecule types selected by mask. */
 Mol::Marray Mol::UniqueCount(Topology const& top, CharMask const& mask)
