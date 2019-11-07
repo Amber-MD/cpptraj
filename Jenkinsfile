@@ -60,7 +60,7 @@ pipeline {
                 stage("Linux Intel Serial Build") {
                     agent {
                         docker {
-                            image 'ambermd/cpu-build:latest
+                            image 'ambermd/cpu-build:latest'
                             alwaysPull true
                             label "docker && intel"
                             // There's no way to have a docker container installed with a licensed
