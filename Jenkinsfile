@@ -166,7 +166,7 @@ pipeline {
             agent { label "linux && docker" }
 
             environment {
-                DOCKER_IMAGE_TAG = env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT
+                DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT}"
             }
 
             steps {
@@ -185,7 +185,7 @@ pipeline {
 
         stage("Check pytraj with this version of libcpptraj") {
             environment {
-                DOCKER_IMAGE_TAG = env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT
+                DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT}"
             }
 
             steps {
