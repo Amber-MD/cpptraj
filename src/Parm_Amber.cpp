@@ -1080,7 +1080,6 @@ int Parm_Amber::ReadChamberFFtype(Topology& TopIn, FortranData const& FMT) {
       }
     }
   }
-  TopIn.SetChamber().SetHasChamber( true );
   TopIn.SetChamber().SetNLJ14terms( numLJparm_ );
   return 0;
 }

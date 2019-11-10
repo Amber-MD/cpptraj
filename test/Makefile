@@ -115,6 +115,7 @@ test.molsurf:
 
 test.charmm:
 	@-cd Test_Charmm && ./RunTest.sh $(OPT)
+	@-cd Test_CharmmParams && ./RunTest.sh $(OPT)
 
 test.rotdif:
 	@-cd Test_Rotdif && ./RunTest.sh $(OPT)

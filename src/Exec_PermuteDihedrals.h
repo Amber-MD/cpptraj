@@ -1,10 +1,10 @@
 #ifndef INC_EXEC_PERMUTEDIHEDRALS_H
 #define INC_EXEC_PERMUTEDIHEDRALS_H
+class DataSet_Coords_CRD;
 #include "Exec.h"
 #include "StructureCheck.h"
 #include "Random.h"
 #include "Trajout_Single.h"
-#include "DataSet_Coords_CRD.h"
 // NOTE: Formerly Action_PermuteDihedrals
 /// Rotate dihedrals randomly or in intervals
 class Exec_PermuteDihedrals : public Exec {

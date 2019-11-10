@@ -2,6 +2,7 @@
 #include <algorithm> // sort
 #include "StructureCheck.h"
 #include "CpptrajStdio.h"
+#include "CharMask.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif

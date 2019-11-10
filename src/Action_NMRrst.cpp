@@ -8,6 +8,7 @@
 #include "CpptrajStdio.h"
 #include "AtomMap.h"
 #include "ViewRst.h"
+#include "BufferedLine.h"
 
 // CONSTRUCTOR
 Action_NMRrst::Action_NMRrst() : Action(HIDDEN),

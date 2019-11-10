@@ -1,6 +1,12 @@
 #ifndef INC_IMAGEROUTINES_H
 #define INC_IMAGEROUTINES_H
-#include "Topology.h"
+#include <string>
+class Topology;
+class Frame;
+class AtomMask;
+class Matrix_3x3;
+class Vec3;
+class Box;
 #include "ImageTypes.h"
 namespace Image {
   /// Create an atom pair list by molecule, residue, or atom.

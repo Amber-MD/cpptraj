@@ -1,8 +1,13 @@
 #ifndef INC_GRIDACTION_H
 #define INC_GRIDACTION_H
-#include "DataSetList.h"
+#include "AtomMask.h"
+#include "Vec3.h"
+#include "Frame.h"
 #include "DataSet_GridFlt.h"
-#include "Topology.h"
+#include "DataSetList.h"
+class Topology;
+class ArgList;
+class CoordinateInfo;
 /// Class for setting up a grid within an action.
 class GridAction {
   public:

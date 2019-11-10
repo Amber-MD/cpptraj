@@ -2,7 +2,8 @@
 #define INC_ACTION_NMRRST_H
 #include "Action.h"
 #include "ImagedAction.h"
-#include "BufferedLine.h"
+#include "CharMask.h"
+class BufferedLine;
 // Class: Action_NMRrst
 class Action_NMRrst: public Action {
   public:
