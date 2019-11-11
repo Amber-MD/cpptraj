@@ -216,7 +216,6 @@ pipeline {
                                     lyx -batch --export pdf2 CpptrajManual.lyx
                                     lyx -batch --export pdf2 CpptrajDevelopmentGuide.lyx
                                 """
-                                stash 
                                 stash includes: "doc/**", name: "documentation"
                             }
 
