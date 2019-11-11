@@ -101,9 +101,12 @@ pipeline {
                         unstash "source"
                         script {
                             try {
-                                sh "./configure --with-netcdf --with-fftw3 pgi"
-                                sh "make -j6 install"
-                                sh "cd test && make test.showerrors"
+                                sh """#!/bin/sh -ex
+                                unset CUDA_HOME
+                                ./configure --with-netcdf --with-fftw3 pgi
+                                make -j6 install
+                                cd test && make test.showerrors
+                                """
                             } catch (error) {
                                 echo "PGI BUILD AND/OR TEST FAILED"
                             }
