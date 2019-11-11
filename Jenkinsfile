@@ -213,6 +213,7 @@ pipeline {
                             }
 
                             steps {
+                                unstash "source"
                                 sh """#!/bin/sh -ex
                                     make docs
                                     cd doc
