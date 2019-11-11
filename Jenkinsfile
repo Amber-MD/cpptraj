@@ -169,7 +169,7 @@ pipeline {
                 stage("Check pytraj") {
                     agent none
                     environment {
-                        DOCKER_IMAGE_TAG = env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT
+                        DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT}"
                     }
 
                     stages {
