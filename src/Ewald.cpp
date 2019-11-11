@@ -4,6 +4,8 @@
 #include "Constants.h"
 #include "StringRoutines.h" // ByteString
 #include "Spline.h"
+#include "Topology.h"
+#include "CharMask.h"
 #ifdef DEBUG_PAIRLIST
 #incl ude "PDBfile.h"
 #endif

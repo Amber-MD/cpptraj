@@ -4585,6 +4585,11 @@ dim Group by dimension.
 
 \end_deeper
 \begin_layout Description
+xcol Write indices for the specified datafile.
+ This is usually the default behavior.
+\end_layout
+
+\begin_layout Description
 noxcol Prevent printing of indices (i.e.
  the #Frame column in most datafiles) for the specified datafile.
  Useful e.g.
@@ -4619,6 +4624,11 @@ Cpptraj
 \end_layout
 
 \end_deeper
+\begin_layout Description
+header Write header line at beginning of data file.
+ This is usually the default behavior.
+\end_layout
+
 \begin_layout Description
 noheader Prevent printing of header line (e.g.
  '#Frame
@@ -4958,6 +4968,11 @@ title
 
 \begin_layout Description
 binary Plot will be written in binary format.
+\end_layout
+
+\begin_layout Description
+header Format the plot so it can be directly processed by gnuplot.
+ This is usually the default behavior.
 \end_layout
 
 \begin_layout Description
@@ -10373,7 +10388,7 @@ The following topology related commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="18" columns="2">
+<lyxtabular version="3" rows="21" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -10546,6 +10561,26 @@ Print dihedral info for selected atoms.
 \begin_inset Text
 
 \begin_layout Plain Layout
+improperinfo, impropers, printimpropers
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Print improper info for selected atoms.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 mass
 \end_layout
 
@@ -10686,6 +10721,26 @@ Write selected topology to file.
 \begin_inset Text
 
 \begin_layout Plain Layout
+printub, ubinfo
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Print Urey-Bradley info for selected atoms.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
 resinfo
 \end_layout
 
@@ -10722,7 +10777,7 @@ Scale selected dihedral force constants.
 </cell>
 </row>
 <row>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
@@ -10731,11 +10786,31 @@ solvent
 
 \end_inset
 </cell>
-<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
 \begin_inset Text
 
 \begin_layout Plain Layout
 Change which molecules are considered solvent.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+updateparameters
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Update/add parameters in/to a topology.
 \end_layout
 
 \end_inset
@@ -11253,6 +11328,26 @@ dihedrals @%N3,CT,OH and
 \end_layout
 
 \begin_layout Subsection
+improperinfo | impropers | printimpropers
+\end_layout
+
+\begin_layout LyX-Code
+improperinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2> <mask3>
+ <mask4>]
+\end_layout
+
+\begin_layout LyX-Code
+             [out <file>]
+\end_layout
+
+\begin_layout Standard
+For specified topology (first by default) either print CHARMM improper info
+ for all atoms in <mask1>, or print info for dihedrals with first atom in
+ <mask1>, second atom in <mask2>, third atom in <mask3>, and fourth atom
+ in <mask4>.
+\end_layout
+
+\begin_layout Subsection
 mass
 \end_layout
 
@@ -11455,16 +11550,35 @@ PDB format:
 
 \begin_deeper
 \begin_layout Description
-[pqr]: Read charge and radius information from the occupancy and B-factor
+[pqr] Read charge and radius information from the occupancy and B-factor
  columns.
 \end_layout
 
 \begin_layout Description
-[readbox]: Read unit cell information from CRYST1 record if present.
+[readbox] Read unit cell information from CRYST1 record if present.
 \end_layout
 
 \begin_layout Description
 [noconect] Do not read in CONECT records from PDB file.
+\end_layout
+
+\end_deeper
+\begin_layout Subsubsection
+Charmm PSF:
+\end_layout
+
+\begin_layout LyX-Code
+[param <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[param
+\begin_inset space ~
+\end_inset
+
+<file>] Read CHARMM parameters from given file.
+ Can do multiple times.
 \end_layout
 
 \end_deeper
@@ -11854,6 +11968,57 @@ Write out specified topology (first topology loaded by default) to
  for topology writes.
 \end_layout
 
+\begin_layout Subsubsection
+Amber Topology
+\end_layout
+
+\begin_layout LyX-Code
+[nochamber] [writeempty]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[nochamber] Do not write CHAMBER information to topology (useful for e.g.
+ using topology for visualization with older versions of VMD).
+\end_layout
+
+\begin_layout Description
+[writeempty] Write Amber tree, join, and rotate info even if not present.
+\end_layout
+
+\end_deeper
+\begin_layout Subsubsection
+Charmm PSF
+\end_layout
+
+\begin_layout LyX-Code
+[oldpsf] [ext]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[oldpsf] Write atom type indices instead of type names (not recommended).
+\end_layout
+
+\begin_layout Description
+[ext] Use extended format.
+\end_layout
+
+\end_deeper
+\begin_layout Subsection
+printub | ubinfo
+\end_layout
+
+\begin_layout LyX-Code
+printub [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2>] [out <file>]
+\end_layout
+
+\begin_layout Standard
+For specified topology (first by default) either print CHARMM Urey-Bradley
+ info for all atoms in <mask1>, or print info for bonds with first atom
+ in <mask1> and second atom in <mask2>.
+\end_layout
+
 \begin_layout Subsection
 resinfo
 \end_layout
@@ -11981,6 +12146,99 @@ none
  is specified.
 \end_layout
 
+\begin_layout Subsection
+updateparameters
+\end_layout
+
+\begin_layout LyX-Code
+parm <name> | parmindex <#> setname <parm set>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#> Topology to update.
+\end_layout
+
+\begin_layout Description
+setname
+\begin_inset space ~
+\end_inset
+
+<parm
+\begin_inset space ~
+\end_inset
+
+set> Topology or parameter data set containing parameters to use.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+
+\emph on
+NOTE: This command is provided for convenience only.
+ For editing topology files, ParmEd is a much better alternative.
+\end_layout
+
+\begin_layout Standard
+Update parameters in specified topology with those from <parm set>.
+ <parm set> can either be a parameter set or a topology.
+ If a parameter from <parm set> does not exist in the topology it will be
+ added.
+\end_layout
+
+\begin_layout Standard
+For example, to modify parameters in a topology file named lys.parm7 with
+ those from parameter file kcx.str:
+\end_layout
+
+\begin_layout LyX-Code
+# Read Topology to modify
+\end_layout
+
+\begin_layout LyX-Code
+parm lys.parm7
+\end_layout
+
+\begin_layout LyX-Code
+# Read CHARMM parameters
+\end_layout
+
+\begin_layout LyX-Code
+readdata kcx.str as charmmrtfprm name MyParm
+\end_layout
+
+\begin_layout LyX-Code
+# Update parameters in Topology with those from kcx.str
+\end_layout
+
+\begin_layout LyX-Code
+updateparameters parmindex 0 setname MyParm
+\end_layout
+
+\begin_layout LyX-Code
+# Write out the updated Topology
+\end_layout
+
+\begin_layout LyX-Code
+parmwrite out lys.kcx.parm7 
+\end_layout
+
 \begin_layout Section
 Trajectory File Commands
 \end_layout
@@ -12013,7 +12271,7 @@ Cpptraj currently understands the following trajectory file formats:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="20" columns="4">
+<lyxtabular version="3" rows="21" columns="4">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="25text%">
@@ -12562,6 +12820,44 @@ xtc
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Gromacs TNG
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+tng
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.tng
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
 \end_layout
 
 \end_inset
@@ -13976,6 +14272,10 @@ Options for pdb format:
   [bfacscale] [occscale] [bfacmax <max>] [occmax <max>]
 \end_layout
 
+\begin_layout LyX-Code
+  [adpdata <set>]
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 dumpq PQR format; write charges (in units of e-) and GB radii to occupancy
@@ -13992,6 +14292,8 @@ vdw PQR format; write charges and vdW radii to occupancy/B-factor columns.
 
 \begin_layout Description
 pdbres: Use PDB V3 residue names.
+ Will write a default chain ID ('Z') for each residue if the corresponding
+ topology does not have chain ID information.
 \end_layout
 
 \begin_layout Description
@@ -14000,6 +14302,7 @@ pdbatom: Use PDB V3 atom names.
 
 \begin_layout Description
 pdbv3: Use PDB V3 residue/atom names.
+ Same as specifying 'pdbres' and 'pdbatom'.
 \end_layout
 
 \begin_layout Description
@@ -14112,13 +14415,32 @@ occmax
 <max> Max value for occscale.
 \end_layout
 
-\end_deeper
-\begin_layout Standard
-Note that if the input topology does not contain chain IDs, a default chain
- ID of 'Z' will be used if no other chain ID option is specified in order
- to remain consistent with the PDB standard.
+\begin_layout Description
+adpdata
+\begin_inset space ~
+\end_inset
+
+<set> Use data in <set> (e.g.
+ from the 
+\series bold
+\emph on
+atomicfluct
+\series default
+\emph default
+ command, 
+\begin_inset CommandInset ref
+LatexCommand vpageref
+reference "subsec:cpptraj_atomicfluct"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) for anisotropic B-factors.
 \end_layout
 
+\end_deeper
 \begin_layout Subsubsection
 
 \shape italic
@@ -17643,11 +17965,11 @@ atomicfluct
 
 \end_inset
 
- [out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]
+ [<name>] [out <filename>] [<mask>] [byres | byatom | bymask]
 \end_layout
 
 \begin_layout LyX-Code
-            [calcadp [adpout <file>]]
+            [bfactor] [calcadp [adpout <file>]]
 \end_layout
 
 \begin_layout LyX-Code
@@ -17659,6 +17981,10 @@ atomicfluct
 \end_layout
 
 \begin_deeper
+\begin_layout Description
+<name> Output data set name.
+\end_layout
+
 \begin_layout Description
 out
 \begin_inset space ~
@@ -17722,6 +18048,18 @@ graphic B-factors.
 [<offset>] Frames to skip between calculations (default 1).
 \end_layout
 
+\begin_layout Standard
+DataSets created
+\end_layout
+
+\begin_layout Description
+<name> Hold atomic fluctuations.
+\end_layout
+
+\begin_layout Description
+<name>[ADP] Hold anisotropic displacement parameters if 'calcadp' specified.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Compute the atomic positional fluctuations (also referred to as root-mean-square
@@ -17730,7 +18068,31 @@ Compute the atomic positional fluctuations (also referred to as root-mean-square
 <mask>
 \series default
 .
- Note that RMS fitting is not done implicitly.
+ The RMSF of a given atom 
+\emph on
+i
+\emph default
+ is calculated as:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Formula $RMSF_{i}=\sqrt{\left\langle \left(x_{i}-\left\langle x_{i}\right\rangle \right)^{2}\right\rangle }$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\emph on
+x
+\emph default
+ denotes atomic positions and the averages are over all input frames.
+\end_layout
+
+\begin_layout Standard
+Note that RMS fitting is not done implicitly.
  If you want fluctuations without rotations or translations (for example
  to the average structure), perform an RMS fit to the average structure
  (best) or the first structure (see 
@@ -17796,6 +18158,7 @@ calcadp
 adpout
 \series default
  (or STDOUT if not specified) using PDB ANISOU record format.
+ The displacement factors will be saved to a data set.
  Note that 
 \series bold
 calcadp
@@ -17860,6 +18223,39 @@ To write the RMSF or atomic positional fluctuations of the same atoms, use
 
 \begin_layout LyX-Code
 atomicfluct out backbone-atoms.agr @C,CA,N
+\end_layout
+
+\begin_layout Standard
+To write a PDB of averaged coordinates (after fitting to the first frame)
+ with both B-factors and anisotropic temperature factors:
+\end_layout
+
+\begin_layout LyX-Code
+parm myparm.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin mytraj.nc
+\end_layout
+
+\begin_layout LyX-Code
+rms first
+\end_layout
+
+\begin_layout LyX-Code
+average crdset MyAvg
+\end_layout
+
+\begin_layout LyX-Code
+atomicfluct MyFluct calcadp
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+crdout MyAvg mypdb.pdb adpdata MyFluct[ADP] bfacdata MyFluct
 \end_layout
 
 \begin_layout Subsection
@@ -26433,8 +26829,47 @@ corresponds to columns while
 \end_layout
 
 \begin_layout Standard
+Note that for backwards compatibility, output files written with '
+\series bold
+out <filename>
+\series default
+' will have the options '
+\series bold
+noheader noxcol square2d
+\series default
+' applied to them (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "sec:Datafile-Commands"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ for more details).
+ To prevent any of these from taking effect, simply specify '
+\series bold
+header
+\series default
+', '
+\series bold
+xcol
+\series default
+', and/or '
+\series bold
+nosquare2d
+\series default
+' after '
+\series bold
+out <filename>
+\series default
+'.
+\end_layout
+
+\begin_layout Standard
 As a simple example, a distance matrix of all CA atoms is generated and
- output to distmat.dat.
+ output to 'distmat.dat'.
 \end_layout
 
 \begin_layout LyX-Code

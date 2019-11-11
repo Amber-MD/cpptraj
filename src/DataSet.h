@@ -22,12 +22,13 @@ class DataSet {
   public:
     typedef DataSet* (*AllocatorType)();
     typedef std::vector<size_t> SizeArray;
-    /// DataSet base type. 
+    /// DataSet base type.
+    /** When adding new entries make sure that Descriptions_ is updated. */ 
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, GRID_DBL, REMLOG, XYMESH, TRAJ, REF_FRAME,
       MAT3X3, TOPOLOGY, PH, PH_EXPL, PH_IMPL,
-      PARAMETERS, PMATRIX_MEM, PMATRIX_NC
+      PARAMETERS, PMATRIX_MEM, PMATRIX_NC, TENSOR
     };
     /// Group DataSet belongs to.
     enum DataGroup {

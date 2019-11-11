@@ -111,6 +111,7 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { CPOUT,        "cpout",  ".cpout" },
   { CMATRIX_BINARY,"cmatrix",".cmatrix" },
   { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
+  { CHARMMRTFPRM, "charmmrtfprm", ".prm" },
   { UNKNOWN_DATA, 0,        0        }
 };
 

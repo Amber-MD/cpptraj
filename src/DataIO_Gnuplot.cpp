@@ -222,6 +222,7 @@ void DataIO_Gnuplot::WriteHelp() {
           "\tjpeg           : Plot will write to a JPEG file when used with gnuplot.\n"
           "\ttitle          : Plot title. Default is file name.\n"
 //          "\tbinary:   Use binary output\n"
+          "\theader         : Write gnuplot header before data.\n"
           "\tnoheader       : Do not format plot; data output only.\n"
           "\ttitle <title>  : Set plot title (default file base name).\n"
           "\tpalette <arg>  : Change gnuplot pm3d palette to <arg>:\n"
@@ -243,6 +244,7 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   if (argIn.hasKey("nopm3d")) pm3d_ = OFF;
   if (argIn.hasKey("jpeg")) jpegout_ = true;
   if (argIn.hasKey("binary")) binary_ = true;
+  if (argIn.hasKey("header")) writeHeader_ = true;
   if (argIn.hasKey("noheader")) writeHeader_ = false;
   title_ = argIn.GetStringKey("title");
   if (!writeHeader_ && jpegout_) {

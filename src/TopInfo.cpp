@@ -1,11 +1,14 @@
 #include <algorithm> // std::min, std::max
 #include "TopInfo.h"
+#include "CpptrajFile.h"
+#include "DataSet_Coords.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth
 #include "Constants.h" // RADDEG
 #include "DistRoutines.h" // DIST_NoImage
 #include "TorsionRoutines.h" // CalcAngle, Torsion
 #include "Mol.h"
+#include "CharMask.h"
 
 /// DESTRUCTOR
 TopInfo::~TopInfo() {
@@ -497,10 +500,6 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
                                std::string const& mask3exp, std::string const& mask4exp,
                                bool printImpropers) const
 {
-  if (printImpropers && !parm_->Chamber().HasChamber()) {
-    mprintf("Warning: '%s' does not have any CHARMM parameters.\n", parm_->c_str());
-    return 0;
-  }
   CharMask mask1( mask1exp );
   if (SetupMask( mask1 )) return 1;
   CharMask mask2;

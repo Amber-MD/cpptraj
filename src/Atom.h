@@ -34,7 +34,7 @@ class Atom {
     Atom(NameType const&, NameType const&, int);
     /// Take atom name, charge, mass, and type name
     Atom(NameType const&, double, double, NameType const&);
-    /// Atom name, charge, polarizability atomic num, mass, type index, type name, gb radius and screen parameters.
+    /// Atom name, charge, polarizability, atomic num, mass, type index, type name, gb radius and screen parameters.
     Atom(NameType const&, double, double, int, double, int, NameType const&, double, double);
     Atom(const Atom &);
     void swap(Atom &, Atom &);

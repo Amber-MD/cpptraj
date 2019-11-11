@@ -29,6 +29,7 @@
 #include "DataSet_Parameters.h"
 #include "DataSet_PairwiseCache_MEM.h"
 #include "DataSet_PairwiseCache_NC.h"
+#include "DataSet_Tensor.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -75,6 +76,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     // TODO useDiskCache
     case DataSet::PMATRIX_MEM   : ds = DataSet_PairwiseCache_MEM::Alloc(); break;
     case DataSet::PMATRIX_NC    : ds = DataSet_PairwiseCache_NC::Alloc(); break;
+    case DataSet::TENSOR        : ds = DataSet_Tensor::Alloc(); break;
     // Sanity check
     default:
       mprinterr("Internal Error: No allocator for DataSet type '%s'\n",

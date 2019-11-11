@@ -8,6 +8,7 @@
 #include "ImageRoutines.h"
 
 #ifdef CUDA
+# include "CharMask.h"
 // CUDA Kernel wrappers
 extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
 #endif

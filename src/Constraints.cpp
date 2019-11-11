@@ -3,6 +3,10 @@
 #include "Constraints.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "Topology.h"
+#include "ArgList.h"
+#include "Frame.h"
+#include "CharMask.h"
 
 /// CONSTRUCTOR
 Constraints::Constraints() :

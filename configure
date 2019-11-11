@@ -45,7 +45,7 @@ UsageFull() {
   echo "    --with-<lib>=<DIR> : Use library in specified directory."
   echo "    -l<lib>=<FILE>     : Use specified library file."
   echo "    -no<lib>           : Disable library."
-  echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile"
+  echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
   echo "    -static        : Use static linking."
@@ -142,22 +142,25 @@ CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
 # Total number of external libraries
-NLIB=13
+NLIB=14
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
+# Libraries containing definition of a function should appear *after*
+# any source files or object files which use it.
 LNETCDF=0
 LPARANC=1    # Parallel NetCDF
 LBZIP=2
-LZIP=3
-LARPACK=4
-LLAPACK=5
-LBLAS=6
-LFFTW3=7
-LREADLINE=8
-LXDRFILE=9
-LSANDER=10
-LTIMER=11
-LCUDA=12
+LTNGFILE=3   # This has to come before ZLIB since it depends on ZLIB
+LZIP=4
+LARPACK=5
+LLAPACK=6
+LBLAS=7
+LFFTW3=8
+LREADLINE=9
+LXDRFILE=10
+LSANDER=11
+LTIMER=12
+LCUDA=13
 
 # LIB_STAT = Library status:
 #   off       : Do not use library.
@@ -280,6 +283,15 @@ LIB_STTC[$LCUDA]=''
 LIB_D_ON[$LCUDA]='-DCUDA'
 LIB_DOFF[$LCUDA]=''
 LIB_TYPE[$LCUDA]='cpp'
+
+LIB_STAT[$LTNGFILE]='bundled'
+LIB_CKEY[$LTNGFILE]='tng'
+LIB_HOME[$LTNGFILE]='tng'
+LIB_FLAG[$LTNGFILE]='-ltng_io'
+LIB_STTC[$LTNGFILE]='libtng_io.a'
+LIB_D_ON[$LTNGFILE]='-DHAS_TNGFILE'
+LIB_DOFF[$LTNGFILE]=''
+LIB_TYPE[$LTNGFILE]='ld'
 
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
@@ -579,6 +591,21 @@ EOF
   TestProgram "  Checking Xdrfile" "$CXX" "$CXXFLAGS ${LIB_INCL[$LXDRFILE]}" testp.cpp "${LIB_FLAG[$LXDRFILE]}"
 }
 
+TestTngfile() {
+  cat > testp.cpp <<EOF
+#include <tng/tng_io.h>
+tng_trajectory_t traj_;
+bool Unused(const char* fname) {
+  tng_function_status stat = tng_util_trajectory_open(fname, 'r', &traj_);
+  if (stat != TNG_SUCCESS)
+    return false;
+  return true;
+}
+int main() { return 0; }
+EOF
+  TestProgram "  Checking TNG" "$CXX" "$CXXFLAGS ${LIB_INCL[$LTNGFILE]}" testp.cpp "${LIB_FLAG[$LTNGFILE]}"
+}
+
 TestSanderlib() {
   cat > testp.cpp <<EOF
 #include "sander.h"
@@ -640,6 +667,7 @@ TestLibraries() {
   if [ "${LIB_TEST[$LFFTW3]}" = 'yes'    ] ; then TestFFTW3 ; fi
   if [ "${LIB_TEST[$LREADLINE]}" = 'yes' ] ; then TestReadline ; fi
   if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
+  if [ "${LIB_TEST[$LTNGFILE]}" = 'yes'  ] ; then TestTngfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   if [ "${LIB_TEST[$LCUDA]}" = 'yes'     ] ; then TestCuda ; fi
 }
@@ -876,7 +904,7 @@ SetupLibraries() {
             lhdir="$ladir"
           fi
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
-            if [ -z "${LIB_STTC[$i]}" ] ; then
+            if [ -z "${LIB_STTC[$i]}" -o ! -f "$lhdir/${LIB_STTC[$i]}" ] ; then
               WrnMsg "Cannot link '${LIB_CKEY[$i]}' statically."
               lflag="-L$lhdir ${LIB_FLAG[$i]}"
             else
@@ -917,6 +945,12 @@ SetupLibraries() {
       LIB_INCL[$i]="$linc"
     fi
   done
+  # Take care of any library dependencies.
+  if [ "${LIB_STAT[$LZIP]}" = 'off' -a "${LIB_STAT[$LTNGFILE]}" != 'off' ] ; then
+    # TNG depends on libz
+    echo "Warning: TNG depends on libz; disabling TNG."
+    LIB_STAT[$LTNGFILE]='off'
+  fi
 }
 
 #-------------------------------------------------------------------------------
@@ -2044,6 +2078,12 @@ if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
 else
   XDRFILE_TARGET='noxdrfile'
 fi
+# TNG
+if [ "${LIB_STAT[$LTNGFILE]}" = 'bundled' ] ; then
+  TNGFILE_TARGET=${LIB_FLAG[$LTNGFILE]}
+else
+  TNGFILE_TARGET='notngfile'
+fi
 # Arpack
 if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
   ARPACK_TARGET=${LIB_FLAG[$LARPACK]}
@@ -2091,6 +2131,8 @@ READLINE_LIB=${LIB_FLAG[$LREADLINE]}
 
 XDRFILE_TARGET=$XDRFILE_TARGET
 
+TNGFILE_TARGET=$TNGFILE_TARGET
+
 ARPACK_TARGET=$ARPACK_TARGET
 
 FFT_TARGET=$FFT_TARGET
@@ -2114,6 +2156,9 @@ cat > $external_config <<EOF
 # configured using: $CONFIGURECMD
 EOF
 BuildRules $external_config nvcc cc f77
+if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
+  echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> $external_config
+fi
 
 # ----- Create directories if necessary ----------
 if [ ! -e "$CPPTRAJBIN" ] ; then

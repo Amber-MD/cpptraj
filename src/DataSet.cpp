@@ -28,6 +28,7 @@ const char* DataSet::Descriptions_[] = {
   "parameters",                 // PARAMETERS
   "pairwise matrix (mem)",      // PMATRIX_MEM
   "pairwise matrix (NetCDF)"    // PMATRIX_NC
+  "tensor"                      // TENSOR
 };
 
 // CONSTRUCTOR

@@ -5,7 +5,7 @@
 CleanFiles matrix.in MyThermo.dat
 
 TESTNAME='MW covariance matrix thermo analysis test'
-Requires netcdf 
+Requires netcdf mathlib 
 
 INPUT="-i matrix.in"
 cat > matrix.in <<EOF

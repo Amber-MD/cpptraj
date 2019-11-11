@@ -45,6 +45,7 @@
 #   CPPTRAJ_FFTW_FFT     : If set CPPTRAJ was compiled with fftw
 #   CPPTRAJ_CUDA         : If set CPPTRAJ has CUDA support.
 #   CPPTRAJ_XDRFILE      : If set CPPTRAJ has XDR file support.
+#   CPPTRAJ_TNGFILE      : If set CPPTRAJ has TNG file support.
 #   CPPTRAJ_SINGLE_ENS   : If set CPPTRAJ has single ensemble support.
 # ----- Variables that can be set by individual scripts ----
 #   TOP                  : Topology file for cpptraj
@@ -726,6 +727,7 @@ Required() {
 #   Check how CPPTRAJ was compiled.
 CheckDefines() {
   CPPTRAJ_XDRFILE='yes'
+  CPPTRAJ_TNGFILE=''
   CPPTRAJ_MATHLIB='yes'
   CPPTRAJDEFINES=`$CPPTRAJ --defines`
   if [ $? -ne 0 ] ; then
@@ -746,10 +748,12 @@ CheckDefines() {
       '-DFFTW_FFT'      ) export CPPTRAJ_FFTW_FFT=$DEFINE ;;
       '-DCUDA'          ) export CPPTRAJ_CUDA=$DEFINE ;;
       '-DNO_XDRFILE'    ) CPPTRAJ_XDRFILE='' ;;
+      '-DHAS_TNGFILE'   ) CPPTRAJ_TNGFILE='$DEFINE' ;;
       '-DENABLE_SINGLE_ENSEMBLE' ) export CPPTRAJ_SINGLE_ENS=$DEFINE ;;
     esac
   done
   export CPPTRAJ_XDRFILE
+  export CPPTRAJ_TNGFILE
   export CPPTRAJ_MATHLIB
   #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $XDRFILE"
 }
@@ -953,6 +957,7 @@ CheckEnv() {
       'zlib'      ) TestLibrary "Zlib"               "$CPPTRAJ_ZLIB" ;;
       'bzlib'     ) TestLibrary "Bzlib"              "$CPPTRAJ_BZLIB" ;;
       'xdr'       ) TestLibrary "XDR file"           "$CPPTRAJ_XDRFILE" ;;
+      'tng'       ) TestLibrary "TNG file"           "$CPPTRAJ_TNGFILE" ;;
       'mathlib'   ) TestLibrary "BLAS/LAPACK/ARPACK" "$CPPTRAJ_MATHLIB" ;;
       'sanderlib' ) TestLibrary "SANDER API from AmberTools" "$CPPTRAJ_SANDERLIB" ;;
       'fftw'      ) TestLibrary "FFTW"               "$CPPTRAJ_FFTW_FFT" ;;

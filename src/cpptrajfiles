@@ -164,8 +164,6 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
-        AtomType.cpp \
-        AtomTypeArray.cpp \
         AxisType.cpp \
         BondSearch.cpp \
         Box.cpp \
@@ -173,6 +171,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         BufferedLine.cpp \
         ByteRoutines.cpp \
         CharMask.cpp \
+        CharmmParamFile.cpp \
         CIFfile.cpp \
         ClusterMap.cpp \
         Cmd.cpp \
@@ -239,6 +238,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataSet_integer_disk.cpp \
         DataSet_integer_mem.cpp \
         DataSet_string.cpp \
+        DataSet_Tensor.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
         DistRoutines.cpp \
@@ -320,6 +320,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         NC_Routines.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
+        ParameterSet.cpp \
         PDBfile.cpp \
         PairList.cpp \
         Parallel.cpp \
@@ -365,6 +366,8 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Traj_CharmmRestart.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
+        Traj_GmxDump.cpp \
+        Traj_GmxTng.cpp \
         Traj_GmxTrX.cpp \
         Traj_GmxXtc.cpp \
         Traj_Gro.cpp \

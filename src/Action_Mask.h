@@ -2,6 +2,7 @@
 #define INC_ACTION_MASK_H
 #include "Action.h"
 #include "Trajout_Single.h"
+#include "CharMask.h"
 /// Print out all atoms selected by a mask for each frame.
 /** This allows use of distance-dependent masks. This does NOT modify the
   * frame or parm. 

@@ -181,7 +181,7 @@ elif [ "$TYPE" = 'Traj' ] ; then
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&, DataSetList const&);
     int processReadArgs(ArgList&);
     // -------------------------------------------
 #   ifdef MPI
@@ -273,7 +273,7 @@ void $CLASS::WriteHelp() {
 }
 
 /** Process write arguments. */
-int $CLASS::processWriteArgs(ArgList& argIn) {
+int $CLASS::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
 
   return 0;
 }
