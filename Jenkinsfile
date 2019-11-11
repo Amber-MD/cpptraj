@@ -219,6 +219,8 @@ pipeline {
                                 stash 
                                 stash includes: "doc/**", name: "documentation"
                             }
+
+                            post { cleanup { deleteDir() } }
                         }
                         stage("Publish the manual") {
                             agent { label 'linux' }
@@ -239,6 +241,8 @@ pipeline {
                                     reportName: 'Doxygen Documentation',
                                     reportTitles: ''])
                             }
+
+                            post { cleanup { deleteDir() } }
                         }
                     }
                 }
