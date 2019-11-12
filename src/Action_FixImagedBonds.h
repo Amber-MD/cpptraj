@@ -2,7 +2,8 @@
 #define INC_ACTION_FIXIMAGEDBONDS_H
 #include "Action.h"
 #include "ImagedAction.h"
-/// <Enter description of Action_FixImagedBonds here>
+#include "CharMask.h"
+/// Fix bonds which have been distorted by e.g. by atom imaging. 
 class Action_FixImagedBonds : public Action {
   public:
     Action_FixImagedBonds() {}

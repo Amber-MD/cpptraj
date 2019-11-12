@@ -2,7 +2,9 @@
 #define INC_ACTION_ENERGY_H
 #include "Action.h"
 #include "Energy.h"
-#include "Ewald.h"
+#include "CharMask.h"
+#include "Timer.h"
+class Ewald;
 /// Calculate energy 
 class Action_Energy: public Action {
   public:

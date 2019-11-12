@@ -137,8 +137,6 @@ COMMON_SOURCES= \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
-        AtomType.cpp \
-        AtomTypeArray.cpp \
         AxisType.cpp \
         BondSearch.cpp \
         Box.cpp \
@@ -146,6 +144,7 @@ COMMON_SOURCES= \
         BufferedLine.cpp \
         ByteRoutines.cpp \
         CharMask.cpp \
+        CharmmParamFile.cpp \
         CIFfile.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \
@@ -306,6 +305,7 @@ COMMON_SOURCES= \
         NC_Routines.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
+        ParameterSet.cpp \
         PDBfile.cpp \
         PairList.cpp \
         Parallel.cpp \

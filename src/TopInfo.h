@@ -1,7 +1,11 @@
 #ifndef INC_TOPINFO_H
 #define INC_TOPINFO_H
-#include "CpptrajFile.h"
-#include "DataSet_Coords.h"
+#include "ParameterTypes.h"
+#include "Frame.h"
+class CpptrajFile;
+class DataSet_Coords;
+class Topology;
+class CharMask;
 /// Class for printing formatted topology info to a file.
 class TopInfo {
   public:

@@ -2,6 +2,7 @@
 #define INC_ACTION_CLOSEST_H
 #include "Action.h"
 #include "ImagedAction.h"
+#include "CharMask.h"
 /// Modify the state so that only the closest solvent molecules are kept.
 class Action_Closest: public Action {
   public:

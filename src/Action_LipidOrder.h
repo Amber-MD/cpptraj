@@ -1,7 +1,8 @@
 #ifndef INC_ACTION_LIPIDORDER_H
 #define INC_ACTION_LIPIDORDER_H
 #include "Action.h"
-/// <Enter description of Action_LipidOrder here>
+#include "CharMask.h"
+/// Calculate lipid order parameters. 
 class Action_LipidOrder : public Action {
   public:
     Action_LipidOrder();

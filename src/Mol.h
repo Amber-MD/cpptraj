@@ -1,6 +1,9 @@
 #ifndef INC_MOL_H
 #define INC_MOL_H
-#include "Topology.h"
+#include <vector>
+#include <string>
+class Topology;
+class CharMask;
 /// Routines associated with molecules.
 namespace Mol {
   typedef std::vector<int> Iarray;

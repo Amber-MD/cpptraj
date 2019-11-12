@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_AREAPERMOL_H
 #define INC_ACTION_AREAPERMOL_H
 #include "Action.h"
+#include "CharMask.h"
 /// Calculate area per molecule for given molecule/dimensions. 
 class Action_AreaPerMol: public Action {
   public:

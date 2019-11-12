@@ -1,5 +1,6 @@
 #include "ParmFile.h"
 #include "CpptrajStdio.h"
+#include "BondSearch.h"
 // All ParmIO classes go here
 #include "Parm_Amber.h"
 #include "Parm_PDB.h"
@@ -9,7 +10,6 @@
 #include "Parm_SDF.h"
 #include "Parm_Tinker.h"
 #include "Parm_Gromacs.h"
-#include "BondSearch.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as ParmFormatType
@@ -17,7 +17,7 @@ const FileTypes::AllocToken ParmFile::PF_AllocArray[] = {
   { "Amber Topology",   0,                  Parm_Amber::WriteHelp, Parm_Amber::Alloc     },
   { "PDB File",         Parm_PDB::ReadHelp, 0,                     Parm_PDB::Alloc       },
   { "Mol2 File",        0,                  0,                     Parm_Mol2::Alloc      },
-  { "Charmm PSF",       0,                  0,                     Parm_CharmmPsf::Alloc },
+  { "Charmm PSF",       Parm_CharmmPsf::ReadHelp, Parm_CharmmPsf::WriteHelp, Parm_CharmmPsf::Alloc },
   { "CIF File",         0,                  0,                     Parm_CIF::Alloc       },
   { "Gromacs Topology", 0,                  0,                     Parm_Gromacs::Alloc   },
   { "SDF File",         0,                  0,                     Parm_SDF::Alloc       },

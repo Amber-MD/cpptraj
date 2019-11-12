@@ -1,7 +1,24 @@
 #ifndef INC_PARAMETERTYPES_H
 #define INC_PARAMETERTYPES_H
+#include <cstddef> // size_t
+#include <cmath> // pow, sqrt, fabs
 #include <vector>
-#include "NameType.h" 
+#include <string>
+#include "Constants.h" // SMALL
+// ----- Floating point comparison routines ------------------------------------
+/// Floating point equals
+static inline bool FEQ(double v1, double v2) {
+  double delta = v1 - v2;
+  if (delta < 0.0) delta = -delta;
+  return (delta < Constants::SMALL);
+}
+/// Floating point not equals.
+static inline bool FNE(double v1, double v2) {
+  double delta = v1 - v2;
+  if (delta < 0.0) delta = -delta;
+  return (delta > Constants::SMALL);
+}
+
 // ----- BOND/ANGLE/DIHEDRAL PARAMETERS ----------------------------------------
 /// Hold bond parameters
 class BondParmType {
@@ -12,10 +29,21 @@ class BondParmType {
     inline double Req() const { return req_; }
     inline void SetRk(double rk)   { rk_ = rk;   }
     inline void SetReq(double req) { req_ = req; }
+    bool operator==(const BondParmType& rhs) const {
+      return ( FEQ(rk_,  rhs.rk_ ) &&
+               FEQ(req_, rhs.req_) );
+    }
+    bool operator!=(const BondParmType& rhs) const {
+      return ( FNE(rk_,  rhs.rk_ ) ||
+               FNE(req_, rhs.req_) );
+    }
     bool operator<(const BondParmType& rhs) const {
-      if (rk_ == rhs.rk_) {
-        return (req_ < rhs.req_);
-      } else return (rk_ < rhs.rk_);
+      if (*this != rhs) {
+        if (FEQ(rk_, rhs.rk_)) {
+          return (req_ < rhs.req_);
+        } else return (rk_ < rhs.rk_);
+      } else
+        return false;
     }
   private:
     double rk_;
@@ -50,11 +78,22 @@ class AngleParmType {
     inline double Tk()  const { return tk_;  }
     inline double Teq() const { return teq_; }
     inline void SetTk(double tk)   { tk_ = tk;   }
-    inline void SetTeq(double teq) { teq_ = teq; } 
+    inline void SetTeq(double teq) { teq_ = teq; }
+    bool operator==(const AngleParmType& rhs) const {
+      return ( FEQ(tk_,  rhs.tk_ ) &&
+               FEQ(teq_, rhs.teq_) );
+    }
+    bool operator!=(const AngleParmType& rhs) const {
+      return ( FNE(tk_,  rhs.tk_ ) ||
+               FNE(teq_, rhs.teq_) );
+    }
     bool operator<(const AngleParmType& rhs) const {
-      if (tk_ == rhs.tk_) {
-        return (teq_ < rhs.teq_);
-      } else return (tk_ < rhs.tk_);
+      if (*this != rhs) {
+        if (FEQ(tk_, rhs.tk_)) {
+          return (teq_ < rhs.teq_);
+        } else return (tk_ < rhs.tk_);
+      } else
+        return false;
     }
   private:
     double tk_;
@@ -107,6 +146,13 @@ class DihedralParmType {
     void SetPhase(double p)     { phase_ = p;    }
     void SetSCEE(double s)      { scee_ = s;     }
     void SetSCNB(double s)      { scnb_ = s;     }
+    bool operator==(DihedralParmType const& rhs) const {
+      return ( FEQ(pk_, rhs.pk_) &&
+               FEQ(pn_, rhs.pn_) &&
+               FEQ(phase_, rhs.phase_) &&
+               FEQ(scee_, rhs.scee_) &&
+               FEQ(scnb_, rhs.scnb_) );
+    }
     bool operator<(DihedralParmType const& rhs) const {
       if (pk_ == rhs.pk_) {
         if (pn_ == rhs.pn_) {
@@ -127,30 +173,64 @@ class DihedralParmType {
 };
 typedef std::vector<DihedralParmType> DihedralParmArray;
 /// Hold dihedral atom indices and parameter index
+/** Dihedrals can be marked normal (A1-A2-A3-A4), end (meaning 1-4 calc should
+  * be skipped to avoid overcounting, e.g. for dihedrals with multiple 
+  * multiplicities or certain ring dihedrals), improper, or both end and improper.
+  */
 class DihedralType {
   public:
     enum Dtype { NORMAL=0, IMPROPER, END, BOTH };
-    DihedralType() : a1_(0), a2_(0), a3_(0), a4_(0), type_(NORMAL), idx_(0) {}
+    /// Set skip 1-4 (end) and improper status
+    inline void SetFromType(Dtype t) {
+      switch (t) {
+        case NORMAL   : skip14_ = false; improper_ = false; break;
+        case IMPROPER : skip14_ = false; improper_ = true; break;
+        case END      : skip14_ = true;  improper_ = false; break;
+        case BOTH     : skip14_ = true;  improper_ = true; break;
+      }
+    }
+    /// Default constructor
+    DihedralType() : a1_(0), a2_(0), a3_(0), a4_(0), idx_(0), skip14_(false), improper_(false) {}
     /// For use with Amber-style dihedral array; a3_ < 0 = E, a4_ < 0 = I
     DihedralType(int a1, int a2, int a3, int a4, int idx) :
                   a1_(a1), a2_(a2), a3_(a3), a4_(a4), idx_(idx)
     {
-      if (a3_ < 0 && a4_ < 0) { a3_ = -a3_; a4_ = -a4_; type_ = BOTH;    }
-      else if (a3_ < 0)       { a3_ = -a3;              type_ = END;     }
-      else if (a4_ < 0)       { a4_ = -a4;              type_ = IMPROPER;}
-      else                                              type_ = NORMAL;
+      if (a3_ < 0 && a4_ < 0) { a3_ = -a3_; a4_ = -a4_; skip14_ = true;  improper_ = true;  }
+      else if (a3_ < 0)       { a3_ = -a3;              skip14_ = true;  improper_ = false; }
+      else if (a4_ < 0)       { a4_ = -a4;              skip14_ = false; improper_ = true;  }
+      else                    {                         skip14_ = false; improper_ = false; }
     }
+    /// Takes type, no index
     DihedralType(int a1, int a2, int a3, int a4, Dtype t) :
-                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), type_(t), idx_(-1) {}
+                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), idx_(-1)
+    {
+      SetFromType(t);
+    }
+    /// Takes type and index
     DihedralType(int a1, int a2, int a3, int a4, Dtype t, int i) :
-                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), type_(t), idx_(i) {}
-    inline int A1()     const { return a1_;   }
-    inline int A2()     const { return a2_;   }
-    inline int A3()     const { return a3_;   }
-    inline int A4()     const { return a4_;   }
-    inline Dtype Type() const { return type_; }
-    inline int Idx()    const { return idx_;  }
-    void SetIdx(int i)        { idx_ = i;     }
+                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), idx_(i)
+    {
+      SetFromType(t);
+    }
+
+    inline int A1()     const { return a1_;    }
+    inline int A2()     const { return a2_;    }
+    inline int A3()     const { return a3_;    }
+    inline int A4()     const { return a4_;    }
+    inline int Idx()    const { return idx_;   }  
+    void SetIdx(int i)        { idx_ = i;      }
+    void SetSkip14(bool b)    { skip14_ = b;   }
+    void SetImproper(bool b)  { improper_ = b; }
+    /// \return type based on skip 1-4 (end) and improper status
+    inline Dtype Type() const {
+      if (skip14_ && improper_) return BOTH;
+      else if (skip14_)         return END;
+      else if (improper_)       return IMPROPER;
+      else                      return NORMAL;
+    }
+    inline bool Skip14()     const { return skip14_; }
+    inline bool IsImproper() const { return improper_; }
+    /// Sort based on atom indices
     bool operator<(DihedralType const& rhs) const {
       if (a1_ == rhs.a1_) {
         if (a2_ == rhs.a2_) {
@@ -165,8 +245,9 @@ class DihedralType {
     int a2_;
     int a3_;
     int a4_;
-    Dtype type_;
     int idx_;
+    bool skip14_; ///< If true the 1-4 interaction for this dihedral should be skipped.
+    bool improper_; ///< If true this is an improper dihedral.
 };
 typedef std::vector<DihedralType> DihedralArray;
 // ----- NON-BONDED PARAMETERS -------------------------------------------------
@@ -190,6 +271,13 @@ class HB_ParmType {
 typedef std::vector<HB_ParmType> HB_ParmArray;
 /// Hold Lennard-Jones 6-12 interaction A and B parameters
 class NonbondType {
+    /** Tolerance for comparison. A little larger than SMALL because A
+      * and B tend to be large.
+      */
+    // NOTE: Probably should check __cpluscplus here instead of using a
+    //       define, but this is guaranteed to be portable.
+#     define tol_ 0.00000001
+      //static const double tol_ = 0.00000001;
   public:
     NonbondType() : A_(0), B_(0) {}
     NonbondType(double a, double b) : A_(a), B_(b) {}
@@ -197,11 +285,86 @@ class NonbondType {
     inline double B() const { return B_; }
     void SetA(double a) { A_ = a; }
     void SetB(double b) { B_ = b; }
+    double Radius() const {
+      if (B_ > 0.0)
+        return (0.5 * pow(2.0 * A_ / B_, (1.0/6.0)));
+      else
+        return 0.0;
+    }
+    double Depth() const {
+      if (A_ > 0.0)
+        return ( (B_ * B_) / (4.0 * A_) );
+      else
+        return 0.0;
+    }
+    /// \return True if A and B match
+    bool operator==(NonbondType const& rhs) const {
+      return ( (fabs(A_ - rhs.A_) < tol_) &&
+               (fabs(B_ - rhs.B_) < tol_) );
+    }
+    /// \return True if A and B do not match
+    bool operator!=(NonbondType const& rhs) const {
+      return ( (fabs(A_ - rhs.A_) > tol_) ||
+               (fabs(B_ - rhs.B_) > tol_) );
+    }
+    /// \return True if A less than zero, or B if A is equal.
+    bool operator<(NonbondType const& rhs) const {
+      if (*this != rhs) {
+        if ( (fabs(A_ - rhs.A_) < tol_) )
+          return (B_ < rhs.B_);
+        else
+          return (A_ < rhs.A_);
+      } else
+        return false;
+    }
   private:
     double A_;
     double B_;
+#   undef tol_
 };
 typedef std::vector<NonbondType> NonbondArray;
+/// Hold Lennard-Jones radius and well-depth
+class LJparmType {
+  public:
+    LJparmType() : radius_(0.0), depth_(0.0) {}
+    LJparmType(double r, double d) : radius_(r), depth_(d) {}
+    double Radius() const { return radius_; }
+    double Depth()  const { return depth_;  }
+    void SetRadius(double r) { radius_ = r; }
+    void SetDepth(double d)  { depth_ = d;  }
+    /// \return True if radius and well depth match
+    bool operator==(LJparmType const& rhs) const {
+      return ( FEQ(radius_, rhs.radius_) &&
+               FEQ(depth_,  rhs.depth_) );
+    }
+    bool operator!=(LJparmType const& rhs) const {
+      return ( FNE(radius_, rhs.radius_) ||
+               FNE(depth_,  rhs.depth_) );
+    }
+    /// \return true if radius and well depth are less in that order
+    bool operator<(LJparmType const& rhs) const {
+      if (*this != rhs) {
+        if (FEQ(radius_, rhs.radius_))
+          return (depth_ < rhs.depth_);
+        else
+          return (radius_ < rhs.radius_);
+      } else
+        return false;
+    }
+    /// \return LJ A/B params using Lorentz-Berthelot rules.
+    NonbondType Combine_LB(LJparmType const& rhs) const {
+      double dR = radius_ + rhs.radius_;
+      double dE = sqrt( depth_ * rhs.depth_ );
+      double dR2 = dR * dR;
+      double dR6 = dR2 * dR2 * dR2;
+      double dER6 = dE * dR6;
+      return NonbondType( dER6*dR6, 2.0*dER6 );
+    }
+  private:
+    double radius_;
+    double depth_;
+};
+typedef std::vector<LJparmType> LJparmArray;
 /// Hold nonbonded interaction parameters
 /** The nbindex array holds indices into nbarray (>=0) or hbarray (<0).
   * nbarray size should be (ntypes*(ntypes+1))/2 (half matrix).
@@ -403,8 +566,7 @@ typedef std::vector<CmapType> CmapArray;
 class ChamberParmType {
     typedef std::vector<std::string> Sarray;
   public:
-    ChamberParmType() : hasChamber_(false) {}
-    bool                     HasChamber()   const { return hasChamber_;   }
+    ChamberParmType() {}
     bool                     HasCmap()      const { return !cmapGrid_.empty(); }
     Sarray            const& Description()  const { return chmff_desc_;   }
     BondArray         const& UB()           const { return ub_;           }
@@ -416,7 +578,6 @@ class ChamberParmType {
     CmapArray         const& Cmap()         const { return cmap_;         }
     NonbondType& SetLJ14(int idx)                 { return lj14_[idx];    }
     CmapGridType& SetCmapGrid(int idx)            { return cmapGrid_[idx];}
-    void SetHasChamber(bool b)                { hasChamber_ = b;                  }
     /// Set expected number of LJ14 terms TODO combine with SetVersion?
     void SetNLJ14terms(int n)                 { lj14_.assign( n, NonbondType() ); }
     void AddDescription(std::string const& s) { chmff_desc_.push_back( s );       }
@@ -439,7 +600,15 @@ class ChamberParmType {
       chmff_desc_.clear(); ub_.clear(); ubparm_.clear();
       impropers_.clear(); improperparm_.clear(); lj14_.clear();
       cmapGrid_.clear(); cmap_.clear();
-    } 
+    }
+    /// \return true if any CHARMM parameters are set (based on indices).
+    bool HasChamber() const {
+      if (!ub_.empty()) return true;
+      if (!impropers_.empty()) return true;
+      if (!lj14_.empty()) return true;
+      if (!cmap_.empty()) return true;
+      return false;
+    }
   private:
     Sarray chmff_desc_;              ///< CHARMM FF descriptions
     BondArray ub_;                   ///< Urey-Bradley terms
@@ -447,8 +616,7 @@ class ChamberParmType {
     DihedralArray impropers_;        ///< Improper terms
     DihedralParmArray improperparm_; ///< Improper parameters
     NonbondArray lj14_;              ///< Lennard-Jones 1-4 parameters
-    CmapGridArray cmapGrid_;         ///< Hold CMAP grids
     CmapArray cmap_;                 ///< Hold atom indices and CMAP grid index
-    bool hasChamber_;                ///< True if using CHAMBER info
+    CmapGridArray cmapGrid_;         ///< Hold CMAP grids
 };
 #endif

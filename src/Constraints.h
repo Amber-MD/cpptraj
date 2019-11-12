@@ -1,7 +1,11 @@
 #ifndef INC_CONSTRAINTS_H
 #define INC_CONSTRAINTS_H
-#include "Topology.h"
-#include "ArgList.h"
+#include "ParameterTypes.h"
+class Topology;
+class ArgList;
+class AtomMask;
+class CharMask;
+class Frame;
 /// Used to apply constraints
 class Constraints {
   public:
