@@ -1888,7 +1888,7 @@ static inline void GetBondParams(ParmHolder<BondParmType>& BP, std::vector<Atom>
   for (BondArray::const_iterator b = bonds.begin(); b != bonds.end(); ++b)
   {
     if (b->Idx() != -1) {
-      AtomTypeHolder types(2);
+      TypeNameHolder types(2);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
       BP.AddParm( types, bpa[b->Idx()], false );
@@ -1901,7 +1901,7 @@ static inline void GetAngleParams(ParmHolder<AngleParmType>& AP, std::vector<Ato
   for (AngleArray::const_iterator b = angles.begin(); b != angles.end(); ++b)
   {
     if (b->Idx() != -1) {
-      AtomTypeHolder types(3);
+      TypeNameHolder types(3);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
@@ -1915,7 +1915,7 @@ static inline void GetImproperParams(ParmHolder<DihedralParmType>& IP, std::vect
   for (DihedralArray::const_iterator b = imp.begin(); b != imp.end(); ++b)
   {
     if (b->Idx() != -1) {
-      AtomTypeHolder types(4);
+      TypeNameHolder types(4);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
@@ -1930,11 +1930,12 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
   for (DihedralArray::const_iterator b = dih.begin(); b != dih.end(); ++b)
   {
     if (b->Idx() != -1) {
-      AtomTypeHolder types(4);
+      TypeNameHolder types(4);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
       types.AddName( atoms[b->A4()].Type() );
+      mprintf("DEBUG: dihedral %li\n", b - dih.begin() + 1);
       DP.AddParm( types, dpa[b->Idx()], false );
     }
   }
@@ -1957,7 +1958,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
       // TODO check for blank type name?
-      AtomTypeHolder types(1);
+      TypeNameHolder types(1);
       types.AddName( atm->Type() );
       int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
       ParameterHolders::RetType ret;
@@ -2004,7 +2005,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
             mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
           }
         }
-        AtomTypeHolder types(2);
+        TypeNameHolder types(2);
         types.AddName( name1 );
         types.AddName( name2 );
         NB1.AddParm( types, lj1, false );
@@ -2015,7 +2016,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
   } else {
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
       if (atm->Type().len() > 0)
-        atomTypes.AddParm( AtomTypeHolder(atm->Type()), AtomType(atm->Mass()), true );
+        atomTypes.AddParm( TypeNameHolder(atm->Type()), AtomType(atm->Mass()), true );
   }
 }
 
@@ -2056,7 +2057,7 @@ void AssignParm(std::vector<Atom> const& atoms,
                 V& currentParams)                // BondParmArray
 {
   for (typename U::iterator obj = objects.begin(); obj != objects.end(); ++obj) {
-    AtomTypeHolder types(obj->Nidx());
+    TypeNameHolder types(obj->Nidx());
     for (unsigned int idx = 0; idx != obj->Nidx(); idx++)
       types.AddName( atoms[obj->Atom(idx)].Type() );
     bool found;
@@ -2087,7 +2088,7 @@ void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
                               BondArray& bonds, BondParmArray& bpa, const char* desc)
 {
   for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
-    AtomTypeHolder types(2);
+    TypeNameHolder types(2);
     types.AddName( atoms_[bnd->A1()].Type() );
     types.AddName( atoms_[bnd->A2()].Type() );
     bool found;
@@ -2135,7 +2136,7 @@ void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
                               AngleArray& angles)
 {
   for (AngleArray::iterator ang = angles.begin(); ang != angles.end(); ++ang) {
-    AtomTypeHolder types(3);
+    TypeNameHolder types(3);
     types.AddName( atoms_[ang->A1()].Type() );
     types.AddName( atoms_[ang->A2()].Type() );
     types.AddName( atoms_[ang->A3()].Type() );
@@ -2177,7 +2178,7 @@ void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImprope
                                   DihedralArray& impropers)
 {
   for (DihedralArray::iterator imp = impropers.begin(); imp != impropers.end(); ++imp) {
-    AtomTypeHolder types(4);
+    TypeNameHolder types(4);
     types.AddName( atoms_[imp->A1()].Type() );
     types.AddName( atoms_[imp->A2()].Type() );
     types.AddName( atoms_[imp->A3()].Type() );
@@ -2244,7 +2245,7 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
   ParmHolder< std::vector<int> > currentIndices;
   dihedralsIn.clear();
   for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
-    AtomTypeHolder types(4);
+    TypeNameHolder types(4);
     types.AddName( atoms_[dih->A1()].Type() );
     types.AddName( atoms_[dih->A2()].Type() );
     types.AddName( atoms_[dih->A3()].Type() );
@@ -2312,7 +2313,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHol
   for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
     if (atm->Type().len() > 0) {
-      AtomTypeHolder types(1);
+      TypeNameHolder types(1);
       types.AddName(atm->Type());
       // Find in newTypes.
       bool found;
@@ -2346,7 +2347,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHol
       NameType const& name2 = t2->first[0];
       //mprintf("DEBUG:\t\tType2= %s (%i)\n", *name2, nidx2);
       AtomType const& type2 = t2->second;
-      AtomTypeHolder types(2);
+      TypeNameHolder types(2);
       types.AddName( name1 );
       types.AddName( name2 );
       // See if this parameter exists in the given nonbond array.
