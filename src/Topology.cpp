@@ -1884,6 +1884,14 @@ int Topology::AppendTop(Topology const& NewTop) {
 }
 
 // -----------------------------------------------------------------------------
+static void paramOverwriteWarning(const char* type) {
+  mprintf("Warning: An existing %s parameter would have been overwritten. This\n"
+          "Warning:  usually means that the atom type information in the Topology is\n"
+          "Warning:  incomplete. This can happen for example with Chamber topologies\n"
+          "Warning:  if the original atom type names were > 4 characters.\n", type);
+  mprintf("Warning: The %s parameters in this topology may now be incorrect.\n", type);
+}
+
 // GetBondParams()
 static inline void GetBondParams(ParmHolder<BondParmType>& BP, std::vector<Atom> const& atoms, BondArray const& bonds, BondParmArray const& bpa) {
   for (BondArray::const_iterator b = bonds.begin(); b != bonds.end(); ++b)
@@ -1892,7 +1900,9 @@ static inline void GetBondParams(ParmHolder<BondParmType>& BP, std::vector<Atom>
       TypeNameHolder types(2);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
-      BP.AddParm( types, bpa[b->Idx()], false );
+      ParameterHolders::RetType ret = BP.AddParm( types, bpa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("bond");
     }
   }
 }
@@ -1906,7 +1916,9 @@ static inline void GetAngleParams(ParmHolder<AngleParmType>& AP, std::vector<Ato
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
-      AP.AddParm( types, apa[b->Idx()], false );
+      ParameterHolders::RetType ret = AP.AddParm( types, apa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("angle");
     }
   }
 }
@@ -1921,7 +1933,9 @@ static inline void GetImproperParams(ParmHolder<DihedralParmType>& IP, std::vect
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
       types.AddName( atoms[b->A4()].Type() );
-      IP.AddParm( types, ipa[b->Idx()], false );
+      ParameterHolders::RetType ret = IP.AddParm( types, ipa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("improper");
     }
   }
 }
@@ -1938,13 +1952,8 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
       types.AddName( atoms[b->A4()].Type() );
       //mprintf("DEBUG: dihedral %li ( %i %i %i %i )\n", b - dih.begin() + 1, b->A1()+1, b->A2()+1, b->A3()+1, b->A4()+1);
       ParameterHolders::RetType ret = DP.AddParm( types, dpa[b->Idx()], false );
-      if (ret == ParameterHolders::ERR) {
-        mprintf("Warning: An existing dihedral parameter would have been overwritten. This\n"
-                "Warning:  usually means that the atom type information in the Topology is\n"
-                "Warning:  incomplete. This can happen for example with Chamber topologies\n"
-                "Warning:  if the original atom type names were > 4 characters.\n");
-        mprintf("Warning: Dihedral parameters in this topology may now be incorrect.\n");
-      }
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("dihedral");
     }
   }
 }
