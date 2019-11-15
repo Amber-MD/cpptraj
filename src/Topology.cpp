@@ -1935,8 +1935,15 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
       types.AddName( atoms[b->A4()].Type() );
-      mprintf("DEBUG: dihedral %li\n", b - dih.begin() + 1);
-      DP.AddParm( types, dpa[b->Idx()], false );
+      //mprintf("DEBUG: dihedral %li ( %i %i %i %i )\n", b - dih.begin() + 1, b->A1()+1, b->A2()+1, b->A3()+1, b->A4()+1);
+      ParameterHolders::RetType ret = DP.AddParm( types, dpa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR) {
+        mprintf("Warning: An existing dihedral parameter would have been overwritten. This\n"
+                "Warning:  usually means that the atom type information in the Topology is\n"
+                "Warning:  incomplete. This can happen for example with Chamber topologies\n"
+                "Warning:  if the original atom type names were > 4 characters.\n");
+        mprintf("Warning: Dihedral parameters in this topology may now be incorrect.\n");
+      }
     }
   }
 }

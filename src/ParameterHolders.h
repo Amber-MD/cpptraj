@@ -132,8 +132,8 @@ class DihedralParmHolder {
           it0->second.push_back( dp );
         } else {
           if (dp < *it1 || *it1 < dp) {
-            //mprintf("DEBUG: Dihedral update mult (%i): %s %s %s %s pk=%12.4f pn=%12.4f pp=%12.4f\n",
-            //        (int)allowUpdate, *types[0], *types[1], *types[2], *types[3], dp.Pk(), dp.Pn(), dp.Phase());
+            //mprintf("DEBUG: Attempt dihedral update mult (allow=%i): %s %s %s %s pk=%6.2f pn=%3.1f pp=%6.3f (orig pk=%6.2f pn=%3.1f pp=%6.3f )\n",
+            //        (int)allowUpdate, *types[0], *types[1], *types[2], *types[3], dp.Pk(), dp.Pn(), dp.Phase(), it1->Pk(), it1->Pn(), it1->Phase());
             if (allowUpdate) {
               *it1 = dp;
               return ParameterHolders::UPDATED;
