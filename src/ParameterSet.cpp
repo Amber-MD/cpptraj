@@ -115,6 +115,7 @@ int ParameterSet::UpdateParams(ParameterSet const& set1, UpdateCount& uc, int de
   ParameterSet& set0 = *this;
   // Check
   if (debugIn > 0) {
+    mprintf("DEBUG: Saving original parameters in originalp.dat, incoming parameters in incomingp.dat, new parameters in newp.dat.\n");
     set0.Debug("originalp.dat");
     set1.Debug("incomingp.dat");
   }

@@ -2438,7 +2438,10 @@ int Topology::UpdateParams(ParameterSet const& set1) {
   // Check
   if (set0.AT().size() < 1)
     mprintf("Warning: No atom type information in '%s'\n", c_str());
-  set0.Debug("originalp.dat");
+  if (debug_ > 0) {
+    mprintf("DEBUG: Saving original parameters in originalp.dat, new parameters in newp.dat\n");
+    set0.Debug("originalp.dat");
+  }
 
   unsigned int updateCount;
   // Bond parameters
@@ -2479,6 +2482,6 @@ int Topology::UpdateParams(ParameterSet const& set1) {
     AssignNonbondParams( set0.AT(), set0.NB() );
   }
 
-  set0.Debug("newp.dat");
+  if (debug_ > 0) set0.Debug("newp.dat");
   return 0;
 }
