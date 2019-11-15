@@ -111,11 +111,13 @@ template <typename T> int UpdateParameters(T& param0, T const& param1, const cha
 }
 
 /** Update/add to parameters in this topology with those from given set. */
-int ParameterSet::UpdateParams(ParameterSet const& set1, UpdateCount& uc) {
+int ParameterSet::UpdateParams(ParameterSet const& set1, UpdateCount& uc, int debugIn) {
   ParameterSet& set0 = *this;
   // Check
-  set0.Debug("originalp.dat");
-  set1.Debug("incomingp.dat");
+  if (debugIn > 0) {
+    set0.Debug("originalp.dat");
+    set1.Debug("incomingp.dat");
+  }
 
   // Bond parameters
   uc.nBondsUpdated_ = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond");
@@ -132,6 +134,6 @@ int ParameterSet::UpdateParams(ParameterSet const& set1, UpdateCount& uc) {
   // LJ Pairs
   uc.nLJparamsUpdated_ = UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
 
-  set0.Debug("newp.dat");
+  if (debugIn > 0) set0.Debug("newp.dat");
   return 0;
 }
