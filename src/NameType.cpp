@@ -1,24 +1,15 @@
+#include <algorithm> // std::fill, std::copy
 #include "NameType.h"
 
 NameType::NameType()
 {
-  c_array_[0]=' ';
-  c_array_[1]=' ';
-  c_array_[2]=' ';
-  c_array_[3]=' ';
-  c_array_[4]=' ';
-  c_array_[5]='\0';
+  std::fill(c_array_, c_array_ + NameSize_-1, ' ');
+  c_array_[NameSize_-1] = '\0';
 }
 
 NameType::NameType(const NameType &rhs)
 {
-  c_array_[0] = rhs.c_array_[0];
-  c_array_[1] = rhs.c_array_[1];
-  c_array_[2] = rhs.c_array_[2];
-  c_array_[3] = rhs.c_array_[3];
-  c_array_[4] = rhs.c_array_[4];
-  // 5 is always null 
-  c_array_[5]='\0';
+  std::copy(rhs.c_array_, rhs.c_array_ + NameSize_, c_array_);
 }
 
 NameType::NameType(const char *rhs)
@@ -46,12 +37,7 @@ NameType::NameType(std::string const& str)
  
 NameType &NameType::operator=(const NameType &rhs) {
   if (&rhs==this) return *this;
-  c_array_[0] = rhs.c_array_[0];
-  c_array_[1] = rhs.c_array_[1];
-  c_array_[2] = rhs.c_array_[2];
-  c_array_[3] = rhs.c_array_[3];
-  c_array_[4] = rhs.c_array_[4];
-  // 5 is always null 
+  std::copy(rhs.c_array_, rhs.c_array_ + NameSize_, c_array_);
   return *this;
 }
 
