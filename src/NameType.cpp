@@ -53,7 +53,7 @@ void NameType::ToBuffer(char *buffer) const {
 
 bool NameType::Match(NameType const& maskName) const { 
   int c = 0;
-  for (int m = 0; m < 5; m++) {
+  for (unsigned int m = 0; m < NameSize_-1; m++) {
     if (maskName.c_array_[m] == '\0' && c_array_[c] == ' ')
       // At end of mask and whitespace in name: OK
       break;
@@ -77,10 +77,11 @@ bool NameType::Match(NameType const& maskName) const {
 }
 
 bool NameType::operator==(const NameType &rhs) const {
-  if (c_array_[0] != rhs.c_array_[0]) return false;
-  if (c_array_[1] != rhs.c_array_[1]) return false;
-  if (c_array_[2] != rhs.c_array_[2]) return false;
-  if (c_array_[3] != rhs.c_array_[3]) return false;
+  for (unsigned int idx = 0; idx < NameSize_; idx++) {
+    if (c_array_[idx] != rhs.c_array_[idx]) return false;
+    // If we are here, chars at idx (including if null) must be equal.
+    if (c_array_[idx] == '\0') break;
+  }
   return true;
 }
 
@@ -90,10 +91,11 @@ bool NameType::operator==(const char *rhs) const {
 }
 
 bool NameType::operator!=(const NameType &rhs) const {
-  if (c_array_[0] != rhs.c_array_[0]) return true;
-  if (c_array_[1] != rhs.c_array_[1]) return true;
-  if (c_array_[2] != rhs.c_array_[2]) return true;
-  if (c_array_[3] != rhs.c_array_[3]) return true;
+  for (unsigned int idx = 0; idx < NameSize_; idx++) {
+    if (c_array_[idx] != rhs.c_array_[idx]) return true;
+    // If we are here, chars at idx (including if null) must be equal.
+    if (c_array_[idx] == '\0') break;
+  }
   return false;
 }
 
@@ -125,10 +127,8 @@ int NameType::len() const {
 
 /** Replace asterisks with a single quote */
 void NameType::ReplaceAsterisk() {
-  if (c_array_[0]=='*') c_array_[0]='\'';
-  if (c_array_[1]=='*') c_array_[1]='\'';
-  if (c_array_[2]=='*') c_array_[2]='\'';
-  if (c_array_[3]=='*') c_array_[3]='\'';
+  for (unsigned int idx = 0; idx < NameSize_; idx++)
+    if (c_array_[idx]=='*') c_array_[idx]='\'';
 }
 
 // NameType::FormatName()
