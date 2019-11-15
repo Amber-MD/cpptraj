@@ -62,7 +62,7 @@ void ParameterSet::Debug(const char* fnameIn) const {
 }
 
 /** Update/add to parameters in this topology with those from given set. */
-int ParameterSet::UpdateParams(ParameterSet const& set1, UpdateCount& uc, int debugIn) {
+int ParameterSet::UpdateParamSet(ParameterSet const& set1, UpdateCount& uc, int debugIn) {
   ParameterSet& set0 = *this;
   // Check
   if (debugIn > 0) {
