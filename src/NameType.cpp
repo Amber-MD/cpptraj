@@ -140,6 +140,18 @@ void NameType::ReplaceAsterisk() {
   */
 void NameType::FormatName() 
 {
+  // Remove leading whitespace.
+  // Find index of first non-whitespace (blank) char.
+  unsigned int nonWSidx = 0;
+  while (c_array_[nonWSidx] == ' ')
+    ++nonWSidx;
+  if (nonWSidx > 0) {
+    unsigned int idx = 0;
+    for (; nonWSidx < NameSize_; ++nonWSidx, ++idx) {
+      c_array_[idx] = c_array_[nonWSidx];
+      if (c_array_[idx] == '\0') break;
+    }
+  }
   // Ensure at least 4 chars long.
   if (c_array_[0]=='\0') { // 0 chars
     c_array_[0]=' ';
@@ -160,6 +172,7 @@ void NameType::FormatName()
     c_array_[3]=' ';
     c_array_[4]='\0';
   }
+/*
   // Remove leading whitespace.
   if (c_array_[0]==' ') { // Some leading whitespace
     if (c_array_[1]!=' ') {        // [_XXX]
@@ -179,4 +192,5 @@ void NameType::FormatName()
       c_array_[3]=' ';
     }
   }
+*/
 }
