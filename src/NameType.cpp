@@ -15,7 +15,7 @@ NameType::NameType(const NameType &rhs)
 NameType::NameType(const char *rhs)
 {
   const char *ptr = rhs;
-  for (unsigned int j = 0; j < NameSize_-1; j++) {
+  for (unsigned int j = 0; j < NameSize_; j++) {
     c_array_[j] = *ptr;
     if (*ptr=='\0') break;
     ++ptr;
@@ -128,7 +128,10 @@ int NameType::len() const {
 /** Replace asterisks with a single quote */
 void NameType::ReplaceAsterisk() {
   for (unsigned int idx = 0; idx < NameSize_; idx++)
-    if (c_array_[idx]=='*') c_array_[idx]='\'';
+  {
+    if (c_array_[idx] == '\0') break;
+    if (c_array_[idx] == '*') c_array_[idx]='\'';
+  }
 }
 
 // NameType::FormatName()
