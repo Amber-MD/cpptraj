@@ -57,11 +57,11 @@ NameType &NameType::operator=(const NameType &rhs) {
 
 /** For interfacing with old C stuff. Only set 1st 4 chars. */
 void NameType::ToBuffer(char *buffer) const {
-  buffer[0] = c_array_[0];
-  buffer[1] = c_array_[1];
-  buffer[2] = c_array_[2];
-  buffer[3] = c_array_[3];
-  buffer[4] = '\0';
+  if (buffer == 0) return;
+  unsigned int idx = 0;
+  for (const char* ptr = c_array_; *ptr != '\0'; ++ptr)
+    buffer[idx++] = *ptr;
+  buffer[idx] = '\0';
 }
 
 /** See if this NameType matches the given NameType.
