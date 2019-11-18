@@ -37,7 +37,7 @@ class NameType {
     void ReplaceAsterisk();
     /// \return true if name comes before given name alphabetically
     bool operator<(NameType const& rhs) const {
-      for (unsigned int i = 0; i != NameSize_; i++)
+      for (unsigned int i = 0; i != ArraySize_; i++)
       {
         if      (c_array_[i] == '\0' && rhs.c_array_[i] == '\0') return false;
         else if (c_array_[i] == '\0' && rhs.c_array_[i] != '\0') return true;
@@ -49,7 +49,7 @@ class NameType {
     }
     /// \return true if name comes after given name alphabetically
     bool operator>(NameType const& rhs) const {
-      for (unsigned int i = 0; i != NameSize_; i++)
+      for (unsigned int i = 0; i != ArraySize_; i++)
       {
         if      (c_array_[i] == '\0' && rhs.c_array_[i] == '\0') return false;
         else if (c_array_[i] != '\0' && rhs.c_array_[i] == '\0') return true;
@@ -60,9 +60,9 @@ class NameType {
       return false;
     }
     /// \return size taken by this NameType in bytes.
-    static size_t DataSize() { return NameSize_ * sizeof(char); }
+    static size_t DataSize() { return ArraySize_ * sizeof(char); }
   private:
-    char c_array_[NameSize_];
+    char c_array_[ArraySize_];
 
     void FormatName();
 };

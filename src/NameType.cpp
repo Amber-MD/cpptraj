@@ -3,19 +3,19 @@
 
 NameType::NameType()
 {
-  std::fill(c_array_, c_array_ + NameSize_-1, ' ');
-  c_array_[NameSize_-1] = '\0';
+  std::fill(c_array_, c_array_ + ArraySize_-1, ' ');
+  c_array_[ArraySize_-1] = '\0';
 }
 
 NameType::NameType(const NameType &rhs)
 {
-  std::copy(rhs.c_array_, rhs.c_array_ + NameSize_, c_array_);
+  std::copy(rhs.c_array_, rhs.c_array_ + ArraySize_, c_array_);
 }
 
 NameType::NameType(const char *rhs)
 {
   const char *ptr = rhs;
-  for (unsigned int j = 0; j < NameSize_; j++) {
+  for (unsigned int j = 0; j < ArraySize_; j++) {
     c_array_[j] = *ptr;
     if (*ptr=='\0') break;
     ++ptr;
@@ -25,7 +25,7 @@ NameType::NameType(const char *rhs)
 
 NameType::NameType(std::string const& str)
 {
-  unsigned int ns1 = NameSize_ - 1;
+  unsigned int ns1 = ArraySize_ - 1;
   unsigned int strend = (unsigned int)str.size();
   if (strend > ns1)
     strend = ns1;
@@ -37,7 +37,7 @@ NameType::NameType(std::string const& str)
  
 NameType &NameType::operator=(const NameType &rhs) {
   if (&rhs==this) return *this;
-  std::copy(rhs.c_array_, rhs.c_array_ + NameSize_, c_array_);
+  std::copy(rhs.c_array_, rhs.c_array_ + ArraySize_, c_array_);
   return *this;
 }
 
@@ -53,7 +53,7 @@ void NameType::ToBuffer(char *buffer) const {
 
 bool NameType::Match(NameType const& maskName) const { 
   int c = 0;
-  for (unsigned int m = 0; m < NameSize_-1; m++) {
+  for (unsigned int m = 0; m < ArraySize_-1; m++) {
     if (maskName.c_array_[m] == '\0' && c_array_[c] == ' ')
       // At end of mask and whitespace in name: OK
       break;
@@ -77,7 +77,7 @@ bool NameType::Match(NameType const& maskName) const {
 }
 
 bool NameType::operator==(const NameType &rhs) const {
-  for (unsigned int idx = 0; idx < NameSize_; idx++) {
+  for (unsigned int idx = 0; idx < ArraySize_; idx++) {
     if (c_array_[idx] != rhs.c_array_[idx]) return false;
     // If we are here, chars at idx (including if null) must be equal.
     if (c_array_[idx] == '\0') break;
@@ -91,7 +91,7 @@ bool NameType::operator==(const char *rhs) const {
 }
 
 bool NameType::operator!=(const NameType &rhs) const {
-  for (unsigned int idx = 0; idx < NameSize_; idx++) {
+  for (unsigned int idx = 0; idx < ArraySize_; idx++) {
     if (c_array_[idx] != rhs.c_array_[idx]) return true;
     // If we are here, chars at idx (including if null) must be equal.
     if (c_array_[idx] == '\0') break;
@@ -105,13 +105,13 @@ bool NameType::operator!=(const char *rhs) const {
 }
 
 char NameType::operator[](int idx) const {
-  if (idx < 0 || idx >= (int)NameSize_) return '\0';
+  if (idx < 0 || idx >= (int)ArraySize_) return '\0';
   return c_array_[idx];
 }
 
 std::string NameType::Truncated() const {
   unsigned int i = 0;
-  for (; i != NameSize_; i++)
+  for (; i != ArraySize_; i++)
     if (c_array_[i] == ' ' || c_array_[i] == '\0') break;
   return std::string( c_array_, c_array_+i );
 }
@@ -119,7 +119,7 @@ std::string NameType::Truncated() const {
 /** \return Non-space length of name. */
 int NameType::len() const {
   unsigned int i = 0;
-  for (; i != NameSize_; i++)
+  for (; i != ArraySize_; i++)
     if (c_array_[i] == ' ' || c_array_[i] == '\0')
       return (int)i;
   return (int)i;
@@ -127,7 +127,7 @@ int NameType::len() const {
 
 /** Replace asterisks with a single quote */
 void NameType::ReplaceAsterisk() {
-  for (unsigned int idx = 0; idx < NameSize_; idx++)
+  for (unsigned int idx = 0; idx < ArraySize_; idx++)
   {
     if (c_array_[idx] == '\0') break;
     if (c_array_[idx] == '*') c_array_[idx]='\'';
@@ -147,7 +147,7 @@ void NameType::FormatName()
     ++nonWSidx;
   if (nonWSidx > 0) {
     unsigned int idx = 0;
-    for (; nonWSidx < NameSize_; ++nonWSidx, ++idx) {
+    for (; nonWSidx < ArraySize_; ++nonWSidx, ++idx) {
       c_array_[idx] = c_array_[nonWSidx];
       if (c_array_[idx] == '\0') break;
     }
