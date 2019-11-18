@@ -14,7 +14,7 @@ NameType::NameType(const NameType &rhs)
   std::copy(rhs.c_array_, rhs.c_array_ + ArraySize_, c_array_);
 }
 
-/** Assign incoming buffer (up to ArraySize_) to this NameType. */
+/** Assign incoming buffer (up to ArraySize_) to this NameType. Ignore whitespace. */
 void NameType::Assign( const char* rhs ) {
   const char* ptr = rhs;
   unsigned int j = 0;
@@ -31,20 +31,24 @@ void NameType::Assign( const char* rhs ) {
 /** Initialize NameType with given buffer. */
 NameType::NameType(const char *rhs)
 {
-  Assign( rhs );
+  if (rhs != 0)
+    Assign( rhs );
   FormatName();
 }
 
 /** Initialize NameType with given string. */
 NameType::NameType(std::string const& str)
 {
+  if (!str.empty())
+    Assign(str.c_str());
+/*
   unsigned int ns1 = ArraySize_ - 1;
   unsigned int strend = (unsigned int)str.size();
   if (strend > ns1)
     strend = ns1;
   for (unsigned int j = 0; j < strend; j++) 
     c_array_[j] = str[j];
-  c_array_[strend] = '\0';
+  c_array_[strend] = '\0';*/
   FormatName();
 }
 
