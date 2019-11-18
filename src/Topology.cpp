@@ -1565,14 +1565,16 @@ void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& par
                            bnd != newBondArray.end(); ++bnd)
   {
     int oldidx = bnd->Idx();
-    int newidx = parmMap[bnd->Idx()];
-    if (newidx == -1) { // This needs to be added to new parameter array.
-      newidx = (int)newBondParm.size();
-      parmMap[oldidx] = newidx;
-      newBondParm.push_back( oldParm[oldidx] );
+    if (oldidx > -1) {
+      int newidx = parmMap[oldidx];
+      if (newidx == -1) { // This needs to be added to new parameter array.
+        newidx = (int)newBondParm.size();
+        parmMap[oldidx] = newidx;
+        newBondParm.push_back( oldParm[oldidx] );
+      }
+      //mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
+      bnd->SetIdx( newidx );
     }
-    //mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
-    bnd->SetIdx( newidx );
   }
 }
 // Topology::StripAngleParmArray()
@@ -1583,14 +1585,16 @@ void Topology::StripAngleParmArray(AngleArray& newAngleArray, std::vector<int>& 
                             ang != newAngleArray.end(); ++ang)
   {
     int oldidx = ang->Idx();
-    int newidx = parmMap[ang->Idx()];
-    if (newidx == -1) { // This needs to be added to new parameter array.
-      newidx = (int)newAngleParm.size();
-      parmMap[oldidx] = newidx;
-      newAngleParm.push_back( angleparm_[oldidx] );
+    if (oldidx > -1) {
+      int newidx = parmMap[oldidx];
+      if (newidx == -1) { // This needs to be added to new parameter array.
+        newidx = (int)newAngleParm.size();
+        parmMap[oldidx] = newidx;
+        newAngleParm.push_back( angleparm_[oldidx] );
+      }
+      //mprintf("DEBUG: Old angle parm index=%i, new angle parm index=%i\n", oldidx, newidx);
+      ang->SetIdx( newidx );
     }
-    //mprintf("DEBUG: Old angle parm index=%i, new angle parm index=%i\n", oldidx, newidx);
-    ang->SetIdx( newidx );
   }
 }
 
@@ -1611,14 +1615,16 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
                                dih != newDihedralArray.end(); ++dih)
   {
     int oldidx = dih->Idx();
-    int newidx = parmMap[dih->Idx()];
-    if (newidx == -1) { // This needs to be added to new parameter array.
-      newidx = (int)newDihedralParm.size();
-      parmMap[oldidx] = newidx;
-      newDihedralParm.push_back( oldParm[oldidx] );
+    if (oldidx > -1) {
+      int newidx = parmMap[oldidx];
+      if (newidx == -1) { // This needs to be added to new parameter array.
+        newidx = (int)newDihedralParm.size();
+        parmMap[oldidx] = newidx;
+        newDihedralParm.push_back( oldParm[oldidx] );
+      }
+      //mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
+      dih->SetIdx( newidx );
     }
-    //mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
-    dih->SetIdx( newidx );
   }
 }
 
