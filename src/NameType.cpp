@@ -1,4 +1,5 @@
-#include <algorithm> // std::fill, std::copy
+#include <cctype>    // isspace
+#include <algorithm> // std::copy
 #include "NameType.h"
 
 /// CONSTRUCTOR
@@ -17,9 +18,11 @@ NameType::NameType(const NameType &rhs)
 void NameType::Assign( const char* rhs ) {
   const char* ptr = rhs;
   unsigned int j = 0;
-  for (; j < ArraySize_; j++) {
+  while (j < ArraySize_) {
     if (*ptr == '\0') break;
-    c_array_[j] = *(ptr++);
+    if (!isspace(*ptr))
+      c_array_[j++] = *ptr;
+    ptr++;
   }
   c_array_[j] = '\0';
   // TODO detect input string truncation?
