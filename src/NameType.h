@@ -11,6 +11,8 @@ class NameType {
     NameType(const char*);
     NameType(std::string const&);
     NameType& operator=(const NameType&);
+    /// Assign char buffer to this name
+    void Assign(const char*);
     /// Copy this name to give char buffer.
     void ToBuffer(char*) const;
     /// \return true if given NameType (with optional wildcard chars) matches.

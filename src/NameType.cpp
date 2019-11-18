@@ -1,28 +1,38 @@
 #include <algorithm> // std::fill, std::copy
 #include "NameType.h"
 
+/// CONSTRUCTOR
 NameType::NameType()
 {
-  std::fill(c_array_, c_array_ + ArraySize_-1, ' ');
-  c_array_[ArraySize_-1] = '\0';
+  c_array_[0] = '\0';
 }
 
+/// COPY CONSTRUCTOR
 NameType::NameType(const NameType &rhs)
 {
   std::copy(rhs.c_array_, rhs.c_array_ + ArraySize_, c_array_);
 }
 
+/** Assign incoming buffer (up to ArraySize_) to this NameType. */
+void NameType::Assign( const char* rhs ) {
+  const char* ptr = rhs;
+  unsigned int j = 0;
+  for (; j < ArraySize_; j++) {
+    if (*ptr == '\0') break;
+    c_array_[j] = *(ptr++);
+  }
+  c_array_[j] = '\0';
+  // TODO detect input string truncation?
+}
+
+/** Initialize NameType with given buffer. */
 NameType::NameType(const char *rhs)
 {
-  const char *ptr = rhs;
-  for (unsigned int j = 0; j < ArraySize_; j++) {
-    c_array_[j] = *ptr;
-    if (*ptr=='\0') break;
-    ++ptr;
-  }
+  Assign( rhs );
   FormatName();
 }
 
+/** Initialize NameType with given string. */
 NameType::NameType(std::string const& str)
 {
   unsigned int ns1 = ArraySize_ - 1;
@@ -34,14 +44,14 @@ NameType::NameType(std::string const& str)
   c_array_[strend] = '\0';
   FormatName();
 }
- 
+
+/// ASSIGNMENT 
 NameType &NameType::operator=(const NameType &rhs) {
   if (&rhs==this) return *this;
   std::copy(rhs.c_array_, rhs.c_array_ + ArraySize_, c_array_);
   return *this;
 }
 
-// NameType::ToBuffer()
 /** For interfacing with old C stuff. Only set 1st 4 chars. */
 void NameType::ToBuffer(char *buffer) const {
   buffer[0] = c_array_[0];
@@ -51,6 +61,9 @@ void NameType::ToBuffer(char *buffer) const {
   buffer[4] = '\0';
 }
 
+/** See if this NameType matches the given NameType.
+  * \param maskName Name to match; may include single '?' or multiple '*' char wildcard(s)
+  */
 bool NameType::Match(NameType const& maskName) const { 
   int c = 0;
   for (unsigned int m = 0; m < ArraySize_-1; m++) {
@@ -76,6 +89,7 @@ bool NameType::Match(NameType const& maskName) const {
   return true;
 }
 
+/** \return True only if incoming NameType is an exact match. No wildcards. */
 bool NameType::operator==(const NameType &rhs) const {
   for (unsigned int idx = 0; idx < ArraySize_; idx++) {
     if (c_array_[idx] != rhs.c_array_[idx]) return false;
@@ -85,11 +99,13 @@ bool NameType::operator==(const NameType &rhs) const {
   return true;
 }
 
+/** \return True only if incoming NameType is an exact match. No wildcards. */
 bool NameType::operator==(const char *rhs) const {
   NameType tmp(rhs);
   return (*this == tmp);
 }
 
+/** \return True only if incoming NameType does not match. No wildcards. */
 bool NameType::operator!=(const NameType &rhs) const {
   for (unsigned int idx = 0; idx < ArraySize_; idx++) {
     if (c_array_[idx] != rhs.c_array_[idx]) return true;
@@ -99,11 +115,13 @@ bool NameType::operator!=(const NameType &rhs) const {
   return false;
 }
 
+/** \return True only if incoming NameType does not match. No wildcards. */
 bool NameType::operator!=(const char *rhs) const {
   NameType tmp(rhs);
   return (*this != tmp);
 }
 
+/** \return Character at given position, or null if position is out of range. */
 char NameType::operator[](int idx) const {
   if (idx < 0 || idx >= (int)ArraySize_) return '\0';
   return c_array_[idx];
