@@ -59,7 +59,7 @@ NameType &NameType::operator=(const NameType &rhs) {
   return *this;
 }
 
-/** For interfacing with old C stuff. Only set 1st 4 chars. */
+/** Copy NameType to buffer. For interfacing with old C stuff.*/
 void NameType::ToBuffer(char *buffer) const {
   if (buffer == 0) return;
   unsigned int idx = 0;
