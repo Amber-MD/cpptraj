@@ -1,28 +1,41 @@
 #ifndef INC_NAMETYPE_H
 #define INC_NAMETYPE_H
 #include <string>
+/// Class for holding strings of small size, like atom names or type names.
 class NameType {
-    static const unsigned int NameSize_ = 6;
+    /** The size of the char array. Max name that can fit is ArraySize_ - 1 */
+    static const unsigned int ArraySize_ = 6;
   public:
     NameType();
     NameType(const NameType&);
     NameType(const char*);
     NameType(std::string const&);
     NameType& operator=(const NameType&);
-
+    /// Copy this name to give char buffer.
     void ToBuffer(char*) const;
+    /// \return true if given NameType (with optional wildcard chars) matches.
     bool Match(NameType const&) const;
+    /// \return true if given NameType matches exactly.
     bool operator==(const NameType&) const;
+    /// \return true if given NameType matches exactly.
     bool operator==(const char*) const;
+    /// \return true if given NameType does not match exactly.
     bool operator!=(const NameType&) const;
+    /// \return true if given NameType does not match exactly.
     bool operator!=(const char*) const;
+    /// \return Const pointer to internal array.
     const char* operator*() const { return c_array_; }
+    /// \return Pointer to internal array
     char* C_Array()               { return c_array_; }
+    /// \return Character at specified position, or null if out of range
     char operator[](int) const;
+    /// \return Truncated name.
     std::string Truncated() const;
     /// \return non-space length of name
     int len() const;
+    /// Replace any asterisks in name with single quotes.
     void ReplaceAsterisk();
+    /// \return true if name comes before given name alphabetically
     bool operator<(NameType const& rhs) const {
       for (unsigned int i = 0; i != NameSize_; i++)
       {
@@ -34,6 +47,7 @@ class NameType {
       }
       return false;
     }
+    /// \return true if name comes after given name alphabetically
     bool operator>(NameType const& rhs) const {
       for (unsigned int i = 0; i != NameSize_; i++)
       {
@@ -45,6 +59,7 @@ class NameType {
       }
       return false;
     }
+    /// \return size taken by this NameType in bytes.
     static size_t DataSize() { return NameSize_ * sizeof(char); }
   private:
     char c_array_[NameSize_];
