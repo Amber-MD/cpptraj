@@ -1,6 +1,7 @@
 #include <cctype>    // isspace
 #include <algorithm> // std::copy
 #include "NameType.h"
+#include "CpptrajStdio.h"
 
 /// CONSTRUCTOR
 NameType::NameType()
@@ -24,8 +25,13 @@ void NameType::Assign( const char* rhs ) {
       c_array_[j++] = *ptr;
     ptr++;
   }
-  c_array_[j] = '\0';
-  // TODO detect input string truncation?
+  // Detect truncation of input
+  if (j < ArraySize_)
+    c_array_[j] = '\0';
+  else {
+    c_array_[ArraySize_-1] = '\0';
+    mprintf("Warning: Name truncation detected: Name='%s' vs Original'%s'\n", c_array_, rhs);
+  }
 }
 
 /** Initialize NameType with given buffer. */
@@ -33,6 +39,8 @@ NameType::NameType(const char *rhs)
 {
   if (rhs != 0)
     Assign( rhs );
+  else
+    c_array_[0] = '\0';
   FormatName();
 }
 
@@ -41,6 +49,8 @@ NameType::NameType(std::string const& str)
 {
   if (!str.empty())
     Assign(str.c_str());
+  else
+    c_array_[0] = '\0';
 /*
   unsigned int ns1 = ArraySize_ - 1;
   unsigned int strend = (unsigned int)str.size();

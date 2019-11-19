@@ -302,7 +302,7 @@ Mol.o : Mol.cpp Atom.h AtomExtra.h AtomMask.h AtomType.h Box.h CharMask.h Consta
 Mol2File.o : Mol2File.cpp Atom.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h Mol2File.h NameType.h Parallel.h Residue.h StringRoutines.h SymbolExporting.h
 NC_Cmatrix.o : NC_Cmatrix.cpp CpptrajStdio.h FileName.h NC_Cmatrix.h NC_Routines.h
 NC_Routines.o : NC_Routines.cpp CpptrajStdio.h NC_Routines.h
-NameType.o : NameType.cpp NameType.h
+NameType.o : NameType.cpp CpptrajStdio.h NameType.h
 NetcdfFile.o : NetcdfFile.cpp Atom.h AtomMask.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h Frame.h MaskToken.h Matrix_3x3.h Molecule.h NC_Routines.h NameType.h NetcdfFile.h Parallel.h ParallelNetcdf.h ReplicaDimArray.h Residue.h SymbolExporting.h Vec3.h Version.h
 OutputTrajCommon.o : OutputTrajCommon.cpp ActionFrameCounter.h ArgList.h Atom.h AtomExtra.h AtomMask.h AtomType.h BaseIOtype.h Box.h Constants.h CoordinateInfo.h CpptrajStdio.h FileName.h FileTypes.h Frame.h FramePtrArray.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h OutputTrajCommon.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h StringRoutines.h SymbolExporting.h Topology.h TrajectoryFile.h TrajectoryIO.h TypeNameHolder.h Vec3.h
 PDBfile.o : PDBfile.cpp Atom.h CpptrajFile.h CpptrajStdio.h FileIO.h FileName.h NameType.h PDBfile.h Parallel.h Residue.h SymbolExporting.h
