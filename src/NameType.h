@@ -61,7 +61,5 @@ class NameType {
     static size_t DataSize() { return ArraySize_ * sizeof(char); }
   private:
     char c_array_[ArraySize_];
-
-    void FormatName();
 };
 #endif

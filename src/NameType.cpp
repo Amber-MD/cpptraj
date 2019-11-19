@@ -42,7 +42,6 @@ NameType::NameType(const char *rhs)
     Assign( rhs );
   else
     c_array_[0] = '\0';
-  FormatName();
 }
 
 /** Initialize NameType with given string. */
@@ -60,7 +59,6 @@ NameType::NameType(std::string const& str)
   for (unsigned int j = 0; j < strend; j++) 
     c_array_[j] = str[j];
   c_array_[strend] = '\0';*/
-  FormatName();
 }
 
 /// ASSIGNMENT 
@@ -85,9 +83,17 @@ void NameType::ToBuffer(char *buffer) const {
 bool NameType::Match(NameType const& maskName) const { 
   int c = 0;
   for (unsigned int m = 0; m < ArraySize_-1; m++) {
-    if (maskName.c_array_[m] == '\0' && c_array_[c] == ' ')
-      // At end of mask and whitespace in name: OK
+    if (maskName.c_array_[m] == '\0' && c_array_[c] == '\0') {
+      // At end of names, all must have matched up until now.
       break;
+    } else if (maskName.c_array_[m] == '\0' || c_array_[c] == '\0') {
+      // One name has ended without the other ending; the only way this
+      // can match is if one of the names ends with *. Otherwise mismatch.
+      if (maskName.c_array_[m] == '*' || c_array_[c] == '*')
+        return true;
+      else
+        return false;
+    }
     if (maskName.c_array_[m] == '\\') { 
       // Backslash: match literal next char in mask
       ++m;
@@ -159,65 +165,4 @@ int NameType::len() const {
     if (c_array_[i] == ' ' || c_array_[i] == '\0')
       return (int)i;
   return (int)i;
-}
-
-// NameType::FormatName()
-/** For consistency with Amber names, replace any null in the first 4 chars
-  * with spaces. Remove any leading whitespace.
-  */
-void NameType::FormatName() 
-{
-  // Remove leading whitespace.
-  // Find index of first non-whitespace (blank) char.
-  unsigned int nonWSidx = 0;
-  while (c_array_[nonWSidx] == ' ')
-    ++nonWSidx;
-  if (nonWSidx > 0) {
-    unsigned int idx = 0;
-    for (; nonWSidx < ArraySize_; ++nonWSidx, ++idx) {
-      c_array_[idx] = c_array_[nonWSidx];
-      if (c_array_[idx] == '\0') break;
-    }
-  }
-  // Ensure at least 4 chars long.
-  if (c_array_[0]=='\0') { // 0 chars
-    c_array_[0]=' ';
-    c_array_[1]=' ';
-    c_array_[2]=' ';
-    c_array_[3]=' ';
-    c_array_[4]='\0';
-  } else if (c_array_[1]=='\0') { // 1 char
-    c_array_[1]=' ';
-    c_array_[2]=' ';
-    c_array_[3]=' ';
-    c_array_[4]='\0';
-  } else if (c_array_[2]=='\0') { // 2 chars
-    c_array_[2]=' ';
-    c_array_[3]=' ';
-    c_array_[4]='\0';
-  } else if (c_array_[3]=='\0') { // 3 chars
-    c_array_[3]=' ';
-    c_array_[4]='\0';
-  }
-/*
-  // Remove leading whitespace.
-  if (c_array_[0]==' ') { // Some leading whitespace
-    if (c_array_[1]!=' ') {        // [_XXX]
-      c_array_[0]=c_array_[1];
-      c_array_[1]=c_array_[2];
-      c_array_[2]=c_array_[3];
-      c_array_[3]=' ';
-    } else if (c_array_[2]!=' ') { // [__XX]
-      c_array_[0]=c_array_[2];
-      c_array_[1]=c_array_[3];
-      c_array_[2]=' ';
-      c_array_[3]=' ';
-    } else if (c_array_[3]!=' ') { // [___X]
-      c_array_[0]=c_array_[3];
-      c_array_[1]=' ';
-      c_array_[2]=' ';
-      c_array_[3]=' ';
-    }
-  }
-*/
 }
