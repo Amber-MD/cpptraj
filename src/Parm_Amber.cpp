@@ -564,30 +564,29 @@ void Parm_Amber::ResetFileToFlag(FlagType currFlag) {
   }
 }
 
-std::vector<double> Parm_Amber::BufferToDarray(unsigned int nExpected, FlagType currFlag)
-{
-  std::vector<double> out;
-  out.reserve( nExpected );
-  char* endptr = 0;
-  bool badConversion = false;
-  for (unsigned int idx = 0; idx != nExpected; idx++)
-  {
-    const char* elt = file_.NextElement();
-    out.push_back( strtod( elt, &endptr ) );
-    if (elt == endptr) {
-      //mprintf("DEBUG: Potential conversion issue.\n");
-      badConversion = true;
-      break;
-    }
-    //mprintf("DEBUG: elt='%s' val='%f' endptr='%s'\n", elt, out.back(), endptr);
+/** Print a warning that a problem was encountered reading an element
+  * of the specified FLAG. Sets the atProblemFlag_ variable to true
+  * and resets the file to the bad FLAG so it can be skipped.
+  */
+void Parm_Amber::ProblemFlagWarning(FlagType currFlag, unsigned int idx, unsigned int nExpected) {
+   mprintf("Warning: Bad conversion detected: %s\n", FLAGS_[currFlag].Flag);
+   mprintf("Warning: Issue reading element %u of %u\n", idx+1, nExpected);
+   atProblemFlag_ = true;
+   ResetFileToFlag( currFlag );
+}
+
+/** Attempt to convert next element in file buffer to double, with
+  * some error checking.
+  */
+double Parm_Amber::FileBufferToDouble(FlagType currFlag, unsigned int idx, unsigned int nExpected) {
+  char* endptr;
+  const char* elt = file_.NextElement();
+  double dval = strtod( elt, &endptr );
+  if (elt == endptr) {
+    ProblemFlagWarning(currFlag, idx, nExpected);
+    return 0.0;
   }
-  if (out.size() != nExpected || badConversion) {
-    mprintf("Warning: Bad conversion detected: %s\n", FLAGS_[currFlag].Flag);
-    out.assign(nExpected, 0.0);
-    ResetFileToFlag( currFlag );
-  }
-    //out.push_back( convertToDouble( file_.NextElement() ) );
-  return out;
+  return dval;
 }
 
 // Parm_Amber::ReadTitle()
@@ -833,13 +832,13 @@ int Parm_Amber::ReadDihedralSCNB(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadLJA()
 int Parm_Amber::ReadLJA(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ_A, numLJparm_, FMT)) return 1;
-  std::vector<double> lja = BufferToDarray( numLJparm_, F_LJ_A );
-  int idx = 0;
-  for (std::vector<double>::const_iterator it = lja.begin(); it != lja.end(); ++it, ++idx)
-    TopIn.SetNonbond().SetLJ(idx).SetA( *it );
+  for (int idx = 0; idx != numLJparm_; idx++)
+  {
+    TopIn.SetNonbond().SetLJ(idx).SetA( FileBufferToDouble(F_LJ_A, idx, numLJparm_) );
+    if (atProblemFlag_) break;
+    //TopIn.SetNonbond().SetLJ(idx).SetA( atof(file_.NextElement()) );
+  }
 
-  //for (int idx = 0; idx != numLJparm_; idx++)
-  //  TopIn.SetNonbond().SetLJ(idx).SetA( atof(file_.NextElement()) );
   return 0;
 }
 
@@ -1238,12 +1237,10 @@ int Parm_Amber::ReadChamberImpPHASE(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadChamberLJ14A()
 int Parm_Amber::ReadChamberLJ14A(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ14A, numLJparm_, FMT)) return 1;
-  std::vector<double> lj14a = BufferToDarray( numLJparm_, F_LJ14A );
-  int idx = 0;
-  for (std::vector<double>::const_iterator it = lj14a.begin(); it != lj14a.end(); ++it, ++idx)
-    TopIn.SetChamber().SetLJ14(idx).SetA( *it );
-  //for (int idx = 0; idx != numLJparm_; idx++)
-  //  TopIn.SetChamber().SetLJ14(idx).SetA( atof(file_.NextElement()) );
+  for (int idx = 0; idx != numLJparm_; idx++) {
+    TopIn.SetChamber().SetLJ14(idx).SetA( FileBufferToDouble(F_LJ14A, idx, numLJparm_) );
+    if (atProblemFlag_) break;
+  }
   return 0;
 }
 

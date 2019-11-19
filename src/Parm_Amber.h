@@ -57,7 +57,8 @@ class Parm_Amber : public ParmIO {
     inline const char* SkipToNextFlag();
 
     void ResetFileToFlag(FlagType);
-    std::vector<double> BufferToDarray(unsigned int, FlagType);
+    void ProblemFlagWarning(FlagType, unsigned int, unsigned int);
+    double FileBufferToDouble(FlagType, unsigned int, unsigned int);
 
     int ReadTitle(Topology&);
     int ReadPointers(int, Topology&, FortranData const&);
