@@ -261,6 +261,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                                                     it != prm.AT().end(); ++it)
                 {
                   if (it->first[0].Match( at )) {
+                    mprintf("DEBUG: NB wildcard match: '%s' matches '%s'\n", *(it->first[0]), *at);
                     it->second.SetLJ().SetRadius( radius );
                     it->second.SetLJ().SetDepth( -epsilon );
                   }
