@@ -5,12 +5,19 @@
 #include "DataSet_3D.h"
 #include "DataSet_MatrixFlt.h"
 #include "Timer.h"
+
+#ifdef CUDA
+#include "cuda_kernels/GistCudaSetup.cuh"
+#endif
 /// Class for applying Grid Inhomogenous Solvation Theory
 /** \author Daniel R. Roe
   */
 class Action_GIST : public Action {
   public:
     Action_GIST();
+		#ifdef CUDA
+		~Action_GIST() {delete[] this->solvent_;}
+		#endif
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_GIST(); }
     void Help() const;
   private:
@@ -26,6 +33,39 @@ class Action_GIST : public Action {
     void NonbondEnergy(Frame const&, Topology const&);
     void Order(Frame const&);
     void SumEVV();
+
+#ifdef CUDA
+    // Additional data for GPU calculation
+
+    std::vector<float> lJParamsA_;
+    std::vector<float> lJParamsB_;
+    std::vector<float> charges_;
+    std::vector<int> atomTypes_;
+    std::vector<int> NBIndex_;
+    std::vector<int> molecule_;
+
+    unsigned int numberAtoms_;
+    int numberAtomTypes_;
+    int headAtomType_;
+    bool *solvent_;
+
+    // Arrays on GPU
+    int *NBindex_c_;
+    void *molecule_c_;
+    void *paramsLJ_c_;
+    float *max_c_;
+    float *min_c_;
+    float *result_w_c_;
+    float *result_s_c_;
+    int *result_O_c_;
+    int *result_N_c_;
+
+    // CUDA only functions
+    void freeGPUMemory(void);
+    void copyToGPU(void);
+    void NonbondCuda(ActionFrame);
+
+#endif
 
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;

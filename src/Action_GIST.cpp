@@ -14,6 +14,18 @@
 const double Action_GIST::maxD_ = DBL_MAX;
 
 Action_GIST::Action_GIST() :
+#ifdef CUDA
+	solvent_(NULL),
+	NBindex_c_(NULL),
+	molecule_c_(NULL),
+	paramsLJ_c_(NULL),
+	max_c_(NULL),
+	min_c_(NULL),
+	result_w_c_(NULL),
+	result_s_c_(NULL),
+	result_O_c_(NULL),
+	result_N_c_(NULL),
+#endif
   gO_(0),
   gH_(0),
   Esw_(0),
@@ -53,7 +65,12 @@ void Action_GIST::Help() const {
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output>]\n"
           "\t[info <info>]\n"
-          "Perform Grid Inhomogenous Solvation Theory calculation.\n");
+          "Perform Grid Inhomogenous Solvation Theory calculation.\n"
+#ifdef CUDA
+          "The option doeij is not available, when using the CUDA accelerated version,\n"
+          "as this would need way too much memory."
+#endif
+          );
 }
 
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -98,6 +115,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
+#ifdef CUDA
+  if (this->doEij_) {
+    mprintf("Warning: 'doeij' cannot be specified when using CUDA. Setting is ignored");
+    this->doEij_ = false;
+  }
+#endif
   skipE_ = actionArgs.hasKey("skipE");
   if (skipE_) {
     if (doEij_) {
@@ -303,7 +326,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
           "#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
           "#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
           "#      J. Chem. Phys. 137, 044101 (2012)\n"
-          "#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n");
+          "#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n"
+          "#If you use the GPU parallelized version of GIST, please cite:\n"
+          "#    Johannes Kraml, Anna S. Kamenik, Franz Waibl, Michael Schauperl, Klaus R. Liedl, JCTC (2019)\n");
   gist_init_.Stop();
   return Action::OK;
 }
@@ -320,6 +345,10 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  #ifdef CUDA
+  this->numberAtoms_ = setup.Top().Natom();
+  this->solvent_ = new bool[this->numberAtoms_];
+  #endif
 
   // Get molecule number for each solvent molecule
   //mol_nums_.clear();
@@ -339,6 +368,9 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   {
     if (mol->IsSolvent()) {
       int o_idx = mol->BeginAtom();
+      #ifdef CUDA
+      this->headAtomType_ = setup.Top()[o_idx].TypeIndex();
+      #endif
       // Check that molecule has correct # of atoms
       unsigned int molNumAtoms = (unsigned int)mol->NumAtoms();
       if (nMolAtoms_ == 0) {
@@ -371,6 +403,12 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
         A_idxs_.push_back( o_idx + IDX );
         atom_voxel_.push_back( OFF_GRID_ );
+        #ifdef CUDA
+        this->molecule_.push_back( setup.Top()[o_idx + IDX ].MolNum() );
+        this->charges_.push_back( setup.Top()[o_idx + IDX ].Charge() );
+        this->atomTypes_.push_back( setup.Top()[o_idx + IDX ].TypeIndex() );
+        this->solvent_[ o_idx + IDX ] = true;
+        #endif
       }
       NsolventAtoms += nMolAtoms_;
       // If first solvent molecule, save charges. If not, check that charges match.
@@ -406,6 +444,12 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
           A_idxs_.push_back( u_idx );
           atom_voxel_.push_back( SOLUTE_ );
           NsoluteAtoms++;
+          #ifdef CUDA
+          this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
+          this->charges_.push_back( setup.Top()[ u_idx ].Charge() );
+          this->atomTypes_.push_back( setup.Top()[ u_idx ].TypeIndex() );
+          this->solvent_[ u_idx ] = false;
+          #endif
         }
       }
     }
@@ -434,6 +478,35 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     else
       mprintf("\tNo imaging will be performed for energy distance calculations.\n");
   }
+
+#ifdef CUDA
+  NonbondParmType nb = setup.Top().Nonbond();
+  this->NBIndex_ = nb.NBindex();
+  this->numberAtomTypes_ = nb.Ntypes();
+  for (unsigned int i = 0; i < nb.NBarray().size(); ++i) {
+    this->lJParamsA_.push_back( (float) nb.NBarray().at(i).A() );
+    this->lJParamsB_.push_back( (float) nb.NBarray().at(i).B() );
+  }
+
+  try {
+    allocateCuda(((void**)&this->NBindex_c_), this->NBIndex_.size() * sizeof(int));
+    allocateCuda((void**)&this->max_c_, 3 * sizeof(float));
+    allocateCuda((void**)&this->min_c_, 3 * sizeof(float));
+    allocateCuda((void**)&this->result_w_c_, this->numberAtoms_ * sizeof(float));
+    allocateCuda((void**)&this->result_s_c_, this->numberAtoms_ * sizeof(float));
+    allocateCuda((void**)&this->result_O_c_, this->numberAtoms_ * 4 * sizeof(int));
+    allocateCuda((void**)&this->result_N_c_, this->numberAtoms_ * sizeof(int));
+  } catch (CudaException &e) {
+    mprinterr("Error: Could not allocate memory on GPU!\n");
+    this->freeGPUMemory();
+    return Action::ERR;
+  }
+  try {
+    this->copyToGPU();
+  } catch (CudaException &e) {
+    return Action::ERR;
+  }
+#endif
 
   gist_setup_.Stop();
   return Action::OK;
@@ -722,6 +795,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   OnGrid_idxs_.clear();
   OnGrid_XYZ_.clear();
 
+  // CUDA necessary information
+
   size_t bin_i, bin_j, bin_k;
   Vec3 const& Origin = gO_->Bin().GridOrigin();
   // Loop over each solvent molecule
@@ -890,14 +965,19 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   } // END loop over each solvent molecule
 
   // Do energy calculation if requested
+  #ifndef CUDA
   gist_nonbond_.Start();
   if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
   gist_nonbond_.Stop();
+ 
 
   // Do order calculation if requested
   gist_order_.Start();
   if (doOrder_) Order(frm.Frm());
   gist_order_.Stop();
+  #else
+  NonbondCuda(frm);
+  #endif
 
   gist_action_.Stop();
   return Action::OK;
@@ -1176,10 +1256,12 @@ void Action_GIST::Print() {
   Farray Eww_norm( MAX_GRID_PT_, 0.0 );
   Farray neighbor_dens( MAX_GRID_PT_, 0.0 );
   if (!skipE_) {
+    #ifndef CUDA
     Darray const& E_UV_VDW = E_UV_VDW_[0];
     Darray const& E_UV_Elec = E_UV_Elec_[0];
     Darray const& E_VV_VDW = E_VV_VDW_[0];
     Darray const& E_VV_Elec = E_VV_Elec_[0];
+    #endif
     Farray const& Neighbor = neighbor_[0];
     // Sum values from other threads if necessary
     SumEVV();
@@ -1191,15 +1273,26 @@ void Action_GIST::Print() {
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
     {
       E_progress.Update( gr_pt );
+      
       //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       if (nw_total > 1) {
+        #ifndef CUDA
         Esw_dens[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / (NFRAME_ * Vvox);
         Esw_norm[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / nw_total;
         Eww_dens[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt]) / (2 * NFRAME_ * Vvox);
         Eww_norm[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt]) / (2 * nw_total);
+        #else
+        double esw = this->Esw_->operator[](gr_pt);
+        double eww = this->Eww_->operator[](gr_pt);
+        Esw_dens[gr_pt] = esw / (this->NFRAME_ * Vvox);
+        Esw_norm[gr_pt] = esw / nw_total;
+        Eww_dens[gr_pt] = eww / (this->NFRAME_ * Vvox);
+        Eww_norm[gr_pt] = eww / nw_total;
+        #endif
         Eswtot += Esw_dens[gr_pt];
         Ewwtot += Eww_dens[gr_pt];
+        
       } else {
         Esw_dens[gr_pt]=0;
         Esw_norm[gr_pt]=0;
@@ -1211,9 +1304,9 @@ void Action_GIST::Print() {
       if (nw_total > 0) {
         qtet[gr_pt] /= nw_total;
         //mprintf("DEBUG1: neighbor= %8.1f  nw_total= %8i\n", neighbor[gr_pt], nw_total);
-        neighbor_norm[gr_pt] = 1.0 * Neighbor[gr_pt] / nw_total;
+        neighbor_norm[gr_pt] = (double)Neighbor[gr_pt] / nw_total;
       }
-      neighbor_dens[gr_pt] = 1.0 * Neighbor[gr_pt] / (NFRAME_ * Vvox);
+      neighbor_dens[gr_pt] = (double)Neighbor[gr_pt] / (NFRAME_ * Vvox);
       dipolex[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
       dipoley[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
       dipolez[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
@@ -1299,4 +1392,175 @@ void Action_GIST::Print() {
   gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());
   gist_print_.WriteTiming(1,   "Print:", total);
   mprintf("TIME:\tTotal: %.4f s\n", total);
+	#ifdef CUDA
+	this->freeGPUMemory();
+	#endif
 }
+
+#ifdef CUDA
+void Action_GIST::NonbondCuda(ActionFrame frm) {
+  // Simply to get the information for the energetic calculations
+  std::vector<float> eww_result(this->numberAtoms_);
+  std::vector<float> esw_result(this->numberAtoms_);
+  std::vector<std::vector<int> > order_indices;
+  this->gist_nonbond_.Start();
+
+  Matrix_3x3 ucell_m, recip_m;
+  float *recip = NULL;
+  float *ucell = NULL;
+  int boxinfo;
+
+  // Check Boxinfo and write the necessary data into recip, ucell and boxinfo.
+  switch(this->image_.ImageType()) {
+    case NONORTHO:
+      recip = new float[9];
+      ucell = new float[9];
+      frm.Frm().BoxCrd().ToRecip(ucell_m, recip_m);
+      for (int i = 0; i < 9; ++i) {
+        ucell[i] = (float) ucell_m.Dptr()[i];
+        recip[i] = (float) recip_m.Dptr()[i];
+      }
+      boxinfo = 2;
+      break;
+    case ORTHO:
+      recip = new float[9];
+      for (int i = 0; i < 3; ++i) {
+        recip[i] = (float) frm.Frm().BoxCrd()[i];
+      }
+      ucell = NULL;
+      boxinfo = 1;
+      break;
+    case NOIMAGE:
+      recip = NULL;
+      ucell = NULL;
+      boxinfo = 0;
+      break;
+    default:
+      mprinterr("Error: Unexpected box information found.");
+      return;
+  }
+
+  std::vector<int> result_o = std::vector<int>(4 * this->numberAtoms_);
+  std::vector<int> result_n = std::vector<int>(this->numberAtoms_);
+  // Call the GPU Wrapper, which subsequently calls the kernel, after setup operations.
+  // Must create arrays from the vectors, does that by getting the address of the first element of the vector.
+  std::vector<std::vector<float> > e_result = doActionCudaEnergy(frm.Frm().xAddress(), this->NBindex_c_, this->numberAtomTypes_, this->paramsLJ_c_, this->molecule_c_, boxinfo, recip, ucell, this->numberAtoms_, this->min_c_, 
+                                                    this->max_c_, this->headAtomType_,this->NeighborCut2_, &(result_o[0]), &(result_n[0]), this->result_w_c_, 
+                                                    this->result_s_c_, this->result_O_c_, this->result_N_c_, this->doOrder_);
+  eww_result = e_result.at(0);
+  esw_result = e_result.at(1);
+
+  if (this->doOrder_) {
+    int counter = 0;
+    for (unsigned int i = 0; i < (4 * this->numberAtoms_); i += 4) {
+      ++counter;
+      std::vector<int> temp;
+      for (unsigned int j = 0; j < 4; ++j) {
+        temp.push_back(result_o.at(i + j));
+      }
+      order_indices.push_back(temp);
+    }
+  }
+
+  delete[] recip; // Free memory
+  delete[] ucell; // Free memory
+
+  for (unsigned int sidx = 0; sidx < NSOLVENT_; sidx++) {
+    int headAtomIndex = O_idxs_[sidx];
+    size_t bin_i, bin_j, bin_k;
+    const double *vec = frm.Frm().XYZ(headAtomIndex);
+    int voxel = -1;
+    if (this->gO_->Bin().Calc(vec[0], vec[1], vec[2], bin_i, bin_j, bin_k)) {
+      voxel = this->gO_->CalcIndex(bin_i, bin_j, bin_k);
+      this->neighbor_.at(0).at(voxel) += result_n.at(headAtomIndex);
+      // This is not nice, as it assumes that O is set before the two Hydrogens
+      // might be the case, but is still not nice (in my opinion)
+      for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
+        this->Esw_->UpdateVoxel(voxel, esw_result.at(headAtomIndex + IDX));
+        this->Eww_->UpdateVoxel(voxel, eww_result.at(headAtomIndex + IDX));
+      }
+      // Order calculation
+      if (this->doOrder_) {
+        double sum = 0;
+        Vec3 cent( frm.Frm().xAddress() + (headAtomIndex) * 3 );
+        std::vector<Vec3> vectors;
+        switch(this->image_.ImageType()) {
+          case NONORTHO:
+          case ORTHO:
+            {
+              Matrix_3x3 ucell, recip;
+              frm.Frm().BoxCrd().ToRecip(ucell, recip);
+              Vec3 vec(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(0) * 3));
+              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(1) * 3));
+              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(2) * 3));
+              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(3) * 3));
+              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+            }
+            break;
+          default:
+            vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(0) * 3) ) - cent );
+            vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(1) * 3) ) - cent );
+            vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(2) * 3) ) - cent );
+            vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(3) * 3) ) - cent );
+        }
+        
+        for (int i = 0; i < 3; ++i) {
+          for (int j = i + 1; j < 4; ++j) {
+            double cosThet = (vectors.at(i) * vectors.at(j)) / sqrt(vectors.at(i).Magnitude2() * vectors.at(j).Magnitude2());
+            sum += (cosThet + 1.0/3) * (cosThet + 1.0/3);
+          }
+        }
+        this->order_norm_->UpdateVoxel(voxel, 1.0 - (3.0/8.0) * sum);
+      }
+    }
+    
+  }
+  this->gist_nonbond_.Stop();
+}
+
+/**
+ * Frees all the Memory on the GPU.
+ */
+void Action_GIST::freeGPUMemory(void) {
+  freeCuda(this->NBindex_c_);
+  freeCuda(this->molecule_c_);
+  freeCuda(this->paramsLJ_c_);
+  freeCuda(this->max_c_);
+  freeCuda(this->min_c_);
+  freeCuda(this->result_w_c_);
+  freeCuda(this->result_s_c_);
+  freeCuda(this->result_O_c_);
+  freeCuda(this->result_N_c_);
+  this->NBindex_c_   = NULL;
+  this->molecule_c_  = NULL;
+  this->paramsLJ_c_  = NULL;
+  this->max_c_     = NULL;
+  this->min_c_     = NULL;
+  this->result_w_c_= NULL;
+  this->result_s_c_= NULL;
+  this->result_O_c_  = NULL;
+  this->result_N_c_  = NULL;
+}
+
+/**
+ * Copies data from the CPU to the GPU.
+ * @throws: CudaException
+ */
+void Action_GIST::copyToGPU(void) {
+  try {
+    copyMemoryToDevice(&(this->NBIndex_[0]), this->NBindex_c_, this->NBIndex_.size() * sizeof(int));
+    copyMemoryToDeviceStruct(&(this->charges_[0]), &(this->atomTypes_[0]), this->solvent_, &(this->molecule_[0]), this->numberAtoms_, &(this->molecule_c_),
+                              &(this->lJParamsA_[0]), &(this->lJParamsB_[0]), this->lJParamsA_.size(), &(this->paramsLJ_c_));
+  } catch (CudaException &ce) {
+    this->freeGPUMemory();
+    mprinterr("Error: Could not copy data to the device.\n");
+    throw ce;
+  } catch (std::exception &e) {
+    this->freeGPUMemory();
+    throw e;
+  }
+}
+#endif
