@@ -1570,8 +1570,13 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       mprintf("Warning: Number of CHAMBER description lines > 99. Only writing 99.\n", nlines);
       nlines = 99;
     }
-    for (int line = 0; line != nlines; line++)
-      file_.Printf("%2i%-78s\n", nlines, TopOut.Chamber().Description()[line].c_str());
+    if (nlines > 0) {
+      for (int line = 0; line != nlines; line++)
+        file_.Printf("%2i%78s\n", nlines, TopOut.Chamber().Description()[line].c_str());
+    } else {
+      // No description. Write a placeholder.
+      file_.Printf("%2i%78s\n", 1, "CHARMM:");
+    }
   }
 
   // NAMES
