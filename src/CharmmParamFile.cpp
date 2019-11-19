@@ -240,13 +240,13 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
             else {
               prm.SetHasLJparams( true );
               // TODO handle 1-4 stuff
-              NameType at = args.GetStringNext();
+              std::string atstr = args.GetStringNext();
               double epsilon = args.getNextDouble(0.0); // skip
-              epsilon = args.getNextDouble(0.0); // negative by convention
+              epsilon = args.getNextDouble(0.0);        // negative by convention
               double radius = args.getNextDouble(0.0);
               // Determine if there are wildcard chars.
               bool hasWC = false;
-              for (char* atp = at.C_Array(); *atp != '\0'; ++atp) {
+              for (std::string::iterator atp = atstr.begin(); atp != atstr.end(); ++atp) {
                 if (*atp == '*') hasWC = true;
                 // Replace the CHARMM single wildcard with Amber/UNIX
                 if (*atp == '%') {
@@ -254,6 +254,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                   hasWC = true;
                 }
               }
+              NameType at( atstr );
               if (hasWC) {
                 // Check against all current atom types.
                 for (ParmHolder<AtomType>::iterator it = prm.AT().begin();

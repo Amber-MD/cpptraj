@@ -27,8 +27,6 @@ class NameType {
     bool operator!=(const char*) const;
     /// \return Const pointer to internal array.
     const char* operator*() const { return c_array_; }
-    /// \return Pointer to internal array
-    char* C_Array()               { return c_array_; }
     /// \return Character at specified position, or null if out of range
     char operator[](int) const;
     /// \return Truncated name.
