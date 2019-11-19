@@ -25,8 +25,9 @@ void NameType::Assign( const char* rhs ) {
       c_array_[j++] = *ptr;
     ptr++;
   }
-  // Detect truncation of input
+  // Detect truncation of input.
   if (j < ArraySize_)
+    // No truncation
     c_array_[j] = '\0';
   else {
     c_array_[ArraySize_-1] = '\0';
