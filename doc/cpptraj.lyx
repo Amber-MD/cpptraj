@@ -1531,7 +1531,30 @@ The wildcards can also be used with numbers or other mask characters, e.g.
 \end_inset
 
 , ':*' means all residues and '@*' means all atoms.
- 
+ If the atom name (or type name) contains a wildcard character like an asterisk,
+ it can be explictly selected by escaping (i.e.
+ preceding) the wildcard character with a backslash '
+\backslash
+'.
+ So for example:
+\end_layout
+
+\begin_layout LyX-Code
+atoms @C?*
+\end_layout
+
+\begin_layout Standard
+would select atoms named C5, C4*, C422, etc., but:
+\end_layout
+
+\begin_layout LyX-Code
+atoms @C?
+\backslash
+*
+\end_layout
+
+\begin_layout Standard
+would only select C4* out of the above 3 atoms.
 \end_layout
 
 \begin_layout Standard
@@ -11563,51 +11586,10 @@ PDB format:
 \end_layout
 
 \end_deeper
-\begin_layout Subsubsection
-Charmm PSF:
-\end_layout
-
-\begin_layout LyX-Code
-[param <file>]
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-[param
-\begin_inset space ~
-\end_inset
-
-<file>] Read CHARMM parameters from given file.
- Can do multiple times.
-\end_layout
-
-\end_deeper
-\begin_layout Subsubsection*
+\begin_layout Paragraph*
 
 \series bold
 IMPORTANT NOTES FOR PDB FILES
-\end_layout
-
-\begin_layout Standard
-In some older format PDB files (before version 3), certain atoms may contain
- the asterisk ('*') character in their name (e.g.
- 'C1*' in a nucleic acid backbone).
- Since in 
-\shape italic
-cpptraj
-\shape default
- the asterisk is a reserved character for atom masks all asterisks in PDB
- atom names are replaced with single quote (') to avoid issues with the
- mask parser.
- So in a structure with an atom named C1*, to select it use the mask 
-\begin_inset Quotes eld
-\end_inset
-
-@C1'
-\begin_inset Quotes erd
-\end_inset
-
-.
 \end_layout
 
 \begin_layout Standard
@@ -11643,6 +11625,25 @@ cpptraj
  Residue insertion codes are read in but also not used by the mask parser.
 \end_layout
 
+\begin_layout Subsubsection
+Charmm PSF:
+\end_layout
+
+\begin_layout LyX-Code
+[param <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[param
+\begin_inset space ~
+\end_inset
+
+<file>] Read CHARMM parameters from given file.
+ Can do multiple times.
+\end_layout
+
+\end_deeper
 \begin_layout Subsection
 parmbox
 \end_layout
