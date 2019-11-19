@@ -2233,7 +2233,7 @@ void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImprope
 
 /** Replace any current improper parameters with given improper parameters. */
 void Topology::AssignImproperParams(ParmHolder<DihedralParmType> const& newImproperParams) {
-  dihedralparm_.clear();
+  chamber_.SetImproperParm().clear();
   ParmHolder<int> currentIndices;
   AssignImproperParm( newImproperParams, currentIndices, chamber_.SetImpropers() );
 }
