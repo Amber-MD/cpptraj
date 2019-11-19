@@ -141,7 +141,6 @@ Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   altLoc = linebuffer_[16];
   linebuffer_[16] = '\0';
   NameType aname(linebuffer_+12);
-  aname.ReplaceAsterisk();
   linebuffer_[16] = altLoc;
   // Element (76-77), Protect against broken PDB files (lines too short).
   char eltString[2]; eltString[0] = ' '; eltString[1] = ' ';
@@ -164,7 +163,6 @@ Residue PDBfile::pdb_Residue() {
   linebuffer_[20] = '\0';
   NameType resName(linebuffer_+17);
   linebuffer_[20] = savechar;
-  resName.ReplaceAsterisk();
   // Chain ID (21)
   // Res num (22-26), insertion code (26)
   char icode = linebuffer_[26];

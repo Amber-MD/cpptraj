@@ -35,8 +35,6 @@ class NameType {
     std::string Truncated() const;
     /// \return non-space length of name
     int len() const;
-    /// Replace any asterisks in name with single quotes.
-    void ReplaceAsterisk();
     /// \return true if name comes before given name alphabetically
     bool operator<(NameType const& rhs) const {
       for (unsigned int i = 0; i != ArraySize_; i++)

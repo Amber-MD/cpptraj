@@ -161,15 +161,6 @@ int NameType::len() const {
   return (int)i;
 }
 
-/** Replace asterisks with a single quote */
-void NameType::ReplaceAsterisk() {
-  for (unsigned int idx = 0; idx < ArraySize_; idx++)
-  {
-    if (c_array_[idx] == '\0') break;
-    if (c_array_[idx] == '*') c_array_[idx]='\'';
-  }
-}
-
 // NameType::FormatName()
 /** For consistency with Amber names, replace any null in the first 4 chars
   * with spaces. Remove any leading whitespace.
