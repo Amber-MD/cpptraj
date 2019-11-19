@@ -260,6 +260,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                 for (ParmHolder<AtomType>::iterator it = prm.AT().begin();
                                                     it != prm.AT().end(); ++it)
                 {
+                  mprintf("DEBUG: Trying NB wildcard: '%s' vs '%s'\n", *(it->first[0]), *at);
                   if (it->first[0].Match( at )) {
                     mprintf("DEBUG: NB wildcard match: '%s' matches '%s'\n", *(it->first[0]), *at);
                     it->second.SetLJ().SetRadius( radius );

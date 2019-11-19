@@ -152,17 +152,12 @@ char NameType::operator[](int idx) const {
 }
 
 std::string NameType::Truncated() const {
-  unsigned int i = 0;
-  for (; i != ArraySize_; i++)
-    if (c_array_[i] == ' ' || c_array_[i] == '\0') break;
-  return std::string( c_array_, c_array_+i );
+  return std::string( c_array_ );
 }
 
 /** \return Non-space length of name. */
 int NameType::len() const {
-  unsigned int i = 0;
-  for (; i != ArraySize_; i++)
-    if (c_array_[i] == ' ' || c_array_[i] == '\0')
-      return (int)i;
-  return (int)i;
+  const char* ptr = c_array_;
+  while (*ptr != '\0') ++ptr;
+  return (int)(ptr - c_array_);
 }
