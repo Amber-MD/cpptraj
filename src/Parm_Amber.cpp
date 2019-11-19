@@ -152,6 +152,7 @@ Parm_Amber::Parm_Amber() :
   numLJparm_(0),
   SCEE_set_(false),
   SCNB_set_(false),
+  atProblemFlag_(false),
   N_impropers_(0),
   N_impTerms_(0),
   nochamber_(false)
@@ -489,6 +490,11 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             mprinterr("Error: Reading format FLAG '%s'\n", flagType.c_str());
             return 1;
           }
+          if (atProblemFlag_) {
+            // We hit a problematic flag and need to read past it.
+            ptr = SkipToNextFlag();
+            atProblemFlag_ = false;
+          }
         }
       } else {
         // Unknown '%' tag. Read past it.
@@ -533,6 +539,55 @@ int Parm_Amber::ReadFormatLine(FortranData& FMT) {
   if (FMT.ParseFortranFormat( ptr )) return 1;
   
   return 0;
+}
+
+/** If an error occurred at FLAG, this can be used to reset the file
+  * and scan past the problem flag.
+  */
+void Parm_Amber::ResetFileToFlag(FlagType currFlag) {
+  mprintf("Info: Scanning past problematic flag %s\n", FLAGS_[currFlag].Flag);
+  file_.Rewind();
+  const char* ptr = file_.NextLine();
+  // TODO trap null?
+  atProblemFlag_ = false;
+  while (ptr != 0) {
+    if ( ptr[0] == '%' && IsFLAG(ptr) ) {
+      // %FLAG <type> line. Determine the flag type.
+      std::string flagType = NoTrailingWhitespace(ptr+6);
+      if (flagType.compare( FLAGS_[currFlag].Flag ) == 0) {
+        // Problem flag found. Set the problemFlag variable so the parser knows to skip ahead.
+        atProblemFlag_ = true;
+        break;
+      }
+    }
+    ptr = file_.NextLine();
+  }
+}
+
+std::vector<double> Parm_Amber::BufferToDarray(unsigned int nExpected, FlagType currFlag)
+{
+  std::vector<double> out;
+  out.reserve( nExpected );
+  char* endptr = 0;
+  bool badConversion = false;
+  for (unsigned int idx = 0; idx != nExpected; idx++)
+  {
+    const char* elt = file_.NextElement();
+    out.push_back( strtod( elt, &endptr ) );
+    if (elt == endptr) {
+      //mprintf("DEBUG: Potential conversion issue.\n");
+      badConversion = true;
+      break;
+    }
+    //mprintf("DEBUG: elt='%s' val='%f' endptr='%s'\n", elt, out.back(), endptr);
+  }
+  if (out.size() != nExpected || badConversion) {
+    mprintf("Warning: Bad conversion detected: %s\n", FLAGS_[currFlag].Flag);
+    out.assign(nExpected, 0.0);
+    ResetFileToFlag( currFlag );
+  }
+    //out.push_back( convertToDouble( file_.NextElement() ) );
+  return out;
 }
 
 // Parm_Amber::ReadTitle()
@@ -775,8 +830,13 @@ int Parm_Amber::ReadDihedralSCNB(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadLJA()
 int Parm_Amber::ReadLJA(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ_A, numLJparm_, FMT)) return 1;
-  for (int idx = 0; idx != numLJparm_; idx++)
-    TopIn.SetNonbond().SetLJ(idx).SetA( atof(file_.NextElement()) );
+  std::vector<double> lja = BufferToDarray( numLJparm_, F_LJ_A );
+  int idx = 0;
+  for (std::vector<double>::const_iterator it = lja.begin(); it != lja.end(); ++it, ++idx)
+    TopIn.SetNonbond().SetLJ(idx).SetA( *it );
+
+  //for (int idx = 0; idx != numLJparm_; idx++)
+  //  TopIn.SetNonbond().SetLJ(idx).SetA( atof(file_.NextElement()) );
   return 0;
 }
 
@@ -1175,8 +1235,12 @@ int Parm_Amber::ReadChamberImpPHASE(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadChamberLJ14A()
 int Parm_Amber::ReadChamberLJ14A(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ14A, numLJparm_, FMT)) return 1;
-  for (int idx = 0; idx != numLJparm_; idx++)
-    TopIn.SetChamber().SetLJ14(idx).SetA( atof(file_.NextElement()) );
+  std::vector<double> lj14a = BufferToDarray( numLJparm_, F_LJ14A );
+  int idx = 0;
+  for (std::vector<double>::const_iterator it = lj14a.begin(); it != lj14a.end(); ++it, ++idx)
+    TopIn.SetChamber().SetLJ14(idx).SetA( *it );
+  //for (int idx = 0; idx != numLJparm_; idx++)
+  //  TopIn.SetChamber().SetLJ14(idx).SetA( atof(file_.NextElement()) );
   return 0;
 }
 
