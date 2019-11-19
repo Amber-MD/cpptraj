@@ -661,7 +661,10 @@ int Parm_Amber::SetupBuffer(FlagType ftype, int nvals, FortranData const& FMT) {
     if (debug_>0) mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
     file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
     if (file_.ReadFrame()) return 1;
-    if (debug_>5) mprintf("DEBUG: '%s':\n%s", FLAGS_[ftype].Flag, file_.Buffer());
+    if (debug_ > 5) {
+      mprintf("DEBUG: '%s':\n", FLAGS_[ftype].Flag);
+      if (debug_ > 6) mprintf("FileBuffer=[%s]", file_.Buffer());
+    }
   } else {
     if (debug_>5) mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
     // Read blank line
