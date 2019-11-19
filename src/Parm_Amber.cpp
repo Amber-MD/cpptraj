@@ -846,7 +846,10 @@ int Parm_Amber::ReadLJA(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadLJB(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ_B, numLJparm_, FMT)) return 1;
   for (int idx = 0; idx != numLJparm_; idx++)
-    TopIn.SetNonbond().SetLJ(idx).SetB( atof(file_.NextElement()) );
+  {
+    TopIn.SetNonbond().SetLJ(idx).SetB( FileBufferToDouble(F_LJ_B, idx, numLJparm_) );
+    if (atProblemFlag_) break;
+  }
   return 0;
 }
 
@@ -1247,8 +1250,10 @@ int Parm_Amber::ReadChamberLJ14A(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadChamberLJ14B()
 int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ14B, numLJparm_, FMT)) return 1;
-  for (int idx = 0; idx != numLJparm_; idx++)
-    TopIn.SetChamber().SetLJ14(idx).SetB( atof(file_.NextElement()) );
+  for (int idx = 0; idx != numLJparm_; idx++) {
+    TopIn.SetChamber().SetLJ14(idx).SetB( FileBufferToDouble(F_LJ14B, idx, numLJparm_) );
+    if (atProblemFlag_) break;
+  }
   return 0;
 }
 
