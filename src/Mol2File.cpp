@@ -201,7 +201,7 @@ void Mol2File::WriteMol2Bond(int bnum, int at1, int at2,
 }
 
 void Mol2File::WriteMol2Substructure(int rnum, const char* rname, int firstatom) {
-  Printf("%7d %4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
+  Printf("%7d %-4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
 }
 
 void Mol2File::ClearAmberMapping() {
