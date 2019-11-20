@@ -1406,7 +1406,7 @@ int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
     else if (FMT.Ftype() == FDOUBLE)
       WriteFmt = TextFormat(TextFormat::SCIENTIFIC, FMT.Width(), FMT.Precision());
     else if (FMT.Ftype() == FCHAR)
-      WriteFmt = TextFormat(TextFormat::STRING, FMT.Width());
+      WriteFmt = TextFormat(TextFormat::STRING, FMT.Width(), TextFormat::LEFT);
     else if (FMT.Ftype() == FFLOAT)
       WriteFmt = TextFormat(TextFormat::DOUBLE, FMT.Width(), FMT.Precision());
     //mprintf("DEBUG: Write format: \"%s\"\n", WriteFmt.fmt());
