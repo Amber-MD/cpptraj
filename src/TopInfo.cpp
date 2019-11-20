@@ -56,10 +56,10 @@ int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords*
   return 0;
 }
 
-int TopInfo::nameWidth(AtomMask const& mask) const {
+int TopInfo::maxAtomNamesWidth(AtomMask const& mask) const {
   // Sanity check.
   if (parm_ == 0) {
-    mprinterr("Internal Error: TopInfo::nameWidth: parm is null.\n");
+    mprinterr("Internal Error: TopInfo::maxAtomNamesWidth: parm is null.\n");
     return 0;
   }
   int nWidth = 4;
@@ -83,7 +83,7 @@ int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   else {
     int width = DigitWidth(parm_->Natom());
     if (width < 5) width = 5;
-    int nWidth = nameWidth(mask);
+    int nWidth = maxAtomNamesWidth(mask);
     outfile_->Printf("%-*s %-*s %*s %-*s %*s %-*s %8s %8s %8s %2s",
                width, "#Atom",
                nWidth, "Name",
@@ -114,6 +114,17 @@ int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   return 0;
 }
 
+int TopInfo::maxResNameWidth(std::vector<int> const& resNums) const {
+  int nWidth = 4;
+  for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
+  {
+    int rn_size = parm_->Res(*rnum).Name().len();
+    if (rn_size > nWidth)
+      nWidth = rn_size;
+  }
+  return nWidth;
+}
+
 // TopInfo::PrintResidueInfo()
 int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
   AtomMask mask( maskExpression );
@@ -121,25 +132,33 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
   if ( mask.None() )
     mprinterr("\tSelection is empty.\n");
   else {
+    std::vector<int> resNums = parm_->ResnumsSelectedBy(mask);
+    int rn_width = maxResNameWidth( resNums );
+
     int awidth = std::max(5, DigitWidth(parm_->Natom()));
     int rwidth = std::max(5, DigitWidth(parm_->Nres()));
     int mwidth = std::max(5, DigitWidth(parm_->Nmol()));
-    outfile_->Printf("%-*s %4s %*s %*s %*s %*s %*s\n",
-               rwidth, "#Res", "Name",
-               awidth, "First", awidth, "Last",
-               awidth, "Natom", rwidth, "#Orig", mwidth, "#Mol");
-    int rn = -1;
-    for (AtomMask::const_iterator atom = mask.begin();
-                                  atom != mask.end(); ++atom)
+    outfile_->Printf("%-*s %-*s %*s %*s %*s %*s %*s %c\n",
+               rwidth, "#Res",
+               rn_width, "Name",
+               awidth, "First",
+               awidth, "Last",
+               awidth, "Natom",
+               rwidth, "#Orig",
+               mwidth, "#Mol",
+               'C');
+    for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
     {
-      if ((*parm_)[*atom].ResNum() > rn) {
-        rn = (*parm_)[*atom].ResNum();
-        Residue const& res = parm_->Res(rn);
-        outfile_->Printf("%*i %4s %*i %*i %*i %*i %*i %c\n", rwidth, rn+1, res.c_str(),
-                   awidth, res.FirstAtom()+1, awidth, res.LastAtom(),
-                   awidth, res.NumAtoms(), rwidth, res.OriginalResNum(),
-                   mwidth, (*parm_)[*atom].MolNum()+1, res.ChainID());
-      }
+      Residue const& res = parm_->Res(*rnum);
+      outfile_->Printf("%*i %-*s %*i %*i %*i %*i %*i %c\n",
+                       rwidth, *rnum + 1,
+                       rn_width, res.c_str(),
+                       awidth, res.FirstAtom()+1,
+                       awidth, res.LastAtom(),
+                       awidth, res.NumAtoms(),
+                       rwidth, res.OriginalResNum(),
+                       mwidth, (*parm_)[res.FirstAtom()].MolNum()+1,
+                       res.ChainID());
     }
   }
   return 0;
