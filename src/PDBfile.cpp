@@ -354,11 +354,13 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   resName[1] = ' ';
   resName[2] = ' '; // NOTE location 3 is always set
   resName[4] = ' ';
-  const char* ptr = *resnameIn;
-  while (*ptr != ' ' && *ptr != '\0') ++ptr;
-  int rn_size = (int)(ptr - *resnameIn);
+  int rn_size = resnameIn.len();
   // Protect against residue names larger than 4 chars.
-  if (rn_size > 4) rn_size = 4;
+  if (rn_size > 4) {
+    rn_size = 4;
+    mprintf("Warning: Residue name '%s' is larger than 4 chars and will be truncated.\n",
+            *resnameIn);
+  }
   int rn_idx;
   if (rn_size == 4 && useCol21_)
     rn_idx = 4;
@@ -372,16 +374,25 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   // For atoms with element names of 1 character, names in PDB format start
   // from col 14 when <= 3 chars, 13 when 4 chars. Atoms with element names of
   // 2 characters start from col 13.
-  if (eNameChars == 2 || name[3] != ' ') { // 4 chars or 2 char elt name
-    atomName[0] = name[0];
-    atomName[1] = name[1];
-    atomName[2] = name[2];
-    atomName[3] = name[3];
-  } else {            // <= 3 chars or 1 char elt name
-    atomName[0] = ' ';
-    atomName[1] = name[0];
-    atomName[2] = name[1];
-    atomName[3] = name[2];
+  atomName[0] = ' ';
+  atomName[1] = ' ';
+  atomName[2] = ' ';
+  atomName[3] = ' ';
+  int an_size = name.len();
+  // Protect against residue names larger than 4 chars.
+  if (an_size > 4) {
+    an_size = 4;
+    mprintf("Warning: Atom name '%s' is larger than 4 chars and will be truncated.\n",
+            *name);
+  }
+  if (eNameChars == 2 || an_size == 4) {
+    // 4 chars or 2 char elt name
+    for (int i = 0; i < an_size; i++)
+      atomName[i] = name[i];
+  } else {
+    // <= 3 chars or 1 char elt name
+    for (int i = 0; i < an_size; i++)
+      atomName[i+1] = name[i];
   }
 
   Printf("%-6s%5i %-4s%5s%c%4i%c",PDB_RECNAME[Record], anum, atomName,
