@@ -56,6 +56,24 @@ int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords*
   return 0;
 }
 
+int TopInfo::nameWidth(AtomMask const& mask) const {
+  // Sanity check.
+  if (parm_ == 0) {
+    mprinterr("Internal Error: TopInfo::nameWidth: parm is null.\n");
+    return 0;
+  }
+  int nWidth = 4;
+  for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); ++atnum)
+  {
+    Atom const& at = (*parm_)[*atnum];
+    int an_size = at.Name().len();
+    int at_size = at.Type().len();
+    if (an_size > nWidth) nWidth = an_size;
+    if (at_size > nWidth) nWidth = at_size;
+  }
+  return nWidth;
+}
+
 // TopInfo::PrintAtomInfo()
 int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   AtomMask mask( maskExpression );
@@ -65,21 +83,29 @@ int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   else {
     int width = DigitWidth(parm_->Natom());
     if (width < 5) width = 5;
-    outfile_->Printf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s %2s",
-               width, "#Atom", "Name",
-               width, "#Res",  "Name",
-               width, "#Mol",  "Type", "Charge", "Mass", "GBradius", "El");
+    int nWidth = nameWidth(mask);
+    outfile_->Printf("%-*s %-*s %*s %-*s %*s %-*s %8s %8s %8s %2s",
+               width, "#Atom",
+               nWidth, "Name",
+               width, "#Res",
+               nWidth, "Name",
+               width, "#Mol",
+               nWidth, "Type",
+               "Charge", "Mass", "GBradius", "El");
     if (parm_->Nonbond().HasNonbond())
       outfile_->Printf(" %8s %8s", "rVDW", "eVDW");
     outfile_->Printf("\n");
-    for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); atnum++) {
+    for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); ++atnum) {
       const Atom& atom = (*parm_)[*atnum];
       int resnum = atom.ResNum();
-      outfile_->Printf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f %2s",
-                 width, *atnum+1, atom.c_str(),
-                 width, resnum+1, parm_->Res(resnum).c_str(),
-                 width, atom.MolNum()+1, *(atom.Type()), atom.Charge(),
-                 atom.Mass(), atom.GBRadius(), atom.ElementName());
+      outfile_->Printf("%*i %-*s %*i %-*s %*i %-*s %8.4f %8.4f %8.4f %2s",
+                 width, *atnum+1,
+                 nWidth, atom.c_str(),
+                 width, resnum+1,
+                 nWidth, parm_->Res(resnum).c_str(),
+                 width, atom.MolNum()+1,
+                 nWidth, *(atom.Type()),
+                 atom.Charge(), atom.Mass(), atom.GBRadius(), atom.ElementName());
       if (parm_->Nonbond().HasNonbond())
         outfile_->Printf(" %8.4f %8.4f", parm_->GetVDWradius(*atnum), parm_->GetVDWdepth(*atnum));
       outfile_->Printf("\n");

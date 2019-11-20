@@ -29,6 +29,7 @@ class TopInfo {
   private:
     inline int SetupMask(CharMask&) const;
     inline int SetupMask(std::string const&, CharMask&) const;
+    int nameWidth(AtomMask const&) const;
     void PrintBonds(BondArray const&, BondParmArray const&,
                     CharMask const&, CharMask const&, int, int&) const;
     void PrintAngles(AngleArray const&, AngleParmArray const&,
