@@ -246,7 +246,7 @@ Action::RetType Action_Jcoupling::Setup(ActionSetup& setup) {
     // If list does not exist for residue, skip it.
     if (it == JcoupleData_.end() ) {
       mprintf("Warning: J-coupling parameters not found for %s\n",
-              setup.Top().TruncResNameNum(*rnum));
+              setup.Top().TruncResNameNum(*rnum).c_str());
       continue;
     }
     JcoupleDihedralArray const& resConstants = it->second;
