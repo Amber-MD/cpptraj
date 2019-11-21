@@ -1368,7 +1368,7 @@ void Action_HydrogenBond::Print() {
         bridgeout_->Printf("Bridge Res");
         for (std::set<int>::const_iterator res = bv->first.begin();
                                            res != bv->first.end(); ++res)
-          bridgeout_->Printf(" %i:%s", *res+1, CurrentParm_->Res( *res ).c_str());
+          bridgeout_->Printf(" %i:%s", *res+1, CurrentParm_->Res( *res ).Name().Formatted(4).c_str());
       }
       bridgeout_->Printf(", %i frames.\n", bv->second);
     } 

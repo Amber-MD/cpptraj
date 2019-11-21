@@ -400,15 +400,15 @@ DA_18@N7               SolventH      SolventDnr        1       0.5000       2.97
 DT_59@O5'              SolventH      SolventDnr        1       0.5000       2.9819     161.2754
 SolventAcc            DC_23@H41        DC_23@N4        1       0.5000       2.9898     175.8880
 #Bridging Solute Residues:
-Bridge Res 24:DA 38:DG, 2 frames.
-Bridge Res 4:DC 58:DA, 1 frames.
-Bridge Res 5:DC 57:DG, 1 frames.
-Bridge Res 7:DA 55:DG, 1 frames.
-Bridge Res 9:DT 53:DG, 1 frames.
-Bridge Res 11:DC 51:DT, 1 frames.
-Bridge Res 12:DC 49:DG, 1 frames.
-Bridge Res 13:DG 49:DG, 1 frames.
-Bridge Res 14:DA 48:DC, 1 frames.
-Bridge Res 20:DC 41:DG, 1 frames.
-Bridge Res 21:DC 41:DG, 1 frames.
-Bridge Res 26:DC 36:DG, 1 frames.
+Bridge Res 24:DA   38:DG  , 2 frames.
+Bridge Res 4:DC   58:DA  , 1 frames.
+Bridge Res 5:DC   57:DG  , 1 frames.
+Bridge Res 7:DA   55:DG  , 1 frames.
+Bridge Res 9:DT   53:DG  , 1 frames.
+Bridge Res 11:DC   51:DT  , 1 frames.
+Bridge Res 12:DC   49:DG  , 1 frames.
+Bridge Res 13:DG   49:DG  , 1 frames.
+Bridge Res 14:DA   48:DC  , 1 frames.
+Bridge Res 20:DC   41:DG  , 1 frames.
+Bridge Res 21:DC   41:DG  , 1 frames.
+Bridge Res 26:DC   36:DG  , 1 frames.

@@ -28,7 +28,7 @@ C3_4@O2        SolventH  SolventDnr        4       0.4000       2.3519       0.0
 C3_4@O2'       SolventH  SolventDnr        4       0.4000       2.5456       0.0000
 G5_1@O5'       SolventH  SolventDnr        4       0.4000       2.6270       0.0000
 #Bridging Solute Residues:
-Bridge Res 1:G5 4:C3, 4 frames.
+Bridge Res 1:G5   4:C3  , 4 frames.
 #Acceptor        DonorH       Donor   Frames         Frac      AvgDist       AvgAng
 A_2@OP1       G5_1@HO2'    G5_1@O2'       10       1.0000       2.6351     158.0794
 C_3@OP2        G5_1@H22     G5_1@N2       10       1.0000       2.8070     164.6465
@@ -46,7 +46,7 @@ C3_4@O2'       SolventH  SolventDnr        1       0.1000       2.3514       0.0
 C3_4@O2        SolventH  SolventDnr        1       0.1000       2.4741       0.0000
 G5_1@O5'       SolventH  SolventDnr        1       0.1000       2.6795       0.0000
 #Bridging Solute Residues:
-Bridge Res 1:G5 4:C3, 1 frames.
+Bridge Res 1:G5   4:C3  , 1 frames.
 #Acceptor        DonorH       Donor   Frames         Frac      AvgDist       AvgAng
 A_2@OP1       G5_1@HO2'    G5_1@O2'        8       0.8000       2.6692     158.5814
 C3_4@OP1       C_3@HO2'     C_3@O2'        5       0.5000       2.6099     161.9314
@@ -68,7 +68,7 @@ C3_4@O2        SolventH  SolventDnr        5       0.5000       2.4607       0.0
 G5_1@O5'       SolventH  SolventDnr        5       0.5000       2.4709       0.0000
 C3_4@O2'       SolventH  SolventDnr        5       0.5000       2.5897       0.0000
 #Bridging Solute Residues:
-Bridge Res 1:G5 4:C3, 5 frames.
+Bridge Res 1:G5   4:C3  , 5 frames.
 #Acceptor        DonorH       Donor   Frames         Frac      AvgDist       AvgAng
 C_3@OP2       C3_4@HO2'    C3_4@O2'       10       1.0000       2.6603     162.5376
 #Solute-Solvent Hbonds:
