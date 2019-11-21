@@ -276,28 +276,35 @@ int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
   if (parm_->Nmol() < 1)
     mprintf("\t'%s' No molecule info.\n", parm_->c_str());
   else {
-    CharMask mask( maskString );
-    if (parm_->SetupCharMask( mask )) return 1;
+    AtomMask mask( maskString );
+    if (parm_->SetupIntegerMask( mask )) return 1;
     if ( mask.None() )
       mprintf("\tSelection is empty.\n");
     else {
-      Mol::Marray mols = Mol::UniqueCount(*parm_, mask);
+      std::vector<int> molNums = parm_->MolnumsSelectedBy( mask );
+      Mol::Marray mols = Mol::UniqueCount(*parm_, molNums);
       // Determine max counts for nice output formatting
       int maxNatom = 0;
       int maxNres = 0;
       unsigned int maxCount = 0;
+      unsigned int mn_width = 4;
       for (Mol::Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol) {
         maxNatom = std::max( maxNatom, mol->natom_ );
         maxNres  = std::max( maxNres,  mol->nres_  );
         maxCount = std::max( maxCount, (unsigned int)mol->idxs_.size() );
+        mn_width = std::max( mn_width, (unsigned int)mol->name_.size() );
       }
       int awidth = std::max(5, DigitWidth(maxNatom));
       int rwidth = std::max(5, DigitWidth(maxNres ));
       int mwidth = std::max(5, DigitWidth(maxCount));
-      outfile_->Printf("%-4s %*s %*s %*s\n", "#Mol", mwidth, "Count", 
-                       awidth, "Natom", rwidth, "Nres");
+      outfile_->Printf("%-*s %*s %*s %*s\n",
+                       mn_width, "#Mol",
+                       mwidth, "Count",
+                       awidth, "Natom",
+                       rwidth, "Nres");
       for (Mol::Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol)
-        outfile_->Printf("%-4s %*zu %*i %*i\n", mol->name_.c_str(),
+        outfile_->Printf("%-*s %*zu %*i %*i\n",
+                         mn_width, mol->name_.c_str(),
                          mwidth, mol->idxs_.size(),
                          awidth, mol->natom_,
                          rwidth, mol->nres_);
