@@ -164,7 +164,7 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
   return 0;
 }
 
-/** Print residue info using single char names. */
+/** Print residue info using single char names. */ // TODO use Topology::ResnumsSelectedBy
 int TopInfo::PrintShortResInfo(std::string const& maskString, int maxChar) const {
   AtomMask mask( maskString );
   if (parm_->SetupIntegerMask( mask )) return 1;
