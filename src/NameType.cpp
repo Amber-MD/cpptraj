@@ -155,6 +155,19 @@ std::string NameType::Truncated() const {
   return std::string( c_array_ );
 }
 
+/** \return name formatted; left-aligned with given minimal width. If
+  *         necessary spaces are added to make minimum width.
+  */
+std::string NameType::Formatted(int minWidth) const {
+  std::string nameOut;
+  nameOut.reserve(ArraySize_);
+  nameOut.assign( c_array_ );
+  int nblank = minWidth - (int)nameOut.size();
+  if (nblank > 0)
+    nameOut.append(nblank, ' ');
+  return nameOut;
+}
+
 /** \return Non-space length of name. */
 int NameType::len() const {
   const char* ptr = c_array_;

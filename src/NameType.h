@@ -31,6 +31,8 @@ class NameType {
     char operator[](int) const;
     /// \return Truncated name.
     std::string Truncated() const;
+    /// \return Name with minimal given width, padded with spaces if necessary.
+    std::string Formatted(int) const;
     /// \return non-space length of name
     int len() const;
     /// \return true if name comes before given name alphabetically
