@@ -213,35 +213,58 @@ int TopInfo::PrintShortResInfo(std::string const& maskString, int maxChar) const
   return 0;
 }
 
+int TopInfo::maxMolNameWidth(std::vector<int> const& molNums) const {
+  int nWidth = 4;
+  for (std::vector<int>::const_iterator mnum = molNums.begin(); mnum != molNums.end(); ++mnum)
+  {
+    int molAtom0 = parm_->Mol( *mnum ).BeginAtom();
+    int firstres = (*parm_)[ molAtom0 ].ResNum();
+    int mn_size = parm_->Res(firstres).Name().len();
+    if (mn_size > nWidth)
+      nWidth = mn_size;
+  }
+  return nWidth;
+}
+
 // TopInfo::PrintMoleculeInfo()
 int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
   if (parm_->Nmol() < 1)
     mprintf("\t'%s' No molecule info.\n", parm_->c_str());
   else {
-    CharMask mask( maskString );
-    if (parm_->SetupCharMask( mask )) return 1;
+    AtomMask mask( maskString );
+    if (parm_->SetupIntegerMask( mask )) return 1;
     if ( mask.None() )
       mprintf("\tSelection is empty.\n");
     else {
+      std::vector<int> molNums = parm_->MolnumsSelectedBy( mask );
+      int mn_width = maxMolNameWidth( molNums );
       int awidth = std::max(5, DigitWidth(parm_->Natom()));
       int rwidth = std::max(5, DigitWidth(parm_->Nres()));
       int mwidth = std::max(5, DigitWidth(parm_->Nmol()));
-      outfile_->Printf("%-*s %*s %*s %*s %*s %4s\n", mwidth, "#Mol", awidth, "Natom",
-              rwidth, "Nres", rwidth, "Res0", rwidth, "Res1", "Name");
-      unsigned int mnum = 1;
-      for (Topology::mol_iterator mol = parm_->MolStart();
-                                  mol != parm_->MolEnd(); ++mol)
+      outfile_->Printf("%-*s %*s %*s %*s %*s %-*s %c\n",
+                       mwidth, "#Mol",
+                       awidth, "Natom",
+                       rwidth, "Nres",
+                       rwidth, "Res0",
+                       rwidth, "Res1", 
+                       mn_width, "Name",
+                       'C');
+      for (std::vector<int>::const_iterator mnum = molNums.begin();
+                                            mnum != molNums.end(); ++mnum)
       {
-        if ( mask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) ) {
-          int firstres = (*parm_)[ mol->BeginAtom() ].ResNum();
-          int lastres  = (*parm_)[ mol->EndAtom()-1 ].ResNum();
-          outfile_->Printf("%*u %*i %*i %*i %*i %4s %c", mwidth, mnum, awidth, mol->NumAtoms(),
-                  rwidth, lastres-firstres+1, rwidth, firstres+1,
-                  rwidth, lastres+1, parm_->Res(firstres).c_str(), parm_->Res(firstres).ChainID());
-          if ( mol->IsSolvent() ) outfile_->Printf(" SOLVENT");
-          outfile_->Printf("\n");
-        }
-        ++mnum;
+        Molecule const& Mol = parm_->Mol(*mnum);
+        int firstres = (*parm_)[ Mol.BeginAtom() ].ResNum();
+        int lastres  = (*parm_)[ Mol.EndAtom()-1 ].ResNum();
+        outfile_->Printf("%*u %*i %*i %*i %*i %-*s %c",
+                         mwidth, *mnum+1,
+                         awidth, Mol.NumAtoms(),
+                         rwidth, lastres-firstres+1,
+                         rwidth, firstres+1,
+                         rwidth, lastres+1,
+                         mn_width, parm_->Res(firstres).c_str(),
+                         parm_->Res(firstres).ChainID());
+        if ( Mol.IsSolvent() ) outfile_->Printf(" SOLVENT");
+        outfile_->Printf("\n");
       }
     }
   }

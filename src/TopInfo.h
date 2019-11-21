@@ -33,6 +33,8 @@ class TopInfo {
     int maxAtomNamesWidth(AtomMask const&) const;
     /// \return the longest residue name in given list of residue #s
     int maxResNameWidth(std::vector<int> const&) const;
+    /// \return the longest molecule name in the given list of molecle #s
+    int maxMolNameWidth(std::vector<int> const&) const;
     void PrintBonds(BondArray const&, BondParmArray const&,
                     CharMask const&, CharMask const&, int, int&) const;
     void PrintAngles(AngleArray const&, AngleParmArray const&,
