@@ -47,8 +47,8 @@ SolventAcc          TRP_4@HE1      TRP_4@NE1        1       0.1000       2.7128 
 SolventAcc           SER_1@H1        SER_1@N        1       0.1000       2.9279     139.1256
 SolventAcc           TRP_11@H       TRP_11@N        1       0.1000       2.9678     166.9306
 #Bridging Solute Residues:
-Bridge Res 10:THR  11:TRP , 5 frames.
-Bridge Res 5:GLU  12:LYS , 4 frames.
-Bridge Res 2:TRP  3:THR , 2 frames.
-Bridge Res 3:THR  5:GLU , 2 frames.
-Bridge Res 5:GLU  10:THR , 2 frames.
+Bridge Res 10:THR 11:TRP, 5 frames.
+Bridge Res 5:GLU 12:LYS, 4 frames.
+Bridge Res 2:TRP 3:THR, 2 frames.
+Bridge Res 3:THR 5:GLU, 2 frames.
+Bridge Res 5:GLU 10:THR, 2 frames.
