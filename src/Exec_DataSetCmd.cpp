@@ -10,42 +10,60 @@
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
           "\t dim|outformat|invert|mode|type} <options>\n");
-  mprintf("  legend <legend> <set>\n"
-          "    Set the legend for a single data set.\n");
-  mprintf("  makexy <Xset> <Yset> [name <name>]\n"
-          "    Create new data set with X values from one set and Y values from another.\n");
-  mprintf("  vectorcoord {X|Y|Z} [name <name>]\n"
-          "    Extract X, Y, or Z component of vector data into new set.\n");
-  mprintf("  cat <set0> <set1> ... [name <name>] [nooffset]\n"
-          "    Concatenate 2 or more data sets.\n");
-  mprintf("  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
-          "    Create new 2D data set from 1D data set, assumes row-major ordering.\n");
-  Help_ModifyPoints();
-  mprintf("  remove <criterion> <select> <value> [and <value2>] [<set selection>]\n"
-          "      <criterion>: ");
-  for (int i = 1; i < (int)N_C; i++)
-    mprintf(" '%s'", CriterionKeys[i]);
-  mprintf("\n      <select>   : ");
-  for (SelectPairType const* ptr = SelectKeys; ptr->key_ != 0; ptr++)
-    mprintf(" '%s'", ptr->key_);
-  mprintf("\n    Remove data sets according to specified criterion and selection.\n");
-  Help_ChangeDim();
-  mprintf("  outformat {double|scientific|general} <set arg1> [<set arg 2> ...]\n"
-          "    Change output format of double-precision data:\n"
-          "      double     - \"Normal\" output, e.g. 0.4032\n"
-          "      scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
-          "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
-  Help_InvertSets();
-  mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
-  mprintf("      <mode>: ");
-  for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
-    mprintf(" '%s'", MetaData::ModeString((MetaData::scalarMode)i));
-  mprintf("\n      <type>: ");
-  for (int i = 0; i != (int)MetaData::UNDEFINED; i++)
-    mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
-  mprintf("\n    Options for 'type noe':\n"
-          "      %s\n", AssociatedData_NOE::HelpText);
-  mprintf("    Change the mode and/or type for one or more data sets.\n");
+}
+
+void Exec_DataSetCmd::Help(ArgList& argIn) const {
+  if (argIn.hasKey("legend")) {
+    mprintf("  legend <legend> <set>\n"
+            "    Set the legend for a single data set.\n");
+  } else if (argIn.hasKey("makexy")) {
+    mprintf("  makexy <Xset> <Yset> [name <name>]\n"
+            "    Create new data set with X values from one set and Y values from another.\n");
+  } else if (argIn.hasKey("vectorcoord")) {
+    mprintf("  vectorcoord {X|Y|Z} [name <name>]\n"
+            "    Extract X, Y, or Z component of vector data into new set.\n");
+  } else if (argIn.hasKey("cat")) {
+    mprintf("  cat <set0> <set1> ... [name <name>] [nooffset]\n"
+            "    Concatenate 2 or more data sets.\n");
+  } else if (argIn.hasKey("make2d")) {
+    mprintf("  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
+            "    Create new 2D data set from 1D data set, assumes row-major ordering.\n");
+  } else if (argIn.hasKey("droppoints") || argIn.hasKey("keeppoints")) {
+    Help_ModifyPoints();
+  } else if (argIn.hasKey("remove")) {
+    mprintf("  remove <criterion> <select> <value> [and <value2>] [<set selection>]\n"
+            "      <criterion>: ");
+    for (int i = 1; i < (int)N_C; i++)
+      mprintf(" '%s'", CriterionKeys[i]);
+    mprintf("\n      <select>   : ");
+    for (SelectPairType const* ptr = SelectKeys; ptr->key_ != 0; ptr++)
+      mprintf(" '%s'", ptr->key_);
+    mprintf("\n    Remove data sets according to specified criterion and selection.\n");
+  } else if (argIn.hasKey("dim")) {
+    Help_ChangeDim();
+  } else if (argIn.hasKey("outformat")) {
+    mprintf("  outformat {double|scientific|general} <set arg1> [<set arg 2> ...]\n"
+            "    Change output format of double-precision data:\n"
+            "      double     - \"Normal\" output, e.g. 0.4032\n"
+            "      scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
+            "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
+  } else if (argIn.hasKey("invert")) {
+    Help_InvertSets();
+  } else if (argIn.hasKey("mode")) {
+    mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
+    mprintf("      <mode>: ");
+    for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
+      mprintf(" '%s'", MetaData::ModeString((MetaData::scalarMode)i));
+    mprintf("    Change the mode for one or more data sets.\n");
+  } else if (argIn.hasKey("type")) {
+    mprintf("\n      <type>: ");
+    for (int i = 0; i != (int)MetaData::UNDEFINED; i++)
+      mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
+    mprintf("\n    Options for 'type noe':\n"
+            "      %s\n", AssociatedData_NOE::HelpText);
+    mprintf("    Change the type for one or more data sets.\n");
+  } else
+    Help();
 }
 
 // Exec_DataSetCmd::Execute()
