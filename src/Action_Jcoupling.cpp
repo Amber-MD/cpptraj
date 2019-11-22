@@ -83,7 +83,8 @@ int Action_Jcoupling::loadKarplus(std::string const& filename) {
       aname[3] = ptr[3];
       aname[4] = '\0';
       KC.SetName(i, aname);
-      mprintf("DEBUG:\tAtomName %i [%s] '%s' %c\n", i, *(KC.AtomName(i)), aname, *ptr);
+      if (debug_ > 1)
+        mprintf("DEBUG:\tAtomName %i [%s] '%s' %c\n", i, *(KC.AtomName(i)), aname, *ptr);
       ptr += 4;
     }
     // Read parameters
@@ -116,11 +117,13 @@ int Action_Jcoupling::loadKarplus(std::string const& filename) {
       rname[3] = ptr[3];
       rname[4] = '\0';
       NameType resName( rname );
-      mprintf("DEBUG:\t Residue [%s]\n", *resName);
+      if (debug_ > 1)
+        mprintf("DEBUG:\t Residue [%s]\n", *resName);
       JcoupleDihedralMap::iterator it = JcoupleData_.lower_bound( resName );
       if (it == JcoupleData_.end() || it->first != resName ) {
         // List does not exist for residue yet, create it.
-        mprintf("DEBUG: Creating new list for residue.\n");
+        if (debug_ > 1)
+          mprintf("DEBUG: Creating new list for residue.\n");
         JcoupleData_.insert( it,
                              JcoupleDihedralPair(resName,
                                                  JcoupleDihedralArray(1, KC)
@@ -128,7 +131,8 @@ int Action_Jcoupling::loadKarplus(std::string const& filename) {
                            );
       } else {
         // Add constants to this residues list.
-        mprintf("DEBUG: Adding constant to list for residue.\n");
+        if (debug_ > 1)
+          mprintf("DEBUG: Adding constant to list for residue.\n");
         it->second.push_back( KC );
       }
       ++Nconstants_;
