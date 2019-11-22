@@ -11,6 +11,7 @@
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
           "\t dim|outformat|invert|mode|type} <options>\n");
+  mprintf("  Type 'help dataset <cmd>' for detailed subcommand help.\n");
 }
 
 void Exec_DataSetCmd::Help(ArgList& argIn) const {
