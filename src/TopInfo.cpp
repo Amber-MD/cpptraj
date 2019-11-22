@@ -16,7 +16,7 @@ TopInfo::TopInfo() :
   parm_(0),
   Awidth_(0),
   amn_width_(0),
-  max_type_len_(0),
+  max_aname_len_(0),
   toStdout_(false)
 {}
 
@@ -27,6 +27,7 @@ TopInfo::TopInfo(Topology const* pIn) :
   Awidth_(0),
   amn_width_(0),
   max_type_len_(0),
+  max_aname_len_(0),
   toStdout_(false)
 {
   SetupTopInfo( 0, pIn, 0 );
@@ -68,11 +69,15 @@ int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords*
     toStdout_ = false;
     outfile_ = fIn;
   }
+  // Determine widths for output.
   Awidth_ = std::max(2, DigitWidth(parm_->Natom()));
-  amn_width_ = DigitWidth(parm_->Nres()) + Awidth_ + 2; // :, @
   max_type_len_ = 2;
-  for (int i = 0; i != parm_->Natom(); i++)
+  max_aname_len_ = 4;
+  for (int i = 0; i != parm_->Natom(); i++) {
     max_type_len_ = std::max( max_type_len_, (*parm_)[i].Type().len() );
+    max_aname_len_ = std::max( max_aname_len_, (*parm_)[i].Name().len() );
+  }
+  amn_width_ = DigitWidth(parm_->Nres()) + max_aname_len_ + 2; // :, @
   return 0;
 }
 
