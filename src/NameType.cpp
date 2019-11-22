@@ -31,7 +31,7 @@ void NameType::Assign( const char* rhs ) {
     c_array_[j] = '\0';
   else {
     c_array_[ArraySize_-1] = '\0';
-    mprintf("Warning: Name truncation detected: Name='%s' vs Original'%s'\n", c_array_, rhs);
+    mprintf("Warning: Name truncation detected: Name='%s' vs Original='%s'\n", c_array_, rhs);
   }
 }
 
