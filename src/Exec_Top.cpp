@@ -202,7 +202,7 @@ Exec::RetType Exec_MolInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_ChargeInfo::Help() const {
-  mprintf("\t[%s] <mask> [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask>] [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total charge of atoms in <mask> for specified topology (first by default).\n");
 }
 
@@ -224,7 +224,7 @@ Exec::RetType Exec_ChargeInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_MassInfo::Help() const {
-  mprintf("\t[%s] <mask> [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask>] [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total mass of atoms in <mask> for specified topology (first by default).\n");
 }
 
