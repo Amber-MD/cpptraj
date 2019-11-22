@@ -353,10 +353,10 @@ int TopInfo::PrintChargeInfo(std::string const& maskExpression, double& sumQ) co
 }
 
 // TopInfo::PrintMassInfo()
-int TopInfo::PrintMassInfo(std::string const& maskExpression) const {
+int TopInfo::PrintMassInfo(std::string const& maskExpression, double& sumM) const {
   AtomMask mask( maskExpression );
   if (parm_->SetupIntegerMask( mask )) return 1;
-  double sumM = 0.0;
+  sumM = 0.0;
   for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
     sumM += (*parm_)[*idx].Mass();
   outfile_->Printf("Sum of masses in mask [%s](%i) is %g\n",
