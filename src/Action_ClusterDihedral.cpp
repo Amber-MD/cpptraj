@@ -268,10 +268,10 @@ void Action_ClusterDihedral::Print() {
                                            dih != DCmasks_.end(); ++dih)
   {
     outfile_->Printf("    %6li ", num++);
-    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A1() ].c_str(), dih->A1() + 1);
-    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A2() ].c_str(), dih->A2() + 1);
-    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A3() ].c_str(), dih->A3() + 1);
-    outfile_->Printf("%-s(%i)", (*dcparm_)[ dih->A4() ].c_str(), dih->A4() + 1);
+    outfile_->Printf("%-4s(%i)", (*dcparm_)[ dih->A1() ].c_str(), dih->A1() + 1);
+    outfile_->Printf("%-4s(%i)", (*dcparm_)[ dih->A2() ].c_str(), dih->A2() + 1);
+    outfile_->Printf("%-4s(%i)", (*dcparm_)[ dih->A3() ].c_str(), dih->A3() + 1);
+    outfile_->Printf("%-4s(%i)", (*dcparm_)[ dih->A4() ].c_str(), dih->A4() + 1);
     outfile_->Printf(" [Bins=%i]\n", dih->Bins());
   }
   outfile_->Printf("%zu clusters.\n", dcarray_.size());

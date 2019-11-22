@@ -86,7 +86,9 @@ pipeline {
                 stage("Linux PGI serial build") {
                     agent {
                         docker {
-                            label "pgi && Batwoman"
+                            // Until we figure out why PGI compilers fail on the master Jenkins node,
+                            // force them to run on Intel CPU slaves
+                            label "pgi && intel-cpu"
                             image 'ambermd/cpu-build:latest'
                             alwaysPull true
                             // Pull the licensed PGI compilers from the host machine (must have
@@ -99,9 +101,12 @@ pipeline {
                         unstash "source"
                         script {
                             try {
-                                sh "./configure --with-netcdf --with-fftw3 pgi"
-                                sh "make -j6 install"
-                                sh "cd test && make test.showerrors"
+                                sh """#!/bin/sh -ex
+                                unset CUDA_HOME
+                                ./configure --with-netcdf --with-fftw3 pgi
+                                make -j6 install
+                                cd test && make test.showerrors
+                                """
                             } catch (error) {
                                 echo "PGI BUILD AND/OR TEST FAILED"
                             }
@@ -162,36 +167,88 @@ pipeline {
             }
         }
 
-        stage("Build libcpptraj docker container") {
-            agent { label "linux && docker" }
+        stage("Post-test steps") {
+            parallel {
+                stage("Check pytraj") {
+                    agent none
+                    environment {
+                        DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT}"
+                    }
 
-            environment {
-                DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT}"
-            }
+                    stages {
+                        stage("Build libcpptraj docker container") {
+                            agent { label "linux && docker" }
 
-            steps {
-                unstash "source"
-                echo "Building and pushing ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}"
-                script {
-                    def image = docker.build("ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}",
-                                             "-f ./devtools/ci/jenkins/Dockerfile.libcpptraj .")
-                    docker.withRegistry("", "amber-docker-credentials") {
-                        image.push()
+                            steps {
+                                unstash "source"
+                                echo "Building and pushing ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}"
+                                script {
+                                    def image = docker.build("ambermd/libcpptraj:${env.DOCKER_IMAGE_TAG}",
+                                                             "-f ./devtools/ci/jenkins/Dockerfile.libcpptraj .")
+                                    docker.withRegistry("", "amber-docker-credentials") {
+                                        image.push()
+                                    }
+                                }
+                            }
+                            post { cleanup { deleteDir() } }
+                        }
+
+                        stage("Check pytraj with this version of libcpptraj") {
+                            steps {
+                                build job: '/amber-github/pytraj',
+                                           parameters: [string(name: 'LIBCPPTRAJ_IMAGE_TAG', value: env.DOCKER_IMAGE_TAG),
+                                                        string(name: 'BRANCH_TO_BUILD', value: 'master')]
+                            }
+                        }
                     }
                 }
-            }
-            post { cleanup { deleteDir() } }
-        }
+                stage("Publish the manual") {
+                    stages {
+                        stage("Build the manual") {
+                            agent {
+                                docker {
+                                    image 'ambermd/lyx:latest'
+                                    alwaysPull true
+                                }
+                            }
 
-        stage("Check pytraj with this version of libcpptraj") {
-            environment {
-                DOCKER_IMAGE_TAG = "${env.BRANCH_NAME == "master" ? "master" : env.GIT_COMMIT}"
-            }
+                            steps {
+                                unstash "source"
+                                sh """#!/bin/sh -ex
+                                    make docs
+                                    cd doc
+                                    lyx -batch --export pdf2 CpptrajManual.lyx
+                                    lyx -batch --export pdf2 CpptrajDevelopmentGuide.lyx
+                                """
+                                stash includes: "doc/**", name: "documentation"
+                            }
 
-            steps {
-                build job: '/amber-github/pytraj',
-                           parameters: [string(name: 'LIBCPPTRAJ_IMAGE_TAG', value: "${DOCKER_IMAGE_TAG}"),
-                                        string(name: 'BRANCH_TO_BUILD', value: 'master')]
+                            post { cleanup { deleteDir() } }
+                        }
+                        stage("Publish the manual") {
+                            agent { label 'linux' }
+
+                            steps {
+                                unstash 'documentation'
+                                // Eventually it would be nice to do something better than simply archive
+                                // and make the artifacts available from Jenkins.
+                                archiveArtifacts 'doc/CpptrajManual.pdf,doc/CpptrajDevelopmentGuide.pdf'
+                                // It would be nice to get this in a better place, but for now this
+                                // will suffice.
+                                publishHTML([
+                                    allowMissing: false,
+                                    alwaysLinkToLastBuild: false,
+                                    keepAll: false,
+                                    reportDir: 'doc/html',
+                                    reportFiles: 'index.html',
+                                    reportName: 'Doxygen Documentation',
+                                    reportTitles: ''])
+                            }
+
+                            post { cleanup { deleteDir() } }
+                        }
+                    }
+                }
             }
         }
     }

@@ -48,7 +48,7 @@ class ParameterSet {
         unsigned int nLJparamsUpdated_;
     };
     /// Update this set with parameters from given set
-    int UpdateParams(ParameterSet const&, UpdateCount&);
+    int UpdateParamSet(ParameterSet const&, UpdateCount&, int);
     /// \return Size in memory in bytes
     size_t DataSize() const;
   private:

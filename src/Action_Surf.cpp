@@ -347,7 +347,7 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
       }
       break;
     case Atom::OXYGEN:
-      if (atype0=='O' && atype1==' ') 
+      if (atype0=='O' && atype1=='\0')
         AssignLCPO(SIptr, 1.60, 0.68563, -0.1868,  -0.00135573, 0.00023743);
       else if (atype0=='O' && atype1=='2')
         AssignLCPO(SIptr, 1.60, 0.88857, -0.33421, -0.0018683,  0.00049372);
