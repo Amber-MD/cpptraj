@@ -16,7 +16,7 @@ class DataSet_1D : public DataSet {
     virtual double Dval(size_t) const = 0;
     /// \return the value of the X coordinate at position.
     virtual double Xcrd(size_t) const = 0;
-    /// \return Memory address at position cast to void *.
+    /// \return Memory address at position cast to void *. TODO may not need this anymore.
     virtual const void* VoidPtr(size_t) const = 0;
     // -------------------------------------------
     /// \return Average over set Y values

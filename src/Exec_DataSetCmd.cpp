@@ -5,6 +5,7 @@
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_Vector.h"
 #include "DataSet_string.h"
+#include "DataSet_Mesh.h"
 #include "StringRoutines.h"
 
 void Exec_DataSetCmd::Help() const {
@@ -137,8 +138,10 @@ void Exec_DataSetCmd::Help_ModifyPoints() {
           "    Drop specified points from or keep specified points in data set(s).\n");
 }
 
-static inline void KeepPoint(DataSet_1D* in, DataSet* out, int idx, int& odx) {
-  out->Add(odx++, in->VoidPtr(idx));
+/** Add the X and Y values from set in at idx to set out. */
+static inline void KeepPoint(DataSet_1D* in, DataSet* out, int idx) {
+  DataSet_Mesh& mesh = static_cast<DataSet_Mesh&>( *out );
+  mesh.AddXY( in->Xcrd(idx), in->Dval(idx) );
 }
 
 // Exec_DataSetCmd::ModifyPoints()
@@ -187,19 +190,27 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
         return CpptrajState::ERR;
       }
       DataSet_1D* ds1 = (DataSet_1D*)DS;
-      // Output data set
+      // Output data set.
+      // NOTE: We want to preserve the original X values. The easiest way
+      //       to do this is to always make the output set an XY mesh
+      //       regardless of the input set type. Ideally we would detect
+      //       if a set is monotonic in X and allocate appropriately, but
+      //       since currently there are no non-monotonic (i.e. sparse)
+      //       integer/float DataSet_1D classes, XYMESH is the easiest
+      //       solution.
       DataSet* out = 0;
       if (name.empty()) {
         // Modifying this set. Create new temporary set.
-        out = State.DSL().Allocate( ds1->Type() );
+        out = State.DSL().Allocate( DataSet::XYMESH );
         if (out == 0) return CpptrajState::ERR;
+        // This gives the new set same MetaData, format etc as the original.
         *out = *ds1;
         mprintf("\tOverwriting set '%s'\n", ds1->legend());
       } else {
         // Write to new set
         MetaData md = ds1->Meta();
         md.SetName( name );
-        out = State.DSL().AddSet(ds1->Type(), md);
+        out = State.DSL().AddSet(DataSet::XYMESH, md);
         if (out == 0) return CpptrajState::ERR;
         mprintf("\tNew set is '%s'\n", out->Meta().PrintName().c_str());
       }
@@ -216,28 +227,27 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
       if (State.Debug() > 0) mprintf("DEBUG: Keeping points:");
       Range::const_iterator pt = points.begin();
       int idx = 0;
-      int odx = 0;
       if (drop) {
         // Drop points
         for (; idx < (int)ds1->Size(); idx++) {
           if (pt == points.end()) break;
           if (*pt != idx) {
             if (State.Debug() > 0) mprintf(" %i", idx + 1);
-            KeepPoint(ds1, out, idx, odx);
+            KeepPoint(ds1, out, idx);
           } else
             ++pt;
         }
         // Keep all remaining points
         for (; idx < (int)ds1->Size(); idx++) {
           if (State.Debug() > 0) mprintf(" %i", idx + 1);
-          KeepPoint(ds1, out, idx, odx);
+          KeepPoint(ds1, out, idx);
         }
       } else {
         // Keep points
         for (; pt != points.end(); pt++) {
           if (*pt >= (int)ds1->Size()) break;
           if (State.Debug() > 0) mprintf(" %i", *pt + 1);
-          KeepPoint(ds1, out, *pt, odx);
+          KeepPoint(ds1, out, *pt);
         }
       }
       if (State.Debug() > 0) mprintf("\n");
