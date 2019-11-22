@@ -341,10 +341,10 @@ int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
 }
 
 // TopInfo::PrintChargeInfo()
-int TopInfo::PrintChargeInfo(std::string const& maskExpression) const {
+int TopInfo::PrintChargeInfo(std::string const& maskExpression, double& sumQ) const {
   AtomMask mask( maskExpression );
   if (parm_->SetupIntegerMask( mask )) return 1;
-  double sumQ = 0.0;
+  sumQ = 0.0;
   for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
     sumQ += (*parm_)[*idx].Charge();
   outfile_->Printf("Sum of charges in mask [%s](%i) is %g\n",

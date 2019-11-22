@@ -209,7 +209,17 @@ void Exec_ChargeInfo::Help() const {
 Exec::RetType Exec_ChargeInfo::Execute(CpptrajState& State, ArgList& argIn) {
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Charge info")) return CpptrajState::ERR;
-  if (info.PrintChargeInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
+  std::string dsname = argIn.GetStringKey("name");
+  DataSet* ds = 0;
+  if (!dsname.empty()) {
+    ds = State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname));
+    if (ds == 0) return CpptrajState::ERR;
+    mprintf("\tSum of charges will be stored in set '%s'\n", ds->legend());
+  }
+  double charge = 0;
+  if (info.PrintChargeInfo( argIn.GetMaskNext(), charge )) return CpptrajState::ERR;
+  if (ds != 0)
+    ds->Add(0, &charge);
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------
