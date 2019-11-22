@@ -33,7 +33,7 @@ class Cmd {
     bool Empty() const { return object_ == 0; }
     /// \return const reference to underlying DispatchObject
     DispatchObject const& Obj() const { return *object_; }
-    /// Execute Help for underlying DispatchObject - primarily for Deprecated
+    /// Execute Help for underlying DispatchObject.
     void Help() const { object_->Help(); }
     /// Execute Help with arguments
     void Help(ArgList& a) const { object_->Help(a); }
