@@ -39,7 +39,6 @@ TopInfo::~TopInfo() {
     delete outfile_;
 }
 
-
 // TopInfo::SetupTopInfo()
 int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords* cIn) {
   if (cIn == 0 && pIn == 0) {
@@ -81,6 +80,7 @@ int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords*
   return 0;
 }
 
+/** \return maximum atom/atom type name length from selection. */
 int TopInfo::maxAtomNamesWidth(AtomMask const& mask) const {
   // Sanity check.
   if (parm_ == 0) {
@@ -139,6 +139,7 @@ int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   return 0;
 }
 
+/** \return max residue name length from selection. */
 int TopInfo::maxResNameWidth(std::vector<int> const& resNums) const {
   int nWidth = 4;
   for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
@@ -238,6 +239,7 @@ int TopInfo::PrintShortResInfo(std::string const& maskString, int maxChar) const
   return 0;
 }
 
+/** \return max molecule name length from selection. */
 int TopInfo::maxMolNameWidth(std::vector<int> const& molNums) const {
   int nWidth = 4;
   for (std::vector<int>::const_iterator mnum = molNums.begin(); mnum != molNums.end(); ++mnum)
