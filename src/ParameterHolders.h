@@ -28,17 +28,30 @@ template <class T> class ParmHolder {
         if (it->first == types) break;
       if (it == bpmap_.end()) {
         // New parm
+        //mprintf("DEBUG: New parameter:");
+        //for (TypeNameHolder::const_iterator it = types.begin(); it != types.end(); ++it)
+        //  mprintf(" '%s'", *(*it));
+        //mprintf("\n");
         bpmap_.push_back( Bpair(types, bp) );
       } else {
         if (bp < it->second || it->second < bp) {
+          //mprintf("DEBUG: Potential update of existing parameter:");
+          //for (TypeNameHolder::const_iterator it = types.begin(); it != types.end(); ++it)
+          //  mprintf(" '%s'", *(*it));
+          //mprintf("\n");
           if (allowUpdate) {
             it->second = bp;
             return ParameterHolders::UPDATED;
           } else {
             return ParameterHolders::ERR;
           }
-        } else
+        } else {
+          //mprintf("DEBUG: Existing parameter:");
+          //for (TypeNameHolder::const_iterator it = types.begin(); it != types.end(); ++it)
+          //  mprintf(" '%s'", *(*it));
+          //mprintf("\n");
           return ParameterHolders::SAME;
+        }
       }
       return ParameterHolders::ADDED;
     }
