@@ -114,7 +114,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
             mode = PARAM;
           else
             mode = NONE;
-        } else if (ChmCmd(args[0],"MASS") && args.Nargs() == 4) {
+        } else if (ChmCmd(args[0],"MASS") && args.Nargs() >= 4) {
           args.MarkArg(0);
           args.MarkArg(1);
           args.MarkArg(2);
