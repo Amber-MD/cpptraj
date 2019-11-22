@@ -10,14 +10,34 @@
 #include "Mol.h"
 #include "CharMask.h"
 
+/// CONSTRUCTOR
+TopInfo::TopInfo() :
+  outfile_(0),
+  parm_(0),
+  Awidth_(0),
+  amn_width_(0),
+  max_type_len_(0),
+  toStdout_(false)
+{}
+
+/// CONSTRUCTOR - To Stdout
+TopInfo::TopInfo(Topology const* pIn) :
+  outfile_(0),
+  parm_(0),
+  Awidth_(0),
+  amn_width_(0),
+  max_type_len_(0),
+  toStdout_(false)
+{
+  SetupTopInfo( 0, pIn, 0 );
+}
+
 /// DESTRUCTOR
 TopInfo::~TopInfo() {
   if (toStdout_ && outfile_ != 0)
     delete outfile_;
 }
 
-/// CONSTRUCTOR - To Stdout
-TopInfo::TopInfo(Topology const* pIn) { SetupTopInfo( 0, pIn, 0 ); }
 
 // TopInfo::SetupTopInfo()
 int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords* cIn) {
@@ -49,7 +69,7 @@ int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords*
     outfile_ = fIn;
   }
   Awidth_ = std::max(2, DigitWidth(parm_->Natom()));
-  Rwidth_ = DigitWidth(parm_->Nres()) + 6; // :, @, 4 char atom name
+  amn_width_ = DigitWidth(parm_->Nres()) + Awidth_ + 2; // :, @
   max_type_len_ = 2;
   for (int i = 0; i != parm_->Natom(); i++)
     max_type_len_ = std::max( max_type_len_, (*parm_)[i].Type().len() );
@@ -378,13 +398,13 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
       if ( !coords_.empty() )
         outfile_->Printf(" %6.3f", DIST_NoImage(coords_.XYZ(atom1), coords_.XYZ(atom2)));
       outfile_->Printf(" %-*s %-*s %*i %*i",
-              Rwidth_, parm_->AtomMaskName(atom1).c_str(),
-              Rwidth_, parm_->AtomMaskName(atom2).c_str(),
+              amn_width_, parm_->AtomMaskName(atom1).c_str(),
+              amn_width_, parm_->AtomMaskName(atom2).c_str(),
               Awidth_, atom1+1, Awidth_, atom2+1);
       // Atom types
       outfile_->Printf(" %*s %*s\n",
-                       max_type_len_, (*parm_)[atom1].Type().Truncated().c_str(),
-                       max_type_len_, (*parm_)[atom2].Type().Truncated().c_str());
+                       max_type_len_, *((*parm_)[atom1].Type()),
+                       max_type_len_, *((*parm_)[atom2].Type()));
     }
     nb++;
   }
@@ -421,7 +441,7 @@ int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2
   if (!coords_.empty())
     outfile_->Printf(" %6s", "Value");
   outfile_->Printf(" %-*s %-*s %*s %*s %*s %*s\n",
-                   Rwidth_, "Atom1", Rwidth_, "Atom2",
+                   amn_width_, "Atom1", amn_width_, "Atom2",
                    Awidth_, "A1", Awidth_, "A2",
                    max_type_len_, "T1", max_type_len_, "T2");
   int nb = 1;
@@ -466,15 +486,15 @@ void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& anglep
                                              coords_.XYZ(atom2),
                                              coords_.XYZ(atom3)) * Constants::RADDEG);
       outfile_->Printf(" %-*s %-*s %-*s %*i %*i %*i",
-              Rwidth_, parm_->AtomMaskName(atom1).c_str(),
-              Rwidth_, parm_->AtomMaskName(atom2).c_str(),
-              Rwidth_, parm_->AtomMaskName(atom3).c_str(),
+              amn_width_, parm_->AtomMaskName(atom1).c_str(),
+              amn_width_, parm_->AtomMaskName(atom2).c_str(),
+              amn_width_, parm_->AtomMaskName(atom3).c_str(),
               Awidth_, atom1+1, Awidth_, atom2+1, Awidth_, atom3+1);
       // Atom types
       outfile_->Printf(" %*s %*s %*s\n",
-                       max_type_len_, (*parm_)[atom1].Type().Truncated().c_str(),
-                       max_type_len_, (*parm_)[atom2].Type().Truncated().c_str(),
-                       max_type_len_, (*parm_)[atom3].Type().Truncated().c_str());
+                       max_type_len_, *((*parm_)[atom1].Type()),
+                       max_type_len_, *((*parm_)[atom2].Type()),
+                       max_type_len_, *((*parm_)[atom3].Type()));
     }
     na++;
   }
@@ -502,7 +522,7 @@ int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask
   if (!coords_.empty())
     outfile_->Printf(" %6s", "Value");
   outfile_->Printf(" %-*s %-*s %-*s %*s %*s %*s %*s %*s %*s\n",
-                   Rwidth_, "Atom1", Rwidth_, "Atom2", Rwidth_, "Atom3",
+                   amn_width_, "Atom1", amn_width_, "Atom2", amn_width_, "Atom3",
                    Awidth_, "A1", Awidth_, "A2", Awidth_, "A3",
                    max_type_len_, "T1", max_type_len_, "T2", max_type_len_, "T3");
   int na = 1;
@@ -552,18 +572,18 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
                                             coords_.XYZ(atom3),
                                             coords_.XYZ(atom4) ) * Constants::RADDEG );
       outfile_->Printf(" %-*s %-*s %-*s %-*s %*i %*i %*i %*i",
-              Rwidth_, parm_->AtomMaskName(atom1).c_str(),
-              Rwidth_, parm_->AtomMaskName(atom2).c_str(),
-              Rwidth_, parm_->AtomMaskName(atom3).c_str(),
-              Rwidth_, parm_->AtomMaskName(atom4).c_str(),
+              amn_width_, parm_->AtomMaskName(atom1).c_str(),
+              amn_width_, parm_->AtomMaskName(atom2).c_str(),
+              amn_width_, parm_->AtomMaskName(atom3).c_str(),
+              amn_width_, parm_->AtomMaskName(atom4).c_str(),
               Awidth_, atom1+1, Awidth_, atom2+1,
               Awidth_, atom3+1, Awidth_, atom4+1);
       // Atom types
       outfile_->Printf(" %*s %*s %*s %*s\n",
-                       max_type_len_, (*parm_)[atom1].Type().Truncated().c_str(),
-                       max_type_len_, (*parm_)[atom2].Type().Truncated().c_str(),
-                       max_type_len_, (*parm_)[atom3].Type().Truncated().c_str(),
-                       max_type_len_, (*parm_)[atom4].Type().Truncated().c_str());
+                       max_type_len_, *((*parm_)[atom1].Type()),
+                       max_type_len_, *((*parm_)[atom2].Type()),
+                       max_type_len_, *((*parm_)[atom3].Type()),
+                       max_type_len_, *((*parm_)[atom4].Type()));
     }
     nd++;
   }
@@ -605,8 +625,8 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
   if (!coords_.empty())
     outfile_->Printf(" %7s", "Value");
   outfile_->Printf(" %-*s %-*s %-*s %-*s %*s %*s %*s %*s %*s %*s %*s %*s\n",
-                   Rwidth_, "Atom1", Rwidth_, "Atom2",
-                   Rwidth_, "Atom3", Rwidth_, "Atom4",
+                   amn_width_, "Atom1", amn_width_, "Atom2",
+                   amn_width_, "Atom3", amn_width_, "Atom4",
                    Awidth_, "A1", Awidth_, "A2",
                    Awidth_, "A3", Awidth_, "A4",
                    max_type_len_, "T1", max_type_len_, "T2",
