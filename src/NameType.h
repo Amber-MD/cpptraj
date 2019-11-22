@@ -29,7 +29,7 @@ class NameType {
     const char* operator*() const { return c_array_; }
     /// \return Character at specified position, or null if out of range
     char operator[](int) const;
-    /// \return Truncated name.
+    /// \return Name as a string.
     std::string Truncated() const;
     /// \return Name with minimal given width, padded with spaces if necessary.
     std::string Formatted(int) const;

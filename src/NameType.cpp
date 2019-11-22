@@ -151,6 +151,10 @@ char NameType::operator[](int idx) const {
   return c_array_[idx];
 }
 
+/** NOTE: NameType is always "Truncated" now (no extra whitespace),
+  *       but the function name is retained to avoid a lot of
+  *       rewriting for the sake of rewriting.
+  */
 std::string NameType::Truncated() const {
   return std::string( c_array_ );
 }
