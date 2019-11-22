@@ -284,13 +284,13 @@ void Action_Pairwise::WriteEnergies(Topology const& parmIn, int atom1, int atom2
                                     double evdw, double eelec, const char* etype)
 {
   if (fabs(evdw) > cut_evdw_) {
-    Eout_->Printf("\tAtom %6i@%4s-%6i@%4s %sEvdw= %12.4f\n",
+    Eout_->Printf("\tAtom %6i@%-4s-%6i@%-4s %sEvdw= %12.4f\n",
                     atom1+1, parmIn[atom1].c_str(),
                     atom2+1, parmIn[atom2].c_str(),
                     etype,  evdw);
   }
   if (fabs(eelec) > cut_eelec_) {
-    Eout_->Printf("\tAtom %6i@%4s-%6i@%4s %sEelec= %12.4f\n",
+    Eout_->Printf("\tAtom %6i@%-4s-%6i@%-4s %sEelec= %12.4f\n",
                     atom1+1, parmIn[atom1].c_str(),
                     atom2+1, parmIn[atom2].c_str(),
                     etype, eelec);
@@ -460,7 +460,7 @@ int Action_Pairwise::PrintCutAtoms(Frame const& frame, int frameNum, EoutType ct
       Eout_->Printf("\tPAIRWISE: Cumulative d%s:", CalcString[ctype]);
     else
       Eout_->Printf("\tPAIRWISE: Cumulative %s:", CalcString[ctype]);
-    Eout_->Printf(" %s < %.4f, %s > %.4f\n", CalcString[ctype], -cutIn,
+    Eout_->Printf(" %4s < %.4f, %4s > %.4f\n", CalcString[ctype], -cutIn,
                  CalcString[ctype], cutIn);
   }
   for (int idx = 0; idx != Mask0_.Nselected(); idx++)
@@ -469,7 +469,7 @@ int Action_Pairwise::PrintCutAtoms(Frame const& frame, int frameNum, EoutType ct
     if (fabs(Earray[idx]) > cutIn)
     {
       if (Eout_ != 0) 
-        Eout_->Printf("\t\t%6i@%s: %12.4f\n", atom+1,
+        Eout_->Printf("\t\t%6i@%-4s: %12.4f\n", atom+1,
                     (*CurrentParm_)[atom].c_str(), Earray[idx]);
       CutMask.AddAtom(atom);
       CutCharges.push_back(Earray[idx]);

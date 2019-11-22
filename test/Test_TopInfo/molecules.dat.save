@@ -1,4 +1,4 @@
-#Mol  Natom  Nres  Res0  Res1 Name
+#Mol  Natom  Nres  Res0  Res1 Name C
     1   939    30     1    30 DT5   
     2   963    30    31    60 DC5   
     3     1     1    61    61 Na+   

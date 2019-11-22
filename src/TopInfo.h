@@ -29,6 +29,12 @@ class TopInfo {
   private:
     inline int SetupMask(CharMask&) const;
     inline int SetupMask(std::string const&, CharMask&) const;
+    /// \return the longest atom/type name selected by mask.
+    int maxAtomNamesWidth(AtomMask const&) const;
+    /// \return the longest residue name in given list of residue #s
+    int maxResNameWidth(std::vector<int> const&) const;
+    /// \return the longest molecule name in the given list of molecle #s
+    int maxMolNameWidth(std::vector<int> const&) const;
     void PrintBonds(BondArray const&, BondParmArray const&,
                     CharMask const&, CharMask const&, int, int&) const;
     void PrintAngles(AngleArray const&, AngleParmArray const&,

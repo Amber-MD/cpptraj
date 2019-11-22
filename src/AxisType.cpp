@@ -321,12 +321,10 @@ void RefBase::PrintInfo() const {
 }
 
 // ---------- NA_Atom ----------------------------------------------------------
-/// CONSTRUCTOR - replace any asterisks in name with quote
+/// CONSTRUCTOR
 NA_Atom::NA_Atom(double x, double y, double z, NA_Base::HBType t, int r, const char* n) :
       x_(x), y_(y), z_(z), hb_type_(t), rms_fit_(r), aname_(n)
-{
-  aname_.ReplaceAsterisk();
-}
+{ }
 
 // ---------- NA_Base ----------------------------------------------------------
 NA_Base::NA_Base() :

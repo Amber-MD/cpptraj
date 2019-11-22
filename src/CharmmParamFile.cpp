@@ -118,7 +118,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
           args.MarkArg(0);
           args.MarkArg(1);
           args.MarkArg(2);
-          ParameterHolders::RetType ret = prm.AT().AddParm( AtomTypeHolder(args[2]),
+          ParameterHolders::RetType ret = prm.AT().AddParm( TypeNameHolder(args[2]),
                                                             AtomType(args.getNextDouble(0)),
                                                             true );
           if (ret == ParameterHolders::UPDATED)
@@ -186,7 +186,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
             if (args.Nargs() < 4)
               mprintf("Warning: Bad syntax for bond parameter on line %i: %s\n", infile.LineNumber(), line);
             else {
-              AtomTypeHolder types(2);
+              TypeNameHolder types(2);
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               double rk = args.getNextDouble(0);
@@ -198,7 +198,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
             if (args.Nargs() < 5)
               mprintf("Warning: Bad syntax for angle parameter on line %i: %s\n", infile.LineNumber(), line);
             else {
-              AtomTypeHolder types(3);
+              TypeNameHolder types(3);
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
@@ -207,7 +207,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
               prm.AP().AddParm(types, AngleParmType(tk, teq*Constants::DEGRAD), false);
               if (args.Nargs() > 5) {
                 // UREY-BRADLEY
-                AtomTypeHolder utypes(2);
+                TypeNameHolder utypes(2);
                 utypes.AddName(types[0]);
                 utypes.AddName(types[2]);
                 tk = args.getNextDouble(0);
@@ -220,7 +220,7 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
             if (args.Nargs() < 7)
               mprintf("Warning: Bad syntax for dihedral parameter on line %i: %s\n", infile.LineNumber(), line);
             else {
-              AtomTypeHolder types(4, "X"); // X is wildcard character
+              TypeNameHolder types(4, "X"); // X is wildcard character
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
               types.AddName( args.GetStringNext() );
@@ -240,13 +240,13 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
             else {
               prm.SetHasLJparams( true );
               // TODO handle 1-4 stuff
-              NameType at = args.GetStringNext();
+              std::string atstr = args.GetStringNext();
               double epsilon = args.getNextDouble(0.0); // skip
-              epsilon = args.getNextDouble(0.0); // negative by convention
+              epsilon = args.getNextDouble(0.0);        // negative by convention
               double radius = args.getNextDouble(0.0);
               // Determine if there are wildcard chars.
               bool hasWC = false;
-              for (char* atp = at.C_Array(); *atp != '\0'; ++atp) {
+              for (std::string::iterator atp = atstr.begin(); atp != atstr.end(); ++atp) {
                 if (*atp == '*') hasWC = true;
                 // Replace the CHARMM single wildcard with Amber/UNIX
                 if (*atp == '%') {
@@ -254,19 +254,22 @@ int CharmmParamFile::ReadParams(ParameterSet& prm, FileName const& nameIn, int d
                   hasWC = true;
                 }
               }
+              NameType at( atstr );
               if (hasWC) {
                 // Check against all current atom types.
                 for (ParmHolder<AtomType>::iterator it = prm.AT().begin();
                                                     it != prm.AT().end(); ++it)
                 {
+                  mprintf("DEBUG: Trying NB wildcard: '%s' vs '%s'\n", *(it->first[0]), *at);
                   if (it->first[0].Match( at )) {
+                    mprintf("DEBUG: NB wildcard match: '%s' matches '%s'\n", *(it->first[0]), *at);
                     it->second.SetLJ().SetRadius( radius );
                     it->second.SetLJ().SetDepth( -epsilon );
                   }
                 }
               } else {
                 // Single type
-                ParmHolder<AtomType>::iterator it = prm.AT().GetParam( AtomTypeHolder(at) );
+                ParmHolder<AtomType>::iterator it = prm.AT().GetParam( TypeNameHolder(at) );
                 if (it == prm.AT().end()) {
                   mprintf("Warning: Nonbond parameters defined for type '%s' without MASS card."
                           " Skipping.\n", *at);

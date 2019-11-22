@@ -98,7 +98,7 @@ int Parm_CharmmPsf::ReadDihedrals(CpptrajFile& infile, int ndihedral, const char
           int a3 = bondatoms[dihidx+2]-1;
           int a4 = bondatoms[dihidx+3]-1;
           DihedralType dih(a1, a2, a3, a4, DihedralType::NORMAL);
-          AtomTypeHolder types(4);
+          TypeNameHolder types(4);
           types.AddName( parmOut[a1].Type() );
           types.AddName( parmOut[a2].Type() );
           types.AddName( parmOut[a3].Type() );
@@ -230,7 +230,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       SegIDs.push_back( segmentID );
       if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
     }
-    atomTypes.AddParm( AtomTypeHolder(NameType(psftype)), AtomType(psfmass), false );
+    atomTypes.AddParm( TypeNameHolder(NameType(psftype)), AtomType(psfmass), false );
     Atom chmAtom( psfname, psfcharge, psfmass, psftype );
     parmOut.AddTopAtom( chmAtom, Residue(psfresname, psfresnum, ' ', idx) );
   } // END loop over atoms 
@@ -258,7 +258,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
         for (int bondidx = 0; bondidx < nbondsread; bondidx += 2) {
           int a1 = bondatoms[bondidx]-1;
           int a2 = bondatoms[bondidx+1]-1;
-          AtomTypeHolder types(2);
+          TypeNameHolder types(2);
           types.AddName( parmOut[a1].Type() );
           types.AddName( parmOut[a2].Type() );
           BondParmType bpt = params_.BP().FindParam( types, found );
@@ -298,7 +298,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
           int a1 = bondatoms[angleidx]-1;
           int a2 = bondatoms[angleidx+1]-1;
           int a3 = bondatoms[angleidx+2]-1;
-          AtomTypeHolder types(3);
+          TypeNameHolder types(3);
           types.AddName( parmOut[a1].Type() );
           types.AddName( parmOut[a2].Type() );
           types.AddName( parmOut[a3].Type() );

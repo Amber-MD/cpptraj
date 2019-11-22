@@ -8,6 +8,7 @@
 #include "AtomType.h"
 #include "AtomMask.h"
 #include "CharMask.h"
+#include "UpdateParameters.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -1564,14 +1565,16 @@ void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& par
                            bnd != newBondArray.end(); ++bnd)
   {
     int oldidx = bnd->Idx();
-    int newidx = parmMap[bnd->Idx()];
-    if (newidx == -1) { // This needs to be added to new parameter array.
-      newidx = (int)newBondParm.size();
-      parmMap[oldidx] = newidx;
-      newBondParm.push_back( oldParm[oldidx] );
+    if (oldidx > -1) {
+      int newidx = parmMap[oldidx];
+      if (newidx == -1) { // This needs to be added to new parameter array.
+        newidx = (int)newBondParm.size();
+        parmMap[oldidx] = newidx;
+        newBondParm.push_back( oldParm[oldidx] );
+      }
+      //mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
+      bnd->SetIdx( newidx );
     }
-    //mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
-    bnd->SetIdx( newidx );
   }
 }
 // Topology::StripAngleParmArray()
@@ -1582,14 +1585,16 @@ void Topology::StripAngleParmArray(AngleArray& newAngleArray, std::vector<int>& 
                             ang != newAngleArray.end(); ++ang)
   {
     int oldidx = ang->Idx();
-    int newidx = parmMap[ang->Idx()];
-    if (newidx == -1) { // This needs to be added to new parameter array.
-      newidx = (int)newAngleParm.size();
-      parmMap[oldidx] = newidx;
-      newAngleParm.push_back( angleparm_[oldidx] );
+    if (oldidx > -1) {
+      int newidx = parmMap[oldidx];
+      if (newidx == -1) { // This needs to be added to new parameter array.
+        newidx = (int)newAngleParm.size();
+        parmMap[oldidx] = newidx;
+        newAngleParm.push_back( angleparm_[oldidx] );
+      }
+      //mprintf("DEBUG: Old angle parm index=%i, new angle parm index=%i\n", oldidx, newidx);
+      ang->SetIdx( newidx );
     }
-    //mprintf("DEBUG: Old angle parm index=%i, new angle parm index=%i\n", oldidx, newidx);
-    ang->SetIdx( newidx );
   }
 }
 
@@ -1610,14 +1615,16 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
                                dih != newDihedralArray.end(); ++dih)
   {
     int oldidx = dih->Idx();
-    int newidx = parmMap[dih->Idx()];
-    if (newidx == -1) { // This needs to be added to new parameter array.
-      newidx = (int)newDihedralParm.size();
-      parmMap[oldidx] = newidx;
-      newDihedralParm.push_back( oldParm[oldidx] );
+    if (oldidx > -1) {
+      int newidx = parmMap[oldidx];
+      if (newidx == -1) { // This needs to be added to new parameter array.
+        newidx = (int)newDihedralParm.size();
+        parmMap[oldidx] = newidx;
+        newDihedralParm.push_back( oldParm[oldidx] );
+      }
+      //mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
+      dih->SetIdx( newidx );
     }
-    //mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
-    dih->SetIdx( newidx );
   }
 }
 
@@ -1883,15 +1890,25 @@ int Topology::AppendTop(Topology const& NewTop) {
 }
 
 // -----------------------------------------------------------------------------
+static void paramOverwriteWarning(const char* type) {
+  mprintf("Warning: An existing %s parameter would have been overwritten. This\n"
+          "Warning:  usually means that the atom type information in the Topology is\n"
+          "Warning:  incomplete. This can happen for example with Chamber topologies\n"
+          "Warning:  if the original atom type names were > 4 characters.\n", type);
+  mprintf("Warning: The %s parameters in this topology may now be incorrect.\n", type);
+}
+
 // GetBondParams()
 static inline void GetBondParams(ParmHolder<BondParmType>& BP, std::vector<Atom> const& atoms, BondArray const& bonds, BondParmArray const& bpa) {
   for (BondArray::const_iterator b = bonds.begin(); b != bonds.end(); ++b)
   {
     if (b->Idx() != -1) {
-      AtomTypeHolder types(2);
+      TypeNameHolder types(2);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
-      BP.AddParm( types, bpa[b->Idx()], false );
+      ParameterHolders::RetType ret = BP.AddParm( types, bpa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("bond");
     }
   }
 }
@@ -1901,11 +1918,13 @@ static inline void GetAngleParams(ParmHolder<AngleParmType>& AP, std::vector<Ato
   for (AngleArray::const_iterator b = angles.begin(); b != angles.end(); ++b)
   {
     if (b->Idx() != -1) {
-      AtomTypeHolder types(3);
+      TypeNameHolder types(3);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
-      AP.AddParm( types, apa[b->Idx()], false );
+      ParameterHolders::RetType ret = AP.AddParm( types, apa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("angle");
     }
   }
 }
@@ -1915,12 +1934,14 @@ static inline void GetImproperParams(ParmHolder<DihedralParmType>& IP, std::vect
   for (DihedralArray::const_iterator b = imp.begin(); b != imp.end(); ++b)
   {
     if (b->Idx() != -1) {
-      AtomTypeHolder types(4);
+      TypeNameHolder types(4);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
       types.AddName( atoms[b->A4()].Type() );
-      IP.AddParm( types, ipa[b->Idx()], false );
+      ParameterHolders::RetType ret = IP.AddParm( types, ipa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("improper");
     }
   }
 }
@@ -1930,12 +1951,15 @@ static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> c
   for (DihedralArray::const_iterator b = dih.begin(); b != dih.end(); ++b)
   {
     if (b->Idx() != -1) {
-      AtomTypeHolder types(4);
+      TypeNameHolder types(4);
       types.AddName( atoms[b->A1()].Type() );
       types.AddName( atoms[b->A2()].Type() );
       types.AddName( atoms[b->A3()].Type() );
       types.AddName( atoms[b->A4()].Type() );
-      DP.AddParm( types, dpa[b->Idx()], false );
+      //mprintf("DEBUG: dihedral %li ( %i %i %i %i )\n", b - dih.begin() + 1, b->A1()+1, b->A2()+1, b->A3()+1, b->A4()+1);
+      ParameterHolders::RetType ret = DP.AddParm( types, dpa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("dihedral");
     }
   }
 }
@@ -1957,7 +1981,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
     {
       // TODO check for blank type name?
-      AtomTypeHolder types(1);
+      TypeNameHolder types(1);
       types.AddName( atm->Type() );
       int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
       ParameterHolders::RetType ret;
@@ -2004,7 +2028,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
             mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
           }
         }
-        AtomTypeHolder types(2);
+        TypeNameHolder types(2);
         types.AddName( name1 );
         types.AddName( name2 );
         NB1.AddParm( types, lj1, false );
@@ -2015,7 +2039,7 @@ static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<N
   } else {
     for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
       if (atm->Type().len() > 0)
-        atomTypes.AddParm( AtomTypeHolder(atm->Type()), AtomType(atm->Mass()), true );
+        atomTypes.AddParm( TypeNameHolder(atm->Type()), AtomType(atm->Mass()), true );
   }
 }
 
@@ -2056,7 +2080,7 @@ void AssignParm(std::vector<Atom> const& atoms,
                 V& currentParams)                // BondParmArray
 {
   for (typename U::iterator obj = objects.begin(); obj != objects.end(); ++obj) {
-    AtomTypeHolder types(obj->Nidx());
+    TypeNameHolder types(obj->Nidx());
     for (unsigned int idx = 0; idx != obj->Nidx(); idx++)
       types.AddName( atoms[obj->Atom(idx)].Type() );
     bool found;
@@ -2087,7 +2111,7 @@ void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
                               BondArray& bonds, BondParmArray& bpa, const char* desc)
 {
   for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
-    AtomTypeHolder types(2);
+    TypeNameHolder types(2);
     types.AddName( atoms_[bnd->A1()].Type() );
     types.AddName( atoms_[bnd->A2()].Type() );
     bool found;
@@ -2135,7 +2159,7 @@ void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
                               AngleArray& angles)
 {
   for (AngleArray::iterator ang = angles.begin(); ang != angles.end(); ++ang) {
-    AtomTypeHolder types(3);
+    TypeNameHolder types(3);
     types.AddName( atoms_[ang->A1()].Type() );
     types.AddName( atoms_[ang->A2()].Type() );
     types.AddName( atoms_[ang->A3()].Type() );
@@ -2177,7 +2201,7 @@ void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImprope
                                   DihedralArray& impropers)
 {
   for (DihedralArray::iterator imp = impropers.begin(); imp != impropers.end(); ++imp) {
-    AtomTypeHolder types(4);
+    TypeNameHolder types(4);
     types.AddName( atoms_[imp->A1()].Type() );
     types.AddName( atoms_[imp->A2()].Type() );
     types.AddName( atoms_[imp->A3()].Type() );
@@ -2209,7 +2233,7 @@ void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImprope
 
 /** Replace any current improper parameters with given improper parameters. */
 void Topology::AssignImproperParams(ParmHolder<DihedralParmType> const& newImproperParams) {
-  dihedralparm_.clear();
+  chamber_.SetImproperParm().clear();
   ParmHolder<int> currentIndices;
   AssignImproperParm( newImproperParams, currentIndices, chamber_.SetImpropers() );
 }
@@ -2244,7 +2268,7 @@ void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
   ParmHolder< std::vector<int> > currentIndices;
   dihedralsIn.clear();
   for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
-    AtomTypeHolder types(4);
+    TypeNameHolder types(4);
     types.AddName( atoms_[dih->A1()].Type() );
     types.AddName( atoms_[dih->A2()].Type() );
     types.AddName( atoms_[dih->A3()].Type() );
@@ -2312,7 +2336,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHol
   for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
   {
     if (atm->Type().len() > 0) {
-      AtomTypeHolder types(1);
+      TypeNameHolder types(1);
       types.AddName(atm->Type());
       // Find in newTypes.
       bool found;
@@ -2346,7 +2370,7 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHol
       NameType const& name2 = t2->first[0];
       //mprintf("DEBUG:\t\tType2= %s (%i)\n", *name2, nidx2);
       AtomType const& type2 = t2->second;
-      AtomTypeHolder types(2);
+      TypeNameHolder types(2);
       types.AddName( name1 );
       types.AddName( name2 );
       // See if this parameter exists in the given nonbond array.
@@ -2384,45 +2408,6 @@ void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHol
 }
 
 // -----------------------------------------------------------------------------
-static inline void PrintParmType(BondParmType const& bp) { mprintf(" %12.4f %12.4f\n", bp.Rk(), bp.Req()); }
-static inline void PrintParmType(AngleParmType const& ap) { mprintf(" %12.4f %12.4f\n", ap.Tk(), ap.Teq()); }
-static inline void PrintParmType(DihedralParmType const& dp) { mprintf(" %12.4f %12.4f %12.4f\n", dp.Pk(), dp.Pn(), dp.Phase()); }
-static inline void PrintParmType(DihedralParmArray const& dpa) {
-  mprintf("\n");
-  for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it)
-    mprintf("\t\t%12.4f %12.4f %12.4f\n", it->Pk(), it->Pn(), it->Phase());
-}
-static inline void PrintParmType(AtomType const& at) { mprintf(" %12.4f %12.4f %12.4f\n", at.LJ().Radius(), at.LJ().Depth(), at.Mass()); }
-static inline void PrintParmType(NonbondType const& nb) { mprintf(" %12.4E %12.4E\n", nb.A(), nb.B()); }
-
-/** Add update parameters.
-  * \param0 Parameters to add to/update.
-  * \param1 New parameters.
-  * \param desc Description of parameters.
-  */
-template <typename T> int UpdateParameters(T& param0, T const& param1, const char* desc)
-{
-  int updateCount = 0;
-  for (typename T::const_iterator newp = param1.begin(); newp != param1.end(); ++newp)
-  {
-    ParameterHolders::RetType ret = param0.AddParm( newp->first, newp->second, true );
-    if (ret != ParameterHolders::ERR) {
-      if (ret == ParameterHolders::ADDED) {
-        mprintf("\tAdded NEW %s parameter:", desc);
-        updateCount++;
-      } else if (ret == ParameterHolders::UPDATED) {
-        mprintf("\tUpdated %s parameter:", desc);
-        updateCount++;
-      } else if (ret == ParameterHolders::SAME)
-        mprintf("\tParameter for %s already present:", desc);
-      mprintf(" %s", newp->first.TypeString().c_str());
-      PrintParmType( newp->second );
-      //mprintf(" %s %s %12.4f %12.4f\n", 
-      //        *(newp->first[0]), *(newp->first[1]), newp->second.Rk(), newp->second.Req());
-    }
-  }
-  return updateCount;
-}
 
 /** Update/add to parameters in this topology with those from given set. */
 int Topology::UpdateParams(ParameterSet const& set1) {
@@ -2430,7 +2415,10 @@ int Topology::UpdateParams(ParameterSet const& set1) {
   // Check
   if (set0.AT().size() < 1)
     mprintf("Warning: No atom type information in '%s'\n", c_str());
-  set0.Debug("originalp.dat");
+  if (debug_ > 0) {
+    mprintf("DEBUG: Saving original parameters in originalp.dat, new parameters in newp.dat\n");
+    set0.Debug("originalp.dat");
+  }
 
   unsigned int updateCount;
   // Bond parameters
@@ -2471,6 +2459,6 @@ int Topology::UpdateParams(ParameterSet const& set1) {
     AssignNonbondParams( set0.AT(), set0.NB() );
   }
 
-  set0.Debug("newp.dat");
+  if (debug_ > 0) set0.Debug("newp.dat");
   return 0;
 }
