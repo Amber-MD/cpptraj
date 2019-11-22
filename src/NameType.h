@@ -4,7 +4,7 @@
 /// Class for holding strings of small size, like atom names or type names.
 class NameType {
     /** The size of the char array. Max name that can fit is ArraySize_ - 1 */
-    static const unsigned int ArraySize_ = 6;
+    static const unsigned int ArraySize_ = 8;
   public:
     NameType();
     NameType(const NameType&);
