@@ -9,9 +9,11 @@ class CharMask;
 /// Class for printing formatted topology info to a file.
 class TopInfo {
   public:
-    TopInfo () : outfile_(0), parm_(0), toStdout_(false) {}
-    ~TopInfo();
+    /// CONSTRUCTOR
+    TopInfo();
+    /// CONSTRUCTOR - Take pointer to topology, output to STDOUT
     TopInfo(Topology const*);
+    ~TopInfo();
     int SetupTopInfo(CpptrajFile*, Topology const*, DataSet_Coords*);
     int SetupTopInfo(Topology const* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
 
@@ -24,8 +26,8 @@ class TopInfo {
     int PrintAngleInfo(std::string const&, std::string const&, std::string const&) const;
     int PrintDihedralInfo(std::string const&, std::string const&,
                           std::string const&, std::string const&,bool) const;
-    int PrintChargeInfo(std::string const&) const;
-    int PrintMassInfo(std::string const&) const;
+    int PrintChargeInfo(std::string const&, double&) const;
+    int PrintMassInfo(std::string const&, double&) const;
   private:
     inline int SetupMask(CharMask&) const;
     inline int SetupMask(std::string const&, CharMask&) const;
@@ -47,9 +49,10 @@ class TopInfo {
     CpptrajFile* outfile_;
     Topology const* parm_;
     Frame coords_;
-    int Awidth_; ///< Max width of field for holding atom numbers.
-    int Rwidth_; ///< Max width of AtomMaskName for topology
-    int max_type_len_; ///< Max width of atom type name in topology
+    int Awidth_;        ///< Max width of field for holding atom numbers.
+    int amn_width_;     ///< Max width of AtomMaskName (:<resname>@<atomname>) for topology
+    int max_type_len_;  ///< Max width of atom type name in topology
+    int max_aname_len_; ///< Max width of atom name in topology
     bool toStdout_;
 };
 #endif

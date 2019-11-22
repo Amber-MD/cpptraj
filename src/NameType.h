@@ -4,7 +4,7 @@
 /// Class for holding strings of small size, like atom names or type names.
 class NameType {
     /** The size of the char array. Max name that can fit is ArraySize_ - 1 */
-    static const unsigned int ArraySize_ = 6;
+    static const unsigned int ArraySize_ = 8;
   public:
     NameType();
     NameType(const NameType&);
@@ -29,7 +29,7 @@ class NameType {
     const char* operator*() const { return c_array_; }
     /// \return Character at specified position, or null if out of range
     char operator[](int) const;
-    /// \return Truncated name.
+    /// \return Name as a string.
     std::string Truncated() const;
     /// \return Name with minimal given width, padded with spaces if necessary.
     std::string Formatted(int) const;

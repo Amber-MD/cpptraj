@@ -10851,9 +10851,64 @@ angleinfo | angles | printangles
 \end_layout
 
 \begin_layout LyX-Code
-angleinfo [parm <name> | parmindex <#> | <#>] [<mask>] 
+angleinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2> <mask3>]
 \end_layout
 
+\begin_layout LyX-Code
+          [out <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>] Name/tag or index of topology.
+ Default is first loaded topology.
+\end_layout
+
+\begin_layout Description
+[<mask1>] Mask to print angle info for.
+\end_layout
+
+\begin_layout Description
+[<mask2>
+\begin_inset space ~
+\end_inset
+
+<mask3>] If specified, angles must match all masks.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to print to (default STDOUT).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Print angle information of atoms in <mask> for selected topology (first
  loaded topology by default) with format:
@@ -10892,14 +10947,62 @@ atom names
  Atom types will be shown in the last column.
 \end_layout
 
+\begin_layout Standard
+If 3 masks are given instead of 1, print info for angles with first atom
+ in <mask1>, second atom in <mask2>, and third atom in <mask3>.
+\end_layout
+
 \begin_layout Subsection
 atominfo | atoms | printatoms
 \end_layout
 
 \begin_layout LyX-Code
-atominfo [parm <name> | parmindex <#> | <#>] [<mask>]
+atominfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>] Name/tag or index of topology.
+ Default is first loaded topology.
+\end_layout
+
+\begin_layout Description
+[<mask>] Mask selecting atoms to print info for.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to print to (default STDOUT).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Print information on atoms in <mask> for selected topology (first loaded
  topology by default) with format:
@@ -10969,9 +11072,56 @@ bondinfo | bonds | printbonds
 \end_layout
 
 \begin_layout LyX-Code
-bondinfo [parm <name> | parmindex <#> | <#>] [<mask>]
+bondinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2>] [out <file>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>] Name/tag or index of topology.
+ Default is first loaded topology.
+\end_layout
+
+\begin_layout Description
+[<mask1>] Mask to print bond info for.
+\end_layout
+
+\begin_layout Description
+[<mask2>] If specified, bonds must match both masks.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to print to (default STDOUT).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Print bond information for atoms in <mask> for selected topology (first
  loaded topology by default) with format:
@@ -11008,6 +11158,11 @@ atom names
 \family default
  shows both atom numbers in a comma-separated list.
  Atom types will be shown in the last column.
+\end_layout
+
+\begin_layout Standard
+If 2 masks are given instead of 1, print info for bonds with first atom
+ in <mask1> and second atom in <mask2>.
 \end_layout
 
 \begin_layout Subsection
@@ -11193,9 +11348,52 @@ charge
 \end_layout
 
 \begin_layout LyX-Code
-charge [parm <name> | parmindex <#> | <#>] <mask>
+charge [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>] [name <set>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#> Topology to calculate charge from.
+\end_layout
+
+\begin_layout Description
+[<mask>] Atom(s) to calculate total charge for (default all).
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write total charge to.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<set>] If specified, a data set named <set> will be cretaed containing total
+ charge.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Print the total charge of atoms in <mask> (in units of electron charge)
  for selected topology (first loaded topology by default).
@@ -11280,9 +11478,69 @@ dihedralinfo | dihedrals | printdihedrals
 \end_layout
 
 \begin_layout LyX-Code
-dihedralinfo [parm <name> | parmindex <#> | <#>] [<mask>] [and]
+dihedralinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2> <mask3>
+ <mask4>]
 \end_layout
 
+\begin_layout LyX-Code
+             [out <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>] Name/tag or index of topology.
+ Default is first loaded topology.
+\end_layout
+
+\begin_layout Description
+[<mask1>] Mask to print dihedral info for.
+\end_layout
+
+\begin_layout Description
+[<mask2>
+\begin_inset space ~
+\end_inset
+
+<mask3>
+\begin_inset space ~
+\end_inset
+
+<mask4>] If specified, dihedrals must match all masks.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to print to (default STDOUT).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Print dihedral information of atoms in <mask> for selected topology (first
  loaded topology by default) with format:
@@ -11336,18 +11594,9 @@ B
 \end_layout
 
 \begin_layout Standard
-If the 
-\series bold
-and
-\series default
- keyword is specified then printed dihedrals must contain all atoms specified
- in the <mask>.
- For example, to only get dihedrals containing the atom types N3, CT, and
- OH:
-\end_layout
-
-\begin_layout LyX-Code
-dihedrals @%N3,CT,OH and
+If 4 masks are given instead of 1, print info for dihedrals with first atom
+ in <mask1>, second atom in <mask2>, third atom in <mask3>, and fourth atom
+ in <mask4>.
 \end_layout
 
 \begin_layout Subsection
@@ -11363,6 +11612,61 @@ improperinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2> <mask3>
              [out <file>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>] Name/tag or index of topology.
+ Default is first loaded topology.
+\end_layout
+
+\begin_layout Description
+[<mask1>] Mask to print improper info for.
+\end_layout
+
+\begin_layout Description
+[<mask2>
+\begin_inset space ~
+\end_inset
+
+<mask3>
+\begin_inset space ~
+\end_inset
+
+<mask4>] If specified, impropers must match all masks.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to print to (default STDOUT).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 For specified topology (first by default) either print CHARMM improper info
  for all atoms in <mask1>, or print info for dihedrals with first atom in
@@ -11375,9 +11679,53 @@ mass
 \end_layout
 
 \begin_layout LyX-Code
-[<parmindex>] [parm <name> | parmindex <#> | <#>] <mask>
+[<parmindex>] [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
+ [name <set>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#> Topology to calculate mass from.
+\end_layout
+
+\begin_layout Description
+[<mask>] Atom(s) to calculate total mass for (default all).
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write total mass to.
+\end_layout
+
+\begin_layout Description
+[name
+\begin_inset space ~
+\end_inset
+
+<set>] If specified, a data set named <set> will be cretaed containing total
+ mass.
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Print the total mass of atoms in <mask> (in amu) for selected topology (first
  loaded topology by default).
@@ -11388,16 +11736,59 @@ molinfo
 \end_layout
 
 \begin_layout LyX-Code
-molinfo [parm <name> | parmindex <#> | <#>] [<mask>]
+molinfo [parm <name> | parmindex <#> | <#>] [<mask>] [out <file>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>] Name/tag or index of topology.
+ Default is first loaded topology.
+\end_layout
+
+\begin_layout Description
+[<mask>] Mask selecting molecules to print info for.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to print to (default STDOUT).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Print molecule information for atoms in <mask> for selected topology (first
  loaded topology by default) with format:
 \end_layout
 
 \begin_layout LyX-Code
-#Mol  Natom  #Res Name [SOLVENT]
+#Mol  Natom  #Res Name C [SOLVENT]
 \end_layout
 
 \begin_layout Standard
@@ -11409,7 +11800,7 @@ where
 \family typewriter
 Natom
 \family default
- is the number of atoms in the molecule, and 
+ is the number of atoms in the molecule, 
 \family typewriter
 #Res
 \family default
@@ -11418,7 +11809,7 @@ Natom
 Name
 \family default
  are the residue number and residue name of the first residue in the molecule
- respectively.
+ respectively, and C is the chain ID of the first residue.
  
 \family typewriter
 SOLVENT
@@ -12014,6 +12405,53 @@ printub | ubinfo
 printub [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2>] [out <file>]
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>] Name/tag or index of topology.
+ Default is first loaded topology.
+\end_layout
+
+\begin_layout Description
+[<mask1>] Atoms to print UB info for.
+\end_layout
+
+\begin_layout Description
+[<mask2>] If specified, UB info must match both masks.
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to print to (default STDOUT).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 For specified topology (first by default) either print CHARMM Urey-Bradley
  info for all atoms in <mask1>, or print info for bonds with first atom
@@ -12035,16 +12473,77 @@ parmresinfo
 
 \end_inset
 
- [parm <name> | parmindex <#> | <#>] [<mask>] [short]
+ [parm <name> | parmindex <#> | <#>] [<mask>] [short [maxwidth <#res>]]
 \end_layout
 
+\begin_layout LyX-Code
+        [out <file>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[parm
+\begin_inset space ~
+\end_inset
+
+<name>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+parmindex
+\begin_inset space ~
+\end_inset
+
+<#>
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+<#>] Name/tag or index of topology.
+ Default is first loaded topology.
+\end_layout
+
+\begin_layout Description
+[<mask>] Mask selecting residues to print info for.
+\end_layout
+
+\begin_layout Description
+[short] Use a short 1 character residue name format
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[maxwidth
+\begin_inset space ~
+\end_inset
+
+<#res>] Max # of residues to print in one line (default 50).
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to print to (default STDOUT).
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Print residue information for atoms in <mask> for selected topology (first
  loaded topology by default) with format:
 \end_layout
 
 \begin_layout LyX-Code
-#Res  Name First  Last Natom #Orig #Mol
+#Res  Name First  Last Natom #Orig #Mol C
 \end_layout
 
 \begin_layout Standard
@@ -12072,12 +12571,16 @@ Natom
 \family typewriter
 #Orig
 \family default
- is the original residue number (in PDB files), and #Mol is the molecule
- number.
+ is the original residue number (in PDB files), #Mol is the molecule number,
+ and C is the chain ID.
 \end_layout
 
 \begin_layout Standard
-If short is specified then residues will be printed out in a condensed format.
+If 
+\series bold
+short
+\series default
+ is specified then residues will be printed out in a condensed format.
  Each residue name will be shortened to 1 character, and residues are printed
  out in groups of 10, 5 groups to a line, with each line beginning with
  a residue number, e.g.
