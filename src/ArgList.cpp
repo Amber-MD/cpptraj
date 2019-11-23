@@ -160,6 +160,13 @@ ArgList ArgList::RemainingArgs() {
   return remain;
 }
 
+int ArgList::NremainingArgs() const {
+  int nUnmarked = 0;
+  for (std::vector<bool>::const_iterator it = marked_.begin(); it != marked_.end(); ++it)
+    if (!(*it)) ++nUnmarked;
+  return nUnmarked;
+}
+
 // ArgList::AddArg()
 /** \param input string of space-delimited args to add to argument list.
   */

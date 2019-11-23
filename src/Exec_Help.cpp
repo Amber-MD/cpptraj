@@ -186,7 +186,10 @@ Exec::RetType Exec_Help::Execute(CpptrajState& State, ArgList& argIn) {
       if (cmd.Obj().Type() == DispatchObject::DEPRECATED)
         mprintf("Warning: '%s' is deprecated.\n", arg.Command());
       //arg.MarkArg(0);
-      cmd.Help();
+      if (arg.NremainingArgs() < 1)
+        cmd.Help();
+      else
+        cmd.Help(arg);
     }
   }
   return CpptrajState::OK;

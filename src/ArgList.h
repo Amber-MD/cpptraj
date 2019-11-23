@@ -49,8 +49,10 @@ class ArgList {
     void ClearList();
     /// Set up argument list from string and given separators
     int SetList(std::string const&, const char *);
-    /// \return an argument list of remaining unmarked args.
+    /// \return an argument list of remaining unmarked args (and mark them here).
     ArgList RemainingArgs();
+    /// \return number of unmarked arguments
+    int NremainingArgs() const;
     /// Add argument to the list
     void AddArg(std::string const&);
     /// Mark given argument
