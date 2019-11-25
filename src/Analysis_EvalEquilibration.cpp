@@ -60,6 +60,17 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     return Analysis::ERR;
   }
 
+  // Determine relaxation direction
+  int relaxationDir = 0;
+  if (slope < 0)
+    relaxationDir = -1;
+  else if (slope > 0)
+    relaxationDir = 1;
+
+  // Special case: if slope was exactly 0 (should be rare). Consider this
+  // equilibrated.
+  
+
   RPNcalc calc;
   calc.SetDebug(debug_);
 
