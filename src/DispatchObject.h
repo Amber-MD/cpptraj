@@ -5,6 +5,7 @@
   * base class only contains a category used to sort the command - all
   * other logic is implemented by child classes.
   */
+class ArgList;
 class DispatchObject {
   public:
     /// Object categories. HIDDEN and DEPRECATED should always be last.
@@ -19,6 +20,8 @@ class DispatchObject {
     virtual ~DispatchObject() {}
     /// Print help for this object to screen.
     virtual void Help() const = 0;
+    /// Print help - takes arguments.
+    virtual void Help(ArgList&) const { Help(); }
     /// \return Pointer to new instance of this object.
     virtual DispatchObject* Alloc() const = 0;
     /// \return Object category

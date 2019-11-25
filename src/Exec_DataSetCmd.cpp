@@ -5,47 +5,67 @@
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_Vector.h"
 #include "DataSet_string.h"
+#include "DataSet_Mesh.h"
 #include "StringRoutines.h"
 
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
           "\t dim|outformat|invert|mode|type} <options>\n");
-  mprintf("  legend <legend> <set>\n"
-          "    Set the legend for a single data set.\n");
-  mprintf("  makexy <Xset> <Yset> [name <name>]\n"
-          "    Create new data set with X values from one set and Y values from another.\n");
-  mprintf("  vectorcoord {X|Y|Z} [name <name>]\n"
-          "    Extract X, Y, or Z component of vector data into new set.\n");
-  mprintf("  cat <set0> <set1> ... [name <name>] [nooffset]\n"
-          "    Concatenate 2 or more data sets.\n");
-  mprintf("  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
-          "    Create new 2D data set from 1D data set, assumes row-major ordering.\n");
-  Help_ModifyPoints();
-  mprintf("  remove <criterion> <select> <value> [and <value2>] [<set selection>]\n"
-          "      <criterion>: ");
-  for (int i = 1; i < (int)N_C; i++)
-    mprintf(" '%s'", CriterionKeys[i]);
-  mprintf("\n      <select>   : ");
-  for (SelectPairType const* ptr = SelectKeys; ptr->key_ != 0; ptr++)
-    mprintf(" '%s'", ptr->key_);
-  mprintf("\n    Remove data sets according to specified criterion and selection.\n");
-  Help_ChangeDim();
-  mprintf("  outformat {double|scientific|general} <set arg1> [<set arg 2> ...]\n"
-          "    Change output format of double-precision data:\n"
-          "      double     - \"Normal\" output, e.g. 0.4032\n"
-          "      scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
-          "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
-  Help_InvertSets();
-  mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
-  mprintf("      <mode>: ");
-  for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
-    mprintf(" '%s'", MetaData::ModeString((MetaData::scalarMode)i));
-  mprintf("\n      <type>: ");
-  for (int i = 0; i != (int)MetaData::UNDEFINED; i++)
-    mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
-  mprintf("\n    Options for 'type noe':\n"
-          "      %s\n", AssociatedData_NOE::HelpText);
-  mprintf("    Change the mode and/or type for one or more data sets.\n");
+  mprintf("  Type 'help dataset <cmd>' for detailed subcommand help.\n");
+}
+
+void Exec_DataSetCmd::Help(ArgList& argIn) const {
+  if (argIn.hasKey("legend")) {
+    mprintf("  legend <legend> <set>\n"
+            "    Set the legend for a single data set.\n");
+  } else if (argIn.hasKey("makexy")) {
+    mprintf("  makexy <Xset> <Yset> [name <name>]\n"
+            "    Create new data set with X values from one set and Y values from another.\n");
+  } else if (argIn.hasKey("vectorcoord")) {
+    mprintf("  vectorcoord {X|Y|Z} [name <name>]\n"
+            "    Extract X, Y, or Z component of vector data into new set.\n");
+  } else if (argIn.hasKey("cat")) {
+    mprintf("  cat <set0> <set1> ... [name <name>] [nooffset]\n"
+            "    Concatenate 2 or more data sets.\n");
+  } else if (argIn.hasKey("make2d")) {
+    mprintf("  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
+            "    Create new 2D data set from 1D data set, assumes row-major ordering.\n");
+  } else if (argIn.hasKey("droppoints") || argIn.hasKey("keeppoints")) {
+    Help_ModifyPoints();
+  } else if (argIn.hasKey("remove")) {
+    mprintf("  remove <criterion> <select> <value> [and <value2>] [<set selection>]\n"
+            "      <criterion>: ");
+    for (int i = 1; i < (int)N_C; i++)
+      mprintf(" '%s'", CriterionKeys[i]);
+    mprintf("\n      <select>   : ");
+    for (SelectPairType const* ptr = SelectKeys; ptr->key_ != 0; ptr++)
+      mprintf(" '%s'", ptr->key_);
+    mprintf("\n    Remove data sets according to specified criterion and selection.\n");
+  } else if (argIn.hasKey("dim")) {
+    Help_ChangeDim();
+  } else if (argIn.hasKey("outformat")) {
+    mprintf("  outformat {double|scientific|general} <set arg1> [<set arg 2> ...]\n"
+            "    Change output format of double-precision data:\n"
+            "      double     - \"Normal\" output, e.g. 0.4032\n"
+            "      scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
+            "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
+  } else if (argIn.hasKey("invert")) {
+    Help_InvertSets();
+  } else if (argIn.hasKey("mode")) {
+    mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
+    mprintf("      <mode>: ");
+    for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
+      mprintf(" '%s'", MetaData::ModeString((MetaData::scalarMode)i));
+    mprintf("    Change the mode for one or more data sets.\n");
+  } else if (argIn.hasKey("type")) {
+    mprintf("\n      <type>: ");
+    for (int i = 0; i != (int)MetaData::UNDEFINED; i++)
+      mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
+    mprintf("\n    Options for 'type noe':\n"
+            "      %s\n", AssociatedData_NOE::HelpText);
+    mprintf("    Change the type for one or more data sets.\n");
+  } else
+    Help();
 }
 
 // Exec_DataSetCmd::Execute()
@@ -119,8 +139,10 @@ void Exec_DataSetCmd::Help_ModifyPoints() {
           "    Drop specified points from or keep specified points in data set(s).\n");
 }
 
-static inline void KeepPoint(DataSet_1D* in, DataSet* out, int idx, int& odx) {
-  out->Add(odx++, in->VoidPtr(idx));
+/** Add the X and Y values from set in at idx to set out. */
+static inline void KeepPoint(DataSet_1D* in, DataSet* out, int idx) {
+  DataSet_Mesh& mesh = static_cast<DataSet_Mesh&>( *out );
+  mesh.AddXY( in->Xcrd(idx), in->Dval(idx) );
 }
 
 // Exec_DataSetCmd::ModifyPoints()
@@ -169,19 +191,27 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
         return CpptrajState::ERR;
       }
       DataSet_1D* ds1 = (DataSet_1D*)DS;
-      // Output data set
+      // Output data set.
+      // NOTE: We want to preserve the original X values. The easiest way
+      //       to do this is to always make the output set an XY mesh
+      //       regardless of the input set type. Ideally we would detect
+      //       if a set is monotonic in X and allocate appropriately, but
+      //       since currently there are no non-monotonic (i.e. sparse)
+      //       integer/float DataSet_1D classes, XYMESH is the easiest
+      //       solution.
       DataSet* out = 0;
       if (name.empty()) {
         // Modifying this set. Create new temporary set.
-        out = State.DSL().Allocate( ds1->Type() );
+        out = State.DSL().Allocate( DataSet::XYMESH );
         if (out == 0) return CpptrajState::ERR;
+        // This gives the new set same MetaData, format etc as the original.
         *out = *ds1;
         mprintf("\tOverwriting set '%s'\n", ds1->legend());
       } else {
         // Write to new set
         MetaData md = ds1->Meta();
         md.SetName( name );
-        out = State.DSL().AddSet(ds1->Type(), md);
+        out = State.DSL().AddSet(DataSet::XYMESH, md);
         if (out == 0) return CpptrajState::ERR;
         mprintf("\tNew set is '%s'\n", out->Meta().PrintName().c_str());
       }
@@ -198,28 +228,27 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
       if (State.Debug() > 0) mprintf("DEBUG: Keeping points:");
       Range::const_iterator pt = points.begin();
       int idx = 0;
-      int odx = 0;
       if (drop) {
         // Drop points
         for (; idx < (int)ds1->Size(); idx++) {
           if (pt == points.end()) break;
           if (*pt != idx) {
             if (State.Debug() > 0) mprintf(" %i", idx + 1);
-            KeepPoint(ds1, out, idx, odx);
+            KeepPoint(ds1, out, idx);
           } else
             ++pt;
         }
         // Keep all remaining points
         for (; idx < (int)ds1->Size(); idx++) {
           if (State.Debug() > 0) mprintf(" %i", idx + 1);
-          KeepPoint(ds1, out, idx, odx);
+          KeepPoint(ds1, out, idx);
         }
       } else {
         // Keep points
         for (; pt != points.end(); pt++) {
           if (*pt >= (int)ds1->Size()) break;
           if (State.Debug() > 0) mprintf(" %i", *pt + 1);
-          KeepPoint(ds1, out, *pt, odx);
+          KeepPoint(ds1, out, *pt);
         }
       }
       if (State.Debug() > 0) mprintf("\n");
