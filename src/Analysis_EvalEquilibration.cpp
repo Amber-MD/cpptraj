@@ -70,8 +70,9 @@ int EQ_relax(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
 {
   double A0 = Params[0];
   double A1 = Params[1];
+  double A2 = Params[2];
   for (unsigned int n = 0; n != Xvals.size(); ++n)
-    Yvals[n] = A0 * ( exp( A1 * Xvals[n] ) );
+    Yvals[n] = A0 * ( exp( A1 * (Xvals[n]+A2) ) );
   return 0;
 }
 
@@ -81,8 +82,9 @@ int EQ_invRelax(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
 {
   double A0 = Params[0];
   double A1 = Params[1];
+  double A2 = Params[2];
   for (unsigned int n = 0; n != Xvals.size(); ++n)
-    Yvals[n] = A0 * ( exp( A1 * (1/Xvals[n]) ) );
+    Yvals[n] = A0 * ( exp( A1 * (1/(Xvals[n]+A2)) ) );
   return 0;
 }
 
@@ -147,13 +149,14 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       }
     }
 
-    // Set initial guesses for parameters: A0 = intercept, A1 = slope
-    CurveFit::Darray Params(2);
+    // Set initial guesses for parameters: A0 = intercept, A1 = slope, A2 = offset
+    CurveFit::Darray Params(3);
     Params[0] = intercept;
     Params[1] = slope;
     // For exponential fit, the A1 param should be < 0
     if (Params[1] > 0)
       Params[1] = -Params[1];
+    Params[2] = 0;
 
     // Perform curve fitting
     CurveFit fit;
