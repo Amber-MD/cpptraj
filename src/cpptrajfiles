@@ -102,6 +102,7 @@ COMMON_SOURCES= \
         Analysis_CrossCorr.cpp \
         Analysis_CurveFit.cpp \
         Analysis_Divergence.cpp \
+        Analysis_EvalEquilibration.cpp \
         Analysis_FFT.cpp \
         Analysis_HausdorffDistance.cpp \
         Analysis_Hist.cpp \
