@@ -151,6 +151,9 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     CurveFit::Darray Params(2);
     Params[0] = intercept;
     Params[1] = slope;
+    // For exponential fit, the A1 param should be < 0
+    if (Params[1] > 0)
+      Params[1] = -Params[1];
 
     // Perform curve fitting
     CurveFit fit;
