@@ -169,6 +169,15 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     for (unsigned int i = 0; i != Xvals.size(); i++)
       OUT.AddXY( Xvals[i], fit.FinalY()[i] );
 
+    // Statistics
+    double corr_coeff, ChiSq, TheilU, rms_percent_error;
+    err = fit.Statistics( Yvals, corr_coeff, ChiSq, TheilU, rms_percent_error);
+    if (err != 0) mprintf("Warning: %s\n", fit.Message(err));
+    statsout.Printf("\tCorrelation coefficient: %g\n"
+                    "\tChi squared: %g\n"
+                    "\tUncertainty coefficient: %g\n"
+                    "\tRMS percent error: %g\n",
+                    corr_coeff, ChiSq, TheilU, rms_percent_error);
     
   }
   return Analysis::OK;
