@@ -12,8 +12,11 @@ class Analysis_EvalEquilibration : public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
-    Array1D inputSets_;
-    std::string dsname_; ///< Output set name
+    Array1D inputSets_;                ///< Will hold data to evaluate
+    std::vector<DataSet*> outputSets_; ///< Will hold final fit curves
+    std::string dsname_;               ///< Output set(s) base name
+    double tolerance_;
+    int maxIt_;
     int debug_;
 };
 #endif
