@@ -5,7 +5,6 @@
 
 Analysis_EvalEquilibration::Analysis_EvalEquilibration() :
   Analysis(HIDDEN),
-  setIn_(0),
   debug_(0)
 {}
 
@@ -23,20 +22,15 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
     mprinterr("Error: Must specify input data set.\n");
     return Analysis::ERR;
   }
-  setIn_ = setup.DSL().GetDataSet( setInName );
-  if (setIn_ == 0) {
-    mprinterr("Error: '%s' matches no data sets.\n", setInName.c_str());
-    return Analysis::ERR;
-  }
-  if (setIn_->Group() != DataSet::SCALAR_1D) {
-    mprinterr("Error: '%s' is not a 1D scalar set.\n", setIn_->legend());
-    return Analysis::ERR;
-  }
+
   dsname_ = analyzeArgs.GetStringKey("name");
   if (dsname_.empty())
     dsname_ = setup.DSL().GenerateDefaultName("EvalEquil");
 
-  mprintf("    EVALEQUILIBRATION: Evaluate equilibration of set '%s'\n", setIn_->legend());
+  if (inputSets_.AddSetsFromArgs( analyzeArgs, setup.DSL() ))
+    return Analysis::ERR;
+
+  mprintf("    EVALEQUILIBRATION: Evaluate equilibration of %zu sets.\n", inputSets_.size());
   mprintf("\tOutput set name: %s\n", dsname_.c_str());
 
   return Analysis::OK;
@@ -44,36 +38,38 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
 
 // Analysis_EvalEquilibration::Analyze()
 Analysis::RetType Analysis_EvalEquilibration::Analyze() {
-  // First do a linear fit.
-  if (setIn_->Size() < 2) {
-    mprinterr("Error: Not enough data in '%s' to evaluate.\n", setIn_->legend());
-    return Analysis::ERR;
-  }
-  double slope, intercept, correl;
-  DataSet_1D const& DS = static_cast<DataSet_1D const&>( *setIn_ );
   CpptrajFile statsout;
   statsout.OpenWrite("");
-  int err = DS.LinearRegression( slope, intercept, correl, &statsout );
-
-  if (err != 0) {
-    mprinterr("Error: Could not perform linear regression fit.\n");
-    return Analysis::ERR;
-  }
-
-  // Determine relaxation direction
-  int relaxationDir = 0;
-  if (slope < 0)
-    relaxationDir = -1;
-  else if (slope > 0)
-    relaxationDir = 1;
-
-  // Special case: if slope was exactly 0 (should be rare). Consider this
-  // equilibrated.
-  
 
   RPNcalc calc;
   calc.SetDebug(debug_);
 
-  //if (calc.ProcessExpression( dsname_ + "
+  for (Array1D::const_iterator it = inputSets_.begin(); it != inputSets_.end(); ++it)
+  {
+    DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(*it) );
+    // First do a linear fit.
+    if (DS.Size() < 2) {
+      mprintf("Warning: Not enough data in '%s' to evaluate.\n", DS.legend());
+      continue;
+    }
+    double slope, intercept, correl;
+    int err = DS.LinearRegression( slope, intercept, correl, &statsout );
+    if (err != 0) {
+      mprinterr("Error: Could not perform linear regression fit.\n");
+      return Analysis::ERR;
+    }
+
+    // Determine relaxation direction
+    int relaxationDir = 0;
+    if (slope < 0)
+      relaxationDir = -1;
+    else if (slope > 0)
+      relaxationDir = 1;
+
+    // Special case: if slope was exactly 0 (should be rare). Consider this
+    // equilibrated.
+
+    //if (calc.ProcessExpression( dsname_ + "
+  }
   return Analysis::OK;
 }
