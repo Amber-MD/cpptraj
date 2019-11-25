@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 #include "Constants.h" // DEGRAD
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Action_Projection::Action_Projection() :
