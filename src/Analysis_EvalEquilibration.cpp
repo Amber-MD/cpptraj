@@ -188,6 +188,11 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       statsout_->Printf("\tFinal Param A%li = %g\n", ip - Params.begin(), *ip);
     }
 
+    // For inverse fit
+    // Params[0] = A0 = Long-time (final) density
+    // Params[1] = A1 = relaxation constant^-1
+    // Params[2] = A2 = time offset
+
     // Create output curve
     DataSet_Mesh& OUT = static_cast<DataSet_Mesh&>( *(*ot) );
     for (unsigned int i = 0; i != Xvals.size(); i++)
