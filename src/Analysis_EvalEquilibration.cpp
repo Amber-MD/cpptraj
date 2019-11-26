@@ -22,11 +22,13 @@ const char* Analysis_EvalEquilibration::OdataStr_[NDATA] = {
   "corr",
   "vala",
   "chisq",
+  "eqtime",
   "name",
   "result"
 };
 
 DataSet::DataType Analysis_EvalEquilibration::OdataType_[NDATA] = {
+  DataSet::DOUBLE,
   DataSet::DOUBLE,
   DataSet::DOUBLE,
   DataSet::DOUBLE,
@@ -288,6 +290,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
         break;
       }
     }
+    statsout_->Printf("\tFinal slope: %g\n", slopeY.back());
     statsout_->Printf("\tSlope cutoff satisfied at %g %g\n", finalx, finaly);
 
     // Statistics
@@ -307,6 +310,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     data_[A2]->Add(oidx, &Params[0] + 2);
     data_[CORR]->Add(oidx, &corr_coeff);
     data_[VALA]->Add(oidx, &ValA);
+    data_[EQTIME]->Add(oidx, &finalx);
     data_[NAME]->Add(oidx, (*it)->legend());
     if ( ValA < valaCut_ && ChiSq < chisqCut_ )
       data_[RESULT]->Add(oidx, "yes");

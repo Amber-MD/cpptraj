@@ -20,6 +20,7 @@ class Analysis_EvalEquilibration : public Analysis {
       CORR,
       VALA,
       CHISQ, ///< Hold chi^2 of fit for each input set
+      EQTIME, ///< Time at which slope cutoff was satisfied
       NAME,      ///< Hold name of each input set
       RESULT,
       NDATA
