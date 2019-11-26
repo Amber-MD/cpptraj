@@ -207,10 +207,21 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       statsout_->Printf("\tFinal Param A%li = %g\n", ip - Params.begin(), *ip);
     }
 
-    // For inverse fit
-    // Params[0] = A0 = Long-time (final) density
+    // Params[0] = A0 = Long-time (final) value 
     // Params[1] = A1 = relaxation constant^-1
     // Params[2] = A2 = time offset
+
+    // Determine the absolute difference of the long-time estimated value
+    // from the average value of the last half of the data.
+    unsigned int halfwayPt = (Yvals.size() / 2);
+    double Yavg = 0;
+    for (unsigned int hidx = halfwayPt; hidx < Yvals.size(); hidx++)
+      Yavg += Yvals[hidx];
+    Yavg /= (double)(Yvals.size() - halfwayPt);
+    mprintf("\tLast half <Y> = %g\n", Yavg);
+    double ValA = Yavg - Params[0];
+    if (ValA < 0) ValA = -ValA;
+    mprintf("\tValA = %g\n", ValA);
 
     // Create output curve
     DataSet_Mesh& OUT = static_cast<DataSet_Mesh&>( *(*ot) );
