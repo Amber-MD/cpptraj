@@ -72,7 +72,9 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
   return Analysis::OK;
 }
 
-// A0*(exp(A1*(X)))
+/** Exponential (high relax to low)
+  * A0*(exp(A1*(X)))
+  */
 int EQ_relax(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
              CurveFit::Darray& Yvals)
 {
@@ -84,7 +86,9 @@ int EQ_relax(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
   return 0;
 }
 
-// A0*(exp(A1*(1/X)))
+/** Inverse exponential (low relax to high).
+  * A0*(exp(A1*(1/X)))
+  */
 int EQ_invRelax(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
                 CurveFit::Darray& Yvals)
 {
