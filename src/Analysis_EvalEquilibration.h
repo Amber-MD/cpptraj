@@ -34,10 +34,11 @@ class Analysis_EvalEquilibration : public Analysis {
     std::string dsname_;               ///< Output set(s) base name
     CpptrajFile* statsout_;            ///< File to write stats to.
     std::vector<DataSet*> data_;       ///< Will hold output data
-    double tolerance_;
-    double valaCut_;
-    double chisqCut_;
-    int maxIt_;
+    double tolerance_;                 ///< Tolerance for non-linear curve fit
+    double valaCut_;                   ///< Cutoff for long-term estimate from last half of data
+    double chisqCut_;                  ///< Cutoff for non-linear fit chi^2
+    double slopeCut_;                  ///< Cutoff for non-linear fit slope
+    int maxIt_;                        ///< Max iterations to perform non-linear fit
     int debug_;
 };
 #endif

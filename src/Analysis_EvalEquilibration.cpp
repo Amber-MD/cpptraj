@@ -10,6 +10,7 @@ Analysis_EvalEquilibration::Analysis_EvalEquilibration() :
   tolerance_(0),
   valaCut_(0),
   chisqCut_(0),
+  slopeCut_(0),
   maxIt_(0),
   debug_(0)
 {}
@@ -65,6 +66,12 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
     mprinterr("Error: chisqcut must be > 0\n");
     return Analysis::ERR;
   }
+  slopeCut_ = analyzeArgs.getKeyDouble("slopecut", 0.000001);
+  if (slopeCut_ <= 0) {
+    mprinterr("Error: slopecut must be > 0\n");
+    return Analysis::ERR;
+  }
+
   maxIt_ = analyzeArgs.getKeyInt("maxit", 500);
   if (maxIt_ < 1) {
     mprinterr("Error: Max iterations must be greater than or equal to 1.\n");
@@ -122,6 +129,7 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
     mprintf("\tResults output to '%s'\n", resultsOut->DataFilename().full());
   mprintf("\tCutoff for last half average vs estimated long term value: %g\n", valaCut_);
   mprintf("\tCutoff for non-linear fit chi^2: %g\n", chisqCut_);
+  mprintf("\tCutoff for slope: %g\n", slopeCut_);
 
   return Analysis::OK;
 }
@@ -260,6 +268,22 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     DataSet_Mesh& OUT = static_cast<DataSet_Mesh&>( *(*ot) );
     for (unsigned int i = 0; i != Xvals.size(); i++)
       OUT.AddXY( Xvals[i], fit.FinalY()[i] );
+
+    // Calculate where slope reaches slopeCut_
+    DataSet_1D::Darray slopeX, slopeY;
+    OUT.FiniteDifference(DataSet_1D::FORWARD, slopeX, slopeY);
+    double finalx=-1, finaly=0;
+    for (unsigned int sidx = 0; sidx != slopeY.size(); ++sidx) {
+      //mprintf("DEBUG: slope %g %g\n", slopeX[sidx], slopeY[sidx]);
+      double absSlope = slopeY[sidx];
+      if (absSlope < 0) absSlope = -absSlope;
+      if (absSlope < slopeCut_) {
+        finalx = slopeX[sidx];
+        finaly = slopeY[sidx];
+        break;
+      }
+    }
+    statsout_->Printf("\tSlope cutoff satisfied at %g %g\n", finalx, finaly);
 
     // Statistics
     double corr_coeff, ChiSq, TheilU, rms_percent_error;
