@@ -145,16 +145,16 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     //}
 
     statsout_->Printf("\t----- Nonlinear Fit -----\n");
-    // Determine relaxation direction
+    // Determine general relaxation direction
     CurveFit::FitFunctionType fxn = 0;
-    int relaxationDir = 0;
+    //int relaxationDir = 0;
     if (slope < 0) {
       mprintf("\tUsing relaxation form: A0*exp(A1*x)\n");
-      relaxationDir = -1;
+      //relaxationDir = -1;
       fxn = EQ_relax;
     } else if (slope > 0) {
       mprintf("\tUsing inverse relaxation form: A0*exp(A1*(1/x))\n");
-      relaxationDir = 1;
+      //relaxationDir = 1;
       fxn = EQ_invRelax;
     } else {
       // Special case: if slope was exactly 0 (should be rare). Consider this
@@ -164,33 +164,19 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     }
 
     // Set up initial X and Y values.
-    double offset = 0.0; // TODO remove
     CurveFit::Darray Xvals, Yvals;
     Xvals.reserve( DS.Size() );
     Yvals.reserve( DS.Size() );
     for (unsigned int i = 0; i != DS.Size(); i++) {
       double xval = DS.Xcrd(i);
-      if (xval <= 0) {
-        mprintf("Warning: Ignoring X value <= 0: %g\n", xval);
+      if (xval < 0) {
+        mprintf("Warning: Ignoring X value < 0: %g\n", xval);
       } else {
-        Xvals.push_back( xval - offset );
+        Xvals.push_back( xval );
         Yvals.push_back( DS.Dval(i) );
       }
     }
-/*
-    // Set up initial X and Y values. Offset the X values so we start from
-    // 1.
-    double offset = DS.Xcrd(0) - 1.0;
-    mprintf("\tFirst X value is %g, Using an offset of %g\n", DS.Xcrd(0), offset);
-    CurveFit::Darray Xvals, Yvals;
-    Xvals.reserve( DS.Size() );
-    Yvals.reserve( DS.Size() );
-    for (unsigned int i = 0; i != DS.Size(); i++) {
-      double xval = DS.Xcrd(i);
-      Xvals.push_back( xval - offset );
-      Yvals.push_back( DS.Dval(i) );
-    }
-*/
+
     // Determine the average value of the last half of the data.
     unsigned int halfwayPt = (Yvals.size() / 2);
     double Yavg = 0;
@@ -201,27 +187,11 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
 
     // Set initial guesses for parameters.
     CurveFit::Darray Params(3);
-    //Params[0] = 0.01; // TODO long avg minus first?
-    //Params[1] = 0.1; // TODO abs slope?
-    //Params[2] = intercept;   // TODO long avg?
     Params[0] = Yavg - DS.Dval(0);
     if (Params[0] < 0) Params[0] = -Params[0];
-    Params[1] = 0.1;
+    Params[1] = 0.1; // TODO absolute slope?
     Params[2] = Yavg;
 
-/*
-    // Set initial guesses for parameters: A0 = intercept, A2 = offset
-    // A1 could be slope, but if it is too small this can lead to convergence
-    // issues. Just use -1.
-    CurveFit::Darray Params(3);
-    Params[0] = intercept;
-    Params[1] = -1.0;
-    // For exponential fit, the A1 param should be < 0
-    //Params[1] = slope;
-    //if (Params[1] > 0)
-    //  Params[1] = -Params[1];
-    Params[2] = 0;
-*/
     for (CurveFit::Darray::const_iterator ip = Params.begin(); ip != Params.end(); ++ip) {
       statsout_->Printf("\tInitial Param A%li = %g\n", ip - Params.begin(), *ip);
     }
@@ -238,9 +208,9 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       statsout_->Printf("\tFinal Param A%li = %g\n", ip - Params.begin(), *ip);
     }
 
-    // Params[0] = A0 = 
-    // Params[1] = A1 = 
-    // Params[2] = A2 = 
+    // Params[0] = A0 = Gap between final and initial values
+    // Params[1] = A1 = Relaxation constant
+    // Params[2] = A2 = Final value at long time
     // Determine the absolute difference of the long-time estimated value
     // from the average value of the last half of the data.
     double ValA = Yavg - Params[2];
@@ -250,7 +220,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     // Create output curve
     DataSet_Mesh& OUT = static_cast<DataSet_Mesh&>( *(*ot) );
     for (unsigned int i = 0; i != Xvals.size(); i++)
-      OUT.AddXY( Xvals[i] + offset, fit.FinalY()[i] );
+      OUT.AddXY( Xvals[i], fit.FinalY()[i] );
 
     // Statistics
     double corr_coeff, ChiSq, TheilU, rms_percent_error;
