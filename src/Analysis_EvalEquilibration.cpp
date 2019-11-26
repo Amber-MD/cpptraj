@@ -14,10 +14,16 @@ Analysis_EvalEquilibration::Analysis_EvalEquilibration() :
 
 const char* Analysis_EvalEquilibration::OdataStr_[NDATA] = {
   "chisq",
+  "A0",
+  "A1",
+  "A2",
   "name"
 };
 
 DataSet::DataType Analysis_EvalEquilibration::OdataType_[NDATA] = {
+  DataSet::DOUBLE,
+  DataSet::DOUBLE,
+  DataSet::DOUBLE,
   DataSet::DOUBLE,
   DataSet::STRING
 };
@@ -247,6 +253,9 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
 
     long int oidx = (it - inputSets_.begin());
     data_[CHISQ]->Add(oidx, &ChiSq);
+    data_[A0]->Add(oidx, &Params[0]);
+    data_[A1]->Add(oidx, &Params[0] + 1);
+    data_[A2]->Add(oidx, &Params[0] + 2);
     data_[NAME]->Add(oidx, (*it)->legend());
 
     statsout_->Printf("\n");

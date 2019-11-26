@@ -15,6 +15,9 @@ class Analysis_EvalEquilibration : public Analysis {
     /// Enumeration for output data
     enum OdataType {
       CHISQ = 0, ///< Hold chi^2 of fit for each input set
+      A0,
+      A1,
+      A2,
       NAME,      ///< Hold name of each input set
       NDATA
     };
