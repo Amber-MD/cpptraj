@@ -180,8 +180,8 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       mprintf("Warning: Not enough data in '%s' to evaluate.\n", DS.legend());
       continue;
     }
-    double slope, intercept, correl;
-    int err = DS.LinearRegression( slope, intercept, correl, statsout_ );
+    double slope, intercept, correl, Fval;
+    int err = DS.LinearRegression( slope, intercept, correl, Fval, statsout_ );
     if (err != 0) {
       mprinterr("Error: Could not perform linear regression fit.\n");
       return Analysis::ERR;

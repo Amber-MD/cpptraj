@@ -173,7 +173,8 @@ int DataSet_Mesh::SingleExpRegression(double& slope, double& intercept,
     }
     mesh_y_[i] = log( mesh_y_[i] );
   }
-  int err = LinearRegression(slope, intercept, correl, out);
+  double Fval;
+  int err = LinearRegression(slope, intercept, correl, Fval, out);
   // Restore original Y values
   mesh_y_ = yorig;
   return err;
