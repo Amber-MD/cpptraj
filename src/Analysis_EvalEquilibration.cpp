@@ -226,18 +226,23 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
 
     // Determine the average value of the last half of the data.
     unsigned int halfwayPt = (Yvals.size() / 2);
-    double Yavg = 0;
+    double Yavg1half = 0;
+    for (unsigned int hidx = 0; hidx < halfwayPt; hidx++)
+      Yavg1half += Yvals[hidx];
+    Yavg1half /= (double)halfwayPt;
+    statsout_->Printf("\tFirst half <Y> = %g\n", Yavg1half);
+    double Yavg2half = 0;
     for (unsigned int hidx = halfwayPt; hidx < Yvals.size(); hidx++)
-      Yavg += Yvals[hidx];
-    Yavg /= (double)(Yvals.size() - halfwayPt);
-    mprintf("\tLast half <Y> = %g\n", Yavg);
+      Yavg2half += Yvals[hidx];
+    Yavg2half /= (double)(Yvals.size() - halfwayPt);
+    statsout_->Printf("\tLast half <Y> = %g\n", Yavg2half);
 
     // Set initial guesses for parameters.
     CurveFit::Darray Params(3);
-    Params[0] = Yavg - DS.Dval(0);
+    Params[0] = Yavg2half - DS.Dval(0);
     if (Params[0] < 0) Params[0] = -Params[0];
     Params[1] = 0.1; // TODO absolute slope?
-    Params[2] = Yavg;
+    Params[2] = Yavg2half;
 
     for (CurveFit::Darray::const_iterator ip = Params.begin(); ip != Params.end(); ++ip) {
       statsout_->Printf("\tInitial Param A%li = %g\n", ip - Params.begin(), *ip);
@@ -260,9 +265,9 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     // Params[2] = A2 = Final value at long time
     // Determine the absolute difference of the long-time estimated value
     // from the average value of the last half of the data.
-    double ValA = Yavg - Params[2];
+    double ValA = Yavg2half - Params[2];
     if (ValA < 0) ValA = -ValA;
-    mprintf("\tValA = %g\n", ValA);
+    statsout_->Printf("\tValA = %g\n", ValA);
 
     // Create output curve
     DataSet_Mesh& OUT = static_cast<DataSet_Mesh&>( *(*ot) );
