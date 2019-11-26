@@ -166,6 +166,16 @@ int EQ_invRelax(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
   return 0;
 }
 
+int EQ_plateau(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
+               CurveFit::Darray& Yvals)
+{
+  double A0 = Params[0];
+  double A1 = Params[1];
+  double A2 = Params[2];
+  for (unsigned int n = 0; n != Xvals.size(); ++n)
+    Yvals[n] = A0 + ((A2 - A0) * (1 - exp(-A1 * Xvals[n])));
+  return 0;
+}
 
 // Analysis_EvalEquilibration::Analyze()
 Analysis::RetType Analysis_EvalEquilibration::Analyze() {
@@ -199,6 +209,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     // Determine general relaxation direction
     CurveFit::FitFunctionType fxn = 0;
     //int relaxationDir = 0;
+/*
     if (slope < 0) {
       mprintf("\tUsing relaxation form: A2 + (A0*exp(-A1*x))\n");
       //relaxationDir = -1;
@@ -213,6 +224,8 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       mprintf("\tSlope of linear fit is 0.\n");
       continue;
     }
+*/
+    fxn = EQ_plateau;
 
     // Set up initial X and Y values.
     double offset = DS.Xcrd(0);
