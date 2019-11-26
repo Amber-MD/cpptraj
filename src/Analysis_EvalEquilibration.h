@@ -15,6 +15,7 @@ class Analysis_EvalEquilibration : public Analysis {
     Array1D inputSets_;                ///< Will hold data to evaluate
     std::vector<DataSet*> outputSets_; ///< Will hold final fit curves
     std::string dsname_;               ///< Output set(s) base name
+    CpptrajFile* statsout_;            ///< File to write stats to.
     double tolerance_;
     int maxIt_;
     int debug_;

@@ -6,6 +6,7 @@
 
 Analysis_EvalEquilibration::Analysis_EvalEquilibration() :
   Analysis(HIDDEN),
+  statsout_(0),
   tolerance_(0),
   maxIt_(0),
   debug_(0)
@@ -37,6 +38,12 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
   }
 
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  // Allocate output stats file. Allow STDOUT.
+  statsout_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("statsout"),
+                                          "EvalEquil stats",
+                                          DataFileList::TEXT, true );
+  if (statsout_ == 0) return Analysis::ERR;
+
   // get input data sets
   if (inputSets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() ))
     return Analysis::ERR;
@@ -60,6 +67,7 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
   mprintf("\tMax iterations for curve fit: %i\n", maxIt_);
   if (outfile != 0)
     mprintf("\tFit curve output to '%s'\n", outfile->DataFilename().full());
+  mprintf("\tStatistics output to '%s'\n", statsout_->Filename().full());
 
   return Analysis::OK;
 }
@@ -91,21 +99,21 @@ int EQ_invRelax(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
 
 // Analysis_EvalEquilibration::Analyze()
 Analysis::RetType Analysis_EvalEquilibration::Analyze() {
-  CpptrajFile statsout;
-  statsout.OpenWrite("");
-
   std::vector<DataSet*>::const_iterator ot = outputSets_.begin();
   for (Array1D::const_iterator it = inputSets_.begin(); it != inputSets_.end(); ++it, ++ot)
   {
-    mprintf("\tEvaluating '%s'\n", (*it)->legend());
+    mprintf("\tEvaluating: %s\n", (*it)->legend());
+    if (!statsout_->IsStream())
+      statsout_->Printf("# %s\n", (*it)->legend());
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(*it) );
     // First do a linear fit.
+    statsout_->Printf("\t----- Linear Fit -----\n");
     if (DS.Size() < 2) {
       mprintf("Warning: Not enough data in '%s' to evaluate.\n", DS.legend());
       continue;
     }
     double slope, intercept, correl;
-    int err = DS.LinearRegression( slope, intercept, correl, &statsout );
+    int err = DS.LinearRegression( slope, intercept, correl, statsout_ );
     if (err != 0) {
       mprinterr("Error: Could not perform linear regression fit.\n");
       return Analysis::ERR;
@@ -117,6 +125,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     //  return Analysis::ERR;
     //}
 
+    statsout_->Printf("\t----- Nonlinear Fit -----\n");
     // Determine relaxation direction
     CurveFit::FitFunctionType fxn = 0;
     int relaxationDir = 0;
@@ -164,7 +173,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     //  Params[1] = -Params[1];
     Params[2] = 0;
     for (CurveFit::Darray::const_iterator ip = Params.begin(); ip != Params.end(); ++ip) {
-      statsout.Printf("\tInitial Param A%li = %g\n", ip - Params.begin(), *ip);
+      statsout_->Printf("\tInitial Param A%li = %g\n", ip - Params.begin(), *ip);
     }
 
     // Perform curve fitting
@@ -176,7 +185,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       return Analysis::ERR;
     }
     for (CurveFit::Darray::const_iterator ip = Params.begin(); ip != Params.end(); ++ip) {
-      statsout.Printf("\tFinal Param A%li = %g\n", ip - Params.begin(), *ip);
+      statsout_->Printf("\tFinal Param A%li = %g\n", ip - Params.begin(), *ip);
     }
 
     // Create output curve
@@ -188,12 +197,12 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     double corr_coeff, ChiSq, TheilU, rms_percent_error;
     err = fit.Statistics( Yvals, corr_coeff, ChiSq, TheilU, rms_percent_error);
     if (err != 0) mprintf("Warning: %s\n", fit.Message(err));
-    statsout.Printf("\tCorrelation coefficient: %g\n"
-                    "\tChi squared: %g\n"
-                    "\tUncertainty coefficient: %g\n"
-                    "\tRMS percent error: %g\n",
-                    corr_coeff, ChiSq, TheilU, rms_percent_error);
-    
+    statsout_->Printf("\tCorrelation coefficient: %g\n"
+                      "\tChi squared: %g\n"
+                      "\tUncertainty coefficient: %g\n"
+                      "\tRMS percent error: %g\n",
+                      corr_coeff, ChiSq, TheilU, rms_percent_error);
+    statsout_->Printf("\n");
   }
   return Analysis::OK;
 }
