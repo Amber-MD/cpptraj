@@ -215,6 +215,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     }
 
     // Set up initial X and Y values.
+    double offset = DS.Xcrd(0);
     CurveFit::Darray Xvals, Yvals;
     Xvals.reserve( DS.Size() );
     Yvals.reserve( DS.Size() );
@@ -223,7 +224,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       if (xval < 0) {
         mprintf("Warning: Ignoring X value < 0: %g\n", xval);
       } else {
-        Xvals.push_back( xval );
+        Xvals.push_back( xval - offset );
         Yvals.push_back( DS.Dval(i) );
       }
     }
@@ -276,7 +277,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     // Create output curve
     DataSet_Mesh& OUT = static_cast<DataSet_Mesh&>( *(*ot) );
     for (unsigned int i = 0; i != Xvals.size(); i++)
-      OUT.AddXY( Xvals[i], fit.FinalY()[i] );
+      OUT.AddXY( Xvals[i] + offset, fit.FinalY()[i] );
 
     // Calculate where slope reaches slopeCut_
     DataSet_1D::Darray slopeX, slopeY;
