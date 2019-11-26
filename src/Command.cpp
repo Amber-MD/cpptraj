@@ -586,23 +586,41 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
     mprintf("DEBUG: Start: CurrentVars:");
     CurrentVars_.PrintVariables();
   }
+  int blockErrors = 0;
   while (ret == ControlBlock::NOT_DONE) {
     for (ControlBlock::const_iterator it = control_[block]->begin();
                                       it != control_[block]->end(); ++it)
     {
       if (it->CommandIs(NEW_BLOCK)) {
         // Execute next control block
-        if (ExecuteControlBlock(block+1, State)) return 1;
+        int cbret = ExecuteControlBlock(block+1, State);
+        if (cbret != 0) {
+          if (State.ExitOnError())
+            return 1;
+          else
+            blockErrors += (1 + cbret);
+        }
       } else {
         for (int i = 0; i < block; i++) mprintf("  ");
         // Execute command
-        if ( ExecuteCommand(State, *it) != CpptrajState::OK ) return 1;
+        CpptrajState::RetType cmret = ExecuteCommand(State, *it);
+        if (cmret != CpptrajState::OK) {
+          if (State.ExitOnError())
+            return 1;
+          else
+            blockErrors++;
+        }
       }
     }
     ret = control_[block]->CheckDone(CurrentVars_);
   }
-  if (ret == ControlBlock::ERROR) return 1;
-  return 0;
+  if (ret == ControlBlock::ERROR) {
+    if (State.ExitOnError())
+      return 1;
+    else
+      blockErrors++;
+  }
+  return blockErrors;
 }
 
 /** Handle the given command. If inside a control block, if the command is
@@ -632,6 +650,8 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
         mprintf("CONTROL: Executing %zu control block(s).\n", control_.size());
         if (State.QuietBlocks()) SetWorldSilent(true);
         int cbret = ExecuteControlBlock(0, State);
+        if (cbret > 1)
+          mprinterr("Error: %i errors encountered in control block.\n", cbret);
         ClearControlBlocks();
         if (State.QuietBlocks()) SetWorldSilent(false);
         if (cbret != 0) return CpptrajState::ERR;
@@ -817,6 +837,7 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
 #     endif
       if (cmode == CpptrajState::ERR) {
         nInputErrors++;
+        //mprintf("DEBUG: Error encountered and ExitOnError is %i\n", (int)State.ExitOnError());
         if (State.ExitOnError()) break;
       } else if (cmode == CpptrajState::QUIT)
         break;
