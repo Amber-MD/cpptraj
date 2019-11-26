@@ -135,28 +135,37 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       continue;
     }
 
-    // Set up initial X and Y values
+    // Set up initial X and Y values. Offset the X values so we start from
+    // 1.
+    double offset = DS.Xcrd(0) - 1.0;
+    mprintf("\tFirst X value is %g, Using an offset of %g\n", DS.Xcrd(0), offset);
     CurveFit::Darray Xvals, Yvals;
     Xvals.reserve( DS.Size() );
     Yvals.reserve( DS.Size() );
     for (unsigned int i = 0; i != DS.Size(); i++) {
       double xval = DS.Xcrd(i);
-      if (xval <= 0) {
-        mprintf("Warning: Ignoring X value <= 0: %g\n", xval);
-      } else {
-        Xvals.push_back( xval );
+      //if (xval <= 0) {
+      //  mprintf("Warning: Ignoring X value <= 0: %g\n", xval);
+      //} else {
+        Xvals.push_back( xval - offset );
         Yvals.push_back( DS.Dval(i) );
-      }
+      //}
     }
 
-    // Set initial guesses for parameters: A0 = intercept, A1 = slope, A2 = offset
+    // Set initial guesses for parameters: A0 = intercept, A2 = offset
+    // A1 could be slope, but if it is too small this can lead to convergence
+    // issues. Just use -1.
     CurveFit::Darray Params(3);
     Params[0] = intercept;
-    Params[1] = slope;
+    Params[1] = -1.0;
     // For exponential fit, the A1 param should be < 0
-    if (Params[1] > 0)
-      Params[1] = -Params[1];
+    //Params[1] = slope;
+    //if (Params[1] > 0)
+    //  Params[1] = -Params[1];
     Params[2] = 0;
+    for (CurveFit::Darray::const_iterator ip = Params.begin(); ip != Params.end(); ++ip) {
+      statsout.Printf("\tInitial Param A%li = %g\n", ip - Params.begin(), *ip);
+    }
 
     // Perform curve fitting
     CurveFit fit;
@@ -173,7 +182,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     // Create output curve
     DataSet_Mesh& OUT = static_cast<DataSet_Mesh&>( *(*ot) );
     for (unsigned int i = 0; i != Xvals.size(); i++)
-      OUT.AddXY( Xvals[i], fit.FinalY()[i] );
+      OUT.AddXY( Xvals[i] + offset, fit.FinalY()[i] );
 
     // Statistics
     double corr_coeff, ChiSq, TheilU, rms_percent_error;
