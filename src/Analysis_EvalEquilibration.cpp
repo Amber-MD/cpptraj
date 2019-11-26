@@ -8,16 +8,21 @@ Analysis_EvalEquilibration::Analysis_EvalEquilibration() :
   Analysis(HIDDEN),
   statsout_(0),
   tolerance_(0),
+  valaCut_(0),
+  chisqCut_(0),
   maxIt_(0),
   debug_(0)
 {}
 
 const char* Analysis_EvalEquilibration::OdataStr_[NDATA] = {
-  "chisq",
   "A0",
   "A1",
   "A2",
-  "name"
+  "corr",
+  "vala",
+  "chisq",
+  "name",
+  "result"
 };
 
 DataSet::DataType Analysis_EvalEquilibration::OdataType_[NDATA] = {
@@ -25,6 +30,9 @@ DataSet::DataType Analysis_EvalEquilibration::OdataType_[NDATA] = {
   DataSet::DOUBLE,
   DataSet::DOUBLE,
   DataSet::DOUBLE,
+  DataSet::DOUBLE,
+  DataSet::DOUBLE,
+  DataSet::STRING,
   DataSet::STRING
 };
 
@@ -45,6 +53,16 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
   tolerance_ = analyzeArgs.getKeyDouble("tol", 0.00001);
   if (tolerance_ < 0.0) {
     mprinterr("Error: Tolerance must be greater than or equal to 0.0\n");
+    return Analysis::ERR;
+  }
+  valaCut_ = analyzeArgs.getKeyDouble("valacut", 0.01);
+  if (valaCut_ <= 0) {
+    mprinterr("Error: valacut must be > 0\n");
+    return Analysis::ERR;
+  }
+  chisqCut_ = analyzeArgs.getKeyDouble("chisqcut", 0.05);
+  if (chisqCut_ <= 0) {
+    mprinterr("Error: chisqcut must be > 0\n");
     return Analysis::ERR;
   }
   maxIt_ = analyzeArgs.getKeyInt("maxit", 500);
@@ -102,6 +120,8 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
   mprintf("\tStatistics output to '%s'\n", statsout_->Filename().full());
   if (resultsOut != 0)
     mprintf("\tResults output to '%s'\n", resultsOut->DataFilename().full());
+  mprintf("\tCutoff for last half average vs estimated long term value: %g\n", valaCut_);
+  mprintf("\tCutoff for non-linear fit chi^2: %g\n", chisqCut_);
 
   return Analysis::OK;
 }
@@ -256,7 +276,13 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     data_[A0]->Add(oidx, &Params[0]);
     data_[A1]->Add(oidx, &Params[0] + 1);
     data_[A2]->Add(oidx, &Params[0] + 2);
+    data_[CORR]->Add(oidx, &corr_coeff);
+    data_[VALA]->Add(oidx, &ValA);
     data_[NAME]->Add(oidx, (*it)->legend());
+    if ( ValA < valaCut_ && ChiSq < chisqCut_ )
+      data_[RESULT]->Add(oidx, "yes");
+    else
+      data_[RESULT]->Add(oidx, "no");
 
     statsout_->Printf("\n");
   }

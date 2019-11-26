@@ -14,11 +14,14 @@ class Analysis_EvalEquilibration : public Analysis {
   private:
     /// Enumeration for output data
     enum OdataType {
-      CHISQ = 0, ///< Hold chi^2 of fit for each input set
-      A0,
+      A0 = 0,
       A1,
       A2,
+      CORR,
+      VALA,
+      CHISQ, ///< Hold chi^2 of fit for each input set
       NAME,      ///< Hold name of each input set
+      RESULT,
       NDATA
     };
     /// Hold aspect for each output data
@@ -32,6 +35,8 @@ class Analysis_EvalEquilibration : public Analysis {
     CpptrajFile* statsout_;            ///< File to write stats to.
     std::vector<DataSet*> data_;       ///< Will hold output data
     double tolerance_;
+    double valaCut_;
+    double chisqCut_;
     int maxIt_;
     int debug_;
 };
