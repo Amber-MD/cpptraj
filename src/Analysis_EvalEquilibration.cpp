@@ -12,6 +12,16 @@ Analysis_EvalEquilibration::Analysis_EvalEquilibration() :
   debug_(0)
 {}
 
+const char* Analysis_EvalEquilibration::OdataStr_[NDATA] = {
+  "chisq",
+  "name"
+};
+
+DataSet::DataType Analysis_EvalEquilibration::OdataType_[NDATA] = {
+  DataSet::DOUBLE,
+  DataSet::STRING
+};
+
 // Analysis_EvalEquilibration::Help()
 void Analysis_EvalEquilibration::Help() const {
   mprintf("\n");
@@ -64,14 +74,17 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
       outfile->AddDataSet( setOut );
     }
   }
-  dataChiSq_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData( dsname_, "chisq" ) );
-  dataName_  = setup.DSL().AddSet( DataSet::STRING, MetaData( dsname_, "name"  ) );
+  // Results data sets
+  data_.reserve( inputSets_.size() );
   DataSet::SizeArray nData(1, inputSets_.size());
-  dataChiSq_->Allocate( nData );
-  dataName_->Allocate( nData );
-  if (resultsOut != 0) {
-    resultsOut->AddDataSet( dataChiSq_ );
-    resultsOut->AddDataSet( dataName_ );
+  for (int idx = 0; idx != (int)NDATA; idx++)
+  {
+    DataSet* ds = setup.DSL().AddSet( OdataType_[idx], MetaData( dsname_, OdataStr_[idx] ) );
+    if (ds == 0) return Analysis::ERR;
+    ds->Allocate( nData );
+    if (resultsOut != 0)
+      resultsOut->AddDataSet( ds );
+    data_.push_back( ds );
   }
 
   mprintf("    EVALEQUILIBRATION: Evaluate equilibration of %zu sets.\n", inputSets_.size());
@@ -233,8 +246,8 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
                       corr_coeff, ChiSq, TheilU, rms_percent_error);
 
     long int oidx = (it - inputSets_.begin());
-    dataChiSq_->Add(oidx, &ChiSq);
-    dataName_->Add(oidx, (*it)->legend());
+    data_[CHISQ]->Add(oidx, &ChiSq);
+    data_[NAME]->Add(oidx, (*it)->legend());
 
     statsout_->Printf("\n");
   }
