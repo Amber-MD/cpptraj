@@ -17,6 +17,7 @@ class Analysis_EvalEquilibration : public Analysis {
       A0 = 0,
       A1,
       A2,
+      FVAL, ///< F value from linear regression
       CORR,
       VALA,
       CHISQ, ///< Hold chi^2 of fit for each input set

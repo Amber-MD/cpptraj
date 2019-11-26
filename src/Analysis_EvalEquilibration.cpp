@@ -19,6 +19,7 @@ const char* Analysis_EvalEquilibration::OdataStr_[NDATA] = {
   "A0",
   "A1",
   "A2",
+  "F",
   "corr",
   "vala",
   "chisq",
@@ -28,6 +29,7 @@ const char* Analysis_EvalEquilibration::OdataStr_[NDATA] = {
 };
 
 DataSet::DataType Analysis_EvalEquilibration::OdataType_[NDATA] = {
+  DataSet::DOUBLE,
   DataSet::DOUBLE,
   DataSet::DOUBLE,
   DataSet::DOUBLE,
@@ -308,6 +310,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     data_[A0]->Add(oidx, &Params[0]);
     data_[A1]->Add(oidx, &Params[0] + 1);
     data_[A2]->Add(oidx, &Params[0] + 2);
+    data_[FVAL]->Add(oidx, &Fval);
     data_[CORR]->Add(oidx, &corr_coeff);
     data_[VALA]->Add(oidx, &ValA);
     data_[EQTIME]->Add(oidx, &finalx);
