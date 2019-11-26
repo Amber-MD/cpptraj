@@ -37,7 +37,11 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
     return Analysis::ERR;
   }
 
+  // Curves out
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  // Results out
+  DataFile* resultsOut = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("resultsout"), analyzeArgs );
+
   // Allocate output stats file. Allow STDOUT.
   statsout_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("statsout"),
                                           "EvalEquil stats",
@@ -60,6 +64,15 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
       outfile->AddDataSet( setOut );
     }
   }
+  dataChiSq_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData( dsname_, "chisq" ) );
+  dataName_  = setup.DSL().AddSet( DataSet::STRING, MetaData( dsname_, "name"  ) );
+  DataSet::SizeArray nData(1, inputSets_.size());
+  dataChiSq_->Allocate( nData );
+  dataName_->Allocate( nData );
+  if (resultsOut != 0) {
+    resultsOut->AddDataSet( dataChiSq_ );
+    resultsOut->AddDataSet( dataName_ );
+  }
 
   mprintf("    EVALEQUILIBRATION: Evaluate equilibration of %zu sets.\n", inputSets_.size());
   mprintf("\tOutput set name: %s\n", dsname_.c_str());
@@ -68,6 +81,8 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
   if (outfile != 0)
     mprintf("\tFit curve output to '%s'\n", outfile->DataFilename().full());
   mprintf("\tStatistics output to '%s'\n", statsout_->Filename().full());
+  if (resultsOut != 0)
+    mprintf("\tResults output to '%s'\n", resultsOut->DataFilename().full());
 
   return Analysis::OK;
 }
@@ -211,6 +226,11 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
                       "\tUncertainty coefficient: %g\n"
                       "\tRMS percent error: %g\n",
                       corr_coeff, ChiSq, TheilU, rms_percent_error);
+
+    long int oidx = (it - inputSets_.begin());
+    dataChiSq_->Add(oidx, &ChiSq);
+    dataName_->Add(oidx, (*it)->legend());
+
     statsout_->Printf("\n");
   }
   return Analysis::OK;

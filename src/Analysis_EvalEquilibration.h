@@ -16,6 +16,8 @@ class Analysis_EvalEquilibration : public Analysis {
     std::vector<DataSet*> outputSets_; ///< Will hold final fit curves
     std::string dsname_;               ///< Output set(s) base name
     CpptrajFile* statsout_;            ///< File to write stats to.
+    DataSet* dataChiSq_;               ///< Hold chi^2 of fit for each input set
+    DataSet* dataName_;                ///< Hold name for each input set
     double tolerance_;
     int maxIt_;
     int debug_;
