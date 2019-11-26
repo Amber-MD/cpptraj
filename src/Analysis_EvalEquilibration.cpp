@@ -196,11 +196,11 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     CurveFit::FitFunctionType fxn = 0;
     //int relaxationDir = 0;
     if (slope < 0) {
-      mprintf("\tUsing relaxation form: A0*exp(A1*x)\n");
+      mprintf("\tUsing relaxation form: A2 + (A0*exp(-A1*x))\n");
       //relaxationDir = -1;
       fxn = EQ_relax;
     } else if (slope > 0) {
-      mprintf("\tUsing inverse relaxation form: A0*exp(A1*(1/x))\n");
+      mprintf("\tUsing inverse relaxation form: A2 - (A0*exp(-A1*x))\n");
       //relaxationDir = 1;
       fxn = EQ_invRelax;
     } else {
