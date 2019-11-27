@@ -242,6 +242,14 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       }
     }
 
+    // Get the average of the first 1% of data
+    unsigned int tenpctPt = (double)Yvals.size() * 0.01;
+    if (tenpctPt < 1) tenpctPt = 1;
+    double Y10pctAvg = 0;
+    for (unsigned int hidx = 0; hidx < tenpctPt; hidx++)
+      Y10pctAvg += Yvals[hidx];
+    Y10pctAvg /= (double)tenpctPt;
+    statsout_->Printf("\tAvg of first 10%% of the data: %g\n", Y10pctAvg);
     // Determine the average value of the last half of the data.
     unsigned int halfwayPt = (Yvals.size() / 2);
     double Yavg1half = 0;
@@ -257,7 +265,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
 
     // Set initial guesses for parameters.
     CurveFit::Darray Params(3);
-    Params[0] = Yavg2half - DS.Dval(0);
+    Params[0] = Y10pctAvg;
     if (Params[0] < 0) Params[0] = -Params[0];
     Params[1] = 0.1; // TODO absolute slope?
     Params[2] = Yavg2half;
