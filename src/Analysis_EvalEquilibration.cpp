@@ -138,34 +138,9 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
   return Analysis::OK;
 }
 
-/** Exponential (high relax to low)
-  * A2 + (A0*(exp(A1*X)))
+/** Exponential decay with time constant A1 from an initial value A0
+  * to a plateau A2.
   */
-int EQ_relax(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
-             CurveFit::Darray& Yvals)
-{
-  double A0 = Params[0];
-  double A1 = Params[1];
-  double A2 = Params[2];
-  for (unsigned int n = 0; n != Xvals.size(); ++n)
-    Yvals[n] = A2 + ( A0 * exp( -A1 * Xvals[n] ) );
-  return 0;
-}
-
-/** Inverse exponential (low relax to high).
-  * A2 - (A0*(exp(A1*X)))
-  */
-int EQ_invRelax(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
-                CurveFit::Darray& Yvals)
-{
-  double A0 = Params[0];
-  double A1 = Params[1];
-  double A2 = Params[2];
-  for (unsigned int n = 0; n != Xvals.size(); ++n)
-    Yvals[n] = A2 - ( A0 * exp( -A1 * Xvals[n] ) );
-  return 0;
-}
-
 int EQ_plateau(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
                CurveFit::Darray& Yvals)
 {
@@ -207,24 +182,8 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
 
     statsout_->Printf("\t----- Nonlinear Fit -----\n");
     // Determine general relaxation direction
-    CurveFit::FitFunctionType fxn = 0;
-    //int relaxationDir = 0;
-/*
-    if (slope < 0) {
-      mprintf("\tUsing relaxation form: A2 + (A0*exp(-A1*x))\n");
-      //relaxationDir = -1;
-      fxn = EQ_relax;
-    } else if (slope > 0) {
-      mprintf("\tUsing inverse relaxation form: A2 - (A0*exp(-A1*x))\n");
-      //relaxationDir = 1;
-      fxn = EQ_invRelax;
-    } else {
-      // Special case: if slope was exactly 0 (should be rare). Consider this
-      // equilibrated.
-      mprintf("\tSlope of linear fit is 0.\n");
-      continue;
-    }
-*/
+    CurveFit::FitFunctionType fxn = EQ_plateau;
+
     fxn = EQ_plateau;
 
     // Set up initial X and Y values.
