@@ -4782,6 +4782,30 @@ onlycols
 <range> Only read columns in range.
 \end_layout
 
+\begin_layout Description
+floatcols
+\begin_inset space ~
+\end_inset
+
+<range> Force specified columns to be read as single-precision floats.
+\end_layout
+
+\begin_layout Description
+intcols
+\begin_inset space ~
+\end_inset
+
+<range> Force specified columns to be read as integers.
+\end_layout
+
+\begin_layout Description
+stringcols
+\begin_inset space ~
+\end_inset
+
+<range> Force specified columns to be read as strings.
+\end_layout
+
 \end_deeper
 \begin_layout Description
 read2d Read data as 2D square matrix.
