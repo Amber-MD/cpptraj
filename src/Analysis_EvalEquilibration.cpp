@@ -161,7 +161,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     if (!statsout_->IsStream())
       statsout_->Printf("# %s\n", (*it)->legend());
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(*it) );
-    // First do a linear fit.
+    // First do a linear fit. TODO may not need this anymore
     statsout_->Printf("\t----- Linear Fit -----\n");
     if (DS.Size() < 2) {
       mprintf("Warning: Not enough data in '%s' to evaluate.\n", DS.legend());
