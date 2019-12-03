@@ -263,6 +263,7 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     DataSet_1D::Darray slopeX, slopeY;
     OUT.FiniteDifference(DataSet_1D::FORWARD, slopeX, slopeY);
     double finalx=-1, finaly=0;
+    bool slopeCutSatisfied = false;
     for (unsigned int sidx = 0; sidx != slopeY.size(); ++sidx) {
       //mprintf("DEBUG: slope %g %g\n", slopeX[sidx], slopeY[sidx]);
       double absSlope = slopeY[sidx];
@@ -270,11 +271,15 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
       if (absSlope < slopeCut_) {
         finalx = slopeX[sidx];
         finaly = slopeY[sidx];
+        slopeCutSatisfied = true;
         break;
       }
     }
     statsout_->Printf("\tFinal slope: %g\n", slopeY.back());
-    statsout_->Printf("\tSlope cutoff satisfied at %g %g\n", finalx, finaly);
+    if (slopeCutSatisfied)
+      statsout_->Printf("\tSlope cutoff satisfied at %g %g\n", finalx, finaly);
+    else
+      statsout_->Printf("\tSlope cutoff not satisfied.\n");
 
     // Statistics
     double corr_coeff, ChiSq, TheilU, rms_percent_error;
@@ -296,7 +301,21 @@ Analysis::RetType Analysis_EvalEquilibration::Analyze() {
     data_[VALA]->Add(oidx, &ValA);
     data_[EQTIME]->Add(oidx, &finalx);
     data_[NAME]->Add(oidx, (*it)->legend());
-    if ( ValA < valaCut_ && ChiSq < chisqCut_ )
+    // Determine if criteria met.
+    bool longAvgCutSatisfied, chiCutSatisfied;
+    if (ValA < valaCut_)
+      longAvgCutSatisfied = true;
+    else {
+      longAvgCutSatisfied = false;
+      mprintf("\tLong-time average cut not satisfied.\n");
+    }
+    if (ChiSq < chisqCut_)
+      chiCutSatisfied = true;
+    else {
+      chiCutSatisfied = false;
+      mprintf("\tNon-linear fit chi-squared not satisfied.\n");
+    }
+    if ( longAvgCutSatisfied && chiCutSatisfied && slopeCutSatisfied)
       data_[RESULT]->Add(oidx, "yes");
     else
       data_[RESULT]->Add(oidx, "no");
