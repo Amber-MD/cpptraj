@@ -291,8 +291,13 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
         // Check if file name expansion should occur
         if (list[il].find_first_of("*?") != std::string::npos) {
           File::NameArray files = File::ExpandToFilenames( list[il] );
-          for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
-            MH.List_.push_back( fn->Full() );
+          // Special case. Check if no expansion occurred.
+          if (files.size() == 1 && list[il] == files.front().Full()) {
+            mprintf("Warning: '%s' matches no files.\n", list[il].c_str());
+          } else {
+            for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
+              MH.List_.push_back( fn->Full() );
+          }
         } else
           MH.List_.push_back( list[il] );
       }
