@@ -146,6 +146,7 @@ COMMON_SOURCES= \
         ByteRoutines.cpp \
         CharMask.cpp \
         CharmmParamFile.cpp \
+        ChiSqDist.cpp \
         CIFfile.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \
