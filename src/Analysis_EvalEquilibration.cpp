@@ -5,7 +5,6 @@
 #include "CurveFit.h"
 
 Analysis_EvalEquilibration::Analysis_EvalEquilibration() :
-  Analysis(HIDDEN),
   statsout_(0),
   tolerance_(0),
   valaCut_(0),
