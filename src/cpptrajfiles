@@ -288,6 +288,7 @@ COMMON_SOURCES= \
         FileName.cpp \
         FileTypes.cpp \
         Frame.cpp \
+        GammaFn.cpp \
         GridAction.cpp \
         HistBin.cpp \
         Hungarian.cpp \
