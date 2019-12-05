@@ -14819,35 +14819,38 @@ vdw PQR format; write charges and vdW radii to occupancy/B-factor columns.
 \end_layout
 
 \begin_layout Description
-pdbres: Use PDB V3 residue names.
+pdbres Use PDB V3 residue names.
  Will write a default chain ID ('Z') for each residue if the corresponding
  topology does not have chain ID information.
 \end_layout
 
 \begin_layout Description
-pdbatom: Use PDB V3 atom names.
+pdbatom Use PDB V3 atom names.
 \end_layout
 
 \begin_layout Description
-pdbv3: Use PDB V3 residue/atom names.
+pdbv3 Use PDB V3 residue/atom names.
  Same as specifying 'pdbres' and 'pdbatom'.
 \end_layout
 
 \begin_layout Description
-teradvance: Increment record (atom) number for TER records (not done by
- default).
+topresnum Use topology residue numbers; otherwise use original residue numbers.
 \end_layout
 
 \begin_layout Description
-terbyres: Print TER cards based on residue sequence instead of molecules.
+teradvance Increment record (atom) number for TER records (not done by default).
 \end_layout
 
 \begin_layout Description
-pdbter: Print TER cards according to original PDB TER (if available).
+terbyres Print TER cards based on residue sequence instead of molecules.
 \end_layout
 
 \begin_layout Description
-noter: Do not write TER cards.
+pdbter Print TER cards according to original PDB TER (if available).
+\end_layout
+
+\begin_layout Description
+noter Do not write TER cards.
 \end_layout
 
 \begin_layout Description
@@ -14996,7 +14999,7 @@ cpptraj
 \end_layout
 
 \begin_layout Description
-highprecision: (EXPERT USE ONLY) Write with 8.6 precision instead of 8.3.
+highprecision (EXPERT USE ONLY) Write with 8.6 precision instead of 8.3.
  Note that since the width does not change, the precision of large coords
  may be lower than 6.
 \end_layout
