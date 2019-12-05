@@ -55,10 +55,12 @@ class Traj_PDBfile: public TrajectoryIO {
     enum TER_Mode { BY_MOL = 0, BY_RES, ORIGINAL_PDB, NO_TER };
     enum Radii_Mode { GB = 0, PARSE, VDW };
     enum CONECT_Mode { NO_CONECT = 0, HETATM_ONLY, ALL_BONDS };
+    enum RESNUM_Mode { ORIGINAL = 0, TOPOLOGY };
     Radii_Mode radiiMode_;   ///< Radii to use if PQR.
     TER_Mode terMode_;       ///< TER card mode.
     CONECT_Mode conectMode_; ///< CONECT record mode.
     PDBWRITEMODE pdbWriteMode_;
+    RESNUM_Mode resNumType_; ///< What residue numbers will be used
     int pdbAtom_;
     int currentSet_;
     int ter_num_;       ///< Amount to increment atom number for TER
