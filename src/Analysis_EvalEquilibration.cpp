@@ -64,7 +64,7 @@ Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, Analys
     mprinterr("Error: valacut must be > 0\n");
     return Analysis::ERR;
   }
-  chisqCut_ = analyzeArgs.getKeyDouble("chisqcut", 0.05);
+  chisqCut_ = analyzeArgs.getKeyDouble("chisqcut", 0.5);
   if (chisqCut_ <= 0) {
     mprinterr("Error: chisqcut must be > 0\n");
     return Analysis::ERR;
