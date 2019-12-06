@@ -79,14 +79,14 @@ int DataIO_CharmmRtfPrm::WriteData(FileName const& fname, DataSetList const& dsl
     {
       mprintf("\tUsing parameter set '%s'\n", (*it)->legend());
       DataSet_Parameters const& dsPrm = static_cast<DataSet_Parameters const&>( *(*it) );
-      pout.UpdateParams( dsPrm, ucount );
+      pout.UpdateParamSet( dsPrm, ucount, debug_ );
     }
     else if ( (*it)->Type() == DataSet::TOPOLOGY )
     {
       mprintf("\tUsing parameters from topology '%s'\n", (*it)->legend());
       // Convert topology to parameter set
       DataSet_Topology const& dsTop = static_cast<DataSet_Topology const&>( *(*it) );
-      pout.UpdateParams( dsTop.Top().GetParameters(), ucount );
+      pout.UpdateParamSet( dsTop.Top().GetParameters(), ucount, debug_ );
     } else {
       mprintf("Warning: '%s' is not a valid parameter/topology set, skipping.\n",
               (*it)->legend());

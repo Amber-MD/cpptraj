@@ -1080,12 +1080,12 @@ SetupCompilers() {
       CFLAGS="-fp-model precise -fp-model source $CFLAGS"
       hostflags='-xHost'
       optflags='-O3'
-      VERSION_LINE=`$CXX -v 2>&1`
+      VERSION_LINE=`$CXX -v 2>&1 | grep version`
       if [ $? -ne 0 ] ; then
         echo "$VERSION_LINE"
         Err "Could not check Intel C++ compiler version."
       fi
-      MAJOR_V=`echo "$VERSION_LINE" | awk '{print $3}' | cut -d'.' -f1`
+      MAJOR_V=`echo "$VERSION_LINE" | awk '{print $3; exit 0;}' | cut -d'.' -f1`
       if [ $MAJOR_V -ge 16 ] ; then
         ompflag='-qopenmp'
       else

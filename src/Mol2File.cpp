@@ -140,8 +140,6 @@ Atom Mol2File::Mol2Atom() {
   // atom_id atom_name x y z atom_type [subst_id [subst_name [charge [status_bit]]]]
   sscanf(linebuffer_, "%*i %s %*f %*f %*f %s %*i %*s %lf", mol2name, mol2type, &mol2q);
   NameType m2name( mol2name );
-  // Replace all asterisks with single quote.
-  m2name.ReplaceAsterisk();
   return Atom( m2name, mol2type, mol2q );
 }
 
@@ -151,8 +149,6 @@ Residue Mol2File::Mol2Residue() {
   int current_res;
   sscanf(linebuffer_,"%*i %*s %*f %*f %*f %*s %i %s", &current_res, resname);
   NameType rname( resname );
-  // Replace all asterisks with single quote.
-  rname.ReplaceAsterisk();
   return Residue(rname, current_res, ' ', ' ');
 }
 
@@ -205,7 +201,7 @@ void Mol2File::WriteMol2Bond(int bnum, int at1, int at2,
 }
 
 void Mol2File::WriteMol2Substructure(int rnum, const char* rname, int firstatom) {
-  Printf("%7d %4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
+  Printf("%7d %-4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
 }
 
 void Mol2File::ClearAmberMapping() {

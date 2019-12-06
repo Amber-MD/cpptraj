@@ -150,7 +150,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
       int rn = res + 1;
       int mn = (*CurrentParm_)[atom].MolNum() + 1;
       if (outfile_ != 0)
-        outfile_->Printf("%8i %8i %4s %8i %4s %8i\n", fn, an, (*CurrentParm_)[atom].c_str(),
+        outfile_->Printf("%8i %8i %-4s %8i %-4s %8i\n", fn, an, (*CurrentParm_)[atom].c_str(),
                          rn, CurrentParm_->Res(res).c_str(), mn);
       /*mprintf(" Type=%4s",CurrentParm_->types[atom]);
       mprintf(" Charge=%lf",CurrentParm_->charge[atom]);
@@ -161,8 +161,8 @@ Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
         anum_->Add( idx_, &an );
         rnum_->Add( idx_, &rn );
         mnum_->Add( idx_, &mn );
-        aname_->Add( idx_, (*CurrentParm_)[atom].c_str() );
-        rname_->Add( idx_, CurrentParm_->Res(res).c_str() );
+        aname_->Add( idx_, (*CurrentParm_)[atom].Name().Formatted(4).c_str() );
+        rname_->Add( idx_, CurrentParm_->Res(res).Name().Formatted(4).c_str() );
         idx_++;
       }
     }
