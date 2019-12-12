@@ -10,8 +10,8 @@ Action_Temperature::Action_Temperature() :
 {}
 
 void Action_Temperature::Help() const {
-  mprintf("\t[<name>] {frame | [<mask>] %s} [out <filename>]\n", Constraints::constraintArgs);
-  mprintf("\t[remove {trans|rot|both}\n");
+  mprintf("\t[<name>] {frame | [<mask>] %s [remove {trans|rot|both}]}\n"
+          "\t[out <filename>]\n", Constraints::constraintArgs);
   mprintf("  Calculate temperature in frame based on velocity information.\n"
           "  If 'frame' is specified just use frame temperature (read in from\n"
           "  e.g. REMD trajectory). The 'ntc' keyword can be used to correct\n"

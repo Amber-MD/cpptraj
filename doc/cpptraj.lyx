@@ -33082,11 +33082,11 @@ temperature
 \end_layout
 
 \begin_layout LyX-Code
-temperature [<name>] {frame | [<mask>] [ntc <#>]} [out <filename>]
-\begin_inset Separator latexpar
-\end_inset
+temperature [<name>] {frame | [<mask>] [ntc <#>] [remove {trans|rot|both}]}
+\end_layout
 
-
+\begin_layout LyX-Code
+        	[out <filename>]
 \end_layout
 
 \begin_deeper
@@ -33112,6 +33112,15 @@ frame Do not calculate temperature; use existing frame temperature.
 \end_layout
 
 \begin_layout Description
+[remove
+\begin_inset space ~
+\end_inset
+
+{trans|rot|both}] Correct for removed translational, rotational, or both
+ kinds of degrees of freedom.
+\end_layout
+
+\begin_layout Description
 [out
 \begin_inset space ~
 \end_inset
@@ -33128,6 +33137,10 @@ Calculate temperature in frame based on velocity information.
 \series default
  is specified just use frame temperature (read in from e.g.
  REMD trajectory).
+ The 'ntc' keyword can be used to correct for lost degrees of freedom due
+ to SHAKE constraints (2 = bonds to hydrogen, 3 = all bonds).
+ The 'remove' keyword can be used to account for removed translational and/or
+ rotational degrees of freedom.
 \end_layout
 
 \begin_layout Subsection
