@@ -18,5 +18,8 @@ class Action_Temperature : public Action {
     bool getTempFromFrame_;
     AtomMask Mask_;
     Constraints cons_;
+    bool removeTrans_; ///< True if accounting for removed translational d.o.f.
+    bool removeRot_;   ///< True if accounting for removed rotational d.o.f.
+    int dof_offset_;   ///< # of global d.o.f. removed
 };
 #endif
