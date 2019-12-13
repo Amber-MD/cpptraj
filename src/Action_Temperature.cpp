@@ -87,6 +87,7 @@ Action::RetType Action_Temperature::Setup(ActionSetup& setup) {
       mprintf("Warning: No temperature information in Frames; skipping.\n");
       return Action::SKIP;
     }
+     mprintf("\tUsing existing temperature information in Frames.\n");
   } else {
     // Calculate temperature from velocities.
     if (cInfo_.HasTemp() && mode_ == CALC_AND_MODIFY)
