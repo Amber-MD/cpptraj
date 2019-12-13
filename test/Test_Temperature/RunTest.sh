@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles temp.in T.dat T2.dat T3.dat
+CleanFiles temp.in T.dat T2.dat T3.dat T4.dat
 
 TESTNAME='Temperature tests'
 Requires netcdf maxthreads 10
