@@ -3,14 +3,16 @@
 
 Action_Temperature::Action_Temperature() :
   Tdata_(0),
-  getTempFromFrame_(false),
+  mode_(CALC_ONLY),
+  dof_offset_(0),
   removeTrans_(false),
-  removeRot_(false),
-  dof_offset_(0)
+  removeRot_(false)
 {}
 
 void Action_Temperature::Help() const {
-  mprintf("\t[<name>] {frame | [<mask>] %s [remove {trans|rot|both}]}\n"
+  mprintf("\t[<name>] { frame |\n"
+          "\t           [<mask>] %s [update] [remove {trans|rot|both}]\n"
+          "\t         }\n"
           "\t[out <filename>]\n", Constraints::constraintArgs);
   mprintf("  Calculate temperature in frame based on velocity information.\n"
           "  If 'frame' is specified just use frame temperature (read in from\n"
@@ -26,31 +28,34 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, 
 {
   // Keywords
   if (actionArgs.hasKey("frame"))
-    getTempFromFrame_ = true;
+    mode_ = FROM_FRAME;
   else {
-    getTempFromFrame_ = false;
+    mode_ = CALC_ONLY; 
     if (cons_.InitConstraints( actionArgs )) return Action::ERR;
   }
+  if (mode_ == CALC_ONLY && actionArgs.hasKey("update"))
+    mode_ = CALC_AND_MODIFY;
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  
   // Take into account removal of global degrees of freedom?
   removeTrans_ = false;
   removeRot_ = false;
-  std::string removearg = actionArgs.GetStringKey("remove");
-  if (!removearg.empty()) {
-    if (removearg == "trans")
-      removeTrans_ = true;
-    else if (removearg == "rot")
-      removeRot_ = true;
-    else if (removearg == "both") {
-      removeTrans_ = true;
-      removeRot_ = true;
-    } else {
-      mprinterr("Error: Unrecognized arg for 'remove' keyword: %s\n", removearg.c_str());
-      return Action::ERR;
+  if (mode_ != FROM_FRAME) {
+    std::string removearg = actionArgs.GetStringKey("remove");
+    if (!removearg.empty()) {
+      if (removearg == "trans")
+        removeTrans_ = true;
+      else if (removearg == "rot")
+        removeRot_ = true;
+      else if (removearg == "both") {
+        removeTrans_ = true;
+        removeRot_ = true;
+      } else {
+        mprinterr("Error: Unrecognized arg for 'remove' keyword: %s\n", removearg.c_str());
+        return Action::ERR;
+      }
     }
-  }
-  // Masks
-  if (!getTempFromFrame_) {
+    // Masks
     if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   }
   // DataSet 
@@ -58,11 +63,13 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, 
   if (Tdata_ == 0) return Action::ERR;
   if (outfile != 0) outfile->AddDataSet( Tdata_ );
   
-  if (getTempFromFrame_) {
+  if (mode_ == FROM_FRAME) {
     mprintf("    TEMPERATURE: Frame temperatures will be saved in data set %s\n",
              Tdata_->legend());
   } else {
     mprintf("    TEMPERATURE: Calculate temperature for atoms in mask [%s]\n", Mask_.MaskString());
+    if (mode_ == CALC_AND_MODIFY)
+      mprintf("\tAny existing temperature in Frames will be overwritten.\n");
     mprintf("\tConstraints: %s\n", cons_.shakeString());
     if (removeTrans_) mprintf("\tAssuming translational degs. of freedom removed.\n");
     if (removeRot_) mprintf("\tAssuming rotational degs. of freedom removed.\n");
@@ -72,14 +79,18 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, 
 
 // Action_Temperature::Setup()
 Action::RetType Action_Temperature::Setup(ActionSetup& setup) {
-  if (getTempFromFrame_) {
+  cInfo_ = setup.CoordInfo();
+  Action::RetType ret = Action::OK;
+  if (mode_ == FROM_FRAME) {
     // Get temperature from frame.
-    if (!setup.CoordInfo().HasTemperature()) {
-      mprintf("Warning: No temperature information; skipping.\n");
+    if (!cInfo_.HasTemp()) {
+      mprintf("Warning: No temperature information in Frames; skipping.\n");
       return Action::SKIP;
     }
   } else {
     // Calculate temperature from velocities.
+    if (cInfo_.HasTemp() && mode_ == CALC_AND_MODIFY)
+      mprintf("Warning: Overwriting temperature information in Frames.\n");
     // Masks
     if (setup.Top().SetupIntegerMask( Mask_ )) return Action::ERR;
     Mask_.MaskInfo();
@@ -102,17 +113,29 @@ Action::RetType Action_Temperature::Setup(ActionSetup& setup) {
       dof_offset_ = 3;
     }
     if (dof_offset_ > 0) mprintf("\tRemoved %i additional degrees of freedom.\n", dof_offset_);
+    // Update coordinate info if necessary.
+    if (mode_ == CALC_AND_MODIFY) {
+      cInfo_.SetTemperature( true );
+      setup.SetCoordInfo( &cInfo_ );
+      ret = Action::MODIFY_TOPOLOGY;
+    }
   }
-  return Action::OK;
+  return ret;
 }
 
 // Action_Temperature::DoAction()
 Action::RetType Action_Temperature::DoAction(int frameNum, ActionFrame& frm) {
   double tdata;
-  if (getTempFromFrame_)
+  Action::RetType ret = Action::OK;
+  if (mode_ == FROM_FRAME)
     tdata = frm.Frm().Temperature();
-  else
+  else {
     tdata = frm.Frm().CalcTemperature(Mask_, cons_.DegreesOfFreedom() - dof_offset_);
+    if (mode_ == CALC_AND_MODIFY) {
+      frm.ModifyFrm().SetTemperature( tdata );
+      ret = MODIFY_COORDS;
+    }
+  }
   Tdata_->Add(frameNum, &tdata);
-  return Action::OK;
+  return ret;
 }
