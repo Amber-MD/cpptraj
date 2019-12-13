@@ -33143,6 +33143,35 @@ Calculate temperature in frame based on velocity information.
  rotational degrees of freedom.
 \end_layout
 
+\begin_layout Standard
+For example, if using a trajectory that has been generated with SHAKE on
+ hydrogens, no periodic boundary conditions (i.e.
+ no box), and has had the center of mass periodically removed:
+\end_layout
+
+\begin_layout LyX-Code
+temperature T1 ntc 2 remove both out T1.dat
+\end_layout
+
+\begin_layout Standard
+If using a trajectory that has been generated with SHAKE on hydrogens, periodic
+ boundary conditions (i.e.
+ with a box), and has had the center of mass periodically removed:
+\end_layout
+
+\begin_layout LyX-Code
+temperature T1 ntc 2 remove trans out T1.dat
+\end_layout
+
+\begin_layout Standard
+If using a trajectory that has been generated with SHAKE on all bonds, periodic
+ boundary conditions, and no center of mass motion removal:
+\end_layout
+
+\begin_layout LyX-Code
+temperature T1 ntc 3 out T1.dat
+\end_layout
+
 \begin_layout Subsection
 time
 \end_layout
