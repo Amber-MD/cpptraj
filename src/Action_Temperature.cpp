@@ -32,13 +32,13 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, 
   if (actionArgs.hasKey("frame"))
     mode_ = FROM_FRAME;
   else {
-    mode_ = CALC_ONLY; 
+    mode_ = CALC_ONLY;
     if (cons_.InitConstraints( actionArgs )) return Action::ERR;
   }
   if (mode_ == CALC_ONLY && actionArgs.hasKey("update"))
     mode_ = CALC_AND_MODIFY;
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  
+
   // Take into account removal of global degrees of freedom?
   removeTrans_ = false;
   removeRot_ = false;
