@@ -72,7 +72,14 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, 
 
 // Action_Temperature::Setup()
 Action::RetType Action_Temperature::Setup(ActionSetup& setup) {
-  if (!getTempFromFrame_) {
+  if (getTempFromFrame_) {
+    // Get temperature from frame.
+    if (!setup.CoordInfo().HasTemperature()) {
+      mprintf("Warning: No temperature information; skipping.\n");
+      return Action::SKIP;
+    }
+  } else {
+    // Calculate temperature from velocities.
     // Masks
     if (setup.Top().SetupIntegerMask( Mask_ )) return Action::ERR;
     Mask_.MaskInfo();
