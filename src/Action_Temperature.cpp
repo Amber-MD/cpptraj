@@ -10,13 +10,15 @@ Action_Temperature::Action_Temperature() :
 {}
 
 void Action_Temperature::Help() const {
-  mprintf("\t[<name>] { frame |\n"
-          "\t           [<mask>] %s [update] [remove {trans|rot|both}]\n"
-          "\t         }\n"
-          "\t[out <filename>]\n", Constraints::constraintArgs);
-  mprintf("  Calculate temperature in frame based on velocity information.\n"
-          "  If 'frame' is specified just use frame temperature (read in from\n"
-          "  e.g. REMD trajectory). The 'ntc' keyword can be used to correct\n"
+  mprintf("\t[<name>] [out <filename>]\n"
+          "\t{ frame |\n"
+          "\t  [<mask>] %s [update] [remove {trans|rot|both}]\n"
+          "\t}\n", Constraints::constraintArgs);
+  mprintf("  Calculate temperature in frame based on velocity information. If\n"
+          "  'update' is specified, update frame temperature too. If 'frame'\n"
+          "  is specified just use frame temperature (e.g. read in from a\n"
+          "  REMD trajectory).\n"
+          "  The 'ntc' keyword can be used to correct\n"
           "  for lost degrees of freedom due to SHAKE constraints (2 = bonds to\n"
           "  hydrogen, 3 = all bonds). The 'remove' keyword can be used to\n"
           "  account for removed translational and/or rotational degrees of\n"
