@@ -349,7 +349,7 @@ int Traj_GmxTng::readFrame(int set, Frame& frameIn) {
     }
     while (current_set_ < set) {
       int stat = getNextBlocks( next_frame );
-      mprintf("DEBUG: Called getNextBlocks(%i) set=%i current_set_=%i next_frame=%li current_frame_=%li\n", stat, set, current_set_, next_frame, current_frame_);
+      //mprintf("DEBUG: Called getNextBlocks(%i) set=%i current_set_=%i next_frame=%li current_frame_=%li\n", stat, set, current_set_, next_frame, current_frame_);
       if (stat == -1) {
         mprinterr("Error: could not get data blocks for frame (set %i) during seek.\n", set+1);
         return 1;

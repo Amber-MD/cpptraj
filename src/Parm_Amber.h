@@ -55,6 +55,11 @@ class Parm_Amber : public ParmIO {
     int ReadNewParm(Topology&);
     int ReadFormatLine(FortranData&);
     inline const char* SkipToNextFlag();
+
+    void ResetFileToFlag(FlagType);
+    void ProblemFlagWarning(FlagType, unsigned int, unsigned int);
+    double FileBufferToDouble(FlagType, unsigned int, unsigned int);
+
     int ReadTitle(Topology&);
     int ReadPointers(int, Topology&, FortranData const&);
     inline int SetupBuffer(FlagType, int, FortranData const&);
@@ -157,6 +162,7 @@ class Parm_Amber : public ParmIO {
     int numLJparm_; ///< Number of LJ parameters
     bool SCEE_set_; ///< True if SCEE section found
     bool SCNB_set_; ///< True if SCNB section found
+    bool atProblemFlag_; ///< True if a problematic flag was encountered and needs to be skipped.
 
     // CHAMBER variables
     static const double ELECTOCHAMBER_;

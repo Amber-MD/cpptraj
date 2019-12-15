@@ -216,8 +216,8 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   {
     mprintf("\t[%u] %i chains, Residue %s, carboxyl atom %s (%zu carbons)\n", idx,
             Nchains_[idx],
-            Types_[idx].first.Truncated().c_str(),
-            Types_[idx].second.Truncated().c_str(), Chains_[idx].size());
+            *(Types_[idx].first),
+            *(Types_[idx].second), Chains_[idx].size());
     mprintf("\t  %-4s %-4s %2s\n", "Pos.", "Name", "#H");
     unsigned int pos = 2;
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it, ++pos)

@@ -6,6 +6,7 @@ class Exec_DataSetCmd : public Exec {
   public:
     Exec_DataSetCmd() : Exec(GENERAL) {}
     void Help() const;
+    void Help(ArgList&) const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_DataSetCmd(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
