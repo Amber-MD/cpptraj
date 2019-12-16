@@ -15,16 +15,16 @@ const double Action_GIST::maxD_ = DBL_MAX;
 
 Action_GIST::Action_GIST() :
 #ifdef CUDA
-	solvent_(NULL),
-	NBindex_c_(NULL),
-	molecule_c_(NULL),
-	paramsLJ_c_(NULL),
-	max_c_(NULL),
-	min_c_(NULL),
-	result_w_c_(NULL),
-	result_s_c_(NULL),
-	result_O_c_(NULL),
-	result_N_c_(NULL),
+  solvent_(NULL),
+  NBindex_c_(NULL),
+  molecule_c_(NULL),
+  paramsLJ_c_(NULL),
+  max_c_(NULL),
+  min_c_(NULL),
+  result_w_c_(NULL),
+  result_s_c_(NULL),
+  result_O_c_(NULL),
+  result_N_c_(NULL),
 #endif
   gO_(0),
   gH_(0),
@@ -60,7 +60,7 @@ Action_GIST::Action_GIST() :
 {}
 
 void Action_GIST::Help() const {
-  mprintf("\t[doorder] [doeij] [skipE] [refdens <rdval>] [temp <tval>]\n"
+  mprintf("\t[doorder] [doeij] [skipE] [skipS] [refdens <rdval>] [temp <tval>]\n"
           "\t[noimage] [gridcntr <xval> <yval> <zval>] [excludeions]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
           "\t[prefix <filename prefix>] [ext <grid extension>] [out <output>]\n"
@@ -128,6 +128,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       return Action::ERR;
     }
   }
+
+  this->skipS_ = actionArgs.hasKey("skipS");
+
   if (doEij_) {
     eijfile_ = init.DFL().AddCpptrajFile(prefix_ + "-Eww_ij.dat", "GIST Eij matrix file");
     if (eijfile_ == 0) return Action::ERR;
@@ -277,6 +280,14 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       EIJ_EN_.resize( numthreads );
     }
 #   endif
+
+    #ifdef CUDA
+    if (this->skipE_ && this->doorder) {
+      mprintf("When the keyword \"skipE\" is supplied, \"doorder\" cannot be"
+              " chosen, as both calculations are done on the GPU at the same"
+              " time.\nIgnoring \"doorder!\"\n");
+    }
+    #endif
   }
 
   //Box gbox;
@@ -327,8 +338,11 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
           "#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
           "#      J. Chem. Phys. 137, 044101 (2012)\n"
           "#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n"
-          "#If you use the GPU parallelized version of GIST, please cite:\n"
-          "#    Johannes Kraml, Anna S. Kamenik, Franz Waibl, Michael Schauperl, Klaus R. Liedl, JCTC (2019)\n");
+#ifdef CUDA
+          "#When using the GPU parallelized version of GIST, please cite:\n"
+          "#    Johannes Kraml, Anna S. Kamenik, Franz Waibl, Michael Schauperl, Klaus R. Liedl, JCTC (2019)\n"
+#endif
+          );
   gist_init_.Stop();
   return Action::OK;
 }
@@ -976,7 +990,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   if (doOrder_) Order(frm.Frm());
   gist_order_.Stop();
   #else
-  NonbondCuda(frm);
+  if (! this->skipE_)
+    NonbondCuda(frm);
   #endif
 
   gist_action_.Stop();
@@ -1040,62 +1055,65 @@ void Action_GIST::Print() {
   double Vvox = gO_->Bin().VoxelVolume();
 
   mprintf("    GIST OUTPUT:\n");
+  
+  // The variables are kept outside, so that they are declared for later use.
   // Calculate orientational entropy
   DataSet_GridFlt& dTSorient_dens = static_cast<DataSet_GridFlt&>( *dTSorient_ );
   Farray dTSorient_norm( MAX_GRID_PT_, 0.0 );
   double dTSorienttot = 0;
   int nwtt = 0;
   double dTSo = 0;
-  // LOOP over all voxels
-  mprintf("\tCalculating orientational entropy:\n");
-  ProgressBar oe_progress( MAX_GRID_PT_ );
-  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
-    oe_progress.Update( gr_pt );
-    dTSorient_dens[gr_pt] = 0;
-    dTSorient_norm[gr_pt] = 0;
-    int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
-    nwtt += nw_total;
-    //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
-    if (nw_total > 1) {
-      for (int n0 = 0; n0 < nw_total; n0++)
-      {
-        double NNr = 10000;
-        int q0 = n0 * 4; // Index into voxel_Q_ for n0
-        for (int n1 = 0; n1 < nw_total; n1++)
+  if (! this->skipS_) {
+    // LOOP over all voxels
+    mprintf("\tCalculating orientational entropy:\n");
+    ProgressBar oe_progress( MAX_GRID_PT_ );
+    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
+      oe_progress.Update( gr_pt );
+      dTSorient_dens[gr_pt] = 0;
+      dTSorient_norm[gr_pt] = 0;
+      int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
+      nwtt += nw_total;
+      //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
+      if (nw_total > 1) {
+        for (int n0 = 0; n0 < nw_total; n0++)
         {
-          if (n0 != n1) {
-            int q1 = n1 * 4; // Index into voxel_Q_ for n1
-            double rR = 2.0 * acos(  fabs(voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
+          double NNr = 10000;
+          int q0 = n0 * 4; // Index into voxel_Q_ for n0
+          for (int n1 = 0; n1 < nw_total; n1++)
+          {
+            if (n0 != n1) {
+              int q1 = n1 * 4; // Index into voxel_Q_ for n1
+              double rR = 2.0 * acos(  fabs(voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
                                    + voxel_Q_[gr_pt][q1+1] * voxel_Q_[gr_pt][q0+1]
                                    + voxel_Q_[gr_pt][q1+2] * voxel_Q_[gr_pt][q0+2]
                                    + voxel_Q_[gr_pt][q1+3] * voxel_Q_[gr_pt][q0+3] )); // add fabs for quaternion distance calculation
-            //mprintf("DEBUG1: %g\n", rR);
-            if (rR > 0 && rR < NNr) NNr = rR;
+              //mprintf("DEBUG1: %g\n", rR);
+              if (rR > 0 && rR < NNr) NNr = rR;
+            }
+          } // END inner loop over all waters for this voxel
+
+          if (NNr < 9999 && NNr > 0) {
+            double dbl = log(NNr*NNr*NNr*nw_total / (3.0*Constants::TWOPI));
+            //mprintf("DEBUG1: dbl %f\n", dbl);
+            dTSorient_norm[gr_pt] += dbl;
+            dTSo += dbl;
           }
-        } // END inner loop over all waters for this voxel
-
-        if (NNr < 9999 && NNr > 0) {
-          double dbl = log(NNr*NNr*NNr*nw_total / (3.0*Constants::TWOPI));
-          //mprintf("DEBUG1: dbl %f\n", dbl);
-          dTSorient_norm[gr_pt] += dbl;
-          dTSo += dbl;
-        }
-      } // END outer loop over all waters for this voxel
-      //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
-      dTSorient_norm[gr_pt] = Constants::GASK_KCAL * temperature_ * 
-                               ((dTSorient_norm[gr_pt]/nw_total) + Constants::EULER_MASC);
-      double dtso_norm_nw = (double)dTSorient_norm[gr_pt] * (double)nw_total;
-      dTSorient_dens[gr_pt] = (dtso_norm_nw / (NFRAME_ * Vvox));
-      dTSorienttot += dTSorient_dens[gr_pt];
-      //mprintf("DEBUG1: %f\n", dTSorienttot);
-    }
-  } // END loop over all grid points (voxels)
-  dTSorienttot *= Vvox;
-  infofile_->Printf("Maximum number of waters found in one voxel for %d frames = %d\n",
-                    NFRAME_, max_nwat_);
-  infofile_->Printf("Total referenced orientational entropy of the grid:"
-                    " dTSorient = %9.5f kcal/mol, Nf=%d\n", dTSorienttot, NFRAME_);
-
+        } // END outer loop over all waters for this voxel
+        //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
+        dTSorient_norm[gr_pt] = Constants::GASK_KCAL * temperature_ * 
+                                ((dTSorient_norm[gr_pt]/nw_total) + Constants::EULER_MASC);
+        double dtso_norm_nw = (double)dTSorient_norm[gr_pt] * (double)nw_total;
+        dTSorient_dens[gr_pt] = (dtso_norm_nw / (NFRAME_ * Vvox));
+        dTSorienttot += dTSorient_dens[gr_pt];
+        //mprintf("DEBUG1: %f\n", dTSorienttot);
+      }
+    } // END loop over all grid points (voxels)
+    dTSorienttot *= Vvox;
+    infofile_->Printf("Maximum number of waters found in one voxel for %d frames = %d\n",
+                      NFRAME_, max_nwat_);
+    infofile_->Printf("Total referenced orientational entropy of the grid:"
+                      " dTSorient = %9.5f kcal/mol, Nf=%d\n", dTSorienttot, NFRAME_);
+  }
   // Compute translational entropy for each voxel
   double dTStranstot = 0.0;
   double dTSt = 0.0;
@@ -1113,8 +1131,12 @@ void Action_GIST::Print() {
   DataSet_GridFlt& dTSsix = static_cast<DataSet_GridFlt&>( *dTSsix_ );
   Farray dTStrans_norm( MAX_GRID_PT_, 0.0 );
   Farray dTSsix_norm( MAX_GRID_PT_, 0.0 );
+  
   // Loop over all grid points
-  mprintf("\tCalculating translational entropy:\n");
+  if (! this->skipS_)
+    mprintf("\tCalculating translational entropy:\n");
+  else
+    mprintf("Calculating Densities:\n");
   ProgressBar te_progress( MAX_GRID_PT_ );
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
     te_progress.Update( gr_pt );
@@ -1122,126 +1144,126 @@ void Action_GIST::Print() {
     double W_dens = 1.0 * N_waters_[gr_pt] / (NFRAME_*Vvox);
     gO[gr_pt] = W_dens / BULK_DENS_;
     gH[gr_pt] = 1.0 * N_hydrogens_[gr_pt] / (NFRAME_*Vvox*2*BULK_DENS_);
+    if (! this->skipS_) {
+      int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
+      for (int n0 = 0; n0 < nw_total; n0++)
+      {
+        double NNd = 10000;
+        double NNs = 10000;
+        int i0 = n0 * 3; // index into voxel_xyz_ for n0
+        float VX = voxel_xyz_[gr_pt][i0  ];
+        float VY = voxel_xyz_[gr_pt][i0+1];
+        float VZ = voxel_xyz_[gr_pt][i0+2];
+        int q0 = n0 * 4;  // index into voxel_Q_ for n0
+        float W4 = voxel_Q_[gr_pt][q0  ];
+        float X4 = voxel_Q_[gr_pt][q0+1];
+        float Y4 = voxel_Q_[gr_pt][q0+2];
+        float Z4 = voxel_Q_[gr_pt][q0+3];
+        // First do own voxel
+        for (int n1 = 0; n1 < nw_total; n1++) {
+          if ( n1 != n0) {
+            int i1 = n1 * 3; // index into voxel_xyz_ for n1
+            double dx = (double)(VX - voxel_xyz_[gr_pt][i1  ]);
+            double dy = (double)(VY - voxel_xyz_[gr_pt][i1+1]);
+            double dz = (double)(VZ - voxel_xyz_[gr_pt][i1+2]);
+            double dd = dx*dx+dy*dy+dz*dz;
+            if (dd < NNd && dd > 0) { NNd = dd; }
+            int q1 = n1 * 4; // index into voxel_Q_ for n1
+            double rR = 2 * acos( fabs(W4*voxel_Q_[gr_pt][q1  ] +
+                                  X4*voxel_Q_[gr_pt][q1+1] +
+                                  Y4*voxel_Q_[gr_pt][q1+2] +
+                                  Z4*voxel_Q_[gr_pt][q1+3] )); //add fabs for quaternion distance calculation
+            double ds = rR*rR + dd;
+            if (ds < NNs && ds > 0) { NNs = ds; }
+          }
+        } // END self loop over all waters for this voxel
+        //mprintf("DEBUG1: self NNd=%f NNs=%f\n", NNd, NNs);
+        // Determine which directions are possible.
+        bool cannotAddZ = (nz == 0 || ( gr_pt%nz == nz-1 ));
+        bool cannotAddY = ((nz == 0 || ny-1 == 0) || ( gr_pt%(nz*(ny-1)+(numplane*addx)) < nz));
+        bool cannotAddX = (gr_pt >= addx * (nx-1) && gr_pt < addx * nx );
+        bool cannotSubZ = (nz == 0 || gr_pt%nz == 0);
+        bool cannotSubY = ((nz == 0 || ny == 0) || (gr_pt%addx < nz));
+        bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt < addx));
+        bool boundary = ( cannotAddZ || cannotAddY || cannotAddX ||
+                          cannotSubZ || cannotSubY || cannotSubX );
+        if (!boundary) {
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz + addy, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz - addy, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz + addy, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz - addy, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz + addx, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz - addx, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz + addx, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz - addx, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy + addx, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy - addx, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy + addx, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy - addx, NNd, NNs);
 
-    int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
-    for (int n0 = 0; n0 < nw_total; n0++)
-    {
-      double NNd = 10000;
-      double NNs = 10000;
-      int i0 = n0 * 3; // index into voxel_xyz_ for n0
-      float VX = voxel_xyz_[gr_pt][i0  ];
-      float VY = voxel_xyz_[gr_pt][i0+1];
-      float VZ = voxel_xyz_[gr_pt][i0+2];
-      int q0 = n0 * 4;  // index into voxel_Q_ for n0
-      float W4 = voxel_Q_[gr_pt][q0  ];
-      float X4 = voxel_Q_[gr_pt][q0+1];
-      float Y4 = voxel_Q_[gr_pt][q0+2];
-      float Z4 = voxel_Q_[gr_pt][q0+3];
-      // First do own voxel
-      for (int n1 = 0; n1 < nw_total; n1++) {
-        if ( n1 != n0) {
-          int i1 = n1 * 3; // index into voxel_xyz_ for n1
-          double dx = (double)(VX - voxel_xyz_[gr_pt][i1  ]);
-          double dy = (double)(VY - voxel_xyz_[gr_pt][i1+1]);
-          double dz = (double)(VZ - voxel_xyz_[gr_pt][i1+2]);
-          double dd = dx*dx+dy*dy+dz*dz;
-          if (dd < NNd && dd > 0) { NNd = dd; }
-          int q1 = n1 * 4; // index into voxel_Q_ for n1
-          double rR = 2 * acos( fabs(W4*voxel_Q_[gr_pt][q1  ] +
-                                X4*voxel_Q_[gr_pt][q1+1] +
-                                Y4*voxel_Q_[gr_pt][q1+2] +
-                                Z4*voxel_Q_[gr_pt][q1+3] )); //add fabs for quaternion distance calculation
-          double ds = rR*rR + dd;
-          if (ds < NNs && ds > 0) { NNs = ds; }
+          // add the 8 more voxels for NNr searching
+
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx + addy + addz, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx + addy - addz, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx - addy + addz, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx - addy - addz, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx + addy + addz, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx + addy - addz, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx - addy + addz, NNd, NNs);
+          TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx - addy - addz, NNd, NNs);
+
+
+          NNd = sqrt(NNd);
+          NNs = sqrt(NNs);
+
+          if (NNd < 3 && NNd > 0/*NNd < 9999 && NNd > 0*/) {
+            double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
+            dTStrans_norm[gr_pt] += dbl;
+            dTSt += dbl;
+            dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
+            dTSsix_norm[gr_pt] += dbl;
+            dTSs += dbl;
+            //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
+          }
         }
-      } // END self loop over all waters for this voxel
-      //mprintf("DEBUG1: self NNd=%f NNs=%f\n", NNd, NNs);
-      // Determine which directions are possible.
-      bool cannotAddZ = (nz == 0 || ( gr_pt%nz == nz-1 ));
-      bool cannotAddY = ((nz == 0 || ny-1 == 0) || ( gr_pt%(nz*(ny-1)+(numplane*addx)) < nz));
-      bool cannotAddX = (gr_pt >= addx * (nx-1) && gr_pt < addx * nx );
-      bool cannotSubZ = (nz == 0 || gr_pt%nz == 0);
-      bool cannotSubY = ((nz == 0 || ny == 0) || (gr_pt%addx < nz));
-      bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt < addx));
-      bool boundary = ( cannotAddZ || cannotAddY || cannotAddX ||
-                        cannotSubZ || cannotSubY || cannotSubX );
-      if (!boundary) {
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz + addy, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz - addy, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz + addy, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz - addy, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz + addx, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz - addx, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz + addx, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz - addx, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy + addx, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy - addx, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy + addx, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy - addx, NNd, NNs);
-
-        // add the 8 more voxels for NNr searching
-
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx + addy + addz, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx + addy - addz, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx - addy + addz, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx - addy - addz, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx + addy + addz, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx + addy - addz, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx - addy + addz, NNd, NNs);
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx - addy - addz, NNd, NNs);
-
-
-
-        NNd = sqrt(NNd);
-        NNs = sqrt(NNs);
-
-        if (NNd < 3 && NNd > 0/*NNd < 9999 && NNd > 0*/) {
-          double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
-          dTStrans_norm[gr_pt] += dbl;
-          dTSt += dbl;
-          dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
-          dTSsix_norm[gr_pt] += dbl;
-          dTSs += dbl;
-          //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
-        }
+      } // END loop over all waters for this voxel
+      if (dTStrans_norm[gr_pt] != 0) {
+        nwts += nw_total;
+        dTStrans_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTStrans_norm[gr_pt]/nw_total) +
+                                                                  Constants::EULER_MASC );
+        dTSsix_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTSsix_norm[gr_pt]/nw_total) +
+                                                                Constants::EULER_MASC );
       }
-    } // END loop over all waters for this voxel
-    if (dTStrans_norm[gr_pt] != 0) {
-      nwts += nw_total;
-      dTStrans_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTStrans_norm[gr_pt]/nw_total) +
-                                                                 Constants::EULER_MASC );
-      dTSsix_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTSsix_norm[gr_pt]/nw_total) +
-                                                               Constants::EULER_MASC );
-    }
-    double dtst_norm_nw = (double)dTStrans_norm[gr_pt] * (double)nw_total;
-    dTStrans[gr_pt] = (dtst_norm_nw / (NFRAME_*Vvox));
-    double dtss_norm_nw = (double)dTSsix_norm[gr_pt] * (double)nw_total;
-    dTSsix[gr_pt] = (dtss_norm_nw / (NFRAME_*Vvox));
-    dTStranstot += dTStrans[gr_pt];
-  } // END loop over all grid points (voxels)
-
-  dTStranstot *= Vvox;
-  double dTSst = 0.0;
-  double dTStt = 0.0;
-  if (nwts > 0) {
-    dTSst = Constants::GASK_KCAL*temperature_*((dTSs/nwts) + Constants::EULER_MASC);
-    dTStt = Constants::GASK_KCAL*temperature_*((dTSt/nwts) + Constants::EULER_MASC);
+      double dtst_norm_nw = (double)dTStrans_norm[gr_pt] * (double)nw_total;
+      dTStrans[gr_pt] = (dtst_norm_nw / (NFRAME_*Vvox));
+      double dtss_norm_nw = (double)dTSsix_norm[gr_pt] * (double)nw_total;
+      dTSsix[gr_pt] = (dtss_norm_nw / (NFRAME_*Vvox));
+      dTStranstot += dTStrans[gr_pt];
+    } // END loop over all grid points (voxels)
   }
-  double dTSot = Constants::GASK_KCAL*temperature_*((dTSo/nwtt) + Constants::EULER_MASC);
-  infofile_->Printf("watcount in vol = %d\n", nwtt);
-  infofile_->Printf("watcount in subvol = %d\n", nwts);
-  infofile_->Printf("Total referenced translational entropy of the grid:"
-                    " dTStrans = %9.5f kcal/mol, Nf=%d\n", dTStranstot, NFRAME_);
-  infofile_->Printf("Total 6d if all one vox: %9.5f kcal/mol\n", dTSst);
-  infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", dTStt);
-  infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", dTSot);
-
+  if (!this->skipS_) {
+    dTStranstot *= Vvox;
+    double dTSst = 0.0;
+    double dTStt = 0.0;
+    if (nwts > 0) {
+      dTSst = Constants::GASK_KCAL*temperature_*((dTSs/nwts) + Constants::EULER_MASC);
+      dTStt = Constants::GASK_KCAL*temperature_*((dTSt/nwts) + Constants::EULER_MASC);
+    }
+    double dTSot = Constants::GASK_KCAL*temperature_*((dTSo/nwtt) + Constants::EULER_MASC);
+    infofile_->Printf("watcount in vol = %d\n", nwtt);
+    infofile_->Printf("watcount in subvol = %d\n", nwts);
+    infofile_->Printf("Total referenced translational entropy of the grid:"
+                      " dTStrans = %9.5f kcal/mol, Nf=%d\n", dTStranstot, NFRAME_);
+    infofile_->Printf("Total 6d if all one vox: %9.5f kcal/mol\n", dTSst);
+    infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", dTStt);
+    infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", dTSot);
+  }
   // Compute average voxel energy. Allocate these sets even if skipping energy
   // to be consistent with previous output.
   DataSet_GridFlt& Esw_dens = static_cast<DataSet_GridFlt&>( *Esw_ );
@@ -1263,8 +1285,10 @@ void Action_GIST::Print() {
     Darray const& E_VV_Elec = E_VV_Elec_[0];
     #endif
     Farray const& Neighbor = neighbor_[0];
+    #ifndef CUDA
     // Sum values from other threads if necessary
     SumEVV();
+    #endif
     static const double DEBYE_EA = 0.20822678; // 1 Debye in eA
     double Eswtot = 0.0;
     double Ewwtot = 0.0;
@@ -1319,6 +1343,17 @@ void Action_GIST::Print() {
     infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", Eswtot);
     infofile_->Printf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n",
                       Ewwtot);
+  } else {
+    static const double DEBYE_EA = 0.20822678;
+    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
+    {
+      dipolex[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
+      dipoley[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
+      dipolez[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
+      pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
+                         dipoley[gr_pt]*dipoley[gr_pt] +
+                         dipolez[gr_pt]*dipolez[gr_pt] );
+    }
   }
 
   // Write the GIST output file.
@@ -1392,9 +1427,9 @@ void Action_GIST::Print() {
   gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());
   gist_print_.WriteTiming(1,   "Print:", total);
   mprintf("TIME:\tTotal: %.4f s\n", total);
-	#ifdef CUDA
-	this->freeGPUMemory();
-	#endif
+  #ifdef CUDA
+  this->freeGPUMemory();
+  #endif
 }
 
 #ifdef CUDA
