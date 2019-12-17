@@ -1,5 +1,5 @@
-#LyX 2.2 created this file. For more info see http://www.lyx.org/
-\lyxformat 508
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
 \begin_document
 \begin_header
 \save_transient_properties true
@@ -21,6 +21,8 @@
 \font_osf false
 \font_sf_scale 100 100
 \font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures false
 \graphics default
 \default_output_format default
 \output_sync 0
@@ -59,6 +61,7 @@
 \suppress_date false
 \justification true
 \use_refstyle 0
+\use_minted 0
 \index Index
 \shortcut idx
 \color #008000
@@ -67,7 +70,10 @@
 \tocdepth 3
 \paragraph_separation indent
 \paragraph_indentation default
-\quotes_language english
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
@@ -99,7 +105,7 @@ Jason M.
 \begin_inset Newline newline
 \end_inset
 
-Last Updated: 2018-05-10
+Last Updated: 2019-12-13
 \begin_inset Newpage pagebreak
 \end_inset
 
@@ -2779,6 +2785,19 @@ Most development for Cpptraj will likely be in adding new functionality;
  ActionList).
 \end_layout
 
+\begin_layout Standard
+Note that there is a script provided that can generate default templates
+ for various class types, located at $CPPTRAJHOME/devtools/Template.sh:
+\end_layout
+
+\begin_layout LyX-Code
+Usage: ./devtools/Template.sh <name> [<type>] 
+\end_layout
+
+\begin_layout LyX-Code
+  <type>: Action Analysis Exec Traj DataIO DataSet
+\end_layout
+
 \begin_layout Section
 Adding Actions - Example
 \end_layout
@@ -3511,6 +3530,49 @@ setup.TopAddress()
 currentParm_ = setup.TopAddress();
 \end_layout
 
+\begin_layout Paragraph
+Modification of Topology Info
+\end_layout
+
+\begin_layout Standard
+If there will be a modification of Topology/Frame information (e.g.
+ removing atoms, adding velocity information to the Frame, etc) the Action
+ must return Action::MODIFY_TOPOLOGY.
+ If the CoordinateInfo will be modified, the Action should have a copy of
+ the CoordinateInfo in the Action class itself; 
+\series bold
+it must not reside only in Action::Setup(), otherwise it will be lost when
+ setup exits
+\series default
+.
+\end_layout
+
+\begin_layout Standard
+For example, say we are adding time information to a frame that currently
+ does not have it.
+ The code might look something like:
+\end_layout
+
+\begin_layout LyX-Code
+cInfo_ = setup.CoordInfo(); 
+\end_layout
+
+\begin_layout LyX-Code
+if (!cInfo_.HasTime())
+\end_layout
+
+\begin_layout LyX-Code
+  cInfo_.SetTime( true );
+\end_layout
+
+\begin_layout LyX-Code
+setup.SetCoordInfo( &cInfo_ );
+\end_layout
+
+\begin_layout Standard
+Here, cInfo_ is a CoordinateInfo variable in the Action class.
+\end_layout
+
 \begin_layout Subsubsection
 DoAction() - Process input Frame
 \end_layout
@@ -3836,6 +3898,8 @@ Command::AddCmd( new Action_DistRmsd(), Cmd::ACT, 2, "drms", "drmsd" );
 \begin_inset CommandInset index_print
 LatexCommand printindex
 type "idx"
+name "Index"
+literal "true"
 
 \end_inset
 
