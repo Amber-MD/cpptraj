@@ -1351,6 +1351,7 @@ double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
   if (V_==0) return 0.0;
   if (mask.None()) return 0.0;
   double fac = (Constants::GASK_KCAL/2.0) * deg_of_freedom; // Estimate for DoF
+  //mprintf("|DEBUG boltz2 rndf %12.5E%10.4f\n", (Constants::GASK_KCAL/2.0), (float)deg_of_freedom);
   double total_KE = 0.0;
   //mprintf("|DEBUG: vxyz0 %10.4f%10.4f%10.4f\n", V_[0], V_[1], V_[2]);
   for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
