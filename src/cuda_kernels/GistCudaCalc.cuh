@@ -1,7 +1,7 @@
 #ifndef GIST_CUDA_CALC_CUH
 #define GIST_CUDA_CALC_CUH
 
-#define HUGE_C 1e200
+#define HUGE_C 1e30f
 #define BLOCKSIZE 16
 #define SLOW_BLOCKSIZE 512
 
@@ -20,14 +20,14 @@ public:
   float y;
   float z;
 
-	// Empty Constructor
+  // Empty Constructor
   __host__ __device__
   Coordinates(): x(0), y(0), z(0) {}
 
-	/**
-	 * Constructor using an array of three values.
-	 * @param array: The array that holds the x, y and z coordinates
-	 */
+  /**
+   * Constructor using an array of three values.
+   * @param array: The array that holds the x, y and z coordinates
+   */
   __host__ __device__
   Coordinates(const double *array) {
     this->x = array[0];
@@ -35,10 +35,10 @@ public:
     this->z = array[2];
   }
 
-	/**
-	 * Copy Constructor.
-	 * @param other: The other object.
-	 */
+  /**
+   * Copy Constructor.
+   * @param other: The other object.
+   */
   __host__ __device__
   Coordinates(const Coordinates &other) {
     this->x = other.x;
@@ -46,11 +46,11 @@ public:
     this->z = other.z;
   }
 
-	/**
-	 * The assignment operator for an object of this class.
-	 * @param other: The other Coordinate object.
-	 * @return This object.
-	 */
+  /**
+   * The assignment operator for an object of this class.
+   * @param other: The other Coordinate object.
+   * @return This object.
+   */
   __host__ __device__
   Coordinates &operator=(const Coordinates &other) {
     this->x = other.x;
@@ -71,46 +71,46 @@ public:
   float A;
   float B;
 
-	// Empty constructor
+  // Empty constructor
   __host__ __device__
   ParamsLJ(): A(0), B(0) {}
 
-	/**
-	 * Constructor from an array of values.
-	 * @param arr: The array that holds the A and B values.
-	 */
+  /**
+   * Constructor from an array of values.
+   * @param arr: The array that holds the A and B values.
+   */
   __host__ __device__
   ParamsLJ(float *arr) {
     this->A = arr[0];
     this->B = arr[1];
   }
 
-	/**
-	 * Constructor using two different floats.
-	 * @param A: The A value in the Lennard-Jones equation.
-	 * @param B: The B value in the Lennard-Jones equation.
-	 */
+  /**
+   * Constructor using two different floats.
+   * @param A: The A value in the Lennard-Jones equation.
+   * @param B: The B value in the Lennard-Jones equation.
+   */
   __host__ __device__
   ParamsLJ(float A, float B) {
     this->A = A;
     this->B = B;
   }
 
-	/**
-	 * Copy constructor for this class.
-	 * @param other: The other object of this class
-	 */
+  /**
+   * Copy constructor for this class.
+   * @param other: The other object of this class
+   */
   __host__ __device__
   ParamsLJ(const ParamsLJ &other) {
     this->A = other.A;
     this->B = other.B;
   }
 
-	/**
-	 * The assignment operator of this class.
-	 * @param other: The other object of this type.
-	 * @return this object.
-	 */
+  /**
+   * The assignment operator of this class.
+   * @param other: The other object of this type.
+   * @return this object.
+   */
   __host__ __device__
   ParamsLJ &operator=(const ParamsLJ &other) {
     this->A = other.A;
@@ -125,17 +125,17 @@ public:
  */
 class UnitCell {
 public:
-	float array[9];
-	
-	// The empty constuctor.
+  float array[9];
+  
+  // The empty constuctor.
   __host__ __device__
   UnitCell() {}
 
-	/**
-	 * Constructor using an array.
-	 * @param arr: The array from which the values should be
-	 *             taken.
-	 */
+  /**
+   * Constructor using an array.
+   * @param arr: The array from which the values should be
+   *             taken.
+   */
   __host__ __device__
   UnitCell(float *arr) {
     this->array[0] = arr[0];
@@ -149,10 +149,10 @@ public:
     this->array[8] = arr[8];
   }
 
-	/**
-	 * Copy constructor.
-	 * @param other: The other object.
-	 */
+  /**
+   * Copy constructor.
+   * @param other: The other object.
+   */
   __host__ __device__
   UnitCell(const UnitCell &other) {
     this->array[0] = other.array[0];
@@ -166,11 +166,11 @@ public:
     this->array[8] = other.array[8];
   }
 
-	/**
-	 * Assignment operator.
-	 * @param other: The other object.
-	 * @return This object.
-	 */
+  /**
+   * Assignment operator.
+   * @param other: The other object.
+   * @return This object.
+   */
   __host__ __device__
   UnitCell &operator=(const UnitCell &other){
     this->array[0] = other.array[0];
@@ -185,12 +185,12 @@ public:
     return *this;
   }
 
-	/**
-	 * Access operator.
-	 * @param idx: The index which should be accessed.
-	 *
-	 * @exceptsafe Not safe.
-	 */
+  /**
+   * Access operator.
+   * @param idx: The index which should be accessed.
+   *
+   * @exceptsafe Not safe.
+   */
   __host__ __device__
   float operator[](int idx) {
     if (idx >= 0 && idx < 9) {
@@ -208,17 +208,17 @@ public:
 class BoxInfo {
 public:
   float array[9]; ///< box dimensions
-	int boxinfo;
-	
-	// Empty constructor
+  int boxinfo;
+  
+  // Empty constructor
   __host__ __device__
   BoxInfo(): boxinfo(0) {}
 
-	/**
-	 * Constructor using an array and the boxinfo.
-	 * @param arr: The array holding the values for the box dimensions.
-	 * @param boxinfo: Which kind of box this is.
-	 */
+  /**
+   * Constructor using an array and the boxinfo.
+   * @param arr: The array holding the values for the box dimensions.
+   * @param boxinfo: Which kind of box this is.
+   */
   __host__ __device__
   BoxInfo(float *arr, int boxinfo) {
     this->array[0] = arr[0];
@@ -233,10 +233,10 @@ public:
     this->boxinfo = boxinfo;
   }
 
-	/**
-	 * Copy constuctor.
-	 * @param other: The other object.
-	 */
+  /**
+   * Copy constuctor.
+   * @param other: The other object.
+   */
   __host__ __device__
   BoxInfo(const BoxInfo &other) {
     this->array[0] = other.array[0];
@@ -251,11 +251,11 @@ public:
     this->boxinfo = other.boxinfo;
   }
 
-	/**
-	 * Assignement operator.
-	 * @param other: The other object.
-	 * @return This object.
-	 */
+  /**
+   * Assignement operator.
+   * @param other: The other object.
+   * @return This object.
+   */
   __host__ __device__
   BoxInfo &operator=(const BoxInfo &other){
     this->array[0] = other.array[0];
@@ -271,12 +271,12 @@ public:
     return *this;
   }
 
-	/**
-	 * Access operator.
-	 * @param idx: The index at which to access the array.
-	 * @return The value stored at that point in the array or 0 if none is found.
-	 * @exceptsafe Is not exception safe.
-	 */
+  /**
+   * Access operator.
+   * @param idx: The index at which to access the array.
+   * @return The value stored at that point in the array or 0 if none is found.
+   * @exceptsafe Is not exception safe.
+   */
   __host__ __device__
   float operator[](int idx) {
     if (idx < 9 && idx >= 0) {
@@ -299,17 +299,17 @@ public:
   bool solvent;
   int molecule;
 
-	// Empty constructor
+  // Empty constructor
   __host__ __device__
   AtomProperties() {}
 
-	/**
-	 * Constructor.
-	 * @param charge: The charge of the atom.
-	 * @param atomType: The atom type for access of the lennard-jones parameters.
-	 * @param solvent: Is this atom a solvent atom?
-	 * @param molecule: The molecule this atom belongs to.
-	 */
+  /**
+   * Constructor.
+   * @param charge: The charge of the atom.
+   * @param atomType: The atom type for access of the lennard-jones parameters.
+   * @param solvent: Is this atom a solvent atom?
+   * @param molecule: The molecule this atom belongs to.
+   */
   __host__ __device__
   AtomProperties(float charge, int atomType, bool solvent, int molecule) {
     this->charge = charge;
@@ -318,10 +318,10 @@ public:
     this->molecule = molecule;
   }
 
-	/**
-	 * Copy constructor.
-	 * @param other: The other object.
-	 */
+  /**
+   * Copy constructor.
+   * @param other: The other object.
+   */
   __host__ __device__
   AtomProperties(const AtomProperties &other) {
     this->charge = other.charge;
@@ -330,11 +330,11 @@ public:
     this->molecule = other.molecule;
   }
 
-	/**
-	 * Assignement operator.
-	 * @param other: The other object.
-	 * @return This object.
-	 */
+  /**
+   * Assignement operator.
+   * @param other: The other object.
+   * @return This object.
+   */
   __host__  __device__
   AtomProperties &operator=(const AtomProperties &other) {
     this->charge = other.charge;

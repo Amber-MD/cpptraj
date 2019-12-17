@@ -15,9 +15,9 @@
 class Action_GIST : public Action {
   public:
     Action_GIST();
-		#ifdef CUDA
-		~Action_GIST() {delete[] this->solvent_;}
-		#endif
+    #ifdef CUDA
+    ~Action_GIST() {delete[] this->solvent_;}
+    #endif
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_GIST(); }
     void Help() const;
   private:
@@ -161,6 +161,6 @@ class Action_GIST : public Action {
     bool doEij_;               ///< If true do the i-j energy calc
     bool skipE_;               ///< If true skip the nonbond energy calc
     bool includeIons_;         ///< If true include ions in solute region.
-		bool skipS_;               ///< If true does not calculate entropy
+    bool skipS_;               ///< If true does not calculate entropy
 };
 #endif

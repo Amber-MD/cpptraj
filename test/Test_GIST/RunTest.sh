@@ -17,7 +17,7 @@ if [ $? -eq 0 ]; then
   trajin ../tz2.ortho.nc 1 10
   autoimage origin
   gist doorder doeij refdens 0.033422885325 gridcntr 1.44 0.67 0.29 \
-		griddim 10 12 10 gridspacn 2.0 prefix Gist1
+    griddim 10 12 10 gridspacn 2.0 prefix Gist1
   go
 EOF
   RunCpptraj "GIST water-water interaction test"
@@ -31,7 +31,7 @@ parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 10
 autoimage origin
 gist doorder refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
-		griddim 34 44 36 gridspacn 0.50 prefix Gist2 info Info.dat
+    griddim 34 44 36 gridspacn 0.50 prefix Gist2 info Info.dat
 go
 EOF
 RunCpptraj "GIST test"

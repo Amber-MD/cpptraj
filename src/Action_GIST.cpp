@@ -282,7 +282,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 #   endif
 
     #ifdef CUDA
-    if (this->skipE_ && this->doorder) {
+    if (this->skipE_ && this->doOrder_) {
       mprintf("When the keyword \"skipE\" is supplied, \"doorder\" cannot be"
               " chosen, as both calculations are done on the GPU at the same"
               " time.\nIgnoring \"doorder!\"\n");
