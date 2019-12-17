@@ -2,7 +2,8 @@
 #define INC_COMMAND_H
 #include "CmdList.h"
 #include "CpptrajState.h"
-#include "Control.h"
+#include "VariableArray.h"
+class ControlBlock;
 class Command {
   public:
     static void Init();

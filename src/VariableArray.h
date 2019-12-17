@@ -1,6 +1,9 @@
 #ifndef INC_VARIABLEARRAY_H
 #define INC_VARIABLEARRAY_H
-#include "DataSetList.h"
+#include <vector>
+#include <string>
+class DataSetList;
+class ArgList;
 /// Hold script variables and their values.
 class VariableArray {
     /// Hold variable and corresponding value.
@@ -12,7 +15,7 @@ class VariableArray {
     VariableArray() {}
     /// Add/update variable with given value.
     void UpdateVariable(std::string const&, std::string const&);
-    /// Add/append variable with given value.
+    /// Add/append variable tith given value.
     void AppendVariable(std::string const&, std::string const&);
     /// Replace all variables in given ArgList with their values.
     ArgList ReplaceVariables(ArgList const&, DataSetList const&, int);

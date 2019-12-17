@@ -1,14 +1,12 @@
 #ifndef INC_CONTROL_H
 #define INC_CONTROL_H
 #include "CpptrajState.h"
-#include "VariableArray.h"
+class VariableArray;
 /// Control block structures.
 class ControlBlock : public DispatchObject {
   public:
     typedef std::vector<ArgList> ArgArray;
     typedef ArgArray::const_iterator const_iterator;
-    /// Hold variable/value pairs
-    typedef VariableArray Varray;
     /// Control block states
     enum DoneType { DONE = 0, NOT_DONE, ERROR };
 
@@ -29,7 +27,7 @@ class ControlBlock : public DispatchObject {
     /// Start control block. Init internal variables if necessary.
     virtual void Start() = 0;
     /// Add/update variables and increment, check block state.
-    virtual DoneType CheckDone(Varray&) = 0;
+    virtual DoneType CheckDone(VariableArray&) = 0;
   protected:
     std::string description_; ///< Describe control TODO private?
 };
@@ -47,7 +45,7 @@ class ControlBlock_For : public ControlBlock {
     const_iterator begin() const { return commands_.begin(); }
     const_iterator end()   const { return commands_.end();   }
     void Start();
-    DoneType CheckDone(Varray&);
+    DoneType CheckDone(VariableArray&);
   private:
     enum ForType {ATOMS=0, RESIDUES, MOLECULES, MOLFIRSTRES, MOLLASTRES, INTEGER, LIST, UNKNOWN};
     enum OpType { INCREMENT=0, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
@@ -77,12 +75,9 @@ class ControlBlock_For : public ControlBlock {
 /// Work with script variables
 class Control : public DispatchObject {
   public:
-    /// Hold variable/value pairs
-    typedef VariableArray Varray;
-
     Control() : DispatchObject(CONTROL) {}
     virtual ~Control() {}
-    virtual CpptrajState::RetType SetupControl(CpptrajState&, ArgList&, Varray&) = 0;
+    virtual CpptrajState::RetType SetupControl(CpptrajState&, ArgList&, VariableArray&) = 0;
 };
 
 /// Create/update script variables
@@ -92,7 +87,7 @@ class Control_Set : public Control {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Control_Set(); }
 
-    CpptrajState::RetType SetupControl(CpptrajState&, ArgList&, Varray&);
+    CpptrajState::RetType SetupControl(CpptrajState&, ArgList&, VariableArray&);
 };
 
 /// List all variables and values.
@@ -102,6 +97,6 @@ class Control_Show : public Control {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Control_Show(); }
 
-    CpptrajState::RetType SetupControl(CpptrajState&, ArgList&, Varray&);
+    CpptrajState::RetType SetupControl(CpptrajState&, ArgList&, VariableArray&);
 };
 #endif

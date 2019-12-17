@@ -2,6 +2,7 @@
 #include "Control.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "VariableArray.h"
 
 void ControlBlock_For::Help() const {
   mprintf("\t{ {atoms|residues|molecules|molfirstres|mollastres}\n"
@@ -333,7 +334,7 @@ void ControlBlock_For::Start() {
 }
 
 /** For each mask check if done, then update CurrentVars, then increment. */
-ControlBlock::DoneType ControlBlock_For::CheckDone(Varray& CurrentVars) {
+ControlBlock::DoneType ControlBlock_For::CheckDone(VariableArray& CurrentVars) {
   static const char* prefix[] = {"@", ":", "^", ":", ":"};
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
     // Exit as soon as one is done TODO check all?
@@ -386,7 +387,7 @@ void Control_Set::Help() const {
   * so re-tokenize the original argument line (minus the command).
   */
 CpptrajState::RetType
-  Control_Set::SetupControl(CpptrajState& State, ArgList& argIn, Varray& CurrentVars)
+  Control_Set::SetupControl(CpptrajState& State, ArgList& argIn, VariableArray& CurrentVars)
 {
   ArgList remaining = argIn.RemainingArgs();
   size_t pos0 = remaining.ArgLineStr().find_first_of("=");
@@ -460,9 +461,9 @@ void Control_Show::Help() const {
 }
 
 CpptrajState::RetType
-  Control_Show::SetupControl(CpptrajState& State, ArgList& argIn, Varray& CurrentVars)
+  Control_Show::SetupControl(CpptrajState& State, ArgList& argIn, VariableArray& CurrentVars)
 {
-  for (Varray::const_iterator it = CurrentVars.begin(); it != CurrentVars.end(); ++it)
+  for (VariableArray::const_iterator it = CurrentVars.begin(); it != CurrentVars.end(); ++it)
     mprintf("\t%s = '%s'\n", it->first.c_str(), it->second.c_str());
   return CpptrajState::OK;
 }

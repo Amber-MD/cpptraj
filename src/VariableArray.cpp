@@ -3,6 +3,8 @@
 #include "DataSet_string.h"
 #include "DataSet_1D.h"
 #include "StringRoutines.h"
+#include "DataSetList.h"
+#include "ArgList.h"
 
 /** Add variable/value to array if it doesnt exist, otherwise set value. */
 void VariableArray::UpdateVariable(std::string const& varname, std::string const& value)
