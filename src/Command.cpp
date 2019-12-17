@@ -8,6 +8,8 @@
 #include "RPNcalc.h"
 #include "Deprecated.h"
 #include "Control.h"
+#include "ControlBlock.h"
+#include "ControlBlock_For.h"
 #include "Parallel.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Analyze.h"
