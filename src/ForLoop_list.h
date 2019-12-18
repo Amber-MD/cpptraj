@@ -1,0 +1,16 @@
+#ifndef INC_FORLOOP_LIST_H
+#define INC_FORLOOP_LIST_H
+#include <vector>
+#include <string>
+#include "ForLoop.h"
+class ForLoop_list : public ForLoop {
+  public:
+    ForLoop_list() {}
+
+    int SetupFor(CpptrajState&, std::string const&, ArgList&);
+  private:
+    typedef std::vector<std::string> Sarray;
+    Sarray List_;                ///< (LIST only) List of strings to iterate over.
+    Sarray::const_iterator sdx_; ///< (LIST only) Iterator to current list item.
+};
+#endif
