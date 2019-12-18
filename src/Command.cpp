@@ -550,6 +550,7 @@ void Command::ListCommands(DispatchObject::Otype typeIn) {
     ListCommandsForType( typeIn );
 }
 
+// ----- Control block functions -----------------------------------------------
 /** \return true if any control blocks remain. */
 bool Command::UnterminatedControl() {
   if (!control_.empty()) {
@@ -604,6 +605,8 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
   if (ret == ControlBlock::ERROR) return 1;
   return 0;
 }
+
+// ----- END Control block functions -------------------------------------------
 
 /** Handle the given command. If inside a control block, if the command is
   * a control command a new block will be created, otherwise the command will
