@@ -11,7 +11,7 @@ class ForLoop {
     ForLoop() : varType_(UNKNOWN), Niterations_(-1) {}
     virtual ~ForLoop() {}
 
-    virtual int SetupFor(CpptrajState&, std::string const&)  = 0;
+    virtual int SetupFor(CpptrajState&, std::string const&, ArgList&)  = 0;
   protected:
     void SetDescription(std::string const& descIn) { description_ = descIn; }
     void SetType(ForType f)                        { varType_ = f;          }
@@ -19,6 +19,7 @@ class ForLoop {
     void SetNiterations(int n)                     { Niterations_ = n;      }
 
     std::string const& VarName() const { return varname_; }
+    ForType VarType()            const { return varType_; }
   private:
     std::string description_; ///< For loop long description
     std::string varname_;     ///< Variable over which for loop is iterating

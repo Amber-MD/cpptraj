@@ -14,7 +14,7 @@ ForLoop_integer::ForLoop_integer() :
   currentVal_(0)
 {}
 
-int ForLoop_integer::SetupFor(CpptrajState& state, std::string const& expr) {
+int ForLoop_integer::SetupFor(CpptrajState& state, std::string const& expr, ArgList& argIn) {
   int Niterations = -1;
   // [<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]
   SetType( INTEGER );
