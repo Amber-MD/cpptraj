@@ -33,11 +33,6 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   if (top != 0) currentTop = top;
   if (currentTop == 0) return 1;
   SetVarName( argIn.GetStringNext() );
-  if (VarName().empty()) {
-    mprinterr("Error: 'for inmask': missing variable name.\n");
-    return 1;
-  }
-  SetVarName( "$" + VarName() );
   // Set up mask
   if (currentTop->SetupIntegerMask( currentMask )) return 1;
   currentMask.MaskInfo();

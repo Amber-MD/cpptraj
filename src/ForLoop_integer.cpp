@@ -14,7 +14,7 @@ ForLoop_integer::ForLoop_integer() :
   currentVal_(0)
 {}
 
-int ForLoop_integer::SetupFor(CpptrajState& state, std::string const& expr, ArgList& argIn) {
+int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
   int Niterations = -1;
   // [<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]
   //SetType( INTEGER );
@@ -106,14 +106,13 @@ int ForLoop_integer::SetupFor(CpptrajState& state, std::string const& expr, ArgL
     }
   }
   // Description
-  std::string varnametmp = "$" + VarName();
   std::string sval = integerToString(start_);
-  std::string description("(" + varnametmp + "=" + sval + "; ");
+  std::string description("(" + VarName() + "=" + sval + "; ");
   std::string eval;
   if (iargIdx == 2) {
     // End argument present
     eval = integerToString(end_);
-    description.append(varnametmp + std::string(OpStr_[endOp_]) + eval + "; ");
+    description.append(VarName() + std::string(OpStr_[endOp_]) + eval + "; ");
     // Check end > start for increment, start > end for decrement
     int maxval, minval;
     if (incOp_ == INCREMENT) {
@@ -135,9 +134,8 @@ int ForLoop_integer::SetupFor(CpptrajState& state, std::string const& expr, ArgL
     Niterations = (maxval - minval) / inc_;
     if (((maxval-minval) % inc_) > 0) Niterations++;
   }
-  description.append( varnametmp + std::string(OpStr_[incOp_]) +
+  description.append( VarName() + std::string(OpStr_[incOp_]) +
                        integerToString(inc_) + ")" );
-  SetVarName( varnametmp );
   SetDescription( description );
   SetNiterations( Niterations );
   // If decrementing just negate value
