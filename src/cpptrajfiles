@@ -287,6 +287,9 @@ COMMON_SOURCES= \
         FileIO_Std.cpp \
         FileName.cpp \
         FileTypes.cpp \
+        ForLoop_integer.cpp \
+        ForLoop_list.cpp \
+        ForLoop_mask.cpp \
         Frame.cpp \
         GridAction.cpp \
         HistBin.cpp \
