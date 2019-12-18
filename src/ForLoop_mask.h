@@ -4,16 +4,18 @@
 #include "ForLoop.h"
 /// For loop over mask expression
 class ForLoop_mask : public ForLoop {
+    enum MaskType {ATOMS=0, RESIDUES, MOLECULES, MOLFIRSTRES, MOLLASTRES, NTYPES};
   public:
-    ForLoop_mask() {}
+    ForLoop_mask() : mtype_(NTYPES) {}
 
     int SetupFor(CpptrajState&, std::string const&, ArgList&);
+    int BeginFor();
+    bool EndFor(VariableArray&);
   private:
-    enum MaskType {ATOMS=0, RESIDUES, MOLECULES, MOLFIRSTRES, MOLLASTRES, NTYPES};
     typedef std::vector<int> Iarray;
 
     Iarray Idxs_;                ///< (MASK only) Selected atom/residue/molecule indices
     Iarray::const_iterator idx_; ///< (MASK only) Current atom/residue/molecule index
-
+    MaskType mtype_;             ///< Hold specific mask type
 };
 #endif

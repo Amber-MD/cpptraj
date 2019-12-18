@@ -2,6 +2,8 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "CpptrajState.h"
+#include "StringRoutines.h"
+#include "VariableArray.h"
 
 int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
   int Niterations = -1;
@@ -9,12 +11,12 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
                                    "MOL_FIRST_RES ", "MOL_LAST_RES " };
   // {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS]
   Topology* currentTop = 0;
-  MaskType mtype = NTYPES;
-  if      ( expr == "atoms"       ) mtype = ATOMS;
-  else if ( expr == "residues"    ) mtype = RESIDUES;
-  else if ( expr == "molecules"   ) mtype = MOLECULES;
-  else if ( expr == "molfirstres" ) mtype = MOLFIRSTRES;
-  else if ( expr == "mollastres"  ) mtype = MOLLASTRES;
+  mtype_ = NTYPES;
+  if      ( expr == "atoms"       ) mtype_ = ATOMS;
+  else if ( expr == "residues"    ) mtype_ = RESIDUES;
+  else if ( expr == "molecules"   ) mtype_ = MOLECULES;
+  else if ( expr == "molfirstres" ) mtype_ = MOLFIRSTRES;
+  else if ( expr == "mollastres"  ) mtype_ = MOLLASTRES;
   else {
     mprinterr("Error: Unrecognized mask for loop type: %s\n", expr.c_str());
     return 1;
@@ -38,9 +40,9 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   currentMask.MaskInfo();
   if (currentMask.None()) return 1;
   // Set up indices
-  if (mtype == ATOMS)
+  if (mtype_ == ATOMS)
     Idxs_ = currentMask.Selected();
-  else if (mtype == RESIDUES) {
+  else if (mtype_ == RESIDUES) {
     int curRes = -1;
     for (AtomMask::const_iterator at = currentMask.begin(); at != currentMask.end(); ++at) {
       int res = (*currentTop)[*at].ResNum();
@@ -49,19 +51,19 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
         curRes = res;
       }
     }
-  } else if (mtype == MOLECULES ||
-             mtype == MOLFIRSTRES ||
-             mtype == MOLLASTRES)
+  } else if (mtype_ == MOLECULES ||
+             mtype_ == MOLFIRSTRES ||
+             mtype_ == MOLLASTRES)
   {
     int curMol = -1;
     for (AtomMask::const_iterator at = currentMask.begin(); at != currentMask.end(); ++at) {
       int mol = (*currentTop)[*at].MolNum();
       if (mol != curMol) {
-        if (mtype == MOLECULES)
+        if (mtype_ == MOLECULES)
           Idxs_.push_back( mol );
         else {
           int res;
-          if (mtype == MOLFIRSTRES)
+          if (mtype_ == MOLFIRSTRES)
             res = (*currentTop)[ currentTop->Mol( mol ).BeginAtom() ].ResNum();
           else // MOLLASTRES
             res = (*currentTop)[ currentTop->Mol( mol ).EndAtom()-1 ].ResNum();
@@ -72,9 +74,27 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
     }
   }
   Niterations = (int)Idxs_.size();
-  std::string description(std::string(TypeStr[mtype]) +
+  std::string description(std::string(TypeStr[mtype_]) +
                           VarName() + " inmask " + currentMask.MaskExpression());
   SetDescription( description );
   SetNiterations( Niterations );
   return 0;
+}
+
+int ForLoop_mask::BeginFor() {
+  idx_ = Idxs_.begin();
+  return 0;
+}
+
+bool ForLoop_mask::EndFor(VariableArray& CurrentVars) {
+  static const char* prefix[NTYPES] = {"@", ":", "^", ":", ":"};
+  if (idx_ == Idxs_.end()) return true;
+  // Get variable value
+  std::string maskStr = prefix[mtype_] + integerToString(*(idx_) + 1);
+  //mprintf("DEBUG: ControlBlock_For: %s\n", maskStr.c_str());
+  // Update CurrentVars
+  CurrentVars.UpdateVariable( VarName(), maskStr );
+  // Increment
+  ++(idx_);
+  return false;
 }

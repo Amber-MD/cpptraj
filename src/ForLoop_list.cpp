@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "FileName.h"
+#include "VariableArray.h"
 
 int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
   int Niterations = -1;
@@ -37,3 +38,16 @@ int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   return 0;
 }
 
+int ForLoop_list::BeginFor() {
+  sdx_ = List_.begin();
+  return 0;
+}
+
+bool ForLoop_list::EndFor(VariableArray& CurrentVars) {
+  if (sdx_ == List_.end()) return true;
+  // Get variable value
+  CurrentVars.UpdateVariable( VarName(), *(sdx_) );
+  // Increment
+  ++(sdx_);
+  return false;
+}

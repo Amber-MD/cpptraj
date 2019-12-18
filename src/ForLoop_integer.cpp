@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "StringRoutines.h"
+#include "VariableArray.h"
 
 const char* ForLoop_integer::OpStr_[] = {"+=", "-=", "<", ">"};
 
@@ -147,4 +148,22 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   //        startArg_.c_str(), endArg_.c_str());
 
   return 0;
+}
+
+int ForLoop_integer::BeginFor() {
+  currentVal_ = start_;
+  return 0;
+}
+
+bool ForLoop_integer::EndFor(VariableArray& CurrentVars) {
+  if (endOp_ == LESS_THAN) {
+    if (currentVal_ >= end_) return true;
+  } else if (endOp_ == GREATER_THAN) {
+    if (currentVal_ <= end_) return true;
+  }
+  // Get variable value and update CurrentVars
+  CurrentVars.UpdateVariable( VarName(), integerToString( currentVal_ ));
+  // Increment
+  currentVal_ += inc_;
+  return false;
 }
