@@ -8,12 +8,13 @@ int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   int Niterations = -1;
   // <var> in <string0>[,<string1>...]
   //MH.varType_ = ftype;
-  // Variable name
-  SetVarName( argIn.GetStringNext() );
-  // Comma-separated list of strings
-  std::string listArg = argIn.GetStringNext();
+  argIn.PrintDebug();
+  // Variable name. Should be expr.
+  SetVarName( expr );
+  // Comma-separated list of strings.
+  std::string listArg = argIn.GetStringKey("in");
   if (listArg.empty()) {
-    mprinterr("Error: 'for in': missing comma-separated list of strings.\n");
+    mprinterr("Error: 'for in': missing ' in <comma-separated list of strings>'.\n");
     return 1;
   }
   ArgList list(listArg, ",");
