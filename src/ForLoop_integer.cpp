@@ -17,7 +17,7 @@ ForLoop_integer::ForLoop_integer() :
 int ForLoop_integer::SetupFor(CpptrajState& state, std::string const& expr, ArgList& argIn) {
   int Niterations = -1;
   // [<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]
-  SetType( INTEGER );
+  //SetType( INTEGER );
   ArgList varArg( expr, ";" );
   if (varArg.Nargs() < 2 || varArg.Nargs() > 3) {
     mprinterr("Error: Malformed 'for' loop variable.\n"

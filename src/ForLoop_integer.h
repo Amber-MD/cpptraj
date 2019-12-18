@@ -6,7 +6,7 @@ class ForLoop_integer : public ForLoop {
   public:
     ForLoop_integer();
 
-    int SetupFor(CpptrajState&, std::string const&);
+    int SetupFor(CpptrajState&, std::string const&, ArgList&);
 
     enum OpType { INCREMENT=0, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
   private:

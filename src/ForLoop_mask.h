@@ -9,6 +9,7 @@ class ForLoop_mask : public ForLoop {
 
     int SetupFor(CpptrajState&, std::string const&, ArgList&);
   private:
+    enum MaskType {ATOMS=0, RESIDUES, MOLECULES, MOLFIRSTRES, MOLLASTRES, NTYPES};
     typedef std::vector<int> Iarray;
 
     Iarray Idxs_;                ///< (MASK only) Selected atom/residue/molecule indices
