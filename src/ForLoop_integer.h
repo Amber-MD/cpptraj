@@ -17,6 +17,7 @@ class ForLoop_integer : public ForLoop {
     int calcNumIterations() const;
 
     std::string startVarName_;   ///< Variable containing initial value
+    std::string endVarName_;     ///< Variable containing the end value
     OpType endOp_;               ///< (INTEGER only) end operator
     OpType incOp_;               ///< (INTEGER only) increment operator
     int start_;                  ///< (INTEGER only) initial value

@@ -63,9 +63,12 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
       return 1;
     }
     std::string endStr = varArg[1].substr(pos1);
-    if (!validInteger(endStr)) {
-      // TODO allow variables
-      mprinterr("Error: End argument must be an integer.\n");
+    if ( endStr[0] == '$' ) {
+      // Variable name
+      endVarName_ = endStr;
+    } else if (!validInteger(endStr)) {
+      // Not Integer of variable
+      mprinterr("Error: End argument must be an integer or variable name.\n");
       return 1;
     } else
       end_ = convertToInteger(endStr);
@@ -119,7 +122,10 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   if (iargIdx == 2) {
     // End argument present
     endArgPresent_ = true;
-    eval = integerToString(end_);
+    if (endVarName_.empty())
+      eval = integerToString(end_);
+    else
+      eval = endVarName_;
     description.append(VarName() + std::string(OpStr_[endOp_]) + eval + "; ");
   } else
     endArgPresent_ = false;
@@ -183,6 +189,20 @@ int ForLoop_integer::BeginFor(VariableArray const& CurrentVars) {
     start_ = convertToInteger(sval);
   }
   currentVal_ = start_;
+  // Determine end arg if necessary
+  if (endArgPresent_ && !endVarName_.empty()) {
+    std::string eval = CurrentVars.GetVariable( endVarName_ );
+    if (eval.empty()) {
+      mprinterr("Error: End variable '%s' does not exist.\n", endVarName_.c_str());
+      return LOOP_ERROR;
+    }
+    if (!validInteger(eval)) {
+      mprinterr("Error: Variable '%s' does not contain a valid integer (%s)\n",
+                endVarName_.c_str(), eval.c_str());
+      return LOOP_ERROR;
+    }
+    end_ = convertToInteger(eval);
+  }
   return calcNumIterations();
 }
 

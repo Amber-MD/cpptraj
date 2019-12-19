@@ -23,6 +23,7 @@ class ForLoop {
     static const int LOOP_ERROR = -2;
 
     std::string const& Description() const { return description_; }
+    std::string const& VarName() const { return varname_; }
   protected:
     void SetDescription(std::string const& descIn) { description_ = descIn; }
     //void SetType(ForType f)                        { varType_ = f;          }
@@ -31,7 +32,6 @@ class ForLoop {
         varname_ = "$" + v;
     }
 
-    std::string const& VarName() const { return varname_; }
     //ForType VarType()            const { return varType_; }
   private:
     std::string description_; ///< For loop long description
