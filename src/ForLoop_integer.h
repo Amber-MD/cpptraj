@@ -14,6 +14,8 @@ class ForLoop_integer : public ForLoop {
   private:
     static const char* OpStr_[NO_OP];
 
+    int calcNumIterations() const;
+
     std::string startVarName_;   ///< Variable containing initial value
     OpType endOp_;               ///< (INTEGER only) end operator
     OpType incOp_;               ///< (INTEGER only) increment operator

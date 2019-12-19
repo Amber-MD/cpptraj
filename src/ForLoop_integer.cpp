@@ -15,8 +15,8 @@ ForLoop_integer::ForLoop_integer() :
   currentVal_(0)
 {}
 
+/** Setup integer for loop. */
 int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
-  int Niterations = -1;
   // [<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]
   //SetType( INTEGER );
   ArgList varArg( expr, ";" );
@@ -119,31 +119,11 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
     // Start value specified and End argument present
     eval = integerToString(end_);
     description.append(VarName() + std::string(OpStr_[endOp_]) + eval + "; ");
-    // Check end > start for increment, start > end for decrement
-    int maxval, minval;
-    if (incOp_ == INCREMENT) {
-      if (start_ >= end_) {
-        mprinterr("Error: start must be less than end for increment.\n");
-        return 1;
-      }
-      minval = start_;
-      maxval = end_;
-    } else {
-      if (end_ >= start_) {
-        mprinterr("Error: end must be less than start for decrement.\n");
-        return 1;
-      }
-      minval = end_;
-      maxval = start_;
-    }
-    // Figure out number of iterations
-    Niterations = (maxval - minval) / inc_;
-    if (((maxval-minval) % inc_) > 0) Niterations++;
+
   }
   description.append( VarName() + std::string(OpStr_[incOp_]) +
                        integerToString(inc_) + ")" );
   SetDescription( description );
-  SetNiterations( Niterations );
   // If decrementing just negate value
   if (incOp_ == DECREMENT)
     inc_ = -inc_;
@@ -155,24 +135,55 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   return 0;
 }
 
+/** Calculate the number of times the loop will execute. Also check
+  * that start and end values are sane.
+  */
+int ForLoop_integer::calcNumIterations() const {
+  // Check end > start for increment, start > end for decrement
+  int maxval, minval;
+  if (incOp_ == INCREMENT) {
+    if (start_ >= end_) {
+      mprinterr("Error: start must be less than end for increment.\n");
+      return NITERATIONS_UNKNOWN;
+    }
+    minval = start_;
+    maxval = end_;
+  } else {
+    if (end_ >= start_) {
+      mprinterr("Error: end must be less than start for decrement.\n");
+      return NITERATIONS_UNKNOWN;
+    }
+    minval = end_;
+    maxval = start_;
+  }
+  // Figure out number of iterations
+  int Niterations = (maxval - minval) / inc_;
+  // Sanity check
+  if (Niterations < 0) return NITERATIONS_UNKNOWN;
+  if (((maxval-minval) % inc_) > 0) Niterations++;
+  return Niterations;
+}
+
+/** Set start value and determine number of iterations. */
 int ForLoop_integer::BeginFor(VariableArray const& CurrentVars) {
   if (!startVarName_.empty()) {
     std::string sval = CurrentVars.GetVariable( startVarName_ );
     if (sval.empty()) {
       mprinterr("Error: Start variable '%s' does not exist.\n", startVarName_.c_str());
-      return 1;
+      return NITERATIONS_UNKNOWN;
     }
     if (!validInteger(sval)) {
       mprinterr("Error: Variable '%s' does not contain a valid integer (%s)\n",
                 startVarName_.c_str(), sval.c_str());
-      return 1;
+      return NITERATIONS_UNKNOWN;
     }
-    currentVal_ = convertToInteger(sval);
-  } else
-    currentVal_ = start_;
-  return 0;
+    start_ = convertToInteger(sval);
+  }
+  currentVal_ = start_;
+  return calcNumIterations();
 }
 
+/** Check if integer for loop is done, increment if not. */
 bool ForLoop_integer::EndFor(VariableArray& CurrentVars) {
   if (endOp_ == LESS_THAN) {
     if (currentVal_ >= end_) return true;
