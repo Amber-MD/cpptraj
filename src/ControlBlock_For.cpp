@@ -115,7 +115,7 @@ int ControlBlock_For::Start(VariableArray const& CurrentVars) {
       mprintf("\tLoop over '%s' will execute for %i iterations.\n",
               (*MH)->VarName().c_str(), Niterations);
     } else
-      mprintf("Warning: Loop over '%s' has unknown # iterations.\n", (*MH)->VarName().c_str());
+      mprintf("\tLoop over '%s' has unknown # iterations.\n", (*MH)->VarName().c_str());
   }
   if (Vars_.size() > 1)
     mprintf("\tLoop will execute for %i iterations.\n", MaxIterations);
