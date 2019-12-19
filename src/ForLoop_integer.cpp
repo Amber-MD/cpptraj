@@ -21,7 +21,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   // [<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]
   //SetType( INTEGER );
   ArgList varArg( expr, ";" );
-  varArg.PrintDebug(); // DEBUG
+  //varArg.PrintDebug(); // DEBUG
   if (varArg.Nargs() < 2 || varArg.Nargs() > 3) {
     mprinterr("Error: Malformed 'for' loop variable.\n"
               "Error: Expected '[<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]'\n"
@@ -36,7 +36,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
     return 1;
   }
   SetVarName( startArg[0] );
-  mprintf("DEBUG: Start argument: '%s' = '%s'\n", VarName().c_str(), startArg[1].c_str());
+  //mprintf("DEBUG: Start argument: '%s' = '%s'\n", VarName().c_str(), startArg[1].c_str());
   if ( startArg[1][0] == '$' ) {
     // Variable name
     startVarName_ = startArg[1];
