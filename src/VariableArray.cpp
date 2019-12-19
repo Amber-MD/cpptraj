@@ -6,6 +6,15 @@
 #include "DataSetList.h"
 #include "ArgList.h"
 
+/** \return value corresponding to variable if it exists. */
+std::string VariableArray::GetVariable(std::string const& varname) const {
+  Varray::const_iterator it = CurrentVars_.begin();
+  for (; it != CurrentVars_.end(); ++it)
+    if (it->first == varname)
+      return it->second;
+  return std::string();
+}
+
 /** Add variable/value to array if it doesnt exist, otherwise set value. */
 void VariableArray::UpdateVariable(std::string const& varname, std::string const& value)
 {

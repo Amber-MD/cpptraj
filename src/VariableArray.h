@@ -13,6 +13,8 @@ class VariableArray {
   public:
     /// CONSTRUCTOR
     VariableArray() {}
+    /// \return value corresponding to variable if it exists. TODO return const&?
+    std::string GetVariable(std::string const&) const;
     /// Add/update variable with given value.
     void UpdateVariable(std::string const&, std::string const&);
     /// Add/append variable tith given value.
