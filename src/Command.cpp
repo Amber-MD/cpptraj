@@ -7,7 +7,6 @@
 #include "CmdInput.h"     // ProcessInput()
 #include "RPNcalc.h"
 #include "Deprecated.h"
-#include "Control.h"
 #include "ControlBlock.h"
 #include "ControlBlock_For.h"
 #include "Parallel.h"
@@ -32,6 +31,8 @@
 #include "Exec_SortEnsembleData.h"
 #include "Exec_SequenceAlign.h"
 #include "Exec_ViewRst.h"
+#include "Exec_Set.h"
+#include "Exec_Show.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -408,8 +409,8 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // CONTROL STRUCTURES
   Command::AddCmd( new ControlBlock_For(),     Cmd::BLK, 1, "for" );
-  Command::AddCmd( new Control_Set(),          Cmd::CTL, 1, "set" );
-  Command::AddCmd( new Control_Show(),         Cmd::CTL, 1, "show" );
+  Command::AddCmd( new Exec_Set(),             Cmd::EXE, 1, "set" );
+  Command::AddCmd( new Exec_Show(),            Cmd::EXE, 1, "show" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
