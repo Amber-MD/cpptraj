@@ -13,7 +13,7 @@ class ForLoop {
     /// Set up the loop, ensure syntax is correct
     virtual int SetupFor(CpptrajState&, std::string const&, ArgList&)  = 0;
     /// Start the loop
-    virtual int BeginFor() = 0;
+    virtual int BeginFor(VariableArray const&) = 0;
     /// \return True if loop is done, otherwise increment the loop
     virtual bool EndFor(VariableArray&) = 0;
 

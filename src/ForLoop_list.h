@@ -8,7 +8,7 @@ class ForLoop_list : public ForLoop {
     ForLoop_list() {}
 
     int SetupFor(CpptrajState&, std::string const&, ArgList&);
-    int BeginFor();
+    int BeginFor(VariableArray const&);
     bool EndFor(VariableArray&);
   private:
     typedef std::vector<std::string> Sarray;

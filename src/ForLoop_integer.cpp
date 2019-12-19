@@ -36,10 +36,10 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   }
   SetVarName( startArg[0] );
   mprintf("DEBUG: Start argument: '%s' = '%s'\n", VarName().c_str(), startArg[1].c_str());
-  //if ( startArg[1][0] == '$' ) {
-  //  // Variable name
-  //} else 
-  if (!validInteger(startArg[1])) {
+  if ( startArg[1][0] == '$' ) {
+    // Variable name
+    startVarName_ = startArg[1];
+  } else if (!validInteger(startArg[1])) {
     // Not Integer or variable
     mprinterr("Error: Start argument must be an integer or variable name.\n");
     return 1;
@@ -108,11 +108,15 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
     }
   }
   // Description
-  std::string sval = integerToString(start_);
+  std::string sval;
+  if (startVarName_.empty())
+    sval = integerToString(start_);
+  else
+    sval = startVarName_;
   std::string description("(" + VarName() + "=" + sval + "; ");
   std::string eval;
-  if (iargIdx == 2) {
-    // End argument present
+  if (startVarName_.empty() && iargIdx == 2) {
+    // Start value specified and End argument present
     eval = integerToString(end_);
     description.append(VarName() + std::string(OpStr_[endOp_]) + eval + "; ");
     // Check end > start for increment, start > end for decrement
@@ -151,8 +155,21 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   return 0;
 }
 
-int ForLoop_integer::BeginFor() {
-  currentVal_ = start_;
+int ForLoop_integer::BeginFor(VariableArray const& CurrentVars) {
+  if (!startVarName_.empty()) {
+    std::string sval = CurrentVars.GetVariable( startVarName_ );
+    if (sval.empty()) {
+      mprinterr("Error: Start variable '%s' does not exist.\n", startVarName_.c_str());
+      return 1;
+    }
+    if (!validInteger(sval)) {
+      mprinterr("Error: Variable '%s' does not contain a valid integer (%s)\n",
+                startVarName_.c_str(), sval.c_str());
+      return 1;
+    }
+    currentVal_ = convertToInteger(sval);
+  } else
+    currentVal_ = start_;
   return 0;
 }
 

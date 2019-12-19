@@ -581,7 +581,7 @@ int Command::AddControlBlock(ControlBlock* ctl, CpptrajState& State, ArgList& cm
 /** Execute the specified control block. */
 int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
-  control_[block]->Start();
+  if (control_[block]->Start(CurrentVars_)) return 1;
   ControlBlock::DoneType ret = control_[block]->CheckDone(CurrentVars_);
   if (State.Debug() > 0) {
     mprintf("DEBUG: Start: CurrentVars:");

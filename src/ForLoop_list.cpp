@@ -39,7 +39,7 @@ int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   return 0;
 }
 
-int ForLoop_list::BeginFor() {
+int ForLoop_list::BeginFor(VariableArray const& CurrentVars) {
   sdx_ = List_.begin();
   return 0;
 }

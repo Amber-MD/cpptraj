@@ -29,7 +29,7 @@ class ControlBlock : public DispatchObject {
     /// \return iterator to last command in the block.
     virtual const_iterator end() const = 0;
     /// Start control block. Init internal variables if necessary.
-    virtual void Start() = 0;
+    virtual int Start(VariableArray const&) = 0;
     /// Add/update variables and increment, check block state.
     virtual DoneType CheckDone(VariableArray&) = 0;
   protected:

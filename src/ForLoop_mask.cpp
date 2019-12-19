@@ -81,7 +81,7 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   return 0;
 }
 
-int ForLoop_mask::BeginFor() {
+int ForLoop_mask::BeginFor(VariableArray const& CurrentVars) {
   idx_ = Idxs_.begin();
   return 0;
 }

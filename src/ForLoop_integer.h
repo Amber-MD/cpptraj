@@ -7,13 +7,14 @@ class ForLoop_integer : public ForLoop {
     ForLoop_integer();
 
     int SetupFor(CpptrajState&, std::string const&, ArgList&);
-    int BeginFor();
+    int BeginFor(VariableArray const&);
     bool EndFor(VariableArray&);
 
     enum OpType { INCREMENT=0, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
   private:
     static const char* OpStr_[NO_OP];
 
+    std::string startVarName_;   ///< Variable containing initial value
     OpType endOp_;               ///< (INTEGER only) end operator
     OpType incOp_;               ///< (INTEGER only) increment operator
     int start_;                  ///< (INTEGER only) initial value

@@ -107,10 +107,13 @@ bool ControlBlock_For::EndBlock(ArgList const& a) const {
 }
 
 /** For each mask initialize iterator. For each integer set to start value. */
-void ControlBlock_For::Start() {
+int ControlBlock_For::Start(VariableArray const& CurrentVars) {
   // TODO search currentvars
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH)
-    (*MH)->BeginFor();
+  {
+    if ((*MH)->BeginFor(CurrentVars)) return 1;
+  }
+  return 0;
 }
 
 /** For each mask check if done, then update CurrentVars, then increment. */

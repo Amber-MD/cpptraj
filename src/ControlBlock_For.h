@@ -15,7 +15,7 @@ class ControlBlock_For : public ControlBlock {
     void AddCommand(ArgList const& c) { commands_.push_back(c); }
     const_iterator begin() const { return commands_.begin(); }
     const_iterator end()   const { return commands_.end();   }
-    void Start();
+    int Start(VariableArray const&);
     DoneType CheckDone(VariableArray&);
   private:
     typedef std::vector<ForLoop*> Marray;
