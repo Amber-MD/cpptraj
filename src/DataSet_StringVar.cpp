@@ -9,3 +9,8 @@ DataSet_StringVar::DataSet_StringVar() :
 size_t DataSet_StringVar::MemUsageInBytes() const {
   return sizeof(std::string) + (var_.size() * sizeof(char));
 }
+
+void DataSet_StringVar::Add(size_t n, const void* ptr) {
+  const char* cptr = (const char*)ptr;
+  var_ = std::string(cptr);
+}

@@ -11,7 +11,7 @@ class DataSet_StringVar : public DataSet {
     size_t Size()                                    const { return 1; }
     void Info()                                      const { return; }
     int Allocate(SizeArray const&)                         { return 0; }
-    void Add(size_t, const void*)                          { return; }
+    void Add(size_t, const void*);
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Append(DataSet*)                                   { return 1; }
     size_t MemUsageInBytes() const;
@@ -19,6 +19,8 @@ class DataSet_StringVar : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
 #   endif
     // -------------------------------------------
+
+    void append(std::string const& s) { var_.append(s); }
   private:
     std::string var_; ///< String variable
 };
