@@ -5,7 +5,6 @@
 #include "VariableArray.h"
 
 int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
-  int Niterations = -1;
   // <var> in <string0>[,<string1>...]
   //MH.varType_ = ftype;
   argIn.PrintDebug();
@@ -31,17 +30,15 @@ int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList
     } else
       List_.push_back( list[il] );
   }
-  Niterations = (int)List_.size();
   // Description
   std::string description( VarName() + " in " + listArg );
   SetDescription( description );
-  SetNiterations( Niterations );
   return 0;
 }
 
 int ForLoop_list::BeginFor(VariableArray const& CurrentVars) {
   sdx_ = List_.begin();
-  return 0;
+  return (int)List_.size();
 }
 
 bool ForLoop_list::EndFor(VariableArray& CurrentVars) {

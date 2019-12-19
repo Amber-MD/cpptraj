@@ -47,7 +47,6 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
   mprintf("    Setting up 'for' loop.\n");
   Vars_.clear();
   description_.assign("for (");
-  int MaxIterations = -1;
   int iarg = 0;
   while (iarg < argIn.Nargs())
   {
@@ -78,23 +77,10 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
       mprinterr("Error: For loop setup failed.\n");
       return 1;
     }
-    // Check number of values
-    int Niterations = forloop.Niterations();
-    if (MaxIterations == -1)
-      MaxIterations = Niterations;
-    else if (Niterations != -1 && Niterations != MaxIterations) {
-      mprintf("Warning: # iterations %i != previous # iterations %i\n",
-              Niterations, MaxIterations);
-      MaxIterations = std::min(Niterations, MaxIterations);
-    }
+    
     // Append description
     description_.append( forloop.Description() );
     // TODO check variable name
-  }
-  mprintf("\tLoop will execute for %i iterations.\n", MaxIterations);
-  if (MaxIterations < 1) {
-    mprinterr("Error: Loop has less than 1 iteration.\n");
-    return 1; 
   }
   description_.append(") do");
 
@@ -106,13 +92,35 @@ bool ControlBlock_For::EndBlock(ArgList const& a) const {
   return (a.CommandIs("done"));
 }
 
-/** For each mask initialize iterator. For each integer set to start value. */
+/** Set all loops to their initial values and determine # iterations
+  * \return 0 if all loops were set up, 1 if an error occurred.
+  */
 int ControlBlock_For::Start(VariableArray const& CurrentVars) {
-  // TODO search currentvars
+  int MaxIterations = -1;
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH)
   {
-    if ((*MH)->BeginFor(CurrentVars)) return 1;
+    int Niterations = ((*MH)->BeginFor(CurrentVars));
+    if (Niterations == ForLoop::LOOP_ERROR) return 1;
+    // Check number of values
+    if (Niterations != ForLoop::NITERATIONS_UNKNOWN)
+    {
+      if (MaxIterations == -1)
+        MaxIterations = Niterations;
+      else {
+        if (Niterations != MaxIterations)
+          mprintf("Warning: # iterations %i != previous # iterations %i\n",
+                  Niterations, MaxIterations);
+        MaxIterations = std::min(Niterations, MaxIterations);
+      }
+    } else
+      mprintf("Warning: Loop '%s' has unknown # iterations.\n", (*MH)->Description().c_str());
   }
+  mprintf("\tLoop will execute for %i iterations.\n", MaxIterations);
+  if (MaxIterations < 1) {
+    mprinterr("Error: Loop has less than 1 iteration.\n");
+    return 1; 
+  }
+
   return 0;
 }
 

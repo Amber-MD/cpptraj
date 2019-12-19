@@ -583,7 +583,7 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
   if (control_[block]->Start(CurrentVars_)) return 1;
   ControlBlock::DoneType ret = control_[block]->CheckDone(CurrentVars_);
-  if (State.Debug() > 0) {
+  if (State.Debug() >= 0) {
     mprintf("DEBUG: Start: CurrentVars:");
     CurrentVars_.PrintVariables();
   }

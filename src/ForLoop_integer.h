@@ -23,5 +23,6 @@ class ForLoop_integer : public ForLoop {
     int end_;                    ///< (INTEGER only) end value
     int inc_;                    ///< (INTEGER only) increment value
     int currentVal_;             ///< (INTEGER only) current value
+    bool endArgPresent_;         ///< True if an end argument was specified
 };
 #endif

@@ -17,8 +17,10 @@ class ForLoop {
     virtual int BeginFor(VariableArray const&) = 0;
     /// \return True if loop is done, otherwise increment the loop
     virtual bool EndFor(VariableArray&) = 0;
-
+    /// Return value when number of iterations is not known
     static const int NITERATIONS_UNKNOWN = -1;
+    /// Return value when an error has occurred
+    static const int LOOP_ERROR = -2;
 
     std::string const& Description() const { return description_; }
   protected:

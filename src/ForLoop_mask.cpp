@@ -6,7 +6,6 @@
 #include "VariableArray.h"
 
 int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
-  int Niterations = -1;
   static const char* TypeStr[NTYPES] = { "ATOMS ", "RESIDUES ", "MOLECULES ",
                                    "MOL_FIRST_RES ", "MOL_LAST_RES " };
   // {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS]
@@ -73,17 +72,15 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
       }
     }
   }
-  Niterations = (int)Idxs_.size();
   std::string description(std::string(TypeStr[mtype_]) +
                           VarName() + " inmask " + currentMask.MaskExpression());
   SetDescription( description );
-  SetNiterations( Niterations );
   return 0;
 }
 
 int ForLoop_mask::BeginFor(VariableArray const& CurrentVars) {
   idx_ = Idxs_.begin();
-  return 0;
+  return (int)Idxs_.size();
 }
 
 bool ForLoop_mask::EndFor(VariableArray& CurrentVars) {

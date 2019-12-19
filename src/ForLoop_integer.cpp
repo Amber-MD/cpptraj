@@ -12,7 +12,8 @@ ForLoop_integer::ForLoop_integer() :
   start_(0),
   end_(0),
   inc_(0),
-  currentVal_(0)
+  currentVal_(0),
+  endArgPresent_(false)
 {}
 
 /** Setup integer for loop. */
@@ -115,12 +116,13 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
     sval = startVarName_;
   std::string description("(" + VarName() + "=" + sval + "; ");
   std::string eval;
-  if (startVarName_.empty() && iargIdx == 2) {
-    // Start value specified and End argument present
+  if (iargIdx == 2) {
+    // End argument present
+    endArgPresent_ = true;
     eval = integerToString(end_);
     description.append(VarName() + std::string(OpStr_[endOp_]) + eval + "; ");
-
-  }
+  } else
+    endArgPresent_ = false;
   description.append( VarName() + std::string(OpStr_[incOp_]) +
                        integerToString(inc_) + ")" );
   SetDescription( description );
@@ -139,19 +141,20 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   * that start and end values are sane.
   */
 int ForLoop_integer::calcNumIterations() const {
+  if (!endArgPresent_) return NITERATIONS_UNKNOWN;
   // Check end > start for increment, start > end for decrement
   int maxval, minval;
   if (incOp_ == INCREMENT) {
     if (start_ >= end_) {
       mprinterr("Error: start must be less than end for increment.\n");
-      return NITERATIONS_UNKNOWN;
+      return LOOP_ERROR;
     }
     minval = start_;
     maxval = end_;
   } else {
     if (end_ >= start_) {
       mprinterr("Error: end must be less than start for decrement.\n");
-      return NITERATIONS_UNKNOWN;
+      return LOOP_ERROR;
     }
     minval = end_;
     maxval = start_;
@@ -159,7 +162,7 @@ int ForLoop_integer::calcNumIterations() const {
   // Figure out number of iterations
   int Niterations = (maxval - minval) / inc_;
   // Sanity check
-  if (Niterations < 0) return NITERATIONS_UNKNOWN;
+  if (Niterations < 0) return LOOP_ERROR;
   if (((maxval-minval) % inc_) > 0) Niterations++;
   return Niterations;
 }
@@ -170,12 +173,12 @@ int ForLoop_integer::BeginFor(VariableArray const& CurrentVars) {
     std::string sval = CurrentVars.GetVariable( startVarName_ );
     if (sval.empty()) {
       mprinterr("Error: Start variable '%s' does not exist.\n", startVarName_.c_str());
-      return NITERATIONS_UNKNOWN;
+      return LOOP_ERROR;
     }
     if (!validInteger(sval)) {
       mprinterr("Error: Variable '%s' does not contain a valid integer (%s)\n",
                 startVarName_.c_str(), sval.c_str());
-      return NITERATIONS_UNKNOWN;
+      return LOOP_ERROR;
     }
     start_ = convertToInteger(sval);
   }
