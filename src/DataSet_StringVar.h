@@ -21,6 +21,9 @@ class DataSet_StringVar : public DataSet {
     // -------------------------------------------
 
     void append(std::string const& s) { var_.append(s); }
+    void assign(std::string const& s) { var_.assign(s); }
+
+    std::string const& Value() const { return var_; }
   private:
     std::string var_; ///< String variable
 };
