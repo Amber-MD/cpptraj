@@ -38,7 +38,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   SetVarName( startArg[0] );
   mprintf("DEBUG: Start argument: '%s' = '%s'\n", VarName().c_str(), startArg[1].c_str());
   if ( startArg[1][0] == '$' ) {
-    // Variable name
+    // Variable name // TODO need substring to remove $
     startVarName_ = startArg[1];
   } else if (!validInteger(startArg[1])) {
     // Not Integer or variable
