@@ -116,6 +116,8 @@ class DataSetList {
     void List() const;
     /// List all non-Topology/Reference data sets.
     void ListDataOnly() const;
+    /// List all string variables
+    void ListStringVar() const;
 #   ifdef MPI
     /// Indicate whether sets added to the list need to be synced
     void SetNewSetsNeedSync(bool b) { newSetsNeedSync_ = b; }

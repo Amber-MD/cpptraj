@@ -715,6 +715,17 @@ void DataSetList::ListDataOnly() const {
   mprintf("\nDATASETS (%zu total):\n", temp.size());
   PrintList( temp );
 }
+
+void DataSetList::ListStringVar() const {
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+  {
+    if ( (*ds)->Type() == DataSet::STRINGVAR) {
+      DataSet_StringVar const& var = static_cast<DataSet_StringVar const&>( *(*ds) );
+      mprintf("\t%s = %s\n", var.legend(), var.Value().c_str());
+    }
+  }
+}
+
 #ifdef MPI
 // DataSetList::SynchronizeData()
 /** Synchronize timeseries data from child ranks to master. */
