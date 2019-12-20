@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "FileName.h"
-#include "VariableArray.h"
+#include "DataSetList.h"
 
 int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
   // <var> in <string0>[,<string1>...]
@@ -36,15 +36,15 @@ int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   return 0;
 }
 
-int ForLoop_list::BeginFor(VariableArray const& CurrentVars) {
+int ForLoop_list::BeginFor(DataSetList const& CurrentVars) {
   sdx_ = List_.begin();
   return (int)List_.size();
 }
 
-bool ForLoop_list::EndFor(VariableArray& CurrentVars) {
+bool ForLoop_list::EndFor(DataSetList const& DSL) {
   if (sdx_ == List_.end()) return true;
   // Get variable value
-  CurrentVars.UpdateVariable( VarName(), *(sdx_) );
+  DSL.UpdateStringVar( VarName(), *(sdx_) );
   // Increment
   ++(sdx_);
   return false;

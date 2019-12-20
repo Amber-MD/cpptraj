@@ -27,10 +27,7 @@ class ForLoop {
   protected:
     void SetDescription(std::string const& descIn) { description_ = descIn; }
     //void SetType(ForType f)                        { varType_ = f;          }
-    void SetVarName(std::string const& v) { 
-      if (!v.empty())
-        varname_ = "$" + v;
-    }
+    void SetVarName(std::string const& v)          { varname_ = v;          }
 
     //ForType VarType()            const { return varType_; }
   private:

@@ -9,8 +9,8 @@ class ForLoop_mask : public ForLoop {
     ForLoop_mask() : mtype_(NTYPES) {}
 
     int SetupFor(CpptrajState&, std::string const&, ArgList&);
-    int BeginFor(VariableArray const&);
-    bool EndFor(VariableArray&);
+    int BeginFor(DataSetList const&);
+    bool EndFor(DataSetList const&);
   private:
     typedef std::vector<int> Iarray;
 

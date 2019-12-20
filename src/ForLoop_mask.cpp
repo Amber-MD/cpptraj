@@ -3,7 +3,7 @@
 #include "ArgList.h"
 #include "CpptrajState.h"
 #include "StringRoutines.h"
-#include "VariableArray.h"
+#include "DataSetList.h"
 
 int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
   static const char* TypeStr[NTYPES] = { "ATOMS ", "RESIDUES ", "MOLECULES ",
@@ -78,19 +78,19 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   return 0;
 }
 
-int ForLoop_mask::BeginFor(VariableArray const& CurrentVars) {
+int ForLoop_mask::BeginFor(DataSetList const& DSL) {
   idx_ = Idxs_.begin();
   return (int)Idxs_.size();
 }
 
-bool ForLoop_mask::EndFor(VariableArray& CurrentVars) {
+bool ForLoop_mask::EndFor(DataSetList const& DSL) {
   static const char* prefix[NTYPES] = {"@", ":", "^", ":", ":"};
   if (idx_ == Idxs_.end()) return true;
   // Get variable value
   std::string maskStr = prefix[mtype_] + integerToString(*(idx_) + 1);
   //mprintf("DEBUG: ControlBlock_For: %s\n", maskStr.c_str());
   // Update CurrentVars
-  CurrentVars.UpdateVariable( VarName(), maskStr );
+  DSL.UpdateStringVar( VarName(), maskStr );
   // Increment
   ++(idx_);
   return false;
