@@ -785,12 +785,8 @@ int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
 }
 #endif
 // -----------------------------------------------------------------------------
-inline bool ValidVariableSet(DataSet* ds) {
-  return (ds->Type() == DataSet::STRINGVAR ||
-          ds->Type() == DataSet::STRING || 
-          ds->Group() == DataSet::SCALAR_1D);
-}
 
+/** Get a value from specified DataSet as a string. */
 std::string DataSetList::GetVariable(std::string const& varnameIn) const {
   DataSet* ds = GetDataSet( varnameIn );
   if (ds == 0) return std::string();
@@ -800,14 +796,19 @@ std::string DataSetList::GetVariable(std::string const& varnameIn) const {
       val = ((DataSet_StringVar*)ds)->Value();
     } else if (ds->Type() == DataSet::STRING) {
       val = (*((DataSet_string*)ds))[0];
-    } else { 
+    } else if (ds->Group() == DataSet::SCALAR_1D) { 
       val = doubleToString( ((DataSet_1D*)ds)->Dval(0) );
+    } else {
+      mprinterr("Internal Error: DataSetList::GetVariable(): Invalid set type: '%s'\n",
+                ds->legend());
+      return std::string();
     }
   }
   
   return val;
 }
 
+/** Replace all variables (beginning with $) in string with their values. */
 std::string DataSetList::ReplaceVariables(std::string const& varnameIn) const {
   std::string varname = varnameIn;
   size_t pos = varname.find("$");
@@ -819,6 +820,7 @@ std::string DataSetList::ReplaceVariables(std::string const& varnameIn) const {
     std::string var_in_arg = varname.substr(pos, len); //TODO needed?
     // Not found in CurrentVars_; see if this is a DataSet.
     for (size_t pos1 = pos+len; pos1 < varname.size(); pos1++, len++)
+    {
       if (!isalnum(varname[pos1]) &&
           varname[pos1] != '[' &&
           varname[pos1] != ':' &&
@@ -827,6 +829,7 @@ std::string DataSetList::ReplaceVariables(std::string const& varnameIn) const {
           varname[pos1] != '-' &&
           varname[pos1] != '%')
         break;
+    }
     var_in_arg = varname.substr(pos+1, len-1);
     DataSet* ds = GetDataSet( var_in_arg );
     if (ds == 0) {
