@@ -31,7 +31,7 @@ class ControlBlock : public DispatchObject {
     /// Start control block. Init internal variables if necessary.
     virtual int Start(DataSetList const&) = 0;
     /// Add/update variables and increment, check block state.
-    virtual DoneType CheckDone(DataSetList&) = 0;
+    virtual DoneType CheckDone(DataSetList const&) = 0;
   protected:
     std::string description_; ///< Describe control TODO private?
 };

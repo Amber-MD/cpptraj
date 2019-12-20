@@ -127,8 +127,8 @@ int ControlBlock_For::Start(DataSetList const& DSL) {
   return 0;
 }
 
-/** For each mask check if done, then update variables, then increment. */ // TODO const DSL?
-ControlBlock::DoneType ControlBlock_For::CheckDone(DataSetList& DSL) {
+/** For each mask check if done, then update variables, then increment. */
+ControlBlock::DoneType ControlBlock_For::CheckDone(DataSetList const& DSL) {
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
     // Exit as soon as one is done TODO check all?
     if ( (*MH)->EndFor(DSL) ) return DONE;
