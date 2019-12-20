@@ -95,11 +95,11 @@ bool ControlBlock_For::EndBlock(ArgList const& a) const {
 /** Set all loops to their initial values and determine # iterations
   * \return 0 if all loops were set up, 1 if an error occurred.
   */
-int ControlBlock_For::Start(VariableArray const& CurrentVars) {
+int ControlBlock_For::Start(DataSetList const& DSL) {
   int MaxIterations = -1;
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH)
   {
-    int Niterations = ((*MH)->BeginFor(CurrentVars));
+    int Niterations = ((*MH)->BeginFor(DSL));
     if (Niterations == ForLoop::LOOP_ERROR) return 1;
     // Check number of values
     if (Niterations != ForLoop::NITERATIONS_UNKNOWN)
@@ -127,11 +127,11 @@ int ControlBlock_For::Start(VariableArray const& CurrentVars) {
   return 0;
 }
 
-/** For each mask check if done, then update CurrentVars, then increment. */
-ControlBlock::DoneType ControlBlock_For::CheckDone(VariableArray& CurrentVars) {
+/** For each mask check if done, then update variables, then increment. */ // TODO const DSL?
+ControlBlock::DoneType ControlBlock_For::CheckDone(DataSetList& DSL) {
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
     // Exit as soon as one is done TODO check all?
-    if ( (*MH)->EndFor(CurrentVars) ) return DONE;
+    if ( (*MH)->EndFor(DSL) ) return DONE;
   }
 
   return NOT_DONE;

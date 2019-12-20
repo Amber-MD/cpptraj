@@ -31,6 +31,7 @@
 #include "DataSet_PHREMD_Implicit.h"
 #include "DataSet_Parameters.h"
 #include "DataSet_Tensor.h"
+#include "DataSet_StringVar.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -78,6 +79,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::PH_IMPL       : ds = DataSet_PHREMD_Implicit::Alloc(); break;
     case DataSet::PARAMETERS    : ds = DataSet_Parameters::Alloc(); break;
     case DataSet::TENSOR        : ds = DataSet_Tensor::Alloc(); break;
+    case DataSet::STRINGVAR     : ds = DataSet_StringVar::Alloc(); break;
     // Sanity check
     default:
       mprinterr("Internal Error: No allocator for DataSet type '%s'\n",
@@ -782,6 +784,85 @@ int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
   return 0;
 }
 #endif
+// -----------------------------------------------------------------------------
+inline bool ValidVariableSet(DataSet* ds) {
+  return (ds->Type() == DataSet::STRINGVAR ||
+          ds->Type() == DataSet::STRING || 
+          ds->Group() == DataSet::SCALAR_1D);
+}
+
+std::string DataSetList::GetVariable(std::string const& varnameIn) const {
+  DataSet* ds = GetDataSet( varnameIn );
+  if (ds == 0) return std::string();
+  std::string val;
+  if (ds->Size() > 0) {
+    if (ds->Type() == DataSet::STRINGVAR) {
+      val = ((DataSet_StringVar*)ds)->Value();
+    } else if (ds->Type() == DataSet::STRING) {
+      val = (*((DataSet_string*)ds))[0];
+    } else { 
+      val = doubleToString( ((DataSet_1D*)ds)->Dval(0) );
+    }
+  }
+  
+  return val;
+}
+
+std::string DataSetList::ReplaceVariables(std::string const& varnameIn) const {
+  std::string varname = varnameIn;
+  size_t pos = varname.find("$");
+  while (pos != std::string::npos) {
+    // Argument is/contains a variable. Find first non-alphanumeric char
+    size_t len = 1;
+    for (size_t pos1 = pos+1; pos1 < varname.size(); pos1++, len++)
+      if (!isalnum(varname[pos1])) break;
+    std::string var_in_arg = varname.substr(pos, len); //TODO needed?
+    // Not found in CurrentVars_; see if this is a DataSet.
+    for (size_t pos1 = pos+len; pos1 < varname.size(); pos1++, len++)
+      if (!isalnum(varname[pos1]) &&
+          varname[pos1] != '[' &&
+          varname[pos1] != ':' &&
+          varname[pos1] != ']' &&
+          varname[pos1] != '_' &&
+          varname[pos1] != '-' &&
+          varname[pos1] != '%')
+        break;
+    var_in_arg = varname.substr(pos+1, len-1);
+    DataSet* ds = GetDataSet( var_in_arg );
+    if (ds == 0) {
+      mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
+      return std::string();
+    } else {
+      if (ds->Type() != DataSet::STRINGVAR &&
+          ds->Type() != DataSet::STRING && 
+          ds->Group() != DataSet::SCALAR_1D)
+      {
+        mprinterr("Error: Only strings and 1D data sets supported for variable replacement.\n");
+        return std::string();
+      }
+      if (ds->Size() < 1) {
+        mprinterr("Error: Set is empty.\n");
+        return std::string();
+      }
+      if (ds->Size() > 1)
+        mprintf("Warning: Only using first value.\n");
+      std::string value;
+      if (ds->Type() == DataSet::STRINGVAR)
+        value = (*((DataSet_StringVar*)ds)).Value(); 
+      else if (ds->Type() == DataSet::STRING)
+        value = (*((DataSet_string*)ds))[0];
+      else
+        value = doubleToString(((DataSet_1D*)ds)->Dval(0));
+      if (debug_ > 0)
+        mprintf("DEBUG: Replaced variable '$%s' with value '%s' from DataSet '%s'\n",
+                var_in_arg.c_str(), value.c_str(), ds->legend());
+      varname.replace(pos, var_in_arg.size()+1, value);
+    }
+    pos = varname.find("$");
+  } // END loop over this argument
+  return varname;
+}
+
 // -----------------------------------------------------------------------------
 const char* DataSetList::RefArgs = "reference | ref <name> | refindex <#>";
 

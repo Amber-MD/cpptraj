@@ -123,6 +123,11 @@ class DataSetList {
     int SynchronizeData(Parallel::Comm const&);
 #   endif
 
+    /// \return Value corresponding to given data set as a string
+    std::string GetVariable(std::string const&) const;
+    /// \return String with all variables replaced with their values.
+    std::string ReplaceVariables(std::string const&) const;
+
     // REF_COORDS functions ----------------------
     /// reference arg help text
     static const char* RefArgs;

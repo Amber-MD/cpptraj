@@ -4,7 +4,7 @@
 #include <string>
 #include "DispatchObject.h"
 class CpptrajState;
-class VariableArray;
+class DataSetList;
 class ArgList;
 /// Abstract base class for control block structures.
 class ControlBlock : public DispatchObject {
@@ -29,9 +29,9 @@ class ControlBlock : public DispatchObject {
     /// \return iterator to last command in the block.
     virtual const_iterator end() const = 0;
     /// Start control block. Init internal variables if necessary.
-    virtual int Start(VariableArray const&) = 0;
+    virtual int Start(DataSetList const&) = 0;
     /// Add/update variables and increment, check block state.
-    virtual DoneType CheckDone(VariableArray&) = 0;
+    virtual DoneType CheckDone(DataSetList&) = 0;
   protected:
     std::string description_; ///< Describe control TODO private?
 };

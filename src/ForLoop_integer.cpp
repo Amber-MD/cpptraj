@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "StringRoutines.h"
-#include "VariableArray.h"
+#include "DataSetList.h"
 
 const char* ForLoop_integer::OpStr_[] = {"+=", "-=", "<", ">"};
 
@@ -174,9 +174,9 @@ int ForLoop_integer::calcNumIterations() const {
 }
 
 /** Set start value and determine number of iterations. */
-int ForLoop_integer::BeginFor(VariableArray const& CurrentVars) {
+int ForLoop_integer::BeginFor(DataSetList const& DSL) {
   if (!startVarName_.empty()) {
-    std::string sval = CurrentVars.GetVariable( startVarName_ );
+    std::string sval = DSL.GetVariable( startVarName_ );
     if (sval.empty()) {
       mprinterr("Error: Start variable '%s' does not exist.\n", startVarName_.c_str());
       return LOOP_ERROR;
@@ -191,7 +191,7 @@ int ForLoop_integer::BeginFor(VariableArray const& CurrentVars) {
   currentVal_ = start_;
   // Determine end arg if necessary
   if (endArgPresent_ && !endVarName_.empty()) {
-    std::string eval = CurrentVars.GetVariable( endVarName_ );
+    std::string eval = DSL.GetVariable( endVarName_ );
     if (eval.empty()) {
       mprinterr("Error: End variable '%s' does not exist.\n", endVarName_.c_str());
       return LOOP_ERROR;

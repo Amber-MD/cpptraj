@@ -7,8 +7,8 @@ class ForLoop_integer : public ForLoop {
     ForLoop_integer();
 
     int SetupFor(CpptrajState&, std::string const&, ArgList&);
-    int BeginFor(VariableArray const&);
-    bool EndFor(VariableArray&);
+    int BeginFor(DataSetList const&);
+    bool EndFor(DataSetList const&);
 
     enum OpType { INCREMENT=0, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
   private:
