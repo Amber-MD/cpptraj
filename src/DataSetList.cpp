@@ -880,7 +880,7 @@ std::string DataSetList::ReplaceVariables(std::string const& varnameIn) const {
         value = (*((DataSet_string*)ds))[0];
       else
         value = doubleToString(((DataSet_1D*)ds)->Dval(0));
-      if (debug_ > 0)
+      if (debug_ >= 0)
         mprintf("DEBUG: Replaced variable '$%s' with value '%s' from DataSet '%s'\n",
                 var_in_arg.c_str(), value.c_str(), ds->legend());
       varname.replace(pos, var_in_arg.size()+1, value);

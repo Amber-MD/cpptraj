@@ -21,7 +21,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   // [<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]
   //SetType( INTEGER );
   ArgList varArg( expr, ";" );
-  //varArg.PrintDebug(); // DEBUG
+  varArg.PrintDebug(); // DEBUG
   if (varArg.Nargs() < 2 || varArg.Nargs() > 3) {
     mprinterr("Error: Malformed 'for' loop variable.\n"
               "Error: Expected '[<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]'\n"
@@ -36,7 +36,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
     return 1;
   }
   SetVarName( startArg[0] );
-  //mprintf("DEBUG: Start argument: '%s' = '%s'\n", VarName().c_str(), startArg[1].c_str());
+  mprintf("DEBUG: Start argument: '%s' = '%s'\n", VarName().c_str(), startArg[1].c_str());
   if ( startArg[1][0] == '$' ) {
     // Variable name
     startVarName_ = startArg[1];
@@ -47,7 +47,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   } else
     start_ = convertToInteger(startArg[1]);
   // Second argument: <var><OP><end>
-  size_t pos0 = VarName().size() - 1; // Minus 1 to account for prepended '$'
+  size_t pos0 = VarName().size(); // Minus 1 to account for prepended '$'
   size_t pos1 = pos0 + 1;
   endOp_ = NO_OP;
   int iargIdx = 1;
@@ -63,6 +63,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
       return 1;
     }
     std::string endStr = varArg[1].substr(pos1);
+    mprintf("DEBUG: endStr= '%s'\n", endStr.c_str());
     if ( endStr[0] == '$' ) {
       // Variable name
       endVarName_ = endStr;

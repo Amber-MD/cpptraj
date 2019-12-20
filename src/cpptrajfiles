@@ -273,6 +273,7 @@ COMMON_SOURCES= \
         Exec_ScaleDihedralK.cpp \
         Exec_Set.cpp \
         Exec_SequenceAlign.cpp \
+        Exec_Show.cpp \
         Exec_SortEnsembleData.cpp \
         Exec_SplitCoords.cpp \
         Exec_System.cpp \

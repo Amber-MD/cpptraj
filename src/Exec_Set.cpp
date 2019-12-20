@@ -94,6 +94,9 @@ int Exec_Set::AddVariable(CpptrajState& State, std::string const& varname,
 {
   DataSet* ds = State.DSL().AddSet( DataSet::STRINGVAR, MetaData(varname) );
   if (ds == 0) return 1;
+  DataSet_StringVar& var = static_cast<DataSet_StringVar&>( *ds );
+  var.assign( value );
+
   return 0;
 }
 
@@ -101,7 +104,7 @@ int Exec_Set::AddVariable(CpptrajState& State, std::string const& varname,
 int Exec_Set::AppendVariable(CpptrajState& State, std::string const& varname,
                               std::string const& value)
 {
-  DataSet* ds = State.DSL().GetDataSet( varname );
+  DataSet* ds = State.DSL().CheckForSet( varname );
   if (ds == 0) {
     // Create new
     return AddVariable(State, varname, value);
@@ -120,7 +123,7 @@ int Exec_Set::AppendVariable(CpptrajState& State, std::string const& varname,
 int Exec_Set::UpdateVariable(CpptrajState& State, std::string const& varname,
                              std::string const& value)
 {
-  DataSet* ds = State.DSL().GetDataSet( varname );
+  DataSet* ds = State.DSL().CheckForSet( varname );
   if (ds == 0) {
     // Create new
     return AddVariable(State, varname, value);

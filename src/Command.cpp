@@ -196,8 +196,6 @@ Command::CtlArray Command::control_ = Command::CtlArray();
 
 int Command::ctlidx_ = -1;
 
-VariableArray Command::CurrentVars_ = VariableArray();
-
 /** Initialize all commands. Should only be called once as program starts. */
 void Command::Init() {
   // GENERAL
@@ -582,11 +580,11 @@ int Command::AddControlBlock(ControlBlock* ctl, CpptrajState& State, ArgList& cm
 /** Execute the specified control block. */
 int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
-  if (control_[block]->Start(CurrentVars_)) return 1;
-  ControlBlock::DoneType ret = control_[block]->CheckDone(CurrentVars_);
+  if (control_[block]->Start(State.DSL())) return 1;
+  ControlBlock::DoneType ret = control_[block]->CheckDone(State.DSL());
   if (State.Debug() > 0) {
     mprintf("DEBUG: Start: CurrentVars:");
-    CurrentVars_.PrintVariables();
+    State.DSL().ListStringVar();
   }
   while (ret == ControlBlock::NOT_DONE) {
     for (ControlBlock::const_iterator it = control_[block]->begin();
@@ -601,7 +599,7 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
         if ( ExecuteCommand(State, *it) != CpptrajState::OK ) return 1;
       }
     }
-    ret = control_[block]->CheckDone(CurrentVars_);
+    ret = control_[block]->CheckDone(State.DSL());
   }
   if (ret == ControlBlock::ERROR) return 1;
   return 0;
@@ -675,7 +673,11 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   */
 CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList const& cmdArgIn ) {
   // Replace variable names in command with entries from CurrentVars
-  ArgList cmdArg = CurrentVars_.ReplaceVariables( cmdArgIn, State.DSL(), State.Debug() );
+  ArgList cmdArg = cmdArgIn;
+  for (int narg = 0; narg != cmdArg.Nargs(); narg++)
+  {
+    cmdArg.ChangeArg(narg, State.DSL().ReplaceVariables( cmdArgIn[narg] ));
+  }
   if (cmdArg.empty()) return CpptrajState::ERR;
   // Print modified command
   mprintf("  [%s]\n", cmdArg.ArgLine());
@@ -697,10 +699,10 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
   } else {
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
-      case Cmd::CTL:
-        ret_val = ((Control*)obj)->SetupControl(State, cmdArg, CurrentVars_);
-        delete obj;
-        break;
+      //case Cmd::CTL:
+      //  ret_val = ((Control*)obj)->SetupControl(State, cmdArg, CurrentVars_);
+      //  delete obj;
+      //  break;
       case Cmd::BLK:
         if (AddControlBlock( (ControlBlock*)obj, State, cmdArg )) {
           delete obj;
