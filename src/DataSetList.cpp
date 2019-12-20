@@ -786,6 +786,19 @@ int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
 #endif
 // -----------------------------------------------------------------------------
 
+int DataSetList::UpdateStringVar(std::string const& varnameIn, std::string const& newValue)
+const
+{
+  DataSet* ds = FindSetOfType( varnameIn, DataSet::STRINGVAR );
+  if (ds == 0) {
+    mprinterr("Error: No string variable named '%s'\n", varnameIn.c_str());
+    return 1;
+  }
+  DataSet_StringVar& var = static_cast<DataSet_StringVar&>( *ds );
+  var.assign( newValue );
+  return 0;
+}
+
 /** Get a value from specified DataSet as a string. */
 std::string DataSetList::GetVariable(std::string const& varnameIn) const {
   DataSet* ds = GetDataSet( varnameIn );

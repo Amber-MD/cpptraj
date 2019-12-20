@@ -123,6 +123,8 @@ class DataSetList {
     int SynchronizeData(Parallel::Comm const&);
 #   endif
 
+    /// Update value in given string variable with new value
+    int UpdateStringVar(std::string const&, std::string const&) const;
     /// \return Value corresponding to given data set as a string
     std::string GetVariable(std::string const&) const;
     /// \return String with all variables replaced with their values.
