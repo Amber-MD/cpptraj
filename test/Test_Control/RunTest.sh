@@ -27,8 +27,8 @@ for atoms A0 inmask :2-4@N atoms A1 inmask :2-4@H
 done
 
 rms :1-12&!@H=
-for residues R1 inmask :1-12 r=1;r++
-  rms R\$r \$R1&!@H= nofit out rms.nofit.dat
+for residues MyRes inmask :1-12 r=1;r++
+  rms R\$r \$MyRes&!@H= nofit out rms.nofit.dat
 done
 show
 
