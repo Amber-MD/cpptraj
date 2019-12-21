@@ -17,7 +17,7 @@ for residues T inmask :TRP nvec=1;nvec++
   vector v\$nvec \$T center out TRP.vec.dat
   rms RMS\$T first \$T out TRP.rms.dat
   for atoms A0 inmask @CA
-    distance \$T \$A0 out TRP.CA.dist.dat
+    distance d\$T\$A0 \$T \$A0 out TRP.CA.dist.dat
   done
   distance \$T :1-12 out TRP.tocenter.dat
 done
