@@ -13,8 +13,8 @@ cat > for.in <<EOF
 set FNAME= ../tz2.nc
 parm ../tz2.parm7
 trajin \$FNAME 1 10
-for residues T inmask :TRP
-  vector \$T center out TRP.vec.dat
+for residues T inmask :TRP nvec=1;nvec++
+  vector v\$nvec \$T center out TRP.vec.dat
   rms first \$T out TRP.rms.dat
   for atoms A0 inmask @CA
     distance \$T \$A0 out TRP.CA.dist.dat
