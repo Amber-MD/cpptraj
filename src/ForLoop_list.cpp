@@ -3,13 +3,14 @@
 #include "ArgList.h"
 #include "FileName.h"
 #include "DataSetList.h"
+#include "CpptrajState.h"
 
 int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
   // <var> in <string0>[,<string1>...]
   //MH.varType_ = ftype;
   argIn.PrintDebug();
   // Variable name. Should be expr.
-  SetVarName( expr );
+  SetupLoopVar( State.DSL(), expr );
   // Comma-separated list of strings.
   std::string listArg = argIn.GetStringKey("in");
   if (listArg.empty()) {

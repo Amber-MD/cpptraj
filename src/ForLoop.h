@@ -4,6 +4,7 @@
 class CpptrajState;
 class ArgList;
 class DataSetList;
+class DataSet;
 /// Abstract base class for all for loops
 class ForLoop {
   public:
@@ -23,16 +24,19 @@ class ForLoop {
     static const int LOOP_ERROR = -2;
 
     std::string const& Description() const { return description_; }
-    std::string const& VarName() const { return varname_; }
+    //std::string const& VarName() const { return varname_; }
+    std::string const& VarName() const;
   protected:
     void SetDescription(std::string const& descIn) { description_ = descIn; }
     //void SetType(ForType f)                        { varType_ = f;          }
-    void SetVarName(std::string const& v)          { varname_ = v;          }
+    /// Set up the loop variable with given name.
+    int SetupLoopVar(DataSetList&, std::string const&);
 
     //ForType VarType()            const { return varType_; }
   private:
     std::string description_; ///< For loop long description
-    std::string varname_;     ///< Variable over which for loop is iterating
+    DataSet* loopvar_;        ///< Variable over which loop is iterating.
+    //std::string varname_;     ///< Variable over which for loop is iterating
     //ForType varType_;         ///< For loop type
 };
 #endif

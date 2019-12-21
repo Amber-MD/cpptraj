@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "StringRoutines.h"
+#include "CpptrajState.h"
 #include "DataSetList.h"
 
 const char* ForLoop_integer::OpStr_[] = {"+=", "-=", "<", ">"};
@@ -35,11 +36,11 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
               "Error: Expected <var>=<start>, got '%s'\n", varArg[0].c_str());
     return 1;
   }
-  SetVarName( startArg[0] );
+  if (SetupLoopVar( State.DSL(),startArg[0] )) return 1;
   mprintf("DEBUG: Start argument: '%s' = '%s'\n", VarName().c_str(), startArg[1].c_str());
   if ( startArg[1][0] == '$' ) {
-    // Variable name // TODO need substring to remove $
-    startVarName_ = startArg[1];
+    // Variable name 
+    startVarName_ = RemoveLeadingChars(startArg[1], 1);
   } else if (!validInteger(startArg[1])) {
     // Not Integer or variable
     mprinterr("Error: Start argument must be an integer or variable name.\n");
@@ -47,7 +48,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   } else
     start_ = convertToInteger(startArg[1]);
   // Second argument: <var><OP><end>
-  size_t pos0 = VarName().size(); // Minus 1 to account for prepended '$'
+  size_t pos0 = VarName().size();
   size_t pos1 = pos0 + 1;
   endOp_ = NO_OP;
   int iargIdx = 1;
@@ -66,7 +67,7 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
     mprintf("DEBUG: endStr= '%s'\n", endStr.c_str());
     if ( endStr[0] == '$' ) {
       // Variable name
-      endVarName_ = endStr;
+      endVarName_ = RemoveLeadingChars(endStr, 1);
     } else if (!validInteger(endStr)) {
       // Not Integer of variable
       mprinterr("Error: End argument must be an integer or variable name.\n");

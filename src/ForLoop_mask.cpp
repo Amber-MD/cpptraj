@@ -33,7 +33,7 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   Topology* top = State.DSL().GetTopByIndex( argIn );
   if (top != 0) currentTop = top;
   if (currentTop == 0) return 1;
-  SetVarName( argIn.GetStringNext() );
+  SetupLoopVar( State.DSL(), argIn.GetStringNext() );
   // Set up mask
   if (currentTop->SetupIntegerMask( currentMask )) return 1;
   currentMask.MaskInfo();
