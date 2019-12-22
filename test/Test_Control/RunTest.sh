@@ -19,7 +19,7 @@ for residues T inmask :TRP nvec=1;nvec++
   for atoms A0 inmask @CA
     distance d\$T\$A0 \$T \$A0 out TRP.CA.dist.dat
   done
-  distance \$T :1-12 out TRP.tocenter.dat
+  distance dcenter\$T \$T :1-12 out TRP.tocenter.dat
 done
 
 for atoms A0 inmask :2-4@N atoms A1 inmask :2-4@H
