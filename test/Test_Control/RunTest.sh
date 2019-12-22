@@ -23,7 +23,7 @@ for residues T inmask :TRP nvec=1;nvec++
 done
 
 for atoms A0 inmask :2-4@N atoms A1 inmask :2-4@H
-  distance \$A0 \$A1 out nh.dat
+  distance d\$A0\$A1 \$A0 \$A1 out nh.dat
 done
 
 rms :1-12&!@H=
