@@ -172,9 +172,9 @@ int ForLoop_integer::calcNumIterations() const {
     if (endOp_ == LT_EQUALS) offset = inc_;
     if ( start_ >= end_ + offset )
     {
-      mprinterr("Error: start (%i) must be less than end (%i) for increment.\n",
+      mprintf("Warning: start (%i) and end (%i) values result in no iterations.\n",
                 start_, end_ + offset);
-      return LOOP_ERROR;
+      return 0;
     }
     minval = start_;
     maxval = end_ + offset;
@@ -190,9 +190,9 @@ int ForLoop_integer::calcNumIterations() const {
     if ( (endOp_ == GREATER_THAN && end_ >= start_) ||
          (endOp_ == GT_EQUALS    && end_ > start_) )
     {
-      mprinterr("Error: end (%i) must be less than start (%i) for decrement.\n",
+      mprintf("Warning: end (%i) and start (%i) values result in no iterations.\n",
                 end_, start_);
-      return LOOP_ERROR;
+      return 0;
     }
     minval = end_ + offset;
     maxval = start_;
