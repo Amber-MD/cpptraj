@@ -210,14 +210,15 @@ int ForLoop_integer::BeginFor(DataSetList const& DSL) {
 
 /** Check if integer for loop is done, increment if not. */
 bool ForLoop_integer::EndFor(DataSetList const& DSL) {
+  bool retval = false;
   if (endOp_ == LESS_THAN) {
-    if (currentVal_ >= end_) return true;
+    if (currentVal_ >= end_) retval = true;
   } else if (endOp_ == GREATER_THAN) {
-    if (currentVal_ <= end_) return true;
+    if (currentVal_ <= end_) retval = true;
   }
   // Get variable value and update CurrentVars
   DSL.UpdateStringVar( VarName(), integerToString( currentVal_ ) );
   // Increment
   currentVal_ += inc_;
-  return false;
+  return retval;
 }
