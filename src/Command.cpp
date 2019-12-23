@@ -565,7 +565,7 @@ bool Command::UnterminatedControl() {
 int Command::AddControlBlock(ControlBlock* ctl, CpptrajState& State, ArgList& cmdArg) {
   if ( ctl->SetupBlock( State, cmdArg ) )
     return 1;
-  if (ctlidx_ == -1) mprintf("CONTROL: Starting control block.\n");
+  if (ctlidx_ == -1) mprintf("CONTROL: Parsing control block.\n");
   control_.push_back( ctl );
   ctlidx_++;
   mprintf("  BLOCK %2i: ", ctlidx_);
