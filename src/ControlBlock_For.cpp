@@ -78,6 +78,10 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
       mprinterr("Error: For loop setup failed.\n");
       return 1;
     }
+    if ( !forloop.IsSetup() ) {
+      mprinterr("Internal Error: For loop variable was not properly set up.\n");
+      return 1;
+    }
     
     // Append description
     description_.append( forloop.Description() );
