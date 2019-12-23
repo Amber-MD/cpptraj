@@ -28,7 +28,7 @@ void ControlBlock_For::Help() const {
           "  names containing wildcard characters ('*' or '?').\n"
           "  Variables created in the for loop can be referenced by prefacing\n"
           "  the name with a '$' character.\n"
-          "  Available 'end OP'       : '<' '>'\n"
+          "  Available 'end OP'       : '<' '>' '<=' '>='\n"
           "  Available 'increment OP' : '++', '--', '+=', '-='\n"
           "  Note that non-integer variables (e.g. for mask loops) are NOT incremented\n"
           "  after the final loop iteration, i.e. these loop variables always retain\n"
