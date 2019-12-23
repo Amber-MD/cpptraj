@@ -10,7 +10,7 @@ class ForLoop_integer : public ForLoop {
     int BeginFor(DataSetList const&);
     bool EndFor(DataSetList const&);
 
-    enum OpType { INCREMENT=0, DECREMENT, LESS_THAN, GREATER_THAN, NO_OP };
+    enum OpType { INCREMENT=0, DECREMENT, LESS_THAN, GREATER_THAN, LT_EQUALS, GT_EQUALS, NO_OP };
   private:
     static const char* OpStr_[NO_OP];
 

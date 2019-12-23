@@ -120,8 +120,8 @@ int ControlBlock_For::Start(DataSetList const& DSL) {
   if (Vars_.size() > 1)
     mprintf("\tLoop will execute for %i iterations.\n", MaxIterations);
   if (MaxIterations < 1) {
-    mprinterr("Error: Loop has less than 1 iteration.\n");
-    return 1; 
+    mprintf("Warning: Loop has less than 1 iteration.\n");
+    return 0; 
   }
 
   return 0;
@@ -129,10 +129,12 @@ int ControlBlock_For::Start(DataSetList const& DSL) {
 
 /** For each mask check if done, then update variables, then increment. */
 ControlBlock::DoneType ControlBlock_For::CheckDone(DataSetList const& DSL) {
+  DoneType retval = NOT_DONE;
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
-    // Exit as soon as one is done TODO check all?
-    if ( (*MH)->EndFor(DSL) ) return DONE;
+    // Exit as soon as one is done, but check all so that
+    // all loops are properly incremented if necessary.
+    if ( (*MH)->EndFor(DSL) ) retval = DONE;
   }
 
-  return NOT_DONE;
+  return retval;
 }

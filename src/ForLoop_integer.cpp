@@ -5,7 +5,7 @@
 #include "CpptrajState.h"
 #include "DataSetList.h"
 
-const char* ForLoop_integer::OpStr_[] = {"+=", "-=", "<", ">"};
+const char* ForLoop_integer::OpStr_[NO_OP] = {"+=", "-=", "<", ">", "<=", ">=" };
 
 ForLoop_integer::ForLoop_integer() :
   endOp_(NO_OP),
@@ -54,10 +54,19 @@ int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgL
   int iargIdx = 1;
   if (varArg.Nargs() == 3) {
     iargIdx = 2;
-    if ( varArg[1][pos0] == '<' )
-      endOp_ = LESS_THAN;
-    else if (varArg[1][pos0] == '>')
-      endOp_ = GREATER_THAN;
+    if ( varArg[1][pos0] == '<' ) {
+      if ( varArg[1][pos0+1] == '=' ) {
+        endOp_ = LT_EQUALS;
+        pos1 = pos0 + 2;
+      } else
+        endOp_ = LESS_THAN;
+    } else if ( varArg[1][pos0] == '>' ) {
+      if ( varArg[1][pos0+1] == '=' ) {
+        endOp_ = GT_EQUALS;
+        pos1 = pos0 + 2;
+      } else
+        endOp_ = GREATER_THAN;
+    }
     if (endOp_ == NO_OP) {
       mprinterr("Error: Unrecognized end op: '%s'\n",
                 varArg[1].substr(pos0, pos1-pos0).c_str());
@@ -153,18 +162,39 @@ int ForLoop_integer::calcNumIterations() const {
   // Check end > start for increment, start > end for decrement
   int maxval, minval;
   if (incOp_ == INCREMENT) {
-    if (start_ >= end_) {
-      mprinterr("Error: start must be less than end for increment.\n");
+    // When incrementing, start must be less than end, so only valid end
+    // ops are < and <=.
+    if (endOp_ != LESS_THAN && endOp_ != LT_EQUALS) {
+      mprinterr("Error: For increment, only valid end ops are < and <=.\n");
+      return LOOP_ERROR;
+    }
+    int offset = 0;
+    if (endOp_ == LT_EQUALS) offset = inc_;
+    if ( start_ >= end_ + offset )
+    {
+      mprinterr("Error: start (%i) must be less than end (%i) for increment.\n",
+                start_, end_ + offset);
       return LOOP_ERROR;
     }
     minval = start_;
-    maxval = end_;
+    maxval = end_ + offset;
   } else {
-    if (end_ >= start_) {
-      mprinterr("Error: end must be less than start for decrement.\n");
+    // When decrementing, end must be less than start, so only valid end
+    // ops are > and >=.
+    if (endOp_ != GREATER_THAN && endOp_ != GT_EQUALS) {
+      mprinterr("Error: For decrement, only valid end ops are > and >=.\n");
       return LOOP_ERROR;
     }
-    minval = end_;
+    int offset = 0;
+    if (endOp_ == GT_EQUALS) offset = inc_;
+    if ( (endOp_ == GREATER_THAN && end_ >= start_) ||
+         (endOp_ == GT_EQUALS    && end_ > start_) )
+    {
+      mprinterr("Error: end (%i) must be less than start (%i) for decrement.\n",
+                end_, start_);
+      return LOOP_ERROR;
+    }
+    minval = end_ + offset;
     maxval = start_;
   }
   // Figure out number of iterations
@@ -215,6 +245,10 @@ bool ForLoop_integer::EndFor(DataSetList const& DSL) {
     if (currentVal_ >= end_) retval = true;
   } else if (endOp_ == GREATER_THAN) {
     if (currentVal_ <= end_) retval = true;
+  } else if (endOp_ == LT_EQUALS) {
+    if ( currentVal_ > end_ ) retval = true;
+  } else if (endOp_ == GT_EQUALS) {
+    if ( currentVal_ < end_ ) retval = true;
   }
   // Get variable value and update CurrentVars
   DSL.UpdateStringVar( VarName(), integerToString( currentVal_ ) );
