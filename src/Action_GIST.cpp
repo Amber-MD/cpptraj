@@ -930,10 +930,10 @@ void Action_GIST::TransEntropy(float VX, float VY, float VZ,
     if (dd < NNd && dd > 0) { NNd = dd; }
 
     int q1 = n1 * 4; // index into V_Q for n1
-    double rR = 2.0 * acos( W4 * V_Q[q1  ] +
+    double rR = 2.0 * acos( fabs(W4 * V_Q[q1  ] +
                             X4 * V_Q[q1+1] +
                             Y4 * V_Q[q1+2] +
-                            Z4 * V_Q[q1+3] );
+                            Z4 * V_Q[q1+3] )); //add fabs for quaternions distance claculation
     double ds = rR*rR + dd;
     if (ds < NNs && ds > 0) { NNs = ds; }
   }
@@ -985,10 +985,10 @@ void Action_GIST::Print() {
         {
           if (n0 != n1) {
             int q1 = n1 * 4; // Index into voxel_Q_ for n1
-            double rR = 2.0 * acos(  voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
+            double rR = 2.0 * acos(  fabs(voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
                                    + voxel_Q_[gr_pt][q1+1] * voxel_Q_[gr_pt][q0+1]
                                    + voxel_Q_[gr_pt][q1+2] * voxel_Q_[gr_pt][q0+2]
-                                   + voxel_Q_[gr_pt][q1+3] * voxel_Q_[gr_pt][q0+3] );
+                                   + voxel_Q_[gr_pt][q1+3] * voxel_Q_[gr_pt][q0+3] )); // add fabs for quaternion distance calculation
             //mprintf("DEBUG1: %g\n", rR);
             if (rR > 0 && rR < NNr) NNr = rR;
           }
@@ -1067,10 +1067,10 @@ void Action_GIST::Print() {
           double dd = dx*dx+dy*dy+dz*dz;
           if (dd < NNd && dd > 0) { NNd = dd; }
           int q1 = n1 * 4; // index into voxel_Q_ for n1
-          double rR = 2 * acos( W4*voxel_Q_[gr_pt][q1  ] +
+          double rR = 2 * acos( fabs(W4*voxel_Q_[gr_pt][q1  ] +
                                 X4*voxel_Q_[gr_pt][q1+1] +
                                 Y4*voxel_Q_[gr_pt][q1+2] +
-                                Z4*voxel_Q_[gr_pt][q1+3] );
+                                Z4*voxel_Q_[gr_pt][q1+3] )); //add fabs for quaternion distance calculation
           double ds = rR*rR + dd;
           if (ds < NNs && ds > 0) { NNs = ds; }
         }
@@ -1104,6 +1104,19 @@ void Action_GIST::Print() {
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy - addx, NNd, NNs);
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy + addx, NNd, NNs);
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy - addx, NNd, NNs);
+
+        // add the 8 more voxels for NNr searching
+
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx + addy + addz, NNd, NNs);
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx + addy - addz, NNd, NNs);
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx - addy + addz, NNd, NNs);
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx - addy - addz, NNd, NNs);
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx + addy + addz, NNd, NNs);
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx + addy - addz, NNd, NNs);
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx - addy + addz, NNd, NNs);
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx - addy - addz, NNd, NNs);
+
+
 
         NNd = sqrt(NNd);
         NNs = sqrt(NNs);
