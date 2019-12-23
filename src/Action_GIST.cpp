@@ -933,7 +933,7 @@ void Action_GIST::TransEntropy(float VX, float VY, float VZ,
     double rR = 2.0 * acos( fabs(W4 * V_Q[q1  ] +
                             X4 * V_Q[q1+1] +
                             Y4 * V_Q[q1+2] +
-                            Z4 * V_Q[q1+3] )); //add fabs for quaternions distance claculation
+                            Z4 * V_Q[q1+3] )); //add fabs for quaternions distance calculation
     double ds = rR*rR + dd;
     if (ds < NNs && ds > 0) { NNs = ds; }
   }
