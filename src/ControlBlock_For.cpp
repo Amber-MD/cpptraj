@@ -18,7 +18,7 @@ ControlBlock_For::~ControlBlock_For() {
 void ControlBlock_For::Help() const {
   mprintf("\t{ {atoms|residues|molecules|molfirstres|mollastres}\n"
           "\t    <var> inmask <mask> [%s] ... |\n"
-          "\t    <var> in <list>\n"
+          "\t  <var> in <list> |\n"
           "\t  <var>=<start>;[<var><end OP><end>;]<var><increment OP>[<value>] ... }\n",
           DataSetList::TopIdxArgs);
   mprintf("\tEND KEYWORD: 'done'\n");
