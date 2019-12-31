@@ -11,8 +11,9 @@ class ForLoop_dataSetBlocks : public ForLoop {
     bool EndFor(DataSetList const&);
     
   private:
-    DataSet* sourceSet_; ///< Set to loop over
-    int blocksize_;      ///< Size of blocks
-    int blockoffset_;    ///< Block offset
+    DataSet* sourceSet_;     ///< Set to loop over
+    unsigned int blocksize_; ///< Size of blocks
+    int blockoffset_;        ///< Block offset
+    unsigned int idx_;       ///< Current index into sourceSet_
 };
 #endif
