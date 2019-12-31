@@ -10,7 +10,7 @@ int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   //MH.varType_ = ftype;
   argIn.PrintDebug();
   // Variable name. Should be expr.
-  SetupLoopVar( State.DSL(), expr );
+  if (SetupLoopVar( State.DSL(), expr )) return 1;
   // Comma-separated list of strings.
   std::string listArg = argIn.GetStringKey("in");
   if (listArg.empty()) {
