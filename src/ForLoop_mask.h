@@ -8,7 +8,7 @@ class ForLoop_mask : public ForLoop {
   public:
     ForLoop_mask() : mtype_(NTYPES) {}
 
-    int SetupFor(CpptrajState&, std::string const&, ArgList&);
+    int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);
     bool EndFor(DataSetList const&);
   private:

@@ -5,12 +5,9 @@
 #include "DataSetList.h"
 #include "CpptrajState.h"
 
-int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
+int ForLoop_list::SetupFor(CpptrajState& State, ArgList& argIn) {
   // <var> in <string0>[,<string1>...]
   //MH.varType_ = ftype;
-  argIn.PrintDebug();
-  // Variable name. Should be expr.
-  if (SetupLoopVar( State.DSL(), expr )) return 1;
   // Comma-separated list of strings.
   std::string listArg = argIn.GetStringKey("in");
   if (listArg.empty()) {
@@ -22,6 +19,9 @@ int ForLoop_list::SetupFor(CpptrajState& State, std::string const& expr, ArgList
     mprinterr("Error: Could not parse '%s' for 'for in'\n", listArg.c_str());
     return 1;
   }
+  // Variable name.
+  if (SetupLoopVar( State.DSL(), argIn.GetStringNext() )) return 1;
+  // Go through list of strings
   for (int il = 0; il != list.Nargs(); il++) {
     // Check if file name expansion should occur
     if (list[il].find_first_of("*?") != std::string::npos) {

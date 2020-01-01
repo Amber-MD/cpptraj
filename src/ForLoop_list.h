@@ -7,7 +7,7 @@ class ForLoop_list : public ForLoop {
   public:
     ForLoop_list() {}
 
-    int SetupFor(CpptrajState&, std::string const&, ArgList&);
+    int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);
     bool EndFor(DataSetList const&);
   private:

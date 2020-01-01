@@ -1,7 +1,7 @@
 #include "ControlBlock_For.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
-#include "DataSetList.h" // TODO move into ForLoop help?
+#include "CpptrajState.h" // TODO move into ForLoop help?
 // For loop types
 #include "ForLoop.h"
 #include "ForLoop_integer.h"
@@ -48,7 +48,6 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
   mprintf("    Setting up 'for' loop.\n");
   Vars_.clear();
   description_.assign("for (");
-  int iarg = 0;
   // Parse out each component of this for block. E.g.
   //               .               .                 .
   //   for atoms X inmask :30 name in var1,var2,var3 i=0;i++
@@ -57,6 +56,7 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
   // component 1: 1,2,3,4
   // component 2: 5,6,7
   // component 3: 8
+  argIn.MarkArg(0);
   std::vector<int> forLoopIdxs;
   for (int iarg = 1; iarg < argIn.Nargs(); iarg++) {
     if (argIn[iarg] == "inmask") {
@@ -66,6 +66,7 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
         return 1;
       }
       forLoopIdxs.push_back( idx );
+      Vars_.push_back( static_cast<ForLoop*>( new ForLoop_mask() ) );
     } else if (argIn[iarg] == "in") {
       int idx = iarg - 1;
       if (idx < 1) {
@@ -73,9 +74,12 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
         return 1;
       }
       forLoopIdxs.push_back( idx );
+      Vars_.push_back( static_cast<ForLoop*>( new ForLoop_list() ) );
     } else if ( argIn[iarg].find(";") != std::string::npos ) {
       forLoopIdxs.push_back( iarg );
+      Vars_.push_back( static_cast<ForLoop*>( new ForLoop_integer() ) );
     }
+    argIn.MarkArg(iarg);
   }
   forLoopIdxs.push_back( argIn.Nargs() );
   mprintf("DEBUG: For loop indices:");
@@ -94,37 +98,8 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
     for (int jdx = forLoopIdxs[idx-1]; jdx < forLoopIdxs[idx]; ++jdx)
       forLoopArgs.AddArg( argIn[jdx] );
     forLoopArgs.PrintDebug();
-  }
-
-  while (iarg < argIn.Nargs())
-  {
-    // <type> <var> inmask ...
-    // <var> in ...
-    // <var>;...
-    // Advance to next unmarked argument.
-    while (iarg < argIn.Nargs() && argIn.Marked(iarg)) iarg++;
-    if (iarg == argIn.Nargs()) break;
-    // Determine 'for' type
-    int argToMark = iarg;
-    if      ( argIn[iarg] == "atoms"       || 
-              argIn[iarg] == "residues"    || 
-              argIn[iarg] == "molecules"   || 
-              argIn[iarg] == "molfirstres" || 
-              argIn[iarg] == "mollastres" )
-    {
-      Vars_.push_back( static_cast<ForLoop*>( new ForLoop_mask() ) );
-    } else if ( argIn[iarg].find(";") != std::string::npos ) {
-      Vars_.push_back( static_cast<ForLoop*>( new ForLoop_integer() ) );
-    } else if (iarg+1 < argIn.Nargs() && argIn[iarg+1] == "in") {
-      Vars_.push_back( static_cast<ForLoop*>( new ForLoop_list() ) );
-    } else {
-      // Exit if type could not be determined.
-      mprinterr("Error: for loop type not specfied.\n");
-      return 1;
-    }
-    argIn.MarkArg(argToMark);
-    ForLoop& forloop = static_cast<ForLoop&>( *(Vars_.back()) );
-    if ( forloop.SetupFor( State, argIn[iarg], argIn ) ) {
+    ForLoop& forloop = static_cast<ForLoop&>( *(Vars_[idx-1]) );
+    if ( forloop.SetupFor( State, forLoopArgs ) ) {
       mprinterr("Error: For loop setup failed.\n");
       return 1;
     }
@@ -132,11 +107,18 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
       mprinterr("Internal Error: For loop variable was not properly set up.\n");
       return 1;
     }
-    
+    if (forLoopArgs.CheckForMoreArgs()) {
+      if (State.ExitOnError()) {
+        mprinterr("Error: Not all for loop arguments handled.\n");
+        return 1;
+      } else
+        mprintf("Warning: Not all for loop arguments handled.\n");
+    }
     // Append description
     description_.append( forloop.Description() );
     // TODO check variable name
   }
+
   description_.append(") do");
 
   return 0;

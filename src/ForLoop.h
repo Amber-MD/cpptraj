@@ -12,7 +12,7 @@ class ForLoop {
     virtual ~ForLoop() {}
 
     /// Set up the loop, ensure syntax is correct
-    virtual int SetupFor(CpptrajState&, std::string const&, ArgList&)  = 0;
+    virtual int SetupFor(CpptrajState&, ArgList&)  = 0;
     /// Start the loop
     /** \return Number of iterations in loop, or NITERATIONS_UNKNOWN. */
     virtual int BeginFor(DataSetList const&) = 0;

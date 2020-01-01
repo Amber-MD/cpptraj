@@ -13,7 +13,7 @@ ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
   idx_(0)
 {}
 
-int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn)
+int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, ArgList& argIn)
 {
   // <var> datasetblocks <set> blocksize <#> [blockoffset <#>]
   std::string dsname = argIn.GetStringKey("datasetblocks");

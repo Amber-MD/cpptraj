@@ -18,15 +18,20 @@ ForLoop_integer::ForLoop_integer() :
 {}
 
 /** Setup integer for loop. */
-int ForLoop_integer::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
+int ForLoop_integer::SetupFor(CpptrajState& State, ArgList& argIn) {
   // [<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]
   //SetType( INTEGER );
-  ArgList varArg( expr, ";" );
+  // Sanity check
+  if (argIn.Nargs() != 1) {
+    mprinterr("Internal Error: Too many arguments for integer for loop.\n");
+    return 1;
+  }
+  ArgList varArg( argIn.GetStringNext(), ";" );
   //varArg.PrintDebug(); // DEBUG
   if (varArg.Nargs() < 2 || varArg.Nargs() > 3) {
     mprinterr("Error: Malformed 'for' loop variable.\n"
               "Error: Expected '[<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]'\n"
-              "Error: Got '%s'\n", expr.c_str());
+              "Error: Got '%s'\n", argIn[0].c_str());
     return 1;
   }
   // First argument: <var>=<start>

@@ -6,7 +6,7 @@ class ForLoop_dataSetBlocks : public ForLoop {
   public:
     ForLoop_dataSetBlocks();
 
-    int SetupFor(CpptrajState&, std::string const&, ArgList&);
+    int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);
     bool EndFor(DataSetList const&);
     

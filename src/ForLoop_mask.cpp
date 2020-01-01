@@ -5,19 +5,19 @@
 #include "StringRoutines.h"
 #include "DataSetList.h"
 
-int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList& argIn) {
+int ForLoop_mask::SetupFor(CpptrajState& State, ArgList& argIn) {
   static const char* TypeStr[NTYPES] = { "ATOMS ", "RESIDUES ", "MOLECULES ",
                                    "MOL_FIRST_RES ", "MOL_LAST_RES " };
   // {atoms|residues|molecules} <var> inmask <mask> [TOP KEYWORDS]
   Topology* currentTop = 0;
   mtype_ = NTYPES;
-  if      ( expr == "atoms"       ) mtype_ = ATOMS;
-  else if ( expr == "residues"    ) mtype_ = RESIDUES;
-  else if ( expr == "molecules"   ) mtype_ = MOLECULES;
-  else if ( expr == "molfirstres" ) mtype_ = MOLFIRSTRES;
-  else if ( expr == "mollastres"  ) mtype_ = MOLLASTRES;
-  else {
-    mprinterr("Error: Unrecognized mask for loop type: %s\n", expr.c_str());
+  if      (argIn.hasKey("atoms")) mtype_ = ATOMS;
+  else if (argIn.hasKey("residues")) mtype_ = RESIDUES;
+  else if (argIn.hasKey("molecules")) mtype_ = MOLECULES;
+  else if (argIn.hasKey("molfirstres")) mtype_ = MOLFIRSTRES;
+  else if (argIn.hasKey("mollastres")) mtype_ = MOLLASTRES;
+  if (mtype_ == NTYPES) {
+    mprinterr("Error: No recognized type for mask 'for' loop.\n");
     return 1;
   }
   //if (argIn[iarg+2] != "inmask") {
@@ -33,6 +33,7 @@ int ForLoop_mask::SetupFor(CpptrajState& State, std::string const& expr, ArgList
   Topology* top = State.DSL().GetTopByIndex( argIn );
   if (top != 0) currentTop = top;
   if (currentTop == 0) return 1;
+  // Get the variable name
   if (SetupLoopVar( State.DSL(), argIn.GetStringNext() )) return 1;
   // Set up mask
   if (currentTop->SetupIntegerMask( currentMask )) return 1;
