@@ -49,8 +49,58 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
   Vars_.clear();
   description_.assign("for (");
   int iarg = 0;
+  // Parse out each component of this for block. E.g.
+  //               .               .                 .
+  //   for atoms X inmask :30 name in var1,var2,var3 i=0;i++
+  //   0   1     2 3      4   5    6  7              8
+  //       *                  *                      *
+  // component 1: 1,2,3,4
+  // component 2: 5,6,7
+  // component 3: 8
+  std::vector<int> forLoopIdxs;
+  for (int iarg = 1; iarg < argIn.Nargs(); iarg++) {
+    if (argIn[iarg] == "inmask") {
+      int idx = iarg - 2;
+      if (idx < 1) {
+        mprinterr("Error: Malformed 'inmask' for loop.\n");
+        return 1;
+      }
+      forLoopIdxs.push_back( idx );
+    } else if (argIn[iarg] == "in") {
+      int idx = iarg - 1;
+      if (idx < 1) {
+        mprinterr("Error: Malformed 'in' for loop.\n");
+        return 1;
+      }
+      forLoopIdxs.push_back( idx );
+    } else if ( argIn[iarg].find(";") != std::string::npos ) {
+      forLoopIdxs.push_back( iarg );
+    }
+  }
+  forLoopIdxs.push_back( argIn.Nargs() );
+  mprintf("DEBUG: For loop indices:");
+  for (std::vector<int>::const_iterator it = forLoopIdxs.begin();
+                                        it != forLoopIdxs.end(); ++it)
+    mprintf(" %i", *it);
+  mprintf("\n");
+  if (forLoopIdxs.size() < 2) {
+    mprinterr("Error: No recognized for loop arguments.\n");
+    return 1;
+  }
+  // Set up each individual for loop.
+  for (unsigned int idx = 1; idx < forLoopIdxs.size(); ++idx)
+  {
+    ArgList forLoopArgs;
+    for (int jdx = forLoopIdxs[idx-1]; jdx < forLoopIdxs[idx]; ++jdx)
+      forLoopArgs.AddArg( argIn[jdx] );
+    forLoopArgs.PrintDebug();
+  }
+
   while (iarg < argIn.Nargs())
   {
+    // <type> <var> inmask ...
+    // <var> in ...
+    // <var>;...
     // Advance to next unmarked argument.
     while (iarg < argIn.Nargs() && argIn.Marked(iarg)) iarg++;
     if (iarg == argIn.Nargs()) break;
