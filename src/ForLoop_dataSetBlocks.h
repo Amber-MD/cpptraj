@@ -5,6 +5,7 @@
 class ForLoop_dataSetBlocks : public ForLoop {
   public:
     ForLoop_dataSetBlocks();
+    ~ForLoop_dataSetBlocks();
 
     int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);

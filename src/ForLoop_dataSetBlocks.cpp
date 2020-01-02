@@ -62,11 +62,20 @@ int ForLoop_dataSetBlocks::BeginFor(DataSetList const& DSL) {
     return 1;
   }
   // Determine # iterations
-  long int niterations = (long int)sourceSet_->Size() / blockoffset_;
-  if ( ((long int)sourceSet_->Size() % blockoffset) > 0 )
+  long int niterations = (long int)sourceSet_->Size() / labs(blockoffset_);
+  if ( ((long int)sourceSet_->Size() % labs(blockoffset_)) > 0 )
     ++niterations;
   return niterations;
 }
 
-int ForLoop_dataSetBlocks::EndFor(DataSetList const& DSL) {
-  // Check if done
+bool ForLoop_dataSetBlocks::EndFor(DataSetList const& DSL) {
+  // Check if done by seeing if the current start value is outside the data set.
+  if (idx_ < 0 || idx_ >= (long int)sourceSet_->Size()) return true;
+  // Determine stop of the current block.
+  long int block_end = idx_ + blockoffset_;
+  mprintf("DEBUG: Block %li to %li\n", idx_, block_end);
+
+  // Increment the start
+  idx_ += blockoffset_;
+  return false;
+}
