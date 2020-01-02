@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
-           nh.dat rms.nofit.dat last10.dat distance.dat
+           nh.dat rms.nofit.dat last10.dat distance.dat nested.agr
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
@@ -67,6 +67,27 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest distance.dat.save distance.dat
 fi
+
+UNITNAME='Test nested loops and variables in loops'
+cat > for.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+
+set maxval = 4
+set maxval1 = 3
+set val = 0
+for i=1;i<\$maxval;i++ myval=0;myval+=10
+  startj = \$i + 1
+  for j=\$startj;j<=\$maxval1;j++
+    distance d\$i\$j @\$i @\$j out nested.agr
+  done
+done
+run
+show
+list
+EOF
+RunCpptraj "$UNITNAME"
+DoTest nested.agr nested.agr.save
 
 EndTest
 exit 0
