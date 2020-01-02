@@ -7,6 +7,7 @@
 #include "ForLoop_integer.h"
 #include "ForLoop_mask.h"
 #include "ForLoop_list.h"
+#include "ForLoop_dataSetBlocks.h"
 
 /// DESTRUCTOR
 ControlBlock_For::~ControlBlock_For() {
@@ -49,10 +50,10 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
   Vars_.clear();
   description_.assign("for (");
   // Parse out each component of this for block. E.g.
-  //               .               .                 .
-  //   for atoms X inmask :30 name in var1,var2,var3 i=0;i++
-  //   0   1     2 3      4   5    6  7              8
-  //       *                  *                      *
+  //               .               .                 .          .
+  //   for atoms X inmask :30 name in var1,var2,var3 i=0;i++ DS datasetblocks blocksize 10
+  //   0   1     2 3      4   5    6  7              8       9  10            11        12
+  //       *                  *                      *       *
   // component 1: 1,2,3,4
   // component 2: 5,6,7
   // component 3: 8
@@ -75,6 +76,14 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
       }
       forLoopIdxs.push_back( idx );
       Vars_.push_back( static_cast<ForLoop*>( new ForLoop_list() ) );
+    } else if (argIn[iarg] == "datasetblocks") {
+      int idx = iarg - 1;
+      if (idx < 1) {
+        mprinterr("Error: Malformed 'datasetblocks' for loop.\n");
+        return 1;
+      }
+      forLoopIdxs.push_back( idx );
+      Vars_.push_back( static_cast<ForLoop*>( new ForLoop_dataSetBlocks() ) );
     } else if ( argIn[iarg].find(";") != std::string::npos ) {
       forLoopIdxs.push_back( iarg );
       Vars_.push_back( static_cast<ForLoop*>( new ForLoop_integer() ) );

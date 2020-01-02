@@ -290,6 +290,7 @@ COMMON_SOURCES= \
         FileName.cpp \
         FileTypes.cpp \
         ForLoop.cpp \
+        ForLoop_dataSetBlocks.cpp \
         ForLoop_integer.cpp \
         ForLoop_list.cpp \
         ForLoop_mask.cpp \
