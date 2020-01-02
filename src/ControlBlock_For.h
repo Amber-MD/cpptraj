@@ -16,7 +16,7 @@ class ControlBlock_For : public ControlBlock {
     const_iterator begin() const { return commands_.begin(); }
     const_iterator end()   const { return commands_.end();   }
     int Start(DataSetList const&);
-    DoneType CheckDone(DataSetList const&);
+    DoneType CheckDone(DataSetList&);
   private:
     typedef std::vector<ForLoop*> Marray;
     Marray Vars_; ///< Hold all for loops for this block

@@ -42,7 +42,7 @@ int ForLoop_list::BeginFor(DataSetList const& CurrentVars) {
   return (int)List_.size();
 }
 
-bool ForLoop_list::EndFor(DataSetList const& DSL) {
+bool ForLoop_list::EndFor(DataSetList& DSL) {
   if (sdx_ == List_.end()) return true;
   // Get variable value
   DSL.UpdateStringVar( VarName(), *(sdx_) );

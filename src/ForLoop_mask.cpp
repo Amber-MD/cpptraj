@@ -84,7 +84,7 @@ int ForLoop_mask::BeginFor(DataSetList const& DSL) {
   return (int)Idxs_.size();
 }
 
-bool ForLoop_mask::EndFor(DataSetList const& DSL) {
+bool ForLoop_mask::EndFor(DataSetList& DSL) {
   static const char* prefix[NTYPES] = {"@", ":", "^", ":", ":"};
   if (idx_ == Idxs_.end()) return true;
   // Get variable value

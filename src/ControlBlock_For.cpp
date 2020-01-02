@@ -174,7 +174,8 @@ int ControlBlock_For::Start(DataSetList const& DSL) {
 }
 
 /** For each mask check if done, then update variables, then increment. */
-ControlBlock::DoneType ControlBlock_For::CheckDone(DataSetList const& DSL) {
+ControlBlock::DoneType ControlBlock_For::CheckDone(DataSetList& DSL) {
+  // NOTE: DataSetList is not const ref so dataSetBlocks loop can create sets
   DoneType retval = NOT_DONE;
   for (Marray::iterator MH = Vars_.begin(); MH != Vars_.end(); ++MH) {
     // Exit as soon as one is done, but check all so that

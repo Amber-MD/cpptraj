@@ -9,7 +9,7 @@ class ForLoop_list : public ForLoop {
 
     int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);
-    bool EndFor(DataSetList const&);
+    bool EndFor(DataSetList&);
   private:
     typedef std::vector<std::string> Sarray;
     Sarray List_;                ///< (LIST only) List of strings to iterate over.

@@ -10,7 +10,7 @@ class ForLoop_mask : public ForLoop {
 
     int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);
-    bool EndFor(DataSetList const&);
+    bool EndFor(DataSetList&);
   private:
     typedef std::vector<int> Iarray;
 

@@ -244,7 +244,7 @@ int ForLoop_integer::BeginFor(DataSetList const& DSL) {
 }
 
 /** Check if integer for loop is done, increment if not. */
-bool ForLoop_integer::EndFor(DataSetList const& DSL) {
+bool ForLoop_integer::EndFor(DataSetList& DSL) {
   bool retval = false;
   if (endOp_ == LESS_THAN) {
     if (currentVal_ >= end_) retval = true;

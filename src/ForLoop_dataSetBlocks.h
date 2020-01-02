@@ -5,11 +5,11 @@
 class ForLoop_dataSetBlocks : public ForLoop {
   public:
     ForLoop_dataSetBlocks();
-    ~ForLoop_dataSetBlocks();
 
     int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);
-    bool EndFor(DataSetList const&);
+    // NOTE: Not a const ref so dataSetBlocks loop can create sets
+    bool EndFor(DataSetList&);
     
   private:
     DataSet* sourceSet_;   ///< Set to loop over

@@ -13,11 +13,6 @@ ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
   idx_(0)
 {}
 
-/// DESTRUCTOR
-ForLoop_dataSetBlocks::~ForLoop_dataSetBlocks() {
-  if (currentSet_ != 0) delete currentSet_;
-}
-
 int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, ArgList& argIn)
 {
   // <var> datasetblocks <set> blocksize <#> [blockoffset <#>]
@@ -68,12 +63,20 @@ int ForLoop_dataSetBlocks::BeginFor(DataSetList const& DSL) {
   return niterations;
 }
 
-bool ForLoop_dataSetBlocks::EndFor(DataSetList const& DSL) {
+bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
   // Check if done by seeing if the current start value is outside the data set.
   if (idx_ < 0 || idx_ >= (long int)sourceSet_->Size()) return true;
   // Determine stop of the current block.
   long int block_end = idx_ + blockoffset_;
   mprintf("DEBUG: Block %li to %li\n", idx_, block_end);
+  // Create the subset
+  currentSet_ = DSL.AddSet(sourceSet_->Type(), MetaData(VarName(), idx_));
+  if (currentSet_ == 0) {
+    mprinterr("Error: Could not create dataSetBlocks subset.\n");
+    return true;
+  }
+  // Update the set name
+  DSL.UpdateStringVar( VarName(), currentSet_->Meta().PrintName() );
 
   // Increment the start
   idx_ += blockoffset_;

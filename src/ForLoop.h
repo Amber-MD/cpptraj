@@ -17,7 +17,7 @@ class ForLoop {
     /** \return Number of iterations in loop, or NITERATIONS_UNKNOWN. */
     virtual int BeginFor(DataSetList const&) = 0;
     /// \return True if loop is done, otherwise increment the loop
-    virtual bool EndFor(DataSetList const&) = 0;
+    virtual bool EndFor(DataSetList&) = 0;
 
     /// Return value when number of iterations is not known
     static const int NITERATIONS_UNKNOWN = -1;

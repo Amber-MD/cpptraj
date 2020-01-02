@@ -8,7 +8,7 @@ class ForLoop_integer : public ForLoop {
 
     int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);
-    bool EndFor(DataSetList const&);
+    bool EndFor(DataSetList&);
 
     enum OpType { INCREMENT=0, DECREMENT, LESS_THAN, GREATER_THAN, LT_EQUALS, GT_EQUALS, NO_OP };
   private:
