@@ -3,7 +3,6 @@
 #include "ArgList.h"
 #include "CpptrajState.h"
 #include "DataSet.h"
-#include "DataBlock.h"
 
 /// CONSTRUCTOR
 ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
