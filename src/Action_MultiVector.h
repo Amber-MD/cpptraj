@@ -1,8 +1,8 @@
 #ifndef INC_MULTIVECTOR_H
 #define INC_MULTIVECTOR_H
 #include "Action.h"
-#include "DataSet_Vector.h"
 #include "Range.h"
+class DataSet_Vector_OXYZ;
 class Action_MultiVector : public Action {
   public:
     Action_MultiVector();
@@ -15,7 +15,7 @@ class Action_MultiVector : public Action {
     void Print() {}
 
     int debug_;
-    std::vector<DataSet_Vector*> data_;  ///< Output DataSets, 1 per vector.
+    std::vector<DataSet_Vector_OXYZ*> data_;  ///< Output DataSets, 1 per vector.
     Range resRange_;                     ///< Residues to search for vectors.
     std::string dsetname_;
     NameType name1_;

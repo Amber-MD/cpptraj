@@ -3,6 +3,7 @@
 #include "ProgressBar.h"
 #include "Constants.h"
 #include "DataSet_double.h"
+#include "DataSet_Vector_XYZ.h"
 #include "Corr.h"
 #ifdef _OPENMP
 #  include <omp.h>
@@ -35,8 +36,8 @@ Action::RetType Action_InfraredSpectrum::Init(ArgList& actionArgs, ActionInit& i
   if (mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
   previousNselected_ = -1;
   // DataSet
-  Vel_ = (DataSet_Vector*)
-         init.DSL().AddSet(DataSet::VECTOR,
+  Vel_ = (DataSet_Vector_XYZ*)
+         init.DSL().AddSet(DataSet::VEC_XYZ,
                            MetaData(actionArgs.GetStringNext(), "raw"), "IR");
   if (Vel_ == 0) return Action::ERR;
   Vel_->SetupFormat().SetFormatWidthPrecision(12, 4);
