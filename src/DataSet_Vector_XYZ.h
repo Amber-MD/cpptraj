@@ -19,6 +19,7 @@ class DataSet_Vector_XYZ : public DataSet_Vector {
     void reset();
     void Resize(size_t s) { internalResize(s, Vec3(0.0)); }
     void Resize(size_t s, Vec3 const& v) { internalResize(s, v); }
+    // -------------------------------------------
 };
 
 // ---------- INLINE FUNCTIONS -------------------------------------------------

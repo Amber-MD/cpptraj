@@ -1,6 +1,7 @@
 #ifndef INC_DATASET_VECTOR_OXYZ_H
 #define INC_DATASET_VECTOR_OXYZ_H
 #include "DataSet_Vector.h"
+/// Vector data set with origins
 class DataSet_Vector_OXYZ : public DataSet_Vector {
   public:
     DataSet_Vector_OXYZ();
@@ -25,28 +26,16 @@ class DataSet_Vector_OXYZ : public DataSet_Vector {
       origins_.resize( s, Vec3(0.0) );
     }
     // -------------------------------------------
+
     /// \return vector origin at specified position
     const Vec3& OXYZ(int i)       const { return origins_[i]; }
     /// Add vector and origin
     void AddVxyzo(Vec3 const& v, Vec3 const& c) {
-      vectors_.push_back( v );
+      internalAdd( v );
       origins_.push_back( c );
     }
-
-    /// Calculate auto/cross-correlation //TODO Move to Corr.cpp
-    int CalcVectorCorr(DataSet_Vector const&, DataSet_1D&, int) const;
-    /// Calculate spherical harmonics arrays for given Legendre order
-    int CalcSphericalHarmonics(int);
-    /// \return Spherical harmonics array for given m (-order_ <= m <= order_)
-    ComplexArray const& SphericalHarmonics(int) const;
-    /// \return Constant for normalization via spherical harmonics addition theorem.
-    static double SphericalHarmonicsNorm(int); 
   private:
-    int order_;      ///< Order for spherical harmonics calculations
-    Varray vectors_;
     Varray origins_;
-    /// Hold spherical harmonic values for m=-order to order
-    std::vector<ComplexArray> sphericalHarmonics_; // TODO Make AdditionalData
 };
 // ---------- INLINE FUNCTIONS -------------------------------------------------
 void DataSet_Vector_OXYZ::Add(size_t frame, const void* vIn) {

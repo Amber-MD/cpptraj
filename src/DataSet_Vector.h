@@ -42,6 +42,7 @@ class DataSet_Vector : public DataSet {
     void internalReset();
     inline void internalResize(size_t, Vec3 const&);
     inline void internalAdd(const void*);
+    inline void internalAdd(Vec3 const&);
     Varray const& vectors() const { return vectors_; }
 #   ifdef MPI
     Varray& internalVecArray() { return vectors_; }
@@ -59,5 +60,9 @@ void DataSet_Vector::internalResize(size_t frame, Vec3 const& vIn) {
 
 void DataSet_Vector::internalAdd(const void* vIn) {
   vectors_.push_back( Vec3( (const double*)vIn   ) );
+}
+
+void DataSet_Vector::internalAdd(Vec3 const& vIn) {
+  vectors_.push_back( vIn );
 }
 #endif
