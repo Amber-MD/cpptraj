@@ -31,7 +31,7 @@ class DataSet_Vector_OXYZ : public DataSet_Vector {
     const Vec3& OXYZ(int i)       const { return origins_[i]; }
     /// Add vector and origin
     void AddVxyzo(Vec3 const& v, Vec3 const& c) {
-      internalAdd( v );
+      AddVxyz( v );
       origins_.push_back( c );
     }
   private:
