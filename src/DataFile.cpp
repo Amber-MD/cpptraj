@@ -302,7 +302,12 @@ int DataFile::AddDataSet(DataSet* dataIn) {
         delete dataio_;
         dataio_ = 0;
       }
-      if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+      if (dataio_ == 0) {
+        mprinterr("Error: Set '%s' is not valid for '%s' file type.\n",
+                  dataIn->legend(), DataFilename().full());
+        mprinterr("Error: No valid file type could be found.\n");
+        return Error("Error: Data file allocation failed.\n");
+      }
       mprintf("\tChanged DataFile '%s' type to %s for set %s\n", filename_.base(),
               FileTypes::FormatDescription(DF_AllocArray, dfType_),
               dataIn->legend());
