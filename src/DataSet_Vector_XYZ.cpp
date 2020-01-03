@@ -38,6 +38,28 @@ int DataSet_Vector_XYZ::Append(DataSet* dsIn) {
   return 0;
 }
 
+#ifdef MPI
+int DataSet_Vector_XYZ::Sync(size_t total, std::vector<int> const& rank_frames,
+                             Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  // TODO: Consolidate to 1 send/recv via arrays?
+  if (commIn.Master()) {
+    // Resize to accept data from other ranks.
+    internalVecArray().resize( total );
+    int vidx = rank_frames[0]; // Index on master
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      for (int ridx = 0; ridx != rank_frames[rank]; ridx++, vidx++)
+        commIn.SendMaster( internalVecArray()[vidx].Dptr(), 3, rank, MPI_DOUBLE );
+    } 
+  } else { // Send data to master
+    for (unsigned int ridx = 0; ridx != internalVecArray().size(); ++ridx)
+      commIn.SendMaster( internalVecArray()[ridx].Dptr(), 3, commIn.Rank(), MPI_DOUBLE );
+  }
+  return 0;
+}
+#endif
+
 // -----------------------------------------------------------------------------
 void DataSet_Vector_XYZ::reset() {
   internalReset();

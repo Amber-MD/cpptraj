@@ -4,17 +4,19 @@
 #include "Constants.h" // For spherical harmonics norm.
 #include "Corr.h"
 
-const Vec3 DataSet_Vector::ZERO = Vec3(0,0,0);
 const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
 
+/// CONSTRUCTOR
+DataSet_Vector::DataSet_Vector() : order_(0) {}
+
 // CONSTRUCTOR
-DataSet_Vector::DataSet_Vector() :
-  DataSet(VECTOR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
+DataSet_Vector::DataSet_Vector(DataType tIn, TextFormat const& fIn) :
+  DataSet(tIn, VECTOR_1D, fIn, 1),
   order_(0) {}
 
-size_t DataSet_Vector::MemUsageInBytes() const {
+/** \return size of vectors plus spherical harmonics. */
+size_t DataSet_Vector::internalSize() const {
   size_t mySize = (vectors_.size() * Vec3::DataSize()) +
-                  (origins_.size() * Vec3::DataSize()) +
                   sizeof(int);
   for (std::vector<ComplexArray>::const_iterator SH = sphericalHarmonics_.begin();
                                                  SH != sphericalHarmonics_.end();
@@ -22,53 +24,23 @@ size_t DataSet_Vector::MemUsageInBytes() const {
     mySize += (SH->DataSize());
   return mySize;
 }
-         
 
-// DataSet_Vector::Allocate()
-int DataSet_Vector::Allocate(SizeArray const& Nin) {
-  if (!Nin.empty()) {
-    vectors_.reserve( Nin[0] );
-    origins_.reserve( Nin[0] ); // TODO: check if this needs allocation
-  }
-  return 0;
+/** Allocate vector array. */
+void DataSet_Vector::internalAlloc(SizeArray const& Nin) {
+  vectors_.reserve( Nin[0] );
 }
 
-// DataSet_Vector::WriteBuffer()
-void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
-  if (pIn[0] >= vectors_.size()) {
-    cbuffer.Printf(format_.fmt(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); // VXYZ OXYZ
-  } else {
-    Vec3 const& Vxyz = vectors_[pIn[0]];
-    Vec3 const& Oxyz = OXYZ(pIn[0]);
-    cbuffer.Printf(format_.fmt(), Vxyz[0], Vxyz[1], Vxyz[2],
-                                  Oxyz[0], Oxyz[1], Oxyz[2]);
-  }
-}
-
-int DataSet_Vector::Append(DataSet* dsIn) {
-  if (dsIn->Empty()) return 0;
-  if (dsIn->Type() != VECTOR) return 1;
-  Varray const& vIn = ((DataSet_Vector*)dsIn)->vectors_;
-  Varray const& oIn = ((DataSet_Vector*)dsIn)->origins_;
+/** Append to vector array. */
+void DataSet_Vector::internalAppend(const DataSet_Vector* dsIn) {
+  Varray const& vIn = dsIn->vectors();
   size_t oldsize = vectors_.size();
   vectors_.resize( oldsize + vIn.size() );
   std::copy( vIn.begin(), vIn.end(), vectors_.begin() + oldsize );
-  if (oIn.empty() && !origins_.empty()) // Need vIn.size empty origin vectors
-    origins_.resize( oldsize + vIn.size(), ZERO );
-  else if (!oIn.empty() && origins_.empty()) // Need vectors_.size empty origin vecs
-    origins_.resize( vectors_.size(), ZERO );
-  if (!oIn.empty()) {
-    oldsize = origins_.size();
-    origins_.resize( oldsize + oIn.size() );
-    std::copy( oIn.begin(), oIn.end(), origins_.begin() + oldsize );
-  }
-  return 0;
 }
 
-// DataSet_Vector::reset()
+/** Reset the vector array */
 void DataSet_Vector::reset() {
   vectors_.clear();
-  origins_.clear();
   sphericalHarmonics_.clear();
   order_ = 0;
 }
@@ -201,45 +173,3 @@ double DataSet_Vector::SphericalHarmonicsNorm(int order) {
   else if (order == 0) return Constants::FOURPI;
   else return 1.0;
 }
-
-#ifdef MPI
-int DataSet_Vector::Sync(size_t total, std::vector<int> const& rank_frames,
-                         Parallel::Comm const& commIn)
-{
-  if (commIn.Size()==1) return 0;
-  double buf[6];
-  // TODO: Consolidate to 1 send/recv via arrays?
-  if (commIn.Master()) {
-    // Resize to accept data from other ranks.
-    vectors_.resize( total );
-    if (!origins_.empty()) {
-      origins_.resize( total );
-      int vidx = rank_frames[0]; // Index on master
-      for (int rank = 1; rank < commIn.Size(); rank++) {
-        for (int ridx = 0; ridx != rank_frames[rank]; ridx++, vidx++) {
-          commIn.SendMaster( buf, 6, rank, MPI_DOUBLE );
-          std::copy( buf,   buf+3, vectors_[vidx].Dptr() );
-          std::copy( buf+3, buf+6, origins_[vidx].Dptr() );
-        }
-      }
-    } else {
-      int vidx = rank_frames[0]; // Index on master
-      for (int rank = 1; rank < commIn.Size(); rank++) {
-        for (int ridx = 0; ridx != rank_frames[rank]; ridx++, vidx++)
-          commIn.SendMaster( vectors_[vidx].Dptr(), 3, rank, MPI_DOUBLE );
-      } 
-    }
-  } else { // Send data to master
-    if (!origins_.empty()) {
-      for (unsigned int ridx = 0; ridx != vectors_.size(); ++ridx) {
-        std::copy( vectors_[ridx].Dptr(), vectors_[ridx].Dptr()+3, buf   );
-        std::copy( origins_[ridx].Dptr(), origins_[ridx].Dptr()+3, buf+3 );
-        commIn.SendMaster( buf, 6, commIn.Rank(), MPI_DOUBLE );
-      }
-    } else
-      for (unsigned int ridx = 0; ridx != vectors_.size(); ++ridx)
-        commIn.SendMaster( vectors_[ridx].Dptr(), 3, commIn.Rank(), MPI_DOUBLE );
-  }
-  return 0;
-}
-#endif

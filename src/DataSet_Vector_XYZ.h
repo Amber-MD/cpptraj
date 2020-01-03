@@ -12,6 +12,9 @@ class DataSet_Vector_XYZ : public DataSet_Vector {
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     int Append(DataSet*);
     inline void Add(size_t, const void*);
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+#   endif
     // ----- DataSet_Vector functions ------------
     void reset();
     void Resize(size_t s) { internalResize(s, Vec3(0.0)); }
