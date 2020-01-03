@@ -10,7 +10,6 @@
 #ifdef MPI
 # include "Parallel.h"
 #endif
-class DataBlock;
 /// Base class that all DataSet types will inherit.
 /** The DataSet base class holds common information, like MetaData for
   * selection, TextFormat for text output, etc.
@@ -69,10 +68,8 @@ class DataSet {
     virtual int Append(DataSet*) = 0;
     /// \return Size of data set in memory (in bytes).
     virtual size_t MemUsageInBytes() const = 0;
-    /// \return DataBlock at specified position of requested size TODO pure virtual
-    virtual DataBlock Block(size_t, unsigned int) const;
-    /// Add given DataBlock to set at specified position TODO pure virtual
-    virtual void AddBlock(size_t, DataBlock const&);
+    /// Copy a block to position in this set from given set OF SAME TYPE using specified position and size TODO pure virtual
+    virtual void CopyBlock(size_t, const DataSet*, size_t, size_t) {}
 #   ifdef MPI
     /// Piece this DataSet together from multiple threads.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;

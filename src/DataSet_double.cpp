@@ -1,19 +1,11 @@
 #include <algorithm> // copy
 #include "DataSet_double.h"
-#include "DataBlock.h"
 
 // DataSet_double::Allocate()
 /** Reserve space in the Data and Frames arrays. */
 int DataSet_double::Allocate( SizeArray const& sizeIn ) {
   if (!sizeIn.empty())
     Data_.reserve( sizeIn[0] );
-  return 0;
-}
-
-/** Allocate space in Data_ array. */
-int DataSet_double::MemAlloc( SizeArray const& sizeIn ) {
-  if (!sizeIn.empty())
-    Data_.resize( sizeIn[0] );
   return 0;
 }
 
@@ -27,15 +19,19 @@ void DataSet_double::Add(size_t frame, const void* vIn) {
   Data_.push_back( *((double*)vIn) );
 }
 
-// DataSet_double::Block()
-DataBlock DataSet_double::Block(size_t startIdx, unsigned int nelts) const {
-  return DataBlock( (void*)(&(Data_[0])+startIdx), nelts );
+/** Allocate space in Data_ array. */
+int DataSet_double::MemAlloc( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty())
+    Data_.resize( sizeIn[0] );
+  return 0;
 }
 
-// DataSet_double::AddBlock()
-void DataSet_double::AddBlock(size_t startIdx, DataBlock const& block) {
-  const double* ptr = (const double*)block.Ptr0();
-  std::copy( ptr, ptr+block.Nelts(), &(Data_[0]) + startIdx );
+// DataSet_double::CopyBlock()
+void DataSet_double::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_double const& setIn = static_cast<DataSet_double const&>( *dptrIn );
+  const double* ptr = (&(setIn.Data_[0])+pos);
+  std::copy( ptr, ptr + nelts, &(Data_[0]) + startIdx );
 }
 
 // DataSet_double::WriteBuffer()

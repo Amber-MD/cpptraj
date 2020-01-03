@@ -85,7 +85,7 @@ bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
     return true;
   }
   // Copy block
-  currentSet_->AddBlock(0, sourceSet_->Block(idx_, blocksize_));
+  currentSet_->CopyBlock(0, sourceSet_, idx_, blocksize_);
   // Increment the start
   idx_ += blockoffset_;
   return false;
