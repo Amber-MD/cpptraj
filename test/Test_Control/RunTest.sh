@@ -89,5 +89,36 @@ EOF
 RunCpptraj "$UNITNAME"
 DoTest nested.agr nested.agr.save
 
+UNITNAME='Test loop over data set blocks'
+cat > for.in <<EOF
+parm ../tz2.parm7
+
+starttraj = 1
+endtraj = 10
+offset = 10
+for i=1;i<=10;i++
+  trajin ../tz2.nc \$starttraj \$endtraj
+  distance EndToEnd\$endtraj :1 :12
+  run
+  starttraj = \$starttraj + \$offset
+  endtraj = \$endtraj + \$offset
+  clear trajin
+done
+writedata EndToEnd0.dat EndToEnd*
+
+trajin ../tz2.nc 1 100
+distance EndToEndAll :1 :12
+run
+
+noexitonerror
+for DS datasetblocks EndToEndAll blocksize 10 i=1;i++
+  writedata temp.\$i.dat \$DS
+done
+writedata EndToEnd1.dat DS:0 DS:10 DS:20 DS:30 DS:40 DS:50 DS:60 DS:70 DS:80 DS:90
+list
+EOF
+RunCpptraj "$UNITNAME"
+
+
 EndTest
 exit 0
