@@ -27,11 +27,11 @@ class DataSet_double : public DataSet_1D {
 #   endif
     void Info()                    const { return;                    }
     int Allocate(SizeArray const&);
-    int MemAlloc(SizeArray const&);
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
     size_t MemUsageInBytes() const { return Data_.size() * sizeof(double); }
+    int MemAlloc(SizeArray const&);
     void CopyBlock(size_t, const DataSet*, size_t, size_t);
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)        const { return Data_[idx];         }
