@@ -1,8 +1,8 @@
 #ifndef INC_ACTION_PRINCIPAL_H
 #define INC_ACTION_PRINCIPAL_H
 #include "Action.h"
-#include "DataSet_Mat3x3.h"
-#include "DataSet_Vector.h"
+class DataSet_Mat3x3;
+class DataSet_Vector_XYZ;
 class Action_Principal : public Action {
   public:
     Action_Principal();
@@ -15,7 +15,7 @@ class Action_Principal : public Action {
     AtomMask mask_;
     CpptrajFile* outfile_;
     DataSet_Mat3x3* vecData_;
-    DataSet_Vector* valData_;
+    DataSet_Vector_XYZ* valData_;
 
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

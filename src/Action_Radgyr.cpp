@@ -41,7 +41,7 @@ Action::RetType Action_Radgyr::Init(ArgList& actionArgs, ActionInit& init, int d
     if (outfile != 0) outfile->AddDataSet( rogmax_ );
   }
   if (calcTensor_) {
-    rogtensor_ = init.DSL().AddSet(DataSet::VECTOR, MetaData(rog_->Meta().Name(), "Tensor"));
+    rogtensor_ = init.DSL().AddSet(DataSet::VEC_OXYZ, MetaData(rog_->Meta().Name(), "Tensor"));
     if (rogtensor_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddDataSet( rogtensor_ );
   }

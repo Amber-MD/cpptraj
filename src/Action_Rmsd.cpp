@@ -2,6 +2,8 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString
 #include "DataSet_Mesh.h"
+#include "DataSet_Vector_XYZ.h"
+#include "DataSet_Vector_OXYZ.h"
 
 // CONSTRUCTOR
 Action_Rmsd::Action_Rmsd() :
@@ -122,7 +124,10 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprinterr("Error: Must be fitting in order to save translation vectors.\n");
       return Action::ERR;
     }
-    tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VECTOR, md);
+    if (tvecType_ == COMBINED)
+      tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VEC_XYZ, md);
+    else // SEPARATE
+      tvecs_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VEC_OXYZ, md);
     if (tvecs_ == 0) return Action::ERR;
     if (vecsOut != 0) vecsOut->AddDataSet( tvecs_ );
   }
@@ -371,9 +376,9 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
     rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
     if (rmatrices_ != 0) rmatrices_->Add(frameNum, rot_.Dptr());
     if (tvecType_ == COMBINED)
-      tvecs_->AddVxyz( tgtTrans_ + REF_.RefTrans() );
+      ((DataSet_Vector_XYZ*)tvecs_)->AddVxyz( tgtTrans_ + REF_.RefTrans() );
     else if (tvecType_ == SEPARATE)
-      tvecs_->AddVxyz( tgtTrans_, REF_.RefTrans() );
+      ((DataSet_Vector_OXYZ*)tvecs_)->AddVxyzo( tgtTrans_, REF_.RefTrans() );
     switch (mode_) {
       case ROT_AND_TRANS:
         frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
