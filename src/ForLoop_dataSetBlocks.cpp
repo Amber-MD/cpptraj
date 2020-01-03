@@ -3,6 +3,7 @@
 #include "ArgList.h"
 #include "CpptrajState.h"
 #include "DataSet.h"
+#include "DataBlock.h"
 
 /// CONSTRUCTOR
 ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
@@ -67,7 +68,7 @@ bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
   // Check if done by seeing if the current start value is outside the data set.
   if (idx_ < 0 || idx_ >= (long int)sourceSet_->Size()) return true;
   // Determine stop of the current block.
-  long int block_end = idx_ + blockoffset_;
+  long int block_end = idx_ + blocksize_;
   mprintf("DEBUG: Block %li to %li\n", idx_, block_end);
   // Create the subset
   currentSet_ = DSL.AddSet(sourceSet_->Type(), MetaData(VarName(), idx_));
@@ -77,7 +78,14 @@ bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
   }
   // Update the set name
   DSL.UpdateStringVar( VarName(), currentSet_->Meta().PrintName() );
-
+  // Allocate memory
+  DataSet::SizeArray dsSize(1, blocksize_);
+  if ( currentSet_->MemAlloc( dsSize ) ) {
+    mprinterr("Error: Could not allocate dataSetBlocks subset.\n");
+    return true;
+  }
+  // Copy block
+  currentSet_->AddBlock(0, sourceSet_->Block(idx_, blocksize_));
   // Increment the start
   idx_ += blockoffset_;
   return false;

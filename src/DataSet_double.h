@@ -27,10 +27,13 @@ class DataSet_double : public DataSet_1D {
 #   endif
     void Info()                    const { return;                    }
     int Allocate(SizeArray const&);
+    int MemAlloc(SizeArray const&);
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
     size_t MemUsageInBytes() const { return Data_.size() * sizeof(double); }
+    DataBlock Block(size_t, unsigned int) const;
+    void AddBlock(size_t, DataBlock const&);
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)        const { return Data_[idx];         }
     double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }

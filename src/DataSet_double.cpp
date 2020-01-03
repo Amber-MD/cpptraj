@@ -1,10 +1,19 @@
+#include <algorithm> // copy
 #include "DataSet_double.h"
+#include "DataBlock.h"
 
 // DataSet_double::Allocate()
 /** Reserve space in the Data and Frames arrays. */
 int DataSet_double::Allocate( SizeArray const& sizeIn ) {
   if (!sizeIn.empty())
     Data_.reserve( sizeIn[0] );
+  return 0;
+}
+
+/** Allocate space in Data_ array. */
+int DataSet_double::MemAlloc( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty())
+    Data_.resize( sizeIn[0] );
   return 0;
 }
 
@@ -16,6 +25,17 @@ void DataSet_double::Add(size_t frame, const void* vIn) {
   // Always insert at the end
   // NOTE: No check for duplicate frame values.
   Data_.push_back( *((double*)vIn) );
+}
+
+// DataSet_double::Block()
+DataBlock DataSet_double::Block(size_t startIdx, unsigned int nelts) const {
+  return DataBlock( (void*)(&(Data_[0])+startIdx), nelts );
+}
+
+// DataSet_double::AddBlock()
+void DataSet_double::AddBlock(size_t startIdx, DataBlock const& block) {
+  const double* ptr = (const double*)block.Ptr0();
+  std::copy( ptr, ptr+block.Nelts(), &(Data_[0]) + startIdx );
 }
 
 // DataSet_double::WriteBuffer()

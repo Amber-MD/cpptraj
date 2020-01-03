@@ -10,6 +10,7 @@
 #ifdef MPI
 # include "Parallel.h"
 #endif
+class DataBlock;
 /// Base class that all DataSet types will inherit.
 /** The DataSet base class holds common information, like MetaData for
   * selection, TextFormat for text output, etc.
@@ -52,8 +53,10 @@ class DataSet {
     /// \return value of coordinate for specified dimension d and position p.
     /** NOTE: It is assumed this can ALWAYS be represented as double precision. */
     virtual double Coord(unsigned int d, size_t p) const { return dim_[d].Coord(p); }
-    /// Allocate data given numbers of elements.
+    /// Reserve memory for given number(s) of elements. TODO rename?
     virtual int Allocate(SizeArray const&) = 0;
+    /// Actually allocate memory for given number(s) of elements TODO pure virtual?
+    virtual int MemAlloc(SizeArray const&) { return 1; }
     /// Add element to data set.
     /** A pointer to the data is passed in as void - it is up to the
       * inheriting class to cast it. The X value for the data is passed
@@ -66,6 +69,10 @@ class DataSet {
     virtual int Append(DataSet*) = 0;
     /// \return Size of data set in memory (in bytes).
     virtual size_t MemUsageInBytes() const = 0;
+    /// \return DataBlock at specified position of requested size TODO pure virtual
+    virtual DataBlock Block(size_t, unsigned int) const;
+    /// Add given DataBlock to set at specified position TODO pure virtual
+    virtual void AddBlock(size_t, DataBlock const&);
 #   ifdef MPI
     /// Piece this DataSet together from multiple threads.
     virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;

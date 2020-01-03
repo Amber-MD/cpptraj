@@ -1,5 +1,6 @@
 #include "DataSet.h"
 #include "CpptrajStdio.h"
+#include "DataBlock.h"
 
 // NOTE: IT IS IMPORTANT THAT THIS ARRAY CORRESPOND TO DataSet::DataType
 /** Description of each DataType. */
@@ -126,3 +127,7 @@ AssociatedData* DataSet::GetAssociatedData(AssociatedData::AssociatedType typeIn
     if ((*ad)->Type() == typeIn) return *ad;
   return 0;
 }
+
+DataBlock DataSet::Block(size_t, unsigned int) const { return DataBlock(); }
+
+void DataSet::AddBlock(size_t, DataBlock const&) {}
