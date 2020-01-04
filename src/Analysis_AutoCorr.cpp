@@ -30,7 +30,7 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa) {
     DataSetList setsIn = setup.DSL().GetMultipleSets( *dsa );
     for (DataSetList::const_iterator ds = setsIn.begin(); ds != setsIn.end(); ++ds) {
-      if ( (*ds)->Group() != DataSet::SCALAR_1D && (*ds)->Type() != DataSet::VECTOR )
+      if ( (*ds)->Group() != DataSet::SCALAR_1D && (*ds)->Group() != DataSet::VECTOR_1D )
         mprintf("Warning: Set '%s' type not supported in AUTOCORR - skipping.\n",
                 (*ds)->legend());
       else
@@ -83,7 +83,7 @@ Analysis::RetType Analysis_AutoCorr::Analyze() {
   for (unsigned int ids = 0; ids != dsets_.size(); ids++) {
     mprintf("\t\tCalculating AutoCorrelation for set %s\n", dsets_[ids]->legend());
     DataSet_1D& Ct = static_cast<DataSet_1D&>( *outputData_[ids] );
-    if (dsets_[ids]->Type() == DataSet::VECTOR) {
+    if (dsets_[ids]->Group() == DataSet::VECTOR_1D) {
       DataSet_Vector const& set = static_cast<DataSet_Vector const&>( *dsets_[ids] );
       set.CalcVectorCorr( set, Ct, lagmax_ );
     } else {
