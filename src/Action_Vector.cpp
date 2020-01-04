@@ -487,13 +487,27 @@ void Action_Vector::Print() {
     outfile_->Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n"
                    "# FORMAT where v? is vector, c? is center of mass...\n");
     int totalFrames = Vec_->Size();
-    for (int i=0; i < totalFrames; ++i) {
-      Vec3 const& vxyz = (*Vec_)[i];
-      Vec3 const& cxyz = Vec_->OXYZ(i);
-      Vec3 txyz  = cxyz + vxyz;
-      outfile_->Printf("%i %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n",
-              i+1, vxyz[0], vxyz[1], vxyz[2], cxyz[0], cxyz[1], cxyz[2],
-              txyz[0], txyz[1], txyz[2]);
+    if (Vec_->Type() == DataSet::VEC_OXYZ) {
+      DataSet_Vector_OXYZ const& vec =
+        static_cast<DataSet_Vector_OXYZ const&>( *Vec_ );
+      for (int i=0; i < totalFrames; ++i) {
+        Vec3 const& vxyz = vec[i];
+        Vec3 const& cxyz = vec.OXYZ(i);
+        Vec3 txyz  = cxyz + vxyz;
+        outfile_->Printf("%i %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n",
+                i+1, vxyz[0], vxyz[1], vxyz[2], cxyz[0], cxyz[1], cxyz[2],
+                txyz[0], txyz[1], txyz[2]);
+      }
+    } else {
+      // No origin
+      for (int i=0; i < totalFrames; ++i) {
+        Vec3 const& vxyz = (*Vec_)[i];
+        const Vec3 cxyz(0.0);
+        Vec3 txyz  = cxyz + vxyz;
+        outfile_->Printf("%i %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n",
+                i+1, vxyz[0], vxyz[1], vxyz[2], cxyz[0], cxyz[1], cxyz[2],
+                txyz[0], txyz[1], txyz[2]);
+      }
     }
   }
 }
