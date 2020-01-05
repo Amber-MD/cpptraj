@@ -13,7 +13,8 @@
 #include "DataSet_double.h" // For reading TODO remove dependency?
 #include "DataSet_float.h" // For reading TODO remove dependency?
 #include "DataSet_string.h" // For reading TODO remove dependency?
-#include "DataSet_Vector.h" // For reading TODO remove dependency?
+#include "DataSet_Vector_OXYZ.h" // For reading TODO remove dependency?
+#include "DataSet_Vector_XYZ.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_2D.h"
 #include "DataSet_3D.h"
@@ -710,15 +711,21 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
     return 1;
   }
+  bool hasOrigins = false;
   if (ncols >= 6) {
     nv = 6;
     mprintf("\tReading vector X Y Z and origin X Y Z values.\n");
+    hasOrigins = true;
   } else {
     nv = 3;
     mprintf("\tReading vector X Y Z values.\n");
   }
   // Create set
-  DataSet_Vector* ds = new DataSet_Vector();
+  DataSet_Vector* ds;
+  if (hasOrigins)
+    ds = new DataSet_Vector_OXYZ();
+  else
+    ds = new DataSet_Vector_XYZ();
   if (ds == 0) return 1;
   ds->SetMeta( dsname );
   // Read vector data

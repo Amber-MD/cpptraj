@@ -683,7 +683,7 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
               for (unsigned int n = 0; n != D1.Size(); n++)
                 D0.AddElement( DoOperation(D1.Dval(n), D2.Dval(n), T->Type()) );
             }
-            else if (ds1->Type() == DataSet::VECTOR && ds2->Type() == DataSet::VECTOR)
+            else if (ds1->Group() == DataSet::VECTOR_1D && ds2->Group() == DataSet::VECTOR_1D)
             {
               // Both DataSets are vector time series. If ds1 size != ds2 size, ds1 or ds2
               // may be of size 1.
@@ -700,7 +700,13 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
                   return 1;
                 }
               }
-              tempDS = LocalList.AddSet(DataSet::VECTOR, MetaData("TEMP", T-tokens_.begin()));
+              if (ds1->Type() == DataSet::VEC_OXYZ)
+                mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
+                        ds1->legend());
+              if (ds2->Type() == DataSet::VEC_OXYZ)
+                mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
+                        ds2->legend());
+              tempDS = LocalList.AddSet(DataSet::VEC_XYZ, MetaData("TEMP", T-tokens_.begin()));
               DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
               V0.Allocate( DataSet::SizeArray(1, Max) );
               DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);
@@ -819,9 +825,12 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
                 for (unsigned int n = 0; n != D1.Size(); n++)
                   D0.AddElement( DoOperation(d2, D1.Dval(n), T->Type()) );
               }
-              else if ( ds1->Type() == DataSet::VECTOR )
+              else if ( ds1->Group() == DataSet::VECTOR_1D )
               {
-                tempDS = LocalList.AddSet(DataSet::VECTOR, MetaData("TEMP", T-tokens_.begin()));
+                if (ds1->Type() == DataSet::VEC_OXYZ)
+                  mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
+                          ds1->legend());
+                tempDS = LocalList.AddSet(DataSet::VEC_XYZ, MetaData("TEMP", T-tokens_.begin()));
                 DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
                 V0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
                 DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);

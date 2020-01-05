@@ -47,7 +47,7 @@ int ForLoop_dataSetBlocks::BeginFor(DataSetList const& DSL) {
     return 1;
   }
   if (sourceSet_->Group() != DataSet::SCALAR_1D &&
-      sourceSet_->Type() != DataSet::VECTOR)
+      sourceSet_->Group() != DataSet::VECTOR_1D)
   {
     mprinterr("Error: Set '%s' is not 1D scalar or vector.\n", sourceSet_->legend());
     return 1;

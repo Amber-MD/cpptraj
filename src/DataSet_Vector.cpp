@@ -39,7 +39,7 @@ void DataSet_Vector::internalAppend(const DataSet_Vector* dsIn) {
 }
 
 /** Reset the vector array */
-void DataSet_Vector::reset() {
+void DataSet_Vector::internalReset() {
   vectors_.clear();
   sphericalHarmonics_.clear();
   order_ = 0;
