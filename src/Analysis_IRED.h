@@ -1,8 +1,8 @@
 #ifndef INC_ANALYSIS_IRED_H
 #define INC_ANALYSIS_IRED_H
 #include "Analysis.h"
-#include "DataSet_Vector.h"
-#include "DataSet_Modes.h"
+class DataSet_Vector;
+class DataSet_Modes;
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
   */

@@ -2,8 +2,8 @@
 #define INC_ANALYSIS_ROTDIF_H
 #include "Analysis.h"
 #include "Random.h"
-#include "DataSet_Vector.h"
-#include "DataSet_Mat3x3.h"
+#include "DataSet_Vector_XYZ.h"
+class DataSet_Mat3x3;
 /// Estimate rotational diffusion tensors from MD simulations
 /** To estimate rotational diffusion tensors from MD simulations along the
   * lines described by Wong & Case, (Evaluating rotational diffusion from
@@ -63,13 +63,13 @@ class Analysis_Rotdif: public Analysis {
     Random_Number RNgen_;
 
     DataSet_Mat3x3* Rmatrices_;      ///< Store rotation matrices
-    DataSet_Vector random_vectors_; ///< Hold nvecs random vectors
+    DataSet_Vector_XYZ random_vectors_; ///< Hold nvecs random vectors
     std::vector<double> D_eff_;     ///< Hold calculated effective D values for each vector
 //    std::vector<double> sumc2_;      
 
-    DataSet_Vector RandomVectors();
-    int direct_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
-    int fft_compute_corr(DataSet_Vector const&, int, std::vector<double>&);
+    DataSet_Vector_XYZ RandomVectors();
+    int direct_compute_corr(DataSet_Vector_XYZ const&, int, std::vector<double>&);
+    int fft_compute_corr(DataSet_Vector_XYZ const&, int, std::vector<double>&);
     double calcEffectiveDiffusionConst(double );
 
     static void PrintMatrix(CpptrajFile&, const char*, Matrix_3x3 const&);

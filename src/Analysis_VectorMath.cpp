@@ -2,7 +2,7 @@
 #include "Analysis_VectorMath.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
-#include "DataSet_Vector.h"
+#include "DataSet_Vector_XYZ.h"
 #include "DataSet_double.h"
 
 /// Strings corresponding to modes, used in output.
@@ -27,14 +27,14 @@ void Analysis_VectorMath::Help() const {
 Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   // Get Vectors
-  DataSetList vsets1 = setup.DSL().GetSetsOfType( analyzeArgs.GetStringKey("vec1"),
-                                                  DataSet::VECTOR );
+  DataSetList vsets1 = setup.DSL().SelectGroupSets( analyzeArgs.GetStringKey("vec1"),
+                                                  DataSet::VECTOR_1D );
   if (vsets1.empty()) {
     mprinterr("Error: 'vec1' not found.\n");
     return Analysis::ERR;
   }
-  DataSetList vsets2 = setup.DSL().GetSetsOfType( analyzeArgs.GetStringKey("vec2"),
-                                                  DataSet::VECTOR );
+  DataSetList vsets2 = setup.DSL().SelectGroupSets( analyzeArgs.GetStringKey("vec2"),
+                                                  DataSet::VECTOR_1D );
   if (vsets2.empty()) {
     mprinterr("Error: 'vec2' not found.\n");
     return Analysis::ERR;
@@ -65,7 +65,7 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup
     dname = "Angle";
   } else if (analyzeArgs.hasKey("crossproduct")) {
     mode_ = CROSSPRODUCT;
-    dtype = DataSet::VECTOR;
+    dtype = DataSet::VEC_XYZ;
     dname = "Cross";
   }
   // Set up output file in DataFileList if necessary
@@ -130,8 +130,8 @@ int Analysis_VectorMath::CrossProduct(DataSet* Dout, DataSet_Vector& V1, DataSet
                                       unsigned int vmax, unsigned int v1inc, unsigned int v2inc)
 const
 {
-  DataSet_Vector& Out = static_cast<DataSet_Vector&>( *Dout );
-  Out.ReserveVecs( V1.Size() );
+  DataSet_Vector_XYZ& Out = static_cast<DataSet_Vector_XYZ&>( *Dout );
+  Out.Allocate( DataSet::SizeArray(1, V1.Size()) );
   unsigned int v1 = 0;
   unsigned int v2 = 0;
   for (unsigned int v = 0; v < vmax; ++v, v1 += v1inc, v2 += v2inc) {
