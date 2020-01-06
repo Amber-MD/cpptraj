@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
-           nh.dat rms.nofit.dat last10.dat distance.dat nested.agr
+           nh.dat rms.nofit.dat last10.dat distance.dat nested.agr \
+           EndToEnd0.dat EndToEnd1.dat temp.*.dat
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
@@ -118,6 +119,7 @@ writedata EndToEnd1.dat DS:0 DS:10 DS:20 DS:30 DS:40 DS:50 DS:60 DS:70 DS:80 DS:
 list
 EOF
 RunCpptraj "$UNITNAME"
+DoTest EndToEnd1.dat.save EndToEnd1.dat
 
 
 EndTest
