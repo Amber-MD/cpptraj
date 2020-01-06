@@ -80,7 +80,7 @@ bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
   // Allocate memory
   DataSet::SizeArray dsSize(1, blocksize_);
   if ( currentSet_->MemAlloc( dsSize ) ) {
-    mprinterr("Error: Could not allocate dataSetBlocks subset.\n");
+    mprinterr("Internal Error: Could not allocate dataSetBlocks subset; not yet supported.\n");
     return true;
   }
   // Copy block
