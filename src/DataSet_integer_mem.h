@@ -32,6 +32,8 @@ class DataSet_integer_mem : public DataSet_integer {
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
     size_t MemUsageInBytes() const { return Data_.size() * sizeof(int); }
+    int MemAlloc(SizeArray const&);
+    void CopyBlock(size_t, const DataSet*, size_t, size_t);
     // -------------------------------------------
     //typedef std::vector<int>::iterator iterator;
     //iterator begin()                  { return Data_.begin();      }
