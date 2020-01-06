@@ -38,6 +38,8 @@ class DataSet_Vector : public DataSet {
   protected:
     size_t internalSize() const;
     void internalAlloc(SizeArray const&);
+    void internalMemalloc(SizeArray const&);
+    void internalCopyBlock(size_t, DataSet_Vector const&, size_t, size_t);
     void internalAppend(DataSet_Vector const*);
     void internalReset();
     inline void internalResize(size_t, Vec3 const&);

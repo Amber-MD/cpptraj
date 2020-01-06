@@ -17,6 +17,18 @@ int DataSet_Vector_XYZ::Allocate(SizeArray const& Nin) {
   return 0;
 }
 
+int DataSet_Vector_XYZ::MemAlloc(SizeArray const& Nin) {
+  if (!Nin.empty())
+    internalMemalloc(Nin);
+  return 0;
+}
+
+void DataSet_Vector_XYZ::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_Vector const& setIn = static_cast<DataSet_Vector const&>( *dptrIn );
+  internalCopyBlock(startIdx, setIn, pos, nelts);
+}
+
 // DataSet_Vector_XYZ::WriteBuffer
 void DataSet_Vector_XYZ::WriteBuffer(CpptrajFile& cbuffer, SizeArray const& pIn) const {
   if (pIn[0] >= Size()) {

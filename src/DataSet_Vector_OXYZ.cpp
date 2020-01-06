@@ -20,6 +20,22 @@ int DataSet_Vector_OXYZ::Allocate(SizeArray const& Nin) {
   return 0;
 }
 
+int DataSet_Vector_OXYZ::MemAlloc(SizeArray const& Nin) {
+  if (!Nin.empty()) {
+    internalMemalloc(Nin);
+    origins_.resize( Nin[0] );
+  }
+  return 0;
+}
+
+void DataSet_Vector_OXYZ::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_Vector_OXYZ const& setIn = static_cast<DataSet_Vector_OXYZ const&>( *dptrIn );
+  internalCopyBlock(startIdx, setIn, pos, nelts);
+  Varray::const_iterator ptr = setIn.origins_.begin() + pos;
+  std::copy( ptr, ptr + nelts, origins_.begin() + startIdx );
+}
+
 // DataSet_Vector_OXYZ::WriteBuffer()
 void DataSet_Vector_OXYZ::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
   if (pIn[0] >= Size()) {

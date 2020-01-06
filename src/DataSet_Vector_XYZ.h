@@ -9,6 +9,8 @@ class DataSet_Vector_XYZ : public DataSet_Vector {
     // ----- DataSet functions -------------------
     size_t MemUsageInBytes() const;
     int Allocate(SizeArray const&);
+    int MemAlloc(SizeArray const&);
+    void CopyBlock(size_t, DataSet const*, size_t, size_t);
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     int Append(DataSet*);
     inline void Add(size_t, const void*);

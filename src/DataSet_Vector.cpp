@@ -1,5 +1,6 @@
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <cmath> // sqrt
+#include <algorithm> // copy
 #include "DataSet_Vector.h"
 #include "Constants.h" // For spherical harmonics norm.
 #include "Corr.h"
@@ -25,9 +26,22 @@ size_t DataSet_Vector::internalSize() const {
   return mySize;
 }
 
-/** Allocate vector array. */
+/** Reserve vector array. */
 void DataSet_Vector::internalAlloc(SizeArray const& Nin) {
   vectors_.reserve( Nin[0] );
+}
+
+/** Allocate vector array. */
+void DataSet_Vector::internalMemalloc(SizeArray const& Nin) {
+  vectors_.resize( Nin[0] );
+}
+
+/** Copy from given vector set to this set. */
+void DataSet_Vector::internalCopyBlock(size_t startIdx, DataSet_Vector const& setIn,
+                                       size_t pos, size_t nelts)
+{
+  Varray::const_iterator ptr = setIn.begin() + pos;
+  std::copy(ptr, ptr + nelts, vectors_.begin() + startIdx);
 }
 
 /** Append to vector array. */
