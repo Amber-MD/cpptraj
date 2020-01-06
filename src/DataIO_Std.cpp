@@ -729,7 +729,7 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     // If set already exists, see if it doesnt have origins.
     if (ds != 0 && ds->Type() == DataSet::VEC_XYZ) {
       mprintf("Warning: Existing set '%s' does not have origin data.\n", ds->legend());
-      mprintf("Warning: Existing set will be filled with zeroed origin data.\n");
+      mprintf("Warning: Existing set will be filled with zeroed origin data where none exists.\n");
       DataSet* oldSet = datasetlist.PopSet( ds );
       DataSet_Vector_OXYZ* voxyz =
         (DataSet_Vector_OXYZ*)datasetlist.AddSet(DataSet::VEC_OXYZ, oldSet->Meta());
@@ -740,6 +740,8 @@ int DataIO_Std::Read_Vector(std::string const& fname,
       for (unsigned int idx = 0; idx < oldSet->Size(); idx++)
         voxyz->AddVxyzo( ((DataSet_Vector*)oldSet)->VXYZ(idx), Vec3(0.0) );
       ds = (DataSet*)voxyz;
+      // Free old set memory
+      delete oldSet;
     }
   } else {
     nv = 3;
@@ -748,7 +750,7 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     // If set already exists, see if it has origins.
     if (ds != 0 && ds->Type() == DataSet::VEC_OXYZ) {
       mprintf("Warning: Existing set '%s' has origin data.\n", ds->legend());
-      mprintf("Warning: Existing set will be filled with zeroed origin data.\n");
+      mprintf("Warning: Existing set will be filled with zeroed origin data where none exists.\n");
     }
   }
   // Create set if it doesnt yet exist;
