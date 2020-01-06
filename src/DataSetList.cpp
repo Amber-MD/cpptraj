@@ -818,7 +818,7 @@ const
 
 /** Get a value from specified DataSet as a string. */
 std::string DataSetList::GetVariable(std::string const& varnameIn) const {
-  DataSet* ds = GetDataSet( varnameIn );
+  DataSet* ds = CheckForSet( varnameIn );
   if (ds == 0) return std::string();
   std::string val;
   if (ds->Size() > 0) {
@@ -861,7 +861,7 @@ std::string DataSetList::ReplaceVariables(std::string const& varnameIn) const {
         break;
     }
     var_in_arg = varname.substr(pos+1, len-1);
-    DataSet* ds = GetDataSet( var_in_arg );
+    DataSet* ds = CheckForSet( var_in_arg );
     if (ds == 0) {
       mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
       return std::string();

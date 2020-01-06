@@ -91,11 +91,11 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
     argIn.MarkArg(iarg);
   }
   forLoopIdxs.push_back( argIn.Nargs() );
-  mprintf("DEBUG: For loop indices:");
-  for (std::vector<int>::const_iterator it = forLoopIdxs.begin();
-                                        it != forLoopIdxs.end(); ++it)
-    mprintf(" %i", *it);
-  mprintf("\n");
+  //mprintf("DEBUG: For loop indices:");
+  //for (std::vector<int>::const_iterator it = forLoopIdxs.begin();
+  //                                      it != forLoopIdxs.end(); ++it)
+  //  mprintf(" %i", *it);
+  //mprintf("\n");
   if (forLoopIdxs.size() < 2) {
     mprinterr("Error: No recognized for loop arguments.\n");
     return 1;
@@ -106,7 +106,8 @@ int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
     ArgList forLoopArgs;
     for (int jdx = forLoopIdxs[idx-1]; jdx < forLoopIdxs[idx]; ++jdx)
       forLoopArgs.AddArg( argIn[jdx] );
-    forLoopArgs.PrintDebug();
+    if (State.Debug() > 0)
+      forLoopArgs.PrintDebug();
     ForLoop& forloop = static_cast<ForLoop&>( *(Vars_[idx-1]) );
     if ( forloop.SetupFor( State, forLoopArgs ) ) {
       mprinterr("Error: For loop setup failed.\n");
