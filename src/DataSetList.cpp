@@ -458,6 +458,10 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
 # ifdef TIMER
   time_setup_.Start();
 # endif
+  //mprintf("DEBUG: Adding and setting up data set '%s'\n", meta.PrintName().c_str());
+  //if (meta.TimeSeries() == MetaData::UNKNOWN_TS)
+  //  mprintf("DEBUG: UNKNOWN_TS\n");
+  //mprintf("DEBUG: ndim= %i\n", DS->Ndim());
   // If 1 dim set and time series status not set, set to true.
   if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) {
     meta.SetTimeSeries( MetaData::IS_TS );
