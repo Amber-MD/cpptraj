@@ -12,11 +12,14 @@ class ForLoop_dataSetBlocks : public ForLoop {
     bool EndFor(DataSetList&);
     
   private:
+    enum ModeType { BLOCKS=0, CUMULATIVE };
+
     DataSet* sourceSet_;   ///< Set to loop over
     DataSet* currentSet_;  ///< Current subset
     std::string sourceSetName_; 
     long int blocksize_;   ///< Size of blocks
     long int blockoffset_; ///< Block offset
     long int idx_;         ///< Current index into sourceSet_
+    ModeType mode_;        ///< Current mode
 };
 #endif

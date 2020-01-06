@@ -10,12 +10,17 @@ ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
   currentSet_(0),
   blocksize_(0),
   blockoffset_(0),
-  idx_(0)
+  idx_(0),
+  mode_(BLOCKS)
 {}
 
 int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, ArgList& argIn)
 {
-  // <var> datasetblocks <set> blocksize <#> [blockoffset <#>]
+  // <var> datasetblocks <set> blocksize <#> [blockoffset <#>] [cumulative]
+  if (argIn.hasKey("cumulative"))
+    mode_ = CUMULATIVE;
+  else
+    mode_ = BLOCKS;
   sourceSetName_ = argIn.GetStringKey("datasetblocks");
   if (sourceSetName_.empty()) {
     mprinterr("Error: No data set name given.\n");
@@ -27,8 +32,16 @@ int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, ArgList& argIn)
     return 1;
   }
   blockoffset_ = argIn.getKeyInt("blockoffset", 0);
-  if (blockoffset_ == 0) {
-    mprintf("Warning: 'blockoffset' not specified, using 'blocksize'.\n");
+  if (mode_ == BLOCKS) {
+    if (blockoffset_ == 0) {
+      mprintf("Warning: 'blockoffset' not specified, using 'blocksize'.\n");
+      blockoffset_ = blocksize_;
+    }
+  } else if (mode_ == CUMULATIVE) {
+    if (blockoffset_ != 0) {
+      mprinterr("Error: 'blockoffset' cannot be specified with 'cumulative'\n");
+      return 1;
+    }
     blockoffset_ = blocksize_;
   }
   idx_ = argIn.getKeyInt("blockstart", 0);
@@ -64,13 +77,32 @@ int ForLoop_dataSetBlocks::BeginFor(DataSetList const& DSL) {
 }
 
 bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
-  // Check if done by seeing if the current start value is outside the data set.
-  if (idx_ < 0 || idx_ >= (long int)sourceSet_->Size()) return true;
   // Determine stop of the current block.
   long int block_end = idx_ + blocksize_;
+  long int dsidx;
+  // Check if done.
+  switch (mode_) {
+    case BLOCKS:
+      // Check if done by seeing if the current start value is outside the data set.
+      if (idx_ < 0 || idx_ >= (long int)sourceSet_->Size()) return true;
+      dsidx = idx_;
+      break;
+    case CUMULATIVE:
+      // Check if done by seeing if current end value is outside the data set.
+      //if (block_end < 0) {
+      //  if ( block_end < blockoffset_ ) return true;
+      //} else if (block_end > (long int)sourceSet_->size()) {
+        //mprintf("DEBUG: Block end %li set size %zu\n", block_end, sourceSet_->Size());
+        if ( block_end >= (long int)sourceSet_->Size() + blockoffset_ ) return true;
+        // Ensure block end is not too high
+        if (block_end > (long int)sourceSet_->Size())
+          block_end = (long int)sourceSet_->Size();
+        dsidx = block_end;
+      break;
+  }
   mprintf("DEBUG: Block %li to %li\n", idx_, block_end);
   // Create the subset
-  currentSet_ = DSL.AddSet(sourceSet_->Type(), MetaData(VarName(), idx_));
+  currentSet_ = DSL.AddSet(sourceSet_->Type(), MetaData(VarName(), dsidx));
   if (currentSet_ == 0) {
     mprinterr("Error: Could not create dataSetBlocks subset.\n");
     return true;
@@ -85,7 +117,15 @@ bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
   }
   // Copy block
   currentSet_->CopyBlock(0, sourceSet_, idx_, blocksize_);
-  // Increment the start
-  idx_ += blockoffset_;
+  switch (mode_) {
+    case BLOCKS:
+      // Increment the start
+      idx_ += blockoffset_;
+      break;
+    case CUMULATIVE:
+      // Increment the size
+      blocksize_ += blockoffset_;
+      break;
+  }
   return false;
 }
