@@ -78,11 +78,13 @@ Exec::RetType Exec_Set::Execute(CpptrajState& State, ArgList& argIn)
     value = integerToString(State.InputTrajList().MaxFrames());
   } else
     value = equals.ArgLineStr();
-  if (append)
+  if (append) {
     AppendVariable( State, variable, value );
-  else
+    mprintf("\tVariable '%s' appended with '%s'\n", variable.c_str(), value.c_str());
+  } else {
     UpdateVariable( State, variable, value );
-  mprintf("\tVariable '%s' set to '%s'\n", variable.c_str(), value.c_str());
+    mprintf("\tVariable '%s' set to '%s'\n", variable.c_str(), value.c_str());
+  }
   for (int iarg = 0; iarg < argIn.Nargs(); iarg++)
     argIn.MarkArg( iarg );
   return CpptrajState::OK;
