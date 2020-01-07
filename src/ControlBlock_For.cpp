@@ -46,7 +46,6 @@ void ControlBlock_For::Help(ArgList& argIn) const {
   else
     Help();
 }
-  
 
 /** Set up each mask/integer loop. */
 int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
