@@ -113,14 +113,14 @@ run
 
 noexitonerror
 for DS datasetblocks EndToEndAll blocksize 10 i=1;i++
-  writedata temp.\$i.dat \$DS
+  set WriteVars1 += " \$DS "
+  show DS WriteVars1
 done
-writedata EndToEnd1.dat DS:0 DS:10 DS:20 DS:30 DS:40 DS:50 DS:60 DS:70 DS:80 DS:90
+writedata EndToEnd1.dat \$WriteVars1 
 
 for ES datasetblocks EndToEndAll blocksize 10 firstblock 50 cumulative j=\$i;j++
   set WriteVars2 += " \$ES "
-  show ES
-  show WriteVars2
+  show ES WriteVars2
 done
 writedata EndToEnd2.agr \$WriteVars2
 list
