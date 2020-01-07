@@ -8,6 +8,7 @@ class ControlBlock_For : public ControlBlock {
     ControlBlock_For() {}
     ~ControlBlock_For();
     void Help() const;
+    void Help(ArgList&) const;
     DispatchObject* Alloc() const { return (DispatchObject*)new ControlBlock_For(); }
 
     int SetupBlock(CpptrajState&, ArgList&);

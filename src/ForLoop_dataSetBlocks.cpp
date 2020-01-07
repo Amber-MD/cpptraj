@@ -14,6 +14,10 @@ ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
   mode_(BLOCKS)
 {}
 
+const char* ForLoop_dataSetBlocks::helpText() {
+  return "<var> datasetblocks <set> blocksize <#> [blockoffset <#>] [cumulative [firstblock <#>]";
+}
+
 int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, ArgList& argIn)
 {
   // <var> datasetblocks <set> blocksize <#> [blockoffset <#>] [cumulative [firstblock <#>]]
@@ -87,7 +91,7 @@ int ForLoop_dataSetBlocks::BeginFor(DataSetList const& DSL) {
 bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
   // Determine stop of the current block.
   long int block_end = idx_ + blocksize_;
-  long int dsidx;
+  long int dsidx = 0;
   // Check if done.
   switch (mode_) {
     case BLOCKS:

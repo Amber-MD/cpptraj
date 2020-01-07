@@ -44,6 +44,12 @@ void ControlBlock_For::Help() const {
           );
 }
 
+void ControlBlock_For::Help(ArgList& argIn) const {
+  if (argIn.hasKey("datasetblocks"))
+    mprintf("\t%s\n", ForLoop_dataSetBlocks::helpText());
+}
+  
+
 /** Set up each mask/integer loop. */
 int ControlBlock_For::SetupBlock(CpptrajState& State, ArgList& argIn) {
   mprintf("    Setting up 'for' loop.\n");
