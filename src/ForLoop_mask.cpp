@@ -5,6 +5,12 @@
 #include "StringRoutines.h"
 #include "DataSetList.h"
 
+void ForLoop_mask::helpText() {
+  mprintf("\t{atoms|residues|molecules|molfirstres|mollastres}\n"
+          "\t  <var> inmask <mask> [%s]\n", DataSetList::TopIdxArgs);
+  mprintf("  Loop over elements selected by specified mask expression.\n");
+}
+
 int ForLoop_mask::SetupFor(CpptrajState& State, ArgList& argIn) {
   static const char* TypeStr[NTYPES] = { "ATOMS ", "RESIDUES ", "MOLECULES ",
                                    "MOL_FIRST_RES ", "MOL_LAST_RES " };

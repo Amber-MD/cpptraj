@@ -17,6 +17,13 @@ ForLoop_integer::ForLoop_integer() :
   endArgPresent_(false)
 {}
 
+void ForLoop_integer::helpText() {
+  mprintf("\t<var>=<start>;[<var><end OP><end>;]<var><increment OP>[<value>]\n"
+          "    Available 'end OP'       : '<' '>' '<=' '>='\n"
+          "    Available 'increment OP' : '++', '--', '+=', '-='\n"
+          "  Loop over an integer value.\n");
+}
+
 /** Setup integer for loop. */
 int ForLoop_integer::SetupFor(CpptrajState& State, ArgList& argIn) {
   // [<var>=<start>;[<var><OP><end>;]<var><OP>[<value>]]

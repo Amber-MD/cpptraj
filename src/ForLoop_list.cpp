@@ -5,6 +5,12 @@
 #include "DataSetList.h"
 #include "CpptrajState.h"
 
+void ForLoop_list::helpText() {
+  mprintf("\t<var> in <list>\n"
+          "  Loop over values in comma-separated list. Values can be file names\n"
+          "  containing wildcard characters ('*' or '?').\n");
+}
+
 int ForLoop_list::SetupFor(CpptrajState& State, ArgList& argIn) {
   // <var> in <string0>[,<string1>...]
   //MH.varType_ = ftype;

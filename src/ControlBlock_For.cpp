@@ -1,7 +1,7 @@
 #include "ControlBlock_For.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
-#include "CpptrajState.h" // TODO move into ForLoop help?
+#include "CpptrajState.h"
 // For loop types
 #include "ForLoop.h"
 #include "ForLoop_integer.h"
@@ -17,20 +17,10 @@ ControlBlock_For::~ControlBlock_For() {
 }
 
 void ControlBlock_For::Help() const {
-  mprintf("\t{ {atoms|residues|molecules|molfirstres|mollastres}\n"
-          "\t    <var> inmask <mask> [%s] ... |\n"
-          "\t  <var> in <list> |\n"
-          "\t  <var>=<start>;[<var><end OP><end>;]<var><increment OP>[<value>] ... }\n",
-          DataSetList::TopIdxArgs);
-  mprintf("\tEND KEYWORD: 'done'\n");
-  mprintf("  Create a 'for' loop around specified mask(s), comma-separated list of\n"
-          "  strings and/or integer value(s). Any number and combination of masks,\n"
-          "  lists, and integers can be specified. Strings in lists can be file\n"
-          "  names containing wildcard characters ('*' or '?').\n"
-          "  Variables created in the for loop can be referenced by prefacing\n"
-          "  the name with a '$' character.\n"
-          "  Available 'end OP'       : '<' '>' '<=' '>='\n"
-          "  Available 'increment OP' : '++', '--', '+=', '-='\n"
+  mprintf("\t<loop spec.> ...\n"
+          "  Create a 'for' loop of one or more types:\n"
+          "    <loop spec> = mask, list, integer, datasetblocks\n"
+          "  Type help 'for <loop spec.>' for more info on each type.\n"
           "  Note that non-integer variables (e.g. for mask loops) are NOT incremented\n"
           "  after the final loop iteration, i.e. these loop variables always retain\n"
           "  their final value.\n"
@@ -46,7 +36,15 @@ void ControlBlock_For::Help() const {
 
 void ControlBlock_For::Help(ArgList& argIn) const {
   if (argIn.hasKey("datasetblocks"))
-    mprintf("\t%s\n", ForLoop_dataSetBlocks::helpText());
+    ForLoop_dataSetBlocks::helpText();
+  else if (argIn.hasKey("integer"))
+    ForLoop_integer::helpText();
+  else if (argIn.hasKey("list"))
+    ForLoop_list::helpText();
+  else if (argIn.hasKey("mask"))
+    ForLoop_mask::helpText();
+  else
+    Help();
 }
   
 

@@ -14,8 +14,11 @@ ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
   mode_(BLOCKS)
 {}
 
-const char* ForLoop_dataSetBlocks::helpText() {
-  return "<var> datasetblocks <set> blocksize <#> [blockoffset <#>] [cumulative [firstblock <#>]";
+void ForLoop_dataSetBlocks::helpText() {
+  mprintf("\t<var> datasetblocks <set> blocksize <#> [blockoffset <#>]\n"
+          "\t[cumulative [firstblock <#>]]\n"
+          "  Loop over blocks of a dataset. The blocks can be either\n"
+          "  fixed or cumulative.\n");
 }
 
 int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, ArgList& argIn)

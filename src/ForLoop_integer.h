@@ -6,6 +6,8 @@ class ForLoop_integer : public ForLoop {
   public:
     ForLoop_integer();
 
+    static void helpText();
+
     int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);
     bool EndFor(DataSetList&);

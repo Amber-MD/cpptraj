@@ -6,7 +6,7 @@ class ForLoop_dataSetBlocks : public ForLoop {
   public:
     ForLoop_dataSetBlocks();
 
-    static const char* helpText();
+    static void helpText();
 
     int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);

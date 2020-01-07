@@ -8,6 +8,8 @@ class ForLoop_mask : public ForLoop {
   public:
     ForLoop_mask() : mtype_(NTYPES) {}
 
+    static void helpText();
+
     int SetupFor(CpptrajState&, ArgList&);
     int BeginFor(DataSetList const&);
     bool EndFor(DataSetList&);
