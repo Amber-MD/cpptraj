@@ -1920,11 +1920,14 @@ script
  variables and 'for' loops.
  Script variables are referred to by a dollar sign ('$') prefix and are
  replaced when they are processed.
- Note that to use script variables in CPPTRAJ input that is also inside
- e.g.
+ 
+\series bold
+Note that to use script variables in CPPTRAJ input that is also inside e.g.
  a BASH script, they can be escaped with the '
 \backslash
-' character, e.g.
+' character,
+\series default
+ e.g.
 \end_layout
 
 \begin_layout LyX-Code
@@ -2186,9 +2189,8 @@ OP>[<value>] Loop over integer script variable
 
 \end_deeper
 \begin_layout Standard
-Create a for loop using one or more mask expressions or integers.
- Loops can be nested, but currently inner loops cannot refer to output loop
- variables.
+Create a for loop using one or more mask expressions, integers etc.
+ Loops can be nested.
  Integer loops may be used without an end condition, but in that case at
  least one descriptor in the loop should have an end condition or refer
  to a mask.
@@ -2197,8 +2199,14 @@ Create a for loop using one or more mask expressions or integers.
 done
 \series default
  keyword.
- Note that unlike C-style for loops the variable is not incremented on the
- final execution, so the final value of 
+ 
+\end_layout
+
+\begin_layout Standard
+Note that non-integer variables (e.g.
+ for mask loops) are NOT incremented after the final loop iteration, i.e.
+ these loop variables always retain their final value, so for these loop
+ types 
 \series bold
 <var>
 \series default
@@ -2206,7 +2214,7 @@ done
 \series bold
 <end>
 \series default
- (or the last selection in the mask).
+.
 \end_layout
 
 \begin_layout Standard
@@ -2409,11 +2417,13 @@ show
 \end_layout
 
 \begin_layout LyX-Code
-show
+show [<var1> ...]
 \end_layout
 
 \begin_layout Standard
-Show all current script variables and their values.
+If no variable names specified, show all current script variables and their
+ values.
+ Otherwise, show the values of the specified script variables.
 \end_layout
 
 \begin_layout Section
