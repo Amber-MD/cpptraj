@@ -32,7 +32,7 @@ int ForLoop_list::SetupFor(CpptrajState& State, ArgList& argIn) {
       List_.push_back( list[il] );
   }
   // Description
-  std::string description( VarName() + " in " + listArg );
+  std::string description( "(" + VarName() + " in " + listArg + ")" );
   SetDescription( description );
   return 0;
 }

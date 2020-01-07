@@ -73,8 +73,8 @@ int ForLoop_mask::SetupFor(CpptrajState& State, ArgList& argIn) {
       }
     }
   }
-  std::string description(std::string(TypeStr[mtype_]) +
-                          VarName() + " inmask " + currentMask.MaskExpression());
+  std::string description("(" + std::string(TypeStr[mtype_]) +
+                          VarName() + " inmask " + currentMask.MaskExpression() + ")");
   SetDescription( description );
   return 0;
 }
