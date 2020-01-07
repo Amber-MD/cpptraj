@@ -4,7 +4,7 @@
 
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
            nh.dat rms.nofit.dat last10.dat distance.dat nested.agr \
-           EndToEnd0.dat EndToEnd1.dat temp.*.dat
+           EndToEnd0.dat EndToEnd1.dat EndToEnd2.agr temp.*.dat
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
@@ -118,14 +118,16 @@ done
 writedata EndToEnd1.dat DS:0 DS:10 DS:20 DS:30 DS:40 DS:50 DS:60 DS:70 DS:80 DS:90
 
 for ES datasetblocks EndToEndAll blocksize 10 firstblock 50 cumulative j=\$i;j++
-  writedata temp.\$j.dat \$ES
+  set WriteVars2 += " \$ES "
+  show ES
+  show WriteVars2
 done
-writedata EndToEnd2.agr ES:50 ES:60 ES:70 ES:80 ES:90 ES:100
+writedata EndToEnd2.agr \$WriteVars2
 list
 EOF
 RunCpptraj "$UNITNAME"
 DoTest EndToEnd1.dat.save EndToEnd1.dat
-
+DoTest EndToEnd2.agr.save EndToEnd2.agr
 
 EndTest
 exit 0
