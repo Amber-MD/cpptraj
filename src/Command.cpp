@@ -670,14 +670,20 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   * and then freed. ACT and ANA commands are sent to the CpptrajState for later
   * execution. BLK commands set up control blocks which will be executed when
   * the outer control block is completed.
+  * TODO just take a string and do all tokenizing here?
   */
 CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList const& cmdArgIn ) {
   // Replace variable names in command with entries from CurrentVars
-  ArgList cmdArg = cmdArgIn;
-  for (int narg = 0; narg != cmdArg.Nargs(); narg++)
-  {
-    cmdArg.ChangeArg(narg, State.DSL().ReplaceVariables( cmdArgIn[narg] ));
-  }
+  ArgList cmdArg;
+  std::string argline2;
+  int nReplaced = State.DSL().ReplaceVariables( argline2, cmdArgIn.ArgLineStr() );
+  // TODO trap replace errors?
+  if (nReplaced > 0) {
+    mprintf("DEBUG: %i variables replaced with values in: '%s'\n", nReplaced, cmdArgIn.ArgLine());
+    cmdArg = ArgList(argline2);
+    cmdArg.MarkArg(0);
+  } else
+    cmdArg = cmdArgIn;
   if (cmdArg.empty()) return CpptrajState::ERR;
   // Print modified command
   mprintf("  [%s]\n", cmdArg.ArgLine());

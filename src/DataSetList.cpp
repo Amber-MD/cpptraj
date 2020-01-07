@@ -838,9 +838,15 @@ std::string DataSetList::GetVariable(std::string const& varnameIn) const {
   return val;
 }
 
-/** Replace all variables (beginning with $) in string with their values. */
-std::string DataSetList::ReplaceVariables(std::string const& varnameIn) const {
-  std::string varname = varnameIn;
+/** Replace all variables (beginning with $) in string with their values.
+  * \param varname Final string containing values.
+  * \param varnameIn Initial string containing variables to replace.
+  */
+int DataSetList::ReplaceVariables(std::string& varname, std::string const& varnameIn)
+const
+{
+  int nReplaced = 0;
+  varname = varnameIn;
   size_t pos = varname.find("$");
   while (pos != std::string::npos) {
     // Argument is/contains a variable. Find first non-alphanumeric char
@@ -864,18 +870,18 @@ std::string DataSetList::ReplaceVariables(std::string const& varnameIn) const {
     DataSet* ds = CheckForSet( var_in_arg );
     if (ds == 0) {
       mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
-      return std::string();
+      return -1;
     } else {
       if (ds->Type() != DataSet::STRINGVAR &&
           ds->Type() != DataSet::STRING && 
           ds->Group() != DataSet::SCALAR_1D)
       {
         mprinterr("Error: Only strings and 1D data sets supported for variable replacement.\n");
-        return std::string();
+        return -1;
       }
       if (ds->Size() < 1) {
         mprinterr("Error: Set is empty.\n");
-        return std::string();
+        return -1;
       }
       if (ds->Size() > 1)
         mprintf("Warning: Only using first value.\n");
@@ -890,10 +896,11 @@ std::string DataSetList::ReplaceVariables(std::string const& varnameIn) const {
         mprintf("DEBUG: Replaced variable '$%s' with value '%s' from DataSet '%s'\n",
                 var_in_arg.c_str(), value.c_str(), ds->legend());
       varname.replace(pos, var_in_arg.size()+1, value);
+      nReplaced++;
     }
     pos = varname.find("$");
   } // END loop over this argument
-  return varname;
+  return nReplaced;
 }
 
 // -----------------------------------------------------------------------------

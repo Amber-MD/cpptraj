@@ -129,8 +129,8 @@ class DataSetList {
     int UpdateStringVar(std::string const&, std::string const&) const;
     /// \return Value corresponding to given data set as a string
     std::string GetVariable(std::string const&) const;
-    /// \return String with all variables replaced with their values.
-    std::string ReplaceVariables(std::string const&) const;
+    /// \return number of variables replaced with their values in given string.
+    int ReplaceVariables(std::string&, std::string const&) const;
 
     // REF_COORDS functions ----------------------
     /// reference arg help text
