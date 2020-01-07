@@ -71,8 +71,15 @@ int ForLoop_dataSetBlocks::BeginFor(DataSetList const& DSL) {
     return 1;
   }
   // Determine # iterations
-  long int niterations = (long int)sourceSet_->Size() / labs(blockoffset_);
-  if ( ((long int)sourceSet_->Size() % labs(blockoffset_)) > 0 )
+  long int total_size = (long int)sourceSet_->Size() - idx_;
+  long int niterations = 0;
+  if (mode_ == CUMULATIVE) {
+    niterations = 1;
+    total_size -= blocksize_;
+    if (total_size < 0) total_size = 0;
+  }
+  niterations += ( total_size / labs(blockoffset_) );
+  if ( (total_size % labs(blockoffset_)) > 0 )
     ++niterations;
   return niterations;
 }
