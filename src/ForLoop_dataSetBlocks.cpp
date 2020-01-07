@@ -16,7 +16,7 @@ ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
 
 int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, ArgList& argIn)
 {
-  // <var> datasetblocks <set> blocksize <#> [blockoffset <#>] [cumulative]
+  // <var> datasetblocks <set> blocksize <#> [blockoffset <#>] [cumulative [firstblock <#>]]
   if (argIn.hasKey("cumulative"))
     mode_ = CUMULATIVE;
   else
@@ -43,12 +43,13 @@ int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, ArgList& argIn)
       return 1;
     }
     blockoffset_ = blocksize_;
+    blocksize_ = argIn.getKeyInt("firstblock", blocksize_);
   }
   idx_ = argIn.getKeyInt("blockstart", 0);
   // Set up loop variable
   if (SetupLoopVar( State.DSL(), argIn.GetStringNext() )) return 1;
   // Description
-  std::string description(VarName() + " datasetblocks " + sourceSetName_);
+  std::string description("(" + VarName() + " datasetblocks " + sourceSetName_ + ")");
   SetDescription( description );
   return 0;
 }

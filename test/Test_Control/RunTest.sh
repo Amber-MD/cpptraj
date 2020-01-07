@@ -117,10 +117,10 @@ for DS datasetblocks EndToEndAll blocksize 10 i=1;i++
 done
 writedata EndToEnd1.dat DS:0 DS:10 DS:20 DS:30 DS:40 DS:50 DS:60 DS:70 DS:80 DS:90
 
-for ES datasetblocks EndToEndAll blocksize 10 cumulative j=\$i;j++
+for ES datasetblocks EndToEndAll blocksize 10 firstblock 50 cumulative j=\$i;j++
   writedata temp.\$j.dat \$ES
 done
-writedata EndToEnd2.agr ES:10 ES:20 ES:30 ES:40 ES:50 ES:60 ES:70 ES:80 ES:90 ES:100
+writedata EndToEnd2.agr ES:50 ES:60 ES:70 ES:80 ES:90 ES:100
 list
 EOF
 RunCpptraj "$UNITNAME"
