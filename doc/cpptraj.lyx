@@ -2068,12 +2068,19 @@ for { {atoms|residues|molecules|molfirstres|mollastres}
 \end_layout
 
 \begin_layout LyX-Code
-	    <var> inmask <mask> [parm <name> | parmindex <#> | <#>] ...
- |
+	    <var> inmask <mask> [parm <name> | parmindex <#> | <#>] |
 \end_layout
 
 \begin_layout LyX-Code
       <var> in <list> |
+\end_layout
+
+\begin_layout LyX-Code
+      <var> datasetblocks <set> blocksize <#> [blockoffset <#>]
+\end_layout
+
+\begin_layout LyX-Code
+        [cumulative [firstblock <#>]] |
 \end_layout
 
 \begin_layout LyX-Code
@@ -2160,6 +2167,51 @@ in
 \end_layout
 
 \begin_layout Description
+<var>
+\begin_inset space ~
+\end_inset
+
+datasetblocks
+\begin_inset space ~
+\end_inset
+
+<set> Loop over blocks in specified DataSet.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+blocksize
+\begin_inset space ~
+\end_inset
+
+<#> Size of blocks to use.
+\end_layout
+
+\begin_layout Description
+[blockoffset
+\begin_inset space ~
+\end_inset
+
+<#>] Offset between blocks.
+\end_layout
+
+\begin_layout Description
+[cumulative] Instead of blocks of fixed size, use blocks of increasing size
+ incremented by blocksize.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[firstblock
+\begin_inset space ~
+\end_inset
+
+<#>] When cumulative, the size of the first block.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Description
 <var>=<start>;[<var><end
 \begin_inset space ~
 \end_inset
@@ -2190,7 +2242,7 @@ OP>[<value>] Loop over integer script variable
 \end_deeper
 \begin_layout Standard
 Create a for loop using one or more mask expressions, integers etc.
- Loops can be nested.
+ Loops can be nested inside each other.
  Integer loops may be used without an end condition, but in that case at
  least one descriptor in the loop should have an end condition or refer
  to a mask.
