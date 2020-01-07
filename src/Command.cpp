@@ -679,7 +679,9 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
   int nReplaced = State.DSL().ReplaceVariables( argline2, cmdArgIn.ArgLineStr() );
   // TODO trap replace errors?
   if (nReplaced > 0) {
-    mprintf("DEBUG: %i variables replaced with values in: '%s'\n", nReplaced, cmdArgIn.ArgLine());
+    if (State.Debug() > 0)
+      mprintf("DEBUG: %i variables replaced with values in: '%s'\n",
+        nReplaced, cmdArgIn.ArgLine());
     cmdArg = ArgList(argline2);
     cmdArg.MarkArg(0);
   } else
