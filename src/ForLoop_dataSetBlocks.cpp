@@ -102,7 +102,7 @@ bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
     case BLOCKS:
       // Check if done by seeing if the current start value is outside the data set.
       if (idx_ < 0 || idx_ >= (long int)sourceSet_->Size()) return true;
-      dsidx = idx_;
+      dsidx = idx_ + 1;
       aspect = "block";
       break;
     case CUMULATIVE:
