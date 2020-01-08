@@ -3,6 +3,7 @@
 #include "ArgList.h"
 #include "CpptrajState.h"
 #include "DataSet.h"
+#include "StringRoutines.h"
 
 /// CONSTRUCTOR
 ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
@@ -95,12 +96,14 @@ bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
   // Determine stop of the current block.
   long int block_end = idx_ + blocksize_;
   long int dsidx = 0;
+  std::string aspect = "";
   // Check if done.
   switch (mode_) {
     case BLOCKS:
       // Check if done by seeing if the current start value is outside the data set.
       if (idx_ < 0 || idx_ >= (long int)sourceSet_->Size()) return true;
       dsidx = idx_;
+      aspect = "block";
       break;
     case CUMULATIVE:
       // Check if done by seeing if current end value is outside the data set.
@@ -113,16 +116,21 @@ bool ForLoop_dataSetBlocks::EndFor(DataSetList& DSL) {
         if (block_end > (long int)sourceSet_->Size())
           block_end = (long int)sourceSet_->Size();
         dsidx = block_end;
+        aspect = "cumul";
       break;
   }
-  mprintf("DEBUG: Block %li to %li\n", idx_, block_end);
+  //mprintf("DEBUG: Block %li to %li\n", idx_, block_end);
   // Create the subset
-  currentSet_ = DSL.AddSet(sourceSet_->Type(), MetaData(VarName(), dsidx));
+  currentSet_ = DSL.AddSet(sourceSet_->Type(), MetaData(VarName(), aspect, dsidx));
   if (currentSet_ == 0) {
     mprinterr("Error: Could not create dataSetBlocks subset.\n");
     return true;
   }
-  // Update the set name
+  // Update the set legend
+  currentSet_->SetLegend(sourceSet_->Meta().Name() + "_" +
+                         integerToString(idx_+1) + "-" +
+                         integerToString(block_end));
+  // Update the set name in loop variable
   DSL.UpdateStringVar( VarName(), currentSet_->Meta().PrintName() );
   // Allocate memory
   DataSet::SizeArray dsSize(1, blocksize_);
