@@ -1,6 +1,6 @@
 #include "GistCudaCalc.cuh"
 
-#include <stdio.h>
+#include <cstdio>
 
 #define ELECTOAMBER_2 332.05221729
 

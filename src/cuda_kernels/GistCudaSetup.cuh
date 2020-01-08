@@ -3,7 +3,8 @@
 
 #include <exception>
 #include <vector>
-#include <iostream>
+#include <cstdio>
+
 
 
 // Exception classes

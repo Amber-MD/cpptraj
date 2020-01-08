@@ -1,6 +1,5 @@
 #include "GistCudaSetup.cuh"
 #include "GistCudaCalc.cuh"
-#include <iostream>
 
 
 /**
