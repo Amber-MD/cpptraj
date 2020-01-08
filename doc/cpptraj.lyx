@@ -1920,10 +1920,21 @@ script
  variables and 'for' loops.
  Script variables are referred to by a dollar sign ('$') prefix and are
  replaced when they are processed.
+ These are stored in the master data set list like other data and are assigned
+ the type 
+\begin_inset Quotes eld
+\end_inset
+
+string variable
+\begin_inset Quotes erd
+\end_inset
+
+.
  
 \series bold
-Note that to use script variables in CPPTRAJ input that is also inside e.g.
- a BASH script, they can be escaped with the '
+Note that to use script variables in CPPTRAJ input that is inside another
+ script (e.g.
+ a BASH script), they must be escaped with the '
 \backslash
 ' character,
 \series default
@@ -1943,13 +1954,13 @@ cpptraj <<EOF
 \end_layout
 
 \begin_layout LyX-Code
-set topname=$TOP
+set topname=$TOP # TOP is a BASH script variable
 \end_layout
 
 \begin_layout LyX-Code
 parm 
 \backslash
-$topname
+$topname   # topname is a CPPTRAJ script variable
 \end_layout
 
 \begin_layout LyX-Code
@@ -2093,7 +2104,7 @@ for { {atoms|residues|molecules|molfirstres|mollastres}
 \end_layout
 
 \begin_layout LyX-Code
-  Available 'end OP'       : '<' '>'
+  Available 'end OP'       : '<' '>' '<=' '>='
 \end_layout
 
 \begin_layout LyX-Code
@@ -2206,7 +2217,8 @@ blocksize
 \begin_inset space ~
 \end_inset
 
-<#>] When cumulative, the size of the first block.
+<#>] When cumulative, the size of the first block (default is first data
+ set element).
 \end_layout
 
 \end_deeper
@@ -2239,9 +2251,31 @@ OP>[<value>] Loop over integer script variable
 .
 \end_layout
 
+\begin_layout Standard
+Data Sets Created (datasetblocks loops):
+\end_layout
+
+\begin_layout Description
+<var>[block]:<start
+\begin_inset space \space{}
+\end_inset
+
+idx> (Data set blocks only) Data set block of blocksize starting at <start
+ idx>.
+\end_layout
+
+\begin_layout Description
+<var>[cumul]:<end
+\begin_inset space ~
+\end_inset
+
+idx> (Cumulative data set blocks only) Data set block starting at firstblock
+ and ending at <end idx>.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
-Create a for loop using one or more mask expressions, integers etc.
+Create a for loop using one or more mask expressions, integers, etc.
  Loops can be nested inside each other.
  Integer loops may be used without an end condition, but in that case at
  least one descriptor in the loop should have an end condition or refer
@@ -2256,17 +2290,8 @@ done
 
 \begin_layout Standard
 Note that non-integer variables (e.g.
- for mask loops) are NOT incremented after the final loop iteration, i.e.
- these loop variables always retain their final value, so for these loop
- types 
-\series bold
-<var>
-\series default
- will be 
-\series bold
-<end>
-\series default
-.
+ 'inmask' loops) are NOT incremented after the final loop iteration, i.e.
+ these loop variables always retain their final value.
 \end_layout
 
 \begin_layout Standard
