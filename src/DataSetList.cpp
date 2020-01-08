@@ -853,21 +853,34 @@ const
     size_t len = 1;
     for (size_t pos1 = pos+1; pos1 < varname.size(); pos1++, len++)
       if (!isalnum(varname[pos1])) break;
-    std::string var_in_arg = varname.substr(pos, len); //TODO needed?
-    // Not found in CurrentVars_; see if this is a DataSet.
-    for (size_t pos1 = pos+len; pos1 < varname.size(); pos1++, len++)
+    std::string var_in_arg = varname.substr(pos+1, len-1);
+    // String variables will never have aspect/index etc. See if string
+    // variable with this name exists.
+    DataSet* ds = 0;
+    //mprintf("DEBUG: Check for string var: '%s'\n", var_in_arg.c_str());
+    for (const_iterator it = begin(); it != end(); ++it)
     {
-      if (!isalnum(varname[pos1]) &&
-          varname[pos1] != '[' &&
-          varname[pos1] != ':' &&
-          varname[pos1] != ']' &&
-          varname[pos1] != '_' &&
-          varname[pos1] != '-' &&
-          varname[pos1] != '%')
+      if ( (*it)->Type() == DataSet::STRINGVAR && (*it)->Matches_Exact(MetaData(var_in_arg)) ) {
+        ds = *it;
         break;
+      }
     }
-    var_in_arg = varname.substr(pos+1, len-1);
-    DataSet* ds = CheckForSet( var_in_arg );
+    if (ds == 0) {
+      // String variable not found; see if this is a DataSet.
+      for (size_t pos1 = pos+len; pos1 < varname.size(); pos1++, len++)
+      {
+        if (!isalnum(varname[pos1]) &&
+            varname[pos1] != '[' &&
+            varname[pos1] != ':' &&
+            varname[pos1] != ']' &&
+            varname[pos1] != '_' &&
+            varname[pos1] != '-' &&
+            varname[pos1] != '%')
+          break;
+      }
+      var_in_arg = varname.substr(pos+1, len-1);
+      ds = CheckForSet( var_in_arg );
+    }
     if (ds == 0) {
       mprinterr("Error: Unrecognized variable in command: %s\n", var_in_arg.c_str());
       return -1;
