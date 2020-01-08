@@ -3,7 +3,7 @@
 @  yaxis label ""
 @  legend 0.2, 0.995
 @  legend char size 0.60
-@  s0 legend "ES:50"
+@  s0 legend "EndToEndAll_1-50"
 @target G0.S0
 @type xy
    1.000      19.5966
@@ -56,7 +56,7 @@
   48.000      24.5663
   49.000      25.6547
   50.000      26.9956
-@  s1 legend "ES:60"
+@  s1 legend "EndToEndAll_1-60"
 @target G0.S1
 @type xy
    1.000      19.5966
@@ -119,7 +119,7 @@
   58.000      25.4913
   59.000      25.5589
   60.000      27.9087
-@  s2 legend "ES:70"
+@  s2 legend "EndToEndAll_1-70"
 @target G0.S2
 @type xy
    1.000      19.5966
@@ -192,7 +192,7 @@
   68.000      24.2118
   69.000      21.0304
   70.000      24.6680
-@  s3 legend "ES:80"
+@  s3 legend "EndToEndAll_1-80"
 @target G0.S3
 @type xy
    1.000      19.5966
@@ -275,7 +275,7 @@
   78.000      19.3969
   79.000      17.1379
   80.000      15.2635
-@  s4 legend "ES:90"
+@  s4 legend "EndToEndAll_1-90"
 @target G0.S4
 @type xy
    1.000      19.5966
@@ -368,7 +368,7 @@
   88.000      13.9823
   89.000      17.9049
   90.000      18.6844
-@  s5 legend "ES:100"
+@  s5 legend "EndToEndAll_1-100"
 @target G0.S5
 @type xy
    1.000      19.5966
