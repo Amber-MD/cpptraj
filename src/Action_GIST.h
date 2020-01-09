@@ -2,13 +2,13 @@
 #define INC_ACTION_GIST_H
 #include "Action.h"
 #include "ImagedAction.h"
-#include "DataSet_3D.h"
-#include "DataSet_MatrixFlt.h"
 #include "Timer.h"
-
 #ifdef CUDA
 #include "cuda_kernels/GistCudaSetup.cuh"
 #endif
+class DataSet_3D;
+class DataSet_MatrixFlt;
+
 /// Class for applying Grid Inhomogenous Solvation Theory
 /** \author Daniel R. Roe
   */
