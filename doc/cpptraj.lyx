@@ -1174,6 +1174,10 @@ closest
 watershell
 \end_layout
 
+\begin_layout LyX-Code
+gist
+\end_layout
+
 \begin_layout Section
 General Concepts
 \end_layout
@@ -22577,7 +22581,7 @@ gist
 
 \end_inset
 
- [doorder] [doeij] [skipE] [refdens <rdval>] [temp <tval>]
+ [doorder] [doeij] [skipS] [skipE] [refdens <rdval>] [temp <tval>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -22628,6 +22632,10 @@ literal "true"
 'doeij'
 \series default
 ).
+\end_layout
+
+\begin_layout Description
+[skipS] Skip all entropy calculations.
 \end_layout
 
 \begin_layout Description
@@ -23007,6 +23015,27 @@ rdval
 refdens
 \series default
  keyword, instead of allowing GIST to supply the default value.
+\end_layout
+
+\begin_layout Standard
+For GIST, a GPU accelerated version is available, in which the interaction
+ energy is calculated using CUDA.
+ When using the GPU accelerated version of GIST, the 
+\series bold
+doeij 
+\series default
+keyword is not available.
+ It is recommended to use a grid covering the entire box, when using the
+ GPU implementation.
+ You may also choose a smaller grid, but all interaction energies, i.e., each
+ atom with each atom, will always be calculated independent of the chosen
+ grid.
+ This ensures optimum performance when calculating the interaction energies.
+ Thus, the additional time required to calculate the order parameters (
+\series bold
+doorder
+\series default
+) is negligible.
 \end_layout
 
 \begin_layout Subsubsection*
