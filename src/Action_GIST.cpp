@@ -663,7 +663,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 // Action_GIST::Order()
 void Action_GIST::Order(Frame const& frameIn) {
   // Loop over all solvent molecules that are on the grid
-  for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx += 3)
+  for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx += nMolAtoms_)
   {
     int oidx1 = OnGrid_idxs_[gidx];
     int voxel1 = atom_voxel_[oidx1];
