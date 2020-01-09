@@ -3,6 +3,7 @@
 #include "Action_GIST.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "DataSet_MatrixFlt.h"
 #include "DataSet_GridFlt.h"
 #include "DataSet_GridDbl.h"
 #include "ProgressBar.h"
