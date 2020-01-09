@@ -13,6 +13,7 @@ class DataSet_Vector : public DataSet {
     // ----- DataSet functions -------------------
     size_t Size()                       const { return vectors_.size(); }
     void Info()                         const { return;                 }
+    SizeArray DimSizes()                const { return SizeArray(1, Size()); }
     // -------------------------------------------
     virtual void reset() = 0;
     virtual void Resize(size_t) = 0;

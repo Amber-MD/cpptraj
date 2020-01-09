@@ -506,29 +506,63 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
           mprinterr("Internal Error: Assigning to wrong data set!\n");
           return 1;
         }
-        // Check if set already exists.
+        //mprintf("DEBUG: DS= %x  output= %x\n", Dval[1].DS(), output);
+        // Check if set already exists in master DataSetList.
         DataSet* mainDS = DSL.CheckForSet(tokens_.front().Name());
         if (mainDS != 0) {
           // Overwriting. TODO Only allow if dimensions match?
-          mprintf("Warning: Overwriting existing set '%s'\n", mainDS->legend());
+          // First check if the set we will be overwriting is itself!
+          if (Dval[0].IsDataSet()) {
+            if (Dval[0].DS()->Matches_Exact( mainDS->Meta() )) {
+              mprintf("Warning: Attempting to assign '%s' to itself.\n",
+                      mainDS->Meta().PrintName().c_str());
+              return 0;
+            }
+          }
+          mprintf("Warning: Overwriting existing set '%s'\n", mainDS->Meta().PrintName().c_str());
           DSL.RemoveSet( mainDS );
         }
         if (Dval[0].IsDataSet()) {
           output = Dval[0].DS();
-          if (debug_>0)
+          if (debug_ > 0)
             mprintf("DEBUG: output set is '%s'\n", output->legend());
           bool outputIsLocal = (LocalList.PopSet( output ) != 0);
-          if (!outputIsLocal)
-            mprintf("Warning: Data set copy not yet implemented. Renaming set '%s' to '%s'\n",
-                    output->Meta().PrintName().c_str(), tokens_.front().Name().c_str());
-          if (debug_>0)
-            mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
-                    tokens_.front().Name().c_str());
-          // Reset DataSet info.
-          output->SetMeta( tokens_.front().Name() );
-          if (outputIsLocal) {
+          if (!outputIsLocal) {
+            // The output set is in the master DataSetList. First see if we
+            // can create a copy of it.
+            MetaData md( output->Meta() );
+            md.SetName( tokens_.front().Name() );
+            DataSet* currentSet = DSL.AddSet( output->Type(), md );
+            if (currentSet == 0) {
+              mprinterr("Error: Could not allocate set '%s'\n", md.PrintName().c_str());
+              return 1;
+            }
+            if ( currentSet->MemAlloc(output->DimSizes()) ) {
+              mprintf("Warning: Copy of set '%s' not yet implemented. Renaming to '%s'\n",
+                      output->Meta().PrintName().c_str(), tokens_.front().Name().c_str());
+              DSL.RemoveSet( currentSet );
+              // Reset existing DataSet info.
+              output->SetMeta( tokens_.front().Name() );
+            } else {
+              mprintf("\tCopying set '%s' to '%s'\n",
+                      output->Meta().PrintName().c_str(),
+                      currentSet->Meta().PrintName().c_str());
+              currentSet->CopyBlock(0, output, 0, output->Size());
+              for (size_t dim = 0; dim != output->Ndim(); dim++)
+                currentSet->SetDim(dim, output->Dim(dim));
+              output = currentSet;
+            }
+            //mprintf("Warning: Data set copy not yet implemented. Renaming set '%s' to '%s'\n",
+            //        output->Meta().PrintName().c_str(), tokens_.front().Name().c_str());
+          } else {
+            // Output set is only in LocalList; rename and add to master DataSetList
+            if (debug_ > 0)
+              mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
+                      tokens_.front().Name().c_str());
+            // Reset DataSet info.
+            output->SetMeta( tokens_.front().Name() );
             if (DSL.AddSet( output )) return 1;
-          } 
+          }
         } else {
           output = DSL.AddSet(DataSet::DOUBLE, tokens_.front().Name(), "CALC");
           if (output == 0) return 1;
@@ -898,12 +932,18 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
     return 1;
   }
   if (output == 0) {
-    mprintf("Result: ");
+    mprintf("    Result: ");
     mprintf(fmt_.fmt(), Stack.top().Value());
     mprintf("\n");
   } else {
     if (formatSet_) output->SetupFormat() = fmt_;
-    mprintf("Result stored in '%s'\n", output->legend());
+    mprintf("    Result stored in '%s'", output->Meta().PrintName().c_str());
+    if (output->Group() == DataSet::SCALAR_1D && output->Size() == 1)
+    {
+      mprintf(": ");
+      mprintf(fmt_.fmt(), ((DataSet_1D*)output)->Dval(0));
+    }
+    mprintf("\n");
   }
   return 0;
 }
