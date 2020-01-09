@@ -963,6 +963,13 @@ CheckEnv() {
       'fftw'      ) TestLibrary "FFTW"               "$CPPTRAJ_FFTW_FFT" ;;
       'openmp'    ) TestLibrary "OpenMP"             "$CPPTRAJ_OPENMP" ;;
       'singleensemble' ) TestLibrary "Single ensemble support" "$CPPTRAJ_SINGLE_ENS" ;;
+      'cuda'      ) TestLibrary "CUDA"               "$CPPTRAJ_CUDA" ;;
+      'notcuda'   )
+	if [ ! -z "$CPPTRAJ_CUDA" ]; then
+          echo "  $DESCRIP cannot be run on CUDA."
+	  ((CHECKERR++))
+        fi
+	;;
       'pnetcdf'   )
         if [ ! -z "$DO_PARALLEL" ] ; then
           TestLibrary "Parallel NetCDF" "$CPPTRAJ_PNETCDFLIB"
