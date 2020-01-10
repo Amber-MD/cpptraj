@@ -11,6 +11,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
 #include "StringRoutines.h"
+#include "ArgList.h"
 
 // CONSTRUCTOR
 RPNcalc::RPNcalc() : fmt_(TextFormat::DOUBLE), formatSet_(false) {}

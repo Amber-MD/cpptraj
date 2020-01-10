@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth
 #include "Constants.h" // For AddOrAppendSets
+#include "ArgList.h"
 // Data types go here
 #include "DataSet_double.h"
 #include "DataSet_float.h"
