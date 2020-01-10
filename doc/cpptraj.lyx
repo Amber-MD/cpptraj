@@ -2468,8 +2468,24 @@ trajin
 \end_deeper
 \begin_layout Standard
 Set (<OP> = '=') or append (<OP> = '+=') a script variable.
- Script variables are referred to in CPPTRAJ input by using a dollar sign
- '$' prefix.
+ Script variables are character strings, and are referred to in CPPTRAJ
+ input by using a dollar sign '$' prefix.
+\end_layout
+
+\begin_layout Standard
+For example, the following input will load files my.parm7 and my.rst7:
+\end_layout
+
+\begin_layout LyX-Code
+set PREFIX = my
+\end_layout
+
+\begin_layout LyX-Code
+trajin $PREFIX.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin $PREFIX.rst7
 \end_layout
 
 \begin_layout Standard
