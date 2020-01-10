@@ -59,8 +59,11 @@ class RPNcalc {
       int nChar_;          ///< Number of characters in function name including left parentheses
       const char* fnName_; ///< Function name including left parentheses
     };
+    typedef const FnIdType* FnIdPtr;
     /// Array containing info for recognizing functions
     static const FnIdType FnIdArray_[];
+    /// Identify function in given expression at given position
+    static FnIdPtr IdFunction(std::string const&, size_t);
 
     static inline double DoOperation(double, double, TokenType);
     int TokenLoop(DataSetList& DSL) const;

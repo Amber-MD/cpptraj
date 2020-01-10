@@ -68,6 +68,20 @@ const RPNcalc::FnIdType RPNcalc::FnIdArray_[] = {
   { NONE,     0, 0        }
 };
 
+RPNcalc::FnIdPtr RPNcalc::IdFunction(std::string const& expression, size_t pos)
+{
+  FnIdPtr fnid = FnIdArray_;
+  for (; fnid->nChar_ != 0; ++fnid)
+  {
+    if (expression.compare(pos, fnid->nChar_, fnid->fnName_) == 0)
+    {
+      mprintf("DEBUG: Function found: '%s'\n", fnid->fnName_);
+      return fnid;
+    }
+  }
+  return fnid;
+}
+
 /** Convert infix expression to RPN in tokens_ array. This uses a
   * shunting-yard algorithm which has been slightly modified to
   * recognize unary right-associative operators.
