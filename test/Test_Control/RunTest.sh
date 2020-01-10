@@ -91,7 +91,9 @@ RunCpptraj "$UNITNAME"
 DoTest nested.agr nested.agr.save
 
 UNITNAME='Test loop over data set blocks'
-cat > for.in <<EOF
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > for.in <<EOF
 parm ../tz2.parm7
 
 starttraj = 1
@@ -111,7 +113,6 @@ trajin ../tz2.nc 1 100
 distance EndToEndAll :1 :12
 run
 
-noexitonerror
 for DS datasetblocks EndToEndAll blocksize 10 i=1;i++
   set WriteVars1 += " \$DS "
   show DS WriteVars1
@@ -125,9 +126,10 @@ done
 writedata EndToEnd2.agr \$WriteVars2
 list
 EOF
-RunCpptraj "$UNITNAME"
-DoTest EndToEnd1.dat.save EndToEnd1.dat
-DoTest EndToEnd2.agr.save EndToEnd2.agr
+  RunCpptraj "$UNITNAME"
+  DoTest EndToEnd1.dat.save EndToEnd1.dat
+  DoTest EndToEnd2.agr.save EndToEnd2.agr
+fi
 
 EndTest
 exit 0

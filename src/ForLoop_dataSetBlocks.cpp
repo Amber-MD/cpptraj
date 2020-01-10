@@ -4,6 +4,9 @@
 #include "CpptrajState.h"
 #include "DataSet.h"
 #include "StringRoutines.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
 
 /// CONSTRUCTOR
 ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
@@ -25,6 +28,12 @@ void ForLoop_dataSetBlocks::helpText() {
 int ForLoop_dataSetBlocks::SetupFor(CpptrajState& State, ArgList& argIn)
 {
   // <var> datasetblocks <set> blocksize <#> [blockoffset <#>] [cumulative [firstblock <#>]]
+# ifdef MPI
+  if (Parallel::World().Size() > 1) {
+    mprinterr("Error: 'datasetblocks' loop cannot be used in parallel.\n");
+    return 1;
+  }
+# endif
   if (argIn.hasKey("cumulative"))
     mode_ = CUMULATIVE;
   else
