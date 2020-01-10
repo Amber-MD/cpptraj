@@ -75,7 +75,6 @@ RPNcalc::FnIdPtr RPNcalc::IdFunction(std::string const& expression, size_t pos)
   {
     if (expression.compare(pos, fnid->nChar_, fnid->fnName_) == 0)
     {
-      mprintf("DEBUG: Function found: '%s'\n", fnid->fnName_);
       return fnid;
     }
   }
@@ -91,14 +90,14 @@ int RPNcalc::ProcessExpression(std::string const& expressionIn) {
   if (expressionIn.empty()) return 1;
   // Remove all whitespace
   std::string expression = NoWhitespace(expressionIn);
-  if (debug_ >= 0) mprintf("DEBUG: Parsing expression: '%s'\n", expression.c_str());
+  if (debug_ > 0) mprintf("DEBUG: Parsing expression: '%s'\n", expression.c_str());
   tokens_.clear();
   std::stack<Token> op_stack;
   std::string::const_iterator ptr = expression.begin();
   bool lastTokenWasOperator = true;
   while ( ptr != expression.end() )
   {
-    //mprintf("DEBUG: Start of loop, char is '%c'\n", *ptr);
+    if (debug_ > 2) mprintf("DEBUG: Start of loop, char is '%c'\n", *ptr);
 
     // NUMBER ------------------------------------
     if (*ptr == '.' || isdigit(*ptr, loc))
@@ -181,79 +180,17 @@ int RPNcalc::ProcessExpression(std::string const& expressionIn) {
     else if ( isalpha(*ptr, loc) )
     { // Look for Function name
       size_t pos = ptr - expression.begin();
-      if (expression.compare(pos, 4, "sqrt")==0)
+      FnIdPtr fnid = IdFunction(expression, pos);
+      if (fnid->fnType_ != NONE)
       {
-        op_stack.push( Token(FN_SQRT) );
-        ptr += 4;
+        if (debug_ > 0) mprintf("DEBUG: Function found: '%s'\n", fnid->fnName_);
+        op_stack.push( Token(fnid->fnType_) );
+        // Advance pointer to left parenthese
+        ptr = ptr + (fnid->nChar_) - 1;
         lastTokenWasOperator = true;
       }
-      else if (expression.compare(pos, 3, "exp")==0)
-      {
-        op_stack.push( Token(FN_EXP) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 2, "ln")==0)
-      {
-        op_stack.push( Token(FN_LN) );
-        ptr += 2;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "abs")==0)
-      {
-        op_stack.push( Token(FN_ABS) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "sin")==0)
-      {
-        op_stack.push( Token(FN_SIN) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "cos")==0)
-      {
-        op_stack.push( Token(FN_COS) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "tan")==0)
-      {
-        op_stack.push( Token(FN_TAN) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "sum")==0)
-      {
-        op_stack.push( Token(FN_SUM) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "avg")==0)
-      {
-        op_stack.push( Token(FN_AVG) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 5, "stdev")==0)
-      {
-        op_stack.push( Token(FN_STDEV) );
-        ptr += 5;
-        lastTokenWasOperator = true;
-      }
-      else if (expression.compare(pos, 3, "min")==0)
-      {
-        op_stack.push( Token(FN_MIN) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      } 
-      else if (expression.compare(pos, 3, "max")==0)
-      {
-        op_stack.push( Token(FN_MAX) );
-        ptr += 3;
-        lastTokenWasOperator = true;
-      } 
       // -----------------------------------------
+      // Look for constants
       else if (expression.compare(pos, 2, "PI")==0)
       {
         tokens_.push_back( Token( Constants::PI ) );
