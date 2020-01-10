@@ -1,6 +1,10 @@
 #ifndef INC_RPNCALC_H
 #define INC_RPNCALC_H
-#include "DataSetList.h"
+#include <vector>
+#include "TextFormat.h"
+class DataSetList;
+class DataSet;
+class ArgList;
 /// Reverse Polish notation calculator
 class RPNcalc {
   public:

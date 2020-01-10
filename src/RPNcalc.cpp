@@ -3,12 +3,14 @@
 #include <locale>
 #include <stack>
 #include "RPNcalc.h"
+#include "DataSetList.h"
 #include "DataSet_Vector.h"
 #include "DataSet_double.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_GridFlt.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
+#include "StringRoutines.h"
 
 // CONSTRUCTOR
 RPNcalc::RPNcalc() : fmt_(TextFormat::DOUBLE), formatSet_(false) {}
@@ -54,10 +56,12 @@ int RPNcalc::ProcessOptions(ArgList& argIn) {
   * shunting-yard algorithm which has been slightly modified to
   * recognize unary right-associative operators.
   */
-int RPNcalc::ProcessExpression(std::string const& expression) {
+int RPNcalc::ProcessExpression(std::string const& expressionIn) {
   std::locale loc;
-  if (expression.empty()) return 1;
-  if (debug_ > 0) mprintf("Parsing expression: '%s'\n", expression.c_str());
+  if (expressionIn.empty()) return 1;
+  // Remove all whitespace
+  std::string expression = NoWhitespace(expressionIn);
+  if (debug_ >= 0) mprintf("DEBUG: Parsing expression: '%s'\n", expression.c_str());
   tokens_.clear();
   std::stack<Token> op_stack;
   std::string::const_iterator ptr = expression.begin();
@@ -65,8 +69,6 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
   while ( ptr != expression.end() )
   {
     //mprintf("DEBUG: Start of loop, char is '%c'\n", *ptr);
-    // Skip whitespace
-    if (isspace(*ptr, loc)) { ++ptr; continue; }
 
     // NUMBER ------------------------------------
     if (*ptr == '.' || isdigit(*ptr, loc))
