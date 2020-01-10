@@ -2,6 +2,7 @@
 #include "DataFile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth, integerToString
+#include "ArgList.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -239,6 +240,12 @@ int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
 }
 
 // -----------------------------------------------------------------------------
+
+int DataFile::SetupDatafile(FileName const& f, int d) {
+  ArgList a;
+  return SetupDatafile(f, a, d);
+}
+
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn, int debugIn) {
   return SetupDatafile(fnameIn, argIn, UNKNOWN_DATA, debugIn);
@@ -279,6 +286,11 @@ int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
   if (!argIn.empty())
     ProcessArgs( argIn );
   return 0;
+}
+
+int DataFile::SetupStdout(int d) {
+  ArgList tmp;
+  return SetupStdout(tmp, d);
 }
 
 // DataFile::AddDataSet()

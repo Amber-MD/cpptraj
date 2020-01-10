@@ -3,6 +3,7 @@
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // AppendNumber
+#include "ArgList.h"
 
 // DESTRUCTOR
 Trajout_Single::~Trajout_Single() {
