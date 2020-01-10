@@ -52,6 +52,22 @@ int RPNcalc::ProcessOptions(ArgList& argIn) {
   return 0;
 }
 
+const RPNcalc::FnIdType RPNcalc::FnIdArray_[] = {
+  { FN_SQRT,  5, "sqrt("  },
+  { FN_EXP,   4, "exp("   },
+  { FN_LN,    3, "ln("    },
+  { FN_ABS,   4, "abs("   },
+  { FN_SIN,   4, "sin("   },
+  { FN_COS,   4, "cos("   },
+  { FN_TAN,   4, "tan("   },
+  { FN_SUM,   4, "sum("   },
+  { FN_AVG,   4, "avg("   },
+  { FN_STDEV, 6, "stdev(" },
+  { FN_MIN,   4, "min("   },
+  { FN_MAX,   4, "max("   },
+  { NONE,     0, 0        }
+};
+
 /** Convert infix expression to RPN in tokens_ array. This uses a
   * shunting-yard algorithm which has been slightly modified to
   * recognize unary right-associative operators.

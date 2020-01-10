@@ -53,6 +53,14 @@ class RPNcalc {
       int resultIsScalar_;
       const char* description_;
     };
+    /// Hold info for recognizing functions
+    struct FnIdType {
+      TokenType fnType_;   ///< Function token type
+      int nChar_;          ///< Number of characters in function name including left parentheses
+      const char* fnName_; ///< Function name including left parentheses
+    };
+    /// Array containing info for recognizing functions
+    static const FnIdType FnIdArray_[];
 
     static inline double DoOperation(double, double, TokenType);
     int TokenLoop(DataSetList& DSL) const;
