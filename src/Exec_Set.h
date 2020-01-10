@@ -1,4 +1,5 @@
 #ifndef INC_EXEC_SET_H
+#define INC_EXEC_SET_H
 #include "Exec.h"
 /// Used to set script variables
 class Exec_Set : public Exec {
