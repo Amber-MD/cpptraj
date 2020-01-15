@@ -1,3 +1,4 @@
+#include <algorithm> // std::min
 #include "ControlBlock_For.h"
 #include "CpptrajStdio.h"
 #include "ArgList.h"
