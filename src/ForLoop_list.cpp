@@ -32,8 +32,16 @@ int ForLoop_list::SetupFor(CpptrajState& State, ArgList& argIn) {
     // Check if file name expansion should occur
     if (list[il].find_first_of("*?") != std::string::npos) {
       File::NameArray files = File::ExpandToFilenames( list[il] );
-      for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
-        List_.push_back( fn->Full() );
+      // DEBUG
+      //for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
+      //  mprintf("DEBUG: '%s'\n", fn->full());
+      // Allow wildcard expansion to fail with a warning.
+      if (!files.empty() && files.front().Full().compare( list[il] ) == 0) {
+        mprintf("Warning: '%s' selects no files.\n", list[il].c_str());
+      } else {
+        for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
+          List_.push_back( fn->Full() );
+      }
     } else
       List_.push_back( list[il] );
   }
