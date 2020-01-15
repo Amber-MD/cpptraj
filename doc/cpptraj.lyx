@@ -2091,6 +2091,10 @@ for { {atoms|residues|molecules|molfirstres|mollastres}
 \end_layout
 
 \begin_layout LyX-Code
+      <var> oversets <list> |
+\end_layout
+
+\begin_layout LyX-Code
       <var> datasetblocks <set> blocksize <#> [blockoffset <#>]
 \end_layout
 
@@ -2179,6 +2183,19 @@ in
 
 <list> Loop over a comma-separated list of strings.
  File name wildcards can be used.
+\end_layout
+
+\begin_layout Description
+<var>
+\begin_inset space ~
+\end_inset
+
+oversets
+\begin_inset space ~
+\end_inset
+
+<list> Loop over sets selected by comma-separated list of names.
+ Data set wildcards can be used.
 \end_layout
 
 \begin_layout Description
