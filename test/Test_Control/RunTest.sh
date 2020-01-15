@@ -4,7 +4,8 @@
 
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
            nh.dat rms.nofit.dat last10.dat distance.dat nested.agr \
-           EndToEnd0.dat EndToEnd1.dat EndToEnd2.agr temp.*.dat
+           EndToEnd0.dat EndToEnd1.dat EndToEnd2.agr temp.*.dat \
+           DataOut.dat
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
@@ -130,6 +131,23 @@ EOF
   DoTest EndToEnd1.dat.save EndToEnd1.dat
   DoTest EndToEnd2.agr.save EndToEnd2.agr
 fi
+
+UNITNAME='Test for filename wildcards and oversets'
+cat > for.in <<EOF
+for FILE in distance.dat.save,last10.dat.save,doesnot*,TRP.*.dat.save
+  readdata \$FILE
+done
+
+for SET1 oversets TRP.rms.dat.save* SET2 oversets TRP.tocenter.dat.save* i=1;i++
+  show SET1 SET2
+  NewSet\$i = \$SET1 + \$SET2
+  set DataOut += " NewSet\$i "
+done
+writedata DataOut.dat \$DataOut
+list datasets
+EOF
+RunCpptraj "$UNITNAME"
+DoTest DataOut.dat.save DataOut.dat
 
 EndTest
 exit 0
