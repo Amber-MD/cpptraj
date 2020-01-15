@@ -292,7 +292,7 @@ int DataIO_Std::Read_1D(std::string const& fname,
         // Always save the index column as floating point
         inputSets.push_back( new DataSet_double() );
       } else if (fltCols_.InRange(col)) {
-        mprintf("\tReading columns %i values as single-precision floats.\n", col+1);
+        mprintf("\tReading column %i values as single-precision floats.\n", col+1);
         // Float number, single precision
         inputSets.push_back( datasetlist.Allocate(DataSet::FLOAT) );
       } else if (intCols_.InRange(col)) {
@@ -304,9 +304,12 @@ int DataIO_Std::Read_1D(std::string const& fname,
         // String
         inputSets.push_back( datasetlist.Allocate(DataSet::STRING) );
       } else if (validDouble(token)) {
+        mprintf("\tReading column %i values as double-precision floats.\n", col+1);
+        //mprintf("DEBUG: token='%s'\n", token.c_str());
         // Floating point number, double precision (default)
         inputSets.push_back( new DataSet_double() );
       } else {
+        mprintf("\tReading column %i values as strings.\n", col+1);
         // Assume string. Not allowed for index column.
         if (col == indexcol_) {
           mprintf("Warning: '%s' index column %i has string values. No indices will be read.\n", 
