@@ -296,6 +296,7 @@ COMMON_SOURCES= \
         ForLoop_integer.cpp \
         ForLoop_list.cpp \
         ForLoop_mask.cpp \
+        ForLoop_overSets.cpp \
         Frame.cpp \
         GridAction.cpp \
         HistBin.cpp \
