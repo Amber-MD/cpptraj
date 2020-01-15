@@ -30,7 +30,7 @@ int ForLoop_overSets::SetupFor(CpptrajState& State, ArgList& argIn) {
   for (int il = 0; il != list.Nargs(); il++) {
     DataSetList dsl = State.DSL().SelectSets( list[il] );
     if (dsl.empty()) {
-      mprintf("Warning: '%s' selects no sets.\n");
+      mprintf("Warning: '%s' selects no sets.\n", list[il].c_str());
     } else {
       for (DataSetList::const_iterator it = dsl.begin(); it != dsl.end(); ++it)
         List_.push_back( (*it)->Meta().PrintName() );
