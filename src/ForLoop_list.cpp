@@ -29,21 +29,7 @@ int ForLoop_list::SetupFor(CpptrajState& State, ArgList& argIn) {
   if (SetupLoopVar( State.DSL(), argIn.GetStringNext() )) return 1;
   // Go through list of strings
   for (int il = 0; il != list.Nargs(); il++) {
-    // Check if file name expansion should occur
-    if (list[il].find_first_of("*?") != std::string::npos) {
-      File::NameArray files = File::ExpandToFilenames( list[il] );
-      // DEBUG
-      //for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
-      //  mprintf("DEBUG: '%s'\n", fn->full());
-      // Allow wildcard expansion to fail with a warning.
-      if (!files.empty() && files.front().Full().compare( list[il] ) == 0) {
-        mprintf("Warning: '%s' selects no files.\n", list[il].c_str());
-      } else {
-        for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
-          List_.push_back( fn->Full() );
-      }
-    } else
-      List_.push_back( list[il] );
+    Names_.push_back( list[il] );
   }
   // Description
   std::string description( "(" + VarName() + " in " + listArg + ")" );
@@ -52,6 +38,30 @@ int ForLoop_list::SetupFor(CpptrajState& State, ArgList& argIn) {
 }
 
 int ForLoop_list::BeginFor(DataSetList const& CurrentVars) {
+  // Go through list of strings
+  List_.clear();
+  for (Sarray::const_iterator it = Names_.begin(); it != Names_.end(); ++it)
+  {
+    // Try variable replacement
+    std::string listEntry;
+    CurrentVars.ReplaceVariables(listEntry, *it);
+    // Check if file name expansion should occur
+    if (listEntry.find_first_of("*?") != std::string::npos) {
+      File::NameArray files = File::ExpandToFilenames( listEntry );
+      // DEBUG
+      //for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
+      //  mprintf("DEBUG: '%s'\n", fn->full());
+      // Allow wildcard expansion to fail with a warning.
+      if (!files.empty() && files.front().Full().compare( listEntry ) == 0) {
+        mprintf("Warning: '%s' selects no files.\n", it->c_str());
+      } else {
+        for (File::NameArray::const_iterator fn = files.begin(); fn != files.end(); ++fn)
+          List_.push_back( fn->Full() );
+      }
+    } else
+      List_.push_back( listEntry );
+  }
+
   sdx_ = List_.begin();
   return (int)List_.size();
 }
