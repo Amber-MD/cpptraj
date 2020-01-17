@@ -5038,7 +5038,7 @@ Write
 \end_layout
 
 \begin_layout LyX-Code
-[invert] [xydy]
+[invert] [xydy] [<label set>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -5055,6 +5055,14 @@ invert Normally, data is written out with X-values pertaining to frames
 
 \begin_layout Description
 xydy Combine consecutive pairs of sets into XYDY sets.
+\end_layout
+
+\begin_layout Description
+<label
+\begin_inset space ~
+\end_inset
+
+set> If a string dataset is specified, assume it has data point labels.
 \end_layout
 
 \end_deeper
