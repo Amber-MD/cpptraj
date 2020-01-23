@@ -386,7 +386,11 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 {
   t_action_.Start();
   frameIn.BoxCrd().ToRecip(ucell_, recip_);
-  pairList_.CreatePairList(frameIn, ucell_, recip_, mask_);
+  int retVal = pairList_.CreatePairList(frameIn, ucell_, recip_, mask_);
+  if (retVal != 0) {
+    mprinterr("Error: Grid setup failed.\n");
+    return Action::ERR;
+  }
   int wat = 0, wat1 = 0;
   int basenum = frameNum * solvent_residues_.size();
   DataSet_double& evals = static_cast<DataSet_double&>( *myDSL_[0] );
