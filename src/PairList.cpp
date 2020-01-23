@@ -106,8 +106,8 @@ int PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
 # endif
   if (idx < 0 || idx >= (int)cells_.size()) {
     // This can happen for e.g. NaN coords
-    mprinterr("Internal Error: Grid %i is out of range (>= %zu || < 0)\n",
-              idx, cells_.size());
+    //mprinterr("Internal Error: Grid %i is out of range (>= %zu || < 0)\n",
+    //          idx, cells_.size());
     return 1;
   }
   cells_[idx].AddAtom( AtmType(atomIdx, cart) );
