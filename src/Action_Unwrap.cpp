@@ -93,7 +93,7 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
     orthogonal_ = true;
 
   // Setup atom pairs to be unwrapped.
-  imageList_ = Image::CreatePairList(setup.Top(), imageMode_, maskExpression_);
+  imageList_ = Image::CreateAtomPairList(setup.Top(), imageMode_, maskExpression_);
   if (imageList_.empty()) {
     mprintf("Warning: Mask selects no atoms for topology '%s'.\n", setup.Top().c_str());
     return Action::SKIP;
