@@ -378,7 +378,8 @@ double Ewald_Regular::Recip_Regular(Matrix_3x3 const& recip, double volume) {
 }
 
 /** Calculate Ewald energy. Faster version that uses pair list. */
-double Ewald_Regular::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn, double& e_vdw)
+int Ewald_Regular::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
+                              double& e_elec, double& e_vdw)
 {
   t_total_.Start();
   Matrix_3x3 ucell, recip;
@@ -386,7 +387,11 @@ double Ewald_Regular::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn, d
   double e_self = Self( volume );
   double e_vdwr = Vdw_Correction( volume );
 
-  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  int retVal = pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  if (retVal != 0) {
+    mprinterr("Error: Grid setup failed.\n");
+    return 1;
+  }
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_Regular( recip, volume );
@@ -397,5 +402,6 @@ double Ewald_Regular::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn, d
             e_self, e_recip, e_direct, e_vdw);
   e_vdw += e_vdwr;
   t_total_.Stop();
-  return e_self + e_recip + e_direct;
+  e_elec = e_self + e_recip + e_direct;
+  return 0;
 }
