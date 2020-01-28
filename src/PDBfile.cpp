@@ -260,7 +260,7 @@ int PDBfile::pdb_Bonds(int* bnd) {
     unsigned int end = lb + 5;
     char savechar = linebuffer_[end];
     linebuffer_[end] = '\0';
-    bnd[Nscan++] = atof( linebuffer_ + lb );
+    bnd[Nscan++] = atoi( linebuffer_ + lb );
     linebuffer_[end] = savechar;
   }
   if (Nscan < 2)

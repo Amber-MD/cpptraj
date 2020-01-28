@@ -10,7 +10,7 @@ class Box;
 #include "ImageTypes.h"
 namespace Image {
   /// Create an atom pair list by molecule, residue, or atom.
-  PairType CreatePairList(Topology const&, Mode, std::string const&);
+  PairType CreateAtomPairList(Topology const&, Mode, std::string const&);
   /// \return Coordinates of center if wrapping molecules into truncated oct. shape.
   Vec3 SetupTruncoct( Frame const&, AtomMask*, bool, bool);
   /// Perform non-orthogonal imaging on given pair list, optionally into trunc. oct. shape.
