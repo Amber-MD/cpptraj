@@ -220,7 +220,8 @@ double Ewald_ParticleMesh::LJ_Recip_ParticleMesh(Box const& boxIn)
 }
 
 /** Calculate full nonbonded energy with PME */
-double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn, double& e_vdw)
+int Ewald_ParticleMesh::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskIn,
+                                      double& e_elec, double& e_vdw)
 {
   t_total_.Start();
   Matrix_3x3 ucell, recip;
@@ -228,7 +229,11 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
   double e_self = Self( volume );
   double e_vdw_lr_correction;
 
-  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  int retVal = pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  if (retVal != 0) {
+    mprinterr("Error: Grid setup failed.\n");
+    return 1;
+  }
 
   // TODO make more efficient
   int idx = 0;
@@ -266,7 +271,8 @@ double Ewald_ParticleMesh::CalcEnergy(Frame const& frameIn, AtomMask const& mask
             e_self, e_recip, e_direct, e_vdw);
   e_vdw += (e_vdw_lr_correction + e_vdw6self + e_vdw6recip);
   t_total_.Stop();
-  return e_self + e_recip + e_direct;
+  e_elec = e_self + e_recip + e_direct;
+  return 0;
 }
 
 #endif /* LIBPME */
