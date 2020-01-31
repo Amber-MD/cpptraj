@@ -11,6 +11,8 @@ class DataSet_1D : public DataSet {
     DataSet_1D() {}
     DataSet_1D(DataSet::DataType tIn, TextFormat const& fIn) : DataSet(tIn, SCALAR_1D, fIn, 1) {}
     virtual ~DataSet_1D() {}
+    // ----- DataSet functions -------------------
+    SizeArray DimSizes() const { return SizeArray(1, Size()); }
     // ---- DataSet_1D functions -----------------
     /// \return data from set at position as double precision.
     virtual double Dval(size_t) const = 0;

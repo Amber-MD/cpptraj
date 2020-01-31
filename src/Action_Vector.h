@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_VECTOR_H
 #define INC_ACTION_VECTOR_H
 #include "Action.h"
-#include "DataSet_Vector.h"
+class DataSet_Vector;
 class Action_Vector : public Action {
   public:
     Action_Vector();
@@ -11,11 +11,12 @@ class Action_Vector : public Action {
   private:
     enum vectorMode {
       NO_OP=0,   PRINCIPAL_X, PRINCIPAL_Y, PRINCIPAL_Z,
-      DIPOLE,    BOX,         MASK,        IRED,
+      DIPOLE,    BOX,         MASK,
       CORRPLANE, CENTER,      BOX_X,       BOX_Y,       BOX_Z,
       BOX_CTR,   MINIMAGE,    MOMENTUM,    VELOCITY,    FORCE
     };
-    static const char* ModeString[];
+    static const char* ModeString_[];
+    static const bool NeedsOrigin_[];
 
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

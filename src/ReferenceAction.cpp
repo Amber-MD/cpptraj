@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_TRJ.h"
 #include "ReferenceFrame.h"
+#include "ArgList.h"
 
 ReferenceAction::ReferenceAction() :
   refMode_( FIRST ),

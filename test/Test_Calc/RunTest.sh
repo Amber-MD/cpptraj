@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles calc.in calc.dat mag.dat
+CleanFiles calc.in calc.dat mag.dat mag2.dat sumtotal.dat
 
 INPUT='-i calc.in'
 cat > calc.in <<EOF
@@ -25,9 +25,25 @@ Y2pZ2  =  (Vec:3^2) + (Vec:4 * Vec:4)
 Mag    = sqrt(X2 + Y2pZ2)
 AvgMag = avg(Mag)
 writedata mag.dat AvgMag
+Mag2   = Mag
+Mag2   = Mag2 + 1
+writedata mag2.dat Mag Mag2
+
+Mag = Mag
 EOF
 RunCpptraj "Calc test with data sets"
 DoTest mag.dat.save mag.dat
+DoTest mag2.dat.save mag2.dat
+
+UNITNAME='Test math functions'
+cat > calc.in <<EOF
+readdata ../Test_General/distance.dat.save name Dist
+sumTotal = Dist:2 + Dist:3
+result = sum( sumTotal )
+writedata sumtotal.dat result
+EOF
+RunCpptraj "$UNITNAME"
+DoTest sumtotal.dat.save sumtotal.dat
 
 EndTest
 exit 0

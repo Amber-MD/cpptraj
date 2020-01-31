@@ -3,6 +3,7 @@
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // AppendNumber
+#include "ArgList.h"
 #ifdef MPI
 # include "Parallel.h"
 #endif

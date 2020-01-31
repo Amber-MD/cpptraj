@@ -1,8 +1,8 @@
 #ifndef INC_ANALYSIS_TIMECORR_H
 #define INC_ANALYSIS_TIMECORR_H
 #include "Analysis.h"
-#include "DataSet_Vector.h"
 #include "Corr.h"
+class DataSet_Vector;
 /** \author Original Code by Alrun N. Koller & H. Gohlke
   * \author Adapted by DRR
   */

@@ -11,6 +11,7 @@
 #include "Corr.h"
 #include "CurveFit.h"
 #include "SimplexMin.h"
+#include "DataSet_Mat3x3.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -356,9 +357,10 @@ static void Diagonalize(Matrix_3x3& Mat, Vec3& Vec) {
   */
 // NOTE: Theta could also be generated in the same way as phi. Currently done
 //       to be consistent with the original implementation in randvec.F90
+// NOTE: This function cannot be const since the RNG is modified when called.
 DataSet_Vector Analysis_Rotdif::RandomVectors() {
   DataSet_Vector XYZ;
-  XYZ.ReserveVecs( nvecs_ );
+  XYZ.Allocate( DataSet::SizeArray(1, nvecs_) );
   // ----- Read nvecs vectors from a file
   if (!randvecIn_.empty()) {
     CpptrajFile vecIn;
@@ -1247,7 +1249,7 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
   D_eff_.reserve( random_vectors_.Size() );
   // Hold vectors after rotation with Rmatrices
   DataSet_Vector rotated_vectors;
-  rotated_vectors.ReserveVecs( vLength );
+  rotated_vectors.Allocate( DataSet::SizeArray(1, vLength) );
   // Hold single vector autocorrelation
   CurveFit::Darray Ct;
   Ct.reserve( ctMax );
@@ -1541,7 +1543,7 @@ int Analysis_Rotdif::DetermineDeffs() {
   D_eff_.reserve( nvecs_ );
   // Allocate memory to hold rotated vectors. Need +1 since the original
   // vector is stored at position 0. 
-  rotated_vectors.ReserveVecs( itotframes + 1 );
+  rotated_vectors.Allocate( DataSet::SizeArray(1, itotframes + 1) );
   // Allocate memory for C(t)
   pY.reserve( maxdat );
   pX.reserve( maxdat );

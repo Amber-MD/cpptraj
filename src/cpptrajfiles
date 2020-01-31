@@ -162,7 +162,7 @@ COMMON_SOURCES= \
         CmdList.cpp \
         ComplexArray.cpp \
         Constraints.cpp \
-        Control.cpp \
+        ControlBlock_For.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
         Cph.cpp \
@@ -222,6 +222,7 @@ COMMON_SOURCES= \
         DataSet_integer_disk.cpp \
         DataSet_integer_mem.cpp \
         DataSet_string.cpp \
+        DataSet_StringVar.cpp \
         DataSet_Tensor.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
@@ -270,7 +271,9 @@ COMMON_SOURCES= \
         Exec_RotateDihedral.cpp \
         Exec_RunAnalysis.cpp \
         Exec_ScaleDihedralK.cpp \
+        Exec_Set.cpp \
         Exec_SequenceAlign.cpp \
+        Exec_Show.cpp \
         Exec_SortEnsembleData.cpp \
         Exec_SplitCoords.cpp \
         Exec_System.cpp \
@@ -286,6 +289,12 @@ COMMON_SOURCES= \
         FileIO_Std.cpp \
         FileName.cpp \
         FileTypes.cpp \
+        ForLoop.cpp \
+        ForLoop_dataSetBlocks.cpp \
+        ForLoop_integer.cpp \
+        ForLoop_list.cpp \
+        ForLoop_mask.cpp \
+        ForLoop_overSets.cpp \
         Frame.cpp \
         GridAction.cpp \
         HistBin.cpp \
@@ -372,7 +381,6 @@ COMMON_SOURCES= \
         TrajIOarray.cpp \
         Trajout_Single.cpp \
         TrajoutList.cpp \
-        VariableArray.cpp \
         Vec3.cpp \
         ViewRst.cpp
 

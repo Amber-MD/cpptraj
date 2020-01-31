@@ -1,7 +1,8 @@
 #ifndef INC_FILETYPES_H
 #define INC_FILETYPES_H
+#include <string>
 #include "BaseIOtype.h"
-#include "ArgList.h"
+class ArgList;
 /** This static class is used to create arrays for allocatable file classes
   * like DataFiles and Trajectories.
   */

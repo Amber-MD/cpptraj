@@ -1,5 +1,6 @@
 #include "GridAction.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 
 // GridAction::HelpText
 const char* GridAction::HelpText =

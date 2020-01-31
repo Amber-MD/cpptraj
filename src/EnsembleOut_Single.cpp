@@ -3,6 +3,7 @@
 #include "TrajectoryIO.h"
 #include "Topology.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 
 // CONSTRUCTOR
 EnsembleOut_Single::EnsembleOut_Single() : eio_(0), ensembleSize_(0) {}

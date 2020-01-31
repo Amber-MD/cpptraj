@@ -1,8 +1,8 @@
 #ifndef INC_MULTIVECTOR_H
 #define INC_MULTIVECTOR_H
 #include "Action.h"
-#include "DataSet_Vector.h"
 #include "Range.h"
+class DataSet_Vector;
 class Action_MultiVector : public Action {
   public:
     Action_MultiVector();

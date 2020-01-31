@@ -1,6 +1,7 @@
 #include "Action_Principal.h"
 #include "CpptrajStdio.h"
-#include "Matrix_3x3.h"
+#include "DataSet_Mat3x3.h"
+#include "DataSet_Vector.h"
 
 // CONSTRUCTOR
 Action_Principal::Action_Principal() :

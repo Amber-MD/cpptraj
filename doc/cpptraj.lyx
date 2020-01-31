@@ -1924,11 +1924,25 @@ script
  variables and 'for' loops.
  Script variables are referred to by a dollar sign ('$') prefix and are
  replaced when they are processed.
- Note that to use script variables in CPPTRAJ input that is also inside
- e.g.
- a BASH script, they can be escaped with the '
+ These are stored in the master data set list like other data and are assigned
+ the type 
+\begin_inset Quotes eld
+\end_inset
+
+string variable
+\begin_inset Quotes erd
+\end_inset
+
+.
+ 
+\series bold
+Note that to use script variables in CPPTRAJ input that is inside another
+ script (e.g.
+ a BASH script), they must be escaped with the '
 \backslash
-' character, e.g.
+' character,
+\series default
+ e.g.
 \end_layout
 
 \begin_layout LyX-Code
@@ -1944,13 +1958,13 @@ cpptraj <<EOF
 \end_layout
 
 \begin_layout LyX-Code
-set topname=$TOP
+set topname=$TOP # TOP is a BASH script variable
 \end_layout
 
 \begin_layout LyX-Code
 parm 
 \backslash
-$topname
+$topname   # topname is a CPPTRAJ script variable
 \end_layout
 
 \begin_layout LyX-Code
@@ -2069,12 +2083,23 @@ for { {atoms|residues|molecules|molfirstres|mollastres}
 \end_layout
 
 \begin_layout LyX-Code
-	    <var> inmask <mask> [parm <name> | parmindex <#> | <#>] ...
- |
+	    <var> inmask <mask> [parm <name> | parmindex <#> | <#>] |
 \end_layout
 
 \begin_layout LyX-Code
       <var> in <list> |
+\end_layout
+
+\begin_layout LyX-Code
+      <var> oversets <list> |
+\end_layout
+
+\begin_layout LyX-Code
+      <var> datasetblocks <set> blocksize <#> [blockoffset <#>]
+\end_layout
+
+\begin_layout LyX-Code
+        [cumulative [firstblock <#>]] |
 \end_layout
 
 \begin_layout LyX-Code
@@ -2087,7 +2112,7 @@ for { {atoms|residues|molecules|molfirstres|mollastres}
 \end_layout
 
 \begin_layout LyX-Code
-  Available 'end OP'       : '<' '>'
+  Available 'end OP'       : '<' '>' '<=' '>='
 \end_layout
 
 \begin_layout LyX-Code
@@ -2161,6 +2186,65 @@ in
 \end_layout
 
 \begin_layout Description
+<var>
+\begin_inset space ~
+\end_inset
+
+oversets
+\begin_inset space ~
+\end_inset
+
+<list> Loop over sets selected by comma-separated list of names.
+ Data set wildcards can be used.
+\end_layout
+
+\begin_layout Description
+<var>
+\begin_inset space ~
+\end_inset
+
+datasetblocks
+\begin_inset space ~
+\end_inset
+
+<set> Loop over blocks in specified DataSet.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+blocksize
+\begin_inset space ~
+\end_inset
+
+<#> Size of blocks to use.
+\end_layout
+
+\begin_layout Description
+[blockoffset
+\begin_inset space ~
+\end_inset
+
+<#>] Offset between blocks.
+\end_layout
+
+\begin_layout Description
+[cumulative] Instead of blocks of fixed size, use blocks of increasing size
+ incremented by blocksize.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[firstblock
+\begin_inset space ~
+\end_inset
+
+<#>] When cumulative, the size of the first block (default is first data
+ set element).
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Description
 <var>=<start>;[<var><end
 \begin_inset space ~
 \end_inset
@@ -2188,11 +2272,32 @@ OP>[<value>] Loop over integer script variable
 .
 \end_layout
 
+\begin_layout Standard
+Data Sets Created (datasetblocks loops):
+\end_layout
+
+\begin_layout Description
+<var>[block]:<start
+\begin_inset space \space{}
+\end_inset
+
+idx> (Data set blocks only) Data set block of blocksize starting at <start
+ idx>.
+\end_layout
+
+\begin_layout Description
+<var>[cumul]:<end
+\begin_inset space ~
+\end_inset
+
+idx> (Cumulative data set blocks only) Data set block starting at firstblock
+ and ending at <end idx>.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
-Create a for loop using one or more mask expressions or integers.
- Loops can be nested, but currently inner loops cannot refer to output loop
- variables.
+Create a for loop using one or more mask expressions, integers, etc.
+ Loops can be nested inside each other.
  Integer loops may be used without an end condition, but in that case at
  least one descriptor in the loop should have an end condition or refer
  to a mask.
@@ -2201,16 +2306,13 @@ Create a for loop using one or more mask expressions or integers.
 done
 \series default
  keyword.
- Note that unlike C-style for loops the variable is not incremented on the
- final execution, so the final value of 
-\series bold
-<var>
-\series default
- will be 
-\series bold
-<end>
-\series default
- (or the last selection in the mask).
+ 
+\end_layout
+
+\begin_layout Standard
+Note that non-integer variables (e.g.
+ 'inmask' loops) are NOT incremented after the final loop iteration, i.e.
+ these loop variables always retain their final value.
 \end_layout
 
 \begin_layout Standard
@@ -2383,8 +2485,24 @@ trajin
 \end_deeper
 \begin_layout Standard
 Set (<OP> = '=') or append (<OP> = '+=') a script variable.
- Script variables are referred to in CPPTRAJ input by using a dollar sign
- '$' prefix.
+ Script variables are character strings, and are referred to in CPPTRAJ
+ input by using a dollar sign '$' prefix.
+\end_layout
+
+\begin_layout Standard
+For example, the following input will load files my.parm7 and my.rst7:
+\end_layout
+
+\begin_layout LyX-Code
+set PREFIX = my
+\end_layout
+
+\begin_layout LyX-Code
+trajin $PREFIX.parm7
+\end_layout
+
+\begin_layout LyX-Code
+trajin $PREFIX.rst7
 \end_layout
 
 \begin_layout Standard
@@ -2413,11 +2531,13 @@ show
 \end_layout
 
 \begin_layout LyX-Code
-show
+show [<var1> ...]
 \end_layout
 
 \begin_layout Standard
-Show all current script variables and their values.
+If no variable names specified, show all current script variables and their
+ values.
+ Otherwise, show the values of the specified script variables.
 \end_layout
 
 \begin_layout Section
@@ -4918,7 +5038,7 @@ Write
 \end_layout
 
 \begin_layout LyX-Code
-[invert] [xydy]
+[invert] [xydy] [<label set>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -4935,6 +5055,14 @@ invert Normally, data is written out with X-values pertaining to frames
 
 \begin_layout Description
 xydy Combine consecutive pairs of sets into XYDY sets.
+\end_layout
+
+\begin_layout Description
+<label
+\begin_inset space ~
+\end_inset
+
+set> If a string dataset is specified, assume it has data point labels.
 \end_layout
 
 \end_deeper

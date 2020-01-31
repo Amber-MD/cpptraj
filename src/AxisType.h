@@ -1,8 +1,14 @@
 #ifndef INC_AXISTYPE_H
 #define INC_AXISTYPE_H
-#include "Topology.h"
-#include "DataSetList.h"
-#include "DataSet_1D.h"
+#include "Matrix_3x3.h"
+#include "Vec3.h"
+#include "Frame.h"
+#include "NameType.h"
+#include "AtomMask.h"
+class Topology;
+class DataSetList;
+class DataSet_1D;
+class FileName;
 /*! \file AxisType.h
     \brief Hold classes and functions used for NA structure analysis.
  */

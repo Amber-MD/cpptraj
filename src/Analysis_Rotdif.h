@@ -3,7 +3,7 @@
 #include "Analysis.h"
 #include "Random.h"
 #include "DataSet_Vector.h"
-#include "DataSet_Mat3x3.h"
+class DataSet_Mat3x3;
 /// Estimate rotational diffusion tensors from MD simulations
 /** To estimate rotational diffusion tensors from MD simulations along the
   * lines described by Wong & Case, (Evaluating rotational diffusion from
@@ -62,7 +62,7 @@ class Analysis_Rotdif: public Analysis {
     // Variables used by the random number generator
     Random_Number RNgen_;
 
-    DataSet_Mat3x3* Rmatrices_;      ///< Store rotation matrices
+    DataSet_Mat3x3* Rmatrices_;     ///< Store rotation matrices
     DataSet_Vector random_vectors_; ///< Hold nvecs random vectors
     std::vector<double> D_eff_;     ///< Hold calculated effective D values for each vector
 //    std::vector<double> sumc2_;      

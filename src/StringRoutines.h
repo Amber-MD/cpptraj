@@ -28,6 +28,8 @@ std::string NoLeadingWhitespace(std::string const&);
 void RemoveAllWhitespace(std::string&);
 /// \return string with all whitespace removed.
 std::string NoWhitespace(std::string const&);
+/// \return String with the specified number of leading characters removed.
+std::string RemoveLeadingChars(std::string const&, int);
 /// Convert string to integer.
 int convertToInteger(std::string const &);
 /// Convert string to double.
