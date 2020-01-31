@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_VELOCITYAUTOCORR_H
 #define INC_ACTION_VELOCITYAUTOCORR_H
 #include "Action.h"
-#include "DataSet_Vector_XYZ.h"
+#include "DataSet_Vector.h"
 class Action_VelocityAutoCorr : public Action {
   public:
     Action_VelocityAutoCorr();
@@ -19,7 +19,7 @@ class Action_VelocityAutoCorr : public Action {
 #   endif
     void Print();
 
-    typedef DataSet_Vector_XYZ Varray;
+    typedef DataSet_Vector Varray;
     typedef std::vector<Varray> VelArray;
     VelArray Vel_;         ///< Hold velocity info for each selected atom at each frame.
     AtomMask mask_;        ///< Atoms to calculate VAC fn for.
