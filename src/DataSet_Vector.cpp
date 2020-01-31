@@ -13,6 +13,7 @@ DataSet_Vector::DataSet_Vector() :
   DataSet(VECTOR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
   order_(0) {}
 
+/** \return Vector memory usage in bytes. */
 size_t DataSet_Vector::MemUsageInBytes() const {
   size_t mySize = (vectors_.size() * Vec3::DataSize()) +
                   (origins_.size() * Vec3::DataSize()) +
@@ -23,7 +24,6 @@ size_t DataSet_Vector::MemUsageInBytes() const {
     mySize += (SH->DataSize());
   return mySize;
 }
-         
 
 // DataSet_Vector::Allocate()
 int DataSet_Vector::Allocate(SizeArray const& Nin) {
@@ -66,6 +66,7 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) con
   }
 }
 
+// DataSet_Vector::Append()
 int DataSet_Vector::Append(DataSet* dsIn) {
   if (dsIn->Empty()) return 0;
   if (dsIn->Type() != VECTOR) return 1;
