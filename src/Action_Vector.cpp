@@ -389,9 +389,9 @@ void Action_Vector::Principal(Frame const& currentFrame) {
   Vec3 OXYZ = currentFrame.CalculateInertia( mask_, Inertia );
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
   Inertia.Diagonalize_Sort_Chirality( Eval, 0 );
-  // Eval.Print("PRINCIPAL EIGENVALUES");
-  // Inertia.Print("PRINCIPAL EIGENVECTORS (Rows)");
-  DataSet_Vector vec = static_cast<DataSet_Vector&>( *Vec_ );
+  //Eval.Print("PRINCIPAL EIGENVALUES");
+  //Inertia.Print("PRINCIPAL EIGENVECTORS (Rows)");
+  DataSet_Vector& vec = static_cast<DataSet_Vector&>( *Vec_ );
   if ( mode_ == PRINCIPAL_X ) 
     vec.AddVxyzo( Inertia.Row1(), OXYZ ); // First row = first eigenvector
   else if ( mode_ == PRINCIPAL_Y )
