@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "PDBfile.h"
 #include "StringRoutines.h" // integerToString
+#include "ArgList.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif

@@ -3,6 +3,8 @@
 #include <cstring> // strlen
 #include "FileTypes.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
+
 // FileTypes::GetFormatFromArg()
 FileTypes::FileFormatType FileTypes::GetFormatFromArg(KeyPtr begin, ArgList& argIn,
                                                       FileFormatType def)

@@ -7,7 +7,8 @@
 #include "CmdInput.h"     // ProcessInput()
 #include "RPNcalc.h"
 #include "Deprecated.h"
-#include "Control.h"
+#include "ControlBlock.h"
+#include "ControlBlock_For.h"
 #include "Parallel.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Analyze.h"
@@ -30,6 +31,8 @@
 #include "Exec_SortEnsembleData.h"
 #include "Exec_SequenceAlign.h"
 #include "Exec_ViewRst.h"
+#include "Exec_Set.h"
+#include "Exec_Show.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -193,8 +196,6 @@ Command::Carray Command::names_ = Command::Carray();
 Command::CtlArray Command::control_ = Command::CtlArray();
 
 int Command::ctlidx_ = -1;
-
-VariableArray Command::CurrentVars_ = VariableArray();
 
 /** Initialize all commands. Should only be called once as program starts. */
 void Command::Init() {
@@ -408,8 +409,8 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // CONTROL STRUCTURES
   Command::AddCmd( new ControlBlock_For(),     Cmd::BLK, 1, "for" );
-  Command::AddCmd( new Control_Set(),          Cmd::CTL, 1, "set" );
-  Command::AddCmd( new Control_Show(),         Cmd::CTL, 1, "show" );
+  Command::AddCmd( new Exec_Set(),             Cmd::EXE, 1, "set" );
+  Command::AddCmd( new Exec_Show(),            Cmd::EXE, 1, "show" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
   Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
@@ -550,6 +551,7 @@ void Command::ListCommands(DispatchObject::Otype typeIn) {
     ListCommandsForType( typeIn );
 }
 
+// ----- Control block functions -----------------------------------------------
 /** \return true if any control blocks remain. */
 bool Command::UnterminatedControl() {
   if (!control_.empty()) {
@@ -565,7 +567,7 @@ bool Command::UnterminatedControl() {
 int Command::AddControlBlock(ControlBlock* ctl, CpptrajState& State, ArgList& cmdArg) {
   if ( ctl->SetupBlock( State, cmdArg ) )
     return 1;
-  if (ctlidx_ == -1) mprintf("CONTROL: Starting control block.\n");
+  if (ctlidx_ == -1) mprintf("CONTROL: Parsing control block.\n");
   control_.push_back( ctl );
   ctlidx_++;
   mprintf("  BLOCK %2i: ", ctlidx_);
@@ -580,11 +582,11 @@ int Command::AddControlBlock(ControlBlock* ctl, CpptrajState& State, ArgList& cm
 /** Execute the specified control block. */
 int Command::ExecuteControlBlock(int block, CpptrajState& State)
 {
-  control_[block]->Start();
-  ControlBlock::DoneType ret = control_[block]->CheckDone(CurrentVars_);
+  if (control_[block]->Start(State.DSL())) return 1;
+  ControlBlock::DoneType ret = control_[block]->CheckDone(State.DSL());
   if (State.Debug() > 0) {
     mprintf("DEBUG: Start: CurrentVars:");
-    CurrentVars_.PrintVariables();
+    State.DSL().ListStringVar();
   }
   int blockErrors = 0;
   while (ret == ControlBlock::NOT_DONE) {
@@ -612,7 +614,7 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
         }
       }
     }
-    ret = control_[block]->CheckDone(CurrentVars_);
+    ret = control_[block]->CheckDone(State.DSL());
   }
   if (ret == ControlBlock::ERROR) {
     if (State.ExitOnError())
@@ -622,6 +624,8 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
   }
   return blockErrors;
 }
+
+// ----- END Control block functions -------------------------------------------
 
 /** Handle the given command. If inside a control block, if the command is
   * a control command a new block will be created, otherwise the command will
@@ -684,14 +688,26 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
 #undef NEW_BLOCK
 
 /** Search for the given command and execute it. Replace any variables in
-  * command with their values. EXE and CTL commands are executed immediately
+  * command with their values. EXE commands are executed immediately
   * and then freed. ACT and ANA commands are sent to the CpptrajState for later
   * execution. BLK commands set up control blocks which will be executed when
   * the outer control block is completed.
+  * TODO just take a string and do all tokenizing here?
   */
 CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList const& cmdArgIn ) {
   // Replace variable names in command with entries from CurrentVars
-  ArgList cmdArg = CurrentVars_.ReplaceVariables( cmdArgIn, State.DSL(), State.Debug() );
+  ArgList cmdArg;
+  std::string argline2;
+  int nReplaced = State.DSL().ReplaceVariables( argline2, cmdArgIn.ArgLineStr() );
+  // TODO trap replace errors?
+  if (nReplaced > 0) {
+    if (State.Debug() > 0)
+      mprintf("DEBUG: %i variables replaced with values in: '%s'\n",
+        nReplaced, cmdArgIn.ArgLine());
+    cmdArg = ArgList(argline2);
+    cmdArg.MarkArg(0);
+  } else
+    cmdArg = cmdArgIn;
   if (cmdArg.empty()) return CpptrajState::ERR;
   // Print modified command
   mprintf("  [%s]\n", cmdArg.ArgLine());
@@ -713,10 +729,6 @@ CpptrajState::RetType Command::ExecuteCommand( CpptrajState& State, ArgList cons
   } else {
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
-      case Cmd::CTL:
-        ret_val = ((Control*)obj)->SetupControl(State, cmdArg, CurrentVars_);
-        delete obj;
-        break;
       case Cmd::BLK:
         if (AddControlBlock( (ControlBlock*)obj, State, cmdArg )) {
           delete obj;

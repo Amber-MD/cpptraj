@@ -5,6 +5,10 @@
 #include "TorsionRoutines.h" // pucker calc
 #include "Constants.h" // pucker calc
 #include "PDBfile.h" // load base reference
+#include "ArgList.h"
+#include "Topology.h"
+#include "DataSetList.h"
+#include "DataSet_1D.h"
 // ---------- NA_Reference -----------------------------------------------------
 /** Add all common variations of NA base name given single letter X:
   * DX/DX3/DX5 (not for U), RX/RX3/RX5 (not for T), X3/X5, X

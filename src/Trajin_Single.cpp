@@ -3,6 +3,7 @@
 #include "TrajectoryIO.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 
 // CONSTRUCTOR
 Trajin_Single::Trajin_Single() : trajio_(0), velio_(0), frcio_(0) {}

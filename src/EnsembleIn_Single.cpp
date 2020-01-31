@@ -5,6 +5,7 @@
 #include "FrameArray.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 
 // CONSTRUCTOR
 EnsembleIn_Single::EnsembleIn_Single() : eio_(0), ensembleSize_(0) {}

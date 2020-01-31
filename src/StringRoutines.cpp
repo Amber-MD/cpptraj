@@ -178,6 +178,14 @@ std::string NoWhitespace(std::string const& line) {
   return out;
 }
 
+/// \return Given string with N leading characters removed.
+std::string RemoveLeadingChars(std::string const& strIn, int NtoRemove)
+{
+  if (strIn.empty()) return std::string();
+  std::string out = strIn.substr(NtoRemove, std::string::npos);
+  return out;
+}
+
 // integerToString()
 std::string integerToString(int i) {
   std::ostringstream oss;

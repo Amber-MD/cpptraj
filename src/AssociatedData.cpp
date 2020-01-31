@@ -1,5 +1,6 @@
 #include "AssociatedData.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 
 const char* AssociatedData_NOE::HelpText = 
   "[bound <lower> bound <upper>] [rexp <expected>] [noe_strong] [noe_medium] [noe_weak]";
