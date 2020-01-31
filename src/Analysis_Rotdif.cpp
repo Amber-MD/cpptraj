@@ -358,8 +358,8 @@ static void Diagonalize(Matrix_3x3& Mat, Vec3& Vec) {
 // NOTE: Theta could also be generated in the same way as phi. Currently done
 //       to be consistent with the original implementation in randvec.F90
 // NOTE: This function cannot be const since the RNG is modified when called.
-DataSet_Vector_XYZ Analysis_Rotdif::RandomVectors() {
-  DataSet_Vector_XYZ XYZ;
+DataSet_Vector Analysis_Rotdif::RandomVectors() {
+  DataSet_Vector XYZ;
   XYZ.Allocate( DataSet::SizeArray(1, nvecs_) );
   // ----- Read nvecs vectors from a file
   if (!randvecIn_.empty()) {
@@ -399,7 +399,7 @@ DataSet_Vector_XYZ Analysis_Rotdif::RandomVectors() {
       mprinterr("Error: Could not set up %s for writing vectors.\n",randvecOut_.c_str());
     } else {
       int idx = 1;
-      for (DataSet_Vector_XYZ::const_iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
+      for (DataSet_Vector::const_iterator vec = XYZ.begin(); vec != XYZ.end(); ++vec)
         rvout.Printf("%6i  %15.8f  %15.8f  %15.8f\n",
                      idx++, (*vec)[0], (*vec)[1], (*vec)[2]);
       rvout.CloseFile();
@@ -520,8 +520,8 @@ int AsymmetricFxn_L2(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
 
   // Loop over all random vectors
   int nvec = 0; // index into Yvals, sumc2
-  DataSet_Vector_XYZ const& random_vectors = static_cast<DataSet_Vector_XYZ const&>( *Xvals );
-  for (DataSet_Vector_XYZ::const_iterator randvec = random_vectors.begin();
+  DataSet_Vector const& random_vectors = static_cast<DataSet_Vector const&>( *Xvals );
+  for (DataSet_Vector::const_iterator randvec = random_vectors.begin();
                                       randvec != random_vectors.end();
                                     ++randvec, ++nvec)
   {
@@ -646,8 +646,8 @@ int AsymmetricFxn_L1(DataSet* Xvals, SimplexMin::Darray const& Qin, SimplexMin::
 
   // Loop over all random vectors
   int nvec = 0; // index into Yvals 
-  DataSet_Vector_XYZ const& random_vectors = static_cast<DataSet_Vector_XYZ const&>( *Xvals );
-  for (DataSet_Vector_XYZ::const_iterator randvec = random_vectors.begin();
+  DataSet_Vector const& random_vectors = static_cast<DataSet_Vector const&>( *Xvals );
+  for (DataSet_Vector::const_iterator randvec = random_vectors.begin();
                                       randvec != random_vectors.end();
                                     ++randvec, ++nvec)
   {
@@ -724,7 +724,7 @@ int Analysis_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
   int A5 = m_rows * 5;
   double* At = matrix_At;
   int nvec = 0;
-  for (DataSet_Vector_XYZ::const_iterator randvec = random_vectors_.begin();
+  for (DataSet_Vector::const_iterator randvec = random_vectors_.begin();
                                       randvec != random_vectors_.end(); ++randvec)
   {
     // Transpose of matrix A
@@ -994,7 +994,7 @@ int Analysis_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
 
 // =============================================================================
 // Analysis_Rotdif::fft_compute_corr()
-int Analysis_Rotdif::fft_compute_corr(DataSet_Vector_XYZ const& rotated_vectors, int nsteps, 
+int Analysis_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int nsteps, 
                                     std::vector<double>& pY)
 {
   int n_of_vecs = rotated_vectors.Size();
@@ -1018,7 +1018,7 @@ int Analysis_Rotdif::fft_compute_corr(DataSet_Vector_XYZ const& rotated_vectors,
   }
   // Normalize correlation fn
   // 4/3*PI and 4/5*PI due to spherical harmonics addition theorem
-  double norm = DataSet_Vector_XYZ::SphericalHarmonicsNorm( olegendre_ );
+  double norm = DataSet_Vector::SphericalHarmonicsNorm( olegendre_ );
   for (int i = 0; i < nsteps; ++i)
     pY[i] *= (norm / (n_of_vecs - i));
 
@@ -1248,7 +1248,7 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
   // Reserve space for holding effective D values
   D_eff_.reserve( random_vectors_.Size() );
   // Hold vectors after rotation with Rmatrices
-  DataSet_Vector_XYZ rotated_vectors;
+  DataSet_Vector rotated_vectors;
   rotated_vectors.Allocate( DataSet::SizeArray(1, vLength) );
   // Hold single vector autocorrelation
   CurveFit::Darray Ct;
@@ -1256,7 +1256,7 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
   // Hold averaged vector autocorrelations
   CurveFit::Darray CtTotal( ctMax, 0.0 );
   // LOOP OVER RANDOM VECTORS
-  for (DataSet_Vector_XYZ::const_iterator rndvec = random_vectors_.begin();
+  for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
                                       rndvec != random_vectors_.end(); ++rndvec)
   {
     // Reset rotated_vectors to the beginning and clear spherical harmonics 
@@ -1425,7 +1425,7 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
   * \param pY Will be set with values for correlation function, l=olegendre_
   */
 // TODO: Make rotated_vectors const&
-int Analysis_Rotdif::direct_compute_corr(DataSet_Vector_XYZ const& rotated_vectors, int maxdat,
+int Analysis_Rotdif::direct_compute_corr(DataSet_Vector const& rotated_vectors, int maxdat,
                                        std::vector<double>& pY)
 {
   // Initialize output array 
@@ -1527,7 +1527,7 @@ double Analysis_Rotdif::calcEffectiveDiffusionConst(double f ) {
 // TODO: OpenMP Parallelize
 int Analysis_Rotdif::DetermineDeffs() {
   int itotframes;                 // Total number of frames (rotation matrices) 
-  DataSet_Vector_XYZ rotated_vectors; // Hold vectors after rotation with Rmatrices
+  DataSet_Vector rotated_vectors; // Hold vectors after rotation with Rmatrices
   int maxdat;                     // Length of C(t) 
   std::vector<double> pX;         // Hold X values of C(t)
   std::vector<double> pY;         // Hold Y values of C(t) for p(olegendre_)
@@ -1559,7 +1559,7 @@ int Analysis_Rotdif::DetermineDeffs() {
   DataSet_Mesh spline( meshSize, ti_, tf_ );
   // LOOP OVER RANDOM VECTORS
   int nvec = 0;
-  for (DataSet_Vector_XYZ::const_iterator rndvec = random_vectors_.begin();
+  for (DataSet_Vector::const_iterator rndvec = random_vectors_.begin();
                                       rndvec != random_vectors_.end();
                                     ++rndvec, ++nvec)
   {
