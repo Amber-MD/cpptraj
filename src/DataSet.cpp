@@ -12,8 +12,7 @@ const char* DataSet::Descriptions_[] = {
   "double matrix",  // MATRIX_DBL
   "float matrix",   // MATRIX_FLT
   "coordinates",    // COORDS
-  "vector",         // VEC_XYZ
-  "vector (origins)", /// VEC_OXYZ
+  "vector",         // VECTOR
   "eigenmodes",     // MODES
   "float grid",     // GRID_FLT
   "double grid",    // GRID_DBL

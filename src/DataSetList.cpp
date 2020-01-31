@@ -14,8 +14,7 @@
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_MatrixFlt.h"
 #include "DataSet_Coords_CRD.h"
-#include "DataSet_Vector_XYZ.h"
-#include "DataSet_Vector_OXYZ.h"
+#include "DataSet_Vector.h"
 #include "DataSet_Modes.h"
 #include "DataSet_GridFlt.h"
 #include "DataSet_RemLog.h"
@@ -63,8 +62,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::MATRIX_DBL : ds = DataSet_MatrixDbl::Alloc(); break;
     case DataSet::MATRIX_FLT : ds = DataSet_MatrixFlt::Alloc(); break;
     case DataSet::COORDS     : ds = DataSet_Coords_CRD::Alloc(); break;
-    case DataSet::VEC_XYZ    : ds = DataSet_Vector_XYZ::Alloc() ; break;
-    case DataSet::VEC_OXYZ   : ds = DataSet_Vector_OXYZ::Alloc() ; break;
+    case DataSet::VECTOR     : ds = DataSet_Vector::Alloc() ; break;
     case DataSet::MODES      : ds = DataSet_Modes::Alloc(); break;
     case DataSet::GRID_FLT   : ds = DataSet_GridFlt::Alloc(); break;
     case DataSet::GRID_DBL   : ds = DataSet_GridDbl::Alloc(); break;
