@@ -1,6 +1,6 @@
 #include "DataIO_VecTraj.h"
 #include "CpptrajStdio.h"
-#include "DataSet_Vector_OXYZ.h"
+#include "DataSet_Vector.h"
 #include "ParmFile.h"
 #include "Trajout_Single.h"
 
@@ -9,8 +9,7 @@ DataIO_VecTraj::DataIO_VecTraj() :
   trajoutFmt_(TrajectoryFile::UNKNOWN_TRAJ),
   includeOrigin_(true)
 {
-  SetValid( DataSet::VEC_XYZ );
-  SetValid( DataSet::VEC_OXYZ );
+  SetValid( DataSet::VECTOR );
 }
 
 void DataIO_VecTraj::WriteHelp() {
@@ -51,7 +50,7 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
         return 1;
       }
       VecSets.push_back( (DataSet_Vector*)*set );
-      if (Vec.Type() == DataSet::VEC_OXYZ && includeOrigin_)
+      if (Vec.HasOrigins() && includeOrigin_)
         VecNeedsBond.push_back( true );
       else
         VecNeedsBond.push_back( false );
@@ -101,8 +100,8 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
                                 ++set, ++needsBond)
       {
         if ( *needsBond ) {
-          DataSet_Vector_OXYZ const& Vec =
-            static_cast<DataSet_Vector_OXYZ const&>( *(*set) );
+          DataSet_Vector const& Vec =
+            static_cast<DataSet_Vector const&>( *(*set) );
           Vec3 const& ovec = Vec.OXYZ(i);
           outFrame.AddVec3( ovec );
           outFrame.AddVec3( Vec[i] + ovec );

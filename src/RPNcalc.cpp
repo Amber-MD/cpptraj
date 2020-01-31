@@ -704,13 +704,13 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
                   return 1;
                 }
               }
-              if (ds1->Type() == DataSet::VEC_OXYZ)
-                mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
-                        ds1->legend());
-              if (ds2->Type() == DataSet::VEC_OXYZ)
-                mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
-                        ds2->legend());
-              tempDS = LocalList.AddSet(DataSet::VEC_XYZ, MetaData("TEMP", T-tokens_.begin()));
+              //if (ds1->Type() == DataSet::VEC_OXYZ)
+              //  mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
+              //          ds1->legend());
+              //if (ds2->Type() == DataSet::VEC_OXYZ)
+              //  mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
+              //          ds2->legend());
+              tempDS = LocalList.AddSet(DataSet::VECTOR, MetaData("TEMP", T-tokens_.begin()));
               DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
               V0.Allocate( DataSet::SizeArray(1, Max) );
               DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);
@@ -831,10 +831,10 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
               }
               else if ( ds1->Group() == DataSet::VECTOR_1D )
               {
-                if (ds1->Type() == DataSet::VEC_OXYZ)
-                  mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
-                          ds1->legend());
-                tempDS = LocalList.AddSet(DataSet::VEC_XYZ, MetaData("TEMP", T-tokens_.begin()));
+                //if (ds1->Type() == DataSet::VEC_OXYZ)
+                //  mprintf("Warning: '%s' contains vector origins; not used in math ops.\n",
+                //          ds1->legend());
+                tempDS = LocalList.AddSet(DataSet::VECTOR, MetaData("TEMP", T-tokens_.begin()));
                 DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
                 V0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
                 DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);
