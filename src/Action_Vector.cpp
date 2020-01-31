@@ -4,7 +4,7 @@
 #include "Action_Vector.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // MinImagedVec, includes Matrix_3x3 for principal
-#include "DataSet_Vector_OXYZ.h"
+#include "DataSet_Vector.h"
 
 // CONSTRUCTOR
 Action_Vector::Action_Vector() :
@@ -156,11 +156,11 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
   // Set up vector dataset and IRED status
   MetaData md(actionArgs.GetStringNext(), MetaData::M_VECTOR);
   if (isIred) md.SetScalarType( MetaData::IREDVEC );
-  DataSet::DataType vtype;
-  if (NeedsOrigin_[mode_])
-    vtype = DataSet::VEC_OXYZ;
-  else
-    vtype = DataSet::VEC_XYZ;
+  DataSet::DataType vtype = DataSet::VECTOR;
+  //if (NeedsOrigin_[mode_])
+  //  vtype = DataSet::VEC_OXYZ;
+  //else
+  //  vtype = DataSet::VEC_XYZ;
   Vec_ = (DataSet_Vector*)init.DSL().AddSet(vtype, md, "Vec");
   if (Vec_ == 0) return Action::ERR;
   // Add set to output file if not doing ptraj-compatible output
@@ -357,7 +357,7 @@ void Action_Vector::Mask(Frame const& currentFrame) {
   Vec3 CXYZ = currentFrame.VCenterOfMass(mask_);
   Vec3 VXYZ = currentFrame.VCenterOfMass(mask2_);
   VXYZ -= CXYZ;
-  ((DataSet_Vector_OXYZ*)Vec_)->AddVxyzo(VXYZ, CXYZ);
+  Vec_->AddVxyzo(VXYZ, CXYZ);
 }
 
 // Action_Vector::Dipole()
@@ -377,7 +377,7 @@ void Action_Vector::Dipole(Frame const& currentFrame) {
     VXYZ += ( XYZ );
   }
   CXYZ /= total_mass;
-  ((DataSet_Vector_OXYZ*)Vec_)->AddVxyzo( VXYZ, CXYZ );
+  Vec_->AddVxyzo( VXYZ, CXYZ );
 }
 
 // Action_Vector::Principal()
@@ -391,7 +391,7 @@ void Action_Vector::Principal(Frame const& currentFrame) {
   Inertia.Diagonalize_Sort_Chirality( Eval, 0 );
   // Eval.Print("PRINCIPAL EIGENVALUES");
   // Inertia.Print("PRINCIPAL EIGENVECTORS (Rows)");
-  DataSet_Vector_OXYZ& vec = static_cast<DataSet_Vector_OXYZ&>( *Vec_ );
+  DataSet_Vector vec = static_cast<DataSet_Vector&>( *Vec_ );
   if ( mode_ == PRINCIPAL_X ) 
     vec.AddVxyzo( Inertia.Row1(), OXYZ ); // First row = first eigenvector
   else if ( mode_ == PRINCIPAL_Y )
@@ -414,7 +414,7 @@ void Action_Vector::CorrPlane(Frame const& currentFrame) {
     vcorr_[idx++] = XYZ[2];
   }
   Vec3 VXYZ = leastSquaresPlane(idx, vcorr_);
-  ((DataSet_Vector_OXYZ*)Vec_)->AddVxyzo(VXYZ, CXYZ);
+  Vec_->AddVxyzo(VXYZ, CXYZ);
 }
 
 //  Action_Vector::UnitCell()
@@ -422,9 +422,9 @@ void Action_Vector::UnitCell(Box const& box) {
   Matrix_3x3 ucell, recip;
   box.ToRecip( ucell, recip );
   switch ( mode_ ) {
-    case BOX_X: ((DataSet_Vector_OXYZ*)Vec_)->AddVxyzo( ucell.Row1(), Vec3(0.0) ); break;
-    case BOX_Y: ((DataSet_Vector_OXYZ*)Vec_)->AddVxyzo( ucell.Row2(), Vec3(0.0) ); break;
-    case BOX_Z: ((DataSet_Vector_OXYZ*)Vec_)->AddVxyzo( ucell.Row3(), Vec3(0.0) ); break;
+    case BOX_X: Vec_->AddVxyzo( ucell.Row1(), Vec3(0.0) ); break;
+    case BOX_Y: Vec_->AddVxyzo( ucell.Row2(), Vec3(0.0) ); break;
+    case BOX_Z: Vec_->AddVxyzo( ucell.Row3(), Vec3(0.0) ); break;
     case BOX_CTR: Vec_->AddVxyz( ucell.TransposeMult(Vec3(0.5)) ); break;
     default: return;
   }
@@ -435,7 +435,7 @@ void Action_Vector::MinImage(Frame const& frm) {
   Matrix_3x3 ucell, recip;
   frm.BoxCrd().ToRecip( ucell, recip );
   Vec3 com1 = frm.VCenterOfMass(mask_);
-  ((DataSet_Vector_OXYZ*)Vec_)->AddVxyzo( MinImagedVec(com1, frm.VCenterOfMass(mask2_), ucell, recip), com1 );
+  Vec_->AddVxyzo( MinImagedVec(com1, frm.VCenterOfMass(mask2_), ucell, recip), com1 );
 }
 
 /// \return The center of selected elements in given array.
@@ -487,9 +487,9 @@ void Action_Vector::Print() {
     outfile_->Printf("# FORMAT: frame vx vy vz cx cy cz cx+vx cy+vy cz+vz\n"
                    "# FORMAT where v? is vector, c? is center of mass...\n");
     int totalFrames = Vec_->Size();
-    if (Vec_->Type() == DataSet::VEC_OXYZ) {
-      DataSet_Vector_OXYZ const& vec =
-        static_cast<DataSet_Vector_OXYZ const&>( *Vec_ );
+    if (Vec_->HasOrigins()) {
+      DataSet_Vector const& vec =
+        static_cast<DataSet_Vector const&>( *Vec_ );
       for (int i=0; i < totalFrames; ++i) {
         Vec3 const& vxyz = vec[i];
         Vec3 const& cxyz = vec.OXYZ(i);
