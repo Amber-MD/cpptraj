@@ -10,7 +10,7 @@ const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
 
 // CONSTRUCTOR
 DataSet_Vector::DataSet_Vector() :
-  DataSet(VECTOR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
+  DataSet(VECTOR, VECTOR_1D, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
   order_(0) {}
 
 /** \return Vector memory usage in bytes. */
