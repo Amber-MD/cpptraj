@@ -1,6 +1,6 @@
 #include "Action_MultiVector.h"
 #include "CpptrajStdio.h"
-#include "DataSet_Vector_OXYZ.h"
+#include "DataSet_Vector.h"
 
 Action_MultiVector::Action_MultiVector() :
   debug_(0),
@@ -86,10 +86,10 @@ Action::RetType Action_MultiVector::Setup(ActionSetup& setup) {
       MetaData md(dsetname_, atom1+1);
       md.SetScalarMode( MetaData::M_VECTOR );
       if (ired_) md.SetScalarType( MetaData::IREDVEC );
-      DataSet_Vector_OXYZ* ds = (DataSet_Vector_OXYZ*)masterDSL_->CheckForSet( md );
+      DataSet_Vector* ds = (DataSet_Vector*)masterDSL_->CheckForSet( md );
       if (ds == 0) {
         // Create DataSet
-        ds = (DataSet_Vector_OXYZ*)masterDSL_->AddSet( DataSet::VEC_OXYZ, md );
+        ds = (DataSet_Vector*)masterDSL_->AddSet( DataSet::VECTOR, md );
         if (ds == 0) return Action::ERR;
         ds->SetLegend( "v" + setup.Top().AtomMaskName(atom1) + "->" +
                              setup.Top().AtomMaskName(atom2) );
@@ -108,7 +108,7 @@ Action::RetType Action_MultiVector::Setup(ActionSetup& setup) {
     }
   }
   mprintf("\tSelected %zu vectors.\n", CrdIdx1_.size());
-  for (std::vector<DataSet_Vector_OXYZ*>::const_iterator it = data_.begin();
+  for (std::vector<DataSet_Vector*>::const_iterator it = data_.begin();
                                                     it != data_.end(); ++it)
     mprintf("\t  %s\n", (*it)->legend());
 
