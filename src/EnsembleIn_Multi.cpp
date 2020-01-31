@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove
+#include "ArgList.h"
 
 // EnsembleIn_Multi::SetupEnsembleRead()
 int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)

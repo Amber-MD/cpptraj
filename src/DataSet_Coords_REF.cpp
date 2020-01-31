@@ -1,6 +1,7 @@
 #include "DataSet_Coords_REF.h"
 #include "CpptrajStdio.h"
 #include "Trajin_Single.h"
+#include "ArgList.h"
 
 void DataSet_Coords_REF::Info() const {
   //if (!tag_.empty())

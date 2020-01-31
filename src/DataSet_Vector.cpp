@@ -1,6 +1,7 @@
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <cmath> // sqrt
 #include "DataSet_Vector.h"
+#include "DataSet_1D.h"
 #include "Constants.h" // For spherical harmonics norm.
 #include "Corr.h"
 
@@ -9,9 +10,10 @@ const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
 
 // CONSTRUCTOR
 DataSet_Vector::DataSet_Vector() :
-  DataSet(VECTOR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
+  DataSet(VECTOR, VECTOR_1D, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
   order_(0) {}
 
+/** \return Vector memory usage in bytes. */
 size_t DataSet_Vector::MemUsageInBytes() const {
   size_t mySize = (vectors_.size() * Vec3::DataSize()) +
                   (origins_.size() * Vec3::DataSize()) +
@@ -22,7 +24,6 @@ size_t DataSet_Vector::MemUsageInBytes() const {
     mySize += (SH->DataSize());
   return mySize;
 }
-         
 
 // DataSet_Vector::Allocate()
 int DataSet_Vector::Allocate(SizeArray const& Nin) {
@@ -31,6 +32,26 @@ int DataSet_Vector::Allocate(SizeArray const& Nin) {
     origins_.reserve( Nin[0] ); // TODO: check if this needs allocation
   }
   return 0;
+}
+
+// DataSet_Vector::MemAlloc
+int DataSet_Vector::MemAlloc(SizeArray const& Nin) {
+  vectors_.resize( Nin[0] );
+  if (HasOrigins())
+    origins_.resize( Nin[0] );
+  return 0;
+}
+
+// DataSet_Vector::CopyBlock()
+void DataSet_Vector::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_Vector const& setIn = static_cast<DataSet_Vector const&>( *dptrIn );
+  Varray::const_iterator ptr = setIn.begin() + pos;
+  std::copy(ptr, ptr + nelts, vectors_.begin() + startIdx);
+  if (HasOrigins()) {
+    ptr = setIn.origins_.begin() + pos;
+    std::copy( ptr, ptr + nelts, origins_.begin() + startIdx );
+  }
 }
 
 // DataSet_Vector::WriteBuffer()
@@ -45,6 +66,7 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) con
   }
 }
 
+// DataSet_Vector::Append()
 int DataSet_Vector::Append(DataSet* dsIn) {
   if (dsIn->Empty()) return 0;
   if (dsIn->Type() != VECTOR) return 1;

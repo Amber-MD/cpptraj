@@ -3,6 +3,7 @@
 #include "ProgressBar.h"
 #include "Constants.h"
 #include "DataSet_double.h"
+#include "DataSet_Vector.h"
 #include "Corr.h"
 #ifdef _OPENMP
 #  include <omp.h>

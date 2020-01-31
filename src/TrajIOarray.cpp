@@ -3,6 +3,7 @@
 #include "StringRoutines.h" // integerToString, validInteger
 #include "CpptrajStdio.h"
 #include "TrajectoryFile.h"
+#include "ArgList.h"
 
 TrajIOarray::~TrajIOarray() { ClearIOarray(); }
 

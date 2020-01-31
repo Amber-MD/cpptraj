@@ -5,13 +5,13 @@
 CleanFiles vector.in v6and7.dat rex-d.dat MD.ene.dat out.dx out.dat \
            truncoct.dat out?.dx append.dx append.dat temp.dat \
            truncsparse.dat temp2.dat truncoct.dat.save sparse.dat \
-           xyz.dat
+           xyz.dat v7and6.dat
 
 TESTNAME='Read data tests'
 
 INPUT="-i vector.in"
 # Test read/append of vector dataset
-UNITNAME='Read vector data test'
+UNITNAME='Read vector data test (no origins, origins)'
 cat > vector.in <<EOF
 readdata ../Test_Vector/vtest.dat.6.save vector name v6and7
 readdata ../Test_Vector/vtest.dat.7.save vector name v6and7
@@ -19,6 +19,15 @@ writedata v6and7.dat v6and7
 EOF
 RunCpptraj "$UNITNAME"
 DoTest v6and7.dat.save v6and7.dat
+
+UNITNAME='Read vector data set (origins, no origins)'
+cat > vector.in <<EOF
+readdata ../Test_Vector/vtest.dat.7.save vector name v7and6
+readdata ../Test_Vector/vtest.dat.6.save vector name v7and6
+writedata v7and6.dat v7and6
+EOF
+RunCpptraj "$UNITNAME"
+DoTest v7and6.dat.save v7and6.dat
 
 UNITNAME='Read Amber output test'
 cat > vector.in <<EOF

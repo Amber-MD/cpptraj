@@ -2,6 +2,7 @@
 #include "Trajout_Single.h"
 #include "Topology.h"
 #include "CpptrajStdio.h"
+#include "ArgList.h"
 // FIXME for pytraj compatibility
 #include "DataSetList.h"
 
