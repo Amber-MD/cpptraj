@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_INFRAREDSPECTRUM_H
 #define INC_ACTION_INFRAREDSPECTRUM_H
 #include "Action.h"
-class DataSet_Vector_XYZ;
+class DataSet_Vector;
 /// <Enter description of Action_InfraredSpectrum here>
 class Action_InfraredSpectrum : public Action {
   public:
@@ -14,7 +14,7 @@ class Action_InfraredSpectrum : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
-    DataSet_Vector_XYZ* Vel_; ///< Hold velocity*charge for selected atoms at each frame.
+    DataSet_Vector* Vel_; ///< Hold velocity*charge for selected atoms at each frame.
     DataSet* VAC_;
     AtomMask mask_;         ///< Atoms to calculate VAC fn for.
     Topology* currentTop_;
