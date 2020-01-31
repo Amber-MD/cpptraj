@@ -1,7 +1,7 @@
 #include "Action_Principal.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Mat3x3.h"
-#include "DataSet_Vector_XYZ.h"
+#include "DataSet_Vector.h"
 
 // CONSTRUCTOR
 Action_Principal::Action_Principal() :
@@ -38,7 +38,7 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, ActionInit& init, in
   // Set up data
   if (!dsname.empty()) {
      vecData_ = (DataSet_Mat3x3*)init.DSL().AddSet(DataSet::MAT3X3, MetaData(dsname, "evec"));
-     valData_ = (DataSet_Vector_XYZ*)init.DSL().AddSet(DataSet::VEC_XYZ, MetaData(dsname, "eval"));
+     valData_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VECTOR, MetaData(dsname, "eval"));
      if (vecData_ == 0 || valData_ == 0) return Action::ERR;
   }
 
