@@ -2,7 +2,7 @@
 #include "Analysis_VectorMath.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
-#include "DataSet_Vector_XYZ.h"
+#include "DataSet_Vector.h"
 #include "DataSet_double.h"
 
 /// Strings corresponding to modes, used in output.
@@ -65,7 +65,7 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup
     dname = "Angle";
   } else if (analyzeArgs.hasKey("crossproduct")) {
     mode_ = CROSSPRODUCT;
-    dtype = DataSet::VEC_XYZ;
+    dtype = DataSet::VECTOR;
     dname = "Cross";
   }
   // Set up output file in DataFileList if necessary
@@ -130,7 +130,7 @@ int Analysis_VectorMath::CrossProduct(DataSet* Dout, DataSet_Vector& V1, DataSet
                                       unsigned int vmax, unsigned int v1inc, unsigned int v2inc)
 const
 {
-  DataSet_Vector_XYZ& Out = static_cast<DataSet_Vector_XYZ&>( *Dout );
+  DataSet_Vector& Out = static_cast<DataSet_Vector&>( *Dout );
   Out.Allocate( DataSet::SizeArray(1, V1.Size()) );
   unsigned int v1 = 0;
   unsigned int v2 = 0;
