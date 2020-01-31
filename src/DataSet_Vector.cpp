@@ -1,6 +1,7 @@
 #include <cstdlib> // abs, intel 11 compilers choke on std::abs
 #include <cmath> // sqrt
 #include "DataSet_Vector.h"
+#include "DataSet_1D.h"
 #include "Constants.h" // For spherical harmonics norm.
 #include "Corr.h"
 
@@ -31,6 +32,26 @@ int DataSet_Vector::Allocate(SizeArray const& Nin) {
     origins_.reserve( Nin[0] ); // TODO: check if this needs allocation
   }
   return 0;
+}
+
+// DataSet_Vector::MemAlloc
+int DataSet_Vector::MemAlloc(SizeArray const& Nin) {
+  vectors_.resize( Nin[0] );
+  if (HasOrigins())
+    origins_.resize( Nin[0] );
+  return 0;
+}
+
+// DataSet_Vector::CopyBlock()
+void DataSet_Vector::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_Vector const& setIn = static_cast<DataSet_Vector const&>( *dptrIn );
+  Varray::const_iterator ptr = setIn.begin() + pos;
+  std::copy(ptr, ptr + nelts, vectors_.begin() + startIdx);
+  if (HasOrigins()) {
+    ptr = setIn.origins_.begin() + pos;
+    std::copy( ptr, ptr + nelts, origins_.begin() + startIdx );
+  }
 }
 
 // DataSet_Vector::WriteBuffer()

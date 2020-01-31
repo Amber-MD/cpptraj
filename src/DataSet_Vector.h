@@ -1,10 +1,10 @@
 #ifndef INC_DATASET_VECTOR_H
 #define INC_DATASET_VECTOR_H
 #include "DataSet.h"
-#include "DataSet_1D.h" // FIXME remove after Correlation gone
 #include "Vec3.h"
 #include "ComplexArray.h"
 #include "SymbolExporting.h"
+class DataSet_1D;
 class DataSet_Vector : public DataSet {
     static const ComplexArray COMPLEXBLANK;
   public:
@@ -19,6 +19,8 @@ class DataSet_Vector : public DataSet {
 #   endif
     void Info()                         const { return;                 }
     int Allocate(SizeArray const&);
+    int MemAlloc(SizeArray const&);
+    void CopyBlock(size_t, DataSet const*, size_t, size_t);
     inline void Add(size_t, const void*);
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     int Append( DataSet* );
