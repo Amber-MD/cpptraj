@@ -13,8 +13,7 @@
 #include "DataSet_double.h" // For reading TODO remove dependency?
 #include "DataSet_float.h" // For reading TODO remove dependency?
 #include "DataSet_string.h" // For reading TODO remove dependency?
-#include "DataSet_Vector_OXYZ.h" // For reading TODO remove dependency?
-#include "DataSet_Vector_XYZ.h" // For reading TODO remove dependency?
+#include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_2D.h"
 #include "DataSet_3D.h"
@@ -730,12 +729,12 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     mprintf("\tReading vector X Y Z and origin X Y Z values.\n");
     hasOrigins = true;
     // If set already exists, see if it doesnt have origins.
-    if (ds != 0 && ds->Type() == DataSet::VEC_XYZ) {
+    if (ds != 0 && !((DataSet_Vector*)ds)->HasOrigins()) {
       mprintf("Warning: Existing set '%s' does not have origin data.\n", ds->legend());
       mprintf("Warning: Existing set will be filled with zeroed origin data where none exists.\n");
       DataSet* oldSet = datasetlist.PopSet( ds );
-      DataSet_Vector_OXYZ* voxyz =
-        (DataSet_Vector_OXYZ*)datasetlist.AddSet(DataSet::VEC_OXYZ, oldSet->Meta());
+      DataSet_Vector* voxyz =
+        (DataSet_Vector*)datasetlist.AddSet(DataSet::VECTOR, oldSet->Meta());
       if (voxyz == 0) return 1;
       // Make sure dimension info matches
       voxyz->SetDim(Dimension::X, oldSet->Dim(Dimension::X));
@@ -751,18 +750,19 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     mprintf("\tReading vector X Y Z values.\n");
     hasOrigins = false;
     // If set already exists, see if it has origins.
-    if (ds != 0 && ds->Type() == DataSet::VEC_OXYZ) {
+    if (ds != 0 && ((DataSet_Vector*)ds)->HasOrigins()) {
       mprintf("Warning: Existing set '%s' has origin data.\n", ds->legend());
       mprintf("Warning: Existing set will be filled with zeroed origin data where none exists.\n");
+      hasOrigins = true;
     }
   }
   // Create set if it doesnt yet exist;
   if (ds == 0) {
-    DataSet::DataType dtype;
-    if (hasOrigins)
-      dtype = DataSet::VEC_OXYZ;
-    else
-      dtype = DataSet::VEC_XYZ;
+    DataSet::DataType dtype = DataSet::VECTOR;
+    //if (hasOrigins)
+    //  dtype = DataSet::VEC_OXYZ;
+    //else
+    //  dtype = DataSet::VEC_XYZ;
     ds = datasetlist.AddSet(dtype, dsname);
     if (ds == 0) return 1;
   }
@@ -782,7 +782,10 @@ int DataIO_Std::Read_Vector(std::string const& fname,
                 buffer.LineNumber(), nv, ntokens);
       break;
     }
-    ds->Add( ndata++, vec ); 
+    if (hasOrigins)
+      ds->Add( ndata++, vec );
+    else
+      ((DataSet_Vector*)ds)->AddVxyz( Vec3(vec) ); // TODO: Remove if DataSet_Vector is split to with/without origins
     linebuffer = buffer.Line();
   }
   return 0;
