@@ -1,6 +1,7 @@
 #include "Analysis_Corr.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Vector.h"
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Analysis_Corr::Analysis_Corr() :
