@@ -1431,8 +1431,8 @@ BasicChecks() {
     if [ $USE_OPENMP -ne 0 ] ; then
       Err "OpenMP not currently supported on Windows."
     fi
-    echo "WINDOWS support requested. Implies '-static'."
-    USE_STATIC=1
+    #echo "WINDOWS support requested. Implies '-static'."
+    #USE_STATIC=1
   fi
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
     WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
