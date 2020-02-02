@@ -1,8 +1,10 @@
 #ifndef INC_DATAFILELIST_H
 #define INC_DATAFILELIST_H
 #include "DataFile.h"
-#include "DataSet.h"
-#include "ArgList.h"
+class DataSet;
+class ArgList;
+class FileName;
+class CpptrajFile;
 /// Holds a list of output DataFiles/CpptrajFiles.
 /** The DataFileList is meant to hold all output data files defined by any
   * Actions or Analysis. This allows multiple sets to be directed to the

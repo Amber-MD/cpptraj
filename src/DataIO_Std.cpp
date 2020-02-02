@@ -686,6 +686,16 @@ int DataIO_Std::Read_3D(std::string const& fname,
 int DataIO_Std::Read_Vector(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
+  // See if set exists
+  DataSet* ds = datasetlist.CheckForSet( dsname );
+  if (ds != 0) {
+    mprintf("\tAppending vector data to set '%s'\n", ds->legend());
+    // Set exists.
+    if (ds->Group() != DataSet::VECTOR_1D) {
+      mprinterr("Error: Cannot append vector data to non-vector set '%s'\n", ds->legend());
+      return 1;
+    }
+  }
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
@@ -713,21 +723,53 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
     return 1;
   }
+  bool hasOrigins;
   if (ncols >= 6) {
     nv = 6;
     mprintf("\tReading vector X Y Z and origin X Y Z values.\n");
+    hasOrigins = true;
+    // If set already exists, see if it doesnt have origins.
+    if (ds != 0 && !((DataSet_Vector*)ds)->HasOrigins()) {
+      mprintf("Warning: Existing set '%s' does not have origin data.\n", ds->legend());
+      mprintf("Warning: Existing set will be filled with zeroed origin data where none exists.\n");
+      DataSet* oldSet = datasetlist.PopSet( ds );
+      DataSet_Vector* voxyz =
+        (DataSet_Vector*)datasetlist.AddSet(DataSet::VECTOR, oldSet->Meta());
+      if (voxyz == 0) return 1;
+      // Make sure dimension info matches
+      voxyz->SetDim(Dimension::X, oldSet->Dim(Dimension::X));
+      // Add existing vector values to set with origin at 0.0.
+      for (unsigned int idx = 0; idx < oldSet->Size(); idx++)
+        voxyz->AddVxyzo( ((DataSet_Vector*)oldSet)->VXYZ(idx), Vec3(0.0) );
+      ds = (DataSet*)voxyz;
+      // Free old set memory
+      delete oldSet;
+    }
   } else {
     nv = 3;
     mprintf("\tReading vector X Y Z values.\n");
+    hasOrigins = false;
+    // If set already exists, see if it has origins.
+    if (ds != 0 && ((DataSet_Vector*)ds)->HasOrigins()) {
+      mprintf("Warning: Existing set '%s' has origin data.\n", ds->legend());
+      mprintf("Warning: Existing set will be filled with zeroed origin data where none exists.\n");
+      hasOrigins = true;
+    }
   }
-  // Create set
-  DataSet_Vector* ds = new DataSet_Vector();
-  if (ds == 0) return 1;
-  ds->SetMeta( dsname );
+  // Create set if it doesnt yet exist;
+  if (ds == 0) {
+    DataSet::DataType dtype = DataSet::VECTOR;
+    //if (hasOrigins)
+    //  dtype = DataSet::VEC_OXYZ;
+    //else
+    //  dtype = DataSet::VEC_XYZ;
+    ds = datasetlist.AddSet(dtype, dsname);
+    if (ds == 0) return 1;
+  }
   // Read vector data
   double vec[6];
   std::fill(vec, vec+6, 0.0);
-  size_t ndata = 0;
+  size_t ndata = ds->Size();
   while (linebuffer != 0) {
     if (hasIndex)
       ntokens = sscanf(linebuffer, "%*f %lf %lf %lf %lf %lf %lf",
@@ -740,10 +782,13 @@ int DataIO_Std::Read_Vector(std::string const& fname,
                 buffer.LineNumber(), nv, ntokens);
       break;
     }
-    ds->Add( ndata++, vec ); 
+    if (hasOrigins)
+      ds->Add( ndata++, vec );
+    else
+      ((DataSet_Vector*)ds)->AddVxyz( Vec3(vec) ); // TODO: Remove if DataSet_Vector is split to with/without origins
     linebuffer = buffer.Line();
   }
-  return (datasetlist.AddOrAppendSets("", DataSetList::Darray(), DataSetList::DataListType(1, ds)));
+  return 0;
 }
 
 // DataIO_Std::Read_Mat3x3()

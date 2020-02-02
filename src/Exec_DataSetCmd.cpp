@@ -285,7 +285,7 @@ Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) 
   while (!dsl1.empty()) {
     for (DataSetList::const_iterator it = dsl1.begin(); it != dsl1.end(); ++it)
     {
-      if ( (*it)->Type() != DataSet::VECTOR) {
+      if ( (*it)->Group() != DataSet::VECTOR_1D) {
         mprintf("Warning: '%s' 'vectorcoord' only works with vector data sets.\n", (*it)->legend());
       } else if ( (*it)->Size() < 1) {
         mprintf("Warning: '%s' is empty.\n", (*it)->legend());
@@ -820,7 +820,7 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
           mprintf("Warning: '%s': Expected scalar 1D data set type for mode '%s'\n",
                   (*ds)->legend(), MetaData::ModeString(dmode));
         else if ( dmode == MetaData::M_VECTOR &&
-                  (*ds)->Type() != DataSet::VECTOR )
+                  (*ds)->Group() != DataSet::VECTOR_1D )
           mprintf("Warning: '%s': Expected vector data set type for mode '%s'\n",
                   (*ds)->legend(), MetaData::ModeString(dmode));
         else if ( dmode == MetaData::M_MATRIX &&

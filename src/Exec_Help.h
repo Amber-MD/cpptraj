@@ -11,6 +11,7 @@ class Exec_Help : public Exec {
   private:
     int Formats(ArgList&) const;
     int Masks(ArgList&) const;
+    int Math(ArgList&) const;
     int Topics(ArgList&) const;
 };
 #endif

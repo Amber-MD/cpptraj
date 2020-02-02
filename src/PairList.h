@@ -55,9 +55,9 @@ class PairList {
     /// Update the translation vectors based on given unit cell matrix.
     void FillTranslateVec(Matrix_3x3 const&);
     /// Add atoms to grid cells.
-    void GridUnitCell(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
+    int GridUnitCell(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
     /// Calculate cell index based on given coords and add to cell
-    inline void GridAtom(int, Vec3 const&, Vec3 const&);
+    inline int GridAtom(int, Vec3 const&, Vec3 const&);
 
     Carray cells_;            ///< Hold all cells in grid
     Vec3 translateVec_[18];   ///< Translate vector array

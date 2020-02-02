@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "EnsembleOut_Single.h"
 #include "EnsembleOut_Multi.h"
+#include "ArgList.h"
 
 /// CONSTRUCTOR
 EnsembleOutList::EnsembleOutList() : debug_(0) {}

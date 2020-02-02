@@ -2,6 +2,7 @@
 #include "Analysis_Timecorr.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
+#include "DataSet_Vector.h"
 
 /// Strings corresponding to modes, used in output.
 const char* Analysis_Timecorr::ModeString[] = { 
@@ -97,7 +98,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, AnalysisSetup& 
     mprinterr("Error: no vec1 given, ignoring command\n");
     return Analysis::ERR;
   }
-  vinfo1_ = (DataSet_Vector*)setup.DSL().FindSetOfType( vec1name, DataSet::VECTOR );
+  vinfo1_ = (DataSet_Vector*)setup.DSL().FindSetOfGroup( vec1name, DataSet::VECTOR_1D );
   if (vinfo1_==0) {
     mprinterr("Error: vec1: no vector with name %s found.\n", 
               vec1name.c_str());
@@ -105,7 +106,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   }
   std::string vec2name = analyzeArgs.GetStringKey("vec2");
   if (!vec2name.empty()) {
-    vinfo2_ = (DataSet_Vector*)setup.DSL().FindSetOfType( vec2name, DataSet::VECTOR );
+    vinfo2_ = (DataSet_Vector*)setup.DSL().FindSetOfGroup( vec2name, DataSet::VECTOR_1D );
     if (vinfo2_==0) {
       mprinterr("Error: vec2: no vector with name %s found.\n", 
                 vec2name.c_str());

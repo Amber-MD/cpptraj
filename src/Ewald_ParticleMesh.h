@@ -12,7 +12,7 @@ class Ewald_ParticleMesh : public Ewald {
              int, int, const int*);
     // ----- Inherited ---------------------------
     int Setup(Topology const&, AtomMask const&);
-    double CalcEnergy(Frame const&, AtomMask const&, double&); // TODO const?
+    int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&);
   private:
     typedef Ewald::Darray Darray;
     /// Based on given length return number of grid points that is power of 2, 3, or 5

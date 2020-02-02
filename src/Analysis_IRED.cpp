@@ -4,6 +4,8 @@
 #include "Corr.h"
 #include "DataSet_double.h" // Access to Resize and [] op
 #include "DataSet_MatrixDbl.h" // Access to AddElement
+#include "DataSet_Vector.h"
+#include "DataSet_Modes.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -45,7 +47,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   debug_ = debugIn;
   // Count and store the number of previously defined IRED vectors.
   for ( DataSetList::const_iterator DS = setup.DSL().begin(); DS != setup.DSL().end(); ++DS) {
-    if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC)
+    if ( (*DS)->Group() == DataSet::VECTOR_1D && (*DS)->Meta().ScalarType() == MetaData::IREDVEC)
       IredVectors_.push_back( (DataSet_Vector*)*DS );
   }
   if (IredVectors_.empty()) {

@@ -366,7 +366,11 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
   PL.SetupPairList( box );
   Matrix_3x3 ucell, recip;
   box.ToRecip( ucell, recip );
-  PL.CreatePairList( frameIn, ucell, recip, AtomMask(0, frameIn.Natom()) );
+  int retVal = PL.CreatePairList( frameIn, ucell, recip, AtomMask(0, frameIn.Natom()) );
+  if (retVal != 0) {
+    mprinterr("Error: Grid setup failed.\n");
+    return 1;
+  }
 
   // Determine bonds
   int cidx;
