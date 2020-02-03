@@ -62,8 +62,8 @@ using namespace desres::molfile;
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "vmddir.h"
-#include "endianswap.h"
+//#include "vmddir.h"
+//#include "endianswap.h"
 
 static const char SERIALIZED_VERSION[] = "0006";
 const char * desres::molfile::dtr_serialized_version() {

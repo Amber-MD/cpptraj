@@ -84,7 +84,7 @@ typedef int mode_t;
 #include <string.h>
 #endif
 
-#include <molfile_plugin.h>
+//#include <molfile_plugin.h>
 
 #include <vector>
 #include <string>
