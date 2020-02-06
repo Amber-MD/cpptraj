@@ -288,6 +288,7 @@ COMMON_SOURCES= \
         FileIO_MpiShared.cpp \
         FileIO_Std.cpp \
         FileName.cpp \
+        FileType.cpp \
         FileTypes.cpp \
         ForLoop.cpp \
         ForLoop_dataSetBlocks.cpp \
