@@ -384,7 +384,8 @@ COMMON_SOURCES= \
         Trajout_Single.cpp \
         TrajoutList.cpp \
         Vec3.cpp \
-        ViewRst.cpp
+        ViewRst.cpp \
+        vmdplugin/dtrplugin.cpp
 
 CSOURCES= molsurf.c
 
