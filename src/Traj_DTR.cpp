@@ -1,6 +1,7 @@
 #include "Traj_DTR.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
+#include "Topology.h"
 #include "vmdplugin/dtrplugin.hxx"
 
 using namespace desres::molfile;
@@ -61,11 +62,31 @@ int Traj_DTR::processReadArgs(ArgList& argIn) {
   */
 int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
 {
+  if (DTR_ != 0) delete DTR_;
+  DTR_ = 0;
+
+  std::string initName;
   // check fot .stk file
   if (StkReader::recognizes(fname.full())) {
     DTR_ = new StkReader;
+    initName = fname.Full();
   } else {
     DTR_ = new DtrReader;
+    // DTR should be initialized with the dir name
+    initName = fname.DirPrefix();
+  }
+
+  if (DTR_->init( initName.c_str() )) {
+    delete DTR_;
+    DTR_ = 0;
+    return TRAJIN_ERR;
+  }
+
+  // Check number of atoms
+  if ( (int)DTR_->natoms != trajParm->Natom() ) {
+    mprinterr("Error: # of atoms in DTR (%u) != # atoms in associated topology (%i)\n",
+              DTR_->natoms, trajParm->Natom());
+    return TRAJIN_ERR;
   }
 
   return TRAJIN_ERR;
