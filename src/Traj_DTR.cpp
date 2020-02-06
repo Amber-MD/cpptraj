@@ -89,7 +89,7 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
 
-  return TRAJIN_ERR;
+  return DTR_->size();
 }
 
 /** Read specified trajectory frame. */
