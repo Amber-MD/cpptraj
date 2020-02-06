@@ -105,7 +105,7 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
   // NOTE: DTR seems to always have box? Always orthogonal?
   Box tmpBox;
   tmpBox.SetBetaLengths(90.0, 1, 1, 1);
-  SetCoordInfo( CoordinateInfo(tmpBox, DTR_->has_velocities(), false, false) );
+  SetCoordInfo( CoordinateInfo(tmpBox, DTR_->has_velocities(), false, true) );
 
   bufsize_ = 3 * (size_t)trajParm->Natom();
   if (CoordInfo().HasVel())
@@ -140,6 +140,9 @@ int Traj_DTR::readFrame(int set, Frame& frameIn) {
   // Set box
   frameIn.SetBox().SetBox( Tstep.A, Tstep.B, Tstep.C,
                            Tstep.alpha, Tstep.beta, Tstep.gamma );
+
+  // Time
+  frameIn.SetTime( Tstep.physical_time );
 
   return 0;
 }
