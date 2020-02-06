@@ -1,5 +1,6 @@
 #include "Traj_DTR.h"
 #include "CpptrajStdio.h"
+#include "CpptrajFile.h"
 
 /// CONSTRUCTOR
 Traj_DTR::Traj_DTR() :
@@ -8,8 +9,16 @@ Traj_DTR::Traj_DTR() :
 
 /** Identify trajectory format. File should be setup for READ */
 bool Traj_DTR::ID_TrajFormat(CpptrajFile& fileIn) {
-
-  return false;
+  if (fileIn.OpenFile()) return false;
+  unsigned char buffer[4];
+  if (fileIn.Read(buffer, 4) != 4) return false;
+  fileIn.CloseFile();
+  if (buffer[0] != 'D' ||
+      buffer[1] != 'E' ||
+      buffer[2] != 'S' ||
+      buffer[3] != 'M')
+    return false;
+  return true;
 }
 
 /** Print trajectory info to stdout. */
