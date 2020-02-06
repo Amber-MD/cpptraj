@@ -62,8 +62,9 @@ using namespace desres::molfile;
 #include <sys/stat.h>
 #include <sys/types.h>
 
-//#include "vmddir.h"
+#include "vmddir.h"
 //#include "endianswap.h"
+#include "../ByteRoutines.h"
 
 static const char SERIALIZED_VERSION[] = "0006";
 const char * desres::molfile::dtr_serialized_version() {
@@ -607,7 +608,7 @@ namespace {
       } else {
         memset(buf, 0, count*sizeof(float));
       }
-      if (byteswap) swap4_unaligned(buf, count);
+      if (byteswap) endian_swap(buf, count);
     }
     void get_double(double *buf) const {
       if (type=="double") {
@@ -618,7 +619,7 @@ namespace {
       } else {
         memset(buf, 0, count*sizeof(double));
       }
-      if (byteswap) swap8_unaligned(buf, count);
+      if (byteswap) endian_swap8(buf, count);
     }
     void get_int32(int32_t *buf) const {
       if (type=="int32_t") {
@@ -626,7 +627,7 @@ namespace {
       } else {
         memset(buf, 0, count*sizeof(int32_t));
       }
-      if (byteswap) swap4_unaligned(buf, count);
+      if (byteswap) endian_swap(buf, count);
     }
     void get_uint32(uint32_t *buf) const {
       if (type=="uint32_t") {
@@ -634,7 +635,7 @@ namespace {
       } else {
         memset(buf, 0, count*sizeof(uint32_t));
       }
-      if (byteswap) swap4_unaligned(buf, count);
+      if (byteswap) endian_swap(buf, count);
     }
   };
 
