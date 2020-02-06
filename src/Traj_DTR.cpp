@@ -81,7 +81,7 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
     initName = fname.DirPrefix();
   }
 
-  mprintf("DEBUG: initName= %s\n", initName.c_str());
+  if (debug_ > 0) mprintf("DEBUG: initName= %s\n", initName.c_str());
 
   if (!DTR_->init( initName.c_str() )) {
     mprinterr("Error: DTR init failed.\n");
@@ -99,7 +99,7 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
 
   ssize_t nframes = DTR_->size();
 
-  mprintf("DEBUG: %zd frames.\n", nframes);
+  if (debug_ > 0) mprintf("DEBUG: %zd frames.\n", nframes);
 
   // Set Coordinate info.
   // NOTE: DTR seems to always have box? Always orthogonal?
