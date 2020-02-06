@@ -7,12 +7,15 @@
 using namespace desres::molfile;
 /// CONSTRUCTOR
 Traj_DTR::Traj_DTR() :
-  DTR_(0)
+  DTR_(0),
+  fbuffer_(0),
+  bufsize_(0)
 {}
 
 /// DESTRUCTOR
 Traj_DTR::~Traj_DTR() {
   if (DTR_ != 0) delete DTR_;
+  if (fbuffer_ != 0) delete[] fbuffer_;
 }
 
 /** Identify trajectory format. File should be setup for READ */
@@ -64,6 +67,8 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   if (DTR_ != 0) delete DTR_;
   DTR_ = 0;
+  if (fbuffer_ != 0) delete[] fbuffer_;
+  fbuffer_ = 0;
 
   std::string initName;
   // check fot .stk file
@@ -96,11 +101,45 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
 
   mprintf("DEBUG: %zd frames.\n", nframes);
 
+  // Set Coordinate info.
+  // NOTE: DTR seems to always have box? Always orthogonal?
+  Box tmpBox;
+  tmpBox.SetBetaLengths(90.0, 1, 1, 1);
+  SetCoordInfo( CoordinateInfo(tmpBox, DTR_->has_velocities(), false, false) );
+
+  bufsize_ = 3 * (size_t)trajParm->Natom();
+  if (CoordInfo().HasVel())
+    bufsize_ *= 2;
+  fbuffer_ = new float[ bufsize_ ];
+
   return nframes;
+}
+
+static inline void FloatToDouble(double* darray, const float* farray, size_t asize)
+{
+  for (size_t idx = 0; idx != asize; idx++)
+    darray[idx] = (double)farray[idx];
 }
 
 /** Read specified trajectory frame. */
 int Traj_DTR::readFrame(int set, Frame& frameIn) {
+  molfile_timestep_t Tstep;
+  Tstep.coords = fbuffer_;
+  if (CoordInfo().HasVel())
+    Tstep.velocities = fbuffer_ + bufsize_;
+
+  int ret = DTR_->frame(set, &Tstep);
+  // -1 is EOF
+  // 0 is success
+  if ( ret != 0 ) return 1;
+  // Convert float to double
+  FloatToDouble(frameIn.xAddress(), Tstep.coords, bufsize_);
+  if (CoordInfo().HasVel())
+    FloatToDouble(frameIn.vAddress(), Tstep.velocities, bufsize_);
+
+  // Set box
+  frameIn.SetBox().SetBox( Tstep.A, Tstep.B, Tstep.C,
+                           Tstep.alpha, Tstep.beta, Tstep.gamma );
 
   return 0;
 }

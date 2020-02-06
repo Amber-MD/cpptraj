@@ -38,5 +38,7 @@ class Traj_DTR : public TrajectoryIO {
 #   endif
 
     desres::molfile::FrameSetReader* DTR_;
+    float* fbuffer_; ///< For reading in coords and velocities
+    size_t bufsize_; ///< Size of buffer_
 };
 #endif
