@@ -1,11 +1,12 @@
 #ifndef INC_TRAJ_DTR_H
 #define INC_TRAJ_DTR_H
 #include "TrajectoryIO.h"
-#include "vmdplugin/dtrplugin.hxx"
+namespace desres { namespace molfile { class FrameSetReader; } }
 /// Used to read Desmond DTR trajectory 
 class Traj_DTR : public TrajectoryIO {
   public:
     Traj_DTR();
+    ~Traj_DTR();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_DTR(); }
     static void WriteHelp();
     static void ReadHelp();

@@ -1,11 +1,18 @@
 #include "Traj_DTR.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
+#include "vmdplugin/dtrplugin.hxx"
 
+using namespace desres::molfile;
 /// CONSTRUCTOR
 Traj_DTR::Traj_DTR() :
   DTR_(0)
 {}
+
+/// DESTRUCTOR
+Traj_DTR::~Traj_DTR() {
+  if (DTR_ != 0) delete DTR_;
+}
 
 /** Identify trajectory format. File should be setup for READ */
 bool Traj_DTR::ID_TrajFormat(CpptrajFile& fileIn) {
@@ -23,7 +30,7 @@ bool Traj_DTR::ID_TrajFormat(CpptrajFile& fileIn) {
 
 /** Print trajectory info to stdout. */
 void Traj_DTR::Info() {
-  mprintf("is a <type>");
+  mprintf("is a Desmond DTR trajectory");
 }
 
 /** Close file. */
@@ -54,6 +61,12 @@ int Traj_DTR::processReadArgs(ArgList& argIn) {
   */
 int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
 {
+  // check fot .stk file
+  if (StkReader::recognizes(fname.full())) {
+    DTR_ = new StkReader;
+  } else {
+    DTR_ = new DtrReader;
+  }
 
   return TRAJIN_ERR;
 }
