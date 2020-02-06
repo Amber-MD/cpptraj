@@ -76,7 +76,10 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
     initName = fname.DirPrefix();
   }
 
-  if (DTR_->init( initName.c_str() )) {
+  mprintf("DEBUG: initName= %s\n", initName.c_str());
+
+  if (!DTR_->init( initName.c_str() )) {
+    mprinterr("Error: DTR init failed.\n");
     delete DTR_;
     DTR_ = 0;
     return TRAJIN_ERR;
@@ -89,7 +92,11 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
 
-  return DTR_->size();
+  ssize_t nframes = DTR_->size();
+
+  mprintf("DEBUG: %zd frames.\n", nframes);
+
+  return nframes;
 }
 
 /** Read specified trajectory frame. */
