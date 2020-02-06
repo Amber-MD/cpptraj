@@ -360,6 +360,7 @@ COMMON_SOURCES= \
         Traj_CharmmRestart.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
+        Traj_DTR.cpp \
         Traj_GmxDump.cpp \
         Traj_GmxTng.cpp \
         Traj_GmxTrX.cpp \
