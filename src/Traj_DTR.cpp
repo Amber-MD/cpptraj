@@ -102,6 +102,10 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
   ssize_t nframes = DTR_->size();
 
   if (debug_ > 0) mprintf("DEBUG: %zd frames.\n", nframes);
+  if (nframes < 1) {
+    mprinterr("Error: No frames detected in DTR trajectory.\n");
+    return TRAJIN_ERR;
+  }
 
   bool has_vel = DTR_->has_velocities();
   // Allocate float buffer
