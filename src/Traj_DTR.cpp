@@ -20,6 +20,8 @@ Traj_DTR::~Traj_DTR() {
 
 /** Identify trajectory format. File should be setup for READ */
 bool Traj_DTR::ID_TrajFormat(CpptrajFile& fileIn) {
+  // For backwards compatibility with VMD
+  if (fileIn.Filename().Base() == "clickme.dtr") return true;
   if (fileIn.OpenFile()) return false;
   unsigned char buffer[4];
   if (fileIn.Read(buffer, 4) != 4) return false;
