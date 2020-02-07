@@ -106,6 +106,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { SQM,            "sqm",       ".sqm"     },
   { SDF,            "sdf",       ".sdf"     },
   { XYZ,            "xyz",       ".xyz"     },
+  { DTR,            "dtr",       ".dtr"     },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 
