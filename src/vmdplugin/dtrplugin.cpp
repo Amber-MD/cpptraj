@@ -75,7 +75,7 @@ static bool badversion(const std::string& version) {
     return version != SERIALIZED_VERSION;
 }
 
-#ifndef DESRES_WIN32
+#ifndef _WIN32
 static const char s_sep = '/';
 #include <sys/mman.h>
 
@@ -317,7 +317,7 @@ namespace {
     // other files.
     // -----------------------------------------------
 
-#ifdef DESRES_WIN32
+#ifdef _WIN32
     // Use ::stat instead of ::lstat on windows since there are no symlinks
     if (stat(path.c_str(),&statbuf) == 0) {
 #else
