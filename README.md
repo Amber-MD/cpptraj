@@ -27,7 +27,7 @@ For those wanting to use CPPTRAJ in their Python scripts, see
 [Pytraj](https://github.com/Amber-MD/pytraj).
 
 See what's [new in CPPTRAJ](https://github.com/Amber-MD/cpptraj/wiki). For those
-just starting out you may want to check out some [CPPTRAJ tutorials](http://ambermd.org/tutorials/TrajectoryAnalysis.php#cpptraj).
+just starting out you may want to check out some [CPPTRAJ tutorials](http://ambermd.org/tutorials/TrajectoryAnalysis.php#cpptraj) or [Amber-Hub](https://amberhub.chpc.utah.edu/) which contains many useful "recipes" for CPPTRAJ.
 
 For more information (or to cite CPPTRAJ) see the following publication:
 
