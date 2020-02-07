@@ -2177,7 +2177,7 @@ std::istream& StkReader::load(std::istream &in) {
   if (framesets.size()) natoms=framesets[0]->natoms;
   return in;
 }
-
+#ifdef ENABLE_VMD_PLUGIN
 ///////////////////////////////////////////////////////////////////
 //
 // Plugin Interface
@@ -2305,7 +2305,7 @@ VMDPLUGIN_API int VMDPLUGIN_register(void *v, vmdplugin_register_cb cb) {
 VMDPLUGIN_API int VMDPLUGIN_fini(void) {
   return VMDPLUGIN_SUCCESS;
 }
-
+#endif /* ENABLE_VMD_PLUGIN */
 
 #if defined(TEST_DTRPLUGIN)
 
