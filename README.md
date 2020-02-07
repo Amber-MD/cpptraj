@@ -220,3 +220,5 @@ External libraries bundled with CPPTRAJ
 * CPPTRAJ uses the [GROMACS TNG](https://github.com/gromacs/tng) library for reading TNG files. See `sec/tng/README` for details.
 
 * The reciprocal part of the PME calculation is handled by the [helPME](https://github.com/andysim/helpme) library by Andy Simmonett.
+
+* Support for reading DTR trajectories uses the VMD DTR plugin.
