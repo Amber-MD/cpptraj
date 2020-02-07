@@ -288,6 +288,7 @@ COMMON_SOURCES= \
         FileIO_MpiShared.cpp \
         FileIO_Std.cpp \
         FileName.cpp \
+        FileType.cpp \
         FileTypes.cpp \
         ForLoop.cpp \
         ForLoop_dataSetBlocks.cpp \
@@ -360,6 +361,7 @@ COMMON_SOURCES= \
         Traj_CharmmRestart.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
+        Traj_DTR.cpp \
         Traj_GmxDump.cpp \
         Traj_GmxTng.cpp \
         Traj_GmxTrX.cpp \
@@ -382,7 +384,8 @@ COMMON_SOURCES= \
         Trajout_Single.cpp \
         TrajoutList.cpp \
         Vec3.cpp \
-        ViewRst.cpp
+        ViewRst.cpp \
+        vmdplugin/dtrplugin.cpp
 
 CSOURCES= molsurf.c
 

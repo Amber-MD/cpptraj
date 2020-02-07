@@ -122,6 +122,16 @@ void Box::SetBox(Matrix_3x3 const& ucell) {
   SetBoxType();
 }
 
+void Box::SetBox(float A, float B, float C, float alpha, float beta, float gamma)
+{
+  box_[0] = A;
+  box_[1] = B;
+  box_[2] = C;
+  box_[3] = alpha;
+  box_[4] = beta;
+  box_[5] = gamma;
+  SetBoxType();
+}
 // Box::SetTruncOct()
 /** Set as truncated octahedron with all lengths set to whatever X is. */
 void Box::SetTruncOct() {

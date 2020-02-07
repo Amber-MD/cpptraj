@@ -781,6 +781,12 @@ SetupFinalFlags() {
     CPPTRAJ_LIB="$CPPTRAJ_LIB -lpthread"
   fi
   LDFLAGS="$ldf $LDFLAGS"
+  # Platform-specific directives
+  if [ "$PLATFORM" = 'windows' ] ; then
+    echo "Warning: DTR trajectory not supported on windows."
+  else
+    DIRECTIVES="$DIRECTIVES -DENABLE_DTR"
+  fi
 }
 
 #-------------------------------------------------------------------------------
