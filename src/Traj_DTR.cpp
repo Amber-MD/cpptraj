@@ -103,17 +103,35 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
 
   if (debug_ > 0) mprintf("DEBUG: %zd frames.\n", nframes);
 
-  // Set Coordinate info.
-  // NOTE: DTR seems to always have box? Always orthogonal?
-  Box tmpBox;
-  tmpBox.SetBetaLengths(90.0, 1, 1, 1);
-  SetCoordInfo( CoordinateInfo(tmpBox, DTR_->has_velocities(), false, true) );
-
+  bool has_vel = DTR_->has_velocities();
+  // Allocate float buffer
   bufsize_ = 3 * (size_t)trajParm->Natom();
-  if (CoordInfo().HasVel())
+  if (has_vel)
     bufsize_ *= 2;
   fbuffer_ = new float[ bufsize_ ];
 
+  // Set Coordinate info.
+  // Read the first frame to get the box info. A bit wasteful but gets
+  // the job done for now.
+  // NOTE: DTR seems to always have box? Always orthogonal?
+  Box tmpBox;
+  molfile_timestep_t Tstep;
+  Tstep.coords = fbuffer_;
+  if (has_vel)
+    Tstep.velocities = fbuffer_ + bufsize_;
+  int ret = DTR_->frame(0, &Tstep);
+  // -1 is EOF
+  // 0 is success
+  if ( ret != 0 ) {
+    mprinterr("Error: Could not read first frame of DTR during setup.\n");
+    return 1;
+  }
+
+  tmpBox.SetBox( Tstep.A, Tstep.B, Tstep.C,
+                 Tstep.alpha, Tstep.beta, Tstep.gamma );
+
+  SetCoordInfo( CoordinateInfo(tmpBox, has_vel, false, true) );
+  
   return nframes;
 }
 
