@@ -38,7 +38,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#ifndef NO_DTR
+#ifdef ENABLE_DTR
 #ifndef MOLFILE_DTRPLUGIN_HXX
 #define MOLFILE_DTRPLUGIN_HXX
 
@@ -340,4 +340,4 @@ namespace desres { namespace molfile {
 } }
 
 #endif
-#endif /* NO_DTR */
+#endif /* ENABLE_DTR */

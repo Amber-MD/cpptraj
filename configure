@@ -784,7 +784,8 @@ SetupFinalFlags() {
   # Platform-specific directives
   if [ "$PLATFORM" = 'windows' ] ; then
     echo "Warning: DTR trajectory not supported on windows."
-    DIRECTIVES="$DIRECTIVES -DNO_DTR"
+  else
+    DIRECTIVES="$DIRECTIVES -DENABLE_DTR"
   fi
 }
 
