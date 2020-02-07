@@ -72,7 +72,11 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "XYZ",                0, Traj_XYZ::WriteHelp, Traj_XYZ::Alloc            },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
   { "Gromacs dump",       0, Traj_GmxDump::WriteHelp, Traj_GmxDump::Alloc    },
+# ifdef NO_DTR
+  { "Desmond DTR",        0, 0, 0 },
+# else
   { "Desmond DTR",        0, 0, Traj_DTR::Alloc },
+# endif
   { "Unknown trajectory", 0, 0, 0                          }
 };
 

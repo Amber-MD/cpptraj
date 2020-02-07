@@ -1,3 +1,4 @@
+#ifndef NO_DTR
 #include "Traj_DTR.h"
 #include "CpptrajStdio.h"
 #include "CpptrajFile.h"
@@ -249,3 +250,4 @@ void Traj_DTR::parallelCloseTraj() {
 
 }
 #endif
+#endif /* NO_DTR */

@@ -1,5 +1,6 @@
 #ifndef INC_TRAJ_DTR_H
 #define INC_TRAJ_DTR_H
+#ifndef NO_DTR
 #include "TrajectoryIO.h"
 namespace desres { namespace molfile { class FrameSetReader; } }
 /// Used to read Desmond DTR trajectory 
@@ -41,4 +42,5 @@ class Traj_DTR : public TrajectoryIO {
     float* fbuffer_; ///< For reading in coords and velocities
     size_t bufsize_; ///< Size of buffer_
 };
+#endif /* NO_DTR */
 #endif
