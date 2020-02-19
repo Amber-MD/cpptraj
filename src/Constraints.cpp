@@ -105,6 +105,12 @@ int Constraints::SetupConstraints(AtomMask const& mask, Topology const& top)
                         constrained_bonds_to_h -
                         constrained_heavy_bonds;
     mprintf("\t# of degrees of freedom = %i\n", degrees_of_freedom_);
+  // Correct for extra points if necessary.
+  if (top.NextraPts() > 0) {
+    degrees_of_freedom_ -= (3 * top.NextraPts());
+    mprintf("\t# of degrees of freedom, corrected for extra points = %i\n",
+            degrees_of_freedom_);
+  }
   return 0;
 }
 
