@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles temp.in T.dat T2.dat T3.dat T4.dat
+CleanFiles temp.in T.dat T2.dat T3.dat T4.dat T.XP.agr
 
 TESTNAME='Temperature tests'
 Requires netcdf maxthreads 10
@@ -34,5 +34,16 @@ EOF
 RunCpptraj "Temperature with SHAKE on all atoms."
 DoTest T3.dat.save T3.dat
 DoTest T3.dat.save T4.dat
+
+UNITNAME='Temperature calc with extra points'
+cat > temp.in <<EOF
+parm ala3.19sb.opc.parm7
+trajin pme.onstep.vel mdvel pme.onstep.vel
+temperature Total ntc 2 out T.XP.agr
+temperature Water ntc 2 out T.XP.agr :WAT
+temperature NoXP  ntc 2 out T.XP.agr :WAT@O,H1,H2
+EOF
+RunCpptraj "$UNITNAME"
+DoTest T.XP.agr.save T.XP.agr
 
 EndTest
