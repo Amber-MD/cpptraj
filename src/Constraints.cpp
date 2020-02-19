@@ -108,9 +108,12 @@ int Constraints::SetupConstraints(AtomMask const& mask, Topology const& top)
   // Correct for extra points if necessary.
   if (top.NextraPts() > 0) {
     unsigned int nextrapts = 0;
-    for (Topology::atom_iterator atm = top.begin(); atm != top.end(); ++atm)
-      if (atm->Element() == Atom::EXTRAPT)
+    for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
+    {
+      Atom const& atm = top[*idx];
+      if (atm.Element() == Atom::EXTRAPT)
         nextrapts++;
+    }
     degrees_of_freedom_ -= (3 * nextrapts);
     mprintf("\t# of degrees of freedom, corrected for extra points = %i\n",
             degrees_of_freedom_);
