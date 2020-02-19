@@ -23,6 +23,7 @@ class Box {
     void SetBox(const double*);
     void SetBox(const float*);
     void SetBox(Matrix_3x3 const&);
+    void SetBox(float,float,float,float,float,float);
     void SetTruncOct();
     void SetNoBox();
     void SetMissingInfo(const Box&);

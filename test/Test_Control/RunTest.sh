@@ -133,7 +133,9 @@ EOF
 fi
 
 UNITNAME='Test for filename wildcards and oversets'
-cat > for.in <<EOF
+CheckFor notos windows
+if [ $? -eq 0 ] ; then
+  cat > for.in <<EOF
 for FILE in distance.dat.save,last10.dat.save,doesnot*,TRP.*.dat.save
   readdata \$FILE
 done
@@ -146,8 +148,9 @@ done
 writedata DataOut.dat \$DataOut
 list datasets
 EOF
-RunCpptraj "$UNITNAME"
-DoTest DataOut.dat.save DataOut.dat
+  RunCpptraj "$UNITNAME"
+  DoTest DataOut.dat.save DataOut.dat
+fi
 
 EndTest
 exit 0

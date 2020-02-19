@@ -25,6 +25,7 @@
 #include "Traj_XYZ.h"
 #include "Traj_GmxTng.h"
 #include "Traj_GmxDump.h"
+#include "Traj_DTR.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -71,6 +72,11 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "XYZ",                0, Traj_XYZ::WriteHelp, Traj_XYZ::Alloc            },
   { "LMOD conflib",       0, 0, Traj_Conflib::Alloc        },
   { "Gromacs dump",       0, Traj_GmxDump::WriteHelp, Traj_GmxDump::Alloc    },
+# ifdef ENABLE_DTR
+  { "Desmond DTR",        0, 0, Traj_DTR::Alloc },
+# else
+  { "Desmond DTR",        0, 0, 0 },
+# endif
   { "Unknown trajectory", 0, 0, 0                          }
 };
 
@@ -104,6 +110,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { SQM,            "sqm",       ".sqm"     },
   { SDF,            "sdf",       ".sdf"     },
   { XYZ,            "xyz",       ".xyz"     },
+  { DTR,            "dtr",       ".dtr"     },
   { UNKNOWN_TRAJ,   0,           0          }
 };
 

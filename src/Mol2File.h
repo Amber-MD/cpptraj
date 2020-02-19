@@ -1,9 +1,10 @@
 #ifndef INC_MOL2FILE_H
 #define INC_MOL2FILE_H
 #include "CpptrajFile.h"
-#include "Atom.h"
-#include "Residue.h"
+#include "NameType.h"
 #include <map>
+class Atom;
+class Residue;
 /// Used to access mol2 files.
 class Mol2File : private CpptrajFile {
   public: 
@@ -25,10 +26,9 @@ class Mol2File : private CpptrajFile {
     int Mol2Bond(int &, int &);
     /// Read in the next Mol2 ATOM line. Get the X Y and Z coords.
     int Mol2XYZ(double *);
-    /// Convert current line to Atom 
-    Atom Mol2Atom();
-    /// Convert current line to Residue
-    Residue Mol2Residue();
+    /// Read in next Mol2 ATOM line. Convert to Atom/Residue/Coords 
+    int Mol2Atom(Atom&, Residue&, double*);
+
     /// Write mol2 atom line: at#, atom, res#, res, coords
     void WriteMol2Atom(int, Atom const&, int, const char*, const double*);
     /// Write mol2 bond line; bond#, atom1, atom2
