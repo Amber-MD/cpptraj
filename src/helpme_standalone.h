@@ -2037,8 +2037,6 @@ std::ostream& operator<<(std::ostream& os, const std::unique_ptr<MPIWrapper<Real
 
 }  // Namespace helpme
 #endif  // Header guard
-#else
-typedef struct ompi_communicator_t *MPI_Comm;
 #endif
 // original file: ../src/powers.h
 
@@ -3380,7 +3378,7 @@ class PMEInstance {
      * \brief common_init sets up information that is common to serial and parallel runs.
      */
     void setupCalculationMetadata(int rPower, Real kappa, int splineOrder, int dimA, int dimB, int dimC, int maxKA,
-                                  int maxKB, int maxKC, Real scaleFactor, int nThreads, const MPI_Comm &communicator,
+                                  int maxKB, int maxKC, Real scaleFactor, int nThreads, void *commPtrIn,
                                   NodeOrder nodeOrder, int numNodesA, int numNodesB, int numNodesC) {
         int numKSumTermsA = std::min(2 * maxKA + 1, dimA);
         int numKSumTermsB = std::min(2 * maxKB + 1, dimB);
@@ -3405,7 +3403,8 @@ class PMEInstance {
             numNodesC_ = numNodesC;
             myNodeRankA_ = myNodeRankB_ = myNodeRankC_ = 0;
 #if HAVE_MPI == 1
-            if (communicator) {
+            if (commPtrIn) {
+                MPI_Comm const &communicator = *((MPI_Comm*)(commPtrIn));
                 mpiCommunicator_ = std::unique_ptr<MPIWrapper<Real>>(
                     new MPIWrapper<Real>(communicator, numNodesA, numNodesB, numNodesC));
                 switch (nodeOrder) {
@@ -3698,7 +3697,7 @@ class PMEInstance {
         updateAngMomIterator(parameterAngMom);
 
         int nComponents = nCartesian(parameterAngMom);
-        size_t numBA = (size_t) myGridDimensionB_ * myGridDimensionA_;
+        size_t numBA = (size_t)myGridDimensionB_ * myGridDimensionA_;
 #pragma omp parallel num_threads(nThreads_)
         {
 #ifdef _OPENMP
@@ -4094,7 +4093,7 @@ class PMEInstance {
 #endif
 
         // B transform
-        size_t numCA = (size_t) subsetOfCAlongB_ * myComplexGridDimensionA_;
+        size_t numCA = (size_t)subsetOfCAlongB_ * myComplexGridDimensionA_;
 #pragma omp parallel for num_threads(nThreads_)
         for (size_t ca = 0; ca < numCA; ++ca) {
             fftHelperB_.transform(buffer1 + ca * gridDimensionB_, FFTW_FORWARD);
@@ -4142,7 +4141,7 @@ class PMEInstance {
         }
 #endif
         // C transform
-        size_t numBA = subsetOfBAlongC_ * myComplexGridDimensionA_;
+        size_t numBA = (size_t)subsetOfBAlongC_ * myComplexGridDimensionA_;
 #pragma omp parallel for num_threads(nThreads_)
         for (size_t ba = 0; ba < numBA; ++ba) {
             fftHelperC_.transform(buffer2 + ba * gridDimensionC_, FFTW_FORWARD);
@@ -4169,7 +4168,7 @@ class PMEInstance {
         }
 
         // C transform
-        size_t numYX = (size_t) subsetOfBAlongC_ * myComplexGridDimensionA_;
+        size_t numYX = (size_t)subsetOfBAlongC_ * myComplexGridDimensionA_;
 #pragma omp parallel for num_threads(nThreads_)
         for (size_t yx = 0; yx < numYX; ++yx) {
             fftHelperC_.transform(convolvedGrid + yx * gridDimensionC_, FFTW_BACKWARD);
@@ -4221,7 +4220,7 @@ class PMEInstance {
 #endif
 
         // B transform with instant sort of local blocks from CAB -> CBA order
-        size_t numCA = (size_t) subsetOfCAlongB_ * myComplexGridDimensionA_;
+        size_t numCA = (size_t)subsetOfCAlongB_ * myComplexGridDimensionA_;
 #pragma omp parallel for num_threads(nThreads_)
         for (size_t ca = 0; ca < numCA; ++ca) {
             fftHelperB_.transform(buffer1 + ca * gridDimensionB_, FFTW_BACKWARD);
@@ -5286,7 +5285,7 @@ class PMEInstance {
         setupCalculationMetadata(rPower, kappa, splineOrder, dimA, dimB, dimC, maxKA, maxKB, maxKC, scaleFactor,
                                  nThreads, 0, NodeOrder::ZYX, 1, 1, 1);
     }
-
+#if HAVE_MPI == 1
     /*!
      * \brief setupParallel initializes this object for a conventional PME calculation using MPI parallism
      *        and threading.  This may be called repeatedly without compromising performance.
@@ -5311,7 +5310,7 @@ class PMEInstance {
                        int nThreads, const MPI_Comm &communicator, NodeOrder nodeOrder, int numNodesA, int numNodesB,
                        int numNodesC) {
         setupCalculationMetadata(rPower, kappa, splineOrder, dimA, dimB, dimC, dimA, dimB, dimC, scaleFactor, nThreads,
-                                 communicator, nodeOrder, numNodesA, numNodesB, numNodesC);
+                                 (void *)&communicator, nodeOrder, numNodesA, numNodesB, numNodesC);
     }
 
     /*!
@@ -5341,8 +5340,9 @@ class PMEInstance {
                                  int maxKB, int maxKC, Real scaleFactor, int nThreads, const MPI_Comm &communicator,
                                  NodeOrder nodeOrder, int numNodesA, int numNodesB, int numNodesC) {
         setupCalculationMetadata(rPower, kappa, splineOrder, dimA, dimB, dimC, maxKA, maxKB, maxKC, scaleFactor,
-                                 nThreads, communicator, nodeOrder, numNodesA, numNodesB, numNodesC);
+                                 nThreads, (void *)&communicator, nodeOrder, numNodesA, numNodesB, numNodesC);
     }
+#endif
 };
 }  // Namespace helpme
 
