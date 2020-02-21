@@ -14,7 +14,8 @@
  *      $Revision: 1.12 $       $Date: 2016/11/28 05:01:54 $
  *
  ***************************************************************************/
-
+#ifndef INC_VMDDIR_H
+#define INC_VMDDIR_H
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -155,7 +156,4 @@ static int vmd_file_is_executable(const char * filename) {
 } 
 
 #endif
-
-
-
-
+#endif
