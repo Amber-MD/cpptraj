@@ -425,7 +425,6 @@ LIBCPPTRAJ_CORE_OBJECTS= \
   Topology.o \
   Atom.o \
   AtomMask.o \
-  AtomType.o \
   Box.o \
   CharMask.o \
   CoordinateInfo.o \
