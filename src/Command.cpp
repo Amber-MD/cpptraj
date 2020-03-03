@@ -185,7 +185,7 @@
 #include "Analysis_ConstantPHStats.h"
 #include "Analysis_HausdorffDistance.h"
 #include "Analysis_Slope.h"
-#include "Analysis_EvalEquilibration.h"
+#include "Analysis_EvalPlateau.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -379,7 +379,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_CurveFit(),    Cmd::ANA, 1, "curvefit" );
   Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
-  Command::AddCmd( new Analysis_EvalEquilibration(), Cmd::ANA, 1, "evalequil" );
+  Command::AddCmd( new Analysis_EvalPlateau(), Cmd::ANA, 1, "evalplateau" );
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
   Command::AddCmd( new Analysis_HausdorffDistance,Cmd::ANA,1,"hausdorff" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
