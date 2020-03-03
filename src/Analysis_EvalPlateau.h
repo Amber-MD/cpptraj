@@ -1,12 +1,12 @@
-#ifndef INC_ANALYSIS_EVALEQUILIBRATION_H
-#define INC_ANALYSIS_EVALEQUILIBRATION_H
+#ifndef INC_ANALYSIS_EVALPLATEAU_H
+#define INC_ANALYSIS_EVALPLATEAU_H
 #include "Analysis.h"
 #include "Array1D.h"
-/// <Enter description of Analysis_EvalEquilibration here>
-class Analysis_EvalEquilibration : public Analysis {
+/// Can be used to evaluate if a time series has reached a plateau (i.e. near zero slope). 
+class Analysis_EvalPlateau : public Analysis {
   public:
-    Analysis_EvalEquilibration();
-    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_EvalEquilibration(); }
+    Analysis_EvalPlateau();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_EvalPlateau(); }
     void Help() const;
 
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);

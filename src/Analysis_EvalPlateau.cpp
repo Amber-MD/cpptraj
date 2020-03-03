@@ -1,10 +1,10 @@
-#include "Analysis_EvalEquilibration.h"
+#include "Analysis_EvalPlateau.h"
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 #include "DataSet_Mesh.h"
 #include "CurveFit.h"
 
-Analysis_EvalEquilibration::Analysis_EvalEquilibration() :
+Analysis_EvalPlateau::Analysis_EvalPlateau() :
   statsout_(0),
   tolerance_(0),
   valaCut_(0),
@@ -14,7 +14,7 @@ Analysis_EvalEquilibration::Analysis_EvalEquilibration() :
   debug_(0)
 {}
 
-const char* Analysis_EvalEquilibration::OdataStr_[NDATA] = {
+const char* Analysis_EvalPlateau::OdataStr_[NDATA] = {
   "A0",
   "A1",
   "A2",
@@ -27,7 +27,7 @@ const char* Analysis_EvalEquilibration::OdataStr_[NDATA] = {
   "result"
 };
 
-DataSet::DataType Analysis_EvalEquilibration::OdataType_[NDATA] = {
+DataSet::DataType Analysis_EvalPlateau::OdataType_[NDATA] = {
   DataSet::DOUBLE,
   DataSet::DOUBLE,
   DataSet::DOUBLE,
@@ -40,13 +40,13 @@ DataSet::DataType Analysis_EvalEquilibration::OdataType_[NDATA] = {
   DataSet::STRING
 };
 
-// Analysis_EvalEquilibration::Help()
-void Analysis_EvalEquilibration::Help() const {
+// Analysis_EvalPlateau::Help()
+void Analysis_EvalPlateau::Help() const {
   mprintf("\n");
 }
 
-// Analysis_EvalEquilibration::Setup()
-Analysis::RetType Analysis_EvalEquilibration::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
+// Analysis_EvalPlateau::Setup()
+Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
 
@@ -151,8 +151,8 @@ int EQ_plateau(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
   return 0;
 }
 
-// Analysis_EvalEquilibration::Analyze()
-Analysis::RetType Analysis_EvalEquilibration::Analyze() {
+// Analysis_EvalPlateau::Analyze()
+Analysis::RetType Analysis_EvalPlateau::Analyze() {
   std::vector<DataSet*>::const_iterator ot = outputSets_.begin();
   for (Array1D::const_iterator it = inputSets_.begin(); it != inputSets_.end(); ++it, ++ot)
   {
