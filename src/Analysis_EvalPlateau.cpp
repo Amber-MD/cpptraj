@@ -22,7 +22,7 @@ const char* Analysis_EvalPlateau::OdataStr_[NDATA] = {
   "corr",
   "vala",
   "chisq",
-  "eqtime",
+  "pltime",
   "name",
   "result"
 };
@@ -121,7 +121,7 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
     data_.push_back( ds );
   }
 
-  mprintf("    EVALEQUILIBRATION: Evaluate equilibration of %zu sets.\n", inputSets_.size());
+  mprintf("    EVALPLATEAU: Evaluate plateau time of %zu sets.\n", inputSets_.size());
   mprintf("\tOutput set name: %s\n", dsname_.c_str());
   mprintf("\tTolerance for curve fit: %g\n", tolerance_);
   mprintf("\tMax iterations for curve fit: %i\n", maxIt_);
@@ -298,7 +298,7 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     data_[FVAL]->Add(oidx, &Fval);
     data_[CORR]->Add(oidx, &corr_coeff);
     data_[VALA]->Add(oidx, &ValA);
-    data_[EQTIME]->Add(oidx, &finalx);
+    data_[PLTIME]->Add(oidx, &finalx);
     data_[NAME]->Add(oidx, (*it)->legend());
     // Determine if criteria met.
     bool longAvgCutSatisfied, chiCutSatisfied;
