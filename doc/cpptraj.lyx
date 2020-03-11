@@ -28082,7 +28082,7 @@ nastruct
 \end_layout
 
 \begin_layout LyX-Code
-         [baseref <file>] ...
+         [noframespaces] [baseref <file>] ...
 \end_layout
 
 \begin_layout LyX-Code
@@ -28154,6 +28154,15 @@ naout
 \begin_layout Description
 [calcnohb] Calculate parameters between bases in base pairs even if no hydrogen
  bonds present between them.
+\end_layout
+
+\begin_layout Description
+[noframespaces] If specified there will be no spaces between frames in the
+ 
+\series bold
+naout
+\series default
+ files.
 \end_layout
 
 \begin_layout Description
