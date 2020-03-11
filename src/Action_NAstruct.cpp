@@ -28,6 +28,7 @@ Action_NAstruct::Action_NAstruct() :
   printheader_(true),
   seriesUpdated_(false),
   skipIfNoHB_(true),
+  spaceBetweenFrames_(true),
   bpout_(0), stepout_(0), helixout_(0),
   masterDSL_(0)
 # ifdef NASTRUCTDEBUG
@@ -38,7 +39,7 @@ Action_NAstruct::Action_NAstruct() :
 void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
-          "\t[baseref <file>] ...\n"
+          "\t[noframespaces] [baseref <file>] ...\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
           "\t[{ %s | allframes | guessbp}]\n", DataSetList::RefArgs);
@@ -58,7 +59,9 @@ void Action_NAstruct::Help() const {
           "  hydrogen bonds present between base pairs.\n"
           "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
           "  are written to 'BPstep.<suffix>', and helix parameters are written to\n"
-          "  Helix.<suffix>'\n");
+          "  Helix.<suffix>'.\n"
+          "  If 'noframespaces' is specified there will be no spaces between frames\n"
+          "  in the 'naout' files.\n");
 }
 
 // Action_NAstruct::Init()
@@ -110,6 +113,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     resRange_.ShiftBy(-1); // User res args start from 1
   printheader_ = !actionArgs.hasKey("noheader");
   skipIfNoHB_ = !actionArgs.hasKey("calcnohb");
+  spaceBetweenFrames_ = !actionArgs.hasKey("noframespaces");
   // Determine how base pairs will be found.
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
@@ -197,6 +201,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tBase pair step parameters written to %s\n", stepout_->Filename().full());
     mprintf("\tHelical parameters written to %s\n", helixout_->Filename().full());
     if (!printheader_) mprintf("\tHeader line will not be written.\n");
+    if (!spaceBetweenFrames_) mprintf("\tNo spaces will be written between frames.\n");
   }
   mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( HBdistCut2_ ) );
@@ -1776,7 +1781,7 @@ void Action_NAstruct::Print() {
           bpout_->Printf(GROOVE_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
         bpout_->Printf("\n");
       }
-      bpout_->Printf("\n");
+      if (spaceBetweenFrames_) bpout_->Printf("\n");
     }
   }
 
@@ -1821,7 +1826,7 @@ void Action_NAstruct::Print() {
         }
         stepout_->Printf("\n");
       }
-      stepout_->Printf("\n");
+      if (spaceBetweenFrames_) stepout_->Printf("\n");
     }
     // Helix frames
     if (printheader_)
@@ -1840,7 +1845,7 @@ void Action_NAstruct::Print() {
                           BS.tip_->Dval(frame),   BS.htwist_->Dval(frame));
         helixout_->Printf("\n");
       }
-      helixout_->Printf("\n");
+      if (spaceBetweenFrames_) helixout_->Printf("\n");
     }
   }
 }
