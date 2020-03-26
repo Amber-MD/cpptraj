@@ -155,8 +155,13 @@ int NA_Reference::AddCustomBase(NameType const& rnameIn, Topology const& topIn, 
   //newRef.PrintInfo();
   mprintf("\t  New ref base size: %zu atoms.\n", newRef.size());
   // If < 3 atoms, RMS fitting will not work.
-  if (newRef.size() < 3) {
-    mprinterr("Error: Less than 3 atoms in custom reference. RMS fitting will not work.\n");
+  unsigned int nRmsAtoms = 0;
+  for (RefBase::const_iterator refatm = newRef.begin(); refatm != newRef.end(); ++refatm)
+    if (refatm->RmsFit())
+      nRmsAtoms++;
+  if (nRmsAtoms < 3) {
+    mprinterr("Error: Only %u RMS-fit atoms in custom reference. RMS fitting will not work.\n",
+              nRmsAtoms);
     return 1;
   }
   bases_.push_back( newRef );
