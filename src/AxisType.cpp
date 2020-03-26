@@ -147,12 +147,12 @@ int NA_Reference::AddCustomBase(NameType const& rnameIn, Topology const& topIn, 
                                  refatm != refBase->end(); ++refatm)
     {
       if (newAtom.Name() == refatm->Name()) {
-        //mprintf("\t    Name match. '%s' %s'\n", *(newAtom.Name()), *(refatm->Name()));
+        mprintf("\t    Found %s\n", *(newAtom.Name()));
         newRef.AddAtom( *refatm );
       }
     }
   }
-  newRef.PrintInfo();
+  //newRef.PrintInfo();
   mprintf("\t  New ref base size: %zu atoms.\n", newRef.size());
   // If < 3 atoms, RMS fitting will not work.
   if (newRef.size() < 3) {
