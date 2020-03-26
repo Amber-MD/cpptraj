@@ -182,13 +182,6 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     } else {
       mprintf("\tResidue to map: %s\n", maplist[0].c_str());
     }
-    // Format residue name
-    // TODO: Use NameType in map
-    NameType mapresname( maplist[0] );
-    mprintf("\tCustom Map: [%s]\n", *mapresname);
-    //maplist.PrintList();
-    // Add name
-    refBases_.AddNameToBaseType( mapresname, mapbase );
   }
   // Get custom base references
   while ( actionArgs.Contains("baseref") ) {

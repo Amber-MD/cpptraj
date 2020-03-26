@@ -172,8 +172,6 @@ class NA_Reference {
     NA_Reference();
     /// \return NA_Base set up with correct reference.
     RetType SetupBaseRef(NA_Base&, Topology const&, int, DataSetList&, std::string const&);
-    /// Add given name to first reference base of the specified type.
-    void AddNameToBaseType(NameType const&, NA_Base::NAType);
     /// Attempt to create new reference by mapping given residue to an existing reference
     int AddCustomBase(NameType const&, Topology const&, int, NA_Base::NAType);
     /// Load a reference from a file

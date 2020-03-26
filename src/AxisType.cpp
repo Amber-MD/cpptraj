@@ -150,11 +150,10 @@ int NA_Reference::AddCustomBase(NameType const& rnameIn, Topology const& topIn, 
     mprinterr("Error: Less than 3 atoms in custom reference. RMS fitting will not work.\n");
     return 1;
   }
-  
+  bases_.push_back( newRef );
 
   return 0;
 }
-  
 
 static inline void CheckHbondValue(int& hbond) {
   if (hbond < 0 || hbond > 2) {
@@ -338,17 +337,6 @@ NA_Reference::RetType
   if (baseIn.Setup_Base(*REF, RES, resnum, currentParm.Atoms(), masterDSL, dataname))
     return BASE_ERROR;
   return BASE_OK;
-}
-
-// NA_Reference::AddNameToBaseType()
-void NA_Reference::AddNameToBaseType(NameType const& nameIn, NA_Base::NAType typeIn) {
-  for (BaseArray::iterator b = bases_.begin(); b != bases_.end(); ++b) {
-    if (b->Type() == typeIn) {
-      mprintf("\tAdding name '%s' to base '%c'\n", *nameIn, b->BaseChar());
-      b->AddName( nameIn );
-      break;
-    }
-  }
 }
 
 // ---------- RefBase ----------------------------------------------------------
