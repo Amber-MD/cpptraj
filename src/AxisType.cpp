@@ -116,6 +116,15 @@ NA_Reference::NA_Reference() {
 int NA_Reference::AddCustomBase(NameType const& rnameIn, Topology const& topIn, int rnumIn,
                                 NA_Base::NAType ntypeIn)
 {
+  // See if we already have a reference with this name.
+  for (BaseArray::const_iterator REF = bases_.begin();
+                                 REF != bases_.end(); ++REF)
+  {
+    if (REF->NameMatches( rnameIn )) {
+      mprinterr("Error: Reference with res name %s already exists.\n", *rnameIn);
+      return 1;
+    }
+  }
   // Find the existing correct type among the first 5 original references
   std::vector<RefBase>::const_iterator refBase;
   if      (bases_[0].Type() == ntypeIn) refBase = bases_.begin();

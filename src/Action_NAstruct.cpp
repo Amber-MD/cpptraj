@@ -179,8 +179,6 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     if (!ret.second) {
       mprinterr("Error: Already tried to map residue '%s'\n", maplist[0].c_str());
       return Action::ERR;
-    } else {
-      mprintf("\tResidue to map: %s\n", maplist[0].c_str());
     }
   }
   // Get custom base references
@@ -213,6 +211,13 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
             staggerCut_);
     mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
             z_angle_cut_ * Constants::RADDEG);
+  }
+  if (!nameToRef_.empty()) {
+    static const char natypeNames[] = { '?', 'A', 'C', 'G', 'T', 'U' };
+    mprintf("\tWill attempt to map the following residues to existing references:\n");
+    for (RefMapType::const_iterator it = nameToRef_.begin();
+                                    it != nameToRef_.end(); ++it)
+      mprintf("\t  %-8s : %c\n", it->first.c_str(), natypeNames[it->second]);
   }
   if (findBPmode_ == REFERENCE) {
     // Use reference to determine base pairing
@@ -1280,7 +1285,6 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     for (RefMapType::iterator it = nameToRef_.begin(); it != nameToRef_.end(); ++it)
     {
       mprintf("\tAttempting to create custom map for residue %s\n", it->first.c_str());
-      // TODO see if name is already in refBases_
       // Search for name in actual range.
       NameType tgtResName( it->first );
       for (Range::const_iterator resnum = actualRange.begin();
