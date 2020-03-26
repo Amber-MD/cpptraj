@@ -148,6 +148,7 @@ class RefBase {
     void PrintInfo() const;
     bool NameMatches(NameType const&) const;
     typedef NA_Array::const_iterator const_iterator;
+    unsigned int size()                const { return atoms_.size();  }
     const_iterator begin()             const { return atoms_.begin(); }
     const_iterator end()               const { return atoms_.end();   }
     NA_Atom const& operator[](int idx) const { return atoms_[idx];    }
@@ -173,6 +174,8 @@ class NA_Reference {
     RetType SetupBaseRef(NA_Base&, Topology const&, int, DataSetList&, std::string const&);
     /// Add given name to first reference base of the specified type.
     void AddNameToBaseType(NameType const&, NA_Base::NAType);
+    /// Attempt to create new reference by mapping given residue to an existing reference
+    int AddCustomBase(NameType const&, Topology const&, int, NA_Base::NAType);
     /// Load a reference from a file
     int LoadFromFile(FileName const&);
   private:

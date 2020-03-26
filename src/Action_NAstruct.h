@@ -98,6 +98,7 @@ class Action_NAstruct: public Action {
     typedef std::map<Rpair,BPtype> BPmap;     ///< Map of residue numbers to BP
     typedef std::map<Rpair,StepType> StepMap; ///< Map of BP indices to Steps
     typedef std::vector<Rpair> StrandArray;   ///< Hold indices into Bases_ for strand beg/end
+    typedef std::map<std::string, NA_Base::NAType> RefMapType; ///< Map custom res names to target types
     // ----- Functions ---------------------------
     /// Recursively travel sugar-phosphate backbone to find the next residue in a strand.
     static int TravelBackbone(Topology const&, int, std::vector<int>&);
@@ -135,6 +136,7 @@ class Action_NAstruct: public Action {
     MetaData NewStepType(StepType&, int, int, int, int, int) const;
     // ----- Variables ---------------------------
     NA_Reference refBases_;             ///< Hold reference bases
+    RefMapType nameToRef_;              ///< Map residue names to custom reference
     Barray Bases_;                      ///< Hold nucleobases
     BPmap BasePairs_;                   ///< Hold base pairs
     StepMap Steps_;                     ///< Hold base pair steps.

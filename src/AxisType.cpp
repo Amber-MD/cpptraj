@@ -110,6 +110,52 @@ NA_Reference::NA_Reference() {
   //  b->PrintInfo();
 }
 
+/** Attempt to create a custom reference using the given residue and
+  * specified existing reference as a template.
+  */
+int NA_Reference::AddCustomBase(NameType const& rnameIn, Topology const& topIn, int rnumIn,
+                                NA_Base::NAType ntypeIn)
+{
+  // Find the existing correct type among the first 5 original references
+  std::vector<RefBase>::const_iterator refBase;
+  if      (bases_[0].Type() == ntypeIn) refBase = bases_.begin();
+  else if (bases_[1].Type() == ntypeIn) refBase = bases_.begin() + 1;
+  else if (bases_[2].Type() == ntypeIn) refBase = bases_.begin() + 2;
+  else if (bases_[3].Type() == ntypeIn) refBase = bases_.begin() + 3;
+  else if (bases_[4].Type() == ntypeIn) refBase = bases_.begin() + 4;
+  else {
+    mprinterr("Internal Error: AddCustomBase(): Specified reference type not found.\n");
+    return 1;
+  }
+  mprintf("\t  Trying to map residue %s to reference %c\n", *rnameIn, refBase->BaseChar());
+  // For each atom in the input residue, find atom in reference if possible.
+  RefBase newRef(refBase->BaseChar(), rnameIn, ntypeIn);
+  for (int resatm = topIn.Res(rnumIn).FirstAtom();
+           resatm != topIn.Res(rnumIn).LastAtom(); ++resatm)
+  {
+    Atom const& newAtom = topIn[resatm];
+    for (RefBase::const_iterator refatm = refBase->begin();
+                                 refatm != refBase->end(); ++refatm)
+    {
+      if (newAtom.Name() == refatm->Name()) {
+        //mprintf("\t    Name match. '%s' %s'\n", *(newAtom.Name()), *(refatm->Name()));
+        newRef.AddAtom( *refatm );
+      }
+    }
+  }
+  newRef.PrintInfo();
+  mprintf("\t  New ref base size: %zu atoms.\n", newRef.size());
+  // If < 3 atoms, RMS fitting will not work.
+  if (newRef.size() < 3) {
+    mprinterr("Error: Less than 3 atoms in custom reference. RMS fitting will not work.\n");
+    return 1;
+  }
+  
+
+  return 0;
+}
+  
+
 static inline void CheckHbondValue(int& hbond) {
   if (hbond < 0 || hbond > 2) {
     mprintf("Warning: Invalid value for hbond column (%i): setting to 0 (none).\n", hbond);
@@ -319,8 +365,9 @@ void RefBase::PrintInfo() const {
   for (NameArray::const_iterator n = names_.begin(); n != names_.end(); ++n)
     mprintf(" %s", *(*n));
   mprintf("\n");
+  mprintf("    %-8s %6s %6s %6s %1s %1s\n", "Name", "X", "Y", "Z", "H", "R");
   for (NA_Array::const_iterator at = atoms_.begin(); at != atoms_.end(); ++at)
-    mprintf("\t%s %6.3f %6.3f %6.3f %i %i\n", at->name(), at->X(), at->Y(), at->Z(),
+    mprintf("    %-8s %6.3f %6.3f %6.3f %i %i\n", at->name(), at->X(), at->Y(), at->Z(),
             (int)at->HB_type(), at->RmsFit());
 }
 
