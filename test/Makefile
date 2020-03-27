@@ -67,6 +67,7 @@ test.mol2:
 
 test.nastruct:
 	@-cd Test_NAstruct && ./RunTest.sh $(OPT)
+	@-cd Test_NAstruct_8OG && ./RunTest.sh $(OPT)
 
 test.pucker:
 	@-cd Test_Pucker && ./RunTest.sh $(OPT)

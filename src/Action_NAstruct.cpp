@@ -174,13 +174,12 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
       mprinterr("Error: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
       return Action::ERR;
     }
-    // Format residue name
-    // TODO: Use NameType in map
-    NameType mapresname( maplist[0] );
-    mprintf("\tCustom Map: [%s]\n", *mapresname);
-    //maplist.PrintList();
-    // Add name
-    refBases_.AddNameToBaseType( mapresname, mapbase );
+    std::pair<RefMapType::iterator, bool> ret = 
+      nameToRef_.insert( std::pair<std::string,NA_Base::NAType>(maplist[0], mapbase ) );
+    if (!ret.second) {
+      mprinterr("Error: Already tried to map residue '%s'\n", maplist[0].c_str());
+      return Action::ERR;
+    }
   }
   // Get custom base references
   while ( actionArgs.Contains("baseref") ) {
@@ -212,6 +211,13 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
             staggerCut_);
     mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
             z_angle_cut_ * Constants::RADDEG);
+  }
+  if (!nameToRef_.empty()) {
+    static const char natypeNames[] = { '?', 'A', 'C', 'G', 'T', 'U' };
+    mprintf("\tWill attempt to map the following residues to existing references:\n");
+    for (RefMapType::const_iterator it = nameToRef_.begin();
+                                    it != nameToRef_.end(); ++it)
+      mprintf("\t  %-8s : %c\n", it->first.c_str(), natypeNames[it->second]);
   }
   if (findBPmode_ == REFERENCE) {
     // Use reference to determine base pairing
@@ -1273,6 +1279,37 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   }
   if (dataname_.empty())
     dataname_ = masterDSL_->GenerateDefaultName("NA");
+  // Try to fill in any custom residue maps.
+  if (!nameToRef_.empty()) {
+    std::vector<RefMapType::iterator> nToErase;
+    for (RefMapType::iterator it = nameToRef_.begin(); it != nameToRef_.end(); ++it)
+    {
+      mprintf("\tAttempting to create custom map for residue %s\n", it->first.c_str());
+      // Search for name in actual range.
+      NameType tgtResName( it->first );
+      for (Range::const_iterator resnum = actualRange.begin();
+                                 resnum != actualRange.end(); ++resnum)
+      {
+        if (setup.Top().Res(*resnum).Name() == tgtResName) {
+          mprintf("\t  Using residue %s\n", setup.Top().TruncResNameNum(*resnum).c_str());
+          if (refBases_.AddCustomBase(tgtResName, setup.Top(), *resnum, it->second))
+            return Action::ERR;
+          else {
+            // Base successfully set up. Exit this loop.
+            // This mapping can be removed since it has been satisfied.
+            nToErase.push_back( it );
+            break;
+          }
+        }
+      } // END loop over residues in topology
+    } // END loop over residues in custom map
+    // Remove names from the custom map if they were set up
+    if (!nToErase.empty()) {
+      for (std::vector<RefMapType::iterator>::const_iterator it = nToErase.begin();
+                                                             it != nToErase.end(); ++it)
+        nameToRef_.erase( *it );
+    }
+  }
   // DEBUG - print all residues
   //if (debug>0)
   //  actualRange.PrintRange("    NAstruct: NA res:",1);
