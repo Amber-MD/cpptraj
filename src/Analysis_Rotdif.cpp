@@ -12,6 +12,8 @@
 #include "CurveFit.h"
 #include "SimplexMin.h"
 #include "DataSet_Mat3x3.h"
+// DEBUG
+//#inc lude "DataIO_Grace.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -1495,13 +1497,16 @@ double Analysis_Rotdif::calcEffectiveDiffusionConst(double f ) {
   i=1;
   d = 0;
   del = DBL_MAX;
+  if (debug_>2)
+    mprintf("ITSOLV: fac=%15.8g  ti=%15.8g  tf=%15.8g  Di=%15.8g  f=%15.8g\n",
+            fac, ti_, tf_, di, f);
   while ( i<=itmax_ && del>delmin_) {
      d = ( exp(-fac*di*ti_) - exp(-fac*di*tf_) );
      d = d / (fac*f);
      del = (d-di)/di;
      if (del < 0) del = -del; // Abs value
      if (debug_>2)
-       mprintf("ITSOLV: %6i  %15.8g  %15.8g  %15.8g\n", i,di,d,del);
+       mprintf("ITSOLV1: %6i  Di=%15.8g  D=%15.8g  del=%15.8g\n", i,di,d,del);
      di = d;
      ++i;
   }
@@ -1591,6 +1596,11 @@ int Analysis_Rotdif::DetermineDeffs() {
       direct_compute_corr(rotated_vectors, maxdat, pY);
     // Calculate mesh Y values
     spline.SetSplinedMeshY(pX, pY);
+    // DEBUG - Write splined mesh to file
+    //DataIO_Grace tmpGraceOut;
+    //DataSetList tmpGraceDsl;
+    //tmpGraceDsl.AddCopyOfSet(&spline);
+    //tmpGraceOut.WriteData(AppendNumber("tmpspline.agr",nvec), tmpGraceDsl);
     // Integrate
     double integral = spline.Integrate( DataSet_1D::TRAPEZOID );
     //mprintf("DEBUG: Vec %i integral= %g\n", nvec, integral);
