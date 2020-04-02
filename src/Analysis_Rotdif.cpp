@@ -89,7 +89,7 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   // Get Keywords
   usefft_ = analyzeArgs.hasKey("usefft");
   nvecs_ = analyzeArgs.getKeyInt("nvecs",1000);
-  rseed_ = analyzeArgs.getKeyInt("rseed",80531);
+  rseed_ = analyzeArgs.getKeyInt("rseed",-1);
   ncorr_ = analyzeArgs.getKeyInt("ncorr",0);
   tfac_ = analyzeArgs.getKeyDouble("dt",0);
   if (tfac_<=0) {
