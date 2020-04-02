@@ -1537,6 +1537,7 @@ int Analysis_Rotdif::DetermineDeffs() {
   std::vector<double> pX;         // Hold X values of C(t)
   std::vector<double> pY;         // Hold Y values of C(t) for p(olegendre_)
   int meshSize;                   // Total mesh size, maxdat * NmeshPoints
+  DataSet_Vector goodRvecs;       // Hold vectors with "good" Deff values
 
   mprintf("\tDetermining local diffusion constants for each vector.\n");
   ProgressBar progress( random_vectors_.Size() );
@@ -1603,10 +1604,15 @@ int Analysis_Rotdif::DetermineDeffs() {
     //tmpGraceOut.WriteData(AppendNumber("tmpspline.agr",nvec), tmpGraceDsl);
     // Integrate
     double integral = spline.Integrate( DataSet_1D::TRAPEZOID );
-    //mprintf("DEBUG: Vec %i integral= %g\n", nvec, integral);
-    // Solve for deff
-    D_eff_.push_back( calcEffectiveDiffusionConst(integral) );
-
+    if (debug_ > 1)
+      mprintf("DEBUG: Vec %i Spline integral= %12.4g\n",nvec,integral);
+    if ( integral > 0 ) {
+      goodRvecs.AddVxyz( *rndvec );
+      // Solve for deff
+      D_eff_.push_back( calcEffectiveDiffusionConst(integral) );
+      if (debug_ > 1)
+        mprintf("DBG: deff is %g\n",D_eff_.back());
+    }
     // DEBUG: Write out p1 and p2 ------------------------------------
     if (!corrOut_.empty() || debug_ > 3) {
       CpptrajFile outfile;
@@ -1632,13 +1638,18 @@ int Analysis_Rotdif::DetermineDeffs() {
         outfile.CloseFile();
       }
     }
-    if (debug_ > 1) {
-      mprintf("DBG: Vec %i Spline integral= %12.4g\n",nvec,integral);
-      mprintf("DBG: deff is %g\n",D_eff_[nvec]);
-    }
     // END DEBUG -----------------------------------------------------
   }
-
+  mprintf("\t%zu vectors, %zu with corr. function integral > 0.\n", random_vectors_.Size(), goodRvecs.Size());
+  // Get rid of any vectors with "bad" integrals
+  if (goodRvecs.Size() < 1) {
+    mprinterr("Error: No random vectors had corr. function with integral > 0. Cannot continue.\n");
+    return 1;
+  }
+  if (goodRvecs.Size() < random_vectors_.Size()) {
+    mprintf("\tVectors with corr. function integral <= 0 will not be used in further calcs.\n");
+    random_vectors_ = goodRvecs;
+  }
   return 0;
 }
 
