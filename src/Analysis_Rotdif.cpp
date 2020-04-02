@@ -714,7 +714,7 @@ int Analysis_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
   //       so we actually need to construct matrix A for SVD.
   // NOTE: LAPACK SVD routine destroys matrix A which is needed later, so 
   //       create a non-flipped version (i.e. matrix At) as well.
-  int m_rows = nvecs_;
+  int m_rows = (int)random_vectors_.Size();
   int n_cols = 6;
   double *matrix_A = new double[ m_rows * n_cols ];
   double *matrix_At = new double[ m_rows * n_cols ];
@@ -870,10 +870,10 @@ int Analysis_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
             vector_q_local[3], vector_q_local[4], vector_q_local[4]);
   }
   std::vector<double> deff_local;
-  deff_local.reserve( nvecs_ );
+  deff_local.reserve( m_rows );
   At = matrix_At;
   // At*Q
-  for (int i=0; i < nvecs_; i++) {
+  for (int i=0; i < m_rows; i++) {
     deff_local.push_back( (At[0] * vector_q_local[0]) +
                           (At[1] * vector_q_local[1]) +
                           (At[2] * vector_q_local[2]) +
@@ -884,7 +884,7 @@ int Analysis_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
   }
   // Convert deff to tau, Output
   double sgn = 0;
-  for (int i = 0; i < nvecs_; i++) {
+  for (int i = 0; i < m_rows; i++) {
     // For the following chisq fits, convert deff to taueff
     D_eff_[i] = 1 / (6 * D_eff_[i]);
     deff_local[i] = 1 / (6 * deff_local[i]);
