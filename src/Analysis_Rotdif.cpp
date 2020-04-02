@@ -439,8 +439,8 @@ void Analysis_Rotdif::PrintVec6(CpptrajFile& outfile, const char* Title, Simplex
 void Analysis_Rotdif::PrintTau(std::vector<double> const& Tau)
 {
   outfile_->Printf("     taueff(obs) taueff(calc)\n");
-  for (int i = 0; i < nvecs_; i++)
-    outfile_->Printf("%5i %12.5e %12.5e\n", i+1, D_eff_[i], Tau[i]);
+  for (unsigned int i = 0; i < D_eff_.size(); i++)
+    outfile_->Printf("%5u %12.5e %12.5e\n", i+1, D_eff_[i], Tau[i]);
 }
 
 // =============================================================================
