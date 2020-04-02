@@ -1539,13 +1539,13 @@ int Analysis_Rotdif::DetermineDeffs() {
   int meshSize;                   // Total mesh size, maxdat * NmeshPoints
 
   mprintf("\tDetermining local diffusion constants for each vector.\n");
-  ProgressBar progress( nvecs_ );
+  ProgressBar progress( random_vectors_.Size() );
 
   itotframes = (int) Rmatrices_->Size();
   if (ncorr_ == 0) ncorr_ = itotframes;
   maxdat = ncorr_ + 1;
   // Allocate memory to hold calcd effective D values
-  D_eff_.reserve( nvecs_ );
+  D_eff_.reserve( random_vectors_.Size() );
   // Allocate memory to hold rotated vectors. Need +1 since the original
   // vector is stored at position 0. 
   rotated_vectors.Allocate( DataSet::SizeArray(1, itotframes + 1) );
@@ -1651,8 +1651,8 @@ void Analysis_Rotdif::PrintDeffs(std::string const& nameIn) const {
       mprinterr("Error: Could not set up Deff file %s\n",nameIn.c_str());
     } else {
       dout.OpenFile();
-      for (int vec = 0; vec < nvecs_; vec++)
-        dout.Printf("%6i %15.8e\n", vec+1, D_eff_[vec]);
+      for (unsigned int vec = 0; vec < D_eff_.size(); vec++)
+        dout.Printf("%6u %15.8e\n", vec+1, D_eff_[vec]);
       dout.CloseFile();
     }
   }
@@ -1708,7 +1708,8 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
       rmout.CloseFile();
     }
   }
-  mprintf("\t%i vectors, %zu rotation matrices.\n",nvecs_,Rmatrices_->Size());
+  mprintf("\t%zu vectors, %zu rotation matrices.\n",
+          random_vectors_.Size(), Rmatrices_->Size());
   if (usefft_) {
     // ---------------------------------------------
     // Test calculation; determine constants directly with SH and curve fitting.
@@ -1734,7 +1735,7 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
       fxn = AsymmetricFxn_L1;
     else
       fxn = AsymmetricFxn_L2;
-    std::vector<double> Tau(nvecs_, 0.0);
+    std::vector<double> Tau(D_eff_.size(), 0.0);
     // First, back-calculate with the SVD tensor, but with the full anisotropy
     // chi_squared performs diagonalization. The workspace for dsyev should
     // already have been set up in Tensor_Fit.
