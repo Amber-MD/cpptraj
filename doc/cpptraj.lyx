@@ -43357,11 +43357,8 @@ dt
 \series default
 ; the final time should be less than the total simulation time (see example
  below).
-\end_layout
-
-\begin_layout Standard
-The relative size of the mesh used with cubic spline interpolation for integrati
-on is controlled by 
+ The relative size of the mesh used with cubic spline interpolation for
+ integration is controlled by 
 \series bold
 nmesh
 \series default
@@ -43378,7 +43375,13 @@ nmesh
 nmesh
 \series default
  = 1 means no interpolation, default is 2.
- The iterative solver for effective value of the diffusion constant from
+ Note that if the integral of the correlation function for a vector is negative,
+ that vector will be skipped in subsequent calculations (since it would
+ imply a negative value for effective diffusion).
+\end_layout
+
+\begin_layout Standard
+The iterative solver for effective value of the diffusion constant from
  the correlation functions is controlled by 
 \series bold
 itmax
