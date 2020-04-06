@@ -23,6 +23,7 @@ class Gap {
       startRes_(startResIn), stopRes_(-1), chainId_(startChainIn[0])
       {}
 
+    std::string const& FirstName() const { return resNames_.front(); }
     std::string const& LastName() const { return resNames_.back(); }
     int StartRes()                const { return startRes_; }
     int StopRes()                 const { return stopRes_; }
@@ -47,6 +48,9 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: provide PDB name.\n");
     return CpptrajState::ERR;
   }
+  std::string outname = argIn.GetStringKey("out");
+  CpptrajFile outfile; // TODO use DFL
+  outfile.OpenWrite(outname);
 
   // Get gap info from PDB
   typedef std::vector<Gap> Garray;
@@ -123,6 +127,13 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
       } // END inMissing == 2
     } // END REMARK
     linePtr = infile.Line();
-  } // END while linePtr != 0 
+  } // END while linePtr != 0
+
+  for (Garray::const_iterator it = Gaps.begin(); it != Gaps.end(); ++it) {
+    outfile.Printf("  Gap %s %4s %6i to %4s %6i %6i\n",
+                   it->Chain(), it->FirstName().c_str(), it->StartRes(),
+                   it->LastName().c_str(), it->StopRes(),
+                   it->StopRes() - it->StartRes() + 1);
+  }
   return CpptrajState::OK;
 }
