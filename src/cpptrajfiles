@@ -239,6 +239,7 @@ COMMON_SOURCES= \
         Ewald.cpp \
         Ewald_ParticleMesh.cpp \
         Ewald_Regular.cpp \
+        Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
         Exec_CatCrd.cpp \
