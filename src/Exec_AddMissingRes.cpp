@@ -144,6 +144,7 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   Garray Gaps;
   if (FindGaps(Gaps, *outfile, pdbname))
     return CpptrajState::ERR;
+  mprintf("\tThere are %zu gaps in the PDB.\n", Gaps.size());
 
   // Read in topology
   ParmFile parmIn;
@@ -155,12 +156,13 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   // Set up input trajectory
   Trajin_Single trajIn;
   if (trajIn.SetupTrajRead(pdbname, trajArgs, &topIn)) return CpptrajState::ERR;
+  trajIn.PrintInfo(1);
   // Create input frame
   Frame frameIn;
   frameIn.SetupFrameV(topIn.Atoms(), trajIn.TrajCoordInfo());
   // Read input
   if (trajIn.BeginTraj()) return CpptrajState::ERR;
-  if (trajIn.ReadTrajFrame(0, frameIn)) return CpptrajState::ERR;
+  trajIn.GetNextFrame(frameIn);
   trajIn.EndTraj();
   
 
