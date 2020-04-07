@@ -1,6 +1,7 @@
 #include "Exec_AddMissingRes.h"
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Coords_CRD.h"
 #include "ParmFile.h"
 #include "Trajin_Single.h"
 #include <cstdlib> // atoi
@@ -109,10 +110,24 @@ const
   return 0;
 } 
 
+/** Try to add in missing residues. */
+int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
+                                           Topology const& topIn,
+                                           Frame const& coordsIn,
+                                           Garray const& Gaps)
+{
+  Garray::const_iterator currentGap = Gaps.begin();
+  int currentRes = topIn.Res(0).OriginalResNum();
+  mprintf("\tFirst Residue in PDB is %i\n", currentRes);
+
+  return 0;
+}
+
 // Exec_AddMissingRes::Help()
 void Exec_AddMissingRes::Help() const
 {
-  mprintf("\tpdbname <pdbname> [out <filename>] parmargs <parm args>\n");
+  mprintf("\tpdbname <pdbname> name <setname> [out <filename>]\n"
+          "\t[parmargs <parm args>] [trajargs <trajin args>]\n");
 }
 
 // Exec_AddMissingRes::Execute()
@@ -140,7 +155,16 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     trajArgs.SetList(trajArgStr, ",");
     mprintf("\tTraj args: %s\n", trajArgStr.c_str());
   }
+  std::string dsname = argIn.GetStringKey("name");
+  if (dsname.empty())  {
+    mprinterr("Error: Output set name must be specified with 'name'.\n");
+    return CpptrajState::ERR;
+  }
+  DataSet_Coords_CRD* dataOut = (DataSet_Coords_CRD*)State.DSL().AddSet(DataSet::COORDS, dsname);
+  if (dataOut == 0) return CpptrajState::ERR;
+  mprintf("\tOutput set: %s\n", dataOut->legend());
 
+  // Find missing residues/gaps in the PDB
   Garray Gaps;
   if (FindGaps(Gaps, *outfile, pdbname))
     return CpptrajState::ERR;
@@ -164,7 +188,9 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   if (trajIn.BeginTraj()) return CpptrajState::ERR;
   trajIn.GetNextFrame(frameIn);
   trajIn.EndTraj();
-  
+
+  // Try to add in missing residues
+  if (AddMissingResidues(dataOut, topIn, frameIn, Gaps)) return CpptrajState::ERR;
 
   return CpptrajState::OK;
 }

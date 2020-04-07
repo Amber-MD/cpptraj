@@ -1,6 +1,8 @@
 #ifndef INC_EXEC_ADDMISSINGRES_H
 #define INC_EXEC_ADDMISSINGRES_H
 #include "Exec.h"
+// Forward declare
+class DataSet_Coords_CRD;
 /// Attempt to add missing residues in a PDB 
 class Exec_AddMissingRes : public Exec {
   public:
@@ -15,6 +17,7 @@ class Exec_AddMissingRes : public Exec {
     typedef std::vector<Gap> Garray;
 
     int FindGaps(Garray&, CpptrajFile&, std::string const&) const;
+    int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&);
 };
 
 // ----- Gap class -------------------------------------------------------------
