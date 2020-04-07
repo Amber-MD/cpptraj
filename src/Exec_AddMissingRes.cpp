@@ -193,6 +193,15 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   // Print residues
   for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
     mprintf("\t%6s %8i %8i %c\n", *(it->Name()), it->OriginalResNum(), it->TopResNum()+1, it->ChainID());
+
+  // Create a new topology with all residues. For missing residues, create a CA atom.
+  Topology* newTop = dataOut->TopPtr();
+  for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
+  {
+    int topResNum = it->TopResNum();
+    if (topResNum < 0) {
+      // This was a missing residue
+      newTop->AddTopAtom(
   return 0;
 }
 
