@@ -111,25 +111,70 @@ const
   return 0;
 } 
 
+/// Placeholder for Residues
+class Pres {
+  public:
+    Pres() : oresnum_(0), tresnum_(-1), chain_(' ') {}
+    /// CONSTRUCTOR - Take Residue
+    Pres(Residue const& res, int resnum) :
+      name_(res.Name()), oresnum_(res.OriginalResNum()), tresnum_(resnum), chain_(res.ChainID())
+      {}
+    /// First sort by chain, then by original residue number
+    bool operator<(const Pres& rhs) const {
+      if (chain_ == rhs.chain_)
+        return (oresnum_ < rhs.oresnum_);
+      else
+        return (chain_ < rhs.chain_);
+    }
+
+    NameType const& Name() const { return name_; }
+    int OriginalResNum()   const { return oresnum_; }
+    int TopResNum()        const { return tresnum_; }
+    char ChainID()         const { return chain_; }
+  private:
+    NameType name_;
+    int oresnum_;   ///< Original (PDB) residue number.
+    int tresnum_;   ///< Topology residue index; -1 if it was missing.
+    char chain_;    ///< Original (PDB) chain ID.
+};
+
 /** Try to add in missing residues. */
 int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
                                            Topology const& topIn,
                                            Frame const& coordsIn,
                                            Garray const& Gaps)
 {
+  typedef std::set<Pres> Pset;
+  Pset AllResidues;
+  // First add all existing residues
+  for (int rnum = 0; rnum < topIn.Nres(); ++rnum) {
+    std::pair<Pset::iterator, bool> ret = AllResidues.insert( Pres(topIn.Res(rnum), rnum) );
+    if (!ret.second) {
+      mprinterr("Internal Error: Somehow residue %s was duplicated.\n",
+                topIn.TruncResNameNum(rnum).c_str());
+      return 1;
+    }
+  }
+/*
   // Loop over gaps
   for (Garray::const_iterator gap = Gaps.begin(); gap != Gaps.end(); ++gap)
   {
     mprintf("\tGap %c %i to %i\n", gap->Chain(), gap->StartRes(), gap->StopRes());
-    // Find start res connector
+    // Start res connector mask
     std::string maskStr0("::" + std::string(1,gap->Chain()) + "&:;" + integerToString(gap->StartRes()-1));
-    // Find stop res connector
+    // Stop res connector mask
     std::string maskStr1("::" + std::string(1,gap->Chain()) + "&:;" + integerToString(gap->StopRes()+1));
-
     mprintf("\t  Mask0=[%s] Mask1=[%s]\n", maskStr0.c_str(), maskStr1.c_str());
+    // Find start res connector
+    AtomMask mask0( maskStr0 );
+    if (topIn.SetupIntegerMask( mask0, coordsIn )) return 1;
+    // Find stop res connector
+    AtomMask mask1( maskStr1 );
+    if (topIn.SetupIntegerMask( mask1, coordsIn )) return 1;
+    mprintf("\t  Selected0=%i Selected1=%i\n", mask0.Nselected(), mask1.Nselected());
     
   }
-
+*/
   return 0;
 }
 
