@@ -10,6 +10,8 @@ void Exec_AddMissingRes::Help() const
 
 }
 
+typedef std::vector<std::string> Sarray;
+
 /// Record a gap in PDB
 class Gap {
   public:
@@ -29,12 +31,13 @@ class Gap {
     int StopRes()                  const { return stopRes_; }
     char Chain()                   const { return chainId_; }
     unsigned int Nres()            const { return resNames_.size(); }
+    typedef Sarray::const_iterator name_iterator;
+    name_iterator nameBegin()      const { return resNames_.begin(); }
+    name_iterator nameEnd()        const { return resNames_.end(); }
 
     void SetStopRes(int s) { stopRes_ = s; }
     void AddGapRes(std::string const& r) { resNames_.push_back( r ); }
   private:
-    typedef std::vector<std::string> Sarray;
-
     Sarray resNames_; ///< Residue names in the Gap
     int startRes_;    ///< pdb start residue number for the gap 
     int stopRes_;     ///< pdb stop residue number for the gap
@@ -50,8 +53,11 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   std::string outname = argIn.GetStringKey("out");
+
+  mprintf("\tPDB name: %s\n", pdbname.c_str());
   CpptrajFile outfile; // TODO use DFL
   outfile.OpenWrite(outname);
+  mprintf("\tOutput file: %s\n", outfile.Filename().full());
 
   // Get gap info from PDB
   typedef std::vector<Gap> Garray;
@@ -105,23 +111,13 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
             if (atTheEnd || currentres - lastres > 1 || currentchain != lastchain) {
               // New sequence starting. Finish current.
               Gaps.back().SetStopRes(lastres);
+              /*
               mprintf("  Gap %c %4s %6i to %4s %6i %6u\n",
                       Gaps.back().Chain(),
                       Gaps.back().FirstName().c_str(), Gaps.back().StartRes(),
                       Gaps.back().LastName().c_str(), Gaps.back().StopRes(),
-                      Gaps.back().Nres());
-              //col = 1;
-              //for (i=0; i <= idx; i++) {
-              //  printf("%s", names[i]);
-              //  col++;
-              //  if (col > 80) {
-              //    printf("\n");
-              //    col = 1;
-              //  }
-              //}
-              //printf("\n");
+                      Gaps.back().Nres());*/
               if (atTheEnd) {
-                mprintf("%i missing residues.\n", nmissing);
                 break;
               }
               Gaps.push_back( Gap(currentres, currentchain) );
@@ -137,12 +133,26 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     } // END REMARK
     linePtr = infile.Line();
   } // END while linePtr != 0
-/*
+
   for (Garray::const_iterator it = Gaps.begin(); it != Gaps.end(); ++it) {
-    outfile.Printf("  Gap %s %4s %6i to %4s %6i %6i\n",
-                   it->Chain(), it->FirstName().c_str(), it->StartRes(),
+    outfile.Printf("  Gap %c %4s %6i to %4s %6i %6u\n",
+                   it->Chain(),
+                   it->FirstName().c_str(), it->StartRes(),
                    it->LastName().c_str(), it->StopRes(),
-                   it->StopRes() - it->StartRes() + 1);
-  }*/
+                   it->Nres());
+    // Print residues
+    unsigned int col = 1;
+    for (Gap::name_iterator name = it->nameBegin(); name != it->nameEnd(); ++name) {
+      outfile.Printf("%c", Residue::ConvertResName(*name));
+      col++;
+      if (col > 80) {
+        outfile.Printf("\n");
+        col = 1;
+      }
+    }
+    if (col > 1)
+      outfile.Printf("\n");
+  }
+  outfile.Printf("%i missing residues.\n", nmissing);
   return CpptrajState::OK;
 }
