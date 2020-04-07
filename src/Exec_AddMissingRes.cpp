@@ -1,6 +1,7 @@
 #include "Exec_AddMissingRes.h"
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
+#include "ParmFile.h"
 #include <cstdlib> // atoi
 #include <cstring> //strncmp
 
@@ -126,10 +127,23 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
                                                     "AddMissingRes", DataFileList::TEXT, true);
   if (outfile==0) return CpptrajState::ERR;
   mprintf("\tOutput file: %s\n", outfile->Filename().full());
+  ArgList parmArgs;
+  std::string parmArgStr = argIn.GetStringKey("parmargs");
+  if (!parmArgStr.empty()) {
+    parmArgs.SetList(parmArgStr, ",");
+    mprintf("\tParm args: %s\n", parmArgStr.c_str());
+  }
 
   Garray Gaps;
   if (FindGaps(Gaps, *outfile, pdbname))
     return CpptrajState::ERR;
+
+  // Read in topology
+  ParmFile parmIn;
+  Topology topIn;
+  if (parmIn.ReadTopology(topIn, pdbname, parmArgs, State.Debug()))
+    return CpptrajState::ERR;
+  topIn.Summary();
 
   return CpptrajState::OK;
 }
