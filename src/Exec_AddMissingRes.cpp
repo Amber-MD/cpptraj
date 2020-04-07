@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_CRD.h"
 #include "ParmFile.h"
+#include "StringRoutines.h"
 #include "Trajin_Single.h"
 #include <cstdlib> // atoi
 #include <cstring> //strncmp
@@ -116,9 +117,18 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
                                            Frame const& coordsIn,
                                            Garray const& Gaps)
 {
-  Garray::const_iterator currentGap = Gaps.begin();
-  int currentRes = topIn.Res(0).OriginalResNum();
-  mprintf("\tFirst Residue in PDB is %i\n", currentRes);
+  // Loop over gaps
+  for (Garray::const_iterator gap = Gaps.begin(); gap != Gaps.end(); ++gap)
+  {
+    mprintf("\tGap %c %i to %i\n", gap->Chain(), gap->StartRes(), gap->StopRes());
+    // Find start res connector
+    std::string maskStr0("::" + std::string(1,gap->Chain()) + "&:;" + integerToString(gap->StartRes()-1));
+    // Find stop res connector
+    std::string maskStr1("::" + std::string(1,gap->Chain()) + "&:;" + integerToString(gap->StopRes()+1));
+
+    mprintf("\t  Mask0=[%s] Mask1=[%s]\n", maskStr0.c_str(), maskStr1.c_str());
+    
+  }
 
   return 0;
 }
