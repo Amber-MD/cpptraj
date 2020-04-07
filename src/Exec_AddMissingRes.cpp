@@ -109,7 +109,7 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
             currentres = atoi(line[4].c_str());
             currentchain = line[3];
             if (atTheEnd || currentres - lastres > 1 || currentchain != lastchain) {
-              // New sequence starting. Finish current.
+              // New sequence starting or end. Finish current.
               Gaps.back().SetStopRes(lastres);
               /*
               mprintf("  Gap %c %4s %6i to %4s %6i %6u\n",
@@ -134,6 +134,7 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     linePtr = infile.Line();
   } // END while linePtr != 0
 
+  // Printout
   for (Garray::const_iterator it = Gaps.begin(); it != Gaps.end(); ++it) {
     outfile.Printf("  Gap %c %4s %6i to %4s %6i %6u\n",
                    it->Chain(),
@@ -154,5 +155,10 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
       outfile.Printf("\n");
   }
   outfile.Printf("%i missing residues.\n", nmissing);
+  if (Gaps.empty()) {
+    mprintf("Warning: No gaps found.\n");
+    return CpptrajState::OK;
+  }
+
   return CpptrajState::OK;
 }
