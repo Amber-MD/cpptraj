@@ -119,6 +119,10 @@ class Pres {
     Pres(Residue const& res, int resnum) :
       name_(res.Name()), oresnum_(res.OriginalResNum()), tresnum_(resnum), chain_(res.ChainID())
       {}
+    /// CONSTRUCTOR - Take name, number, chain
+    Pres(std::string const& name, int rnum, char chain) :
+      name_(name), oresnum_(rnum), tresnum_(-1), chain_(chain)
+      {}
     /// First sort by chain, then by original residue number
     bool operator<(const Pres& rhs) const {
       if (chain_ == rhs.chain_)
@@ -155,11 +159,22 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       return 1;
     }
   }
-/*
+
   // Loop over gaps
   for (Garray::const_iterator gap = Gaps.begin(); gap != Gaps.end(); ++gap)
   {
     mprintf("\tGap %c %i to %i\n", gap->Chain(), gap->StartRes(), gap->StopRes());
+    int currentRes = gap->StartRes();
+    for (Gap::name_iterator it = gap->nameBegin(); it != gap->nameEnd(); ++it, ++currentRes) {
+      mprintf("DEBUG: %s %i\n", it->c_str(), currentRes);
+      std::pair<Pset::iterator, bool> ret = AllResidues.insert( Pres(*it, currentRes, gap->Chain()) );
+      if (!ret.second) {
+        mprinterr("Internal Error: Somehow residue %s %i in chain %c was duplicated.\n",
+                  it->c_str(), currentRes, gap->Chain());
+        return 1;
+      }
+    }
+    /*
     // Start res connector mask
     std::string maskStr0("::" + std::string(1,gap->Chain()) + "&:;" + integerToString(gap->StartRes()-1));
     // Stop res connector mask
@@ -172,9 +187,12 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     AtomMask mask1( maskStr1 );
     if (topIn.SetupIntegerMask( mask1, coordsIn )) return 1;
     mprintf("\t  Selected0=%i Selected1=%i\n", mask0.Nselected(), mask1.Nselected());
-    
+    */
   }
-*/
+
+  // Print residues
+  for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
+    mprintf("\t%6s %8i %8i %c\n", *(it->Name()), it->OriginalResNum(), it->TopResNum()+1, it->ChainID());
   return 0;
 }
 
