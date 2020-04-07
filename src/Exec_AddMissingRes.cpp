@@ -2,14 +2,9 @@
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
+#include "Trajin_Single.h"
 #include <cstdlib> // atoi
 #include <cstring> //strncmp
-
-// Exec_AddMissingRes::Help()
-void Exec_AddMissingRes::Help() const
-{
-
-}
 
 /** Get gap info from PDB */
 int Exec_AddMissingRes::FindGaps(Garray& Gaps, CpptrajFile& outfile, std::string const& pdbname)
@@ -114,6 +109,12 @@ const
   return 0;
 } 
 
+// Exec_AddMissingRes::Help()
+void Exec_AddMissingRes::Help() const
+{
+  mprintf("\tpdbname <pdbname> [out <filename>] parmargs <parm args>\n");
+}
+
 // Exec_AddMissingRes::Execute()
 Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -133,6 +134,12 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     parmArgs.SetList(parmArgStr, ",");
     mprintf("\tParm args: %s\n", parmArgStr.c_str());
   }
+  ArgList trajArgs;
+  std::string trajArgStr = argIn.GetStringKey("trajargs");
+  if (!trajArgStr.empty()) {
+    trajArgs.SetList(trajArgStr, ",");
+    mprintf("\tTraj args: %s\n", trajArgStr.c_str());
+  }
 
   Garray Gaps;
   if (FindGaps(Gaps, *outfile, pdbname))
@@ -144,6 +151,18 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   if (parmIn.ReadTopology(topIn, pdbname, parmArgs, State.Debug()))
     return CpptrajState::ERR;
   topIn.Summary();
+
+  // Set up input trajectory
+  Trajin_Single trajIn;
+  if (trajIn.SetupTrajRead(pdbname, trajArgs, &topIn)) return CpptrajState::ERR;
+  // Create input frame
+  Frame frameIn;
+  frameIn.SetupFrameV(topIn.Atoms(), trajIn.TrajCoordInfo());
+  // Read input
+  if (trajIn.BeginTraj()) return CpptrajState::ERR;
+  if (trajIn.ReadTrajFrame(0, frameIn)) return CpptrajState::ERR;
+  trajIn.EndTraj();
+  
 
   return CpptrajState::OK;
 }
