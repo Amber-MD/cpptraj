@@ -7715,6 +7715,7 @@ Create a data set (optionally named <setname>) containing 1 for data within
 \series default
  is also specified, a new set will be created containing the '1' frames
  instead.
+ The 'filterset' functionality only works for 1D scalar sets.
 \end_layout
 
 \begin_layout Standard

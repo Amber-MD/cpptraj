@@ -15,7 +15,8 @@ void Exec_DataFilter::Help() const {
           "  data set instead.\n"
           "  If 'filterset' is specified, the specified <set> will be modified\n"
           "  to only contain '1' frames; cannot be used with 'multi'. If 'newset'\n"
-          "  is also specified, a new set will be created containing the '1' frames instead.\n");
+          "  is also specified, a new set will be created containing the '1' frames instead.\n"
+          "  The 'filterset' functionality only works for 1D scalar sets.\n");
 }
 
 // Exec_DataFilter::Execute()
