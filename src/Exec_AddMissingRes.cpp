@@ -116,6 +116,189 @@ const
   return 0;
 } 
 
+/** Try to minimize using steepest descent. */
+int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask const& maskIn)
+const
+{
+  double min_tol = 1.0E-5;
+  int max_iteration = 1000;
+
+  // Output trajectory
+  Trajout_Single trajOut;
+  if (trajOut.InitTrajWrite("min.nc", ArgList(), DataSetList(), TrajectoryFile::AMBERNETCDF))
+    return 1;
+  if (trajOut.SetupTrajWrite((Topology*)&topIn, CoordinateInfo(), 0))
+    return 1;
+
+  // Forces
+  std::vector<Vec3> Farray(topIn.Natom(), Vec3(0.0));
+  // Coordinates
+  std::vector<Vec3> Xarray;
+  Xarray.reserve( topIn.Natom() );
+  for (int at = 0; at < topIn.Natom(); at++)
+    Xarray.push_back( Vec3(frameIn.XYZ(at)) );
+  // Degrees of freedom
+  double deg_of_freedom = 3 * topIn.Natom();
+  double fnq = sqrt(deg_of_freedom);
+  // Main loop for steepest descent
+  //const double Rk = 1.0;
+  const double dxstm = 1.0E-5;
+  const double crits = 1.0E-6;
+  double rms = 1.0;
+  double dxst = 0.1;
+  double last_e = 0.0;
+  int iteration = 0;
+  mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
+  while (rms > min_tol && iteration < max_iteration) {
+    double e_total = 0.0;
+    // Determine bond energy and forces
+    for (BondArray::const_iterator bnd = topIn.Bonds().begin(); bnd != topIn.Bonds().end(); ++bnd)
+    {
+      BondParmType BP = topIn.BondParm()[ bnd->Idx() ];
+      Vec3 const& XYZ0 = Xarray[ bnd->A1() ];
+      Vec3 const& XYZ1 = Xarray[ bnd->A2() ];
+      double rx = XYZ0[0] - XYZ1[0];
+      double ry = XYZ0[1] - XYZ1[1];
+      double rz = XYZ0[2] - XYZ1[2];
+      double r2 = rx*rx + ry*ry + rz*rz;
+      double r2inv = 1.0/r2;
+      double r = sqrt(r2);
+      double rinv = r * r2inv;
+
+      double db = r - BP.Req();
+      double df = BP.Rk() * db;
+      double e = df * db;
+      e_total += e;
+
+      df *= 2.0 * rinv;
+
+      double dfx = df * rx;
+      double dfy = df * ry;
+      double dfz = df * rz;
+
+      Farray[bnd->A1()][0] += dfx;
+      Farray[bnd->A1()][1] += dfy;
+      Farray[bnd->A1()][2] += dfz;
+
+      Farray[bnd->A2()][0] -= dfx;
+      Farray[bnd->A2()][1] -= dfy;
+      Farray[bnd->A2()][2] -= dfz;
+    }
+
+/*
+    unsigned int idx = 0; // Index into FrameDistances
+    for (unsigned int f1 = 0; f1 != nframes; f1++)
+    {
+      for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
+      {
+        //double Req = FrameDistances().GetCdist(f1, f2);
+        Vec3 V1_2 = Xarray[f1] - Xarray[f2];
+        double r2 = V1_2.Magnitude2();
+        double s = sqrt(r2);
+        double r = 2.0 / s;
+        double db = s - FrameDistances().GetElement(idx++);
+        double df = Rk * db;
+        double e = df * db;
+        e_total += e;
+        df *= r;
+        // Apply force
+        V1_2 *= df;
+        Farray[f1] -= V1_2;
+        Farray[f2] += V1_2;
+      }
+    }
+*/
+    // Calculate the magnitude of the force vector.
+    double sum = 0.0;
+    for (std::vector<Vec3>::const_iterator FV = Farray.begin(); FV != Farray.end(); ++FV)
+      sum += FV->Magnitude2();
+    rms = sqrt( sum ) / fnq;
+    // Adjust search step size
+    if (dxst < crits) dxst = dxstm;
+    dxst = dxst / 2.0;
+    if (e_total < last_e) dxst = dxst * 2.4;
+    double dxsth = dxst / sqrt( sum );
+    last_e = e_total;
+    // Update positions and reset force array.
+    std::vector<Vec3>::iterator FV = Farray.begin();
+    for (std::vector<Vec3>::iterator XV = Xarray.begin();
+                                     XV != Xarray.end(); ++XV, ++FV)
+    {
+      *XV += (*FV * dxsth);
+      *FV = 0.0;
+    }
+    // Write out current E.
+    mprintf("Iteration:\t%8i %12.4E %12.4E\n", iteration, e_total, rms);
+    iteration++;
+  }
+  // RMS error
+  double sumdiff2 = 0.0;
+  for (BondArray::const_iterator bnd = topIn.Bonds().begin(); bnd != topIn.Bonds().end(); ++bnd)
+  {
+    BondParmType BP = topIn.BondParm()[ bnd->Idx() ];
+    Vec3 const& XYZ0 = Xarray[ bnd->A1() ];
+    Vec3 const& XYZ1 = Xarray[ bnd->A2() ];
+    Vec3 V1_2 = XYZ0 - XYZ1;
+    double r1_2 = sqrt( V1_2.Magnitude2() );
+    double diff = r1_2 - BP.Req();
+    sumdiff2 += (diff * diff);
+    //if (debug_ > 0)
+        mprintf("\t\t%u to %u: D= %g  Eq= %g  Delta= %g\n",
+                bnd->A1()+1, bnd->A2()+1, r1_2, BP.Req(), fabs(diff));
+  }
+/* 
+  unsigned int idx = 0; // Index into FrameDistances
+  double sumdiff2 = 0.0;
+  for (unsigned int f1 = 0; f1 != nframes; f1++)
+  {
+    for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
+    {
+      Vec3 V1_2 = Xarray[f1] - Xarray[f2];
+      double r1_2 = sqrt( V1_2.Magnitude2() );
+      double Req = FrameDistances().GetElement(idx);
+      double diff = r1_2 - Req;
+      sumdiff2 += (diff * diff);
+      if (debug_ > 0)
+        mprintf("\t\t%u to %u: D= %g  Eq= %g  Delta= %g\n",
+                f1+1, f2+1, r1_2, Req, fabs(diff));
+      ++idx;
+    }
+  }
+*/
+  double rms_err = sqrt( sumdiff2 / (double)topIn.Bonds().size() );
+  mprintf("\tRMS error of final graph positions: %g\n", rms_err);
+/*
+  // Write out final graph with cluster numbers.
+  std::vector<int> Nums;
+  Nums.reserve( nframes );
+  if (cnumvtime != 0) {
+    ClusterSieve::SievedFrames const& sievedFrames = FrameDistances().FramesToCluster();
+    DataSet_1D const& CVT = static_cast<DataSet_1D const&>( *cnumvtime );
+    for (unsigned int n = 0; n != nframes; n++)
+      Nums.push_back( (int)CVT.Dval(sievedFrames[n]) );
+  } else
+    for (int n = 1; n <= (int)nframes; n++)
+      Nums.push_back( n );
+*/
+  return 0;
+}
+
+/** Write topology and frame to pdb. */
+int Exec_AddMissingRes::WriteStructure(std::string const& fname, Topology* newTop, Frame const& newFrame,
+                                       TrajectoryFile::TrajFormatType typeOut)
+const
+{
+  Trajout_Single trajOut;
+  if (trajOut.InitTrajWrite(fname, ArgList(), DataSetList(), typeOut))
+    return 1;
+  if (trajOut.SetupTrajWrite(newTop, CoordinateInfo(), 1))
+    return 1;
+  if (trajOut.WriteSingle(0, newFrame)) return 1;
+  trajOut.EndTraj();
+  return 0;
+}
+
+
 /// Placeholder for Residues
 class Pres {
   public:
@@ -146,21 +329,6 @@ class Pres {
     int tresnum_;   ///< Topology residue index; -1 if it was missing.
     char chain_;    ///< Original (PDB) chain ID.
 };
-
-/** Write topology and frame to pdb. */
-int Exec_AddMissingRes::WriteStructure(std::string const& fname, Topology* newTop, Frame const& newFrame,
-                                       TrajectoryFile::TrajFormatType typeOut)
-const
-{
-  Trajout_Single trajOut;
-  if (trajOut.InitTrajWrite(fname, ArgList(), DataSetList(), typeOut))
-    return 1;
-  if (trajOut.SetupTrajWrite(newTop, CoordinateInfo(), 1))
-    return 1;
-  if (trajOut.WriteSingle(0, newFrame)) return 1;
-  trajOut.EndTraj();
-  return 0;
-}
 
 /** Try to add in missing residues. */
 int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
@@ -294,6 +462,11 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   CAtop.Summary();
   if (WriteStructure("temp.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Write of temp.ca.mol2 failed.\n");
+    return 1;
+  }
+
+  if (Minimize(CAtop, CAframe, CAmissing)) {
+    mprinterr("Error: Minimization of CA atoms failed.\n");
     return 1;
   }
                            

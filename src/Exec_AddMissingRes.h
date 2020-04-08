@@ -18,6 +18,7 @@ class Exec_AddMissingRes : public Exec {
     typedef std::vector<Gap> Garray;
 
     int FindGaps(Garray&, CpptrajFile&, std::string const&) const;
+    int Minimize(Topology const&, Frame&, CharMask const&) const;
     int WriteStructure(std::string const&, Topology*, Frame const&, TrajectoryFile::TrajFormatType) const;
     int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&);
 };
