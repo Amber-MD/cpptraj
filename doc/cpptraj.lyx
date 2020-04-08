@@ -25798,7 +25798,7 @@ lie
 
 \end_inset
 
- [<name>] <Ligand mask> [<Surroundings mask>] [out <filename>]
+ [<name>] <Ligand mask> [<Surroundings mask>] [out <filename>] [nopbc]
 \begin_inset Newline newline
 \end_inset
 
@@ -25833,6 +25833,20 @@ For each frame, calculate the non-bonded interactions between all atoms
  <dielc> is an optional dielectric constant.
  Either the electrostatic or van der Waals calculations can be suppressed
  via the keywords noelec and novdw, respectively.
+ Periodic boundary conditions (and the minimum image convention) can be
+ abandoned with the 
+\begin_inset Quotes eld
+\end_inset
+
+nopbc
+\begin_inset Quotes erd
+\end_inset
+
+ keyword.
+ Note, however, that no prior imaging is performed if the frames contain
+ periodic boundaries.
+ This may be useful for instances when you are simulating a microscopic
+ droplets.
 \end_layout
 
 \begin_layout Standard
