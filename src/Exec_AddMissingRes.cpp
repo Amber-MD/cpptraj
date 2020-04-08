@@ -121,14 +121,16 @@ int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask
 const
 {
   double min_tol = 1.0E-5;
-  int max_iteration = 1;
+  int max_iteration = 1000;
 
   // Output trajectory
+  int iteration = 0;
   Trajout_Single trajOut;
   if (trajOut.InitTrajWrite("min.nc", ArgList(), DataSetList(), TrajectoryFile::AMBERNETCDF))
     return 1;
   if (trajOut.SetupTrajWrite((Topology*)&topIn, CoordinateInfo(), 0))
     return 1;
+  if (trajOut.WriteSingle(iteration, frameIn)) return 1;
 
   // Selected bonds
   BondArray activeBonds;
@@ -159,7 +161,6 @@ const
   double rms = 1.0;
   double dxst = 0.1;
   double last_e = 0.0;
-  int iteration = 0;
   mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
@@ -258,6 +259,7 @@ const
     // Write out current E.
     mprintf("Iteration:\t%8i %12.4E %12.4E\n", iteration, e_total, rms);
     iteration++;
+    if (trajOut.WriteSingle(iteration, frameIn)) return 1;
   }
   // RMS error
   double sumdiff2 = 0.0;
