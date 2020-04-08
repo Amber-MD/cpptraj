@@ -145,10 +145,10 @@ const
   // Forces
   std::vector<Vec3> Farray(topIn.Natom(), Vec3(0.0));
   // Coordinates
-  std::vector<Vec3> Xarray;
-  Xarray.reserve( topIn.Natom() );
-  for (int at = 0; at < topIn.Natom(); at++)
-    Xarray.push_back( Vec3(frameIn.XYZ(at)) );
+  //std::vector<Vec3> Xarray;
+  //Xarray.reserve( topIn.Natom() );
+  //for (int at = 0; at < topIn.Natom(); at++)
+  //  Xarray.push_back( Vec3(frameIn.XYZ(at)) );
   // Degrees of freedom
   double deg_of_freedom = 3 * maskIn.Nselected();
   double fnq = sqrt(deg_of_freedom);
@@ -167,8 +167,10 @@ const
     for (BondArray::const_iterator bnd = activeBonds.begin(); bnd != activeBonds.end(); ++bnd)
     {
       BondParmType BP = topIn.BondParm()[ bnd->Idx() ];
-      Vec3 const& XYZ0 = Xarray[ bnd->A1() ];
-      Vec3 const& XYZ1 = Xarray[ bnd->A2() ];
+      //Vec3 const& XYZ0 = Xarray[ bnd->A1() ];
+      //Vec3 const& XYZ1 = Xarray[ bnd->A2() ];
+      const double* XYZ0 = frameIn.XYZ( bnd->A1() );
+      const double* XYZ1 = frameIn.XYZ( bnd->A2() );
       double rx = XYZ0[0] - XYZ1[0];
       double ry = XYZ0[1] - XYZ1[1];
       double rz = XYZ0[2] - XYZ1[2];
@@ -238,12 +240,20 @@ const
     double dxsth = dxst / sqrt( sum );
     last_e = e_total;
     // Update positions and reset force array.
-    std::vector<Vec3>::iterator FV = Farray.begin();
-    for (std::vector<Vec3>::iterator XV = Xarray.begin();
-                                     XV != Xarray.end(); ++XV, ++FV)
+    double* Xptr = frameIn.xAddress();
+    for (int idx = 0; idx != topIn.Natom(); idx++, Xptr += 3)
+    //std::vector<Vec3>::iterator FV = Farray.begin();
+    //for (std::vector<Vec3>::iterator XV = Xarray.begin();
+    //                                 XV != Xarray.end(); ++XV, ++FV)
     {
-      *XV += (*FV * dxsth);
-      *FV = 0.0;
+      //mprintf("xyz0= %g %g %g  Fxyz= %g %g %g\n", Xptr[0], Xptr[1], Xptr[2], Farray[idx][0], Farray[idx][1], Farray[idx][2]);
+      Xptr[0] += Farray[idx][0] * dxsth;
+      Xptr[1] += Farray[idx][1] * dxsth;
+      Xptr[2] += Farray[idx][2] * dxsth;
+      Farray[idx] = 0.0;
+      //mprintf("xyz1= %g %g %g\n", Xptr[0], Xptr[1], Xptr[2]);
+      //*XV += (*FV * dxsth);
+      //*FV = 0.0;
     }
     // Write out current E.
     mprintf("Iteration:\t%8i %12.4E %12.4E\n", iteration, e_total, rms);
@@ -254,8 +264,10 @@ const
   for (BondArray::const_iterator bnd = activeBonds.begin(); bnd != activeBonds.end(); ++bnd)
   {
     BondParmType BP = topIn.BondParm()[ bnd->Idx() ];
-    Vec3 const& XYZ0 = Xarray[ bnd->A1() ];
-    Vec3 const& XYZ1 = Xarray[ bnd->A2() ];
+    //Vec3 const& XYZ0 = Xarray[ bnd->A1() ];
+    //Vec3 const& XYZ1 = Xarray[ bnd->A2() ];
+    Vec3 XYZ0( frameIn.XYZ( bnd->A1() ) );
+    Vec3 XYZ1( frameIn.XYZ( bnd->A2() ) );
     Vec3 V1_2 = XYZ0 - XYZ1;
     double r1_2 = sqrt( V1_2.Magnitude2() );
     double diff = r1_2 - BP.Req();
