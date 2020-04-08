@@ -6,28 +6,32 @@
 
 void Exec_DataFilter::Help() const {
   mprintf("\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"
-          "\t[filterset <set> [newset <newname>]]\n"
+          "\t[multi] [filterset <set> [newset <newname>]]\n"
           "  Create a data set (optionally named <setname>) containing 1 for\n"
           "  data within given <min> and <max> criteria for each specified\n"
           "  data set. There must be at least one <min> and <max> argument,\n"
           "  and can be as many as there are specified data sets.\n"
+          "  If 'multi' is specified then only filter data sets will be created for each\n"
+          "  data set instead.\n"
           "  If 'filterset' is specified, the specified <set> will be modified\n"
-          "  to only contain '1' frames. If 'newset' is also specified,\n"
-          "  a new set will be created containing the '1' frames instead.\n");
+          "  to only contain '1' frames; cannot be used with 'multi'. If 'newset'\n"
+          "  is also specified, a new set will be created containing the '1' frames instead.\n");
 }
 
 // Exec_DataFilter::Execute()
 Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
-  // Not intended to work with 'multi'
-  if (argIn.hasKey("multi")) {
-    mprinterr("Error: Stand-alone data set filter command not set up to use 'multi' keyword.\n");
-    return CpptrajState::ERR;
-  }
+
   // Get args specific to this exec.
   std::string filterSetName = argIn.GetStringKey("filterset");
   std::string newSetName;
-  if (!filterSetName.empty())
+  if (!filterSetName.empty()) {
+    // Not intended to work with 'multi'
+    if (argIn.hasKey("multi")) {
+      mprinterr("Error: 'filterset' can not be used with 'multi' keyword.\n");
+      return CpptrajState::ERR;
+    }
     newSetName = argIn.GetStringKey("newset");
+  }
   // Init and set up Action_FilterByData
   Action_FilterByData filterAction;
   ActionInit state(State.DSL(), State.DFL());
@@ -38,16 +42,17 @@ Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: No data to filter. All sets must contain some data.\n");
     return CpptrajState::ERR;
   }
-  DataSet* ds = filterAction.FilterSet();
-  if (ds == 0) {
-    mprinterr("Internal Error: FilterSet was not created.\n");
-    return CpptrajState::ERR;
-  }
-  DataSet_integer const& FilterSet = static_cast<DataSet_integer const&>( *ds );
   // Get the set to be filtered if needed.
   DataSet_1D* SetToBeFiltered = 0;
   DataSet_1D* FilteredSet = 0;
+  DataSet_integer* FilterSet = 0;
   if (!filterSetName.empty()) {
+    DataSet* ds = filterAction.FilterSet();
+    if (ds == 0 || ds->Type() != DataSet::INTEGER) {
+      mprinterr("Internal Error: FilterSet was not created.\n");
+      return CpptrajState::ERR;
+    }
+    FilterSet = (DataSet_integer*)ds;
     ds = State.DSL().GetDataSet( filterSetName );
     if (ds == 0) {
       mprinterr("Error: Set to be filtered '%s' not found.\n", filterSetName.c_str());
@@ -89,7 +94,7 @@ Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
     ActionFrame frm(0, frame);
     filterAction.DoAction(frame, frm);
     if (SetToBeFiltered != 0) {
-      if (FilterSet[frame] == 1)
+      if ((*FilterSet)[frame] == 1)
         FilteredSet->Add(newidx++, SetToBeFiltered->VoidPtr(frame));
     }
   }
