@@ -145,7 +145,7 @@ class Pres {
 /** Try to add in missing residues. */
 int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
                                            Topology const& topIn,
-                                           Frame const& coordsIn,
+                                           Frame const& frameIn,
                                            Garray const& Gaps)
 {
   typedef std::set<Pres> Pset;
@@ -190,18 +190,45 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     */
   }
 
-  // Print residues
+  // Print residues.
+  // Count number of present atoms and missing residues.
+  int nAtomsPresent = 0;
+  int nResMissing = 0;
   for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
-    mprintf("\t%6s %8i %8i %c\n", *(it->Name()), it->OriginalResNum(), it->TopResNum()+1, it->ChainID());
+  {
+    mprintf("\t  %6s %8i %8i %c\n", *(it->Name()), it->OriginalResNum(), it->TopResNum()+1, it->ChainID());
+    if (it->TopResNum() < 0)
+      nResMissing++;
+    else
+      nAtomsPresent += topIn.Res(it->TopResNum()).NumAtoms();
+  }
+  mprintf("\t%i atoms present, %i residues missing.\n", nAtomsPresent, nResMissing);
 
+  // Create new Frame
+  Frame newFrame(nAtomsPresent + nResMissing);
   // Create a new topology with all residues. For missing residues, create a CA atom.
   Topology* newTop = dataOut->TopPtr();
+  // Zero coord for new CA atoms
+  Vec3 Zero(0.0);
   for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
   {
     int topResNum = it->TopResNum();
     if (topResNum < 0) {
       // This was a missing residue
-      newTop->AddTopAtom(
+      newTop->AddTopAtom( Atom("CA", "C "),
+                          Residue(it->Name(), it->OriginalResNum(), ' ', it->ChainID()) );
+      newFrame.AddVec3( Zero );
+    } else {
+      Residue const& topres = topIn.Res(it->TopResNum());
+      Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainID());
+      for (int at = topres.FirstAtom(); at < topres.LastAtom(); at++) {
+        newTop->AddTopAtom( Atom(topIn[at].Name(), topIn[at].ElementName()), newres );
+        newFrame.AddXYZ( frameIn.XYZ(at) );
+      }
+    }
+  } // END loop over all residues
+  newTop->Summary();
+                           
   return 0;
 }
 
