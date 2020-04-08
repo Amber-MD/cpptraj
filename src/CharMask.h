@@ -25,6 +25,8 @@ class CharMask : public MaskTokenArray {
     std::vector<int> ConvertToIntMask() const;
     /// \return size of char mask
     int Natom() const { return (int)CharMask_.size(); }
+    /// Add an atom to the mask as selected (true) or not selected (false)
+    void AddAtom(bool); 
     // -------------------------------------------
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*) const;
