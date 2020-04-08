@@ -7597,7 +7597,7 @@ datafilter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \end_layout
 
 \begin_layout LyX-Code
-           [filterset <set> [newset <newname>]]
+           [{multi | filterset <set> [newset <newname>]}]
 \end_layout
 
 \begin_deeper
@@ -7643,12 +7643,19 @@ max
 \end_layout
 
 \begin_layout Description
+[multi] Filter each set separately instead of all together (creates filter
+ set for each input set).
+ Cannot be used with 'filterset'.
+\end_layout
+
+\begin_layout Description
 [filterset
 \begin_inset space ~
 \end_inset
 
 <set>] If specified, <set> will be filtered to only contain data that satisfies
- cutoffs
+ cutoffs.
+ Cannot be used with 'multi'.
 \end_layout
 
 \begin_deeper
@@ -7683,10 +7690,31 @@ Create a data set (optionally named <setname>) containing 1 for data within
 <max>
 \series default
  argument, and can be as many as there are specified data sets.
- If 'filterset' is specified, the specified <set> will be modified to only
- contain '1' frames.
- If 'newset' is also specified, a new set will be created containing the
- '1' frames instead.
+ If 
+\series bold
+'multi'
+\series default
+ is specified then only filter data sets will be created for each data set
+ instead.
+ If 
+\series bold
+'filterset'
+\series default
+ is specified, the specified 
+\series bold
+<set>
+\series default
+ will be modified to only contain '1' frames; cannot be used with 
+\series bold
+'multi'
+\series default
+.
+ If 
+\series bold
+'newset'
+\series default
+ is also specified, a new set will be created containing the '1' frames
+ instead.
 \end_layout
 
 \begin_layout Standard

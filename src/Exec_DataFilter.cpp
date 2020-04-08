@@ -6,7 +6,7 @@
 
 void Exec_DataFilter::Help() const {
   mprintf("\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"
-          "\t[multi] [filterset <set> [newset <newname>]]\n"
+          "\t[{multi | filterset <set> [newset <newname>]}]\n"
           "  Create a data set (optionally named <setname>) containing 1 for\n"
           "  data within given <min> and <max> criteria for each specified\n"
           "  data set. There must be at least one <min> and <max> argument,\n"
