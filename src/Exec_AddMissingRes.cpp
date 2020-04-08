@@ -121,7 +121,7 @@ int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask
 const
 {
   double min_tol = 1.0E-5;
-  int max_iteration = 1000;
+  int max_iteration = 1;
 
   // Output trajectory
   Trajout_Single trajOut;
@@ -130,6 +130,18 @@ const
   if (trajOut.SetupTrajWrite((Topology*)&topIn, CoordinateInfo(), 0))
     return 1;
 
+  // Selected bonds
+  BondArray activeBonds;
+  for (BondArray::const_iterator bnd = topIn.Bonds().begin(); bnd != topIn.Bonds().end(); ++bnd)
+  {
+    if (maskIn.AtomInCharMask( bnd->A1() ) ||
+        maskIn.AtomInCharMask( bnd->A2() ))
+    {
+      mprintf("DEBUG: Bond %i to %i\n", bnd->A1()+1, bnd->A2()+1);
+      activeBonds.push_back( *bnd );
+    }
+  }
+  
   // Forces
   std::vector<Vec3> Farray(topIn.Natom(), Vec3(0.0));
   // Coordinates
@@ -138,7 +150,7 @@ const
   for (int at = 0; at < topIn.Natom(); at++)
     Xarray.push_back( Vec3(frameIn.XYZ(at)) );
   // Degrees of freedom
-  double deg_of_freedom = 3 * topIn.Natom();
+  double deg_of_freedom = 3 * maskIn.Nselected();
   double fnq = sqrt(deg_of_freedom);
   // Main loop for steepest descent
   //const double Rk = 1.0;
@@ -152,7 +164,7 @@ const
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
     // Determine bond energy and forces
-    for (BondArray::const_iterator bnd = topIn.Bonds().begin(); bnd != topIn.Bonds().end(); ++bnd)
+    for (BondArray::const_iterator bnd = activeBonds.begin(); bnd != activeBonds.end(); ++bnd)
     {
       BondParmType BP = topIn.BondParm()[ bnd->Idx() ];
       Vec3 const& XYZ0 = Xarray[ bnd->A1() ];
@@ -161,28 +173,34 @@ const
       double ry = XYZ0[1] - XYZ1[1];
       double rz = XYZ0[2] - XYZ1[2];
       double r2 = rx*rx + ry*ry + rz*rz;
-      double r2inv = 1.0/r2;
-      double r = sqrt(r2);
-      double rinv = r * r2inv;
+      if (r2 > 0.0) {
+        double r2inv = 1.0/r2;
+        double r = sqrt(r2);
+        double rinv = r * r2inv;
 
-      double db = r - BP.Req();
-      double df = BP.Rk() * db;
-      double e = df * db;
-      e_total += e;
+        double db = r - BP.Req();
+        double df = BP.Rk() * db;
+        double e = df * db;
+        e_total += e;
 
-      df *= 2.0 * rinv;
+        df *= 2.0 * rinv;
 
-      double dfx = df * rx;
-      double dfy = df * ry;
-      double dfz = df * rz;
+        double dfx = df * rx;
+        double dfy = df * ry;
+        double dfz = df * rz;
 
-      Farray[bnd->A1()][0] += dfx;
-      Farray[bnd->A1()][1] += dfy;
-      Farray[bnd->A1()][2] += dfz;
+        if (maskIn.AtomInCharMask(bnd->A1())) {
+          Farray[bnd->A1()][0] += dfx;
+          Farray[bnd->A1()][1] += dfy;
+          Farray[bnd->A1()][2] += dfz;
+        }
 
-      Farray[bnd->A2()][0] -= dfx;
-      Farray[bnd->A2()][1] -= dfy;
-      Farray[bnd->A2()][2] -= dfz;
+        if (maskIn.AtomInCharMask(bnd->A2())) {
+          Farray[bnd->A2()][0] -= dfx;
+          Farray[bnd->A2()][1] -= dfy;
+          Farray[bnd->A2()][2] -= dfz;
+        }
+      }
     }
 
 /*
@@ -233,7 +251,7 @@ const
   }
   // RMS error
   double sumdiff2 = 0.0;
-  for (BondArray::const_iterator bnd = topIn.Bonds().begin(); bnd != topIn.Bonds().end(); ++bnd)
+  for (BondArray::const_iterator bnd = activeBonds.begin(); bnd != activeBonds.end(); ++bnd)
   {
     BondParmType BP = topIn.BondParm()[ bnd->Idx() ];
     Vec3 const& XYZ0 = Xarray[ bnd->A1() ];
@@ -265,7 +283,7 @@ const
     }
   }
 */
-  double rms_err = sqrt( sumdiff2 / (double)topIn.Bonds().size() );
+  double rms_err = sqrt( sumdiff2 / (double)activeBonds.size() );
   mprintf("\tRMS error of final graph positions: %g\n", rms_err);
 /*
   // Write out final graph with cluster numbers.
