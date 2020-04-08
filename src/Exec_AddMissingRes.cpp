@@ -5,6 +5,7 @@
 #include "ParmFile.h"
 #include "StringRoutines.h"
 #include "Trajin_Single.h"
+#include "Trajout_Single.h"
 #include <cstdlib> // atoi
 #include <cstring> //strncmp
 
@@ -206,6 +207,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
 
   // Create new Frame
   Frame newFrame(nAtomsPresent + nResMissing);
+  newFrame.ClearAtoms();
   // Create a new topology with all residues. For missing residues, create a CA atom.
   Topology* newTop = dataOut->TopPtr();
   // Zero coord for new CA atoms
@@ -223,11 +225,23 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainID());
       for (int at = topres.FirstAtom(); at < topres.LastAtom(); at++) {
         newTop->AddTopAtom( Atom(topIn[at].Name(), topIn[at].ElementName()), newres );
+        frameIn.printAtomCoord(at);
         newFrame.AddXYZ( frameIn.XYZ(at) );
+        newFrame.printAtomCoord(newTop->Natom()-1);
       }
     }
   } // END loop over all residues
+  newTop->SetParmName("newpdb", "temp.pdb");
+  newTop->CommonSetup( false ); // No molecule search
   newTop->Summary();
+  Trajout_Single trajOut;
+  if (trajOut.InitTrajWrite("temp.pdb", ArgList(), DataSetList(), TrajectoryFile::PDBFILE))
+    return 1;
+  if (trajOut.SetupTrajWrite(newTop, CoordinateInfo(), 1))
+    return 1;
+  if (trajOut.WriteSingle(0, newFrame)) return 1;
+  trajOut.EndTraj();
+  
                            
   return 0;
 }
