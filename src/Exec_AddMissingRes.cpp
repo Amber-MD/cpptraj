@@ -1,5 +1,6 @@
 #include "Exec_AddMissingRes.h"
 #include "BufferedLine.h"
+#include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_CRD.h"
 #include "ParmFile.h"
@@ -14,7 +15,10 @@ int Exec_AddMissingRes::FindGaps(Garray& Gaps, CpptrajFile& outfile, std::string
 const
 {
   BufferedLine infile;
-  if (infile.OpenFileRead( pdbname )) return 1; 
+  if (infile.OpenFileRead( pdbname )) {
+    mprinterr("Error: Could not open '%s' for reading.\n", pdbname.c_str());
+    return 1;
+  }
   const char* linePtr = infile.Line();
   int inMissing = 0;
   int nmissing = 0;
@@ -212,6 +216,12 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   Topology* newTop = dataOut->TopPtr();
   // Zero coord for new CA atoms
   Vec3 Zero(0.0);
+  // Topology for CA atoms
+  Topology CAtop;
+  // Frame for CA atoms
+  Frame CAframe;
+  // Mask for missing CA atoms
+  CharMask CAmissing;
   for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
   {
     int topResNum = it->TopResNum();
@@ -220,14 +230,25 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       newTop->AddTopAtom( Atom("CA", "C "),
                           Residue(it->Name(), it->OriginalResNum(), ' ', it->ChainID()) );
       newFrame.AddVec3( Zero );
+      // CA top
+      CAtop.AddTopAtom( Atom("CA", "C "),
+                        Residue(it->Name(), it->OriginalResNum(), ' ', it->ChainID()) );
+      CAframe.AddVec3( Zero );
+      CAmissing.AddAtom(true);
     } else {
       Residue const& topres = topIn.Res(it->TopResNum());
       Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainID());
+      int caidx = -1;
       for (int at = topres.FirstAtom(); at < topres.LastAtom(); at++) {
+        if (topIn[at].Name() == "CA") caidx = at;
         newTop->AddTopAtom( Atom(topIn[at].Name(), topIn[at].ElementName()), newres );
         frameIn.printAtomCoord(at);
         newFrame.AddXYZ( frameIn.XYZ(at) );
         newFrame.printAtomCoord(newTop->Natom()-1);
+      }
+      if (caidx == -1) {
+        mprinterr("Error: No CA atom found for residue %s\n", topIn.TruncResNameNum(it->TopResNum()).c_str());
+        return 1;
       }
     }
   } // END loop over all residues
@@ -264,7 +285,10 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tPDB name: %s\n", pdbname.c_str());
   CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"),
                                                     "AddMissingRes", DataFileList::TEXT, true);
-  if (outfile==0) return CpptrajState::ERR;
+  if (outfile==0) {
+    mprinterr("Internal Error: Unable to allocate 'out' file.\n");
+    return CpptrajState::ERR;
+  }
   mprintf("\tOutput file: %s\n", outfile->Filename().full());
   ArgList parmArgs;
   std::string parmArgStr = argIn.GetStringKey("parmargs");
@@ -284,36 +308,52 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   DataSet_Coords_CRD* dataOut = (DataSet_Coords_CRD*)State.DSL().AddSet(DataSet::COORDS, dsname);
-  if (dataOut == 0) return CpptrajState::ERR;
+  if (dataOut == 0) {
+    mprinterr("Error: Unable to allocate output coords data set.\n");
+    return CpptrajState::ERR;
+  }
   mprintf("\tOutput set: %s\n", dataOut->legend());
 
   // Find missing residues/gaps in the PDB
   Garray Gaps;
-  if (FindGaps(Gaps, *outfile, pdbname))
+  if (FindGaps(Gaps, *outfile, pdbname)) {
+    mprinterr("Error: Finding missing residues failed.\n");
     return CpptrajState::ERR;
+  }
   mprintf("\tThere are %zu gaps in the PDB.\n", Gaps.size());
 
   // Read in topology
   ParmFile parmIn;
   Topology topIn;
-  if (parmIn.ReadTopology(topIn, pdbname, parmArgs, State.Debug()))
+  if (parmIn.ReadTopology(topIn, pdbname, parmArgs, State.Debug())) {
+    mprinterr("Error: Read of topology from PDB failed.\n");
     return CpptrajState::ERR;
+  }
   topIn.Summary();
 
   // Set up input trajectory
   Trajin_Single trajIn;
-  if (trajIn.SetupTrajRead(pdbname, trajArgs, &topIn)) return CpptrajState::ERR;
+  if (trajIn.SetupTrajRead(pdbname, trajArgs, &topIn)) {
+    mprinterr("Error: Setup of PDB for coordinates read failed.\n");
+    return CpptrajState::ERR;
+  }
   trajIn.PrintInfo(1);
   // Create input frame
   Frame frameIn;
   frameIn.SetupFrameV(topIn.Atoms(), trajIn.TrajCoordInfo());
   // Read input
-  if (trajIn.BeginTraj()) return CpptrajState::ERR;
+  if (trajIn.BeginTraj()) {
+    mprinterr("Error: Opening PDB for coordinates read failed.\n");
+    return CpptrajState::ERR;
+  }
   trajIn.GetNextFrame(frameIn);
   trajIn.EndTraj();
 
   // Try to add in missing residues
-  if (AddMissingResidues(dataOut, topIn, frameIn, Gaps)) return CpptrajState::ERR;
+  if (AddMissingResidues(dataOut, topIn, frameIn, Gaps)) {
+    mprinterr("Error: Attempt to add missing residues failed.\n");
+    return CpptrajState::ERR;
+  }
 
   return CpptrajState::OK;
 }
