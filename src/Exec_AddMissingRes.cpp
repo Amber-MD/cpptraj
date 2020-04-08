@@ -147,6 +147,21 @@ class Pres {
     char chain_;    ///< Original (PDB) chain ID.
 };
 
+/** Write topology and frame to pdb. */
+int Exec_AddMissingRes::WriteStructure(std::string const& fname, Topology* newTop, Frame const& newFrame,
+                                       TrajectoryFile::TrajFormatType typeOut)
+const
+{
+  Trajout_Single trajOut;
+  if (trajOut.InitTrajWrite(fname, ArgList(), DataSetList(), typeOut))
+    return 1;
+  if (trajOut.SetupTrajWrite(newTop, CoordinateInfo(), 1))
+    return 1;
+  if (trajOut.WriteSingle(0, newFrame)) return 1;
+  trajOut.EndTraj();
+  return 0;
+}
+
 /** Try to add in missing residues. */
 int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
                                            Topology const& topIn,
@@ -246,23 +261,41 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
         newFrame.AddXYZ( frameIn.XYZ(at) );
         newFrame.printAtomCoord(newTop->Natom()-1);
       }
+      // CA top
       if (caidx == -1) {
         mprinterr("Error: No CA atom found for residue %s\n", topIn.TruncResNameNum(it->TopResNum()).c_str());
         return 1;
       }
+      CAtop.AddTopAtom( Atom(topIn[caidx].Name(), topIn[caidx].ElementName()), newres );
+      CAframe.AddXYZ( frameIn.XYZ(caidx) );
+      CAmissing.AddAtom(false);
     }
   } // END loop over all residues
   newTop->SetParmName("newpdb", "temp.pdb");
   newTop->CommonSetup( false ); // No molecule search
   newTop->Summary();
-  Trajout_Single trajOut;
-  if (trajOut.InitTrajWrite("temp.pdb", ArgList(), DataSetList(), TrajectoryFile::PDBFILE))
+  if (WriteStructure("temp.pdb", newTop, newFrame, TrajectoryFile::PDBFILE)) {
+    mprinterr("Error: Write of temp.pdb failed.\n");
     return 1;
-  if (trajOut.SetupTrajWrite(newTop, CoordinateInfo(), 1))
+  }
+  // CA top
+  // Add pseudo bonds between adjacent CA atoms in the same chain.
+  BondParmType CAbond(1.0, 3.8);
+  for (int cares = 1; cares < CAtop.Nres(); cares++) {
+    // Since only CA atoms, residue # is atom #
+    Residue const& res0 = CAtop.Res(cares - 1);
+    Residue const& res1 = CAtop.Res(cares);
+    if (res0.ChainID() == res1.ChainID()) {
+      CAtop.AddBond(cares-1, cares, CAbond);
+    }
+  }
+  CAtop.SetParmName("capdb", "temp.ca.mol2");
+  CAtop.CommonSetup(true); // molecule search
+  CAtop.Summary();
+  if (WriteStructure("temp.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
+    mprinterr("Error: Write of temp.ca.mol2 failed.\n");
     return 1;
-  if (trajOut.WriteSingle(0, newFrame)) return 1;
-  trajOut.EndTraj();
-  
+  }
                            
   return 0;
 }
