@@ -176,7 +176,7 @@ const
   mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
-    // Determine bond energy and forces
+    // ----- Determine bond energy and forces ----
     double E_bond = 0.0;
     for (BondArray::const_iterator bnd = activeBonds.begin(); bnd != activeBonds.end(); ++bnd)
     {
@@ -220,7 +220,7 @@ const
         }
       }
     }
-    // Determine VDW energy and forces.
+    // ----- Determine VDW energy and forces -----
     // Want every atom to every selected atom.
     // We want atoms to feel each other, but not if they are too close.
     // This will allow them to pass through each other.
@@ -473,7 +473,9 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   int nResMissing = 0;
   for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
   {
-    mprintf("\t  %6s %8i %8i %c\n", *(it->Name()), it->OriginalResNum(), it->TopResNum()+1, it->ChainID());
+    if (debug_ > 1)
+      mprintf("\t  %6s %8i %8i %c\n", *(it->Name()), it->OriginalResNum(),
+              it->TopResNum()+1, it->ChainID());
     if (it->TopResNum() < 0)
       nResMissing++;
     else
@@ -528,6 +530,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       CAmissing.AddAtom(false);
     }
   } // END loop over all residues
+  // Finish new top and write
   newTop->SetParmName("newpdb", "temp.pdb");
   newTop->CommonSetup( false ); // No molecule search
   newTop->Summary();
@@ -535,6 +538,22 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     mprinterr("Error: Write of temp.pdb failed.\n");
     return 1;
   }
+
+  // Print info on gaps in new topology
+  for (Garray::const_iterator gap = Gaps.begin(); gap != Gaps.end(); ++gap)
+  {
+    std::string maskStr0("::" + std::string(1,gap->Chain()) + "&:;" + 
+                         integerToString(gap->StartRes()) + "-" + integerToString(gap->StopRes()));
+    AtomMask mask0( maskStr0 );
+    if (newTop->SetupIntegerMask( mask0, newFrame )) return 1;
+    std::vector<int> rn = newTop->ResnumsSelectedBy(mask0);
+    mprintf("\tGap %c %i-%i : %i-%i\n", gap->Chain(), gap->StartRes(), gap->StopRes(),
+            rn.front() + 1, rn.back() + 1);
+    //for (std::vector<int>::const_iterator it = rn.begin(); it != rn.end(); ++it)
+    //  mprintf(" %i", *it+1);
+    //mprintf("\n");
+  }
+
   // CA top
   // Add pseudo bonds between adjacent CA atoms in the same chain.
   BondParmType CAbond(1.0, 3.8);
@@ -549,6 +568,57 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   CAtop.SetParmName("capdb", "temp.ca.mol2");
   CAtop.CommonSetup(true); // molecule search
   CAtop.Summary();
+  // Try to come up with better starting coords for missing CA atoms
+  int gap_start = -1;
+  int prev_res = -1;
+  int gap_end = -1;
+  int next_res = -1;
+  char current_chain = ' ';
+  int final_res = CAtop.Nres() - 1;
+  for (int idx = 0; idx != CAtop.Nres(); idx++) {
+    if (gap_start == -1) {
+      // Not in a gap yet
+      if (CAmissing.AtomInCharMask(idx)) {
+        // This atom is missing. Start a gap.
+        gap_start = idx;
+        gap_end = -1;
+        current_chain = CAtop.Res(idx).ChainID();
+        //mprintf("CA Gap start: %i chain= %c\n", idx + 1, current_chain);
+        // Is there a previous residue in the same chain?
+        prev_res = idx - 1;
+        if (prev_res < 0 || 
+            (prev_res > -1 && CAtop.Res(prev_res).ChainID() != current_chain))
+        {
+          //mprintf("  No previous residue\n");
+          prev_res = -1;
+        }
+      }
+    } else {
+      // In a gap.
+      // If this is the final residue or the next residue is a different chain,
+      // end the gap and no next residue.
+      if (idx == final_res || CAtop.Res(idx+1).ChainID() != current_chain) {
+        gap_end = idx;
+        next_res = -1;
+      } else if (!CAmissing.AtomInCharMask(idx)) {
+        // This is the first non missing res after a gap.
+        gap_end = idx - 1;
+        next_res = idx;
+      }
+      // If the gap has ended, print and reset.
+      if (gap_end != -1) {
+        int num_res = gap_end - gap_start + 1;
+        if (prev_res > -1) num_res++;
+        if (next_res > -1) num_res++;
+        mprintf("CA Gap end: %i to %i (%i to %i) chain %c #res= %i\n",
+                gap_start+1, gap_end+1, prev_res+1, next_res+1, current_chain, num_res);
+        gap_start = -1;
+      }
+    }
+  }
+  return 1;      
+  
+  // Write CA top
   if (WriteStructure("temp.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Write of temp.ca.mol2 failed.\n");
     return 1;
