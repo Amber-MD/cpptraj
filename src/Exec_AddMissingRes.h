@@ -20,6 +20,7 @@ class Exec_AddMissingRes : public Exec {
     int FindGaps(Garray&, CpptrajFile&, std::string const&) const;
     int Minimize(Topology const&, Frame&, CharMask const&) const;
     int WriteStructure(std::string const&, Topology*, Frame const&, TrajectoryFile::TrajFormatType) const;
+    static void GenerateLinearCoords(int, int, Frame&);
     int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&);
 
     int debug_;

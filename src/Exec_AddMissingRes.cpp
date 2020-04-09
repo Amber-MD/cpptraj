@@ -121,7 +121,7 @@ int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask
 const
 {
   double min_tol = 1.0E-5;
-  int max_iteration = 1000;
+  int max_iteration = 1;
 
   // Output trajectory
   int iteration = 0;
@@ -419,6 +419,33 @@ class Pres {
     char chain_;    ///< Original (PDB) chain ID.
 };
 
+/** Try to generate linear coords beteween idx0 and idx1. */
+void Exec_AddMissingRes::GenerateLinearCoords(int idx0, int idx1, Frame& frm)
+{
+  Vec3 vec0( frm.XYZ(idx0) );
+  Vec3 vec1( frm.XYZ(idx1) );
+  vec0.Print("vec0");
+  vec1.Print("vec1");
+  Vec3 V10 = vec1 - vec0;
+  int nsteps = idx1 - idx0;
+  if (nsteps < 1) {
+    mprinterr("Internal Error: GenerateLinearCoords: Invalid steps from %i to %i (%i)\n",
+              idx0, idx1, nsteps);
+    return;
+  }
+  mprintf("DEBUG: Generating %i steps from %i to %i\n", nsteps, idx0+1, idx1+1);
+  Vec3 delta = V10 / (double)nsteps;
+  double* Xptr = frm.xAddress() + ((idx0+1)*3);
+  for (int i = 1; i < nsteps; i++, Xptr += 3)
+  {
+    Vec3 xyz = vec0 + (delta * (double)i);
+    xyz.Print("xyz");
+    Xptr[0] = xyz[0];
+    Xptr[1] = xyz[1];
+    Xptr[2] = xyz[2];
+  }
+}
+
 /** Try to add in missing residues. */
 int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
                                            Topology const& topIn,
@@ -612,11 +639,13 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
         if (next_res > -1) num_res++;
         mprintf("CA Gap end: %i to %i (%i to %i) chain %c #res= %i\n",
                 gap_start+1, gap_end+1, prev_res+1, next_res+1, current_chain, num_res);
+        if (prev_res > -1 && next_res > -1) {
+          GenerateLinearCoords(prev_res, next_res, CAframe);
+        }
         gap_start = -1;
       }
     }
   }
-  return 1;      
   
   // Write CA top
   if (WriteStructure("temp.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
