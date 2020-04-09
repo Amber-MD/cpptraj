@@ -222,9 +222,11 @@ const
     }
     // Determine VDW energy and forces.
     // Want every atom to every selected atom.
+    // We want atoms to feel each other, but not if they are too close.
+    // This will allow them to pass through each other.
+    double nbcut = 10.0;
     double E_vdw = 0.0;
     double E_elec = 0.0;
-/*
     for (int idx = 0; idx != topIn.Natom(); idx++)
     {
       for (std::vector<int>::const_iterator jdx = selectedAtoms.begin(); jdx != selectedAtoms.end(); ++jdx)
@@ -237,12 +239,11 @@ const
           double ry = XYZ0[1] - XYZ1[1];
           double rz = XYZ0[2] - XYZ1[2];
           double rij2 = rx*rx + ry*ry + rz*rz;
-          if (rij2 > 0.0) {
+          if (rij2 > nbcut) {
             double rij = sqrt( rij2 );
-            double dfx = 0;
-            double dfy = 0;
-            double dfz = 0;
-*
+            //double dfx = 0;
+            //double dfy = 0;
+            //double dfz = 0;
             // VDW
             double r2    = 1.0 / rij2;
             double r6    = r2 * r2 * r2;
@@ -257,7 +258,6 @@ const
             double dfx = rx * fvdw;
             double dfy = ry * fvdw;
             double dfz = rz * fvdw;
-*
             // COULOMB
             double qiqj = .01; // Give each atom charge of .1
             double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
@@ -283,30 +283,7 @@ const
         } // END idx != jdx
       } // END inner loop over jdx
     } // END outer loop over idx
-*/
-/*
-    unsigned int idx = 0; // Index into FrameDistances
-    for (unsigned int f1 = 0; f1 != nframes; f1++)
-    {
-      for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
-      {
-        //double Req = FrameDistances().GetCdist(f1, f2);
-        Vec3 V1_2 = Xarray[f1] - Xarray[f2];
-        double r2 = V1_2.Magnitude2();
-        double s = sqrt(r2);
-        double r = 2.0 / s;
-        double db = s - FrameDistances().GetElement(idx++);
-        double df = Rk * db;
-        double e = df * db;
-        e_total += e;
-        df *= r;
-        // Apply force
-        V1_2 *= df;
-        Farray[f1] -= V1_2;
-        Farray[f2] += V1_2;
-      }
-    }
-*/
+
     // Calculate the magnitude of the force vector.
     double sum = 0.0;
     for (std::vector<Vec3>::const_iterator FV = Farray.begin(); FV != Farray.end(); ++FV)
