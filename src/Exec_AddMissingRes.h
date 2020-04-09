@@ -21,6 +21,8 @@ class Exec_AddMissingRes : public Exec {
     int Minimize(Topology const&, Frame&, CharMask const&) const;
     int WriteStructure(std::string const&, Topology*, Frame const&, TrajectoryFile::TrajFormatType) const;
     int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&);
+
+    int debug_;
 };
 
 // ----- Gap class -------------------------------------------------------------

@@ -143,6 +143,18 @@ const
       activeBonds.push_back( *bnd );
     }
   }
+  // Selected atoms
+  std::vector<int> selectedAtoms;
+  selectedAtoms.reserve( maskIn.Nselected() );
+  for (int i = 0; i < topIn.Natom(); i++)
+    if (maskIn.AtomInCharMask( i ))
+      selectedAtoms.push_back( i );
+  // Fake LJ coefficient, taken from CT-CT (CA-CA) interaction from an Amber ff
+  //double LJA = 1043080.230000;
+  //double LJB = 675.612247;
+  // This makes them more like hydrogen atoms; HP-HP
+  double LJA = 201.823541;
+  double LJB = 3.560129;
   
   // Forces
   std::vector<Vec3> Farray(topIn.Natom(), Vec3(0.0));
@@ -165,6 +177,7 @@ const
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
     // Determine bond energy and forces
+    double E_bond = 0.0;
     for (BondArray::const_iterator bnd = activeBonds.begin(); bnd != activeBonds.end(); ++bnd)
     {
       BondParmType BP = topIn.BondParm()[ bnd->Idx() ];
@@ -185,6 +198,7 @@ const
         double db = r - BP.Req();
         double df = BP.Rk() * db;
         double e = df * db;
+        E_bond += e;
         e_total += e;
 
         df *= 2.0 * rinv;
@@ -206,7 +220,70 @@ const
         }
       }
     }
-
+    // Determine VDW energy and forces.
+    // Want every atom to every selected atom.
+    double E_vdw = 0.0;
+    double E_elec = 0.0;
+/*
+    for (int idx = 0; idx != topIn.Natom(); idx++)
+    {
+      for (std::vector<int>::const_iterator jdx = selectedAtoms.begin(); jdx != selectedAtoms.end(); ++jdx)
+      {
+        if (idx != *jdx)
+        {
+          const double* XYZ0 = frameIn.XYZ( idx );
+          const double* XYZ1 = frameIn.XYZ( *jdx );
+          double rx = XYZ0[0] - XYZ1[0];
+          double ry = XYZ0[1] - XYZ1[1];
+          double rz = XYZ0[2] - XYZ1[2];
+          double rij2 = rx*rx + ry*ry + rz*rz;
+          if (rij2 > 0.0) {
+            double rij = sqrt( rij2 );
+            double dfx = 0;
+            double dfy = 0;
+            double dfz = 0;
+*
+            // VDW
+            double r2    = 1.0 / rij2;
+            double r6    = r2 * r2 * r2;
+            double r12   = r6 * r6;
+            double f12   = LJA * r12;  // A/r^12
+            double f6    = LJB * r6;   // B/r^6
+            double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+            E_vdw += e_vdw;
+            e_total += e_vdw;
+            // VDW force
+            double fvdw = ((12*f12) - (6*f6)) * r2; // (12A/r^13)-(6B/r^7)
+            double dfx = rx * fvdw;
+            double dfy = ry * fvdw;
+            double dfz = rz * fvdw;
+*
+            // COULOMB
+            double qiqj = .01; // Give each atom charge of .1
+            double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
+            E_elec += e_elec;
+            e_total += e_elec;
+            // COULOMB force
+            double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
+            dfx += rx * felec;
+            dfy += ry * felec;
+            dfz += rz * felec;
+            // Apply forces
+            if (maskIn.AtomInCharMask(idx)) {
+              Farray[idx][0] += dfx;
+              Farray[idx][1] += dfy;
+              Farray[idx][2] += dfz;
+            }
+            if (maskIn.AtomInCharMask(*jdx)) {
+              Farray[*jdx][0] -= dfx;
+              Farray[*jdx][1] -= dfy;
+              Farray[*jdx][2] -= dfz;
+            }
+          } // END rij > 0
+        } // END idx != jdx
+      } // END inner loop over jdx
+    } // END outer loop over idx
+*/
 /*
     unsigned int idx = 0; // Index into FrameDistances
     for (unsigned int f1 = 0; f1 != nframes; f1++)
@@ -258,11 +335,13 @@ const
       //*FV = 0.0;
     }
     // Write out current E.
-    mprintf("Iteration:\t%8i %12.4E %12.4E\n", iteration, e_total, rms);
+    mprintf("Iteration:\t%8i %12.4E %12.4E EB=%12.4E EV=%12.4E EC=%12.4E\n",
+            iteration, e_total, rms, E_bond, E_vdw, E_elec);
     iteration++;
+    // Write out current coords
     if (trajOut.WriteSingle(iteration, frameIn)) return 1;
-  }
-  // RMS error
+  } // END minimization loop
+  // Final RMS error from equilibirum values
   double sumdiff2 = 0.0;
   for (BondArray::const_iterator bnd = activeBonds.begin(); bnd != activeBonds.end(); ++bnd)
   {
@@ -275,7 +354,7 @@ const
     double r1_2 = sqrt( V1_2.Magnitude2() );
     double diff = r1_2 - BP.Req();
     sumdiff2 += (diff * diff);
-    //if (debug_ > 0)
+    if (debug_ > 0)
         mprintf("\t\t%u to %u: D= %g  Eq= %g  Delta= %g\n",
                 bnd->A1()+1, bnd->A2()+1, r1_2, BP.Req(), fabs(diff));
   }
@@ -299,7 +378,7 @@ const
   }
 */
   double rms_err = sqrt( sumdiff2 / (double)activeBonds.size() );
-  mprintf("\tRMS error of final graph positions: %g\n", rms_err);
+  mprintf("\tRMS error of final bond lengths: %g\n", rms_err);
 /*
   // Write out final graph with cluster numbers.
   std::vector<int> Nums;
@@ -387,7 +466,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     mprintf("\tGap %c %i to %i\n", gap->Chain(), gap->StartRes(), gap->StopRes());
     int currentRes = gap->StartRes();
     for (Gap::name_iterator it = gap->nameBegin(); it != gap->nameEnd(); ++it, ++currentRes) {
-      mprintf("DEBUG: %s %i\n", it->c_str(), currentRes);
+      //mprintf("DEBUG: %s %i\n", it->c_str(), currentRes);
       std::pair<Pset::iterator, bool> ret = AllResidues.insert( Pres(*it, currentRes, gap->Chain()) );
       if (!ret.second) {
         mprinterr("Internal Error: Somehow residue %s %i in chain %c was duplicated.\n",
@@ -458,9 +537,9 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       for (int at = topres.FirstAtom(); at < topres.LastAtom(); at++) {
         if (topIn[at].Name() == "CA") caidx = at;
         newTop->AddTopAtom( Atom(topIn[at].Name(), topIn[at].ElementName()), newres );
-        frameIn.printAtomCoord(at);
+        //frameIn.printAtomCoord(at);
         newFrame.AddXYZ( frameIn.XYZ(at) );
-        newFrame.printAtomCoord(newTop->Natom()-1);
+        //newFrame.printAtomCoord(newTop->Natom()-1);
       }
       // CA top
       if (caidx == -1) {
@@ -516,6 +595,7 @@ void Exec_AddMissingRes::Help() const
 // Exec_AddMissingRes::Execute()
 Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
 {
+  debug_ = State.Debug();
   std::string pdbname = argIn.GetStringKey("pdbname");
   if (pdbname.empty()) {
     mprinterr("Error: provide PDB name.\n");
@@ -564,7 +644,7 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   // Read in topology
   ParmFile parmIn;
   Topology topIn;
-  if (parmIn.ReadTopology(topIn, pdbname, parmArgs, State.Debug())) {
+  if (parmIn.ReadTopology(topIn, pdbname, parmArgs, debug_)) {
     mprinterr("Error: Read of topology from PDB failed.\n");
     return CpptrajState::ERR;
   }
