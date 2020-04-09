@@ -159,7 +159,7 @@ const
   const double dxstm = 1.0E-5;
   const double crits = 1.0E-6;
   double rms = 1.0;
-  double dxst = 0.1;
+  double dxst = 1.0;
   double last_e = 0.0;
   mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol && iteration < max_iteration) {
@@ -179,6 +179,7 @@ const
       if (r2 > 0.0) {
         double r2inv = 1.0/r2;
         double r = sqrt(r2);
+        //mprintf("DBG: %i A1=%i A2=%i R=%g\n", iteration, bnd->A1()+1, bnd->A2()+1, r);
         double rinv = r * r2inv;
 
         double db = r - BP.Req();
@@ -193,15 +194,15 @@ const
         double dfz = df * rz;
 
         if (maskIn.AtomInCharMask(bnd->A1())) {
-          Farray[bnd->A1()][0] += dfx;
-          Farray[bnd->A1()][1] += dfy;
-          Farray[bnd->A1()][2] += dfz;
+          Farray[bnd->A1()][0] -= dfx;
+          Farray[bnd->A1()][1] -= dfy;
+          Farray[bnd->A1()][2] -= dfz;
         }
 
         if (maskIn.AtomInCharMask(bnd->A2())) {
-          Farray[bnd->A2()][0] -= dfx;
-          Farray[bnd->A2()][1] -= dfy;
-          Farray[bnd->A2()][2] -= dfz;
+          Farray[bnd->A2()][0] += dfx;
+          Farray[bnd->A2()][1] += dfy;
+          Farray[bnd->A2()][2] += dfz;
         }
       }
     }
