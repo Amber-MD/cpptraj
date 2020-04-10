@@ -122,7 +122,7 @@ int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask
 const
 {
   double min_tol = 1.0E-5;
-  int max_iteration = 1;
+  int max_iteration = 1000;
 
   // Output trajectory
   int iteration = 0;
@@ -151,21 +151,23 @@ const
     if (maskIn.AtomInCharMask( i ))
       selectedAtoms.push_back( i );
   // Fake LJ coefficient, taken from CT-CT (CA-CA) interaction from an Amber ff
-  double LJA = 1043080.230000;
-  double LJB = 675.612247;
+  //double LJA = 1043080.230000;
+  //double LJB = 675.612247;
   // This makes them more like hydrogen atoms; HP-HP
   //double LJA = 201.823541;
   //double LJB = 3.560129;
+  double LJA = 88532.5968;
+  double LJB=1881.8352;
   // Determine the point at which the LJ energy is 0;
   // distances less than this will be set to this point to allow
   // atoms to pass through each other.
   double ljsigma = 0.5 * pow(LJA / LJB, (1.0/6.0));
   mprintf("\tLJ energy becomes positive below %g ang.\n", ljsigma);
-  // Subtract off a bit so the energy will be a little positive
-  ljsigma -= 0.1;
-  mprintf("\tDistances below %g will be set to %g for LJ calc.\n", ljsigma, ljsigma);
-  double nbcut2 = ljsigma * ljsigma;
-  //double nbcut2 = 25.0; // 5 ang
+//  // Subtract off a bit so the energy will be a little positive
+//  ljsigma -= 0.1;
+//  mprintf("\tDistances below %g will be set to %g for LJ calc.\n", ljsigma, ljsigma);
+//  double nbcut2 = ljsigma * ljsigma;
+//  //double nbcut2 = 25.0; // 5 ang
  
   // Forces
   std::vector<Vec3> Farray(topIn.Natom(), Vec3(0.0));
@@ -237,7 +239,6 @@ const
     // This will allow them to pass through each other.
     double E_vdw = 0.0;
     double E_elec = 0.0;
-/*
     for (int idx = 0; idx != topIn.Natom(); idx++)
     {
       for (std::vector<int>::const_iterator jdx = selectedAtoms.begin(); jdx != selectedAtoms.end(); ++jdx)
@@ -254,13 +255,14 @@ const
             double rz = XYZ0[2] - XYZ1[2];
             double rij2 = rx*rx + ry*ry + rz*rz;
             if (rij2 > 0) {
-              double rij;
-              if (rij2 < nbcut2) {
-                rij2 = nbcut2;
-                // Make rij really big to scale down the coulomb part.
-                rij = 99999;
-              } else
-                rij = sqrt( rij2 );
+              //double rij;
+              //if (rij2 < nbcut2) {
+              //  rij2 = nbcut2;
+              //  // Make rij really big to scale down the coulomb part.
+              //  rij = 99999;
+              //} else
+              //  rij = sqrt( rij2 );
+              double rij = sqrt( rij2 );
               //double dfx = 0;
               //double dfy = 0;
               //double dfz = 0;
@@ -304,7 +306,7 @@ const
         } // END idx != jdx
       } // END inner loop over jdx
     } // END outer loop over idx
-*/
+
     // Calculate the magnitude of the force vector.
     double sum = 0.0;
     for (std::vector<Vec3>::const_iterator FV = Farray.begin(); FV != Farray.end(); ++FV)
@@ -880,7 +882,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
 
   // CA top
   // Add pseudo bonds between adjacent CA atoms in the same chain.
-  BondParmType CAbond(1.0, 3.8);
+  BondParmType CAbond(300.0, 3.8);
   for (int cares = 1; cares < CAtop.Nres(); cares++) {
     // Since only CA atoms, residue # is atom #
     Residue const& res0 = CAtop.Res(cares - 1);
