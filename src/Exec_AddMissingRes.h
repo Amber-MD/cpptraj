@@ -22,6 +22,7 @@ class Exec_AddMissingRes : public Exec {
     int WriteStructure(std::string const&, Topology*, Frame const&, TrajectoryFile::TrajFormatType) const;
     static void GenerateLinearCoords(int, int, Frame&);
     static void GenerateTerminalCoords(int,int,int,int, Frame&);
+    int AssignLinearCoords(Topology const&, CharMask const&, Frame&) const;
     int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&);
 
     int debug_;

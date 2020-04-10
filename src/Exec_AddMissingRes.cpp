@@ -163,7 +163,7 @@ const
   mprintf("\tLJ energy becomes positive below %g ang.\n", ljsigma);
   // Subtract off a bit so the energy will be a little positive
   ljsigma -= 0.1;
-  mprintf("\tDistances below %g will be set to %g for LJ calc.\n", ljsigma, lgsigma);
+  mprintf("\tDistances below %g will be set to %g for LJ calc.\n", ljsigma, ljsigma);
   double nbcut2 = ljsigma * ljsigma;
   //double nbcut2 = 25.0; // 5 ang
  
@@ -237,6 +237,7 @@ const
     // This will allow them to pass through each other.
     double E_vdw = 0.0;
     double E_elec = 0.0;
+/*
     for (int idx = 0; idx != topIn.Natom(); idx++)
     {
       for (std::vector<int>::const_iterator jdx = selectedAtoms.begin(); jdx != selectedAtoms.end(); ++jdx)
@@ -303,7 +304,7 @@ const
         } // END idx != jdx
       } // END inner loop over jdx
     } // END outer loop over idx
-
+*/
     // Calculate the magnitude of the force vector.
     double sum = 0.0;
     for (std::vector<Vec3>::const_iterator FV = Farray.begin(); FV != Farray.end(); ++FV)
@@ -498,6 +499,71 @@ void Exec_AddMissingRes::GenerateTerminalCoords(int idx0, int idx1, int startidx
   }
 }
 
+int Exec_AddMissingRes::AssignLinearCoords(Topology const& CAtop, CharMask const& CAmissing,
+                                           Frame& CAframe)
+const
+{
+  // Try to come up with better starting coords for missing CA atoms
+  int gap_start = -1;
+  int prev_res = -1;
+  int gap_end = -1;
+  int next_res = -1;
+  char current_chain = ' ';
+  int final_res = CAtop.Nres() - 1;
+  for (int idx = 0; idx != CAtop.Nres(); idx++) {
+    if (gap_start == -1) {
+      // Not in a gap yet
+      if (CAmissing.AtomInCharMask(idx)) {
+        // This atom is missing. Start a gap.
+        gap_start = idx;
+        gap_end = -1;
+        current_chain = CAtop.Res(idx).ChainID();
+        //mprintf("CA Gap start: %i chain= %c\n", idx + 1, current_chain);
+        // Is there a previous residue in the same chain?
+        prev_res = idx - 1;
+        if (prev_res < 0 || 
+            (prev_res > -1 && CAtop.Res(prev_res).ChainID() != current_chain))
+        {
+          //mprintf("  No previous residue\n");
+          prev_res = -1;
+        }
+      }
+    } else {
+      // In a gap.
+      // If this is the final residue or the next residue is a different chain,
+      // end the gap and no next residue.
+      if (idx == final_res || CAtop.Res(idx+1).ChainID() != current_chain) {
+        gap_end = idx;
+        next_res = -1;
+      } else if (!CAmissing.AtomInCharMask(idx)) {
+        // This is the first non missing res after a gap.
+        gap_end = idx - 1;
+        next_res = idx;
+      }
+      // If the gap has ended, print and reset.
+      if (gap_end != -1) {
+        int num_res = gap_end - gap_start + 1;
+        if (prev_res > -1) num_res++;
+        if (next_res > -1) num_res++;
+        mprintf("CA Gap end: %i to %i (%i to %i) chain %c #res= %i\n",
+                gap_start+1, gap_end+1, prev_res+1, next_res+1, current_chain, num_res);
+        if (prev_res > -1 && next_res > -1) {
+          GenerateLinearCoords(prev_res, next_res, CAframe);
+        } else if (prev_res == -1) {
+          // N-terminal
+          GenerateTerminalCoords(gap_end+2, gap_end+1, gap_start, gap_end, CAframe);
+        } else if (next_res == -1) {
+          // C-terminal
+          GenerateTerminalCoords(gap_start-2, gap_start-1, gap_start, gap_end, CAframe);
+        }
+        gap_start = -1;
+      }
+    }
+  }
+  return 0;
+}
+  
+
 /** Try to add in missing residues. */
 int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
                                            Topology const& topIn,
@@ -647,64 +713,6 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   CAtop.SetParmName("capdb", "temp.ca.mol2");
   CAtop.CommonSetup(true); // molecule search
   CAtop.Summary();
-  // Try to come up with better starting coords for missing CA atoms
-  int gap_start = -1;
-  int prev_res = -1;
-  int gap_end = -1;
-  int next_res = -1;
-  char current_chain = ' ';
-  int final_res = CAtop.Nres() - 1;
-  for (int idx = 0; idx != CAtop.Nres(); idx++) {
-    if (gap_start == -1) {
-      // Not in a gap yet
-      if (CAmissing.AtomInCharMask(idx)) {
-        // This atom is missing. Start a gap.
-        gap_start = idx;
-        gap_end = -1;
-        current_chain = CAtop.Res(idx).ChainID();
-        //mprintf("CA Gap start: %i chain= %c\n", idx + 1, current_chain);
-        // Is there a previous residue in the same chain?
-        prev_res = idx - 1;
-        if (prev_res < 0 || 
-            (prev_res > -1 && CAtop.Res(prev_res).ChainID() != current_chain))
-        {
-          //mprintf("  No previous residue\n");
-          prev_res = -1;
-        }
-      }
-    } else {
-      // In a gap.
-      // If this is the final residue or the next residue is a different chain,
-      // end the gap and no next residue.
-      if (idx == final_res || CAtop.Res(idx+1).ChainID() != current_chain) {
-        gap_end = idx;
-        next_res = -1;
-      } else if (!CAmissing.AtomInCharMask(idx)) {
-        // This is the first non missing res after a gap.
-        gap_end = idx - 1;
-        next_res = idx;
-      }
-      // If the gap has ended, print and reset.
-      if (gap_end != -1) {
-        int num_res = gap_end - gap_start + 1;
-        if (prev_res > -1) num_res++;
-        if (next_res > -1) num_res++;
-        mprintf("CA Gap end: %i to %i (%i to %i) chain %c #res= %i\n",
-                gap_start+1, gap_end+1, prev_res+1, next_res+1, current_chain, num_res);
-        if (prev_res > -1 && next_res > -1) {
-          GenerateLinearCoords(prev_res, next_res, CAframe);
-        } else if (prev_res == -1) {
-          // N-terminal
-          GenerateTerminalCoords(gap_end+2, gap_end+1, gap_start, gap_end, CAframe);
-        } else if (next_res == -1) {
-          // C-terminal
-          GenerateTerminalCoords(gap_start-2, gap_start-1, gap_start, gap_end, CAframe);
-        }
-        gap_start = -1;
-      }
-    }
-  }
-  
   // Write CA top
   if (WriteStructure("temp.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Write of temp.ca.mol2 failed.\n");
