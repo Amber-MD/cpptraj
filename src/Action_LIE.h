@@ -3,7 +3,7 @@
 #include "Action.h"
 #include "ImagedAction.h"
 // Class: Action_LIE
-/** Action to calculate the Linear Interaction Energy (effectively the nonbonded 
+/** Action to calculate the Linear Interaction Energy (effectively the nonbonded
   * energies between two different masks
   */
 class Action_LIE: public Action, ImagedAction {
@@ -21,7 +21,8 @@ class Action_LIE: public Action, ImagedAction {
     double cut2vdw_; //< Square of the cutoff for VDW
     double dielc_;   //< dielectric constant
     double cut2elec_;//< Square of the cutoff for EEL
-    double onecut2_;//< 1 / sqrt of electrostatic cutoff
+    double onecut2_; //< 1 / sqrt of electrostatic cutoff
+    bool usepbc_;    //< whether to use periodic boundary conditions
 
     Topology* CurrentParm_; //< Topology to get params from
 
