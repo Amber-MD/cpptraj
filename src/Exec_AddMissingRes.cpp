@@ -156,8 +156,10 @@ const
   // This makes them more like hydrogen atoms; HP-HP
   //double LJA = 201.823541;
   //double LJB = 3.560129;
-  double LJA = 88532.5968;
-  double LJB=1881.8352;
+  LJparmType CAtype(3.8, 10.0);
+  NonbondType AB = CAtype.Combine_LB( CAtype );
+  double LJA = AB.A();
+  double LJB = AB.B();
   // Determine the point at which the LJ energy is 0;
   // distances less than this will be set to this point to allow
   // atoms to pass through each other.
@@ -281,7 +283,7 @@ const
               double dfy = ry * fvdw;
               double dfz = rz * fvdw;
               // COULOMB
-              double qiqj = .01; // Give each atom charge of .1
+              double qiqj = 1; // Give each atom charge of 1
               double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
               E_elec += e_elec;
               e_total += e_elec;
