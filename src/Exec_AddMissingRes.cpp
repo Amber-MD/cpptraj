@@ -161,7 +161,11 @@ const
   // atoms to pass through each other.
   double ljsigma = 0.5 * pow(LJA / LJB, (1.0/6.0));
   mprintf("\tLJ energy becomes positive below %g ang.\n", ljsigma);
+  // Subtract off a bit so the energy will be a little positive
+  ljsigma -= 0.1;
+  mprintf("\tDistances below %g will be set to %g for LJ calc.\n", ljsigma, lgsigma);
   double nbcut2 = ljsigma * ljsigma;
+  //double nbcut2 = 25.0; // 5 ang
  
   // Forces
   std::vector<Vec3> Farray(topIn.Natom(), Vec3(0.0));
@@ -249,9 +253,13 @@ const
             double rz = XYZ0[2] - XYZ1[2];
             double rij2 = rx*rx + ry*ry + rz*rz;
             if (rij2 > 0) {
-              //if (rij2 < nbcut2)
-              //  rij2 = nbcut2;
-              double rij = sqrt( rij2 );
+              double rij;
+              if (rij2 < nbcut2) {
+                rij2 = nbcut2;
+                // Make rij really big to scale down the coulomb part.
+                rij = 99999;
+              } else
+                rij = sqrt( rij2 );
               //double dfx = 0;
               //double dfy = 0;
               //double dfz = 0;
