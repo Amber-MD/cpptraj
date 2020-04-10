@@ -122,7 +122,7 @@ int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask
 const
 {
   double min_tol = 1.0E-5;
-  int max_iteration = 1000;
+  int max_iteration = 1;
 
   // Output trajectory
   int iteration = 0;
@@ -140,7 +140,7 @@ const
     if (maskIn.AtomInCharMask( bnd->A1() ) ||
         maskIn.AtomInCharMask( bnd->A2() ))
     {
-      mprintf("DEBUG: Bond %i to %i\n", bnd->A1()+1, bnd->A2()+1);
+      //mprintf("DEBUG: Bond %i to %i\n", bnd->A1()+1, bnd->A2()+1);
       activeBonds.push_back( *bnd );
     }
   }
@@ -562,7 +562,129 @@ const
   }
   return 0;
 }
-  
+
+/** Search for coords using anchorRes as an anchor, start at start, end at end. */
+int Exec_AddMissingRes::CoordSearch(int anchorRes, int startRes, int endRes,
+                                     Topology const& CAtop, Frame& CAframe)
+const
+{
+  // First calculate the force vector at the anchorRes
+  mprintf("Anchor Residue %i\n", anchorRes+1);
+  Vec3 XYZ0( CAframe.XYZ( anchorRes ) );
+  XYZ0.Print("Anchor coords");
+  Vec3 anchorVec(0.0);
+  double e_total = 0.0;
+  for (int idx = 0; idx != CAtop.Nres(); idx++)
+  {
+    if (idx != anchorRes)
+    {
+      const double* XYZ1 = CAframe.XYZ( idx );
+      double rx = XYZ0[0] - XYZ1[0];
+      double ry = XYZ0[1] - XYZ1[1];
+      double rz = XYZ0[2] - XYZ1[2];
+      double rij2 = rx*rx + ry*ry + rz*rz;
+      if (rij2 > 0) {
+        double rij = sqrt( rij2 );
+        // COULOMB
+        double qiqj = .01; // Give each atom charge of .1
+        double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
+        e_total += e_elec;
+        // COULOMB force
+        double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
+        anchorVec[0] += rx * felec;
+        anchorVec[1] += ry * felec;
+        anchorVec[2] += rz * felec;
+      } else {
+        mprinterr("Error: Atom clash between CA %i and %i\n", anchorRes+1, idx+1);
+        return 1;
+      }
+    }
+  }
+  anchorVec.Normalize();
+  anchorVec.Print("DEBUG: anchorVec");
+  // Determine the direction
+  std::vector<int> residuesToSearch;
+  if (startRes < endRes) {
+    for (int i = startRes; i <= endRes; i++)
+      residuesToSearch.push_back( i );
+  } else {
+    for (int i = startRes; i >= endRes; i--)
+      residuesToSearch.push_back( i );
+  }
+  // Loop over fragment to generate coords for
+  mprintf("DEBUG: Generating linear fragment extending from %i for indices %i to %i (%zu)\n",
+          anchorRes+1, startRes+1, endRes+1, residuesToSearch.size());
+  for (std::vector<int>::const_iterator it = residuesToSearch.begin();
+                                        it != residuesToSearch.end();
+                                      ++it)
+  {
+    double* Xptr = CAframe.xAddress() + (*it * 3);
+    int idist = abs( *it - anchorRes );
+    double delta = (double)idist;
+    Vec3 step = anchorVec * delta;
+    Vec3 xyz = XYZ0 + step;
+    mprintf("  %i (%i) %12.4f %12.4f %12.4f\n", *it+1, idist, xyz[0], xyz[1], xyz[2]);
+    Xptr[0] = xyz[0];
+    Xptr[1] = xyz[1];
+    Xptr[2] = xyz[2];
+    //CAframe.printAtomCoord( *it );
+  }
+
+  return 0;
+}
+    
+
+
+/** Generate coords using an energy search. */
+int Exec_AddMissingRes::AssignCoordsBySearch(Topology const& newTop, Frame const& newFrame,
+                                             Topology const& CAtop, Frame& CAframe,
+                                             Garray const& Gaps)
+const
+{
+  // For each gap, try to assign better coordinates to residues
+  for (Garray::const_iterator gap = Gaps.begin(); gap != Gaps.end(); ++gap)
+  {
+    // Locate this Gap in the new topology
+    std::string maskStr0("::" + std::string(1,gap->Chain()) + "&:;" + 
+                         integerToString(gap->StartRes()) + "-" + integerToString(gap->StopRes()));
+    AtomMask mask0( maskStr0 );
+    if (newTop.SetupIntegerMask( mask0, newFrame )) return 1;
+    std::vector<int> rn = newTop.ResnumsSelectedBy(mask0);
+    int gapStart = rn.front();
+    int gapEnd = rn.back();
+    mprintf("\tGap %c %i-%i : %i-%i\n", gap->Chain(), gap->StartRes(), gap->StopRes(),
+            gapStart + 1, gapEnd + 1);
+    // Is there a previous residue
+    int prev_res = gapStart - 1;
+    if (prev_res < 0 ||
+        newTop.Res(prev_res).ChainID() != newTop.Res(gapStart).ChainID())
+      prev_res = -1;
+    // Is there a next residue
+    int next_res = gapEnd + 1;
+    if (next_res == newTop.Nres() ||
+        newTop.Res(next_res).ChainID() != newTop.Res(gapEnd).ChainID())
+      next_res = -1;
+    mprintf("\t  Prev res %i  Next res %i\n", prev_res + 1, next_res + 1);
+    if (prev_res == -1 && next_res == -1) {
+      mprinterr("Error: Gap is unconnected.\n");
+      return 1;
+    }
+    if (prev_res > -1 && next_res > -1) {
+      mprintf("placeholder\n");
+    } else if (prev_res == -1) {
+      // N-terminal
+      CoordSearch(next_res, gapEnd, gapStart, CAtop, CAframe);
+    } else if (next_res == -1) {
+      CoordSearch(prev_res, gapStart, gapEnd, CAtop, CAframe);
+    }
+    //for (std::vector<int>::const_iterator it = rn.begin(); it != rn.end(); ++it)
+    //  mprintf(" %i", *it+1);
+    //mprintf("\n");
+  }
+
+  return 0;
+}
+
 
 /** Try to add in missing residues. */
 int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
@@ -716,6 +838,12 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   // Write CA top
   if (WriteStructure("temp.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Write of temp.ca.mol2 failed.\n");
+    return 1;
+  }
+
+  // Try to assign new coords
+  if (AssignCoordsBySearch(*newTop, newFrame, CAtop, CAframe, Gaps)) {
+    mprinterr("Error: Could not assign coords by search.\n");
     return 1;
   }
 
