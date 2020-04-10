@@ -7589,11 +7589,15 @@ name "subsec:cpptraj-datafilter"
 \end_layout
 
 \begin_layout LyX-Code
-datafilter <dataset arg> min <min> max <max> [out <file> [name <setname>]]
+datafilter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+           [{multi | filterset <set> [newset <newname>]}]
 \end_layout
 
 \begin_deeper
@@ -7618,7 +7622,7 @@ max
 \begin_inset space ~
 \end_inset
 
-<max> Data set and min/max cutoffs to use; can specify more than once.
+<max> Data set name and min/max cutoffs to use; can specify more than one.
 \end_layout
 
 \begin_layout Description
@@ -7634,9 +7638,37 @@ max
 \begin_inset space ~
 \end_inset
 
-<setname>] Name of filter data set.
+<setname>] Name of filter data set containing 1 when cutoffs satisfied,
+ 0 otherwise.
 \end_layout
 
+\begin_layout Description
+[multi] Filter each set separately instead of all together (creates filter
+ set for each input set).
+ Cannot be used with 'filterset'.
+\end_layout
+
+\begin_layout Description
+[filterset
+\begin_inset space ~
+\end_inset
+
+<set>] If specified, <set> will be filtered to only contain data that satisfies
+ cutoffs.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[newset
+\begin_inset space ~
+\end_inset
+
+<newname>] If specified a new set will be created from 'filterset' instead
+ of replacing 'filterset'.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Create a data set (optionally named <setname>) containing 1 for data within
@@ -7658,9 +7690,38 @@ Create a data set (optionally named <setname>) containing 1 for data within
 <max>
 \series default
  argument, and can be as many as there are specified data sets.
- For example, to read in data from two separate files (d1.dat and a1.dat)
- and generate a filter data set named FILTER having 1 when d1 is between
- 0.0 and 3.0 and a1 is between 135.0 and 180.0:
+ If 
+\series bold
+'multi'
+\series default
+ is specified then only filter data sets will be created for each data set
+ instead.
+ If 
+\series bold
+'filterset'
+\series default
+ is specified, the specified 
+\series bold
+<set>
+\series default
+ will be modified to only contain '1' frames; cannot be used with 
+\series bold
+'multi'
+\series default
+.
+ If 
+\series bold
+'newset'
+\series default
+ is also specified, a new set will be created containing the '1' frames
+ instead.
+ The 'filterset' functionality only works for 1D scalar sets.
+\end_layout
+
+\begin_layout Standard
+For example, to read in data from two separate files (d1.dat and a1.dat) and
+ generate a filter data set named FILTER having 1 when d1 is between 0.0
+ and 3.0 and a1 is between 135.0 and 180.0:
 \end_layout
 
 \begin_layout LyX-Code

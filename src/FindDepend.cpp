@@ -36,6 +36,7 @@ enum FileType { SOURCE = 0, HEADER };
 /** \return true if this header should be ignored. */
 bool IgnoreHeader(const char* headername) {
   if (strcmp(headername,"mpi.h")==0) return true;
+  if (strcmp(headername,"mkl.h")==0) return true;
   if (strcmp(headername,"zlib.h")==0) return true;
   if (strcmp(headername,"bzlib.h")==0) return true;
   if (strcmp(headername,"netcdf.h")==0) return true;
