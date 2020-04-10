@@ -7,7 +7,7 @@
 #include "StringRoutines.h"
 #include "Trajin_Single.h"
 #include "Trajout_Single.h"
-#include <cstdlib> // atoi
+#include <cstdlib> // atoi, abs
 #include <cstring> //strncmp
 
 /** Get gap info from PDB */
@@ -446,6 +446,34 @@ void Exec_AddMissingRes::GenerateLinearCoords(int idx0, int idx1, Frame& frm)
   }
 }
 
+/** Generate coords following the vector from idx0 to idx1 attached at idx1
+  * for residues from startidx up to and including endidx.
+  */
+void Exec_AddMissingRes::GenerateTerminalCoords(int idx0, int idx1, int startidx, int endidx,
+                                                Frame& frm)
+{
+  Vec3 vec0( frm.XYZ(idx0) );
+  Vec3 vec1( frm.XYZ(idx1) );
+  vec0.Print("vec0");
+  vec1.Print("vec1");
+  // The vector from 0 to 1 will be the "step"
+  Vec3 V10 = vec1 - vec0;
+  double* Xptr = frm.xAddress() + (startidx * 3);
+  mprintf("DEBUG: Generating terminal extending from %i-%i for indices %i to %i\n",
+          idx0+1, idx1+1, startidx+1, endidx+1);
+  for (int i = startidx; i <= endidx; i++, Xptr += 3)
+  {
+    int idist = abs( i - idx1 );
+    double delta = (double)idist;
+    Vec3 step = V10 * delta;
+    Vec3 xyz = vec1 + step;
+    xyz.Print("xyz");
+    Xptr[0] = xyz[0];
+    Xptr[1] = xyz[1];
+    Xptr[2] = xyz[2];
+  }
+}
+
 /** Try to add in missing residues. */
 int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
                                            Topology const& topIn,
@@ -641,6 +669,12 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
                 gap_start+1, gap_end+1, prev_res+1, next_res+1, current_chain, num_res);
         if (prev_res > -1 && next_res > -1) {
           GenerateLinearCoords(prev_res, next_res, CAframe);
+        } else if (prev_res == -1) {
+          // N-terminal
+          GenerateTerminalCoords(gap_end+2, gap_end+1, gap_start, gap_end, CAframe);
+        } else if (next_res == -1) {
+          // C-terminal
+          GenerateTerminalCoords(gap_start-2, gap_start-1, gap_start, gap_end, CAframe);
         }
         gap_start = -1;
       }
