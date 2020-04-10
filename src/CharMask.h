@@ -27,6 +27,8 @@ class CharMask : public MaskTokenArray {
     int Natom() const { return (int)CharMask_.size(); }
     /// Add an atom to the mask as selected (true) or not selected (false)
     void AddAtom(bool); 
+    /// Assign selected status to atom
+    void SelectAtom(int, bool);
     // -------------------------------------------
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*) const;

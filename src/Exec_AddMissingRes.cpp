@@ -568,6 +568,7 @@ int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx,
                                       Topology const& CAtop, Frame const& CAframe,
                                       CharMask const& isMissing)
 {
+  double cut2 = 100.0; // 10 ang
   vecOut = Vec3(0.0);
   XYZ0 = Vec3( CAframe.XYZ(tgtidx) );
   double e_total = 0.0;
@@ -580,7 +581,7 @@ int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx,
       double ry = XYZ0[1] - XYZ1[1];
       double rz = XYZ0[2] - XYZ1[2];
       double rij2 = rx*rx + ry*ry + rz*rz;
-      if (rij2 > 0) {
+      if (rij2 > 0 && rij2 < cut2) {
         double rij = sqrt( rij2 );
         // COULOMB
         double qiqj = .01; // Give each atom charge of .1
@@ -591,10 +592,10 @@ int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx,
         vecOut[0] += rx * felec;
         vecOut[1] += ry * felec;
         vecOut[2] += rz * felec;
-      } else {
-        mprinterr("Error: Atom clash between CA %i and %i\n", tgtidx+1, idx+1);
-        return 1;
-      }
+      } //else {
+        //mprinterr("Error: Atom clash between CA %i and %i\n", tgtidx+1, idx+1);
+        //return 1;
+      //}
     }
   }
   vecOut.Normalize();
@@ -604,7 +605,7 @@ int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx,
 
 /** Search for coords using anchorRes as an anchor, start at start, end at end. */
 int Exec_AddMissingRes::CoordSearch(int anchorRes, int startRes, int endRes,
-                                     Topology const& CAtop, CharMask isMissing, Frame& CAframe)
+                                     Topology const& CAtop, CharMask& isMissing, Frame& CAframe)
 const
 {
   // First calculate the force vector at the anchorRes
@@ -654,6 +655,7 @@ const
       residuesToSearch.push_back( i );
   }
   // Loop over fragment to generate coords for
+  double fac = 2.0;
   mprintf("DEBUG: Generating linear fragment extending from %i for indices %i to %i (%zu)\n",
           anchorRes+1, startRes+1, endRes+1, residuesToSearch.size());
   for (std::vector<int>::const_iterator it = residuesToSearch.begin();
@@ -661,15 +663,22 @@ const
                                       ++it)
   {
     double* Xptr = CAframe.xAddress() + (*it * 3);
-    int idist = abs( *it - anchorRes );
-    double delta = (double)idist;
-    Vec3 step = anchorVec * delta;
-    Vec3 xyz = XYZ0 + step;
-    mprintf("  %i (%i) %12.4f %12.4f %12.4f\n", *it+1, idist, xyz[0], xyz[1], xyz[2]);
+    //int idist = abs( *it - anchorRes );
+    //double delta = (double)idist;
+    //Vec3 step = anchorVec * delta;
+    //Vec3 xyz = XYZ0 + step;
+    Vec3 xyz = XYZ0 + (anchorVec * fac);
+    //mprintf("  %i (%i) %12.4f %12.4f %12.4f\n", *it+1, idist, xyz[0], xyz[1], xyz[2]);
+    mprintf("  %i %12.4f %12.4f %12.4f\n", *it+1, xyz[0], xyz[1], xyz[2]);
     Xptr[0] = xyz[0];
     Xptr[1] = xyz[1];
     Xptr[2] = xyz[2];
     //CAframe.printAtomCoord( *it );
+    // Mark as not missing
+    isMissing.SelectAtom(*it, false);
+    // Update the anchor
+    CalcFvecAtIdx(anchorVec, XYZ0, *it, CAtop, CAframe, isMissing);
+    
   }
 
   return 0;
@@ -683,6 +692,7 @@ int Exec_AddMissingRes::AssignCoordsBySearch(Topology const& newTop, Frame const
                                              Garray const& Gaps, CharMask const& CAmissing)
 const
 {
+  CharMask isMissing = CAmissing;
   // For each gap, try to assign better coordinates to residues
   for (Garray::const_iterator gap = Gaps.begin(); gap != Gaps.end(); ++gap)
   {
@@ -714,15 +724,15 @@ const
     if (prev_res > -1 && next_res > -1) {
       int halfidx = rn.size() / 2;
       // N-terminal
-      CoordSearch(next_res, gapEnd, rn[halfidx], CAtop, CAmissing, CAframe);
+      CoordSearch(next_res, gapEnd, rn[halfidx], CAtop, isMissing, CAframe);
       // C-terminal
-      CoordSearch(prev_res, gapStart, rn[halfidx-1], CAtop, CAmissing, CAframe);
+      CoordSearch(prev_res, gapStart, rn[halfidx-1], CAtop, isMissing, CAframe);
     } else if (prev_res == -1) {
       // N-terminal
-      CoordSearch(next_res, gapEnd, gapStart, CAtop, CAmissing, CAframe);
+      CoordSearch(next_res, gapEnd, gapStart, CAtop, isMissing, CAframe);
     } else if (next_res == -1) {
       // C-terminal
-      CoordSearch(prev_res, gapStart, gapEnd, CAtop, CAmissing, CAframe);
+      CoordSearch(prev_res, gapStart, gapEnd, CAtop, isMissing, CAframe);
     }
     //for (std::vector<int>::const_iterator it = rn.begin(); it != rn.end(); ++it)
     //  mprintf(" %i", *it+1);
