@@ -9,6 +9,7 @@
 #include "Trajout_Single.h"
 #include <cstdlib> // atoi, abs
 #include <cstring> //strncmp
+#include <cmath> //pow, sqrt
 
 /** Get gap info from PDB */
 int Exec_AddMissingRes::FindGaps(Garray& Gaps, CpptrajFile& outfile, std::string const& pdbname)
@@ -150,12 +151,18 @@ const
     if (maskIn.AtomInCharMask( i ))
       selectedAtoms.push_back( i );
   // Fake LJ coefficient, taken from CT-CT (CA-CA) interaction from an Amber ff
-  //double LJA = 1043080.230000;
-  //double LJB = 675.612247;
+  double LJA = 1043080.230000;
+  double LJB = 675.612247;
   // This makes them more like hydrogen atoms; HP-HP
-  double LJA = 201.823541;
-  double LJB = 3.560129;
-  
+  //double LJA = 201.823541;
+  //double LJB = 3.560129;
+  // Determine the point at which the LJ energy is 0;
+  // distances less than this will be set to this point to allow
+  // atoms to pass through each other.
+  double ljsigma = 0.5 * pow(LJA / LJB, (1.0/6.0));
+  mprintf("\tLJ energy becomes positive below %g ang.\n", ljsigma);
+  double nbcut2 = ljsigma * ljsigma;
+ 
   // Forces
   std::vector<Vec3> Farray(topIn.Natom(), Vec3(0.0));
   // Coordinates
@@ -224,7 +231,6 @@ const
     // Want every atom to every selected atom.
     // We want atoms to feel each other, but not if they are too close.
     // This will allow them to pass through each other.
-    double nbcut = 10.0;
     double E_vdw = 0.0;
     double E_elec = 0.0;
     for (int idx = 0; idx != topIn.Natom(); idx++)
@@ -233,53 +239,59 @@ const
       {
         if (idx != *jdx)
         {
-          const double* XYZ0 = frameIn.XYZ( idx );
-          const double* XYZ1 = frameIn.XYZ( *jdx );
-          double rx = XYZ0[0] - XYZ1[0];
-          double ry = XYZ0[1] - XYZ1[1];
-          double rz = XYZ0[2] - XYZ1[2];
-          double rij2 = rx*rx + ry*ry + rz*rz;
-          if (rij2 > nbcut) {
-            double rij = sqrt( rij2 );
-            //double dfx = 0;
-            //double dfy = 0;
-            //double dfz = 0;
-            // VDW
-            double r2    = 1.0 / rij2;
-            double r6    = r2 * r2 * r2;
-            double r12   = r6 * r6;
-            double f12   = LJA * r12;  // A/r^12
-            double f6    = LJB * r6;   // B/r^6
-            double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
-            E_vdw += e_vdw;
-            e_total += e_vdw;
-            // VDW force
-            double fvdw = ((12*f12) - (6*f6)) * r2; // (12A/r^13)-(6B/r^7)
-            double dfx = rx * fvdw;
-            double dfy = ry * fvdw;
-            double dfz = rz * fvdw;
-            // COULOMB
-            double qiqj = .01; // Give each atom charge of .1
-            double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
-            E_elec += e_elec;
-            e_total += e_elec;
-            // COULOMB force
-            double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
-            dfx += rx * felec;
-            dfy += ry * felec;
-            dfz += rz * felec;
-            // Apply forces
-            if (maskIn.AtomInCharMask(idx)) {
-              Farray[idx][0] += dfx;
-              Farray[idx][1] += dfy;
-              Farray[idx][2] += dfz;
-            }
-            if (maskIn.AtomInCharMask(*jdx)) {
-              Farray[*jdx][0] -= dfx;
-              Farray[*jdx][1] -= dfy;
-              Farray[*jdx][2] -= dfz;
-            }
-          } // END rij > 0
+          // Ignore if idx and jdx are bonded.
+          if (!topIn[idx].IsBondedTo(*jdx))
+          {
+            const double* XYZ0 = frameIn.XYZ( idx );
+            const double* XYZ1 = frameIn.XYZ( *jdx );
+            double rx = XYZ0[0] - XYZ1[0];
+            double ry = XYZ0[1] - XYZ1[1];
+            double rz = XYZ0[2] - XYZ1[2];
+            double rij2 = rx*rx + ry*ry + rz*rz;
+            if (rij2 > 0) {
+              if (rij2 < nbcut2)
+                rij2 = nbcut2;
+              double rij = sqrt( rij2 );
+              //double dfx = 0;
+              //double dfy = 0;
+              //double dfz = 0;
+              // VDW
+              double r2    = 1.0 / rij2;
+              double r6    = r2 * r2 * r2;
+              double r12   = r6 * r6;
+              double f12   = LJA * r12;  // A/r^12
+              double f6    = LJB * r6;   // B/r^6
+              double e_vdw = f12 - f6;   // (A/r^12)-(B/r^6)
+              E_vdw += e_vdw;
+              e_total += e_vdw;
+              // VDW force
+              double fvdw = ((12*f12) - (6*f6)) * r2; // (12A/r^13)-(6B/r^7)
+              double dfx = rx * fvdw;
+              double dfy = ry * fvdw;
+              double dfz = rz * fvdw;
+              // COULOMB
+              double qiqj = .01; // Give each atom charge of .1
+              double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
+              E_elec += e_elec;
+              e_total += e_elec;
+              // COULOMB force
+              double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
+              dfx += rx * felec;
+              dfy += ry * felec;
+              dfz += rz * felec;
+              // Apply forces
+              if (maskIn.AtomInCharMask(idx)) {
+                Farray[idx][0] += dfx;
+                Farray[idx][1] += dfy;
+                Farray[idx][2] += dfz;
+              }
+              if (maskIn.AtomInCharMask(*jdx)) {
+                Farray[*jdx][0] -= dfx;
+                Farray[*jdx][1] -= dfy;
+                Farray[*jdx][2] -= dfz;
+              }
+            } // END rij > 0
+          } // END idx not bonded to jdx
         } // END idx != jdx
       } // END inner loop over jdx
     } // END outer loop over idx
