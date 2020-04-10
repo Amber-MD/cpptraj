@@ -815,7 +815,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   Frame newFrame(nAtomsPresent + nResMissing);
   newFrame.ClearAtoms();
   // Create a new topology with all residues. For missing residues, create a CA atom.
-  Topology* newTop = dataOut->TopPtr();
+  Topology newTop;
   // Zero coord for new CA atoms
   Vec3 Zero(0.0);
   // Topology for CA atoms
@@ -829,8 +829,8 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     int topResNum = it->TopResNum();
     if (topResNum < 0) {
       // This was a missing residue
-      newTop->AddTopAtom( Atom("CA", "C "),
-                          Residue(it->Name(), it->OriginalResNum(), ' ', it->ChainID()) );
+      newTop.AddTopAtom( Atom("CA", "C "),
+                         Residue(it->Name(), it->OriginalResNum(), ' ', it->ChainID()) );
       newFrame.AddVec3( Zero );
       // CA top
       CAtop.AddTopAtom( Atom("CA", "C "),
@@ -843,7 +843,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       int caidx = -1;
       for (int at = topres.FirstAtom(); at < topres.LastAtom(); at++) {
         if (topIn[at].Name() == "CA") caidx = at;
-        newTop->AddTopAtom( Atom(topIn[at].Name(), topIn[at].ElementName()), newres );
+        newTop.AddTopAtom( Atom(topIn[at].Name(), topIn[at].ElementName()), newres );
         //frameIn.printAtomCoord(at);
         newFrame.AddXYZ( frameIn.XYZ(at) );
         //newFrame.printAtomCoord(newTop->Natom()-1);
@@ -859,10 +859,10 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     }
   } // END loop over all residues
   // Finish new top and write
-  newTop->SetParmName("newpdb", "temp.pdb");
-  newTop->CommonSetup( false ); // No molecule search
-  newTop->Summary();
-  if (WriteStructure("temp.pdb", newTop, newFrame, TrajectoryFile::PDBFILE)) {
+  newTop.SetParmName("newpdb", "temp.pdb");
+  newTop.CommonSetup( false ); // No molecule search
+  newTop.Summary();
+  if (WriteStructure("temp.pdb", &newTop, newFrame, TrajectoryFile::PDBFILE)) {
     mprinterr("Error: Write of temp.pdb failed.\n");
     return 1;
   }
@@ -873,8 +873,8 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     std::string maskStr0("::" + std::string(1,gap->Chain()) + "&:;" + 
                          integerToString(gap->StartRes()) + "-" + integerToString(gap->StopRes()));
     AtomMask mask0( maskStr0 );
-    if (newTop->SetupIntegerMask( mask0, newFrame )) return 1;
-    std::vector<int> rn = newTop->ResnumsSelectedBy(mask0);
+    if (newTop.SetupIntegerMask( mask0, newFrame )) return 1;
+    std::vector<int> rn = newTop.ResnumsSelectedBy(mask0);
     mprintf("\tGap %c %i-%i : %i-%i\n", gap->Chain(), gap->StartRes(), gap->StopRes(),
             rn.front() + 1, rn.back() + 1);
     //for (std::vector<int>::const_iterator it = rn.begin(); it != rn.end(); ++it)
@@ -903,15 +903,33 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   }
 
   // Try to assign new coords
-  if (AssignCoordsBySearch(*newTop, newFrame, CAtop, CAframe, Gaps, CAmissing)) {
+  if (AssignCoordsBySearch(newTop, newFrame, CAtop, CAframe, Gaps, CAmissing)) {
     mprinterr("Error: Could not assign coords by search.\n");
     return 1;
   }
 
+  // Minimize
   if (Minimize(CAtop, CAframe, CAmissing)) {
     mprinterr("Error: Minimization of CA atoms failed.\n");
     return 1;
   }
+
+  // Transfer CA coords to newFrame
+  for (int idx = 0; idx != CAtop.Nres(); idx++)
+  {
+    if (CAmissing.AtomInCharMask(idx)) {
+      int newAtm = newTop.Res(idx).FirstAtom();
+      double* Xptr = newFrame.xAddress() + (3*newAtm);
+      const double* XYZ = CAframe.XYZ(idx);
+      Xptr[0] = XYZ[0];
+      Xptr[1] = XYZ[1];
+      Xptr[2] = XYZ[2];
+    }
+  }
+
+  // Set output coords
+  dataOut->CoordsSetup( newTop, CoordinateInfo() );
+  dataOut->AddFrame( newFrame );
                            
   return 0;
 }
@@ -920,7 +938,8 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
 void Exec_AddMissingRes::Help() const
 {
   mprintf("\tpdbname <pdbname> name <setname> [out <filename>]\n"
-          "\t[parmargs <parm args>] [trajargs <trajin args>]\n");
+          "\t[parmargs <parm args>] [trajargs <trajin args>]\n"
+          "\t[pdbout <pdb>]\n");
 }
 
 // Exec_AddMissingRes::Execute()
