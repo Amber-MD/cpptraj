@@ -563,15 +563,56 @@ const
   return 0;
 }
 
+/** Calculate pseudo force vector at given index. */
+int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx, 
+                                      Topology const& CAtop, Frame const& CAframe,
+                                      CharMask const& isMissing)
+{
+  vecOut = Vec3(0.0);
+  XYZ0 = Vec3( CAframe.XYZ(tgtidx) );
+  double e_total = 0.0;
+  for (int idx = 0; idx != CAtop.Nres(); idx++)
+  {
+    if (idx != tgtidx && !isMissing.AtomInCharMask(idx))
+    {
+      const double* XYZ1 = CAframe.XYZ( idx );
+      double rx = XYZ0[0] - XYZ1[0];
+      double ry = XYZ0[1] - XYZ1[1];
+      double rz = XYZ0[2] - XYZ1[2];
+      double rij2 = rx*rx + ry*ry + rz*rz;
+      if (rij2 > 0) {
+        double rij = sqrt( rij2 );
+        // COULOMB
+        double qiqj = .01; // Give each atom charge of .1
+        double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
+        e_total += e_elec;
+        // COULOMB force
+        double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
+        vecOut[0] += rx * felec;
+        vecOut[1] += ry * felec;
+        vecOut[2] += rz * felec;
+      } else {
+        mprinterr("Error: Atom clash between CA %i and %i\n", tgtidx+1, idx+1);
+        return 1;
+      }
+    }
+  }
+  vecOut.Normalize();
+  return 0;
+}
+ 
+
 /** Search for coords using anchorRes as an anchor, start at start, end at end. */
 int Exec_AddMissingRes::CoordSearch(int anchorRes, int startRes, int endRes,
-                                     Topology const& CAtop, Frame& CAframe)
+                                     Topology const& CAtop, CharMask isMissing, Frame& CAframe)
 const
 {
   // First calculate the force vector at the anchorRes
   mprintf("Anchor Residue %i\n", anchorRes+1);
-  Vec3 XYZ0( CAframe.XYZ( anchorRes ) );
+  Vec3 XYZ0, anchorVec;
+  CalcFvecAtIdx(anchorVec, XYZ0, anchorRes, CAtop, CAframe, isMissing);
   XYZ0.Print("Anchor coords");
+/*
   Vec3 anchorVec(0.0);
   double e_total = 0.0;
   for (int idx = 0; idx != CAtop.Nres(); idx++)
@@ -601,6 +642,7 @@ const
     }
   }
   anchorVec.Normalize();
+*/
   anchorVec.Print("DEBUG: anchorVec");
   // Determine the direction
   std::vector<int> residuesToSearch;
@@ -638,7 +680,7 @@ const
 /** Generate coords using an energy search. */
 int Exec_AddMissingRes::AssignCoordsBySearch(Topology const& newTop, Frame const& newFrame,
                                              Topology const& CAtop, Frame& CAframe,
-                                             Garray const& Gaps)
+                                             Garray const& Gaps, CharMask const& CAmissing)
 const
 {
   // For each gap, try to assign better coordinates to residues
@@ -670,12 +712,17 @@ const
       return 1;
     }
     if (prev_res > -1 && next_res > -1) {
-      mprintf("placeholder\n");
+      int halfidx = rn.size() / 2;
+      // N-terminal
+      CoordSearch(next_res, gapEnd, rn[halfidx], CAtop, CAmissing, CAframe);
+      // C-terminal
+      CoordSearch(prev_res, gapStart, rn[halfidx-1], CAtop, CAmissing, CAframe);
     } else if (prev_res == -1) {
       // N-terminal
-      CoordSearch(next_res, gapEnd, gapStart, CAtop, CAframe);
+      CoordSearch(next_res, gapEnd, gapStart, CAtop, CAmissing, CAframe);
     } else if (next_res == -1) {
-      CoordSearch(prev_res, gapStart, gapEnd, CAtop, CAframe);
+      // C-terminal
+      CoordSearch(prev_res, gapStart, gapEnd, CAtop, CAmissing, CAframe);
     }
     //for (std::vector<int>::const_iterator it = rn.begin(); it != rn.end(); ++it)
     //  mprintf(" %i", *it+1);
@@ -842,7 +889,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   }
 
   // Try to assign new coords
-  if (AssignCoordsBySearch(*newTop, newFrame, CAtop, CAframe, Gaps)) {
+  if (AssignCoordsBySearch(*newTop, newFrame, CAtop, CAframe, Gaps, CAmissing)) {
     mprinterr("Error: Could not assign coords by search.\n");
     return 1;
   }
