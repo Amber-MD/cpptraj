@@ -122,7 +122,7 @@ int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask
 const
 {
   double min_tol = 1.0E-5;
-  int max_iteration = 1;
+  int max_iteration = 1000;
 
   // Output trajectory
   int iteration = 0;
@@ -249,8 +249,8 @@ const
             double rz = XYZ0[2] - XYZ1[2];
             double rij2 = rx*rx + ry*ry + rz*rz;
             if (rij2 > 0) {
-              if (rij2 < nbcut2)
-                rij2 = nbcut2;
+              //if (rij2 < nbcut2)
+              //  rij2 = nbcut2;
               double rij = sqrt( rij2 );
               //double dfx = 0;
               //double dfy = 0;
