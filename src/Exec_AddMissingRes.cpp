@@ -456,8 +456,12 @@ void Exec_AddMissingRes::GenerateTerminalCoords(int idx0, int idx1, int startidx
   Vec3 vec1( frm.XYZ(idx1) );
   vec0.Print("vec0");
   vec1.Print("vec1");
-  // The vector from 0 to 1 will be the "step"
+  // The vector from 0 to 1 will be the "step" direction
   Vec3 V10 = vec1 - vec0;
+  // Normalize the vector, then scale it down a bit to avoid very long fragments.
+  V10.Normalize();
+  V10 *= 0.5;
+  // Loop over fragment to generate coords for
   double* Xptr = frm.xAddress() + (startidx * 3);
   mprintf("DEBUG: Generating terminal extending from %i-%i for indices %i to %i\n",
           idx0+1, idx1+1, startidx+1, endidx+1);
