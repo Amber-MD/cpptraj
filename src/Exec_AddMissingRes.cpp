@@ -858,6 +858,14 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       CAmissing.AddAtom(false);
     }
   } // END loop over all residues
+  // Try to determine which frames are terminal so pdbter works since
+  // we wont be able to determine molecules by bonds.
+  for (int ridx = 0; ridx != newTop.Nres(); ridx++)
+  {
+    if (ridx + 1 == newTop.Nres() ||
+        newTop.Res(ridx).ChainID() != newTop.Res(ridx+1).ChainID())
+      newTop.SetRes(ridx).SetTerminal(true);
+  }
   // Finish new top and write
   newTop.SetParmName("newpdb", "temp.pdb");
   newTop.CommonSetup( false ); // No molecule search
