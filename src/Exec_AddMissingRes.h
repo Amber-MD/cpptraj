@@ -24,7 +24,8 @@ class Exec_AddMissingRes : public Exec {
     static void GenerateTerminalCoords(int,int,int,int, Frame&);
     int AssignLinearCoords(Topology const&, CharMask const&, Frame&) const;
     static int CalcFvecAtIdx(Vec3&, Vec3&, int, Topology const&, Frame const&, CharMask const&);
-    int CoordSearch(int, int, int, Topology const&, CharMask&, Frame&) const;
+    int CoordSearchGap(int,int,std::vector<int> const&,Topology const&, CharMask&, Frame&) const;
+    int CoordSearchTerminal(int, int, int, Topology const&, CharMask&, Frame&) const;
     int AssignCoordsBySearch(Topology const&, Frame const&, Topology const&, Frame&,
                              Garray const&, CharMask const&) const;
 

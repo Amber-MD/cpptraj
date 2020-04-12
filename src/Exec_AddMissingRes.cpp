@@ -604,10 +604,96 @@ int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx,
   vecOut.Normalize();
   return 0;
 }
- 
+
+inline std::vector<int> ResiduesToSearch(int startRes, int endRes) {
+  std::vector<int> residuesToSearch;
+  if (startRes < endRes) {
+    for (int i = startRes; i <= endRes; i++)
+      residuesToSearch.push_back( i );
+  } else {
+    for (int i = startRes; i >= endRes; i--)
+      residuesToSearch.push_back( i );
+  }
+  return residuesToSearch;
+}
+
+/** Search for coords from anchor0 to anchor1, start at start, end at end. */
+int Exec_AddMissingRes::CoordSearchGap(int anchor0, int anchor1, std::vector<int> const& residues,
+                                     Topology const& CAtop, CharMask& isMissing, Frame& CAframe)
+const
+{
+  // First calculate the force vector at anchor0
+  mprintf("Anchor Residue 0: %i\n", anchor0+1);
+  Vec3 XYZ0, Vec0;
+  CalcFvecAtIdx(Vec0, XYZ0, anchor0, CAtop, CAframe, isMissing);
+  XYZ0.Print("Anchor 0 coords");
+  Vec0.Print("anchor 0 vec");
+  // Calculate the force vector at anchor1
+  mprintf("Anchor Residue 1: %i\n", anchor1+1);
+  Vec3 XYZ1, Vec1;
+  CalcFvecAtIdx(Vec1, XYZ1, anchor1, CAtop, CAframe, isMissing);
+  XYZ1.Print("Anchor 1 coords");
+  Vec1.Print("anchor 1 vec");
+  // Guide vector
+  //Vec3 guideVec = XYZ1 - XYZ0;
+  //guideVec.Normalize();
+
+  // Determine the halfway index
+  int halfIdx = residues.size() / 2; 
+  // N-terminal
+  std::vector<int> fromAnchor0 = ResiduesToSearch(residues.front(), residues[halfIdx-1]);
+  // C-terminal
+  std::vector<int> fromAnchor1 = ResiduesToSearch(residues.back(), residues[halfIdx]);
+
+  mprintf("DEBUG: Generating Gap residues:\n");
+  mprintf("\tFrom %i:", anchor0+1);
+  for (std::vector<int>::const_iterator it = fromAnchor0.begin();
+                                        it != fromAnchor0.end(); ++it)
+    mprintf(" %i", *it + 1);
+  mprintf("\n");
+  mprintf("\tFrom %i:", anchor1+1);
+  for (std::vector<int>::const_iterator it = fromAnchor1.begin();
+                                        it != fromAnchor1.end(); ++it)
+    mprintf(" %i", *it + 1);
+  mprintf("\n");
+
+  // Loop over fragment to generate coords for
+  double fac = 2.0;
+  std::vector<int>::const_iterator a0 = fromAnchor0.begin();
+  std::vector<int>::const_iterator a1 = fromAnchor1.begin();
+  while (a0 != fromAnchor0.end() || a1 != fromAnchor1.end()) {
+    if (a0 != fromAnchor0.end()) {
+      double* Xptr = CAframe.xAddress() + (*a0 * 3);
+      Vec3 xyz = XYZ0 + (Vec0 * fac);
+      mprintf("  %i %12.4f %12.4f %12.4f\n", *a0+1, xyz[0], xyz[1], xyz[2]);
+      Xptr[0] = xyz[0];
+      Xptr[1] = xyz[1];
+      Xptr[2] = xyz[2];
+      isMissing.SelectAtom(*a0, false);
+      // Update the anchor
+      CalcFvecAtIdx(Vec0, XYZ0, *a0, CAtop, CAframe, isMissing);
+      ++a0;
+    }
+    if (a1 != fromAnchor1.end()) {
+      double* Xptr = CAframe.xAddress() + (*a1 * 3);
+      Vec3 xyz = XYZ1 + (Vec1 * fac);
+      mprintf("  %i %12.4f %12.4f %12.4f\n", *a1+1, xyz[0], xyz[1], xyz[2]);
+      Xptr[0] = xyz[0];
+      Xptr[1] = xyz[1];
+      Xptr[2] = xyz[2];
+      isMissing.SelectAtom(*a1, false);
+      // Update the anchor
+      CalcFvecAtIdx(Vec1, XYZ1, *a1, CAtop, CAframe, isMissing);
+      ++a1;
+    }
+  }
+
+  return 0;
+}
+
 
 /** Search for coords using anchorRes as an anchor, start at start, end at end. */
-int Exec_AddMissingRes::CoordSearch(int anchorRes, int startRes, int endRes,
+int Exec_AddMissingRes::CoordSearchTerminal(int anchorRes, int startRes, int endRes,
                                      Topology const& CAtop, CharMask& isMissing, Frame& CAframe)
 const
 {
@@ -725,17 +811,18 @@ const
       return 1;
     }
     if (prev_res > -1 && next_res > -1) {
-      int halfidx = rn.size() / 2;
+      //int halfidx = rn.size() / 2;
       // N-terminal
-      CoordSearch(next_res, gapEnd, rn[halfidx], CAtop, isMissing, CAframe);
+      //CoordSearch(next_res, gapEnd, rn[halfidx], CAtop, isMissing, CAframe);
       // C-terminal
-      CoordSearch(prev_res, gapStart, rn[halfidx-1], CAtop, isMissing, CAframe);
+      //CoordSearch(prev_res, gapStart, rn[halfidx-1], CAtop, isMissing, CAframe);
+      CoordSearchGap(prev_res, next_res, rn, CAtop, isMissing, CAframe); 
     } else if (prev_res == -1) {
       // N-terminal
-      CoordSearch(next_res, gapEnd, gapStart, CAtop, isMissing, CAframe);
+      CoordSearchTerminal(next_res, gapEnd, gapStart, CAtop, isMissing, CAframe);
     } else if (next_res == -1) {
       // C-terminal
-      CoordSearch(prev_res, gapStart, gapEnd, CAtop, isMissing, CAframe);
+      CoordSearchTerminal(prev_res, gapStart, gapEnd, CAtop, isMissing, CAframe);
     }
     //for (std::vector<int>::const_iterator it = rn.begin(); it != rn.end(); ++it)
     //  mprintf(" %i", *it+1);
