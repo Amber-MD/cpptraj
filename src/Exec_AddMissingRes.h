@@ -31,6 +31,7 @@ class Exec_AddMissingRes : public Exec {
     int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&);
 
     int debug_;
+    int nMinSteps_; ///< Number of minimization steps.
 };
 
 // ----- Gap class -------------------------------------------------------------

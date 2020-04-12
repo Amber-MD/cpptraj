@@ -122,7 +122,6 @@ int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask
 const
 {
   double min_tol = 1.0E-5;
-  int max_iteration = 1000;
 
   // Output trajectory
   int iteration = 0;
@@ -189,7 +188,7 @@ const
   double dxst = 1.0;
   double last_e = 0.0;
   mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
-  while (rms > min_tol && iteration < max_iteration) {
+  while (rms > min_tol && iteration < nMinSteps_) {
     double e_total = 0.0;
     // ----- Determine bond energy and forces ----
     double E_bond = 0.0;
@@ -947,7 +946,7 @@ void Exec_AddMissingRes::Help() const
 {
   mprintf("\tpdbname <pdbname> name <setname> [out <filename>]\n"
           "\t[parmargs <parm args>] [trajargs <trajin args>]\n"
-          "\t[pdbout <pdb>]\n");
+          "\t[pdbout <pdb>] [nminsteps <nmin>]\n");
 }
 
 // Exec_AddMissingRes::Execute()
@@ -967,6 +966,9 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   mprintf("\tOutput file: %s\n", outfile->Filename().full());
+  nMinSteps_ = argIn.getKeyInt("nminsteps", 1000);
+  mprintf("\t# minimization steps: %i\n", nMinSteps_);
+  // Arg lists
   ArgList parmArgs;
   std::string parmArgStr = argIn.GetStringKey("parmargs");
   if (!parmArgStr.empty()) {
