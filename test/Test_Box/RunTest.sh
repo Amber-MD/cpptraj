@@ -3,7 +3,9 @@
 . ../MasterTest.sh
 
 CleanFiles box.in addbox.rst7 addbox.rst7.? addbox.rst7.10 \
-                  modX.rst7   modX.rst7.?   modX.rst7.10
+                  modX.rst7   modX.rst7.?   modX.rst7.10 \
+                  frame1.rst7
+
 TESTNAME='Box tests'
 Requires netcdf maxthreads 10
 
@@ -19,6 +21,16 @@ EOF
 RunCpptraj "Box Test (Add box info)"
 DoTest addbox.rst7.1.save addbox.rst7.1
 DoTest addbox.rst7.10.save addbox.rst7.10
+
+cat > box.in <<EOF
+parm ../tz2.parm7
+parmstrip !(:1)
+trajin addbox.rst7.1.save
+box nobox
+trajout frame1.rst7
+EOF
+RunCpptraj "Box test (remove box info)"
+DoTest frame1.rst7.save frame1.rst7
 
 cat > box.in <<EOF
 parm ../tz2.truncoct.parm7
