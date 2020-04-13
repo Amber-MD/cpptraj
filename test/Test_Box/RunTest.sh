@@ -4,7 +4,7 @@
 
 CleanFiles box.in addbox.rst7 addbox.rst7.? addbox.rst7.10 \
                   modX.rst7   modX.rst7.?   modX.rst7.10 \
-                  frame1.rst7
+                  frame1.rst7 tz2.box.rst7
 
 TESTNAME='Box tests'
 Requires netcdf maxthreads 10
@@ -43,6 +43,16 @@ EOF
 RunCpptraj "Box test (Modify box length)"
 DoTest modX.rst7.1.save modX.rst7.1
 DoTest modX.rst7.10.save modX.rst7.10
+
+cat > box.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc 1 1
+box auto 3.0
+trajout tz2.box.rst7
+run
+EOF
+RunCpptraj "Box test (auto orthogonal box)"
+DoTest tz2.box.rst7.save tz2.box.rst7
 
 EndTest
 
