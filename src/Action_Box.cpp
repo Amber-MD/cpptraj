@@ -1,7 +1,7 @@
 #include "Action_Box.h"
 #include "CpptrajStdio.h"
 
-Action_Box::Action_Box() : nobox_(false) {}
+Action_Box::Action_Box() : mode_(SET) {}
 
 void Action_Box::Help() const {
   mprintf("\t[x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]\n"
@@ -14,8 +14,9 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
 {
   // Get keywords
   if ( actionArgs.hasKey("nobox") )
-    nobox_ = true; 
+    mode_ = REMOVE;
   else {
+    mode_ = SET;
     box_.SetX( actionArgs.getKeyDouble("x", 0.0) );
     box_.SetY( actionArgs.getKeyDouble("y", 0.0) );
     box_.SetZ( actionArgs.getKeyDouble("z", 0.0) );
@@ -26,7 +27,7 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
   }
 
   mprintf("    BOX:");
-  if (nobox_)
+  if (mode_ == REMOVE)
     mprintf(" Removing box information.\n");
   else {
     if (box_.BoxX() > 0) mprintf(" X=%.3f", box_.BoxX());
@@ -43,7 +44,7 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
 // Action_Box::Setup()
 Action::RetType Action_Box::Setup(ActionSetup& setup) {
   cInfo_ = setup.CoordInfo();
-  if (nobox_) {
+  if (mode_ == REMOVE) {
     mprintf("\tRemoving box info.\n");
     cInfo_.SetBox( Box() );
   } else {
@@ -57,8 +58,9 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
   return Action::MODIFY_TOPOLOGY;
 }
 
+// Action_Box::DoAction()
 Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
-  if (nobox_) {
+  if (mode_ == REMOVE) {
     frm.ModifyFrm().SetBox( Box() );
   } else {
     Box fbox( box_ );

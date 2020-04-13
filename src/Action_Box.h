@@ -13,8 +13,10 @@ class Action_Box : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    CoordinateInfo cInfo_;
-    Box box_;
-    bool nobox_;
+    enum ModeType { SET = 0, REMOVE, AUTO };
+
+    CoordinateInfo cInfo_; ///< For holding modified coordinate info.
+    Box box_;              ///< Hold box info to be set for SET.
+    ModeType mode_;        ///< How box info will be assigned.
 };
 #endif
