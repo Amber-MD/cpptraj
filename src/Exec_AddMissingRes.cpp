@@ -605,6 +605,7 @@ int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx,
   return 0;
 }
 
+/** \return A vector containing residues from start up to and including end. */
 inline std::vector<int> ResiduesToSearch(int startRes, int endRes) {
   std::vector<int> residuesToSearch;
   if (startRes < endRes) {
@@ -616,6 +617,31 @@ inline std::vector<int> ResiduesToSearch(int startRes, int endRes) {
   }
   return residuesToSearch;
 }
+
+/** Calculate a guiding force connectiong XYZ0 and XYZ1 */
+static inline void CalcGuideForce(Vec3 const& XYZ0, Vec3 const& XYZ1, double maxFac, Vec3& fvec0, Vec3& fvec1)
+{
+  // Vector from 0 to 1
+  Vec3 v01 = XYZ1 - XYZ0;
+  // Distance
+  double r2 = v01.Magnitude2();
+  double r01 = sqrt( r2 );
+  // Determine augment factor.
+  if (r01 > maxFac)
+    r01 = 1.0;
+  else
+    return;
+    //r01 = r01 / maxFac;
+  // Normalize
+  v01.Normalize();
+  // Augment
+  v01 *= r01;
+  v01.Print("guide");
+  // Add
+  fvec0 += v01;
+  fvec1 -= v01;
+}
+  
 
 /** Search for coords from anchor0 to anchor1, start at start, end at end. */
 int Exec_AddMissingRes::CoordSearchGap(int anchor0, int anchor1, std::vector<int> const& residues,
@@ -635,8 +661,8 @@ const
   XYZ1.Print("Anchor 1 coords");
   Vec1.Print("anchor 1 vec");
   // Guide vector
-  //Vec3 guideVec = XYZ1 - XYZ0;
-  //guideVec.Normalize();
+  double guidefac = 3.8;
+  CalcGuideForce(XYZ0, XYZ1, guidefac, Vec0, Vec1);
 
   // Determine the halfway index
   int halfIdx = residues.size() / 2; 
@@ -686,6 +712,7 @@ const
       CalcFvecAtIdx(Vec1, XYZ1, *a1, CAtop, CAframe, isMissing);
       ++a1;
     }
+    CalcGuideForce(XYZ0, XYZ1, guidefac, Vec0, Vec1);
   }
 
   return 0;
