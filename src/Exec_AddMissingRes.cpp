@@ -618,28 +618,26 @@ inline std::vector<int> ResiduesToSearch(int startRes, int endRes) {
   return residuesToSearch;
 }
 
-/** Calculate a guiding force connectiong XYZ0 and XYZ1 */
-static inline void CalcGuideForce(Vec3 const& XYZ0, Vec3 const& XYZ1, double maxFac, Vec3& fvec0, Vec3& fvec1)
+/** Calculate a guiding force connecting XYZ0 and XYZ1 */
+static inline void CalcGuideForce(Vec3 const& XYZ0, Vec3 const& XYZ1, double maxDist,
+                                  double Rk, Vec3& fvec0, Vec3& fvec1)
 {
   // Vector from 0 to 1
   Vec3 v01 = XYZ1 - XYZ0;
   // Distance
   double r2 = v01.Magnitude2();
   double r01 = sqrt( r2 );
-  // Determine augment factor.
-  if (r01 > maxFac)
-    r01 = 1.0;
-  else
-    return;
-    //r01 = r01 / maxFac;
-  // Normalize
-  v01.Normalize();
-  // Augment
-  v01 *= r01;
-  v01.Print("guide");
-  // Add
-  fvec0 += v01;
-  fvec1 -= v01;
+  // Only apply the guiding force above maxDist 
+  if (r01 > maxDist) {
+    // Normalize
+    v01.Normalize();
+    // Augment
+    v01 *= Rk;
+    v01.Print("guide");
+    // Add
+    fvec0 += v01;
+    fvec1 -= v01;
+  }
 }
   
 
@@ -662,7 +660,8 @@ const
   Vec1.Print("anchor 1 vec");
   // Guide vector
   double guidefac = 3.8;
-  CalcGuideForce(XYZ0, XYZ1, guidefac, Vec0, Vec1);
+  double guidek = 1.0;
+  CalcGuideForce(XYZ0, XYZ1, guidefac, guidek, Vec0, Vec1);
 
   // Determine the halfway index
   int halfIdx = residues.size() / 2; 
@@ -712,7 +711,7 @@ const
       CalcFvecAtIdx(Vec1, XYZ1, *a1, CAtop, CAframe, isMissing);
       ++a1;
     }
-    CalcGuideForce(XYZ0, XYZ1, guidefac, Vec0, Vec1);
+    CalcGuideForce(XYZ0, XYZ1, guidefac, guidek, Vec0, Vec1);
   }
 
   return 0;
