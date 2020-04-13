@@ -735,14 +735,7 @@ const
 */
   anchorVec.Print("DEBUG: anchorVec");
   // Determine the direction
-  std::vector<int> residuesToSearch;
-  if (startRes < endRes) {
-    for (int i = startRes; i <= endRes; i++)
-      residuesToSearch.push_back( i );
-  } else {
-    for (int i = startRes; i >= endRes; i--)
-      residuesToSearch.push_back( i );
-  }
+  std::vector<int> residuesToSearch = ResiduesToSearch(startRes, endRes);
   // Loop over fragment to generate coords for
   double fac = 2.0;
   mprintf("DEBUG: Generating linear fragment extending from %i for indices %i to %i (%zu)\n",
