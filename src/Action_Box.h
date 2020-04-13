@@ -18,5 +18,6 @@ class Action_Box : public Action {
     CoordinateInfo cInfo_; ///< For holding modified coordinate info.
     Box box_;              ///< Hold box info to be set for SET.
     ModeType mode_;        ///< How box info will be assigned.
+    double offset_;        ///< Offset for AUTO
 };
 #endif
