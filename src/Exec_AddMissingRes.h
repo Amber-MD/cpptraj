@@ -20,8 +20,8 @@ class Exec_AddMissingRes : public Exec {
     int FindGaps(Garray&, CpptrajFile&, std::string const&) const;
     int Minimize(Topology const&, Frame&, CharMask const&) const;
     int WriteStructure(std::string const&, Topology*, Frame const&, TrajectoryFile::TrajFormatType) const;
-    static void GenerateLinearCoords(int, int, Frame&);
-    static void GenerateTerminalCoords(int,int,int,int, Frame&);
+    static void GenerateLinearGapCoords(int, int, Frame&);
+    static void GenerateLinearTerminalCoords(int,int,int,int, Frame&);
     int AssignLinearCoords(Topology const&, CharMask const&, Frame&) const;
     static int CalcFvecAtIdx(Vec3&, Vec3&, int, Topology const&, Frame const&, CharMask const&);
     int CoordSearchGap(int,int,std::vector<int> const&,Topology const&, CharMask&, Frame&) const;

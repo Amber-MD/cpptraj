@@ -444,7 +444,7 @@ class Pres {
 };
 
 /** Try to generate linear coords beteween idx0 and idx1. */
-void Exec_AddMissingRes::GenerateLinearCoords(int idx0, int idx1, Frame& frm)
+void Exec_AddMissingRes::GenerateLinearGapCoords(int idx0, int idx1, Frame& frm)
 {
   Vec3 vec0( frm.XYZ(idx0) );
   Vec3 vec1( frm.XYZ(idx1) );
@@ -453,7 +453,7 @@ void Exec_AddMissingRes::GenerateLinearCoords(int idx0, int idx1, Frame& frm)
   Vec3 V10 = vec1 - vec0;
   int nsteps = idx1 - idx0;
   if (nsteps < 1) {
-    mprinterr("Internal Error: GenerateLinearCoords: Invalid steps from %i to %i (%i)\n",
+    mprinterr("Internal Error: GenerateLinearGapCoords: Invalid steps from %i to %i (%i)\n",
               idx0, idx1, nsteps);
     return;
   }
@@ -473,7 +473,7 @@ void Exec_AddMissingRes::GenerateLinearCoords(int idx0, int idx1, Frame& frm)
 /** Generate coords following the vector from idx0 to idx1 attached at idx1
   * for residues from startidx up to and including endidx.
   */
-void Exec_AddMissingRes::GenerateTerminalCoords(int idx0, int idx1, int startidx, int endidx,
+void Exec_AddMissingRes::GenerateLinearTerminalCoords(int idx0, int idx1, int startidx, int endidx,
                                                 Frame& frm)
 {
   Vec3 vec0( frm.XYZ(idx0) );
@@ -551,13 +551,13 @@ const
         mprintf("CA Gap end: %i to %i (%i to %i) chain %c #res= %i\n",
                 gap_start+1, gap_end+1, prev_res+1, next_res+1, current_chain, num_res);
         if (prev_res > -1 && next_res > -1) {
-          GenerateLinearCoords(prev_res, next_res, CAframe);
+          GenerateLinearGapCoords(prev_res, next_res, CAframe);
         } else if (prev_res == -1) {
           // N-terminal
-          GenerateTerminalCoords(gap_end+2, gap_end+1, gap_start, gap_end, CAframe);
+          GenerateLinearTerminalCoords(gap_end+2, gap_end+1, gap_start, gap_end, CAframe);
         } else if (next_res == -1) {
           // C-terminal
-          GenerateTerminalCoords(gap_start-2, gap_start-1, gap_start, gap_end, CAframe);
+          GenerateLinearTerminalCoords(gap_start-2, gap_start-1, gap_start, gap_end, CAframe);
         }
         gap_start = -1;
       }
@@ -566,7 +566,9 @@ const
   return 0;
 }
 
-/** Calculate pseudo force vector at given index. */
+/** Calculate pseudo force vector at given index. Only take into account
+  * atoms within a certain cutoff, i.e. the local environment.
+  */
 int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx, 
                                       Topology const& CAtop, Frame const& CAframe,
                                       CharMask const& isMissing)
@@ -606,7 +608,7 @@ int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx,
 }
 
 /** \return A vector containing residues from start up to and including end. */
-inline std::vector<int> ResiduesToSearch(int startRes, int endRes) {
+static inline std::vector<int> ResiduesToSearch(int startRes, int endRes) {
   std::vector<int> residuesToSearch;
   if (startRes < endRes) {
     for (int i = startRes; i <= endRes; i++)
@@ -640,7 +642,6 @@ static inline void CalcGuideForce(Vec3 const& XYZ0, Vec3 const& XYZ1, double max
   }
 }
   
-
 /** Search for coords from anchor0 to anchor1, start at start, end at end. */
 int Exec_AddMissingRes::CoordSearchGap(int anchor0, int anchor1, std::vector<int> const& residues,
                                      Topology const& CAtop, CharMask& isMissing, Frame& CAframe)
@@ -694,6 +695,7 @@ const
       Xptr[0] = xyz[0];
       Xptr[1] = xyz[1];
       Xptr[2] = xyz[2];
+      // Mark as not missing
       isMissing.SelectAtom(*a0, false);
       // Update the anchor
       CalcFvecAtIdx(Vec0, XYZ0, *a0, CAtop, CAframe, isMissing);
@@ -706,6 +708,7 @@ const
       Xptr[0] = xyz[0];
       Xptr[1] = xyz[1];
       Xptr[2] = xyz[2];
+      // Mark as not missing
       isMissing.SelectAtom(*a1, false);
       // Update the anchor
       CalcFvecAtIdx(Vec1, XYZ1, *a1, CAtop, CAframe, isMissing);
@@ -717,7 +720,6 @@ const
   return 0;
 }
 
-
 /** Search for coords using anchorRes as an anchor, start at start, end at end. */
 int Exec_AddMissingRes::CoordSearchTerminal(int anchorRes, int startRes, int endRes,
                                      Topology const& CAtop, CharMask& isMissing, Frame& CAframe)
@@ -728,37 +730,6 @@ const
   Vec3 XYZ0, anchorVec;
   CalcFvecAtIdx(anchorVec, XYZ0, anchorRes, CAtop, CAframe, isMissing);
   XYZ0.Print("Anchor coords");
-/*
-  Vec3 anchorVec(0.0);
-  double e_total = 0.0;
-  for (int idx = 0; idx != CAtop.Nres(); idx++)
-  {
-    if (idx != anchorRes)
-    {
-      const double* XYZ1 = CAframe.XYZ( idx );
-      double rx = XYZ0[0] - XYZ1[0];
-      double ry = XYZ0[1] - XYZ1[1];
-      double rz = XYZ0[2] - XYZ1[2];
-      double rij2 = rx*rx + ry*ry + rz*rz;
-      if (rij2 > 0) {
-        double rij = sqrt( rij2 );
-        // COULOMB
-        double qiqj = .01; // Give each atom charge of .1
-        double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
-        e_total += e_elec;
-        // COULOMB force
-        double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
-        anchorVec[0] += rx * felec;
-        anchorVec[1] += ry * felec;
-        anchorVec[2] += rz * felec;
-      } else {
-        mprinterr("Error: Atom clash between CA %i and %i\n", anchorRes+1, idx+1);
-        return 1;
-      }
-    }
-  }
-  anchorVec.Normalize();
-*/
   anchorVec.Print("DEBUG: anchorVec");
   // Determine the direction
   std::vector<int> residuesToSearch = ResiduesToSearch(startRes, endRes);
@@ -771,12 +742,7 @@ const
                                       ++it)
   {
     double* Xptr = CAframe.xAddress() + (*it * 3);
-    //int idist = abs( *it - anchorRes );
-    //double delta = (double)idist;
-    //Vec3 step = anchorVec * delta;
-    //Vec3 xyz = XYZ0 + step;
     Vec3 xyz = XYZ0 + (anchorVec * fac);
-    //mprintf("  %i (%i) %12.4f %12.4f %12.4f\n", *it+1, idist, xyz[0], xyz[1], xyz[2]);
     mprintf("  %i %12.4f %12.4f %12.4f\n", *it+1, xyz[0], xyz[1], xyz[2]);
     Xptr[0] = xyz[0];
     Xptr[1] = xyz[1];
