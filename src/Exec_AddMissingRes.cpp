@@ -997,8 +997,19 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   for (int idx = 0; idx != CAtop.Nres(); idx++)
   {
     if (CAmissing.AtomInCharMask(idx)) {
-      int newAtm = newTop.Res(idx).FirstAtom();
-      double* Xptr = newFrame.xAddress() + (3*newAtm);
+      Residue const& cares = CAtop.Res(idx);
+      // Select CA in newTop
+      std::string maskStr0("::" + std::string(1,cares.ChainID()) + "&:;" +
+                           integerToString(cares.OriginalResNum()) + "&@CA");
+      AtomMask mask0(maskStr0);
+      if (newTop.SetupIntegerMask(mask0)) return 1;
+      if (mask0.Nselected() != 1) {
+        mprinterr("Internal Error: When trying to find CA %i in new topology, expected 1 atom, got %i\n",
+                  idx + 1, mask0.Nselected());
+        return 1;
+      }
+      mprintf("DEBUG: CA idx %i [%s] newTop atom# %i\n", idx+1, maskStr0.c_str(), mask0[0]+1);
+      double* Xptr = newFrame.xAddress() + (3*mask0[0]);
       const double* XYZ = CAframe.XYZ(idx);
       Xptr[0] = XYZ[0];
       Xptr[1] = XYZ[1];
