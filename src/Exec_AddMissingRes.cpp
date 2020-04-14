@@ -773,7 +773,12 @@ const
     // Locate this Gap in the new topology
     std::string maskStr0("::" + std::string(1,gap->Chain()) + "&:;" + 
                          integerToString(gap->StartRes()) + "-" + integerToString(gap->StopRes()));
-    AtomMask mask0( maskStr0 );
+    AtomMask mask0;
+    if (mask0.SetMaskString( maskStr0 )) {
+      mprinterr("Internal Error: Could not set up mask string %s when assigning coords by search.\n",
+                maskStr0.c_str());
+      return 1;
+    }
     if (newTop.SetupIntegerMask( mask0, newFrame )) return 1;
     std::vector<int> rn = newTop.ResnumsSelectedBy(mask0);
     int gapStart = rn.front();
@@ -951,7 +956,11 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   {
     std::string maskStr0("::" + std::string(1,gap->Chain()) + "&:;" + 
                          integerToString(gap->StartRes()) + "-" + integerToString(gap->StopRes()));
-    AtomMask mask0( maskStr0 );
+    AtomMask mask0;
+    if (mask0.SetMaskString( maskStr0 )) {
+      mprinterr("Internal Error: Invalid mask string during Gap printout: '%s'\n", maskStr0.c_str());
+      return 1;
+    }
     if (newTop.SetupIntegerMask( mask0, newFrame )) return 1;
     std::vector<int> rn = newTop.ResnumsSelectedBy(mask0);
     mprintf("\tGap %c %i-%i : %i-%i\n", gap->Chain(), gap->StartRes(), gap->StopRes(),
@@ -1001,7 +1010,12 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       // Select CA in newTop
       std::string maskStr0("::" + std::string(1,cares.ChainID()) + "&:;" +
                            integerToString(cares.OriginalResNum()) + "&@CA");
-      AtomMask mask0(maskStr0);
+      AtomMask mask0;
+      if (mask0.SetMaskString(maskStr0)) {
+        mprinterr("Internal Error: Invalid mask string when trying to map CA back to new topology: %s\n",
+                  maskStr0.c_str());
+        return 1;
+      }
       if (newTop.SetupIntegerMask(mask0)) return 1;
       if (mask0.Nselected() != 1) {
         mprinterr("Internal Error: When trying to find CA %i in new topology, expected 1 atom, got %i\n",
