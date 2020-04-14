@@ -921,12 +921,12 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       }
       // CA top
       if (caidx == -1) {
-        mprinterr("Error: No CA atom found for residue %s\n", topIn.TruncResNameNum(it->TopResNum()).c_str());
-        return 1;
+        mprintf("Warning: No CA atom found for residue %s\n", topIn.TruncResNameNum(it->TopResNum()).c_str());
+      } else {
+        CAtop.AddTopAtom( Atom(topIn[caidx].Name(), topIn[caidx].ElementName()), newres );
+        CAframe.AddXYZ( frameIn.XYZ(caidx) );
+        CAmissing.AddAtom(false);
       }
-      CAtop.AddTopAtom( Atom(topIn[caidx].Name(), topIn[caidx].ElementName()), newres );
-      CAframe.AddXYZ( frameIn.XYZ(caidx) );
-      CAmissing.AddAtom(false);
     }
   } // END loop over all residues
   // Try to determine which frames are terminal so pdbter works since
