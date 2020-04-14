@@ -5,6 +5,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // convertToInteger, convertToDouble
 #include "DistRoutines.h" // selection by distance
+#include "RangeToken.h" // for parsing <num>-<num> tokens
 
 MaskToken::MaskToken() :
   distance2_(0.0),
@@ -98,38 +99,29 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
     }
   }
   if (type_ == ResNum || type_ == AtomNum || type_ == MolNum || type_ == OresNum) {
-    // Does this token argument have a dash? Only valid for number ranges.
-    size_t dashPosition = tokenString.find_first_of("-");
-    if (dashPosition != std::string::npos) {
-      // Get first and second args. If first arg is blank negative number specified.
-      std::string arg1(tokenString.begin(), tokenString.begin()+dashPosition);
-      if (arg1.empty()) {
-        mprinterr("Error: Mask expressions cannot contain negative numbers (%s)\n",
-                  tokenString.c_str());
-        return 1;
-      }
-      std::string arg2(tokenString.begin()+dashPosition+1, tokenString.end());
-      if (arg2.empty()) {
-        mprinterr("Error: Incomplete number range given (%s).\n", tokenString.c_str());
-        return 1;
-      }
-      idx1_ = convertToInteger( arg1 );
-      idx2_ = convertToInteger( arg2 );
-    } else {
-      // Get the number arg
-      idx1_ = convertToInteger( tokenString );
-      idx2_ = idx1_;
+    // Use RangeToken to convert the number/number range.
+    RangeToken rt;
+    if (rt.Assign(tokenString)) {
+      mprinterr("Error: Converting number token: %s\n", rt.Err().c_str());
+      return 1;
     }
-    // Ensure that res1 and res2 are valid
+    idx1_ = convertToInteger( rt.Num1() );
+    if (rt.Num2().empty())
+      idx2_ = idx1_;
+    else
+      idx2_ = convertToInteger( rt.Num2() );
+    // Ensure that idx2 >= idx1
     if (idx2_ < idx1_) {
       mprinterr("Error: Mask range, second num (%i) less than first (%i).\n",idx2_,idx1_);
       return 1;
     }
-    // It is expected that number args will start from 1
-    if (idx1_ < 1 || idx2_ < 1) {
-      mprinterr("Error: One or both numbers of mask arg (%s) < 1 (%i, %i)\n",
-                tokenString.c_str(), idx1_,idx2_);
-      return 1;
+    // It is expected that number args will start from 1 unless type is original resnum
+    if (type_ != OresNum) {
+      if (idx1_ < 1 || idx2_ < 1) {
+        mprinterr("Error: One or both numbers of mask arg (%s) < 1 (%i, %i)\n",
+                  tokenString.c_str(), idx1_,idx2_);
+        return 1;
+      }
     }
   } else {
     // This is a string arg.
