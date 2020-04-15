@@ -77,6 +77,7 @@ class Topology {
     void AddBond(int, int, int);
     void AddBond(BondType const&, bool);
     void AddBond(int, int, BondParmType const&);
+    void RemoveBond(int, int);
     void AssignBondParams(ParmHolder<BondParmType> const&);
     // ----- Angle-specific routines -------------
     size_t Nangles()                           const { return angles_.size()+anglesh_.size(); }
