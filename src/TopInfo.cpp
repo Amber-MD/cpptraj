@@ -17,7 +17,8 @@ TopInfo::TopInfo() :
   Awidth_(0),
   amn_width_(0),
   max_aname_len_(0),
-  toStdout_(false)
+  toStdout_(false),
+  noIntraRes_(false)
 {}
 
 /// CONSTRUCTOR - To Stdout
@@ -28,7 +29,8 @@ TopInfo::TopInfo(Topology const* pIn) :
   amn_width_(0),
   max_type_len_(0),
   max_aname_len_(0),
-  toStdout_(false)
+  toStdout_(false),
+  noIntraRes_(false)
 {
   SetupTopInfo( 0, pIn, 0 );
 }
@@ -397,6 +399,10 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
       printBond = (mask1.AtomInCharMask(atom1) && mask2.AtomInCharMask(atom2));
     else
       printBond = (mask1.AtomInCharMask(atom1) || mask1.AtomInCharMask(atom2));
+    if (noIntraRes_ && printBond) {
+      if ( (*parm_)[atom1].ResNum() == (*parm_)[atom2].ResNum() )
+        printBond = false;
+    }
     if (printBond) {
       outfile_->Printf("%*i", nw, nb);
       int bidx = batom->Idx();
