@@ -144,7 +144,7 @@ const
     }
   }
   // Selected atoms
-  std::vector<int> selectedAtoms;
+  Iarray selectedAtoms;
   selectedAtoms.reserve( maskIn.Nselected() );
   for (int i = 0; i < topIn.Natom(); i++)
     if (maskIn.AtomInCharMask( i ))
@@ -242,7 +242,7 @@ const
     double E_elec = 0.0;
     for (int idx = 0; idx != topIn.Natom(); idx++)
     {
-      for (std::vector<int>::const_iterator jdx = selectedAtoms.begin(); jdx != selectedAtoms.end(); ++jdx)
+      for (Iarray::const_iterator jdx = selectedAtoms.begin(); jdx != selectedAtoms.end(); ++jdx)
       {
         if (idx != *jdx)
         {
@@ -382,7 +382,7 @@ const
   mprintf("\tRMS error of final bond lengths: %g\n", rms_err);
 /*
   // Write out final graph with cluster numbers.
-  std::vector<int> Nums;
+  Iarray Nums;
   Nums.reserve( nframes );
   if (cnumvtime != 0) {
     ClusterSieve::SievedFrames const& sievedFrames = FrameDistances().FramesToCluster();
@@ -643,7 +643,7 @@ static inline void CalcGuideForce(Vec3 const& XYZ0, Vec3 const& XYZ1, double max
 }
   
 /** Search for coords from anchor0 to anchor1, start at start, end at end. */
-int Exec_AddMissingRes::CoordSearchGap(int anchor0, int anchor1, std::vector<int> const& residues,
+int Exec_AddMissingRes::CoordSearchGap(int anchor0, int anchor1, Iarray const& residues,
                                      Topology const& CAtop, CharMask& isMissing, Frame& CAframe)
 const
 {
@@ -667,26 +667,24 @@ const
   // Determine the halfway index
   int halfIdx = residues.size() / 2; 
   // N-terminal
-  std::vector<int> fromAnchor0 = ResiduesToSearch(residues.front(), residues[halfIdx-1]);
+  Iarray fromAnchor0 = ResiduesToSearch(residues.front(), residues[halfIdx-1]);
   // C-terminal
-  std::vector<int> fromAnchor1 = ResiduesToSearch(residues.back(), residues[halfIdx]);
+  Iarray fromAnchor1 = ResiduesToSearch(residues.back(), residues[halfIdx]);
 
   mprintf("DEBUG: Generating Gap residues:\n");
   mprintf("\tFrom %i:", anchor0+1);
-  for (std::vector<int>::const_iterator it = fromAnchor0.begin();
-                                        it != fromAnchor0.end(); ++it)
+  for (Iarray::const_iterator it = fromAnchor0.begin(); it != fromAnchor0.end(); ++it)
     mprintf(" %i", *it + 1);
   mprintf("\n");
   mprintf("\tFrom %i:", anchor1+1);
-  for (std::vector<int>::const_iterator it = fromAnchor1.begin();
-                                        it != fromAnchor1.end(); ++it)
+  for (Iarray::const_iterator it = fromAnchor1.begin(); it != fromAnchor1.end(); ++it)
     mprintf(" %i", *it + 1);
   mprintf("\n");
 
   // Loop over fragment to generate coords for
   double fac = 2.0;
-  std::vector<int>::const_iterator a0 = fromAnchor0.begin();
-  std::vector<int>::const_iterator a1 = fromAnchor1.begin();
+  Iarray::const_iterator a0 = fromAnchor0.begin();
+  Iarray::const_iterator a1 = fromAnchor1.begin();
   while (a0 != fromAnchor0.end() || a1 != fromAnchor1.end()) {
     if (a0 != fromAnchor0.end()) {
       double* Xptr = CAframe.xAddress() + (*a0 * 3);
@@ -732,14 +730,13 @@ const
   XYZ0.Print("Anchor coords");
   anchorVec.Print("DEBUG: anchorVec");
   // Determine the direction
-  std::vector<int> residuesToSearch = ResiduesToSearch(startRes, endRes);
+  Iarray residuesToSearch = ResiduesToSearch(startRes, endRes);
   // Loop over fragment to generate coords for
   double fac = 2.0;
   mprintf("DEBUG: Generating linear fragment extending from %i for indices %i to %i (%zu)\n",
           anchorRes+1, startRes+1, endRes+1, residuesToSearch.size());
-  for (std::vector<int>::const_iterator it = residuesToSearch.begin();
-                                        it != residuesToSearch.end();
-                                      ++it)
+  for (Iarray::const_iterator it = residuesToSearch.begin();
+                              it != residuesToSearch.end(); ++it)
   {
     double* Xptr = CAframe.xAddress() + (*it * 3);
     Vec3 xyz = XYZ0 + (anchorVec * fac);
@@ -780,7 +777,7 @@ const
       return 1;
     }
     if (newTop.SetupIntegerMask( mask0, newFrame )) return 1;
-    std::vector<int> rn = newTop.ResnumsSelectedBy(mask0);
+    Iarray rn = newTop.ResnumsSelectedBy(mask0);
     int gapStart = rn.front();
     int gapEnd = rn.back();
     mprintf("\tGap %c %i-%i : %i-%i\n", gap->Chain(), gap->StartRes(), gap->StopRes(),
@@ -814,7 +811,7 @@ const
       // C-terminal
       CoordSearchTerminal(prev_res, gapStart, gapEnd, CAtop, isMissing, CAframe);
     }
-    //for (std::vector<int>::const_iterator it = rn.begin(); it != rn.end(); ++it)
+    //for (Iarray::const_iterator it = rn.begin(); it != rn.end(); ++it)
     //  mprintf(" %i", *it+1);
     //mprintf("\n");
   }
@@ -841,7 +838,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     }
   }
 
-  // Loop over gaps
+  // Loop over gaps; add missing residues
   for (Garray::const_iterator gap = Gaps.begin(); gap != Gaps.end(); ++gap)
   {
     mprintf("\tGap %c %i to %i\n", gap->Chain(), gap->StartRes(), gap->StopRes());
@@ -974,10 +971,10 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       return 1;
     }
     if (newTop.SetupIntegerMask( mask0, newFrame )) return 1;
-    std::vector<int> rn = newTop.ResnumsSelectedBy(mask0);
+    Iarray rn = newTop.ResnumsSelectedBy(mask0);
     mprintf("\tGap %c %i-%i : %i-%i\n", gap->Chain(), gap->StartRes(), gap->StopRes(),
             rn.front() + 1, rn.back() + 1);
-    //for (std::vector<int>::const_iterator it = rn.begin(); it != rn.end(); ++it)
+    //for (Iarray::const_iterator it = rn.begin(); it != rn.end(); ++it)
     //  mprintf(" %i", *it+1);
     //mprintf("\n");
   }
