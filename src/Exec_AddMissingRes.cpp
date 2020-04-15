@@ -917,16 +917,28 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       Residue const& topres = topIn.Res(it->TopResNum());
       Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainID());
       int caidx = -1;
+      // Calculate the center of the residue as we go in case we need it
+      Vec3 vcenter(0.0);
       for (int at = topres.FirstAtom(); at < topres.LastAtom(); at++) {
         if (topIn[at].Name() == "CA") caidx = at;
         newTop.AddTopAtom( Atom(topIn[at].Name(), topIn[at].ElementName()), newres );
         //frameIn.printAtomCoord(at);
-        newFrame.AddXYZ( frameIn.XYZ(at) );
+        const double* txyz = frameIn.XYZ(at);
+        newFrame.AddXYZ( txyz );
+        vcenter[0] += txyz[0];
+        vcenter[1] += txyz[1];
+        vcenter[2] += txyz[2];
         //newFrame.printAtomCoord(newTop->Natom()-1);
       }
       // CA top
       if (caidx == -1) {
         mprintf("Warning: No CA atom found for residue %s\n", topIn.TruncResNameNum(it->TopResNum()).c_str());
+        // Use the center of the residue
+        vcenter /= (double)topres.NumAtoms();
+        mprintf("Warning: Using center: %g %g %g\n", vcenter[0], vcenter[1], vcenter[2]);
+        CAtop.AddTopAtom( Atom("CA", "C"), newres );
+        CAframe.AddVec3( vcenter );
+        CAmissing.AddAtom(false);
       } else {
         CAtop.AddTopAtom( Atom(topIn[caidx].Name(), topIn[caidx].ElementName()), newres );
         CAframe.AddXYZ( frameIn.XYZ(caidx) );
