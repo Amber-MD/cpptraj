@@ -47,6 +47,7 @@ class Atom {
     /// Add atom index # to this atoms list of bonded atoms.
     void AddBondToIdx(int idxIn)           { bonds_.push_back( idxIn ); }
     void ClearBonds()                      { bonds_.clear() ;           }
+    void RemoveBondToIdx(int);
     void SortBonds();
     // TODO: Use this routine in AtomMap etc
     /// \return true if this atom is bonded to given atom index 

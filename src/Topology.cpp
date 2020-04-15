@@ -642,7 +642,8 @@ void Topology::RemoveBond(int atom1, int atom2)
     return;
   }
   tgtArray->erase( bnd );
-
+  atoms_[atom1].RemoveBondToIdx( atom2 );
+  atoms_[atom2].RemoveBondToIdx( atom1 );
 }
 
 
