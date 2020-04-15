@@ -872,11 +872,12 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   // Count number of present atoms and missing residues.
   int nAtomsPresent = 0;
   int nResMissing = 0;
-  for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
+  int newIdx = 0;
+  for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it, ++newIdx)
   {
-    if (debug_ > 1)
-      mprintf("\t  %6s %8i %8i %c\n", *(it->Name()), it->OriginalResNum(),
-              it->TopResNum()+1, it->ChainID());
+    //if (debug_ > 1)
+      mprintf("\t  %6s %8i %8i %8i %c\n", *(it->Name()), it->OriginalResNum(),
+              it->TopResNum()+1, newIdx+1, it->ChainID());
     if (it->TopResNum() < 0)
       nResMissing++;
     else
