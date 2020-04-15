@@ -918,6 +918,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       CAframe.AddVec3( Zero );
       CAmissing.AddAtom(true);
     } else {
+      // This residue is present in the original PDB
       Residue const& topres = topIn.Res(it->TopResNum());
       Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainID());
       int caidx = -1;
