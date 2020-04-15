@@ -873,6 +873,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
   int nAtomsPresent = 0;
   int nResMissing = 0;
   int newIdx = 0;
+  Iarray topResNumToNew;
   for (Pset::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it, ++newIdx)
   {
     //if (debug_ > 1)
@@ -880,10 +881,15 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
               it->TopResNum()+1, newIdx+1, it->ChainID());
     if (it->TopResNum() < 0)
       nResMissing++;
-    else
+    else {
       nAtomsPresent += topIn.Res(it->TopResNum()).NumAtoms();
+      topResNumToNew.push_back( newIdx );
+    }
   }
   mprintf("\t%i atoms present, %i residues missing.\n", nAtomsPresent, nResMissing);
+  mprintf("DEBUG: %6s %6s\n", "TopRes", "NewRes");
+  for (unsigned int t = 0; t != topResNumToNew.size(); t++)
+    mprintf("       %6i %6i\n", t+1, topResNumToNew[t]+1);
 
   // Create new Frame
   Frame newFrame(nAtomsPresent + nResMissing);
