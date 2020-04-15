@@ -995,7 +995,8 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     Residue const& res0 = CAtop.Res(cares - 1);
     Residue const& res1 = CAtop.Res(cares);
     if (res0.ChainID() == res1.ChainID()) {
-      CAtop.AddBond(cares-1, cares, CAbond);
+      if (CAmissing.AtomInCharMask(cares-1) || CAmissing.AtomInCharMask(cares))
+        CAtop.AddBond(cares-1, cares, CAbond);
     }
   }
   CAtop.SetParmName("capdb", "temp.ca.mol2");
