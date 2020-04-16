@@ -249,6 +249,8 @@ int Exec_Change::RemoveBonds(Topology& topIn, ArgList& argIn) const {
       }
     }
   }
+  // Since molecule info has likely changed, re-determine
+  topIn.DetermineMolecules();
 
   return 0;
 }
