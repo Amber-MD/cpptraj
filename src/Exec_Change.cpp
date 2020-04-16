@@ -227,11 +227,13 @@ int Exec_Change::RemoveBonds(Topology& topIn, ArgList& argIn) const {
             str1.c_str(), mask1.Nselected());
     for (AtomMask::const_iterator atm = mask1.begin(); atm != mask1.end(); ++atm) {
       std::string atmStr = topIn.ResNameNumAtomNameNum(*atm);
-      for (Atom::bond_iterator bnd = topIn[*atm].bondbegin();
-                               bnd != topIn[*atm].bondend(); ++bnd)
+      // Make a copy of the atoms bonds array because it will be modified.
+      std::vector<int> atoms = topIn[*atm].BondIdxArray();
+      for (std::vector<int>::const_iterator bnd = atoms.begin(); bnd != atoms.end(); ++bnd)
       {
-        mprintf("\t\t%s to %s\n", atmStr.c_str(), topIn.ResNameNumAtomNameNum(*bnd).c_str());
-        topIn.RemoveBond(*atm, *bnd);
+        int ret = topIn.RemoveBond(*atm, *bnd);
+        if (ret == 0)
+          mprintf("\t\t%s to %s\n", atmStr.c_str(), topIn.ResNameNumAtomNameNum(*bnd).c_str());
       }
     }
   } else {
@@ -241,8 +243,9 @@ int Exec_Change::RemoveBonds(Topology& topIn, ArgList& argIn) const {
     for (AtomMask::const_iterator atm1 = mask1.begin(); atm1 != mask1.end(); ++atm1) {
       std::string atmStr = topIn.ResNameNumAtomNameNum(*atm1);
       for (AtomMask::const_iterator atm2 = mask2.begin(); atm2 != mask2.end(); ++atm2) {
-        mprintf("\t\t%s to %s\n", atmStr.c_str(), topIn.ResNameNumAtomNameNum(*atm2).c_str());
-        topIn.RemoveBond(*atm1, *atm2);
+        int ret = topIn.RemoveBond(*atm1, *atm2);
+        if (ret == 0)
+          mprintf("\t\t%s to %s\n", atmStr.c_str(), topIn.ResNameNumAtomNameNum(*atm2).c_str());
       }
     }
   }

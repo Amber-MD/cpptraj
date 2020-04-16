@@ -617,12 +617,13 @@ static inline int WarnOutOfRange(int Natom, int atom, const char* type) {
 
 /** Remove a bond between atom 1 and atom2, update the atoms array.
   * Does not modify bond parameters.
+  * \return 0 if a bond was successfully removed, -1 if no bond exists, and 1 if an error occurs.
   */
-void Topology::RemoveBond(int atom1, int atom2)
+int Topology::RemoveBond(int atom1, int atom2)
 {
   // Check if atoms are out of range.
-  if (WarnOutOfRange(atoms_.size(), atom1, "bond")) return;
-  if (WarnOutOfRange(atoms_.size(), atom2, "bond")) return;
+  if (WarnOutOfRange(atoms_.size(), atom1, "bond")) return 1;
+  if (WarnOutOfRange(atoms_.size(), atom2, "bond")) return 1;
   // Ensure the bond exists.
   bool exists = false;
   for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
@@ -633,7 +634,7 @@ void Topology::RemoveBond(int atom1, int atom2)
     }
   if (!exists) {
     mprintf("Warning: No bond exists between atoms %i and %i\n", atom1+1, atom2+1);
-    return;
+    return -1;
   }
   bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
   bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
@@ -655,11 +656,12 @@ void Topology::RemoveBond(int atom1, int atom2)
   // Sanity check
   if (bnd == tgtArray->end()) {
     mprinterr("Internal Error: Bond %i %i not found in internal bond array.\n", atom1+1, atom2+1);
-    return;
+    return 1;
   }
   tgtArray->erase( bnd );
   atoms_[atom1].RemoveBondToIdx( atom2 );
   atoms_[atom2].RemoveBondToIdx( atom1 );
+  return 0;
 }
 
 

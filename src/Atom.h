@@ -44,6 +44,7 @@ class Atom {
     inline bond_iterator bondbegin() const { return bonds_.begin();     }
     inline bond_iterator bondend()   const { return bonds_.end();       }
     inline int Bond(int idx)         const { return bonds_[idx];        }
+    std::vector<int> const& BondIdxArray() const { return bonds_; }
     /// Add atom index # to this atoms list of bonded atoms.
     void AddBondToIdx(int idxIn)           { bonds_.push_back( idxIn ); }
     void ClearBonds()                      { bonds_.clear() ;           }
