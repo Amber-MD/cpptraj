@@ -6,9 +6,16 @@
 void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] out <file>\n"
-          "\t[cysmask <mask>] [disulfidecut <cut>]\n"
+          "\t[cysmask <mask>] [disulfidecut <cut>] [newcysname <name>]\n"
           "\t[leapunitname <name>]\n"
          );
+}
+
+static inline void ChangeResName(Residue& res, NameType const& nameIn) {
+  if (res.Name() != nameIn) {
+    mprintf("\tChanging residue %s to %s\n", *(res.Name()), *nameIn);
+    res.SetName( nameIn );
+  }
 }
 
 // Exec_PrepareForLeap::Execute()
@@ -43,6 +50,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   // Disulfide search
   double disulfidecut = argIn.getKeyDouble("disulfidecut", 2.1);
+  std::string newcysnamestr = argIn.GetStringKey("newcysname", "CYX");
+  NameType newcysname(newcysnamestr);
+  mprintf("\tCysteine residues involved in disulfide bonds will be changed to: %s\n", *newcysname);
   std::string cysmaskstr = argIn.GetStringKey("cysmask", ":CYS@SG");
   mprintf("\tSearching for disulfide bonds with a cutoff of %g Ang.\n", disulfidecut);
   AtomMask cysmask;
@@ -68,7 +78,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
           outfile->Printf("bond %s.%i.%s %s.%i.%s\n",
                           leapunitname.c_str(), coords.Top()[*at1].ResNum()+1, *(coords.Top()[*at1].Name()),
                           leapunitname.c_str(), coords.Top()[*at2].ResNum()+1, *(coords.Top()[*at2].Name()));
-
+          ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at1].ResNum()), newcysname);
+          ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at2].ResNum()), newcysname);
         }
       }
     }
