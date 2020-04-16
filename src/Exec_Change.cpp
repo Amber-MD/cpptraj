@@ -55,7 +55,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case CHAINID  : err = ChangeChainID(*parm, argIn); break;
     case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
     case ADDBOND  : err = AddBond(*parm, argIn); break;
-    case REMOVEBONDS : err = RemoveBonds(*parm, argIn); break;
+    case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
     case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
@@ -199,7 +199,7 @@ int Exec_Change::FindBondTypeIdx(Topology const& topIn, BondArray const& bonds,
 }
 
 // Exec_Change::RemoveBonds()
-int Exec_Change::RemoveBonds(Topology& topIn, ArgList& argIn) const {
+int Exec_Change::RemoveBonds(CpptrajState& State, Topology& topIn, ArgList& argIn) const {
   AtomMask mask1, mask2;
   std::string str1 = argIn.GetMaskNext();
   if (str1.empty()) {
@@ -221,6 +221,15 @@ int Exec_Change::RemoveBonds(Topology& topIn, ArgList& argIn) const {
       return 1;
     }
   }
+  CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"), "RemovedBonds",
+                                                    DataFileList::TEXT, true);
+  if (outfile == 0) {
+    mprinterr("Internal Error: RemoveBonds could not get an output file.\n");
+    return 1;
+  }
+  const char* prefix = "";
+  if (outfile->IsStream())
+    prefix = "\t\t";
 
   if (str2.empty()) {
     mprintf("\tRemoving bonds to atoms selected by %s (%i atoms).\n", 
@@ -233,7 +242,8 @@ int Exec_Change::RemoveBonds(Topology& topIn, ArgList& argIn) const {
       {
         int ret = topIn.RemoveBond(*atm, *bnd);
         if (ret == 0)
-          mprintf("\t\t%s to %s\n", atmStr.c_str(), topIn.ResNameNumAtomNameNum(*bnd).c_str());
+          outfile->Printf("%s%s to %s\n", prefix, atmStr.c_str(),
+                          topIn.ResNameNumAtomNameNum(*bnd).c_str());
       }
     }
   } else {
@@ -245,7 +255,8 @@ int Exec_Change::RemoveBonds(Topology& topIn, ArgList& argIn) const {
       for (AtomMask::const_iterator atm2 = mask2.begin(); atm2 != mask2.end(); ++atm2) {
         int ret = topIn.RemoveBond(*atm1, *atm2);
         if (ret == 0)
-          mprintf("\t\t%s to %s\n", atmStr.c_str(), topIn.ResNameNumAtomNameNum(*atm2).c_str());
+          outfile->Printf("%s%s to %s\n", prefix,atmStr.c_str(),
+                          topIn.ResNameNumAtomNameNum(*atm2).c_str());
       }
     }
   }
