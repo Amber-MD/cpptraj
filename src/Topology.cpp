@@ -169,6 +169,18 @@ std::string Topology::TruncResAtomNameNum(int atom) const {
   return TruncResAtomName(atom) + "_" + integerToString(atom+1);
 }
 
+/** Given an atom number, return a string containing the corresponding
+  * residue name and number, and atom name and number, all separated
+  * by spaces:
+  * "<resname> <resnum> <atom name> <atom num>
+  */
+std::string Topology::ResNameNumAtomNameNum(int atom) const {
+  if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
+  int res = atoms_[atom].ResNum();
+  return residues_[res].Name().Truncated() + " " + integerToString(res+1) + " " +
+         atoms_[atom].Name().Truncated() + " " + integerToString(atom+1);
+}
+
 // Topology::AtomMaskName()
 /** \return A string of format :r@a where r is atoms residue number and
   *         a is atoms name.
@@ -182,6 +194,10 @@ std::string Topology::AtomMaskName(int atom) const {
   return maskName;
 }
 
+/** Given an atom number, return a string containing atom name and
+  * number with format:
+  * "<atomname>_<atomnum>"
+  */
 std::string Topology::TruncAtomNameNum(int atom) const {
   if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
   std::string atom_name = atoms_[atom].Name().Truncated();
