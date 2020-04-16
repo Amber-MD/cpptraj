@@ -16,5 +16,6 @@ class Exec_Change : public Exec {
     static inline int Setup1atomMask(AtomMask&, Topology const&, std::string const&);
     static inline int FindBondTypeIdx(Topology const&, BondArray const&, TypeNameHolder const&);
     int AddBond(Topology&, ArgList&) const;
+    int RemoveBonds(Topology&, ArgList&) const;
 };
 #endif
