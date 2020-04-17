@@ -108,6 +108,7 @@ int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   if ( mask.None() )
     mprinterr("\tSelection is empty.\n");
   else {
+    mprintf("%i atoms selected.\n", mask.Nselected());
     int width = DigitWidth(parm_->Natom());
     if (width < 5) width = 5;
     int nWidth = maxAtomNamesWidth(mask);
@@ -161,6 +162,7 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
     mprinterr("\tSelection is empty.\n");
   else {
     std::vector<int> resNums = parm_->ResnumsSelectedBy(mask);
+    mprintf("%zu residues selected.\n", resNums.size());
     int rn_width = maxResNameWidth( resNums );
 
     int awidth = std::max(5, DigitWidth(parm_->Natom()));
@@ -266,6 +268,7 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
       mprintf("\tSelection is empty.\n");
     else {
       std::vector<int> molNums = parm_->MolnumsSelectedBy( mask );
+      mprintf("%zu molecules.\n", molNums.size());
       int mn_width = maxMolNameWidth( molNums );
       int awidth = std::max(5, DigitWidth(parm_->Natom()));
       int rwidth = std::max(5, DigitWidth(parm_->Nres()));
