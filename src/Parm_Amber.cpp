@@ -745,13 +745,22 @@ int Parm_Amber::ReadResidueNames(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadResidueAtomNums()
 int Parm_Amber::ReadResidueAtomNums(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_RESNUMS, values_[NRES], FMT)) return 1;
-  for (int idx = 0; idx != values_[NRES]; idx++) {
-    int atnum = atoi(file_.NextElement()) - 1;
-    TopIn.SetRes(idx).SetFirstAtom( atnum );
-    if (idx > 0) TopIn.SetRes(idx-1).SetLastAtom( atnum );
-    TopIn.SetRes(idx).SetOriginalNum( idx+1 );
+  // Each entry in the array is the start atom (indexed from 1) for
+  // the corresponding residue. Do all but the final residue.
+  int numRes = values_[NRES];
+  int firstAtom = atoi(file_.NextElement()) - 1;
+  for (int idx = 1; idx < numRes; idx++) {
+    Residue& currentRes = TopIn.SetRes(idx-1);
+    int lastAtom = atoi(file_.NextElement()) - 1;
+    currentRes.SetFirstAtom( firstAtom );
+    currentRes.SetLastAtom( lastAtom );
+    currentRes.SetOriginalNum( idx );
+    firstAtom = lastAtom;
   }
-  TopIn.SetRes( values_[NRES]-1 ).SetLastAtom( values_[NATOM] );
+  // Do the final residue
+  TopIn.SetRes(numRes-1).SetFirstAtom( firstAtom );
+  TopIn.SetRes(numRes-1).SetLastAtom( values_[NATOM] );
+  TopIn.SetRes(numRes-1).SetOriginalNum( numRes );
   return 0;
 }
 
