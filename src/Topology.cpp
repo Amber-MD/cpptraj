@@ -303,9 +303,6 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
        ( residues_.back().OriginalResNum() == resIn.OriginalResNum() &&
          residues_.back().Name() != resIn.Name() ) )
   {
-    // Last atom of old residue is == current # atoms.
-    if (!residues_.empty())
-      residues_.back().SetLastAtom( atoms_.size() );
     // First atom of new residue is == current # atoms.
     residues_.push_back( resIn );
     residues_.back().SetFirstAtom( atoms_.size() );
