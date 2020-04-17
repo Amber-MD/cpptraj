@@ -1008,47 +1008,48 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     return 1;
   }
 
-  // Try to assign new coords
-  if (AssignCoordsBySearch(newTop, newFrame, CAtop, CAframe, Gaps, CAmissing)) {
-    mprinterr("Error: Could not assign coords by search.\n");
-    return 1;
-  }
+  if (optimize_) {
+    // Try to assign new coords
+    if (AssignCoordsBySearch(newTop, newFrame, CAtop, CAframe, Gaps, CAmissing)) {
+      mprinterr("Error: Could not assign coords by search.\n");
+      return 1;
+    }
 
-  // Minimize
-  if (Minimize(CAtop, CAframe, CAmissing)) {
-    mprinterr("Error: Minimization of CA atoms failed.\n");
-    return 1;
-  }
+    // Minimize
+    if (Minimize(CAtop, CAframe, CAmissing)) {
+      mprinterr("Error: Minimization of CA atoms failed.\n");
+      return 1;
+    }
 
-  // Transfer CA coords to newFrame
-  for (int idx = 0; idx != CAtop.Nres(); idx++)
-  {
-    if (CAmissing.AtomInCharMask(idx)) {
-      Residue const& cares = CAtop.Res(idx);
-      // Select CA in newTop
-      std::string maskStr0("::" + std::string(1,cares.ChainID()) + "&:;" +
-                           integerToString(cares.OriginalResNum()) + "&@CA");
-      AtomMask mask0;
-      if (mask0.SetMaskString(maskStr0)) {
-        mprinterr("Internal Error: Invalid mask string when trying to map CA back to new topology: %s\n",
-                  maskStr0.c_str());
-        return 1;
+    // Transfer CA coords to newFrame
+    for (int idx = 0; idx != CAtop.Nres(); idx++)
+    {
+      if (CAmissing.AtomInCharMask(idx)) {
+        Residue const& cares = CAtop.Res(idx);
+        // Select CA in newTop
+        std::string maskStr0("::" + std::string(1,cares.ChainID()) + "&:;" +
+                             integerToString(cares.OriginalResNum()) + "&@CA");
+        AtomMask mask0;
+        if (mask0.SetMaskString(maskStr0)) {
+          mprinterr("Internal Error: Invalid mask string when trying to map CA back to new topology: %s\n",
+                    maskStr0.c_str());
+          return 1;
+        }
+        if (newTop.SetupIntegerMask(mask0)) return 1;
+        if (mask0.Nselected() != 1) {
+          mprinterr("Internal Error: When trying to find CA %i in new topology, expected 1 atom, got %i\n",
+                    idx + 1, mask0.Nselected());
+          return 1;
+        }
+        mprintf("DEBUG: CA idx %i [%s] newTop atom# %i\n", idx+1, maskStr0.c_str(), mask0[0]+1);
+        double* Xptr = newFrame.xAddress() + (3*mask0[0]);
+        const double* XYZ = CAframe.XYZ(idx);
+        Xptr[0] = XYZ[0];
+        Xptr[1] = XYZ[1];
+        Xptr[2] = XYZ[2];
       }
-      if (newTop.SetupIntegerMask(mask0)) return 1;
-      if (mask0.Nselected() != 1) {
-        mprinterr("Internal Error: When trying to find CA %i in new topology, expected 1 atom, got %i\n",
-                  idx + 1, mask0.Nselected());
-        return 1;
-      }
-      mprintf("DEBUG: CA idx %i [%s] newTop atom# %i\n", idx+1, maskStr0.c_str(), mask0[0]+1);
-      double* Xptr = newFrame.xAddress() + (3*mask0[0]);
-      const double* XYZ = CAframe.XYZ(idx);
-      Xptr[0] = XYZ[0];
-      Xptr[1] = XYZ[1];
-      Xptr[2] = XYZ[2];
     }
   }
-
   // Set output coords
   dataOut->CoordsSetup( newTop, CoordinateInfo() );
   dataOut->AddFrame( newFrame );
@@ -1061,7 +1062,7 @@ void Exec_AddMissingRes::Help() const
 {
   mprintf("\tpdbname <pdbname> name <setname> [out <filename>]\n"
           "\t[parmargs <parm args>] [trajargs <trajin args>]\n"
-          "\t[pdbout <pdb>] [nminsteps <nmin>]\n");
+          "\t[pdbout <pdb>] [nminsteps <nmin>] [noopt]\n");
 }
 
 // Exec_AddMissingRes::Execute()
@@ -1083,6 +1084,11 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tOutput file: %s\n", outfile->Filename().full());
   nMinSteps_ = argIn.getKeyInt("nminsteps", 1000);
   mprintf("\t# minimization steps: %i\n", nMinSteps_);
+  optimize_ = !argIn.hasKey("noopt");
+  if (optimize_)
+    mprintf("\tWill attempt to optimize missing coordinates.\n");
+  else
+    mprintf("\tWill not attempt to optimize missing coordinates.\n");
   // Arg lists
   ArgList parmArgs;
   std::string parmArgStr = argIn.GetStringKey("parmargs");

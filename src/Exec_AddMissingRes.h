@@ -7,7 +7,7 @@ class DataSet_Coords_CRD;
 /// Attempt to add missing residues in a PDB 
 class Exec_AddMissingRes : public Exec {
   public:
-    Exec_AddMissingRes() : Exec(GENERAL) {}
+    Exec_AddMissingRes() : Exec(GENERAL), debug_(0), nMinSteps_(0), optimize_(true) {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_AddMissingRes(); }
     RetType Execute(CpptrajState&, ArgList&);
@@ -34,6 +34,7 @@ class Exec_AddMissingRes : public Exec {
 
     int debug_;
     int nMinSteps_; ///< Number of minimization steps.
+    bool optimize_; ///< if true, try to optimize coordinates.
 };
 
 // ----- Gap class -------------------------------------------------------------
