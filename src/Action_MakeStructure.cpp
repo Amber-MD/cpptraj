@@ -55,7 +55,7 @@ void Action_MakeStructure::Help() const {
           "\t5) '<custom dih name>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]'\n"
           "\t  Apply <angle> to dihedral defined by atoms <at1>, <at2>, <at3>, and <at4>.\n");
   DihedralSearch::OffsetHelp();
-  mprintf("\t6) 'ref:<range>:<refname>[:<ref range>[:<dih types>]]'\n"
+  mprintf("\t6) 'ref:<range>:<refname>[:<ref range>[:<dih types>]] [refvalsout <file>]'\n"
           "\t  Apply dihedrals from reference <refname> to residues in range <range>.\n"
           "\t  If <ref range> is specified, use those residues from reference. The\n"
           "\t  dihedral types to be used can be specified in a comma-separated list;\n"
@@ -70,6 +70,9 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
 {
   debug_ = debugIn;
   secstruct_.clear();
+  CpptrajFile* refvalsout = init.DFL().AddCpptrajFile( actionArgs.GetStringKey("refvalsout"),
+                                                       "Ref dihedral types/values",
+                                                       DataFileList::TEXT );
   // Get all arguments 
   std::string ss_expr = actionArgs.GetStringNext();
   while ( !ss_expr.empty() ) {
@@ -152,6 +155,9 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
         if (debug_ > 0)
           mprintf("\t    Res %i %s = %g\n", dih->ResNum()+1, dih->Name().c_str(),
                   torsion*Constants::RADDEG);
+        if (refvalsout != 0)
+          refvalsout->Printf("Res %i %s = %g\n", dih->ResNum()+1, dih->Name().c_str(),
+                             torsion*Constants::RADDEG);
       }
       secstruct_.push_back( ss_holder );
 
