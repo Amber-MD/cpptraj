@@ -46,8 +46,11 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
     parm = cset->TopPtr();
-  } else
+    mprintf("\tUsing topology from COORDS set '%s'\n", cset->legend());
+  } else {
     parm = State.DSL().GetTopology( argIn );
+    mprintf("\tUsing topology: %s\n", parm->c_str());
+  }
   if (parm == 0) return CpptrajState::ERR;
   int err = 0;
   switch (type) {
