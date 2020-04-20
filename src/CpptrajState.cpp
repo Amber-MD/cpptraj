@@ -346,14 +346,17 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
     mprinterr("Error: No data set(s) specified for removal.\n");
     return 1;
   }
-  DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
-  if (!tempDSL.empty()) {
-    for (DataSetList::const_iterator ds = tempDSL.begin();
-                                     ds != tempDSL.end(); ++ds)
-    {
-      mprintf("\tRemoving \"%s\"\n", (*ds)->legend());
-      RemoveDataSet( *ds );
+  while (!removeArg.empty()) {
+    DataSetList tempDSL = DSL_.GetMultipleSets( removeArg );
+    if (!tempDSL.empty()) {
+      for (DataSetList::const_iterator ds = tempDSL.begin();
+                                       ds != tempDSL.end(); ++ds)
+      {
+        mprintf("\tRemoving \"%s\"\n", (*ds)->legend());
+        RemoveDataSet( *ds );
+      }
     }
+    removeArg = argIn.GetStringNext();
   }
   return 0;
 }
