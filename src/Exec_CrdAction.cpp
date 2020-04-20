@@ -29,8 +29,12 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   Frame originalFrame = CRD->AllocateFrame();
   // Set up for this topology 
   Action::RetType setup_ret = act->Setup( originalSetup );
-  if ( setup_ret == Action::ERR || setup_ret == Action::SKIP )
+  if ( setup_ret == Action::ERR )
     return CpptrajState::ERR;
+  else if ( setup_ret == Action::SKIP ) {
+    mprintf("Warning: Action was skipped.\n");
+    return CpptrajState::OK;
+  }
   // If the topology was modified, we will need a new COORDS set.
   DataSet_Coords* crdOut = 0;
   if ( setup_ret == Action::MODIFY_TOPOLOGY ) {
