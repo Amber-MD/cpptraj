@@ -8,12 +8,14 @@
 #include "DataSet_Mesh.h"
 #include "StringRoutines.h"
 
+// Exec_DataSetCmd::Help()
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
-          "\t dim|outformat|invert|mode|type} <options>\n");
+          "\t dim|outformat|invert|shift|mode|type} <options>\n");
   mprintf("  Type 'help dataset <cmd>' for detailed subcommand help.\n");
 }
 
+// Exec_DataSetCmd::Help()
 void Exec_DataSetCmd::Help(ArgList& argIn) const {
   if (argIn.hasKey("legend")) {
     mprintf("  legend <legend> <set>\n"
@@ -51,6 +53,8 @@ void Exec_DataSetCmd::Help(ArgList& argIn) const {
             "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
   } else if (argIn.hasKey("invert")) {
     Help_InvertSets();
+  } else if (argIn.hasKey("shift")) {
+    Help_Shift();
   } else if (argIn.hasKey("mode")) {
     mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
     mprintf("      <mode>: ");
@@ -111,7 +115,10 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   } else if (argIn.hasKey("invert")) {     // Invert set(s) X/Y, create new sets
     err = InvertSets(State, argIn);
   // ---------------------------------------------
-  } else {                                // Default: change mode/type for one or more sets.
+  } else if (argIn.hasKey("shift")) {      // Shift data in set(s) that match criteria by offset
+    err = ShiftData(State, argIn);
+  // ---------------------------------------------
+  } else {                                 // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
   }
   return err;
@@ -937,6 +944,62 @@ Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
       double dval = INP.Dval( idx );
       output_sets[idx]->Add( jdx, &dval );
     }
+  }
+
+  return CpptrajState::OK;
+}
+
+// Exec_DataSetCmd::Help_Shift()
+void Exec_DataSetCmd::Help_Shift() {
+  mprintf("  shift [above <value> by <offset>] [below <value> by <offset>] ... <set arg0> ...\n"
+          "    Shift the values in given set(s) by an offset if the points meet\n"
+          "    certain criteria.\n");
+}
+
+/** Apply an offset to data elements when a certain criterion is met. */
+Exec::RetType Exec_DataSetCmd::ShiftData(CpptrajState& State, ArgList& argIn) {
+  std::vector<SelectType> criteria;
+  std::vector<double> vals;
+  std::vector<double> offsets;
+  if (argIn.Contains("below")) {
+    criteria.push_back(LESS_THAN);
+    vals.push_back( argIn.getKeyDouble("below", 0) );
+    if (!argIn.Contains("by")) {
+      mprinterr("Error: 'by <offset>' argument missing for 'below'\n");
+      return CpptrajState::ERR;
+    }
+    offsets.push_back( argIn.getKeyDouble("by", 0) );
+  }
+  if (argIn.Contains("above")) {
+    criteria.push_back(GREATER_THAN);
+    vals.push_back( argIn.getKeyDouble("above", 0) );
+    if (!argIn.Contains("by")) {
+      mprinterr("Error: 'by <offset>' argument missing for 'above'\n");
+      return CpptrajState::ERR;
+    }
+    offsets.push_back( argIn.getKeyDouble("by", 0) );
+  }
+  if (criteria.empty()) {
+    mprinterr("Error: shift requires 'below <value> by <offset>' or 'above <value> by <offset>\n");
+    return CpptrajState::ERR;
+  }
+  // Sanity checks
+  if (criteria.size() != vals.size()) {
+    mprinterr("Error: Missing values for above/below; have %zu, expected %zu.\n",
+              vals.size(), criteria.size());
+    return CpptrajState::ERR;
+  }
+  if (criteria.size() != offsets.size()) {
+    mprinterr("Error: Missing offsets for above/below; have %zu, expected %zu.\n",
+              offsets.size(), criteria.size());
+    return CpptrajState::ERR;
+  }
+  for (unsigned int idx = 0; idx < criteria.size(); idx++)
+  {
+    if (criteria[idx] == LESS_THAN)
+      mprintf("\tValues below %g will be shifted by %g\n", vals[idx], offsets[idx]);
+    else if (criteria[idx] == GREATER_THAN)
+      mprintf("\tValues above %g will be shifted by %g\n", vals[idx], offsets[idx]);
   }
 
   return CpptrajState::OK;
