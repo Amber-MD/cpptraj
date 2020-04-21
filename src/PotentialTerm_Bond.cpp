@@ -14,6 +14,53 @@ int PotentialTerm_Bond::SetupTerm(Topology const& topIn, CharMask const& maskIn)
       activeBonds_.push_back( *bnd );
     }
   }
+  bondParm_ = &(topIn.BondParm());
 
   return 0;
+}
+
+void PotentialTerm_Bond::CalcForce(Frame& frameIn, CharMask const& maskIn) const {
+  double E_bond = 0.0;
+  for (BondArray::const_iterator bnd = activeBonds_.begin(); bnd != activeBonds_.end(); ++bnd)
+  {
+    BondParmType BP = (*bondParm_)[ bnd->Idx() ];
+    //Vec3 const& XYZ0 = Xarray[ bnd->A1() ];
+    //Vec3 const& XYZ1 = Xarray[ bnd->A2() ];
+    const double* XYZ0 = frameIn.XYZ( bnd->A1() );
+    const double* XYZ1 = frameIn.XYZ( bnd->A2() );
+    double rx = XYZ0[0] - XYZ1[0];
+    double ry = XYZ0[1] - XYZ1[1];
+    double rz = XYZ0[2] - XYZ1[2];
+    double r2 = rx*rx + ry*ry + rz*rz;
+    if (r2 > 0.0) {
+      double r2inv = 1.0/r2;
+      double r = sqrt(r2);
+      //mprintf("DBG: %i A1=%i A2=%i R=%g\n", iteration, bnd->A1()+1, bnd->A2()+1, r);
+      double rinv = r * r2inv;
+
+      double db = r - BP.Req();
+      double df = BP.Rk() * db;
+      double e = df * db;
+      E_bond += e;
+
+      df *= 2.0 * rinv;
+
+      double dfx = df * rx;
+      double dfy = df * ry;
+      double dfz = df * rz;
+
+      if (maskIn.AtomInCharMask(bnd->A1())) {
+        double* fxyz = frameIn.fAddress() + (3*bnd->A1());
+        fxyz[0] -= dfx;
+        fxyz[1] -= dfy;
+        fxyz[2] -= dfz;
+      }
+     if (maskIn.AtomInCharMask(bnd->A2())) {
+        double* fxyz = frameIn.fAddress() + (3*bnd->A2());
+        fxyz[0] += dfx;
+        fxyz[1] += dfy;
+        fxyz[2] += dfz;
+      }
+    }
+  }
 }

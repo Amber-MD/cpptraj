@@ -12,7 +12,7 @@ class PotentialTerm {
     PotentialTerm(Type t) : type_(t) {}
 
     virtual int SetupTerm(Topology const&, CharMask const&) = 0;
-    virtual void CalcForce(Frame&) const = 0;
+    virtual void CalcForce(Frame&, CharMask const&) const = 0;
 
   private:
     Type type_;
