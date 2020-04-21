@@ -1022,12 +1022,12 @@ Exec::RetType Exec_DataSetCmd::ShiftData(CpptrajState& State, ArgList& argIn) {
         mprintf("Warning: Set '%s' is not scalar 1D, skipping.\n", (*ds)->legend());
       } else {
         DataSet_1D& set = static_cast<DataSet_1D&>( *(*ds) );
-        mprintf("\t%s\n", set.legend());
+        mprintf("\tModifying set: %s\n", set.legend());
         // Check value against all criteria, modify by offset if necessary
         for (unsigned int idx = 0; idx < set.Size(); idx++)
         {
           double dval = set.Dval(idx);
-          mprintf("DBG: %u %g", idx, dval);
+          //mprintf("DBG: %u %g", idx, dval);
           for (unsigned int ii = 0; ii < criteria.size(); ii++)
           {
             if (criteria[ii] == LESS_THAN && dval < vals[ii])
@@ -1035,7 +1035,7 @@ Exec::RetType Exec_DataSetCmd::ShiftData(CpptrajState& State, ArgList& argIn) {
             else if (criteria[ii] == GREATER_THAN && dval > vals[ii])
               dval += offsets[ii];
           }
-          mprintf(" %g\n", dval);
+          //mprintf(" %g\n", dval);
           set.SetY( idx, dval );
         } // END loop over set values
         modifiedSets_.push_back( *ds );
