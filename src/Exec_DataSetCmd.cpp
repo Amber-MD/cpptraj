@@ -958,7 +958,7 @@ Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
 
 // Exec_DataSetCmd::Help_Shift()
 void Exec_DataSetCmd::Help_Shift() {
-  mprintf("  shift [above <value> by <offset>] [below <value> by <offset>] ... <set arg0> ...\n"
+  mprintf("  shift [above <value> by <offset>] [below <value> by <offset>] <set arg0> ...\n"
           "    Shift the values in given set(s) by an offset if the points meet\n"
           "    certain criteria.\n");
 }
