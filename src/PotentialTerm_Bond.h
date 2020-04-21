@@ -7,7 +7,7 @@ class PotentialTerm_Bond : public PotentialTerm {
   public:
     PotentialTerm_Bond() : PotentialTerm(BOND) {}
 
-    int SetupTerm(Topology const&, AtomMask const&);
+    int SetupTerm(Topology const&, CharMask const&);
     void CalcForce(Frame&) const;
   private:
     BondArray activeBonds_;
