@@ -74,6 +74,7 @@ void Exec_DataSetCmd::Help(ArgList& argIn) const {
 
 // Exec_DataSetCmd::Execute()
 Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
+  modifiedSets_.clear();
   RetType err = CpptrajState::OK;
   if (argIn.Contains("legend")) {         // Set legend for one data set
     std::string legend = argIn.GetStringKey("legend");
@@ -120,6 +121,11 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   // ---------------------------------------------
   } else {                                  // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
+  }
+  // If any sets were modified, write out data again.
+  if (err == CpptrajState::OK && !modifiedSets_.empty()) {
+    State.DFL().ResetWriteStatIfContain( modifiedSets_ );
+    State.DFL().WriteAllDF();
   }
   return err;
 }
@@ -1032,6 +1038,7 @@ Exec::RetType Exec_DataSetCmd::ShiftData(CpptrajState& State, ArgList& argIn) {
           mprintf(" %g\n", dval);
           set.SetY( idx, dval );
         } // END loop over set values
+        modifiedSets_.push_back( *ds );
       }
     } // END loop over sets
     ds_arg = argIn.GetStringNext();
