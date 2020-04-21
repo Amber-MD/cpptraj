@@ -82,43 +82,43 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
     mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
   // ---------------------------------------------
-  } else if (argIn.hasKey("outformat")) { // Change double precision set output format
+  } else if (argIn.hasKey("outformat")) {   // Change double precision set output format
     err = ChangeOutputFormat(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("remove")) {    // Remove data sets by various criteria
+  } else if (argIn.hasKey("remove")) {      // Remove data sets by various criteria
     err = Remove(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("makexy")) {    // Combine values from two sets into 1
+  } else if (argIn.hasKey("makexy")) {      // Combine values from two sets into 1
     err = MakeXY(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("make2d")) {    // Create 2D matrix from 1D set
+  } else if (argIn.hasKey("make2d")) {      // Create 2D matrix from 1D set
     err = Make2D(State, argIn);
   // ---------------------------------------------
   } else if (argIn.hasKey("vectorcoord")) { // Extract vector X/Y/Z coord as new set
     err = VectorCoord(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("filter")) {    // Filter points in data set to make new data set
+  } else if (argIn.hasKey("filter")) {      // Filter points in data set to make new data set
     err = Filter(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("cat")) {       // Concatenate two or more data sets
+  } else if (argIn.hasKey("cat")) {         // Concatenate two or more data sets
     err = Concatenate(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("droppoints")) { // Drop points from set
+  } else if (argIn.hasKey("droppoints")) {  // Drop points from set
     err = ModifyPoints(State, argIn, true);
   // ---------------------------------------------
-  } else if (argIn.hasKey("keeppoints")) { // Keep points in set
+  } else if (argIn.hasKey("keeppoints")) {  // Keep points in set
     err = ModifyPoints(State, argIn, false);
   // ---------------------------------------------
-  } else if (argIn.hasKey("dim")) {        // Modify dimension of set(s)
+  } else if (argIn.hasKey("dim")) {         // Modify dimension of set(s)
     err = ChangeDim(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("invert")) {     // Invert set(s) X/Y, create new sets
+  } else if (argIn.hasKey("invert")) {      // Invert set(s) X/Y, create new sets
     err = InvertSets(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("shift")) {      // Shift data in set(s) that match criteria by offset
+  } else if (argIn.hasKey("shift")) {       // Shift data in set(s) that match criteria by offset
     err = ShiftData(State, argIn);
   // ---------------------------------------------
-  } else {                                 // Default: change mode/type for one or more sets.
+  } else {                                  // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
   }
   return err;
@@ -847,6 +847,7 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
   return CpptrajState::OK;
 }
 
+// Exec_DataSetCmd::Help_InvertSets()
 void Exec_DataSetCmd::Help_InvertSets() {
   mprintf("  invert <set arg0> ... name <new name> [legendset <set>]\n"
           "    Given M input sets of length N, create N new sets of length M by\n"
@@ -994,13 +995,47 @@ Exec::RetType Exec_DataSetCmd::ShiftData(CpptrajState& State, ArgList& argIn) {
               offsets.size(), criteria.size());
     return CpptrajState::ERR;
   }
-  for (unsigned int idx = 0; idx < criteria.size(); idx++)
+  for (unsigned int ii = 0; ii < criteria.size(); ii++)
   {
-    if (criteria[idx] == LESS_THAN)
-      mprintf("\tValues below %g will be shifted by %g\n", vals[idx], offsets[idx]);
-    else if (criteria[idx] == GREATER_THAN)
-      mprintf("\tValues above %g will be shifted by %g\n", vals[idx], offsets[idx]);
+    if (criteria[ii] == LESS_THAN)
+      mprintf("\tValues below %g will be shifted by %g\n", vals[ii], offsets[ii]);
+    else if (criteria[ii] == GREATER_THAN)
+      mprintf("\tValues above %g will be shifted by %g\n", vals[ii], offsets[ii]);
   }
+  // Loop over all DataSet arguments 
+  std::string ds_arg = argIn.GetStringNext();
+  if (ds_arg.empty()) {
+    mprinterr("Error: No sets specfied.\n");
+    return CpptrajState::ERR;
+  }
+  while (!ds_arg.empty()) {
+    DataSetList dsl = State.DSL().GetMultipleSets( ds_arg );
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+    {
+      if ((*ds)->Group() != DataSet::SCALAR_1D) {
+        mprintf("Warning: Set '%s' is not scalar 1D, skipping.\n", (*ds)->legend());
+      } else {
+        DataSet_1D& set = static_cast<DataSet_1D&>( *(*ds) );
+        mprintf("\t%s\n", set.legend());
+        // Check value against all criteria, modify by offset if necessary
+        for (unsigned int idx = 0; idx < set.Size(); idx++)
+        {
+          double dval = set.Dval(idx);
+          mprintf("DBG: %u %g", idx, dval);
+          for (unsigned int ii = 0; ii < criteria.size(); ii++)
+          {
+            if (criteria[ii] == LESS_THAN && dval < vals[ii])
+              dval += offsets[ii];
+            else if (criteria[ii] == GREATER_THAN && dval > vals[ii])
+              dval += offsets[ii];
+          }
+          mprintf(" %g\n", dval);
+          set.SetY( idx, dval );
+        } // END loop over set values
+      }
+    } // END loop over sets
+    ds_arg = argIn.GetStringNext();
+  } // END loop over data set args
 
   return CpptrajState::OK;
 }
