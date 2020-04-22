@@ -51,15 +51,18 @@ static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const
     mprintf("\tOutput to '%s'\n", outfile->Filename().full());
     err = info.SetupTopInfo( outfile, parm, REF.RefPtr() );
   }
+  if (argIn.hasKey("nointrares"))
+    info.SetNoIntraRes(true);
   return err;
 }
 
 // -----------------------------------------------------------------------------
 void Exec_BondInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>] [nointrares]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print bond info for all\n"
           "  atoms in <mask1>, or print info for bonds with first atom in <mask1> and\n"
-          "  second atom in <mask2>.\n");
+          "  second atom in <mask2>. If 'nointrares' is specified, only print bonds\n"
+          "  that are between residues.\n");
 }
 
 Exec::RetType Exec_BondInfo::Execute(CpptrajState& State, ArgList& argIn) {

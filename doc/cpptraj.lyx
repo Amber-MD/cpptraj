@@ -11368,7 +11368,11 @@ bondinfo | bonds | printbonds
 \end_layout
 
 \begin_layout LyX-Code
-bondinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2>] [out <file>]
+bondinfo [parm <name> | parmindex <#> | <#>] 
+\end_layout
+
+\begin_layout LyX-Code
+         [<mask1>] [<mask2>] [out <file>] [nointrares]
 \end_layout
 
 \begin_deeper
@@ -11415,6 +11419,10 @@ parmindex
 \end_inset
 
 <file>] File to print to (default STDOUT).
+\end_layout
+
+\begin_layout Description
+[nointrares] Do not print intra-residue bonds.
 \end_layout
 
 \end_deeper
@@ -11486,7 +11494,11 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      addbond <mask1> <mask2> [req <length> <rk> <force constant>] }
+      addbond <mask1> <mask2> [req <length> <rk> <force constant>]
+\end_layout
+
+\begin_layout LyX-Code
+      removebonds <mask1> [<mask2>] [out <file>] }
 \end_layout
 
 \begin_deeper
@@ -11626,6 +11638,31 @@ addbond
 \end_inset
 
 constant>] The bond force constant in kcal/mol*Angstrom.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+removebonds
+\begin_inset space ~
+\end_inset
+
+<mask1>
+\begin_inset space ~
+\end_inset
+
+[<mask2>] Remove bonds from atoms in <mask1>.
+ If <mask2> also given, remove bonds between atoms in <mask1> and atoms
+ in <mask2>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] If specified, write removed bonds to <file> with format '<residue
+ name> <residue num> <atom name> <atom num>'.
 \end_layout
 
 \end_deeper
@@ -26990,7 +27027,7 @@ ref:<range>:<refname>[:<ref
 \begin_inset space ~
 \end_inset
 
-range>[:<dih types>]]
+range>[:<dih types>]] [refvalsout <file>] [founddihout <file>]
 \end_layout
 
 \begin_layout Standard
@@ -27003,6 +27040,8 @@ Apply dihedrals from residues <ref_range> in previously loaded reference
 \series default
  above) can be specified in a comma-separated list; default is phi/psi.
  Note that in order to specify <dih types>, <ref range> must be specified.
+ The 'refvalsout' and 'founddihout' keywords can be used to print dihedrals
+ found in the reference and target structures respectively to files.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -31834,7 +31873,7 @@ secstruct
 \end_layout
 
 \begin_layout LyX-Code
-          [namec <C name>] [nameo <O name>]
+          [namec <C name>] [nameo <O name>] [namesg <sulfur name>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -31945,6 +31984,19 @@ name>] Backbone carbonyl carbon atom name (default 'C').
 \end_inset
 
 name>] Backbone carbonyl oxygen atom name (default 'O').
+\end_layout
+
+\begin_layout Description
+[namesg
+\begin_inset space ~
+\end_inset
+
+<SG
+\begin_inset space ~
+\end_inset
+
+name>] Cysteine sulfur atom name, used to ignore disulfide connectivity
+ (default 'SG').
 \end_layout
 
 \begin_layout Standard
@@ -32105,6 +32157,25 @@ nameX
 cpptraj
 \shape default
  will print an informational message but the calculation will proceed normally.
+ If a residue has no atoms selected it will be skipped.
+ When determining residue connecivity, disulfide bonds will be ignored;
+ 
+\emph on
+cpptraj
+\emph default
+ identifies such bonds based on the 
+\series bold
+namesg
+\series default
+ atom name (default 
+\begin_inset Quotes eld
+\end_inset
+
+SG
+\begin_inset Quotes erd
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard

@@ -77,6 +77,7 @@ class Topology {
     void AddBond(int, int, int);
     void AddBond(BondType const&, bool);
     void AddBond(int, int, BondParmType const&);
+    int RemoveBond(int, int);
     void AssignBondParams(ParmHolder<BondParmType> const&);
     // ----- Angle-specific routines -------------
     size_t Nangles()                           const { return angles_.size()+anglesh_.size(); }
@@ -129,8 +130,10 @@ class Topology {
     std::string TruncResAtomName(int) const;
     /// Format: <res name>@<atom name>
     std::string TruncResNameAtomName(int) const;
-    /// Format:  <res name>_<res num>@<atom name>_<atom num>
+    /// Format: <res name>_<res num>@<atom name>_<atom num>
     std::string TruncResAtomNameNum(int) const;
+    /// Format: <res name> <res num> <atom name> <atom num>
+    std::string ResNameNumAtomNameNum(int) const;
     /// Format: :<res num>@<atom name>
     std::string AtomMaskName(int) const;
     /// Format: <atom name>_<atom num>

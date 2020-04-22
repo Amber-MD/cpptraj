@@ -85,6 +85,7 @@ class Action_DSSP : public Action {
     NameType BB_C_;        ///< Protein C atom name ('C')
     NameType BB_O_;        ///< Protein C-O atom name ('O')
     NameType BB_CA_;       ///< Protein alpha C name ('CA')
+    NameType SG_;          ///< Protein cysteine sulfur name for detecting disulfides
     CharMask Mask_;        ///< Mask used to determine selected residues.
     DataFile* outfile_;          ///< Output Data file
     DataFile* dsspFile_;         ///< Sum output file
