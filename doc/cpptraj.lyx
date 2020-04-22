@@ -11486,7 +11486,11 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      addbond <mask1> <mask2> [req <length> <rk> <force constant>] }
+      addbond <mask1> <mask2> [req <length> <rk> <force constant>]
+\end_layout
+
+\begin_layout LyX-Code
+      removebonds <mask1> [<mask2>] }
 \end_layout
 
 \begin_deeper
@@ -11629,6 +11633,20 @@ constant>] The bond force constant in kcal/mol*Angstrom.
 \end_layout
 
 \end_deeper
+\begin_layout Description
+removebonds
+\begin_inset space ~
+\end_inset
+
+<mask1>
+\begin_inset space ~
+\end_inset
+
+[<mask2>] Remove bonds from atoms in <mask1>.
+ If <mask2> also given, remove bonds between atoms in <mask1> and atoms
+ in <mask2>.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Change specified parts of the specified topology.
