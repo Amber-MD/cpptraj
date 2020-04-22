@@ -32120,6 +32120,7 @@ nameX
 cpptraj
 \shape default
  will print an informational message but the calculation will proceed normally.
+ If a residue has no atoms selected it will be skipped.
  When determining residue connecivity, disulfide bonds will be ignored;
  
 \emph on
