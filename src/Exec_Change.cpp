@@ -11,7 +11,7 @@ void Exec_Change::Help() const
           "\t  chainid of <mask> to <value> |\n"
           "\t  atomname from <mask> to <value> |\n"
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
-          "\t  removebonds <mask1> [<mask2>] }\n"
+          "\t  removebonds <mask1> [<mask2>] [out <file>]}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
           DataSetList::TopArgs);
 }
