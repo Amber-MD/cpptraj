@@ -500,40 +500,54 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
     }
     // Determine if this residue is selected
     if (Mask_.AtomsInCharMask(thisRes.FirstAtom(), thisRes.LastAtom())) {
-      Res->SetSelected( true );
-      ++nResSelected;
       // Determine atom indices
+      bool hasAtoms = false;
       for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
       {
-        if      ( setup.Top()[at].Name() == BB_C_ )  Res->SetC( at*3 );
-        else if ( setup.Top()[at].Name() == BB_O_ )  Res->SetO( at*3 );
-        else if ( setup.Top()[at].Name() == BB_N_ )  Res->SetN( at*3 );
-        else if ( setup.Top()[at].Name() == BB_H_ )  Res->SetH( at*3 );
-        else if ( setup.Top()[at].Name() == BB_CA_ ) Res->SetCA( at*3 );
+        if      ( setup.Top()[at].Name() == BB_C_ )  { Res->SetC( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_O_ )  { Res->SetO( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_N_ )  { Res->SetN( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_H_ )  { Res->SetH( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_CA_ ) { Res->SetCA( at*3 ); hasAtoms = true; }
       }
-      // Check if residue is missing atoms
-      if (Res->IsMissingAtoms()) {
-        mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( *ridx ).c_str());
-        if (Res->C() == -1)  mprintf(" %s", *BB_C_);
-        if (Res->O() == -1)  mprintf(" %s", *BB_N_);
-        if (Res->N() == -1)  mprintf(" %s", *BB_O_);
-        if (Res->H() == -1)  mprintf(" %s", *BB_H_);
-        if (Res->CA() == -1) mprintf(" %s", *BB_CA_);
-        mprintf("\n");
-      }
-      // Set up DataSet if necessary
-      if (Res->Dset() == 0) {
-        md.SetIdx( *ridx+1 );
-        md.SetLegend( setup.Top().TruncResNameNum( *ridx ) );
-        // Setup DataSet for this residue
-        Res->SetDset( Init_.DSL().AddSet( dt, md ) );
-        if (Res->Dset() == 0) {
-          mprinterr("Error: Could not allocate DSSP data set for residue %i\n", *ridx+1);
-          return Action::ERR;
+      if (!hasAtoms) {
+        mprintf("Warning: No atoms selected for res %s; skipping.\n",
+                setup.Top().TruncResNameNum( *ridx ).c_str());
+      } else {
+        Res->SetSelected( true );
+        ++nResSelected;
+        for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
+        {
+          if      ( setup.Top()[at].Name() == BB_C_ )  Res->SetC( at*3 );
+          else if ( setup.Top()[at].Name() == BB_O_ )  Res->SetO( at*3 );
+          else if ( setup.Top()[at].Name() == BB_N_ )  Res->SetN( at*3 );
+          else if ( setup.Top()[at].Name() == BB_H_ )  Res->SetH( at*3 );
+          else if ( setup.Top()[at].Name() == BB_CA_ ) Res->SetCA( at*3 );
         }
-        if (outfile_ != 0) outfile_->AddDataSet( Res->Dset() );
+        // Check if residue is missing atoms
+        if (Res->IsMissingAtoms()) {
+          mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( *ridx ).c_str());
+          if (Res->C() == -1)  mprintf(" %s", *BB_C_);
+          if (Res->O() == -1)  mprintf(" %s", *BB_N_);
+          if (Res->N() == -1)  mprintf(" %s", *BB_O_);
+          if (Res->H() == -1)  mprintf(" %s", *BB_H_);
+          if (Res->CA() == -1) mprintf(" %s", *BB_CA_);
+          mprintf("\n");
+        }
+        // Set up DataSet if necessary
+        if (Res->Dset() == 0) {
+          md.SetIdx( *ridx+1 );
+          md.SetLegend( setup.Top().TruncResNameNum( *ridx ) );
+          // Setup DataSet for this residue
+          Res->SetDset( Init_.DSL().AddSet( dt, md ) );
+          if (Res->Dset() == 0) {
+            mprinterr("Error: Could not allocate DSSP data set for residue %i\n", *ridx+1);
+            return Action::ERR;
+          }
+          if (outfile_ != 0) outfile_->AddDataSet( Res->Dset() );
+        }
       }
-    } // END residue is selected
+    } // END residue is selected by Mask
   }
   mprintf("\t%u of %i solute residues selected.\n", nResSelected, soluteRes.Size());
 
