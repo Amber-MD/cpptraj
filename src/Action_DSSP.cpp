@@ -274,6 +274,7 @@ Action_DSSP::Action_DSSP() :
   BB_C_("C"),
   BB_O_("O"),
   BB_CA_("CA"),
+  SG_("SG"),
   outfile_(0),
   dsspFile_(0),
   assignout_(0),
@@ -288,8 +289,18 @@ void Action_DSSP::Help() const {
           "\t[betadetail]\n"
           "\t[namen <N name>] [nameh <H name>] [nameca <CA name>]\n"
           "\t[namec <C name>] [nameo <O name>]\n"
-          "  Calculate secondary structure content for residues in <mask>.\n"
-          "  If sumout not specified, the filename specified by out is used with .sum suffix.\n");
+          "  Calculate secondary structure (SS) content for residues in <mask>.\n"
+          "  The 'out' file will contain SS vs frame.\n"
+          "  The 'sumout' file will contain total SS content for each residue, by SS type.\n"
+          "   If sumout not specified, the filename specified by out is used with .sum suffix.\n"
+          "  The 'assignout' file will contain the SS assignment foe each residue based\n"
+          "   on the majority SS type.\n"
+          "  The 'totalout' file will contain overall SS content vs frame, by SS type.\n"
+          "  The 'ptrajformat' keyword will use characters instead of #s in the 'out' file.\n"
+          "  The 'betadetail' keyword will print parallel/anti-parallel beta instead of\n"
+          "   extended/bridge.\n"
+         );
+          
 }
 
 // Action_DSSP::Init()
@@ -450,9 +461,17 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
       int nextresnum = -1;
       for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++) {
         if ( setup.Top()[at].Element() != Atom::HYDROGEN ) {
+          bool isSGatom = (setup.Top()[at].Name() == SG_);
           for (Atom::bond_iterator ib = setup.Top()[at].bondbegin();
                                    ib != setup.Top()[at].bondend(); ++ib)
           {
+            // Do not follow disulfide bonds.
+            if (isSGatom && setup.Top()[*ib].Name() == SG_) {
+              mprintf("\tSkipping disulfide bond between %s and %s\n",
+                      setup.Top().TruncResNameNum(setup.Top()[at].ResNum()).c_str(),
+                      setup.Top().TruncResNameNum(setup.Top()[*ib].ResNum()).c_str());
+              continue;
+            }
             if ( setup.Top()[*ib].ResNum() < *ridx ) {
               if (prevresnum != -1)
                 mprintf("Warning: Multiple previous residues for res %i\n", *ridx+1);
