@@ -470,27 +470,30 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
           for (Atom::bond_iterator ib = setup.Top()[at].bondbegin();
                                    ib != setup.Top()[at].bondend(); ++ib)
           {
-            // Do not follow disulfide bonds.
-            if (isSGatom && setup.Top()[*ib].Name() == SG_) {
-              mprintf("\tSkipping disulfide bond between %s and %s\n",
-                      setup.Top().TruncResNameNum(setup.Top()[at].ResNum()).c_str(),
-                      setup.Top().TruncResNameNum(setup.Top()[*ib].ResNum()).c_str());
-              continue;
-            }
-            if ( setup.Top()[*ib].ResNum() < *ridx ) {
-              if (prevresnum != -1)
-                mprintf("Warning: Multiple previous residues for res %i\n", *ridx+1);
-              else
-                prevresnum = setup.Top()[*ib].ResNum();
-            } else if ( setup.Top()[*ib].ResNum() > *ridx ) {
-              if (nextresnum != -1)
-                mprintf("Warning: Multiple next residues for res %i\n", *ridx+1);
-              else
-                nextresnum = setup.Top()[*ib].ResNum();
-            }
-          }
-        }
-      }
+            // Skip the bonded atom if it is not in the mask
+            if (Mask_.AtomInCharMask(*ib)) {
+              // Do not follow disulfide bonds.
+              if (isSGatom && setup.Top()[*ib].Name() == SG_) {
+                mprintf("\tSkipping disulfide bond between %s and %s\n",
+                        setup.Top().TruncResNameNum(setup.Top()[at].ResNum()).c_str(),
+                        setup.Top().TruncResNameNum(setup.Top()[*ib].ResNum()).c_str());
+                continue;
+              }
+              if ( setup.Top()[*ib].ResNum() < *ridx ) {
+                if (prevresnum != -1)
+                  mprintf("Warning: Multiple previous residues for res %i\n", *ridx+1);
+                else
+                  prevresnum = setup.Top()[*ib].ResNum();
+              } else if ( setup.Top()[*ib].ResNum() > *ridx ) {
+                if (nextresnum != -1)
+                  mprintf("Warning: Multiple next residues for res %i\n", *ridx+1);
+                else
+                  nextresnum = setup.Top()[*ib].ResNum();
+              }
+            } // END if atom in mask
+          } // END loop over bonded atoms
+        } // END atom is not hydrogen
+      } // END loop over residue atoms
 #     ifdef DSSPDEBUG
       mprintf("\t %8i < %8i < %8i\n", prevresnum+1, *ridx+1, nextresnum+1);
 #     endif
