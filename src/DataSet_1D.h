@@ -20,6 +20,8 @@ class DataSet_1D : public DataSet {
     virtual double Xcrd(size_t) const = 0;
     /// \return Memory address at position cast to void *. TODO may not need this anymore.
     virtual const void* VoidPtr(size_t) const = 0;
+    /// Set Y value at given index
+    virtual void SetY(size_t, double) = 0;
     // -------------------------------------------
     /// \return Average over set Y values
     double Avg()           const { return Avg( 0 ); }
