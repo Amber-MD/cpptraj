@@ -7810,6 +7810,11 @@ dataset { legend <legend> <set> |
 \end_layout
 
 \begin_layout LyX-Code
+          shift [above <value> by <offset>] [below <value> by <offset>]
+ <set arg0> ...
+\end_layout
+
+\begin_layout LyX-Code
     	  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]
 \end_layout
 
@@ -8178,6 +8183,61 @@ name> Inverted output set name.
 \end_inset
 
 <set>] String data set containing legends
+\end_layout
+
+\end_deeper
+\begin_layout Description
+shift
+\begin_inset space ~
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[above
+\begin_inset space ~
+\end_inset
+
+<value>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<offset>] Values in set(s) above <value> will be shifted by <offset>.
+\end_layout
+
+\begin_layout Description
+[below
+\begin_inset space ~
+\end_inset
+
+<value>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<offset>] Values in set(s) below <value> will be shifted by <offset>.
+\end_layout
+
+\begin_layout Description
+<set
+\begin_inset space ~
+\end_inset
+
+arg0>
+\begin_inset space ~
+\end_inset
+
+...
+ Set(s) to shift.
 \end_layout
 
 \end_deeper
@@ -9217,6 +9277,25 @@ dataset dim xdim label Simulation min 1 step 1 Inverted*
 
 \begin_layout LyX-Code
 writedata statecount.agr Inverted* 
+\end_layout
+
+\begin_layout Standard
+The dataset shift command can be used for wrapping circular values, such
+ as torsions.
+ For example, to ensure a pucker has a range from 0 to 360 instead of -180
+ to 180:
+\end_layout
+
+\begin_layout LyX-Code
+pucker Furanoid @C2 @C3 @C4 @C5 @O2 cremer out CremerF.dat amplitude
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+dataset shift Furanoid below 0 by 360
 \end_layout
 
 \begin_layout Subsection
