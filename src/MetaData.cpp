@@ -7,7 +7,7 @@ const char* MetaData::Stypes[] = {
   // Torsions
   "alpha", "beta", "gamma", "delta", "epsilon", "zeta",
   "nu0",   "nu1",  "nu2",   "nu3",   "nu4",
-  "h1p",   "c2p",  "chin",  "phi",   "psi",     "psio", "chip", "omega",
+  "h1p",   "c2p",  "chin",  "phi",   "psi",     "chip", "omega",
   "chi2",  "chi3", "chi4",  "chi5",
   // Pucker
   "pucker",

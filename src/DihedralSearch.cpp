@@ -22,7 +22,6 @@ struct DihedralSearch::DIH_TYPE {
 const DihedralSearch::DIH_TYPE DihedralSearch::DIH[] = {
   { 2, -1, MetaData::PHI,     "C"  , "N"  , "CA" , "C"   }, // Protein PHI: C0-N1-CA1-C1
   { 2,  1, MetaData::PSI,     "N"  , "CA" , "C"  , "N"   }, // Protein PSI: N0-CA0-C0-N1
-  { 2,  0, MetaData::PSIO,    "N"  , "CA" , "C"  , "O"   }, // Protein PSI O: N-CA-C-O
   { 2,  0, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG"  }, // Protein CHI: R,N,D,Q,E,H,L,K,M,F,P,W,Y
   { 2,  0, MetaData::CHIP,    "N"  , "CA" , "CB" , "SG"  }, // Protein CHI: C
   { 2,  0, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG1" }, // Protein CHI: I,V

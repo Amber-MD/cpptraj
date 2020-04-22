@@ -21,7 +21,7 @@ class MetaData {
       // NOTE: DihedralSearch depends on Dihedrals being between ALPHA and PUCKER
       ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,
       NU0,     NU1,  NU2,   NU3,   NU4,
-      H1P,     C2P,  CHIN,  PHI,   PSI,     PSIO, CHIP,  OMEGA,
+      H1P,     C2P,  CHIN,  PHI,   PSI,     CHIP,  OMEGA,
       CHI2,    CHI3, CHI4,  CHI5,
       PUCKER,
       NOE,
