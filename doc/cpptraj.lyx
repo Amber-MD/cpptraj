@@ -26990,7 +26990,7 @@ ref:<range>:<refname>[:<ref
 \begin_inset space ~
 \end_inset
 
-range>[:<dih types>]]
+range>[:<dih types>]] [refvalsout <file>] [founddihout <file>]
 \end_layout
 
 \begin_layout Standard
@@ -27003,6 +27003,8 @@ Apply dihedrals from residues <ref_range> in previously loaded reference
 \series default
  above) can be specified in a comma-separated list; default is phi/psi.
  Note that in order to specify <dih types>, <ref range> must be specified.
+ The 'refvalsout' and 'founddihout' keywords can be used to print dihedrals
+ found in the reference and target structures respectively to files.
 \end_layout
 
 \begin_layout Subsubsection*
