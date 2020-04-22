@@ -288,7 +288,7 @@ void Action_DSSP::Help() const {
           "\t[assignout <filename>] [totalout <filename>] [ptrajformat]\n"
           "\t[betadetail]\n"
           "\t[namen <N name>] [nameh <H name>] [nameca <CA name>]\n"
-          "\t[namec <C name>] [nameo <O name>]\n"
+          "\t[namec <C name>] [nameo <O name>] [namesg <sulfur name>]\n"
           "  Calculate secondary structure (SS) content for residues in <mask>.\n"
           "  The 'out' file will contain SS vs frame.\n"
           "  The 'sumout' file will contain total SS content for each residue, by SS type.\n"
@@ -299,6 +299,8 @@ void Action_DSSP::Help() const {
           "  The 'ptrajformat' keyword will use characters instead of #s in the 'out' file.\n"
           "  The 'betadetail' keyword will print parallel/anti-parallel beta instead of\n"
           "   extended/bridge.\n"
+          "  The backbone N, H, CA, C, and O atom names can be specifed with 'nameX' keywords.\n"
+          "  The disulfide sulfur atom name can be specified with the 'nameSG' keyword.\n"
          );
           
 }
@@ -328,6 +330,8 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (!temp.empty()) BB_O_ = temp;
   temp = actionArgs.GetStringKey("nameca");
   if (!temp.empty()) BB_CA_ = temp;
+  temp = actionArgs.GetStringKey("namesg");
+  if (!temp.empty()) SG_ = temp;
   // Get masks
   if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
@@ -394,6 +398,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tOverall assigned SS will be written to %s\n", assignout_->Filename().full());
   mprintf("\tBackbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]  CA=[%s]\n",
           *BB_N_, *BB_H_, *BB_C_, *BB_O_, *BB_CA_ );
+  mprintf("\tDisulfide sulfur atom name: %s\n", *SG_);
   mprintf("# Citation: Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:\n"
           "#           Pattern Recognition of Hydrogen-Bonded and Geometrical Features.\"\n"
           "#           Biopolymers (1983), V.22, pp.2577-2637.\n" );
