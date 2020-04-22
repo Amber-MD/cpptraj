@@ -11368,7 +11368,11 @@ bondinfo | bonds | printbonds
 \end_layout
 
 \begin_layout LyX-Code
-bondinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2>] [out <file>]
+bondinfo [parm <name> | parmindex <#> | <#>] 
+\end_layout
+
+\begin_layout LyX-Code
+         [<mask1>] [<mask2>] [out <file>] [nointrares]
 \end_layout
 
 \begin_deeper
@@ -11415,6 +11419,10 @@ parmindex
 \end_inset
 
 <file>] File to print to (default STDOUT).
+\end_layout
+
+\begin_layout Description
+[nointrares] Do not print intra-residue bonds.
 \end_layout
 
 \end_deeper
