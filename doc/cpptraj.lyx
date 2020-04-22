@@ -31836,7 +31836,7 @@ secstruct
 \end_layout
 
 \begin_layout LyX-Code
-          [namec <C name>] [nameo <O name>]
+          [namec <C name>] [nameo <O name>] [namesg <sulfur name>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -31947,6 +31947,19 @@ name>] Backbone carbonyl carbon atom name (default 'C').
 \end_inset
 
 name>] Backbone carbonyl oxygen atom name (default 'O').
+\end_layout
+
+\begin_layout Description
+[namesg
+\begin_inset space ~
+\end_inset
+
+<SG
+\begin_inset space ~
+\end_inset
+
+name>] Cysteine sulfur atom name, used to ignore disulfide connectivity
+ (default 'SG').
 \end_layout
 
 \begin_layout Standard
@@ -32107,6 +32120,24 @@ nameX
 cpptraj
 \shape default
  will print an informational message but the calculation will proceed normally.
+ When determining residue connecivity, disulfide bonds will be ignored;
+ 
+\emph on
+cpptraj
+\emph default
+ identifies such bonds based on the 
+\series bold
+namesg
+\series default
+ atom name (default 
+\begin_inset Quotes eld
+\end_inset
+
+SG
+\begin_inset Quotes erd
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard
