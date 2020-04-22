@@ -11498,7 +11498,7 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      removebonds <mask1> [<mask2>] }
+      removebonds <mask1> [<mask2>] [out <file>] }
 \end_layout
 
 \begin_deeper
@@ -11655,6 +11655,17 @@ removebonds
  in <mask2>.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] If specified, write removed bonds to <file> with format '<residue
+ name> <residue num> <atom name> <atom num>'.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Change specified parts of the specified topology.
