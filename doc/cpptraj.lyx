@@ -15120,7 +15120,7 @@ only frames 2, 5, 6, and 7 from input.crd will be written to output.crd.
 \begin_layout Subsubsection
 
 \shape italic
-Options for pdb format:
+Options for pdb format
 \end_layout
 
 \begin_layout LyX-Code
@@ -15137,6 +15137,10 @@ Options for pdb format:
 
 \begin_layout LyX-Code
   [include_ep] [conect] [keepext] [usecol21]
+\end_layout
+
+\begin_layout LyX-Code
+  [bfacdefault <#>] [occdefault <#>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -15238,6 +15242,22 @@ keepext Keep filename extension; write '<name>.<num>.<ext>' instead (implies
 
 \begin_layout Description
 usecol21 Use column 21 for 4-letter residue names.
+\end_layout
+
+\begin_layout Description
+bfacdefault
+\begin_inset space ~
+\end_inset
+
+<#> Default value to use in B-factor column (default 0.0).
+\end_layout
+
+\begin_layout Description
+occdefault
+\begin_inset space ~
+\end_inset
+
+<#> Default value to use in occupancy column (default 1.0).
 \end_layout
 
 \begin_layout Description
