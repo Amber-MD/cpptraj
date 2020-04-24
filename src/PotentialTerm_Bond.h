@@ -10,7 +10,7 @@ class PotentialTerm_Bond : public PotentialTerm {
     int SetupTerm(Topology const&, CharMask const&);
     void CalcForce(Frame&, CharMask const&) const;
   private:
-    BondArray activeBonds_;
-    BondParmArray const* bondParm_;
+    BondArray activeBonds_;         ///< Array of bonds selected by mask during setup
+    BondParmArray const* bondParm_; ///< Pointer to array containing bond parameters
 };
 #endif
