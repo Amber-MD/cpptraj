@@ -54,7 +54,11 @@ class DataFileList {
     void WriteAllDF();
     /// \return true if DataFiles have not yet been written.
     bool UnwrittenData() const;
+    /// Reset the write status of all DataFiles so they will be written
     void ResetWriteStatus();
+    /// Reset the write status of DataFiles containing any of the input sets.
+    void ResetWriteStatIfContain(std::vector<DataSet*> const& dslIn);
+    /// Process any data file args
     int ProcessDataFileArgs(ArgList&);
     int Debug() const { return debug_; }
     int EnsembleNum() const { return ensembleNum_; }
