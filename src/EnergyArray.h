@@ -8,6 +8,13 @@ class EnergyArray {
     enum Type { E_BOND = 0, N_E_TERMS };
     /// \return Pointer to specified part of the energy array.
     double* AddType(Type);
+    /// Clear all terms.
+    void clear() { activeTerms_.clear(); }
+    /// Zero all active terms.
+    void zero() {
+      for (Tarray::const_iterator it = activeTerms_.begin(); it != activeTerms_.end(); ++it)
+        ene_[*it] = 0.0;
+    }
   private:
     static const char* TypeStr_[];
 
