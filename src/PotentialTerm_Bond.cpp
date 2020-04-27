@@ -1,8 +1,10 @@
 #include "PotentialTerm_Bond.h"
 #include "Topology.h"
 #include "CharMask.h"
+#include "EnergyArray.h"
 
-int PotentialTerm_Bond::SetupTerm(Topology const& topIn, CharMask const& maskIn)
+int PotentialTerm_Bond::SetupTerm(Topology const& topIn, CharMask const& maskIn,
+                                  EnergyArray& Earray)
 {
   activeBonds_.clear();
   for (BondArray::const_iterator bnd = topIn.Bonds().begin(); bnd != topIn.Bonds().end(); ++bnd)
@@ -15,12 +17,13 @@ int PotentialTerm_Bond::SetupTerm(Topology const& topIn, CharMask const& maskIn)
     }
   }
   bondParm_ = &(topIn.BondParm());
+  Ebond_ = Earray.AddType( EnergyArray::E_BOND );
 
   return 0;
 }
 
 void PotentialTerm_Bond::CalcForce(Frame& frameIn, CharMask const& maskIn) const {
-  double E_bond = 0.0;
+  *Ebond_ = 0.0;
   for (BondArray::const_iterator bnd = activeBonds_.begin(); bnd != activeBonds_.end(); ++bnd)
   {
     BondParmType BP = (*bondParm_)[ bnd->Idx() ];
@@ -41,7 +44,7 @@ void PotentialTerm_Bond::CalcForce(Frame& frameIn, CharMask const& maskIn) const
       double db = r - BP.Req();
       double df = BP.Rk() * db;
       double e = df * db;
-      E_bond += e;
+      *Ebond_ += e;
 
       df *= 2.0 * rinv;
 
