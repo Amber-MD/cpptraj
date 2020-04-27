@@ -33,7 +33,7 @@ const
   int iteration = 0;
   Trajout_Single trajOut; // TODO change type
   if (!trajoutName_.empty()) {
-    if (trajOut.InitTrajWrite(trajoutName_, ArgList(), DataSetList(), TrajectoryFile::AMBERNETCDF))
+    if (trajOut.InitTrajWrite(trajoutName_, ArgList(), DataSetList(), TrajectoryFile::UNKNOWN_TRAJ))
       return 1;
     if (trajOut.SetupTrajWrite(potential->CurrentTop(), CoordinateInfo(), 0))
       return 1;
