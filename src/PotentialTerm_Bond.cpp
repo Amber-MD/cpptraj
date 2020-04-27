@@ -3,6 +3,7 @@
 #include "CharMask.h"
 #include "EnergyArray.h"
 
+/** Set up Hooke's law bond term. */
 int PotentialTerm_Bond::SetupTerm(Topology const& topIn, CharMask const& maskIn,
                                   EnergyArray& Earray)
 {
@@ -22,6 +23,7 @@ int PotentialTerm_Bond::SetupTerm(Topology const& topIn, CharMask const& maskIn,
   return 0;
 }
 
+/** Calculate Hooke's law bond force. */
 void PotentialTerm_Bond::CalcForce(Frame& frameIn, CharMask const& maskIn) const {
   *Ebond_ = 0.0;
   for (BondArray::const_iterator bnd = activeBonds_.begin(); bnd != activeBonds_.end(); ++bnd)
