@@ -1,5 +1,6 @@
 #include "PotentialFunction.h"
 #include "CpptrajStdio.h"
+#include "Topology.h"
 // ----- All potential terms -----------
 #include "PotentialTerm_Bond.h"
 
@@ -21,24 +22,42 @@ int PotentialFunction::AddTerm(PotentialTerm::Type typeIn) {
 }
 
 /** Set up each term of the potential function. */
-int PotentialFunction::SetupPotential(Topology const& topIn, CharMask const& maskIn) {
+int PotentialFunction::SetupPotential(Topology const& topIn, std::string const& maskExprIn) {
+  // First set up the mask
+  mask_.ResetMask();
+  if (mask_.SetMaskString( maskExprIn )) {
+    mprinterr("Error: Could not set up mask expression.\n");
+    return 1;
+  }
+  if (topIn.SetupCharMask( mask_ )) {
+    mprinterr("Error: Could not set up mask.\n");
+    return 1;
+  }
+  mask_.MaskInfo();
+
+  // Determine degrees of freedom
+  // TODO depending on what terms are present and how they are set up the DoF calc may change
+  deg_of_freedom_ = 3 * mask_.Nselected();
+  mprintf("\t%i degrees of freedom.\n", deg_of_freedom_);
+
   earray_.clear();
   for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
   {
-    if ( (*it)->SetupTerm( topIn, maskIn, earray_ ) ) {
+    if ( (*it)->SetupTerm( topIn, mask_, earray_ ) ) {
       mprinterr("Error: Could not set up energy term.\n");
       return 1;
     }
   }
+  current_ = (Topology*)&(topIn);
   return 0;
 }
 
 /** Calculate force for each term. */
-int PotentialFunction::CalculateForce(Frame& frameIn, CharMask const& maskIn) {
+int PotentialFunction::CalculateForce(Frame& frameIn) {
   earray_.zero();
   for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
   {
-    (*it)->CalcForce( frameIn, maskIn );
+    (*it)->CalcForce( frameIn, mask_ );
   }
   return 0;
 }

@@ -15,6 +15,13 @@ class EnergyArray {
       for (Tarray::const_iterator it = activeTerms_.begin(); it != activeTerms_.end(); ++it)
         ene_[*it] = 0.0;
     }
+    /// \return Total of all active terms
+    double Total() const {
+      double etotal = 0.0;
+      for (Tarray::const_iterator it = activeTerms_.begin(); it != activeTerms_.end(); ++it)
+        etotal += ene_[*it];
+      return etotal;
+    }
   private:
     static const char* TypeStr_[];
 
