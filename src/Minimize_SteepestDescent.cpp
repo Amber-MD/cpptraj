@@ -7,7 +7,7 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "DataSetList.h"
-
+#include "CpptrajFile.h"
 
 Minimize_SteepestDescent::Minimize_SteepestDescent() :
   min_tol_(1.0E-5),
@@ -25,7 +25,8 @@ int Minimize_SteepestDescent::SetupMin(std::string const& nameIn, double tolIn, 
   return 0;
 }
 
-int Minimize_SteepestDescent::RunMin(PotentialFunction& potential, Frame& frameIn)
+int Minimize_SteepestDescent::RunMin(PotentialFunction& potential, Frame& frameIn,
+                                     CpptrajFile& outfile)
 const
 {
   // Output trajectory
@@ -54,9 +55,9 @@ const
   const double dxstm = 1.0E-5;
   const double crits = 1.0E-6;
   double rms = 1.0;
-  double dxst = 1.0;
+  double dxst = dx0_;
   double last_e = 0.0;
-  mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
+  outfile.Printf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol_ && iteration < nMinSteps_) {
     if (potential.CalculateForce( frameIn )) {
       mprinterr("Error: Could not calculate force.\n");
