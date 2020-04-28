@@ -22,20 +22,16 @@ int Minimize_SteepestDescent::SetupMin(std::string const& nameIn, double tolIn, 
   return 0;
 }
 
-int Minimize_SteepestDescent::RunMin(PotentialFunction* potential, Frame& frameIn)
+int Minimize_SteepestDescent::RunMin(PotentialFunction& potential, Frame& frameIn)
 const
 {
-  if (potential == 0) {
-    mprinterr("Internal Error: Potential function is null.\n");
-    return 1;
-  }
   // Output trajectory
   int iteration = 0;
   Trajout_Single trajOut; // TODO change type
   if (!trajoutName_.empty()) {
     if (trajOut.InitTrajWrite(trajoutName_, ArgList(), DataSetList(), TrajectoryFile::UNKNOWN_TRAJ))
       return 1;
-    if (trajOut.SetupTrajWrite(potential->CurrentTop(), CoordinateInfo(), 0))
+    if (trajOut.SetupTrajWrite(potential.CurrentTop(), CoordinateInfo(), 0))
       return 1;
     if (trajOut.WriteSingle(iteration, frameIn)) return 1;
   }
@@ -49,7 +45,7 @@ const
   std::fill(fxyz, fxyz + frameIn.size(), 0.0);
 
   // Degrees of freedom
-  double deg_of_freedom = potential->DegreesOfFreedom(); 
+  double deg_of_freedom = potential.DegreesOfFreedom(); 
   double fnq = sqrt(deg_of_freedom);
   // Main loop for steepest descent
   const double dxstm = 1.0E-5;
@@ -59,11 +55,11 @@ const
   double last_e = 0.0;
   mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol_ && iteration < nMinSteps_) {
-    if (potential->CalculateForce( frameIn )) {
+    if (potential.CalculateForce( frameIn )) {
       mprinterr("Error: Could not calculate force.\n");
       return 1;
     }
-    double e_total = potential->Energy().Total();
+    double e_total = potential.Energy().Total();
 
     // Calculate the magnitude of the force vector.
     double sum = 0.0;

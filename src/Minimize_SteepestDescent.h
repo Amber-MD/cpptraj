@@ -9,7 +9,7 @@ class Minimize_SteepestDescent {
     /** Set up minimization with optional output trajectory, RMS tolerance, # steps. */
     int SetupMin(std::string const&, double, int);
     /** Run minimization with given potential function and coordinates. */
-    int RunMin(PotentialFunction*, Frame&) const;
+    int RunMin(PotentialFunction&, Frame&) const;
   private:
     std::string trajoutName_;
     double min_tol_;

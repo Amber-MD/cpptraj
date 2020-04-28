@@ -37,8 +37,13 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
 
-  // Get the frame
-  Frame frameIn = crdset->AllocateFrame();
+  // Get the frame. Instead of using AllocateFrame, allocate manually because
+  // we need to ensure space for forces.
+  //Frame frameIn = crdset->AllocateFrame();
+  Frame frameIn;
+  CoordinateInfo cinfo = crdset->CoordsInfo();
+  cinfo.SetForce( true );
+  frameIn.SetupFrameV(crdset->Top().Atoms(), cinfo);
   crdset->GetFrame(framenum, frameIn);
 
   std::string trajoutname = argIn.GetStringKey("trajoutname");

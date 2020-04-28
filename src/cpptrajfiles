@@ -254,6 +254,7 @@ COMMON_SOURCES= \
         Exec_DataFile.cpp \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
+        Exec_Emin.cpp \
         Exec_GenerateAmberRst.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
