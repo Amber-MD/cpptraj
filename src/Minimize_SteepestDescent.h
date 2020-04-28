@@ -7,7 +7,7 @@ class CpptrajFile;
 class Minimize_SteepestDescent {
   public:
     Minimize_SteepestDescent();
-    /** Set up minimization with optional output trajectory, RMS tolerance, # steps. */
+    /** Set up minimization with optional output trajectory, RMS tolerance, step size, # steps. */
     int SetupMin(std::string const&, double, double,int);
     /** Run minimization with given potential function and coordinates. */
     int RunMin(PotentialFunction&, Frame&, CpptrajFile&) const;
