@@ -4,7 +4,7 @@
 
 TESTNAME='Emin tests'
 
-CleanFiles emin.in cpptraj.ene.dat
+CleanFiles emin.in cpptraj.ene.dat cpptraj.emin.nc
 
 INPUT='-i emin.in'
 
