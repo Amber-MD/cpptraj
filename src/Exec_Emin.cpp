@@ -13,6 +13,7 @@ void Exec_Emin::Help() const
 // Exec_Emin::Execute()
 Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
 {
+  mprintf("Warning: THIS COMMAND IS STILL UNDER DEVELOPMENT.\n");
   PotentialFunction potential;
   potential.AddTerm( PotentialTerm::BOND );
   Minimize_SteepestDescent SD;
