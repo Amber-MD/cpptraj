@@ -11,13 +11,16 @@
 
 Minimize_SteepestDescent::Minimize_SteepestDescent() :
   min_tol_(1.0E-5),
+  dx0_(0.01),
   nMinSteps_(1)
 {}
 
-int Minimize_SteepestDescent::SetupMin(std::string const& nameIn, double tolIn, int stepsIn)
+int Minimize_SteepestDescent::SetupMin(std::string const& nameIn, double tolIn, double dx0In,
+                                       int stepsIn)
 {
   trajoutName_ = nameIn;
   min_tol_ = tolIn;
+  dx0_ = dx0In;
   nMinSteps_ = stepsIn;
   return 0;
 }
