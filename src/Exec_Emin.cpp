@@ -56,8 +56,9 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Internal Error: Could not allocate output file for minimization.\n");
     return CpptrajState::ERR;
   }
+  mprintf("\tOutput to %s\n", outfile->Filename().full());
 
-  double min_tol = argIn.getKeyDouble("rmstol", 1E-5);
+  double min_tol = argIn.getKeyDouble("rmstol", 1E-4);
   mprintf("\tMin RMS tolerance: %g\n", min_tol);
 
   double dx0 = argIn.getKeyDouble("dx0", 0.01);
