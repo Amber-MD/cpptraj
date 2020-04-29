@@ -114,7 +114,7 @@ void PotentialTerm_LJ_Coulomb::CalcForce(Frame& frameIn, CharMask const& maskIn)
   {
     for (Iarray::const_iterator jdx = selectedAtoms_.begin(); jdx != selectedAtoms_.end(); ++jdx)
     {
-      // Ignore if idx and jdx are bonded.
+      // Ignore if idx and jdx are bonded. TODO use exclusion
       if (!(*atoms_)[*idx].IsBondedTo(*jdx))
       {
         NonbondType LJ = GetLJparam(*atoms_, *nonbond_, *idx, *jdx);
