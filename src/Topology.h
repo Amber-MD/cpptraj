@@ -206,7 +206,8 @@ class Topology {
     int RecursiveMolSearch();
     int NonrecursiveMolSearch();
     void ClearMolecules();
-    void AtomDistance(int, int, int, std::set<int>&) const;
+    void AtomDistance(int, int, int, std::set<int>&, int) const;
+    void DetermineExcludedAtoms(int);
     void DetermineExcludedAtoms();
     void DetermineNumExtraPoints();
     int SetSolventInfo();
