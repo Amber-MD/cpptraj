@@ -1049,7 +1049,7 @@ Topology* DataSetList::GetTopology(ArgList& argIn) const {
   return ((DataSet_Topology*)top)->TopPtr();
 }
 
-const char* DataSetList::TopIdxArgs = "parm <name> | parmindex <#> | <#>";
+const char* DataSetList::TopIdxArgs = "parm <name> | crdset <set> | parmindex <#> | <#>";
 
 // DataSetList::GetTopByIndex()
 /** \return Topology specfied by a keyword, or if no keywords specified
@@ -1064,6 +1064,13 @@ Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
   int err;
   DataSet* top = GetTopByKeyword( argIn, err );
   if (err) return 0;
+  // Check coords sets
+  std::string crdset = argIn.GetStringKey("crdset");
+  if (!crdset.empty()) {
+    top = FindSetOfGroup(crdset, DataSet::COORDINATES);
+    if ( top == 0) return 0;
+    return ((DataSet_Coords*)top)->TopPtr();
+  }
   if (top == 0) { // For backwards compat., check for single integer arg.
     int topindex = argIn.getNextInteger(-1);
     if (topindex > -1 && topindex < (int)TopList_.size())

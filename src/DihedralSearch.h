@@ -64,7 +64,7 @@ class DihedralSearch {
 /// Hold dihedral type information used for searching.
 class DihedralSearch::DihedralToken {
   public:
-    DihedralToken() : centerIdx_(2), type_(MetaData::UNDEFINED) {}
+    DihedralToken() : centerIdx_(2), offset_(0), type_(MetaData::UNDEFINED) {}
     /// Constructor for custom dihedral type
     DihedralToken(int, NameType const&, NameType const&, NameType const&, NameType const&,
                   std::string const&);
@@ -77,6 +77,7 @@ class DihedralSearch::DihedralToken {
     void SetAtomName(int i, NameType const& n) { aname_[i] = n; }
   private:
     int centerIdx_;           ///< Index of the "central" dihedral atom (determines res#).
+    int offset_;              ///< Help determine which atoms are in which residues
     NameType aname_[4];       ///< Dihedral atom names. 
     std::string name_;        ///< Dihedral type name.
     DihedralType type_;       ///< Dihedral type.

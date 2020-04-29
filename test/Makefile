@@ -465,6 +465,9 @@ test.slope:
 test.diagmatrix:
 	@-cd Test_Diagmatrix && ./RunTest.sh $(OPT)
 
+test.emin:
+	@-cd Test_Emin && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -613,7 +616,8 @@ COMPLETETESTS=test.general \
               test.splitcoords \
               test.dihedralrms \
               test.slope \
-              test.diagmatrix
+              test.diagmatrix \
+              test.emin
 
 test.all:
 	$(MAKE) test.complete summary

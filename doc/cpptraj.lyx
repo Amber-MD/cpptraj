@@ -7810,6 +7810,11 @@ dataset { legend <legend> <set> |
 \end_layout
 
 \begin_layout LyX-Code
+          shift [above <value> by <offset>] [below <value> by <offset>]
+ <set arg0> ...
+\end_layout
+
+\begin_layout LyX-Code
     	  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]
 \end_layout
 
@@ -8178,6 +8183,61 @@ name> Inverted output set name.
 \end_inset
 
 <set>] String data set containing legends
+\end_layout
+
+\end_deeper
+\begin_layout Description
+shift
+\begin_inset space ~
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[above
+\begin_inset space ~
+\end_inset
+
+<value>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<offset>] Values in set(s) above <value> will be shifted by <offset>.
+\end_layout
+
+\begin_layout Description
+[below
+\begin_inset space ~
+\end_inset
+
+<value>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<offset>] Values in set(s) below <value> will be shifted by <offset>.
+\end_layout
+
+\begin_layout Description
+<set
+\begin_inset space ~
+\end_inset
+
+arg0>
+\begin_inset space ~
+\end_inset
+
+...
+ Set(s) to shift.
 \end_layout
 
 \end_deeper
@@ -9217,6 +9277,25 @@ dataset dim xdim label Simulation min 1 step 1 Inverted*
 
 \begin_layout LyX-Code
 writedata statecount.agr Inverted* 
+\end_layout
+
+\begin_layout Standard
+The dataset shift command can be used for wrapping circular values, such
+ as torsions.
+ For example, to ensure a pucker has a range from 0 to 360 instead of -180
+ to 180:
+\end_layout
+
+\begin_layout LyX-Code
+pucker Furanoid @C2 @C3 @C4 @C5 @O2 cremer out CremerF.dat amplitude
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+dataset shift Furanoid below 0 by 360
 \end_layout
 
 \begin_layout Subsection
@@ -11289,7 +11368,11 @@ bondinfo | bonds | printbonds
 \end_layout
 
 \begin_layout LyX-Code
-bondinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2>] [out <file>]
+bondinfo [parm <name> | parmindex <#> | <#>] 
+\end_layout
+
+\begin_layout LyX-Code
+         [<mask1>] [<mask2>] [out <file>] [nointrares]
 \end_layout
 
 \begin_deeper
@@ -11336,6 +11419,10 @@ parmindex
 \end_inset
 
 <file>] File to print to (default STDOUT).
+\end_layout
+
+\begin_layout Description
+[nointrares] Do not print intra-residue bonds.
 \end_layout
 
 \end_deeper
@@ -11407,7 +11494,11 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      addbond <mask1> <mask2> [req <length> <rk> <force constant>] }
+      addbond <mask1> <mask2> [req <length> <rk> <force constant>]
+\end_layout
+
+\begin_layout LyX-Code
+      removebonds <mask1> [<mask2>] [out <file>] }
 \end_layout
 
 \begin_deeper
@@ -11547,6 +11638,31 @@ addbond
 \end_inset
 
 constant>] The bond force constant in kcal/mol*Angstrom.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+removebonds
+\begin_inset space ~
+\end_inset
+
+<mask1>
+\begin_inset space ~
+\end_inset
+
+[<mask2>] Remove bonds from atoms in <mask1>.
+ If <mask2> also given, remove bonds between atoms in <mask1> and atoms
+ in <mask2>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] If specified, write removed bonds to <file> with format '<residue
+ name> <residue num> <atom name> <atom num>'.
 \end_layout
 
 \end_deeper
@@ -15004,7 +15120,7 @@ only frames 2, 5, 6, and 7 from input.crd will be written to output.crd.
 \begin_layout Subsubsection
 
 \shape italic
-Options for pdb format:
+Options for pdb format
 \end_layout
 
 \begin_layout LyX-Code
@@ -15021,6 +15137,10 @@ Options for pdb format:
 
 \begin_layout LyX-Code
   [include_ep] [conect] [keepext] [usecol21]
+\end_layout
+
+\begin_layout LyX-Code
+  [bfacdefault <#>] [occdefault <#>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -15122,6 +15242,22 @@ keepext Keep filename extension; write '<name>.<num>.<ext>' instead (implies
 
 \begin_layout Description
 usecol21 Use column 21 for 4-letter residue names.
+\end_layout
+
+\begin_layout Description
+bfacdefault
+\begin_inset space ~
+\end_inset
+
+<#> Default value to use in B-factor column (default 0.0).
+\end_layout
+
+\begin_layout Description
+occdefault
+\begin_inset space ~
+\end_inset
+
+<#> Default value to use in occupancy column (default 1.0).
 \end_layout
 
 \begin_layout Description
@@ -26911,7 +27047,7 @@ ref:<range>:<refname>[:<ref
 \begin_inset space ~
 \end_inset
 
-range>[:<dih types>]]
+range>[:<dih types>]] [refvalsout <file>] [founddihout <file>]
 \end_layout
 
 \begin_layout Standard
@@ -26924,6 +27060,8 @@ Apply dihedrals from residues <ref_range> in previously loaded reference
 \series default
  above) can be specified in a comma-separated list; default is phi/psi.
  Note that in order to specify <dih types>, <ref range> must be specified.
+ The 'refvalsout' and 'founddihout' keywords can be used to print dihedrals
+ found in the reference and target structures respectively to files.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -31755,7 +31893,7 @@ secstruct
 \end_layout
 
 \begin_layout LyX-Code
-          [namec <C name>] [nameo <O name>]
+          [namec <C name>] [nameo <O name>] [namesg <sulfur name>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -31866,6 +32004,19 @@ name>] Backbone carbonyl carbon atom name (default 'C').
 \end_inset
 
 name>] Backbone carbonyl oxygen atom name (default 'O').
+\end_layout
+
+\begin_layout Description
+[namesg
+\begin_inset space ~
+\end_inset
+
+<SG
+\begin_inset space ~
+\end_inset
+
+name>] Cysteine sulfur atom name, used to ignore disulfide connectivity
+ (default 'SG').
 \end_layout
 
 \begin_layout Standard
@@ -32026,6 +32177,25 @@ nameX
 cpptraj
 \shape default
  will print an informational message but the calculation will proceed normally.
+ If a residue has no atoms selected it will be skipped.
+ When determining residue connecivity, disulfide bonds will be ignored;
+ 
+\emph on
+cpptraj
+\emph default
+ identifies such bonds based on the 
+\series bold
+namesg
+\series default
+ atom name (default 
+\begin_inset Quotes eld
+\end_inset
+
+SG
+\begin_inset Quotes erd
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard

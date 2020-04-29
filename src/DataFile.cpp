@@ -364,6 +364,21 @@ int DataFile::RemoveDataSet(DataSet* dataIn) {
   return 0;
 }
 
+/** \return True if this DataFile contains any of the sets in the given set list.
+  * Matches are determined via memory address.
+  */
+bool DataFile::ContainsAnyOfSets(std::vector<DataSet*> const& setsIn) const {
+  for (std::vector<DataSet*>::const_iterator ds0 = setsIn.begin();
+                                             ds0 != setsIn.end(); ++ds0)
+  {
+    DataSet* tgt = *ds0;
+    for (DataSetList::const_iterator ds1 = SetList_.begin();
+                                     ds1 != SetList_.end(); ++ds1)
+      if (tgt == *ds1) return true;
+  }
+  return false;
+}
+
 // GetPrecisionArg()
 static inline int GetPrecisionArg(std::string const& prec_str, int& width, int& prec)
 {
