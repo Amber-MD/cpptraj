@@ -937,7 +937,7 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
                          Residue(it->Name(), it->OriginalResNum(), ' ', it->ChainID()) );
       newFrame.AddVec3( Zero );
       // CA top
-      CAtop.AddTopAtom( Atom("CA", "C "),
+      CAtop.AddTopAtom( Atom("CA", "CA", 0),
                         Residue(it->Name(), it->OriginalResNum(), ' ', it->ChainID()) );
       CAframe.AddVec3( Zero );
       CAmissing.AddAtom(true);
@@ -1024,6 +1024,13 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       CAtop.AddBond(cares-1, cares, CAbond);
     }
   }
+  // Add pseudo parameters for the "CA" atom type (0)
+  LJparmType CAtype(3.8, 10.0);
+  NonbondType AB = CAtype.Combine_LB( CAtype );
+  CAtop.SetNonbond().SetupLJforNtypes(1);
+  CAtop.SetNonbond().AddLJterm(0, 0, AB);
+  mprintf("DEBUG: LJ radius= %g\n", CAtop.GetVDWradius(0));
+  // Final setup
   CAtop.SetParmName("capdb", "temp.ca.mol2");
   CAtop.CommonSetup(true, 2); // molecule search, exclude bonds
   CAtop.Summary();
