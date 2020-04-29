@@ -343,8 +343,13 @@ void Topology::StartNewMol() {
   residues_.back().SetTerminal( true );
 }
 
-// Topology::CommonSetup()
+/** Common setup with common excluded distance. */
 int Topology::CommonSetup(bool molsearch) {
+  return CommonSetup(molsearch, 4);
+}
+
+// Topology::CommonSetup()
+int Topology::CommonSetup(bool molsearch, int excludedDist) {
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
@@ -413,7 +418,7 @@ int Topology::CommonSetup(bool molsearch) {
   if (SetSolventInfo())
     mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
   // Determine excluded atoms
-  DetermineExcludedAtoms();
+  DetermineExcludedAtoms(excludedDist);
   // Determine # of extra points.
   DetermineNumExtraPoints();
 

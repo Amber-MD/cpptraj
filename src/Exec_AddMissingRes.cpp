@@ -1025,8 +1025,17 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     }
   }
   CAtop.SetParmName("capdb", "temp.ca.mol2");
-  CAtop.CommonSetup(true); // molecule search
+  CAtop.CommonSetup(true, 2); // molecule search, exclude bonds
   CAtop.Summary();
+  // DEBUG: Write excluded atoms
+  mprintf("DEBUG: CAtop excluded atoms:\n");
+  for (int idx = 0; idx != CAtop.Natom(); idx++) {
+    mprintf("\t%8i :", idx+1);
+    for (Atom::excluded_iterator it = CAtop[idx].excludedbegin();
+                                 it != CAtop[idx].excludedend(); ++it)
+      mprintf(" %8i", *it + 1);
+    mprintf("\n");
+  }
   // Write CA top
   if (WriteStructure("temp.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Write of temp.ca.mol2 failed.\n");
