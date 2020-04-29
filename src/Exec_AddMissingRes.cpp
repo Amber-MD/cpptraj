@@ -117,6 +117,69 @@ const
   return 0;
 } 
 
+/** Calculate LJ and coulomb forces between specified atoms. */
+static inline void NonBondKernel(Frame& frameIn, int idx, int jdx,
+                                 double LJA, double LJB,
+                                 CharMask const& maskIn,
+                                 double& e_total, double& E_vdw, double& E_elec,
+                                 std::vector<Vec3>& Farray)
+{
+  const double* XYZ0 = frameIn.XYZ( idx );
+  const double* XYZ1 = frameIn.XYZ( jdx );
+  double rx = XYZ0[0] - XYZ1[0];
+  double ry = XYZ0[1] - XYZ1[1];
+  double rz = XYZ0[2] - XYZ1[2];
+  double rij2 = rx*rx + ry*ry + rz*rz;
+  if (rij2 > 0) {
+    //double rij;
+    //if (rij2 < nbcut2) {
+    //  rij2 = nbcut2;
+    //  // Make rij really big to scale down the coulomb part.
+    //  rij = 99999;
+    //} else
+    //  rij = sqrt( rij2 );
+    double rij = sqrt( rij2 );
+    //double dfx = 0;
+    //double dfy = 0;
+    //double dfz = 0;
+    // VDW
+    double r2    = 1.0 / rij2;
+    double r6    = r2 * r2 * r2;
+    double r12   = r6 * r6;
+    double f12   = LJA * r12;  // A/r^12
+    double f6    = LJB * r6;   // B/r^6
+    double e_vdw = f12 - f6;   // (A/r^12)-(B/r^6)
+    E_vdw += e_vdw;
+    e_total += e_vdw;
+    // VDW force
+    double fvdw = ((12*f12) - (6*f6)) * r2; // (12A/r^13)-(6B/r^7)
+    double dfx = rx * fvdw;
+    double dfy = ry * fvdw;
+    double dfz = rz * fvdw;
+    // COULOMB
+    double qiqj = 1; // Give each atom charge of 1
+    double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
+    E_elec += e_elec;
+    e_total += e_elec;
+    // COULOMB force
+    double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
+    dfx += rx * felec;
+    dfy += ry * felec;
+    dfz += rz * felec;
+    // Apply forces
+    if (maskIn.AtomInCharMask(idx)) {
+      Farray[idx][0] += dfx;
+      Farray[idx][1] += dfy;
+      Farray[idx][2] += dfz;
+    }
+    if (maskIn.AtomInCharMask(jdx)) {
+      Farray[jdx][0] -= dfx;
+      Farray[jdx][1] -= dfy;
+      Farray[jdx][2] -= dfz;
+    }
+  } // END rij > 0
+}
+
 /** Try to minimize using steepest descent. */
 int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask const& maskIn)
 const
@@ -143,12 +206,16 @@ const
       activeBonds.push_back( *bnd );
     }
   }
-  // Selected atoms
+  // Selected atoms and non-selected atoms
   Iarray selectedAtoms;
+  Iarray nonSelectedAtoms;
   selectedAtoms.reserve( maskIn.Nselected() );
+  nonSelectedAtoms.reserve( topIn.Natom() - maskIn.Nselected() );
   for (int i = 0; i < topIn.Natom(); i++)
     if (maskIn.AtomInCharMask( i ))
       selectedAtoms.push_back( i );
+    else
+      nonSelectedAtoms.push_back( i );
   // Fake LJ coefficient, taken from CT-CT (CA-CA) interaction from an Amber ff
   //double LJA = 1043080.230000;
   //double LJB = 675.612247;
@@ -235,78 +302,35 @@ const
       }
     }
     // ----- Determine VDW energy and forces -----
-    // Want every atom to every selected atom.
-    // We want atoms to feel each other, but not if they are too close.
-    // This will allow them to pass through each other.
     double E_vdw = 0.0;
     double E_elec = 0.0;
-    for (int idx = 0; idx != topIn.Natom(); idx++)
+    // First loop is each non-selected atom to each selected atom.
+    // There is no overlap between the two.
+    for (Iarray::const_iterator idx = nonSelectedAtoms.begin();
+                                idx != nonSelectedAtoms.end(); ++idx)
     {
       for (Iarray::const_iterator jdx = selectedAtoms.begin(); jdx != selectedAtoms.end(); ++jdx)
       {
-        if (idx != *jdx)
+        // Ignore if idx and jdx are bonded.
+        if (!topIn[*idx].IsBondedTo(*jdx))
         {
-          // Ignore if idx and jdx are bonded.
-          if (!topIn[idx].IsBondedTo(*jdx))
-          {
-            const double* XYZ0 = frameIn.XYZ( idx );
-            const double* XYZ1 = frameIn.XYZ( *jdx );
-            double rx = XYZ0[0] - XYZ1[0];
-            double ry = XYZ0[1] - XYZ1[1];
-            double rz = XYZ0[2] - XYZ1[2];
-            double rij2 = rx*rx + ry*ry + rz*rz;
-            if (rij2 > 0) {
-              //double rij;
-              //if (rij2 < nbcut2) {
-              //  rij2 = nbcut2;
-              //  // Make rij really big to scale down the coulomb part.
-              //  rij = 99999;
-              //} else
-              //  rij = sqrt( rij2 );
-              double rij = sqrt( rij2 );
-              //double dfx = 0;
-              //double dfy = 0;
-              //double dfz = 0;
-              // VDW
-              double r2    = 1.0 / rij2;
-              double r6    = r2 * r2 * r2;
-              double r12   = r6 * r6;
-              double f12   = LJA * r12;  // A/r^12
-              double f6    = LJB * r6;   // B/r^6
-              double e_vdw = f12 - f6;   // (A/r^12)-(B/r^6)
-              E_vdw += e_vdw;
-              e_total += e_vdw;
-              // VDW force
-              double fvdw = ((12*f12) - (6*f6)) * r2; // (12A/r^13)-(6B/r^7)
-              double dfx = rx * fvdw;
-              double dfy = ry * fvdw;
-              double dfz = rz * fvdw;
-              // COULOMB
-              double qiqj = 1; // Give each atom charge of 1
-              double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
-              E_elec += e_elec;
-              e_total += e_elec;
-              // COULOMB force
-              double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
-              dfx += rx * felec;
-              dfy += ry * felec;
-              dfz += rz * felec;
-              // Apply forces
-              if (maskIn.AtomInCharMask(idx)) {
-                Farray[idx][0] += dfx;
-                Farray[idx][1] += dfy;
-                Farray[idx][2] += dfz;
-              }
-              if (maskIn.AtomInCharMask(*jdx)) {
-                Farray[*jdx][0] -= dfx;
-                Farray[*jdx][1] -= dfy;
-                Farray[*jdx][2] -= dfz;
-              }
-            } // END rij > 0
-          } // END idx not bonded to jdx
-        } // END idx != jdx
+          NonBondKernel(frameIn, *idx, *jdx, LJA, LJB, maskIn, e_total, E_vdw, E_elec, Farray);
+        } // END idx not bonded to jdx
       } // END inner loop over jdx
     } // END outer loop over idx
+    // Second loop is each selected atom to each other selected atom.
+    for (Iarray::const_iterator idx0 = selectedAtoms.begin();
+                                idx0 != selectedAtoms.end(); ++idx0)
+    {
+      for (Iarray::const_iterator idx1 = idx0 + 1; idx1 != selectedAtoms.end(); ++idx1)
+      {
+        // Ignore if idx0 and idx1 are bonded.
+        if (!topIn[*idx0].IsBondedTo(*idx1))
+        {
+          NonBondKernel(frameIn, *idx0, *idx1, LJA, LJB, maskIn, e_total, E_vdw, E_elec, Farray);
+        }
+      } // END inner loop over idx1
+    } // END outer loop over idx0
 
     // Calculate the magnitude of the force vector.
     double sum = 0.0;
