@@ -5,7 +5,7 @@ class EnergyArray {
   public:
     EnergyArray();
     /// Energy term types
-    enum Type { E_BOND = 0, N_E_TERMS };
+    enum Type { E_BOND = 0, E_VDW, E_COULOMB, N_E_TERMS };
     /// \return Pointer to specified part of the energy array.
     double* AddType(Type);
     /// Clear all terms.

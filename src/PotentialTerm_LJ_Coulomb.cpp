@@ -1,6 +1,7 @@
 #include "PotentialTerm_LJ_Coulomb.h"
 #include "Topology.h"
 #include "CharMask.h"
+#include "EnergyArray.h"
 
 /**  CONSTRUCTOR */
 PotentialTerm_LJ_Coulomb::PotentialTerm_LJ_Coulomb() :
@@ -28,6 +29,8 @@ int PotentialTerm_LJ_Coulomb::SetupTerm(Topology const& topIn, CharMask const& m
 
   atoms_ = &(topIn.Atoms());
   nonbond_ = &(topIn.Nonbond());
+  E_vdw_ = Earray.AddType(EnergyArray::E_VDW);
+  E_elec_ = Earray.AddType(EnergyArray::E_COULOMB);
 
   return 0;
 }
