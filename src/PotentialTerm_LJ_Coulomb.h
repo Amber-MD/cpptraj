@@ -4,6 +4,7 @@
 #include <vector>
 // Forward declares
 class NonbondParmType;
+class Atom;
 /// Potential term for simple nonbonded LJ + Coulomb with no cutoff
 class PotentialTerm_LJ_Coulomb : public PotentialTerm {
   public:
@@ -14,9 +15,9 @@ class PotentialTerm_LJ_Coulomb : public PotentialTerm {
     typedef std::vector<int> Iarray;
     Iarray selectedAtoms_;           ///< Selected atoms.
     Iarray nonSelectedAtoms_;        ///< Non-selected atoms.
-    Iarray typeIndices_;             ///< Type index for each atom
+    std::vector<Atom> const* atoms_; ///< Pointer to Atoms
     NonbondParmType const* nonbond_; ///< Pointer to nonbond parameters.
-    double* Evdw_;                   ///< Pointer to VDW term of energy array.
-    double* Eelec_;                  ///< Pointer to Coulomb term of energy array.
+    double* E_vdw_;                  ///< Pointer to VDW term of energy array.
+    double* E_elec_;                 ///< Pointer to Coulomb term of energy array.
 };
 #endif
