@@ -34,7 +34,19 @@ int PotentialFunction::SetupPotential(Topology const& topIn, std::string const& 
     return 1;
   }
   mask_.MaskInfo();
+  return setupPotential(topIn);
+}
 
+int PotentialFunction::SetupPotential(Topology const& topIn, CharMask const& maskIn) {
+  if (maskIn.Nselected() < 1) {
+    mprinterr("Internal Error: SetupPotential called with empty mask.\n");
+    return 1;
+  }
+  mask_ = maskIn;
+  return setupPotential(topIn);
+}
+
+int PotentialFunction::setupPotential(Topology const& topIn) {
   // Determine degrees of freedom
   // TODO depending on what terms are present and how they are set up the DoF calc may change
   deg_of_freedom_ = 3 * mask_.Nselected();
