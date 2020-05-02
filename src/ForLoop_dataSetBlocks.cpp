@@ -7,6 +7,7 @@
 #ifdef MPI
 # include "Parallel.h"
 #endif
+#include <cstdlib>
 
 /// CONSTRUCTOR
 ForLoop_dataSetBlocks::ForLoop_dataSetBlocks() :
