@@ -1134,6 +1134,7 @@ void Exec_AddMissingRes::Help() const
 Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
 {
   debug_ = State.Debug();
+  useNewMin_ = argIn.hasKey("usenewmin");
   std::string pdbname = argIn.GetStringKey("pdbname");
   if (pdbname.empty()) {
     mprinterr("Error: provide PDB name.\n");

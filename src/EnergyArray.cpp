@@ -6,7 +6,12 @@ EnergyArray::EnergyArray() :
   ene_((int)N_E_TERMS, 0.0)
 {}
 
-const char* EnergyArray::TypeStr_[] = { "Bond", 0 };
+/** Energy term labels. Keep in sync with Type. */
+const char* EnergyArray::TypeStr_[] = { "Bond", "VDW", "Elec", 0 };
+
+const char* EnergyArray::label(Type t) const {
+  return TypeStr_[(int)t];
+}
 
 /** Specify that an energy term will be calculated.
   * \return Pointer to position in energy array of specified term.

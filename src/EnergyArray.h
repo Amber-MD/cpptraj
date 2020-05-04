@@ -4,7 +4,7 @@
 class EnergyArray {
   public:
     EnergyArray();
-    /// Energy term types
+    /// Energy term types. Keep in sync with TypeStr_.
     enum Type { E_BOND = 0, E_VDW, E_COULOMB, N_E_TERMS };
     /// \return Pointer to specified part of the energy array.
     double* AddType(Type);
@@ -22,6 +22,10 @@ class EnergyArray {
         etotal += ene_[*it];
       return etotal;
     }
+    /// \return Specified term
+    double Ene(Type t) const { return ene_[(int)t]; }
+    /// \return Label for specified term
+    const char* label(Type) const;
   private:
     static const char* TypeStr_[];
 
