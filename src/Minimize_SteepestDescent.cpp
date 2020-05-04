@@ -98,7 +98,7 @@ const
     }
     // Write out current E.
     //outfile.Printf("Iteration:\t%8i %12.4E %12.4E\n", iteration, e_total, rms);
-    outfile.Printf("%-8i %12.4E %12.4E %12.4E EB=%12.4E EV=%12.4E EC=%12.4E\n",
+    outfile.Printf("%-8i %12.4E %12.4E EB=%12.4E EV=%12.4E EC=%12.4E\n",
                    iteration+1, e_total, rms,
                    potential.Energy().Ene(EnergyArray::E_BOND),
                    potential.Energy().Ene(EnergyArray::E_VDW),

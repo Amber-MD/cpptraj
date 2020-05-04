@@ -266,7 +266,7 @@ const
   //  Xarray.push_back( Vec3(frameIn.XYZ(at)) );
   // Degrees of freedom
   double deg_of_freedom = 3 * maskIn.Nselected();
-  mprintf("\t%i degrees of freedom.\n", deg_of_freedom);
+  mprintf("\t%g degrees of freedom.\n", deg_of_freedom);
   double fnq = sqrt(deg_of_freedom);
   // Main loop for steepest descent
   //const double Rk = 1.0;
