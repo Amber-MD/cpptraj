@@ -3,7 +3,9 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_CRD.h"
+#include "Minimize_SteepestDescent.h"
 #include "ParmFile.h"
+#include "PotentialFunction.h"
 #include "StringRoutines.h"
 #include "Trajin_Single.h"
 #include "Trajout_Single.h"
@@ -186,6 +188,24 @@ const
 {
   double min_tol = 1.0E-5;
 
+  if (useNewMin_) {
+    PotentialFunction potential;
+    potential.AddTerm( PotentialTerm::BOND );
+    Minimize_SteepestDescent SD;
+
+    if (potential.SetupPotential( topIn, maskIn )) return 1;
+
+    if (SD.SetupMin("min.nc", min_tol, 1.0, nMinSteps_)) return 1;
+
+    // Add force info to frame.
+    frameIn.AddForces(Frame::Darray(frameIn.size(), 0.0));
+
+    CpptrajFile outfile;
+    outfile.OpenWrite("");
+    if (SD.RunMin(potential, frameIn, outfile)) return 1;
+
+  } else {
+
   // Output trajectory
   int iteration = 0;
   Trajout_Single trajOut;
@@ -366,6 +386,8 @@ const
     // Write out current coords
     if (trajOut.WriteSingle(iteration, frameIn)) return 1;
   } // END minimization loop
+
+
   // Final RMS error from equilibirum values
   double sumdiff2 = 0.0;
   for (BondArray::const_iterator bnd = activeBonds.begin(); bnd != activeBonds.end(); ++bnd)
@@ -383,6 +405,9 @@ const
         mprintf("\t\t%u to %u: D= %g  Eq= %g  Delta= %g\n",
                 bnd->A1()+1, bnd->A2()+1, r1_2, BP.Req(), fabs(diff));
   }
+  double rms_err = sqrt( sumdiff2 / (double)activeBonds.size() );
+  mprintf("\tRMS error of final bond lengths: %g\n", rms_err);
+
 /* 
   unsigned int idx = 0; // Index into FrameDistances
   double sumdiff2 = 0.0;
@@ -402,8 +427,6 @@ const
     }
   }
 */
-  double rms_err = sqrt( sumdiff2 / (double)activeBonds.size() );
-  mprintf("\tRMS error of final bond lengths: %g\n", rms_err);
 /*
   // Write out final graph with cluster numbers.
   Iarray Nums;
@@ -417,6 +440,7 @@ const
     for (int n = 1; n <= (int)nframes; n++)
       Nums.push_back( n );
 */
+  }
   return 0;
 }
 
