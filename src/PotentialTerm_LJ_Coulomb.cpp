@@ -66,6 +66,7 @@ static inline void NonBondKernel(Frame& frameIn, int idx, int jdx,
     double f12   = LJA * r12;  // A/r^12
     double f6    = LJB * r6;   // B/r^6
     double e_vdw = f12 - f6;   // (A/r^12)-(B/r^6)
+    //mprintf("DBG:\t\t%8i %8i %12.4f\n", e_vdw);
     E_vdw += e_vdw;
     // VDW force
     double fvdw = ((12*f12) - (6*f6)) * r2; // (12A/r^13)-(6B/r^7)

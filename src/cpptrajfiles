@@ -336,6 +336,7 @@ COMMON_SOURCES= \
         Parm_Tinker.cpp \
         PotentialFunction.cpp \
         PotentialTerm_Bond.cpp \
+        PotentialTerm_LJ_Coulomb.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \

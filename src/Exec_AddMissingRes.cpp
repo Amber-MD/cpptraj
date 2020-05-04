@@ -151,6 +151,7 @@ static inline void NonBondKernel(Frame& frameIn, int idx, int jdx,
     double f12   = LJA * r12;  // A/r^12
     double f6    = LJB * r6;   // B/r^6
     double e_vdw = f12 - f6;   // (A/r^12)-(B/r^6)
+    //mprintf("DBG:\t\t%8i %8i %12.4f\n", e_vdw);
     E_vdw += e_vdw;
     e_total += e_vdw;
     // VDW force
@@ -191,6 +192,7 @@ const
   if (useNewMin_) {
     PotentialFunction potential;
     potential.AddTerm( PotentialTerm::BOND );
+    potential.AddTerm( PotentialTerm::SIMPLE_LJ_Q );
     Minimize_SteepestDescent SD;
 
     if (potential.SetupPotential( topIn, maskIn )) return 1;

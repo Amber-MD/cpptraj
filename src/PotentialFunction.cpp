@@ -3,12 +3,14 @@
 #include "Topology.h"
 // ----- All potential terms -----------
 #include "PotentialTerm_Bond.h"
+#include "PotentialTerm_LJ_Coulomb.h"
 
 /** Add a term to the potential function. */
 int PotentialFunction::AddTerm(PotentialTerm::Type typeIn) {
   PotentialTerm* term = 0;
   switch (typeIn) {
     case PotentialTerm::BOND : term = (PotentialTerm*)new PotentialTerm_Bond(); break;
+    case PotentialTerm::SIMPLE_LJ_Q : term = (PotentialTerm*)new PotentialTerm_LJ_Coulomb(); break;
     default :
       mprinterr("Internal Error: No allocator type for potential term.\n");
       return 1;
