@@ -14,6 +14,7 @@ class TopInfo {
     /// CONSTRUCTOR - Take pointer to topology, output to STDOUT
     TopInfo(Topology const*);
     ~TopInfo();
+    void SetNoIntraRes(bool b) { noIntraRes_ = b; }
     int SetupTopInfo(CpptrajFile*, Topology const*, DataSet_Coords*);
     int SetupTopInfo(Topology const* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
 
@@ -54,5 +55,6 @@ class TopInfo {
     int max_type_len_;  ///< Max width of atom type name in topology
     int max_aname_len_; ///< Max width of atom name in topology
     bool toStdout_;
+    bool noIntraRes_;   ///< If true, ignore intra-residue bonds/angles/dihedrals etc
 };
 #endif

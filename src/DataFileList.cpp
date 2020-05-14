@@ -382,6 +382,15 @@ void DataFileList::ResetWriteStatus() {
     (*df)->SetDFLwrite( true );
 }
 
+/** Check all DataFiles for sets in the given DataSetList. For DataFiles
+  * that contain any of these sets, reset their write status.
+  */
+void DataFileList::ResetWriteStatIfContain(std::vector<DataSet*> const& setsIn) {
+  for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    if ( (*df)->ContainsAnyOfSets( setsIn ) )
+      (*df)->SetDFLwrite( true );
+}
+
 // DataFileList::ProcessDataFileArgs()
 /** Process command relating to data files. */
 int DataFileList::ProcessDataFileArgs(ArgList& dataArg) {

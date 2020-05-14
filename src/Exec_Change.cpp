@@ -10,7 +10,8 @@ void Exec_Change::Help() const
           "\t{ resname from <mask> to <value> |\n"
           "\t  chainid of <mask> to <value> |\n"
           "\t  atomname from <mask> to <value> |\n"
-          "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] }\n"
+          "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
+          "\t  removebonds <mask1> [<mask2>] [out <file>]}\n"
           "  Change specified parts of topology or topology of a COORDS data set.\n",
           DataSetList::TopArgs);
 }
@@ -19,7 +20,7 @@ void Exec_Change::Help() const
 Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Change type
-  enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ATOMNAME, ADDBOND };
+  enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ATOMNAME, ADDBOND, REMOVEBONDS };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
@@ -29,6 +30,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     type = ATOMNAME;
   else if (argIn.hasKey("addbond"))
     type = ADDBOND;
+  else if (argIn.hasKey("removebonds"))
+    type = REMOVEBONDS;
   if (type == UNKNOWN) {
     mprinterr("Error: No change type specified.\n");
     return CpptrajState::ERR;
@@ -43,8 +46,11 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
     parm = cset->TopPtr();
-  } else
+    mprintf("\tUsing topology from COORDS set '%s'\n", cset->legend());
+  } else {
     parm = State.DSL().GetTopology( argIn );
+    mprintf("\tUsing topology: %s\n", parm->c_str());
+  }
   if (parm == 0) return CpptrajState::ERR;
   int err = 0;
   switch (type) {
@@ -52,6 +58,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
     case CHAINID  : err = ChangeChainID(*parm, argIn); break;
     case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
     case ADDBOND  : err = AddBond(*parm, argIn); break;
+    case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
     case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
@@ -193,6 +200,75 @@ int Exec_Change::FindBondTypeIdx(Topology const& topIn, BondArray const& bonds,
     
   return bidx;
 }
+
+// Exec_Change::RemoveBonds()
+int Exec_Change::RemoveBonds(CpptrajState& State, Topology& topIn, ArgList& argIn) const {
+  AtomMask mask1, mask2;
+  std::string str1 = argIn.GetMaskNext();
+  if (str1.empty()) {
+    mprinterr("Error: Must specify at least 1 atom mask.\n");
+    return 1;
+  }
+  if (mask1.SetMaskString( str1 )) return 1;
+  if (topIn.SetupIntegerMask( mask1 )) return 1;
+  if (mask1.None()) {
+    mprinterr("Error: %s selects no atoms.\n", str1.c_str());
+    return 1;
+  }
+  std::string str2 = argIn.GetMaskNext();
+  if (!str2.empty()) {
+    if (mask2.SetMaskString( str2 )) return 1;
+    if (topIn.SetupIntegerMask( mask2 )) return 1;
+    if (mask2.None()) {
+      mprinterr("Error: %s selects no atoms.\n", str2.c_str());
+      return 1;
+    }
+  }
+  CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"), "RemovedBonds",
+                                                    DataFileList::TEXT, true);
+  if (outfile == 0) {
+    mprinterr("Internal Error: RemoveBonds could not get an output file.\n");
+    return 1;
+  }
+  const char* prefix = "";
+  if (outfile->IsStream())
+    prefix = "\t\t";
+
+  if (str2.empty()) {
+    mprintf("\tRemoving bonds to atoms selected by %s (%i atoms).\n", 
+            str1.c_str(), mask1.Nselected());
+    for (AtomMask::const_iterator atm = mask1.begin(); atm != mask1.end(); ++atm) {
+      std::string atmStr = topIn.ResNameNumAtomNameNum(*atm);
+      // Make a copy of the atoms bonds array because it will be modified.
+      std::vector<int> atoms = topIn[*atm].BondIdxArray();
+      for (std::vector<int>::const_iterator bnd = atoms.begin(); bnd != atoms.end(); ++bnd)
+      {
+        int ret = topIn.RemoveBond(*atm, *bnd);
+        if (ret == 0)
+          outfile->Printf("%s%s to %s\n", prefix, atmStr.c_str(),
+                          topIn.ResNameNumAtomNameNum(*bnd).c_str());
+      }
+    }
+  } else {
+    mprintf("\tRemoving any bonds between atoms selected by %s (%i atoms)\n"
+            "\tand %s (%i atoms).\n", str1.c_str(), mask1.Nselected(),
+            str2.c_str(), mask2.Nselected());
+    for (AtomMask::const_iterator atm1 = mask1.begin(); atm1 != mask1.end(); ++atm1) {
+      std::string atmStr = topIn.ResNameNumAtomNameNum(*atm1);
+      for (AtomMask::const_iterator atm2 = mask2.begin(); atm2 != mask2.end(); ++atm2) {
+        int ret = topIn.RemoveBond(*atm1, *atm2);
+        if (ret == 0)
+          outfile->Printf("%s%s to %s\n", prefix,atmStr.c_str(),
+                          topIn.ResNameNumAtomNameNum(*atm2).c_str());
+      }
+    }
+  }
+  // Since molecule info has likely changed, re-determine
+  topIn.DetermineMolecules();
+
+  return 0;
+}
+  
 
 // Exec_Change::AddBond()
 int Exec_Change::AddBond(Topology& topIn, ArgList& argIn) const {

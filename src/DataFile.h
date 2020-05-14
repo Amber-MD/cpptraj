@@ -62,6 +62,8 @@ class DataFile {
     int AddDataSet(DataSet*);
     /// Remove a set from the DataFile.
     int RemoveDataSet(DataSet*);
+    /// \return True if this DataFile contains any of the sets in given DataSetList
+    bool ContainsAnyOfSets(std::vector<DataSet*> const&) const;
     /// Process DataFile-related arguments
     int ProcessArgs(ArgList&);
     int ProcessArgs(std::string const&); // TODO: Determine where this is used

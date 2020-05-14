@@ -169,6 +169,18 @@ std::string Topology::TruncResAtomNameNum(int atom) const {
   return TruncResAtomName(atom) + "_" + integerToString(atom+1);
 }
 
+/** Given an atom number, return a string containing the corresponding
+  * residue name and number, and atom name and number, all separated
+  * by spaces:
+  * "<resname> <resnum> <atom name> <atom num>
+  */
+std::string Topology::ResNameNumAtomNameNum(int atom) const {
+  if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
+  int res = atoms_[atom].ResNum();
+  return residues_[res].Name().Truncated() + " " + integerToString(res+1) + " " +
+         atoms_[atom].Name().Truncated() + " " + integerToString(atom+1);
+}
+
 // Topology::AtomMaskName()
 /** \return A string of format :r@a where r is atoms residue number and
   *         a is atoms name.
@@ -182,6 +194,10 @@ std::string Topology::AtomMaskName(int atom) const {
   return maskName;
 }
 
+/** Given an atom number, return a string containing atom name and
+  * number with format:
+  * "<atomname>_<atomnum>"
+  */
 std::string Topology::TruncAtomNameNum(int atom) const {
   if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
   std::string atom_name = atoms_[atom].Name().Truncated();
@@ -287,9 +303,6 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
        ( residues_.back().OriginalResNum() == resIn.OriginalResNum() &&
          residues_.back().Name() != resIn.Name() ) )
   {
-    // Last atom of old residue is == current # atoms.
-    if (!residues_.empty())
-      residues_.back().SetLastAtom( atoms_.size() );
     // First atom of new residue is == current # atoms.
     residues_.push_back( resIn );
     residues_.back().SetFirstAtom( atoms_.size() );
@@ -598,6 +611,56 @@ static inline int WarnOutOfRange(int Natom, int atom, const char* type) {
   }
   return 0;
 }
+
+/** Remove a bond between atom 1 and atom2, update the atoms array.
+  * Does not modify bond parameters.
+  * \return 0 if a bond was successfully removed, -1 if no bond exists, and 1 if an error occurs.
+  */
+int Topology::RemoveBond(int atom1, int atom2)
+{
+  // Check if atoms are out of range.
+  if (WarnOutOfRange(atoms_.size(), atom1, "bond")) return 1;
+  if (WarnOutOfRange(atoms_.size(), atom2, "bond")) return 1;
+  // Ensure the bond exists.
+  bool exists = false;
+  for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
+                           ba != atoms_[atom1].bondend(); ++ba)
+    if ( *ba == atom2 ) {
+      exists = true;
+      break;
+    }
+  if (!exists) {
+    mprintf("Warning: No bond exists between atoms %i and %i\n", atom1+1, atom2+1);
+    return -1;
+  }
+  bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
+  bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
+  BondArray* tgtArray;
+  if (a1H || a2H)
+    tgtArray = &bondsh_;
+  else
+    tgtArray = &bonds_;
+  // Search the array.
+  BondArray::iterator bnd = tgtArray->begin();
+  for (; bnd != tgtArray->end(); ++bnd) {
+    if (atom1 == bnd->A1()) {
+      if (atom2 == bnd->A2()) break;
+    }
+    if (atom2 == bnd->A1()) {
+      if (atom1 == bnd->A2()) break;
+    }
+  }
+  // Sanity check
+  if (bnd == tgtArray->end()) {
+    mprinterr("Internal Error: Bond %i %i not found in internal bond array.\n", atom1+1, atom2+1);
+    return 1;
+  }
+  tgtArray->erase( bnd );
+  atoms_[atom1].RemoveBondToIdx( atom2 );
+  atoms_[atom2].RemoveBondToIdx( atom1 );
+  return 0;
+}
+
 
 // Topology::AddBond()
 /** Create a bond between atom1 and atom2, update the atoms array.

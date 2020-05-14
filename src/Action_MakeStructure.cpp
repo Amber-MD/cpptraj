@@ -6,7 +6,11 @@
 #include "StringRoutines.h" // convertToDouble, convertToInteger
 
 // CONSTRUCTOR
-Action_MakeStructure::Action_MakeStructure() : debug_(0) {
+Action_MakeStructure::Action_MakeStructure() :
+  CurrentParm_(0),
+  debug_(0),
+  foundDihOut_(0)
+{
   // Initially known structure types. 
   SS.push_back(SS_TYPE(  -57.8,  -47.0,    0.0,   0.0, 0, "alpha"    ));
   SS.push_back(SS_TYPE(   57.8,   47.0,    0.0,   0.0, 0, "left"     ));
@@ -34,6 +38,7 @@ int Action_MakeStructure::FindSStype(std::string const& typeIn)
   return SS_EMPTY;
 } 
 
+// Action_MakeStructure::Help()
 void Action_MakeStructure::Help() const {
   mprintf("\t<List of Args>\n"
           "  Apply dihedrals to specified residues using arguments found in <List of Args>,\n"
@@ -55,7 +60,7 @@ void Action_MakeStructure::Help() const {
           "\t5) '<custom dih name>:<res range>:<at0>:<at1>:<at2>:<at3>:<angle>[:<offset>]'\n"
           "\t  Apply <angle> to dihedral defined by atoms <at1>, <at2>, <at3>, and <at4>.\n");
   DihedralSearch::OffsetHelp();
-  mprintf("\t6) 'ref:<range>:<refname>[:<ref range>[:<dih types>]]'\n"
+  mprintf("\t6) 'ref:<range>:<refname>[:<ref range>[:<dih types>]] [refvalsout <file>] [founddihout <file>]'\n"
           "\t  Apply dihedrals from reference <refname> to residues in range <range>.\n"
           "\t  If <ref range> is specified, use those residues from reference. The\n"
           "\t  dihedral types to be used can be specified in a comma-separated list;\n"
@@ -70,7 +75,13 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
 {
   debug_ = debugIn;
   secstruct_.clear();
-  // Get all arguments 
+  CpptrajFile* refvalsout = init.DFL().AddCpptrajFile( actionArgs.GetStringKey("refvalsout"),
+                                                       "Ref dihedral types/values",
+                                                       DataFileList::TEXT );
+  foundDihOut_ = init.DFL().AddCpptrajFile( actionArgs.GetStringKey("founddihout"),
+                                            "Found dihedrals",
+                                            DataFileList::TEXT );
+  // Get all makestructure arguments 
   std::string ss_expr = actionArgs.GetStringNext();
   while ( !ss_expr.empty() ) {
     ArgList ss_arg(ss_expr, ":");
@@ -152,6 +163,9 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init
         if (debug_ > 0)
           mprintf("\t    Res %i %s = %g\n", dih->ResNum()+1, dih->Name().c_str(),
                   torsion*Constants::RADDEG);
+        if (refvalsout != 0)
+          refvalsout->Printf("Res %i %s = %g\n", dih->ResNum()+1, dih->Name().c_str(),
+                             torsion*Constants::RADDEG);
       }
       secstruct_.push_back( ss_holder );
 
@@ -377,7 +391,13 @@ Action::RetType Action_MakeStructure::Setup(ActionSetup& setup) {
       for (DihedralSearch::mask_it dih = ss->dihSearch_.begin();
                                    dih != ss->dihSearch_.end(); ++dih)
       {
-        mprintf("\tDihedral in residue %i = %f\n", dih->ResNum()+1, *(theta++)*Constants::RADDEG);
+        if (foundDihOut_ != 0) {
+          mprintf("\tFound dihedrals being written to '%s'\n", foundDihOut_->Filename().full());
+          foundDihOut_->Printf("\tDihedral %s in residue %i = %f\n",
+                               dih->Name().c_str(), dih->ResNum()+1, *(theta++)*Constants::RADDEG);
+          } else
+            mprintf("\tDihedral %s in residue %i = %f\n",
+                    dih->Name().c_str(), dih->ResNum()+1, *(theta++)*Constants::RADDEG);
         ss->Rmasks_.push_back( DihedralSearch::MovingAtoms(setup.Top(),
                                  dih->A1(), dih->A2()) );
       }

@@ -36,7 +36,9 @@ Traj_PDBfile::Traj_PDBfile() :
   occdata_(0),
   adpdata_(0),
   bfacmax_(99.99),
-  occmax_(99.99)
+  occmax_(99.99),
+  bfacdefault_(0),
+  occdefault_(-1)
 {}
 
 //------------------------------------------------------------------------
@@ -181,34 +183,36 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 }
 
 void Traj_PDBfile::WriteHelp() {
-  mprintf("\tdumpq          : Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
-          "\tparse          : Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
-          "\tvdw            : Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
-          "\tpdbres         : Use PDB V3 residue names.\n"
-          "\tpdbatom        : Use PDB V3 atom names.\n"
-          "\tpdbv3          : Use PDB V3 residue/atom names.\n"
-          "\ttopresnum      : Use topology residue numbers; otherwise use original residue numbers.\n"
-          "\tteradvance     : Increment record (atom) # for TER records (default no).\n"
-          "\tterbyres       : Print TER cards based on residue sequence instead of molecules.\n"
-          "\tpdbter         : Print TER cards according to original PDB TER (if available).\n"
-          "\tnoter          : Do not write TER cards.\n"
-          "\tmodel          : Write to single file separated by MODEL records.\n"
-          "\tmulti          : Write each frame to separate files.\n"
-          "\tchainid <c>    : Write character 'c' in chain ID column.\n"
-          "\tsg <group>     : Space group for CRYST1 record, only if box coordinates written.\n"
-          "\tinclude_ep     : Include extra points.\n"
-          "\tconect         : Write CONECT records using bond information.\n"
-          "\tkeepext        : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
-          "\tusecol21       : Use column 21 for 4-letter residue names.\n"
-          "\tbfacdata <set> : Use data in <set> for B-factor column.\n"
-          "\toccdata <set>  : Use data in <set> for occupancy column.\n"
-          "\tbfacbyres      : If specified assume X values in B-factor data set are residue numbers.\n"
-          "\toccbyres       : If specified assume X values in occupancy data set are residue numbers.\n"
-          "\tbfacscale      : If specified scale values in B-factor column between 0 and <bfacmax>.\n"
-          "\toccscale       : If specified scale values in occupancy column between 0 and <occmax>.\n"
-          "\tbfacmax <max>  : Max value for bfacscale.\n"
-          "\toccmax <max>   : Max value for occscale.\n"
-          "\tadpdata <set>  : Use data in <set> for anisotropic B-factors.\n"
+  mprintf("\tdumpq           : Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
+          "\tparse           : Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
+          "\tvdw             : Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
+          "\tpdbres          : Use PDB V3 residue names.\n"
+          "\tpdbatom         : Use PDB V3 atom names.\n"
+          "\tpdbv3           : Use PDB V3 residue/atom names.\n"
+          "\ttopresnum       : Use topology residue numbers; otherwise use original residue numbers.\n"
+          "\tteradvance      : Increment record (atom) # for TER records (default no).\n"
+          "\tterbyres        : Print TER cards based on residue sequence instead of molecules.\n"
+          "\tpdbter          : Print TER cards according to original PDB TER (if available).\n"
+          "\tnoter           : Do not write TER cards.\n"
+          "\tmodel           : Write to single file separated by MODEL records.\n"
+          "\tmulti           : Write each frame to separate files.\n"
+          "\tchainid <c>     : Write character 'c' in chain ID column.\n"
+          "\tsg <group>      : Space group for CRYST1 record, only if box coordinates written.\n"
+          "\tinclude_ep      : Include extra points.\n"
+          "\tconect          : Write CONECT records using bond information.\n"
+          "\tkeepext         : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
+          "\tusecol21        : Use column 21 for 4-letter residue names.\n"
+          "\tbfacdefault <#> : Default value to use in B-factor column (default 0).\n"
+          "\toccdefault <#>  : Default value to use in occupancy column (default 1).\n"
+          "\tbfacdata <set>  : Use data in <set> for B-factor column.\n"
+          "\toccdata <set>   : Use data in <set> for occupancy column.\n"
+          "\tbfacbyres       : If specified assume X values in B-factor data set are residue numbers.\n"
+          "\toccbyres        : If specified assume X values in occupancy data set are residue numbers.\n"
+          "\tbfacscale       : If specified scale values in B-factor column between 0 and <bfacmax>.\n"
+          "\toccscale        : If specified scale values in occupancy column between 0 and <occmax>.\n"
+          "\tbfacmax <max>   : Max value for bfacscale.\n"
+          "\toccmax <max>    : Max value for occscale.\n"
+          "\tadpdata <set>   : Use data in <set> for anisotropic B-factors.\n"
   );
 }
 
@@ -291,6 +295,8 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   if (bfacscale_) bfacmax_ = argIn.getKeyDouble("bfacmax", 99.99);
   occscale_  = argIn.hasKey("occscale");
   if (occscale_) occmax_ = argIn.getKeyDouble("occmax", 99.99);
+  bfacdefault_ = argIn.getKeyDouble("bfacdefault", 0.0);
+  occdefault_ = argIn.getKeyDouble("occdefault", -1.0);
   temp = argIn.GetStringKey("adpdata");
   if (!temp.empty()) {
     adpdata_ = DSLin.GetDataSet( temp );
@@ -336,10 +342,11 @@ const
 }
 
 /** Assign data to specified output array using given input array. */
-int Traj_PDBfile::AssignData(Darray& DataOut, DataSet* dataIn, Topology const& topIn, bool byres, const char* desc)
+int Traj_PDBfile::AssignData(Darray& DataOut, DataSet* dataIn, Topology const& topIn,
+                             bool byres, const char* desc, double defval)
 const
 {
-  DataOut.assign(topIn.Natom(), 0);
+  DataOut.assign(topIn.Natom(), defval);
   if ( dataIn->Size() < 1) {
     mprinterr("Error: '%s' set '%s' is empty.\n", desc, dataIn->legend());
     return 1;
@@ -672,7 +679,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   Bfactors_.clear();
   if (bfacdata_ != 0) {
-    if (AssignData(Bfactors_, bfacdata_, *trajParm, bfacbyres_, "bfacdata")) return 1;
+    if (AssignData(Bfactors_, bfacdata_, *trajParm, bfacbyres_, "bfacdata", bfacdefault_)) return 1;
   } else if (dumpq_) {
     Bfactors_.reserve( trajParm->Natom() );
     // Set up radii
@@ -686,13 +693,17 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   Occupancy_.clear();
   if (occdata_ != 0) {
-    if (AssignData(Occupancy_, occdata_, *trajParm, occbyres_, "occdata")) return 1;
+    // For backwards compatibility, if no default occupancy make it 0 for data
+    if (occdefault_ < 0) occdefault_ = 0;
+    if (AssignData(Occupancy_, occdata_, *trajParm, occbyres_, "occdata", occdefault_)) return 1;
   } else if (dumpq_) {
     Occupancy_.reserve( trajParm->Natom() );
     // Set up charges
     for (Topology::atom_iterator atm = trajParm->begin(); atm != trajParm->end(); ++atm)
       Occupancy_.push_back( atm->Charge() );
   }
+  // If no default occupancy set it to 1
+  if (occdefault_ < 0) occdefault_ = 1.0;
   if (bfacscale_) ScaleData(Bfactors_, 0.0, bfacmax_);
   if (occscale_ ) ScaleData(Occupancy_, 0.0, occmax_);
   // If not including extra points, warn if topology has them.
@@ -768,8 +779,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     file_.WriteMODEL(set + 1); 
 
   unsigned int adpidx = 0; // Index into adpout_
-  float Occ  = 1.0; 
-  float Bfac = 0.0;
+  float Occ  = (float)occdefault_;
+  float Bfac = (float)bfacdefault_;
   char altLoc = ' ';
   int anum = 1; // Actual PDB ATOM record number
   const double *Xptr = frameOut.xAddress();

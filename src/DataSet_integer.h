@@ -22,6 +22,7 @@ class DataSet_integer : public DataSet_1D {
 #   endif
     // ----- DataSet_1D functions ----------------
     double Xcrd(size_t idx)     const { return Dim(0).Coord(idx);  }
+    void SetY(size_t idx, double y) { SetElement(idx, (int)y); }
     // -------------------------------------------
     //typedef std::vector<int>::iterator iterator;
     //iterator begin()                  { return Data_.begin();      }

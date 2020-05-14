@@ -230,6 +230,7 @@ COMMON_SOURCES= \
         DihedralSearch.cpp \
         DistRoutines.cpp \
         Energy.cpp \
+        EnergyArray.cpp \
         EnsembleIn.cpp \
         EnsembleIn_Multi.cpp \
         EnsembleIn_Single.cpp \
@@ -255,6 +256,7 @@ COMMON_SOURCES= \
         Exec_DataFile.cpp \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
+        Exec_Emin.cpp \
         Exec_GenerateAmberRst.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
@@ -266,6 +268,7 @@ COMMON_SOURCES= \
         Exec_ParmWrite.cpp \
         Exec_PermuteDihedrals.cpp \
         Exec_Precision.cpp \
+        Exec_PrepareForLeap.cpp \
         Exec_PrintData.cpp \
         Exec_ReadData.cpp \
         Exec_ReadEnsembleData.cpp \
@@ -311,6 +314,7 @@ COMMON_SOURCES= \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MetaData.cpp \
+        Minimize_SteepestDescent.cpp \
         Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \
@@ -332,6 +336,8 @@ COMMON_SOURCES= \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
+        PotentialFunction.cpp \
+        PotentialTerm_Bond.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
