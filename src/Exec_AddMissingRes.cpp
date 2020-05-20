@@ -466,37 +466,6 @@ const
 }
 
 
-/// Placeholder for Residues
-class Pres {
-  public:
-    Pres() : oresnum_(0), tresnum_(-1), chain_(' ') {}
-    /// CONSTRUCTOR - Take Residue
-    Pres(Residue const& res, int resnum) :
-      name_(res.Name()), oresnum_(res.OriginalResNum()), tresnum_(resnum), chain_(res.ChainID())
-      {}
-    /// CONSTRUCTOR - Take name, number, chain
-    Pres(std::string const& name, int rnum, char chain) :
-      name_(name), oresnum_(rnum), tresnum_(-1), chain_(chain)
-      {}
-    /// First sort by chain, then by original residue number
-    bool operator<(const Pres& rhs) const {
-      if (chain_ == rhs.chain_)
-        return (oresnum_ < rhs.oresnum_);
-      else
-        return (chain_ < rhs.chain_);
-    }
-
-    NameType const& Name() const { return name_; }
-    int OriginalResNum()   const { return oresnum_; }
-    int TopResNum()        const { return tresnum_; }
-    char ChainID()         const { return chain_; }
-  private:
-    NameType name_;
-    int oresnum_;   ///< Original (PDB) residue number.
-    int tresnum_;   ///< Topology residue index; -1 if it was missing.
-    char chain_;    ///< Original (PDB) chain ID.
-};
-
 /** Try to generate linear coords beteween idx0 and idx1. */
 void Exec_AddMissingRes::GenerateLinearGapCoords(int idx0, int idx1, Frame& frm)
 {
@@ -873,6 +842,36 @@ const
   return 0;
 }
 
+/// Placeholder for Residues
+class Pres {
+  public:
+    Pres() : oresnum_(0), tresnum_(-1), chain_(' ') {}
+    /// CONSTRUCTOR - Take Residue
+    Pres(Residue const& res, int resnum) :
+      name_(res.Name()), oresnum_(res.OriginalResNum()), tresnum_(resnum), chain_(res.ChainID())
+      {}
+    /// CONSTRUCTOR - Take name, number, chain
+    Pres(std::string const& name, int rnum, char chain) :
+      name_(name), oresnum_(rnum), tresnum_(-1), chain_(chain)
+      {}
+    /// First sort by chain, then by original residue number
+    bool operator<(const Pres& rhs) const {
+      if (chain_ == rhs.chain_)
+        return (oresnum_ < rhs.oresnum_);
+      else
+        return (chain_ < rhs.chain_);
+    }
+
+    NameType const& Name() const { return name_; }
+    int OriginalResNum()   const { return oresnum_; }
+    int TopResNum()        const { return tresnum_; }
+    char ChainID()         const { return chain_; }
+  private:
+    NameType name_;
+    int oresnum_;   ///< Original (PDB) residue number.
+    int tresnum_;   ///< Topology residue index; -1 if it was missing.
+    char chain_;    ///< Original (PDB) chain ID.
+};
 
 /** Try to add in missing residues. */
 int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
