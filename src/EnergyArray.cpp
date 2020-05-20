@@ -7,7 +7,7 @@ EnergyArray::EnergyArray() :
 {}
 
 /** Energy term labels. Keep in sync with Type. */
-const char* EnergyArray::TypeStr_[] = { "Bond", "VDW", "Elec", 0 };
+const char* EnergyArray::TypeStr_[] = { "Bond", "Angle", "VDW", "Elec", 0 };
 
 const char* EnergyArray::label(Type t) const {
   return TypeStr_[(int)t];
