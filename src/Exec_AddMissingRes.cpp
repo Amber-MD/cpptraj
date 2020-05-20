@@ -38,7 +38,7 @@ const
       if (line.Nargs() > 2) {
         if (inMissing == 0) {
           // MISSING section not yet encountered.
-          if (line[0] == "REMARK" && line[2] == "MISSING") {
+          if (line[0] == "REMARK" && line[1] == "465" && line[2] == "MISSING" && line[3] == "RESIDUES") {
             inMissing = 1;
           }
         } else if (inMissing == 1) {
@@ -63,9 +63,11 @@ const
             lastchain = Gaps.back().Chain();
             firstGap = false;
           } else {
-            currentname = line[2];
-            currentres = atoi(line[4].c_str());
-            currentchain = line[3];
+            if (!atTheEnd) {
+              currentname = line[2];
+              currentres = atoi(line[4].c_str());
+              currentchain = line[3];
+            }
             if (atTheEnd || currentres - lastres > 1 || currentchain != lastchain) {
               // New sequence starting or end. Finish current.
               Gaps.back().SetStopRes(lastres);
@@ -76,6 +78,7 @@ const
                       Gaps.back().LastName().c_str(), Gaps.back().StopRes(),
                       Gaps.back().Nres());*/
               if (atTheEnd) {
+                //mprinterr("END REACHED.\n"); // DEBUG
                 break;
               }
               Gaps.push_back( Gap(currentres, currentchain) );
