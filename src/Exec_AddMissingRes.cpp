@@ -941,9 +941,6 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
     }
   }
   mprintf("\t%i atoms present, %i residues missing.\n", nAtomsPresent, nResMissing);
-  mprintf("DEBUG: %6s %6s\n", "TopRes", "NewRes");
-  for (unsigned int t = 0; t != topResNumToNew.size(); t++)
-    mprintf("       %6i %6i\n", t+1, topResNumToNew[t]+1);
 
   // Create new Frame
   Frame newFrame(nAtomsPresent + nResMissing);
@@ -1005,6 +1002,17 @@ int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
       }
     }
   } // END loop over all residues
+
+  mprintf("DEBUG: %4s %6s %4s %6s\n", "T", "TopRes", "N", "NewRes");
+  for (unsigned int t = 0; t != topResNumToNew.size(); t++) {
+    mprintf("       %4s %6i %4s %6i\n", *(topIn.Res(t).Name()), t+1,
+                                         *(newTop.Res(topResNumToNew[t]).Name()), topResNumToNew[t]+1);
+    if (topIn.Res(t).Name() != newTop.Res(topResNumToNew[t]).Name()) {
+      mprintf("Warning: Name mismatch.\n");
+    }
+  }
+
+
   // Try to determine which frames are terminal so pdbter works since
   // we wont be able to determine molecules by bonds.
   for (int ridx = 0; ridx != newTop.Nres(); ridx++)
