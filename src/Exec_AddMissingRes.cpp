@@ -6,6 +6,7 @@
 #include "DataSet_Coords_CRD.h"
 #include "ParmFile.h"
 #include "Trajin_Single.h"
+#include "Trajout_Single.h"
 #include <cstring>
 #include <algorithm>
 #include <list>
@@ -113,6 +114,21 @@ const
   if (Gaps.empty()) {
     mprintf("Warning: No gaps found.\n");
   }
+  return 0;
+}
+
+/** Write topology and frame to pdb. */
+int Exec_AddMissingRes::WriteStructure(std::string const& fname, Topology* newTop, Frame const& newFrame,
+                                       TrajectoryFile::TrajFormatType typeOut)
+const
+{
+  Trajout_Single trajOut;
+  if (trajOut.InitTrajWrite(fname, ArgList("pdbter"), DataSetList(), typeOut))
+    return 1;
+  if (trajOut.SetupTrajWrite(newTop, CoordinateInfo(), 1))
+    return 1;
+  if (trajOut.WriteSingle(0, newFrame)) return 1;
+  trajOut.EndTraj();
   return 0;
 }
 
@@ -271,6 +287,23 @@ const
       }
     }
   } // END loop over all residues
+
+  // Try to determine which frames are terminal so pdbter works since
+  // we wont be able to determine molecules by bonds.
+  for (int ridx = 0; ridx != newTop.Nres(); ridx++)
+  {
+    if (ridx + 1 == newTop.Nres() ||
+        newTop.Res(ridx).ChainID() != newTop.Res(ridx+1).ChainID())
+      newTop.SetRes(ridx).SetTerminal(true);
+  }
+  // Finish new top and write
+  newTop.SetParmName("newpdb", "temp.pdb");
+  newTop.CommonSetup( false ); // No molecule search
+  newTop.Summary();
+  if (WriteStructure("temp.pdb", &newTop, newFrame, TrajectoryFile::PDBFILE)) {
+    mprinterr("Error: Write of temp.pdb failed.\n");
+    return 1;
+  }
 
 
   return 0;
