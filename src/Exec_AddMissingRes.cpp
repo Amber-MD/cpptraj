@@ -239,8 +239,11 @@ const
   Frame CAframe;
   // Mask for missing CA atoms
   CharMask CAmissing;
+  // Map original residue index to new residue index
+  Iarray originalIdxToNew;
   // Loop over all residues
-  for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
+  int newResNum = 0;
+  for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it, ++newResNum)
   {
     if (it->Tnum() < 0) {
       // This was a missing residue
@@ -253,6 +256,7 @@ const
       CAframe.AddVec3( Zero );
       CAmissing.AddAtom(true);
     } else {
+      originalIdxToNew.push_back( newResNum );
       // This residue is present in the original PDB
       Residue const& topres = topIn.Res(it->Tnum());
       Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainID());
@@ -302,6 +306,54 @@ const
   newTop.Summary();
   if (WriteStructure("temp.pdb", &newTop, newFrame, TrajectoryFile::PDBFILE)) {
     mprinterr("Error: Write of temp.pdb failed.\n");
+    return 1;
+  }
+
+  // Determine pseudo-bonds for CA topology
+  BondParmType CAbond(300.0, 3.8);
+  int ridx = 0; // Residue index for new/CA topology
+  for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it, ++ridx)
+  {
+    if (it->Tnum() < 0) {
+      // This was a missing residue. Bond it to the previous/next residue.
+      int pidx = ridx - 1;
+      if (pidx > 0)
+        CAtop.AddBond(pidx, ridx, CAbond);
+      int nidx = ridx + 1;
+      if (nidx < CAtop.Nres())
+        CAtop.AddBond(ridx, nidx, CAbond);
+    } else {
+      // Check which residues this was originally bonded to
+      //mprintf("New index %i original index %i originally bonded to", ridx, it->Tnum());
+      Residue const& ores = topIn.Res(it->Tnum());
+      //std::set<int> bondedRes;
+      for (int at = ores.FirstAtom(); at != ores.LastAtom(); ++at)
+      {
+        for (Atom::bond_iterator bat = topIn[at].bondbegin();
+                                 bat != topIn[at].bondend(); ++bat)
+        {
+          if (topIn[*bat].ResNum() != it->Tnum()) {
+            //mprintf(" %i", topIn[*bat].ResNum());
+            CAtop.AddBond(ridx, originalIdxToNew[topIn[*bat].ResNum()]);
+          }
+        }
+      }
+      //mprintf("\n");
+    }
+  }
+  // Add pseudo parameters for the "CA" atom type (0)
+  LJparmType CAtype(3.8, 10.0);
+  NonbondType AB = CAtype.Combine_LB( CAtype );
+  CAtop.SetNonbond().SetupLJforNtypes(1);
+  CAtop.SetNonbond().AddLJterm(0, 0, AB);
+  mprintf("DEBUG: LJ radius= %g\n", CAtop.GetVDWradius(0));
+  // Final setup
+  CAtop.SetParmName("capdb", "temp.ca.mol2");
+  CAtop.CommonSetup(true, 2); // molecule search, exclude bonds
+  CAtop.Summary();
+  // Write CA top
+  if (WriteStructure("temp.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
+    mprinterr("Error: Write of temp.ca.mol2 failed.\n");
     return 1;
   }
 
