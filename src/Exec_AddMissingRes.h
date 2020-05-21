@@ -32,7 +32,7 @@ class Exec_AddMissingRes : public Exec {
     int AssignCoordsBySearch(Topology const&, Frame const&, Topology const&, Frame&,
                              Garray const&, CharMask const&) const;
 
-    int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&);
+    int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&) const;
 
     int debug_;     ///< Debug level
     int nMinSteps_; ///< Number of minimization steps.

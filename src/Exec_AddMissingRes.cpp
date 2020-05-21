@@ -7,8 +7,11 @@
 #include "Trajin_Single.h"
 #include <cstring>
 #include <algorithm>
+#include <list>
 
-/** Get gap info from PDB */
+/** Get missing residues from PDB, organize them into "gaps", i.e.
+  * contiguous sequences.
+  */
 int Exec_AddMissingRes::FindGaps(Garray& Gaps, CpptrajFile& outfile, std::string const& pdbname)
 const
 {
@@ -112,6 +115,53 @@ const
   return 0;
 }
 
+/** Try to add in missing residues.
+  * \param dataOut Output COORDS set with missing residues added in.
+  * \param topIn Input Topology that is missing residues.
+  * \param frameIn Input Frame that is missing residues.
+  * \param Gaps Array containing info on missing residues.
+  */
+int Exec_AddMissingRes::AddMissingResidues(DataSet_Coords_CRD* dataOut,
+                                           Topology const& topIn,
+                                           Frame const& frameIn,
+                                           Garray const& Gaps)
+const
+{
+  // Use a list to preserve original topology order and make insertion easy.
+  typedef std::list<Pres> ResList;
+  ResList AllResidues;
+  // First create a list that contains all existing residues.
+  for (int rnum = 0; rnum != topIn.Nres(); ++rnum) {
+    Residue const& Res = topIn.Res(rnum);
+    AllResidues.push_back( Pres(Res.Name().Truncated(), Res.OriginalResNum(), rnum,
+                                Res.Icode(), Res.ChainID()) );
+  }
+  // Sanity check
+  if (AllResidues.empty()) {
+    mprinterr("Error: No residues in input PDB.\n");
+    return 1;
+  }
+  // Next, loop over gaps, add missing residues.
+  ResList::iterator resPtr = AllResidues.begin();
+  for (Garray::const_iterator gap = Gaps.begin(); gap != Gaps.end(); ++gap)
+  {
+    Pres const& gapRes0 = gap->front();
+    mprintf("\tAttempting to insert gap %c %s %i to %s %i:\n", gapRes0.Chain(),
+            gapRes0.Name().c_str(), gapRes0.Onum(),
+            gap->back().Name().c_str(), gap->back().Onum());
+    // Search until we find the correct chain
+    while (resPtr->Chain() != gapRes0.Chain() && resPtr != AllResidues.end()) ++resPtr;
+    if (resPtr == AllResidues.end()) {
+      mprinterr("Error: Chain %c not found\n", gapRes0.Chain());
+      return 1;
+    }
+    mprintf("\t  Chain %c found: %s %i\n", gapRes0.Chain(),
+            resPtr->Name().c_str(), resPtr->Onum());
+  }
+
+  return 0;
+}
+
 // Exec_AddMissingRes::Help()
 void Exec_AddMissingRes::Help() const
 {
@@ -206,12 +256,12 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   }
   trajIn.GetNextFrame(frameIn);
   trajIn.EndTraj();
-/*
+
   // Try to add in missing residues
   if (AddMissingResidues(dataOut, topIn, frameIn, Gaps)) {
     mprinterr("Error: Attempt to add missing residues failed.\n");
     return CpptrajState::ERR;
   }
-*/
+
   return CpptrajState::OK;
 }

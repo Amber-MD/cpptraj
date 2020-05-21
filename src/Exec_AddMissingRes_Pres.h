@@ -8,6 +8,9 @@ class Exec_AddMissingRes::Pres {
     /// CONSTRUCTOR - name, original num, icode, chain
     Pres(std::string const& n, int o, char i, char c) :
       name_(n), oNum_(o), tNum_(-1), icode_(i), chain_(c) {}
+    /// CONSTRUCTOR - name, original num, top num, icode, chain
+    Pres(std::string const& n, int o, int t, char i, char c) :
+      name_(n), oNum_(o), tNum_(t), icode_(i), chain_(c) {}
 
     std::string const& Name() const { return name_; }
     int Onum()                const { return oNum_; }
