@@ -7,15 +7,17 @@ class DataSet_Coords_CRD;
 /// Attempt to add missing residues in a PDB 
 class Exec_AddMissingRes : public Exec {
   public:
-    Exec_AddMissingRes() : Exec(GENERAL), debug_(0), nMinSteps_(0), optimize_(true), useNewMin_(false) {}
+    Exec_AddMissingRes() : Exec(GENERAL), debug_(0), nMinSteps_(0), optimize_(true) {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_AddMissingRes(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
     typedef std::vector<std::string> Sarray;
-    // Forward declaration of Gap class
-    class Gap;
-    typedef std::vector<Gap> Garray;
+    // Forward declaration of Pres class
+    class Pres;
+    typedef std::vector<Pres> ResArray;
+    /// Hold "gaps"
+    typedef std::vector<ResArray> Garray;
     typedef std::vector<int> Iarray;
 
     int FindGaps(Garray&, CpptrajFile&, std::string const&) const;
@@ -32,43 +34,8 @@ class Exec_AddMissingRes : public Exec {
 
     int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&);
 
-    int debug_;
+    int debug_;     ///< Debug level
     int nMinSteps_; ///< Number of minimization steps.
-    bool optimize_; ///< if true, try to optimize coordinates.
-    bool useNewMin_;
+    bool optimize_; ///< If true, try to optimize coordinates.
 };
-
-// ----- Gap class -------------------------------------------------------------
-/// Record a gap in PDB
-class Exec_AddMissingRes::Gap {
-  public:
-    Gap() {}
-    /// Start gap with res name, res num, and chain
-    Gap(std::string const& startNameIn, int startResIn, std::string const& startChainIn) :
-      resNames_(1, startNameIn), startRes_(startResIn), stopRes_(-1), chainId_(startChainIn[0])
-      {}
-    /// Start gap with res num and chain
-    Gap(int startResIn, std::string const& startChainIn) :
-      startRes_(startResIn), stopRes_(-1), chainId_(startChainIn[0])
-      {}
-
-    std::string const& FirstName() const { return resNames_.front(); }
-    std::string const& LastName()  const { return resNames_.back(); }
-    int StartRes()                 const { return startRes_; }
-    int StopRes()                  const { return stopRes_; }
-    char Chain()                   const { return chainId_; }
-    unsigned int Nres()            const { return resNames_.size(); }
-    typedef Sarray::const_iterator name_iterator;
-    name_iterator nameBegin()      const { return resNames_.begin(); }
-    name_iterator nameEnd()        const { return resNames_.end(); }
-
-    void SetStopRes(int s) { stopRes_ = s; }
-    void AddGapRes(std::string const& r) { resNames_.push_back( r ); }
-  private:
-    Sarray resNames_; ///< Residue names in the Gap
-    int startRes_;    ///< pdb start residue number for the gap 
-    int stopRes_;     ///< pdb stop residue number for the gap
-    char chainId_;    ///< chain ID of the gap
-};
-
 #endif
