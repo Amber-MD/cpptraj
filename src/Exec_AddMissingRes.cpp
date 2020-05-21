@@ -146,17 +146,43 @@ const
   for (Garray::const_iterator gap = Gaps.begin(); gap != Gaps.end(); ++gap)
   {
     Pres const& gapRes0 = gap->front();
+    Pres const& gapRes1 = gap->back();
     mprintf("\tAttempting to insert gap %c %s %i to %s %i:\n", gapRes0.Chain(),
             gapRes0.Name().c_str(), gapRes0.Onum(),
-            gap->back().Name().c_str(), gap->back().Onum());
+            gapRes1.Name().c_str(), gapRes1.Onum());
     // Search until we find the correct chain
-    while (resPtr->Chain() != gapRes0.Chain() && resPtr != AllResidues.end()) ++resPtr;
+    while (resPtr != AllResidues.end() && resPtr->Chain() != gapRes0.Chain())
+      ++resPtr;
     if (resPtr == AllResidues.end()) {
       mprinterr("Error: Chain %c not found\n", gapRes0.Chain());
       return 1;
     }
     mprintf("\t  Chain %c found: %s %i\n", gapRes0.Chain(),
             resPtr->Name().c_str(), resPtr->Onum());
+    // Search until we find an appropriate resnum to insert after
+    int resDelta0 = gapRes0.Onum() - resPtr->Onum();
+    int resDelta1 = gapRes1.Onum() - resPtr->Onum();
+    while (abs(resDelta0) > 1 && abs(resDelta1) > 1)
+    {
+      ++resPtr;
+      if (resPtr == AllResidues.end()) {
+        mprinterr("Error: Could not find appropriate # to insert %i in Chain %c.\n",
+                  gapRes0.Onum(), gapRes0.Chain());
+        return 1;
+      }
+      resDelta0 = gapRes0.Onum() - resPtr->Onum();
+      resDelta1 = gapRes1.Onum() - resPtr->Onum();
+    }
+
+    //while (resPtr != AllResidues.end()) {
+    //        mprintf("\t    Res %4s %6i delta0= %6i delta1= %6i\n",
+    //          resPtr->Name().c_str(), resPtr->Onum(), resDelta0, resDelta1);
+    //  resPtr++;
+    //}
+    // resPtr = AllResidues.begin(); // DEBUG
+    mprintf("\t  Res found: %s %i (delta0= %i delta1= %i)\n",
+            resPtr->Name().c_str(), resPtr->Onum(),
+            resDelta0, resDelta1);
   }
 
   return 0;
