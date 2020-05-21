@@ -566,14 +566,18 @@ const
   CharMask CAmissing;
   // Map original residue index to new residue index
   Iarray originalIdxToNew;
+  // Map original atom number to new atom number
+  Iarray originalAtToNew;
   // Loop over all residues
   int newResNum = 0;
+  int newAtNum = 0;
   for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it, ++newResNum)
   {
     if (it->Tnum() < 0) {
       // This was a missing residue
       newTop.AddTopAtom( Atom("CA", "C "),
                          Residue(it->Name(), it->Onum(), it->Icode(), it->Chain()) );
+      newAtNum++;
       newFrame.AddVec3( Zero );
       // CA top
       CAtop.AddTopAtom( Atom("CA", "CA", 0),
@@ -591,6 +595,7 @@ const
       for (int at = topres.FirstAtom(); at < topres.LastAtom(); at++) {
         if (topIn[at].Name() == "CA") caidx = at;
         newTop.AddTopAtom( Atom(topIn[at].Name(), topIn[at].ElementName()), newres );
+        originalAtToNew.push_back( newAtNum++ );
         //frameIn.printAtomCoord(at);
         const double* txyz = frameIn.XYZ(at);
         newFrame.AddXYZ( txyz );
@@ -625,6 +630,11 @@ const
         newTop.Res(ridx).ChainID() != newTop.Res(ridx+1).ChainID())
       newTop.SetRes(ridx).SetTerminal(true);
   }
+  // Add original bonds to new topology.
+  for (BondArray::const_iterator bnd = topIn.Bonds().begin();
+                                 bnd != topIn.Bonds().end(); ++bnd)
+    newTop.AddBond( originalAtToNew[bnd->A1()],
+                    originalAtToNew[bnd->A2()] );
   // Finish new top and write
   newTop.SetParmName("newpdb", "temp.pdb");
   newTop.CommonSetup( false ); // No molecule search
