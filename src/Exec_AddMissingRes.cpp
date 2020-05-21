@@ -4,9 +4,12 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_CRD.h"
+#include "Minimize_SteepestDescent.h"
 #include "ParmFile.h"
+#include "PotentialFunction.h"
 #include "Trajin_Single.h"
 #include "Trajout_Single.h"
+#include <cmath>
 #include <cstring>
 #include <algorithm>
 #include <list>
@@ -116,6 +119,34 @@ const
   }
   return 0;
 }
+
+// -----------------------------------------------------------------------------
+/** Try to minimize using steepest descent. */
+int Exec_AddMissingRes::Minimize(Topology const& topIn, Frame& frameIn, CharMask const& maskIn)
+const
+{
+  double min_tol = 1.0E-5;
+
+  PotentialFunction potential;
+  potential.AddTerm( PotentialTerm::BOND );
+  potential.AddTerm( PotentialTerm::SIMPLE_LJ_Q );
+  Minimize_SteepestDescent SD;
+
+  if (potential.SetupPotential( topIn, maskIn )) return 1;
+
+  if (SD.SetupMin("min.nc", min_tol, 1.0, nMinSteps_)) return 1;
+
+  // Add force info to frame.
+  frameIn.AddForces(Frame::Darray(frameIn.size(), 0.0));
+
+  CpptrajFile outfile;
+  outfile.OpenWrite("");
+  if (SD.RunMin(potential, frameIn, outfile)) return 1;
+
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
 /** Calculate pseudo force vector at given index. Only take into account
   * atoms within a certain cutoff, i.e. the local environment.
   */
@@ -337,21 +368,6 @@ const
   return 0;
 }
 
-/** Write topology and frame to specified format. */
-int Exec_AddMissingRes::WriteStructure(std::string const& fname, Topology* newTop, Frame const& newFrame,
-                                       TrajectoryFile::TrajFormatType typeOut)
-const
-{
-  Trajout_Single trajOut;
-  if (trajOut.InitTrajWrite(fname, ArgList("pdbter"), DataSetList(), typeOut))
-    return 1;
-  if (trajOut.SetupTrajWrite(newTop, CoordinateInfo(), 1))
-    return 1;
-  if (trajOut.WriteSingle(0, newFrame)) return 1;
-  trajOut.EndTraj();
-  return 0;
-}
-
 /** Generate coords using an energy search.
   * \param newTop The new topology containing all existing atoms and CA atoms for missing residues.
   * \param newFrame The new frame containins coordinates for all existing atoms and 0 for missing residues.
@@ -422,6 +438,22 @@ const
         ridx++;
     }
   }
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+/** Write topology and frame to specified format. */
+int Exec_AddMissingRes::WriteStructure(std::string const& fname, Topology* newTop, Frame const& newFrame,
+                                       TrajectoryFile::TrajFormatType typeOut)
+const
+{
+  Trajout_Single trajOut;
+  if (trajOut.InitTrajWrite(fname, ArgList("pdbter"), DataSetList(), typeOut))
+    return 1;
+  if (trajOut.SetupTrajWrite(newTop, CoordinateInfo(), 1))
+    return 1;
+  if (trajOut.WriteSingle(0, newFrame)) return 1;
+  trajOut.EndTraj();
   return 0;
 }
 
@@ -657,6 +689,12 @@ const
       mprinterr("Error: Could not assign coords by search.\n");
       return 1;
     }
+    // Minimize
+    if (Minimize(CAtop, CAframe, CAmissing)) {
+      mprinterr("Error: Minimization of CA atoms failed.\n");
+      return 1;
+    }
+
   }
 
   // Write CA top
