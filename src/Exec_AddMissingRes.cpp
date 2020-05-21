@@ -116,6 +116,225 @@ const
   }
   return 0;
 }
+/** Calculate pseudo force vector at given index. Only take into account
+  * atoms within a certain cutoff, i.e. the local environment.
+  */
+int Exec_AddMissingRes::CalcFvecAtIdx(Vec3& vecOut, Vec3& XYZ0, int tgtidx, 
+                                      Topology const& CAtop, Frame const& CAframe,
+                                      CharMask const& isMissing)
+{
+  double cut2 = 100.0; // 10 ang
+  vecOut = Vec3(0.0);
+  XYZ0 = Vec3( CAframe.XYZ(tgtidx) );
+  double e_total = 0.0;
+  for (int idx = 0; idx != CAtop.Nres(); idx++)
+  {
+    if (idx != tgtidx && !isMissing.AtomInCharMask(idx))
+    {
+      const double* XYZ1 = CAframe.XYZ( idx );
+      double rx = XYZ0[0] - XYZ1[0];
+      double ry = XYZ0[1] - XYZ1[1];
+      double rz = XYZ0[2] - XYZ1[2];
+      double rij2 = rx*rx + ry*ry + rz*rz;
+      if (rij2 > 0 && rij2 < cut2) {
+        double rij = sqrt( rij2 );
+        // COULOMB
+        double qiqj = .01; // Give each atom charge of .1
+        double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
+        e_total += e_elec;
+        // COULOMB force
+        double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
+        vecOut[0] += rx * felec;
+        vecOut[1] += ry * felec;
+        vecOut[2] += rz * felec;
+      } //else {
+        //mprinterr("Error: Atom clash between CA %i and %i\n", tgtidx+1, idx+1);
+        //return 1;
+      //}
+    }
+  }
+  vecOut.Normalize();
+  return 0;
+}
+
+/** \return A vector containing residues from start up to and including end. */
+static inline std::vector<int> ResiduesToSearch(int startRes, int endRes) {
+  std::vector<int> residuesToSearch;
+  if (startRes < endRes) {
+    for (int i = startRes; i <= endRes; i++)
+      residuesToSearch.push_back( i );
+  } else {
+    for (int i = startRes; i >= endRes; i--)
+      residuesToSearch.push_back( i );
+  }
+  return residuesToSearch;
+}
+
+/** Calculate a guiding force connecting XYZ0 and XYZ1 */
+static inline void CalcGuideForce(Vec3 const& XYZ0, Vec3 const& XYZ1, double maxDist,
+                                  double Rk, Vec3& fvec0, Vec3& fvec1)
+{
+  // Vector from 0 to 1
+  Vec3 v01 = XYZ1 - XYZ0;
+  // Distance
+  double r2 = v01.Magnitude2();
+  double r01 = sqrt( r2 );
+  // Only apply the guiding force above maxDist 
+  if (r01 > maxDist) {
+    // Normalize
+    v01.Normalize();
+    // Augment
+    v01 *= Rk;
+    v01.Print("guide");
+    // Add
+    fvec0 += v01;
+    fvec1 -= v01;
+  }
+}
+
+/** Try to generate linear coords beteween idx0 and idx1. */
+void Exec_AddMissingRes::GenerateLinearGapCoords(int idx0, int idx1, Frame& frm)
+{
+  Vec3 vec0( frm.XYZ(idx0) );
+  Vec3 vec1( frm.XYZ(idx1) );
+  vec0.Print("vec0");
+  vec1.Print("vec1");
+  Vec3 V10 = vec1 - vec0;
+  int nsteps = idx1 - idx0;
+  if (nsteps < 1) {
+    mprinterr("Internal Error: GenerateLinearGapCoords: Invalid steps from %i to %i (%i)\n",
+              idx0, idx1, nsteps);
+    return;
+  }
+  mprintf("DEBUG: Generating %i steps from %i to %i\n", nsteps, idx0+1, idx1+1);
+  Vec3 delta = V10 / (double)nsteps;
+  double* Xptr = frm.xAddress() + ((idx0+1)*3);
+  for (int i = 1; i < nsteps; i++, Xptr += 3)
+  {
+    Vec3 xyz = vec0 + (delta * (double)i);
+    xyz.Print("xyz");
+    Xptr[0] = xyz[0];
+    Xptr[1] = xyz[1];
+    Xptr[2] = xyz[2];
+  }
+}
+ 
+/** Search for coords from anchor0 to anchor1, start at start, end at end. */
+int Exec_AddMissingRes::CoordSearchGap(int anchor0, int anchor1, Iarray const& residues,
+                                     Topology const& CAtop, CharMask& isMissing, Frame& CAframe)
+const
+{
+  if (residues.size() < 2) {
+    GenerateLinearGapCoords(anchor0, anchor1, CAframe);
+    return 0;
+  }
+  // First calculate the force vector at anchor0
+  mprintf("Anchor Residue 0: %i\n", anchor0+1);
+  Vec3 XYZ0, Vec0;
+  CalcFvecAtIdx(Vec0, XYZ0, anchor0, CAtop, CAframe, isMissing);
+  XYZ0.Print("Anchor 0 coords");
+  Vec0.Print("anchor 0 vec");
+  // Calculate the force vector at anchor1
+  mprintf("Anchor Residue 1: %i\n", anchor1+1);
+  Vec3 XYZ1, Vec1;
+  CalcFvecAtIdx(Vec1, XYZ1, anchor1, CAtop, CAframe, isMissing);
+  XYZ1.Print("Anchor 1 coords");
+  Vec1.Print("anchor 1 vec");
+  // Guide vector
+  double guidefac = 3.8;
+  double guidek = 1.0;
+  CalcGuideForce(XYZ0, XYZ1, guidefac, guidek, Vec0, Vec1);
+
+  // Determine the halfway index
+  int halfIdx = residues.size() / 2; 
+  // N-terminal
+  Iarray fromAnchor0 = ResiduesToSearch(residues.front(), residues[halfIdx-1]);
+  // C-terminal
+  Iarray fromAnchor1 = ResiduesToSearch(residues.back(), residues[halfIdx]);
+
+  mprintf("DEBUG: Generating Gap residues:\n");
+  mprintf("\tFrom %i:", anchor0+1);
+  for (Iarray::const_iterator it = fromAnchor0.begin(); it != fromAnchor0.end(); ++it)
+    mprintf(" %i", *it + 1);
+  mprintf("\n");
+  mprintf("\tFrom %i:", anchor1+1);
+  for (Iarray::const_iterator it = fromAnchor1.begin(); it != fromAnchor1.end(); ++it)
+    mprintf(" %i", *it + 1);
+  mprintf("\n");
+
+  // Loop over fragment to generate coords for
+  double fac = 2.0;
+  Iarray::const_iterator a0 = fromAnchor0.begin();
+  Iarray::const_iterator a1 = fromAnchor1.begin();
+  while (a0 != fromAnchor0.end() || a1 != fromAnchor1.end()) {
+    if (a0 != fromAnchor0.end()) {
+      double* Xptr = CAframe.xAddress() + (*a0 * 3);
+      Vec3 xyz = XYZ0 + (Vec0 * fac);
+      mprintf("  %i %12.4f %12.4f %12.4f\n", *a0+1, xyz[0], xyz[1], xyz[2]);
+      Xptr[0] = xyz[0];
+      Xptr[1] = xyz[1];
+      Xptr[2] = xyz[2];
+      // Mark as not missing
+      isMissing.SelectAtom(*a0, false);
+      // Update the anchor
+      CalcFvecAtIdx(Vec0, XYZ0, *a0, CAtop, CAframe, isMissing);
+      ++a0;
+    }
+    if (a1 != fromAnchor1.end()) {
+      double* Xptr = CAframe.xAddress() + (*a1 * 3);
+      Vec3 xyz = XYZ1 + (Vec1 * fac);
+      mprintf("  %i %12.4f %12.4f %12.4f\n", *a1+1, xyz[0], xyz[1], xyz[2]);
+      Xptr[0] = xyz[0];
+      Xptr[1] = xyz[1];
+      Xptr[2] = xyz[2];
+      // Mark as not missing
+      isMissing.SelectAtom(*a1, false);
+      // Update the anchor
+      CalcFvecAtIdx(Vec1, XYZ1, *a1, CAtop, CAframe, isMissing);
+      ++a1;
+    }
+    CalcGuideForce(XYZ0, XYZ1, guidefac, guidek, Vec0, Vec1);
+  }
+
+  return 0;
+}
+
+/** Search for coords using anchorRes as an anchor, start at start, end at end. */
+int Exec_AddMissingRes::CoordSearchTerminal(int anchorRes, int startRes, int endRes,
+                                     Topology const& CAtop, CharMask& isMissing, Frame& CAframe)
+const
+{
+  // First calculate the force vector at the anchorRes
+  mprintf("Anchor Residue %i\n", anchorRes+1);
+  Vec3 XYZ0, anchorVec;
+  CalcFvecAtIdx(anchorVec, XYZ0, anchorRes, CAtop, CAframe, isMissing);
+  XYZ0.Print("Anchor coords");
+  anchorVec.Print("DEBUG: anchorVec");
+  // Determine the direction
+  Iarray residuesToSearch = ResiduesToSearch(startRes, endRes);
+  // Loop over fragment to generate coords for
+  double fac = 2.0;
+  mprintf("DEBUG: Generating linear fragment extending from %i for indices %i to %i (%zu)\n",
+          anchorRes+1, startRes+1, endRes+1, residuesToSearch.size());
+  for (Iarray::const_iterator it = residuesToSearch.begin();
+                              it != residuesToSearch.end(); ++it)
+  {
+    double* Xptr = CAframe.xAddress() + (*it * 3);
+    Vec3 xyz = XYZ0 + (anchorVec * fac);
+    mprintf("  %i %12.4f %12.4f %12.4f\n", *it+1, xyz[0], xyz[1], xyz[2]);
+    Xptr[0] = xyz[0];
+    Xptr[1] = xyz[1];
+    Xptr[2] = xyz[2];
+    //CAframe.printAtomCoord( *it );
+    // Mark as not missing
+    isMissing.SelectAtom(*it, false);
+    // Update the anchor
+    CalcFvecAtIdx(anchorVec, XYZ0, *it, CAtop, CAframe, isMissing);
+    
+  }
+
+  return 0;
+}
 
 /** Write topology and frame to specified format. */
 int Exec_AddMissingRes::WriteStructure(std::string const& fname, Topology* newTop, Frame const& newFrame,
@@ -157,6 +376,7 @@ const
         //mprintf("Start gap %i\n", ridx);
         gapStart = ridx;
         chain = CAtop.Res(ridx).ChainID();
+        Iarray residues(1, gapStart);
         // Find gap end
         int gapEnd = gapStart + 1;
         for (; gapEnd <= newTop.Nres(); gapEnd++) {
@@ -183,11 +403,21 @@ const
               mprinterr("Error: Gap is unconnected.\n");
               return 1;
             }
+            if (prev_res > -1 && next_res > -1) {
+              CoordSearchGap(prev_res, next_res, residues, CAtop, isMissing, CAframe); 
+            } else if (prev_res == -1) {
+              // N-terminal
+              CoordSearchTerminal(next_res, gapEnd, gapStart, CAtop, isMissing, CAframe);
+            } else if (next_res == -1) {
+              // C-terminal
+              CoordSearchTerminal(prev_res, gapStart, gapEnd, CAtop, isMissing, CAframe);
+            }
             // -----------------------------------
             gapStart = -1;
             ridx = gapEnd + 1;
             break;
           }
+          residues.push_back(gapEnd);
         }
       } else
         ridx++;
@@ -415,6 +645,7 @@ const
   CAtop.SetParmName("capdb", "temp.ca.mol2");
   CAtop.CommonSetup(true, 2); // molecule search, exclude bonds
   CAtop.Summary();
+
   // Write CA top
   if (WriteStructure("temp.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
     mprinterr("Error: Write of temp.ca.mol2 failed.\n");
@@ -429,6 +660,13 @@ const
     }
   }
 
+  // Write CA top
+  if (WriteStructure("temp.ca.final.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
+    mprinterr("Error: Write of temp.ca.final.mol2 failed.\n");
+    return 1;
+  }
+
+  
   return 0;
 }
 
