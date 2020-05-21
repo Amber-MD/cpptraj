@@ -220,10 +220,11 @@ void Exec_AddMissingRes::GenerateLinearGapCoords(int idx0, int idx1, Frame& frm)
 }
  
 /** Search for coords from anchor0 to anchor1, start at start, end at end. */
-int Exec_AddMissingRes::CoordSearchGap(int anchor0, int anchor1, Iarray const& residues,
+int Exec_AddMissingRes::CoordSearchGap(int anchor0, int anchor1, int startRes, int endRes, 
                                      Topology const& CAtop, CharMask& isMissing, Frame& CAframe)
 const
 {
+  Iarray residues = ResiduesToSearch(startRes, endRes);
   if (residues.size() < 2) {
     GenerateLinearGapCoords(anchor0, anchor1, CAframe);
     return 0;
@@ -376,7 +377,6 @@ const
         //mprintf("Start gap %i\n", ridx);
         gapStart = ridx;
         chain = CAtop.Res(ridx).ChainID();
-        Iarray residues(1, gapStart);
         // Find gap end
         int gapEnd = gapStart + 1;
         for (; gapEnd <= newTop.Nres(); gapEnd++) {
@@ -404,7 +404,7 @@ const
               return 1;
             }
             if (prev_res > -1 && next_res > -1) {
-              CoordSearchGap(prev_res, next_res, residues, CAtop, isMissing, CAframe); 
+              CoordSearchGap(prev_res, next_res, gapStart, gapEnd, CAtop, isMissing, CAframe); 
             } else if (prev_res == -1) {
               // N-terminal
               CoordSearchTerminal(next_res, gapEnd, gapStart, CAtop, isMissing, CAframe);
@@ -417,7 +417,6 @@ const
             ridx = gapEnd + 1;
             break;
           }
-          residues.push_back(gapEnd);
         }
       } else
         ridx++;
