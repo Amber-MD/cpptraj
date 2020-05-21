@@ -1,6 +1,7 @@
 #include "Exec_AddMissingRes.h"
 #include "Exec_AddMissingRes_Pres.h"
 #include "BufferedLine.h"
+#include "CharMask.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_CRD.h"
 #include "ParmFile.h"
@@ -183,6 +184,7 @@ const
             resPtr->Name().c_str(), resPtr->Onum(),
             resDelta0, resDelta1);
     // Determine if this gap should come before or after resPtr
+    // TODO handle insertion codes
     if (resDelta0 == 1) {
       mprintf("\t    Gap comes AFTER residue.\n");
       resPtr++;
@@ -195,9 +197,81 @@ const
     }
   }
   // Print all residues
+  // Count the number of present atoms and missing residues.
+  int nAtomsPresent = 0;
+  int nResMissing = 0;
   for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
+  {
     mprintf("\t%4s %6i %6i %c %c\n", it->Name().c_str(), it->Onum(), it->Tnum(),
             it->Icode(), it->Chain());
+    if (it->Tnum() < 0)
+      nResMissing++;
+    else
+      nAtomsPresent += topIn.Res(it->Tnum()).NumAtoms();
+  }
+  mprintf("\t%i atoms present, %i residues missing.\n", nAtomsPresent, nResMissing);
+  // Create new Frame
+  Frame newFrame(nAtomsPresent + nResMissing);
+  newFrame.ClearAtoms();
+  // Create a new topology with all residues. For missing residues, create a CA atom.
+  Topology newTop;
+  // Zero coord for new CA atoms
+  Vec3 Zero(0.0);
+  // Topology for CA atoms
+  Topology CAtop;
+  // Frame for CA atoms
+  Frame CAframe;
+  // Mask for missing CA atoms
+  CharMask CAmissing;
+  // Loop over all residues
+  for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
+  {
+    if (it->Tnum() < 0) {
+      // This was a missing residue
+      newTop.AddTopAtom( Atom("CA", "C "),
+                         Residue(it->Name(), it->Onum(), it->Icode(), it->Chain()) );
+      newFrame.AddVec3( Zero );
+      // CA top
+      CAtop.AddTopAtom( Atom("CA", "CA", 0),
+                        Residue(it->Name(), it->Onum(), it->Icode(), it->Chain()) );
+      CAframe.AddVec3( Zero );
+      CAmissing.AddAtom(true);
+    } else {
+      // This residue is present in the original PDB
+      Residue const& topres = topIn.Res(it->Tnum());
+      Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainID());
+      int caidx = -1;
+      // Calculate the center of the residue as we go in case we need it
+      Vec3 vcenter(0.0);
+      for (int at = topres.FirstAtom(); at < topres.LastAtom(); at++) {
+        if (topIn[at].Name() == "CA") caidx = at;
+        newTop.AddTopAtom( Atom(topIn[at].Name(), topIn[at].ElementName()), newres );
+        //frameIn.printAtomCoord(at);
+        const double* txyz = frameIn.XYZ(at);
+        newFrame.AddXYZ( txyz );
+        vcenter[0] += txyz[0];
+        vcenter[1] += txyz[1];
+        vcenter[2] += txyz[2];
+        //newFrame.printAtomCoord(newTop->Natom()-1);
+      }
+      // CA top
+      if (caidx == -1) {
+        mprintf("Warning: No CA atom found for residue %s\n",
+                topIn.TruncResNameNum(it->Tnum()).c_str());
+        // Use the center of the residue
+        vcenter /= (double)topres.NumAtoms();
+        mprintf("Warning: Using center: %g %g %g\n", vcenter[0], vcenter[1], vcenter[2]);
+        CAtop.AddTopAtom( Atom("CA", "C"), newres );
+        CAframe.AddVec3( vcenter );
+        CAmissing.AddAtom(false);
+      } else {
+        CAtop.AddTopAtom( Atom(topIn[caidx].Name(), topIn[caidx].ElementName()), newres );
+        CAframe.AddXYZ( frameIn.XYZ(caidx) );
+        CAmissing.AddAtom(false);
+      }
+    }
+  } // END loop over all residues
+
 
   return 0;
 }
