@@ -173,7 +173,6 @@ const
       resDelta0 = gapRes0.Onum() - resPtr->Onum();
       resDelta1 = gapRes1.Onum() - resPtr->Onum();
     }
-
     //while (resPtr != AllResidues.end()) {
     //        mprintf("\t    Res %4s %6i delta0= %6i delta1= %6i\n",
     //          resPtr->Name().c_str(), resPtr->Onum(), resDelta0, resDelta1);
@@ -183,7 +182,22 @@ const
     mprintf("\t  Res found: %s %i (delta0= %i delta1= %i)\n",
             resPtr->Name().c_str(), resPtr->Onum(),
             resDelta0, resDelta1);
+    // Determine if this gap should come before or after resPtr
+    if (resDelta0 == 1) {
+      mprintf("\t    Gap comes AFTER residue.\n");
+      resPtr++;
+      AllResidues.insert(resPtr, gap->begin(), gap->end());
+    } else if (resDelta1 == -1) {
+      mprintf("\t    Gap comes BEFORE residue.\n");
+      AllResidues.insert(resPtr, gap->begin(), gap->end());
+    } else {
+      mprintf("\t    UNHANDLED.\n");
+    }
   }
+  // Print all residues
+  for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it)
+    mprintf("\t%4s %6i %6i %c %c\n", it->Name().c_str(), it->Onum(), it->Tnum(),
+            it->Icode(), it->Chain());
 
   return 0;
 }
