@@ -1,12 +1,14 @@
 #include "Exec_PrepareForLeap.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
+#include "CharMask.h"
 
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
 {
   mprintf("\tcrdset <coords set> [frame <#>] out <file>\n"
           "\t[cysmask <mask>] [disulfidecut <cut>] [newcysname <name>]\n"
+          "\t[sugarmask <mask>]\n"
           "\t[leapunitname <name>]\n"
          );
 }
@@ -43,6 +45,15 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 
   std::string leapunitname = argIn.GetStringKey("leapunitname", "m");
   mprintf("\tUsing leap unit name: %s\n", leapunitname.c_str());
+
+  AtomMask sugarMask;
+  std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
+  if (!sugarmaskstr.empty()) {
+    if (sugarMask.SetMaskString(sugarmaskstr)) {
+      mprinterr("Error: Setting sugar mask string.\n");
+      return CpptrajState::ERR;
+    }
+  }
 
   CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"),
                                                     "LEaP Input", DataFileList::TEXT);
@@ -84,7 +95,45 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       }
     }
   }
-        
+
+  // Prepare sugars
+  if (sugarMask.MaskStringSet()) {
+    mprintf("\tPreparing sugars selected by '%s'\n", sugarMask.MaskString());
+    if (coords.Top().SetupIntegerMask( sugarMask )) return CpptrajState::ERR;
+    sugarMask.MaskInfo();
+    if (sugarMask.None())
+      mprintf("Warning: No sugar atoms selected by %s\n", sugarMask.MaskString());
+    else {
+      CharMask cmask( sugarMask.ConvertToCharMask(), sugarMask.Nselected() );
+      // Get sugar residue numbers
+      std::vector<int> sugarResNums = coords.Top().ResnumsSelectedBy( sugarMask );
+      // For each sugar residue, see if it is bonded to a non-sugar residue.
+      // If it is, remove that bond but record it.
+      for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
+                                            rnum != sugarResNums.end(); ++rnum)
+      {
+        Residue const& Res = coords.Top().Res(*rnum);
+        std::vector<int> bondedAtoms;
+        for (int at = Res.FirstAtom(); at != Res.LastAtom(); at++) {
+          for (Atom::bond_iterator bat = coords.Top()[at].bondbegin();
+                                   bat != coords.Top()[at].bondend(); ++bat)
+          {
+            if (coords.Top()[*bat].ResNum() != *rnum) {
+              if (!cmask.AtomInCharMask(*bat)) {
+                mprintf("\tSugar %s bonded to non-sugar %s\n",
+                        coords.Top().ResNameNumAtomNameNum(at).c_str(),
+                        coords.Top().ResNameNumAtomNameNum(*bat).c_str());
+              } else {
+                 mprintf("\tSugar %s bonded to sugar %s\n",
+                        coords.Top().ResNameNumAtomNameNum(at).c_str(),
+                        coords.Top().ResNameNumAtomNameNum(*bat).c_str());
+              }
+            }
+          } // END loop over bonded atoms
+        } // END loop over residue atoms
+      } // END loop over sugar residues
+    }
+  }
   
   return CpptrajState::OK;
 }
