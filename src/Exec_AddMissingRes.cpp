@@ -164,9 +164,28 @@ const
               !CAmissing.AtomInCharMask(gapEnd) ||
               CAtop.Res(gapEnd).ChainID() != chain)
           {
-            mprintf("\tNew Gap: %c %i to %i\n", chain, gapStart, gapEnd - 1);
+            // The real end of the gap is the previous res
+            gapEnd = gapEnd - 1;
+            mprintf("\tNew Gap: %c %i to %i\n", chain, gapStart+1, gapEnd+1);
+            // -----------------------------------
+            // Is there a previous residue
+            int prev_res = gapStart - 1;
+            if (prev_res < 0 ||
+                newTop.Res(prev_res).ChainID() != newTop.Res(gapStart).ChainID())
+              prev_res = -1;
+            // Is there a next residue
+            int next_res = gapEnd + 1;
+            if (next_res == newTop.Nres() ||
+                newTop.Res(next_res).ChainID() != newTop.Res(gapEnd).ChainID())
+              next_res = -1;
+            mprintf("\t  Prev res %i  Next res %i\n", prev_res + 1, next_res + 1);
+            if (prev_res == -1 && next_res == -1) {
+              mprinterr("Error: Gap is unconnected.\n");
+              return 1;
+            }
+            // -----------------------------------
             gapStart = -1;
-            ridx = gapEnd;
+            ridx = gapEnd + 1;
             break;
           }
         }
