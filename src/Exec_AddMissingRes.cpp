@@ -609,12 +609,12 @@ const
   for (ResList::const_iterator it = AllResidues.begin(); it != AllResidues.end(); ++it, ++ridx)
   {
     if (it->Tnum() < 0) {
-      // This was a missing residue. Bond it to the previous/next residue.
+      // This was a missing residue. Bond it to the previous/next residue in same chain.
       int pidx = ridx - 1;
-      if (pidx > 0)
+      if (pidx > 0 && CAtop.Res(pidx).ChainID() == CAtop.Res(ridx).ChainID())
         CAtop.AddBond(pidx, ridx, CAbond);
       int nidx = ridx + 1;
-      if (nidx < CAtop.Nres())
+      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainID() == CAtop.Res(nidx).ChainID())
         CAtop.AddBond(ridx, nidx, CAbond);
     } else {
       // Check which residues this was originally bonded to
