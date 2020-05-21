@@ -76,24 +76,40 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (cysmask.None())
     mprintf("Warning: No cysteine sulfur atoms selected by %s\n", cysmaskstr.c_str());
   else {
+    int nDisulfides = 0;
     double cut2 = disulfidecut * disulfidecut;
     // Try to find potential disulfide sites.
     for (AtomMask::const_iterator at1 = cysmask.begin(); at1 != cysmask.end(); ++at1) {
       for (AtomMask::const_iterator at2 = at1 + 1; at2 != cysmask.end(); ++at2) {
-        // TODO imaging?
-        double r2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2));
-        if (r2 < cut2) {
-          mprintf("\tPotential disulfide: %s to %s (%g Ang.)\n",
+        bool isBonded = false;
+        // Check if the bond already exists
+        if (coords.Top()[*at1].IsBondedTo(*at2)) {
+          mprintf("\tExisting disulfide: %s to %s\n",
                   coords.Top().ResNameNumAtomNameNum(*at1).c_str(),
-                  coords.Top().ResNameNumAtomNameNum(*at2).c_str(), sqrt(r2));
+                  coords.Top().ResNameNumAtomNameNum(*at2).c_str());
+          isBonded = true;
+        } else {
+          // TODO imaging?
+          double r2 = DIST2_NoImage(frameIn.XYZ(*at1), frameIn.XYZ(*at2));
+          if (r2 < cut2) {
+            mprintf("\tPotential disulfide: %s to %s (%g Ang.)\n",
+                    coords.Top().ResNameNumAtomNameNum(*at1).c_str(),
+                    coords.Top().ResNameNumAtomNameNum(*at2).c_str(), sqrt(r2));
+            isBonded = true;
+          }
+        }
+        if (isBonded) {
+          nDisulfides++;
           outfile->Printf("bond %s.%i.%s %s.%i.%s\n",
                           leapunitname.c_str(), coords.Top()[*at1].ResNum()+1, *(coords.Top()[*at1].Name()),
                           leapunitname.c_str(), coords.Top()[*at2].ResNum()+1, *(coords.Top()[*at2].Name()));
           ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at1].ResNum()), newcysname);
           ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at2].ResNum()), newcysname);
+          // TODO add the bond?
         }
       }
     }
+    mprintf("\tDetected %i disulfide bonds.\n", nDisulfides);
   }
 
   // Prepare sugars
