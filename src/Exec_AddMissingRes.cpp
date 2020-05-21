@@ -117,7 +117,7 @@ const
   return 0;
 }
 
-/** Write topology and frame to pdb. */
+/** Write topology and frame to specified format. */
 int Exec_AddMissingRes::WriteStructure(std::string const& fname, Topology* newTop, Frame const& newFrame,
                                        TrajectoryFile::TrajFormatType typeOut)
 const
@@ -129,6 +129,51 @@ const
     return 1;
   if (trajOut.WriteSingle(0, newFrame)) return 1;
   trajOut.EndTraj();
+  return 0;
+}
+
+/** Generate coords using an energy search.
+  * \param newTop The new topology containing all existing atoms and CA atoms for missing residues.
+  * \param newFrame The new frame containins coordinates for all existing atoms and 0 for missing residues.
+  * \param CAtop Only CA atoms from the new topology.
+  * \param CAframe Coords for CAtop
+  * \param CAmissing True if CA was missing, false otherwise.
+  */ 
+int Exec_AddMissingRes::AssignCoordsBySearch(Topology const& newTop, Frame const& newFrame,
+                                             Topology const& CAtop, Frame& CAframe,
+                                             CharMask const& CAmissing)
+const
+{
+  CharMask isMissing = CAmissing;
+  int ridx = 0;
+  int gapStart = -1;
+  char chain = ' ';
+  while (ridx < newTop.Nres())
+  {
+    // Determine the next gap
+    if (gapStart == -1) {
+      // Not in a gap. Check for gap start.
+      if (CAmissing.AtomInCharMask(ridx)) {
+        //mprintf("Start gap %i\n", ridx);
+        gapStart = ridx;
+        chain = CAtop.Res(ridx).ChainID();
+        // Find gap end
+        int gapEnd = gapStart + 1;
+        for (; gapEnd <= newTop.Nres(); gapEnd++) {
+          if (gapEnd == newTop.Nres() ||
+              !CAmissing.AtomInCharMask(gapEnd) ||
+              CAtop.Res(gapEnd).ChainID() != chain)
+          {
+            mprintf("\tNew Gap: %c %i to %i\n", chain, gapStart, gapEnd - 1);
+            gapStart = -1;
+            ridx = gapEnd;
+            break;
+          }
+        }
+      } else
+        ridx++;
+    }
+  }
   return 0;
 }
 
@@ -357,6 +402,13 @@ const
     return 1;
   }
 
+  if (optimize_) {
+    // Try to assign new coords for the missing residues.
+    if (AssignCoordsBySearch(newTop, newFrame, CAtop, CAframe, CAmissing)) {
+      mprinterr("Error: Could not assign coords by search.\n");
+      return 1;
+    }
+  }
 
   return 0;
 }

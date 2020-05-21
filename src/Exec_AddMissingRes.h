@@ -30,7 +30,7 @@ class Exec_AddMissingRes : public Exec {
     int CoordSearchGap(int,int,Iarray const&,Topology const&, CharMask&, Frame&) const;
     int CoordSearchTerminal(int, int, int, Topology const&, CharMask&, Frame&) const;
     int AssignCoordsBySearch(Topology const&, Frame const&, Topology const&, Frame&,
-                             Garray const&, CharMask const&) const;
+                             CharMask const&) const;
 
     int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&) const;
 
