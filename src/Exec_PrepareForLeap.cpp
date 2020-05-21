@@ -139,6 +139,19 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                 mprintf("\tSugar %s bonded to non-sugar %s\n",
                         coords.Top().ResNameNumAtomNameNum(at).c_str(),
                         coords.Top().ResNameNumAtomNameNum(*bat).c_str());
+                // Check if this is a recognized linkage
+                Residue& pres = coords.TopPtr()->SetRes( coords.Top()[*bat].ResNum() );
+                if ( pres.Name() == "SER" ) {
+                  ChangeResName( pres, "OLS" );
+                } else if ( pres.Name() == "THR" ) {
+                  ChangeResName( pres, "OLT" );
+                } else if ( pres.Name() == "HYP" ) {
+                  ChangeResName( pres, "OLP" );
+                } else if ( pres.Name() == "ASN" ) {
+                  ChangeResName( pres, "NLN" );
+                } else {
+                  mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
+                }
               } else {
                  mprintf("\tSugar %s bonded to sugar %s\n",
                         coords.Top().ResNameNumAtomNameNum(at).c_str(),
