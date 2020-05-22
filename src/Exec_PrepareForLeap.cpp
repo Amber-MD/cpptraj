@@ -13,6 +13,21 @@ void Exec_PrepareForLeap::Help() const
          );
 }
 
+int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology* topIn, Frame const& frameIn) const {
+  Residue& res = topIn->SetRes(rnum);
+  // Try to ID the base sugar type from the input name.
+  char resChar = ' ';
+  if (res.Name() == "NAG") {
+    resChar = 'Y';
+  } else {
+    mprintf("Warning: Could not identify sugar from residue name '%s'\n", *res.Name());
+    return 0;
+  }
+  mprintf("\tSugar %s glycam name: %c\n", *res.Name(), resChar);
+  return 0;
+}
+
+/// Used to change residue name to nameIn
 static inline void ChangeResName(Residue& res, NameType const& nameIn) {
   if (res.Name() != nameIn) {
     mprintf("\tChanging residue %s to %s\n", *(res.Name()), *nameIn);
@@ -129,6 +144,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
                                             rnum != sugarResNums.end(); ++rnum)
       {
         Residue const& Res = coords.Top().Res(*rnum);
+        // See if we recognize this sugar.
+        if (IdentifySugar(*rnum, coords.TopPtr(), frameIn)) return CpptrajState::ERR;
+        // Look for bonds to other residues
         std::vector<int> bondedAtoms;
         for (int at = Res.FirstAtom(); at != Res.LastAtom(); at++) {
           for (Atom::bond_iterator bat = coords.Top()[at].bondbegin();

@@ -8,5 +8,7 @@ class Exec_PrepareForLeap : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_PrepareForLeap(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    int IdentifySugar(int, Topology*, Frame const&) const;
 };
 #endif
