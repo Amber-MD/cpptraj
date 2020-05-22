@@ -12,6 +12,8 @@
 #include "CurveFit.h"
 #include "SimplexMin.h"
 #include "DataSet_Mat3x3.h"
+// DEBUG
+//#inc lude "DataIO_Grace.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
@@ -89,7 +91,7 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   // Get Keywords
   usefft_ = analyzeArgs.hasKey("usefft");
   nvecs_ = analyzeArgs.getKeyInt("nvecs",1000);
-  rseed_ = analyzeArgs.getKeyInt("rseed",80531);
+  rseed_ = analyzeArgs.getKeyInt("rseed",-1);
   ncorr_ = analyzeArgs.getKeyInt("ncorr",0);
   tfac_ = analyzeArgs.getKeyDouble("dt",0);
   if (tfac_<=0) {
@@ -437,8 +439,8 @@ void Analysis_Rotdif::PrintVec6(CpptrajFile& outfile, const char* Title, Simplex
 void Analysis_Rotdif::PrintTau(std::vector<double> const& Tau)
 {
   outfile_->Printf("     taueff(obs) taueff(calc)\n");
-  for (int i = 0; i < nvecs_; i++)
-    outfile_->Printf("%5i %12.5e %12.5e\n", i+1, D_eff_[i], Tau[i]);
+  for (unsigned int i = 0; i < D_eff_.size(); i++)
+    outfile_->Printf("%5u %12.5e %12.5e\n", i+1, D_eff_[i], Tau[i]);
 }
 
 // =============================================================================
@@ -712,7 +714,7 @@ int Analysis_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
   //       so we actually need to construct matrix A for SVD.
   // NOTE: LAPACK SVD routine destroys matrix A which is needed later, so 
   //       create a non-flipped version (i.e. matrix At) as well.
-  int m_rows = nvecs_;
+  int m_rows = (int)random_vectors_.Size();
   int n_cols = 6;
   double *matrix_A = new double[ m_rows * n_cols ];
   double *matrix_At = new double[ m_rows * n_cols ];
@@ -868,10 +870,10 @@ int Analysis_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
             vector_q_local[3], vector_q_local[4], vector_q_local[4]);
   }
   std::vector<double> deff_local;
-  deff_local.reserve( nvecs_ );
+  deff_local.reserve( m_rows );
   At = matrix_At;
   // At*Q
-  for (int i=0; i < nvecs_; i++) {
+  for (int i=0; i < m_rows; i++) {
     deff_local.push_back( (At[0] * vector_q_local[0]) +
                           (At[1] * vector_q_local[1]) +
                           (At[2] * vector_q_local[2]) +
@@ -882,7 +884,7 @@ int Analysis_Rotdif::Tensor_Fit(SimplexMin::Darray& vector_q) {
   }
   // Convert deff to tau, Output
   double sgn = 0;
-  for (int i = 0; i < nvecs_; i++) {
+  for (int i = 0; i < m_rows; i++) {
     // For the following chisq fits, convert deff to taueff
     D_eff_[i] = 1 / (6 * D_eff_[i]);
     deff_local[i] = 1 / (6 * deff_local[i]);
@@ -1495,13 +1497,16 @@ double Analysis_Rotdif::calcEffectiveDiffusionConst(double f ) {
   i=1;
   d = 0;
   del = DBL_MAX;
+  if (debug_>2)
+    mprintf("ITSOLV: fac=%15.8g  ti=%15.8g  tf=%15.8g  Di=%15.8g  f=%15.8g\n",
+            fac, ti_, tf_, di, f);
   while ( i<=itmax_ && del>delmin_) {
      d = ( exp(-fac*di*ti_) - exp(-fac*di*tf_) );
      d = d / (fac*f);
      del = (d-di)/di;
      if (del < 0) del = -del; // Abs value
      if (debug_>2)
-       mprintf("ITSOLV: %6i  %15.8g  %15.8g  %15.8g\n", i,di,d,del);
+       mprintf("ITSOLV1: %6i  Di=%15.8g  D=%15.8g  del=%15.8g\n", i,di,d,del);
      di = d;
      ++i;
   }
@@ -1532,15 +1537,16 @@ int Analysis_Rotdif::DetermineDeffs() {
   std::vector<double> pX;         // Hold X values of C(t)
   std::vector<double> pY;         // Hold Y values of C(t) for p(olegendre_)
   int meshSize;                   // Total mesh size, maxdat * NmeshPoints
+  DataSet_Vector goodRvecs;       // Hold vectors with "good" Deff values
 
   mprintf("\tDetermining local diffusion constants for each vector.\n");
-  ProgressBar progress( nvecs_ );
+  ProgressBar progress( random_vectors_.Size() );
 
   itotframes = (int) Rmatrices_->Size();
   if (ncorr_ == 0) ncorr_ = itotframes;
   maxdat = ncorr_ + 1;
   // Allocate memory to hold calcd effective D values
-  D_eff_.reserve( nvecs_ );
+  D_eff_.reserve( random_vectors_.Size() );
   // Allocate memory to hold rotated vectors. Need +1 since the original
   // vector is stored at position 0. 
   rotated_vectors.Allocate( DataSet::SizeArray(1, itotframes + 1) );
@@ -1591,12 +1597,22 @@ int Analysis_Rotdif::DetermineDeffs() {
       direct_compute_corr(rotated_vectors, maxdat, pY);
     // Calculate mesh Y values
     spline.SetSplinedMeshY(pX, pY);
+    // DEBUG - Write splined mesh to file
+    //DataIO_Grace tmpGraceOut;
+    //DataSetList tmpGraceDsl;
+    //tmpGraceDsl.AddCopyOfSet(&spline);
+    //tmpGraceOut.WriteData(AppendNumber("tmpspline.agr",nvec), tmpGraceDsl);
     // Integrate
     double integral = spline.Integrate( DataSet_1D::TRAPEZOID );
-    //mprintf("DEBUG: Vec %i integral= %g\n", nvec, integral);
-    // Solve for deff
-    D_eff_.push_back( calcEffectiveDiffusionConst(integral) );
-
+    if (debug_ > 1)
+      mprintf("DEBUG: Vec %i Spline integral= %12.4g\n",nvec,integral);
+    if ( integral > 0 ) {
+      goodRvecs.AddVxyz( *rndvec );
+      // Solve for deff
+      D_eff_.push_back( calcEffectiveDiffusionConst(integral) );
+      if (debug_ > 1)
+        mprintf("DBG: deff is %g\n",D_eff_.back());
+    }
     // DEBUG: Write out p1 and p2 ------------------------------------
     if (!corrOut_.empty() || debug_ > 3) {
       CpptrajFile outfile;
@@ -1622,13 +1638,18 @@ int Analysis_Rotdif::DetermineDeffs() {
         outfile.CloseFile();
       }
     }
-    if (debug_ > 1) {
-      mprintf("DBG: Vec %i Spline integral= %12.4g\n",nvec,integral);
-      mprintf("DBG: deff is %g\n",D_eff_[nvec]);
-    }
     // END DEBUG -----------------------------------------------------
   }
-
+  mprintf("\t%zu vectors, %zu with corr. function integral > 0.\n", random_vectors_.Size(), goodRvecs.Size());
+  // Get rid of any vectors with "bad" integrals
+  if (goodRvecs.Size() < 1) {
+    mprinterr("Error: No random vectors had corr. function with integral > 0. Cannot continue.\n");
+    return 1;
+  }
+  if (goodRvecs.Size() < random_vectors_.Size()) {
+    mprintf("\tVectors with corr. function integral <= 0 will not be used in further calcs.\n");
+    random_vectors_ = goodRvecs;
+  }
   return 0;
 }
 
@@ -1641,8 +1662,8 @@ void Analysis_Rotdif::PrintDeffs(std::string const& nameIn) const {
       mprinterr("Error: Could not set up Deff file %s\n",nameIn.c_str());
     } else {
       dout.OpenFile();
-      for (int vec = 0; vec < nvecs_; vec++)
-        dout.Printf("%6i %15.8e\n", vec+1, D_eff_[vec]);
+      for (unsigned int vec = 0; vec < D_eff_.size(); vec++)
+        dout.Printf("%6u %15.8e\n", vec+1, D_eff_[vec]);
       dout.CloseFile();
     }
   }
@@ -1698,7 +1719,8 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
       rmout.CloseFile();
     }
   }
-  mprintf("\t%i vectors, %zu rotation matrices.\n",nvecs_,Rmatrices_->Size());
+  mprintf("\t%zu vectors, %zu rotation matrices.\n",
+          random_vectors_.Size(), Rmatrices_->Size());
   if (usefft_) {
     // ---------------------------------------------
     // Test calculation; determine constants directly with SH and curve fitting.
@@ -1724,7 +1746,7 @@ Analysis::RetType Analysis_Rotdif::Analyze() {
       fxn = AsymmetricFxn_L1;
     else
       fxn = AsymmetricFxn_L2;
-    std::vector<double> Tau(nvecs_, 0.0);
+    std::vector<double> Tau(D_eff_.size(), 0.0);
     // First, back-calculate with the SVD tensor, but with the full anisotropy
     // chi_squared performs diagonalization. The workspace for dsyev should
     // already have been set up in Tensor_Fit.

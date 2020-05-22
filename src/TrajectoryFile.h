@@ -28,7 +28,7 @@ class TrajectoryFile {
       CIF,             CHARMMDCD,      GMXTRX,          GMXXTC,    GMXTNG,
       BINPOS,          AMBERRESTART,   GRO,             TINKER,    CHARMMCOR,
       CHARMMREST,      AMBERTRAJ,      SQM,             SDF,       XYZ,
-      CONFLIB,         GMXDUMP,
+      CONFLIB,         GMXDUMP,        DTR,
       UNKNOWN_TRAJ
     };
 

@@ -16,7 +16,7 @@ Action_LIE::Action_LIE() :
 { }
 
 void Action_LIE::Help() const {
-  mprintf("\t[<name>] <Ligand Mask> [<Surroundings Mask>] [out filename]\n"
+  mprintf("\t[<name>] <Ligand Mask> [<Surroundings Mask>] [out filename] [nopbc]\n"
           "\t[noelec] [novdw] [cutvdw <cutoff>] [cutelec <cutoff>] [diel <dielc>]\n"
           "  Calculate linear interaction energy between <Ligand Mask> and <Surroundings Mask>\n");
 }
@@ -24,21 +24,21 @@ void Action_LIE::Help() const {
 // Action_LIE::init()
 Action::RetType Action_LIE::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  // Always use imaged distances
-  InitImaging(true);
-
-  double cut;
   // Get Keywords
   doelec_ = !(actionArgs.hasKey("noelec"));
   dovdw_ = !(actionArgs.hasKey("novdw"));
+  usepbc_ = !(actionArgs.hasKey("nopbc"));
   DataFile* datafile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   dielc_ = actionArgs.getKeyDouble("diel", 1.0);
-  cut = actionArgs.getKeyDouble("cutvdw", 12.0);
+  double cut = actionArgs.getKeyDouble("cutvdw", 12.0);
   cut2vdw_ = cut * cut; // store square of cut for computational efficiency
   cut = actionArgs.getKeyDouble("cutelec", 12.0);
   cut2elec_ = cut * cut; // store square of cut for computational efficiency
   onecut2_ = 1 / cut2elec_;
   bool has_mask2 = false;
+
+  // Use imaged distances unless requested otherwise
+  InitImaging(usepbc_);
 
   if (!doelec_ && !dovdw_) {
     mprinterr("Error: LIE: Cannot skip both ELEC and VDW calcs\n");
@@ -56,7 +56,7 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, ActionInit& init, int debu
     Mask2_ = Mask1_;
     Mask2_.InvertMaskExpression();
   }
-  
+
   // Get data set name
   std::string ds_name = actionArgs.GetStringNext();
   if (ds_name.empty())
@@ -84,6 +84,10 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, ActionInit& init, int debu
     mprintf("Skipping Electrostatic Calc. ");
   if (!dovdw_)
     mprintf("Skipping VDW Calc. ");
+  if (usepbc_)
+    mprintf("Using PBC.");
+  else
+    mprintf("NOT using PBC. Make sure the trajectory is properly imaged.");
   mprintf("\n");
 
   return Action::OK;
@@ -152,7 +156,7 @@ double Action_LIE::Calculate_LJ(Frame const& frameIn, Topology const& parmIn) co
 
       int crdidx2 = (*maskatom2) * 3; // index into coordinate array
       Vec3 atm2 = Vec3(frameIn.CRD(crdidx2));
-      
+
       double dist2;
       // Get imaged distance
       Matrix_3x3 ucell, recip;
@@ -196,7 +200,7 @@ double Action_LIE::Calculate_Elec(Frame const& frameIn) const {
 
       int crdidx2 = (*maskatom2) * 3; // index into coordinate array
       Vec3 atm2 = Vec3(frameIn.CRD(crdidx2));
-      
+
       double dist2;
       // Get imaged distance
       Matrix_3x3 ucell, recip;
@@ -225,7 +229,7 @@ double Action_LIE::Calculate_Elec(Frame const& frameIn) const {
 
 // Action_LIE::action()
 Action::RetType Action_LIE::DoAction(int frameNum, ActionFrame& frm) {
-  
+
   if (doelec_) {
     double e = Calculate_Elec(frm.Frm());
     elec_->Add(frameNum, &e);

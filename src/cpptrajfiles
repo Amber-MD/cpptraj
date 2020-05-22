@@ -228,6 +228,7 @@ COMMON_SOURCES= \
         DihedralSearch.cpp \
         DistRoutines.cpp \
         Energy.cpp \
+        EnergyArray.cpp \
         EnsembleIn.cpp \
         EnsembleIn_Multi.cpp \
         EnsembleIn_Single.cpp \
@@ -253,6 +254,7 @@ COMMON_SOURCES= \
         Exec_DataFile.cpp \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
+        Exec_Emin.cpp \
         Exec_GenerateAmberRst.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
@@ -264,6 +266,7 @@ COMMON_SOURCES= \
         Exec_ParmWrite.cpp \
         Exec_PermuteDihedrals.cpp \
         Exec_Precision.cpp \
+        Exec_PrepareForLeap.cpp \
         Exec_PrintData.cpp \
         Exec_ReadData.cpp \
         Exec_ReadEnsembleData.cpp \
@@ -288,6 +291,7 @@ COMMON_SOURCES= \
         FileIO_MpiShared.cpp \
         FileIO_Std.cpp \
         FileName.cpp \
+        FileType.cpp \
         FileTypes.cpp \
         ForLoop.cpp \
         ForLoop_dataSetBlocks.cpp \
@@ -307,6 +311,7 @@ COMMON_SOURCES= \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MetaData.cpp \
+        Minimize_SteepestDescent.cpp \
         Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \
@@ -328,6 +333,8 @@ COMMON_SOURCES= \
         Parm_PDB.cpp \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
+        PotentialFunction.cpp \
+        PotentialTerm_Bond.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
@@ -360,6 +367,7 @@ COMMON_SOURCES= \
         Traj_CharmmRestart.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
+        Traj_DTR.cpp \
         Traj_GmxDump.cpp \
         Traj_GmxTng.cpp \
         Traj_GmxTrX.cpp \
@@ -382,7 +390,8 @@ COMMON_SOURCES= \
         Trajout_Single.cpp \
         TrajoutList.cpp \
         Vec3.cpp \
-        ViewRst.cpp
+        ViewRst.cpp \
+        vmdplugin/dtrplugin.cpp
 
 CSOURCES= molsurf.c
 
@@ -422,7 +431,6 @@ LIBCPPTRAJ_CORE_OBJECTS= \
   Topology.o \
   Atom.o \
   AtomMask.o \
-  AtomType.o \
   Box.o \
   CharMask.o \
   CoordinateInfo.o \
@@ -459,6 +467,32 @@ XDRFILE_OBJECTS= \
   xdrfile/xdr_seek.o \
   xdrfile/xdrfile_xtc.o
 
+# These objects are requred for Gromacs TNG support in libcpptraj_traj.a
+TNGFILE_OBJECTS= \
+  tng/bwlzh.o \
+  tng/fixpoint.o \
+  tng/md5.o \
+  tng/tng_compress.o \
+  tng/widemuldiv.o \
+  tng/bwt.o \
+  tng/huffman.o \
+  tng/merge_sort.o \
+  tng/tng_io.o \
+  tng/xtc2.o \
+  tng/coder.o \
+  tng/huffmem.o \
+  tng/mtf.o \
+  tng/vals16.o \
+  tng/xtc3.o \
+  tng/dict.o \
+  tng/lz77.o \
+  tng/rle.o \
+  tng/warnmalloc.o
+
+# These objects are required for VMD plugin support in libcpptraj_traj.a
+VMDPLUGIN_OBJECTS= \
+  vmdplugin/dtrplugin.o
+
 # These objects contain trajectory file functionality. Requires core and file libraries.
 LIBCPPTRAJ_TRAJ_OBJECTS= \
   TrajectoryFile.o \
@@ -480,6 +514,9 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
   Traj_CharmmRestart.o \
   Traj_CIF.o \
   Traj_Conflib.o \
+  Traj_DTR.o \
+  Traj_GmxDump.o \
+  Traj_GmxTng.o \
   Traj_GmxTrX.o \
   Traj_GmxXtc.o \
   Traj_Gro.o \
@@ -494,7 +531,9 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
 # These objects contain parameter file functionality. Requires core and file libraries.
 LIBCPPTRAJ_PARM_OBJECTS= \
   BondSearch.o \
+  CharmmParamFile.o \
   Mol.o \
+  ParameterSet.o \
   ParmFile.o \
   Parm_Amber.o \
   Parm_CharmmPsf.o \

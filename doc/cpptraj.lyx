@@ -7589,11 +7589,15 @@ name "subsec:cpptraj-datafilter"
 \end_layout
 
 \begin_layout LyX-Code
-datafilter <dataset arg> min <min> max <max> [out <file> [name <setname>]]
+datafilter {<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+           [{multi | filterset <set> [newset <newname>]}]
 \end_layout
 
 \begin_deeper
@@ -7618,7 +7622,7 @@ max
 \begin_inset space ~
 \end_inset
 
-<max> Data set and min/max cutoffs to use; can specify more than once.
+<max> Data set name and min/max cutoffs to use; can specify more than one.
 \end_layout
 
 \begin_layout Description
@@ -7634,9 +7638,37 @@ max
 \begin_inset space ~
 \end_inset
 
-<setname>] Name of filter data set.
+<setname>] Name of filter data set containing 1 when cutoffs satisfied,
+ 0 otherwise.
 \end_layout
 
+\begin_layout Description
+[multi] Filter each set separately instead of all together (creates filter
+ set for each input set).
+ Cannot be used with 'filterset'.
+\end_layout
+
+\begin_layout Description
+[filterset
+\begin_inset space ~
+\end_inset
+
+<set>] If specified, <set> will be filtered to only contain data that satisfies
+ cutoffs.
+ Cannot be used with 'multi'.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[newset
+\begin_inset space ~
+\end_inset
+
+<newname>] If specified a new set will be created from 'filterset' instead
+ of replacing 'filterset'.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Create a data set (optionally named <setname>) containing 1 for data within
@@ -7658,9 +7690,38 @@ Create a data set (optionally named <setname>) containing 1 for data within
 <max>
 \series default
  argument, and can be as many as there are specified data sets.
- For example, to read in data from two separate files (d1.dat and a1.dat)
- and generate a filter data set named FILTER having 1 when d1 is between
- 0.0 and 3.0 and a1 is between 135.0 and 180.0:
+ If 
+\series bold
+'multi'
+\series default
+ is specified then only filter data sets will be created for each data set
+ instead.
+ If 
+\series bold
+'filterset'
+\series default
+ is specified, the specified 
+\series bold
+<set>
+\series default
+ will be modified to only contain '1' frames; cannot be used with 
+\series bold
+'multi'
+\series default
+.
+ If 
+\series bold
+'newset'
+\series default
+ is also specified, a new set will be created containing the '1' frames
+ instead.
+ The 'filterset' functionality only works for 1D scalar sets.
+\end_layout
+
+\begin_layout Standard
+For example, to read in data from two separate files (d1.dat and a1.dat) and
+ generate a filter data set named FILTER having 1 when d1 is between 0.0
+ and 3.0 and a1 is between 135.0 and 180.0:
 \end_layout
 
 \begin_layout LyX-Code
@@ -7746,6 +7807,11 @@ dataset { legend <legend> <set> |
 \begin_layout LyX-Code
           invert <set arg0> ...
  name <new name> [legendset <set>] |
+\end_layout
+
+\begin_layout LyX-Code
+          shift [above <value> by <offset>] [below <value> by <offset>]
+ <set arg0> ...
 \end_layout
 
 \begin_layout LyX-Code
@@ -8117,6 +8183,61 @@ name> Inverted output set name.
 \end_inset
 
 <set>] String data set containing legends
+\end_layout
+
+\end_deeper
+\begin_layout Description
+shift
+\begin_inset space ~
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[above
+\begin_inset space ~
+\end_inset
+
+<value>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<offset>] Values in set(s) above <value> will be shifted by <offset>.
+\end_layout
+
+\begin_layout Description
+[below
+\begin_inset space ~
+\end_inset
+
+<value>
+\begin_inset space ~
+\end_inset
+
+by
+\begin_inset space ~
+\end_inset
+
+<offset>] Values in set(s) below <value> will be shifted by <offset>.
+\end_layout
+
+\begin_layout Description
+<set
+\begin_inset space ~
+\end_inset
+
+arg0>
+\begin_inset space ~
+\end_inset
+
+...
+ Set(s) to shift.
 \end_layout
 
 \end_deeper
@@ -9156,6 +9277,25 @@ dataset dim xdim label Simulation min 1 step 1 Inverted*
 
 \begin_layout LyX-Code
 writedata statecount.agr Inverted* 
+\end_layout
+
+\begin_layout Standard
+The dataset shift command can be used for wrapping circular values, such
+ as torsions.
+ For example, to ensure a pucker has a range from 0 to 360 instead of -180
+ to 180:
+\end_layout
+
+\begin_layout LyX-Code
+pucker Furanoid @C2 @C3 @C4 @C5 @O2 cremer out CremerF.dat amplitude
+\end_layout
+
+\begin_layout LyX-Code
+run
+\end_layout
+
+\begin_layout LyX-Code
+dataset shift Furanoid below 0 by 360
 \end_layout
 
 \begin_layout Subsection
@@ -11228,7 +11368,11 @@ bondinfo | bonds | printbonds
 \end_layout
 
 \begin_layout LyX-Code
-bondinfo [parm <name> | parmindex <#> | <#>] [<mask1>] [<mask2>] [out <file>]
+bondinfo [parm <name> | parmindex <#> | <#>] 
+\end_layout
+
+\begin_layout LyX-Code
+         [<mask1>] [<mask2>] [out <file>] [nointrares]
 \end_layout
 
 \begin_deeper
@@ -11275,6 +11419,10 @@ parmindex
 \end_inset
 
 <file>] File to print to (default STDOUT).
+\end_layout
+
+\begin_layout Description
+[nointrares] Do not print intra-residue bonds.
 \end_layout
 
 \end_deeper
@@ -11346,7 +11494,11 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
-      addbond <mask1> <mask2> [req <length> <rk> <force constant>] }
+      addbond <mask1> <mask2> [req <length> <rk> <force constant>]
+\end_layout
+
+\begin_layout LyX-Code
+      removebonds <mask1> [<mask2>] [out <file>] }
 \end_layout
 
 \begin_deeper
@@ -11486,6 +11638,31 @@ addbond
 \end_inset
 
 constant>] The bond force constant in kcal/mol*Angstrom.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+removebonds
+\begin_inset space ~
+\end_inset
+
+<mask1>
+\begin_inset space ~
+\end_inset
+
+[<mask2>] Remove bonds from atoms in <mask1>.
+ If <mask2> also given, remove bonds between atoms in <mask1> and atoms
+ in <mask2>.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] If specified, write removed bonds to <file> with format '<residue
+ name> <residue num> <atom name> <atom num>'.
 \end_layout
 
 \end_deeper
@@ -12931,7 +13108,7 @@ Cpptraj currently understands the following trajectory file formats:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="21" columns="4">
+<lyxtabular version="3" rows="22" columns="4">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="25text%">
@@ -13708,6 +13885,44 @@ xyz
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Desmond DTR (Anton)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+dtr
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.dtr
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read Only
 \end_layout
 
 \end_inset
@@ -14905,7 +15120,7 @@ only frames 2, 5, 6, and 7 from input.crd will be written to output.crd.
 \begin_layout Subsubsection
 
 \shape italic
-Options for pdb format:
+Options for pdb format
 \end_layout
 
 \begin_layout LyX-Code
@@ -14922,6 +15137,10 @@ Options for pdb format:
 
 \begin_layout LyX-Code
   [include_ep] [conect] [keepext] [usecol21]
+\end_layout
+
+\begin_layout LyX-Code
+  [bfacdefault <#>] [occdefault <#>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -15023,6 +15242,22 @@ keepext Keep filename extension; write '<name>.<num>.<ext>' instead (implies
 
 \begin_layout Description
 usecol21 Use column 21 for 4-letter residue names.
+\end_layout
+
+\begin_layout Description
+bfacdefault
+\begin_inset space ~
+\end_inset
+
+<#> Default value to use in B-factor column (default 0.0).
+\end_layout
+
+\begin_layout Description
+occdefault
+\begin_inset space ~
+\end_inset
+
+<#> Default value to use in occupancy column (default 1.0).
 \end_layout
 
 \begin_layout Description
@@ -25760,7 +25995,7 @@ lie
 
 \end_inset
 
- [<name>] <Ligand mask> [<Surroundings mask>] [out <filename>]
+ [<name>] <Ligand mask> [<Surroundings mask>] [out <filename>] [nopbc]
 \begin_inset Newline newline
 \end_inset
 
@@ -25795,6 +26030,20 @@ For each frame, calculate the non-bonded interactions between all atoms
  <dielc> is an optional dielectric constant.
  Either the electrostatic or van der Waals calculations can be suppressed
  via the keywords noelec and novdw, respectively.
+ Periodic boundary conditions (and the minimum image convention) can be
+ abandoned with the 
+\begin_inset Quotes eld
+\end_inset
+
+nopbc
+\begin_inset Quotes erd
+\end_inset
+
+ keyword.
+ Note, however, that no prior imaging is performed if the frames contain
+ periodic boundaries.
+ This may be useful for instances when you are simulating a microscopic
+ droplets.
 \end_layout
 
 \begin_layout Standard
@@ -26798,7 +27047,7 @@ ref:<range>:<refname>[:<ref
 \begin_inset space ~
 \end_inset
 
-range>[:<dih types>]]
+range>[:<dih types>]] [refvalsout <file>] [founddihout <file>]
 \end_layout
 
 \begin_layout Standard
@@ -26811,6 +27060,8 @@ Apply dihedrals from residues <ref_range> in previously loaded reference
 \series default
  above) can be specified in a comma-separated list; default is phi/psi.
  Note that in order to specify <dih types>, <ref range> must be specified.
+ The 'refvalsout' and 'founddihout' keywords can be used to print dihedrals
+ found in the reference and target structures respectively to files.
 \end_layout
 
 \begin_layout Subsubsection*
@@ -28044,7 +28295,7 @@ nastruct
 \end_layout
 
 \begin_layout LyX-Code
-         [baseref <file>] ...
+         [noframespaces] [baseref <file>] ...
 \end_layout
 
 \begin_layout LyX-Code
@@ -28116,6 +28367,15 @@ naout
 \begin_layout Description
 [calcnohb] Calculate parameters between bases in base pairs even if no hydrogen
  bonds present between them.
+\end_layout
+
+\begin_layout Description
+[noframespaces] If specified there will be no spaces between frames in the
+ 
+\series bold
+naout
+\series default
+ files.
 \end_layout
 
 \begin_layout Description
@@ -31633,7 +31893,7 @@ secstruct
 \end_layout
 
 \begin_layout LyX-Code
-          [namec <C name>] [nameo <O name>]
+          [namec <C name>] [nameo <O name>] [namesg <sulfur name>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -31744,6 +32004,19 @@ name>] Backbone carbonyl carbon atom name (default 'C').
 \end_inset
 
 name>] Backbone carbonyl oxygen atom name (default 'O').
+\end_layout
+
+\begin_layout Description
+[namesg
+\begin_inset space ~
+\end_inset
+
+<SG
+\begin_inset space ~
+\end_inset
+
+name>] Cysteine sulfur atom name, used to ignore disulfide connectivity
+ (default 'SG').
 \end_layout
 
 \begin_layout Standard
@@ -31904,6 +32177,25 @@ nameX
 cpptraj
 \shape default
  will print an informational message but the calculation will proceed normally.
+ If a residue has no atoms selected it will be skipped.
+ When determining residue connecivity, disulfide bonds will be ignored;
+ 
+\emph on
+cpptraj
+\emph default
+ identifies such bonds based on the 
+\series bold
+namesg
+\series default
+ atom name (default 
+\begin_inset Quotes eld
+\end_inset
+
+SG
+\begin_inset Quotes erd
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard
@@ -43310,11 +43602,8 @@ dt
 \series default
 ; the final time should be less than the total simulation time (see example
  below).
-\end_layout
-
-\begin_layout Standard
-The relative size of the mesh used with cubic spline interpolation for integrati
-on is controlled by 
+ The relative size of the mesh used with cubic spline interpolation for
+ integration is controlled by 
 \series bold
 nmesh
 \series default
@@ -43331,7 +43620,13 @@ nmesh
 nmesh
 \series default
  = 1 means no interpolation, default is 2.
- The iterative solver for effective value of the diffusion constant from
+ Note that if the integral of the correlation function for a vector is negative,
+ that vector will be skipped in subsequent calculations (since it would
+ imply a negative value for effective diffusion).
+\end_layout
+
+\begin_layout Standard
+The iterative solver for effective value of the diffusion constant from
  the correlation functions is controlled by 
 \series bold
 itmax
