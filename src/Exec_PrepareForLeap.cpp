@@ -218,6 +218,17 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
   }
 
+  std::vector<std::string> molMasks;
+  std::string mstr = argIn.GetStringKey("molmask");
+  while (!mstr.empty()) {
+    mprintf("\tAll atoms selected by '%s' will be in same molecule.\n", mstr.c_str());
+    molMasks.push_back( mstr );
+    mstr = argIn.GetStringKey("molmask");
+  }
+  std::string determineMolMask = argIn.GetStringKey("determinemolmask");
+  if (!determineMolMask.empty())
+    mprintf("\tAtoms in mask '%s' will determine molecules by bonds.\n", determineMolMask.c_str());
+
   CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"),
                                                     "LEaP Input", DataFileList::TEXT);
   if (outfile == 0) return CpptrajState::ERR;
@@ -297,6 +308,6 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // Bonds to sugars have been removed, so regenerate molecule info
     coords.TopPtr()->DetermineMolecules();
   }
-  
+
   return CpptrajState::OK;
 }
