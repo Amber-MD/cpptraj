@@ -5,6 +5,7 @@
 #include "SugarType.h"
 #include "TorsionRoutines.h"
 #include "Constants.h"
+#include <set>
 
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
@@ -22,6 +23,28 @@ static inline void ChangeResName(Residue& res, NameType const& nameIn) {
     mprintf("\tChanging residue %s to %s\n", *(res.Name()), *nameIn);
     res.SetName( nameIn );
   }
+}
+
+/// \return Glycam linkage code for given glycam residue name and linked atoms
+static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkages)
+{
+  std::string linkcode;
+  // NOTE: I dont know if this is the best way to ID linkages. Seems easiest though.
+  std::string linkstr;
+  for (std::set<NameType>::const_iterator it = linkages.begin(); it != linkages.end(); ++it)
+    linkstr.append( it->Truncated() );
+  mprintf("\t  linkstr= '%s'\n", linkstr.c_str());
+  switch (glycamChar) {
+    case 'Y':
+      if      (linkstr == "C1") linkcode = "0";
+      else if (linkstr == "C1O4") linkcode = "4";
+      break;
+    default:
+      mprintf("Warning: Unrecognized glycam residue char: %c\n", glycamChar);
+  }
+  if (linkcode.empty())
+    mprintf("Warning: Could not determine link code.\n");
+  return linkcode;
 }
 
 /** Attempt to identify sugar residue, form, and linkages. */
@@ -45,6 +68,8 @@ const
   int C5idx = -1;
   int C1idx = -1;
   int Cxidx = -1; // Non-H1, O5, C2 substituent of C1
+  // Use a set to store linkages so they are in alphabetical order
+  std::set<NameType> linkages;
   // Loop over sugar atoms
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
@@ -80,7 +105,8 @@ const
           mprintf("\tSugar %s bonded to non-sugar %s\n",
                   topIn->ResNameNumAtomNameNum(at).c_str(),
                   topIn->ResNameNumAtomNameNum(*bat).c_str());
-          // Check if this is a recognized linkage
+          linkages.insert( (*topIn)[at].Name() );
+          // Check if this is a recognized linkage TODO put in another file?
           Residue& pres = topIn->SetRes( (*topIn)[*bat].ResNum() );
           if ( pres.Name() == "SER" ) {
             ChangeResName( pres, "OLS" );
@@ -94,9 +120,10 @@ const
             mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
           }
         } else {
-           mprintf("\tSugar %s bonded to sugar %s\n",
-                   topIn->ResNameNumAtomNameNum(at).c_str(),
-                   topIn->ResNameNumAtomNameNum(*bat).c_str());
+          mprintf("\tSugar %s bonded to sugar %s\n",
+                  topIn->ResNameNumAtomNameNum(at).c_str(),
+                  topIn->ResNameNumAtomNameNum(*bat).c_str());
+          linkages.insert( (*topIn)[at].Name() );
         }
       }
     } // END loop over bonded atoms
@@ -116,6 +143,13 @@ const
     mprintf("\t  Alpha form\n");
     form = SugarType::ALPHA;
   }
+  mprintf("\t  Link atoms:");
+  for (std::set<NameType>::const_iterator it = linkages.begin();
+                                          it != linkages.end(); ++it)
+    mprintf(" %4s", *(*it));
+  mprintf("\n");
+  std::string linkcode = LinkageCode(resChar, linkages);
+  mprintf("\t  Linkage code: %s\n", linkcode.c_str());
   return 0;
 }
 
