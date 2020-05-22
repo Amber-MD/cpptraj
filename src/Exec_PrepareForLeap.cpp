@@ -2,7 +2,6 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "CharMask.h"
-#include "SugarType.h"
 #include "TorsionRoutines.h"
 #include "Constants.h"
 #include <set>
@@ -63,7 +62,11 @@ const
   }
   mprintf("\tSugar %s glycam name: %c\n", *res.Name(), resChar);
   // Try to identify the form
-  SugarType::FormType form = SugarType::UNKNOWN;
+  /* The alpha form has the CH2OH substituent (C5-C6 etc in Glycam) on the 
+   * opposite side of the OH on the anomeric carbon (C1 in Glycam), while
+   * in the beta form it is on the same side.
+   */ 
+  std::string formStr; 
   int C6idx = -1;
   int C5idx = -1;
   int C1idx = -1;
@@ -138,10 +141,10 @@ const
   mprintf("\t  Torsion= %f deg\n", torsion * Constants::RADDEG);
   if (torsion < Constants::PI && torsion > -Constants::PI) {
     mprintf("\t  Beta form\n");
-    form = SugarType::BETA;
+    formStr = "B";
   } else {
     mprintf("\t  Alpha form\n");
-    form = SugarType::ALPHA;
+    formStr = "A";
   }
   mprintf("\t  Link atoms:");
   for (std::set<NameType>::const_iterator it = linkages.begin();
@@ -150,6 +153,8 @@ const
   mprintf("\n");
   std::string linkcode = LinkageCode(resChar, linkages);
   mprintf("\t  Linkage code: %s\n", linkcode.c_str());
+  NameType newResName( linkcode + std::string(1,resChar) + formStr );
+  mprintf("\t  Glycam resname: %s\n", *newResName);
   return 0;
 }
 
