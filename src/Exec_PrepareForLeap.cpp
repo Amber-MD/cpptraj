@@ -2,6 +2,9 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "CharMask.h"
+#include "SugarType.h"
+#include "TorsionRoutines.h"
+#include "Constants.h"
 
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
@@ -13,7 +16,19 @@ void Exec_PrepareForLeap::Help() const
          );
 }
 
-int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology* topIn, Frame const& frameIn) const {
+/// Used to change residue name to nameIn
+static inline void ChangeResName(Residue& res, NameType const& nameIn) {
+  if (res.Name() != nameIn) {
+    mprintf("\tChanging residue %s to %s\n", *(res.Name()), *nameIn);
+    res.SetName( nameIn );
+  }
+}
+
+/** Attempt to identify sugar residue, form, and linkages. */
+int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology* topIn,
+                                       Frame const& frameIn, CharMask const& cmask)
+const
+{
   Residue& res = topIn->SetRes(rnum);
   // Try to ID the base sugar type from the input name.
   char resChar = ' ';
@@ -21,18 +36,87 @@ int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology* topIn, Frame const& f
     resChar = 'Y';
   } else {
     mprintf("Warning: Could not identify sugar from residue name '%s'\n", *res.Name());
-    return 0;
+    return 1;
   }
   mprintf("\tSugar %s glycam name: %c\n", *res.Name(), resChar);
-  return 0;
-}
-
-/// Used to change residue name to nameIn
-static inline void ChangeResName(Residue& res, NameType const& nameIn) {
-  if (res.Name() != nameIn) {
-    mprintf("\tChanging residue %s to %s\n", *(res.Name()), *nameIn);
-    res.SetName( nameIn );
+  // Try to identify the form
+  SugarType::FormType form = SugarType::UNKNOWN;
+  int C6idx = -1;
+  int C5idx = -1;
+  int C1idx = -1;
+  int Cxidx = -1; // Non-H1, O5, C2 substituent of C1
+  // Loop over sugar atoms
+  for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
+  {
+    if ( (*topIn)[at].Name() == "C6" )
+      C6idx = at;
+    else if ( (*topIn)[at].Name() == "C5" )
+      C5idx = at;
+    else if ( (*topIn)[at].Name() == "C1" ) {
+      C1idx = at;
+      // Check substituent of C1
+      for (Atom::bond_iterator bat = (*topIn)[at].bondbegin();
+                               bat != (*topIn)[at].bondend(); ++bat)
+      {
+        if ( (*topIn)[*bat].Element() != Atom::HYDROGEN &&
+             (*topIn)[*bat].Name() != "O5" &&
+             (*topIn)[*bat].Name() != "C2" )
+        {
+          if (Cxidx != -1) {
+            mprintf("Warning: Multiple substituents for C1: %s %s\n",
+                    *(*topIn)[*bat].Name(), *(*topIn)[Cxidx].Name());
+            return 1;
+          } else
+            Cxidx = *bat;
+        }
+      }
+    }
+    // Check for bonds to other residues
+    for (Atom::bond_iterator bat = (*topIn)[at].bondbegin();
+                             bat != (*topIn)[at].bondend(); ++bat)
+    {
+      if ((*topIn)[*bat].ResNum() != rnum) {
+        if (!cmask.AtomInCharMask(*bat)) {
+          mprintf("\tSugar %s bonded to non-sugar %s\n",
+                  topIn->ResNameNumAtomNameNum(at).c_str(),
+                  topIn->ResNameNumAtomNameNum(*bat).c_str());
+          // Check if this is a recognized linkage
+          Residue& pres = topIn->SetRes( (*topIn)[*bat].ResNum() );
+          if ( pres.Name() == "SER" ) {
+            ChangeResName( pres, "OLS" );
+          } else if ( pres.Name() == "THR" ) {
+            ChangeResName( pres, "OLT" );
+          } else if ( pres.Name() == "HYP" ) {
+            ChangeResName( pres, "OLP" );
+          } else if ( pres.Name() == "ASN" ) {
+            ChangeResName( pres, "NLN" );
+          } else {
+            mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
+          }
+        } else {
+           mprintf("\tSugar %s bonded to sugar %s\n",
+                   topIn->ResNameNumAtomNameNum(at).c_str(),
+                   topIn->ResNameNumAtomNameNum(*bat).c_str());
+        }
+      }
+    } // END loop over bonded atoms
+  } // END loop over residue atoms
+  mprintf("\t  C5= %i C6= %i C1= %i Cx= %i\n", C6idx, C5idx, C1idx, Cxidx);
+  if (C6idx == -1) { mprintf("Warning: C6 index not found.\n"); return 1; }
+  if (C5idx == -1) { mprintf("Warning: C5 index not found.\n"); return 1; }
+  if (C1idx == -1) { mprintf("Warning: C1 index not found.\n"); return 1; }
+  if (Cxidx == -1) { mprintf("Warning: Cx index not found.\n"); return 1; }
+  double torsion = Torsion( frameIn.XYZ(C6idx), frameIn.XYZ(C5idx),
+                            frameIn.XYZ(C1idx), frameIn.XYZ(Cxidx) );
+  mprintf("\t  Torsion= %f deg\n", torsion * Constants::RADDEG);
+  if (torsion < Constants::PI && torsion > -Constants::PI) {
+    mprintf("\t  Beta form\n");
+    form = SugarType::BETA;
+  } else {
+    mprintf("\t  Alpha form\n");
+    form = SugarType::ALPHA;
   }
+  return 0;
 }
 
 // Exec_PrepareForLeap::Execute()
@@ -143,41 +227,10 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       for (std::vector<int>::const_iterator rnum = sugarResNums.begin();
                                             rnum != sugarResNums.end(); ++rnum)
       {
-        Residue const& Res = coords.Top().Res(*rnum);
+        //Residue const& Res = coords.Top().Res(*rnum);
         // See if we recognize this sugar.
-        if (IdentifySugar(*rnum, coords.TopPtr(), frameIn)) return CpptrajState::ERR;
-        // Look for bonds to other residues
-        std::vector<int> bondedAtoms;
-        for (int at = Res.FirstAtom(); at != Res.LastAtom(); at++) {
-          for (Atom::bond_iterator bat = coords.Top()[at].bondbegin();
-                                   bat != coords.Top()[at].bondend(); ++bat)
-          {
-            if (coords.Top()[*bat].ResNum() != *rnum) {
-              if (!cmask.AtomInCharMask(*bat)) {
-                mprintf("\tSugar %s bonded to non-sugar %s\n",
-                        coords.Top().ResNameNumAtomNameNum(at).c_str(),
-                        coords.Top().ResNameNumAtomNameNum(*bat).c_str());
-                // Check if this is a recognized linkage
-                Residue& pres = coords.TopPtr()->SetRes( coords.Top()[*bat].ResNum() );
-                if ( pres.Name() == "SER" ) {
-                  ChangeResName( pres, "OLS" );
-                } else if ( pres.Name() == "THR" ) {
-                  ChangeResName( pres, "OLT" );
-                } else if ( pres.Name() == "HYP" ) {
-                  ChangeResName( pres, "OLP" );
-                } else if ( pres.Name() == "ASN" ) {
-                  ChangeResName( pres, "NLN" );
-                } else {
-                  mprintf("Warning: Unrecognized link residue %s, not modifying name.\n", *pres.Name());
-                }
-              } else {
-                 mprintf("\tSugar %s bonded to sugar %s\n",
-                        coords.Top().ResNameNumAtomNameNum(at).c_str(),
-                        coords.Top().ResNameNumAtomNameNum(*bat).c_str());
-              }
-            }
-          } // END loop over bonded atoms
-        } // END loop over residue atoms
+        if (IdentifySugar(*rnum, coords.TopPtr(), frameIn, cmask))
+          return CpptrajState::ERR;
       } // END loop over sugar residues
     }
   }
