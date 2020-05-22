@@ -155,6 +155,7 @@ const
   mprintf("\t  Linkage code: %s\n", linkcode.c_str());
   NameType newResName( linkcode + std::string(1,resChar) + formStr );
   mprintf("\t  Glycam resname: %s\n", *newResName);
+  ChangeResName(res, newResName);
   return 0;
 }
 
