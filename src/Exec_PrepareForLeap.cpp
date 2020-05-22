@@ -4,6 +4,7 @@
 #include "CharMask.h"
 #include "TorsionRoutines.h"
 #include "Constants.h"
+#include "CpptrajFile.h"
 #include <set>
 
 // Exec_PrepareForLeap::Help()
@@ -22,6 +23,15 @@ static inline void ChangeResName(Residue& res, NameType const& nameIn) {
     mprintf("\tChanging residue %s to %s\n", *(res.Name()), *nameIn);
     res.SetName( nameIn );
   }
+}
+
+/// Generate leap bond command for given atoms
+void Exec_PrepareForLeap::LeapBond(int at1, int at2, Topology const& topIn, CpptrajFile* outfile)
+const
+{
+  outfile->Printf("bond %s.%i.%s %s.%i.%s\n",
+                  leapunitname_.c_str(), topIn[at1].ResNum()+1, *(topIn[at1].Name()),
+                  leapunitname_.c_str(), topIn[at2].ResNum()+1, *(topIn[at2].Name()));
 }
 
 /// \return Glycam linkage code for given glycam residue name and linked atoms
@@ -48,7 +58,8 @@ static std::string LinkageCode(char glycamChar, std::set<NameType> const& linkag
 
 /** Attempt to identify sugar residue, form, and linkages. */
 int Exec_PrepareForLeap::IdentifySugar(int rnum, Topology* topIn,
-                                       Frame const& frameIn, CharMask const& cmask)
+                                       Frame const& frameIn, CharMask const& cmask,
+                                       CpptrajFile* outfile)
 const
 {
   Residue& res = topIn->SetRes(rnum);
@@ -71,8 +82,10 @@ const
   int C5idx = -1;
   int C1idx = -1;
   int Cxidx = -1; // Non-H1, O5, C2 substituent of C1
-  // Use a set to store linkages so they are in alphabetical order
+  // Use a set to store linkages so they are in alphabetical order for easier identification
   std::set<NameType> linkages;
+  // Bonds to non sugars to be removed since these will confuse tleap
+  BondArray bondsToRemove;
   // Loop over sugar atoms
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
@@ -109,6 +122,7 @@ const
                   topIn->ResNameNumAtomNameNum(at).c_str(),
                   topIn->ResNameNumAtomNameNum(*bat).c_str());
           linkages.insert( (*topIn)[at].Name() );
+          bondsToRemove.push_back( BondType(at, *bat, -1) );
           // Check if this is a recognized linkage TODO put in another file?
           Residue& pres = topIn->SetRes( (*topIn)[*bat].ResNum() );
           if ( pres.Name() == "SER" ) {
@@ -146,6 +160,7 @@ const
     mprintf("\t  Alpha form\n");
     formStr = "A";
   }
+  // Determine linkage
   mprintf("\t  Link atoms:");
   for (std::set<NameType>::const_iterator it = linkages.begin();
                                           it != linkages.end(); ++it)
@@ -153,6 +168,15 @@ const
   mprintf("\n");
   std::string linkcode = LinkageCode(resChar, linkages);
   mprintf("\t  Linkage code: %s\n", linkcode.c_str());
+  if (linkcode.empty()) return 1;
+  // Remove bonds to non-sugar
+  for (BondArray::const_iterator bnd = bondsToRemove.begin();
+                                 bnd != bondsToRemove.end(); ++bnd)
+  {
+    LeapBond(bnd->A1(), bnd->A2(), *topIn, outfile);
+    topIn->RemoveBond(bnd->A1(), bnd->A2());
+  }
+  // Set new residue name
   NameType newResName( linkcode + std::string(1,resChar) + formStr );
   mprintf("\t  Glycam resname: %s\n", *newResName);
   ChangeResName(res, newResName);
@@ -182,8 +206,8 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   Frame frameIn = coords.AllocateFrame();
   coords.GetFrame(tgtframe, frameIn);
 
-  std::string leapunitname = argIn.GetStringKey("leapunitname", "m");
-  mprintf("\tUsing leap unit name: %s\n", leapunitname.c_str());
+  leapunitname_ = argIn.GetStringKey("leapunitname", "m");
+  mprintf("\tUsing leap unit name: %s\n", leapunitname_.c_str());
 
   AtomMask sugarMask;
   std::string sugarmaskstr = argIn.GetStringKey("sugarmask");
@@ -239,12 +263,9 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
         }
         if (isBonded) {
           nDisulfides++;
-          outfile->Printf("bond %s.%i.%s %s.%i.%s\n",
-                          leapunitname.c_str(), coords.Top()[*at1].ResNum()+1, *(coords.Top()[*at1].Name()),
-                          leapunitname.c_str(), coords.Top()[*at2].ResNum()+1, *(coords.Top()[*at2].Name()));
+          LeapBond(*at1, *at2, coords.Top(), outfile);
           ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at1].ResNum()), newcysname);
           ChangeResName(coords.TopPtr()->SetRes(coords.Top()[*at2].ResNum()), newcysname);
-          // TODO add the bond?
         }
       }
     }
@@ -269,10 +290,12 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       {
         //Residue const& Res = coords.Top().Res(*rnum);
         // See if we recognize this sugar.
-        if (IdentifySugar(*rnum, coords.TopPtr(), frameIn, cmask))
+        if (IdentifySugar(*rnum, coords.TopPtr(), frameIn, cmask, outfile))
           return CpptrajState::ERR;
       } // END loop over sugar residues
     }
+    // Bonds to sugars have been removed, so regenerate molecule info
+    coords.TopPtr()->DetermineMolecules();
   }
   
   return CpptrajState::OK;
