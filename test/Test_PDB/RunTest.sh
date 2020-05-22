@@ -11,24 +11,27 @@ TESTNAME='PDB format tests'
 Requires maxthreads 1
 
 # Test read/write of residue numbers, insertion / altloc codes, etc
-UNITNAME='PDB format read/write test'
-cat >> pdb.in <<EOF
+Test1() {
+  UNITNAME='PDB format read/write test'
+cat > pdb.in <<EOF
 parm 2b5t.pdb noconect
 resinfo ::A out chainA.dat
 resinfo :;2 out oresnum.dat
 trajin 2b5t.pdb
 trajout test.pdb teradvance sg "P 1"
 EOF
-RunCpptraj "$UNITNAME"
-DoTest test.pdb.save test.pdb
-DoTest chainA.dat.save chainA.dat
-DoTest oresnum.dat.save oresnum.dat
+  RunCpptraj "$UNITNAME"
+  DoTest test.pdb.save test.pdb
+  DoTest chainA.dat.save chainA.dat
+  DoTest oresnum.dat.save oresnum.dat
+}
 
 # Test writing PQR files with various radii options
-UNITNAME='PQR file write with various radii'
-CheckFor notparallel
-if [ $? -eq 0 ] ; then
-  cat > pdb.in <<EOF
+Test2() {
+  UNITNAME='PQR file write with various radii'
+  CheckFor notparallel
+  if [ $? -eq 0 ] ; then
+    cat > pdb.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.rst7
 trajout tz2.pqr.gb.pdb dumpq    # GB radii
@@ -37,12 +40,16 @@ trajout tz2.pqr.vdw.pdb dumpr*  # VDW radii
 # Test default chain ID write
 trajout tz2.plain.pdb pdbres
 EOF
-  RunCpptraj "$UNITNAME"
-  DoTest tz2.pqr.gb.pdb.save tz2.pqr.gb.pdb
-  DoTest tz2.pqr.parse.pdb.save tz2.pqr.parse.pdb
-  DoTest tz2.pqr.vdw.pdb.save tz2.pqr.vdw.pdb
-  DoTest tz2.plain.pdb.save tz2.plain.pdb
-fi
+    RunCpptraj "$UNITNAME"
+    DoTest tz2.pqr.gb.pdb.save tz2.pqr.gb.pdb
+    DoTest tz2.pqr.parse.pdb.save tz2.pqr.parse.pdb
+    DoTest tz2.pqr.vdw.pdb.save tz2.pqr.vdw.pdb
+    DoTest tz2.plain.pdb.save tz2.plain.pdb
+  fi
+}
+
+Test1
+Test2
 
 EndTest
 exit 0
