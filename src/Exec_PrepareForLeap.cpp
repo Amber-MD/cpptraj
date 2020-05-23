@@ -217,17 +217,39 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
     }
   }
-
-  std::vector<std::string> molMasks;
+  // Get masks for molecules now since topology may be modified later.
+  std::vector<AtomMask> molMasks;
   std::string mstr = argIn.GetStringKey("molmask");
   while (!mstr.empty()) {
     mprintf("\tAll atoms selected by '%s' will be in same molecule.\n", mstr.c_str());
-    molMasks.push_back( mstr );
+    molMasks.push_back( AtomMask() );
+    if (molMasks.back().SetMaskString( mstr )) {
+      mprinterr("Error: Invalid mask.\n");
+      return CpptrajState::ERR;
+    }
+    if (coords.Top().SetupIntegerMask( molMasks.back() )) return CpptrajState::ERR;
+    molMasks.back().MaskInfo();
+    if (molMasks.back().None()) {
+      mprinterr("Error: Nothing selected by mask.\n");
+      return CpptrajState::ERR;
+    }
     mstr = argIn.GetStringKey("molmask");
   }
-  std::string determineMolMask = argIn.GetStringKey("determinemolmask");
-  if (!determineMolMask.empty())
-    mprintf("\tAtoms in mask '%s' will determine molecules by bonds.\n", determineMolMask.c_str());
+  AtomMask determineMolMask;
+  mstr = argIn.GetStringKey("determinemolmask");
+  if (!mstr.empty()) {
+    mprintf("\tAtoms in mask '%s' will determine molecules by bonds.\n", mstr.c_str());
+    if (determineMolMask.SetMaskString(mstr)) {
+      mprinterr("Error: Invalid mask.\n");
+      return CpptrajState::ERR;
+    }
+    if (coords.Top().SetupIntegerMask( determineMolMask )) return CpptrajState::ERR;
+    determineMolMask.MaskInfo();
+    if (determineMolMask.None()) {
+      mprinterr("Error: Nothing selected by mask.\n");
+      return CpptrajState::ERR;
+    }
+  }
 
   CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"),
                                                     "LEaP Input", DataFileList::TEXT);
@@ -308,6 +330,24 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // Bonds to sugars have been removed, so regenerate molecule info
     coords.TopPtr()->DetermineMolecules();
   }
+
+  // Try to set terminal residues
+  if (!molMasks.empty() || determineMolMask.MaskStringSet()) {
+    // Reset terminal status
+    for (int rnum = 0; rnum != coords.Top().Nres(); rnum++)
+      coords.TopPtr()->SetRes(rnum).SetTerminal(false);
+    for (std::vector<AtomMask>::const_iterator mask = molMasks.begin();
+                                               mask != molMasks.end(); ++mask)
+    {
+      //std::vector<int> Rnums = coords.Top().ResnumsSelectedBy( *mask );
+      int lastAtom = mask->back();
+      int lastRes = coords.Top()[lastAtom].ResNum();
+      mprintf("\tSetting residue %s as terminal.\n",
+        coords.Top().TruncResNameNum(lastRes).c_str());
+      coords.TopPtr()->SetRes(lastRes).SetTerminal( true );
+    }
+  }
+      
 
   return CpptrajState::OK;
 }
