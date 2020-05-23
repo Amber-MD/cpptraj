@@ -13,6 +13,7 @@ class Exec_PrepareForLeap : public Exec {
   private:
     void LeapBond(int,int,Topology const&, CpptrajFile*) const;
     int IdentifySugar(int, Topology*, Frame const&, CharMask const&, CpptrajFile*) const;
+    int FindTerByBonds(Topology*, CharMask const&) const;
 
     std::string leapunitname_;
 };

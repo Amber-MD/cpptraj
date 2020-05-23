@@ -6,6 +6,7 @@
 #include "Constants.h"
 #include "CpptrajFile.h"
 #include <set>
+#include <stack>
 
 // Exec_PrepareForLeap::Help()
 void Exec_PrepareForLeap::Help() const
@@ -183,6 +184,79 @@ const
   return 0;
 }
 
+/** Determine where molecules end based on connectivity. */
+int Exec_PrepareForLeap::FindTerByBonds(Topology* topIn, CharMask const& maskIn)
+const
+{
+  // NOTE: this code is the same algorithm from Topology::NonrecursiveMolSearch
+  // TODO use a common molecule search backend
+  std::stack<unsigned int> nextAtomToSearch;
+  bool unassignedAtomsRemain = true;
+  unsigned int currentAtom = 0;
+  unsigned int currentMol = 0;
+  unsigned int lowestUnassignedAtom = 0;
+  std::vector<int> atomMolNum( topIn->Natom(), -1 );
+  while (unassignedAtomsRemain) {
+    // This atom is in molecule.
+    atomMolNum[currentAtom] = currentMol;
+    //mprintf("DEBUG:\tAssigned atom %u to mol %u\n", currentAtom, currentMol);
+    // All atoms bonded to this one are in molecule.
+    for (Atom::bond_iterator batom = (*topIn)[currentAtom].bondbegin();
+                             batom != (*topIn)[currentAtom].bondend(); ++batom)
+    {
+      if (atomMolNum[*batom] == -1) { // -1 is no molecule
+        if ((*topIn)[*batom].Nbonds() > 1)
+          // Bonded atom has more than 1 bond; needs to be searched.
+          nextAtomToSearch.push( *batom );
+        else {
+          // Bonded atom only bonded to current atom. No more search needed.
+          atomMolNum[*batom] = currentMol;
+          //mprintf("DEBUG:\t\tAssigned bonded atom %i to mol %u\n", *batom, currentMol);
+        }
+      }
+    }
+    if (nextAtomToSearch.empty()) {
+      //mprintf("DEBUG:\tNo atoms left in stack. Searching for next unmarked atom.\n");
+      // No more atoms to search. Find next unmarked atom.
+      currentMol++;
+      unsigned int idx = lowestUnassignedAtom;
+      for (; idx != atomMolNum.size(); idx++)
+        if (atomMolNum[idx] == -1) break;
+      if (idx == atomMolNum.size())
+        unassignedAtomsRemain = false;
+      else {
+        currentAtom = idx;
+        lowestUnassignedAtom = idx + 1;
+      }
+    } else {
+      currentAtom = nextAtomToSearch.top();
+      nextAtomToSearch.pop();
+      //mprintf("DEBUG:\tNext atom from stack: %u\n", currentAtom);
+    }
+  }
+  //t_nostack.Stop();
+  //t_nostack.WriteTiming(1, "Non-recursive mol search:");
+  //return (int)currentMol;
+  // For each selected atom, find last atom in corresponding molecule,
+  // set corresponding residue as TER.
+  int at = 0;
+  while (at < topIn->Natom()) {
+    // Find the next selected atom
+    while (at < topIn->Natom() && !maskIn.AtomInCharMask(at)) at++;
+    if (at < topIn->Natom()) {
+      int currentMol = atomMolNum[at];
+      // Seek to end of molecule
+      while (at < topIn->Natom() && currentMol == atomMolNum[at]) at++;
+      // The previous atom is the end
+      int lastRes = (*topIn)[at-1].ResNum();
+      mprintf("\tSetting residue %s as terminal.\n",
+              topIn->TruncResNameNum(lastRes).c_str());
+      topIn->SetRes(lastRes).SetTerminal( true );
+    }
+  }
+  return 0;
+}
+
 // Exec_PrepareForLeap::Execute()
 Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -235,7 +309,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     }
     mstr = argIn.GetStringKey("molmask");
   }
-  AtomMask determineMolMask;
+  CharMask determineMolMask;
   mstr = argIn.GetStringKey("determinemolmask");
   if (!mstr.empty()) {
     mprintf("\tAtoms in mask '%s' will determine molecules by bonds.\n", mstr.c_str());
@@ -243,7 +317,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprinterr("Error: Invalid mask.\n");
       return CpptrajState::ERR;
     }
-    if (coords.Top().SetupIntegerMask( determineMolMask )) return CpptrajState::ERR;
+    if (coords.Top().SetupCharMask( determineMolMask )) return CpptrajState::ERR;
     determineMolMask.MaskInfo();
     if (determineMolMask.None()) {
       mprinterr("Error: Nothing selected by mask.\n");
@@ -336,6 +410,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
     // Reset terminal status
     for (int rnum = 0; rnum != coords.Top().Nres(); rnum++)
       coords.TopPtr()->SetRes(rnum).SetTerminal(false);
+    // The final residue of each molMask is terminal
     for (std::vector<AtomMask>::const_iterator mask = molMasks.begin();
                                                mask != molMasks.end(); ++mask)
     {
@@ -345,6 +420,13 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
       mprintf("\tSetting residue %s as terminal.\n",
         coords.Top().TruncResNameNum(lastRes).c_str());
       coords.TopPtr()->SetRes(lastRes).SetTerminal( true );
+    }
+    // Set ter based on connectivity
+    if (determineMolMask.MaskStringSet()) {
+      if (FindTerByBonds(coords.TopPtr(), determineMolMask)) {
+        mprinterr("Error: Could not set TER by connectivity.\n");
+        return CpptrajState::ERR;
+      }
     }
   }
       
