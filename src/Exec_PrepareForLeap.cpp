@@ -26,6 +26,14 @@ static inline void ChangeResName(Residue& res, NameType const& nameIn) {
   }
 }
 
+/// Used to change atom name to nameIn
+static inline void ChangeAtomName(Atom& atm, NameType const& nameIn) {
+  if (atm.Name() != nameIn) {
+    mprintf("\tChanging atom %s to %s\n", *(atm.Name()), *nameIn);
+    atm.SetName( nameIn );
+  }
+}
+
 /// Generate leap bond command for given atoms
 void Exec_PrepareForLeap::LeapBond(int at1, int at2, Topology const& topIn, CpptrajFile* outfile)
 const
@@ -90,6 +98,14 @@ const
   // Loop over sugar atoms
   for (int at = res.FirstAtom(); at != res.LastAtom(); at++)
   {
+    // Rename some common atoms TODO need to check glycam residue char?
+    if ( (*topIn)[at].Name() == "C7" )
+      ChangeAtomName(topIn->SetAtom(at), "C2N");
+    else if ( (*topIn)[at].Name() == "O7" )
+      ChangeAtomName(topIn->SetAtom(at), "O2N");
+    else if ( (*topIn)[at].Name() == "C8" )
+      ChangeAtomName(topIn->SetAtom(at), "CME");
+    // Identify atoms for torsion
     if ( (*topIn)[at].Name() == "C6" )
       C6idx = at;
     else if ( (*topIn)[at].Name() == "C5" )
