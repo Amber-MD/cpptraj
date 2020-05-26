@@ -346,7 +346,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   if (outfile == 0) return CpptrajState::ERR;
 
   // Disulfide search
-  double disulfidecut = argIn.getKeyDouble("disulfidecut", 2.1);
+  double disulfidecut = argIn.getKeyDouble("disulfidecut", 2.5);
   std::string newcysnamestr = argIn.GetStringKey("newcysname", "CYX");
   NameType newcysname(newcysnamestr);
   mprintf("\tCysteine residues involved in disulfide bonds will be changed to: %s\n", *newcysname);
