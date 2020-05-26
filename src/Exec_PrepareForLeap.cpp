@@ -342,7 +342,7 @@ Exec::RetType Exec_PrepareForLeap::Execute(CpptrajState& State, ArgList& argIn)
   }
 
   CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"),
-                                                    "LEaP Input", DataFileList::TEXT);
+                                                    "LEaP Input", DataFileList::TEXT, true);
   if (outfile == 0) return CpptrajState::ERR;
 
   // Disulfide search
