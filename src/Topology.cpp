@@ -1861,7 +1861,7 @@ int Topology::AppendTop(Topology const& NewTop) {
         CurrentAtom.SetTypeIndex( newTypeIdx );
       }
     }
-    AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset,
+    AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
                                      res.Icode(), res.ChainID()) );
   } // END loop over incoming atoms
   // NONBONDS
