@@ -1,4 +1,4 @@
-FROM continuumio/miniconda:latest
+FROM continuumio/miniconda3:latest
 
 RUN mkdir /cpptraj && \
     mkdir /.conda /.local && \
