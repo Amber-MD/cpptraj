@@ -611,6 +611,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
             // provide some time savings.
             double ene = Calculate_Energy(frameIn, solvent_residues_[i]);
             myDSL_[peak]->Add(frameNum, &ene);
+            //mprintf("DEBUG: Frm %6i peak %6i residx %6u solvres %6i ene %g\n",
+            //        frameNum+1, peak+1, i, solvent_residues_[i].OriginalResNum(), ene);
             break;
           }
       } else
@@ -700,7 +702,8 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   // Calculate distribution of energy values using KDE. Get the bandwidth
   // factor here since we already know the SD.
   double BWfac = KDE::BandwidthFactor( enevec.Size() );
-  //mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
+  if (debug_ > 0)
+    mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
   // Estimate number of bins the same way spamstats.py does.
   int nbins = (int)(((max - min) / BWfac) + 0.5) + 100;
   if (nbins < 0) {
@@ -713,10 +716,19 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
 
   HistBin Xdim(nbins, min - (50*BWfac), BWfac, "P(Ewat)");
   //Xdim.CalcBinsOrStep(min - Havg.variance(), max + Havg.variance(), 0.0, nbins, "P(Ewat)");
-  if (debug_ > 0) Xdim.PrintHistBin();
+  if (debug_ > 0) {
+    mprintf("DEBUG:");
+    Xdim.PrintHistBin();
+  }
   DataSet_double kde1;
   KDE gkde;
-  if (gkde.CalcKDE( kde1, enevec, Xdim, 1.06 * sqrt(Havg.variance()) * BWfac )) {
+  double bandwidth;
+  if (enevec.Size() == 1) {
+    // Special case. Juse use BWfac to avoid a zero bandwidth.
+    bandwidth = BWfac;
+  } else
+    bandwidth = 1.06 * sqrt(Havg.variance()) * BWfac;
+  if (gkde.CalcKDE( kde1, enevec, Xdim, bandwidth )) {
     mprinterr("Error: Could not calculate E KDE histogram.\n");
     return -1;
   }
@@ -729,8 +741,10 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
     double Ewat = kde1.Xcrd(i);
     double PEwat = kde1.Dval(i);
     sumQ += (PEwat * exp( -Ewat * KB ));
+    //mprintf("DEBUG:\t\tEwat %20.10E PEwat %20.10E sumQ %20.10E\n", Ewat, PEwat, sumQ);
   }
-  //mprintf("DEBUG: sumQ= %20.10E\n", sumQ);
+  if (debug_ > 0)
+    mprintf("DEBUG: peak %6u sumQ= %20.10E\n", peaknum+1, sumQ);
   double DG = -RT * log(BWfac * sumQ);
 
   double adjustedDG = DG - DG_BULK_;
