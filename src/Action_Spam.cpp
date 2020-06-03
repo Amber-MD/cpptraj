@@ -703,6 +703,13 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   //mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
   // Estimate number of bins the same way spamstats.py does.
   int nbins = (int)(((max - min) / BWfac) + 0.5) + 100;
+  if (nbins < 0) {
+    // Probably an overflow due to extremely large energy.
+    mprintf("Warning: Large magnitude energy observed for peak %u (min=%g max=%g)\n",
+            peaknum+1, min, max);
+    mprintf("Warning: Skipping peak.\n");
+    return -1;
+  }
 
   HistBin Xdim(nbins, min - (50*BWfac), BWfac, "P(Ewat)");
   //Xdim.CalcBinsOrStep(min - Havg.variance(), max + Havg.variance(), 0.0, nbins, "P(Ewat)");
@@ -729,16 +736,17 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   double adjustedDG = DG - DG_BULK_;
   double adjustedDH = Havg.mean() - DH_BULK_;
   double ntds = adjustedDG - adjustedDH;
+
   if (ds_dg_ == 0) {
-    mprintf("\tSPAM bulk energy values:\n");
-    mprintf("\t  <G>= %g, <H>= %g +/- %g, -TdS= %g\n", adjustedDG, adjustedDH,
+    mprintf("\tSPAM bulk energy values:\n"
+            "\t  <G>= %g, <H>= %g +/- %g, -TdS= %g\n", adjustedDG, adjustedDH,
             sqrt(Havg.variance()), ntds);
   } else {
     ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum+1, adjustedDG);
     ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum+1, adjustedDH);
     ((DataSet_Mesh*)ds_ds_)->AddXY(peaknum+1, ntds);
   }
-  
+
   // DEBUG
   if (debug_ > 1) {
     FileName rawname("dbgraw." + integerToString(peaknum+1) + ".dat");
@@ -850,7 +858,7 @@ void Action_Spam::Print() {
       if (err == 1)
         n_peaks_no_energy++;
       else if (err == -1)
-        mprintf("Warning: Error calculating SPAM energies for peak %zu\n", ds - myDSL_.begin());
+        mprintf("Warning: Error calculating SPAM energies for peak %u\n", p + 1);
     }
     if (n_peaks_no_energy > 0)
       mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
