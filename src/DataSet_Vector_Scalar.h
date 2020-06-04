@@ -19,6 +19,8 @@ class DataSet_Vector_Scalar : public DataSet {
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
     // -------------------------------------------
+    Vec3 const& Vec(unsigned int i) const { return vecs_[i]; }
+    double Val(unsigned int i)      const { return vals_[i]; }
   private:
     typedef std::vector<Vec3> Varray;
     typedef std::vector<double> Darray;
