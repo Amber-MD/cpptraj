@@ -420,48 +420,52 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 # endif
   for (midx = 0; midx < maxidx; midx++) {
     double rhalf = (double)halfradii_[midx];
-      double rcut2;
-      if (spheremode_)
-        rcut2 = rhalf*rhalf;
-      else
-        rcut2 = 99999999.0;
-      atom = Atoms_[midx];
-      Vec3 pt = Vec3(frm.Frm().XYZ(atom));
-      int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
+    double rcut2;
+    if (spheremode_)
+      rcut2 = rhalf*rhalf;
+    else
+      rcut2 = 99999999.0;
+    atom = Atoms_[midx];
+    Vec3 pt = Vec3(frm.Frm().XYZ(atom));
+    int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
+    /* See how many steps in X dimension we smear out our Gaussian. This
+     * formula is taken to be consistent with VMD's volmap tool.
+     */
+    int nxstep = (int) ceil(stepfac_ * rhalf / dx_);
+    if (ix >= -nxstep && ix <= nX + nxstep) {
       int iy = (int) ( floor( (pt[1]-ymin_) / dy_ + 0.5 ) );
-      int iz = (int) ( floor( (pt[2]-zmin_) / dz_ + 0.5 ) );
-      /* See how many steps in each dimension we smear out our Gaussian. This
-       * formula is taken to be consistent with VMD's volmap tool
-       */
-      int nxstep = (int) ceil(stepfac_ * rhalf / dx_);
+      // See how many steps in Y dim we smear out Gaussian.
       int nystep = (int) ceil(stepfac_ * rhalf / dy_);
-      int nzstep = (int) ceil(stepfac_ * rhalf / dz_);
-      if (ix < -nxstep || ix > nX + nxstep ||
-          iy < -nystep || iy > nY + nystep ||
-          iz < -nzstep || iz > nZ + nzstep)
-        continue;
-      // Calculate the gaussian normalization factor (in 3 dimensions with the
-      // given half-radius)
-      double norm = 1 / (sqrt_8_pi_cubed * rhalf*rhalf*rhalf);
-      double exfac = -1.0 / (2.0 * rhalf * rhalf);
-      //mprintf("DBG: Atom %i norm %g exfac %g\n", atom+1, norm, exfac);
+      if (iy >= -nystep && iy <= nY + nystep) {
+        int iz = (int) ( floor( (pt[2]-zmin_) / dz_ + 0.5 ) );
+        // See how many steps in Z dim we smear out Gaussian.
+        int nzstep = (int) ceil(stepfac_ * rhalf / dz_);
+        if (iz >= -nzstep && iz <= nZ + nzstep) {
+          // Calculate the gaussian normalization factor (in 3 dimensions with the
+          // given half-radius)
+          double norm = 1 / (sqrt_8_pi_cubed * rhalf*rhalf*rhalf);
+          double exfac = -1.0 / (2.0 * rhalf * rhalf);
+          //mprintf("DBG: Atom %i norm %g exfac %g\n", atom+1, norm, exfac);
 
-      int xend = std::min(ix+nxstep, nX);
-      int yend = std::min(iy+nystep, nY);
-      int zend = std::min(iz+nzstep, nZ);
-      for (int xval = std::max(ix-nxstep, 0); xval < xend; xval++)
-        for (int yval = std::max(iy-nystep, 0); yval < yend; yval++)
-          for (int zval = std::max(iz-nzstep, 0); zval < zend; zval++) {
-            Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
-            double dist2 = gridpt.Magnitude2();
-            if (dist2 < rcut2) {
-#           ifdef _OPENMP
-            GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
-#           else
-            grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
-#           endif
-            }
-          }
+          int xend = std::min(ix+nxstep, nX);
+          int yend = std::min(iy+nystep, nY);
+          int zend = std::min(iz+nzstep, nZ);
+          for (int xval = std::max(ix-nxstep, 0); xval < xend; xval++)
+            for (int yval = std::max(iy-nystep, 0); yval < yend; yval++)
+              for (int zval = std::max(iz-nzstep, 0); zval < zend; zval++) {
+                Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
+                double dist2 = gridpt.Magnitude2();
+                if (dist2 < rcut2) {
+#                 ifdef _OPENMP
+                  GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+#                 else
+                  grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+#                 endif
+                }
+              } // END loop over zval
+        } // END z dim is valid
+      } // END y dim is valid
+    } // END x dim is valid
   } // END loop over atoms in densitymask_
 # ifdef _OPENMP
   } // END pragma omp parallel
