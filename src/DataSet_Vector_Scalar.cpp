@@ -4,7 +4,10 @@
 
 /// CONSTRUCTOR TODO should this be in VECTOR_1D group?
 DataSet_Vector_Scalar::DataSet_Vector_Scalar() :
-  DataSet(VECTOR_SCALAR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 4), 1)
+  // TODO marking this as 0-dimension so that it is forced to use
+  //      the DataIO_Peaks format, but may want to change this down the
+  //      road.
+  DataSet(VECTOR_SCALAR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 4), 0)
 { }
 
 /** Reserve space in vector array. */

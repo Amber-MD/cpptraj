@@ -573,10 +573,14 @@ void Action_Volmap::Print() {
             //peakdata.push_back(ymin_+dy_*j);
             //peakdata.push_back(zmin_+dz_*k);
             //peakdata.push_back(gval);
+            pbuf[0] = xmin_+dx_*(double)i;
+            pbuf[1] = ymin_+dy_*(double)j;
+            pbuf[2] = zmin_+dz_*(double)k;
+            pbuf[3] = gval;
             peakdata_->Add(npeaks++, pbuf);
           }
         }
-    // If we have peaks, open up our peak data and print it
+    // Report on how many peaks found. 
     if (npeaks > 0) {
       mprintf("Volmap: %d density peaks found with higher density than %.4lf\n",
               npeaks, peakcut_);
