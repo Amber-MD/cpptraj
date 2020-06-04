@@ -16,21 +16,21 @@ bool DataIO_Peaks::ID_DataFormat(CpptrajFile& infile)
   std::string firstLine = NoTrailingWhitespace(infile.GetLine());
   std::string secondLine = NoTrailingWhitespace(infile.GetLine());
   std::string thirdLine = infile.GetLine();
-  mprintf("DEBUG: ID peaks.\n");
-  mprintf("'%s'\n", firstLine.c_str());
-  mprintf("'%s'\n", secondLine.c_str());
-  mprintf("'%s'\n", thirdLine.c_str());
+  //mprintf("DEBUG: ID peaks.\n");
+  //mprintf("'%s'\n", firstLine.c_str());
+  //mprintf("'%s'\n", secondLine.c_str());
+  //mprintf("'%s'\n", thirdLine.c_str());
   infile.CloseFile();
   if (validInteger(firstLine)) {
-    mprintf("DEBUG: Line 1 int.\n");
+    //mprintf("DEBUG: Line 1 int.\n");
     if (secondLine.empty()) {
-      mprintf("DEBUG: Line 2 empty.\n");
+      //mprintf("DEBUG: Line 2 empty.\n");
       ArgList line3(thirdLine);
       if (line3.Nargs() == 5) {
         if (line3[0] == "C") {
           for (int col = 1; col < 5; col++)
             if (!validDouble(line3[col])) return false;
-          mprintf("DEBUG: Line 3 C and 4 doubles.\n");
+          //mprintf("DEBUG: Line 3 C and 4 doubles.\n");
           return true;
         }
       }
