@@ -217,6 +217,7 @@ COMMON_SOURCES= \
         DataSet_RemLog.cpp \
         DataSet_Topology.cpp \
         DataSet_Vector.cpp \
+        DataSet_Vector_Scalar.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
         DataSet_integer_disk.cpp \
