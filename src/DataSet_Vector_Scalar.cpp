@@ -45,3 +45,33 @@ int DataSet_Vector_Scalar::Append(DataSet* dsIn) {
 size_t DataSet_Vector_Scalar::MemUsageInBytes() const {
   return ((vecs_.size()*Vec3::DataSize()) + vals_.size());
 }
+
+#ifdef MPI
+int DataSet_Vector_Scalar::Sync(size_t total, std::vector<int> const& rank_frames,
+                         Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  double buf[4];
+  if (commIn.Master()) {
+    // Resize to accept data from other ranks.
+    vecs_.resize( total );
+    vals_.resize( total );
+    int vidx = rank_frames[0];
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      for (int ridx = 0; ridx != rank_frames[rank]; ridx++, vidx++) {
+        commIn.SendMaster( buf, 4, rank, MPI_DOUBLE );
+        std::copy( buf, buf+3, vecs_[vidx].Dptr() );
+        vals_[vidx] = buf[3];
+      }
+    }
+  } else {
+    // Send data to master
+    for (unsigned int ridx = 0; ridx != vecs_.size(); ++ridx) {
+      std::copy( vecs_[ridx].Dptr(), vecs_[ridx].Dptr()+3, buf );
+      buf[3] = vals_[ridx];
+      commIn.SendMaster( buf, 4, commIn.Rank(), MPI_DOUBLE );
+    }
+  }
+  return 0;
+}
+#endif

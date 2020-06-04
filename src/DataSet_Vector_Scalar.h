@@ -16,7 +16,7 @@ class DataSet_Vector_Scalar : public DataSet {
     int Append(DataSet*);
     size_t MemUsageInBytes() const;
 #   ifdef MPI
-    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
     // -------------------------------------------
   private:
