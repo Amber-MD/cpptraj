@@ -96,6 +96,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { CHARMMREPD,   "charmmrepd",".exch" },
   { CHARMMOUT,    "charmmout", ".charmmout"},
   { CHARMMRTFPRM, "charmmrtfprm", ".rtfprm"},
+  { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
