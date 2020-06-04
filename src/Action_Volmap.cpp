@@ -8,6 +8,7 @@
 #endif
 
 const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
+
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
   radiiType_(UNSPECIFIED),
@@ -22,6 +23,7 @@ Action_Volmap::Action_Volmap() :
   spheremode_(false),
   grid_(0),
   peakfile_(0),
+  peakdata_(0),
   peakcut_(0.05),
   buffer_(3.0),
   radscale_(1.0),
@@ -58,7 +60,6 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 # endif
   // Get specific keywords
   peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
-  peakfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
   spheremode_ = actionArgs.hasKey("sphere");
   radscale_ = 1.0;
   stepfac_ = 4.1;
@@ -207,6 +208,25 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     outfilename = actionArgs.GetStringNext(); // Backwards compat.
   DataFile* outfile = init.DFL().AddDataFile( outfilename, actionArgs );
   if (outfile != 0) outfile->AddDataSet( grid_ );
+  // See if peaks are being determined
+  peakfile_ = 0;
+  std::string pfilename = actionArgs.GetStringKey("peakfile");
+  if (!pfilename.empty()) {
+    peakfile_ = init.DFL().AddDataFile(pfilename, actionArgs);
+    if (peakfile_ == 0) {
+      mprinterr("Error: Unable to allocate peak file.\n");
+      return Action::ERR;
+    }
+    peakdata_ = init.DSL().AddSet(DataSet::VECTOR_SCALAR, MetaData(grid_->Meta().Name(), "peaks"));
+    if (peakdata_ == 0) {
+      mprinterr("Error: Unable to allocate peak data set.\n");
+      return Action::ERR;
+    }
+#   ifdef MPI
+    peakdata_->SetNeedsSync( false );
+#   endif
+    peakfile_->AddDataSet( peakdata_ );
+  }
   // Create total volume set
   total_volume_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(grid_->Meta().Name(), "totalvol"));
   if (total_volume_ == 0) return Action::ERR;
@@ -249,8 +269,8 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
   mprintf("\tTotal grid volume dataset name is '%s'\n", total_volume_->legend());
   if (peakfile_ != 0)
-    mprintf("\tDensity peaks above %.3f will be printed to %s in XYZ-format\n",
-            peakcut_, peakfile_->Filename().full());
+    mprintf("\tDensity peaks above %.3f will be saved to %s and printed to %s in XYZ-format\n",
+            peakcut_, peakdata_->legend(), peakfile_->DataFilename().full());
 # ifdef _OPENMP
   if (GRID_THREAD_.size() > 1)
     mprintf("\tParallelizing calculation with %zu threads.\n", GRID_THREAD_.size());
@@ -541,28 +561,26 @@ void Action_Volmap::Print() {
               }
         }
     int npeaks = 0;
-    std::vector<double> peakdata;
+    //std::vector<double> peakdata;
+    double pbuf[4];
     for (size_t i = 0; i < peakgrid.NX(); i++)
       for (size_t j = 0; j < peakgrid.NY(); j++)
         for (size_t k = 0; k < peakgrid.NZ(); k++) {
           double gval = peakgrid.element(i, j, k);
           if (gval > 0) {
-            npeaks++;
-            peakdata.push_back(xmin_+dx_*i);
-            peakdata.push_back(ymin_+dy_*j);
-            peakdata.push_back(zmin_+dz_*k);
-            peakdata.push_back(gval);
+            //npeaks++;
+            //peakdata.push_back(xmin_+dx_*i);
+            //peakdata.push_back(ymin_+dy_*j);
+            //peakdata.push_back(zmin_+dz_*k);
+            //peakdata.push_back(gval);
+            peakdata_->Add(npeaks++, pbuf);
           }
         }
     // If we have peaks, open up our peak data and print it
     if (npeaks > 0) {
-      peakfile_->Printf("%d\n\n", npeaks);
-      for (int i = 0; i < npeaks; i++)
-        peakfile_->Printf("C %16.8f %16.8f %16.8f %16.8f\n", peakdata[4*i],
-                       peakdata[4*i+1], peakdata[4*i+2], peakdata[4*i+3]);
       mprintf("Volmap: %d density peaks found with higher density than %.4lf\n",
               npeaks, peakcut_);
-    }else{
+    } else {
       mprintf("No peaks found with a density greater than %.3lf\n", peakcut_);
     }
   }

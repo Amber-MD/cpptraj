@@ -32,7 +32,8 @@ class Action_Volmap : public Action {
     AtomMask densitymask_;  ///< Max of atoms to grid.
     DataSet_GridFlt* grid_; ///< Hold the grid.
     DataSet* total_volume_; ///< Hold total grid volume.
-    CpptrajFile* peakfile_; ///< file name with the peak locations as Carbons in XYZ file format
+    DataFile* peakfile_;    ///< file name with the peak locations as Carbons in XYZ file format
+    DataSet* peakdata_;     ///< Data set holding peak locations along with densities
     double peakcut_;        ///< The value below which to ignore all peaks
     std::vector<int> Atoms_; ///< Atoms with radii > 0.0
     std::vector<float> halfradii_; ///< 1/2 the atomic radii of each atom in the gridded selection
