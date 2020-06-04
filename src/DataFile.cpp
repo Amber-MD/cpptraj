@@ -28,6 +28,7 @@
 #include "DataIO_CharmmOutput.h"
 #include "DataIO_Cpout.h"
 #include "DataIO_CharmmRtfPrm.h"
+#include "DataIO_Peaks.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -73,6 +74,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "CHARMM Output",      0,                             0,             DataIO_CharmmOutput::Alloc},
   { "Amber CPOUT",        DataIO_Cpout::ReadHelp, DataIO_Cpout::WriteHelp, DataIO_Cpout::Alloc},
   { "CHARMM RTF/PRM",     0,                             0,            DataIO_CharmmRtfPrm::Alloc },
+  { "Peaks",              0,                             0,            DataIO_Peaks::Alloc },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -113,6 +115,7 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CPOUT,        "cpout",  ".cpout" },
   { CHARMMRTFPRM, "charmmrtfprm", ".prm" },
+  { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
