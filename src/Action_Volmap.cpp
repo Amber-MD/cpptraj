@@ -22,6 +22,8 @@ Action_Volmap::Action_Volmap() :
   setupGridOnMask_(false),
   spheremode_(false),
   grid_(0),
+  total_volume_(0),
+  calcpeaks_(false),
   peakfile_(0),
   peakdata_(0),
   peakcut_(0.05),
@@ -49,7 +51,7 @@ void Action_Volmap::RawHelp() const {
           "\t      centermask <mask> [buffer <buffer>] |\n"
           "\t      boxref <reference> }\n"
           "\t}\n"
-          "\t[radii {vdw | element}] [peakcut <cutoff>] [peakfile <xyzfile>]\n");
+          "\t[radii {vdw | element}] [calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]\n");
 }
 
 // Action_Volmap::Init()
@@ -203,6 +205,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   if (densitymask_.SetMaskString(reqmask)) return Action::ERR;
   // See if peaks are being determined
+  calcpeaks_ = actionArgs.hasKey("calcpeaks");
   peakfile_ = 0;
   std::string pfilename = actionArgs.GetStringKey("peakfile");
   if (!pfilename.empty()) {
@@ -211,6 +214,9 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       mprinterr("Error: Unable to allocate peak file.\n");
       return Action::ERR;
     }
+    calcpeaks_ = true;
+  }
+  if (calcpeaks_) {
     peakdata_ = init.DSL().AddSet(DataSet::VECTOR_SCALAR, MetaData(grid_->Meta().Name(), "peaks"));
     if (peakdata_ == 0) {
       mprinterr("Error: Unable to allocate peak data set.\n");
@@ -219,7 +225,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 #   ifdef MPI
     peakdata_->SetNeedsSync( false );
 #   endif
-    peakfile_->AddDataSet( peakdata_ );
+    if (peakfile_ != 0) peakfile_->AddDataSet( peakdata_ );
   }
   // Get output filename (newer syntax)
   std::string outfilename = actionArgs.GetStringKey("out");
@@ -269,9 +275,12 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
   mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
   mprintf("\tTotal grid volume dataset name is '%s'\n", total_volume_->legend());
-  if (peakfile_ != 0)
-    mprintf("\tDensity peaks above %.3f will be saved to %s and printed to %s in XYZ-format\n",
-            peakcut_, peakdata_->legend(), peakfile_->DataFilename().full());
+  if (calcpeaks_) {
+    mprintf("\tDensity peaks above %.3f will be saved to %s\n", peakcut_, peakdata_->legend());
+    if (peakfile_ != 0)
+      mprintf("\tDensity peaks will be printed to %s in XYZ format.\n",
+              peakfile_->DataFilename().full());
+  }
 # ifdef _OPENMP
   if (GRID_THREAD_.size() > 1)
     mprintf("\tParallelizing calculation with %zu threads.\n", GRID_THREAD_.size());
@@ -537,7 +546,7 @@ void Action_Volmap::Print() {
 //                      "rdparm generated grid density" );
   
   // See if we need to write the peaks out somewhere
-  if (peakfile_ != 0) {
+  if (calcpeaks_) {
     // Extract peaks from the current grid, setup another Grid instance. This
     // works by taking every grid point and analyzing all grid points adjacent
     // to it (including diagonals). If any of those grid points have a higher 
