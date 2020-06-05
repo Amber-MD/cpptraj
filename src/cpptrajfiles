@@ -349,6 +349,7 @@ COMMON_SOURCES= \
         SDFfile.cpp \
         SimplexMin.cpp \
         Spline.cpp \
+        SplineFxnTable.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \
         StructureMapper.cpp \

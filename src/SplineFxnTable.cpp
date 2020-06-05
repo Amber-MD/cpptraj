@@ -48,6 +48,7 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
   cspline.CubicSpline_Coeff(Xvals, Yvals);
   //Xvals.clear();
   // Store values in Spline table
+  table_.clear();
   table_.reserve( TableSize * 4 ); // Y B C D
   for (unsigned int i = 0; i != TableSize; i++) {
     table_.push_back( Yvals[i] );

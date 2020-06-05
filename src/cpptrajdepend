@@ -351,6 +351,7 @@ SDFfile.o : SDFfile.cpp Atom.h CpptrajFile.h FileIO.h FileName.h NameType.h Para
 SimplexMin.o : SimplexMin.cpp AssociatedData.h CpptrajFile.h CpptrajStdio.h DataSet.h Dimension.h FileIO.h FileName.h MetaData.h Parallel.h Random.h Range.h SimplexMin.h TextFormat.h
 SpaceGroup.o : SpaceGroup.cpp Matrix_3x3.h SpaceGroup.h Vec3.h
 Spline.o : Spline.cpp CpptrajStdio.h Spline.h
+SplineFxnTable.o : SplineFxnTable.cpp Constants.h CpptrajStdio.h Spline.h SplineFxnTable.h StringRoutines.h
 StringRoutines.o : StringRoutines.cpp CpptrajStdio.h StringRoutines.h
 StructureCheck.o : StructureCheck.cpp Atom.h AtomExtra.h AtomMask.h AtomType.h Box.h CharMask.h Constants.h CoordinateInfo.h CpptrajStdio.h DistRoutines.h FileName.h Frame.h ImagedAction.h MaskToken.h Matrix_3x3.h Molecule.h NameType.h PairList.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h StructureCheck.h SymbolExporting.h Timer.h Topology.h TypeNameHolder.h Vec3.h
 StructureMapper.o : StructureMapper.cpp AssociatedData.h Atom.h AtomExtra.h AtomMap.h AtomMask.h AtomType.h Box.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSet_Coords.h DataSet_Coords_REF.h Dimension.h FileIO.h FileName.h Frame.h MapAtom.h MaskToken.h Matrix_3x3.h MetaData.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Range.h ReplicaDimArray.h Residue.h StructureMapper.h SymbolExporting.h TextFormat.h Topology.h TorsionRoutines.h TypeNameHolder.h Vec3.h
