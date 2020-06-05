@@ -202,12 +202,6 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
      return Action::ERR;
   }
   if (densitymask_.SetMaskString(reqmask)) return Action::ERR;
-  // Get output filename
-  std::string outfilename = actionArgs.GetStringKey("out");
-  if (outfilename.empty())
-    outfilename = actionArgs.GetStringNext(); // Backwards compat.
-  DataFile* outfile = init.DFL().AddDataFile( outfilename, actionArgs );
-  if (outfile != 0) outfile->AddDataSet( grid_ );
   // See if peaks are being determined
   peakfile_ = 0;
   std::string pfilename = actionArgs.GetStringKey("peakfile");
@@ -227,6 +221,13 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 #   endif
     peakfile_->AddDataSet( peakdata_ );
   }
+  // Get output filename (newer syntax)
+  std::string outfilename = actionArgs.GetStringKey("out");
+  if (outfilename.empty())
+    outfilename = actionArgs.GetStringNext(); // Backwards compat.
+  DataFile* outfile = init.DFL().AddDataFile( outfilename, actionArgs );
+  if (outfile != 0) outfile->AddDataSet( grid_ );
+
   // Create total volume set
   total_volume_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(grid_->Meta().Name(), "totalvol"));
   if (total_volume_ == 0) return Action::ERR;
