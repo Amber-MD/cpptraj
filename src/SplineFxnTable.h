@@ -1,6 +1,7 @@
 #ifndef INC_SPLINEFXNTABLE_H
 #define INC_SPLINEFXNTABLE_H
 #include <vector>
+#include "CpptrajStdio.h" // DEBUG
 /// Can be used to approximate a function using cubic splines.
 class SplineFxnTable {
   public:
@@ -12,9 +13,13 @@ class SplineFxnTable {
     int FillTable(FxnType, double, double, double);
     /// \return Approximated Y value from given X value.
     double Yval(double xIn) const {
-      int xidx = ((int)(one_over_Dx_ * xIn));
-      double dx = xIn - ((double)xidx * Dx_);
+      double Xval = xIn - Xmin_;
+      int xidx = ((int)(one_over_Dx_ * Xval));
+      double dx = Xval - ((double)xidx * Dx_);
       xidx *= 4;
+      // DEBUG
+      if (xidx < 0 || xidx >= (int)table_.size())
+        mprinterr("Error: index %i out of range for X val %g\n", xidx, xIn);
       return table_[xidx] + 
              dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
     }

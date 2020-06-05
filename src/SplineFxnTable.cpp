@@ -37,7 +37,7 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
   Xvals.reserve( TableSize );
   Yvals.reserve( TableSize );
   // Save X and Y values so we can calc the spline coefficients
-  double xval = 0.0;
+  double xval = Xmin_;
   for (unsigned int i = 0; i != TableSize; i++) {
     double yval = fxnIn( xval );
     Xvals.push_back( xval );

@@ -330,6 +330,7 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
     else
       radiiToUse = ELEMENT;
   }
+  double maxRad = 0;
   for (AtomMask::const_iterator atom = densitymask_.begin(); atom != densitymask_.end(); ++atom)
   {
     double rad = 0.0;
@@ -340,8 +341,26 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
     if (rad > 0.0) {
       halfradii_.push_back( (float)(rad * radscale_ / 2) );
       Atoms_.push_back( *atom );
+      // For determining function range.
+      if (halfradii_.back() > maxRad) maxRad = halfradii_.back();
     }
   }
+  mprintf("\tMax observed radius: %g Ang\n", maxRad);
+  int nxstep = (int) ceil(stepfac_ * maxRad / dx_)+1;
+  int nystep = (int) ceil(stepfac_ * maxRad / dy_)+1;
+  int nzstep = (int) ceil(stepfac_ * maxRad / dz_)+1;
+  double maxx = (double)nxstep * dx_;
+  double maxy = (double)nystep * dy_;
+  double maxz = (double)nzstep * dz_;
+  double maxDist = maxx*maxx + maxy*maxy + maxz*maxz;
+  mprintf("DEBUG: nx= %i  ny= %i  nz= %i\n", nxstep, nystep, nzstep);
+  mprintf("DEBUG: %g %g %g %g\n", maxx, maxy, maxz, maxDist);
+  double exfac = -1.0 / (2.0 * maxRad * maxRad);
+  maxDist *= exfac;
+  mprintf("DEBUG: max= %g\n", maxDist);
+  
+
+  table_.FillTable( exp, 1.0/5000.0, maxDist, 0 );
   if ((int)Atoms_.size() < densitymask_.Nselected())
     mprintf("Warning: %i atoms have 0.0 radii and will be skipped.\n",
             densitymask_.Nselected() - (int)Atoms_.size());
@@ -467,10 +486,13 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
                 Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
                 double dist2 = gridpt.Magnitude2();
                 if (dist2 < rcut2) {
+                  //mprintf("DEBUG: rhalf= %g  dist2= %g  exfac= %g  exp= %g\n", rhalf, dist2, exfac, exfac*dist2);
 #                 ifdef _OPENMP
-                  GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+                  //GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+                  GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval(exfac * dist2));
 #                 else
-                  grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+                  //grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+                  grid_->Increment(xval, yval, zval, norm * table_.Yval(exfac * dist2));
 #                 endif
                 }
               } // END loop over zval

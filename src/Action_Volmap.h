@@ -2,6 +2,7 @@
 #define INC_ACTION_VOLMAP_H
 #include "Action.h"
 #include "Grid.h"
+#include "SplineFxnTable.h"
 class DataSet_GridFlt;
 class Action_Volmap : public Action {
   public:
@@ -43,6 +44,7 @@ class Action_Volmap : public Action {
     double radscale_;       ///< The scaling factor to divide all radii by
     double stepfac_;        ///< Factor for determining how many steps to smear Gaussian
     static const double sqrt_8_pi_cubed_;
+    SplineFxnTable table_;
 #   ifdef _OPENMP
     typedef std::vector< Grid<float> > Garray;
     Garray GRID_THREAD_;
