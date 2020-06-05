@@ -7,7 +7,7 @@
 # include <omp.h>
 #endif
 
-const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
+const double Action_Volmap::sqrt_8_pi_cubed_ = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
 
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
@@ -444,7 +444,7 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
         if (iz >= -nzstep && iz <= nZ + nzstep) {
           // Calculate the gaussian normalization factor (in 3 dimensions with the
           // given half-radius)
-          double norm = 1 / (sqrt_8_pi_cubed * rhalf*rhalf*rhalf);
+          double norm = 1 / (sqrt_8_pi_cubed_ * rhalf*rhalf*rhalf);
           double exfac = -1.0 / (2.0 * rhalf * rhalf);
           //mprintf("DBG: Atom %i norm %g exfac %g\n", atom+1, norm, exfac);
 
