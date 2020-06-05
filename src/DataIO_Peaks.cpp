@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Vector_Scalar.h"
 #include "StringRoutines.h"
+#include <cstdio> // sscanf
 
 /// CONSTRUCTOR
 DataIO_Peaks::DataIO_Peaks()
@@ -56,7 +57,7 @@ int DataIO_Peaks::processReadArgs(ArgList& argIn)
 int DataIO_Peaks::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
   // Figure out the data set
-  unsigned int npeaks = 0;
+  unsigned int peakidx = 0;
   DataSet* ds = dsl.CheckForSet( dsname );
   if (ds == 0) {
     // New set
@@ -69,8 +70,8 @@ int DataIO_Peaks::ReadData(FileName const& fname, DataSetList& dsl, std::string 
                 ds->legend());
       return 1;
     }
-    npeaks = ds->Size();
-    mprintf("\tAppending peaks to set '%s', offset %u\n", ds->legend(), npeaks);
+    peakidx = ds->Size();
+    mprintf("\tAppending peaks to set '%s', offset %u\n", ds->legend(), peakidx);
   }
   // Parse through the peaks file and extract the peaks
   CpptrajFile peakfile;
@@ -78,28 +79,39 @@ int DataIO_Peaks::ReadData(FileName const& fname, DataSetList& dsl, std::string 
     mprinterr("Error: Could not open %s for reading!\n", fname.full());
     return 1;
   }
-  std::string line = peakfile.GetLine();
-  int peaknum = 0;
-  while (!line.empty()) {
-    if (sscanf(line.c_str(), "%d", &peaknum) != 1) {
-      line = peakfile.GetLine();
-      continue;
-    }
-    line = peakfile.GetLine();
-    break;
+  // FORMAT:
+  //   Line 1   : # peaks
+  int npeaks_in_file = 0;
+  const char* ptr = peakfile.NextLine();
+  if (ptr == 0) {
+    mprinterr("Error: Unexpected EOF when reading # peaks..\n");
+    return 1;
   }
-  while (!line.empty()) {
-    double pbuf[4];
-    if (sscanf(line.c_str(), "C %lg %lg %lg %lg", pbuf, pbuf+1, pbuf+2, pbuf+3) != 4) {
+  if (sscanf(ptr, "%i", &npeaks_in_file) != 1) {
+    mprinterr("Error: Could not read number of peaks in file.\n");
+    return 1;
+  }
+  mprintf("\tAttempting to read %i peaks.\n", npeaks_in_file);
+  //   Line 2   : Blank
+  ptr = peakfile.NextLine();
+  //   Line 3-X : C <X> <Y> <Z> <Val>
+  int npeaks_read = 0;
+  ptr = peakfile.NextLine();
+  double pbuf[4];
+  while (ptr != 0) {
+    if (sscanf(ptr, "C %lg %lg %lg %lg", pbuf, pbuf+1, pbuf+2, pbuf+3) != 4) {
       mprintf("Warning: Unexpected format for line, skipping: '%s'\n",
-              NoTrailingWhitespace(line).c_str());
-      line = peakfile.GetLine();
-      continue;
+              NoTrailingWhitespace(std::string(ptr)).c_str());
+    } else {
+      npeaks_read++;
+      ds->Add(peakidx++, pbuf);
     }
-    line = peakfile.GetLine();
-    ds->Add(npeaks++, pbuf);
+    ptr = peakfile.NextLine();
   }
   peakfile.CloseFile();
+  mprintf("\tRead %i peaks.\n", npeaks_read);
+  if (npeaks_read != npeaks_in_file)
+    mprintf("Warning: Expected %i peaks, actually got %i peaks.\n", npeaks_in_file, npeaks_read);
 
   return 0;
 }
