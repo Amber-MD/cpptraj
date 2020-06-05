@@ -55,8 +55,53 @@ int DataIO_Peaks::processReadArgs(ArgList& argIn)
 // DataIO_Peaks::ReadData()
 int DataIO_Peaks::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  // Figure out the data set
+  unsigned int npeaks = 0;
+  DataSet* ds = dsl.CheckForSet( dsname );
+  if (ds == 0) {
+    // New set
+    ds = dsl.AddSet( DataSet::VECTOR_SCALAR, dsname, "peaks" );
+    if (ds == 0) return 1;
+  } else {
+    // Appending.
+    if (ds->Type() != DataSet::VECTOR_SCALAR) {
+      mprinterr("Error: Set '%s' is not vector with scalar, cannot append peaks to it.\n",
+                ds->legend());
+      return 1;
+    }
+    npeaks = ds->Size();
+    mprintf("\tAppending peaks to set '%s', offset %u\n", ds->legend(), npeaks);
+  }
+  // Parse through the peaks file and extract the peaks
+  CpptrajFile peakfile;
+  if (peakfile.OpenRead(fname)) {
+    mprinterr("Error: Could not open %s for reading!\n", fname.full());
+    return 1;
+  }
+  std::string line = peakfile.GetLine();
+  int peaknum = 0;
+  while (!line.empty()) {
+    if (sscanf(line.c_str(), "%d", &peaknum) != 1) {
+      line = peakfile.GetLine();
+      continue;
+    }
+    line = peakfile.GetLine();
+    break;
+  }
+  while (!line.empty()) {
+    double pbuf[4];
+    if (sscanf(line.c_str(), "C %lg %lg %lg %lg", pbuf, pbuf+1, pbuf+2, pbuf+3) != 4) {
+      mprintf("Warning: Unexpected format for line, skipping: '%s'\n",
+              NoTrailingWhitespace(line).c_str());
+      line = peakfile.GetLine();
+      continue;
+    }
+    line = peakfile.GetLine();
+    ds->Add(npeaks++, pbuf);
+  }
+  peakfile.CloseFile();
 
-  return 1;
+  return 0;
 }
 
 // DataIO_Peaks::WriteHelp()
