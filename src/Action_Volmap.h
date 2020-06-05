@@ -1,7 +1,8 @@
 #ifndef INC_ACTION_VOLMAP_H
 #define INC_ACTION_VOLMAP_H
 #include "Action.h"
-#include "DataSet_GridFlt.h"
+#include "Grid.h"
+class DataSet_GridFlt;
 class Action_Volmap : public Action {
   public:
     Action_Volmap();

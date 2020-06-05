@@ -3,6 +3,7 @@
 #include "Action_Volmap.h"
 #include "Constants.h" // PI
 #include "CpptrajStdio.h"
+#include "DataSet_GridFlt.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
