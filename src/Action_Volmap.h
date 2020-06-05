@@ -33,7 +33,7 @@ class Action_Volmap : public Action {
     DataSet_GridFlt* grid_; ///< Hold the grid.
     DataSet* total_volume_; ///< Hold total grid volume.
     bool calcpeaks_;        ///< If true, calculate peaks
-    DataFile* peakfile_;    ///< file name with the peak locations as Carbons in XYZ file format
+    DataFile* peakfile_;    ///< Optional file to write peak data to as Carbons in XYZ file format
     DataSet* peakdata_;     ///< Data set holding peak locations along with densities
     double peakcut_;        ///< The value below which to ignore all peaks
     std::vector<int> Atoms_; ///< Atoms with radii > 0.0
