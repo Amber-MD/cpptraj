@@ -13,7 +13,7 @@ SplineFxnTable::SplineFxnTable() :
 {}
 
 /** Fill the spline function table with values from the given function. */
-int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double maxIn)
+int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double maxIn, double scale)
 {
   Dx_ = dxIn;
   if (Dx_ < Constants::SMALL) {
@@ -30,8 +30,8 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
     return 1;
   }
 
-  // Give the width a 1.5x cushion
-  unsigned int TableSize = (unsigned int)(one_over_Dx_ * width * 1.5);
+  // Calculate table size
+  unsigned int TableSize = (unsigned int)(one_over_Dx_ * width * scale);
 
   Darray Xvals, Yvals;
   Xvals.reserve( TableSize );

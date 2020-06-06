@@ -9,8 +9,8 @@ class SplineFxnTable {
     SplineFxnTable();
     /// Generic form of the function to approximate.
     typedef double (*FxnType)(double);
-    /// Fill the table using given function and spacing from given min to max.
-    int FillTable(FxnType, double, double, double);
+    /// Fill the table using given function and spacing, from given min to max with given scale.
+    int FillTable(FxnType, double, double, double, double);
     /// \return Approximated Y value from given X value.
     double Yval(double xIn) const {
       double Xval = xIn - Xmin_;

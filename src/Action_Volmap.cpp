@@ -345,7 +345,8 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
       if (halfradii_.back() > maxRad) maxRad = halfradii_.back();
     }
   }
-  mprintf("\tMax observed radius: %g Ang\n", maxRad);
+  // Try to determine the max value we may encounter.
+  //mprintf("\tMax observed radius: %g Ang\n", maxRad);
   int nxstep = (int) ceil(stepfac_ * maxRad / dx_)+1;
   int nystep = (int) ceil(stepfac_ * maxRad / dy_)+1;
   int nzstep = (int) ceil(stepfac_ * maxRad / dz_)+1;
@@ -353,14 +354,11 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   double maxy = (double)nystep * dy_;
   double maxz = (double)nzstep * dz_;
   double maxDist = maxx*maxx + maxy*maxy + maxz*maxz;
-  mprintf("DEBUG: nx= %i  ny= %i  nz= %i\n", nxstep, nystep, nzstep);
-  mprintf("DEBUG: %g %g %g %g\n", maxx, maxy, maxz, maxDist);
-  double exfac = -1.0 / (2.0 * maxRad * maxRad);
-  maxDist *= exfac;
-  mprintf("DEBUG: max= %g\n", maxDist);
-  
-
-  table_.FillTable( exp, 1.0/5000.0, maxDist, 0 );
+  //mprintf("DEBUG: nx= %i  ny= %i  nz= %i\n", nxstep, nystep, nzstep);
+  //mprintf("DEBUG: %g %g %g %g\n", maxx, maxy, maxz, maxDist);
+  maxDist *= (-1.0 / (2.0 * maxRad * maxRad));
+  //mprintf("DEBUG: max= %g\n", maxDist);
+  table_.FillTable( exp, 1.0/5000.0, maxDist, 0, 1.1 );
   if ((int)Atoms_.size() < densitymask_.Nselected())
     mprintf("Warning: %i atoms have 0.0 radii and will be skipped.\n",
             densitymask_.Nselected() - (int)Atoms_.size());
