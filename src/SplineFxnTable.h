@@ -20,8 +20,8 @@ class SplineFxnTable {
       // DEBUG
       //if (xidx < 0 || xidx >= (int)table_.size())
       //  mprinterr("Error: index %i out of range for X val %g\n", xidx, xIn);
-      //return table_[xidx] + 
-      //       dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
+      return table_[xidx] + 
+             dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
     }
   private:
     typedef std::vector<double> Darray;
