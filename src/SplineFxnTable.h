@@ -1,7 +1,7 @@
 #ifndef INC_SPLINEFXNTABLE_H
 #define INC_SPLINEFXNTABLE_H
 #include <vector>
-#include "CpptrajStdio.h" // DEBUG
+//#inc lude "CpptrajStdio.h" // DEBUG
 /// Can be used to approximate a function using cubic splines.
 class SplineFxnTable {
   public:
@@ -18,10 +18,10 @@ class SplineFxnTable {
       double dx = Xval - ((double)xidx * Dx_);
       xidx *= 4;
       // DEBUG
-      if (xidx < 0 || xidx >= (int)table_.size())
-        mprinterr("Error: index %i out of range for X val %g\n", xidx, xIn);
-      return table_[xidx] + 
-             dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
+      //if (xidx < 0 || xidx >= (int)table_.size())
+      //  mprinterr("Error: index %i out of range for X val %g\n", xidx, xIn);
+      //return table_[xidx] + 
+      //       dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
     }
   private:
     typedef std::vector<double> Darray;
