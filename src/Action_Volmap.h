@@ -45,6 +45,7 @@ class Action_Volmap : public Action {
     double stepfac_;        ///< Factor for determining how many steps to smear Gaussian
     static const double sqrt_8_pi_cubed_;
     SplineFxnTable table_;
+    double splineDx_;
 #   ifdef _OPENMP
     typedef std::vector< Grid<float> > Garray;
     Garray GRID_THREAD_;

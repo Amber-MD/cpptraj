@@ -30,7 +30,8 @@ Action_Volmap::Action_Volmap() :
   peakcut_(0.05),
   buffer_(3.0),
   radscale_(1.0),
-  stepfac_(4.1)
+  stepfac_(4.1),
+  splineDx_(0)
 {}
 
 void Action_Volmap::Help() const {
@@ -70,6 +71,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     radscale_ = 0.5;
     stepfac_ = 1.0;
   }
+  splineDx_ = actionArgs.getKeyDouble("splinedx", 1.0/5000.0);
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", radscale_);
   stepfac_ = actionArgs.getKeyDouble("stepfac", stepfac_);
   std::string radarg = actionArgs.GetStringKey("radii");
@@ -272,6 +274,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tWhen smearing Gaussian, voxels farther than radii/2 will be skipped.\n");
   mprintf("\tDividing radii by %f\n", 1.0/radscale_);
   mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
+  mprintf("\tExponential will be approximated using cubic splines with a spacing of %g\n", splineDx_);
   if (outfile != 0)
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
   mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
@@ -345,7 +348,7 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
       if (halfradii_.back() > maxRad) maxRad = halfradii_.back();
     }
   }
-  // Try to determine the max value we may encounter.
+  // Try to determine the max value we may encounter for the exponential.
   //mprintf("\tMax observed radius: %g Ang\n", maxRad);
   int nxstep = (int) ceil(stepfac_ * maxRad / dx_)+1;
   int nystep = (int) ceil(stepfac_ * maxRad / dy_)+1;
@@ -358,7 +361,7 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   //mprintf("DEBUG: %g %g %g %g\n", maxx, maxy, maxz, maxDist);
   maxDist *= (-1.0 / (2.0 * maxRad * maxRad));
   //mprintf("DEBUG: max= %g\n", maxDist);
-  table_.FillTable( exp, 1.0/5000.0, maxDist, 0, 1.1 );
+  table_.FillTable( exp, splineDx_, maxDist, 0, 1.1 );
   if ((int)Atoms_.size() < densitymask_.Nselected())
     mprintf("Warning: %i atoms have 0.0 radii and will be skipped.\n",
             densitymask_.Nselected() - (int)Atoms_.size());
