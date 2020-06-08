@@ -32700,6 +32700,13 @@ xmgrace dssp.agr
 
 \begin_layout Subsection
 spam
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-spam"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -32805,7 +32812,7 @@ site_size
 \end_inset
 
 <size> Size of the solvent site around each density peak in Ang.
- (default 2.5).
+ (default 2.5, suitable for water).
 \end_layout
 
 \begin_layout Description
@@ -34466,23 +34473,35 @@ name "subsec:cpptraj_volmap"
 \end_layout
 
 \begin_layout LyX-Code
-volmap filename dx dy dz <mask> [radscale <factor>]
+volmap [out <filename> <mask> [radscale <factor>] [stepfac <fac>] [sphere]
 \end_layout
 
 \begin_layout LyX-Code
-   	{ data <existing set> |
+   	{ data <setname> |
 \end_layout
 
 \begin_layout LyX-Code
-   	  name <setname> { size <x,y,z> [center <x,y,z>] |
+   	  name <setname> <dx> [<dy> <dz>]
 \end_layout
 
 \begin_layout LyX-Code
-   	                   centermask <mask> [buffer <buffer>] } }
+ 	    { size <x,y,z> [center <x,y,z>] |
 \end_layout
 
 \begin_layout LyX-Code
-   	[peakcut <cutoff>] [peakfile <xyzfile>]
+ 	      centermask <mask> [buffer <buffer>] |
+\end_layout
+
+\begin_layout LyX-Code
+ 	      boxref <reference> } 	
+\end_layout
+
+\begin_layout LyX-Code
+       }
+\end_layout
+
+\begin_layout LyX-Code
+   	[radii {vdw | element}] [calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -34493,25 +34512,13 @@ volmap filename dx dy dz <mask> [radscale <factor>]
 \begin_layout Description
 
 \family roman
-filename 
+out
+\begin_inset space ~
+\end_inset
+
+<filename> 
 \family default
 The name of the output file with the grid density.
-\end_layout
-
-\begin_layout Description
-
-\family roman
-dx,
-\begin_inset space ~
-\end_inset
-
-dy,
-\begin_inset space ~
-\end_inset
-
-dz 
-\family default
-The grid spacing (Angstroms) in the X-, Y-, and Z-dimensions, respectively
 \end_layout
 
 \begin_layout Description
@@ -34534,7 +34541,29 @@ radscale
 Factor by which to scale radii (by division).
  To match the atomic radius of Oxygen used by the VMD volmap tool, a scaling
  factor of 1.36 should be used.
- Default 1.0.
+ Default 0.5 if 
+\series bold
+sphere
+\series default
+, 1.0 otherwise.
+\end_layout
+
+\begin_layout Description
+stepfac
+\begin_inset space ~
+\end_inset
+
+<fac> Factor for determining number of bins to smear Gaussian.
+ Default 1.0 if 
+\series bold
+sphere
+\series default
+, 4.1 otherwise.
+\end_layout
+
+\begin_layout Description
+sphere Smear Gaussian as a sphere, i.e.
+ when smearing Gaussian, voxels farther than radii/2 will be skipped.
 \end_layout
 
 \begin_layout Description
@@ -34550,7 +34579,7 @@ name
 \begin_inset space ~
 \end_inset
 
-<setname> Name of grid set that will be created (
+<setname> Name for new grid data set (
 \series bold
 size/center
 \series default
@@ -34559,6 +34588,36 @@ size/center
 centermask/buffer
 \series default
  keywords).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+
+\family roman
+<dx>
+\begin_inset space ~
+\end_inset
+
+[dy
+\begin_inset space ~
+\end_inset
+
+dz] 
+\family default
+The grid spacing (Angstroms) in the X-, Y-, and Z-dimensions, respectively.
+ If 
+\series bold
+<dy>
+\series default
+/
+\series bold
+<dz>
+\series default
+ not specified, use 
+\series bold
+<dx>
+\series default
+.
 \end_layout
 
 \begin_layout Description
@@ -34570,8 +34629,13 @@ size
 
 <x,y,z> 
 \family default
-Specify the size of the grid in the X-, Y-, and Z-dimensions.
- Must be used alongside the center argument.
+Comma-separated list specifying the size of the grid in the X-, Y-, and
+ Z-dimensions.
+ Must be used alongside the 
+\series bold
+center
+\series default
+ argument.
 \end_layout
 
 \begin_layout Description
@@ -34618,6 +34682,40 @@ A buffer distance, in Angstroms, by which the edges of the grid should clear
  The buffer is ignored if the center and size are specified (see below).
 \end_layout
 
+\end_deeper
+\begin_layout Description
+radii
+\begin_inset space ~
+\end_inset
+
+{vdw
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+element} Specify radii to use (van der Waals or elemental respectively).
+ If not specified, van der Waals will be used if present, elemental radii
+ otherwise.
+\end_layout
+
+\begin_layout Description
+calcpeaks Specify that density peaks should be determined.
+ Useful for the SPAM action (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-spam"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
 \begin_layout Description
 
 \family roman
@@ -34642,7 +34740,40 @@ peakfile
 \family default
 A file in XYZ-format that contains a carbon atom centered at the grid point
  of every local density maximum.
- This file is necessary input to the spam action command.
+ Implies 
+\series bold
+calcpeaks
+\series default
+.
+\end_layout
+
+\begin_layout Standard
+Data sets created:
+\end_layout
+
+\begin_layout Description
+<setname> The 3D grid containing density.
+\end_layout
+
+\begin_layout Description
+<setname>[peaks] A vector/scalar set containing the XYZ coordinates of each
+ peak (the vector part) and the density of that peak (the scalar part).
+ Can be used in the SPAM action (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-spam"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Description
+<setname>[totalvol] A set containing the total volume estimate of atoms
+ in <mask> based on summing up the volume of all occupied voxels.
 \end_layout
 
 \end_deeper
