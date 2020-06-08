@@ -32703,32 +32703,117 @@ spam
 \end_layout
 
 \begin_layout LyX-Code
-spam <filename> [solv <solvname>] [reorder] [name <name>]
+spam [name <name>] [out <datafile>] [cut <cut>] [solv <solvname>]
 \end_layout
 
 \begin_layout LyX-Code
-     [purewater] [cut <cut>] [info <infofile>] [summary <summary>]
+ 	{ purewater |
 \end_layout
 
 \begin_layout LyX-Code
-     [site_size <size>] [sphere] [out <datafile>]
+ 	  <peaksname> [reorder] [info <infofile>] [summary <summary>]
 \end_layout
 
 \begin_layout LyX-Code
-     [dgbulk <dgbulk>] [dhbulk <dhbulk>] [temperature <T>] 
+ 	  [site_size <size>] [sphere] [temperature <T>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	  [dgbulk <dgbulk>] [dhbulk <dhbulk>] } 
 \end_layout
 
 \begin_deeper
 \begin_layout Description
-<filename> File with the peak locations present (XYZ- format) 
+name
+\begin_inset space ~
+\end_inset
+
+<name> Output data set name.
 \end_layout
 
 \begin_layout Description
-<solvname> Name of the solvent residues 
+out
+\begin_inset space ~
+\end_inset
+
+<datafile> Data file with all SPAM energies for each snapshot.
 \end_layout
 
 \begin_layout Description
-<cut> Non-bonded cutoff for energy evaluation
+cut
+\begin_inset space ~
+\end_inset
+
+<cut> Non-bonded cutoff in Ang.
+ for energy evaluation (default 12).
+\end_layout
+
+\begin_layout Description
+solv
+\begin_inset space ~
+\end_inset
+
+<solvname> Name of the solvent residues (default 
+\begin_inset Quotes eld
+\end_inset
+
+WAT
+\begin_inset Quotes erd
+\end_inset
+
+).
+ 
+\end_layout
+
+\begin_layout Description
+[purewater] The system is pure water---used to parametrize the bulk values.
+ Not compatible with '<peaksname>'.
+\end_layout
+
+\begin_layout Description
+<peaksname> If specified, the dataset or file containing peak locations
+ to analyze.
+ Not compatible with 'purewater'.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[reorder] The solvent should be re-ordered so the same solvent molecule
+ is always in the same site.
+\end_layout
+
+\begin_layout Description
+info
+\begin_inset space ~
+\end_inset
+
+<infofile> File with stats about which sites are occupied when.
+\end_layout
+
+\begin_layout Description
+summary
+\begin_inset space ~
+\end_inset
+
+<summary> File with the summary of all SPAM results.
+ If not specified, no SPAM energies will be calculated.
+\end_layout
+
+\begin_layout Description
+site_size
+\begin_inset space ~
+\end_inset
+
+<size> Size of the solvent site around each density peak in Ang.
+ (default 2.5).
+\end_layout
+
+\begin_layout Description
+[sphere] Treat each site like a sphere instead of a box.
+\end_layout
+
+\begin_layout Description
+<T> Temperature at which SPAM calculation was run in K (default 300).
 \end_layout
 
 \begin_layout Description
@@ -32741,40 +32826,7 @@ spam <filename> [solv <solvname>] [reorder] [name <name>]
  kcal/mol (SPC/E water).
 \end_layout
 
-\begin_layout Description
-<T> Temperature at which SPAM calculation was run.
-\end_layout
-
-\begin_layout Description
-<infofile> File with stats about which sites are occupied when.
-\end_layout
-
-\begin_layout Description
-<size> Size of the water site around each density peak.
-\end_layout
-
-\begin_layout Description
-[sphere] Treat each site like a sphere.
-\end_layout
-
-\begin_layout Description
-[purewater] The system is pure water---used to parametrize the bulk values.
-\end_layout
-
-\begin_layout Description
-[reorder] The solvent should be re-ordered so the same solvent molecule
- is always in the same site.
-\end_layout
-
-\begin_layout Description
-<summary> File with the summary of all SPAM results.
- If not specified, no SPAM energies will be calculated.
-\end_layout
-
-\begin_layout Description
-<datafile> Data file with all SPAM energies for each snapshot.
-\end_layout
-
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Perform profiling of bound water molecules via SPAM analysis
@@ -32811,7 +32863,7 @@ reference "subsec:cpptraj_volmap"
 
 \end_inset
 
-) to generate the peaks file.
+) to generate the peaks file/dataset.
  If not using peaks from the 
 \series bold
 \emph on
