@@ -34473,11 +34473,19 @@ name "subsec:cpptraj_volmap"
 \end_layout
 
 \begin_layout LyX-Code
-volmap [out <filename> <mask> [radscale <factor>] [stepfac <fac>] [sphere]
+volmap [out <filename>] <mask> [radscale <factor>] [stepfac <fac>]
 \end_layout
 
 \begin_layout LyX-Code
-   	{ data <setname> |
+	   [sphere] [radii {vdw | element}] [splinedx <spacing>]
+\end_layout
+
+\begin_layout LyX-Code
+   	[calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]
+\end_layout
+
+\begin_layout LyX-Code
+   	{ data <existing set> |
 \end_layout
 
 \begin_layout LyX-Code
@@ -34485,27 +34493,23 @@ volmap [out <filename> <mask> [radscale <factor>] [stepfac <fac>] [sphere]
 \end_layout
 
 \begin_layout LyX-Code
- 	    { size <x,y,z> [center <x,y,z>] |
+   	    { size <x,y,z> [center <x,y,z>] |
 \end_layout
 
 \begin_layout LyX-Code
- 	      centermask <mask> [buffer <buffer>] |
+   	      centermask <mask> [buffer <buffer>] |
 \end_layout
 
 \begin_layout LyX-Code
- 	      boxref <reference> } 	
-\end_layout
-
-\begin_layout LyX-Code
-       }
-\end_layout
-
-\begin_layout LyX-Code
-   	[radii {vdw | element}] [calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]
+   	      boxref <reference> }
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+       }
 \end_layout
 
 \begin_deeper
@@ -34564,6 +34568,79 @@ sphere
 \begin_layout Description
 sphere Smear Gaussian as a sphere, i.e.
  when smearing Gaussian, voxels farther than radii/2 will be skipped.
+\end_layout
+
+\begin_layout Description
+radii
+\begin_inset space ~
+\end_inset
+
+{vdw
+\begin_inset space ~
+\end_inset
+
+|
+\begin_inset space ~
+\end_inset
+
+element} Specify radii to use (van der Waals or elemental respectively).
+ If not specified, van der Waals will be used if present, elemental radii
+ otherwise.
+\end_layout
+
+\begin_layout Description
+splinedx
+\begin_inset space ~
+\end_inset
+
+<spacing> Spacing used for cubic spline function approximating exponential
+ (default 0.0002 Ang).
+\end_layout
+
+\begin_layout Description
+calcpeaks Specify that density peaks should be determined.
+ Useful for the SPAM action (
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-spam"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Description
+
+\family roman
+peakcut
+\begin_inset space ~
+\end_inset
+
+<cutoff> 
+\family default
+The minimum density required to consider a local maximum a 'density peak'
+ in the outputted peak file (default 0.05).
+\end_layout
+
+\begin_layout Description
+
+\family roman
+peakfile
+\begin_inset space ~
+\end_inset
+
+<xyzfile> 
+\family default
+A file in XYZ-format that contains a carbon atom centered at the grid point
+ of every local density maximum.
+ Implies 
+\series bold
+calcpeaks
+\series default
+.
 \end_layout
 
 \begin_layout Description
@@ -34683,70 +34760,6 @@ A buffer distance, in Angstroms, by which the edges of the grid should clear
 \end_layout
 
 \end_deeper
-\begin_layout Description
-radii
-\begin_inset space ~
-\end_inset
-
-{vdw
-\begin_inset space ~
-\end_inset
-
-|
-\begin_inset space ~
-\end_inset
-
-element} Specify radii to use (van der Waals or elemental respectively).
- If not specified, van der Waals will be used if present, elemental radii
- otherwise.
-\end_layout
-
-\begin_layout Description
-calcpeaks Specify that density peaks should be determined.
- Useful for the SPAM action (
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj-spam"
-plural "false"
-caps "false"
-noprefix "false"
-
-\end_inset
-
-).
-\end_layout
-
-\begin_layout Description
-
-\family roman
-peakcut
-\begin_inset space ~
-\end_inset
-
-<cutoff> 
-\family default
-The minimum density required to consider a local maximum a 'density peak'
- in the outputted peak file (default 0.05).
-\end_layout
-
-\begin_layout Description
-
-\family roman
-peakfile
-\begin_inset space ~
-\end_inset
-
-<xyzfile> 
-\family default
-A file in XYZ-format that contains a carbon atom centered at the grid point
- of every local density maximum.
- Implies 
-\series bold
-calcpeaks
-\series default
-.
-\end_layout
-
 \begin_layout Standard
 Data sets created:
 \end_layout
@@ -34783,7 +34796,12 @@ Grid data as a volumetric map, similar to the 'volmap' command in VMD.
  function whose standard deviation is equal to the van der Waals radius.
  The density calculated is the number density averaged over the entire simulatio
 n.
- The grid can be specified in one of three ways:
+ In order to speed up the calculation, the exponential used to calculate
+ the Gaussian is approximated by cubic splines.
+\end_layout
+
+\begin_layout Standard
+The grid can be specified in one of three ways:
 \end_layout
 
 \begin_layout Enumerate

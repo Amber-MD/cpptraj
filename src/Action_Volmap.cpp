@@ -46,14 +46,16 @@ void Action_Volmap::Help() const {
 }
 
 void Action_Volmap::RawHelp() const {
-  mprintf("\t[out <filename>] <mask> [radscale <factor>] [stepfac <fac>] [sphere]\n"
+  mprintf("\t[out <filename>] <mask> [radscale <factor>] [stepfac <fac>]\n"
+          "\t[sphere] [radii {vdw | element}] [splinedx <spacing>]\n"
+          "\t[calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]\n"
           "\t{ data <existing set> |\n"
           "\t  name <setname> <dx> [<dy> <dz>]\n"
           "\t    { size <x,y,z> [center <x,y,z>] |\n"
           "\t      centermask <mask> [buffer <buffer>] |\n"
           "\t      boxref <reference> }\n"
           "\t}\n"
-          "\t[radii {vdw | element}] [calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]\n");
+         );
 }
 
 // Action_Volmap::Init()
