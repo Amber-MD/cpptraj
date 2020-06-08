@@ -144,6 +144,9 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     myDSL_.push_back( ds );
     DG_BULK_ = 0.0;
     DH_BULK_ = 0.0;
+    // Shouldn't need any more arguments.
+    if (actionArgs.NremainingArgs() > 0)
+      mprintf("Warning: 'purewater' specified but more arguments remain.\n");
   } else {
     // Get the file/dataset name with the peaks defined in it
     peaksname = actionArgs.GetStringNext();
