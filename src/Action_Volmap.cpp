@@ -489,6 +489,8 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
                 if (dist2 < rcut2) {
                   //mprintf("DEBUG: rhalf= %g  dist2= %g  exfac= %g  exp= %g\n", rhalf, dist2, exfac, exfac*dist2);
 #                 ifdef _OPENMP
+                  // NOTE: It is OK to call table_.Yval() here because in OpenMP
+                  //       local variables of called functions are private.
                   //GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval(exfac * dist2));
 #                 else
