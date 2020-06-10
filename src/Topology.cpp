@@ -104,20 +104,38 @@ void Topology::SetDistMaskRef( Frame const& frameIn ) {
 /** \return Range containing only solute residues. */
 Range Topology::SoluteResidues() const {
   Range solute_res;
-  atom_iterator atom = atoms_.begin();
-  while (atom != atoms_.end()) {
-    // If atom is in a solvent molecule skip molecule. Otherwise add res num
-    // and skip to next residue.
-    if (molecules_[atom->MolNum()].IsSolvent())
-      atom += molecules_[atom->MolNum()].NumAtoms();
-    else if (molecules_[atom->MolNum()].NumAtoms() == 1) // Assume ion.
-      ++atom;
-    else {
-      solute_res.AddToRange( atom->ResNum() );
-      if (debug_ > 0)
-        mprintf("DEBUG:\t\tAdding solute residue %i\n", atom->ResNum()+1);
-      atom += residues_[atom->ResNum()].NumAtoms();
+  if (molecules_.size() > 0) {
+    // Topology has molecule information
+    atom_iterator atom = atoms_.begin();
+    while (atom != atoms_.end()) {
+      // If atom is in a solvent molecule skip molecule. Otherwise add res num
+      // and skip to next residue.
+      if (molecules_[atom->MolNum()].IsSolvent())
+        atom += molecules_[atom->MolNum()].NumAtoms();
+      else if (molecules_[atom->MolNum()].NumAtoms() == 1) // Assume ion.
+        ++atom;
+      else {
+        solute_res.AddToRange( atom->ResNum() );
+        if (debug_ > 0)
+          mprintf("DEBUG:\t\tAdding solute residue %i\n", atom->ResNum()+1);
+        atom += residues_[atom->ResNum()].NumAtoms();
+      }
     }
+  } else {
+    // No molecule information
+    mprintf("Warning: No molecule information. Determining solvent residues based on naming.\n");
+    for (int res = 0; res != Nres(); res++) {
+      Residue const& currentRes = Res(res);
+      if (!currentRes.NameIsSolvent()) {
+        // Not a solvent name.
+        if (currentRes.NumAtoms() > 1 ||
+            Atoms()[currentRes.FirstAtom()].BondIdxArray().size() > 0)
+        {
+          // If this residue has > 1 atom, or is 1 atom but has bonds, assume solute.
+          solute_res.AddToRange( res );
+        }
+      }
+    } // END loop over residues
   }
   return solute_res;
 }
