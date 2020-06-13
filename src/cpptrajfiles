@@ -146,7 +146,6 @@ COMMON_SOURCES= \
         ByteRoutines.cpp \
         CharMask.cpp \
         CharmmParamFile.cpp \
-        ChiSqDist.cpp \
         CIFfile.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \
@@ -302,7 +301,6 @@ COMMON_SOURCES= \
         ForLoop_mask.cpp \
         ForLoop_overSets.cpp \
         Frame.cpp \
-        GammaFn.cpp \
         GridAction.cpp \
         HistBin.cpp \
         Hungarian.cpp \
