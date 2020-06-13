@@ -5,6 +5,7 @@
 #include "CurveFit.h"
 
 Analysis_EvalPlateau::Analysis_EvalPlateau() :
+  Analysis(HIDDEN),
   statsout_(0),
   tolerance_(0),
   valaCut_(0),
@@ -42,7 +43,12 @@ DataSet::DataType Analysis_EvalPlateau::OdataType_[NDATA] = {
 
 // Analysis_EvalPlateau::Help()
 void Analysis_EvalPlateau::Help() const {
-  mprintf("\n");
+  mprintf("\t[name <set out name>] [tol <tol>] [valacut <valacut>]\n"
+          "\t[chisqcut <chisqcut>] [slopecut <slopecut>] [maxit <maxit>]\n"
+          "\t[out <outfile>] [resultsout <resultsfile>] [statsout <statsfile>]\n"
+          "\t<input set args> ...\n"
+          "  Evaluate whether the input data sets have reached a plateau after\n"
+          "  fitting to a single exponential.\n");
 }
 
 // Analysis_EvalPlateau::Setup()
