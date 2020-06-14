@@ -14,7 +14,7 @@
 #include "DataSet_Mesh.h"
 
 // CONSTRUCTOR
-Action_Spam::Action_Spam() : Action(HIDDEN),
+Action_Spam::Action_Spam() :
   debug_(0),
   DG_BULK_(-30.3), // Free energy of bulk SPCE water
   DH_BULK_(-22.2), // Enthalpy of bulk SPCE water

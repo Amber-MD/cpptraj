@@ -5,7 +5,6 @@
 #include "CurveFit.h"
 
 Analysis_EvalPlateau::Analysis_EvalPlateau() :
-  Analysis(HIDDEN),
   statsout_(0),
   tolerance_(0),
   valaCut_(0),
@@ -13,7 +12,9 @@ Analysis_EvalPlateau::Analysis_EvalPlateau() :
   slopeCut_(0),
   maxIt_(0),
   debug_(0)
-{}
+{
+  SetHidden(true);
+}
 
 const char* Analysis_EvalPlateau::OdataStr_[NDATA] = {
   "A0",
