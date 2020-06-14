@@ -494,7 +494,8 @@ void Action_Diffusion::CalcDiffusionConst(unsigned int& set, DataSet* ds, int Nd
   double Factor = 10.0 / ((double)Ndim * 2.0);
   double slope, intercept, corr;
   double Dval = 0.0;
-  if (data.LinearRegression( slope, intercept, corr, 0 ) == 0)
+  double Fval = 0;
+  if (data.LinearRegression( slope, intercept, corr, Fval, 0 ) == 0)
     Dval = slope * Factor;
   if (diffout_ == 0)
     mprintf("\t'%s' D= %g  Slope= %g  Int= %g  Corr= %g\n", data.legend(), Dval,

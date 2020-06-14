@@ -2,12 +2,14 @@
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
 
-Analysis_AmdBias::Analysis_AmdBias() : Analysis(HIDDEN),  
+Analysis_AmdBias::Analysis_AmdBias() :
   ds1_(0), 
   Ethresh_(0.0),
   alpha_(0.0),
   bias_(0)
-{}
+{
+  SetHidden(true);
+}
 
 void Analysis_AmdBias::Help() const {
   mprintf("\tds <Edata> ethresh <Ethresh> alpha <alpha> out <filename>\n");

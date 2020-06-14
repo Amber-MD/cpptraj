@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 #include "StringRoutines.h" // integerToString
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Analysis_Lifetime::Analysis_Lifetime() :
