@@ -1,8 +1,10 @@
 #ifndef INC_ARRAY1D_H
 #define INC_ARRAY1D_H
-#include "DataSetList.h"
-#include "DataSet_1D.h"
-#include "ArgList.h"
+#include <vector>
+class DataSetList;
+class DataSet;
+class DataSet_1D;
+class ArgList;
 /// Hold 1D Scalar DataSets
 class Array1D {
   public:

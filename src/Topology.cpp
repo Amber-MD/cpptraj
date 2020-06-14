@@ -1336,6 +1336,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       newParm->residues_.push_back( Residue(cr.Name(), cr.OriginalResNum(),
                                             cr.Icode(), cr.ChainID()) );
       newParm->residues_.back().SetFirstAtom( newatom );
+      newParm->residues_.back().SetTerminal( cr.IsTerminal() );
       oldres = curres;
     }
     // Clear bond information from new atom
