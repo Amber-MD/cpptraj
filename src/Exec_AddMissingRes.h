@@ -7,7 +7,7 @@ class DataSet_Coords_CRD;
 /// Attempt to add missing residues in a PDB 
 class Exec_AddMissingRes : public Exec {
   public:
-    Exec_AddMissingRes() : Exec(GENERAL), debug_(0), nMinSteps_(0), optimize_(true) {}
+    Exec_AddMissingRes();
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_AddMissingRes(); }
     RetType Execute(CpptrajState&, ArgList&);

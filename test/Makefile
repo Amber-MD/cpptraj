@@ -468,6 +468,9 @@ test.diagmatrix:
 test.emin:
 	@-cd Test_Emin && ./RunTest.sh $(OPT)
 
+test.evalplateau:
+	@-cd Test_EvalPlateau && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -617,7 +620,8 @@ COMPLETETESTS=test.general \
               test.dihedralrms \
               test.slope \
               test.diagmatrix \
-              test.emin
+              test.emin \
+              test.evalplateau
 
 test.all:
 	$(MAKE) test.complete summary

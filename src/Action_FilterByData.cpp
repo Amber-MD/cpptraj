@@ -1,5 +1,6 @@
 #include "Action_FilterByData.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 
 void Action_FilterByData::Help() const {
   mprintf("\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"

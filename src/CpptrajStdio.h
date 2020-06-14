@@ -21,4 +21,5 @@ void SuppressAllOutput();
 void SuppressErrorMsg(bool);
 void FinalizeIO();
 int OutputToFile(const char*);
+void* CpptrajStdout();
 #endif
