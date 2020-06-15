@@ -2,6 +2,7 @@
 #include "DataIO_Gnuplot.h"
 #include "CpptrajStdio.h"
 #include "Array1D.h"
+#include "DataSet_1D.h"
 #include "DataSet_2D.h"
 
 // CONSTRUCTOR

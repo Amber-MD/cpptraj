@@ -35,8 +35,8 @@ class DataSet_1D : public DataSet {
     int CrossCorr(DataSet_1D const&, DataSet_1D&, int, bool, bool) const;
     /// Calculate auto-correlation
     double CorrCoeff(DataSet_1D const&) const;
-    /// Calculate linear regression; report slope, intercept, and correlation.
-    int LinearRegression(double&, double&, double&, CpptrajFile*) const;
+    /// Calculate linear regression; report slope, intercept, correlation, and F-value.
+    int LinearRegression(double&, double&, double&, double&, CpptrajFile*) const;
     /// Integration types.
     enum IntegrationType { TRAPEZOID = 0 };
     /// \return sum of integration over DataSet.

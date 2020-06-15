@@ -3,7 +3,10 @@
 #include "ClusterMap.h"
 #include "DataSet_MatrixFlt.h"
 
-Exec_ClusterMap::Exec_ClusterMap() : Exec(HIDDEN) {}
+Exec_ClusterMap::Exec_ClusterMap() : Exec(GENERAL)
+{
+  SetHidden(true);
+}
 
 void Exec_ClusterMap::Help() const {
   mprintf("\t<2D set> [minpoints <#>] [epsilon <epsilon>] [name <setname>]\n"

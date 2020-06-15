@@ -90,11 +90,11 @@ Analysis::RetType Analysis_Regression::Analyze() {
               DS->legend(), DS->Size());
     else {
       DataSet_1D* dsout = output_dsets_[idx];
-      double slope, intercept, correl;
+      double slope, intercept, correl, Fval;
       mprintf("  %u: %s\n", idx, DS->legend());
       if (!statsout_->IsStream())
         statsout_->Printf("#Stats for %s\n", DS->legend());
-      int err = DS->LinearRegression( slope, intercept, correl, statsout_ );
+      int err = DS->LinearRegression( slope, intercept, correl, Fval, statsout_ );
       slope_dsets_[idx]->Add(0, &slope);
       int_dsets_[idx]->Add(0, &intercept);
       nerr += err;

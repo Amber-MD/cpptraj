@@ -15,6 +15,7 @@ Traj_PDBfile::Traj_PDBfile() :
   terMode_(BY_MOL),
   conectMode_(NO_CONECT),
   pdbWriteMode_(NONE),
+  resNumType_(ORIGINAL),
   pdbAtom_(0),
   currentSet_(0),
   ter_num_(0),
@@ -188,6 +189,7 @@ void Traj_PDBfile::WriteHelp() {
           "\tpdbres          : Use PDB V3 residue names.\n"
           "\tpdbatom         : Use PDB V3 atom names.\n"
           "\tpdbv3           : Use PDB V3 residue/atom names.\n"
+          "\ttopresnum       : Use topology residue numbers; otherwise use original residue numbers.\n"
           "\tteradvance      : Increment record (atom) # for TER records (default no).\n"
           "\tterbyres        : Print TER cards based on residue sequence instead of molecules.\n"
           "\tpdbter          : Print TER cards according to original PDB TER (if available).\n"
@@ -227,6 +229,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     dumpq_ = true;
     radiiMode_ = VDW;
   }
+  if (argIn.hasKey("topresnum")) resNumType_ = TOPOLOGY;
   if (argIn.hasKey("terbyres"))   terMode_ = BY_RES;
   else if (argIn.hasKey("noter")) terMode_ = NO_TER;
   else if (argIn.hasKey("pdbter"))terMode_ = ORIGINAL_PDB;
@@ -785,6 +788,11 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++, Xptr += 3) {
     Atom const& atom = (*pdbTop_)[aidx];
     int res = atom.ResNum();
+    int resnum;
+    if (resNumType_ == ORIGINAL)
+      resnum = pdbTop_->Res(res).OriginalResNum();
+    else // TOPOLOGY
+      resnum = res+1;
     if (include_ep_ || atom.Element() != Atom::EXTRAPT) {
       PDBfile::PDB_RECTYPE rectype;
       if ( resIsHet_[res] )
@@ -820,7 +828,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       }
       // TODO determine formal charges?
       file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
-                       chainID_[res], pdbTop_->Res(res).OriginalResNum(),
+                       chainID_[res], resnum,
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, Bfac,
                        atom.ElementName(), 0, dumpq_);
@@ -832,7 +840,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         if ( currentIdx == (unsigned int)(aidx + 1) ) {
           DataSet_Tensor::Ttype const& UM = ADP.Tensor(adpidx);
           file_.WriteANISOU( anum, atomName, resNames_[res], chainID_[res],
-                             pdbTop_->Res(res).OriginalResNum(),
+                             resnum,
                              UM.Ptr(), atom.ElementName(), 0 );
           adpidx++;
         }
@@ -845,7 +853,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (aidx == *terIdx) {
       // FIXME: Should anum not be incremented until after? 
       file_.WriteRecordHeader(PDBfile::TER, anum, "", ' ', resNames_[res],
-                              chainID_[res], pdbTop_->Res(res).OriginalResNum(),
+                              chainID_[res], resnum,
                               pdbTop_->Res(res).Icode(), atom.ElementName());
       anum += ter_num_;
       ++terIdx;

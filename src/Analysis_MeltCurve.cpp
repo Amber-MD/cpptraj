@@ -1,5 +1,6 @@
 #include "Analysis_MeltCurve.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 
 void Analysis_MeltCurve::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] cut <cut>\n"
