@@ -69,12 +69,12 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
     mprinterr("Error: Tolerance must be greater than or equal to 0.0\n");
     return Analysis::ERR;
   }
-  initpct_ = analyzeArgs.getKeyDouble("initpct", 0.01);
+  initpct_ = analyzeArgs.getKeyDouble("initpct", 1.0) / 100.0;
   if (initpct_ <= 0) {
     mprinterr("Error: Initial percent must be greater than 0.\n");
     return Analysis::ERR;
   }
-  finalpct_ = analyzeArgs.getKeyDouble("finalpct", 0.5);
+  finalpct_ = analyzeArgs.getKeyDouble("finalpct", 50.0) / 100.0;
   if (finalpct_ <= 0) {
     mprinterr("Error: Final percent must be greater than 0.\n");
     return Analysis::ERR;
