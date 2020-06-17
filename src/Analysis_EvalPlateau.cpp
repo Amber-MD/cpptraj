@@ -158,6 +158,24 @@ int EQ_plateau(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
   return 0;
 }
 
+/** This is used to add a non-result whenever there is an error 
+  * evaluating the input data.
+  */
+void Analysis_EvalPlateau::BlankResult(long int oidx, const char* legend)
+{
+  static const double ZERO = 0.0;
+  data_[CHISQ]->Add(oidx, &ZERO);
+  data_[A0]->Add(oidx, &ZERO);
+  data_[A1]->Add(oidx, &ZERO);
+  data_[A2]->Add(oidx, &ZERO);
+  data_[FVAL]->Add(oidx, &ZERO);
+  data_[CORR]->Add(oidx, &ZERO);
+  data_[VALA]->Add(oidx, &ZERO);
+  data_[PLTIME]->Add(oidx, &ZERO);
+  data_[NAME]->Add(oidx, legend);
+  data_[RESULT]->Add(oidx, "err");
+}
+
 // Analysis_EvalPlateau::Analyze()
 Analysis::RetType Analysis_EvalPlateau::Analyze() {
   std::vector<DataSet*>::const_iterator ot = outputSets_.begin();
@@ -167,17 +185,21 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     if (!statsout_->IsStream())
       statsout_->Printf("# %s\n", (*it)->legend());
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(*it) );
+    // oidx will be used to index the sets in data_
+    long int oidx = (it - inputSets_.begin());
     // First do a linear fit. TODO may not need this anymore
     statsout_->Printf("\t----- Linear Fit -----\n");
     if (DS.Size() < 2) {
       mprintf("Warning: Not enough data in '%s' to evaluate.\n", DS.legend());
+      BlankResult(oidx, DS.legend());
       continue;
     }
     double slope, intercept, correl, Fval;
     int err = DS.LinearRegression( slope, intercept, correl, Fval, statsout_ );
     if (err != 0) {
-      mprinterr("Error: Could not perform linear regression fit.\n");
-      return Analysis::ERR;
+      mprintf("Warning: Could not perform linear regression fit for '%s'.\n", DS.legend());
+      BlankResult(oidx, DS.legend());
+      continue;
     }
 
     // Process expression to fit
@@ -244,8 +266,10 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
     mprintf("\t%s\n", fit.Message(info));
     if (info == 0) {
-      mprinterr("Error: %s\n", fit.ErrorMessage());
-      return Analysis::ERR;
+      mprintf("Warning: Curve fit failed for '%s'.\n"
+              "Warning: %s\n", DS.legend(), fit.ErrorMessage());
+      BlankResult(oidx, DS.legend());
+      continue;
     }
     for (CurveFit::Darray::const_iterator ip = Params.begin(); ip != Params.end(); ++ip) {
       statsout_->Printf("\tFinal Param A%li = %g\n", ip - Params.begin(), *ip);
@@ -297,7 +321,6 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
                       "\tRMS percent error: %g\n",
                       corr_coeff, ChiSq, TheilU, rms_percent_error);
 
-    long int oidx = (it - inputSets_.begin());
     data_[CHISQ]->Add(oidx, &ChiSq);
     data_[A0]->Add(oidx, &Params[0]);
     data_[A1]->Add(oidx, &Params[0] + 1);

@@ -31,6 +31,9 @@ class Analysis_EvalPlateau : public Analysis {
     /// Hold data type for each output data
     static DataSet::DataType OdataType_[NDATA];
 
+    /// Used to add zero data when error occurs evaluating a set
+    void BlankResult(long int, const char*);
+
     Array1D inputSets_;                ///< Will hold data to evaluate
     std::vector<DataSet*> outputSets_; ///< Will hold final fit curves
     std::string dsname_;               ///< Output set(s) base name
