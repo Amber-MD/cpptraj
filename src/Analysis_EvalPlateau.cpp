@@ -8,6 +8,7 @@ Analysis_EvalPlateau::Analysis_EvalPlateau() :
   statsout_(0),
   tolerance_(0),
   initpct_(0),
+  finalpct_(0),
   valaCut_(0),
   chisqCut_(0),
   slopeCut_(0),
@@ -46,7 +47,7 @@ DataSet::DataType Analysis_EvalPlateau::OdataType_[NDATA] = {
 // Analysis_EvalPlateau::Help()
 void Analysis_EvalPlateau::Help() const {
   mprintf("\t[name <set out name>] [tol <tol>] [valacut <valacut>]\n"
-          "\t[initpct <initial pct>\n"
+          "\t[initpct <initial pct>] [finalpct <final pct>]\n"
           "\t[chisqcut <chisqcut>] [slopecut <slopecut>] [maxit <maxit>]\n"
           "\t[out <outfile>] [resultsout <resultsfile>] [statsout <statsfile>]\n"
           "\t<input set args> ...\n"
@@ -71,6 +72,11 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
   initpct_ = analyzeArgs.getKeyDouble("initpct", 0.01);
   if (initpct_ <= 0) {
     mprinterr("Error: Initial percent must be greater than 0.\n");
+    return Analysis::ERR;
+  }
+  finalpct_ = analyzeArgs.getKeyDouble("finalpct", 0.5);
+  if (finalpct_ <= 0) {
+    mprinterr("Error: Final percent must be greater than 0.\n");
     return Analysis::ERR;
   }
   valaCut_ = analyzeArgs.getKeyDouble("valacut", 0.01);
@@ -139,6 +145,7 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
   mprintf("\tOutput set name: %s\n", dsname_.c_str());
   mprintf("\tTolerance for curve fit: %g\n", tolerance_);
   mprintf("\tWill use initial %g%% of data for initial guess of A0\n", initpct_*100.0);
+  mprintf("\tWill use final %g%% of data for initial guess of A2\n", finalpct_*100.0);
   mprintf("\tMax iterations for curve fit: %i\n", maxIt_);
   if (outfile != 0)
     mprintf("\tFit curve output to '%s'\n", outfile->DataFilename().full());
@@ -246,7 +253,17 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
       YinitialAvg += Yvals[hidx];
     YinitialAvg /= (double)initPt;
     statsout_->Printf("\tAvg of first %g%% of the data: %g\n", initpct_*100.0, YinitialAvg);
-    // Determine the average value of the last half of the data.
+    // Get the average of the last finalpct_% of data.
+    // Will be used as the intial guess for A2, final density.
+    unsigned int finalPt = (double)Yvals.size() * finalpct_;
+    if (finalPt < 1) finalPt = 1;
+    unsigned int finalStart = Yvals.size() - finalPt;
+    double YfinalAvg = 0;
+    for (unsigned int hidx = finalStart; hidx < Yvals.size(); hidx++)
+      YfinalAvg += Yvals[hidx];
+    YfinalAvg /= (double)finalPt;
+    statsout_->Printf("\tAvg of last %g%% of the data: %g\n", finalpct_*100.0, YfinalAvg);
+/*    // Determine the average value of the last half of the data.
     unsigned int halfwayPt = (Yvals.size() / 2);
     double Yavg1half = 0;
     for (unsigned int hidx = 0; hidx < halfwayPt; hidx++)
@@ -257,14 +274,15 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     for (unsigned int hidx = halfwayPt; hidx < Yvals.size(); hidx++)
       Yavg2half += Yvals[hidx];
     Yavg2half /= (double)(Yvals.size() - halfwayPt);
-    statsout_->Printf("\tLast half <Y> = %g\n", Yavg2half);
+    statsout_->Printf("\tLast half <Y> = %g\n", Yavg2half);*/
 
     // Set initial guesses for parameters.
     CurveFit::Darray Params(3);
     Params[0] = YinitialAvg;
     if (Params[0] < 0) Params[0] = -Params[0];
     Params[1] = 0.1; // TODO absolute slope?
-    Params[2] = Yavg2half;
+    //Params[2] = Yavg2half;
+    Params[2] = YfinalAvg;
 
     for (CurveFit::Darray::const_iterator ip = Params.begin(); ip != Params.end(); ++ip) {
       statsout_->Printf("\tInitial Param A%li = %g\n", ip - Params.begin(), *ip);
@@ -284,12 +302,13 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
       statsout_->Printf("\tFinal Param A%li = %g\n", ip - Params.begin(), *ip);
     }
 
-    // Params[0] = A0 = Gap between final and initial values
+    // Params[0] = A0 = Initial value. 
     // Params[1] = A1 = Relaxation constant
-    // Params[2] = A2 = Final value at long time
+    // Params[2] = A2 = Final value at long time.
     // Determine the absolute difference of the long-time estimated value
     // from the average value of the last half of the data.
-    double ValA = Yavg2half - Params[2];
+    //double ValA = Yavg2half - Params[2];
+    double ValA = YfinalAvg - Params[2];
     if (ValA < 0) ValA = -ValA;
     statsout_->Printf("\tValA = %g\n", ValA);
 

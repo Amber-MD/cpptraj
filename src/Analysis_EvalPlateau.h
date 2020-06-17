@@ -41,6 +41,7 @@ class Analysis_EvalPlateau : public Analysis {
     std::vector<DataSet*> data_;       ///< Will hold output data
     double tolerance_;                 ///< Tolerance for non-linear curve fit
     double initpct_;                   ///< Percent of initial data to use as guess for A0
+    double finalpct_;                  ///< Percent of final data to use as guess for A2
     double valaCut_;                   ///< Cutoff for long-term estimate from last half of data
     double chisqCut_;                  ///< Cutoff for non-linear fit chi^2
     double slopeCut_;                  ///< Cutoff for non-linear fit slope
