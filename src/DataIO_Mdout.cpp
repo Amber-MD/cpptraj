@@ -7,6 +7,38 @@
 #include "StringRoutines.h" // convertToDouble
 #include "DataSet_double.h"
 
+DataIO_Mdout::DataIO_Mdout() {
+  // Populate the term name to index map. In some cases, multiple term names
+  // map to the same index.
+  termIdxMap_.insert(NameIdxPair("Etot", ETOT));
+  termIdxMap_.insert(NameIdxPair("EPtot", EPTOT));
+  termIdxMap_.insert(NameIdxPair("GMAX", GMAX)); // Not necessary?
+  termIdxMap_.insert(NameIdxPair("BOND", BOND));
+  termIdxMap_.insert(NameIdxPair("ANGLE", ANGLE));
+  termIdxMap_.insert(NameIdxPair("DIHED", DIHED));
+  termIdxMap_.insert(NameIdxPair("VDWAALS", VDWAALS));
+  termIdxMap_.insert(NameIdxPair("EEL", EEL));
+  termIdxMap_.insert(NameIdxPair("EELEC", EEL));
+  termIdxMap_.insert(NameIdxPair("EGB", EGB));
+  termIdxMap_.insert(NameIdxPair("EPB", EPB));
+  termIdxMap_.insert(NameIdxPair("ECAVITY", ECAVITY));
+  termIdxMap_.insert(NameIdxPair("EDISPER", EDISPER));
+  termIdxMap_.insert(NameIdxPair("1-4 VDW", VDW14));
+  termIdxMap_.insert(NameIdxPair("1-4 NB", VDW14));
+  termIdxMap_.insert(NameIdxPair("1-4 EEL", EEL14));
+  termIdxMap_.insert(NameIdxPair("RESTRAINT", RESTRAINT));
+  termIdxMap_.insert(NameIdxPair("EAMBER", EAMBER));
+  termIdxMap_.insert(NameIdxPair("Density", DENSITY));
+  termIdxMap_.insert(NameIdxPair("RMS", RMS)); // Not necessary?
+  termIdxMap_.insert(NameIdxPair("EKtot", EKTOT));
+  termIdxMap_.insert(NameIdxPair("ESURF", ESURF));
+  termIdxMap_.insert(NameIdxPair("EAMD_BOOST", EAMD_BOOST));
+  termIdxMap_.insert(NameIdxPair("VOLUME", VOLUME));
+  termIdxMap_.insert(NameIdxPair("TEMP(K)", TEMP));
+  termIdxMap_.insert(NameIdxPair("PRESS", PRESS));
+  termIdxMap_.insert(NameIdxPair("DV/DL", DVDL));
+}
+
 // DataIO_Mdout::ID_DataFormat()
 bool DataIO_Mdout::ID_DataFormat(CpptrajFile& infile) {
   if (infile.OpenFile()) return false;
@@ -37,11 +69,20 @@ const char* DataIO_Mdout::Enames[] = {
   "PRESS",  "DVDL",   0
 };
 
+DataIO_Mdout::FieldType DataIO_Mdout::getTermIdx(std::string const& name) const {
+  NameIdxMap::const_iterator it = termIdxMap_.find( name );
+  if (it == termIdxMap_.end()) {
+    return (FieldType)N_FIELDTYPES;
+  } else {
+    return (FieldType)it->second;
+  }
+}
+
 /// \return index of name in Energy[] array, N_FIELDTYPES if not recognized.
 DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   //mprintf("DEBUG:\tgetEindex(%s,%s)\n", Name[0].c_str(), Name[1].c_str());
-  if (Name[0]=="Etot")  return Etot;
-  if (Name[0]=="EPtot") return EPtot;
+  if (Name[0]=="Etot")  return ETOT;
+  if (Name[0]=="EPtot") return EPTOT;
   if (Name[0]=="GMAX") return GMAX; // Not necessary?
   if (Name[0]=="BOND") return BOND;
   if (Name[0]=="ANGLE") return ANGLE;
@@ -56,9 +97,9 @@ DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   if  (Name[0]=="1-4" && Name[1]=="EEL") return EEL14;
   if (Name[0]=="RESTRAINT") return RESTRAINT;
   if (Name[0]=="EAMBER") return EAMBER;
-  if (Name[0]=="Density") return Density;
+  if (Name[0]=="Density") return DENSITY;
   if (Name[0]=="RMS") return RMS; // Not necessary?
-  if (Name[0]=="EKtot") return EKtot;
+  if (Name[0]=="EKtot") return EKTOT;
   if (Name[0]=="ESURF") return ESURF;
   if (Name[0]=="EAMD_BOOST") return EAMD_BOOST;
   if (Name[0]=="VOLUME") return VOLUME;
@@ -107,7 +148,7 @@ int DataIO_Mdout::GetAmberEterms(const char* ptr, Darray& Energy, std::vector<bo
         std::string valstr(val, end);
         //mprintf("DBG: valstr= '%s'\n", valstr.c_str());
         std::string termName = NoTrailingWhitespace(std::string(beg,eq));
-        FieldType Eindex = getEindex(Name);
+        FieldType Eindex = getTermIdx(termName);
         if (Eindex != N_FIELDTYPES) {
           if (!validDouble(valstr)) {
             mprintf("Warning: Invalid number detected: %s = %s\n", termName.c_str(), valstr.c_str());
@@ -267,8 +308,8 @@ int DataIO_Mdout::ReadData(FileName const& fname,
     if ((imin == 1 || imin == 5) && strncmp(ptr, "   NSTEP", 8) == 0) {
       ptr = buffer.Line(); // Get next line
       //sscanf(ptr, " %6lf    %13lE  %13lE  %13lE", Energy+NSTEP, Energy+EPtot, Energy+RMS, Energy+GMAX);
-      sscanf(ptr, " %i %lE %lE %lE", &minStep, Energy+EPtot, Energy+RMS, Energy+GMAX);
-      EnergyExists[EPtot] = true;
+      sscanf(ptr, " %i %lE %lE %lE", &minStep, Energy+EPTOT, Energy+RMS, Energy+GMAX);
+      EnergyExists[EPTOT] = true;
       EnergyExists[RMS] = true;
       EnergyExists[GMAX] = true;
       ptr = buffer.Line();
