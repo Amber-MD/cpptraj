@@ -107,23 +107,14 @@ int DataIO_Mdout::GetAmberEterms(const char* ptr, Darray& Energy, std::vector<bo
         std::string valstr(val, end);
         //mprintf("DBG: valstr= '%s'\n", valstr.c_str());
         std::string termName = NoTrailingWhitespace(std::string(beg,eq));
-        if (!reachedNstep_ && termName != "NSTEP") return 0;
-        reachedNstep_ = true;
-        if (!validDouble(valstr)) {
-          mprintf("Warning: Invalid number detected: %s = %s\n", termName.c_str(), valstr.c_str());
-        } else {
-          mprintf("DBG: %s = %s\n", termName.c_str(), valstr.c_str());
-          // Special cases
-          if (termName == "NSTEP")
-            nstep_ = convertToInteger(valstr);
-          else if (termName != "TIME(PS)") {
-            //unsigned int idx = getTermIdx(termName);
-            //AddData(idx, convertToDouble(valstr), dsname, datasetlist);
-            FieldType Eindex = getEindex(Name);
-            if (Eindex != N_FIELDTYPES) {
-              Energy[Eindex] = atof( tkn );
-              EnergyExists[Eindex] = true;
-            }
+        FieldType Eindex = getEindex(Name);
+        if (Eindex != N_FIELDTYPES) {
+          if (!validDouble(valstr)) {
+            mprintf("Warning: Invalid number detected: %s = %s\n", termName.c_str(), valstr.c_str());
+          } else {
+            mprintf("DBG: %s = %s\n", termName.c_str(), valstr.c_str());
+            Energy[Eindex] = atof( valstr.c_str() );
+            EnergyExists[Eindex] = true;
           }
         }
         beg = end;

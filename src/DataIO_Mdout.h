@@ -21,6 +21,7 @@ class DataIO_Mdout : public DataIO {
                      RMS, EKtot, ESURF, EAMD_BOOST, VOLUME, TEMP,
                      PRESS, DVDL, N_FIELDTYPES };
     static FieldType getEindex(Sarray const&);
+    int GetAmberEterms(const char*, Darray&, std::vector<bool>&);
     static const char* Enames[];
 };
 #endif
