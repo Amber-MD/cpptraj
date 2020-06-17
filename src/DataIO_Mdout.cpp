@@ -253,8 +253,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
     nstep = 0;
   else
     nstep = ntpr;
-  double Energy[N_FIELDTYPES];
-  std::fill( Energy, Energy+N_FIELDTYPES, 0.0 );
+  Darray Energy(N_FIELDTYPES, 0);
   std::vector<bool> EnergyExists(N_FIELDTYPES, false);
   DataSetList::Darray TimeVals;
   DataSetList::DataListType inputSets(N_FIELDTYPES, 0);
@@ -308,13 +307,17 @@ int DataIO_Mdout::ReadData(FileName const& fname,
     if ((imin == 1 || imin == 5) && strncmp(ptr, "   NSTEP", 8) == 0) {
       ptr = buffer.Line(); // Get next line
       //sscanf(ptr, " %6lf    %13lE  %13lE  %13lE", Energy+NSTEP, Energy+EPtot, Energy+RMS, Energy+GMAX);
-      sscanf(ptr, " %i %lE %lE %lE", &minStep, Energy+EPTOT, Energy+RMS, Energy+GMAX);
+      double* Eptr = &(Energy[0]);
+      sscanf(ptr, " %i %lE %lE %lE", &minStep, Eptr+EPTOT, Eptr+RMS, Eptr+GMAX);
       EnergyExists[EPTOT] = true;
       EnergyExists[RMS] = true;
       EnergyExists[GMAX] = true;
       ptr = buffer.Line();
     }
     // Tokenize line, scan through until '=' is reached; value after is target.
+    if (GetAmberEterms(buffer.CurrentLine(), Energy, EnergyExists))
+      mprintf("Warning: Issue parsing line %i\n", buffer.LineNumber());
+/*
     int ntokens = buffer.TokenizeLine(" ");
     if (ntokens > 0) {
       int nidx = 0;
@@ -346,7 +349,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
           Name[nidx++].assign( tkn );
         }
       }
-    }
+    }*/
     // Set time
     switch (imin) {
       case 5: time = (double)nstep + t0; break;
