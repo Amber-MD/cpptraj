@@ -14,7 +14,6 @@ class DataIO_Mdout : public DataIO {
     int WriteData(FileName const&, DataSetList const&)   { return 1; }
     bool ID_DataFormat(CpptrajFile&);
   private:
-    typedef std::vector<std::string> Sarray;
     typedef std::vector<double> Darray;
     typedef std::map<std::string, unsigned int> NameIdxMap;
     typedef std::pair<std::string, unsigned int> NameIdxPair;
@@ -26,10 +25,9 @@ class DataIO_Mdout : public DataIO {
                      PRESS, DVDL, N_FIELDTYPES };
 
     FieldType getTermIdx(std::string const&) const;
-    static FieldType getEindex(Sarray const&);
     int GetAmberEterms(const char*, Darray&, std::vector<bool>&);
 
-    static const char* Enames[];
+    static const char* Enames_[];
     /// Map field names to indices into energy sets.
     NameIdxMap termIdxMap_;
 

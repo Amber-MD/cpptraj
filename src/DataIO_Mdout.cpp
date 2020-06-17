@@ -61,7 +61,8 @@ static inline int EOF_ERROR() {
   return 1;
 }
 
-const char* DataIO_Mdout::Enames[] = {
+/** Names corresponding to FieldType. */
+const char* DataIO_Mdout::Enames_[] = {
   "Etot",   "EPtot",  "GMAX",  "BOND",
   "ANGLE",  "DIHED",  "VDW",   "EELEC",      "EGB",     "EPB", "ECAVITY", "EDISPER",
   "VDW1-4", "EEL1-4", "RST",   "EAMBER",     "Density",
@@ -69,6 +70,9 @@ const char* DataIO_Mdout::Enames[] = {
   "PRESS",  "DVDL",   0
 };
 
+/** \return FieldType corresponding to given term name, or N_FIELDTYPES if
+  *         not recognized.
+  */
 DataIO_Mdout::FieldType DataIO_Mdout::getTermIdx(std::string const& name) const {
   NameIdxMap::const_iterator it = termIdxMap_.find( name );
   if (it == termIdxMap_.end()) {
@@ -78,37 +82,7 @@ DataIO_Mdout::FieldType DataIO_Mdout::getTermIdx(std::string const& name) const 
   }
 }
 
-/// \return index of name in Energy[] array, N_FIELDTYPES if not recognized.
-DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
-  //mprintf("DEBUG:\tgetEindex(%s,%s)\n", Name[0].c_str(), Name[1].c_str());
-  if (Name[0]=="Etot")  return ETOT;
-  if (Name[0]=="EPtot") return EPTOT;
-  if (Name[0]=="GMAX") return GMAX; // Not necessary?
-  if (Name[0]=="BOND") return BOND;
-  if (Name[0]=="ANGLE") return ANGLE;
-  if (Name[0]=="DIHED") return DIHED;
-  if (Name[0]=="VDWAALS") return VDWAALS;
-  if (Name[0]=="EEL" || Name[0]=="EELEC") return EEL;
-  if (Name[0]=="EGB") return EGB;
-  if (Name[0]=="EPB") return EPB;
-  if (Name[0]=="ECAVITY") return ECAVITY;
-  if (Name[0]=="EDISPER") return EDISPER;
-  if ((Name[0]=="1-4" && Name[1]=="VDW") || (Name[0]=="1-4" && Name[1]=="NB")) return VDW14;
-  if  (Name[0]=="1-4" && Name[1]=="EEL") return EEL14;
-  if (Name[0]=="RESTRAINT") return RESTRAINT;
-  if (Name[0]=="EAMBER") return EAMBER;
-  if (Name[0]=="Density") return DENSITY;
-  if (Name[0]=="RMS") return RMS; // Not necessary?
-  if (Name[0]=="EKtot") return EKTOT;
-  if (Name[0]=="ESURF") return ESURF;
-  if (Name[0]=="EAMD_BOOST") return EAMD_BOOST;
-  if (Name[0]=="VOLUME") return VOLUME;
-  if (Name[0]=="TEMP(K)") return TEMP;
-  if (Name[0]=="PRESS") return PRESS;
-  if (Name[0]=="DV/DL") return DVDL;
-  return N_FIELDTYPES;
-}
-
+/** Parse the given line for energy terms of format <name>=<value>. */
 int DataIO_Mdout::GetAmberEterms(const char* ptr, Darray& Energy, std::vector<bool>& EnergyExists) {
   //mprintf("DBG: [%s]\n", ptr);
   if (ptr == 0 || ptr[0] == '|') return 0;
@@ -256,7 +230,6 @@ int DataIO_Mdout::ReadData(FileName const& fname,
   std::vector<bool> EnergyExists(N_FIELDTYPES, false);
   DataSetList::Darray TimeVals;
   DataSetList::DataListType inputSets(N_FIELDTYPES, 0);
-  Sarray Name(2);
   double time = 0.0;
   while (ptr != 0) {
     // Check for end of imin 0 or 1 run; do not record Average and Stdevs
@@ -283,8 +256,8 @@ int DataIO_Mdout::ReadData(FileName const& fname,
         for (int i = 0; i < (int)N_FIELDTYPES; i++) {
           if (EnergyExists[i]) {
             if (inputSets[i] == 0) {
-              MetaData md( dsname, Enames[i] );
-              md.SetLegend( dsname + "_" + Enames[i] );
+              MetaData md( dsname, Enames_[i] );
+              md.SetLegend( dsname + "_" + Enames_[i] );
               inputSets[i] = new DataSet_double();
               inputSets[i]->SetMeta( md );
             }
