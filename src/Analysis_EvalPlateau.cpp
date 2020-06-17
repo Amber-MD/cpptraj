@@ -7,6 +7,7 @@
 Analysis_EvalPlateau::Analysis_EvalPlateau() :
   statsout_(0),
   tolerance_(0),
+  initpct_(0),
   valaCut_(0),
   chisqCut_(0),
   slopeCut_(0),
@@ -45,6 +46,7 @@ DataSet::DataType Analysis_EvalPlateau::OdataType_[NDATA] = {
 // Analysis_EvalPlateau::Help()
 void Analysis_EvalPlateau::Help() const {
   mprintf("\t[name <set out name>] [tol <tol>] [valacut <valacut>]\n"
+          "\t[initpct <initial pct>\n"
           "\t[chisqcut <chisqcut>] [slopecut <slopecut>] [maxit <maxit>]\n"
           "\t[out <outfile>] [resultsout <resultsfile>] [statsout <statsfile>]\n"
           "\t<input set args> ...\n"
@@ -64,6 +66,11 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
   tolerance_ = analyzeArgs.getKeyDouble("tol", 0.00001);
   if (tolerance_ < 0.0) {
     mprinterr("Error: Tolerance must be greater than or equal to 0.0\n");
+    return Analysis::ERR;
+  }
+  initpct_ = analyzeArgs.getKeyDouble("initpct", 0.01);
+  if (initpct_ <= 0) {
+    mprinterr("Error: Initial percent must be greater than 0.\n");
     return Analysis::ERR;
   }
   valaCut_ = analyzeArgs.getKeyDouble("valacut", 0.01);
@@ -131,6 +138,7 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
   mprintf("    EVALPLATEAU: Evaluate plateau time of %zu sets.\n", inputSets_.size());
   mprintf("\tOutput set name: %s\n", dsname_.c_str());
   mprintf("\tTolerance for curve fit: %g\n", tolerance_);
+  mprintf("\tWill use initial %g%% of data for initial guess of A0\n", initpct_*100.0);
   mprintf("\tMax iterations for curve fit: %i\n", maxIt_);
   if (outfile != 0)
     mprintf("\tFit curve output to '%s'\n", outfile->DataFilename().full());
@@ -229,14 +237,15 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
       }
     }
 
-    // Get the average of the first 1% of data
-    unsigned int tenpctPt = (double)Yvals.size() * 0.01;
-    if (tenpctPt < 1) tenpctPt = 1;
-    double Y10pctAvg = 0;
-    for (unsigned int hidx = 0; hidx < tenpctPt; hidx++)
-      Y10pctAvg += Yvals[hidx];
-    Y10pctAvg /= (double)tenpctPt;
-    statsout_->Printf("\tAvg of first 10%% of the data: %g\n", Y10pctAvg);
+    // Get the average of the first initpct_% of data.
+    // Will be used as the initial guess for A0, initial density.
+    unsigned int initPt = (double)Yvals.size() * initpct_;
+    if (initPt < 1) initPt = 1;
+    double YinitialAvg = 0;
+    for (unsigned int hidx = 0; hidx < initPt; hidx++)
+      YinitialAvg += Yvals[hidx];
+    YinitialAvg /= (double)initPt;
+    statsout_->Printf("\tAvg of first %g%% of the data: %g\n", initpct_*100.0, YinitialAvg);
     // Determine the average value of the last half of the data.
     unsigned int halfwayPt = (Yvals.size() / 2);
     double Yavg1half = 0;
@@ -252,7 +261,7 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
 
     // Set initial guesses for parameters.
     CurveFit::Darray Params(3);
-    Params[0] = Y10pctAvg;
+    Params[0] = YinitialAvg;
     if (Params[0] < 0) Params[0] = -Params[0];
     Params[1] = 0.1; // TODO absolute slope?
     Params[2] = Yavg2half;
