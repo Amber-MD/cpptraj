@@ -68,6 +68,73 @@ DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   return N_FIELDTYPES;
 }
 
+int DataIO_Mdout::GetAmberEterms(const char* ptr, Darray& Energy, std::vector<bool>& EnergyExists) {
+  //mprintf("DBG: [%s]\n", ptr);
+  if (ptr == 0 || ptr[0] == '|') return 0;
+  const char* beg = ptr;
+  //          111111111122222222223
+  //0123456789012345678901234567890
+  // NSTEP =        0   TIME(PS) =       0.000  TEMP(K) =   435.99  PRESS =-10207.6
+  bool eol = false;
+  while (!eol) {
+    // Skip leading whitespace
+    while (*beg == ' ' && *beg != '\0') ++beg;
+    if (*beg == '\0') {
+      // Line is blank or no more terms. Bail out.
+      break;
+    }
+    //mprintf("DBG: beg= %c\n", *beg);
+    // Search for next '='
+    const char* eq = beg + 1;
+    while (*eq != '=' && *eq != '\0') ++eq;
+    if (*eq == '\0')
+      eol = true;
+    else {
+      // Search for end token. Start just after '='.
+      const char* val = eq + 1;
+      // Skip leading whitespace
+      while (*val == ' ' && *val != '\0') ++val;
+      if (*val == '\0') {
+        eol = true;
+        mprintf("Warning: EOL encountered before energy term could be read.\n");
+        return 1;
+      } else {
+        //mprintf("DBG: val= %c\n", *val);
+        // Search for next whitespace or line end.
+        const char* end = val + 1;
+        while (*end != ' ' && *end != '\0' && *end != '\n' && *end != '\r') ++end;
+        // Term is now complete. Convert.
+        std::string valstr(val, end);
+        //mprintf("DBG: valstr= '%s'\n", valstr.c_str());
+        std::string termName = NoTrailingWhitespace(std::string(beg,eq));
+        if (!reachedNstep_ && termName != "NSTEP") return 0;
+        reachedNstep_ = true;
+        if (!validDouble(valstr)) {
+          mprintf("Warning: Invalid number detected: %s = %s\n", termName.c_str(), valstr.c_str());
+        } else {
+          mprintf("DBG: %s = %s\n", termName.c_str(), valstr.c_str());
+          // Special cases
+          if (termName == "NSTEP")
+            nstep_ = convertToInteger(valstr);
+          else if (termName != "TIME(PS)") {
+            //unsigned int idx = getTermIdx(termName);
+            //AddData(idx, convertToDouble(valstr), dsname, datasetlist);
+            FieldType Eindex = getEindex(Name);
+            if (Eindex != N_FIELDTYPES) {
+              Energy[Eindex] = atof( tkn );
+              EnergyExists[Eindex] = true;
+            }
+          }
+        }
+        beg = end;
+      }
+    }
+  } // END loop over line
+  
+  return 0;
+}
+
+
 // DataIO_Mdout::ReadData()
 int DataIO_Mdout::ReadData(FileName const& fname,
                             DataSetList& datasetlist, std::string const& dsname)
