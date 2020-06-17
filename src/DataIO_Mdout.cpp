@@ -153,7 +153,7 @@ int DataIO_Mdout::GetAmberEterms(const char* ptr, Darray& Energy, std::vector<bo
           if (!validDouble(valstr)) {
             mprintf("Warning: Invalid number detected: %s = %s\n", termName.c_str(), valstr.c_str());
           } else {
-            mprintf("DBG: %s = %s\n", termName.c_str(), valstr.c_str());
+            //mprintf("DBG: %s = %s\n", termName.c_str(), valstr.c_str());
             Energy[Eindex] = atof( valstr.c_str() );
             EnergyExists[Eindex] = true;
           }
@@ -165,7 +165,6 @@ int DataIO_Mdout::GetAmberEterms(const char* ptr, Darray& Energy, std::vector<bo
   
   return 0;
 }
-
 
 // DataIO_Mdout::ReadData()
 int DataIO_Mdout::ReadData(FileName const& fname,
@@ -317,39 +316,6 @@ int DataIO_Mdout::ReadData(FileName const& fname,
     // Tokenize line, scan through until '=' is reached; value after is target.
     if (GetAmberEterms(buffer.CurrentLine(), Energy, EnergyExists))
       mprintf("Warning: Issue parsing line %i\n", buffer.LineNumber());
-/*
-    int ntokens = buffer.TokenizeLine(" ");
-    if (ntokens > 0) {
-      int nidx = 0;
-      Name[0].clear();
-      Name[1].clear();
-      for (int tidx = 0; tidx < ntokens; tidx++) {
-        const char* tkn = buffer.NextToken();
-        if (tkn[0] == '=') {
-          FieldType Eindex = getEindex(Name);
-          tkn = buffer.NextToken();
-          ++tidx;
-          if (tkn == 0)
-            mprintf("Warning: No numerical value, line %i column %i. Skipping.\n",
-                    buffer.LineNumber(), tidx+1);
-          else if (tkn[0] == '*' || tkn[0] == 'N') // Assume if number begins with N it is NaN
-            mprintf("Warning: Numerical overflow detected, line %i column %i. Skipping.\n",
-                     buffer.LineNumber(), tidx+1);
-          else {
-            if (Eindex != N_FIELDTYPES) {
-              Energy[Eindex] = atof( tkn );
-              EnergyExists[Eindex] = true;
-            }
-          }
-          nidx = 0;
-          Name[0].clear();
-          Name[1].clear();
-        } else {
-          if (nidx > 1) break; // Two tokens, no '=' found. Not an E line.
-          Name[nidx++].assign( tkn );
-        }
-      }
-    }*/
     // Set time
     switch (imin) {
       case 5: time = (double)nstep + t0; break;
