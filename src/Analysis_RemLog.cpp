@@ -291,8 +291,8 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++) {
         for (int replica = 0; replica < (int)remlog_->Size(); replica++)
           mesh.SetY(replica, (double)replicaFrac[replica][crdidx] / (double)frame);
-        double slope, intercept, correl;
-        mesh.LinearRegression(slope, intercept, correl, 0);
+        double slope, intercept, correl, Fval;
+        mesh.LinearRegression(slope, intercept, correl, Fval, 0);
         repFracSlope_->Printf("  %14.7g %14.7g", slope * 100.0, correl);
                 //frame+1, crdidx, slope * 100.0, intercept * 100.0, correl
       }

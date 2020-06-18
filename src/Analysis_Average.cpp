@@ -1,6 +1,7 @@
 #include <cmath>
 #include "Analysis_Average.h"
 #include "CpptrajStdio.h"
+#include "DataSet_1D.h"
 
 Analysis_Average::Analysis_Average() :
   avgOfSets_(0),

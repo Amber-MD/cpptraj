@@ -9,7 +9,7 @@
 #  include <omp.h>
 #endif
 
-Action_InfraredSpectrum::Action_InfraredSpectrum() : Action(HIDDEN),
+Action_InfraredSpectrum::Action_InfraredSpectrum() :
   Vel_(0),
   VAC_(0),
   currentTop_(0),
@@ -17,7 +17,9 @@ Action_InfraredSpectrum::Action_InfraredSpectrum() : Action(HIDDEN),
   maxLag_(-1),
   previousNselected_(-1),
   useFFT_(true)
-{}
+{
+  SetHidden(true);
+}
 
 // Action_InfraredSpectrum::Help()
 void Action_InfraredSpectrum::Help() const {

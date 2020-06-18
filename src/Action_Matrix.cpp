@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "Constants.h" // DEGRAD
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Action_Matrix::Action_Matrix() :
