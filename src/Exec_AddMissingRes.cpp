@@ -14,6 +14,16 @@
 #include <algorithm>
 #include <list>
 
+/** CONSTRUCTOR. */
+Exec_AddMissingRes::Exec_AddMissingRes() :
+  Exec(GENERAL),
+  debug_(0),
+  nMinSteps_(0),
+  optimize_(true)
+{
+  SetHidden(true);
+}
+
 /** Get missing residues from PDB, organize them into "gaps", i.e.
   * contiguous sequences.
   */

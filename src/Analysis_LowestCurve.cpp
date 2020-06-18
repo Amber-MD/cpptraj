@@ -2,6 +2,7 @@
 #include "Analysis_LowestCurve.h"
 #include "CpptrajStdio.h"
 #include "HistBin.h"
+#include "DataSet_1D.h"
 
 Analysis_LowestCurve::Analysis_LowestCurve() : points_(0), step_(0.0) {}
 

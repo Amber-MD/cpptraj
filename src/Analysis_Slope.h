@@ -2,6 +2,7 @@
 #define INC_ANALYSIS_SLOPE_H
 #include "Analysis.h"
 #include "Array1D.h"
+#include "DataSet_1D.h"
 class DataSet_Mesh;
 /// Calculate the slope (finite difference) for input DataSets
 class Analysis_Slope : public Analysis {

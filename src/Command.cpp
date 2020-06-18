@@ -188,6 +188,7 @@
 #include "Analysis_ConstantPHStats.h"
 #include "Analysis_HausdorffDistance.h"
 #include "Analysis_Slope.h"
+#include "Analysis_EvalPlateau.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -203,11 +204,11 @@ int Command::ctlidx_ = -1;
 void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
-  Command::AddCmd( new Exec_AddMissingRes(),   Cmd::EXE, 1, "addmissingres" );
-  Command::AddCmd( new Exec_Analyze(),         Cmd::EXE, 1, "analyze" ); // HIDDEN
+  Command::AddCmd( new Exec_AddMissingRes(),   Cmd::EXE, 1, "addmissingres" ); // hidden
+  Command::AddCmd( new Exec_Analyze(),         Cmd::EXE, 1, "analyze" ); // hidden
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
-  Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // HIDDEN
+  Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // hidden
   Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_CreateSet(),       Cmd::EXE, 1, "createset" );
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
@@ -234,13 +235,13 @@ void Command::Init() {
   Command::AddCmd( new Exec_SelectDS(),        Cmd::EXE, 1, "selectds" );
   Command::AddCmd( new Exec_SetListDebug(),    Cmd::EXE, 2, "debug", "prnlev" );
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
-  Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
+  Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" ); // hidden
   Command::AddCmd( new Exec_SortEnsembleData(),Cmd::EXE, 1, "sortensembledata" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
   Command::AddCmd( new Exec_UseDiskCache(),    Cmd::EXE, 1, "usediskcache" );
-  Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
+  Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // hidden
 # ifdef MPI
-  Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" );
+  Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" ); // hidden
 # endif
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
@@ -249,11 +250,11 @@ void Command::Init() {
   Command::AddCmd( new Exec_CombineCoords(),    Cmd::EXE, 1, "combinecrd" ); 
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
-  Command::AddCmd( new Exec_Emin(),             Cmd::EXE, 1, "emin");
+  Command::AddCmd( new Exec_Emin(),             Cmd::EXE, 1, "emin"); // hidden
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
-  Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" );
+  Command::AddCmd( new Exec_PrepareForLeap(),   Cmd::EXE, 1, "prepareforleap" ); // hidden
   Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
   Command::AddCmd( new Exec_SplitCoords(),      Cmd::EXE, 1, "splitcoords" );
   // TRAJECTORY
@@ -295,7 +296,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Bounds(),        Cmd::ACT, 1, "bounds" );
   Command::AddCmd( new Action_Box(),           Cmd::ACT, 1, "box" );
   Command::AddCmd( new Action_Center(),        Cmd::ACT, 1, "center" );
-  Command::AddCmd( new Action_Channel(),       Cmd::ACT, 1, "channel" ); // HIDDEN
+  Command::AddCmd( new Action_Channel(),       Cmd::ACT, 1, "channel" ); // hidden
   Command::AddCmd( new Action_CheckStructure(),Cmd::ACT, 3,"check","checkoverlap","checkstructure");
   Command::AddCmd( new Action_CheckChirality(),Cmd::ACT, 1, "checkchirality" );
   Command::AddCmd( new Action_Closest(),       Cmd::ACT, 2, "closest", "closestwaters" );
@@ -309,7 +310,7 @@ void Command::Init() {
   Command::AddCmd( new Action_DihedralRMS(),   Cmd::ACT, 2, "dihrms", "dihedralrms" );
   Command::AddCmd( new Action_Dipole(),        Cmd::ACT, 1, "dipole" );
   Command::AddCmd( new Action_Distance(),      Cmd::ACT, 1, "distance" );
-  Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // HIDDEN
+  Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // hidden
   Command::AddCmd( new Action_DistRmsd(),      Cmd::ACT, 2, "drms", "drmsd" );
   Command::AddCmd( new Action_DSSP(),          Cmd::ACT, 2, "dssp", "secstruct" );
   Command::AddCmd( new Action_Energy(),        Cmd::ACT, 1, "energy" );
@@ -318,11 +319,11 @@ void Command::Init() {
   Command::AddCmd( new Action_FixAtomOrder(),  Cmd::ACT, 1, "fixatomorder" );
   Command::AddCmd( new Action_FixImagedBonds(),Cmd::ACT, 1, "fiximagedbonds" );
   Command::AddCmd( new Action_GIST(),          Cmd::ACT, 1, "gist" );
-  Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // HIDDEN
+  Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // hidden
   Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
   Command::AddCmd( new Action_HydrogenBond(),  Cmd::ACT, 1, "hbond" );
   Command::AddCmd( new Action_Image(),         Cmd::ACT, 1, "image" );
-  Command::AddCmd( new Action_InfraredSpectrum(),Cmd::ACT,2,"irspec","infraredspec");
+  Command::AddCmd( new Action_InfraredSpectrum(),Cmd::ACT,2,"irspec","infraredspec"); // hidden
   Command::AddCmd( new Action_Jcoupling(),     Cmd::ACT, 1, "jcoupling" );
   Command::AddCmd( new Action_LESsplit(),      Cmd::ACT, 1, "lessplit" );
   Command::AddCmd( new Action_LIE(),           Cmd::ACT, 1, "lie" );
@@ -337,7 +338,7 @@ void Command::Init() {
   Command::AddCmd( new Action_MultiVector(),   Cmd::ACT, 1, "multivector" );
   Command::AddCmd( new Action_NAstruct(),      Cmd::ACT, 1, "nastruct" );
   Command::AddCmd( new Action_NativeContacts(),Cmd::ACT, 1, "nativecontacts" );
-  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" ); // HIDDEN
+  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" ); // hidden
   Command::AddCmd( new Action_Outtraj(),       Cmd::ACT, 1, "outtraj" );
   Command::AddCmd( new Action_PairDist(),      Cmd::ACT, 1, "pairdist" );
   Command::AddCmd( new Action_Pairwise(),      Cmd::ACT, 1, "pairwise" );
@@ -354,7 +355,7 @@ void Command::Init() {
   Command::AddCmd( new Action_RunningAvg(),    Cmd::ACT, 2, "runavg", "runningaverage" );
   Command::AddCmd( new Action_Scale(),         Cmd::ACT, 1, "scale" );
   Command::AddCmd( new Action_SetVelocity(),   Cmd::ACT, 1, "setvelocity" );
-  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" ); // HIDDEN
+  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" );
   Command::AddCmd( new Action_STFC_Diffusion(),Cmd::ACT, 1, "stfcdiffusion" );
   Command::AddCmd( new Action_Strip(),         Cmd::ACT, 1, "strip" );
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
@@ -371,7 +372,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Watershell(),    Cmd::ACT, 1, "watershell" );
   Command::AddCmd( new Action_XtalSymm(),      Cmd::ACT, 1, "xtalsymm" );
   // ANALYSIS
-  Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // HIDDEN
+  Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // hidden 
   Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
   Command::AddCmd( new Analysis_Average(),     Cmd::ANA, 1, "avg" );
   Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
@@ -384,6 +385,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_CurveFit(),    Cmd::ANA, 1, "curvefit" );
   Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
+  Command::AddCmd( new Analysis_EvalPlateau(), Cmd::ANA, 1, "evalplateau" ); // hidden
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
   Command::AddCmd( new Analysis_HausdorffDistance,Cmd::ANA,1,"hausdorff" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
@@ -396,7 +398,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Modes(),       Cmd::ANA, 1, "modes" );
   Command::AddCmd( new Analysis_Multicurve(),  Cmd::ANA, 1, "multicurve" );
   Command::AddCmd( new Analysis_MultiHist(),   Cmd::ANA, 1, "multihist" );
-  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" ); // HIDDEN
+  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" ); // hidden 
   Command::AddCmd( new Analysis_PhiPsi(),      Cmd::ANA, 1, "phipsi" );
   Command::AddCmd( new Analysis_Regression(),  Cmd::ANA, 1, "regress" );
   Command::AddCmd( new Analysis_RemLog(),      Cmd::ANA, 1, "remlog" );
@@ -498,7 +500,7 @@ Cmd const& Command::SearchToken(ArgList& argIn) {
   return EMPTY_;
 }
 
-/** 0 are hidden categories (i.e. should not appear in help). */
+/** \return Text corresponding to given category. */
 static const char* ObjKeyword(DispatchObject::Otype typeIn) {
   switch (typeIn) {
     case DispatchObject::NONE: return 0;
@@ -510,22 +512,21 @@ static const char* ObjKeyword(DispatchObject::Otype typeIn) {
     case DispatchObject::GENERAL: return "General";
     case DispatchObject::SYSTEM: return "System";
     case DispatchObject::CONTROL: return "Control";
-    case DispatchObject::HIDDEN: return 0;
-    case DispatchObject::DEPRECATED: return 0;
+    case DispatchObject::DEPRECATED: return "Deprecated";
   }
   return 0;
 }
 
 /** First list the command category, then the commands for that category
-  * in alphabetical order. Should not be called with NONE, HIDDEN, or
-  * DEPRECATED.
+  * in alphabetical order. Should not be called with NONE.
   */
 void Command::ListCommandsForType(DispatchObject::Otype typeIn) {
+  if (typeIn == DispatchObject::NONE) return;
   std::vector< std::string > command_keys;
   mprintf("%s Commands:\n", ObjKeyword(typeIn));
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
-    if (cmd->Obj().Type() == typeIn)
+    if (cmd->Obj().Type() == typeIn && !cmd->Obj().Hidden())
       for (Cmd::key_iterator key = cmd->keysBegin(); key != cmd->keysEnd(); ++key)
         command_keys.push_back( *key );
   }
@@ -549,7 +550,7 @@ void Command::ListCommandsForType(DispatchObject::Otype typeIn) {
   */
 void Command::ListCommands(DispatchObject::Otype typeIn) {
   if (typeIn == DispatchObject::NONE) {
-    for (int idx = 1; idx != DispatchObject::HIDDEN; idx++)
+    for (int idx = 1; idx != DispatchObject::DEPRECATED; idx++)
       ListCommandsForType( (DispatchObject::Otype)idx );
   } else
     ListCommandsForType( typeIn );
@@ -592,23 +593,41 @@ int Command::ExecuteControlBlock(int block, CpptrajState& State)
     mprintf("DEBUG: Start: CurrentVars:");
     State.DSL().ListStringVar();
   }
+  int blockErrors = 0;
   while (ret == ControlBlock::NOT_DONE) {
     for (ControlBlock::const_iterator it = control_[block]->begin();
                                       it != control_[block]->end(); ++it)
     {
       if (it->CommandIs(NEW_BLOCK)) {
         // Execute next control block
-        if (ExecuteControlBlock(block+1, State)) return 1;
+        int cbret = ExecuteControlBlock(block+1, State);
+        if (cbret != 0) {
+          if (State.ExitOnError())
+            return 1;
+          else
+            blockErrors += (1 + cbret);
+        }
       } else {
         for (int i = 0; i < block; i++) mprintf("  ");
         // Execute command
-        if ( ExecuteCommand(State, *it) != CpptrajState::OK ) return 1;
+        CpptrajState::RetType cmret = ExecuteCommand(State, *it);
+        if (cmret != CpptrajState::OK) {
+          if (State.ExitOnError())
+            return 1;
+          else
+            blockErrors++;
+        }
       }
     }
     ret = control_[block]->CheckDone(State.DSL());
   }
-  if (ret == ControlBlock::ERROR) return 1;
-  return 0;
+  if (ret == ControlBlock::ERROR) {
+    if (State.ExitOnError())
+      return 1;
+    else
+      blockErrors++;
+  }
+  return blockErrors;
 }
 
 // ----- END Control block functions -------------------------------------------
@@ -640,6 +659,8 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
         mprintf("CONTROL: Executing %zu control block(s).\n", control_.size());
         if (State.QuietBlocks()) SetWorldSilent(true);
         int cbret = ExecuteControlBlock(0, State);
+        if (cbret > 1)
+          mprinterr("Error: %i errors encountered in control block.\n", cbret);
         ClearControlBlocks();
         if (State.QuietBlocks()) SetWorldSilent(false);
         if (cbret != 0) return CpptrajState::ERR;
@@ -833,6 +854,7 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
 #     endif
       if (cmode == CpptrajState::ERR) {
         nInputErrors++;
+        //mprintf("DEBUG: Error encountered and ExitOnError is %i\n", (int)State.ExitOnError());
         if (State.ExitOnError()) break;
       } else if (cmode == CpptrajState::QUIT)
         break;

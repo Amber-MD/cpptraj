@@ -4,7 +4,7 @@
 /// Add an analysis command to the analysis queue. For backwards compat.
 class Exec_Analyze : public Exec {
   public:
-    Exec_Analyze() : Exec(HIDDEN) {}
+    Exec_Analyze() : Exec(GENERAL) { SetHidden(true); }
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Analyze(); }
     RetType Execute(CpptrajState&, ArgList&);

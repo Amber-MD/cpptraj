@@ -56,15 +56,15 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
 Action::RetType Action_Strip::Setup(ActionSetup& setup) {
   if (setup.Top().SetupIntegerMask( M1_ )) return Action::ERR;
   if (M1_.None()) {
-    mprintf("Warning: strip: Mask [%s] has no atoms.\n",M1_.MaskString());
+    // If no atoms will be kept, no need for this command. SKIP.
+    mprintf("Warning: Mask [%s] would strip all atoms. Skipping.\n", M1_.MaskString());
     return Action::SKIP;
   }
   int numStripped = setup.Top().Natom() - M1_.Nselected();
   mprintf("\tStripping %i atoms.\n", numStripped);
-  // If no atoms will be stripped, no need to use this command. SKIP
+  // SANITY CHECK: If no atoms will be stripped, no need to use this command. SKIP
   if ( numStripped == 0 ) {
-    mprintf("Warning: No atoms to strip. Skipping 'strip' for topology '%s'\n",
-            setup.Top().c_str());
+    mprintf("Warning: No atoms to strip. Skipping.\n");
     return Action::SKIP;
   }
 

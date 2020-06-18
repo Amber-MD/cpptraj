@@ -681,6 +681,7 @@ SetupFinalFlags() {
   if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
   if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
   if [ "$C11_SUPPORT" = 'yes'    ] ; then
+    DIRECTIVES="$DIRECTIVES -DC11_SUPPORT"
     if [ "${LIB_STAT[$LFFTW3]}" != 'off' ] ; then
       DIRECTIVES="$DIRECTIVES -DLIBPME -DHAVE_FFTWD=1"
     fi

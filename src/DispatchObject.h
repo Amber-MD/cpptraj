@@ -8,14 +8,13 @@
 class ArgList;
 class DispatchObject {
   public:
-    /// Object categories. HIDDEN and DEPRECATED should always be last.
-    enum Otype { NONE=0, GENERAL,  SYSTEM, COORDS, TRAJ, PARM, ACTION, ANALYSIS,
-                 CONTROL,
-                 HIDDEN, DEPRECATED };
+    /// Object categories. DEPRECATED should always be last.
+    enum Otype { NONE=0, GENERAL,  SYSTEM,  COORDS, TRAJ, PARM,
+                 ACTION, ANALYSIS, CONTROL, DEPRECATED };
     /// CONSTRUCTOR
-    DispatchObject() : type_(NONE) {}
+    DispatchObject() : type_(NONE), hidden_(false) {}
     /// CONSTRUCTOR - take object type
-    DispatchObject(Otype o) : type_(o) {} 
+    DispatchObject(Otype o) : type_(o), hidden_(false) {} 
     /// DESTRUCTOR - virtual since this will be inherited
     virtual ~DispatchObject() {}
     /// Print help for this object to screen.
@@ -26,7 +25,12 @@ class DispatchObject {
     virtual DispatchObject* Alloc() const = 0;
     /// \return Object category
     Otype Type() const { return type_; }
+    /// \return True if object should be hidden.
+    bool Hidden() const { return hidden_; }
+    /// Set object hidden status.
+    void SetHidden(bool h) { hidden_ = h; }
   private:
-    Otype type_; ///< The object type.
+    Otype type_;  ///< The object type.
+    bool hidden_; ///< True if object should be hidden, i.e. should not show up in 'help'.
 };
 #endif

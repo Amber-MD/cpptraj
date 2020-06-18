@@ -4,12 +4,14 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Action_DNAionTracker::Action_DNAionTracker() : Action(HIDDEN), 
+Action_DNAionTracker::Action_DNAionTracker() :
   distance_(0),
   bintype_(COUNT),
   poffset_(0),
   useMass_(true)
-{ }
+{
+  SetHidden(true);
+}
 
 void Action_DNAionTracker::Help() const {
   mprintf("\tname mask_p1 mask_p2 mask_base mask_ions\n"

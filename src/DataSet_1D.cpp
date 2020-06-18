@@ -253,7 +253,7 @@ double DataSet_1D::CorrCoeff( DataSet_1D const& D2 ) const {
   * fit.c:linear_regression().
   */
 int DataSet_1D::LinearRegression( double& slope, double& intercept,
-                                  double& correl, CpptrajFile* outfile ) const
+                                  double& correl, double& Fval, CpptrajFile* outfile ) const
 {
   if (Size() < 2) {
     mprinterr("Error: '%s' has less than 2 values, cannot calculate regression.\n",
@@ -311,7 +311,7 @@ int DataSet_1D::LinearRegression( double& slope, double& intercept,
   double stdErrIntercept = sqrt( residualMeanSq * (1.0 / mesh_size + xavg * xavg / sxx) );
   double stdErrSlope = sqrt( residualMeanSq / sxx );
   double sumSqRegression = syy - residualSumSq;
-  double Fval = sumSqRegression / residualMeanSq;
+         Fval = sumSqRegression / residualMeanSq;
   //double R2 = sumSqRegression / syy;
   if (outfile != 0) {
     outfile->Printf("\tStandard error of slope= %g\n"

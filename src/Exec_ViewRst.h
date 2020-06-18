@@ -5,7 +5,7 @@
 /// View Amber restraints
 class Exec_ViewRst : public Exec {
   public:
-    Exec_ViewRst() : Exec(HIDDEN) {}
+    Exec_ViewRst() : Exec(GENERAL) { SetHidden(true); }
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ViewRst(); }
     RetType Execute(CpptrajState&, ArgList&);
