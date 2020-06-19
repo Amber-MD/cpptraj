@@ -8,12 +8,14 @@
 #include "DataSet_Mesh.h"
 #include "StringRoutines.h"
 
+// Exec_DataSetCmd::Help()
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
-          "\t dim|outformat|invert|mode|type} <options>\n");
+          "\t dim|outformat|invert|shift|mode|type} <options>\n");
   mprintf("  Type 'help dataset <cmd>' for detailed subcommand help.\n");
 }
 
+// Exec_DataSetCmd::Help()
 void Exec_DataSetCmd::Help(ArgList& argIn) const {
   if (argIn.hasKey("legend")) {
     mprintf("  legend <legend> <set>\n"
@@ -51,6 +53,8 @@ void Exec_DataSetCmd::Help(ArgList& argIn) const {
             "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
   } else if (argIn.hasKey("invert")) {
     Help_InvertSets();
+  } else if (argIn.hasKey("shift")) {
+    Help_Shift();
   } else if (argIn.hasKey("mode")) {
     mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
     mprintf("      <mode>: ");
@@ -70,6 +74,7 @@ void Exec_DataSetCmd::Help(ArgList& argIn) const {
 
 // Exec_DataSetCmd::Execute()
 Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
+  modifiedSets_.clear();
   RetType err = CpptrajState::OK;
   if (argIn.Contains("legend")) {         // Set legend for one data set
     std::string legend = argIn.GetStringKey("legend");
@@ -78,41 +83,49 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
     mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
   // ---------------------------------------------
-  } else if (argIn.hasKey("outformat")) { // Change double precision set output format
+  } else if (argIn.hasKey("outformat")) {   // Change double precision set output format
     err = ChangeOutputFormat(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("remove")) {    // Remove data sets by various criteria
+  } else if (argIn.hasKey("remove")) {      // Remove data sets by various criteria
     err = Remove(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("makexy")) {    // Combine values from two sets into 1
+  } else if (argIn.hasKey("makexy")) {      // Combine values from two sets into 1
     err = MakeXY(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("make2d")) {    // Create 2D matrix from 1D set
+  } else if (argIn.hasKey("make2d")) {      // Create 2D matrix from 1D set
     err = Make2D(State, argIn);
   // ---------------------------------------------
   } else if (argIn.hasKey("vectorcoord")) { // Extract vector X/Y/Z coord as new set
     err = VectorCoord(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("filter")) {    // Filter points in data set to make new data set
+  } else if (argIn.hasKey("filter")) {      // Filter points in data set to make new data set
     err = Filter(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("cat")) {       // Concatenate two or more data sets
+  } else if (argIn.hasKey("cat")) {         // Concatenate two or more data sets
     err = Concatenate(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("droppoints")) { // Drop points from set
+  } else if (argIn.hasKey("droppoints")) {  // Drop points from set
     err = ModifyPoints(State, argIn, true);
   // ---------------------------------------------
-  } else if (argIn.hasKey("keeppoints")) { // Keep points in set
+  } else if (argIn.hasKey("keeppoints")) {  // Keep points in set
     err = ModifyPoints(State, argIn, false);
   // ---------------------------------------------
-  } else if (argIn.hasKey("dim")) {        // Modify dimension of set(s)
+  } else if (argIn.hasKey("dim")) {         // Modify dimension of set(s)
     err = ChangeDim(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("invert")) {     // Invert set(s) X/Y, create new sets
+  } else if (argIn.hasKey("invert")) {      // Invert set(s) X/Y, create new sets
     err = InvertSets(State, argIn);
   // ---------------------------------------------
-  } else {                                // Default: change mode/type for one or more sets.
+  } else if (argIn.hasKey("shift")) {       // Shift data in set(s) that match criteria by offset
+    err = ShiftData(State, argIn);
+  // ---------------------------------------------
+  } else {                                  // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
+  }
+  // If any sets were modified, write out data again.
+  if (err == CpptrajState::OK && !modifiedSets_.empty()) {
+    State.DFL().ResetWriteStatIfContain( modifiedSets_ );
+    State.DFL().WriteAllDF();
   }
   return err;
 }
@@ -285,7 +298,7 @@ Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) 
   while (!dsl1.empty()) {
     for (DataSetList::const_iterator it = dsl1.begin(); it != dsl1.end(); ++it)
     {
-      if ( (*it)->Type() != DataSet::VECTOR) {
+      if ( (*it)->Group() != DataSet::VECTOR_1D) {
         mprintf("Warning: '%s' 'vectorcoord' only works with vector data sets.\n", (*it)->legend());
       } else if ( (*it)->Size() < 1) {
         mprintf("Warning: '%s' is empty.\n", (*it)->legend());
@@ -820,7 +833,7 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
           mprintf("Warning: '%s': Expected scalar 1D data set type for mode '%s'\n",
                   (*ds)->legend(), MetaData::ModeString(dmode));
         else if ( dmode == MetaData::M_VECTOR &&
-                  (*ds)->Type() != DataSet::VECTOR )
+                  (*ds)->Group() != DataSet::VECTOR_1D )
           mprintf("Warning: '%s': Expected vector data set type for mode '%s'\n",
                   (*ds)->legend(), MetaData::ModeString(dmode));
         else if ( dmode == MetaData::M_MATRIX &&
@@ -840,6 +853,7 @@ Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList
   return CpptrajState::OK;
 }
 
+// Exec_DataSetCmd::Help_InvertSets()
 void Exec_DataSetCmd::Help_InvertSets() {
   mprintf("  invert <set arg0> ... name <new name> [legendset <set>]\n"
           "    Given M input sets of length N, create N new sets of length M by\n"
@@ -938,6 +952,97 @@ Exec::RetType Exec_DataSetCmd::InvertSets(CpptrajState& State, ArgList& argIn) {
       output_sets[idx]->Add( jdx, &dval );
     }
   }
+
+  return CpptrajState::OK;
+}
+
+// Exec_DataSetCmd::Help_Shift()
+void Exec_DataSetCmd::Help_Shift() {
+  mprintf("  shift [above <value> by <offset>] [below <value> by <offset>] <set arg0> ...\n"
+          "    Shift the values in given set(s) by an offset if the points meet\n"
+          "    certain criteria.\n");
+}
+
+/** Apply an offset to data elements when a certain criterion is met. */
+Exec::RetType Exec_DataSetCmd::ShiftData(CpptrajState& State, ArgList& argIn) {
+  std::vector<SelectType> criteria;
+  std::vector<double> vals;
+  std::vector<double> offsets;
+  if (argIn.Contains("below")) {
+    criteria.push_back(LESS_THAN);
+    vals.push_back( argIn.getKeyDouble("below", 0) );
+    if (!argIn.Contains("by")) {
+      mprinterr("Error: 'by <offset>' argument missing for 'below'\n");
+      return CpptrajState::ERR;
+    }
+    offsets.push_back( argIn.getKeyDouble("by", 0) );
+  }
+  if (argIn.Contains("above")) {
+    criteria.push_back(GREATER_THAN);
+    vals.push_back( argIn.getKeyDouble("above", 0) );
+    if (!argIn.Contains("by")) {
+      mprinterr("Error: 'by <offset>' argument missing for 'above'\n");
+      return CpptrajState::ERR;
+    }
+    offsets.push_back( argIn.getKeyDouble("by", 0) );
+  }
+  if (criteria.empty()) {
+    mprinterr("Error: shift requires 'below <value> by <offset>' or 'above <value> by <offset>\n");
+    return CpptrajState::ERR;
+  }
+  // Sanity checks
+  if (criteria.size() != vals.size()) {
+    mprinterr("Error: Missing values for above/below; have %zu, expected %zu.\n",
+              vals.size(), criteria.size());
+    return CpptrajState::ERR;
+  }
+  if (criteria.size() != offsets.size()) {
+    mprinterr("Error: Missing offsets for above/below; have %zu, expected %zu.\n",
+              offsets.size(), criteria.size());
+    return CpptrajState::ERR;
+  }
+  for (unsigned int ii = 0; ii < criteria.size(); ii++)
+  {
+    if (criteria[ii] == LESS_THAN)
+      mprintf("\tValues below %g will be shifted by %g\n", vals[ii], offsets[ii]);
+    else if (criteria[ii] == GREATER_THAN)
+      mprintf("\tValues above %g will be shifted by %g\n", vals[ii], offsets[ii]);
+  }
+  // Loop over all DataSet arguments 
+  std::string ds_arg = argIn.GetStringNext();
+  if (ds_arg.empty()) {
+    mprinterr("Error: No sets specfied.\n");
+    return CpptrajState::ERR;
+  }
+  while (!ds_arg.empty()) {
+    DataSetList dsl = State.DSL().GetMultipleSets( ds_arg );
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+    {
+      if ((*ds)->Group() != DataSet::SCALAR_1D) {
+        mprintf("Warning: Set '%s' is not scalar 1D, skipping.\n", (*ds)->legend());
+      } else {
+        DataSet_1D& set = static_cast<DataSet_1D&>( *(*ds) );
+        mprintf("\tModifying set: %s\n", set.legend());
+        // Check value against all criteria, modify by offset if necessary
+        for (unsigned int idx = 0; idx < set.Size(); idx++)
+        {
+          double dval = set.Dval(idx);
+          //mprintf("DBG: %u %g", idx, dval);
+          for (unsigned int ii = 0; ii < criteria.size(); ii++)
+          {
+            if (criteria[ii] == LESS_THAN && dval < vals[ii])
+              dval += offsets[ii];
+            else if (criteria[ii] == GREATER_THAN && dval > vals[ii])
+              dval += offsets[ii];
+          }
+          //mprintf(" %g\n", dval);
+          set.SetY( idx, dval );
+        } // END loop over set values
+        modifiedSets_.push_back( *ds );
+      }
+    } // END loop over sets
+    ds_arg = argIn.GetStringNext();
+  } // END loop over data set args
 
   return CpptrajState::OK;
 }

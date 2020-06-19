@@ -196,6 +196,16 @@ Atom &Atom::operator=(Atom other) {
   return *this;
 }
 
+/** Remove the specified bond to index if it exists. */
+void Atom::RemoveBondToIdx(int idx) {
+  std::vector<int> newBonds_;
+  for (std::vector<int>::const_iterator it = bonds_.begin(); it != bonds_.end(); ++it)
+  {
+    if (*it != idx) newBonds_.push_back( *it );
+  }
+  bonds_ = newBonds_;
+}
+
 // Atom::SortBonds()
 void Atom::SortBonds() {
   sort( bonds_.begin(), bonds_.end() );

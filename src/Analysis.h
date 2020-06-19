@@ -11,8 +11,6 @@ class Analysis : public DispatchObject {
   public:
     /// Constructor
     Analysis() : DispatchObject(ANALYSIS) {}
-    /// Constructor - override ANALYSIS (e.g. HIDDEN)
-    Analysis(DispatchObject::Otype o) : DispatchObject(o) {}
     /// Enumerate potential return stats from Setup and Analyze.
     enum RetType { OK = 0, ERR };
     /// Destructor - virtual since this class is inherited

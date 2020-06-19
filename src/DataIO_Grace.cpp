@@ -84,8 +84,9 @@ int DataIO_Grace::ReadData(FileName const& fname,
 }
 // -----------------------------------------------------------------------------
 void DataIO_Grace::WriteHelp() {
-  mprintf("\tinvert: Flip X/Y axes.\n");
-  mprintf("\txydy  : Make consecutive sets into XYDY sets.\n");
+  mprintf("\tinvert      : Flip X/Y axes.\n"
+          "\txydy        : Make consecutive sets into XYDY sets.\n"
+          "\t<label set> : If a string dataset is specified, assume it has data point labels.\n");
 }
 
 // DataIO_Grace::processWriteArgs()
@@ -116,6 +117,26 @@ int DataIO_Grace::WriteData(FileName const& fname, DataSetList const& SetList)
   return err;
 }
 
+/** Determine if we have a single STRING DataSet. Assume these contain labels. */
+DataSet_string* DataIO_Grace::findLabelSet(DataSetList const& Sets) {
+  DataSet_string* labelSet = 0;
+  for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set)
+  {
+    if (labelSet == 0) {
+      if ( (*set)->Type() == DataSet::STRING )
+        labelSet = (DataSet_string*)(*set);
+    } else {
+      if ( (*set)->Type() == DataSet::STRING ) {
+        labelSet = 0;
+        break;
+      }
+    }
+  }
+  if (labelSet != 0)
+    mprintf("\tUsing string set '%s' for data point labels\n", labelSet->legend());
+  return labelSet;
+}
+
 // DataIO_Grace::WriteDataNormal()
 int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   // Hold all 1D data sets.
@@ -132,21 +153,7 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
               "@  legend 0.2, 0.995\n@  legend char size 0.60\n",
               Sets[0]->Dim(0).Label().c_str(), "");
   // Determine if we have a single STRING DataSet. Assume these contain labels.
-  DataSet_string* labelSet = 0;
-  for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set)
-  {
-    if (labelSet == 0) {
-      if ( (*set)->Type() == DataSet::STRING )
-        labelSet = (DataSet_string*)(*set);
-    } else {
-      if ( (*set)->Type() == DataSet::STRING ) {
-        labelSet = 0;
-        break;
-      }
-    }
-  }
-  if (labelSet != 0)
-    mprintf("\tUsing string set '%s' for data point labels\n", labelSet->legend());
+  DataSet_string* labelSet = findLabelSet( Sets );
   // Loop over DataSets
   unsigned int setnum = 0;
   DataSet::SizeArray frame(1);
@@ -192,6 +199,8 @@ int DataIO_Grace::WriteDataXYDY(CpptrajFile& file, DataSetList const& Sets) {
   file.Printf("@with g0\n@  xaxis label \"%s\"\n@  yaxis label \"%s\"\n"
               "@  legend 0.2, 0.995\n@  legend char size 0.60\n",
               Sets[0]->Dim(0).Label().c_str(), "");
+  // Determine if we have a single STRING DataSet. Assume these contain labels.
+  DataSet_string* labelSet = findLabelSet( Sets );
   // Loop over DataSets
   unsigned int setnum = 0;
   DataSet::SizeArray frame(1);
@@ -216,6 +225,8 @@ int DataIO_Grace::WriteDataXYDY(CpptrajFile& file, DataSetList const& Sets) {
       file.Printf(xfmt.fmt(), ds1->Coord(0, frame[0]));
       ds1->WriteBuffer(file, frame);
       ds2->WriteBuffer(file, frame);
+      if (labelSet != 0)
+        file.Printf(" \"%s\"", (*labelSet)[frame[0]].c_str());
       file.Printf("\n");
     }
   }

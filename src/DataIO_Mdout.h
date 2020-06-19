@@ -1,10 +1,11 @@
 #ifndef INC_DATAIO_MDOUT_H
 #define INC_DATAIO_MDOUT_H
 #include "DataIO.h"
+#include <map>
 /// Read energies from Amber MDOUT files.
 class DataIO_Mdout : public DataIO {
   public:
-    DataIO_Mdout() {}
+    DataIO_Mdout();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Mdout(); }
     static void ReadHelp();
     int processReadArgs(ArgList&) { return 0; }
@@ -13,14 +14,22 @@ class DataIO_Mdout : public DataIO {
     int WriteData(FileName const&, DataSetList const&)   { return 1; }
     bool ID_DataFormat(CpptrajFile&);
   private:
-    typedef std::vector<std::string> Sarray;
     typedef std::vector<double> Darray;
-    enum FieldType { Etot= 0, EPtot, GMAX, BOND,
+    typedef std::map<std::string, unsigned int> NameIdxMap;
+    typedef std::pair<std::string, unsigned int> NameIdxPair;
+
+    enum FieldType { ETOT= 0, EPTOT, GMAX, BOND,
                      ANGLE, DIHED, VDWAALS, EEL, EGB, EPB, ECAVITY, EDISPER,
-                     VDW14, EEL14, RESTRAINT, EAMBER, Density,
-                     RMS, EKtot, ESURF, EAMD_BOOST, VOLUME, TEMP,
+                     VDW14, EEL14, RESTRAINT, EAMBER, DENSITY,
+                     RMS, EKTOT, ESURF, EAMD_BOOST, VOLUME, TEMP,
                      PRESS, DVDL, N_FIELDTYPES };
-    static FieldType getEindex(Sarray const&);
-    static const char* Enames[];
+
+    FieldType getTermIdx(std::string const&) const;
+    int GetAmberEterms(const char*, Darray&, std::vector<bool>&);
+
+    static const char* Enames_[];
+    /// Map field names to indices into energy sets.
+    NameIdxMap termIdxMap_;
+
 };
 #endif

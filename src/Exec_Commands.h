@@ -44,7 +44,7 @@ class Exec_QuietBlocks : public Exec {
 /// Tell CpptrajState to run parallel ensemble even with 1 thread/member
 class Exec_ForceParaEnsemble : public Exec {
   public:
-    Exec_ForceParaEnsemble() : Exec(HIDDEN) {}
+    Exec_ForceParaEnsemble() : Exec(GENERAL) { SetHidden(true); }
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ForceParaEnsemble(); }
     RetType Execute(CpptrajState&, ArgList&);

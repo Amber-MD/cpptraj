@@ -25,10 +25,13 @@ class DataSet_float : public DataSet_1D {
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
     size_t MemUsageInBytes() const { return Data_.size() * sizeof(float); }
+    int MemAlloc(SizeArray const&);
+    void CopyBlock(size_t, const DataSet*, size_t, size_t);
     // ----- DataSet_1D functions ----------------
-    double Dval(size_t idx)        const { return (double)Data_[idx]; }
-    double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }
+    double Dval(size_t idx)         const { return (double)Data_[idx]; }
+    double Xcrd(size_t idx)         const { return Dim(0).Coord(idx);  }
     const void* VoidPtr(size_t idx) const { return (void*)(&(Data_[0])+idx); }
+    void SetY(size_t idx, double y)       { Data_[idx] = (float)y; }
     // -------------------------------------------
     float* Ptr()                         { return &(Data_[0]);        }
   private:

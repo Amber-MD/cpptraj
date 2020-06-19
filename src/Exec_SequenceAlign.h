@@ -4,7 +4,7 @@
 // EXPERIMENTAL ALPHA CODE
 class Exec_SequenceAlign : public Exec {
   public:
-    Exec_SequenceAlign() : Exec(HIDDEN) {}
+    Exec_SequenceAlign() : Exec(GENERAL) { SetHidden(true); }
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_SequenceAlign(); }
     RetType Execute(CpptrajState&, ArgList&);

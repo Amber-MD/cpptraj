@@ -11,6 +11,7 @@
 #include "TextFormat.h"
 #include "DataSet_integer.h"
 #include "DataSet_double.h" // For reading TODO remove dependency?
+#include "DataSet_float.h" // For reading TODO remove dependency?
 #include "DataSet_string.h" // For reading TODO remove dependency?
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
@@ -48,8 +49,11 @@ static void PrintColumnError(int idx) {
 
 void DataIO_Std::ReadHelp() {
   mprintf("\tread1d:      Read data as 1D data sets (default).\n"
-          "\t\tindex <col>      : (1D) Use column # (starting from 1) as index (X) column.\n"
-          "\t\tonlycols <range> : Only read columns in range.\n"
+          "\t\tindex <col>        : (1D) Use column # (starting from 1) as index (X) column.\n"
+          "\t\tonlycols <range>   : Only read columns in range.\n"
+          "\t\tfloatcols <range>  : Force specified columns to be read as single-precision floats.\n"
+          "\t\tintcols <range>    : Force specified columns to be read as integers.\n"
+          "\t\tstringcols <range> : Force specified columns to be read as strings.\n"
           "\tread2d:      Read data as 2D square matrix.\n"
           "\tread3d:      Read data as 3D grid. If no dimension data in file must also\n"
           "\t             specify 'dims'; can also specify 'origin' and 'delta'.\n"
@@ -102,6 +106,34 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   if (!ocarg.empty()) {
     onlycols_.SetRange( ocarg );
     onlycols_.ShiftBy( -1 );
+  }
+  // Force columns to be a certain type.
+  std::string targstr = argIn.GetStringKey("intcols");
+  if (!targstr.empty()) {
+    if (intCols_.SetRange( targstr )) {
+      mprinterr("Error: Invalid range given for 'intcols'\n");
+      return 1;
+    }
+    // Column user args start from 1
+    intCols_.ShiftBy(-1);
+  }
+  targstr = argIn.GetStringKey("floatcols");
+  if (!targstr.empty()) {
+    if (fltCols_.SetRange( targstr )) {
+      mprinterr("Error: Invalid range given for 'floatcols'\n");
+      return 1;
+    }
+    // Column user args start from 1
+    fltCols_.ShiftBy(-1);
+  }
+  targstr = argIn.GetStringKey("stringcols");
+  if (!targstr.empty()) {
+    if (strCols_.SetRange( targstr )) {
+      mprinterr("Error: Invalid range given for 'stringcols'\n");
+      return 1;
+    }
+    // Column user args start from 1
+    strCols_.ShiftBy(-1);
   }
   // Options for 3d
   if (mode_ == READ3D) {
@@ -255,15 +287,28 @@ int DataIO_Std::Read_1D(std::string const& fname,
       md.SetIdx( col+1 );
       if (hasLabels) md.SetLegend( labels[col] );
       if ( col == indexcol_ ) {
+        mprintf("\tUsing column %i as the index column.\n", col+1);
         // Always save the index column as floating point
         inputSets.push_back( new DataSet_double() );
-      } else if (validInteger(token)) {
+      } else if (fltCols_.InRange(col)) {
+        mprintf("\tReading column %i values as single-precision floats.\n", col+1);
+        // Float number, single precision
+        inputSets.push_back( datasetlist.Allocate(DataSet::FLOAT) );
+      } else if (intCols_.InRange(col)) {
+        mprintf("\tReading column %i values as integers.\n", col+1);
         // Integer number
         inputSets.push_back( datasetlist.Allocate(DataSet::INTEGER) );
+      } else if (strCols_.InRange(col)) {
+        mprintf("\tReading column %i values as strings.\n", col+1);
+        // String
+        inputSets.push_back( datasetlist.Allocate(DataSet::STRING) );
       } else if (validDouble(token)) {
-        // Floating point number
+        mprintf("\tReading column %i values as double-precision floats.\n", col+1);
+        //mprintf("DEBUG: token='%s'\n", token.c_str());
+        // Floating point number, double precision (default)
         inputSets.push_back( new DataSet_double() );
       } else {
+        mprintf("\tReading column %i values as strings.\n", col+1);
         // Assume string. Not allowed for index column.
         if (col == indexcol_) {
           mprintf("Warning: '%s' index column %i has string values. No indices will be read.\n", 
@@ -293,6 +338,8 @@ int DataIO_Std::Read_1D(std::string const& fname,
       if (inputSets[i] != 0) {
         if (inputSets[i]->Type() == DataSet::DOUBLE)
           ((DataSet_double*)inputSets[i])->AddElement( atof(token) );
+        else if (inputSets[i]->Type() == DataSet::FLOAT)
+          ((DataSet_float*)inputSets[i])->AddElement( atof(token) );
         else if (inputSets[i]->Type() == DataSet::INTEGER)
           ((DataSet_integer*)inputSets[i])->AddElement( atoi(token) );
         else
@@ -640,6 +687,16 @@ int DataIO_Std::Read_3D(std::string const& fname,
 int DataIO_Std::Read_Vector(std::string const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
+  // See if set exists
+  DataSet* ds = datasetlist.CheckForSet( dsname );
+  if (ds != 0) {
+    mprintf("\tAppending vector data to set '%s'\n", ds->legend());
+    // Set exists.
+    if (ds->Group() != DataSet::VECTOR_1D) {
+      mprinterr("Error: Cannot append vector data to non-vector set '%s'\n", ds->legend());
+      return 1;
+    }
+  }
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
@@ -667,21 +724,53 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
     return 1;
   }
+  bool hasOrigins;
   if (ncols >= 6) {
     nv = 6;
     mprintf("\tReading vector X Y Z and origin X Y Z values.\n");
+    hasOrigins = true;
+    // If set already exists, see if it doesnt have origins.
+    if (ds != 0 && !((DataSet_Vector*)ds)->HasOrigins()) {
+      mprintf("Warning: Existing set '%s' does not have origin data.\n", ds->legend());
+      mprintf("Warning: Existing set will be filled with zeroed origin data where none exists.\n");
+      DataSet* oldSet = datasetlist.PopSet( ds );
+      DataSet_Vector* voxyz =
+        (DataSet_Vector*)datasetlist.AddSet(DataSet::VECTOR, oldSet->Meta());
+      if (voxyz == 0) return 1;
+      // Make sure dimension info matches
+      voxyz->SetDim(Dimension::X, oldSet->Dim(Dimension::X));
+      // Add existing vector values to set with origin at 0.0.
+      for (unsigned int idx = 0; idx < oldSet->Size(); idx++)
+        voxyz->AddVxyzo( ((DataSet_Vector*)oldSet)->VXYZ(idx), Vec3(0.0) );
+      ds = (DataSet*)voxyz;
+      // Free old set memory
+      delete oldSet;
+    }
   } else {
     nv = 3;
     mprintf("\tReading vector X Y Z values.\n");
+    hasOrigins = false;
+    // If set already exists, see if it has origins.
+    if (ds != 0 && ((DataSet_Vector*)ds)->HasOrigins()) {
+      mprintf("Warning: Existing set '%s' has origin data.\n", ds->legend());
+      mprintf("Warning: Existing set will be filled with zeroed origin data where none exists.\n");
+      hasOrigins = true;
+    }
   }
-  // Create set
-  DataSet_Vector* ds = new DataSet_Vector();
-  if (ds == 0) return 1;
-  ds->SetMeta( dsname );
+  // Create set if it doesnt yet exist;
+  if (ds == 0) {
+    DataSet::DataType dtype = DataSet::VECTOR;
+    //if (hasOrigins)
+    //  dtype = DataSet::VEC_OXYZ;
+    //else
+    //  dtype = DataSet::VEC_XYZ;
+    ds = datasetlist.AddSet(dtype, dsname);
+    if (ds == 0) return 1;
+  }
   // Read vector data
   double vec[6];
   std::fill(vec, vec+6, 0.0);
-  size_t ndata = 0;
+  size_t ndata = ds->Size();
   while (linebuffer != 0) {
     if (hasIndex)
       ntokens = sscanf(linebuffer, "%*f %lf %lf %lf %lf %lf %lf",
@@ -694,10 +783,13 @@ int DataIO_Std::Read_Vector(std::string const& fname,
                 buffer.LineNumber(), nv, ntokens);
       break;
     }
-    ds->Add( ndata++, vec ); 
+    if (hasOrigins)
+      ds->Add( ndata++, vec );
+    else
+      ((DataSet_Vector*)ds)->AddVxyz( Vec3(vec) ); // TODO: Remove if DataSet_Vector is split to with/without origins
     linebuffer = buffer.Line();
   }
-  return (datasetlist.AddOrAppendSets("", DataSetList::Darray(), DataSetList::DataListType(1, ds)));
+  return 0;
 }
 
 // DataIO_Std::Read_Mat3x3()

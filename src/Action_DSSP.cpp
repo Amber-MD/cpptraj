@@ -274,6 +274,7 @@ Action_DSSP::Action_DSSP() :
   BB_C_("C"),
   BB_O_("O"),
   BB_CA_("CA"),
+  SG_("SG"),
   outfile_(0),
   dsspFile_(0),
   assignout_(0),
@@ -287,9 +288,21 @@ void Action_DSSP::Help() const {
           "\t[assignout <filename>] [totalout <filename>] [ptrajformat]\n"
           "\t[betadetail]\n"
           "\t[namen <N name>] [nameh <H name>] [nameca <CA name>]\n"
-          "\t[namec <C name>] [nameo <O name>]\n"
-          "  Calculate secondary structure content for residues in <mask>.\n"
-          "  If sumout not specified, the filename specified by out is used with .sum suffix.\n");
+          "\t[namec <C name>] [nameo <O name>] [namesg <sulfur name>]\n"
+          "  Calculate secondary structure (SS) content for residues in <mask>.\n"
+          "  The 'out' file will contain SS vs frame.\n"
+          "  The 'sumout' file will contain total SS content for each residue, by SS type.\n"
+          "   If sumout not specified, the filename specified by out is used with .sum suffix.\n"
+          "  The 'assignout' file will contain the SS assignment foe each residue based\n"
+          "   on the majority SS type.\n"
+          "  The 'totalout' file will contain overall SS content vs frame, by SS type.\n"
+          "  The 'ptrajformat' keyword will use characters instead of #s in the 'out' file.\n"
+          "  The 'betadetail' keyword will print parallel/anti-parallel beta instead of\n"
+          "   extended/bridge.\n"
+          "  The backbone N, H, CA, C, and O atom names can be specifed with 'nameX' keywords.\n"
+          "  The disulfide sulfur atom name can be specified with the 'nameSG' keyword.\n"
+         );
+          
 }
 
 // Action_DSSP::Init()
@@ -317,6 +330,8 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (!temp.empty()) BB_O_ = temp;
   temp = actionArgs.GetStringKey("nameca");
   if (!temp.empty()) BB_CA_ = temp;
+  temp = actionArgs.GetStringKey("namesg");
+  if (!temp.empty()) SG_ = temp;
   // Get masks
   if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
@@ -383,6 +398,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tOverall assigned SS will be written to %s\n", assignout_->Filename().full());
   mprintf("\tBackbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]  CA=[%s]\n",
           *BB_N_, *BB_H_, *BB_C_, *BB_O_, *BB_CA_ );
+  mprintf("\tDisulfide sulfur atom name: %s\n", *SG_);
   mprintf("# Citation: Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:\n"
           "#           Pattern Recognition of Hydrogen-Bonded and Geometrical Features.\"\n"
           "#           Biopolymers (1983), V.22, pp.2577-2637.\n" );
@@ -450,23 +466,34 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
       int nextresnum = -1;
       for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++) {
         if ( setup.Top()[at].Element() != Atom::HYDROGEN ) {
+          bool isSGatom = (setup.Top()[at].Name() == SG_);
           for (Atom::bond_iterator ib = setup.Top()[at].bondbegin();
                                    ib != setup.Top()[at].bondend(); ++ib)
           {
-            if ( setup.Top()[*ib].ResNum() < *ridx ) {
-              if (prevresnum != -1)
-                mprintf("Warning: Multiple previous residues for res %i\n", *ridx+1);
-              else
-                prevresnum = setup.Top()[*ib].ResNum();
-            } else if ( setup.Top()[*ib].ResNum() > *ridx ) {
-              if (nextresnum != -1)
-                mprintf("Warning: Multiple next residues for res %i\n", *ridx+1);
-              else
-                nextresnum = setup.Top()[*ib].ResNum();
-            }
-          }
-        }
-      }
+            // Skip the bonded atom if it is not in the mask
+            if (Mask_.AtomInCharMask(*ib)) {
+              // Do not follow disulfide bonds.
+              if (isSGatom && setup.Top()[*ib].Name() == SG_) {
+                mprintf("\tSkipping disulfide bond between %s and %s\n",
+                        setup.Top().TruncResNameNum(setup.Top()[at].ResNum()).c_str(),
+                        setup.Top().TruncResNameNum(setup.Top()[*ib].ResNum()).c_str());
+                continue;
+              }
+              if ( setup.Top()[*ib].ResNum() < *ridx ) {
+                if (prevresnum != -1)
+                  mprintf("Warning: Multiple previous residues for res %i\n", *ridx+1);
+                else
+                  prevresnum = setup.Top()[*ib].ResNum();
+              } else if ( setup.Top()[*ib].ResNum() > *ridx ) {
+                if (nextresnum != -1)
+                  mprintf("Warning: Multiple next residues for res %i\n", *ridx+1);
+                else
+                  nextresnum = setup.Top()[*ib].ResNum();
+              }
+            } // END if atom in mask
+          } // END loop over bonded atoms
+        } // END atom is not hydrogen
+      } // END loop over residue atoms
 #     ifdef DSSPDEBUG
       mprintf("\t %8i < %8i < %8i\n", prevresnum+1, *ridx+1, nextresnum+1);
 #     endif
@@ -476,40 +503,54 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
     }
     // Determine if this residue is selected
     if (Mask_.AtomsInCharMask(thisRes.FirstAtom(), thisRes.LastAtom())) {
-      Res->SetSelected( true );
-      ++nResSelected;
       // Determine atom indices
+      bool hasAtoms = false;
       for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
       {
-        if      ( setup.Top()[at].Name() == BB_C_ )  Res->SetC( at*3 );
-        else if ( setup.Top()[at].Name() == BB_O_ )  Res->SetO( at*3 );
-        else if ( setup.Top()[at].Name() == BB_N_ )  Res->SetN( at*3 );
-        else if ( setup.Top()[at].Name() == BB_H_ )  Res->SetH( at*3 );
-        else if ( setup.Top()[at].Name() == BB_CA_ ) Res->SetCA( at*3 );
+        if      ( setup.Top()[at].Name() == BB_C_ )  { Res->SetC( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_O_ )  { Res->SetO( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_N_ )  { Res->SetN( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_H_ )  { Res->SetH( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_CA_ ) { Res->SetCA( at*3 ); hasAtoms = true; }
       }
-      // Check if residue is missing atoms
-      if (Res->IsMissingAtoms()) {
-        mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( *ridx ).c_str());
-        if (Res->C() == -1)  mprintf(" %s", *BB_C_);
-        if (Res->O() == -1)  mprintf(" %s", *BB_N_);
-        if (Res->N() == -1)  mprintf(" %s", *BB_O_);
-        if (Res->H() == -1)  mprintf(" %s", *BB_H_);
-        if (Res->CA() == -1) mprintf(" %s", *BB_CA_);
-        mprintf("\n");
-      }
-      // Set up DataSet if necessary
-      if (Res->Dset() == 0) {
-        md.SetIdx( *ridx+1 );
-        md.SetLegend( setup.Top().TruncResNameNum( *ridx ) );
-        // Setup DataSet for this residue
-        Res->SetDset( Init_.DSL().AddSet( dt, md ) );
-        if (Res->Dset() == 0) {
-          mprinterr("Error: Could not allocate DSSP data set for residue %i\n", *ridx+1);
-          return Action::ERR;
+      if (!hasAtoms) {
+        mprintf("Warning: No atoms selected for res %s; skipping.\n",
+                setup.Top().TruncResNameNum( *ridx ).c_str());
+      } else {
+        Res->SetSelected( true );
+        ++nResSelected;
+        for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
+        {
+          if      ( setup.Top()[at].Name() == BB_C_ )  Res->SetC( at*3 );
+          else if ( setup.Top()[at].Name() == BB_O_ )  Res->SetO( at*3 );
+          else if ( setup.Top()[at].Name() == BB_N_ )  Res->SetN( at*3 );
+          else if ( setup.Top()[at].Name() == BB_H_ )  Res->SetH( at*3 );
+          else if ( setup.Top()[at].Name() == BB_CA_ ) Res->SetCA( at*3 );
         }
-        if (outfile_ != 0) outfile_->AddDataSet( Res->Dset() );
+        // Check if residue is missing atoms
+        if (Res->IsMissingAtoms()) {
+          mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( *ridx ).c_str());
+          if (Res->C() == -1)  mprintf(" %s", *BB_C_);
+          if (Res->O() == -1)  mprintf(" %s", *BB_N_);
+          if (Res->N() == -1)  mprintf(" %s", *BB_O_);
+          if (Res->H() == -1)  mprintf(" %s", *BB_H_);
+          if (Res->CA() == -1) mprintf(" %s", *BB_CA_);
+          mprintf("\n");
+        }
+        // Set up DataSet if necessary
+        if (Res->Dset() == 0) {
+          md.SetIdx( *ridx+1 );
+          md.SetLegend( setup.Top().TruncResNameNum( *ridx ) );
+          // Setup DataSet for this residue
+          Res->SetDset( Init_.DSL().AddSet( dt, md ) );
+          if (Res->Dset() == 0) {
+            mprinterr("Error: Could not allocate DSSP data set for residue %i\n", *ridx+1);
+            return Action::ERR;
+          }
+          if (outfile_ != 0) outfile_->AddDataSet( Res->Dset() );
+        }
       }
-    } // END residue is selected
+    } // END residue is selected by Mask
   }
   mprintf("\t%u of %i solute residues selected.\n", nResSelected, soluteRes.Size());
 

@@ -1,4 +1,5 @@
 #include <cmath> // regression
+#include <algorithm> // copy
 #include "DataSet_Mesh.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // regression
@@ -26,6 +27,25 @@ int DataSet_Mesh::Allocate( SizeArray const& sizeIn ) {
     mesh_y_.reserve( sizeIn[0] );
   }
   return 0;
+}
+
+/** Allocate space in arrays. */
+int DataSet_Mesh::MemAlloc( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty()) {
+    mesh_x_.resize( sizeIn[0] );
+    mesh_y_.resize( sizeIn[0] );
+  }
+  return 0;
+}
+
+// DataSet_Mesh::CopyBlock()
+void DataSet_Mesh::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_Mesh const& setIn = static_cast<DataSet_Mesh const&>( *dptrIn );
+  const double* ptr = (&(setIn.mesh_x_[0])+pos);
+  std::copy( ptr, ptr + nelts, &(mesh_x_[0]) + startIdx );
+                ptr = (&(setIn.mesh_y_[0])+pos);
+  std::copy( ptr, ptr + nelts, &(mesh_y_[0]) + startIdx );
 }
 
 /** Insert data vIn at frame. */
@@ -173,7 +193,8 @@ int DataSet_Mesh::SingleExpRegression(double& slope, double& intercept,
     }
     mesh_y_[i] = log( mesh_y_[i] );
   }
-  int err = LinearRegression(slope, intercept, correl, out);
+  double Fval;
+  int err = LinearRegression(slope, intercept, correl, Fval, out);
   // Restore original Y values
   mesh_y_ = yorig;
   return err;

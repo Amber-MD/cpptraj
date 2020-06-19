@@ -67,6 +67,7 @@ test.mol2:
 
 test.nastruct:
 	@-cd Test_NAstruct && ./RunTest.sh $(OPT)
+	@-cd Test_NAstruct_8OG && ./RunTest.sh $(OPT)
 
 test.pucker:
 	@-cd Test_Pucker && ./RunTest.sh $(OPT)
@@ -464,6 +465,12 @@ test.slope:
 test.diagmatrix:
 	@-cd Test_Diagmatrix && ./RunTest.sh $(OPT)
 
+test.emin:
+	@-cd Test_Emin && ./RunTest.sh $(OPT)
+
+test.evalplateau:
+	@-cd Test_EvalPlateau && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -612,7 +619,9 @@ COMPLETETESTS=test.general \
               test.splitcoords \
               test.dihedralrms \
               test.slope \
-              test.diagmatrix
+              test.diagmatrix \
+              test.emin \
+              test.evalplateau
 
 test.all:
 	$(MAKE) test.complete summary

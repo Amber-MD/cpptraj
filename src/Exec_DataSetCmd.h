@@ -33,5 +33,9 @@ class Exec_DataSetCmd : public Exec {
     RetType ChangeModeType(CpptrajState const&, ArgList&);
     static void Help_InvertSets();
     RetType InvertSets(CpptrajState&, ArgList&);
+    static void Help_Shift();
+    RetType ShiftData(CpptrajState&, ArgList&);
+
+    std::vector<DataSet*> modifiedSets_;
 };
 #endif

@@ -112,7 +112,7 @@ Action::RetType Action_Image::Setup(ActionSetup& setup) {
   if (setup.CoordInfo().TrajBox().Type()==Box::ORTHO && triclinic_==OFF)
     ortho_ = true;
   // Setup atom pairs to be unwrapped.
-  imageList_ = Image::CreatePairList(setup.Top(), imageMode_, maskExpression_);
+  imageList_ = Image::CreateAtomPairList(setup.Top(), imageMode_, maskExpression_);
   if (imageList_.empty()) {
     mprintf("Warning: No atoms selected for topology '%s'.\n", setup.Top().c_str());
     return Action::SKIP;

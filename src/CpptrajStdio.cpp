@@ -171,3 +171,8 @@ int OutputToFile(const char* fname) {
   }
   return 0;
 }
+
+/** \return STDOUT_ cast to a void pointer. */
+void* CpptrajStdout() {
+  return (void*)STDOUT_;
+}

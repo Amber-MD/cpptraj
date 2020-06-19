@@ -416,6 +416,7 @@ double Action_Energy::Dbg_Direct(Frame const& frameIn, int maxpoints) {
 Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   time_total_.Start();
   double Etot = 0.0, ene, ene2;
+  int err = 0;
   typedef std::vector<CalcType>::const_iterator calc_it;
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
   {
@@ -484,8 +485,9 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
       case C_EWALD:
       case C_PME: // Elec must be enabled, vdw may not be
         time_NB_.Start();
-        ene = EW_->CalcEnergy(frm.Frm(), Imask_, ene2);
+        err = EW_->CalcNonbondEnergy(frm.Frm(), Imask_, ene, ene2);
         time_NB_.Stop();
+        if (err != 0) return Action::ERR;
         Energy_[ELEC]->Add(frameNum, &ene);
         if (Energy_[VDW] != 0) Energy_[VDW]->Add(frameNum, &ene2);
         Etot += (ene + ene2);

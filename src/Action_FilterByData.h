@@ -12,6 +12,8 @@ class Action_FilterByData : public Action {
     size_t DetermineFrames() const;
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType DoAction(int, ActionFrame&);
+    /// \return the DataSet containing 1 for OK, 0 for filtered out.
+    DataSet* FilterSet() const { return maxmin_; }
   private:
     Action::RetType Setup(ActionSetup&) { return Action::OK; }
     void Print();

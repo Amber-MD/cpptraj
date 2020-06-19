@@ -2,6 +2,7 @@
 #include "Analysis_FFT.h"
 #include "CpptrajStdio.h"
 #include "PubFFT.h"
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Analysis_FFT::Analysis_FFT() : dt_(0.0) {}
@@ -39,7 +40,7 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, AnalysisSetup& setup
     DataSet* dsout = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, idx++) );
     if (dsout==0) return Analysis::ERR;
     dsout->SetLegend( (*DS)->Meta().Legend() );
-    output_dsets_.push_back( (DataSet_1D*)dsout );
+    output_dsets_.push_back( dsout );
     if (outfile != 0) outfile->AddDataSet( dsout );
   }
 

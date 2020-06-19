@@ -8,6 +8,21 @@ int DataSet_float::Allocate( SizeArray const& sizeIn ) {
   return 0;
 }
 
+/** Allocate space in Data_ array. */
+int DataSet_float::MemAlloc( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty())
+    Data_.resize( sizeIn[0] );
+  return 0;
+}
+
+// DataSet_float::CopyBlock()
+void DataSet_float::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_float const& setIn = static_cast<DataSet_float const&>( *dptrIn );
+  const float* ptr = (&(setIn.Data_[0])+pos);
+  std::copy( ptr, ptr + nelts, &(Data_[0]) + startIdx );
+}
+
 // DataSet_float::Add()
 /** Insert data vIn at frame. */
 void DataSet_float::Add(size_t frame, const void* vIn) {

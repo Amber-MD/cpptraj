@@ -10,7 +10,7 @@ void Exec_Help::Help() const {
           "\t    <command category> |\n"
           "\t    Form[ats] [{read|write}] |\n"
           "\t    Form[ats] [{trajin|trajout|readdata|writedata|parm|parmwrite} [<fmt key>]] |\n"
-          "\t    Mask\n"
+          "\t    Mask | Math\n"
           "\t   } ]\n"
           "\tCommand Categories: Gen[eral] Sys[tem] Coor[ds] Traj[ectory] Top[ology]\n"
           "\t                    Act[ion] Ana[lysis] Con[trol]\n"
@@ -18,7 +18,8 @@ void Exec_Help::Help() const {
           "  <cmd>              : Print help for command <cmd>.\n"
           "  <command category> : Print all commands in specified category.\n"
           "  Form[ats]          : Help for file formats.\n"
-          "  Mask               : Help for mask syntax.\n");
+          "  Mask               : Help for mask syntax.\n"
+          "  Math               : Help for math operations/functions.\n");
 }
 
 /** Print help for file formats. */
@@ -128,6 +129,36 @@ int Exec_Help::Masks(ArgList& argIn) const {
   return 1;
 }
 
+int Exec_Help::Math(ArgList& argIn) const {
+  mprintf("    Available Math Operations\n"
+          "\tSymbol    Operation\n"
+          "\t  -     : Minus, negate\n"
+          "\t  +     : Plus\n"
+          "\t  /     : Divide\n"
+          "\t  *     : Multiply\n"
+          "\t  ^     : Power\n"
+          "\t  =     : Assign\n"
+          "    Available functions\n"
+          "\tForm      Function\n"
+          "\tsqrt()  : Square root\n"
+          "\texp()   : Exponential\n"
+          "\tln()    : Natural logarithm\n"
+          "\tabs()   : Absolute value\n"
+          "\tsin()   : Sine\n"
+          "\tcos()   : Cosine\n"
+          "\ttan()   : Tangent\n"
+          "    Data set functions\n"
+          "\tsum()   : Summation\n"
+          "\tavg()   : Average\n"
+          "\tstdev() : Standard deviation\n"
+          "\tmin()   : Minimum\n"
+          "\tmax()   : Maximum\n"
+          "    Constants\n"
+          "\tPI      : Pi\n"
+         );
+  return 1;
+}
+
 /** \return 1 if a help topic was found, 0 otherwise. */
 int Exec_Help::Topics(ArgList& argIn) const {
   // By convention, Topics will start with uppercase letters and
@@ -137,6 +168,8 @@ int Exec_Help::Topics(ArgList& argIn) const {
       return Formats(argIn);
     else if (argIn[0].compare(0,4,"Mask")==0)
       return Masks(argIn);
+    else if (argIn[0].compare(0,4,"Math")==0)
+      return Math(argIn);
     else if (argIn.CommandIs("All")) {
       Command::ListCommands( NONE );
       return 1;

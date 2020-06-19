@@ -26,7 +26,7 @@ static inline int SetNatomAndTitle(ArgList& lineIn, int& natom, std::string& tit
     nextWord = lineIn.GetStringNext();
   }
   // If all arguments were numbers this is probably not a title line after all.
-  if (nNumbers == lineIn.Nargs()) return 1;
+  if (lineIn.Nargs() > 1 && nNumbers == lineIn.Nargs()) return 1;
   return 0;
 }
 

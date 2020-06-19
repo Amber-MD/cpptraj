@@ -681,6 +681,7 @@ SetupFinalFlags() {
   if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
   if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
   if [ "$C11_SUPPORT" = 'yes'    ] ; then
+    DIRECTIVES="$DIRECTIVES -DC11_SUPPORT"
     if [ "${LIB_STAT[$LFFTW3]}" != 'off' ] ; then
       DIRECTIVES="$DIRECTIVES -DLIBPME -DHAVE_FFTWD=1"
     fi
@@ -781,6 +782,12 @@ SetupFinalFlags() {
     CPPTRAJ_LIB="$CPPTRAJ_LIB -lpthread"
   fi
   LDFLAGS="$ldf $LDFLAGS"
+  # Platform-specific directives
+  if [ "$PLATFORM" = 'windows' ] ; then
+    echo "Warning: DTR trajectory not supported on windows."
+  else
+    DIRECTIVES="$DIRECTIVES -DENABLE_DTR"
+  fi
 }
 
 #-------------------------------------------------------------------------------
@@ -1431,8 +1438,8 @@ BasicChecks() {
     if [ $USE_OPENMP -ne 0 ] ; then
       Err "OpenMP not currently supported on Windows."
     fi
-    echo "WINDOWS support requested. Implies '-static'."
-    USE_STATIC=1
+    #echo "WINDOWS support requested. Implies '-static'."
+    #USE_STATIC=1
   fi
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
     WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."

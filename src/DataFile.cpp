@@ -2,6 +2,7 @@
 #include "DataFile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth, integerToString
+#include "ArgList.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -239,6 +240,12 @@ int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
 }
 
 // -----------------------------------------------------------------------------
+
+int DataFile::SetupDatafile(FileName const& f, int d) {
+  ArgList a;
+  return SetupDatafile(f, a, d);
+}
+
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn, int debugIn) {
   return SetupDatafile(fnameIn, argIn, UNKNOWN_DATA, debugIn);
@@ -281,6 +288,11 @@ int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
   return 0;
 }
 
+int DataFile::SetupStdout(int d) {
+  ArgList tmp;
+  return SetupStdout(tmp, d);
+}
+
 // DataFile::AddDataSet()
 int DataFile::AddDataSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
@@ -302,7 +314,12 @@ int DataFile::AddDataSet(DataSet* dataIn) {
         delete dataio_;
         dataio_ = 0;
       }
-      if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+      if (dataio_ == 0) {
+        mprinterr("Error: Set '%s' is not valid for '%s' file type.\n",
+                  dataIn->legend(), DataFilename().full());
+        mprinterr("Error: No valid file type could be found.\n");
+        return Error("Error: Data file allocation failed.\n");
+      }
       mprintf("\tChanged DataFile '%s' type to %s for set %s\n", filename_.base(),
               FileTypes::FormatDescription(DF_AllocArray, dfType_),
               dataIn->legend());
@@ -345,6 +362,21 @@ int DataFile::RemoveDataSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
   SetList_.RemoveSet( dataIn );
   return 0;
+}
+
+/** \return True if this DataFile contains any of the sets in the given set list.
+  * Matches are determined via memory address.
+  */
+bool DataFile::ContainsAnyOfSets(std::vector<DataSet*> const& setsIn) const {
+  for (std::vector<DataSet*>::const_iterator ds0 = setsIn.begin();
+                                             ds0 != setsIn.end(); ++ds0)
+  {
+    DataSet* tgt = *ds0;
+    for (DataSetList::const_iterator ds1 = SetList_.begin();
+                                     ds1 != SetList_.end(); ++ds1)
+      if (tgt == *ds1) return true;
+  }
+  return false;
 }
 
 // GetPrecisionArg()

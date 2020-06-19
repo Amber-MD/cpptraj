@@ -11,6 +11,8 @@ class DataSet_1D : public DataSet {
     DataSet_1D() {}
     DataSet_1D(DataSet::DataType tIn, TextFormat const& fIn) : DataSet(tIn, SCALAR_1D, fIn, 1) {}
     virtual ~DataSet_1D() {}
+    // ----- DataSet functions -------------------
+    SizeArray DimSizes() const { return SizeArray(1, Size()); }
     // ---- DataSet_1D functions -----------------
     /// \return data from set at position as double precision.
     virtual double Dval(size_t) const = 0;
@@ -18,6 +20,8 @@ class DataSet_1D : public DataSet {
     virtual double Xcrd(size_t) const = 0;
     /// \return Memory address at position cast to void *. TODO may not need this anymore.
     virtual const void* VoidPtr(size_t) const = 0;
+    /// Set Y value at given index
+    virtual void SetY(size_t, double) = 0;
     // -------------------------------------------
     /// \return Average over set Y values
     double Avg()           const { return Avg( 0 ); }
@@ -31,8 +35,8 @@ class DataSet_1D : public DataSet {
     int CrossCorr(DataSet_1D const&, DataSet_1D&, int, bool, bool) const;
     /// Calculate auto-correlation
     double CorrCoeff(DataSet_1D const&) const;
-    /// Calculate linear regression; report slope, intercept, and correlation.
-    int LinearRegression(double&, double&, double&, CpptrajFile*) const;
+    /// Calculate linear regression; report slope, intercept, correlation, and F-value.
+    int LinearRegression(double&, double&, double&, double&, CpptrajFile*) const;
     /// Integration types.
     enum IntegrationType { TRAPEZOID = 0 };
     /// \return sum of integration over DataSet.

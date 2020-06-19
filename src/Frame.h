@@ -106,8 +106,10 @@ class Frame {
     int CrdIdx()                      const { return crdidx_;        }
     /// Set box alpha, beta, and gamma
     inline void SetBoxAngles(const double*);
-    /// Set box
+    /// Set box from another box
     void SetBox( Box const& b ) { box_ = b; }
+    /// Modify box in place
+    Box& SetBox() { return box_; }
     /// Set temperature
     void SetTemperature(double tIn) { T_ = tIn;     }
     /// Set step

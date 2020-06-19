@@ -7,11 +7,13 @@
 #include "Constants.h" // GASK_KCAL, SMALL
 
 // CONSTRUCTOR
-Action_GridFreeEnergy::Action_GridFreeEnergy() : Action(HIDDEN),
+Action_GridFreeEnergy::Action_GridFreeEnergy() :
   maxVoxelOccupancyCount_(600), // NOTE: See header for comments.
   tempInKevin_(293.0),
   grid_(0)
-{}
+{
+  SetHidden(true);
+}
 
 void Action_GridFreeEnergy::Help() const {
   mprintf("\t<filename>\n%s\n\t<mask>\n", GridAction::HelpText);

@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "Constants.h" // DEGRAD
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Action_Matrix::Action_Matrix() :
@@ -95,7 +96,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       return Action::ERR;
     }
     for ( DataSetList::const_iterator DS = init.DSL().begin(); DS != init.DSL().end(); ++DS) {
-      if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC )
+      if ( (*DS)->Group() == DataSet::VECTOR_1D && (*DS)->Meta().ScalarType() == MetaData::IREDVEC )
         IredVectors_.push_back( (DataSet_Vector*)*DS );
     }
     if (IredVectors_.empty()) {

@@ -1,6 +1,7 @@
 #ifndef INC_DATAIO_GRACE_H
 #define INC_DATAIO_GRACE_H
 #include "DataIO.h"
+class DataSet_string;
 /// Read/write Grace data files.
 class DataIO_Grace : public DataIO {
   public:
@@ -17,6 +18,7 @@ class DataIO_Grace : public DataIO {
     int WriteDataNormal(CpptrajFile&,DataSetList const&);
     int WriteDataXYDY(CpptrajFile&, DataSetList const&);
     int WriteDataInverted(CpptrajFile&,DataSetList const&);
+    static DataSet_string* findLabelSet( DataSetList const& );
     bool isInverted_; ///< For 1D writes invert X/Y.
     bool isXYDY_;     ///< Write consecutive sets as XYDY
 };

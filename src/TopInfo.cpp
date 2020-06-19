@@ -17,7 +17,8 @@ TopInfo::TopInfo() :
   Awidth_(0),
   amn_width_(0),
   max_aname_len_(0),
-  toStdout_(false)
+  toStdout_(false),
+  noIntraRes_(false)
 {}
 
 /// CONSTRUCTOR - To Stdout
@@ -28,7 +29,8 @@ TopInfo::TopInfo(Topology const* pIn) :
   amn_width_(0),
   max_type_len_(0),
   max_aname_len_(0),
-  toStdout_(false)
+  toStdout_(false),
+  noIntraRes_(false)
 {
   SetupTopInfo( 0, pIn, 0 );
 }
@@ -106,6 +108,7 @@ int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   if ( mask.None() )
     mprinterr("\tSelection is empty.\n");
   else {
+    mprintf("%i atoms selected.\n", mask.Nselected());
     int width = DigitWidth(parm_->Natom());
     if (width < 5) width = 5;
     int nWidth = maxAtomNamesWidth(mask);
@@ -159,6 +162,7 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
     mprinterr("\tSelection is empty.\n");
   else {
     std::vector<int> resNums = parm_->ResnumsSelectedBy(mask);
+    mprintf("%zu residues selected.\n", resNums.size());
     int rn_width = maxResNameWidth( resNums );
 
     int awidth = std::max(5, DigitWidth(parm_->Natom()));
@@ -264,6 +268,7 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
       mprintf("\tSelection is empty.\n");
     else {
       std::vector<int> molNums = parm_->MolnumsSelectedBy( mask );
+      mprintf("%zu molecules.\n", molNums.size());
       int mn_width = maxMolNameWidth( molNums );
       int awidth = std::max(5, DigitWidth(parm_->Natom()));
       int rwidth = std::max(5, DigitWidth(parm_->Nres()));
@@ -397,6 +402,10 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
       printBond = (mask1.AtomInCharMask(atom1) && mask2.AtomInCharMask(atom2));
     else
       printBond = (mask1.AtomInCharMask(atom1) || mask1.AtomInCharMask(atom2));
+    if (noIntraRes_ && printBond) {
+      if ( (*parm_)[atom1].ResNum() == (*parm_)[atom2].ResNum() )
+        printBond = false;
+    }
     if (printBond) {
       outfile_->Printf("%*i", nw, nb);
       int bidx = batom->Idx();

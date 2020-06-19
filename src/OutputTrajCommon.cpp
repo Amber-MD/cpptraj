@@ -3,6 +3,7 @@
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists
+#include "ArgList.h"
 
 // CONSTRUCTOR
 OutputTrajCommon::OutputTrajCommon() :
