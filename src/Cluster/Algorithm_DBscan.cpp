@@ -2,6 +2,7 @@
 #include <algorithm> // sort
 #include "Algorithm_DBscan.h"
 #include "../CpptrajStdio.h"
+#include "../ArgList.h"
 #include "../ProgressBar.h"
 #include "../StringRoutines.h" // integerToString
 #ifdef _OPENMP

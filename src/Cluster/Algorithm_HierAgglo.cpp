@@ -1,6 +1,7 @@
 #include <limits> // double max
 #include "Algorithm_HierAgglo.h"
 #include "../CpptrajStdio.h"
+#include "../ArgList.h"
 #include "../ProgressBar.h"
 
 Cpptraj::Cluster::Algorithm_HierAgglo::Algorithm_HierAgglo() :
