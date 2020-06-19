@@ -138,6 +138,9 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
     ds->Allocate( nData );
     if (resultsOut != 0)
       resultsOut->AddDataSet( ds );
+    // Set formatting
+    if ((OdataType)idx == A1)
+      ds->SetupFormat().SetFormatType(TextFormat::GDOUBLE);
     data_.push_back( ds );
   }
 
