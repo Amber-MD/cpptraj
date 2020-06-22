@@ -18,30 +18,36 @@ Analysis_EvalPlateau::Analysis_EvalPlateau() :
   SetHidden(true);
 }
 
-const char* Analysis_EvalPlateau::OdataStr_[NDATA] = {
+/** Aspects for output data sets (data_[]). KEEP IN SYNC WITH OdataType */
+const char* Analysis_EvalPlateau::OdataStr_[] = {
   "A0",
   "A1",
   "A2",
-  "F",
+  "OneA1",
+  //"F",
   "corr",
   "vala",
   "chisq",
   "pltime",
+  "fslope",
   "name",
   "result"
 };
 
-DataSet::DataType Analysis_EvalPlateau::OdataType_[NDATA] = {
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::STRING,
-  DataSet::STRING
+/** Set type for output data sets (data_[]). KEEP IN SYNC WITH OdataType */
+DataSet::DataType Analysis_EvalPlateau::OdataType_[] = {
+  DataSet::DOUBLE, // A0
+  DataSet::DOUBLE, // A1
+  DataSet::DOUBLE, // A2
+  DataSet::DOUBLE, // ONEA1
+  //DataSet::DOUBLE, // FVAL
+  DataSet::DOUBLE, // CORR
+  DataSet::DOUBLE, // VALA
+  DataSet::DOUBLE, // CHISQ
+  DataSet::DOUBLE, // PLTIME
+  DataSet::DOUBLE, // FSLOPE
+  DataSet::STRING, // NAME
+  DataSet::STRING  // RESULT
 };
 
 // Analysis_EvalPlateau::Help()
@@ -122,6 +128,7 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
   {
     DataSet* setOut = setup.DSL().AddSet( DataSet::XYMESH, MetaData( dsname_, idx ) );
     if (setOut == 0) return Analysis::ERR;
+    setOut->SetupFormat().SetFormatType(TextFormat::GDOUBLE);
     outputSets_.push_back( setOut );
     if (outfile != 0) {
       outfile->AddDataSet( *it );
@@ -139,7 +146,7 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
     if (resultsOut != 0)
       resultsOut->AddDataSet( ds );
     // Set formatting
-    if ((OdataType)idx == A1)
+    if ((OdataType)idx == A1 || (OdataType)idx == FSLOPE)
       ds->SetupFormat().SetFormatType(TextFormat::GDOUBLE);
     data_.push_back( ds );
   }
@@ -186,10 +193,12 @@ void Analysis_EvalPlateau::BlankResult(long int oidx, const char* legend)
   data_[A0]->Add(oidx, &ZERO);
   data_[A1]->Add(oidx, &ZERO);
   data_[A2]->Add(oidx, &ZERO);
-  data_[FVAL]->Add(oidx, &ZERO);
+  data_[ONEA1]->Add(oidx, &ZERO);
+  //data_[FVAL]->Add(oidx, &ZERO);
   data_[CORR]->Add(oidx, &ZERO);
   data_[VALA]->Add(oidx, &ZERO);
   data_[PLTIME]->Add(oidx, &ZERO);
+  data_[FSLOPE]->Add(oidx, &ZERO);
   data_[NAME]->Add(oidx, legend);
   data_[RESULT]->Add(oidx, "err");
 }
@@ -324,11 +333,14 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     DataSet_1D::Darray slopeX, slopeY;
     OUT.FiniteDifference(DataSet_1D::FORWARD, slopeX, slopeY);
     double finalx=-1, finaly=0;
+    double finalslope = 0;
     bool slopeCutSatisfied = false;
     for (unsigned int sidx = 0; sidx != slopeY.size(); ++sidx) {
+      //finalslope = slopeY[sidx];
       //mprintf("DEBUG: slope %g %g\n", slopeX[sidx], slopeY[sidx]);
       double absSlope = slopeY[sidx];
       if (absSlope < 0) absSlope = -absSlope;
+      finalslope = absSlope;
       if (absSlope < slopeCut_) {
         finalx = slopeX[sidx];
         finaly = slopeY[sidx];
@@ -356,11 +368,18 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     data_[A0]->Add(oidx, &Params[0]);
     data_[A1]->Add(oidx, &Params[0] + 1);
     data_[A2]->Add(oidx, &Params[0] + 2);
-    data_[FVAL]->Add(oidx, &Fval);
+    double onea1 = 1.0 / Params[1];
+    data_[ONEA1]->Add(oidx, &onea1);
+    //data_[FVAL]->Add(oidx, &Fval);
     data_[CORR]->Add(oidx, &corr_coeff);
+    // FIXME hijacking ValA temporarily
+    ValA = Params[2]-Params[0];
+    if (ValA < 0.0) ValA = -ValA;
     data_[VALA]->Add(oidx, &ValA);
     data_[PLTIME]->Add(oidx, &finalx);
-    data_[NAME]->Add(oidx, (*it)->legend());
+    data_[FSLOPE]->Add(oidx, &finalslope);
+    std::string legend = "\"" + (*it)->Meta().Legend() + "\"";
+    data_[NAME]->Add(oidx, legend.c_str());
     // Determine if criteria met.
     bool longAvgCutSatisfied, chiCutSatisfied;
     if (ValA < valaCut_)
