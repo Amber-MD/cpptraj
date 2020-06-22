@@ -128,7 +128,7 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
   {
     DataSet* setOut = setup.DSL().AddSet( DataSet::XYMESH, MetaData( dsname_, idx ) );
     if (setOut == 0) return Analysis::ERR;
-    setOut->SetupFormat().SetFormatType(TextFormat::GDOUBLE);
+    setOut->SetupFormat() = TextFormat(TextFormat::SCIENTIFIC, 16, 8);
     outputSets_.push_back( setOut );
     if (outfile != 0) {
       outfile->AddDataSet( *it );
