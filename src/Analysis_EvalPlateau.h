@@ -2,6 +2,7 @@
 #define INC_ANALYSIS_EVALPLATEAU_H
 #include "Analysis.h"
 #include "Array1D.h"
+class DataSet_Mesh;
 /// Can be used to evaluate if a time series has reached a plateau (i.e. near zero slope). 
 class Analysis_EvalPlateau : public Analysis {
   public:
@@ -33,7 +34,8 @@ class Analysis_EvalPlateau : public Analysis {
     static const char* OdataStr_[];
     /// Hold data type for each output data
     static DataSet::DataType OdataType_[];
-
+    /// Evaluate whether slope cutoff is satisfied.
+    bool CheckSlope(DataSet_Mesh const&, double&, double&);
     /// Used to add zero data when error occurs evaluating a set
     void BlankResult(long int, const char*);
 
