@@ -148,7 +148,11 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
     if (resultsOut != 0)
       resultsOut->AddDataSet( ds );
     // Set formatting
-    if ((OdataType)idx == A1 || (OdataType)idx == FSLOPE)
+    if ((OdataType)idx == A1 ||
+        (OdataType)idx == FSLOPE ||
+        (OdataType)idx == CHISQ ||
+        (OdataType)idx == LCHISQ
+       )
       ds->SetupFormat().SetFormatType(TextFormat::GDOUBLE);
     data_.push_back( ds );
   }
