@@ -22,7 +22,7 @@ class Analysis_EvalPlateau : public Analysis {
       //FVAL,   ///< F value from linear regression
       CORR,   ///< Correlation coefficient of exp. fit
       VALA,
-      LCHISQ, ///< Chi^2 of linear fit
+      //LCHISQ, ///< Chi^2 of linear fit
       CHISQ,  ///< Hold chi^2 of exp. fit for each input set
       PLTIME, ///< Time at which slope cutoff was satisfied
       FSLOPE, ///< Final slope of the single exponential

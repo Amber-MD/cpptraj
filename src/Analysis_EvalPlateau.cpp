@@ -21,19 +21,19 @@ Analysis_EvalPlateau::Analysis_EvalPlateau() :
 
 /** Aspects for output data sets (data_[]). KEEP IN SYNC WITH OdataType */
 const char* Analysis_EvalPlateau::OdataStr_[] = {
-  "A0",
-  "A1",
-  "A2",
-  "OneA1",
-  //"F",
-  "corr",
-  "vala",
-  "lchisq",
-  "chisq",
-  "pltime",
-  "fslope",
-  "name",
-  "result"
+  "A0",     // A0
+  "A1",     // A1
+  "A2",     // A2
+  "OneA1",  // ONEA1
+  //"F",      // FVAL
+  "corr",   // CORR
+  "vala",   // VALA
+  //"lchisq", // LCHISQ
+  "chisq",  // CHISQ
+  "pltime", // PLTIME
+  "fslope", // FSLOPE
+  "name",   // NAME
+  "result"  // RESULT
 };
 
 /** Set type for output data sets (data_[]). KEEP IN SYNC WITH OdataType */
@@ -45,7 +45,7 @@ DataSet::DataType Analysis_EvalPlateau::OdataType_[] = {
   //DataSet::DOUBLE, // FVAL
   DataSet::DOUBLE, // CORR
   DataSet::DOUBLE, // VALA
-  DataSet::DOUBLE, // LCHISQ
+  //DataSet::DOUBLE, // LCHISQ
   DataSet::DOUBLE, // CHISQ
   DataSet::DOUBLE, // PLTIME
   DataSet::DOUBLE, // FSLOPE
@@ -150,9 +150,10 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
       resultsOut->AddDataSet( ds );
     // Set formatting
     if ((OdataType)idx == A1 ||
+        (OdataType)idx == VALA ||
         (OdataType)idx == FSLOPE ||
-        (OdataType)idx == CHISQ ||
-        (OdataType)idx == LCHISQ
+        (OdataType)idx == CHISQ //||
+        //(OdataType)idx == LCHISQ
        )
       ds->SetupFormat().SetFormatType(TextFormat::GDOUBLE);
     data_.push_back( ds );
@@ -237,7 +238,7 @@ void Analysis_EvalPlateau::BlankResult(long int oidx, const char* legend)
   //data_[FVAL]->Add(oidx, &ZERO);
   data_[CORR]->Add(oidx, &ZERO);
   data_[VALA]->Add(oidx, &ZERO);
-  data_[LCHISQ]->Add(oidx, &ZERO);
+  //data_[LCHISQ]->Add(oidx, &ZERO);
   data_[CHISQ]->Add(oidx, &ZERO);
   data_[PLTIME]->Add(oidx, &ZERO);
   data_[FSLOPE]->Add(oidx, &ZERO);
@@ -445,7 +446,7 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     //ValA = Params[2]-Params[0];
     //if (ValA < 0.0) ValA = -ValA;
     data_[VALA]->Add(oidx, &ValA);
-    data_[LCHISQ]->Add(oidx, &linChiSq);
+    //data_[LCHISQ]->Add(oidx, &linChiSq);
     data_[CHISQ]->Add(oidx, &ChiSq);
     //data_[PLTIME]->Add(oidx, &finalx);
     //data_[FSLOPE]->Add(oidx, &finalslope);
