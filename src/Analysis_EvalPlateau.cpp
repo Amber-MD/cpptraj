@@ -7,6 +7,8 @@
 Analysis_EvalPlateau::Analysis_EvalPlateau() :
   statsout_(0),
   tolerance_(0),
+  initpct_(0),
+  finalpct_(0),
   valaCut_(0),
   chisqCut_(0),
   slopeCut_(0),
@@ -45,6 +47,7 @@ DataSet::DataType Analysis_EvalPlateau::OdataType_[NDATA] = {
 // Analysis_EvalPlateau::Help()
 void Analysis_EvalPlateau::Help() const {
   mprintf("\t[name <set out name>] [tol <tol>] [valacut <valacut>]\n"
+          "\t[initpct <initial pct>] [finalpct <final pct>]\n"
           "\t[chisqcut <chisqcut>] [slopecut <slopecut>] [maxit <maxit>]\n"
           "\t[out <outfile>] [resultsout <resultsfile>] [statsout <statsfile>]\n"
           "\t<input set args> ...\n"
@@ -64,6 +67,16 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
   tolerance_ = analyzeArgs.getKeyDouble("tol", 0.00001);
   if (tolerance_ < 0.0) {
     mprinterr("Error: Tolerance must be greater than or equal to 0.0\n");
+    return Analysis::ERR;
+  }
+  initpct_ = analyzeArgs.getKeyDouble("initpct", 1.0) / 100.0;
+  if (initpct_ <= 0) {
+    mprinterr("Error: Initial percent must be greater than 0.\n");
+    return Analysis::ERR;
+  }
+  finalpct_ = analyzeArgs.getKeyDouble("finalpct", 50.0) / 100.0;
+  if (finalpct_ <= 0) {
+    mprinterr("Error: Final percent must be greater than 0.\n");
     return Analysis::ERR;
   }
   valaCut_ = analyzeArgs.getKeyDouble("valacut", 0.01);
@@ -131,6 +144,8 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
   mprintf("    EVALPLATEAU: Evaluate plateau time of %zu sets.\n", inputSets_.size());
   mprintf("\tOutput set name: %s\n", dsname_.c_str());
   mprintf("\tTolerance for curve fit: %g\n", tolerance_);
+  mprintf("\tWill use initial %g%% of data for initial guess of A0\n", initpct_*100.0);
+  mprintf("\tWill use final %g%% of data for initial guess of A2\n", finalpct_*100.0);
   mprintf("\tMax iterations for curve fit: %i\n", maxIt_);
   if (outfile != 0)
     mprintf("\tFit curve output to '%s'\n", outfile->DataFilename().full());
@@ -158,6 +173,24 @@ int EQ_plateau(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
   return 0;
 }
 
+/** This is used to add a non-result whenever there is an error 
+  * evaluating the input data.
+  */
+void Analysis_EvalPlateau::BlankResult(long int oidx, const char* legend)
+{
+  static const double ZERO = 0.0;
+  data_[CHISQ]->Add(oidx, &ZERO);
+  data_[A0]->Add(oidx, &ZERO);
+  data_[A1]->Add(oidx, &ZERO);
+  data_[A2]->Add(oidx, &ZERO);
+  data_[FVAL]->Add(oidx, &ZERO);
+  data_[CORR]->Add(oidx, &ZERO);
+  data_[VALA]->Add(oidx, &ZERO);
+  data_[PLTIME]->Add(oidx, &ZERO);
+  data_[NAME]->Add(oidx, legend);
+  data_[RESULT]->Add(oidx, "err");
+}
+
 // Analysis_EvalPlateau::Analyze()
 Analysis::RetType Analysis_EvalPlateau::Analyze() {
   std::vector<DataSet*>::const_iterator ot = outputSets_.begin();
@@ -167,17 +200,21 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     if (!statsout_->IsStream())
       statsout_->Printf("# %s\n", (*it)->legend());
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(*it) );
+    // oidx will be used to index the sets in data_
+    long int oidx = (it - inputSets_.begin());
     // First do a linear fit. TODO may not need this anymore
     statsout_->Printf("\t----- Linear Fit -----\n");
     if (DS.Size() < 2) {
       mprintf("Warning: Not enough data in '%s' to evaluate.\n", DS.legend());
+      BlankResult(oidx, DS.legend());
       continue;
     }
     double slope, intercept, correl, Fval;
     int err = DS.LinearRegression( slope, intercept, correl, Fval, statsout_ );
     if (err != 0) {
-      mprinterr("Error: Could not perform linear regression fit.\n");
-      return Analysis::ERR;
+      mprintf("Warning: Could not perform linear regression fit for '%s'.\n", DS.legend());
+      BlankResult(oidx, DS.legend());
+      continue;
     }
 
     // Process expression to fit
@@ -207,15 +244,26 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
       }
     }
 
-    // Get the average of the first 1% of data
-    unsigned int tenpctPt = (double)Yvals.size() * 0.01;
-    if (tenpctPt < 1) tenpctPt = 1;
-    double Y10pctAvg = 0;
-    for (unsigned int hidx = 0; hidx < tenpctPt; hidx++)
-      Y10pctAvg += Yvals[hidx];
-    Y10pctAvg /= (double)tenpctPt;
-    statsout_->Printf("\tAvg of first 10%% of the data: %g\n", Y10pctAvg);
-    // Determine the average value of the last half of the data.
+    // Get the average of the first initpct_% of data.
+    // Will be used as the initial guess for A0, initial density.
+    unsigned int initPt = (double)Yvals.size() * initpct_;
+    if (initPt < 1) initPt = 1;
+    double YinitialAvg = 0;
+    for (unsigned int hidx = 0; hidx < initPt; hidx++)
+      YinitialAvg += Yvals[hidx];
+    YinitialAvg /= (double)initPt;
+    statsout_->Printf("\tAvg of first %g%% of the data: %g\n", initpct_*100.0, YinitialAvg);
+    // Get the average of the last finalpct_% of data.
+    // Will be used as the intial guess for A2, final density.
+    unsigned int finalPt = (double)Yvals.size() * finalpct_;
+    if (finalPt < 1) finalPt = 1;
+    unsigned int finalStart = Yvals.size() - finalPt;
+    double YfinalAvg = 0;
+    for (unsigned int hidx = finalStart; hidx < Yvals.size(); hidx++)
+      YfinalAvg += Yvals[hidx];
+    YfinalAvg /= (double)finalPt;
+    statsout_->Printf("\tAvg of last %g%% of the data: %g\n", finalpct_*100.0, YfinalAvg);
+/*    // Determine the average value of the last half of the data.
     unsigned int halfwayPt = (Yvals.size() / 2);
     double Yavg1half = 0;
     for (unsigned int hidx = 0; hidx < halfwayPt; hidx++)
@@ -226,14 +274,15 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     for (unsigned int hidx = halfwayPt; hidx < Yvals.size(); hidx++)
       Yavg2half += Yvals[hidx];
     Yavg2half /= (double)(Yvals.size() - halfwayPt);
-    statsout_->Printf("\tLast half <Y> = %g\n", Yavg2half);
+    statsout_->Printf("\tLast half <Y> = %g\n", Yavg2half);*/
 
     // Set initial guesses for parameters.
     CurveFit::Darray Params(3);
-    Params[0] = Y10pctAvg;
+    Params[0] = YinitialAvg;
     if (Params[0] < 0) Params[0] = -Params[0];
     Params[1] = 0.1; // TODO absolute slope?
-    Params[2] = Yavg2half;
+    //Params[2] = Yavg2half;
+    Params[2] = YfinalAvg;
 
     for (CurveFit::Darray::const_iterator ip = Params.begin(); ip != Params.end(); ++ip) {
       statsout_->Printf("\tInitial Param A%li = %g\n", ip - Params.begin(), *ip);
@@ -244,19 +293,22 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     int info = fit.LevenbergMarquardt( fxn, Xvals, Yvals, Params, tolerance_, maxIt_ );
     mprintf("\t%s\n", fit.Message(info));
     if (info == 0) {
-      mprinterr("Error: %s\n", fit.ErrorMessage());
-      return Analysis::ERR;
+      mprintf("Warning: Curve fit failed for '%s'.\n"
+              "Warning: %s\n", DS.legend(), fit.ErrorMessage());
+      BlankResult(oidx, DS.legend());
+      continue;
     }
     for (CurveFit::Darray::const_iterator ip = Params.begin(); ip != Params.end(); ++ip) {
       statsout_->Printf("\tFinal Param A%li = %g\n", ip - Params.begin(), *ip);
     }
 
-    // Params[0] = A0 = Gap between final and initial values
+    // Params[0] = A0 = Initial value. 
     // Params[1] = A1 = Relaxation constant
-    // Params[2] = A2 = Final value at long time
+    // Params[2] = A2 = Final value at long time.
     // Determine the absolute difference of the long-time estimated value
     // from the average value of the last half of the data.
-    double ValA = Yavg2half - Params[2];
+    //double ValA = Yavg2half - Params[2];
+    double ValA = YfinalAvg - Params[2];
     if (ValA < 0) ValA = -ValA;
     statsout_->Printf("\tValA = %g\n", ValA);
 
@@ -297,7 +349,6 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
                       "\tRMS percent error: %g\n",
                       corr_coeff, ChiSq, TheilU, rms_percent_error);
 
-    long int oidx = (it - inputSets_.begin());
     data_[CHISQ]->Add(oidx, &ChiSq);
     data_[A0]->Add(oidx, &Params[0]);
     data_[A1]->Add(oidx, &Params[0] + 1);
