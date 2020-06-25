@@ -9,8 +9,9 @@ class EnergyArray;
 /// Abstract base class for a term of a potential function.
 class PotentialTerm {
   public:
-    enum Type { BOND = 0, NTERMS };
+    enum Type { BOND = 0, OPENMM, NTERMS };
     PotentialTerm(Type t) : type_(t) {}
+    virtual ~PotentialTerm() {} // Virtual since this is inherited.
 
     virtual int SetupTerm(Topology const&, CharMask const&, EnergyArray&) = 0;
     virtual void CalcForce(Frame&, CharMask const&) const = 0;
