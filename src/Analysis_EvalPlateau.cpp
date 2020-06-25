@@ -450,8 +450,7 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     data_[CHISQ]->Add(oidx, &ChiSq);
     //data_[PLTIME]->Add(oidx, &finalx);
     //data_[FSLOPE]->Add(oidx, &finalslope);
-    std::string legend = "\"" + (*it)->Meta().Legend() + "\"";
-    data_[NAME]->Add(oidx, legend.c_str());
+    data_[NAME]->Add(oidx, (*it)->legend());
 
     // Determine if criteria met.
 
