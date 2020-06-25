@@ -664,6 +664,24 @@ EOF
   TestProgram noexe "  Checking CUDA" "$CXX" "$CXXFLAGS ${LIB_INCL[$LCUDA]}" testp.cpp "${LIB_FLAG[$LCUDA]}"
 }
 
+TestOpenMM() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include "OpenMM.h"
+int main() {
+  OpenMM::System*         system = new OpenMM::System();
+  system->addParticle(1);
+  OpenMM::Integrator*     integrator = new OpenMM::VerletIntegrator(1);
+  OpenMM::Context*        context = new OpenMM::Context(*system, *integrator);
+  if (system == 0 || integrator == 0 || context == 0) return 1;
+  delete system;
+  delete integrator;
+  delete context;
+  return 0;
+}
+EOF
+  TestProgram "  Checking OpenMM" "$CXX" "$CXXFLAGS ${LIB_INCL[$LOPENMM]}" testp.cpp "${LIB_FLAG[$LOPENMM]}"
+}
 
 #-------------------------------------------------------------------------------
 # Test external libraries
@@ -680,6 +698,7 @@ TestLibraries() {
   if [ "${LIB_TEST[$LTNGFILE]}" = 'yes'  ] ; then TestTngfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   if [ "${LIB_TEST[$LCUDA]}" = 'yes'     ] ; then TestCuda ; fi
+  if [ "${LIB_TEST[$LOPENMM]}" = 'yes'   ] ; then TestOpenMM ; fi
 }
 
 #-------------------------------------------------------------------------------
