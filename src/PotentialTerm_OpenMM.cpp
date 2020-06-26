@@ -23,13 +23,17 @@ PotentialTerm_OpenMM::~PotentialTerm_OpenMM() {
 
 #ifdef HAS_OPENMM
 void PotentialTerm_OpenMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
+                                    std::vector< std::pair<int,int> >& bondPairs,
                                     BondArray const& bonds, BondParmArray const& BP)
 {
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+  {
+    bondPairs.push_back(std::make_pair(bnd->A1(), bnd->A2()));
     bondStretch->addBond( bnd->A1(), bnd->A2(),
                           BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
                           BP[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
                             * OpenMM::AngstromsPerNm * OpenMM::AngstromsPerNm );
+  }
 }
 
 
@@ -71,8 +75,14 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   // Note factor of 2 for stiffness below because Amber specifies the constant
   // as it is used in the harmonic energy term kx^2 with force 2kx; OpenMM wants 
   // it as used in the force term kx, with energy kx^2/2.
-  AddBonds(bondStretch, topIn.Bonds(), topIn.BondParm());
-  AddBonds(bondStretch, topIn.BondsH(), topIn.BondParm());
+  std::vector< std::pair<int,int> >   bondPairs;
+  AddBonds(bondStretch, bondPairs, topIn.Bonds(), topIn.BondParm());
+  AddBonds(bondStretch, bondPairs, topIn.BondsH(), topIn.BondParm());
+
+  // Populate nonbonded exclusions TODO make args
+  const double Coulomb14Scale      = 1.0;
+  const double LennardJones14Scale = 1.0;
+  nonbond->createExceptionsFromBonds(bondPairs, Coulomb14Scale, LennardJones14Scale);
 
   return 0;
 }
