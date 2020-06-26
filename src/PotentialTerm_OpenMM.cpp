@@ -45,8 +45,17 @@ int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
   }
 
   // Add atoms to the system.
-  for (Topology::atom_iterator at = topIn.begin(); at != topIn.end(); ++at)
-    system_->addParticle( at->Mass() );
+  for (int idx = 0; idx != topIn.Natom(); idx++)
+  {
+    system_->addParticle( topIn[idx].Mass() );
+    if (topIn.Nonbond().HasNonbond()) {
+      nonbond->addParticle(
+        topIn[idx].Charge(),
+        topIn.GetVDWradius(idx) * OpenMM::NmPerAngstrom * OpenMM::SigmaPerVdwRadius,
+        topIn.GetVDWdepth(idx) * OpenMM::KJPerKcal );
+    }
+  }
+      
 # else
   mprinterr("Error: CPPTRAJ was compiled without OpenMM support.\n");
   return 1;
