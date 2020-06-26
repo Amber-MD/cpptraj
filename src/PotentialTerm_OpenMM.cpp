@@ -1,8 +1,9 @@
 #include "PotentialTerm_OpenMM.h"
 #include "CpptrajStdio.h"
 #ifdef HAS_OPENMM
-# include "Box.h"
 # include "OpenMM.h"
+# include "Box.h"
+# include "Topology.h"
 #endif
 
 PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
@@ -42,6 +43,10 @@ int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
       OpenMM::Vec3( ucell[3], ucell[4], ucell[5] ),
       OpenMM::Vec3( ucell[6], ucell[7], ucell[8] ) );
   }
+
+  // Add atoms to the system.
+  for (Topology::atom_iterator at = topIn.begin(); at != topIn.end(); ++at)
+    system_->addParticle( at->Mass() );
 # else
   mprinterr("Error: CPPTRAJ was compiled without OpenMM support.\n");
   return 1;
