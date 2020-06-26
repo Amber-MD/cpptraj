@@ -84,6 +84,13 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   const double LennardJones14Scale = 1.0;
   nonbond->createExceptionsFromBonds(bondPairs, Coulomb14Scale, LennardJones14Scale);
 
+  // Set up integrator and context.
+  OpenMM::Integrator* integrator = new OpenMM::VerletIntegrator( 0.001 ); // TODO allow ars
+  context_ = new OpenMM::Context( *system_, *integrator );
+
+  std::string platformName = context_->getPlatform().getName();
+  mprintf("OpenMM Platform: %s\n", platformName.c_str());
+
   return 0;
 }
 #endif
