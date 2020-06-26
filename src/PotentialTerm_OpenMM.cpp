@@ -154,7 +154,8 @@ void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) con
   const OpenMM::State state = context_->getState(OpenMM::State::Forces |
                                                  OpenMM::State::Energy, true);
   //  timeInPs = state.getTime(); // OpenMM time is in ps already
-  *ene_ = state.getPotentialEnergy();
+  // Convert to kcal/mol from kj/mol
+  *ene_ = state.getPotentialEnergy() * Constants::J_TO_CAL;
 
   // Copy OpenMM positions into output array and change units from nm to Angstroms.
   const std::vector<OpenMM::Vec3>& ommForces = state.getForces();

@@ -86,6 +86,8 @@ class Frame {
     double pH()                       const { return pH_;            }
     double RedOx()                    const { return redox_;         }
     double Time()                     const { return time_;          }
+    /// \return CoordinateInfo that describes the Frame
+    CoordinateInfo CoordsInfo()       const;
     /// \return pointer to start of XYZ coords for given atom.
     const double* XYZ(int atnum)      const { return X_ + (atnum*3); } 
     /// \return pointer to specified coordinate.

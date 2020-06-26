@@ -38,7 +38,7 @@ const
   if (!trajoutName_.empty()) {
     if (trajOut.InitTrajWrite(trajoutName_, ArgList(), DataSetList(), TrajectoryFile::UNKNOWN_TRAJ))
       return 1;
-    if (trajOut.SetupTrajWrite(potential.CurrentTop(), CoordinateInfo(), 0))
+    if (trajOut.SetupTrajWrite(potential.CurrentTop(), frameIn.CoordsInfo(), 0))
       return 1;
     if (trajOut.WriteSingle(iteration, frameIn)) return 1;
   }

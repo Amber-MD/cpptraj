@@ -330,6 +330,12 @@ Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd, bool hasVel) const {
 }
 
 // ---------- ACCESS INTERNAL DATA ---------------------------------------------
+/** \return CoordinateInfo describing the Frame. */
+CoordinateInfo Frame::CoordsInfo() const {
+  // TODO no good way to tell about time yet.
+  return CoordinateInfo( box_, X_ != 0, V_ != 0, F_ != 0, false );
+}
+
 // Frame::DataSize()
 /** Size of Frame in memory. */
 size_t Frame::DataSize() const {
