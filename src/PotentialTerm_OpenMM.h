@@ -26,6 +26,7 @@ class PotentialTerm_OpenMM : public PotentialTerm {
 
     OpenMM::System* system_;
     OpenMM::Context* context_;
+    double* ene_;
 #   endif
 };
 #endif

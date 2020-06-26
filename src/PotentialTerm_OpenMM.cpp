@@ -6,6 +6,7 @@
 # include "Topology.h"
 # include "CharMask.h"
 # include "Constants.h"
+# include "EnergyArray.h"
 #endif
 
 PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
@@ -104,6 +105,9 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   std::string platformName = context_->getPlatform().getName();
   mprintf("OpenMM Platform: %s\n", platformName.c_str());
 
+  // Set up energy term
+  ene_ = earrayIn.AddType( EnergyArray::E_OPENMM );
+
   return 0;
 }
 #endif
@@ -147,8 +151,10 @@ void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) con
   //OpenMM::LocalEnergyMinimizer min;
   //min.minimize(*context_, 10.0, 1);
   // Get the results
-  const OpenMM::State state = context_->getState(OpenMM::State::Forces, true);
+  const OpenMM::State state = context_->getState(OpenMM::State::Forces |
+                                                 OpenMM::State::Energy, true);
   //  timeInPs = state.getTime(); // OpenMM time is in ps already
+  *ene_ = state.getPotentialEnergy();
 
   // Copy OpenMM positions into output array and change units from nm to Angstroms.
   const std::vector<OpenMM::Vec3>& ommForces = state.getForces();
