@@ -15,7 +15,10 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
 {
   mprintf("Warning: THIS COMMAND IS STILL UNDER DEVELOPMENT.\n");
   PotentialFunction potential;
-  potential.AddTerm( PotentialTerm::BOND );
+  if (argIn.hasKey("openmm"))
+    potential.AddTerm( PotentialTerm::OPENMM );
+  else
+    potential.AddTerm( PotentialTerm::BOND );
   Minimize_SteepestDescent SD;
 
   std::string setname = argIn.GetStringKey("crdset");
@@ -72,7 +75,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   if (!maskexpr.empty())
     mprintf("\tMask expression: %s\n", maskexpr.c_str());
 
-  if (potential.SetupPotential( crdset->Top(), maskexpr )) {
+  if (potential.SetupPotential( crdset->Top(), frameIn.BoxCrd(), maskexpr )) {
     mprinterr("Error: Could not set up potential.\n");
     return CpptrajState::ERR;
   }
