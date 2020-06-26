@@ -14,7 +14,7 @@ class PotentialTerm_OpenMM : public PotentialTerm {
     PotentialTerm_OpenMM();
     ~PotentialTerm_OpenMM();
 
-    int SetupTerm(Topology const&, CharMask const&, EnergyArray&);
+    int SetupTerm(Topology const&, Box const&, CharMask const&, EnergyArray&);
     void CalcForce(Frame&, CharMask const&) const;
   private:
 #   ifdef HAS_OPENMM

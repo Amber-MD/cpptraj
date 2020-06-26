@@ -4,8 +4,8 @@
 #include "EnergyArray.h"
 
 /** Set up Hooke's law bond term. */
-int PotentialTerm_Bond::SetupTerm(Topology const& topIn, CharMask const& maskIn,
-                                  EnergyArray& Earray)
+int PotentialTerm_Bond::SetupTerm(Topology const& topIn, Box const& boxIn,
+                                  CharMask const& maskIn, EnergyArray& Earray)
 {
   activeBonds_.clear();
   for (BondArray::const_iterator bnd = topIn.Bonds().begin(); bnd != topIn.Bonds().end(); ++bnd)

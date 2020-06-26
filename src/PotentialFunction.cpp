@@ -1,7 +1,6 @@
 #include "PotentialFunction.h"
 #include "CpptrajStdio.h"
 #include "Topology.h"
-#include "Box.h"
 // ----- All potential terms -----------
 #include "PotentialTerm_Bond.h"
 
@@ -46,7 +45,7 @@ int PotentialFunction::SetupPotential(Topology const& topIn, Box const& boxIn,
   earray_.clear();
   for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
   {
-    if ( (*it)->SetupTerm( topIn, mask_, earray_ ) ) {
+    if ( (*it)->SetupTerm( topIn, boxIn, mask_, earray_ ) ) {
       mprinterr("Error: Could not set up energy term.\n");
       return 1;
     }

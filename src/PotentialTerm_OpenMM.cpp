@@ -1,6 +1,7 @@
 #include "PotentialTerm_OpenMM.h"
 #include "CpptrajStdio.h"
 #ifdef HAS_OPENMM
+# include "Box.h"
 # include "OpenMM.h"
 #endif
 
@@ -19,12 +20,28 @@ PotentialTerm_OpenMM::~PotentialTerm_OpenMM() {
 # endif
 }
 
-int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, CharMask const& maskIn,
-                                    EnergyArray& earrayIn)
+int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
+                                    CharMask const& maskIn, EnergyArray& earrayIn)
 {
 # ifdef HAS_OPENMM
   mprintf("OpenMM setup.\n");
-  return 0;
+  system_ = new OpenMM::System();
+  OpenMM::NonbondedForce* nonbond = new OpenMM::NonbondedForce();
+  system_->addForce( nonbond );
+  OpenMM::HarmonicBondForce* bondStretch = new OpenMM::HarmonicBondForce();
+  system_->addForce( bondStretch );
+
+  // Do periodic boundary conditions if necessary.
+  if (boxIn.Type() != Box::NOBOX) {
+    nonbond->setNonbondedMethod(OpenMM::NonbondedForce::CutoffPeriodic);
+    nonbond->setCutoffDistance( 0.8 ); // TODO allow args
+    Matrix_3x3 ucell, recip;
+    boxIn.ToRecip(ucell, recip);
+    system_->setDefaultPeriodicBoxVectors(
+      OpenMM::Vec3( ucell[0], ucell[1], ucell[2] ),
+      OpenMM::Vec3( ucell[3], ucell[4], ucell[5] ),
+      OpenMM::Vec3( ucell[6], ucell[7], ucell[8] ) );
+  }
 # else
   mprinterr("Error: CPPTRAJ was compiled without OpenMM support.\n");
   return 1;
