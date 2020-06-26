@@ -144,8 +144,8 @@ void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) con
   }
   context_->setPositions(posInNm);
   // Do a single minimization step
-  OpenMM::LocalEnergyMinimizer min;
-  min.minimize(*context_, 10.0, 1);
+  //OpenMM::LocalEnergyMinimizer min;
+  //min.minimize(*context_, 10.0, 1);
   // Get the results
   const OpenMM::State state = context_->getState(OpenMM::State::Forces, true);
   //  timeInPs = state.getTime(); // OpenMM time is in ps already
