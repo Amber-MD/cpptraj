@@ -4,6 +4,8 @@
 # include "OpenMM.h"
 # include "Box.h"
 # include "Topology.h"
+# include "CharMask.h"
+# include "Constants.h"
 #endif
 
 PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
@@ -24,15 +26,21 @@ PotentialTerm_OpenMM::~PotentialTerm_OpenMM() {
 #ifdef HAS_OPENMM
 void PotentialTerm_OpenMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
                                     std::vector< std::pair<int,int> >& bondPairs,
-                                    BondArray const& bonds, BondParmArray const& BP)
+                                    BondArray const& bonds, BondParmArray const& BP,
+                                    std::vector<int> const& oldToNew)
 {
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
-    bondPairs.push_back(std::make_pair(bnd->A1(), bnd->A2()));
-    bondStretch->addBond( bnd->A1(), bnd->A2(),
-                          BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
-                          BP[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
-                            * OpenMM::AngstromsPerNm * OpenMM::AngstromsPerNm );
+    int a1 = oldToNew[bnd->A1()];
+    int a2 = oldToNew[bnd->A2()];
+    if (a1 != -1 && a2 != -1)
+    {
+      bondPairs.push_back(std::make_pair(a1, a2));
+      bondStretch->addBond( a1, a2,
+                            BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
+                            BP[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
+                              * OpenMM::AngstromsPerNm * OpenMM::AngstromsPerNm );
+    }
   }
 }
 
@@ -61,14 +69,19 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   }
 
   // Add atoms to the system.
+  std::vector<int> oldToNew(topIn.Natom(), -1);
+  int newIdx = 0;
   for (int idx = 0; idx != topIn.Natom(); idx++)
   {
-    system_->addParticle( topIn[idx].Mass() );
-    if (topIn.Nonbond().HasNonbond()) {
-      nonbond->addParticle(
-        topIn[idx].Charge(),
-        topIn.GetVDWradius(idx) * OpenMM::NmPerAngstrom * OpenMM::SigmaPerVdwRadius,
-        topIn.GetVDWdepth(idx) * OpenMM::KJPerKcal );
+    if (maskIn.AtomInCharMask(idx)) {
+      oldToNew[idx] = newIdx++;
+      system_->addParticle( topIn[idx].Mass() );
+      if (topIn.Nonbond().HasNonbond()) {
+        nonbond->addParticle(
+          topIn[idx].Charge(),
+          topIn.GetVDWradius(idx) * OpenMM::NmPerAngstrom * OpenMM::SigmaPerVdwRadius,
+          topIn.GetVDWdepth(idx) * OpenMM::KJPerKcal );
+      }
     }
   }
   // Add bonds
@@ -76,8 +89,8 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   // as it is used in the harmonic energy term kx^2 with force 2kx; OpenMM wants 
   // it as used in the force term kx, with energy kx^2/2.
   std::vector< std::pair<int,int> >   bondPairs;
-  AddBonds(bondStretch, bondPairs, topIn.Bonds(), topIn.BondParm());
-  AddBonds(bondStretch, bondPairs, topIn.BondsH(), topIn.BondParm());
+  AddBonds(bondStretch, bondPairs, topIn.Bonds(), topIn.BondParm(),  oldToNew);
+  AddBonds(bondStretch, bondPairs, topIn.BondsH(), topIn.BondParm(), oldToNew);
 
   // Populate nonbonded exclusions TODO make args
   const double Coulomb14Scale      = 1.0;
@@ -117,15 +130,36 @@ int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
 
 void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) const
 {
+# ifdef HAS_OPENMM
   // Set positions in nm
   std::vector<OpenMM::Vec3> posInNm;
+  posInNm.reserve(maskIn.Nselected());
   for (int at = 0; at != frameIn.Natom(); at++) {
-    const double* xyz = frameIn.XYZ(at);
-    posInNm.push_back( OpenMM::Vec3(xyz[0]*OpenMM::NmPerAngstrom,
-                                    xyz[1]*OpenMM::NmPerAngstrom,
-                                    xyz[2]*OpenMM::NmPerAngstrom) );
+    if (maskIn.AtomInCharMask(at)) {
+      const double* xyz = frameIn.XYZ(at);
+      posInNm.push_back( OpenMM::Vec3(xyz[0]*OpenMM::NmPerAngstrom,
+                                      xyz[1]*OpenMM::NmPerAngstrom,
+                                      xyz[2]*OpenMM::NmPerAngstrom) );
+    }
   }
   context_->setPositions(posInNm);
+  // Do a single minimization step
+  OpenMM::LocalEnergyMinimizer min;
+  min.minimize(*context_, 10.0, 1);
+  // Get the results
+  const OpenMM::State state = context_->getState(OpenMM::State::Forces, true);
+  //  timeInPs = state.getTime(); // OpenMM time is in ps already
+
+  // Copy OpenMM positions into output array and change units from nm to Angstroms.
+  const std::vector<OpenMM::Vec3>& ommForces = state.getForces();
+  double* fptr = frameIn.fAddress();
+  for (int i=0; i < (int)ommForces.size(); ++i, fptr += 3)
+  {
+    //for (int j=0; j<3; j++)
+    //  xptr[j] = positionsInNm[i][j] * OpenMM::AngstromsPerNm;
+    for (int j=0; j<3; j++)
+      fptr[j] = ommForces[i][j] * Constants::GMX_FRC_TO_AMBER;
+  }
+# endif
   return;
 }
-  

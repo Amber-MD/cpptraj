@@ -21,7 +21,7 @@ class PotentialTerm_OpenMM : public PotentialTerm {
   private:
 #   ifdef HAS_OPENMM
     void AddBonds(OpenMM::HarmonicBondForce*, std::vector< std::pair<int,int> >&,
-                  BondArray const&, BondParmArray const&);
+                  BondArray const&, BondParmArray const&, std::vector<int> const&);
     int OpenMM_setup(Topology const&, Box const&, CharMask const&, EnergyArray&);
 
     OpenMM::System* system_;
