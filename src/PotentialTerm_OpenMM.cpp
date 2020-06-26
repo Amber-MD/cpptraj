@@ -22,6 +22,18 @@ PotentialTerm_OpenMM::~PotentialTerm_OpenMM() {
 }
 
 #ifdef HAS_OPENMM
+void PotentialTerm_OpenMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
+                                    BondArray const& bonds, BondParmArray const& BP)
+{
+  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+    bondStretch->addBond( bnd->A1(), bnd->A2(),
+                          BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
+                          BP[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
+                            * OpenMM::AngstromsPerNm * OpenMM::AngstromsPerNm );
+}
+
+
+/** This performs the actual openMM setup. */
 int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
                                        CharMask const& maskIn, EnergyArray& earrayIn)
 {
@@ -59,18 +71,14 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   // Note factor of 2 for stiffness below because Amber specifies the constant
   // as it is used in the harmonic energy term kx^2 with force 2kx; OpenMM wants 
   // it as used in the force term kx, with energy kx^2/2.
-  for (BondArray::const_iterator bnd = topIn.Bonds().begin();
-                                 bnd != topIn.Bonds().end(); ++bnd)
-    bondStretch->addBond( bnd->A1(), bnd->A2(),
-                          topIn.BondParm()[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
-                          topIn.BondParm()[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
-                            * OpenMM::AngstromsPerNm * OpenMM::AngstromsPerNm );
+  AddBonds(bondStretch, topIn.Bonds(), topIn.BondParm());
+  AddBonds(bondStretch, topIn.BondsH(), topIn.BondParm());
 
   return 0;
 }
 #endif
  
-/** Set up openmm terms. */
+/** Set up openmm terms. This is the wrapper for try/catch. */
 int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
                                     CharMask const& maskIn, EnergyArray& earrayIn)
 {
