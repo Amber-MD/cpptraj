@@ -21,10 +21,10 @@ PotentialTerm_OpenMM::~PotentialTerm_OpenMM() {
 # endif
 }
 
-int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
-                                    CharMask const& maskIn, EnergyArray& earrayIn)
+#ifdef HAS_OPENMM
+int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
+                                       CharMask const& maskIn, EnergyArray& earrayIn)
 {
-# ifdef HAS_OPENMM
   mprintf("OpenMM setup.\n");
   system_ = new OpenMM::System();
   OpenMM::NonbondedForce* nonbond = new OpenMM::NonbondedForce();
@@ -55,11 +55,39 @@ int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
         topIn.GetVDWdepth(idx) * OpenMM::KJPerKcal );
     }
   }
-      
+  // Add bonds
+  // Note factor of 2 for stiffness below because Amber specifies the constant
+  // as it is used in the harmonic energy term kx^2 with force 2kx; OpenMM wants 
+  // it as used in the force term kx, with energy kx^2/2.
+  for (BondArray::const_iterator bnd = topIn.Bonds().begin();
+                                 bnd != topIn.Bonds().end(); ++bnd)
+    bondStretch->addBond( bnd->A1(), bnd->A2(),
+                          topIn.BondParm()[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
+                          topIn.BondParm()[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
+                            * OpenMM::AngstromsPerNm * OpenMM::AngstromsPerNm );
+
+  return 0;
+}
+#endif
+ 
+/** Set up openmm terms. */
+int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
+                                    CharMask const& maskIn, EnergyArray& earrayIn)
+{
+  int err = 1;
+# ifdef HAS_OPENMM
+  try {
+    err = OpenMM_setup(topIn, boxIn, maskIn, earrayIn);
+  }
+
+  catch(const std::exception& e) {
+    printf("EXCEPTION: %s\n", e.what());
+    err = 1;
+  }
 # else
   mprinterr("Error: CPPTRAJ was compiled without OpenMM support.\n");
-  return 1;
 # endif
+  return err;
 }
 
 void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) const

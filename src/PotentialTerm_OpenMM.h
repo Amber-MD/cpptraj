@@ -18,6 +18,8 @@ class PotentialTerm_OpenMM : public PotentialTerm {
     void CalcForce(Frame&, CharMask const&) const;
   private:
 #   ifdef HAS_OPENMM
+    int OpenMM_setup(Topology const&, Box const&, CharMask const&, EnergyArray&);
+
     OpenMM::System* system_;
     OpenMM::Context* context_;
 #   endif
