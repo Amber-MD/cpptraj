@@ -1,6 +1,7 @@
 #include "PotentialFunction.h"
 #include "CpptrajStdio.h"
 #include "Topology.h"
+#include "Box.h"
 // ----- All potential terms -----------
 #include "PotentialTerm_Bond.h"
 
@@ -22,7 +23,9 @@ int PotentialFunction::AddTerm(PotentialTerm::Type typeIn) {
 }
 
 /** Set up each term of the potential function. */
-int PotentialFunction::SetupPotential(Topology const& topIn, std::string const& maskExprIn) {
+int PotentialFunction::SetupPotential(Topology const& topIn, Box const& boxIn,
+                                      std::string const& maskExprIn)
+{
   // First set up the mask
   mask_.ResetMask();
   if (mask_.SetMaskString( maskExprIn )) {

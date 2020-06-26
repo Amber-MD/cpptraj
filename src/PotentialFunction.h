@@ -7,14 +7,15 @@
 // Forward declares
 class Topology;
 class Frame;
+class Box;
 /// Hold terms for additive potential.
 class PotentialFunction {
   public:
     PotentialFunction() : current_(0), deg_of_freedom_(0) {}
 
     int AddTerm(PotentialTerm::Type);
-
-    int SetupPotential(Topology const&, std::string const&);
+    /// Set up all terms in the potential function.
+    int SetupPotential(Topology const&, Box const&, std::string const&);
 
     int CalculateForce(Frame&);
 
