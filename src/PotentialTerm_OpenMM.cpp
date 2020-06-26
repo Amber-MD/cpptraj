@@ -117,6 +117,15 @@ int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
 
 void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) const
 {
+  // Set positions in nm
+  std::vector<OpenMM::Vec3> posInNm;
+  for (int at = 0; at != frameIn.Natom(); at++) {
+    const double* xyz = frameIn.XYZ(at);
+    posInNm.push_back( OpenMM::Vec3(xyz[0]*OpenMM::NmPerAngstrom,
+                                    xyz[1]*OpenMM::NmPerAngstrom,
+                                    xyz[2]*OpenMM::NmPerAngstrom) );
+  }
+  context_->setPositions(posInNm);
   return;
 }
   
