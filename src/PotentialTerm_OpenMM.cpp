@@ -74,6 +74,8 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   system_->addForce( nonbond );
   OpenMM::HarmonicBondForce* bondStretch = new OpenMM::HarmonicBondForce();
   system_->addForce( bondStretch );
+  OpenMM::HarmonicAngleForce* angleStretch = new OpenMM::HarmonicAngleForce();
+  system_->addForce( angleStretch );
 
   // Do periodic boundary conditions if necessary.
   if (boxIn.Type() != Box::NOBOX) {
@@ -110,6 +112,10 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   std::vector< std::pair<int,int> >   bondPairs;
   AddBonds(bondStretch, bondPairs, topIn.Bonds(), topIn.BondParm(),  oldToNew);
   AddBonds(bondStretch, bondPairs, topIn.BondsH(), topIn.BondParm(), oldToNew);
+
+  // Add angles
+  AddAngles(angleStretch, topIn.Angles(), topIn.AngleParm(), oldToNew);
+  AddAngles(angleStretch, topIn.AnglesH(), topIn.AngleParm(), oldToNew);
 
   // Populate nonbonded exclusions TODO make args
   const double Coulomb14Scale      = 1.0;
