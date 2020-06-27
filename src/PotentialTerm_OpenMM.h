@@ -8,6 +8,7 @@ namespace OpenMM {
   class System;
   class Context;
   class HarmonicBondForce;
+  class HarmonicAngleForce;
 }
 #endif
 /// Use OpenMM potential
@@ -22,6 +23,8 @@ class PotentialTerm_OpenMM : public PotentialTerm {
 #   ifdef HAS_OPENMM
     void AddBonds(OpenMM::HarmonicBondForce*, std::vector< std::pair<int,int> >&,
                   BondArray const&, BondParmArray const&, std::vector<int> const&);
+    void AddAngles(OpenMM::HarmonicAngleForce*, AngleArray const&, AngleParmArray const&, 
+                   std::vector<int> const&);
     int OpenMM_setup(Topology const&, Box const&, CharMask const&, EnergyArray&);
 
     OpenMM::System* system_;

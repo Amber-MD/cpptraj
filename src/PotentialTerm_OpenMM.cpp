@@ -45,6 +45,24 @@ void PotentialTerm_OpenMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
   }
 }
 
+void PotentialTerm_OpenMM::AddAngles(OpenMM::HarmonicAngleForce* angleStretch,
+                                     AngleArray const& angles, AngleParmArray const& AP,
+                                     std::vector<int> const& oldToNew)
+{
+  for (AngleArray::const_iterator ang = angles.begin(); ang != angles.end(); ++ang)
+  {
+    int a1 = oldToNew[ang->A1()];
+    int a2 = oldToNew[ang->A2()];
+    int a3 = oldToNew[ang->A3()];
+    if (a1 != -1 && a2 != -1 && a3 != -1)
+    {
+      angleStretch->addAngle( a1, a2, a3,
+                            AP[ang->Idx()].Teq() * OpenMM::RadiansPerDegree,
+                            AP[ang->Idx()].Tk() * 2 * OpenMM::KJPerKcal);
+    }
+  }
+}
+
 
 /** This performs the actual openMM setup. */
 int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
