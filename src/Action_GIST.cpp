@@ -1363,7 +1363,7 @@ void Action_GIST::Print() {
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
     datafile_->Printf("GIST Output %s "
-		      "spacing=%.4f center=%.4f,%.4f,%.4f dims=%i,%i,%i \n"
+		      "spacing=%.4f center=%.6f,%.6f,%.6f dims=%i,%i,%i \n"
                       "voxel xcoord ycoord zcoord population g_O g_H"
                       " dTStrans-dens(kcal/mol/A^3) dTStrans-norm(kcal/mol)"
                       " dTSorient-dens(kcal/mol/A^3) dTSorient-norm(kcal/mol)"
