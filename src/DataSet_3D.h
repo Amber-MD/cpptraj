@@ -19,7 +19,7 @@ class DataSet_3D : public DataSet {
     /// \return Data from grid at x/y/z point.
     virtual double GetElement(size_t, size_t, size_t) const = 0;
     /// Set grid to value
-    virtual void SetGrid(size_t, size_t, size_t, double) = 0;
+    virtual void SetGrid(size_t, double) = 0;
     /// Increment the specified grid point by value
     virtual void IncrementElement(size_t, size_t, size_t, double) = 0;
     /// \return Data from grid.
