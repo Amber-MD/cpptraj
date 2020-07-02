@@ -6,6 +6,12 @@
 #include "BufferedLine.h"
 #include "ProgressBar.h"
 
+DataIO_OpenDx::DataIO_OpenDx() :
+  DataIO(false, false, true), // Valid for 3D only
+  gridWriteMode_(BIN_CORNER),
+  gridReadType_(DataSet::GRID_FLT)
+{}
+
 bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
   bool isDX = false;
   if (!infile.OpenFile()) {
@@ -17,13 +23,29 @@ bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
   return isDX;
 }
 
+/** Process read options. */
+int DataIO_OpenDx::processReadArgs(ArgList& argIn) {
+  std::string typestr = argIn.GetStringKey("type");
+  if (!typestr.empty()) {
+    if (typestr == "float")
+      gridReadType_ = DataSet::GRID_FLT;
+    else if (typestr == "double")
+      gridReadType_ = DataSet::GRID_DBL;
+    else {
+      mprinterr("Error: Unrecognized grid type: %s\n", typestr.c_str());
+      return 1;
+    }
+  }
+  return 0;
+}
+
 // DataIO_OpenDx::ReadData()
 int DataIO_OpenDx::ReadData(FileName const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
   // TODO append?
   // Add grid data set. Default to float for now.
-  DataSet* ds = datasetlist.AddSet( DataSet::GRID_FLT, dsname, "GRID" );
+  DataSet* ds = datasetlist.AddSet( gridReadType_, dsname, "GRID" );
   if (ds==0) return 1;
   if (LoadGrid(fname.full(), *ds)) {
     // Load failed. Erase grid data set.
@@ -36,8 +58,7 @@ int DataIO_OpenDx::ReadData(FileName const& fname,
 // DataIO_OpenDx::LoadGrid()
 int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
 {
-  // TODO: This may need to be changed if new 3D types introduced.
-  DataSet_GridFlt& grid = static_cast<DataSet_GridFlt&>( ds );
+  DataSet_3D& grid = static_cast<DataSet_3D&>( ds );
   // Open file
   BufferedLine infile;
   if (infile.OpenFileRead(filename)) return 1;
@@ -145,7 +166,7 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
         mprintf("Warning: Check that data region ends with a newline.\n");
         break;
       }
-      grid[ndata++] = (float)atof(infile.NextToken());
+      grid.SetGrid(ndata++, atof(infile.NextToken()));
     }
     progress.Update( ndata );
   }

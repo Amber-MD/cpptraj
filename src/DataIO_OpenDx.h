@@ -4,9 +4,9 @@
 /// Write OpenDx format data files.
 class DataIO_OpenDx : public DataIO {
   public:
-    DataIO_OpenDx() : DataIO(false, false, true), gridWriteMode_(BIN_CORNER) {} // Valid for 3D only
+    DataIO_OpenDx();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_OpenDx(); }
-    int processReadArgs(ArgList&) { return 0; }
+    int processReadArgs(ArgList&);
     int ReadData(FileName const&, DataSetList&, std::string const&);
     static void WriteHelp();
     int processWriteArgs(ArgList&);
@@ -22,5 +22,6 @@ class DataIO_OpenDx : public DataIO {
     int WriteGrid(DataSet const&, CpptrajFile&) const;
 
     GridWriteType gridWriteMode_;
+    DataSet::DataType gridReadType_;
 };
 #endif
