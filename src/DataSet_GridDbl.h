@@ -32,6 +32,11 @@ class DataSet_GridDbl : public DataSet_3D {
     void ReverseIndex(long int n, size_t& i, size_t& j, size_t& k) const
       { return grid_.ReverseIndex(n,i,j,k); }
     void UpdateVoxel(long int i, double val) { grid_[i] += val; }
+    /// Divide all elements by val
+    void operator/=(double val) {
+      for (Grid<double>::iterator it = grid_.begin(); it != grid_.end(); ++it)
+        (*it) /= val;
+    }
     // -------------------------------------------
     void SetElement(size_t x,size_t y,size_t z,double v) { grid_.setGrid(x,y,z,v);     }
     /// Type definition of iterator over grid elements.

@@ -32,6 +32,8 @@ class DataSet_3D : public DataSet {
     virtual void ReverseIndex(long int, size_t&, size_t&, size_t&) const = 0;
     /// Increment specified voxel by given amount.
     virtual void UpdateVoxel(long int, double) = 0;
+    /// Divide all elements by the given scalar
+    virtual void operator/=(double) = 0;
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }
