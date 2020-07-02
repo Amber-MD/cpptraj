@@ -18,6 +18,8 @@ class DataSet_3D : public DataSet {
     int Allocate(SizeArray const&) { return 1; } // TODO enable?
     /// \return Data from grid at x/y/z point.
     virtual double GetElement(size_t, size_t, size_t) const = 0;
+    /// Increment the specified grid point by value
+    virtual void IncrementElement(size_t, size_t, size_t, double) = 0;
     /// \return Data from grid.
     virtual double operator[](size_t) const = 0;
     /// \return size of X dimension.

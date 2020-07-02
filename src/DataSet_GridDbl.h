@@ -11,6 +11,18 @@ class DataSet_GridDbl : public DataSet_3D {
     double& operator[](size_t idx)              { return grid_[idx];          }
     static DataSet* Alloc()       { return (DataSet*)new DataSet_GridDbl();  }
     Grid<double> const& InternalGrid()    const { return grid_; }
+    void SetElement(size_t x,size_t y,size_t z,double v) { grid_.setGrid(x,y,z,v);     }
+    /// Type definition of iterator over grid elements.
+    typedef Grid<double>::iterator iterator;
+    iterator begin() { return grid_.begin(); }
+    iterator end()   { return grid_.end();   }
+    /// Increment grid bin corresponding to point by given value.
+    inline long int Increment(Vec3 const&, double);
+    inline long int Increment(const double*, double);
+    /// Increment grid bin by given value.
+    inline long int Increment(size_t,size_t,size_t,double);
+    /// \return grid value at specified bin.
+    double GridVal(size_t x,size_t y,size_t z)        const { return grid_.element(x,y,z);   }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return grid_.size();        }
 #   ifdef MPI
@@ -23,6 +35,7 @@ class DataSet_GridDbl : public DataSet_3D {
     // ----- DataSet_3D functions ----------------
     int Allocate3D(size_t x,size_t y,size_t z) { return grid_.resize(x,y,z); }
     double GetElement(size_t x,size_t y,size_t z) const { return grid_.element(x,y,z); }
+    void IncrementElement(size_t x, size_t y, size_t z, double val) { Increment(x,y,z,val); }
     double operator[](size_t idx)        const { return grid_[idx];  }
     size_t NX() const { return grid_.NX(); }
     size_t NY() const { return grid_.NY(); }
@@ -37,19 +50,6 @@ class DataSet_GridDbl : public DataSet_3D {
       for (Grid<double>::iterator it = grid_.begin(); it != grid_.end(); ++it)
         (*it) /= val;
     }
-    // -------------------------------------------
-    void SetElement(size_t x,size_t y,size_t z,double v) { grid_.setGrid(x,y,z,v);     }
-    /// Type definition of iterator over grid elements.
-    typedef Grid<double>::iterator iterator;
-    iterator begin() { return grid_.begin(); }
-    iterator end()   { return grid_.end();   }
-    /// Increment grid bin corresponding to point by given value.
-    inline long int Increment(Vec3 const&, double);
-    inline long int Increment(const double*, double);
-    /// Increment grid bin by given value.
-    inline long int Increment(size_t,size_t,size_t,double);
-    /// \return grid value at specified bin.
-    double GridVal(size_t x,size_t y,size_t z)        const { return grid_.element(x,y,z);   }
   private:
     Grid<double> grid_;
 };
