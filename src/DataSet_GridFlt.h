@@ -35,6 +35,7 @@ class DataSet_GridFlt : public DataSet_3D {
     // ----- DataSet_3D functions ----------------
     int Allocate3D(size_t x, size_t y, size_t z)          { return grid_.resize(x,y,z); }
     double GetElement(size_t x, size_t y, size_t z) const { return (double)grid_.element(x,y,z); }
+    void SetGrid(size_t x, size_t y, size_t z, double d) { grid_.setGrid(x,y,z,d); }
     void IncrementElement(size_t x, size_t y, size_t z, double val) { Increment(x, y, z, (float)val); }
     double operator[](size_t idx)                   const { return (double)grid_[idx];  }
     size_t NX() const { return grid_.NX(); }
