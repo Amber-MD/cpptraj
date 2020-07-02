@@ -1,9 +1,8 @@
 #ifndef INC_DATASET_3D_H
 #define INC_DATASET_3D_H
 #include "DataSet.h"
-#include "CpptrajFile.h"
-#include "Box.h"
 #include "GridBin.h"
+class Box;
 /// Interface for 3D DataSets.
 // FIXME: Use DataSet Dims?
 class DataSet_3D : public DataSet {
