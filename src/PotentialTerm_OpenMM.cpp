@@ -9,6 +9,7 @@
 # include "EnergyArray.h"
 #endif
 
+/// CONSTRUCTOR
 PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
   PotentialTerm(OPENMM)
 #ifdef HAS_OPENMM
@@ -17,6 +18,7 @@ PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
 #endif
 {}
 
+/// DESTRUCTOR
 PotentialTerm_OpenMM::~PotentialTerm_OpenMM() {
 # ifdef HAS_OPENMM
   if (system_ != 0) delete system_;
@@ -25,6 +27,7 @@ PotentialTerm_OpenMM::~PotentialTerm_OpenMM() {
 }
 
 #ifdef HAS_OPENMM
+/** Add BondArray to openmm */
 void PotentialTerm_OpenMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
                                     std::vector< std::pair<int,int> >& bondPairs,
                                     BondArray const& bonds, BondParmArray const& BP,
@@ -45,6 +48,7 @@ void PotentialTerm_OpenMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
   }
 }
 
+/** Add AngleArray to openmm. */
 void PotentialTerm_OpenMM::AddAngles(OpenMM::HarmonicAngleForce* angleStretch,
                                      AngleArray const& angles, AngleParmArray const& AP,
                                      std::vector<int> const& oldToNew)
@@ -56,19 +60,19 @@ void PotentialTerm_OpenMM::AddAngles(OpenMM::HarmonicAngleForce* angleStretch,
     int a3 = oldToNew[ang->A3()];
     if (a1 != -1 && a2 != -1 && a3 != -1)
     {
+      // CPPTRAJ angles are already in radians, no need for OpenMM::RadiansPerDegree
       angleStretch->addAngle( a1, a2, a3,
-                            AP[ang->Idx()].Teq() * OpenMM::RadiansPerDegree,
+                            AP[ang->Idx()].Teq(),
                             AP[ang->Idx()].Tk() * 2 * OpenMM::KJPerKcal);
     }
   }
 }
 
-
 /** This performs the actual openMM setup. */
 int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
                                        CharMask const& maskIn, EnergyArray& earrayIn)
 {
-  mprintf("OpenMM setup.\n");
+  mprintf("\tSetting up OpenMM.\n");
   system_ = new OpenMM::System();
   OpenMM::NonbondedForce* nonbond = new OpenMM::NonbondedForce();
   system_->addForce( nonbond );
@@ -127,7 +131,7 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   context_ = new OpenMM::Context( *system_, *integrator );
 
   std::string platformName = context_->getPlatform().getName();
-  mprintf("OpenMM Platform: %s\n", platformName.c_str());
+  mprintf("\tOpenMM Platform: %s\n", platformName.c_str());
 
   // Set up energy term
   ene_ = earrayIn.AddType( EnergyArray::E_OPENMM );
@@ -156,6 +160,7 @@ int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
   return err;
 }
 
+/** Calculate force from OpenMM */
 void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) const
 {
 # ifdef HAS_OPENMM
