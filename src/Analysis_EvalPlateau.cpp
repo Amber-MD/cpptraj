@@ -257,7 +257,9 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(*it) );
     // oidx will be used to index the sets in data_
     long int oidx = (it - inputSets_.begin());
+    int err = 0;
     // -------------------------------------------
+/*
     // First do a linear fit. TODO may not need this anymore
     statsout_->Printf("\t----- Linear Fit -----\n");
     if (DS.Size() < 2) {
@@ -266,7 +268,7 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
       continue;
     }
     double slope, intercept, correl, Fval;
-    int err = DS.LinearRegression( slope, intercept, correl, Fval, statsout_ );
+    err = DS.LinearRegression( slope, intercept, correl, Fval, statsout_ );
     if (err != 0) {
       mprintf("Warning: Could not perform linear regression fit for '%s'.\n", DS.legend());
       BlankResult(oidx, DS.legend());
@@ -285,6 +287,7 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     linAvgr /= (double)DS.Size();
     statsout_->Printf("\tAvgResidual= %g\n", linAvgr);
     //statsout_->Printf("\tlinear chisq= %g\n", linChiSq);
+*/
 
     // -------------------------------------------
     // Process expression to fit
