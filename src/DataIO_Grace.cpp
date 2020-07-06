@@ -159,6 +159,7 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   DataSet::SizeArray frame(1);
   for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set, ++setnum)
   {
+    //mprintf("DEBUG: %s format %s\n", (*set)->legend(), (*set)->Format().fmt());
     // Skip the label set if defined.
     if (*set == labelSet) continue;
     size_t maxFrames = (*set)->Size();
