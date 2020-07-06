@@ -68,6 +68,28 @@ void PotentialTerm_OpenMM::AddAngles(OpenMM::HarmonicAngleForce* angleStretch,
   }
 }
 
+/** Add DihedralArray to openmm. */
+void PotentialTerm_OpenMM::AddDihedrals(OpenMM::PeriodicTorsionForce* ptorsion,
+                                     DihedralArray const& dihedrals, DihedralParmArray const& DP,
+                                     std::vector<int> const& oldToNew)
+{
+  for (DihedralArray::const_iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih)
+  {
+    int a1 = oldToNew[dih->A1()];
+    int a2 = oldToNew[dih->A2()];
+    int a3 = oldToNew[dih->A3()];
+    int a4 = oldToNew[dih->A4()];
+    if (a1 != -1 && a2 != -1 && a3 != -1 && a4 != -1)
+    {
+      // CPPTRAJ dihedrals are already in radians, no need for OpenMM::RadiansPerDegree
+      ptorsion->addTorsion( a1, a2, a3, a4,
+                            DP[dih->Idx()].Pn(),
+                            DP[dih->Idx()].Phase(),
+                            DP[dih->Idx()].Pk() * OpenMM::KJPerKcal);
+    }
+  }
+}
+
 /** This performs the actual openMM setup. */
 int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
                                        CharMask const& maskIn, EnergyArray& earrayIn)
