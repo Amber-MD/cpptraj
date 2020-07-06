@@ -3,6 +3,7 @@
 #include "DataSet_1D.h"
 #include "DataSet_Mesh.h"
 #include "CurveFit.h"
+#include "StringRoutines.h" // convertToInteger
 
 Analysis_EvalPlateau::Analysis_EvalPlateau() :
   statsout_(0),
@@ -18,30 +19,38 @@ Analysis_EvalPlateau::Analysis_EvalPlateau() :
   SetHidden(true);
 }
 
-const char* Analysis_EvalPlateau::OdataStr_[NDATA] = {
-  "A0",
-  "A1",
-  "A2",
-  "F",
-  "corr",
-  "vala",
-  "chisq",
-  "pltime",
-  "name",
-  "result"
+/** Aspects for output data sets (data_[]). KEEP IN SYNC WITH OdataType */
+const char* Analysis_EvalPlateau::OdataStr_[] = {
+  "A0",     // A0
+  "A1",     // A1
+  "A2",     // A2
+  "OneA1",  // ONEA1
+  //"F",      // FVAL
+  "corr",   // CORR
+  "vala",   // VALA
+  //"lchisq", // LCHISQ
+  "chisq",  // CHISQ
+  "pltime", // PLTIME
+  "fslope", // FSLOPE
+  "name",   // NAME
+  "result"  // RESULT
 };
 
-DataSet::DataType Analysis_EvalPlateau::OdataType_[NDATA] = {
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::DOUBLE,
-  DataSet::STRING,
-  DataSet::STRING
+/** Set type for output data sets (data_[]). KEEP IN SYNC WITH OdataType */
+DataSet::DataType Analysis_EvalPlateau::OdataType_[] = {
+  DataSet::DOUBLE, // A0
+  DataSet::DOUBLE, // A1
+  DataSet::DOUBLE, // A2
+  DataSet::DOUBLE, // ONEA1
+  //DataSet::DOUBLE, // FVAL
+  DataSet::DOUBLE, // CORR
+  DataSet::DOUBLE, // VALA
+  //DataSet::DOUBLE, // LCHISQ
+  DataSet::DOUBLE, // CHISQ
+  DataSet::DOUBLE, // PLTIME
+  DataSet::DOUBLE, // FSLOPE
+  DataSet::STRING, // NAME
+  DataSet::STRING  // RESULT
 };
 
 // Analysis_EvalPlateau::Help()
@@ -122,6 +131,7 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
   {
     DataSet* setOut = setup.DSL().AddSet( DataSet::XYMESH, MetaData( dsname_, idx ) );
     if (setOut == 0) return Analysis::ERR;
+    setOut->SetupFormat() = TextFormat(TextFormat::SCIENTIFIC, 16, 8);
     outputSets_.push_back( setOut );
     if (outfile != 0) {
       outfile->AddDataSet( *it );
@@ -138,6 +148,14 @@ Analysis::RetType Analysis_EvalPlateau::Setup(ArgList& analyzeArgs, AnalysisSetu
     ds->Allocate( nData );
     if (resultsOut != 0)
       resultsOut->AddDataSet( ds );
+    // Set formatting
+    if ((OdataType)idx == A1 ||
+        (OdataType)idx == VALA ||
+        (OdataType)idx == FSLOPE ||
+        (OdataType)idx == CHISQ //||
+        //(OdataType)idx == LCHISQ
+       )
+      ds->SetupFormat().SetFormatType(TextFormat::GDOUBLE);
     data_.push_back( ds );
   }
 
@@ -173,20 +191,57 @@ int EQ_plateau(CurveFit::Darray const& Xvals, CurveFit::Darray const& Params,
   return 0;
 }
 
+/** Determine the slope of the given mesh data set and whether it satisfies the cutoff.
+  * \return true if slope cutoff is satisfied.
+  * \param OUT Set to calculate slope of.
+  * \param pltime Set to X value when slope cutoff satisfied.
+  * \param finalslope Set to final slope value.
+  */
+bool Analysis_EvalPlateau::CheckSlope(DataSet_Mesh const& OUT,
+                                      double& pltime, double& finalslope)
+{
+  DataSet_1D::Darray slopeX, slopeY;
+  OUT.FiniteDifference(DataSet_1D::FORWARD, slopeX, slopeY);
+  double finaly = 0;
+  bool slopeCutSatisfied = false;
+  pltime = -1;
+  finalslope = 0; 
+  for (unsigned int sidx = 0; sidx != slopeY.size(); ++sidx) {
+    //finalslope = slopeY[sidx];
+    //mprintf("DEBUG: slope %g %g\n", slopeX[sidx], slopeY[sidx]);
+    double absSlope = slopeY[sidx];
+    if (absSlope < 0) absSlope = -absSlope;
+    finalslope = absSlope;
+    if (!slopeCutSatisfied && absSlope < slopeCut_) {
+      pltime = slopeX[sidx];
+      finaly = slopeY[sidx];
+      slopeCutSatisfied = true;
+    }
+  }
+  if (slopeCutSatisfied)
+    statsout_->Printf("\tSlope cutoff satisfied at %g %g\n", pltime, finaly);
+  else
+    statsout_->Printf("\tSlope cutoff not satisfied.\n");
+  return slopeCutSatisfied;
+}
+
 /** This is used to add a non-result whenever there is an error 
   * evaluating the input data.
   */
 void Analysis_EvalPlateau::BlankResult(long int oidx, const char* legend)
 {
   static const double ZERO = 0.0;
-  data_[CHISQ]->Add(oidx, &ZERO);
   data_[A0]->Add(oidx, &ZERO);
   data_[A1]->Add(oidx, &ZERO);
   data_[A2]->Add(oidx, &ZERO);
-  data_[FVAL]->Add(oidx, &ZERO);
+  data_[ONEA1]->Add(oidx, &ZERO);
+  //data_[FVAL]->Add(oidx, &ZERO);
   data_[CORR]->Add(oidx, &ZERO);
   data_[VALA]->Add(oidx, &ZERO);
+  //data_[LCHISQ]->Add(oidx, &ZERO);
+  data_[CHISQ]->Add(oidx, &ZERO);
   data_[PLTIME]->Add(oidx, &ZERO);
+  data_[FSLOPE]->Add(oidx, &ZERO);
   data_[NAME]->Add(oidx, legend);
   data_[RESULT]->Add(oidx, "err");
 }
@@ -202,6 +257,9 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *(*it) );
     // oidx will be used to index the sets in data_
     long int oidx = (it - inputSets_.begin());
+    int err = 0;
+    // -------------------------------------------
+/*
     // First do a linear fit. TODO may not need this anymore
     statsout_->Printf("\t----- Linear Fit -----\n");
     if (DS.Size() < 2) {
@@ -210,13 +268,28 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
       continue;
     }
     double slope, intercept, correl, Fval;
-    int err = DS.LinearRegression( slope, intercept, correl, Fval, statsout_ );
+    err = DS.LinearRegression( slope, intercept, correl, Fval, statsout_ );
     if (err != 0) {
       mprintf("Warning: Could not perform linear regression fit for '%s'.\n", DS.legend());
       BlankResult(oidx, DS.legend());
       continue;
     }
+    // Do a chi-squared for the linear fit (residual sum sq.)
+    double linChiSq = 0;
+    double linAvgr = 0;
+    for (unsigned int n = 0; n != DS.Size(); n++) {
+      double linY = (slope*DS.Xcrd(n)) + intercept;
+      //mprintf("DBG: linear X= %g Y= %g\n", DS.Xcrd(n), linY);
+      double diff = linY - DS.Dval(n);
+      linChiSq += (diff * diff);
+      linAvgr += diff;
+    }
+    linAvgr /= (double)DS.Size();
+    statsout_->Printf("\tAvgResidual= %g\n", linAvgr);
+    //statsout_->Printf("\tlinear chisq= %g\n", linChiSq);
+*/
 
+    // -------------------------------------------
     // Process expression to fit
     //if (calc.ProcessExpression( dsname_ + "=A0*(exp(A1*(1/X)))" )) {
     //  mprinterr("Error: Unable to process equation expression.\n");
@@ -302,6 +375,7 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
       statsout_->Printf("\tFinal Param A%li = %g\n", ip - Params.begin(), *ip);
     }
 
+    // -------------------------------------------
     // Params[0] = A0 = Initial value. 
     // Params[1] = A1 = Relaxation constant
     // Params[2] = A2 = Final value at long time.
@@ -313,19 +387,33 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     statsout_->Printf("\tValA = %g\n", ValA);
 
     // Create output curve
+    double avgr = 0.0;
+    //CpptrajFile residualout;
+    //residualout.OpenWrite( "residual." + integerToString(it-inputSets_.begin()) + ".dat");
     DataSet_Mesh& OUT = static_cast<DataSet_Mesh&>( *(*ot) );
-    for (unsigned int i = 0; i != Xvals.size(); i++)
+    for (unsigned int i = 0; i != Xvals.size(); i++) {
       OUT.AddXY( Xvals[i] + offset, fit.FinalY()[i] );
+      double residual = fit.FinalY()[i] - Yvals[i];
+      //residualout.Printf("%g\t%g\n", Xvals[i], residual);
+      avgr += residual;
+    }
+    //residualout.CloseFile();
+    avgr /= (double)Xvals.size();
+    statsout_->Printf("\tAvgResidual= %g\n", avgr);
 
     // Calculate where slope reaches slopeCut_
+/*
     DataSet_1D::Darray slopeX, slopeY;
     OUT.FiniteDifference(DataSet_1D::FORWARD, slopeX, slopeY);
     double finalx=-1, finaly=0;
+    double finalslope = 0;
     bool slopeCutSatisfied = false;
     for (unsigned int sidx = 0; sidx != slopeY.size(); ++sidx) {
+      //finalslope = slopeY[sidx];
       //mprintf("DEBUG: slope %g %g\n", slopeX[sidx], slopeY[sidx]);
       double absSlope = slopeY[sidx];
       if (absSlope < 0) absSlope = -absSlope;
+      finalslope = absSlope;
       if (absSlope < slopeCut_) {
         finalx = slopeX[sidx];
         finaly = slopeY[sidx];
@@ -338,6 +426,7 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
       statsout_->Printf("\tSlope cutoff satisfied at %g %g\n", finalx, finaly);
     else
       statsout_->Printf("\tSlope cutoff not satisfied.\n");
+*/
 
     // Statistics
     double corr_coeff, ChiSq, TheilU, rms_percent_error;
@@ -349,16 +438,124 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
                       "\tRMS percent error: %g\n",
                       corr_coeff, ChiSq, TheilU, rms_percent_error);
 
-    data_[CHISQ]->Add(oidx, &ChiSq);
     data_[A0]->Add(oidx, &Params[0]);
     data_[A1]->Add(oidx, &Params[0] + 1);
     data_[A2]->Add(oidx, &Params[0] + 2);
-    data_[FVAL]->Add(oidx, &Fval);
+    double onea1 = 1.0 / Params[1];
+    data_[ONEA1]->Add(oidx, &onea1);
+    //data_[FVAL]->Add(oidx, &Fval);
     data_[CORR]->Add(oidx, &corr_coeff);
+    // FIXME hijacking ValA temporarily
+    //ValA = Params[2]-Params[0];
+    //if (ValA < 0.0) ValA = -ValA;
     data_[VALA]->Add(oidx, &ValA);
-    data_[PLTIME]->Add(oidx, &finalx);
+    //data_[LCHISQ]->Add(oidx, &linChiSq);
+    data_[CHISQ]->Add(oidx, &ChiSq);
+    //data_[PLTIME]->Add(oidx, &finalx);
+    //data_[FSLOPE]->Add(oidx, &finalslope);
     data_[NAME]->Add(oidx, (*it)->legend());
+
     // Determine if criteria met.
+
+    // This version checks chi squared, ValA, and final slope.
+    statsout_->Printf("----- Criteria -----\n");
+    // Chi^2
+    bool chiSqSatisfied = false;
+    if (ChiSq < chisqCut_)
+      chiSqSatisfied = true;
+    // ValA
+    bool valaSatisfied = false;
+    if (ValA < valaCut_)
+      valaSatisfied = true;
+    // Slope
+    double pltime = -1;
+    double finalslope = 0;
+    bool slopeSatisfied = CheckSlope(OUT, pltime, finalslope);
+    data_[FSLOPE]->Add(oidx, &finalslope);
+    data_[PLTIME]->Add(oidx, &pltime);
+    // Final result
+    char finalResult[4];
+    finalResult[3] = '\0';
+    if (chiSqSatisfied && valaSatisfied && slopeSatisfied) {
+      finalResult[0] = 'y';
+      finalResult[1] = 'e';
+      finalResult[2] = 's';
+    } else {
+      if (chiSqSatisfied)
+        finalResult[0] = 'c';
+      else
+        finalResult[0] = '.';
+      if (valaSatisfied)
+        finalResult[1] = 'v';
+      else
+        finalResult[1] = '.';
+      if (slopeSatisfied)
+        finalResult[2] = 's';
+      else
+        finalResult[2] = '.';
+    }
+    data_[RESULT]->Add(oidx, finalResult);
+
+/*
+    // This version checks the exp fit against a linear fit.
+    double finalslope = 0;
+    double pltime = -1;
+    bool satisfied = false;
+    statsout_->Printf("----- Criteria -----\n");
+    if ( (ChiSq < chisqCut_) || (linChiSq < chisqCut_) ) {
+      statsout_->Printf("\tChi-squared cutoff satisfied.\n");
+      // Chi-squared cutoff satisfied for one or both.
+      // Which model fit better? Lower chi-squared wins. Tie goes to exp.
+      if (linChiSq < ChiSq) {
+        statsout_->Printf("\tLinear model has lower chi-squared value.\n");
+        finalslope = slope;
+        if (finalslope < 0)
+          finalslope = -finalslope;
+        if (finalslope < slopeCut_) {
+          statsout_->Printf("\tLinear model slope satisfies the slope cut.\n");
+          data_[RESULT]->Add(oidx, "lin");
+          pltime = OUT.Xcrd(0);
+          satisfied = true;
+        } else
+          statsout_->Printf("\tLinear model does not satistfy the slope cut.\n");
+      } else {
+        statsout_->Printf("\tExponential model has lower chi-squared value.\n");
+        DataSet_1D::Darray slopeX, slopeY;
+        OUT.FiniteDifference(DataSet_1D::FORWARD, slopeX, slopeY);
+        double finalx=-1, finaly=0;
+        bool slopeCutSatisfied = false;
+        for (unsigned int sidx = 0; sidx != slopeY.size(); ++sidx) {
+          //finalslope = slopeY[sidx];
+          //mprintf("DEBUG: slope %g %g\n", slopeX[sidx], slopeY[sidx]);
+          double absSlope = slopeY[sidx];
+          if (absSlope < 0) absSlope = -absSlope;
+          finalslope = absSlope;
+          if (absSlope < slopeCut_) {
+            finalx = slopeX[sidx];
+            finaly = slopeY[sidx];
+            slopeCutSatisfied = true;
+            break;
+          }
+        }
+        pltime = finalx;
+        statsout_->Printf("\tFinal slope: %g\n", slopeY.back());
+        if (slopeCutSatisfied) {
+          statsout_->Printf("\tSlope cutoff satisfied at %g %g\n", finalx, finaly);
+          data_[RESULT]->Add(oidx, "exp");
+          satisfied = true;
+        } else
+          statsout_->Printf("\tSlope cutoff not satisfied.\n");
+      }
+    } else
+      statsout_->Printf("\tChi-squared cutoff not satisfied.\n"); 
+    data_[FSLOPE]->Add(oidx, &finalslope);
+    data_[PLTIME]->Add(oidx, &pltime);
+    if (!satisfied)
+      data_[RESULT]->Add(oidx,"no");
+*/
+   
+
+/*
     bool longAvgCutSatisfied, chiCutSatisfied;
     if (ValA < valaCut_)
       longAvgCutSatisfied = true;
@@ -375,9 +572,9 @@ Analysis::RetType Analysis_EvalPlateau::Analyze() {
     if ( longAvgCutSatisfied && chiCutSatisfied && slopeCutSatisfied)
       data_[RESULT]->Add(oidx, "yes");
     else
-      data_[RESULT]->Add(oidx, "no");
+      data_[RESULT]->Add(oidx, "no");*/
 
     statsout_->Printf("\n");
-  }
+  } // END loop over input data sets
   return Analysis::OK;
 }
