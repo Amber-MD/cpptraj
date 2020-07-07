@@ -45,6 +45,7 @@ loadcrd ETHmol.rst7 name ETHmol
 emin crdset ETHmol nsteps 100 out ommdihedral.ene.dat openmm
 EOF
   RunCpptraj "$UNITNAME (dihedrals)"
+  DoTest ommdihedral.ene.dat.save ommdihedral.ene.dat
 fi
 
 
