@@ -55,6 +55,11 @@ class TextFormat {
     int Width()              const { return width_;       }
     int Precision()          const { return precision_;   }
     int ColumnWidth()        const { return colwidth_;    }
+    /// \return True if given TextFormat matches this format type, width, and precision.
+    bool operator=(TextFormat const& rhs) {
+      return ( (type_ == rhs.type_) && (width_ == rhs.width_) && (precision_ == rhs.precision_) );
+    }
+    /// \return Description of the given format type.
     static const char* typeDescription(FmtType f) { return TypeDesc_[f]; }
   private:
     static inline bool IsDoubleType(FmtType);
