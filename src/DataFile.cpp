@@ -272,6 +272,7 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   // Set up DataIO based on format.
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+  dataio_->SetDebug( debug_ );
 # ifdef MPI
   // Default to TrajComm master can write.
   threadCanWrite_ = Parallel::TrajComm().Master();
