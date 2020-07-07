@@ -192,7 +192,7 @@ int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
 void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) const
 {
 # ifdef HAS_OPENMM
-  // Set positions in nm
+  // Set positions, convert from Ang to nm
   std::vector<OpenMM::Vec3> posInNm;
   posInNm.reserve(maskIn.Nselected());
   for (int at = 0; at != frameIn.Natom(); at++) {
@@ -211,20 +211,20 @@ void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) con
   const OpenMM::State state = context_->getState(OpenMM::State::Forces |
                                                  OpenMM::State::Energy, true);
   //  timeInPs = state.getTime(); // OpenMM time is in ps already
-  // Convert to kcal/mol from kj/mol
+  // Convert to kcal/mol from kJ/mol
   *ene_ = state.getPotentialEnergy() * Constants::J_TO_CAL;
 
-  // Copy OpenMM positions into output array and change units from nm to Angstroms.
+  // Copy OpenMM forces into output array and change units from nm/kJ to Angstroms/kcal.
   const std::vector<OpenMM::Vec3>& ommForces = state.getForces();
   double* fptr = frameIn.fAddress();
 
-  int i = 0; // Index into ommForces
+  int oi = 0; // Index into ommForces
   for (int at = 0; at != frameIn.Natom(); at++, fptr += 3)
   {
     if (maskIn.AtomInCharMask(at)) {
       for (int j = 0; j < 3; j++)
-        fptr[j] += ommForces[i][j] * Constants::GMX_FRC_TO_AMBER;
-       i++;
+        fptr[j] += ommForces[oi][j] * Constants::GMX_FRC_TO_AMBER;
+       oi++;
      }
   }
 
