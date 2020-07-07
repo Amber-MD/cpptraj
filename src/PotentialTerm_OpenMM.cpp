@@ -222,9 +222,8 @@ void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) con
   for (int at = 0; at != frameIn.Natom(); at++, fptr += 3)
   {
     if (maskIn.AtomInCharMask(at)) {
-      // TODO +=
       for (int j = 0; j < 3; j++)
-        fptr[j] = ommForces[i][j] * Constants::GMX_FRC_TO_AMBER;
+        fptr[j] += ommForces[i][j] * Constants::GMX_FRC_TO_AMBER;
        i++;
      }
   }
