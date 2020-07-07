@@ -145,6 +145,9 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   AddAngles(angleStretch, topIn.Angles(), topIn.AngleParm(), oldToNew);
   AddAngles(angleStretch, topIn.AnglesH(), topIn.AngleParm(), oldToNew);
 
+  // Add dihedrals
+  
+
   // Populate nonbonded exclusions TODO make args
   nonbond->createExceptionsFromBonds(bondPairs, scaleEE_, scaleNB_);
 
@@ -211,13 +214,18 @@ void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) con
   // Copy OpenMM positions into output array and change units from nm to Angstroms.
   const std::vector<OpenMM::Vec3>& ommForces = state.getForces();
   double* fptr = frameIn.fAddress();
-  for (int i=0; i < (int)ommForces.size(); ++i, fptr += 3)
+
+  int i = 0; // Index into ommForces
+  for (int at = 0; at != frameIn.Natom(); at++, fptr += 3)
   {
-    //for (int j=0; j<3; j++)
-    //  xptr[j] = positionsInNm[i][j] * OpenMM::AngstromsPerNm;
-    for (int j=0; j<3; j++)
-      fptr[j] = ommForces[i][j] * Constants::GMX_FRC_TO_AMBER;
+    if (maskIn.AtomInCharMask(at)) {
+      // TODO +=
+      for (int j = 0; j < 3; j++)
+        fptr[j] = ommForces[i][j] * Constants::GMX_FRC_TO_AMBER;
+       i++;
+     }
   }
+
 # endif
   return;
 }
