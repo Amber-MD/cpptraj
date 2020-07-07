@@ -104,6 +104,8 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   system_->addForce( bondStretch );
   OpenMM::HarmonicAngleForce* angleStretch = new OpenMM::HarmonicAngleForce();
   system_->addForce( angleStretch );
+  OpenMM::PeriodicTorsionForce* ptorsion = new OpenMM::PeriodicTorsionForce();
+  system_->addForce( ptorsion );
 
   // Do periodic boundary conditions if necessary.
   if (boxIn.Type() != Box::NOBOX) {
@@ -146,7 +148,8 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   AddAngles(angleStretch, topIn.AnglesH(), topIn.AngleParm(), oldToNew);
 
   // Add dihedrals
-  
+  AddDihedrals(ptorsion, topIn.Dihedrals(), topIn.DihedralParm(), oldToNew);
+  AddDihedrals(ptorsion, topIn.DihedralsH(), topIn.DihedralParm(), oldToNew);
 
   // Populate nonbonded exclusions TODO make args
   nonbond->createExceptionsFromBonds(bondPairs, scaleEE_, scaleNB_);
