@@ -172,6 +172,10 @@ class Frame {
     int SetCoordinates(int, double*);
     /// Copy entire input frame according to mask.
     void SetFrame(Frame const&, AtomMask const&);
+    /// Zero the force array
+    void ZeroForces();
+    /// Zero the velocity array
+    void ZeroVelocities();
     // ----- Frame coordinate remapping ----------
     /// Copy entire input frame, reorder according to input map. 
     void SetCoordinatesByMap(Frame const&, std::vector<int>const&);
