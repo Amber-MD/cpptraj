@@ -15,6 +15,8 @@ PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
 #ifdef HAS_OPENMM
   ,system_(0)
   ,context_(0)
+  ,scaleEE_(1.0/1.2) // Amber default
+  ,scaleNB_(1.0/2.0) // Amber default
 #endif
 {}
 
@@ -144,9 +146,7 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   AddAngles(angleStretch, topIn.AnglesH(), topIn.AngleParm(), oldToNew);
 
   // Populate nonbonded exclusions TODO make args
-  const double Coulomb14Scale      = 1.0;
-  const double LennardJones14Scale = 1.0;
-  nonbond->createExceptionsFromBonds(bondPairs, Coulomb14Scale, LennardJones14Scale);
+  nonbond->createExceptionsFromBonds(bondPairs, scaleEE_, scaleNB_);
 
   // Set up integrator and context.
   OpenMM::Integrator* integrator = new OpenMM::VerletIntegrator( 0.001 ); // TODO allow ars

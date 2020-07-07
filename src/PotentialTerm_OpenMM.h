@@ -34,6 +34,9 @@ class PotentialTerm_OpenMM : public PotentialTerm {
     OpenMM::System* system_;
     OpenMM::Context* context_;
     double* ene_;
+
+    double scaleEE_; ///< Electrostatic 1-4 scaling factor
+    double scaleNB_; ///< Lennard-Jones (VDW) 1-4 scaling factor
 #   endif
 };
 #endif
