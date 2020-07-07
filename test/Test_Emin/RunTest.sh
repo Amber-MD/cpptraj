@@ -5,7 +5,8 @@
 TESTNAME='Emin tests'
 
 CleanFiles emin.in cpptraj.ene.dat cpptraj.emin.nc \
-           omm.ene.dat ommangle.ene.dat ommdihedral.ene.dat
+           omm.ene.dat ommangle.ene.dat ommdihedral.ene.dat \
+           ommnb.ene.dat
 
 INPUT='-i emin.in'
 
@@ -46,6 +47,14 @@ emin crdset ETHmol nsteps 100 out ommdihedral.ene.dat openmm
 EOF
   RunCpptraj "$UNITNAME (dihedrals)"
   DoTest ommdihedral.ene.dat.save ommdihedral.ene.dat
+  # Nonbonds
+  cat > emin.in <<EOF
+parm O2box.parm7 
+loadcrd O2box.rst7 1 1 name SPCBOX
+emin crdset SPCBOX nsteps 100 out ommnb.ene.dat openmm
+EOF
+  RunCpptraj "$UNITNAME (nonbonds)"
+  DoTest ommnb.ene.dat.save ommnb.ene.dat
 fi
 
 
