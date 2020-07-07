@@ -48,8 +48,7 @@ const
     mprinterr("Internal Error: Frame not set up with forces.\n");
     return 1;
   }
-  double* fxyz = frameIn.fAddress();
-  std::fill(fxyz, fxyz + frameIn.size(), 0.0);
+  frameIn.ZeroForces();
 
   // Degrees of freedom
   double deg_of_freedom = potential.DegreesOfFreedom(); 
@@ -62,6 +61,7 @@ const
   double last_e = 0.0;
   outfile.Printf("%-8s %12s %12s\n", "#Iter.", "ENE", "RMS");
   while (rms > min_tol_ && iteration < nMinSteps_) {
+    // Calculate forces.
     if (potential.CalculateForce( frameIn )) {
       mprinterr("Error: Could not calculate force.\n");
       return 1;
@@ -70,7 +70,7 @@ const
 
     // Calculate the magnitude of the force vector.
     double sum = 0.0;
-    fxyz = frameIn.fAddress();
+    const double* fxyz = frameIn.fAddress();
     for (int idx = 0; idx < frameIn.Natom(); idx++, fxyz += 3)
       sum += (fxyz[0]*fxyz[0] + fxyz[1]*fxyz[1] + fxyz[2]*fxyz[2]);
     rms = sqrt( sum ) / fnq;
@@ -80,7 +80,7 @@ const
     if (e_total < last_e) dxst = dxst * 2.4;
     double dxsth = dxst / sqrt( sum );
     last_e = e_total;
-    // Update positions and reset force array.
+    // Update positions
     double* Xptr = frameIn.xAddress();
     fxyz = frameIn.fAddress();
     for (int idx = 0; idx != frameIn.Natom(); idx++, Xptr += 3, fxyz += 3)
@@ -89,9 +89,9 @@ const
       Xptr[0] += fxyz[0] * dxsth;
       Xptr[1] += fxyz[1] * dxsth;
       Xptr[2] += fxyz[2] * dxsth;
-      fxyz[0] = 0.0;
-      fxyz[1] = 0.0;
-      fxyz[2] = 0.0;
+      //fxyz[0] = 0.0;
+      //fxyz[1] = 0.0;
+      //fxyz[2] = 0.0;
       //mprintf("xyz1= %g %g %g\n", Xptr[0], Xptr[1], Xptr[2]);
       //*XV += (*FV * dxsth);
       //*FV = 0.0;

@@ -59,6 +59,7 @@ int PotentialFunction::SetupPotential(Topology const& topIn, Box const& boxIn,
 /** Calculate force for each term. */
 int PotentialFunction::CalculateForce(Frame& frameIn) {
   earray_.zero();
+  frameIn.ZeroForces();
   for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
   {
     (*it)->CalcForce( frameIn, mask_ );
