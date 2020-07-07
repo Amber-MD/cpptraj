@@ -2,7 +2,8 @@
 #include <cstdlib> // atof
 #include "DataIO_OpenDx.h"
 #include "CpptrajStdio.h"
-#include "DataSet_GridFlt.h"
+#include "DataSet_GridFlt.h" // Included to get default format
+#include "DataSet_GridDbl.h" // Included to get default format
 #include "BufferedLine.h"
 #include "ProgressBar.h"
 
@@ -10,7 +11,15 @@ DataIO_OpenDx::DataIO_OpenDx() :
   DataIO(false, false, true), // Valid for 3D only
   gridWriteMode_(BIN_CORNER),
   gridReadType_(DataSet::GRID_FLT)
-{}
+{
+  // Get the default formats for float/double grid datasets
+  DataSet* ds = new DataSet_GridFlt();
+  fmt_gridFlt_ = ds->Format();
+  delete ds;
+  ds = new DataSet_GridDbl();
+  fmt_gridDbl_ = ds->Format();
+  delete ds;
+}
 
 bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
   bool isDX = false;
@@ -181,6 +190,7 @@ void DataIO_OpenDx::WriteHelp() {
           "\tgridext:   Like 'bincenter', but also print extra layer of empty bins.\n");
 }
 
+/** Process opendx write options. */
 int DataIO_OpenDx::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("bincenter")) gridWriteMode_ = BIN_CENTER;
   else if (argIn.hasKey("gridwrap")) gridWriteMode_ = WRAP;
@@ -240,6 +250,7 @@ int DataIO_OpenDx::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const 
   return err;
 }
 
+/** Write the header for an OpenDX file. */
 void DataIO_OpenDx::WriteDxHeader(CpptrajFile& outfile,
                                   size_t NX, size_t NY, size_t NZ,
                                   double LX, double LY, double LZ,
@@ -256,8 +267,36 @@ void DataIO_OpenDx::WriteDxHeader(CpptrajFile& outfile,
                  NX, NY, NZ, NX*NY*NZ);
 }
 
+/** Create a text format string using the given TextFormat. If the default
+  * %12.4f is in use, upgrade it to a general format.
+  */
+std::string DataIO_OpenDx::CreateFmtString(DataSet::DataType typeIn,
+                                           TextFormat const& fmtIn) const
+{
+  TextFormat fmtOut;
+  bool usingDefaultFmt = false;
+  if ( typeIn == DataSet::GRID_FLT ) {
+    usingDefaultFmt = (fmtIn == fmt_gridFlt_);
+  } else if ( typeIn == DataSet::GRID_DBL ) {
+    usingDefaultFmt = (fmtIn == fmt_gridDbl_);
+  } else {
+    mprinterr("Internal Error: Unhandled type in CreateFmtString(): %s\n",
+               DataSet::description(typeIn));
+    return std::string();
+  }
+  if (usingDefaultFmt)
+    fmtOut = TextFormat(TextFormat::GDOUBLE, -1, -1);
+  else
+    fmtOut = TextFormat(fmtIn.FormatType(), fmtIn.Width(), fmtIn.Precision());
+  return fmtOut.Fmt();
+}
+
+/** Write the grid wrapped. */
 int DataIO_OpenDx::WriteGridWrap(DataSet const& setIn, CpptrajFile& outfile) const {
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
+  std::string myFmt = CreateFmtString( setIn.Type(), setIn.Format() );
+  if (myFmt.empty()) return 1;
+  myFmt = " " + myFmt;
   // Need to construct a grid mesh around bins, with points centered on the bins.
   int mesh_x = set.NX();
   int mesh_y = set.NY();
@@ -284,7 +323,7 @@ int DataIO_OpenDx::WriteGridWrap(DataSet const& setIn, CpptrajFile& outfile) con
           if      (ik < 0      ) bk = mesh_z - 1;
           else if (ik == mesh_z) bk = 0;
           else                   bk = ik;
-          outfile.Printf(" %g", set.GetElement(bi, bj, bk));
+          outfile.Printf(myFmt.c_str(), set.GetElement(bi, bj, bk));
           ++nvals;
           if (nvals == 5) {
             outfile.Printf("\n");
@@ -302,7 +341,7 @@ int DataIO_OpenDx::WriteGridWrap(DataSet const& setIn, CpptrajFile& outfile) con
           if (zero_x || zero_y || ik < 0 || ik == mesh_z)
             outfile.Printf(" 0");
           else
-            outfile.Printf(" %g", set.GetElement(ii, ij, ik));
+            outfile.Printf(myFmt.c_str(), set.GetElement(ii, ij, ik));
           ++nvals;
           if (nvals == 5) {
             outfile.Printf("\n");
@@ -316,8 +355,21 @@ int DataIO_OpenDx::WriteGridWrap(DataSet const& setIn, CpptrajFile& outfile) con
   return 0;
 }
 
+/** Write the grid normally. */
 int DataIO_OpenDx::WriteGrid(DataSet const& setIn, CpptrajFile& outfile) const {
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
+  std::string myFmt = CreateFmtString( setIn.Type(), setIn.Format() );
+  if (myFmt.empty()) return 1;
+  std::string myFmt2 = myFmt + " " + myFmt;
+  std::string myFmt3 = myFmt + " " + myFmt + " " + myFmt;
+  if (debug_ > 0) {
+    mprintf("DEBUG: Grid data %s format is \"%s\"\n", set.legend(), set.Format().fmt());
+    mprintf("DEBUG: New formats are \"%s\" \"%s\" \"%s\"\n",
+            myFmt.c_str(), myFmt2.c_str(), myFmt3.c_str());
+  }
+  myFmt.append("\n");
+  myFmt2.append("\n");
+  myFmt3.append("\n");
   Vec3 oxyz = set.Bin().GridOrigin();
   if (gridWriteMode_ == BIN_CENTER)
     // Origin needs to be shifted to center of bin located at 0,0,0
@@ -328,18 +380,18 @@ int DataIO_OpenDx::WriteGrid(DataSet const& setIn, CpptrajFile& outfile) const {
   // Now print out the data.
   size_t gridsize = set.Size();
   if (gridsize == 1)
-    outfile.Printf("%g\n", set[0]);
+    outfile.Printf(myFmt.c_str(), set[0]);
   else if (gridsize == 2)
-    outfile.Printf("%g %g\n", set[0], set[1]);
+    outfile.Printf(myFmt2.c_str(), set[0], set[1]);
   else if (gridsize > 2) {
     // Data is already in row-major form (z-axis changes
     // fastest), so no need to do any kind of data adjustment
     for (size_t i = 0UL; i < gridsize - 2UL; i += 3UL)
-      outfile.Printf("%g %g %g\n", set[i], set[i+1], set[i+2]);
+      outfile.Printf(myFmt3.c_str(), set[i], set[i+1], set[i+2]);
     // Print out any points we may have missed
     switch (gridsize % 3) {
-      case 2: outfile.Printf("%g %g\n", set[gridsize-2], set[gridsize-1]); break;
-      case 1: outfile.Printf("%g\n", set[gridsize-1]); break;
+      case 2: outfile.Printf(myFmt2.c_str(), set[gridsize-2], set[gridsize-1]); break;
+      case 1: outfile.Printf(myFmt.c_str(), set[gridsize-1]); break;
     }
   }
   return 0;

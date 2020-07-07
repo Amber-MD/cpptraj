@@ -18,10 +18,13 @@ class DataIO_OpenDx : public DataIO {
     int WriteSet3D(DataSet const&, CpptrajFile&) const;
     void WriteDxHeader(CpptrajFile&, size_t, size_t, size_t, double, double, double,
                        Matrix_3x3 const&, Vec3 const&) const;
+    std::string CreateFmtString(DataSet::DataType, TextFormat const&) const;
     int WriteGridWrap(DataSet const&, CpptrajFile&) const;
     int WriteGrid(DataSet const&, CpptrajFile&) const;
 
     GridWriteType gridWriteMode_;
     DataSet::DataType gridReadType_;
+    TextFormat fmt_gridFlt_; ///< Format for DataSet_GridFlt
+    TextFormat fmt_gridDbl_; ///< Format for DataSet_GridDbl
 };
 #endif
