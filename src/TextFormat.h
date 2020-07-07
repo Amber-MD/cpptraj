@@ -56,7 +56,7 @@ class TextFormat {
     int Precision()          const { return precision_;   }
     int ColumnWidth()        const { return colwidth_;    }
     /// \return True if given TextFormat matches this format type, width, and precision.
-    bool operator=(TextFormat const& rhs) {
+    bool operator==(TextFormat const& rhs) const {
       return ( (type_ == rhs.type_) && (width_ == rhs.width_) && (precision_ == rhs.precision_) );
     }
     /// \return Description of the given format type.
