@@ -17,6 +17,7 @@ PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
   ,context_(0)
   ,scaleEE_(1.0/1.2) // Amber default
   ,scaleNB_(1.0/2.0) // Amber default
+  ,cut_(0.8)         // in nm, Amber default
 #endif
 {}
 
@@ -110,7 +111,7 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   // Do periodic boundary conditions if necessary.
   if (boxIn.Type() != Box::NOBOX) {
     nonbond->setNonbondedMethod(OpenMM::NonbondedForce::CutoffPeriodic);
-    nonbond->setCutoffDistance( 0.8 ); // TODO allow args
+    nonbond->setCutoffDistance( cut_ ); // TODO allow args
     Matrix_3x3 ucell, recip;
     boxIn.ToRecip(ucell, recip);
     system_->setDefaultPeriodicBoxVectors(
