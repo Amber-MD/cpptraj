@@ -5,7 +5,7 @@
 TESTNAME='Emin tests'
 
 CleanFiles emin.in cpptraj.ene.dat cpptraj.emin.nc \
-           omm.ene.dat ommangle.ene.dat
+           omm.ene.dat ommangle.ene.dat ommdihedral.ene.dat
 
 INPUT='-i emin.in'
 
@@ -38,6 +38,13 @@ emin crdset HOHmol nsteps 100 out ommangle.ene.dat openmm
 EOF
   RunCpptraj "$UNITNAME (angles)"
   DoTest ommangle.ene.dat.save ommangle.ene.dat
+  # Dihedrals
+  cat > emin.in <<EOF
+parm ETHmol.parm7
+loadcrd ETHmol.rst7 name ETHmol
+emin crdset ETHmol nsteps 100 out ommdihedral.ene.dat openmm
+EOF
+  RunCpptraj "$UNITNAME (dihedrals)"
 fi
 
 
