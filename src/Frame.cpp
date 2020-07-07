@@ -681,13 +681,13 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
 /** Zero force array. */
 void Frame::ZeroForces() {
   if (F_ != 0)
-    memset(F_, 0, ncoord_);
+    memset(F_, 0, natom_ * COORDSIZE_);
 }
 
 /** Zero the velocity array. */
 void Frame::ZeroVelocities() {
   if (V_ != 0)
-    memset(V_, 0, ncoord_);
+    memset(V_, 0, natom_ * COORDSIZE_);
 }
 
 // ---------- FRAME SETUP WITH ATOM MAPPING ------------------------------------
