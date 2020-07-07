@@ -51,6 +51,7 @@ class TextFormat {
     /// \return pointer to format string.
     const char* fmt()        const { return fmt_.c_str(); }
     std::string const& Fmt() const { return fmt_;         }
+    FmtType FormatType()     const { return type_;        }
     int Width()              const { return width_;       }
     int Precision()          const { return precision_;   }
     int ColumnWidth()        const { return colwidth_;    }
