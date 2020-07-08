@@ -33,9 +33,11 @@ PotentialTerm_OpenMM::~PotentialTerm_OpenMM() {
 #ifdef HAS_OPENMM
 /** Add BondArray to openmm */
 void PotentialTerm_OpenMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
+                                    OpenMM::System* system,
                                     std::vector< std::pair<int,int> >& bondPairs,
                                     BondArray const& bonds, BondParmArray const& BP,
-                                    std::vector<int> const& oldToNew)
+                                    std::vector<int> const& oldToNew,
+                                    bool useConstraints)
 {
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   {
@@ -44,10 +46,14 @@ void PotentialTerm_OpenMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
     if (a1 != -1 && a2 != -1)
     {
       bondPairs.push_back(std::make_pair(a1, a2));
-      bondStretch->addBond( a1, a2,
-                            BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
-                            BP[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
-                              * OpenMM::AngstromsPerNm * OpenMM::AngstromsPerNm );
+      if (useConstraints) {
+        system->addConstraint( a1, a2, BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom );
+      } else {
+        bondStretch->addBond( a1, a2,
+                              BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
+                              BP[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
+                                * OpenMM::AngstromsPerNm * OpenMM::AngstromsPerNm );
+      }
     }
   }
 }
@@ -142,8 +148,8 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   // as it is used in the harmonic energy term kx^2 with force 2kx; OpenMM wants 
   // it as used in the force term kx, with energy kx^2/2.
   std::vector< std::pair<int,int> >   bondPairs;
-  AddBonds(bondStretch, bondPairs, topIn.Bonds(), topIn.BondParm(),  oldToNew);
-  AddBonds(bondStretch, bondPairs, topIn.BondsH(), topIn.BondParm(), oldToNew);
+  AddBonds(bondStretch, system_, bondPairs, topIn.Bonds(), topIn.BondParm(),  oldToNew, false);
+  AddBonds(bondStretch, system_, bondPairs, topIn.BondsH(), topIn.BondParm(), oldToNew, false);
 
   // Add angles
   AddAngles(angleStretch, topIn.Angles(), topIn.AngleParm(), oldToNew);

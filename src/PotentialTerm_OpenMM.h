@@ -23,8 +23,10 @@ class PotentialTerm_OpenMM : public PotentialTerm {
     void CalcForce(Frame&, CharMask const&) const;
   private:
 #   ifdef HAS_OPENMM
-    void AddBonds(OpenMM::HarmonicBondForce*, std::vector< std::pair<int,int> >&,
-                  BondArray const&, BondParmArray const&, std::vector<int> const&);
+    void AddBonds(OpenMM::HarmonicBondForce*, OpenMM::System*,
+                  std::vector< std::pair<int,int> >&,
+                  BondArray const&, BondParmArray const&, std::vector<int> const&,
+                  bool);
     void AddAngles(OpenMM::HarmonicAngleForce*, AngleArray const&, AngleParmArray const&, 
                    std::vector<int> const&);
     void AddDihedrals(OpenMM::PeriodicTorsionForce*, DihedralArray const&,
