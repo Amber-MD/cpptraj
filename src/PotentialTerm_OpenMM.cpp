@@ -7,6 +7,7 @@
 # include "CharMask.h"
 # include "Constants.h"
 # include "EnergyArray.h"
+# include "PotentialTerm_InitOpts.h"
 #endif
 
 /// CONSTRUCTOR
@@ -168,7 +169,23 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   return 0;
 }
 #endif
- 
+
+/** Init openmm options. */
+int PotentialTerm_OpenMM::InitTerm(InitOpts const& opts) {
+# ifdef HAS_OPENMM
+  scaleEE_ = opts.ScaleEE();
+  scaleNB_ = opts.ScaleNB();
+  if (opts.CutEE() != opts.CutNB()) {
+    mprinterr("Error: Elec. cut %g != VDW cut %g; not yet supported.\n");
+    return 1;
+  }
+  cut_ = opts.CutEE();
+# else
+  mprinterr("Error: CPPTRAJ was compiled without OpenMM support.\n");
+  return 1;
+# endif
+}
+
 /** Set up openmm terms. This is the wrapper for try/catch. */
 int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
                                     CharMask const& maskIn, EnergyArray& earrayIn)
