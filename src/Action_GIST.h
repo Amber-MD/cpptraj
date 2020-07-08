@@ -75,6 +75,10 @@ class Action_GIST : public Action {
     static const int SOLUTE_;
     static const int OFF_GRID_;
 
+    double gridspacing_;
+    Vec3 gridcntr_;
+    Vec3 griddim_;
+
     ImagedAction image_; ///< Imaging routines.
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
     // GIST float grid datasets
