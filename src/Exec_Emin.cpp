@@ -16,9 +16,9 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("Warning: THIS COMMAND IS STILL UNDER DEVELOPMENT.\n");
   PotentialFunction potential;
   if (argIn.hasKey("openmm"))
-    potential.AddTerm( PotentialTerm::OPENMM );
+    potential.AddTerm( PotentialTerm::OPENMM, argIn );
   else
-    potential.AddTerm( PotentialTerm::BOND );
+    potential.AddTerm( PotentialTerm::BOND, argIn );
   Minimize_SteepestDescent SD;
 
   std::string setname = argIn.GetStringKey("crdset");

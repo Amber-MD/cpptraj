@@ -19,6 +19,8 @@ PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
   ,scaleEE_(1.0/1.2) // Amber default
   ,scaleNB_(1.0/2.0) // Amber default
   ,cut_(0.8)         // in nm, Amber default
+  ,shakeH_(false)
+  ,shakeHeavy_(false)
 #endif
 {}
 
@@ -148,8 +150,8 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   // as it is used in the harmonic energy term kx^2 with force 2kx; OpenMM wants 
   // it as used in the force term kx, with energy kx^2/2.
   std::vector< std::pair<int,int> >   bondPairs;
-  AddBonds(bondStretch, system_, bondPairs, topIn.Bonds(), topIn.BondParm(),  oldToNew, false);
-  AddBonds(bondStretch, system_, bondPairs, topIn.BondsH(), topIn.BondParm(), oldToNew, false);
+  AddBonds(bondStretch, system_, bondPairs, topIn.Bonds(), topIn.BondParm(),  oldToNew, shakeHeavy_);
+  AddBonds(bondStretch, system_, bondPairs, topIn.BondsH(), topIn.BondParm(), oldToNew, shakeH_);
 
   // Add angles
   AddAngles(angleStretch, topIn.Angles(), topIn.AngleParm(), oldToNew);
@@ -186,6 +188,14 @@ int PotentialTerm_OpenMM::InitTerm(InitOpts const& opts) {
     return 1;
   }
   cut_ = opts.CutEE();
+  if (opts.Shake() != Constraints::OFF) {
+    shakeH_ = true;
+    if (opts.Shake() == Constraints::ALL_BONDS)
+      shakeHeavy_ = true;
+  } else {
+    shakeH_ = false;
+    shakeHeavy_ = false;
+  }
 # else
   mprinterr("Error: CPPTRAJ was compiled without OpenMM support.\n");
   return 1;

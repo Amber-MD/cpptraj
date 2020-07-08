@@ -1,12 +1,13 @@
 #include "PotentialFunction.h"
 #include "CpptrajStdio.h"
 #include "Topology.h"
+#include "PotentialTerm_InitOpts.h"
 // ----- All potential terms -----------
 #include "PotentialTerm_Bond.h"
 #include "PotentialTerm_OpenMM.h"
 
 /** Add a term to the potential function. */
-int PotentialFunction::AddTerm(PotentialTerm::Type typeIn) {
+int PotentialFunction::AddTerm(PotentialTerm::Type typeIn, ArgList& argIn) {
   PotentialTerm* term = 0;
   switch (typeIn) {
     case PotentialTerm::BOND : term = (PotentialTerm*)new PotentialTerm_Bond(); break;
@@ -17,6 +18,11 @@ int PotentialFunction::AddTerm(PotentialTerm::Type typeIn) {
   }
   if (term == 0) {
     mprinterr("Internal Error: Could not allocate potential term.\n");
+    return 1;
+  }
+  PotentialTerm::InitOpts opts(argIn);
+  if (term->InitTerm(opts)) {
+    mprinterr("Error: Term init failed.\n");
     return 1;
   }
   terms_.push_back( term );
