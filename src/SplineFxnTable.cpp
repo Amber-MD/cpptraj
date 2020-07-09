@@ -29,23 +29,24 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
     mprinterr("Error: Max %g is not larger than min %g\n", Xmax_, Xmin_);
     return 1;
   }
-
   // Calculate table size
   unsigned int TableSize = (unsigned int)(one_over_Dx_ * width * scale);
+  mprintf("DEBUG: Table from %g to %g (%gx), width is %g table size %u\n", minIn, maxIn, scale, width, TableSize);
 
-  Darray Xvals, Yvals;
-  Xvals.reserve( TableSize );
+  Xvals_.clear();
+  Darray Yvals;
+  Xvals_.reserve( TableSize );
   Yvals.reserve( TableSize );
   // Save X and Y values so we can calc the spline coefficients
   double xval = Xmin_;
   for (unsigned int i = 0; i != TableSize; i++) {
     double yval = fxnIn( xval );
-    Xvals.push_back( xval );
+    Xvals_.push_back( xval );
     Yvals.push_back( yval );
     xval += Dx_;
   }
   Spline cspline;
-  cspline.CubicSpline_Coeff(Xvals, Yvals);
+  cspline.CubicSpline_Coeff(Xvals_, Yvals);
   //Xvals.clear();
   // Store values in Spline table
   table_.clear();
@@ -60,4 +61,39 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
   mprintf("\tMemory used by table and splines: %s\n",
           ByteString(table_.size() * sizeof(double), BYTE_DECIMAL).c_str());
   return 0;
+}
+
+double SplineFxnTable::Yval_accurate(double xIn) const {
+  // Find X value
+  int ind = 0;
+  int low = 0;
+  int high = Xvals_.size() - 1;
+
+  // Assumptions for Xvals_: > 1 value, monotonic, ascending order
+  if (xIn < Xvals_.front())
+    ind = -1;
+  else if (xIn > Xvals_.back())
+    ind = high;
+  else {
+    while (low <= high) {
+      ind = (low + high) / 2;
+      if (xIn < Xvals_[ind]) {
+        high = ind - 1;
+      } else if (xIn > Xvals_[ind + 1]) {
+        low = ind + 1;
+      } else {
+        //return ind;
+        break;
+      }
+    }
+  }
+
+  if (ind < 0) {
+    ind = 0;
+  } else if ((unsigned int)ind > Xvals_.size() - 2) {
+    ind = Xvals_.size() - 1;
+  }
+  double dx = xIn - Xvals_[ind];
+  int xidx = ind * 4;
+  return table_[xidx] + dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
 }
