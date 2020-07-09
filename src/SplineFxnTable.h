@@ -11,6 +11,8 @@ class SplineFxnTable {
     typedef double (*FxnType)(double);
     /// Fill the table using given function and spacing, from given min to max with given scale.
     int FillTable(FxnType, double, double, double, double);
+    /// Fill the table using given function, mesh size, min, max
+    int FillTable(FxnType, int, double, double);
     /// \return Approximated Y value from given X value.
     double Yval(double xIn) const {
       double xval = xIn - Xmin_;
@@ -33,6 +35,8 @@ class SplineFxnTable {
     }
 
     double Yval_accurate(double) const;
+
+    unsigned int Nvals() const { return Xvals_.size(); }
 
     // DEBUG Access to internal table
     std::vector<double> const& InternalTable() const { return table_; }

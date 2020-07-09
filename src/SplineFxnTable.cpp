@@ -63,6 +63,64 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
   return 0;
 }
 
+/** Fill the spline function table with values from the given function. */
+int SplineFxnTable::FillTable(FxnType fxnIn, int mesh_size, double minIn, double maxIn)
+{
+  if (mesh_size < 2) {
+    mprinterr("Error: Invalid mesh size: %i\n", mesh_size);
+    return 1;
+  }
+  Xmax_ = maxIn;
+  Xmin_ = minIn;
+  double width = Xmax_ - Xmin_;
+  if (width < Constants::SMALL) {
+    mprinterr("Error: Max %g is not larger than min %g\n", Xmax_, Xmin_);
+    return 1;
+  }
+
+
+  Dx_ = (maxIn - minIn) / (double)mesh_size; 
+  if (Dx_ < Constants::SMALL) {
+    mprinterr("Error: Spacing for spline table too small or negative.\n");
+    return 1;
+  }
+  one_over_Dx_ = 1.0 / Dx_;
+
+  // Save X and Y values so we can calc the spline coefficients
+  Xvals_.clear();
+  Xvals_.reserve( mesh_size );
+  Darray Yvals;
+  Yvals.reserve( mesh_size );
+  double s = (minIn + maxIn)/2;
+  double d = (maxIn - minIn)/2;
+  for (int i = 0; i < mesh_size; i++) {
+    Xvals_.push_back( s + d*((double) (2*i + 1 - mesh_size)/(mesh_size - 1)) );
+    double yval = fxnIn( Xvals_.back() );
+    Yvals.push_back( yval );
+  }
+
+  // Calculate table size
+  //unsigned int TableSize = (unsigned int)(one_over_Dx_ * width * scale);
+  mprintf("DEBUG: Table from %g to %g, width is %g table size %i\n", minIn, maxIn, width, mesh_size);
+
+  Spline cspline;
+  cspline.CubicSpline_Coeff(Xvals_, Yvals);
+
+  // Store values in Spline table
+  table_.clear();
+  table_.reserve( mesh_size * 4 ); // Y B C D
+  for (int i = 0; i != mesh_size; i++) {
+    table_.push_back( Yvals[i] );
+    table_.push_back( cspline.B_coeff()[i] );
+    table_.push_back( cspline.C_coeff()[i] );
+    table_.push_back( cspline.D_coeff()[i] );
+  }
+  // Memory saved Y values plus spline B, C, and D coefficient arrays.
+  mprintf("\tMemory used by table and splines: %s\n",
+          ByteString(table_.size() * sizeof(double), BYTE_DECIMAL).c_str());
+  return 0;
+}
+
 double SplineFxnTable::Yval_accurate(double xIn) const {
   // Find X value
   int ind = 0;
