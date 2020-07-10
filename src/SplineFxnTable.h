@@ -25,13 +25,14 @@ class SplineFxnTable {
       // DEBUG
       //if (xidx < 0 || xidx >= (int)table_.size())
       //  mprinterr("Error: index %li out of range (%zu) for X val %g (Xmin= %g 1/dx= %g)\n", xidx, table_.size(), xIn, Xmin_, one_over_Dx_);
+#     ifdef SPLINEFXNTABLE_CHECK_RANGE
       // Protect against out of range values
       // NOTE - If args to Yval are chosen carefully, omitting this check speeds things up.
-      //if (xidx >= (long int)table_.size())
-      //  xidx = table_.size() - 4;
-      //else if (xidx < 0)
-      //  xidx = 0;
-      
+      if (xidx >= (long int)table_.size())
+        xidx = table_.size() - 4;
+      else if (xidx < 0)
+        xidx = 0;
+#     endif
       return table_[xidx] + 
              dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
     }
