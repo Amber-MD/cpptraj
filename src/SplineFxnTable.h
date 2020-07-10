@@ -17,6 +17,7 @@ class SplineFxnTable {
     double Yval(double xIn) const {
       double xval = xIn - Xmin_;
       long int xidx = ((long int)(one_over_Dx_ * xval));
+      //mprintf("SPLINEFXNTBL: idx= %li\n", xidx); // DEBUG
       // Delta from index
       double dx = xval - ((double)xidx * Dx_);
       // Index into the table
@@ -25,10 +26,11 @@ class SplineFxnTable {
       //if (xidx < 0 || xidx >= (int)table_.size())
       //  mprinterr("Error: index %li out of range (%zu) for X val %g (Xmin= %g 1/dx= %g)\n", xidx, table_.size(), xIn, Xmin_, one_over_Dx_);
       // Protect against out of range values
-      if (xidx >= (long int)table_.size())
-        xidx = table_.size() - 4;
-      else if (xidx < 0)
-        xidx = 0;
+      // NOTE - If args to Yval are chosen carefully, omitting this check speeds things up.
+      //if (xidx >= (long int)table_.size())
+      //  xidx = table_.size() - 4;
+      //else if (xidx < 0)
+      //  xidx = 0;
       
       return table_[xidx] + 
              dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
