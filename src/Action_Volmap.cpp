@@ -3,7 +3,15 @@
 #include "Action_Volmap.h"
 #include "Constants.h" // PI
 #include "CpptrajStdio.h"
-#include "DataSet_GridFlt.h"
+#ifdef VOLMAP_DOUBLE
+# include "DataSet_GridDbl.h"
+# define VOLMAP_DS_T DataSet_GridDbl
+# define VOLMAP_T double
+#else
+# include "DataSet_GridFlt.h"
+# define VOLMAP_DS_T DataSet_GridFlt
+# define VOLMAP_T float
+#endif
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -109,6 +117,12 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     return Action::ERR;
   }
 
+# ifdef VOLMAP_DOUBLE
+  static const DataSet::DataType GridDataType = DataSet::GRID_DBL;
+# else
+  static const DataSet::DataType GridDataType = DataSet::GRID_FLT;
+# endif
+
   if (mode != DATASET) {
     Vec3 Sizes(0.0);
     Vec3 Center(0.0);
@@ -162,7 +176,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       return Action::ERR;
     }
     // Allocate grid dataset
-    grid_ = (DataSet_GridFlt*)init.DSL().AddSet(DataSet::GRID_FLT, setname, "VOLMAP");
+    grid_ = (VOLMAP_DS_T*)init.DSL().AddSet(GridDataType, setname, "VOLMAP");
     if (grid_ == 0) {
       mprinterr("Error: Could not create grid dataset '%s'\n", setname.c_str());
       return Action::ERR;
@@ -182,7 +196,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     }
   } else {
     // Get existing grid dataset
-    grid_ = (DataSet_GridFlt*)init.DSL().FindSetOfType( setup_arg, DataSet::GRID_FLT );
+    grid_ = (VOLMAP_DS_T*)init.DSL().FindSetOfType( setup_arg, GridDataType );
     if (grid_ == 0) {
       mprinterr("Error: Could not find grid data set with name '%s'\n",
                 setup_arg.c_str());
@@ -260,6 +274,11 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 
   // Info
   mprintf("    VOLMAP: Grid spacing will be %.2fx%.2fx%.2f Angstroms\n", dx_, dy_, dz_);
+# ifdef VOLMAP_DOUBLE
+  mprintf("\tUsing double precision grid.\n");
+# else
+  mprintf("\tUsing single precision grid.\n");
+# endif
   if (setupGridOnMask_)
     mprintf("\tGrid centered around mask %s with %.2f Ang. clearance\n",
             centermask_.MaskExpression().c_str(), buffer_);
@@ -344,7 +363,7 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
     else if (radiiToUse == ELEMENT)
       rad = setup.Top()[*atom].ElementRadius();
     if (rad > 0.0) {
-      halfradii_.push_back( (float)(rad * radscale_ / 2) );
+      halfradii_.push_back( (double)(rad * radscale_ / 2) );
       Atoms_.push_back( *atom );
       // For determining function range.
       if (halfradii_.back() > maxRad) maxRad = halfradii_.back();
@@ -363,7 +382,12 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   //mprintf("DEBUG: %g %g %g %g\n", maxx, maxy, maxz, maxDist);
   maxDist *= (-1.0 / (2.0 * maxRad * maxRad));
   //mprintf("DEBUG: max= %g\n", maxDist);
-  table_.FillTable( exp, splineDx_, maxDist, 0, 1.1 );
+
+  if (table_.FillTable( exp, splineDx_, maxDist, 0, 1.1 )) return Action::ERR;
+  //table_.FillTable( exp, splineDx_, maxDist, 0, 1.0 );
+  //double width = (0.0 - maxDist) * 1.1;
+  //if (table_.FillTable( exp, (int)(width / splineDx_), maxDist, 0.0 ) ) return Action::ERR;
+
   if ((int)Atoms_.size() < densitymask_.Nselected())
     mprintf("Warning: %i atoms have 0.0 radii and will be skipped.\n",
             densitymask_.Nselected() - (int)Atoms_.size());
@@ -495,9 +519,11 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
                   //       local variables of called functions are private.
                   //GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval(exfac * dist2));
+                  //GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 else
                   //grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
                   grid_->Increment(xval, yval, zval, norm * table_.Yval(exfac * dist2));
+                  //grid_->Increment(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 endif
                 }
               } // END loop over zval
@@ -554,12 +580,12 @@ void Action_Volmap::Print() {
   CombineGridThreads();
 # endif
   // Divide our grid by the number of frames
-  float nf = (float)Nframes_;
-  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
+  VOLMAP_T nf = (VOLMAP_T)Nframes_;
+  for (VOLMAP_DS_T::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
     *gval /= nf;
   // Print volume estimate
   unsigned int nOccupiedVoxels = 0;
-  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
+  for (VOLMAP_DS_T::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
     if (*gval > 0.0) {
       ++nOccupiedVoxels;
       //mprintf("DBG: %16.8e\n", *gval);
@@ -582,11 +608,11 @@ void Action_Volmap::Print() {
     // that value is _not_ a maximum. Any density peaks less than the minimum
     // filter are discarded. The result is a Grid instance with all non-peak 
     // grid points zeroed-out.
-    Grid<float> peakgrid = grid_->InternalGrid();
+    Grid<VOLMAP_T> peakgrid = grid_->InternalGrid();
     for (size_t i = 0; i < grid_->NX(); i++)
       for (size_t j = 0; j < grid_->NY(); j++)
         for (size_t k = 0; k < grid_->NZ(); k++) {
-          float val = grid_->GridVal(i, j, k);
+          VOLMAP_T val = grid_->GridVal(i, j, k);
           if (val < peakcut_) {
             peakgrid.setGrid(i, j, k, 0.0f);
             continue;
@@ -631,3 +657,5 @@ void Action_Volmap::Print() {
     }
   }
 }
+#undef VOLMAP_DS_T
+#undef VOLMAP_T
