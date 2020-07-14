@@ -10,7 +10,7 @@ MdOpts::MdOpts() :
   cutNB_(8.0)        // in Ang., Amber default
 {}
 
-MdOpts::MdOpts(ArgList& argIn)
+int MdOpts::GetOptsFromArgs(ArgList& argIn)
 {
   cutEE_ = argIn.getKeyDouble("cutee", 8.0);
   cutNB_ = argIn.getKeyDouble("cutnb", 8.0);
@@ -28,7 +28,18 @@ MdOpts::MdOpts(ArgList& argIn)
       shakeType_ = Constraints::BONDS_TO_H;
     else if (shakearg == "all")
       shakeType_ = Constraints::ALL_BONDS;
-    else
+    else {
       mprinterr("Error: Unrecognized shake arg: %s\n", shakearg.c_str());
+      return 1;
+    }
   }
+  return 0;
+}
+
+void MdOpts::PrintOpts() const {
+  mprintf("\tElectrostatics cutoff : %g Ang.\n", cutEE_);
+  mprintf("\tvdW cutoff            : %g Ang.\n", cutNB_);
+  mprintf("\t1-4 Elec. scaling     : %g\n", scaleEE_);
+  mprintf("\t1-4 vdW scaling       : %g\n", scaleNB_);
+  mprintf("\tSHAKE constraints     : %s\n", Constraints::shakeString(shakeType_));
 }

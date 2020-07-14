@@ -23,6 +23,8 @@ static const char* shakeString_[] = {
 
 const char* Constraints::shakeString() const { return shakeString_[shakeType_]; }
 
+const char* Constraints::shakeString(ShakeType t) { return shakeString_[t]; }
+
 const char* Constraints::constraintArgs = "[ntc <#>]";
 
 // Constraints::InitConstraints()

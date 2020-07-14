@@ -74,7 +74,9 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   // Create the potential function. This is done last so potential term
   // arguments are parsed last.
   PotentialFunction potential;
-  MdOpts opts(argIn);
+  MdOpts opts;
+  if (opts.GetOptsFromArgs(argIn)) return CpptrajState::ERR;
+  opts.PrintOpts();
   if (use_openmm)
     potential.AddTerm( PotentialTerm::OPENMM, opts );
   else

@@ -4,7 +4,10 @@
 class MdOpts {
   public:
     MdOpts();
-    MdOpts(ArgList&);
+
+    int GetOptsFromArgs(ArgList&);
+
+    void PrintOpts() const;
 
     double ScaleEE() const { return scaleEE_; }
     double ScaleNB() const { return scaleNB_; }
