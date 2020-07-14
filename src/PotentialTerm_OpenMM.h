@@ -21,7 +21,7 @@ class PotentialTerm_OpenMM : public PotentialTerm {
     int InitTerm(MdOpts const&);
     int SetupTerm(Topology const&, Box const&, CharMask const&, EnergyArray&);
     void CalcForce(Frame&, CharMask const&) const;
-    int DegreesOfFreedom() const { return deg_of_freedom_; }
+    int RemovedDegreesOfFreedom() const { return n_removed_dof_; }
   private:
 #   ifdef HAS_OPENMM
     void AddBonds(OpenMM::HarmonicBondForce*, OpenMM::System*,
@@ -43,7 +43,7 @@ class PotentialTerm_OpenMM : public PotentialTerm {
     double scaleEE_; ///< Electrostatic 1-4 scaling factor
     double scaleNB_; ///< Lennard-Jones (VDW) 1-4 scaling factor
     double cut_;     ///< Nonbond cutoff, in nm
-    int deg_of_freedom_; ///< # of degrees of freedom in system adjusted for constraints
+    int n_removed_dof_; ///< # of degrees of freedom removed by constraints
     bool shakeH_;    ///< If true, constain bonds to H
     bool shakeHeavy_;  ///< If true, constain bonds to heavy atoms
 };

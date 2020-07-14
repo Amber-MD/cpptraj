@@ -44,9 +44,8 @@ int PotentialFunction::SetupPotential(Topology const& topIn, Box const& boxIn,
   mask_.MaskInfo();
 
   // Determine degrees of freedom
-  // TODO depending on what terms are present and how they are set up the DoF calc may change
-  //deg_of_freedom_ = 3 * mask_.Nselected();
-  deg_of_freedom_ = 0;
+  deg_of_freedom_ = 3 * mask_.Nselected();
+  mprintf("\t%i degrees of freedom.\n", deg_of_freedom_);
 
   earray_.clear();
   for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
@@ -55,9 +54,9 @@ int PotentialFunction::SetupPotential(Topology const& topIn, Box const& boxIn,
       mprinterr("Error: Could not set up energy term.\n");
       return 1;
     }
-    deg_of_freedom_ += (*it)->DegreesOfFreedom();
+    deg_of_freedom_ -= (*it)->RemovedDegreesOfFreedom();
   }
-  mprintf("\t%i degrees of freedom.\n", deg_of_freedom_);
+  mprintf("\tCorrected degrees of freedom: %i\n", deg_of_freedom_);
   current_ = (Topology*)&(topIn);
   return 0;
 }
