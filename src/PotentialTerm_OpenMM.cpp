@@ -197,6 +197,7 @@ int PotentialTerm_OpenMM::InitTerm(MdOpts const& opts) {
     shakeH_ = false;
     shakeHeavy_ = false;
   }
+  return 0;
 # else
   mprinterr("Error: CPPTRAJ was compiled without OpenMM support.\n");
   return 1;
