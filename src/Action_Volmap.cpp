@@ -295,7 +295,9 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tWhen smearing Gaussian, voxels farther than radii/2 will be skipped.\n");
   mprintf("\tDividing radii by %f\n", 1.0/radscale_);
   mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
+# ifndef VOLMAP_USEEXP
   mprintf("\tExponential will be approximated using cubic splines with a spacing of %g\n", splineDx_);
+# endif
   if (outfile != 0)
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
   mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
@@ -517,12 +519,18 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 #                 ifdef _OPENMP
                   // NOTE: It is OK to call table_.Yval() here because in OpenMP
                   //       local variables of called functions are private.
-                  //GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+#                 ifdef VOLMAP_USEEXP
+                  GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+#                 else
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval(exfac * dist2));
+#                 endif
                   //GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 else
-                  //grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+#                 ifdef VOLMAP_USEEXP
+                  grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+#                 else
                   grid_->Increment(xval, yval, zval, norm * table_.Yval(exfac * dist2));
+#                 endif
                   //grid_->Increment(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 endif
                 }
