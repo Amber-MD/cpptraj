@@ -12,17 +12,17 @@
 
 /// CONSTRUCTOR
 PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
-  PotentialTerm(OPENMM)
-#ifdef HAS_OPENMM
-  ,system_(0)
-  ,context_(0)
-  ,scaleEE_(1.0/1.2) // Amber default
-  ,scaleNB_(1.0/2.0) // Amber default
-  ,cut_(0.8)         // in nm, Amber default
-  ,deg_of_freedom_(0)
-  ,shakeH_(false)
-  ,shakeHeavy_(false)
-#endif
+  PotentialTerm(OPENMM),
+# ifdef HAS_OPENMM
+  system_(0),
+  context_(0),
+# endif
+  scaleEE_(1.0/1.2), // Amber default
+  scaleNB_(1.0/2.0), // Amber default
+  cut_(0.8),         // in nm, Amber default
+  deg_of_freedom_(0),
+  shakeH_(false),
+  shakeHeavy_(false)
 {}
 
 /// DESTRUCTOR
