@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "PotentialFunction.h"
 #include "Minimize_SteepestDescent.h"
+#include "MdOpts.h"
 
 // Exec_Emin::Help()
 void Exec_Emin::Help() const
@@ -14,12 +15,6 @@ void Exec_Emin::Help() const
 Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
 {
   mprintf("Warning: THIS COMMAND IS STILL UNDER DEVELOPMENT.\n");
-  PotentialFunction potential;
-  if (argIn.hasKey("openmm"))
-    potential.AddTerm( PotentialTerm::OPENMM, argIn );
-  else
-    potential.AddTerm( PotentialTerm::BOND, argIn );
-  Minimize_SteepestDescent SD;
 
   std::string setname = argIn.GetStringKey("crdset");
   if (setname.empty()) {
@@ -75,11 +70,24 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   if (!maskexpr.empty())
     mprintf("\tMask expression: %s\n", maskexpr.c_str());
 
+  bool use_openmm = argIn.hasKey("openmm");
+  // Create the potential function. This is done last so potential term
+  // arguments are parsed last.
+  PotentialFunction potential;
+  MdOpts opts(argIn);
+  if (use_openmm)
+    potential.AddTerm( PotentialTerm::OPENMM, opts );
+  else
+    potential.AddTerm( PotentialTerm::BOND, opts );
+  Minimize_SteepestDescent SD;
+
+  // Set up the potential function
   if (potential.SetupPotential( crdset->Top(), frameIn.BoxCrd(), maskexpr )) {
     mprinterr("Error: Could not set up potential.\n");
     return CpptrajState::ERR;
   }
 
+  // Set up and run minimization
   if (SD.SetupMin(trajoutname, min_tol, dx0, nMinSteps)) {
     mprinterr("Error: Could not set up minimizer.\n");
     return CpptrajState::ERR;
