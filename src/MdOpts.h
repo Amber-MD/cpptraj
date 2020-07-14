@@ -1,11 +1,10 @@
-#ifndef INC_POTENTIALTERM_INITOPTS_H
-#define INC_POTENTIALTERM_INITOPTS_H
-#include "PotentialTerm.h"
+#ifndef INC_MDOPTS_H
+#define INC_MDOPTS_H
 #include "Constraints.h"
-class PotentialTerm::InitOpts {
+class MdOpts {
   public:
-    InitOpts();
-    InitOpts(ArgList&);
+    MdOpts();
+    MdOpts(ArgList&);
 
     double ScaleEE() const { return scaleEE_; }
     double ScaleNB() const { return scaleNB_; }

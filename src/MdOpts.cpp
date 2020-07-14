@@ -1,8 +1,8 @@
-#include "PotentialTerm_InitOpts.h"
+#include "MdOpts.h"
 #include "ArgList.h"
 #include "CpptrajStdio.h"
 
-PotentialTerm::InitOpts::InitOpts() :
+MdOpts::MdOpts() :
   shakeType_(Constraints::OFF),
   scaleEE_(1.0/1.2), // Amber default
   scaleNB_(1.0/2.0), // Amber default
@@ -10,7 +10,7 @@ PotentialTerm::InitOpts::InitOpts() :
   cutNB_(8.0)        // in Ang., Amber default
 {}
 
-PotentialTerm::InitOpts::InitOpts(ArgList& argIn)
+MdOpts::MdOpts(ArgList& argIn)
 {
   cutEE_ = argIn.getKeyDouble("cutee", 8.0);
   cutNB_ = argIn.getKeyDouble("cutnb", 8.0);
