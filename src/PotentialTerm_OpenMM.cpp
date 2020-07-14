@@ -121,7 +121,7 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   // Do periodic boundary conditions if necessary.
   if (boxIn.Type() != Box::NOBOX) {
     nonbond->setNonbondedMethod(OpenMM::NonbondedForce::CutoffPeriodic);
-    nonbond->setCutoffDistance( cut_ ); // TODO allow args
+    nonbond->setCutoffDistance( cut_ );
     Matrix_3x3 ucell, recip;
     boxIn.ToRecip(ucell, recip);
     system_->setDefaultPeriodicBoxVectors(
@@ -162,7 +162,7 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
   AddDihedrals(ptorsion, topIn.Dihedrals(), topIn.DihedralParm(), oldToNew);
   AddDihedrals(ptorsion, topIn.DihedralsH(), topIn.DihedralParm(), oldToNew);
 
-  // Populate nonbonded exclusions TODO make args
+  // Populate nonbonded exclusions
   nonbond->createExceptionsFromBonds(bondPairs, scaleEE_, scaleNB_);
 
   // Set up integrator and context.
