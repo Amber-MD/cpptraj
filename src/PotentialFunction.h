@@ -8,13 +8,13 @@
 class Topology;
 class Frame;
 class Box;
-class ArgList;
+class MdOpts;
 /// Hold terms for additive potential.
 class PotentialFunction {
   public:
     PotentialFunction() : current_(0), deg_of_freedom_(0) {}
 
-    int AddTerm(PotentialTerm::Type, ArgList&);
+    int AddTerm(PotentialTerm::Type, MdOpts const&);
     /// Set up all terms in the potential function.
     int SetupPotential(Topology const&, Box const&, std::string const&);
 

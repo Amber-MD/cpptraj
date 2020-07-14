@@ -7,6 +7,7 @@ class CharMask;
 class Frame;
 class EnergyArray;
 class Box;
+class MdOpts;
 /// Abstract base class for a term of a potential function.
 class PotentialTerm {
   public:
@@ -14,9 +15,7 @@ class PotentialTerm {
     PotentialTerm(Type t) : type_(t) {}
     virtual ~PotentialTerm() {} // Virtual since this is inherited.
 
-    class InitOpts;
-
-    virtual int InitTerm(InitOpts const&) { return 0; } // TODO pure virtual?
+    virtual int InitTerm(MdOpts const&) { return 0; } // TODO pure virtual?
     virtual int SetupTerm(Topology const&, Box const&, CharMask const&, EnergyArray&) = 0;
     virtual void CalcForce(Frame&, CharMask const&) const = 0;
 

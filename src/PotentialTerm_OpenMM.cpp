@@ -7,7 +7,7 @@
 # include "CharMask.h"
 # include "Constants.h"
 # include "EnergyArray.h"
-# include "PotentialTerm_InitOpts.h"
+# include "MdOpts.h"
 #endif
 
 /// CONSTRUCTOR
@@ -179,7 +179,7 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
 #endif
 
 /** Init openmm options. */
-int PotentialTerm_OpenMM::InitTerm(InitOpts const& opts) {
+int PotentialTerm_OpenMM::InitTerm(MdOpts const& opts) {
 # ifdef HAS_OPENMM
   scaleEE_ = opts.ScaleEE();
   scaleNB_ = opts.ScaleNB();

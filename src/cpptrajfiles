@@ -311,6 +311,7 @@ COMMON_SOURCES= \
         MaskArray.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
+        MdOpts.cpp \
         MetaData.cpp \
         Minimize_SteepestDescent.cpp \
         Mol.cpp \
@@ -336,7 +337,6 @@ COMMON_SOURCES= \
         Parm_Tinker.cpp \
         PotentialFunction.cpp \
         PotentialTerm_Bond.cpp \
-        PotentialTerm_InitOpts.cpp \
         PotentialTerm_OpenMM.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
