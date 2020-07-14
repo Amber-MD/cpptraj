@@ -41,6 +41,7 @@ class PotentialTerm_OpenMM : public PotentialTerm {
     double scaleEE_; ///< Electrostatic 1-4 scaling factor
     double scaleNB_; ///< Lennard-Jones (VDW) 1-4 scaling factor
     double cut_;     ///< Nonbond cutoff, in nm
+    int deg_of_freedom_; ///< # of degrees of freedom in system adjusted for constraints
     bool shakeH_;    ///< If true, constain bonds to H
     bool shakeHeavy_;  ///< If true, constain bonds to heavy atoms
 #   endif

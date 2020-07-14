@@ -19,6 +19,7 @@ PotentialTerm_OpenMM::PotentialTerm_OpenMM() :
   ,scaleEE_(1.0/1.2) // Amber default
   ,scaleNB_(1.0/2.0) // Amber default
   ,cut_(0.8)         // in nm, Amber default
+  ,deg_of_freedom_(0)
   ,shakeH_(false)
   ,shakeHeavy_(false)
 #endif
@@ -173,6 +174,10 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
 
   // Set up energy term
   ene_ = earrayIn.AddType( EnergyArray::E_OPENMM );
+
+  // Calculate degrees of freedom
+  deg_of_freedom_ = (3 * system_->getNumParticles()) - system_->getNumConstraints();
+  mprintf("\tOpenMM system DoF: %i\n", deg_of_freedom_);
 
   return 0;
 }
