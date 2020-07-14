@@ -183,11 +183,12 @@ int PotentialTerm_OpenMM::InitTerm(InitOpts const& opts) {
 # ifdef HAS_OPENMM
   scaleEE_ = opts.ScaleEE();
   scaleNB_ = opts.ScaleNB();
+  // NOTE: OpenMM requires nm
   if (opts.CutEE() != opts.CutNB()) {
     mprinterr("Error: Elec. cut %g != VDW cut %g; not yet supported.\n");
     return 1;
   }
-  cut_ = opts.CutEE();
+  cut_ = opts.CutEE() * OpenMM::NmPerAngstrom;
   if (opts.Shake() != Constraints::OFF) {
     shakeH_ = true;
     if (opts.Shake() == Constraints::ALL_BONDS)
