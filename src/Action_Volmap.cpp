@@ -297,6 +297,9 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
 # ifndef VOLMAP_USEEXP
   mprintf("\tExponential will be approximated using cubic splines with a spacing of %g\n", splineDx_);
+# ifdef VOLMAP_USEACCURATE
+  mprintf("\tSplines using more accurate but slower table lookup.\n");
+# endif
 # endif
   if (outfile != 0)
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
@@ -519,20 +522,22 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 #                 ifdef _OPENMP
                   // NOTE: It is OK to call table_.Yval() here because in OpenMP
                   //       local variables of called functions are private.
-#                 ifdef VOLMAP_USEEXP
+#                 if defined(VOLMAP_USEEXP)
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+#                 elif defined(VOLMAP_USEACCURATE)
+                  GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 else
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval(exfac * dist2));
 #                 endif
-                  //GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
-#                 else
-#                 ifdef VOLMAP_USEEXP
+#                 else /* OPENMP */
+#                 if defined(VOLMAP_USEEXP)
                   grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+#                 elif defined(VOLMAP_USEACCURATE)
+                  grid_->Increment(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 else
                   grid_->Increment(xval, yval, zval, norm * table_.Yval(exfac * dist2));
 #                 endif
-                  //grid_->Increment(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
-#                 endif
+#                 endif /* OPENMP */
                 }
               } // END loop over zval
         } // END z dim is valid
