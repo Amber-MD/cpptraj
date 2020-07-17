@@ -152,6 +152,7 @@ double SplineFxnTable::Yval_accurate(double xIn) const {
     ind = Xvals_.size() - 1;
   }
   double dx = xIn - Xvals_[ind];
+  //mprintf("DEBUG: ind= %8i  x=%20.10E  dx= %20.10E\n", ind, xIn, dx);
   int xidx = ind * 4;
   return table_[xidx] + dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
 }
