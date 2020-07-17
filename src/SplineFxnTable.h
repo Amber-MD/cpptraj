@@ -20,6 +20,9 @@ class SplineFxnTable {
       //mprintf("SPLINEFXNTBL: idx= %li\n", xidx); // DEBUG
       // Delta from index
       double dx = xval - ((double)xidx * Dx_);
+      //double newDx = xIn - Xvals_[xidx];
+      //mprintf("DEBUG: xidx= %8li  x=%20.10E  x*dx= %20.10E  xval= %20.10E  dx= %20.10E  newDx= %20.10E\n",
+      //        xidx, xIn, (double)xidx*Dx_, Xvals_[xidx], dx, newDx);
       // Index into the table
       xidx *= 4;
       // DEBUG
@@ -36,7 +39,15 @@ class SplineFxnTable {
       return table_[xidx] + 
              dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
     }
-
+    /// \return Approximated Y value, use internal X table
+    double Yval_xtable(double xIn) const {
+      long int xidx = (long int)(one_over_Dx_ * (xIn - Xmin_));
+      double dx = xIn - Xvals_[xidx];
+      xidx *= 4;
+      return table_[xidx] + 
+             dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
+    }
+    /// \return More accurate X value via search of internal X table
     double Yval_accurate(double) const;
 
     unsigned int Nvals() const { return Xvals_.size(); }
