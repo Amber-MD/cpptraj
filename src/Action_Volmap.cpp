@@ -297,8 +297,10 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
 # ifndef VOLMAP_USEEXP
   mprintf("\tExponential will be approximated using cubic splines with a spacing of %g\n", splineDx_);
-# ifdef VOLMAP_USEACCURATE
+# if defined(VOLMAP_USEACCURATE)
   mprintf("\tSplines using more accurate but slower table lookup.\n");
+# elif defined(VOLMAP_USEXTABLE)
+  mprintf("\tSplines using less accurate lookup with tabled X values.\n");
 # endif
 # endif
   if (outfile != 0)
@@ -526,6 +528,8 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
 #                 elif defined(VOLMAP_USEACCURATE)
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
+#                 elif defined(VOLMAP_USEXTABLE)
+                  GRID_THREAD_[mythread].incrementBy(xval, yval, xval, norm * table_.Yval_xtable(exfac * dist2));
 #                 else
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval(exfac * dist2));
 #                 endif
@@ -534,6 +538,8 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
                   grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
 #                 elif defined(VOLMAP_USEACCURATE)
                   grid_->Increment(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
+#                 elif defined(VOLMAP_USEXTABLE)
+                  grid_->Increment(xval, yval, zval, norm * table_.Yval_xtable(exfac * dist2));
 #                 else
                   grid_->Increment(xval, yval, zval, norm * table_.Yval(exfac * dist2));
 #                 endif
