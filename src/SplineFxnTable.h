@@ -44,6 +44,14 @@ class SplineFxnTable {
       long int xidx = (long int)(one_over_Dx_ * (xIn - Xmin_));
       double dx = xIn - Xvals_[xidx];
       xidx *= 4;
+#     ifdef SPLINEFXNTABLE_CHECK_RANGE
+      // Protect against out of range values
+      // NOTE - If args to Yval are chosen carefully, omitting this check speeds things up.
+      if (xidx >= (long int)table_.size())
+        xidx = table_.size() - 4;
+      else if (xidx < 0)
+        xidx = 0;
+#     endif
       return table_[xidx] + 
              dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
     }
