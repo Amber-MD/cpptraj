@@ -38,12 +38,13 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
   Xvals_.reserve( TableSize );
   Yvals.reserve( TableSize );
   // Save X and Y values so we can calc the spline coefficients
-  double xval = Xmin_;
+  //double xval = Xmin_;
   for (unsigned int i = 0; i != TableSize; i++) {
+    double xval = Xmin_ + ((double)i * Dx_);
     double yval = fxnIn( xval );
     Xvals_.push_back( xval );
     Yvals.push_back( yval );
-    xval += Dx_;
+    //xval += Dx_;
   }
   Spline cspline;
   cspline.CubicSpline_Coeff(Xvals_, Yvals);
