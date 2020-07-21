@@ -18,40 +18,42 @@ class SplineFxnTable {
       double xval = xIn - Xmin_;
       long int xidx = ((long int)(one_over_Dx_ * xval));
       //mprintf("SPLINEFXNTBL: idx= %li\n", xidx); // DEBUG
+#     ifdef SPLINEFXNTABLE_CHECK_RANGE
+      // Protect against out of range values
+      // NOTE - If args to Yval are chosen carefully, omitting this check speeds things up.
+      if (xidx >= (long int)Xvals_.size())
+        xidx = Xvals_.size() - 1;
+      else if (xidx < 0)
+        xidx = 0;
+#     endif
       // Delta from index
       double dx = xval - ((double)xidx * Dx_);
-      //double newDx = xIn - Xvals_[xidx];
+      // DEBUG
       //mprintf("DEBUG: xidx= %8li  x=%20.10E  x*dx= %20.10E  xval= %20.10E  dx= %20.10E  newDx= %20.10E\n",
-      //        xidx, xIn, (double)xidx*Dx_, Xvals_[xidx], dx, newDx);
+      //        xidx, xIn, (double)(xidx)*Dx_, Xvals_[xidx], dx, xIn - Xvals_[xidx]);
       // Index into the table
       xidx *= 4;
       // DEBUG
       //if (xidx < 0 || xidx >= (int)table_.size())
       //  mprinterr("Error: index %li out of range (%zu) for X val %g (Xmin= %g 1/dx= %g)\n", xidx, table_.size(), xIn, Xmin_, one_over_Dx_);
-#     ifdef SPLINEFXNTABLE_CHECK_RANGE
-      // Protect against out of range values
-      // NOTE - If args to Yval are chosen carefully, omitting this check speeds things up.
-      if (xidx >= (long int)table_.size())
-        xidx = table_.size() - 4;
-      else if (xidx < 0)
-        xidx = 0;
-#     endif
       return table_[xidx] + 
              dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
     }
     /// \return Approximated Y value, use internal X table
     double Yval_xtable(double xIn) const {
       long int xidx = (long int)(one_over_Dx_ * (xIn - Xmin_));
-      double dx = xIn - Xvals_[xidx];
-      xidx *= 4;
 #     ifdef SPLINEFXNTABLE_CHECK_RANGE
       // Protect against out of range values
       // NOTE - If args to Yval are chosen carefully, omitting this check speeds things up.
-      if (xidx >= (long int)table_.size())
-        xidx = table_.size() - 4;
+      if (xidx >= (long int)Xvals_.size())
+        xidx = Xvals_.size() - 1;
       else if (xidx < 0)
         xidx = 0;
 #     endif
+      // Delta from index
+      double dx = xIn - Xvals_[xidx];
+      // Index into the table
+      xidx *= 4;
       return table_[xidx] + 
              dx*(table_[xidx+1] + dx*(table_[xidx+2] + dx*table_[xidx+3]));
     }
