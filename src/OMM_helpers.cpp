@@ -19,6 +19,9 @@ void Cpptraj::OMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
       if (useConstraints) {
         system->addConstraint( a1, a2, BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom );
       } else {
+         // Note factor of 2 for stiffness below because Amber specifies the constant
+         // as it is used in the harmonic energy term kx^2 with force 2kx; OpenMM wants
+         // it as used in the force term kx, with energy kx^2/2.
         bondStretch->addBond( a1, a2,
                               BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
                               BP[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
@@ -41,6 +44,9 @@ void Cpptraj::OMM::AddAngles(OpenMM::HarmonicAngleForce* angleStretch,
     if (a1 != -1 && a2 != -1 && a3 != -1)
     {
       // CPPTRAJ angles are already in radians, no need for OpenMM::RadiansPerDegree
+      // Note factor of 2 for stiffness below because Amber specifies the constant
+      // as it is used in the harmonic energy term kx^2 with force 2kx; OpenMM wants
+      // it as used in the force term kx, with energy kx^2/2.
       angleStretch->addAngle( a1, a2, a3,
                             AP[ang->Idx()].Teq(),
                             AP[ang->Idx()].Tk() * 2 * OpenMM::KJPerKcal);
