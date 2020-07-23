@@ -6,7 +6,7 @@ TESTNAME='Emin tests'
 
 CleanFiles emin.in cpptraj.ene.dat cpptraj.emin.nc \
            omm.ene.dat ommangle.ene.dat ommdihedral.ene.dat \
-           ommnb.ene.dat omm.tz2.ene.dat
+           ommnb.ene.dat omm.tz2.ene.dat omm.tz2.pme.dat
 
 INPUT='-i emin.in'
 
@@ -63,6 +63,14 @@ emin crdset TZ2 nsteps 100 out omm.tz2.ene.dat openmm
 EOF
   RunCpptraj "$UNITNAME (Tz2)"
   DoTest omm.tz2.ene.dat.save omm.tz2.ene.dat
+  # All, PME
+  cat > emin.in <<EOF
+parm ../tz2.ortho.parm7
+loadcrd ../tz2.ortho.nc 1 1 name TZ2
+emin crdset TZ2 nsteps 100 out omm.tz2.pme.dat openmm !:WAT
+EOF
+  RunCpptraj "$UNITNAME (Tz2 PME)"
+  DoTest omm.tz2.pme.dat.save omm.tz2.pme.dat
 fi
 
 
