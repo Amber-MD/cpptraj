@@ -82,6 +82,8 @@ class Matrix_3x3 {
     Matrix_3x3 operator*(Matrix_3x3 const&) const;
     /// Multiply this times transpose of 3x3 matrix
     Matrix_3x3 TransposeMult(Matrix_3x3 const&) const;
+    /// Multiply this times given scalar
+    void operator*=(double);
     // TODO: Get rid of this
     const double* Dptr() const { return M_; }
     double* Dptr() { return M_; }

@@ -413,6 +413,12 @@ Matrix_3x3 Matrix_3x3::TransposeMult(Matrix_3x3 const& rhs) const {
   return result;
 }
 
+/** Multiply every elementby given scalar. */
+void Matrix_3x3::operator*=(double dval) {
+  for (unsigned int i = 0; i != 9; i++)
+    M_[i] *= dval;
+}
+
 // Matrix_3x3::RotationAroundZ()
 void Matrix_3x3::RotationAroundZ(double a1, double a2) {
   double r = sqrt( a1*a1 + a2*a2 );

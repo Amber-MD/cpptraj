@@ -120,10 +120,14 @@ int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
 
   // Do periodic boundary conditions if necessary.
   if (boxIn.Type() != Box::NOBOX) {
-    nonbond->setNonbondedMethod(OpenMM::NonbondedForce::CutoffPeriodic);
+    //nonbond->setNonbondedMethod(OpenMM::NonbondedForce::CutoffPeriodic);
+    nonbond->setNonbondedMethod(OpenMM::NonbondedForce::PME);
+    mprintf("\tOpenMM cutoff (nm): %g\n", cut_);
     nonbond->setCutoffDistance( cut_ );
     Matrix_3x3 ucell, recip;
     boxIn.ToRecip(ucell, recip);
+    ucell *= OpenMM::NmPerAngstrom;
+    ucell.Print("OpenMM unit cell");
     system_->setDefaultPeriodicBoxVectors(
       OpenMM::Vec3( ucell[0], ucell[1], ucell[2] ),
       OpenMM::Vec3( ucell[3], ucell[4], ucell[5] ),
