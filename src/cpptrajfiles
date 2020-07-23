@@ -320,6 +320,7 @@ COMMON_SOURCES= \
         NC_Cmatrix.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
+        OMM_helpers.cpp \
         OutputTrajCommon.cpp \
         ParameterSet.cpp \
         PDBfile.cpp \

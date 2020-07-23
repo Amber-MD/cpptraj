@@ -8,6 +8,7 @@
 # include "Constants.h"
 # include "EnergyArray.h"
 # include "MdOpts.h"
+# include "OMM_helpers.h"
 #endif
 
 /// CONSTRUCTOR
@@ -34,79 +35,12 @@ PotentialTerm_OpenMM::~PotentialTerm_OpenMM() {
 }
 
 #ifdef HAS_OPENMM
-/** Add BondArray to openmm */
-void PotentialTerm_OpenMM::AddBonds(OpenMM::HarmonicBondForce* bondStretch,
-                                    OpenMM::System* system,
-                                    std::vector< std::pair<int,int> >& bondPairs,
-                                    BondArray const& bonds, BondParmArray const& BP,
-                                    std::vector<int> const& oldToNew,
-                                    bool useConstraints)
-{
-  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
-  {
-    int a1 = oldToNew[bnd->A1()];
-    int a2 = oldToNew[bnd->A2()];
-    if (a1 != -1 && a2 != -1)
-    {
-      bondPairs.push_back(std::make_pair(a1, a2));
-      if (useConstraints) {
-        system->addConstraint( a1, a2, BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom );
-      } else {
-        bondStretch->addBond( a1, a2,
-                              BP[bnd->Idx()].Req() * OpenMM::NmPerAngstrom,
-                              BP[bnd->Idx()].Rk() * 2 * OpenMM::KJPerKcal
-                                * OpenMM::AngstromsPerNm * OpenMM::AngstromsPerNm );
-      }
-    }
-  }
-}
-
-/** Add AngleArray to openmm. */
-void PotentialTerm_OpenMM::AddAngles(OpenMM::HarmonicAngleForce* angleStretch,
-                                     AngleArray const& angles, AngleParmArray const& AP,
-                                     std::vector<int> const& oldToNew)
-{
-  for (AngleArray::const_iterator ang = angles.begin(); ang != angles.end(); ++ang)
-  {
-    int a1 = oldToNew[ang->A1()];
-    int a2 = oldToNew[ang->A2()];
-    int a3 = oldToNew[ang->A3()];
-    if (a1 != -1 && a2 != -1 && a3 != -1)
-    {
-      // CPPTRAJ angles are already in radians, no need for OpenMM::RadiansPerDegree
-      angleStretch->addAngle( a1, a2, a3,
-                            AP[ang->Idx()].Teq(),
-                            AP[ang->Idx()].Tk() * 2 * OpenMM::KJPerKcal);
-    }
-  }
-}
-
-/** Add DihedralArray to openmm. */
-void PotentialTerm_OpenMM::AddDihedrals(OpenMM::PeriodicTorsionForce* ptorsion,
-                                     DihedralArray const& dihedrals, DihedralParmArray const& DP,
-                                     std::vector<int> const& oldToNew)
-{
-  for (DihedralArray::const_iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih)
-  {
-    int a1 = oldToNew[dih->A1()];
-    int a2 = oldToNew[dih->A2()];
-    int a3 = oldToNew[dih->A3()];
-    int a4 = oldToNew[dih->A4()];
-    if (a1 != -1 && a2 != -1 && a3 != -1 && a4 != -1)
-    {
-      // CPPTRAJ dihedrals are already in radians, no need for OpenMM::RadiansPerDegree
-      ptorsion->addTorsion( a1, a2, a3, a4,
-                            DP[dih->Idx()].Pn(),
-                            DP[dih->Idx()].Phase(),
-                            DP[dih->Idx()].Pk() * OpenMM::KJPerKcal);
-    }
-  }
-}
 
 /** This performs the actual openMM setup. */
 int PotentialTerm_OpenMM::OpenMM_setup(Topology const& topIn, Box const& boxIn,
                                        CharMask const& maskIn, EnergyArray& earrayIn)
 {
+  using namespace Cpptraj::OMM;
   mprintf("\tSetting up OpenMM.\n");
   system_ = new OpenMM::System();
   OpenMM::NonbondedForce* nonbond = new OpenMM::NonbondedForce();
