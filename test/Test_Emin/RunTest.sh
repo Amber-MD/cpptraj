@@ -50,8 +50,8 @@ EOF
   # Nonbonds
   cat > emin.in <<EOF
 parm O2box.parm7 
-loadcrd O2box.rst7 1 1 name SPCBOX
-emin crdset SPCBOX nsteps 100 out ommnb.ene.dat openmm
+loadcrd O2box.rst7 1 1 name O2BOX
+emin crdset O2BOX nsteps 100 out ommnb.ene.dat openmm
 EOF
   RunCpptraj "$UNITNAME (nonbonds)"
   DoTest ommnb.ene.dat.save ommnb.ene.dat
