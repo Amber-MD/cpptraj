@@ -222,7 +222,9 @@ void Action_DSSP::SSres::SetBridge(int idx, BridgeType btypeIn) {
     bridge2idx_ = idx;
     b2type_ = btypeIn;
   } else
-    mprinterr("Error: Too many bridges for %i (to %i)\n", Num(), idx+1);
+    //mprinterr("Error: Too many bridges for %i (to %i)\n", Num(), idx+1);
+    mprintf("Warning: Too many bridges for %i (to %i) - already have %i and %i\n",
+            Num()+1, idx+1, bridge1idx_+1, bridge2idx_+1);
 }
 
 bool Action_DSSP::SSres::HasBridge() const {
@@ -807,7 +809,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       hb = CO_NH_bonds_.find( HbondPairType(hb0->second, hb0->first) );
       if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
-        mprintf("\t\t%i ANTI-PARALLELa with %i (%i)\n", hb0->first+1, hb0->second+1, hb->first+1);
+        mprintf("\t\t%i ANTI-PARALLELa with %i (%i to %i)\n", hb0->first+1, hb0->second+1, hb->first+1, hb->second+1);
 #       endif
         AssignBridge(hb0->first, hb0->second, ANTIPARALLEL);
       }
@@ -818,7 +820,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       hb = CO_NH_bonds_.find( HbondPairType(hb0->second-2, hb0->first+2) );
       if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
-        mprintf("\t\t%i ANTI-PARALLELb with %i (%i)\n", hb0->first+2, hb0->second, hb->first+1);
+        mprintf("\t\t%i ANTI-PARALLELb with %i (%i to %i)\n", hb0->first+2, hb0->second, hb->first+1, hb->second+1);
 #       endif
         AssignBridge(hb0->first+1, hb0->second-1, ANTIPARALLEL);
       }
@@ -829,7 +831,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       hb = CO_NH_bonds_.find( HbondPairType(hb0->second, hb0->first+2) );
       if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
-        mprintf("\t\t%i PARALLELa with %i (%i)\n", hb0->first+2, hb0->second+1, hb->first+1);
+        mprintf("\t\t%i PARALLELa with %i (%i to %i)\n", hb0->first+2, hb0->second+1, hb->first+1, hb->second+1);
 #       endif
         AssignBridge(hb0->first+1, hb0->second, PARALLEL);
       }
@@ -840,7 +842,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       hb = CO_NH_bonds_.find( HbondPairType(hb0->second-2, hb0->first) );
       if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
-        mprintf("\t\t%i PARALLELb with %i (%i)\n", hb0->second, hb0->first+1, hb->first+1);
+        mprintf("\t\t%i PARALLELb with %i (%i to %i)\n", hb0->second, hb0->first+1, hb->first+1, hb->second+1);
 #       endif
         AssignBridge(hb0->second-1, hb0->first, PARALLEL);
       }
