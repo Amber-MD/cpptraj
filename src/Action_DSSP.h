@@ -51,9 +51,6 @@ class Action_DSSP : public Action {
     /// Turn types
     enum TurnType { T3 = 0, T4, T5 };
     static const int NTURNTYPE_ = 3;
-    /// Beta types
-    enum BetaType { B1 = 0, B2, S };
-    static const int NBETATYPE_ = 3;
     /// Bridge direction types
     enum BridgeType { NO_BRIDGE = 0, PARALLEL, ANTIPARALLEL };
     static const int NBRIDGETYPE_ = 3;
