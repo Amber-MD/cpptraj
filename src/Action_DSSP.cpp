@@ -706,8 +706,10 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
         const double* Oxyz = frm.Frm().CRD( ResCO.O() );
         for (int resj = 0; resj < Nres; resj++)
         {
-          // Need to consider adjacent residues since delta (2 res) turns possible 
-          if (resi != resj) {
+          // resj is the N-H residue. resi is the C=O residue.
+          // Ignore j-i = 0 (same residue) and (j-i = 1) peptide bond.
+          int resDelta = resj - resi;
+          if (resDelta < 0 || resDelta > 1) {
             SSres& ResNH = Residues_[resj];
             if (ResNH.IsSelected() && ResNH.HasNH())
             {
