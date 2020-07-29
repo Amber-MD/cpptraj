@@ -55,6 +55,18 @@ class Action_DSSP : public Action {
     enum BridgeType { NO_BRIDGE = 0, PARALLEL, ANTIPARALLEL };
     static const int NBRIDGETYPE_ = 3;
 
+    /// Class for holding bridge info
+    class Bridge {
+      public:
+        Bridge(int i, BridgeType b) : idx_(i), btype_(b) {}
+        int Idx()          const { return idx_;   }
+        BridgeType Btype() const { return btype_; }
+      private:
+        int idx_;          ///< Residue to which the bridge is formed.
+        BridgeType btype_; ///< The type of bridge being formed.
+    };
+    typedef std::vector<Bridge> BridgeArray;
+
     static const double DSSP_fac_;  ///< Original DSSP factor for calc. H-bond "energy"
     static const double DSSP_cut_;  ///< Original DSSP H-bond energy cutoff in kcal/mol
 
