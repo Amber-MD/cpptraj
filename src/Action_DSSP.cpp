@@ -154,23 +154,7 @@ void Action_DSSP::SSres::AccumulateData(int frameNum, bool useString, bool betaD
         sdata = "B";
       }
     }
-/*
-    if (b1type_ == PARALLEL || b2type_ == PARALLEL) {
-      Bcount_[PARALLEL]++;
-      if (betaDetail) {
-        idata = (int)EXTENDED;
-        sdata = "b";
-      }
-    }
-    if (b1type_ == ANTIPARALLEL || b2type_ == ANTIPARALLEL) {
-      Bcount_[ANTIPARALLEL]++;
-      if (betaDetail) {
-        idata = (int)BRIDGE;
-        sdata = "B";
-      }
-    }
     // TODO bulge?
-*/
   } else
     Bcount_[NO_BRIDGE]++;
   if (useString)
@@ -719,16 +703,6 @@ static inline int AbsResDelta(int idx1, int idx2) {
   return resDelta;
 }
 
-static inline void SetMin(int& resGapSize, int& sres0, int& sres1, int Nres, int Pres)
-{
-  int itmp = AbsResDelta(Nres, Pres);
-  if (itmp < resGapSize) {
-    resGapSize = itmp;
-    sres0 = std::min(Pres, Nres);
-    sres1 = std::max(Pres, Nres);
-  }
-}
-
 /** Given that the current residue is in-between two bridging residues, check
   * if there is a bulge in the strand(s) it is bridging with. The largest
   * gap allowed in the other strand is 5 residues.
@@ -1102,14 +1076,6 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
           totalSS[BRIDGE]++;
         else if (btype == PARALLEL)
           totalSS[EXTENDED]++;
-/*
-        if (Resi.Bridge1Type() == ANTIPARALLEL ||
-            Resi.Bridge2Type() == ANTIPARALLEL)
-          totalSS[BRIDGE]++;
-        else if (Resi.Bridge1Type() == PARALLEL ||
-                 Resi.Bridge2Type() == PARALLEL)
-          totalSS[EXTENDED]++;
-*/
       } else
         totalSS[Residues_[resi].SS()]++;
       Residues_[resi].AccumulateData(frameNum, printString_, betaDetail_);
