@@ -551,9 +551,9 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
 #     ifdef DSSPDEBUG
       mprintf("\t %8i < %8i < %8i\n", prevresnum+1, *ridx+1, nextresnum+1);
 #     endif
-      // Here we assume that residues are sequential!
-      if (prevresnum > -1) Res->SetPrevIdx( Res-Residues_.begin()-1 );
-      if (nextresnum > -1) Res->SetNextIdx( Res-Residues_.begin()+1 );
+      // Set previous/next residue indices 
+      if (prevresnum > -1) Res->SetPrevIdx( prevresnum );
+      if (nextresnum > -1) Res->SetNextIdx( nextresnum );
     }
     // Determine if this residue is selected
     if (Mask_.AtomsInCharMask(thisRes.FirstAtom(), thisRes.LastAtom())) {
@@ -959,6 +959,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
   // ----- Do SS assignment ----------------------
   // Priority is 'H', 'B', 'E', 'G', 'I', 'T', 'S' None
   //              8    7    6    5    4    3    2  1
+  // First do alpha, extended, and bridge.
   for (resi = 0; resi < Nres; resi++)
   {
 #   ifdef DSSPDEBUG
