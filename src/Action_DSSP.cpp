@@ -230,7 +230,7 @@ bool Action_DSSP::SSres::HasTurnStart(TurnType typeIn) const {
 void Action_DSSP::SSres::SetBridge(int idx, BridgeType btypeIn) {
   bridges_.push_back( Bridge(idx, btypeIn) );
   if (bridges_.size() > 2) {
-    mprintf("Warning: %i has more than 2 bridges (%zu).\n", Num()+1, bridges_.size());
+    mprintf("Warning: Residue %i has more than 2 bridges (currently %zu).\n", Num()+1, bridges_.size());
   }
 }
 
