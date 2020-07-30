@@ -561,9 +561,11 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
     bool hasAtoms = false;
     int prevresnum = -1;
     int nextresnum = -1;
+    int nAtSelected = 0;
     for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
     {
       if (Mask_.AtomInCharMask( at )) {
+        nAtSelected++;
         if      ( setup.Top()[at].Name() == BB_C_ )  { Res->SetC( at*3 ); hasAtoms = true; }
         else if ( setup.Top()[at].Name() == BB_O_ )  { Res->SetO( at*3 ); hasAtoms = true; }
         else if ( setup.Top()[at].Name() == BB_N_ )  { Res->SetN( at*3 ); hasAtoms = true; }
@@ -572,8 +574,9 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
       }
     }
     if (!hasAtoms) {
-      mprintf("Warning: No atoms selected for res %s; skipping.\n",
-              setup.Top().TruncResNameNum( Res->Num() ).c_str());
+      if (nAtSelected > 0)
+        mprintf("Warning: No atoms selected for res %s; skipping.\n",
+                setup.Top().TruncResNameNum( Res->Num() ).c_str());
     } else {
       Res->SetSelected( true );
       ++nResSelected;
