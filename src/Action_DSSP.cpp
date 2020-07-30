@@ -452,13 +452,34 @@ static inline void PrintAtom(Topology const& top, NameType const& name, int idx)
     mprintf(" '%s'=%-12s", *name, "NONE");
 }
 
-/** Print a warning about multiple selected residues. */
-static inline void MultiResWarning(int resNum, int currNum, int newNum, const char* typeStr)
+// TODO use Num()?
+static inline int AbsResDelta(int idx1, int idx2) {
+  int resDelta =  idx1 - idx2;
+  if (resDelta < 0) resDelta = -resDelta;
+  return resDelta;
+}
+
+/** Print a warning about multiple selected residues.
+  * \return the index that minimizes the absolute delta between residues.
+  */ 
+static inline int MultiResWarning(int resNum, int currNum, int newNum, const char* typeStr)
 {
-  mprintf("Warning: Multiple %s residues for res %i (%i; current %s is %i)\n"
-          "Warning: Residues %i and %i will not be considered consecutive.\n",
-          typeStr, resNum+1, newNum+1, typeStr, currNum+1,
-          resNum+1, newNum+1);
+  int currentDelta = AbsResDelta(resNum, currNum);
+  int newDelta = AbsResDelta(resNum, newNum);
+  mprintf("Warning: Multiple %s residues for res %i (current %s is %i; potential %s is %i).\n",
+          typeStr, resNum+1, typeStr, currNum+1, typeStr, newNum+1);
+  mprintf("Warning: Old delta= %i  New delta= %i\n", currentDelta, newDelta);
+  int selectedNum, rejectedNum;
+  if (currentDelta < newDelta) {
+    selectedNum = currNum;
+    rejectedNum = newNum;
+  } else {
+    selectedNum = newNum;
+    rejectedNum = currNum;
+  }
+  mprintf("Warning: Residues %i and %i will not be considered consecutive.\n",
+          resNum+1, rejectedNum+1);
+  return selectedNum;
 }
 
 // Action_DSSP::Setup()
@@ -528,12 +549,12 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
               }
               if ( setup.Top()[*ib].ResNum() < *ridx ) {
                 if (prevresnum != -1)
-                  MultiResWarning(*ridx, prevresnum, setup.Top()[*ib].ResNum(), "previous");
+                  prevresnum = MultiResWarning(*ridx, prevresnum, setup.Top()[*ib].ResNum(), "previous");
                 else
                   prevresnum = setup.Top()[*ib].ResNum();
               } else if ( setup.Top()[*ib].ResNum() > *ridx ) {
                 if (nextresnum != -1)
-                  MultiResWarning(*ridx, nextresnum, setup.Top()[*ib].ResNum(), "next");
+                  nextresnum = MultiResWarning(*ridx, nextresnum, setup.Top()[*ib].ResNum(), "next");
                 else
                   nextresnum = setup.Top()[*ib].ResNum();
               }
@@ -704,13 +725,6 @@ void Action_DSSP::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn, char&
   Resj.SetBridge( idx1, ladderChar );
 }
 */
-
-// TODO use Num()?
-static inline int AbsResDelta(int idx1, int idx2) {
-  int resDelta =  idx1 - idx2;
-  if (resDelta < 0) resDelta = -resDelta;
-  return resDelta;
-}
 
 /** Given that the current residue is in-between two bridging residues, check
   * if there is a bulge in the strand(s) it is bridging with. The largest
