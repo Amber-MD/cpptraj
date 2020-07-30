@@ -144,11 +144,12 @@ void Action_DSSP::SSres::AccumulateData(int frameNum, bool useString, bool betaD
       Bcount_[ANTIPARALLEL]++;
     if (betaDetail) {
       // Determine parallel or antiparallel by the greater number of bridges,
-      // tie goes to antiparallel.
+      // tie goes to antiparallel. If both are zero, do nothing to match
+      // previous behavior.
       if (npara > nanti) {
         idata = (int)EXTENDED;
         sdata = "b";
-      } else if (nanti > npara) {
+      } else if (nanti > 0) {
         idata = (int)BRIDGE;
         sdata = "B";
       }

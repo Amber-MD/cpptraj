@@ -43,6 +43,7 @@ class Action_DSSP : public Action {
     /// Class that will hold SS info for each residue
     class SSres;
     /// Secondary structure types. For betaDetail, EXTENDED=PARALLEL and BRIDGE=ANTIPARALLEL
+    //            0       1         2       3      4      5    6     7
     enum SStype { NONE=0, EXTENDED, BRIDGE, H3_10, ALPHA, HPI, TURN, BEND };
     static const int NSSTYPE_ = 8;   ///< # of secondary structure types.
     static const char DSSP_char_[];  ///< DSSP 1 char names corresponding to SStype
@@ -184,8 +185,8 @@ class Action_DSSP::SSres {
     DataSet* resDataSet_;       ///< DataSet for SS assignment each frame for this res.
     double chirality_;          ///< Dihedral CA[i-1, i, i+1, i+2]
     double bend_;               ///< Angle CA[i-2, i, i+2]
-    int SScount_[NSSTYPE_];     ///< Hold count for each SS type
-    int Bcount_[NBRIDGETYPE_];  ///< Hold count for Beta types
+    int SScount_[NSSTYPE_];     ///< Hold total count for each SS type over all frames
+    int Bcount_[NBRIDGETYPE_];  ///< Hold total count for Beta types over all frames
     SStype sstype_;             ///< SS assignment for this frame
     int num_;                   ///< Residue index in Topology
     int C_;                     ///< Coord idx of BB carbon
