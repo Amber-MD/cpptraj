@@ -730,12 +730,12 @@ static inline void SetMin(int& resGapSize, int& sres0, int& sres1, int Nres, int
 }
 
 /** Given that the current residue is in-between two bridging residues, check
-  * if there is a bulge in the strand(s) it is bridging with.
+  * if there is a bulge in the strand(s) it is bridging with. The largest
+  * gap allowed in the other strand is 5 residues.
   */
 void Action_DSSP::CheckBulge(int prevIdx, int currentIdx, int nextIdx) {
   if (prevIdx < 0 || nextIdx >= (int)Residues_.size()) return;
   SSres const& prevRes = Residues_[prevIdx];
-  SSres const& currRes = Residues_[currentIdx];
   SSres const& nextRes = Residues_[nextIdx];
 
   // Loop over indices bonded to the previous residue
@@ -744,11 +744,41 @@ void Action_DSSP::CheckBulge(int prevIdx, int currentIdx, int nextIdx) {
     // Loop over indices bonded to the next residue
     for (BridgeArray::const_iterator nr = nextRes.Bridges().begin(); nr != nextRes.Bridges().end(); ++nr)
     {
-      int absDelta = AbsResDelta( pr->Idx(), nr->Idx() );
-      mprintf("DEBUG: Checking potential bulge for %i: %i to %i (%i)\n", currentIdx+1,
-              pr->Idx()+1, nr->Idx()+1, absDelta);
-    }
-  }
+      int resGapSize = AbsResDelta( pr->Idx(), nr->Idx() );
+#     ifdef DSSPDEBUG
+      mprintf("DEBUG: Checking potential bulge for %i: %i type %i to %i type %i (%i)", currentIdx+1,
+              pr->Idx()+1, (int)pr->Btype(), nr->Idx()+1, (int)nr->Btype(), resGapSize);
+#     endif
+      // Minimum allowed gap is 4 residues in between, so 5 residues total.
+      // Types also need to match
+      if (resGapSize < 6 && pr->Btype() == nr->Btype()) {
+#       ifdef DSSPDEBUG
+        mprintf(" Found!\n");
+#       endif
+        if (Residues_[prevIdx].SS() != ALPHA)
+          Residues_[prevIdx].SetSS( EXTENDED );
+        Residues_[currentIdx].SetSS( EXTENDED );
+        if (Residues_[nextIdx].SS() != ALPHA)
+          Residues_[nextIdx].SetSS( EXTENDED );
+        // Set extended on other strand as well
+        int sres0, sres1;
+        if (pr->Idx() < nr->Idx()) {
+          sres0 = pr->Idx();
+          sres1 = nr->Idx();
+        } else {
+          sres0 = nr->Idx();
+          sres1 = pr->Idx();
+        }
+        for (int sres = sres0; sres != sres1; sres++)
+          if (Residues_[sres].SS() != ALPHA)
+            Residues_[sres].SetSS( EXTENDED );
+      }
+#     ifdef DSSPDEBUG
+      else
+        mprintf("\n");
+#     endif
+    } // END loop over next residue bridging residues
+  } // END loop over previous residue bridging residues
 }
 
 /** Determine CO-NH hbonds, loop over them to do SS assignment. */
@@ -972,73 +1002,6 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
         } else if (prevHasBridge && nextHasBridge) {
           // Potential Beta bulge. Check other strand.
           CheckBulge(prevRes, resi, nextRes);
-          // TODO fix for bridges_ array
-          int presb1 = Residues_[prevRes].Bridges()[0].Idx();
-          int prest1 = Residues_[prevRes].Bridges()[0].Btype();
-          int presb2 = -1;
-          int prest2 = (int)NO_BRIDGE;
-          if (Residues_[prevRes].Bridges().size() > 1) {
-            presb2 = Residues_[prevRes].Bridges()[1].Idx();
-            prest2 = Residues_[prevRes].Bridges()[1].Btype();
-          }
-          int nresb1 = Residues_[nextRes].Bridges()[0].Idx();
-          int nrest1 = Residues_[nextRes].Bridges()[0].Btype();
-          int nresb2 = -1;
-          int nrest2 = (int)NO_BRIDGE;
-          if (Residues_[nextRes].Bridges().size() > 1) {
-            nresb2 = Residues_[nextRes].Bridges()[1].Idx();
-            nrest2 = Residues_[nextRes].Bridges()[1].Btype();
-          }
-
-//          int presb1 = Residues_[prevRes].Bridge1Idx();
-//          int presb2 = Residues_[prevRes].Bridge2Idx();
-//          int nresb1 = Residues_[nextRes].Bridge1Idx();
-//          int nresb2 = Residues_[nextRes].Bridge2Idx();
-//          int prest1 = Residues_[prevRes].Bridge1Type();
-//          int prest2 = Residues_[prevRes].Bridge2Type();
-//          int nrest1 = Residues_[nextRes].Bridge1Type();
-//          int nrest2 = Residues_[nextRes].Bridge2Type();
-#         ifdef DSSPDEBUG
-          mprintf("Potential bulge? Prev res bridge res: %i %i  Next res bridge res: %i %i\n", presb1, presb2, nresb1, nresb2);
-#         endif
-          // The largest allowed gap in the other strand is 5 residues.
-          // Since we know that next res and previous res both have at 
-          // least 1 bridge, Next B1 - Prev B1 can be the gap to beat.
-          // Need to also make sure the bridge types match.
-          int resGapSize = -1;
-          int sres0 = -1;
-          int sres1 = -1;
-          if (nrest1 == prest1) {
-            resGapSize = AbsResDelta(nresb1, presb1);
-            sres0 = std::min(presb1, nresb1);
-            sres1 = std::max(presb1, nresb1);
-          }
-          if (presb2 != -1 && nrest1 == prest2)
-            SetMin( resGapSize, sres0, sres1, nresb1, presb2 );
-          if (nresb2 != -1) {
-            if (nrest2 == prest1)
-              SetMin( resGapSize, sres0, sres1, nresb2, presb1 );
-            if (presb2 != -1 && nrest2 == prest2)
-              SetMin( resGapSize, sres0, sres1, nresb2, presb2 );
-          }
-#         ifdef DSSPDEBUG
-          mprintf("Min res gap size on other strand = %i (%i to %i)\n", resGapSize, sres0, sres1);
-#         endif
-          // Minimum allowed gap is 4 residues in between, so 5 residues total.
-          if (resGapSize > -1 && resGapSize < 6) {
-#           ifdef DSSPDEBUG
-            mprintf("Beta bulge.\n");
-#           endif
-            if (Residues_[prevRes].SS() != ALPHA)
-              Residues_[prevRes].SetSS( EXTENDED );
-            Resi.SetSS( EXTENDED );
-            if (Residues_[nextRes].SS() != ALPHA)
-              Residues_[nextRes].SetSS( EXTENDED );
-            // Set extended on other strand as well
-            for (int sres = sres0; sres != sres1; sres++)
-              if (Residues_[sres].SS() != ALPHA)
-                Residues_[sres].SetSS( EXTENDED );
-          }
         }
       } // END check for Beta structure
     } // END not alpha
