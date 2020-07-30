@@ -452,6 +452,15 @@ static inline void PrintAtom(Topology const& top, NameType const& name, int idx)
     mprintf(" '%s'=%-12s", *name, "NONE");
 }
 
+/** Print a warning about multiple selected residues. */
+static inline void MultiResWarning(int resNum, int currNum, int newNum, const char* typeStr)
+{
+  mprintf("Warning: Multiple %s residues for res %i (%i; current %s is %i)\n"
+          "Warning: Residues %i and %i will not be considered consecutive.\n",
+          typeStr, resNum+1, newNum+1, typeStr, currNum+1,
+          resNum+1, newNum+1);
+}
+
 // Action_DSSP::Setup()
 /** Set up secondary structure calculation for all residues selected by the
   * mask. A residue is selected if at least one atom in the residue is
@@ -519,12 +528,12 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
               }
               if ( setup.Top()[*ib].ResNum() < *ridx ) {
                 if (prevresnum != -1)
-                  mprintf("Warning: Multiple previous residues for res %i\n", *ridx+1);
+                  MultiResWarning(*ridx, prevresnum, setup.Top()[*ib].ResNum(), "previous");
                 else
                   prevresnum = setup.Top()[*ib].ResNum();
               } else if ( setup.Top()[*ib].ResNum() > *ridx ) {
                 if (nextresnum != -1)
-                  mprintf("Warning: Multiple next residues for res %i\n", *ridx+1);
+                  MultiResWarning(*ridx, nextresnum, setup.Top()[*ib].ResNum(), "next");
                 else
                   nextresnum = setup.Top()[*ib].ResNum();
               }
