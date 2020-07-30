@@ -42,7 +42,7 @@ class Action_DSSP : public Action {
 
     /// Class that will hold SS info for each residue
     class SSres;
-    /// Secondary structure types
+    /// Secondary structure types. For betaDetail, EXTENDED=PARALLEL and BRIDGE=ANTIPARALLEL
     enum SStype { NONE=0, EXTENDED, BRIDGE, H3_10, ALPHA, HPI, TURN, BEND };
     static const int NSSTYPE_ = 8;   ///< # of secondary structure types.
     static const char DSSP_char_[];  ///< DSSP 1 char names corresponding to SStype
@@ -128,10 +128,11 @@ class Action_DSSP::SSres {
     int CA()          const { return CA_; }
     int PrevIdx()     const { return prevIdx_; }
     int NextIdx()     const { return nextIdx_; }
-    int Bridge1Idx()  const { return bridge1idx_; }
-    BridgeType Bridge1Type() const { return b1type_;}
-    int Bridge2Idx()  const { return bridge2idx_; }
-    BridgeType Bridge2Type() const { return b2type_;}
+    BridgeArray const& Bridges() const { return bridges_; }
+//    int Bridge1Idx()  const { return bridge1idx_; }
+//    BridgeType Bridge1Type() const { return b1type_;}
+//    int Bridge2Idx()  const { return bridge2idx_; }
+//    BridgeType Bridge2Type() const { return b2type_;}
     DataSet* Dset()   const { return resDataSet_; }
 
     bool IsMissingAtoms() const { return (C_==-1 || O_==-1 || N_==-1 || H_==-1 || CA_==-1); }
@@ -140,6 +141,8 @@ class Action_DSSP::SSres {
     bool HasCA()          const { return (CA_!=-1); }
 
     bool HasTurnStart(TurnType) const;
+    /// \return Dominant bridge type
+    BridgeType DominantBridgeType() const;
     bool HasBridge() const;
     bool IsBridgedWith(int) const;
 //    char StrandChar() const;
@@ -192,10 +195,7 @@ class Action_DSSP::SSres {
     int CA_;                    ///< Coord idx of BB alpha carbon
     int prevIdx_;               ///< Index in Residues_ of previous residue
     int nextIdx_;               ///< Index in Residues_ of next residue
-    int bridge1idx_;            ///< Index in Residues_ of res this is bridged to
-    BridgeType b1type_;         ///< Type of bridge1
-    int bridge2idx_;            ///< Index in Residues_ of res this is bridged to
-    BridgeType b2type_;         ///< Type of bridge2
+    BridgeArray bridges_;       ///< Indices and types of bridges to this residue
     char resChar_;              ///< Single char residue ID
     char turnChar_[NTURNTYPE_]; ///< Character if part of N turn
     bool isSelected_;           ///< True if calculating SS for this residue.

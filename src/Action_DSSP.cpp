@@ -34,6 +34,7 @@ const char* Action_DSSP::DSSP_name_[]={"None", "Extended", "Bridge", "3-10", "Al
 
 
 // ----- SSres -----------------------------------------------------------------
+/// CONSTRUCTOR
 Action_DSSP::SSres::SSres() :
   resDataSet_(0),
   chirality_(0),
@@ -47,10 +48,6 @@ Action_DSSP::SSres::SSres() :
   CA_(-1),
   prevIdx_(-1),
   nextIdx_(-1),
-  bridge1idx_(-1),
-  b1type_(NO_BRIDGE),
-  bridge2idx_(-1),
-  b2type_(NO_BRIDGE),
   resChar_(' '),
   isSelected_(false)
 {
@@ -59,6 +56,7 @@ Action_DSSP::SSres::SSres() :
   std::fill(turnChar_, turnChar_ + NTURNTYPE_, ' ');
 }
 
+/// COPY CONSTRUCTOR
 Action_DSSP::SSres::SSres(SSres const& rhs) :
   resDataSet_(rhs.resDataSet_),
   chirality_(rhs.chirality_),
@@ -72,10 +70,7 @@ Action_DSSP::SSres::SSres(SSres const& rhs) :
   CA_(rhs.CA_),
   prevIdx_(rhs.prevIdx_),
   nextIdx_(rhs.nextIdx_),
-  bridge1idx_(rhs.bridge1idx_),
-  b1type_(rhs.b1type_),
-  bridge2idx_(rhs.bridge2idx_),
-  b2type_(rhs.b2type_),
+  bridges_(rhs.bridges_),
   resChar_(rhs.resChar_),
   isSelected_(rhs.isSelected_)
 {
@@ -83,7 +78,8 @@ Action_DSSP::SSres::SSres(SSres const& rhs) :
   std::copy(rhs.Bcount_, rhs.Bcount_ + NBRIDGETYPE_, Bcount_);
   std::copy(rhs.turnChar_, rhs.turnChar_ + NTURNTYPE_, turnChar_);
 }
-  
+
+/// ASSIGNMENT
 Action_DSSP::SSres& Action_DSSP::SSres::operator=(SSres const& rhs) {
   if (this == &rhs) return *this;
   resDataSet_ = rhs.resDataSet_;
@@ -98,10 +94,7 @@ Action_DSSP::SSres& Action_DSSP::SSres::operator=(SSres const& rhs) {
   CA_ = rhs.CA_;
   prevIdx_ = rhs.prevIdx_;
   nextIdx_ = rhs.nextIdx_;
-  bridge1idx_ = rhs.bridge1idx_;
-  b1type_ = rhs.b1type_;
-  bridge2idx_ = rhs.bridge2idx_;
-  b2type_ = rhs.b2type_;
+  bridges_ = rhs.bridges_;
   resChar_ = rhs.resChar_;
   isSelected_ = rhs.isSelected_;
   std::copy(rhs.SScount_, rhs.SScount_ + NSSTYPE_, SScount_);
@@ -110,7 +103,7 @@ Action_DSSP::SSres& Action_DSSP::SSres::operator=(SSres const& rhs) {
   return *this;
 }
 
-
+/** Reset atom indices and mark as not selected. */
 void Action_DSSP::SSres::Deselect() {
   isSelected_ = false;
   C_ = -1;
@@ -120,12 +113,10 @@ void Action_DSSP::SSres::Deselect() {
   CA_ = -1;
 }
 
+/** Reset assignment status. */
 void Action_DSSP::SSres::Unassign() {
   sstype_ = NONE;
-  bridge1idx_ = -1;
-  b1type_ = NO_BRIDGE;
-  bridge2idx_ = -1;
-  b2type_ = NO_BRIDGE;
+  bridges_.clear();
   std::fill(turnChar_, turnChar_ + NTURNTYPE_, ' ');
 }
 
@@ -136,6 +127,33 @@ void Action_DSSP::SSres::AccumulateData(int frameNum, bool useString, bool betaD
   int idata = (int)sstype_;
   const char* sdata = SSchar_[sstype_];
   if (sstype_ == EXTENDED || sstype_ == BRIDGE) {
+    // Record which types are present and in what amounts. Only record each
+    // unique type once.
+    int npara = 0;
+    int nanti = 0;
+    for (BridgeArray::const_iterator it = bridges_.begin(); it != bridges_.end(); ++it)
+    {
+      if (it->Btype() == PARALLEL)
+        npara++;
+      else if (it->Btype() == ANTIPARALLEL)
+        nanti++;
+    }
+    if (npara > 0)
+      Bcount_[PARALLEL]++;
+    if (nanti > 0)
+      Bcount_[ANTIPARALLEL]++;
+    if (betaDetail) {
+      // Determine parallel or antiparallel by the greater number of bridges,
+      // tie goes to antiparallel.
+      if (npara > nanti) {
+        idata = (int)EXTENDED;
+        sdata = "b";
+      } else if (nanti > npara) {
+        idata = (int)BRIDGE;
+        sdata = "B";
+      }
+    }
+/*
     if (b1type_ == PARALLEL || b2type_ == PARALLEL) {
       Bcount_[PARALLEL]++;
       if (betaDetail) {
@@ -151,6 +169,7 @@ void Action_DSSP::SSres::AccumulateData(int frameNum, bool useString, bool betaD
       }
     }
     // TODO bulge?
+*/
   } else
     Bcount_[NO_BRIDGE]++;
   if (useString)
@@ -167,6 +186,7 @@ void Action_DSSP::SSres::SetTurnBegin(TurnType typeIn) {
     turnChar_[typeIn] = '>';
 }
 
+/** Set turn end. */
 void Action_DSSP::SSres::SetTurnEnd(TurnType typeIn) {
   if (turnChar_[typeIn] == '>')
     turnChar_[typeIn] = 'X';
@@ -174,6 +194,7 @@ void Action_DSSP::SSres::SetTurnEnd(TurnType typeIn) {
     turnChar_[typeIn] = '<';
 }
 
+/** Set as a turn of given type. */
 void Action_DSSP::SSres::SetTurn(TurnType typeIn) {
   // Do not overwrite an existing end character
   if (turnChar_[typeIn] == ' ') {
@@ -183,6 +204,7 @@ void Action_DSSP::SSres::SetTurn(TurnType typeIn) {
   }
 }
 
+/** \return Priority of given s.s. type; higher # == higher priority. */
 int Action_DSSP::SSres::ssPriority(SStype typeIn) {
   switch (typeIn) {
     case ALPHA    : return 8;
@@ -197,16 +219,19 @@ int Action_DSSP::SSres::ssPriority(SStype typeIn) {
   return 0;
 }
 
+/** \return Priority of the current assigned s.s. type. */
 int Action_DSSP::SSres::SSpriority() const {
   return ssPriority(sstype_);
 }
 
+/** Set residue with given s.s. type. */
 void Action_DSSP::SSres::SetSS(SStype typeIn) {
   // TODO check if the priority check is necessary
   //if (ssPriority(typeIn) > ssPriority(sstype_))
     sstype_ = typeIn;
 }
 
+/** \return true if this residue is the start of a turn. */
 bool Action_DSSP::SSres::HasTurnStart(TurnType typeIn) const {
   if (turnChar_[typeIn] == '>' ||
       turnChar_[typeIn] == 'X')
@@ -214,27 +239,41 @@ bool Action_DSSP::SSres::HasTurnStart(TurnType typeIn) const {
   return false;
 }
 
+/** Set this residue as bridging to the specified index with specified type. */
 void Action_DSSP::SSres::SetBridge(int idx, BridgeType btypeIn) {
-  if (bridge1idx_ == -1) {
-    bridge1idx_ = idx;
-    b1type_ = btypeIn;
-  } else if (bridge2idx_ == -1) {
-    bridge2idx_ = idx;
-    b2type_ = btypeIn;
-  } else
-    //mprinterr("Error: Too many bridges for %i (to %i)\n", Num(), idx+1);
-    mprintf("Warning: Too many bridges for %i (to %i) - already have %i and %i\n",
-            Num()+1, idx+1, bridge1idx_+1, bridge2idx_+1);
+  bridges_.push_back( Bridge(idx, btypeIn) );
+  if (bridges_.size() > 2) {
+    mprintf("Warning: %i has more than 2 bridges (%zu).\n", Num()+1, bridges_.size());
+  }
 }
 
+/** Determine the dominant bridge type among all bridges. Tie goes to antiparallel. */
+Action_DSSP::BridgeType Action_DSSP::SSres::DominantBridgeType() const {
+  if (bridges_.empty()) return NO_BRIDGE;
+  int npara = 0;
+  int nanti = 0;
+  for (BridgeArray::const_iterator it = bridges_.begin(); it != bridges_.end(); ++it)
+  {
+    if (it->Btype() == PARALLEL)
+      npara++;
+    else if (it->Btype() == ANTIPARALLEL)
+      nanti++;
+  }
+  if (npara > nanti)
+    return PARALLEL;
+  else
+    return ANTIPARALLEL;
+}
+
+/** \return True if this residue has at least 1 bridge. */
 bool Action_DSSP::SSres::HasBridge() const {
-  if (bridge1idx_ != -1) return true;
-  return false;
+  return !(bridges_.empty());
 }
 
+/** \return True if this residue is bridged with the specified index. */
 bool Action_DSSP::SSres::IsBridgedWith(int idx2) const {
-  if (bridge1idx_ == idx2) return true;
-  if (bridge2idx_ == idx2) return true;
+  for (BridgeArray::const_iterator it = bridges_.begin(); it != bridges_.end(); ++it)
+    if (it->Idx() == idx2) return true;
   return false;
 }
 
@@ -243,12 +282,23 @@ bool Action_DSSP::SSres::IsBridgedWith(int idx2) const {
   return ssChar_[B1];
 }*/
 
+/** Print a shorthand for the current SS assignment to STDOUT. */
 void Action_DSSP::SSres::PrintSSchar() const {
   static const char btypeChar[] = { ' ', 'p', 'A' };
-  mprintf("\t%6i %c %c %c %c %c(%6i) %c(%6i) %6i %6i %6i %c\n", num_+1, resChar_,
-          turnChar_[T3], turnChar_[T4], turnChar_[T5],
-          btypeChar[b1type_], bridge1idx_+1, btypeChar[b2type_], bridge2idx_+1,
-          Bcount_[NO_BRIDGE], Bcount_[PARALLEL], Bcount_[ANTIPARALLEL],
+  mprintf("\t%6i %c %c %c %c", num_+1, resChar_, turnChar_[T3], turnChar_[T4], turnChar_[T5]);
+  // For backwards compat, always print at least 2.
+  unsigned int maxIdx = 2;
+  if (bridges_.size() > maxIdx)
+    maxIdx = bridges_.size();
+  for (unsigned int idx = 0; idx < maxIdx; idx++) {
+    if (idx >= bridges_.size())
+      mprintf(" %c(%6i)", ' ', 0);
+    else
+      mprintf(" %c(%6i)", btypeChar[bridges_[idx].Btype()], bridges_[idx].Idx()+1);
+  }
+  //for (BridgeArray::const_iterator it = bridges_.begin(); it != bridges_.end(); ++it)
+  //  mprintf(" %c(%6i)", btypeChar[it->Btype()], it->Idx()+1);
+  mprintf(" %6i %6i %6i %c\n", Bcount_[NO_BRIDGE], Bcount_[PARALLEL], Bcount_[ANTIPARALLEL],
           DSSP_char_[sstype_]);
 }
 
@@ -409,6 +459,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
   return Action::OK;
 }
 
+/** Print the atom name and "mask name" to stdout. */
 static inline void PrintAtom(Topology const& top, NameType const& name, int idx) {
   if (idx > -1)
     mprintf(" '%s'=%-12s", *name, top.AtomMaskName(idx/3).c_str());
@@ -574,6 +625,7 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
   return Action::OK;
 }
 
+/** Assign a bridge between the two specified residues. */
 void Action_DSSP::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn) {
   // By convention, always make idx1 the lower one
   int idx1, idx2;
@@ -676,7 +728,7 @@ static inline void SetMin(int& resGapSize, int& sres0, int& sres1, int Nres, int
   }
 }
 
-
+/** Determine CO-NH hbonds, loop over them to do SS assignment. */
 int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
 {
   t_total_.Start();
@@ -896,14 +948,32 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
           }
         } else if (prevHasBridge && nextHasBridge) {
           // Potential Beta bulge. Check other strand.
-          int presb1 = Residues_[prevRes].Bridge1Idx();
-          int presb2 = Residues_[prevRes].Bridge2Idx();
-          int nresb1 = Residues_[nextRes].Bridge1Idx();
-          int nresb2 = Residues_[nextRes].Bridge2Idx();
-          int prest1 = Residues_[prevRes].Bridge1Type();
-          int prest2 = Residues_[prevRes].Bridge2Type();
-          int nrest1 = Residues_[nextRes].Bridge1Type();
-          int nrest2 = Residues_[nextRes].Bridge2Type();
+          // TODO fix for bridges_ array
+          int presb1 = Residues_[prevRes].Bridges()[0].Idx();
+          int prest1 = Residues_[prevRes].Bridges()[0].Btype();
+          int presb2 = -1;
+          int prest2 = (int)NO_BRIDGE;
+          if (Residues_[prevRes].Bridges().size() > 1) {
+            presb2 = Residues_[prevRes].Bridges()[1].Idx();
+            prest2 = Residues_[prevRes].Bridges()[1].Btype();
+          }
+          int nresb1 = Residues_[nextRes].Bridges()[0].Idx();
+          int nrest1 = Residues_[nextRes].Bridges()[0].Btype();
+          int nresb2 = -1;
+          int nrest2 = (int)NO_BRIDGE;
+          if (Residues_[nextRes].Bridges().size() > 1) {
+            nresb2 = Residues_[nextRes].Bridges()[1].Idx();
+            nrest2 = Residues_[nextRes].Bridges()[1].Btype();
+          }
+
+//          int presb1 = Residues_[prevRes].Bridge1Idx();
+//          int presb2 = Residues_[prevRes].Bridge2Idx();
+//          int nresb1 = Residues_[nextRes].Bridge1Idx();
+//          int nresb2 = Residues_[nextRes].Bridge2Idx();
+//          int prest1 = Residues_[prevRes].Bridge1Type();
+//          int prest2 = Residues_[prevRes].Bridge2Type();
+//          int nrest1 = Residues_[nextRes].Bridge1Type();
+//          int nrest2 = Residues_[nextRes].Bridge2Type();
 #         ifdef DSSPDEBUG
           mprintf("Potential bulge? Prev res bridge res: %i %i  Next res bridge res: %i %i\n", presb1, presb2, nresb1, nresb2);
 #         endif
@@ -1029,12 +1099,19 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
     if (Resi.IsSelected()) {
       if (betaDetail_ && (Resi.SS() == EXTENDED || Resi.SS() == BRIDGE))
       {
+        BridgeType btype = Resi.DominantBridgeType();
+        if (btype == ANTIPARALLEL)
+          totalSS[BRIDGE]++;
+        else if (btype == PARALLEL)
+          totalSS[EXTENDED]++;
+/*
         if (Resi.Bridge1Type() == ANTIPARALLEL ||
             Resi.Bridge2Type() == ANTIPARALLEL)
           totalSS[BRIDGE]++;
         else if (Resi.Bridge1Type() == PARALLEL ||
                  Resi.Bridge2Type() == PARALLEL)
           totalSS[EXTENDED]++;
+*/
       } else
         totalSS[Residues_[resi].SS()]++;
       Residues_[resi].AccumulateData(frameNum, printString_, betaDetail_);
