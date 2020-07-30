@@ -76,6 +76,8 @@ class Action_DSSP : public Action {
     typedef std::pair<int,int> HbondPairType;
     typedef std::set<HbondPairType> HbondMapType;
 
+    void CheckBulge(int, int, int);
+
     int OverHbonds(int, ActionFrame&);
 
     void AssignBridge(int, int, BridgeType);

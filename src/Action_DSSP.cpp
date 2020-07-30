@@ -729,6 +729,28 @@ static inline void SetMin(int& resGapSize, int& sres0, int& sres1, int Nres, int
   }
 }
 
+/** Given that the current residue is in-between two bridging residues, check
+  * if there is a bulge in the strand(s) it is bridging with.
+  */
+void Action_DSSP::CheckBulge(int prevIdx, int currentIdx, int nextIdx) {
+  if (prevIdx < 0 || nextIdx >= (int)Residues_.size()) return;
+  SSres const& prevRes = Residues_[prevIdx];
+  SSres const& currRes = Residues_[currentIdx];
+  SSres const& nextRes = Residues_[nextIdx];
+
+  // Loop over indices bonded to the previous residue
+  for (BridgeArray::const_iterator pr = prevRes.Bridges().begin(); pr != prevRes.Bridges().end(); ++pr)
+  {
+    // Loop over indices bonded to the next residue
+    for (BridgeArray::const_iterator nr = nextRes.Bridges().begin(); nr != nextRes.Bridges().end(); ++nr)
+    {
+      int absDelta = AbsResDelta( pr->Idx(), nr->Idx() );
+      mprintf("DEBUG: Checking potential bulge for %i: %i to %i (%i)\n", currentIdx+1,
+              pr->Idx()+1, nr->Idx()+1, absDelta);
+    }
+  }
+}
+
 /** Determine CO-NH hbonds, loop over them to do SS assignment. */
 int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
 {
@@ -949,6 +971,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
           }
         } else if (prevHasBridge && nextHasBridge) {
           // Potential Beta bulge. Check other strand.
+          CheckBulge(prevRes, resi, nextRes);
           // TODO fix for bridges_ array
           int presb1 = Residues_[prevRes].Bridges()[0].Idx();
           int prest1 = Residues_[prevRes].Bridges()[0].Btype();
