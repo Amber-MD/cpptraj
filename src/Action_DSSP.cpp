@@ -734,7 +734,7 @@ static inline void SetMin(int& resGapSize, int& sres0, int& sres1, int Nres, int
   * gap allowed in the other strand is 5 residues.
   */
 void Action_DSSP::CheckBulge(int prevIdx, int currentIdx, int nextIdx) {
-  if (prevIdx < 0 || nextIdx >= (int)Residues_.size()) return;
+  if (prevIdx == -1 || nextIdx == -1) return;
   SSres const& prevRes = Residues_[prevIdx];
   SSres const& nextRes = Residues_[nextIdx];
 
@@ -965,10 +965,10 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
     mprintf("Residue %i\n", resi+1);
 #   endif
     SSres& Resi = Residues_[resi];
-    int prevRes = resi - 1;
-    int nextRes = resi + 1;
+    int prevIdx = Resi.PrevIdx();
+    int nextIdx = Resi.NextIdx();
     int priority = Resi.SSpriority();
-    if ( Resi.HasTurnStart(T4) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T4) )
+    if ( Resi.HasTurnStart(T4) && prevIdx != -1 && Residues_[prevIdx].HasTurnStart(T4) )
     {
       // Alpha helix.
 #     ifdef DSSPDEBUG
@@ -982,12 +982,22 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       if (priority < 6) {
         // Priority < 6 means not alpha or beta assigned yet.
         // Check for Beta structure
-        bool prevHasBridge = (prevRes > -1   && Residues_[prevRes].HasBridge());
-        bool nextHasBridge = (nextRes < Nres && Residues_[nextRes].HasBridge());
+        bool prevHasBridge, prevHasExtended, nextHasBridge;
+        if (prevIdx != -1) {
+          prevHasBridge = Residues_[prevIdx].HasBridge();
+          prevHasExtended = Residues_[prevIdx].SS() == EXTENDED;
+        } else {
+          prevHasBridge = false;
+          prevHasExtended = false;
+        }
+        if (nextIdx != -1)
+          nextHasBridge = Residues_[nextIdx].HasBridge();
+        else
+          nextHasBridge = false;
         if (Resi.HasBridge()) {
           // Regular Beta. Check if previous is assigned EXTENDED in case it 
           // was assigned via a Beta bulge.
-          if ( prevHasBridge || nextHasBridge || Residues_[prevRes].SS() == EXTENDED )
+          if ( prevHasBridge || nextHasBridge || prevHasExtended )
           {
 #           ifdef DSSPDEBUG
             mprintf("Extended BETA bridge at %i\n", resi+1);
@@ -1001,7 +1011,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
           }
         } else if (prevHasBridge && nextHasBridge) {
           // Potential Beta bulge. Check other strand.
-          CheckBulge(prevRes, resi, nextRes);
+          CheckBulge(prevIdx, resi, nextIdx);
         }
       } // END check for Beta structure
     } // END not alpha
