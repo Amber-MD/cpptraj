@@ -111,6 +111,8 @@ void Action_DSSP::SSres::Deselect() {
   N_ = -1;
   O_ = -1;
   CA_ = -1;
+  prevIdx_ = -1;
+  nextIdx_ = -1;
 }
 
 /** Reset assignment status. */
@@ -482,6 +484,31 @@ static inline int MultiResWarning(int resNum, int currNum, int newNum, const cha
   return selectedNum;
 }
 
+/** Find the residue number of the atom with target name bonded to specified atom/residue.
+  * \param topIn Current topology
+  * \param at0 Specified atom
+  * \param res0 Specified residue
+  * \param tgtName Name of the desired bonded atom.
+  * \param typeStr Indicate if we're looking for previous/next
+  * \return Residue index of atom with target name bonded to specified atom.
+  */
+static inline int FindResNum(Topology const& topIn, int at0, int res0, NameType const& tgtName, const char* typeStr)
+{
+  int tgtres = -1;
+  // Find tgtName in atoms bonded to this res.
+  for (Atom::bond_iterator ib = topIn[ at0 ].bondbegin(); ib != topIn[ at0 ].bondend(); ++ib)
+  {
+    if ( topIn[*ib].Name() == tgtName && topIn[*ib].ResNum() != res0 ) {
+      int bres = topIn[*ib].ResNum();
+      if (tgtres == -1)
+        tgtres = bres;
+      else
+        tgtres = MultiResWarning(res0, tgtres, bres, typeStr);
+    }
+  }
+  return tgtres;
+}
+
 // Action_DSSP::Setup()
 /** Set up secondary structure calculation for all residues selected by the
   * mask. A residue is selected if at least one atom in the residue is
@@ -529,6 +556,69 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
       // Set up Residue. TODO also molecule index?
       Res->SetNum( *ridx );
       Res->SetResChar( thisRes.SingleCharName() );
+    }
+    // Search for atoms in residue.
+    bool hasAtoms = false;
+    int prevresnum = -1;
+    int nextresnum = -1;
+    for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
+    {
+      if (Mask_.AtomInCharMask( at )) {
+        if      ( setup.Top()[at].Name() == BB_C_ )  { Res->SetC( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_O_ )  { Res->SetO( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_N_ )  { Res->SetN( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_H_ )  { Res->SetH( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_CA_ ) { Res->SetCA( at*3 ); hasAtoms = true; }
+      }
+    }
+    if (!hasAtoms) {
+      mprintf("Warning: No atoms selected for res %s; skipping.\n",
+              setup.Top().TruncResNameNum( Res->Num() ).c_str());
+    } else {
+      Res->SetSelected( true );
+      ++nResSelected;
+      // Determine previous residue
+      if ( Res->N() != -1 ) {
+        // Find C in previous res bonded to this N.
+        prevresnum = FindResNum(setup.Top(), Res->N()/3, Res->Num(), BB_C_, "previous");
+      }
+      // Determine next residue
+      if ( Res->C() != -1) {
+        // Find N in next res bonded to this C.
+        nextresnum = FindResNum(setup.Top(), Res->C()/3, Res->Num(), BB_N_, "next");
+      }
+#     ifdef DSSPDEBUG
+      mprintf("\t %8i < %8i < %8i\n", prevresnum+1, Res->Num()+1, nextresnum+1);
+#     endif
+      // Set previous/next residue indices 
+      if (prevresnum > -1) Res->SetPrevIdx( prevresnum );
+      if (nextresnum > -1) Res->SetNextIdx( nextresnum );
+      // Report if residue is missing atoms
+      if (Res->IsMissingAtoms()) {
+        mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( Res->Num() ).c_str());
+        if (Res->C() == -1)  mprintf(" %s", *BB_C_);
+        if (Res->O() == -1)  mprintf(" %s", *BB_N_);
+        if (Res->N() == -1)  mprintf(" %s", *BB_O_);
+        if (Res->H() == -1)  mprintf(" %s", *BB_H_);
+        if (Res->CA() == -1) mprintf(" %s", *BB_CA_);
+        mprintf("\n");
+      }
+      // Set up DataSet if necessary
+      if (Res->Dset() == 0) {
+        md.SetIdx( *ridx+1 );
+        md.SetLegend( setup.Top().TruncResNameNum( *ridx ) );
+        // Setup DataSet for this residue
+        Res->SetDset( Init_.DSL().AddSet( dt, md ) );
+        if (Res->Dset() == 0) {
+          mprinterr("Error: Could not allocate DSSP data set for residue %i\n", *ridx+1);
+          return Action::ERR;
+        }
+        if (outfile_ != 0) outfile_->AddDataSet( Res->Dset() );
+      }
+    } // END residue has selected atoms
+  } // END loop over residues
+
+/*
       // Determine the previous and next residues
       int prevresnum = -1;
       int nextresnum = -1;
@@ -620,6 +710,7 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
       }
     } // END residue is selected by Mask
   }
+*/
   mprintf("\t%u of %i solute residues selected.\n", nResSelected, soluteRes.Size());
 
   // DEBUG - print each residue set up.
