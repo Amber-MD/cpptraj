@@ -38,6 +38,7 @@ Action_Volmap::Action_Volmap() :
   peakcut_(0.05),
   buffer_(3.0),
   radscale_(1.0),
+  splineScale_(1.1),
   stepfac_(4.1),
   splineDx_(0)
 {}
@@ -56,6 +57,7 @@ void Action_Volmap::Help() const {
 void Action_Volmap::RawHelp() const {
   mprintf("\t[out <filename>] <mask> [radscale <factor>] [stepfac <fac>]\n"
           "\t[sphere] [radii {vdw | element}] [splinedx <spacing>]\n"
+          "\t[splinescale <sfac>]\n"
           "\t[calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]\n"
           "\t{ data <existing set> |\n"
           "\t  name <setname> <dx> [<dy> <dz>]\n"
@@ -82,6 +84,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     stepfac_ = 1.0;
   }
   splineDx_ = actionArgs.getKeyDouble("splinedx", 1.0/5000.0);
+  splineScale_ = actionArgs.getKeyDouble("splinescale", 1.1);
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", radscale_);
   stepfac_ = actionArgs.getKeyDouble("stepfac", stepfac_);
   std::string radarg = actionArgs.GetStringKey("radii");
@@ -295,14 +298,17 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tWhen smearing Gaussian, voxels farther than radii/2 will be skipped.\n");
   mprintf("\tDividing radii by %f\n", 1.0/radscale_);
   mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
-# ifndef VOLMAP_USEEXP
-  mprintf("\tExponential will be approximated using cubic splines with a spacing of %g\n", splineDx_);
+# ifdef VOLMAP_USEEXP
+  mprintf("\tUsing system exp() function for evaluating Gaussians.\n");
+# else /* VOLMAP_USEEXP */
+  mprintf("\tExponential for Gaussians will be approximated using cubic splines with a spacing of %g\n", splineDx_);
 # if defined(VOLMAP_USEACCURATE)
   mprintf("\tSplines using more accurate but slower table lookup.\n");
 # elif defined(VOLMAP_USEXTABLE)
   mprintf("\tSplines using less accurate lookup with tabled X values.\n");
 # endif
-# endif
+  mprintf("\tWidth of the spline table will be scaled by %gx\n", splineScale_);
+# endif /* VOLMAP_USEEXP */
   if (outfile != 0)
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
   mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
@@ -390,7 +396,7 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   maxDist *= (-1.0 / (2.0 * maxRad * maxRad));
   //mprintf("DEBUG: max= %g\n", maxDist);
 
-  if (table_.FillTable( exp, splineDx_, maxDist, 0, 1.1 )) return Action::ERR;
+  if (table_.FillTable( exp, splineDx_, maxDist, 0, splineScale_ )) return Action::ERR;
   //table_.FillTable( exp, splineDx_, maxDist, 0, 1.0 );
   //double width = (0.0 - maxDist) * 1.1;
   //if (table_.FillTable( exp, (int)(width / splineDx_), maxDist, 0.0 ) ) return Action::ERR;

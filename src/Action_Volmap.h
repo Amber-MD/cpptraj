@@ -49,6 +49,7 @@ class Action_Volmap : public Action {
     std::vector<double> halfradii_; ///< 1/2 the atomic radii of each atom in the gridded selection
     double buffer_;         ///< Clearance between the edges of our grid and centermask_
     double radscale_;       ///< The scaling factor to divide all radii by
+    double splineScale_;    ///< Factor to scale spline table width by
     double stepfac_;        ///< Factor for determining how many steps to smear Gaussian
     static const double sqrt_8_pi_cubed_;
     SplineFxnTable table_;
