@@ -1582,10 +1582,22 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     }
   }
  
-  // Determine max residue size
+  // Determine max residue size. Also determine if extra info needs to be
+  // written such as PDB residue number, chain ID, etc.
   int maxResSize = 0;
+  bool hasOrigResNums = false;
+  int firstOresNum = 0;
+  if (TopOut.Nres() > 0)
+    firstOresNum = TopOut.Res(0).OriginalResNum();
+  bool hasChainID = false;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+  {
+    if (res != TopOut.ResStart() && res->OriginalResNum() != firstOresNum)
+      hasOrigResNums = true;
+    if (res->HasChainID())
+      hasChainID = true;
     maxResSize = std::max(maxResSize, res->NumAtoms());
+  }
 
   // Determine value of ifbox
   int ifbox;
@@ -2090,6 +2102,17 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
+  if (hasOrigResNums) {
+    mprintf("\tTopology has PDB residue numbering.\n");
+    // PDB residue numbers
+    if (BufferAlloc(F_PDB_RES, TopOut.Nres())) return 1;
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+      file_.IntToBuffer( res->OriginalResNum() );
+    file_.FlushBuffer();
+  }
+  if (hasChainID) {
+    mprintf("\tTopology has PDB chain IDs.\n");
+  }
   return 0;
 }
 
