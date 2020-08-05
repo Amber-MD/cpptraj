@@ -49,27 +49,11 @@ Exec::RetType Exec_Set::Execute(CpptrajState& State, ArgList& argIn)
     if (equals.hasKey("atoms"))
       value = integerToString( mask.Nselected() );
     else if (equals.hasKey("residues")) {
-      int curRes = -1;
-      int nres = 0;
-      for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
-        int res = (*top)[*at].ResNum();
-        if (res != curRes) {
-          nres++;
-          curRes = res;
-        }
-      }
-      value = integerToString( nres );
+      std::vector<int> resnums = top->ResnumsSelectedBy( mask );
+      value = integerToString( resnums.size() );
     } else if (equals.hasKey("molecules")) {
-      int curMol = -1;
-      int nmol = 0;
-      for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
-        int mol = (*top)[*at].MolNum();
-        if (mol != curMol) {
-          nmol++;
-          curMol = mol;
-        }
-      }
-      value = integerToString( nmol );
+      std::vector<int> molnums = top->MolnumsSelectedBy( mask );
+      value = integerToString( molnums.size() );
     } else {
       mprinterr("Error: Expected 'atoms', 'residues', or 'molecules'.\n");
       return CpptrajState::ERR;
