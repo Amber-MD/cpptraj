@@ -5,7 +5,7 @@
 
 void Exec_Set::Help() const {
   mprintf("\t{ <variable> <OP> <value> |\n"
-          "\t  <variable> <OP> {atoms|residues|molecules} inmask <mask>\n"
+          "\t  <variable> <OP> {atoms|residues|molecules|oresnums} inmask <mask>\n"
           "\t    [%s]\n"
           "\t  <variable> <OP> trajinframes }\n",
           DataSetList::TopIdxArgs);
@@ -45,6 +45,7 @@ Exec::RetType Exec_Set::Execute(CpptrajState& State, ArgList& argIn)
     AtomMask mask( equals.GetStringKey("inmask") );
     Topology* top = State.DSL().GetTopByIndex( equals );
     if (top == 0) return CpptrajState::ERR;
+    mprintf("\tUsing topology: %s\n", top->c_str());
     if (top->SetupIntegerMask( mask )) return CpptrajState::ERR;
     if (equals.hasKey("atoms"))
       value = integerToString( mask.Nselected() );
@@ -54,8 +55,15 @@ Exec::RetType Exec_Set::Execute(CpptrajState& State, ArgList& argIn)
     } else if (equals.hasKey("molecules")) {
       std::vector<int> molnums = top->MolnumsSelectedBy( mask );
       value = integerToString( molnums.size() );
+    } else if (equals.hasKey("oresnums")) {
+      std::vector<int> resnums = top->ResnumsSelectedBy( mask );
+      std::vector<int> oresnums;
+      oresnums.reserve( resnums.size() );
+      for (std::vector<int>::const_iterator it = resnums.begin(); it != resnums.end(); ++it)
+        oresnums.push_back( top->Res(*it).OriginalResNum() );
+      value = ArrayToRangeExpression( oresnums, 0 );
     } else {
-      mprinterr("Error: Expected 'atoms', 'residues', or 'molecules'.\n");
+      mprinterr("Error: Expected 'atoms', 'residues', 'molecules', or 'oresnums'.\n");
       return CpptrajState::ERR;
     }
   } else if (equals.hasKey("trajinframes")) {

@@ -408,7 +408,7 @@ std::string ArrayToRangeExpression(std::vector<int> const& arrayIn, int offsetIn
       if (current - last > 1 || it == finalValue) {
         if (it == finalValue)
           last = current;
-        mprintf("current= %i commaGroup= %i\n", current, commaGroup);
+        //mprintf("current= %i commaGroup= %i\n", current, commaGroup);
         if (commaGroup > 1) out.append(",");
         if (start == last)
           out.append( integerToString(start + offsetIn) );
