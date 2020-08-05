@@ -5,14 +5,16 @@
 
 void Exec_Set::Help() const {
   mprintf("\t{ <variable> <OP> <value> |\n"
-          "\t  <variable> <OP> {atoms|residues|molecules|oresnums} inmask <mask>\n"
+          "\t  <variable> <OP> {atoms|residues|molecules|atomnums|\n"
+          "\t                   resnums|oresnums|molnums} inmask <mask>\n"
           "\t    [%s]\n"
           "\t  <variable> <OP> trajinframes }\n",
           DataSetList::TopIdxArgs);
   mprintf("  Set (<OP> = '=') or append (<OP> = '+=') a script variable.\n"
           "  - Set script variable <variable> to value <value>.\n"
-          "  - Set script variable to the number of atoms/residues/molecules in\n"
-          "     the given atom mask.\n"
+          "  - Set script variable to the number of atoms/residues/molecules\n"
+          "    or selected atom #s/residue #s/original residue #s/molecule #s\n"
+          "    in the given mask.\n"
           "  - Set script variable to the current number of frames that will\n"
           "     be read from all previous 'trajin' statements.\n");
 }
@@ -57,6 +59,12 @@ Exec::RetType Exec_Set::Execute(CpptrajState& State, ArgList& argIn)
       value = integerToString( molnums.size() );
     } else if (equals.hasKey("atomnums")) {
       value = ArrayToRangeExpression( mask.Selected(), 1 );
+    } else if (equals.hasKey("resnums")) {
+      std::vector<int> resnums = top->ResnumsSelectedBy( mask );
+      value = ArrayToRangeExpression( resnums, 1 );
+    } else if (equals.hasKey("molnums")) {
+      std::vector<int> molnums = top->MolnumsSelectedBy( mask );
+      value = ArrayToRangeExpression( molnums, 1 );
     } else if (equals.hasKey("oresnums")) {
       std::vector<int> resnums = top->ResnumsSelectedBy( mask );
       std::vector<int> oresnums;
@@ -65,7 +73,8 @@ Exec::RetType Exec_Set::Execute(CpptrajState& State, ArgList& argIn)
         oresnums.push_back( top->Res(*it).OriginalResNum() );
       value = ArrayToRangeExpression( oresnums, 0 );
     } else {
-      mprinterr("Error: Expected 'atoms', 'residues', 'molecules', or 'oresnums'.\n");
+      mprinterr("Error: Expected one of: 'atoms', 'residues', 'molecules',\n"
+                "Error:   'atomnums', 'resnums', 'oresnums', or 'molnums'.\n");
       return CpptrajState::ERR;
     }
   } else if (equals.hasKey("trajinframes")) {
