@@ -55,6 +55,8 @@ Exec::RetType Exec_Set::Execute(CpptrajState& State, ArgList& argIn)
     } else if (equals.hasKey("molecules")) {
       std::vector<int> molnums = top->MolnumsSelectedBy( mask );
       value = integerToString( molnums.size() );
+    } else if (equals.hasKey("atomnums")) {
+      value = ArrayToRangeExpression( mask.Selected(), 1 );
     } else if (equals.hasKey("oresnums")) {
       std::vector<int> resnums = top->ResnumsSelectedBy( mask );
       std::vector<int> oresnums;
