@@ -137,6 +137,7 @@ class Parm_Amber : public ParmIO {
 
     // ----- Write -------------------------------
     FortranData WriteFormat(FlagType) const;
+    int BufferAlloc(FlagType, FortranData const&, int, int);
     int BufferAlloc(FlagType, int, int);
     int BufferAlloc(FlagType f, int n) { return BufferAlloc(f, n, -1); }
     int WriteLJ(FlagType, FlagType, NonbondArray const&);

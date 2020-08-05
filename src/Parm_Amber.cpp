@@ -1391,9 +1391,20 @@ Parm_Amber::FortranData Parm_Amber::WriteFormat(FlagType fflag) const {
   return FMT;
 }
 
-// Parm_Amber::BufferAlloc()
+/** This version uses the default flag to allocate the format string. */
 int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   FortranData FMT = WriteFormat( ftype );
+  return BufferAlloc(ftype, FMT, nvals, idx);
+}
+
+// Parm_Amber::BufferAlloc()
+/** Allocate internal buffer for writing given flag with given format.
+  * \param ftype The FLAG to write.
+  * \param FMT The Fortran format string.
+  * \param nvals The number of values that will be written.
+  * \param idx Index for flags that can be specified multiple times (e.g. CMAP grids).
+  */
+int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, int idx) {
   if ( FMT.Ftype() == UNKNOWN_FTYPE) {
     mprinterr("Interal Error: Could not set up format string.\n");
     return 1;
@@ -1584,20 +1595,24 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
  
   // Determine max residue size. Also determine if extra info needs to be
   // written such as PDB residue number, chain ID, etc.
+  // Since original res num gets set no matter what, only print out
+  // if chain IDs are present or original res nums != res index + 1.
   int maxResSize = 0;
   bool hasOrigResNums = false;
-  int firstOresNum = 0;
-  if (TopOut.Nres() > 0)
-    firstOresNum = TopOut.Res(0).OriginalResNum();
   bool hasChainID = false;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
   {
-    if (res != TopOut.ResStart() && res->OriginalResNum() != firstOresNum)
+    long int oresidx = res - TopOut.ResStart() + 1;
+    if (oresidx != (long int)res->OriginalResNum())
       hasOrigResNums = true;
     if (res->HasChainID())
       hasChainID = true;
     maxResSize = std::max(maxResSize, res->NumAtoms());
   }
+  if (hasOrigResNums)
+    mprintf("\tTopology has alternative residue numbering.\n");
+  if (hasChainID)
+    mprintf("\tTopology has chain IDs.\n");
 
   // Determine value of ifbox
   int ifbox;
@@ -2102,16 +2117,27 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
-  if (hasOrigResNums) {
-    mprintf("\tTopology has PDB residue numbering.\n");
-    // PDB residue numbers
-    if (BufferAlloc(F_PDB_RES, TopOut.Nres())) return 1;
+  if (hasOrigResNums || hasChainID) {
+    // PDB residue numbers. Need to adjust format based on number of residues.
+    int err;
+    if ( TopOut.Nres() < 10000 )
+      err = BufferAlloc(F_PDB_RES, TopOut.Nres());
+    else if ( TopOut.Nres() < 100000000 ) {
+      FortranData FMT;
+      FMT.ParseFortranFormat("%FORMAT(10I8)");
+      err = BufferAlloc(F_PDB_RES, FMT, TopOut.Nres(), -1);
+    } else {
+      // Max 32 bit int is 10 digits
+      FortranData FMT;
+      FMT.ParseFortranFormat("%FORMAT(5I16)");
+      err = BufferAlloc(F_PDB_RES, FMT, TopOut.Nres(), -1);
+    }
+    if (err != 0) return 1;
     for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
       file_.IntToBuffer( res->OriginalResNum() );
     file_.FlushBuffer();
   }
   if (hasChainID) {
-    mprintf("\tTopology has PDB chain IDs.\n");
     // PDB chain IDs
     if (BufferAlloc(F_PDB_CHAIN, TopOut.Nres())) return 1;
     char cid[2];
