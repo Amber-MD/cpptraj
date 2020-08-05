@@ -47,7 +47,10 @@ class Residue {
     inline int OriginalResNum()   const { return originalResNum_; }
     inline int SegID()            const { return segID_;          }
     inline char Icode()           const { return icode_;          }
-    inline char ChainID()         const;
+    /// \return Chain ID; if no chain ID set return ' '
+    inline char PrintChainId()         const;
+    /// \return Actual chain ID.
+    inline char ActualChainId()   const { return chainID_; }
     bool HasChainID()             const { return (chainID_ != BLANK_CHAINID_); }
     inline const char *c_str()    const { return *resname_;       }
     inline NameType const& Name() const { return resname_;        }
@@ -80,7 +83,7 @@ class Residue {
     bool isTerminal_;    ///< True if residue was originally a terminal residue
 };
 // ----- INLINE ROUTINES -------------------------
-char Residue::ChainID() const {
+char Residue::PrintChainId() const {
   if (chainID_ == BLANK_CHAINID_)
     return ' ';
   else
