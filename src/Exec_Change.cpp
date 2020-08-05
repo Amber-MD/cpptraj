@@ -9,6 +9,7 @@ void Exec_Change::Help() const
           "\t   crdset <COORDS set> ]\n"
           "\t{ resname from <mask> to <value> |\n"
           "\t  chainid of <mask> to <value> |\n"
+          "\t  oresnums of <mask> min <range min> max <range max> |\n"
           "\t  atomname from <mask> to <value> |\n"
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
           "\t  removebonds <mask1> [<mask2>] [out <file>]}\n"
@@ -20,12 +21,14 @@ void Exec_Change::Help() const
 Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Change type
-  enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ATOMNAME, ADDBOND, REMOVEBONDS };
+  enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ATOMNAME, ADDBOND, REMOVEBONDS };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
   else if (argIn.hasKey("chainid"))
     type = CHAINID;
+  else if (argIn.hasKey("oresnums"))
+    type = ORESNUMS;
   else if (argIn.hasKey("atomname"))
     type = ATOMNAME;
   else if (argIn.hasKey("addbond"))
@@ -56,6 +59,7 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   switch (type) {
     case RESNAME  : err = ChangeResidueName(*parm, argIn); break;
     case CHAINID  : err = ChangeChainID(*parm, argIn); break;
+    case ORESNUMS : err = ChangeOresNums(*parm, argIn); break;
     case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
     case ADDBOND  : err = AddBond(*parm, argIn); break;
     case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
@@ -97,6 +101,65 @@ const
   return 0;
 }
 
+// Exec_Change::ChangeOresNums()
+int Exec_Change::ChangeOresNums(Topology& topIn, ArgList& argIn)
+const
+{
+  // Residues to change
+  std::string mexpr = argIn.GetStringKey("of");
+  if (mexpr.empty()) {
+    mprinterr("Error: Specify residue(s) to change chain IDs of ('of <mask>').\n");
+    return 1;
+  }
+  AtomMask mask;
+  if (mask.SetMaskString(mexpr)) return 1;
+  if (topIn.SetupIntegerMask( mask )) return 1;
+  std::vector<int> tResIdxs = topIn.ResnumsSelectedBy( mask );
+  mprintf("\t%s selects %zu residues.\n", mask.MaskString(), tResIdxs.size());
+  if (tResIdxs.empty()) {
+    mprinterr("Error: No residues selected by %s\n", mask.MaskString());
+    return 1;
+  }
+  // Number range to change to
+  int omin = argIn.getKeyInt("min", 0);
+  int omax = argIn.getKeyInt("max", 0);
+  unsigned int num_o = (unsigned int)(omax - omin) + 1;
+  mprintf("\tOriginal (output) res #s: %i to %i (%u)\n", omin, omax, num_o);
+  if (omin > omax) {
+    mprinterr("Error: min must be <= max.\n");
+    return 1;
+  }
+/*
+  std::string rangearg = argIn.GetStringKey("to");
+  if (rangearg.empty()) {
+    mprinterr("Error: Specify number range to set for residues.\n");
+    return 1;
+  }
+  Range oResNums;
+  if (oResNums.SetRange( rangearg )) {
+    mprinterr("Error: Could not set range '%s'\n", rangearg.c_str());
+    return 1;
+  }
+*/
+  if (num_o != tResIdxs.size()) {
+    mprinterr("Error: # selected residues (%zu) != # provided residue numbers (%u).\n",
+              tResIdxs.size(), num_o);
+    return 1;
+  }
+  int currentOnum = omin;
+  for (std::vector<int>::const_iterator rnum = tResIdxs.begin();
+                                        rnum != tResIdxs.end(); ++rnum, currentOnum++)
+  {
+    mprintf("\tChanging original res# of residue %s from %i to %i\n",
+            topIn.TruncResNameNum(*rnum).c_str(),
+            topIn.Res(*rnum).OriginalResNum(), currentOnum);
+    topIn.SetRes(*rnum).SetOriginalNum( currentOnum );
+  }
+
+
+  return 0;
+}
+
 // Exec_Change::ChangeChainID()
 int Exec_Change::ChangeChainID(Topology& topIn, ArgList& argIn)
 const
@@ -127,7 +190,8 @@ const
   std::vector<int> resNums = topIn.ResnumsSelectedBy( mask );
   for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
   {
-    mprintf("\tChanging chain ID of residue %s from %c to %c\n", topIn.Res(*rnum).c_str(),
+    mprintf("\tChanging chain ID of residue %s from %c to %c\n",
+            topIn.TruncResNameNum(*rnum).c_str(),
             topIn.Res(*rnum).ChainID(), cid);
     topIn.SetRes(*rnum).SetChainID( cid );
   }

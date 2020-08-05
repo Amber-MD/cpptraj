@@ -2121,7 +2121,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     // PDB residue numbers. Need to adjust format based on res # digit width.
     int maxWidth = std::max( DigitWidth(TopOut.Res(0).OriginalResNum() ),
                              DigitWidth(TopOut.Res(TopOut.Nres()-1).OriginalResNum()) );
-    mprintf("DEBUG: Max original res # digit width is %i\n", maxWidth);
+    //mprintf("DEBUG: Max original res # digit width is %i\n", maxWidth);
     int err;
     if ( maxWidth < 5 )
       err = BufferAlloc(F_PDB_RES, TopOut.Nres());
