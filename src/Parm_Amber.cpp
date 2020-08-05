@@ -2112,6 +2112,16 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
   if (hasChainID) {
     mprintf("\tTopology has PDB chain IDs.\n");
+    // PDB chain IDs
+    if (BufferAlloc(F_PDB_CHAIN, TopOut.Nres())) return 1;
+    char cid[2];
+    cid[1] = '\0';
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    {
+      cid[0] = res->ChainID();
+      file_.CharToBuffer( cid );
+    }
+    file_.FlushBuffer();
   }
   return 0;
 }
