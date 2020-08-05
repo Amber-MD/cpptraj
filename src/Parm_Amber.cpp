@@ -2118,11 +2118,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
 
   if (hasOrigResNums || hasChainID) {
-    // PDB residue numbers. Need to adjust format based on number of residues.
+    // PDB residue numbers. Need to adjust format based on res # digit width.
+    int maxWidth = std::max( DigitWidth(TopOut.Res(0).OriginalResNum() ),
+                             DigitWidth(TopOut.Res(TopOut.Nres()-1).OriginalResNum()) );
+    mprintf("DEBUG: Max original res # digit width is %i\n", maxWidth);
     int err;
-    if ( TopOut.Nres() < 10000 )
+    if ( maxWidth < 5 )
       err = BufferAlloc(F_PDB_RES, TopOut.Nres());
-    else if ( TopOut.Nres() < 100000000 ) {
+    else if ( maxWidth < 9 ) {
       FortranData FMT;
       FMT.ParseFortranFormat("%FORMAT(10I8)");
       err = BufferAlloc(F_PDB_RES, FMT, TopOut.Nres(), -1);
