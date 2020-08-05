@@ -356,7 +356,7 @@ void Topology::StartNewMol() {
     // No residues yet. Consider entire molecule to be the residue.
     mprintf("Warning: Starting a molecule before residue info present.\n"
             "Warning:   Creating residue named 'MOL'\n");
-    residues_.push_back( Residue("MOL",0,atoms_.size(),1,' ',' ') );
+    residues_.push_back( Residue("MOL",0,atoms_.size(),1,' ',Residue::BlankChainID()) );
   } 
   residues_.back().SetTerminal( true );
 }
@@ -489,7 +489,7 @@ int Topology::Setup_NoResInfo() {
       if (nO == 1 && nH == 2) res_name = "HOH";
     } else
       res_name = default_res_name;
-    residues_.push_back( Residue(res_name, resnum+1, ' ', ' ') );
+    residues_.push_back( Residue(res_name, resnum+1, ' ', Residue::BlankChainID()) );
     residues_.back().SetFirstAtom( mol->BeginAtom() );
     residues_.back().SetLastAtom( mol->EndAtom() );
     // Update atom residue numbers
@@ -1333,8 +1333,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       if (!newParm->residues_.empty())
         newParm->residues_.back().SetLastAtom( newatom );
       Residue const& cr = residues_[curres];
-      newParm->residues_.push_back( Residue(cr.Name(), cr.OriginalResNum(),
-                                            cr.Icode(), cr.ChainID()) );
+      newParm->residues_.push_back( cr );
       newParm->residues_.back().SetFirstAtom( newatom );
       newParm->residues_.back().SetTerminal( cr.IsTerminal() );
       oldres = curres;
