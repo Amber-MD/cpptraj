@@ -385,3 +385,42 @@ std::string AvailableMemoryStr() {
   else
     return ByteString(avail_in_bytes, BYTE_DECIMAL);
 }
+
+/** \return A string containing the given array converted to range expression.
+  */
+std::string ArrayToRangeExpression(std::vector<int> const& arrayIn, int offsetIn) {
+  std::string out("");
+  int start = -1;
+  int last = -1;
+  int commaGroup = 0;
+
+  std::vector<int>::const_iterator finalValue = arrayIn.end();
+  --finalValue;
+  for (std::vector<int>::const_iterator it = arrayIn.begin();
+                                        it != arrayIn.end(); ++it)
+  {
+    if (commaGroup == 0) {
+      start = *it;
+      last = start;
+      commaGroup = 1;
+    } else {
+      int current = *it;
+      if (current - last > 1 || it == finalValue) {
+        if (it == finalValue)
+          last = current;
+        mprintf("current= %i commaGroup= %i\n", current, commaGroup);
+        if (commaGroup > 1) out.append(",");
+        if (start == last)
+          out.append( integerToString(start + offsetIn) );
+        else
+          out.append( integerToString(start + offsetIn) + "-" +
+                      integerToString(last  + offsetIn) );
+        commaGroup = 2;
+        start = current;
+        last = start;
+      } else
+        last = current;
+    }
+  } // END loop over arrayIn
+  return out;
+}

@@ -1,6 +1,7 @@
 #ifndef INC_STRINGROUTINES_H
 #define INC_STRINGROUTINES_H
 #include <string>
+#include <vector>
 /*! \file StringRoutines.h
     \brief Collection of useful string routines.
 
@@ -52,4 +53,6 @@ enum ByteType { BYTE_BINARY = 0, BYTE_DECIMAL };
 std::string ByteString(unsigned long long, ByteType);
 /// \return String containing size of available physical memory.
 std::string AvailableMemoryStr();
+/// \return String containing given array converted to a range, with optional offset
+std::string ArrayToRangeExpression(std::vector<int> const&, int);
 #endif
