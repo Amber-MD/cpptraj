@@ -19,11 +19,12 @@ class Action_FixAtomOrder: public Action {
 
     int debug_;
     typedef std::vector<int> MapType;
-    MapType atomMap_;
-    MapType molNums_; ///< Hold molecule number for each atom.
-    Topology* newParm_;
-    Frame newFrame_;
-    std::string prefix_;
-    std::string parmoutName_;
+    MapType atomMap_;         ///< Map original atoms to new atoms.
+    MapType molNums_;         ///< Hold molecule number for each atom.
+    Topology* newParm_;       ///< Re-ordered topology
+    Frame newFrame_;          ///< Re-ordered frame
+    std::string prefix_;      ///< Prefix for writing topology as <prefix>.<originalname>
+    std::string parmoutName_; ///< Output topology file name
+    std::string parmOpts_;    ///< Topology file write args
 };
 #endif

@@ -16,7 +16,12 @@ Action_FixAtomOrder::~Action_FixAtomOrder() {
 
 void Action_FixAtomOrder::Help() const {
   mprintf("\t[outprefix <prefix>] [parmout <filename>]\n"
-          "  Fix atom ordering so that all atoms in molecules are sequential.\n");
+          "\t[parmopts <comma-separated-list>]\n"
+          "  Fix atom ordering so that all atoms in molecules are sequential.\n"
+          "    outprefix <prefix> : Write re-ordered topology to <prefix>.<originalname>\n"
+          "    parmout <filename> : Write re-ordered topology to <filename>\n"
+          "    parmopts <list>    : Options for writing topology file\n"
+         );
 }
 
 // Action_FixAtomOrder::init()
@@ -25,15 +30,20 @@ Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, ActionInit& init,
   debug_ = debugIn;
   prefix_ = actionArgs.GetStringKey("outprefix");
   parmoutName_ = actionArgs.GetStringKey("parmout");
+  parmOpts_ = actionArgs.GetStringKey("parmopts");
+
   mprintf("    FIXATOMORDER: Will attempt to fix atom ordering when atom numbering\n"
           "                  in molecules is non-sequential.\n");
   if (!prefix_.empty())
     mprintf("\tRe-ordered topology will be output with prefix '%s'\n",prefix_.c_str());
   if (!parmoutName_.empty())
     mprintf("\tRe-ordered topology will be output with name '%s'\n", parmoutName_.c_str());
+  if (!parmOpts_.empty())
+    mprintf("\tUsing the following write options: %s\n", parmOpts_.c_str());
   return Action::OK;
 }
 
+/** Mark atom as visited, visit all bonded atoms and mark them as well. */
 void Action_FixAtomOrder::VisitAtom(int atomnum, int mol, Topology const& Parm) {
   // Return if this atom already has a molecule number
   if (molNums_[atomnum]!=-1) return;
@@ -103,6 +113,9 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
 
   // If prefix given then output stripped parm
+  ArgList writeOpts;
+  if (!parmOpts_.empty())
+    writeOpts.SetList(parmOpts_, ",");
   if (!prefix_.empty()) {
     ParmFile pfile;
     if ( pfile.WritePrefixTopology( setup.Top(), prefix_, ParmFile::UNKNOWN_PARM, debug_ ) )
@@ -110,7 +123,7 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   }
   if (!parmoutName_.empty()) {
     ParmFile pfile;
-    if ( pfile.WriteTopology( setup.Top(), parmoutName_, ParmFile::UNKNOWN_PARM, debug_ ) )
+    if (pfile.WriteTopology(setup.Top(), parmoutName_, writeOpts, ParmFile::UNKNOWN_PARM, debug_))
       mprinterr("Error: Could not write out reordered topology file '%s'\n", parmoutName_.c_str());
   }
 

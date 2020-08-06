@@ -1604,20 +1604,26 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   int maxResSize = 0;
   bool hasOrigResNums = false;
   bool hasChainID = false;
-  if (writePdbInfo_) {
-    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
-    {
-      long int oresidx = res - TopOut.ResStart() + 1;
-      if (oresidx != (long int)res->OriginalResNum())
-        hasOrigResNums = true;
-      if (res->HasChainID())
-        hasChainID = true;
-      maxResSize = std::max(maxResSize, res->NumAtoms());
-    }
+  for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+  {
+    long int oresidx = res - TopOut.ResStart() + 1;
+    if (oresidx != (long int)res->OriginalResNum())
+      hasOrigResNums = true;
+    if (res->HasChainID())
+      hasChainID = true;
+    maxResSize = std::max(maxResSize, res->NumAtoms());
+  }
+  if (hasOrigResNums)
+    mprintf("\tTopology has alternative residue numbering.\n");
+  if (hasChainID)
+    mprintf("\tTopology has chain IDs.\n");
+  if (!writePdbInfo_) {
     if (hasOrigResNums)
-      mprintf("\tTopology has alternative residue numbering.\n");
+      mprintf("\tnopdbinfo : Not writing alternative residue numbering.\n");
     if (hasChainID)
-      mprintf("\tTopology has chain IDs.\n");
+      mprintf("\tnopdbinfo : No writing chain IDs.\n");
+    hasOrigResNums = false;
+    hasChainID = false;
   }
 
   // Determine value of ifbox
