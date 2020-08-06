@@ -203,7 +203,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, ActionInit& init, in
         karpluspath.assign(env);
         karpluspath += "/dat/Karplus.txt";
       }
-      mprintf("Info: Parameter file path from CPPTRAJ variable: '%s'\n", karpluspath.c_str());
+      mprintf("Info: Parameter file path from CPPTRAJHOME variable: '%s'\n", karpluspath.c_str());
     }
     // If no path, bail out
     if (karpluspath.empty()) {
