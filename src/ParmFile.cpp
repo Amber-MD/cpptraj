@@ -13,15 +13,7 @@
 #include "Parm_Gromacs.h"
 
 /** CONSTRUCTOR */
-ParmFile::ParmFile() :
-  parmFile_(0)
-{}
-
-/** DESTRUCTOR */
-ParmFile::~ParmFile() {
-  if (parmFile_ != 0)
-    delete parmFile_;
-}
+ParmFile::ParmFile() {}
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as ParmFormatType
@@ -210,33 +202,5 @@ int ParmFile::WriteTopology(Topology const& Top, FileName const& fnameIn,
     mprinterr("Error: writing topology file '%s'\n", parmName_.full());
     return 1;
   }
-  return 0;
-}
-
-/** Set up for writing a Topology file. */
-int ParmFile::SetupForTopWrite(FileName const& fnameIn, ArgList& argIn, ParmFormatType fmtIn,
-                               int debugIn)
-{
-  parmName_ = fnameIn;
-  ParmFormatType fmt = fmtIn;
-  if (fmt == UNKNOWN_PARM) {
-    // Check arg list to see if format specified.
-    fmt = (ParmFormatType)FileTypes::GetFormatFromArg(PF_WriteKeyArray, argIn, UNKNOWN_PARM);
-    // If still UNKNOWN check file extension. Default to AMBERPARM
-    if (fmt == UNKNOWN_PARM)
-      fmt = (ParmFormatType)FileTypes::GetTypeFromExtension(PF_WriteKeyArray, parmName_.Ext(),
-                                                            AMBERPARM);
-  }
-  if (parmFile_ != 0)
-    delete parmFile_;
-  parmFile_ = (ParmIO*)FileTypes::AllocIO(PF_AllocArray, fmt, true);
-  if (parmFile_ == 0) {
-    mprinterr("Internal Error: Could not allocate ParmIO for %s\n", parmName_.full());
-    return 1;
-  }
-  parmFile_->SetDebug( debugIn );
-  parmFile_->processWriteArgs( argIn );
-  mprintf("\tSet up for writing to topology file '%s' with format %s\n",
-          parmName_.full(), FileTypes::FormatDescription(PF_AllocArray, fmt));
   return 0;
 }

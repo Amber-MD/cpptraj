@@ -23,8 +23,6 @@ class ParmFile {
     static void WriteOptions(std::string const& fkey){ FileTypes::Options(PF_WriteKeyArray,PF_AllocArray,UNKNOWN_PARM,fkey,FileTypes::WRITEOPT);}
     /// CONSTRUCTOR
     ParmFile();
-    /// DESTRUCTOR
-    ~ParmFile();
     /// Read topology file with optional arguments and debug level
     int ReadTopology(Topology&, FileName const&, ArgList const&,int);
     /// Read topology file
@@ -35,8 +33,6 @@ class ParmFile {
     int WriteTopology(Topology const&, FileName const&, ArgList const&,ParmFormatType,int);
     /// Write Topology to specified file
     int WriteTopology(Topology const&, FileName const&, ParmFormatType, int);
-    /// Set up ParmFile for writing Topology
-    int SetupForTopWrite(FileName const&, ArgList&, ParmFormatType, int);
     /// \return File name
     FileName const& ParmFilename() { return parmName_; }
     /// \return ParmFormatType of given file or UNKNOWN_PARM.
@@ -46,6 +42,5 @@ class ParmFile {
     static ParmIO* DetectFormat(FileName const&, ParmFormatType&);
 
     FileName parmName_; ///< Topology input/output file name.
-    ParmIO* parmFile_;  ///< Topology file
 };
 #endif

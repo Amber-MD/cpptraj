@@ -3,11 +3,15 @@
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
 
-// CONSTRUCTOR
-Action_FixAtomOrder::Action_FixAtomOrder() : debug_(0), newParm_(0) {} 
+/** CONSTRUCTOR */
+Action_FixAtomOrder::Action_FixAtomOrder() :
+  debug_(0),
+  newParm_(0)
+{} 
 
+/** DESTRUCTOR */
 Action_FixAtomOrder::~Action_FixAtomOrder() {
-  if (newParm_!=0) delete newParm_;
+  if (newParm_ != 0) delete newParm_;
 }
 
 void Action_FixAtomOrder::Help() const {
@@ -99,7 +103,7 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {
     ParmFile pfile;
-    if ( pfile.WritePrefixTopology( setup.Top(), prefix_, ParmFile::AMBERPARM, debug_ ) )
+    if ( pfile.WritePrefixTopology( setup.Top(), prefix_, ParmFile::UNKNOWN_PARM, debug_ ) )
       mprinterr("Error: Could not write out reordered parm file.\n");
   }
 
