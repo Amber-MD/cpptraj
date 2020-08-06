@@ -935,7 +935,7 @@ TestLibrary() {
 # nthreads <#>   : Test requires multiples of <#> MPI threads in parallel
 # threads <#>    : Test requires exactly <#> threads in parallel.
 # amberhome      : Test requires AMBERHOME set
-# cpptrajhome    : Test requires CPPTRAJHOME set
+# amberorcpptraj : Test requires AMBERHOME or CPPTRAJHOME set
 # inpath <name>  : Test requires <name> to be in PATH
 # testos <os>    : Test requires specific OS
 # file <file>    : Test requires specified file
@@ -1022,9 +1022,9 @@ CheckEnv() {
           ((CHECKERR++))
         fi
         ;;
-      'cpptrajhome' )
-        if [ -z "$CPPTRAJHOME" ] ; then
-          echo "  $DESCRIP requires CPPTRAJHOME to be set."
+      'amberorcpptraj' )
+        if [ -z "$CPPTRAJHOME" -a -z "$AMBERHOME" ] ; then
+          echo "  $DESCRIP requires CPPTRAJHOME or AMBERHOME to be set."
           ((CHECKERR++))
         fi
         ;;

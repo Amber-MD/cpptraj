@@ -23,7 +23,7 @@ EOF
 fi
 
 UNITNAME='J-Coupling extended test'
-CheckFor cpptrajhome
+CheckFor amberorcpptraj 
 if [ $? -eq 0 ] ; then
   cat > jcoupling.in <<EOF
 parm ../DPDP.parm7
