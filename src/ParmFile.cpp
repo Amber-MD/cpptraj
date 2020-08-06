@@ -161,13 +161,20 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
 int ParmFile::WritePrefixTopology(Topology const& Top, std::string const& prefix,
                                   ParmFormatType fmtIn, int debugIn)
 {
+  return WritePrefixTopology(Top, prefix, ArgList(), fmtIn, debugIn);
+}
+
+// ParmFile::WritePrefixTopology()
+int ParmFile::WritePrefixTopology(Topology const& Top, std::string const& prefix,
+                                  ArgList const& argIn, ParmFormatType fmtIn, int debugIn)
+{
   if (prefix.empty()) return 1;
   FileName prefixName;
   if (Top.OriginalFilename().empty())
     prefixName.SetFileName_NoExpansion( prefix + ".parm7" );
   else
     prefixName.SetFileName_NoExpansion( prefix + "." + Top.OriginalFilename().Base() );
-  return WriteTopology(Top, prefixName, ArgList(), fmtIn, debugIn);
+  return WriteTopology(Top, prefixName, argIn, fmtIn, debugIn);
 }
 
 /** Write Topology to specified file */

@@ -27,6 +27,8 @@ class ParmFile {
     int ReadTopology(Topology&, FileName const&, ArgList const&,int);
     /// Read topology file
     int ReadTopology(Topology&, FileName const&, int);
+    /// Write Topology to specified file as <prefix>.<originalFileName> with optional args
+    int WritePrefixTopology(Topology const&, std::string const&, ArgList const&,ParmFormatType,int);
     /// Write Topology to specified file as <prefix>.<originalFileName>
     int WritePrefixTopology(Topology const&, std::string const&, ParmFormatType,int);
     /// Write Topology to specified file with optional arguments and debug level
