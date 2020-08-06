@@ -6,7 +6,6 @@
 #endif
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h"
 #include "ImageRoutines.h"
 
 #ifdef CUDA
