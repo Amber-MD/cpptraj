@@ -1604,6 +1604,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   int maxResSize = 0;
   bool hasOrigResNums = false;
   bool hasChainID = false;
+  bool hasIcodes = false;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
   {
     long int oresidx = res - TopOut.ResStart() + 1;
@@ -1611,19 +1612,26 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       hasOrigResNums = true;
     if (res->HasChainID())
       hasChainID = true;
+    if (res->Icode() != ' ')
+      hasIcodes = true;
     maxResSize = std::max(maxResSize, res->NumAtoms());
   }
   if (hasOrigResNums)
     mprintf("\tTopology has alternative residue numbering.\n");
   if (hasChainID)
     mprintf("\tTopology has chain IDs.\n");
+  if (hasIcodes)
+    mprintf("\tTopology has residue insertion codes.\n");
   if (!writePdbInfo_) {
     if (hasOrigResNums)
       mprintf("\tnopdbinfo : Not writing alternative residue numbering.\n");
     if (hasChainID)
-      mprintf("\tnopdbinfo : No writing chain IDs.\n");
+      mprintf("\tnopdbinfo : Not writing chain IDs.\n");
+    if (hasIcodes)
+      mprintf("\tnopdbinfo : Not writing residue insertion codes.\n");
     hasOrigResNums = false;
     hasChainID = false;
+    hasIcodes = false;
   }
 
   // Determine value of ifbox
@@ -2129,7 +2137,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
-  if (hasOrigResNums || hasChainID) {
+  if (hasOrigResNums || hasChainID || hasIcodes) {
     // PDB residue numbers. Need to adjust format based on res # digit width.
     int maxWidth = std::max( DigitWidth(TopOut.Res(0).OriginalResNum() ),
                              DigitWidth(TopOut.Res(TopOut.Nres()-1).OriginalResNum()) );
@@ -2161,6 +2169,18 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     {
       cid[0] = res->PrintChainId();
       file_.CharToBuffer( cid );
+    }
+    file_.FlushBuffer();
+  }
+  if (hasIcodes) {
+    // PDB residue insertion codes
+    if (BufferAlloc(F_PDB_ICODE, TopOut.Nres())) return 1;
+    char icode[2];
+    icode[1] = '\0';
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    {
+      icode[0] = res->Icode();
+      file_.CharToBuffer( icode );
     }
     file_.FlushBuffer();
   }
