@@ -34,17 +34,17 @@ Action_Closest::Action_Closest() :
   firstAtom_(false),
   useMaskCenter_(false),
   newParm_(0),
-  NsolventMolecules_(0),
-  debug_(0)
+  NsolventMolecules_(0)
 {} 
 
 void Action_Closest::Help() const {
   mprintf("\t<# to keep> <mask> [solventmask <solvent mask>] [noimage]\n"
-          "\t[first | oxygen] [center] [closestout <filename> [name <setname>]]\n"
-          "\t[outprefix <parmprefix>] [parmout <file>]\n"
-          "  Keep only the closest <# to keep> solvent molecules to atoms in <mask>.\n"
+          "\t[first | oxygen] [center] [closestout <filename> [name <setname>]]\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Keep only the closest <# to keep> solvent molecules to atoms in <mask>.\n"
           "  Molecules can be marked as solvent with the 'solvent' command.\n"
           "  If 'center' specified use geometric center of atoms in <mask>.\n");
+  mprintf("%s", ActionTopWriter::Options());
 }
 
 // DESTRUCTOR
@@ -61,7 +61,6 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
 # ifdef MPI
   trajComm_ = init.TrajComm();
 # endif
-  debug_ = debugIn;
   // Get Keywords
   closestWaters_ = actionArgs.getNextInteger(-1);
   if (closestWaters_ < 0) {
@@ -75,8 +74,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
     firstAtom_=true;
   useMaskCenter_ = actionArgs.hasKey("center");
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
-  prefix_ = actionArgs.GetStringKey("outprefix");
-  parmoutName_ = actionArgs.GetStringKey("parmout");
+  topWriter_.InitTopWriter(actionArgs, "closest", debugIn);
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
   std::string filename = actionArgs.GetStringKey("closestout");
@@ -129,9 +127,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
     mprintf("\tOnly first atom of solvent molecule used for distance calc.\n");
   if (outFile_!=0)
     mprintf("\tClosest molecules will be saved to %s\n",outFile_->DataFilename().base());
-  if (!prefix_.empty())
-    mprintf("\tStripped topology file will be written with prefix %s\n",
-            prefix_.c_str());
+  topWriter_.PrintOptions();
 # ifdef CUDA
   mprintf("\tDistance calculations will be GPU-accelerated with CUDA.\n");
 # endif
@@ -300,16 +296,8 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
 
   // If prefix given then output stripped parm
-  if (!prefix_.empty()) {
-    ParmFile pfile;
-    if ( pfile.WritePrefixTopology(*newParm_, prefix_, ParmFile::AMBERPARM, debug_ ) )
-      mprinterr("Error: Could not write out 'closest' topology file.\n");
-  }
-  if (!parmoutName_.empty()) {
-    ParmFile pfile;
-    if ( pfile.WriteTopology(*newParm_, parmoutName_, ParmFile::AMBERPARM, debug_) )
-      mprinterr("Error: Could not write out topology to file %s\n", parmoutName_.c_str());
-  }
+  topWriter_.WriteTops( *newParm_ );
+
 # ifdef CUDA
   // Allocate space for simple arrays that will be sent to GPU.
   if (GPU_MEM_ != 0) delete[] GPU_MEM_;
