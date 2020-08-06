@@ -1,6 +1,7 @@
 #include "ParmFile.h"
 #include "CpptrajStdio.h"
 #include "BondSearch.h"
+#include "ParmIO.h"
 // All ParmIO classes go here
 #include "Parm_Amber.h"
 #include "Parm_PDB.h"
@@ -77,6 +78,12 @@ ParmFile::ParmFormatType ParmFile::DetectFormat(FileName const& fname) {
   ParmIO* pio = DetectFormat(fname, ptype);
   delete pio;
   return ptype;
+}
+
+
+/** Read topology file */
+int ParmFile::ReadTopology(Topology& t, FileName const& n, int d) {
+  return ReadTopology(t, n, ArgList(), d);
 }
 
 // ParmFile::ReadTopology()
@@ -169,6 +176,11 @@ int ParmFile::WritePrefixTopology(Topology const& Top, std::string const& prefix
   else
     prefixName.SetFileName_NoExpansion( prefix + "." + Top.OriginalFilename().Base() );
   return WriteTopology(Top, prefixName, ArgList(), fmtIn, debugIn);
+}
+
+/** Write Topology to specified file */
+int ParmFile::WriteTopology(Topology const& t, FileName const& n, ParmFormatType f,int d) {
+  return WriteTopology(t, n, ArgList(), f, d);
 }
 
 // ParmFile::WriteTopology()

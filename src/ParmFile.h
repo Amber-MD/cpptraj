@@ -1,7 +1,11 @@
 #ifndef INC_PARMFILE_H
 #define INC_PARMFILE_H
-#include "ParmIO.h"
 #include "FileTypes.h"
+#include "FileName.h"
+// Forward declares
+class ParmIO;
+class Topology;
+/// Class that reads/writes Topology class.
 class ParmFile {
     /// Allocator and description for file types. 
     static const FileTypes::AllocToken PF_AllocArray[];
@@ -24,17 +28,13 @@ class ParmFile {
     /// Read topology file with optional arguments and debug level
     int ReadTopology(Topology&, FileName const&, ArgList const&,int);
     /// Read topology file
-    int ReadTopology(Topology& t, FileName const& n, int d) {
-      return ReadTopology(t, n, ArgList(), d);
-    }
+    int ReadTopology(Topology&, FileName const&, int);
     /// Write Topology to specified file as <prefix>.<originalFileName>
     int WritePrefixTopology(Topology const&, std::string const&, ParmFormatType,int);
     /// Write Topology to specified file with optional arguments and debug level
     int WriteTopology(Topology const&, FileName const&, ArgList const&,ParmFormatType,int);
     /// Write Topology to specified file
-    int WriteTopology(Topology const& t, FileName const& n, ParmFormatType f,int d) {
-      return WriteTopology(t, n, ArgList(), f, d);
-    }
+    int WriteTopology(Topology const&, FileName const&, ParmFormatType, int);
     /// Set up ParmFile for writing Topology
     int SetupForTopWrite(FileName const&, ArgList&, ParmFormatType, int);
     /// \return File name

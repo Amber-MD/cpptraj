@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
 #include "ParmFile.h"
+#include "ArgList.h"
 
 // ViewRst::Init()
 int ViewRst::Init(Topology const& topIn, OutputType typeIn)
