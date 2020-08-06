@@ -22,14 +22,17 @@ EOF
   DoTest Jcoupling.dat.save Jcoupling.dat
 fi
 
-cat > jcoupling.in <<EOF
+UNITNAME='J-Coupling extended test'
+CheckFor cpptrajhome
+if [ $? -eq 0 ] ; then
+  cat > jcoupling.in <<EOF
 parm ../DPDP.parm7
 trajin ../DPDP.nc
 jcoupling out jc.dat :2
 EOF
-RunCpptraj "J-Coupling extended test."
-DoTest jc.dat.save jc.dat
-
+  RunCpptraj "$UNITNAME."
+  DoTest jc.dat.save jc.dat
+fi
 EndTest
 
 exit 0
