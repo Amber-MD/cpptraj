@@ -54,7 +54,7 @@ int ActionTopWriter::WriteTops(Topology const& topIn) const {
     writeOpts.SetList(parmOpts_, ",");
   if (!prefix_.empty()) {
     ParmFile pfile;
-    if ( pfile.WritePrefixTopology(topIn, prefix_, ParmFile::UNKNOWN_PARM, debug_) )
+    if ( pfile.WritePrefixTopology(topIn, prefix_, writeOpts, ParmFile::UNKNOWN_PARM, debug_) )
     {
       mprinterr("Error: Could not write out '%s' topology file with prefix '%s'.\n",
                 typeStr_.c_str(), prefix_.c_str());
