@@ -1617,7 +1617,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     maxResSize = std::max(maxResSize, res->NumAtoms());
   }
   if (hasOrigResNums)
-    mprintf("\tTopology has alternative residue numbering.\n");
+    mprintf("\tTopology has alternative residue numbering (from e.g PDB, stripping, reordering, etc).\n");
   if (hasChainID)
     mprintf("\tTopology has chain IDs.\n");
   if (hasIcodes)
