@@ -1,7 +1,6 @@
 // Action_Strip
 #include "Action_Strip.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h"
 
 // CONSTRUCTOR
 Action_Strip::Action_Strip() :
