@@ -155,7 +155,9 @@ Parm_Amber::Parm_Amber() :
   atProblemFlag_(false),
   N_impropers_(0),
   N_impTerms_(0),
-  nochamber_(false)
+  writeChamber_(true),
+  writeEmptyArrays_(false),
+  writePdbInfo_(true)
 {
   UB_count_[0] = 0;
   UB_count_[1] = 0;
@@ -1365,13 +1367,15 @@ int Parm_Amber::ReadLESid(Topology& TopIn, FortranData const& FMT) {
 // -----------------------------------------------------------------------------
 void Parm_Amber::WriteHelp() {
   mprintf("\tnochamber  : Do not write CHAMBER information to topology (useful for e.g. using"
-          " topology for visualization with VMD).\n");
+          "\t             topology for visualization with VMD).\n");
   mprintf("\twriteempty : Write Amber tree, join, and rotate info even if not present.\n");
+  mprintf("\tnopdbinfo  : Do not write \"PDB\" info (e.g. chain IDs, original res #s, etc).\n");
 }
 
 int Parm_Amber::processWriteArgs(ArgList& argIn) {
-  nochamber_ = argIn.hasKey("nochamber");
+  writeChamber_ = !argIn.hasKey("nochamber");
   writeEmptyArrays_ = argIn.hasKey("writeempty");
+  writePdbInfo_ = !argIn.hasKey("nopdbinfo");
   return 0;
 }
 
@@ -1554,7 +1558,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   ptype_ = NEWPARM;
   FlagType titleFlag = F_TITLE;
   if (TopOut.Chamber().HasChamber()) {
-    if (nochamber_)
+    if (!writeChamber_)
       mprintf("\tnochamber: Removing CHAMBER info from topology.\n");
     else {
       titleFlag = F_CTITLE;
@@ -1600,19 +1604,21 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   int maxResSize = 0;
   bool hasOrigResNums = false;
   bool hasChainID = false;
-  for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
-  {
-    long int oresidx = res - TopOut.ResStart() + 1;
-    if (oresidx != (long int)res->OriginalResNum())
-      hasOrigResNums = true;
-    if (res->HasChainID())
-      hasChainID = true;
-    maxResSize = std::max(maxResSize, res->NumAtoms());
+  if (writePdbInfo_) {
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    {
+      long int oresidx = res - TopOut.ResStart() + 1;
+      if (oresidx != (long int)res->OriginalResNum())
+        hasOrigResNums = true;
+      if (res->HasChainID())
+        hasChainID = true;
+      maxResSize = std::max(maxResSize, res->NumAtoms());
+    }
+    if (hasOrigResNums)
+      mprintf("\tTopology has alternative residue numbering.\n");
+    if (hasChainID)
+      mprintf("\tTopology has chain IDs.\n");
   }
-  if (hasOrigResNums)
-    mprintf("\tTopology has alternative residue numbering.\n");
-  if (hasChainID)
-    mprintf("\tTopology has chain IDs.\n");
 
   // Determine value of ifbox
   int ifbox;

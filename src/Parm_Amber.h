@@ -178,8 +178,9 @@ class Parm_Amber : public ParmIO {
     int nlestyp_; ///< Number of LES types
 
     // Write variables
-    bool nochamber_;
-    bool writeEmptyArrays_;
+    bool writeChamber_;     ///< If true write CHAMBER info
+    bool writeEmptyArrays_; ///< If true try to write TREE, IROTATE, JOIN even if not present 
+    bool writePdbInfo_;     ///< If true write chain IDs etc
 };
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {
