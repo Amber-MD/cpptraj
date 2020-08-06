@@ -188,7 +188,7 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
                        awidth, res.NumAtoms(),
                        rwidth, res.OriginalResNum(),
                        mwidth, (*parm_)[res.FirstAtom()].MolNum()+1,
-                       res.ChainID());
+                       res.PrintChainId());
     }
   }
   return 0;
@@ -294,7 +294,7 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
                          rwidth, firstres+1,
                          rwidth, lastres+1,
                          mn_width, parm_->Res(firstres).c_str(),
-                         parm_->Res(firstres).ChainID());
+                         parm_->Res(firstres).PrintChainId());
         if ( Mol.IsSolvent() ) outfile_->Printf(" SOLVENT");
         outfile_->Printf("\n");
       }

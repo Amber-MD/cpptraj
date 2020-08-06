@@ -421,7 +421,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     chainID_.reserve( trajParm->Nres() );
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
       if (res->HasChainID())
-        chainID_.push_back( res->ChainID() );
+        chainID_.push_back( res->PrintChainId() );
       else
         chainID_.push_back( def_chainid);
   } else
@@ -585,11 +585,11 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     bool has_ter = false;
     Topology::res_iterator res = trajParm->ResStart();
     for (; res != trajParm->ResEnd(); ++res) {
-      if (res->ChainID() != ' ') has_chainID = true;
+      if (res->HasChainID()) has_chainID = true;
       if (res->IsTerminal()) has_ter = true;
       if (res->IsTerminal() || res+1 == trajParm->ResEnd())
         TER_idxs_.push_back( res->LastAtom() - 1 );
-      else if ((res+1)->ChainID() != res->ChainID())
+      else if ((res+1)->PrintChainId() != res->PrintChainId())
         TER_idxs_.push_back( res->LastAtom() - 1 );
     }
     if (has_chainID == false && has_ter == false) {

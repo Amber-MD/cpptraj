@@ -192,7 +192,7 @@ const
   {
     mprintf("\tChanging chain ID of residue %s from %c to %c\n",
             topIn.TruncResNameNum(*rnum).c_str(),
-            topIn.Res(*rnum).ChainID(), cid);
+            topIn.Res(*rnum).PrintChainId(), cid);
     topIn.SetRes(*rnum).SetChainID( cid );
   }
   return 0;

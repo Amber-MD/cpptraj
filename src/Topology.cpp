@@ -1880,7 +1880,7 @@ int Topology::AppendTop(Topology const& NewTop) {
       }
     }
     AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
-                                     res.Icode(), res.ChainID()) );
+                                     res.Icode(), res.ActualChainId()) );
   } // END loop over incoming atoms
   // NONBONDS
   if (!doNonBond) {

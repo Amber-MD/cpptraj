@@ -184,10 +184,10 @@ int Traj_CharmmCor::setupTrajout(FileName const& fname, Topology* trajParm,
         SegmentIds_[res] = *(sp+1);
       }
     }
-  } else if (trajParm->Res(0).ChainID() != ' ') {
+  } else if (trajParm->Res(0).HasChainID()) {
     // Use chain IDs
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
-      SegmentIds_.push_back( std::string(1, res->ChainID()) );
+      SegmentIds_.push_back( std::string(1, res->PrintChainId()) );
   } else
     // Default
     SegmentIds_.assign(trajParm->Nres(), "PRO");

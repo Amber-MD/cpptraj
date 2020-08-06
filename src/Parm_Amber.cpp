@@ -2147,7 +2147,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     cid[1] = '\0';
     for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
     {
-      cid[0] = res->ChainID();
+      cid[0] = res->PrintChainId();
       file_.CharToBuffer( cid );
     }
     file_.FlushBuffer();
