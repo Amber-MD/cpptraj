@@ -1,15 +1,17 @@
 #include "Action_ReplicateCell.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h"
+#include "DataSet_Coords.h"
 
 // CONSTRUCTOR
 Action_ReplicateCell::Action_ReplicateCell() : coords_(0), ncopies_(0), writeTraj_(false) {} 
 
 void Action_ReplicateCell::Help() const {
-  mprintf("\t[out <traj filename>] [parmout <parm filename>] [name <dsname>]\n"
-          "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n"
-          "  Replicate unit cell in specified (or all) directions for atoms in <mask>.\n"
+  mprintf("\t[out <traj filename>] [name <dsname>]\n"
+          "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Replicate unit cell in specified (or all) directions for atoms in <mask>.\n"
           "    <XYZ>: X= 1, 0, -1, replicate in specified direction (e.g. 100 is +X only)\n");
+  mprintf("%s", ActionTopWriter::Options());
 }
 
 static inline int toDigit(char c) {
@@ -35,7 +37,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
   image_.InitImaging( true );
   // Set up output traj
   std::string trajfilename = actionArgs.GetStringKey("out");
-  parmfilename_ = actionArgs.GetStringKey("parmout");
+  topWriter_.InitTopWriter( actionArgs, "replicated cell", debugIn );
   bool setAll = actionArgs.hasKey("all");
   std::string dsname = actionArgs.GetStringKey("name");
   if (!dsname.empty()) {
@@ -116,8 +118,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
   mprintf("\tUsing atoms in mask '%s'\n", Mask1_.MaskString());
   if (writeTraj_)
     mprintf("\tWriting to trajectory %s\n", outtraj_.Traj().Filename().full());
-  if (!parmfilename_.empty())
-    mprintf("\tWriting topology %s\n", parmfilename_.c_str());
+  topWriter_.PrintOptions();
   if (coords_ != 0)
     mprintf("\tSaving coords to data set %s\n", coords_->legend());
 
@@ -157,13 +158,7 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
       combinedTop_.AppendTop( *stripParm );
     combinedTop_.Brief("Combined parm:");
     delete stripParm;
-    if (!parmfilename_.empty()) {
-      ParmFile pfile;
-      if (pfile.WriteTopology(combinedTop_, parmfilename_, ParmFile::UNKNOWN_PARM, 0)) {
-        mprinterr("Error: Topology file %s not written.\n", parmfilename_.c_str());
-        return Action::ERR;
-      }
-    }
+    topWriter_.WriteTops( combinedTop_ );
     // Only coordinates for now. FIXME
     combinedFrame_.SetupFrameM(combinedTop_.Atoms());
     // Set up COORDS / output traj if necessary.
