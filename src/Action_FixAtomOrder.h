@@ -24,5 +24,6 @@ class Action_FixAtomOrder: public Action {
     Topology* newParm_;
     Frame newFrame_;
     std::string prefix_;
+    std::string parmoutName_;
 };
 #endif

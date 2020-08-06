@@ -15,7 +15,7 @@ Action_FixAtomOrder::~Action_FixAtomOrder() {
 }
 
 void Action_FixAtomOrder::Help() const {
-  mprintf("\t[outprefix <name>]\n"
+  mprintf("\t[outprefix <prefix>] [parmout <filename>]\n"
           "  Fix atom ordering so that all atoms in molecules are sequential.\n");
 }
 
@@ -24,10 +24,13 @@ Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, ActionInit& init,
 {
   debug_ = debugIn;
   prefix_ = actionArgs.GetStringKey("outprefix");
+  parmoutName_ = actionArgs.GetStringKey("parmout");
   mprintf("    FIXATOMORDER: Will attempt to fix atom ordering when atom numbering\n"
           "                  in molecules is non-sequential.\n");
   if (!prefix_.empty())
-    mprintf("\tRe-ordered topology will be output with prefix %s\n",prefix_.c_str());
+    mprintf("\tRe-ordered topology will be output with prefix '%s'\n",prefix_.c_str());
+  if (!parmoutName_.empty())
+    mprintf("\tRe-ordered topology will be output with name '%s'\n", parmoutName_.c_str());
   return Action::OK;
 }
 
@@ -41,7 +44,6 @@ void Action_FixAtomOrder::VisitAtom(int atomnum, int mol, Topology const& Parm) 
                            bondedatom != Parm[atomnum].bondend(); bondedatom++)
     VisitAtom(*bondedatom, mol, Parm);
 }
-
 
 // Action_FixAtomOrder::setup()
 Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
@@ -104,7 +106,12 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   if (!prefix_.empty()) {
     ParmFile pfile;
     if ( pfile.WritePrefixTopology( setup.Top(), prefix_, ParmFile::UNKNOWN_PARM, debug_ ) )
-      mprinterr("Error: Could not write out reordered parm file.\n");
+      mprinterr("Error: Could not write out reordered topology file.\n");
+  }
+  if (!parmoutName_.empty()) {
+    ParmFile pfile;
+    if ( pfile.WriteTopology( setup.Top(), parmoutName_, ParmFile::UNKNOWN_PARM, debug_ ) )
+      mprinterr("Error: Could not write out reordered topology file '%s'\n", parmoutName_.c_str());
   }
 
   return Action::MODIFY_TOPOLOGY;
