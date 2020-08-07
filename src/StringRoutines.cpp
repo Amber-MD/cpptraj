@@ -389,38 +389,37 @@ std::string AvailableMemoryStr() {
 /** \return A string containing the given array converted to range expression.
   */
 std::string ArrayToRangeExpression(std::vector<int> const& arrayIn, int offsetIn) {
-  std::string out("");
-  int start = -1;
-  int last = -1;
-  int commaGroup = 0;
+  if (arrayIn.empty())
+    return std::string("");
+  if (arrayIn.size() == 1)
+    return integerToString( arrayIn.front() + offsetIn );
 
-  std::vector<int>::const_iterator finalValue = arrayIn.end();
-  --finalValue;
-  for (std::vector<int>::const_iterator it = arrayIn.begin();
-                                        it != arrayIn.end(); ++it)
-  {
-    if (commaGroup == 0) {
-      start = *it;
-      last = start;
-      commaGroup = 1;
-    } else {
-      int current = *it;
-      if (current - last > 1 || it == finalValue) {
-        if (it == finalValue)
-          last = current;
-        //mprintf("current= %i commaGroup= %i\n", current, commaGroup);
-        if (commaGroup > 1) out.append(",");
-        if (start == last)
-          out.append( integerToString(start + offsetIn) );
-        else
-          out.append( integerToString(start + offsetIn) + "-" +
-                      integerToString(last  + offsetIn) );
-        commaGroup = 2;
-        start = current;
-        last = start;
-      } else
-        last = current;
+  std::string out("");
+  // Commas will only be printed for groups after the first
+  int commaGroup = 0;
+  unsigned int idx = 0;
+  while (idx < arrayIn.size()) {
+    unsigned int kdx = idx + 1;
+    int delta = arrayIn[kdx] - arrayIn[kdx-1];
+    while (delta == 1 && kdx < arrayIn.size()) {
+      kdx++;
+      delta = arrayIn[kdx] - arrayIn[kdx-1];
     }
-  } // END loop over arrayIn
+    if (delta <= 0) {
+      mprinterr("Internal Error: ArrayToRangeExpression() requires arrays in increasing order.\n");
+      return std::string("");
+    }
+    if (commaGroup > 0)
+      out.append(",");
+    commaGroup++;
+    unsigned int jdx = kdx - 1;
+    if (idx == jdx)
+      out.append( integerToString( arrayIn[idx] + offsetIn ) );
+    else
+      out.append( integerToString( arrayIn[idx] + offsetIn ) + "-" +
+                  integerToString( arrayIn[jdx] + offsetIn ) );
+    idx = kdx;
+  }
+ 
   return out;
 }
