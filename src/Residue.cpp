@@ -1,7 +1,7 @@
 #include "Residue.h"
 #include <cctype> // tolower
 
-const char Residue::BLANK_CHAINID_ = '\0';
+const char Residue::BLANK_CHAINID_ = ' ';
 
 const char Residue::DEFAULT_CHAINID_ = 'Z';
 

@@ -356,7 +356,7 @@ void Topology::StartNewMol() {
     // No residues yet. Consider entire molecule to be the residue.
     mprintf("Warning: Starting a molecule before residue info present.\n"
             "Warning:   Creating residue named 'MOL'\n");
-    residues_.push_back( Residue("MOL",0,atoms_.size(),1,' ',Residue::BlankChainID()) );
+    residues_.push_back( Residue("MOL",0,atoms_.size(),1,' ',' ') );
   } 
   residues_.back().SetTerminal( true );
 }
@@ -489,7 +489,7 @@ int Topology::Setup_NoResInfo() {
       if (nO == 1 && nH == 2) res_name = "HOH";
     } else
       res_name = default_res_name;
-    residues_.push_back( Residue(res_name, resnum+1, ' ', Residue::BlankChainID()) );
+    residues_.push_back( Residue(res_name, resnum+1, ' ', ' ') );
     residues_.back().SetFirstAtom( mol->BeginAtom() );
     residues_.back().SetLastAtom( mol->EndAtom() );
     // Update atom residue numbers
@@ -1880,7 +1880,7 @@ int Topology::AppendTop(Topology const& NewTop) {
       }
     }
     AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
-                                     res.Icode(), res.ActualChainId()) );
+                                     res.Icode(), res.ChainId()) );
   } // END loop over incoming atoms
   // NONBONDS
   if (!doNonBond) {

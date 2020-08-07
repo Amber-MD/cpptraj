@@ -24,8 +24,7 @@ class Residue {
     /// CONSTRUCTOR - Res name, first atom, last atom, original resnum, icode, chain ID
     Residue(NameType const& n, int first, int last, int r, char ic, char cid) :
       resname_(n), firstAtom_(first), lastAtom_(last),
-      originalResNum_(r), segID_(-1), icode_(ic), chainID_(cid),
-      isTerminal_(false)
+      originalResNum_(r), segID_(-1), icode_(ic), chainID_(cid), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, original resnum, res icode, segment ID
     Residue(NameType const& n, int r, char i, int s) :
@@ -47,10 +46,9 @@ class Residue {
     inline int OriginalResNum()   const { return originalResNum_; }
     inline int SegID()            const { return segID_;          }
     inline char Icode()           const { return icode_;          }
-    /// \return Chain ID; if no chain ID set return ' '
-    inline char PrintChainId()         const;
-    /// \return Actual chain ID.
-    inline char ActualChainId()   const { return chainID_; }
+    /// \return Chain ID
+    inline char ChainId()         const { return chainID_; }
+    /// \return True if chain ID is not blank.
     bool HasChainID()             const { return (chainID_ != BLANK_CHAINID_); }
     inline const char *c_str()    const { return *resname_;       }
     inline NameType const& Name() const { return resname_;        }
@@ -66,12 +64,12 @@ class Residue {
     static const char* ConvertResName(char);
     /// \return Default chain ID
     static char DefaultChainID() { return DEFAULT_CHAINID_; }
-    /// \return Blank (no) chain ID
-    static char BlankChainID() { return BLANK_CHAINID_; }
     /// Convert this residue name to single letter.
     char SingleCharName() const { return ConvertResName( *resname_ ); }
   private:
+    /// Character that denotes no chain ID.
     static const char BLANK_CHAINID_;
+    /// Chain ID to use if one is desired but no chain ID set.
     static const char DEFAULT_CHAINID_;
     NameType resname_;   ///< Residue name.
     int firstAtom_;      ///< Index of first atom (from 0).
@@ -82,11 +80,4 @@ class Residue {
     char chainID_;       ///< Residue chain ID
     bool isTerminal_;    ///< True if residue was originally a terminal residue
 };
-// ----- INLINE ROUTINES -------------------------
-char Residue::PrintChainId() const {
-  if (chainID_ == BLANK_CHAINID_)
-    return ' ';
-  else
-    return chainID_;
-}
 #endif

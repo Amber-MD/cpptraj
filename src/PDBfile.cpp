@@ -598,7 +598,7 @@ PDBfile::SSBOND::SSBOND() :
 PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
   idx1_(  idx1),                idx2_(  idx2),
   rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
-  chain1_(r1.PrintChainId()),        chain2_(r2.PrintChainId()),
+  chain1_(r1.ChainId()),        chain2_(r2.ChainId()),
   icode1_(r1.Icode()),          icode2_(r2.Icode())
 {
   std::copy(r1.c_str(), r1.c_str()+3, name1_);

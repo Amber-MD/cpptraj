@@ -972,7 +972,7 @@ void MaskTokenArray::SelectChainID(ResArrayT const& residues, NameType const& na
 {
   for (ResArrayT::const_iterator res = residues.begin();
                                  res != residues.end(); ++res)
-    if ( res->PrintChainId() == name[0] )
+    if ( res->ChainId() == name[0] )
       std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
 }
 
