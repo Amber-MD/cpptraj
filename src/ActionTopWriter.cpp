@@ -7,8 +7,8 @@
 static const char* keywords_ = "\t[outprefix <prefix>] [parmout <filename>]\n"
                                "\t[parmopts <comma-separated-list>]\n";
 static const char* options_ = 
-          "    outprefix <prefix> : Write re-ordered topology to <prefix>.<originalname>\n"
-          "    parmout <filename> : Write re-ordered topology to <filename>\n"
+          "    outprefix <prefix> : Write modified topology to <prefix>.<originalname>\n"
+          "    parmout <filename> : Write modified topology to <filename>\n"
           "    parmopts <list>    : Options for writing topology file\n";
 
 const char* ActionTopWriter::Keywords() { return keywords_; }
