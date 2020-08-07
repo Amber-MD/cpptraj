@@ -216,10 +216,10 @@ const
   char currentChar = cmin;
   for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
   {
-    mprintf("\tChanging insertion code of residue %s from '%c%i' to '%c%i'\n",
+    mprintf("\tChanging insertion code of residue %s from '%i%c' to '%i%c'\n",
             topIn.TruncResNameNum(*rnum).c_str(),
-            topIn.Res(*rnum).Icode(), topIn.Res(*rnum).OriginalResNum(),
-            currentChar, oresnum);
+            topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).Icode(), 
+            oresnum, currentChar);
     topIn.SetRes(*rnum).SetOriginalNum( oresnum );
     topIn.SetRes(*rnum).SetIcode( currentChar );
     currentChar = (char)((int)currentChar + dir);
