@@ -15,7 +15,7 @@ EOF
 cat > order.in <<EOF
 parm outoforder.parm7
 trajin min1.crd 1 10
-fixatomorder outprefix reorder
+fixatomorder outprefix reorder parmopts nopdbinfo
 trajout reorder.mdcrd
 EOF
 RunCpptraj "$TESTNAME (will print error messages)"

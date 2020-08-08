@@ -137,6 +137,7 @@ class Parm_Amber : public ParmIO {
 
     // ----- Write -------------------------------
     FortranData WriteFormat(FlagType) const;
+    int BufferAlloc(FlagType, FortranData const&, int, int);
     int BufferAlloc(FlagType, int, int);
     int BufferAlloc(FlagType f, int n) { return BufferAlloc(f, n, -1); }
     int WriteLJ(FlagType, FlagType, NonbondArray const&);
@@ -177,8 +178,9 @@ class Parm_Amber : public ParmIO {
     int nlestyp_; ///< Number of LES types
 
     // Write variables
-    bool nochamber_;
-    bool writeEmptyArrays_;
+    bool writeChamber_;     ///< If true write CHAMBER info
+    bool writeEmptyArrays_; ///< If true try to write TREE, IROTATE, JOIN even if not present 
+    bool writePdbInfo_;     ///< If true write chain IDs etc
 };
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {

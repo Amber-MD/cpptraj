@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_REMAP_H
 #define INC_ACTION_REMAP_H
 #include "Action.h"
+#include "ActionTopWriter.h"
 class Action_Remap : public Action {
   public:
     Action_Remap();
@@ -16,6 +17,6 @@ class Action_Remap : public Action {
     std::vector<int> Map_; ///< Reference[refidx] = tgtidx
     Topology* newParm_;
     Frame newFrame_;
-    std::string parmoutName_;
+    ActionTopWriter topWriter_;
 };
 #endif

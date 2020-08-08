@@ -1,0 +1,6 @@
+The files in this directory contain various data that cpptraj relies on, but
+that is directly coded into cpptraj.
+
+ATOMTYPE_CHECK.TAB : Used to convert Amber atom types to Sybyl atom types (Mol2 write, sybyltype/sybylatom).
+BONDTYPE_CHECK.TAB : Used to convert bonds using Amber atom types to Sybyl bond types (Mol2 write, sybyltype/sybylbond).
+Karplus.txt        : The "Karplus" parameters used by the J-coupling calculation action ('jcoupling' command).
