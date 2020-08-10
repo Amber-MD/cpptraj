@@ -937,6 +937,7 @@ TestLibrary() {
 # nthreads <#>   : Test requires multiples of <#> MPI threads in parallel
 # threads <#>    : Test requires exactly <#> threads in parallel.
 # amberhome      : Test requires AMBERHOME set
+# amberorcpptraj : Test requires AMBERHOME or CPPTRAJHOME set
 # inpath <name>  : Test requires <name> to be in PATH
 # testos <os>    : Test requires specific OS
 # file <file>    : Test requires specified file
@@ -1024,44 +1025,50 @@ CheckEnv() {
           ((CHECKERR++))
         fi
         ;;
-        'inpath' )
-          shift
-          if [ -z "`which $1`" ] ; then
-            echo "  $DESCRIP requires $1 to be in PATH."
-            ((CHECKERR++))
-          fi
-          ;;
-        'testos' )
-          shift
-          if [ "$CPPTRAJ_TEST_OS" != "$1" ] ; then
-            echo "  $DESCRIP requires $1 OS."
-            ((CHECKERR++))
-          fi
-          ;;
-        'notos' )
-          shift
-          if [ "$CPPTRAJ_TEST_OS" = "$1" ] ; then
-            echo "  $DESCRIP cannot run on $1 OS."
-            ((CHECKERR++))
-          fi
-          ;;
-        'long' )
-          if [ -z "$CPPTRAJ_LONG_TEST" -o $CPPTRAJ_LONG_TEST -eq 0 ] ; then
-            echo "  $DESCRIP is a long test and long tests disabled. Use 'long' to run."
-            ((CHECKERR++))
-          fi
-          ;;
-        'file' )
-          shift
-          if [ ! -f "$1" ] ; then
-            echo "  $DESCRIP requires file $1"
-            ((CHECKERR++))
-          fi
-          ;;
-        'disabled' )
-          echo "  $DESCRIP is disabled."
+      'amberorcpptraj' )
+        if [ -z "$CPPTRAJHOME" -a -z "$AMBERHOME" ] ; then
+          echo "  $DESCRIP requires CPPTRAJHOME or AMBERHOME to be set."
           ((CHECKERR++))
-          ;;
+        fi
+        ;;
+      'inpath' )
+        shift
+        if [ -z "`which $1`" ] ; then
+          echo "  $DESCRIP requires $1 to be in PATH."
+          ((CHECKERR++))
+        fi
+        ;;
+      'testos' )
+        shift
+        if [ "$CPPTRAJ_TEST_OS" != "$1" ] ; then
+          echo "  $DESCRIP requires $1 OS."
+          ((CHECKERR++))
+        fi
+        ;;
+      'notos' )
+        shift
+        if [ "$CPPTRAJ_TEST_OS" = "$1" ] ; then
+          echo "  $DESCRIP cannot run on $1 OS."
+          ((CHECKERR++))
+        fi
+        ;;
+      'long' )
+        if [ -z "$CPPTRAJ_LONG_TEST" -o $CPPTRAJ_LONG_TEST -eq 0 ] ; then
+          echo "  $DESCRIP is a long test and long tests disabled. Use 'long' to run."
+          ((CHECKERR++))
+        fi
+        ;;
+      'file' )
+        shift
+        if [ ! -f "$1" ] ; then
+          echo "  $DESCRIP requires file $1"
+          ((CHECKERR++))
+        fi
+        ;;
+      'disabled' )
+        echo "  $DESCRIP is disabled."
+        ((CHECKERR++))
+        ;;
       * ) ErrMsg "Unknown CheckEnv() option: $1" ; exit 1 ;;
     esac
     shift

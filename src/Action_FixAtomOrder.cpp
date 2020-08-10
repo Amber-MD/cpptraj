@@ -1,32 +1,39 @@
 // Action_FixAtomOrder 
 #include "Action_FixAtomOrder.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h"
 
-// CONSTRUCTOR
-Action_FixAtomOrder::Action_FixAtomOrder() : debug_(0), newParm_(0) {} 
+/** CONSTRUCTOR */
+Action_FixAtomOrder::Action_FixAtomOrder() :
+  debug_(0),
+  newParm_(0)
+{} 
 
+/** DESTRUCTOR */
 Action_FixAtomOrder::~Action_FixAtomOrder() {
-  if (newParm_!=0) delete newParm_;
+  if (newParm_ != 0) delete newParm_;
 }
 
+// void Action_FixAtomOrder::Help()
 void Action_FixAtomOrder::Help() const {
-  mprintf("\t[outprefix <name>]\n"
-          "  Fix atom ordering so that all atoms in molecules are sequential.\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Fix atom ordering so that all atoms in molecules are sequential.\n");
+  mprintf("%s", ActionTopWriter::Options());
 }
 
 // Action_FixAtomOrder::init()
 Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
-  prefix_ = actionArgs.GetStringKey("outprefix");
+  topWriter_.InitTopWriter(actionArgs, "re-ordered", debug_);
+
   mprintf("    FIXATOMORDER: Will attempt to fix atom ordering when atom numbering\n"
           "                  in molecules is non-sequential.\n");
-  if (!prefix_.empty())
-    mprintf("\tRe-ordered topology will be output with prefix %s\n",prefix_.c_str());
+  topWriter_.PrintOptions();
+
   return Action::OK;
 }
 
+/** Mark atom as visited, visit all bonded atoms and mark them as well. */
 void Action_FixAtomOrder::VisitAtom(int atomnum, int mol, Topology const& Parm) {
   // Return if this atom already has a molecule number
   if (molNums_[atomnum]!=-1) return;
@@ -37,7 +44,6 @@ void Action_FixAtomOrder::VisitAtom(int atomnum, int mol, Topology const& Parm) 
                            bondedatom != Parm[atomnum].bondend(); bondedatom++)
     VisitAtom(*bondedatom, mol, Parm);
 }
-
 
 // Action_FixAtomOrder::setup()
 Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
@@ -97,11 +103,7 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
 
   // If prefix given then output stripped parm
-  if (!prefix_.empty()) {
-    ParmFile pfile;
-    if ( pfile.WritePrefixTopology( setup.Top(), prefix_, ParmFile::AMBERPARM, debug_ ) )
-      mprinterr("Error: Could not write out reordered parm file.\n");
-  }
+  topWriter_.WriteTops( setup.Top() );
 
   return Action::MODIFY_TOPOLOGY;
 }

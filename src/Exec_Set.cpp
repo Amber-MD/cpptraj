@@ -5,14 +5,16 @@
 
 void Exec_Set::Help() const {
   mprintf("\t{ <variable> <OP> <value> |\n"
-          "\t  <variable> <OP> {atoms|residues|molecules} inmask <mask>\n"
+          "\t  <variable> <OP> {atoms|residues|molecules|atomnums|\n"
+          "\t                   resnums|oresnums|molnums} inmask <mask>\n"
           "\t    [%s]\n"
           "\t  <variable> <OP> trajinframes }\n",
           DataSetList::TopIdxArgs);
   mprintf("  Set (<OP> = '=') or append (<OP> = '+=') a script variable.\n"
           "  - Set script variable <variable> to value <value>.\n"
-          "  - Set script variable to the number of atoms/residues/molecules in\n"
-          "     the given atom mask.\n"
+          "  - Set script variable to the number of atoms/residues/molecules\n"
+          "    or selected atom #s/residue #s/original residue #s/molecule #s\n"
+          "    in the given mask.\n"
           "  - Set script variable to the current number of frames that will\n"
           "     be read from all previous 'trajin' statements.\n");
 }
@@ -45,33 +47,34 @@ Exec::RetType Exec_Set::Execute(CpptrajState& State, ArgList& argIn)
     AtomMask mask( equals.GetStringKey("inmask") );
     Topology* top = State.DSL().GetTopByIndex( equals );
     if (top == 0) return CpptrajState::ERR;
+    mprintf("\tUsing topology: %s\n", top->c_str());
     if (top->SetupIntegerMask( mask )) return CpptrajState::ERR;
     if (equals.hasKey("atoms"))
       value = integerToString( mask.Nselected() );
     else if (equals.hasKey("residues")) {
-      int curRes = -1;
-      int nres = 0;
-      for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
-        int res = (*top)[*at].ResNum();
-        if (res != curRes) {
-          nres++;
-          curRes = res;
-        }
-      }
-      value = integerToString( nres );
+      std::vector<int> resnums = top->ResnumsSelectedBy( mask );
+      value = integerToString( resnums.size() );
     } else if (equals.hasKey("molecules")) {
-      int curMol = -1;
-      int nmol = 0;
-      for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
-        int mol = (*top)[*at].MolNum();
-        if (mol != curMol) {
-          nmol++;
-          curMol = mol;
-        }
-      }
-      value = integerToString( nmol );
+      std::vector<int> molnums = top->MolnumsSelectedBy( mask );
+      value = integerToString( molnums.size() );
+    } else if (equals.hasKey("atomnums")) {
+      value = ArrayToRangeExpression( mask.Selected(), 1 );
+    } else if (equals.hasKey("resnums")) {
+      std::vector<int> resnums = top->ResnumsSelectedBy( mask );
+      value = ArrayToRangeExpression( resnums, 1 );
+    } else if (equals.hasKey("molnums")) {
+      std::vector<int> molnums = top->MolnumsSelectedBy( mask );
+      value = ArrayToRangeExpression( molnums, 1 );
+    } else if (equals.hasKey("oresnums")) {
+      std::vector<int> resnums = top->ResnumsSelectedBy( mask );
+      std::vector<int> oresnums;
+      oresnums.reserve( resnums.size() );
+      for (std::vector<int>::const_iterator it = resnums.begin(); it != resnums.end(); ++it)
+        oresnums.push_back( top->Res(*it).OriginalResNum() );
+      value = ArrayToRangeExpression( oresnums, 0 );
     } else {
-      mprinterr("Error: Expected 'atoms', 'residues', or 'molecules'.\n");
+      mprinterr("Error: Expected one of: 'atoms', 'residues', 'molecules',\n"
+                "Error:   'atomnums', 'resnums', 'oresnums', or 'molnums'.\n");
       return CpptrajState::ERR;
     }
   } else if (equals.hasKey("trajinframes")) {

@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_STRIP_H
 #define INC_ACTION_STRIP_H
 #include "Action.h"
+#include "ActionTopWriter.h"
 /// Used to remove atoms from the state.
 class Action_Strip: public Action {
   public:
@@ -18,9 +19,8 @@ class Action_Strip: public Action {
     CoordinateInfo* newCinfo_;
     DataSetList* masterDSL_;
     Frame newFrame_;
-    std::string prefix_;
-    std::string parmoutName_;
     AtomMask M1_;
     bool removeBoxInfo_;
+    ActionTopWriter topWriter_;
 };
 #endif

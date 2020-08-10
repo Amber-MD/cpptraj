@@ -1333,8 +1333,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       if (!newParm->residues_.empty())
         newParm->residues_.back().SetLastAtom( newatom );
       Residue const& cr = residues_[curres];
-      newParm->residues_.push_back( Residue(cr.Name(), cr.OriginalResNum(),
-                                            cr.Icode(), cr.ChainID()) );
+      newParm->residues_.push_back( cr );
       newParm->residues_.back().SetFirstAtom( newatom );
       newParm->residues_.back().SetTerminal( cr.IsTerminal() );
       oldres = curres;
@@ -1881,7 +1880,7 @@ int Topology::AppendTop(Topology const& NewTop) {
       }
     }
     AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
-                                     res.Icode(), res.ChainID()) );
+                                     res.Icode(), res.ChainId()) );
   } // END loop over incoming atoms
   // NONBONDS
   if (!doNonBond) {

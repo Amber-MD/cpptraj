@@ -969,7 +969,18 @@ SetupLibraries() {
         elif [ $i -eq $LSANDER ] ; then
           # Always specify libsander location to prevent pulling in
           # other amber libraries.
-          lflag="${LIB_HOME[$LSANDER]}/lib/libsander$SHARED_SUFFIX"
+          if [ ! -f "${LIB_FLAG[$LSANDER]}" ] ; then
+            lflag="${LIB_HOME[$LSANDER]}/lib/libsander$SHARED_SUFFIX"
+          else
+            # libsander directly specified.
+            lflag=${LIB_FLAG[$LSANDER]}
+            # Figure out the include directory
+            if [ -z "$linc" ] ; then
+              tmpdir1=`dirname $lflag`   # the lib dir
+              tmpdir2=`dirname $tmpdir1` # The AMBERHOME dir
+              linc="-I"$tmpdir2/include
+            fi
+          fi
         fi
       fi
       # Special case. If library had include path set already, do not override it.

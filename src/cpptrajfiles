@@ -5,6 +5,7 @@ COMMON_SOURCES= \
         Action.cpp \
         ActionFrameCounter.cpp \
         ActionList.cpp \
+        ActionTopWriter.cpp \
         Action_Align.cpp \
         Action_Angle.cpp \
         Action_AreaPerMol.cpp \
