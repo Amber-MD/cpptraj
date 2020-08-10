@@ -1,6 +1,7 @@
 #include "ParmFile.h"
 #include "CpptrajStdio.h"
 #include "BondSearch.h"
+#include "ParmIO.h"
 // All ParmIO classes go here
 #include "Parm_Amber.h"
 #include "Parm_PDB.h"
@@ -10,6 +11,9 @@
 #include "Parm_SDF.h"
 #include "Parm_Tinker.h"
 #include "Parm_Gromacs.h"
+
+/** CONSTRUCTOR */
+ParmFile::ParmFile() {}
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as ParmFormatType
@@ -66,6 +70,12 @@ ParmFile::ParmFormatType ParmFile::DetectFormat(FileName const& fname) {
   ParmIO* pio = DetectFormat(fname, ptype);
   delete pio;
   return ptype;
+}
+
+
+/** Read topology file */
+int ParmFile::ReadTopology(Topology& t, FileName const& n, int d) {
+  return ReadTopology(t, n, ArgList(), d);
 }
 
 // ParmFile::ReadTopology()
@@ -146,9 +156,17 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   return 0;
 }
 
+// =============================================================================
 // ParmFile::WritePrefixTopology()
 int ParmFile::WritePrefixTopology(Topology const& Top, std::string const& prefix,
                                   ParmFormatType fmtIn, int debugIn)
+{
+  return WritePrefixTopology(Top, prefix, ArgList(), fmtIn, debugIn);
+}
+
+// ParmFile::WritePrefixTopology()
+int ParmFile::WritePrefixTopology(Topology const& Top, std::string const& prefix,
+                                  ArgList const& argIn, ParmFormatType fmtIn, int debugIn)
 {
   if (prefix.empty()) return 1;
   FileName prefixName;
@@ -156,7 +174,12 @@ int ParmFile::WritePrefixTopology(Topology const& Top, std::string const& prefix
     prefixName.SetFileName_NoExpansion( prefix + ".parm7" );
   else
     prefixName.SetFileName_NoExpansion( prefix + "." + Top.OriginalFilename().Base() );
-  return WriteTopology(Top, prefixName, ArgList(), fmtIn, debugIn);
+  return WriteTopology(Top, prefixName, argIn, fmtIn, debugIn);
+}
+
+/** Write Topology to specified file */
+int ParmFile::WriteTopology(Topology const& t, FileName const& n, ParmFormatType f,int d) {
+  return WriteTopology(t, n, ArgList(), f, d);
 }
 
 // ParmFile::WriteTopology()

@@ -48,7 +48,7 @@ outtraj Receptor.crd
 unstrip
 
 # Ligand
-strip !(:17) outprefix ligand
+strip !(:17) outprefix ligand parmopts nopdbinfo
 outtraj Ligand.crd
 EOF
   RunCpptraj "$UNITNAME"

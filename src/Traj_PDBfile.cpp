@@ -31,7 +31,7 @@ Traj_PDBfile::Traj_PDBfile() :
   bfacbyres_(false),
   occbyres_(false),
   pdbTop_(0),
-  chainchar_(Residue::BlankChainID()),
+  chainchar_(' '),
   bfacdata_(0),
   occdata_(0),
   adpdata_(0),
@@ -417,11 +417,11 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   else
     def_chainid = ' ';
    // If no chain ID specified, determine chain ID.
-  if (chainchar_ == Residue::BlankChainID()) {
+  if (chainchar_ == ' ') {
     chainID_.reserve( trajParm->Nres() );
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
       if (res->HasChainID())
-        chainID_.push_back( res->ChainID() );
+        chainID_.push_back( res->ChainId() );
       else
         chainID_.push_back( def_chainid);
   } else
@@ -585,11 +585,11 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     bool has_ter = false;
     Topology::res_iterator res = trajParm->ResStart();
     for (; res != trajParm->ResEnd(); ++res) {
-      if (res->ChainID() != ' ') has_chainID = true;
+      if (res->HasChainID()) has_chainID = true;
       if (res->IsTerminal()) has_ter = true;
       if (res->IsTerminal() || res+1 == trajParm->ResEnd())
         TER_idxs_.push_back( res->LastAtom() - 1 );
-      else if ((res+1)->ChainID() != res->ChainID())
+      else if ((res+1)->ChainId() != res->ChainId())
         TER_idxs_.push_back( res->LastAtom() - 1 );
     }
     if (has_chainID == false && has_ter == false) {

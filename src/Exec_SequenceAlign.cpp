@@ -149,7 +149,7 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
     NameType SresName( Residue::ConvertResName(Sbjct[sres]) );
     if (qres != -1) {
       Residue const& QR = qref.Parm().Res(qres);
-      Residue SR(SresName, sres+1, ' ', QR.ChainID());
+      Residue SR(SresName, sres+1, ' ', QR.ChainId());
       if (Query[qres] == Sbjct[sres]) { // Exact match. All non-H atoms.
         for (int qat = QR.FirstAtom(); qat != QR.LastAtom(); qat++)
         {

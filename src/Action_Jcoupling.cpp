@@ -183,19 +183,34 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, ActionInit& init, in
     // Check if the KARPLUS env var is set.
     const char* env = getenv("KARPLUS");
     if (env != 0) {
-      mprintf("Info: Using parameter file defined by $KARPLUS environment variable.\n");
+      //mprintf("Info: Using parameter file defined by $KARPLUS environment variable.\n");
       karpluspath.assign(env);
-    } else {
-      // If KARPLUS not set check for $AMBERHOME/dat/Karplus.txt
+      mprintf("Info: Parameter file path from KARPLUS variable: '%s'\n", karpluspath.c_str());
+    } 
+    // Check if AMBERHOME is set.
+    if (karpluspath.empty()) {
       env = getenv("AMBERHOME");
-      if (env == 0) {
-        mprinterr("Error: Either AMBERHOME must be set or KARPLUS must point\n"
-                  "Error:   to the file containing Karplus parameters.\n");
-        return Action::ERR;
+      if (env != 0) {
+        karpluspath.assign(env);
+        karpluspath += "/dat/Karplus.txt";
       }
-      mprintf("Info: Using parameter file in '$AMBERHOME/dat/'.\n");
-      karpluspath.assign(env);
-      karpluspath += "/dat/Karplus.txt";
+      mprintf("Info: Parameter file path from AMBERHOME variable: '%s'\n", karpluspath.c_str());
+    }
+    // Last, use CPPTRAJHOME
+    if (karpluspath.empty()) {
+      env = getenv("CPPTRAJHOME");
+      if (env != 0) {
+        karpluspath.assign(env);
+        karpluspath += "/dat/Karplus.txt";
+      }
+      mprintf("Info: Parameter file path from CPPTRAJHOME variable: '%s'\n", karpluspath.c_str());
+    }
+    // If no path, bail out
+    if (karpluspath.empty()) {
+      mprinterr("Error: Either the CPPTRAJHOME or AMBERHOME env. variables must be set, or the\n"
+                "Error:   parameter file location must be specified by 'kfile' or the KARPLUS\n"
+                "Error:   env. variable.\n");
+      return Action::ERR;
     }
   }
   // Load Karplus parameters

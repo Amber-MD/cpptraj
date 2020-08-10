@@ -227,17 +227,12 @@ void Action_AtomicFluct::Print() {
         anisou[5] = (Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]); // u23
         // Store as data; index by actual atom number
         adpset_->Add(atom+1, (const void*)&anisou);
-        // Default to a blank chain ID
-        char chainid;
-        if (fluctParm_->Res(resnum).HasChainID())
-          chainid = fluctParm_->Res(resnum).ChainID();
-        else
-          chainid = ' ';
+        // Write to ADP out file if defined. 
         if (adpoutfile_ != 0) {
           PDBfile& adpout = static_cast<PDBfile&>( *adpoutfile_ );
           adpout.WriteANISOU(
             atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
-            chainid, fluctParm_->Res(resnum).OriginalResNum(),
+            fluctParm_->Res(resnum).ChainId(), fluctParm_->Res(resnum).OriginalResNum(),
             anisou, (*fluctParm_)[atom].ElementName(), 0 );
         }
       }

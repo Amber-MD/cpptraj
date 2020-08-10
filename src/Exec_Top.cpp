@@ -1,6 +1,5 @@
 #include "Exec_Top.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h"
 #include "TopInfo.h"
 
 void Exec_LoadParm::Help() const {

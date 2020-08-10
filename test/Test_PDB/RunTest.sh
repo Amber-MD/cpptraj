@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles pdb.in test.pdb tz2.pqr.gb.pdb tz2.pqr.parse.pdb \
-           tz2.pqr.vdw.pdb chainA.dat oresnum.dat tz2.plain.pdb
+           tz2.pqr.vdw.pdb chainA.dat oresnum.dat tz2.plain.pdb \
+           2b5t.fromparm.pdb
 
 INPUT="-i pdb.in"
 
@@ -50,6 +51,20 @@ EOF
 
 Test1
 Test2
+
+# Test adding back PDB info
+UNITNAME='Adding PDB info to topology'
+cat > pdb.in <<EOF
+parm 2b5t.segment.pdb
+trajin 2b5t.segment.pdb
+change oresnums of :1 min 186 max 186
+change oresnums of :6 min 187 max 187
+change icodes of :2-5 min A max D resnum 186
+change chainid of :1-6 to B
+trajout 2b5t.fromparm.pdb
+EOF
+RunCpptraj "$UNITNAME"
+DoTest 2b5t.fromparm.pdb.save 2b5t.fromparm.pdb
 
 EndTest
 exit 0
