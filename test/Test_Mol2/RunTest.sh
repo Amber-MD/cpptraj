@@ -42,7 +42,7 @@ DoTest test1.mol2.save test1.mol2
 
 # SYBYL atom type conversion requires data in AMBERHOME
 UNITNAME='Amber Top/Rst => Mol2, SYBYL atom types'
-CheckFor amberhome
+CheckFor amberorcpptraj
 if [ $? -eq 0 ] ; then
   cat > mol2.in <<EOF
 parm ../tz2.parm7

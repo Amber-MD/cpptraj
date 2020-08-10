@@ -5,7 +5,7 @@
 CleanFiles for.in TRP.vec.dat TRP.rms.dat TRP.CA.dist.dat TRP.tocenter.dat \
            nh.dat rms.nofit.dat last10.dat distance.dat nested.agr \
            EndToEnd0.dat EndToEnd1.dat EndToEnd2.agr temp.*.dat \
-           DataOut.dat
+           DataOut.dat testset.dist.dat
 
 TESTNAME='Loop tests'
 Requires netcdf maxthreads 10
@@ -52,6 +52,26 @@ DoTest TRP.tocenter.dat.save TRP.tocenter.dat
 DoTest nh.dat.save nh.dat
 DoTest rms.nofit.dat.save rms.nofit.dat
 DoTest last10.dat.save last10.dat
+
+UNITNAME='Test set command'
+CheckFor maxthreads 10
+if [ $? -eq 0 ] ; then
+  cat > for.in <<EOF
+parm ../FtuFabI.NAD.TCL.parm7
+trajin ../FtuFabI.NAD.TCL.nc
+
+set NATOM = atoms inmask ^1
+set NRES = residues inmask ^1
+set NMOL = molecules inmask *
+show
+
+distance @1 @\$NATOM out testset.dist.dat
+distance :1 :\$NRES  out testset.dist.dat
+distance ^1 ^\$NMOL  out testset.dist.dat
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest testset.dist.dat.save testset.dist.dat
+fi
 
 UNITNAME='Test reading comma-separated list of strings'
 CheckFor maxthreads 4

@@ -2380,15 +2380,19 @@ set
 \end_layout
 
 \begin_layout LyX-Code
-set { <variable> <OP> <value> |
+set { <variable> <OP> <value> | 	  
 \end_layout
 
 \begin_layout LyX-Code
-	  <variable> <OP> {atoms|residues|molecules} inmask <mask>
+      <variable> <OP> {atoms|residues|molecules|atomnums|
 \end_layout
 
 \begin_layout LyX-Code
-	    [parm <name> | parmindex <#> | <#>]
+	                   resnums|oresnums|molnums} inmask <mask>
+\end_layout
+
+\begin_layout LyX-Code
+	    [parm <name> | crdset <set> | parmindex <#> | <#>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -2421,7 +2425,7 @@ set { <variable> <OP> <value> |
 \begin_inset space ~
 \end_inset
 
-{atoms|residues|molecules}
+{atoms|residues|molecules|atomnums|resnums|oresnums|molnums}
 \begin_inset space ~
 \end_inset
 
@@ -2430,7 +2434,8 @@ inmask
 \end_inset
 
 <mask> Set/append a script variable to/by the total number of atoms/residues/mol
-ecules selected by given mask expression.
+ecules or a range expression of selected atom #s/residue #s/original residue
+ #s/molecule #s in the given mask expression.
 \end_layout
 
 \begin_deeper
@@ -2524,6 +2529,23 @@ show
 
 \begin_layout LyX-Code
 atoms "@$last10 - $Natom" out last10.dat
+\end_layout
+
+\begin_layout Standard
+The following input will put a range of residues selected by :LYS:
+\end_layout
+
+\begin_layout LyX-Code
+> set SELECTED1 = resnums inmask :LYS
+\end_layout
+
+\begin_layout LyX-Code
+	Using topology: FtuFabI.NAD.TCL.parm7
+\end_layout
+
+\begin_layout LyX-Code
+	Variable 'SELECTED1' set to '7-8,18,26,44,49,71,79,128,135,151,163,183,193,204-
+205,217-218'
 \end_layout
 
 \begin_layout Subsection
@@ -11490,6 +11512,14 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
+      oresnums of <mask> min <range min> max <range max> |
+\end_layout
+
+\begin_layout LyX-Code
+	  icodes of <mask> min <char min> max <char max> resnum <#> |
+\end_layout
+
+\begin_layout LyX-Code
 	  atomname from <mask> to <value> |
 \end_layout
 
@@ -11584,6 +11614,90 @@ to
 \end_inset
 
 <value> Change the chain ID of residues in <mask> to given <value>.
+\end_layout
+
+\begin_layout Description
+oresnums
+\begin_inset space ~
+\end_inset
+
+of
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+min
+\begin_inset space ~
+\end_inset
+
+<range
+\begin_inset space ~
+\end_inset
+
+min>
+\begin_inset space ~
+\end_inset
+
+max
+\begin_inset space ~
+\end_inset
+
+<range
+\begin_inset space ~
+\end_inset
+
+max> Change original residue numbers (to e.g.
+ original PDB numbers) of residues in <mask> to a range starting from <min>
+ and ending with <max>.
+\end_layout
+
+\begin_layout Description
+icode
+\begin_inset space ~
+\end_inset
+
+of
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+min
+\begin_inset space ~
+\end_inset
+
+<char
+\begin_inset space ~
+\end_inset
+
+min>
+\begin_inset space ~
+\end_inset
+
+max
+\begin_inset space ~
+\end_inset
+
+<char
+\begin_inset space ~
+\end_inset
+
+max>
+\begin_inset space ~
+\end_inset
+
+<resnum>
+\begin_inset space ~
+\end_inset
+
+<#> Change residue insertion codes of residues in <mask> to a range of character
+s starting from <min> and ending with <max>; set the original residue number
+ to <resnum>.
 \end_layout
 
 \begin_layout Description
@@ -12288,7 +12402,7 @@ PDB format:
 \end_layout
 
 \begin_layout LyX-Code
-[pqr] [readbox] [noconect]
+[pqr] [readbox] [conect] [noconect] [link] [nolink]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -12306,7 +12420,20 @@ PDB format:
 \end_layout
 
 \begin_layout Description
+[conect] Read CONECT records if present (default).
+\end_layout
+
+\begin_layout Description
 [noconect] Do not read in CONECT records from PDB file.
+\end_layout
+
+\begin_layout Description
+[link] Read LINK records if present.
+ 
+\end_layout
+
+\begin_layout Description
+[nolink] Do not read LINK records if present (default).
 \end_layout
 
 \end_deeper
@@ -12698,7 +12825,7 @@ Amber Topology
 \end_layout
 
 \begin_layout LyX-Code
-[nochamber] [writeempty]
+[nochamber] [writeempty] [nopdbinfo]
 \end_layout
 
 \begin_deeper
@@ -12709,6 +12836,11 @@ Amber Topology
 
 \begin_layout Description
 [writeempty] Write Amber tree, join, and rotate info even if not present.
+\end_layout
+
+\begin_layout Description
+[nopdbinfo] Do not write "PDB" info (e.g.
+ chain IDs, original res #s, etc).
 \end_layout
 
 \end_deeper
@@ -15861,7 +15993,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="86" columns="3">
+<lyxtabular version="3" rows="87" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -17657,6 +17789,35 @@ randomizeions
 
 \begin_layout Plain Layout
 Swap specified ions with randomly selected solvent molecules.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+X
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+remap
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Re-map atoms according to a given data set.
 \end_layout
 
 \end_inset
@@ -20221,7 +20382,11 @@ closest
 \end_layout
 
 \begin_layout LyX-Code
-    	[outprefix <parmprefix>] [parmout <file>]
+    	[outprefix <prefix>] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+    	[parmopts <comma-separated-list>]
 \end_layout
 
 \begin_deeper
@@ -20325,7 +20490,19 @@ oxygen] Calculate distances between all atoms in
 \begin_inset space ~
 \end_inset
 
-<file>] Write corresponding topology to file with name <file>.
+<file>] Write corresponding topology to file with name 
+\series bold
+<file>
+\series default
+.
+\end_layout
+
+\begin_layout Description
+[parmopts
+\begin_inset space ~
+\end_inset
+
+<list>] Comma-separated list of options for writing the topology file.
 \end_layout
 
 \begin_layout Standard
@@ -22760,9 +22937,39 @@ fixatomorder
 \end_layout
 
 \begin_layout LyX-Code
-fixatomorder [outprefix <name>]
+fixatomorder [outprefix <prefix>] [parmout <filename>] 
 \end_layout
 
+\begin_layout LyX-Code
+             [parmopts <comma-separated-list>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<prefix> Write re-ordered topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+parmout
+\begin_inset space ~
+\end_inset
+
+<filename> Write re-ordered topology to <filename>
+\end_layout
+
+\begin_layout Description
+parmopts
+\begin_inset space ~
+\end_inset
+
+<list> Options for writing topology file
+\end_layout
+
+\end_deeper
 \begin_layout Standard
 Cpptraj (and most of Amber) expects that atom indices in molecules to increase
  monotonically.
@@ -25762,7 +25969,9 @@ jcoupling
 \begin_inset space ~
 \end_inset
 
-file>] File containing Karplus parameters (default is $AMBERHOME/dat/Karplus.txt).
+file>] File containing Karplus parameters.
+ If not specified will check CPPTRAJHOME, AMBERHOME, and KARPLUS environment
+ variables (see below).
 \end_layout
 
 \begin_layout Description
@@ -25804,8 +26013,8 @@ Calculate J-coupling values for all dihedrals found within
 \shape italic
 cpptraj
 \shape default
- will use the data found in $AMBERHOME/dat/Karplus.txt; if this is not found
- 
+ will use the data found in either $CPPTRAJHOME/dat/Karplus.txt or $AMBERHOME/dat
+/Karplus.txt; if this is not found 
 \shape italic
 cpptraj
 \shape default
@@ -30987,15 +31196,89 @@ The above will swap Na
 \end_layout
 
 \begin_layout Subsection
+remap
+\end_layout
+
+\begin_layout LyX-Code
+remap data <setname>
+\end_layout
+
+\begin_layout LyX-Code
+      [outprefix <prefix>] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+      [parmopts <comma-separated-list>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+data
+\begin_inset space ~
+\end_inset
+
+<setname> Data set to use for remapping; should be a 1D integer data set
+ with X= reference (old) atom index, Y = target (new) atom index.
+\end_layout
+
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<prefix> Write remapped topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+parmout
+\begin_inset space ~
+\end_inset
+
+<filename> Write remapped topology to <filename>
+\end_layout
+
+\begin_layout Description
+parmopts
+\begin_inset space ~
+\end_inset
+
+<list> Options for writing topology file
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Re-map atoms according to the given reference data set which is of the format:
+ 
+\end_layout
+
+\begin_layout LyX-Code
+Reference[Target]
+\end_layout
+
+\begin_layout Standard
+with atom numbering starting from 1.
+ E.g.
+ Reference[1] = 10 would mean remap atom 10 in target to position 1.
+\end_layout
+
+\begin_layout Subsection
 replicatecell
 \end_layout
 
 \begin_layout LyX-Code
-replicatecell [out <traj filename>] [parmout <parm filename>] [name <dsname>]
+replicatecell [out <traj filename>] [name <dsname>]
 \end_layout
 
 \begin_layout LyX-Code
-              { all | dir <XYZ> [dir <XYZ> ...] } [<mask>]
+          	{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]
+\end_layout
+
+\begin_layout LyX-Code
+          	[outprefix <prefix>] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+          	[parmopts <comma-separated-list>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -31013,19 +31296,6 @@ out
 \end_inset
 
 filename> Write replicated cell to output trajectory file.
-\end_layout
-
-\begin_layout Description
-parmout
-\begin_inset space ~
-\end_inset
-
-<parm
-\begin_inset space ~
-\end_inset
-
-filename> Write replicated cell topology to topology file.
- This file will not be viable to use for simulations.
 \end_layout
 
 \begin_layout Description
@@ -31053,6 +31323,30 @@ dir
 
 \begin_layout Description
 <mask> Mask of atoms to replicate.
+\end_layout
+
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<prefix> Write replicated topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+parmout
+\begin_inset space ~
+\end_inset
+
+<filename> Write replicated topology to <filename>
+\end_layout
+
+\begin_layout Description
+parmopts
+\begin_inset space ~
+\end_inset
+
+<list> Options for writing topology file
 \end_layout
 
 \end_deeper
@@ -33150,7 +33444,15 @@ strip
 
 \end_inset
 
- <mask> [outprefix <name>] [<parmout> file>] [nobox]
+ <mask> [nobox]
+\end_layout
+
+\begin_layout LyX-Code
+  	[outprefix <prefix>] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+  	[parmopts <comma-separated-list>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -33160,6 +33462,10 @@ strip
 \begin_deeper
 \begin_layout Description
 <mask> Remove atoms specified by mask from the system.
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the stripped topology.
 \end_layout
 
 \begin_layout Description
@@ -33176,11 +33482,15 @@ strip
 \begin_inset space ~
 \end_inset
 
-<file>] Write corresponding topology to file with name <file>.
+<file>] Write stripped topology to file with name <file>.
 \end_layout
 
 \begin_layout Description
-[nobox] Remove any box information from the stripped topology.
+[parmopts
+\begin_inset space ~
+\end_inset
+
+<list>] Options for writing topology file.
 \end_layout
 
 \end_deeper

@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
 #include "ParmFile.h"
+#include "ArgList.h"
 
 // ViewRst::Init()
 int ViewRst::Init(Topology const& topIn, OutputType typeIn)
@@ -90,7 +91,7 @@ int ViewRst::WriteRstTop(std::string const& topOutName) {
   for (unsigned int nt = 0; nt != Pseudo_.size(); nt++) {
     ParmFile topOut;
     Pseudo_[nt].CommonSetup(false);
-    if (topOut.WriteTopology(Pseudo_[nt], OutNames[nt], ArgList(), ParmFile::AMBERPARM, 0))
+    if (topOut.WriteTopology(Pseudo_[nt], OutNames[nt], ArgList(), ParmFile::UNKNOWN_PARM, 0))
       return 1;
   }
   return 0;

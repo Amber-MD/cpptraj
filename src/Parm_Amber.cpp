@@ -155,7 +155,9 @@ Parm_Amber::Parm_Amber() :
   atProblemFlag_(false),
   N_impropers_(0),
   N_impTerms_(0),
-  nochamber_(false)
+  writeChamber_(true),
+  writeEmptyArrays_(false),
+  writePdbInfo_(true)
 {
   UB_count_[0] = 0;
   UB_count_[1] = 0;
@@ -1365,13 +1367,15 @@ int Parm_Amber::ReadLESid(Topology& TopIn, FortranData const& FMT) {
 // -----------------------------------------------------------------------------
 void Parm_Amber::WriteHelp() {
   mprintf("\tnochamber  : Do not write CHAMBER information to topology (useful for e.g. using"
-          " topology for visualization with VMD).\n");
+          "\t             topology for visualization with VMD).\n");
   mprintf("\twriteempty : Write Amber tree, join, and rotate info even if not present.\n");
+  mprintf("\tnopdbinfo  : Do not write \"PDB\" info (e.g. chain IDs, original res #s, etc).\n");
 }
 
 int Parm_Amber::processWriteArgs(ArgList& argIn) {
-  nochamber_ = argIn.hasKey("nochamber");
+  writeChamber_ = !argIn.hasKey("nochamber");
   writeEmptyArrays_ = argIn.hasKey("writeempty");
+  writePdbInfo_ = !argIn.hasKey("nopdbinfo");
   return 0;
 }
 
@@ -1391,9 +1395,20 @@ Parm_Amber::FortranData Parm_Amber::WriteFormat(FlagType fflag) const {
   return FMT;
 }
 
-// Parm_Amber::BufferAlloc()
+/** This version uses the default flag to allocate the format string. */
 int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   FortranData FMT = WriteFormat( ftype );
+  return BufferAlloc(ftype, FMT, nvals, idx);
+}
+
+// Parm_Amber::BufferAlloc()
+/** Allocate internal buffer for writing given flag with given format.
+  * \param ftype The FLAG to write.
+  * \param FMT The Fortran format string.
+  * \param nvals The number of values that will be written.
+  * \param idx Index for flags that can be specified multiple times (e.g. CMAP grids).
+  */
+int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, int idx) {
   if ( FMT.Ftype() == UNKNOWN_FTYPE) {
     mprinterr("Interal Error: Could not set up format string.\n");
     return 1;
@@ -1543,7 +1558,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   ptype_ = NEWPARM;
   FlagType titleFlag = F_TITLE;
   if (TopOut.Chamber().HasChamber()) {
-    if (nochamber_)
+    if (!writeChamber_)
       mprintf("\tnochamber: Removing CHAMBER info from topology.\n");
     else {
       titleFlag = F_CTITLE;
@@ -1582,10 +1597,42 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     }
   }
  
-  // Determine max residue size
+  // Determine max residue size. Also determine if extra info needs to be
+  // written such as PDB residue number, chain ID, etc.
+  // Since original res num gets set no matter what, only print out
+  // if chain IDs are present or original res nums != res index + 1.
   int maxResSize = 0;
+  bool hasOrigResNums = false;
+  bool hasChainID = false;
+  bool hasIcodes = false;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+  {
+    long int oresidx = res - TopOut.ResStart() + 1;
+    if (oresidx != (long int)res->OriginalResNum())
+      hasOrigResNums = true;
+    if (res->HasChainID())
+      hasChainID = true;
+    if (res->Icode() != ' ')
+      hasIcodes = true;
     maxResSize = std::max(maxResSize, res->NumAtoms());
+  }
+  if (hasOrigResNums)
+    mprintf("\tTopology has alternative residue numbering (from e.g PDB, stripping, reordering, etc).\n");
+  if (hasChainID)
+    mprintf("\tTopology has chain IDs.\n");
+  if (hasIcodes)
+    mprintf("\tTopology has residue insertion codes.\n");
+  if (!writePdbInfo_) {
+    if (hasOrigResNums)
+      mprintf("\tnopdbinfo : Not writing alternative residue numbering.\n");
+    if (hasChainID)
+      mprintf("\tnopdbinfo : Not writing chain IDs.\n");
+    if (hasIcodes)
+      mprintf("\tnopdbinfo : Not writing residue insertion codes.\n");
+    hasOrigResNums = false;
+    hasChainID = false;
+    hasIcodes = false;
+  }
 
   // Determine value of ifbox
   int ifbox;
@@ -2090,6 +2137,53 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
+  if (hasOrigResNums || hasChainID || hasIcodes) {
+    // PDB residue numbers. Need to adjust format based on res # digit width.
+    int maxWidth = std::max( DigitWidth(TopOut.Res(0).OriginalResNum() ),
+                             DigitWidth(TopOut.Res(TopOut.Nres()-1).OriginalResNum()) );
+    //mprintf("DEBUG: Max original res # digit width is %i\n", maxWidth);
+    int err;
+    if ( maxWidth < 5 )
+      err = BufferAlloc(F_PDB_RES, TopOut.Nres());
+    else if ( maxWidth < 9 ) {
+      FortranData FMT;
+      FMT.ParseFortranFormat("%FORMAT(10I8)");
+      err = BufferAlloc(F_PDB_RES, FMT, TopOut.Nres(), -1);
+    } else {
+      // Max 32 bit int is 10 digits
+      FortranData FMT;
+      FMT.ParseFortranFormat("%FORMAT(5I16)");
+      err = BufferAlloc(F_PDB_RES, FMT, TopOut.Nres(), -1);
+    }
+    if (err != 0) return 1;
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+      file_.IntToBuffer( res->OriginalResNum() );
+    file_.FlushBuffer();
+  }
+  if (hasChainID) {
+    // PDB chain IDs
+    if (BufferAlloc(F_PDB_CHAIN, TopOut.Nres())) return 1;
+    char cid[2];
+    cid[1] = '\0';
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    {
+      cid[0] = res->ChainId();
+      file_.CharToBuffer( cid );
+    }
+    file_.FlushBuffer();
+  }
+  if (hasIcodes) {
+    // PDB residue insertion codes
+    if (BufferAlloc(F_PDB_ICODE, TopOut.Nres())) return 1;
+    char icode[2];
+    icode[1] = '\0';
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    {
+      icode[0] = res->Icode();
+      file_.CharToBuffer( icode );
+    }
+    file_.FlushBuffer();
+  }
   return 0;
 }
 
