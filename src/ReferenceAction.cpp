@@ -131,6 +131,7 @@ int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
 
 // ReferenceAction::SetupRefMask()
 int ReferenceAction::SetupRefMask(Topology const& topIn) {
+  mprintf("\tReference topology: %s\n", topIn.c_str());
   if (refMask_.MaskStringSet()) {
     if (topIn.SetupIntegerMask( refMask_ )) return 1;
     mprintf("\tReference mask:");

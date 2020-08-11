@@ -127,6 +127,12 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
   return recType_;
 }
 
+/** \return Atom alt. loc. code from PDB ATOM/HETATM line. */
+char PDBfile::pdb_AltLoc() const {
+  return linebuffer_[16];
+}
+
+/** \return Atom containing information from PDB ATOM/HETATM line. */
 Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   // ATOM or HETATM keyword.
   // Check line length before any modification.

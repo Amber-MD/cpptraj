@@ -17,6 +17,8 @@ class PDBfile : public CpptrajFile {
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
     PDB_RECTYPE NextRecord();
+    /// \return ATOM/HETATM alt. loc ID
+    char pdb_AltLoc() const;
     /// \return Atom info with name and element for ATOM/HETATM; set altLoc and #.
     Atom pdb_Atom(char&, int&);
     /// \return Atom info with name and element for ATOM/HETATM.
