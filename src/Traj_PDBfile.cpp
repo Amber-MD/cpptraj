@@ -111,7 +111,7 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
       if (file_.RecType() ==  PDBfile::CRYST1) {
         // Read in box information
         double box_crd[6];
-        file_.pdb_Box( box_crd );
+        file_.pdb_Box_verbose( box_crd );
         boxInfo.SetBox( box_crd );
       } 
       // Skip non-ATOM records
@@ -199,7 +199,7 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
     if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
     // Skip non-ATOM records
     if ( file_.RecType() == PDBfile::CRYST1 )
-      file_.pdb_Box( frameIn.bAddress() );
+      file_.pdb_Box_terse( frameIn.bAddress() );
     else if ( file_.RecType() == PDBfile::ATOM ) {
       // Check if we are filtering alt loc IDs
       if (keepAltLoc_ != ' ') {
