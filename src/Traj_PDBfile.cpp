@@ -96,6 +96,7 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
   // records can be read. Currently employing the latter.
   int Frames = 0;
   int numMismatch = 0;
+  int nAltLoc = 0;
   bool scanPDB = true;
   Box boxInfo;
   while (scanPDB) {
@@ -115,9 +116,10 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
       } 
       // Skip non-ATOM records
       if (file_.RecType() != PDBfile::ATOM) continue;
+      // Record the alt loc. ID
+      char altLoc = file_.pdb_AltLoc();
       // Check if we are filtering alt loc IDs
       if (keepAltLoc_ != ' ') {
-        char altLoc = file_.pdb_AltLoc();
         if (altLoc != ' ' && altLoc != keepAltLoc_) {
           //nAltLocSkipped++;
           continue;
@@ -134,12 +136,16 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
                     *((*trajParm)[atom].Name()));
           ++numMismatch;
         }
+        if (altLoc != ' ') nAltLoc++;
       }
       ++atom;
     }
     if (Frames==0) {
       // First frame #atoms 
       pdbAtom_ = atom;
+      // Report alt. loc. IDs if not filtering.
+      if (keepAltLoc_ == ' ' && nAltLoc > 0)
+        mprintf("Warning: PDB has %i records wih alternate atom location IDs.\n", nAltLoc);
     } else {
       // Check that # atoms read in this frame match the first frame
       if (atom>0 && pdbAtom_!=atom) {
