@@ -113,6 +113,12 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altLoc) );
       }
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
+      if (altLoc != ' ') {
+        Residue const& lastRes = TopIn.Res(TopIn.Nres()-1);
+        mprintf("Warning: Atom %i %s in res %s %i %c has alternate location specifier %c\n",
+                atnum, *pdbAtom.Name(), *lastRes.Name(), lastRes.OriginalResNum(),
+                lastRes.ChainId(), altLoc);
+      }
       Coords.AddXYZ( XYZ );
 #     ifdef TIMER
       time_atom.Stop();
