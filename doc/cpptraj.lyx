@@ -12399,10 +12399,17 @@ reference "tab:cpptraj-Topology-formats"
 
 \emph on
 PDB format:
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-parm-pdb"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
-[pqr] [readbox] [conect] [noconect] [link] [nolink]
+[pqr] [readbox] [conect] [noconect] [link] [nolink] [keepaltloc <char>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -12434,6 +12441,19 @@ PDB format:
 
 \begin_layout Description
 [nolink] Do not read LINK records if present (default).
+\end_layout
+
+\begin_layout Description
+[keepaltloc
+\begin_inset space ~
+\end_inset
+
+<char>] If specified, only keep alternate atom location IDs matching the
+ specified character 
+\series bold
+<char>
+\series default
+.
 \end_layout
 
 \end_deeper
@@ -12469,10 +12489,34 @@ If this is the case
 \shape italic
 cpptraj
 \shape default
- will print a warning about duplicate atom names but will take no other
- action.
+ will print a warning about alternate location IDs being present but will
+ take no other action.
  Both residues are considered 'CYS' and the mask ':CYS@CA' would select
- both atom 806 and 809.
+ both atom 806 and 808.
+ If desired, a specific location ID can be kept via the 
+\series bold
+keepaltloc
+\series default
+ keyword.
+ If 
+\series bold
+keepaltloc
+\series default
+ is specified, it should also be specified for any 
+\series bold
+trajin
+\series default
+ commands (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-trajin-pdb"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
  Residue insertion codes are read in but also not used by the mask parser.
 \end_layout
 
@@ -15002,6 +15046,64 @@ shape Force reading of box information as shape matrix.
 \end_layout
 
 \end_deeper
+\begin_layout Subsubsection
+Options for PDB files:
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-trajin-pdb"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+[keepaltloc <char>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[keepaltloc
+\begin_inset space ~
+\end_inset
+
+<char>] If specified, only keep alternate atom location IDs matching the
+ specified character 
+\series bold
+<char>
+\series default
+.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Note that if 
+\series bold
+keepaltloc
+\series default
+ is specified, the associated topology should not have alternate location
+ IDs, i.e.
+ if the topology is from a PDB the 
+\series bold
+keepaltloc
+\series default
+ keyword may need to be used with the 
+\series bold
+parm
+\series default
+ command (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-parm-pdb"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
 \begin_layout Subsection
 trajout
 \begin_inset CommandInset label
