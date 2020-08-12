@@ -137,6 +137,7 @@ pipeline {
                             image 'ambermd/gpu-build:latest'
                             alwaysPull true
                             label "docker && cuda"
+                            args '--gpus all'
                         }
                     }
 
