@@ -402,13 +402,13 @@ const
       if (CAmissing.AtomInCharMask(ridx)) {
         //mprintf("Start gap %i\n", ridx);
         gapStart = ridx;
-        chain = CAtop.Res(ridx).ChainID();
+        chain = CAtop.Res(ridx).ChainId();
         // Find gap end
         int gapEnd = gapStart + 1;
         for (; gapEnd <= newTop.Nres(); gapEnd++) {
           if (gapEnd == newTop.Nres() ||
               !CAmissing.AtomInCharMask(gapEnd) ||
-              CAtop.Res(gapEnd).ChainID() != chain)
+              CAtop.Res(gapEnd).ChainId() != chain)
           {
             // The real end of the gap is the previous res
             gapEnd = gapEnd - 1;
@@ -417,12 +417,12 @@ const
             // Is there a previous residue
             int prev_res = gapStart - 1;
             if (prev_res < 0 ||
-                newTop.Res(prev_res).ChainID() != newTop.Res(gapStart).ChainID())
+                newTop.Res(prev_res).ChainId() != newTop.Res(gapStart).ChainId())
               prev_res = -1;
             // Is there a next residue
             int next_res = gapEnd + 1;
             if (next_res == newTop.Nres() ||
-                newTop.Res(next_res).ChainID() != newTop.Res(gapEnd).ChainID())
+                newTop.Res(next_res).ChainId() != newTop.Res(gapEnd).ChainId())
               next_res = -1;
             mprintf("\t  Prev res %i  Next res %i\n", prev_res + 1, next_res + 1);
             if (prev_res == -1 && next_res == -1) {
@@ -486,7 +486,7 @@ const
   for (int rnum = 0; rnum != topIn.Nres(); ++rnum) {
     Residue const& Res = topIn.Res(rnum);
     AllResidues.push_back( Pres(Res.Name().Truncated(), Res.OriginalResNum(), rnum,
-                                Res.Icode(), Res.ChainID()) );
+                                Res.Icode(), Res.ChainId()) );
   }
   // Sanity check
   if (AllResidues.empty()) {
@@ -598,7 +598,7 @@ const
       originalIdxToNew.push_back( newResNum );
       // This residue is present in the original PDB
       Residue const& topres = topIn.Res(it->Tnum());
-      Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainID());
+      Residue newres(topres.Name(), topres.OriginalResNum(), topres.Icode(), topres.ChainId());
       int caidx = -1;
       // Calculate the center of the residue as we go in case we need it
       Vec3 vcenter(0.0);
@@ -637,7 +637,7 @@ const
   for (int ridx = 0; ridx != newTop.Nres(); ridx++)
   {
     if (ridx + 1 == newTop.Nres() ||
-        newTop.Res(ridx).ChainID() != newTop.Res(ridx+1).ChainID())
+        newTop.Res(ridx).ChainId() != newTop.Res(ridx+1).ChainId())
       newTop.SetRes(ridx).SetTerminal(true);
   }
   // Add original bonds to new topology.
@@ -662,10 +662,10 @@ const
     if (it->Tnum() < 0) {
       // This was a missing residue. Bond it to the previous/next residue in same chain.
       int pidx = ridx - 1;
-      if (pidx > 0 && CAtop.Res(pidx).ChainID() == CAtop.Res(ridx).ChainID())
+      if (pidx > 0 && CAtop.Res(pidx).ChainId() == CAtop.Res(ridx).ChainId())
         CAtop.AddBond(pidx, ridx, CAbond);
       int nidx = ridx + 1;
-      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainID() == CAtop.Res(nidx).ChainID())
+      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainId() == CAtop.Res(nidx).ChainId())
         CAtop.AddBond(ridx, nidx, CAbond);
     } else {
       // Check which residues this was originally bonded to
