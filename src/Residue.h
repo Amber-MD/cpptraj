@@ -31,6 +31,13 @@ class Residue {
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
        icode_(i), chainID_(BLANK_CHAINID_), isTerminal_(false)
     {}
+    /// \return True if this residue does not match given residue
+    bool operator!=(const Residue& rhs) const {
+      return ( originalResNum_ != rhs.originalResNum_ ||
+               segID_          != rhs.segID_          ||
+               icode_          != rhs.icode_          ||
+               (originalResNum_ == rhs.originalResNum_ && resname_ != rhs.resname_) );
+    }
     inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
     inline void SetLastAtom(int i)         { lastAtom_ = i;       }
     inline void SetOriginalNum(int i)      { originalResNum_ = i; }

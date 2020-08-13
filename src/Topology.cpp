@@ -314,12 +314,7 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 {
   // If no residues or res num has changed, this is a new residue.
   // TODO check chain ID?
-  if ( residues_.empty() || 
-       residues_.back().OriginalResNum() != resIn.OriginalResNum() ||
-       residues_.back().SegID() != resIn.SegID() ||
-       residues_.back().Icode() != resIn.Icode() ||
-       ( residues_.back().OriginalResNum() == resIn.OriginalResNum() &&
-         residues_.back().Name() != resIn.Name() ) )
+  if ( residues_.empty() || residues_.back() != resIn )
   {
     // First atom of new residue is == current # atoms.
     residues_.push_back( resIn );
