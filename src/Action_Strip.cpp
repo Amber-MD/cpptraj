@@ -1,15 +1,17 @@
 // Action_Strip
 #include "Action_Strip.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h"
 
 // CONSTRUCTOR
 Action_Strip::Action_Strip() :
   newParm_(0), newCinfo_(0), masterDSL_(0), removeBoxInfo_(false) {}
 
 void Action_Strip::Help() const {
-  mprintf("\t<mask> [outprefix <name>] [parmout <file>] [nobox]\n"
-          "  Strip atoms in <mask> from the system.\n");
+  mprintf("\t<mask> [nobox]\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Strip atoms in <mask> from the system. If 'nobox' specified,\n"
+          "  remove any unit cell info.\n");
+  mprintf("%s", ActionTopWriter::Options());
 }
 
 // DESTRUCTOR
@@ -22,8 +24,7 @@ Action_Strip::~Action_Strip() {
 Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get output stripped parm filename
-  prefix_ = actionArgs.GetStringKey("outprefix");
-  parmoutName_ = actionArgs.GetStringKey("parmout");
+  topWriter_.InitTopWriter(actionArgs, "stripped", debugIn);
   removeBoxInfo_ = actionArgs.hasKey("nobox");
 
   // Get mask of atoms to be stripped
@@ -40,10 +41,7 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
   M1_.InvertMaskExpression();
 
   mprintf("    STRIP: Stripping atoms in mask [%s]\n", M1_.MaskString());
-  if (!prefix_.empty()) 
-    mprintf("\tStripped topology will be output with prefix '%s'\n", prefix_.c_str());
-  if (!parmoutName_.empty())
-    mprintf("\tStripped topology will be output with name '%s'\n", parmoutName_.c_str());
+  topWriter_.PrintOptions();
   if (removeBoxInfo_)
     mprintf("\tAny existing box information will be removed.\n");
   masterDSL_ = init.DslPtr();
@@ -56,15 +54,15 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
 Action::RetType Action_Strip::Setup(ActionSetup& setup) {
   if (setup.Top().SetupIntegerMask( M1_ )) return Action::ERR;
   if (M1_.None()) {
-    mprintf("Warning: strip: Mask [%s] has no atoms.\n",M1_.MaskString());
+    // If no atoms will be kept, no need for this command. SKIP.
+    mprintf("Warning: Mask [%s] would strip all atoms. Skipping.\n", M1_.MaskString());
     return Action::SKIP;
   }
   int numStripped = setup.Top().Natom() - M1_.Nselected();
   mprintf("\tStripping %i atoms.\n", numStripped);
-  // If no atoms will be stripped, no need to use this command. SKIP
+  // SANITY CHECK: If no atoms will be stripped, no need to use this command. SKIP
   if ( numStripped == 0 ) {
-    mprintf("Warning: No atoms to strip. Skipping 'strip' for topology '%s'\n",
-            setup.Top().c_str());
+    mprintf("Warning: No atoms to strip. Skipping.\n");
     return Action::SKIP;
   }
 
@@ -88,16 +86,7 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
 
   // If prefix given then output stripped topology
-  if (!prefix_.empty()) {
-    ParmFile pfile;
-    if ( pfile.WritePrefixTopology( setup.Top(), prefix_, ParmFile::AMBERPARM, 0 ) )
-      mprinterr("Error: Could not write out stripped topology file.\n");
-  }
-  if (!parmoutName_.empty()) {
-    ParmFile pfile;
-    if ( pfile.WriteTopology( setup.Top(), parmoutName_, ParmFile::AMBERPARM, 0 ) )
-      mprinterr("Error: Could not write out stripped topology file '%s'\n", parmoutName_.c_str());
-  }
+  topWriter_.WriteTops( setup.Top() );
 
   return Action::MODIFY_TOPOLOGY;
 }

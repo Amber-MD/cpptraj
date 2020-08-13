@@ -18,6 +18,7 @@ class Traj_PDBfile: public TrajectoryIO {
 
     Traj_PDBfile();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
+    static void ReadHelp();
     static void WriteHelp();
   private:
     typedef std::vector<int> Iarray;
@@ -34,7 +35,7 @@ class Traj_PDBfile: public TrajectoryIO {
     int processWriteArgs(ArgList&, DataSetList const&);
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
-    int processReadArgs(ArgList&) { return 0; }
+    int processReadArgs(ArgList&);
 #   ifdef MPI
     // Parallel functions
     int parallelOpenTrajout(Parallel::Comm const&);
@@ -47,7 +48,7 @@ class Traj_PDBfile: public TrajectoryIO {
     void WriteDisulfides(Frame const&);
     void WriteBonds();
     /// Used to set up B-factor/occupancy data from DataSets
-    int AssignData(Darray&, DataSet*, Topology const&, bool, const char*) const;
+    int AssignData(Darray&, DataSet*, Topology const&, bool, const char*, double) const;
     /// Used to scale Bfactor/occupancy data between set values
     void ScaleData(Darray&, double, double) const;
 
@@ -55,10 +56,12 @@ class Traj_PDBfile: public TrajectoryIO {
     enum TER_Mode { BY_MOL = 0, BY_RES, ORIGINAL_PDB, NO_TER };
     enum Radii_Mode { GB = 0, PARSE, VDW };
     enum CONECT_Mode { NO_CONECT = 0, HETATM_ONLY, ALL_BONDS };
+    enum RESNUM_Mode { ORIGINAL = 0, TOPOLOGY };
     Radii_Mode radiiMode_;   ///< Radii to use if PQR.
     TER_Mode terMode_;       ///< TER card mode.
     CONECT_Mode conectMode_; ///< CONECT record mode.
     PDBWRITEMODE pdbWriteMode_;
+    RESNUM_Mode resNumType_; ///< What residue numbers will be used
     int pdbAtom_;
     int currentSet_;
     int ter_num_;       ///< Amount to increment atom number for TER
@@ -86,9 +89,13 @@ class Traj_PDBfile: public TrajectoryIO {
     std::vector<char> chainID_;      ///< Hold chainID for each residue.
     std::vector<NameType> resNames_; ///< Hold residue names.
     char chainchar_;
+    char keepAltLoc_;                ///< If not blank, only read atoms with this alt. loc. ID
     DataSet* bfacdata_;
     DataSet* occdata_;
+    DataSet* adpdata_; ///< Hold anisotropic B-factor data for writing.
     double bfacmax_;
     double occmax_;
+    double bfacdefault_;
+    double occdefault_;
 };
 #endif

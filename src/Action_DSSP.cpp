@@ -34,6 +34,7 @@ const char* Action_DSSP::DSSP_name_[]={"None", "Extended", "Bridge", "3-10", "Al
 
 
 // ----- SSres -----------------------------------------------------------------
+/// CONSTRUCTOR
 Action_DSSP::SSres::SSres() :
   resDataSet_(0),
   chirality_(0),
@@ -47,10 +48,6 @@ Action_DSSP::SSres::SSres() :
   CA_(-1),
   prevIdx_(-1),
   nextIdx_(-1),
-  bridge1idx_(-1),
-  b1type_(NO_BRIDGE),
-  bridge2idx_(-1),
-  b2type_(NO_BRIDGE),
   resChar_(' '),
   isSelected_(false)
 {
@@ -59,6 +56,7 @@ Action_DSSP::SSres::SSres() :
   std::fill(turnChar_, turnChar_ + NTURNTYPE_, ' ');
 }
 
+/// COPY CONSTRUCTOR
 Action_DSSP::SSres::SSres(SSres const& rhs) :
   resDataSet_(rhs.resDataSet_),
   chirality_(rhs.chirality_),
@@ -72,10 +70,7 @@ Action_DSSP::SSres::SSres(SSres const& rhs) :
   CA_(rhs.CA_),
   prevIdx_(rhs.prevIdx_),
   nextIdx_(rhs.nextIdx_),
-  bridge1idx_(rhs.bridge1idx_),
-  b1type_(rhs.b1type_),
-  bridge2idx_(rhs.bridge2idx_),
-  b2type_(rhs.b2type_),
+  bridges_(rhs.bridges_),
   resChar_(rhs.resChar_),
   isSelected_(rhs.isSelected_)
 {
@@ -83,7 +78,8 @@ Action_DSSP::SSres::SSres(SSres const& rhs) :
   std::copy(rhs.Bcount_, rhs.Bcount_ + NBRIDGETYPE_, Bcount_);
   std::copy(rhs.turnChar_, rhs.turnChar_ + NTURNTYPE_, turnChar_);
 }
-  
+
+/// ASSIGNMENT
 Action_DSSP::SSres& Action_DSSP::SSres::operator=(SSres const& rhs) {
   if (this == &rhs) return *this;
   resDataSet_ = rhs.resDataSet_;
@@ -98,10 +94,7 @@ Action_DSSP::SSres& Action_DSSP::SSres::operator=(SSres const& rhs) {
   CA_ = rhs.CA_;
   prevIdx_ = rhs.prevIdx_;
   nextIdx_ = rhs.nextIdx_;
-  bridge1idx_ = rhs.bridge1idx_;
-  b1type_ = rhs.b1type_;
-  bridge2idx_ = rhs.bridge2idx_;
-  b2type_ = rhs.b2type_;
+  bridges_ = rhs.bridges_;
   resChar_ = rhs.resChar_;
   isSelected_ = rhs.isSelected_;
   std::copy(rhs.SScount_, rhs.SScount_ + NSSTYPE_, SScount_);
@@ -110,7 +103,7 @@ Action_DSSP::SSres& Action_DSSP::SSres::operator=(SSres const& rhs) {
   return *this;
 }
 
-
+/** Reset atom indices and mark as not selected. */
 void Action_DSSP::SSres::Deselect() {
   isSelected_ = false;
   C_ = -1;
@@ -118,14 +111,14 @@ void Action_DSSP::SSres::Deselect() {
   N_ = -1;
   O_ = -1;
   CA_ = -1;
+  prevIdx_ = -1;
+  nextIdx_ = -1;
 }
 
+/** Reset assignment status. */
 void Action_DSSP::SSres::Unassign() {
   sstype_ = NONE;
-  bridge1idx_ = -1;
-  b1type_ = NO_BRIDGE;
-  bridge2idx_ = -1;
-  b2type_ = NO_BRIDGE;
+  bridges_.clear();
   std::fill(turnChar_, turnChar_ + NTURNTYPE_, ' ');
 }
 
@@ -136,16 +129,29 @@ void Action_DSSP::SSres::AccumulateData(int frameNum, bool useString, bool betaD
   int idata = (int)sstype_;
   const char* sdata = SSchar_[sstype_];
   if (sstype_ == EXTENDED || sstype_ == BRIDGE) {
-    if (b1type_ == PARALLEL || b2type_ == PARALLEL) {
+    // Record which types are present and in what amounts. Only record each
+    // unique type once.
+    int npara = 0;
+    int nanti = 0;
+    for (BridgeArray::const_iterator it = bridges_.begin(); it != bridges_.end(); ++it)
+    {
+      if (it->Btype() == PARALLEL)
+        npara++;
+      else if (it->Btype() == ANTIPARALLEL)
+        nanti++;
+    }
+    if (npara > 0)
       Bcount_[PARALLEL]++;
-      if (betaDetail) {
+    if (nanti > 0)
+      Bcount_[ANTIPARALLEL]++;
+    if (betaDetail) {
+      // Determine parallel or antiparallel by the greater number of bridges,
+      // tie goes to antiparallel. If both are zero, do nothing to match
+      // previous behavior.
+      if (npara > nanti) {
         idata = (int)EXTENDED;
         sdata = "b";
-      }
-    }
-    if (b1type_ == ANTIPARALLEL || b2type_ == ANTIPARALLEL) {
-      Bcount_[ANTIPARALLEL]++;
-      if (betaDetail) {
+      } else if (nanti > 0) {
         idata = (int)BRIDGE;
         sdata = "B";
       }
@@ -167,6 +173,7 @@ void Action_DSSP::SSres::SetTurnBegin(TurnType typeIn) {
     turnChar_[typeIn] = '>';
 }
 
+/** Set turn end. */
 void Action_DSSP::SSres::SetTurnEnd(TurnType typeIn) {
   if (turnChar_[typeIn] == '>')
     turnChar_[typeIn] = 'X';
@@ -174,6 +181,7 @@ void Action_DSSP::SSres::SetTurnEnd(TurnType typeIn) {
     turnChar_[typeIn] = '<';
 }
 
+/** Set as a turn of given type. */
 void Action_DSSP::SSres::SetTurn(TurnType typeIn) {
   // Do not overwrite an existing end character
   if (turnChar_[typeIn] == ' ') {
@@ -183,6 +191,7 @@ void Action_DSSP::SSres::SetTurn(TurnType typeIn) {
   }
 }
 
+/** \return Priority of given s.s. type; higher # == higher priority. */
 int Action_DSSP::SSres::ssPriority(SStype typeIn) {
   switch (typeIn) {
     case ALPHA    : return 8;
@@ -197,16 +206,19 @@ int Action_DSSP::SSres::ssPriority(SStype typeIn) {
   return 0;
 }
 
+/** \return Priority of the current assigned s.s. type. */
 int Action_DSSP::SSres::SSpriority() const {
   return ssPriority(sstype_);
 }
 
+/** Set residue with given s.s. type. */
 void Action_DSSP::SSres::SetSS(SStype typeIn) {
   // TODO check if the priority check is necessary
   //if (ssPriority(typeIn) > ssPriority(sstype_))
     sstype_ = typeIn;
 }
 
+/** \return true if this residue is the start of a turn. */
 bool Action_DSSP::SSres::HasTurnStart(TurnType typeIn) const {
   if (turnChar_[typeIn] == '>' ||
       turnChar_[typeIn] == 'X')
@@ -214,25 +226,41 @@ bool Action_DSSP::SSres::HasTurnStart(TurnType typeIn) const {
   return false;
 }
 
+/** Set this residue as bridging to the specified index with specified type. */
 void Action_DSSP::SSres::SetBridge(int idx, BridgeType btypeIn) {
-  if (bridge1idx_ == -1) {
-    bridge1idx_ = idx;
-    b1type_ = btypeIn;
-  } else if (bridge2idx_ == -1) {
-    bridge2idx_ = idx;
-    b2type_ = btypeIn;
-  } else
-    mprinterr("Error: Too many bridges for %i (to %i)\n", Num(), idx+1);
+  bridges_.push_back( Bridge(idx, btypeIn) );
+  if (bridges_.size() > 2) {
+    mprintf("Warning: Residue %i has more than 2 bridges (currently %zu).\n", Num()+1, bridges_.size());
+  }
 }
 
+/** Determine the dominant bridge type among all bridges. Tie goes to antiparallel. */
+Action_DSSP::BridgeType Action_DSSP::SSres::DominantBridgeType() const {
+  if (bridges_.empty()) return NO_BRIDGE;
+  int npara = 0;
+  int nanti = 0;
+  for (BridgeArray::const_iterator it = bridges_.begin(); it != bridges_.end(); ++it)
+  {
+    if (it->Btype() == PARALLEL)
+      npara++;
+    else if (it->Btype() == ANTIPARALLEL)
+      nanti++;
+  }
+  if (npara > nanti)
+    return PARALLEL;
+  else
+    return ANTIPARALLEL;
+}
+
+/** \return True if this residue has at least 1 bridge. */
 bool Action_DSSP::SSres::HasBridge() const {
-  if (bridge1idx_ != -1) return true;
-  return false;
+  return !(bridges_.empty());
 }
 
+/** \return True if this residue is bridged with the specified index. */
 bool Action_DSSP::SSres::IsBridgedWith(int idx2) const {
-  if (bridge1idx_ == idx2) return true;
-  if (bridge2idx_ == idx2) return true;
+  for (BridgeArray::const_iterator it = bridges_.begin(); it != bridges_.end(); ++it)
+    if (it->Idx() == idx2) return true;
   return false;
 }
 
@@ -241,12 +269,23 @@ bool Action_DSSP::SSres::IsBridgedWith(int idx2) const {
   return ssChar_[B1];
 }*/
 
+/** Print a shorthand for the current SS assignment to STDOUT. */
 void Action_DSSP::SSres::PrintSSchar() const {
   static const char btypeChar[] = { ' ', 'p', 'A' };
-  mprintf("\t%6i %c %c %c %c %c(%6i) %c(%6i) %6i %6i %6i %c\n", num_+1, resChar_,
-          turnChar_[T3], turnChar_[T4], turnChar_[T5],
-          btypeChar[b1type_], bridge1idx_+1, btypeChar[b2type_], bridge2idx_+1,
-          Bcount_[NO_BRIDGE], Bcount_[PARALLEL], Bcount_[ANTIPARALLEL],
+  mprintf("\t%6i %c %c %c %c", num_+1, resChar_, turnChar_[T3], turnChar_[T4], turnChar_[T5]);
+  // For backwards compat, always print at least 2.
+  unsigned int maxIdx = 2;
+  if (bridges_.size() > maxIdx)
+    maxIdx = bridges_.size();
+  for (unsigned int idx = 0; idx < maxIdx; idx++) {
+    if (idx >= bridges_.size())
+      mprintf(" %c(%6i)", ' ', 0);
+    else
+      mprintf(" %c(%6i)", btypeChar[bridges_[idx].Btype()], bridges_[idx].Idx()+1);
+  }
+  //for (BridgeArray::const_iterator it = bridges_.begin(); it != bridges_.end(); ++it)
+  //  mprintf(" %c(%6i)", btypeChar[it->Btype()], it->Idx()+1);
+  mprintf(" %6i %6i %6i %c\n", Bcount_[NO_BRIDGE], Bcount_[PARALLEL], Bcount_[ANTIPARALLEL],
           DSSP_char_[sstype_]);
 }
 
@@ -274,6 +313,7 @@ Action_DSSP::Action_DSSP() :
   BB_C_("C"),
   BB_O_("O"),
   BB_CA_("CA"),
+  SG_("SG"),
   outfile_(0),
   dsspFile_(0),
   assignout_(0),
@@ -287,9 +327,21 @@ void Action_DSSP::Help() const {
           "\t[assignout <filename>] [totalout <filename>] [ptrajformat]\n"
           "\t[betadetail]\n"
           "\t[namen <N name>] [nameh <H name>] [nameca <CA name>]\n"
-          "\t[namec <C name>] [nameo <O name>]\n"
-          "  Calculate secondary structure content for residues in <mask>.\n"
-          "  If sumout not specified, the filename specified by out is used with .sum suffix.\n");
+          "\t[namec <C name>] [nameo <O name>] [namesg <sulfur name>]\n"
+          "  Calculate secondary structure (SS) content for residues in <mask>.\n"
+          "  The 'out' file will contain SS vs frame.\n"
+          "  The 'sumout' file will contain total SS content for each residue, by SS type.\n"
+          "   If sumout not specified, the filename specified by out is used with .sum suffix.\n"
+          "  The 'assignout' file will contain the SS assignment foe each residue based\n"
+          "   on the majority SS type.\n"
+          "  The 'totalout' file will contain overall SS content vs frame, by SS type.\n"
+          "  The 'ptrajformat' keyword will use characters instead of #s in the 'out' file.\n"
+          "  The 'betadetail' keyword will print parallel/anti-parallel beta instead of\n"
+          "   extended/bridge.\n"
+          "  The backbone N, H, CA, C, and O atom names can be specifed with 'nameX' keywords.\n"
+          "  The disulfide sulfur atom name can be specified with the 'nameSG' keyword.\n"
+         );
+          
 }
 
 // Action_DSSP::Init()
@@ -317,6 +369,8 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (!temp.empty()) BB_O_ = temp;
   temp = actionArgs.GetStringKey("nameca");
   if (!temp.empty()) BB_CA_ = temp;
+  temp = actionArgs.GetStringKey("namesg");
+  if (!temp.empty()) SG_ = temp;
   // Get masks
   if (Mask_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
 
@@ -383,6 +437,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tOverall assigned SS will be written to %s\n", assignout_->Filename().full());
   mprintf("\tBackbone Atom Names: N=[%s]  H=[%s]  C=[%s]  O=[%s]  CA=[%s]\n",
           *BB_N_, *BB_H_, *BB_C_, *BB_O_, *BB_CA_ );
+  mprintf("\tDisulfide sulfur atom name: %s\n", *SG_);
   mprintf("# Citation: Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:\n"
           "#           Pattern Recognition of Hydrogen-Bonded and Geometrical Features.\"\n"
           "#           Biopolymers (1983), V.22, pp.2577-2637.\n" );
@@ -391,11 +446,67 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
   return Action::OK;
 }
 
+/** Print the atom name and "mask name" to stdout. */
 static inline void PrintAtom(Topology const& top, NameType const& name, int idx) {
   if (idx > -1)
     mprintf(" '%s'=%-12s", *name, top.AtomMaskName(idx/3).c_str());
   else
     mprintf(" '%s'=%-12s", *name, "NONE");
+}
+
+// TODO use Num()?
+static inline int AbsResDelta(int idx1, int idx2) {
+  int resDelta =  idx1 - idx2;
+  if (resDelta < 0) resDelta = -resDelta;
+  return resDelta;
+}
+
+/** Print a warning about multiple selected residues.
+  * \return the index that minimizes the absolute delta between residues.
+  */ 
+static inline int MultiResWarning(int resNum, int currNum, int newNum, const char* typeStr)
+{
+  int currentDelta = AbsResDelta(resNum, currNum);
+  int newDelta = AbsResDelta(resNum, newNum);
+  mprintf("Warning: Multiple %s residues for res %i (current %s is %i; potential %s is %i).\n",
+          typeStr, resNum+1, typeStr, currNum+1, typeStr, newNum+1);
+  mprintf("Warning: Old delta= %i  New delta= %i\n", currentDelta, newDelta);
+  int selectedNum, rejectedNum;
+  if (currentDelta < newDelta) {
+    selectedNum = currNum;
+    rejectedNum = newNum;
+  } else {
+    selectedNum = newNum;
+    rejectedNum = currNum;
+  }
+  mprintf("Warning: Residues %i and %i will not be considered consecutive.\n",
+          resNum+1, rejectedNum+1);
+  return selectedNum;
+}
+
+/** Find the residue number of the atom with target name bonded to specified atom/residue.
+  * \param topIn Current topology
+  * \param at0 Specified atom
+  * \param res0 Specified residue
+  * \param tgtName Name of the desired bonded atom.
+  * \param typeStr Indicate if we're looking for previous/next
+  * \return Residue index of atom with target name bonded to specified atom.
+  */
+static inline int FindResNum(Topology const& topIn, int at0, int res0, NameType const& tgtName, const char* typeStr)
+{
+  int tgtres = -1;
+  // Find tgtName in atoms bonded to this res.
+  for (Atom::bond_iterator ib = topIn[ at0 ].bondbegin(); ib != topIn[ at0 ].bondend(); ++ib)
+  {
+    if ( topIn[*ib].Name() == tgtName && topIn[*ib].ResNum() != res0 ) {
+      int bres = topIn[*ib].ResNum();
+      if (tgtres == -1)
+        tgtres = bres;
+      else
+        tgtres = MultiResWarning(res0, tgtres, bres, typeStr);
+    }
+  }
+  return tgtres;
 }
 
 // Action_DSSP::Setup()
@@ -445,51 +556,49 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
       // Set up Residue. TODO also molecule index?
       Res->SetNum( *ridx );
       Res->SetResChar( thisRes.SingleCharName() );
-      // Determine the previous and next residues
-      int prevresnum = -1;
-      int nextresnum = -1;
-      for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++) {
-        if ( setup.Top()[at].Element() != Atom::HYDROGEN ) {
-          for (Atom::bond_iterator ib = setup.Top()[at].bondbegin();
-                                   ib != setup.Top()[at].bondend(); ++ib)
-          {
-            if ( setup.Top()[*ib].ResNum() < *ridx ) {
-              if (prevresnum != -1)
-                mprintf("Warning: Multiple previous residues for res %i\n", *ridx+1);
-              else
-                prevresnum = setup.Top()[*ib].ResNum();
-            } else if ( setup.Top()[*ib].ResNum() > *ridx ) {
-              if (nextresnum != -1)
-                mprintf("Warning: Multiple next residues for res %i\n", *ridx+1);
-              else
-                nextresnum = setup.Top()[*ib].ResNum();
-            }
-          }
-        }
-      }
-#     ifdef DSSPDEBUG
-      mprintf("\t %8i < %8i < %8i\n", prevresnum+1, *ridx+1, nextresnum+1);
-#     endif
-      // Here we assume that residues are sequential!
-      if (prevresnum > -1) Res->SetPrevIdx( Res-Residues_.begin()-1 );
-      if (nextresnum > -1) Res->SetNextIdx( Res-Residues_.begin()+1 );
     }
-    // Determine if this residue is selected
-    if (Mask_.AtomsInCharMask(thisRes.FirstAtom(), thisRes.LastAtom())) {
+    // Search for atoms in residue.
+    bool hasAtoms = false;
+    int prevresnum = -1;
+    int nextresnum = -1;
+    int nAtSelected = 0;
+    for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
+    {
+      if (Mask_.AtomInCharMask( at )) {
+        nAtSelected++;
+        if      ( setup.Top()[at].Name() == BB_C_ )  { Res->SetC( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_O_ )  { Res->SetO( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_N_ )  { Res->SetN( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_H_ )  { Res->SetH( at*3 ); hasAtoms = true; }
+        else if ( setup.Top()[at].Name() == BB_CA_ ) { Res->SetCA( at*3 ); hasAtoms = true; }
+      }
+    }
+    if (!hasAtoms) {
+      if (nAtSelected > 0)
+        mprintf("Warning: No atoms selected for res %s; skipping.\n",
+                setup.Top().TruncResNameNum( Res->Num() ).c_str());
+    } else {
       Res->SetSelected( true );
       ++nResSelected;
-      // Determine atom indices
-      for (int at = thisRes.FirstAtom(); at != thisRes.LastAtom(); at++)
-      {
-        if      ( setup.Top()[at].Name() == BB_C_ )  Res->SetC( at*3 );
-        else if ( setup.Top()[at].Name() == BB_O_ )  Res->SetO( at*3 );
-        else if ( setup.Top()[at].Name() == BB_N_ )  Res->SetN( at*3 );
-        else if ( setup.Top()[at].Name() == BB_H_ )  Res->SetH( at*3 );
-        else if ( setup.Top()[at].Name() == BB_CA_ ) Res->SetCA( at*3 );
+      // Determine previous residue
+      if ( Res->N() != -1 ) {
+        // Find C in previous res bonded to this N.
+        prevresnum = FindResNum(setup.Top(), Res->N()/3, Res->Num(), BB_C_, "previous");
       }
-      // Check if residue is missing atoms
+      // Determine next residue
+      if ( Res->C() != -1) {
+        // Find N in next res bonded to this C.
+        nextresnum = FindResNum(setup.Top(), Res->C()/3, Res->Num(), BB_N_, "next");
+      }
+#     ifdef DSSPDEBUG
+      mprintf("\t %8i < %8i < %8i\n", prevresnum+1, Res->Num()+1, nextresnum+1);
+#     endif
+      // Set previous/next residue indices 
+      if (prevresnum > -1) Res->SetPrevIdx( prevresnum );
+      if (nextresnum > -1) Res->SetNextIdx( nextresnum );
+      // Report if residue is missing atoms
       if (Res->IsMissingAtoms()) {
-        mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( *ridx ).c_str());
+        mprintf("Warning: Res %s is missing atoms", setup.Top().TruncResNameNum( Res->Num() ).c_str());
         if (Res->C() == -1)  mprintf(" %s", *BB_C_);
         if (Res->O() == -1)  mprintf(" %s", *BB_N_);
         if (Res->N() == -1)  mprintf(" %s", *BB_O_);
@@ -509,8 +618,8 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
         }
         if (outfile_ != 0) outfile_->AddDataSet( Res->Dset() );
       }
-    } // END residue is selected
-  }
+    } // END residue has selected atoms
+  } // END loop over residues
   mprintf("\t%u of %i solute residues selected.\n", nResSelected, soluteRes.Size());
 
   // DEBUG - print each residue set up.
@@ -531,6 +640,7 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup)
   return Action::OK;
 }
 
+/** Assign a bridge between the two specified residues. */
 void Action_DSSP::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn) {
   // By convention, always make idx1 the lower one
   int idx1, idx2;
@@ -616,24 +726,59 @@ void Action_DSSP::AssignBridge(int idx1in, int idx2in, BridgeType btypeIn, char&
 }
 */
 
-// TODO use Num()?
-static inline int AbsResDelta(int idx1, int idx2) {
-  int resDelta =  idx1 - idx2;
-  if (resDelta < 0) resDelta = -resDelta;
-  return resDelta;
+/** Given that the current residue is in-between two bridging residues, check
+  * if there is a bulge in the strand(s) it is bridging with. The largest
+  * gap allowed in the other strand is 5 residues.
+  */
+void Action_DSSP::CheckBulge(int prevIdx, int currentIdx, int nextIdx) {
+  if (prevIdx == -1 || nextIdx == -1) return;
+  SSres const& prevRes = Residues_[prevIdx];
+  SSres const& nextRes = Residues_[nextIdx];
+
+  // Loop over indices bonded to the previous residue
+  for (BridgeArray::const_iterator pr = prevRes.Bridges().begin(); pr != prevRes.Bridges().end(); ++pr)
+  {
+    // Loop over indices bonded to the next residue
+    for (BridgeArray::const_iterator nr = nextRes.Bridges().begin(); nr != nextRes.Bridges().end(); ++nr)
+    {
+      int resGapSize = AbsResDelta( pr->Idx(), nr->Idx() );
+#     ifdef DSSPDEBUG
+      mprintf("DEBUG: Checking potential bulge for %i: %i type %i to %i type %i (%i)", currentIdx+1,
+              pr->Idx()+1, (int)pr->Btype(), nr->Idx()+1, (int)nr->Btype(), resGapSize);
+#     endif
+      // Minimum allowed gap is 4 residues in between, so 5 residues total.
+      // Types also need to match
+      if (resGapSize < 6 && pr->Btype() == nr->Btype()) {
+#       ifdef DSSPDEBUG
+        mprintf(" Found!\n");
+#       endif
+        if (Residues_[prevIdx].SS() != ALPHA)
+          Residues_[prevIdx].SetSS( EXTENDED );
+        Residues_[currentIdx].SetSS( EXTENDED );
+        if (Residues_[nextIdx].SS() != ALPHA)
+          Residues_[nextIdx].SetSS( EXTENDED );
+        // Set extended on other strand as well
+        int sres0, sres1;
+        if (pr->Idx() < nr->Idx()) {
+          sres0 = pr->Idx();
+          sres1 = nr->Idx();
+        } else {
+          sres0 = nr->Idx();
+          sres1 = pr->Idx();
+        }
+        for (int sres = sres0; sres != sres1; sres++)
+          if (Residues_[sres].SS() != ALPHA)
+            Residues_[sres].SetSS( EXTENDED );
+      }
+#     ifdef DSSPDEBUG
+      else
+        mprintf("\n");
+#     endif
+    } // END loop over next residue bridging residues
+  } // END loop over previous residue bridging residues
 }
 
-static inline void SetMin(int& resGapSize, int& sres0, int& sres1, int Nres, int Pres)
-{
-  int itmp = AbsResDelta(Nres, Pres);
-  if (itmp < resGapSize) {
-    resGapSize = itmp;
-    sres0 = std::min(Pres, Nres);
-    sres1 = std::max(Pres, Nres);
-  }
-}
-
-
+/** Determine CO-NH hbonds, loop over them to do SS assignment. */
 int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
 {
   t_total_.Start();
@@ -663,8 +808,10 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
         const double* Oxyz = frm.Frm().CRD( ResCO.O() );
         for (int resj = 0; resj < Nres; resj++)
         {
-          // Need to consider adjacent residues since delta (2 res) turns possible 
-          if (resi != resj) {
+          // resj is the N-H residue. resi is the C=O residue.
+          // Ignore j-i = 0 (same residue) and (j-i = 1) peptide bond.
+          int resDelta = resj - resi;
+          if (resDelta < 0 || resDelta > 1) {
             SSres& ResNH = Residues_[resj];
             if (ResNH.IsSelected() && ResNH.HasNH())
             {
@@ -766,7 +913,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       hb = CO_NH_bonds_.find( HbondPairType(hb0->second, hb0->first) );
       if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
-        mprintf("\t\t%i ANTI-PARALLELa with %i (%i)\n", hb0->first+1, hb0->second+1, hb->first+1);
+        mprintf("\t\t%i ANTI-PARALLELa with %i (%i to %i)\n", hb0->first+1, hb0->second+1, hb->first+1, hb->second+1);
 #       endif
         AssignBridge(hb0->first, hb0->second, ANTIPARALLEL);
       }
@@ -777,7 +924,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       hb = CO_NH_bonds_.find( HbondPairType(hb0->second-2, hb0->first+2) );
       if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
-        mprintf("\t\t%i ANTI-PARALLELb with %i (%i)\n", hb0->first+2, hb0->second, hb->first+1);
+        mprintf("\t\t%i ANTI-PARALLELb with %i (%i to %i)\n", hb0->first+2, hb0->second, hb->first+1, hb->second+1);
 #       endif
         AssignBridge(hb0->first+1, hb0->second-1, ANTIPARALLEL);
       }
@@ -788,7 +935,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       hb = CO_NH_bonds_.find( HbondPairType(hb0->second, hb0->first+2) );
       if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
-        mprintf("\t\t%i PARALLELa with %i (%i)\n", hb0->first+2, hb0->second+1, hb->first+1);
+        mprintf("\t\t%i PARALLELa with %i (%i to %i)\n", hb0->first+2, hb0->second+1, hb->first+1, hb->second+1);
 #       endif
         AssignBridge(hb0->first+1, hb0->second, PARALLEL);
       }
@@ -799,7 +946,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       hb = CO_NH_bonds_.find( HbondPairType(hb0->second-2, hb0->first) );
       if (hb != CO_NH_bonds_.end()) {
 #       ifdef DSSPDEBUG
-        mprintf("\t\t%i PARALLELb with %i (%i)\n", hb0->second, hb0->first+1, hb->first+1);
+        mprintf("\t\t%i PARALLELb with %i (%i to %i)\n", hb0->second, hb0->first+1, hb->first+1, hb->second+1);
 #       endif
         AssignBridge(hb0->second-1, hb0->first, PARALLEL);
       }
@@ -809,16 +956,17 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
   // ----- Do SS assignment ----------------------
   // Priority is 'H', 'B', 'E', 'G', 'I', 'T', 'S' None
   //              8    7    6    5    4    3    2  1
+  // First do alpha, extended, and bridge.
   for (resi = 0; resi < Nres; resi++)
   {
 #   ifdef DSSPDEBUG
     mprintf("Residue %i\n", resi+1);
 #   endif
     SSres& Resi = Residues_[resi];
-    int prevRes = resi - 1;
-    int nextRes = resi + 1;
+    int prevIdx = Resi.PrevIdx();
+    int nextIdx = Resi.NextIdx();
     int priority = Resi.SSpriority();
-    if ( Resi.HasTurnStart(T4) && prevRes > -1 && Residues_[prevRes].HasTurnStart(T4) )
+    if ( Resi.HasTurnStart(T4) && prevIdx != -1 && Residues_[prevIdx].HasTurnStart(T4) )
     {
       // Alpha helix.
 #     ifdef DSSPDEBUG
@@ -832,12 +980,22 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
       if (priority < 6) {
         // Priority < 6 means not alpha or beta assigned yet.
         // Check for Beta structure
-        bool prevHasBridge = (prevRes > -1   && Residues_[prevRes].HasBridge());
-        bool nextHasBridge = (nextRes < Nres && Residues_[nextRes].HasBridge());
+        bool prevHasBridge, prevHasExtended, nextHasBridge;
+        if (prevIdx != -1) {
+          prevHasBridge = Residues_[prevIdx].HasBridge();
+          prevHasExtended = Residues_[prevIdx].SS() == EXTENDED;
+        } else {
+          prevHasBridge = false;
+          prevHasExtended = false;
+        }
+        if (nextIdx != -1)
+          nextHasBridge = Residues_[nextIdx].HasBridge();
+        else
+          nextHasBridge = false;
         if (Resi.HasBridge()) {
           // Regular Beta. Check if previous is assigned EXTENDED in case it 
           // was assigned via a Beta bulge.
-          if ( prevHasBridge || nextHasBridge || Residues_[prevRes].SS() == EXTENDED )
+          if ( prevHasBridge || nextHasBridge || prevHasExtended )
           {
 #           ifdef DSSPDEBUG
             mprintf("Extended BETA bridge at %i\n", resi+1);
@@ -851,55 +1009,7 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
           }
         } else if (prevHasBridge && nextHasBridge) {
           // Potential Beta bulge. Check other strand.
-          int presb1 = Residues_[prevRes].Bridge1Idx();
-          int presb2 = Residues_[prevRes].Bridge2Idx();
-          int nresb1 = Residues_[nextRes].Bridge1Idx();
-          int nresb2 = Residues_[nextRes].Bridge2Idx();
-          int prest1 = Residues_[prevRes].Bridge1Type();
-          int prest2 = Residues_[prevRes].Bridge2Type();
-          int nrest1 = Residues_[nextRes].Bridge1Type();
-          int nrest2 = Residues_[nextRes].Bridge2Type();
-#         ifdef DSSPDEBUG
-          mprintf("Potential bulge? Prev res bridge res: %i %i  Next res bridge res: %i %i\n", presb1, presb2, nresb1, nresb2);
-#         endif
-          // The largest allowed gap in the other strand is 5 residues.
-          // Since we know that next res and previous res both have at 
-          // least 1 bridge, Next B1 - Prev B1 can be the gap to beat.
-          // Need to also make sure the bridge types match.
-          int resGapSize = -1;
-          int sres0 = -1;
-          int sres1 = -1;
-          if (nrest1 == prest1) {
-            resGapSize = AbsResDelta(nresb1, presb1);
-            sres0 = std::min(presb1, nresb1);
-            sres1 = std::max(presb1, nresb1);
-          }
-          if (presb2 != -1 && nrest1 == prest2)
-            SetMin( resGapSize, sres0, sres1, nresb1, presb2 );
-          if (nresb2 != -1) {
-            if (nrest2 == prest1)
-              SetMin( resGapSize, sres0, sres1, nresb2, presb1 );
-            if (presb2 != -1 && nrest2 == prest2)
-              SetMin( resGapSize, sres0, sres1, nresb2, presb2 );
-          }
-#         ifdef DSSPDEBUG
-          mprintf("Min res gap size on other strand = %i (%i to %i)\n", resGapSize, sres0, sres1);
-#         endif
-          // Minimum allowed gap is 4 residues in between, so 5 residues total.
-          if (resGapSize > -1 && resGapSize < 6) {
-#           ifdef DSSPDEBUG
-            mprintf("Beta bulge.\n");
-#           endif
-            if (Residues_[prevRes].SS() != ALPHA)
-              Residues_[prevRes].SetSS( EXTENDED );
-            Resi.SetSS( EXTENDED );
-            if (Residues_[nextRes].SS() != ALPHA)
-              Residues_[nextRes].SetSS( EXTENDED );
-            // Set extended on other strand as well
-            for (int sres = sres0; sres != sres1; sres++)
-              if (Residues_[sres].SS() != ALPHA)
-                Residues_[sres].SetSS( EXTENDED );
-          }
+          CheckBulge(prevIdx, resi, nextIdx);
         }
       } // END check for Beta structure
     } // END not alpha
@@ -984,11 +1094,10 @@ int Action_DSSP::OverHbonds(int frameNum, ActionFrame& frm)
     if (Resi.IsSelected()) {
       if (betaDetail_ && (Resi.SS() == EXTENDED || Resi.SS() == BRIDGE))
       {
-        if (Resi.Bridge1Type() == ANTIPARALLEL ||
-            Resi.Bridge2Type() == ANTIPARALLEL)
+        BridgeType btype = Resi.DominantBridgeType();
+        if (btype == ANTIPARALLEL)
           totalSS[BRIDGE]++;
-        else if (Resi.Bridge1Type() == PARALLEL ||
-                 Resi.Bridge2Type() == PARALLEL)
+        else if (btype == PARALLEL)
           totalSS[EXTENDED]++;
       } else
         totalSS[Residues_[resi].SS()]++;

@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles atomic.in fluct.*.dat dpdp.fluct.dat dpdp.adp.dat \
-           fluct.2.pdb occ.2.pdb scale.2.pdb fluct.1.pdb
+           fluct.2.pdb occ.2.pdb scale.2.pdb fluct.1.pdb \
+           dpdp.adp.pdb myfluct.adp.dat heavy.adp.pdb
 TESTNAME='Atomic fluctuations tests' 
 Requires netcdf
 
@@ -28,11 +29,20 @@ TOP=../DPDP.parm7
 cat > $INPUT <<EOF
 trajin ../DPDP.nc
 rms first mass
-atomicfluct out dpdp.fluct.dat adpout dpdp.adp.dat
+atomicfluct MyFluct out dpdp.fluct.dat adpout dpdp.adp.dat
+atomicfluct Heavy calcadp :2-21&!@/H
+average crdset MyAvg
+run
+writedata myfluct.adp.dat MyFluct[ADP]
+crdout MyAvg dpdp.adp.pdb adpdata MyFluct[ADP] bfacdata MyFluct
+crdout MyAvg heavy.adp.pdb adpdata Heavy[ADP] bfacdata Heavy
 EOF
 RunCpptraj "Atomicfluct test with ADP output"
 DoTest dpdp.fluct.dat.save dpdp.fluct.dat
 DoTest dpdp.adp.dat.save dpdp.adp.dat
+DoTest dpdp.adp.pdb.save dpdp.adp.pdb
+DoTest myfluct.adp.dat.save myfluct.adp.dat
+DoTest heavy.adp.pdb.save heavy.adp.pdb
 
 TOP=../tz2.parm7
 cat > $INPUT <<EOF

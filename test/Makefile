@@ -67,6 +67,7 @@ test.mol2:
 
 test.nastruct:
 	@-cd Test_NAstruct && ./RunTest.sh $(OPT)
+	@-cd Test_NAstruct_8OG && ./RunTest.sh $(OPT)
 
 test.pucker:
 	@-cd Test_Pucker && ./RunTest.sh $(OPT)
@@ -115,6 +116,7 @@ test.molsurf:
 
 test.charmm:
 	@-cd Test_Charmm && ./RunTest.sh $(OPT)
+	@-cd Test_CharmmParams && ./RunTest.sh $(OPT)
 
 test.rotdif:
 	@-cd Test_Rotdif && ./RunTest.sh $(OPT)
@@ -345,6 +347,7 @@ test.topinfo:
 test.gromacs:
 	@-cd Test_GromacsTrr && ./RunTest.sh $(OPT)
 	@-cd Test_GromacsXtc && ./RunTest.sh $(OPT)
+	@-cd Test_GromacsTNG && ./RunTest.sh $(OPT)
 
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
@@ -458,6 +461,15 @@ test.dihedralrms:
 
 test.slope:
 	@-cd Test_Slope && ./RunTest.sh $(OPT)
+
+test.diagmatrix:
+	@-cd Test_Diagmatrix && ./RunTest.sh $(OPT)
+
+test.emin:
+	@-cd Test_Emin && ./RunTest.sh $(OPT)
+
+test.evalplateau:
+	@-cd Test_EvalPlateau && ./RunTest.sh $(OPT)
 
 # Every test target should go here.
 COMPLETETESTS=test.general \
@@ -606,7 +618,10 @@ COMPLETETESTS=test.general \
               test.time \
               test.splitcoords \
               test.dihedralrms \
-              test.slope
+              test.slope \
+              test.diagmatrix \
+              test.emin \
+              test.evalplateau
 
 test.all:
 	$(MAKE) test.complete summary

@@ -42,7 +42,8 @@ class Action_DSSP : public Action {
 
     /// Class that will hold SS info for each residue
     class SSres;
-    /// Secondary structure types
+    /// Secondary structure types. For betaDetail, EXTENDED=PARALLEL and BRIDGE=ANTIPARALLEL
+    //            0       1         2       3      4      5    6     7
     enum SStype { NONE=0, EXTENDED, BRIDGE, H3_10, ALPHA, HPI, TURN, BEND };
     static const int NSSTYPE_ = 8;   ///< # of secondary structure types.
     static const char DSSP_char_[];  ///< DSSP 1 char names corresponding to SStype
@@ -51,12 +52,21 @@ class Action_DSSP : public Action {
     /// Turn types
     enum TurnType { T3 = 0, T4, T5 };
     static const int NTURNTYPE_ = 3;
-    /// Beta types
-    enum BetaType { B1 = 0, B2, S };
-    static const int NBETATYPE_ = 3;
     /// Bridge direction types
     enum BridgeType { NO_BRIDGE = 0, PARALLEL, ANTIPARALLEL };
     static const int NBRIDGETYPE_ = 3;
+
+    /// Class for holding bridge info
+    class Bridge {
+      public:
+        Bridge(int i, BridgeType b) : idx_(i), btype_(b) {}
+        int Idx()          const { return idx_;   }
+        BridgeType Btype() const { return btype_; }
+      private:
+        int idx_;          ///< Residue to which the bridge is formed.
+        BridgeType btype_; ///< The type of bridge being formed.
+    };
+    typedef std::vector<Bridge> BridgeArray;
 
     static const double DSSP_fac_;  ///< Original DSSP factor for calc. H-bond "energy"
     static const double DSSP_cut_;  ///< Original DSSP H-bond energy cutoff in kcal/mol
@@ -65,6 +75,8 @@ class Action_DSSP : public Action {
     typedef std::vector<std::string> Sarray;
     typedef std::pair<int,int> HbondPairType;
     typedef std::set<HbondPairType> HbondMapType;
+
+    void CheckBulge(int, int, int);
 
     int OverHbonds(int, ActionFrame&);
 
@@ -85,6 +97,7 @@ class Action_DSSP : public Action {
     NameType BB_C_;        ///< Protein C atom name ('C')
     NameType BB_O_;        ///< Protein C-O atom name ('O')
     NameType BB_CA_;       ///< Protein alpha C name ('CA')
+    NameType SG_;          ///< Protein cysteine sulfur name for detecting disulfides
     CharMask Mask_;        ///< Mask used to determine selected residues.
     DataFile* outfile_;          ///< Output Data file
     DataFile* dsspFile_;         ///< Sum output file
@@ -118,10 +131,7 @@ class Action_DSSP::SSres {
     int CA()          const { return CA_; }
     int PrevIdx()     const { return prevIdx_; }
     int NextIdx()     const { return nextIdx_; }
-    int Bridge1Idx()  const { return bridge1idx_; }
-    BridgeType Bridge1Type() const { return b1type_;}
-    int Bridge2Idx()  const { return bridge2idx_; }
-    BridgeType Bridge2Type() const { return b2type_;}
+    BridgeArray const& Bridges() const { return bridges_; }
     DataSet* Dset()   const { return resDataSet_; }
 
     bool IsMissingAtoms() const { return (C_==-1 || O_==-1 || N_==-1 || H_==-1 || CA_==-1); }
@@ -130,6 +140,8 @@ class Action_DSSP::SSres {
     bool HasCA()          const { return (CA_!=-1); }
 
     bool HasTurnStart(TurnType) const;
+    /// \return Dominant bridge type
+    BridgeType DominantBridgeType() const;
     bool HasBridge() const;
     bool IsBridgedWith(int) const;
 //    char StrandChar() const;
@@ -171,8 +183,8 @@ class Action_DSSP::SSres {
     DataSet* resDataSet_;       ///< DataSet for SS assignment each frame for this res.
     double chirality_;          ///< Dihedral CA[i-1, i, i+1, i+2]
     double bend_;               ///< Angle CA[i-2, i, i+2]
-    int SScount_[NSSTYPE_];     ///< Hold count for each SS type
-    int Bcount_[NBRIDGETYPE_];  ///< Hold count for Beta types
+    int SScount_[NSSTYPE_];     ///< Hold total count for each SS type over all frames
+    int Bcount_[NBRIDGETYPE_];  ///< Hold total count for Beta types over all frames
     SStype sstype_;             ///< SS assignment for this frame
     int num_;                   ///< Residue index in Topology
     int C_;                     ///< Coord idx of BB carbon
@@ -182,10 +194,7 @@ class Action_DSSP::SSres {
     int CA_;                    ///< Coord idx of BB alpha carbon
     int prevIdx_;               ///< Index in Residues_ of previous residue
     int nextIdx_;               ///< Index in Residues_ of next residue
-    int bridge1idx_;            ///< Index in Residues_ of res this is bridged to
-    BridgeType b1type_;         ///< Type of bridge1
-    int bridge2idx_;            ///< Index in Residues_ of res this is bridged to
-    BridgeType b2type_;         ///< Type of bridge2
+    BridgeArray bridges_;       ///< Indices and types of bridges to this residue
     char resChar_;              ///< Single char residue ID
     char turnChar_[NTURNTYPE_]; ///< Character if part of N turn
     bool isSelected_;           ///< True if calculating SS for this residue.

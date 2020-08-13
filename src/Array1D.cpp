@@ -1,6 +1,9 @@
 #include <algorithm> // sort
 #include "Array1D.h"
 #include "CpptrajStdio.h"
+#include "DataSetList.h"
+#include "DataSet_1D.h"
+#include "ArgList.h"
 
 // COPY CONSTRUCTOR
 Array1D::Array1D(const Array1D& rhs) : array_(rhs.array_) {}

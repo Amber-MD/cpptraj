@@ -178,6 +178,14 @@ std::string NoWhitespace(std::string const& line) {
   return out;
 }
 
+/// \return Given string with N leading characters removed.
+std::string RemoveLeadingChars(std::string const& strIn, int NtoRemove)
+{
+  if (strIn.empty()) return std::string();
+  std::string out = strIn.substr(NtoRemove, std::string::npos);
+  return out;
+}
+
 // integerToString()
 std::string integerToString(int i) {
   std::ostringstream oss;
@@ -218,10 +226,57 @@ bool validInteger(std::string const &argument) {
 // validDouble()
 bool validDouble(std::string const& argument) {
   if (argument.empty()) return false;
+  // NOTE: We cannot just use an istringstream extraction operator >>
+  //       because this will read *any* numbers that are there, so e.g.
+  //       10cat is valid and gets converted to 10; the 'cat' is skipped.
+  std::string::const_iterator ptr = argument.begin();
+  bool isValid = false;
+  if ( *ptr == '.' ||
+       *ptr == '+' ||
+       *ptr == '-' ||
+       isdigit(*ptr) )
+  {
+    isValid = true;
+    // Start of a number
+    bool hasExponent = false;
+    bool decimal_point = (*ptr == '.');
+    if (!isdigit(*ptr)) ++ptr;
+    while ( ptr != argument.end() )
+    {
+      // Check the next character
+      if (*ptr == '.') {
+        // Decimal point.
+        if (hasExponent)
+          // Do not allow decimal point in exponent
+          return false;
+        if (decimal_point)
+          // Already have 1 decimal point. Do not allow two.
+          return false;
+        decimal_point = true;
+      } else if (*ptr == 'E' || *ptr == 'e') {
+        // Exponent.
+        if (hasExponent)
+          // Already have exponent. Do not allow two.
+          return false;
+        // Check start of exponent
+        std::string::const_iterator ptr1 = ptr + 1;
+        if (*ptr1 == '+' || *ptr1 == '-')
+          // Advance past sign
+          ++ptr;
+        hasExponent = true;
+      } else if ( !isdigit(*ptr) )
+        return false;
+      // Advance to next char
+      ++ptr;
+    }
+  }
+  return isValid;
+/*
   std::istringstream iss(argument);
   double val;
   iss >> val;
   return !(iss.fail());
+*/
 }
 
 // -----------------------------------------------------------------------------
@@ -329,4 +384,45 @@ std::string AvailableMemoryStr() {
     return std::string("");
   else
     return ByteString(avail_in_bytes, BYTE_DECIMAL);
+}
+
+/** \return A string containing the given array converted to range expression.
+  */
+std::string ArrayToRangeExpression(std::vector<int> const& arrayIn, int offsetIn) {
+  if (arrayIn.empty())
+    return std::string("");
+  if (arrayIn.size() == 1)
+    return integerToString( arrayIn.front() + offsetIn );
+
+  std::string out("");
+  // Commas will only be printed for groups after the first
+  int commaGroup = 0;
+  unsigned int idx = 0;
+  while (idx < arrayIn.size()) {
+    unsigned int kdx = idx + 1;
+    int delta = arrayIn[kdx] - arrayIn[kdx-1];
+    while (delta == 1) {
+      kdx++;
+      if (kdx == arrayIn.size()) break;
+      delta = arrayIn[kdx] - arrayIn[kdx-1];
+    }
+    //mprintf("DEBUG: idx= %u kdx= %u array[i]= %i array[k-1]= %i delta= %i\n",
+    //        idx, kdx, arrayIn[idx], arrayIn[kdx-1], delta);
+    if (delta <= 0) {
+      mprinterr("Internal Error: ArrayToRangeExpression() requires arrays in increasing order.\n");
+      return std::string("");
+    }
+    if (commaGroup > 0)
+      out.append(",");
+    commaGroup++;
+    unsigned int jdx = kdx - 1;
+    if (idx == jdx)
+      out.append( integerToString( arrayIn[idx] + offsetIn ) );
+    else
+      out.append( integerToString( arrayIn[idx] + offsetIn ) + "-" +
+                  integerToString( arrayIn[jdx] + offsetIn ) );
+    idx = kdx;
+  }
+ 
+  return out;
 }

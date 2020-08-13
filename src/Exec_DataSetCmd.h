@@ -6,6 +6,7 @@ class Exec_DataSetCmd : public Exec {
   public:
     Exec_DataSetCmd() : Exec(GENERAL) {}
     void Help() const;
+    void Help(ArgList&) const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_DataSetCmd(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
@@ -32,5 +33,9 @@ class Exec_DataSetCmd : public Exec {
     RetType ChangeModeType(CpptrajState const&, ArgList&);
     static void Help_InvertSets();
     RetType InvertSets(CpptrajState&, ArgList&);
+    static void Help_Shift();
+    RetType ShiftData(CpptrajState&, ArgList&);
+
+    std::vector<DataSet*> modifiedSets_;
 };
 #endif

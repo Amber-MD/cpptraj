@@ -90,7 +90,7 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
   // Check that all chars are digits or - for number range 
   if (type_ == ResNum || type_ == AtomNum || type_ == MolNum || type_ == OresNum) {
     for (std::string::const_iterator p = tokenString.begin(); p != tokenString.end(); ++p) {
-      if (*p != '-' && isalpha(*p, loc)) {
+      if (*p != '-' && !isdigit(*p, loc)) {
         //mprintf("DEBUG: making name type because of %c\n",*p);
         if (MakeNameType()) return 1;
         break;
@@ -972,7 +972,7 @@ void MaskTokenArray::SelectChainID(ResArrayT const& residues, NameType const& na
 {
   for (ResArrayT::const_iterator res = residues.begin();
                                  res != residues.end(); ++res)
-    if ( res->ChainID() == name[0] )
+    if ( res->ChainId() == name[0] )
       std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
 }
 

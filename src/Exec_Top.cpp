@@ -1,6 +1,5 @@
 #include "Exec_Top.h"
 #include "CpptrajStdio.h"
-#include "ParmFile.h"
 #include "TopInfo.h"
 
 void Exec_LoadParm::Help() const {
@@ -51,15 +50,18 @@ static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const
     mprintf("\tOutput to '%s'\n", outfile->Filename().full());
     err = info.SetupTopInfo( outfile, parm, REF.RefPtr() );
   }
+  if (argIn.hasKey("nointrares"))
+    info.SetNoIntraRes(true);
   return err;
 }
 
 // -----------------------------------------------------------------------------
 void Exec_BondInfo::Help() const {
-  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>] [nointrares]\n", DataSetList::TopIdxArgs);
   mprintf("  For specified topology (first by default) either print bond info for all\n"
           "  atoms in <mask1>, or print info for bonds with first atom in <mask1> and\n"
-          "  second atom in <mask2>.\n");
+          "  second atom in <mask2>. If 'nointrares' is specified, only print bonds\n"
+          "  that are between residues.\n");
 }
 
 Exec::RetType Exec_BondInfo::Execute(CpptrajState& State, ArgList& argIn) {
@@ -202,25 +204,45 @@ Exec::RetType Exec_MolInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_ChargeInfo::Help() const {
-  mprintf("\t[%s] <mask> [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask>] [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total charge of atoms in <mask> for specified topology (first by default).\n");
 }
 
 Exec::RetType Exec_ChargeInfo::Execute(CpptrajState& State, ArgList& argIn) {
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Charge info")) return CpptrajState::ERR;
-  if (info.PrintChargeInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
+  std::string dsname = argIn.GetStringKey("name");
+  DataSet* ds = 0;
+  if (!dsname.empty()) {
+    ds = State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname));
+    if (ds == 0) return CpptrajState::ERR;
+    mprintf("\tSum of charges will be stored in set '%s'\n", ds->legend());
+  }
+  double charge = 0;
+  if (info.PrintChargeInfo( argIn.GetMaskNext(), charge )) return CpptrajState::ERR;
+  if (ds != 0)
+    ds->Add(0, &charge);
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------
 void Exec_MassInfo::Help() const {
-  mprintf("\t[%s] <mask> [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask>] [out <file>] [name <set>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total mass of atoms in <mask> for specified topology (first by default).\n");
 }
 
 Exec::RetType Exec_MassInfo::Execute(CpptrajState& State, ArgList& argIn) {
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Mass info")) return CpptrajState::ERR;
-  if (info.PrintMassInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
+  std::string dsname = argIn.GetStringKey("name");
+  DataSet* ds = 0;
+  if (!dsname.empty()) {
+    ds = State.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname));
+    if (ds == 0) return CpptrajState::ERR;
+    mprintf("\tSum of masses will be stored in set '%s'\n", ds->legend());
+  }
+  double mass = 0;
+  if (info.PrintMassInfo( argIn.GetMaskNext(), mass )) return CpptrajState::ERR;
+  if (ds != 0)
+    ds->Add(0, &mass);
   return CpptrajState::OK;
 }

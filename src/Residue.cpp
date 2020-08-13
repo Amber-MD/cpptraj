@@ -1,7 +1,7 @@
 #include "Residue.h"
 #include <cctype> // tolower
 
-const char Residue::BLANK_CHAINID_ = '\0';
+const char Residue::BLANK_CHAINID_ = ' ';
 
 const char Residue::DEFAULT_CHAINID_ = 'Z';
 
@@ -24,6 +24,9 @@ char Residue::ConvertResName(std::string const& r) {
   if (r.compare(0,3,"HIE")==0) return 'H'; // NE-protonated (HIS)
   if (r.compare(0,3,"HID")==0) return 'H'; // ND-protonated
   if (r.compare(0,3,"HIP")==0) return 'H'; // NE/ND protonated
+  if (r.compare(0,3,"HSE")==0) return 'H'; // CHARMM NE-protonated
+  if (r.compare(0,3,"HSD")==0) return 'H'; // CHARMM ND-protonated
+  if (r.compare(0,3,"HSP")==0) return 'H'; // CHARMM NE/ND-protonated
   if (r.compare(0,3,"ILE")==0) return 'I';
   if (r.compare(0,3,"LEU")==0) return 'L';
   if (r.compare(0,3,"LYS")==0) return 'K';

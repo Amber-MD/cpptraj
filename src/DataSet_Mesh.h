@@ -25,10 +25,13 @@ class DataSet_Mesh : public DataSet_1D {
     int Append(DataSet*);
     double Coord(unsigned int d, size_t p) const { return mesh_x_[p]; }
     size_t MemUsageInBytes() const { return ((mesh_x_.size() + mesh_y_.size()) * sizeof(double)) + cspline_.DataSize(); }
+    int MemAlloc(SizeArray const&);
+    void CopyBlock(size_t, const DataSet*, size_t, size_t);
     // ----- DataSet_1D functions ----------------
-    double Dval(size_t idx)  const { return mesh_y_[idx];       }
-    double Xcrd(size_t idx)  const { return mesh_x_[idx];       }
+    double Dval(size_t idx)   const { return mesh_y_[idx];       }
+    double Xcrd(size_t idx)   const { return mesh_x_[idx];       }
     const void* VoidPtr(size_t) const;
+    void SetY(size_t idx, double y) { mesh_y_[idx] = y; }
     // -------------------------------------------
     inline void AddXY(double,double);
     double X(int i) const { return mesh_x_[i]; }

@@ -4,6 +4,8 @@
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 #include "Constants.h"
+#include "Topology.h"
+#include "CharMask.h"
 
 const double Energy_Amber::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 

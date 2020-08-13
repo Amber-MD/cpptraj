@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "Constants.h" // DEGRAD
+#include "DataSet_1D.h"
 
 // CONSTRUCTOR
 Action_Matrix::Action_Matrix() :
@@ -95,7 +96,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       return Action::ERR;
     }
     for ( DataSetList::const_iterator DS = init.DSL().begin(); DS != init.DSL().end(); ++DS) {
-      if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC )
+      if ( (*DS)->Group() == DataSet::VECTOR_1D && (*DS)->Meta().ScalarType() == MetaData::IREDVEC )
         IredVectors_.push_back( (DataSet_Vector*)*DS );
     }
     if (IredVectors_.empty()) {
@@ -127,10 +128,19 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       mkind = DataSet_2D::FULL;
     }
   }
+  // Set up output file if needed
+  outfile_ = 0;
+  if (outtype_ != BYMASK)
+    outfile_ = init.DFL().AddDataFile(outfilename, "square2d noxcol noheader", actionArgs);
+  // Check for output set name if not yet provided, to match
+  // behavior of other actions.
+  if (name.empty())
+    name = actionArgs.GetStringNext();
 
   // Create matrix BYATOM DataSet
   Mat_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL,
-                                         MetaData(name, MetaData::M_MATRIX, mtype), "Mat");
+                                               MetaData(name, MetaData::M_MATRIX, mtype),
+                                               "Mat");
   if (Mat_ == 0) return Action::ERR;
   // NOTE: Type/Kind is set here so subsequent analyses/actions know about it.
   Mat_->SetMatrixKind( mkind );
@@ -139,7 +149,6 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
   Mat_->ModifyDim(Dimension::X).SetLabel("Atom");
   // Determine what will be output.
   matByRes_ = 0;
-  outfile_ = 0;
   byMaskOut_ = 0;
   if (outtype_ == BYMASK) {
     // BYMASK output - no final data set, just write to file/STDOUT.
@@ -160,7 +169,6 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       matByRes_->SetNeedsSync( false );
 #     endif
     } 
-    outfile_ = init.DFL().AddDataFile(outfilename, "square2d noxcol noheader", actionArgs);
     if (outfile_ != 0) {
       if (outtype_ == BYATOM)
         outfile_->AddDataSet( Mat_ );

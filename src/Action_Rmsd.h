@@ -3,8 +3,8 @@
 #include "Action.h"
 #include "Range.h"
 #include "ReferenceAction.h"
-#include "DataSet_1D.h"
-#include "DataSet_Vector.h"
+class DataSet_1D;
+class DataSet_Vector;
 /// Action to calculate the RMSD between frame and a reference frame.
 class Action_Rmsd: public Action {
   public:

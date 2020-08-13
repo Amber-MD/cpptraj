@@ -36,6 +36,7 @@ enum FileType { SOURCE = 0, HEADER };
 /** \return true if this header should be ignored. */
 bool IgnoreHeader(const char* headername) {
   if (strcmp(headername,"mpi.h")==0) return true;
+  if (strcmp(headername,"mkl.h")==0) return true;
   if (strcmp(headername,"zlib.h")==0) return true;
   if (strcmp(headername,"bzlib.h")==0) return true;
   if (strcmp(headername,"netcdf.h")==0) return true;
@@ -52,10 +53,21 @@ bool IgnoreHeader(const char* headername) {
 void GetDependencies(string const& filename) {
   char buffer[BUFFERSIZE+1];
   char headername[BUFFERSIZE+1];
+  // Determine path
+  string baseName, dirPrefix;
+  size_t found = filename.find_last_of("/");
+  if (found == std::string::npos) {
+    baseName = filename;
+    //dirPrefix_.clear();
+  } else {
+    baseName = filename.substr(found+1);
+    dirPrefix = filename.substr(0, found+1);
+  }
+  //printf("DEBUG: Dir='%s' Base='%s'\n", dirPrefix.c_str(), baseName.c_str());
   // Determine type
   FileType type;
   string ext;
-  size_t found = filename.find_last_of(".");
+  found = filename.find_last_of(".");
   if (found != string::npos)
     ext = filename.substr(found);
 
@@ -107,7 +119,7 @@ void GetDependencies(string const& filename) {
           size_t pos = strlen(headername);
           if (headername[pos-1]=='"') headername[pos-1]='\0';
           if (!IgnoreHeader(headername))
-            depends.insert( string(headername) );
+            depends.insert( dirPrefix + string(headername) );
         } //else
           //printf("\tSkipping system header line: %s", buffer);
       }

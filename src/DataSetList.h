@@ -116,12 +116,21 @@ class DataSetList {
     void List() const;
     /// List all non-Topology/Reference data sets.
     void ListDataOnly() const;
+    /// List all string variables
+    void ListStringVar() const;
 #   ifdef MPI
     /// Indicate whether sets added to the list need to be synced
     void SetNewSetsNeedSync(bool b) { newSetsNeedSync_ = b; }
     /// Call sync for DataSets in the list (MPI only)
     int SynchronizeData(Parallel::Comm const&);
 #   endif
+
+    /// Update value in given string variable with new value
+    int UpdateStringVar(std::string const&, std::string const&) const;
+    /// \return Value corresponding to given data set as a string
+    std::string GetVariable(std::string const&) const;
+    /// \return number of variables replaced with their values in given string.
+    int ReplaceVariables(std::string&, std::string const&) const;
 
     // REF_COORDS functions ----------------------
     /// reference arg help text

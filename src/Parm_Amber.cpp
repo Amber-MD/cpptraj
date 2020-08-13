@@ -152,9 +152,12 @@ Parm_Amber::Parm_Amber() :
   numLJparm_(0),
   SCEE_set_(false),
   SCNB_set_(false),
+  atProblemFlag_(false),
   N_impropers_(0),
   N_impTerms_(0),
-  nochamber_(false)
+  writeChamber_(true),
+  writeEmptyArrays_(false),
+  writePdbInfo_(true)
 {
   UB_count_[0] = 0;
   UB_count_[1] = 0;
@@ -489,6 +492,11 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             mprinterr("Error: Reading format FLAG '%s'\n", flagType.c_str());
             return 1;
           }
+          if (atProblemFlag_) {
+            // We hit a problematic flag and need to read past it.
+            ptr = SkipToNextFlag();
+            atProblemFlag_ = false;
+          }
         }
       } else {
         // Unknown '%' tag. Read past it.
@@ -533,6 +541,54 @@ int Parm_Amber::ReadFormatLine(FortranData& FMT) {
   if (FMT.ParseFortranFormat( ptr )) return 1;
   
   return 0;
+}
+
+/** If an error occurred at FLAG, this can be used to reset the file
+  * and scan past the problem flag.
+  */
+void Parm_Amber::ResetFileToFlag(FlagType currFlag) {
+  mprintf("Info: Scanning past problematic flag %s\n", FLAGS_[currFlag].Flag);
+  file_.Rewind();
+  const char* ptr = file_.NextLine();
+  // TODO trap null?
+  atProblemFlag_ = false;
+  while (ptr != 0) {
+    if ( ptr[0] == '%' && IsFLAG(ptr) ) {
+      // %FLAG <type> line. Determine the flag type.
+      std::string flagType = NoTrailingWhitespace(ptr+6);
+      if (flagType.compare( FLAGS_[currFlag].Flag ) == 0) {
+        // Problem flag found. Set the problemFlag variable so the parser knows to skip ahead.
+        atProblemFlag_ = true;
+        break;
+      }
+    }
+    ptr = file_.NextLine();
+  }
+}
+
+/** Print a warning that a problem was encountered reading an element
+  * of the specified FLAG. Sets the atProblemFlag_ variable to true
+  * and resets the file to the bad FLAG so it can be skipped.
+  */
+void Parm_Amber::ProblemFlagWarning(FlagType currFlag, unsigned int idx, unsigned int nExpected) {
+   mprintf("Warning: Bad conversion detected: %s\n", FLAGS_[currFlag].Flag);
+   mprintf("Warning: Issue reading element %u of %u\n", idx+1, nExpected);
+   atProblemFlag_ = true;
+   ResetFileToFlag( currFlag );
+}
+
+/** Attempt to convert next element in file buffer to double, with
+  * some error checking.
+  */
+double Parm_Amber::FileBufferToDouble(FlagType currFlag, unsigned int idx, unsigned int nExpected) {
+  char* endptr;
+  const char* elt = file_.NextElement();
+  double dval = strtod( elt, &endptr );
+  if (elt == endptr) {
+    ProblemFlagWarning(currFlag, idx, nExpected);
+    return 0.0;
+  }
+  return dval;
 }
 
 // Parm_Amber::ReadTitle()
@@ -606,7 +662,10 @@ int Parm_Amber::SetupBuffer(FlagType ftype, int nvals, FortranData const& FMT) {
     if (debug_>0) mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
     file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
     if (file_.ReadFrame()) return 1;
-    if (debug_>5) mprintf("DEBUG: '%s':\n%s", FLAGS_[ftype].Flag, file_.Buffer());
+    if (debug_ > 5) {
+      mprintf("DEBUG: '%s':\n", FLAGS_[ftype].Flag);
+      if (debug_ > 6) mprintf("FileBuffer=[%s]", file_.Buffer());
+    }
   } else {
     if (debug_>5) mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
     // Read blank line
@@ -688,13 +747,22 @@ int Parm_Amber::ReadResidueNames(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadResidueAtomNums()
 int Parm_Amber::ReadResidueAtomNums(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_RESNUMS, values_[NRES], FMT)) return 1;
-  for (int idx = 0; idx != values_[NRES]; idx++) {
-    int atnum = atoi(file_.NextElement()) - 1;
-    TopIn.SetRes(idx).SetFirstAtom( atnum );
-    if (idx > 0) TopIn.SetRes(idx-1).SetLastAtom( atnum );
-    TopIn.SetRes(idx).SetOriginalNum( idx+1 );
+  // Each entry in the array is the start atom (indexed from 1) for
+  // the corresponding residue. Do all but the final residue.
+  int numRes = values_[NRES];
+  int firstAtom = atoi(file_.NextElement()) - 1;
+  for (int idx = 1; idx < numRes; idx++) {
+    Residue& currentRes = TopIn.SetRes(idx-1);
+    int lastAtom = atoi(file_.NextElement()) - 1;
+    currentRes.SetFirstAtom( firstAtom );
+    currentRes.SetLastAtom( lastAtom );
+    currentRes.SetOriginalNum( idx );
+    firstAtom = lastAtom;
   }
-  TopIn.SetRes( values_[NRES]-1 ).SetLastAtom( values_[NATOM] );
+  // Do the final residue
+  TopIn.SetRes(numRes-1).SetFirstAtom( firstAtom );
+  TopIn.SetRes(numRes-1).SetLastAtom( values_[NATOM] );
+  TopIn.SetRes(numRes-1).SetOriginalNum( numRes );
   return 0;
 }
 
@@ -776,7 +844,12 @@ int Parm_Amber::ReadDihedralSCNB(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadLJA(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ_A, numLJparm_, FMT)) return 1;
   for (int idx = 0; idx != numLJparm_; idx++)
-    TopIn.SetNonbond().SetLJ(idx).SetA( atof(file_.NextElement()) );
+  {
+    TopIn.SetNonbond().SetLJ(idx).SetA( FileBufferToDouble(F_LJ_A, idx, numLJparm_) );
+    if (atProblemFlag_) break;
+    //TopIn.SetNonbond().SetLJ(idx).SetA( atof(file_.NextElement()) );
+  }
+
   return 0;
 }
 
@@ -784,7 +857,10 @@ int Parm_Amber::ReadLJA(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadLJB(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ_B, numLJparm_, FMT)) return 1;
   for (int idx = 0; idx != numLJparm_; idx++)
-    TopIn.SetNonbond().SetLJ(idx).SetB( atof(file_.NextElement()) );
+  {
+    TopIn.SetNonbond().SetLJ(idx).SetB( FileBufferToDouble(F_LJ_B, idx, numLJparm_) );
+    if (atProblemFlag_) break;
+  }
   return 0;
 }
 
@@ -1080,7 +1156,6 @@ int Parm_Amber::ReadChamberFFtype(Topology& TopIn, FortranData const& FMT) {
       }
     }
   }
-  TopIn.SetChamber().SetHasChamber( true );
   TopIn.SetChamber().SetNLJ14terms( numLJparm_ );
   return 0;
 }
@@ -1176,16 +1251,20 @@ int Parm_Amber::ReadChamberImpPHASE(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadChamberLJ14A()
 int Parm_Amber::ReadChamberLJ14A(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ14A, numLJparm_, FMT)) return 1;
-  for (int idx = 0; idx != numLJparm_; idx++)
-    TopIn.SetChamber().SetLJ14(idx).SetA( atof(file_.NextElement()) );
+  for (int idx = 0; idx != numLJparm_; idx++) {
+    TopIn.SetChamber().SetLJ14(idx).SetA( FileBufferToDouble(F_LJ14A, idx, numLJparm_) );
+    if (atProblemFlag_) break;
+  }
   return 0;
 }
 
 // Parm_Amber::ReadChamberLJ14B()
 int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ14B, numLJparm_, FMT)) return 1;
-  for (int idx = 0; idx != numLJparm_; idx++)
-    TopIn.SetChamber().SetLJ14(idx).SetB( atof(file_.NextElement()) );
+  for (int idx = 0; idx != numLJparm_; idx++) {
+    TopIn.SetChamber().SetLJ14(idx).SetB( FileBufferToDouble(F_LJ14B, idx, numLJparm_) );
+    if (atProblemFlag_) break;
+  }
   return 0;
 }
 
@@ -1288,13 +1367,15 @@ int Parm_Amber::ReadLESid(Topology& TopIn, FortranData const& FMT) {
 // -----------------------------------------------------------------------------
 void Parm_Amber::WriteHelp() {
   mprintf("\tnochamber  : Do not write CHAMBER information to topology (useful for e.g. using"
-          " topology for visualization with VMD).\n");
+          "\t             topology for visualization with VMD).\n");
   mprintf("\twriteempty : Write Amber tree, join, and rotate info even if not present.\n");
+  mprintf("\tnopdbinfo  : Do not write \"PDB\" info (e.g. chain IDs, original res #s, etc).\n");
 }
 
 int Parm_Amber::processWriteArgs(ArgList& argIn) {
-  nochamber_ = argIn.hasKey("nochamber");
+  writeChamber_ = !argIn.hasKey("nochamber");
   writeEmptyArrays_ = argIn.hasKey("writeempty");
+  writePdbInfo_ = !argIn.hasKey("nopdbinfo");
   return 0;
 }
 
@@ -1314,9 +1395,20 @@ Parm_Amber::FortranData Parm_Amber::WriteFormat(FlagType fflag) const {
   return FMT;
 }
 
-// Parm_Amber::BufferAlloc()
+/** This version uses the default flag to allocate the format string. */
 int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   FortranData FMT = WriteFormat( ftype );
+  return BufferAlloc(ftype, FMT, nvals, idx);
+}
+
+// Parm_Amber::BufferAlloc()
+/** Allocate internal buffer for writing given flag with given format.
+  * \param ftype The FLAG to write.
+  * \param FMT The Fortran format string.
+  * \param nvals The number of values that will be written.
+  * \param idx Index for flags that can be specified multiple times (e.g. CMAP grids).
+  */
+int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, int idx) {
   if ( FMT.Ftype() == UNKNOWN_FTYPE) {
     mprinterr("Interal Error: Could not set up format string.\n");
     return 1;
@@ -1338,7 +1430,7 @@ int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
     else if (FMT.Ftype() == FDOUBLE)
       WriteFmt = TextFormat(TextFormat::SCIENTIFIC, FMT.Width(), FMT.Precision());
     else if (FMT.Ftype() == FCHAR)
-      WriteFmt = TextFormat(TextFormat::STRING, FMT.Width());
+      WriteFmt = TextFormat(TextFormat::STRING, FMT.Width(), TextFormat::LEFT);
     else if (FMT.Ftype() == FFLOAT)
       WriteFmt = TextFormat(TextFormat::DOUBLE, FMT.Width(), FMT.Precision());
     //mprintf("DEBUG: Write format: \"%s\"\n", WriteFmt.fmt());
@@ -1466,7 +1558,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   ptype_ = NEWPARM;
   FlagType titleFlag = F_TITLE;
   if (TopOut.Chamber().HasChamber()) {
-    if (nochamber_)
+    if (!writeChamber_)
       mprintf("\tnochamber: Removing CHAMBER info from topology.\n");
     else {
       titleFlag = F_CTITLE;
@@ -1505,10 +1597,42 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     }
   }
  
-  // Determine max residue size
+  // Determine max residue size. Also determine if extra info needs to be
+  // written such as PDB residue number, chain ID, etc.
+  // Since original res num gets set no matter what, only print out
+  // if chain IDs are present or original res nums != res index + 1.
   int maxResSize = 0;
+  bool hasOrigResNums = false;
+  bool hasChainID = false;
+  bool hasIcodes = false;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+  {
+    long int oresidx = res - TopOut.ResStart() + 1;
+    if (oresidx != (long int)res->OriginalResNum())
+      hasOrigResNums = true;
+    if (res->HasChainID())
+      hasChainID = true;
+    if (res->Icode() != ' ')
+      hasIcodes = true;
     maxResSize = std::max(maxResSize, res->NumAtoms());
+  }
+  if (hasOrigResNums)
+    mprintf("\tTopology has alternative residue numbering (from e.g PDB, stripping, reordering, etc).\n");
+  if (hasChainID)
+    mprintf("\tTopology has chain IDs.\n");
+  if (hasIcodes)
+    mprintf("\tTopology has residue insertion codes.\n");
+  if (!writePdbInfo_) {
+    if (hasOrigResNums)
+      mprintf("\tnopdbinfo : Not writing alternative residue numbering.\n");
+    if (hasChainID)
+      mprintf("\tnopdbinfo : Not writing chain IDs.\n");
+    if (hasIcodes)
+      mprintf("\tnopdbinfo : Not writing residue insertion codes.\n");
+    hasOrigResNums = false;
+    hasChainID = false;
+    hasIcodes = false;
+  }
 
   // Determine value of ifbox
   int ifbox;
@@ -1571,8 +1695,13 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       mprintf("Warning: Number of CHAMBER description lines > 99. Only writing 99.\n", nlines);
       nlines = 99;
     }
-    for (int line = 0; line != nlines; line++)
-      file_.Printf("%2i%-78s\n", nlines, TopOut.Chamber().Description()[line].c_str());
+    if (nlines > 0) {
+      for (int line = 0; line != nlines; line++)
+        file_.Printf("%2i%78s\n", nlines, TopOut.Chamber().Description()[line].c_str());
+    } else {
+      // No description. Write a placeholder.
+      file_.Printf("%2i%78s\n", 1, "CHARMM:");
+    }
   }
 
   // NAMES
@@ -2008,6 +2137,53 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
+  if (hasOrigResNums || hasChainID || hasIcodes) {
+    // PDB residue numbers. Need to adjust format based on res # digit width.
+    int maxWidth = std::max( DigitWidth(TopOut.Res(0).OriginalResNum() ),
+                             DigitWidth(TopOut.Res(TopOut.Nres()-1).OriginalResNum()) );
+    //mprintf("DEBUG: Max original res # digit width is %i\n", maxWidth);
+    int err;
+    if ( maxWidth < 5 )
+      err = BufferAlloc(F_PDB_RES, TopOut.Nres());
+    else if ( maxWidth < 9 ) {
+      FortranData FMT;
+      FMT.ParseFortranFormat("%FORMAT(10I8)");
+      err = BufferAlloc(F_PDB_RES, FMT, TopOut.Nres(), -1);
+    } else {
+      // Max 32 bit int is 10 digits
+      FortranData FMT;
+      FMT.ParseFortranFormat("%FORMAT(5I16)");
+      err = BufferAlloc(F_PDB_RES, FMT, TopOut.Nres(), -1);
+    }
+    if (err != 0) return 1;
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+      file_.IntToBuffer( res->OriginalResNum() );
+    file_.FlushBuffer();
+  }
+  if (hasChainID) {
+    // PDB chain IDs
+    if (BufferAlloc(F_PDB_CHAIN, TopOut.Nres())) return 1;
+    char cid[2];
+    cid[1] = '\0';
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    {
+      cid[0] = res->ChainId();
+      file_.CharToBuffer( cid );
+    }
+    file_.FlushBuffer();
+  }
+  if (hasIcodes) {
+    // PDB residue insertion codes
+    if (BufferAlloc(F_PDB_ICODE, TopOut.Nres())) return 1;
+    char icode[2];
+    icode[1] = '\0';
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    {
+      icode[0] = res->Icode();
+      file_.CharToBuffer( icode );
+    }
+    file_.FlushBuffer();
+  }
   return 0;
 }
 

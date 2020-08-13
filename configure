@@ -45,7 +45,7 @@ UsageFull() {
   echo "    --with-<lib>=<DIR> : Use library in specified directory."
   echo "    -l<lib>=<FILE>     : Use specified library file."
   echo "    -no<lib>           : Disable library."
-  echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile"
+  echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
   echo "    -static        : Use static linking."
@@ -142,22 +142,25 @@ CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
 # Total number of external libraries
-NLIB=13
+NLIB=14
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
+# Libraries containing definition of a function should appear *after*
+# any source files or object files which use it.
 LNETCDF=0
 LPARANC=1    # Parallel NetCDF
 LBZIP=2
-LZIP=3
-LARPACK=4
-LLAPACK=5
-LBLAS=6
-LFFTW3=7
-LREADLINE=8
-LXDRFILE=9
-LSANDER=10
-LTIMER=11
-LCUDA=12
+LTNGFILE=3   # This has to come before ZLIB since it depends on ZLIB
+LZIP=4
+LARPACK=5
+LLAPACK=6
+LBLAS=7
+LFFTW3=8
+LREADLINE=9
+LXDRFILE=10
+LSANDER=11
+LTIMER=12
+LCUDA=13
 
 # LIB_STAT = Library status:
 #   off       : Do not use library.
@@ -281,6 +284,15 @@ LIB_D_ON[$LCUDA]='-DCUDA'
 LIB_DOFF[$LCUDA]=''
 LIB_TYPE[$LCUDA]='cpp'
 
+LIB_STAT[$LTNGFILE]='bundled'
+LIB_CKEY[$LTNGFILE]='tng'
+LIB_HOME[$LTNGFILE]='tng'
+LIB_FLAG[$LTNGFILE]='-ltng_io'
+LIB_STTC[$LTNGFILE]='libtng_io.a'
+LIB_D_ON[$LTNGFILE]='-DHAS_TNGFILE'
+LIB_DOFF[$LTNGFILE]=''
+LIB_TYPE[$LTNGFILE]='ld'
+
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
 done
@@ -367,7 +379,7 @@ TestProgram() {
   COMPILELINE="$comp $args -o testp $file $link"
   #echo "COMPILE: $COMPILELINE" #DEBUG
   $COMPILELINE > $COMPOUT 2> $COMPERR
-  if [ $? -ne 0 ] ; then
+  if [ $? -ne 0 -o ! -f 'testp' ] ; then
     if [ $silent -eq 0 ] ; then
       echo ""
       ErrMsg "Test compile failed: $COMPILELINE"
@@ -579,6 +591,21 @@ EOF
   TestProgram "  Checking Xdrfile" "$CXX" "$CXXFLAGS ${LIB_INCL[$LXDRFILE]}" testp.cpp "${LIB_FLAG[$LXDRFILE]}"
 }
 
+TestTngfile() {
+  cat > testp.cpp <<EOF
+#include <tng/tng_io.h>
+tng_trajectory_t traj_;
+bool Unused(const char* fname) {
+  tng_function_status stat = tng_util_trajectory_open(fname, 'r', &traj_);
+  if (stat != TNG_SUCCESS)
+    return false;
+  return true;
+}
+int main() { return 0; }
+EOF
+  TestProgram "  Checking TNG" "$CXX" "$CXXFLAGS ${LIB_INCL[$LTNGFILE]}" testp.cpp "${LIB_FLAG[$LTNGFILE]}"
+}
+
 TestSanderlib() {
   cat > testp.cpp <<EOF
 #include "sander.h"
@@ -640,6 +667,7 @@ TestLibraries() {
   if [ "${LIB_TEST[$LFFTW3]}" = 'yes'    ] ; then TestFFTW3 ; fi
   if [ "${LIB_TEST[$LREADLINE]}" = 'yes' ] ; then TestReadline ; fi
   if [ "${LIB_TEST[$LXDRFILE]}" = 'yes'  ] ; then TestXdrfile ; fi
+  if [ "${LIB_TEST[$LTNGFILE]}" = 'yes'  ] ; then TestTngfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   if [ "${LIB_TEST[$LCUDA]}" = 'yes'     ] ; then TestCuda ; fi
 }
@@ -653,6 +681,7 @@ SetupFinalFlags() {
   if [ $USE_SINGLEENSEMBLE -ne 0 ] ; then DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE" ; fi
   if [ ! -z "$LFS"               ] ; then DIRECTIVES="$DIRECTIVES $LFS" ; fi
   if [ "$C11_SUPPORT" = 'yes'    ] ; then
+    DIRECTIVES="$DIRECTIVES -DC11_SUPPORT"
     if [ "${LIB_STAT[$LFFTW3]}" != 'off' ] ; then
       DIRECTIVES="$DIRECTIVES -DLIBPME -DHAVE_FFTWD=1"
     fi
@@ -753,6 +782,12 @@ SetupFinalFlags() {
     CPPTRAJ_LIB="$CPPTRAJ_LIB -lpthread"
   fi
   LDFLAGS="$ldf $LDFLAGS"
+  # Platform-specific directives
+  if [ "$PLATFORM" = 'windows' ] ; then
+    echo "Warning: DTR trajectory not supported on windows."
+  else
+    DIRECTIVES="$DIRECTIVES -DENABLE_DTR"
+  fi
 }
 
 #-------------------------------------------------------------------------------
@@ -876,7 +911,7 @@ SetupLibraries() {
             lhdir="$ladir"
           fi
           if [ "${LIB_LINK[$i]}" = 'static' ] ; then
-            if [ -z "${LIB_STTC[$i]}" ] ; then
+            if [ -z "${LIB_STTC[$i]}" -o ! -f "$lhdir/${LIB_STTC[$i]}" ] ; then
               WrnMsg "Cannot link '${LIB_CKEY[$i]}' statically."
               lflag="-L$lhdir ${LIB_FLAG[$i]}"
             else
@@ -905,7 +940,18 @@ SetupLibraries() {
         elif [ $i -eq $LSANDER ] ; then
           # Always specify libsander location to prevent pulling in
           # other amber libraries.
-          lflag="${LIB_HOME[$LSANDER]}/lib/libsander$SHARED_SUFFIX"
+          if [ ! -f "${LIB_FLAG[$LSANDER]}" ] ; then
+            lflag="${LIB_HOME[$LSANDER]}/lib/libsander$SHARED_SUFFIX"
+          else
+            # libsander directly specified.
+            lflag=${LIB_FLAG[$LSANDER]}
+            # Figure out the include directory
+            if [ -z "$linc" ] ; then
+              tmpdir1=`dirname $lflag`   # the lib dir
+              tmpdir2=`dirname $tmpdir1` # The AMBERHOME dir
+              linc="-I"$tmpdir2/include
+            fi
+          fi
         fi
       fi
       # Special case. If library had include path set already, do not override it.
@@ -917,6 +963,12 @@ SetupLibraries() {
       LIB_INCL[$i]="$linc"
     fi
   done
+  # Take care of any library dependencies.
+  if [ "${LIB_STAT[$LZIP]}" = 'off' -a "${LIB_STAT[$LTNGFILE]}" != 'off' ] ; then
+    # TNG depends on libz
+    echo "Warning: TNG depends on libz; disabling TNG."
+    LIB_STAT[$LTNGFILE]='off'
+  fi
 }
 
 #-------------------------------------------------------------------------------
@@ -1006,12 +1058,12 @@ SetupCompilers() {
       CFLAGS="-fp-model precise -fp-model source $CFLAGS"
       hostflags='-xHost'
       optflags='-O3'
-      VERSION_LINE=`$CXX -v 2>&1`
+      VERSION_LINE=`$CXX -v 2>&1 | grep version`
       if [ $? -ne 0 ] ; then
         echo "$VERSION_LINE"
         Err "Could not check Intel C++ compiler version."
       fi
-      MAJOR_V=`echo "$VERSION_LINE" | awk '{print $3}' | cut -d'.' -f1`
+      MAJOR_V=`echo "$VERSION_LINE" | awk '{print $3; exit 0;}' | cut -d'.' -f1`
       if [ $MAJOR_V -ge 16 ] ; then
         ompflag='-qopenmp'
       else
@@ -1397,8 +1449,8 @@ BasicChecks() {
     if [ $USE_OPENMP -ne 0 ] ; then
       Err "OpenMP not currently supported on Windows."
     fi
-    echo "WINDOWS support requested. Implies '-static'."
-    USE_STATIC=1
+    #echo "WINDOWS support requested. Implies '-static'."
+    #USE_STATIC=1
   fi
   if [ "${LIB_STAT[$LPARANC]}" != 'off' -a $USE_MPI -eq 0 ] ; then
     WrnMsg "Parallel NetCDF enabled but MPI not specified. Assuming '-mpi'."
@@ -1420,17 +1472,73 @@ BasicChecks() {
 PlatformTests() {
   # C++11 support
   if [ "$C11_SUPPORT" = 'yes' ] ; then
+    # First try to test a basic C++11 construct
     cat > testp.cpp <<EOF
 #include <initializer_list>
 int main() { constexpr int a = 5; auto b = a; for (auto i : {1, 2, 3}) { b += i; } return 0; }
 EOF
-    TestProgram silent "  Testing C++11 support" "$CXX" "$CXXFLAGS $C11FLAG" testp.cpp
+    TestProgram silent "  Testing basic C++11 support" "$CXX" "$CXXFLAGS $C11FLAG" testp.cpp
     if [ $? -eq 1 ] ; then
       echo "Not present"
       C11_SUPPORT='no'
     else
       C11_SUPPORT='yes'
-      CXXFLAGS="$CXXFLAGS $C11FLAG"
+      # Next, test GNU backend for at least 4.8.1 support.
+      # Clang requires >= 3.3.
+      cat > testp.cpp <<EOF
+#include <cstdio>
+int main() {
+#ifdef __clang_major__
+// Test for Clang >= 3.3
+  printf("Clang %i.%i.%i\n", __clang_major__, __clang_minor__, __clang_patchlevel__);
+  int badClang = 1;
+#if __clang_major__ > 3
+  badClang = 0;
+#elif (__clang_major__ == 3 && __clang_minor__ > 2)
+  badClang = 0;
+#endif
+  if (badClang == 1)
+    printf("Clang < 3.3 detected.\n");
+  else
+    printf("Clang >= 3.3 detected.\n");
+  return badClang;
+#else
+// Test for GCC >= 4.8.1
+  printf("GCC %i.%i.%i\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+  int badGcc = 1;
+#if __GNUC__ > 4
+  badGcc = 0;
+#elif (__GNUC__ == 4 && __GNUC_MINOR__ > 8)
+  badGcc = 0;
+#elif (__GNUC__ == 4 && __GNUC_MINOR__ == 8 && __GNUC_PATCHLEVEL__ > 0)
+  badGcc = 0;
+#endif
+  if (badGcc == 1)
+    printf("GCC < 4.8.1 detected.\n");
+  else
+    printf("GCC >= 4.8.1 detected.\n");
+  return badGcc;
+#endif /* GCC/Clang */
+}
+EOF
+      echo -n "  Testing system headers for C++11 support: "
+      $CXX $CXXFLAGS $C11FLAG -o testp testp.cpp > $COMPOUT 2> $COMPERR
+      if [ $? -ne 0 ] ; then
+        C11_SUPPORT='no'
+      else
+        ./testp > prog.out
+        if [ $? -ne 0 ] ; then
+          C11_SUPPORT='no'
+        fi
+        rm -f testp prog.out
+      fi
+      rm -f $COMPOUT $COMPERR
+      if [ "$C11_SUPPORT" = 'no' ] ; then
+        echo "Not supported"
+      else
+        echo "OK"
+        CXXFLAGS="$CXXFLAGS $C11FLAG"
+      fi
     fi
   fi
   # Some compilers (like older Intel) have a problem with the order of
@@ -1988,6 +2096,12 @@ if [ "${LIB_STAT[$LXDRFILE]}" = 'bundled' ] ; then
 else
   XDRFILE_TARGET='noxdrfile'
 fi
+# TNG
+if [ "${LIB_STAT[$LTNGFILE]}" = 'bundled' ] ; then
+  TNGFILE_TARGET=${LIB_FLAG[$LTNGFILE]}
+else
+  TNGFILE_TARGET='notngfile'
+fi
 # Arpack
 if [ "${LIB_STAT[$LARPACK]}" = 'bundled' ] ; then
   ARPACK_TARGET=${LIB_FLAG[$LARPACK]}
@@ -2035,6 +2149,8 @@ READLINE_LIB=${LIB_FLAG[$LREADLINE]}
 
 XDRFILE_TARGET=$XDRFILE_TARGET
 
+TNGFILE_TARGET=$TNGFILE_TARGET
+
 ARPACK_TARGET=$ARPACK_TARGET
 
 FFT_TARGET=$FFT_TARGET
@@ -2058,6 +2174,9 @@ cat > $external_config <<EOF
 # configured using: $CONFIGURECMD
 EOF
 BuildRules $external_config nvcc cc f77
+if [ "${LIB_STAT[$LZIP]}" != 'off' ] ; then
+  echo "ZLIB_FLAG=${LIB_FLAG[$LZIP]}" >> $external_config
+fi
 
 # ----- Create directories if necessary ----------
 if [ ! -e "$CPPTRAJBIN" ] ; then

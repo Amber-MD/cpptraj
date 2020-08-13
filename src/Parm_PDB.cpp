@@ -6,15 +6,27 @@
 # include "Timer.h"
 #endif
 
+/** CONSTRUCTOR */
+Parm_PDB::Parm_PDB() :
+  ConectMode_(UNSPECIFIED),
+  LinkMode_(UNSPECIFIED),
+  keepAltLoc_(' '),
+  readAsPQR_(false),
+  readBox_(false) {}
+
+// Parm_PDB::ReadHelp()
 void Parm_PDB::ReadHelp() {
-  mprintf("\tpqr      : Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
-          "\treadbox  : Read unit cell information from CRYST1 record if present.\n"
-          "\tconect   : Read CONECT records if present (default).\n"
-          "\tnoconect : Do not read CONECT records if present.\n"
-          "\tlink     : Read LINK records if present.\n"
-          "\tnolink   : Do not read LINK records if present (default).\n");
+  mprintf("\tpqr               : Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
+          "\treadbox           : Read unit cell information from CRYST1 record if present.\n"
+          "\tconect            : Read CONECT records if present (default).\n"
+          "\tnoconect          : Do not read CONECT records if present.\n"
+          "\tlink              : Read LINK records if present.\n"
+          "\tnolink            : Do not read LINK records if present (default).\n"
+          "\tkeepaltloc <char> : If specified, alternate location ID to keep.\n"
+         );
 }
 
+// Parm_PDB::processReadArgs()
 int Parm_PDB::processReadArgs(ArgList& argIn) {
   readAsPQR_ = argIn.hasKey("pqr");
   readBox_ = argIn.hasKey("readbox");
@@ -26,9 +38,13 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
     LinkMode_ = READ;
   else if (argIn.hasKey("nolink"))
     LinkMode_ = SKIP;
+  std::string keepAltChar = argIn.GetStringKey("keepaltloc");
+  if (!keepAltChar.empty())
+    keepAltLoc_ = keepAltChar[0];
   return 0;
 }
 
+// Parm_PDB::ReadParm()
 int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   typedef std::vector<PDBfile::Link> Larray;
   PDBfile infile;
@@ -64,16 +80,19 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     mprintf("\tReading bond info from LINK records.\n");
   else
     mprintf("\tNot reading bond info from LINK records.\n");
+  if (keepAltLoc_ != ' ')
+    mprintf("\tWhen present, only reading alternate location ID %c\n", keepAltLoc_);
 # ifdef TIMER
   Timer time_total, time_atom;
   time_total.Start();
 # endif
   bool missingResidues = false;
+  int nAltLocSkipped = 0;
   // Loop over PDB records
   while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
     if (readBox_ && infile.RecType() == PDBfile::CRYST1) {
       // Box info from CRYST1 record.
-      infile.pdb_Box( XYZ );
+      infile.pdb_Box_verbose( XYZ );
       TopIn.SetParmBox( XYZ );
     } else if (infile.RecType() == PDBfile::CONECT && readConect) {
       // BOND - first element will be atom, next few are bonded atoms.
@@ -101,6 +120,11 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       // If this is an ATOM / HETATM keyword, add to topology.
       infile.pdb_XYZ( XYZ );
       Atom pdbAtom = infile.pdb_Atom(altLoc, atnum);
+      // Check if we are filtering alt loc IDs
+      if (keepAltLoc_ != ' ' && altLoc != ' ' && altLoc != keepAltLoc_) {
+        nAltLocSkipped++;
+        continue;
+      }
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();
@@ -113,6 +137,12 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altLoc) );
       }
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
+      if (altLoc != ' ' && keepAltLoc_ == ' ') {
+        Residue const& lastRes = TopIn.Res(TopIn.Nres()-1);
+        mprintf("Warning: Atom %i %s in res %s %i %c has alternate location specifier %c\n",
+                atnum, *pdbAtom.Name(), *lastRes.Name(), lastRes.OriginalResNum(),
+                lastRes.ChainId(), altLoc);
+      }
       Coords.AddXYZ( XYZ );
 #     ifdef TIMER
       time_atom.Stop();
@@ -131,7 +161,9 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       if (readLink)
         mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");
     }
-  }
+  } // END loop over PDB records
+  if (nAltLocSkipped > 0)
+    mprintf("\tSkipped %i alternate atom locations.\n", nAltLocSkipped);
   // Sanity check
   if (TopIn.Natom() < 1) {
     mprinterr("Error: No atoms present in PDB.\n");
@@ -153,7 +185,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res) {
         if (r1 == TopIn.ResEnd()) {
           if (link->Rnum1() == res->OriginalResNum() &&
-              link->Chain1() == res->ChainID() &&
+              link->Chain1() == res->ChainId() &&
               link->Icode1() == res->Icode())
           {
             r1 = res;
@@ -162,7 +194,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         }
         if (r2 == TopIn.ResEnd()) {
           if (link->Rnum2() == res->OriginalResNum() &&
-              link->Chain2() == res->ChainID() &&
+              link->Chain2() == res->ChainId() &&
               link->Icode2() == res->Icode())
           {
             r2 = res;

@@ -5,6 +5,10 @@
 #include "TorsionRoutines.h" // pucker calc
 #include "Constants.h" // pucker calc
 #include "PDBfile.h" // load base reference
+#include "ArgList.h"
+#include "Topology.h"
+#include "DataSetList.h"
+#include "DataSet_1D.h"
 // ---------- NA_Reference -----------------------------------------------------
 /** Add all common variations of NA base name given single letter X:
   * DX/DX3/DX5 (not for U), RX/RX3/RX5 (not for T), X3/X5, X
@@ -104,6 +108,65 @@ NA_Reference::NA_Reference() {
   // DEBUG
   //for (BaseArray::const_iterator b = bases_.begin(); b != bases_.end(); ++b)
   //  b->PrintInfo();
+}
+
+/** Attempt to create a custom reference using the given residue and
+  * specified existing reference as a template.
+  */
+int NA_Reference::AddCustomBase(NameType const& rnameIn, Topology const& topIn, int rnumIn,
+                                NA_Base::NAType ntypeIn)
+{
+  // See if we already have a reference with this name.
+  for (BaseArray::const_iterator REF = bases_.begin();
+                                 REF != bases_.end(); ++REF)
+  {
+    if (REF->NameMatches( rnameIn )) {
+      mprinterr("Error: Reference with res name %s already exists.\n", *rnameIn);
+      return 1;
+    }
+  }
+  // Find the existing correct type among the first 5 original references
+  std::vector<RefBase>::const_iterator refBase;
+  if      (bases_[0].Type() == ntypeIn) refBase = bases_.begin();
+  else if (bases_[1].Type() == ntypeIn) refBase = bases_.begin() + 1;
+  else if (bases_[2].Type() == ntypeIn) refBase = bases_.begin() + 2;
+  else if (bases_[3].Type() == ntypeIn) refBase = bases_.begin() + 3;
+  else if (bases_[4].Type() == ntypeIn) refBase = bases_.begin() + 4;
+  else {
+    mprinterr("Internal Error: AddCustomBase(): Specified reference type not found.\n");
+    return 1;
+  }
+  mprintf("\t  Trying to map residue %s to reference %c\n", *rnameIn, refBase->BaseChar());
+  // For each atom in the input residue, find atom in reference if possible.
+  RefBase newRef(refBase->BaseChar(), rnameIn, ntypeIn);
+  for (int resatm = topIn.Res(rnumIn).FirstAtom();
+           resatm != topIn.Res(rnumIn).LastAtom(); ++resatm)
+  {
+    Atom const& newAtom = topIn[resatm];
+    for (RefBase::const_iterator refatm = refBase->begin();
+                                 refatm != refBase->end(); ++refatm)
+    {
+      if (newAtom.Name() == refatm->Name()) {
+        mprintf("\t    Found %s\n", *(newAtom.Name()));
+        newRef.AddAtom( *refatm );
+      }
+    }
+  }
+  //newRef.PrintInfo();
+  mprintf("\t  New ref base size: %u atoms.\n", newRef.size());
+  // If < 3 atoms, RMS fitting will not work.
+  unsigned int nRmsAtoms = 0;
+  for (RefBase::const_iterator refatm = newRef.begin(); refatm != newRef.end(); ++refatm)
+    if (refatm->RmsFit())
+      nRmsAtoms++;
+  if (nRmsAtoms < 3) {
+    mprinterr("Error: Only %u RMS-fit atoms in custom reference. RMS fitting will not work.\n",
+              nRmsAtoms);
+    return 1;
+  }
+  bases_.push_back( newRef );
+
+  return 0;
 }
 
 static inline void CheckHbondValue(int& hbond) {
@@ -290,17 +353,6 @@ NA_Reference::RetType
   return BASE_OK;
 }
 
-// NA_Reference::AddNameToBaseType()
-void NA_Reference::AddNameToBaseType(NameType const& nameIn, NA_Base::NAType typeIn) {
-  for (BaseArray::iterator b = bases_.begin(); b != bases_.end(); ++b) {
-    if (b->Type() == typeIn) {
-      mprintf("\tAdding name '%s' to base '%c'\n", *nameIn, b->BaseChar());
-      b->AddName( nameIn );
-      break;
-    }
-  }
-}
-
 // ---------- RefBase ----------------------------------------------------------
 /** \return true if any of this reference bases names matches given name. */
 bool RefBase::NameMatches(NameType const& nameIn) const {
@@ -315,18 +367,17 @@ void RefBase::PrintInfo() const {
   for (NameArray::const_iterator n = names_.begin(); n != names_.end(); ++n)
     mprintf(" %s", *(*n));
   mprintf("\n");
+  mprintf("    %-8s %6s %6s %6s %1s %1s\n", "Name", "X", "Y", "Z", "H", "R");
   for (NA_Array::const_iterator at = atoms_.begin(); at != atoms_.end(); ++at)
-    mprintf("\t%s %6.3f %6.3f %6.3f %i %i\n", at->name(), at->X(), at->Y(), at->Z(),
+    mprintf("    %-8s %6.3f %6.3f %6.3f %i %i\n", at->name(), at->X(), at->Y(), at->Z(),
             (int)at->HB_type(), at->RmsFit());
 }
 
 // ---------- NA_Atom ----------------------------------------------------------
-/// CONSTRUCTOR - replace any asterisks in name with quote
+/// CONSTRUCTOR
 NA_Atom::NA_Atom(double x, double y, double z, NA_Base::HBType t, int r, const char* n) :
       x_(x), y_(y), z_(z), hb_type_(t), rms_fit_(r), aname_(n)
-{
-  aname_.ReplaceAsterisk();
-}
+{ }
 
 // ---------- NA_Base ----------------------------------------------------------
 NA_Base::NA_Base() :

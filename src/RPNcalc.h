@@ -1,6 +1,10 @@
 #ifndef INC_RPNCALC_H
 #define INC_RPNCALC_H
-#include "DataSetList.h"
+#include <vector>
+#include "TextFormat.h"
+class DataSetList;
+class DataSet;
+class ArgList;
 /// Reverse Polish notation calculator
 class RPNcalc {
   public:
@@ -49,8 +53,20 @@ class RPNcalc {
       int resultIsScalar_;
       const char* description_;
     };
+    /// Hold info for recognizing functions
+    struct FnIdType {
+      TokenType fnType_;   ///< Function token type
+      int nChar_;          ///< Number of characters in function name including left parentheses
+      const char* fnName_; ///< Function name including left parentheses
+    };
+    typedef const FnIdType* FnIdPtr;
+    /// Array containing info for recognizing functions
+    static const FnIdType FnIdArray_[];
+    /// Identify function in given expression at given position
+    static FnIdPtr IdFunction(std::string const&, size_t);
 
     static inline double DoOperation(double, double, TokenType);
+    int TokenLoop(DataSetList& DSL) const;
 
     typedef std::vector<Token> Tarray;
     Tarray tokens_;

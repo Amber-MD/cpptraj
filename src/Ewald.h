@@ -1,16 +1,19 @@
 #ifndef INC_EWALD_H
 #define INC_EWALD_H
-#include "Topology.h"
+class Topology;
+class AtomMask;
+class Frame;
 #include "Timer.h"
 #include "PairList.h"
-/// Base class for calculating electrostatics using Ewald methods.
+/// Base class for calculating non-bonded energy using Ewald methods.
 class Ewald {
   public:
     Ewald();
     // ----- Virtual functions -------------------
     virtual ~Ewald() {}
     virtual int Setup(Topology const&, AtomMask const&) = 0;
-    virtual double CalcEnergy(Frame const&, AtomMask const&, double&) = 0; // TODO const?
+    /// Calculate electrostatic and van der Waals energy
+    virtual int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&) = 0;
     // -------------------------------------------
     /// Report timings.
     void Timing(double) const;

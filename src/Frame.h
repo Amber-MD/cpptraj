@@ -82,6 +82,7 @@ class Frame {
     int size()                        const { return ncoord_;        }
     int NrepDims()                    const { return (int)remd_indices_.size(); } // TODO: deprecate
     double Temperature()              const { return T_;             }
+    int Step()                        const { return step_;          }
     double pH()                       const { return pH_;            }
     double RedOx()                    const { return redox_;         }
     double Time()                     const { return time_;          }
@@ -105,10 +106,14 @@ class Frame {
     int CrdIdx()                      const { return crdidx_;        }
     /// Set box alpha, beta, and gamma
     inline void SetBoxAngles(const double*);
-    /// Set box
+    /// Set box from another box
     void SetBox( Box const& b ) { box_ = b; }
+    /// Modify box in place
+    Box& SetBox() { return box_; }
     /// Set temperature
     void SetTemperature(double tIn) { T_ = tIn;     }
+    /// Set step
+    void SetStep( int sIn )         { step_ = sIn;  }
     /// Set pH
     void Set_pH(double phIn)        { pH_ = phIn;   }
     /// Set RedOx potential
@@ -260,6 +265,7 @@ class Frame {
     int natom_;     ///< Number of atoms stored in frame.
     int maxnatom_;  ///< Maximum number of atoms this frame can store.
     int ncoord_;    ///< Number of coordinates stored in frame (natom * 3).
+    int step_;      ///< Simulation step
     Box box_;       ///< Box coords, 3xlengths, 3xangles
     double T_;      ///< Temperature
     double pH_;     ///< pH

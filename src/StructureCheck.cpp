@@ -2,6 +2,7 @@
 #include <algorithm> // sort
 #include "StructureCheck.h"
 #include "CpptrajStdio.h"
+#include "CharMask.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -184,7 +185,15 @@ int StructureCheck::PL1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const
                                      Matrix_3x3 const& recip)
 {
   int Nproblems = 0;
-  pairList_.CreatePairList(currentFrame, ucell, recip, Mask1_);
+  int retVal = pairList_.CreatePairList(currentFrame, ucell, recip, Mask1_);
+  if (retVal < 0) {
+    // Treat grid setup failure as one problem.
+    mprinterr("Error: Grid setup failed.\n");
+    return 1;
+  } else if (retVal > 0) {
+    // Atoms off the grid should count as problems as well.
+    Nproblems = retVal;
+  }
   problemAtoms_.clear();
 
   int cidx;

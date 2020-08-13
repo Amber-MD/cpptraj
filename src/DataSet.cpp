@@ -28,7 +28,9 @@ const char* DataSet::Descriptions_[] = {
   "pH",                         // PH
   "pH REMD (explicit)",         // PH_EXPL
   "pH REMD (implicit)",         // PH_IMPL
-  "parameters"                  // PARAMETERS
+  "parameters",                 // PARAMETERS
+  "tensor",                     // TENSOR
+  "string variable"             // STRINGVAR
 };
 
 // CONSTRUCTOR

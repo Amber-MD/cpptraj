@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_TRJ.h"
 #include "ReferenceFrame.h"
+#include "ArgList.h"
 
 ReferenceAction::ReferenceAction() :
   refMode_( FIRST ),
@@ -100,7 +101,10 @@ int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
           delete trj;
           return 1;
         }
-        if (trj->AddSingleTrajin( reftraj, argIn, RefParm )) return 1;
+        if (trj->AddSingleTrajin( reftraj, argIn, RefParm )) {
+          delete trj;
+          return 1;
+        }
         trj->SetMeta( reftraj );
         traj_ = (DataSet_Coords*)trj;
         refCrd_ = traj_;
@@ -127,6 +131,7 @@ int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
 
 // ReferenceAction::SetupRefMask()
 int ReferenceAction::SetupRefMask(Topology const& topIn) {
+  mprintf("\tReference topology: %s\n", topIn.c_str());
   if (refMask_.MaskStringSet()) {
     if (topIn.SetupIntegerMask( refMask_ )) return 1;
     mprintf("\tReference mask:");

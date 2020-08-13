@@ -14,7 +14,7 @@
 #include "DataSet_Mesh.h"
 
 // CONSTRUCTOR
-Action_Spam::Action_Spam() : Action(HIDDEN),
+Action_Spam::Action_Spam() :
   debug_(0),
   DG_BULK_(-30.3), // Free energy of bulk SPCE water
   DH_BULK_(-22.2), // Enthalpy of bulk SPCE water
@@ -386,7 +386,11 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 {
   t_action_.Start();
   frameIn.BoxCrd().ToRecip(ucell_, recip_);
-  pairList_.CreatePairList(frameIn, ucell_, recip_, mask_);
+  int retVal = pairList_.CreatePairList(frameIn, ucell_, recip_, mask_);
+  if (retVal != 0) {
+    mprinterr("Error: Grid setup failed.\n");
+    return Action::ERR;
+  }
   int wat = 0, wat1 = 0;
   int basenum = frameNum * solvent_residues_.size();
   DataSet_double& evals = static_cast<DataSet_double&>( *myDSL_[0] );

@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "ImageRoutines.h"
+#include "CharMask.h"
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :

@@ -27,14 +27,14 @@ void Analysis_VectorMath::Help() const {
 Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   // Get Vectors
-  DataSetList vsets1 = setup.DSL().GetSetsOfType( analyzeArgs.GetStringKey("vec1"),
-                                                  DataSet::VECTOR );
+  DataSetList vsets1 = setup.DSL().SelectGroupSets( analyzeArgs.GetStringKey("vec1"),
+                                                  DataSet::VECTOR_1D );
   if (vsets1.empty()) {
     mprinterr("Error: 'vec1' not found.\n");
     return Analysis::ERR;
   }
-  DataSetList vsets2 = setup.DSL().GetSetsOfType( analyzeArgs.GetStringKey("vec2"),
-                                                  DataSet::VECTOR );
+  DataSetList vsets2 = setup.DSL().SelectGroupSets( analyzeArgs.GetStringKey("vec2"),
+                                                  DataSet::VECTOR_1D );
   if (vsets2.empty()) {
     mprinterr("Error: 'vec2' not found.\n");
     return Analysis::ERR;
@@ -131,7 +131,7 @@ int Analysis_VectorMath::CrossProduct(DataSet* Dout, DataSet_Vector& V1, DataSet
 const
 {
   DataSet_Vector& Out = static_cast<DataSet_Vector&>( *Dout );
-  Out.ReserveVecs( V1.Size() );
+  Out.Allocate( DataSet::SizeArray(1, V1.Size()) );
   unsigned int v1 = 0;
   unsigned int v2 = 0;
   for (unsigned int v = 0; v < vmax; ++v, v1 += v1inc, v2 += v2inc) {

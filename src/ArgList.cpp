@@ -160,6 +160,13 @@ ArgList ArgList::RemainingArgs() {
   return remain;
 }
 
+int ArgList::NremainingArgs() const {
+  int nUnmarked = 0;
+  for (std::vector<bool>::const_iterator it = marked_.begin(); it != marked_.end(); ++it)
+    if (!(*it)) ++nUnmarked;
+  return nUnmarked;
+}
+
 // ArgList::AddArg()
 /** \param input string of space-delimited args to add to argument list.
   */
@@ -215,13 +222,6 @@ void ArgList::RemoveFirstArg() {
   if (arglist_.empty()) return;
   arglist_.erase( arglist_.begin() );
   marked_.erase( marked_.begin() );
-}
-
-/** Replace argument at position with given argument. Update ArgLine. */
-void ArgList::ChangeArg(unsigned int idx, std::string const& arg) {
-  size_t pos = argline_.find( arglist_[idx], 0 ); 
-  argline_.replace(pos, arglist_[idx].size(), arg);
-  arglist_[idx] = arg;
 }
 
 // ArgList::Command()

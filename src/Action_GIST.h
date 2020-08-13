@@ -2,15 +2,22 @@
 #define INC_ACTION_GIST_H
 #include "Action.h"
 #include "ImagedAction.h"
-#include "DataSet_3D.h"
-#include "DataSet_MatrixFlt.h"
 #include "Timer.h"
+#ifdef CUDA
+#include "cuda_kernels/GistCudaSetup.cuh"
+#endif
+class DataSet_3D;
+class DataSet_MatrixFlt;
+
 /// Class for applying Grid Inhomogenous Solvation Theory
 /** \author Daniel R. Roe
   */
 class Action_GIST : public Action {
   public:
     Action_GIST();
+    #ifdef CUDA
+    ~Action_GIST() {delete[] this->solvent_;}
+    #endif
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_GIST(); }
     void Help() const;
   private:
@@ -27,6 +34,39 @@ class Action_GIST : public Action {
     void Order(Frame const&);
     void SumEVV();
 
+#ifdef CUDA
+    // Additional data for GPU calculation
+
+    std::vector<float> lJParamsA_;
+    std::vector<float> lJParamsB_;
+    std::vector<float> charges_;
+    std::vector<int> atomTypes_;
+    std::vector<int> NBIndex_;
+    std::vector<int> molecule_;
+
+    unsigned int numberAtoms_;
+    int numberAtomTypes_;
+    int headAtomType_;
+    bool *solvent_;
+
+    // Arrays on GPU
+    int *NBindex_c_;
+    void *molecule_c_;
+    void *paramsLJ_c_;
+    float *max_c_;
+    float *min_c_;
+    float *result_w_c_;
+    float *result_s_c_;
+    int *result_O_c_;
+    int *result_N_c_;
+
+    // CUDA only functions
+    void freeGPUMemory(void);
+    void copyToGPU(void);
+    void NonbondCuda(ActionFrame);
+
+#endif
+
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;
     static const Vec3 z_lab_;
@@ -34,6 +74,10 @@ class Action_GIST : public Action {
     static const double QFAC_;
     static const int SOLUTE_;
     static const int OFF_GRID_;
+
+    double gridspacing_;
+    Vec3 gridcntr_;
+    Vec3 griddim_;
 
     ImagedAction image_; ///< Imaging routines.
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
@@ -121,5 +165,6 @@ class Action_GIST : public Action {
     bool doEij_;               ///< If true do the i-j energy calc
     bool skipE_;               ///< If true skip the nonbond energy calc
     bool includeIons_;         ///< If true include ions in solute region.
+    bool skipS_;               ///< If true does not calculate entropy
 };
 #endif

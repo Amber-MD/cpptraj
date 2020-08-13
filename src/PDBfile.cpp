@@ -127,6 +127,12 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
   return recType_;
 }
 
+/** \return Atom alt. loc. code from PDB ATOM/HETATM line. */
+char PDBfile::pdb_AltLoc() const {
+  return linebuffer_[16];
+}
+
+/** \return Atom containing information from PDB ATOM/HETATM line. */
 Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   // ATOM or HETATM keyword.
   // Check line length before any modification.
@@ -141,7 +147,6 @@ Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   altLoc = linebuffer_[16];
   linebuffer_[16] = '\0';
   NameType aname(linebuffer_+12);
-  aname.ReplaceAsterisk();
   linebuffer_[16] = altLoc;
   // Element (76-77), Protect against broken PDB files (lines too short).
   char eltString[2]; eltString[0] = ' '; eltString[1] = ' ';
@@ -164,7 +169,6 @@ Residue PDBfile::pdb_Residue() {
   linebuffer_[20] = '\0';
   NameType resName(linebuffer_+17);
   linebuffer_[20] = savechar;
-  resName.ReplaceAsterisk();
   // Chain ID (21)
   // Res num (22-26), insertion code (26)
   char icode = linebuffer_[26];
@@ -216,7 +220,8 @@ void PDBfile::pdb_ChargeAndRadius(float& charge, float& radius) {
   sscanf(linebuffer_+54, "%f %f", &charge, &radius);
 }
 
-void PDBfile::pdb_Box(double* box) {
+/** Set box[0-5] with A B C ALPHA BETA GAMMA from CRYST1 record. */
+void PDBfile::readCRYST1(double* box) {
   // CRYST1 keyword. RECORD A B C ALPHA BETA GAMMA SGROUP Z
   unsigned int lb_size = strlen(linebuffer_);
   if (lb_size < 54) {
@@ -240,14 +245,30 @@ void PDBfile::pdb_Box(double* box) {
     box[ib] = atof( linebuffer_ + lb );
     linebuffer_[end] = savechar;
   }
-  mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
-          box[0], box[1], box[2], box[3], box[4], box[5]);
-  // Warn if the box looks strange.
+}
+
+/** Print a warning to STDOUT if unit cell lengths are strange. */
+static inline void box_warning(const double* box) {
   if (box[0] == 1.0 && box[1] == 1.0 && box[2] == 1.0)
     mprintf("Warning: PDB cell lengths are all 1.0 Ang.;"
             " this usually indicates an invalid box.\n");
 }
 
+/** Read box info from CRYST1, verbose. */
+void PDBfile::pdb_Box_verbose(double* box) {
+  readCRYST1(box);
+  box_warning(box);
+  mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
+          box[0], box[1], box[2], box[3], box[4], box[5]);
+}
+
+/** Read box info from CRYST1, warn only if box is strange looking. */
+void PDBfile::pdb_Box_terse(double* box) {
+  readCRYST1(box);
+  box_warning(box);
+}
+
+/** Read serial #s of atoms from a CONECT record. */
 int PDBfile::pdb_Bonds(int* bnd) {
   unsigned int lb_size = strlen(linebuffer_);
   int Nscan = 0;
@@ -262,7 +283,7 @@ int PDBfile::pdb_Bonds(int* bnd) {
     unsigned int end = lb + 5;
     char savechar = linebuffer_[end];
     linebuffer_[end] = '\0';
-    bnd[Nscan++] = atof( linebuffer_ + lb );
+    bnd[Nscan++] = atoi( linebuffer_ + lb );
     linebuffer_[end] = savechar;
   }
   if (Nscan < 2)
@@ -356,11 +377,13 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   resName[1] = ' ';
   resName[2] = ' '; // NOTE location 3 is always set
   resName[4] = ' ';
-  const char* ptr = *resnameIn;
-  while (*ptr != ' ' && *ptr != '\0') ++ptr;
-  int rn_size = (int)(ptr - *resnameIn);
+  int rn_size = resnameIn.len();
   // Protect against residue names larger than 4 chars.
-  if (rn_size > 4) rn_size = 4;
+  if (rn_size > 4) {
+    rn_size = 4;
+    mprintf("Warning: Residue name '%s' is larger than 4 chars and will be truncated.\n",
+            *resnameIn);
+  }
   int rn_idx;
   if (rn_size == 4 && useCol21_)
     rn_idx = 4;
@@ -374,16 +397,25 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   // For atoms with element names of 1 character, names in PDB format start
   // from col 14 when <= 3 chars, 13 when 4 chars. Atoms with element names of
   // 2 characters start from col 13.
-  if (eNameChars == 2 || name[3] != ' ') { // 4 chars or 2 char elt name
-    atomName[0] = name[0];
-    atomName[1] = name[1];
-    atomName[2] = name[2];
-    atomName[3] = name[3];
-  } else {            // <= 3 chars or 1 char elt name
-    atomName[0] = ' ';
-    atomName[1] = name[0];
-    atomName[2] = name[1];
-    atomName[3] = name[2];
+  atomName[0] = ' ';
+  atomName[1] = ' ';
+  atomName[2] = ' ';
+  atomName[3] = ' ';
+  int an_size = name.len();
+  // Protect against residue names larger than 4 chars.
+  if (an_size > 4) {
+    an_size = 4;
+    mprintf("Warning: Atom name '%s' is larger than 4 chars and will be truncated.\n",
+            *name);
+  }
+  if (eNameChars == 2 || an_size == 4) {
+    // 4 chars or 2 char elt name
+    for (int i = 0; i < an_size; i++)
+      atomName[i] = name[i];
+  } else {
+    // <= 3 chars or 1 char elt name
+    for (int i = 0; i < an_size; i++)
+      atomName[i+1] = name[i];
   }
 
   Printf("%-6s%5i %-4s%5s%c%4i%c",PDB_RECNAME[Record], anum, atomName,
@@ -441,6 +473,28 @@ static inline void x_to_buf(char* coord_buf, double X, bool& coordOverflow)
     sprintf(coord_buf, "%8.3f", X);
 }
 
+static inline void SetChargeString(char* charge_buf, int charge) {
+  charge_buf[0] = ' ';
+  charge_buf[1] = ' ';
+  charge_buf[2] = '\0';
+  if (charge > 0) {
+    if (charge > 9) {
+      mprintf("Warning: Charge %i is too large. Not printing.\n", charge);
+    } else {
+      charge_buf[0] = (char)(charge + '0');
+      charge_buf[1] = '+';
+    }
+  } else if (charge < 0) {
+    if (charge < -9) {
+      mprintf("Warning: Charge %i is too large. Not printing.\n", charge);
+    } else {
+      charge = -charge;
+      charge_buf[0] = (char)(charge + '0');
+      charge_buf[1] = '-';
+    }
+  }
+}
+
 // PDBfile::WriteCoord()
 void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          char altLoc,
@@ -456,21 +510,32 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
   x_to_buf(coord_buf+8 , Y, coordOverflow_);
   x_to_buf(coord_buf+16, Z, coordOverflow_);
   WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode, Elt);
+  static char charge_buf[3];
+  SetChargeString(charge_buf, charge);
   if (highPrecision)
-    Printf("   %24s%8.4f%8.4f      %2s%2s\n", coord_buf, Occ, B, Elt, "");
+    Printf("   %24s%8.4f%8.4f      %2s%2s\n", coord_buf, Occ, B, Elt, charge_buf);
   else
-    Printf("   %24s%6.2f%6.2f          %2s%2s\n", coord_buf, Occ, B, Elt, "");
+    Printf("   %24s%6.2f%6.2f          %2s%2s\n", coord_buf, Occ, B, Elt, charge_buf);
 }
 
 // PDBfile::WriteANISOU()
 void PDBfile::WriteANISOU(int anum, NameType const& name, 
                           NameType const& resnameIn, char chain, int resnum,
-                          int u11, int u22, int u33, int u12, int u13, int u23,
+                          const double* anisou,
                           const char* Elt, int charge)
 { // TODO icode, altLoc
+  // Convert to integers
+  int u11 = (int)(anisou[0] * 10000);
+  int u22 = (int)(anisou[1] * 10000);
+  int u33 = (int)(anisou[2] * 10000);
+  int u12 = (int)(anisou[3] * 10000);
+  int u13 = (int)(anisou[4] * 10000);
+  int u23 = (int)(anisou[5] * 10000);
+  static char charge_buf[3];
+  SetChargeString(charge_buf, charge);
   WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' ', Elt);
-  Printf(" %7i%7i%7i%7i%7i%7i      %2s%2i\n", u11, u22, u33, 
-         u12, u13, u23, Elt, charge);
+  Printf(" %7i%7i%7i%7i%7i%7i      %2s%2s\n", u11, u22, u33,
+         u12, u13, u23, Elt, charge_buf);
 }
 
 // PDBfile::WriteTITLE()
@@ -556,7 +621,7 @@ PDBfile::SSBOND::SSBOND() :
 PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
   idx1_(  idx1),                idx2_(  idx2),
   rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
-  chain1_(r1.ChainID()),        chain2_(r2.ChainID()),
+  chain1_(r1.ChainId()),        chain2_(r2.ChainId()),
   icode1_(r1.Icode()),          icode2_(r2.Icode())
 {
   std::copy(r1.c_str(), r1.c_str()+3, name1_);

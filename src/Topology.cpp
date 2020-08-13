@@ -1,4 +1,3 @@
-#include <cmath> // pow
 #include <algorithm> // find
 #include <map> // For atom types in append
 #include <stack> // For large system molecule search
@@ -7,6 +6,9 @@
 #include "StringRoutines.h" // integerToString 
 #include "Constants.h" // RADDEG, SMALL
 #include "AtomType.h"
+#include "AtomMask.h"
+#include "CharMask.h"
+#include "UpdateParameters.h"
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -102,20 +104,38 @@ void Topology::SetDistMaskRef( Frame const& frameIn ) {
 /** \return Range containing only solute residues. */
 Range Topology::SoluteResidues() const {
   Range solute_res;
-  atom_iterator atom = atoms_.begin();
-  while (atom != atoms_.end()) {
-    // If atom is in a solvent molecule skip molecule. Otherwise add res num
-    // and skip to next residue.
-    if (molecules_[atom->MolNum()].IsSolvent())
-      atom += molecules_[atom->MolNum()].NumAtoms();
-    else if (molecules_[atom->MolNum()].NumAtoms() == 1) // Assume ion.
-      ++atom;
-    else {
-      solute_res.AddToRange( atom->ResNum() );
-      if (debug_ > 0)
-        mprintf("DEBUG:\t\tAdding solute residue %i\n", atom->ResNum()+1);
-      atom += residues_[atom->ResNum()].NumAtoms();
+  if (molecules_.size() > 0) {
+    // Topology has molecule information
+    atom_iterator atom = atoms_.begin();
+    while (atom != atoms_.end()) {
+      // If atom is in a solvent molecule skip molecule. Otherwise add res num
+      // and skip to next residue.
+      if (molecules_[atom->MolNum()].IsSolvent())
+        atom += molecules_[atom->MolNum()].NumAtoms();
+      else if (molecules_[atom->MolNum()].NumAtoms() == 1) // Assume ion.
+        ++atom;
+      else {
+        solute_res.AddToRange( atom->ResNum() );
+        if (debug_ > 0)
+          mprintf("DEBUG:\t\tAdding solute residue %i\n", atom->ResNum()+1);
+        atom += residues_[atom->ResNum()].NumAtoms();
+      }
     }
+  } else {
+    // No molecule information
+    mprintf("Warning: No molecule information. Determining solvent residues based on naming.\n");
+    for (int res = 0; res != Nres(); res++) {
+      Residue const& currentRes = Res(res);
+      if (!currentRes.NameIsSolvent()) {
+        // Not a solvent name.
+        if (currentRes.NumAtoms() > 1 ||
+            Atoms()[currentRes.FirstAtom()].BondIdxArray().size() > 0)
+        {
+          // If this residue has > 1 atom, or is 1 atom but has bonds, assume solute.
+          solute_res.AddToRange( res );
+        }
+      }
+    } // END loop over residues
   }
   return solute_res;
 }
@@ -167,6 +187,18 @@ std::string Topology::TruncResAtomNameNum(int atom) const {
   return TruncResAtomName(atom) + "_" + integerToString(atom+1);
 }
 
+/** Given an atom number, return a string containing the corresponding
+  * residue name and number, and atom name and number, all separated
+  * by spaces:
+  * "<resname> <resnum> <atom name> <atom num>
+  */
+std::string Topology::ResNameNumAtomNameNum(int atom) const {
+  if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
+  int res = atoms_[atom].ResNum();
+  return residues_[res].Name().Truncated() + " " + integerToString(res+1) + " " +
+         atoms_[atom].Name().Truncated() + " " + integerToString(atom+1);
+}
+
 // Topology::AtomMaskName()
 /** \return A string of format :r@a where r is atoms residue number and
   *         a is atoms name.
@@ -180,6 +212,10 @@ std::string Topology::AtomMaskName(int atom) const {
   return maskName;
 }
 
+/** Given an atom number, return a string containing atom name and
+  * number with format:
+  * "<atomname>_<atomnum>"
+  */
 std::string Topology::TruncAtomNameNum(int atom) const {
   if (atom < 0 || atom >= (int)atoms_.size()) return std::string("");
   std::string atom_name = atoms_[atom].Name().Truncated();
@@ -285,9 +321,6 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
        ( residues_.back().OriginalResNum() == resIn.OriginalResNum() &&
          residues_.back().Name() != resIn.Name() ) )
   {
-    // Last atom of old residue is == current # atoms.
-    if (!residues_.empty())
-      residues_.back().SetLastAtom( atoms_.size() );
     // First atom of new residue is == current # atoms.
     residues_.push_back( resIn );
     residues_.back().SetFirstAtom( atoms_.size() );
@@ -505,11 +538,7 @@ void Topology::Resize(Pointers const& pIn) {
 /** \return Rmin for given atom. */
 double Topology::GetVDWradius(int a1) const {
   //TODO: return zero when no params?
-  NonbondType const& LJ = GetLJparam(a1, a1);
-  if (LJ.B() > 0.0)
-    return ( 0.5 * pow(2.0 * LJ.A() / LJ.B(), (1.0/6.0)) );
-  else
-    return 0.0;
+  return GetLJparam(a1, a1).Radius();
 }
 
 /** \return sigma for given atom. */
@@ -524,11 +553,7 @@ double Topology::GetVDWsigma(int a1) const {
 
 /** \return epsilon for given atom. */
 double Topology::GetVDWdepth(int a1) const {
-  NonbondType const& LJ = GetLJparam(a1, a1);
-  if (LJ.A() > 0.0)
-    return ( (LJ.B() * LJ.B()) / (4.0 * LJ.A()) );
-  else
-    return 0.0;
+  return GetLJparam(a1, a1).Depth();
 }
 
 // Topology::SetAtomBondInfo()
@@ -604,6 +629,56 @@ static inline int WarnOutOfRange(int Natom, int atom, const char* type) {
   }
   return 0;
 }
+
+/** Remove a bond between atom 1 and atom2, update the atoms array.
+  * Does not modify bond parameters.
+  * \return 0 if a bond was successfully removed, -1 if no bond exists, and 1 if an error occurs.
+  */
+int Topology::RemoveBond(int atom1, int atom2)
+{
+  // Check if atoms are out of range.
+  if (WarnOutOfRange(atoms_.size(), atom1, "bond")) return 1;
+  if (WarnOutOfRange(atoms_.size(), atom2, "bond")) return 1;
+  // Ensure the bond exists.
+  bool exists = false;
+  for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
+                           ba != atoms_[atom1].bondend(); ++ba)
+    if ( *ba == atom2 ) {
+      exists = true;
+      break;
+    }
+  if (!exists) {
+    mprintf("Warning: No bond exists between atoms %i and %i\n", atom1+1, atom2+1);
+    return -1;
+  }
+  bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
+  bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
+  BondArray* tgtArray;
+  if (a1H || a2H)
+    tgtArray = &bondsh_;
+  else
+    tgtArray = &bonds_;
+  // Search the array.
+  BondArray::iterator bnd = tgtArray->begin();
+  for (; bnd != tgtArray->end(); ++bnd) {
+    if (atom1 == bnd->A1()) {
+      if (atom2 == bnd->A2()) break;
+    }
+    if (atom2 == bnd->A1()) {
+      if (atom1 == bnd->A2()) break;
+    }
+  }
+  // Sanity check
+  if (bnd == tgtArray->end()) {
+    mprinterr("Internal Error: Bond %i %i not found in internal bond array.\n", atom1+1, atom2+1);
+    return 1;
+  }
+  tgtArray->erase( bnd );
+  atoms_[atom1].RemoveBondToIdx( atom2 );
+  atoms_[atom2].RemoveBondToIdx( atom1 );
+  return 0;
+}
+
 
 // Topology::AddBond()
 /** Create a bond between atom1 and atom2, update the atoms array.
@@ -708,47 +783,75 @@ void Topology::AddAngle(AngleType const& angIn, bool isH) {
     angles_.push_back( angIn );
 }
 
-// Topology::AddDihedral()
-void Topology::AddDihedral(DihedralType const& dih, DihedralParmType const& DPin)
+// -----------------------------------------------
+// Topology::AddTorsionParm()
+/** Check if given dihedral parm exists in given dihedral parm array. Add if not.
+  * \return Index in dihedral parm array.
+  */
+int Topology::AddTorsionParm(DihedralParmArray& dparray, DihedralParmType const& DPin)
 {
   // See if the DihedralParm exists.
   int pidx = -1;
-  for (DihedralParmArray::const_iterator dp = dihedralparm_.begin();
-                                         dp != dihedralparm_.end(); ++dp)
+  for (DihedralParmArray::const_iterator dp = dparray.begin();
+                                         dp != dparray.end(); ++dp)
     if ( fabs(DPin.Pk()    - dp->Pk()   ) < Constants::SMALL &&
          fabs(DPin.Pn()    - dp->Pn()   ) < Constants::SMALL &&
          fabs(DPin.Phase() - dp->Phase()) < Constants::SMALL &&
          fabs(DPin.SCEE()  - dp->SCEE() ) < Constants::SMALL &&
          fabs(DPin.SCNB()  - dp->SCNB() ) < Constants::SMALL )
     {
-      pidx = (int)(dp - dihedralparm_.begin());
+      pidx = (int)(dp - dparray.begin());
       break;
     }
   if (pidx == -1) {
-    pidx = (int)dihedralparm_.size();
-    dihedralparm_.push_back( DPin );
+    pidx = (int)dparray.size();
+    dparray.push_back( DPin );
   }
-  AddDihedral( dih, pidx );
+  return pidx;
 }
 
-// Topology::AddDihedral()
-void Topology::AddDihedral(DihedralType const& dihIn, int pidxIn) {
-  // FIXME: Check duplicate
+/** \return true if any atoms in the dihedral are out of range. */
+bool Topology::CheckTorsionRange(DihedralType const& dihIn, const char* typestr) const
+{
   // Check if atoms are out of range.
-  if (WarnOutOfRange(atoms_.size(), dihIn.A1(), "dihedral")) return;
-  if (WarnOutOfRange(atoms_.size(), dihIn.A2(), "dihedral")) return;
-  if (WarnOutOfRange(atoms_.size(), dihIn.A3(), "dihedral")) return;
-  if (WarnOutOfRange(atoms_.size(), dihIn.A4(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A1(), typestr)) return true;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A2(), typestr)) return true;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A3(), typestr)) return true;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A4(), typestr)) return true;
+  return false;
+}
+
+/** \return Dihedral with parm index set. */
+DihedralType Topology::SetTorsionParmIndex(DihedralType const& dihIn,
+                                           DihedralParmArray const& dparray,
+                                           int pidxIn, const char* typestr)
+{
   // Check if parm index is out of range;
   int pidx;
-  if (pidxIn < (int)dihedralparm_.size())
+  if (pidxIn < (int)dparray.size())
     pidx = pidxIn;
   else {
-    mprintf("Warning: No dihedral parameters for index %i\n", pidxIn);
+    mprintf("Warning: No %s parameters for index %i\n", typestr, pidxIn);
     pidx = -1;
   }
   DihedralType dih = dihIn;
   dih.SetIdx( pidx );
+  return dih;
+}
+
+/** Add given dihedral with given dihedral parm to dihedral array. */
+void Topology::AddDihedral(DihedralType const& dih, DihedralParmType const& DPin)
+{
+  int pidx = AddTorsionParm(dihedralparm_, DPin);
+  if (CheckTorsionRange(dih, "dihedral")) return;
+  AddDihedral(dih, pidx);
+}
+
+/** Add given dihedral with given dihedral parm index. */
+void Topology::AddDihedral(DihedralType const& dihIn, int pidxIn) {
+  // FIXME: Check duplicate
+  if (CheckTorsionRange(dihIn, "dihedral")) return;
+  DihedralType dih = SetTorsionParmIndex(dihIn, dihedralparm_, pidxIn, "dihedral");
   // Update dihedral arrays
   if (atoms_[dih.A1()].Element() == Atom::HYDROGEN ||
       atoms_[dih.A2()].Element() == Atom::HYDROGEN ||
@@ -759,11 +862,29 @@ void Topology::AddDihedral(DihedralType const& dihIn, int pidxIn) {
     dihedrals_.push_back( dih );
 }
 
+/** Add given dihedral to either dihedral with or without H array. */
 void Topology::AddDihedral(DihedralType const& dihIn, bool isH) {
   if (isH)
     dihedralsh_.push_back( dihIn );
   else
     dihedrals_.push_back( dihIn );
+}
+
+/** Add given Charmm improper with given improper parm to Charmm improper array. */
+void Topology::AddCharmmImproper(DihedralType const& imp, DihedralParmType const& IPin)
+{
+  int pidx = AddTorsionParm(chamber_.SetImproperParm(), IPin);
+  if (CheckTorsionRange(imp, "CHARMM improper")) return;
+  AddCharmmImproper(imp, pidx);
+}
+
+/** Add given Charmm improper with given improper parm index. */
+void Topology::AddCharmmImproper(DihedralType const& impIn, int pidxIn)
+{
+  if (CheckTorsionRange(impIn, "CHARMM improper")) return;
+  DihedralType imp = SetTorsionParmIndex(impIn, chamber_.ImproperParm(), pidxIn, "CHARMM improper");
+  // Update Charmm improper array.
+  chamber_.AddImproperTerm( imp );
 }
 
 // -----------------------------------------------------------------------------
@@ -1212,9 +1333,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       if (!newParm->residues_.empty())
         newParm->residues_.back().SetLastAtom( newatom );
       Residue const& cr = residues_[curres];
-      newParm->residues_.push_back( Residue(cr.Name(), cr.OriginalResNum(),
-                                            cr.Icode(), cr.ChainID()) );
+      newParm->residues_.push_back( cr );
       newParm->residues_.back().SetFirstAtom( newatom );
+      newParm->residues_.back().SetTerminal( cr.IsTerminal() );
       oldres = curres;
     }
     // Clear bond information from new atom
@@ -1383,7 +1504,6 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
   // CHAMBER info
   if (chamber_.HasChamber()) {
-    newParm->chamber_.SetHasChamber( true );
     newParm->chamber_.SetDescription( chamber_.Description() );
     // Urey-Bradley
     newParm->chamber_.SetUB() = StripBondArray(chamber_.UB(),atomMap);
@@ -1526,17 +1646,18 @@ void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& par
                            bnd != newBondArray.end(); ++bnd)
   {
     int oldidx = bnd->Idx();
-    int newidx = parmMap[bnd->Idx()];
-    if (newidx == -1) { // This needs to be added to new parameter array.
-      newidx = (int)newBondParm.size();
-      parmMap[oldidx] = newidx;
-      newBondParm.push_back( oldParm[oldidx] );
+    if (oldidx > -1) {
+      int newidx = parmMap[oldidx];
+      if (newidx == -1) { // This needs to be added to new parameter array.
+        newidx = (int)newBondParm.size();
+        parmMap[oldidx] = newidx;
+        newBondParm.push_back( oldParm[oldidx] );
+      }
+      //mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
+      bnd->SetIdx( newidx );
     }
-    //mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
-    bnd->SetIdx( newidx );
   }
 }
-
 // Topology::StripAngleParmArray()
 void Topology::StripAngleParmArray(AngleArray& newAngleArray, std::vector<int>& parmMap,
                                    AngleParmArray& newAngleParm) const
@@ -1545,14 +1666,16 @@ void Topology::StripAngleParmArray(AngleArray& newAngleArray, std::vector<int>& 
                             ang != newAngleArray.end(); ++ang)
   {
     int oldidx = ang->Idx();
-    int newidx = parmMap[ang->Idx()];
-    if (newidx == -1) { // This needs to be added to new parameter array.
-      newidx = (int)newAngleParm.size();
-      parmMap[oldidx] = newidx;
-      newAngleParm.push_back( angleparm_[oldidx] );
+    if (oldidx > -1) {
+      int newidx = parmMap[oldidx];
+      if (newidx == -1) { // This needs to be added to new parameter array.
+        newidx = (int)newAngleParm.size();
+        parmMap[oldidx] = newidx;
+        newAngleParm.push_back( angleparm_[oldidx] );
+      }
+      //mprintf("DEBUG: Old angle parm index=%i, new angle parm index=%i\n", oldidx, newidx);
+      ang->SetIdx( newidx );
     }
-    //mprintf("DEBUG: Old angle parm index=%i, new angle parm index=%i\n", oldidx, newidx);
-    ang->SetIdx( newidx );
   }
 }
 
@@ -1573,14 +1696,16 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
                                dih != newDihedralArray.end(); ++dih)
   {
     int oldidx = dih->Idx();
-    int newidx = parmMap[dih->Idx()];
-    if (newidx == -1) { // This needs to be added to new parameter array.
-      newidx = (int)newDihedralParm.size();
-      parmMap[oldidx] = newidx;
-      newDihedralParm.push_back( oldParm[oldidx] );
+    if (oldidx > -1) {
+      int newidx = parmMap[oldidx];
+      if (newidx == -1) { // This needs to be added to new parameter array.
+        newidx = (int)newDihedralParm.size();
+        parmMap[oldidx] = newidx;
+        newDihedralParm.push_back( oldParm[oldidx] );
+      }
+      //mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
+      dih->SetIdx( newidx );
     }
-    //mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
-    dih->SetIdx( newidx );
   }
 }
 
@@ -1694,7 +1819,7 @@ int Topology::AppendTop(Topology const& NewTop) {
       mprintf("DEBUG: %zu existing atom type indices:\n", ExistingTypes.size());
       for (TypeArray::const_iterator ti = ExistingTypes.begin();
                                      ti != ExistingTypes.end(); ++ti)
-        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.LJ().Radius(), ti->second.LJ().Depth());
     }
   }
   int NexistingAtomTypes = (int)ExistingTypes.size();
@@ -1754,8 +1879,8 @@ int Topology::AppendTop(Topology const& NewTop) {
         CurrentAtom.SetTypeIndex( newTypeIdx );
       }
     }
-    AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset,
-                                     res.Icode(), res.ChainID()) );
+    AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
+                                     res.Icode(), res.ChainId()) );
   } // END loop over incoming atoms
   // NONBONDS
   if (!doNonBond) {
@@ -1769,7 +1894,7 @@ int Topology::AppendTop(Topology const& NewTop) {
       mprintf("DEBUG: %zu new atom type indices:\n", NewTypes.size());
       for (TypeArray::const_iterator ti = NewTypes.begin();
                                      ti != NewTypes.end(); ++ti)
-        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.LJ().Radius(), ti->second.LJ().Depth());
       mprintf("DEBUG: New to existing mapping:\n");
       for (TypeMap::const_iterator it = type_newToExisting.begin();
                                    it != type_newToExisting.end(); ++it)
@@ -1778,8 +1903,8 @@ int Topology::AppendTop(Topology const& NewTop) {
       for (TypeArray::const_iterator it = ExistingTypes.begin();
                                      it != ExistingTypes.end(); ++it)
       {
-        mprintf("\t%8i %12.5g %12.5g (%8i)", it->first, it->second.Radius(),
-                it->second.Depth(), it->second.OriginalIdx());
+        mprintf("\t%8i %12.5g %12.5g (%8i)", it->first, it->second.LJ().Radius(),
+                it->second.LJ().Depth(), it->second.OriginalIdx());
         if (it->first >= NexistingAtomTypes)
           mprintf(" (NEW)\n");
         else
@@ -1815,7 +1940,7 @@ int Topology::AppendTop(Topology const& NewTop) {
               LJ = nonbond_.NBarray( nbidx );
           } else {
             // Mix new and existing.
-            LJ = t1->second.Combine_LB( t2->second );
+            LJ = t1->second.LJ().Combine_LB( t2->second.LJ() );
           }
           if (debug_ > 1)
             mprintf("DEBUG: Adding LJ term for %i %i A=%g B=%g\n", t1->first, t2->first,
@@ -1843,4 +1968,578 @@ int Topology::AppendTop(Topology const& NewTop) {
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
   return CommonSetup();
+}
+
+// -----------------------------------------------------------------------------
+static void paramOverwriteWarning(const char* type) {
+  mprintf("Warning: An existing %s parameter would have been overwritten. This\n"
+          "Warning:  usually means that the atom type information in the Topology is\n"
+          "Warning:  incomplete. This can happen for example with Chamber topologies\n"
+          "Warning:  if the original atom type names were > 4 characters.\n", type);
+  mprintf("Warning: The %s parameters in this topology may now be incorrect.\n", type);
+}
+
+// GetBondParams()
+static inline void GetBondParams(ParmHolder<BondParmType>& BP, std::vector<Atom> const& atoms, BondArray const& bonds, BondParmArray const& bpa) {
+  for (BondArray::const_iterator b = bonds.begin(); b != bonds.end(); ++b)
+  {
+    if (b->Idx() != -1) {
+      TypeNameHolder types(2);
+      types.AddName( atoms[b->A1()].Type() );
+      types.AddName( atoms[b->A2()].Type() );
+      ParameterHolders::RetType ret = BP.AddParm( types, bpa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("bond");
+    }
+  }
+}
+
+// GetAngleParams()
+static inline void GetAngleParams(ParmHolder<AngleParmType>& AP, std::vector<Atom> const& atoms, AngleArray const& angles, AngleParmArray const& apa) {
+  for (AngleArray::const_iterator b = angles.begin(); b != angles.end(); ++b)
+  {
+    if (b->Idx() != -1) {
+      TypeNameHolder types(3);
+      types.AddName( atoms[b->A1()].Type() );
+      types.AddName( atoms[b->A2()].Type() );
+      types.AddName( atoms[b->A3()].Type() );
+      ParameterHolders::RetType ret = AP.AddParm( types, apa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("angle");
+    }
+  }
+}
+
+// GetImproperParams()
+static inline void GetImproperParams(ParmHolder<DihedralParmType>& IP, std::vector<Atom> const& atoms, DihedralArray const& imp, DihedralParmArray const& ipa) {
+  for (DihedralArray::const_iterator b = imp.begin(); b != imp.end(); ++b)
+  {
+    if (b->Idx() != -1) {
+      TypeNameHolder types(4);
+      types.AddName( atoms[b->A1()].Type() );
+      types.AddName( atoms[b->A2()].Type() );
+      types.AddName( atoms[b->A3()].Type() );
+      types.AddName( atoms[b->A4()].Type() );
+      ParameterHolders::RetType ret = IP.AddParm( types, ipa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("improper");
+    }
+  }
+}
+
+// GetDihedralParams()
+static inline void GetDihedralParams(DihedralParmHolder& DP, std::vector<Atom> const& atoms, DihedralArray const& dih, DihedralParmArray const& dpa) {
+  for (DihedralArray::const_iterator b = dih.begin(); b != dih.end(); ++b)
+  {
+    if (b->Idx() != -1) {
+      TypeNameHolder types(4);
+      types.AddName( atoms[b->A1()].Type() );
+      types.AddName( atoms[b->A2()].Type() );
+      types.AddName( atoms[b->A3()].Type() );
+      types.AddName( atoms[b->A4()].Type() );
+      //mprintf("DEBUG: dihedral %li ( %i %i %i %i )\n", b - dih.begin() + 1, b->A1()+1, b->A2()+1, b->A3()+1, b->A4()+1);
+      ParameterHolders::RetType ret = DP.AddParm( types, dpa[b->Idx()], false );
+      if (ret == ParameterHolders::ERR)
+        paramOverwriteWarning("dihedral");
+    }
+  }
+}
+
+/** Used to map type names to type indices to access nonbond parameters. */
+typedef std::map<NameType, int> NameIdxMapType;
+
+/** \param atomTypes Output array of atom types.
+  * \param NB1 Current nonbond parameters.
+  * \param atoms Array of atoms.
+  * \param NB0 Output array of nonbond parameters.
+  */
+static inline void GetLJAtomTypes( ParmHolder<AtomType>& atomTypes, ParmHolder<NonbondType>& NB1, std::vector<Atom> const& atoms, NonbondParmType const& NB0, int debugIn)
+{
+  // TODO check for off-diagonal terms
+  if (NB0.HasNonbond()) {
+    // Map type names to type indices to access nonbond parameters.
+    NameIdxMapType nameIdxMap;
+    for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
+    {
+      // TODO check for blank type name?
+      TypeNameHolder types(1);
+      types.AddName( atm->Type() );
+      int idx = NB0.GetLJindex( atm->TypeIndex(), atm->TypeIndex() );
+      ParameterHolders::RetType ret;
+      if (idx > -1) {
+        NonbondType const& LJ = NB0.NBarray( idx );
+        ret = atomTypes.AddParm( types, AtomType(LJ.Radius(), LJ.Depth(), atm->Mass()), true );
+      } else
+        ret = atomTypes.AddParm( types, AtomType(atm->Mass()), true );
+      if (ret == ParameterHolders::ADDED)
+        nameIdxMap.insert( std::pair<NameType, int>(atm->Type(), atm->TypeIndex()) );
+    }
+    // Do atom type pairs
+    unsigned int nModifiedOffDiagonal = 0;
+    for (ParmHolder<AtomType>::const_iterator i1 = atomTypes.begin(); i1 != atomTypes.end(); ++i1)
+    {
+      for (ParmHolder<AtomType>::const_iterator i2 = i1; i2 != atomTypes.end(); ++i2)
+      {
+        // Determine what A and B parameters would be.
+        NameType const& name1 = i1->first[0];
+        NameType const& name2 = i2->first[0];
+        AtomType const& type1 = i1->second;
+        AtomType const& type2 = i2->second;
+        NonbondType lj0 = type1.LJ().Combine_LB( type2.LJ() );
+        // Extract original A and B parameters.
+        NameIdxMapType::const_iterator t1 = nameIdxMap.find( name1 );
+        NameIdxMapType::const_iterator t2 = nameIdxMap.find( name2 );
+        int idx1 = t1->second;
+        int idx2 = t2->second;
+        int idx = NB0.GetLJindex( idx1, idx2 );
+        if (idx < 0) {
+          mprinterr("Error: No off-diagonal LJ for  %s %s (%i %i)\n",
+                    *name1, *name2, idx1, idx2);
+          return;
+        }
+        NonbondType lj1 = NB0.NBarray( idx );
+        // Compare them
+        if (lj0 != lj1) {
+          nModifiedOffDiagonal++;
+          if (debugIn > 0) {
+            double deltaA = fabs(lj0.A() - lj1.A());
+            double deltaB = fabs(lj0.B() - lj1.B());
+            mprintf("DEBUG: Potential off-diagonal LJ: %s %s expect A=%g B=%g, actual A=%g B=%g\n",
+                    *name1, *name2, lj0.A(), lj0.B(), lj1.A(), lj1.B());
+            mprintf("DEBUG:\tdeltaA= %g    deltaB= %g\n", deltaA, deltaB);
+          }
+        }
+        TypeNameHolder types(2);
+        types.AddName( name1 );
+        types.AddName( name2 );
+        NB1.AddParm( types, lj1, false );
+      } // END inner loop over atom types
+    } // END outer loop over atom types
+    if (nModifiedOffDiagonal > 0)
+      mprintf("Warning: %u modified off-diagonal LJ terms present.\n", nModifiedOffDiagonal);
+  } else {
+    for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
+      if (atm->Type().len() > 0)
+        atomTypes.AddParm( TypeNameHolder(atm->Type()), AtomType(atm->Mass()), true );
+  }
+}
+
+/** \return ParameterSet for this Topology. */
+ParameterSet Topology::GetParameters() const {
+  ParameterSet Params;
+  // Atom LJ types
+  GetLJAtomTypes( Params.AT(), Params.NB(), atoms_, nonbond_, debug_ );
+  // Bond parameters.
+  GetBondParams( Params.BP(), atoms_, bonds_, bondparm_ );
+  GetBondParams( Params.BP(), atoms_, bondsh_, bondparm_ );
+  // Angle parameters.
+  GetAngleParams( Params.AP(), atoms_, angles_, angleparm_);
+  GetAngleParams( Params.AP(), atoms_, anglesh_, angleparm_);
+  // Dihedral parameters.
+  GetDihedralParams( Params.DP(), atoms_, dihedrals_, dihedralparm_);
+  GetDihedralParams( Params.DP(), atoms_, dihedralsh_, dihedralparm_);
+  // CHARMM parameters
+  if (chamber_.HasChamber()) {
+    // UB parameters
+    GetBondParams(Params.UB(), atoms_, chamber_.UB(), chamber_.UBparm());
+    // Impropers
+    GetImproperParams( Params.IP(), atoms_, chamber_.Impropers(), chamber_.ImproperParm() );
+  }
+
+  return Params;
+}
+
+// -----------------------------------------------------------------------------
+/** Set parameters in array V for objects in array U using parameters from array T. 
+  */
+/*
+template<typename T, typename U, typename V>
+void AssignParm(std::vector<Atom> const& atoms,
+                ParmHolder<T> const& newParams,  // BondParmType
+                ParmHolder<int>& currentIndices,
+                U& objects,                      // BondArray
+                V& currentParams)                // BondParmArray
+{
+  for (typename U::iterator obj = objects.begin(); obj != objects.end(); ++obj) {
+    TypeNameHolder types(obj->Nidx());
+    for (unsigned int idx = 0; idx != obj->Nidx(); idx++)
+      types.AddName( atoms[obj->Atom(idx)].Type() );
+    bool found;
+    // See if parameter already present.
+    int idx = currentIndices.FindParam( types, found );
+    if (!found) {
+      // Search in new
+      T param = newParams.FindParam( types, found );
+      if (found) {
+        // Add parameter
+        idx = (int)currentParams.size();
+        currentParams.push_back( param );
+      } else
+        idx = -1;
+    }
+    //if (idx == -1)
+    //  mprintf("Warning: Bond parameter not found for bond %s-%s (%s-%s)\n",
+    //          TruncResAtomNameNum(bnd->A1()).c_str(),
+    //          TruncResAtomNameNum(bnd->A2()).c_str(),
+    //          *types[0], *types[1]);
+    obj->SetIdx( idx );
+  }
+}*/
+
+/** Set parameters for bonds in given bond array. */
+void Topology::AssignBondParm(ParmHolder<BondParmType> const& newBondParams,
+                              ParmHolder<int>& currentIndices,
+                              BondArray& bonds, BondParmArray& bpa, const char* desc)
+{
+  for (BondArray::iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
+    TypeNameHolder types(2);
+    types.AddName( atoms_[bnd->A1()].Type() );
+    types.AddName( atoms_[bnd->A2()].Type() );
+    bool found;
+    // See if parameter already present.
+    int idx = currentIndices.FindParam( types, found );
+    if (!found) {
+      // Search in new
+      BondParmType bp = newBondParams.FindParam( types, found );
+      if (found) {
+        // Add parameter
+        idx = (int)bpa.size();
+        bpa.push_back( bp );
+        currentIndices.AddParm( types, idx, false );
+      } else
+        idx = -1;
+    }
+    if (idx == -1)
+      mprintf("Warning: parameter not found for %s %s-%s (%s-%s)\n", desc,
+              TruncResAtomNameNum(bnd->A1()).c_str(),
+              TruncResAtomNameNum(bnd->A2()).c_str(),
+              *types[0], *types[1]);
+    bnd->SetIdx( idx );
+  }
+}
+
+/** Replace any current bond parameters with given bond parameters. */
+void Topology::AssignBondParams(ParmHolder<BondParmType> const& newBondParams) {
+  bondparm_.clear();
+  ParmHolder<int> currentIndices;
+  //AssignParm<BondParmType, BondArray, BondParmArray>( atoms, newBondParams, currentIndices, bonds_, bondparm_ );
+  AssignBondParm( newBondParams, currentIndices, bonds_,  bondparm_, "bond" );
+  AssignBondParm( newBondParams, currentIndices, bondsh_, bondparm_, "bond" );
+}
+
+/** Replace any current Urey-Bradley parameters with given UB parameters. */
+void Topology::AssignUBParams(ParmHolder<BondParmType> const& newBondParams) {
+  chamber_.SetUBparm().clear();
+  ParmHolder<int> currentIndices;
+  AssignBondParm( newBondParams, currentIndices, chamber_.SetUB(), chamber_.SetUBparm(), "UB term" );
+}
+
+/** Set parameters for angles in given angle array. */
+void Topology::AssignAngleParm(ParmHolder<AngleParmType> const& newAngleParams,
+                              ParmHolder<int>& currentIndices,
+                              AngleArray& angles)
+{
+  for (AngleArray::iterator ang = angles.begin(); ang != angles.end(); ++ang) {
+    TypeNameHolder types(3);
+    types.AddName( atoms_[ang->A1()].Type() );
+    types.AddName( atoms_[ang->A2()].Type() );
+    types.AddName( atoms_[ang->A3()].Type() );
+    bool found;
+    // See if parameter already present.
+    int idx = currentIndices.FindParam( types, found );
+    if (!found) {
+      // Search in new
+      AngleParmType ap = newAngleParams.FindParam( types, found );
+      if (found) {
+        // Add parameter
+        idx = (int)angleparm_.size();
+        angleparm_.push_back( ap );
+        currentIndices.AddParm( types, idx, false );
+      } else
+        idx = -1;
+    }
+    if (idx == -1)
+      mprintf("Warning: Angle parameter not found for angle %s-%s-%s (%s-%s-%s)\n",
+              TruncResAtomNameNum(ang->A1()).c_str(),
+              TruncResAtomNameNum(ang->A2()).c_str(),
+              TruncResAtomNameNum(ang->A3()).c_str(),
+              *types[0], *types[1], *types[3]);
+    ang->SetIdx( idx );
+  }
+}
+
+/** Replace any current angle parameters with given angle parameters. */
+void Topology::AssignAngleParams(ParmHolder<AngleParmType> const& newAngleParams) {
+  angleparm_.clear();
+  ParmHolder<int> currentIndices;
+  AssignAngleParm( newAngleParams, currentIndices, angles_ );
+  AssignAngleParm( newAngleParams, currentIndices, anglesh_ );
+}
+
+/** Set parameters for dihedrals in given dihedral array. */
+void Topology::AssignImproperParm(ParmHolder<DihedralParmType> const& newImproperParams,
+                                  ParmHolder<int>& currentIndices,
+                                  DihedralArray& impropers)
+{
+  for (DihedralArray::iterator imp = impropers.begin(); imp != impropers.end(); ++imp) {
+    TypeNameHolder types(4);
+    types.AddName( atoms_[imp->A1()].Type() );
+    types.AddName( atoms_[imp->A2()].Type() );
+    types.AddName( atoms_[imp->A3()].Type() );
+    types.AddName( atoms_[imp->A4()].Type() );
+    bool found;
+    // See if parameter already present.
+    int idx = currentIndices.FindParam( types, found );
+    if (!found) {
+      // Search in new
+      DihedralParmType ip = newImproperParams.FindParam( types, found );
+      if (found) {
+        // Add parameter
+        idx = (int)chamber_.ImproperParm().size();
+        chamber_.SetImproperParm().push_back( ip );
+        currentIndices.AddParm( types, idx, false );
+      } else
+        idx = -1;
+    }
+    if (idx == -1)
+      mprintf("Warning: Parameter not found for improper %s-%s-%s-%s (%s-%s-%s-%s)\n",
+              TruncResAtomNameNum(imp->A1()).c_str(),
+              TruncResAtomNameNum(imp->A2()).c_str(),
+              TruncResAtomNameNum(imp->A3()).c_str(),
+              TruncResAtomNameNum(imp->A4()).c_str(),
+              *types[0], *types[1], *types[3], *types[4]);
+    imp->SetIdx( idx );
+  }
+}
+
+/** Replace any current improper parameters with given improper parameters. */
+void Topology::AssignImproperParams(ParmHolder<DihedralParmType> const& newImproperParams) {
+  chamber_.SetImproperParm().clear();
+  ParmHolder<int> currentIndices;
+  AssignImproperParm( newImproperParams, currentIndices, chamber_.SetImpropers() );
+}
+
+/** Set parameters for dihedrals in given dihedral array. */
+void Topology::AssignDihedralParm(DihedralParmHolder const& newDihedralParams,
+                                  DihedralArray& dihedralsIn)
+{
+  // Dihedrals can be a bit of a pain since there can be multiple
+  // multiplicities for a single dihedral type. In case multiplicities
+  // change, start with a fresh dihedral array containing only unique
+  // dihedrals.
+  DihedralArray tmpdih = dihedralsIn;
+  std::sort( tmpdih.begin(), tmpdih.end() );
+  DihedralArray dihedrals;
+  for (DihedralArray::iterator dih = tmpdih.begin(); dih != tmpdih.end(); ++dih) {
+    if (dihedrals.empty())
+      dihedrals.push_back( *dih );
+    else {
+      DihedralType const& last = dihedrals.back();
+      if ( last.A1() != dih->A1() ||
+           last.A2() != dih->A2() ||
+           last.A3() != dih->A3() ||
+           last.A4() != dih->A4() )
+        dihedrals.push_back( *dih );
+    }
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG: %zu incoming dihedrals, %zu unique dihedrals.\n",
+            dihedralsIn.size(), dihedrals.size());
+
+  ParmHolder< std::vector<int> > currentIndices;
+  dihedralsIn.clear();
+  for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih) {
+    TypeNameHolder types(4);
+    types.AddName( atoms_[dih->A1()].Type() );
+    types.AddName( atoms_[dih->A2()].Type() );
+    types.AddName( atoms_[dih->A3()].Type() );
+    types.AddName( atoms_[dih->A4()].Type() );
+    bool found;
+    // See if parameter already present.
+    std::vector<int> idxs = currentIndices.FindParam( types, found );
+    if (!found) {
+      // Not yet present; search in newDihedralParams for parameter(s).
+      DihedralParmArray dpa = newDihedralParams.FindParam( types, found );
+      if (found) {
+        for (DihedralParmArray::const_iterator it = dpa.begin(); it != dpa.end(); ++it)
+        {
+          // Add parameter and save the index
+          int idx = (int)dihedralparm_.size();
+          idxs.push_back( idx );
+          dihedralparm_.push_back( *it );
+        }
+        currentIndices.AddParm( types, idxs, false );
+      }
+    }
+    if (idxs.empty()) {
+      mprintf("Warning: Dihedral parameters not found for dihedral %s-%s-%s-%s (%s-%s-%s-%s)\n",
+              TruncResAtomNameNum(dih->A1()).c_str(),
+              TruncResAtomNameNum(dih->A2()).c_str(),
+              TruncResAtomNameNum(dih->A3()).c_str(),
+              TruncResAtomNameNum(dih->A4()).c_str(),
+              *types[0], *types[1], *types[3], *types[4]);
+      DihedralType mydih = *dih;
+      mydih.SetIdx( -1 );
+      dihedralsIn.push_back( mydih );
+    } else {
+      bool multi = idxs.size() > 1;
+      // Actually add the dihedrals
+      for (std::vector<int>::const_iterator dpidx = idxs.begin(); dpidx != idxs.end(); ++dpidx)
+      {
+        DihedralType mydih = *dih;
+        mydih.SetIdx( *dpidx );
+        if (multi) {
+          // If there are multiple parameters for the same dihedral, all but
+          // one of the 1-4 calcs need to be skipped.
+          if (dpidx+1 != idxs.end())
+            mydih.SetSkip14(true);
+          else
+            mydih.SetSkip14(false);
+        }
+        dihedralsIn.push_back( mydih );
+      }
+    }
+  }
+}
+
+/** Replace any current dihedral parameters with given dihedral parameters. */
+void Topology::AssignDihedralParams(DihedralParmHolder const& newDihedralParams) {
+  dihedralparm_.clear();
+  AssignDihedralParm( newDihedralParams, dihedrals_ );
+  AssignDihedralParm( newDihedralParams, dihedralsh_ );
+}
+
+/** Replace current nonbond parameters with given nonbond parameters. */
+//TODO Accept array of atom type names?
+void Topology::AssignNonbondParams(ParmHolder<AtomType> const& newTypes, ParmHolder<NonbondType> const& newNB) {
+  // Generate array of existing types.
+  ParmHolder<AtomType> atomTypes;
+  for (std::vector<Atom>::const_iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+  {
+    if (atm->Type().len() > 0) {
+      TypeNameHolder types(1);
+      types.AddName(atm->Type());
+      // Find in newTypes.
+      bool found;
+      AtomType newAT = newTypes.FindParam( types, found );
+      if (!found) {
+        mprintf("Warning: No atom type information for type '%s'\n", *types[0]);
+        newAT = AtomType(atm->Mass());
+      }
+      atomTypes.AddParm( types, newAT, true );
+    }
+  }
+  if (atomTypes.size() < 1) {
+    mprintf("Warning: No atom type information in %s - cannot assign nonbond parameters.\n",
+            c_str());
+    return;
+  }
+  // Regenerate nonbond params for existing types
+  nonbond_.Clear();
+  nonbond_.SetupLJforNtypes( atomTypes.size() );
+  int nidx1 = 0;
+  NameIdxMapType nameIdxMap;
+  for (ParmHolder<AtomType>::const_iterator t1 = atomTypes.begin(); t1 != atomTypes.end(); ++t1, nidx1++)
+  {
+    NameType const& name1 = t1->first[0];
+    //mprintf("DEBUG: Type1= %s (%i)\n", *name1, nidx1);
+    AtomType const& type1 = t1->second;
+    nameIdxMap.insert( std::pair<NameType, int>(name1, nidx1) );
+    int nidx2 = nidx1;
+    for (ParmHolder<AtomType>::const_iterator t2 = t1; t2 != atomTypes.end(); ++t2, nidx2++)
+    {
+      NameType const& name2 = t2->first[0];
+      //mprintf("DEBUG:\t\tType2= %s (%i)\n", *name2, nidx2);
+      AtomType const& type2 = t2->second;
+      TypeNameHolder types(2);
+      types.AddName( name1 );
+      types.AddName( name2 );
+      // See if this parameter exists in the given nonbond array.
+      NonbondType LJAB;
+      ParmHolder<NonbondType>::const_iterator it = newNB.GetParam( types );
+      if (it == newNB.end()) {
+        mprintf("NB parameter for %s %s not found. Generating.\n", *name1, *name2);
+        LJAB = type1.LJ().Combine_LB( type2.LJ() );
+      } else {
+        mprintf("Using existing NB parameter for %s %s\n", *name1, *name2);
+        LJAB = it->second;
+      }
+      nonbond_.AddLJterm(nidx1, nidx2, LJAB);
+    }
+  }
+  // Reset the atom type indices.
+  for (std::vector<Atom>::iterator atm = atoms_.begin(); atm != atoms_.end(); ++atm)
+  {
+    int tidx = -1;
+    NameIdxMapType::const_iterator it = nameIdxMap.find( atm->Type() );
+    if (it == nameIdxMap.end()) {
+      mprintf("Warning: Atom type not found for %s (type %s)\n",
+              TruncResAtomNameNum( atm - atoms_.begin() ).c_str(),
+              *(atm->Type()));
+    } else {
+      if (it->second < 0 || it->second >= (int)atomTypes.size()) {
+        mprinterr("Internal Error: Type index for %s (type %s) out of range: %i\n",
+                  TruncResAtomNameNum( atm - atoms_.begin() ).c_str(),
+                  *(atm->Type()), it->second);
+      } else
+        tidx = it->second;
+    }
+    atm->SetTypeIndex( tidx );
+  }
+}
+
+// -----------------------------------------------------------------------------
+
+/** Update/add to parameters in this topology with those from given set. */
+int Topology::UpdateParams(ParameterSet const& set1) {
+  ParameterSet set0 = GetParameters();
+  // Check
+  if (set0.AT().size() < 1)
+    mprintf("Warning: No atom type information in '%s'\n", c_str());
+  if (debug_ > 0) {
+    mprintf("DEBUG: Saving original parameters in originalp.dat, new parameters in newp.dat\n");
+    set0.Debug("originalp.dat");
+  }
+
+  unsigned int updateCount;
+  // Bond parameters
+  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.BP(), set1.BP(), "bond");
+  if (updateCount > 0) {
+    mprintf("\tRegenerating bond parameters.\n");
+    AssignBondParams( set0.BP() );
+  }
+  // Angle parameters
+  updateCount = UpdateParameters< ParmHolder<AngleParmType> >(set0.AP(), set1.AP(), "angle");
+  if (updateCount > 0) {
+    mprintf("\tRegenerating angle parameters.\n");
+    AssignAngleParams( set0.AP() );
+  }
+  // Dihedral parameters
+  updateCount = UpdateParameters< DihedralParmHolder >(set0.DP(), set1.DP(), "dihedral");
+  if (updateCount > 0) {
+    mprintf("\tRegenerating dihedral parameters.\n");
+    AssignDihedralParams( set0.DP() );
+  }
+  // Urey-Bradley
+  updateCount = UpdateParameters< ParmHolder<BondParmType> >(set0.UB(), set1.UB(), "Urey-Bradley");
+  if (updateCount > 0) {
+    mprintf("\tRegenerating UB parameters.\n");
+    AssignUBParams( set0.UB() );
+  }
+  // Improper parameters
+  updateCount = UpdateParameters< ParmHolder<DihedralParmType> >(set0.IP(), set1.IP(), "improper");
+  if (updateCount > 0) {
+    mprintf("\tRegenerating improper parameters.\n");
+    AssignImproperParams( set0.IP() );
+  }
+  // Atom types
+  updateCount = UpdateParameters< ParmHolder<AtomType> >(set0.AT(), set1.AT(), "atom type");
+  updateCount += UpdateParameters< ParmHolder<NonbondType> >(set0.NB(), set1.NB(), "LJ A-B");
+  if (updateCount > 0) {
+    mprintf("\tRegenerating nonbond parameters.\n");
+    AssignNonbondParams( set0.AT(), set0.NB() );
+  }
+
+  if (debug_ > 0) set0.Debug("newp.dat");
+  return 0;
 }

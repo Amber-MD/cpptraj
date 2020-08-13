@@ -1,8 +1,10 @@
 #ifndef INC_DATAFILELIST_H
 #define INC_DATAFILELIST_H
 #include "DataFile.h"
-#include "DataSet.h"
-#include "ArgList.h"
+class DataSet;
+class ArgList;
+class FileName;
+class CpptrajFile;
 /// Holds a list of output DataFiles/CpptrajFiles.
 /** The DataFileList is meant to hold all output data files defined by any
   * Actions or Analysis. This allows multiple sets to be directed to the
@@ -52,7 +54,11 @@ class DataFileList {
     void WriteAllDF();
     /// \return true if DataFiles have not yet been written.
     bool UnwrittenData() const;
+    /// Reset the write status of all DataFiles so they will be written
     void ResetWriteStatus();
+    /// Reset the write status of DataFiles containing any of the input sets.
+    void ResetWriteStatIfContain(std::vector<DataSet*> const& dslIn);
+    /// Process any data file args
     int ProcessDataFileArgs(ArgList&);
     int Debug() const { return debug_; }
     int EnsembleNum() const { return ensembleNum_; }

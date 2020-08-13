@@ -2,6 +2,8 @@
 #define INC_ACTION_CLOSEST_H
 #include "Action.h"
 #include "ImagedAction.h"
+#include "CharMask.h"
+#include "ActionTopWriter.h"
 /// Modify the state so that only the closest solvent molecules are kept.
 class Action_Closest: public Action {
   public:
@@ -35,8 +37,6 @@ class Action_Closest: public Action {
     DataSet *distdata_;     ///< Closest distance of each molecule.
     DataSet *atomdata_;     ///< First atom of each closest molecule.
     int Nclosest_;          ///< Index into Closest molecule DataSets.
-    std::string prefix_;    ///< Output topology prefix.
-    std::string parmoutName_; ///< Output topology file name.
     int closestWaters_;     ///< Closest # of molecules to keep.
     int targetNclosest_;    ///< Original target # of closest molecules to keep.
     bool firstAtom_;        ///< If true just calc based on molecule first atom.
@@ -46,8 +46,9 @@ class Action_Closest: public Action {
     CharMask solventMask_;  ///< Optional mask selecting solvent.
     Topology *newParm_;     ///< New topology with solute and closest molecules.
     int NsolventMolecules_; ///< # of solvent molecules in SolventMols.
-    int debug_;
-    Frame newFrame_;        ///< New frame with solute and kept waters.
+    Frame newFrame_;        ///< New frame with solute and kept solvent.
+    /// Used to write topology containing only closest solvent
+    ActionTopWriter topWriter_;
     typedef std::vector<int> Iarray;
     /// Hold atom #s of kept solvent in new frame for placing into stripMask.
     Iarray keptWaterAtomNum_;

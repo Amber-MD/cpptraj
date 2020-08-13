@@ -1,6 +1,8 @@
 #include <cmath> // floor
 #include "ImageRoutines.h"
 #include "DistRoutines.h"
+#include "Topology.h"
+#include "CharMask.h"
 
 /** Check that at least 1 atom in the range is in Mask1 */
 static inline void CheckRange(Image::PairType& atomPairs, CharMask const& MaskIn, 
@@ -19,13 +21,13 @@ static inline void CheckRange(Image::PairType& atomPairs, CharMask const& MaskIn
   }
 }
 
-// Image::CreatePairList() 
+// Image::CreateAtomPairList() 
 /** An atom pair list consists of 2 values for each entry, a beginning
   * index and ending index. For molecules and residues this is the first
   * and just beyond the last atom; for atoms it is just the atom itself
   * twice.
   */
-Image::PairType Image::CreatePairList(Topology const& Parm, Mode modeIn,
+Image::PairType Image::CreateAtomPairList(Topology const& Parm, Mode modeIn,
                                        std::string const& maskExpression)
 {
   PairType atomPairs;

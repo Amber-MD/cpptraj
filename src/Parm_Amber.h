@@ -55,6 +55,11 @@ class Parm_Amber : public ParmIO {
     int ReadNewParm(Topology&);
     int ReadFormatLine(FortranData&);
     inline const char* SkipToNextFlag();
+
+    void ResetFileToFlag(FlagType);
+    void ProblemFlagWarning(FlagType, unsigned int, unsigned int);
+    double FileBufferToDouble(FlagType, unsigned int, unsigned int);
+
     int ReadTitle(Topology&);
     int ReadPointers(int, Topology&, FortranData const&);
     inline int SetupBuffer(FlagType, int, FortranData const&);
@@ -132,6 +137,7 @@ class Parm_Amber : public ParmIO {
 
     // ----- Write -------------------------------
     FortranData WriteFormat(FlagType) const;
+    int BufferAlloc(FlagType, FortranData const&, int, int);
     int BufferAlloc(FlagType, int, int);
     int BufferAlloc(FlagType f, int n) { return BufferAlloc(f, n, -1); }
     int WriteLJ(FlagType, FlagType, NonbondArray const&);
@@ -157,6 +163,7 @@ class Parm_Amber : public ParmIO {
     int numLJparm_; ///< Number of LJ parameters
     bool SCEE_set_; ///< True if SCEE section found
     bool SCNB_set_; ///< True if SCNB section found
+    bool atProblemFlag_; ///< True if a problematic flag was encountered and needs to be skipped.
 
     // CHAMBER variables
     static const double ELECTOCHAMBER_;
@@ -171,8 +178,9 @@ class Parm_Amber : public ParmIO {
     int nlestyp_; ///< Number of LES types
 
     // Write variables
-    bool nochamber_;
-    bool writeEmptyArrays_;
+    bool writeChamber_;     ///< If true write CHAMBER info
+    bool writeEmptyArrays_; ///< If true try to write TREE, IROTATE, JOIN even if not present 
+    bool writePdbInfo_;     ///< If true write chain IDs etc
 };
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {

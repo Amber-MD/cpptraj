@@ -1,3 +1,4 @@
+#include <algorithm> // copy
 #include "DataSet_double.h"
 
 // DataSet_double::Allocate()
@@ -16,6 +17,21 @@ void DataSet_double::Add(size_t frame, const void* vIn) {
   // Always insert at the end
   // NOTE: No check for duplicate frame values.
   Data_.push_back( *((double*)vIn) );
+}
+
+/** Allocate space in Data_ array. */
+int DataSet_double::MemAlloc( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty())
+    Data_.resize( sizeIn[0] );
+  return 0;
+}
+
+// DataSet_double::CopyBlock()
+void DataSet_double::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_double const& setIn = static_cast<DataSet_double const&>( *dptrIn );
+  const double* ptr = (&(setIn.Data_[0])+pos);
+  std::copy( ptr, ptr + nelts, &(Data_[0]) + startIdx );
 }
 
 // DataSet_double::WriteBuffer()

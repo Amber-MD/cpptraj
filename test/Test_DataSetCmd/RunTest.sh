@@ -45,7 +45,7 @@ dataset droppoints D3 range 1-2,4,6-7 name Drop1
 writedata Drop1.dat Drop1
 dataset droppoints D3 start 2 stop 10 offset 2
 dataset droppoints D3 range 4,5
-writedata Drop2.dat D3
+writedata Drop2.dat D3 xprec 8.3
 
 # Test extraction of vector coords
 dataset vectorcoord Vec name VX X

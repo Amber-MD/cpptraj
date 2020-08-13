@@ -50,9 +50,15 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
     // Set up set, copy original metadata
     crdOut->SetMeta( CRD->Meta() );
     if (crdOut->CoordsSetup( originalSetup.Top(), originalSetup.CoordInfo() ))
+    {
+      delete crdOut;
       return CpptrajState::ERR;
+    }
     DataSet::SizeArray mfArray(1, frameCount.TotalReadFrames());
-    if (crdOut->Allocate( mfArray )) return CpptrajState::ERR;
+    if (crdOut->Allocate( mfArray )) {
+      delete crdOut;
+      return CpptrajState::ERR;
+    }
   }
     
   // Loop over all frames in COORDS.

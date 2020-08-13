@@ -6,11 +6,12 @@
 #include "Residue.h"
 #include "Molecule.h"
 #include "ParameterTypes.h"
-#include "AtomMask.h"
-#include "CharMask.h"
+#include "ParameterSet.h"
 #include "Frame.h"
 #include "FileName.h"
 #include "Range.h"
+class AtomMask;
+class CharMask;
 /// Hold information for all atoms
 class Topology {
   public:
@@ -76,6 +77,8 @@ class Topology {
     void AddBond(int, int, int);
     void AddBond(BondType const&, bool);
     void AddBond(int, int, BondParmType const&);
+    int RemoveBond(int, int);
+    void AssignBondParams(ParmHolder<BondParmType> const&);
     // ----- Angle-specific routines -------------
     size_t Nangles()                           const { return angles_.size()+anglesh_.size(); }
     AngleArray        const& Angles()       const { return angles_;       }
@@ -86,6 +89,7 @@ class Topology {
     void AddAngle(int, int, int, int);
     void AddAngle(AngleType const&, bool);
     void AddAngle(int, int, int, AngleParmType const&); 
+    void AssignAngleParams(ParmHolder<AngleParmType> const&);
     // ----- Dihedral-specific routines ----------
     size_t Ndihedrals()                        const { return dihedrals_.size()+dihedralsh_.size(); }
     DihedralArray     const& Dihedrals()    const { return dihedrals_;       }
@@ -97,6 +101,8 @@ class Topology {
     void AddDihedral(int i, int j, int k, int l) { AddDihedral(DihedralType(i,j,k,l,-1), -1); }
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
+    void AssignImproperParams(ParmHolder<DihedralParmType> const&);
+    void AssignDihedralParams(DihedralParmHolder const&);
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
     NonbondParmType&        SetNonbond()           { return nonbond_;      }
@@ -105,6 +111,7 @@ class Topology {
     double GetVDWdepth(int) const;
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
+    void AssignNonbondParams(ParmHolder<AtomType> const&, ParmHolder<NonbondType> const&);
     // ----- Water Cap Info ----------------------
     CapParmType const& Cap()    const { return cap_; }
     CapParmType&       SetCap()       { return cap_; }
@@ -114,13 +121,19 @@ class Topology {
     // ----- CHAMBER info ------------------------
     ChamberParmType const& Chamber()        const { return chamber_;      }
     ChamberParmType& SetChamber()                 { return chamber_;      }
+    void AddCharmmImproper(DihedralType const&, DihedralParmType const&);
+    void AddCharmmImproper(DihedralType const&, int);
+    void AddCharmmImproper(DihedralType const& i) { AddCharmmImproper(i, -1); }
+    void AssignUBParams(ParmHolder<BondParmType> const&);
     // ----- Misc routines -----------------------
     /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;
     /// Format: <res name>@<atom name>
     std::string TruncResNameAtomName(int) const;
-    /// Format:  <res name>_<res num>@<atom name>_<atom num>
+    /// Format: <res name>_<res num>@<atom name>_<atom num>
     std::string TruncResAtomNameNum(int) const;
+    /// Format: <res name> <res num> <atom name> <atom num>
+    std::string ResNameNumAtomNameNum(int) const;
     /// Format: :<res num>@<atom name>
     std::string AtomMaskName(int) const;
     /// Format: <atom name>_<atom num>
@@ -131,6 +144,10 @@ class Topology {
     int FindAtomInResidue(int, NameType const&) const;
     /// Mark all molecules matching given mask expression as solvent.
     int SetSolvent(std::string const&);
+    /// \return ParameterSet for this Topology
+    ParameterSet GetParameters() const;
+    /// Update parameters in this Topology with those in given set.
+    int UpdateParams(ParameterSet const&);
     // ----- Print topology info -----------------
     void Summary() const;
     void Brief(const char*) const;
@@ -179,6 +196,12 @@ class Topology {
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
     void AddBondParam(BondType&, BP_mapType&);
     void AssignBondParameters();
+    static inline int AddTorsionParm(DihedralParmArray&, DihedralParmType const&);
+    bool CheckTorsionRange(DihedralType const& dihIn, const char*) const;
+    static inline DihedralType SetTorsionParmIndex(DihedralType const&,
+                                                   DihedralParmArray const&,
+                                                   int, const char*);
+
     void VisitAtom(int, int);
     int RecursiveMolSearch();
     int NonrecursiveMolSearch();
@@ -204,6 +227,11 @@ class Topology {
     inline void AddBondArray(BondArray const&, BondParmArray const&, int);
     inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
     inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
+
+    void AssignBondParm(ParmHolder<BondParmType> const&, ParmHolder<int>&, BondArray&, BondParmArray&, const char*);
+    void AssignAngleParm(ParmHolder<AngleParmType> const&, ParmHolder<int>&, AngleArray&);
+    void AssignImproperParm(ParmHolder<DihedralParmType> const&, ParmHolder<int>&, DihedralArray&);
+    void AssignDihedralParm(DihedralParmHolder const&, DihedralArray&);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

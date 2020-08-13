@@ -3958,7 +3958,7 @@ static int split_cycle (int *n_broken_concave_faces, BROKEN_CONCAVE_FACE broken_
   concave_cycle[icycle].cusp_edge[0] = tmp_cycle.cusp_edge[0];
   concave_cycle[icycle].edge_direction[0] = tmp_cycle.edge_direction[0];
   concave_cycle[icycle].iprobe = tmp_cycle.iprobe;
-  concave_cycle[icycle].iface = concave_cycle[icycle].iface;
+  concave_cycle[icycle].iface = tmp_cycle.iface;
 
   if (concave_cycle[icycle].edge_direction[0] == 1) {
 	first_vert = concave_edge[concave_cycle[icycle].edge[0]].vert1;
@@ -4061,7 +4061,7 @@ static int split_cycle (int *n_broken_concave_faces, BROKEN_CONCAVE_FACE broken_
         free (edge_used);
 	return 1; //exit (ERROR);
   }
-  i = broken_concave_face[iface].n_cycles;
+  //i = broken_concave_face[iface].n_cycles;
   i = *n_broken_concave_faces;
   /* create a new face */
   broken_concave_face[i].itorus[0] = broken_concave_face[iface].itorus[0];
@@ -6868,7 +6868,10 @@ static int non_axial_trim (int nat, ATOM atom[], RES res[], // NOTE: was void
 		if (cusp_intersect (cusp_edge, icusp, jcusp, probelist, concave_cycle,
 						concave_edge, vertexlist, concave_circle_list,
 						probe_rad, cusp_pair, n_cusp_pairs))
+                {
+                  free(group);
                   return 1; // NOTE: no check prev.
+                }
 	  }
 	}
 

@@ -45,6 +45,7 @@
 #   CPPTRAJ_FFTW_FFT     : If set CPPTRAJ was compiled with fftw
 #   CPPTRAJ_CUDA         : If set CPPTRAJ has CUDA support.
 #   CPPTRAJ_XDRFILE      : If set CPPTRAJ has XDR file support.
+#   CPPTRAJ_TNGFILE      : If set CPPTRAJ has TNG file support.
 #   CPPTRAJ_SINGLE_ENS   : If set CPPTRAJ has single ensemble support.
 # ----- Variables that can be set by individual scripts ----
 #   TOP                  : Topology file for cpptraj
@@ -536,7 +537,7 @@ EndTest() {
       ((PASSCOUNT = $NUMCOMPARISONS - $WARNCOUNT))
       echo "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
       OUT  "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
-    else
+    elif [ $NUMCOMPARISONS -gt 0 ] ; then
       echo "All $NUMCOMPARISONS comparisons passed." 
       OUT  "All $NUMCOMPARISONS comparisons passed."
     fi
@@ -726,6 +727,7 @@ Required() {
 #   Check how CPPTRAJ was compiled.
 CheckDefines() {
   CPPTRAJ_XDRFILE='yes'
+  CPPTRAJ_TNGFILE=''
   CPPTRAJ_MATHLIB='yes'
   CPPTRAJDEFINES=`$CPPTRAJ --defines`
   if [ $? -ne 0 ] ; then
@@ -746,10 +748,12 @@ CheckDefines() {
       '-DFFTW_FFT'      ) export CPPTRAJ_FFTW_FFT=$DEFINE ;;
       '-DCUDA'          ) export CPPTRAJ_CUDA=$DEFINE ;;
       '-DNO_XDRFILE'    ) CPPTRAJ_XDRFILE='' ;;
+      '-DHAS_TNGFILE'   ) CPPTRAJ_TNGFILE='$DEFINE' ;;
       '-DENABLE_SINGLE_ENSEMBLE' ) export CPPTRAJ_SINGLE_ENS=$DEFINE ;;
     esac
   done
   export CPPTRAJ_XDRFILE
+  export CPPTRAJ_TNGFILE
   export CPPTRAJ_MATHLIB
   #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $XDRFILE"
 }
@@ -931,6 +935,7 @@ TestLibrary() {
 # nthreads <#>   : Test requires multiples of <#> MPI threads in parallel
 # threads <#>    : Test requires exactly <#> threads in parallel.
 # amberhome      : Test requires AMBERHOME set
+# amberorcpptraj : Test requires AMBERHOME or CPPTRAJHOME set
 # inpath <name>  : Test requires <name> to be in PATH
 # testos <os>    : Test requires specific OS
 # file <file>    : Test requires specified file
@@ -953,11 +958,19 @@ CheckEnv() {
       'zlib'      ) TestLibrary "Zlib"               "$CPPTRAJ_ZLIB" ;;
       'bzlib'     ) TestLibrary "Bzlib"              "$CPPTRAJ_BZLIB" ;;
       'xdr'       ) TestLibrary "XDR file"           "$CPPTRAJ_XDRFILE" ;;
+      'tng'       ) TestLibrary "TNG file"           "$CPPTRAJ_TNGFILE" ;;
       'mathlib'   ) TestLibrary "BLAS/LAPACK/ARPACK" "$CPPTRAJ_MATHLIB" ;;
       'sanderlib' ) TestLibrary "SANDER API from AmberTools" "$CPPTRAJ_SANDERLIB" ;;
       'fftw'      ) TestLibrary "FFTW"               "$CPPTRAJ_FFTW_FFT" ;;
       'openmp'    ) TestLibrary "OpenMP"             "$CPPTRAJ_OPENMP" ;;
       'singleensemble' ) TestLibrary "Single ensemble support" "$CPPTRAJ_SINGLE_ENS" ;;
+      'cuda'      ) TestLibrary "CUDA"               "$CPPTRAJ_CUDA" ;;
+      'notcuda'   )
+	if [ ! -z "$CPPTRAJ_CUDA" ]; then
+          echo "  $DESCRIP cannot be run on CUDA."
+	  ((CHECKERR++))
+        fi
+	;;
       'pnetcdf'   )
         if [ ! -z "$DO_PARALLEL" ] ; then
           TestLibrary "Parallel NetCDF" "$CPPTRAJ_PNETCDFLIB"
@@ -1009,37 +1022,50 @@ CheckEnv() {
           ((CHECKERR++))
         fi
         ;;
-        'inpath' )
-          shift
-          if [ -z "`which $1`" ] ; then
-            echo "  $DESCRIP requires $1 to be in PATH."
-            ((CHECKERR++))
-          fi
-          ;;
-        'testos' )
-          shift
-          if [ "$CPPTRAJ_TEST_OS" != $1 ] ; then
-            echo "  $DESCRIP requires $1 OS."
-            ((CHECKERR++))
-          fi
-          ;;
-        'long' )
-          if [ -z "$CPPTRAJ_LONG_TEST" -o $CPPTRAJ_LONG_TEST -eq 0 ] ; then
-            echo "  $DESCRIP is a long test and long tests disabled. Use 'long' to run."
-            ((CHECKERR++))
-          fi
-          ;;
-        'file' )
-          shift
-          if [ ! -f "$1" ] ; then
-            echo "  $DESCRIP requires file $1"
-            ((CHECKERR++))
-          fi
-          ;;
-        'disabled' )
-          echo "  $DESCRIP is disabled."
+      'amberorcpptraj' )
+        if [ -z "$CPPTRAJHOME" -a -z "$AMBERHOME" ] ; then
+          echo "  $DESCRIP requires CPPTRAJHOME or AMBERHOME to be set."
           ((CHECKERR++))
-          ;;
+        fi
+        ;;
+      'inpath' )
+        shift
+        if [ -z "`which $1`" ] ; then
+          echo "  $DESCRIP requires $1 to be in PATH."
+          ((CHECKERR++))
+        fi
+        ;;
+      'testos' )
+        shift
+        if [ "$CPPTRAJ_TEST_OS" != "$1" ] ; then
+          echo "  $DESCRIP requires $1 OS."
+          ((CHECKERR++))
+        fi
+        ;;
+      'notos' )
+        shift
+        if [ "$CPPTRAJ_TEST_OS" = "$1" ] ; then
+          echo "  $DESCRIP cannot run on $1 OS."
+          ((CHECKERR++))
+        fi
+        ;;
+      'long' )
+        if [ -z "$CPPTRAJ_LONG_TEST" -o $CPPTRAJ_LONG_TEST -eq 0 ] ; then
+          echo "  $DESCRIP is a long test and long tests disabled. Use 'long' to run."
+          ((CHECKERR++))
+        fi
+        ;;
+      'file' )
+        shift
+        if [ ! -f "$1" ] ; then
+          echo "  $DESCRIP requires file $1"
+          ((CHECKERR++))
+        fi
+        ;;
+      'disabled' )
+        echo "  $DESCRIP is disabled."
+        ((CHECKERR++))
+        ;;
       * ) ErrMsg "Unknown CheckEnv() option: $1" ; exit 1 ;;
     esac
     shift

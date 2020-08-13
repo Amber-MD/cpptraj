@@ -1,5 +1,6 @@
 #include "Action_MultiVector.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Vector.h"
 
 Action_MultiVector::Action_MultiVector() :
   debug_(0),
@@ -120,7 +121,7 @@ Action::RetType Action_MultiVector::DoAction(int frameNum, ActionFrame& frm) {
     Vec3 CXYZ( frm.Frm().CRD( CrdIdx1_[nv] ) );
     Vec3 VXYZ( frm.Frm().CRD( CrdIdx2_[nv] ) );
     VXYZ -= CXYZ;
-    data_[nv]->AddVxyz(VXYZ, CXYZ);
+    data_[nv]->AddVxyzo(VXYZ, CXYZ);
   }
 
   return Action::OK;

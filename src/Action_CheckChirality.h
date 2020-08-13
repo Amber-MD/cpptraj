@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_CHECKCHIRALITY_H
 #define INC_ACTION_CHECKCHIRALITY_H
 #include "Action.h"
-#include "Array1D.h"
+#include "CharMask.h"
 /// Determine if amino acids are D or L 
 class Action_CheckChirality: public Action {
   public:
