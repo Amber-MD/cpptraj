@@ -12,7 +12,6 @@
 #include <cmath>
 #include <cstring>
 #include <algorithm>
-#include <list>
 
 /** CONSTRUCTOR. */
 Exec_AddMissingRes::Exec_AddMissingRes() :
@@ -22,6 +21,133 @@ Exec_AddMissingRes::Exec_AddMissingRes() :
   optimize_(true)
 {
   SetHidden(true);
+}
+
+/** Get a complete sequence of residues from the PDB, including
+  * missing residues.
+  */
+int Exec_AddMissingRes::GetSequenceFromPDB(Rlist &ResList, std::string const& pdbname)
+const
+{
+  Rlist missingResidues;
+  BufferedLine infile;
+  if (infile.OpenFileRead( pdbname )) {
+    mprinterr("Error: Could not open '%s' for reading.\n", pdbname.c_str());
+    return 1;
+  }
+  // Loop over lines from PDB
+  int inMissing = 0;
+  int nmissing = 0;
+  const char* linePtr = infile.Line();
+  while (linePtr != 0) {
+    if (strncmp(linePtr, "REMARK", 6) == 0)
+    {
+      ArgList line(linePtr);
+      if (line.Nargs() > 2) {
+        if (inMissing == 0) {
+          // MISSING section not yet encountered.
+          if (line[0] == "REMARK" && line[1] == "465" && line[2] == "MISSING" && line[3] == "RESIDUES") {
+            inMissing = 1;
+          }
+        } else if (inMissing == 1) {
+          // In MISSING, looking for start of missing residues
+          if (line[0] == "REMARK" && line[2] == "M") {
+            inMissing = 2;
+            nmissing = 0;
+          }
+        } else if (inMissing == 2) {
+          // Reading MISSING residues
+          if (line[1] != "465") {
+            //mprinterr("END REACHED.\n"); // DEBUG
+            break; 
+          } else {
+            // This is a missing residue
+            nmissing++;
+            //           11111111112222222
+            // 012345678901234567890123456
+            // REMARK 465   M RES C SSSEQI
+            std::string const& currentname = line[2];
+            char currentchain = linePtr[19];
+            // Need to be able to parse out insertion code
+            char currenticode = linePtr[26];
+            int currentres;
+            if (currenticode == ' ') {
+              currentres = atoi(line[4].c_str());
+            } else {
+              char numbuf[6];
+              std::copy(linePtr+21, linePtr+26, numbuf);
+              numbuf[5] = '\0';
+              currentres = atoi(numbuf);
+            }
+            //mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
+            //        currentname.c_str(), currentres, currenticode, currentchain);
+            missingResidues.push_back( Residue(currentname, currentres, currenticode, currentchain) );
+          } // END missing residue
+        } // END inMissing == 2
+      } // END nargs > 2
+    } // END REMARK
+    linePtr = infile.Line();
+  } // END while linePtr != 0
+  infile.CloseFile();
+
+  // DEBUG
+  for (Rlist::const_iterator it = missingResidues.begin(); it != missingResidues.end(); ++it)
+    mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
+            *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
+
+  // Read existing residues from the PDB
+  ParmFile pdbIn;
+  Topology topIn;
+  if (pdbIn.ReadTopology(topIn, pdbname, ArgList(), debug_)) {
+    mprinterr("Error: Read of topology from PDB failed.\n");
+    return CpptrajState::ERR;
+  }
+  topIn.Summary();
+
+  // Put existing residues into a list
+  ResList.clear();
+  for (Topology::res_iterator res = topIn.ResStart(); res != topIn.ResEnd(); ++res)
+    ResList.push_back( Residue(res->Name(), res->OriginalResNum(), res->Icode(), res->ChainId()) );
+
+  // Figure out where to insert the missing residues.
+  while (!missingResidues.empty()) {
+    Rlist::iterator gapStart = missingResidues.begin();
+    // Search for gap end
+    Rlist::iterator gapEnd = gapStart;
+    bool searchGap = true;
+    while ( searchGap ) {
+      Rlist::iterator currentRes = gapEnd;
+      ++gapEnd;
+      if (gapEnd == missingResidues.end()) break;
+      int resDelta = gapEnd->OriginalResNum() - currentRes->OriginalResNum();
+      if ( gapEnd->ChainId() != currentRes->ChainId() )
+        searchGap = false;
+      else if ( resDelta == 0 ) {
+        int icodeDelta = (int)gapEnd->Icode() - (int)currentRes->Icode();
+        if (icodeDelta == 0) {
+          mprinterr("Error: Missing residues have same res # %i and insertion codes %c %c\n",
+                    currentRes->OriginalResNum(), currentRes->Icode(), gapEnd->Icode());
+          return 1;
+        }
+        if (icodeDelta < 0) icodeDelta = -icodeDelta;
+        if (icodeDelta > 1)
+        searchGap = false;
+      } else if (resDelta != 1) {
+        searchGap = false;
+      }
+    }
+    mprintf("Gap:\n");
+    for (Rlist::iterator it = gapStart; it != gapEnd; ++it)
+      mprintf("\tRes %s %i icode= %c chain= %c\n",
+              *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
+    missingResidues.erase(gapStart, gapEnd);
+    gapStart = gapEnd;
+  }
+ 
+  
+
+
+  return 0;
 }
 
 /** Get missing residues from PDB, organize them into "gaps", i.e.
@@ -754,6 +880,13 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   if (argIn.hasKey("usenewmin")) {
     mprintf("Warning: usenewmin is deprecated.");
   }
+  Rlist FullResSequence;
+  std::string pdbseq = argIn.GetStringKey("pdbseq");
+  if (!pdbseq.empty()) {
+    if (GetSequenceFromPDB(FullResSequence, pdbseq))
+      return CpptrajState::ERR;
+  }
+    
   std::string pdbname = argIn.GetStringKey("pdbname");
   if (pdbname.empty()) {
     mprinterr("Error: provide PDB name.\n");
