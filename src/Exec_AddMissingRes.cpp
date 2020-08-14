@@ -165,9 +165,13 @@ const
     Rlist::iterator gapFinalRes = gapEnd;
     --gapFinalRes;
     mprintf("Gap:\n");
-    for (Rlist::iterator it = gapStart; it != gapEnd; ++it)
+    int gapLength = 0;
+    for (Rlist::iterator it = gapStart; it != gapEnd; ++it) {
       mprintf("\tRes %s %i icode= %c chain= %c\n",
               *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
+      gapLength++;
+    }
+    mprintf("\t  Gap length= %i\n", gapLength);
     // Find closest res to start
     int startDist = -1, endDist = -1;
     Rlist::iterator closestStart = FindClosestRes(ResList, *gapStart, startDist);
@@ -178,6 +182,28 @@ const
       closestEnd = FindClosestRes(ResList, *gapFinalRes, endDist);
       mprintf("\t  Closest res to gap end is %s %i %c %c (%i)\n",
               *(closestEnd->Name()), closestEnd->OriginalResNum(), closestEnd->Icode(), closestEnd->ChainId(), endDist);
+    }
+    if (startDist > 1 && endDist > 1) {
+      mprinterr("Error: Cannot find place to attach gap start or end.\n");
+      return 1;
+    } else if (startDist == 1 && endDist == 1) {
+      // Somewhere in the middle of the chain.
+      mprintf("\t  Attach in the middle of a chain.\n");
+    } else if (startDist == 1) {
+      if (endDist == -1) {
+        if (gapLength != 1) {
+          mprinterr("Internal Error: No gap end found but gap length is greater than 1.\n");
+          return 1;
+        }
+        mprintf("\t  Attach single residue in middle of a chain.\n");
+      } else
+        mprintf("\t  Attach C-terminal.\n");
+    } else if (endDist == 1) {
+      mprintf("\t  Attach N-terminal.\n");
+    } else {
+      // SANITY CHECK
+      mprinterr("Internal Error: Unexpected gap distances (start=%i, end=%i)\n", startDist, endDist);
+      return 1;
     }
     
     missingResidues.erase(gapStart, gapEnd);
