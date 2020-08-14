@@ -25,6 +25,7 @@ Exec_AddMissingRes::Exec_AddMissingRes() :
 
 /** Search for closest residue to the given residue in terms
   * of sequence.
+  * TODO optimize with iterator hint from last search
 */
 Exec_AddMissingRes::Rlist::iterator Exec_AddMissingRes::FindClosestRes(Rlist& ResList, Residue const& tgtRes,
                                                                        int& lowestAbsDist)
@@ -676,6 +677,42 @@ const
     return 1;
   if (trajOut.WriteSingle(0, newFrame)) return 1;
   trajOut.EndTraj();
+  return 0;
+}
+
+/** Add in missing residues from a sequence.
+  * \param dataOut Output COORDS set with missing residues added in.
+  * \param sourceTop Input Topology that contains residues/atoms that are "present".
+  * \param frameIn Input Frame that contains coordinates for residues/atoms that are "present".
+  * \param ResList The complete sequence, including missing residues.
+  */
+int Exec_AddMissingRes::AddMissingResFromSequence(DataSet_Coords_CRD* dataOut,
+                                   Topology const& sourceTop,
+                                   Frame const& sourceFrame,
+                                   Rlist const& ResList)
+const
+{
+  // Loop over target sequence
+  Topology::res_iterator srcRes = sourceTop.ResStart();
+  for (Rlist::const_iterator tgtRes = ResList.begin(); tgtRes != ResList.end(); ++tgtRes)
+  {
+    // Does this residue exist in the source topology?
+    Topology::res_iterator srcFound = srcRes;
+    for (; srcFound != sourceTop.ResEnd(); ++srcFound) {
+      if (tgtRes->ChainId()        == srcFound->ChainId() &&
+          tgtRes->OriginalResNum() == srcFound->OriginalResNum() &&
+          tgtRes->Icode()          == srcFound->Icode())
+      {
+        break;
+      }
+    }
+    if (srcFound != sourceTop.ResEnd()) {
+      mprintf("FOUND.\n");
+    } else {
+      mprintf("MISSING.\n");
+    }
+  }
+
   return 0;
 }
 
