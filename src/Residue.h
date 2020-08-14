@@ -38,6 +38,18 @@ class Residue {
                icode_          != rhs.icode_          ||
                (originalResNum_ == rhs.originalResNum_ && resname_ != rhs.resname_) );
     }
+    /// \return Absolute distance in orig. residue numbering
+    int AbsResDist(const Residue& rhs) const {
+      if (chainID_ != rhs.chainID_) return 99999999; // TODO a real constant
+      int dist;
+      if (originalResNum_ == rhs.originalResNum_)
+        dist = (int)icode_ - (int) rhs.icode_;
+      else
+        dist = originalResNum_ - rhs.originalResNum_;
+      if (dist < 0) dist = -dist;
+      return dist;
+    }
+
     inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
     inline void SetLastAtom(int i)         { lastAtom_ = i;       }
     inline void SetOriginalNum(int i)      { originalResNum_ = i; }

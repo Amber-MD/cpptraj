@@ -23,6 +23,32 @@ Exec_AddMissingRes::Exec_AddMissingRes() :
   SetHidden(true);
 }
 
+/** Search for closest residue to the given residue in terms
+  * of sequence.
+*/
+Exec_AddMissingRes::Rlist::iterator Exec_AddMissingRes::FindClosestRes(Rlist& ResList, Residue const& tgtRes,
+                                                                       int& lowestAbsDist)
+const
+{
+  mprintf("DEBUG: Searching for closest residue to %s %i %c %c\n",
+          *(tgtRes.Name()), tgtRes.OriginalResNum(), tgtRes.Icode(), tgtRes.ChainId());
+  Rlist::iterator pos = ResList.begin();
+  Rlist::iterator closest = pos;
+  lowestAbsDist = tgtRes.AbsResDist( *pos );
+  ++pos;
+  while (pos != ResList.end()) {
+    int absDist = tgtRes.AbsResDist( *pos );
+    // As soon as we are farther away, stop looking
+    if (absDist > lowestAbsDist) break;
+    if (absDist < lowestAbsDist) {
+      closest = pos;
+      lowestAbsDist = absDist;
+    }
+    ++pos;
+  }
+  return closest;
+}
+
 /** Get a complete sequence of residues from the PDB, including
   * missing residues.
   */
@@ -136,10 +162,24 @@ const
         searchGap = false;
       }
     }
+    Rlist::iterator gapFinalRes = gapEnd;
+    --gapFinalRes;
     mprintf("Gap:\n");
     for (Rlist::iterator it = gapStart; it != gapEnd; ++it)
       mprintf("\tRes %s %i icode= %c chain= %c\n",
               *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
+    // Find closest res to start
+    int startDist = -1, endDist = -1;
+    Rlist::iterator closestStart = FindClosestRes(ResList, *gapStart, startDist);
+    mprintf("\t  Closest res to gap start is %s %i %c %c (%i)\n",
+            *(closestStart->Name()), closestStart->OriginalResNum(), closestStart->Icode(), closestStart->ChainId(), startDist);
+    Rlist::iterator closestEnd = ResList.end();
+    if (gapStart != gapFinalRes) {
+      closestEnd = FindClosestRes(ResList, *gapFinalRes, endDist);
+      mprintf("\t  Closest res to gap end is %s %i %c %c (%i)\n",
+              *(closestEnd->Name()), closestEnd->OriginalResNum(), closestEnd->Icode(), closestEnd->ChainId(), endDist);
+    }
+    
     missingResidues.erase(gapStart, gapEnd);
     gapStart = gapEnd;
   }

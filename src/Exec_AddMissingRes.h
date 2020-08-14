@@ -24,6 +24,7 @@ class Exec_AddMissingRes : public Exec {
     typedef std::list<Residue> Rlist;
     typedef std::vector<Residue> Rarray;
 
+    Rlist::iterator FindClosestRes(Rlist&, Residue const&, int&) const;
     int GetSequenceFromPDB(Rlist& ResList, std::string const&) const;
     int FindGaps(Garray&, CpptrajFile&, std::string const&) const;
     int Minimize(Topology const&, Frame&, CharMask const&) const;
