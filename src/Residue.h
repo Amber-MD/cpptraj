@@ -43,8 +43,20 @@ class Residue {
       if (chainID_ != rhs.chainID_) return 99999999; // TODO a real constant
       int dist;
       if (originalResNum_ == rhs.originalResNum_)
-        dist = (int)icode_ - (int) rhs.icode_;
-      else
+      {
+        // blank icodes need to be replaced with the one before 'A'
+        static const int blankCode = ((int)'A') - 1;
+        int code1, code2;
+        if (icode_ == ' ')
+          code1 = blankCode;
+        else
+          code1 = (int)icode_;
+        if (rhs.icode_ == ' ')
+          code2 = blankCode;
+        else
+          code2 = (int)rhs.icode_;
+        dist = code1 - code2;
+      } else
         dist = originalResNum_ - rhs.originalResNum_;
       if (dist < 0) dist = -dist;
       return dist;

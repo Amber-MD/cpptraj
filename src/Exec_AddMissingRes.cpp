@@ -38,9 +38,14 @@ const
   ++pos;
   while (pos != ResList.end()) {
     int absDist = tgtRes.AbsResDist( *pos );
+    //mprintf("\t\tPotential: %s %i %c %c (%i)\n", *(pos->Name()), pos->OriginalResNum(), pos->Icode(), pos->ChainId(), absDist);
     // As soon as we are farther away, stop looking
     if (absDist > lowestAbsDist) break;
-    if (absDist < lowestAbsDist) {
+    // Give preference to same original res num
+    if (absDist < lowestAbsDist ||
+        (absDist == lowestAbsDist && pos->OriginalResNum() == tgtRes.OriginalResNum())
+       )
+    {
       closest = pos;
       lowestAbsDist = absDist;
     }
@@ -189,6 +194,9 @@ const
     } else if (startDist == 1 && endDist == 1) {
       // Somewhere in the middle of the chain.
       mprintf("\t  Attach in the middle of a chain.\n");
+      Rlist::iterator ins = closestStart;
+      ins++;
+      ResList.insert(ins, gapStart, gapEnd);
     } else if (startDist == 1) {
       if (endDist == -1) {
         if (gapLength != 1) {
@@ -196,10 +204,19 @@ const
           return 1;
         }
         mprintf("\t  Attach single residue in middle of a chain.\n");
-      } else
+        Rlist::iterator ins = closestStart;
+        ins++;
+        ResList.insert(ins, *gapStart);
+      } else {
         mprintf("\t  Attach C-terminal.\n");
+        Rlist::iterator ins = closestStart;
+        ++ins;
+        ResList.insert(ins, gapStart, gapEnd);
+      }
     } else if (endDist == 1) {
       mprintf("\t  Attach N-terminal.\n");
+      Rlist::iterator ins = closestEnd;
+      ResList.insert(ins, gapStart, gapEnd);
     } else {
       // SANITY CHECK
       mprinterr("Internal Error: Unexpected gap distances (start=%i, end=%i)\n", startDist, endDist);
@@ -210,7 +227,10 @@ const
     gapStart = gapEnd;
   }
  
-  
+  mprintf("Final residues:\n");
+  for (Rlist::const_iterator it = ResList.begin(); it != ResList.end(); ++it) 
+    mprintf("\tRes %s %i icode= %c chain= %c\n",
+            *(it->Name()), it->OriginalResNum(), it->Icode(), it->ChainId());
 
 
   return 0;
