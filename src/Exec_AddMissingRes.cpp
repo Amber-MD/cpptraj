@@ -707,9 +707,10 @@ const
       }
     }
     if (srcFound != sourceTop.ResEnd()) {
-      mprintf("FOUND.\n");
+      mprintf("FOUND %s %i %c %c.\n", *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId());
+      ++srcRes;
     } else {
-      mprintf("MISSING.\n");
+      mprintf("MISSING %s %i %c %c.\n", *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId());
     }
   }
 
@@ -1091,9 +1092,16 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   trajIn.EndTraj();
 
   // Try to add in missing residues
-  if (AddMissingResidues(dataOut, topIn, frameIn, Gaps)) {
-    mprinterr("Error: Attempt to add missing residues failed.\n");
-    return CpptrajState::ERR;
+  if (FullResSequence.empty()) {
+    if (AddMissingResidues(dataOut, topIn, frameIn, Gaps)) {
+      mprinterr("Error: Attempt to add missing residues failed.\n");
+      return CpptrajState::ERR;
+    }
+  } else {
+    if (AddMissingResFromSequence(dataOut, topIn, frameIn, FullResSequence)) {
+      mprinterr("Error: Attempt to add missing residues from sequence failed.\n");
+      return CpptrajState::ERR;
+    }
   }
 
   return CpptrajState::OK;
