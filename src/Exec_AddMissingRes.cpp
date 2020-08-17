@@ -689,6 +689,77 @@ const
   return 0;
 }
 
+/** Add bonds and non-bonded parameters to a CA topology.
+  * \param CAtop the CA topology
+  * \param missingInNew Size is number of residues, true if residue was missing.
+  * \param topIn The complete topology corresponding to the CA topology.
+  */
+int Exec_AddMissingRes::SetupCAtopology(Topology& CAtop, std::vector<bool> const& missingInNew,
+                                        Topology const& topIn, Frame const& CAframe)
+const
+{
+  // Determine pseudo-bonds for CA topology
+  BondParmType CAbond(300.0, 3.8);
+  // Loop over residues in CA topology
+  for (int ridx = 0; ridx < CAtop.Nres(); ridx++)
+  {
+    if (missingInNew[ridx]) {
+      mprintf("DEBUG: Originally missing CA res %s bonded to", CAtop.TruncResNameNum(ridx).c_str());
+      // This was a missing residue. Bond it to the previous/next residue in same chain.
+      int pidx = ridx - 1;
+      if (pidx > 0 && CAtop.Res(pidx).ChainId() == CAtop.Res(ridx).ChainId()) {
+        CAtop.AddBond(pidx, ridx, CAbond);
+        mprintf(" %s", CAtop.TruncResNameNum(pidx).c_str());
+      }
+      int nidx = ridx + 1;
+      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainId() == CAtop.Res(nidx).ChainId()) {
+        CAtop.AddBond(ridx, nidx, CAbond);
+        mprintf(" %s", CAtop.TruncResNameNum(nidx).c_str());
+      }
+      mprintf("\n");
+    } else {
+      // Check which residues this was originally bonded to
+      mprintf("DEBUG: Originally present CA res %i %s bonded to:\n", ridx+1,CAtop.TruncResNameNum(ridx).c_str());
+      //mprintf("New index %i original index %i originally bonded to", ridx, it->Tnum());
+      Residue const& ores = topIn.Res(ridx);
+      //std::set<int> bondedRes;
+      for (int at = ores.FirstAtom(); at != ores.LastAtom(); ++at)
+      {
+        mprintf("\t%16s:", topIn.ResNameNumAtomNameNum(at).c_str());
+        for (Atom::bond_iterator bat = topIn[at].bondbegin();
+                                 bat != topIn[at].bondend(); ++bat)
+        {
+          if (topIn[*bat].ResNum() != ridx) {
+            //mprintf(" %i", topIn[*bat].ResNum());
+            //mprintf(" %s", CAtop.TruncResNameNum(topIn[*bat].ResNum()).c_str());
+            mprintf(" '%16s'", topIn.ResNameNumAtomNameNum(*bat).c_str());
+            CAtop.AddBond(ridx, topIn[*bat].ResNum());
+          }
+        }
+        mprintf("\n");
+      }
+      mprintf("\n");
+    }
+  }
+  // Add pseudo parameters for the "CA" atom type (0)
+  LJparmType CAtype(3.8, 10.0);
+  NonbondType AB = CAtype.Combine_LB( CAtype );
+  CAtop.SetNonbond().SetupLJforNtypes(1);
+  CAtop.SetNonbond().AddLJterm(0, 0, AB);
+  mprintf("DEBUG: LJ radius= %g\n", CAtop.GetVDWradius(0));
+  // Final setup
+  CAtop.SetParmName("caseq", "seq.ca.mol2");
+  CAtop.CommonSetup(true, 2); // molecule search, exclude bonds
+  CAtop.Summary();
+
+  // Write CA top
+  if (WriteStructure("seq.ca.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
+    mprinterr("Error: Write of seq.ca.mol2 failed.\n");
+    return 1;
+  }
+  return 0;
+}
+
 /** Add specified residue from source topology to new Topology and new CA topology. */
 static inline void AddResToTopologies(Residue const& srcRes, Topology const& sourceTop, Frame const& sourceFrame, long int srcResNum,
                                       Topology& newTop, std::vector<double>& newCrd,
@@ -701,7 +772,7 @@ static inline void AddResToTopologies(Residue const& srcRes, Topology const& sou
   // Calculate the center of the residue as we go in case we need it
   Vec3 vcenter(0.0);
   for (int aidx = srcRes.FirstAtom(); aidx != srcRes.LastAtom(); aidx++) {
-    newTop.AddTopAtom( sourceTop[aidx], newres );
+    newTop.AddTopAtom( Atom(sourceTop[aidx].Name(), sourceTop[aidx].ElementName()), newres );
     originalAtToNew[aidx] = newAtNum++;
     // Record CA atom index
     if (sourceTop[aidx].Name() == "CA") caidx = aidx;
@@ -779,6 +850,7 @@ const
       }
     }
     if (srcFound != sourceTop.ResEnd()) {
+      missingInNew.push_back( false );
       mprintf("FOUND %s %i %c %c (%s %i %c %c).\n",
               *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId(),
               *(srcFound->Name()), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId());
@@ -787,49 +859,16 @@ const
       AddResToTopologies(*srcFound, sourceTop, sourceFrame, srcFound-sourceTop.ResStart(),
                          newTop, newCrd,
                          CAtop, CAcrd, CAmissing, originalAtToNew, newAtNum);
-/*
-      Residue newres(srcFound->Name(), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId());
-      int caidx = -1;
-      // Calculate the center of the residue as we go in case we need it
-      Vec3 vcenter(0.0);
-      for (int aidx = srcFound->FirstAtom(); aidx != srcFound->LastAtom(); aidx++) {
-        newTop.AddTopAtom( sourceTop[aidx], newres );
-        originalAtToNew[aidx] = newAtNum++;
-        // Record CA atom index
-        if (sourceTop[aidx].Name() == "CA") caidx = aidx;
-        const double* XYZ = sourceFrame.XYZ( aidx );
-        newCrd.push_back( XYZ[0] );
-        newCrd.push_back( XYZ[1] );
-        newCrd.push_back( XYZ[2] );
-      }
-      // CA top
-      if (caidx == -1) {
-        mprintf("Warning: No CA atom found for residue %s\n", sourceTop.TruncResNameNum(srcFound-sourceTop.ResStart()).c_str());
-        // Use the center of the residue
-        vcenter /= (double)srcFound->NumAtoms();
-        mprintf("Warning: Using center: %g %g %g\n", vcenter[0], vcenter[1], vcenter[2]);
-        CAtop.AddTopAtom( Atom("CA", "C"), newres );
-        CAcrd.push_back( vcenter[0] );
-        CAcrd.push_back( vcenter[1] );
-        CAcrd.push_back( vcenter[2] );
-        CAmissing.AddAtom(false);
-      } else {
-        CAtop.AddTopAtom( Atom(sourceTop[caidx].Name(), sourceTop[caidx].ElementName()), newres );
-        const double* XYZ = sourceFrame.XYZ( caidx );
-        CAcrd.push_back( XYZ[0] );
-        CAcrd.push_back( XYZ[1] );
-        CAcrd.push_back( XYZ[2] );
-        CAmissing.AddAtom(false);
-      }*/
       ++srcRes;
     } else {
       mprintf("MISSING %s %i %c %c.\n", *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId());
       // Add a placeholder for this residue
       newTop.AddTopAtom( Atom("CA", "C "),
                          Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId()) );
-      if (newTop.Nres() > (int)missingInNew.size())
-        missingInNew.resize( newTop.Nres(), false );
-      missingInNew[ newTop.Nres()-1 ] = true;
+      missingInNew.push_back( true );
+      //if (newTop.Nres() > (int)missingInNew.size())
+      //  missingInNew.resize( newTop.Nres(), false );
+      //missingInNew[ newTop.Nres()-1 ] = true;
       newAtNum++;
       newCrd.push_back( 0 );
       newCrd.push_back( 0 );
@@ -846,34 +885,29 @@ const
   mprintf("Residues to be added:\n");
   for (int ridx = 0; ridx != sourceTop.Nres(); ridx++) {
     if (!sourceResUsed[ridx]) {
+      missingInNew.push_back( false );
       Residue const& res = sourceTop.Res(ridx);
       mprintf("\t%s %i %c %c\n", *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId());
       // Add atoms for this residue
       AddResToTopologies(res, sourceTop, sourceFrame, ridx,
                          newTop, newCrd,
                          CAtop, CAcrd, CAmissing, originalAtToNew, newAtNum);
-/*
-      for (int aidx = res.FirstAtom(); aidx != res.LastAtom(); aidx++) {
-        newTop.AddTopAtom( sourceTop[aidx],
-                           Residue(res.Name(), res.OriginalResNum(), res.Icode(), res.ChainId()) );
-        originalAtToNew[aidx] = newAtNum++;
-        const double* XYZ = sourceFrame.XYZ( aidx );
-        newCrd.push_back( XYZ[0] );
-        newCrd.push_back( XYZ[1] );
-        newCrd.push_back( XYZ[2] );
-      }
-*/
     }
   }
   // Fill out missingInNew
-  if (newTop.Nres() > (int)missingInNew.size())
-    missingInNew.resize( newTop.Nres(), false );
+  //if (newTop.Nres() > (int)missingInNew.size())
+  //  missingInNew.resize( newTop.Nres(), false );
   // Add original bonds to new topology.
   for (BondArray::const_iterator bnd = sourceTop.Bonds().begin();
                                  bnd != sourceTop.Bonds().end(); ++bnd)
   {
     newTop.AddBond( originalAtToNew[bnd->A1()],
                     originalAtToNew[bnd->A2()] );
+    mprintf("DEBUG: Orig. bond [%16s-%16s] New bond [%16s-%16s]\n",
+            sourceTop.ResNameNumAtomNameNum(bnd->A1()).c_str(),
+            sourceTop.ResNameNumAtomNameNum(bnd->A2()).c_str(),
+            newTop.ResNameNumAtomNameNum(originalAtToNew[bnd->A1()]).c_str(),
+            newTop.ResNameNumAtomNameNum(originalAtToNew[bnd->A2()]).c_str());
   }
   // Finish new top
   //newTop.SetParmName("seqpdb", "seq.pdb");
@@ -885,7 +919,9 @@ const
   for (int ridx = 0; ridx != newTop.Nres(); ridx++)
   {
     Residue const& res = newTop.Res(ridx);
-    mprintf("%8i %4s %8i %c %c %i\n", ridx+1, *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId(), (int)missingInNew[ridx]);
+    mprintf("%8i %4s %8i %c %c %i (CA %s)\n",
+            ridx+1, *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId(),
+            (int)missingInNew[ridx], *(CAtop.Res(ridx).Name()));
   }
 
   // Put newCrd into a Frame
@@ -899,6 +935,15 @@ const
     mprinterr("Error: Write of filled in coords failed.\n");
     return 1;
   }
+
+  // Put CAcrd into a Frame
+  Frame CAframe;
+  CAframe.SetupFrameV(CAtop.Atoms(), CoordinateInfo());
+  std::copy(CAcrd.begin(), CAcrd.end(), CAframe.xAddress());
+  CAcrd.clear();
+
+  // Finish the CA topology
+  if (SetupCAtopology(CAtop, missingInNew, newTop, CAframe)) return 1;
 
   return 0;
 }

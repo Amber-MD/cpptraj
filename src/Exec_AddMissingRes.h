@@ -39,6 +39,7 @@ class Exec_AddMissingRes : public Exec {
     int AssignCoordsBySearch(Topology const&, Frame const&, Topology const&, Frame&,
                              CharMask const&) const;
 
+    int SetupCAtopology(Topology&, std::vector<bool> const&, Topology const&, Frame const&) const;
     int AddMissingResFromSequence(DataSet_Coords_CRD*, Topology const&, Frame const&, Rlist const&) const;
     int AddMissingResidues(DataSet_Coords_CRD*, Topology const&, Frame const&, Garray const&) const;
 
