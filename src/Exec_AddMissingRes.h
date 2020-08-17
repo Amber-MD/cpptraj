@@ -22,10 +22,11 @@ class Exec_AddMissingRes : public Exec {
     typedef std::vector<int> Iarray;
 
     typedef std::list<Residue> Rlist;
-    typedef std::vector<Residue> Rarray;
+    //typedef std::vector<Residue> Rarray;
+    typedef std::vector<NameType> Narray;
 
     Rlist::iterator FindClosestRes(Rlist&, Residue const&, int&) const;
-    int GetSequenceFromPDB(Rlist& ResList, std::string const&) const;
+    int GetSequenceFromPDB(Rlist& ResList, std::string const&, Narray const&) const;
     int FindGaps(Garray&, CpptrajFile&, std::string const&) const;
     int Minimize(Topology const&, Frame&, CharMask const&) const;
     int WriteStructure(std::string const&, Topology*, Frame const&, TrajectoryFile::TrajFormatType) const;

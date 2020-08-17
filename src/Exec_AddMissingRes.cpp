@@ -58,9 +58,16 @@ const
 /** Get a complete sequence of residues from the PDB, including
   * missing residues.
   */
-int Exec_AddMissingRes::GetSequenceFromPDB(Rlist &ResList, std::string const& pdbname)
+int Exec_AddMissingRes::GetSequenceFromPDB(Rlist &ResList, std::string const& pdbname, Narray const& ignoreseq)
 const
 {
+  mprintf("\tGetting sequence from PDB '%s'\n", pdbname.c_str());
+  if (!ignoreseq.empty()) {
+    mprintf("\tIgnoring residues:");
+    for (Narray::const_iterator it = ignoreseq.begin(); it != ignoreseq.end(); ++it)
+      mprintf(" %s", *(*it));
+    mprintf("\n");
+  }
   Rlist missingResidues;
   BufferedLine infile;
   if (infile.OpenFileRead( pdbname )) {
@@ -113,7 +120,8 @@ const
             }
             //mprintf("DEBUG: Missing residue %s %i icode= %c chain= %c\n",
             //        currentname.c_str(), currentres, currenticode, currentchain);
-            missingResidues.push_back( Residue(currentname, currentres, currenticode, currentchain) );
+            if (std::find(ignoreseq.begin(), ignoreseq.end(), currentname) == ignoreseq.end())
+              missingResidues.push_back( Residue(currentname, currentres, currenticode, currentchain) );
           } // END missing residue
         } // END inMissing == 2
       } // END nargs > 2
@@ -139,7 +147,8 @@ const
   // Put existing residues into a list
   ResList.clear();
   for (Topology::res_iterator res = topIn.ResStart(); res != topIn.ResEnd(); ++res)
-    ResList.push_back( Residue(res->Name(), res->OriginalResNum(), res->Icode(), res->ChainId()) );
+    if (std::find(ignoreseq.begin(), ignoreseq.end(), res->Name()) == ignoreseq.end())
+      ResList.push_back( Residue(res->Name(), res->OriginalResNum(), res->Icode(), res->ChainId()) );
 
   // Figure out where to insert the missing residues.
   while (!missingResidues.empty()) {
@@ -1006,8 +1015,15 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   }
   Rlist FullResSequence;
   std::string pdbseq = argIn.GetStringKey("pdbseq");
+  std::string pdbIgnoreSeq = argIn.GetStringKey("ignoreseq");
   if (!pdbseq.empty()) {
-    if (GetSequenceFromPDB(FullResSequence, pdbseq))
+    Narray ignoreseq;
+    if (!pdbIgnoreSeq.empty()) {
+      ArgList tmp(pdbIgnoreSeq, ",");
+      for (int iarg = 0; iarg < tmp.Nargs(); iarg++)
+        ignoreseq.push_back( tmp[iarg] );
+    }
+    if (GetSequenceFromPDB(FullResSequence, pdbseq, ignoreseq))
       return CpptrajState::ERR;
   }
     
