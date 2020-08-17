@@ -747,6 +747,9 @@ const
       // Add a placeholder for this residue
       newTop.AddTopAtom( Atom("CA", "C "),
                          Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId()) );
+      if (newTop.Nres() > (int)missingInNew.size())
+        missingInNew.resize( newTop.Nres(), false );
+      missingInNew[ newTop.Nres()-1 ] = true;
       newAtNum++;
       newCrd.push_back( 0 );
       newCrd.push_back( 0 );
@@ -770,6 +773,9 @@ const
       }
     }
   }
+  // Fill out missingInNew
+  if (newTop.Nres() > (int)missingInNew.size())
+    missingInNew.resize( newTop.Nres(), false );
   // Add original bonds to new topology.
   for (BondArray::const_iterator bnd = sourceTop.Bonds().begin();
                                  bnd != sourceTop.Bonds().end(); ++bnd)
@@ -782,6 +788,14 @@ const
   newTop.SetParmName("seqmol2", "seq.mol2");
   newTop.CommonSetup( false ); // No molecule search
   newTop.Summary();
+  // DEBUG print new topology
+  mprintf("New topology:\n");
+  for (int ridx = 0; ridx != newTop.Nres(); ridx++)
+  {
+    Residue const& res = newTop.Res(ridx);
+    mprintf("%8i %4s %8i %c %c %i\n", ridx+1, *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId(), (int)missingInNew[ridx]);
+  }
+
   // Put newCrd into a Frame
   Frame newFrame;
   newFrame.SetupFrameV(newTop.Atoms(), CoordinateInfo());
