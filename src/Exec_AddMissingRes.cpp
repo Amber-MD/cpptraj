@@ -689,6 +689,52 @@ const
   return 0;
 }
 
+/** Add specified residue from source topology to new Topology and new CA topology. */
+static inline void AddResToTopologies(Residue const& srcRes, Topology const& sourceTop, Frame const& sourceFrame, long int srcResNum,
+                                      Topology& newTop, std::vector<double>& newCrd,
+                                      Topology& CAtop, std::vector<double>& CAcrd, CharMask& CAmissing,
+                                      std::vector<int>& originalAtToNew, int& newAtNum)
+{
+  // Add atoms for this residue 
+  Residue newres(srcRes.Name(), srcRes.OriginalResNum(), srcRes.Icode(), srcRes.ChainId());
+  int caidx = -1;
+  // Calculate the center of the residue as we go in case we need it
+  Vec3 vcenter(0.0);
+  for (int aidx = srcRes.FirstAtom(); aidx != srcRes.LastAtom(); aidx++) {
+    newTop.AddTopAtom( sourceTop[aidx], newres );
+    originalAtToNew[aidx] = newAtNum++;
+    // Record CA atom index
+    if (sourceTop[aidx].Name() == "CA") caidx = aidx;
+    const double* XYZ = sourceFrame.XYZ( aidx );
+    newCrd.push_back( XYZ[0] );
+    newCrd.push_back( XYZ[1] );
+    newCrd.push_back( XYZ[2] );
+    // Calc center
+    vcenter[0] += XYZ[0];
+    vcenter[1] += XYZ[1];
+    vcenter[2] += XYZ[2];
+  }
+  // CA top
+  if (caidx == -1) {
+    mprintf("Warning: No CA atom found for residue %s\n", sourceTop.TruncResNameNum(srcResNum).c_str());
+    // Use the center of the residue
+    vcenter /= (double)srcRes.NumAtoms();
+    mprintf("Warning: Using center: %g %g %g\n", vcenter[0], vcenter[1], vcenter[2]);
+    CAtop.AddTopAtom( Atom("CA", "C"), newres );
+    CAcrd.push_back( vcenter[0] );
+    CAcrd.push_back( vcenter[1] );
+    CAcrd.push_back( vcenter[2] );
+    CAmissing.AddAtom(false);
+  } else {
+    CAtop.AddTopAtom( Atom(sourceTop[caidx].Name(), sourceTop[caidx].ElementName()), newres );
+    const double* XYZ = sourceFrame.XYZ( caidx );
+    CAcrd.push_back( XYZ[0] );
+    CAcrd.push_back( XYZ[1] );
+    CAcrd.push_back( XYZ[2] );
+    CAmissing.AddAtom(false);
+  }
+}
+
 /** Add in missing residues from a sequence.
   * \param dataOut Output COORDS set with missing residues added in.
   * \param sourceTop Input Topology that contains residues/atoms that are "present".
@@ -709,6 +755,12 @@ const
   std::vector<double> newCrd;
   // This array will track which residues in the new topology were "missing"
   std::vector<bool> missingInNew;
+  // Topology for CA atoms
+  Topology CAtop;
+  // Frame for CA atoms
+  std::vector<double> CAcrd; 
+  // Mask for missing CA atoms
+  CharMask CAmissing;
   // Map original atom number to new atom number
   Iarray originalAtToNew( sourceTop.Natom(), -1 );
   int newAtNum = 0;
@@ -732,15 +784,43 @@ const
               *(srcFound->Name()), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId());
       sourceResUsed[ srcFound - sourceTop.ResStart() ] = true;
       // Add atoms for this residue 
+      AddResToTopologies(*srcFound, sourceTop, sourceFrame, srcFound-sourceTop.ResStart(),
+                         newTop, newCrd,
+                         CAtop, CAcrd, CAmissing, originalAtToNew, newAtNum);
+/*
+      Residue newres(srcFound->Name(), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId());
+      int caidx = -1;
+      // Calculate the center of the residue as we go in case we need it
+      Vec3 vcenter(0.0);
       for (int aidx = srcFound->FirstAtom(); aidx != srcFound->LastAtom(); aidx++) {
-        newTop.AddTopAtom( sourceTop[aidx],
-                           Residue(srcFound->Name(), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId()) );
+        newTop.AddTopAtom( sourceTop[aidx], newres );
         originalAtToNew[aidx] = newAtNum++;
+        // Record CA atom index
+        if (sourceTop[aidx].Name() == "CA") caidx = aidx;
         const double* XYZ = sourceFrame.XYZ( aidx );
         newCrd.push_back( XYZ[0] );
         newCrd.push_back( XYZ[1] );
         newCrd.push_back( XYZ[2] );
       }
+      // CA top
+      if (caidx == -1) {
+        mprintf("Warning: No CA atom found for residue %s\n", sourceTop.TruncResNameNum(srcFound-sourceTop.ResStart()).c_str());
+        // Use the center of the residue
+        vcenter /= (double)srcFound->NumAtoms();
+        mprintf("Warning: Using center: %g %g %g\n", vcenter[0], vcenter[1], vcenter[2]);
+        CAtop.AddTopAtom( Atom("CA", "C"), newres );
+        CAcrd.push_back( vcenter[0] );
+        CAcrd.push_back( vcenter[1] );
+        CAcrd.push_back( vcenter[2] );
+        CAmissing.AddAtom(false);
+      } else {
+        CAtop.AddTopAtom( Atom(sourceTop[caidx].Name(), sourceTop[caidx].ElementName()), newres );
+        const double* XYZ = sourceFrame.XYZ( caidx );
+        CAcrd.push_back( XYZ[0] );
+        CAcrd.push_back( XYZ[1] );
+        CAcrd.push_back( XYZ[2] );
+        CAmissing.AddAtom(false);
+      }*/
       ++srcRes;
     } else {
       mprintf("MISSING %s %i %c %c.\n", *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId());
@@ -754,6 +834,13 @@ const
       newCrd.push_back( 0 );
       newCrd.push_back( 0 );
       newCrd.push_back( 0 );
+      // CA top
+      CAtop.AddTopAtom( Atom("CA", "CA", 0),
+                        Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId()) );
+      CAcrd.push_back( 0 );
+      CAcrd.push_back( 0 );
+      CAcrd.push_back( 0 );
+      CAmissing.AddAtom(true);
     }
   } // END loop over target sequence
   mprintf("Residues to be added:\n");
@@ -762,6 +849,10 @@ const
       Residue const& res = sourceTop.Res(ridx);
       mprintf("\t%s %i %c %c\n", *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId());
       // Add atoms for this residue
+      AddResToTopologies(res, sourceTop, sourceFrame, ridx,
+                         newTop, newCrd,
+                         CAtop, CAcrd, CAmissing, originalAtToNew, newAtNum);
+/*
       for (int aidx = res.FirstAtom(); aidx != res.LastAtom(); aidx++) {
         newTop.AddTopAtom( sourceTop[aidx],
                            Residue(res.Name(), res.OriginalResNum(), res.Icode(), res.ChainId()) );
@@ -771,6 +862,7 @@ const
         newCrd.push_back( XYZ[1] );
         newCrd.push_back( XYZ[2] );
       }
+*/
     }
   }
   // Fill out missingInNew
