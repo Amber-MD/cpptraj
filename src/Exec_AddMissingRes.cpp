@@ -893,9 +893,14 @@ const
                          CAtop, CAcrd, CAmissing, originalAtToNew, newAtNum);
     }
   }
-  // Fill out missingInNew
-  //if (newTop.Nres() > (int)missingInNew.size())
-  //  missingInNew.resize( newTop.Nres(), false );
+  // Try to determine which frames are terminal so pdbter works since
+  // we wont be able to determine molecules by bonds.
+  for (int ridx = 0; ridx != newTop.Nres(); ridx++)
+  {
+    if (ridx + 1 == newTop.Nres() ||
+        newTop.Res(ridx).ChainId() != newTop.Res(ridx+1).ChainId())
+      newTop.SetRes(ridx).SetTerminal(true);
+  }
   // Add original bonds to new topology.
   for (BondArray::const_iterator bnd = sourceTop.Bonds().begin();
                                  bnd != sourceTop.Bonds().end(); ++bnd)
