@@ -704,41 +704,40 @@ const
   for (int ridx = 0; ridx < CAtop.Nres(); ridx++)
   {
     if (missingInNew[ridx]) {
-      mprintf("DEBUG: Originally missing CA res %s bonded to", CAtop.TruncResNameNum(ridx).c_str());
+      //mprintf("DEBUG: Originally missing CA res %s bonded to", CAtop.TruncResNameNum(ridx).c_str());
       // This was a missing residue. Bond it to the previous/next residue in same chain.
       int pidx = ridx - 1;
       if (pidx > 0 && CAtop.Res(pidx).ChainId() == CAtop.Res(ridx).ChainId()) {
         CAtop.AddBond(pidx, ridx, CAbond);
-        mprintf(" %s", CAtop.TruncResNameNum(pidx).c_str());
+        //mprintf(" %s", CAtop.TruncResNameNum(pidx).c_str());
       }
       int nidx = ridx + 1;
       if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainId() == CAtop.Res(nidx).ChainId()) {
         CAtop.AddBond(ridx, nidx, CAbond);
-        mprintf(" %s", CAtop.TruncResNameNum(nidx).c_str());
+        //mprintf(" %s", CAtop.TruncResNameNum(nidx).c_str());
       }
-      mprintf("\n");
+      //mprintf("\n");
     } else {
       // Check which residues this was originally bonded to
-      mprintf("DEBUG: Originally present CA res %i %s bonded to:\n", ridx+1,CAtop.TruncResNameNum(ridx).c_str());
-      //mprintf("New index %i original index %i originally bonded to", ridx, it->Tnum());
+      //mprintf("DEBUG: Originally present CA res %i %s bonded to:\n", ridx+1,CAtop.TruncResNameNum(ridx).c_str());
       Residue const& ores = topIn.Res(ridx);
       //std::set<int> bondedRes;
       for (int at = ores.FirstAtom(); at != ores.LastAtom(); ++at)
       {
-        mprintf("\t%16s:", topIn.ResNameNumAtomNameNum(at).c_str());
+        //mprintf("\t%16s:", topIn.ResNameNumAtomNameNum(at).c_str());
         for (Atom::bond_iterator bat = topIn[at].bondbegin();
                                  bat != topIn[at].bondend(); ++bat)
         {
           if (topIn[*bat].ResNum() != ridx) {
             //mprintf(" %i", topIn[*bat].ResNum());
             //mprintf(" %s", CAtop.TruncResNameNum(topIn[*bat].ResNum()).c_str());
-            mprintf(" '%16s'", topIn.ResNameNumAtomNameNum(*bat).c_str());
+            //mprintf(" '%16s'", topIn.ResNameNumAtomNameNum(*bat).c_str());
             CAtop.AddBond(ridx, topIn[*bat].ResNum());
           }
         }
-        mprintf("\n");
+        //mprintf("\n");
       }
-      mprintf("\n");
+      //mprintf("\n");
     }
   }
   // Add pseudo parameters for the "CA" atom type (0)
@@ -903,11 +902,11 @@ const
   {
     newTop.AddBond( originalAtToNew[bnd->A1()],
                     originalAtToNew[bnd->A2()] );
-    mprintf("DEBUG: Orig. bond [%16s-%16s] New bond [%16s-%16s]\n",
-            sourceTop.ResNameNumAtomNameNum(bnd->A1()).c_str(),
-            sourceTop.ResNameNumAtomNameNum(bnd->A2()).c_str(),
-            newTop.ResNameNumAtomNameNum(originalAtToNew[bnd->A1()]).c_str(),
-            newTop.ResNameNumAtomNameNum(originalAtToNew[bnd->A2()]).c_str());
+    //mprintf("DEBUG: Orig. bond [%16s-%16s] New bond [%16s-%16s]\n",
+    //        sourceTop.ResNameNumAtomNameNum(bnd->A1()).c_str(),
+    //        sourceTop.ResNameNumAtomNameNum(bnd->A2()).c_str(),
+    //        newTop.ResNameNumAtomNameNum(originalAtToNew[bnd->A1()]).c_str(),
+    //        newTop.ResNameNumAtomNameNum(originalAtToNew[bnd->A2()]).c_str());
   }
   // Finish new top
   //newTop.SetParmName("seqpdb", "seq.pdb");
