@@ -951,11 +951,10 @@ const
       return 1;
     }
     // Minimize
-/*
     if (Minimize(CAtop, CAframe, CAmissing)) {
       mprinterr("Error: Minimization of CA atoms failed.\n");
       return 1;
-    }*/
+    }
     // Transfer final CA coords for missing residues to newFrame
     for (int idx = 0; idx != CAtop.Nres(); idx++) {
       if (CAmissing.AtomInCharMask(idx)) {
