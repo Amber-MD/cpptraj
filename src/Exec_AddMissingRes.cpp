@@ -701,7 +701,14 @@ int Exec_AddMissingRes::AddMissingResFromSequence(DataSet_Coords_CRD* dataOut,
                                    Rlist const& ResList)
 const
 {
+  // This array will track what residues have been used from the source topology
   std::vector<bool> sourceResUsed( sourceTop.Nres(), false );
+  // The new topology that includes missing residues
+  Topology newTop;
+  // The new coordinates
+  std::vector<double> newCrd;
+  // This array will track which residues in the new topology were "missing"
+  std::vector<bool> missingInNew;
   // Loop over target sequence
   Topology::res_iterator srcRes = sourceTop.ResStart();
   for (Rlist::const_iterator tgtRes = ResList.begin(); tgtRes != ResList.end(); ++tgtRes)
@@ -721,9 +728,24 @@ const
               *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId(),
               *(srcFound->Name()), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId());
       sourceResUsed[ srcFound - sourceTop.ResStart() ] = true;
+      // Add atoms for this residue 
+      for (int aidx = srcFound->FirstAtom(); aidx != srcFound->LastAtom(); aidx++) {
+        newTop.AddTopAtom( sourceTop[aidx],
+                           Residue(srcFound->Name(), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId()) );
+        const double* XYZ = sourceFrame.XYZ( aidx );
+        newCrd.push_back( XYZ[0] );
+        newCrd.push_back( XYZ[1] );
+        newCrd.push_back( XYZ[2] );
+      }
       ++srcRes;
     } else {
       mprintf("MISSING %s %i %c %c.\n", *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId());
+      // Add a placeholder for this residue
+      newTop.AddTopAtom( Atom("CA", "C "),
+                         Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId()) );
+      newCrd.push_back( 0 );
+      newCrd.push_back( 0 );
+      newCrd.push_back( 0 );
     }
   } // END loop over target sequence
   mprintf("Residues to be added:\n");
@@ -731,7 +753,30 @@ const
     if (!sourceResUsed[ridx]) {
       Residue const& res = sourceTop.Res(ridx);
       mprintf("\t%s %i %c %c\n", *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId());
+      // Add atoms for this residue
+      for (int aidx = res.FirstAtom(); aidx != res.LastAtom(); aidx++) {
+        newTop.AddTopAtom( sourceTop[aidx],
+                           Residue(res.Name(), res.OriginalResNum(), res.Icode(), res.ChainId()) );
+        const double* XYZ = sourceFrame.XYZ( aidx );
+        newCrd.push_back( XYZ[0] );
+        newCrd.push_back( XYZ[1] );
+        newCrd.push_back( XYZ[2] );
+      }
     }
+  }
+  // Finish new top
+  newTop.SetParmName("seqpdb", "seq.pdb");
+  newTop.CommonSetup( false ); // No molecule search
+  newTop.Summary();
+  // Put newCrd into a Frame
+  Frame newFrame;
+  newFrame.SetupFrameV(newTop.Atoms(), CoordinateInfo());
+  std::copy(newCrd.begin(), newCrd.end(), newFrame.xAddress());
+  newCrd.clear();
+  // DEBUG write top as PDB 
+  if (WriteStructure("seq.pdb", &newTop, newFrame, TrajectoryFile::PDBFILE)) {
+    mprinterr("Error: Write of seq.pdb failed.\n");
+    return 1;
   }
 
   return 0;
