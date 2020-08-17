@@ -944,6 +944,40 @@ const
   // Finish the CA topology
   if (SetupCAtopology(CAtop, missingInNew, newTop, CAframe)) return 1;
 
+  if (optimize_) {
+    // Try to assign new coords for the missing residues.
+    if (AssignCoordsBySearch(newTop, newFrame, CAtop, CAframe, CAmissing)) {
+      mprinterr("Error: Could not assign coords by search.\n");
+      return 1;
+    }
+    // Minimize
+/*
+    if (Minimize(CAtop, CAframe, CAmissing)) {
+      mprinterr("Error: Minimization of CA atoms failed.\n");
+      return 1;
+    }*/
+    // Transfer final CA coords for missing residues to newFrame
+    for (int idx = 0; idx != CAtop.Nres(); idx++) {
+      if (CAmissing.AtomInCharMask(idx)) {
+        const double* XYZ = CAframe.XYZ(idx);
+        Residue const& newres = newTop.Res(idx);
+        int newat = newres.FirstAtom();
+        double* Xptr = newFrame.xAddress() + (3*newat);
+        std::copy(XYZ, XYZ+3, Xptr);
+      }
+    }
+  }
+
+  // Write final CA top
+  if (WriteStructure("seq.ca.final.mol2", &CAtop, CAframe, TrajectoryFile::MOL2FILE)) {
+    mprinterr("Error: Write of seq.ca.final.mol2 failed.\n");
+    return 1;
+  }
+
+  // Set output coords
+  dataOut->CoordsSetup( newTop, CoordinateInfo() );
+  dataOut->AddFrame( newFrame );
+
   return 0;
 }
 
