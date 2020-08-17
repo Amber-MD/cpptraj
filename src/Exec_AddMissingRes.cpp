@@ -701,6 +701,7 @@ int Exec_AddMissingRes::AddMissingResFromSequence(DataSet_Coords_CRD* dataOut,
                                    Rlist const& ResList)
 const
 {
+  std::vector<bool> sourceResUsed( sourceTop.Nres(), false );
   // Loop over target sequence
   Topology::res_iterator srcRes = sourceTop.ResStart();
   for (Rlist::const_iterator tgtRes = ResList.begin(); tgtRes != ResList.end(); ++tgtRes)
@@ -708,7 +709,7 @@ const
     // Does this residue exist in the source topology?
     Topology::res_iterator srcFound = srcRes;
     for (; srcFound != sourceTop.ResEnd(); ++srcFound) {
-      if (tgtRes->ChainId()        == srcFound->ChainId() &&
+      if (tgtRes->ChainId()        == srcFound->ChainId() && // TODO compare name?
           tgtRes->OriginalResNum() == srcFound->OriginalResNum() &&
           tgtRes->Icode()          == srcFound->Icode())
       {
@@ -716,10 +717,20 @@ const
       }
     }
     if (srcFound != sourceTop.ResEnd()) {
-      mprintf("FOUND %s %i %c %c.\n", *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId());
+      mprintf("FOUND %s %i %c %c (%s %i %c %c).\n",
+              *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId(),
+              *(srcFound->Name()), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId());
+      sourceResUsed[ srcFound - sourceTop.ResStart() ] = true;
       ++srcRes;
     } else {
       mprintf("MISSING %s %i %c %c.\n", *(tgtRes->Name()), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId());
+    }
+  } // END loop over target sequence
+  mprintf("Residues to be added:\n");
+  for (int ridx = 0; ridx != sourceTop.Nres(); ridx++) {
+    if (!sourceResUsed[ridx]) {
+      Residue const& res = sourceTop.Res(ridx);
+      mprintf("\t%s %i %c %c\n", *(res.Name()), res.OriginalResNum(), res.Icode(), res.ChainId());
     }
   }
 
