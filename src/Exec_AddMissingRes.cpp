@@ -709,6 +709,9 @@ const
   std::vector<double> newCrd;
   // This array will track which residues in the new topology were "missing"
   std::vector<bool> missingInNew;
+  // Map original atom number to new atom number
+  Iarray originalAtToNew( sourceTop.Natom(), -1 );
+  int newAtNum = 0;
   // Loop over target sequence
   Topology::res_iterator srcRes = sourceTop.ResStart();
   for (Rlist::const_iterator tgtRes = ResList.begin(); tgtRes != ResList.end(); ++tgtRes)
@@ -732,6 +735,7 @@ const
       for (int aidx = srcFound->FirstAtom(); aidx != srcFound->LastAtom(); aidx++) {
         newTop.AddTopAtom( sourceTop[aidx],
                            Residue(srcFound->Name(), srcFound->OriginalResNum(), srcFound->Icode(), srcFound->ChainId()) );
+        originalAtToNew[aidx] = newAtNum++;
         const double* XYZ = sourceFrame.XYZ( aidx );
         newCrd.push_back( XYZ[0] );
         newCrd.push_back( XYZ[1] );
@@ -743,6 +747,7 @@ const
       // Add a placeholder for this residue
       newTop.AddTopAtom( Atom("CA", "C "),
                          Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId()) );
+      newAtNum++;
       newCrd.push_back( 0 );
       newCrd.push_back( 0 );
       newCrd.push_back( 0 );
@@ -757,6 +762,7 @@ const
       for (int aidx = res.FirstAtom(); aidx != res.LastAtom(); aidx++) {
         newTop.AddTopAtom( sourceTop[aidx],
                            Residue(res.Name(), res.OriginalResNum(), res.Icode(), res.ChainId()) );
+        originalAtToNew[aidx] = newAtNum++;
         const double* XYZ = sourceFrame.XYZ( aidx );
         newCrd.push_back( XYZ[0] );
         newCrd.push_back( XYZ[1] );
@@ -764,8 +770,16 @@ const
       }
     }
   }
+  // Add original bonds to new topology.
+  for (BondArray::const_iterator bnd = sourceTop.Bonds().begin();
+                                 bnd != sourceTop.Bonds().end(); ++bnd)
+  {
+    newTop.AddBond( originalAtToNew[bnd->A1()],
+                    originalAtToNew[bnd->A2()] );
+  }
   // Finish new top
-  newTop.SetParmName("seqpdb", "seq.pdb");
+  //newTop.SetParmName("seqpdb", "seq.pdb");
+  newTop.SetParmName("seqmol2", "seq.mol2");
   newTop.CommonSetup( false ); // No molecule search
   newTop.Summary();
   // Put newCrd into a Frame
@@ -774,8 +788,9 @@ const
   std::copy(newCrd.begin(), newCrd.end(), newFrame.xAddress());
   newCrd.clear();
   // DEBUG write top as PDB 
-  if (WriteStructure("seq.pdb", &newTop, newFrame, TrajectoryFile::PDBFILE)) {
-    mprinterr("Error: Write of seq.pdb failed.\n");
+  //if (WriteStructure("seq.pdb", &newTop, newFrame, TrajectoryFile::PDBFILE)) {
+  if (WriteStructure("seq.mol2", &newTop, newFrame, TrajectoryFile::MOL2FILE)) {
+    mprinterr("Error: Write of filled in coords failed.\n");
     return 1;
   }
 
