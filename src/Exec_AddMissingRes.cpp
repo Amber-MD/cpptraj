@@ -913,6 +913,37 @@ const
     //        newTop.ResNameNumAtomNameNum(originalAtToNew[bnd->A1()]).c_str(),
     //        newTop.ResNameNumAtomNameNum(originalAtToNew[bnd->A2()]).c_str());
   }
+  // TODO make this an option
+  // Create some fake bonds between "missing" CA atoms and the residues they are attached to.
+  for (int ridx = 0; ridx != newTop.Nres(); ridx++) {
+    if (missingInNew[ridx]) {
+      //mprintf("DEBUG: Originally missing CA res %s bonded to", CAtop.TruncResNameNum(ridx).c_str());
+      // This was a missing residue. Bond it to the previous/next residue in same chain.
+      int pidx = ridx - 1;
+      if (pidx > 0 && newTop.Res(pidx).ChainId() == newTop.Res(ridx).ChainId()) {
+        if (!missingInNew[pidx]) {
+          // Bond this CA to previous residue C
+          int idx = newTop.FindAtomInResidue(pidx, "C");
+          if (idx != -1)
+            newTop.AddBond(idx, newTop.Res(ridx).FirstAtom());
+        } else
+          newTop.AddBond(newTop.Res(pidx).FirstAtom(), newTop.Res(ridx).FirstAtom());
+        //mprintf(" %s", CAtop.TruncResNameNum(pidx).c_str());
+      }
+      int nidx = ridx + 1;
+      if (nidx < CAtop.Nres() && CAtop.Res(ridx).ChainId() == CAtop.Res(nidx).ChainId()) {
+        if (!missingInNew[nidx]) {
+          // Bond this CA to next residue N
+          int idx = newTop.FindAtomInResidue(nidx, "N");
+          if (idx != -1)
+            newTop.AddBond(idx, newTop.Res(ridx).FirstAtom());
+        } else
+          newTop.AddBond(newTop.Res(nidx).FirstAtom(), newTop.Res(ridx).FirstAtom());
+        //mprintf(" %s", CAtop.TruncResNameNum(nidx).c_str());
+      }
+      //mprintf("\n");
+    }
+  }
   // Finish new top
   //newTop.SetParmName("seqpdb", "seq.pdb");
   newTop.SetParmName("seqmol2", "seq.mol2");
