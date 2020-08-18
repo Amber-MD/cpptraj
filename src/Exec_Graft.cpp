@@ -7,7 +7,7 @@
 void Exec_Graft::Help() const
 {
   mprintf("\tsrc <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]\n"
-          "\ttgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>]\n"
+          "\ttgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]\n"
           "\tname <output COORDS> [bond <tgt>,<src> ...]\n");
 }
 
