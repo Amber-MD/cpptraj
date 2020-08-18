@@ -57,6 +57,12 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   if (srcCoords->Top().SetupIntegerMask(srcMask))
     return CpptrajState::ERR;
+  // Get atoms to keep from target.
+  AtomMask tgtMask;
+  if (tgtMask.SetMaskString( argIn.GetStringKey("tgtmask") ))
+    return CpptrajState::ERR;
+  if (tgtCoords->Top().SetupIntegerMask(tgtMask))
+    return CpptrajState::ERR;
   // Get atoms from source to fit on target, and atoms from target
   // for source to fit on.
   AtomMask srcFitMask, tgtFitMask;
@@ -87,6 +93,9 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tOutput coords   : %s\n", outCoords->legend());
   mprintf("\tSource mask     :");
   srcMask.BriefMaskInfo();
+  mprintf("\n");
+  mprintf("\tTarget mask     :");
+  tgtMask.BriefMaskInfo();
   mprintf("\n");
   if (doRmsFit) {
     mprintf(  "\tSource fit mask :");
@@ -126,30 +135,48 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     srcFrmPtr->SetFrame(srcFrame, srcMask);
   }
 
+  // Modify target if needed.
+  Topology* tgtTopPtr = tgtCoords->TopPtr();
+  Frame*    tgtFrmPtr = &tgtFrame;
+  if (tgtMask.Nselected() != tgtCoords->Top().Natom()) {
+    tgtTopPtr = tgtCoords->Top().modifyStateByMask( tgtMask );
+    if (tgtTopPtr == 0) {
+      mprinterr("Error: Could not modify target topology.\n");
+      return CpptrajState::ERR;
+    }
+    tgtFrmPtr = new Frame();
+    tgtFrmPtr->SetupFrameV(tgtTopPtr->Atoms(), tgtCoords->CoordsInfo());
+    tgtFrmPtr->SetFrame(tgtFrame, tgtMask);
+  }
+
   // Combine topologies. Use target box info.
   Topology combinedTop;
   combinedTop.SetDebug( State.Debug() );
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
-  combinedTop.AppendTop( tgtCoords->Top() );
+  combinedTop.AppendTop( *tgtTopPtr );
   // TODO do any tgt mods here?
   combinedTop.AppendTop( *srcTopPtr );
-  combinedTop.SetParmBox( tgtFrame.BoxCrd() );
+  combinedTop.SetParmBox( tgtFrmPtr->BoxCrd() );
   combinedTop.Brief("Grafted parm:");
 
   // Output coords.
   // Only coords+box for now.
-  CoordinateInfo outInfo(tgtFrame.BoxCrd(), false, false, false);
+  CoordinateInfo outInfo(tgtFrmPtr->BoxCrd(), false, false, false);
   if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR;
   Frame CombinedFrame = outCoords->AllocateFrame();
-  std::copy(tgtFrame.xAddress(), tgtFrame.xAddress()+tgtFrame.size(), CombinedFrame.xAddress());
-  std::copy(srcFrmPtr->xAddress(), srcFrmPtr->xAddress()+srcFrmPtr->size(), CombinedFrame.xAddress()+tgtFrame.size());
-  CombinedFrame.SetBox( tgtFrame.BoxCrd() );
+  std::copy(tgtFrmPtr->xAddress(), tgtFrmPtr->xAddress()+tgtFrmPtr->size(), CombinedFrame.xAddress());
+  std::copy(srcFrmPtr->xAddress(), srcFrmPtr->xAddress()+srcFrmPtr->size(), CombinedFrame.xAddress()+tgtFrmPtr->size());
+  CombinedFrame.SetBox( tgtFrmPtr->BoxCrd() );
   outCoords->AddFrame( CombinedFrame );
 
   // Free memory if needed
   if (srcTopPtr != srcCoords->TopPtr()) {
     delete srcTopPtr;
     delete srcFrmPtr;
+  }
+  if (tgtTopPtr != tgtCoords->TopPtr()) {
+    delete tgtTopPtr;
+    delete tgtFrmPtr;
   }
 
   return CpptrajState::OK;
