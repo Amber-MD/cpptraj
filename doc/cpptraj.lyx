@@ -5701,7 +5701,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="12" columns="2">
+<lyxtabular version="3" rows="13" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -5824,6 +5824,26 @@ createcrd
 
 \begin_layout Plain Layout
 (Action) Create a COORDS set during a Run.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+graft
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Graft part of one COORDS set onto another COORDS set.
 \end_layout
 
 \end_inset
@@ -6084,22 +6104,6 @@ crdaction crd1 rmsd first @CA out rmsd-ca.agr crdframes 1,last,10
 \end_layout
 
 \begin_layout Subsection
-createcrd
-\end_layout
-
-\begin_layout Standard
-This command is actually an Action that can be used to create COORDS data
- sets during trajectory processing, see 
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj_createcrd"
-
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Subsection
 crdout
 \end_layout
 
@@ -6127,6 +6131,163 @@ crd1
 
 \begin_layout LyX-Code
 crdout crd1 crd1.pdb multi crdframes 1,10
+\end_layout
+
+\begin_layout Subsection
+createcrd
+\end_layout
+
+\begin_layout Standard
+This command is actually an Action that can be used to create COORDS data
+ sets during trajectory processing, see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_createcrd"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+graft
+\end_layout
+
+\begin_layout LyX-Code
+graft src <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]
+\end_layout
+
+\begin_layout LyX-Code
+  	tgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]
+\end_layout
+
+\begin_layout LyX-Code
+  	name <output COORDS> [bond <tgt>,<src> ...]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+src
+\begin_inset space ~
+\end_inset
+
+<source
+\begin_inset space ~
+\end_inset
+
+COORDS> Source coordinates.
+\end_layout
+
+\begin_layout Description
+[srcframe
+\begin_inset space ~
+\end_inset
+
+<#>] Frame # from source coordinates to use (default 1).
+\end_layout
+
+\begin_layout Description
+[srcfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from source to use if RMS-fitting source onto target.
+\end_layout
+
+\begin_layout Description
+[srcmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms to keep from source (default all).
+\end_layout
+
+\begin_layout Description
+tgt
+\begin_inset space ~
+\end_inset
+
+<target
+\begin_inset space ~
+\end_inset
+
+COORDS> Target coordinates that will be grafted onto.
+\end_layout
+
+\begin_layout Description
+[tgtframe
+\begin_inset space ~
+\end_inset
+
+<#> Frame # from target coordinates to use (default 1).
+\end_layout
+
+\begin_layout Description
+[tgtfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from target to use if RMS-fitting source onto target.
+\end_layout
+
+\begin_layout Description
+[tgtmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms to keep from target (default all).
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+COORDS> Name of output COORDS set containing source grafted onto target.
+\end_layout
+
+\begin_layout Description
+[bond
+\begin_inset space ~
+\end_inset
+
+<tgt>,<src>] Create a bond between target atom selected by <tgt> and source
+ atoms selected by <src> in the final structure.
+ May be specified multiple times.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Graft one COORDS set onto another.
+ If 
+\series bold
+srcfitmask
+\series default
+ and/or 
+\series bold
+tgtfitmask
+\series default
+ is specified, the source coordinates will be RMS best-fit onto target using
+ the specified atoms.
+ Only the atoms specified by 
+\series bold
+srcmask
+\series default
+ and 
+\series bold
+tgtmask
+\series default
+ will be kept.
+ The 
+\series bold
+bond
+\series default
+ keyword can be used to create bonds between target and source in the final
+ structure.
 \end_layout
 
 \begin_layout Subsection
