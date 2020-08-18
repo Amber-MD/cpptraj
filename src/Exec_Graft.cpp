@@ -11,6 +11,28 @@ void Exec_Graft::Help() const
           "\tname <output COORDS> [bond <tgt>,<src> ...]\n");
 }
 
+static const int UpdateIndices(std::vector<int>& Idxs, AtomMask const& maskIn, int offset)
+{
+  for (std::vector<int>::iterator it = Idxs.begin();
+                                  it != Idxs.end(); ++it)
+  {
+    // Search for index in mask
+    int newidx = 0;
+    for (; newidx != maskIn.Nselected(); newidx++)
+    {
+      if (*it == maskIn[newidx]) {
+        *it = newidx + offset;
+        break;
+      }
+    }
+    if (newidx == maskIn.Nselected()) {
+      mprinterr("Error: Bonded index is in a removed section.\n");
+      return 1;
+    }
+  }
+  return 0;
+}
+
 // Exec_Graft::Execute()
 Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -93,6 +115,14 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
             sb.MaskString(), srcBondAtoms.back()+1);
     kw = argIn.GetStringKey("bond");
   }
+  // Update the bond indices for the new topologies
+  if (UpdateIndices(tgtBondAtoms, tgtMask, 0))
+    return CpptrajState::ERR;
+  if (UpdateIndices(srcBondAtoms, srcMask, tgtMask.Nselected()))
+    return CpptrajState::ERR;
+  mprintf("\tUpdate bond indices:\n");
+  for (unsigned int ii = 0; ii != tgtBondAtoms.size(); ii++)
+    mprintf("\t  tgt= %i  src= %i\n", tgtBondAtoms[ii], srcBondAtoms[ii]);
   // Get atoms from source to fit on target, and atoms from target
   // for source to fit on.
   AtomMask srcFitMask, tgtFitMask;
