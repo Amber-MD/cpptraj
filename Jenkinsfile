@@ -109,6 +109,11 @@ pipeline {
                                 """
                             } catch (error) {
                                 echo "PGI BUILD AND/OR TEST FAILED"
+                                try {
+                                    pullRequest.comment("The PGI build in Jenkins failed.")
+                                } catch (err2) {
+                                    echo "Could not post a PR comment: ${err2}"
+                                }
                             }
                         }
                     }
