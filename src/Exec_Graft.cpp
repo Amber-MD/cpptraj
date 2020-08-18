@@ -5,8 +5,9 @@
 // Exec_Graft::Help()
 void Exec_Graft::Help() const
 {
-  mprintf("\tsrc <source COORDS> srcmask <srcmask>\n"
-          "\ttgt <target COORDS>\n");
+  mprintf("\tsrc <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]\n"
+          "\ttgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>]\n"
+          "\tname <output COORDS>\n");
 }
 
 // Exec_Graft::Execute()
@@ -23,6 +24,8 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Source COORDS %s not found.\n", kw.c_str());
     return CpptrajState::ERR;
   }
+  Frame srcFrame = srcCoords->AllocateFrame();
+  srcCoords->GetFrame(argIn.getKeyInt("srcframe", 1)-1, srcFrame);
   // Get target coords
   kw = argIn.GetStringKey("tgt");
   if (kw.empty()) {
@@ -32,6 +35,19 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   DataSet_Coords* tgtCoords = (DataSet_Coords*)State.DSL().FindSetOfGroup(kw, DataSet::COORDINATES);
   if (tgtCoords == 0) {
     mprinterr("Error: Target COORDS %s not found.\n", kw.c_str());
+    return CpptrajState::ERR;
+  }
+  Frame tgtFrame = tgtCoords->AllocateFrame();
+  tgtCoords->GetFrame(argIn.getKeyInt("tgtframe", 1)-1, tgtFrame);
+  // Create output coords
+  kw = argIn.GetStringKey("name");
+  if (kw.empty()) {
+    mprinterr("Error: Output COORDS must be specified with 'name'.\n");
+    return CpptrajState::ERR;
+  }
+  DataSet_Coords* outCoords = (DataSet_Coords*)State.DSL().AddSet(DataSet::COORDS, MetaData(kw));
+  if (outCoords == 0) {
+    mprinterr("Error: Output COORDS %s could not be created.\n", kw.c_str());
     return CpptrajState::ERR;
   }
   // Get atoms to keep from source.
@@ -68,6 +84,7 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   // Info
   mprintf("\tSource coords   : %s\n", srcCoords->legend());
   mprintf("\tTarget coords   : %s\n", tgtCoords->legend());
+  mprintf("\tOutput coords   : %s\n", outCoords->legend());
   mprintf("\tSource mask     :");
   srcMask.BriefMaskInfo();
   mprintf("\n");
@@ -77,7 +94,24 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\n\tTarget fit mask :");
     tgtFitMask.BriefMaskInfo();
     mprintf("\n");
+    if (srcFitMask.Nselected() != tgtFitMask.Nselected()) {
+      mprinterr("Error: RMS-fit requires same # of atoms selected in source and target.\n");
+      return CpptrajState::ERR;
+    }
+    // Source gets RMS fit to target (reference)
+    Frame srcFitFrame;
+    srcFitFrame.SetupFrameFromMask(srcFitMask, srcCoords->Top().Atoms());
+    srcFitFrame.SetCoordinates(srcFrame, srcFitMask);
+    Frame tgtFitFrame;
+    tgtFitFrame.SetupFrameFromMask(tgtFitMask, tgtCoords->Top().Atoms());
+    tgtFitFrame.SetCoordinates(tgtFrame, tgtFitMask);
+    Vec3 refTrans = tgtFitFrame.CenterOnOrigin(false);
+    Matrix_3x3 Rot;
+    Vec3 Trans;
+    srcFitFrame.RMSD_CenteredRef( tgtFitFrame, Rot, Trans, false );
+    srcFrame.Trans_Rot_Trans( Trans, Rot, refTrans );
   }
+
 
   return CpptrajState::OK;
 }
