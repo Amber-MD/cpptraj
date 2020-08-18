@@ -1,6 +1,7 @@
 #include "Exec_Graft.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Coords.h"
+#include <algorithm> // std::copy
 
 // Exec_Graft::Help()
 void Exec_Graft::Help() const
@@ -112,6 +113,25 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     srcFrame.Trans_Rot_Trans( Trans, Rot, refTrans );
   }
 
+  // Combine topologies. Use target box info.
+  Topology combinedTop;
+  combinedTop.SetDebug( State.Debug() );
+  combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
+  combinedTop.AppendTop( tgtCoords->Top() );
+  // TODO do any tgt mods here?
+  combinedTop.AppendTop( srcCoords->Top() );
+  combinedTop.SetParmBox( tgtFrame.BoxCrd() );
+  combinedTop.Brief("Grafted parm:");
+
+  // Output coords.
+  // Only coords+box for now.
+  CoordinateInfo outInfo(tgtFrame.BoxCrd(), false, false, false);
+  if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR;
+  Frame CombinedFrame = outCoords->AllocateFrame();
+  std::copy(tgtFrame.xAddress(), tgtFrame.xAddress()+tgtFrame.size(), CombinedFrame.xAddress());
+  std::copy(srcFrame.xAddress(), srcFrame.xAddress()+srcFrame.size(), CombinedFrame.xAddress()+tgtFrame.size());
+  CombinedFrame.SetBox( tgtFrame.BoxCrd() );
+  outCoords->AddFrame( CombinedFrame );
 
   return CpptrajState::OK;
 }
