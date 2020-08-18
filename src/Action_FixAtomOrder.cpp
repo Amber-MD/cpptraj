@@ -152,20 +152,6 @@ Action::RetType Action_FixAtomOrder::FixMolecules(ActionSetup& setup) {
                                  atom != atomMap_.end(); ++atom)
       mprintf("\t\tNew atom %8li => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
   }
-  // Create new topology based on map
-  if (newParm_ != 0) delete newParm_;
-  newParm_ = setup.Top().ModifyByMap( atomMap_ );
-  if (newParm_ == 0) {
-    mprinterr("Error: Could not create re-ordered topology.\n");
-    return Action::ERR;
-  }
-  newParm_->Brief("Re-ordered parm:");
-  setup.SetTopology( newParm_ );
-  // Allocate space for new frame
-  newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
-
-  // If prefix given then output stripped parm
-  topWriter_.WriteTops( setup.Top() );
 
   return Action::OK;
 }
