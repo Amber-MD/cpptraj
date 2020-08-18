@@ -14,9 +14,14 @@ class Action_Remap : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    enum ModeType { DATASET = 0, BY_MASK };
+
     std::vector<int> Map_; ///< Reference[refidx] = tgtidx
     Topology* newParm_;
     Frame newFrame_;
     ActionTopWriter topWriter_;
+    ModeType mode_;
+    AtomMask mask_;
+    int startIdx_;
 };
 #endif
