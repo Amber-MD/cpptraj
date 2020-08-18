@@ -42,6 +42,7 @@
 #include "Exec_CrdAction.h"
 #include "Exec_CrdOut.h"
 #include "Exec_Emin.h"
+#include "Exec_Graft.h"
 #include "Exec_LoadCrd.h"
 #include "Exec_LoadTraj.h"
 #include "Exec_PermuteDihedrals.h"
@@ -251,6 +252,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
   Command::AddCmd( new Exec_Emin(),             Cmd::EXE, 1, "emin"); // hidden
+  Command::AddCmd( new Exec_Graft(),            Cmd::EXE, 1, "graft");
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );

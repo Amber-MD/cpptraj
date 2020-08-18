@@ -259,6 +259,7 @@ COMMON_SOURCES= \
         Exec_DataSetCmd.cpp \
         Exec_Emin.cpp \
         Exec_GenerateAmberRst.cpp \
+        Exec_Graft.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
