@@ -8,12 +8,13 @@ void Exec_Graft::Help() const
 {
   mprintf("\tsrc <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]\n"
           "\ttgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>]\n"
-          "\tname <output COORDS>\n");
+          "\tname <output COORDS> [bond <tgt>,<src> ...]\n");
 }
 
 // Exec_Graft::Execute()
 Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
 {
+  typedef std::vector<int> Iarray;
   // Get source coords
   std::string kw = argIn.GetStringKey("src");
   if (kw.empty()) {
@@ -63,6 +64,35 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   if (tgtCoords->Top().SetupIntegerMask(tgtMask))
     return CpptrajState::ERR;
+  // Get bonds
+  Iarray tgtBondAtoms, srcBondAtoms;
+  kw = argIn.GetStringKey("bond");
+  while (!kw.empty()) {
+    ArgList bndarg(kw, ",");
+    if (bndarg.Nargs() != 2) {
+      mprinterr("Error: Expected 2 atom masks for 'bond' (target, source).\n");
+      return CpptrajState::ERR;
+    }
+    AtomMask tb, sb;
+    if (tb.SetMaskString(bndarg[0])) return CpptrajState::ERR;
+    if (sb.SetMaskString(bndarg[1])) return CpptrajState::ERR;
+    if (tgtCoords->Top().SetupIntegerMask(tb)) return CpptrajState::ERR;
+    if (srcCoords->Top().SetupIntegerMask(sb)) return CpptrajState::ERR;
+    if (tb.Nselected() != 1) {
+      mprinterr("Error: 'bond' target mask does not select only 1 atom.\n");
+      return CpptrajState::ERR;
+    }
+    if (sb.Nselected() != 1) {
+      mprinterr("Error: 'bond' source mask does not select only 1 atom.\n");
+      return CpptrajState::ERR;
+    }
+    tgtBondAtoms.push_back( tb[0] );
+    srcBondAtoms.push_back( sb[0] );
+    mprintf("\tWill bond target %s (%i) to source %s (%i)\n",
+            tb.MaskString(), tgtBondAtoms.back()+1,
+            sb.MaskString(), srcBondAtoms.back()+1);
+    kw = argIn.GetStringKey("bond");
+  }
   // Get atoms from source to fit on target, and atoms from target
   // for source to fit on.
   AtomMask srcFitMask, tgtFitMask;
