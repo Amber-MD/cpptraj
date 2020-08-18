@@ -1,6 +1,8 @@
 // Action_FixAtomOrder 
 #include "Action_FixAtomOrder.h"
 #include "CpptrajStdio.h"
+#include "AtomTopType.h"
+#include <algorithm> // std::sort
 
 /** CONSTRUCTOR */
 Action_FixAtomOrder::Action_FixAtomOrder() :
@@ -25,9 +27,15 @@ Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, ActionInit& init,
 {
   debug_ = debugIn;
   topWriter_.InitTopWriter(actionArgs, "re-ordered", debug_);
+  mode_ = FIX_MOLECULES;
+  if (actionArgs.hasKey("pdborder"))
+    mode_ = PDB_ORDER;
 
-  mprintf("    FIXATOMORDER: Will attempt to fix atom ordering when atom numbering\n"
-          "                  in molecules is non-sequential.\n");
+  if (mode_ == FIX_MOLECULES)
+    mprintf("    FIXATOMORDER: Will attempt to fix atom ordering when atom numbering\n"
+            "                  in molecules is non-sequential.\n");
+  else
+    mprintf("    FIXATOMORDER: Will attempt to re-order according to PDB info.\n");
   topWriter_.PrintOptions();
 
   return Action::OK;
@@ -47,6 +55,60 @@ void Action_FixAtomOrder::VisitAtom(int atomnum, int mol, Topology const& Parm) 
 
 // Action_FixAtomOrder::setup()
 Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
+  Action::RetType ret;
+  if (mode_ == FIX_MOLECULES)
+    ret = FixMolecules(setup);
+  else if (mode_ == PDB_ORDER)
+    ret = PdbOrder(setup);
+  else
+    return Action::ERR;
+
+  // If not OK, means we should bail now.
+  if (ret != Action::OK)
+    return ret;
+
+  // Create new topology based on map
+  if (newParm_ != 0) delete newParm_;
+  newParm_ = setup.Top().ModifyByMap( atomMap_ );
+  if (newParm_ == 0) {
+    mprinterr("Error: Could not create re-ordered topology.\n");
+    return Action::ERR;
+  }
+  newParm_->Brief("Re-ordered parm:");
+  setup.SetTopology( newParm_ );
+  // Allocate space for new frame
+  newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
+
+  // If prefix given then output stripped parm
+  topWriter_.WriteTops( setup.Top() );
+ 
+  return Action::MODIFY_TOPOLOGY;
+}
+
+/** Try to make the order match original PDB info. */
+Action::RetType Action_FixAtomOrder::PdbOrder(ActionSetup& setup) {
+  // Create array with PDB info.
+  std::vector<AtomTopType> atoms;
+  for (int idx = 0; idx != setup.Top().Natom(); idx++)
+  {
+    Residue const& res = setup.Top().Res( setup.Top()[idx].ResNum() );
+    atoms.push_back( AtomTopType(idx, res.OriginalResNum(),
+                                 res.Icode(), res.ChainId()) );
+  }
+  // Sort by PDB info
+  std::sort(atoms.begin(), atoms.end());
+  // Put indices in atomMap_
+  atomMap_.clear();
+  atomMap_.reserve( setup.Top().Natom() );
+  for (std::vector<AtomTopType>::const_iterator it = atoms.begin();
+                                                it != atoms.end(); ++it)
+    atomMap_.push_back( it->AtomIdx() );
+
+  return Action::OK;
+}
+
+/** Fix molecules that are not contiguous. */
+Action::RetType Action_FixAtomOrder::FixMolecules(ActionSetup& setup) {
   // If topology already has molecule info assume no need to reorder.
   if (setup.Top().Nmol() > 0) {
     mprintf("Warning: %s already has molecule information. No reordering will occur.\n"
@@ -105,7 +167,7 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   // If prefix given then output stripped parm
   topWriter_.WriteTops( setup.Top() );
 
-  return Action::MODIFY_TOPOLOGY;
+  return Action::OK;
 }
 
 // Action_FixAtomOrder::action()

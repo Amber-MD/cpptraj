@@ -17,6 +17,10 @@ class Action_FixAtomOrder: public Action {
     void Print() {}
 
     void VisitAtom(int,int,Topology const&);
+    Action::RetType PdbOrder(ActionSetup&);
+    Action::RetType FixMolecules(ActionSetup&);
+
+    enum ModeType {FIX_MOLECULES = 0, PDB_ORDER};
 
     int debug_;
     typedef std::vector<int> MapType;
@@ -25,5 +29,6 @@ class Action_FixAtomOrder: public Action {
     Topology* newParm_;         ///< Re-ordered topology
     Frame newFrame_;            ///< Re-ordered frame
     ActionTopWriter topWriter_; ///< Use to write re-ordered Topology
+    ModeType mode_;
 };
 #endif
