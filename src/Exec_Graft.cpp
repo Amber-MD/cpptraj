@@ -34,14 +34,46 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Target COORDS %s not found.\n", kw.c_str());
     return CpptrajState::ERR;
   }
-  // Get other keywords
+  // Get atoms to keep from source.
   AtomMask srcMask;
-  srcMask.SetMaskString( argIn.GetStringKey("srcmask") );
+  if (srcMask.SetMaskString( argIn.GetStringKey("srcmask") ))
+    return CpptrajState::ERR;
+  // Get atoms from source to fit on target, and atoms from target
+  // for source to fit on.
+  AtomMask srcFitMask, tgtFitMask;
+  std::string srcfitstr = argIn.GetStringKey("srcfitmask");
+  std::string tgtfitstr = argIn.GetStringKey("tgtfitmask");
+  bool doRmsFit = false;
+  if (!srcfitstr.empty() || !tgtfitstr.empty()) {
+    doRmsFit = true;
+    // If either is empty, fill with the other.
+    if (srcfitstr.empty())
+      srcfitstr = tgtfitstr;
+    else if (tgtfitstr.empty())
+      tgtfitstr = srcfitstr;
+    if (srcFitMask.SetMaskString( srcfitstr ))
+      return CpptrajState::ERR;
+    if (tgtFitMask.SetMaskString( tgtfitstr ))
+      return CpptrajState::ERR;
+    // Set up the masks.
+    if (srcCoords->Top().SetupIntegerMask(srcFitMask))
+      return CpptrajState::ERR;
+    if (tgtCoords->Top().SetupIntegerMask(tgtFitMask))
+      return CpptrajState::ERR;
+  }
+  
 
   // Info
-  mprintf("\tSource coords : %s\n", srcCoords->legend());
-  mprintf("\tTarget coords : %s\n", tgtCoords->legend());
-  mprintf("\tSource mask   : %s\n", srcMask.MaskString());
+  mprintf("\tSource coords   : %s\n", srcCoords->legend());
+  mprintf("\tTarget coords   : %s\n", tgtCoords->legend());
+  mprintf("\tSource mask     : %s\n", srcMask.MaskString());
+  if (doRmsFit) {
+    mprintf(  "\tSource fit mask :");
+    srcFitMask.BriefMaskInfo();
+    mprintf("\n\tTarget fit mask :");
+    tgtFitMask.BriefMaskInfo();
+    mprintf("\n");
+  }
 
   return CpptrajState::OK;
 }
