@@ -8,10 +8,15 @@ void Exec_Graft::Help() const
 {
   mprintf("\tsrc <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]\n"
           "\ttgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]\n"
-          "\tname <output COORDS> [bond <tgt>,<src> ...]\n");
+          "\tname <output COORDS> [bond <tgt>,<src> ...]\n"
+          "  Graft coordinates from source to coordinates in target.\n");
 }
 
-static const int UpdateIndices(std::vector<int>& Idxs, AtomMask const& maskIn, int offset)
+/** Update indices in the given array to what the new indices will
+  * be after processing with the given mask.
+  * \return 1 if an index is not in the mask, 0 if all indices updated successfully.
+  */
+static int UpdateIndices(std::vector<int>& Idxs, AtomMask const& maskIn, int offset)
 {
   for (std::vector<int>::iterator it = Idxs.begin();
                                   it != Idxs.end(); ++it)
