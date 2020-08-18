@@ -214,8 +214,10 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   combinedTop.SetDebug( State.Debug() );
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
   combinedTop.AppendTop( *tgtTopPtr );
-  // TODO do any tgt mods here?
   combinedTop.AppendTop( *srcTopPtr );
+  // Add any bonds
+  for (unsigned int ii = 0; ii != tgtBondAtoms.size(); ii++)
+    combinedTop.AddBond( tgtBondAtoms[ii], srcBondAtoms[ii] );
   combinedTop.SetParmBox( tgtFrmPtr->BoxCrd() );
   combinedTop.Brief("Grafted parm:");
 
