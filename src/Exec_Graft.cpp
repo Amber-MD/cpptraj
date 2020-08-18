@@ -38,6 +38,8 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   AtomMask srcMask;
   if (srcMask.SetMaskString( argIn.GetStringKey("srcmask") ))
     return CpptrajState::ERR;
+  if (srcCoords->Top().SetupIntegerMask(srcMask))
+    return CpptrajState::ERR;
   // Get atoms from source to fit on target, and atoms from target
   // for source to fit on.
   AtomMask srcFitMask, tgtFitMask;
@@ -66,7 +68,9 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   // Info
   mprintf("\tSource coords   : %s\n", srcCoords->legend());
   mprintf("\tTarget coords   : %s\n", tgtCoords->legend());
-  mprintf("\tSource mask     : %s\n", srcMask.MaskString());
+  mprintf("\tSource mask     :");
+  srcMask.BriefMaskInfo();
+  mprintf("\n");
   if (doRmsFit) {
     mprintf(  "\tSource fit mask :");
     srcFitMask.BriefMaskInfo();
