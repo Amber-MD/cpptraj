@@ -120,9 +120,9 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   if (UpdateIndices(srcBondAtoms, srcMask, tgtMask.Nselected()))
     return CpptrajState::ERR;
-  mprintf("\tUpdate bond indices:\n");
+  mprintf("\tUpdated bond indices:\n");
   for (unsigned int ii = 0; ii != tgtBondAtoms.size(); ii++)
-    mprintf("\t  tgt= %i  src= %i\n", tgtBondAtoms[ii], srcBondAtoms[ii]);
+    mprintf("\t  tgt= %i  src= %i\n", tgtBondAtoms[ii]+1, srcBondAtoms[ii]+1);
   // Get atoms from source to fit on target, and atoms from target
   // for source to fit on.
   AtomMask srcFitMask, tgtFitMask;
