@@ -1788,7 +1788,7 @@ class TypeArray {
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
-  int resOffset = (int)residues_.size();
+  //int resOffset = (int)residues_.size();
 
   // NONBONDS
   // Make sure that either both topologies have non-bond parameters or neither
@@ -1879,7 +1879,8 @@ int Topology::AppendTop(Topology const& NewTop) {
         CurrentAtom.SetTypeIndex( newTypeIdx );
       }
     }
-    AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
+    //AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset + 1,
+    AddTopAtom( CurrentAtom, Residue(res.Name(), res.OriginalResNum(),
                                      res.Icode(), res.ChainId()) );
   } // END loop over incoming atoms
   // NONBONDS
