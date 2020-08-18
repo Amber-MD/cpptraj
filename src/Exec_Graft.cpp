@@ -81,7 +81,6 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
       return CpptrajState::ERR;
   }
   
-
   // Info
   mprintf("\tSource coords   : %s\n", srcCoords->legend());
   mprintf("\tTarget coords   : %s\n", tgtCoords->legend());
@@ -113,13 +112,27 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
     srcFrame.Trans_Rot_Trans( Trans, Rot, refTrans );
   }
 
+  // Modify source if needed.
+  Topology* srcTopPtr = srcCoords->TopPtr();
+  Frame*    srcFrmPtr = &srcFrame;
+  if (srcMask.Nselected() != srcCoords->Top().Natom()) {
+    srcTopPtr = srcCoords->Top().modifyStateByMask( srcMask );
+    if (srcTopPtr == 0) {
+      mprinterr("Error: Could not modify source topology.\n");
+      return CpptrajState::ERR;
+    }
+    srcFrmPtr = new Frame();
+    srcFrmPtr->SetupFrameV(srcTopPtr->Atoms(), srcCoords->CoordsInfo());
+    srcFrmPtr->SetFrame(srcFrame, srcMask);
+  }
+
   // Combine topologies. Use target box info.
   Topology combinedTop;
   combinedTop.SetDebug( State.Debug() );
   combinedTop.SetParmName( outCoords->Meta().Name(), FileName() );
   combinedTop.AppendTop( tgtCoords->Top() );
   // TODO do any tgt mods here?
-  combinedTop.AppendTop( srcCoords->Top() );
+  combinedTop.AppendTop( *srcTopPtr );
   combinedTop.SetParmBox( tgtFrame.BoxCrd() );
   combinedTop.Brief("Grafted parm:");
 
@@ -129,9 +142,15 @@ Exec::RetType Exec_Graft::Execute(CpptrajState& State, ArgList& argIn)
   if (outCoords->CoordsSetup(combinedTop, outInfo)) return CpptrajState::ERR;
   Frame CombinedFrame = outCoords->AllocateFrame();
   std::copy(tgtFrame.xAddress(), tgtFrame.xAddress()+tgtFrame.size(), CombinedFrame.xAddress());
-  std::copy(srcFrame.xAddress(), srcFrame.xAddress()+srcFrame.size(), CombinedFrame.xAddress()+tgtFrame.size());
+  std::copy(srcFrmPtr->xAddress(), srcFrmPtr->xAddress()+srcFrmPtr->size(), CombinedFrame.xAddress()+tgtFrame.size());
   CombinedFrame.SetBox( tgtFrame.BoxCrd() );
   outCoords->AddFrame( CombinedFrame );
+
+  // Free memory if needed
+  if (srcTopPtr != srcCoords->TopPtr()) {
+    delete srcTopPtr;
+    delete srcFrmPtr;
+  }
 
   return CpptrajState::OK;
 }
