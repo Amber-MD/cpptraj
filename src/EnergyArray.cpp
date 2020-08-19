@@ -1,5 +1,6 @@
 #include "EnergyArray.h"
 #include "CpptrajStdio.h"
+#include "CpptrajFile.h"
 
 /** CONSTRUCTOR */
 EnergyArray::EnergyArray() :
@@ -26,4 +27,24 @@ double* EnergyArray::AddType(Type typeIn) {
   }
   activeTerms_.push_back( typeIn );
   return ( (&ene_[0]) + ((int)typeIn) );
+}
+
+/** Print active terms to the given file. */
+void EnergyArray::PrintActiveTerms(CpptrajFile& outfile, bool includeSingleTerms)
+const
+{
+  if (activeTerms_.empty()) return;
+  if (!includeSingleTerms && activeTerms_.size() < 2) return;
+  for (Tarray::const_iterator it = activeTerms_.begin(); it != activeTerms_.end(); ++it)
+    outfile.Printf(" %12.4E", ene_[*it]);
+}
+
+/** Print labels of active terms to the given file. */
+void EnergyArray::PrintActiveLabels(CpptrajFile& outfile, bool includeSingleTerms)
+const
+{
+  if (activeTerms_.empty()) return;
+  if (!includeSingleTerms && activeTerms_.size() < 2) return;
+  for (Tarray::const_iterator it = activeTerms_.begin(); it != activeTerms_.end(); ++it)
+    outfile.Printf(" %12s", TypeStr_[*it]);
 }

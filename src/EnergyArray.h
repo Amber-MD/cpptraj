@@ -1,6 +1,9 @@
 #ifndef INC_ENERGYARRAY_H
 #define INC_ENERGYARRAY_H
 #include <vector>
+// Forward declares
+class CpptrajFile;
+/// Hold energy terms
 class EnergyArray {
   public:
     EnergyArray();
@@ -26,6 +29,10 @@ class EnergyArray {
     double Ene(Type t) const { return ene_[(int)t]; }
     /// \return Label for specified term
     const char* label(Type) const;
+    /// Print active terms to specified file (optionally including single terms).
+    void PrintActiveTerms(CpptrajFile&, bool) const;
+    /// Print active labels to specified file (optionally including single terms).
+    void PrintActiveLabels(CpptrajFile&, bool) const;
   private:
     static const char* TypeStr_[];
 
