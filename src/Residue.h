@@ -36,6 +36,7 @@ class Residue {
       return ( originalResNum_ != rhs.originalResNum_ ||
                segID_          != rhs.segID_          ||
                icode_          != rhs.icode_          ||
+               chainID_        != rhs.chainID_        ||
                (originalResNum_ == rhs.originalResNum_ && resname_ != rhs.resname_) );
     }
     /// \return Absolute distance in orig. residue numbering
