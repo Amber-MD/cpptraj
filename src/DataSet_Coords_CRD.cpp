@@ -2,12 +2,43 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ByteString
 
+/** Reserve space for coords. */
 int DataSet_Coords_CRD::Allocate(SizeArray const& sizeIn) {
   if (!sizeIn.empty())
     coords_.reserve( sizeIn[0] );
   return 0;
 }
 
+/** Allocate space in coords_ array. */
+int DataSet_Coords_CRD::MemAlloc( SizeArray const& sizeIn ) {
+  mprintf("DEBUG: Resize %s to %zu\n", legend(), sizeIn[0]);
+  if (!sizeIn.empty()) {
+    coords_.resize( sizeIn[0] );
+  }
+  return 0;
+}
+
+/** Copy block from incoming set of same type. */
+void DataSet_Coords_CRD::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
+{
+  DataSet_Coords_CRD const& setIn = static_cast<DataSet_Coords_CRD const&>( *dptrIn );
+  // Check that this is compatible
+  if (numCrd_ == 0) {
+    CoordsSetup( setIn.top_, setIn.cInfo_ );
+  } else {
+    if (numCrd_ != setIn.numCrd_ || numBoxCrd_ != setIn.numBoxCrd_) {
+      mprinterr("Error: Cannot set %s sizes do not match set %s, cannot copy.\n",
+                legend(), setIn.legend());
+      return;
+    }
+  }
+  CRDarray::iterator begin = coords_.begin() + startIdx;
+  std::fill( begin, begin + nelts, std::vector<float>( numCrd_+numBoxCrd_ ) );
+  CRDarray::const_iterator ptr = setIn.coords_.begin() + pos;
+  std::copy( ptr, ptr + nelts, begin );
+}
+
+/** Set up COORDS with given Topology and coordinate info. */
 int DataSet_Coords_CRD::CoordsSetup(Topology const& topIn, CoordinateInfo const& cInfoIn) {
   top_ = topIn;
   cInfo_ = cInfoIn;
