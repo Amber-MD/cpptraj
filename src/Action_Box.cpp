@@ -5,13 +5,13 @@ Action_Box::Action_Box() : mode_(SET) {}
 
 void Action_Box::Help() const {
   mprintf("\t{[x <xval>] [y <yval>] [z <zval>] {[alpha <a>] [beta <b>] [gamma <g>]\n"
-          "\t [truncoct]} | nobox | auto <offset>}\n"
+          "\t [truncoct]} | nobox | auto <offset> [radii {vdw|gb|parse|none}]}\n"
           "  For each input frame, replace any box information with the information given.\n"
           "  If 'truncoct' is specified, alpha, beta, and gamma will be set to the\n"
           "  appropriate angle for a truncated octahedral box. If 'nobox' is specified,\n"
           "  all existing box information will be removed. If 'auto' is specified, an\n"
           "  orthogonal box will be set for existing atoms using the specified distance\n"
-          "  offset value.\n");
+          "  offset value, ensuring specified radii (default vdw) are enclosed.\n");
 }
 
 // Action_Box::Init()
@@ -27,12 +27,26 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
       return Action::ERR;
     }
     mode_ = AUTO;
+    radiiMode_ = UNSPECIFIED;
     box_.SetAlpha(90.0);
     box_.SetBeta(90.0);
     box_.SetGamma(90.0);
     box_.SetX(1.0);
     box_.SetY(1.0);
     box_.SetZ(1.0);
+    std::string rstr = actionArgs.GetStringKey("radii");
+    if (rstr == "vdw")
+      radiiMode_ = VDW;
+    else if (rstr == "parse")
+      radiiMode_ = PARSE;
+    else if (rstr == "gb")
+      radiiMode_ = GB;
+    else if (rstr == "none")
+      radiiMode_ = NONE;
+    else {
+      mprinterr("Error: Unrecognized radii type: %s\n", rstr.c_str());
+      return Action::ERR;
+    }
   } else {
     mode_ = SET;
     box_.SetX( actionArgs.getKeyDouble("x", 0.0) );
@@ -74,6 +88,41 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
     pbox.SetMissingInfo( setup.CoordInfo().TrajBox() );
     mprintf("\tNew box type is %s\n", pbox.TypeName() );
     cInfo_.SetBox( pbox );
+    // Get radii for AUTO
+    if (mode_ == AUTO) {
+      RadiiType modeToUse = radiiMode_;
+      if (modeToUse == UNSPECIFIED) {
+        // If VDW radii present, use those.
+        if (setup.Top().Nonbond().HasNonbond())
+          modeToUse = VDW;
+        else if (setup.Top().Natom() > 0 && setup.Top()[0].GBRadius() > 0)
+          modeToUse = GB;
+        else
+          modeToUse = PARSE;
+      }
+      switch (modeToUse) {
+        case GB    : mprintf("\tUsing GB radii.\n"); break;
+        case PARSE : mprintf("\tUsing PARSE radii.\n"); break;
+        case VDW   : mprintf("\tUsing VDW radii.\n"); break;
+        case UNSPECIFIED:
+        case NONE:
+          mprintf("\tNot using atomic radii.\n");
+          break;
+      }
+      Radii_.clear();
+      Radii_.reserve( setup.Top().Natom() );
+      for (int atnum = 0; atnum != setup.Top().Natom(); ++atnum) {
+        switch (modeToUse) {
+          case GB   : Radii_.push_back( setup.Top()[atnum].GBRadius()    ); break;
+          case PARSE: Radii_.push_back( setup.Top()[atnum].ParseRadius() ); break;
+          case VDW  : Radii_.push_back( setup.Top().GetVDWradius(atnum)  ); break;
+          case UNSPECIFIED:
+          case NONE:
+            Radii_.push_back( 0.0 );
+            break;
+        }
+      }
+    } 
   }
   setup.SetCoordInfo( &cInfo_ );
   return Action::MODIFY_TOPOLOGY;

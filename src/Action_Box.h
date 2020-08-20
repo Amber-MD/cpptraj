@@ -14,10 +14,13 @@ class Action_Box : public Action {
     void Print() {}
 
     enum ModeType { SET = 0, REMOVE, AUTO };
+    enum RadiiType { UNSPECIFIED = 0, GB, PARSE, VDW, NONE };
 
     CoordinateInfo cInfo_; ///< For holding modified coordinate info.
     Box box_;              ///< Hold box info to be set for SET.
     ModeType mode_;        ///< How box info will be assigned.
     double offset_;        ///< Offset for AUTO
+    RadiiType radiiMode_;  ///< Radii type to use for AUTO
+    std::vector<double> Radii_; ///< Hold radius for each atom for AUTO
 };
 #endif
