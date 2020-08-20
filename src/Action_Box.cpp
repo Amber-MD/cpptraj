@@ -61,9 +61,18 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
   mprintf("    BOX:");
   if (mode_ == REMOVE)
     mprintf(" Removing box information.\n");
-  else if (mode_ == AUTO)
+  else if (mode_ == AUTO) {
     mprintf(" Setting orthogonal box for atoms using offset of %g Ang\n", offset_);
-  else {
+    switch (radiiMode_) {
+      case GB    : mprintf("\tUsing GB radii.\n"); break;
+      case PARSE : mprintf("\tUsing PARSE radii.\n"); break;
+      case VDW   : mprintf("\tUsing VDW radii.\n"); break;
+      case NONE  : mprintf("\tNot using atomic radii.\n"); break;
+      case UNSPECIFIED:
+        mprintf("\tWill use VDW, GB, or PARSE radii if available (with that priority).\n");
+        break;
+    }
+  } else {
     if (box_.BoxX() > 0) mprintf(" X=%.3f", box_.BoxX());
     if (box_.BoxY() > 0) mprintf(" Y=%.3f", box_.BoxY());
     if (box_.BoxZ() > 0) mprintf(" Z=%.3f", box_.BoxZ());
@@ -90,6 +99,10 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
     cInfo_.SetBox( pbox );
     // Get radii for AUTO
     if (mode_ == AUTO) {
+      if (radiiMode_ == VDW && !setup.Top().Nonbond().HasNonbond()) {
+        mprintf("Warning: No VDW radii in topology %s; skipping.\n", setup.Top().c_str());
+        return Action::SKIP;
+      }
       RadiiType modeToUse = radiiMode_;
       if (modeToUse == UNSPECIFIED) {
         // If VDW radii present, use those.
