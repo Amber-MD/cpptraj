@@ -5,7 +5,7 @@ Action_Box::Action_Box() : mode_(SET) {}
 
 void Action_Box::Help() const {
   mprintf("\t{[x <xval>] [y <yval>] [z <zval>] {[alpha <a>] [beta <b>] [gamma <g>]\n"
-          "\t [truncoct]} | nobox | auto <offset> [radii {vdw|gb|parse|none}]}\n"
+          "\t [truncoct]} | nobox | auto [offset <offset>] [radii {vdw|gb|parse|none}]}\n"
           "  For each input frame, replace any box information with the information given.\n"
           "  If 'truncoct' is specified, alpha, beta, and gamma will be set to the\n"
           "  appropriate angle for a truncated octahedral box. If 'nobox' is specified,\n"
@@ -20,8 +20,8 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
   // Get keywords
   if ( actionArgs.hasKey("nobox") )
     mode_ = REMOVE;
-  else if (actionArgs.Contains("auto")) {
-    offset_ = actionArgs.getKeyDouble("auto", -1.0);
+  else if (actionArgs.hasKey("auto")) {
+    offset_ = actionArgs.getKeyDouble("offset", 0.0);
     if (offset_ < 0) {
       mprinterr("Error: Offset for auto must be >= 0.\n");
       return Action::ERR;
@@ -35,17 +35,19 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
     box_.SetY(1.0);
     box_.SetZ(1.0);
     std::string rstr = actionArgs.GetStringKey("radii");
-    if (rstr == "vdw")
-      radiiMode_ = VDW;
-    else if (rstr == "parse")
-      radiiMode_ = PARSE;
-    else if (rstr == "gb")
-      radiiMode_ = GB;
-    else if (rstr == "none")
-      radiiMode_ = NONE;
-    else {
-      mprinterr("Error: Unrecognized radii type: %s\n", rstr.c_str());
-      return Action::ERR;
+    if (!rstr.empty()) {
+      if (rstr == "vdw")
+        radiiMode_ = VDW;
+      else if (rstr == "parse")
+        radiiMode_ = PARSE;
+      else if (rstr == "gb")
+        radiiMode_ = GB;
+      else if (rstr == "none")
+        radiiMode_ = NONE;
+      else {
+        mprinterr("Error: Unrecognized radii type: %s\n", rstr.c_str());
+        return Action::ERR;
+      }
     }
   } else {
     mode_ = SET;
@@ -150,18 +152,42 @@ Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
     int atom = 0;
     Vec3 min(frm.Frm().XYZ( atom ));
     Vec3 max(min);
+    Vec3 Rmin( Radii_[atom] );
+    Vec3 Rmax( Radii_[atom] );
     for (; atom != frm.Frm().Natom(); ++atom)
     {
       const double* xyz = frm.Frm().XYZ( atom );
-      if (xyz[0] < min[0]) min[0] = xyz[0];
-      if (xyz[0] > max[0]) max[0] = xyz[0];
-      if (xyz[1] < min[1]) min[1] = xyz[1];
-      if (xyz[1] > max[1]) max[1] = xyz[1];
-      if (xyz[2] < min[2]) min[2] = xyz[2];
-      if (xyz[2] > max[2]) max[2] = xyz[2];
+      if (xyz[0] < min[0]) {
+       min[0] = xyz[0];
+       Rmin[0] = Radii_[atom];
+      }
+      if (xyz[0] > max[0]) {
+        max[0] = xyz[0];
+        Rmax[0] = Radii_[atom];
+      }
+      if (xyz[1] < min[1]) {
+        min[1] = xyz[1];
+        Rmin[1] = Radii_[atom];
+      }
+      if (xyz[1] > max[1]) {
+        max[1] = xyz[1];
+        Rmax[1] = Radii_[atom];
+      }
+      if (xyz[2] < min[2]) {
+        min[2] = xyz[2];
+        Rmin[2] = Radii_[atom];
+      }
+      if (xyz[2] > max[2]) {
+        max[2] = xyz[2];
+        Rmax[2] = Radii_[atom];
+      }
     }
-    min -= offset_;
-    max += offset_;
+    //min.Print("min");
+    //max.Print("max");
+    //Rmin.Print("Rmin");
+    //Rmax.Print("Rmax");
+    min -= (Rmin + offset_);
+    max += (Rmax + offset_);
     fbox.SetX(max[0] - min[0]);
     fbox.SetY(max[1] - min[1]);
     fbox.SetZ(max[2] - min[2]);
