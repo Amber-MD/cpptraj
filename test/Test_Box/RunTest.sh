@@ -4,7 +4,7 @@
 
 CleanFiles box.in addbox.rst7 addbox.rst7.? addbox.rst7.10 \
                   modX.rst7   modX.rst7.?   modX.rst7.10 \
-                  frame1.rst7 tz2.box.rst7
+                  frame1.rst7 tz2.box.rst7 tz2.vdw.rst7
 
 TESTNAME='Box tests'
 Requires netcdf maxthreads 10
@@ -47,12 +47,22 @@ DoTest modX.rst7.10.save modX.rst7.10
 cat > box.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc 1 1
-box auto 3.0
+box auto offset 3.0 radii none
 trajout tz2.box.rst7
 run
 EOF
-RunCpptraj "Box test (auto orthogonal box)"
+RunCpptraj "Box test (auto orthogonal box, no radii)"
 DoTest tz2.box.rst7.save tz2.box.rst7
+
+cat > box.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc 1 1
+box auto radii vdw
+trajout tz2.vdw.rst7
+run
+EOF
+RunCpptraj "Box test (auto orthogonal box, VDW radii)"
+DoTest tz2.vdw.rst7.save tz2.vdw.rst7
 
 EndTest
 
