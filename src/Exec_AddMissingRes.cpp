@@ -58,7 +58,7 @@ const
 /** Get a complete sequence of residues from the PDB, including
   * missing residues.
   */
-int Exec_AddMissingRes::GetSequenceFromPDB(Rlist &ResList, std::string const& pdbname, Narray const& ignoreseq)
+int Exec_AddMissingRes::GetSequenceFromPDB(Rlist &ResList, std::string const& pdbname, Narray const& ignoreseq, CpptrajFile& outfile)
 const
 {
   mprintf("\tGetting sequence from PDB '%s'\n", pdbname.c_str());
@@ -76,7 +76,7 @@ const
   }
   // Loop over lines from PDB
   int inMissing = 0;
-  int nmissing = 0;
+  unsigned int nmissing = 0;
   const char* linePtr = infile.Line();
   while (linePtr != 0) {
     if (strncmp(linePtr, "REMARK", 6) == 0)
@@ -187,6 +187,22 @@ const
       gapLength++;
     }
     mprintf("\t  Gap length= %i\n", gapLength);
+    // Gap Output
+    outfile.Printf("  Gap %c %4s %6i to %4s %6i %6i\n",
+                   gapStart->ChainId(), *(gapStart->Name()), gapStart->OriginalResNum(),
+                   *(gapFinalRes->Name()), gapFinalRes->OriginalResNum(), gapLength);
+    // Print residues
+    unsigned int col = 1;
+    for (Rlist::iterator it = gapStart; it != gapEnd; ++it) {
+      outfile.Printf("%c", Residue::ConvertResName(*(it->Name())));
+      col++;
+      if (col > 80) {
+        outfile.Printf("\n");
+        col = 1;
+      }
+    }
+    if (col > 1)
+      outfile.Printf("\n");
     // Find closest res to start
     int startDist = -1, endDist = -1;
     Rlist::iterator closestStart = FindClosestRes(ResList, *gapStart, startDist);
@@ -236,6 +252,7 @@ const
     missingResidues.erase(gapStart, gapEnd);
     gapStart = gapEnd;
   }
+  outfile.Printf("%u missing residues.\n", nmissing);
  
   mprintf("Final residues:\n");
   for (Rlist::const_iterator it = ResList.begin(); it != ResList.end(); ++it) 
@@ -1303,6 +1320,13 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
   if (argIn.hasKey("usenewmin")) {
     mprintf("Warning: usenewmin is deprecated.");
   }
+  CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"),
+                                                    "AddMissingRes", DataFileList::TEXT, true);
+  if (outfile==0) {
+    mprinterr("Internal Error: Unable to allocate 'out' file.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\tOutput file: %s\n", outfile->Filename().full());
   Rlist FullResSequence;
   std::string pdbseq = argIn.GetStringKey("pdbseq");
   std::string pdbIgnoreSeq = argIn.GetStringKey("ignoreseq");
@@ -1313,7 +1337,7 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
       for (int iarg = 0; iarg < tmp.Nargs(); iarg++)
         ignoreseq.push_back( tmp[iarg] );
     }
-    if (GetSequenceFromPDB(FullResSequence, pdbseq, ignoreseq))
+    if (GetSequenceFromPDB(FullResSequence, pdbseq, ignoreseq, *outfile))
       return CpptrajState::ERR;
   }
     
@@ -1323,13 +1347,7 @@ Exec::RetType Exec_AddMissingRes::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   mprintf("\tPDB name: %s\n", pdbname.c_str());
-  CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"),
-                                                    "AddMissingRes", DataFileList::TEXT, true);
-  if (outfile==0) {
-    mprinterr("Internal Error: Unable to allocate 'out' file.\n");
-    return CpptrajState::ERR;
-  }
-  mprintf("\tOutput file: %s\n", outfile->Filename().full());
+  
   nMinSteps_ = argIn.getKeyInt("nminsteps", 1000);
   mprintf("\t# minimization steps: %i\n", nMinSteps_);
   optimize_ = !argIn.hasKey("noopt");
