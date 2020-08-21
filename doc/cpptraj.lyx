@@ -33690,6 +33690,34 @@ dhbulk
  kcal/mol (SPC/E water).
 \end_layout
 
+\begin_layout Standard
+Data Sets Created for 'purewater':
+\end_layout
+
+\begin_layout Description
+<name> Energies for each water at each frame.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created otherwise:
+\end_layout
+
+\begin_layout Description
+<name>:<#> SPAM energies for peak <#> starting from 1.
+\end_layout
+
+\begin_layout Description
+<name>[DG] SPAM delta G values for valid peaks.
+\end_layout
+
+\begin_layout Description
+<name>[DH] SPAM delta H values for valid peaks.
+\end_layout
+
+\begin_layout Description
+<name>[-TDS] SPAM -T * delta S values for valid peaks.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Perform profiling of bound water molecules via SPAM analysis
@@ -33706,6 +33734,9 @@ literal "true"
  between the water and it's environment from explicit solvent MD trajectories.
  The interaction energies are calculated using a force- and energy-shifted
  electrostatic term with a hard cutoff.
+ For a given peak, SPAM energies will only be calculated for peaks where
+ the peak is singly-occupied (i.e.
+ a multiple-occupied peak is not considered valid).
 \end_layout
 
 \begin_layout Standard
