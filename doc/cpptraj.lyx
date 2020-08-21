@@ -28558,7 +28558,15 @@ probe
 \series default
  (1.4 Å if not specified).
  Note that if GB/VDW radii are not present in the topology file (e.g.
- for PDB files), then PARSE radii can be used.
+ for PDB files), then PARSE
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Sitkoff94"
+literal "true"
+
+\end_inset
+
+ radii can be used.
  Also note that this routine only calculate absolute surface areas, i.e.
  it cannot be used to get the contribution of a subset of atoms to overall
  surface area; if such functionality is needed try the 
