@@ -12,7 +12,6 @@ TESTNAME='PDB format tests'
 Requires maxthreads 1
 
 # Test read/write of residue numbers, insertion / altloc codes, etc
-<<<<<<< HEAD
 Test1() {
   UNITNAME='PDB format read/write test'
   cat > pdb.in <<EOF
@@ -27,7 +26,6 @@ EOF
   DoTest chainA.dat.save chainA.dat
   DoTest oresnum.dat.save oresnum.dat
 }
-
 
 # Test writing PQR files with various radii options
 Test2() {
@@ -60,7 +58,7 @@ trajin 2b5t.pdb keepaltloc A
 strip !(:1-5)
 trajout altloca.pdb teradvance sg "P 1"
 EOF
-  RunCpptraj "$UNITTNAME"
+  RunCpptraj "$UNITNAME"
   DoTest altloca.pdb.save altloca.pdb
 }
 
