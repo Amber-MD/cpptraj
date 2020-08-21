@@ -5,6 +5,8 @@
 #include "Vec3.h"
 #include "Timer.h"
 #include "PairList.h"
+// Forward declares
+class DataSet_Vector_Scalar;
 /**
 SPAM is a water profiling technique developed by Guanglei Cui at
 GlaxoSmithKline (GSK). The original implementation involved a set of specialized
@@ -52,6 +54,7 @@ class Action_Spam: public Action {
     Action::RetType DoPureWater(int, Frame const&);
     Action::RetType DoSPAM(int, Frame&);
 
+    int GetPeaks(std::string const&, DataSetList const&);
     typedef bool (Action_Spam::*FxnType)(Vec3, Vec3, double) const;
     bool inside_box(Vec3, Vec3, double) const;
     bool inside_sphere(Vec3, Vec3, double) const;
@@ -86,11 +89,12 @@ class Action_Spam: public Action {
     DataSet* ds_ds_;          ///< Hold final -T*S values for each peak
     Parray peakFrameData_;    ///< A list of all omitted frames for each peak
     DSarray myDSL_;           ///< Hold energy data sets
-    Varray peaks_;            ///< List of each peak location
     Varray comlist_;          ///< For given frame, each residue C.O.M. coords.
     Rarray solvent_residues_; ///< List of each solvent residue
     int Nframes_;             ///< Total number of frames
     bool overflow_;           ///< True if cutoff overflowed our box coordinates
+    DataSetList peaksdsl_;    ///< Will allocate DataSet for peaks data if loading from a file.
+    DataSet_Vector_Scalar* peaksData_; ///< Hold peaks DataSet
     // Timers
     Timer t_action_;
     Timer t_resCom_;

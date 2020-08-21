@@ -28,6 +28,7 @@
 #include "DataIO_CharmmOutput.h"
 #include "DataIO_Cpout.h"
 #include "DataIO_CharmmRtfPrm.h"
+#include "DataIO_Peaks.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -73,6 +74,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "CHARMM Output",      0,                             0,             DataIO_CharmmOutput::Alloc},
   { "Amber CPOUT",        DataIO_Cpout::ReadHelp, DataIO_Cpout::WriteHelp, DataIO_Cpout::Alloc},
   { "CHARMM RTF/PRM",     0,                             0,            DataIO_CharmmRtfPrm::Alloc },
+  { "Peaks",              0,                             0,            DataIO_Peaks::Alloc },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -94,6 +96,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { CHARMMREPD,   "charmmrepd",".exch" },
   { CHARMMOUT,    "charmmout", ".charmmout"},
   { CHARMMRTFPRM, "charmmrtfprm", ".rtfprm"},
+  { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -113,6 +116,7 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CPOUT,        "cpout",  ".cpout" },
   { CHARMMRTFPRM, "charmmrtfprm", ".prm" },
+  { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -268,6 +272,7 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   // Set up DataIO based on format.
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+  dataio_->SetDebug( debug_ );
 # ifdef MPI
   // Default to TrajComm master can write.
   threadCanWrite_ = Parallel::TrajComm().Master();

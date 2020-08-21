@@ -1,6 +1,7 @@
 #ifndef INC_GRIDBIN_H
 #define INC_GRIDBIN_H
 #include "Matrix_3x3.h"
+#include "Box.h"
 /// Class used to perform binning on/get voxel coords of 3D grids.
 class GridBin {
   public:

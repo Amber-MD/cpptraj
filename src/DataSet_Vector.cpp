@@ -68,6 +68,7 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) con
 
 // DataSet_Vector::Append()
 int DataSet_Vector::Append(DataSet* dsIn) {
+  if (dsIn == 0) return 1;
   if (dsIn->Empty()) return 0;
   if (dsIn->Type() != VECTOR) return 1;
   Varray const& vIn = ((DataSet_Vector*)dsIn)->vectors_;
