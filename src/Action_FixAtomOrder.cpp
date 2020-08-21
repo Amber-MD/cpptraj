@@ -18,7 +18,14 @@ Action_FixAtomOrder::~Action_FixAtomOrder() {
 // void Action_FixAtomOrder::Help()
 void Action_FixAtomOrder::Help() const {
   mprintf("%s", ActionTopWriter::Keywords());
-  mprintf("  Fix atom ordering so that all atoms in molecules are sequential.\n");
+  mprintf("\t[pdborder [hetatm <mask>]] (EXPERIMENTAL)\n");
+  mprintf("  Fix atom ordering so that all atoms in molecules are sequential.\n"
+          "  If 'pdborder' is specified, attempt to organize atoms by PDB\n"
+          "  information (i.e. Chain ID, original residue numbering, and\n"
+          "  insertion codes). Atoms optionally specified by 'hetatm <mask>'\n"
+          "  will be placed after all other atoms. **Note that the 'pdborder'\n"
+          "  keyword is still experimental, and requires that the Topology have\n"
+          "  PDB-type information present.**\n");
   mprintf("%s", ActionTopWriter::Options());
 }
 
