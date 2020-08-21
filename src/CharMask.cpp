@@ -96,3 +96,22 @@ std::vector<int> CharMask::ConvertToIntMask() const {
   }
   return Selected;
 }
+
+/** Add an atom as either selected (true) or unselected (false). */
+void CharMask::AddAtom(bool selected) {
+  if (selected) {
+    CharMask_.push_back(SelectedChar_);
+    nselected_++;
+  } else
+    CharMask_.push_back(UnselectedChar_);
+}
+
+void CharMask::SelectAtom(int atom, bool selected) {
+  if (selected) {
+    if (CharMask_[atom] == UnselectedChar_) nselected_++;
+    CharMask_[atom] = SelectedChar_;
+  } else {
+    if (CharMask_[atom] == SelectedChar_) nselected_--;
+    CharMask_[atom] = UnselectedChar_;
+  }
+}

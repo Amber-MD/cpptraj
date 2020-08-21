@@ -48,6 +48,7 @@ void ArgList::Append(ArgList const& argIn) {
 std::string const& ArgList::operator[](int idx) const {
   if (idx < 0 || idx >= (int)arglist_.size()) {
     mprinterr("Internal Error: Position %i out of range for Argument List.\n",idx);
+    mprinterr("Internal Error: [%s]\n", argline_.c_str());
     return emptystring;
   }
   return arglist_[idx];

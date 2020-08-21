@@ -2,6 +2,7 @@
 #define INC_ACTION_FIXATOMORDER_H
 #include "Action.h"
 #include "ActionTopWriter.h"
+#include "CharMask.h"
 // Class: Action_FixAtomOrder
 /// Fix atom ordering in parm where atoms in mols are not sequential. 
 class Action_FixAtomOrder: public Action {
@@ -30,5 +31,6 @@ class Action_FixAtomOrder: public Action {
     Frame newFrame_;            ///< Re-ordered frame
     ActionTopWriter topWriter_; ///< Use to write re-ordered Topology
     ModeType mode_;
+    CharMask hetatm_;
 };
 #endif

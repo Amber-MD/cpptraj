@@ -20201,11 +20201,11 @@ box
 \end_layout
 
 \begin_layout LyX-Code
-box [x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]
+box {[x <xval>] [y <yval>] [z <zval>] {[alpha <a>] [beta <b>] [gamma <g>]
 \end_layout
 
 \begin_layout LyX-Code
-    [nobox] [truncoct]
+	 [truncoct]} | nobox | auto [offset <offset>] [radii {vdw|gb|parse|none}]}
 \begin_inset Separator latexpar
 \end_inset
 
@@ -20266,13 +20266,37 @@ Change box length(s) to specified value(s).
 \end_layout
 
 \begin_layout Description
+[truncoct] Set box angles to truncated octahedron.
+\end_layout
+
+\begin_layout Description
 [nobox] Remove any existing box information.
 \end_layout
 
 \begin_layout Description
-[truncoct] Set box angles to truncated octahedron.
+auto Set an orthogonal bounding box enclosing all atoms by the specified
+ radii and an optional offset.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+offset
+\begin_inset space ~
+\end_inset
+
+<offset> Offset in Angstroms to add to each box length (both + and -).
+\end_layout
+
+\begin_layout Description
+radii
+\begin_inset space ~
+\end_inset
+
+{vdw|gb|parse|none} Radii to use for each atom: van der Waals, generalized
+ Born, PARSE, or no radii.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Modify box information during trajectory processing.
@@ -20281,6 +20305,12 @@ Modify box information during trajectory processing.
  It is possible to modify any number of the box parameters (e.g.
  only the Z length can be modified if desired while leaving all other parameters
  intact).
+ If no box is present, an orthogonal bounding box enclosing all atoms can
+ be created with the 
+\series bold
+auto
+\series default
+ keyword.
 \end_layout
 
 \begin_layout Subsection
@@ -23207,6 +23237,10 @@ fixatomorder [outprefix <prefix>] [parmout <filename>]
              [parmopts <comma-separated-list>]
 \end_layout
 
+\begin_layout LyX-Code
+             [pdborder [hetatm <mask>]] (EXPERIMENTAL)
+\end_layout
+
 \begin_deeper
 \begin_layout Description
 outprefix
@@ -23232,6 +23266,20 @@ parmopts
 <list> Options for writing topology file
 \end_layout
 
+\begin_layout Description
+pdborder (EXPERIMENTAL) Try to reorder atoms according to PDB information.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+hetatm
+\begin_inset space ~
+\end_inset
+
+<mask> Mark atoms in mask as HETATM, order them after other atoms.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Cpptraj (and most of Amber) expects that atom indices in molecules to increase
@@ -23288,6 +23336,28 @@ fixatomorder outprefix reorder
 
 \begin_layout LyX-Code
 trajout reorder.mdcrd 
+\end_layout
+
+\begin_layout Standard
+If 
+\series bold
+'pdborder'
+\series default
+ is specified, attempt to organize atoms by PDB information (i.e.
+ Chain ID, original residue numbering, and insertion codes).
+ Atoms optionally specified by 
+\series bold
+'hetatm
+\series default
+ 
+\series bold
+<mask>
+\series default
+' will be placed after all other atoms.
+ 
+\emph on
+Note that the 'pdborder' keyword is still experimental, and requires that
+ the Topology have PDB-type information present.
 \end_layout
 
 \begin_layout Subsection
@@ -28488,7 +28558,15 @@ probe
 \series default
  (1.4 Å if not specified).
  Note that if GB/VDW radii are not present in the topology file (e.g.
- for PDB files), then PARSE radii can be used.
+ for PDB files), then PARSE
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Sitkoff94"
+literal "true"
+
+\end_inset
+
+ radii can be used.
  Also note that this routine only calculate absolute surface areas, i.e.
  it cannot be used to get the contribution of a subset of atoms to overall
  surface area; if such functionality is needed try the 

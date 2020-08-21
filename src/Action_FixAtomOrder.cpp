@@ -18,7 +18,14 @@ Action_FixAtomOrder::~Action_FixAtomOrder() {
 // void Action_FixAtomOrder::Help()
 void Action_FixAtomOrder::Help() const {
   mprintf("%s", ActionTopWriter::Keywords());
-  mprintf("  Fix atom ordering so that all atoms in molecules are sequential.\n");
+  mprintf("\t[pdborder [hetatm <mask>]] (EXPERIMENTAL)\n");
+  mprintf("  Fix atom ordering so that all atoms in molecules are sequential.\n"
+          "  If 'pdborder' is specified, attempt to organize atoms by PDB\n"
+          "  information (i.e. Chain ID, original residue numbering, and\n"
+          "  insertion codes). Atoms optionally specified by 'hetatm <mask>'\n"
+          "  will be placed after all other atoms. **Note that the 'pdborder'\n"
+          "  keyword is still experimental, and requires that the Topology have\n"
+          "  PDB-type information present.**\n");
   mprintf("%s", ActionTopWriter::Options());
 }
 
@@ -28,14 +35,22 @@ Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, ActionInit& init,
   debug_ = debugIn;
   topWriter_.InitTopWriter(actionArgs, "re-ordered", debug_);
   mode_ = FIX_MOLECULES;
-  if (actionArgs.hasKey("pdborder"))
+  if (actionArgs.hasKey("pdborder")) {
     mode_ = PDB_ORDER;
+    std::string mexp = actionArgs.GetStringKey("hetatm");
+    if (!mexp.empty()) {
+      if (hetatm_.SetMaskString(mexp)) return Action::ERR;
+    }
+  }
 
   if (mode_ == FIX_MOLECULES)
     mprintf("    FIXATOMORDER: Will attempt to fix atom ordering when atom numbering\n"
             "                  in molecules is non-sequential.\n");
-  else
+  else {
     mprintf("    FIXATOMORDER: Will attempt to re-order according to PDB info.\n");
+    if (hetatm_.MaskStringSet())
+      mprintf("\tAtoms selected by %s will be considered HETATM.\n", hetatm_.MaskString());
+  }
   topWriter_.PrintOptions();
 
   return Action::OK;
@@ -87,12 +102,23 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
 
 /** Try to make the order match original PDB info. */
 Action::RetType Action_FixAtomOrder::PdbOrder(ActionSetup& setup) {
+  if (hetatm_.MaskStringSet()) {
+    if (setup.Top().SetupCharMask( hetatm_ )) return Action::ERR;
+    hetatm_.MaskInfo();
+  } else {
+    hetatm_ = CharMask( setup.Top().Natom() );
+  }
   // Create array with PDB info.
   std::vector<AtomTopType> atoms;
   for (int idx = 0; idx != setup.Top().Natom(); idx++)
   {
     Residue const& res = setup.Top().Res( setup.Top()[idx].ResNum() );
-    atoms.push_back( AtomTopType(idx, res.OriginalResNum(),
+    AtomTopType::PdbType pt;
+    if (hetatm_.AtomInCharMask(idx))
+      pt = AtomTopType::HETATM;
+    else
+      pt = AtomTopType::ATOM;
+    atoms.push_back( AtomTopType(pt, idx, res.OriginalResNum(),
                                  res.Icode(), res.ChainId()) );
   }
   // Sort by PDB info

@@ -11,6 +11,7 @@
 #include "ControlBlock_For.h"
 #include "Parallel.h"
 // ----- GENERAL ---------------------------------------------------------------
+#include "Exec_AddMissingRes.h"
 #include "Exec_Analyze.h"
 #include "Exec_Calc.h"
 #include "Exec_ClusterMap.h"
@@ -204,6 +205,7 @@ int Command::ctlidx_ = -1;
 void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
+  Command::AddCmd( new Exec_AddMissingRes(),   Cmd::EXE, 1, "addmissingres" ); // hidden
   Command::AddCmd( new Exec_Analyze(),         Cmd::EXE, 1, "analyze" ); // hidden
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
