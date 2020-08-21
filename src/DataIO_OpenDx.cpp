@@ -32,6 +32,11 @@ bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
   return isDX;
 }
 
+/** Read help options. */
+void DataIO_OpenDx::ReadHelp() {
+  mprintf("\ttype {float|double} : Precision to read grid (default float).\n");
+}
+
 /** Process read options. */
 int DataIO_OpenDx::processReadArgs(ArgList& argIn) {
   std::string typestr = argIn.GetStringKey("type");

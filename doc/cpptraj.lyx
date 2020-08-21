@@ -2759,7 +2759,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="15" columns="5">
+<lyxtabular version="3" rows="16" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3232,6 +3232,53 @@ cpout
 
 \begin_layout Plain Layout
 pH data only
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Density Peaks
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.peaks
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+peaks
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3D density peaks (spam/volmap)
 \end_layout
 
 \end_inset
@@ -5409,6 +5456,24 @@ parmout
 OpenDX file options
 \end_layout
 
+\begin_layout Subsubsection*
+Read
+\end_layout
+
+\begin_layout LyX-Code
+[type {float|double}]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+type
+\begin_inset space ~
+\end_inset
+
+{float|double} Precision to read in 3D grid (default float).
+\end_layout
+
+\end_deeper
 \begin_layout Subsubsection*
 Write
 \end_layout
@@ -33669,6 +33734,26 @@ volmap
 \series default
 \emph default
  command, the peaks file should have one line per peak with format:
+\end_layout
+
+\begin_layout LyX-Code
+<# of peaks>
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+C     <X>      <Y>      <Z>       <Peak Density>
+\end_layout
+
+\begin_layout LyX-Code
+...
+\end_layout
+
+\begin_layout Standard
+With a 'C' line for each peak.
 \end_layout
 
 \begin_layout Subsection
