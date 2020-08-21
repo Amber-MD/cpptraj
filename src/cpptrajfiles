@@ -244,6 +244,7 @@ COMMON_SOURCES= \
         Ewald.cpp \
         Ewald_ParticleMesh.cpp \
         Ewald_Regular.cpp \
+        Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
         Exec_CatCrd.cpp \
@@ -260,6 +261,7 @@ COMMON_SOURCES= \
         Exec_DataSetCmd.cpp \
         Exec_Emin.cpp \
         Exec_GenerateAmberRst.cpp \
+        Exec_Graft.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
@@ -339,6 +341,7 @@ COMMON_SOURCES= \
         Parm_Tinker.cpp \
         PotentialFunction.cpp \
         PotentialTerm_Bond.cpp \
+        PotentialTerm_LJ_Coulomb.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \

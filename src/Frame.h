@@ -252,6 +252,8 @@ class Frame {
     Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&) const;
     /// Calculate temperature of atoms in mask.
     double CalcTemperature(AtomMask const&,int) const;
+    /// Set an orthogonal bounding box
+    void SetOrthoBoundingBox(std::vector<double> const& Radii, double);
 #   ifdef MPI
     // ----- Parallel Routines -------------------
     int SendFrame(int, Parallel::Comm const&);

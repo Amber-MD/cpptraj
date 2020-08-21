@@ -1059,10 +1059,10 @@ const char* DataSetList::TopIdxArgs = "parm <name> | crdset <set> | parmindex <#
   *         If no Topology loaded, return 0 and print error message.
   */
 Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
-  if (TopList_.empty()) {
-    mprinterr("Error: No Topologies are loaded.\n");
-    return 0;
-  }
+  //if (TopList_.empty()) {
+  //  mprinterr("Error: No Topologies are loaded.\n");
+  //  return 0;
+  //}
   int err;
   DataSet* top = GetTopByKeyword( argIn, err );
   if (err) return 0;

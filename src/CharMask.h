@@ -15,6 +15,8 @@ class CharMask : public MaskTokenArray {
     CharMask(std::string const& e) : nselected_(0) { SetMaskString(e); }
     /// Construct from given char array and # selected atoms.
     CharMask(std::vector<char> const& c, int n) : CharMask_(c), nselected_(n) {}
+    /// Construct array with nothing selected
+    CharMask(int n) : CharMask_(std::vector<char>(n,UnselectedChar_)), nselected_(0) {}
     /// Initialize mask with SelectedChar_ if true or UnselectedChar_ if false
     void InitCharMask(int, bool);
     /// \return true if given atom is selected. 
@@ -25,6 +27,10 @@ class CharMask : public MaskTokenArray {
     std::vector<int> ConvertToIntMask() const;
     /// \return size of char mask
     int Natom() const { return (int)CharMask_.size(); }
+    /// Add an atom to the mask as selected (true) or not selected (false)
+    void AddAtom(bool); 
+    /// Assign selected status to atom
+    void SelectAtom(int, bool);
     // -------------------------------------------
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*) const;
