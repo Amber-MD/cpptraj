@@ -28,6 +28,8 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
     }
     mode_ = AUTO;
     radiiMode_ = UNSPECIFIED;
+    // NOTE: Set angles to 90 here so we can set parm box type to
+    //       ORTHO in Setup().
     box_.SetAlpha(90.0);
     box_.SetBeta(90.0);
     box_.SetGamma(90.0);
@@ -148,50 +150,7 @@ Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
   if (mode_ == REMOVE) {
     frm.ModifyFrm().SetBox( Box() );
   } else if (mode_ == AUTO) {
-    Box fbox( box_ );
-    int atom = 0;
-    Vec3 min(frm.Frm().XYZ( atom ));
-    Vec3 max(min);
-    Vec3 Rmin( Radii_[atom] );
-    Vec3 Rmax( Radii_[atom] );
-    for (; atom != frm.Frm().Natom(); ++atom)
-    {
-      const double* xyz = frm.Frm().XYZ( atom );
-      if (xyz[0] < min[0]) {
-       min[0] = xyz[0];
-       Rmin[0] = Radii_[atom];
-      }
-      if (xyz[0] > max[0]) {
-        max[0] = xyz[0];
-        Rmax[0] = Radii_[atom];
-      }
-      if (xyz[1] < min[1]) {
-        min[1] = xyz[1];
-        Rmin[1] = Radii_[atom];
-      }
-      if (xyz[1] > max[1]) {
-        max[1] = xyz[1];
-        Rmax[1] = Radii_[atom];
-      }
-      if (xyz[2] < min[2]) {
-        min[2] = xyz[2];
-        Rmin[2] = Radii_[atom];
-      }
-      if (xyz[2] > max[2]) {
-        max[2] = xyz[2];
-        Rmax[2] = Radii_[atom];
-      }
-    }
-    //min.Print("min");
-    //max.Print("max");
-    //Rmin.Print("Rmin");
-    //Rmax.Print("Rmax");
-    min -= (Rmin + offset_);
-    max += (Rmax + offset_);
-    fbox.SetX(max[0] - min[0]);
-    fbox.SetY(max[1] - min[1]);
-    fbox.SetZ(max[2] - min[2]);
-    frm.ModifyFrm().SetBox( fbox );
+    frm.ModifyFrm().SetOrthoBoundingBox(Radii_, offset_);
   } else {
     Box fbox( box_ );
     fbox.SetMissingInfo( frm.Frm().BoxCrd() );
