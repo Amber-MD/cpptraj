@@ -12,6 +12,8 @@
 #include "KDE.h"
 #include "OnlineVarT.h" // Stats
 #include "DataSet_Mesh.h"
+#include "DataSet_Vector_Scalar.h"
+#include "DataIO_Peaks.h"
 
 // CONSTRUCTOR
 Action_Spam::Action_Spam() :
@@ -32,33 +34,67 @@ Action_Spam::Action_Spam() :
   ds_dh_(0),
   ds_ds_(0),
   Nframes_(0),
-  overflow_(false)
+  overflow_(false),
+  peaksData_(0)
 { }
+
+/** Search for DataSet with peaks data. If that fails, try to load peaks
+  * from a file.
+  */
+int Action_Spam::GetPeaks(std::string const& name, DataSetList const& dsl)
+{
+  // Check for peaks DataSet.
+  DataSet* ds = dsl.FindSetOfType(name, DataSet::VECTOR_SCALAR);
+  if (ds == 0) {
+    // No set found. See if file exists.
+    FileName fname(name);
+    if (!File::Exists(fname)) {
+      File::ErrorMsg( fname.full() );
+      mprinterr("Error: No peak data or file with name '%s'.\n", name.c_str());
+      return 1;
+    }
+    // Try to load peaks from file.
+    DataIO_Peaks infile;
+    if (infile.ReadData(fname, peaksdsl_, fname.Base())) {
+      mprinterr("Error: Could not load peaks data from %s\n", fname.full());
+      return 1;
+    }
+    // Sanity check
+    if (peaksdsl_.size() < 1 || peaksdsl_[0]->Type() != DataSet::VECTOR_SCALAR) {
+      mprinterr("Error: Could not allocate peaks data set for file.\n");
+      return 1;
+    }
+    peaksData_ = (DataSet_Vector_Scalar*)peaksdsl_[0];
+  } else {
+    peaksData_ = (DataSet_Vector_Scalar*)ds;
+  }
+  return 0;
+}
 
 void Action_Spam::Help() const {
   mprintf("\t[name <name>] [out <datafile>] [cut <cut>] [solv <solvname>]\n"
           "\t{ purewater |\n"
-          "\t  <filename> [reorder] [info <infofile>] [summary <summary>]\n"
+          "\t  <peaksname> [reorder] [info <infofile>] [summary <summary>]\n"
           "\t  [site_size <size>] [sphere] [temperature <T>]\n"
           "\t  [dgbulk <dgbulk>] [dhbulk <dhbulk>] }\n"
           "  Perform SPAM water analysis. If 'purewater' is specified calculate\n"
           "  bulk energy values for a pure water system. Otherwise determine SPAM\n"
           "  energies from peaks previously identified from the 'volmap' action.\n"
-          "    <name>     : Output data set name.\n"
-          "    <datafile> : Data file with all SPAM energies for each snapshot.\n"
-          "    <cut>      : Non-bonded cutoff for energy evaluation\n"
-          "    <solvname> : Name of the solvent residues\n"
-          "    [purewater]: The system is pure water---used to parametrize the bulk values.\n"
-          "    <filename> : File with the peak locations present (XYZ- format)\n"
-          "    [reorder]  : The solvent should be re-ordered so the same solvent molecule\n"
-          "                 is always in the same site.\n"
-          "    <infofile> : File with stats about which sites are occupied when.\n"
-          "    <summary>  : File with the summary of all SPAM results.\n"
-          "    <size>     : Size of the water site around each density peak.\n"
-          "    [sphere]   : Treat each site like a sphere.\n"
-          "    <T>        : Temperature at which SPAM calculation was run.\n"
-          "    <dgbulk>   : SPAM free energy of the bulk solvent in kcal/mol\n"
-          "    <dhbulk>   : SPAM enthalpy of the bulk solvent in kcal/mol\n");
+          "    <name>      : Output data set name.\n"
+          "    <datafile>  : Data file with all SPAM energies for each snapshot.\n"
+          "    <cut>       : Non-bonded cutoff for energy evaluation\n"
+          "    <solvname>  : Name of the solvent residues\n"
+          "    [purewater] : The system is pure water---used to parametrize the bulk values.\n"
+          "    <peaksname> : Dataset/File (XYZ format) with the peak locations present.\n"
+          "    [reorder]   : The solvent should be re-ordered so the same solvent molecule\n"
+          "                  is always in the same site.\n"
+          "    <infofile>  : File with stats about which sites are occupied when.\n"
+          "    <summary>   : File with the summary of all SPAM results.\n"
+          "    <size>      : Size of the water site around each density peak.\n"
+          "    [sphere]    : Treat each site like a sphere.\n"
+          "    <T>         : Temperature at which SPAM calculation was run.\n"
+          "    <dgbulk>    : SPAM free energy of the bulk solvent in kcal/mol\n"
+          "    <dhbulk>    : SPAM enthalpy of the bulk solvent in kcal/mol\n");
 }
 
 // Action_Spam::Init()
@@ -71,7 +107,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Always use imaged distances
   image_.InitImaging(true);
   // This is needed everywhere in this function scope
-  FileName filename;
+  std::string peaksname;
 
   // See if we're doing pure water. If so, we don't need a peak file
   purewater_ = actionArgs.hasKey("purewater");
@@ -108,14 +144,14 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     myDSL_.push_back( ds );
     DG_BULK_ = 0.0;
     DH_BULK_ = 0.0;
+    // Shouldn't need any more arguments.
+    if (actionArgs.NremainingArgs() > 0)
+      mprintf("Warning: 'purewater' specified but more arguments remain.\n");
   } else {
-    // Get the file name with the peaks defined in it
-    filename.SetFileName( actionArgs.GetStringNext() );
-    if (filename.empty()) {
-      mprinterr("Error: No Peak file specified.\n");
-      return Action::ERR;
-    } else if (!File::Exists(filename)) {
-      File::ErrorMsg( filename.full() );
+    // Get the file/dataset name with the peaks defined in it
+    peaksname = actionArgs.GetStringNext();
+    if (peaksname.empty()) {
+      mprinterr("Error: No Peak dataset/file specified.\n");
       return Action::ERR;
     }
     // Get the remaining optional arguments
@@ -139,39 +175,13 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // If it's a sphere, square the radius to compare with
     if (sphere_)
       site_size_ *= site_size_;
-    // Parse through the peaks file and extract the peaks
-    CpptrajFile peakfile;
-    if (peakfile.OpenRead(filename)) {
-      mprinterr("SPAM: Error: Could not open %s for reading!\n", filename.full());
+    // Get or load the peaks data
+    if (GetPeaks(peaksname, init.DSL())) {
+      mprinterr("Error: Could not get peaks.\n");
       return Action::ERR;
     }
-    std::string line = peakfile.GetLine();
-    int npeaks = 0;
-    while (!line.empty()) {
-      if (sscanf(line.c_str(), "%d", &npeaks) != 1) {
-        line = peakfile.GetLine();
-        continue;
-      }
-      line = peakfile.GetLine();
-      break;
-    }
-    while (!line.empty()) {
-      double x, y, z, dens;
-      if (sscanf(line.c_str(), "C %lg %lg %lg %lg", &x, &y, &z, &dens) != 4) {
-        line = peakfile.GetLine();
-        continue;
-      }
-      line = peakfile.GetLine();
-      peaks_.push_back(Vec3(x, y, z));
-    }
-    peakfile.CloseFile();
-    // Check that our initial number of peaks matches our parsed peaks. Warn
-    // otherwise
-    if (npeaks != (int)peaks_.size())
-      mprinterr("SPAM: Warning: %s claims to have %d peaks, but really has %zu!\n",
-                filename.full(), npeaks, peaks_.size());
     // Now add all of the individual peak energy data sets
-    for (int i = 0; i < (int)peaks_.size(); i++) {
+    for (unsigned int i = 0; i < peaksData_->Size(); i++) {
       DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name,i+1));
       if (ds == 0) return Action::ERR;
       myDSL_.push_back( ds );
@@ -198,7 +208,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 #   endif
     // peakFrameData will keep track of omitted frames for each peak.
     peakFrameData_.clear();
-    peakFrameData_.resize( peaks_.size() );
+    peakFrameData_.resize( peaksData_->Size() );
   }
   // Determine if energy calculation needs to happen
   calcEnergy_ = (summaryfile != 0 || datafile != 0);
@@ -223,10 +233,8 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprintf("\tPrinting solvent SPAM summary to %s\n",
                summaryfile->DataFilename().full());
   } else {
-    mprintf("\tSolvent [%s] density peaks taken from %s.\n",
-            solvname_.c_str(), filename.base());
-    mprintf("\t%zu density peaks will be analyzed from %s.\n",
-            peaks_.size(), filename.base());
+    mprintf("\tSolvent [%s], %zu density peaks taken from %s.\n",
+            solvname_.c_str(), peaksData_->Size(), peaksData_->legend());
     mprintf("\tOccupation information printed to %s.\n", infofile_->Filename().full());
     mprintf("\tSites are ");
     if (sphere_)
@@ -536,17 +544,17 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   t_assign_.Start();
   // Loop through each peak and then scan through every residue, and assign a
   // solvent residue to each peak
-  int pknum = 0;
-  for (Varray::const_iterator pk = peaks_.begin(); pk != peaks_.end(); ++pk, ++pknum)
+  for (unsigned int pknum = 0; pknum < peaksData_->Size(); pknum++)
   {
+    Vec3 const& pk = peaksData_->Vec( pknum );
     for (unsigned int resnum = 0; resnum != comlist_.size(); resnum++)
     {
       // If we're inside, make sure this residue is not already `claimed'. If it
       // is, assign it to the closer peak center
-      if ((this->*Inside_)(*pk, comlist_[resnum], site_size_)) {
+      if ((this->*Inside_)(pk, comlist_[resnum], site_size_)) {
         if (resPeakNum_[resnum] > 0) {
-          Vec3 diff1 = comlist_[resnum] - *pk;
-          Vec3 diff2 = comlist_[resnum] - peaks_[ resPeakNum_[resnum] ];
+          Vec3 diff1 = comlist_[resnum] - pk;
+          Vec3 diff2 = comlist_[resnum] - peaksData_->Vec( resPeakNum_[resnum] );
           // If we are closer, update. Otherwise do nothing
           if (diff1.Magnitude2() < diff2.Magnitude2())
             resPeakNum_[resnum] = pknum;
@@ -563,8 +571,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
    * -frameNum to this peak's data set in peakFrameData_.
    */
   typedef std::vector<bool> Barray;
-  Barray occupied(peaks_.size(), false);
-  Barray doubled(peaks_.size(), false); // to avoid double-additions
+  Barray occupied(peaksData_->Size(), false);
+  Barray doubled(peaksData_->Size(), false); // to avoid double-additions
   for (Iarray::const_iterator it = resPeakNum_.begin();
                               it != resPeakNum_.end(); it++)
   {
@@ -578,12 +586,12 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
     }
   }
   // Now loop through and add all non-occupied sites
-  for (unsigned int i = 0; i < peaks_.size(); i++)
+  for (unsigned int i = 0; i < peaksData_->Size(); i++)
     if (!occupied[i]) 
       peakFrameData_[i].push_back(frameNum);
   // Now adjust the occupied vectors to only contain 'true' for sites we need to
   // analyze (i.e., make all doubled points 'unoccupied')
-  for (unsigned int i = 0; i < peaks_.size(); i++)
+  for (unsigned int i = 0; i < peaksData_->Size(); i++)
     if (doubled[i])
       occupied[i] = false;
   t_occupy_.Stop();
@@ -591,7 +599,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   // If we have to calculate energies, do that here
   if (calcEnergy_) {
     int peak;
-    int npeaks = (int)peaks_.size();
+    int npeaks = (int)peaksData_->Size();
     const double ZERO = 0.0;
     // Loop through every peak, then loop through the water molecules to find
     // which one is in that site, and calculate the LJ and EEL energies for that
@@ -611,6 +619,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
             // provide some time savings.
             double ene = Calculate_Energy(frameIn, solvent_residues_[i]);
             myDSL_[peak]->Add(frameNum, &ene);
+            //mprintf("DEBUG: Frm %6i peak %6i residx %6u solvres %6i ene %g\n",
+            //        frameNum+1, peak+1, i, solvent_residues_[i].OriginalResNum(), ene);
             break;
           }
       } else
@@ -628,7 +638,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
     /* Loop over every occupied site and swap the atoms so the same solvent
      * residue is always in the same site
      */
-    for (int i = 0; i < (int)peaks_.size(); i++) {
+    for (int i = 0; i < (int)peaksData_->Size(); i++) {
       // Skip unoccupied sites
       if (!occupied[i]) continue;
       for (unsigned int j = 0; j < solvent_residues_.size(); j++) {
@@ -700,16 +710,33 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   // Calculate distribution of energy values using KDE. Get the bandwidth
   // factor here since we already know the SD.
   double BWfac = KDE::BandwidthFactor( enevec.Size() );
-  //mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
+  if (debug_ > 0)
+    mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
   // Estimate number of bins the same way spamstats.py does.
   int nbins = (int)(((max - min) / BWfac) + 0.5) + 100;
+  if (nbins < 0) {
+    // Probably an overflow due to extremely large energy.
+    mprintf("Warning: Large magnitude energy observed for peak %u (min=%g max=%g)\n",
+            peaknum+1, min, max);
+    mprintf("Warning: Skipping peak.\n");
+    return -1;
+  }
 
   HistBin Xdim(nbins, min - (50*BWfac), BWfac, "P(Ewat)");
   //Xdim.CalcBinsOrStep(min - Havg.variance(), max + Havg.variance(), 0.0, nbins, "P(Ewat)");
-  if (debug_ > 0) Xdim.PrintHistBin();
+  if (debug_ > 0) {
+    mprintf("DEBUG:");
+    Xdim.PrintHistBin();
+  }
   DataSet_double kde1;
   KDE gkde;
-  if (gkde.CalcKDE( kde1, enevec, Xdim, 1.06 * sqrt(Havg.variance()) * BWfac )) {
+  double bandwidth;
+  if (enevec.Size() == 1) {
+    // Special case. Juse use BWfac to avoid a zero bandwidth.
+    bandwidth = BWfac;
+  } else
+    bandwidth = 1.06 * sqrt(Havg.variance()) * BWfac;
+  if (gkde.CalcKDE( kde1, enevec, Xdim, bandwidth )) {
     mprinterr("Error: Could not calculate E KDE histogram.\n");
     return -1;
   }
@@ -722,23 +749,26 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
     double Ewat = kde1.Xcrd(i);
     double PEwat = kde1.Dval(i);
     sumQ += (PEwat * exp( -Ewat * KB ));
+    //mprintf("DEBUG:\t\tEwat %20.10E PEwat %20.10E sumQ %20.10E\n", Ewat, PEwat, sumQ);
   }
-  //mprintf("DEBUG: sumQ= %20.10E\n", sumQ);
+  if (debug_ > 0)
+    mprintf("DEBUG: peak %6u sumQ= %20.10E\n", peaknum+1, sumQ);
   double DG = -RT * log(BWfac * sumQ);
 
   double adjustedDG = DG - DG_BULK_;
   double adjustedDH = Havg.mean() - DH_BULK_;
   double ntds = adjustedDG - adjustedDH;
+
   if (ds_dg_ == 0) {
-    mprintf("\tSPAM bulk energy values:\n");
-    mprintf("\t  <G>= %g, <H>= %g +/- %g, -TdS= %g\n", adjustedDG, adjustedDH,
+    mprintf("\tSPAM bulk energy values:\n"
+            "\t  <G>= %g, <H>= %g +/- %g, -TdS= %g\n", adjustedDG, adjustedDH,
             sqrt(Havg.variance()), ntds);
   } else {
     ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum+1, adjustedDG);
     ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum+1, adjustedDH);
     ((DataSet_Mesh*)ds_ds_)->AddXY(peaknum+1, ntds);
   }
-  
+
   // DEBUG
   if (debug_ > 1) {
     FileName rawname("dbgraw." + integerToString(peaknum+1) + ".dat");
@@ -819,8 +849,8 @@ void Action_Spam::Print() {
       mprinterr("Warning: SPAM: Some frames had a box too small for the cutoff.\n");
 
     // Print information about each missing peak
-    infofile_->Printf("# There are %d density peaks and %d frames\n\n",
-                (int)peaks_.size(), Nframes_);
+    infofile_->Printf("# There are %zu density peaks and %d frames\n\n",
+                      peaksData_->Size(), Nframes_);
     // Loop over every Data set
     for (unsigned int i = 0; i < peakFrameData_.size(); i++) {
       // Skip peaks with 0 unoccupied sites
@@ -850,7 +880,7 @@ void Action_Spam::Print() {
       if (err == 1)
         n_peaks_no_energy++;
       else if (err == -1)
-        mprintf("Warning: Error calculating SPAM energies for peak %zu\n", ds - myDSL_.begin());
+        mprintf("Warning: Error calculating SPAM energies for peak %u\n", p + 1);
     }
     if (n_peaks_no_energy > 0)
       mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);

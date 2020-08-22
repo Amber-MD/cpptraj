@@ -31,6 +31,7 @@ static inline int SetNatomAndTitle(ArgList& lineIn, int& natom, std::string& tit
 }
 
 static inline bool IsAtomLine(ArgList& lineIn) {
+  if (lineIn.Nargs() < 1) return false;
   for (int i = 0; i < lineIn.Nargs(); i++) {
     std::string item = lineIn.GetStringNext();
     if (i == 0 || i >= 5) {

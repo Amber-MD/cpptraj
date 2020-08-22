@@ -186,6 +186,7 @@ COMMON_SOURCES= \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
         DataIO_OpenDx.cpp \
+        DataIO_Peaks.cpp \
         DataIO_Mdout.cpp \
         DataIO_NC_Cmatrix.cpp \
         DataIO_RemLog.cpp \
@@ -219,6 +220,7 @@ COMMON_SOURCES= \
         DataSet_RemLog.cpp \
         DataSet_Topology.cpp \
         DataSet_Vector.cpp \
+        DataSet_Vector_Scalar.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
         DataSet_integer_disk.cpp \
