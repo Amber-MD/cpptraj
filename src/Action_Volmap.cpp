@@ -27,6 +27,7 @@ Action_Volmap::Action_Volmap() :
   xmin_(0.0),
   ymin_(0.0),
   zmin_(0.0),
+  debug_(0),
   Nframes_(0),
   setupGridOnMask_(false),
   spheremode_(false),

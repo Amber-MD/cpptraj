@@ -2759,7 +2759,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="15" columns="5">
+<lyxtabular version="3" rows="16" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3232,6 +3232,53 @@ cpout
 
 \begin_layout Plain Layout
 pH data only
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Density Peaks
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.peaks
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+peaks
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3D density peaks (spam/volmap)
 \end_layout
 
 \end_inset
@@ -5409,6 +5456,24 @@ parmout
 OpenDX file options
 \end_layout
 
+\begin_layout Subsubsection*
+Read
+\end_layout
+
+\begin_layout LyX-Code
+[type {float|double}]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+type
+\begin_inset space ~
+\end_inset
+
+{float|double} Precision to read in 3D grid (default float).
+\end_layout
+
+\end_deeper
 \begin_layout Subsubsection*
 Write
 \end_layout
@@ -33336,188 +33401,6 @@ secstruct :1-22 out dssp.gnu sumout dssp.agr
 xmgrace dssp.agr
 \end_layout
 
-\begin_layout Subsection
-spam
-\begin_inset CommandInset label
-LatexCommand label
-name "subsec:cpptraj-spam"
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout LyX-Code
-spam [name <name>] [out <datafile>] [cut <cut>] [solv <solvname>]
-\end_layout
-
-\begin_layout LyX-Code
- 	{ purewater |
-\end_layout
-
-\begin_layout LyX-Code
- 	  <peaksname> [reorder] [info <infofile>] [summary <summary>]
-\end_layout
-
-\begin_layout LyX-Code
- 	  [site_size <size>] [sphere] [temperature <T>]
-\end_layout
-
-\begin_layout LyX-Code
- 	  [dgbulk <dgbulk>] [dhbulk <dhbulk>] } 
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-name
-\begin_inset space ~
-\end_inset
-
-<name> Output data set name.
-\end_layout
-
-\begin_layout Description
-out
-\begin_inset space ~
-\end_inset
-
-<datafile> Data file with all SPAM energies for each snapshot.
-\end_layout
-
-\begin_layout Description
-cut
-\begin_inset space ~
-\end_inset
-
-<cut> Non-bonded cutoff in Ang.
- for energy evaluation (default 12).
-\end_layout
-
-\begin_layout Description
-solv
-\begin_inset space ~
-\end_inset
-
-<solvname> Name of the solvent residues (default 
-\begin_inset Quotes eld
-\end_inset
-
-WAT
-\begin_inset Quotes erd
-\end_inset
-
-).
- 
-\end_layout
-
-\begin_layout Description
-[purewater] The system is pure water---used to parametrize the bulk values.
- Not compatible with '<peaksname>'.
-\end_layout
-
-\begin_layout Description
-<peaksname> If specified, the dataset or file containing peak locations
- to analyze.
- Not compatible with 'purewater'.
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-[reorder] The solvent should be re-ordered so the same solvent molecule
- is always in the same site.
-\end_layout
-
-\begin_layout Description
-info
-\begin_inset space ~
-\end_inset
-
-<infofile> File with stats about which sites are occupied when.
-\end_layout
-
-\begin_layout Description
-summary
-\begin_inset space ~
-\end_inset
-
-<summary> File with the summary of all SPAM results.
- If not specified, no SPAM energies will be calculated.
-\end_layout
-
-\begin_layout Description
-site_size
-\begin_inset space ~
-\end_inset
-
-<size> Size of the solvent site around each density peak in Ang.
- (default 2.5, suitable for water).
-\end_layout
-
-\begin_layout Description
-[sphere] Treat each site like a sphere instead of a box.
-\end_layout
-
-\begin_layout Description
-<T> Temperature at which SPAM calculation was run in K (default 300).
-\end_layout
-
-\begin_layout Description
-<dgbulk> SPAM free energy of the bulk solvent in kcal/mol; default is -30.3
- kcal/mol (SPC/E water).
-\end_layout
-
-\begin_layout Description
-<dhbulk> SPAM enthalpy of the bulk solvent in kcal/mol; default is -22.2
- kcal/mol (SPC/E water).
-\end_layout
-
-\end_deeper
-\end_deeper
-\begin_layout Standard
-Perform profiling of bound water molecules via SPAM analysis
-\begin_inset CommandInset citation
-LatexCommand citep
-key "Cui2013"
-literal "true"
-
-\end_inset
-
-.
- Briefly, this method identifies and estimates the free energy profiles
- of bound waters via calculation of the distribution of interaction energies
- between the water and it's environment from explicit solvent MD trajectories.
- The interaction energies are calculated using a force- and energy-shifted
- electrostatic term with a hard cutoff.
-\end_layout
-
-\begin_layout Standard
-Prior to this command, the 
-\series bold
-\emph on
-volmap
-\series default
-\emph default
- command should be run with the 
-\series bold
-peakfile
-\series default
- keyword (see 
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj_volmap"
-
-\end_inset
-
-) to generate the peaks file/dataset.
- If not using peaks from the 
-\series bold
-\emph on
-volmap
-\series default
-\emph default
- command, the peaks file should have one line per peak with format:
-\end_layout
-
 \begin_layout LyX-Code
 C <X> <Y> <Z> <Density>
 \end_layout
@@ -33679,6 +33562,229 @@ zeromomentum If specified adjust velocities so the total momentum of atoms
 \begin_layout Standard
 Set velocities in frame for atoms in <mask> using Maxwellian distribution
  based on given temperature.
+\end_layout
+
+\begin_layout Subsection
+spam
+\end_layout
+
+\begin_layout LyX-Code
+spam [name <name>] [out <datafile>] [cut <cut>] [solv <solvname>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	{ purewater |
+\end_layout
+
+\begin_layout LyX-Code
+ 	  <peaksname> [reorder] [info <infofile>] [summary <summary>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	  [site_size <size>] [sphere] [temperature <T>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	  [dgbulk <dgbulk>] [dhbulk <dhbulk>] } 
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<name> Output data sets name.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<datafile> Data file with all SPAM energies for each snapshot.
+\end_layout
+
+\begin_layout Description
+cut
+\begin_inset space ~
+\end_inset
+
+<cut> Non-bonded cutoff for energy evaluation
+\end_layout
+
+\begin_layout Description
+solv
+\begin_inset space ~
+\end_inset
+
+<solvname> Name of the solvent residues.
+\end_layout
+
+\begin_layout Description
+[purewater] The system is pure water.
+ Used to parametrize the bulk values.
+ If this is specified, none of the below options are relevant.
+\end_layout
+
+\begin_layout Description
+<peaksname> Data set or file (XYZ- format: see below) with the peak locations
+ present .
+ 
+\end_layout
+
+\begin_layout Description
+[reorder] The solvent should be re-ordered so the same solvent molecule
+ is always in the same site.
+\end_layout
+
+\begin_layout Description
+info
+\begin_inset space ~
+\end_inset
+
+<infofile> File with stats about which sites are occupied when.
+\end_layout
+
+\begin_layout Description
+summary
+\begin_inset space ~
+\end_inset
+
+<summary> File with the summary of all SPAM results.
+ If not specified, no SPAM energies will be calculated.
+\end_layout
+
+\begin_layout Description
+site_size <size> Size of the water site around each density peak (sphere
+ diameter/box edge length) in Ang.
+\end_layout
+
+\begin_layout Description
+[sphere] Treat each site like a sphere.
+\end_layout
+
+\begin_layout Description
+temperature
+\begin_inset space ~
+\end_inset
+
+<T> Temperature at which SPAM calculation was run.
+\end_layout
+
+\begin_layout Description
+dgbulk
+\begin_inset space ~
+\end_inset
+
+<dgbulk> SPAM free energy of the bulk solvent in kcal/mol; default is -30.3
+ kcal/mol (SPC/E water).
+\end_layout
+
+\begin_layout Description
+dhbulk
+\begin_inset space ~
+\end_inset
+
+<dhbulk> SPAM enthalpy of the bulk solvent in kcal/mol; default is -22.2
+ kcal/mol (SPC/E water).
+\end_layout
+
+\begin_layout Standard
+Data Sets Created for 'purewater':
+\end_layout
+
+\begin_layout Description
+<name> Energies for each water at each frame.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created otherwise:
+\end_layout
+
+\begin_layout Description
+<name>:<#> SPAM energies for peak <#> starting from 1.
+\end_layout
+
+\begin_layout Description
+<name>[DG] SPAM delta G values for valid peaks.
+\end_layout
+
+\begin_layout Description
+<name>[DH] SPAM delta H values for valid peaks.
+\end_layout
+
+\begin_layout Description
+<name>[-TDS] SPAM -T * delta S values for valid peaks.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Perform profiling of bound water molecules via SPAM analysis
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Cui2013"
+literal "true"
+
+\end_inset
+
+.
+ Briefly, this method identifies and estimates the free energy profiles
+ of bound waters via calculation of the distribution of interaction energies
+ between the water and it's environment from explicit solvent MD trajectories.
+ The interaction energies are calculated using a force- and energy-shifted
+ electrostatic term with a hard cutoff.
+ For a given peak, SPAM energies will only be calculated for peaks where
+ the peak is singly-occupied (i.e.
+ a multiple-occupied peak is not considered valid).
+\end_layout
+
+\begin_layout Standard
+Prior to this command, the 
+\series bold
+\emph on
+volmap
+\series default
+\emph default
+ command should be run with the 
+\series bold
+peakfile
+\series default
+ keyword (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_volmap"
+
+\end_inset
+
+) to generate the peaks file.
+ If not using peaks from the 
+\series bold
+\emph on
+volmap
+\series default
+\emph default
+ command, the peaks file should have one line per peak with format:
+\end_layout
+
+\begin_layout LyX-Code
+<# of peaks>
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+C     <X>      <Y>      <Z>       <Peak Density>
+\end_layout
+
+\begin_layout LyX-Code
+...
+\end_layout
+
+\begin_layout Standard
+With a 'C' line for each peak.
 \end_layout
 
 \begin_layout Subsection
@@ -35131,7 +35237,7 @@ volmap [out <filename>] <mask> [radscale <factor>] [stepfac <fac>]
 \end_layout
 
 \begin_layout LyX-Code
-	   [sphere] [radii {vdw | element}] [splinedx <spacing>]
+   	[sphere] [radii {vdw | element}]
 \end_layout
 
 \begin_layout LyX-Code
@@ -35147,7 +35253,7 @@ volmap [out <filename>] <mask> [radscale <factor>] [stepfac <fac>]
 \end_layout
 
 \begin_layout LyX-Code
-   	    { size <x,y,z> [center <x,y,z>] |
+ 	      { size <x,y,z> [center <x,y,z>] |
 \end_layout
 
 \begin_layout LyX-Code
@@ -35155,15 +35261,11 @@ volmap [out <filename>] <mask> [radscale <factor>] [stepfac <fac>]
 \end_layout
 
 \begin_layout LyX-Code
-   	      boxref <reference> }
+   	      boxref <reference> } 	}
 \begin_inset Separator latexpar
 \end_inset
 
 
-\end_layout
-
-\begin_layout LyX-Code
-       }
 \end_layout
 
 \begin_deeper
@@ -35199,11 +35301,7 @@ radscale
 Factor by which to scale radii (by division).
  To match the atomic radius of Oxygen used by the VMD volmap tool, a scaling
  factor of 1.36 should be used.
- Default 0.5 if 
-\series bold
-sphere
-\series default
-, 1.0 otherwise.
+ Default 1.0.
 \end_layout
 
 \begin_layout Description
@@ -35211,17 +35309,16 @@ stepfac
 \begin_inset space ~
 \end_inset
 
-<fac> Factor for determining number of bins to smear Gaussian.
- Default 1.0 if 
+<factor> Factor for determining how many voxels to smear Gaussian (default
+ 4.1, 1.0 for 
 \series bold
 sphere
 \series default
-, 4.1 otherwise.
+).
 \end_layout
 
 \begin_layout Description
-sphere Smear Gaussian as a sphere, i.e.
- when smearing Gaussian, voxels farther than radii/2 will be skipped.
+sphere When smearing Gaussian, skip voxels farther than radii/2.
 \end_layout
 
 \begin_layout Description
@@ -35229,41 +35326,21 @@ radii
 \begin_inset space ~
 \end_inset
 
-{vdw
-\begin_inset space ~
-\end_inset
-
-|
-\begin_inset space ~
-\end_inset
-
-element} Specify radii to use (van der Waals or elemental respectively).
- If not specified, van der Waals will be used if present, elemental radii
- otherwise.
+{vdw|element} Specify either van der Waals radii (default) or elemental
+ radii.
 \end_layout
 
 \begin_layout Description
-splinedx
-\begin_inset space ~
+calcpeaks If specified, peaks in the grid density will be calculated and
+ saved to set <setname> with aspect 
+\begin_inset Quotes eld
 \end_inset
 
-<spacing> Spacing used for cubic spline function approximating exponential
- (default 0.0002 Ang).
-\end_layout
-
-\begin_layout Description
-calcpeaks Specify that density peaks should be determined.
- Useful for the SPAM action (
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj-spam"
-plural "false"
-caps "false"
-noprefix "false"
-
+peaks
+\begin_inset Quotes erd
 \end_inset
 
-).
+.
 \end_layout
 
 \begin_layout Description
@@ -35290,11 +35367,7 @@ peakfile
 \family default
 A file in XYZ-format that contains a carbon atom centered at the grid point
  of every local density maximum.
- Implies 
-\series bold
-calcpeaks
-\series default
-.
+ This file is necessary input to the spam action command.
 \end_layout
 
 \begin_layout Description
@@ -35310,7 +35383,7 @@ name
 \begin_inset space ~
 \end_inset
 
-<setname> Name for new grid data set (
+<setname> Name of grid set that will be created (
 \series bold
 size/center
 \series default
@@ -35321,34 +35394,20 @@ centermask/buffer
  keywords).
 \end_layout
 
-\begin_deeper
 \begin_layout Description
 
 \family roman
-<dx>
+dx,
 \begin_inset space ~
 \end_inset
 
-[dy
+dy,
 \begin_inset space ~
 \end_inset
 
-dz] 
+dz 
 \family default
 The grid spacing (Angstroms) in the X-, Y-, and Z-dimensions, respectively.
- If 
-\series bold
-<dy>
-\series default
-/
-\series bold
-<dz>
-\series default
- not specified, use 
-\series bold
-<dx>
-\series default
-.
 \end_layout
 
 \begin_layout Description
@@ -35360,15 +35419,11 @@ size
 
 <x,y,z> 
 \family default
-Comma-separated list specifying the size of the grid in the X-, Y-, and
- Z-dimensions.
- Must be used alongside the 
-\series bold
-center
-\series default
- argument.
+Specify the size of the grid in the X-, Y-, and Z-dimensions.
+ Must be used alongside the center argument.
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 
 \family roman
@@ -35383,6 +35438,7 @@ Specify the grid center explicitly.
  Default is the origin.
 \end_layout
 
+\end_deeper
 \begin_layout Description
 
 \family roman
@@ -35397,6 +35453,7 @@ The mask around which the grid should be centered (via geometric center).
  <mask> entered (see above) is used in its place.
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 
 \family roman
@@ -35414,33 +35471,28 @@ A buffer distance, in Angstroms, by which the edges of the grid should clear
 \end_layout
 
 \end_deeper
-\begin_layout Standard
-Data sets created:
-\end_layout
-
 \begin_layout Description
-<setname> The 3D grid containing density.
-\end_layout
-
-\begin_layout Description
-<setname>[peaks] A vector/scalar set containing the XYZ coordinates of each
- peak (the vector part) and the density of that peak (the scalar part).
- Can be used in the SPAM action (
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj-spam"
-plural "false"
-caps "false"
-noprefix "false"
-
+boxref
+\begin_inset space ~
 \end_inset
 
-).
+<reference> Set up the grid using the unit cell info in the specified reference.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created:
 \end_layout
 
 \begin_layout Description
-<setname>[totalvol] A set containing the total volume estimate of atoms
- in <mask> based on summing up the volume of all occupied voxels.
+<setname> The 3D grid.
+\end_layout
+
+\begin_layout Description
+<setname>[peaks] The density peaks if 
+\series bold
+calcpeaks
+\series default
+ specified.
 \end_layout
 
 \end_deeper
@@ -35450,12 +35502,7 @@ Grid data as a volumetric map, similar to the 'volmap' command in VMD.
  function whose standard deviation is equal to the van der Waals radius.
  The density calculated is the number density averaged over the entire simulatio
 n.
- In order to speed up the calculation, the exponential used to calculate
- the Gaussian is approximated by cubic splines.
-\end_layout
-
-\begin_layout Standard
-The grid can be specified in one of three ways:
+ The grid can be specified in one of three ways:
 \end_layout
 
 \begin_layout Enumerate

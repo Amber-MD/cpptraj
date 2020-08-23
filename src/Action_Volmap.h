@@ -34,6 +34,7 @@ class Action_Volmap : public Action {
     double dx_, dy_, dz_;
     /// minimum values in the x-, y-, and z-dimensions
     double xmin_, ymin_, zmin_;
+    int debug_;
     int Nframes_;           ///< Number of frames we analyzed so we can average at the end
     bool setupGridOnMask_;  ///< If true, set up the grid on first frame based on centermask.
     bool spheremode_;       ///< If true, grid points farther than rhalf^2 will be skipped
