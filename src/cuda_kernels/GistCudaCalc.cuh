@@ -1,5 +1,8 @@
 #ifndef GIST_CUDA_CALC_CUH
 #define GIST_CUDA_CALC_CUH
+#if defined(__clang__) && defined(__HIP__)
+#include "hip/hip_runtime.h"
+#endif
 
 #define HUGE_C 1e30f
 #define BLOCKSIZE 16

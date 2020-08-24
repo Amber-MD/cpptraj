@@ -5,8 +5,6 @@
 #include <vector>
 #include <cstdio>
 
-
-
 // Exception classes
 class CudaException : public std::exception {
 public:

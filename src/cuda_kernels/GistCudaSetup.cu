@@ -1,6 +1,10 @@
 #include "GistCudaSetup.cuh"
 #include "GistCudaCalc.cuh"
 
+#if defined(__clang__) && defined(__HIP__)
+#include "hip/hip_runtime.h"
+#include "../HipDefinitions.h"
+#endif
 
 /**
  * Allocate memory on the GPU.

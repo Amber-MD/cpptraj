@@ -1,3 +1,6 @@
+#if defined(__clang__) && defined(__HIP__)
+#include <hip/hip_runtime.h>
+#endif
 #define BLOCKDIM 512
 #define RSIZE 512
 
