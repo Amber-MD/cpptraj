@@ -148,13 +148,13 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
   }
   // Grid spacing
-  double gridspacing = actionArgs.getKeyDouble("gridspacn", 0.50);
+  gridspacing_ = actionArgs.getKeyDouble("gridspacn", 0.50);
   // Grid center
-  Vec3 gridcntr(0.0);
+  gridcntr_ = Vec3(0.0);
   if ( actionArgs.hasKey("gridcntr") ) {
-    gridcntr[0] = actionArgs.getNextDouble(-1);
-    gridcntr[1] = actionArgs.getNextDouble(-1);
-    gridcntr[2] = actionArgs.getNextDouble(-1);
+    gridcntr_[0] = actionArgs.getNextDouble(-1);
+    gridcntr_[1] = actionArgs.getNextDouble(-1);
+    gridcntr_[2] = actionArgs.getNextDouble(-1);
   } else
     mprintf("Warning: No grid center values specified, using default (origin)\n");
   // Grid dimensions
@@ -167,6 +167,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     nz = actionArgs.getNextInteger(-1);
   } else
     mprintf("Warning: No grid dimension values specified, using default (40,40,40)\n");
+  griddim_ = Vec3((double)nx, (double)ny, (double)nz);
   // Data set name
   std::string dsname = actionArgs.GetStringKey("name");
   if (dsname.empty())
@@ -197,24 +198,24 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname, "Eij"));
     if (ww_Eij_ == 0) return Action::ERR;
   }
- 
-  // Allocate DataSets. TODO non-orthogonal grids as well
-  Vec3 v_spacing( gridspacing );
-  gO_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  MAX_GRID_PT_ = gO_->Size();
-  gH_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  Esw_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  Eww_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  dTStrans_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  dTSorient_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  dTSsix_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  neighbor_norm_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  dipole_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
 
-  order_norm_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  dipolex_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
-  dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  // Allocate DataSets. TODO non-orthogonal grids as well
+  Vec3 v_spacing( gridspacing_ );
+  gO_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  MAX_GRID_PT_ = gO_->Size();
+  gH_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  Esw_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  Eww_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  dTStrans_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  dTSorient_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  dTSsix_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  neighbor_norm_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  dipole_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+
+  order_norm_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  dipolex_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
+  dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr_, v_spacing);
 
   if (ww_Eij_ != 0) {
     if (ww_Eij_->AllocateTriangle( MAX_GRID_PT_ )) {
@@ -239,9 +240,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   file_dipolez->AddDataSet( dipolez_ );
 
   // Set up grid params TODO non-orthogonal as well
-  G_max_ = Vec3( (double)nx * gridspacing + 1.5,
-                 (double)ny * gridspacing + 1.5,
-                 (double)nz * gridspacing + 1.5 );
+  G_max_ = Vec3( (double)nx * gridspacing_ + 1.5,
+                 (double)ny * gridspacing_ + 1.5,
+                 (double)nz * gridspacing_ + 1.5 );
   N_waters_.assign( MAX_GRID_PT_, 0 );
   N_hydrogens_.assign( MAX_GRID_PT_, 0 );
   voxel_xyz_.resize( MAX_GRID_PT_ ); // [] = X Y Z
@@ -292,9 +293,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
 
   //Box gbox;
-  //gbox.SetBetaLengths( 90.0, (double)nx * gridspacing,
-  //                           (double)ny * gridspacing,
-  //                           (double)nz * gridspacing );
+  //gbox.SetBetaLengths( 90.0, (double)nx * gridspacing_,
+  //                           (double)ny * gridspacing_,
+  //                           (double)nz * gridspacing_ );
   //grid_.Setup_O_Box( nx, ny, nz, gO_->GridOrigin(), gbox );
   //grid_.Setup_O_D( nx, ny, nz, gO_->GridOrigin(), v_spacing );
 
@@ -542,7 +543,7 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
   // VDW
   double r2    = 1.0 / rij2;
   double r6    = r2 * r2 * r2;
-  double r12   = r6 * r6; 
+  double r12   = r6 * r6;
   double f12   = LJ.A() * r12;  // A/r^12
   double f6    = LJ.B() * r6;   // B/r^6
          Evdw  = f12 - f6;      // (A/r^12)-(B/r^6)
@@ -632,13 +633,13 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     std::vector<Vec3> vImages;
     if (image_.ImageType() == NONORTHO) {
       // Convert to frac coords
-      Vec3 vFrac = recip * A1_XYZ; 
+      Vec3 vFrac = recip * A1_XYZ;
       // Wrap to primary unit cell
       vFrac[0] = vFrac[0] - floor(vFrac[0]);
       vFrac[1] = vFrac[1] - floor(vFrac[1]);
       vFrac[2] = vFrac[2] - floor(vFrac[2]);
       // Calculate all images of this atom
-      vImages.reserve(27); 
+      vImages.reserve(27);
       for (int ix = -1; ix != 2; ix++)
         for (int iy = -1; iy != 2; iy++)
           for (int iz = -1; iz != 2; iz++)
@@ -984,7 +985,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   gist_nonbond_.Start();
   if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
   gist_nonbond_.Stop();
- 
+
 
   // Do order calculation if requested
   gist_order_.Start();
@@ -1056,7 +1057,7 @@ void Action_GIST::Print() {
   double Vvox = gO_->Bin().VoxelVolume();
 
   mprintf("    GIST OUTPUT:\n");
-  
+
   // The variables are kept outside, so that they are declared for later use.
   // Calculate orientational entropy
   DataSet_GridFlt& dTSorient_dens = static_cast<DataSet_GridFlt&>( *dTSorient_ );
@@ -1101,7 +1102,7 @@ void Action_GIST::Print() {
           }
         } // END outer loop over all waters for this voxel
         //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
-        dTSorient_norm[gr_pt] = Constants::GASK_KCAL * temperature_ * 
+        dTSorient_norm[gr_pt] = Constants::GASK_KCAL * temperature_ *
                                 ((dTSorient_norm[gr_pt]/nw_total) + Constants::EULER_MASC);
         double dtso_norm_nw = (double)dTSorient_norm[gr_pt] * (double)nw_total;
         dTSorient_dens[gr_pt] = (dtso_norm_nw / (NFRAME_ * Vvox));
@@ -1132,7 +1133,7 @@ void Action_GIST::Print() {
   DataSet_GridFlt& dTSsix = static_cast<DataSet_GridFlt&>( *dTSsix_ );
   Farray dTStrans_norm( MAX_GRID_PT_, 0.0 );
   Farray dTSsix_norm( MAX_GRID_PT_, 0.0 );
-  
+
   // Loop over all grid points
   if (! this->skipS_)
     mprintf("\tCalculating translational entropy:\n");
@@ -1298,7 +1299,7 @@ void Action_GIST::Print() {
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
     {
       E_progress.Update( gr_pt );
-      
+
       //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       if (nw_total > 1) {
@@ -1317,7 +1318,7 @@ void Action_GIST::Print() {
         #endif
         Eswtot += Esw_dens[gr_pt];
         Ewwtot += Eww_dens[gr_pt];
-        
+
       } else {
         Esw_dens[gr_pt]=0;
         Esw_norm[gr_pt]=0;
@@ -1361,15 +1362,20 @@ void Action_GIST::Print() {
   // TODO: Make data sets?
   if (datafile_ != 0) {
     mprintf("\tWriting GIST results for each voxel:\n");
-    datafile_->Printf("GIST Output, information printed per voxel\n"
+    datafile_->Printf("GIST Output %s "
+		      "spacing=%.4f center=%.6f,%.6f,%.6f dims=%i,%i,%i \n"
                       "voxel xcoord ycoord zcoord population g_O g_H"
                       " dTStrans-dens(kcal/mol/A^3) dTStrans-norm(kcal/mol)"
                       " dTSorient-dens(kcal/mol/A^3) dTSorient-norm(kcal/mol)"
-                      " dTSsix-dens(kcal/mol/A^3) dTSsix-norm (kcal/mol)"
+                      " dTSsix-dens(kcal/mol/A^3) dTSsix-norm(kcal/mol)"
                       " Esw-dens(kcal/mol/A^3) Esw-norm(kcal/mol)"
                       " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)"
                       " Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
-                      " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n");
+                      " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n",
+		      "v2", gridspacing_,
+		      gridcntr_[0], gridcntr_[1], gridcntr_[2],
+		      (int)griddim_[0], (int)griddim_[1], (int)griddim_[2]
+		      );
     ProgressBar O_progress( MAX_GRID_PT_ );
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       O_progress.Update( gr_pt );
@@ -1480,8 +1486,8 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   std::vector<int> result_n = std::vector<int>(this->numberAtoms_);
   // Call the GPU Wrapper, which subsequently calls the kernel, after setup operations.
   // Must create arrays from the vectors, does that by getting the address of the first element of the vector.
-  std::vector<std::vector<float> > e_result = doActionCudaEnergy(frm.Frm().xAddress(), this->NBindex_c_, this->numberAtomTypes_, this->paramsLJ_c_, this->molecule_c_, boxinfo, recip, ucell, this->numberAtoms_, this->min_c_, 
-                                                    this->max_c_, this->headAtomType_,this->NeighborCut2_, &(result_o[0]), &(result_n[0]), this->result_w_c_, 
+  std::vector<std::vector<float> > e_result = doActionCudaEnergy(frm.Frm().xAddress(), this->NBindex_c_, this->numberAtomTypes_, this->paramsLJ_c_, this->molecule_c_, boxinfo, recip, ucell, this->numberAtoms_, this->min_c_,
+                                                    this->max_c_, this->headAtomType_,this->NeighborCut2_, &(result_o[0]), &(result_n[0]), this->result_w_c_,
                                                     this->result_s_c_, this->result_O_c_, this->result_N_c_, this->doOrder_);
   eww_result = e_result.at(0);
   esw_result = e_result.at(1);
@@ -1542,7 +1548,7 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
             vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(2) * 3) ) - cent );
             vectors.push_back( Vec3( frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(3) * 3) ) - cent );
         }
-        
+
         for (int i = 0; i < 3; ++i) {
           for (int j = i + 1; j < 4; ++j) {
             double cosThet = (vectors.at(i) * vectors.at(j)) / sqrt(vectors.at(i).Magnitude2() * vectors.at(j).Magnitude2());
@@ -1552,7 +1558,7 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
         this->order_norm_->UpdateVoxel(voxel, 1.0 - (3.0/8.0) * sum);
       }
     }
-    
+
   }
   this->gist_nonbond_.Stop();
 }

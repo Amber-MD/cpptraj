@@ -17,6 +17,8 @@ class PDBfile : public CpptrajFile {
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
     PDB_RECTYPE NextRecord();
+    /// \return ATOM/HETATM alt. loc ID
+    char pdb_AltLoc() const;
     /// \return Atom info with name and element for ATOM/HETATM; set altLoc and #.
     Atom pdb_Atom(char&, int&);
     /// \return Atom info with name and element for ATOM/HETATM.
@@ -29,8 +31,10 @@ class PDBfile : public CpptrajFile {
     void pdb_OccupancyAndBfactor(float&, float&);
     /// Get charge and radius from PQR ATOM/HETATM record.
     void pdb_ChargeAndRadius(float&, float&);
-    /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record.
-    void pdb_Box(double*);
+    /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record, verbose.
+    void pdb_Box_verbose(double*);
+    /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record, terse.
+    void pdb_Box_terse(double*);
     /// Set given array with atom and #s of bonded atoms from CONECT record.
     int pdb_Bonds(int*);
     /// \return Link record.
@@ -84,6 +88,8 @@ class PDBfile : public CpptrajFile {
   private:
     /// \return true if the first 6 chars of buffer match a PDB keyword
     static bool IsPDBkeyword(std::string const&);
+    /// Read box info from CRYST1 record
+    void readCRYST1(double*);
 
     int anum_;               ///< Atom number for writing.
     PDB_RECTYPE recType_;    ///< Current record type.

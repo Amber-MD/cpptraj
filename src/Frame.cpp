@@ -1367,6 +1367,60 @@ double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
   return total_KE / fac;
 }
 
+/** Set an orthogonal bounding box around all atoms, ensuring it
+  * can encompass the given atomic radii, plus an offset.
+  */
+void Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
+{
+  int atom = 0;
+  Vec3 min(XYZ( atom ));
+  Vec3 max(min);
+  Vec3 Rmin( Radii[atom] );
+  Vec3 Rmax( Radii[atom] );
+  for (; atom != natom_; ++atom)
+  {
+    const double* xyz = XYZ( atom );
+    if (xyz[0] < min[0]) {
+     min[0] = xyz[0];
+     Rmin[0] = Radii[atom];
+    }
+    if (xyz[0] > max[0]) {
+      max[0] = xyz[0];
+      Rmax[0] = Radii[atom];
+    }
+    if (xyz[1] < min[1]) {
+      min[1] = xyz[1];
+      Rmin[1] = Radii[atom];
+    }
+    if (xyz[1] > max[1]) {
+      max[1] = xyz[1];
+      Rmax[1] = Radii[atom];
+    }
+    if (xyz[2] < min[2]) {
+      min[2] = xyz[2];
+      Rmin[2] = Radii[atom];
+    }
+    if (xyz[2] > max[2]) {
+      max[2] = xyz[2];
+      Rmax[2] = Radii[atom];
+    }
+  }
+  //min.Print("min");
+  //max.Print("max");
+  //Rmin.Print("Rmin");
+  //Rmax.Print("Rmax");
+  min -= (Rmin + offset);
+  max += (Rmax + offset);
+  double xyzabg[6];
+  xyzabg[0] = (max[0] - min[0]);
+  xyzabg[1] = (max[1] - min[1]);
+  xyzabg[2] = (max[2] - min[2]);
+  xyzabg[3] = 90.0;
+  xyzabg[4] = 90.0;
+  xyzabg[5] = 90.0;
+  box_.SetBox(xyzabg);
+}
+
 #ifdef MPI
 // TODO: Change Frame class so everything can be sent in one MPI call.
 /** Send contents of this Frame to recvrank. */

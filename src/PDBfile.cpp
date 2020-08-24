@@ -127,6 +127,12 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
   return recType_;
 }
 
+/** \return Atom alt. loc. code from PDB ATOM/HETATM line. */
+char PDBfile::pdb_AltLoc() const {
+  return linebuffer_[16];
+}
+
+/** \return Atom containing information from PDB ATOM/HETATM line. */
 Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   // ATOM or HETATM keyword.
   // Check line length before any modification.
@@ -214,7 +220,8 @@ void PDBfile::pdb_ChargeAndRadius(float& charge, float& radius) {
   sscanf(linebuffer_+54, "%f %f", &charge, &radius);
 }
 
-void PDBfile::pdb_Box(double* box) {
+/** Set box[0-5] with A B C ALPHA BETA GAMMA from CRYST1 record. */
+void PDBfile::readCRYST1(double* box) {
   // CRYST1 keyword. RECORD A B C ALPHA BETA GAMMA SGROUP Z
   unsigned int lb_size = strlen(linebuffer_);
   if (lb_size < 54) {
@@ -238,14 +245,30 @@ void PDBfile::pdb_Box(double* box) {
     box[ib] = atof( linebuffer_ + lb );
     linebuffer_[end] = savechar;
   }
-  mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
-          box[0], box[1], box[2], box[3], box[4], box[5]);
-  // Warn if the box looks strange.
+}
+
+/** Print a warning to STDOUT if unit cell lengths are strange. */
+static inline void box_warning(const double* box) {
   if (box[0] == 1.0 && box[1] == 1.0 && box[2] == 1.0)
     mprintf("Warning: PDB cell lengths are all 1.0 Ang.;"
             " this usually indicates an invalid box.\n");
 }
 
+/** Read box info from CRYST1, verbose. */
+void PDBfile::pdb_Box_verbose(double* box) {
+  readCRYST1(box);
+  box_warning(box);
+  mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
+          box[0], box[1], box[2], box[3], box[4], box[5]);
+}
+
+/** Read box info from CRYST1, warn only if box is strange looking. */
+void PDBfile::pdb_Box_terse(double* box) {
+  readCRYST1(box);
+  box_warning(box);
+}
+
+/** Read serial #s of atoms from a CONECT record. */
 int PDBfile::pdb_Bonds(int* bnd) {
   unsigned int lb_size = strlen(linebuffer_);
   int Nscan = 0;
@@ -598,7 +621,7 @@ PDBfile::SSBOND::SSBOND() :
 PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
   idx1_(  idx1),                idx2_(  idx2),
   rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
-  chain1_(r1.ChainID()),        chain2_(r2.ChainID()),
+  chain1_(r1.ChainId()),        chain2_(r2.ChainId()),
   icode1_(r1.Icode()),          icode2_(r2.Icode())
 {
   std::copy(r1.c_str(), r1.c_str()+3, name1_);

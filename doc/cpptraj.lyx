@@ -2380,15 +2380,19 @@ set
 \end_layout
 
 \begin_layout LyX-Code
-set { <variable> <OP> <value> |
+set { <variable> <OP> <value> | 	  
 \end_layout
 
 \begin_layout LyX-Code
-	  <variable> <OP> {atoms|residues|molecules} inmask <mask>
+      <variable> <OP> {atoms|residues|molecules|atomnums|
 \end_layout
 
 \begin_layout LyX-Code
-	    [parm <name> | parmindex <#> | <#>]
+	                   resnums|oresnums|molnums} inmask <mask>
+\end_layout
+
+\begin_layout LyX-Code
+	    [parm <name> | crdset <set> | parmindex <#> | <#>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -2421,7 +2425,7 @@ set { <variable> <OP> <value> |
 \begin_inset space ~
 \end_inset
 
-{atoms|residues|molecules}
+{atoms|residues|molecules|atomnums|resnums|oresnums|molnums}
 \begin_inset space ~
 \end_inset
 
@@ -2430,7 +2434,8 @@ inmask
 \end_inset
 
 <mask> Set/append a script variable to/by the total number of atoms/residues/mol
-ecules selected by given mask expression.
+ecules or a range expression of selected atom #s/residue #s/original residue
+ #s/molecule #s in the given mask expression.
 \end_layout
 
 \begin_deeper
@@ -2524,6 +2529,23 @@ show
 
 \begin_layout LyX-Code
 atoms "@$last10 - $Natom" out last10.dat
+\end_layout
+
+\begin_layout Standard
+The following input will put a range of residues selected by :LYS:
+\end_layout
+
+\begin_layout LyX-Code
+> set SELECTED1 = resnums inmask :LYS
+\end_layout
+
+\begin_layout LyX-Code
+	Using topology: FtuFabI.NAD.TCL.parm7
+\end_layout
+
+\begin_layout LyX-Code
+	Variable 'SELECTED1' set to '7-8,18,26,44,49,71,79,128,135,151,163,183,193,204-
+205,217-218'
 \end_layout
 
 \begin_layout Subsection
@@ -2737,7 +2759,7 @@ status open
 \begin_layout Plain Layout
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="15" columns="5">
+<lyxtabular version="3" rows="16" columns="5">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="20text%">
 <column alignment="center" valignment="top" width="20text%">
@@ -3210,6 +3232,53 @@ cpout
 
 \begin_layout Plain Layout
 pH data only
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Density Peaks
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+.peaks
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+peaks
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3D density peaks (spam/volmap)
 \end_layout
 
 \end_inset
@@ -5388,6 +5457,24 @@ OpenDX file options
 \end_layout
 
 \begin_layout Subsubsection*
+Read
+\end_layout
+
+\begin_layout LyX-Code
+[type {float|double}]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+type
+\begin_inset space ~
+\end_inset
+
+{float|double} Precision to read in 3D grid (default float).
+\end_layout
+
+\end_deeper
+\begin_layout Subsubsection*
 Write
 \end_layout
 
@@ -5679,7 +5766,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="12" columns="2">
+<lyxtabular version="3" rows="13" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -5802,6 +5889,26 @@ createcrd
 
 \begin_layout Plain Layout
 (Action) Create a COORDS set during a Run.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+graft
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Graft part of one COORDS set onto another COORDS set.
 \end_layout
 
 \end_inset
@@ -6062,22 +6169,6 @@ crdaction crd1 rmsd first @CA out rmsd-ca.agr crdframes 1,last,10
 \end_layout
 
 \begin_layout Subsection
-createcrd
-\end_layout
-
-\begin_layout Standard
-This command is actually an Action that can be used to create COORDS data
- sets during trajectory processing, see 
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj_createcrd"
-
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Subsection
 crdout
 \end_layout
 
@@ -6105,6 +6196,163 @@ crd1
 
 \begin_layout LyX-Code
 crdout crd1 crd1.pdb multi crdframes 1,10
+\end_layout
+
+\begin_layout Subsection
+createcrd
+\end_layout
+
+\begin_layout Standard
+This command is actually an Action that can be used to create COORDS data
+ sets during trajectory processing, see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_createcrd"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+graft
+\end_layout
+
+\begin_layout LyX-Code
+graft src <source COORDS> [srcframe <#>] [srcfitmask <mask>] [srcmask <mask>]
+\end_layout
+
+\begin_layout LyX-Code
+  	tgt <target COORDS> [tgtframe <#>] [tgtfitmask <mask>] [tgtmask <mask>]
+\end_layout
+
+\begin_layout LyX-Code
+  	name <output COORDS> [bond <tgt>,<src> ...]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+src
+\begin_inset space ~
+\end_inset
+
+<source
+\begin_inset space ~
+\end_inset
+
+COORDS> Source coordinates.
+\end_layout
+
+\begin_layout Description
+[srcframe
+\begin_inset space ~
+\end_inset
+
+<#>] Frame # from source coordinates to use (default 1).
+\end_layout
+
+\begin_layout Description
+[srcfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from source to use if RMS-fitting source onto target.
+\end_layout
+
+\begin_layout Description
+[srcmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms to keep from source (default all).
+\end_layout
+
+\begin_layout Description
+tgt
+\begin_inset space ~
+\end_inset
+
+<target
+\begin_inset space ~
+\end_inset
+
+COORDS> Target coordinates that will be grafted onto.
+\end_layout
+
+\begin_layout Description
+[tgtframe
+\begin_inset space ~
+\end_inset
+
+<#> Frame # from target coordinates to use (default 1).
+\end_layout
+
+\begin_layout Description
+[tgtfitmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms from target to use if RMS-fitting source onto target.
+\end_layout
+
+\begin_layout Description
+[tgtmask
+\begin_inset space ~
+\end_inset
+
+<mask>] Atoms to keep from target (default all).
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+COORDS> Name of output COORDS set containing source grafted onto target.
+\end_layout
+
+\begin_layout Description
+[bond
+\begin_inset space ~
+\end_inset
+
+<tgt>,<src>] Create a bond between target atom selected by <tgt> and source
+ atoms selected by <src> in the final structure.
+ May be specified multiple times.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Graft one COORDS set onto another.
+ If 
+\series bold
+srcfitmask
+\series default
+ and/or 
+\series bold
+tgtfitmask
+\series default
+ is specified, the source coordinates will be RMS best-fit onto target using
+ the specified atoms.
+ Only the atoms specified by 
+\series bold
+srcmask
+\series default
+ and 
+\series bold
+tgtmask
+\series default
+ will be kept.
+ The 
+\series bold
+bond
+\series default
+ keyword can be used to create bonds between target and source in the final
+ structure.
 \end_layout
 
 \begin_layout Subsection
@@ -11490,6 +11738,14 @@ change [parm <name> | parmindex <#> | <#> |
 \end_layout
 
 \begin_layout LyX-Code
+      oresnums of <mask> min <range min> max <range max> |
+\end_layout
+
+\begin_layout LyX-Code
+	  icodes of <mask> min <char min> max <char max> resnum <#> |
+\end_layout
+
+\begin_layout LyX-Code
 	  atomname from <mask> to <value> |
 \end_layout
 
@@ -11584,6 +11840,90 @@ to
 \end_inset
 
 <value> Change the chain ID of residues in <mask> to given <value>.
+\end_layout
+
+\begin_layout Description
+oresnums
+\begin_inset space ~
+\end_inset
+
+of
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+min
+\begin_inset space ~
+\end_inset
+
+<range
+\begin_inset space ~
+\end_inset
+
+min>
+\begin_inset space ~
+\end_inset
+
+max
+\begin_inset space ~
+\end_inset
+
+<range
+\begin_inset space ~
+\end_inset
+
+max> Change original residue numbers (to e.g.
+ original PDB numbers) of residues in <mask> to a range starting from <min>
+ and ending with <max>.
+\end_layout
+
+\begin_layout Description
+icode
+\begin_inset space ~
+\end_inset
+
+of
+\begin_inset space ~
+\end_inset
+
+<mask>
+\begin_inset space ~
+\end_inset
+
+min
+\begin_inset space ~
+\end_inset
+
+<char
+\begin_inset space ~
+\end_inset
+
+min>
+\begin_inset space ~
+\end_inset
+
+max
+\begin_inset space ~
+\end_inset
+
+<char
+\begin_inset space ~
+\end_inset
+
+max>
+\begin_inset space ~
+\end_inset
+
+<resnum>
+\begin_inset space ~
+\end_inset
+
+<#> Change residue insertion codes of residues in <mask> to a range of character
+s starting from <min> and ending with <max>; set the original residue number
+ to <resnum>.
 \end_layout
 
 \begin_layout Description
@@ -12285,10 +12625,17 @@ reference "tab:cpptraj-Topology-formats"
 
 \emph on
 PDB format:
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-parm-pdb"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
-[pqr] [readbox] [noconect]
+[pqr] [readbox] [conect] [noconect] [link] [nolink] [keepaltloc <char>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -12306,7 +12653,33 @@ PDB format:
 \end_layout
 
 \begin_layout Description
+[conect] Read CONECT records if present (default).
+\end_layout
+
+\begin_layout Description
 [noconect] Do not read in CONECT records from PDB file.
+\end_layout
+
+\begin_layout Description
+[link] Read LINK records if present.
+ 
+\end_layout
+
+\begin_layout Description
+[nolink] Do not read LINK records if present (default).
+\end_layout
+
+\begin_layout Description
+[keepaltloc
+\begin_inset space ~
+\end_inset
+
+<char>] If specified, only keep alternate atom location IDs matching the
+ specified character 
+\series bold
+<char>
+\series default
+.
 \end_layout
 
 \end_deeper
@@ -12342,10 +12715,34 @@ If this is the case
 \shape italic
 cpptraj
 \shape default
- will print a warning about duplicate atom names but will take no other
- action.
+ will print a warning about alternate location IDs being present but will
+ take no other action.
  Both residues are considered 'CYS' and the mask ':CYS@CA' would select
- both atom 806 and 809.
+ both atom 806 and 808.
+ If desired, a specific location ID can be kept via the 
+\series bold
+keepaltloc
+\series default
+ keyword.
+ If 
+\series bold
+keepaltloc
+\series default
+ is specified, it should also be specified for any 
+\series bold
+trajin
+\series default
+ commands (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-trajin-pdb"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
  Residue insertion codes are read in but also not used by the mask parser.
 \end_layout
 
@@ -12698,7 +13095,7 @@ Amber Topology
 \end_layout
 
 \begin_layout LyX-Code
-[nochamber] [writeempty]
+[nochamber] [writeempty] [nopdbinfo]
 \end_layout
 
 \begin_deeper
@@ -12709,6 +13106,11 @@ Amber Topology
 
 \begin_layout Description
 [writeempty] Write Amber tree, join, and rotate info even if not present.
+\end_layout
+
+\begin_layout Description
+[nopdbinfo] Do not write "PDB" info (e.g.
+ chain IDs, original res #s, etc).
 \end_layout
 
 \end_deeper
@@ -14870,6 +15272,64 @@ shape Force reading of box information as shape matrix.
 \end_layout
 
 \end_deeper
+\begin_layout Subsubsection
+Options for PDB files:
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:cpptraj-trajin-pdb"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+[keepaltloc <char>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+[keepaltloc
+\begin_inset space ~
+\end_inset
+
+<char>] If specified, only keep alternate atom location IDs matching the
+ specified character 
+\series bold
+<char>
+\series default
+.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Note that if 
+\series bold
+keepaltloc
+\series default
+ is specified, the associated topology should not have alternate location
+ IDs, i.e.
+ if the topology is from a PDB the 
+\series bold
+keepaltloc
+\series default
+ keyword may need to be used with the 
+\series bold
+parm
+\series default
+ command (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj-parm-pdb"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+\end_layout
+
 \begin_layout Subsection
 trajout
 \begin_inset CommandInset label
@@ -15136,7 +15596,7 @@ Options for pdb format
 \end_layout
 
 \begin_layout LyX-Code
-  [include_ep] [conect] [keepext] [usecol21]
+  [include_ep] [conect] [conectmode <m>] [keepext] [usecol21]
 \end_layout
 
 \begin_layout LyX-Code
@@ -15236,6 +15696,15 @@ include_ep Include extra points.
 
 \begin_layout Description
 conect Write CONECT records for all bonds.
+\end_layout
+
+\begin_layout Description
+conectmode
+\begin_inset space ~
+\end_inset
+
+<m> Write CONECT records for <m>='all' (all bonds), 'het' (HETATM only),
+ 'none' (no CONECT).
 \end_layout
 
 \begin_layout Description
@@ -15861,7 +16330,7 @@ Mod
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="86" columns="3">
+<lyxtabular version="3" rows="87" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="65text%">
@@ -17657,6 +18126,35 @@ randomizeions
 
 \begin_layout Plain Layout
 Swap specified ions with randomly selected solvent molecules.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+X
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+remap
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Re-map atoms according to a given data set.
 \end_layout
 
 \end_inset
@@ -19777,11 +20275,11 @@ box
 \end_layout
 
 \begin_layout LyX-Code
-box [x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]
+box {[x <xval>] [y <yval>] [z <zval>] {[alpha <a>] [beta <b>] [gamma <g>]
 \end_layout
 
 \begin_layout LyX-Code
-    [nobox] [truncoct]
+	 [truncoct]} | nobox | auto [offset <offset>] [radii {vdw|gb|parse|none}]}
 \begin_inset Separator latexpar
 \end_inset
 
@@ -19842,13 +20340,37 @@ Change box length(s) to specified value(s).
 \end_layout
 
 \begin_layout Description
+[truncoct] Set box angles to truncated octahedron.
+\end_layout
+
+\begin_layout Description
 [nobox] Remove any existing box information.
 \end_layout
 
 \begin_layout Description
-[truncoct] Set box angles to truncated octahedron.
+auto Set an orthogonal bounding box enclosing all atoms by the specified
+ radii and an optional offset.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+offset
+\begin_inset space ~
+\end_inset
+
+<offset> Offset in Angstroms to add to each box length (both + and -).
+\end_layout
+
+\begin_layout Description
+radii
+\begin_inset space ~
+\end_inset
+
+{vdw|gb|parse|none} Radii to use for each atom: van der Waals, generalized
+ Born, PARSE, or no radii.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
 Modify box information during trajectory processing.
@@ -19857,6 +20379,12 @@ Modify box information during trajectory processing.
  It is possible to modify any number of the box parameters (e.g.
  only the Z length can be modified if desired while leaving all other parameters
  intact).
+ If no box is present, an orthogonal bounding box enclosing all atoms can
+ be created with the 
+\series bold
+auto
+\series default
+ keyword.
 \end_layout
 
 \begin_layout Subsection
@@ -20221,7 +20749,11 @@ closest
 \end_layout
 
 \begin_layout LyX-Code
-    	[outprefix <parmprefix>] [parmout <file>]
+    	[outprefix <prefix>] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+    	[parmopts <comma-separated-list>]
 \end_layout
 
 \begin_deeper
@@ -20325,7 +20857,19 @@ oxygen] Calculate distances between all atoms in
 \begin_inset space ~
 \end_inset
 
-<file>] Write corresponding topology to file with name <file>.
+<file>] Write corresponding topology to file with name 
+\series bold
+<file>
+\series default
+.
+\end_layout
+
+\begin_layout Description
+[parmopts
+\begin_inset space ~
+\end_inset
+
+<list>] Comma-separated list of options for writing the topology file.
 \end_layout
 
 \begin_layout Standard
@@ -22760,9 +23304,57 @@ fixatomorder
 \end_layout
 
 \begin_layout LyX-Code
-fixatomorder [outprefix <name>]
+fixatomorder [outprefix <prefix>] [parmout <filename>] 
 \end_layout
 
+\begin_layout LyX-Code
+             [parmopts <comma-separated-list>]
+\end_layout
+
+\begin_layout LyX-Code
+             [pdborder [hetatm <mask>]] (EXPERIMENTAL)
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<prefix> Write re-ordered topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+parmout
+\begin_inset space ~
+\end_inset
+
+<filename> Write re-ordered topology to <filename>
+\end_layout
+
+\begin_layout Description
+parmopts
+\begin_inset space ~
+\end_inset
+
+<list> Options for writing topology file
+\end_layout
+
+\begin_layout Description
+pdborder (EXPERIMENTAL) Try to reorder atoms according to PDB information.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+hetatm
+\begin_inset space ~
+\end_inset
+
+<mask> Mark atoms in mask as HETATM, order them after other atoms.
+\end_layout
+
+\end_deeper
+\end_deeper
 \begin_layout Standard
 Cpptraj (and most of Amber) expects that atom indices in molecules to increase
  monotonically.
@@ -22818,6 +23410,28 @@ fixatomorder outprefix reorder
 
 \begin_layout LyX-Code
 trajout reorder.mdcrd 
+\end_layout
+
+\begin_layout Standard
+If 
+\series bold
+'pdborder'
+\series default
+ is specified, attempt to organize atoms by PDB information (i.e.
+ Chain ID, original residue numbering, and insertion codes).
+ Atoms optionally specified by 
+\series bold
+'hetatm
+\series default
+ 
+\series bold
+<mask>
+\series default
+' will be placed after all other atoms.
+ 
+\emph on
+Note that the 'pdborder' keyword is still experimental, and requires that
+ the Topology have PDB-type information present.
 \end_layout
 
 \begin_layout Subsection
@@ -25762,7 +26376,9 @@ jcoupling
 \begin_inset space ~
 \end_inset
 
-file>] File containing Karplus parameters (default is $AMBERHOME/dat/Karplus.txt).
+file>] File containing Karplus parameters.
+ If not specified will check CPPTRAJHOME, AMBERHOME, and KARPLUS environment
+ variables (see below).
 \end_layout
 
 \begin_layout Description
@@ -25804,8 +26420,8 @@ Calculate J-coupling values for all dihedrals found within
 \shape italic
 cpptraj
 \shape default
- will use the data found in $AMBERHOME/dat/Karplus.txt; if this is not found
- 
+ will use the data found in either $CPPTRAJHOME/dat/Karplus.txt or $AMBERHOME/dat
+/Karplus.txt; if this is not found 
 \shape italic
 cpptraj
 \shape default
@@ -28016,7 +28632,15 @@ probe
 \series default
  (1.4 Å if not specified).
  Note that if GB/VDW radii are not present in the topology file (e.g.
- for PDB files), then PARSE radii can be used.
+ for PDB files), then PARSE
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Sitkoff94"
+literal "true"
+
+\end_inset
+
+ radii can be used.
  Also note that this routine only calculate absolute surface areas, i.e.
  it cannot be used to get the contribution of a subset of atoms to overall
  surface area; if such functionality is needed try the 
@@ -30987,15 +31611,89 @@ The above will swap Na
 \end_layout
 
 \begin_layout Subsection
+remap
+\end_layout
+
+\begin_layout LyX-Code
+remap data <setname>
+\end_layout
+
+\begin_layout LyX-Code
+      [outprefix <prefix>] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+      [parmopts <comma-separated-list>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+data
+\begin_inset space ~
+\end_inset
+
+<setname> Data set to use for remapping; should be a 1D integer data set
+ with X= reference (old) atom index, Y = target (new) atom index.
+\end_layout
+
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<prefix> Write remapped topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+parmout
+\begin_inset space ~
+\end_inset
+
+<filename> Write remapped topology to <filename>
+\end_layout
+
+\begin_layout Description
+parmopts
+\begin_inset space ~
+\end_inset
+
+<list> Options for writing topology file
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Re-map atoms according to the given reference data set which is of the format:
+ 
+\end_layout
+
+\begin_layout LyX-Code
+Reference[Target]
+\end_layout
+
+\begin_layout Standard
+with atom numbering starting from 1.
+ E.g.
+ Reference[1] = 10 would mean remap atom 10 in target to position 1.
+\end_layout
+
+\begin_layout Subsection
 replicatecell
 \end_layout
 
 \begin_layout LyX-Code
-replicatecell [out <traj filename>] [parmout <parm filename>] [name <dsname>]
+replicatecell [out <traj filename>] [name <dsname>]
 \end_layout
 
 \begin_layout LyX-Code
-              { all | dir <XYZ> [dir <XYZ> ...] } [<mask>]
+          	{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]
+\end_layout
+
+\begin_layout LyX-Code
+          	[outprefix <prefix>] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+          	[parmopts <comma-separated-list>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -31013,19 +31711,6 @@ out
 \end_inset
 
 filename> Write replicated cell to output trajectory file.
-\end_layout
-
-\begin_layout Description
-parmout
-\begin_inset space ~
-\end_inset
-
-<parm
-\begin_inset space ~
-\end_inset
-
-filename> Write replicated cell topology to topology file.
- This file will not be viable to use for simulations.
 \end_layout
 
 \begin_layout Description
@@ -31053,6 +31738,30 @@ dir
 
 \begin_layout Description
 <mask> Mask of atoms to replicate.
+\end_layout
+
+\begin_layout Description
+outprefix
+\begin_inset space ~
+\end_inset
+
+<prefix> Write replicated topology to <prefix>.<originalname>
+\end_layout
+
+\begin_layout Description
+parmout
+\begin_inset space ~
+\end_inset
+
+<filename> Write replicated topology to <filename>
+\end_layout
+
+\begin_layout Description
+parmopts
+\begin_inset space ~
+\end_inset
+
+<list> Options for writing topology file
 \end_layout
 
 \end_deeper
@@ -32701,129 +33410,6 @@ secstruct :1-22 out dssp.gnu sumout dssp.agr
 xmgrace dssp.agr
 \end_layout
 
-\begin_layout Subsection
-spam
-\end_layout
-
-\begin_layout LyX-Code
-spam <filename> [solv <solvname>] [reorder] [name <name>]
-\end_layout
-
-\begin_layout LyX-Code
-     [purewater] [cut <cut>] [info <infofile>] [summary <summary>]
-\end_layout
-
-\begin_layout LyX-Code
-     [site_size <size>] [sphere] [out <datafile>]
-\end_layout
-
-\begin_layout LyX-Code
-     [dgbulk <dgbulk>] [dhbulk <dhbulk>] [temperature <T>] 
-\end_layout
-
-\begin_deeper
-\begin_layout Description
-<filename> File with the peak locations present (XYZ- format) 
-\end_layout
-
-\begin_layout Description
-<solvname> Name of the solvent residues 
-\end_layout
-
-\begin_layout Description
-<cut> Non-bonded cutoff for energy evaluation
-\end_layout
-
-\begin_layout Description
-<dgbulk> SPAM free energy of the bulk solvent in kcal/mol; default is -30.3
- kcal/mol (SPC/E water).
-\end_layout
-
-\begin_layout Description
-<dhbulk> SPAM enthalpy of the bulk solvent in kcal/mol; default is -22.2
- kcal/mol (SPC/E water).
-\end_layout
-
-\begin_layout Description
-<T> Temperature at which SPAM calculation was run.
-\end_layout
-
-\begin_layout Description
-<infofile> File with stats about which sites are occupied when.
-\end_layout
-
-\begin_layout Description
-<size> Size of the water site around each density peak.
-\end_layout
-
-\begin_layout Description
-[sphere] Treat each site like a sphere.
-\end_layout
-
-\begin_layout Description
-[purewater] The system is pure water---used to parametrize the bulk values.
-\end_layout
-
-\begin_layout Description
-[reorder] The solvent should be re-ordered so the same solvent molecule
- is always in the same site.
-\end_layout
-
-\begin_layout Description
-<summary> File with the summary of all SPAM results.
- If not specified, no SPAM energies will be calculated.
-\end_layout
-
-\begin_layout Description
-<datafile> Data file with all SPAM energies for each snapshot.
-\end_layout
-
-\end_deeper
-\begin_layout Standard
-Perform profiling of bound water molecules via SPAM analysis
-\begin_inset CommandInset citation
-LatexCommand citep
-key "Cui2013"
-literal "true"
-
-\end_inset
-
-.
- Briefly, this method identifies and estimates the free energy profiles
- of bound waters via calculation of the distribution of interaction energies
- between the water and it's environment from explicit solvent MD trajectories.
- The interaction energies are calculated using a force- and energy-shifted
- electrostatic term with a hard cutoff.
-\end_layout
-
-\begin_layout Standard
-Prior to this command, the 
-\series bold
-\emph on
-volmap
-\series default
-\emph default
- command should be run with the 
-\series bold
-peakfile
-\series default
- keyword (see 
-\begin_inset CommandInset ref
-LatexCommand vref
-reference "subsec:cpptraj_volmap"
-
-\end_inset
-
-) to generate the peaks file.
- If not using peaks from the 
-\series bold
-\emph on
-volmap
-\series default
-\emph default
- command, the peaks file should have one line per peak with format:
-\end_layout
-
 \begin_layout LyX-Code
 C <X> <Y> <Z> <Density>
 \end_layout
@@ -32988,6 +33574,229 @@ Set velocities in frame for atoms in <mask> using Maxwellian distribution
 \end_layout
 
 \begin_layout Subsection
+spam
+\end_layout
+
+\begin_layout LyX-Code
+spam [name <name>] [out <datafile>] [cut <cut>] [solv <solvname>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	{ purewater |
+\end_layout
+
+\begin_layout LyX-Code
+ 	  <peaksname> [reorder] [info <infofile>] [summary <summary>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	  [site_size <size>] [sphere] [temperature <T>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	  [dgbulk <dgbulk>] [dhbulk <dhbulk>] } 
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<name> Output data sets name.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<datafile> Data file with all SPAM energies for each snapshot.
+\end_layout
+
+\begin_layout Description
+cut
+\begin_inset space ~
+\end_inset
+
+<cut> Non-bonded cutoff for energy evaluation
+\end_layout
+
+\begin_layout Description
+solv
+\begin_inset space ~
+\end_inset
+
+<solvname> Name of the solvent residues.
+\end_layout
+
+\begin_layout Description
+[purewater] The system is pure water.
+ Used to parametrize the bulk values.
+ If this is specified, none of the below options are relevant.
+\end_layout
+
+\begin_layout Description
+<peaksname> Data set or file (XYZ- format: see below) with the peak locations
+ present .
+ 
+\end_layout
+
+\begin_layout Description
+[reorder] The solvent should be re-ordered so the same solvent molecule
+ is always in the same site.
+\end_layout
+
+\begin_layout Description
+info
+\begin_inset space ~
+\end_inset
+
+<infofile> File with stats about which sites are occupied when.
+\end_layout
+
+\begin_layout Description
+summary
+\begin_inset space ~
+\end_inset
+
+<summary> File with the summary of all SPAM results.
+ If not specified, no SPAM energies will be calculated.
+\end_layout
+
+\begin_layout Description
+site_size <size> Size of the water site around each density peak (sphere
+ diameter/box edge length) in Ang.
+\end_layout
+
+\begin_layout Description
+[sphere] Treat each site like a sphere.
+\end_layout
+
+\begin_layout Description
+temperature
+\begin_inset space ~
+\end_inset
+
+<T> Temperature at which SPAM calculation was run.
+\end_layout
+
+\begin_layout Description
+dgbulk
+\begin_inset space ~
+\end_inset
+
+<dgbulk> SPAM free energy of the bulk solvent in kcal/mol; default is -30.3
+ kcal/mol (SPC/E water).
+\end_layout
+
+\begin_layout Description
+dhbulk
+\begin_inset space ~
+\end_inset
+
+<dhbulk> SPAM enthalpy of the bulk solvent in kcal/mol; default is -22.2
+ kcal/mol (SPC/E water).
+\end_layout
+
+\begin_layout Standard
+Data Sets Created for 'purewater':
+\end_layout
+
+\begin_layout Description
+<name> Energies for each water at each frame.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created otherwise:
+\end_layout
+
+\begin_layout Description
+<name>:<#> SPAM energies for peak <#> starting from 1.
+\end_layout
+
+\begin_layout Description
+<name>[DG] SPAM delta G values for valid peaks.
+\end_layout
+
+\begin_layout Description
+<name>[DH] SPAM delta H values for valid peaks.
+\end_layout
+
+\begin_layout Description
+<name>[-TDS] SPAM -T * delta S values for valid peaks.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Perform profiling of bound water molecules via SPAM analysis
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Cui2013"
+literal "true"
+
+\end_inset
+
+.
+ Briefly, this method identifies and estimates the free energy profiles
+ of bound waters via calculation of the distribution of interaction energies
+ between the water and it's environment from explicit solvent MD trajectories.
+ The interaction energies are calculated using a force- and energy-shifted
+ electrostatic term with a hard cutoff.
+ For a given peak, SPAM energies will only be calculated for peaks where
+ the peak is singly-occupied (i.e.
+ a multiple-occupied peak is not considered valid).
+\end_layout
+
+\begin_layout Standard
+Prior to this command, the 
+\series bold
+\emph on
+volmap
+\series default
+\emph default
+ command should be run with the 
+\series bold
+peakfile
+\series default
+ keyword (see 
+\begin_inset CommandInset ref
+LatexCommand vref
+reference "subsec:cpptraj_volmap"
+
+\end_inset
+
+) to generate the peaks file.
+ If not using peaks from the 
+\series bold
+\emph on
+volmap
+\series default
+\emph default
+ command, the peaks file should have one line per peak with format:
+\end_layout
+
+\begin_layout LyX-Code
+<# of peaks>
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+C     <X>      <Y>      <Z>       <Peak Density>
+\end_layout
+
+\begin_layout LyX-Code
+...
+\end_layout
+
+\begin_layout Standard
+With a 'C' line for each peak.
+\end_layout
+
+\begin_layout Subsection
 stfcdiffusion
 \end_layout
 
@@ -33091,7 +33900,15 @@ strip
 
 \end_inset
 
- <mask> [outprefix <name>] [<parmout> file>] [nobox]
+ <mask> [nobox]
+\end_layout
+
+\begin_layout LyX-Code
+  	[outprefix <prefix>] [parmout <filename>]
+\end_layout
+
+\begin_layout LyX-Code
+  	[parmopts <comma-separated-list>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -33101,6 +33918,10 @@ strip
 \begin_deeper
 \begin_layout Description
 <mask> Remove atoms specified by mask from the system.
+\end_layout
+
+\begin_layout Description
+[nobox] Remove any box information from the stripped topology.
 \end_layout
 
 \begin_layout Description
@@ -33117,11 +33938,15 @@ strip
 \begin_inset space ~
 \end_inset
 
-<file>] Write corresponding topology to file with name <file>.
+<file>] Write stripped topology to file with name <file>.
 \end_layout
 
 \begin_layout Description
-[nobox] Remove any box information from the stripped topology.
+[parmopts
+\begin_inset space ~
+\end_inset
+
+<list>] Options for writing topology file.
 \end_layout
 
 \end_deeper
@@ -34417,7 +35242,15 @@ name "subsec:cpptraj_volmap"
 \end_layout
 
 \begin_layout LyX-Code
-volmap filename dx dy dz <mask> [radscale <factor>]
+volmap [out <filename>] <mask> [radscale <factor>] [stepfac <fac>]
+\end_layout
+
+\begin_layout LyX-Code
+   	[sphere] [radii {vdw | element}]
+\end_layout
+
+\begin_layout LyX-Code
+   	[calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -34425,15 +35258,19 @@ volmap filename dx dy dz <mask> [radscale <factor>]
 \end_layout
 
 \begin_layout LyX-Code
-   	  name <setname> { size <x,y,z> [center <x,y,z>] |
+   	  name <setname> <dx> [<dy> <dz>]
 \end_layout
 
 \begin_layout LyX-Code
-   	                   centermask <mask> [buffer <buffer>] } }
+ 	      { size <x,y,z> [center <x,y,z>] |
 \end_layout
 
 \begin_layout LyX-Code
-   	[peakcut <cutoff>] [peakfile <xyzfile>]
+   	      centermask <mask> [buffer <buffer>] |
+\end_layout
+
+\begin_layout LyX-Code
+   	      boxref <reference> } 	}
 \begin_inset Separator latexpar
 \end_inset
 
@@ -34444,25 +35281,13 @@ volmap filename dx dy dz <mask> [radscale <factor>]
 \begin_layout Description
 
 \family roman
-filename 
+out
+\begin_inset space ~
+\end_inset
+
+<filename> 
 \family default
 The name of the output file with the grid density.
-\end_layout
-
-\begin_layout Description
-
-\family roman
-dx,
-\begin_inset space ~
-\end_inset
-
-dy,
-\begin_inset space ~
-\end_inset
-
-dz 
-\family default
-The grid spacing (Angstroms) in the X-, Y-, and Z-dimensions, respectively
 \end_layout
 
 \begin_layout Description
@@ -34486,6 +35311,72 @@ Factor by which to scale radii (by division).
  To match the atomic radius of Oxygen used by the VMD volmap tool, a scaling
  factor of 1.36 should be used.
  Default 1.0.
+\end_layout
+
+\begin_layout Description
+stepfac
+\begin_inset space ~
+\end_inset
+
+<factor> Factor for determining how many voxels to smear Gaussian (default
+ 4.1, 1.0 for 
+\series bold
+sphere
+\series default
+).
+\end_layout
+
+\begin_layout Description
+sphere When smearing Gaussian, skip voxels farther than radii/2.
+\end_layout
+
+\begin_layout Description
+radii
+\begin_inset space ~
+\end_inset
+
+{vdw|element} Specify either van der Waals radii (default) or elemental
+ radii.
+\end_layout
+
+\begin_layout Description
+calcpeaks If specified, peaks in the grid density will be calculated and
+ saved to set <setname> with aspect 
+\begin_inset Quotes eld
+\end_inset
+
+peaks
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Description
+
+\family roman
+peakcut
+\begin_inset space ~
+\end_inset
+
+<cutoff> 
+\family default
+The minimum density required to consider a local maximum a 'density peak'
+ in the outputted peak file (default 0.05).
+\end_layout
+
+\begin_layout Description
+
+\family roman
+peakfile
+\begin_inset space ~
+\end_inset
+
+<xyzfile> 
+\family default
+A file in XYZ-format that contains a carbon atom centered at the grid point
+ of every local density maximum.
+ This file is necessary input to the spam action command.
 \end_layout
 
 \begin_layout Description
@@ -34515,6 +35406,22 @@ centermask/buffer
 \begin_layout Description
 
 \family roman
+dx,
+\begin_inset space ~
+\end_inset
+
+dy,
+\begin_inset space ~
+\end_inset
+
+dz 
+\family default
+The grid spacing (Angstroms) in the X-, Y-, and Z-dimensions, respectively.
+\end_layout
+
+\begin_layout Description
+
+\family roman
 size
 \begin_inset space ~
 \end_inset
@@ -34525,6 +35432,7 @@ Specify the size of the grid in the X-, Y-, and Z-dimensions.
  Must be used alongside the center argument.
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 
 \family roman
@@ -34539,6 +35447,7 @@ Specify the grid center explicitly.
  Default is the origin.
 \end_layout
 
+\end_deeper
 \begin_layout Description
 
 \family roman
@@ -34553,6 +35462,7 @@ The mask around which the grid should be centered (via geometric center).
  <mask> entered (see above) is used in its place.
 \end_layout
 
+\begin_deeper
 \begin_layout Description
 
 \family roman
@@ -34569,31 +35479,29 @@ A buffer distance, in Angstroms, by which the edges of the grid should clear
  The buffer is ignored if the center and size are specified (see below).
 \end_layout
 
+\end_deeper
 \begin_layout Description
-
-\family roman
-peakcut
+boxref
 \begin_inset space ~
 \end_inset
 
-<cutoff> 
-\family default
-The minimum density required to consider a local maximum a 'density peak'
- in the outputted peak file (default 0.05).
+<reference> Set up the grid using the unit cell info in the specified reference.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created:
 \end_layout
 
 \begin_layout Description
+<setname> The 3D grid.
+\end_layout
 
-\family roman
-peakfile
-\begin_inset space ~
-\end_inset
-
-<xyzfile> 
-\family default
-A file in XYZ-format that contains a carbon atom centered at the grid point
- of every local density maximum.
- This file is necessary input to the spam action command.
+\begin_layout Description
+<setname>[peaks] The density peaks if 
+\series bold
+calcpeaks
+\series default
+ specified.
 \end_layout
 
 \end_deeper

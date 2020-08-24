@@ -31,7 +31,8 @@ Traj_PDBfile::Traj_PDBfile() :
   bfacbyres_(false),
   occbyres_(false),
   pdbTop_(0),
-  chainchar_(Residue::BlankChainID()),
+  chainchar_(' '),
+  keepAltLoc_(' '),
   bfacdata_(0),
   occdata_(0),
   adpdata_(0),
@@ -65,6 +66,19 @@ int Traj_PDBfile::openTrajin() {
   return file_.OpenFile();
 }
 
+// void Traj_PDBfile::ReadHelp()
+void Traj_PDBfile::ReadHelp() {
+  mprintf("\tkeepaltloc <char> : If specified, alternate location ID to keep.\n");
+}
+
+// Traj_PDBfile::processReadArgs()
+int Traj_PDBfile::processReadArgs(ArgList& argIn) {
+  std::string keepAltChar = argIn.GetStringKey("keepaltloc");
+  if (!keepAltChar.empty())
+    keepAltLoc_ = keepAltChar[0];
+  return 0;
+}
+
 // Traj_PDBfile::setupTrajin()
 /** Scan PDB file to determine number of frames (models). The first frame will 
   * also be checked to ensure that the atom names match those in the parm file
@@ -72,6 +86,8 @@ int Traj_PDBfile::openTrajin() {
   */
 int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
 {
+  if (keepAltLoc_ != ' ')
+    mprintf("\tWhen present, only reading alternate location ID %c\n", keepAltLoc_);
   int atom;
   pdbWriteMode_ = NONE;
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
@@ -80,6 +96,7 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
   // records can be read. Currently employing the latter.
   int Frames = 0;
   int numMismatch = 0;
+  int nAltLoc = 0;
   bool scanPDB = true;
   Box boxInfo;
   while (scanPDB) {
@@ -94,11 +111,20 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
       if (file_.RecType() ==  PDBfile::CRYST1) {
         // Read in box information
         double box_crd[6];
-        file_.pdb_Box( box_crd );
+        file_.pdb_Box_verbose( box_crd );
         boxInfo.SetBox( box_crd );
       } 
       // Skip non-ATOM records
       if (file_.RecType() != PDBfile::ATOM) continue;
+      // Record the alt loc. ID
+      char altLoc = file_.pdb_AltLoc();
+      // Check if we are filtering alt loc IDs
+      if (keepAltLoc_ != ' ') {
+        if (altLoc != ' ' && altLoc != keepAltLoc_) {
+          //nAltLocSkipped++;
+          continue;
+        }
+      }
       // If still on first frame, check pdb atom name against the name in the 
       // associated parm file.
       if (Frames==0) {
@@ -110,12 +136,16 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
                     *((*trajParm)[atom].Name()));
           ++numMismatch;
         }
+        if (altLoc != ' ') nAltLoc++;
       }
       ++atom;
     }
     if (Frames==0) {
       // First frame #atoms 
       pdbAtom_ = atom;
+      // Report alt. loc. IDs if not filtering.
+      if (keepAltLoc_ == ' ' && nAltLoc > 0)
+        mprintf("Warning: PDB has %i records wih alternate atom location IDs.\n", nAltLoc);
     } else {
       // Check that # atoms read in this frame match the first frame
       if (atom>0 && pdbAtom_!=atom) {
@@ -169,8 +199,16 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
     if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
     // Skip non-ATOM records
     if ( file_.RecType() == PDBfile::CRYST1 )
-      file_.pdb_Box( frameIn.bAddress() );
+      file_.pdb_Box_terse( frameIn.bAddress() );
     else if ( file_.RecType() == PDBfile::ATOM ) {
+      // Check if we are filtering alt loc IDs
+      if (keepAltLoc_ != ' ') {
+        char altLoc = file_.pdb_AltLoc();
+        if (altLoc != ' ' && altLoc != keepAltLoc_) {
+          //nAltLocSkipped++;
+          continue;
+        }
+      }
       // Read current PDB record XYZ into Frame
       file_.pdb_XYZ( Xptr );
       ++atom; 
@@ -199,7 +237,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tchainid <c>     : Write character 'c' in chain ID column.\n"
           "\tsg <group>      : Space group for CRYST1 record, only if box coordinates written.\n"
           "\tinclude_ep      : Include extra points.\n"
-          "\tconect          : Write CONECT records using bond information.\n"
+          "\tconect          : Write CONECT records using bond information (if 'pdbres', only for HETATM).\n"
+          "\tconectmode <m>  : Write CONECT records for <m>='all' (all bonds), 'het' (HETATM only), 'none' (no CONECT).\n"
           "\tkeepext         : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
           "\tusecol21        : Use column 21 for 4-letter residue names.\n"
           "\tbfacdefault <#> : Default value to use in B-factor column (default 0).\n"
@@ -253,6 +292,20 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     conectMode_ = HETATM_ONLY;
   else
     conectMode_ = NO_CONECT;
+  // Override conect mode
+  std::string conectmode = argIn.GetStringKey("conectmode");
+  if (!conectmode.empty()) {
+    if (conectmode == "all")
+      conectMode_ = ALL_BONDS;
+    else if (conectmode == "het")
+      conectMode_ = HETATM_ONLY;
+    else if (conectmode == "none")
+      conectMode_ = NO_CONECT;
+    else {
+      mprinterr("Error: Unrecognized keyword for 'conectmode': %s\n", conectmode.c_str());
+      return 1;
+    }
+  }
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
@@ -417,11 +470,11 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   else
     def_chainid = ' ';
    // If no chain ID specified, determine chain ID.
-  if (chainchar_ == Residue::BlankChainID()) {
+  if (chainchar_ == ' ') {
     chainID_.reserve( trajParm->Nres() );
     for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
       if (res->HasChainID())
-        chainID_.push_back( res->ChainID() );
+        chainID_.push_back( res->ChainId() );
       else
         chainID_.push_back( def_chainid);
   } else
@@ -434,7 +487,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   resIsHet_.reserve( trajParm->Nres() );
   ss_residues_.clear();
   ss_atoms_.clear();
-  if (pdbres_) {
+  if (pdbres_ || conectMode_ == HETATM_ONLY) {
     Iarray cys_idxs_; ///< Hold CYS residue indices
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
@@ -498,7 +551,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
           else if (rname[0] == 'C') rname=" DC ";
         }
       }
-      resNames_.push_back( rname );
+      if (pdbres_)
+        resNames_.push_back( rname );
+      else
+        resNames_.push_back( res->Name() );
       // Any non-standard residue should get HETATM
       if ( rname == "CYS " )
         // NOTE: Comparing to CYS works here since HETATM_ONLY is only active
@@ -585,11 +641,11 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     bool has_ter = false;
     Topology::res_iterator res = trajParm->ResStart();
     for (; res != trajParm->ResEnd(); ++res) {
-      if (res->ChainID() != ' ') has_chainID = true;
+      if (res->HasChainID()) has_chainID = true;
       if (res->IsTerminal()) has_ter = true;
       if (res->IsTerminal() || res+1 == trajParm->ResEnd())
         TER_idxs_.push_back( res->LastAtom() - 1 );
-      else if ((res+1)->ChainID() != res->ChainID())
+      else if ((res+1)->ChainId() != res->ChainId())
         TER_idxs_.push_back( res->LastAtom() - 1 );
     }
     if (has_chainID == false && has_ter == false) {
