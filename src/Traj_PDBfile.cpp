@@ -487,7 +487,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   resIsHet_.reserve( trajParm->Nres() );
   ss_residues_.clear();
   ss_atoms_.clear();
-  if (pdbres_) {
+  if (pdbres_ || conectMode_ == HETATM_ONLY) {
     Iarray cys_idxs_; ///< Hold CYS residue indices
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
@@ -551,7 +551,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
           else if (rname[0] == 'C') rname=" DC ";
         }
       }
-      resNames_.push_back( rname );
+      if (pdbres_)
+        resNames_.push_back( rname );
+      else
+        resNames_.push_back( res->Name() );
       // Any non-standard residue should get HETATM
       if ( rname == "CYS " )
         // NOTE: Comparing to CYS works here since HETATM_ONLY is only active
