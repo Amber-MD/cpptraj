@@ -286,12 +286,11 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
   include_ep_ = argIn.hasKey("include_ep");
-  if (argIn.hasKey("conect")) {
-    if (pdbres_)
-      conectMode_ = HETATM_ONLY;
-    else
-      conectMode_ = ALL_BONDS;
-  } else
+  if (argIn.hasKey("conect"))
+    conectMode_ = ALL_BONDS;
+  else if (pdbres_)
+    conectMode_ = HETATM_ONLY;
+  else
     conectMode_ = NO_CONECT;
   // Override conect mode
   std::string conectmode = argIn.GetStringKey("conectmode");
