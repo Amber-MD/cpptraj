@@ -15596,7 +15596,7 @@ Options for pdb format
 \end_layout
 
 \begin_layout LyX-Code
-  [include_ep] [conect] [keepext] [usecol21]
+  [include_ep] [conect] [conectmode <m>] [keepext] [usecol21]
 \end_layout
 
 \begin_layout LyX-Code
@@ -15696,6 +15696,15 @@ include_ep Include extra points.
 
 \begin_layout Description
 conect Write CONECT records for all bonds.
+\end_layout
+
+\begin_layout Description
+conectmode
+\begin_inset space ~
+\end_inset
+
+<m> Write CONECT records for <m>='all' (all bonds), 'het' (HETATM only),
+ 'none' (no CONECT).
 \end_layout
 
 \begin_layout Description
