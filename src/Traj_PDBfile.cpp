@@ -237,7 +237,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tchainid <c>     : Write character 'c' in chain ID column.\n"
           "\tsg <group>      : Space group for CRYST1 record, only if box coordinates written.\n"
           "\tinclude_ep      : Include extra points.\n"
-          "\tconect          : Write CONECT records using bond information.\n"
+          "\tconect          : Write CONECT records using bond information (if 'pdbres', only for HETATM).\n"
+          "\tconectmode <m>  : Write CONECT records for <m>='all' (all bonds), 'het' (HETATM only), 'none' (no CONECT).\n"
           "\tkeepext         : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
           "\tusecol21        : Use column 21 for 4-letter residue names.\n"
           "\tbfacdefault <#> : Default value to use in B-factor column (default 0).\n"
@@ -285,12 +286,27 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
   include_ep_ = argIn.hasKey("include_ep");
-  if (argIn.hasKey("conect"))
-    conectMode_ = ALL_BONDS;
-  else if (pdbres_)
-    conectMode_ = HETATM_ONLY;
-  else
+  if (argIn.hasKey("conect")) {
+    if (pdbres_)
+      conectMode_ = HETATM_ONLY;
+    else
+      conectMode_ = ALL_BONDS;
+  } else
     conectMode_ = NO_CONECT;
+  // Override conect mode
+  std::string conectmode = argIn.GetStringKey("conectmode");
+  if (!conectmode.empty()) {
+    if (conectmode == "all")
+      conectMode_ = ALL_BONDS;
+    else if (conectmode == "het")
+      conectMode_ = HETATM_ONLY;
+    else if (conectmode == "none")
+      conectMode_ = NO_CONECT;
+    else {
+      mprinterr("Error: Unrecognized keyword for 'conectmode': %s\n", conectmode.c_str());
+      return 1;
+    }
+  }
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
