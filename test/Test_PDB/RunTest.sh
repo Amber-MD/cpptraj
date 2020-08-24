@@ -4,7 +4,7 @@
 
 CleanFiles pdb.in test.pdb tz2.pqr.gb.pdb tz2.pqr.parse.pdb \
            tz2.pqr.vdw.pdb chainA.dat oresnum.dat tz2.plain.pdb \
-           2b5t.fromparm.pdb altloca.pdb
+           2b5t.fromparm.pdb altloca.pdb tz2.het.pdb
 
 INPUT="-i pdb.in"
 
@@ -40,12 +40,14 @@ trajout tz2.pqr.parse.pdb parse # PARSE radii
 trajout tz2.pqr.vdw.pdb dumpr*  # VDW radii
 # Test default chain ID write
 trajout tz2.plain.pdb pdbres
+trajout tz2.het.pdb conectmode het
 EOF
     RunCpptraj "$UNITNAME"
     DoTest tz2.pqr.gb.pdb.save tz2.pqr.gb.pdb
     DoTest tz2.pqr.parse.pdb.save tz2.pqr.parse.pdb
     DoTest tz2.pqr.vdw.pdb.save tz2.pqr.vdw.pdb
     DoTest tz2.plain.pdb.save tz2.plain.pdb
+    DoTest tz2.het.pdb.save tz2.het.pdb
   fi
 }
 
