@@ -282,9 +282,9 @@ void Topology::Summary() const {
   if (chamber_.HasChamber()) {
     mprintf("\t\tCHAMBER: %zu Urey-Bradley terms, %zu Impropers\n",
             chamber_.UB().size(), chamber_.Impropers().size());
-    if (chamber_.HasCmap())
+    if (HasCmap())
       mprintf("\t\t         %zu CMAP grids, %zu CMAP terms.\n", 
-              chamber_.CmapGrid().size(), chamber_.Cmap().size());
+              CmapGrid().size(), Cmap().size());
   }
   if (lesparm_.HasLES())
     mprintf("\t\tLES info: %i types, %i copies\n", lesparm_.Ntypes(), lesparm_.Ncopies());
@@ -515,6 +515,8 @@ void Topology::Resize(Pointers const& pIn) {
   dihedrals_.clear();
   dihedralsh_.clear();
   dihedralparm_.clear();
+  cmap_.clear();
+  cmapGrid_.clear();
   nonbond_.Clear();
   cap_.Clear();
   lesparm_.Clear();
@@ -1526,11 +1528,11 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
                             newParm->chamber_.SetImproperParm(), chamber_.ImproperParm() );
     // NOTE 1-4 LJ parameters handled above
     // CMAP terms
-    if (chamber_.HasCmap()) {
+    if (HasCmap()) {
       // NOTE that atom indexing is updated but cmap indexing is not. So if
       // any CMAP terms remain all CMAP entries remain.
-      for (CmapArray::const_iterator cmap = chamber_.Cmap().begin();
-                                     cmap != chamber_.Cmap().end(); ++cmap)
+      for (CmapArray::const_iterator cmap = Cmap().begin();
+                                     cmap != Cmap().end(); ++cmap)
       {
         int newA1 = atomMap[ cmap->A1() ];
         if (newA1 != -1) {
@@ -1542,7 +1544,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
               if (newA4 != -1) {
                 int newA5 = atomMap[ cmap->A5() ];
                 if (newA5 != -1)
-                  newParm->chamber_.AddCmapTerm( CmapType(newA1,newA2,newA3,
+                  newParm->AddCmapTerm( CmapType(newA1,newA2,newA3,
                                                           newA4,newA5,cmap->Idx()) );
               }
             }
@@ -1550,10 +1552,10 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
         }
       }
       // Only add CMAP grids if there are CMAP terms left.
-      if (!newParm->chamber_.Cmap().empty()) {
-        for (CmapGridArray::const_iterator g = chamber_.CmapGrid().begin();
-                                           g != chamber_.CmapGrid().end(); ++g)
-          newParm->chamber_.AddCmapGrid( *g );
+      if (!newParm->Cmap().empty()) {
+        for (CmapGridArray::const_iterator g = CmapGrid().begin();
+                                           g != CmapGrid().end(); ++g)
+          newParm->AddCmapGrid( *g );
       }
     }
   }
