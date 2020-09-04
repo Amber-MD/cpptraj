@@ -6,6 +6,8 @@ class Segment {
   public:
     /// CONSTRUCTOR
     Segment() : begin_(-1), end_(-1) {}
+    /// CONSTRUCTOR - Segment size of 1
+    Segment(int idx) : begin_(idx), end_(idx+1) {}
 
     int Begin() const { return begin_; }
     int End()   const { return end_; }
@@ -19,6 +21,9 @@ class Segment {
         return (begin_ < rhs.begin_);
       }
     }
+
+    /// Update the end of the segment
+    void UpdateEnd(int idx) { end_ = idx + 1; }
   private:
     int begin_;
     int end_;
