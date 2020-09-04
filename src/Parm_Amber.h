@@ -36,7 +36,8 @@ class Parm_Amber : public ParmIO {
       F_CHM_UBFC,     F_CHM_UBEQ,  F_CHM_NIMP,  F_CHM_IMP,  F_CHM_NIMPT,
       F_CHM_IMPFC,    F_CHM_IMPP,  F_LJ14A,     F_LJ14B,    F_CHM_CMAPC,
       F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,  F_PDB_RES,
-      F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT
+      F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT,   F_CMAPC,    F_CMAPR,
+      F_CMAPP,        F_CMAPI
     };
     /// Used to hold %FLAG/FORMAT string pairs. Corresponds to FlagType.
     struct ParmFlag {
@@ -124,10 +125,10 @@ class Parm_Amber : public ParmIO {
     int ReadChamberImpPHASE(Topology&, FortranData const&);
     int ReadChamberLJ14A(Topology&, FortranData const&);
     int ReadChamberLJ14B(Topology&, FortranData const&);
-    int ReadChamberCmapCounts(FortranData const&);
-    int ReadChamberCmapRes(Topology&, FortranData const&);
-    int ReadChamberCmapGrid(const char*, Topology&, FortranData const&);
-    int ReadChamberCmapTerms(Topology&, FortranData const&);
+    int ReadCmapCounts(FortranData const&);
+    int ReadCmapRes(Topology&, FortranData const&);
+    int ReadCmapGrid(const char*, Topology&, FortranData const&);
+    int ReadCmapTerms(Topology&, FortranData const&);
     // LES
     int ReadLESntyp(Topology&, FortranData const&);
     int ReadLESfac(Topology&, FortranData const&);
