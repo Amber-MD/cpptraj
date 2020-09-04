@@ -103,6 +103,13 @@ class Topology {
     void AddDihedral(DihedralType const&, DihedralParmType const&);
     void AssignImproperParams(ParmHolder<DihedralParmType> const&);
     void AssignDihedralParams(DihedralParmHolder const&);
+    // ----- CMAP-specific routines --------------
+    bool                     HasCmap()      const { return !cmapGrid_.empty(); }
+    CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
+    CmapArray         const& Cmap()         const { return cmap_;         }
+    CmapGridType& SetCmapGrid(int idx)            { return cmapGrid_[idx];}
+    void AddCmapGrid(CmapGridType const& g) { cmapGrid_.push_back(g); }
+    void AddCmapTerm(CmapType const& c)     { cmap_.push_back(c);     }
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
     NonbondParmType&        SetNonbond()           { return nonbond_;      }
@@ -256,6 +263,8 @@ class Topology {
     DihedralArray dihedrals_;
     DihedralArray dihedralsh_;
     DihedralParmArray dihedralparm_;
+    CmapArray cmap_;                 ///< Hold atom indices and CMAP grid index
+    CmapGridArray cmapGrid_;         ///< Hold CMAP grids
     NonbondParmType nonbond_;        ///< Non-bonded parameters
     // Amber-only parameters
     CapParmType cap_;                ///< Water cap information

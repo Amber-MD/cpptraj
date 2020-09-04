@@ -329,6 +329,8 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
   if (topIn.Chamber().HasChamber()) {
     isActive_[ANGLE_UB] = true;
     isActive_[IMP] = true;
+  }
+  if (topIn.HasCmap()) {
     isActive_[CMAP] = true;
   }
   if (debug_ > 0) {
