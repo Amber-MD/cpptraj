@@ -1,6 +1,6 @@
 #ifndef INC_SEGMENT_H
 #define INC_SEGMENT_H
-namespace Cpptraj {
+//namespace Cpptraj {
 /// Define a contiguous segment of atoms
 class Segment {
   public:
@@ -28,5 +28,5 @@ class Segment {
     int begin_;
     int end_;
 };
-}
+//}
 #endif

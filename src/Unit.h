@@ -2,7 +2,7 @@
 #define INC_UNIT_H
 #include "Segment.h"
 #include <vector>
-namespace Cpptraj {
+//namespace Cpptraj {
 /// Hold 1 or more contiguous segments of atoms
 class Unit {
   public:
@@ -31,5 +31,5 @@ class Unit {
     SegArrayType segArray_; ///< Array of segments that make up the Unit
     int lastIdx_;           ///< The last index added to the Unit
 };
-}
+//}
 #endif

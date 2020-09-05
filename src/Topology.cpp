@@ -1021,6 +1021,21 @@ int Topology::DetermineMolecules() {
 
   // Update molecule information
   molecules_.resize( numberOfMolecules );
+  for (int atomIdx = 0; atomIdx < (int)atoms_.size(); atomIdx++)
+  {
+    Atom const& atom = atoms_[atomIdx];
+    molecules_[atom.MolNum()].ModifyUnit().AddIndex( atomIdx );
+  }
+  mprintf("Molecule information:\n");
+  for (std::vector<Molecule>::const_iterator mol = molecules_.begin(); mol != molecules_.end(); ++mol)
+  {
+    mprintf("\t%8li %8u segments:", mol - molecules_.begin(), mol->MolUnit().nSegments());
+    for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                       seg != mol->MolUnit().segEnd(); ++seg)
+      mprintf(" %i-%i (%i) ", seg->Begin(), seg->End(), seg->Size());
+    mprintf("\n");
+  }
+
   if (numberOfMolecules == 0) return 0;
   std::vector<Molecule>::iterator molecule = molecules_.begin();
   molecule->SetFirst(0);
