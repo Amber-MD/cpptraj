@@ -997,6 +997,10 @@ int Topology::DetermineMolecules() {
     numberOfMolecules = NonrecursiveMolSearch();
   else
     numberOfMolecules = RecursiveMolSearch();
+  if (numberOfMolecules < 1) {
+    mprinterr("Internal Error: Could not determine molecules.\n");
+    return 1;
+  }
 /*// DEBUG Compare both methods
   int test_nmol = NonrecursiveMolSearch();
   std::vector<int> molNums( atoms_.size() );
@@ -1027,16 +1031,32 @@ int Topology::DetermineMolecules() {
     molecules_[atom.MolNum()].ModifyUnit().AddIndex( atomIdx );
   }
   mprintf("Molecule information:\n");
+  std::vector< std::vector<Molecule>::const_iterator > nonContiguousMols;
   for (std::vector<Molecule>::const_iterator mol = molecules_.begin(); mol != molecules_.end(); ++mol)
   {
+    if (mol->MolUnit().nSegments() > 1)
+      nonContiguousMols.push_back( mol );
     mprintf("\t%8li %8u segments:", mol - molecules_.begin(), mol->MolUnit().nSegments());
     for (Unit::const_iterator seg = mol->MolUnit().segBegin();
                                        seg != mol->MolUnit().segEnd(); ++seg)
       mprintf(" %i-%i (%i) ", seg->Begin(), seg->End(), seg->Size());
     mprintf("\n");
   }
+  if (!nonContiguousMols.empty()) {
+    mprintf("Warning: %zu molecules have non-contiguous segments of atoms.\n", nonContiguousMols.size());
+    for (std::vector< std::vector<Molecule>::const_iterator >::const_iterator it = nonContiguousMols.begin();
+                                                                              it != nonContiguousMols.end(); ++it)
+    {
+      mprintf("\t%8li %8u segments:", *it - molecules_.begin() + 1, (*it)->MolUnit().nSegments());
+      for (Unit::const_iterator seg = (*it)->MolUnit().segBegin();
+                                seg != (*it)->MolUnit().segEnd(); ++seg)
+        mprintf(" %i-%i (%i) ", seg->Begin()+1, seg->End(), seg->Size());
+      mprintf("\n");
+    }
+    mprintf("Warning: The 'fixatomorder' command can be used to reorder the topology and any\n"
+            "Warning:  associated coordinates.\n");
+  } 
 
-  if (numberOfMolecules == 0) return 0;
   std::vector<Molecule>::iterator molecule = molecules_.begin();
   molecule->SetFirst(0);
   std::vector<Atom>::const_iterator atom = atoms_.begin(); 
