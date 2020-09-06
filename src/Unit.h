@@ -23,6 +23,9 @@ class Unit {
       return total;
     }
 
+    /// \return First index in the unit
+    int Front() const { return segArray_.front().Begin(); }
+
     /// Add index to the unit
     int AddIndex(int idx) {
       int delta = idx - lastIdx_;

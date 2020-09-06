@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_AUTOIMAGE_H
 #define INC_ACTION_AUTOIMAGE_H
 #include "Action.h"
+class Unit;
 class Action_AutoImage : public Action {
   public:
     Action_AutoImage();
@@ -12,9 +13,9 @@ class Action_AutoImage : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    typedef std::vector<int> pairList;
+    typedef std::vector<Unit> Uarray;
 
-    static pairList SetupAtomRanges(Topology const&, std::string const&);
+    static Uarray SetupAtomRanges(Topology const&, std::string const&);
 
     AtomMask anchorMask_; ///< Used to center anchor region.
     std::string anchor_;  ///< Mask expression for anchor region.
@@ -30,7 +31,7 @@ class Action_AutoImage : public Action {
     enum TriclinicArg {OFF, FORCE, FAMILIAR};
     TriclinicArg triclinic_; ///< Determine whether triclinic code should be used.
 
-    pairList fixedList_;  ///< Contain first and last atom indices for fixed elements
-    pairList mobileList_; ///< Contain first and last atom indices for mobile elements.
+    Uarray fixedList_;  ///< Contain atom indices for fixed elements
+    Uarray mobileList_; ///< Contain atom indices for mobile elements.
 };
 #endif

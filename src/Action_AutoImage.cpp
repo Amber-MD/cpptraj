@@ -4,6 +4,7 @@
 #include "DistRoutines.h"
 #include "ImageRoutines.h"
 #include "CharMask.h"
+#include "Unit.h"
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
@@ -78,35 +79,23 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
 /** Based on the given atom mask expression determine what molecules are
   * selected by the mask. If a mask selects any part of a molecule the
   * entire molecule will be selected.
-  * \return A list of atom pairs that mark the beginning and end of each
-  *         selected molecule.
+  * \return A list of Units for each selected molecule.
   */
-Action_AutoImage::pairList
+Action_AutoImage::Uarray
   Action_AutoImage::SetupAtomRanges(Topology const& currentParm, std::string const& maskexpr)
 {
-  pairList imageList;
+  Uarray imageList;
   CharMask Mask1( maskexpr.c_str() );
 
   if (currentParm.SetupCharMask( Mask1 )) return imageList;
   if (Mask1.None()) return imageList;
   for (Topology::mol_iterator mol = currentParm.MolStart(); mol != currentParm.MolEnd(); mol++)
   {
-    int firstAtom = mol->BeginAtom();
-    int lastAtom = mol->EndAtom();
-    bool rangeIsValid = false;
     // Check that any atom in the range is in Mask1
-    for (int atom = firstAtom; atom < lastAtom; ++atom) {
-      if (Mask1.AtomInCharMask(atom)) {
-        rangeIsValid = true;
-        break;
-      }
-    }
-    if (rangeIsValid) {
-      imageList.push_back( firstAtom );
-      imageList.push_back( lastAtom );
-    }
+    if (Mask1.AtomsInCharMask(mol->MolUnit()))
+      imageList.push_back( mol->MolUnit() );
   }
-  mprintf("\tMask [%s] corresponds to %zu molecules\n", Mask1.MaskString(), imageList.size()/2);
+  mprintf("\tMask [%s] corresponds to %zu molecules\n", Mask1.MaskString(), imageList.size());
   return imageList;
 }
 
@@ -159,8 +148,7 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
     // No anchor specified. Use first molecule as anchor.
     anchormolnum = 0;
     mprintf("\tUsing first molecule as anchor.\n");
-    anchorMask_.AddAtomRange( setup.Top().Mol(0).BeginAtom(),
-                              setup.Top().Mol(0).EndAtom()    );
+    anchorMask_.AddUnit( setup.Top().Mol(0).MolUnit() );
   }
 
   // Set up fixed region
@@ -189,13 +177,11 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
         // everything else into fixed list.
         if ( mol->IsSolvent() || mol->NumAtoms() == 1 ) {
           if (mobileauto) {
-            mobileList_.push_back( mol->BeginAtom() );
-            mobileList_.push_back( mol->EndAtom()   );
+            mobileList_.push_back( mol->MolUnit() );
           }
         } else {
           if (fixedauto) {
-            fixedList_.push_back( mol->BeginAtom() );
-            fixedList_.push_back( mol->EndAtom()   );
+            fixedList_.push_back( mol->MolUnit() );
           }
         }
       }
@@ -204,18 +190,18 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
   }
   // Print fixed and mobile lists
   if (!fixedList_.empty()) {
-    mprintf("\t%zu molecules are fixed to anchor:", fixedList_.size() / 2);
-    for (pairList::const_iterator atom = fixedList_.begin();
-                                  atom != fixedList_.end(); atom += 2)
-      mprintf(" %i", setup.Top()[ *atom ].MolNum()+1 );
+    mprintf("\t%zu molecules are fixed to anchor:", fixedList_.size());
+    for (Uarray::const_iterator it = fixedList_.begin();
+                                it != fixedList_.end(); ++it)
+      mprintf(" %i", setup.Top()[ it->Front() ].MolNum()+1 );
     mprintf("\n");
   }
-  mprintf("\t%zu molecules are mobile.\n", mobileList_.size() / 2 );
+  mprintf("\t%zu molecules are mobile.\n", mobileList_.size() );
   if (debug_ > 1) {
     mprintf("\tThe following molecules are mobile:\n");
-    for (pairList::const_iterator atom = mobileList_.begin();
-                                  atom != mobileList_.end(); atom += 2)
-      mprintf(" %i\n", setup.Top()[ *atom ].MolNum()+1 );
+    for (Uarray::const_iterator it = mobileList_.begin();
+                                it != mobileList_.end(); ++it)
+      mprintf(" %i\n", setup.Top()[ it->Front() ].MolNum()+1 );
     mprintf("\n");
   }
 

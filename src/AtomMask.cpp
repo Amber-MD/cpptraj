@@ -1,6 +1,7 @@
 #include <algorithm> // sort, unique
 #include "AtomMask.h"
 #include "CpptrajStdio.h"
+#include "Unit.h"
 
 // CONSTRUCTOR
 AtomMask::AtomMask(int beginAtom, int endAtom) : Natom_(0), maskChar_(SelectedChar_)
@@ -156,6 +157,12 @@ void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
   //for (std::vector<int>::iterator da = Selected_.begin(); da != Selected_.end(); da++)
   //  mprintf(" %i",*da);
   //mprintf("]\n");
+}
+
+/** Add atoms in given unit to mask. */
+void AtomMask::AddUnit(Unit const& unitIn) {
+  for (Unit::const_iterator it = unitIn.segBegin(); it != unitIn.segEnd(); ++it)
+    AddAtomRange( it->Begin(), it->End() );
 }
 
 // AtomMask::AddMaskAtPosition()
