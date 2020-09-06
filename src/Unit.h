@@ -5,6 +5,7 @@
 //namespace Cpptraj {
 /// Hold 1 or more contiguous segments of atoms
 class Unit {
+    typedef std::vector<Segment> SegArrayType;
   public:
     /// CONSTRUCTOR - Set last index to large negative so first AddIndex() call creates a Segment
     Unit() : lastIdx_(-9999) {}
@@ -13,6 +14,14 @@ class Unit {
     const_iterator segBegin() const { return segArray_.begin(); }
     const_iterator segEnd()   const { return segArray_.end(); }
     unsigned int nSegments()  const { return segArray_.size(); }
+
+    /// \return Total unit size
+    unsigned int Size() const {
+      unsigned int total = 0;
+      for (SegArrayType::const_iterator it = segArray_.begin(); it != segArray_.end(); ++it)
+        total += it->Size();
+      return total;
+    }
 
     /// Add index to the unit
     int AddIndex(int idx) {
@@ -27,7 +36,6 @@ class Unit {
       return 0;
     }
   private:
-    typedef std::vector<Segment> SegArrayType;
     SegArrayType segArray_; ///< Array of segments that make up the Unit
     int lastIdx_;           ///< The last index added to the Unit
 };
