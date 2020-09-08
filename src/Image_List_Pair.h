@@ -9,11 +9,13 @@ namespace Image {
 class List_Pair : public List {
   public:
     List_Pair() {}
+    virtual ~List_Pair() {}
+    unsigned int nEntities() const { return begin_.size(); }
     int SetupList(Topology const&, std::string const&);
     void DoTranslation(Frame& frm, unsigned int idx, Vec3 const& boxTrans) const {
       frm.Translate(boxTrans, begin_[idx], end_[idx]);
     }
-  private:
+  protected:
     typedef std::vector<int> Iarray;
     Iarray begin_;
     Iarray end_;
