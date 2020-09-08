@@ -1268,18 +1268,22 @@ std::vector<int> Topology::ResnumsSelectedBy(AtomMask const& mask) const {
 
 // Topology::MolnumsSelectedBy()
 std::vector<int> Topology::MolnumsSelectedBy(AtomMask const& mask) const {
-  std::vector<int> molnums;
+  std::set<int> molnums;
   if (molecules_.empty()) {
     mprintf("Warning: Topology has no molecule information.\n");
   } else {
     int mol = -1;
     for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
-      if (atoms_[*at].MolNum() > mol) {
+      if (atoms_[*at].MolNum() != mol) {
         mol = atoms_[*at].MolNum();
         molnums.push_back( mol );
       }
   }
-  return molnums;
+  std::vector<int> tmp;
+  tmp.reserve( molnums.size() );
+  for (std::set<int>::const_iterator it = molnums.begin(); it != molnums.end(); ++it)
+    tmp.push_back( *it );
+  return tmp;
 }
 
 // -----------------------------------------------------------------------------
