@@ -151,7 +151,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
                 infile.RecType() == PDBfile::END )
     {
       // Indicate end of molecule for TER/END. Finish if END.
-      TopIn.StartNewMol();
+      //TopIn.StartNewMol();
+      TopIn.SetRes( TopIn.Nres()-1 ).SetTerminal( true );
       if (infile.RecType() == PDBfile::END) break;
     } else if ( !missingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
       missingResidues = true;
