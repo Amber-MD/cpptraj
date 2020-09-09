@@ -8,6 +8,8 @@ class Segment {
     Segment() : begin_(-1), end_(-1) {}
     /// CONSTRUCTOR - Segment size of 1
     Segment(int idx) : begin_(idx), end_(idx+1) {}
+    /// CONSTRUCTOR - Beginning and end
+    Segment(int beg, int end) : begin_(beg), end_(end) {}
 
     int Begin() const { return begin_; }
     int End()   const { return end_; }

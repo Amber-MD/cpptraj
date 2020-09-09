@@ -9,6 +9,8 @@ class Unit {
   public:
     /// CONSTRUCTOR - Set last index to large negative so first AddIndex() call creates a Segment
     Unit() : lastIdx_(-9999) {}
+    /// CONSTRUCTOR - Single segment
+    Unit(int beg, int end) : segArray_(SegArrayType(1, Segment(beg, end))), lastIdx_(end-1) {}
 
     typedef std::vector<Segment>::const_iterator const_iterator;
     const_iterator segBegin() const { return segArray_.begin(); }
@@ -25,6 +27,7 @@ class Unit {
 
     /// \return First index in the unit
     int Front() const { return segArray_.front().Begin(); }
+    int Back()  const { return segArray_.back().End(); }
 
     /// Add index to the unit
     int AddIndex(int idx) {
