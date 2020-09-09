@@ -165,7 +165,7 @@ class Topology {
     // ----- Setup routines ----------------------
     int AddTopAtom(Atom const&, Residue const&);
     void AddExtraAtomInfo(AtomExtra const& ex) { extra_.push_back(ex); } // FIXME bounds check
-    void StartNewMol();
+    //void StartNewMol();
     /// Perform common final setup: optional molecule determination, excluded distance
     int CommonSetup(bool, int);
     /// Perform common final setup: optional molecule determination

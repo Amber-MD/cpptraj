@@ -327,7 +327,7 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
   residues_.back().SetLastAtom( atoms_.size() );
   return 0;
 }
-
+/*
 // Topology::StartNewMol()
 void Topology::StartNewMol() {
   // No atoms, so no need to do anything.
@@ -354,7 +354,7 @@ void Topology::StartNewMol() {
     residues_.push_back( Residue("MOL",0,atoms_.size(),1,' ',' ') );
   } 
   residues_.back().SetTerminal( true );
-}
+}*/
 
 /** Common setup with common excluded distance. */
 int Topology::CommonSetup(bool molsearch) {
@@ -381,8 +381,8 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
       for (std::vector<Molecule>::const_iterator mol = molecules_.begin() + 1;
                                                  mol != molecules_.end(); ++mol)
       {
-        int m0_resnum = atoms_[(mol-1)->BeginAtom()].ResNum();
-        int m1_resnum = atoms_[    mol->BeginAtom()].ResNum();
+        int m0_resnum = atoms_[(mol-1)->MolUnit().Front()].ResNum();
+        int m1_resnum = atoms_[    mol->MolUnit().Front()].ResNum();
         if (m0_resnum == m1_resnum) {
           mols_share_residues = true;
           unsigned int molnum = mol - molecules_.begin();
@@ -478,20 +478,24 @@ int Topology::Setup_NoResInfo() {
   {
     // Try to detect at least water as solvent. Assume CommonSetup will be
     // run after this to set up molecule solvent info.
-    if (mol->NumAtoms() == 3) {
+    if (mol->MolUnit().nSegments() == 1 && mol->NumAtoms() == 3) {
       int nH = 0;
       int nO = 0;
-      for (int atnum = mol->BeginAtom(); atnum != mol->EndAtom(); atnum++)
+      for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                seg != mol->MolUnit().segEnd(); ++seg)
       {
-        if (atoms_[atnum].Element() == Atom::HYDROGEN) nH++;
-        if (atoms_[atnum].Element() == Atom::OXYGEN)   nO++;
+        for (int atnum = seg->Begin(); atnum != seg->End(); atnum++)
+        {
+          if (atoms_[atnum].Element() == Atom::HYDROGEN) nH++;
+          if (atoms_[atnum].Element() == Atom::OXYGEN)   nO++;
+        }
       }
       if (nO == 1 && nH == 2) res_name = "HOH";
     } else
       res_name = default_res_name;
     residues_.push_back( Residue(res_name, resnum+1, ' ', ' ') );
-    residues_.back().SetFirstAtom( mol->BeginAtom() );
-    residues_.back().SetLastAtom( mol->EndAtom() );
+    residues_.back().SetFirstAtom( mol->MolUnit().Front() );
+    residues_.back().SetLastAtom( mol->MolUnit().Back() );
     // Update atom residue numbers
     for (int atnum = residues_.back().FirstAtom(); 
              atnum != residues_.back().LastAtom(); ++atnum)
@@ -1056,7 +1060,7 @@ int Topology::DetermineMolecules() {
     mprintf("Warning: The 'fixatomorder' command can be used to reorder the topology and any\n"
             "Warning:  associated coordinates.\n");
   } 
-
+/*
   std::vector<Molecule>::iterator molecule = molecules_.begin();
   molecule->SetFirst(0);
   std::vector<Atom>::const_iterator atom = atoms_.begin(); 
@@ -1090,6 +1094,7 @@ int Topology::DetermineMolecules() {
     ++atomNum;
   }
   molecule->SetLast( atoms_.size() );
+*/
   return 0;
 }
 
@@ -1184,13 +1189,11 @@ int Topology::SetSolvent(std::string const& maskexpr) {
     mol->SetNoSolvent();
     // If any atoms in this molecule are selected by mask, make entire
     // molecule solvent.
-    for (int atom = mol->BeginAtom(); atom < mol->EndAtom(); ++atom) {
-      if ( mask.AtomInCharMask( atom ) ) {
-        mol->SetSolvent();
-        ++NsolventMolecules_;
-        numSolvAtoms += mol->NumAtoms();
-        break;
-      }
+    if ( mask.AtomsInCharMask( mol->MolUnit() ) ) {
+      mol->SetSolvent();
+      ++NsolventMolecules_;
+      numSolvAtoms += mol->NumAtoms();
+      break;
     }
   }
 
@@ -1213,7 +1216,7 @@ int Topology::SetSolventInfo() {
   for (std::vector<Molecule>::iterator mol = molecules_.begin();
                                        mol != molecules_.end(); mol++)
   {
-    int firstRes = atoms_[ mol->BeginAtom() ].ResNum();
+    int firstRes = atoms_[ mol->MolUnit().Front() ].ResNum();
     if ( residues_[firstRes].NameIsSolvent() ) {
       mol->SetSolvent();
       ++NsolventMolecules_;
@@ -1276,7 +1279,7 @@ std::vector<int> Topology::MolnumsSelectedBy(AtomMask const& mask) const {
     for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
       if (atoms_[*at].MolNum() != mol) {
         mol = atoms_[*at].MolNum();
-        molnums.push_back( mol );
+        molnums.insert( mol );
       }
   }
   std::vector<int> tmp;
@@ -1449,7 +1452,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     for (std::vector<Molecule>::iterator mol = newParm->molecules_.begin();
                                          mol != newParm->molecules_.end(); ++mol)
     {
-      if ( isSolvent[ mol->BeginAtom() ] ) {
+      if ( isSolvent[ mol->MolUnit().Front() ] ) {
         mol->SetSolvent();
         newParm->NsolventMolecules_++;
       } else
