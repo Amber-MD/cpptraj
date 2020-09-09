@@ -2,7 +2,6 @@
 #define INC_IMAGE_LIST_PAIR_H
 #include "Image_List.h"
 #include "Frame.h"
-#include "Vec3.h"
 #include <vector>
 namespace Image {
 /// List with entities defined by a single range
