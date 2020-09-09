@@ -6,6 +6,8 @@
 class Molecule {
   public:
     Molecule() : isSolvent_(false) {}
+    /// CONSTRUCTOR - Single segment from beg to end
+    Molecule(int beg, int end) : isSolvent_(false), unit_(Unit(beg, end)) {}
 
     void SetSolvent()   { isSolvent_ = true;  }
     void SetNoSolvent() { isSolvent_ = false; }
