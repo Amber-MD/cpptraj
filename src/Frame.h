@@ -211,6 +211,8 @@ class Frame {
     inline void Translate(Vec3 const&, AtomMask const&);
     /// Translate atoms in range by Vec
     inline void Translate(Vec3 const&, int, int);
+    /// Translate atoms in Unit by Vec
+    inline void Translate(Vec3 const&, Unit const&);
     /// Translate atom by Vec
     inline void Translate(Vec3 const&, int);
     /// Translate all atoms by Vec
@@ -388,6 +390,11 @@ void Frame::Translate(Vec3 const& Vec, int firstAtom, int lastAtom) {
     X_[i+1] += Vec[1];
     X_[i+2] += Vec[2];
   }
+}
+
+void Frame::Translate(Vec3 const& Vec, Unit const& unit) {
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+    Translate(Vec, seg->Begin(), seg->End());
 }
 
 void Frame::Translate(Vec3 const& Vec, int atom) {
