@@ -207,6 +207,10 @@ class Frame {
     inline Vec3 VCenterOfMass(int, int) const;
     /// \return Geometric center of atoms in range.
     inline Vec3 VGeometricCenter(int, int) const;
+    /// \return Center of mass of atoms in Unit
+    inline Vec3 VCenterOfMass(Unit const&) const;
+    /// \return Geometric center of atoms in Unit
+    inline Vec3 VGeometricCenter(Unit const&) const;
     /// Translate atoms in mask by Vec
     inline void Translate(Vec3 const&, AtomMask const&);
     /// Translate atoms in range by Vec
@@ -356,6 +360,13 @@ Vec3 Frame::VCenterOfMass(int startAtom, int stopAtom) const {
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
+Vec3 Frame::VCenterOfMass(Unit const& unit) const {
+  Vec3 out(0.0);
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+    out += VCenterOfMass(seg->Begin(), seg->End());
+  return out;
+}
+
 Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   double Coord0 = 0.0;
   double Coord1 = 0.0;
@@ -370,6 +381,13 @@ Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   double sumMass = (double)(stopAtom - startAtom);
   if (sumMass == 0) return Vec3(0,0,0);
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
+}
+
+Vec3 Frame::VGeometricCenter(Unit const& unit) const {
+  Vec3 out(0.0);
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+    out += VGeometricCenter(seg->Begin(), seg->End());
+  return out;
 }
 
 void Frame::Translate(Vec3 const& Vec, AtomMask const& maskIn) {
