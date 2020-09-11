@@ -1,68 +1,60 @@
 #include <cmath> // floor
 #include "ImageRoutines.h"
 #include "DistRoutines.h"
-#include "Topology.h"
-#include "CharMask.h"
+#include "CpptrajStdio.h"
+#include "Image_List.h"
+#include "Image_List_Pair_CoM.h"
+#include "Image_List_Pair_Geom.h"
+#include "Image_List_Pair_First.h"
+#include "Image_List_Unit_CoM.h"
+#include "Image_List_Unit_Geom.h"
+#include "Image_List_Unit_First.h"
+#include "Image_List_Mask.h"
 
-/** Check that at least 1 atom in the range is in Mask1 */
-static inline void CheckRange(Image::PairType& atomPairs, CharMask const& MaskIn, 
-                              int firstAtom, int lastAtom)
-{
-  bool rangeIsValid = false;
-  for (int atom = firstAtom; atom < lastAtom; ++atom) {
-    if (MaskIn.AtomInCharMask(atom)) {
-      rangeIsValid = true;
-      break;
-    }
-  }
-  if (rangeIsValid) {
-    atomPairs.push_back( firstAtom );
-    atomPairs.push_back( lastAtom );
-  }
-}
-
-// Image::CreateAtomPairList() 
-/** An atom pair list consists of 2 values for each entry, a beginning
-  * index and ending index. For molecules and residues this is the first
-  * and just beyond the last atom; for atoms it is just the atom itself
-  * twice.
+// Image::CreateImageList() 
+/** \return list of entities to be imaged based on given mode.
   */
-Image::PairType Image::CreateAtomPairList(Topology const& Parm, Mode modeIn,
-                                       std::string const& maskExpression)
+Image::List* Image::CreateImageList(Topology const& Parm, Mode modeIn,
+                                    std::string const& maskExpression,
+                                    bool useMass, bool center)
 {
-  PairType atomPairs;
-  // Set up mask based on desired imaging mode.
-  if ( modeIn == BYMOL || modeIn == BYRES ) {
-    CharMask cmask( maskExpression );
-    if ( Parm.SetupCharMask( cmask ) ) return atomPairs;
-    cmask.MaskInfo();
-    if (cmask.None()) return atomPairs;
-    // Set up atom range for each entity to be imaged.
-    if (modeIn == BYMOL) {
-      atomPairs.reserve( Parm.Nmol()*2 );
-      for (Topology::mol_iterator mol = Parm.MolStart();
-                                  mol != Parm.MolEnd(); ++mol)
-        CheckRange( atomPairs, cmask, mol->BeginAtom(), mol->EndAtom());
-    } else { // BYRES
-      atomPairs.reserve( Parm.Nres()*2 );
-      for (Topology::res_iterator residue = Parm.ResStart();
-                                  residue != Parm.ResEnd(); ++residue)
-        CheckRange( atomPairs, cmask, residue->FirstAtom(), residue->LastAtom() );
-    }
-  } else { // BYATOM
-    AtomMask imask( maskExpression );
-    if ( Parm.SetupIntegerMask( imask ) ) return atomPairs;
-    imask.MaskInfo();
-    if (imask.None()) return atomPairs;
-    atomPairs.reserve( Parm.Natom()*2 );
-    for (AtomMask::const_iterator atom = imask.begin(); atom != imask.end(); ++atom) {
-      atomPairs.push_back(  *atom    );
-      atomPairs.push_back( (*atom)+1 );
-    }
+  Image::List* listOut = 0;
+  switch (modeIn) {
+    case BYMOL :
+      if (center) {
+        if (useMass)
+          listOut = new Image::List_Unit_CoM();
+        else
+          listOut = new Image::List_Unit_Geom();
+      } else
+        listOut = new Image::List_Unit_First();
+      break;
+    case BYRES :
+      if (center) {
+        if (useMass)
+          listOut = new Image::List_Pair_CoM();
+        else
+          listOut = new Image::List_Pair_Geom();
+      } else
+        listOut = new Image::List_Pair_First();
+      break;
+    case BYATOM :
+      listOut = new Image::List_Mask();
+      break;
   }
-//  mprintf("\tNumber of %ss to be imaged is %zu based on mask '%s'\n",
-//           ModeString[modeIn], atomPairs.size()/2, maskIn.MaskString());
-  return atomPairs;
+  if (listOut != 0) {
+    if (listOut->SetupList(Parm, maskExpression)) {
+      mprinterr("Error: Could not set up image list for '%s'\n", maskExpression.c_str());
+      delete listOut;
+      return 0;
+    }
+  } else {
+    mprinterr("Internal Error: Could not allocate image list for '%s'\n", maskExpression.c_str());
+    return 0;
+  }
+  mprintf("DEBUG: Image list for '%s' over %u %ss.\n",
+          maskExpression.c_str(), listOut->nEntities(), ModeString(modeIn));
+  return listOut;
 }
 
 // -----------------------------------------------------------------------------

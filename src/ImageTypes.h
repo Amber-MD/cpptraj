@@ -5,7 +5,6 @@
  */
 #include <vector>
 namespace Image {
-  typedef std::vector<int> PairType;
   enum Mode { BYMOL = 0, BYRES, BYATOM };
   inline const char* ModeString(Mode m) {
     if      (m == BYMOL) return "molecule";
