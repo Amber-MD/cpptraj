@@ -238,32 +238,16 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 
 // -----------------------------------------------------------------------------
 // Image::UnwrapNonortho()
-void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, PairType const& AtomPairs,
-                            Matrix_3x3 const& ucell, Matrix_3x3 const& recip, 
-                            bool center, bool useMass ) 
+void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, List const& AtomPairs,
+                            Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
 {
   Vec3 vtgt, vref, boxTrans;
   // Loop over atom pairs
-  for (PairType::const_iterator atom = AtomPairs.begin();
-                                atom != AtomPairs.end(); ++atom)
+  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
   {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    if (center) {
-      // Use center of coordinates between first and last atoms.
-      if (useMass) {
-        vtgt = tgtIn.VCenterOfMass(firstAtom, lastAtom);
-        vref = refIn.VCenterOfMass(firstAtom, lastAtom); 
-      } else {
-        vtgt = tgtIn.VGeometricCenter(firstAtom, lastAtom);
-        vref = refIn.VGeometricCenter(firstAtom, lastAtom);
-      }
-    } else {
-      // Use position first atom only.
-      vtgt = tgtIn.XYZ( firstAtom );
-      vref = refIn.XYZ( firstAtom );
-    }
+    vtgt = AtomPairs.GetCoord(idx, tgtIn);
+    vref = AtomPairs.GetCoord(idx, refIn);
+
     boxTrans.Zero();
     // Calculate original distance from the ref (previous) position. 
     Vec3 vd = vtgt - vref; // dx dy dz
@@ -296,7 +280,7 @@ void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, PairType const& AtomPair
     }
     // Translate tgt atoms
     boxTrans.Neg();
-    tgtIn.Translate( boxTrans, firstAtom, lastAtom );
+    AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
     // Save new ref positions
     int i3 = firstAtom * 3;
     std::copy( tgtIn.xAddress()+i3, tgtIn.xAddress()+(lastAtom*3), refIn.xAddress()+i3 );
@@ -304,32 +288,16 @@ void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, PairType const& AtomPair
 }
 
 // Image::UnwrapOrtho()
-void Image::UnwrapOrtho( Frame& tgtIn, Frame& refIn, PairType const& AtomPairs,
-                         bool center, bool useMass )
+void Image::UnwrapOrtho( Frame& tgtIn, Frame& refIn, List const& AtomPairs)
 {
   Vec3 vtgt, vref, boxTrans;
   Vec3 boxVec = tgtIn.BoxCrd().Lengths();
   // Loop over atom pairs
-  for (PairType::const_iterator atom = AtomPairs.begin();
-                                atom != AtomPairs.end(); ++atom)
+  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
   {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    if (center) {
-      // Use center of coordinates between first and last atoms.
-      if (useMass) {
-        vtgt = tgtIn.VCenterOfMass(firstAtom, lastAtom);
-        vref = refIn.VCenterOfMass(firstAtom, lastAtom);
-      } else {
-        vtgt = tgtIn.VGeometricCenter(firstAtom, lastAtom);
-        vref = refIn.VGeometricCenter(firstAtom, lastAtom);
-      }
-    } else {
-      // Use position first atom only.
-      vtgt = tgtIn.XYZ( firstAtom );
-      vref = refIn.XYZ( firstAtom );
-    }
+    vtgt = AtomPairs.GetCoord(idx, tgtIn);
+    vref = AtomPairs.GetCoord(idx, refIn);
+
     Vec3 dxyz = vtgt - vref;
     boxTrans[0] = -floor( dxyz[0] / boxVec[0] + 0.5 ) * boxVec[0];
     boxTrans[1] = -floor( dxyz[1] / boxVec[1] + 0.5 ) * boxVec[1];
