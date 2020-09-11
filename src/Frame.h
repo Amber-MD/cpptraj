@@ -122,6 +122,10 @@ class Frame {
     void SetTime(double tIn)        { time_ = tIn;  }
     /// Set masses
     void SetMass(std::vector<Atom> const&);
+    /// Copy atoms from input frame to here
+    void CopyFrom(Frame const&, int, int);
+    /// Copy unit from input frame to here
+    void CopyFrom(Frame const&, Unit const&);
     // ----- Access to internal data pointers ----
     inline double* xAddress() { return X_;                }
     inline double* vAddress() { return V_;                }
