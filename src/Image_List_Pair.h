@@ -14,6 +14,9 @@ class List_Pair : public List {
     void DoTranslation(Frame& frm, unsigned int idx, Vec3 const& boxTrans) const {
       frm.Translate(boxTrans, begin_[idx], end_[idx]);
     }
+    void CopyFrame(Frame& refIn, unsigned int idx, Frame const& tgtIn) const {
+      refIn.CopyFrom(tgtIn, begin_[idx], end_[idx]);
+    }
   protected:
     typedef std::vector<int> Iarray;
     Iarray begin_;

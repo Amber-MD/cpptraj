@@ -15,6 +15,9 @@ class List_Unit : public List {
     void DoTranslation(Frame& frm, unsigned int idx, Vec3 const& boxTrans) const {
       frm.Translate(boxTrans, units_[idx]);
     }
+    void CopyFrame(Frame& refIn, unsigned int idx, Frame const& tgtIn) const {
+      refIn.CopyFrom(tgtIn, units_[idx]);
+    }
   protected:
     typedef std::vector<Unit> Uarray;
     Uarray units_;

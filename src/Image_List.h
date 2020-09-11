@@ -18,6 +18,8 @@ class List {
     virtual Vec3 GetCoord(unsigned int, Frame const&) const = 0;
     /// Do translation of specified entity according to given translation vector.
     virtual void DoTranslation(Frame&, unsigned int, Vec3 const&) const = 0;
+    /// Copy specified entity from Frame to another Frame
+    virtual void CopyFrame(Frame&, unsigned int, Frame const&) const = 0;
 };
 }
 #endif

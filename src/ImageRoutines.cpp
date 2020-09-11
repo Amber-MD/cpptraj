@@ -282,8 +282,7 @@ void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, List const& AtomPairs,
     boxTrans.Neg();
     AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
     // Save new ref positions
-    int i3 = firstAtom * 3;
-    std::copy( tgtIn.xAddress()+i3, tgtIn.xAddress()+(lastAtom*3), refIn.xAddress()+i3 );
+    AtomPairs.CopyFrame(refIn, idx, tgtIn);
   } // END loop over atom pairs 
 }
 
@@ -303,10 +302,9 @@ void Image::UnwrapOrtho( Frame& tgtIn, Frame& refIn, List const& AtomPairs)
     boxTrans[1] = -floor( dxyz[1] / boxVec[1] + 0.5 ) * boxVec[1];
     boxTrans[2] = -floor( dxyz[2] / boxVec[2] + 0.5 ) * boxVec[2];
     // Translate atoms from first to last
-    tgtIn.Translate(boxTrans, firstAtom, lastAtom);
+    AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
     // Save new ref positions
-    int i3 = firstAtom * 3;
-    std::copy( tgtIn.xAddress()+i3, tgtIn.xAddress()+(lastAtom*3), refIn.xAddress()+i3 );
+    AtomPairs.CopyFrame(refIn, idx, tgtIn);
   } // END loop over atom pairs
 }
 
