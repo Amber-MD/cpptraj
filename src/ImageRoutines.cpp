@@ -95,8 +95,7 @@ Vec3 Image::SetupTruncoct( Frame const& frameIn, AtomMask* ComMask, bool useMass
   */
 void Image::Nonortho(Frame& frameIn, bool origin, Vec3 const& fcom, Vec3 const& offIn, 
                      Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
-                     bool truncoct, bool center,
-                     bool useMass, PairType const& AtomPairs)
+                     bool truncoct, List const& AtomPairs)
 {
   Vec3 Coord;
   Vec3 offset = ucell.TransposeMult( offIn );
@@ -108,29 +107,14 @@ void Image::Nonortho(Frame& frameIn, bool origin, Vec3 const& fcom, Vec3 const& 
                    frameIn.BoxCrd().BoxZ()*frameIn.BoxCrd().BoxZ());
 
   // Loop over atom pairs
-  for (PairType::const_iterator atom = AtomPairs.begin();
-                                atom != AtomPairs.end(); ++atom)
+  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
   {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    //if (debug>2)
-    //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom);
-    // Set up Coord with position to check for imaging based on first atom or 
-    // center of mass of atoms first to last.
-    if (center) {
-      if (useMass)
-        Coord = frameIn.VCenterOfMass(firstAtom,lastAtom);
-      else
-        Coord = frameIn.VGeometricCenter(firstAtom,lastAtom);
-    } else 
-      Coord = frameIn.XYZ( firstAtom );
+    Coord = AtomPairs.GetCoord( idx, frameIn );
 
     // boxTrans will hold calculated translation needed to move atoms back into box
     Vec3 boxTrans = Nonortho(Coord, truncoct, origin, ucell, recip, fcom, min) + offset;
 
-    frameIn.Translate(boxTrans, firstAtom, lastAtom);
-
+    AtomPairs.DoTranslation( frameIn, idx, boxTrans );
   } // END loop over atom pairs
 }
 
@@ -207,36 +191,22 @@ int Image::SetupOrtho(Box const& boxIn, Vec3& bp, Vec3& bm, bool origin) {
   * \param useMass If true calc center of mass, otherwise geometric center.
   */
 void Image::Ortho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, Vec3 const& offIn,
-                  bool center, bool useMass, PairType const& AtomPairs)
+                  List const& AtomPairs)
 {
   Vec3 Coord;
   Vec3 offset(offIn[0] * frameIn.BoxCrd()[0],
               offIn[1] * frameIn.BoxCrd()[1],
               offIn[2] * frameIn.BoxCrd()[2]);
   // Loop over atom pairs
-  for (PairType::const_iterator atom = AtomPairs.begin();
-                                atom != AtomPairs.end(); atom++)
+  for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
   {
-    int firstAtom = *atom;
-    ++atom;
-    int lastAtom = *atom;
-    //if (debug>2)
-    //  mprintf( "  IMAGE processing atoms %i to %i\n", firstAtom+1, lastAtom);
-    // Set up Coord with position to check for imaging based on first atom or 
-    // center of mass of atoms first to last.
-    if (center) {
-      if (useMass)
-        Coord = frameIn.VCenterOfMass(firstAtom,lastAtom);
-      else
-        Coord = frameIn.VGeometricCenter(firstAtom,lastAtom);
-    } else 
-      Coord = frameIn.XYZ( firstAtom );
+    Coord = AtomPairs.GetCoord(idx, frameIn);
 
     // boxTrans will hold calculated translation needed to move atoms back into box
     Vec3 boxTrans = Ortho(Coord, bp, bm, frameIn.BoxCrd()) + offset;
 
     // Translate atoms according to Coord
-    frameIn.Translate(boxTrans, firstAtom, lastAtom);
+    AtomPairs.DoTranslation(frameIn, idx, boxTrans);
   } // END loop over atom pairs
 }
 
