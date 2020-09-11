@@ -11,7 +11,7 @@ class List_Mask : public List {
     virtual ~List_Mask() {}
     unsigned int nEntities() const { return mask_.Nselected(); }
     int SetupList(Topology const&, std::string const&);
-    Vec3 GetCoord(unsigned int idx, Frame const& frm) { return frm.XYZ(mask_[idx]); }
+    Vec3 GetCoord(unsigned int idx, Frame const& frm) const { return frm.XYZ(mask_[idx]); }
     void DoTranslation(Frame& frm, unsigned int idx, Vec3 const& boxTrans) const {
       frm.Translate(boxTrans, mask_[idx]);
     }
