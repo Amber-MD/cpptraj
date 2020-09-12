@@ -7,6 +7,7 @@ class Unit;
 namespace Image {
 /// List with entities defined by Units
 class List_Unit : public List {
+    typedef std::vector<Unit> Uarray;
   public:
     List_Unit() {}
     virtual ~List_Unit() {}
@@ -20,8 +21,11 @@ class List_Unit : public List {
     }
 
     void AddUnit(Unit const&);
+    typedef Uarray::const_iterator const_iterator;
+    const_iterator begin() const { return units_.begin(); }
+    const_iterator end()   const { return units_.end(); }
+    bool empty()           const { return units_.empty(); }
   protected:
-    typedef std::vector<Unit> Uarray;
     Uarray units_;
 };
 }
