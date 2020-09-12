@@ -18,6 +18,8 @@ class List_Unit : public List {
     void CopyFrame(Frame& refIn, unsigned int idx, Frame const& tgtIn) const {
       refIn.CopyFrom(tgtIn, units_[idx]);
     }
+
+    void AddUnit(Unit const&);
   protected:
     typedef std::vector<Unit> Uarray;
     Uarray units_;

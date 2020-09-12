@@ -16,3 +16,7 @@ int Image::List_Unit::SetupList(Topology const& Parm, std::string const& maskExp
   }
   return 0;
 }
+
+void Image::List_Unit::AddUnit(Unit const& unitIn) {
+  units_.push_back( unitIn );
+}
