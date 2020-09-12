@@ -11,13 +11,8 @@
 #include "Image_List_Unit_First.h"
 #include "Image_List_Mask.h"
 
-// Image::CreateImageList() 
-/** \return list of entities to be imaged based on given mode.
-  */
-Image::List* Image::CreateImageList(Topology const& Parm, Mode modeIn,
-                                    std::string const& maskExpression,
-                                    bool useMass, bool center)
-{
+/** \return Empty list for imaging. */
+Image::List* Image::CreateImageList(Mode modeIn, bool useMass, bool center) {
   Image::List* listOut = 0;
   switch (modeIn) {
     case BYMOL :
@@ -42,18 +37,29 @@ Image::List* Image::CreateImageList(Topology const& Parm, Mode modeIn,
       listOut = new Image::List_Mask();
       break;
   }
+  if (listOut == 0) {
+    mprinterr("Internal Error: Could not allocate image list over %ss\n", ModeString(modeIn));
+  }
+  return listOut;
+}
+
+// Image::CreateImageList() 
+/** \return list of entities to be imaged based on given mode.
+  */
+Image::List* Image::CreateImageList(Topology const& Parm, Mode modeIn,
+                                    std::string const& maskExpression,
+                                    bool useMass, bool center)
+{
+  Image::List* listOut = CreateImageList(modeIn, useMass, center);
   if (listOut != 0) {
     if (listOut->SetupList(Parm, maskExpression)) {
       mprinterr("Error: Could not set up image list for '%s'\n", maskExpression.c_str());
       delete listOut;
       return 0;
     }
-  } else {
-    mprinterr("Internal Error: Could not allocate image list for '%s'\n", maskExpression.c_str());
-    return 0;
+    mprintf("DEBUG: Image list for '%s' over %u %ss.\n",
+            maskExpression.c_str(), listOut->nEntities(), ModeString(modeIn));
   }
-  mprintf("DEBUG: Image list for '%s' over %u %ss.\n",
-          maskExpression.c_str(), listOut->nEntities(), ModeString(modeIn));
   return listOut;
 }
 

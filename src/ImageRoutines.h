@@ -10,7 +10,9 @@ class Box;
 #include "ImageTypes.h"
 namespace Image {
   class List;
-  /// Create an atom pair list by molecule, residue, or atom.
+  /// \return empty image list for given mode, optionally using mass and centering
+  List* CreateImageList(Mode, bool, bool);
+  /// \return an image list for given Top, mode, mask, optionally using mass and centering
   List* CreateImageList(Topology const&, Mode, std::string const&, bool, bool);
   /// \return Coordinates of center if wrapping molecules into truncated oct. shape.
   Vec3 SetupTruncoct( Frame const&, AtomMask*, bool, bool);
