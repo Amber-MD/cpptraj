@@ -2,9 +2,14 @@
 #define INC_ACTION_AUTOIMAGE_H
 #include "Action.h"
 class Unit;
+namespace Image {
+  class List_Unit;
+}
+/// Perform imaging, attempting to keep solute in 1 configuration
 class Action_AutoImage : public Action {
   public:
     Action_AutoImage();
+    ~Action_AutoImage();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_AutoImage(); }
     void Help() const;
   private:
@@ -12,10 +17,6 @@ class Action_AutoImage : public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
-
-    typedef std::vector<Unit> Uarray;
-
-    static Uarray SetupAtomRanges(Topology const&, std::string const&);
 
     AtomMask anchorMask_; ///< Used to center anchor region.
     std::string anchor_;  ///< Mask expression for anchor region.
@@ -31,7 +32,7 @@ class Action_AutoImage : public Action {
     enum TriclinicArg {OFF, FORCE, FAMILIAR};
     TriclinicArg triclinic_; ///< Determine whether triclinic code should be used.
 
-    Uarray fixedList_;  ///< Contain atom indices for fixed elements
-    Uarray mobileList_; ///< Contain atom indices for mobile elements.
+    Image::List_Unit* fixedList_;  ///< Contain atom indices for fixed elements
+    Image::List_Unit* mobileList_; ///< Contain atom indices for mobile elements.
 };
 #endif

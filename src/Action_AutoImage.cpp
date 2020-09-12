@@ -4,7 +4,7 @@
 #include "DistRoutines.h"
 #include "ImageRoutines.h"
 #include "CharMask.h"
-#include "Unit.h"
+#include "Image_List_Unit.h"
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
@@ -15,8 +15,16 @@ Action_AutoImage::Action_AutoImage() :
   truncoct_(false),
   useMass_(false),
   movingAnchor_(false),
-  triclinic_(OFF)
+  triclinic_(OFF),
+  fixedList_(0),
+  mobileList_(0)
 {}
+
+/** DESTRUCTOR */
+Action_AutoImage::~Action_AutoImage() {
+  if (fixedList_ != 0) delete fixedList_;
+  if (mobileList_ != 0) delete mobileList_;
+}
 
 void Action_AutoImage::Help() const {
   mprintf("\t[<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n"
@@ -75,30 +83,6 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   return Action::OK;
 }
 
-// Action_AutoImage::SetupAtomRanges()
-/** Based on the given atom mask expression determine what molecules are
-  * selected by the mask. If a mask selects any part of a molecule the
-  * entire molecule will be selected.
-  * \return A list of Units for each selected molecule.
-  */
-Action_AutoImage::Uarray
-  Action_AutoImage::SetupAtomRanges(Topology const& currentParm, std::string const& maskexpr)
-{
-  Uarray imageList;
-  CharMask Mask1( maskexpr.c_str() );
-
-  if (currentParm.SetupCharMask( Mask1 )) return imageList;
-  if (Mask1.None()) return imageList;
-  for (Topology::mol_iterator mol = currentParm.MolStart(); mol != currentParm.MolEnd(); mol++)
-  {
-    // Check that any atom in the range is in Mask1
-    if (Mask1.AtomsInCharMask(mol->MolUnit()))
-      imageList.push_back( mol->MolUnit() );
-  }
-  mprintf("\tMask [%s] corresponds to %zu molecules\n", Mask1.MaskString(), imageList.size());
-  return imageList;
-}
-
 // Action_AutoImage::Setup()
 Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
   bool fixedauto = false;
@@ -151,19 +135,34 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
     anchorMask_.AddUnit( setup.Top().Mol(0).MolUnit() );
   }
 
+  if (fixedList_ != 0) delete fixedList_;
+  if (mobileList_ != 0) delete mobileList_;
   // Set up fixed region
-  if (!fixed_.empty()) 
-    fixedList_ = SetupAtomRanges( setup.Top(), fixed_ );
+  // NOTE: Always use molecule center when imaging fixed list
+  if (!fixed_.empty())
+    fixedList_ = (Image::List_Unit*)
+                 Image::CreateImageList(setup.Top(), Image::BYMOL, fixed_, useMass_, true); 
   else { 
     fixedauto = true;
-    fixedList_.clear();
+    fixedList_ = (Image::List_Unit*)
+                 Image::CreateImageList(Image::BYMOL, useMass_, true);
+  }
+  if (fixedList_ == 0) {
+    mprinterr("Internal Error: Could not allocate fixed list.\n");
+    return Action::ERR;
   }
   // Set up mobile region
   if (!mobile_.empty())
-    mobileList_ = SetupAtomRanges( setup.Top(), mobile_ );
+    mobileList_ = (Image::List_Unit*)
+                  Image::CreateImageList(setup.Top(), Image::BYMOL, mobile_, useMass_, usecom_);
   else {
     mobileauto = true;
-    mobileList_.clear();
+    mobileList_ = (Image::List_Unit*)
+                  Image::CreateImageList(Image::BYMOL, useMass_, usecom_);
+  }
+  if (mobileList_ == 0) {
+    mprinterr("Internal Error: Could not allocate mobile list.\n");
+    return Action::ERR;
   }
   // Automatic search through molecules for fixed/mobile
   if (fixedauto || mobileauto) {
@@ -177,11 +176,11 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
         // everything else into fixed list.
         if ( mol->IsSolvent() || mol->NumAtoms() == 1 ) {
           if (mobileauto) {
-            mobileList_.push_back( mol->MolUnit() );
+            mobileList_->AddUnit( mol->MolUnit() );
           }
         } else {
           if (fixedauto) {
-            fixedList_.push_back( mol->MolUnit() );
+            fixedList_->AddUnit( mol->MolUnit() );
           }
         }
       }
@@ -189,18 +188,18 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
     }
   }
   // Print fixed and mobile lists
-  if (!fixedList_.empty()) {
-    mprintf("\t%zu molecules are fixed to anchor:", fixedList_.size());
-    for (Uarray::const_iterator it = fixedList_.begin();
-                                it != fixedList_.end(); ++it)
+  if (!fixedList_->empty()) {
+    mprintf("\t%u molecules are fixed to anchor:", fixedList_->nEntities());
+    for (Image::List_Unit::const_iterator it = fixedList_->begin();
+                                it != fixedList_->end(); ++it)
       mprintf(" %i", setup.Top()[ it->Front() ].MolNum()+1 );
     mprintf("\n");
   }
-  mprintf("\t%zu molecules are mobile.\n", mobileList_.size() );
+  mprintf("\t%u molecules are mobile.\n", mobileList_->nEntities() );
   if (debug_ > 1) {
     mprintf("\tThe following molecules are mobile:\n");
-    for (Uarray::const_iterator it = mobileList_.begin();
-                                it != mobileList_.end(); ++it)
+    for (Image::List_Unit::const_iterator it = mobileList_->begin();
+                                it != mobileList_->end(); ++it)
       mprintf(" %i\n", setup.Top()[ it->Front() ].MolNum()+1 );
     mprintf("\n");
   }
@@ -250,12 +249,12 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
       return Action::OK; // FIXME return MODIFY_COORDS instead?
     }
-    Image::Ortho(frm.ModifyFrm(), bp, bm, offset, usecom_, useMass_, mobileList_);
+    Image::Ortho(frm.ModifyFrm(), bp, bm, offset, *mobileList_);
   } else {
     if (truncoct_)
       fcom = Image::SetupTruncoct( frm.Frm(), 0, useMass_, origin_ );
     Image::Nonortho(frm.ModifyFrm(), origin_, fcom, offset, ucell, recip, truncoct_,
-                    usecom_, useMass_, mobileList_);
+                    *mobileList_);
   }
 
   if (movingAnchor_) {
@@ -263,15 +262,9 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
     //      more efficient than the !movingAnchor_ case but more testing is
     //      needed.
     // Loop over fixed molecules
-    for (pairList::const_iterator atom1 = fixedList_.begin();
-                                  atom1 != fixedList_.end(); atom1 += 2)
+    for (unsigned int idx = 0; idx != fixedList_->nEntities(); ++idx)
     {
-      int firstAtom = *atom1;
-      int lastAtom = *(atom1+1);
-      if (useMass_)
-        framecenter = frm.Frm().VCenterOfMass(firstAtom, lastAtom);
-      else
-        framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
+      framecenter = fixedList_->GetCoord(idx, frm.Frm());
 
       // Determine distance in terms of box lengths
       if (ortho_) {
@@ -286,7 +279,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
         //        frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
         //        minTrans[0], minTrans[1], minTrans[2]);
         // Move atoms closer to anchor. Update coords in currentFrame.
-        frm.ModifyFrm().Translate(minTrans, firstAtom, lastAtom);
+        fixedList_->DoTranslation(frm.ModifyFrm(), idx, minTrans);
         // New anchor is previous fixed mol
         anchorcenter = minImage;
       } else {
@@ -303,7 +296,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
           //        Trans[0], Trans[1], Trans[2], sqrt(framedist2), sqrt(imageddist2));
           if (imageddist2 < framedist2) {
             // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
-            frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
+            fixedList_->DoTranslation(frm.ModifyFrm(), idx, Trans);
             newAnchor = imagedcenter;
           }
         }
@@ -314,15 +307,10 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
     // For each molecule defined by atom pairs in fixedList, determine if the
     // imaged position is closer to anchor center than the current position.
     // Always use molecule center when imaging fixedList.
-    for (pairList::const_iterator atom1 = fixedList_.begin();
-                                  atom1 != fixedList_.end(); atom1 += 2)
+    for (unsigned int idx = 0; idx != fixedList_->nEntities(); ++idx)
     {
-      int firstAtom = *atom1;
-      int lastAtom = *(atom1+1);
-      if (useMass_)
-        framecenter = frm.Frm().VCenterOfMass(firstAtom, lastAtom);
-      else
-        framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
+      framecenter = fixedList_->GetCoord(idx, frm.Frm());
+      
       // Determine if molecule would be imaged.
       if (ortho_)
         Trans = Image::Ortho(framecenter, bp, bm, box);
@@ -338,7 +326,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
 //                Trans[0], Trans[1], Trans[2], sqrt(framedist2), sqrt(imageddist2));
         if (imageddist2 < framedist2) {
           // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
-          frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
+          fixedList_->DoTranslation(frm.ModifyFrm(), idx, Trans);
         }
       }
     }
