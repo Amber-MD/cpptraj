@@ -3,7 +3,6 @@
 /*! \file ImageTypes.h
     \brief Data types and enumerations used by imaging routines. 
  */
-#include <vector>
 namespace Image {
   enum Mode { BYMOL = 0, BYRES, BYATOM };
   inline const char* ModeString(Mode m) {
