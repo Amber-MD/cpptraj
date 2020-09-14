@@ -987,6 +987,15 @@ void Topology::ClearMolecules() {
     atom->SetMol( -1 );
 }
 
+/** \return Number of residues in specified molecule. */
+int Topology::NresInMol(int idx) const {
+  int nres = 0;
+  for (Unit::const_iterator seg = molecules_[idx].MolUnit().segBegin();
+                            seg != molecules_[idx].MolUnit().segEnd(); ++seg)
+    nres += atoms_[seg->End()-1].ResNum() - atoms_[seg->Begin()].ResNum() + 1;
+  return nres;
+}
+
 // Topology::DetermineMolecules()
 /** Determine individual molecules using bond information. Performs a 
   * recursive search over the bonds of each atom.

@@ -64,6 +64,8 @@ class Topology {
     inline mol_iterator MolStart() const { return molecules_.begin(); }
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
+    /// \return number of residues in the specified molecule.
+    int NresInMol(int) const;
     /// Determine molecules based on bond information
     int DetermineMolecules();
     // ----- Bond-specific routines --------------
