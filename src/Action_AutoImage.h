@@ -1,7 +1,6 @@
 #ifndef INC_ACTION_AUTOIMAGE_H
 #define INC_ACTION_AUTOIMAGE_H
 #include "Action.h"
-class Unit;
 namespace Image {
   class List_Unit;
 }
