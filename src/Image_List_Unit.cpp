@@ -2,6 +2,7 @@
 #include "AtomMask.h"
 #include "Topology.h"
 
+/** Set up list to contain units selected by the mask expression. */
 int Image::List_Unit::SetupList(Topology const& Parm, std::string const& maskExpression)
 {
   AtomMask mask;
@@ -17,6 +18,17 @@ int Image::List_Unit::SetupList(Topology const& Parm, std::string const& maskExp
   return 0;
 }
 
+/** Add given unit to the list. */
 void Image::List_Unit::AddUnit(Unit const& unitIn) {
   units_.push_back( unitIn );
+}
+
+/** \return A Unit containing all units in the list. */
+Unit Image::List_Unit::AllEntities() const {
+  Unit unitOut;
+  for (Uarray::const_iterator unit = units_.begin(); unit != units_.end(); ++unit)
+    for (Unit::const_iterator seg = unit->segBegin(); seg != unit->segEnd(); ++seg)
+      for (int idx = seg->Begin(); idx != seg->End(); ++idx)
+        unitOut.AddIndex( idx );
+  return unitOut;
 }

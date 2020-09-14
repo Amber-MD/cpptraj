@@ -244,8 +244,9 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 
 // -----------------------------------------------------------------------------
 // Image::UnwrapNonortho()
-void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, List const& AtomPairs,
-                            Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
+void Image::UnwrapNonortho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
+                           Unit const& allEntities,
+                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
 {
   Vec3 vtgt, vref, boxTrans;
   // Loop over atom pairs
@@ -287,13 +288,14 @@ void Image::UnwrapNonortho( Frame& tgtIn, Frame& refIn, List const& AtomPairs,
     // Translate tgt atoms
     boxTrans.Neg();
     AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
-    // Save new ref positions
-    AtomPairs.CopyFrame(refIn, idx, tgtIn);
   } // END loop over atom pairs 
+  // Save new ref positions
+  refIn.CopyFrom(tgtIn, allEntities);
 }
 
 // Image::UnwrapOrtho()
-void Image::UnwrapOrtho( Frame& tgtIn, Frame& refIn, List const& AtomPairs)
+void Image::UnwrapOrtho(Frame& tgtIn, Frame& refIn, List const& AtomPairs,
+                        Unit const& allEntities)
 {
   Vec3 vtgt, vref, boxTrans;
   Vec3 boxVec = tgtIn.BoxCrd().Lengths();
@@ -309,9 +311,9 @@ void Image::UnwrapOrtho( Frame& tgtIn, Frame& refIn, List const& AtomPairs)
     boxTrans[2] = -floor( dxyz[2] / boxVec[2] + 0.5 ) * boxVec[2];
     // Translate atoms from first to last
     AtomPairs.DoTranslation( tgtIn, idx, boxTrans );
-    // Save new ref positions
-    AtomPairs.CopyFrame(refIn, idx, tgtIn);
   } // END loop over atom pairs
+  // Save new ref positions
+  refIn.CopyFrom(tgtIn, allEntities);
 }
 
 // -----------------------------------------------------------------------------

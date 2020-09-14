@@ -16,9 +16,7 @@ class List_Unit : public List {
     void DoTranslation(Frame& frm, unsigned int idx, Vec3 const& boxTrans) const {
       frm.Translate(boxTrans, units_[idx]);
     }
-    void CopyFrame(Frame& refIn, unsigned int idx, Frame const& tgtIn) const {
-      refIn.CopyFrom(tgtIn, units_[idx]);
-    }
+    Unit AllEntities() const;
 
     void AddUnit(Unit const&);
     typedef Uarray::const_iterator const_iterator;

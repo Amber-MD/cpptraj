@@ -15,9 +15,7 @@ class List_Mask : public List {
     void DoTranslation(Frame& frm, unsigned int idx, Vec3 const& boxTrans) const {
       frm.Translate(boxTrans, mask_[idx]);
     }
-    void CopyFrame(Frame& refIn, unsigned int idx, Frame const& tgtIn) const {
-      refIn.CopyFrom(tgtIn, mask_[idx], mask_[idx]);
-    }
+    Unit AllEntities() const;
   protected:
     AtomMask mask_;
 };

@@ -2,6 +2,7 @@
 #include "AtomMask.h"
 #include "Topology.h"
 
+/** Set up list to contain all residues selected by mask expression */
 int Image::List_Pair::SetupList(Topology const& Parm, std::string const& maskExpression)
 {
   AtomMask mask;
@@ -16,4 +17,13 @@ int Image::List_Pair::SetupList(Topology const& Parm, std::string const& maskExp
     end_.push_back( Parm.Res(*it).LastAtom() );
   }
   return 0;
+}
+
+/** \return Unit containing all residues. */
+Unit Image::List_Pair::AllEntities() const {
+  Unit unitOut;
+  for (unsigned int jdx = 0; jdx != begin_.size(); ++jdx)
+    for (int idx = begin_[jdx]; idx != end_[jdx]; ++idx)
+      unitOut.AddIndex( idx );
+  return unitOut;
 }
