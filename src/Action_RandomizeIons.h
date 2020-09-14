@@ -3,6 +3,7 @@
 #include "Action.h"
 #include "ImagedAction.h"
 #include "Random.h"
+/// Used to randomize ion positions by swapping with solvent molecules.
 class Action_RandomizeIons : public Action {
   public:
     Action_RandomizeIons();
@@ -14,17 +15,14 @@ class Action_RandomizeIons : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    ImagedAction image_; ///< Imaging routines.
-    Random_Number RN_;   ///< Random number generator.
-    AtomMask ions_;      ///< Mask of ions to be moved.
-    AtomMask around_;    ///< The 'around' mask (region of space for ions to avoid)
-    double overlap_;     ///< The minimum allowed distance between ions
-    double min_;         ///< The minimum distance to the 'around' mask
-    int n_solvent_;      ///< Total number of solvent molecules.
+    ImagedAction image_;         ///< Imaging routines.
+    Random_Number RN_;           ///< Random number generator.
+    AtomMask ions_;              ///< Mask of ions to be moved.
+    AtomMask around_;            ///< The 'around' mask (region of space for ions to avoid)
+    double overlap_;             ///< The minimum allowed distance between ions
+    double min_;                 ///< The minimum distance to the 'around' mask
     int debug_;
-    // TODO: Combine the below 3 into a struct?
-    std::vector<int> solventStart_; ///< Solvent molecule start atoms.
-    std::vector<int> solventEnd_;   ///< Solvent molecule end atoms.
-    std::vector<bool> solvent_;     ///< True if solvent mol being considered for swap.
+    std::vector<Unit> solvMols_; ///< Hold all solvent molecules
+    std::vector<bool> solvent_;  ///< True if solvent mol being considered for swap.
 };
 #endif
