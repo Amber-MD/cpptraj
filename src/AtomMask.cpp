@@ -3,13 +3,19 @@
 #include "CpptrajStdio.h"
 #include "Unit.h"
 
-// CONSTRUCTOR
+/** CONSTRUCTOR - atom range */
 AtomMask::AtomMask(int beginAtom, int endAtom) : Natom_(0), maskChar_(SelectedChar_)
 {
   AddAtomRange(beginAtom, endAtom);
 }
 
-// CONSTRUCTOR
+/** CONSTRUCTOR - unit */
+AtomMask::AtomMask(Unit const& unit) : Natom_(0), maskChar_(SelectedChar_)
+{
+  AddUnit( unit );
+}
+
+/** CONSTRUCTOR - single atom */
 AtomMask::AtomMask(int atomNum) : Selected_(1, atomNum), Natom_(1), maskChar_(SelectedChar_) {}
 
 // AtomMask::ResetMask()

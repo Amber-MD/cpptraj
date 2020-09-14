@@ -24,6 +24,8 @@ class AtomMask : public MaskTokenArray {
                                                  maskChar_(SelectedChar_) {}
     /// Create mask selecting atoms from begin up to (not including) end.
     AtomMask(int,int);
+    /// Create mask selecting atoms in unit
+    AtomMask(Unit const&);
     /// Create mask with single atom selected.
     AtomMask(int);
     /// \return Internal selected atom array.
