@@ -289,7 +289,7 @@ int BondSearch_ByResidue( Topology& top, Frame const& frameIn, double offset, in
     // this residue >= first atom of next molecule, which indicates this
     // residue and the previous residue are in different molecules.
     if ( (nextmol != top.MolEnd()) &&
-         (res->FirstAtom() >= nextmol->BeginAtom()) )
+         (res->FirstAtom() >= nextmol->MolUnit().Front()) )
     {
       ++nextmol;
       continue;
