@@ -68,7 +68,7 @@ class Action_XtalSymm : public Action {
     /** Start and end points for each molecule (all molecules are assumed
         to be contiguous within the topology, but it is not assumed
         that molecule i+1 starts where molecule i ends). */
-    std::vector<int> molLimits_;
+    std::vector<Unit> molLimits_;
     /**< Flags to indicate whether each molecule is part of the non-ASU,
          free-floating "solvent" component. */
     std::vector<bool> molInSolvent_;

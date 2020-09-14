@@ -231,6 +231,8 @@ class Frame {
     inline void Rotate(Matrix_3x3 const&);
     /// Rotate all atoms in range by matrix
     inline void Rotate(Matrix_3x3 const&, int, int);
+    /// Rotate all atoms in unit by matrix
+    inline void Rotate(Matrix_3x3 const&, Unit const&);
     /// Rotate all atoms in mask by matrix
     inline void Rotate(Matrix_3x3 const&, AtomMask const&);
     /// Apply inverse of rotation defined by matrix to all atoms in mask
@@ -464,6 +466,11 @@ void Frame::Rotate(Matrix_3x3 const& T, int firstAtom, int lastAtom) {
     X_[i+1] = (x*T[3]) + (y*T[4]) + (z*T[5]);
     X_[i+2] = (x*T[6]) + (y*T[7]) + (z*T[8]);
   }
+}
+
+void Frame::Rotate(Matrix_3x3 const& T, Unit const& unit) {
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+    Rotate(T, seg->Begin(), seg->End());
 }
 
 void Frame::Rotate(Matrix_3x3 const& RotMatrix, AtomMask const& mask) {
