@@ -65,9 +65,7 @@ class Action_XtalSymm : public Action {
                                 unit re-imaged to the primary ASU volume. */
     bool molCentToASU_;    /**< Flag to use molecule centroids, not individual atoms, in the
                                 above re-imaging. */
-    /** Start and end points for each molecule (all molecules are assumed
-        to be contiguous within the topology, but it is not assumed
-        that molecule i+1 starts where molecule i ends). */
+    /// Hold definitions for each molecule
     std::vector<Unit> molLimits_;
     /**< Flags to indicate whether each molecule is part of the non-ASU,
          free-floating "solvent" component. */
