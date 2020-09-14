@@ -21,6 +21,8 @@ class List {
     virtual void DoTranslation(Frame&, unsigned int, Vec3 const&) const = 0;
     /// \return Unit containing all entities in the list
     virtual Unit AllEntities() const = 0;
+    /// Print entities to STDOUT
+    virtual void PrintEntities() const = 0;
 };
 }
 #endif

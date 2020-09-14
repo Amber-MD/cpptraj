@@ -17,6 +17,7 @@ class List_Unit : public List {
       frm.Translate(boxTrans, units_[idx]);
     }
     Unit AllEntities() const;
+    void PrintEntities() const;
 
     void AddUnit(Unit const&);
     typedef Uarray::const_iterator const_iterator;

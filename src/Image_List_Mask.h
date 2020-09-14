@@ -16,6 +16,7 @@ class List_Mask : public List {
       frm.Translate(boxTrans, mask_[idx]);
     }
     Unit AllEntities() const;
+    void PrintEntities() const;
   protected:
     AtomMask mask_;
 };

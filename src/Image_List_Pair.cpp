@@ -1,6 +1,7 @@
 #include "Image_List_Pair.h"
 #include "AtomMask.h"
 #include "Topology.h"
+#include "CpptrajStdio.h"
 
 /** Set up list to contain all residues selected by mask expression */
 int Image::List_Pair::SetupList(Topology const& Parm, std::string const& maskExpression)
@@ -26,4 +27,11 @@ Unit Image::List_Pair::AllEntities() const {
     for (int idx = begin_[jdx]; idx != end_[jdx]; ++idx)
       unitOut.AddIndex( idx );
   return unitOut;
+}
+
+/** Print residues to be imaged to STDOUT. */
+void Image::List_Pair::PrintEntities() const {
+  mprintf("\tImaging residues defined by atom ranges:\n");
+  for (unsigned int jdx = 0; jdx != begin_.size(); ++jdx)
+    mprintf("\t  %10i to %10i\n", begin_[jdx]+1, end_[jdx]);
 }

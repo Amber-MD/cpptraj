@@ -1,5 +1,7 @@
 #include "Image_List_Mask.h"
 #include "Topology.h"
+#include "StringRoutines.h"
+#include "CpptrajStdio.h"
 
 /** Set up list to include atoms selected by mask expression. */
 int Image::List_Mask::SetupList(Topology const& Parm, std::string const& maskExpression)
@@ -18,4 +20,10 @@ Unit Image::List_Mask::AllEntities() const {
   for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at)
     unitOut.AddIndex( *at );
   return unitOut;
+}
+
+/** Print atoms to be imaged to STDOUT. */
+void Image::List_Mask::PrintEntities() const {
+  std::string range = ArrayToRangeExpression( mask_.Selected(), 1 );
+  mprintf("\tImaging the following atoms: %s\n", range.c_str());
 }

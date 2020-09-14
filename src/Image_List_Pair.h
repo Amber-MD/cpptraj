@@ -15,6 +15,7 @@ class List_Pair : public List {
       frm.Translate(boxTrans, begin_[idx], end_[idx]);
     }
     Unit AllEntities() const;
+    void PrintEntities() const;
   protected:
     typedef std::vector<int> Iarray;
     Iarray begin_;
