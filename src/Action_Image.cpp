@@ -128,12 +128,9 @@ Action::RetType Action_Image::Setup(ActionSetup& setup) {
   }
   mprintf("\tNumber of %ss to be imaged is %u\n",
           Image::ModeString(imageMode_), imageList_->nEntities());
-  // DEBUG: Print all pairs TODO fix this
-  /*if (debug_>0) {
-    for (std::vector<int>::const_iterator ap = imageList_.begin();
-                                          ap != imageList_.end(); ap+=2)
-      mprintf("\t\tFirst-Last atom#: %i - %i\n", (*ap)+1, *(ap+1) );
-  }*/
+  // DEBUG: Print all entities 
+  if (debug_>0)
+    imageList_->PrintEntities();
   // Setup for truncated octahedron
   if (triclinic_ == FAMILIAR) {
     if (ComMask_!=0) {
