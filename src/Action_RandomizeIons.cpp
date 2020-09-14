@@ -195,7 +195,7 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
     // to swap with ion. Select an elegible solvent molecule.
     int loop = 1;
     int swapMol = 0;
-    while (loop > 0 && loop < 10000) {
+    while (loop > 0 && loop < (int)solvMols_.size()) {
       // Run the random number generator so that the same number is not produced
       // when the seed was set manually.
       swapMol = (int)(RN_.rn_gen() * (double)solvMols_.size());
