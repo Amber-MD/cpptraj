@@ -2032,39 +2032,102 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // Write solvent info if IFBOX > 0
   if (ifbox > 0) {
-    // Determine first solvent molecule 
-    int firstSolventMol = -1;
-    for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); ++mol) {
-      if ( mol->IsSolvent() ) {
-        firstSolventMol = (int)(mol - TopOut.MolStart());
+    // Need to check if molecules are contiguous or not via
+    // how many segments they have.
+    bool molsAreContiguous = true;
+    for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); ++mol)
+      if (mol->MolUnit().nSegments() > 1) {
+        molsAreContiguous = false;
         break;
       }
+    if (molsAreContiguous) {
+      // ----- Contiguous molecules --------------
+      // Determine first solvent molecule 
+      int firstSolventMol = -1;
+      for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); ++mol) {
+        if ( mol->IsSolvent() ) {
+          firstSolventMol = (int)(mol - TopOut.MolStart());
+          break;
+        }
+      }
+      // Determine final solute residue based on first solvent molecule.
+      int finalSoluteRes = 0;
+      if (firstSolventMol == -1)
+        finalSoluteRes = TopOut.Nres(); // No solvent Molecules
+      else if (firstSolventMol > 0) {
+        int finalSoluteAtom = TopOut.Mol(firstSolventMol).MolUnit().Front() - 1;
+        finalSoluteRes = TopOut[finalSoluteAtom].ResNum() + 1;
+      }
+      // If no solvent, just set to 1 beyond # of molecules
+      if (firstSolventMol == -1)
+        firstSolventMol = TopOut.Nmol();
+      // SOLVENT POINTERS
+      if (BufferAlloc(F_SOLVENT_POINTER, 3)) return 1;
+      file_.IntToBuffer( finalSoluteRes ); // Already +1
+      file_.IntToBuffer( TopOut.Nmol() );
+      file_.IntToBuffer( firstSolventMol + 1 );
+      file_.FlushBuffer();
+      // ATOMS PER MOLECULE
+      if (BufferAlloc(F_ATOMSPERMOL, TopOut.Nmol())) return 1;
+      for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); mol++)
+        file_.IntToBuffer( mol->NumAtoms() );
+      file_.FlushBuffer();
+    } else {
+      // ----- Non-contiguous molecules ----------
+      // Molecules are not contiguous. In order to ensure that #s in the
+      // ATOMS_PER_MOLECULE section match up, do segments instead.
+      mprintf("Warning: Topology has non-contiguous molecules.\n"
+              "Warning: Setting up SOLVENT_POINTERS and ATOMS_PER_MOLECULE\n"
+              "Warning: based on contiguous segments. The resulting Topology\n"
+              "Warning: will not strictly correspond to Amber specifications\n"
+              "Warning: and should be used with caution.\n"
+              "Warning: The 'fixatomorder' command can be used to reorder\n"
+              "Warning: molecules into contiguous segments.\n");
+      // Map segment to solvent status
+      typedef std::pair<Segment, bool> SegPair;
+      typedef std::vector<SegPair> SegArray;
+      SegArray segments;
+      for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); ++mol) {
+        for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                  seg != mol->MolUnit().segEnd(); ++seg)
+          segments.push_back( SegPair(*seg, mol->IsSolvent()) );
+      }
+      std::sort(segments.begin(), segments.end());
+      mprintf("\t%zu segments.\n", segments.size());
+      // Determine first solvent molecule 
+      SegArray::const_iterator firstSolventSeg = segments.end();
+      int firstSolventMol = -1;
+      for (SegArray::const_iterator it = segments.begin(); it != segments.end(); ++it) {
+        // it->second is true if segment was part of solvent molecule
+        if ( it->second ) {
+          firstSolventSeg = it;
+          firstSolventMol = it - segments.begin();
+          break;
+        }
+      }
+      // Determine final solute residue based on first solvent molecule.
+      int finalSoluteRes = 0;
+      if (firstSolventSeg == segments.end())
+        finalSoluteRes = TopOut.Nres(); // No solvent Molecules
+      else if (firstSolventSeg != segments.begin()) {
+        int finalSoluteAtom = firstSolventSeg->first.Begin() - 1;
+        finalSoluteRes = TopOut[finalSoluteAtom].ResNum() + 1;
+      }
+      // If no solvent, just set to 1 beyond # of segments 
+      if (firstSolventMol == -1)
+        firstSolventMol = segments.size();
+      // SOLVENT POINTERS
+      if (BufferAlloc(F_SOLVENT_POINTER, 3)) return 1;
+      file_.IntToBuffer( finalSoluteRes ); // Already +1
+      file_.IntToBuffer( segments.size() );
+      file_.IntToBuffer( firstSolventMol + 1 );
+      file_.FlushBuffer();
+      // ATOMS PER MOLECULE
+      if (BufferAlloc(F_ATOMSPERMOL, segments.size())) return 1;
+      for (SegArray::const_iterator it = segments.begin(); it != segments.end(); ++it)
+        file_.IntToBuffer( it->first.Size() );
+      file_.FlushBuffer();
     }
-    // Determine final solute residue based on first solvent molecule.
-    int finalSoluteRes = 0;
-    if (firstSolventMol == -1)
-      finalSoluteRes = TopOut.Nres(); // No solvent Molecules
-    else if (firstSolventMol > 0) {
-      int finalSoluteAtom = TopOut.Mol(firstSolventMol).BeginAtom() - 1;
-      finalSoluteRes = TopOut[finalSoluteAtom].ResNum() + 1;
-    }
-    // If no solvent, just set to 1 beyond # of molecules
-    if (firstSolventMol == -1)
-      firstSolventMol = TopOut.Nmol();
-
-    // SOLVENT POINTERS
-    if (BufferAlloc(F_SOLVENT_POINTER, 3)) return 1;
-    file_.IntToBuffer( finalSoluteRes ); // Already +1
-    file_.IntToBuffer( TopOut.Nmol() );
-    file_.IntToBuffer( firstSolventMol + 1 );
-    file_.FlushBuffer();
-
-    // ATOMS PER MOLECULE
-    if (BufferAlloc(F_ATOMSPERMOL, TopOut.Nmol())) return 1;
-    for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); mol++)
-      file_.IntToBuffer( mol->NumAtoms() );
-    file_.FlushBuffer();
-
     // BOX DIMENSIONS
     if (BufferAlloc(F_PARMBOX, 4)) return 1;
     file_.DblToBuffer( TopOut.ParmBox().Beta() );
