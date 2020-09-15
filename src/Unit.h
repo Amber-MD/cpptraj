@@ -16,6 +16,7 @@ class Unit {
     const_iterator segBegin() const { return segArray_.begin(); }
     const_iterator segEnd()   const { return segArray_.end(); }
     unsigned int nSegments()  const { return segArray_.size(); }
+    Segment const& operator[](int idx) const { return segArray_[idx]; }
 
     /// \return Total unit size
     unsigned int Size() const {
