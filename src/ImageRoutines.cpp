@@ -57,8 +57,8 @@ Image::List* Image::CreateImageList(Topology const& Parm, Mode modeIn,
       delete listOut;
       return 0;
     }
-    mprintf("DEBUG: Image list for '%s' over %u %ss.\n",
-            maskExpression.c_str(), listOut->nEntities(), ModeString(modeIn));
+    //mprintf("DEBUG: Image list for '%s' over %u %ss.\n",
+    //        maskExpression.c_str(), listOut->nEntities(), ModeString(modeIn));
   }
   return listOut;
 }
