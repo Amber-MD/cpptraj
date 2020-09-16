@@ -82,6 +82,13 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   if (ret != Action::OK)
     return ret;
 
+  if (debug_ > 0) {
+    mprintf("\tNew atom mapping:\n");
+    for (MapType::const_iterator atom = atomMap_.begin();
+                                 atom != atomMap_.end(); ++atom)
+      mprintf("\t\tNew atom %8li => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
+  }
+
   // Create new topology based on map
   if (newParm_ != 0) delete newParm_;
   newParm_ = setup.Top().ModifyByMap( atomMap_ );
@@ -172,14 +179,7 @@ Action::RetType Action_FixAtomOrder::FixMolecules(ActionSetup& setup) {
                                             mol != molecules.end(); ++mol)
     for (MapType::const_iterator atom = mol->begin(); atom != mol->end(); ++atom)
       atomMap_.push_back( *atom );
-  if (debug_ > 0) {
-    mprintf("\tNew atom mapping:\n");
-    for (MapType::const_iterator atom = atomMap_.begin();
-                                 atom != atomMap_.end(); ++atom)
-      mprintf("\t\tNew atom %8li => old atom %8i\n", atom - atomMap_.begin() + 1, *atom + 1);
-  }
-
-  return Action::OK;
+    return Action::OK;
 }
 
 // Action_FixAtomOrder::action()
