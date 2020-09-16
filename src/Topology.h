@@ -103,6 +103,13 @@ class Topology {
     void AddDihedral(DihedralType const&, DihedralParmType const&);
     void AssignImproperParams(ParmHolder<DihedralParmType> const&);
     void AssignDihedralParams(DihedralParmHolder const&);
+    // ----- CMAP-specific routines --------------
+    bool                     HasCmap()      const { return !cmapGrid_.empty(); }
+    CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
+    CmapArray         const& Cmap()         const { return cmap_;         }
+    CmapGridType& SetCmapGrid(int idx)            { return cmapGrid_[idx];}
+    void AddCmapGrid(CmapGridType const& g) { cmapGrid_.push_back(g); }
+    void AddCmapTerm(CmapType const& c)     { cmap_.push_back(c);     }
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
     NonbondParmType&        SetNonbond()           { return nonbond_;      }
@@ -159,7 +166,11 @@ class Topology {
     int AddTopAtom(Atom const&, Residue const&);
     void AddExtraAtomInfo(AtomExtra const& ex) { extra_.push_back(ex); } // FIXME bounds check
     void StartNewMol();
+    /// Perform common final setup: optional molecule determination, excluded distance
+    int CommonSetup(bool, int);
+    /// Perform common final setup: optional molecule determination
     int CommonSetup(bool);
+    /// Perform common final setup with molecule determination on.
     int CommonSetup() { return CommonSetup(true); }
     void ResetPDBinfo();
     int Setup_NoResInfo();
@@ -206,7 +217,8 @@ class Topology {
     int RecursiveMolSearch();
     int NonrecursiveMolSearch();
     void ClearMolecules();
-    void AtomDistance(int, int, int, std::set<int>&) const;
+    void AtomDistance(int, int, int, std::set<int>&, int) const;
+    void DetermineExcludedAtoms(int);
     void DetermineExcludedAtoms();
     void DetermineNumExtraPoints();
     int SetSolventInfo();
@@ -251,6 +263,8 @@ class Topology {
     DihedralArray dihedrals_;
     DihedralArray dihedralsh_;
     DihedralParmArray dihedralparm_;
+    CmapArray cmap_;                 ///< Hold atom indices and CMAP grid index
+    CmapGridArray cmapGrid_;         ///< Hold CMAP grids
     NonbondParmType nonbond_;        ///< Non-bonded parameters
     // Amber-only parameters
     CapParmType cap_;                ///< Water cap information

@@ -9,6 +9,8 @@ void Exec_Change::Help() const
           "\t   crdset <COORDS set> ]\n"
           "\t{ resname from <mask> to <value> |\n"
           "\t  chainid of <mask> to <value> |\n"
+          "\t  oresnums of <mask> min <range min> max <range max> |\n"
+          "\t  icodes of <mask> min <char min> max <char max> resnum <#> |\n"
           "\t  atomname from <mask> to <value> |\n"
           "\t  addbond <mask1> <mask2> [req <length> <rk> <force constant>] |\n"
           "\t  removebonds <mask1> [<mask2>] [out <file>]}\n"
@@ -20,12 +22,16 @@ void Exec_Change::Help() const
 Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Change type
-  enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ATOMNAME, ADDBOND, REMOVEBONDS };
+  enum ChangeType { UNKNOWN = 0, RESNAME, CHAINID, ORESNUMS, ICODES, ATOMNAME, ADDBOND, REMOVEBONDS };
   ChangeType type = UNKNOWN;
   if (argIn.hasKey("resname"))
     type = RESNAME;
   else if (argIn.hasKey("chainid"))
     type = CHAINID;
+  else if (argIn.hasKey("oresnums"))
+    type = ORESNUMS;
+  else if (argIn.hasKey("icodes"))
+    type = ICODES;
   else if (argIn.hasKey("atomname"))
     type = ATOMNAME;
   else if (argIn.hasKey("addbond"))
@@ -56,6 +62,8 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   switch (type) {
     case RESNAME  : err = ChangeResidueName(*parm, argIn); break;
     case CHAINID  : err = ChangeChainID(*parm, argIn); break;
+    case ORESNUMS : err = ChangeOresNums(*parm, argIn); break;
+    case ICODES   : err = ChangeIcodes(*parm, argIn); break;
     case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
     case ADDBOND  : err = AddBond(*parm, argIn); break;
     case REMOVEBONDS : err = RemoveBonds(State, *parm, argIn); break;
@@ -97,6 +105,128 @@ const
   return 0;
 }
 
+// Exec_Change::ChangeOresNums()
+int Exec_Change::ChangeOresNums(Topology& topIn, ArgList& argIn)
+const
+{
+  // Residues to change
+  std::string mexpr = argIn.GetStringKey("of");
+  if (mexpr.empty()) {
+    mprinterr("Error: Specify residue(s) to change chain IDs of ('of <mask>').\n");
+    return 1;
+  }
+  AtomMask mask;
+  if (mask.SetMaskString(mexpr)) return 1;
+  if (topIn.SetupIntegerMask( mask )) return 1;
+  std::vector<int> tResIdxs = topIn.ResnumsSelectedBy( mask );
+  mprintf("\t%s selects %zu residues.\n", mask.MaskString(), tResIdxs.size());
+  if (tResIdxs.empty()) {
+    mprinterr("Error: No residues selected by %s\n", mask.MaskString());
+    return 1;
+  }
+  // Number range to change to
+  int omin = argIn.getKeyInt("min", 0);
+  int omax = argIn.getKeyInt("max", 0);
+  unsigned int num_o = (unsigned int)(omax - omin) + 1;
+  mprintf("\tOriginal (output) res #s: %i to %i (%u)\n", omin, omax, num_o);
+  if (omin > omax) {
+    mprinterr("Error: min must be <= max.\n");
+    return 1;
+  }
+/*
+  std::string rangearg = argIn.GetStringKey("to");
+  if (rangearg.empty()) {
+    mprinterr("Error: Specify number range to set for residues.\n");
+    return 1;
+  }
+  Range oResNums;
+  if (oResNums.SetRange( rangearg )) {
+    mprinterr("Error: Could not set range '%s'\n", rangearg.c_str());
+    return 1;
+  }
+*/
+  if (num_o != tResIdxs.size()) {
+    mprinterr("Error: # selected residues (%zu) != # provided residue numbers (%u).\n",
+              tResIdxs.size(), num_o);
+    return 1;
+  }
+  int currentOnum = omin;
+  for (std::vector<int>::const_iterator rnum = tResIdxs.begin();
+                                        rnum != tResIdxs.end(); ++rnum, currentOnum++)
+  {
+    mprintf("\tChanging original res# of residue %s from %i to %i\n",
+            topIn.TruncResNameNum(*rnum).c_str(),
+            topIn.Res(*rnum).OriginalResNum(), currentOnum);
+    topIn.SetRes(*rnum).SetOriginalNum( currentOnum );
+  }
+
+
+  return 0;
+}
+
+// Exec_Change::ChangeIcodes()
+int Exec_Change::ChangeIcodes(Topology& topIn, ArgList& argIn)
+const
+{
+  // Residues to change
+  std::string mexpr = argIn.GetStringKey("of");
+  if (mexpr.empty()) {
+    mprinterr("Error: Specify residue(s) to change residue insertion codes of ('of <mask>').\n");
+    return 1;
+  }
+  AtomMask mask(mexpr);
+  if (topIn.SetupIntegerMask( mask )) return 1;
+  if (mask.None()) {
+    mprintf("Warning: No atoms selected by mask.\n");
+    return 0;
+  }
+  std::vector<int> resNums = topIn.ResnumsSelectedBy( mask );
+  // Original residue number to set
+  if (!argIn.Contains("resnum")) {
+    mprinterr("Error: Original residue number must be specified: 'resnum <#>'\n");
+    return 1;
+  }
+  int oresnum = argIn.getKeyInt("resnum", 0);
+  // Character range to change to
+  std::string charstr = argIn.GetStringKey("min");
+  if (charstr.empty()) {
+    mprinterr("Error: Specify min character to use.\n");
+    return 1;
+  }
+  char cmin = charstr[0];
+  charstr = argIn.GetStringKey("max");
+  if (charstr.empty()) {
+    mprinterr("Error: Specify max character to use.\n");
+    return 1;
+  }
+  char cmax = charstr[0];
+  if (cmin == cmax) {
+    mprinterr("Error: Min char must be different than max char.\n");
+    return 1;
+  }
+  int dir;
+  if (cmin < cmax)
+    dir = 1;
+  else
+    dir = -1;
+  int num_c = (int)cmax - (int)cmin + 1;
+  if (num_c < 0) num_c = -num_c;
+  mprintf("\tOutput residue insertion codes from %c to %c (%u, dir=%i)\n", cmin, cmax, num_c, dir);
+
+  char currentChar = cmin;
+  for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
+  {
+    mprintf("\tChanging insertion code of residue %s from '%i%c' to '%i%c'\n",
+            topIn.TruncResNameNum(*rnum).c_str(),
+            topIn.Res(*rnum).OriginalResNum(), topIn.Res(*rnum).Icode(), 
+            oresnum, currentChar);
+    topIn.SetRes(*rnum).SetOriginalNum( oresnum );
+    topIn.SetRes(*rnum).SetIcode( currentChar );
+    currentChar = (char)((int)currentChar + dir);
+  }
+  return 0;
+}
+
 // Exec_Change::ChangeChainID()
 int Exec_Change::ChangeChainID(Topology& topIn, ArgList& argIn)
 const
@@ -127,8 +257,9 @@ const
   std::vector<int> resNums = topIn.ResnumsSelectedBy( mask );
   for (std::vector<int>::const_iterator rnum = resNums.begin(); rnum != resNums.end(); ++rnum)
   {
-    mprintf("\tChanging chain ID of residue %s from %c to %c\n", topIn.Res(*rnum).c_str(),
-            topIn.Res(*rnum).ChainID(), cid);
+    mprintf("\tChanging chain ID of residue %s from '%c' to '%c'\n",
+            topIn.TruncResNameNum(*rnum).c_str(),
+            topIn.Res(*rnum).ChainId(), cid);
     topIn.SetRes(*rnum).SetChainID( cid );
   }
   return 0;

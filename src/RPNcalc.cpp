@@ -763,7 +763,11 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
             {
               DataSet_3D const& G1 = static_cast<DataSet_3D const&>( *ds1 );
               DataSet_3D const& G2 = static_cast<DataSet_3D const&>( *ds2 );
-              if (T->Type() == OP_MINUS || T->Type() == OP_PLUS) {
+              if (T->Type() == OP_MINUS ||
+                  T->Type() == OP_PLUS ||
+                  T->Type() == OP_DIV ||
+                  T->Type() == OP_MULT)
+              {
                 if (G1.NX() != G2.NX() || G1.NY() != G2.NY() || G1.NZ() != G2.NZ()) {
                   mprinterr("Error: Grid operation '%s' requires both grids have"
                             " same dimensions.\n", T->Description());

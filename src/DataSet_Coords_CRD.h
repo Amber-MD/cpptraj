@@ -6,7 +6,8 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     DataSet_Coords_CRD() : DataSet_Coords(COORDS), numCrd_(0), numBoxCrd_(0) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_Coords_CRD(); }
     // ----- DataSet functions -------------------
-    size_t Size() const                       { return coords_.size(); }
+    size_t Size()        const { return coords_.size(); }
+    SizeArray DimSizes() const { return SizeArray(1, Size()); }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
@@ -15,6 +16,8 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     int Allocate(SizeArray const&);
     /// \return Size in bytes of set
     size_t MemUsageInBytes() const { return EstSizeInBytes(Size()); }
+    int MemAlloc(SizeArray const&);
+    void CopyBlock(size_t, const DataSet*, size_t, size_t);
     // ----- DataSet_Coords functions ------------
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { 

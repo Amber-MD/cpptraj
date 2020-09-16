@@ -555,7 +555,7 @@ int Analysis_Wavelet::WAFEX(DataSet_MatrixFlt const& matrix) {
     // Write topology
     if (!overlayParm_.empty()) {
       ParmFile pfile;
-      if ( pfile.WriteTopology(*maskTop, overlayParm_, ParmFile::AMBERPARM, 0) )
+      if ( pfile.WriteTopology(*maskTop, overlayParm_, ParmFile::UNKNOWN_PARM, 0) )
         mprinterr("Error: Could not write out topology to file %s\n", overlayParm_.c_str());
     }
     // Write PDB trajectory

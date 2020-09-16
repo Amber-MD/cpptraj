@@ -310,7 +310,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
         // Loop over SH coords for this l value (real, img)
         for (ComplexArray::iterator sh = IredVectors_[vidx]->SphericalHarmonics(Lval).begin();
                                     sh != IredVectors_[vidx]->SphericalHarmonics(Lval).end(); ++sh)
+        {
+          //if (mode==0) mprintf("DEBUG: %10li Qvec= %16.8E SH= %16.8E\n", CF-cf_tmp.begin(), Qvec, *sh);
           *(CF++) += (Qvec * (*sh));
+        }
       }
     }
   }
@@ -336,13 +339,16 @@ Analysis::RetType Analysis_IRED::Analyze() {
       double plateau_r = 0;
       double plateau_i = 0;
       for (int k = 0; k < Nframes*2; k += 2) {
+        //if (mode==0) mprintf("k= %8i CF= %10li CF0= %16.8E CF1= %16.8E\n", k, CF-cf_tmp.begin(), *CF, *(CF+1));
         data1_[k  ] = *CF;
-        plateau_r  += *(CF++);
-        data1_[k+1] = *CF;
-        plateau_i  += *(CF++);
+        plateau_r  += *CF;
+        data1_[k+1] = *(CF+1);
+        plateau_i  += *(CF+1);
+        CF += 2;
       }
       plateau_r /= (double)Nframes;
       plateau_i /= (double)Nframes;
+      //mprintf("DEBUG: mode= %6i Lval= %3i plateau_r= %16.8E plateau_i= %16.8E\n", mode, Lval, plateau_r, plateau_i);
       // Calc plateau value of correlation function, Cm(t->T) in Bruschweiler paper (A20)
       Plateau[mode] += (plateau_r * plateau_r) + (plateau_i * plateau_i);
       // Calc correlation function for this mode and l, Cml(t)

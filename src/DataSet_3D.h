@@ -1,9 +1,8 @@
 #ifndef INC_DATASET_3D_H
 #define INC_DATASET_3D_H
 #include "DataSet.h"
-#include "CpptrajFile.h"
-#include "Box.h"
 #include "GridBin.h"
+class Box;
 /// Interface for 3D DataSets.
 // FIXME: Use DataSet Dims?
 class DataSet_3D : public DataSet {
@@ -19,6 +18,10 @@ class DataSet_3D : public DataSet {
     int Allocate(SizeArray const&) { return 1; } // TODO enable?
     /// \return Data from grid at x/y/z point.
     virtual double GetElement(size_t, size_t, size_t) const = 0;
+    /// Set grid to value
+    virtual void SetGrid(size_t, double) = 0;
+    /// Increment the specified grid point by value
+    virtual void IncrementElement(size_t, size_t, size_t, double) = 0;
     /// \return Data from grid.
     virtual double operator[](size_t) const = 0;
     /// \return size of X dimension.
@@ -33,6 +36,8 @@ class DataSet_3D : public DataSet {
     virtual void ReverseIndex(long int, size_t&, size_t&, size_t&) const = 0;
     /// Increment specified voxel by given amount.
     virtual void UpdateVoxel(long int, double) = 0;
+    /// Divide all elements by the given scalar
+    virtual void operator/=(double) = 0;
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }

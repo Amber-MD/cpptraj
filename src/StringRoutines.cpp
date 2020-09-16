@@ -385,3 +385,44 @@ std::string AvailableMemoryStr() {
   else
     return ByteString(avail_in_bytes, BYTE_DECIMAL);
 }
+
+/** \return A string containing the given array converted to range expression.
+  */
+std::string ArrayToRangeExpression(std::vector<int> const& arrayIn, int offsetIn) {
+  if (arrayIn.empty())
+    return std::string("");
+  if (arrayIn.size() == 1)
+    return integerToString( arrayIn.front() + offsetIn );
+
+  std::string out("");
+  // Commas will only be printed for groups after the first
+  int commaGroup = 0;
+  unsigned int idx = 0;
+  while (idx < arrayIn.size()) {
+    unsigned int kdx = idx + 1;
+    int delta = arrayIn[kdx] - arrayIn[kdx-1];
+    while (delta == 1) {
+      kdx++;
+      if (kdx == arrayIn.size()) break;
+      delta = arrayIn[kdx] - arrayIn[kdx-1];
+    }
+    //mprintf("DEBUG: idx= %u kdx= %u array[i]= %i array[k-1]= %i delta= %i\n",
+    //        idx, kdx, arrayIn[idx], arrayIn[kdx-1], delta);
+    if (delta <= 0) {
+      mprinterr("Internal Error: ArrayToRangeExpression() requires arrays in increasing order.\n");
+      return std::string("");
+    }
+    if (commaGroup > 0)
+      out.append(",");
+    commaGroup++;
+    unsigned int jdx = kdx - 1;
+    if (idx == jdx)
+      out.append( integerToString( arrayIn[idx] + offsetIn ) );
+    else
+      out.append( integerToString( arrayIn[idx] + offsetIn ) + "-" +
+                  integerToString( arrayIn[jdx] + offsetIn ) );
+    idx = kdx;
+  }
+ 
+  return out;
+}

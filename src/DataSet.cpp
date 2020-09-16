@@ -29,7 +29,8 @@ const char* DataSet::Descriptions_[] = {
   "pairwise matrix (mem)",      // PMATRIX_MEM
   "pairwise matrix (NetCDF)"    // PMATRIX_NC
   "tensor",                     // TENSOR
-  "string variable"             // STRINGVAR
+  "string variable",            // STRINGVAR
+  "vector with scalar"          // VECTOR_SCALAR
 };
 
 // CONSTRUCTOR

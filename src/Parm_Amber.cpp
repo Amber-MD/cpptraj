@@ -136,6 +136,10 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "RESIDUE_CHAINID", F20a4 }, // PDB chain ID
   { "RESIDUE_ICODE", F20a4 },   // PDB residue insertion code
   { "ATOM_ALTLOC", F20a4 },     // PDB atom alt location indicator FIXME: format is guess
+  { "CMAP_COUNT",                  "%FORMAT(2I8)" }, // # CMAP terms, # unique CMAP params
+  { "CMAP_RESOLUTION",             "%FORMAT(20I4)"}, // # steps along each Phi/Psi CMAP axis
+  { "CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
+  { "CMAP_INDEX",                  "%FORMAT(6I8)" }, // Atom i,j,k,l,m of cross term and idx
   { 0, 0 }
 };
 
@@ -155,7 +159,9 @@ Parm_Amber::Parm_Amber() :
   atProblemFlag_(false),
   N_impropers_(0),
   N_impTerms_(0),
-  nochamber_(false)
+  writeChamber_(true),
+  writeEmptyArrays_(false),
+  writePdbInfo_(true)
 {
   UB_count_[0] = 0;
   UB_count_[1] = 0;
@@ -384,6 +390,9 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
         if ( flagType.compare(0, 22, "CHARMM_CMAP_PARAMETER_") == 0 ) {
           // Special case. This flag has a 2 digit extension.
           flagIdx = (int)F_CHM_CMAPP;
+        } else if ( flagType.compare(0, strlen("CMAP_PARAMETER_"), "CMAP_PARAMETER_") == 0 ) {
+          // Special case. This flag has a 2 digit extension.
+          flagIdx = (int)F_CMAPP;
         } else {
           for (ParmPtr P = FLAGS_; P->Flag != 0; ++P) {
             if (flagType.compare(P->Flag) == 0) {
@@ -471,16 +480,21 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_CHM_IMPP:  err = ReadChamberImpPHASE(TopIn, FMT); break;
             case F_LJ14A:     err = ReadChamberLJ14A(TopIn, FMT); break;
             case F_LJ14B:     err = ReadChamberLJ14B(TopIn, FMT); break;
-            case F_CHM_CMAPC: err = ReadChamberCmapCounts(FMT); break;
-            case F_CHM_CMAPR: err = ReadChamberCmapRes(TopIn, FMT); break;
-            case F_CHM_CMAPP: err = ReadChamberCmapGrid(flagType.c_str(), TopIn, FMT); break;
-            case F_CHM_CMAPI: err = ReadChamberCmapTerms(TopIn, FMT); break;
             // LES
             case F_LES_NTYP:  err = ReadLESntyp(TopIn, FMT); break;
             case F_LES_TYPE:  err = ReadLEStypes(TopIn, FMT); break;
             case F_LES_FAC:   err = ReadLESfac(TopIn, FMT); break;
             case F_LES_CNUM:  err = ReadLEScnum(TopIn, FMT); break;
             case F_LES_ID:    err = ReadLESid(TopIn, FMT); break;
+            // CMAP
+            case F_CHM_CMAPC: // fallthrough
+            case F_CMAPC:     err = ReadCmapCounts(FMT); break;
+            case F_CHM_CMAPR: // fallthrough
+            case F_CMAPR:     err = ReadCmapRes(TopIn, FMT); break;
+            case F_CHM_CMAPP: // fallthrough
+            case F_CMAPP:     err = ReadCmapGrid(flagType.c_str(), TopIn, FMT); break;
+            case F_CHM_CMAPI: // fallthrough
+            case F_CMAPI:     err = ReadCmapTerms(TopIn, FMT); break;
             // Sanity check
             default:
               mprinterr("Internal Error: Unhandled FLAG '%s'.\n", flagType.c_str());
@@ -1267,8 +1281,9 @@ int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
 }
 
 // Parm_Amber::ReadChamberCmapCounts()
-int Parm_Amber::ReadChamberCmapCounts(FortranData const& FMT) {
-  if (SetupBuffer(F_CHM_CMAPC, 2, FMT)) return 1;
+int Parm_Amber::ReadCmapCounts(FortranData const& FMT) {
+  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
+  if (SetupBuffer(f, 2, FMT)) return 1;
   n_cmap_terms_ = atoi( file_.NextElement() );
   n_cmap_grids_ = atoi( file_.NextElement() );
   return 0;
@@ -1276,42 +1291,47 @@ int Parm_Amber::ReadChamberCmapCounts(FortranData const& FMT) {
 
 // Parm_Amber::ReadChamberCmapRes()
 /** Get CMAP resolutions for each grid and allocate grids. */
-int Parm_Amber::ReadChamberCmapRes(Topology& TopIn, FortranData const& FMT) {
-  if (SetupBuffer(F_CHM_CMAPR, n_cmap_grids_, FMT)) return 1;
+int Parm_Amber::ReadCmapRes(Topology& TopIn, FortranData const& FMT) {
+  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPR : F_CMAPR;
+  if (SetupBuffer(f, n_cmap_grids_, FMT)) return 1;
   for (int i = 0; i != n_cmap_grids_; i++)
-    TopIn.SetChamber().AddCmapGrid( CmapGridType( atoi(file_.NextElement()) ) );
+    TopIn.AddCmapGrid( CmapGridType( atoi(file_.NextElement()) ) );
   return 0;
 }
 
 // Parm_Amber::ReadChamberCmapGrid()
 /** Read CMAP grid. */
-int Parm_Amber::ReadChamberCmapGrid(const char* CmapFlag, Topology& TopIn, FortranData const& FMT)
+int Parm_Amber::ReadCmapGrid(const char* CmapFlag, Topology& TopIn, FortranData const& FMT)
 {
   // Figure out which grid this is.
   // 012345678901234567890123
   // CHARMM_CMAP_PARAMETER_XX
-  int gridnum = convertToInteger( std::string( CmapFlag+22 ) ) - 1;
-  if (gridnum < 0 || gridnum >= (int)TopIn.Chamber().CmapGrid().size()) {
+  const size_t cmap_parameter_flag_size = (ptype_ == CHAMBER) ? strlen("CHARMM_CMAP_PARAMETER_") : strlen ("CMAP_PARAMETER_");
+  int gridnum = convertToInteger( std::string( CmapFlag+cmap_parameter_flag_size ) ) - 1;
+  if (gridnum < 0 || gridnum >= (int)TopIn.CmapGrid().size()) {
     mprintf("Warning: CMAP grid '%s' out of range.\n", CmapFlag);
-    if (TopIn.Chamber().HasCmap())
+    const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
+    if (TopIn.HasCmap())
       mprintf("Warning: Expected grid between 1 and %zu, got %i\n",
-              TopIn.Chamber().CmapGrid().size(), gridnum+1);
+              TopIn.CmapGrid().size(), gridnum+1);
     else
-      mprintf("Warning: Missing previous %s section.\n", FLAGS_[F_CHM_CMAPC].Flag);
+      mprintf("Warning: Missing previous %s section.\n", FLAGS_[f].Flag);
     mprintf("Warning: Skipping read of CMAP grid.\n");
     return 0;
   }
-  CmapGridType& GRID = TopIn.SetChamber().SetCmapGrid( gridnum );
-  if (SetupBuffer(F_CHM_CMAPP, GRID.Size(), FMT)) return 1;
+  CmapGridType& GRID = TopIn.SetCmapGrid( gridnum );
+  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPP : F_CMAPP;
+  if (SetupBuffer(f, GRID.Size(), FMT)) return 1;
   for (int idx = 0; idx != GRID.Size(); idx++)
     GRID.SetGridPt( idx, atof(file_.NextElement()) );
   return 0;
 }
 
 // Parm_Amber::ReadChamberCmapTerms()
-int Parm_Amber::ReadChamberCmapTerms(Topology& TopIn, FortranData const& FMT) {
+int Parm_Amber::ReadCmapTerms(Topology& TopIn, FortranData const& FMT) {
   int nvals = n_cmap_terms_ * 6;
-  if (SetupBuffer(F_CHM_CMAPI, nvals, FMT)) return 1;
+  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
+  if (SetupBuffer(f, nvals, FMT)) return 1;
   for (int idx = 0; idx != nvals; idx += 6) {
     int a1 = atoi(file_.NextElement()) - 1;
     int a2 = atoi(file_.NextElement()) - 1;
@@ -1319,7 +1339,7 @@ int Parm_Amber::ReadChamberCmapTerms(Topology& TopIn, FortranData const& FMT) {
     int a4 = atoi(file_.NextElement()) - 1;
     int a5 = atoi(file_.NextElement()) - 1;
     int gidx = atoi(file_.NextElement()) - 1;
-    TopIn.SetChamber().AddCmapTerm( CmapType(a1, a2, a3, a4, a5, gidx) );
+    TopIn.AddCmapTerm( CmapType(a1, a2, a3, a4, a5, gidx) );
   }
   return 0;
 }
@@ -1365,13 +1385,15 @@ int Parm_Amber::ReadLESid(Topology& TopIn, FortranData const& FMT) {
 // -----------------------------------------------------------------------------
 void Parm_Amber::WriteHelp() {
   mprintf("\tnochamber  : Do not write CHAMBER information to topology (useful for e.g. using"
-          " topology for visualization with VMD).\n");
+          "\t             topology for visualization with VMD).\n");
   mprintf("\twriteempty : Write Amber tree, join, and rotate info even if not present.\n");
+  mprintf("\tnopdbinfo  : Do not write \"PDB\" info (e.g. chain IDs, original res #s, etc).\n");
 }
 
 int Parm_Amber::processWriteArgs(ArgList& argIn) {
-  nochamber_ = argIn.hasKey("nochamber");
+  writeChamber_ = !argIn.hasKey("nochamber");
   writeEmptyArrays_ = argIn.hasKey("writeempty");
+  writePdbInfo_ = !argIn.hasKey("nopdbinfo");
   return 0;
 }
 
@@ -1391,9 +1413,20 @@ Parm_Amber::FortranData Parm_Amber::WriteFormat(FlagType fflag) const {
   return FMT;
 }
 
-// Parm_Amber::BufferAlloc()
+/** This version uses the default flag to allocate the format string. */
 int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   FortranData FMT = WriteFormat( ftype );
+  return BufferAlloc(ftype, FMT, nvals, idx);
+}
+
+// Parm_Amber::BufferAlloc()
+/** Allocate internal buffer for writing given flag with given format.
+  * \param ftype The FLAG to write.
+  * \param FMT The Fortran format string.
+  * \param nvals The number of values that will be written.
+  * \param idx Index for flags that can be specified multiple times (e.g. CMAP grids).
+  */
+int Parm_Amber::BufferAlloc(FlagType ftype, FortranData const& FMT, int nvals, int idx) {
   if ( FMT.Ftype() == UNKNOWN_FTYPE) {
     mprinterr("Interal Error: Could not set up format string.\n");
     return 1;
@@ -1543,7 +1576,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   ptype_ = NEWPARM;
   FlagType titleFlag = F_TITLE;
   if (TopOut.Chamber().HasChamber()) {
-    if (nochamber_)
+    if (!writeChamber_)
       mprintf("\tnochamber: Removing CHAMBER info from topology.\n");
     else {
       titleFlag = F_CTITLE;
@@ -1582,10 +1615,42 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     }
   }
  
-  // Determine max residue size
+  // Determine max residue size. Also determine if extra info needs to be
+  // written such as PDB residue number, chain ID, etc.
+  // Since original res num gets set no matter what, only print out
+  // if chain IDs are present or original res nums != res index + 1.
   int maxResSize = 0;
+  bool hasOrigResNums = false;
+  bool hasChainID = false;
+  bool hasIcodes = false;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+  {
+    long int oresidx = res - TopOut.ResStart() + 1;
+    if (oresidx != (long int)res->OriginalResNum())
+      hasOrigResNums = true;
+    if (res->HasChainID())
+      hasChainID = true;
+    if (res->Icode() != ' ')
+      hasIcodes = true;
     maxResSize = std::max(maxResSize, res->NumAtoms());
+  }
+  if (hasOrigResNums)
+    mprintf("\tTopology has alternative residue numbering (from e.g PDB, stripping, reordering, etc).\n");
+  if (hasChainID)
+    mprintf("\tTopology has chain IDs.\n");
+  if (hasIcodes)
+    mprintf("\tTopology has residue insertion codes.\n");
+  if (!writePdbInfo_) {
+    if (hasOrigResNums)
+      mprintf("\tnopdbinfo : Not writing alternative residue numbering.\n");
+    if (hasChainID)
+      mprintf("\tnopdbinfo : Not writing chain IDs.\n");
+    if (hasIcodes)
+      mprintf("\tnopdbinfo : Not writing residue insertion codes.\n");
+    hasOrigResNums = false;
+    hasChainID = false;
+    hasIcodes = false;
+  }
 
   // Determine value of ifbox
   int ifbox;
@@ -1922,34 +1987,38 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
 
   // CHAMBER only - write CMAP parameters
-  if (ptype_ == CHAMBER && TopOut.Chamber().HasCmap()) {
+  if (TopOut.HasCmap()) {
     // CMAP COUNT
-    if (BufferAlloc(F_CHM_CMAPC, 2)) return 1;
-    file_.IntToBuffer( TopOut.Chamber().Cmap().size() );     // CMAP terms
-    file_.IntToBuffer( TopOut.Chamber().CmapGrid().size() ); // CMAP grids
+    const FlagType f_count = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
+    if (BufferAlloc(f_count, 2)) return 1;
+    file_.IntToBuffer( TopOut.Cmap().size() );     // CMAP terms
+    file_.IntToBuffer( TopOut.CmapGrid().size() ); // CMAP grids
     file_.FlushBuffer();
     // CMAP GRID RESOLUTIONS
-    if (BufferAlloc(F_CHM_CMAPR, TopOut.Chamber().CmapGrid().size())) return 1;
-    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
-                                       grid != TopOut.Chamber().CmapGrid().end(); ++grid)
+    const FlagType f_grid_res = (ptype_ == CHAMBER) ? F_CHM_CMAPR : F_CMAPR;
+    if (BufferAlloc(f_grid_res, TopOut.CmapGrid().size())) return 1;
+    for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
+                                       grid != TopOut.CmapGrid().end(); ++grid)
       file_.IntToBuffer( grid->Resolution() );
     file_.FlushBuffer();
     // CMAP GRIDS
     int ngrid = 1;
-    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
-                                       grid != TopOut.Chamber().CmapGrid().end();
+    const FlagType f_grid = (ptype_ == CHAMBER) ? F_CHM_CMAPP : F_CMAPP;
+    for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
+                                       grid != TopOut.CmapGrid().end();
                                        ++grid, ++ngrid)
     {
-      if (BufferAlloc(F_CHM_CMAPP, grid->Size(), ngrid)) return 1;
+      if (BufferAlloc(f_grid, grid->Size(), ngrid)) return 1;
       for (std::vector<double>::const_iterator it = grid->Grid().begin();
                                                it != grid->Grid().end(); ++it)
         file_.DblToBuffer( *it );
       file_.FlushBuffer();
     }
     // CMAP parameters
-    if (BufferAlloc(F_CHM_CMAPI, TopOut.Chamber().Cmap().size())) return 1;
-    for (CmapArray::const_iterator it = TopOut.Chamber().Cmap().begin();
-                                   it != TopOut.Chamber().Cmap().end(); ++it)
+    const FlagType f_param = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
+    if (BufferAlloc(f_param, TopOut.Cmap().size())) return 1;
+    for (CmapArray::const_iterator it = TopOut.Cmap().begin();
+                                   it != TopOut.Cmap().end(); ++it)
     {
       file_.IntToBuffer( it->A1() + 1 );
       file_.IntToBuffer( it->A2() + 1 );
@@ -2090,6 +2159,53 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
+  if (hasOrigResNums || hasChainID || hasIcodes) {
+    // PDB residue numbers. Need to adjust format based on res # digit width.
+    int maxWidth = std::max( DigitWidth(TopOut.Res(0).OriginalResNum() ),
+                             DigitWidth(TopOut.Res(TopOut.Nres()-1).OriginalResNum()) );
+    //mprintf("DEBUG: Max original res # digit width is %i\n", maxWidth);
+    int err;
+    if ( maxWidth < 5 )
+      err = BufferAlloc(F_PDB_RES, TopOut.Nres());
+    else if ( maxWidth < 9 ) {
+      FortranData FMT;
+      FMT.ParseFortranFormat("%FORMAT(10I8)");
+      err = BufferAlloc(F_PDB_RES, FMT, TopOut.Nres(), -1);
+    } else {
+      // Max 32 bit int is 10 digits
+      FortranData FMT;
+      FMT.ParseFortranFormat("%FORMAT(5I16)");
+      err = BufferAlloc(F_PDB_RES, FMT, TopOut.Nres(), -1);
+    }
+    if (err != 0) return 1;
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+      file_.IntToBuffer( res->OriginalResNum() );
+    file_.FlushBuffer();
+  }
+  if (hasChainID) {
+    // PDB chain IDs
+    if (BufferAlloc(F_PDB_CHAIN, TopOut.Nres())) return 1;
+    char cid[2];
+    cid[1] = '\0';
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    {
+      cid[0] = res->ChainId();
+      file_.CharToBuffer( cid );
+    }
+    file_.FlushBuffer();
+  }
+  if (hasIcodes) {
+    // PDB residue insertion codes
+    if (BufferAlloc(F_PDB_ICODE, TopOut.Nres())) return 1;
+    char icode[2];
+    icode[1] = '\0';
+    for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    {
+      icode[0] = res->Icode();
+      file_.CharToBuffer( icode );
+    }
+    file_.FlushBuffer();
+  }
   return 0;
 }
 

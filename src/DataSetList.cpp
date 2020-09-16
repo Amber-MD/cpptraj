@@ -32,6 +32,7 @@
 #include "DataSet_PairwiseCache_NC.h"
 #include "DataSet_Tensor.h"
 #include "DataSet_StringVar.h"
+#include "DataSet_Vector_Scalar.h"
 
 bool DataSetList::useDiskCache_ = false;
 
@@ -80,6 +81,7 @@ DataSet* DataSetList::NewSet(DataSet::DataType typeIn) {
     case DataSet::PMATRIX_NC    : ds = DataSet_PairwiseCache_NC::Alloc(); break;
     case DataSet::TENSOR        : ds = DataSet_Tensor::Alloc(); break;
     case DataSet::STRINGVAR     : ds = DataSet_StringVar::Alloc(); break;
+    case DataSet::VECTOR_SCALAR : ds = DataSet_Vector_Scalar::Alloc(); break;
     // Sanity check
     default:
       mprinterr("Internal Error: No allocator for DataSet type '%s'\n",
@@ -1056,10 +1058,10 @@ const char* DataSetList::TopIdxArgs = "parm <name> | crdset <set> | parmindex <#
   *         If no Topology loaded, return 0 and print error message.
   */
 Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
-  if (TopList_.empty()) {
-    mprinterr("Error: No Topologies are loaded.\n");
-    return 0;
-  }
+  //if (TopList_.empty()) {
+  //  mprinterr("Error: No Topologies are loaded.\n");
+  //  return 0;
+  //}
   int err;
   DataSet* top = GetTopByKeyword( argIn, err );
   if (err) return 0;

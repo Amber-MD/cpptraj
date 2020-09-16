@@ -60,7 +60,11 @@ const
   double rms = 1.0;
   double dxst = dx0_;
   double last_e = 0.0;
-  outfile.Printf("%-8s %12s %12s\n", "#Iter.", "ENE", "RMS");
+  outfile.Printf("%-8s %12s %12s", "#Iter.", "ENE", "RMS");
+  // Do not print labels when only a single term.
+  potential.Energy().PrintActiveLabels(outfile, false);
+  outfile.Printf("\n");
+  // Start min 
   while (rms > min_tol_ && iteration < nMinSteps_) {
     if (potential.CalculateForce( frameIn )) {
       mprinterr("Error: Could not calculate force.\n");
@@ -97,8 +101,15 @@ const
       //*FV = 0.0;
     }
     // Write out current E.
-    //outfile.Printf("Iteration:\t%8i %12.4E %12.4E\n", iteration, e_total, rms);
-    outfile.Printf("%-8i %12.4E %12.4E\n", iteration+1, e_total, rms);
+    outfile.Printf("%-8i %12.4E %12.4E", iteration+1, e_total, rms);
+    // Do not print terms when only a single term.
+    potential.Energy().PrintActiveTerms(outfile, false);
+    outfile.Printf("\n");
+    //outfile.Printf("%-8i %12.4E %12.4E EB=%12.4E EV=%12.4E EC=%12.4E\n",
+    //               iteration+1, e_total, rms,
+    //               potential.Energy().Ene(EnergyArray::E_BOND),
+    //               potential.Energy().Ene(EnergyArray::E_VDW),
+    //               potential.Energy().Ene(EnergyArray::E_COULOMB));
     //mprintf("Iteration:\t%8i %12.4E %12.4E EB=%12.4E EV=%12.4E EC=%12.4E\n",
     //        iteration, e_total, rms, E_bond, E_vdw, E_elec);
     iteration++;

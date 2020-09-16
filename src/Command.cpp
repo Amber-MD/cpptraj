@@ -11,6 +11,7 @@
 #include "ControlBlock_For.h"
 #include "Parallel.h"
 // ----- GENERAL ---------------------------------------------------------------
+#include "Exec_AddMissingRes.h"
 #include "Exec_Analyze.h"
 #include "Exec_Calc.h"
 #include "Exec_ClusterMap.h"
@@ -41,6 +42,7 @@
 #include "Exec_CrdAction.h"
 #include "Exec_CrdOut.h"
 #include "Exec_Emin.h"
+#include "Exec_Graft.h"
 #include "Exec_LoadCrd.h"
 #include "Exec_LoadTraj.h"
 #include "Exec_PermuteDihedrals.h"
@@ -203,6 +205,7 @@ int Command::ctlidx_ = -1;
 void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
+  Command::AddCmd( new Exec_AddMissingRes(),   Cmd::EXE, 1, "addmissingres" ); // hidden
   Command::AddCmd( new Exec_Analyze(),         Cmd::EXE, 1, "analyze" ); // hidden
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
@@ -249,6 +252,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
   Command::AddCmd( new Exec_Emin(),             Cmd::EXE, 1, "emin"); // hidden
+  Command::AddCmd( new Exec_Graft(),            Cmd::EXE, 1, "graft");
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );

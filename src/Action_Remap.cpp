@@ -1,7 +1,6 @@
 #include "Action_Remap.h"
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
-#include "ParmFile.h"
 
 // CONSTRUCTOR
 Action_Remap::Action_Remap() : newParm_(0) {}
@@ -13,11 +12,13 @@ Action_Remap::~Action_Remap() {
 
 // Action_Remap::Help()
 void Action_Remap::Help() const {
-  mprintf("\tdata <setname> [parmout <file>]\n"
-          "  Re-map atoms according to the given reference data set which is of the format:\n"
+  mprintf("\tdata <setname>\n");
+  mprintf("%s", ActionTopWriter::Keywords());
+  mprintf("  Re-map atoms according to the given reference data set which is of the format:\n"
           "    Reference[Target]\n"
           "  with atom numbering starting from 1. E.g. Reference[1] = 10 would mean remap\n"
           "  atom 10 in target to position 1.\n");
+  mprintf("%s", ActionTopWriter::Options());
 }
 
 // Action_Remap::Init()
@@ -29,7 +30,7 @@ Action::RetType Action_Remap::Init(ArgList& actionArgs, ActionInit& init, int de
     mprinterr("Error: Atom map data set name not specified.\n");
     return Action::ERR;
   }
-  parmoutName_ = actionArgs.GetStringKey("parmout");
+  topWriter_.InitTopWriter(actionArgs, "re-mapped", debugIn);
   // Get dataset
   DataSet* mapset = init.DSL().GetDataSet( mapsetname );
   if (mapset == 0) {
@@ -53,8 +54,7 @@ Action::RetType Action_Remap::Init(ArgList& actionArgs, ActionInit& init, int de
   mprintf("    REMAP:\n"
           "\tRemapping atoms according to positions specified by data set '%s' (%zu atoms).\n",
           mapset->legend(), Map_.size());
-  if (!parmoutName_.empty())
-    mprintf("\tRe-mapped topology will be written with name '%s'\n", parmoutName_.c_str());
+  topWriter_.PrintOptions();
   return Action::OK;
 }
 
@@ -77,11 +77,8 @@ Action::RetType Action_Remap::Setup(ActionSetup& setup) {
   // Allocate space for new frame
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
   // Write output topology if specified
-  if (!parmoutName_.empty()) {
-    ParmFile pfile;
-    if ( pfile.WriteTopology( setup.Top(), parmoutName_, ParmFile::AMBERPARM, 0 ) )
-      mprinterr("Error: Could not write out re-mapped topology file '%s'\n", parmoutName_.c_str());
-  }
+  topWriter_.WriteTops( setup.Top() );
+
   return Action::MODIFY_TOPOLOGY;
 }
 

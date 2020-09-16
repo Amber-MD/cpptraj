@@ -28,6 +28,7 @@
 #include "DataIO_CharmmRtfPrm.h"
 #include "DataIO_Cmatrix_Binary.h"
 #include "DataIO_Cmatrix_NC.h"
+#include "DataIO_Peaks.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -55,7 +56,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Grace File",         0,                       DataIO_Grace::WriteHelp,  DataIO_Grace::Alloc  },
   { "Gnuplot File",       0,                       DataIO_Gnuplot::WriteHelp,DataIO_Gnuplot::Alloc},
   { "Xplor File",         0,                       0,                        DataIO_Xplor::Alloc  },
-  { "OpenDX File",        0,                       DataIO_OpenDx::WriteHelp, DataIO_OpenDx::Alloc },
+  { "OpenDX File",        DataIO_OpenDx::ReadHelp, DataIO_OpenDx::WriteHelp, DataIO_OpenDx::Alloc },
   { "Amber REM log",      DataIO_RemLog::ReadHelp, 0,                        DataIO_RemLog::Alloc },
   { "Amber MDOUT file",   0,                       0,                        DataIO_Mdout::Alloc  },
   { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },
@@ -73,6 +74,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
 # else
   { "Pairwise Cache (NetCDF)", 0,                        0,          0 },
 # endif
+  { "Peaks",              0,                             0,            DataIO_Peaks::Alloc },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -94,6 +96,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { CHARMMRTFPRM, "charmmrtfprm", ".rtfprm"},
   { CMATRIX_BINARY,"cmatrix",".cmatrix" },
   { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
+  { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -113,6 +116,7 @@ const FileTypes::KeyToken DataFile::DF_WriteKeyArray[] = {
   { CMATRIX_BINARY,"cmatrix",".cmatrix" },
   { CMATRIX_NETCDF,"nccmatrix", ".nccmatrix" },
   { CHARMMRTFPRM, "charmmrtfprm", ".prm" },
+  { PEAKS,        "peaks",  ".peaks" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
@@ -268,6 +272,7 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   // Set up DataIO based on format.
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
+  dataio_->SetDebug( debug_ );
 # ifdef MPI
   // Default to TrajComm master can write.
   threadCanWrite_ = Parallel::TrajComm().Master();

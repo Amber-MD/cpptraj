@@ -32,6 +32,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Action.cpp \
         ActionFrameCounter.cpp \
         ActionList.cpp \
+        ActionTopWriter.cpp \
         Action_Align.cpp \
         Action_Angle.cpp \
         Action_AreaPerMol.cpp \
@@ -203,6 +204,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
         DataIO_OpenDx.cpp \
+        DataIO_Peaks.cpp \
         DataIO_Mdout.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
@@ -234,6 +236,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         DataSet_RemLog.cpp \
         DataSet_Topology.cpp \
         DataSet_Vector.cpp \
+        DataSet_Vector_Scalar.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
         DataSet_integer_disk.cpp \
@@ -257,6 +260,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Ewald.cpp \
         Ewald_ParticleMesh.cpp \
         Ewald_Regular.cpp \
+        Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
         Exec_CatCrd.cpp \
@@ -273,6 +277,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Exec_DataSetCmd.cpp \
         Exec_Emin.cpp \
         Exec_GenerateAmberRst.cpp \
+        Exec_Graft.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
@@ -351,6 +356,7 @@ COMMON_SOURCES= $(CLUSTER_SOURCES) \
         Parm_Tinker.cpp \
         PotentialFunction.cpp \
         PotentialTerm_Bond.cpp \
+        PotentialTerm_LJ_Coulomb.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \

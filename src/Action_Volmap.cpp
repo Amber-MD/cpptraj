@@ -3,11 +3,21 @@
 #include "Action_Volmap.h"
 #include "Constants.h" // PI
 #include "CpptrajStdio.h"
+#ifdef VOLMAP_DOUBLE
+# include "DataSet_GridDbl.h"
+# define VOLMAP_DS_T DataSet_GridDbl
+# define VOLMAP_T double
+#else
+# include "DataSet_GridFlt.h"
+# define VOLMAP_DS_T DataSet_GridFlt
+# define VOLMAP_T float
+#endif
 #ifdef _OPENMP
 # include <omp.h>
 #endif
 
-const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
+const double Action_Volmap::sqrt_8_pi_cubed_ = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
+
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
   radiiType_(UNSPECIFIED),
@@ -17,11 +27,15 @@ Action_Volmap::Action_Volmap() :
   xmin_(0.0),
   ymin_(0.0),
   zmin_(0.0),
+  debug_(0),
   Nframes_(0),
   setupGridOnMask_(false),
   spheremode_(false),
   grid_(0),
+  total_volume_(0),
+  calcpeaks_(false),
   peakfile_(0),
+  peakdata_(0),
   peakcut_(0.05),
   buffer_(3.0),
   radscale_(1.0),
@@ -40,25 +54,27 @@ void Action_Volmap::Help() const {
 }
 
 void Action_Volmap::RawHelp() const {
-  mprintf("\t[out <filename>] <mask> [radscale <factor>] [stepfac <fac>] [sphere]\n"
+  mprintf("\t[out <filename>] <mask> [radscale <factor>] [stepfac <fac>]\n"
+          "\t[sphere] [radii {vdw | element}]\n"
+          "\t[calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]\n"
           "\t{ data <existing set> |\n"
           "\t  name <setname> <dx> [<dy> <dz>]\n"
           "\t    { size <x,y,z> [center <x,y,z>] |\n"
           "\t      centermask <mask> [buffer <buffer>] |\n"
           "\t      boxref <reference> }\n"
           "\t}\n"
-          "\t[radii {vdw | element}] [peakcut <cutoff>] [peakfile <xyzfile>]\n");
+         );
 }
 
 // Action_Volmap::Init()
 Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
 # ifdef MPI
   trajComm_ = init.TrajComm();
 # endif
   // Get specific keywords
   peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
-  peakfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
   spheremode_ = actionArgs.hasKey("sphere");
   radscale_ = 1.0;
   stepfac_ = 4.1;
@@ -100,6 +116,12 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     mprinterr("\n");
     return Action::ERR;
   }
+
+# ifdef VOLMAP_DOUBLE
+  static const DataSet::DataType GridDataType = DataSet::GRID_DBL;
+# else
+  static const DataSet::DataType GridDataType = DataSet::GRID_FLT;
+# endif
 
   if (mode != DATASET) {
     Vec3 Sizes(0.0);
@@ -154,7 +176,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       return Action::ERR;
     }
     // Allocate grid dataset
-    grid_ = (DataSet_GridFlt*)init.DSL().AddSet(DataSet::GRID_FLT, setname, "VOLMAP");
+    grid_ = (VOLMAP_DS_T*)init.DSL().AddSet(GridDataType, setname, "VOLMAP");
     if (grid_ == 0) {
       mprinterr("Error: Could not create grid dataset '%s'\n", setname.c_str());
       return Action::ERR;
@@ -174,7 +196,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     }
   } else {
     // Get existing grid dataset
-    grid_ = (DataSet_GridFlt*)init.DSL().FindSetOfType( setup_arg, DataSet::GRID_FLT );
+    grid_ = (VOLMAP_DS_T*)init.DSL().FindSetOfType( setup_arg, GridDataType );
     if (grid_ == 0) {
       mprinterr("Error: Could not find grid data set with name '%s'\n",
                 setup_arg.c_str());
@@ -201,12 +223,36 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
      return Action::ERR;
   }
   if (densitymask_.SetMaskString(reqmask)) return Action::ERR;
-  // Get output filename
+  // See if peaks are being determined
+  calcpeaks_ = actionArgs.hasKey("calcpeaks");
+  peakfile_ = 0;
+  std::string pfilename = actionArgs.GetStringKey("peakfile");
+  if (!pfilename.empty()) {
+    peakfile_ = init.DFL().AddDataFile(pfilename, actionArgs);
+    if (peakfile_ == 0) {
+      mprinterr("Error: Unable to allocate peak file.\n");
+      return Action::ERR;
+    }
+    calcpeaks_ = true;
+  }
+  if (calcpeaks_) {
+    peakdata_ = init.DSL().AddSet(DataSet::VECTOR_SCALAR, MetaData(grid_->Meta().Name(), "peaks"));
+    if (peakdata_ == 0) {
+      mprinterr("Error: Unable to allocate peak data set.\n");
+      return Action::ERR;
+    }
+#   ifdef MPI
+    peakdata_->SetNeedsSync( false );
+#   endif
+    if (peakfile_ != 0) peakfile_->AddDataSet( peakdata_ );
+  }
+  // Get output filename (newer syntax)
   std::string outfilename = actionArgs.GetStringKey("out");
   if (outfilename.empty())
     outfilename = actionArgs.GetStringNext(); // Backwards compat.
   DataFile* outfile = init.DFL().AddDataFile( outfilename, actionArgs );
   if (outfile != 0) outfile->AddDataSet( grid_ );
+
   // Create total volume set
   total_volume_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(grid_->Meta().Name(), "totalvol"));
   if (total_volume_ == 0) return Action::ERR;
@@ -228,6 +274,11 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 
   // Info
   mprintf("    VOLMAP: Grid spacing will be %.2fx%.2fx%.2f Angstroms\n", dx_, dy_, dz_);
+# ifdef VOLMAP_DOUBLE
+  mprintf("\tUsing double precision grid.\n");
+# else
+  mprintf("\tUsing single precision grid.\n");
+# endif
   if (setupGridOnMask_)
     mprintf("\tGrid centered around mask %s with %.2f Ang. clearance\n",
             centermask_.MaskExpression().c_str(), buffer_);
@@ -244,13 +295,17 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tWhen smearing Gaussian, voxels farther than radii/2 will be skipped.\n");
   mprintf("\tDividing radii by %f\n", 1.0/radscale_);
   mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
+
   if (outfile != 0)
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
   mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
   mprintf("\tTotal grid volume dataset name is '%s'\n", total_volume_->legend());
-  if (peakfile_ != 0)
-    mprintf("\tDensity peaks above %.3f will be printed to %s in XYZ-format\n",
-            peakcut_, peakfile_->Filename().full());
+  if (calcpeaks_) {
+    mprintf("\tDensity peaks above %.3f will be saved to %s\n", peakcut_, peakdata_->legend());
+    if (peakfile_ != 0)
+      mprintf("\tDensity peaks will be printed to %s in XYZ format.\n",
+              peakfile_->DataFilename().full());
+  }
 # ifdef _OPENMP
   if (GRID_THREAD_.size() > 1)
     mprintf("\tParallelizing calculation with %zu threads.\n", GRID_THREAD_.size());
@@ -299,6 +354,7 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
     else
       radiiToUse = ELEMENT;
   }
+  double maxRad = 0;
   for (AtomMask::const_iterator atom = densitymask_.begin(); atom != densitymask_.end(); ++atom)
   {
     double rad = 0.0;
@@ -307,10 +363,27 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
     else if (radiiToUse == ELEMENT)
       rad = setup.Top()[*atom].ElementRadius();
     if (rad > 0.0) {
-      halfradii_.push_back( (float)(rad * radscale_ / 2) );
+      halfradii_.push_back( (double)(rad * radscale_ / 2) );
       Atoms_.push_back( *atom );
+      // For determining function range.
+      if (halfradii_.back() > maxRad) maxRad = halfradii_.back();
     }
   }
+  // Try to determine the max value we may encounter for the exponential.
+  //mprintf("\tMax observed radius: %g Ang\n", maxRad);
+  int nxstep = (int) ceil(stepfac_ * maxRad / dx_)+1;
+  int nystep = (int) ceil(stepfac_ * maxRad / dy_)+1;
+  int nzstep = (int) ceil(stepfac_ * maxRad / dz_)+1;
+  double maxx = (double)nxstep * dx_;
+  double maxy = (double)nystep * dy_;
+  double maxz = (double)nzstep * dz_;
+  double maxDist = maxx*maxx + maxy*maxy + maxz*maxz;
+  //mprintf("DEBUG: nx= %i  ny= %i  nz= %i\n", nxstep, nystep, nzstep);
+  //mprintf("DEBUG: %g %g %g %g\n", maxx, maxy, maxz, maxDist);
+  maxDist *= (-1.0 / (2.0 * maxRad * maxRad));
+  if (debug_ > 1)
+    mprintf("DEBUG: maxDist= %g\n", maxDist);
+
   if ((int)Atoms_.size() < densitymask_.Nselected())
     mprintf("Warning: %i atoms have 0.0 radii and will be skipped.\n",
             densitymask_.Nselected() - (int)Atoms_.size());
@@ -400,48 +473,53 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 # endif
   for (midx = 0; midx < maxidx; midx++) {
     double rhalf = (double)halfradii_[midx];
-      double rcut2;
-      if (spheremode_)
-        rcut2 = rhalf*rhalf;
-      else
-        rcut2 = 99999999.0;
-      atom = Atoms_[midx];
-      Vec3 pt = Vec3(frm.Frm().XYZ(atom));
-      int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
+    double rcut2;
+    if (spheremode_)
+      rcut2 = rhalf*rhalf;
+    else
+      rcut2 = 99999999.0;
+    atom = Atoms_[midx];
+    Vec3 pt = Vec3(frm.Frm().XYZ(atom));
+    int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
+    /* See how many steps in X dimension we smear out our Gaussian. This
+     * formula is taken to be consistent with VMD's volmap tool.
+     */
+    int nxstep = (int) ceil(stepfac_ * rhalf / dx_);
+    if (ix >= -nxstep && ix <= nX + nxstep) {
       int iy = (int) ( floor( (pt[1]-ymin_) / dy_ + 0.5 ) );
-      int iz = (int) ( floor( (pt[2]-zmin_) / dz_ + 0.5 ) );
-      /* See how many steps in each dimension we smear out our Gaussian. This
-       * formula is taken to be consistent with VMD's volmap tool
-       */
-      int nxstep = (int) ceil(stepfac_ * rhalf / dx_);
+      // See how many steps in Y dim we smear out Gaussian.
       int nystep = (int) ceil(stepfac_ * rhalf / dy_);
-      int nzstep = (int) ceil(stepfac_ * rhalf / dz_);
-      if (ix < -nxstep || ix > nX + nxstep ||
-          iy < -nystep || iy > nY + nystep ||
-          iz < -nzstep || iz > nZ + nzstep)
-        continue;
-      // Calculate the gaussian normalization factor (in 3 dimensions with the
-      // given half-radius)
-      double norm = 1 / (sqrt_8_pi_cubed * rhalf*rhalf*rhalf);
-      double exfac = -1.0 / (2.0 * rhalf * rhalf);
-      //mprintf("DBG: Atom %i norm %g exfac %g\n", atom+1, norm, exfac);
+      if (iy >= -nystep && iy <= nY + nystep) {
+        int iz = (int) ( floor( (pt[2]-zmin_) / dz_ + 0.5 ) );
+        // See how many steps in Z dim we smear out Gaussian.
+        int nzstep = (int) ceil(stepfac_ * rhalf / dz_);
+        if (iz >= -nzstep && iz <= nZ + nzstep) {
+          // Calculate the gaussian normalization factor (in 3 dimensions with the
+          // given half-radius)
+          double norm = 1 / (sqrt_8_pi_cubed_ * rhalf*rhalf*rhalf);
+          double exfac = -1.0 / (2.0 * rhalf * rhalf);
+          //mprintf("DBG: Atom %i norm %g exfac %g\n", atom+1, norm, exfac);
 
-      int xend = std::min(ix+nxstep, nX);
-      int yend = std::min(iy+nystep, nY);
-      int zend = std::min(iz+nzstep, nZ);
-      for (int xval = std::max(ix-nxstep, 0); xval < xend; xval++)
-        for (int yval = std::max(iy-nystep, 0); yval < yend; yval++)
-          for (int zval = std::max(iz-nzstep, 0); zval < zend; zval++) {
-            Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
-            double dist2 = gridpt.Magnitude2();
-            if (dist2 < rcut2) {
-#           ifdef _OPENMP
-            GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
-#           else
-            grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
-#           endif
-            }
-          }
+          int xend = std::min(ix+nxstep, nX);
+          int yend = std::min(iy+nystep, nY);
+          int zend = std::min(iz+nzstep, nZ);
+          for (int xval = std::max(ix-nxstep, 0); xval < xend; xval++)
+            for (int yval = std::max(iy-nystep, 0); yval < yend; yval++)
+              for (int zval = std::max(iz-nzstep, 0); zval < zend; zval++) {
+                Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
+                double dist2 = gridpt.Magnitude2();
+                if (dist2 < rcut2) {
+                  //mprintf("DEBUG: rhalf= %g  dist2= %g  exfac= %g  exp= %g\n", rhalf, dist2, exfac, exfac*dist2);
+#                 ifdef _OPENMP
+                  GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+#                 else /* OPENMP */
+                  grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+#                 endif /* OPENMP */
+                }
+              } // END loop over zval
+        } // END z dim is valid
+      } // END y dim is valid
+    } // END x dim is valid
   } // END loop over atoms in densitymask_
 # ifdef _OPENMP
   } // END pragma omp parallel
@@ -492,12 +570,12 @@ void Action_Volmap::Print() {
   CombineGridThreads();
 # endif
   // Divide our grid by the number of frames
-  float nf = (float)Nframes_;
-  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
+  VOLMAP_T nf = (VOLMAP_T)Nframes_;
+  for (VOLMAP_DS_T::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
     *gval /= nf;
   // Print volume estimate
   unsigned int nOccupiedVoxels = 0;
-  for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
+  for (VOLMAP_DS_T::iterator gval = grid_->begin(); gval != grid_->end(); ++gval) {
     if (*gval > 0.0) {
       ++nOccupiedVoxels;
       //mprintf("DBG: %16.8e\n", *gval);
@@ -512,7 +590,7 @@ void Action_Volmap::Print() {
 //                      "rdparm generated grid density" );
   
   // See if we need to write the peaks out somewhere
-  if (peakfile_ != 0) {
+  if (calcpeaks_) {
     // Extract peaks from the current grid, setup another Grid instance. This
     // works by taking every grid point and analyzing all grid points adjacent
     // to it (including diagonals). If any of those grid points have a higher 
@@ -520,11 +598,11 @@ void Action_Volmap::Print() {
     // that value is _not_ a maximum. Any density peaks less than the minimum
     // filter are discarded. The result is a Grid instance with all non-peak 
     // grid points zeroed-out.
-    Grid<float> peakgrid = grid_->InternalGrid();
+    Grid<VOLMAP_T> peakgrid = grid_->InternalGrid();
     for (size_t i = 0; i < grid_->NX(); i++)
       for (size_t j = 0; j < grid_->NY(); j++)
         for (size_t k = 0; k < grid_->NZ(); k++) {
-          float val = grid_->GridVal(i, j, k);
+          VOLMAP_T val = grid_->GridVal(i, j, k);
           if (val < peakcut_) {
             peakgrid.setGrid(i, j, k, 0.0f);
             continue;
@@ -541,29 +619,33 @@ void Action_Volmap::Print() {
               }
         }
     int npeaks = 0;
-    std::vector<double> peakdata;
+    //std::vector<double> peakdata;
+    double pbuf[4];
     for (size_t i = 0; i < peakgrid.NX(); i++)
       for (size_t j = 0; j < peakgrid.NY(); j++)
         for (size_t k = 0; k < peakgrid.NZ(); k++) {
           double gval = peakgrid.element(i, j, k);
           if (gval > 0) {
-            npeaks++;
-            peakdata.push_back(xmin_+dx_*i);
-            peakdata.push_back(ymin_+dy_*j);
-            peakdata.push_back(zmin_+dz_*k);
-            peakdata.push_back(gval);
+            //npeaks++;
+            //peakdata.push_back(xmin_+dx_*i);
+            //peakdata.push_back(ymin_+dy_*j);
+            //peakdata.push_back(zmin_+dz_*k);
+            //peakdata.push_back(gval);
+            pbuf[0] = xmin_+dx_*(double)i;
+            pbuf[1] = ymin_+dy_*(double)j;
+            pbuf[2] = zmin_+dz_*(double)k;
+            pbuf[3] = gval;
+            peakdata_->Add(npeaks++, pbuf);
           }
         }
-    // If we have peaks, open up our peak data and print it
+    // Report on how many peaks found. 
     if (npeaks > 0) {
-      peakfile_->Printf("%d\n\n", npeaks);
-      for (int i = 0; i < npeaks; i++)
-        peakfile_->Printf("C %16.8f %16.8f %16.8f %16.8f\n", peakdata[4*i],
-                       peakdata[4*i+1], peakdata[4*i+2], peakdata[4*i+3]);
       mprintf("Volmap: %d density peaks found with higher density than %.4lf\n",
               npeaks, peakcut_);
-    }else{
+    } else {
       mprintf("No peaks found with a density greater than %.3lf\n", peakcut_);
     }
   }
 }
+#undef VOLMAP_DS_T
+#undef VOLMAP_T
