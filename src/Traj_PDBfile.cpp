@@ -703,7 +703,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     if ( trajParm->Nmol() > 0 ) {
       for (Topology::mol_iterator mol = trajParm->MolStart();
                                   mol != trajParm->MolEnd(); ++mol)
-        TER_idxs_.push_back( mol->EndAtom() - 1 );
+        TER_idxs_.push_back( mol->MolUnit().Back() - 1 );
     }
   }
   TER_idxs_.push_back( -1 ); // Indicates that final TER has been written.
