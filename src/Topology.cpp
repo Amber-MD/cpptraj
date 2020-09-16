@@ -1186,6 +1186,7 @@ int Topology::SetSolvent(std::string const& maskexpr) {
   // Setup mask
   CharMask mask( maskexpr );
   SetupCharMask( mask );
+  mask.MaskInfo();
   if (mask.None()) {
     mprinterr("Error: SetSolvent [%s]: Mask %s selects no atoms.\n", c_str(), maskexpr.c_str());
     return 1;
@@ -1204,7 +1205,6 @@ int Topology::SetSolvent(std::string const& maskexpr) {
       mol->SetSolvent();
       ++NsolventMolecules_;
       numSolvAtoms += mol->NumAtoms();
-      break;
     }
   }
 
