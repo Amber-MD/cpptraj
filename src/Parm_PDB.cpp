@@ -157,10 +157,10 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     } else if ( !missingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
       missingResidues = true;
       mprintf("Warning: PDB file has MISSING RESIDUES section.\n");
-      if (readConect)
+      /*if (readConect)
         mprintf("Warning: If molecule determination fails try specifying 'noconect' instead.\n");
       if (readLink)
-        mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");
+        mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");*/
     }
   } // END loop over PDB records
   if (nAltLocSkipped > 0)
