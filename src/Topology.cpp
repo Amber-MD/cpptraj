@@ -1043,17 +1043,19 @@ int Topology::DetermineMolecules() {
     Atom const& atom = atoms_[atomIdx];
     molecules_[atom.MolNum()].ModifyUnit().AddIndex( atomIdx );
   }
-  mprintf("Molecule information:\n");
+  if (debug_ > 0) mprintf("DEBUG: Molecule segment information:\n");
   std::vector< std::vector<Molecule>::const_iterator > nonContiguousMols;
   for (std::vector<Molecule>::const_iterator mol = molecules_.begin(); mol != molecules_.end(); ++mol)
   {
     if (mol->MolUnit().nSegments() > 1)
       nonContiguousMols.push_back( mol );
-    mprintf("\t%8li %8u segments:", mol - molecules_.begin(), mol->MolUnit().nSegments());
-    for (Unit::const_iterator seg = mol->MolUnit().segBegin();
-                                       seg != mol->MolUnit().segEnd(); ++seg)
-      mprintf(" %i-%i (%i) ", seg->Begin(), seg->End(), seg->Size());
-    mprintf("\n");
+    if (debug_ > 0) {
+      mprintf("DEBUG:\t%8li %8u segments:", mol - molecules_.begin() + 1, mol->MolUnit().nSegments());
+      for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                         seg != mol->MolUnit().segEnd(); ++seg)
+        mprintf(" %i-%i (%i) ", seg->Begin()+1, seg->End(), seg->Size());
+      mprintf("\n");
+    }
   }
   if (!nonContiguousMols.empty()) {
     mprintf("Warning: %zu molecules have non-contiguous segments of atoms.\n", nonContiguousMols.size());
