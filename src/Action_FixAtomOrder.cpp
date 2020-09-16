@@ -136,12 +136,12 @@ Action::RetType Action_FixAtomOrder::PdbOrder(ActionSetup& setup) {
 /** Fix molecules that are not contiguous. */
 Action::RetType Action_FixAtomOrder::FixMolecules(ActionSetup& setup) {
   // If topology already has molecule info assume no need to reorder.
-  if (setup.Top().Nmol() > 0) {
-    mprintf("Warning: %s already has molecule information. No reordering will occur.\n"
-            "Warning: This indicates that there is no need to fix atom ordering in this topology.\n",
-            setup.Top().c_str());
-    return Action::SKIP;
-  }
+  //if (setup.Top().Nmol() > 0) {
+  //  mprintf("Warning: %s already has molecule information. No reordering will occur.\n"
+  //          "Warning: This indicates that there is no need to fix atom ordering in this topology.\n",
+  //          setup.Top().c_str());
+  //  return Action::SKIP;
+ // }
   molNums_.resize( setup.Top().Natom(), -1 );
   // Perform recursive search along bonds of each atom.
   int Nmol = 0;
