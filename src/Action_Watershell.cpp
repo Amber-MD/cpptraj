@@ -159,7 +159,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   NsolventMolecules_ = 0;
   CharMask cMask( solventMask_.ConvertToCharMask(), solventMask_.Nselected() );
   for (Topology::mol_iterator mol = setup.Top().MolStart(); mol != setup.Top().MolEnd(); ++mol)
-    if ( cMask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) )
+    if ( cMask.AtomsInCharMask( mol->MolUnit() ) )
       NsolventMolecules_++;
   // Sanity check
   if ( (NsolventMolecules_ * NAtoms_) != solventMask_.Nselected() ) {
