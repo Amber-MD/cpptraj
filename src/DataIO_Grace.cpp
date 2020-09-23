@@ -14,10 +14,9 @@ int DataIO_Grace::ReadData(FileName const& fname,
   ArgList dataline;
   int setnum = 0;
   std::vector<std::string> labels;
-  double XY[2];
+  double XY[4];
   const char* linebuffer;
   DataSetList::Darray Xvals;
-  DataSetList::DataListType inputSets(1);
   
   // Allocate and set up read buffer
   BufferedLine buffer;
@@ -39,22 +38,42 @@ int DataIO_Grace::ReadData(FileName const& fname,
         if (linebuffer == 0) return 1; // TODO: Better error
         if (linebuffer[0] != '@') return 1; // TODO: Check type
         linebuffer = buffer.Line(); // Should be first line of data.
-        DataSet_double* Yvals = new DataSet_double();
-        MetaData md(dsname, setnum);
-        if ((int)labels.size() > setnum)
-          md.SetLegend( labels[setnum] );
-        Yvals->SetMeta( md );
+        mprintf("DEBUG: First line of data: '%s'\n", linebuffer);
+        // Detect how many columns needed 
+        int ncols = sscanf(linebuffer, "%lf %lf %lf %lf", XY, XY+1, XY+2, XY+3);
+        mprintf("DEBUG: Set has %i columns.\n", ncols);
+        if (ncols < 2) {
+          mprinterr("Error: Expected at least 2 columns, got only %i\n", ncols);
+          return 1;
+        }
+        // Allocate a set for each column
+        DataSetList::DataListType inputSets;
+        inputSets.reserve(ncols-1);
+        for (int col = 1; col < ncols; col++) {
+          DataSet_double* ds = new DataSet_double();
+          inputSets.push_back( ds ); // TODO use DataSetList::Allocate()?
+          MetaData md(dsname, setnum);
+          if (ncols > 2) {
+            if (col == 1) md.SetAspect("Y");
+            else if (col == 2) md.SetAspect("Y1");
+            else if (col == 3) md.SetAspect("Y2");
+          }
+          if ((int)labels.size() > setnum)
+            md.SetLegend( labels[setnum] );
+          ds->SetMeta( md );
+        }
         Xvals.clear();
+        // Scan in data
         while (linebuffer != 0 && linebuffer[0] != '@' && 
                linebuffer[0] != '&' && linebuffer[0] != '#')
         {
-          if (sscanf(linebuffer, "%lf %lf", XY, XY+1) != 2) break;
-          Xvals.push_back(   XY[0] );
-          Yvals->AddElement( XY[1] );
+          if (sscanf(linebuffer, "%lf %lf %lf %lf", XY, XY+1, XY+2, XY+3) != ncols) break;
+          Xvals.push_back( XY[0] );
+          for (int col = 1; col < ncols; col++)
+            ((DataSet_double*)inputSets[col-1])->AddElement(XY[col]);
           linebuffer = buffer.Line();
         }
         // Should now be positioned 1 line after last data line.
-        inputSets[0] = (DataSet*)Yvals;
         if (datasetlist.AddOrAppendSets("", Xvals, inputSets)) return 1;
         ++setnum;
       } else if (dataline[0][0] == 's' || dataline[0][0] == 'S') {
