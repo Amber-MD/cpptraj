@@ -38,10 +38,10 @@ int DataIO_Grace::ReadData(FileName const& fname,
         if (linebuffer == 0) return 1; // TODO: Better error
         if (linebuffer[0] != '@') return 1; // TODO: Check type
         linebuffer = buffer.Line(); // Should be first line of data.
-        mprintf("DEBUG: First line of data: '%s'\n", linebuffer);
+        if (debug_ > 1) mprintf("DEBUG: First line of data: '%s'\n", linebuffer);
         // Detect how many columns needed 
         int ncols = sscanf(linebuffer, "%lf %lf %lf %lf", XY, XY+1, XY+2, XY+3);
-        mprintf("DEBUG: Set has %i columns.\n", ncols);
+        if (debug_ > 1) mprintf("DEBUG: Set has %i columns.\n", ncols);
         if (ncols < 2) {
           mprinterr("Error: Expected at least 2 columns, got only %i\n", ncols);
           return 1;
