@@ -53,13 +53,20 @@ int DataIO_Grace::ReadData(FileName const& fname,
           DataSet_double* ds = new DataSet_double();
           inputSets.push_back( ds ); // TODO use DataSetList::Allocate()?
           MetaData md(dsname, setnum);
+          std::string aspect;
           if (ncols > 2) {
-            if (col == 1) md.SetAspect("Y");
-            else if (col == 2) md.SetAspect("Y1");
-            else if (col == 3) md.SetAspect("Y2");
+            if (col == 1) aspect.assign("Y");
+            else if (col == 2) aspect.assign("Y1");
+            else if (col == 3) aspect.assign("Y2");
           }
-          if ((int)labels.size() > setnum)
-            md.SetLegend( labels[setnum] );
+          if (!aspect.empty())
+            md.SetAspect( aspect );
+          if ((int)labels.size() > setnum) {
+            std::string legend = labels[setnum];
+            if (!aspect.empty())
+              legend.append("." + aspect);
+            md.SetLegend( legend );
+          }
           ds->SetMeta( md );
         }
         Xvals.clear();
