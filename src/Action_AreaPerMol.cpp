@@ -77,7 +77,7 @@ Action::RetType Action_AreaPerMol::Setup(ActionSetup& setup) {
     for (Topology::mol_iterator mol = setup.Top().MolStart();
                                 mol != setup.Top().MolEnd(); ++mol)
     {
-      if (Mask1_.AtomsInCharMask(mol->BeginAtom(), mol->EndAtom()))
+      if (Mask1_.AtomsInCharMask(mol->MolUnit()))
         Nmols_ += 1.0;
     }
     mprintf("\tMask '%s' selects %.0f molecules.\n", Mask1_.MaskString(), Nmols_);

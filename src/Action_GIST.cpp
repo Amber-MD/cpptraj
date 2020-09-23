@@ -383,7 +383,8 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
                               mol != setup.Top().MolEnd(); ++mol, ++midx)
   {
     if (mol->IsSolvent()) {
-      int o_idx = mol->BeginAtom();
+      // NOTE: We assume the oxygen is the first atom!
+      int o_idx = mol->MolUnit().Front();
       #ifdef CUDA
       this->headAtomType_ = setup.Top()[o_idx].TypeIndex();
       #endif
@@ -456,16 +457,20 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       // This is a non-solvent molecule. Save atom indices. May want to exclude
       // if only 1 atom (probably ion).
       if (mol->NumAtoms() > 1 || includeIons_) {
-        for (int u_idx = mol->BeginAtom(); u_idx != mol->EndAtom(); ++u_idx) {
-          A_idxs_.push_back( u_idx );
-          atom_voxel_.push_back( SOLUTE_ );
-          NsoluteAtoms++;
-          #ifdef CUDA
-          this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
-          this->charges_.push_back( setup.Top()[ u_idx ].Charge() );
-          this->atomTypes_.push_back( setup.Top()[ u_idx ].TypeIndex() );
-          this->solvent_[ u_idx ] = false;
-          #endif
+        for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                  seg != mol->MolUnit().segEnd(); ++seg)
+        {
+          for (int u_idx = seg->Begin(); u_idx != seg->End(); ++u_idx) {
+            A_idxs_.push_back( u_idx );
+            atom_voxel_.push_back( SOLUTE_ );
+            NsoluteAtoms++;
+            #ifdef CUDA
+            this->molecule_.push_back( setup.Top()[ u_idx ].MolNum() );
+            this->charges_.push_back( setup.Top()[ u_idx ].Charge() );
+            this->atomTypes_.push_back( setup.Top()[ u_idx ].TypeIndex() );
+            this->solvent_[ u_idx ] = false;
+            #endif
+          }
         }
       }
     }

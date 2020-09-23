@@ -43,16 +43,16 @@ Exec::RetType Exec_SplitCoords::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Topology for '%s' has less than 2 molecules.\n", CRD->legend());
     return CpptrajState::ERR;
   }
-  int molNatoms = -1;
+  unsigned int molNatoms = 0;
   int molNres = -1;
   for (Topology::mol_iterator mol = topIn.MolStart(); mol != topIn.MolEnd(); ++mol)
   {
-    int nres = topIn[mol->BeginAtom()].ResNum() - topIn[mol->EndAtom()-1].ResNum() + 1;
-    if (molNatoms == -1) {
+    int nres = topIn.NresInMol(mol-topIn.MolStart());
+    if (molNatoms == 0) {
       molNatoms = mol->NumAtoms();
       molNres = nres;
     } else if (molNatoms != mol->NumAtoms()) {
-      mprinterr("Error: Molecule %li has different number of atoms (%i) than first molecule (%i)\n",
+      mprinterr("Error: Molecule %li has different number of atoms (%u) than first molecule (%u)\n",
                 mol - topIn.MolStart() + 1, mol->NumAtoms(), molNatoms);
       return CpptrajState::ERR;
     } else if (molNres != nres) {
@@ -67,7 +67,7 @@ Exec::RetType Exec_SplitCoords::Execute(CpptrajState& State, ArgList& argIn)
   Topology* topOut = 0;
   for (Topology::mol_iterator mol = topIn.MolStart(); mol != topIn.MolEnd(); ++mol)
   {
-    Masks.push_back( AtomMask(mol->BeginAtom(), mol->EndAtom()) );
+    Masks.push_back( AtomMask(mol->MolUnit()) );
     // Set total number of atoms
     Masks.back().SetNatoms( topIn.Natom() );
     // First time around set up the output topology.

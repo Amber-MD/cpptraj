@@ -1,6 +1,7 @@
 #ifndef INC_CHARMASK_H
 #define INC_CHARMASK_H
 #include "MaskToken.h"
+class Unit;
 /// Atom mask using character array.
 /** This is the original way to use the atom mask, useful e.g. when 
   * you need to know what atoms are not selected as well as what atoms
@@ -23,6 +24,8 @@ class CharMask : public MaskTokenArray {
     bool AtomInCharMask(int) const;
     /// \return true if any atoms within given range are selected.
     bool AtomsInCharMask(int,int) const;
+    /// \return true if any atoms of the unit are selected.
+    bool AtomsInCharMask(Unit const&) const;
     /// \return Integer array of selected atoms.
     std::vector<int> ConvertToIntMask() const;
     /// \return size of char mask

@@ -64,6 +64,8 @@ class Topology {
     inline mol_iterator MolStart() const { return molecules_.begin(); }
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
+    /// \return number of residues in the specified molecule.
+    int NresInMol(int) const;
     /// Determine molecules based on bond information
     int DetermineMolecules();
     // ----- Bond-specific routines --------------
@@ -165,7 +167,7 @@ class Topology {
     // ----- Setup routines ----------------------
     int AddTopAtom(Atom const&, Residue const&);
     void AddExtraAtomInfo(AtomExtra const& ex) { extra_.push_back(ex); } // FIXME bounds check
-    void StartNewMol();
+    //void StartNewMol();
     /// Perform common final setup: optional molecule determination, excluded distance
     int CommonSetup(bool, int);
     /// Perform common final setup: optional molecule determination

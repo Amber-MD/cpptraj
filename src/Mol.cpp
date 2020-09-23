@@ -7,44 +7,55 @@
 Mol::Marray Mol::UniqueCount(Topology const& top, std::vector<int> const& molNums)
 {
   Marray mols;
-  // Hold begin residue for each molecule type
-  Iarray Res0;
-  // Hold end residue for each molecule type
-  Iarray Res1;
+  // Loop over all molecule numbers
   for (std::vector<int>::const_iterator mnum = molNums.begin();
                                         mnum != molNums.end(); ++mnum)
   {
     Molecule const& CurMol = top.Mol(*mnum);
-    // Has this molecule been seen before?
+    // Has this molecule been seen before? Check # atoms and residues.
     int natom = CurMol.NumAtoms();
-    int res0 = top[ CurMol.BeginAtom() ].ResNum(); // CurMol first residue
-    int res1 = top[ CurMol.EndAtom()-1 ].ResNum(); // CurMol last residue
-    int nres = res1 - res0 + 1;
+    int nres  = top.NresInMol(*mnum);
+    std::string curName = top.Res(top[ CurMol.MolUnit().Front() ].ResNum()).Name().Truncated();
     int matchIdx = -1;
     for (int idx = 0; idx != (int)mols.size(); idx++)
     {
-      // First check number of atoms, then number residues, then residue names.
+      // First check number of atoms, then number residues.
       if ( mols[idx].natom_ == natom ) {
         if ( mols[idx].nres_ == nres ) {
-          matchIdx = idx;
-          int cridx = res0; // current molecule residue index
-          for (int rridx = Res0[idx]; rridx <= Res1[idx]; rridx++, cridx++)
-          {
-            if ( top.Res(rridx).Name() != top.Res(cridx).Name() ) {
-              // Residue name mismatch.
-              matchIdx = -1;
-              break;
-            }
-          } // END loop over all residues
-        }
-      }
+          Molecule const& PrevMol = top.Mol( mols[idx].idxs_.front() );
+          // Check that # segments match
+          if ( CurMol.MolUnit().nSegments() == PrevMol.MolUnit().nSegments() ) {
+            matchIdx = idx;
+            // Now check that residue names in CurMol match those in PrevMol
+            for (unsigned int iseg = 0; iseg != CurMol.MolUnit().nSegments(); iseg++)
+            {
+              int curRes0  = top[ CurMol.MolUnit()[iseg].Begin()  ].ResNum();
+              int curRes1  = top[ CurMol.MolUnit()[iseg].End()-1  ].ResNum();
+              int prevRes0 = top[ PrevMol.MolUnit()[iseg].Begin() ].ResNum();
+              int prevRes1 = top[ PrevMol.MolUnit()[iseg].End()-1 ].ResNum();
+              if (curRes1 - curRes0 != prevRes1 - prevRes0) {
+                matchIdx = -1;
+                break;
+              }
+              while (curRes0 <= curRes1) {
+                if (top.Res(curRes0).Name() != top.Res(prevRes0).Name()) {
+                  // Residue name mismatch.
+                  matchIdx = -1;
+                  iseg = CurMol.MolUnit().nSegments();
+                  break;
+                }
+                curRes0++;
+                prevRes0++;
+              }
+            } // END loop over segments
+          } // END # segments match 
+        } // END # residues match
+      } // END # atoms match
       if (matchIdx != -1) break;
     } // END loop over found molecule types
     if (matchIdx == -1) {
       // New molecule
-      mols.push_back( Type(*mnum, natom, nres, top.Res(res0).Name().Truncated()) );
-      Res0.push_back( res0 );
-      Res1.push_back( res1 );
+      mols.push_back( Type(*mnum, natom, nres, curName) );
     } else {
       // Existing molecule. Update count.
       mols[matchIdx].UpdateCount(*mnum);

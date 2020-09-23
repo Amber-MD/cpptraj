@@ -118,95 +118,105 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   for (Topology::mol_iterator mol = setup.Top().MolStart();
                               mol != setup.Top().MolEnd(); ++mol)
   {
-    if (!mol->IsSolvent() && mask_.AtomsInCharMask(mol->BeginAtom(), mol->EndAtom()))
+    if (!mol->IsSolvent() && mask_.AtomsInCharMask(mol->MolUnit()))
     {
       if (debug_ > 0)
         mprintf("  Mol %zu\n", mol - setup.Top().MolStart() + 1);
-      std::vector<bool> Visited(mol->NumAtoms(), false);
-      int offset = mol->BeginAtom();
-      // First mark any atoms not in the mask as visited.
-      for (int at = mol->BeginAtom(); at != mol->EndAtom(); ++at)
-        if (!mask_.AtomInCharMask( at ))
-          Visited[at - offset] = true;
-      // Search for the start of lipid chains
-      for (int at = mol->BeginAtom(); at != mol->EndAtom(); ++at)
+      // Array to keep track of visited atoms. Since molecules do not need
+      // to be contiguous have the array correspond to all atoms. Initially
+      // set it up so that all atoms are visited.
+      std::vector<bool> Visited(setup.Top().Natom(), true);
+      // Mark any atoms in the mask as not visited.
+      for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                seg != mol->MolUnit().segEnd(); ++seg)
       {
-        if (!Visited[at - offset]) {
-          Atom const& atom = setup.Top()[at];
-          if (atom.Element() == Atom::CARBON) {
-            // Should be bonded to two oxygens and 1 carbon
-            int n_O = 0;
-            int n_C = 0;
-            int C_idx = 0;
-            for (Atom::bond_iterator bnd = atom.bondbegin();
-                                     bnd != atom.bondend(); ++bnd)
-            {
-              if (setup.Top()[*bnd].Element() == Atom::OXYGEN)
-                n_O++;
-              else if (setup.Top()[*bnd].Element() == Atom::CARBON) {
-                n_C++;
-                C_idx = *bnd;
-              } else {
-                n_O = 0;
-                n_C = 0;
-                break;
-              }
-            }
-            if (n_O == 2 && n_C == 1 && mask_.AtomInCharMask(C_idx)) {
-              nChains++;
-              Visited[at - offset] = true;
-              // Determine if this is a new or existing chain type by first
-              // carbon residue name and carboxyl carbon atom name.
-              int cresnum = setup.Top()[C_idx].ResNum();
-              int chainIdx = FindChain( Npair(setup.Top().Res(cresnum).Name(), atom.Name()) );
-              ChainType& Chain = Chains_[chainIdx];
-              // Starting at the bonded carbon follow the chain down
-              if (debug_ > 0)
-                mprintf("DEBUG: Lipid chain type %i (%zu atoms) starting at"
-                        " (but not including) %s\n", chainIdx, Chains_[chainIdx].size(),
-                        setup.Top().TruncResAtomName(at).c_str());
-              int position = 0;
-              std::stack<int> nextAtom;
-              nextAtom.push( C_idx );
-              while (!nextAtom.empty()) {
-                int current_at = nextAtom.top();
-                nextAtom.pop();
-                Visited[current_at - offset] = true;
-                Atom const& curr_atm = setup.Top()[current_at];
-                // Add carbon if it does not yet exist in chain.
-                if (position >= (int)Chain.size())
-                  Chain.resize( position+1 );
-                CarbonData& Cdata = Chain[position];
-                if (!Cdata.Init())
-                  Cdata.SetName( curr_atm.Name() );
-                else if (Cdata.Name() != curr_atm.Name())
-                  mprintf("Warning: Atom name %s at position %i (#%i) does not match %s\n",
-                          *(curr_atm.Name()), position+1, current_at+1, Cdata.name());
-                // Add site
-                Sites_.push_back( CarbonSite(current_at, chainIdx, position) );
-                CarbonSite& site = Sites_.back();
-                if (debug_ > 1)
-                  mprintf("\t\t%i %s %s %i %i\n", position,
-                          setup.Top().TruncResAtomNameNum(current_at).c_str(),
-                          Cdata.name(), current_at, chainIdx);
-                // Loop over atoms bonded to this carbon, add hydrogens to site
-                for (Atom::bond_iterator bnd = setup.Top()[current_at].bondbegin();
-                                         bnd != setup.Top()[current_at].bondend(); ++bnd)
-                {
-                  if (setup.Top()[*bnd].Element() == Atom::HYDROGEN)
-                    site.AddHindex( *bnd );
-                  else if (!Visited[*bnd - offset] &&
-                           setup.Top()[*bnd].Element() == Atom::CARBON)
-                    nextAtom.push( *bnd );
+        for (int at = seg->Begin(); at != seg->End(); ++at)
+          if (mask_.AtomInCharMask( at ))
+            Visited[at] = false;
+      }
+      // Search for the start of lipid chains
+      for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                seg != mol->MolUnit().segEnd(); ++seg)
+      {
+        for (int at = seg->Begin(); at != seg->End(); ++at)
+        {
+          if (!Visited[at]) {
+            Atom const& atom = setup.Top()[at];
+            if (atom.Element() == Atom::CARBON) {
+              // Should be bonded to two oxygens and 1 carbon
+              int n_O = 0;
+              int n_C = 0;
+              int C_idx = 0;
+              for (Atom::bond_iterator bnd = atom.bondbegin();
+                                       bnd != atom.bondend(); ++bnd)
+              {
+                if (setup.Top()[*bnd].Element() == Atom::OXYGEN)
+                  n_O++;
+                else if (setup.Top()[*bnd].Element() == Atom::CARBON) {
+                  n_C++;
+                  C_idx = *bnd;
+                } else {
+                  n_O = 0;
+                  n_C = 0;
+                  break;
                 }
-                // Update number of hydrogens in carbon data
-                Cdata.SetNumH( site.NumH() );
-                position++;
-              } // END loop over atom number stack
-            } // END carbon is carboxyl
-          } // END if carbon
-        } // END if selected
-      } // END loop over molecule atoms
+              }
+              if (n_O == 2 && n_C == 1 && mask_.AtomInCharMask(C_idx)) {
+                nChains++;
+                Visited[at] = true;
+                // Determine if this is a new or existing chain type by first
+                // carbon residue name and carboxyl carbon atom name.
+                int cresnum = setup.Top()[C_idx].ResNum();
+                int chainIdx = FindChain( Npair(setup.Top().Res(cresnum).Name(), atom.Name()) );
+                ChainType& Chain = Chains_[chainIdx];
+                // Starting at the bonded carbon follow the chain down
+                if (debug_ > 0)
+                  mprintf("DEBUG: Lipid chain type %i (%zu atoms) starting at"
+                          " (but not including) %s\n", chainIdx, Chains_[chainIdx].size(),
+                          setup.Top().TruncResAtomName(at).c_str());
+                int position = 0;
+                std::stack<int> nextAtom;
+                nextAtom.push( C_idx );
+                while (!nextAtom.empty()) {
+                  int current_at = nextAtom.top();
+                  nextAtom.pop();
+                  Visited[current_at] = true;
+                  Atom const& curr_atm = setup.Top()[current_at];
+                  // Add carbon if it does not yet exist in chain.
+                  if (position >= (int)Chain.size())
+                    Chain.resize( position+1 );
+                  CarbonData& Cdata = Chain[position];
+                  if (!Cdata.Init())
+                    Cdata.SetName( curr_atm.Name() );
+                  else if (Cdata.Name() != curr_atm.Name())
+                    mprintf("Warning: Atom name %s at position %i (#%i) does not match %s\n",
+                            *(curr_atm.Name()), position+1, current_at+1, Cdata.name());
+                  // Add site
+                  Sites_.push_back( CarbonSite(current_at, chainIdx, position) );
+                  CarbonSite& site = Sites_.back();
+                  if (debug_ > 1)
+                    mprintf("\t\t%i %s %s %i %i\n", position,
+                            setup.Top().TruncResAtomNameNum(current_at).c_str(),
+                            Cdata.name(), current_at, chainIdx);
+                  // Loop over atoms bonded to this carbon, add hydrogens to site
+                  for (Atom::bond_iterator bnd = setup.Top()[current_at].bondbegin();
+                                           bnd != setup.Top()[current_at].bondend(); ++bnd)
+                  {
+                    if (setup.Top()[*bnd].Element() == Atom::HYDROGEN)
+                      site.AddHindex( *bnd );
+                    else if (!Visited[*bnd] &&
+                             setup.Top()[*bnd].Element() == Atom::CARBON)
+                      nextAtom.push( *bnd );
+                  }
+                  // Update number of hydrogens in carbon data
+                  Cdata.SetNumH( site.NumH() );
+                  position++;
+                } // END loop over atom number stack
+              } // END carbon is carboxyl
+            } // END if carbon
+          } // END if selected
+        } // END loop over molecule segment atoms
+      } // END loop over molecule segments
     } // END mol not solvent and some of mol selected
   } // END loop over molecules
 
