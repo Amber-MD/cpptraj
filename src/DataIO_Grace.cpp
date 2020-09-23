@@ -17,6 +17,7 @@ int DataIO_Grace::ReadData(FileName const& fname,
   double XY[4];
   const char* linebuffer;
   DataSetList::Darray Xvals;
+  std::string xlabel;
   
   // Allocate and set up read buffer
   BufferedLine buffer;
@@ -68,6 +69,10 @@ int DataIO_Grace::ReadData(FileName const& fname,
             md.SetLegend( legend );
           }
           ds->SetMeta( md );
+          //if (!xlabel.empty()) {
+          //  mprintf("DEBUG: Set x dim label to %s\n", xlabel.c_str());
+          //  ds->ModifyDim(Dimension::X).SetLabel( xlabel );
+          //}
         }
         Xvals.clear();
         // Scan in data
@@ -81,8 +86,12 @@ int DataIO_Grace::ReadData(FileName const& fname,
           linebuffer = buffer.Line();
         }
         // Should now be positioned 1 line after last data line.
-        if (datasetlist.AddOrAppendSets("", Xvals, inputSets)) return 1;
+        if (datasetlist.AddOrAppendSets(xlabel, Xvals, inputSets)) return 1;
+        xlabel.clear();
         ++setnum;
+      } else if (dataline.CommandIs("xaxis")) {
+        xlabel = dataline.GetStringKey("label");
+        linebuffer = buffer.Line();
       } else if (dataline[0][0] == 's' || dataline[0][0] == 'S') {
         // Set command
         if (dataline.Nargs() == 3 && dataline[1] == "legend" && !dataline[2].empty())
