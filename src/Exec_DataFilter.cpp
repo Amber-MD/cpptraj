@@ -111,7 +111,7 @@ Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
       State.DSL().RemoveSet( SetToBeFiltered );
     DataSetList::DataListType inputSets(1);
     inputSets[0] = FilteredSet;
-    State.DSL().AddOrAppendSets( SetToBeFiltered->Dim(0).Label(), Xvals.Data(), inputSets );
+    State.DSL().AddOrAppendSets( FilteredSet->Dim(0).Label(), Xvals.Data(), inputSets );
   } 
   // Trigger master datafile write just in case
   State.MasterDataFileWrite();
