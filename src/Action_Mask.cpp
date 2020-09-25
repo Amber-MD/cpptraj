@@ -4,6 +4,7 @@
 // CONSTRUCTOR
 Action_Mask::Action_Mask() :
   outfile_(0),
+  nselected_(0),
   fnum_(0),
   anum_(0),
   aname_(0),
@@ -82,9 +83,12 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
     writeTraj_ = false;
   // Get Mask
   if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
-  // Set up data sets
+  // Set up Nselected data set
+  if (dsname.empty()) dsname = init.DSL().GenerateDefaultName("MASK");
+  nselected_ = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname));
+  if (nselected_ == 0) return Action::ERR;
+  // Set up additional data sets
   if (!dsname.empty() || !dsout.empty()) {
-    if (dsname.empty()) dsname = init.DSL().GenerateDefaultName("MASK");
     MetaData::tsType ts = MetaData::NOT_TS; // None are a straight time series
     fnum_  = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname, "Frm",   ts));
     anum_  = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname, "AtNum", ts));
@@ -141,6 +145,8 @@ Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
             Mask1_.MaskString());
     return Action::ERR;
   }
+  int nAt = Mask1_.Nselected();
+  nselected_->Add(frameNum, &nAt);
   // Print out information for every atom in the mask
   for (int atom=0; atom < CurrentParm_->Natom(); atom++) {
     if (Mask1_.AtomInCharMask(atom)) {
