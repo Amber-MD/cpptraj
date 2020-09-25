@@ -19,8 +19,8 @@ Action_Mask::Action_Mask() :
 
 void Action_Mask::Help() const {
   mprintf("\t<mask1> [maskout <filename>] [out <filename>] [nselectedout <filename>]\n"
-          "\t[ {maskpdb <filename> | maskmol2 <filename>}\n"
-          "\t  [trajargs <comma-separated args>] ]\n"
+          "\t[name <setname>] [ {maskpdb <filename> | maskmol2 <filename>}\n"
+          "\t                   [trajargs <comma-separated args>] ]\n"
           "  Print atoms selected by <mask1> to file specified by 'maskout' and/or\n"
           "  the PDB or Mol2 file specified by 'maskpdb' or 'maskmol2'. Additional\n"
           "  trajectory arguments can be specified in a comma-separated list via\n"
