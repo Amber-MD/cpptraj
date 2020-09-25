@@ -4,6 +4,7 @@
 // CONSTRUCTOR
 Action_Mask::Action_Mask() :
   outfile_(0),
+  nselected_(0),
   fnum_(0),
   anum_(0),
   aname_(0),
@@ -17,13 +18,17 @@ Action_Mask::Action_Mask() :
 {} 
 
 void Action_Mask::Help() const {
-  mprintf("\t<mask1> [maskout <filename>]\n"
-          "\t[ {maskpdb <filename> | maskmol2 <filename>}\n"
-          "\t  [trajargs <comma-separated args>] ]\n"
+  mprintf("\t<mask1> [maskout <filename>] [out <filename>] [nselectedout <filename>]\n"
+          "\t[name <setname>] [ {maskpdb <filename> | maskmol2 <filename>}\n"
+          "\t                   [trajargs <comma-separated args>] ]\n"
           "  Print atoms selected by <mask1> to file specified by 'maskout' and/or\n"
           "  the PDB or Mol2 file specified by 'maskpdb' or 'maskmol2'. Additional\n"
           "  trajectory arguments can be specified in a comma-separated list via\n"
-          "  the 'trajargs' keyword. Good for distance-based masks.\n");
+          "  the 'trajargs' keyword. Good for distance-based masks.\n"
+          "  If 'out' is specified, the file will contain for each selected atom\n"
+          "  the frame, atom number, atom name, residue number, residue name, and\n"
+          "  molecule number. If 'nselectedout' is specified, the file will contain\n"
+          "  the total number of atoms selected each frame.\n");
 }
 
 // Action_Mask::Init()
@@ -46,12 +51,8 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
   std::string maskmol2 = actionArgs.GetStringKey("maskmol2");
   std::string dsname = actionArgs.GetStringKey("name");
   std::string dsout = actionArgs.GetStringKey("out");
+  std::string nSelectedArg = actionArgs.GetStringKey("nselectedout");
   std::string additionalTrajArgs = actionArgs.GetStringKey("trajargs");
-  // At least 1 of maskout, maskpdb, maskmol2, or name must be specified.
-  if (outfile_ == 0 && maskpdb.empty() && maskmol2.empty() && dsname.empty()) {
-    mprinterr("Error: At least one of maskout, maskpdb, maskmol2, or name must be specified.\n");
-    return Action::ERR;
-  }
   // Set up any trajectory options
   TrajectoryFile::TrajFormatType trajFmt = TrajectoryFile::PDBFILE;
   if (!maskpdb.empty() || !maskmol2.empty()) {
@@ -82,9 +83,17 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
     writeTraj_ = false;
   // Get Mask
   if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
-  // Set up data sets
+  // Set up Nselected data set
+  if (dsname.empty()) dsname = init.DSL().GenerateDefaultName("MASK");
+  nselected_ = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname));
+  if (nselected_ == 0) return Action::ERR;
+  DataFile* nSelectedOut = 0;
+  if (!nSelectedArg.empty()) {
+    nSelectedOut = init.DFL().AddDataFile( nSelectedArg, actionArgs );
+    nSelectedOut->AddDataSet( nselected_ );
+  }
+  // Set up additional data sets
   if (!dsname.empty() || !dsout.empty()) {
-    if (dsname.empty()) dsname = init.DSL().GenerateDefaultName("MASK");
     MetaData::tsType ts = MetaData::NOT_TS; // None are a straight time series
     fnum_  = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname, "Frm",   ts));
     anum_  = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname, "AtNum", ts));
@@ -141,6 +150,8 @@ Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
             Mask1_.MaskString());
     return Action::ERR;
   }
+  int nAt = Mask1_.Nselected();
+  nselected_->Add(frameNum, &nAt);
   // Print out information for every atom in the mask
   for (int atom=0; atom < CurrentParm_->Natom(); atom++) {
     if (Mask1_.AtomInCharMask(atom)) {
