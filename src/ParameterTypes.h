@@ -567,17 +567,14 @@ class ChamberParmType {
     typedef std::vector<std::string> Sarray;
   public:
     ChamberParmType() {}
-    bool                     HasCmap()      const { return !cmapGrid_.empty(); }
+
     Sarray            const& Description()  const { return chmff_desc_;   }
     BondArray         const& UB()           const { return ub_;           }
     BondParmArray     const& UBparm()       const { return ubparm_;       }
     DihedralArray     const& Impropers()    const { return impropers_;    }
     DihedralParmArray const& ImproperParm() const { return improperparm_; }
     NonbondArray      const& LJ14()         const { return lj14_;         }
-    CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
-    CmapArray         const& Cmap()         const { return cmap_;         }
     NonbondType& SetLJ14(int idx)                 { return lj14_[idx];    }
-    CmapGridType& SetCmapGrid(int idx)            { return cmapGrid_[idx];}
     /// Set expected number of LJ14 terms TODO combine with SetVersion?
     void SetNLJ14terms(int n)                 { lj14_.assign( n, NonbondType() ); }
     void AddDescription(std::string const& s) { chmff_desc_.push_back( s );       }
@@ -594,19 +591,15 @@ class ChamberParmType {
     void ResizeImproperParm(unsigned int n)           { improperparm_.resize( n );   }
     DihedralParmType& SetImproperParm(unsigned int i) { return improperparm_[i];     }
     DihedralParmArray& SetImproperParm()              { return improperparm_;        }
-    void AddCmapGrid(CmapGridType const& g) { cmapGrid_.push_back(g); }
-    void AddCmapTerm(CmapType const& c)     { cmap_.push_back(c);     }
     void Clear() {
       chmff_desc_.clear(); ub_.clear(); ubparm_.clear();
       impropers_.clear(); improperparm_.clear(); lj14_.clear();
-      cmapGrid_.clear(); cmap_.clear();
     }
     /// \return true if any CHARMM parameters are set (based on indices).
     bool HasChamber() const {
       if (!ub_.empty()) return true;
       if (!impropers_.empty()) return true;
       if (!lj14_.empty()) return true;
-      if (!cmap_.empty()) return true;
       return false;
     }
   private:
@@ -616,7 +609,5 @@ class ChamberParmType {
     DihedralArray impropers_;        ///< Improper terms
     DihedralParmArray improperparm_; ///< Improper parameters
     NonbondArray lj14_;              ///< Lennard-Jones 1-4 parameters
-    CmapArray cmap_;                 ///< Hold atom indices and CMAP grid index
-    CmapGridArray cmapGrid_;         ///< Hold CMAP grids
 };
 #endif

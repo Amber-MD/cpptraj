@@ -310,6 +310,9 @@ COMMON_SOURCES= \
         HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
+        Image_List_Mask.cpp \
+        Image_List_Pair.cpp \
+        Image_List_Unit.cpp \
         InputTrajCommon.cpp \
         KDE.cpp \
         MapAtom.cpp \

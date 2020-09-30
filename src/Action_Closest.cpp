@@ -160,7 +160,7 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     for (Topology::mol_iterator Mol = setup.Top().MolStart();
                                 Mol != setup.Top().MolEnd(); ++Mol)
     {
-      if ( solventMask_.AtomsInCharMask(Mol->BeginAtom(), Mol->EndAtom()) ) {
+      if ( solventMask_.AtomsInCharMask(Mol->MolUnit()) ) {
         IsSolventMol.push_back( true );
         nSolvent++;
       } else
@@ -214,44 +214,46 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   int molnum = 1;
   int newnatom = 0;
   int nclosest = 0;
-  int NsolventAtoms = -1;
+  unsigned int NsolventAtoms = 0;
   keptWaterAtomNum_.resize(closestWaters_);
   for (Topology::mol_iterator Mol = setup.Top().MolStart();
                               Mol != setup.Top().MolEnd(); ++Mol, ++isSolvent)
   {
     if ( !(*isSolvent) ) {
       // Not solvent, add to solute mask.
-      stripMask_.AddAtomRange( Mol->BeginAtom(), Mol->EndAtom() );
+      stripMask_.AddUnit( Mol->MolUnit() );
       newnatom += Mol->NumAtoms();
     } else {
       // Solvent, check for same # of atoms.
-      if (NsolventAtoms == -1)
+      if (NsolventAtoms == 0)
         NsolventAtoms = Mol->NumAtoms();
       else if ( NsolventAtoms != Mol->NumAtoms() ) {
         mprinterr("Error: Solvent molecules in '%s' are not of uniform size.\n"
-                  "Error:   First solvent mol = %i atoms, solvent mol %i = %i atoms.\n",
-                  setup.Top().c_str(), NsolventAtoms, molnum, (*Mol).NumAtoms());
+                  "Error:   First solvent mol = %u atoms, solvent mol %i = %u atoms.\n",
+                  setup.Top().c_str(), NsolventAtoms, molnum, Mol->NumAtoms());
         return Action::ERR;
       }
       // mol here is the output molecule number which is why it starts from 1.
       mdist->mol = molnum;
       // Entire solvent molecule mask
-      mdist->mask.AddAtomRange( Mol->BeginAtom(), Mol->EndAtom() );
+      mdist->mask.AddUnit( Mol->MolUnit() );
       // Atoms in the solvent molecule to actually calculate distances to.
       if (firstAtom_) {
-        mdist->solventAtoms.assign(1, Mol->BeginAtom() );
+        mdist->solventAtoms.assign(1, Mol->MolUnit().Front() );
       } else {
         mdist->solventAtoms.clear();
         mdist->solventAtoms.reserve( Mol->NumAtoms() );
-        for (int svatom = Mol->BeginAtom(); svatom < Mol->EndAtom(); svatom++)
-          if (solventMask_.AtomInCharMask(svatom))
-            mdist->solventAtoms.push_back( svatom );
+        for (Unit::const_iterator seg = Mol->MolUnit().segBegin();
+                                  seg != Mol->MolUnit().segEnd(); ++seg)
+          for (int svatom = seg->Begin(); svatom < seg->End(); svatom++)
+            if (solventMask_.AtomInCharMask(svatom))
+              mdist->solventAtoms.push_back( svatom );
       }
       // For solvent molecules that will be kept, record what the atom number
       // will be in the new stripped parm.
       if (nclosest < closestWaters_) {
         keptWaterAtomNum_[nclosest] = newnatom;
-        stripMask_.AddAtomRange( Mol->BeginAtom(), Mol->EndAtom() );
+        stripMask_.AddUnit( Mol->MolUnit() );
         newnatom += Mol->NumAtoms();
         ++nclosest;
       }

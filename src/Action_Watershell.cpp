@@ -133,7 +133,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
     for (Topology::mol_iterator mol = setup.Top().MolStart();
                                 mol != setup.Top().MolEnd(); ++mol)
       if ( mol->IsSolvent() )
-        solventMask_.AddAtomRange( mol->BeginAtom(), mol->EndAtom() );
+        solventMask_.AddUnit( mol->MolUnit() );
     mprintf("\tSelecting all solvent atoms (%i total)\n", solventMask_.Nselected());
   }
   if ( solventMask_.None() ) {
@@ -159,7 +159,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   NsolventMolecules_ = 0;
   CharMask cMask( solventMask_.ConvertToCharMask(), solventMask_.Nselected() );
   for (Topology::mol_iterator mol = setup.Top().MolStart(); mol != setup.Top().MolEnd(); ++mol)
-    if ( cMask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) )
+    if ( cMask.AtomsInCharMask( mol->MolUnit() ) )
       NsolventMolecules_++;
   // Sanity check
   if ( (NsolventMolecules_ * NAtoms_) != solventMask_.Nselected() ) {

@@ -526,20 +526,27 @@ Action::RetType Action_XtalSymm::Setup(ActionSetup& setup)
       // separately and remove them from the list of individual atoms to remove.
       nMolecule_ = setup.Top().Nmol();
       molLimits_.clear();
-      molLimits_.reserve(2 * nMolecule_);
+      molLimits_.reserve(nMolecule_);
       molInSolvent_.assign(nMolecule_, true);
       for (i = 0; i < nMolecule_; i++) {
-        molLimits_.push_back( setup.Top().Mol(i).BeginAtom() );
-        molLimits_.push_back( setup.Top().Mol(i).EndAtom()   );
-        for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
-          if (LoneAtoms[j] == 0) {
-            molInSolvent_[i] = false;
+        molLimits_.push_back( setup.Top().Mol(i).MolUnit() );
+        for (Unit::const_iterator seg = molLimits_.back().segBegin();
+                                  seg != molLimits_.back().segEnd(); ++seg)
+        {
+          for (j = seg->Begin(); j < seg->End(); j++) {
+            if (LoneAtoms[j] == 0) {
+              molInSolvent_[i] = false;
+            }
           }
         }
         if (molInSolvent_[i]) {
-          for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
-            LoneAtoms[j] = 0;
-            MoleAtoms[j] = 1;
+          for (Unit::const_iterator seg = molLimits_.back().segBegin();
+                                    seg != molLimits_.back().segEnd(); ++seg)
+          {
+            for (j = seg->Begin(); j < seg->End(); j++) {
+              LoneAtoms[j] = 0;
+              MoleAtoms[j] = 1;
+            }
           }
         }
       }
@@ -865,7 +872,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
         if (molInSolvent_[i]) {
 
           // Re-image the entire molecule
-          double x = 0.0;
+          Vec3 xyz = frm.Frm().VGeometricCenter( molLimits_[i] );
+          /*double x = 0.0;
           double y = 0.0;
           double z = 0.0;
           for (j = molLimits_[2*i]; j < molLimits_[2*i + 1]; j++) {
@@ -876,24 +884,26 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
           double dfac = 1.0 / (double)(molLimits_[2*i + 1] - molLimits_[2*i]);
           x *= dfac;
           y *= dfac;
-          z *= dfac;
-          frm.ModifyFrm().Translate(Vec3(0.5 - round(x), 0.5 - round(y), 0.5 - round(z)),
-                                    molLimits_[2*i], molLimits_[2*i + 1]);
-          x += 0.5 - round(x);
-          y += 0.5 - round(y);
-          z += 0.5 - round(z);
+          z *= dfac;*/
+          frm.ModifyFrm().Translate(Vec3(0.5 - round(xyz[0]),
+                                         0.5 - round(xyz[1]),
+                                         0.5 - round(xyz[2])),
+                                    molLimits_[i]);
+          xyz[0] += 0.5 - round(xyz[0]);
+          xyz[1] += 0.5 - round(xyz[1]);
+          xyz[2] += 0.5 - round(xyz[2]);
           
           // Use the grid to determine the asymmetric unit (if the grid says "operation -1",
           // an intensive search will be done to find the correct ASU)
-          int gidx = (int)(x * DASU_GRID_BINS_);
-          int gidy = (int)(y * DASU_GRID_BINS_);
-          int gidz = (int)(z * DASU_GRID_BINS_);
+          int gidx = (int)(xyz[0] * DASU_GRID_BINS_);
+          int gidy = (int)(xyz[1] * DASU_GRID_BINS_);
+          int gidz = (int)(xyz[2] * DASU_GRID_BINS_);
           gidx = (gidx*IASU_GRID_BINS_ + gidy)*IASU_GRID_BINS_ + gidz;
-          TransOp Vm = (AsuGrid_[gidx].opID_ == -1) ? DetectAsuResidence(x, y, z) :
+          TransOp Vm = (AsuGrid_[gidx].opID_ == -1) ? DetectAsuResidence(xyz[0], xyz[1], xyz[2]) :
                                                     AsuGrid_[gidx];
           frm.ModifyFrm().Translate(Vec3(Vm.tr_x_, Vm.tr_y_, Vm.tr_z_) - T_[Vm.opID_],
-                                    molLimits_[2*i], molLimits_[2*i + 1]);
-          frm.ModifyFrm().Rotate(Rinv_[Vm.opID_], molLimits_[2*i], molLimits_[2*i + 1]);
+                                    molLimits_[i]);
+          frm.ModifyFrm().Rotate(Rinv_[Vm.opID_], molLimits_[i]);
         }
       }
       frm.ModifyFrm().Rotate(U, SolventMolecules_);

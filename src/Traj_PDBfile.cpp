@@ -237,7 +237,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tchainid <c>     : Write character 'c' in chain ID column.\n"
           "\tsg <group>      : Space group for CRYST1 record, only if box coordinates written.\n"
           "\tinclude_ep      : Include extra points.\n"
-          "\tconect          : Write CONECT records using bond information.\n"
+          "\tconect          : Write CONECT records using bond information (if 'pdbres', only for HETATM).\n"
+          "\tconectmode <m>  : Write CONECT records for <m>='all' (all bonds), 'het' (HETATM only), 'none' (no CONECT).\n"
           "\tkeepext         : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
           "\tusecol21        : Use column 21 for 4-letter residue names.\n"
           "\tbfacdefault <#> : Default value to use in B-factor column (default 0).\n"
@@ -291,6 +292,20 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     conectMode_ = HETATM_ONLY;
   else
     conectMode_ = NO_CONECT;
+  // Override conect mode
+  std::string conectmode = argIn.GetStringKey("conectmode");
+  if (!conectmode.empty()) {
+    if (conectmode == "all")
+      conectMode_ = ALL_BONDS;
+    else if (conectmode == "het")
+      conectMode_ = HETATM_ONLY;
+    else if (conectmode == "none")
+      conectMode_ = NO_CONECT;
+    else {
+      mprinterr("Error: Unrecognized keyword for 'conectmode': %s\n", conectmode.c_str());
+      return 1;
+    }
+  }
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
@@ -472,7 +487,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   resIsHet_.reserve( trajParm->Nres() );
   ss_residues_.clear();
   ss_atoms_.clear();
-  if (pdbres_) {
+  if (pdbres_ || conectMode_ == HETATM_ONLY) {
     Iarray cys_idxs_; ///< Hold CYS residue indices
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
@@ -536,7 +551,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
           else if (rname[0] == 'C') rname=" DC ";
         }
       }
-      resNames_.push_back( rname );
+      if (pdbres_)
+        resNames_.push_back( rname );
+      else
+        resNames_.push_back( res->Name() );
       // Any non-standard residue should get HETATM
       if ( rname == "CYS " )
         // NOTE: Comparing to CYS works here since HETATM_ONLY is only active
@@ -685,7 +703,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     if ( trajParm->Nmol() > 0 ) {
       for (Topology::mol_iterator mol = trajParm->MolStart();
                                   mol != trajParm->MolEnd(); ++mol)
-        TER_idxs_.push_back( mol->EndAtom() - 1 );
+        TER_idxs_.push_back( mol->MolUnit().Back() - 1 );
     }
   }
   TER_idxs_.push_back( -1 ); // Indicates that final TER has been written.

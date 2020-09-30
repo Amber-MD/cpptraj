@@ -415,7 +415,20 @@ void Frame::SetMass(std::vector<Atom> const& atoms) {
       Mass_[i] = atoms[i].Mass();
   }
 }
-  
+
+/** Copy from firstAtom to lastAtom in tgtIn to this Frame. */
+void Frame::CopyFrom(Frame const& tgtIn, int firstAtom, int lastAtom)
+{
+  int i3 = firstAtom * 3;
+  std::copy( tgtIn.xAddress()+i3, tgtIn.xAddress()+(lastAtom*3), xAddress()+i3 );
+}
+
+/** Copy unit in tgtIn to this Frame. */
+void Frame::CopyFrom(Frame const& tgtIn, Unit const& unit) {
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+    CopyFrom( tgtIn, seg->Begin(), seg->End() );
+}
+
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
 /** \return True if reallocation of coordinate arrray must occur based on 
   *         given number of atoms.

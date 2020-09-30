@@ -15596,7 +15596,7 @@ Options for pdb format
 \end_layout
 
 \begin_layout LyX-Code
-  [include_ep] [conect] [keepext] [usecol21]
+  [include_ep] [conect] [conectmode <m>] [keepext] [usecol21]
 \end_layout
 
 \begin_layout LyX-Code
@@ -15696,6 +15696,15 @@ include_ep Include extra points.
 
 \begin_layout Description
 conect Write CONECT records for all bonds.
+\end_layout
+
+\begin_layout Description
+conectmode
+\begin_inset space ~
+\end_inset
+
+<m> Write CONECT records for <m>='all' (all bonds), 'het' (HETATM only),
+ 'none' (no CONECT).
 \end_layout
 
 \begin_layout Description
@@ -27797,15 +27806,15 @@ mask
 
 \end_inset
 
- <mask> [maskout <filename>]
+ <mask> [maskout <filename>] [out <filename>] [nselectedout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-     [ {maskpdb <filename> | maskmol2 <filename>}
+     [name <setname>] [ {maskpdb <filename> | maskmol2 <filename>}
 \end_layout
 
 \begin_layout LyX-Code
-       [trajargs <comma-separated args>] ]
+                        [trajargs <comma-separated args>] ]
 \end_layout
 
 \begin_deeper
@@ -27819,6 +27828,31 @@ maskout
 \end_inset
 
 <filename> Write information on atoms in <mask> to <filename>.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<filename> Write the frame, atom number, atom name, residue number, residue
+ name, and molecule number for each selected atom to file.
+\end_layout
+
+\begin_layout Description
+nselectedout
+\begin_inset space ~
+\end_inset
+
+<filename> Write the total number of selected atoms to file.
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<setname> Name for output data sets.
 \end_layout
 
 \begin_layout Description
@@ -27848,6 +27882,38 @@ trajargs
 
 args> When writing output PDB/Mol2, additional trajectory arguments to pass
  to the output trajectory.
+\end_layout
+
+\begin_layout Standard
+DataSets Created
+\end_layout
+
+\begin_layout Description
+<name> Number of atoms selected each frame.
+\end_layout
+
+\begin_layout Description
+<name>[Frm] Frame number for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[AtNum] Atom number for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Aname] Atom name for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Rnum] Residue number for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Rname] Residue name for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Mnum] Molecule number for each selected atom.
 \end_layout
 
 \end_deeper

@@ -70,9 +70,9 @@ int ForLoop_mask::SetupFor(CpptrajState& State, ArgList& argIn) {
         else {
           int res;
           if (mtype_ == MOLFIRSTRES)
-            res = (*currentTop)[ currentTop->Mol( mol ).BeginAtom() ].ResNum();
+            res = (*currentTop)[ currentTop->Mol( mol ).MolUnit().Front() ].ResNum();
           else // MOLLASTRES
-            res = (*currentTop)[ currentTop->Mol( mol ).EndAtom()-1 ].ResNum();
+            res = (*currentTop)[ currentTop->Mol( mol ).MolUnit().Back()-1 ].ResNum();
           Idxs_.push_back( res );
         }
         curMol = mol;
