@@ -168,12 +168,12 @@ class Topology {
     int AddTopAtom(Atom const&, Residue const&);
     void AddExtraAtomInfo(AtomExtra const& ex) { extra_.push_back(ex); } // FIXME bounds check
     //void StartNewMol();
-    /// Perform common final setup: optional molecule determination, excluded distance
-    int CommonSetup(bool, int);
-    /// Perform common final setup: optional molecule determination
-    int CommonSetup(bool);
-    /// Perform common final setup with molecule determination on.
-    int CommonSetup() { return CommonSetup(true); }
+    /// Perform common final setup: optional molecule determination, excluded distance, renumber residues by molecules
+    int CommonSetup(bool, int, bool);
+    /// Perform common final setup: optional molecule determination, renumber residues by molecules
+    int CommonSetup(bool, bool);
+    /// Perform common final setup with molecule determination on, renumber residues off.
+    int CommonSetup() { return CommonSetup(true, false); }
     void ResetPDBinfo();
     int Setup_NoResInfo();
     /// Resize for given numbers of atoms/residues etc. Clears any existing data.

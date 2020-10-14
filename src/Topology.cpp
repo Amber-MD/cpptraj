@@ -356,13 +356,20 @@ void Topology::StartNewMol() {
   residues_.back().SetTerminal( true );
 }*/
 
-/** Common setup with common excluded distance. */
-int Topology::CommonSetup(bool molsearch) {
-  return CommonSetup(molsearch, 4);
+/** Common setup with common excluded distance of 4. */
+int Topology::CommonSetup(bool molsearch, bool renumberResidues) {
+  return CommonSetup(molsearch, 4, renumberResidues);
 }
 
 // Topology::CommonSetup()
-int Topology::CommonSetup(bool molsearch, int excludedDist) {
+/** Set up common to all topologies.
+  * \param molsearch If true, determine molecules based on bond info.
+  * \param excludedDist Number of atoms to use when determining exclusion list.
+  * \param renumberResidues If true, renumber residues if any residue is part of more than 1 molecule
+  *        e.g. when alternate locations are present.
+  */
+int Topology::CommonSetup(bool molsearch, int excludedDist, bool renumberResidues)
+{
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
@@ -372,9 +379,18 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
     if (DetermineMolecules())
       mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
   }
-  // Check that molecules do not share residue numbers. Only when bond searching.
-  // FIXME always check? 
-  if (!molecules_.empty() && molecules_.size() > 1) {
+  // DEBUG : Current residue info
+  if (debug_ > 1) {
+    mprintf("DEBUG: Current residue info (%zu).\n", residues_.size());
+    for (std::vector<Residue>::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
+    {
+      mprintf("DEBUG:\t\t%8li %6s orig=%8i atoms %8i to %8i\n", res-residues_.begin(),
+              *(res->Name()), res->OriginalResNum(), res->FirstAtom(), res->LastAtom());
+    }
+  }
+  // Check if any molecules share residue numbers. If so and if specified,
+  // base residue information on molecules.
+  if (renumberResidues && !molecules_.empty() && molecules_.size() > 1) {
     bool mols_share_residues = (molecules_.size() > residues_.size());
     if (!mols_share_residues) {
       // More in-depth check
@@ -385,20 +401,16 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
         int m1_resnum = atoms_[    mol->MolUnit().Front()].ResNum();
         if (m0_resnum == m1_resnum) {
           mols_share_residues = true;
-          unsigned int molnum = mol - molecules_.begin();
-          mprintf("Warning: 2 or more molecules (%u and %u) share residue numbers (%i).\n",
+          long int molnum = mol - molecules_.begin();
+          mprintf("Warning: 2 or more molecules (%li and %li) share residue numbers (%i).\n",
                   molnum, molnum+1, m0_resnum+1);
           break;
         }
       }
     }
     if (mols_share_residues) {
-      //if (bondsearch)
-        mprintf("Warning:   Either residue information is incorrect or molecule determination"
-                " was inaccurate.\n");
-      //else
-      //  mprintf("Warning: Residue information appears to be incorrect.\n");
-      mprintf("Warning:   Basing residue information on molecules.\n");
+      mprintf("Warning:   This usually happens when alternate locations for atoms are present.\n"
+              "Warning:   Basing residue information on molecules.\n");
       std::vector<Residue> newResArray;
       unsigned int res_first_atom = 0;
       while (res_first_atom < atoms_.size()) {
@@ -426,7 +438,8 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
                   res->OriginalResNum(), res->Icode());
 
     }
-  }
+  } // END renumber residues based on molecules
+
   // Set up solvent information
   if (SetSolventInfo())
     mprinterr("Error: Could not determine solvent information for %s.\n", c_str());

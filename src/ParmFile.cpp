@@ -116,8 +116,12 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   }
   double bondoffset = argIn.getKeyDouble("bondsearch", -1.0);
   bool molsearch = !argIn.hasKey("nomolsearch");
+  bool renumberResidues = argIn.hasKey("renumresidues");
   if (!molsearch)
     mprintf("\tDisabling molecule search. Topology will have no molecule info.\n");
+  if (renumberResidues)
+    mprintf("\tIf any residue corresponds to more than 1 molecule, residues will be renumbered\n"
+            "\t  according to molecule information.\n");
   // Only force bond search when 'bondsearch' is specified.
 //  bool bondsearch = false;
 //  if (argIn.Contains("bondsearch")) {
@@ -148,7 +152,7 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   int err = parmio->ReadParm( parmName_.Full(), Top);
   // Perform setup common to all parm files.
   if (err == 0) 
-    err = Top.CommonSetup( molsearch );
+    err = Top.CommonSetup( molsearch, renumberResidues );
   else
     mprinterr("Error reading topology file '%s'\n", parmName_.full());
   delete parmio;
