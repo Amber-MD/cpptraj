@@ -78,6 +78,29 @@ int ParmFile::ReadTopology(Topology& t, FileName const& n, int d) {
   return ReadTopology(t, n, ArgList(), d);
 }
 
+/** Keywords for ReadTopology() */
+const char* ParmFile::ReadTopologyKeywords() {
+  return
+  "\t [{ nobondsearch |\n"
+  "\t    [bondsearch <offset>] [searchtype {grid|pairlist}]\n"
+  "\t  }] [nomolsearch] [renumresidues]\n";
+}
+
+/** More detailed help for ReadTopology() */
+const char* ParmFile::ReadTopologyHelp() {
+  return
+  "  For topologies that may not have bond information, 'bondsearch <offset>'\n"
+  "  controls the offset that will be added to atom-atom distances when\n"
+  "  searching for bonds (default 0.2 Ang), and 'searchtype' specifies\n"
+  "  alternative (and still experimental) algorithms that can be used in\n"
+  "  place of the usual bond search algorithm.\n"
+  "  ** ADVANCED OPTIONS - NOT RECOMMENDED FOR GENERAL USE. **\n"
+  "  The 'nobondsearch' keyword can be specified to skip searching for bonds.\n"
+  "  The 'nomolsearch' keyword can be specified to skip molecule determintation via bonds.\n"
+  "  The 'renumresidues' keyword can be specified to ensure that any residue cannot\n"
+  "  be part of more than 1 molecule (can occur with e.g. alternate sites).\n";
+}
+
 // ParmFile::ReadTopology()
 int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn, 
                            ArgList const& argListIn, int debugIn) 
