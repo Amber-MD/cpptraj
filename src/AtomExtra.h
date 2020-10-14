@@ -19,6 +19,8 @@ class AtomExtra {
     void SetItree(NameType const& t) { itree_ = t;          }
     void SetJoin(int j)              { join_ = j;           }
     void SetIrotat(int i)            { irotat_ = i;         }
+    void SetBfactor(float f)         { bfactor_ = f;        }
+    void SetOccupancy(float f)       { occupancy_ = f;      }
   private:
     // Amber extra info.
     NameType itree_;

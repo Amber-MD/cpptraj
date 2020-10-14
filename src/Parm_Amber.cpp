@@ -59,7 +59,7 @@ static const char* F5E16 = "%FORMAT(5E16.8)";
 static const char* F3I8  = "%FORMAT(3I8)";
 static const char* F1a80 = "%FORMAT(1a80)";
 static const char* F1I8  = "%FORMAT(1I8)";
-/// Constant strings for Amber parm flags and fortran formats.
+/// Constant strings for Amber parm flags and fortran formats. Enumerated by FlagType
 const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "POINTERS",                   F10I8 }, ///< Described above in topValues
   { "ATOM_NAME",                  F20a4 }, ///< Atom names
@@ -132,14 +132,17 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "CHARMM_CMAP_INDEX",                  "%FORMAT(6I8)" }, // Atom i,j,k,l,m of cross term and idx
   { "FORCE_FIELD_TYPE",                   "%FORMAT(i2,a78)"},// NOTE: Cannot use with SetFortranType
   // PDB extra info
-  { "RESIDUE_NUMBER", "%FORMAT(20I4)" }, // PDB residue number
-  { "RESIDUE_CHAINID", F20a4 }, // PDB chain ID
-  { "RESIDUE_ICODE", F20a4 },   // PDB residue insertion code
-  { "ATOM_ALTLOC", F20a4 },     // PDB atom alt location indicator FIXME: format is guess
-  { "CMAP_COUNT",                  "%FORMAT(2I8)" }, // # CMAP terms, # unique CMAP params
-  { "CMAP_RESOLUTION",             "%FORMAT(20I4)"}, // # steps along each Phi/Psi CMAP axis
+  { "RESIDUE_NUMBER", "%FORMAT(20I4)" },                // PDB residue number
+  { "RESIDUE_CHAINID", F20a4 },                         // PDB chain ID
+  { "RESIDUE_ICODE", F20a4 },                           // PDB residue insertion code
+  { "ATOM_ALTLOC", F20a4 },                             // PDB atom alt location indicator FIXME: format is guess
+  { "ATOM_BFACTOR", "%FORMAT(10F8.2)"},                 // PDB atom B-factors
+  { "ATOM_OCCUPANCY", "%FORMAT(10F8.2)"},               // PDB atom occupancies
+  // CHARMM CMAP
+  { "CMAP_COUNT",                  "%FORMAT(2I8)" },    // # CMAP terms, # unique CMAP params
+  { "CMAP_RESOLUTION",             "%FORMAT(20I4)"},    // # steps along each Phi/Psi CMAP axis
   { "CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
-  { "CMAP_INDEX",                  "%FORMAT(6I8)" }, // Atom i,j,k,l,m of cross term and idx
+  { "CMAP_INDEX",                  "%FORMAT(6I8)" },    // Atom i,j,k,l,m of cross term and idx
   { 0, 0 }
 };
 
@@ -467,6 +470,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
             case F_PDB_ICODE: err = ReadPdbIcode(TopIn, FMT); break;
             case F_PDB_ALT:   err = ReadPdbAlt(TopIn, FMT); break;
+            case F_PDB_BFAC:  err = ReadPdbBfactor(TopIn, FMT); break;
+            case F_PDB_OCC:   err = ReadPdbOccupancy(TopIn, FMT); break;
             // CHAMBER
             case F_FF_TYPE:   err = ReadChamberFFtype(TopIn, FMT); break;
             case F_CHM_UBC:   err = ReadChamberUBCount(TopIn, FMT); break;
@@ -1110,6 +1115,20 @@ int Parm_Amber::ReadPdbAlt(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_PDB_ALT, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
     TopIn.SetExtraAtomInfo(idx).SetAltLoc( *(file_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbBfactor(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_PDB_BFAC, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetExtraAtomInfo(idx).SetBfactor( atof(file_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbOccupancy(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_PDB_OCC, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetExtraAtomInfo(idx).SetOccupancy( atof(file_.NextElement()) );
   return 0;
 }
 
