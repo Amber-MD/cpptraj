@@ -57,18 +57,22 @@ class Topology {
     void SetJoinArray(int idx, int j)                           { ijoin_[idx] = j;  }
     void SetRotateArray(int idx, int r)                         { irotat_[idx] = r; }
     // ----- PDB info ----------------------------
-    std::vector<char> const& AtomAltLoc() const { return atom_altloc_; }
-    std::vector<float> const& Occupancy() const { return occupancy_;   }
-    std::vector<float> const& Bfactor()   const { return bfactor_;     }
-    void AllocAtomAltLoc() { atom_altloc_.assign(atoms_.size(), ' '); }
-    void AllocOccupancy()  { occupancy_.assign(atoms_.size(), 1.0);   }
-    void AllocBfactor()    { bfactor_.assign(atoms_.size(), 0.0);     }
-    void SetAtomAltLoc(int idx, char a) { atom_altloc_[idx] = a; }
-    void SetOccupancy(int idx, float o) { occupancy_[idx] = o;   }
-    void SetBfactor(int idx, float b)   { bfactor_[idx] = b;     }
-    void AddAtomAltLoc(char a) { atom_altloc_.push_back( a ); }
-    void AddOccupancy(float o) { occupancy_.push_back( o ); }
-    void AddBfactor(float b)   { bfactor_.push_back( b ); }
+    std::vector<char> const& AtomAltLoc()  const { return atom_altloc_;  }
+    std::vector<float> const& Occupancy()  const { return occupancy_;    }
+    std::vector<float> const& Bfactor()    const { return bfactor_;      }
+    std::vector<int> const& PdbSerialNum() const { return pdbSerialNum_; }
+    void AllocAtomAltLoc()   { atom_altloc_.assign(atoms_.size(), ' '); }
+    void AllocOccupancy()    { occupancy_.assign(atoms_.size(), 1.0);   }
+    void AllocBfactor()      { bfactor_.assign(atoms_.size(), 0.0);     }
+    void AllocPdbSerialNum() { pdbSerialNum_.assign(atoms_.size(), -1); }
+    void SetAtomAltLoc(int idx, char a)  { atom_altloc_[idx] = a;  }
+    void SetOccupancy(int idx, float o)  { occupancy_[idx] = o;    }
+    void SetBfactor(int idx, float b)    { bfactor_[idx] = b;      }
+    void SetPdbSerialNum(int idx, int i) { pdbSerialNum_[idx] = i; }
+    void AddAtomAltLoc(char a)  { atom_altloc_.push_back( a );  }
+    void AddOccupancy(float o)  { occupancy_.push_back( o );    }
+    void AddBfactor(float b)    { bfactor_.push_back( b );      }
+    void AddPdbSerialNum(int i) { pdbSerialNum_.push_back( i ); }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -297,6 +301,7 @@ class Topology {
     std::vector<char> atom_altloc_;  ///< Atom alternate location ID
     std::vector<float> occupancy_;   ///< Atom occupancy
     std::vector<float> bfactor_;     ///< Atom B-factor
+    std::vector<int> pdbSerialNum_;  ///< Atom PDB original serial number
 
     Box parmBox_;
     Frame refCoords_;       ///< Internal reference coords for distance-based masks

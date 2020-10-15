@@ -387,7 +387,8 @@ int Topology::CommonSetup(bool molsearch, int excludedDist, bool renumberResidue
   if (CheckExtraSize(irotat_.size(), "Amber rotate")) return 1;
   if (CheckExtraSize(atom_altloc_.size(), "PDB alt. loc.")) return 1;
   if (CheckExtraSize(occupancy_.size(), "PDB occupancy")) return 1;
-  if (CheckExtraSize(bfactor_.size(), "PDB Bfactor")) return 1; 
+  if (CheckExtraSize(bfactor_.size(), "PDB Bfactor")) return 1;
+  if (CheckExtraSize(pdbSerialNum_.size(), "PDB serial #")) return 1;
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
@@ -552,6 +553,7 @@ void Topology::Resize(Pointers const& pIn) {
   atom_altloc_.clear();
   occupancy_.clear();
   bfactor_.clear();
+  pdbSerialNum_.clear();
   parmBox_.SetNoBox();
   refCoords_ = Frame();
   ipol_ = 0;
@@ -1664,6 +1666,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   TopVecStrip<int> stripInt;
   stripInt.Strip(newParm->ijoin_, ijoin_, MapIn);
   stripInt.Strip(newParm->irotat_, irotat_, MapIn);
+  stripInt.Strip(newParm->pdbSerialNum_, pdbSerialNum_, MapIn);
   TopVecStrip<char> stripChar;
   stripChar.Strip(newParm->atom_altloc_, atom_altloc_, MapIn);
   TopVecStrip<float> stripFloat;
@@ -2100,6 +2103,7 @@ int Topology::AppendTop(Topology const& NewTop) {
   TopVecAppend<int> appendInt;
   appendInt.Append( ijoin_, NewTop.ijoin_, NewTop.Natom() );
   appendInt.Append( irotat_, NewTop.irotat_, NewTop.Natom() );
+  appendInt.Append( pdbSerialNum_, NewTop.pdbSerialNum_, NewTop.Natom() );
   TopVecAppend<char> appendChar;
   appendChar.Append( atom_altloc_, NewTop.atom_altloc_, NewTop.Natom() );
   TopVecAppend<float> appendFloat;
