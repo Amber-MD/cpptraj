@@ -138,6 +138,7 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "ATOM_ALTLOC", F20a4 },                             // PDB atom alt location indicator FIXME: format is guess
   { "ATOM_BFACTOR", "%FORMAT(10F8.2)"},                 // PDB atom B-factors
   { "ATOM_OCCUPANCY", "%FORMAT(10F8.2)"},               // PDB atom occupancies
+  { "ATOM_NUMBER", F10I8},                              // PDB original atom serial #s
   // CHARMM CMAP
   { "CMAP_COUNT",                  "%FORMAT(2I8)" },    // # CMAP terms, # unique CMAP params
   { "CMAP_RESOLUTION",             "%FORMAT(20I4)"},    // # steps along each Phi/Psi CMAP axis
@@ -472,6 +473,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_PDB_ALT:   err = ReadPdbAlt(TopIn, FMT); break;
             case F_PDB_BFAC:  err = ReadPdbBfactor(TopIn, FMT); break;
             case F_PDB_OCC:   err = ReadPdbOccupancy(TopIn, FMT); break;
+            case F_PDB_NUM:   err = ReadPdbNumbers(TopIn, FMT); break;
             // CHAMBER
             case F_FF_TYPE:   err = ReadChamberFFtype(TopIn, FMT); break;
             case F_CHM_UBC:   err = ReadChamberUBCount(TopIn, FMT); break;
@@ -1138,6 +1140,14 @@ int Parm_Amber::ReadPdbOccupancy(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+int Parm_Amber::ReadPdbNumbers(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocPdbSerialNum();
+  if (SetupBuffer(F_PDB_NUM, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetPdbSerialNum(idx, atoi(file_.NextElement()) );
+  return 0;
+}
+
 // ----- CHAMBER ---------------------------------
 static inline int fftype_err(const char* ptr, const char* Flag) {
   if (ptr == 0) {
@@ -1697,10 +1707,13 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // Determine if atoms have bfactors and/or occupancy.
   bool hasBfac = !TopOut.Bfactor().empty();
   bool hasOcc  = !TopOut.Occupancy().empty();
+  bool hasNum  = !TopOut.PdbSerialNum().empty();
   if (hasBfac)
     mprintf("\tTopology has atomic B-factors.\n");
   if (hasOcc)
     mprintf("\tTopology has atomic occupancies.\n");
+  if (hasNum)
+    mprintf("\tTopology has original PDB serial numbers.\n");
   // Determine max residue size. Also determine if extra info needs to be
   // written such as PDB residue number, chain ID, etc.
   // Since original res num gets set no matter what, only print out
@@ -1732,6 +1745,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       mprintf("\tnopdbinfo : Not writing atomic B-factors.\n");
     if (hasOcc)
       mprintf("\tnopdbinfo : Not writing atomic occupancies.\n");
+    if (hasNum)
+      mprintf("\tnopdbinfo : Not writing original PDB serial numbers.\n");
     if (hasOrigResNums)
       mprintf("\tnopdbinfo : Not writing alternative residue numbering.\n");
     if (hasChainID)
@@ -1743,6 +1758,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     hasIcodes = false;
     hasBfac = false;
     hasOcc = false;
+    hasNum = false;
   }
 
   // Determine value of ifbox
@@ -2358,6 +2374,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     for (std::vector<float>::const_iterator it = TopOut.Bfactor().begin();
                                             it != TopOut.Bfactor().end(); ++it)
       file_.DblToBuffer( *it );
+    file_.FlushBuffer();
+  }
+  if (hasNum) {
+    // PDB original serial numbers
+    if (BufferAlloc(F_PDB_NUM, TopOut.Natom())) return 1;
+    for (std::vector<int>::const_iterator it = TopOut.PdbSerialNum().begin();
+                                          it != TopOut.PdbSerialNum().end(); ++it)
+      file_.IntToBuffer( *it );
     file_.FlushBuffer();
   }
   return 0;

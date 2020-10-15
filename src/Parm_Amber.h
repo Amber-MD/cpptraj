@@ -37,7 +37,7 @@ class Parm_Amber : public ParmIO {
       F_CHM_IMPFC,    F_CHM_IMPP,  F_LJ14A,     F_LJ14B,    F_CHM_CMAPC,
       F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,  F_PDB_RES,
       F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT,   F_PDB_BFAC, F_PDB_OCC,
-      F_CMAPC,        F_CMAPR,     F_CMAPP,     F_CMAPI
+      F_PDB_NUM,      F_CMAPC,     F_CMAPR,     F_CMAPP,    F_CMAPI
     };
     /// Used to hold %FLAG/FORMAT string pairs. Corresponds to FlagType.
     struct ParmFlag {
@@ -114,6 +114,7 @@ class Parm_Amber : public ParmIO {
     int ReadPdbAlt(Topology&, FortranData const&);
     int ReadPdbBfactor(Topology&, FortranData const&);
     int ReadPdbOccupancy(Topology&, FortranData const&);
+    int ReadPdbNumbers(Topology&, FortranData const&);
     // CHAMBER
     int ReadChamberFFtype(Topology&, FortranData const&);
     int ReadChamberUBCount(Topology&, FortranData const&);
