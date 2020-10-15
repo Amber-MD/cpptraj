@@ -66,6 +66,9 @@ class Topology {
     void SetAtomAltLoc(int idx, char a) { atom_altloc_[idx] = a; }
     void SetOccupancy(int idx, float o) { occupancy_[idx] = o;   }
     void SetBfactor(int idx, float b)   { bfactor_[idx] = b;     }
+    void AddAtomAltLoc(char a) { atom_altloc_.push_back( a ); }
+    void AddOccupancy(float o) { occupancy_.push_back( o ); }
+    void AddBfactor(float b)   { bfactor_.push_back( b ); }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -227,6 +230,7 @@ class Topology {
     static inline DihedralType SetTorsionParmIndex(DihedralType const&,
                                                    DihedralParmArray const&,
                                                    int, const char*);
+    inline bool CheckExtraSize(size_t, const char*) const;
 
     void VisitAtom(int, int);
     int RecursiveMolSearch();

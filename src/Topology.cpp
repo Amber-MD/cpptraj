@@ -361,6 +361,17 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues) {
   return CommonSetup(molsearch, 4, renumberResidues);
 }
 
+/** Check the given size. If not # atoms, return true (error). */
+bool Topology::CheckExtraSize(size_t sizeIn, const char* desc)
+const
+{
+  if (sizeIn > 0 && sizeIn != atoms_.size()) {
+    mprinterr("Error: Size of the %s array (%zu) is not # atoms (%zu)\n", desc, sizeIn, atoms_.size());
+    return true;
+  }
+  return false;
+}
+
 // Topology::CommonSetup()
 /** Set up common to all topologies.
   * \param molsearch If true, determine molecules based on bond info.
@@ -370,6 +381,13 @@ int Topology::CommonSetup(bool molsearch, bool renumberResidues) {
   */
 int Topology::CommonSetup(bool molsearch, int excludedDist, bool renumberResidues)
 {
+  // Check the size of any "extra" arrays
+  if (CheckExtraSize(tree_.size(), "Amber tree")) return 1;
+  if (CheckExtraSize(ijoin_.size(), "Amber join")) return 1;
+  if (CheckExtraSize(irotat_.size(), "Amber rotate")) return 1;
+  if (CheckExtraSize(atom_altloc_.size(), "PDB alt. loc.")) return 1;
+  if (CheckExtraSize(occupancy_.size(), "PDB occupancy")) return 1;
+  if (CheckExtraSize(bfactor_.size(), "PDB Bfactor")) return 1; 
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
