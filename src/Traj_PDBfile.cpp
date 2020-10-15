@@ -746,6 +746,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         case VDW:   Bfactors_.push_back( trajParm->GetVDWradius(iat) ); break;
       }
     }
+  } else if (!trajParm->Bfactor().empty()) {
+    Bfactors_.reserve( trajParm->Natom() );
+    for (std::vector<float>::const_iterator it = trajParm->Bfactor().begin(); it != trajParm->Bfactor().end(); ++it)
+      Bfactors_.push_back( *it );
   }
   Occupancy_.clear();
   if (occdata_ != 0) {
@@ -757,6 +761,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     // Set up charges
     for (Topology::atom_iterator atm = trajParm->begin(); atm != trajParm->end(); ++atm)
       Occupancy_.push_back( atm->Charge() );
+  } else if (!trajParm->Occupancy().empty()) {
+    Occupancy_.reserve( trajParm->Natom() );
+    for (std::vector<float>::const_iterator it = trajParm->Occupancy().begin(); it != trajParm->Occupancy().end(); ++it)
+      Occupancy_.push_back( *it );
   }
   // If no default occupancy set it to 1
   if (occdefault_ < 0) occdefault_ = 1.0;
@@ -855,11 +863,12 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         rectype = PDBfile::HETATM;
       else
         rectype = PDBfile::ATOM;
-      if (!pdbTop_->Extra().empty()) {
-        Occ  = pdbTop_->Extra()[aidx].Occupancy();
-        Bfac = pdbTop_->Extra()[aidx].Bfactor();
-        altLoc = pdbTop_->Extra()[aidx].AtomAltLoc();
-      }
+      if (!pdbTop_->Occupancy().empty())
+        Occ = pdbTop_->Occupancy()[aidx];
+      if (!pdbTop_->Bfactor().empty())
+        Bfac = pdbTop_->Bfactor()[aidx];
+      if (!pdbTop_->AtomAltLoc().empty())
+        altLoc = pdbTop_->AtomAltLoc()[aidx];
       if (!Bfactors_.empty())
         Bfac = (float) Bfactors_[aidx];
       if (!Occupancy_.empty())
