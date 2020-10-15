@@ -1633,7 +1633,22 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
         Excluded.push_back( (*ex) + 1 );
     }
   }
- 
+
+  // Determine if atoms have bfactors and/or occupancy.
+  bool hasBfac = false;
+  bool hasOcc  = false;
+  for (Topology::extra_iterator at = TopOut.extraBegin(); at != TopOut.extraEnd(); ++at)
+  {
+    if (at->Bfactor() > 0.0)
+      hasBfac = true;
+    if (at->Occupancy() > 0.0)
+      hasOcc = true;
+    if (hasBfac && hasOcc) break;
+  }
+  if (hasBfac)
+    mprintf("\tTopology has atomic B-factors.\n");
+  if (hasOcc)
+    mprintf("\tTopology has atomic occupancies.\n");
   // Determine max residue size. Also determine if extra info needs to be
   // written such as PDB residue number, chain ID, etc.
   // Since original res num gets set no matter what, only print out
@@ -1659,7 +1674,12 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     mprintf("\tTopology has chain IDs.\n");
   if (hasIcodes)
     mprintf("\tTopology has residue insertion codes.\n");
+  // Turn PDB info off if specified
   if (!writePdbInfo_) {
+    if (hasBfac)
+      mprintf("\tnopdbinfo : Not writing atomic B-factors.\n");
+    if (hasOcc)
+      mprintf("\tnopdbinfo : Not writing atomic occupancies.\n");
     if (hasOrigResNums)
       mprintf("\tnopdbinfo : Not writing alternative residue numbering.\n");
     if (hasChainID)
@@ -1669,6 +1689,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     hasOrigResNums = false;
     hasChainID = false;
     hasIcodes = false;
+    hasBfac = false;
+    hasOcc = false;
   }
 
   // Determine value of ifbox
@@ -2286,6 +2308,20 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       icode[0] = res->Icode();
       file_.CharToBuffer( icode );
     }
+    file_.FlushBuffer();
+  }
+  if (hasOcc) {
+    // PDB atomic occupancy
+    if (BufferAlloc(F_PDB_OCC, TopOut.Natom())) return 1;
+    for (Topology::extra_iterator at = TopOut.extraBegin(); at != TopOut.extraEnd(); ++at)
+      file_.DblToBuffer( at->Occupancy() );
+    file_.FlushBuffer();
+  }
+  if (hasBfac) {
+    // PDB atomic B-factors
+    if (BufferAlloc(F_PDB_BFAC, TopOut.Natom())) return 1;
+    for (Topology::extra_iterator at = TopOut.extraBegin(); at != TopOut.extraEnd(); ++at)
+      file_.DblToBuffer( at->Bfactor() );
     file_.FlushBuffer();
   }
   return 0;
