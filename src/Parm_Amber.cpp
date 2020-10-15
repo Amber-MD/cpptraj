@@ -654,7 +654,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
     for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
       mprintf("%li\t%i\n", it-values_.begin(), *it);
   }
-  TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES], values_[NATOM],
+  TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES],
                                    values_[NUMBND], values_[NUMANG], values_[NPTRA]) );
 
   if (values_[IFPERT] > 0)
@@ -1000,25 +1000,28 @@ int Parm_Amber::ReadAtomTypes(Topology& TopIn, FortranData const& FMT) {
 
 // Parm_Amber::ReadItree()
 int Parm_Amber::ReadItree(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocTreeChainClassification();
   if (SetupBuffer(F_ITREE, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetItree( NameType(file_.NextElement()) );
+    TopIn.SetTreeChainClassification(idx, file_.NextElement());
   return 0;
 }
 
 // Parm_Amber::ReadJoin()
 int Parm_Amber::ReadJoin(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocJoinArray();
   if (SetupBuffer(F_JOIN, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetJoin( atoi(file_.NextElement()) );
+    TopIn.SetJoinArray(idx, atoi(file_.NextElement()) );
   return 0;
 }
 
 // Parm_Amber::ReadIrotat()
 int Parm_Amber::ReadIrotat(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocRotateArray();
   if (SetupBuffer(F_IROTAT, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetIrotat( atoi(file_.NextElement()) );
+    TopIn.SetRotateArray(idx, atoi(file_.NextElement()) );
   return 0;
 }
 
@@ -1112,23 +1115,26 @@ int Parm_Amber::ReadPdbIcode(Topology& TopIn, FortranData const& FMT) {
 }
 
 int Parm_Amber::ReadPdbAlt(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocAtomAltLoc();
   if (SetupBuffer(F_PDB_ALT, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetAltLoc( *(file_.NextElement()) );
+    TopIn.SetAtomAltLoc(idx, *(file_.NextElement()) );
   return 0;
 }
 
 int Parm_Amber::ReadPdbBfactor(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocBfactor();
   if (SetupBuffer(F_PDB_BFAC, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetBfactor( atof(file_.NextElement()) );
+    TopIn.SetBfactor(idx, atof(file_.NextElement()) );
   return 0;
 }
 
 int Parm_Amber::ReadPdbOccupancy(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocOccupancy();
   if (SetupBuffer(F_PDB_OCC, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetOccupancy( atof(file_.NextElement()) );
+    TopIn.SetOccupancy(idx, atof(file_.NextElement()) );
   return 0;
 }
 
@@ -1566,23 +1572,77 @@ void Parm_Amber::WriteLine(FlagType flag, std::string const& lineIn) {
   file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS_[flag].Flag, FLAGS_[flag].Fmt, title.c_str());
 }
 
+/** Write TREE_CHAIN_CLASSIFICATION array. */
+int Parm_Amber::WriteTreeChainClassification(std::vector<NameType> const& tree) {
+  if (BufferAlloc(F_ITREE, tree.size())) return 1;
+  for (std::vector<NameType>::const_iterator it = tree.begin(); it != tree.end(); ++it)
+    file_.CharToBuffer( *(*it) );
+  file_.FlushBuffer();
+  return 0;
+}
+
+/** Write IJOIN array */
+int Parm_Amber::WriteIjoin(std::vector<int> const& ijoin) {
+  if (BufferAlloc(F_JOIN, ijoin.size())) return 1;
+  for (std::vector<int>::const_iterator it = ijoin.begin(); it != ijoin.end(); ++it)
+    file_.IntToBuffer( *it );
+  file_.FlushBuffer();
+  return 0;
+}
+
+/** Write IROTAT array */
+int Parm_Amber::WriteIrotat(std::vector<int> const& irotat) {
+  if (BufferAlloc(F_IROTAT, irotat.size())) return 1;
+  for (std::vector<int>::const_iterator it = irotat.begin(); it != irotat.end(); ++it)
+    file_.IntToBuffer( *it );
+  file_.FlushBuffer();
+  return 0;
+}
+
 // Parm_Amber::WriteExtra()
-int Parm_Amber::WriteExtra(std::vector<AtomExtra> const& extra) {
+/** Write "extra" Amber info that is deprecated: the tree, join, and rotate
+  * arrays. If the info is not present but it is indicated the user
+  * wants them written, generate blank arrays of size natom.
+  */
+int Parm_Amber::WriteExtra(Topology const& topOut, int natom) {
+  if (topOut.TreeChainClassification().empty() ||
+      topOut.JoinArray().empty() ||
+      topOut.RotateArray().empty())
+  {
+    mprintf("Warning: Topology does not contain tree, join, and/or rotate arrays.\n");
+    if (writeEmptyArrays_)
+      mprintf("Warning: Empty entries will be created for missing arrays. Care should be\n"
+              "Warning:   taken if this topology is used for anything besides analysis or\n"
+              "Warning:   visualization.\n");
+    else
+      mprintf("Warning: Missing arrays will not be written. Care should be taken if this\n"
+              "Warning:   topology is used for anything besides analysis or visualization.\n"
+              "Warning: To create an empty array specify the 'writeempty' keyword.\n");
+  }
   // TREE CHAIN CLASSIFICATION
-  if (BufferAlloc(F_ITREE, extra.size())) return 1;
-  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
-    file_.CharToBuffer( *(it->Itree()) );
-  file_.FlushBuffer();
+  if (topOut.TreeChainClassification().empty()) {
+    if (writeEmptyArrays_) {
+      if (WriteTreeChainClassification( std::vector<NameType>(natom, "BLA") )) return 1;
+    }
+  } else {
+    if (WriteTreeChainClassification( topOut.TreeChainClassification() )) return 1;
+  }
   // JOIN
-  if (BufferAlloc(F_JOIN, extra.size())) return 1;
-  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
-    file_.IntToBuffer( it->Join() );
-  file_.FlushBuffer();
+  if (topOut.JoinArray().empty()) {
+    if (writeEmptyArrays_) {
+      if (WriteIjoin( std::vector<int>(natom, 0) )) return 1;
+    }
+  } else {
+    if (WriteIjoin( topOut.JoinArray() )) return 1;
+  } 
   // IROTAT
-  if (BufferAlloc(F_IROTAT, extra.size())) return 1;
-  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
-    file_.IntToBuffer( it->Irotat() );
-  file_.FlushBuffer();
+  if (topOut.RotateArray().empty()) {
+    if (writeEmptyArrays_) {
+      if (WriteIrotat( std::vector<int>(natom, 0) )) return 1;
+    }
+  } else {
+    if (WriteIrotat( topOut.RotateArray() )) return 1;
+  }
   return 0;
 }
 
@@ -1635,16 +1695,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
 
   // Determine if atoms have bfactors and/or occupancy.
-  bool hasBfac = false;
-  bool hasOcc  = false;
-  for (Topology::extra_iterator at = TopOut.extraBegin(); at != TopOut.extraEnd(); ++at)
-  {
-    if (at->Bfactor() > 0.0)
-      hasBfac = true;
-    if (at->Occupancy() > 0.0)
-      hasOcc = true;
-    if (hasBfac && hasOcc) break;
-  }
+  bool hasBfac = !TopOut.Bfactor().empty();
+  bool hasOcc  = !TopOut.Occupancy().empty();
   if (hasBfac)
     mprintf("\tTopology has atomic B-factors.\n");
   if (hasOcc)
@@ -2007,25 +2059,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // may mean this topology was not originally read from an Amber topology
   // and could cause problems if used for simulations. Create "empty" values,
   // but warn.
-  if (!TopOut.Extra().empty()) {
-    if (WriteExtra(TopOut.Extra())) return 1;
-  } else {
-    mprintf("Warning: Topology does not contain tree, join, or rotate entries.\n"
-            "Warning:   These are required by Amber.\n");
-    if (writeEmptyArrays_) {
-      mprintf("Warning: Creating empty entries for tree, join, and rotate,\n"
-              "Warning:   but care should be taken if this topology is used for\n"
-              "Warning:   anything besides analysis or simulation.\n");
-      std::vector<AtomExtra> extra;
-      extra.reserve( TopOut.Natom() );
-      for (int i = 0; i < TopOut.Natom(); i++)
-        extra.push_back( AtomExtra("BLA",  0, 0, ' ') );
-      if (WriteExtra(extra)) return 1;
-    } else
-      mprintf("Warning: These arrays will not be written and the topology\n"
-              "Warning:   will only be usable for basic analysis and visualization.\n"
-              "Warning: To change this behavior specify the 'writeempty' keyword.\n");
-  }
+  if (WriteExtra(TopOut, TopOut.Natom())) return 1;
 
   // CHAMBER only - write CMAP parameters
   if (TopOut.HasCmap()) {
@@ -2313,15 +2347,17 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (hasOcc) {
     // PDB atomic occupancy
     if (BufferAlloc(F_PDB_OCC, TopOut.Natom())) return 1;
-    for (Topology::extra_iterator at = TopOut.extraBegin(); at != TopOut.extraEnd(); ++at)
-      file_.DblToBuffer( at->Occupancy() );
+    for (std::vector<float>::const_iterator it = TopOut.Occupancy().begin();
+                                            it != TopOut.Occupancy().end(); ++it)
+      file_.DblToBuffer( *it );
     file_.FlushBuffer();
   }
   if (hasBfac) {
     // PDB atomic B-factors
     if (BufferAlloc(F_PDB_BFAC, TopOut.Natom())) return 1;
-    for (Topology::extra_iterator at = TopOut.extraBegin(); at != TopOut.extraEnd(); ++at)
-      file_.DblToBuffer( at->Bfactor() );
+    for (std::vector<float>::const_iterator it = TopOut.Bfactor().begin();
+                                            it != TopOut.Bfactor().end(); ++it)
+      file_.DblToBuffer( *it );
     file_.FlushBuffer();
   }
   return 0;

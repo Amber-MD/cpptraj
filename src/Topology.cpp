@@ -451,21 +451,6 @@ int Topology::CommonSetup(bool molsearch, int excludedDist, bool renumberResidue
   return 0;
 }
 
-/** Reset any extended PDB info. */
-void Topology::ResetPDBinfo() {
-  int rnum = 1;
-  for (std::vector<Residue>::iterator res = residues_.begin(); 
-                                      res != residues_.end(); ++res, ++rnum)
-  {
-    res->SetOriginalNum(rnum);
-    res->SetIcode(' ');
-    res->SetChainID(' ');
-  }
-  for (std::vector<AtomExtra>::iterator ex = extra_.begin();
-                                        ex != extra_.end(); ++ex)
-    ex->SetAltLoc(' '); // TODO bfactor, occupancy?
-}
-
 /** For topology formats that do not contain residue info, base residues
   * on molecules.
   */
@@ -518,6 +503,11 @@ int Topology::Setup_NoResInfo() {
 }
 
 // Topology::Resize()
+/** Clear all arrays; allocate atoms, residues, tree, ijoin, irotat, and
+  * bond/angle/dihedral parameter arrays according to input pointers.
+  * Intended for use when reading Amber Topology file, specifically the
+  * POINTERS section.
+  */
 void Topology::Resize(Pointers const& pIn) {
   atoms_.clear();
   residues_.clear();
@@ -538,7 +528,12 @@ void Topology::Resize(Pointers const& pIn) {
   cap_.Clear();
   lesparm_.Clear();
   chamber_.Clear();
-  extra_.clear();
+  tree_.clear();
+  ijoin_.clear();
+  irotat_.clear();
+  atom_altloc_.clear();
+  occupancy_.clear();
+  bfactor_.clear();
   parmBox_.SetNoBox();
   refCoords_ = Frame();
   ipol_ = 0;
@@ -548,7 +543,9 @@ void Topology::Resize(Pointers const& pIn) {
 
   atoms_.resize( pIn.natom_ );
   residues_.resize( pIn.nres_ );
-  extra_.resize( pIn.nextra_ );
+  tree_.resize( pIn.natom_ );
+  ijoin_.resize( pIn.natom_, 0 );
+  irotat_.resize( pIn.natom_, 0 );
   bondparm_.resize( pIn.nBndParm_ );
   angleparm_.resize( pIn.nAngParm_ );
   dihedralparm_.resize( pIn.nDihParm_ );
@@ -1373,6 +1370,24 @@ int Topology::ScaleDihedralK(double scale_factor, std::string const& maskExpr, b
   return 0;
 }
 
+/** This template can be used when doing ModifyByMap() on a generic std::vector array
+  * of type T. 
+  */
+template <class T> class TopVecStrip {
+  public:
+    /// CONSTRUCTOR
+    TopVecStrip() {}
+    /// Strip current array according to given map, output to given array of same type
+    void Strip(std::vector<T>& newArray, std::vector<T> const& oldArray, std::vector<int> const& MapIn)
+    {
+      if (!oldArray.empty()) {
+        for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
+          if (*old_it >= 0)
+            newArray.push_back( oldArray[*old_it] );
+      }
+    }
+};
+
 // Topology::ModifyByMap()
 /** \return Pointer to new Topology based on this Topology, deleting atoms
   *         that are not in the given map (Map[newatom] = oldatom).
@@ -1626,11 +1641,16 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     }
   }
   // Amber extra info.
-  if (!extra_.empty()) {
-    for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
-      if (*old_it >= 0)
-        newParm->extra_.push_back( extra_[*old_it] );
-  }
+  TopVecStrip<NameType> stripNameType;
+  stripNameType.Strip(newParm->tree_, tree_, MapIn);
+  TopVecStrip<int> stripInt;
+  stripInt.Strip(newParm->ijoin_, ijoin_, MapIn);
+  stripInt.Strip(newParm->irotat_, irotat_, MapIn);
+  TopVecStrip<char> stripChar;
+  stripChar.Strip(newParm->atom_altloc_, atom_altloc_, MapIn);
+  TopVecStrip<float> stripFloat;
+  stripFloat.Strip(newParm->occupancy_, occupancy_, MapIn);
+  stripFloat.Strip(newParm->bfactor_, bfactor_, MapIn);
   
   // Setup excluded atoms list - Necessary?
   newParm->DetermineExcludedAtoms();
@@ -1862,6 +1882,33 @@ class TypeArray {
     Tarray::iterator lastType_;
 };
 
+/** This template can be used when doing Append() on a generic std::vector array
+  * of type T. The array will be appended to a given array of the same type.
+  * If one is empty and the other is not, values will be filled in if necessary.
+  */
+template <class T> class TopVecAppend {
+  public:
+    /// CONSTRUCTOR
+    TopVecAppend() {}
+    /// Append current array to given array of same type
+    void Append(std::vector<T>& arrayOut, std::vector<T> const& arrayToAdd, unsigned int expectedSize)
+    {
+      if (arrayToAdd.empty() && arrayOut.empty()) {
+        // Both arrays are empty. Nothing to do.
+        return;
+      } else if (arrayToAdd.empty()) {
+        // The current array is empty but the given array is not. Fill in 
+        // array to append with blank values.
+        for (unsigned int idx = 0; idx != expectedSize; idx++)
+          arrayOut.push_back( T() );
+      } else {
+        // Append current array to array to given array. TODO use std::copy?
+        for (typename std::vector<T>::const_iterator it = arrayToAdd.begin(); it != arrayToAdd.end(); ++it)
+          arrayOut.push_back( *it );
+      }
+    }
+};
+
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
@@ -2030,9 +2077,17 @@ int Topology::AppendTop(Topology const& NewTop) {
     nonbond_ = newNB;
   }
   // EXTRA ATOM INFO
-  for (Topology::extra_iterator extra = NewTop.extraBegin();
-                                extra != NewTop.extraEnd(); ++extra)
-    AddExtraAtomInfo( *extra );
+  TopVecAppend<NameType> appendNameType;
+  appendNameType.Append( tree_, NewTop.tree_, NewTop.Natom() );
+  TopVecAppend<int> appendInt;
+  appendInt.Append( ijoin_, NewTop.ijoin_, NewTop.Natom() );
+  appendInt.Append( irotat_, NewTop.irotat_, NewTop.Natom() );
+  TopVecAppend<char> appendChar;
+  appendChar.Append( atom_altloc_, NewTop.atom_altloc_, NewTop.Natom() );
+  TopVecAppend<float> appendFloat;
+  appendFloat.Append( occupancy_, NewTop.occupancy_, NewTop.Natom() );
+  appendFloat.Append( bfactor_, NewTop.bfactor_, NewTop.Natom() );
+
   // BONDS
   AddBondArray(NewTop.Bonds(),  NewTop.BondParm(), atomOffset);
   AddBondArray(NewTop.BondsH(), NewTop.BondParm(), atomOffset);

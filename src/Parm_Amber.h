@@ -149,7 +149,10 @@ class Parm_Amber : public ParmIO {
     int WriteAngles(FlagType, AngleArray const&);
     int WriteDihedrals(FlagType, DihedralArray const&);
     void WriteLine(FlagType, std::string const&);
-    int WriteExtra(std::vector<AtomExtra> const&);
+    int WriteTreeChainClassification(std::vector<NameType> const&);
+    int WriteIjoin(std::vector<int> const&);
+    int WriteIrotat(std::vector<int> const&);
+    int WriteExtra(Topology const&, int);
  
     static const int AMBERPOINTERS_;
     /// Contain topology flags enumerated by FlagType
