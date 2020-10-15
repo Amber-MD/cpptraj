@@ -125,6 +125,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         nAltLocSkipped++;
         continue;
       }
+      TopIn.AddAtomAltLoc( altLoc );
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();
@@ -134,7 +135,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         pdbAtom.SetGBradius( bfactor );
       } else {
         infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
-        TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altLoc) );
+        TopIn.AddOccupancy( occupancy );
+        TopIn.AddBfactor( bfactor );
       }
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
       if (altLoc != ' ' && keepAltLoc_ == ' ') {
