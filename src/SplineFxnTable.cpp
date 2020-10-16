@@ -3,6 +3,7 @@
 #include "Constants.h"
 #include "Spline.h"
 #include "StringRoutines.h"
+#include <cmath>
 
 /** CONSTRUCTOR */
 SplineFxnTable::SplineFxnTable() :
@@ -13,8 +14,15 @@ SplineFxnTable::SplineFxnTable() :
 {}
 
 /** Fill the spline function table with values from the given function. */
-int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double maxIn, double scale)
+//int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double maxIn, double scale)
+int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double maxIn)
 {
+/*
+  if (scale < 1.0) {
+    mprinterr("Error: Scaling for spline table width %g cannot be less than 1.0x\n", scale);
+    return 1;
+  }
+*/
   Dx_ = dxIn;
   if (Dx_ < Constants::SMALL) {
     mprinterr("Error: Spacing for spline table too small or negative.\n");
@@ -30,29 +38,54 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
     return 1;
   }
   // Calculate table size
-  unsigned int TableSize = (unsigned int)(one_over_Dx_ * width * scale);
-  mprintf("DEBUG: Table from %g to %g (%gx), width is %g table size %u\n", minIn, maxIn, scale, width, TableSize);
-
+  int TableSize = ((int)ceil(one_over_Dx_ * width)) + 1;
+  mprintf("DEBUG: Table from %g to %g, width is %g table size %i\n", minIn, maxIn, width, TableSize);
+  int ArraySize = TableSize;
+  int minIdx = 0;
+  //unsigned int TableSize = (unsigned int)(one_over_Dx_ * width * scale);
+  //mprintf("DEBUG: Table from %g to %g (%gx), width is %g table size %u\n", minIn, maxIn, scale, width, TableSize);
+/*
+  int ScaledSize = (int)((double)TableSize * scale);
+  mprintf("DEBUG: Scaled size = %i\n", ScaledSize);
+*/
+/*
+  int ArraySize = ScaledSize;
+*/
+/*
+  int Delta = ScaledSize - TableSize;
+  //if (Delta < 1) Delta = 1;
+  mprintf("DEBUG: Delta = %i\n", Delta);
+  // Round up
+  Delta += (Delta % 2);
+  mprintf("DEBUG: Rounded Delta = %i\n", Delta);
+  int HalfDelta = Delta / 2;
+  mprintf("DEBUG: Half Delta = %i\n", HalfDelta);
+  int ArraySize = TableSize + Delta;
+  mprintf("DEBUG: Scaled table size = %i\n", ArraySize);
+  int minIdx = -HalfDelta; 
+*/
   Xvals_.clear();
   Darray Yvals;
-  Xvals_.reserve( TableSize );
-  Yvals.reserve( TableSize );
+  Xvals_.reserve( ArraySize );
+  Yvals.reserve( ArraySize );
   // Save X and Y values so we can calc the spline coefficients
   //double xval = Xmin_;
-  for (unsigned int i = 0; i != TableSize; i++) {
+  for (int i = minIdx; i != ArraySize; i++)
+  {
     double xval = Xmin_ + ((double)i * Dx_);
     double yval = fxnIn( xval );
     Xvals_.push_back( xval );
     Yvals.push_back( yval );
-    //xval += Dx_;
   }
+  Xmin_ = Xvals_.front();
+  mprintf("DEBUG: Spline table X range is %g to %g\n", Xvals_.front(), Xvals_.back());
   Spline cspline;
   cspline.CubicSpline_Coeff(Xvals_, Yvals);
   //Xvals.clear();
   // Store values in Spline table
   table_.clear();
-  table_.reserve( TableSize * 4 ); // Y B C D
-  for (unsigned int i = 0; i != TableSize; i++) {
+  table_.reserve( Yvals.size() * 4 ); // Y B C D
+  for (unsigned int i = 0; i != Yvals.size(); i++) {
     table_.push_back( Yvals[i] );
     table_.push_back( cspline.B_coeff()[i] );
     table_.push_back( cspline.C_coeff()[i] );

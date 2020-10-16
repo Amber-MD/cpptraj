@@ -397,7 +397,8 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   maxDist *= (-1.0 / (2.0 * maxRad * maxRad));
   //mprintf("DEBUG: max= %g\n", maxDist);
 
-  if (table_.FillTable( exp, splineDx_, maxDist, 0, splineScale_ )) return Action::ERR;
+  //if (table_.FillTable( exp, splineDx_, maxDist, 1.0, splineScale_ )) return Action::ERR;
+  if (table_.FillTable( exp, splineDx_, maxDist, 1.0 )) return Action::ERR;
   //table_.FillTable( exp, splineDx_, maxDist, 0, 1.0 );
   //double width = (0.0 - maxDist) * 1.1;
   //if (table_.FillTable( exp, (int)(width / splineDx_), maxDist, 0.0 ) ) return Action::ERR;
