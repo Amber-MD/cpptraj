@@ -57,6 +57,8 @@ class Topology {
     void SetJoinArray(int idx, int j)                           { ijoin_[idx] = j;  }
     void SetRotateArray(int idx, int r)                         { irotat_[idx] = r; }
     // ----- PDB info ----------------------------
+    /// Reset all PDB-related info
+    void ResetPDBinfo();
     std::vector<char> const& AtomAltLoc()  const { return atom_altloc_;  }
     std::vector<float> const& Occupancy()  const { return occupancy_;    }
     std::vector<float> const& Bfactor()    const { return bfactor_;      }

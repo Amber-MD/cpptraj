@@ -38,6 +38,24 @@ const char *Topology::c_str() const {
   return parmName_.c_str();
 }
 
+/** Reset all PDB-related info.
+  * NOTE: This routine is used by AmbPDB.
+  */
+void Topology::ResetPDBinfo() {
+  atom_altloc_.clear();
+  occupancy_.clear();
+  bfactor_.clear();
+  pdbSerialNum_.clear();
+  int resnum = 1;
+  for (std::vector<Residue>::iterator res = residues_.begin();
+                                      res != residues_.end(); ++res, ++resnum)
+  {
+    res->SetOriginalNum( resnum );
+    res->SetIcode(' ');
+    res->SetChainID(' ');
+  }
+}
+
 /** Used to set box info from currently associated trajectory. */
 // FIXME: This routine is here for potential backwards compatibility issues
 //        since the topology box information was previously modified by
