@@ -765,7 +765,7 @@ const
   mprintf("DEBUG: LJ radius= %g\n", CAtop.GetVDWradius(0));
   // Final setup
   CAtop.SetParmName("caseq", "seq.ca.mol2");
-  CAtop.CommonSetup(true, 2); // molecule search, exclude bonds
+  CAtop.CommonSetup(true, 2, false); // molecule search, exclude bonds, do not renumber residues
   CAtop.Summary();
 
   // Write CA top
@@ -964,7 +964,7 @@ const
   // Finish new top
   //newTop.SetParmName("seqpdb", "seq.pdb");
   newTop.SetParmName("seqmol2", "seq.mol2");
-  newTop.CommonSetup( false ); // No molecule search
+  newTop.CommonSetup( false, false ); // No molecule search, no renumbering residues
   newTop.Summary();
   // DEBUG print new topology
   mprintf("New topology:\n");
@@ -1213,7 +1213,7 @@ const
                     originalAtToNew[bnd->A2()] );
   // Finish new top and write
   newTop.SetParmName("newpdb", "temp.pdb");
-  newTop.CommonSetup( false ); // No molecule search
+  newTop.CommonSetup( false, false ); // No molecule search, no renumbering residues
   newTop.Summary();
   if (WriteStructure("temp.pdb", &newTop, newFrame, TrajectoryFile::PDBFILE)) {
     mprinterr("Error: Write of temp.pdb failed.\n");
@@ -1260,7 +1260,7 @@ const
   mprintf("DEBUG: LJ radius= %g\n", CAtop.GetVDWradius(0));
   // Final setup
   CAtop.SetParmName("capdb", "temp.ca.mol2");
-  CAtop.CommonSetup(true, 2); // molecule search, exclude bonds
+  CAtop.CommonSetup(true, 2, false); // molecule search, exclude bonds, no renumbering residues
   CAtop.Summary();
 
   // Write CA top

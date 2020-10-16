@@ -12521,7 +12521,7 @@ parm
 \end_layout
 
 \begin_layout LyX-Code
-      }]
+      }] [nomolsearch] [renumresidues]
 \end_layout
 
 \begin_deeper
@@ -12561,16 +12561,6 @@ reference "subsec:Parameter/Reference-Tagging"
 \begin_layout Description
 
 \series bold
-[nobondsearch]
-\series default
- Optional; if specified do not search for bonds via geometry if Topology
- does not include bond information.
- May cause some Actions to fail.
-\end_layout
-
-\begin_layout Description
-
-\series bold
 [bondsearch <offset>]
 \series default
  Optional; when searching for bonds via geometry search (default for Topologies
@@ -12601,6 +12591,34 @@ pairlist Uses a pair list to search for bonds between atoms.
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+
+\series bold
+Advanced Options - Not recommended for general use
+\end_layout
+
+\begin_layout Description
+
+\series bold
+[nobondsearch]
+\series default
+ If specified do not search for bonds via geometry if Topology does not
+ include bond information.
+ May cause some Actions to fail.
+\end_layout
+
+\begin_layout Description
+[nomolsearch] If specified do not search for molecule information.
+ May cause some Actions to fail.
+\end_layout
+
+\begin_layout Description
+[renumresidues] If specified, ensure that any residue cannot be part of
+ more than 1 molecule (can occur with e.g.
+ alternate sites).
+ Residues will be renumbered according to molecule information in that case.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Read in parameter file.
