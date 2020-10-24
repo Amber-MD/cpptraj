@@ -2,9 +2,13 @@
 #define INC_ACTION_UNWRAP_H
 #include "Action.h"
 #include "ImageTypes.h"
+namespace Image {
+  class List;
+}
 class Action_Unwrap : public Action {
   public:
     Action_Unwrap();
+    ~Action_Unwrap();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_Unwrap(); }
     void Help() const;
   private:
@@ -13,13 +17,14 @@ class Action_Unwrap : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    Image::PairType imageList_;
-    Image::Mode imageMode_;
-    std::string maskExpression_;
-    Frame RefFrame_;
-    Topology* RefParm_;
-    bool orthogonal_;
-    bool center_;
+    Image::List* imageList_;     ///< List of entities to unwrap
+    Image::Mode imageMode_;      ///< Specifiy unwrapping by atom, res, or mol
+    std::string maskExpression_; ///< Expression selecting entities to unwrap
+    Frame RefFrame_;             ///< Reference frame, updated each DoAction
+    Topology* RefParm_;          ///< Reference topology
+    bool orthogonal_;            ///< If true, cell is orthogonal
+    bool center_;                ///< If true, determine distances to centers
+    Unit allEntities_;           ///< Hold atoms to copy from target to reference
 #   ifdef MPI
     Parallel::Comm trajComm_;
 #   endif

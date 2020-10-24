@@ -1,5 +1,6 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h" // PrintMaskAtoms
+#include "Unit.h"
 
 /** Use to initialize the mask without a mask expression. */
 void CharMask::InitCharMask(int natoms, bool initSelected) {
@@ -80,6 +81,13 @@ bool CharMask::AtomsInCharMask(int startatom, int endatom) const {
   if (endatom > (int)CharMask_.size()) return false;
   for (int idx = startatom; idx < endatom; ++idx)
     if (CharMask_[idx] == SelectedChar_) return true;
+  return false;
+}
+
+// AtomsInCharMask()
+bool CharMask::AtomsInCharMask(Unit const& unitIn) const {
+  for (Unit::const_iterator it = unitIn.segBegin(); it != unitIn.segEnd(); ++it)
+    if (AtomsInCharMask(it->Begin(), it->End())) return true;
   return false;
 }
 

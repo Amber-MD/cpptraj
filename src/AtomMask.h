@@ -1,6 +1,7 @@
 #ifndef INC_ATOMMASK_H
 #define INC_ATOMMASK_H
 #include "MaskToken.h"
+class Unit;
 /// Atom mask using integer array. 
 /** AtomMask is used to hold an array of integers that represent atom numbers
   * of atoms selected based on a mask expression set via SetMaskString. 
@@ -23,6 +24,8 @@ class AtomMask : public MaskTokenArray {
                                                  maskChar_(SelectedChar_) {}
     /// Create mask selecting atoms from begin up to (not including) end.
     AtomMask(int,int);
+    /// Create mask selecting atoms in unit
+    AtomMask(Unit const&);
     /// Create mask with single atom selected.
     AtomMask(int);
     /// \return Internal selected atom array.
@@ -57,6 +60,8 @@ class AtomMask : public MaskTokenArray {
     void AddAtoms(std::vector<int> const&);
     /// Add minAtom <= atom < maxAtom to mask
     void AddAtomRange(int,int);
+    /// Add atoms in given unit to mask
+    void AddUnit(Unit const&);
     /// Add atoms in given mask to this mask at positon, update position
     void AddMaskAtPosition(AtomMask const&, int);
     /// Convert from integer mask to char mask.

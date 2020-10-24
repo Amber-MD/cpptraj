@@ -12521,7 +12521,7 @@ parm
 \end_layout
 
 \begin_layout LyX-Code
-      }]
+      }] [nomolsearch] [renumresidues]
 \end_layout
 
 \begin_deeper
@@ -12561,16 +12561,6 @@ reference "subsec:Parameter/Reference-Tagging"
 \begin_layout Description
 
 \series bold
-[nobondsearch]
-\series default
- Optional; if specified do not search for bonds via geometry if Topology
- does not include bond information.
- May cause some Actions to fail.
-\end_layout
-
-\begin_layout Description
-
-\series bold
 [bondsearch <offset>]
 \series default
  Optional; when searching for bonds via geometry search (default for Topologies
@@ -12601,6 +12591,34 @@ pairlist Uses a pair list to search for bonds between atoms.
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+
+\series bold
+Advanced Options - Not recommended for general use
+\end_layout
+
+\begin_layout Description
+
+\series bold
+[nobondsearch]
+\series default
+ If specified do not search for bonds via geometry if Topology does not
+ include bond information.
+ May cause some Actions to fail.
+\end_layout
+
+\begin_layout Description
+[nomolsearch] If specified do not search for molecule information.
+ May cause some Actions to fail.
+\end_layout
+
+\begin_layout Description
+[renumresidues] If specified, ensure that any residue cannot be part of
+ more than 1 molecule (can occur with e.g.
+ alternate sites).
+ Residues will be renumbered according to molecule information in that case.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Read in parameter file.
@@ -27806,15 +27824,15 @@ mask
 
 \end_inset
 
- <mask> [maskout <filename>]
+ <mask> [maskout <filename>] [out <filename>] [nselectedout <filename>]
 \end_layout
 
 \begin_layout LyX-Code
-     [ {maskpdb <filename> | maskmol2 <filename>}
+     [name <setname>] [ {maskpdb <filename> | maskmol2 <filename>}
 \end_layout
 
 \begin_layout LyX-Code
-       [trajargs <comma-separated args>] ]
+                        [trajargs <comma-separated args>] ]
 \end_layout
 
 \begin_deeper
@@ -27828,6 +27846,31 @@ maskout
 \end_inset
 
 <filename> Write information on atoms in <mask> to <filename>.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<filename> Write the frame, atom number, atom name, residue number, residue
+ name, and molecule number for each selected atom to file.
+\end_layout
+
+\begin_layout Description
+nselectedout
+\begin_inset space ~
+\end_inset
+
+<filename> Write the total number of selected atoms to file.
+\end_layout
+
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<setname> Name for output data sets.
 \end_layout
 
 \begin_layout Description
@@ -27857,6 +27900,38 @@ trajargs
 
 args> When writing output PDB/Mol2, additional trajectory arguments to pass
  to the output trajectory.
+\end_layout
+
+\begin_layout Standard
+DataSets Created
+\end_layout
+
+\begin_layout Description
+<name> Number of atoms selected each frame.
+\end_layout
+
+\begin_layout Description
+<name>[Frm] Frame number for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[AtNum] Atom number for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Aname] Atom name for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Rnum] Residue number for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Rname] Residue name for each selected atom.
+\end_layout
+
+\begin_layout Description
+<name>[Mnum] Molecule number for each selected atom.
 \end_layout
 
 \end_deeper

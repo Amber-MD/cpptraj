@@ -59,7 +59,7 @@ static const char* F5E16 = "%FORMAT(5E16.8)";
 static const char* F3I8  = "%FORMAT(3I8)";
 static const char* F1a80 = "%FORMAT(1a80)";
 static const char* F1I8  = "%FORMAT(1I8)";
-/// Constant strings for Amber parm flags and fortran formats.
+/// Constant strings for Amber parm flags and fortran formats. Enumerated by FlagType
 const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "POINTERS",                   F10I8 }, ///< Described above in topValues
   { "ATOM_NAME",                  F20a4 }, ///< Atom names
@@ -132,10 +132,18 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "CHARMM_CMAP_INDEX",                  "%FORMAT(6I8)" }, // Atom i,j,k,l,m of cross term and idx
   { "FORCE_FIELD_TYPE",                   "%FORMAT(i2,a78)"},// NOTE: Cannot use with SetFortranType
   // PDB extra info
-  { "RESIDUE_NUMBER", "%FORMAT(20I4)" }, // PDB residue number
-  { "RESIDUE_CHAINID", F20a4 }, // PDB chain ID
-  { "RESIDUE_ICODE", F20a4 },   // PDB residue insertion code
-  { "ATOM_ALTLOC", F20a4 },     // PDB atom alt location indicator FIXME: format is guess
+  { "RESIDUE_NUMBER", "%FORMAT(20I4)" },                // PDB residue number
+  { "RESIDUE_CHAINID", F20a4 },                         // PDB chain ID
+  { "RESIDUE_ICODE", F20a4 },                           // PDB residue insertion code
+  { "ATOM_ALTLOC", F20a4 },                             // PDB atom alt location indicator FIXME: format is guess
+  { "ATOM_BFACTOR", "%FORMAT(10F8.2)"},                 // PDB atom B-factors
+  { "ATOM_OCCUPANCY", "%FORMAT(10F8.2)"},               // PDB atom occupancies
+  { "ATOM_NUMBER", F10I8},                              // PDB original atom serial #s
+  // CHARMM CMAP
+  { "CMAP_COUNT",                  "%FORMAT(2I8)" },    // # CMAP terms, # unique CMAP params
+  { "CMAP_RESOLUTION",             "%FORMAT(20I4)"},    // # steps along each Phi/Psi CMAP axis
+  { "CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
+  { "CMAP_INDEX",                  "%FORMAT(6I8)" },    // Atom i,j,k,l,m of cross term and idx
   { 0, 0 }
 };
 
@@ -386,6 +394,9 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
         if ( flagType.compare(0, 22, "CHARMM_CMAP_PARAMETER_") == 0 ) {
           // Special case. This flag has a 2 digit extension.
           flagIdx = (int)F_CHM_CMAPP;
+        } else if ( flagType.compare(0, strlen("CMAP_PARAMETER_"), "CMAP_PARAMETER_") == 0 ) {
+          // Special case. This flag has a 2 digit extension.
+          flagIdx = (int)F_CMAPP;
         } else {
           for (ParmPtr P = FLAGS_; P->Flag != 0; ++P) {
             if (flagType.compare(P->Flag) == 0) {
@@ -460,6 +471,9 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
             case F_PDB_ICODE: err = ReadPdbIcode(TopIn, FMT); break;
             case F_PDB_ALT:   err = ReadPdbAlt(TopIn, FMT); break;
+            case F_PDB_BFAC:  err = ReadPdbBfactor(TopIn, FMT); break;
+            case F_PDB_OCC:   err = ReadPdbOccupancy(TopIn, FMT); break;
+            case F_PDB_NUM:   err = ReadPdbNumbers(TopIn, FMT); break;
             // CHAMBER
             case F_FF_TYPE:   err = ReadChamberFFtype(TopIn, FMT); break;
             case F_CHM_UBC:   err = ReadChamberUBCount(TopIn, FMT); break;
@@ -473,16 +487,21 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_CHM_IMPP:  err = ReadChamberImpPHASE(TopIn, FMT); break;
             case F_LJ14A:     err = ReadChamberLJ14A(TopIn, FMT); break;
             case F_LJ14B:     err = ReadChamberLJ14B(TopIn, FMT); break;
-            case F_CHM_CMAPC: err = ReadChamberCmapCounts(FMT); break;
-            case F_CHM_CMAPR: err = ReadChamberCmapRes(TopIn, FMT); break;
-            case F_CHM_CMAPP: err = ReadChamberCmapGrid(flagType.c_str(), TopIn, FMT); break;
-            case F_CHM_CMAPI: err = ReadChamberCmapTerms(TopIn, FMT); break;
             // LES
             case F_LES_NTYP:  err = ReadLESntyp(TopIn, FMT); break;
             case F_LES_TYPE:  err = ReadLEStypes(TopIn, FMT); break;
             case F_LES_FAC:   err = ReadLESfac(TopIn, FMT); break;
             case F_LES_CNUM:  err = ReadLEScnum(TopIn, FMT); break;
             case F_LES_ID:    err = ReadLESid(TopIn, FMT); break;
+            // CMAP
+            case F_CHM_CMAPC: // fallthrough
+            case F_CMAPC:     err = ReadCmapCounts(FMT); break;
+            case F_CHM_CMAPR: // fallthrough
+            case F_CMAPR:     err = ReadCmapRes(TopIn, FMT); break;
+            case F_CHM_CMAPP: // fallthrough
+            case F_CMAPP:     err = ReadCmapGrid(flagType.c_str(), TopIn, FMT); break;
+            case F_CHM_CMAPI: // fallthrough
+            case F_CMAPI:     err = ReadCmapTerms(TopIn, FMT); break;
             // Sanity check
             default:
               mprinterr("Internal Error: Unhandled FLAG '%s'.\n", flagType.c_str());
@@ -637,7 +656,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
     for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
       mprintf("%li\t%i\n", it-values_.begin(), *it);
   }
-  TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES], values_[NATOM],
+  TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES],
                                    values_[NUMBND], values_[NUMANG], values_[NPTRA]) );
 
   if (values_[IFPERT] > 0)
@@ -983,25 +1002,28 @@ int Parm_Amber::ReadAtomTypes(Topology& TopIn, FortranData const& FMT) {
 
 // Parm_Amber::ReadItree()
 int Parm_Amber::ReadItree(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocTreeChainClassification();
   if (SetupBuffer(F_ITREE, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetItree( NameType(file_.NextElement()) );
+    TopIn.SetTreeChainClassification(idx, file_.NextElement());
   return 0;
 }
 
 // Parm_Amber::ReadJoin()
 int Parm_Amber::ReadJoin(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocJoinArray();
   if (SetupBuffer(F_JOIN, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetJoin( atoi(file_.NextElement()) );
+    TopIn.SetJoinArray(idx, atoi(file_.NextElement()) );
   return 0;
 }
 
 // Parm_Amber::ReadIrotat()
 int Parm_Amber::ReadIrotat(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocRotateArray();
   if (SetupBuffer(F_IROTAT, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetIrotat( atoi(file_.NextElement()) );
+    TopIn.SetRotateArray(idx, atoi(file_.NextElement()) );
   return 0;
 }
 
@@ -1095,9 +1117,34 @@ int Parm_Amber::ReadPdbIcode(Topology& TopIn, FortranData const& FMT) {
 }
 
 int Parm_Amber::ReadPdbAlt(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocAtomAltLoc();
   if (SetupBuffer(F_PDB_ALT, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetAltLoc( *(file_.NextElement()) );
+    TopIn.SetAtomAltLoc(idx, *(file_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbBfactor(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocBfactor();
+  if (SetupBuffer(F_PDB_BFAC, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetBfactor(idx, atof(file_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbOccupancy(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocOccupancy();
+  if (SetupBuffer(F_PDB_OCC, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetOccupancy(idx, atof(file_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbNumbers(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocPdbSerialNum();
+  if (SetupBuffer(F_PDB_NUM, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetPdbSerialNum(idx, atoi(file_.NextElement()) );
   return 0;
 }
 
@@ -1269,8 +1316,9 @@ int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
 }
 
 // Parm_Amber::ReadChamberCmapCounts()
-int Parm_Amber::ReadChamberCmapCounts(FortranData const& FMT) {
-  if (SetupBuffer(F_CHM_CMAPC, 2, FMT)) return 1;
+int Parm_Amber::ReadCmapCounts(FortranData const& FMT) {
+  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
+  if (SetupBuffer(f, 2, FMT)) return 1;
   n_cmap_terms_ = atoi( file_.NextElement() );
   n_cmap_grids_ = atoi( file_.NextElement() );
   return 0;
@@ -1278,42 +1326,47 @@ int Parm_Amber::ReadChamberCmapCounts(FortranData const& FMT) {
 
 // Parm_Amber::ReadChamberCmapRes()
 /** Get CMAP resolutions for each grid and allocate grids. */
-int Parm_Amber::ReadChamberCmapRes(Topology& TopIn, FortranData const& FMT) {
-  if (SetupBuffer(F_CHM_CMAPR, n_cmap_grids_, FMT)) return 1;
+int Parm_Amber::ReadCmapRes(Topology& TopIn, FortranData const& FMT) {
+  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPR : F_CMAPR;
+  if (SetupBuffer(f, n_cmap_grids_, FMT)) return 1;
   for (int i = 0; i != n_cmap_grids_; i++)
-    TopIn.SetChamber().AddCmapGrid( CmapGridType( atoi(file_.NextElement()) ) );
+    TopIn.AddCmapGrid( CmapGridType( atoi(file_.NextElement()) ) );
   return 0;
 }
 
 // Parm_Amber::ReadChamberCmapGrid()
 /** Read CMAP grid. */
-int Parm_Amber::ReadChamberCmapGrid(const char* CmapFlag, Topology& TopIn, FortranData const& FMT)
+int Parm_Amber::ReadCmapGrid(const char* CmapFlag, Topology& TopIn, FortranData const& FMT)
 {
   // Figure out which grid this is.
   // 012345678901234567890123
   // CHARMM_CMAP_PARAMETER_XX
-  int gridnum = convertToInteger( std::string( CmapFlag+22 ) ) - 1;
-  if (gridnum < 0 || gridnum >= (int)TopIn.Chamber().CmapGrid().size()) {
+  const size_t cmap_parameter_flag_size = (ptype_ == CHAMBER) ? strlen("CHARMM_CMAP_PARAMETER_") : strlen ("CMAP_PARAMETER_");
+  int gridnum = convertToInteger( std::string( CmapFlag+cmap_parameter_flag_size ) ) - 1;
+  if (gridnum < 0 || gridnum >= (int)TopIn.CmapGrid().size()) {
     mprintf("Warning: CMAP grid '%s' out of range.\n", CmapFlag);
-    if (TopIn.Chamber().HasCmap())
+    const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
+    if (TopIn.HasCmap())
       mprintf("Warning: Expected grid between 1 and %zu, got %i\n",
-              TopIn.Chamber().CmapGrid().size(), gridnum+1);
+              TopIn.CmapGrid().size(), gridnum+1);
     else
-      mprintf("Warning: Missing previous %s section.\n", FLAGS_[F_CHM_CMAPC].Flag);
+      mprintf("Warning: Missing previous %s section.\n", FLAGS_[f].Flag);
     mprintf("Warning: Skipping read of CMAP grid.\n");
     return 0;
   }
-  CmapGridType& GRID = TopIn.SetChamber().SetCmapGrid( gridnum );
-  if (SetupBuffer(F_CHM_CMAPP, GRID.Size(), FMT)) return 1;
+  CmapGridType& GRID = TopIn.SetCmapGrid( gridnum );
+  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPP : F_CMAPP;
+  if (SetupBuffer(f, GRID.Size(), FMT)) return 1;
   for (int idx = 0; idx != GRID.Size(); idx++)
     GRID.SetGridPt( idx, atof(file_.NextElement()) );
   return 0;
 }
 
 // Parm_Amber::ReadChamberCmapTerms()
-int Parm_Amber::ReadChamberCmapTerms(Topology& TopIn, FortranData const& FMT) {
+int Parm_Amber::ReadCmapTerms(Topology& TopIn, FortranData const& FMT) {
   int nvals = n_cmap_terms_ * 6;
-  if (SetupBuffer(F_CHM_CMAPI, nvals, FMT)) return 1;
+  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
+  if (SetupBuffer(f, nvals, FMT)) return 1;
   for (int idx = 0; idx != nvals; idx += 6) {
     int a1 = atoi(file_.NextElement()) - 1;
     int a2 = atoi(file_.NextElement()) - 1;
@@ -1321,7 +1374,7 @@ int Parm_Amber::ReadChamberCmapTerms(Topology& TopIn, FortranData const& FMT) {
     int a4 = atoi(file_.NextElement()) - 1;
     int a5 = atoi(file_.NextElement()) - 1;
     int gidx = atoi(file_.NextElement()) - 1;
-    TopIn.SetChamber().AddCmapTerm( CmapType(a1, a2, a3, a4, a5, gidx) );
+    TopIn.AddCmapTerm( CmapType(a1, a2, a3, a4, a5, gidx) );
   }
   return 0;
 }
@@ -1529,23 +1582,77 @@ void Parm_Amber::WriteLine(FlagType flag, std::string const& lineIn) {
   file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS_[flag].Flag, FLAGS_[flag].Fmt, title.c_str());
 }
 
+/** Write TREE_CHAIN_CLASSIFICATION array. */
+int Parm_Amber::WriteTreeChainClassification(std::vector<NameType> const& tree) {
+  if (BufferAlloc(F_ITREE, tree.size())) return 1;
+  for (std::vector<NameType>::const_iterator it = tree.begin(); it != tree.end(); ++it)
+    file_.CharToBuffer( *(*it) );
+  file_.FlushBuffer();
+  return 0;
+}
+
+/** Write IJOIN array */
+int Parm_Amber::WriteIjoin(std::vector<int> const& ijoin) {
+  if (BufferAlloc(F_JOIN, ijoin.size())) return 1;
+  for (std::vector<int>::const_iterator it = ijoin.begin(); it != ijoin.end(); ++it)
+    file_.IntToBuffer( *it );
+  file_.FlushBuffer();
+  return 0;
+}
+
+/** Write IROTAT array */
+int Parm_Amber::WriteIrotat(std::vector<int> const& irotat) {
+  if (BufferAlloc(F_IROTAT, irotat.size())) return 1;
+  for (std::vector<int>::const_iterator it = irotat.begin(); it != irotat.end(); ++it)
+    file_.IntToBuffer( *it );
+  file_.FlushBuffer();
+  return 0;
+}
+
 // Parm_Amber::WriteExtra()
-int Parm_Amber::WriteExtra(std::vector<AtomExtra> const& extra) {
+/** Write "extra" Amber info that is deprecated: the tree, join, and rotate
+  * arrays. If the info is not present but it is indicated the user
+  * wants them written, generate blank arrays of size natom.
+  */
+int Parm_Amber::WriteExtra(Topology const& topOut, int natom) {
+  if (topOut.TreeChainClassification().empty() ||
+      topOut.JoinArray().empty() ||
+      topOut.RotateArray().empty())
+  {
+    mprintf("Warning: Topology does not contain tree, join, and/or rotate arrays.\n");
+    if (writeEmptyArrays_)
+      mprintf("Warning: Empty entries will be created for missing arrays. Care should be\n"
+              "Warning:   taken if this topology is used for anything besides analysis or\n"
+              "Warning:   visualization.\n");
+    else
+      mprintf("Warning: Missing arrays will not be written. Care should be taken if this\n"
+              "Warning:   topology is used for anything besides analysis or visualization.\n"
+              "Warning: To create an empty array specify the 'writeempty' keyword.\n");
+  }
   // TREE CHAIN CLASSIFICATION
-  if (BufferAlloc(F_ITREE, extra.size())) return 1;
-  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
-    file_.CharToBuffer( *(it->Itree()) );
-  file_.FlushBuffer();
+  if (topOut.TreeChainClassification().empty()) {
+    if (writeEmptyArrays_) {
+      if (WriteTreeChainClassification( std::vector<NameType>(natom, "BLA") )) return 1;
+    }
+  } else {
+    if (WriteTreeChainClassification( topOut.TreeChainClassification() )) return 1;
+  }
   // JOIN
-  if (BufferAlloc(F_JOIN, extra.size())) return 1;
-  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
-    file_.IntToBuffer( it->Join() );
-  file_.FlushBuffer();
+  if (topOut.JoinArray().empty()) {
+    if (writeEmptyArrays_) {
+      if (WriteIjoin( std::vector<int>(natom, 0) )) return 1;
+    }
+  } else {
+    if (WriteIjoin( topOut.JoinArray() )) return 1;
+  } 
   // IROTAT
-  if (BufferAlloc(F_IROTAT, extra.size())) return 1;
-  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
-    file_.IntToBuffer( it->Irotat() );
-  file_.FlushBuffer();
+  if (topOut.RotateArray().empty()) {
+    if (writeEmptyArrays_) {
+      if (WriteIrotat( std::vector<int>(natom, 0) )) return 1;
+    }
+  } else {
+    if (WriteIrotat( topOut.RotateArray() )) return 1;
+  }
   return 0;
 }
 
@@ -1596,7 +1703,17 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
         Excluded.push_back( (*ex) + 1 );
     }
   }
- 
+
+  // Determine if atoms have bfactors and/or occupancy.
+  bool hasBfac = !TopOut.Bfactor().empty();
+  bool hasOcc  = !TopOut.Occupancy().empty();
+  bool hasNum  = !TopOut.PdbSerialNum().empty();
+  if (hasBfac)
+    mprintf("\tTopology has atomic B-factors.\n");
+  if (hasOcc)
+    mprintf("\tTopology has atomic occupancies.\n");
+  if (hasNum)
+    mprintf("\tTopology has original PDB serial numbers.\n");
   // Determine max residue size. Also determine if extra info needs to be
   // written such as PDB residue number, chain ID, etc.
   // Since original res num gets set no matter what, only print out
@@ -1622,7 +1739,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     mprintf("\tTopology has chain IDs.\n");
   if (hasIcodes)
     mprintf("\tTopology has residue insertion codes.\n");
+  // Turn PDB info off if specified
   if (!writePdbInfo_) {
+    if (hasBfac)
+      mprintf("\tnopdbinfo : Not writing atomic B-factors.\n");
+    if (hasOcc)
+      mprintf("\tnopdbinfo : Not writing atomic occupancies.\n");
+    if (hasNum)
+      mprintf("\tnopdbinfo : Not writing original PDB serial numbers.\n");
     if (hasOrigResNums)
       mprintf("\tnopdbinfo : Not writing alternative residue numbering.\n");
     if (hasChainID)
@@ -1632,6 +1756,9 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     hasOrigResNums = false;
     hasChainID = false;
     hasIcodes = false;
+    hasBfac = false;
+    hasOcc = false;
+    hasNum = false;
   }
 
   // Determine value of ifbox
@@ -1948,55 +2075,41 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // may mean this topology was not originally read from an Amber topology
   // and could cause problems if used for simulations. Create "empty" values,
   // but warn.
-  if (!TopOut.Extra().empty()) {
-    if (WriteExtra(TopOut.Extra())) return 1;
-  } else {
-    mprintf("Warning: Topology does not contain tree, join, or rotate entries.\n"
-            "Warning:   These are required by Amber.\n");
-    if (writeEmptyArrays_) {
-      mprintf("Warning: Creating empty entries for tree, join, and rotate,\n"
-              "Warning:   but care should be taken if this topology is used for\n"
-              "Warning:   anything besides analysis or simulation.\n");
-      std::vector<AtomExtra> extra;
-      extra.reserve( TopOut.Natom() );
-      for (int i = 0; i < TopOut.Natom(); i++)
-        extra.push_back( AtomExtra("BLA",  0, 0, ' ') );
-      if (WriteExtra(extra)) return 1;
-    } else
-      mprintf("Warning: These arrays will not be written and the topology\n"
-              "Warning:   will only be usable for basic analysis and visualization.\n"
-              "Warning: To change this behavior specify the 'writeempty' keyword.\n");
-  }
+  if (WriteExtra(TopOut, TopOut.Natom())) return 1;
 
   // CHAMBER only - write CMAP parameters
-  if (ptype_ == CHAMBER && TopOut.Chamber().HasCmap()) {
+  if (TopOut.HasCmap()) {
     // CMAP COUNT
-    if (BufferAlloc(F_CHM_CMAPC, 2)) return 1;
-    file_.IntToBuffer( TopOut.Chamber().Cmap().size() );     // CMAP terms
-    file_.IntToBuffer( TopOut.Chamber().CmapGrid().size() ); // CMAP grids
+    const FlagType f_count = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
+    if (BufferAlloc(f_count, 2)) return 1;
+    file_.IntToBuffer( TopOut.Cmap().size() );     // CMAP terms
+    file_.IntToBuffer( TopOut.CmapGrid().size() ); // CMAP grids
     file_.FlushBuffer();
     // CMAP GRID RESOLUTIONS
-    if (BufferAlloc(F_CHM_CMAPR, TopOut.Chamber().CmapGrid().size())) return 1;
-    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
-                                       grid != TopOut.Chamber().CmapGrid().end(); ++grid)
+    const FlagType f_grid_res = (ptype_ == CHAMBER) ? F_CHM_CMAPR : F_CMAPR;
+    if (BufferAlloc(f_grid_res, TopOut.CmapGrid().size())) return 1;
+    for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
+                                       grid != TopOut.CmapGrid().end(); ++grid)
       file_.IntToBuffer( grid->Resolution() );
     file_.FlushBuffer();
     // CMAP GRIDS
     int ngrid = 1;
-    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
-                                       grid != TopOut.Chamber().CmapGrid().end();
+    const FlagType f_grid = (ptype_ == CHAMBER) ? F_CHM_CMAPP : F_CMAPP;
+    for (CmapGridArray::const_iterator grid = TopOut.CmapGrid().begin();
+                                       grid != TopOut.CmapGrid().end();
                                        ++grid, ++ngrid)
     {
-      if (BufferAlloc(F_CHM_CMAPP, grid->Size(), ngrid)) return 1;
+      if (BufferAlloc(f_grid, grid->Size(), ngrid)) return 1;
       for (std::vector<double>::const_iterator it = grid->Grid().begin();
                                                it != grid->Grid().end(); ++it)
         file_.DblToBuffer( *it );
       file_.FlushBuffer();
     }
     // CMAP parameters
-    if (BufferAlloc(F_CHM_CMAPI, TopOut.Chamber().Cmap().size())) return 1;
-    for (CmapArray::const_iterator it = TopOut.Chamber().Cmap().begin();
-                                   it != TopOut.Chamber().Cmap().end(); ++it)
+    const FlagType f_param = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
+    if (BufferAlloc(f_param, TopOut.Cmap().size())) return 1;
+    for (CmapArray::const_iterator it = TopOut.Cmap().begin();
+                                   it != TopOut.Cmap().end(); ++it)
     {
       file_.IntToBuffer( it->A1() + 1 );
       file_.IntToBuffer( it->A2() + 1 );
@@ -2010,39 +2123,102 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // Write solvent info if IFBOX > 0
   if (ifbox > 0) {
-    // Determine first solvent molecule 
-    int firstSolventMol = -1;
-    for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); ++mol) {
-      if ( mol->IsSolvent() ) {
-        firstSolventMol = (int)(mol - TopOut.MolStart());
+    // Need to check if molecules are contiguous or not via
+    // how many segments they have.
+    bool molsAreContiguous = true;
+    for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); ++mol)
+      if (mol->MolUnit().nSegments() > 1) {
+        molsAreContiguous = false;
         break;
       }
+    if (molsAreContiguous) {
+      // ----- Contiguous molecules --------------
+      // Determine first solvent molecule 
+      int firstSolventMol = -1;
+      for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); ++mol) {
+        if ( mol->IsSolvent() ) {
+          firstSolventMol = (int)(mol - TopOut.MolStart());
+          break;
+        }
+      }
+      // Determine final solute residue based on first solvent molecule.
+      int finalSoluteRes = 0;
+      if (firstSolventMol == -1)
+        finalSoluteRes = TopOut.Nres(); // No solvent Molecules
+      else if (firstSolventMol > 0) {
+        int finalSoluteAtom = TopOut.Mol(firstSolventMol).MolUnit().Front() - 1;
+        finalSoluteRes = TopOut[finalSoluteAtom].ResNum() + 1;
+      }
+      // If no solvent, just set to 1 beyond # of molecules
+      if (firstSolventMol == -1)
+        firstSolventMol = TopOut.Nmol();
+      // SOLVENT POINTERS
+      if (BufferAlloc(F_SOLVENT_POINTER, 3)) return 1;
+      file_.IntToBuffer( finalSoluteRes ); // Already +1
+      file_.IntToBuffer( TopOut.Nmol() );
+      file_.IntToBuffer( firstSolventMol + 1 );
+      file_.FlushBuffer();
+      // ATOMS PER MOLECULE
+      if (BufferAlloc(F_ATOMSPERMOL, TopOut.Nmol())) return 1;
+      for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); mol++)
+        file_.IntToBuffer( mol->NumAtoms() );
+      file_.FlushBuffer();
+    } else {
+      // ----- Non-contiguous molecules ----------
+      // Molecules are not contiguous. In order to ensure that #s in the
+      // ATOMS_PER_MOLECULE section match up, do segments instead.
+      mprintf("Warning: Topology has non-contiguous molecules.\n"
+              "Warning: Setting up SOLVENT_POINTERS and ATOMS_PER_MOLECULE\n"
+              "Warning: based on contiguous segments. The resulting Topology\n"
+              "Warning: will not strictly correspond to Amber specifications\n"
+              "Warning: and should be used with caution.\n"
+              "Warning: The 'fixatomorder' command can be used to reorder\n"
+              "Warning: molecules into contiguous segments.\n");
+      // Map segment to solvent status
+      typedef std::pair<Segment, bool> SegPair;
+      typedef std::vector<SegPair> SegArray;
+      SegArray segments;
+      for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); ++mol) {
+        for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                  seg != mol->MolUnit().segEnd(); ++seg)
+          segments.push_back( SegPair(*seg, mol->IsSolvent()) );
+      }
+      std::sort(segments.begin(), segments.end());
+      mprintf("\t%zu segments.\n", segments.size());
+      // Determine first solvent molecule 
+      SegArray::const_iterator firstSolventSeg = segments.end();
+      int firstSolventMol = -1;
+      for (SegArray::const_iterator it = segments.begin(); it != segments.end(); ++it) {
+        // it->second is true if segment was part of solvent molecule
+        if ( it->second ) {
+          firstSolventSeg = it;
+          firstSolventMol = it - segments.begin();
+          break;
+        }
+      }
+      // Determine final solute residue based on first solvent molecule.
+      int finalSoluteRes = 0;
+      if (firstSolventSeg == segments.end())
+        finalSoluteRes = TopOut.Nres(); // No solvent Molecules
+      else if (firstSolventSeg != segments.begin()) {
+        int finalSoluteAtom = firstSolventSeg->first.Begin() - 1;
+        finalSoluteRes = TopOut[finalSoluteAtom].ResNum() + 1;
+      }
+      // If no solvent, just set to 1 beyond # of segments 
+      if (firstSolventMol == -1)
+        firstSolventMol = segments.size();
+      // SOLVENT POINTERS
+      if (BufferAlloc(F_SOLVENT_POINTER, 3)) return 1;
+      file_.IntToBuffer( finalSoluteRes ); // Already +1
+      file_.IntToBuffer( segments.size() );
+      file_.IntToBuffer( firstSolventMol + 1 );
+      file_.FlushBuffer();
+      // ATOMS PER MOLECULE
+      if (BufferAlloc(F_ATOMSPERMOL, segments.size())) return 1;
+      for (SegArray::const_iterator it = segments.begin(); it != segments.end(); ++it)
+        file_.IntToBuffer( it->first.Size() );
+      file_.FlushBuffer();
     }
-    // Determine final solute residue based on first solvent molecule.
-    int finalSoluteRes = 0;
-    if (firstSolventMol == -1)
-      finalSoluteRes = TopOut.Nres(); // No solvent Molecules
-    else if (firstSolventMol > 0) {
-      int finalSoluteAtom = TopOut.Mol(firstSolventMol).BeginAtom() - 1;
-      finalSoluteRes = TopOut[finalSoluteAtom].ResNum() + 1;
-    }
-    // If no solvent, just set to 1 beyond # of molecules
-    if (firstSolventMol == -1)
-      firstSolventMol = TopOut.Nmol();
-
-    // SOLVENT POINTERS
-    if (BufferAlloc(F_SOLVENT_POINTER, 3)) return 1;
-    file_.IntToBuffer( finalSoluteRes ); // Already +1
-    file_.IntToBuffer( TopOut.Nmol() );
-    file_.IntToBuffer( firstSolventMol + 1 );
-    file_.FlushBuffer();
-
-    // ATOMS PER MOLECULE
-    if (BufferAlloc(F_ATOMSPERMOL, TopOut.Nmol())) return 1;
-    for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); mol++)
-      file_.IntToBuffer( mol->NumAtoms() );
-    file_.FlushBuffer();
-
     // BOX DIMENSIONS
     if (BufferAlloc(F_PARMBOX, 4)) return 1;
     file_.DblToBuffer( TopOut.ParmBox().Beta() );
@@ -2182,6 +2358,30 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       icode[0] = res->Icode();
       file_.CharToBuffer( icode );
     }
+    file_.FlushBuffer();
+  }
+  if (hasOcc) {
+    // PDB atomic occupancy
+    if (BufferAlloc(F_PDB_OCC, TopOut.Natom())) return 1;
+    for (std::vector<float>::const_iterator it = TopOut.Occupancy().begin();
+                                            it != TopOut.Occupancy().end(); ++it)
+      file_.DblToBuffer( *it );
+    file_.FlushBuffer();
+  }
+  if (hasBfac) {
+    // PDB atomic B-factors
+    if (BufferAlloc(F_PDB_BFAC, TopOut.Natom())) return 1;
+    for (std::vector<float>::const_iterator it = TopOut.Bfactor().begin();
+                                            it != TopOut.Bfactor().end(); ++it)
+      file_.DblToBuffer( *it );
+    file_.FlushBuffer();
+  }
+  if (hasNum) {
+    // PDB original serial numbers
+    if (BufferAlloc(F_PDB_NUM, TopOut.Natom())) return 1;
+    for (std::vector<int>::const_iterator it = TopOut.PdbSerialNum().begin();
+                                          it != TopOut.PdbSerialNum().end(); ++it)
+      file_.IntToBuffer( *it );
     file_.FlushBuffer();
   }
   return 0;

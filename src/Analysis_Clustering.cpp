@@ -215,30 +215,32 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   bool load_pair = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
   pw_dist_ = 0;
-  if (load_pair) {
-    // If 'loadpairdist' specified, assume we want to load from file.
+  if (load_pair ||
+      (!save_pair && !pairdistname.empty()))
+  {
+    // If 'loadpairdist' specified or 'pairdist' specified and 'savepairdist'
+    // not specified, we either want to load from file or use an existing
+    // data set.
     if (pairdistname.empty()) {
       pairdistname = PAIRDISTFILE_;
       pairdisttype = PAIRDISTTYPE_;
     }
-    if (File::Exists( pairdistname )) {
+    // First check if a Cmatrix data set exists
+    pw_dist_ = setup.DSL().FindSetOfType( pairdistname, DataSet::CMATRIX );
+    if (pw_dist_ != 0) {
+      mprintf("\tUsing existing pairwise set '%s'\n", pw_dist_->legend());
+    // Next check if file exists
+    } else if (File::Exists( pairdistname )) {
+      mprintf("\tLoading pairwise distances from file '%s'\n", pairdistname.c_str());
       DataFile dfIn;
       if (dfIn.ReadDataIn( pairdistname, ArgList(), setup.DSL() )) return Analysis::ERR;
       pw_dist_ = setup.DSL().GetDataSet( pairdistname );
       if (pw_dist_ == 0) return Analysis::ERR;
     } else
       pairdisttype = PAIRDISTTYPE_;
-  }
-  if (pw_dist_ == 0 && !pairdistname.empty()) {
-    // Just 'pairdist' specified or loadpairdist specified and file not found.
-    // Look for Cmatrix data set. 
-    pw_dist_ = setup.DSL().FindSetOfType( pairdistname, DataSet::CMATRIX );
-    //if (pw_dist_ == 0) { // TODO: Convert general matrix to cluster matrix
-    //  mprinterr("Error: Cluster matrix with name '%s' not found.\n");
-    //  return Analysis::ERR;
-    //}
-    if (pw_dist_ == 0 && load_pair) {
-    // If the file (or dataset) does not yet exist we will assume we want to save.
+    if (pw_dist_ == 0) {
+      // Just 'pairdist' specified or loadpairdist specified and set/file not found.
+      // If the file (or dataset) does not yet exist we will assume we want to save.
       mprintf("Warning: 'loadpairdist' specified but '%s' not found; will save distances.\n",
               pairdistname.c_str());
       save_pair = true;

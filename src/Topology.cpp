@@ -38,6 +38,24 @@ const char *Topology::c_str() const {
   return parmName_.c_str();
 }
 
+/** Reset all PDB-related info.
+  * NOTE: This routine is used by AmbPDB.
+  */
+void Topology::ResetPDBinfo() {
+  atom_altloc_.clear();
+  occupancy_.clear();
+  bfactor_.clear();
+  pdbSerialNum_.clear();
+  int resnum = 1;
+  for (std::vector<Residue>::iterator res = residues_.begin();
+                                      res != residues_.end(); ++res, ++resnum)
+  {
+    res->SetOriginalNum( resnum );
+    res->SetIcode(' ');
+    res->SetChainID(' ');
+  }
+}
+
 /** Used to set box info from currently associated trajectory. */
 // FIXME: This routine is here for potential backwards compatibility issues
 //        since the topology box information was previously modified by
@@ -282,9 +300,9 @@ void Topology::Summary() const {
   if (chamber_.HasChamber()) {
     mprintf("\t\tCHAMBER: %zu Urey-Bradley terms, %zu Impropers\n",
             chamber_.UB().size(), chamber_.Impropers().size());
-    if (chamber_.HasCmap())
+    if (HasCmap())
       mprintf("\t\t         %zu CMAP grids, %zu CMAP terms.\n", 
-              chamber_.CmapGrid().size(), chamber_.Cmap().size());
+              CmapGrid().size(), Cmap().size());
   }
   if (lesparm_.HasLES())
     mprintf("\t\tLES info: %i types, %i copies\n", lesparm_.Ntypes(), lesparm_.Ncopies());
@@ -327,7 +345,7 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
   residues_.back().SetLastAtom( atoms_.size() );
   return 0;
 }
-
+/*
 // Topology::StartNewMol()
 void Topology::StartNewMol() {
   // No atoms, so no need to do anything.
@@ -354,15 +372,41 @@ void Topology::StartNewMol() {
     residues_.push_back( Residue("MOL",0,atoms_.size(),1,' ',' ') );
   } 
   residues_.back().SetTerminal( true );
+}*/
+
+/** Common setup with common excluded distance of 4. */
+int Topology::CommonSetup(bool molsearch, bool renumberResidues) {
+  return CommonSetup(molsearch, 4, renumberResidues);
 }
 
-/** Common setup with common excluded distance. */
-int Topology::CommonSetup(bool molsearch) {
-  return CommonSetup(molsearch, 4);
+/** Check the given size. If not # atoms, return true (error). */
+bool Topology::CheckExtraSize(size_t sizeIn, const char* desc)
+const
+{
+  if (sizeIn > 0 && sizeIn != atoms_.size()) {
+    mprinterr("Error: Size of the %s array (%zu) is not # atoms (%zu)\n", desc, sizeIn, atoms_.size());
+    return true;
+  }
+  return false;
 }
 
 // Topology::CommonSetup()
-int Topology::CommonSetup(bool molsearch, int excludedDist) {
+/** Set up common to all topologies.
+  * \param molsearch If true, determine molecules based on bond info.
+  * \param excludedDist Number of atoms to use when determining exclusion list.
+  * \param renumberResidues If true, renumber residues if any residue is part of more than 1 molecule
+  *        e.g. when alternate locations are present.
+  */
+int Topology::CommonSetup(bool molsearch, int excludedDist, bool renumberResidues)
+{
+  // Check the size of any "extra" arrays
+  if (CheckExtraSize(tree_.size(), "Amber tree")) return 1;
+  if (CheckExtraSize(ijoin_.size(), "Amber join")) return 1;
+  if (CheckExtraSize(irotat_.size(), "Amber rotate")) return 1;
+  if (CheckExtraSize(atom_altloc_.size(), "PDB alt. loc.")) return 1;
+  if (CheckExtraSize(occupancy_.size(), "PDB occupancy")) return 1;
+  if (CheckExtraSize(bfactor_.size(), "PDB Bfactor")) return 1;
+  if (CheckExtraSize(pdbSerialNum_.size(), "PDB serial #")) return 1;
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
@@ -372,33 +416,38 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
     if (DetermineMolecules())
       mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
   }
-  // Check that molecules do not share residue numbers. Only when bond searching.
-  // FIXME always check? 
-  if (!molecules_.empty() && molecules_.size() > 1) {
+  // DEBUG : Current residue info
+  if (debug_ > 1) {
+    mprintf("DEBUG: Current residue info (%zu).\n", residues_.size());
+    for (std::vector<Residue>::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
+    {
+      mprintf("DEBUG:\t\t%8li %6s orig=%8i atoms %8i to %8i\n", res-residues_.begin(),
+              *(res->Name()), res->OriginalResNum(), res->FirstAtom(), res->LastAtom());
+    }
+  }
+  // Check if any molecules share residue numbers. If so and if specified,
+  // base residue information on molecules.
+  if (renumberResidues && !molecules_.empty() && molecules_.size() > 1) {
     bool mols_share_residues = (molecules_.size() > residues_.size());
     if (!mols_share_residues) {
       // More in-depth check
       for (std::vector<Molecule>::const_iterator mol = molecules_.begin() + 1;
                                                  mol != molecules_.end(); ++mol)
       {
-        int m0_resnum = atoms_[(mol-1)->BeginAtom()].ResNum();
-        int m1_resnum = atoms_[    mol->BeginAtom()].ResNum();
+        int m0_resnum = atoms_[(mol-1)->MolUnit().Front()].ResNum();
+        int m1_resnum = atoms_[    mol->MolUnit().Front()].ResNum();
         if (m0_resnum == m1_resnum) {
           mols_share_residues = true;
-          unsigned int molnum = mol - molecules_.begin();
-          mprintf("Warning: 2 or more molecules (%u and %u) share residue numbers (%i).\n",
+          long int molnum = mol - molecules_.begin();
+          mprintf("Warning: 2 or more molecules (%li and %li) share residue numbers (%i).\n",
                   molnum, molnum+1, m0_resnum+1);
           break;
         }
       }
     }
     if (mols_share_residues) {
-      //if (bondsearch)
-        mprintf("Warning:   Either residue information is incorrect or molecule determination"
-                " was inaccurate.\n");
-      //else
-      //  mprintf("Warning: Residue information appears to be incorrect.\n");
-      mprintf("Warning:   Basing residue information on molecules.\n");
+      mprintf("Warning:   This usually happens when alternate locations for atoms are present.\n"
+              "Warning:   Basing residue information on molecules.\n");
       std::vector<Residue> newResArray;
       unsigned int res_first_atom = 0;
       while (res_first_atom < atoms_.size()) {
@@ -426,7 +475,8 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
                   res->OriginalResNum(), res->Icode());
 
     }
-  }
+  } // END renumber residues based on molecules
+
   // Set up solvent information
   if (SetSolventInfo())
     mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
@@ -436,21 +486,6 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
   DetermineNumExtraPoints();
 
   return 0;
-}
-
-/** Reset any extended PDB info. */
-void Topology::ResetPDBinfo() {
-  int rnum = 1;
-  for (std::vector<Residue>::iterator res = residues_.begin(); 
-                                      res != residues_.end(); ++res, ++rnum)
-  {
-    res->SetOriginalNum(rnum);
-    res->SetIcode(' ');
-    res->SetChainID(' ');
-  }
-  for (std::vector<AtomExtra>::iterator ex = extra_.begin();
-                                        ex != extra_.end(); ++ex)
-    ex->SetAltLoc(' '); // TODO bfactor, occupancy?
 }
 
 /** For topology formats that do not contain residue info, base residues
@@ -478,20 +513,24 @@ int Topology::Setup_NoResInfo() {
   {
     // Try to detect at least water as solvent. Assume CommonSetup will be
     // run after this to set up molecule solvent info.
-    if (mol->NumAtoms() == 3) {
+    if (mol->MolUnit().nSegments() == 1 && mol->NumAtoms() == 3) {
       int nH = 0;
       int nO = 0;
-      for (int atnum = mol->BeginAtom(); atnum != mol->EndAtom(); atnum++)
+      for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                seg != mol->MolUnit().segEnd(); ++seg)
       {
-        if (atoms_[atnum].Element() == Atom::HYDROGEN) nH++;
-        if (atoms_[atnum].Element() == Atom::OXYGEN)   nO++;
+        for (int atnum = seg->Begin(); atnum != seg->End(); atnum++)
+        {
+          if (atoms_[atnum].Element() == Atom::HYDROGEN) nH++;
+          if (atoms_[atnum].Element() == Atom::OXYGEN)   nO++;
+        }
       }
       if (nO == 1 && nH == 2) res_name = "HOH";
     } else
       res_name = default_res_name;
     residues_.push_back( Residue(res_name, resnum+1, ' ', ' ') );
-    residues_.back().SetFirstAtom( mol->BeginAtom() );
-    residues_.back().SetLastAtom( mol->EndAtom() );
+    residues_.back().SetFirstAtom( mol->MolUnit().Front() );
+    residues_.back().SetLastAtom( mol->MolUnit().Back() );
     // Update atom residue numbers
     for (int atnum = residues_.back().FirstAtom(); 
              atnum != residues_.back().LastAtom(); ++atnum)
@@ -501,6 +540,11 @@ int Topology::Setup_NoResInfo() {
 }
 
 // Topology::Resize()
+/** Clear all arrays; allocate atoms, residues, tree, ijoin, irotat, and
+  * bond/angle/dihedral parameter arrays according to input pointers.
+  * Intended for use when reading Amber Topology file, specifically the
+  * POINTERS section.
+  */
 void Topology::Resize(Pointers const& pIn) {
   atoms_.clear();
   residues_.clear();
@@ -515,11 +559,19 @@ void Topology::Resize(Pointers const& pIn) {
   dihedrals_.clear();
   dihedralsh_.clear();
   dihedralparm_.clear();
+  cmap_.clear();
+  cmapGrid_.clear();
   nonbond_.Clear();
   cap_.Clear();
   lesparm_.Clear();
   chamber_.Clear();
-  extra_.clear();
+  tree_.clear();
+  ijoin_.clear();
+  irotat_.clear();
+  atom_altloc_.clear();
+  occupancy_.clear();
+  bfactor_.clear();
+  pdbSerialNum_.clear();
   parmBox_.SetNoBox();
   refCoords_ = Frame();
   ipol_ = 0;
@@ -529,7 +581,9 @@ void Topology::Resize(Pointers const& pIn) {
 
   atoms_.resize( pIn.natom_ );
   residues_.resize( pIn.nres_ );
-  extra_.resize( pIn.nextra_ );
+  tree_.resize( pIn.natom_ );
+  ijoin_.resize( pIn.natom_, 0 );
+  irotat_.resize( pIn.natom_, 0 );
   bondparm_.resize( pIn.nBndParm_ );
   angleparm_.resize( pIn.nAngParm_ );
   dihedralparm_.resize( pIn.nDihParm_ );
@@ -981,6 +1035,15 @@ void Topology::ClearMolecules() {
     atom->SetMol( -1 );
 }
 
+/** \return Number of residues in specified molecule. */
+int Topology::NresInMol(int idx) const {
+  int nres = 0;
+  for (Unit::const_iterator seg = molecules_[idx].MolUnit().segBegin();
+                            seg != molecules_[idx].MolUnit().segEnd(); ++seg)
+    nres += atoms_[seg->End()-1].ResNum() - atoms_[seg->Begin()].ResNum() + 1;
+  return nres;
+}
+
 // Topology::DetermineMolecules()
 /** Determine individual molecules using bond information. Performs a 
   * recursive search over the bonds of each atom.
@@ -995,6 +1058,10 @@ int Topology::DetermineMolecules() {
     numberOfMolecules = NonrecursiveMolSearch();
   else
     numberOfMolecules = RecursiveMolSearch();
+  if (numberOfMolecules < 1) {
+    mprinterr("Internal Error: Could not determine molecules.\n");
+    return 1;
+  }
 /*// DEBUG Compare both methods
   int test_nmol = NonrecursiveMolSearch();
   std::vector<int> molNums( atoms_.size() );
@@ -1019,7 +1086,40 @@ int Topology::DetermineMolecules() {
 
   // Update molecule information
   molecules_.resize( numberOfMolecules );
-  if (numberOfMolecules == 0) return 0;
+  for (int atomIdx = 0; atomIdx < (int)atoms_.size(); atomIdx++)
+  {
+    Atom const& atom = atoms_[atomIdx];
+    molecules_[atom.MolNum()].ModifyUnit().AddIndex( atomIdx );
+  }
+  if (debug_ > 0) mprintf("DEBUG: Molecule segment information:\n");
+  std::vector< std::vector<Molecule>::const_iterator > nonContiguousMols;
+  for (std::vector<Molecule>::const_iterator mol = molecules_.begin(); mol != molecules_.end(); ++mol)
+  {
+    if (mol->MolUnit().nSegments() > 1)
+      nonContiguousMols.push_back( mol );
+    if (debug_ > 0) {
+      mprintf("DEBUG:\t%8li %8u segments:", mol - molecules_.begin() + 1, mol->MolUnit().nSegments());
+      for (Unit::const_iterator seg = mol->MolUnit().segBegin();
+                                         seg != mol->MolUnit().segEnd(); ++seg)
+        mprintf(" %i-%i (%i) ", seg->Begin()+1, seg->End(), seg->Size());
+      mprintf("\n");
+    }
+  }
+  if (!nonContiguousMols.empty()) {
+    mprintf("Warning: %zu molecules have non-contiguous segments of atoms.\n", nonContiguousMols.size());
+    for (std::vector< std::vector<Molecule>::const_iterator >::const_iterator it = nonContiguousMols.begin();
+                                                                              it != nonContiguousMols.end(); ++it)
+    {
+      mprintf("\t%8li %8u segments:", *it - molecules_.begin() + 1, (*it)->MolUnit().nSegments());
+      for (Unit::const_iterator seg = (*it)->MolUnit().segBegin();
+                                seg != (*it)->MolUnit().segEnd(); ++seg)
+        mprintf(" %i-%i (%i) ", seg->Begin()+1, seg->End(), seg->Size());
+      mprintf("\n");
+    }
+    mprintf("Warning: The 'fixatomorder' command can be used to reorder the topology and any\n"
+            "Warning:  associated coordinates.\n");
+  } 
+/*
   std::vector<Molecule>::iterator molecule = molecules_.begin();
   molecule->SetFirst(0);
   std::vector<Atom>::const_iterator atom = atoms_.begin(); 
@@ -1053,6 +1153,7 @@ int Topology::DetermineMolecules() {
     ++atomNum;
   }
   molecule->SetLast( atoms_.size() );
+*/
   return 0;
 }
 
@@ -1133,6 +1234,7 @@ int Topology::SetSolvent(std::string const& maskexpr) {
   // Setup mask
   CharMask mask( maskexpr );
   SetupCharMask( mask );
+  mask.MaskInfo();
   if (mask.None()) {
     mprinterr("Error: SetSolvent [%s]: Mask %s selects no atoms.\n", c_str(), maskexpr.c_str());
     return 1;
@@ -1147,13 +1249,10 @@ int Topology::SetSolvent(std::string const& maskexpr) {
     mol->SetNoSolvent();
     // If any atoms in this molecule are selected by mask, make entire
     // molecule solvent.
-    for (int atom = mol->BeginAtom(); atom < mol->EndAtom(); ++atom) {
-      if ( mask.AtomInCharMask( atom ) ) {
-        mol->SetSolvent();
-        ++NsolventMolecules_;
-        numSolvAtoms += mol->NumAtoms();
-        break;
-      }
+    if ( mask.AtomsInCharMask( mol->MolUnit() ) ) {
+      mol->SetSolvent();
+      ++NsolventMolecules_;
+      numSolvAtoms += mol->NumAtoms();
     }
   }
 
@@ -1176,7 +1275,7 @@ int Topology::SetSolventInfo() {
   for (std::vector<Molecule>::iterator mol = molecules_.begin();
                                        mol != molecules_.end(); mol++)
   {
-    int firstRes = atoms_[ mol->BeginAtom() ].ResNum();
+    int firstRes = atoms_[ mol->MolUnit().Front() ].ResNum();
     if ( residues_[firstRes].NameIsSolvent() ) {
       mol->SetSolvent();
       ++NsolventMolecules_;
@@ -1231,18 +1330,22 @@ std::vector<int> Topology::ResnumsSelectedBy(AtomMask const& mask) const {
 
 // Topology::MolnumsSelectedBy()
 std::vector<int> Topology::MolnumsSelectedBy(AtomMask const& mask) const {
-  std::vector<int> molnums;
+  std::set<int> molnums;
   if (molecules_.empty()) {
     mprintf("Warning: Topology has no molecule information.\n");
   } else {
     int mol = -1;
     for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
-      if (atoms_[*at].MolNum() > mol) {
+      if (atoms_[*at].MolNum() != mol) {
         mol = atoms_[*at].MolNum();
-        molnums.push_back( mol );
+        molnums.insert( mol );
       }
   }
-  return molnums;
+  std::vector<int> tmp;
+  tmp.reserve( molnums.size() );
+  for (std::set<int>::const_iterator it = molnums.begin(); it != molnums.end(); ++it)
+    tmp.push_back( *it );
+  return tmp;
 }
 
 // -----------------------------------------------------------------------------
@@ -1304,6 +1407,24 @@ int Topology::ScaleDihedralK(double scale_factor, std::string const& maskExpr, b
   }
   return 0;
 }
+
+/** This template can be used when doing ModifyByMap() on a generic std::vector array
+  * of type T. 
+  */
+template <class T> class TopVecStrip {
+  public:
+    /// CONSTRUCTOR
+    TopVecStrip() {}
+    /// Strip current array according to given map, output to given array of same type
+    void Strip(std::vector<T>& newArray, std::vector<T> const& oldArray, std::vector<int> const& MapIn)
+    {
+      if (!oldArray.empty()) {
+        for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
+          if (*old_it >= 0)
+            newArray.push_back( oldArray[*old_it] );
+      }
+    }
+};
 
 // Topology::ModifyByMap()
 /** \return Pointer to new Topology based on this Topology, deleting atoms
@@ -1408,7 +1529,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     for (std::vector<Molecule>::iterator mol = newParm->molecules_.begin();
                                          mol != newParm->molecules_.end(); ++mol)
     {
-      if ( isSolvent[ mol->BeginAtom() ] ) {
+      if ( isSolvent[ mol->MolUnit().Front() ] ) {
         mol->SetSolvent();
         newParm->NsolventMolecules_++;
       } else
@@ -1526,11 +1647,11 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
                             newParm->chamber_.SetImproperParm(), chamber_.ImproperParm() );
     // NOTE 1-4 LJ parameters handled above
     // CMAP terms
-    if (chamber_.HasCmap()) {
+    if (HasCmap()) {
       // NOTE that atom indexing is updated but cmap indexing is not. So if
       // any CMAP terms remain all CMAP entries remain.
-      for (CmapArray::const_iterator cmap = chamber_.Cmap().begin();
-                                     cmap != chamber_.Cmap().end(); ++cmap)
+      for (CmapArray::const_iterator cmap = Cmap().begin();
+                                     cmap != Cmap().end(); ++cmap)
       {
         int newA1 = atomMap[ cmap->A1() ];
         if (newA1 != -1) {
@@ -1542,7 +1663,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
               if (newA4 != -1) {
                 int newA5 = atomMap[ cmap->A5() ];
                 if (newA5 != -1)
-                  newParm->chamber_.AddCmapTerm( CmapType(newA1,newA2,newA3,
+                  newParm->AddCmapTerm( CmapType(newA1,newA2,newA3,
                                                           newA4,newA5,cmap->Idx()) );
               }
             }
@@ -1550,19 +1671,25 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
         }
       }
       // Only add CMAP grids if there are CMAP terms left.
-      if (!newParm->chamber_.Cmap().empty()) {
-        for (CmapGridArray::const_iterator g = chamber_.CmapGrid().begin();
-                                           g != chamber_.CmapGrid().end(); ++g)
-          newParm->chamber_.AddCmapGrid( *g );
+      if (!newParm->Cmap().empty()) {
+        for (CmapGridArray::const_iterator g = CmapGrid().begin();
+                                           g != CmapGrid().end(); ++g)
+          newParm->AddCmapGrid( *g );
       }
     }
   }
   // Amber extra info.
-  if (!extra_.empty()) {
-    for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
-      if (*old_it >= 0)
-        newParm->extra_.push_back( extra_[*old_it] );
-  }
+  TopVecStrip<NameType> stripNameType;
+  stripNameType.Strip(newParm->tree_, tree_, MapIn);
+  TopVecStrip<int> stripInt;
+  stripInt.Strip(newParm->ijoin_, ijoin_, MapIn);
+  stripInt.Strip(newParm->irotat_, irotat_, MapIn);
+  stripInt.Strip(newParm->pdbSerialNum_, pdbSerialNum_, MapIn);
+  TopVecStrip<char> stripChar;
+  stripChar.Strip(newParm->atom_altloc_, atom_altloc_, MapIn);
+  TopVecStrip<float> stripFloat;
+  stripFloat.Strip(newParm->occupancy_, occupancy_, MapIn);
+  stripFloat.Strip(newParm->bfactor_, bfactor_, MapIn);
   
   // Setup excluded atoms list - Necessary?
   newParm->DetermineExcludedAtoms();
@@ -1794,6 +1921,33 @@ class TypeArray {
     Tarray::iterator lastType_;
 };
 
+/** This template can be used when doing Append() on a generic std::vector array
+  * of type T. The array will be appended to a given array of the same type.
+  * If one is empty and the other is not, values will be filled in if necessary.
+  */
+template <class T> class TopVecAppend {
+  public:
+    /// CONSTRUCTOR
+    TopVecAppend() {}
+    /// Append current array to given array of same type
+    void Append(std::vector<T>& arrayOut, std::vector<T> const& arrayToAdd, unsigned int expectedSize)
+    {
+      if (arrayToAdd.empty() && arrayOut.empty()) {
+        // Both arrays are empty. Nothing to do.
+        return;
+      } else if (arrayToAdd.empty()) {
+        // The current array is empty but the given array is not. Fill in 
+        // array to append with blank values.
+        for (unsigned int idx = 0; idx != expectedSize; idx++)
+          arrayOut.push_back( T() );
+      } else {
+        // Append current array to array to given array. TODO use std::copy?
+        for (typename std::vector<T>::const_iterator it = arrayToAdd.begin(); it != arrayToAdd.end(); ++it)
+          arrayOut.push_back( *it );
+      }
+    }
+};
+
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
@@ -1962,9 +2116,18 @@ int Topology::AppendTop(Topology const& NewTop) {
     nonbond_ = newNB;
   }
   // EXTRA ATOM INFO
-  for (Topology::extra_iterator extra = NewTop.extraBegin();
-                                extra != NewTop.extraEnd(); ++extra)
-    AddExtraAtomInfo( *extra );
+  TopVecAppend<NameType> appendNameType;
+  appendNameType.Append( tree_, NewTop.tree_, NewTop.Natom() );
+  TopVecAppend<int> appendInt;
+  appendInt.Append( ijoin_, NewTop.ijoin_, NewTop.Natom() );
+  appendInt.Append( irotat_, NewTop.irotat_, NewTop.Natom() );
+  appendInt.Append( pdbSerialNum_, NewTop.pdbSerialNum_, NewTop.Natom() );
+  TopVecAppend<char> appendChar;
+  appendChar.Append( atom_altloc_, NewTop.atom_altloc_, NewTop.Natom() );
+  TopVecAppend<float> appendFloat;
+  appendFloat.Append( occupancy_, NewTop.occupancy_, NewTop.Natom() );
+  appendFloat.Append( bfactor_, NewTop.bfactor_, NewTop.Natom() );
+
   // BONDS
   AddBondArray(NewTop.Bonds(),  NewTop.BondParm(), atomOffset);
   AddBondArray(NewTop.BondsH(), NewTop.BondParm(), atomOffset);

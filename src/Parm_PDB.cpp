@@ -125,6 +125,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         nAltLocSkipped++;
         continue;
       }
+      TopIn.AddAtomAltLoc( altLoc );
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();
@@ -134,7 +135,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
         pdbAtom.SetGBradius( bfactor );
       } else {
         infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
-        TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altLoc) );
+        TopIn.AddOccupancy( occupancy );
+        TopIn.AddBfactor( bfactor );
       }
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
       if (altLoc != ' ' && keepAltLoc_ == ' ') {
@@ -151,15 +153,16 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
                 infile.RecType() == PDBfile::END )
     {
       // Indicate end of molecule for TER/END. Finish if END.
-      TopIn.StartNewMol();
+      //TopIn.StartNewMol();
+      TopIn.SetRes( TopIn.Nres()-1 ).SetTerminal( true );
       if (infile.RecType() == PDBfile::END) break;
     } else if ( !missingResidues && infile.RecType() == PDBfile::MISSING_RES ) {
       missingResidues = true;
       mprintf("Warning: PDB file has MISSING RESIDUES section.\n");
-      if (readConect)
+      /*if (readConect)
         mprintf("Warning: If molecule determination fails try specifying 'noconect' instead.\n");
       if (readLink)
-        mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");
+        mprintf("Warning: If molecule determination fails try not specifying 'link' instead.\n");*/
     }
   } // END loop over PDB records
   if (nAltLocSkipped > 0)

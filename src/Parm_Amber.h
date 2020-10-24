@@ -20,7 +20,7 @@ class Parm_Amber : public ParmIO {
     class FortranData;
     /// Enumerated type for Fortran data type
     enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
-    /// Enumerated type for Amber Parmtop Flags
+    /// Enumerated type for Amber Parmtop Flags. KEEP IN SYNC WITH FLAG_ ARRAY
     enum FlagType {
       F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,     F_RESNAMES,
       F_RESNUMS,      F_TYPES,     F_BONDSH,    F_BONDS,    F_SOLVENT_POINTER,
@@ -36,7 +36,8 @@ class Parm_Amber : public ParmIO {
       F_CHM_UBFC,     F_CHM_UBEQ,  F_CHM_NIMP,  F_CHM_IMP,  F_CHM_NIMPT,
       F_CHM_IMPFC,    F_CHM_IMPP,  F_LJ14A,     F_LJ14B,    F_CHM_CMAPC,
       F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,  F_PDB_RES,
-      F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT
+      F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT,   F_PDB_BFAC, F_PDB_OCC,
+      F_PDB_NUM,      F_CMAPC,     F_CMAPR,     F_CMAPP,    F_CMAPI
     };
     /// Used to hold %FLAG/FORMAT string pairs. Corresponds to FlagType.
     struct ParmFlag {
@@ -111,6 +112,9 @@ class Parm_Amber : public ParmIO {
     int ReadPdbChainID(Topology&, FortranData const&);
     int ReadPdbIcode(Topology&, FortranData const&);
     int ReadPdbAlt(Topology&, FortranData const&);
+    int ReadPdbBfactor(Topology&, FortranData const&);
+    int ReadPdbOccupancy(Topology&, FortranData const&);
+    int ReadPdbNumbers(Topology&, FortranData const&);
     // CHAMBER
     int ReadChamberFFtype(Topology&, FortranData const&);
     int ReadChamberUBCount(Topology&, FortranData const&);
@@ -124,10 +128,10 @@ class Parm_Amber : public ParmIO {
     int ReadChamberImpPHASE(Topology&, FortranData const&);
     int ReadChamberLJ14A(Topology&, FortranData const&);
     int ReadChamberLJ14B(Topology&, FortranData const&);
-    int ReadChamberCmapCounts(FortranData const&);
-    int ReadChamberCmapRes(Topology&, FortranData const&);
-    int ReadChamberCmapGrid(const char*, Topology&, FortranData const&);
-    int ReadChamberCmapTerms(Topology&, FortranData const&);
+    int ReadCmapCounts(FortranData const&);
+    int ReadCmapRes(Topology&, FortranData const&);
+    int ReadCmapGrid(const char*, Topology&, FortranData const&);
+    int ReadCmapTerms(Topology&, FortranData const&);
     // LES
     int ReadLESntyp(Topology&, FortranData const&);
     int ReadLESfac(Topology&, FortranData const&);
@@ -146,9 +150,13 @@ class Parm_Amber : public ParmIO {
     int WriteAngles(FlagType, AngleArray const&);
     int WriteDihedrals(FlagType, DihedralArray const&);
     void WriteLine(FlagType, std::string const&);
-    int WriteExtra(std::vector<AtomExtra> const&);
+    int WriteTreeChainClassification(std::vector<NameType> const&);
+    int WriteIjoin(std::vector<int> const&);
+    int WriteIrotat(std::vector<int> const&);
+    int WriteExtra(Topology const&, int);
  
     static const int AMBERPOINTERS_;
+    /// Contain topology flags enumerated by FlagType
     static const ParmFlag FLAGS_[];
 
     ParmType ptype_;

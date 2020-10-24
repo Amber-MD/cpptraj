@@ -23,6 +23,10 @@ class ParmFile {
     static void WriteOptions(std::string const& fkey){ FileTypes::Options(PF_WriteKeyArray,PF_AllocArray,UNKNOWN_PARM,fkey,FileTypes::WRITEOPT);}
     /// CONSTRUCTOR
     ParmFile();
+    /// ReadTopology() keywords
+    static const char* ReadTopologyKeywords();
+    /// ReadTopology() help
+    static const char* ReadTopologyHelp();
     /// Read topology file with optional arguments and debug level
     int ReadTopology(Topology&, FileName const&, ArgList const&,int);
     /// Read topology file

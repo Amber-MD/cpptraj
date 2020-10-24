@@ -44,7 +44,7 @@ Box CreateBoundingBox(Frame const& frameIn) {
 /** Add bonds within residues to top using coords in frameIn. */
 void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
   // ----- STEP 1: Determine bonds within residues
-  std::vector<AtomExtra> const& Extra = top.Extra();
+  std::vector<char> const& AtomAltLoc = top.AtomAltLoc();
   for (Topology::res_iterator res = top.ResStart(); res != top.ResEnd(); ++res)
   {
     int stopatom = res->LastAtom();
@@ -55,15 +55,15 @@ void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
       if (a1Elt==Atom::HYDROGEN && top[atom1].Nbonds() > 0 )
         continue;
       // Determine if atom1 has an alternate location
-      bool hasAltLoc1 = (!Extra.empty() && Extra[atom1].AtomAltLoc() != ' ');
+      bool hasAltLoc1 = (!AtomAltLoc.empty() && AtomAltLoc[atom1] != ' ');
       // Loop over all other atoms in the residue
       for (int atom2 = atom1 + 1; atom2 != stopatom; ++atom2) {
         // Determine if atom2 has an alternate location. Only matters if
         // atom1 has an alternate location.
-        if (hasAltLoc1 && Extra[atom2].AtomAltLoc() != ' ') {
+        if (hasAltLoc1 && AtomAltLoc[atom2] != ' ') {
           // If alternate location info present for both atoms, make sure the
           // location IDs match.
-          if (Extra[atom1].AtomAltLoc() != Extra[atom2].AtomAltLoc()) continue;
+          if (AtomAltLoc[atom1] != AtomAltLoc[atom2]) continue;
         }
         Atom::AtomicElementType a2Elt = top[atom2].Element();
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
@@ -289,7 +289,7 @@ int BondSearch_ByResidue( Topology& top, Frame const& frameIn, double offset, in
     // this residue >= first atom of next molecule, which indicates this
     // residue and the previous residue are in different molecules.
     if ( (nextmol != top.MolEnd()) &&
-         (res->FirstAtom() >= nextmol->BeginAtom()) )
+         (res->FirstAtom() >= nextmol->MolUnit().Front()) )
     {
       ++nextmol;
       continue;

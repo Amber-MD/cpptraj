@@ -4,7 +4,7 @@
 
 # Clean
 CleanFiles dummy.rst7 dummy.pdb.1 strip.in *.tz2.truncoct.parm7 Complex.crd \
-           Receptor.crd Ligand.crd res1.tz2.crd
+           Receptor.crd Ligand.crd res1.tz2.crd strip.pdb.chignolin.parm7
 INPUT="-i strip.in"
 
 # NOTE: strip is also tested in Test_Center
@@ -75,6 +75,20 @@ EOF
   RunCpptraj "Multi frame strip command test."
   DoTest res1.tz2.crd.save res1.tz2.crd
 fi
+
+# Check that stripping topology with PDB info works
+UNITNAME='Strip topology with PDB info'
+CheckFor maxthreads 1
+if [ $? -eq 0 ] ; then
+  cat > strip.in <<EOF
+parm pdb.chignolin.parm7
+parmstrip @/H
+parmwrite out strip.pdb.chignolin.parm7
+EOF
+  RunCpptraj "$UNITNAME"
+  DoTest strip.pdb.chignolin.parm7.save strip.pdb.chignolin.parm7 -I %VERSION
+fi
+
 EndTest
 
 exit 0

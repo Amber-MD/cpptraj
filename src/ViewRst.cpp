@@ -90,7 +90,7 @@ int ViewRst::WriteRstTop(std::string const& topOutName) {
 
   for (unsigned int nt = 0; nt != Pseudo_.size(); nt++) {
     ParmFile topOut;
-    Pseudo_[nt].CommonSetup(false);
+    Pseudo_[nt].CommonSetup(false, false); // No molecule search, no renumbering residues
     if (topOut.WriteTopology(Pseudo_[nt], OutNames[nt], ArgList(), ParmFile::UNKNOWN_PARM, 0))
       return 1;
   }
