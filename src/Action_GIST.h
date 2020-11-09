@@ -6,6 +6,17 @@
 #ifdef CUDA
 #include "cuda_kernels/GistCudaSetup.cuh"
 #endif
+
+#include "DataSet_3D.h"
+#include "DataSet_MatrixFlt.h"
+#include "Energy.h"
+#include "CharMask.h"
+#include "CpptrajStdio.h"
+
+#include <chrono>
+#include <ctime>
+
+class Ewald;
 class DataSet_3D;
 class DataSet_MatrixFlt;
 
@@ -15,9 +26,12 @@ class DataSet_MatrixFlt;
 class Action_GIST : public Action {
   public:
     Action_GIST();
+
+    
     #ifdef CUDA
     ~Action_GIST() {delete[] this->solvent_;}
     #endif
+    
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_GIST(); }
     void Help() const;
   private:
@@ -31,6 +45,7 @@ class Action_GIST : public Action {
                                Matrix_3x3 const&, Matrix_3x3 const&);
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy(Frame const&, Topology const&);
+    void NonbondEnergy_pme(Frame const&, Topology const&);
     void Order(Frame const&);
     void SumEVV();
 
@@ -74,7 +89,6 @@ class Action_GIST : public Action {
     static const double QFAC_;
     static const int SOLUTE_;
     static const int OFF_GRID_;
-
     double gridspacing_;
     Vec3 gridcntr_;
     Vec3 griddim_;
@@ -91,6 +105,10 @@ class Action_GIST : public Action {
     DataSet_3D* dTSsix_;
     DataSet_3D* neighbor_norm_;
     DataSet_3D* dipole_; // pol
+    DataSet_3D* PME_; ///< the nonbond interaction( charge-charge + vdw) cal for water
+    DataSet_3D* U_PME_; /// The nonbond energy for solute atoms
+    DataSet_3D* solute_PME_; /// the PME based energy for solut atoms
+
     // GIST double grid datasets
     DataSet_3D* order_norm_; // qtet
     DataSet_3D* dipolex_;    ///< Water dipole (X)*
@@ -103,9 +121,14 @@ class Action_GIST : public Action {
     //Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
     Iarray O_idxs_;      ///< Oxygen atom indices for each solvent molecule.+
     Iarray OnGrid_idxs_; ///< Indices for each water atom on the grid.*
+    Iarray U_onGrid_idxs_; /// Indices for each solute atom on the grid *
     Iarray atom_voxel_;  ///< Absolute grid voxel for each atom (SOLUTE_ for solute atoms)
+    // Iarray all_atom_voxel_; ///< Absolute grid voxel for all atom including solute.
     Iarray A_idxs_;      ///< Atom indices for each solute and solvent atom.+ (energy calc only)
+    Iarray SW_idxs_;     /// the identy of the atom: 0 for water 1 for solute 
+    Iarray U_idxs_;      /// < Atom indices only for solute atoms
     Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
+    Iarray N_solute_atoms_; /// Number of solue atoms in each voxel
     Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
 #   ifdef _OPENMP
     std::vector<Iarray> EIJ_V1_; ///< Hold any interaction energy voxel 1 each frame.*
@@ -128,6 +151,16 @@ class Action_GIST : public Action {
     std::vector<Darray> E_UV_Elec_; ///< Solute-solvent electrostatic energy for each voxel.*
     std::vector<Darray> E_VV_VDW_;  ///< Solvent-solvent van der Waals energy for each voxel.*
     std::vector<Darray> E_VV_Elec_; ///< Solvent-solvent electrostatic energy for each voxel.*
+
+    /// **PME energy terms***
+
+    std::vector<Darray> E_pme_; ///Total nonbond interaction energy(VDW + electrostatic) calculated by PME for water
+
+    std::vector<Darray> U_E_pme_; /// Total nonbond interaction energy(VDW + Elec) calculated by PME for solute 
+
+   
+
+
 
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
 
@@ -158,6 +191,8 @@ class Action_GIST : public Action {
     unsigned int MAX_GRID_PT_; ///< Max number of grid points (voxels).
     unsigned int NSOLVENT_;    ///< Number of solvent molecules.
     unsigned int N_ON_GRID_;   ///< Number of water atoms on the grid.*
+    unsigned int U_ON_GRID_;   /// Numver of solute atoms on the grid
+    // unsigned int all_N_ON_GRID_; ///< Total number of atoms (including solutes) on the grid.
     unsigned int nMolAtoms_;   ///< Number of atoms in a water molecule.+
     int NFRAME_;               ///< Total # frames analyzed
     int max_nwat_;             ///< Max number of waters in any voxel
@@ -166,5 +201,30 @@ class Action_GIST : public Action {
     bool skipE_;               ///< If true skip the nonbond energy calc
     bool includeIons_;         ///< If true include ions in solute region.
     bool skipS_;               ///< If true does not calculate entropy
+    bool doE2016_;             ///< if true, use the imgae convention(steve, 2016) not PME for energy calculation
+
+    /// *** arguments for PME calculation, ported from Action.energy.h
+    int debug_;
+    double cutoff_;      ///< Ewald direct space cutoff
+    double dsumtol_;     ///< Ewald direct sum tolerance
+    double rsumtol_;     ///< Regular Ewald sum tolerance
+    double ewcoeff_;     ///< Ewald coefficient
+    double lwcoeff_;     ///< LJ Ewald coefficient
+    double ljswidth_;    ///< Size of LJ switch region
+    double maxexp_;
+    double skinnb_;      ///< size of non-bond "skin"
+    double erfcDx_;      ///< Spacing of ERFC table
+    int mlimits_[3];        /// nfft for PME
+    int npoints_;     
+    double system_potential_energy; /// the emsemble average potential energy ( Eelec + Vdw ) for the frames   
+    double solute_potential_energy; /// the ensemble average potential energy on solute atoms
+    bool need_lj_params_;
+    AtomMask all_Imask_;
+    std::chrono::duration<double> gist_time_;
+    std::chrono::duration<double> pme_time_;
+    Ewald* EW_all_;
+    ActionSetup PME_setup_;
+
+    
 };
 #endif

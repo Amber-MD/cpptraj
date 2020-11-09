@@ -23,20 +23,20 @@ UNITNAME='TIP4P water cluster test'
 cat > gist.in <<EOF
 parm tip4pew.cluster.parm7
 trajin tip4pew.cluster.rst7
-gist doorder gridcntr 0.5 0.5 0.5 griddim 1 1 1 gridspacn 1.0 out tip4p.dat refdens 0.0333
+gist doE2016 doorder gridcntr 0.5 0.5 0.5 griddim 1 1 1 gridspacn 1.0 out tip4p.dat refdens 0.0333
 EOF
 RunCpptraj "$UNITNAME"
-#DoTest gist-order-norm.dx.save gist-order-norm.dx
+DoTest gist-order-norm.dx.save gist-order-norm.dx
 DoTest tip4p.dat.save tip4p.dat
 
 UNITNAME='TIP5P water cluster test'
 cat > gist.in <<EOF
 parm tip5p.cluster.parm7
 trajin tip5p.cluster.rst7
-gist doorder gridcntr 0.5 0.5 0.5 griddim 1 1 1 gridspacn 1.0 out tip5p.dat refdens 0.0333
+gist doE2016 doorder gridcntr 0.5 0.5 0.5 griddim 1 1 1 gridspacn 1.0 out tip5p.dat refdens 0.0333
 EOF
 RunCpptraj "$UNITNAME"
-#DoTest gist-order-norm.dx.save gist-order-norm.dx
+DoTest gist-order-norm.dx.save gist-order-norm.dx
 DoTest tip5p.dat.save tip5p.dat
 
 

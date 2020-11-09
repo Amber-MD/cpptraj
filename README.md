@@ -85,7 +85,7 @@ the following libraries:
 CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ. External ones can be used in place of these if desired.
 
 * ARPACK; without this diagonalization of sparse matrices in `diagmatrix` will be slow
-* [helPME](https://github.com/andysim/helpme), required for PME functionality
+* [helPME](https://github.com/andysim/helpme), required for PME functionality such as PME-GIST
 * XDR for reading GROMACS XTC trajectories
 * TNG for reading GROMACS TNG trajectories
 

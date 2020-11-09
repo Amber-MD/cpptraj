@@ -405,3 +405,22 @@ int Ewald_Regular::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskI
   e_elec = e_self + e_recip + e_direct;
   return 0;
 }
+
+
+int Ewald_Regular::CalcNonbondEnergy_GIST(Frame const& frameIn, AtomMask const& maskIn,
+                                      double& e_elec, double& e_vdw,
+                                      std::vector<double>& e_vdw_direct,
+                                      std::vector<double>& e_vdw_self,
+                                      std::vector<double>& e_vdw_recip,
+                                      std::vector<double>& e_vdw_lr_cor,
+                                      std::vector<double>& e_elec_self,
+                                      std::vector<double>& e_elec_direct,
+                                      std::vector<double>& e_elec_recip,
+                                      std::vector<int>& atom_voxel )
+{
+  
+  return 0;
+}
+
+
+

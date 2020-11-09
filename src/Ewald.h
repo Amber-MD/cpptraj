@@ -5,6 +5,8 @@ class AtomMask;
 class Frame;
 #include "Timer.h"
 #include "PairList.h"
+#include "iostream"
+#include "vector"
 /// Base class for calculating non-bonded energy using Ewald methods.
 class Ewald {
   public:
@@ -14,9 +16,21 @@ class Ewald {
     virtual int Setup(Topology const&, AtomMask const&) = 0;
     /// Calculate electrostatic and van der Waals energy
     virtual int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&) = 0;
+    
+    virtual int CalcNonbondEnergy_GIST(Frame const&, AtomMask const& ,
+                                      double&, double&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<int>&) = 0;
     // -------------------------------------------
     /// Report timings.
     void Timing(double) const;
+
 #   ifdef DEBUG_EWALD
     /// Slow non-pairlist version of energy calc. For debug only.
     double CalcEnergy_NoPairList(Frame const&, Topology const&, AtomMask const&);
@@ -40,10 +54,18 @@ class Ewald {
     inline double ERFC(double) const;
     /// Ewald "self" energy
     double Self(double);
+
+    /// Ewald "self" energy for GIST
+    double Self_GIST(double, std::vector<double>&);
     /// Ewald "self" energy for C6 term
     double Self6();
+
+    double Self6_GIST(std::vector<double>&);
     /// Get analytical estimate of energy due to dispersion interactions > cutoff
     double Vdw_Correction(double);
+
+    double Vdw_Correction_GIST(double,std::vector<double>&);
+    
     /// Box, debug, cutoff, dsum tol, ew coeff, lj coeff, switch window, erfc dx, nb skin
     int CheckInput(Box const&, int, double, double, double, double, double, double, double);
     /// Set up pair list
@@ -64,6 +86,7 @@ class Ewald {
     /// Fast version of direct space energy using a pairlist
     double Direct(PairList const&, double&);
     /// \return adjusted energy for excluded atom pair
+    double Direct_GIST(PairList const&, double&, std::vector<double>&, std::vector<double>&, std::vector<int>&);
 #   ifdef _OPENMP
     inline double Adjust(double,double,double) const;
 #   else
@@ -74,6 +97,9 @@ class Ewald {
 #   ifdef DEBUG_EWALD
     Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
 #   endif
+    Darray atype_vdw_recip_terms_;
+    Iarray N_vdw_type_; // atom number for each nonbond atom type
+    Iarray vdw_type_; // nonbond atom type for the system atoms
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
     Darray Cparam_;       ///< Hold selected atomic C6 coefficients for LJ PME
     PairList pairList_;   ///< Atom pair list for direct sum.
@@ -105,6 +131,8 @@ class Ewald {
     Timer t_adjust_;
   private:
     double Direct_VDW_LongRangeCorrection(PairList const&, double&);
+    double Direct_VDW_LongRangeCorrection_GIST(PairList const&, double&, std::vector<double>&, std::vector<double>&, std::vector<int>&);
     double Direct_VDW_LJPME(PairList const&, double&);
+    double Direct_VDW_LJPME_GIST(PairList const&, double&, std::vector<double>&, std::vector<double>&);
 };
 #endif

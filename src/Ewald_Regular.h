@@ -11,6 +11,18 @@ class Ewald_Regular : public Ewald {
     // ----- Inherited ---------------------------
     int Setup(Topology const&, AtomMask const&);
     int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&);
+    
+    int CalcNonbondEnergy_GIST(Frame const&, AtomMask const& ,
+                                      double&, double&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<int>&);
+    
   private:
     /// Determine max length for reciprocal calcs based on reciprocal limits
     static double FindMaxexpFromMlim(const int*, Matrix_3x3 const&);

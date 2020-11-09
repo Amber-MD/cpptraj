@@ -13,6 +13,18 @@ class Ewald_ParticleMesh : public Ewald {
     // ----- Inherited ---------------------------
     int Setup(Topology const&, AtomMask const&);
     int CalcNonbondEnergy(Frame const&, AtomMask const&, double&, double&);
+    int CalcNonbondEnergy_GIST(Frame const&, AtomMask const& ,
+                                      double&, double&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<double>&,
+                                      std::vector<int>&);
+
+
   private:
     typedef Ewald::Darray Darray;
     /// Based on given length return number of grid points that is power of 2, 3, or 5
@@ -21,8 +33,13 @@ class Ewald_ParticleMesh : public Ewald {
     int DetermineNfft(int&, int&, int&, Box const&) const;
     /// Particle mesh Ewald reciprocal energy
     double Recip_ParticleMesh(Box const&);
+    /// Particle mesh Ewald for reciprocal energy and potential
+    double Recip_ParticleMesh_GIST(Box const&, helpme::Matrix<double>&);
+
     /// Particle mesh Ewald LJ recip energy
     double LJ_Recip_ParticleMesh(Box const&);
+
+    double LJ_Recip_ParticleMesh_GIST(Box const&, helpme::Matrix<double>&);
 
     Darray coordsD_;   ///< Hold coordinates for selected atoms
 

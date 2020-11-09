@@ -16,7 +16,7 @@ if [ $? -eq 0 ]; then
   parm ../tz2.ortho.parm7
   trajin ../tz2.ortho.nc 1 10
   autoimage origin
-  gist doorder doeij refdens 0.033422885325 gridcntr 1.44 0.67 0.29 \
+  gist doE2016 doorder doeij refdens 0.033422885325 gridcntr 1.44 0.67 0.29 \
     griddim 10 12 10 gridspacn 2.0 prefix Gist1
   go
 EOF
@@ -30,7 +30,7 @@ cat > gist.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 10
 autoimage origin
-gist doorder refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
+gist doE2016 doorder refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
     griddim 34 44 36 gridspacn 0.50 prefix Gist2 info Info.dat
 go
 EOF
