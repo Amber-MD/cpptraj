@@ -164,9 +164,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
 #endif
   skipE_ = actionArgs.hasKey("skipE");
-  if (skipE_) {
+  if (!doE2016_) {
     if (doEij_) {
-      mprinterr("Error: 'doeij' cannot be specified if 'skipE' is specified.\n");
+      mprinterr("Error: 'doeij' has be specified with 'doE2016' together.\n");
       return Action::ERR;
     }
   }
@@ -355,20 +355,20 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 
 
 
-  if (!skipE_) {
+  if (doE2016_) {
     E_UV_VDW_.resize( numthreads );
     E_UV_Elec_.resize( numthreads );
     E_VV_VDW_.resize( numthreads );
     E_VV_Elec_.resize( numthreads );
     neighbor_.resize( numthreads );
-    //E_pme_.resize( numthreads);
+    E_pme_.resize( numthreads);
     for (int thread = 0; thread != numthreads; thread++) {
       E_UV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
       E_UV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
       E_VV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
       E_VV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
       neighbor_[thread].assign( MAX_GRID_PT_, 0 );
-      //E_pme_[thread].assign( MAX_GRID_PT_,0);
+      E_pme_[thread].assign( MAX_GRID_PT_,0);
     }
 #   ifdef _OPENMP
     if (doEij_) {
