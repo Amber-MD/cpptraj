@@ -282,15 +282,16 @@ int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
     mprintf("Warning: bzip2 files. Cannot check # of frames. Will try to read %i\n",dcdframes_);
   }
   // Load box info so that it can be checked.
-  double box[6];
-  memset( box, 0, 6*sizeof(double));
+  //double box[6];
+  //memset( box, 0, 6*sizeof(double));
+  Box box;
   if (boxBytes_) {
     if (charmmCellType_ == SHAPE)
        mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
     if (ReadBox( box )) return TRAJIN_ERR;
   }
   // Set traj info: No velocity, temperature, or time.
-  SetCoordInfo( CoordinateInfo( Box(box), false, false, false ) );
+  SetCoordInfo( CoordinateInfo( box, false, false, false ) );
   // If there are fixed atoms read the first frame now
   // TODO: Deal with fixed atoms
   closeTraj();
@@ -503,14 +504,15 @@ static inline double CosRadToDeg( double BoxInRad ) {
 }
 
 // Traj_CharmmDcd::ReadBox()
-int Traj_CharmmDcd::ReadBox(double* box) {
+int Traj_CharmmDcd::ReadBox(Box& boxOut) {
   double boxtmp[6];
   if ( ReadBlock(48) < 0) return 1;
   file_.Read(boxtmp, sizeof(double)*6);
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
   if (charmmCellType_ == SHAPE) {
-    Box::ShapeToUcell(box, boxtmp);
+    boxOut.SetUcellFromShapeMatrix( boxtmp );
+    //Box::ShapeToUcell(box, boxtmp);
 /*
     mprintf("\nDEBUG: Original matrix: %g %g %g %g %g %g\n",
             boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
@@ -527,6 +529,7 @@ int Traj_CharmmDcd::ReadBox(double* box) {
 */
   } else {
     // Box lengths
+    double box[6]; //FIXME
     box[0] = boxtmp[0];
     box[1] = boxtmp[2];
     box[2] = boxtmp[5];
@@ -593,7 +596,7 @@ int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
   seekToFrame( set );
   // Load box info
   if (boxBytes_ != 0) {
-    if (ReadBox( frameIn.bAddress() )) return 1;
+    if (ReadBox( frameIn.SetBox() )) return 1;
   }
   return readXYZ(frameIn.xAddress());
 }
@@ -603,7 +606,7 @@ int Traj_CharmmDcd::readVelocity(int set, Frame& frameIn) {
   seekToFrame( set );
   // Load box info
   if (boxBytes_ != 0) {
-    if (ReadBox( frameIn.bAddress() )) return 1;
+    if (ReadBox( frameIn.SetBox() )) return 1;
   }
   return readXYZ(frameIn.vAddress());
 }

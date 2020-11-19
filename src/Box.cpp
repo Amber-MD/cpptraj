@@ -4,7 +4,9 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Box::Box() : btype_(NOBOX) //, debug_(0)
+Box::Box() :
+  btype_(NOBOX),
+  cellVolume_(0) //, debug_(0)
 {
   box_[0] = 0;
   box_[1] = 0;
@@ -24,7 +26,11 @@ Box::Box(const float* bIn) { SetBox( bIn ); }
 Box::Box(Matrix_3x3 const& ucell) { SetBox( ucell ); }
 
 // COPY CONSTRUCTOR
-Box::Box(const Box& rhs) : btype_(rhs.btype_) //, debug_(rhs.debug_)
+Box::Box(const Box& rhs) :
+  btype_(rhs.btype_),
+  unitCell_(rhs.unitCell_),
+  fracCell_(rhs.fracCell_),
+  cellVolume_(rhs.cellVolume_) //, debug_(rhs.debug_)
 {
   box_[0] = rhs.box_[0];
   box_[1] = rhs.box_[1];
@@ -45,6 +51,9 @@ Box &Box::operator=(const Box& rhs) {
   box_[3] = rhs.box_[3];
   box_[4] = rhs.box_[4];
   box_[5] = rhs.box_[5];
+  unitCell_ = rhs.unitCell_;
+  fracCell_ = rhs.fracCell_;
+  cellVolume_ = rhs.cellVolume_;
   return *this;
 }
 
@@ -254,11 +263,62 @@ void Box::SetBoxType() {
   }
 }
 
+double Box::CalcFrac(Matrix_3x3& recip, Matrix_3x3 const& ucell) {
+  // Get reciprocal vectors
+  double u23x = ucell[4]*ucell[8] - ucell[5]*ucell[7];
+  double u23y = ucell[5]*ucell[6] - ucell[3]*ucell[8];
+  double u23z = ucell[3]*ucell[7] - ucell[4]*ucell[6];
+  double u31x = ucell[7]*ucell[2] - ucell[8]*ucell[1];
+  double u31y = ucell[8]*ucell[0] - ucell[6]*ucell[2];
+  double u31z = ucell[6]*ucell[1] - ucell[7]*ucell[0];
+  double u12x = ucell[1]*ucell[5] - ucell[2]*ucell[4];
+  double u12y = ucell[2]*ucell[3] - ucell[0]*ucell[5];
+  double u12z = ucell[0]*ucell[4] - ucell[1]*ucell[3];
+  double volume = ucell[0]*u23x + ucell[1]*u23y + ucell[2]*u23z;
+  double onevolume = 1.0 / volume;
+
+  recip[0] = u23x*onevolume;
+  recip[1] = u23y*onevolume;
+  recip[2] = u23z*onevolume;
+  recip[3] = u31x*onevolume;
+  recip[4] = u31y*onevolume;
+  recip[5] = u31z*onevolume;
+  recip[6] = u12x*onevolume;
+  recip[7] = u12y*onevolume;
+  recip[8] = u12z*onevolume;
+
+  return volume;
+}
+
+void Box::SetUcellFromShapeMatrix(const double* shape) {
+  unitCell_[0] = shape[0];
+  unitCell_[1] = shape[1];
+  unitCell_[2] = shape[3];
+
+  unitCell_[3] = shape[1];
+  unitCell_[4] = shape[2];
+  unitCell_[5] = shape[4];
+
+  unitCell_[6] = shape[3];
+  unitCell_[7] = shape[4];
+  unitCell_[8] = shape[5];
+
+  ShapeToUcell(box_, shape);
+
+  cellVolume_ = CalcFrac(fracCell_, unitCell_);
+
+  SetBoxType();
+}
+
 // Box::ToRecip()
 /** Use box coordinates to calculate unit cell and fractional matrix for use
   * with imaging routines. Return cell volume.
   */
 double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
+  ucell = unitCell_;
+  recip = fracCell_;
+  return cellVolume_;
+/*
   double u12x,u12y,u12z;
   double u23x,u23y,u23z;
   double u31x,u31y,u31z;
@@ -302,7 +362,7 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   recip[7] = u12y*onevolume;
   recip[8] = u12z*onevolume;
 
-  return volume;
+  return volume;*/
 }
 
 // Box::UnitCell()

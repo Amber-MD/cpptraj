@@ -19,6 +19,8 @@ class Box {
 
     const char* TypeName() const { return BoxNames_[btype_]; }
 
+    void SetUcellFromShapeMatrix(const double*);
+
     void SetBetaLengths(double,double,double,double);
     void SetBox(const double*);
     void SetBox(const float*);
@@ -67,6 +69,7 @@ class Box {
     static inline bool IsTruncOct(double);
     static inline bool BadTruncOctAngle(double);
     static inline bool IsAngle(double,double);
+    static inline double CalcFrac(Matrix_3x3&, Matrix_3x3 const&);
     void SetBoxType();
 
     static const double TRUNCOCTBETA_;
@@ -78,5 +81,8 @@ class Box {
     //int debug_; // TODO: Replace with ifdefs or just comment out?
     BoxType btype_; ///< Box type
     double box_[6]; ///< Box X Y Z alpha beta gamma
+    Matrix_3x3 unitCell_; ///< Unit cell (Cartesian) matrix
+    Matrix_3x3 fracCell_; ///< Fractional coord. cell matrix
+    double cellVolume_;
 };
 #endif
