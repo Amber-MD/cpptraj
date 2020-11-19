@@ -1,6 +1,9 @@
 #ifndef INC_MATRIX_3X3_H
 #define INC_MATRIX_3X3_H
 #include "Vec3.h"
+#ifdef MPI
+#include "Parallel.h"
+#endif
 class Matrix_3x3 {
   public:
     Matrix_3x3() {}
@@ -85,6 +88,9 @@ class Matrix_3x3 {
     // TODO: Get rid of this
     const double* Dptr() const { return M_; }
     double* Dptr() { return M_; }
+#   ifdef MPI
+    void SyncMatrix(Parallel::Comm const&);
+#   endif
   private:
     double M_[9];
     // The following three variables are set during Diagonalize_Sort. They

@@ -516,3 +516,9 @@ Vec3 Matrix_3x3::AxisOfRotation(double theta) {
   }
   return Vec3(0.0, 0.0, 0.0);
 }
+
+#ifdef MPI
+void Matrix_3x3::SyncMatrix(Parallel::Comm const& commIn) {
+  commIn.MasterBcast( M_, 9, MPI_DOUBLE );
+}
+#endif

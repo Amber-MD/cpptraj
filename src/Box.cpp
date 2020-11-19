@@ -459,6 +459,9 @@ void Box::swap(Box& rhs) {
 int Box::SyncBox(Parallel::Comm const& commIn) {
   commIn.MasterBcast( &btype_, 1, MPI_INT );
   commIn.MasterBcast( box_,    6, MPI_DOUBLE );
+  unitCell_.SyncMatrix( commIn );
+  fracCell_.SyncMatrix( commIn );
+  commIn.MasterBcast( &cellVolume_, 1, MPI_DOUBLE );
   return 0;
 }
 #endif
