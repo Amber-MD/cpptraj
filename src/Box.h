@@ -16,11 +16,14 @@ class Box {
     //Box(Matrix_3x3 const&);
     Box(const Box&);
     Box& operator=(const Box&);
+    void swap(Box&);
 #   ifdef MPI
     int SyncBox(Parallel::Comm const&);
 #   endif
 
-    void SetupUcellFromShapeMatrix(const double*);
+    void SetupFromShapeMatrix(const double*);
+
+    void SetupFromXyzAbg(const double*);
 
     //void SetBetaLengths(double,double,double,double);
     //void SetBox(const double*);
@@ -56,7 +59,6 @@ class Box {
     Vec3 Center()  const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
     Vec3 Lengths() const { return Vec3(box_[0], box_[1], box_[2]);             }
 
-    //void swap(Box&);
     // For interfacing with file IO
     //double* boxPtr()             { return box_; }
     //const double* boxPtr() const { return box_; }

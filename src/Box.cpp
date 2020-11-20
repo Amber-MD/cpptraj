@@ -59,19 +59,21 @@ Box& Box::operator=(const Box& rhs) {
   return *this;
 }
 
-/*
+/// Swap double precision
 static inline void dswap(double& d1, double& d2) {
   double dtemp = d1;
   d1 = d2;
   d2 = dtemp;
 }
 
+/// Swap box type
 static inline void bswap(Box::BoxType& b1, Box::BoxType& b2) {
   Box::BoxType btemp = b1;
   b1 = b2;
   b2 = btemp;
 }
 
+/** Swap this box with given box. */
 void Box::swap(Box& rhs) {
   bswap( btype_,  rhs.btype_ );
   dswap( box_[0], rhs.box_[0] );
@@ -86,7 +88,6 @@ void Box::swap(Box& rhs) {
   }
   dswap(cellVolume_, rhs.cellVolume_);
 }
-*/
 
 #ifdef MPI
 int Box::SyncBox(Parallel::Comm const& commIn) {
@@ -330,8 +331,8 @@ void Box::CalcXyzAbgFromShape(double* box, const double* boxtmp)
 
 // -----------------------------------------------------------------------------
 // Setup routines
-/** Set unit cell, fractional cell, and ABG cell from shape matrix. */
-void Box::SetupUcellFromShapeMatrix(const double* shape) {
+/** Set unit cell, fractional cell, and XYZ ABG array from shape matrix. */
+void Box::SetupFromShapeMatrix(const double* shape) {
   unitCell_[0] = shape[0];
   unitCell_[1] = shape[1];
   unitCell_[2] = shape[3];
@@ -351,6 +352,21 @@ void Box::SetupUcellFromShapeMatrix(const double* shape) {
   SetBoxType();
 }
 
+/** Set unit cell and fractional cell from XYZ ABG array. */
+void Box::SetupFromXyzAbg(const double* xyzabg) {
+  box_[0] = xyzabg[0];
+  box_[1] = xyzabg[1];
+  box_[2] = xyzabg[2];
+  box_[3] = xyzabg[3];
+  box_[4] = xyzabg[4];
+  box_[5] = xyzabg[5];
+
+  CalcUcellFromXyzAbg(unitCell_, xyzabg);
+
+  cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+
+  SetBoxType();
+}
 
 /*
 // Box::SetBetaLengths()
