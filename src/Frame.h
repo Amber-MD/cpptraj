@@ -105,11 +105,11 @@ class Frame {
     /// \return overall coordinate index
     int CrdIdx()                      const { return crdidx_;        }
     /// Set box alpha, beta, and gamma
-    inline void SetBoxAngles(const double*);
+    //inline void SetBoxAngles(const double*);
     /// Set box from another box
     void SetBox( Box const& b ) { box_ = b; }
     /// Modify box in place
-    Box& SetBox() { return box_; }
+    Box& ModifyBox() { return box_; }
     /// Set temperature
     void SetTemperature(double tIn) { T_ = tIn;     }
     /// Set step
@@ -130,7 +130,6 @@ class Frame {
     inline double* xAddress() { return X_;                }
     inline double* vAddress() { return V_;                }
     inline double* fAddress() { return F_;                }
-    inline double* bAddress() { return box_.boxPtr();     }
     inline double* tAddress() { return &T_;               }
     inline double* mAddress() { return &time_;            }
     inline int* iAddress()    { return &remd_indices_[0]; }
@@ -139,7 +138,6 @@ class Frame {
     inline const double* xAddress() const { return X_;                }
     inline const double* vAddress() const { return V_;                }
     inline const double* fAddress() const { return F_;                }
-    inline const double* bAddress() const { return box_.boxPtr();     }
     inline const double* tAddress() const { return &T_;               }
     inline const double* mAddress() const { return &time_;            }
     inline const int* iAddress()    const { return &remd_indices_[0]; }
@@ -299,11 +297,11 @@ class Frame {
     inline bool ReallocateX(int);
 };
 // ---------- INLINE FUNCTION DEFINITIONS --------------------------------------
-void Frame::SetBoxAngles(const double* boxAngle) {
+/*void Frame::SetBoxAngles(const double* boxAngle) {
   box_.SetAlpha( boxAngle[0] );
   box_.SetBeta(  boxAngle[1] );
   box_.SetGamma( boxAngle[2] );
-}
+}*/
 
 bool Frame::CheckCoordsInvalid() const {
   if (natom_ > 1) {
