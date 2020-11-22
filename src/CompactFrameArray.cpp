@@ -27,6 +27,14 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
 
   if (cinfoIn.HasCrd())
     addComponent(currentOffset, CoordinateInfo::POSITION, (long int)natoms * 3);
+  if (cinfoIn.HasVel())
+    addComponent(currentOffset, CoordinateInfo::VELOCITY, (long int)natoms * 3);
+  if (cinfoIn.HasForce())
+    addComponent(currentOffset, CoordinateInfo::FORCE, (long int)natoms * 3);
+  if (cinfoIn.HasBox())
+    addComponent(currentOffset, CoordinateInfo::BOX, 9);
+  if (cinfoIn.HasTemp())
+    addComponent(currentOffset, CoordinateInfo::TEMPERATURE, 1);
 
   // Final "offset" is the total frame size
   offsets_.push_back( currentOffset );
