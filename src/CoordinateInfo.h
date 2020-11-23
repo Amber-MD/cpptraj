@@ -15,9 +15,9 @@ class CoordinateInfo {
     /// CONSTRUCTOR - ensemble size, remd dims, box, coords, velocity, force, temp., pH, redox, time, step, has repidx, has crdidx, use remd values
     CoordinateInfo(int, ReplicaDimArray const&, Box const&, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool);
     /// Enumerate the various information that can be part of a Frame.
-    enum Component { POSITION=0, VELOCITY, FORCE, BOX,          TEMPERATURE,
-                     PH,         REDOX,    TIME,  REMD_INDICES, REPIDX,
-                     CRDIDX,
+    enum Component { POSITION=0, VELOCITY, FORCE, BOX,  TEMPERATURE,
+                     PH,         REDOX,    TIME,  STEP, REMD_INDICES,
+                     REPIDX,     CRDIDX,
                      NCOMPONENTS };
 
     bool HasBox()              const { return box_.HasBox();            }

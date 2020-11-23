@@ -8,6 +8,7 @@ CompactFrameArray::CompactFrameArray() :
   std::fill(hasComponent_, hasComponent_+CoordinateInfo::NCOMPONENTS, false);
 }
 
+/** Add component of specified size to array, update the offset. */
 void CompactFrameArray::addComponent(long int& currentOffset, CoordinateInfo::Component compIn,
                                      long int sizeIn)
 {
@@ -35,6 +36,20 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
     addComponent(currentOffset, CoordinateInfo::BOX, 9);
   if (cinfoIn.HasTemp())
     addComponent(currentOffset, CoordinateInfo::TEMPERATURE, 1);
+  if (cinfoIn.Has_pH())
+    addComponent(currentOffset, CoordinateInfo::PH, 1);
+  if (cinfoIn.HasRedOx())
+    addComponent(currentOffset, CoordinateInfo::REDOX, 1);
+  if (cinfoIn.HasTime())
+    addComponent(currentOffset, CoordinateInfo::TIME, 1);
+  if (cinfoIn.HasStep())
+    addComponent(currentOffset, CoordinateInfo::STEP, 1);
+  if (cinfoIn.HasReplicaDims())
+    addComponent(currentOffset, CoordinateInfo::REMD_INDICES, cinfoIn.ReplicaDimensions().Ndims());
+  if (cinfoIn.HasRepIdx())
+    addComponent(currentOffset, CoordinateInfo::REPIDX, 1);
+  if (cinfoIn.HasCrdIdx())
+    addComponent(currentOffset, CoordinateInfo::CRDIDX, 1);
 
   // Final "offset" is the total frame size
   offsets_.push_back( currentOffset );
