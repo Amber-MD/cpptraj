@@ -8,8 +8,12 @@ class CompactFrameArray {
 
     /// Set up frame array to hold coordinate info with specified # atoms, optionally # frames.
     int SetupFrameArray(CoordinateInfo const&, unsigned int, int);
+
+    /// Copy component from double array to specified frame
+    int SetFromDblPtr(unsigned int, const double*, CoordinateInfo::Component);
   private:
     void addComponent(long int&, CoordinateInfo::Component, long int);
+    int ComponentIndex(CoordinateInfo::Component) const;
 
     typedef std::vector<float> Farray;
     Farray compactFrames_;                              ///< Array storing all info.

@@ -1,4 +1,5 @@
 #include "CompactFrameArray.h"
+#include "CpptrajStdio.h"
 #include <algorithm> // std::fill
 
 /** CONSTRUCTOR */
@@ -54,5 +55,28 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
   // Final "offset" is the total frame size
   offsets_.push_back( currentOffset );
 
+  // Allocate for specified number of frames
+  if (nframes > 0)
+    compactFrames_.resize( offsets_.back() * nframes );
+
+  return 0;
+}
+
+/** \return index of specified component, or -1 if component not present. */
+int CompactFrameArray::ComponentIndex(CoordinateInfo::Component cmpt) const {
+  for (int i = 0; i < (int)components_.size(); ++i)
+    if (components_[i] == cmpt) return i;
+  mprinterr("Internal Error: Component not present.\n");
+  return -1;
+}
+
+int CompactFrameArray::SetFromDblPtr(unsigned int idx, const double* ptrIn, CoordinateInfo::Component cmpt)
+{
+  int cidx = ComponentIndex(cmpt);
+  if (cidx < 0) return 1;
+  float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
+  const double* ptr = ptrIn;
+  for (long int i = offsets_[cidx]; i != offsets_[cidx+1]; ++i, ++ptr)
+    frameBegin[i] = (float)(*ptr);
   return 0;
 }
