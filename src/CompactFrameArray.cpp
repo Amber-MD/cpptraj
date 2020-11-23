@@ -80,3 +80,12 @@ int CompactFrameArray::SetFromDblPtr(unsigned int idx, const double* ptrIn, Coor
     frameBegin[i] = (float)(*ptr);
   return 0;
 }
+
+int CompactFrameArray::SetFromDblVal(unsigned int idx, double dval, CoordinateInfo::Component cmpt)
+{
+  int cidx = ComponentIndex(cmpt);
+  if (cidx < 0) return 1;
+  float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
+  frameBegin[offsets_[cidx]] = (float)dval;
+  return 0;
+}
