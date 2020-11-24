@@ -162,6 +162,7 @@ COMMON_SOURCES= \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
+        CompactFrameArray.cpp \
         ComplexArray.cpp \
         Constraints.cpp \
         ControlBlock_For.cpp \
