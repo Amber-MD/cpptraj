@@ -19,6 +19,12 @@ void CompactFrameArray::addComponent(long int& currentOffset, CoordinateInfo::Co
   currentOffset += sizeIn;
 }
 
+/** Allocate for specified number of frames. */
+void CompactFrameArray::Resize(int nframes) {
+  if (nframes > 0 && !offsets_.empty())
+    compactFrames_.resize( offsets_.back() * nframes );
+}
+
 /** Set up frame array. */
 int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned int natoms, int nframes)
 {
@@ -56,10 +62,9 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
   offsets_.push_back( currentOffset );
 
   // Allocate for specified number of frames
-  if (nframes > 0)
-    compactFrames_.resize( offsets_.back() * nframes );
+  Resize(nframes);
 
-  mprintf("DEBUG: CompactFrameArray has the following components:\n");
+  mprintf("DEBUG: CompactFrameArray (%i frames) has the following components:\n", nframes);
   for (unsigned int cidx = 0; cidx != components_.size(); cidx++)
     mprintf("\t%20s : %li - %li\n", CoordinateInfo::ComponentStr(components_[cidx]),
             offsets_[cidx], offsets_[cidx+1]);

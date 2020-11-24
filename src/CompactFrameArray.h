@@ -6,6 +6,11 @@ class CompactFrameArray {
   public:
     CompactFrameArray();
 
+    /// \return True if set up for any components
+    bool HasComponents() const { return !(components_.empty()); }
+
+    /// Allocate for specified number of frames
+    void Resize(int);
     /// Set up frame array to hold coordinate info with specified # atoms, optionally # frames.
     int SetupFrameArray(CoordinateInfo const&, unsigned int, int);
 
