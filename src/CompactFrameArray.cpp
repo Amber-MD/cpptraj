@@ -25,6 +25,14 @@ void CompactFrameArray::Resize(int nframes) {
     compactFrames_.resize( offsets_.back() * nframes );
 }
 
+/** \return Size of a single frame in elements. */
+unsigned int CompactFrameArray::FrameSize() const {
+  if (offsets_.empty())
+    return 0;
+  else
+    return (unsigned int)offsets_.back();
+}
+
 /** Compare components and offsets */
 bool CompactFrameArray::operator!=(CompactFrameArray const& rhs) const {
   if (components_.size() != rhs.components_.size() ||

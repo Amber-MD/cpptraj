@@ -8,8 +8,17 @@ class CompactFrameArray {
 
     /// \return True if set up for any components
     bool HasComponents() const { return !(components_.empty()); }
+    /// \return Size of a single frame in elements
+    unsigned int FrameSize() const;
     /// \return True if components/offsets do not match
     bool operator!=(CompactFrameArray const&) const;
+
+    typedef std::vector<float>::iterator iterator;
+    typedef std::vector<float>::const_iterator const_iterator;
+    /// \return Modifiable iterator to beginning of specified frame
+    iterator frameBegin(unsigned int idx) { return compactFrames_.begin() + (idx * offsets_.back()); }
+    /// \return Const interator to beginning of specified frame
+    const_iterator frameBegin(unsigned int idx) const { return compactFrames_.begin() + (idx * offsets_.back()); }
 
     /// Allocate for specified number of frames
     void Resize(int);
