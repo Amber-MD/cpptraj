@@ -8,6 +8,8 @@ class CompactFrameArray {
 
     /// \return True if set up for any components
     bool HasComponents() const { return !(components_.empty()); }
+    /// \return Array size in bytes.
+    unsigned int SizeInBytes() const;
     /// \return Size of a single frame in elements
     unsigned int FrameSize() const;
     /// \return True if components/offsets do not match

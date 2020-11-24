@@ -9,16 +9,6 @@ CompactFrameArray::CompactFrameArray() //:
   std::fill(componentIdx_, componentIdx_+CoordinateInfo::NCOMPONENTS, -1);
 }
 
-/** Add component of specified size to array, update the offset. */
-void CompactFrameArray::addComponent(long int& currentOffset, CoordinateInfo::Component compIn,
-                                     long int sizeIn)
-{
-  componentIdx_[compIn] = components_.size();
-  components_.push_back( compIn );
-  offsets_.push_back( currentOffset );
-  currentOffset += sizeIn;
-}
-
 /** Allocate for specified number of frames. */
 void CompactFrameArray::Resize(int nframes) {
   if (nframes > 0 && !offsets_.empty())
@@ -31,6 +21,15 @@ unsigned int CompactFrameArray::FrameSize() const {
     return 0;
   else
     return (unsigned int)offsets_.back();
+}
+
+/** \return Total size of the array in bytes. */
+unsigned int CompactFrameArray::SizeInBytes() const {
+  return ( compactFrames_.size()       * sizeof(float) +
+           CoordinateInfo::NCOMPONENTS * sizeof(int)   +
+           components_.size()          * sizeof(CoordinateInfo::Component) +
+           offsets_.size()             * sizeof(long int)
+         );
 }
 
 /** Compare components and offsets */
@@ -46,6 +45,16 @@ bool CompactFrameArray::operator!=(CompactFrameArray const& rhs) const {
   if (offsets_.size() > 0 && offsets_.back() != rhs.offsets_.back())
     return true;
   return false;
+}
+
+/** Add component of specified size to array, update the offset. */
+void CompactFrameArray::addComponent(long int& currentOffset, CoordinateInfo::Component compIn,
+                                     long int sizeIn)
+{
+  componentIdx_[compIn] = components_.size();
+  components_.push_back( compIn );
+  offsets_.push_back( currentOffset );
+  currentOffset += sizeIn;
 }
 
 /** Set up frame array. */
