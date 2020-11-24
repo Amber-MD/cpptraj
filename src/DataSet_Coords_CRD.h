@@ -1,6 +1,8 @@
 #ifndef INC_DATASET_COORDS_CRD_H
 #define INC_DATASET_COORDS_CRD_H
 #include "DataSet_Coords.h"
+#include "CompactFrameArray.h"
+/// Hold a reduced-precision array of Frames
 class DataSet_Coords_CRD : public DataSet_Coords {
   public:
     DataSet_Coords_CRD() : DataSet_Coords(COORDS), numCrd_(0), numBoxCrd_(0) {}
@@ -43,9 +45,7 @@ class DataSet_Coords_CRD : public DataSet_Coords {
   private:
     static size_t sizeInBytes(size_t, size_t, size_t);
 
-    typedef std::vector<Frame::CRDtype> CRDarray;
-    CRDarray coords_; ///< Array of coordinate frames.
-    int numCrd_;      ///< Number of coordinates
-    int numBoxCrd_;   ///< Number of box coords (0 or 6).
+    CompactFrameArray frames_;
+    int framesToReserve_; ///< Frames to reserve set by Allocate() for use in CoordsSetup()
 };
 #endif

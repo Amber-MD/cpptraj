@@ -4,8 +4,11 @@
 
 /** Reserve space for coords. */
 int DataSet_Coords_CRD::Allocate(SizeArray const& sizeIn) {
-  if (!sizeIn.empty())
-    coords_.reserve( sizeIn[0] );
+  if (!sizeIn.empty()) {
+    framesToReserve_ = (int)sizeIn[0];
+    if (frames_.HasComponents())
+      frames_.Resize( framesToReserve_ );
+  }
   return 0;
 }
 
@@ -13,61 +16,53 @@ int DataSet_Coords_CRD::Allocate(SizeArray const& sizeIn) {
 int DataSet_Coords_CRD::MemAlloc( SizeArray const& sizeIn ) {
   mprintf("DEBUG: Resize %s to %zu\n", legend(), sizeIn[0]);
   if (!sizeIn.empty()) {
-    coords_.resize( sizeIn[0] );
+    framesToReserve_ = (int)sizeIn[0];
+    frames_.Resize( framesToReserve_ );
   }
   return 0;
 }
 
-/** Copy block from incoming set of same type. */
+/** Copy block from incoming set of same type.
+  * \param startIdx Position in this set to copy to.
+  * \param dptrIn   Set to copy from.
+  * \param pos      Position in dptrIn to copy from.
+  * \param nelts    Number of elements from dptrIn to copy.
+  */
 void DataSet_Coords_CRD::CopyBlock(size_t startIdx, DataSet const* dptrIn, size_t pos, size_t nelts)
 {
   DataSet_Coords_CRD const& setIn = static_cast<DataSet_Coords_CRD const&>( *dptrIn );
   // Check that this is compatible
-  if (numCrd_ == 0) {
+  if (!frames_.HasComponents()) {
     CoordsSetup( setIn.top_, setIn.cInfo_ );
   } else {
-    if (numCrd_ != setIn.numCrd_ || numBoxCrd_ != setIn.numBoxCrd_) {
+    if (frames_ != setIn.frames_) {
       mprinterr("Error: Cannot set %s sizes do not match set %s, cannot copy.\n",
                 legend(), setIn.legend());
       return;
     }
   }
-  CRDarray::iterator begin = coords_.begin() + startIdx;
-  std::fill( begin, begin + nelts, std::vector<float>( numCrd_+numBoxCrd_ ) );
-  CRDarray::const_iterator ptr = setIn.coords_.begin() + pos;
-  std::copy( ptr, ptr + nelts, begin );
+  CompactFrameArray::iterator begin = frames_.frameBegin(startIdx);
+  CompactFrameArray::const_iterator ptr = setIn.frames_.frameBegin(pos);
+  std::copy( ptr, ptr + (nelts*frames_.FrameSize()), begin);
 }
 
 /** Set up COORDS with given Topology and coordinate info. */
 int DataSet_Coords_CRD::CoordsSetup(Topology const& topIn, CoordinateInfo const& cInfoIn) {
   top_ = topIn;
   cInfo_ = cInfoIn;
-  numCrd_ = top_.Natom() * 3;
-  if (cInfo_.TrajBox().HasBox())
-    numBoxCrd_ = 6;
-  else
-    numBoxCrd_ = 0;
-  // FIXME: The COORDS DataSet cannot store things like rep dims, times, or
-  //        temperatures. Remove these from the CoordinateInfo and warn.
-  if (cInfo_.ReplicaDimensions().Ndims() > 0) {
-    mprintf("Warning: COORDS data sets do not store replica dimensions.\n");
-    cInfo_.SetReplicaDims( ReplicaDimArray() );
+
+  if (frames_.SetupFrameArray(cInfo_, topIn.Natom(), framesToReserve)) {
+    mprinterr("Internal Error: Could not set up CompactFrameArray for '%s'\n", legend());
+    return 1;
   }
-  if (cInfo_.HasTemp()) {
-    mprintf("Warning: COORDS data sets do not store temperatures.\n");
-    cInfo_.SetTemperature( false );
-  }
-  if (cInfo_.HasTime()) {
-    mprintf("Warning: COORDS data sets do not store times.\n");
-    cInfo_.SetTime( false );
-  }
+
   return 0;
 }
-
+/*
 size_t DataSet_Coords_CRD::sizeInBytes(size_t nframes, size_t natom, size_t nbox) {
   size_t frame_size_bytes = ((natom * 3UL) + nbox) * sizeof(float);
   return ((nframes * frame_size_bytes) + sizeof(CRDarray));
-}
+}*/
 
 #ifdef MPI
 int DataSet_Coords_CRD::Sync(size_t total, std::vector<int> const& rank_frames,
