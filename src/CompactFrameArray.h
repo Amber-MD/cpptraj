@@ -20,6 +20,8 @@ class CompactFrameArray {
 
     /// Copy component from double value to specified frame
     int SetFromDblVal(unsigned int, double, CoordinateInfo::Component);
+    /// \return component for specified frame (assumes size is 1)
+    float GetVal(unsigned int, CoordinateInfo::Component) const;
   private:
     void addComponent(long int&, CoordinateInfo::Component, long int);
 

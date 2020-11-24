@@ -19,6 +19,7 @@ class CoordinateInfo {
                      PH,         REDOX,    TIME,  STEP, REMD_INDICES,
                      REPIDX,     CRDIDX,
                      NCOMPONENTS };
+    static const char* ComponentStr(Component);
 
     bool HasBox()              const { return box_.HasBox();            }
     const Box& TrajBox()       const { return box_;                     }

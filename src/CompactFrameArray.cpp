@@ -62,10 +62,15 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
   return 0;
 }
 
+static inline int ComponentNotFoundErr(CoordinateInfo::Component cmpt) {
+  mprinterr("Error: Component '%s' not present.\n", CoordinateInfo::ComponentStr(cmpt);
+  return 1;
+}
+
 int CompactFrameArray::SetFromDblPtr(unsigned int idx, const double* ptrIn, CoordinateInfo::Component cmpt)
 {
   int cidx = componentIdx_[cmpt];
-  if (cidx < 0) return 1;
+  if (cidx < 0) return ComponentNotFoundErr(cmpt);
   float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
   const double* ptr = ptrIn;
   for (long int i = offsets_[cidx]; i != offsets_[cidx+1]; ++i, ++ptr)
@@ -77,7 +82,7 @@ int CompactFrameArray::GetToDblPtr(double* ptrOut, unsigned int idx, CoordinateI
 const
 {
   int cidx = componentIdx_[cmpt];
-  if (cidx < 0) return 1;
+  if (cidx < 0) return ComponentNotFoundErr(cmpt);
   const float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
   double* ptr = ptrOut;
   for (long int i = offsets_[cidx]; i != offsets_[cidx+1]; ++i, ++ptr)
@@ -88,7 +93,7 @@ const
 int CompactFrameArray::SetFromIntPtr(unsigned int idx, const int* ptrIn, CoordinateInfo::Component cmpt)
 {
   int cidx = componentIdx_[cmpt];
-  if (cidx < 0) return 1;
+  if (cidx < 0) return ComponentNotFoundErr(cmpt);
   float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
   const int* ptr = ptrIn;
   for (long int i = offsets_[cidx]; i != offsets_[cidx+1]; ++i, ++ptr)
@@ -100,7 +105,7 @@ int CompactFrameArray::GetToIntPtr(int* ptrOut, unsigned int idx, CoordinateInfo
 const
 {
   int cidx = componentIdx_[cmpt];
-  if (cidx < 0) return 1;
+  if (cidx < 0) return ComponentNotFoundErr(cmpt);
   const float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
   int* ptr = ptrOut;
   for (long int i = offsets_[cidx]; i != offsets_[cidx+1]; ++i, ++ptr)
@@ -111,8 +116,17 @@ const
 int CompactFrameArray::SetFromDblVal(unsigned int idx, double dval, CoordinateInfo::Component cmpt)
 {
   int cidx = componentIdx_[cmpt];
-  if (cidx < 0) return 1;
+  if (cidx < 0) return ComponentNotFoundErr(cmpt);
   float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
   frameBegin[offsets_[cidx]] = (float)dval;
   return 0;
+}
+
+float CompactFrameArray::GetVal(unsigned int idx, CoordinateInfo::Component cmpt)
+const
+{
+  int cidx = componentIdx_[cmpt];
+  if (cidx < 0) return ComponentNotFoundErr(cmpt);
+  const float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
+  return frameBegin[offsets_[cidx]];
 }
