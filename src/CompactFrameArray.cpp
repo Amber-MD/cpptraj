@@ -25,6 +25,21 @@ void CompactFrameArray::Resize(int nframes) {
     compactFrames_.resize( offsets_.back() * nframes );
 }
 
+/** Compare components and offsets */
+bool CompactFrameArray::operator!=(CompactFrameArray const& rhs) const {
+  if (components_.size() != rhs.components_.size() ||
+      offsets_.size()    != rhs.offsets_.size())
+    return true;
+  for (unsigned int cidx = 0; cidx != components_.size(); cidx++)
+  {
+    if (components_[cidx] != rhs.components_[cidx]) return true;
+    if (offsets_[cidx]    != rhs.offsets_[cidx]   ) return true;
+  }
+  if (offsets_.size() > 0 && offsets_.back() != rhs.offsets_.back())
+    return true;
+  return false;
+}
+
 /** Set up frame array. */
 int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned int natoms, int nframes)
 {

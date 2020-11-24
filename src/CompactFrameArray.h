@@ -8,6 +8,8 @@ class CompactFrameArray {
 
     /// \return True if set up for any components
     bool HasComponents() const { return !(components_.empty()); }
+    /// \return True if components/offsets do not match
+    bool operator!=(CompactFrameArray const&) const;
 
     /// Allocate for specified number of frames
     void Resize(int);
