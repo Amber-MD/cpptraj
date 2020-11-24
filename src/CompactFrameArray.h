@@ -8,6 +8,10 @@ class CompactFrameArray {
 
     /// \return True if set up for any components
     bool HasComponents() const { return !(components_.empty()); }
+    /// \return True if set up for specific component
+    bool HasComponent(CoordinateInfo::Component c) const { return (components_[c] > -1); }
+    /// \return Max number of frames that can fit in the array
+    int MaxFrames()      const { return maxIdx_; }
     /// \return Array size in bytes.
     unsigned int SizeInBytes() const;
     /// \return Size of a single frame in elements

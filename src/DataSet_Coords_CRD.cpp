@@ -2,6 +2,11 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ByteString
 
+/** CONSTRUCTOR */
+DataSet_Coords_CRD::DataSet_Coords_CRD() :
+  DataSet_Coords(COORDS)
+{}
+
 /** Reserve space for coords. */
 int DataSet_Coords_CRD::Allocate(SizeArray const& sizeIn) {
   if (!sizeIn.empty()) {
@@ -51,13 +56,21 @@ int DataSet_Coords_CRD::CoordsSetup(Topology const& topIn, CoordinateInfo const&
   top_ = topIn;
   cInfo_ = cInfoIn;
 
-  if (frames_.SetupFrameArray(cInfo_, topIn.Natom(), framesToReserve)) {
+  if (frames_.SetupFrameArray(cInfo_, topIn.Natom(), framesToReserve_)) {
     mprinterr("Internal Error: Could not set up CompactFrameArray for '%s'\n", legend());
     return 1;
   }
 
   return 0;
 }
+
+void DataSet_Coords_CRD::AddFrame(Frame const& fIn) {
+  frames_.NextAndAllocate();
+
+  if (frames_.HasComponent(CoordinateInfo::POSITION)) frames_.SetFromDblPtr(fIn.xAddress(), CoordinateInfo::POSITION);
+  if (frames_.HasComponent(CoordinateInfo::VELOCITY)) frames_.SetFromDblPtr(fIn.vAddress(), CoordinateInfo::VELOCITY);
+}
+
 /*
 size_t DataSet_Coords_CRD::sizeInBytes(size_t nframes, size_t natom, size_t nbox) {
   size_t frame_size_bytes = ((natom * 3UL) + nbox) * sizeof(float);
