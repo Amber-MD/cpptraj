@@ -69,6 +69,11 @@ void DataSet_Coords_CRD::AddFrame(Frame const& fIn) {
 
   if (frames_.HasComponent(CoordinateInfo::POSITION)) frames_.SetFromDblPtr(fIn.xAddress(), CoordinateInfo::POSITION);
   if (frames_.HasComponent(CoordinateInfo::VELOCITY)) frames_.SetFromDblPtr(fIn.vAddress(), CoordinateInfo::VELOCITY);
+  if (frames_.HasComponent(CoordinateInfo::FORCE)) frames_.SetFromDblPtr(fIn.fAddress(), CoordinateInfo::FORCE);
+  if (frames_.HasComponent(CoordinateInfo::BOX)) frames_.SetFromDblPtr(fIn.BoxCrd().UnitCell().Dptr(), CoordinateInfo::BOX);
+  if (frames_.HasComponent(CoordinateInfo::TEMPERATURE)) frames_.SetFromDblVal(fIn.Temperature(), CoordinateInfo::TEMPERATURE);
+  if (frames_.HasComponent(CoordinateInfo::PH)) frames_.SetFromDblVal(fIn.pH(), CoordinateInfo::PH);
+  if (frames_.HasComponent(CoordinateInfo::REDOX)) frames_.SetFromDblVal(fIn.RedOx(), CoordinateInfo::REDOX);
 }
 
 /*

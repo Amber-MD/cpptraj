@@ -59,6 +59,8 @@ class Box {
     Vec3 Center()  const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
     Vec3 Lengths() const { return Vec3(box_[0], box_[1], box_[2]);             }
 
+    Matrix_3x3 const& UnitCell() const { return unitCell_; }
+
     // For interfacing with file IO
     //double* boxPtr()             { return box_; }
     //const double* boxPtr() const { return box_; }
