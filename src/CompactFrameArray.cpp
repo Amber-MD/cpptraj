@@ -85,6 +85,29 @@ const
   return 0;
 }
 
+int CompactFrameArray::SetFromIntPtr(unsigned int idx, const int* ptrIn, CoordinateInfo::Component cmpt)
+{
+  int cidx = componentIdx_[cmpt];
+  if (cidx < 0) return 1;
+  float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
+  const int* ptr = ptrIn;
+  for (long int i = offsets_[cidx]; i != offsets_[cidx+1]; ++i, ++ptr)
+    frameBegin[i] = (float)(*ptr);
+  return 0;
+}
+
+int CompactFrameArray::GetToIntPtr(int* ptrOut, unsigned int idx, CoordinateInfo::Component cmpt)
+const
+{
+  int cidx = componentIdx_[cmpt];
+  if (cidx < 0) return 1;
+  const float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
+  int* ptr = ptrOut;
+  for (long int i = offsets_[cidx]; i != offsets_[cidx+1]; ++i, ++ptr)
+    *ptr = (int)(frameBegin[i]);
+  return 0;
+}
+
 int CompactFrameArray::SetFromDblVal(unsigned int idx, double dval, CoordinateInfo::Component cmpt)
 {
   int cidx = componentIdx_[cmpt];

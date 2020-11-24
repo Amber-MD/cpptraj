@@ -13,6 +13,11 @@ class CompactFrameArray {
     int SetFromDblPtr(unsigned int, const double*, CoordinateInfo::Component);
     /// Copy component from specified frame to double array
     int GetToDblPtr(double*, unsigned int, CoordinateInfo::Component) const;
+    /// Copy component from integer array to specified frame
+    int SetFromIntPtr(unsigned int, const int*, CoordinateInfo::Component);
+    /// Copy component from specified frame to integer array
+    int GetToIntPtr(int*, unsigned int, CoordinateInfo::Component) const;
+
     /// Copy component from double value to specified frame
     int SetFromDblVal(unsigned int, double, CoordinateInfo::Component);
   private:
