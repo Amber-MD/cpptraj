@@ -29,6 +29,8 @@ class CompactFrameArray {
 
     /// Seek to specified frame, allocate space if necessary.
     void SeekAndAllocate(unsigned int);
+    /// Advance to next frame, allocate space if necessary.
+    void NextAndAllocate();
     /// Copy component from double array to specified frame
     int SetFromDblPtr(const double*, CoordinateInfo::Component);
     /// Copy component from integer array to specified frame
@@ -50,7 +52,7 @@ class CompactFrameArray {
     int componentIdx_[CoordinateInfo::NCOMPONENTS];     ///< Index into arrays for each component
     std::vector<CoordinateInfo::Component> components_; ///< List info contained in this array.
     std::vector<long int> offsets_;                     ///< Offsets for each component present.
-    unsigned int currentIdx_;                           ///< Current frame position.
-    unsigned int maxIdx_;                               ///< Max frame position.
+    int currentIdx_;                                    ///< Current frame position. -1 indicates empty array.
+    int maxIdx_;                                        ///< Max frame position.
 };
 #endif

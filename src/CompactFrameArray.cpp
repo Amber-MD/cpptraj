@@ -4,7 +4,7 @@
 
 /** CONSTRUCTOR */
 CompactFrameArray::CompactFrameArray() :
-  currentIdx_(0),
+  currentIdx_(-1),
   maxIdx_(0)
 {
   std::fill(componentIdx_, componentIdx_+CoordinateInfo::NCOMPONENTS, -1);
@@ -15,6 +15,8 @@ void CompactFrameArray::Resize(int nframes) {
   if (nframes > 0 && !offsets_.empty()) {
     compactFrames_.resize( offsets_.back() * nframes );
     maxIdx_ = nframes;
+    if (currentIdx_ >= maxIdx_)
+      currentIdx_ = maxIdx_ - 1;
   }
 }
 
@@ -32,7 +34,7 @@ unsigned int CompactFrameArray::SizeInBytes() const {
            CoordinateInfo::NCOMPONENTS * sizeof(int)   +
            components_.size()          * sizeof(CoordinateInfo::Component) +
            offsets_.size()             * sizeof(long int) +
-           2                           * sizeof(unsigned int)
+           2                           * sizeof(int) // currentIdx_ and maxIdx_
          );
 }
 
@@ -99,7 +101,7 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
 
   // Allocate for specified number of frames
   Resize(nframes);
-  currentIdx_ = 0;
+  currentIdx_ = -1;
 
   mprintf("DEBUG: CompactFrameArray (%u frames) has the following components:\n", maxIdx_);
   for (unsigned int cidx = 0; cidx != components_.size(); cidx++)
@@ -118,7 +120,7 @@ static inline int ComponentNotFoundErr(CoordinateInfo::Component cmpt) {
 
 /** Seek to frame, allocate if necessary. */
 void CompactFrameArray::SeekAndAllocate(unsigned int idx) {
-  if (idx >= maxIdx_) {
+  if ((int)idx >= maxIdx_) {
     compactFrames_.resize( (idx+1) * offsets_.back() );
     maxIdx_ = idx+1;
   }
@@ -127,6 +129,11 @@ void CompactFrameArray::SeekAndAllocate(unsigned int idx) {
   //if (frameBeginIdx >= compactFrames_.size()) {
   // }
   //frameBegin_ = &compactFrames_[0] + frameBeginIdx;
+}
+
+/** Advance to next frame, allocte if necessary. */
+void CompactFrameArray::NextAndAllocate() {
+  SeekAndAllocate( currentIdx_+1 );
 }
 
 /** Set component at current frame from given double pointer. */
