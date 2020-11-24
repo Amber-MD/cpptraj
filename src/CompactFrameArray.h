@@ -11,17 +11,18 @@ class CompactFrameArray {
 
     /// Copy component from double array to specified frame
     int SetFromDblPtr(unsigned int, const double*, CoordinateInfo::Component);
+    /// Copy component from specified frame to double array
+    int GetToDblPtr(double*, unsigned int, CoordinateInfo::Component) const;
     /// Copy component from double value to specified frame
     int SetFromDblVal(unsigned int, double, CoordinateInfo::Component);
   private:
     void addComponent(long int&, CoordinateInfo::Component, long int);
-    int ComponentIndex(CoordinateInfo::Component) const;
 
     typedef std::vector<float> Farray;
     Farray compactFrames_;                              ///< Array storing all info.
-    bool hasComponent_[CoordinateInfo::NCOMPONENTS];    ///< True if array contains indicated component
+    int componentIdx_[CoordinateInfo::NCOMPONENTS];     ///< Index into arrays for each component
     std::vector<CoordinateInfo::Component> components_; ///< List info contained in this array.
     std::vector<long int> offsets_;                     ///< Offsets for each component present.
-    unsigned int frameSize_;                            ///< Size of each individual frame.
+    //unsigned int frameSize_;                            ///< Size of each individual frame.
 };
 #endif
