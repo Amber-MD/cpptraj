@@ -99,8 +99,9 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
 
   // Allocate for specified number of frames
   Resize(nframes);
+  currentIdx_ = 0;
 
-  mprintf("DEBUG: CompactFrameArray (%i frames) has the following components:\n", nframes);
+  mprintf("DEBUG: CompactFrameArray (%u frames) has the following components:\n", maxIdx_);
   for (unsigned int cidx = 0; cidx != components_.size(); cidx++)
     mprintf("\t%20s : %li - %li\n", CoordinateInfo::ComponentStr(components_[cidx]),
             offsets_[cidx], offsets_[cidx+1]);
