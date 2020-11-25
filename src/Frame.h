@@ -120,6 +120,10 @@ class Frame {
     void SetRedOx(double rIn)       { redox_ = rIn; }
     /// Set time
     void SetTime(double tIn)        { time_ = tIn;  }
+    /// Set replica index
+    void SetRepIdx(int rIn)         { repidx_ = rIn; }
+    /// Set coordinate index
+    void SetCrdIdx(int cIn)         { crdidx_ = cIn; }
     /// Set masses
     void SetMass(std::vector<Atom> const&);
     /// Copy atoms from input frame to here

@@ -90,7 +90,14 @@ void DataSet_Coords_CRD::GetFrame(int idx, Frame& fOut) {
     frames_.GetToDblPtr(dtmp, idx, CoordinateInfo::BOX);
     fOut.ModifyBox().SetupFromUcell( dtmp );
   }
-
+  if (frames_.HasComponent(CoordinateInfo::TEMPERATURE)) fOut.SetTemperature(frames_.GetVal(idx, CoordinateInfo::TEMPERATURE));
+  if (frames_.HasComponent(CoordinateInfo::PH)) fOut.Set_pH(frames_.GetVal(idx, CoordinateInfo::PH));
+  if (frames_.HasComponent(CoordinateInfo::REDOX)) fOut.SetRedOx(frames_.GetVal(idx, CoordinateInfo::REDOX));
+  if (frames_.HasComponent(CoordinateInfo::TIME)) fOut.SetTime(frames_.GetVal(idx, CoordinateInfo::TIME));
+  if (frames_.HasComponent(CoordinateInfo::STEP)) fOut.SetStep(frames_.GetVal(idx, CoordinateInfo::STEP));
+  if (frames_.HasComponent(CoordinateInfo::REMD_INDICES)) frames_.GetToIntPtr(fOut.iAddress(), idx, CoordinateInfo::REMD_INDICES);
+  if (frames_.HasComponent(CoordinateInfo::REPIDX)) fOut.SetRepIdx(frames_.GetVal(idx, CoordinateInfo::REPIDX));
+  if (frames_.HasComponent(CoordinateInfo::CRDIDX)) fOut.SetCrdIdx(frames_.GetVal(idx, CoordinateInfo::CRDIDX));
 }
 /*
 size_t DataSet_Coords_CRD::sizeInBytes(size_t nframes, size_t natom, size_t nbox) {
