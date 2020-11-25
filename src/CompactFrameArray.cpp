@@ -193,6 +193,22 @@ const
   return 0;
 }
 
+/** Copy component to given double pointer with mask. For use with coords,
+  * velocities, forces.
+  */
+int CompactFrameArray::GetToMaskDblPtr(double* ptrOut, std::vector<int> const& selected, unsigned int idx,
+                                       CoordinateInfo::Component cmpt)
+const
+{
+  int cidx = componentIdx_[cmpt];
+  if (cidx < 0) return ComponentNotFoundErr(cmpt);
+  const float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
+  for (unsigned int j = 0; j != selected.size(); j++)
+    ptrOut[j] = (double)(frameBegin[offsets_[cidx] + (3*selected[j])]);
+
+  return 0;
+}
+
 /** Copy component to given integer pointer. */
 int CompactFrameArray::GetToIntPtr(int* ptrOut, unsigned int idx, CoordinateInfo::Component cmpt)
 const

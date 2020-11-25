@@ -46,6 +46,8 @@ class CompactFrameArray {
 
     /// Copy component from specified frame to double array
     int GetToDblPtr(double*, unsigned int, CoordinateInfo::Component) const;
+    /// Copy parts of component from specified frame to double array
+    int GetToMaskDblPtr(double*, std::vector<int> const&, unsigned int, CoordinateInfo::Component) const;
     /// Copy component from specified frame to integer array
     int GetToIntPtr(int*, unsigned int, CoordinateInfo::Component) const;
     /// \return component for specified frame (assumes size is 1)
