@@ -64,9 +64,8 @@ int DataSet_Coords_CRD::CoordsSetup(Topology const& topIn, CoordinateInfo const&
   return 0;
 }
 
-void DataSet_Coords_CRD::AddFrame(Frame const& fIn) {
-  frames_.NextAndAllocate();
-
+/** Convert frame to CompactFrame */
+static inline void FrameToArray(CompactFrameArray& frames_, Frame const& fIn) {
   if (frames_.HasComponent(CoordinateInfo::POSITION)) frames_.SetFromDblPtr(fIn.xAddress(), CoordinateInfo::POSITION);
   if (frames_.HasComponent(CoordinateInfo::VELOCITY)) frames_.SetFromDblPtr(fIn.vAddress(), CoordinateInfo::VELOCITY);
   if (frames_.HasComponent(CoordinateInfo::FORCE)) frames_.SetFromDblPtr(fIn.fAddress(), CoordinateInfo::FORCE);
@@ -79,6 +78,20 @@ void DataSet_Coords_CRD::AddFrame(Frame const& fIn) {
   if (frames_.HasComponent(CoordinateInfo::REMD_INDICES)) frames_.SetFromIntPtr(fIn.iAddress(), CoordinateInfo::REMD_INDICES);
   if (frames_.HasComponent(CoordinateInfo::REPIDX)) frames_.SetFromIntVal(fIn.RepIdx(), CoordinateInfo::REPIDX);
   if (frames_.HasComponent(CoordinateInfo::CRDIDX)) frames_.SetFromIntVal(fIn.CrdIdx(), CoordinateInfo::CRDIDX);
+}
+
+/** Add frame to array. */
+void DataSet_Coords_CRD::AddFrame(Frame const& fIn) {
+  frames_.NextAndAllocate();
+
+  FrameToArray(frames_, fIn);
+}
+
+/** Copy frame to specified position in array. */
+void DataSet_Coords_CRD::SetCRD(int idx, Frame const& fIn) {
+  frames_.SeekAndAllocate(idx);
+
+  FrameToArray(frames_, fIn);
 }
 
 void DataSet_Coords_CRD::GetFrame(int idx, Frame& fOut) {

@@ -23,15 +23,13 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     // ----- DataSet_Coords functions ------------
     /// Add a frame.
     void AddFrame(Frame const&);
+    /// Set CRD at position with frame.
+    void SetCRD(int, Frame const&);
     /// Get a frame at position.
     void GetFrame(int, Frame&);
     /// Get a frame at position corresponding to mask.
     inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) {
       //fIn.SetFromCRD( coords_[idx], mIn, numCrd_, numBoxCrd_, cInfo_.HasVel() );
-    }
-    /// Set CRD at position with frame.
-    inline void SetCRD(int idx, Frame const& fIn) {
-      //coords_[idx] = fIn.ConvertToCRD(numBoxCrd_, cInfo_.HasVel());
     }
     /// Set topology and coordinate information
     int CoordsSetup(Topology const&, CoordinateInfo const&);
