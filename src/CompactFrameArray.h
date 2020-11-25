@@ -41,6 +41,8 @@ class CompactFrameArray {
     int SetFromIntPtr(const int*, CoordinateInfo::Component);
     /// Copy component from double value to specified frame
     int SetFromDblVal(double, CoordinateInfo::Component);
+    /// Copy component from integer value to specified frame
+    int SetFromIntVal(int, CoordinateInfo::Component);
 
     /// Copy component from specified frame to double array
     int GetToDblPtr(double*, unsigned int, CoordinateInfo::Component) const;

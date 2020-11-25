@@ -170,6 +170,15 @@ int CompactFrameArray::SetFromDblVal(double dval, CoordinateInfo::Component cmpt
   return 0;
 }
 
+/** Set single value component at current frame. */
+int CompactFrameArray::SetFromIntVal(int ival, CoordinateInfo::Component cmpt)
+{
+  int cidx = componentIdx_[cmpt];
+  if (cidx < 0) return ComponentNotFoundErr(cmpt);
+  float* frameBegin = (&compactFrames_[0]) + (currentIdx_ * offsets_.back());
+  frameBegin[offsets_[cidx]] = (float)ival;
+  return 0;
+}
 // -----------------------------------------------------------------------------
 /** Copy component to given double pointer. */
 int CompactFrameArray::GetToDblPtr(double* ptrOut, unsigned int idx, CoordinateInfo::Component cmpt)
