@@ -261,6 +261,7 @@ Frame &Frame::operator=(Frame rhs) {
 }
 
 // ---------- CONVERT TO/FROM CRDtype ------------------------------------------
+/*
 // Frame::SetFromCRD()
 void Frame::SetFromCRD(CRDtype const& farray, int numCrd, int numBoxCrd, bool hasVel) {
   int f_ncoord = numCrd;
@@ -327,7 +328,7 @@ Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd, bool hasVel) const {
   for (int ib = 0; ib < numBoxCrd; ++ib)
     farray.push_back( (float)box_[ib] );
   return farray;
-}
+}*/
 
 // ---------- ACCESS INTERNAL DATA ---------------------------------------------
 // Frame::DataSize()
@@ -1431,7 +1432,7 @@ void Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
   xyzabg[3] = 90.0;
   xyzabg[4] = 90.0;
   xyzabg[5] = 90.0;
-  box_.SetBox(xyzabg);
+  box_.SetupFromXyzAbg(xyzabg);
 }
 
 #ifdef MPI

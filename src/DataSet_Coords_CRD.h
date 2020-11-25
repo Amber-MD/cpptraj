@@ -28,9 +28,7 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     /// Get a frame at position.
     void GetFrame(int, Frame&);
     /// Get a frame at position corresponding to mask.
-    inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) {
-      //fIn.SetFromCRD( coords_[idx], mIn, numCrd_, numBoxCrd_, cInfo_.HasVel() );
-    }
+    void GetFrame(int, Frame&, AtomMask const&);
     /// Set topology and coordinate information
     int CoordsSetup(Topology const&, CoordinateInfo const&);
     // -------------------------------------------

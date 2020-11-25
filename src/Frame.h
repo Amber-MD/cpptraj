@@ -50,13 +50,13 @@ class Frame {
     typedef std::vector<double> RemdValType; /// < For reading replica values
     // -------------------------------------------
     /// This type interfaces with DataSet_Coords_CRD
-    typedef std::vector<float> CRDtype;
+    //typedef std::vector<float> CRDtype;
     /// Assign given CRDtype to this frame.
-    void SetFromCRD(CRDtype const&, int, int, bool);
+    //void SetFromCRD(CRDtype const&, int, int, bool);
     /// Assign selected atoms from given CRDtype to this frame.
-    void SetFromCRD(CRDtype const&, AtomMask const&, int, int, bool);
+    //void SetFromCRD(CRDtype const&, AtomMask const&, int, int, bool);
     /// Convert this frame to CRDtype.
-    CRDtype ConvertToCRD(int, bool) const;
+    //CRDtype ConvertToCRD(int, bool) const;
     // -------------------------------------------
     /// \return Size of Frame in memory
     size_t DataSize() const;
