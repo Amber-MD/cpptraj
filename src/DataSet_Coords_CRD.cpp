@@ -81,6 +81,17 @@ void DataSet_Coords_CRD::AddFrame(Frame const& fIn) {
   if (frames_.HasComponent(CoordinateInfo::CRDIDX)) frames_.SetFromIntVal(fIn.CrdIdx(), CoordinateInfo::CRDIDX);
 }
 
+void DataSet_Coords_CRD::GetFrame(int idx, Frame& fOut) {
+  double dtmp[9];
+  if (frames_.HasComponent(CoordinateInfo::POSITION)) frames_.GetToDblPtr(fOut.xAddress(), idx, CoordinateInfo::POSITION);
+  if (frames_.HasComponent(CoordinateInfo::VELOCITY)) frames_.GetToDblPtr(fOut.vAddress(), idx, CoordinateInfo::VELOCITY);
+  if (frames_.HasComponent(CoordinateInfo::FORCE)) frames_.GetToDblPtr(fOut.fAddress(), idx, CoordinateInfo::FORCE);
+  if (frames_.HasComponent(CoordinateInfo::BOX)) {
+    frames_.GetToDblPtr(dtmp, idx, CoordinateInfo::BOX);
+    fOut.ModifyBox().SetupFromUcell( dtmp );
+  }
+
+}
 /*
 size_t DataSet_Coords_CRD::sizeInBytes(size_t nframes, size_t natom, size_t nbox) {
   size_t frame_size_bytes = ((natom * 3UL) + nbox) * sizeof(float);

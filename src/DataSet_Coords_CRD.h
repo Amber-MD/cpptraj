@@ -24,9 +24,7 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     /// Add a frame.
     void AddFrame(Frame const&);
     /// Get a frame at position.
-    inline void GetFrame(int idx, Frame& fIn) { 
-      //fIn.SetFromCRD( coords_[idx], numCrd_, numBoxCrd_, cInfo_.HasVel() );
-    }
+    void GetFrame(int, Frame&);
     /// Get a frame at position corresponding to mask.
     inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) {
       //fIn.SetFromCRD( coords_[idx], mIn, numCrd_, numBoxCrd_, cInfo_.HasVel() );
