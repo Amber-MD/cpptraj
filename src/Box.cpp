@@ -2,6 +2,7 @@
 #include "Box.h"
 #include "Constants.h" // DEGRAD
 #include "CpptrajStdio.h"
+#include <algorithm> // std::copy
 
 // CONSTRUCTOR
 Box::Box() :
@@ -346,6 +347,17 @@ void Box::SetupFromShapeMatrix(const double* shape) {
   unitCell_[8] = shape[5];
 
   CalcXyzAbgFromShape(box_, shape);
+
+  cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+
+  SetBoxType();
+}
+
+/** Set up Xyz Abg array and frac cell from unit cell. */
+void Box::SetupFromUcell(const double* ucell) {
+  std::copy(ucell, ucell+9, unitCell_.Dptr());
+
+  CalcXyzAbgFromUcell(box_, unitCell_);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 

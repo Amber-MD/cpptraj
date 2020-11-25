@@ -23,6 +23,8 @@ class Box {
 
     void SetupFromShapeMatrix(const double*);
 
+    void SetupFromUcell(const double*);
+
     void SetupFromXyzAbg(const double*);
 
     //void SetBetaLengths(double,double,double,double);
