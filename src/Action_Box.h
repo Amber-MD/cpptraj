@@ -13,11 +13,14 @@ class Action_Box : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    void SetMissingInfo(Box const&);
+
     enum ModeType { SET = 0, REMOVE, AUTO };
     enum RadiiType { UNSPECIFIED = 0, GB, PARSE, VDW, NONE };
 
     CoordinateInfo cInfo_; ///< For holding modified coordinate info.
-    Box box_;              ///< Hold box info to be set for SET.
+    double xyzabg_[6];     ///< Hold box info to be set for SET.
+    bool setVar_[6];       ///< If false, set xyzabg_ from existing box for SET.
     ModeType mode_;        ///< How box info will be assigned.
     double offset_;        ///< Offset for AUTO
     RadiiType radiiMode_;  ///< Radii type to use for AUTO

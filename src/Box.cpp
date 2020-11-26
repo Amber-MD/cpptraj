@@ -479,13 +479,12 @@ void Box::SetMissingInfo(const Box& rhs) {
 // Box::ToRecip()
 /** Use box coordinates to calculate unit cell and fractional matrix for use
   * with imaging routines. Return cell volume.
-  */
-/*
+  */ // FIXME this should eventually be removed
 double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   ucell = unitCell_;
   recip = fracCell_;
   return cellVolume_;
-*
+/*
   double u12x,u12y,u12z;
   double u23x,u23y,u23z;
   double u31x,u31y,u31z;
@@ -529,8 +528,8 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   recip[7] = u12y*onevolume;
   recip[8] = u12z*onevolume;
 
-  return volume;*
-}*/
+  return volume;*/
+}
 
 //  Box::RecipLengths()
 /*

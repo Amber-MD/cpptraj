@@ -36,7 +36,7 @@ class Box {
     //void SetNoBox();
     //void SetMissingInfo(const Box&);
     /// Calculate Frac->Cart and Cart->Frac matrices.
-    //double ToRecip(Matrix_3x3&, Matrix_3x3&) const;
+    double ToRecip(Matrix_3x3&, Matrix_3x3&) const; // TODO make obsolete
     /// Calculate unit cell matrix, optionally scaling lengths.
     //Matrix_3x3 UnitCell(double) const;
     /// Print Box info to STDOUT
@@ -62,6 +62,8 @@ class Box {
     Vec3 Lengths() const { return Vec3(box_[0], box_[1], box_[2]);             }
 
     Matrix_3x3 const& UnitCell() const { return unitCell_; }
+
+    static double TruncatedOctAngle() { return TRUNCOCTBETA_; }
 
     // For interfacing with file IO
     //double* boxPtr()             { return box_; }

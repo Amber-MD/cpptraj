@@ -1,7 +1,14 @@
 #include "Action_Box.h"
 #include "CpptrajStdio.h"
 
-Action_Box::Action_Box() : mode_(SET) {}
+Action_Box::Action_Box() :
+  mode_(SET)
+{
+  for (int i = 0; i < 6; i++) {
+    xyzabg_[i] = 0;
+    setVar_[i] = false;
+  }
+}
 
 void Action_Box::Help() const {
   mprintf("\t{[x <xval>] [y <yval>] [z <zval>] {[alpha <a>] [beta <b>] [gamma <g>]\n"
@@ -30,12 +37,12 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
     radiiMode_ = UNSPECIFIED;
     // NOTE: Set angles to 90 here so we can set parm box type to
     //       ORTHO in Setup().
-    box_.SetAlpha(90.0);
-    box_.SetBeta(90.0);
-    box_.SetGamma(90.0);
-    box_.SetX(1.0);
-    box_.SetY(1.0);
-    box_.SetZ(1.0);
+    xyzabg_[3] = 90.0;
+    xyzabg_[4] = 90.0;
+    xyzabg_[5] = 90.0;
+    xyzabg_[0] = 1.0;
+    xyzabg_[1] = 1.0;
+    xyzabg_[2] = 1.0;
     std::string rstr = actionArgs.GetStringKey("radii");
     if (!rstr.empty()) {
       if (rstr == "vdw")
@@ -53,13 +60,30 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
     }
   } else {
     mode_ = SET;
-    box_.SetX( actionArgs.getKeyDouble("x", 0.0) );
-    box_.SetY( actionArgs.getKeyDouble("y", 0.0) );
-    box_.SetZ( actionArgs.getKeyDouble("z", 0.0) );
-    box_.SetAlpha( actionArgs.getKeyDouble("alpha", 0.0) );
-    box_.SetBeta(  actionArgs.getKeyDouble("beta",  0.0) );
-    box_.SetGamma( actionArgs.getKeyDouble("gamma", 0.0) );
-    if (actionArgs.hasKey("truncoct")) box_.SetTruncOct();
+    // TODO check for bad args?
+    if (actionArgs.Contains("x")) { xyzabg_[0] = actionArgs.getKeyDouble("x", 0.0); setVar_[0] = true; }
+    if (actionArgs.Contains("y")) { xyzabg_[1] = actionArgs.getKeyDouble("y", 0.0); setVar_[1] = true; }
+    if (actionArgs.Contains("z")) { xyzabg_[2] = actionArgs.getKeyDouble("z", 0.0); setVar_[2] = true; }
+    if (actionArgs.Contains("alpha")) { xyzabg_[3] = actionArgs.getKeyDouble("alpha", 0.0); setVar_[3] = true; }
+    if (actionArgs.Contains("beta"))  { xyzabg_[4] = actionArgs.getKeyDouble("beta",  0.0); setVar_[4] = true; }
+    if (actionArgs.Contains("gamma")) { xyzabg_[5] = actionArgs.getKeyDouble("gamma", 0.0); setVar_[5] = true; }
+    if (actionArgs.hasKey("truncoct")) {
+      xyzabg_[3] = Box::TruncatedOctAngle();
+      xyzabg_[4] = xyzabg_[3];
+      xyzabg_[5] = xyzabg_[3];
+      setVar_[3] = true;
+      setVar_[4] = true;
+      setVar_[5] = true;
+      // All lengths need to be the same
+      if (setVar_[1]) mprintf("Warning: Only 'x' used for 'truncoct'\n");
+      if (setVar_[2]) mprintf("Warning: Only 'x' used for 'truncoct'\n");
+      if (setVar_[0]) {
+        xyzabg_[1] = xyzabg_[0];
+        xyzabg_[2] = xyzabg_[0];
+      }
+      setVar_[1] = false;
+      setVar_[2] = false;
+    }
   }
 
   mprintf("    BOX:");
@@ -77,15 +101,25 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
         break;
     }
   } else {
-    if (box_.BoxX() > 0) mprintf(" X=%.3f", box_.BoxX());
-    if (box_.BoxY() > 0) mprintf(" Y=%.3f", box_.BoxY());
-    if (box_.BoxZ() > 0) mprintf(" Z=%.3f", box_.BoxZ());
-    if (box_.Alpha() > 0) mprintf(" A=%.3f", box_.Alpha());
-    if (box_.Beta() > 0) mprintf(" B=%.3f", box_.Beta());
-    if (box_.Gamma() > 0) mprintf(" G=%.3f", box_.Gamma());
+    if (setVar_[0]) mprintf(" X=%.3f", xyzabg_[0]);
+    if (setVar_[1]) mprintf(" Y=%.3f", xyzabg_[1]);
+    if (setVar_[2]) mprintf(" Z=%.3f", xyzabg_[2]);
+    if (setVar_[3]) mprintf(" A=%.3f", xyzabg_[3]);
+    if (setVar_[4]) mprintf(" B=%.3f", xyzabg_[4]);
+    if (setVar_[5]) mprintf(" G=%.3f", xyzabg_[5]);
     mprintf("\n");
   }
   return Action::OK;
+}
+
+/** Set missing box information from incoming box. */
+void Action_Box::SetMissingInfo(Box const& boxIn) {
+  if (!setVar_[0]) xyzabg_[0] = boxIn.BoxX();
+  if (!setVar_[1]) xyzabg_[1] = boxIn.BoxY();
+  if (!setVar_[2]) xyzabg_[2] = boxIn.BoxZ();
+  if (!setVar_[3]) xyzabg_[3] = boxIn.Alpha();
+  if (!setVar_[4]) xyzabg_[4] = boxIn.Beta();
+  if (!setVar_[5]) xyzabg_[5] = boxIn.Gamma();
 }
 
 // Action_Box::Setup()
@@ -96,9 +130,10 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
     cInfo_.SetBox( Box() );
   } else {
     // SET, AUTO
-    Box pbox( box_ );
-    // Fill in missing box information from current box 
-    pbox.SetMissingInfo( setup.CoordInfo().TrajBox() );
+    // Fill in missing box information from current box
+    SetMissingInfo( setup.CoordInfo().TrajBox() );
+    Box pbox;
+    pbox.SetupFromXyzAbg( xyzabg_ );
     mprintf("\tNew box type is %s\n", pbox.TypeName() );
     cInfo_.SetBox( pbox );
     // Get radii for AUTO
@@ -152,9 +187,8 @@ Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
   } else if (mode_ == AUTO) {
     frm.ModifyFrm().SetOrthoBoundingBox(Radii_, offset_);
   } else {
-    Box fbox( box_ );
-    fbox.SetMissingInfo( frm.Frm().BoxCrd() );
-    frm.ModifyFrm().SetBox( fbox );
+    SetMissingInfo( frm.Frm().BoxCrd() );
+    frm.ModifyFrm().ModifyBox().SetupFromXyzAbg( xyzabg_ );
   }
   return Action::MODIFY_COORDS;
 }
