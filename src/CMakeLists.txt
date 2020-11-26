@@ -229,6 +229,10 @@ endif()
 	
 # CUDA
 if(CUDA)
+	if(HIP)
+		add_compile_definitions(HIP)
+		include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
+	endif()
 	add_subdirectory(cuda_kernels)
 	
 	include_directories(${CUDA_INCLUDE_DIRS})

@@ -16,8 +16,9 @@
 #include "StringRoutines.h" // TimeString
 #include "TrajectoryFile.h" // for autodetect
 #if defined(CUDA) && defined(HIP) 
+#  include <hip/hip_runtime.h>
+#  include <hip/hip_runtime_api.h>
 # include "HipDefinitions.h"
-# include <hip/hip_runtime_api.h>
 #elif defined(CUDA)
 # include <cuda_runtime_api.h>
 #endif
