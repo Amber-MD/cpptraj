@@ -334,8 +334,8 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
 
   if (image_.ImagingEnabled()) {
     // Calculate max possible imaged distance
-    maxD = frm.Frm().BoxCrd().BoxX() + frm.Frm().BoxCrd().BoxY() + 
-           frm.Frm().BoxCrd().BoxZ();
+    maxD = frm.Frm().BoxCrd().Param(Box::X) + frm.Frm().BoxCrd().Param(Box::Y) + 
+           frm.Frm().BoxCrd().Param(Box::Z);
     maxD *= maxD;
   } else {
     // If not imaging, set max distance to an arbitrarily large number

@@ -24,9 +24,12 @@ Box::Box(const double* bIn) //: debug_(0)
 }
 
 Box::Box(const float* bIn) { SetBox( bIn ); }
-
-Box::Box(Matrix_3x3 const& ucell) { SetBox( ucell ); }
 */
+
+/** CONSTRUCTOR - Set up from unit cell matrix. */
+Box::Box(Matrix_3x3 const& ucell) { 
+  SetupFromUcell( ucell.Dptr() );
+}
 
 // COPY CONSTRUCTOR
 Box::Box(const Box& rhs) :

@@ -207,7 +207,7 @@ const
   Vec3 cothr = othr.VCenterOfMass(0, othr.Natom());
   Vec3 cdiff = cothr - corig;
   Matrix_3x3 U, invU;
-  U = RefFrame_.BoxCrd().UnitCell(1.0);
+  U = RefFrame_.BoxCrd().UnitCell();
   RefFrame_.BoxCrd().ToRecip(U, invU);
   cdiff = invU * cdiff;
   const double nearTwo = 1.999999999;  
@@ -683,7 +683,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     // Ensure this is only done once FIXME ok?
     refType_ = NONE;
 
-    U = RefFrame_.BoxCrd().UnitCell(1.0);
+    U = RefFrame_.BoxCrd().UnitCell();
     RefFrame_.BoxCrd().ToRecip(U, invU);
     XtalDock* leads = new XtalDock[nops_ * nops_ * 125]; // TODO vector?
     int nLead = 0;
@@ -820,7 +820,7 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   
   // Loop over all subunits, set them according to the correct displacements from
   // the original subunits (imaging considerations), and apply the transformations.
-  U = frm.Frm().BoxCrd().UnitCell(1.0);
+  U = frm.Frm().BoxCrd().UnitCell();
   frm.Frm().BoxCrd().ToRecip(U, invU);
   orig = Frame(Masks_[0].Nselected());
 

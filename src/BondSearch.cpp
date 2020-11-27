@@ -29,7 +29,14 @@ Box CreateBoundingBox(Frame const& frameIn, Vec3& min)
   max += boffset;
   min -= boffset;
   Vec3 len = max - min;
-  box.SetBetaLengths(90.0, len[0], len[1], len[2]);
+  double xyzabg[6];
+  xyzabg[Box::X] = len[0];
+  xyzabg[Box::Y] = len[1];
+  xyzabg[Box::Z] = len[2];
+  xyzabg[Box::ALPHA] = 90.0;
+  xyzabg[Box::BETA] = 90.0;
+  xyzabg[Box::GAMMA] = 90.0;
+  box.SetupFromXyzAbg( xyzabg );
   //mprintf("DEBUG: Min={%8.3f, %8.3f, %8.3f} Max={%8.3f, %8.3f, %8.3f}\n",
   //        min[0], min[1], min[2], max[0], max[1], max[2]);
   return box;
@@ -119,9 +126,9 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   box.PrintInfo();
   // Create grid indices.
   static const double spacing = 6.0; // TODO make this a parameter?
-  int nx = (int)ceil(box.BoxX() / spacing);
-  int ny = (int)ceil(box.BoxY() / spacing);
-  int nz = (int)ceil(box.BoxZ() / spacing);
+  int nx = (int)ceil(box.Param(Box::X) / spacing);
+  int ny = (int)ceil(box.Param(Box::Y) / spacing);
+  int nz = (int)ceil(box.Param(Box::Z) / spacing);
   int nynz = ny*nz;
   typedef std::vector<int> Iarray;
   typedef std::vector<Iarray> I2array;

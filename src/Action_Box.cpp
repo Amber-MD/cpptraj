@@ -114,12 +114,9 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
 
 /** Set missing box information from incoming box. */
 void Action_Box::SetMissingInfo(Box const& boxIn) {
-  if (!setVar_[0]) xyzabg_[0] = boxIn.BoxX();
-  if (!setVar_[1]) xyzabg_[1] = boxIn.BoxY();
-  if (!setVar_[2]) xyzabg_[2] = boxIn.BoxZ();
-  if (!setVar_[3]) xyzabg_[3] = boxIn.Alpha();
-  if (!setVar_[4]) xyzabg_[4] = boxIn.Beta();
-  if (!setVar_[5]) xyzabg_[5] = boxIn.Gamma();
+  for (int i = 0; i < 6; i++) {
+    if (!setVar_[i]) xyzabg_[i] = boxIn.Param((Box::ParamType)i);
+  }
 }
 
 // Action_Box::Setup()

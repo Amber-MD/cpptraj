@@ -273,9 +273,9 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   }
 
   // See if our box dimensions are too small for our cutoff...
-  if (currentBox.BoxX() < doublecut_ ||
-      currentBox.BoxY() < doublecut_ ||
-      currentBox.BoxZ() < doublecut_)
+  if (currentBox.Param(Box::X) < doublecut_ ||
+      currentBox.Param(Box::Y) < doublecut_ ||
+      currentBox.Param(Box::Z) < doublecut_)
   {
     mprinterr("Error: SPAM: The box appears to be too small for your cutoff!\n");
     return Action::ERR;
@@ -352,9 +352,9 @@ int Action_Spam::SetupParms(Topology const& ParmIn) {
 Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
   Nframes_++;
   // Check that our box is still big enough...
-  overflow_ = overflow_ || frm.Frm().BoxCrd().BoxX() < doublecut_ ||
-                           frm.Frm().BoxCrd().BoxY() < doublecut_ ||
-                           frm.Frm().BoxCrd().BoxZ() < doublecut_;
+  overflow_ = overflow_ || frm.Frm().BoxCrd().Param(Box::X) < doublecut_ ||
+                           frm.Frm().BoxCrd().Param(Box::Y) < doublecut_ ||
+                           frm.Frm().BoxCrd().Param(Box::Z) < doublecut_;
   if (purewater_)
     return DoPureWater(frameNum, frm.Frm());
   else

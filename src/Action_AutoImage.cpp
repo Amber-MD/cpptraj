@@ -271,9 +271,9 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
         // Determine direction from molecule to anchor
         Vec3 delta = anchorcenter - framecenter;
         //mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
-        Vec3 minTrans( floor(delta[0]/box.BoxX()+0.5)*box.BoxX(),
-                       floor(delta[1]/box.BoxY()+0.5)*box.BoxY(),
-                       floor(delta[2]/box.BoxZ()+0.5)*box.BoxZ() );
+        Vec3 minTrans( floor(delta[0]/box.Param(Box::X)+0.5)*box.Param(Box::X),
+                       floor(delta[1]/box.Param(Box::Y)+0.5)*box.Param(Box::Y),
+                       floor(delta[2]/box.Param(Box::Z)+0.5)*box.Param(Box::Z) );
         Vec3 minImage = framecenter + minTrans;
         //mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}\n",
         //        frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,

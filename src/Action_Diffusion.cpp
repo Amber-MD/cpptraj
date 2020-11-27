@@ -347,12 +347,12 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       // If the particle moved more than half the box, assume it was imaged
       // and adjust the distance of the total movement with respect to the
       // original frame.
-      if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().BoxX();
-      else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().BoxX();
-      if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().BoxY();
-      else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().BoxY();
-      if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().BoxZ();
-      else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().BoxZ();
+      if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().Param(Box::X);
+      else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().Param(Box::X);
+      if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().Param(Box::Y);
+      else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().Param(Box::Y);
+      if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().Param(Box::Z);
+      else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().Param(Box::Z);
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
       delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
@@ -376,9 +376,9 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
         // Current position in fractional coords
         Vec3 cFrac = recip * Vec3( XYZ[0], XYZ[1], XYZ[2] );
         // Look for imaged distance closer to previous than current position
-        double minDist2 = frm.Frm().BoxCrd().BoxX() *
-                          frm.Frm().BoxCrd().BoxY() *
-                          frm.Frm().BoxCrd().BoxZ();
+        double minDist2 = frm.Frm().BoxCrd().Param(Box::X) *
+                          frm.Frm().BoxCrd().Param(Box::Y) *
+                          frm.Frm().BoxCrd().Param(Box::Z);
         Vec3 minCurr(0.0);
         for (int ix = -1; ix < 2; ix++) {
           for (int iy = -1; iy < 2; iy++) {

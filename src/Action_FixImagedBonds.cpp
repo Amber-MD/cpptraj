@@ -110,12 +110,12 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
           // ----- Orthorhombic imaging ------------
           // If the distance between current and bonded atom is more than half the box,
           // adjust the position of the bonded atom.
-          while (delta[0] >  boxCenter_[0]) { delta[0] -= box.BoxX(); boxTrans[0] -= box.BoxX(); }
-          while (delta[0] < -boxCenter_[0]) { delta[0] += box.BoxX(); boxTrans[0] += box.BoxX(); }
-          while (delta[1] >  boxCenter_[1]) { delta[1] -= box.BoxY(); boxTrans[1] -= box.BoxY(); }
-          while (delta[1] < -boxCenter_[1]) { delta[1] += box.BoxY(); boxTrans[1] += box.BoxY(); }
-          while (delta[2] >  boxCenter_[2]) { delta[2] -= box.BoxZ(); boxTrans[2] -= box.BoxZ(); }
-          while (delta[2] < -boxCenter_[2]) { delta[2] += box.BoxZ(); boxTrans[2] += box.BoxZ(); }
+          while (delta[0] >  boxCenter_[0]) { delta[0] -= box.Param(Box::X); boxTrans[0] -= box.Param(Box::X); }
+          while (delta[0] < -boxCenter_[0]) { delta[0] += box.Param(Box::X); boxTrans[0] += box.Param(Box::X); }
+          while (delta[1] >  boxCenter_[1]) { delta[1] -= box.Param(Box::Y); boxTrans[1] -= box.Param(Box::Y); }
+          while (delta[1] < -boxCenter_[1]) { delta[1] += box.Param(Box::Y); boxTrans[1] += box.Param(Box::Y); }
+          while (delta[2] >  boxCenter_[2]) { delta[2] -= box.Param(Box::Z); boxTrans[2] -= box.Param(Box::Z); }
+          while (delta[2] < -boxCenter_[2]) { delta[2] += box.Param(Box::Z); boxTrans[2] += box.Param(Box::Z); }
         } else {
           // ----- Non-orthorhombic imaging --------
           Vec3 fdelta = recip_ * delta;

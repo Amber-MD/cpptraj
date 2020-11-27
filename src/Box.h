@@ -14,9 +14,10 @@ class Box {
     enum ParamType { X=0, Y, Z, ALPHA, BETA, GAMMA };
 
     Box();
+    /// CONSTRUCTOR - Set up from unit cell matrix
+    Box(Matrix_3x3 const&);
     //Box(const double*);
     //Box(const float*);
-    //Box(Matrix_3x3 const&);
     Box(const Box&);
     Box& operator=(const Box&);
     void swap(Box&);
