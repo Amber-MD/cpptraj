@@ -5,10 +5,13 @@
 #ifdef MPI
 # include "Parallel.h"
 #endif
-/// Hold box information; 3xlengths, 3xangles.
+/// Hold box information; unit and fractional cell vectors, 3xlengths, 3xangles.
 class Box {
   public:
-    enum BoxType { NOBOX=0, ORTHO, TRUNCOCT, RHOMBIC, NONORTHO }; 
+    /// Various box types; should correspond to BoxNames_.
+    enum BoxType { NOBOX=0, ORTHO, TRUNCOCT, RHOMBIC, NONORTHO };
+    /// Various box parameters; corresponds to XYZ ABG array.
+    enum ParamType { X=0, Y, Z, ALPHA, BETA, GAMMA };
 
     Box();
     //Box(const double*);
@@ -49,20 +52,20 @@ class Box {
     //void SetBeta(double bin)  { box_[4] = bin; }
     //void SetGamma(double gin) { box_[5] = gin; }
 
-    const char* TypeName() const { return BoxNames_[btype_]; }
-    BoxType Type() const { return btype_;  }
-    double BoxX()  const { return box_[0]; }
-    double BoxY()  const { return box_[1]; }
-    double BoxZ()  const { return box_[2]; }
-    double Alpha() const { return box_[3]; }
-    double Beta()  const { return box_[4]; }
-    double Gamma() const { return box_[5]; }
-    bool HasBox()  const { return (btype_ != NOBOX); }
-    Vec3 Center()  const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
-    Vec3 Lengths() const { return Vec3(box_[0], box_[1], box_[2]);             }
-
+    const char* TypeName()    const { return BoxNames_[btype_]; }
+    BoxType Type()            const { return btype_;  }
+    /// \return Specified XYZ ABG parameter
+    double Param(ParamType p) const { return box_[p]; }
+    bool HasBox()             const { return (btype_ != NOBOX); }
+    Vec3 Center()             const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
+    Vec3 Lengths()            const { return Vec3(box_[0], box_[1], box_[2]);             }
+    /// \return the unit cell matrix
     Matrix_3x3 const& UnitCell() const { return unitCell_; }
-
+    /// \return the fractional cell matrix
+    Matrix_3x3 const& FracCell() const { return fracCell_; }
+    /// \return the cell volume
+    double CellVolume()          const { return cellVolume_; }
+    // TODO should this be in Constants?
     static double TruncatedOctAngle() { return TRUNCOCTBETA_; }
 
     // For interfacing with file IO
@@ -98,7 +101,6 @@ class Box {
 
     //static Vec3 RecipLengths(Matrix_3x3 const&);
     //static void XyzAbgToUcell(Matrix_3x3&, const double*);
-
 
     //int debug_; // TODO: Replace with ifdefs or just comment out?
     BoxType btype_;       ///< Box type
