@@ -63,6 +63,26 @@ void CompactFrameArray::addComponent(long int& currentOffset, CoordinateInfo::Co
   currentOffset += sizeIn;
 }
 
+/** \return Size of a frame containing given coordiante info in bytes. */
+unsigned int CompactFrameArray::EstimateFrameSizeInBytes(CoordinateInfo const& cinfoIn, unsigned int natoms)
+{
+  unsigned int frameSize = 0;
+  if (cinfoIn.HasCrd())         frameSize += natoms * 3;
+  if (cinfoIn.HasVel())         frameSize += natoms * 3;
+  if (cinfoIn.HasForce())       frameSize += natoms * 3;
+  if (cinfoIn.HasBox())         frameSize += 9;
+  if (cinfoIn.HasTemp())        frameSize += 1;
+  if (cinfoIn.Has_pH())         frameSize += 1;
+  if (cinfoIn.HasRedOx())       frameSize += 1;
+  if (cinfoIn.HasTime())        frameSize += 1;
+  if (cinfoIn.HasStep())        frameSize += 1;
+  if (cinfoIn.HasReplicaDims()) frameSize += cinfoIn.ReplicaDimensions().Ndims();
+  if (cinfoIn.HasRepIdx())      frameSize += 1;
+  if (cinfoIn.HasCrdIdx())      frameSize += 1;
+
+  return frameSize * sizeof(float);
+}
+
 /** Set up frame array. */
 int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned int natoms, int nframes)
 {

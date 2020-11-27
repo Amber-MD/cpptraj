@@ -26,6 +26,9 @@ class CompactFrameArray {
     /// \return Const interator to beginning of specified frame
     const_iterator frameBegin(unsigned int idx) const { return compactFrames_.begin() + (idx * offsets_.back()); }
 
+    /// \return Frame size in bytes based on coordinate info and # atoms
+    static unsigned int EstimateFrameSizeInBytes(CoordinateInfo const&, unsigned int);
+
     /// Allocate for specified number of frames
     void Resize(int);
     /// Set up frame array to hold coordinate info with specified # atoms, optionally # frames.
