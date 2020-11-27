@@ -54,7 +54,7 @@ private:
   static const char* PropertyStr_[];
   static const char* AxisStr_[];
   static const double AMU_ANG_TO_G_CM3;
-
+  // NOTE: DirectionType XYZ corresponds to XYZ in Box::ParamType
   enum DirectionType {DX = 0, DY, DZ};
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};
   enum BinCoordType {CENTER = 0, EDGE};

@@ -93,11 +93,11 @@ Action::RetType Action_AreaPerMol::Setup(ActionSetup& setup) {
 Action::RetType Action_AreaPerMol::DoAction(int frameNum, ActionFrame& frm) {
   double area;
   if (areaType_ == XY)
-    area = frm.Frm().BoxCrd().BoxX() * frm.Frm().BoxCrd().BoxY();
+    area = frm.Frm().BoxCrd().Param(Box::X) * frm.Frm().BoxCrd().Param(Box::Y);
   else if (areaType_ == XZ) 
-    area = frm.Frm().BoxCrd().BoxX() * frm.Frm().BoxCrd().BoxZ();
+    area = frm.Frm().BoxCrd().Param(Box::X) * frm.Frm().BoxCrd().Param(Box::Z);
   else // if areaType_ == YZ
-    area = frm.Frm().BoxCrd().BoxY() * frm.Frm().BoxCrd().BoxZ();
+    area = frm.Frm().BoxCrd().Param(Box::Y) * frm.Frm().BoxCrd().Param(Box::Z);
 
   area = area / Nmols_;
 
