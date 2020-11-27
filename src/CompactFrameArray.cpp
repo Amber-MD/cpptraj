@@ -63,7 +63,7 @@ void CompactFrameArray::addComponent(long int& currentOffset, CoordinateInfo::Co
   currentOffset += sizeIn;
 }
 
-/** \return Size of a frame containing given coordiante info in bytes. */
+/** \return Size of a frame containing given coordinate info in bytes. */
 unsigned int CompactFrameArray::EstimateFrameSizeInBytes(CoordinateInfo const& cinfoIn, unsigned int natoms)
 {
   unsigned int frameSize = 0;

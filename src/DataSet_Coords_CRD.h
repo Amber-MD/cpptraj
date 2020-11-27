@@ -33,7 +33,7 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     int CoordsSetup(Topology const&, CoordinateInfo const&);
     // -------------------------------------------
     /// \return estimated size in bytes for given # of frames.
-    //size_t EstSizeInBytes(size_t nframes) const { return sizeInBytes(nframes, Top().Natom(), numBoxCrd_); }
+    size_t EstSizeInBytes(size_t nframes) const { return nframes*frames_.EstimateFrameSizeInBytes(CoordsInfo(), Top().Natom()); }
   private:
     //static size_t sizeInBytes(size_t, size_t, size_t);
 
