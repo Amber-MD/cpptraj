@@ -1,6 +1,8 @@
 #ifndef INC_DISTROUTINES_H
 #define INC_DISTROUTINES_H
-#include "Box.h"
+class Vec3;
+class Matrix_3x3;
+class Box;
 /*! \file DistRoutines.h
     \brief A collection of routines used to calculate distance.
  */

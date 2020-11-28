@@ -104,6 +104,7 @@ void DataSet_3D::GridInfo() const {
   } else {
     Box box(gridBin_->Ucell());
     mprintf("\t\tBox: %s ABC={%g %g %g} abg={%g %g %g}\n", box.TypeName(),
-            box[0], box[1], box[2], box[3], box[4], box[5]);
+            box.Param(Box::X), box.Param(Box::Y), box.Param(Box::Z),
+            box.Param(Box::ALPHA), box.Param(Box::BETA), box.Param(Box::GAMMA));
   }
 }

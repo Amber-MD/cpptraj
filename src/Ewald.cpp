@@ -256,10 +256,11 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
     return 1;
   }
   char dir[3] = {'X', 'Y', 'Z'};
+  // NOTE: First 3 box parameters are X Y Z
   for (int i = 0; i < 3; i++) {
-    if (cutoff_ > boxIn[i]/2.0) {
+    if (cutoff_ > boxIn.Param((Box::ParamType)i)/2.0) {
       mprinterr("Error: Cutoff must be less than half the box length (%g > %g, %c)\n",
-                cutoff_, boxIn[i]/2.0, dir[i]);
+                cutoff_, boxIn.Param((Box::ParamType)i)/2.0, dir[i]);
       return 1;
     }
   }

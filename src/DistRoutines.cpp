@@ -1,5 +1,6 @@
 #include <cmath> // sqrt
 #include "DistRoutines.h"
+#include "Box.h"
 
 /** \param a1 First set of XYZ coordinates.
   * \param a2 Second set of XYZ coordinates.
@@ -312,9 +313,10 @@ double DIST2_ImageNonOrthoRecip(Vec3 const& f1, Vec3 const& f2, double minIn,
 /** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
   * and a2.
   */
-double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
+double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box)
+{
   // If box lengths are zero no imaging possible
-  if (box[0]==0.0 || box[1]==0.0 || box[2]==0.0) return -1.0;
+  if (box.Param(Box::X)==0.0 || box.Param(Box::Y)==0.0 || box.Param(Box::Z)==0.0) return -1.0;
   double x = a1[0] - a2[0];
   double y = a1[1] - a2[1];
   double z = a1[2] - a2[2];
@@ -323,15 +325,15 @@ double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
   if (y<0) y=-y;
   if (z<0) z=-z;
   // Get rid of multiples of box lengths 
-  while (x > box[0]) x = x - box[0];
-  while (y > box[1]) y = y - box[1];
-  while (z > box[2]) z = z - box[2];
+  while (x > box.Param(Box::X)) x = x - box.Param(Box::X);
+  while (y > box.Param(Box::Y)) y = y - box.Param(Box::Y);
+  while (z > box.Param(Box::Z)) z = z - box.Param(Box::Z);
   // Find shortest distance in periodic reference
-  double D = box[0] - x;
+  double D = box.Param(Box::X) - x;
   if (D < x) x = D;
-  D = box[1] - y;
+  D = box.Param(Box::Y) - y;
   if (D < y) y = D;  
-  D = box[2] - z;
+  D = box.Param(Box::Z) - z;
   if (D < z) z = D;
 
   return (x*x + y*y + z*z);

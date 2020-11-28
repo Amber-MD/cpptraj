@@ -68,13 +68,13 @@ int Ewald_ParticleMesh::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box co
 {
    if (nfft1 < 1) {
     // Need even dimension for X direction
-    nfft1 = ComputeNFFT( (boxIn.BoxX() + 1.0) * 0.5 );
+    nfft1 = ComputeNFFT( (boxIn.Param(Box::X) + 1.0) * 0.5 );
     nfft1 *= 2;
   }
   if (nfft2 < 1)
-    nfft2 = ComputeNFFT( boxIn.BoxY() );
+    nfft2 = ComputeNFFT( boxIn.Param(Box::Y) );
   if (nfft3 < 1)
-    nfft3 = ComputeNFFT( boxIn.BoxZ() );
+    nfft3 = ComputeNFFT( boxIn.Param(Box::Z) );
 
   if (nfft1 < 1 || nfft2 < 1 || nfft3 < 1) {
     mprinterr("Error: Bad NFFT values: %i %i %i\n", nfft1, nfft2, nfft3);
@@ -185,8 +185,8 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(Box const& boxIn)
   //       5 = the beta lattice parameter in degrees.
   //       6 = the gamma lattice parameter in degrees.
   //       7 = lattice type
-  pme_object_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
-                                boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+  pme_object_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
+                                boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
                                 PMEInstanceD::LatticeType::XAligned);
   double erecip = pme_object_.computeERec(0, chargesD, coordsD);
 
@@ -211,8 +211,8 @@ double Ewald_ParticleMesh::LJ_Recip_ParticleMesh(Box const& boxIn)
 
   //auto pme_vdw = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
   pme_vdw_.setup(6, lw_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
-  pme_vdw_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
-                             boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+  pme_vdw_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
+                             boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
                              PMEInstanceD::LatticeType::XAligned);
   double evdwrecip = pme_vdw_.computeERec(0, cparamD, coordsD);
   t_recip_.Stop();

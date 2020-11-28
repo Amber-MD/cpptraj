@@ -68,6 +68,8 @@ class Box {
     double CellVolume()          const { return cellVolume_; }
     // TODO should this be in Constants?
     static double TruncatedOctAngle() { return TRUNCOCTBETA_; }
+    /// \return vector containing reciprocal lengths from given fractional cell matrix
+    static Vec3 RecipLengths(Matrix_3x3 const&);
 
     // For interfacing with file IO
     //double* boxPtr()             { return box_; }
@@ -100,7 +102,6 @@ class Box {
     /// Calculate XYZ ABG array from symmetric shape matrix
     static void CalcXyzAbgFromShape(double*, const double*);
 
-    //static Vec3 RecipLengths(Matrix_3x3 const&);
     //static void XyzAbgToUcell(Matrix_3x3&, const double*);
 
     //int debug_; // TODO: Replace with ifdefs or just comment out?

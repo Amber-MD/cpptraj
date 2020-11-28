@@ -150,7 +150,8 @@ void DataIO_Xplor::WriteXplorHeader(CpptrajFile& outfile,
   outfile.Printf("%8i%8i%8i%8i%8i%8i%8i%8i%8i\n"
                  "%12.5f%12.5f%12.5f%12.5f%12.5f%12.5f\nZYX\n",
                  nx, bx, ex, ny, by, ey, nz, bz, ez,
-                 box[0], box[1], box[2], box[3], box[4], box[5]);
+                 box.Param(Box::X), box.Param(Box::Y), box.Param(Box::Z),
+                 box.Param(Box::ALPHA), box.Param(Box::BETA), box.Param(Box::GAMMA));
 }
 
 // DataIO_Xplor::WriteSet3D()
