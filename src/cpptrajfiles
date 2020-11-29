@@ -142,6 +142,7 @@ COMMON_SOURCES= \
         AxisType.cpp \
         BondSearch.cpp \
         Box.cpp \
+        BoxArgs.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \
         ByteRoutines.cpp \
