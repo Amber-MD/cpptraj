@@ -108,15 +108,19 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
     }
     // Box info
     if (combinedBox.Type() != Box::NOBOX) {
-      double* cBox = CombinedFrame.bAddress();
-      // Only use angles from first coords set.
-      std::copy(InputFrames[0].bAddress(), InputFrames[0].bAddress()+6, cBox);
+      // Use angles from first coords set.
+      double cBox[6];
+      for (int i = 0; i < 6; i++)
+        cBox[i] = InputFrames[0].BoxCrd().Param((Box::ParamType)i);
+      //double* cBox = CombinedFrame.bAddress();
+      //std::copy(InputFrames[0].bAddress(), InputFrames[0].bAddress()+6, cBox);
       for (unsigned int setnum = 1; setnum < CRD.size(); ++setnum) {
         // Use max X/Y/Z among coords
-        cBox[0] = std::max(cBox[0], InputFrames[setnum].BoxCrd().BoxX());
-        cBox[1] = std::max(cBox[1], InputFrames[setnum].BoxCrd().BoxY());
-        cBox[2] = std::max(cBox[2], InputFrames[setnum].BoxCrd().BoxZ());
+        cBox[0] = std::max(cBox[0], InputFrames[setnum].BoxCrd().Param(Box::X));
+        cBox[1] = std::max(cBox[1], InputFrames[setnum].BoxCrd().Param(Box::Y));
+        cBox[2] = std::max(cBox[2], InputFrames[setnum].BoxCrd().Param(Box::Z));
       }
+      CombinedFrame.ModifyBox().SetupFromXyzAbg( cBox );
     }
     CombinedCrd->AddFrame( CombinedFrame );
   }
