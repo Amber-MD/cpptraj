@@ -3,17 +3,15 @@
 
 Action_Box::Action_Box() :
   mode_(SET)
-{
-  for (int i = 0; i < 6; i++) {
-    xyzabg_[i] = 0;
-    setVar_[i] = false;
-  }
-}
+{}
 
 void Action_Box::Help() const {
-  mprintf("\t{[x <xval>] [y <yval>] [z <zval>] {[alpha <a>] [beta <b>] [gamma <g>]\n"
-          "\t [truncoct]} | nobox | auto [offset <offset>] [radii {vdw|gb|parse|none}]}\n"
-          "  For each input frame, replace any box information with the information given.\n"
+  mprintf("\t{%s |\n"
+          "\t %s |\n"
+          "\t nobox |\n"
+          "\t auto [offset <offset>] [radii {vdw|gb|parse|none}]}\n",
+          BoxArgs::Keywords_XyzAbg(), BoxArgs::Keywords_TruncOct());
+  mprintf("  For each input frame, replace any box information with the information given.\n"
           "  If 'truncoct' is specified, alpha, beta, and gamma will be set to the\n"
           "  appropriate angle for a truncated octahedral box. If 'nobox' is specified,\n"
           "  all existing box information will be removed. If 'auto' is specified, an\n"
@@ -37,12 +35,8 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
     radiiMode_ = UNSPECIFIED;
     // NOTE: Set angles to 90 here so we can set parm box type to
     //       ORTHO in Setup().
-    xyzabg_[3] = 90.0;
-    xyzabg_[4] = 90.0;
-    xyzabg_[5] = 90.0;
-    xyzabg_[0] = 1.0;
-    xyzabg_[1] = 1.0;
-    xyzabg_[2] = 1.0;
+    boxArgs_.SetAngles( 90.0 );
+    boxArgs_.SetLengths( 1.0 );
     std::string rstr = actionArgs.GetStringKey("radii");
     if (!rstr.empty()) {
       if (rstr == "vdw")
@@ -61,29 +55,7 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
   } else {
     mode_ = SET;
     // TODO check for bad args?
-    if (actionArgs.Contains("x")) { xyzabg_[0] = actionArgs.getKeyDouble("x", 0.0); setVar_[0] = true; }
-    if (actionArgs.Contains("y")) { xyzabg_[1] = actionArgs.getKeyDouble("y", 0.0); setVar_[1] = true; }
-    if (actionArgs.Contains("z")) { xyzabg_[2] = actionArgs.getKeyDouble("z", 0.0); setVar_[2] = true; }
-    if (actionArgs.Contains("alpha")) { xyzabg_[3] = actionArgs.getKeyDouble("alpha", 0.0); setVar_[3] = true; }
-    if (actionArgs.Contains("beta"))  { xyzabg_[4] = actionArgs.getKeyDouble("beta",  0.0); setVar_[4] = true; }
-    if (actionArgs.Contains("gamma")) { xyzabg_[5] = actionArgs.getKeyDouble("gamma", 0.0); setVar_[5] = true; }
-    if (actionArgs.hasKey("truncoct")) {
-      xyzabg_[3] = Box::TruncatedOctAngle();
-      xyzabg_[4] = xyzabg_[3];
-      xyzabg_[5] = xyzabg_[3];
-      setVar_[3] = true;
-      setVar_[4] = true;
-      setVar_[5] = true;
-      // All lengths need to be the same
-      if (setVar_[1]) mprintf("Warning: Only 'x' used for 'truncoct'\n");
-      if (setVar_[2]) mprintf("Warning: Only 'x' used for 'truncoct'\n");
-      if (setVar_[0]) {
-        xyzabg_[1] = xyzabg_[0];
-        xyzabg_[2] = xyzabg_[0];
-      }
-      setVar_[1] = false;
-      setVar_[2] = false;
-    }
+    if (boxArgs_.SetBoxArgs( actionArgs )) return Action::ERR;
   }
 
   mprintf("    BOX:");
@@ -101,22 +73,9 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
         break;
     }
   } else {
-    if (setVar_[0]) mprintf(" X=%.3f", xyzabg_[0]);
-    if (setVar_[1]) mprintf(" Y=%.3f", xyzabg_[1]);
-    if (setVar_[2]) mprintf(" Z=%.3f", xyzabg_[2]);
-    if (setVar_[3]) mprintf(" A=%.3f", xyzabg_[3]);
-    if (setVar_[4]) mprintf(" B=%.3f", xyzabg_[4]);
-    if (setVar_[5]) mprintf(" G=%.3f", xyzabg_[5]);
-    mprintf("\n");
+    boxArgs_.PrintXyzAbg();
   }
   return Action::OK;
-}
-
-/** Set missing box information from incoming box. */
-void Action_Box::SetMissingInfo(Box const& boxIn) {
-  for (int i = 0; i < 6; i++) {
-    if (!setVar_[i]) xyzabg_[i] = boxIn.Param((Box::ParamType)i);
-  }
 }
 
 // Action_Box::Setup()
@@ -128,9 +87,9 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
   } else {
     // SET, AUTO
     // Fill in missing box information from current box
-    SetMissingInfo( setup.CoordInfo().TrajBox() );
+    boxArgs_.SetMissingInfo( setup.CoordInfo().TrajBox() );
     Box pbox;
-    pbox.SetupFromXyzAbg( xyzabg_ );
+    pbox.SetupFromXyzAbg( boxArgs_.XyzAbg() );
     mprintf("\tNew box type is %s\n", pbox.TypeName() );
     cInfo_.SetBox( pbox );
     // Get radii for AUTO
@@ -184,8 +143,8 @@ Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
   } else if (mode_ == AUTO) {
     frm.ModifyFrm().SetOrthoBoundingBox(Radii_, offset_);
   } else {
-    SetMissingInfo( frm.Frm().BoxCrd() );
-    frm.ModifyFrm().ModifyBox().SetupFromXyzAbg( xyzabg_ );
+    boxArgs_.SetMissingInfo( frm.Frm().BoxCrd() );
+    frm.ModifyFrm().ModifyBox().SetupFromXyzAbg( boxArgs_.XyzAbg() );
   }
   return Action::MODIFY_COORDS;
 }
