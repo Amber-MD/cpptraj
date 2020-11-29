@@ -455,7 +455,7 @@ void Box::SetTruncOct() {
 }*/
 
 // Box::SetNoBox()
-/*
+/** Remove all box information. */
 void Box::SetNoBox() {
   box_[0] = 0;
   box_[1] = 0;
@@ -464,7 +464,10 @@ void Box::SetNoBox() {
   box_[4] = 0;
   box_[5] = 0;
   btype_ = NOBOX;
-}*/
+  unitCell_.Zero();
+  fracCell_.Zero();
+  cellVolume_ = 0;
+}
 
 // Box::SetMissingInfo()
 /** Set this box info from rhs if <= 0. */

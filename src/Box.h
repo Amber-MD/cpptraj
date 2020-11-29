@@ -24,6 +24,8 @@ class Box {
 #   ifdef MPI
     int SyncBox(Parallel::Comm const&);
 #   endif
+    /// Remove all box information
+    void SetNoBox();
 
     void SetupFromShapeMatrix(const double*);
 
@@ -37,7 +39,6 @@ class Box {
     //void SetBox(Matrix_3x3 const&);
     //void SetBox(float,float,float,float,float,float);
     //void SetTruncOct();
-    //void SetNoBox();
     //void SetMissingInfo(const Box&);
     /// Calculate Frac->Cart and Cart->Frac matrices.
     double ToRecip(Matrix_3x3&, Matrix_3x3&) const; // TODO make obsolete
