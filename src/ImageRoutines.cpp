@@ -108,9 +108,9 @@ void Image::Nonortho(Frame& frameIn, bool origin, Vec3 const& fcom, Vec3 const& 
   double min = -1.0;
 
   if (truncoct)
-    min = 100.0 * (frameIn.BoxCrd().BoxX()*frameIn.BoxCrd().BoxX()+
-                   frameIn.BoxCrd().BoxY()*frameIn.BoxCrd().BoxY()+
-                   frameIn.BoxCrd().BoxZ()*frameIn.BoxCrd().BoxZ());
+    min = 100.0 * (frameIn.BoxCrd().Param(Box::X)*frameIn.BoxCrd().Param(Box::X)+
+                   frameIn.BoxCrd().Param(Box::Y)*frameIn.BoxCrd().Param(Box::Y)+
+                   frameIn.BoxCrd().Param(Box::Z)*frameIn.BoxCrd().Param(Box::Z));
 
   // Loop over atom pairs
   for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
@@ -182,7 +182,7 @@ int Image::SetupOrtho(Box const& boxIn, Vec3& bp, Vec3& bm, bool origin) {
     bp = boxIn.Center();
     bm.SetVec( -bp[0], -bp[1], -bp[2] );
   } else {
-    bp.SetVec( boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ()  );
+    bp.SetVec( boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z)  );
     bm.Zero();
   }
   if (bp.IsZero()) return 1;
@@ -200,9 +200,9 @@ void Image::Ortho(Frame& frameIn, Vec3 const& bp, Vec3 const& bm, Vec3 const& of
                   List const& AtomPairs)
 {
   Vec3 Coord;
-  Vec3 offset(offIn[0] * frameIn.BoxCrd()[0],
-              offIn[1] * frameIn.BoxCrd()[1],
-              offIn[2] * frameIn.BoxCrd()[2]);
+  Vec3 offset(offIn[0] * frameIn.BoxCrd().Param(Box::X),
+              offIn[1] * frameIn.BoxCrd().Param(Box::Y),
+              offIn[2] * frameIn.BoxCrd().Param(Box::Z));
   // Loop over atom pairs
   for (unsigned int idx = 0; idx != AtomPairs.nEntities(); idx++)
   {
@@ -227,16 +227,17 @@ Vec3 Image::Ortho(Vec3 const& Coord, Vec3 const& bp, Vec3 const& bm, Box const& 
 {
   Vec3 trans;
   // Determine how far Coord is out of box
+  // Note Box::Param 0 1 2 is X Y Z
   for (int i = 0; i < 3; ++i) {
     trans[i] = 0.0;
     double crd = Coord[i];
     while (crd < bm[i]) {
-      crd += BoxVec[i];
-      trans[i] += BoxVec[i];
+      crd += BoxVec.Param((Box::ParamType)i);
+      trans[i] += BoxVec.Param((Box::ParamType)i);
     }
     while (crd > bp[i]) {
-      crd -= BoxVec[i];
-      trans[i] -= BoxVec[i];
+      crd -= BoxVec.Param((Box::ParamType)i);
+      trans[i] -= BoxVec.Param((Box::ParamType)i);
     }
   }
   return trans;

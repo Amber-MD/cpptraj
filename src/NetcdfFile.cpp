@@ -441,7 +441,7 @@ int NetcdfFile::SetupBox() {
     }
     if (ncdebug_ > 0) mprintf("\tNetCDF Box: XYZ={%f %f %f} ABG={%f %f %f}\n",
                               boxCrd[0], boxCrd[1], boxCrd[2], boxCrd[3], boxCrd[4], boxCrd[5]);
-    nc_box_.SetBox( boxCrd );
+    nc_box_.SetupFromXyzAbg( boxCrd );
     return 0;
   }
   // No box information
