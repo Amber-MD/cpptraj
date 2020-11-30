@@ -155,7 +155,7 @@ int TinkerFile::OpenTinker() {
       mprinterr("Error: Expected 6 box coordinates.\n");
       return 1;
     }
-    box_.SetBox( bp );
+    box_.SetupFromXyzAbg( bp );
   }
   // Close and reopen the file.
   file_.CloseFile();

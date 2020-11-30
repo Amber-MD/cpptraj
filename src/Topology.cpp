@@ -72,11 +72,11 @@ void Topology::SetBoxFromTraj(Box const& boxIn) {
     }
   } else {
     // Incoming box.
-    if ( boxIn.BoxX() < Constants::SMALL || 
-         boxIn.BoxY() < Constants::SMALL || 
-         boxIn.BoxZ() < Constants::SMALL )
+    if ( boxIn.Param(Box::X) < Constants::SMALL || 
+         boxIn.Param(Box::Y) < Constants::SMALL || 
+         boxIn.Param(Box::Z) < Constants::SMALL )
     {
-      // Incoming box has no lengths - disable parm box.
+      // Incoming box has no lengths - disable parm box. TODO is this check necessary/desirable?
       mprintf("Warning: Box information present in trajectory but lengths are zero.\n"
               "Warning: DISABLING BOX in topology '%s'!\n", c_str());
       parmBox_.SetNoBox();
