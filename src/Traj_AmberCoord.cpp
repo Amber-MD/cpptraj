@@ -114,11 +114,15 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
   // Get Coordinates; offset is hasREMD (size in bytes of REMD header)
   file_.BufferBeginAt(headerSize_);
   file_.BufferToDouble(frameIn.xAddress(), natom3_);
-  if (numBoxCoords_ != 0) { 
-    file_.BufferToDouble(frameIn.bAddress(), numBoxCoords_);
-    // Set box angles to parmtop default if not read in
+  if (numBoxCoords_ != 0) {
+    double xyzabg[6];
+    file_.BufferToDouble(xyzabg, numBoxCoords_);
+    // NOTE: If box was properly set up no need to do angles
+    // TODO remove boxAngle?
+    /*// Set box angles to parmtop default if not read in
     if (numBoxCoords_==3)
-      frameIn.SetBoxAngles( boxAngle_ );
+      frameIn.SetBoxAngles( boxAngle_ );*/
+    frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
   }
   return 0;
 }
@@ -157,8 +161,9 @@ int Traj_AmberCoord::writeFrame(int set, Frame const& frameOut) {
     case FRC    : file_.DoubleToBuffer(frameOut.fAddress(), natom3_, outfmt_); break;
   }
   
-  if (numBoxCoords_ != 0) 
-    file_.DoubleToBuffer(frameOut.bAddress(), numBoxCoords_, outfmt_);
+  if (numBoxCoords_ != 0)
+    // FIXME: A bit of a hack here. Check for non-normal?
+    file_.DoubleToBuffer(frameOut.BoxCrd().XyzPtr(), numBoxCoords_, outfmt_);
 
   if (file_.WriteFrame()) return 1;
 
@@ -217,13 +222,13 @@ int Traj_AmberCoord::setupTrajin(FileName const& fname, Topology* trajParm)
           if (trajParm->ParmBox().Type() == Box::NOBOX)
             mprintf("Warning: Trajectory only contains box lengths and topology has no box info.\n"
                     "Warning: To set box angles for topology use the 'parmbox' command.\n");
-          box[3] = boxAngle_[0] = trajParm->ParmBox().Alpha();
-          box[4] = boxAngle_[1] = trajParm->ParmBox().Beta();
-          box[5] = boxAngle_[2] = trajParm->ParmBox().Gamma();
-          boxInfo.SetBox( box );
+          box[3] = boxAngle_[0] = trajParm->ParmBox().Param(Box::ALPHA);
+          box[4] = boxAngle_[1] = trajParm->ParmBox().Param(Box::BETA);
+          box[5] = boxAngle_[2] = trajParm->ParmBox().Param(Box::GAMMA);
+          boxInfo.SetupFromXyzAbg( box );
         } else if (numBoxCoords_ == 6) {
           // General triclinic. Set lengths and angles.
-          boxInfo.SetBox( box );
+          boxInfo.SetupFromXyzAbg( box );
         } else {
           mprinterr("Error: In %s, expect only 3 or 6 box coords, got %i\n"
                     "Error:   Box line=[%s]\n",
