@@ -141,6 +141,7 @@ bool Box::IsAngle(double angle, double tgt) {
 /** Determine box type (none/ortho/nonortho) based on box angles. */
 void Box::SetBoxType() {
   btype_ = NONORTHO;
+  // TODO error if any of box is zero?
   bool noLengths = (box_[0] < Constants::SMALL &&
                     box_[1] < Constants::SMALL &&
                     box_[2] < Constants::SMALL);
@@ -163,30 +164,8 @@ void Box::SetBoxType() {
   else if ( IsAngle(box_[3],60.0) && IsAngle(box_[4],90.0) && IsAngle(box_[5],60.0) )
     // 60/90/60, rhombic dodecahedron
     btype_ = RHOMBIC;
-  else if (box_[3] == 0 && box_[4] != 0 && box_[5] == 0) {
-    // Only beta angle is set (e.g. from Amber topology).
-    if (box_[4] == 90.0) {
-      btype_ = ORTHO;
-      box_[3] = 90.0;
-      box_[5] = 90.0;
-      //if (debug_>0) mprintf("\tSetting box to be orthogonal\n");
-    } else if ( IsTruncOct( box_[4] ) ) {
-      btype_ = TRUNCOCT;
-      box_[3] = box_[4];
-      box_[5] = box_[4];
-      //if (debug_>0) mprintf("\tSetting box to be a truncated octahedron, angle is %lf\n",box_[3]);
-    } else if (box_[4] == 60.0) {
-      btype_ = RHOMBIC;
-      box_[3]=60.0; 
-      box_[4]=90.0; 
-      box_[5]=60.0;
-      //if (debug_>0) mprintf("\tSetting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
-    } else {
-      mprintf("Warning: Box: Unrecognized beta (%g); setting all angles to beta.\n",box_[4]);
-      box_[3] = box_[4];
-      box_[5] = box_[4];
-    }
-  }
+  else
+    btype_ = NONORTHO;
   //if (debug_>0) mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
   if (btype_ == TRUNCOCT) {
     // Check for low-precision truncated octahedron angles.

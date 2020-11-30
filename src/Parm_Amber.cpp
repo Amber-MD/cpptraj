@@ -273,17 +273,15 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   if (values_[IFBOX] > 0) {
     if (parmbox_.Type() == Box::NOBOX) {
       if (ptype_ != CHAMBER) mprintf("Warning: Prmtop missing Box information.\n");
-      // ifbox 2: truncated octahedron for certain
-      if (values_[IFBOX] == 2)
-        parmbox_.SetTruncOct();
+      // Check for IFBOX/BoxType mismatch
+      if (values_[IFBOX]==2 && parmbox_.Type() != Box::TRUNCOCT) {
+        mprintf("Warning: Amber Parm Box should be Truncated Octahedron (ifbox==2)\n"
+                "         but BOX_DIMENSIONS indicate %s - may cause imaging problems.\n",
+                parmbox_.TypeName());
+      }
     }
   }
-  // Check for IFBOX/BoxType mismatch
-  if (values_[IFBOX]==2 && parmbox_.Type() != Box::TRUNCOCT) {
-    mprintf("Warning: Amber Parm Box should be Truncated Octahedron (ifbox==2)\n");
-    mprintf("         but BOX_DIMENSIONS indicate %s - may cause imaging problems.\n",
-            parmbox_.TypeName());
-  }
+
   TopIn.SetParmBox( parmbox_ );
 
   // DEBUG
@@ -1030,11 +1028,35 @@ int Parm_Amber::ReadIrotat(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadBox()
 int Parm_Amber::ReadBox(FortranData const& FMT) {
   if (SetupBuffer(F_PARMBOX, 4, FMT)) return 1;
-  double beta = atof(file_.NextElement());
-  double bx = atof(file_.NextElement());
-  double by = atof(file_.NextElement());
-  double bz = atof(file_.NextElement());
-  parmbox_.SetBetaLengths( beta, bx, by, bz );
+  double xyzabg[6];
+  xyzabg[Box::BETA] = atof(file_.NextElement());
+  xyzabg[Box::X   ] = atof(file_.NextElement());
+  xyzabg[Box::Y   ] = atof(file_.NextElement());
+  xyzabg[Box::Z   ] = atof(file_.NextElement());
+  //parmbox_.SetBetaLengths( beta, bx, by, bz );
+  // Only beta angle is set (e.g. from Amber topology).
+  if (xyzabg[Box::BETA] == 90.0) {
+    xyzabg[Box::ALPHA] = 90.0;
+    xyzabg[Box::GAMMA] = 90.0;
+    //if (debug_>0) mprintf("\tSetting box to be orthogonal\n");
+  } else if ( Box::IsTruncOct( xyzabg[Box::BETA] ) ) {
+    // Use trunc oct angle from Box; higher precision
+    xyzabg[Box::BETA ] = Box::TruncatedOctAngle();
+    xyzabg[Box::ALPHA] = xyzabg[Box::BETA];
+    xyzabg[Box::GAMMA] = xyzabg[Box::BETA];
+    //if (debug_>0) mprintf("\tSetting box to be a truncated octahedron, angle is %lf\n",box_[3]);
+  } else if (xyzabg[Box::BETA] == 60.0) {
+    xyzabg[Box::ALPHA] = 60.0; 
+    xyzabg[Box::BETA]  = 90.0; 
+    xyzabg[Box::GAMMA] = 60.0;
+    //if (debug_>0) mprintf("\tSetting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
+  } else {
+    mprintf("Warning: AmberParm: Unrecognized beta (%g); setting all angles to beta.\n", xyzabg[Box::BETA]);
+    xyzabg[Box::ALPHA] = xyzabg[Box::BETA];
+    xyzabg[Box::GAMMA] = xyzabg[Box::BETA];
+  }
+  parmbox_.SetupFromXyzAbg( xyzabg );
+ 
   return 0;
 }
 
@@ -2221,10 +2243,16 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     }
     // BOX DIMENSIONS
     if (BufferAlloc(F_PARMBOX, 4)) return 1;
-    file_.DblToBuffer( TopOut.ParmBox().Beta() );
-    file_.DblToBuffer( TopOut.ParmBox().BoxX() );
-    file_.DblToBuffer( TopOut.ParmBox().BoxY() );
-    file_.DblToBuffer( TopOut.ParmBox().BoxZ() );
+    double beta;
+    // Special case: Rhombic dodecahedron stores alpha/gamma (60) instead of beta (90)
+    if (TopOut.ParmBox().Type() == Box::RHOMBIC)
+      beta = 60.0;
+    else
+      beta = TopOut.ParmBox().Param(Box::BETA);
+    file_.DblToBuffer( beta );
+    file_.DblToBuffer( TopOut.ParmBox().Param(Box::X) );
+    file_.DblToBuffer( TopOut.ParmBox().Param(Box::Y) );
+    file_.DblToBuffer( TopOut.ParmBox().Param(Box::Z) );
     file_.FlushBuffer();
   }
 

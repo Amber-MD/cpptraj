@@ -67,6 +67,8 @@ class Box {
     Matrix_3x3 const& FracCell() const { return fracCell_; }
     /// \return the cell volume
     double CellVolume()          const { return cellVolume_; }
+    /// \return true if thie given angle is suitable for a truncated octahedron
+    static bool IsTruncOct(double);
     // TODO should this be in Constants?
     static double TruncatedOctAngle() { return TRUNCOCTBETA_; }
     /// \return vector containing reciprocal lengths from given fractional cell matrix
@@ -86,7 +88,6 @@ class Box {
     static const double TruncOctEps_;
     static const char* BoxNames_[];
 
-    static inline bool IsTruncOct(double);
     static inline bool BadTruncOctAngle(double);
     static inline bool IsAngle(double,double);
 
