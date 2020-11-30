@@ -362,6 +362,23 @@ void Box::SetupFromXyzAbg(const double* xyzabg) {
   SetBoxType();
 }
 
+// -----------------------------------------------------------------------------
+// Assign routines
+void Box::AssignFromXyzAbg(const double* xyzabg) {
+  // Sanity check
+  if (btype_ == NOBOX) {
+    mprinterr("Internal Error: AssignFromXyzAbg(): No box has been set.\n");
+    return;
+  }
+  box_[0] = xyzabg[0];
+  box_[1] = xyzabg[1];
+  box_[2] = xyzabg[2];
+
+  CalcUcellFromXyzAbg(unitCell_, xyzabg);
+
+  cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+}
+
 /*
 // Box::SetBetaLengths()
 void Box::SetBetaLengths(double beta, double xin, double yin, double zin) {

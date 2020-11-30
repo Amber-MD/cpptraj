@@ -33,6 +33,8 @@ class Box {
 
     void SetupFromXyzAbg(const double*);
 
+    void AssignFromXyzAbg(const double*);
+
     //void SetBetaLengths(double,double,double,double);
     //void SetBox(const double*);
     //void SetBox(const float*);
@@ -67,14 +69,19 @@ class Box {
     Matrix_3x3 const& FracCell() const { return fracCell_; }
     /// \return the cell volume
     double CellVolume()          const { return cellVolume_; }
-    /// \return true if thie given angle is suitable for a truncated octahedron
+    /// \return true if the given angle is suitable for a truncated octahedron
     static bool IsTruncOct(double);
     // TODO should this be in Constants?
     static double TruncatedOctAngle() { return TRUNCOCTBETA_; }
     /// \return vector containing reciprocal lengths from given fractional cell matrix
     static Vec3 RecipLengths(Matrix_3x3 const&);
+ 
+   // For interfacing with file IO
+    /// Double pointer starting at lengths (XYZ)
+    const double* XyzPtr() const { return box_; }
+    /// Double pointer starting at angles (ABG)
+    const double* AbgPtr() const { return box_+3; }
 
-    // For interfacing with file IO
     //double* boxPtr()             { return box_; }
     //const double* boxPtr() const { return box_; }
 
