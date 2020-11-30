@@ -93,7 +93,9 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
     if (readBox_ && infile.RecType() == PDBfile::CRYST1) {
       // Box info from CRYST1 record.
       infile.pdb_Box_verbose( XYZ );
-      TopIn.SetParmBox( XYZ );
+      Box pbox;
+      pbox.SetupFromXyzAbg( XYZ );
+      TopIn.SetParmBox( pbox );
     } else if (infile.RecType() == PDBfile::CONECT && readConect) {
       // BOND - first element will be atom, next few are bonded atoms.
       // To avoid duplicates only add the bond if atom2 > atom1
