@@ -114,6 +114,8 @@ class Box {
     static void CalcXyzAbgFromUcell(double*, Matrix_3x3 const&);
     /// Calculate XYZ ABG array from symmetric shape matrix
     static void CalcXyzAbgFromShape(double*, const double*);
+    /// Calculate symmetric shape matrix from XYZ ABG array
+    static void CalcShapeFromXyzAbg(double*, const double*);
 
     //static void XyzAbgToUcell(Matrix_3x3&, const double*);
 

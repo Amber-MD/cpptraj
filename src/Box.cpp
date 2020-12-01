@@ -1,4 +1,4 @@
-#include <cmath> // cos, sin, sqrt
+#include <cmath> // cos, sin, sqrt, fabs
 #include "Box.h"
 #include "Constants.h" // DEGRAD
 #include "CpptrajStdio.h"
@@ -330,6 +330,74 @@ void Box::CalcXyzAbgFromShape(double* box, const double* boxtmp)
   box[5] = gamma;
 }
 
+/** Convert unit cell parameters (X, Y, Z, a, b, g) to symmetric shape matrix
+  * (S11, S12, S22, S13, S23, S33).
+  */
+void CalcShapeFromXyzAbg(double* shape, const double* box)
+{
+  // Calculate metric tensor HtH:
+  //   HtH(i,j) = vi * vj
+  // where vx are basis vectors i and j. Given that v0 is a, v1 is b, v2 is c:
+  //       a^2 a*b a*c
+  // HtH = b*a b^2 b*c
+  //       c*a c*b c^2
+  Matrix_3x3 HtH;
+
+  HtH[0] = box[0] * box[0];
+  HtH[4] = box[1] * box[1];
+  HtH[8] = box[2] * box[2];
+
+  // Angles near 90 have elements set to 0.0.
+  // XY (gamma)
+  if (fabs(box[5] - 90.0) > Constants::SMALL)
+    HtH[3] = box[0]*box[1]*cos(Constants::DEGRAD*box[5]);
+  else
+    HtH[3] = 0.0;
+  HtH[1] = HtH[3];
+  // XZ (beta)
+  if (fabs(box[4] - 90.0) > Constants::SMALL)
+    HtH[6] = box[0]*box[2]*cos(Constants::DEGRAD*box[4]);
+  else
+    HtH[6] = 0.0;
+  HtH[2] = HtH[6];
+  // YZ (alpha)
+  if (fabs(box[3] - 90.0) > Constants::SMALL)
+    HtH[7] = box[1]*box[2]*cos(Constants::DEGRAD*box[3]);
+  else
+    HtH[7] = 0.0;
+  HtH[5] = HtH[7];
+
+  // Diagonalize HtH
+  //HtH.Print("HtH"); // DEBUG
+  Vec3 Evals;
+  if (HtH.Diagonalize( Evals )) {
+    mprinterr("Error: Could not diagonalize metric tensor.\n");
+    for (int i=0; i<6; i++) shape[i] = 0.0;
+    return;
+  }
+
+  if (Evals[0] < Constants::SMALL ||
+      Evals[1] < Constants::SMALL ||
+      Evals[2] < Constants::SMALL)
+  {
+    mprinterr("Error: Obtained negative eigenvalues when attempting to"
+              " diagonalize metric tensor.\n");
+    return;
+  }
+  //Evals.Print("Cvals"); // DEBUG
+  //HtH.Print("Cpptraj"); // DEBUG
+
+  double A = sqrt( Evals[0] );
+  double B = sqrt( Evals[1] );
+  double C = sqrt( Evals[2] );
+
+  shape[0] = A*HtH[0]*HtH[0] + B*HtH[1]*HtH[1] + C*HtH[2]*HtH[2];
+  shape[2] = A*HtH[3]*HtH[3] + B*HtH[4]*HtH[4] + C*HtH[5]*HtH[5];
+  shape[5] = A*HtH[6]*HtH[6] + B*HtH[7]*HtH[7] + C*HtH[8]*HtH[8];
+  shape[1] = A*HtH[0]*HtH[3] + B*HtH[1]*HtH[4] + C*HtH[2]*HtH[5];
+  shape[3] = A*HtH[0]*HtH[6] + B*HtH[1]*HtH[7] + C*HtH[2]*HtH[8];
+  shape[4] = A*HtH[3]*HtH[6] + B*HtH[4]*HtH[7] + C*HtH[5]*HtH[8];
+}
 
 // -----------------------------------------------------------------------------
 // Setup routines
