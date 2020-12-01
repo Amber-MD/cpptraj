@@ -356,7 +356,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   gist_setup_.Start();
   CurrentParm_ = setup.TopAddress();
   // We need box info
-  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprinterr("Error: Must have explicit solvent with periodic boundaries!");
     return Action::ERR;
   }

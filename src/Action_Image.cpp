@@ -106,7 +106,7 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, ActionInit& init, int de
   */
 Action::RetType Action_Image::Setup(ActionSetup& setup) {
   // Check box type
-  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: Topology %s does not contain box information.\n",
             setup.Top().c_str());
     return Action::SKIP;

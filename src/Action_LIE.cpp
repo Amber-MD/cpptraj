@@ -103,7 +103,7 @@ Action::RetType Action_LIE::Setup(ActionSetup& setup) {
   mprintf("\tLIE: %i Ligand Atoms, %i Surrounding Atoms\n",
           Mask1_.Nselected(), Mask2_.Nselected());
 
-  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprinterr("Error: LIE: Must have explicit solvent system with box info\n");
     return Action::ERR;
   }
