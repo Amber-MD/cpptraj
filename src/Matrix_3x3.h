@@ -90,6 +90,8 @@ class Matrix_3x3 {
     double* Dptr() { return M_; }
 #   ifdef MPI
     void SyncMatrix(Parallel::Comm const&);
+    int SendMatrix(int, Parallel::Comm const&);
+    int RecvMatrix(int, Parallel::Comm const&);
 #   endif
   private:
     double M_[9];

@@ -521,4 +521,14 @@ Vec3 Matrix_3x3::AxisOfRotation(double theta) {
 void Matrix_3x3::SyncMatrix(Parallel::Comm const& commIn) {
   commIn.MasterBcast( M_, 9, MPI_DOUBLE );
 }
+
+int Matrix_3x3::SendMatrix(int recvrank, Parallel::Comm const& commIn) {
+  commIn.Send( M_, 9, MPI_DOUBLE, recvrank, 1900 );
+  return 0;
+}
+
+int Matrix_3x3::RecvMatrix(int sendrank, Parallel::Comm const& commIn) {
+  commIn.Recv( M_, 9, MPI_DOUBLE, sendrank, 1900 );
+  return 0;
+}
 #endif
