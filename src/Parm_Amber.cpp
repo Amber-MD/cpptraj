@@ -271,7 +271,7 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   }
   // Check box info
   if (values_[IFBOX] > 0) {
-    if (parmbox_.Type() == Box::NOBOX) {
+    if (!parmbox_.HasBox()) {
       if (ptype_ != CHAMBER) mprintf("Warning: Prmtop missing Box information.\n");
       // Check for IFBOX/BoxType mismatch
       if (values_[IFBOX]==2 && parmbox_.Type() != Box::TRUNCOCT) {

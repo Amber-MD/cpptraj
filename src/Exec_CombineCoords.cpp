@@ -107,7 +107,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
       output += input.size();
     }
     // Box info
-    if (combinedBox.Type() != Box::NOBOX) {
+    if (combinedBox.HasBox()) {
       // Use angles from first coords set.
       double cBox[6];
       for (int i = 0; i < 6; i++)

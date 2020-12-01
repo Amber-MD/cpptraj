@@ -221,7 +221,7 @@ int Traj_AmberCoord::setupTrajin(FileName const& fname, Topology* trajParm)
           numBoxCoords_ = 0;
         } else if (numBoxCoords_ == 3) {
           // Box lengths only, ortho. or truncated oct. Use default parm angles.
-          if (trajParm->ParmBox().Type() == Box::NOBOX)
+          if (!trajParm->ParmBox().HasBox())
             mprintf("Warning: Trajectory only contains box lengths and topology has no box info.\n"
                     "Warning: To set box angles for topology use the 'parmbox' command.\n");
           box[3] = boxAngle_[0] = trajParm->ParmBox().Param(Box::ALPHA);

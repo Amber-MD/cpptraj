@@ -41,7 +41,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
       mprinterr("Error: Reference '%s' not found.\n", refname.c_str());
       return 0;
     }
-    if (REF->CoordsInfo().TrajBox().Type() == Box::NOBOX) {
+    if (!(REF->CoordsInfo().TrajBox().HasBox())) {
       mprinterr("Error: Reference '%s' does not have box information.\n", refname.c_str());
       return 0;
     }
