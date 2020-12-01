@@ -298,9 +298,10 @@ void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, const double* xyzabg) {
 // Box::CalcUcellFromXyzAbg()
 void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, BoxType btype, const double* xyzabg, double scale) {
   double by, bz;
-  switch (btype) {
-    case NOBOX: ucell.Zero(); break;
-    case ORTHO:
+  //switch (btype) {
+  //  case NOBOX: ucell.Zero(); break;
+  //  case ORTHO:
+  if (btype == ORTHO) {
       ucell[0] = xyzabg[0] * scale;
       ucell[1] = 0.0;
       ucell[2] = 0.0;
@@ -310,10 +311,11 @@ void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, BoxType btype, const double* xy
       ucell[6] = 0.0;
       ucell[7] = 0.0;
       ucell[8] = xyzabg[2] * scale;
-      break;
-    case TRUNCOCT:
-    case RHOMBIC:
-    case NONORTHO:
+  //    break;
+  //  case TRUNCOCT:
+  //  case RHOMBIC:
+  //  case NONORTHO:
+  } else {
       by = xyzabg[1] * scale;
       bz = xyzabg[2] * scale;
       ucell[0] = xyzabg[0] * scale;
@@ -325,7 +327,7 @@ void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, BoxType btype, const double* xy
       ucell[6] = bz*cos(Constants::DEGRAD*xyzabg[4]);
       ucell[7] = (by*bz*cos(Constants::DEGRAD*xyzabg[3]) - ucell[6]*ucell[3]) / ucell[4];
       ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
-      break;
+  //    break;
   }
 }
 
@@ -496,8 +498,12 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
   box_[0] = xyzabg[0];
   box_[1] = xyzabg[1];
   box_[2] = xyzabg[2];
+  box_[3] = xyzabg[3];
+  box_[4] = xyzabg[4];
+  box_[5] = xyzabg[5];
 
-  CalcUcellFromXyzAbg(unitCell_, xyzabg);
+  //CalcUcellFromXyzAbg(unitCell_, xyzabg);
+  CalcUcellFromXyzAbg(unitCell_, btype_, box_, 1.0);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 }
