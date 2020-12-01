@@ -102,6 +102,24 @@ int Box::SyncBox(Parallel::Comm const& commIn) {
   commIn.MasterBcast( &cellVolume_, 1, MPI_DOUBLE );
   return 0;
 }
+
+int Box::SendBox(int recvrank, Parallel::Comm const& commIn) {
+  commIn.Send( &btype_,      1, MPI_INT,    recvrank, 1800 );
+  commIn.Send( box_,         6, MPI_DOUBLE, recvrank, 1801 );
+  unitCell_.SendMatrix(recvrank, commIn);
+  fracCell_.SendMatrix(recvrank, commIn);
+  commIn.Send( &cellVolume_, 1, MPI_DOUBLE, recvrank, 1802 );
+  return 0;
+}
+
+int Box::RecvBox(int sendrank, Parallel::Comm const& commIn) {
+  commIn.Recv( &btype_,      1, MPI_INT,    sendrank, 1800 );
+  commIn.Recv( box_,         6, MPI_DOUBLE, sendrank, 1801 );
+  unitCell_.RecvMatrix(sendrank, commIn);
+  fracCell_.RecvMatrix(sendrank, commIn);
+  commIn.Recv( &cellVolume_, 1, MPI_DOUBLE, sendrank, 1802 );
+  return 0;
+}
 #endif
 
 // -----------------------------------------------------------------------------
