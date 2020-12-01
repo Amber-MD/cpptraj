@@ -508,6 +508,25 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 }
 
+/** Assign from symmetric shape matrix. */
+void Box::AssignFromShapeMatrix(const double* shape) {
+  unitCell_[0] = shape[0];
+  unitCell_[1] = shape[1];
+  unitCell_[2] = shape[3];
+
+  unitCell_[3] = shape[1];
+  unitCell_[4] = shape[2];
+  unitCell_[5] = shape[4];
+
+  unitCell_[6] = shape[3];
+  unitCell_[7] = shape[4];
+  unitCell_[8] = shape[5];
+
+  CalcXyzAbgFromShape(box_, shape);
+
+  cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+}
+
 // -----------------------------------------------------------------------------
 /** Set 'shape' with values for symmetric shape matrix from XYZ ABG array. */
 void Box::GetSymmetricShapeMatrix(double* shape) const {
@@ -652,4 +671,3 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
 
   return volume;*/
 }
-
