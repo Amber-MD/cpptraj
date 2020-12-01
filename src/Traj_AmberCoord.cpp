@@ -117,11 +117,13 @@ int Traj_AmberCoord::readFrame(int set, Frame& frameIn) {
   if (numBoxCoords_ != 0) {
     double xyzabg[6];
     file_.BufferToDouble(xyzabg, numBoxCoords_);
-    // NOTE: If box was properly set up no need to do angles
-    // TODO remove boxAngle?
-    /*// Set box angles to parmtop default if not read in
-    if (numBoxCoords_==3)
-      frameIn.SetBoxAngles( boxAngle_ );*/
+    // Set box angles to parmtop default if not read in
+    if (numBoxCoords_==3) {
+      //frameIn.SetBoxAngles( boxAngle_ );
+      xyzabg[Box::ALPHA] = boxAngle_[0];
+      xyzabg[Box::BETA]  = boxAngle_[1];
+      xyzabg[Box::GAMMA] = boxAngle_[2];
+    }
     frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
   }
   return 0;
