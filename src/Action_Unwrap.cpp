@@ -90,7 +90,7 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
     }
   }
   // Check box type
-  if (setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Error: unwrap: Parm %s does not contain box information.\n",
             setup.Top().c_str());
     return Action::ERR;

@@ -198,7 +198,7 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
 Action::RetType Action_Vector::Setup(ActionSetup& setup) {
   if (needBoxInfo_) {
     // Check for box info
-    if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+    if (!setup.CoordInfo().TrajBox().HasBox()) {
       mprinterr("Error: vector box: No box information.\n",
                 setup.Top().c_str());
       return Action::ERR;

@@ -361,7 +361,7 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
 # endif
   // Pair list setup requires a box. Will need to create one if not present.
   Box box = frameIn.BoxCrd();
-  if (box.Type() == Box::NOBOX)
+  if (!box.HasBox())
    box = CreateBoundingBox(frameIn); 
   box.PrintInfo();
 
