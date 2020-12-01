@@ -425,75 +425,6 @@ int Traj_CharmmDcd::readDcdHeader() {
   return 0;
 }
 
-/** Convert unit cell parameters (X, Y, Z, a, b, g) to symmetric shape matrix
-  * (S11, S12, S22, S13, S23, S33).
-  */
-static inline void UcellToShape(double* shape, const double* box)
-{
-  // Calculate metric tensor HtH:
-  //   HtH(i,j) = vi * vj
-  // where vx are basis vectors i and j. Given that v0 is a, v1 is b, v2 is c:
-  //       a^2 a*b a*c
-  // HtH = b*a b^2 b*c
-  //       c*a c*b c^2
-  Matrix_3x3 HtH;
-
-  HtH[0] = box[0] * box[0];
-  HtH[4] = box[1] * box[1];
-  HtH[8] = box[2] * box[2];
-
-  // Angles near 90 have elements set to 0.0.
-  // XY (gamma)
-  if (fabs(box[5] - 90.0) > Constants::SMALL)
-    HtH[3] = box[0]*box[1]*cos(Constants::DEGRAD*box[5]);
-  else
-    HtH[3] = 0.0;
-  HtH[1] = HtH[3];
-  // XZ (beta)
-  if (fabs(box[4] - 90.0) > Constants::SMALL)
-    HtH[6] = box[0]*box[2]*cos(Constants::DEGRAD*box[4]);
-  else
-    HtH[6] = 0.0;
-  HtH[2] = HtH[6];
-  // YZ (alpha)
-  if (fabs(box[3] - 90.0) > Constants::SMALL)
-    HtH[7] = box[1]*box[2]*cos(Constants::DEGRAD*box[3]);
-  else
-    HtH[7] = 0.0;
-  HtH[5] = HtH[7];
-
-  // Diagonalize HtH
-  //HtH.Print("HtH"); // DEBUG
-  Vec3 Evals;
-  if (HtH.Diagonalize( Evals )) {
-    mprinterr("Error: Could not diagonalize metric tensor.\n");
-    for (int i=0; i<6; i++) shape[i] = 0.0;
-    return;
-  }
-
-  if (Evals[0] < Constants::SMALL ||
-      Evals[1] < Constants::SMALL ||
-      Evals[2] < Constants::SMALL)
-  {
-    mprinterr("Error: Obtained negative eigenvalues when attempting to"
-              " diagonalize metric tensor.\n");
-    return;
-  }
-  //Evals.Print("Cvals"); // DEBUG
-  //HtH.Print("Cpptraj"); // DEBUG
-
-  double A = sqrt( Evals[0] );
-  double B = sqrt( Evals[1] );
-  double C = sqrt( Evals[2] );
-
-  shape[0] = A*HtH[0]*HtH[0] + B*HtH[1]*HtH[1] + C*HtH[2]*HtH[2];
-  shape[2] = A*HtH[3]*HtH[3] + B*HtH[4]*HtH[4] + C*HtH[5]*HtH[5];
-  shape[5] = A*HtH[6]*HtH[6] + B*HtH[7]*HtH[7] + C*HtH[8]*HtH[8];
-  shape[1] = A*HtH[0]*HtH[3] + B*HtH[1]*HtH[4] + C*HtH[2]*HtH[5];
-  shape[3] = A*HtH[0]*HtH[6] + B*HtH[1]*HtH[7] + C*HtH[2]*HtH[8];
-  shape[4] = A*HtH[3]*HtH[6] + B*HtH[4]*HtH[7] + C*HtH[5]*HtH[8];
-}
-
 /** Convert 'cos( angle in radians)' back to degrees. Trap 0 (90 degrees)
   * for numerical stability.
   */
@@ -511,7 +442,7 @@ int Traj_CharmmDcd::ReadBox(Box& boxOut) {
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
   if (charmmCellType_ == SHAPE) {
-    boxOut.SetUcellFromShapeMatrix( boxtmp );
+    boxOut.SetupFromShapeMatrix( boxtmp );
     //Box::ShapeToUcell(box, boxtmp);
 /*
     mprintf("\nDEBUG: Original matrix: %g %g %g %g %g %g\n",
@@ -551,6 +482,7 @@ int Traj_CharmmDcd::ReadBox(Box& boxOut) {
       box[4] = boxtmp[3];
       box[5] = boxtmp[1];
     }
+    boxOut.SetupFromXyzAbg( box );
   }
   return 0;
 }
@@ -596,7 +528,7 @@ int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
   seekToFrame( set );
   // Load box info
   if (boxBytes_ != 0) {
-    if (ReadBox( frameIn.SetBox() )) return 1;
+    if (ReadBox( frameIn.ModifyBox() )) return 1;
   }
   return readXYZ(frameIn.xAddress());
 }
@@ -606,7 +538,7 @@ int Traj_CharmmDcd::readVelocity(int set, Frame& frameIn) {
   seekToFrame( set );
   // Load box info
   if (boxBytes_ != 0) {
-    if (ReadBox( frameIn.SetBox() )) return 1;
+    if (ReadBox( frameIn.ModifyBox() )) return 1;
   }
   return readXYZ(frameIn.vAddress());
 }
@@ -769,19 +701,19 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
   if (boxBytes_ != 0) {
     double boxtmp[6];
     if (charmmCellType_ == SHAPE)
-      UcellToShape( boxtmp, frameOut.BoxCrd().boxPtr() );
+      frameOut.BoxCrd().GetSymmetricShapeMatrix( boxtmp );
     else {
       /* The format for the 'box' array used in cpptraj is not the same as the
        * one used for NAMD/CHARMM dcd files.  Refer to the reading routine above
        * for a description of the box info.
        */
-      boxtmp[0] = frameOut.BoxCrd().BoxX();
-      boxtmp[2] = frameOut.BoxCrd().BoxY();
-      boxtmp[5] = frameOut.BoxCrd().BoxZ();
+      boxtmp[0] = frameOut.BoxCrd().Param(Box::X);
+      boxtmp[2] = frameOut.BoxCrd().Param(Box::Y);
+      boxtmp[5] = frameOut.BoxCrd().Param(Box::Z);
       // The angles must be reported in cos(angle) format
-      boxtmp[1] = cos(frameOut.BoxCrd().Gamma() * Constants::DEGRAD);
-      boxtmp[3] = cos(frameOut.BoxCrd().Beta()  * Constants::DEGRAD);
-      boxtmp[4] = cos(frameOut.BoxCrd().Alpha() * Constants::DEGRAD);
+      boxtmp[1] = cos(frameOut.BoxCrd().Param(Box::GAMMA) * Constants::DEGRAD);
+      boxtmp[3] = cos(frameOut.BoxCrd().Param(Box::BETA ) * Constants::DEGRAD);
+      boxtmp[4] = cos(frameOut.BoxCrd().Param(Box::ALPHA) * Constants::DEGRAD);
     }
     WriteBlock(48);
     file_.Write(boxtmp, sizeof(double)*6);
