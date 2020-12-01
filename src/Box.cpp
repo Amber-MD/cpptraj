@@ -31,7 +31,7 @@ Box::Box(Matrix_3x3 const& ucell) {
   SetupFromUcell( ucell.Dptr() );
 }
 
-// COPY CONSTRUCTOR
+/** COPY CONSTRUCTOR */
 Box::Box(const Box& rhs) :
   btype_(rhs.btype_),
   unitCell_(rhs.unitCell_),
@@ -46,7 +46,7 @@ Box::Box(const Box& rhs) :
   box_[5] = rhs.box_[5];
 }
 
-// Assignment
+/** Assignment */
 Box& Box::operator=(const Box& rhs) {
   if (&rhs == this) return *this;
   //debug_ = rhs.debug_;
@@ -133,26 +133,27 @@ bool Box::BadTruncOctAngle(double angle) {
   return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
 }
 
-bool Box::IsAngle(double angle, double tgt) {
+/// \return True if 'angle' is approximately equal to 'tgt'
+bool Box::IsEq(double angle, double tgt) {
   return (fabs(tgt - angle) < Constants::SMALL);
 }
 
 /** \return True if cell is aligned along "normal" (i.e. XYZ ABG) reference. */
 bool Box::IsNormal() const {
-  if (unitCell_[1] > 0.0) return false;
-  if (unitCell_[2] > 0.0) return false;
-  if (unitCell_[5] > 0.0) return false;
+  if (fabs(unitCell_[1]) > 0.0) return false;
+  if (fabs(unitCell_[2]) > 0.0) return false;
+  if (fabs(unitCell_[5]) > 0.0) return false;
   return true;
 }
 
 /** \return True if cell is aligned along "normal" and is orthogonal. */
 bool Box::IsOrthoNormal() const {
-  if (unitCell_[7] > 0.0) return false;
-  if (unitCell_[6] > 0.0) return false;
-  if (unitCell_[5] > 0.0) return false;
-  if (unitCell_[3] > 0.0) return false;
-  if (unitCell_[2] > 0.0) return false;
-  if (unitCell_[1] > 0.0) return false;
+  if (fabs(unitCell_[7]) > 0.0) return false;
+  if (fabs(unitCell_[6]) > 0.0) return false;
+  if (fabs(unitCell_[5]) > 0.0) return false;
+  if (fabs(unitCell_[3]) > 0.0) return false;
+  if (fabs(unitCell_[2]) > 0.0) return false;
+  if (fabs(unitCell_[1]) > 0.0) return false;
   return true;
 }
 
@@ -180,12 +181,13 @@ void Box::SetBoxType() {
   else if ( IsTruncOct( box_[3] ) && IsTruncOct( box_[4] ) && IsTruncOct( box_[5] ) )
     // All 109.47, truncated octahedron
     btype_ = TRUNCOCT;
-  else if ( IsAngle(box_[3],60.0) && IsAngle(box_[4],90.0) && IsAngle(box_[5],60.0) )
+  else if ( IsEq(box_[3],60.0) && IsEq(box_[4],90.0) && IsEq(box_[5],60.0) )
     // 60/90/60, rhombic dodecahedron
     btype_ = RHOMBIC;
   else
     btype_ = NONORTHO;
   //if (debug_>0) mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
+
   if (btype_ == TRUNCOCT) {
     // Check for low-precision truncated octahedron angles.
     if ( BadTruncOctAngle(box_[3]) || BadTruncOctAngle(box_[4]) || BadTruncOctAngle(box_[5]) )
@@ -208,6 +210,37 @@ void Box::SetBoxType() {
               "Warning:  Images and imaged distances may not be the absolute minimum.\n");
     }
   }
+}
+
+// Box::SetNoBox()
+/** Remove all box information. */
+void Box::SetNoBox() {
+  box_[0] = 0;
+  box_[1] = 0;
+  box_[2] = 0;
+  box_[3] = 0;
+  box_[4] = 0;
+  box_[5] = 0;
+  btype_ = NOBOX;
+  unitCell_.Zero();
+  fracCell_.Zero();
+  cellVolume_ = 0;
+}
+
+//  Box::RecipLengths()
+/** \return Vector containing reciprocal lengths from given fractional cell matrix.
+  * Used primarily by the Ewald and PairList routines.
+  */
+Vec3 Box::RecipLengths(Matrix_3x3 const& recip) {
+  return Vec3( 1.0/sqrt(recip[0]*recip[0] + recip[1]*recip[1] + recip[2]*recip[2]),
+               1.0/sqrt(recip[3]*recip[3] + recip[4]*recip[4] + recip[5]*recip[5]),
+               1.0/sqrt(recip[6]*recip[6] + recip[7]*recip[7] + recip[8]*recip[8]) );
+}
+
+/** Print box info to STDOUT. */
+void Box::PrintInfo() const {
+  mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
+          BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
 }
 
 // -----------------------------------------------------------------------------
@@ -401,6 +434,7 @@ void CalcShapeFromXyzAbg(double* shape, const double* box)
 
 // -----------------------------------------------------------------------------
 // Setup routines
+
 /** Set unit cell, fractional cell, and XYZ ABG array from shape matrix. */
 void Box::SetupFromShapeMatrix(const double* shape) {
   unitCell_[0] = shape[0];
@@ -451,6 +485,8 @@ void Box::SetupFromXyzAbg(const double* xyzabg) {
 
 // -----------------------------------------------------------------------------
 // Assign routines
+
+/** Assign from XYZ ABG array. */
 void Box::AssignFromXyzAbg(const double* xyzabg) {
   // Sanity check
   if (btype_ == NOBOX) {
@@ -467,6 +503,7 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
 }
 
 // -----------------------------------------------------------------------------
+/** Set 'shape' with values for symmetric shape matrix from XYZ ABG array. */
 void Box::GetSymmetricShapeMatrix(double* shape) const {
   CalcShapeFromXyzAbg(shape, box_);
 }
@@ -542,21 +579,6 @@ void Box::SetTruncOct() {
   mprintf("Info: Setting box to be perfect truncated octahedron (a=b=g=%g)\n", box_[3]);
 }*/
 
-// Box::SetNoBox()
-/** Remove all box information. */
-void Box::SetNoBox() {
-  box_[0] = 0;
-  box_[1] = 0;
-  box_[2] = 0;
-  box_[3] = 0;
-  box_[4] = 0;
-  box_[5] = 0;
-  btype_ = NOBOX;
-  unitCell_.Zero();
-  fracCell_.Zero();
-  cellVolume_ = 0;
-}
-
 // Box::SetMissingInfo()
 /** Set this box info from rhs if <= 0. */
 /*
@@ -625,17 +647,3 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   return volume;*/
 }
 
-//  Box::RecipLengths()
-/** \return Vector containing reciprocal lengths from given fractional cell matrix.
-  * Used primarily by the Ewald and PairList routines.
-  */
-Vec3 Box::RecipLengths(Matrix_3x3 const& recip) {
-  return Vec3( 1.0/sqrt(recip[0]*recip[0] + recip[1]*recip[1] + recip[2]*recip[2]),
-               1.0/sqrt(recip[3]*recip[3] + recip[4]*recip[4] + recip[5]*recip[5]),
-               1.0/sqrt(recip[6]*recip[6] + recip[7]*recip[7] + recip[8]*recip[8]) );
-}
-
-void Box::PrintInfo() const {
-  mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
-          BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
-}

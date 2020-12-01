@@ -101,7 +101,7 @@ class Box {
     static const char* BoxNames_[];
 
     static inline bool BadTruncOctAngle(double);
-    static inline bool IsAngle(double,double);
+    static inline bool IsEq(double,double);
 
     void SetBoxType();
 
