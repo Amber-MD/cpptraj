@@ -69,6 +69,10 @@ class Box {
     Matrix_3x3 const& FracCell() const { return fracCell_; }
     /// \return the cell volume
     double CellVolume()          const { return cellVolume_; }
+    /// \return True if aligned along "normal" xyz abg reference.
+    bool IsNormal() const;
+    /// \return True if aligned along "normal" and cell is orthogonal.
+    bool IsOrthoNormal() const;
     /// \return true if the given angle is suitable for a truncated octahedron
     static bool IsTruncOct(double);
     // TODO should this be in Constants?

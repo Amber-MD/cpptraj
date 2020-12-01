@@ -137,6 +137,25 @@ bool Box::IsAngle(double angle, double tgt) {
   return (fabs(tgt - angle) < Constants::SMALL);
 }
 
+/** \return True if cell is aligned along "normal" (i.e. XYZ ABG) reference. */
+bool Box::IsNormal() const {
+  if (unitCell_[1] > 0.0) return false;
+  if (unitCell_[2] > 0.0) return false;
+  if (unitCell_[5] > 0.0) return false;
+  return true;
+}
+
+/** \return True if cell is aligned along "normal" and is orthogonal. */
+bool Box::IsOrthoNormal() const {
+  if (unitCell_[7] > 0.0) return false;
+  if (unitCell_[6] > 0.0) return false;
+  if (unitCell_[5] > 0.0) return false;
+  if (unitCell_[3] > 0.0) return false;
+  if (unitCell_[2] > 0.0) return false;
+  if (unitCell_[1] > 0.0) return false;
+  return true;
+}
+
 // Box::SetBoxType()
 /** Determine box type (none/ortho/nonortho) based on box angles. */
 void Box::SetBoxType() {
