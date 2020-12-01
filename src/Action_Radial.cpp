@@ -394,7 +394,7 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   }
 
   // Check volume information
-  if (useVolume_ && setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+  if (useVolume_ && !setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: 'volume' specified but no box information for %s, skipping.\n",
             setup.Top().c_str());
     return Action::SKIP;

@@ -267,7 +267,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   // We need box info
   Box const& currentBox = setup.CoordInfo().TrajBox();
-  if (currentBox.Type() == Box::NOBOX) {
+  if (!currentBox.HasBox()) {
     mprinterr("Error: SPAM: Must have explicit solvent with periodic boundaries!\n");
     return Action::ERR;
   }
