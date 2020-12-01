@@ -466,6 +466,11 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 }
 
+// -----------------------------------------------------------------------------
+void Box::GetSymmetricShapeMatrix(double* shape) const {
+  CalcShapeFromXyzAbg(shape, box_);
+}
+
 /*
 // Box::SetBetaLengths()
 void Box::SetBetaLengths(double beta, double xin, double yin, double zin) {

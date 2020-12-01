@@ -35,6 +35,7 @@ class Box {
 
     void AssignFromXyzAbg(const double*);
 
+    void GetSymmetricShapeMatrix(double*) const;
     //void SetBetaLengths(double,double,double,double);
     //void SetBox(const double*);
     //void SetBox(const float*);
