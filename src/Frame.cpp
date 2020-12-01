@@ -1445,7 +1445,7 @@ int Frame::SendFrame(int recvrank, Parallel::Comm const& commIn) {
     commIn.Send( V_,              ncoord_, MPI_DOUBLE, recvrank, 1215 );
   if (F_ != 0)
     commIn.Send( F_,              ncoord_, MPI_DOUBLE, recvrank, 1218 );
-  commIn.Send( box_.boxPtr(),     6,       MPI_DOUBLE, recvrank, 1213 );
+  box_.SendBox(recvrank, commIn);
   commIn.Send( &T_,               1,       MPI_DOUBLE, recvrank, 1214 );
   commIn.Send( &pH_,              1,       MPI_DOUBLE, recvrank, 1219 );
   commIn.Send( &redox_,           1,       MPI_DOUBLE, recvrank, 1220 );
@@ -1465,7 +1465,7 @@ int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
     commIn.Recv( V_,              ncoord_, MPI_DOUBLE, sendrank, 1215 );
   if (F_ != 0)
     commIn.Recv( F_,              ncoord_, MPI_DOUBLE, sendrank, 1218 );
-  commIn.Recv( box_.boxPtr(),     6,       MPI_DOUBLE, sendrank, 1213 );
+  box_.RecvBox(sendrank, commIn);
   commIn.Recv( &T_,               1,       MPI_DOUBLE, sendrank, 1214 );
   commIn.Recv( &pH_,              1,       MPI_DOUBLE, sendrank, 1219 );
   commIn.Recv( &redox_,           1,       MPI_DOUBLE, sendrank, 1220 );
