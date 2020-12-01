@@ -26,6 +26,11 @@ class CompactFrameArray {
     /// \return Const interator to beginning of specified frame
     const_iterator frameBegin(unsigned int idx) const { return compactFrames_.begin() + (idx * offsets_.back()); }
 
+    /// \return Pointer to beginning of specified frame
+    float* FramePtr(unsigned int idx) { return (&compactFrames_[0]) + (idx * offsets_.back()); }
+    /// \return Const pointer to beginning of specified frame
+    const float* FramePtr(unsigned int idx) const { return (&compactFrames_[0]) + (idx * offsets_.back()); }
+
     /// \return Frame size in bytes based on coordinate info and # atoms
     static unsigned int EstimateFrameSizeInBytes(CoordinateInfo const&, unsigned int);
 

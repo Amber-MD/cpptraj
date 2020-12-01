@@ -140,16 +140,18 @@ int DataSet_Coords_CRD::Sync(size_t total, std::vector<int> const& rank_frames,
   if (commIn.Size()==1) return 0;
   if (commIn.Master()) {
     // Resize for total number of frames.
-    coords_.resize( total, std::vector<float>( numCrd_+numBoxCrd_ ) );
-    int cidx = rank_frames[0]; // Index on master
+    frames_.Resize( total );
+    int cidx = rank_frames[0]; // Frame Index on master
     // Receive data from each rank
     for (int rank = 1; rank < commIn.Size(); rank++) {
-      for (int ridx = 0; ridx != rank_frames[rank]; ridx++, cidx++)
-        commIn.SendMaster( &(coords_[cidx][0]), numCrd_+numBoxCrd_, rank, MPI_FLOAT );
+      commIn.SendMaster( frames_.FramePtr(cidx), rank_frames[rank]*frames_.FrameSize(),
+                         rank, MPI_FLOAT );
+      cidx += rank_frames[rank];
     }
-  } else // Send data to master
-    for (unsigned int ridx = 0; ridx != coords_.size(); ++ridx)
-      commIn.SendMaster( &(coords_[ridx][0]), numCrd_+numBoxCrd_, commIn.Rank(), MPI_FLOAT );
+  } else {// Send data to master
+    commIn.SendMaster( frames_.FramePtr(0), rank_frames[commIn.Rank()], 
+                       commIn.Rank(), MPI_FLOAT );
+  }
   return 0;
 }
 #endif
