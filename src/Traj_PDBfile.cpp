@@ -726,7 +726,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     if ( file_.OpenFile() ) return 1;
     if (!Title().empty()) file_.WriteTITLE( Title() );
   }
-  write_cryst1_ = (CoordInfo().TrajBox().Type() != Box::NOBOX);
+  write_cryst1_ = (CoordInfo().TrajBox().HasBox());
   if (write_cryst1_) {
     if (pdbWriteMode_==MODEL)
       mprintf("Warning: For PDB with MODEL, box coords for first frame only will be written to CRYST1.\n");

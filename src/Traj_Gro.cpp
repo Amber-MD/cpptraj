@@ -156,7 +156,7 @@ int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   // are more frames.
   bool hasMultipleFrames = false;
   if (ptr != 0) {
-    if (groBox.Type() == Box::NOBOX) // Assume another title read.
+    if (!groBox.HasBox()) // Assume another title read.
       hasMultipleFrames = true;
     else {
       ptr = file_.Line(); // Read line after box info
@@ -166,7 +166,7 @@ int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   }
   // Set up some info for performing blank reads.
   linesToRead_ = natom_;
-  if (groBox.Type() != Box::NOBOX)
+  if (groBox.HasBox())
     linesToRead_ += 1;
   int nframes = 1;
   if (hasMultipleFrames) {
