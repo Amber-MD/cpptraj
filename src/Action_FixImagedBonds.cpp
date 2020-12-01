@@ -25,7 +25,7 @@ Action::RetType Action_FixImagedBonds::Init(ArgList& actionArgs, ActionInit& ini
 Action::RetType Action_FixImagedBonds::Setup(ActionSetup& setup)
 {
   // Need box info
-  if (setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: Topology '%s' does not contain box information; required for imaging.\n",
             setup.Top().c_str());
     return Action::SKIP;

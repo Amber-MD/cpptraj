@@ -61,6 +61,7 @@ class Box {
     BoxType Type()            const { return btype_;  }
     /// \return Specified XYZ ABG parameter
     double Param(ParamType p) const { return box_[p]; }
+    /// \return True if box info present
     bool HasBox()             const { return (btype_ != NOBOX); }
     Vec3 Center()             const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
     Vec3 Lengths()            const { return Vec3(box_[0], box_[1], box_[2]);             }

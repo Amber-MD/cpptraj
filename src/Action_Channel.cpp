@@ -52,7 +52,7 @@ Action::RetType Action_Channel::Setup(ActionSetup& setup) {
   if (grid_->Size() == 0) {
     DataSet_3D& GRID = static_cast<DataSet_3D&>( *grid_ );
     Box const& box = setup.CoordInfo().TrajBox();
-    if (box.Type() == Box::NOBOX) {
+    if (!box.HasBox()) {
       mprinterr("Error: No box information to set up grid.\n");
       return Action::ERR;
     } else if (box.Type() == Box::ORTHO) {

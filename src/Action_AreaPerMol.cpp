@@ -58,7 +58,7 @@ Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, ActionInit& init, i
   */
 Action::RetType Action_AreaPerMol::Setup(ActionSetup& setup) {
   // Needs box info
-  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: No box information for '%s', cannot calculate area.\n",
             setup.Top().c_str());
     return Action::SKIP;
