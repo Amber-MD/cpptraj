@@ -2,6 +2,7 @@
 #define INC_STRUCTURECHECK_H
 #include "PairList.h"
 #include "ImagedAction.h"
+#include "ExclusionArray.h"
 /// Used to count potential structure problems.
 class StructureCheck {
   public:
@@ -85,6 +86,7 @@ class StructureCheck {
     Parray problemAtoms_;
 
     PairList pairList_;     ///< Atom pair list
+    ExclusionArray Excluded_; ///< Hold excluded atoms for pair list.
     ImagedAction image_;    ///< Hold imaging routines and info.
     Parray bondList_;       ///< Array of bonds to check.
     AtomMask Mask1_;        ///< Mask of atoms to check.

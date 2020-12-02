@@ -24,7 +24,9 @@ class ExclusionArray {
     const_iterator end()   const { return Excluded_.end();   }
 
     /// Exclusion list iterator
-    typedef ExListType::const_iterator ExListIt;
+    //typedef ExListType::const_iterator ExListIt;
+    /// \return Exclusion list for atom with given index.
+    ExListType const& operator[](int idx) const { return Excluded_[idx]; }
 
     /// Set up exclusion list
     int SetupExcluded(std::vector<Atom> const&, AtomMask const&);

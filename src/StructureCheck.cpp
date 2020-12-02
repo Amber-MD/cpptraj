@@ -117,10 +117,21 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   }
   // Check if pairlist should be used.
   if (image_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
-    if (pairList_.InitPairList( plcut_, 0.1, debug_ )) return 1;
-    if (pairList_.SetupPairList( boxIn )) return 1;
     mprintf("\tUsing pair list.\n");
+    if (pairList_.InitPairList( plcut_, 0.1, debug_ )) {
+      mprinterr("Error: StructureCheck: Could not init pair list.\n");
+      return 1;
+    }
+    if (pairList_.SetupPairList( boxIn )) {
+      mprinterr("Error: StructureCheck: Could not setup pair list.\n");
+      return 1;
+    }
     checkType_ = PL_1_MASK;
+    // Set up atom exclusion list for pair list
+    if (Excluded_.SetupExcluded(topIn.Atoms(), Mask1_)) {
+      mprinterr("Error: StructureCheck: Could not set up excluded atoms list.\n");
+      return 1;
+    }
   }
   // Sort bond list
   if (bondcheck_) std::sort(bondList_.begin(), bondList_.end());
@@ -219,37 +230,17 @@ int StructureCheck::PL1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const
                                               it0 != thisCell.end(); ++it0)
       {
         Vec3 const& xyz0 = it0->ImageCoords();
+        // Exclusion list for this atom
+        ExclusionArray::ExListType const& excluded = Excluded_[it0->Idx()];
         // Calc interaction of atom to all other atoms in thisCell.
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
-          Vec3 const& xyz1 = it1->ImageCoords();
-          Vec3 dxyz = xyz1 - xyz0;
-          double D2 = dxyz.Magnitude2();
-          if (D2 < nonbondcut2_) {
-            ++Nproblems;
-            if (saveProblems_) {
-#             ifdef _OPENMP
-              thread_problemAtoms_[mythread]
-#             else
-              problemAtoms_
-#             endif
-                .push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
-            }
-          }
-        } // END loop over all other atoms in thisCell
-        // Loop over all neighbor cells
-        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
-        {
-          PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
-          // Translate vector for neighbor cell
-          Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
-          // Loop over every atom in nbrCell
-          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
-                                                  it1 != nbrCell.end(); ++it1)
+          // If atom not excluded, calculate distance
+          if (excluded.find(it1->Idx()) == excluded.end())
           {
             Vec3 const& xyz1 = it1->ImageCoords();
-            Vec3 dxyz = xyz1 + tVec - xyz0;
+            Vec3 dxyz = xyz1 - xyz0;
             double D2 = dxyz.Magnitude2();
             if (D2 < nonbondcut2_) {
               ++Nproblems;
@@ -262,6 +253,36 @@ int StructureCheck::PL1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const
                   .push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
               }
             }
+          } // END atom not excluded
+        } // END loop over all other atoms in thisCell
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
+          // Loop over every atom in nbrCell
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
+          {
+            // If atom not excluded, calculate distance
+            if (excluded.find(it1->Idx()) == excluded.end())
+            {
+              Vec3 const& xyz1 = it1->ImageCoords();
+              Vec3 dxyz = xyz1 + tVec - xyz0;
+              double D2 = dxyz.Magnitude2();
+              if (D2 < nonbondcut2_) {
+                ++Nproblems;
+                if (saveProblems_) {
+#                 ifdef _OPENMP
+                  thread_problemAtoms_[mythread]
+#                 else
+                  problemAtoms_
+#                 endif
+                    .push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
+                }
+              }
+            } // END atom not excluded
           } // END loop over atoms in neighbor cell
         } // END loop over neighbor cells
       } // END loop over atoms in thisCell
