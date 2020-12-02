@@ -131,7 +131,11 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
       return 1;
     }
     checkType_ = PL_1_MASK;
-    // Set up atom exclusion list for pair list. Distance of 2 since we are not
+
+  }
+  // Set up exclusion list
+  if (checkType_ == PL_1_MASK || checkType_ == NO_PL_1_MASK) {
+    // Set up atom exclusion list. Distance of 2 since we are not
     // yet checking angles and dihedrals.
     if (Excluded_.SetupExcluded(topIn.Atoms(), Mask1_, 2)) {
       mprinterr("Error: StructureCheck: Could not set up excluded atoms list.\n");
@@ -371,21 +375,31 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
 # endif
   for (nmask1 = 0; nmask1 < mask1_max; nmask1++) {
     int atom1 = Mask1_[nmask1];
+    ExclusionArray::ExListType::const_iterator ex = Excluded_[nmask1].begin();
     for (int nmask2 = nmask1 + 1; nmask2 < mask1_max; nmask2++) {
       int atom2 = Mask1_[nmask2];
-      double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                         image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
-      if (D2 < nonbondcut2_) {
-        ++Nproblems;
-        if (saveProblems_) {
-#           ifdef _OPENMP
-            thread_problemAtoms_[mythread]
-#           else
-            problemAtoms_
-#           endif
-              .push_back(Problem(atom1, atom2, sqrt(D2)));
+      // Advance excluded list up to current selected atom
+      while (ex != Excluded_[nmask1].end() && *ex < atom2) ++ex;
+      // If atom not excluded, calculate distance
+      if (ex != Excluded_[nmask1].end() && atom2 == *ex)
+        // Atom 2 is excluded from Atom 1; just increment to next excluded atom
+        ++ex;
+      else
+      {
+        double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
+                           image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
+        if (D2 < nonbondcut2_) {
+          ++Nproblems;
+          if (saveProblems_) {
+#             ifdef _OPENMP
+              thread_problemAtoms_[mythread]
+#             else
+              problemAtoms_
+#             endif
+                .push_back(Problem(atom1, atom2, sqrt(D2)));
+          }
         }
-      }
+      } // END atom not excluded
     } // END inner loop over Mask1
   } // END outer loop over Mask1
 # ifdef _OPENMP
