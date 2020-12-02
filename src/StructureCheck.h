@@ -7,9 +7,9 @@
 class StructureCheck {
   public:
     StructureCheck();
-    /// Options: imageOn, checkBonds, saveProblems, debug, mask1, mask2, ovrlpCut, bndLenOffset, PListCut
+    /// Options: imageOn, checkBonds, saveProblems, debug, mask1, mask2, ovrlpCut, bndLenOffset, minBndLenOffset, PListCut
     int SetOptions(bool, bool, bool, int, std::string const&, std::string const&,
-                   double, double, double);
+                   double, double, double, double);
     /// Setup for given topology and box.
     int Setup(Topology const&, Box const&);
     /// \return Number of abnormal bonds.
@@ -22,6 +22,7 @@ class StructureCheck {
     ImagedAction const& Image() const { return image_; }
     bool CheckBonds()           const { return bondcheck_; }
     double BondOffset()         const { return bondoffset_; }
+    double BondMinOffset()      const { return bondMinOffset_; }
     double NonBondCut2()        const { return nonbondcut2_; }
     double PairListCut()        const { return plcut_; }
     unsigned int Nbonds()       const { return bondList_.size(); }
@@ -93,8 +94,9 @@ class StructureCheck {
     AtomMask Mask2_;        ///< Optional mask of atoms to check against atoms in Mask1
     AtomMask OuterMask_;    ///< Mask with the most atoms.
     AtomMask InnerMask_;    ///< Mask with fewer atoms.
-    double bondoffset_;     ///< Report bonds larger than Req + bondoffset
-    double nonbondcut2_;    ///< Report distance^2 less than nonbondcut2
+    double bondoffset_;     ///< Report bonds larger than Req + bondoffset_
+    double bondMinOffset_;  ///< Report bonds less than Req - bondMinOffset_
+    double nonbondcut2_;    ///< Report distance^2 less than nonbondcut2_
     double plcut_;          ///< Pairlist cutoff
     CheckType checkType_;   ///< Type of atom overlap check
     int debug_;             ///< Debug level.

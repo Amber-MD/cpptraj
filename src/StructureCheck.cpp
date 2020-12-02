@@ -10,6 +10,7 @@
 /// CONSTRUCTOR
 StructureCheck::StructureCheck() :
   bondoffset_(1.15),
+  bondMinOffset_(0.50),
   nonbondcut2_(0.64), // 0.8^2
   // NOTE: Default of 4.0 Ang for cutoff is from trial and error; seems
   //       to give a good balance between speed and grid size.
@@ -23,13 +24,15 @@ StructureCheck::StructureCheck() :
 // StructureCheck::SetOptions()
 int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsIn, int debugIn,
                                std::string const& mask1, std::string const& mask2,
-                               double overlapCut, double bondLengthOffset, double pairListCut)
+                               double overlapCut, double bondLengthOffset, double bondMinOffset,
+                               double pairListCut)
 {
   image_.InitImaging( imageOn );
   bondcheck_ = checkBonds;
   saveProblems_ = saveProblemsIn;
   debug_ = debugIn;
   bondoffset_ = bondLengthOffset;
+  bondMinOffset_ = bondMinOffset;
   nonbondcut2_ = overlapCut * overlapCut; // Save cutoff squared.
   plcut_ = pairListCut;
   if (Mask1_.SetMaskString( mask1 )) return 1;
@@ -64,8 +67,9 @@ void StructureCheck::ProcessBondArray(BondArray const& Bonds, BondParmArray cons
         mprintf("Warning: Bond parameters not present for atoms %i-%i, skipping.\n",
                 bnd->A1()+1, bnd->A2()+1);
       else {
-        double Req_off = Parm[ bnd->Idx() ].Req() + bondoffset_;
-        bondList_.push_back( Problem(bnd->A1(), bnd->A2(), Req_off*Req_off) );
+        double Req_off = Parm[ bnd->Idx() ].Req();// + bondoffset_;
+        //bondList_.push_back( Problem(bnd->A1(), bnd->A2(), Req_off*Req_off) );
+        bondList_.push_back( Problem(bnd->A1(), bnd->A2(), Req_off) );
       }
     }
   }
@@ -127,8 +131,9 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
       return 1;
     }
     checkType_ = PL_1_MASK;
-    // Set up atom exclusion list for pair list
-    if (Excluded_.SetupExcluded(topIn.Atoms(), Mask1_)) {
+    // Set up atom exclusion list for pair list. Distance of 2 since we are not
+    // yet checking angles and dihedrals.
+    if (Excluded_.SetupExcluded(topIn.Atoms(), Mask1_, 2)) {
       mprinterr("Error: StructureCheck: Could not set up excluded atoms list.\n");
       return 1;
     }
@@ -169,7 +174,11 @@ int StructureCheck::CheckBonds(Frame const& currentFrame)
   for (idx = 0; idx < bond_max; idx++) {
     double D2 = DIST2_NoImage( currentFrame.XYZ(bondList_[idx].A1()),
                                currentFrame.XYZ(bondList_[idx].A2()) );
-    if (D2 > bondList_[idx].D()) {
+    double dist = sqrt(D2);
+    //if (D2 > bondList_[idx].D()) {
+    if (dist > (bondList_[idx].D()+bondoffset_) ||
+        dist < (bondList_[idx].D()-bondMinOffset_))
+    {
       ++Nproblems;
       if (saveProblems_) {
 #       ifdef _OPENMP
