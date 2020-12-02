@@ -8,8 +8,54 @@
 /** CONSTRUCTOR */
 ExclusionArray::ExclusionArray() {}
 
+/** Determine the through-bond distance from original atom to this atom; if it is less
+  * than the target distance, mark it as excluded.
+  */
+void ExclusionArray::AtomDistance(std::vector<Atom> const& atoms,
+                                  int originalAtom, int atom, int dist, ExListType& excluded,
+                                  int TgtDist)
+{
+  // If this atom is already too far away return
+  if (dist==TgtDist) return;
+  // dist is less than 4 and this atom greater than original, add exclusion
+  if (atom > originalAtom)
+    excluded.insert( atom ); 
+  // Visit each atom bonded to this atom
+  for (Atom::bond_iterator bondedatom = atoms[atom].bondbegin();
+                           bondedatom != atoms[atom].bondend();
+                           bondedatom++)
+    AtomDistance(atoms, originalAtom, *bondedatom, dist+1, excluded, TgtDist);
+}
+
+/** For each atom, determine which atoms with greater atom# are within
+  * TgtDist bonds (and therefore should be excluded from a non-bonded calc).
+  */
+/*
+void ExclusionArray::DetermineExcludedAtoms(ExListType& excluded_i,
+                                            std::vector<Atom> const& atoms, int atomi,
+                                            int TgtDist)
+{
+  // A set is used since it automatically sorts itself and rejects duplicates.
+  //ExListType excluded_i;
+  //int natom = (int)atoms.size();
+  //for (int atomi = 0; atomi < natom; atomi++) {
+  //  excluded_i.clear();
+    //mprintf("    Determining excluded atoms for atom %i\n",atomi+1);
+    // AtomDistance recursively sets each atom bond distance from atomi
+    AtomDistance(atoms, atomi, atomi, 0, excluded_i, TgtDist);
+    //Excluded_.push_back( excluded_i );
+    // DEBUG
+    //mprintf("\tAtom %i Excluded:",atomi+1);
+    //for (Atom::excluded_iterator ei = atoms_[atomi].excludedbegin(); 
+    //                             ei != atoms_[atomi].excludedend(); ++ei)
+    //  mprintf(" %i",*ei + 1);
+    //mprintf("\n");
+  //} // END loop over atomi
+}*/
+
 /** Set up exclusion array from given list of atoms and atom mask. */
-int ExclusionArray::SetupExcluded(std::vector<Atom> const& atoms, AtomMask const& maskIn)
+int ExclusionArray::SetupExcluded(std::vector<Atom> const& atoms, AtomMask const& maskIn,
+                                  int TgtDist)
 {
   Excluded_.clear();
   Excluded_.resize( maskIn.Nselected() );
@@ -28,9 +74,16 @@ int ExclusionArray::SetupExcluded(std::vector<Atom> const& atoms, AtomMask const
     // Always exclude self
     Excluded_[idx].insert( idx );
     int at = maskIn[idx];
-    for (Atom::excluded_iterator excluded_atom = atoms[at].excludedbegin();
-                                 excluded_atom != atoms[at].excludedend();
-                               ++excluded_atom)
+    // Find excluded atoms for this atom.
+    // Use a separate list so we can exclude via the atom mask.
+    ExListType excluded_i;
+    AtomDistance(atoms, at, at, 0, excluded_i, TgtDist);
+    //for (Atom::excluded_iterator excluded_atom = atoms[at].excludedbegin();
+    //                             excluded_atom != atoms[at].excludedend();
+    //                           ++excluded_atom)
+    for (ExListType::const_iterator excluded_atom = excluded_i.begin();
+                                    excluded_atom != excluded_i.end();
+                                  ++excluded_atom)
     {
       if (Cmask.AtomInCharMask(*excluded_atom))
       {

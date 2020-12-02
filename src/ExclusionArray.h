@@ -28,9 +28,14 @@ class ExclusionArray {
     /// \return Exclusion list for atom with given index.
     ExListType const& operator[](int idx) const { return Excluded_[idx]; }
 
-    /// Set up exclusion list
-    int SetupExcluded(std::vector<Atom> const&, AtomMask const&);
+    /// Set up exclusion list for specified atoms and distance
+    int SetupExcluded(std::vector<Atom> const&, AtomMask const&, int);
   private:
+    /// Determine through-bond distance between atoms
+    static void AtomDistance(std::vector<Atom> const&, int, int, int, ExListType&, int);
+    /// Set up exclusion array for specified atom and distance
+    //static void DetermineExcludedAtoms(ExListType&, std::vector<Atom> const&, int, int);
+
     ExArrayType Excluded_; ///< Hold exclusion list for each atom.
 };
 #endif
