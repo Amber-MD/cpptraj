@@ -81,6 +81,9 @@ class StructureCheck {
     int Mask2_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
     /// Sort problem list; combine results from threads for OpenMP
     void ConsolidateProblems();
+    /// Check for/record non-bonded interaction problem
+    inline void DistanceCheck(Frame const&, int, int, Matrix_3x3 const&, Matrix_3x3 const&,
+                              Parray&, int&) const;
 #   ifdef _OPENMP
     std::vector<Parray> thread_problemAtoms_;
 #   endif

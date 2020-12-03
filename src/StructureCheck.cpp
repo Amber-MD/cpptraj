@@ -359,6 +359,22 @@ int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
   return Nproblems;
 }
 
+/** Check for and record non-bonded clashes. */
+void StructureCheck::DistanceCheck(Frame const& currentFrame, int atom1, int atom2,
+                                   Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
+                                   Parray& problemAtoms, int& Nproblems)
+const
+{
+  double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
+                     image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
+  if (D2 < nonbondcut2_) {
+    ++Nproblems;
+    if (saveProblems_) {
+      problemAtoms.push_back(Problem(atom1, atom2, sqrt(D2)));
+    }
+  }
+}
+
 // StructureCheck::Mask1_CheckOverlap()
 int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const& ucell,
                                        Matrix_3x3 const& recip)
@@ -393,66 +409,27 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
       if (atom2 == *ex)
         ++ex;
       else {
-        double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                           image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
-        if (D2 < nonbondcut2_) {
-          ++Nproblems;
-          if (saveProblems_) {
-#             ifdef _OPENMP
-              thread_problemAtoms_[mythread]
-#             else
-              problemAtoms_
-#             endif
-                .push_back(Problem(atom1, atom2, sqrt(D2)));
-          }
-        }
+        DistanceCheck(currentFrame, atom1, atom2, ucell, recip,
+#                     ifdef _OPENMP
+                      thread_problemAtoms_[mythread],
+#                     else
+                      problemAtoms_,
+#                     endif
+                      Nproblems);
       }
       nmask2++;
     } // End loop over atom1 exclusion list
     // Now, no more interactions to exclude.
     for (; nmask2 < mask1_max; nmask2++) {
       atom2 = Mask1_[nmask2];
-      double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                           image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
-        if (D2 < nonbondcut2_) {
-          ++Nproblems;
-          if (saveProblems_) {
-#             ifdef _OPENMP
-              thread_problemAtoms_[mythread]
-#             else
-              problemAtoms_
-#             endif
-                .push_back(Problem(atom1, atom2, sqrt(D2)));
-          }
-        }
+      DistanceCheck(currentFrame, atom1, atom2, ucell, recip,
+#                   ifdef _OPENMP
+                    thread_problemAtoms_[mythread],
+#                   else
+                    problemAtoms_,
+#                   endif
+                    Nproblems);
     }
-
-/*
-    for (int nmask2 = nmask1 + 1; nmask2 < mask1_max; nmask2++) {
-      int atom2 = Mask1_[nmask2];
-      // Advance excluded list up to current selected atom
-      while (ex != Excluded_[nmask1].end() && *ex < atom2) ++ex;
-      // If atom not excluded, calculate distance
-      if (ex != Excluded_[nmask1].end() && atom2 == *ex)
-        // Atom 2 is excluded from Atom 1; just increment to next excluded atom
-        ++ex;
-      else
-      {
-        double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                           image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
-        if (D2 < nonbondcut2_) {
-          ++Nproblems;
-          if (saveProblems_) {
-#             ifdef _OPENMP
-              thread_problemAtoms_[mythread]
-#             else
-              problemAtoms_
-#             endif
-                .push_back(Problem(atom1, atom2, sqrt(D2)));
-          }
-        }
-      } // END atom not excluded
-    } // END inner loop over Mask1*/
   } // END outer loop over Mask1
 # ifdef _OPENMP
   } // END pragma omp parallel
