@@ -1,6 +1,7 @@
 #include <cmath> // sqrt
 #include <algorithm> // sort
 #include "StructureCheck.h"
+#include "Topology.h"
 #include "CpptrajStdio.h"
 #include "CharMask.h"
 #ifdef _OPENMP

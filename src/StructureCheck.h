@@ -3,6 +3,11 @@
 #include "PairList.h"
 #include "ImagedAction.h"
 #include "ExclusionArray.h"
+#include "AtomMask.h"
+#include "ParameterTypes.h"
+// Forward declares
+class Topology;
+class CharMask;
 /// Used to count potential structure problems.
 class StructureCheck {
   public:

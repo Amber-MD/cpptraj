@@ -2,6 +2,7 @@
 #define INC_PAIRLIST_H
 #include "Timer.h"
 #include "Box.h" // BoxType
+#include <vector>
 class Frame;
 class AtomMask;
 /// Class for creating a lists of potential pairing atoms via spatial grid.

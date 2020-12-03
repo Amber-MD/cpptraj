@@ -4,6 +4,8 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "StringRoutines.h" // ByteString
+#include "AtomMask.h"
+#include "Frame.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
