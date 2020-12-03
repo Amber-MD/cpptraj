@@ -120,6 +120,8 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
     checkType_ = NO_PL_2_MASKS;
   }
   // Check if pairlist should be used.
+  ExclusionArray::SelfOpt ex_self_opt = ExclusionArray::NO_EXCLUDE_SELF;
+  ExclusionArray::ListOpt ex_list_opt = ExclusionArray::ONLY_GREATER_IDX;
   if (image_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
     mprintf("\tUsing pair list.\n");
     if (pairList_.InitPairList( plcut_, 0.1, debug_ )) {
@@ -131,13 +133,14 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
       return 1;
     }
     checkType_ = PL_1_MASK;
-
+    ex_self_opt = ExclusionArray::EXCLUDE_SELF;
+    ex_list_opt = ExclusionArray::FULL;
   }
   // Set up exclusion list
   if (checkType_ == PL_1_MASK || checkType_ == NO_PL_1_MASK) {
     // Set up atom exclusion list. Distance of 2 since we are not
     // yet checking angles and dihedrals.
-    if (Excluded_.SetupExcluded(topIn.Atoms(), Mask1_, 2)) {
+    if (Excluded_.SetupExcluded(topIn.Atoms(), Mask1_, 2, ex_self_opt, ex_list_opt)) {
       mprinterr("Error: StructureCheck: Could not set up excluded atoms list.\n");
       return 1;
     }

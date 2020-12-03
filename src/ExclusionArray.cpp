@@ -55,8 +55,13 @@ void ExclusionArray::DetermineExcludedAtoms(ExListType& excluded_i,
 
 /** Set up exclusion array from given list of atoms and atom mask. */
 int ExclusionArray::SetupExcluded(std::vector<Atom> const& atoms, AtomMask const& maskIn,
-                                  int TgtDist)
+                                  int TgtDist, SelfOpt selfOpt, ListOpt listOpt)
 {
+  bool exclude_self;
+  if (selfOpt == EXCLUDE_SELF)
+    exclude_self = true;
+  else // NO_EXCLUDE_SELF
+    exclude_self = false;
   Excluded_.clear();
   Excluded_.resize( maskIn.Nselected() );
   // Create a character mask so we can see if atoms in excluded lists are
@@ -71,8 +76,8 @@ int ExclusionArray::SetupExcluded(std::vector<Atom> const& atoms, AtomMask const
   // Loop over selected atoms
   for (int idx = 0; idx != maskIn.Nselected(); idx++)
   {
-    // Always exclude self
-    Excluded_[idx].insert( idx );
+    // Exclude self if specified
+    if (exclude_self) Excluded_[idx].insert( idx );
     int at = maskIn[idx];
     // Find excluded atoms for this atom.
     // Use a separate list so we can exclude via the atom mask.
@@ -90,7 +95,8 @@ int ExclusionArray::SetupExcluded(std::vector<Atom> const& atoms, AtomMask const
         // Find excluded atoms index in maskIn
         int excluded_idx = atToIdx[*excluded_atom];
         Excluded_[idx         ].insert( excluded_idx );
-        Excluded_[excluded_idx].insert( idx          );
+        if (listOpt == FULL)
+          Excluded_[excluded_idx].insert( idx          );
       }
     }
   }

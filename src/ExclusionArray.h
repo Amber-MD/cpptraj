@@ -11,6 +11,15 @@ class ExclusionArray {
     /// CONSTRUCTOR
     ExclusionArray();
 
+    enum SelfOpt {
+      EXCLUDE_SELF = 0, ///< Include i in exclusion list for atom i.
+      NO_EXCLUDE_SELF   ///< Do not include self in exclusion list.
+    };
+    enum ListOpt {
+      FULL = 0,        ///< Exclusion list contains all excluded atoms.
+      ONLY_GREATER_IDX ///< Exclusion list only contains atoms with larger index
+    };
+
     /// Hold list of excluded atoms.
     typedef std::set<int> ExListType;
     /// Hold array of exclusion lists
@@ -29,7 +38,7 @@ class ExclusionArray {
     ExListType const& operator[](int idx) const { return Excluded_[idx]; }
 
     /// Set up exclusion list for specified atoms and distance
-    int SetupExcluded(std::vector<Atom> const&, AtomMask const&, int);
+    int SetupExcluded(std::vector<Atom> const&, AtomMask const&, int, SelfOpt, ListOpt);
   private:
     /// Determine through-bond distance between atoms
     static void AtomDistance(std::vector<Atom> const&, int, int, int, ExListType&, int);
