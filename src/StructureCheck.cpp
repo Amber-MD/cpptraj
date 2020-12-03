@@ -138,13 +138,15 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   }
   // Set up exclusion list
   if (checkType_ == PL_1_MASK || checkType_ == NO_PL_1_MASK) {
+    mprintf("\tExcluding bond interactions.\n");
     // Set up atom exclusion list. Distance of 2 since we are not
     // yet checking angles and dihedrals.
     if (Excluded_.SetupExcluded(topIn.Atoms(), Mask1_, 2, ex_self_opt, ex_list_opt)) {
       mprinterr("Error: StructureCheck: Could not set up excluded atoms list.\n");
       return 1;
     }
-  }
+  } else
+    mprintf("\tNot using exclusions.\n");
   // Sort bond list
   if (bondcheck_) std::sort(bondList_.begin(), bondList_.end());
   return 0;
@@ -312,6 +314,22 @@ int StructureCheck::PL1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const
   return Nproblems;
 }
 
+/** Check for and record non-bonded clashes. */
+void StructureCheck::DistanceCheck(Frame const& currentFrame, int atom1, int atom2,
+                                   Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
+                                   Parray& problemAtoms, int& Nproblems)
+const
+{
+  double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
+                     image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
+  if (D2 < nonbondcut2_) {
+    ++Nproblems;
+    if (saveProblems_) {
+      problemAtoms.push_back(Problem(atom1, atom2, sqrt(D2)));
+    }
+  }
+}
+
 // StructureCheck::Mask2_CheckOverlap()
 int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const& ucell,
                                        Matrix_3x3 const& recip)
@@ -335,19 +353,13 @@ int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
     for (int nmask2 = 0; nmask2 < inner_max; nmask2++) {
       int atom2 = InnerMask_[nmask2];
       if (atom1 != atom2) {
-        double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                           image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
-        if (D2 < nonbondcut2_) {
-          ++Nproblems;
-          if (saveProblems_) {
-#           ifdef _OPENMP
-            thread_problemAtoms_[mythread]
-#           else
-            problemAtoms_
-#           endif
-              .push_back(Problem(atom1, atom2, sqrt(D2)));
-          }
-        }
+        DistanceCheck(currentFrame, atom1, atom2, ucell, recip,
+#                     ifdef _OPENMP
+                      thread_problemAtoms_[mythread],
+#                     else
+                      problemAtoms_,
+#                     endif
+                      Nproblems);
       }
     } // END loop over inner mask
   } // END loop over outer mask
@@ -357,22 +369,6 @@ int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
   ConsolidateProblems();
 
   return Nproblems;
-}
-
-/** Check for and record non-bonded clashes. */
-void StructureCheck::DistanceCheck(Frame const& currentFrame, int atom1, int atom2,
-                                   Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
-                                   Parray& problemAtoms, int& Nproblems)
-const
-{
-  double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                     image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
-  if (D2 < nonbondcut2_) {
-    ++Nproblems;
-    if (saveProblems_) {
-      problemAtoms.push_back(Problem(atom1, atom2, sqrt(D2)));
-    }
-  }
 }
 
 // StructureCheck::Mask1_CheckOverlap()
