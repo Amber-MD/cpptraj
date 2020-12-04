@@ -163,6 +163,9 @@ void AtomMask::AddAtomRange(int minAtom, int maxAtom) {
   //for (std::vector<int>::iterator da = Selected_.begin(); da != Selected_.end(); da++)
   //  mprintf(" %i",*da);
   //mprintf("]\n");
+  // Update Natom_ if necessary
+  if (Selected_.back() >= Natom_)
+    Natom_ = Selected_.back() + 1;
 }
 
 /** Add atoms in given unit to mask. */
