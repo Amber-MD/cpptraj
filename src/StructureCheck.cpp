@@ -399,11 +399,11 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
     int atom2 = Mask1_[nmask2];
     // Advance excluded list up to current selected atom
     ExclusionArray::ExListType::const_iterator ex = Excluded_[nmask1].begin();
-    while (ex != Excluded_[nmask1].end() && *ex < atom2) ++ex;
+    while (ex != Excluded_[nmask1].end() && *ex < nmask2) ++ex;
     // Continue looping over excluded atoms until there are no more to exclude.
     while (ex != Excluded_[nmask1].end()) {
       atom2 = Mask1_[nmask2];
-      if (atom2 == *ex)
+      if (nmask2 == *ex)
         ++ex;
       else {
         DistanceCheck(currentFrame, atom1, atom2, ucell, recip,
