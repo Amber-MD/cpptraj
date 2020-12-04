@@ -78,6 +78,7 @@ class Ewald {
     Darray Cparam_;       ///< Hold selected atomic C6 coefficients for LJ PME
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
+    // TODO should Exlcusions be passed in?
     ExclusionArray Excluded_;   ///< Full exclusion list for each selected atom.
     Iarray TypeIndices_;  ///< Hold atom type indices for selected atoms
     NonbondParmType const* NB_; ///< Pointer to nonbonded parameters
