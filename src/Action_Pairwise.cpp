@@ -337,18 +337,18 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
     Vec3 coord1 = frameIn.XYZ( maskatom1 );
     // Set up exclusion list for this atom
     // TODO : Refactor the inner loop to be like in StructureCheck, more efficient
-    ExclusionArray::ExListType::const_iterator excluded_atom = Excluded[idx1].begin();
+    ExclusionArray::ExListType::const_iterator excluded_idx = Excluded[idx1].begin();
     // Inner loop
     for (int idx2 = idx1 + 1; idx2 != maskIn.Nselected(); idx2++)
     {
       int maskatom2 = maskIn[idx2];
       // Advance excluded list up to current selected atom
-      while (excluded_atom != Excluded[idx1].end() && *excluded_atom < maskatom2)
-        ++excluded_atom;
+      while (excluded_idx != Excluded[idx1].end() && *excluded_idx < idx2)
+        ++excluded_idx;
       // If atom is excluded, just increment to next excluded atom;
       // otherwise perform energy calc.
-      if ( excluded_atom != Excluded[idx1].end() && maskatom2 == *excluded_atom )
-        ++excluded_atom;
+      if ( excluded_idx != Excluded[idx1].end() && idx2 == *excluded_idx )
+        ++excluded_idx;
       else {
         // Calculate the vector pointing from atom2 to atom1
         Vec3 JI = coord1 - Vec3(frameIn.XYZ( maskatom2 ));

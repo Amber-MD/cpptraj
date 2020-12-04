@@ -218,15 +218,15 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
     const double* crd1 = fIn.XYZ( atom1 );
     // Set up exclusion list for this atom
     // TODO refactor inner loop to be more like StructureCheck, more efficient.
-    ExclusionArray::ExListType::const_iterator excluded_atom = Excluded[idx1].begin();
+    ExclusionArray::ExListType::const_iterator excluded_idx = Excluded[idx1].begin();
     for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
     {
       int atom2 = mask[idx2];
       // Advance excluded list up to current selected atom
-      while (excluded_atom != Excluded[idx1].end() && *excluded_atom < atom2) ++excluded_atom;
+      while (excluded_idx != Excluded[idx1].end() && *excluded_idx < idx2) ++excluded_idx;
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != Excluded[idx1].end() && atom2 == *excluded_atom)
-        ++excluded_atom;
+      if (excluded_idx != Excluded[idx1].end() && idx2 == *excluded_idx)
+        ++excluded_idx;
       else {
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         double rij = sqrt( rij2 );
@@ -278,15 +278,15 @@ double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const
     const double* crd1 = fIn.XYZ( atom1 );
     // Set up exclusion list for this atom
     // TODO refactor inner loop to be more like StructureCheck
-    ExclusionArray::ExListType::const_iterator excluded_atom = Excluded[idx1].begin();
+    ExclusionArray::ExListType::const_iterator excluded_idx = Excluded[idx1].begin();
     for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
     {
       int atom2 = mask[idx2];
       // Advance excluded list up to current selected atom
-      while (excluded_atom != Excluded[idx1].end() && *excluded_atom < atom2) ++excluded_atom;
+      while (excluded_idx != Excluded[idx1].end() && *excluded_idx < idx2) ++excluded_idx;
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != Excluded[idx1].end() && atom2 == *excluded_atom)
-        ++excluded_atom;
+      if (excluded_idx != Excluded[idx1].end() && idx2 == *excluded_idx)
+        ++excluded_idx;
       else {
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         // VDW
@@ -328,15 +328,16 @@ double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask cons
     // Set up coord for this atom
     const double* crd1 = fIn.XYZ( atom1 );
     // Set up exclusion list for this atom
-    ExclusionArray::ExListType::const_iterator excluded_atom = Excluded[idx1].begin();
+    // TODO refactor inner loop to be like StructureCheck
+    ExclusionArray::ExListType::const_iterator excluded_idx = Excluded[idx1].begin();
     for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
     {
       int atom2 = mask[idx2];
       // Advance excluded list up to current selected atom
-      while (excluded_atom != Excluded[idx1].end() && *excluded_atom < atom2) ++excluded_atom;
+      while (excluded_idx != Excluded[idx1].end() && *excluded_idx < idx2) ++excluded_idx;
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != Excluded[idx1].end() && atom2 == *excluded_atom)
-        ++excluded_atom;
+      if (excluded_idx != Excluded[idx1].end() && idx2 == *excluded_idx)
+        ++excluded_idx;
       else {
         double rij2 = DIST2_NoImage( crd1, fIn.XYZ( atom2 ) );
         double rij = sqrt( rij2 );
