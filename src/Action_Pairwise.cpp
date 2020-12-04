@@ -336,6 +336,7 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
     // Get coordinates for first atom.
     Vec3 coord1 = frameIn.XYZ( maskatom1 );
     // Set up exclusion list for this atom
+    // TODO : Refactor the inner loop to be like in StructureCheck, more efficient
     ExclusionArray::ExListType::const_iterator excluded_atom = Excluded[idx1].begin();
     // Inner loop
     for (int idx2 = idx1 + 1; idx2 != maskIn.Nselected(); idx2++)
