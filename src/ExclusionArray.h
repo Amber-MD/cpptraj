@@ -39,6 +39,8 @@ class ExclusionArray {
 
     /// Set up exclusion list for specified atoms and distance
     int SetupExcluded(std::vector<Atom> const&, AtomMask const&, int, SelfOpt, ListOpt);
+    /// Set up exclusion list for all atoms with specified distance.
+    int SetupExcluded(std::vector<Atom> const&, int, SelfOpt, ListOpt);
   private:
     /// Determine through-bond distance between atoms
     static void AtomDistance(std::vector<Atom> const&, int, int, int, ExListType&, int);

@@ -8,6 +8,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
 #include "StringRoutines.h" // NoTrailingWhitespace
+#include "ExclusionArray.h"
 
 // ---------- Constants and Enumerated types -----------------------------------
 const int Parm_Amber::AMBERPOINTERS_ = 31;
@@ -1690,15 +1691,25 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   WriteLine( titleFlag, TopOut.ParmName() );
 
   // Generate atom exclusion list. Do this here since POINTERS needs the size.
-  Iarray Excluded;
-  for (Topology::atom_iterator atom = TopOut.begin(); atom != TopOut.end(); ++atom)
+  ExclusionArray exclusionArray;
+  if (exclusionArray.SetupExcluded(TopOut.Atoms(), 4,
+                                   ExclusionArray::NO_EXCLUDE_SELF,
+                                   ExclusionArray::ONLY_GREATER_IDX))
   {
-    int nex = atom->Nexcluded();
+    mprinterr("Error: Parm_Amber: Could not set up exclusion array for topology write.\n");
+    return 1;
+  }
+  Iarray Excluded;
+  for (ExclusionArray::const_iterator exList = exclusionArray.begin();
+                                      exList != exclusionArray.end();
+                                    ++exList)
+  {
+    int nex = exList->size();
     if (nex == 0)
       Excluded.push_back( 0 );
     else {
-      for (Atom::excluded_iterator ex = atom->excludedbegin();
-                                   ex != atom->excludedend(); ex++)
+      for (ExclusionArray::ExListType::const_iterator ex = exList->begin();
+                                                      ex != exList->end(); ex++)
         // Amber atom #s start from 1
         Excluded.push_back( (*ex) + 1 );
     }

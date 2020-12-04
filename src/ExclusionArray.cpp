@@ -107,3 +107,11 @@ int ExclusionArray::SetupExcluded(std::vector<Atom> const& atoms, AtomMask const
           ByteString(ex_size * sizeof(int), BYTE_DECIMAL).c_str());
   return 0;
 }
+
+/** Set up exclusion array for all atoms. */
+int ExclusionArray::SetupExcluded(std::vector<Atom> const& atoms,
+                                  int TgtDist, SelfOpt selfOpt, ListOpt listOpt)
+{
+  AtomMask allAtoms(0, atoms.size());
+  return SetupExcluded(atoms, allAtoms, TgtDist, selfOpt, listOpt);
+}
