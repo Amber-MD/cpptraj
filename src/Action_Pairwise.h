@@ -41,7 +41,7 @@ class Action_Pairwise: public Action {
     /// Write energies to file
     inline void WriteEnergies(Topology const&, int, int, double, double, const char*);
     /// Calculate nonbond energy using nonbondParm for given frame
-    void NonbondEnergy(Frame const&, Topology const&, AtomMask const&);
+    void NonbondEnergy(Frame const&, Topology const&, AtomMask const&, ExclusionArray const&);
     /// Write mol2 file with atoms satisfying cutoff
     int WriteCutFrame(int, Topology const&, AtomMask const&, Darray const&, 
                       Frame const&, std::string const&);

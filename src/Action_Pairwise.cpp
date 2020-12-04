@@ -122,7 +122,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
       return Action::ERR;
     // Calculate energy for reference
     nb_calcType_ = SET_REF;
-    NonbondEnergy(REF.Coord(), REF.Parm(), RefMask_);
+    NonbondEnergy(REF.Coord(), REF.Parm(), RefMask_, ExcludedR_);
     nb_calcType_ = COMPARE_REF;
   }
 
@@ -320,7 +320,7 @@ void Action_Pairwise::WriteEnergies(Topology const& parmIn, int atom1, int atom2
   * the cutoffs are printed.
   */
 void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn, 
-                                    AtomMask const& maskIn)
+                                    AtomMask const& maskIn, ExclusionArray const& Excluded)
 {
   double delta2;
   NonbondEnergyType refE;
@@ -336,17 +336,17 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
     // Get coordinates for first atom.
     Vec3 coord1 = frameIn.XYZ( maskatom1 );
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = parmIn[maskatom1].excludedbegin();
+    ExclusionArray::ExListType::const_iterator excluded_atom = Excluded[idx1].begin();
     // Inner loop
     for (int idx2 = idx1 + 1; idx2 != maskIn.Nselected(); idx2++)
     {
       int maskatom2 = maskIn[idx2];
       // Advance excluded list up to current selected atom
-      while (excluded_atom != parmIn[maskatom1].excludedend() && *excluded_atom < maskatom2)
+      while (excluded_atom != Excluded[idx1].end() && *excluded_atom < maskatom2)
         ++excluded_atom;
       // If atom is excluded, just increment to next excluded atom;
       // otherwise perform energy calc.
-      if ( excluded_atom != parmIn[maskatom1].excludedend() && maskatom2 == *excluded_atom )
+      if ( excluded_atom != Excluded[idx1].end() && maskatom2 == *excluded_atom )
         ++excluded_atom;
       else {
         // Calculate the vector pointing from atom2 to atom1
@@ -504,7 +504,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
   atom_eelec_.assign(Mask0_.Nselected(), 0.0);
   atom_evdw_.assign(Mask0_.Nselected(), 0.0);
   if (Eout_ != 0) Eout_->Printf("PAIRWISE: Frame %i\n",frm.TrajoutNum());
-  NonbondEnergy( frm.Frm(), *CurrentParm_, Mask0_ );
+  NonbondEnergy( frm.Frm(), *CurrentParm_, Mask0_, Excluded0_ );
   nframes_++;
   // Write cumulative energy arrays
   if (PrintCutAtoms( frm.Frm(), frm.TrajoutNum(), VDWOUT, atom_evdw_, cut_evdw_ ))
