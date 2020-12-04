@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles pw.in pair.dat energy.dat avg.dat map.elec.gnu map.vdw.gnu \
-           ref.ene.pdb ref.cut.mol2.*.mol2.?
+           ref.ene.pdb ref.cut.mol2.*.mol2.? ndptcs.dat ndptcs.ene.dat
 
 TESTNAME='Pairwise test'
 Requires netcdf maxthreads 1
@@ -32,6 +32,17 @@ DoTest map.elec.gnu.save map.elec.gnu
 DoTest ref.cut.mol2.eelec.mol2.1.save ref.cut.mol2.eelec.mol2.1
 DoTest ref.cut.mol2.evdw.mol2.1.save ref.cut.mol2.evdw.mol2.1
 DoTest ref.ene.pdb.save ref.ene.pdb
+
+UNITNAME='Pairwise test, partial system'
+cat > pw.in <<EOF
+parm ../FtuFabI.NAD.TCL.parm7
+trajin ../FtuFabI.NAD.TCL.nc 1 3
+
+pairwise NdpTcs :NDP,TCS out ndptcs.dat eout ndptcs.ene.dat
+EOF
+RunCpptraj "$UNITNAME"
+DoTest ndptcs.dat.save ndptcs.dat
+DoTest ndptcs.ene.dat.save ndptcs.ene.dat
 
 EndTest
 exit 0
