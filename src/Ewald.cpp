@@ -557,7 +557,7 @@ double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
   t_total_.Stop();
   return e_self + e_recip + e_direct;
 }
-#endif
+#endif /* DEBUG_EWALD */
 
 // Ewald::Timing()
 void Ewald::Timing(double total) const {
