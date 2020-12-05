@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles ene.in ene.agr short.dat tz2.dat strip.dat
+CleanFiles ene.in ene.agr short.dat tz2.dat strip.dat elec.dat vdw.dat
 
 INPUT="-i ene.in"
 
@@ -48,9 +48,13 @@ if [ $? -eq 0 ] ; then
 parm ../FtuFabI.NAD.TCL.parm7
 trajin ../FtuFabI.NAD.TCL.nc
 energy out strip.dat :NDP ENE1
+energy out elec.dat  :NDP ENE2 elec
+energy out vdw.dat   :NDP ENE3 vdw
 EOF
   RunCpptraj "$UNITNAME"
   DoTest strip.dat.save strip.dat
+  DoTest elec.dat.save elec.dat
+  DoTest vdw.dat.save vdw.dat
 fi
 
 EndTest
