@@ -1704,8 +1704,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
                                       exList != exclusionArray.end();
                                     ++exList)
   {
-    int nex = exList->size();
-    if (nex == 0)
+    if (exList->empty())
       Excluded.push_back( 0 );
     else {
       for (ExclusionArray::ExListType::const_iterator ex = exList->begin();
@@ -1874,11 +1873,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // NUMEX
   if (BufferAlloc(F_NUMEX, TopOut.Natom())) return 1;
-  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    if (atm->Nexcluded() == 0)
+  for (ExclusionArray::const_iterator exList = exclusionArray.begin();
+                                      exList != exclusionArray.end(); ++exList)
+  {
+    if (exList->empty())
       file_.IntToBuffer( 1 );
     else
-      file_.IntToBuffer( atm->Nexcluded() );
+      file_.IntToBuffer( (int)exList->size() );
+  }
   file_.FlushBuffer();
 
   // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
