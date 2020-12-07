@@ -3,6 +3,8 @@
 //#incl ude <memory> // unique_ptr
 #include "Ewald_ParticleMesh.h"
 #include "CpptrajStdio.h"
+#include "AtomMask.h"
+#include "Frame.h"
 
 typedef helpme::Matrix<double> Mat;
 

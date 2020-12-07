@@ -3,6 +3,8 @@
 #include "PairList.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ByteString()
+#include "Frame.h"
+#include "AtomMask.h"
 
 PairList::PairList() :
   cutList_(0.0),

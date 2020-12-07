@@ -3,8 +3,10 @@
 class Topology;
 class AtomMask;
 class Frame;
+class NonbondParmType;
 #include "Timer.h"
 #include "PairList.h"
+#include "ExclusionArray.h"
 /// Base class for calculating non-bonded energy using Ewald methods.
 class Ewald {
   public:
@@ -25,8 +27,6 @@ class Ewald {
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
     typedef std::vector<Vec3> Varray;
-    typedef std::set<int> Iset;
-    typedef std::vector<Iset> Iarray2D;
 
     static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
     /// Complimentary error function, erfc.
@@ -78,7 +78,8 @@ class Ewald {
     Darray Cparam_;       ///< Hold selected atomic C6 coefficients for LJ PME
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
-    Iarray2D Excluded_;   ///< Full exclusion list for each selected atom.
+    // TODO should Exlcusions be passed in?
+    ExclusionArray Excluded_;   ///< Full exclusion list for each selected atom.
     Iarray TypeIndices_;  ///< Hold atom type indices for selected atoms
     NonbondParmType const* NB_; ///< Pointer to nonbonded parameters
 

@@ -765,7 +765,8 @@ const
   mprintf("DEBUG: LJ radius= %g\n", CAtop.GetVDWradius(0));
   // Final setup
   CAtop.SetParmName("caseq", "seq.ca.mol2");
-  CAtop.CommonSetup(true, 2, false); // molecule search, exclude bonds, do not renumber residues
+  // TODO exclusion list excluding bonded atoms
+  CAtop.CommonSetup(true, false); // molecule search, do not renumber residues
   CAtop.Summary();
 
   // Write CA top
@@ -1260,7 +1261,8 @@ const
   mprintf("DEBUG: LJ radius= %g\n", CAtop.GetVDWradius(0));
   // Final setup
   CAtop.SetParmName("capdb", "temp.ca.mol2");
-  CAtop.CommonSetup(true, 2, false); // molecule search, exclude bonds, no renumbering residues
+  // TODO exclusion list excluding bonds
+  CAtop.CommonSetup(true, false); // molecule search, no renumbering residues
   CAtop.Summary();
 
   // Write CA top

@@ -1,6 +1,7 @@
 #ifndef INC_TOPOLOGY_H
 #define INC_TOPOLOGY_H
 #include <string>
+#include <set> // BP_mapType
 #include "Atom.h"
 #include "Residue.h"
 #include "Molecule.h"
@@ -190,8 +191,6 @@ class Topology {
     // ----- Setup routines ----------------------
     int AddTopAtom(Atom const&, Residue const&);
     //void StartNewMol();
-    /// Perform common final setup: optional molecule determination, excluded distance, renumber residues by molecules
-    int CommonSetup(bool, int, bool);
     /// Perform common final setup: optional molecule determination, renumber residues by molecules
     int CommonSetup(bool, bool);
     /// Perform common final setup with molecule determination on, renumber residues off.
@@ -243,8 +242,6 @@ class Topology {
     int NonrecursiveMolSearch();
     void ClearMolecules();
     void AtomDistance(int, int, int, std::set<int>&, int) const;
-    void DetermineExcludedAtoms(int);
-    void DetermineExcludedAtoms();
     void DetermineNumExtraPoints();
     int SetSolventInfo();
 
