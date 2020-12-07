@@ -1,0 +1,86 @@
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: master
+
+jobs:
+  linux_build:
+    name: Build ${{ matrix.compiler }} with CMake ${{ matrix.use_cmake }}
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: ["gnu", "clang"]
+        use_cmake: ["0", "1"]
+        use_openmp: ["no"]
+        use_mpi: ["no"]
+        include:
+          - use_openmp: "yes"
+            compiler: "gnu"
+            use_mpi: "no"
+          - use_openmp: "no"
+            compiler: "gnu"
+            use_mpi: "yes"
+          - use_openmp: "yes"
+            compiler: "gnu"
+            use_mpi: "yes"
+
+    env:
+      COMPILER: ${{ matrix.compiler }}
+      USE_CMAKE: ${{ matrix.use_cmake }}
+      BUILD_TYPE: "install"
+      TEST_TYPE: "test.showerrors"
+      USE_MPI: ${{ matrix.use_mpi }}
+      USE_OPENMP: ${{ matrix.use_openmp }}
+
+    steps:
+      - name: Install prerequisite packages
+        shell: bash -l ${0}
+        run: |
+          sudo apt-get install gfortran \
+                               libbz2-dev \
+                               libblas-dev \
+                               liblapack-dev \
+                               libnetcdf-dev \
+                               libfftw3-dev \
+                               netcdf-bin \
+                               clang \
+                               openmpi-bin \
+                               openmpi-common \
+                               libopenmpi-dev \
+                               cmake-data \
+                               cmake
+
+      - name: Compile and test cpptraj
+        shell: bash -l ${0}
+        run: |
+          curl -OL https://anaconda.org/AmberMD/amber_phenix/0.9.6/download/linux-64/amber_phenix-0.9.6-0.tar.bz2;
+          tar jxf amber_phenix-0.9.6-0.tar.bz2 lib/libsander.so AmberTools/src/sander/sander.h;
+          mkdir -p include && mv AmberTools/src/sander/sander.h include;
+          mv lib include $HOME
+
+          if [ $USE_OPENMP = "yes" ]; then
+            export OPT="openmp"
+            export OMP_NUM_THREADS=4
+            export BUILD_FLAGS="-openmp"
+          fi
+
+          if [ $USE_MPI = "yes" ]; then
+            export BUILD_FLAGS="-mpi ${BUILD_FLAGS}"
+          fi
+
+          if [ "$USE_CMAKE" = "1" ]; then
+            mkdir build install
+            installdir=$(pwd)
+            cd build
+            cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DINSTALL_HEADERS=FALSE \
+                     -DCMAKE_INSTALL_PREFIX=$installdir -DCMAKE_LIBRARY_PATH=$HOME/lib \
+                     -DPRINT_PACKAGING_REPORT=TRUE
+            make -j2 install
+            cd ..
+            export PATH=$installdir/bin:$PATH
+          else
+            export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
+            ./configure ${BUILD_FLAGS} ${COMPILER}
+          fi
+          cd test && make $TEST_TYPE
