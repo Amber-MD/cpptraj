@@ -1,7 +1,10 @@
 #ifndef INC_PAIRLIST_H
 #define INC_PAIRLIST_H
-#include "Topology.h"
 #include "Timer.h"
+#include "Box.h" // BoxType
+#include <vector>
+class Frame;
+class AtomMask;
 /// Class for creating a lists of potential pairing atoms via spatial grid.
 /** NOTE: The code in this class is based on that from the SANDER
   *       program of Amber/AmberTools, particularly nonbond_list.F90.

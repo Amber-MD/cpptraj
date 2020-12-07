@@ -5,6 +5,7 @@ class Topology;
 class AtomMask;
 class CharMask;
 class Frame;
+class ExclusionArray;
 /// Calculate energy/force from coordinates.
 class Energy_Amber {
   public:
@@ -15,11 +16,11 @@ class Energy_Amber {
     double E_angle(Frame const&, Topology const&, CharMask const&);
     double E_torsion(Frame const&, Topology const&, CharMask const&);
     double E_14_Nonbond(Frame const&, Topology const&, CharMask const&, double&);
-    double E_Nonbond(Frame const&, Topology const&, AtomMask const&, double&);
-    double E_VDW(Frame const&, Topology const&, AtomMask const&);
-    double E_Elec(Frame const&, Topology const&, AtomMask const&);
+    double E_Nonbond(Frame const&, Topology const&, AtomMask const&, double&, ExclusionArray const&);
+    double E_VDW(Frame const&, Topology const&, AtomMask const&, ExclusionArray const&);
+    double E_Elec(Frame const&, Topology const&, AtomMask const&, ExclusionArray const&);
 
-    double E_DirectSum(Frame const&, Topology const&, AtomMask const&, int);
+    double E_DirectSum(Frame const&, Topology const&, AtomMask const&, ExclusionArray const&,int);
     /// Calculate kinetic energy from velocity information.
     double E_Kinetic(Frame const&, AtomMask const&);
     /// Calculate kinetic energy from forces and plus-half timestep velocities.
