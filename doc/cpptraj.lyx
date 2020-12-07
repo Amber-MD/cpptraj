@@ -20512,11 +20512,15 @@ check
 
 \end_inset
 
- [<mask>] [around <mask2>] [reportfile <report>] [noimage] [skipbadframes]
+ [<mask>] [around <mask2>] [reportfile <report>] [noimage]
 \end_layout
 
 \begin_layout LyX-Code
-      [offset <offset>] [cut <cut>] [nobondcheck] [silent]
+      [skipbadframes] [offset <offset>] [minoffset <minoffset>]
+\end_layout
+
+\begin_layout LyX-Code
+      [cut <cut>] [nobondcheck] [silent] [plcut <cut>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -20560,7 +20564,16 @@ tory output will be skipped.
 \end_inset
 
 <offset>] Report bond lengths greater than the equilibrium value plus <offset>
- (default 1.0 Å)
+ (default 1.15 Å).
+\end_layout
+
+\begin_layout Description
+[minoffset
+\begin_inset space ~
+\end_inset
+
+<minoffset>] Report bond lengths less than the equilibrium value minus <minoffse
+t> (default 0.5 Å).
 \end_layout
 
 \begin_layout Description
@@ -20584,23 +20597,63 @@ skipbadframes
  option.
 \end_layout
 
+\begin_layout Description
+[plcut
+\begin_inset space ~
+\end_inset
+
+<cut>] Pair list cutoff (default 4.0 Å); only matters if box is present.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Check the structure and report problems related to atomic overlap/unusual
  bond length.
- Problems are reported when any two atoms in the mask are closer than 
+ Problems are reported when any two atoms in 
+\series bold
+<mask>
+\series default
+ (or between 
+\series bold
+<mask>
+\series default
+ and 
+\series bold
+<mask2>
+\series default
+ if using 
+\series bold
+'around'
+\series default
+) are closer than 
 \series bold
 <cut>
 \series default
-.
+; atoms that are bonded to each other are ignored (except if using the 
+\series bold
+'around'
+\series default
+ mask).
  If bonds are being checked then bond lengths greater than their equilibrium
- value + 
+ value plus 
 \series bold
 <offset>
 \series default
+ and less than their equilibrium value minus 
+\series bold
+<minoffset>
+\series default
  are reported as well.
- This command can also be used to skip corrupted frames in a trajectory
- during processing.
+ If box information is present and not using the 
+\series bold
+'around'
+\series default
+ mask, a pairlist will be used to speed up the calculation.
+\end_layout
+
+\begin_layout Standard
+This command can also be used to skip corrupted frames in a trajectory during
+ processing.
  For example, if this message is encountered:
 \end_layout
 

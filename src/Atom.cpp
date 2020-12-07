@@ -168,8 +168,7 @@ Atom::Atom(const Atom &rhs) :
   element_(rhs.element_),
   resnum_(rhs.resnum_),
   mol_(rhs.mol_),
-  bonds_(rhs.bonds_),
-  excluded_(rhs.excluded_)
+  bonds_(rhs.bonds_)
 { }
 
 // SWAP
@@ -187,7 +186,6 @@ void Atom::swap(Atom &first, Atom &second) {
   swap(first.resnum_, second.resnum_);
   swap(first.mol_, second.mol_);
   swap(first.bonds_, second.bonds_);
-  swap(first.excluded_, second.excluded_);
 }
 
 // ASSIGNMENT via copy/swap idiom
@@ -217,13 +215,6 @@ bool Atom::IsBondedTo(int atomnum) const {
     if ( atomnum == *b ) return true;
   return false;
 } 
-
-// Atom::AddExclusionList()
-void Atom::AddExclusionList(std::set<int> const& elist) {
-  excluded_.clear();
-  for (std::set<int>::const_iterator ei = elist.begin(); ei != elist.end(); ei++)
-    excluded_.push_back( *ei );
-}
 
 // Atom::SetElementFromName()
 /** If not already known, try to determine atomic element from atom name. 
