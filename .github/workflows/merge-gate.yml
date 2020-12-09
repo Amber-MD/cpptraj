@@ -84,5 +84,6 @@ jobs:
           else
             export LD_LIBRARY_PATH=$HOME/lib:${LD_LIBRARY_PATH}
             ./configure ${BUILD_FLAGS} ${COMPILER}
+            make -j2 install
           fi
           cd test && make $TEST_TYPE
