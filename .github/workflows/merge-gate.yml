@@ -52,7 +52,6 @@ jobs:
                                cmake
 
       - name: Compile and test cpptraj
-        shell: bash -l ${0}
         run: |
           curl -OL https://anaconda.org/AmberMD/amber_phenix/0.9.6/download/linux-64/amber_phenix-0.9.6-0.tar.bz2;
           tar jxf amber_phenix-0.9.6-0.tar.bz2 lib/libsander.so AmberTools/src/sander/sander.h;
