@@ -41,12 +41,12 @@ Mol::Marray Mol::UniqueCount(Topology const& top, std::vector<int> const& molNum
                 if (top.Res(curRes0).Name() != top.Res(prevRes0).Name()) {
                   // Residue name mismatch.
                   matchIdx = -1;
-                  iseg = CurMol.MolUnit().nSegments();
                   break;
                 }
                 curRes0++;
                 prevRes0++;
               }
+              if (matchIdx == -1) break;
             } // END loop over segments
           } // END # segments match 
         } // END # residues match
