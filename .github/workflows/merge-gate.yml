@@ -51,6 +51,9 @@ jobs:
                                cmake-data \
                                cmake
 
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
       - name: Compile and test cpptraj
         run: |
           curl -OL https://anaconda.org/AmberMD/amber_phenix/0.9.6/download/linux-64/amber_phenix-0.9.6-0.tar.bz2;
