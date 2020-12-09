@@ -1,11 +1,12 @@
 on:
   push:
-    branches: master
+    branches: [master]
   pull_request_target:
-    branches: master
+    branches: [master]
 
 jobs:
   linux_build:
+    runs-on: ubuntu-20.04
     name: Build ${{ matrix.compiler }} with CMake ${{ matrix.use_cmake }}
     strategy:
       fail-fast: false
