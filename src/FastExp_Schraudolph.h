@@ -23,7 +23,7 @@ int j, i;
 /// Approximate exp adapted from Schraudolph, 1999 - double precision floating point version.
 /** \sa https://bduvenhage.me/performance/machine_learning/2019/06/04/fast-exp.html
   */
-ALWAYS_INLINE double fast_exps_64(const double x) noexcept {
+inline __attribute__((always_inline)) double fast_exps_64(const double x) noexcept {
     // Based on Schraudolph 1999, A Fast, Compact Approximation of the Exponential Function.
     // - Adapted to use 64-bit integer; reduces staircase effect.
     // - Valid for x in approx range (-700, 700).
