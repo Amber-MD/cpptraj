@@ -17,6 +17,8 @@
 #endif
 #if defined(VOLMAP_USEFASTEXPS) || defined(VOLMAP_USEFASTEXP64)
 # include "FastExp_Schraudolph.h"
+#elif defined(VOLMAP_USEFASTEXPIEEE)
+# include "FastExp_fastexp.h"
 #endif
 
 const double Action_Volmap::sqrt_8_pi_cubed_ = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
@@ -308,6 +310,8 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\tUsing exp() from N. Schraudolph, Neural Computation 11, 853–862 (1999).\n");
 # elif defined(VOLMAP_USEFASTEXP64)
   mprintf("\tUsing 64 bit version of exp() from N. Schraudolph, Neural Computation 11, 853–862 (1999).\n");
+# elif defined(VOLMAP_USEFASTEXPIEEE)
+  mprintf("\tUsing exp() from Schraudolph & Malossi et al.\n");
 # else /* VOLMAP_USEEXP */
   mprintf("\tExponential for Gaussians will be approximated using cubic splines with a spacing of %g\n", splineDx_);
 # if defined(VOLMAP_USEACCURATE)
@@ -545,6 +549,8 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
                   GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * FASTEXPS(exfac * dist2));
 #                 elif defined(VOLMAP_USEFASTEXP64)
                   GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * fast_exps_64(exfac * dist2));
+#                 elif defined(VOLMAP_USEFASTEXPIEEE)
+                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * fastexp::exp<double, fastexp::IEEE, 4>(exfac * dist2));
 #                 elif defined(VOLMAP_USEACCURATE)
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 elif defined(VOLMAP_USEXTABLE)
@@ -559,6 +565,8 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
                   grid_->Increment(xval, yval, zval, norm * FASTEXPS(exfac * dist2));
 #                 elif defined(VOLMAP_USEFASTEXP64)
                   grid_->Increment(xval, yval, zval, norm * fast_exps_64(exfac * dist2));
+#                 elif defined(VOLMAP_USEFASTEXPIEEE)
+                  grid_->Increment(xval, yval, zval, norm * fastexp::exp<double, fastexp::IEEE, 4>(exfac * dist2));
 #                 elif defined(VOLMAP_USEACCURATE)
                   grid_->Increment(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 elif defined(VOLMAP_USEXTABLE)
