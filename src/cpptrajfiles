@@ -543,6 +543,7 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
 LIBCPPTRAJ_PARM_OBJECTS= \
   BondSearch.o \
   CharmmParamFile.o \
+  ExclusionArray.o \
   Mol.o \
   ParameterSet.o \
   ParmFile.o \
