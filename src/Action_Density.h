@@ -58,6 +58,7 @@ private:
   enum DirectionType {DX = 0, DY, DZ};
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};
   enum BinCoordType {CENTER = 0, EDGE};
+  enum RestrictType { NONE=0, CYLINDER, SQUARE };
 
   DirectionType axis_;          ///< Which axis to bin along.
   DirectionType area_coord_[2]; ///< Hold which two axes used to calc. area
@@ -77,6 +78,8 @@ private:
   
   DataSet* density_;            ///< Hold total system density (if not binning)
   ImagedAction image_;          ///< Used to calculate system volume for total density.
+  RestrictType restrictType_;   ///< Used to restrict calculation to a certain shape.
+  double cutVal_;               ///< Cutoff to use if shape restriction in use.
 # ifdef MPI
   Parallel::Comm trajComm_;
 # endif

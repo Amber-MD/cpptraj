@@ -14,7 +14,9 @@ Action_Density::Action_Density() :
   property_(NUMBER),
   binType_(CENTER),
   delta_(0.0),
-  density_(0)
+  density_(0),
+  restrictType_(NONE),
+  cutVal_(-1)
 {
   area_coord_[0] = DX; area_coord_[1] = DY;
 }
@@ -22,7 +24,8 @@ Action_Density::Action_Density() :
 void Action_Density::Help() const {
   mprintf("\t[out <filename>] [name <set name>]\n"
           "\t[ <mask1> ... <maskN> [delta <resolution>] [{x|y|z}]\n"
-          "\t  [{number|mass|charge|electron}] [{bincenter|binedge}] ]\n"
+          "\t  [{number|mass|charge|electron}] [{bincenter|binedge}]\n"
+          "\t  [restrict {cylinder|square} cutoff <cut>]  ]\n"
           "  If one or more masks are specified, calculate specified density of selected\n"
           "  atoms along a coordinate. Otherwise calculate the total system density.\n");
 }
@@ -57,6 +60,26 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     area_coord_[1] = DY;
   }
 
+  restrictType_ = NONE;
+  std::string restrictStr = actionArgs.GetStringKey("restrict");
+  if (!restrictStr.empty()) {
+    if (restrictStr == "cylinder")
+      restrictType_ = CYLINDER;
+    else if (restrictStr == "square")
+      restrictType_ = SQUARE;
+    else {
+      mprinterr("Error: Unrecognized option for 'restrict': %s\n", restrictStr.c_str());
+      return Action::ERR;
+    }
+  }
+  if (restrictType_ != NONE) {
+    cutVal_ = actionArgs.getKeyDouble("cutoff", -1);
+    if (cutVal_ <= 0) {
+      mprinterr("Error: If 'restrict' is specified, 'cutoff' must be specified and > 0\n");
+      return Action::ERR;
+    }
+  }
+    
   property_ = NUMBER;
   if      (actionArgs.hasKey("number") )   property_ = NUMBER;
   else if (actionArgs.hasKey("mass") )     property_ = MASS;
@@ -133,6 +156,18 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     mprintf("\tData set name is '%s'\n", dsname.c_str());
     mprintf("\tData set aspect [avg] holds the mean, aspect [sd] holds standard deviation.\n");
     mprintf("\tBin coordinates will be to bin %s.\n", binStr[binType_]);
+    if (restrictType_ != NONE) {
+      if (restrictType_ == CYLINDER) {
+        mprintf("\tOnly atoms within a radius of %f Ang. from the axis will be binned.\n", cutVal_);
+        // Square the cutoff
+        cutVal_ *= cutVal_;
+      } else if (restrictType_ == SQUARE) {
+        mprintf("\tOnly atoms within a square of %f Ang. from the axis will be binned.\n", cutVal_);
+      } else {
+        mprinterr("Internal Error: Restrict type not handled.\n");
+        return Action::ERR;
+      }
+    }
   } else {
     mprintf(" No masks specified, calculating total system density in g/cm^3.\n");
     mprintf("\tData set name is '%s'\n", density_->legend());
@@ -149,11 +184,16 @@ Action::RetType Action_Density::HistSetup(ActionSetup& setup) {
   properties_.clear();
   properties_.reserve( masks_.size() );
 
+  int total_nselected = 0;
   for (std::vector<AtomMask>::iterator mask = masks_.begin();
                                        mask != masks_.end();
                                        mask++)
   {
     if (setup.Top().SetupIntegerMask(*mask) ) return Action::ERR;
+    mprintf("\t");
+    mask->BriefMaskInfo();
+    mprintf("\n");
+    total_nselected += mask->Nselected();
 
     std::vector<double> property;
 
@@ -172,9 +212,10 @@ Action::RetType Action_Density::HistSetup(ActionSetup& setup) {
 
     properties_.push_back(property);
 
-    mprintf("\t");
-    mask->BriefMaskInfo();
-    mprintf("\n");
+  }
+  if (total_nselected < 1) {
+    mprintf("Warning: Nothing selected by masks, skipping.\n");
+    return Action::SKIP;
   }
 
   return Action::OK;  
@@ -220,19 +261,39 @@ Action::RetType Action_Density::HistAction(int frameNum, ActionFrame& frm) {
     for (AtomMask::const_iterator atm = mask.begin(); atm != mask.end(); ++atm, midx++)
     {
       const double* XYZ = frm.Frm().XYZ( *atm );
-      if (XYZ[axis_] < 0) {
-        // Coordinate is negative. Need to subtract off delta so that proper bin
-        // is populated (-delta to 0.0).
-        bin = (XYZ[axis_] - delta_) / delta_;
-      } else {
-        // Coordinate is positive.
-        bin = XYZ[axis_] / delta_;
+      // Check if we are doing a geometric restriction
+      bool binValues = false;
+      if (restrictType_ == CYLINDER) {
+        //mprintf("DEBUG: CYLINDER RESTRICT: atom %i ordinates %i %i\n", *atm+1, area_coord_[0], area_coord_[1]);
+        double x = XYZ[area_coord_[0]];
+        double y = XYZ[area_coord_[1]];
+        //mprintf("DEBUG:    coords: x= %f  y= %f\n", x, y);
+        double d2 = x*x + y*y;
+        if (d2 < cutVal_)
+          binValues = true;
+        //mprintf("DEBUG:    binValues= %i\n", (int)binValues);
+      } else if (restrictType_ == SQUARE) {
+        if (fabs(XYZ[area_coord_[0]]) < cutVal_ ||
+            fabs(XYZ[area_coord_[1]]) < cutVal_)
+          binValues = true;
+      } else
+        binValues = true;
+      if (binValues) {
+        if (XYZ[axis_] < 0) {
+          // Coordinate is negative. Need to subtract off delta so that proper bin
+          // is populated (-delta to 0.0).
+          bin = (XYZ[axis_] - delta_) / delta_;
+        } else {
+          // Coordinate is positive.
+          bin = XYZ[axis_] / delta_;
+        }
+        //mprintf("DEBUG: frm=%6i mask=%3u atm=%8i crd=%8.3f bin=%li\n", frameNum+1, idx, *atm+1, XYZ[axis_], bin);
+        Sum[bin] += properties_[idx][midx];
       }
-      //mprintf("DEBUG: frm=%6i mask=%3u atm=%8i crd=%8.3f bin=%li\n", frameNum+1, idx, *atm+1, XYZ[axis_], bin);
-      Sum[bin] += properties_[idx][midx];
-    }
+    } // END loop over atoms in mask
     // Accumulate sums
-    hist.accumulate( Sum );
+    if (!Sum.empty())
+      hist.accumulate( Sum );
   }
 
   // Accumulate area
