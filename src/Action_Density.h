@@ -10,7 +10,7 @@
 #include "OnlineVarT.h"
 #include "ImagedAction.h"
 
-#define ROUTINE_VERSION_STRING "1.0.2"
+#define ROUTINE_VERSION_STRING "1.0.3"
 
 /** Calculate density along a coordinate.
   * \author Hannes H. Loeffler.
