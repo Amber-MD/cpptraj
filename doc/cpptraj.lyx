@@ -21500,20 +21500,24 @@ density
 \end_layout
 
 \begin_layout LyX-Code
-density [out <filename>] 
+density [out <filename>] [name <set name>]
 \end_layout
 
 \begin_layout LyX-Code
         [ <mask1> ...
- <maskN> [name <set name>] [delta <resolution>] [{x|y|z}]
+ <maskN> [delta <resolution>] [{x|y|z}]
 \end_layout
 
 \begin_layout LyX-Code
-          [{number|mass|charge|electron}] [{bincenter|binedge}] ]
+          [{number|mass|charge|electron}] [{bincenter|binedge}]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+          [restrict {cylinder|square} cutoff <cut>] ]
 \end_layout
 
 \begin_deeper
@@ -21522,7 +21526,7 @@ density [out <filename>]
 \begin_inset space ~
 \end_inset
 
-<filename>] Output file for histogram (relative distances vs.
+<filename>] Output file for histogram(s) (relative distances vs.
  densities for each mask) or total density.
 \end_layout
 
@@ -21564,7 +21568,7 @@ name>] Output data set name.
 \end_layout
 
 \begin_layout Description
-[{x|y|z}] Coordinate for density calculation.
+[{x|y|z}] Coordinate (axis) for density calculation.
  (default z)
 \end_layout
 
@@ -21581,22 +21585,70 @@ name>] Output data set name.
  based on bin center (default) or bin edges.
 \end_layout
 
+\begin_layout Description
+[restrict
+\begin_inset space ~
+\end_inset
+
+{cylinder|square}] If 
+\series bold
+'restrict'
+\series default
+ is specified, only calculate the density that is within a cylinder or square
+ shape from the specified axis as defined by a distance cutoff.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cutoff
+\begin_inset space ~
+\end_inset
+
+<cut> The distance cutoff for 
+\series bold
+'restrict'
+\series default
+.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
-DataSet Aspects:
+DataSets Created if masks specified:
 \end_layout
 
 \begin_layout Description
-[avg] Average density over coordinate.
+<set
+\begin_inset space ~
+\end_inset
+
+name>[avg]:<idx> Average density over coordinate for mask number <idx>.
 \end_layout
 
 \begin_layout Description
-[sd] Standard deviation of density over coordinate.
+<set
+\begin_inset space ~
+\end_inset
+
+name>[sd]:<idx> Standard deviation of density over coordinate for mask number
+ <idx>.
+\end_layout
+
+\begin_layout Standard
+DataSets Created if no masks specified:
+\end_layout
+
+\begin_layout Description
+<set
+\begin_inset space ~
+\end_inset
+
+name> Total system density each frame.
 \end_layout
 
 \end_deeper
 \begin_layout Standard
-If no arguments are specified, calculate the total system density.
+If no atom masks are specified, calculate the total system density.
  Otherwise, calculate specified density along the given axis for atoms in
  specified mask(s).
  Defaults are shown in parentheses above.
@@ -21660,6 +21712,15 @@ density out ion_density.dat number delta 0.25 ":SOD" ":CLA"
 
 \begin_layout Standard
 See also $AMBERHOME/AmberTools/test/cpptraj/Test_Density.
+\end_layout
+
+\begin_layout Standard
+It can be useful to write out the average and standard deviation as an XYDY
+ set to a Grace data file, e.g.
+\end_layout
+
+\begin_layout LyX-Code
+density :WAT@O out wato.agr xydy
 \end_layout
 
 \begin_layout Subsection
