@@ -41458,7 +41458,11 @@ ired
 \end_layout
 
 \begin_layout LyX-Code
-ired [relax freq <MHz> [NHdist <distnh>]] [order <order>]
+ired [relax freq <MHz> [NHdist <distnh>] [noefile <noefilename>]]
+\end_layout
+
+\begin_layout LyX-Code
+     [order <order>] [orderparamfile <orderfilename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -41485,15 +41489,7 @@ freq
 \begin_inset space ~
 \end_inset
 
-<MHz>
-\begin_inset space ~
-\end_inset
-
-[NHdist
-\begin_inset space ~
-\end_inset
-
-<distnh>]]
+<MHz>]
 \series default
  Should only be used when ired vectors represent N-H bonds; calculate correlatio
 n times 
@@ -41519,29 +41515,55 @@ n times
 \noun default
 \color inherit
 \lang american
- for each eigenmode and relaxation rates and NOEs for each N-H vector.
+ 
+\lang english
+for each eigenmode and relaxation rates and NOEs for each N-H vector.
  'freq <MHz>' (required) is the Lamor frequency of the measurement.
- 'NHdist <distnh>' specifies the length of the NH bond in Angstroms (default
- is 1.02).
 \end_layout
 
+\begin_deeper
 \begin_layout Description
-order
+[NHdist
 \begin_inset space ~
 \end_inset
 
-<order> Order of the Legendre polynomials to use when calculating spherical
+<distnh>] Specifies the length of the NH bond in Angstroms (default is 1.02).
+\end_layout
+
+\begin_layout Description
+[noefile
+\begin_inset space ~
+\end_inset
+
+<noefilename>] File to write the T1, T2, and NOE data to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[order
+\begin_inset space ~
+\end_inset
+
+<order>] Order of the Legendre polynomials to use when calculating spherical
  harmonics (default 2).
+\end_layout
+
+\begin_layout Description
+[orderparamfile
+\begin_inset space ~
+\end_inset
+
+<orderfilename>] File to write the S2 data to.
 \end_layout
 
 \begin_layout Description
 
 \series bold
-tstep
+[tstep
 \begin_inset space ~
 \end_inset
 
-<tstep>
+<tstep>]
 \series default
  Time between snapshots in ps (default 1.0).
 \end_layout
@@ -41549,11 +41571,11 @@ tstep
 \begin_layout Description
 
 \series bold
-tcorr
+[tcorr
 \begin_inset space ~
 \end_inset
 
-<tcorr>
+<tcorr>]
 \series default
  Maximum time to calculate correlation functions for in ps (default 10000.0).
 \end_layout
@@ -41561,13 +41583,14 @@ tcorr
 \begin_layout Description
 
 \series bold
-out
+[out
 \begin_inset space ~
 \end_inset
 
 <filename>
 \series default
- Name of file to write output to.
+ Name of file to write plateau and TauM data.
+ Also the prefix for the .cmt and .cjt files (see below).
 \end_layout
 
 \begin_layout Description
@@ -41698,19 +41721,15 @@ literal "true"
 \noun default
 \color inherit
 \lang american
- will be written to 
-\shape italic
-filename.cmt
-\shape default
-.
- Autocorrelation functions for each vector will be written to 
-\shape italic
-filename.cjt
-\shape default
-.
+ 
+\lang english
+will be written to <filename>.cmt.
+ Autocorrelation functions for each vector will be written to <filename>.cjt.
  Relaxation rates and NOEs for each N-H vector will be written to <filename>
  or added to the the end of the standard output.
- For the calculation of 
+ For the calculation of
+\lang american
+ 
 \family roman
 \series medium
 \shape up
@@ -41734,16 +41753,18 @@ filename.cjt
 \noun default
 \color inherit
 \lang american
- the normalized correlation functions and only the first third of the analyzed
+ 
+\lang english
+the normalized correlation functions and only the first third of the analyzed
  time steps will be used.
  For further information on the convergence of correlation functions see
  [Schneider, Brünger, Nilges, 
-\shape italic
+\emph on
 J.
  Mol.
  Biol.
 
-\shape default
+\emph default
  
 \series bold
 285

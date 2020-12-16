@@ -9,8 +9,9 @@
 
 // CONSTRUCTOR
 Action_Radial::Action_Radial() :
-  RDF_(0),
-  rdf_thread_(0),
+# ifdef _OPENMP
+  threadsCombined_(false),
+# endif
   rmode_(NORMAL),
   currentParm_(0),
   intramol_distances_(0),
@@ -43,18 +44,7 @@ void Action_Radial::Help() const {
           "  of residues/molecules selected by mask1 or mask2.\n");
 }
 
-// DESTRUCTOR
-Action_Radial::~Action_Radial() {
-  //fprintf(stderr,"Radial Destructor.\n");
-  if (RDF_!=0) delete[] RDF_;
-  if (rdf_thread_!=0) {
-    for (int i=0; i < numthreads_; i++)
-      delete[] rdf_thread_[i];
-    delete[] rdf_thread_;
-  }
-}
-
-inline Action::RetType RDF_ERR(const char* msg) {
+inline Action::RetType Rdf_Err(const char* msg) {
   mprinterr("Error: %s\n", msg);
   return Action::ERR;
 }
@@ -136,7 +126,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   // Set up output dataset.
   Dset_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(), "",
                                                        MetaData::NOT_TS), "g(r)");
-  if (Dset_ == 0) return RDF_ERR("Could not allocate RDF data set.");
+  if (Dset_ == 0) return Rdf_Err("Could not allocate RDF data set.");
   DataFile* outfile = init.DFL().AddDataFile(outfilename, actionArgs);
   if (outfile != 0) outfile->AddDataSet( Dset_ );
   // Make default precision a little higher than normal
@@ -157,7 +147,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (intrdfFile != 0) {
     intrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int",
                                                            MetaData::NOT_TS) );
-    if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
+    if (intrdf_ == 0) return Rdf_Err("Could not allocate RDF integral data set.");
     intrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
     intrdf_->SetDim(Dimension::X, Rdim);
@@ -168,7 +158,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (rawrdfFile != 0) {
     rawrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw",
                                                            MetaData::NOT_TS) );
-    if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
+    if (rawrdf_ == 0) return Rdf_Err("Could not allocate raw RDF data set.");
     rawrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     rawrdf_->SetLegend("Raw[" + Dset_->Meta().Legend() + "]");
     rawrdf_->SetDim(Dimension::X, Rdim);
@@ -182,9 +172,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (rawrdf_ != 0) rawrdf_->SetNeedsSync( false );
 # endif
   // Set up histogram
-  RDF_ = new int[ numBins_ ];
-  std::fill(RDF_, RDF_ + numBins_, 0);
+  RDF_.assign( numBins_, 0 );
 # ifdef _OPENMP
+  threadsCombined_ = false;
   // Since RDF is shared by all threads and we cant guarantee that a given
   // bin in RDF wont be accessed at the same time by the same thread,
   // each thread needs its own bin space.
@@ -193,12 +183,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (omp_get_thread_num()==0)
     numthreads_ = omp_get_num_threads();
 }
-  rdf_thread_ = new int*[ numthreads_ ];
-  for (int i=0; i < numthreads_; i++) {
-    rdf_thread_[i] = new int[ numBins_ ];
-    std::fill(rdf_thread_[i], rdf_thread_[i] + numBins_, 0);
-  }
-# endif
+  rdf_thread_.resize( numthreads_ );
+  for (int i=0; i < numthreads_; i++)
+    rdf_thread_[i].assign( numBins_, 0 );
+# endif /* _OPENMP */
   
   mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1_.MaskString());
   if (!mask2.empty()) 
@@ -590,16 +578,18 @@ int Action_Radial::SyncAction() {
 # ifdef _OPENMP
   CombineRdfThreads();
 # endif
-  int total_frames = 0;
-  trajComm_.ReduceMaster( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
+  double total_volume = 0;
+  trajComm_.ReduceMaster( &total_volume, &volume_, 1, MPI_DOUBLE, MPI_SUM );
+  unsigned long total_frames = 0;
+  trajComm_.ReduceMaster( &total_frames, &numFrames_, 1, MPI_UNSIGNED_LONG, MPI_SUM );
   if (trajComm_.Master()) {
+    volume_ = total_volume;
     numFrames_ = total_frames;
-    int* sum_bins = new int[ numBins_ ];
-    trajComm_.ReduceMaster( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
-    std::copy( sum_bins, sum_bins + numBins_, RDF_ );
-    delete[] sum_bins;
+    Iarray sum_bins( numBins_ );
+    trajComm_.ReduceMaster( &sum_bins[0], &RDF_[0], numBins_, MPI_UNSIGNED_LONG, MPI_SUM );
+    RDF_ = sum_bins;
   } else
-    trajComm_.ReduceMaster( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
+    trajComm_.ReduceMaster( 0,            &RDF_[0], numBins_, MPI_UNSIGNED_LONG, MPI_SUM );
   return 0;
 }
 #endif
@@ -607,14 +597,12 @@ int Action_Radial::SyncAction() {
 #ifdef _OPENMP
 /** Combine results from each rdf_thread into rdf. */
 void Action_Radial::CombineRdfThreads() {
-  if (rdf_thread_ == 0) return;
+  if (threadsCombined_) return;
   for (int thread = 0; thread < numthreads_; thread++) { 
     for (int bin = 0; bin < numBins_; bin++)
       RDF_[bin] += rdf_thread_[thread][bin];
-    delete[] rdf_thread_[thread];
   }
-  delete[] rdf_thread_;
-  rdf_thread_ = 0;
+  threadsCombined_ = true;
 }
 #endif
 
@@ -629,7 +617,7 @@ void Action_Radial::Print() {
 # ifdef _OPENMP
   CombineRdfThreads(); 
 # endif
-  mprintf("    RADIAL: %i frames,", numFrames_);
+  mprintf("    RADIAL: %lu frames,", numFrames_);
   double nmask1 = (double)Mask1_.Nselected();
   double nmask2 = (double)Mask2_.Nselected();
   int numSameAtoms = 0;
@@ -666,7 +654,7 @@ void Action_Radial::Print() {
   
   // If useVolume, calculate the density from the average volume
   if (useVolume_) {
-    double avgVol = volume_ / numFrames_;
+    double avgVol = volume_ / (double)numFrames_;
     mprintf("\tAverage volume is %f Ang^3.\n",avgVol);
     density_ = (nmask1 * nmask2 - (double)numSameAtoms) / avgVol;
     mprintf("\tAverage density is %f distances / Ang^3.\n",density_);
@@ -684,7 +672,7 @@ void Action_Radial::Print() {
   for (int bin = 0; bin < numBins_; bin++) {
     //mprintf("DBG:\tNumBins= %i\n",rdf[bin]); 
     // Number of particles in this volume slice over all frames.
-    double N = (double) RDF_[bin];
+    double N = (double)RDF_[bin];
     if (rawrdf_ != 0)
       rawrdf_->Add(bin, &N);
     // r, r + dr
@@ -696,7 +684,7 @@ void Action_Radial::Print() {
     double expectedD = dv * density_;
     if (debug_>0)
       mprintf("    \tBin %f->%f <Pop>=%f, V=%f, D=%f, norm %f distances.\n",
-              R,Rdr,N/numFrames_,dv,density_,expectedD);
+              R,Rdr,N/(double)numFrames_,dv,density_,expectedD);
     // Divide by # frames
     double norm = expectedD * (double)numFrames_;
     N /= norm;
