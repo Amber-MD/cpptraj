@@ -578,9 +578,12 @@ int Action_Radial::SyncAction() {
 # ifdef _OPENMP
   CombineRdfThreads();
 # endif
+  double total_volume = 0;
+  trajComm_.ReduceMaster( &total_volume, &volume_, 1, MPI_DOUBLE, MPI_SUM );
   unsigned long total_frames = 0;
   trajComm_.ReduceMaster( &total_frames, &numFrames_, 1, MPI_UNSIGNED_LONG, MPI_SUM );
   if (trajComm_.Master()) {
+    volume_ = total_volume;
     numFrames_ = total_frames;
     Iarray sum_bins( numBins_ );
     trajComm_.ReduceMaster( &sum_bins[0], &RDF_[0], numBins_, MPI_UNSIGNED_LONG, MPI_SUM );
