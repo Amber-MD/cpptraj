@@ -193,18 +193,20 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
 
   // Read box info 
   if (cellLengthVID_ != -1) {
+    double xyzabg[6];
     count_[0] = 3;
     count_[1] = 0;
-    if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())))
+    if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, xyzabg)))
     {
       mprinterr("Error: Getting cell lengths, frame %i.\n", set+1);
       return 1;
     }
-    if (NC::CheckErr(nc_get_vara_double(ncid_,cellAngleVID_,start_,count_,frameIn.bAddress()+3)))
+    if (NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, xyzabg+3)))
     {
       mprinterr("Error: Getting cell angles, frame %i.\n", set+1);
       return 1;
     }
+    frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
   }
 
   return 0;
@@ -290,12 +292,12 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   if (cellLengthVID_ != -1) {
     count_[0] = 3;
     count_[1] = 0;
-    if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.bAddress())))
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.BoxCrd().XyzPtr())))
     {
       mprinterr("Error: Writing cell lengths, frame %i.\n", set+1);
       return 1;
     }
-    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frameOut.bAddress()+3)))
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frameOut.BoxCrd().XyzPtr()+3)))
     {
       mprinterr("Error: Writing cell angles, frame %i.\n", set+1);
       return 1;

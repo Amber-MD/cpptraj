@@ -157,7 +157,7 @@ int Traj_AmberRestart::getBoxAngles(std::string const& boxline, Box& trajBox) {
     trajBox.SetNoBox();
     numBoxCoords_ = 0;
   } else if (numBoxCoords_==6) {
-    trajBox.SetBox(box);
+    trajBox.SetupFromXyzAbg(box);
   } else {
     mprinterr("Error: Expected 6 box coords in restart box coord line, got %i.\n",
               numBoxCoords_);
@@ -315,8 +315,8 @@ int Traj_AmberRestart::readFrame(int set, Frame& frameIn) {
     }
   }
   // Get box from buffer if present
-  if (numBoxCoords_!=0) 
-    std::copy(boxInfo_.boxPtr(), boxInfo_.boxPtr()+6, frameIn.bAddress());
+  if (numBoxCoords_!=0)
+    frameIn.SetBox( boxInfo_ ); 
   return 0;
 }
 
@@ -364,7 +364,7 @@ int Traj_AmberRestart::writeFrame(int set, Frame const& frameOut) {
     file_.DoubleToBuffer(frameOut.vAddress(), natom3_, "%12.7f");
   // Write box to buffer
   if (numBoxCoords_!=0)
-    file_.DoubleToBuffer(frameOut.bAddress(), numBoxCoords_, "%12.7f");
+    file_.DoubleToBuffer(frameOut.BoxCrd().XyzPtr(), numBoxCoords_, "%12.7f");
 
   if (file_.WriteFrame()) return 1;
 
