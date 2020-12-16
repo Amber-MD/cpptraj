@@ -273,7 +273,7 @@ Action::RetType Action_Density::HistAction(int frameNum, ActionFrame& frm) {
           binValues = true;
         //mprintf("DEBUG:    binValues= %i\n", (int)binValues);
       } else if (restrictType_ == SQUARE) {
-        if (fabs(XYZ[area_coord_[0]]) < cutVal_ ||
+        if (fabs(XYZ[area_coord_[0]]) < cutVal_ && 
             fabs(XYZ[area_coord_[1]]) < cutVal_)
           binValues = true;
       } else

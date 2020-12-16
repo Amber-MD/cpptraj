@@ -11,6 +11,7 @@
 #include "ImagedAction.h"
 
 #define ROUTINE_VERSION_STRING "1.0.3"
+// 1.0.3 - DRR Add 'restrict'
 
 /** Calculate density along a coordinate.
   * \author Hannes H. Loeffler.
