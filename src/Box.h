@@ -37,6 +37,8 @@ class Box {
 
     void SetupFromXyzAbg(const double*);
 
+    void AssignFromXyzAbg(double,double,double,double,double,double);
+
     void AssignFromXyzAbg(const double*);
 
     void AssignFromShapeMatrix(const double*);
