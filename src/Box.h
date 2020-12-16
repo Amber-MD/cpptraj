@@ -33,6 +33,8 @@ class Box {
 
     void SetupFromUcell(const double*);
 
+    void SetupFromXyzAbg(double,double,double,double,double,double);
+
     void SetupFromXyzAbg(const double*);
 
     void AssignFromXyzAbg(const double*);

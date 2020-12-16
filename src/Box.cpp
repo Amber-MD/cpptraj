@@ -486,6 +486,21 @@ void Box::SetupFromUcell(const double* ucell) {
 
   SetBoxType();
 }
+/** Set unit cell and fractional cell from XYZ ABG parameters. */
+void Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb, double bg) {
+  box_[0] = bx;
+  box_[1] = by;
+  box_[2] = bz;
+  box_[3] = ba;
+  box_[4] = bb;
+  box_[5] = bg;
+
+  CalcUcellFromXyzAbg(unitCell_, box_);
+
+  cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+
+  SetBoxType();
+}
 
 /** Set unit cell and fractional cell from XYZ ABG array. */
 void Box::SetupFromXyzAbg(const double* xyzabg) {
