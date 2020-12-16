@@ -588,8 +588,6 @@ int Action_Radial::SyncAction() {
     Iarray sum_bins( numBins_ );
     trajComm_.ReduceMaster( &sum_bins[0], &RDF_[0], numBins_, MPI_UNSIGNED_LONG, MPI_SUM );
     RDF_ = sum_bins;
-    //std::copy( sum_bins, sum_bins + numBins_, &RDF_[0] );
-    //delete[] sum_bins;
   } else
     trajComm_.ReduceMaster( 0,            &RDF_[0], numBins_, MPI_UNSIGNED_LONG, MPI_SUM );
   return 0;
