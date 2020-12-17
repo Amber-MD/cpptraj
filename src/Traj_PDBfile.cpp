@@ -112,7 +112,7 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
         // Read in box information
         double box_crd[6];
         file_.pdb_Box_verbose( box_crd );
-        boxInfo.SetBox( box_crd );
+        boxInfo.SetupFromXyzAbg( box_crd );
       } 
       // Skip non-ATOM records
       if (file_.RecType() != PDBfile::ATOM) continue;
@@ -198,8 +198,11 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
   while (atom < pdbAtom_) {
     if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
     // Skip non-ATOM records
-    if ( file_.RecType() == PDBfile::CRYST1 )
-      file_.pdb_Box_terse( frameIn.bAddress() );
+    if ( file_.RecType() == PDBfile::CRYST1 ) {
+      double xyzabg[6];
+      file_.pdb_Box_terse( xyzabg );
+      frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
+    }
     else if ( file_.RecType() == PDBfile::ATOM ) {
       // Check if we are filtering alt loc IDs
       if (keepAltLoc_ != ' ') {
@@ -828,13 +831,13 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       file_.WriteTITLE( Title() );
     WriteDisulfides(frameOut);
     if (write_cryst1_)
-      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
+      file_.WriteCRYST1( frameOut.BoxCrd().XyzPtr(), space_group_.c_str() );
   } else {
     // Write disulfides/box coords, first frame only.
     if (firstframe_) {
       WriteDisulfides(frameOut);
       if (write_cryst1_)
-        file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
+        file_.WriteCRYST1( frameOut.BoxCrd().XyzPtr(), space_group_.c_str() );
       firstframe_ = false;
     }
   }
