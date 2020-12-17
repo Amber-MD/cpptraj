@@ -285,10 +285,9 @@ int Traj_GmxTrX::openTrajin() {
 
 /** Read box information from current frame.
   * \param boxOut Double array of length 6 containing {X Y Z alpha beta gamma} 
+  * \param xyz double array of length 9 containing X{xyz} Y{xyz} Z{xyz}
   */
-int Traj_GmxTrX::ReadBox(double* boxOut) {
-  // xyz is an array of length 9 containing X{xyz} Y{xyz} Z{xyz}.
-  double xyz[9];
+int Traj_GmxTrX::ReadBox(double* xyz) {
   float f_boxIn[9];
   switch (precision_) {
     case sizeof(float):
@@ -303,6 +302,10 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
       break;
     default: return 1;
   }
+  // Convert from nm to Ang.
+  for (int i = 0; i < 9; i++)
+    xyz[i] *= Constants::NM_TO_ANG;
+/*
   // Calculate box lengths
   // NOTE: GROMACS units are nm
   boxOut[0] = sqrt((xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2])) * Constants::NM_TO_ANG;
@@ -323,7 +326,7 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
     boxOut[3] = acos( (xyz[3]*xyz[6] + xyz[4]*xyz[7] + xyz[5]*xyz[8]) *
                       100.0 / (boxOut[1]* boxOut[2]) ) * 90.0/Constants::PIOVER2;
   }
-  //mprintf("DEBUG:\tTRX Box Angles: %f %f %f\n", boxOut[3], boxOut[4], boxOut[5]);
+  //mprintf("DEBUG:\tTRX Box Angles: %f %f %f\n", boxOut[3], boxOut[4], boxOut[5]);*/
   return 0;
 }
 
@@ -388,13 +391,15 @@ int Traj_GmxTrX::setupTrajin(FileName const& fname, Topology* trajParm)
     nframes = TRAJIN_UNK;
   }
   // Load box info so that it can be checked.
-  double box[6];
-  box[0]=0.0; box[1]=0.0; box[2]=0.0; box[3]=0.0; box[4]=0.0; box[5]=0.0;
+  Box gbox;
+  //box[0]=0.0; box[1]=0.0; box[2]=0.0; box[3]=0.0; box[4]=0.0; box[5]=0.0;
   if ( box_size_ > 0 ) {
-    if ( ReadBox( box ) ) return TRAJIN_ERR;
+    double ucell[9];
+    if ( ReadBox( ucell ) ) return TRAJIN_ERR;
+    gbox.SetupFromUcell( ucell );
   }
   // Box, coords, velocity, force, time
-  CoordinateInfo myCoordInfo(Box(box), true, (v_size_ > 0), (f_size_ > 0), true);
+  CoordinateInfo myCoordInfo(gbox, true, (v_size_ > 0), (f_size_ > 0), true);
   myCoordInfo.SetStep( true ); 
   SetCoordInfo( myCoordInfo );
   closeTraj();
@@ -492,7 +497,9 @@ int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
   frameIn.SetTime( timestep_ );
   // Read box info
   if (box_size_ > 0) {
-    if (ReadBox( frameIn.bAddress() )) return 1;
+    double ucell[9];
+    if (ReadBox( ucell )) return 1;
+    frameIn.ModifyBox().AssignFromUcell( ucell );
   }
   // Blank read past virial/pressure tensor
   file_.Seek( file_.Tell() + vir_size_ + pres_size_ );
@@ -647,7 +654,9 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   // Write box
   // NOTE: GROMACS units are nm
   if (box_size_ > 0) {
-    Matrix_3x3 ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
+    //Matrix_3x3 ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
+    Matrix_3x3 ucell = frameOut.BoxCrd().UnitCell();
+    ucell *= Constants::ANG_TO_NM;
     //mprintf("BoxX: %g %g %g BoxY: %g %g %g BoxZ: %g %g %g\n",
     //        ucell[0], ucell[1], ucell[2],
     //        ucell[3], ucell[4], ucell[5],

@@ -161,15 +161,21 @@ int Traj_GmxDump::writeFrame(int set, Frame const& frameOut) {
     if (CoordInfo().HasForce())
       writeVectorArray( frameOut.fAddress(), "FORCES", 0, 3, natoms_, 3, Constants::AMBER_FRC_TO_GMX );
     if (CoordInfo().HasBox()) {
-      Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
-      // Already scaled by UnitCell()
+      //Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
+      Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell();
+      // Convert from Ang. to NM
+      Ucell *= Constants::ANG_TO_NM;
+      // Write scaled array. 
       writeVectorArray( Ucell.Dptr(), "BOX SHAPE", 0, 3, 1, 9, 1.0);
     }
   } else {
     // Generic TRR format
     if (CoordInfo().HasBox()) {
-      Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
-      // Already scaled by UnitCell()
+      //Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
+      Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell();
+      // Convert from Ang. to NM
+      Ucell *= Constants::ANG_TO_NM;
+      // Write scaled array 
       writeVectorArray( Ucell.Dptr(), "box", 3, 6, 3, 3, 1.0);
     }
     if (CoordInfo().HasCrd())
