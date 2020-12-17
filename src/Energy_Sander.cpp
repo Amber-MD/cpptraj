@@ -339,7 +339,16 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
       if (isActive_[i]) mprintf(" %s", Estring_[i]);
     mprintf("\n");
   }
-  return sander_setup_mm(top_filename_.full(), fIn.xAddress(), fIn.bAddress(), &input_);
+  // TODO copying box to temp array bc the sander API has double* instead
+  // of const double*, which I think is wrong.
+  double tmpbox[6];
+  tmpbox[0] = fIn.BoxCrd().Param(Box::X);
+  tmpbox[1] = fIn.BoxCrd().Param(Box::Y);
+  tmpbox[2] = fIn.BoxCrd().Param(Box::Z);
+  tmpbox[3] = fIn.BoxCrd().Param(Box::ALPHA);
+  tmpbox[4] = fIn.BoxCrd().Param(Box::BETA);
+  tmpbox[5] = fIn.BoxCrd().Param(Box::GAMMA);
+  return sander_setup_mm(top_filename_.full(), fIn.xAddress(), tmpbox, &input_);
 }
 
 // Energy_Sander::CalcEnergy()
@@ -347,8 +356,8 @@ int Energy_Sander::CalcEnergy(Frame& fIn) {
   if (!is_setup()) return 1;
 
   set_positions( fIn.xAddress() );
-  set_box( fIn.BoxCrd().BoxX(),  fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
-           fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
+  set_box( fIn.BoxCrd().Param(Box::X),  fIn.BoxCrd().Param(Box::Y), fIn.BoxCrd().Param(Box::Z),
+           fIn.BoxCrd().Param(Box::ALPHA), fIn.BoxCrd().Param(Box::BETA), fIn.BoxCrd().Param(Box::GAMMA) );
   energy_forces( &energy_, &(forces_[0]) );
   return 0;
 };
@@ -358,8 +367,9 @@ int Energy_Sander::CalcEnergyForces(Frame& fIn) {
   if (!is_setup()) return 1;
 
   set_positions( fIn.xAddress() );
-  set_box( fIn.BoxCrd().BoxX(),  fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
-           fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
+  set_box( fIn.BoxCrd().Param(Box::X),  fIn.BoxCrd().Param(Box::Y), fIn.BoxCrd().Param(Box::Z),
+           fIn.BoxCrd().Param(Box::ALPHA), fIn.BoxCrd().Param(Box::BETA), fIn.BoxCrd().Param(Box::GAMMA) );
+
   energy_forces( &energy_, fIn.fAddress() );
   return 0;
 }

@@ -386,7 +386,7 @@ void Box::CalcXyzAbgFromShape(double* box, const double* boxtmp)
 /** Convert unit cell parameters (X, Y, Z, a, b, g) to symmetric shape matrix
   * (S11, S12, S22, S13, S23, S33).
   */
-void CalcShapeFromXyzAbg(double* shape, const double* box)
+void Box::CalcShapeFromXyzAbg(double* shape, const double* box)
 {
   // Calculate metric tensor HtH:
   //   HtH(i,j) = vi * vj
