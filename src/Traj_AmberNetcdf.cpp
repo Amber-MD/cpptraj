@@ -499,11 +499,13 @@ int Traj_AmberNetcdf::parallelReadFrame(int set, Frame& frameIn) {
   pcount_[2] = 0;
   if (cellLengthVID_ != -1) {
     pcount_[1] = 3;
+    double xyzabg[6];
     //err = ncmpi_get_vara_double_all(ncid_, cellLengthVID_, pstart_, pcount_, frameIn.bAddress());
-    err = ncmpi_get_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, frameIn.bAddress());
+    err = ncmpi_get_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, xyzabg);
     if (checkPNCerr(err)) return Parallel::Abort(err);
     //err = ncmpi_get_vara_double_all(ncid_, cellAngleVID_, pstart_, pcount_, frameIn.bAddress()+3);
-    err = ncmpi_get_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, frameIn.bAddress()+3);
+    err = ncmpi_get_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, xyzabg+3);
+    frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
   }
   if (TempVID_ != -1) {
     //err = ncmpi_get_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameIn.tAddress());
@@ -558,10 +560,10 @@ int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
   if (cellLengthVID_ != -1) {
     pcount_[1] = 3;
     //err = ncmpi_put_vara_double_all(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.bAddress());
-    err = ncmpi_put_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.bAddress());
+    err = ncmpi_put_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.BoxCrd().XyzPtr());
     if (checkPNCerr(err)) return Parallel::Abort(err);
     //err = ncmpi_put_vara_double_all(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.bAddress()+3);
-    err = ncmpi_put_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.bAddress()+3);
+    err = ncmpi_put_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.BoxCrd().XyzPtr()+3);
   }
   if (TempVID_ != -1) {
     //err = ncmpi_put_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameOut.tAddress());
