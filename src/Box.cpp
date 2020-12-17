@@ -486,6 +486,7 @@ void Box::SetupFromUcell(const double* ucell) {
 
   SetBoxType();
 }
+
 /** Set unit cell and fractional cell from XYZ ABG parameters. */
 void Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb, double bg) {
   box_[0] = bx;
@@ -520,6 +521,15 @@ void Box::SetupFromXyzAbg(const double* xyzabg) {
 
 // -----------------------------------------------------------------------------
 // Assign routines
+
+/** Assign Xyz Abg array and frac cell from unit cell. */
+void Box::AssignFromUcell(const double* ucell) {
+  std::copy(ucell, ucell+9, unitCell_.Dptr());
+
+  CalcXyzAbgFromUcell(box_, unitCell_);
+
+  cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+}
 
 /** Assign from XYZ ABG parameters. */
 void Box::AssignFromXyzAbg(double bx, double by, double bz, double ba, double bb, double bg) {
