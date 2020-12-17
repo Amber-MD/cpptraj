@@ -1,8 +1,9 @@
 #ifndef INC_TINKERFILE_H
 #define INC_TINKERFILE_H
 #include "BufferedLine.h"
-#include "Atom.h"
-#include "Frame.h"
+#include "Box.h"
+class Frame;
+class Atom;
 /// Use to access Tinker XYZ/ARC files.
 class TinkerFile {
   public:
@@ -15,7 +16,7 @@ class TinkerFile {
 
     int OpenTinker();
     int NextTinkerFrame();
-    int ReadNextTinkerFrame(double*, double*);
+    int ReadNextTinkerFrame(Frame&);
     void Rewind() {
       file_.CloseFile();
       file_.OpenFileRead( tinkerName_ );
