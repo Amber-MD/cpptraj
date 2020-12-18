@@ -4,7 +4,8 @@
 
 /** CONSTRUCTOR */
 DataSet_Coords_CRD::DataSet_Coords_CRD() :
-  DataSet_Coords(COORDS)
+  DataSet_Coords(COORDS),
+  framesToReserve_(0)
 {}
 
 /** Reserve space for coords. */
