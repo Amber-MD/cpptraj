@@ -10,6 +10,29 @@ CompactFrameArray::CompactFrameArray() :
   std::fill(componentIdx_, componentIdx_+CoordinateInfo::NCOMPONENTS, -1);
 }
 
+/** COPY CONSTRUCTOR */
+CompactFrameArray::CompactFrameArray(CompactFrameArray const& rhs) :
+  compactFrames_(rhs.compactFrames_),
+  components_(rhs.components_),
+  offsets_(rhs.offsets_),
+  currentIdx_(rhs.currentIdx_),
+  maxIdx_(rhs.maxIdx_)
+{
+  std::copy(rhs.componentIdx_, rhs.componentIdx_+CoordinateInfo::NCOMPONENTS, componentIdx_);
+}
+
+/** ASSIGNMENT OPERATOR */
+CompactFrameArray& CompactFrameArray::operator=(CompactFrameArray const& rhs) {
+  if (this == &rhs) return *this;
+  compactFrames_ = rhs.compactFrames_;
+  std::copy(rhs.componentIdx_, rhs.componentIdx_+CoordinateInfo::NCOMPONENTS, componentIdx_);
+  components_ = rhs.components_;
+  offsets_ = rhs.offsets_;
+  currentIdx_ = rhs.currentIdx_;
+  maxIdx_ = rhs.maxIdx_;
+  return *this;
+}
+
 /** Allocate for specified number of frames. */
 void CompactFrameArray::Resize(int nframes) {
   if (nframes > 0 && !offsets_.empty()) {

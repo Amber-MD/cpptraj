@@ -4,7 +4,12 @@
 /// Hold a compact version of the time-depedent information contained in an array of Frames
 class CompactFrameArray {
   public:
+    /// CONSTRUCTOR
     CompactFrameArray();
+    /// COPY CONSTRUCTOR
+    CompactFrameArray(CompactFrameArray const&);
+    /// ASSIGNMENT
+    CompactFrameArray& operator=(CompactFrameArray const&);
 
     /// \return True if set up for any components
     bool HasComponents() const { return !(components_.empty()); }
