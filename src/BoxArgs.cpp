@@ -38,14 +38,14 @@ int BoxArgs::SetBoxArgs(ArgList& actionArgs) {
     setVar_[4] = true;
     setVar_[5] = true;
     // All lengths need to be the same
-    if (setVar_[1]) mprintf("Warning: Only 'x' used for 'truncoct'\n");
-    if (setVar_[2]) mprintf("Warning: Only 'x' used for 'truncoct'\n");
+    if (setVar_[1]) { mprintf("Warning: Only 'x' used for 'truncoct'\n"); setVar_[1] = false; }
+    if (setVar_[2]) { mprintf("Warning: Only 'x' used for 'truncoct'\n"); setVar_[2] = false; }
     if (setVar_[0]) {
       xyzabg_[1] = xyzabg_[0];
       xyzabg_[2] = xyzabg_[0];
+      setVar_[1] = true;
+      setVar_[2] = true;
     }
-    setVar_[1] = false;
-    setVar_[2] = false;
   }
   return 0;
 }
