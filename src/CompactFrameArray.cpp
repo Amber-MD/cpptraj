@@ -35,6 +35,7 @@ CompactFrameArray& CompactFrameArray::operator=(CompactFrameArray const& rhs) {
 
 /** Allocate for specified number of frames. */
 void CompactFrameArray::Resize(int nframes) {
+  mprintf("DEBUG: Calling CompactFrameArray::Resize for %i frames.\n", nframes);
   if (nframes > 0 && !offsets_.empty()) {
     compactFrames_.resize( offsets_.back() * nframes );
     maxIdx_ = nframes;
