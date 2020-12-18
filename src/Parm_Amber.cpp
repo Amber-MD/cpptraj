@@ -1039,18 +1039,18 @@ int Parm_Amber::ReadBox(FortranData const& FMT) {
   if (xyzabg[Box::BETA] == 90.0) {
     xyzabg[Box::ALPHA] = 90.0;
     xyzabg[Box::GAMMA] = 90.0;
-    //if (debug_>0) mprintf("\tSetting box to be orthogonal\n");
+    if (debug_>0) mprintf("\tAmber topology box is orthogonal.\n");
   } else if ( Box::IsTruncOct( xyzabg[Box::BETA] ) ) {
     // Use trunc oct angle from Box; higher precision
-    xyzabg[Box::BETA ] = Box::TruncatedOctAngle();
+    //xyzabg[Box::BETA ] = Box::TruncatedOctAngle();
     xyzabg[Box::ALPHA] = xyzabg[Box::BETA];
     xyzabg[Box::GAMMA] = xyzabg[Box::BETA];
-    //if (debug_>0) mprintf("\tSetting box to be a truncated octahedron, angle is %lf\n",box_[3]);
+    if (debug_>0) mprintf("\tAmber topology box is truncated octahedron.\n");
   } else if (xyzabg[Box::BETA] == 60.0) {
     xyzabg[Box::ALPHA] = 60.0; 
     xyzabg[Box::BETA]  = 90.0; 
     xyzabg[Box::GAMMA] = 60.0;
-    //if (debug_>0) mprintf("\tSetting box to be a rhombic dodecahedron, alpha=gamma=60.0, beta=90.0\n");
+    if (debug_>0) mprintf("\tAmber topology box is rhombic dodecahedron, alpha=gamma=60.0, beta=90.0.\n");
   } else {
     mprintf("Warning: AmberParm: Unrecognized beta (%g); setting all angles to beta.\n", xyzabg[Box::BETA]);
     xyzabg[Box::ALPHA] = xyzabg[Box::BETA];
