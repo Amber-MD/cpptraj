@@ -149,7 +149,7 @@ int DataIO_CCP4::ReadData(FileName const& fname,
   DataSet_GridFlt& grid = static_cast<DataSet_GridFlt&>( *gridDS );
   // Allocate grid from dims and spacing. FIXME OK to assume zero origin?
   double xyzabg[6];
-  const float* boxptr = buffer.f;
+  const float* boxptr = buffer.f + 10;
   for (int i = 0; i < 6; i++)
     xyzabg[i] = (double)boxptr[i];
   Box gridBox;
