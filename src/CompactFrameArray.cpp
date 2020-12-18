@@ -246,8 +246,18 @@ const
   int cidx = componentIdx_[cmpt];
   if (cidx < 0) return ComponentNotFoundErr(cmpt);
   const float* frameBegin = (&compactFrames_[0]) + (idx * offsets_.back());
+  // Loop over atom indices in the mask.
   for (unsigned int j = 0; j != selected.size(); j++)
-    ptrOut[j] = (double)(frameBegin[offsets_[cidx] + (3*selected[j])]);
+  {
+    // Used for coordinate index in compactFrames_
+    int          frmIdx = 3*selected[j];
+    // Used for coordinate index in ptrOut (Frame)
+    unsigned int ptrIdx = 3*j;
+    ptrOut[ptrIdx  ] = (double)(frameBegin[offsets_[cidx] + frmIdx  ]);
+    ptrOut[ptrIdx+1] = (double)(frameBegin[offsets_[cidx] + frmIdx+1]);
+    ptrOut[ptrIdx+2] = (double)(frameBegin[offsets_[cidx] + frmIdx+2]);
+  }
+  //  ptrOut[j] = (double)(frameBegin[offsets_[cidx] + (3*selected[j])]);
 
   return 0;
 }
