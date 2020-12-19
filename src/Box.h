@@ -12,14 +12,17 @@ class Box {
     enum BoxType { NOBOX=0, ORTHO, TRUNCOCT, RHOMBIC, NONORTHO };
     /// Various box parameters; corresponds to XYZ ABG array.
     enum ParamType { X=0, Y, Z, ALPHA, BETA, GAMMA };
-
+    /// CONSTRUCTOR
     Box();
     /// CONSTRUCTOR - Set up from unit cell matrix
-    Box(Matrix_3x3 const&);
+    ///Box(Matrix_3x3 const&);
     //Box(const double*);
     //Box(const float*);
+    /// COPY CONSTRUCTOR
     Box(const Box&);
+    /// ASSIGNMENT
     Box& operator=(const Box&);
+    /// SWAP
     void swap(Box&);
 #   ifdef MPI
     int SyncBox(Parallel::Comm const&);
