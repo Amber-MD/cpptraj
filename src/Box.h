@@ -36,6 +36,8 @@ class Box {
 
     void SetupFromUcell(const double*);
 
+    void SetupFromUcell(Matrix_3x3 const& ucell) { SetupFromUcell(ucell.Dptr()); }
+
     void SetupFromXyzAbg(double,double,double,double,double,double);
 
     void SetupFromXyzAbg(const double*);

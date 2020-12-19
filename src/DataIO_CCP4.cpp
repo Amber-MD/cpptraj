@@ -254,7 +254,8 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
   buffer.i[7] = (int)grid.NX();
   buffer.i[8] = (int)grid.NY();
   buffer.i[9] = (int)grid.NZ();
-  Box box( grid.Bin().Ucell() );
+  Box box;
+  box.SetupFromUcell( grid.Bin().Ucell() );
   buffer.f[10] = (float)box.Param(Box::X);
   buffer.f[11] = (float)box.Param(Box::Y);
   buffer.f[12] = (float)box.Param(Box::Z);

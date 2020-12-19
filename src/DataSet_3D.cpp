@@ -102,7 +102,8 @@ void DataSet_3D::GridInfo() const {
             oxyz[2] + (NZ()/2)*gb.DZ());
     //mprintf("\tGrid max    : %8.3f %8.3f %8.3f\n", grid.MX(), grid.MY(), grid.MZ());
   } else {
-    Box box(gridBin_->Ucell());
+    Box box;
+    box.SetupFromUcell(gridBin_->Ucell());
     mprintf("\t\tBox: %s ABC={%g %g %g} abg={%g %g %g}\n", box.TypeName(),
             box.Param(Box::X), box.Param(Box::Y), box.Param(Box::Z),
             box.Param(Box::ALPHA), box.Param(Box::BETA), box.Param(Box::GAMMA));

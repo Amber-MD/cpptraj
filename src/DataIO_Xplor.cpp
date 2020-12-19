@@ -50,7 +50,8 @@ int DataIO_Xplor::ReadData(FileName const& fname,
               CellDim+3, CellDim+4, CellDim+5) != 6 )
     return ErrorMsg("Error: Could not read cell dimensions.\n");
   // Determine if grid is orthogonal and allocate.
-  Box box( CellDim );
+  Box box;
+  box.SetupFromXyzAbg( CellDim );
   int err = 0;
   if (box.Type() == Box::ORTHO) {
     // Allocate orthogonal grid
@@ -146,7 +147,8 @@ void DataIO_Xplor::WriteXplorHeader(CpptrajFile& outfile,
     outfile.Printf("%8i\n%s\n",1,legend.c_str());
   else
     outfile.Printf("%8i\n%s\n",1,remark_.c_str()); // FIXME check length
-  Box box( ucell );
+  Box box;
+  box.SetupFromUcell( ucell );
   outfile.Printf("%8i%8i%8i%8i%8i%8i%8i%8i%8i\n"
                  "%12.5f%12.5f%12.5f%12.5f%12.5f%12.5f\nZYX\n",
                  nx, bx, ex, ny, by, ey, nz, bz, ez,
