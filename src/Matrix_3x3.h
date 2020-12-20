@@ -42,9 +42,9 @@ class Matrix_3x3 {
     /// \return Result of multiplying this matrix times given 3x3 matrix TODO split into a void and const version
     Matrix_3x3& operator*=(const Matrix_3x3&);
     /// Multiply all elements of this matrix by scalar
-    void operator*=(double);
+    Matrix_3x3& operator*=(double);
     /// \return Result of multiplying this matrix times given scalar
-    Matrix_3x3 operator*=(double) const;
+    Matrix_3x3 operator*(double) const;
     
     void RotationAroundZ(double, double);
     void RotationAroundY(double, double);
