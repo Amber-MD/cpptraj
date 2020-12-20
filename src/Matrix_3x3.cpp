@@ -361,6 +361,20 @@ void Matrix_3x3::Transpose() {
   M_[7] = U5;
 }
 
+/** Multiple all elements by scalar. */
+void Matrix_3x3::operator*=(double fac) {
+  for (int i = 0; i < 9; i++)
+    M_[i] *= fac;
+}
+
+/** \return Matrix with all elements multiplied by a scalar. */
+Matrix_3x3 Matrix_3x3::operator*=(double fac) const {
+  Matrix_3x3 result;
+  for (int i = 0; i < 9; i++)
+    result[i] = M_[i] * fac;
+  return result;
+}
+
 // Matrix_3x3::operator*=()
 Matrix_3x3& Matrix_3x3::operator*=(const Matrix_3x3& rhs) {
   double Row[9];
