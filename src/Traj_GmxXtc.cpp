@@ -237,10 +237,8 @@ int Traj_GmxXtc::writeFrame(int set, Frame const& frameOut) {
   else
     time = (float)(dt_ * (double)set);
   //Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
-  frameOut.BoxCrd().UnitCell().Print("GmxWrite");
-  Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell();
-  Ucell *= Constants::ANG_TO_NM;
-  Ucell.Print("GmxWriteConv");
+  Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell() * Constants::ANG_TO_NM;
+  //Ucell *= Constants::ANG_TO_NM;
   int idx = 0;
   for (int ii = 0; ii < DIM; ii++)
     for (int ij = 0; ij < DIM; ij++)
