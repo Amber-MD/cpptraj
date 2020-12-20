@@ -175,6 +175,13 @@ bool Box::IsOrthoNormal() const {
   return true;
 }
 
+void Box::printBoxStatus(const char* desc) const {
+  mprintf("DEBUG: Box: %s\n", BoxNames_[btype_]);
+  mprintf("DEBUG:   XYZ= %12.4f %12.4f %8.3f  ABG= %12.4f %12.4f %12.4f\n",
+          box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
+  unitCell_.Print(desc);
+}
+
 // Box::SetBoxType()
 /** Determine box type (none/ortho/nonortho) based on box angles. */
 void Box::SetBoxType() {
@@ -517,6 +524,7 @@ void Box::SetupFromXyzAbg(const double* xyzabg) {
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
   SetBoxType();
+  printBoxStatus("SetupFromXyzAbg");
 }
 
 // -----------------------------------------------------------------------------
@@ -563,6 +571,7 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
   CalcUcellFromXyzAbg(unitCell_, btype_, box_, 1.0);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+  printBoxStatus("AssignFromXyzAbg");
 }
 
 /** Assign from symmetric shape matrix. */

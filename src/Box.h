@@ -119,6 +119,8 @@ class Box {
     static inline bool BadTruncOctAngle(double);
     static inline bool IsEq(double,double);
 
+    void printBoxStatus(const char*) const;
+
     void SetBoxType();
 
     /// Calculate fractional matrix from unit cell matrix.
