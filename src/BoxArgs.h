@@ -17,12 +17,14 @@ class BoxArgs {
     /// Set all angles to given value
     void SetAngles(double);
     /// Set info not already set from given box
-    void SetMissingInfo(Box const&);
+    int SetMissingInfo(Box const&);
     /// Print info that has been set to STDOUT
     void PrintXyzAbg() const;
     /// \return Pointer to XYZ ABG array
     const double* XyzAbg() const { return xyzabg_; }
   private:
+    static int SetEmptyInfo(const char*, double&, const char*, double, const char*, double);
+
     double xyzabg_[6]; ///< Hold box information to be set.
     bool setVar_[6];   ///< If true, that part of the xyzabg_ array has been set.
 };

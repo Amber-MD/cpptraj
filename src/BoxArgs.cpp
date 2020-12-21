@@ -79,10 +79,50 @@ void BoxArgs::PrintXyzAbg() const {
   mprintf("\n");
 }
 
+/** Used to set an empty param1 from the other params. */
+int BoxArgs::SetEmptyInfo(const char* str1, double& param1,
+                          const char* str2, double param2,
+                          const char* str3, double param3)
+{
+  mprintf("Warning: Box %s is empty.", str1);
+  if (param2 > 0) {
+    mprintf(" Setting from %s (%f)\n", str2, param2);
+    param1 = param2;
+    return 0;
+  } else if (param3 > 0) {
+    mprintf(" Setting from %s (%f)\n", str3, param3);
+    param1 = param3;
+    return 0;
+  }
+  mprintf("\n");
+  mprinterr("Error: Nothing available to set box %s\n", str1);
+  return 1;
+}
+
 /** Set any values in xyz abg array not already set with info from box. */
-void BoxArgs::SetMissingInfo(Box const& boxIn) {
+int BoxArgs::SetMissingInfo(Box const& boxIn) {
   for (int i = 0; i < 6; i++) {
     if (!setVar_[i]) xyzabg_[i] = boxIn.Param((Box::ParamType)i);
     if (!setVar_[i]) mprintf("DEBUG: SetMissingInfo param %i boxIn= %12.4f\n", i, boxIn.Param((Box::ParamType)i));
   }
+  if (xyzabg_[Box::X] <= 0) {
+    if (SetEmptyInfo("X", xyzabg_[Box::X], "Y", xyzabg_[Box::Y], "Z", xyzabg_[Box::Z])) return 1;
+  }
+  if (xyzabg_[Box::Y] <= 0) {
+    if (SetEmptyInfo("Y", xyzabg_[Box::Y], "X", xyzabg_[Box::X], "Z", xyzabg_[Box::Z])) return 1;
+  }
+  if (xyzabg_[Box::Z] <= 0) {
+    if (SetEmptyInfo("Z", xyzabg_[Box::Z], "X", xyzabg_[Box::X], "Y", xyzabg_[Box::Y])) return 1;
+  }
+  if (xyzabg_[Box::ALPHA] <= 0) {
+    if (SetEmptyInfo("alpha", xyzabg_[Box::ALPHA], "beta", xyzabg_[Box::BETA], "gamma", xyzabg_[Box::GAMMA])) return 1;
+  }
+  if (xyzabg_[Box::BETA] <= 0) {
+    if (SetEmptyInfo("beta", xyzabg_[Box::BETA], "alpha", xyzabg_[Box::ALPHA], "gamma", xyzabg_[Box::GAMMA])) return 1;
+  }
+if (xyzabg_[Box::GAMMA] <= 0) {
+    if (SetEmptyInfo("gamma", xyzabg_[Box::GAMMA], "alpha", xyzabg_[Box::ALPHA], "beta", xyzabg_[Box::BETA])) return 1;
+  }
+
+  return 0;
 }
