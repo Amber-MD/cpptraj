@@ -481,6 +481,7 @@ void Box::SetupFromShapeMatrix(const double* shape) {
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
   SetBoxType();
+  printBoxStatus("SetupFromShapeMatrix");
 }
 
 /** Set up Xyz Abg array and frac cell from unit cell. */
@@ -492,6 +493,7 @@ void Box::SetupFromUcell(const double* ucell) {
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
   SetBoxType();
+  printBoxStatus("SetupFromUcell");
 }
 
 /** Set unit cell and fractional cell from XYZ ABG parameters. */
@@ -508,6 +510,7 @@ void Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb,
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
   SetBoxType();
+  printBoxStatus("SetupFromXyzAbgIndividual");
 }
 
 /** Set unit cell and fractional cell from XYZ ABG array. */
@@ -537,6 +540,7 @@ void Box::AssignFromUcell(const double* ucell) {
   CalcXyzAbgFromUcell(box_, unitCell_);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+  printBoxStatus("AssignFromUcell");
 }
 
 /** Assign from XYZ ABG parameters. */
@@ -551,6 +555,7 @@ void Box::AssignFromXyzAbg(double bx, double by, double bz, double ba, double bb
   CalcUcellFromXyzAbg(unitCell_, box_);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+  printBoxStatus("AssignFromXyzAbgIndividual");
 }
 
 /** Assign from XYZ ABG array. */
@@ -591,6 +596,7 @@ void Box::AssignFromShapeMatrix(const double* shape) {
   CalcXyzAbgFromShape(box_, shape);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+  printBoxStatus("AssignFromShapeMatrix");
 }
 
 // -----------------------------------------------------------------------------
