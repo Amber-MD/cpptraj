@@ -87,7 +87,8 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
   } else {
     // SET, AUTO
     // Fill in missing box information from current box
-    boxArgs_.SetMissingInfo( setup.CoordInfo().TrajBox() );
+    if (boxArgs_.SetMissingInfo( setup.CoordInfo().TrajBox() ))
+      return Action::ERR;
     Box pbox;
     pbox.SetupFromXyzAbg( boxArgs_.XyzAbg() );
     mprintf("\tNew box type is %s\n", pbox.TypeName() );

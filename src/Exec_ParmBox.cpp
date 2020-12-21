@@ -27,7 +27,7 @@ Exec::RetType Exec_ParmBox::Execute(CpptrajState& State, ArgList& argIn) {
     mprintf("\tRemoving box information from parm %i:%s\n", parm->Pindex(), parm->c_str());
   else {
     // Fill in missing parm box information from specified parm
-    boxArgs.SetMissingInfo( parm->ParmBox() );
+    if (boxArgs.SetMissingInfo( parm->ParmBox() )) return CpptrajState::ERR;
     pbox.SetupFromXyzAbg( boxArgs.XyzAbg() );
   }
   parm->SetParmBox( pbox );
