@@ -83,5 +83,6 @@ void BoxArgs::PrintXyzAbg() const {
 void BoxArgs::SetMissingInfo(Box const& boxIn) {
   for (int i = 0; i < 6; i++) {
     if (!setVar_[i]) xyzabg_[i] = boxIn.Param((Box::ParamType)i);
+    if (!setVar_[i]) mprintf("DEBUG: SetMissingInfo param %i boxIn= %12.4f\n", i, boxIn.Param((Box::ParamType)i));
   }
 }
