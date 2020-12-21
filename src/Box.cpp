@@ -142,6 +142,8 @@ const char* Box::BoxNames_[] = {
   "None", "Orthogonal", "Trunc. Oct.", "Rhombic Dodec.", "Non-orthogonal"
 };
 
+const char* Box::ParamStr_[] = { "X", "Y", "Z", "alpha", "beta", "gamma" };
+
 // -----------------------------------------------------------------------------
 bool Box::IsTruncOct(double angle) {
   return (angle > TruncOctMin_ && angle < TruncOctMax_);
@@ -183,24 +185,29 @@ void Box::printBoxStatus(const char* desc) const {
 }
 
 // Box::SetBoxType()
-/** Determine box type (none/ortho/nonortho) based on box angles. */
+/** Determine box type (none/ortho/nonortho) based on box angles. It is
+  * expected that if this routine is called, valid box information is present.
+  * If not, this is an error.
+  */
 void Box::SetBoxType() {
-  btype_ = NONORTHO;
-  // TODO error if any of box is zero?
-  bool noLengths = (box_[0] < Constants::SMALL &&
-                    box_[1] < Constants::SMALL &&
-                    box_[2] < Constants::SMALL);
-  bool noAngles = ( box_[3] <= 0 && box_[4] <= 0 && box_[5] <= 0);
-  if ( noLengths ) {
-    // No lengths, no box
-    btype_ = NOBOX;
-    if (!noAngles)
-      mprintf("Warning: Box length(s) <= 0.0; setting box to NONE.\n");
-  } else if ( noAngles ) {
-    // No angles, no box
-    mprintf("Warning: Box angle(s) <= 0.0; setting box to NONE.\n");
-    btype_ = NOBOX;
-  } else if (box_[3] == 90.0 && box_[4] == 90.0 && box_[5] == 90.0)
+  btype_ = NOBOX;
+  // Check for invalid lengths/angles
+  bool hasZeros = false;
+  for (int i = 0; i < 3; i++) {
+    if (box_[i] < Constants::SMALL) {
+      mprinterr("Error: Box %s vector length is zero.\n", ParamStr_[i]);
+      hasZeros = true;
+    }
+  }
+  for (int i = 3; i < 6; i++) {
+    if (box_[i] < Constants::SMALL) {
+      mprinterr("Error: Box %s angle is zero.\n", ParamStr_[i]);
+      hasZeros = true;
+    }
+  }
+  if (hasZeros) return;
+  // Check Angles
+  if (box_[3] == 90.0 && box_[4] == 90.0 && box_[5] == 90.0)
     // All 90, orthogonal
     btype_ = ORTHO;
   else if ( IsTruncOct( box_[3] ) && IsTruncOct( box_[4] ) && IsTruncOct( box_[5] ) )
@@ -210,9 +217,11 @@ void Box::SetBoxType() {
     // 60/90/60, rhombic dodecahedron
     btype_ = RHOMBIC;
   else
+    // Everything else; non-orthogonal
     btype_ = NONORTHO;
   //if (debug_>0) mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
 
+  // Extra checks
   if (btype_ == TRUNCOCT) {
     // Check for low-precision truncated octahedron angles.
     if ( BadTruncOctAngle(box_[3]) || BadTruncOctAngle(box_[4]) || BadTruncOctAngle(box_[5]) )
@@ -562,7 +571,7 @@ void Box::AssignFromXyzAbg(double bx, double by, double bz, double ba, double bb
 void Box::AssignFromXyzAbg(const double* xyzabg) {
   // Sanity check
   if (btype_ == NOBOX) {
-    mprinterr("Internal Error: AssignFromXyzAbg(): No box has been set.\n");
+    mprintf("Internal Error: AssignFromXyzAbg(): No box has been set.\n");
     return;
   }
   box_[0] = xyzabg[0];

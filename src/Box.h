@@ -114,7 +114,10 @@ class Box {
     static const double TruncOctMin_;
     static const double TruncOctMax_;
     static const double TruncOctEps_;
+    /// Names corresponding to BoxType
     static const char* BoxNames_[];
+    /// Names corresponding to ParamType
+    static const char* ParamStr_[];
 
     static inline bool BadTruncOctAngle(double);
     static inline bool IsEq(double,double);
