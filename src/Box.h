@@ -32,6 +32,7 @@ class Box {
     /// Remove all box information
     void SetNoBox();
 
+    // Setup routines; will set the box type and perform checks.
     void SetupFromShapeMatrix(const double*);
 
     void SetupFromUcell(const double*);
@@ -42,6 +43,7 @@ class Box {
 
     void SetupFromXyzAbg(const double*);
 
+    // Assign routines; just assign box lengths, not type; no checks.
     void AssignFromUcell(const double*);
 
     void AssignFromXyzAbg(double,double,double,double,double,double);
@@ -123,8 +125,8 @@ class Box {
     static inline bool IsEq(double,double);
 
     void printBoxStatus(const char*) const;
-
-    void SetBoxType();
+    /// \return The box type based on angles; performs sanity checks.
+    BoxType SetBoxType() const;
 
     /// Calculate fractional matrix from unit cell matrix.
     static inline double CalcFracFromUcell(Matrix_3x3&, Matrix_3x3 const&);
