@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles create.in crd?.dat crd?.gnu crd?.rst7 crd.rst7
+CleanFiles create.in crd?.dat crd?.gnu crd?.rst7 crd.rst7 mremd.nc
 
 INPUT="-i create.in"
 TESTNAME='COORDS creation tests'
@@ -87,6 +87,20 @@ EOF
   RunCpptraj "$UNITNAME"
   DoTest crd3.dat crd4.dat
 fi
+
+# Test that extended traj info is preserved
+# NOTE: We compare against a save instead of the original trajectory since
+#       data that was originally double (temp0, cell_lengths, etc)
+#       loses precision when converted to float.
+UNITNAME='COORDS test storing frame metadata'
+cat > create.in <<EOF
+parm ../Test_Ensemble_MREMD/rGACC.nowat.parm7
+loadcrd ../Test_Ensemble_MREMD/rGACC.nowat.001 name MREMD
+list dataset
+crdout MREMD mremd.nc
+EOF
+RunCpptraj "$UNITNAME"
+NcTest mremd.nc.save mremd.nc
 
 EndTest
 
