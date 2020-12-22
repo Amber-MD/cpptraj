@@ -1,6 +1,7 @@
 #include "DataSet_Coords_CRD.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ByteString
+#include <algorithm> // std::copy
 
 /** CONSTRUCTOR */
 DataSet_Coords_CRD::DataSet_Coords_CRD() :
@@ -70,7 +71,17 @@ static inline void FrameToArray(CompactFrameArray& frames_, Frame const& fIn) {
   if (frames_.HasComponent(CoordinateInfo::POSITION)) frames_.SetFromDblPtr(fIn.xAddress(), CoordinateInfo::POSITION);
   if (frames_.HasComponent(CoordinateInfo::VELOCITY)) frames_.SetFromDblPtr(fIn.vAddress(), CoordinateInfo::VELOCITY);
   if (frames_.HasComponent(CoordinateInfo::FORCE)) frames_.SetFromDblPtr(fIn.fAddress(), CoordinateInfo::FORCE);
-  if (frames_.HasComponent(CoordinateInfo::BOX)) frames_.SetFromDblPtr(fIn.BoxCrd().UnitCell().Dptr(), CoordinateInfo::BOX);
+  if (frames_.HasComponent(CoordinateInfo::BOX)) {
+    // Prefer storing XYZ ABG if possible; loses less info, especially when converting to float.
+    if (fIn.BoxCrd().IsNormal()) {
+      double dtmp[9];
+      std::copy(fIn.BoxCrd().XyzPtr(), fIn.BoxCrd().XyzPtr()+6, dtmp);
+      std::fill(dtmp+6, dtmp+9, 0);
+      frames_.SetFromDblPtr(dtmp, CoordinateInfo::BOX);
+    } else {
+      frames_.SetFromDblPtr(fIn.BoxCrd().UnitCell().Dptr(), CoordinateInfo::BOX);
+    }
+  }
   if (frames_.HasComponent(CoordinateInfo::TEMPERATURE)) frames_.SetFromDblVal(fIn.Temperature(), CoordinateInfo::TEMPERATURE);
   if (frames_.HasComponent(CoordinateInfo::PH)) frames_.SetFromDblVal(fIn.pH(), CoordinateInfo::PH);
   if (frames_.HasComponent(CoordinateInfo::REDOX)) frames_.SetFromDblVal(fIn.RedOx(), CoordinateInfo::REDOX);
@@ -97,10 +108,15 @@ void DataSet_Coords_CRD::SetCRD(int idx, Frame const& fIn) {
 
 /** Non-coord-related array to Frame */
 static inline void ArrayToFrame(int idx, Frame& fOut, CompactFrameArray const& frames_) {
-  double dtmp[9];
   if (frames_.HasComponent(CoordinateInfo::BOX)) {
+    double dtmp[9];
     frames_.GetToDblPtr(dtmp, idx, CoordinateInfo::BOX);
-    fOut.ModifyBox().SetupFromUcell( dtmp );
+    // Box may be stored as XYZ ABG or unit cell vectors. If last three elements are all zero
+    // it is the former, otherwise the latter.
+    if (dtmp[6] != 0 || dtmp[7] != 0 || dtmp[8] != 0)
+      fOut.ModifyBox().SetupFromUcell( dtmp );
+    else
+      fOut.ModifyBox().SetupFromXyzAbg( dtmp );
   }
   if (frames_.HasComponent(CoordinateInfo::TEMPERATURE)) fOut.SetTemperature(frames_.GetVal(idx, CoordinateInfo::TEMPERATURE));
   if (frames_.HasComponent(CoordinateInfo::PH)) fOut.Set_pH(frames_.GetVal(idx, CoordinateInfo::PH));
