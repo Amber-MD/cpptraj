@@ -194,13 +194,13 @@ Box::BoxType Box::SetBoxType() const {
   bool hasZeros = false;
   for (int i = 0; i < 3; i++) {
     if (box_[i] < Constants::SMALL) {
-      mprinterr("Error: Box %s vector length is zero.\n", ParamStr_[i]);
+      mprintf("Warning: Box %s vector length is zero.\n", ParamStr_[i]);
       hasZeros = true;
     }
   }
   for (int i = 3; i < 6; i++) {
     if (box_[i] < Constants::SMALL) {
-      mprinterr("Error: Box %s angle is zero.\n", ParamStr_[i]);
+      mprintf("Warning: Box %s angle is zero.\n", ParamStr_[i]);
       hasZeros = true;
     }
   }
@@ -473,7 +473,7 @@ void Box::CalcShapeFromXyzAbg(double* shape, const double* box)
 // Setup routines
 
 /** Set unit cell, fractional cell, and XYZ ABG array from shape matrix. */
-void Box::SetupFromShapeMatrix(const double* shape) {
+int Box::SetupFromShapeMatrix(const double* shape) {
   unitCell_[0] = shape[0];
   unitCell_[1] = shape[1];
   unitCell_[2] = shape[3];
@@ -492,10 +492,12 @@ void Box::SetupFromShapeMatrix(const double* shape) {
 
   btype_ = SetBoxType();
   printBoxStatus("SetupFromShapeMatrix");
+  if (btype_ == NOBOX) return 1;
+  return 0;
 }
 
 /** Set up Xyz Abg array and frac cell from unit cell. */
-void Box::SetupFromUcell(const double* ucell) {
+int Box::SetupFromUcell(const double* ucell) {
   std::copy(ucell, ucell+9, unitCell_.Dptr());
 
   CalcXyzAbgFromUcell(box_, unitCell_);
@@ -504,10 +506,12 @@ void Box::SetupFromUcell(const double* ucell) {
 
   btype_ = SetBoxType();
   printBoxStatus("SetupFromUcell");
+  if (btype_ == NOBOX) return 1;
+  return 0;
 }
 
 /** Set unit cell and fractional cell from XYZ ABG parameters. */
-void Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb, double bg) {
+int Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb, double bg) {
   box_[0] = bx;
   box_[1] = by;
   box_[2] = bz;
@@ -521,10 +525,12 @@ void Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb,
 
   btype_ = SetBoxType();
   printBoxStatus("SetupFromXyzAbgIndividual");
+  if (btype_ == NOBOX) return 1;
+  return 0;
 }
 
 /** Set unit cell and fractional cell from XYZ ABG array. */
-void Box::SetupFromXyzAbg(const double* xyzabg) {
+int Box::SetupFromXyzAbg(const double* xyzabg) {
   box_[0] = xyzabg[0];
   box_[1] = xyzabg[1];
   box_[2] = xyzabg[2];
@@ -538,6 +544,8 @@ void Box::SetupFromXyzAbg(const double* xyzabg) {
 
   btype_ = SetBoxType();
   printBoxStatus("SetupFromXyzAbg");
+  if (btype_ == NOBOX) return 1;
+  return 0;
 }
 
 // -----------------------------------------------------------------------------

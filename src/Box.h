@@ -33,15 +33,15 @@ class Box {
     void SetNoBox();
 
     // Setup routines; will set the box type and perform checks.
-    void SetupFromShapeMatrix(const double*);
+    int SetupFromShapeMatrix(const double*);
 
-    void SetupFromUcell(const double*);
+    int SetupFromUcell(const double*);
 
-    void SetupFromUcell(Matrix_3x3 const& ucell) { SetupFromUcell(ucell.Dptr()); }
+    int SetupFromUcell(Matrix_3x3 const& ucell) { return SetupFromUcell(ucell.Dptr()); }
 
-    void SetupFromXyzAbg(double,double,double,double,double,double);
+    int SetupFromXyzAbg(double,double,double,double,double,double);
 
-    void SetupFromXyzAbg(const double*);
+    int SetupFromXyzAbg(const double*);
 
     // Assign routines; just assign box lengths, not type; no checks.
     void AssignFromUcell(const double*);
