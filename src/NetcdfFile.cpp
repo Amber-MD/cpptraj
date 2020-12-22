@@ -295,6 +295,21 @@ int NetcdfFile::SetupTime() {
       if (time == NC_FILL_FLOAT) {
         mprintf("Warning: NetCDF file time variable defined but empty. Disabling.\n");
         timeVID_ = -1;
+      } else {
+        // If first 2 values are 0, this is another indication of a bad time variable.
+        if (ncframe_ > 1) {
+          float time1;
+          start_[0] = 1;
+          if (NC::CheckErr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time1))) {
+            mprinterr("Error: Getting second time value for NetCDF file.\n");
+            return -1;
+          }
+          if (time1 == 0 && time1 == time)
+          {
+            mprintf("Warning: NetCDF file time variable defined but all zero. Disabling.\n");
+            timeVID_ = -1;
+          }
+        }
       }
     }
     return 0;
