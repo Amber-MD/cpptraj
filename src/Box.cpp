@@ -553,6 +553,12 @@ int Box::SetupFromXyzAbg(const double* xyzabg) {
 
 /** Assign Xyz Abg array and frac cell from unit cell. */
 void Box::AssignFromUcell(const double* ucell) {
+  // Sanity check
+  if (btype_ == NOBOX) {
+    mprintf("Internal Error: AssignFromUcell(): No box has been set.\n");
+    return;
+  }
+
   std::copy(ucell, ucell+9, unitCell_.Dptr());
 
   CalcXyzAbgFromUcell(box_, unitCell_);
@@ -563,6 +569,12 @@ void Box::AssignFromUcell(const double* ucell) {
 
 /** Assign from XYZ ABG parameters. */
 void Box::AssignFromXyzAbg(double bx, double by, double bz, double ba, double bb, double bg) {
+  // Sanity check
+  if (btype_ == NOBOX) {
+    mprintf("Internal Error: AssignFromXyzAbgIndividual(): No box has been set.\n");
+    return;
+  }
+
   box_[0] = bx;
   box_[1] = by;
   box_[2] = bz;
@@ -583,6 +595,7 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
     mprintf("Internal Error: AssignFromXyzAbg(): No box has been set.\n");
     return;
   }
+
   box_[0] = xyzabg[0];
   box_[1] = xyzabg[1];
   box_[2] = xyzabg[2];
@@ -599,6 +612,12 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
 
 /** Assign from symmetric shape matrix. */
 void Box::AssignFromShapeMatrix(const double* shape) {
+  // Sanity check
+  if (btype_ == NOBOX) {
+    mprintf("Internal Error: AssignFromShapeMatrix(): No box has been set.\n");
+    return;
+  }
+
   unitCell_[0] = shape[0];
   unitCell_[1] = shape[1];
   unitCell_[2] = shape[3];
