@@ -441,7 +441,13 @@ int NetcdfFile::SetupBox() {
     }
     if (ncdebug_ > 0) mprintf("\tNetCDF Box: XYZ={%f %f %f} ABG={%f %f %f}\n",
                               boxCrd[0], boxCrd[1], boxCrd[2], boxCrd[3], boxCrd[4], boxCrd[5]);
-    nc_box_.SetupFromXyzAbg( boxCrd );
+    if (nc_box_.SetupFromXyzAbg( boxCrd )) {
+      mprintf("Warning: NetCDF file unit cell variables appear to be empty; disabling box.\n");
+      cellLengthVID_ = -1;
+      cellAngleVID_ = -1;
+      nc_box_.SetNoBox();
+      return -1;
+    }
     return 0;
   }
   // No box information
