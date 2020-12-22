@@ -112,7 +112,10 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
         // Read in box information
         double box_crd[6];
         file_.pdb_Box_verbose( box_crd );
-        boxInfo.SetupFromXyzAbg( box_crd );
+        if (boxInfo.SetupFromXyzAbg( box_crd )) {
+          mprintf("Warning: Box information in PDB appears invalid; disabling box.\n");
+          boxInfo.SetNoBox();
+        }
       } 
       // Skip non-ATOM records
       if (file_.RecType() != PDBfile::ATOM) continue;
@@ -198,7 +201,7 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
   while (atom < pdbAtom_) {
     if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
     // Skip non-ATOM records
-    if ( file_.RecType() == PDBfile::CRYST1 ) {
+    if ( file_.RecType() == PDBfile::CRYST1 && frameIn.BoxCrd().HasBox() ) {
       double xyzabg[6];
       file_.pdb_Box_terse( xyzabg );
       frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
