@@ -14,10 +14,6 @@ class Box {
     enum ParamType { X=0, Y, Z, ALPHA, BETA, GAMMA };
     /// CONSTRUCTOR
     Box();
-    /// CONSTRUCTOR - Set up from unit cell matrix
-    ///Box(Matrix_3x3 const&);
-    //Box(const double*);
-    //Box(const float*);
     /// COPY CONSTRUCTOR
     Box(const Box&);
     /// ASSIGNMENT
@@ -32,6 +28,7 @@ class Box {
     /// Remove all box information
     void SetNoBox();
 
+    // -------------------------------------------
     // Setup routines; will set the box type and perform checks.
     int SetupFromShapeMatrix(const double*);
 
@@ -43,6 +40,7 @@ class Box {
 
     int SetupFromXyzAbg(const double*);
 
+    // -------------------------------------------
     // Assign routines; just assign box lengths, not type; no checks.
     void AssignFromUcell(const double*);
 
@@ -52,27 +50,14 @@ class Box {
 
     void AssignFromShapeMatrix(const double*);
 
+    // -------------------------------------------
+    /// Set incoming array of length 6 with shape matrix; suitable for Charmm
     void GetSymmetricShapeMatrix(double*) const;
-    //void SetBetaLengths(double,double,double,double);
-    //void SetBox(const double*);
-    //void SetBox(const float*);
-    //void SetBox(Matrix_3x3 const&);
-    //void SetBox(float,float,float,float,float,float);
-    //void SetTruncOct();
-    //void SetMissingInfo(const Box&);
+
     /// Calculate Frac->Cart and Cart->Frac matrices.
     double ToRecip(Matrix_3x3&, Matrix_3x3&) const; // TODO make obsolete
-    /// Calculate unit cell matrix, optionally scaling lengths.
-    //Matrix_3x3 UnitCell(double) const;
     /// Print Box info to STDOUT
     void PrintInfo() const;
-
-    //void SetX(double xin)     { box_[0] = xin; }
-    //void SetY(double yin)     { box_[1] = yin; }
-    //void SetZ(double zin)     { box_[2] = zin; }
-    //void SetAlpha(double ain) { box_[3] = ain; }
-    //void SetBeta(double bin)  { box_[4] = bin; }
-    //void SetGamma(double gin) { box_[5] = gin; }
 
     const char* TypeName()    const { return BoxNames_[btype_]; }
     BoxType Type()            const { return btype_;  }
@@ -94,7 +79,7 @@ class Box {
     bool IsOrthoNormal() const;
     /// \return true if the given angle is suitable for a truncated octahedron
     static bool IsTruncOct(double);
-    // TODO should this be in Constants?
+    // \return Truncated oct angle in degrees TODO should this be in Constants?
     static double TruncatedOctAngle() { return TRUNCOCTBETA_; }
     /// \return vector containing reciprocal lengths from given fractional cell matrix
     static Vec3 RecipLengths(Matrix_3x3 const&);
@@ -104,12 +89,6 @@ class Box {
     const double* XyzPtr() const { return box_; }
     /// Double pointer starting at angles (ABG)
     const double* AbgPtr() const { return box_+3; }
-
-    //double* boxPtr()             { return box_; }
-    //const double* boxPtr() const { return box_; }
-
-    //double const& operator[](int idx) const { return box_[idx]; }
-    //double&       operator[](int idx)       { return box_[idx]; }
   private:
     static const double TRUNCOCTBETA_;
     static const double TruncOctDelta_;
@@ -141,9 +120,6 @@ class Box {
     /// Calculate symmetric shape matrix from XYZ ABG array
     static void CalcShapeFromXyzAbg(double*, const double*);
 
-    //static void XyzAbgToUcell(Matrix_3x3&, const double*);
-
-    //int debug_; // TODO: Replace with ifdefs or just comment out?
     BoxType btype_;       ///< Box type
     double box_[6];       ///< Box X Y Z alpha beta gamma
     Matrix_3x3 unitCell_; ///< Unit cell (Cartesian) matrix

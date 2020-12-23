@@ -17,20 +17,6 @@ Box::Box() :
   box_[5] = 0;
 }
 
-/*
-Box::Box(const double* bIn) //: debug_(0)
-{
-  SetBox( bIn );
-}
-
-Box::Box(const float* bIn) { SetBox( bIn ); }
-*/
-
-/** CONSTRUCTOR - Set up from unit cell matrix. */
-//Box::Box(Matrix_3x3 const& ucell) { 
-//  SetupFromUcell( ucell.Dptr() );
-//}
-
 /** COPY CONSTRUCTOR */
 Box::Box(const Box& rhs) :
   btype_(rhs.btype_),
@@ -641,90 +627,6 @@ void Box::AssignFromShapeMatrix(const double* shape) {
 void Box::GetSymmetricShapeMatrix(double* shape) const {
   CalcShapeFromXyzAbg(shape, box_);
 }
-
-/*
-// Box::SetBetaLengths()
-void Box::SetBetaLengths(double beta, double xin, double yin, double zin) {
-  box_[0] = xin;
-  box_[1] = yin;
-  box_[2] = zin;
-  box_[3] = 0;
-  box_[4] = beta;
-  box_[5] = 0;
-  SetBoxType();
-}*/
-
-/** Set box from double[6] array */
-/*
-void Box::SetBox(const double* xyzabg) {
-  if (xyzabg == 0) {
-    mprinterr("Error: SetBox: Input array is null\n");
-    return;
-  }
-  box_[0] = xyzabg[0];
-  box_[1] = xyzabg[1];
-  box_[2] = xyzabg[2];
-  box_[3] = xyzabg[3];
-  box_[4] = xyzabg[4];
-  box_[5] = xyzabg[5];
-  SetBoxType();
-}*/
-
-/** Set box from float[6] array */
-/*
-void Box::SetBox(const float* xyzabg) {
-  if (xyzabg == 0) {
-    mprinterr("Error: Box input array is null\n");
-    return;
-  }
-  box_[0] = (double)xyzabg[0];
-  box_[1] = (double)xyzabg[1];
-  box_[2] = (double)xyzabg[2];
-  box_[3] = (double)xyzabg[3];
-  box_[4] = (double)xyzabg[4];
-  box_[5] = (double)xyzabg[5];
-  SetBoxType();
-}
-*/
-
-
-/*
-void Box::SetBox(float A, float B, float C, float alpha, float beta, float gamma)
-{
-  box_[0] = A;
-  box_[1] = B;
-  box_[2] = C;
-  box_[3] = alpha;
-  box_[4] = beta;
-  box_[5] = gamma;
-  SetBoxType();
-}*/
-
-// Box::SetTruncOct()
-/** Set as truncated octahedron with all lengths set to whatever X is. */
-/*
-void Box::SetTruncOct() {
-  box_[1] = box_[0];
-  box_[2] = box_[0];
-  box_[3] = TRUNCOCTBETA_;
-  box_[4] = TRUNCOCTBETA_;
-  box_[5] = TRUNCOCTBETA_;
-  btype_ = TRUNCOCT;
-  mprintf("Info: Setting box to be perfect truncated octahedron (a=b=g=%g)\n", box_[3]);
-}*/
-
-// Box::SetMissingInfo()
-/** Set this box info from rhs if <= 0. */
-/*
-void Box::SetMissingInfo(const Box& rhs) {
-  if (box_[0] <= 0) box_[0] = rhs.box_[0];
-  if (box_[1] <= 0) box_[1] = rhs.box_[1];
-  if (box_[2] <= 0) box_[2] = rhs.box_[2];
-  if (box_[3] <= 0) box_[3] = rhs.box_[3];
-  if (box_[4] <= 0) box_[4] = rhs.box_[4];
-  if (box_[5] <= 0) box_[5] = rhs.box_[5];
-  SetBoxType();
-}*/
 
 // Box::ToRecip()
 /** Use box coordinates to calculate unit cell and fractional matrix for use
