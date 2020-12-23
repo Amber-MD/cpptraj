@@ -114,9 +114,9 @@ static inline void ArrayToFrame(int idx, Frame& fOut, CompactFrameArray const& f
     // Box may be stored as XYZ ABG or unit cell vectors. If last three elements are all zero
     // it is the former, otherwise the latter.
     if (dtmp[6] != 0 || dtmp[7] != 0 || dtmp[8] != 0)
-      fOut.ModifyBox().SetupFromUcell( dtmp );
+      fOut.ModifyBox().AssignFromUcell( dtmp );
     else
-      fOut.ModifyBox().SetupFromXyzAbg( dtmp );
+      fOut.ModifyBox().AssignFromXyzAbg( dtmp );
   }
   if (frames_.HasComponent(CoordinateInfo::TEMPERATURE)) fOut.SetTemperature(frames_.GetVal(idx, CoordinateInfo::TEMPERATURE));
   if (frames_.HasComponent(CoordinateInfo::PH)) fOut.Set_pH(frames_.GetVal(idx, CoordinateInfo::PH));
