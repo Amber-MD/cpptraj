@@ -108,7 +108,8 @@ void DataSet_Coords_CRD::SetCRD(int idx, Frame const& fIn) {
 
 /** Non-coord-related array to Frame */
 static inline void ArrayToFrame(int idx, Frame& fOut, CompactFrameArray const& frames_) {
-  if (frames_.HasComponent(CoordinateInfo::BOX)) {
+  // TODO should not have to check incoming box
+  if (fOut.BoxCrd().HasBox() && frames_.HasComponent(CoordinateInfo::BOX)) {
     double dtmp[9];
     frames_.GetToDblPtr(dtmp, idx, CoordinateInfo::BOX);
     // Box may be stored as XYZ ABG or unit cell vectors. If last three elements are all zero
