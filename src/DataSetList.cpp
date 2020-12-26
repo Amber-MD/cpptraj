@@ -753,9 +753,11 @@ int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
   // DEBUG
   rprintf("DEBUG: SYNCING SETS\n");
   for (int rank = 0; rank != commIn.Size(); rank++) {
-    if (rank == commIn.Rank())
-      for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
-        rprintf("SET '%s'\n", (*ds)->legend());
+    if (rank == commIn.Rank()) {
+      std::vector<int>::const_iterator sz = size_on_rank.begin();
+      for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds, ++sz)
+        rprintf("SET '%s' %i\n", (*ds)->legend(), *sz);
+    }
     commIn.Barrier();
   }
 # endif
