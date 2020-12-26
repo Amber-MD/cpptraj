@@ -35,7 +35,7 @@ CompactFrameArray& CompactFrameArray::operator=(CompactFrameArray const& rhs) {
 
 /** Allocate for specified number of frames. */
 void CompactFrameArray::Resize(int nframes) {
-  mprintf("DEBUG: Calling CompactFrameArray::Resize for %i frames.\n", nframes);
+  rprintf("DEBUG: Calling CompactFrameArray::Resize for %i frames.\n", nframes);
   if (nframes > 0 && !offsets_.empty()) {
     compactFrames_.resize( offsets_.back() * nframes );
     maxIdx_ = nframes;
@@ -147,9 +147,9 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
   Resize(nframes);
   currentIdx_ = -1;
 
-  mprintf("DEBUG: CompactFrameArray (%u frames) has the following components:\n", maxIdx_);
+  rprintf("DEBUG: CompactFrameArray (%u frames) has the following components:\n", maxIdx_);
   for (unsigned int cidx = 0; cidx != components_.size(); cidx++)
-    mprintf("\t%20s : %li - %li\n", CoordinateInfo::ComponentStr(components_[cidx]),
+    rprintf("DEBUG:\t%20s : %li - %li\n", CoordinateInfo::ComponentStr(components_[cidx]),
             offsets_[cidx], offsets_[cidx+1]);
 
   return 0;
@@ -169,6 +169,7 @@ void CompactFrameArray::SeekAndAllocate(unsigned int idx) {
     maxIdx_ = idx+1;
   }
   currentIdx_ = idx;
+  rprintf("DBG: Called SeekAndAllocate(%u), currentIdx=%i maxIdx=%i\n", idx, currentIdx_, maxIdx_);
   //unsigned int frameBeginIdx = idx * offsets_.back();
   //if (frameBeginIdx >= compactFrames_.size()) {
   // }
