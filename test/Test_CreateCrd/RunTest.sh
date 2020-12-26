@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles create.in crd?.dat crd?.gnu crd?.rst7 crd.rst7 mremd.nc
+CleanFiles create.in crd?.dat crd?.gnu crd?.rst7 crd.rst7 mremd.nc traj1.dat
 
 INPUT="-i create.in"
 TESTNAME='COORDS creation tests'
@@ -43,13 +43,13 @@ cat > create.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
 loadtraj name crd1
-atomicfluct out crd1.dat byatom bfactor
+atomicfluct out traj1.dat byatom bfactor
 run
-crdfluct crdset crd1 out crd1.dat window 20 bfactor
+crdfluct crdset crd1 out traj1.dat window 20 bfactor
 runanalysis
 EOF
 RunCpptraj "TRAJ data set creation and CRDFLUCT test."
-DoTest crd1.dat.save crd1.dat
+DoTest crd1.dat.save traj1.dat
 
 # Test TRAJ creation with velocities
 cat > create.in <<EOF
