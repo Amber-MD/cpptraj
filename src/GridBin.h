@@ -131,8 +131,9 @@ class GridBin_Nonortho : public GridBin {
       nx_ = (double)nxIn; ny_ = (double)nyIn; nz_ = (double)nzIn;
       OXYZ_ = oxyzIn;
       // Get unit cell and fractional cell vectors (recip).
-      double vol = boxIn.ToRecip( ucell_, recip_ );
-      voxelvolume_ = vol / (nx_ * ny_ * nz_);
+      ucell_ = boxIn.UnitCell();
+      recip_ = boxIn.FracCell();
+      voxelvolume_ = boxIn.CellVolume() / (nx_ * ny_ * nz_);
     }
   private:
     double nx_, ny_, nz_; ///< Number of bins in double precision.
