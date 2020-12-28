@@ -142,7 +142,6 @@ Action::RetType Action_Distance::Setup(ActionSetup& setup) {
 // Action_Distance::DoAction()
 Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
   double Dist;
-  Matrix_3x3 ucell, recip;
   Vec3 a1;
 
   if ( mode_ == NORMAL ) {
@@ -162,8 +161,7 @@ Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
 
   switch ( image_.ImageType() ) {
     case NONORTHO:
-      frm.Frm().BoxCrd().ToRecip(ucell, recip);
-      Dist = DIST2_ImageNonOrtho(a1, a2_, ucell, recip);
+      Dist = DIST2_ImageNonOrtho(a1, a2_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
       break;
     case ORTHO:
       Dist = DIST2_ImageOrtho(a1, a2_, frm.Frm().BoxCrd());
