@@ -8,7 +8,7 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     DataSet_Coords_CRD();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Coords_CRD(); }
     // ----- DataSet functions -------------------
-    size_t Size()        const { return frames_.MaxFrames(); }
+    size_t Size()        const { return frames_.MaxFrames(); } // TODO should this use current index instead?
     SizeArray DimSizes() const { return SizeArray(1, Size()); }
 #   ifdef MPI
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);

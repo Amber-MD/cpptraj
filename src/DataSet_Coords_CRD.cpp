@@ -11,7 +11,7 @@ DataSet_Coords_CRD::DataSet_Coords_CRD() :
 
 /** Reserve space for coords. */
 int DataSet_Coords_CRD::Allocate(SizeArray const& sizeIn) {
-  rprintf("DEBUG: Calling Allocate: SizeArray[0]= %zu  framesToReserve= %i\n", sizeIn[0], framesToReserve_);
+  //rprintf("DEBUG: Calling Allocate: SizeArray[0]= %zu  framesToReserve= %i\n", sizeIn[0], framesToReserve_);
   if (!sizeIn.empty()) {
     framesToReserve_ = (int)sizeIn[0];
     if (frames_.HasComponents())
@@ -22,7 +22,7 @@ int DataSet_Coords_CRD::Allocate(SizeArray const& sizeIn) {
 
 /** Allocate space in coords_ array. */
 int DataSet_Coords_CRD::MemAlloc( SizeArray const& sizeIn ) {
-  rprintf("DEBUG: MemAlloc resize %s to %zu\n", legend(), sizeIn[0]);
+  //rprintf("DEBUG: MemAlloc resize %s to %zu\n", legend(), sizeIn[0]);
   if (!sizeIn.empty()) {
     framesToReserve_ = (int)sizeIn[0];
     frames_.Resize( framesToReserve_ );
@@ -163,15 +163,15 @@ int DataSet_Coords_CRD::Sync(size_t total, std::vector<int> const& rank_frames,
     int cidx = rank_frames[0]; // Frame Index on master
     // Receive data from each rank
     for (int rank = 1; rank < commIn.Size(); rank++) {
-      rprintf("DEBUG: MASTER RECEIVE from rank %i cidx=%i rank_frames=%i FrameSize=%u\n",
-              rank, cidx, rank_frames[rank], frames_.FrameSize());
+      //rprintf("DEBUG: MASTER RECEIVE from rank %i cidx=%i rank_frames=%i FrameSize=%u\n",
+      //        rank, cidx, rank_frames[rank], frames_.FrameSize());
       commIn.SendMaster( frames_.FramePtr(cidx), rank_frames[rank]*frames_.FrameSize(),
                          rank, MPI_FLOAT );
       cidx += rank_frames[rank];
     }
   } else {// Send data to master
-    rprintf("DEBUG: RANK %i SEND TO MASTER Size=%zu FrameSize=%u\n",
-            commIn.Rank(), Size(), frames_.FrameSize());
+    //rprintf("DEBUG: RANK %i SEND TO MASTER Size=%zu FrameSize=%u\n",
+    //        commIn.Rank(), Size(), frames_.FrameSize());
     commIn.SendMaster( frames_.FramePtr(0), Size()*frames_.FrameSize(), 
                        commIn.Rank(), MPI_FLOAT );
   }

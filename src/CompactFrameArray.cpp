@@ -169,7 +169,7 @@ void CompactFrameArray::SeekAndAllocate(unsigned int idx) {
     maxIdx_ = idx+1;
   }
   currentIdx_ = idx;
-  rprintf("DBG: Called SeekAndAllocate(%u), currentIdx=%i maxIdx=%i\n", idx, currentIdx_, maxIdx_);
+  //rprintf("DBG: Called SeekAndAllocate(%u), currentIdx=%i maxIdx=%i\n", idx, currentIdx_, maxIdx_);
   //unsigned int frameBeginIdx = idx * offsets_.back();
   //if (frameBeginIdx >= compactFrames_.size()) {
   // }
