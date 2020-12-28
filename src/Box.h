@@ -112,7 +112,7 @@ class Box {
     /// Calculate unit cell matrix from XYZ ABG array.
     static inline void CalcUcellFromXyzAbg(Matrix_3x3&, const double*);
     /// Calculate unit cell matrix from XYZ ABG array based on box type, optionally scaling lengths.
-    static void CalcUcellFromXyzAbg(Matrix_3x3&, BoxType, const double*, double);
+    //static void CalcUcellFromXyzAbg(Matrix_3x3&, BoxType, const double*, double);
     /// Calculate XYZ ABG array from unit cell matrix
     static void CalcXyzAbgFromUcell(double*, Matrix_3x3 const&);
     /// Calculate XYZ ABG array from symmetric shape matrix

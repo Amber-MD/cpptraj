@@ -317,6 +317,7 @@ void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, const double* xyzabg) {
 }
 
 // Box::CalcUcellFromXyzAbg()
+/*
 void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, BoxType btype, const double* xyzabg, double scale) {
   double by, bz;
   //switch (btype) {
@@ -350,7 +351,7 @@ void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, BoxType btype, const double* xy
       ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
   //    break;
   }
-}
+}*/
 
 /** Calculate XYZ ABG array from unit cell matrix */
 void Box::CalcXyzAbgFromUcell(double* box, Matrix_3x3 const& ucell) {
@@ -550,7 +551,9 @@ void Box::AssignFromUcell(const double* ucell) {
   CalcXyzAbgFromUcell(box_, unitCell_);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+# ifdef DEBUG_BOX
   printBoxStatus("AssignFromUcell");
+# endif
 }
 
 /** Assign from XYZ ABG parameters. */
@@ -571,7 +574,9 @@ void Box::AssignFromXyzAbg(double bx, double by, double bz, double ba, double bb
   CalcUcellFromXyzAbg(unitCell_, box_);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+# ifdef DEBUG_BOX
   printBoxStatus("AssignFromXyzAbgIndividual");
+# endif
 }
 
 /** Assign from XYZ ABG array. */
@@ -581,7 +586,7 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
     mprintf("Internal Error: AssignFromXyzAbg(): No box has been set.\n");
     return;
   }
-
+  // TODO detect orthogonal?
   box_[0] = xyzabg[0];
   box_[1] = xyzabg[1];
   box_[2] = xyzabg[2];
@@ -589,11 +594,13 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
   box_[4] = xyzabg[4];
   box_[5] = xyzabg[5];
 
-  //CalcUcellFromXyzAbg(unitCell_, xyzabg);
-  CalcUcellFromXyzAbg(unitCell_, btype_, box_, 1.0);
+  CalcUcellFromXyzAbg(unitCell_, xyzabg);
+  //CalcUcellFromXyzAbg(unitCell_, btype_, box_, 1.0);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+# ifdef DEBUG_BOX
   printBoxStatus("AssignFromXyzAbg");
+# endif
 }
 
 /** Assign from symmetric shape matrix. */
@@ -619,7 +626,9 @@ void Box::AssignFromShapeMatrix(const double* shape) {
   CalcXyzAbgFromShape(box_, shape);
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
+# ifdef DEBUG_BOX
   printBoxStatus("AssignFromShapeMatrix");
+# endif
 }
 
 // -----------------------------------------------------------------------------
