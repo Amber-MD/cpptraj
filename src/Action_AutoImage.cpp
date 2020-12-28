@@ -211,13 +211,11 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
 
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
   Vec3 fcom;
   Vec3 bp, bm, offset(0.0);
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
   Box const& box = frm.Frm().BoxCrd();
-  if (!ortho_) box.ToRecip(ucell, recip);
   // Store anchor point in fcom for now.
   if (useMass_)
     fcom = frm.Frm().VCenterOfMass( anchorMask_ );
@@ -236,7 +234,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       anchorcenter = box.Center();
     else
       // Center in frac coords is (0.5,0.5,0.5)
-      anchorcenter = ucell.TransposeMult(Vec3(0.5));
+      anchorcenter = box.UnitCell().TransposeMult(Vec3(0.5));
     fcom = anchorcenter - fcom;
   }
   frm.ModifyFrm().Translate(fcom);
@@ -253,7 +251,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   } else {
     if (truncoct_)
       fcom = Image::SetupTruncoct( frm.Frm(), 0, useMass_, origin_ );
-    Image::Nonortho(frm.ModifyFrm(), origin_, fcom, offset, ucell, recip, truncoct_,
+    Image::Nonortho(frm.ModifyFrm(), origin_, fcom, offset, box.UnitCell(), box.FracCell(), truncoct_,
                     *mobileList_);
   }
 
@@ -284,7 +282,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
         anchorcenter = minImage;
       } else {
         Vec3 newAnchor = framecenter;
-        Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
+        Trans = Image::Nonortho(framecenter, truncoct_, origin_, box.UnitCell(), box.FracCell(), fcom, -1.0);
         // If molecule was imaged, determine whether imaged position is closer to anchor.
         if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
           imagedcenter = framecenter + Trans;
@@ -315,7 +313,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       if (ortho_)
         Trans = Image::Ortho(framecenter, bp, bm, box);
       else
-        Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
+        Trans = Image::Nonortho(framecenter, truncoct_, origin_, box.UnitCell(), box.FracCell(), fcom, -1.0);
       // If molecule was imaged, determine whether imaged position is closer to anchor.
       if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
         imagedcenter = framecenter + Trans;
