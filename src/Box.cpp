@@ -168,6 +168,7 @@ void Box::printBoxStatus(const char* desc) const {
   mprintf("DEBUG:   XYZ= %12.4f %12.4f %8.3f  ABG= %12.4f %12.4f %12.4f\n",
           box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
   unitCell_.Print(desc);
+  fracCell_.Print("frac");
 }
 
 // Box::SetBoxType()
