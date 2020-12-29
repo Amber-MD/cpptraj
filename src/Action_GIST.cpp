@@ -564,9 +564,7 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
 void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
   // Set up imaging info.
-  Matrix_3x3 ucell, recip;
   if (image_.ImageType() == NONORTHO) {
-    frameIn.BoxCrd().ToRecip(ucell, recip);
     // Wrap on-grid water coords back to primary cell TODO openmp
     double* ongrid_xyz = &OnGrid_XYZ_[0];
     int maxXYZ = (int)OnGrid_XYZ_.size();
@@ -580,13 +578,13 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     {
       double* XYZ = ongrid_xyz + idx;
       // Convert to frac coords
-      recip.TimesVec( XYZ, XYZ );
+      frameIn.BoxCrd().FracCell().TimesVec( XYZ, XYZ );
       // Wrap to primary cell
       XYZ[0] = XYZ[0] - floor(XYZ[0]);
       XYZ[1] = XYZ[1] - floor(XYZ[1]);
       XYZ[2] = XYZ[2] - floor(XYZ[2]);
       // Convert back to Cartesian
-      ucell.TransposeMult( XYZ, XYZ );
+      frameIn.BoxCrd().UnitCell().TransposeMult( XYZ, XYZ );
     }
 #   ifdef _OPENMP
     }
@@ -638,7 +636,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     std::vector<Vec3> vImages;
     if (image_.ImageType() == NONORTHO) {
       // Convert to frac coords
-      Vec3 vFrac = recip * A1_XYZ;
+      Vec3 vFrac = frameIn.BoxCrd().FracCell() * A1_XYZ;
       // Wrap to primary unit cell
       vFrac[0] = vFrac[0] - floor(vFrac[0]);
       vFrac[1] = vFrac[1] - floor(vFrac[1]);
@@ -649,7 +647,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         for (int iy = -1; iy != 2; iy++)
           for (int iz = -1; iz != 2; iz++)
             // Convert image back to Cartesian
-            vImages.push_back( ucell.TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
+            vImages.push_back( frameIn.BoxCrd().UnitCell().TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
     }
     // Loop over all solvent atoms on the grid
     for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx++)
@@ -1452,7 +1450,6 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   std::vector<std::vector<int> > order_indices;
   this->gist_nonbond_.Start();
 
-  Matrix_3x3 ucell_m, recip_m;
   float *recip = NULL;
   float *ucell = NULL;
   int boxinfo;
@@ -1462,10 +1459,9 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
     case NONORTHO:
       recip = new float[9];
       ucell = new float[9];
-      frm.Frm().BoxCrd().ToRecip(ucell_m, recip_m);
       for (int i = 0; i < 9; ++i) {
-        ucell[i] = (float) ucell_m.Dptr()[i];
-        recip[i] = (float) recip_m.Dptr()[i];
+        ucell[i] = (float) frm.Frm().BoxCrd().UnitCell()[i];
+        recip[i] = (float) frm.Frm().BoxCrd().FracCell()[i];
       }
       boxinfo = 2;
       break;
@@ -1535,16 +1531,14 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
           case NONORTHO:
           case ORTHO:
             {
-              Matrix_3x3 ucell, recip;
-              frm.Frm().BoxCrd().ToRecip(ucell, recip);
               Vec3 vec(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(0) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
               vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(1) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
               vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(2) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
               vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(3) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
             }
             break;
           default:
