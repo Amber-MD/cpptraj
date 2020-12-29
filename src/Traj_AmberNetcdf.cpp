@@ -369,7 +369,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
       return 1;
     }
     if (NC::CheckErr(nc_put_vara_double(ncid_, cellAngleVID_, start_, count_, 
-                                        frameOut.BoxCrd().XyzPtr()+3)) )
+                                        frameOut.BoxCrd().AbgPtr())) )
     {
       mprinterr("Error: Writing cell angles frame %i.\n", set+1);
       return 1;
@@ -563,7 +563,7 @@ int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
     err = ncmpi_put_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.BoxCrd().XyzPtr());
     if (checkPNCerr(err)) return Parallel::Abort(err);
     //err = ncmpi_put_vara_double_all(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.bAddress()+3);
-    err = ncmpi_put_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.BoxCrd().XyzPtr()+3);
+    err = ncmpi_put_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.BoxCrd().AbgPtr());
   }
   if (TempVID_ != -1) {
     //err = ncmpi_put_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameOut.tAddress());
