@@ -309,17 +309,8 @@ const double Action_Density::AMU_ANG_TO_G_CM3 = Constants::NA * 1E-24;
 
 // Action_Density::DensityAction()
 Action::RetType Action_Density::DensityAction(int frameNum, ActionFrame& frm) {
-  //Matrix_3x3 ucell, recip;
-  double volume = frm.Frm().BoxCrd().CellVolume();
-/*
-  if (image_.ImageType() == ORTHO)
-    volume = frm.Frm().BoxCrd().BoxX() *
-             frm.Frm().BoxCrd().BoxY() *
-             frm.Frm().BoxCrd().BoxZ();
-  else if (image_.ImageType() == NONORTHO)
-    volume = frm.Frm().BoxCrd().ToRecip( ucell, recip );*/
   // Total mass is in delta_
-  double density = delta_ / (volume * AMU_ANG_TO_G_CM3);
+  double density = delta_ / (frm.Frm().BoxCrd().CellVolume() * AMU_ANG_TO_G_CM3);
   density_->Add(frameNum, &density);
   return Action::OK;
 }
