@@ -393,9 +393,9 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
         return 1;
       }
 #     ifdef HAS_PNETCDF
-      if (ncmpi_put_vara_double_all(ncid_,cellAngleVID_,start_,count_,frm->BoxCrd().XyzPtr()+3))
+      if (ncmpi_put_vara_double_all(ncid_,cellAngleVID_,start_,count_,frm->BoxCrd().AbgPtr()))
 #     else
-      if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frm->BoxCrd().XyzPtr()+3)))
+      if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frm->BoxCrd().AbgPtr())))
 #     endif
       {
         mprinterr("Error: Writing cell angles frame %i.\n", set+1);
