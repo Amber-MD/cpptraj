@@ -71,7 +71,6 @@ class Action_NativeContacts : public Action {
     const Topology* refParm_;   ///< For printing out contact PDB.
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
-    Matrix_3x3 ucell_, recip_;
     /// Define contact, atom pair.
     class contactType;
     /// Define contact pair.

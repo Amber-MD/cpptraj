@@ -122,7 +122,7 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
 #define SetNativeContact() { \
         if (ValidContact(*c1, *c2, parmIn)) { \
           double Dist2 = DIST2(fIn.XYZ(*c1), fIn.XYZ(*c2), image_.ImageType(), \
-                               fIn.BoxCrd(), ucell_, recip_); \
+                               fIn.BoxCrd(), fIn.BoxCrd().UnitCell(), fIn.BoxCrd().FracCell()); \
           minDist2 = std::min( Dist2, minDist2 ); \
           maxDist2 = std::max( Dist2, maxDist2 ); \
           if (Dist2 < distance_) { \
@@ -457,8 +457,6 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   if (!first_) {
     // Set up imaging info for ref parm
     image_.SetupImaging( REF.CoordsInfo().TrajBox().Type() );
-    if (image_.ImageType() == NONORTHO)
-      REF.Coord().BoxCrd().ToRecip(ucell_, recip_);
     if (DetermineNativeContacts( REF.Parm(), REF.Coord() )) return Action::ERR;
   }
   return Action::OK;
@@ -497,7 +495,7 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
 #define UpdateNativeContact(M1_, M2_, CI1_, CI2_) { \
         if (ValidContact(M1_[c1], M2_[c2], *CurrentParm_)) { \
           double Dist2 = DIST2(frm.Frm().XYZ(M1_[c1]), frm.Frm().XYZ(M2_[c2]), \
-                               image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_); \
+                               image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()); \
           minDist2 = std::min( Dist2, minDist2 ); \
           maxDist2 = std::max( Dist2, maxDist2 ); \
           if (Dist2 < distance_) { \
@@ -543,7 +541,6 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
 
 // Action_NativeContacts::DoAction()
 Action::RetType Action_NativeContacts::DoAction(int frameNum, ActionFrame& frm) {
-  if (image_.ImageType() == NONORTHO) frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   if (first_) {
     mprintf("\tUsing first frame to determine native contacts.\n");
     if (DetermineNativeContacts( *CurrentParm_, frm.Frm() )) return Action::ERR;
