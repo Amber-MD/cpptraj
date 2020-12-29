@@ -18,8 +18,6 @@ class Action_FixImagedBonds : public Action {
     ImagedAction image_ ; ///< Imaging routines
     CharMask mask_;
     Vec3 boxCenter_; ///< Box center for current frame
-    Matrix_3x3 ucell_; ///< Unit cell matrix for current frame
-    Matrix_3x3 recip_; ///< Recip (frac) matrix for current frame
     Topology* CurrentParm_;
     std::vector<bool> atomVisited_;
     int firstSelected_;

@@ -63,11 +63,7 @@ Action::RetType Action_FixImagedBonds::Setup(ActionSetup& setup)
 Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
 {
   Box const& box = frm.Frm().BoxCrd();
-  // Calculate box info needed for imaging based on cell type
-  if (image_.ImageType() == NONORTHO)
-    box.ToRecip(ucell_, recip_);
-  else
-    boxCenter_ = box.Center();
+  boxCenter_ = box.Center();
   // Starting with the first atom, check every atom bonded to that atom
   // pseudo-recursively. Ensure that no bond length is longer than half
   // the box size. If it is adjust the position of the bonded atom to
@@ -118,9 +114,9 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
           while (delta[2] < -boxCenter_[2]) { delta[2] += box.Param(Box::Z); boxTrans[2] += box.Param(Box::Z); }
         } else {
           // ----- Non-orthorhombic imaging --------
-          Vec3 fdelta = recip_ * delta;
+          Vec3 fdelta = box.FracCell() * delta;
           // DEBUG
-//          Vec3 dbgdelta = (recip_ * bondXYZ) - (recip_ * currXYZ);
+//          Vec3 dbgdelta = (box.FracCell() * bondXYZ) - (box.FracCell() * currXYZ);
 //          fdelta.Print("fdelta");
 //          dbgdelta.Print("dbgdelta");
           // If the distance between current and bonded atom is more than half the cell,
@@ -131,8 +127,8 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
           while (fdelta[1] < -0.5) { fdelta[1] += 1.0; boxTrans[1] += 1.0; }
           while (fdelta[2] >  0.5) { fdelta[2] -= 1.0; boxTrans[2] -= 1.0; }
           while (fdelta[2] < -0.5) { fdelta[2] += 1.0; boxTrans[2] += 1.0; }
-          boxTrans = ucell_.TransposeMult( boxTrans );
-//          delta = ucell_.TransposeMult( fdelta ); // DEBUG
+          boxTrans = box.UnitCell().TransposeMult( boxTrans );
+//          delta = box.UnitCell().TransposeMult( fdelta ); // DEBUG
         }
         // Translate the atom
 //        if (boxTrans[0] != 0.0 || boxTrans[1] != 0.0 || boxTrans[2] != 0.0)
