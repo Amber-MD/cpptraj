@@ -114,12 +114,8 @@ Action::RetType Action_DNAionTracker::Setup(ActionSetup& setup) {
 }
 
 Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
   double d_tmp, dval;
   Vec3 P1, P2, BASE;
-  // Setup imaging info if necessary
-  if (ImageType()==NONORTHO) 
-    frm.Frm().BoxCrd().ToRecip(ucell,recip);
 
   // Get center for P1, P2, and Base
   if (useMass_) {
@@ -133,7 +129,7 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
   }
  
   // Calculate P -- P distance and centroid
-  double d_pp = DIST2(P1.Dptr(), P2.Dptr(), ImageType(), frm.Frm().BoxCrd(), ucell, recip);
+  double d_pp = DIST2(P1.Dptr(), P2.Dptr(), ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
   Vec3 pp_centroid = (P1 + P2) / 2.0;
 
   // Cutoff^2
@@ -141,7 +137,7 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
 
   // Calculate P -- base centroid to median point
   double d_pbase = DIST2(pp_centroid.Dptr(), BASE.Dptr(), ImageType(), frm.Frm().BoxCrd(), 
-                         ucell, recip);
+                         frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
 
   //double d_min = DBL_MAX;
   if (bintype_ == SHORTEST)
@@ -153,11 +149,11 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
   {
     const double* ionxyz = frm.Frm().XYZ(*ion);
     double d_p1ion =   DIST2(P1.Dptr(),   ionxyz, ImageType(), frm.Frm().BoxCrd(), 
-                             ucell, recip);
+                             frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
     double d_p2ion =   DIST2(P2.Dptr(),   ionxyz, ImageType(), frm.Frm().BoxCrd(), 
-                             ucell, recip);
+                             frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
     double d_baseion = DIST2(BASE.Dptr(), ionxyz, ImageType(), frm.Frm().BoxCrd(), 
-                             ucell, recip);
+                             frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
     //mprintf("DEBUG: ion atom %i to P1 is %f\n", *ion+1, sqrt(d_p1ion));
     //mprintf("DEBUG: ion atom %i to P2 is %f\n", *ion+1, sqrt(d_p2ion));
     //mprintf("DEBUG: ion atom %i to base is %f\n", *ion+1, sqrt(d_baseion));
