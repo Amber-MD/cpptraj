@@ -154,7 +154,6 @@ Action::RetType Action_Image::DoAction(int frameNum, ActionFrame& frm) {
   // Ortho
   Vec3 bp, bm;
   // Nonortho
-  Matrix_3x3 ucell, recip;
   Vec3 fcom;
   
   if (ortho_) {
@@ -165,10 +164,9 @@ Action::RetType Action_Image::DoAction(int frameNum, ActionFrame& frm) {
     }
     Image::Ortho(frm.ModifyFrm(), bp, bm, offset_, *imageList_);
   } else {
-    frm.Frm().BoxCrd().ToRecip( ucell, recip );
     if (truncoct_)
       fcom = Image::SetupTruncoct( frm.Frm(), ComMask_, useMass_, origin_ );
-    Image::Nonortho( frm.ModifyFrm(), origin_, fcom, offset_, ucell, recip, truncoct_,
+    Image::Nonortho( frm.ModifyFrm(), origin_, fcom, offset_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), truncoct_,
                      *imageList_);
   }
   return Action::MODIFY_COORDS;
