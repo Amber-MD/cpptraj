@@ -159,11 +159,9 @@ double Action_LIE::Calculate_LJ(Frame const& frameIn, Topology const& parmIn) co
 
       double dist2;
       // Get imaged distance
-      Matrix_3x3 ucell, recip;
       switch( ImageType() ) {
         case NONORTHO:
-          frameIn.BoxCrd().ToRecip(ucell, recip);
-          dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip);
+          dist2 = DIST2_ImageNonOrtho(atm1, atm2, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell());
           break;
         case ORTHO:
           dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd());
@@ -203,11 +201,9 @@ double Action_LIE::Calculate_Elec(Frame const& frameIn) const {
 
       double dist2;
       // Get imaged distance
-      Matrix_3x3 ucell, recip;
       switch( ImageType() ) {
         case NONORTHO:
-          frameIn.BoxCrd().ToRecip(ucell, recip);
-          dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip);
+          dist2 = DIST2_ImageNonOrtho(atm1, atm2, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell());
           break;
         case ORTHO:
           dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd());
