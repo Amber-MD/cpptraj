@@ -15,10 +15,9 @@ class Action_MinImage: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    double MinNonSelfDist2(Vec3 const&, Vec3 const&);
+    double MinNonSelfDist2(Vec3 const&, Vec3 const&, Box const&);
 
     ImagedAction image_;
-    Matrix_3x3 ucell_, recip_;
     DataSet* dist_;      ///< Will hold DataSet of calculated distances.
     DataSet* atom1_;
     DataSet* atom2_;
