@@ -45,14 +45,8 @@ Action::RetType Action_Volume::Setup(ActionSetup& setup) {
 
 // Action_Volume::DoAction()
 Action::RetType Action_Volume::DoAction(int frameNum, ActionFrame& frm) {
-  //Matrix_3x3 ucell, recip;
   double volume = frm.Frm().BoxCrd().CellVolume();
-/*  if (image_.ImageType() == ORTHO)
-    volume = frm.Frm().BoxCrd().BoxX() *
-             frm.Frm().BoxCrd().BoxY() *
-             frm.Frm().BoxCrd().BoxZ();
-  else if (image_.ImageType() == NONORTHO)
-    volume = frm.Frm().BoxCrd().ToRecip( ucell, recip );*/
+
   vol_->Add(frameNum, &volume);
 
   return Action::OK;
