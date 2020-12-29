@@ -299,7 +299,6 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 
 // Action_Diffusion::DoAction()
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
   // Load initial frame if necessary
   if (initial_.empty()) {
     initial_ = frm.Frm();
@@ -323,8 +322,6 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   // Diffusion calculation
   if (image_.ImageType() != NOIMAGE) {
     boxcenter_ = frm.Frm().BoxCrd().Center();
-    if (image_.ImageType() == NONORTHO)
-      frm.Frm().BoxCrd().ToRecip(ucell, recip);
   }
   // For averaging over selected atoms
   double average2 = 0.0;
@@ -374,7 +371,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
         // Previous position in Cartesian space
         Vec3 pCart( previous_[idx], previous_[idx+1], previous_[idx+2] );
         // Current position in fractional coords
-        Vec3 cFrac = recip * Vec3( XYZ[0], XYZ[1], XYZ[2] );
+        Vec3 cFrac = frm.Frm().BoxCrd().FracCell() * Vec3( XYZ[0], XYZ[1], XYZ[2] );
         // Look for imaged distance closer to previous than current position
         double minDist2 = frm.Frm().BoxCrd().Param(Box::X) *
                           frm.Frm().BoxCrd().Param(Box::Y) *
@@ -386,7 +383,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
               if (ix != 0 || iy != 0 || iz != 0) { // Ignore current position
                 Vec3 ixyz(ix, iy, iz);
                 // Current position shifted and back in Cartesian space
-                Vec3 IMG = ucell.TransposeMult(cFrac + ixyz);
+                Vec3 IMG = frm.Frm().BoxCrd().UnitCell().TransposeMult(cFrac + ixyz);
                 // Distance from previous position to imaged current position
                 Vec3 dxyz = IMG - pCart;
                 double dist2 = dxyz.Magnitude2();
