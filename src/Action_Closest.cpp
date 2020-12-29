@@ -355,15 +355,13 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     }
   }
   
-  Matrix_3x3 ucell, recip;
-  if (image_.ImageType() == NONORTHO)
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
-
   if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
     Action_Closest_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
                            maxD, NsolventMolecules_, NAtoms, image_.ImageType(),
-                           frm.Frm().BoxCrd().boxPtr(), ucell.Dptr(), recip.Dptr() );
+                           frm.Frm().BoxCrd().XyzPtr(),
+                           frm.Frm().BoxCrd().UnitCell().Dptr(),
+                           frm.Frm().BoxCrd().FracCell().Dptr() );
   } else {
     int NSAtoms = distanceMask_.Nselected();
     for (int nsAtom = 0; nsAtom < NSAtoms; ++nsAtom) {
@@ -375,7 +373,9 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
 
     Action_Closest_NoCenter( V_atom_coords_, V_distances_, U_atom_coords_,
                              maxD, NsolventMolecules_, NAtoms, NSAtoms, image_.ImageType(),
-                             frm.Frm().BoxCrd().boxPtr(), ucell.Dptr(), recip.Dptr() );
+                             frm.Frm().BoxCrd().XyzPtr(),
+                             frm.Frm().BoxCrd().UnitCell().Dptr(),
+                             frm.Frm().BoxCrd().FracCell().Dptr() );
   }
   // Copy distances back into SolventMols_
   for (int sMol = 0; sMol < NsolventMolecules_; sMol++)
@@ -385,21 +385,19 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
 // -----------------------------------------------------------------------------
   if (image_.ImageType() == NONORTHO) {
     // ----- NON-ORTHORHOMBIC IMAGING ------------
-    Matrix_3x3 ucell, recip;
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
     // Wrap all solute atoms back into primary cell and save coords
     if (useMaskCenter_) {
       double* uFrac = &U_cell0_coords_[0];
       //  Calc COM and convert to frac coords
-      Vec3 center = recip * frm.Frm().VGeometricCenter( distanceMask_ );
+      Vec3 center = frm.Frm().BoxCrd().FracCell() * frm.Frm().VGeometricCenter( distanceMask_ );
       // Wrap to primary unit cell
       center[0] = center[0] - floor(center[0]);
       center[1] = center[1] - floor(center[1]);
       center[2] = center[2] - floor(center[2]);
       // Convert back to Cartesian
-      ucell.TransposeMult( uFrac, center.Dptr() );
+      frm.Frm().BoxCrd().UnitCell().TransposeMult( uFrac, center.Dptr() );
     } else {
-      Image::WrapToCell0( U_cell0_coords_, frm.Frm(), distanceMask_, ucell, recip );
+      Image::WrapToCell0( U_cell0_coords_, frm.Frm(), distanceMask_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
     }
     // Calculate closest distance of every solvent image to solute
     int mnum;
@@ -416,7 +414,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
            solvent_atom != Mol.solventAtoms.end(); ++solvent_atom)
       {
         // Convert to frac coords
-        Vec3 vFrac = recip * Vec3( frm.Frm().XYZ( *solvent_atom ) );
+        Vec3 vFrac = frm.Frm().BoxCrd().FracCell() * Vec3( frm.Frm().XYZ( *solvent_atom ) );
         // Wrap to primary unit cell
         vFrac[0] = vFrac[0] - floor(vFrac[0]);
         vFrac[1] = vFrac[1] - floor(vFrac[1]);
@@ -427,7 +425,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
             for (int iz = -1; iz != 2; iz++)
             {
               // Convert image back to Cartesian
-              Vec3 vCart = ucell.TransposeMult( vFrac + Vec3(ix, iy, iz) );
+              Vec3 vCart = frm.Frm().BoxCrd().UnitCell().TransposeMult( vFrac + Vec3(ix, iy, iz) );
               // Loop over all solute atoms
               for (unsigned int idx = 0; idx < U_cell0_coords_.size(); idx += 3)
               {

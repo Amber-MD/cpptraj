@@ -1471,9 +1471,9 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
       break;
     case ORTHO:
       recip = new float[9];
-      for (int i = 0; i < 3; ++i) {
-        recip[i] = (float) frm.Frm().BoxCrd()[i];
-      }
+      recip[0] = frm.Frm().BoxCrd().Param(Box::X);
+      recip[1] = frm.Frm().BoxCrd().Param(Box::Y);
+      recip[2] = frm.Frm().BoxCrd().Param(Box::Z);
       ucell = NULL;
       boxinfo = 1;
       break;

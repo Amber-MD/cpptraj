@@ -150,7 +150,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   NAtoms_ = setup.Top().Mol( first_solvent_mol ).NumAtoms();
   for (AtomMask::const_iterator atm = solventMask_.begin(); atm != solventMask_.end(); ++atm) {
     int mol = setup.Top()[*atm].MolNum();
-    if (NAtoms_ != setup.Top().Mol( mol ).NumAtoms()) {
+    if (NAtoms_ != (int)setup.Top().Mol( mol ).NumAtoms()) {
       mprinterr("Error: CUDA version of 'watershell' requires all solvent mols be same size.\n");
       return Action::ERR;
     }
@@ -227,7 +227,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
   Action_Closest_NoCenter( &V_atom_coords_[0], &V_distances_[0], &soluteCoords_[0],
                            9999999999999.0, NsolventMolecules_, NAtoms_, soluteMask_.Nselected(),
                            image_.ImageType(),
-                           frm.Frm().BoxCrd().boxPtr(), ucell.Dptr(), recip.Dptr() );
+                           frm.Frm().BoxCrd().XyzPtr(), ucell.Dptr(), recip.Dptr() );
 
   // V_distances_ now has the closest distance of each solvent molecule to
   // solute. Determine shell status of each.
