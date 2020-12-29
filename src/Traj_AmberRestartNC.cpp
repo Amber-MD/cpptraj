@@ -297,7 +297,7 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
       mprinterr("Error: Writing cell lengths, frame %i.\n", set+1);
       return 1;
     }
-    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frameOut.BoxCrd().XyzPtr()+3)))
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frameOut.BoxCrd().AbgPtr())))
     {
       mprinterr("Error: Writing cell angles, frame %i.\n", set+1);
       return 1;
