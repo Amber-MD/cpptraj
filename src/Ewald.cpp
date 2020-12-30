@@ -90,46 +90,9 @@ double Ewald::erfc_func(double xIn) {
   return erfc;
 }
 
-// Ewald::FillErfcTable()
-/*
-void Ewald::FillErfcTable(double cutoffIn, double dxdr) {
-  one_over_Dx_ = 1.0 / erfcTableDx_;
-  unsigned int erfcTableSize = (unsigned int)(dxdr * one_over_Dx_ * cutoffIn * 1.5);
-  Darray erfc_X, erfc_Y;
-  erfc_X.reserve( erfcTableSize );
-  erfc_Y.reserve( erfcTableSize );
-  // Save X and Y values so we can calc the spline coefficients
-  double xval = 0.0;
-  for (unsigned int i = 0; i != erfcTableSize; i++) {
-    double yval = erfc_func( xval );
-    erfc_X.push_back( xval );
-    erfc_Y.push_back( yval );
-    xval += erfcTableDx_;
-  }
-  Spline cspline;
-  cspline.CubicSpline_Coeff(erfc_X, erfc_Y);
-  erfc_X.clear();
-  // Store values in Spline table
-  erfc_table_.reserve( erfcTableSize * 4 ); // Y B C D
-  for (unsigned int i = 0; i != erfcTableSize; i++) {
-    erfc_table_.push_back( erfc_Y[i] );
-    erfc_table_.push_back( cspline.B_coeff()[i] );
-    erfc_table_.push_back( cspline.C_coeff()[i] );
-    erfc_table_.push_back( cspline.D_coeff()[i] );
-  }
-  // Memory saved Y values plus spline B, C, and D coefficient arrays.
-  mprintf("\tMemory used by Erfc table and splines: %s\n",
-          ByteString(erfc_table_.size() * sizeof(double), BYTE_DECIMAL).c_str());
-}*/
-
 // Ewald::ERFC()
 double Ewald::ERFC(double xIn) const {
   return table_.Yval( xIn);
-/*  int xidx = ((int)(one_over_Dx_ * xIn));
-  double dx = xIn - ((double)xidx * erfcTableDx_);
-  xidx *= 4;
-  return erfc_table_[xidx] + 
-         dx*(erfc_table_[xidx+1] + dx*(erfc_table_[xidx+2] + dx*erfc_table_[xidx+3]));*/
 }
 
 /** Determine Ewald coefficient from cutoff and direct sum tolerance.
@@ -255,7 +218,6 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
     ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
   if (erfcTableDx <= 0.0) erfcTableDx = 1.0 / 5000;
   // TODO make this optional
-  //FillErfcTable( cutoff_, ew_coeff_ ); 
   if (table_.FillTable( erfc_func, erfcTableDx, 0.0, cutoff_*ew_coeff_*1.5 )) {
     mprinterr("Error: Could not set up spline table for ERFC\n");
     return 1;
