@@ -48,7 +48,7 @@ class Ewald {
     /// Calculate VDW C6 parameters for LJ PME
     void CalculateC6params(Topology const&, AtomMask const&);
     /// Setup main excluded atom list
-    void SetupExcluded(Topology const&, AtomMask const&);
+    void SetupExclusionList(Topology const&, AtomMask const&);
     /// Setup VDW correction for selected atom types
     void Setup_VDW_Correction(Topology const&, AtomMask const&);
 

@@ -202,7 +202,7 @@ void Ewald::CalculateC6params(Topology const& topIn, AtomMask const& maskIn) {
 }
 
 /** Set up exclusion lists for selected atoms. */
-void Ewald::SetupExcluded(Topology const& topIn, AtomMask const& maskIn)
+void Ewald::SetupExclusionList(Topology const& topIn, AtomMask const& maskIn)
 {
   // Use distance of 4 (up to dihedrals)
   if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,

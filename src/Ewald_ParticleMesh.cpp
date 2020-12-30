@@ -139,7 +139,7 @@ int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateC6params( topIn, maskIn );
   coordsD_.clear();
   coordsD_.reserve( maskIn.Nselected() * 3);
-  SetupExcluded(topIn, maskIn);
+  SetupExclusionList(topIn, maskIn);
   return 0;
 }
 
