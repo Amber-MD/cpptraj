@@ -2,6 +2,7 @@
 #define INC_ACTION_VOLMAP_H
 #include "Action.h"
 #include "Grid.h"
+#include "SplineFxnTable.h"
 #ifdef VOLMAP_DOUBLE
 # define VOLMAP_DS_T DataSet_GridDbl
 # define VOLMAP_T double
@@ -10,6 +11,14 @@
 # define VOLMAP_T float
 #endif
 class VOLMAP_DS_T;
+/// Calculate atomic volumetric density maps from trajectory data.
+/** By default the grid type used is single-precision, mostly to save space.
+  * A double-precision grid can be used by compiling with the
+  * VOLMAP_DOUBLE define.
+  * Also by default the exp() function will be approximated with cubic spline
+  * interpolation. To use the system exp() function, compile with the
+  * VOLMAP_USEEXP define.
+  */
 class Action_Volmap : public Action {
   public:
     Action_Volmap();
@@ -51,6 +60,8 @@ class Action_Volmap : public Action {
     double radscale_;       ///< The scaling factor to divide all radii by
     double stepfac_;        ///< Factor for determining how many steps to smear Gaussian
     static const double sqrt_8_pi_cubed_;
+    SplineFxnTable table_;
+    double splineDx_;
 #   ifdef _OPENMP
     typedef std::vector< Grid<VOLMAP_T> > Garray;
     Garray GRID_THREAD_;
