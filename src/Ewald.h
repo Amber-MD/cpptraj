@@ -32,8 +32,6 @@ class Ewald {
     static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
     /// Complimentary error function, erfc.
     static double erfc_func(double);
-    /// Determine Ewald coefficient from cutoff and direct sum tolerance.
-    static double FindEwaldCoefficient(double,double);
 
     /// Ewald "self" energy
     double Self(double);
@@ -104,6 +102,8 @@ class Ewald {
   private:
     /// \return erfc value from erfc lookup table.
     inline double ERFC(double) const;
+    /// Determine Ewald coefficient from cutoff and direct sum tolerance.
+    static double FindEwaldCoefficient(double,double);
 
     double Direct_VDW_LongRangeCorrection(PairList const&, double&);
     double Direct_VDW_LJPME(PairList const&, double&);
