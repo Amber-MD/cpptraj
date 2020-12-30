@@ -13,8 +13,6 @@
 
 /// CONSTRUCTOR
 Ewald::Ewald() :
-  sumq_(0.0),
-  sumq2_(0.0),
   ew_coeff_(0.0),
   lw_coeff_(0.0),
   switch_width_(0.0),
@@ -22,9 +20,10 @@ Ewald::Ewald() :
   cut2_(0.0),
   cut2_0_(0.0),
   dsumTol_(0.0),
-//  erfcTableDx_(0.0),
-//  one_over_Dx_(0.0),
-  debug_(0)
+  debug_(0),
+  sumq_(0.0),
+  sumq2_(0.0),
+  Vdw_Recip_term_(0)
 {
 # ifdef DEBUG_EWALD
   // Save fractional translations for 1 cell in each direction (and primary cell).

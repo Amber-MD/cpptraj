@@ -64,9 +64,6 @@ class Ewald {
 #   endif
 
     // TODO make variables private
-#   ifdef DEBUG_EWALD
-    Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
-#   endif
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
     Darray Cparam_;       ///< Hold selected atomic C6 coefficients for LJ PME
     PairList pairList_;   ///< Atom pair list for direct sum.
@@ -77,8 +74,6 @@ class Ewald {
     NonbondParmType const* NB_; ///< Pointer to nonbonded parameters
 
     static const double INVSQRTPI_;
-    double sumq_;         ///< Sum of charges
-    double sumq2_;        ///< Sum of charges squared
     double ew_coeff_;     ///< Ewald coefficient for electrostatics
     double lw_coeff_;     ///< Ewald coefficient for LJ
     double switch_width_; ///< Switching window size for LJ switch if active
@@ -86,9 +81,6 @@ class Ewald {
     double cut2_;         ///< Direct space cutoff squared.
     double cut2_0_;       ///< Direct space cutoff minus switch width, squared.
     double dsumTol_;      ///< Direct space sum tolerance.
-//    double erfcTableDx_;  ///< Spacing of X values in Erfc table.
-//    double one_over_Dx_;  ///< One over erfcTableDx_.
-    double Vdw_Recip_term_; ///< VDW recip correction term from # types and B parameters
     int debug_;
     Timer t_total_; // TODO make timing external
     Timer t_self_;
@@ -111,5 +103,12 @@ class Ewald {
     double Direct_VDW_LJPME(PairList const&, double&);
 
     SplineFxnTable table_; ///< Hold spline interpolation for erfc
+#   ifdef DEBUG_EWALD
+    Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
+#   endif
+    double sumq_;         ///< Sum of charges
+    double sumq2_;        ///< Sum of charges squared
+    double Vdw_Recip_term_; ///< VDW recip correction term from # types and B parameters
+
 };
 #endif
