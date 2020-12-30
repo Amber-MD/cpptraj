@@ -49,8 +49,6 @@ class Ewald {
     void CalculateC6params(Topology const&, AtomMask const&);
     /// Setup main excluded atom list
     void SetupExclusionList(Topology const&, AtomMask const&);
-    /// Setup VDW correction for selected atom types
-    void Setup_VDW_Correction(Topology const&, AtomMask const&);
 
 #   ifdef DEBUG_EWALD
     /// Slow version of direct space energy, no pairlist.
@@ -105,7 +103,11 @@ class Ewald {
     /// Determine Ewald coefficient from cutoff and direct sum tolerance.
     static double FindEwaldCoefficient(double,double);
 
+    /// Setup VDW correction for selected atom types
+    void Setup_VDW_Correction(Topology const&, AtomMask const&);
+    /// Direct-space energy with VDW long range corrected energy
     double Direct_VDW_LongRangeCorrection(PairList const&, double&);
+    /// Direct-space energy with VDW handled via PME
     double Direct_VDW_LJPME(PairList const&, double&);
 
     SplineFxnTable table_; ///< Hold spline interpolation for erfc
