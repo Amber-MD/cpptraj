@@ -222,7 +222,11 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     xmin_ = oxyz[0];
     ymin_ = oxyz[1];
     zmin_ = oxyz[2];
-  } 
+  }
+  // Warn for small grid spacing
+  if (dx_ < 0.4 || dy_ < 0.4 || dz_ < 0.4)
+    mprintf("Warning: Grid spacings smaller than 0.4 Ang. may be very slow;\n"
+            "Warning:  consider using larger grid spacings.\n");
   //std::string density = actionArgs.GetStringKey("density"); // FIXME obsolete?
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
