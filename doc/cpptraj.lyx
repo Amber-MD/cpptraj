@@ -35435,7 +35435,7 @@ volmap [out <filename>] <mask> [radscale <factor>] [stepfac <fac>]
 \end_layout
 
 \begin_layout LyX-Code
-   	[sphere] [radii {vdw | element}]
+   	[sphere] [radii {vdw | element}] [splinedx <spacing>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -35526,6 +35526,14 @@ radii
 
 {vdw|element} Specify either van der Waals radii (default) or elemental
  radii.
+\end_layout
+
+\begin_layout Description
+splinedx
+\begin_inset space ~
+\end_inset
+
+<spacing> Spacing to use for cubic spline interpolation (default 0.01 Ang.).
 \end_layout
 
 \begin_layout Description
@@ -35735,6 +35743,25 @@ centermask
 buffer
 \series default
 .
+\end_layout
+
+\begin_layout Standard
+The calculation is sped up by using cubic splines to interpolate the exponential
+ function when calculating the Gaussians.
+ The details are in Roe & Brooks, 
+\begin_inset Quotes eld
+\end_inset
+
+Improving the Speed of Volumetric Density Map Generation via Cubic Spline
+ Interpolation
+\begin_inset Quotes erd
+\end_inset
+
+, J.
+ Mol.
+ Graph.
+ Model.
+ (2021).
 \end_layout
 
 \begin_layout Subsection

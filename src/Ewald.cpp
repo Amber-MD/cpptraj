@@ -13,8 +13,6 @@
 
 /// CONSTRUCTOR
 Ewald::Ewald() :
-  sumq_(0.0),
-  sumq2_(0.0),
   ew_coeff_(0.0),
   lw_coeff_(0.0),
   switch_width_(0.0),
@@ -22,9 +20,10 @@ Ewald::Ewald() :
   cut2_(0.0),
   cut2_0_(0.0),
   dsumTol_(0.0),
-  erfcTableDx_(0.0),
-  one_over_Dx_(0.0),
-  debug_(0)
+  debug_(0),
+  sumq_(0.0),
+  sumq2_(0.0),
+  Vdw_Recip_term_(0)
 {
 # ifdef DEBUG_EWALD
   // Save fractional translations for 1 cell in each direction (and primary cell).
@@ -91,44 +90,9 @@ double Ewald::erfc_func(double xIn) {
   return erfc;
 }
 
-// Ewald::FillErfcTable()
-void Ewald::FillErfcTable(double cutoffIn, double dxdr) {
-  one_over_Dx_ = 1.0 / erfcTableDx_;
-  unsigned int erfcTableSize = (unsigned int)(dxdr * one_over_Dx_ * cutoffIn * 1.5);
-  Darray erfc_X, erfc_Y;
-  erfc_X.reserve( erfcTableSize );
-  erfc_Y.reserve( erfcTableSize );
-  // Save X and Y values so we can calc the spline coefficients
-  double xval = 0.0;
-  for (unsigned int i = 0; i != erfcTableSize; i++) {
-    double yval = erfc_func( xval );
-    erfc_X.push_back( xval );
-    erfc_Y.push_back( yval );
-    xval += erfcTableDx_;
-  }
-  Spline cspline;
-  cspline.CubicSpline_Coeff(erfc_X, erfc_Y);
-  erfc_X.clear();
-  // Store values in Spline table
-  erfc_table_.reserve( erfcTableSize * 4 ); // Y B C D
-  for (unsigned int i = 0; i != erfcTableSize; i++) {
-    erfc_table_.push_back( erfc_Y[i] );
-    erfc_table_.push_back( cspline.B_coeff()[i] );
-    erfc_table_.push_back( cspline.C_coeff()[i] );
-    erfc_table_.push_back( cspline.D_coeff()[i] );
-  }
-  // Memory saved Y values plus spline B, C, and D coefficient arrays.
-  mprintf("\tMemory used by Erfc table and splines: %s\n",
-          ByteString(erfc_table_.size() * sizeof(double), BYTE_DECIMAL).c_str());
-}
-
 // Ewald::ERFC()
 double Ewald::ERFC(double xIn) const {
-  int xidx = ((int)(one_over_Dx_ * xIn));
-  double dx = xIn - ((double)xidx * erfcTableDx_);
-  xidx *= 4;
-  return erfc_table_[xidx] + 
-         dx*(erfc_table_[xidx+1] + dx*(erfc_table_[xidx+2] + dx*erfc_table_[xidx+3]));
+  return table_.Yval( xIn);
 }
 
 /** Determine Ewald coefficient from cutoff and direct sum tolerance.
@@ -200,7 +164,7 @@ void Ewald::CalculateC6params(Topology const& topIn, AtomMask const& maskIn) {
 }
 
 /** Set up exclusion lists for selected atoms. */
-void Ewald::SetupExcluded(Topology const& topIn, AtomMask const& maskIn)
+void Ewald::SetupExclusionList(Topology const& topIn, AtomMask const& maskIn)
 {
   // Use distance of 4 (up to dihedrals)
   if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
@@ -223,7 +187,7 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
   ew_coeff_ = ew_coeffIn;
   lw_coeff_ = lw_coeffIn;
   switch_width_ = switch_widthIn;
-  erfcTableDx_ = erfcTableDxIn;
+  double erfcTableDx = erfcTableDxIn;
   // Check input
   if (cutoff_ < Constants::SMALL) {
     mprinterr("Error: Direct space cutoff (%g) is too small.\n", cutoff_);
@@ -252,9 +216,14 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
     dsumTol_ = 1E-5;
   if (DABS(ew_coeff_) < Constants::SMALL)
     ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
-  if (erfcTableDx_ <= 0.0) erfcTableDx_ = 1.0 / 5000;
+  if (erfcTableDx <= 0.0) erfcTableDx = 1.0 / 5000;
   // TODO make this optional
-  FillErfcTable( cutoff_, ew_coeff_ ); 
+  if (table_.FillTable( erfc_func, erfcTableDx, 0.0, cutoff_*ew_coeff_*1.5 )) {
+    mprinterr("Error: Could not set up spline table for ERFC\n");
+    return 1;
+  }
+  table_.PrintMemUsage("\t");
+  table_.PrintTableInfo("\t");
   // TODO do for C6 as well
   // TODO for C6 correction term
   if (lw_coeff_ < 0.0)
