@@ -44,9 +44,8 @@ Action_Volmap::Action_Volmap() :
   peakcut_(0.05),
   buffer_(3.0),
   radscale_(1.0),
-  splineScale_(1.1),
   stepfac_(4.1),
-  splineDx_(0)
+  splineDx_(0.01) // Recommendation from Roe & Brooks JMGM 2021
 {}
 
 void Action_Volmap::Help() const {
@@ -63,7 +62,6 @@ void Action_Volmap::Help() const {
 void Action_Volmap::RawHelp() const {
   mprintf("\t[out <filename>] <mask> [radscale <factor>] [stepfac <fac>]\n"
           "\t[sphere] [radii {vdw | element}] [splinedx <spacing>]\n"
-          "\t[splinescale <sfac>]\n"
           "\t[calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]\n"
           "\t{ data <existing set> |\n"
           "\t  name <setname> <dx> [<dy> <dz>]\n"
@@ -89,8 +87,8 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     radscale_ = 0.5;
     stepfac_ = 1.0;
   }
-  splineDx_ = actionArgs.getKeyDouble("splinedx", 1.0/5000.0);
-  splineScale_ = actionArgs.getKeyDouble("splinescale", 1.1);
+  //splineDx_ = actionArgs.getKeyDouble("splinedx", 1.0/5000.0);
+  splineDx_ = actionArgs.getKeyDouble("splinedx", 0.01);
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", radscale_);
   stepfac_ = actionArgs.getKeyDouble("stepfac", stepfac_);
   std::string radarg = actionArgs.GetStringKey("radii");
@@ -313,7 +311,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 //# elif defined(VOLMAP_USEFASTEXPIEEE)
 //  mprintf("\tUsing exp() from Schraudolph & Malossi et al.\n");
 # else /* VOLMAP_USEEXP */
-  mprintf("\tExponential for Gaussians will be approximated using cubic splines with a spacing of %g\n", splineDx_);
+  mprintf("\tExponential for Gaussians will be approximated using cubic splines with a spacing of %g Ang.\n", splineDx_);
   mprintf("# Citation: Roe, D. R.; Brooks, B. R.; \"Improving the Speed of Volumetric\n"
           "#           Density Map Generation via Cubic Spline Interpolation\".\n"
           "#           Journal of Molecular Graphics and Modelling (2021).\n");
@@ -322,7 +320,6 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 # elif defined(VOLMAP_USEXTABLE)
   mprintf("\tSplines using less accurate lookup with tabled X values.\n");
 # endif
-  mprintf("\tWidth of the spline table will be scaled by %gx\n", splineScale_);
 # endif /* VOLMAP_USEEXP */
   if (outfile != 0)
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
@@ -410,12 +407,8 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   //mprintf("DEBUG: %g %g %g %g\n", maxx, maxy, maxz, maxDist);
   maxDist *= (-1.0 / (2.0 * maxRad * maxRad));
   //mprintf("DEBUG: max= %g\n", maxDist);
-
-  //if (table_.FillTable( exp, splineDx_, maxDist, 1.0, splineScale_ )) return Action::ERR;
+  // Set up the interpolation table
   if (table_.FillTable( exp, splineDx_, maxDist, 1.0 )) return Action::ERR;
-  //table_.FillTable( exp, splineDx_, maxDist, 0, 1.0 );
-  //double width = (0.0 - maxDist) * 1.1;
-  //if (table_.FillTable( exp, (int)(width / splineDx_), maxDist, 0.0 ) ) return Action::ERR;
 
   if ((int)Atoms_.size() < densitymask_.Nselected())
     mprintf("Warning: %i atoms have 0.0 radii and will be skipped.\n",
@@ -594,6 +587,7 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
+/** Sync grid to the master process. */
 int Action_Volmap::SyncAction() {
 # ifdef _OPENMP
   CombineGridThreads();
