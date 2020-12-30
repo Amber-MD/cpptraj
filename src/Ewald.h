@@ -35,10 +35,6 @@ class Ewald {
     /// Determine Ewald coefficient from cutoff and direct sum tolerance.
     static double FindEwaldCoefficient(double,double);
 
-    /// Fill erfc lookup table using cubic spline interpolation.
-    //void FillErfcTable(double,double);
-    /// \return erfc value from erfc lookup table.
-    inline double ERFC(double) const;
     /// Ewald "self" energy
     double Self(double);
     /// Ewald "self" energy for C6 term
@@ -83,7 +79,6 @@ class Ewald {
     ExclusionArray Excluded_;   ///< Full exclusion list for each selected atom.
     Iarray TypeIndices_;  ///< Hold atom type indices for selected atoms
     NonbondParmType const* NB_; ///< Pointer to nonbonded parameters
-    SplineFxnTable table_; ///< Hold spline interpolation for erfc
 
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges
@@ -107,7 +102,12 @@ class Ewald {
     Timer t_erfc_;
     Timer t_adjust_;
   private:
+    /// \return erfc value from erfc lookup table.
+    inline double ERFC(double) const;
+
     double Direct_VDW_LongRangeCorrection(PairList const&, double&);
     double Direct_VDW_LJPME(PairList const&, double&);
+
+    SplineFxnTable table_; ///< Hold spline interpolation for erfc
 };
 #endif
