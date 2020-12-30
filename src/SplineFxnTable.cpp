@@ -13,6 +13,19 @@ SplineFxnTable::SplineFxnTable() :
   Xmax_(0)
 {}
 
+/** Print table info to STDOUT. */
+void SplineFxnTable::PrintTableInfo(const char* header) const {
+  mprintf("%sTable from %g to %g, width is %g table size %zu\n", header, Xmin_, Xmax_, Xmax_-Xmin_, Xvals_.size());
+  mprintf("%sSpline table X range is %g to %g\n", header, Xvals_.front(), Xvals_.back());
+}
+
+/** Print memory usage to STDOUT. */
+void SplineFxnTable::PrintMemUsage(const char* header) const {
+  // Memory saved Y values plus spline B, C, and D coefficient arrays.
+  mprintf("%sMemory used by table and splines: %s\n", header,
+          ByteString((table_.size()+Xvals_.size()+4) * sizeof(double), BYTE_DECIMAL).c_str());
+}
+
 /** Fill the spline function table with values from the given function. */
 //int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double maxIn, double scale)
 int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double maxIn)
@@ -39,7 +52,6 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
   }
   // Calculate table size
   int ArraySize = ((int)ceil(one_over_Dx_ * width)) + 1;
-  mprintf("DEBUG: Table from %g to %g, width is %g table size %i\n", minIn, maxIn, width, ArraySize);
   int minIdx = 0;
 
   Xvals_.clear();
@@ -56,7 +68,6 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
     Yvals.push_back( yval );
   }
   Xmin_ = Xvals_.front();
-  mprintf("DEBUG: Spline table X range is %g to %g\n", Xvals_.front(), Xvals_.back());
   Spline cspline;
   cspline.CubicSpline_Coeff(Xvals_, Yvals);
   //Xvals.clear();
@@ -69,9 +80,7 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
     table_.push_back( cspline.C_coeff()[i] );
     table_.push_back( cspline.D_coeff()[i] );
   }
-  // Memory saved Y values plus spline B, C, and D coefficient arrays.
-  mprintf("\tMemory used by table and splines: %s\n",
-          ByteString(table_.size() * sizeof(double), BYTE_DECIMAL).c_str());
+
   return 0;
 }
 
@@ -111,9 +120,6 @@ int SplineFxnTable::FillTable(FxnType fxnIn, int mesh_size, double minIn, double
     Yvals.push_back( yval );
   }
 
-  // Calculate table size
-  mprintf("DEBUG: Table from %g to %g, width is %g table size %i\n", minIn, maxIn, width, mesh_size);
-
   Spline cspline;
   cspline.CubicSpline_Coeff(Xvals_, Yvals);
 
@@ -126,9 +132,7 @@ int SplineFxnTable::FillTable(FxnType fxnIn, int mesh_size, double minIn, double
     table_.push_back( cspline.C_coeff()[i] );
     table_.push_back( cspline.D_coeff()[i] );
   }
-  // Memory saved Y values plus spline B, C, and D coefficient arrays.
-  mprintf("\tMemory used by table and splines: %s\n",
-          ByteString(table_.size() * sizeof(double), BYTE_DECIMAL).c_str());
+
   return 0;
 }
 

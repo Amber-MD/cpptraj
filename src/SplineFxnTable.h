@@ -61,7 +61,10 @@ class SplineFxnTable {
     double Yval_accurate(double) const;
     /// \return Number of values in the table
     unsigned int Nvals() const { return Xvals_.size(); }
-
+    /// Print table details to STDOUT
+    void PrintTableInfo(const char*) const;
+    /// Print memory usage to STDOUT
+    void PrintMemUsage(const char*) const;
     // DEBUG Access to internal table
     std::vector<double> const& InternalTable() const { return table_; }
   private:
