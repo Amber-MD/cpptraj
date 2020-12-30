@@ -15,11 +15,11 @@
 #ifdef _OPENMP
 # include <omp.h>
 #endif
-#if defined(VOLMAP_USEFASTEXPS) || defined(VOLMAP_USEFASTEXP64)
-# include "FastExp_Schraudolph.h"
-#elif defined(VOLMAP_USEFASTEXPIEEE)
-# include "FastExp_fastexp.h"
-#endif
+//#if defined(VOLMAP_USEFASTEXPS) || defined(VOLMAP_USEFASTEXP64)
+//# incl ude "FastExp_Schraudolph.h"
+//#elif defined(VOLMAP_USEFASTEXPIEEE)
+//# incl ude "FastExp_fastexp.h"
+//#endif
 
 const double Action_Volmap::sqrt_8_pi_cubed_ = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
 
@@ -306,14 +306,17 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
 # if defined(VOLMAP_USEEXP)
   mprintf("\tUsing system exp() function for evaluating Gaussians.\n");
-# elif defined(VOLMAP_USEFASTEXPS)
-  mprintf("\tUsing exp() from N. Schraudolph, Neural Computation 11, 853–862 (1999).\n");
-# elif defined(VOLMAP_USEFASTEXP64)
-  mprintf("\tUsing 64 bit version of exp() from N. Schraudolph, Neural Computation 11, 853–862 (1999).\n");
-# elif defined(VOLMAP_USEFASTEXPIEEE)
-  mprintf("\tUsing exp() from Schraudolph & Malossi et al.\n");
+//# elif defined(VOLMAP_USEFASTEXPS)
+//  mprintf("\tUsing exp() from N. Schraudolph, Neural Computation 11, 853–862 (1999).\n");
+//# elif defined(VOLMAP_USEFASTEXP64)
+//  mprintf("\tUsing 64 bit version of exp() from N. Schraudolph, Neural Computation 11, 853–862 (1999).\n");
+//# elif defined(VOLMAP_USEFASTEXPIEEE)
+//  mprintf("\tUsing exp() from Schraudolph & Malossi et al.\n");
 # else /* VOLMAP_USEEXP */
   mprintf("\tExponential for Gaussians will be approximated using cubic splines with a spacing of %g\n", splineDx_);
+  mprintf("# Citation: Roe, D. R.; Brooks, B. R.; \"Improving the Speed of Volumetric\n"
+          "#           Density Map Generation via Cubic Spline Interpolation\".\n"
+          "#           Journal of Molecular Graphics and Modelling (2021).\n");
 # if defined(VOLMAP_USEACCURATE)
   mprintf("\tSplines using more accurate but slower table lookup.\n");
 # elif defined(VOLMAP_USEXTABLE)
@@ -545,12 +548,12 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
                   //       local variables of called functions are private.
 #                 if defined(VOLMAP_USEEXP)
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
-#                 elif defined(VOLMAP_USEFASTEXPS)
-                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * FASTEXPS(exfac * dist2));
-#                 elif defined(VOLMAP_USEFASTEXP64)
-                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * fast_exps_64(exfac * dist2));
-#                 elif defined(VOLMAP_USEFASTEXPIEEE)
-                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * fastexp::exp<double, fastexp::IEEE, 4>(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXPS)
+//                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * FASTEXPS(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXP64)
+//                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * fast_exps_64(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXPIEEE)
+//                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * fastexp::exp<double, fastexp::IEEE, 4>(exfac * dist2));
 #                 elif defined(VOLMAP_USEACCURATE)
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 elif defined(VOLMAP_USEXTABLE)
@@ -561,12 +564,12 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 #                 else /* OPENMP */
 #                 if defined(VOLMAP_USEEXP)
                   grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
-#                 elif defined(VOLMAP_USEFASTEXPS)
-                  grid_->Increment(xval, yval, zval, norm * FASTEXPS(exfac * dist2));
-#                 elif defined(VOLMAP_USEFASTEXP64)
-                  grid_->Increment(xval, yval, zval, norm * fast_exps_64(exfac * dist2));
-#                 elif defined(VOLMAP_USEFASTEXPIEEE)
-                  grid_->Increment(xval, yval, zval, norm * fastexp::exp<double, fastexp::IEEE, 4>(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXPS)
+//                  grid_->Increment(xval, yval, zval, norm * FASTEXPS(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXP64)
+//                  grid_->Increment(xval, yval, zval, norm * fast_exps_64(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXPIEEE)
+//                  grid_->Increment(xval, yval, zval, norm * fastexp::exp<double, fastexp::IEEE, 4>(exfac * dist2));
 #                 elif defined(VOLMAP_USEACCURATE)
                   grid_->Increment(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
 #                 elif defined(VOLMAP_USEXTABLE)
