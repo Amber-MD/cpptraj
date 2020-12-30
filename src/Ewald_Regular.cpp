@@ -149,7 +149,7 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
           cutoff_, dsumTol_, ew_coeff_);
   mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g   NB skin= %g\n",
           maxexp_, rsumTol_, skinnbIn);
-  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
   if (Setup_Pairlist(boxIn, recipLengths, skinnbIn)) return 1;
@@ -187,7 +187,7 @@ int Ewald_Regular::Setup(Topology const& topIn, AtomMask const& maskIn) {
 //    sinf3_.push_back( 0.0 );
 // }
 
-  SetupExcluded(topIn, maskIn);
+  SetupExclusionList(topIn, maskIn);
 
 # ifdef _OPENMP
   // Pre-calculate m1 and m2 indices

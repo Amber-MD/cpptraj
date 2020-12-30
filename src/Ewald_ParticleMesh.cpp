@@ -113,7 +113,7 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   if (switch_width_ > 0.0)
     mprintf("\t  LJ switch width= %g\n", switch_width_);
   mprintf("\t  Bspline order= %i\n", order_);
-  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t ");
   for (int i = 0; i != 3; i++)
     if (nfft_[i] == -1)
@@ -139,7 +139,7 @@ int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateC6params( topIn, maskIn );
   coordsD_.clear();
   coordsD_.reserve( maskIn.Nselected() * 3);
-  SetupExcluded(topIn, maskIn);
+  SetupExclusionList(topIn, maskIn);
   return 0;
 }
 
