@@ -22,8 +22,8 @@ Ewald::Ewald() :
   cut2_(0.0),
   cut2_0_(0.0),
   dsumTol_(0.0),
-  erfcTableDx_(0.0),
-  one_over_Dx_(0.0),
+//  erfcTableDx_(0.0),
+//  one_over_Dx_(0.0),
   debug_(0)
 {
 # ifdef DEBUG_EWALD
@@ -92,6 +92,7 @@ double Ewald::erfc_func(double xIn) {
 }
 
 // Ewald::FillErfcTable()
+/*
 void Ewald::FillErfcTable(double cutoffIn, double dxdr) {
   one_over_Dx_ = 1.0 / erfcTableDx_;
   unsigned int erfcTableSize = (unsigned int)(dxdr * one_over_Dx_ * cutoffIn * 1.5);
@@ -120,15 +121,16 @@ void Ewald::FillErfcTable(double cutoffIn, double dxdr) {
   // Memory saved Y values plus spline B, C, and D coefficient arrays.
   mprintf("\tMemory used by Erfc table and splines: %s\n",
           ByteString(erfc_table_.size() * sizeof(double), BYTE_DECIMAL).c_str());
-}
+}*/
 
 // Ewald::ERFC()
 double Ewald::ERFC(double xIn) const {
-  int xidx = ((int)(one_over_Dx_ * xIn));
+  return table_.Yval( xIn);
+/*  int xidx = ((int)(one_over_Dx_ * xIn));
   double dx = xIn - ((double)xidx * erfcTableDx_);
   xidx *= 4;
   return erfc_table_[xidx] + 
-         dx*(erfc_table_[xidx+1] + dx*(erfc_table_[xidx+2] + dx*erfc_table_[xidx+3]));
+         dx*(erfc_table_[xidx+1] + dx*(erfc_table_[xidx+2] + dx*erfc_table_[xidx+3]));*/
 }
 
 /** Determine Ewald coefficient from cutoff and direct sum tolerance.
@@ -223,7 +225,7 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
   ew_coeff_ = ew_coeffIn;
   lw_coeff_ = lw_coeffIn;
   switch_width_ = switch_widthIn;
-  erfcTableDx_ = erfcTableDxIn;
+  double erfcTableDx = erfcTableDxIn;
   // Check input
   if (cutoff_ < Constants::SMALL) {
     mprinterr("Error: Direct space cutoff (%g) is too small.\n", cutoff_);
@@ -252,9 +254,15 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
     dsumTol_ = 1E-5;
   if (DABS(ew_coeff_) < Constants::SMALL)
     ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
-  if (erfcTableDx_ <= 0.0) erfcTableDx_ = 1.0 / 5000;
+  if (erfcTableDx <= 0.0) erfcTableDx = 1.0 / 5000;
   // TODO make this optional
-  FillErfcTable( cutoff_, ew_coeff_ ); 
+  //FillErfcTable( cutoff_, ew_coeff_ ); 
+  if (table_.FillTable( erfc_func, erfcTableDx, 0.0, cutoff_*ew_coeff_*1.5 )) {
+    mprinterr("Error: Could not set up spline table for ERFC\n");
+    return 1;
+  }
+  table_.PrintMemUsage("\t");
+  table_.PrintTableInfo("\t");
   // TODO do for C6 as well
   // TODO for C6 correction term
   if (lw_coeff_ < 0.0)
