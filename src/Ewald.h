@@ -67,11 +67,6 @@ class Ewald {
     Darray Charge_;       ///< Hold selected atomic charges converted to Amber units.
     Darray Cparam_;       ///< Hold selected atomic C6 coefficients for LJ PME
     PairList pairList_;   ///< Atom pair list for direct sum.
-//    Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
-    // TODO should Exlcusions be passed in?
-    ExclusionArray Excluded_;   ///< Full exclusion list for each selected atom.
-    Iarray TypeIndices_;  ///< Hold atom type indices for selected atoms
-    NonbondParmType const* NB_; ///< Pointer to nonbonded parameters
 
     static const double INVSQRTPI_;
     double ew_coeff_;     ///< Ewald coefficient for electrostatics
@@ -109,6 +104,10 @@ class Ewald {
     double sumq_;         ///< Sum of charges
     double sumq2_;        ///< Sum of charges squared
     double Vdw_Recip_term_; ///< VDW recip correction term from # types and B parameters
+    // TODO should Exlcusions be passed in?
+    ExclusionArray Excluded_;   ///< Full exclusion list for each selected atom.
+    Iarray TypeIndices_;  ///< Hold atom type indices for selected atoms
+    NonbondParmType const* NB_; ///< Pointer to nonbonded parameters
 
 };
 #endif
