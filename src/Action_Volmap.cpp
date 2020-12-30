@@ -311,7 +311,8 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 //# elif defined(VOLMAP_USEFASTEXPIEEE)
 //  mprintf("\tUsing exp() from Schraudolph & Malossi et al.\n");
 # else /* VOLMAP_USEEXP */
-  mprintf("\tExponential for Gaussians will be approximated using cubic splines with a spacing of %g Ang.\n", splineDx_);
+  mprintf("\tExponential for Gaussians will be approximated using cubic splines\n"
+          "\t  with a spacing of %g Ang.\n", splineDx_);
   mprintf("# Citation: Roe, D. R.; Brooks, B. R.; \"Improving the Speed of Volumetric\n"
           "#           Density Map Generation via Cubic Spline Interpolation\".\n"
           "#           Journal of Molecular Graphics and Modelling (2021).\n");
