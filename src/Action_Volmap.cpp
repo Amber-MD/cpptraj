@@ -75,6 +75,7 @@ void Action_Volmap::RawHelp() const {
 // Action_Volmap::Init()
 Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
 # ifdef MPI
   trajComm_ = init.TrajComm();
 # endif
@@ -408,8 +409,13 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   //mprintf("DEBUG: %g %g %g %g\n", maxx, maxy, maxz, maxDist);
   maxDist *= (-1.0 / (2.0 * maxRad * maxRad));
   //mprintf("DEBUG: max= %g\n", maxDist);
+# ifndef VOLMAP_USEEXP
   // Set up the interpolation table
   if (table_.FillTable( exp, splineDx_, maxDist, 1.0 )) return Action::ERR;
+  table_.PrintMemUsage("\t");
+  if (debug_ > 0)
+    table_.PrintTableInfo("DEBUG: ");
+# endif
 
   if ((int)Atoms_.size() < densitymask_.Nselected())
     mprintf("Warning: %i atoms have 0.0 radii and will be skipped.\n",
