@@ -38,32 +38,10 @@ int SplineFxnTable::FillTable(FxnType fxnIn, double dxIn, double minIn, double m
     return 1;
   }
   // Calculate table size
-  int TableSize = ((int)ceil(one_over_Dx_ * width)) + 1;
-  mprintf("DEBUG: Table from %g to %g, width is %g table size %i\n", minIn, maxIn, width, TableSize);
-  int ArraySize = TableSize;
+  int ArraySize = ((int)ceil(one_over_Dx_ * width)) + 1;
+  mprintf("DEBUG: Table from %g to %g, width is %g table size %i\n", minIn, maxIn, width, ArraySize);
   int minIdx = 0;
-  //unsigned int TableSize = (unsigned int)(one_over_Dx_ * width * scale);
-  //mprintf("DEBUG: Table from %g to %g (%gx), width is %g table size %u\n", minIn, maxIn, scale, width, TableSize);
-/*
-  int ScaledSize = (int)((double)TableSize * scale);
-  mprintf("DEBUG: Scaled size = %i\n", ScaledSize);
-*/
-/*
-  int ArraySize = ScaledSize;
-*/
-/*
-  int Delta = ScaledSize - TableSize;
-  //if (Delta < 1) Delta = 1;
-  mprintf("DEBUG: Delta = %i\n", Delta);
-  // Round up
-  Delta += (Delta % 2);
-  mprintf("DEBUG: Rounded Delta = %i\n", Delta);
-  int HalfDelta = Delta / 2;
-  mprintf("DEBUG: Half Delta = %i\n", HalfDelta);
-  int ArraySize = TableSize + Delta;
-  mprintf("DEBUG: Scaled table size = %i\n", ArraySize);
-  int minIdx = -HalfDelta; 
-*/
+
   Xvals_.clear();
   Darray Yvals;
   Xvals_.reserve( ArraySize );
@@ -134,7 +112,6 @@ int SplineFxnTable::FillTable(FxnType fxnIn, int mesh_size, double minIn, double
   }
 
   // Calculate table size
-  //unsigned int TableSize = (unsigned int)(one_over_Dx_ * width * scale);
   mprintf("DEBUG: Table from %g to %g, width is %g table size %i\n", minIn, maxIn, width, mesh_size);
 
   Spline cspline;
@@ -155,6 +132,9 @@ int SplineFxnTable::FillTable(FxnType fxnIn, int mesh_size, double minIn, double
   return 0;
 }
 
+/** Use a binary search to find the nearest x value; will not suffer from
+  * round-off issues but is very slow.
+  */
 double SplineFxnTable::Yval_accurate(double xIn) const {
   // Find X value
   int ind = 0;

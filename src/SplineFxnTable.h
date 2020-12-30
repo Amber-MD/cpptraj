@@ -9,11 +9,9 @@ class SplineFxnTable {
     SplineFxnTable();
     /// Generic form of the function to approximate.
     typedef double (*FxnType)(double);
-    /// Fill the table using given function and spacing, from given min to max with given scale.
-    //int FillTable(FxnType, double, double, double, double);
     /// Fill the ftable using given function and spacing, from given min to max.
     int FillTable(FxnType, double, double, double);
-    /// Fill the table using given function, mesh size, min, max
+    /// Fill the table using given function, mesh size, from given min to max.
     int FillTable(FxnType, int, double, double);
     /// \return Approximated Y value from given X value.
     double Yval(double xIn) const {
@@ -61,7 +59,7 @@ class SplineFxnTable {
     }
     /// \return More accurate X value via search of internal X table
     double Yval_accurate(double) const;
-
+    /// \return Number of values in the table
     unsigned int Nvals() const { return Xvals_.size(); }
 
     // DEBUG Access to internal table
