@@ -8,6 +8,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
 #include "StringRoutines.h" // NoTrailingWhitespace
+#include "ExclusionArray.h"
 
 // ---------- Constants and Enumerated types -----------------------------------
 const int Parm_Amber::AMBERPOINTERS_ = 31;
@@ -59,7 +60,7 @@ static const char* F5E16 = "%FORMAT(5E16.8)";
 static const char* F3I8  = "%FORMAT(3I8)";
 static const char* F1a80 = "%FORMAT(1a80)";
 static const char* F1I8  = "%FORMAT(1I8)";
-/// Constant strings for Amber parm flags and fortran formats.
+/// Constant strings for Amber parm flags and fortran formats. Enumerated by FlagType
 const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "POINTERS",                   F10I8 }, ///< Described above in topValues
   { "ATOM_NAME",                  F20a4 }, ///< Atom names
@@ -132,14 +133,18 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
   { "CHARMM_CMAP_INDEX",                  "%FORMAT(6I8)" }, // Atom i,j,k,l,m of cross term and idx
   { "FORCE_FIELD_TYPE",                   "%FORMAT(i2,a78)"},// NOTE: Cannot use with SetFortranType
   // PDB extra info
-  { "RESIDUE_NUMBER", "%FORMAT(20I4)" }, // PDB residue number
-  { "RESIDUE_CHAINID", F20a4 }, // PDB chain ID
-  { "RESIDUE_ICODE", F20a4 },   // PDB residue insertion code
-  { "ATOM_ALTLOC", F20a4 },     // PDB atom alt location indicator FIXME: format is guess
-  { "CMAP_COUNT",                  "%FORMAT(2I8)" }, // # CMAP terms, # unique CMAP params
-  { "CMAP_RESOLUTION",             "%FORMAT(20I4)"}, // # steps along each Phi/Psi CMAP axis
+  { "RESIDUE_NUMBER", "%FORMAT(20I4)" },                // PDB residue number
+  { "RESIDUE_CHAINID", F20a4 },                         // PDB chain ID
+  { "RESIDUE_ICODE", F20a4 },                           // PDB residue insertion code
+  { "ATOM_ALTLOC", F20a4 },                             // PDB atom alt location indicator FIXME: format is guess
+  { "ATOM_BFACTOR", "%FORMAT(10F8.2)"},                 // PDB atom B-factors
+  { "ATOM_OCCUPANCY", "%FORMAT(10F8.2)"},               // PDB atom occupancies
+  { "ATOM_NUMBER", F10I8},                              // PDB original atom serial #s
+  // CHARMM CMAP
+  { "CMAP_COUNT",                  "%FORMAT(2I8)" },    // # CMAP terms, # unique CMAP params
+  { "CMAP_RESOLUTION",             "%FORMAT(20I4)"},    // # steps along each Phi/Psi CMAP axis
   { "CMAP_PARAMETER_",             "%FORMAT(8(F9.5))"}, // CMAP grid
-  { "CMAP_INDEX",                  "%FORMAT(6I8)" }, // Atom i,j,k,l,m of cross term and idx
+  { "CMAP_INDEX",                  "%FORMAT(6I8)" },    // Atom i,j,k,l,m of cross term and idx
   { 0, 0 }
 };
 
@@ -467,6 +472,9 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
             case F_PDB_ICODE: err = ReadPdbIcode(TopIn, FMT); break;
             case F_PDB_ALT:   err = ReadPdbAlt(TopIn, FMT); break;
+            case F_PDB_BFAC:  err = ReadPdbBfactor(TopIn, FMT); break;
+            case F_PDB_OCC:   err = ReadPdbOccupancy(TopIn, FMT); break;
+            case F_PDB_NUM:   err = ReadPdbNumbers(TopIn, FMT); break;
             // CHAMBER
             case F_FF_TYPE:   err = ReadChamberFFtype(TopIn, FMT); break;
             case F_CHM_UBC:   err = ReadChamberUBCount(TopIn, FMT); break;
@@ -649,7 +657,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
     for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
       mprintf("%li\t%i\n", it-values_.begin(), *it);
   }
-  TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES], values_[NATOM],
+  TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES],
                                    values_[NUMBND], values_[NUMANG], values_[NPTRA]) );
 
   if (values_[IFPERT] > 0)
@@ -995,25 +1003,28 @@ int Parm_Amber::ReadAtomTypes(Topology& TopIn, FortranData const& FMT) {
 
 // Parm_Amber::ReadItree()
 int Parm_Amber::ReadItree(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocTreeChainClassification();
   if (SetupBuffer(F_ITREE, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetItree( NameType(file_.NextElement()) );
+    TopIn.SetTreeChainClassification(idx, file_.NextElement());
   return 0;
 }
 
 // Parm_Amber::ReadJoin()
 int Parm_Amber::ReadJoin(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocJoinArray();
   if (SetupBuffer(F_JOIN, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetJoin( atoi(file_.NextElement()) );
+    TopIn.SetJoinArray(idx, atoi(file_.NextElement()) );
   return 0;
 }
 
 // Parm_Amber::ReadIrotat()
 int Parm_Amber::ReadIrotat(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocRotateArray();
   if (SetupBuffer(F_IROTAT, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetIrotat( atoi(file_.NextElement()) );
+    TopIn.SetRotateArray(idx, atoi(file_.NextElement()) );
   return 0;
 }
 
@@ -1107,9 +1118,34 @@ int Parm_Amber::ReadPdbIcode(Topology& TopIn, FortranData const& FMT) {
 }
 
 int Parm_Amber::ReadPdbAlt(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocAtomAltLoc();
   if (SetupBuffer(F_PDB_ALT, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetExtraAtomInfo(idx).SetAltLoc( *(file_.NextElement()) );
+    TopIn.SetAtomAltLoc(idx, *(file_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbBfactor(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocBfactor();
+  if (SetupBuffer(F_PDB_BFAC, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetBfactor(idx, atof(file_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbOccupancy(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocOccupancy();
+  if (SetupBuffer(F_PDB_OCC, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetOccupancy(idx, atof(file_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbNumbers(Topology& TopIn, FortranData const& FMT) {
+  TopIn.AllocPdbSerialNum();
+  if (SetupBuffer(F_PDB_NUM, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetPdbSerialNum(idx, atoi(file_.NextElement()) );
   return 0;
 }
 
@@ -1547,23 +1583,77 @@ void Parm_Amber::WriteLine(FlagType flag, std::string const& lineIn) {
   file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS_[flag].Flag, FLAGS_[flag].Fmt, title.c_str());
 }
 
+/** Write TREE_CHAIN_CLASSIFICATION array. */
+int Parm_Amber::WriteTreeChainClassification(std::vector<NameType> const& tree) {
+  if (BufferAlloc(F_ITREE, tree.size())) return 1;
+  for (std::vector<NameType>::const_iterator it = tree.begin(); it != tree.end(); ++it)
+    file_.CharToBuffer( *(*it) );
+  file_.FlushBuffer();
+  return 0;
+}
+
+/** Write IJOIN array */
+int Parm_Amber::WriteIjoin(std::vector<int> const& ijoin) {
+  if (BufferAlloc(F_JOIN, ijoin.size())) return 1;
+  for (std::vector<int>::const_iterator it = ijoin.begin(); it != ijoin.end(); ++it)
+    file_.IntToBuffer( *it );
+  file_.FlushBuffer();
+  return 0;
+}
+
+/** Write IROTAT array */
+int Parm_Amber::WriteIrotat(std::vector<int> const& irotat) {
+  if (BufferAlloc(F_IROTAT, irotat.size())) return 1;
+  for (std::vector<int>::const_iterator it = irotat.begin(); it != irotat.end(); ++it)
+    file_.IntToBuffer( *it );
+  file_.FlushBuffer();
+  return 0;
+}
+
 // Parm_Amber::WriteExtra()
-int Parm_Amber::WriteExtra(std::vector<AtomExtra> const& extra) {
+/** Write "extra" Amber info that is deprecated: the tree, join, and rotate
+  * arrays. If the info is not present but it is indicated the user
+  * wants them written, generate blank arrays of size natom.
+  */
+int Parm_Amber::WriteExtra(Topology const& topOut, int natom) {
+  if (topOut.TreeChainClassification().empty() ||
+      topOut.JoinArray().empty() ||
+      topOut.RotateArray().empty())
+  {
+    mprintf("Warning: Topology does not contain tree, join, and/or rotate arrays.\n");
+    if (writeEmptyArrays_)
+      mprintf("Warning: Empty entries will be created for missing arrays. Care should be\n"
+              "Warning:   taken if this topology is used for anything besides analysis or\n"
+              "Warning:   visualization.\n");
+    else
+      mprintf("Warning: Missing arrays will not be written. Care should be taken if this\n"
+              "Warning:   topology is used for anything besides analysis or visualization.\n"
+              "Warning: To create an empty array specify the 'writeempty' keyword.\n");
+  }
   // TREE CHAIN CLASSIFICATION
-  if (BufferAlloc(F_ITREE, extra.size())) return 1;
-  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
-    file_.CharToBuffer( *(it->Itree()) );
-  file_.FlushBuffer();
+  if (topOut.TreeChainClassification().empty()) {
+    if (writeEmptyArrays_) {
+      if (WriteTreeChainClassification( std::vector<NameType>(natom, "BLA") )) return 1;
+    }
+  } else {
+    if (WriteTreeChainClassification( topOut.TreeChainClassification() )) return 1;
+  }
   // JOIN
-  if (BufferAlloc(F_JOIN, extra.size())) return 1;
-  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
-    file_.IntToBuffer( it->Join() );
-  file_.FlushBuffer();
+  if (topOut.JoinArray().empty()) {
+    if (writeEmptyArrays_) {
+      if (WriteIjoin( std::vector<int>(natom, 0) )) return 1;
+    }
+  } else {
+    if (WriteIjoin( topOut.JoinArray() )) return 1;
+  } 
   // IROTAT
-  if (BufferAlloc(F_IROTAT, extra.size())) return 1;
-  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
-    file_.IntToBuffer( it->Irotat() );
-  file_.FlushBuffer();
+  if (topOut.RotateArray().empty()) {
+    if (writeEmptyArrays_) {
+      if (WriteIrotat( std::vector<int>(natom, 0) )) return 1;
+    }
+  } else {
+    if (WriteIrotat( topOut.RotateArray() )) return 1;
+  }
   return 0;
 }
 
@@ -1601,20 +1691,39 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   WriteLine( titleFlag, TopOut.ParmName() );
 
   // Generate atom exclusion list. Do this here since POINTERS needs the size.
-  Iarray Excluded;
-  for (Topology::atom_iterator atom = TopOut.begin(); atom != TopOut.end(); ++atom)
+  ExclusionArray exclusionArray;
+  if (exclusionArray.SetupExcluded(TopOut.Atoms(), 4,
+                                   ExclusionArray::NO_EXCLUDE_SELF,
+                                   ExclusionArray::ONLY_GREATER_IDX))
   {
-    int nex = atom->Nexcluded();
-    if (nex == 0)
+    mprinterr("Error: Parm_Amber: Could not set up exclusion array for topology write.\n");
+    return 1;
+  }
+  Iarray Excluded;
+  for (ExclusionArray::const_iterator exList = exclusionArray.begin();
+                                      exList != exclusionArray.end();
+                                    ++exList)
+  {
+    if (exList->empty())
       Excluded.push_back( 0 );
     else {
-      for (Atom::excluded_iterator ex = atom->excludedbegin();
-                                   ex != atom->excludedend(); ex++)
+      for (ExclusionArray::ExListType::const_iterator ex = exList->begin();
+                                                      ex != exList->end(); ex++)
         // Amber atom #s start from 1
         Excluded.push_back( (*ex) + 1 );
     }
   }
- 
+
+  // Determine if atoms have bfactors and/or occupancy.
+  bool hasBfac = !TopOut.Bfactor().empty();
+  bool hasOcc  = !TopOut.Occupancy().empty();
+  bool hasNum  = !TopOut.PdbSerialNum().empty();
+  if (hasBfac)
+    mprintf("\tTopology has atomic B-factors.\n");
+  if (hasOcc)
+    mprintf("\tTopology has atomic occupancies.\n");
+  if (hasNum)
+    mprintf("\tTopology has original PDB serial numbers.\n");
   // Determine max residue size. Also determine if extra info needs to be
   // written such as PDB residue number, chain ID, etc.
   // Since original res num gets set no matter what, only print out
@@ -1640,7 +1749,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     mprintf("\tTopology has chain IDs.\n");
   if (hasIcodes)
     mprintf("\tTopology has residue insertion codes.\n");
+  // Turn PDB info off if specified
   if (!writePdbInfo_) {
+    if (hasBfac)
+      mprintf("\tnopdbinfo : Not writing atomic B-factors.\n");
+    if (hasOcc)
+      mprintf("\tnopdbinfo : Not writing atomic occupancies.\n");
+    if (hasNum)
+      mprintf("\tnopdbinfo : Not writing original PDB serial numbers.\n");
     if (hasOrigResNums)
       mprintf("\tnopdbinfo : Not writing alternative residue numbering.\n");
     if (hasChainID)
@@ -1650,6 +1766,9 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     hasOrigResNums = false;
     hasChainID = false;
     hasIcodes = false;
+    hasBfac = false;
+    hasOcc = false;
+    hasNum = false;
   }
 
   // Determine value of ifbox
@@ -1754,11 +1873,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // NUMEX
   if (BufferAlloc(F_NUMEX, TopOut.Natom())) return 1;
-  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    if (atm->Nexcluded() == 0)
+  for (ExclusionArray::const_iterator exList = exclusionArray.begin();
+                                      exList != exclusionArray.end(); ++exList)
+  {
+    if (exList->empty())
       file_.IntToBuffer( 1 );
     else
-      file_.IntToBuffer( atm->Nexcluded() );
+      file_.IntToBuffer( (int)exList->size() );
+  }
   file_.FlushBuffer();
 
   // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
@@ -1966,25 +2088,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // may mean this topology was not originally read from an Amber topology
   // and could cause problems if used for simulations. Create "empty" values,
   // but warn.
-  if (!TopOut.Extra().empty()) {
-    if (WriteExtra(TopOut.Extra())) return 1;
-  } else {
-    mprintf("Warning: Topology does not contain tree, join, or rotate entries.\n"
-            "Warning:   These are required by Amber.\n");
-    if (writeEmptyArrays_) {
-      mprintf("Warning: Creating empty entries for tree, join, and rotate,\n"
-              "Warning:   but care should be taken if this topology is used for\n"
-              "Warning:   anything besides analysis or simulation.\n");
-      std::vector<AtomExtra> extra;
-      extra.reserve( TopOut.Natom() );
-      for (int i = 0; i < TopOut.Natom(); i++)
-        extra.push_back( AtomExtra("BLA",  0, 0, ' ') );
-      if (WriteExtra(extra)) return 1;
-    } else
-      mprintf("Warning: These arrays will not be written and the topology\n"
-              "Warning:   will only be usable for basic analysis and visualization.\n"
-              "Warning: To change this behavior specify the 'writeempty' keyword.\n");
-  }
+  if (WriteExtra(TopOut, TopOut.Natom())) return 1;
 
   // CHAMBER only - write CMAP parameters
   if (TopOut.HasCmap()) {
@@ -2267,6 +2371,30 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       icode[0] = res->Icode();
       file_.CharToBuffer( icode );
     }
+    file_.FlushBuffer();
+  }
+  if (hasOcc) {
+    // PDB atomic occupancy
+    if (BufferAlloc(F_PDB_OCC, TopOut.Natom())) return 1;
+    for (std::vector<float>::const_iterator it = TopOut.Occupancy().begin();
+                                            it != TopOut.Occupancy().end(); ++it)
+      file_.DblToBuffer( *it );
+    file_.FlushBuffer();
+  }
+  if (hasBfac) {
+    // PDB atomic B-factors
+    if (BufferAlloc(F_PDB_BFAC, TopOut.Natom())) return 1;
+    for (std::vector<float>::const_iterator it = TopOut.Bfactor().begin();
+                                            it != TopOut.Bfactor().end(); ++it)
+      file_.DblToBuffer( *it );
+    file_.FlushBuffer();
+  }
+  if (hasNum) {
+    // PDB original serial numbers
+    if (BufferAlloc(F_PDB_NUM, TopOut.Natom())) return 1;
+    for (std::vector<int>::const_iterator it = TopOut.PdbSerialNum().begin();
+                                          it != TopOut.PdbSerialNum().end(); ++it)
+      file_.IntToBuffer( *it );
     file_.FlushBuffer();
   }
   return 0;

@@ -12521,7 +12521,7 @@ parm
 \end_layout
 
 \begin_layout LyX-Code
-      }]
+      }] [nomolsearch] [renumresidues]
 \end_layout
 
 \begin_deeper
@@ -12561,16 +12561,6 @@ reference "subsec:Parameter/Reference-Tagging"
 \begin_layout Description
 
 \series bold
-[nobondsearch]
-\series default
- Optional; if specified do not search for bonds via geometry if Topology
- does not include bond information.
- May cause some Actions to fail.
-\end_layout
-
-\begin_layout Description
-
-\series bold
 [bondsearch <offset>]
 \series default
  Optional; when searching for bonds via geometry search (default for Topologies
@@ -12601,6 +12591,34 @@ pairlist Uses a pair list to search for bonds between atoms.
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+
+\series bold
+Advanced Options - Not recommended for general use
+\end_layout
+
+\begin_layout Description
+
+\series bold
+[nobondsearch]
+\series default
+ If specified do not search for bonds via geometry if Topology does not
+ include bond information.
+ May cause some Actions to fail.
+\end_layout
+
+\begin_layout Description
+[nomolsearch] If specified do not search for molecule information.
+ May cause some Actions to fail.
+\end_layout
+
+\begin_layout Description
+[renumresidues] If specified, ensure that any residue cannot be part of
+ more than 1 molecule (can occur with e.g.
+ alternate sites).
+ Residues will be renumbered according to molecule information in that case.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Read in parameter file.
@@ -20494,11 +20512,15 @@ check
 
 \end_inset
 
- [<mask>] [around <mask2>] [reportfile <report>] [noimage] [skipbadframes]
+ [<mask>] [around <mask2>] [reportfile <report>] [noimage]
 \end_layout
 
 \begin_layout LyX-Code
-      [offset <offset>] [cut <cut>] [nobondcheck] [silent]
+      [skipbadframes] [offset <offset>] [minoffset <minoffset>]
+\end_layout
+
+\begin_layout LyX-Code
+      [cut <cut>] [nobondcheck] [silent] [plcut <cut>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -20542,7 +20564,16 @@ tory output will be skipped.
 \end_inset
 
 <offset>] Report bond lengths greater than the equilibrium value plus <offset>
- (default 1.0 Å)
+ (default 1.15 Å).
+\end_layout
+
+\begin_layout Description
+[minoffset
+\begin_inset space ~
+\end_inset
+
+<minoffset>] Report bond lengths less than the equilibrium value minus <minoffse
+t> (default 0.5 Å).
 \end_layout
 
 \begin_layout Description
@@ -20566,23 +20597,63 @@ skipbadframes
  option.
 \end_layout
 
+\begin_layout Description
+[plcut
+\begin_inset space ~
+\end_inset
+
+<cut>] Pair list cutoff (default 4.0 Å); only matters if box is present.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 Check the structure and report problems related to atomic overlap/unusual
  bond length.
- Problems are reported when any two atoms in the mask are closer than 
+ Problems are reported when any two atoms in 
+\series bold
+<mask>
+\series default
+ (or between 
+\series bold
+<mask>
+\series default
+ and 
+\series bold
+<mask2>
+\series default
+ if using 
+\series bold
+'around'
+\series default
+) are closer than 
 \series bold
 <cut>
 \series default
-.
+; atoms that are bonded to each other are ignored (except if using the 
+\series bold
+'around'
+\series default
+ mask).
  If bonds are being checked then bond lengths greater than their equilibrium
- value + 
+ value plus 
 \series bold
 <offset>
 \series default
+ and less than their equilibrium value minus 
+\series bold
+<minoffset>
+\series default
  are reported as well.
- This command can also be used to skip corrupted frames in a trajectory
- during processing.
+ If box information is present and not using the 
+\series bold
+'around'
+\series default
+ mask, a pairlist will be used to speed up the calculation.
+\end_layout
+
+\begin_layout Standard
+This command can also be used to skip corrupted frames in a trajectory during
+ processing.
  For example, if this message is encountered:
 \end_layout
 
@@ -21429,20 +21500,24 @@ density
 \end_layout
 
 \begin_layout LyX-Code
-density [out <filename>] 
+density [out <filename>] [name <set name>]
 \end_layout
 
 \begin_layout LyX-Code
         [ <mask1> ...
- <maskN> [name <set name>] [delta <resolution>] [{x|y|z}]
+ <maskN> [delta <resolution>] [{x|y|z}]
 \end_layout
 
 \begin_layout LyX-Code
-          [{number|mass|charge|electron}] [{bincenter|binedge}] ]
+          [{number|mass|charge|electron}] [{bincenter|binedge}]
 \begin_inset Separator latexpar
 \end_inset
 
 
+\end_layout
+
+\begin_layout LyX-Code
+          [restrict {cylinder|square} cutoff <cut>] ]
 \end_layout
 
 \begin_deeper
@@ -21451,7 +21526,7 @@ density [out <filename>]
 \begin_inset space ~
 \end_inset
 
-<filename>] Output file for histogram (relative distances vs.
+<filename>] Output file for histogram(s) (relative distances vs.
  densities for each mask) or total density.
 \end_layout
 
@@ -21493,7 +21568,7 @@ name>] Output data set name.
 \end_layout
 
 \begin_layout Description
-[{x|y|z}] Coordinate for density calculation.
+[{x|y|z}] Coordinate (axis) for density calculation.
  (default z)
 \end_layout
 
@@ -21510,22 +21585,70 @@ name>] Output data set name.
  based on bin center (default) or bin edges.
 \end_layout
 
+\begin_layout Description
+[restrict
+\begin_inset space ~
+\end_inset
+
+{cylinder|square}] If 
+\series bold
+'restrict'
+\series default
+ is specified, only calculate the density that is within a cylinder or square
+ shape from the specified axis as defined by a distance cutoff.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+cutoff
+\begin_inset space ~
+\end_inset
+
+<cut> The distance cutoff for 
+\series bold
+'restrict'
+\series default
+.
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Standard
-DataSet Aspects:
+DataSets Created if masks specified:
 \end_layout
 
 \begin_layout Description
-[avg] Average density over coordinate.
+<set
+\begin_inset space ~
+\end_inset
+
+name>[avg]:<idx> Average density over coordinate for mask number <idx>.
 \end_layout
 
 \begin_layout Description
-[sd] Standard deviation of density over coordinate.
+<set
+\begin_inset space ~
+\end_inset
+
+name>[sd]:<idx> Standard deviation of density over coordinate for mask number
+ <idx>.
+\end_layout
+
+\begin_layout Standard
+DataSets Created if no masks specified:
+\end_layout
+
+\begin_layout Description
+<set
+\begin_inset space ~
+\end_inset
+
+name> Total system density each frame.
 \end_layout
 
 \end_deeper
 \begin_layout Standard
-If no arguments are specified, calculate the total system density.
+If no atom masks are specified, calculate the total system density.
  Otherwise, calculate specified density along the given axis for atoms in
  specified mask(s).
  Defaults are shown in parentheses above.
@@ -21589,6 +21712,15 @@ density out ion_density.dat number delta 0.25 ":SOD" ":CLA"
 
 \begin_layout Standard
 See also $AMBERHOME/AmberTools/test/cpptraj/Test_Density.
+\end_layout
+
+\begin_layout Standard
+It can be useful to write out the average and standard deviation as an XYDY
+ set to a Grace data file, e.g.
+\end_layout
+
+\begin_layout LyX-Code
+density :WAT@O out wato.agr xydy
 \end_layout
 
 \begin_layout Subsection
@@ -41326,7 +41458,11 @@ ired
 \end_layout
 
 \begin_layout LyX-Code
-ired [relax freq <MHz> [NHdist <distnh>]] [order <order>]
+ired [relax freq <MHz> [NHdist <distnh>] [noefile <noefilename>]]
+\end_layout
+
+\begin_layout LyX-Code
+     [order <order>] [orderparamfile <orderfilename>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -41353,15 +41489,7 @@ freq
 \begin_inset space ~
 \end_inset
 
-<MHz>
-\begin_inset space ~
-\end_inset
-
-[NHdist
-\begin_inset space ~
-\end_inset
-
-<distnh>]]
+<MHz>]
 \series default
  Should only be used when ired vectors represent N-H bonds; calculate correlatio
 n times 
@@ -41387,29 +41515,55 @@ n times
 \noun default
 \color inherit
 \lang american
- for each eigenmode and relaxation rates and NOEs for each N-H vector.
+ 
+\lang english
+for each eigenmode and relaxation rates and NOEs for each N-H vector.
  'freq <MHz>' (required) is the Lamor frequency of the measurement.
- 'NHdist <distnh>' specifies the length of the NH bond in Angstroms (default
- is 1.02).
 \end_layout
 
+\begin_deeper
 \begin_layout Description
-order
+[NHdist
 \begin_inset space ~
 \end_inset
 
-<order> Order of the Legendre polynomials to use when calculating spherical
+<distnh>] Specifies the length of the NH bond in Angstroms (default is 1.02).
+\end_layout
+
+\begin_layout Description
+[noefile
+\begin_inset space ~
+\end_inset
+
+<noefilename>] File to write the T1, T2, and NOE data to.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+[order
+\begin_inset space ~
+\end_inset
+
+<order>] Order of the Legendre polynomials to use when calculating spherical
  harmonics (default 2).
+\end_layout
+
+\begin_layout Description
+[orderparamfile
+\begin_inset space ~
+\end_inset
+
+<orderfilename>] File to write the S2 data to.
 \end_layout
 
 \begin_layout Description
 
 \series bold
-tstep
+[tstep
 \begin_inset space ~
 \end_inset
 
-<tstep>
+<tstep>]
 \series default
  Time between snapshots in ps (default 1.0).
 \end_layout
@@ -41417,11 +41571,11 @@ tstep
 \begin_layout Description
 
 \series bold
-tcorr
+[tcorr
 \begin_inset space ~
 \end_inset
 
-<tcorr>
+<tcorr>]
 \series default
  Maximum time to calculate correlation functions for in ps (default 10000.0).
 \end_layout
@@ -41429,13 +41583,14 @@ tcorr
 \begin_layout Description
 
 \series bold
-out
+[out
 \begin_inset space ~
 \end_inset
 
 <filename>
 \series default
- Name of file to write output to.
+ Name of file to write plateau and TauM data.
+ Also the prefix for the .cmt and .cjt files (see below).
 \end_layout
 
 \begin_layout Description
@@ -41566,19 +41721,15 @@ literal "true"
 \noun default
 \color inherit
 \lang american
- will be written to 
-\shape italic
-filename.cmt
-\shape default
-.
- Autocorrelation functions for each vector will be written to 
-\shape italic
-filename.cjt
-\shape default
-.
+ 
+\lang english
+will be written to <filename>.cmt.
+ Autocorrelation functions for each vector will be written to <filename>.cjt.
  Relaxation rates and NOEs for each N-H vector will be written to <filename>
  or added to the the end of the standard output.
- For the calculation of 
+ For the calculation of
+\lang american
+ 
 \family roman
 \series medium
 \shape up
@@ -41602,16 +41753,18 @@ filename.cjt
 \noun default
 \color inherit
 \lang american
- the normalized correlation functions and only the first third of the analyzed
+ 
+\lang english
+the normalized correlation functions and only the first third of the analyzed
  time steps will be used.
  For further information on the convergence of correlation functions see
  [Schneider, Brünger, Nilges, 
-\shape italic
+\emph on
 J.
  Mol.
  Biol.
 
-\shape default
+\emph default
  
 \series bold
 285

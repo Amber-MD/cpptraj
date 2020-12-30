@@ -78,7 +78,9 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     }
     // '.' altloc means blank?
     if (altloc == '.') altloc = ' ';
-    TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altloc) );
+    TopIn.AddAtomAltLoc( altloc );
+    TopIn.AddOccupancy( occupancy );
+    TopIn.AddBfactor( bfactor );
     if (icode_col != -1) {
       icode = (*line)[ icode_col ][0];
       // '?' icode means blank

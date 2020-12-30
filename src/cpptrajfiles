@@ -244,6 +244,7 @@ COMMON_SOURCES= \
         Ewald.cpp \
         Ewald_ParticleMesh.cpp \
         Ewald_Regular.cpp \
+        ExclusionArray.cpp \
         Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
@@ -543,6 +544,7 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
 LIBCPPTRAJ_PARM_OBJECTS= \
   BondSearch.o \
   CharmmParamFile.o \
+  ExclusionArray.o \
   Mol.o \
   ParameterSet.o \
   ParmFile.o \

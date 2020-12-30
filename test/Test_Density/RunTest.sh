@@ -8,7 +8,7 @@ out2=mass_density.dat
 out3=charge_density.dat
 out4=electron_density.dat
 
-CleanFiles $in $out1 $out2 $out3 $out4 total.dat tz2.wato.agr
+CleanFiles $in $out1 $out2 $out3 $out4 total.dat tz2.wato.agr restrict.agr
 
 INPUT="-i $in"
 TESTNAME='Density tests'
@@ -49,9 +49,11 @@ parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
 autoimage origin
 density :WAT@O out tz2.wato.agr xydy
+density :WAT@O out restrict.agr xydy delta 0.5 restrict cylinder cutoff 5.0
 EOF
   RunCpptraj "$UNITNAME"
   DoTest tz2.wato.agr.save tz2.wato.agr
+  DoTest restrict.agr.save restrict.agr
 fi
 
 # Total system density test

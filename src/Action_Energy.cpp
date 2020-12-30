@@ -21,7 +21,8 @@ Action_Energy::Action_Energy() :
   skinnb_(0),
   erfcDx_(0),
   dt_(0),
-  need_lj_params_(false)
+  need_lj_params_(false),
+  needs_exclList_(false)
 {
   std::fill(mlimits_, mlimits_+3, 0);
 }
@@ -245,6 +246,18 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   if (lj_longrange_correction && lwcoeff_ >= 0.0)
     lj_longrange_correction = false;
+  // Check if the exclusion list needs to be calculated.
+  needs_exclList_ = false;
+  for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc) {
+    if (*calc == C_NBD ||
+        *calc == C_LJ ||
+        *calc == C_COULOMB ||
+        *calc == C_DIRECT)
+    {
+      needs_exclList_ = true;
+      break;
+    }
+  }
 
   // Get Masks
   if (Mask1_.SetMaskString( actionArgs.GetMaskNext() )) return Action::ERR;
@@ -359,6 +372,17 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
               "Error:   does not have LJ parameters.\n", setup.Top().c_str());
     return Action::ERR;
   }
+  // Set up exclusion list if necessary.
+  if (needs_exclList_) {
+    // TODO base exclusion distance on energy terms present
+    if (Excluded_.SetupExcluded(setup.Top().Atoms(), Imask_, 4,
+                                ExclusionArray::NO_EXCLUDE_SELF,
+                                ExclusionArray::ONLY_GREATER_IDX))
+    {
+      mprinterr("Error: Could not set up exclusion list for energy calc.\n");
+      return Action::ERR;
+    }
+  }
   // Set up Ewald if necessary.
   if (elecType_ == EWALD) {
     if (((Ewald_Regular*)EW_)->Init(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
@@ -401,7 +425,7 @@ double Action_Energy::Dbg_Direct(Frame const& frameIn, int maxpoints) {
   // DEBUG
   double lastEQ = 0.0;
   for (int npoints = 0; npoints < maxpoints; npoints++) {
-    double EQ = ENE_.E_DirectSum(frameIn, *currentParm_, Imask_, npoints);
+    double EQ = ENE_.E_DirectSum(frameIn, *currentParm_, Imask_, Excluded_, npoints);
     mprintf("DEBUG: %i points DirectSum= %12.4f", npoints, EQ);
     if (npoints > 0) {
       mprintf(" delta= %g", EQ - lastEQ);
@@ -417,7 +441,6 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   time_total_.Start();
   double Etot = 0.0, ene, ene2;
   int err = 0;
-  typedef std::vector<CalcType>::const_iterator calc_it;
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
   {
     switch (*calc) {
@@ -452,7 +475,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_NBD: // Both nonbond terms must be enabled 
         time_NB_.Start();
-        ene = ENE_.E_Nonbond(frm.Frm(), *currentParm_, Imask_, ene2);
+        ene = ENE_.E_Nonbond(frm.Frm(), *currentParm_, Imask_, ene2, Excluded_);
         time_NB_.Stop();
         Energy_[VDW]->Add(frameNum, &ene);
         Energy_[ELEC]->Add(frameNum, &ene2);
@@ -460,14 +483,14 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         break;
       case C_LJ:
         time_NB_.Start();
-        ene = ENE_.E_VDW(frm.Frm(), *currentParm_, Imask_);
+        ene = ENE_.E_VDW(frm.Frm(), *currentParm_, Imask_, Excluded_);
         time_NB_.Stop();
         Energy_[VDW]->Add(frameNum, &ene);
         Etot += ene;
         break;
       case C_COULOMB:
         time_NB_.Start();
-        ene = ENE_.E_Elec(frm.Frm(), *currentParm_, Imask_);
+        ene = ENE_.E_Elec(frm.Frm(), *currentParm_, Imask_, Excluded_);
         time_NB_.Stop();
         Energy_[ELEC]->Add(frameNum, &ene);
         Etot += ene;
@@ -477,7 +500,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         if (npoints_ < 0)
           ene = Dbg_Direct(frm.Frm(), (-npoints_)+1);
         else
-          ene = ENE_.E_DirectSum(frm.Frm(), *currentParm_, Imask_, npoints_);
+          ene = ENE_.E_DirectSum(frm.Frm(), *currentParm_, Imask_, Excluded_, npoints_);
         time_NB_.Stop();
         Energy_[ELEC]->Add(frameNum, &ene);
         Etot += ene;

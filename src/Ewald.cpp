@@ -6,6 +6,7 @@
 #include "Spline.h"
 #include "Topology.h"
 #include "CharMask.h"
+#include "ParameterTypes.h"
 #ifdef DEBUG_PAIRLIST
 #incl ude "PDBfile.h"
 #endif
@@ -201,41 +202,14 @@ void Ewald::CalculateC6params(Topology const& topIn, AtomMask const& maskIn) {
 /** Set up exclusion lists for selected atoms. */
 void Ewald::SetupExcluded(Topology const& topIn, AtomMask const& maskIn)
 {
-  Excluded_.clear();
-  Excluded_.resize( maskIn.Nselected() );
-  // Create a character mask so we can see if atoms in excluded lists are
-  // also selected.
-  CharMask Cmask(maskIn.ConvertToCharMask(), maskIn.Nselected());
-  // Create a map of atom number to maskIn index.
-  int selectedIdx = 0;
-  Iarray atToIdx( Cmask.Natom(), -1 );
-  for (int cidx = 0; cidx != Cmask.Natom(); cidx++)
-    if (Cmask.AtomInCharMask(cidx))
-      atToIdx[cidx] = selectedIdx++;
-  // Loop over selected atoms
-  for (int idx = 0; idx != maskIn.Nselected(); idx++)
+  // Use distance of 4 (up to dihedrals)
+  if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
+                              ExclusionArray::EXCLUDE_SELF,
+                              ExclusionArray::FULL))
   {
-    // Always exclude self
-    Excluded_[idx].insert( idx );
-    int at = maskIn[idx];
-    for (Atom::excluded_iterator excluded_atom = topIn[at].excludedbegin();
-                                 excluded_atom != topIn[at].excludedend();
-                               ++excluded_atom)
-    {
-      if (Cmask.AtomInCharMask(*excluded_atom))
-      {
-        // Find excluded atoms index in maskIn
-        int excluded_idx = atToIdx[*excluded_atom];
-        Excluded_[idx         ].insert( excluded_idx );
-        Excluded_[excluded_idx].insert( idx          );
-      }
-    }
+    mprinterr("Error: Ewald: Could not set up exclusion list.\n");
+    return;
   }
-  unsigned int ex_size = 0;
-  for (Iarray2D::const_iterator it = Excluded_.begin(); it != Excluded_.end(); ++it)
-    ex_size += it->size();
-  mprintf("\tMemory used by full exclusion list: %s\n",
-          ByteString(ex_size * sizeof(int), BYTE_DECIMAL).c_str());
 }
 
 /** Check some common input. */
@@ -583,7 +557,7 @@ double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
   t_total_.Stop();
   return e_self + e_recip + e_direct;
 }
-#endif
+#endif /* DEBUG_EWALD */
 
 // Ewald::Timing()
 void Ewald::Timing(double total) const {

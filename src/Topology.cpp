@@ -38,6 +38,24 @@ const char *Topology::c_str() const {
   return parmName_.c_str();
 }
 
+/** Reset all PDB-related info.
+  * NOTE: This routine is used by AmbPDB.
+  */
+void Topology::ResetPDBinfo() {
+  atom_altloc_.clear();
+  occupancy_.clear();
+  bfactor_.clear();
+  pdbSerialNum_.clear();
+  int resnum = 1;
+  for (std::vector<Residue>::iterator res = residues_.begin();
+                                      res != residues_.end(); ++res, ++resnum)
+  {
+    res->SetOriginalNum( resnum );
+    res->SetIcode(' ');
+    res->SetChainID(' ');
+  }
+}
+
 /** Used to set box info from currently associated trajectory. */
 // FIXME: This routine is here for potential backwards compatibility issues
 //        since the topology box information was previously modified by
@@ -356,13 +374,33 @@ void Topology::StartNewMol() {
   residues_.back().SetTerminal( true );
 }*/
 
-/** Common setup with common excluded distance. */
-int Topology::CommonSetup(bool molsearch) {
-  return CommonSetup(molsearch, 4);
+/** Check the given size. If not # atoms, return true (error). */
+bool Topology::CheckExtraSize(size_t sizeIn, const char* desc)
+const
+{
+  if (sizeIn > 0 && sizeIn != atoms_.size()) {
+    mprinterr("Error: Size of the %s array (%zu) is not # atoms (%zu)\n", desc, sizeIn, atoms_.size());
+    return true;
+  }
+  return false;
 }
 
 // Topology::CommonSetup()
-int Topology::CommonSetup(bool molsearch, int excludedDist) {
+/** Set up common to all topologies.
+  * \param molsearch If true, determine molecules based on bond info.
+  * \param renumberResidues If true, renumber residues if any residue is part of more than 1 molecule
+  *        e.g. when alternate locations are present.
+  */
+int Topology::CommonSetup(bool molsearch, bool renumberResidues)
+{
+  // Check the size of any "extra" arrays
+  if (CheckExtraSize(tree_.size(), "Amber tree")) return 1;
+  if (CheckExtraSize(ijoin_.size(), "Amber join")) return 1;
+  if (CheckExtraSize(irotat_.size(), "Amber rotate")) return 1;
+  if (CheckExtraSize(atom_altloc_.size(), "PDB alt. loc.")) return 1;
+  if (CheckExtraSize(occupancy_.size(), "PDB occupancy")) return 1;
+  if (CheckExtraSize(bfactor_.size(), "PDB Bfactor")) return 1;
+  if (CheckExtraSize(pdbSerialNum_.size(), "PDB serial #")) return 1;
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
@@ -372,9 +410,18 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
     if (DetermineMolecules())
       mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
   }
-  // Check that molecules do not share residue numbers. Only when bond searching.
-  // FIXME always check? 
-  if (!molecules_.empty() && molecules_.size() > 1) {
+  // DEBUG : Current residue info
+  if (debug_ > 1) {
+    mprintf("DEBUG: Current residue info (%zu).\n", residues_.size());
+    for (std::vector<Residue>::const_iterator res = residues_.begin(); res != residues_.end(); ++res)
+    {
+      mprintf("DEBUG:\t\t%8li %6s orig=%8i atoms %8i to %8i\n", res-residues_.begin(),
+              *(res->Name()), res->OriginalResNum(), res->FirstAtom(), res->LastAtom());
+    }
+  }
+  // Check if any molecules share residue numbers. If so and if specified,
+  // base residue information on molecules.
+  if (renumberResidues && !molecules_.empty() && molecules_.size() > 1) {
     bool mols_share_residues = (molecules_.size() > residues_.size());
     if (!mols_share_residues) {
       // More in-depth check
@@ -385,20 +432,16 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
         int m1_resnum = atoms_[    mol->MolUnit().Front()].ResNum();
         if (m0_resnum == m1_resnum) {
           mols_share_residues = true;
-          unsigned int molnum = mol - molecules_.begin();
-          mprintf("Warning: 2 or more molecules (%u and %u) share residue numbers (%i).\n",
+          long int molnum = mol - molecules_.begin();
+          mprintf("Warning: 2 or more molecules (%li and %li) share residue numbers (%i).\n",
                   molnum, molnum+1, m0_resnum+1);
           break;
         }
       }
     }
     if (mols_share_residues) {
-      //if (bondsearch)
-        mprintf("Warning:   Either residue information is incorrect or molecule determination"
-                " was inaccurate.\n");
-      //else
-      //  mprintf("Warning: Residue information appears to be incorrect.\n");
-      mprintf("Warning:   Basing residue information on molecules.\n");
+      mprintf("Warning:   This usually happens when alternate locations for atoms are present.\n"
+              "Warning:   Basing residue information on molecules.\n");
       std::vector<Residue> newResArray;
       unsigned int res_first_atom = 0;
       while (res_first_atom < atoms_.size()) {
@@ -426,31 +469,16 @@ int Topology::CommonSetup(bool molsearch, int excludedDist) {
                   res->OriginalResNum(), res->Icode());
 
     }
-  }
+  } // END renumber residues based on molecules
+
   // Set up solvent information
   if (SetSolventInfo())
     mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
-  // Determine excluded atoms
-  DetermineExcludedAtoms(excludedDist);
+
   // Determine # of extra points.
   DetermineNumExtraPoints();
 
   return 0;
-}
-
-/** Reset any extended PDB info. */
-void Topology::ResetPDBinfo() {
-  int rnum = 1;
-  for (std::vector<Residue>::iterator res = residues_.begin(); 
-                                      res != residues_.end(); ++res, ++rnum)
-  {
-    res->SetOriginalNum(rnum);
-    res->SetIcode(' ');
-    res->SetChainID(' ');
-  }
-  for (std::vector<AtomExtra>::iterator ex = extra_.begin();
-                                        ex != extra_.end(); ++ex)
-    ex->SetAltLoc(' '); // TODO bfactor, occupancy?
 }
 
 /** For topology formats that do not contain residue info, base residues
@@ -505,6 +533,11 @@ int Topology::Setup_NoResInfo() {
 }
 
 // Topology::Resize()
+/** Clear all arrays; allocate atoms, residues, tree, ijoin, irotat, and
+  * bond/angle/dihedral parameter arrays according to input pointers.
+  * Intended for use when reading Amber Topology file, specifically the
+  * POINTERS section.
+  */
 void Topology::Resize(Pointers const& pIn) {
   atoms_.clear();
   residues_.clear();
@@ -525,7 +558,13 @@ void Topology::Resize(Pointers const& pIn) {
   cap_.Clear();
   lesparm_.Clear();
   chamber_.Clear();
-  extra_.clear();
+  tree_.clear();
+  ijoin_.clear();
+  irotat_.clear();
+  atom_altloc_.clear();
+  occupancy_.clear();
+  bfactor_.clear();
+  pdbSerialNum_.clear();
   parmBox_.SetNoBox();
   refCoords_ = Frame();
   ipol_ = 0;
@@ -535,7 +574,9 @@ void Topology::Resize(Pointers const& pIn) {
 
   atoms_.resize( pIn.natom_ );
   residues_.resize( pIn.nres_ );
-  extra_.resize( pIn.nextra_ );
+  tree_.resize( pIn.natom_ );
+  ijoin_.resize( pIn.natom_, 0 );
+  irotat_.resize( pIn.natom_, 0 );
   bondparm_.resize( pIn.nBndParm_ );
   angleparm_.resize( pIn.nAngParm_ );
   dihedralparm_.resize( pIn.nDihParm_ );
@@ -1110,53 +1151,6 @@ int Topology::DetermineMolecules() {
 }
 
 // -----------------------------------------------------------------------------
-// Topology::AtomDistance()
-void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> &excluded,
-                            int TgtDist) const 
-{
-  // If this atom is already too far away return
-  if (dist==TgtDist) return;
-  // dist is less than 4 and this atom greater than original, add exclusion
-  if (atom > originalAtom)
-    excluded.insert( atom ); 
-  // Visit each atom bonded to this atom
-  for (Atom::bond_iterator bondedatom = atoms_[atom].bondbegin();
-                           bondedatom != atoms_[atom].bondend();
-                           bondedatom++)
-    AtomDistance(originalAtom, *bondedatom, dist+1, excluded, TgtDist);
-}
-
-// Topology::DetermineExcludedAtoms()
-/** For each atom, determine which atoms with greater atom# are within
-  * TgtDist bonds (and therefore should be excluded from a non-bonded calc).
-  */
-void Topology::DetermineExcludedAtoms(int TgtDist) {
-  // A set is used since it automatically sorts itself and rejects duplicates.
-  std::set<int> excluded_i;
-  int natom = (int)atoms_.size();
-  for (int atomi = 0; atomi < natom; atomi++) {
-    excluded_i.clear();
-    //mprintf("    Determining excluded atoms for atom %i\n",atomi+1);
-    // AtomDistance recursively sets each atom bond distance from atomi
-    AtomDistance(atomi, atomi, 0, excluded_i, TgtDist);
-    atoms_[atomi].AddExclusionList( excluded_i );
-    // DEBUG
-    //mprintf("\tAtom %i Excluded:",atomi+1);
-    //for (Atom::excluded_iterator ei = atoms_[atomi].excludedbegin(); 
-    //                             ei != atoms_[atomi].excludedend(); ++ei)
-    //  mprintf(" %i",*ei + 1);
-    //mprintf("\n");
-  } // END loop over atomi
-}
-
-/** For each atom, determine which atoms with greater atom# are within
-  * 4 bonds (default for a force field with 4 atom through-bond i.e.
-  * torsion terms).
-  */
-void Topology::DetermineExcludedAtoms() {
-  DetermineExcludedAtoms(4);
-}
-
 // Topology::DetermineNumExtraPoints()
 void Topology::DetermineNumExtraPoints() {
   n_extra_pts_ = 0;
@@ -1359,6 +1353,24 @@ int Topology::ScaleDihedralK(double scale_factor, std::string const& maskExpr, b
   }
   return 0;
 }
+
+/** This template can be used when doing ModifyByMap() on a generic std::vector array
+  * of type T. 
+  */
+template <class T> class TopVecStrip {
+  public:
+    /// CONSTRUCTOR
+    TopVecStrip() {}
+    /// Strip current array according to given map, output to given array of same type
+    void Strip(std::vector<T>& newArray, std::vector<T> const& oldArray, std::vector<int> const& MapIn)
+    {
+      if (!oldArray.empty()) {
+        for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
+          if (*old_it >= 0)
+            newArray.push_back( oldArray[*old_it] );
+      }
+    }
+};
 
 // Topology::ModifyByMap()
 /** \return Pointer to new Topology based on this Topology, deleting atoms
@@ -1613,15 +1625,18 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     }
   }
   // Amber extra info.
-  if (!extra_.empty()) {
-    for (std::vector<int>::const_iterator old_it = MapIn.begin(); old_it != MapIn.end(); ++old_it)
-      if (*old_it >= 0)
-        newParm->extra_.push_back( extra_[*old_it] );
-  }
+  TopVecStrip<NameType> stripNameType;
+  stripNameType.Strip(newParm->tree_, tree_, MapIn);
+  TopVecStrip<int> stripInt;
+  stripInt.Strip(newParm->ijoin_, ijoin_, MapIn);
+  stripInt.Strip(newParm->irotat_, irotat_, MapIn);
+  stripInt.Strip(newParm->pdbSerialNum_, pdbSerialNum_, MapIn);
+  TopVecStrip<char> stripChar;
+  stripChar.Strip(newParm->atom_altloc_, atom_altloc_, MapIn);
+  TopVecStrip<float> stripFloat;
+  stripFloat.Strip(newParm->occupancy_, occupancy_, MapIn);
+  stripFloat.Strip(newParm->bfactor_, bfactor_, MapIn);
   
-  // Setup excluded atoms list - Necessary?
-  newParm->DetermineExcludedAtoms();
-
   // Determine number of extra points
   newParm->DetermineNumExtraPoints();
 
@@ -1849,6 +1864,33 @@ class TypeArray {
     Tarray::iterator lastType_;
 };
 
+/** This template can be used when doing Append() on a generic std::vector array
+  * of type T. The array will be appended to a given array of the same type.
+  * If one is empty and the other is not, values will be filled in if necessary.
+  */
+template <class T> class TopVecAppend {
+  public:
+    /// CONSTRUCTOR
+    TopVecAppend() {}
+    /// Append current array to given array of same type
+    void Append(std::vector<T>& arrayOut, std::vector<T> const& arrayToAdd, unsigned int expectedSize)
+    {
+      if (arrayToAdd.empty() && arrayOut.empty()) {
+        // Both arrays are empty. Nothing to do.
+        return;
+      } else if (arrayToAdd.empty()) {
+        // The current array is empty but the given array is not. Fill in 
+        // array to append with blank values.
+        for (unsigned int idx = 0; idx != expectedSize; idx++)
+          arrayOut.push_back( T() );
+      } else {
+        // Append current array to array to given array. TODO use std::copy?
+        for (typename std::vector<T>::const_iterator it = arrayToAdd.begin(); it != arrayToAdd.end(); ++it)
+          arrayOut.push_back( *it );
+      }
+    }
+};
+
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
@@ -2017,9 +2059,18 @@ int Topology::AppendTop(Topology const& NewTop) {
     nonbond_ = newNB;
   }
   // EXTRA ATOM INFO
-  for (Topology::extra_iterator extra = NewTop.extraBegin();
-                                extra != NewTop.extraEnd(); ++extra)
-    AddExtraAtomInfo( *extra );
+  TopVecAppend<NameType> appendNameType;
+  appendNameType.Append( tree_, NewTop.tree_, NewTop.Natom() );
+  TopVecAppend<int> appendInt;
+  appendInt.Append( ijoin_, NewTop.ijoin_, NewTop.Natom() );
+  appendInt.Append( irotat_, NewTop.irotat_, NewTop.Natom() );
+  appendInt.Append( pdbSerialNum_, NewTop.pdbSerialNum_, NewTop.Natom() );
+  TopVecAppend<char> appendChar;
+  appendChar.Append( atom_altloc_, NewTop.atom_altloc_, NewTop.Natom() );
+  TopVecAppend<float> appendFloat;
+  appendFloat.Append( occupancy_, NewTop.occupancy_, NewTop.Natom() );
+  appendFloat.Append( bfactor_, NewTop.bfactor_, NewTop.Natom() );
+
   // BONDS
   AddBondArray(NewTop.Bonds(),  NewTop.BondParm(), atomOffset);
   AddBondArray(NewTop.BondsH(), NewTop.BondParm(), atomOffset);
