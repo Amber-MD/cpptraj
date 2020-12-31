@@ -371,9 +371,7 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
   PairList PL;
   PL.InitPairList( cutoff, skinnb, debug );
   PL.SetupPairList( box );
-  Matrix_3x3 ucell, recip;
-  box.ToRecip( ucell, recip );
-  int retVal = PL.CreatePairList( frameIn, ucell, recip, AtomMask(0, frameIn.Natom()) );
+  int retVal = PL.CreatePairList( frameIn, box.UnitCell(), box.FracCell(), AtomMask(0, frameIn.Natom()) );
   if (retVal != 0) {
     mprinterr("Error: Grid setup failed.\n");
     return 1;
