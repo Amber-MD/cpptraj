@@ -393,8 +393,7 @@ double Action_Spam::Ecalc(int i, int j, double dist2) const {
 Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 {
   t_action_.Start();
-  frameIn.BoxCrd().ToRecip(ucell_, recip_);
-  int retVal = pairList_.CreatePairList(frameIn, ucell_, recip_, mask_);
+  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), mask_);
   if (retVal != 0) {
     mprinterr("Error: Grid setup failed.\n");
     return Action::ERR;
@@ -500,7 +499,7 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
       double dist2;
       // Get imaged distance
       switch( image_.ImageType() ) {
-        case NONORTHO : dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell_, recip_); break;
+        case NONORTHO : dist2 = DIST2_ImageNonOrtho(atm1, atm2, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell()); break;
         case ORTHO    : dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd()); break;
         default       : dist2 = DIST2_NoImage(atm1, atm2); break;
       }
@@ -526,9 +525,6 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
 /** Carries out SPAM analysis on a typical system */
 Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   t_action_.Start();
-  // Calculate unit cell and fractional matrices for non-orthorhombic system
-  if ( image_.ImageType() == NONORTHO )
-    frameIn.BoxCrd().ToRecip(ucell_, recip_);
   t_resCom_.Start();
   /* A list of all solvent residues and the sites that they are reserved for. An
    * unreserved solvent residue has an index -1. At the end, we will go through
