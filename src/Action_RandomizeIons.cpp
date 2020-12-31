@@ -118,10 +118,6 @@ Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
 
 // Action_RandomizeIons::DoAction()
 Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
-
-  if (image_.ImageType() == NONORTHO)
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
   // Loop over all solvent molecules and mark those that are too close to the solute
   int n_active_solvent = 0;
   for (unsigned int idx = 0; idx != solvMols_.size(); idx++) {
@@ -133,7 +129,7 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
       for (AtomMask::const_iterator atom = around_.begin(); atom != around_.end(); ++atom)
       {
         double dist = DIST2( solventXYZ, frm.Frm().XYZ(*atom), image_.ImageType(),
-                             frm.Frm().BoxCrd(), ucell, recip);
+                             frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
         if (dist < min_) {
           solvent_[idx] = false;
           //mprintf("RANDOMIZEIONS: water %i only %.2f ang from around @%i\n",
@@ -179,7 +175,7 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
         {
           if (*ion1 != *ion2) {
             double dist = DIST2( solventXYZ, frm.Frm().XYZ(*ion2), image_.ImageType(),
-                                 frm.Frm().BoxCrd(), ucell, recip);
+                                 frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
             if (dist < overlap_) {
               // This solvent mol is too close to another ion.
               solvent_[idx] = false;
