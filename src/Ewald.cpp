@@ -247,8 +247,6 @@ int Ewald::Setup_Pairlist(Box const& boxIn, Vec3 const& recipLengths, double ski
 # ifdef DEBUG_PAIRLIST
   // Write grid PDB
   PDBfile gridpdb;
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
   gridpdb.OpenWrite("gridpoints.pdb");
   for (int iz = 0; iz != pairList_.NZ(); iz++)
     for (int iy = 0; iy != pairList_.NY(); iy++)
@@ -256,7 +254,7 @@ int Ewald::Setup_Pairlist(Box const& boxIn, Vec3 const& recipLengths, double ski
         double fx = (double)ix / (double)pairList_.NX();
         double fy = (double)iy / (double)pairList_.NY();
         double fz = (double)iz / (double)pairList_.NZ();
-        Vec3 cart = ucell.TransposeMult( Vec3(fx,fy,fz) );
+        Vec3 cart = boxIn.UnitCell().TransposeMult( Vec3(fx,fy,fz) );
         gridpdb.WriteHET(1, cart[0], cart[1], cart[2]);
       }
   gridpdb.CloseFile();
@@ -512,11 +510,10 @@ double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
                                     AtomMask const& maskIn)
 {
   t_total_.Start();
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double volume = frameIn.BoxCrd().CellVolume();
   double e_self = Self( volume );
   // Place atoms in pairlist. This calcs frac/imaged coords.
-  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
 
   double e_recip = Recip_Regular( recip, volume );
 
