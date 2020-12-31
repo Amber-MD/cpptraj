@@ -65,7 +65,13 @@ class Box {
     double Param(ParamType p) const { return box_[p]; }
     /// \return True if box info present
     bool HasBox()             const { return (btype_ != NOBOX); }
+    /// \return Vector containing box center.
     Vec3 Center()             const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
+    /// \return Vector containing box center.
+    // TODO Pretty sure this is the right way to calculate box center, but it breaks
+    //      tests so more testing is needed.
+    //Vec3 Center()             const { return (UnitCell().TransposeMult(Vec3(0.5))); }
+    /// \return Vector containing box lengths
     Vec3 Lengths()            const { return Vec3(box_[0], box_[1], box_[2]);             }
     /// \return the unit cell matrix.
     /** The rows of this matrix represent the cell axes A, B C.
