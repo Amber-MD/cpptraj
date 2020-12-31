@@ -438,14 +438,11 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
 
 //  StructureCheck::CheckOverlaps()
 int StructureCheck::CheckOverlaps(Frame const& currentFrame) {
-  Matrix_3x3 ucell, recip;
-  if (checkType_ == PL_1_MASK || image_.ImageType() == NONORTHO)
-    currentFrame.BoxCrd().ToRecip(ucell, recip);
   int Nproblems = 0;
   switch (checkType_) {
-    case PL_1_MASK     : Nproblems = PL1_CheckOverlap(currentFrame, ucell, recip); break;
-    case NO_PL_2_MASKS : Nproblems = Mask2_CheckOverlap(currentFrame, ucell, recip); break;
-    case NO_PL_1_MASK  : Nproblems = Mask1_CheckOverlap(currentFrame, ucell, recip); break;
+    case PL_1_MASK     : Nproblems = PL1_CheckOverlap(currentFrame, currentFrame.BoxCrd().UnitCell(), currentFrame.BoxCrd().FracCell()); break;
+    case NO_PL_2_MASKS : Nproblems = Mask2_CheckOverlap(currentFrame, currentFrame.BoxCrd().UnitCell(), currentFrame.BoxCrd().FracCell()); break;
+    case NO_PL_1_MASK  : Nproblems = Mask1_CheckOverlap(currentFrame, currentFrame.BoxCrd().UnitCell(), currentFrame.BoxCrd().FracCell()); break;
   }
   return Nproblems;
 }
