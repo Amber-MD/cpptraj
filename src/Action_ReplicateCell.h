@@ -19,7 +19,6 @@ class Action_ReplicateCell: public Action {
     void Print() {}
 
     ImagedAction image_;        ///< Imaging routines
-    Matrix_3x3 ucell_, recip_;  ///< Matrices for imaging
     typedef std::vector<int> Iarray;
     Iarray directionArray_;     ///< Array of directions to replicate (x,y,z)
     ActionTopWriter topWriter_; ///< Used to write replicated cell topology
