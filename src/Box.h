@@ -57,8 +57,6 @@ class Box {
     /// \return vector containing reciprocal lengths from fractional cell matrix
     Vec3 RecipLengths() const;
 
-    /// Calculate Frac->Cart and Cart->Frac matrices.
-    double ToRecip(Matrix_3x3&, Matrix_3x3&) const; // TODO make obsolete
     /// Print Box info to STDOUT
     void PrintInfo() const;
 
