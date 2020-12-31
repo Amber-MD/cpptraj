@@ -124,7 +124,6 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
 
 // Action_Unwrap::DoAction()
 Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
   if (RefFrame_.empty()) {
     // Set reference structure if not already set
     RefFrame_ = frm.Frm();
@@ -134,8 +133,7 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
   if (orthogonal_)
     Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_ );
   else {
-    frm.Frm().BoxCrd().ToRecip( ucell, recip );
-    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, ucell, recip );
+    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
   }
 
   return Action::MODIFY_COORDS;
