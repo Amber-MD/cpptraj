@@ -65,8 +65,7 @@ int DataIO_Xplor::ReadData(FileName const& fname,
   } else {
     // Allocate non-orthogonal grid. Determine where origin is based on ucell
     // and start grid points.
-    Matrix_3x3 ucell, recip;
-    box.ToRecip(ucell, recip);
+    Matrix_3x3 const& ucell = box.UnitCell();
     // Turn ucell into delta. Use X axis only.
     Vec3 origin( (ucell[0] / (double)GridPts[0]) * (double)GridPts[1],
                  (ucell[1] / (double)GridPts[0]) * (double)GridPts[1],
