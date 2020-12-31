@@ -58,7 +58,6 @@ class Action_NMRrst: public Action {
     void AnalyzeNoeArray(NOEtypeArray&, CpptrajFile*) const;
     
     ImagedAction Image_;
-    Matrix_3x3 ucell_, recip_;
     std::string setname_;
     CpptrajFile* findOutput_;
     CpptrajFile* specOutput_;

@@ -519,7 +519,7 @@ void Action_NMRrst::ProcessNoeArray(NOEtypeArray& Narray, Frame const& frameIn, 
         double dist2 = DIST2(frameIn.XYZ(my_noe->Site1().Idx(idx1)),
                              frameIn.XYZ(my_noe->Site2().Idx(idx2)),
                              Image_.ImageType(), frameIn.BoxCrd(),
-                             ucell_, recip_);
+                             frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell());
         if (shortest_dist2 < 0.0 || dist2 < shortest_dist2) {
           shortest_dist2 = dist2;
           shortest_idx1 = idx1;
@@ -537,8 +537,6 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
   double Dist;
   Vec3 a1, a2;
 
-  if (Image_.ImageType() == NONORTHO)
-    frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   // NOEs from file.
   for (noeDataArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
     if ( noe->active_ ) {
@@ -551,7 +549,7 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
       }
 
       switch ( Image_.ImageType() ) {
-        case NONORTHO: Dist = DIST2_ImageNonOrtho(a1, a2, ucell_, recip_); break;
+        case NONORTHO: Dist = DIST2_ImageNonOrtho(a1, a2, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()); break;
         case ORTHO: Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd()); break;
         case NOIMAGE: Dist = DIST2_NoImage(a1, a2); break;
       }
