@@ -423,14 +423,10 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
       for ( AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
       {
         const double* XYZ2 = frm.Frm().XYZ(*atom2);
-        Matrix_3x3 ucell, recip;
         switch ( image_.ImageType() ) {
-          case NONORTHO:
-            frm.Frm().BoxCrd().ToRecip(ucell, recip);
-            dist2 = DIST2_ImageNonOrtho(XYZ1, XYZ2, ucell, recip);
-            break;
-          case ORTHO:   dist2 = DIST2_ImageOrtho(XYZ1, XYZ2, frm.Frm().BoxCrd()); break;
-          case NOIMAGE: dist2 = DIST2_NoImage(XYZ1, XYZ2); break;
+          case NONORTHO: dist2 = DIST2_ImageNonOrtho(XYZ1, XYZ2, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()); break;
+          case ORTHO:    dist2 = DIST2_ImageOrtho(XYZ1, XYZ2, frm.Frm().BoxCrd()); break;
+          case NOIMAGE:  dist2 = DIST2_NoImage(XYZ1, XYZ2); break;
         }
         // Find minimum distance.
         if (dist2 < minDist) {
