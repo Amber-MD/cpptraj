@@ -123,10 +123,7 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   mprintf("\n");
 
   // Set up pair list
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
-  Vec3 recipLengths = boxIn.RecipLengths(recip);
-  if (Setup_Pairlist(boxIn, recipLengths, skinnbIn)) return 1;
+  if (Setup_Pairlist(boxIn, boxIn.RecipLengths(), skinnbIn)) return 1;
 
   return 0;
 }
@@ -226,12 +223,11 @@ int Ewald_ParticleMesh::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& 
                                       double& e_elec, double& e_vdw)
 {
   t_total_.Start();
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double volume = frameIn.BoxCrd().CellVolume();
   double e_self = Self( volume );
   double e_vdw_lr_correction;
 
-  int retVal = pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
   if (retVal != 0) {
     mprinterr("Error: Grid setup failed.\n");
     return 1;

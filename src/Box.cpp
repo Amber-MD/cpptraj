@@ -249,16 +249,6 @@ void Box::SetNoBox() {
   cellVolume_ = 0;
 }
 
-//  Box::RecipLengths()
-/** \return Vector containing reciprocal lengths from given fractional cell matrix.
-  * Used primarily by the Ewald and PairList routines.
-  */
-Vec3 Box::RecipLengths(Matrix_3x3 const& recip) {
-  return Vec3( 1.0/sqrt(recip[0]*recip[0] + recip[1]*recip[1] + recip[2]*recip[2]),
-               1.0/sqrt(recip[3]*recip[3] + recip[4]*recip[4] + recip[5]*recip[5]),
-               1.0/sqrt(recip[6]*recip[6] + recip[7]*recip[7] + recip[8]*recip[8]) );
-}
-
 /** Print box info to STDOUT. */
 void Box::PrintInfo() const {
   mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
@@ -636,6 +626,16 @@ void Box::AssignFromShapeMatrix(const double* shape) {
 /** Set 'shape' with values for symmetric shape matrix from XYZ ABG array. */
 void Box::GetSymmetricShapeMatrix(double* shape) const {
   CalcShapeFromXyzAbg(shape, box_);
+}
+
+//  Box::RecipLengths()
+/** \return Vector containing reciprocal lengths from fractional cell matrix.
+  * Used primarily by the Ewald and PairList routines.
+  */
+Vec3 Box::RecipLengths() const {
+  return Vec3( 1.0/sqrt(fracCell_[0]*fracCell_[0] + fracCell_[1]*fracCell_[1] + fracCell_[2]*fracCell_[2]),
+               1.0/sqrt(fracCell_[3]*fracCell_[3] + fracCell_[4]*fracCell_[4] + fracCell_[5]*fracCell_[5]),
+               1.0/sqrt(fracCell_[6]*fracCell_[6] + fracCell_[7]*fracCell_[7] + fracCell_[8]*fracCell_[8]) );
 }
 
 // Box::ToRecip()

@@ -35,9 +35,7 @@ int PairList::InitPairList(double cutIn, double skinNBin, int debugIn) {
 }
 
 int PairList::SetupPairList(Box const& boxIn) {
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
-  return SetupPairList( boxIn.Type(), boxIn.RecipLengths(recip) );
+  return SetupPairList( boxIn.Type(), boxIn.RecipLengths() );
 }
 
 // PairList::SetupPairList()
@@ -83,7 +81,7 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
   FillTranslateVec(ucell);
   // If box size has changed a lot this will reallocate grid
   t_gridpointers_.Start();
-  if (SetupGrids(frmIn.BoxCrd().RecipLengths(recip))) return -1;
+  if (SetupGrids(frmIn.BoxCrd().RecipLengths())) return -1;
   t_gridpointers_.Stop();
   // Place atoms in grid cells
   t_map_.Start();

@@ -106,8 +106,6 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
     return 1;
   rsumTol_ = rsumTolIn;
   maxexp_ = maxexpIn;
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
   if (mlimitsIn != 0)
     std::copy(mlimitsIn, mlimitsIn+3, mlimit_);
   else
@@ -129,16 +127,15 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
   // Set defaults if necessary
   if (rsumTol_ < Constants::SMALL)
     rsumTol_ = 5E-5;
-  Vec3 recipLengths = boxIn.RecipLengths(recip);
   if (maxmlim_ > 0)
-    maxexp_ = FindMaxexpFromMlim(mlimit_, recip);
+    maxexp_ = FindMaxexpFromMlim(mlimit_, boxIn.FracCell());
   else {
     if ( maxexp_ < Constants::SMALL )
       maxexp_ = FindMaxexpFromTol(ew_coeff_, rsumTol_);
     // eigmin typically bigger than this unless cell is badly distorted.
     double eigmin = 0.5;
     // Calculate lengths of reciprocal vectors
-    GetMlimits(mlimit_, maxexp_, eigmin, recipLengths, recip);
+    GetMlimits(mlimit_, maxexp_, eigmin, boxIn.RecipLengths(), boxIn.FracCell());
     maxmlim_ = mlimit_[0];
     maxmlim_ = std::max(maxmlim_, mlimit_[1]);
     maxmlim_ = std::max(maxmlim_, mlimit_[2]);
@@ -152,7 +149,7 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
   //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
-  if (Setup_Pairlist(boxIn, recipLengths, skinnbIn)) return 1;
+  if (Setup_Pairlist(boxIn, boxIn.RecipLengths(), skinnbIn)) return 1;
 
   return 0;
 }

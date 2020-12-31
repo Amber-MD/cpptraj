@@ -54,6 +54,9 @@ class Box {
     /// Set incoming array of length 6 with shape matrix; suitable for Charmm
     void GetSymmetricShapeMatrix(double*) const;
 
+    /// \return vector containing reciprocal lengths from fractional cell matrix
+    Vec3 RecipLengths() const;
+
     /// Calculate Frac->Cart and Cart->Frac matrices.
     double ToRecip(Matrix_3x3&, Matrix_3x3&) const; // TODO make obsolete
     /// Print Box info to STDOUT
@@ -94,8 +97,6 @@ class Box {
     static bool IsTruncOct(double);
     // \return Truncated oct angle in degrees TODO should this be in Constants?
     static double TruncatedOctAngle() { return TRUNCOCTBETA_; }
-    /// \return vector containing reciprocal lengths from given fractional cell matrix
-    static Vec3 RecipLengths(Matrix_3x3 const&);
  
    // For interfacing with file IO
     /// Double pointer starting at lengths (XYZ)
