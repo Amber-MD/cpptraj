@@ -419,23 +419,19 @@ void Action_Vector::CorrPlane(Frame const& currentFrame) {
 
 //  Action_Vector::UnitCell()
 void Action_Vector::UnitCell(Box const& box) {
-  Matrix_3x3 ucell, recip;
-  box.ToRecip( ucell, recip );
   switch ( mode_ ) {
-    case BOX_X: Vec_->AddVxyzo( ucell.Row1(), Vec3(0.0) ); break;
-    case BOX_Y: Vec_->AddVxyzo( ucell.Row2(), Vec3(0.0) ); break;
-    case BOX_Z: Vec_->AddVxyzo( ucell.Row3(), Vec3(0.0) ); break;
-    case BOX_CTR: Vec_->AddVxyz( ucell.TransposeMult(Vec3(0.5)) ); break;
+    case BOX_X   : Vec_->AddVxyzo( box.UnitCell().Row1(), Vec3(0.0) ); break;
+    case BOX_Y   : Vec_->AddVxyzo( box.UnitCell().Row2(), Vec3(0.0) ); break;
+    case BOX_Z   : Vec_->AddVxyzo( box.UnitCell().Row3(), Vec3(0.0) ); break;
+    case BOX_CTR : Vec_->AddVxyz( box.UnitCell().TransposeMult(Vec3(0.5)) ); break;
     default: return;
   }
 }
 
 // Action_Vector::MinImage()
 void Action_Vector::MinImage(Frame const& frm) {
-  Matrix_3x3 ucell, recip;
-  frm.BoxCrd().ToRecip( ucell, recip );
   Vec3 com1 = frm.VCenterOfMass(mask_);
-  Vec_->AddVxyzo( MinImagedVec(com1, frm.VCenterOfMass(mask2_), ucell, recip), com1 );
+  Vec_->AddVxyzo( MinImagedVec(com1, frm.VCenterOfMass(mask2_), frm.BoxCrd().UnitCell(), frm.BoxCrd().FracCell()), com1 );
 }
 
 /// \return The center of selected elements in given array.
