@@ -155,7 +155,6 @@ Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
 Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
   unsigned long bin, j;
   double Dist = 0.0;
-  Matrix_3x3 ucell, recip;
   Vec3 a1, a2;
   std::vector<double> tmp;	// per frame histogram
 
@@ -169,8 +168,7 @@ Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
 
       switch (ImageType() ) {
       case NONORTHO:
-	frm.Frm().BoxCrd().ToRecip(ucell, recip);
-	Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
+	Dist = DIST2_ImageNonOrtho(a1, a2, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
 	break;
       case ORTHO:
 	Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd());

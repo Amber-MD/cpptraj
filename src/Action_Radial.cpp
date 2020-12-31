@@ -410,7 +410,6 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
 // NOTE: Because of maximum2 not essential to check idx>numBins?
 Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   double D;
-  Matrix_3x3 ucell, recip;
   int atom1, atom2;
   int nmask1, nmask2;
   int idx;
@@ -418,12 +417,9 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   int mythread;
 # endif
 
-  // Set imaging information and store volume if specified
-  // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (image_.ImagingEnabled() || useVolume_) {
-    D = frm.Frm().BoxCrd().ToRecip(ucell,recip);
-    if (useVolume_)  volume_ += D;
-  }
+  // Store volume if specified
+  if (useVolume_)
+    volume_ += frm.Frm().BoxCrd().CellVolume();
   // ---------------------------------------------
   if ( rmode_ == NORMAL ) { 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
@@ -442,7 +438,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
         atom2 = InnerMask_[nmask2];
         if (atom1 != atom2) {
           D = DIST2( frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2),
-                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip);
+                     image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
@@ -480,7 +476,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
         atom2 = InnerMask_[nmask2];
         if ( (*currentParm_)[atom1].MolNum() != (*currentParm_)[atom2].MolNum() ) {
           D = DIST2( frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2),
-                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip);
+                     image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
@@ -518,7 +514,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
         if (site1 != *site2) {
           Vec3 com2 = frm.Frm().VGeometricCenter( *site2 );
           D = DIST2(com1.Dptr(), com2.Dptr(), image_.ImageType(),
-                    frm.Frm().BoxCrd(), ucell, recip);
+                    frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
           if (D <= maximum2_) {
             D = sqrt(D);
             //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
@@ -550,7 +546,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = InnerMask_[nmask2];
       D = DIST2(coord_center.Dptr(), frm.Frm().XYZ(atom2), image_.ImageType(),
-                frm.Frm().BoxCrd(), ucell, recip);
+                frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
