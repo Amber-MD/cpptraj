@@ -381,19 +381,18 @@ int Ewald_Regular::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskI
                               double& e_elec, double& e_vdw)
 {
   t_total_.Start();
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double volume = frameIn.BoxCrd().CellVolume();
   double e_self = Self( volume );
   double e_vdwr = Vdw_Correction( volume );
 
-  int retVal = pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
   if (retVal != 0) {
     mprinterr("Error: Grid setup failed.\n");
     return 1;
   }
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
-  double e_recip = Recip_Regular( recip, volume );
+  double e_recip = Recip_Regular( frameIn.BoxCrd().FracCell(), volume );
   e_vdw = 0.0;
   double e_direct = Direct( pairList_, e_vdw );
   if (debug_ > 0)
