@@ -67,9 +67,16 @@ class Box {
     bool HasBox()             const { return (btype_ != NOBOX); }
     Vec3 Center()             const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
     Vec3 Lengths()            const { return Vec3(box_[0], box_[1], box_[2]);             }
-    /// \return the unit cell matrix
+    /// \return the unit cell matrix.
+    /** The rows of this matrix represent the cell axes A, B C.
+      * Fractional coords F can be converted to Cartesian coords C via
+      * C = UnitCell().TransposeMult( F )
+      */
     Matrix_3x3 const& UnitCell() const { return unitCell_; }
-    /// \return the fractional cell matrix
+    /// \return the fractional cell matrix.
+    /** Cartesian coords C can be converted to fractional coords F via
+      * F = FracCell() * C
+      */
     Matrix_3x3 const& FracCell() const { return fracCell_; }
     /// \return the cell volume
     double CellVolume()          const { return cellVolume_; }
