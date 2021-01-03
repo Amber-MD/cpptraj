@@ -286,9 +286,16 @@ int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
   //memset( box, 0, 6*sizeof(double));
   Box box;
   if (boxBytes_) {
+    double boxtmp[6];
     if (charmmCellType_ == SHAPE)
-       mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
-    if (ReadBox( box )) return TRAJIN_ERR;
+    if (ReadBox( boxtmp )) return TRAJIN_ERR;
+    if (charmmCellType_ == SHAPE) {
+      mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
+      box.SetupFromShapeMatrix( boxtmp );
+    } else {
+      mprintf("\tVersion < 22; assuming X-aligned cell.\n");
+      box.SetupFromXyzAbg( boxtmp );
+    }
   }
   // Set traj info: No velocity, temperature, or time.
   SetCoordInfo( CoordinateInfo( box, false, false, false ) );
@@ -435,14 +442,13 @@ static inline double CosRadToDeg( double BoxInRad ) {
 }
 
 // Traj_CharmmDcd::ReadBox()
-int Traj_CharmmDcd::ReadBox(Box& boxOut) {
-  double boxtmp[6];
+int Traj_CharmmDcd::ReadBox(double* boxtmp) {
   if ( ReadBlock(48) < 0) return 1;
   file_.Read(boxtmp, sizeof(double)*6);
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
-  if (charmmCellType_ == SHAPE) {
-    boxOut.SetupFromShapeMatrix( boxtmp );
+//  if (charmmCellType_ == SHAPE) {
+//    boxOut.SetupFromShapeMatrix( boxtmp );
     //Box::ShapeToUcell(box, boxtmp);
 /*
     mprintf("\nDEBUG: Original matrix: %g %g %g %g %g %g\n",
@@ -458,9 +464,10 @@ int Traj_CharmmDcd::ReadBox(Box& boxOut) {
         mprintf("Warning:\t\tPossible issue with element %i: %g %g (%g)\n",
                 i, boxtmp[i], shape[i], boxtmp[i] - shape[i]);
 */
-  } else {
+//  } else {
+  if (charmmCellType_ != SHAPE) {
     // Box lengths
-    double box[6]; //FIXME
+    double box[6];
     box[0] = boxtmp[0];
     box[1] = boxtmp[2];
     box[2] = boxtmp[5];
@@ -482,7 +489,13 @@ int Traj_CharmmDcd::ReadBox(Box& boxOut) {
       box[4] = boxtmp[3];
       box[5] = boxtmp[1];
     }
-    boxOut.SetupFromXyzAbg( box );
+    //boxOut.SetupFromXyzAbg( box );
+    boxtmp[0] = box[0];
+    boxtmp[1] = box[1];
+    boxtmp[2] = box[2];
+    boxtmp[3] = box[3];
+    boxtmp[4] = box[4];
+    boxtmp[5] = box[5];
   }
   return 0;
 }
@@ -528,7 +541,12 @@ int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
   seekToFrame( set );
   // Load box info
   if (boxBytes_ != 0) {
-    if (ReadBox( frameIn.ModifyBox() )) return 1;
+    double box[6];
+    if (ReadBox( box )) return 1;
+    if (charmmCellType_ == SHAPE)
+      frameIn.ModifyBox().AssignFromShapeMatrix( box );
+    else
+      frameIn.ModifyBox().AssignFromXyzAbg( box );
   }
   return readXYZ(frameIn.xAddress());
 }
@@ -538,7 +556,12 @@ int Traj_CharmmDcd::readVelocity(int set, Frame& frameIn) {
   seekToFrame( set );
   // Load box info
   if (boxBytes_ != 0) {
-    if (ReadBox( frameIn.ModifyBox() )) return 1;
+    double box[6];
+    if (ReadBox( box )) return 1;
+    if (charmmCellType_ == SHAPE)
+      frameIn.ModifyBox().AssignFromShapeMatrix( box );
+    else
+      frameIn.ModifyBox().AssignFromXyzAbg( box );
   }
   return readXYZ(frameIn.vAddress());
 }

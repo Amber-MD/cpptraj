@@ -38,7 +38,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int WriteBlock(int);
     void AllocateCoords();
     int readDcdHeader();
-    int ReadBox(Box&);
+    int ReadBox(double*);
     int writeDcdHeader();
     inline void seekToFrame(int);
     inline int readXYZ(double*);
