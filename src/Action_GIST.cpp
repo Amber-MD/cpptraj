@@ -347,6 +347,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
           "#    Johannes Kraml, Anna S. Kamenik, Franz Waibl, Michael Schauperl, Klaus R. Liedl, JCTC (2019)\n"
 #endif
           );
+# ifdef GIST_USE_NONORTHO_DIST2
+  mprintf("DEBUG: Using regular non-orthogonal distance routine.\n");
+# endif
   gist_init_.Stop();
   return Action::OK;
 }
@@ -666,6 +669,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           //gist_nonbond_dist_.Start();
           double rij2;
           if (imageType_ == NONORTHO) {
+#           ifdef GIST_USE_NONORTHO_DIST2
+            rij2 = DIST2_ImageNonOrtho(A1_XYZ, A2_XYZ, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell());
+#           else
             rij2 = maxD_;
             for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
                                                    vCart != vImages.end(); ++vCart)
@@ -675,6 +681,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               double z = (*vCart)[2] - A2_XYZ[2];
               rij2 = std::min(rij2, x*x + y*y + z*z);
             }
+#           endif
           } else if (imageType_ == ORTHO)
             rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
           else
@@ -695,6 +702,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             //gist_nonbond_dist_.Start();
             double rij2;
             if (imageType_ == NONORTHO) {
+#            ifdef GIST_USE_NONORTHO_DIST2
+             rij2 = DIST2_ImageNonOrtho(A1_XYZ, A2_XYZ, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell());
+#            else
              rij2 = maxD_;
               for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
                                                      vCart != vImages.end(); ++vCart)
@@ -704,6 +714,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
                 double z = (*vCart)[2] - A2_XYZ[2];
                 rij2 = std::min(rij2, x*x + y*y + z*z);
               }
+#             endif
             } else if (imageType_ == ORTHO)
               rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
             else
