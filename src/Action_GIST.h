@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_GIST_H
 #define INC_ACTION_GIST_H
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 #include "Timer.h"
 #ifdef CUDA
 #include "cuda_kernels/GistCudaSetup.cuh"
@@ -25,6 +25,9 @@ class Action_GIST : public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
+
+    /// Different imaging types.
+    enum ImageType { NO_IMAGE = 0, ORTHO, NONORTHO };
 
     inline void TransEntropy(float,float,float,float,float,float,float,int,double&,double&) const;
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
@@ -77,8 +80,9 @@ class Action_GIST : public Action {
     Vec3 gridcntr_;
     Vec3 griddim_;
 
-    ImagedAction image_; ///< Imaging routines.
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
+    ImageOption imageOpt_;  ///< Used to determine if imaging should be used.*
+    ImageType imageType_;   ///< Which type of imaging to do (if any).
     // GIST float grid datasets
     DataSet_3D* gO_;        ///< Solvent oxygen density
     DataSet_3D* gH_;        ///< Solvent hydrogen density

@@ -8,6 +8,7 @@
 #include "DataSet_GridDbl.h"
 #include "ProgressBar.h"
 #include "StringRoutines.h"
+#include "DistRoutines.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -27,6 +28,7 @@ Action_GIST::Action_GIST() :
   result_O_c_(NULL),
   result_N_c_(NULL),
 #endif
+  imageType_(NO_IMAGE),
   gO_(0),
   gH_(0),
   Esw_(0),
@@ -113,7 +115,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   DataFile* file_dipolez = init.DFL().AddDataFile(prefix_ + "-dipolez-dens" + ext);
   // Other keywords
   includeIons_ = !actionArgs.hasKey("excludeions");
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
 #ifdef CUDA
@@ -327,7 +329,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tSkipping water-water Eij matrix.\n");
   mprintf("\tWater reference density: %6.4f molecules/Ang^3\n", BULK_DENS_);
   mprintf("\tSimulation temperature: %6.4f K\n", temperature_);
-  if (image_.UseImage())
+  if (imageOpt_.UseImage())
     mprintf("\tDistances will be imaged.\n");
   else
     mprintf("\tDistances will not be imaged.\n");
@@ -360,7 +362,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     mprinterr("Error: Must have explicit solvent with periodic boundaries!");
     return Action::ERR;
   }
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
   #ifdef CUDA
   this->numberAtoms_ = setup.Top().Natom();
   this->solvent_ = new bool[this->numberAtoms_];
@@ -494,7 +496,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   N_ON_GRID_ = 0;
 
   if (!skipE_) {
-    if (image_.ImagingEnabled())
+    if (imageOpt_.ImagingEnabled())
       mprintf("\tImaging enabled for energy distance calculations.\n");
     else
       mprintf("\tNo imaging will be performed for energy distance calculations.\n");
@@ -564,7 +566,7 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
 void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
   // Set up imaging info.
-  if (image_.ImageType() == NONORTHO) {
+  if (imageType_ == NONORTHO) {
     // Wrap on-grid water coords back to primary cell TODO openmp
     double* ongrid_xyz = &OnGrid_XYZ_[0];
     int maxXYZ = (int)OnGrid_XYZ_.size();
@@ -634,7 +636,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
     bool a1IsO = (topIn[ a1 ].Element() == Atom::OXYGEN);
     std::vector<Vec3> vImages;
-    if (image_.ImageType() == NONORTHO) {
+    if (imageType_ == NONORTHO) {
       // Convert to frac coords
       Vec3 vFrac = frameIn.BoxCrd().FracCell() * A1_XYZ;
       // Wrap to primary unit cell
@@ -663,7 +665,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           // Calculate distance
           //gist_nonbond_dist_.Start();
           double rij2;
-          if (image_.ImageType() == NONORTHO) {
+          if (imageType_ == NONORTHO) {
             rij2 = maxD_;
             for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
                                                    vCart != vImages.end(); ++vCart)
@@ -673,7 +675,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               double z = (*vCart)[2] - A2_XYZ[2];
               rij2 = std::min(rij2, x*x + y*y + z*z);
             }
-          } else if (image_.ImageType() == ORTHO)
+          } else if (imageType_ == ORTHO)
             rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
           else
             rij2 = DIST2_NoImage( A1_XYZ, A2_XYZ );
@@ -692,7 +694,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             // Calculate distance
             //gist_nonbond_dist_.Start();
             double rij2;
-            if (image_.ImageType() == NONORTHO) {
+            if (imageType_ == NONORTHO) {
              rij2 = maxD_;
               for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
                                                      vCart != vImages.end(); ++vCart)
@@ -702,7 +704,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
                 double z = (*vCart)[2] - A2_XYZ[2];
                 rij2 = std::min(rij2, x*x + y*y + z*z);
               }
-            } else if (image_.ImageType() == ORTHO)
+            } else if (imageType_ == ORTHO)
               rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
             else
               rij2 = DIST2_NoImage( A1_XYZ, A2_XYZ );
@@ -813,6 +815,22 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   N_ON_GRID_ = 0;
   OnGrid_idxs_.clear();
   OnGrid_XYZ_.clear();
+
+  // Determine imaging type
+  //mprintf("DEBUG: Is_X_Aligned_Ortho() = %i  Is_X_Aligned() = %i\n", (int)frm.Frm().BoxCrd().Is_X_Aligned_Ortho(), (int)frm.Frm().BoxCrd().Is_X_Aligned());
+  //frm.Frm().BoxCrd().UnitCell().Print("Ucell");
+  if (imageOpt_.ImagingEnabled()) {
+    if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho())
+      imageType_ = ORTHO;
+    else
+      imageType_ = NONORTHO;
+  } else
+    imageType_ = NO_IMAGE;
+  //switch (imageType_) {
+  //  case NO_IMAGE : mprintf("DEBUG: No Image.\n"); break;
+  //  case ORTHO    : mprintf("DEBUG: Orthogonal image.\n"); break;
+  //  case NONORTHO : mprintf("DEBUG: Nonorthogonal image.\n"); break;
+  //}
 
   // CUDA necessary information
 
@@ -1455,7 +1473,7 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   int boxinfo;
 
   // Check Boxinfo and write the necessary data into recip, ucell and boxinfo.
-  switch(this->image_.ImageType()) {
+  switch(imageType_) {
     case NONORTHO:
       recip = new float[9];
       ucell = new float[9];
@@ -1473,7 +1491,7 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
       ucell = NULL;
       boxinfo = 1;
       break;
-    case NOIMAGE:
+    case NO_IMAGE:
       recip = NULL;
       ucell = NULL;
       boxinfo = 0;
@@ -1527,7 +1545,7 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
         double sum = 0;
         Vec3 cent( frm.Frm().xAddress() + (headAtomIndex) * 3 );
         std::vector<Vec3> vectors;
-        switch(this->image_.ImageType()) {
+        switch(imageType_) {
           case NONORTHO:
           case ORTHO:
             {
