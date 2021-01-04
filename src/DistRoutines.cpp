@@ -376,10 +376,13 @@ double DIST2(const double* a1, const double* a2, ImagingType itype,
     return DIST2_ImageNonOrtho( a1, a2, ucell, recip );
 }
 
-/** \return Distance squared using minimum-image convention. */
-double DIST2_Imaged(Vec3 const& a1, Vec3 const& a2, Box const& box) {
-  if (box.Is_X_Aligned_Ortho())
-    return DIST2_ImageOrtho(a1, a2, box);
-  else
-    return DIST2_ImageNonOrtho(a1, a2, box.UnitCell(), box.FracCell());
+/** \return Distance squared using either minimum-image convention or no imaging. */
+double DIST2(bool imagingEnabled, Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  if (imagingEnabled) {
+    if (box.Is_X_Aligned_Ortho())
+      return DIST2_ImageOrtho(a1, a2, box);
+    else
+      return DIST2_ImageNonOrtho(a1, a2, box.UnitCell(), box.FracCell());
+  } else
+    return DIST2_NoImage(a1, a2);
 }
