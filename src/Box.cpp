@@ -146,9 +146,9 @@ bool Box::IsEq(double angle, double tgt) {
 
 /** \return True if cell "A" axis is aligned along the X-axis (i.e. XYZ ABG reference). */
 bool Box::Is_X_Aligned() const {
-  if (fabs(unitCell_[1]) > 0.0) return false;
-  if (fabs(unitCell_[2]) > 0.0) return false;
-  if (fabs(unitCell_[5]) > 0.0) return false;
+  if (fabs(unitCell_[1]) > Constants::SMALL) return false;
+  if (fabs(unitCell_[2]) > Constants::SMALL) return false;
+  if (fabs(unitCell_[5]) > Constants::SMALL) return false;
   return true;
 }
 
@@ -156,12 +156,12 @@ bool Box::Is_X_Aligned() const {
   *         orthogonal.
   */
 bool Box::Is_X_Aligned_Ortho() const {
-  if (fabs(unitCell_[7]) > 0.0) return false;
-  if (fabs(unitCell_[6]) > 0.0) return false;
-  if (fabs(unitCell_[3]) > 0.0) return false;
-  if (fabs(unitCell_[5]) > 0.0) return false;
-  if (fabs(unitCell_[2]) > 0.0) return false;
-  if (fabs(unitCell_[1]) > 0.0) return false;
+  if (fabs(unitCell_[7]) > Constants::SMALL) return false;
+  if (fabs(unitCell_[6]) > Constants::SMALL) return false;
+  if (fabs(unitCell_[3]) > Constants::SMALL) return false;
+  if (fabs(unitCell_[5]) > Constants::SMALL) return false;
+  if (fabs(unitCell_[2]) > Constants::SMALL) return false;
+  if (fabs(unitCell_[1]) > Constants::SMALL) return false;
   return true;
 }
 
