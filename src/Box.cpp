@@ -144,25 +144,28 @@ bool Box::IsEq(double angle, double tgt) {
   return (fabs(tgt - angle) < Constants::SMALL);
 }
 
-/** \return True if cell is aligned along "normal" (i.e. XYZ ABG) reference. */
-bool Box::IsNormal() const {
+/** \return True if cell "A" axis is aligned along the X-axis (i.e. XYZ ABG reference). */
+bool Box::Is_X_Aligned() const {
   if (fabs(unitCell_[1]) > 0.0) return false;
   if (fabs(unitCell_[2]) > 0.0) return false;
   if (fabs(unitCell_[5]) > 0.0) return false;
   return true;
 }
 
-/** \return True if cell is aligned along "normal" and is orthogonal. */
-bool Box::IsOrthoNormal() const {
+/** \return True if cell "A" axis is aligned along the X-axis and cell vectors are
+  *         orthogonal.
+  */
+bool Box::Is_X_Aligned_Ortho() const {
   if (fabs(unitCell_[7]) > 0.0) return false;
   if (fabs(unitCell_[6]) > 0.0) return false;
-  if (fabs(unitCell_[5]) > 0.0) return false;
   if (fabs(unitCell_[3]) > 0.0) return false;
+  if (fabs(unitCell_[5]) > 0.0) return false;
   if (fabs(unitCell_[2]) > 0.0) return false;
   if (fabs(unitCell_[1]) > 0.0) return false;
   return true;
 }
 
+/** For debugging purposes, print XYZ ABG and unit/frac cell matrices. */
 void Box::printBoxStatus(const char* desc) const {
   mprintf("DEBUG: [%s] Box: %s\n", desc, BoxNames_[btype_]);
   mprintf("DEBUG:   XYZ= %12.4f %12.4f %8.3f  ABG= %12.4f %12.4f %12.4f\n",

@@ -74,7 +74,7 @@ static inline void FrameToArray(CompactFrameArray& frames_, Frame const& fIn) {
   if (frames_.HasComponent(CoordinateInfo::FORCE)) frames_.SetFromDblPtr(fIn.fAddress(), CoordinateInfo::FORCE);
   if (frames_.HasComponent(CoordinateInfo::BOX)) {
     // Prefer storing XYZ ABG if possible; loses less info, especially when converting to float.
-    if (fIn.BoxCrd().IsNormal()) {
+    if (fIn.BoxCrd().Is_X_Aligned()) {
       double dtmp[9];
       std::copy(fIn.BoxCrd().XyzPtr(), fIn.BoxCrd().XyzPtr()+6, dtmp);
       std::fill(dtmp+6, dtmp+9, 0);
