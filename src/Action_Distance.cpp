@@ -1,6 +1,7 @@
 #include <cmath>
 #include "Action_Distance.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Action_Distance::Action_Distance() :
@@ -28,7 +29,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
 {
   AssociatedData_NOE noe;
   // Get Keywords
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   MetaData::scalarType stype = MetaData::UNDEFINED;
@@ -95,7 +96,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
             Mask2_.MaskString(), Mask2_.Nselected(), refFrm.refName());
   else if (mode_ == POINT)
     mprintf(" %s to point {%g %g %g}", Mask1_.MaskString(), a2_[0], a2_[1], a2_[2]);
-  if (!image_.UseImage()) 
+  if (!imageOpt_.UseImage()) 
     mprintf(", non-imaged");
   if (useMass_) 
     mprintf(", center of mass");
@@ -129,8 +130,8 @@ Action::RetType Action_Distance::Setup(ActionSetup& setup) {
     }
   }
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
     mprintf(", imaged");
   else
     mprintf(", imaging off");
@@ -159,7 +160,7 @@ Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
       a1 = frm.Frm().VGeometricCenter( Mask1_ );
   }
 
-  if (image_.ImagingEnabled()) {
+  if (imageOpt_.ImagingEnabled()) {
     Dist = DIST2_Imaged(a1, a2_, frm.Frm().BoxCrd());
   } else
     Dist = DIST2_NoImage(a1, a2_);
