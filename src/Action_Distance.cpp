@@ -1,4 +1,3 @@
-#include <cmath>
 #include "Action_Distance.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
@@ -142,7 +141,6 @@ Action::RetType Action_Distance::Setup(ActionSetup& setup) {
 
 // Action_Distance::DoAction()
 Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
-  //double Dist;
   Vec3 a1;
 
   if ( mode_ == NORMAL ) {
@@ -160,14 +158,7 @@ Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
       a1 = frm.Frm().VGeometricCenter( Mask1_ );
   }
 
-  double Dist = DIST2(imageOpt_.ImagingEnabled(), a1, a2_, frm.Frm().BoxCrd());
-/*
-  if (imageOpt_.ImagingEnabled()) {
-    Dist = DIST2_Imaged(a1, a2_, frm.Frm().BoxCrd());
-  } else
-    Dist = DIST2_NoImage(a1, a2_);*/
-
-  Dist = sqrt(Dist);
+  double Dist = DIST(imageOpt_.ImagingEnabled(), a1, a2_, frm.Frm().BoxCrd());
 
   dist_->Add(frameNum, &Dist);
 

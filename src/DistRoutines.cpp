@@ -386,3 +386,16 @@ double DIST2(bool imagingEnabled, Vec3 const& a1, Vec3 const& a2, Box const& box
   } else
     return DIST2_NoImage(a1, a2);
 }
+
+/** \return Distance using either minimum-image convention or no imaging. */
+double DIST(bool imagingEnabled, Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  double dist2;
+  if (imagingEnabled) {
+    if (box.Is_X_Aligned_Ortho())
+      dist2 = DIST2_ImageOrtho(a1, a2, box);
+    else
+      dist2 = DIST2_ImageNonOrtho(a1, a2, box.UnitCell(), box.FracCell());
+  } else
+    dist2 = DIST2_NoImage(a1, a2);
+  return sqrt(dist2);
+}

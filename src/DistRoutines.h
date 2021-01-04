@@ -28,4 +28,6 @@ double DIST2(const double*, const double*, ImagingType, Box const&, // TODO depr
              Matrix_3x3 const&, Matrix_3x3 const&);
 /// \return Distance squared using minimum-image convention or no imaging.
 double DIST2(bool, Vec3 const&, Vec3 const&, Box const&);
+/// \return Distance using minimum-image convention or no imaging.
+double DIST(bool, Vec3 const&, Vec3 const&, Box const&);
 #endif
