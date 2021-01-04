@@ -159,17 +159,15 @@ Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
       a1 = frm.Frm().VGeometricCenter( Mask1_ );
   }
 
-  switch ( image_.ImageType() ) {
-    case NONORTHO:
-      Dist = DIST2_ImageNonOrtho(a1, a2_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
-      break;
-    case ORTHO:
-      Dist = DIST2_ImageOrtho(a1, a2_, frm.Frm().BoxCrd());
-      break;
-    case NOIMAGE:
-      Dist = DIST2_NoImage(a1, a2_);
-      break;
-  }
+  if (image_.ImagingEnabled()) {
+    Box const& box = frm.Frm().BoxCrd();
+    if (box.Is_X_Aligned_Ortho())
+      Dist = DIST2_ImageOrtho(a1, a2_, box);
+    else
+      Dist = DIST2_ImageNonOrtho(a1, a2_, box.UnitCell(), box.FracCell());
+  } else
+    Dist = DIST2_NoImage(a1, a2_);
+
   Dist = sqrt(Dist);
 
   dist_->Add(frameNum, &Dist);
