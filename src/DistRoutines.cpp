@@ -6,19 +6,6 @@
   * \param a2 Second set of XYZ coordinates.
   * \param ucell Unit cell vectors.
   * \param recip Fractional cell vectors.
-  * \return the shortest imaged distance^2 between the coordinates.
-  */
-double DIST2_ImageNonOrtho(Vec3 const& a1, Vec3 const& a2, 
-                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip) 
-{ 
-  int ixyz[3];
-  return DIST2_ImageNonOrthoRecip(recip * a2, recip * a1, -1.0, ixyz, ucell);
-}
-
-/** \param a1 First set of XYZ coordinates.
-  * \param a2 Second set of XYZ coordinates.
-  * \param ucell Unit cell vectors.
-  * \param recip Fractional cell vectors.
   * \return the shortest vector from a1 to a2. 
   */
 Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2,
@@ -55,6 +42,19 @@ Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2,
     }
   }
   return minVec;
+}
+
+/** \param a1 First set of XYZ coordinates.
+  * \param a2 Second set of XYZ coordinates.
+  * \param ucell Unit cell vectors.
+  * \param recip Fractional cell vectors.
+  * \return the shortest imaged distance^2 between the coordinates.
+  */
+double DIST2_ImageNonOrtho(Vec3 const& a1, Vec3 const& a2, 
+                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip) 
+{ 
+  int ixyz[3];
+  return DIST2_ImageNonOrthoRecip(recip * a2, recip * a1, -1.0, ixyz, ucell);
 }
 
 /** NON-ORTHORHOMBIC CASE: find shortest distance in periodic reference
@@ -352,16 +352,19 @@ double DIST2_NoImage(const double* a1, const double* a2) {
   return (x*x + y*y + z*z);
 }
 
+/// \return Distance squared, no imaging.
 double DIST2_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
   Vec3 vec = a1 - a2;
   return vec.Magnitude2();
 }
 
+/// \return Distance, no imaging.
 double DIST_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
   Vec3 vec = a1 - a2;
   return sqrt( vec.Magnitude2() );
 }
 
+/// \return Distance squared with optional imaging TODO deprecate this function
 double DIST2(const double* a1, const double* a2, ImagingType itype,
              Box const& box, Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
 {
@@ -371,4 +374,12 @@ double DIST2(const double* a1, const double* a2, ImagingType itype,
     return DIST2_ImageOrtho( a1, a2, box );
   else // NONORTHO
     return DIST2_ImageNonOrtho( a1, a2, ucell, recip );
+}
+
+/** \return Distance squared using minimum-image convention. */
+double DIST2_Imaged(Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  if (box.Is_X_Aligned_Ortho())
+    return DIST2_ImageOrtho(a1, a2, box);
+  else
+    return DIST2_ImageNonOrtho(a1, a2, box.UnitCell(), box.FracCell());
 }

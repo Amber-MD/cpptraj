@@ -160,11 +160,7 @@ Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
   }
 
   if (image_.ImagingEnabled()) {
-    Box const& box = frm.Frm().BoxCrd();
-    if (box.Is_X_Aligned_Ortho())
-      Dist = DIST2_ImageOrtho(a1, a2_, box);
-    else
-      Dist = DIST2_ImageNonOrtho(a1, a2_, box.UnitCell(), box.FracCell());
+    Dist = DIST2_Imaged(a1, a2_, frm.Frm().BoxCrd());
   } else
     Dist = DIST2_NoImage(a1, a2_);
 
