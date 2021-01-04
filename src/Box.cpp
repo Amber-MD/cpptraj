@@ -473,7 +473,10 @@ int Box::SetupFromShapeMatrix(const double* shape) {
 
   btype_ = SetBoxType();
   printBoxStatus("SetupFromShapeMatrix");
-  if (btype_ == NOBOX) return 1;
+  if (btype_ == NOBOX) {
+    SetNoBox();
+    return 1;
+  }
   return 0;
 }
 
@@ -487,7 +490,10 @@ int Box::SetupFromUcell(const double* ucell) {
 
   btype_ = SetBoxType();
   printBoxStatus("SetupFromUcell");
-  if (btype_ == NOBOX) return 1;
+  if (btype_ == NOBOX) {
+    SetNoBox();
+    return 1;
+  }
   return 0;
 }
 
@@ -506,7 +512,10 @@ int Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb, 
 
   btype_ = SetBoxType();
   printBoxStatus("SetupFromXyzAbgIndividual");
-  if (btype_ == NOBOX) return 1;
+  if (btype_ == NOBOX) {
+    SetNoBox();
+    return 1;
+  }
   return 0;
 }
 
@@ -525,7 +534,10 @@ int Box::SetupFromXyzAbg(const double* xyzabg) {
 
   btype_ = SetBoxType();
   printBoxStatus("SetupFromXyzAbg");
-  if (btype_ == NOBOX) return 1;
+  if (btype_ == NOBOX) {
+    SetNoBox();
+    return 1;
+  }
   return 0;
 }
 
