@@ -27,8 +27,6 @@ class Action_GIST : public Action {
     void Print();
 
     inline void TransEntropy(float,float,float,float,float,float,float,int,double&,double&) const;
-    static inline double Dist2(ImagingType, const double*, const double*, Box const&,
-                               Matrix_3x3 const&, Matrix_3x3 const&);
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy(Frame const&, Topology const&);
     void Order(Frame const&);
