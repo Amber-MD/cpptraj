@@ -839,7 +839,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   frm.Frm().BoxCrd().UnitCell().Print("Ucell");
   frm.Frm().BoxCrd().FracCell().Print("Frac");
 # endif
-  imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
 # ifdef DEBUG_GIST
   switch (imageOpt_.ImagingType()) {
     case ImageOption::NO_IMAGE : mprintf("DEBUG: No Image.\n"); break;

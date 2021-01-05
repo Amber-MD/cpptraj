@@ -17,6 +17,7 @@ class ImageOption {
     void InitImaging(bool imagingDesired) { InitImaging(imagingDesired, false); }
     /// Determine if imaging possible if desired.
     void SetupImaging(bool hasBox) {
+      type_ = NO_IMAGE;
       if (useImage_) {
         // Imaging desired if possible.
         if (hasBox)
@@ -36,16 +37,17 @@ class ImageOption {
     /// \return Current imaging type
     Type ImagingType()    const { return type_; }
     /// Determine imaging type given current options and if cell is x_aligned orthogonal
+    /** NOTE: This should only be called if imaging is enabled. */
     void SetImageType(bool is_x_aligned_ortho) {
-      if (imagingEnabled_) {
+      //if (imagingEnabled_) {
         if (forceNonortho_)
           type_ = NONORTHO;
         else if (is_x_aligned_ortho)
           type_ = ORTHO;
         else
           type_ = NONORTHO;
-      } else
-        type_ = NO_IMAGE;
+      //} else
+      //  type_ = NO_IMAGE;
     }
   private:
     Type type_;           ///< Current imaging type based on current cell.

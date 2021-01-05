@@ -18,7 +18,7 @@ class Action_Distance: public Action {
 
     AtomMask Mask1_;       ///< Mask selecting first point
     AtomMask Mask2_;       ///< Mask selecting second point
-    ImageOption imageOpt_; ///< Use to determine if imaging should be used.
+    ImageOption imageOpt_; ///< Used to determine if imaging should be used.
     Vec3 a2_;              ///< Hold reference XYZ for REF or point XYZ
     DataSet* dist_;        ///< Will hold DataSet of calculated distances.
     ModeType mode_;        ///< Type of distance calculation.
