@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_CLOSEST_H
 #define INC_ACTION_CLOSEST_H
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 #include "CharMask.h"
 #include "ActionTopWriter.h"
 /// Modify the state so that only the closest solvent molecules are kept.
@@ -30,7 +30,7 @@ class Action_Closest: public Action {
     Darray U_cell0_coords_; ///< Hold selected solute atoms, wrapped to cell0 if non-ortho.
 #   endif
 
-    ImagedAction image_;    ///< Imaging routines.
+    ImageOption imageOpt_;  ///< Used to determine if imaging should be used.
     DataFile *outFile_;     ///< Output file for data on closest molecules
     DataSet *framedata_;    ///< Frame number for each closest molecule.
     DataSet *moldata_;      ///< Mol# for each closest molecule.

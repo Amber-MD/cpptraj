@@ -7,11 +7,12 @@
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
 #include "ImageRoutines.h"
+#include "DistRoutines.h"
 
 #ifdef CUDA
 // CUDA kernel wrappers
-extern void Action_Closest_Center(const double*,double*,const double*,double,int,int,ImagingType,const double*,const double*,const double*);
-extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
+extern void Action_Closest_Center(const double*,double*,const double*,double,int,int,ImageOption::Type,const double*,const double*,const double*);
+extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImageOption::Type,const double*,const double*,const double*);
 #endif
 
 // CONSTRUCTOR
@@ -72,7 +73,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
   if ( actionArgs.hasKey("oxygen") || actionArgs.hasKey("first") )
     firstAtom_=true;
   useMaskCenter_ = actionArgs.hasKey("center");
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   topWriter_.InitTopWriter(actionArgs, "closest", debugIn);
   // Setup output file and sets if requested.
   // Will keep track of Frame, Mol#, Distance, and first solvent atom
@@ -118,7 +119,7 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
           closestWaters_, distanceMask_.MaskString());
   if (useMaskCenter_)
     mprintf("\tGeometric center of atoms in mask will be used.\n");
-  if (!image_.UseImage()) 
+  if (!imageOpt_.UseImage()) 
     mprintf("\tImaging will be turned off.\n");
   if (solventMask_.MaskStringSet())
     mprintf("\tSolvent will be selected by mask '%s'\n", solventMask_.MaskString());
@@ -191,8 +192,8 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     closestWaters_ = nSolvent;
     mprintf("Warning:  Keeping %i solvent molecules.\n", closestWaters_);
   }
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
     mprintf("\tDistances will be imaged.\n");
   else
     mprintf("\tImaging off.\n"); 
@@ -332,11 +333,12 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   double maxD, Dist2;
   Iarray::const_iterator solvent_atom;
 
-  if (image_.ImagingEnabled()) {
+  if (imageOpt_.ImagingEnabled()) {
     // Calculate max possible imaged distance
     maxD = frm.Frm().BoxCrd().Param(Box::X) + frm.Frm().BoxCrd().Param(Box::Y) + 
            frm.Frm().BoxCrd().Param(Box::Z);
     maxD *= maxD;
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   } else {
     // If not imaging, set max distance to an arbitrarily large number
     maxD = DBL_MAX;
@@ -358,7 +360,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
     Action_Closest_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
-                           maxD, NsolventMolecules_, NAtoms, image_.ImageType(),
+                           maxD, NsolventMolecules_, NAtoms, imageOpt_.ImagingType(),
                            frm.Frm().BoxCrd().XyzPtr(),
                            frm.Frm().BoxCrd().UnitCell().Dptr(),
                            frm.Frm().BoxCrd().FracCell().Dptr() );
@@ -372,7 +374,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     }
 
     Action_Closest_NoCenter( V_atom_coords_, V_distances_, U_atom_coords_,
-                             maxD, NsolventMolecules_, NAtoms, NSAtoms, image_.ImageType(),
+                             maxD, NsolventMolecules_, NAtoms, NSAtoms, imageOpt_.ImagingType(),
                              frm.Frm().BoxCrd().XyzPtr(),
                              frm.Frm().BoxCrd().UnitCell().Dptr(),
                              frm.Frm().BoxCrd().FracCell().Dptr() );
@@ -383,7 +385,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
 
 #else /* Not CUDA */
 // -----------------------------------------------------------------------------
-  if (image_.ImageType() == NONORTHO) {
+  if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
     // ----- NON-ORTHORHOMBIC IMAGING ------------
     // Wrap all solute atoms back into primary cell and save coords
     if (useMaskCenter_) {
@@ -480,7 +482,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
         for (unsigned int idx = 0; idx < U_cell0_coords_.size(); idx += 3)
         {
           Vec3 Ucoord( U_cell0_coords_[idx], U_cell0_coords_[idx+1], U_cell0_coords_[idx+2] );
-          if (image_.ImageType() == ORTHO)
+          if (imageOpt_.ImagingType() == ImageOption::ORTHO)
             Dist2 = DIST2_ImageOrtho( Vcoord, Ucoord, frm.Frm().BoxCrd() );
           else
             Dist2 = DIST2_NoImage( Vcoord, Ucoord );
