@@ -137,7 +137,6 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     density_ = init.DSL().AddSet(DataSet::DOUBLE, dsname, "DENSITY");
     if (density_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddDataSet( density_ );
-    image_.InitImaging( true );
     // Hijack delta for storing sum of masses
     delta_ = 0.0;
   } else {
@@ -224,8 +223,7 @@ Action::RetType Action_Density::HistSetup(ActionSetup& setup) {
 // Action_Density::DensitySetup()
 Action::RetType Action_Density::DensitySetup(ActionSetup& setup) {
   // Total system density setup
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (!image_.ImagingEnabled()) {
+  if ( !setup.CoordInfo().TrajBox().HasBox() ) { 
     mprintf("Warning: No unit cell information, total density cannot be calculated for '%s'\n",
             setup.Top().c_str());
     return Action::SKIP;

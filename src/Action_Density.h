@@ -8,7 +8,6 @@
 
 #include "Action.h"
 #include "OnlineVarT.h"
-#include "ImagedAction.h"
 
 #define ROUTINE_VERSION_STRING "1.0.3"
 // 1.0.3 - DRR Add 'restrict'
@@ -78,7 +77,6 @@ private:
   PropArray properties_;        ///< Hold properties for each mask.
   
   DataSet* density_;            ///< Hold total system density (if not binning)
-  ImagedAction image_;          ///< Used to calculate system volume for total density.
   RestrictType restrictType_;   ///< Used to restrict calculation to a certain shape.
   double cutVal_;               ///< Cutoff to use if shape restriction in use.
 # ifdef MPI
