@@ -11,6 +11,8 @@
 # include "CharMask.h"
 // CUDA Kernel wrappers
 extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImageOption::Type,const double*,const double*,const double*);
+#else
+# include "DistRoutines.h"
 #endif
 
 // CONSTRUCTOR

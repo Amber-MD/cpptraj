@@ -7,12 +7,13 @@
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
 #include "ImageRoutines.h"
-#include "DistRoutines.h"
 
 #ifdef CUDA
 // CUDA kernel wrappers
 extern void Action_Closest_Center(const double*,double*,const double*,double,int,int,ImageOption::Type,const double*,const double*,const double*);
 extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImageOption::Type,const double*,const double*,const double*);
+#else
+#include "DistRoutines.h"
 #endif
 
 // CONSTRUCTOR
