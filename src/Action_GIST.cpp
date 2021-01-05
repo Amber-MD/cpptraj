@@ -568,6 +568,10 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
 /** Calculate the energy between all solute/solvent atoms and solvent atoms
   * on the grid. This is done after the intial GIST calculations
   * so that all waters have voxels assigned in atom_voxel_.
+  * NOTE: This routine modifies the coordinates in OnGrid_XYZ_ when the cell
+  *       has nonorthogonal shape in order to properly satsify the minimum
+  *       image convention, so any calculations that rely on the on grid
+  *       coordinates (like Order()) must be done *BEFORE* this routine.
   */
 void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
