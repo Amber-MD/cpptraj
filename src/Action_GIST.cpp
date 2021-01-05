@@ -1039,11 +1039,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
   gist_nonbond_.Stop();
 # else /* CUDA */
-  gist_nonbond_.Start();
   // Do nonbond energy calc on GPU if not skipping energy
   if (! this->skipE_)
     NonbondCuda(frm);
-  gist_nonbond_.Stop();
 # endif /* CUDA */
 
   gist_action_.Stop();
