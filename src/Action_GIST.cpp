@@ -28,7 +28,6 @@ Action_GIST::Action_GIST() :
   result_O_c_(NULL),
   result_N_c_(NULL),
 #endif
-  imageType_(NO_IMAGE),
   gO_(0),
   gH_(0),
   Esw_(0),
@@ -115,8 +114,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   DataFile* file_dipolez = init.DFL().AddDataFile(prefix_ + "-dipolez-dens" + ext);
   // Other keywords
   includeIons_ = !actionArgs.hasKey("excludeions");
-  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
-  forceNonOrtho_ = actionArgs.hasKey("nonortho");
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")), actionArgs.hasKey("nonortho") );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
 #ifdef CUDA
@@ -334,7 +332,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tDistances will be imaged.\n");
   else
     mprintf("\tDistances will not be imaged.\n");
-  if (forceNonOrtho_)
+  if (imageOpt_.ForceNonOrtho())
     mprintf("\tWill use non-orthogonal imaging routines for all cell types.\n");
   gO_->GridInfo();
   mprintf("\tNumber of voxels: %u, voxel volume: %f Ang^3\n",
@@ -576,7 +574,7 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
 void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
   // Set up imaging info.
-  if (imageType_ == NONORTHO) {
+  if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
     // Wrap on-grid water coords back to primary cell TODO openmp
     double* ongrid_xyz = &OnGrid_XYZ_[0];
     int maxXYZ = (int)OnGrid_XYZ_.size();
@@ -646,7 +644,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
     bool a1IsO = (topIn[ a1 ].Element() == Atom::OXYGEN);
     std::vector<Vec3> vImages;
-    if (imageType_ == NONORTHO) {
+    if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
       // Convert to frac coords
       Vec3 vFrac = frameIn.BoxCrd().FracCell() * A1_XYZ;
       // Wrap to primary unit cell
@@ -675,7 +673,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           // Calculate distance
           //gist_nonbond_dist_.Start();
           double rij2;
-          if (imageType_ == NONORTHO) {
+          if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
 #           ifdef GIST_USE_NONORTHO_DIST2
             rij2 = DIST2_ImageNonOrtho(A1_XYZ, A2_XYZ, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell());
 #           else
@@ -689,7 +687,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               rij2 = std::min(rij2, x*x + y*y + z*z);
             }
 #           endif
-          } else if (imageType_ == ORTHO)
+          } else if (imageOpt_.ImagingType() == ImageOption::ORTHO)
             rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
           else
             rij2 = DIST2_NoImage( A1_XYZ, A2_XYZ );
@@ -708,7 +706,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             // Calculate distance
             //gist_nonbond_dist_.Start();
             double rij2;
-            if (imageType_ == NONORTHO) {
+            if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
 #            ifdef GIST_USE_NONORTHO_DIST2
              rij2 = DIST2_ImageNonOrtho(A1_XYZ, A2_XYZ, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell());
 #            else
@@ -722,7 +720,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
                 rij2 = std::min(rij2, x*x + y*y + z*z);
               }
 #             endif
-            } else if (imageType_ == ORTHO)
+            } else if (imageOpt_.ImagingType() == ImageOption::ORTHO)
               rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
             else
               rij2 = DIST2_NoImage( A1_XYZ, A2_XYZ );
@@ -841,20 +839,12 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   frm.Frm().BoxCrd().UnitCell().Print("Ucell");
   frm.Frm().BoxCrd().FracCell().Print("Frac");
 # endif
-  if (imageOpt_.ImagingEnabled()) {
-    if (forceNonOrtho_)
-      imageType_ = NONORTHO;
-    else if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho())
-      imageType_ = ORTHO;
-    else
-      imageType_ = NONORTHO;
-  } else
-    imageType_ = NO_IMAGE;
+  imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
 # ifdef DEBUG_GIST
-  switch (imageType_) {
-    case NO_IMAGE : mprintf("DEBUG: No Image.\n"); break;
-    case ORTHO    : mprintf("DEBUG: Orthogonal image.\n"); break;
-    case NONORTHO : mprintf("DEBUG: Nonorthogonal image.\n"); break;
+  switch (imageOpt_.ImagingType()) {
+    case ImageOption::NO_IMAGE : mprintf("DEBUG: No Image.\n"); break;
+    case ImageOption::ORTHO    : mprintf("DEBUG: Orthogonal image.\n"); break;
+    case ImageOption::NONORTHO : mprintf("DEBUG: Nonorthogonal image.\n"); break;
   }
 # endif
   // CUDA necessary information
@@ -1500,8 +1490,8 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   int boxinfo;
 
   // Check Boxinfo and write the necessary data into recip, ucell and boxinfo.
-  switch(imageType_) {
-    case NONORTHO:
+  switch(imageOpt_.ImagingType()) {
+    case ImageOption::NONORTHO:
       recip = new float[9];
       ucell = new float[9];
       for (int i = 0; i < 9; ++i) {
@@ -1510,7 +1500,7 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
       }
       boxinfo = 2;
       break;
-    case ORTHO:
+    case ImageOption::ORTHO:
       recip = new float[9];
       recip[0] = frm.Frm().BoxCrd().Param(Box::X);
       recip[1] = frm.Frm().BoxCrd().Param(Box::Y);
@@ -1518,7 +1508,7 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
       ucell = NULL;
       boxinfo = 1;
       break;
-    case NO_IMAGE:
+    case ImageOption::NO_IMAGE:
       recip = NULL;
       ucell = NULL;
       boxinfo = 0;
@@ -1572,9 +1562,9 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
         double sum = 0;
         Vec3 cent( frm.Frm().xAddress() + (headAtomIndex) * 3 );
         std::vector<Vec3> vectors;
-        switch(imageType_) {
-          case NONORTHO:
-          case ORTHO:
+        switch(imageOpt_.ImagingType()) {
+          case ImageOption::NONORTHO:
+          case ImageOption::ORTHO:
             {
               Vec3 vec(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(0) * 3));
               vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));

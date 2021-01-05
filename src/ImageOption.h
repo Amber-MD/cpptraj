@@ -31,6 +31,8 @@ class ImageOption {
     bool UseImage()       const { return useImage_; }
     /// \return True if imaging desired and currently possible.
     bool ImagingEnabled() const { return imagingEnabled_; }
+    /// \return True if forcing use of non-ortho imaging.
+    bool ForceNonOrtho()  const { return forceNonortho_; }
     /// \return Current imaging type
     Type ImagingType()    const { return type_; }
     /// Determine imaging type given current options and if cell is x_aligned orthogonal

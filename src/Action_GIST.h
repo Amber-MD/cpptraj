@@ -26,9 +26,6 @@ class Action_GIST : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
-    /// Different imaging types.
-    enum ImageType { NO_IMAGE = 0, ORTHO, NONORTHO };
-
     inline void TransEntropy(float,float,float,float,float,float,float,int,double&,double&) const;
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy(Frame const&, Topology const&);
@@ -82,8 +79,6 @@ class Action_GIST : public Action {
 
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
     ImageOption imageOpt_;  ///< Used to determine if imaging should be used.*
-    ImageType imageType_;   ///< Which type of imaging to do (if any).
-    bool forceNonOrtho_;    ///< For debug; force use of non-ortho. imaging code
     // GIST float grid datasets
     DataSet_3D* gO_;        ///< Solvent oxygen density
     DataSet_3D* gH_;        ///< Solvent hydrogen density
