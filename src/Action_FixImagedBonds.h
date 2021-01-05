@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_FIXIMAGEDBONDS_H
 #define INC_ACTION_FIXIMAGEDBONDS_H
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 #include "CharMask.h"
 /// Fix bonds which have been distorted by e.g. by atom imaging. 
 class Action_FixImagedBonds : public Action {
@@ -15,7 +15,7 @@ class Action_FixImagedBonds : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    ImagedAction image_ ; ///< Imaging routines
+    ImageOption imageOpt_; ///< Used to determine if imaging should be used
     CharMask mask_;
     Vec3 boxCenter_; ///< Box center for current frame
     Topology* CurrentParm_;
