@@ -83,6 +83,7 @@ class Action_GIST : public Action {
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
     ImageOption imageOpt_;  ///< Used to determine if imaging should be used.*
     ImageType imageType_;   ///< Which type of imaging to do (if any).
+    bool forceNonOrtho_;    ///< For debug; force use of non-ortho. imaging code
     // GIST float grid datasets
     DataSet_3D* gO_;        ///< Solvent oxygen density
     DataSet_3D* gH_;        ///< Solvent hydrogen density

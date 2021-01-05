@@ -116,6 +116,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Other keywords
   includeIons_ = !actionArgs.hasKey("excludeions");
   imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  forceNonOrtho_ = actionArgs.hasKey("nonortho");
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
 #ifdef CUDA
@@ -333,6 +334,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tDistances will be imaged.\n");
   else
     mprintf("\tDistances will not be imaged.\n");
+  if (forceNonOrtho_)
+    mprintf("\tWill use non-orthogonal imaging routines for all cell types.\n");
   gO_->GridInfo();
   mprintf("\tNumber of voxels: %u, voxel volume: %f Ang^3\n",
           MAX_GRID_PT_, gO_->Bin().VoxelVolume());
@@ -815,6 +818,7 @@ void Action_GIST::Order(Frame const& frameIn) {
       }
     }
     order_norm_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
+    //mprintf("DBG: gidx= %u  oidx1=%i  voxel1= %i  XYZ1={%g, %g, %g}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
   } // END loop over all solvent molecules
 }
 
@@ -828,21 +832,27 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   OnGrid_XYZ_.clear();
 
   // Determine imaging type
+# ifdef DEBUG_GIST
   //mprintf("DEBUG: Is_X_Aligned_Ortho() = %i  Is_X_Aligned() = %i\n", (int)frm.Frm().BoxCrd().Is_X_Aligned_Ortho(), (int)frm.Frm().BoxCrd().Is_X_Aligned());
-  //frm.Frm().BoxCrd().UnitCell().Print("Ucell");
+  frm.Frm().BoxCrd().UnitCell().Print("Ucell");
+  frm.Frm().BoxCrd().FracCell().Print("Frac");
+# endif
   if (imageOpt_.ImagingEnabled()) {
-    if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho())
+    if (forceNonOrtho_)
+      imageType_ = NONORTHO;
+    else if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho())
       imageType_ = ORTHO;
     else
       imageType_ = NONORTHO;
   } else
     imageType_ = NO_IMAGE;
-  //switch (imageType_) {
-  //  case NO_IMAGE : mprintf("DEBUG: No Image.\n"); break;
-  //  case ORTHO    : mprintf("DEBUG: Orthogonal image.\n"); break;
-  //  case NONORTHO : mprintf("DEBUG: Nonorthogonal image.\n"); break;
-  //}
-
+# ifdef DEBUG_GIST
+  switch (imageType_) {
+    case NO_IMAGE : mprintf("DEBUG: No Image.\n"); break;
+    case ORTHO    : mprintf("DEBUG: Orthogonal image.\n"); break;
+    case NONORTHO : mprintf("DEBUG: Nonorthogonal image.\n"); break;
+  }
+# endif
   // CUDA necessary information
 
   size_t bin_i, bin_j, bin_k;
@@ -1012,21 +1022,25 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     } // END water is within 1.5 Ang of grid
   } // END loop over each solvent molecule
 
-  // Do energy calculation if requested
-  #ifndef CUDA
-  gist_nonbond_.Start();
-  if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
-  gist_nonbond_.Stop();
-
-
-  // Do order calculation if requested
+# ifndef CUDA
+  // Do order calculation if requested.
+  // NOTE: This has to be done before the nonbond energy calc since
+  //       the nonbond calc can modify the on-grid coordinates (for minimum
+  //       image convention when cell is non-orthogonal).
   gist_order_.Start();
   if (doOrder_) Order(frm.Frm());
   gist_order_.Stop();
-  #else
+  // Do nonbond energy calc if not skipping energy
+  gist_nonbond_.Start();
+  if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
+  gist_nonbond_.Stop();
+# else /* CUDA */
+  gist_nonbond_.Start();
+  // Do nonbond energy calc on GPU if not skipping energy
   if (! this->skipE_)
     NonbondCuda(frm);
-  #endif
+  gist_nonbond_.Stop();
+# endif /* CUDA */
 
   gist_action_.Stop();
   return Action::OK;
