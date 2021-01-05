@@ -5,6 +5,7 @@
 #include "Constants.h"
 #include "TorsionRoutines.h"
 #include "StringRoutines.h" // ByteString
+#include "DistRoutines.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -70,7 +71,7 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
 # endif
   debug_ = debugIn;
   // Get keywords
-  Image_.InitImaging( (actionArgs.hasKey("image")) );
+  imageOpt_.InitImaging( (actionArgs.hasKey("image")) );
   DataFile* DF = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   series_ = actionArgs.hasKey("series");
   if (series_) {
@@ -212,7 +213,7 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     if (UVseriesout_ != 0) mprintf("\tWriting solute-solvent time series to %s\n",
                                    UVseriesout_->DataFilename().full());
   }
-  if (Image_.UseImage())
+  if (imageOpt_.UseImage())
     mprintf("\tImaging enabled.\n");
   masterDSL_ = init.DslPtr();
 
@@ -230,7 +231,7 @@ inline bool IsFON(Atom const& atm) {
 // Action_HydrogenBond::Setup()
 Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
-  Image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
 
   // Set up generic mask
   if (!hasDonorMask_ || !hasAcceptorMask_) {
@@ -540,7 +541,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
 // Action_HydrogenBond::Angle()
 double Action_HydrogenBond::Angle(const double* XA, const double* XH, const double* XD, Box const& boxIn) const
 {
-  if (Image_.ImageType() == NOIMAGE)
+  if (imageOpt_.ImagingType() == ImageOption::NO_IMAGE)
     return (CalcAngle(XA, XH, XD));
   else {
     double angle;
@@ -715,7 +716,8 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
 # ifdef TIMER
   t_action_.Start();
 # endif
-
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   // Loop over all solute donor sites
 # ifdef TIMER
   t_uu_.Start();
@@ -744,7 +746,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         Site const& Site1 = Both_[sidx1];
         if (mol0 != (*CurrentParm_)[Site1.Idx()].MolNum()) {
           const double* XYZ1 = frm.Frm().XYZ( Site1.Idx() );
-          double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
+          double dist2 = DIST2( imageOpt_.ImagingEnabled(),
+                                imageOpt_.ImagingType() == ImageOption::ORTHO,
+                                XYZ0, XYZ1, frm.Frm().BoxCrd() );
           if ( !(dist2 > dcut2_) )
           {
             // Site 0 donor, Site 1 acceptor
@@ -759,7 +763,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       {
         if (mol0 != (*CurrentParm_)[*a_atom].MolNum()) {
           const double* XYZ1 = frm.Frm().XYZ( *a_atom );
-          double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
+          double dist2 = DIST2( imageOpt_.ImagingEnabled(),
+                                imageOpt_.ImagingType() == ImageOption::ORTHO,
+                                XYZ0, XYZ1, frm.Frm().BoxCrd() );
           if ( !(dist2 > dcut2_) )
             CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
         }
@@ -786,7 +792,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       {
         Site const& Site1 = Both_[sidx1];
         const double* XYZ1 = frm.Frm().XYZ( Site1.Idx() );
-        double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
+        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
+                              imageOpt_.ImagingType() == ImageOption::ORTHO,
+                              XYZ0, XYZ1, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
         {
           // Site 0 donor, Site 1 acceptor
@@ -799,7 +807,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
       {
         const double* XYZ1 = frm.Frm().XYZ( *a_atom );
-        double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
+        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
+                              imageOpt_.ImagingType() == ImageOption::ORTHO,
+                              XYZ0, XYZ1, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
           CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
       }
@@ -847,7 +857,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       for (unsigned int sidx = 0; sidx < bothEnd_; sidx++)
       {
         const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
-        double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
+        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
+                              imageOpt_.ImagingType() == ImageOption::ORTHO,
+                              VXYZ, UXYZ, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
         {
           // Solvent site donor, solute site acceptor
@@ -860,7 +872,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       for (unsigned int sidx = bothEnd_; sidx < Both_.size(); sidx++)
       {
         const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
-        double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
+        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
+                              imageOpt_.ImagingType() == ImageOption::ORTHO,
+                              VXYZ, UXYZ, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
           // Solvent site acceptor, solute site donor
           CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
@@ -869,7 +883,9 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
       {
         const double* UXYZ = frm.Frm().XYZ( *a_atom );
-        double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
+        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
+                              imageOpt_.ImagingType() == ImageOption::ORTHO,
+                              VXYZ, UXYZ, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
           // Solvent site donor, solute site acceptor
           CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false);

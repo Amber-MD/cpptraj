@@ -399,3 +399,14 @@ double DIST(bool imagingEnabled, Vec3 const& a1, Vec3 const& a2, Box const& box)
     dist2 = DIST2_NoImage(a1, a2);
   return sqrt(dist2);
 }
+
+/** \return Distance squared using either minimum-image convention or no imaging. */
+double DIST2(bool imagingEnabled, bool is_ortho, Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  if (imagingEnabled) {
+    if (is_ortho)
+      return DIST2_ImageOrtho(a1, a2, box);
+    else
+      return DIST2_ImageNonOrtho(a1, a2, box.UnitCell(), box.FracCell());
+  } else
+    return DIST2_NoImage(a1, a2);
+}

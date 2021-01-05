@@ -2,7 +2,7 @@
 #define INC_ACTION_HYDROGENBOND_H
 #include <map>
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 #include "DataSet_integer.h"
 #ifdef TIMER
 # include "Timer.h"
@@ -76,7 +76,7 @@ class Action_HydrogenBond : public Action {
     AtomMask SolventDonorMask_;
     AtomMask SolventAcceptorMask_;
     AtomMask Mask_;
-    ImagedAction Image_;       ///< Hold imaging info.
+    ImageOption imageOpt_;       ///< Used to determine if imaging should be performed
 #   ifdef TIMER
     Timer t_action_;
     Timer t_uu_;
