@@ -313,7 +313,7 @@ double DIST2_ImageNonOrthoRecip(Vec3 const& f1, Vec3 const& f2, double minIn,
 /** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
   * and a2.
   */
-double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box)
+double DIST2_ImageOrtho(const double* a1, const double* a2, Box const& box)
 {
   // If box lengths are zero no imaging possible
   if (box.Param(Box::X)==0.0 || box.Param(Box::Y)==0.0 || box.Param(Box::Z)==0.0) return -1.0;
@@ -337,6 +337,13 @@ double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box)
   if (D < z) z = D;
 
   return (x*x + y*y + z*z);
+}
+
+/** Return the minimum orthorhombic imaged distance^2 between coordinates a1 
+  * and a2.
+  */
+double DIST2_ImageOrtho(Vec3 const& a1, Vec3 const& a2, Box const& box) {
+  return DIST2_ImageOrtho(a1.Dptr(), a2.Dptr(), box);
 }
 
 // Frame::DIST2_NoImage()

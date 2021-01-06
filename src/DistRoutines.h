@@ -17,6 +17,8 @@ double DIST2_ImageNonOrtho(Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3
 /// \return Distance squared between points in fractional space, general unit cell imaging.
 double DIST2_ImageNonOrthoRecip(Vec3 const&, Vec3 const&, double, int*, Matrix_3x3 const&);
 /// \return Distance squared, X-aligned and orthogonal imaging.
+double DIST2_ImageOrtho(const double*, const double*, Box const&);
+/// \return Distance squared, X-aligned and orthogonal imaging.
 double DIST2_ImageOrtho(Vec3 const&, Vec3 const&, Box const&);
 /// \return Distance squared, no imaging.
 double DIST2_NoImage(const double*, const double*);
