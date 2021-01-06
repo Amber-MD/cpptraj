@@ -746,9 +746,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         Site const& Site1 = Both_[sidx1];
         if (mol0 != (*CurrentParm_)[Site1.Idx()].MolNum()) {
           const double* XYZ1 = frm.Frm().XYZ( Site1.Idx() );
-          double dist2 = DIST2( imageOpt_.ImagingEnabled(),
-                                imageOpt_.ImagingType() == ImageOption::ORTHO,
-                                XYZ0, XYZ1, frm.Frm().BoxCrd() );
+          double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
           if ( !(dist2 > dcut2_) )
           {
             // Site 0 donor, Site 1 acceptor
@@ -763,9 +761,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       {
         if (mol0 != (*CurrentParm_)[*a_atom].MolNum()) {
           const double* XYZ1 = frm.Frm().XYZ( *a_atom );
-          double dist2 = DIST2( imageOpt_.ImagingEnabled(),
-                                imageOpt_.ImagingType() == ImageOption::ORTHO,
-                                XYZ0, XYZ1, frm.Frm().BoxCrd() );
+          double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
           if ( !(dist2 > dcut2_) )
             CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
         }
@@ -792,9 +788,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       {
         Site const& Site1 = Both_[sidx1];
         const double* XYZ1 = frm.Frm().XYZ( Site1.Idx() );
-        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
-                              imageOpt_.ImagingType() == ImageOption::ORTHO,
-                              XYZ0, XYZ1, frm.Frm().BoxCrd() );
+        double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
         {
           // Site 0 donor, Site 1 acceptor
@@ -807,9 +801,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
       {
         const double* XYZ1 = frm.Frm().XYZ( *a_atom );
-        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
-                              imageOpt_.ImagingType() == ImageOption::ORTHO,
-                              XYZ0, XYZ1, frm.Frm().BoxCrd() );
+        double dist2 = DIST2( imageOpt_.ImagingType(), XYZ0, XYZ1, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
           CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
       }
@@ -857,9 +849,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       for (unsigned int sidx = 0; sidx < bothEnd_; sidx++)
       {
         const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
-        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
-                              imageOpt_.ImagingType() == ImageOption::ORTHO,
-                              VXYZ, UXYZ, frm.Frm().BoxCrd() );
+        double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
         {
           // Solvent site donor, solute site acceptor
@@ -872,9 +862,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       for (unsigned int sidx = bothEnd_; sidx < Both_.size(); sidx++)
       {
         const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
-        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
-                              imageOpt_.ImagingType() == ImageOption::ORTHO,
-                              VXYZ, UXYZ, frm.Frm().BoxCrd() );
+        double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
           // Solvent site acceptor, solute site donor
           CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
@@ -883,9 +871,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
       {
         const double* UXYZ = frm.Frm().XYZ( *a_atom );
-        double dist2 = DIST2( imageOpt_.ImagingEnabled(),
-                              imageOpt_.ImagingType() == ImageOption::ORTHO,
-                              VXYZ, UXYZ, frm.Frm().BoxCrd() );
+        double dist2 = DIST2( imageOpt_.ImagingType(), VXYZ, UXYZ, frm.Frm().BoxCrd() );
         if ( !(dist2 > dcut2_) )
           // Solvent site donor, solute site acceptor
           CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false);
