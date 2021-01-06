@@ -1,7 +1,6 @@
 #ifndef INC_ACTION_MINIMAGE_H
 #define INC_ACTION_MINIMAGE_H
 #include "Action.h"
-#include "ImagedAction.h"
 //#incl ude "PDBfile.h" // DEBUG
 /// Action to calculate minimum non-self distance between atoms in two masks.
 class Action_MinImage: public Action {
@@ -17,7 +16,6 @@ class Action_MinImage: public Action {
 
     double MinNonSelfDist2(Vec3 const&, Vec3 const&, Box const&);
 
-    ImagedAction image_;
     DataSet* dist_;      ///< Will hold DataSet of calculated distances.
     DataSet* atom1_;
     DataSet* atom2_;

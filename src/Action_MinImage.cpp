@@ -23,8 +23,6 @@ void Action_MinImage::Help() const {
 Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get Keywords
-  // Require imaging.
-  image_.InitImaging( true );
   useMass_ = !(actionArgs.hasKey("geom"));
   calcUsingMask_ = actionArgs.hasKey("maskcenter");
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -88,18 +86,17 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int
 /** Determine what atoms each mask pertains to for the current parm file.
   */
 Action::RetType Action_MinImage::Setup(ActionSetup& setup) {
+  // Require PBC info
+  if (!setup.CoordInfo().TrajBox().HasBox() ) {
+    mprintf("Warning: No box information; imaging cannot be performed for topology %s\n", setup.Top().c_str());
+    return Action::SKIP;
+  }
   if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
   if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
   mprintf("\t%s (%i atoms) to %s (%i atoms)\n",Mask1_.MaskString(), Mask1_.Nselected(),
           Mask2_.MaskString(),Mask2_.Nselected());
   if (Mask1_.None() || Mask2_.None()) {
     mprintf("Warning: One or both masks have no atoms.\n");
-    return Action::SKIP;
-  }
-  // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (!image_.ImagingEnabled()) {
-    mprintf("Warning: Imaging cannot be performed for topology %s\n", setup.Top().c_str());
     return Action::SKIP;
   }
 
