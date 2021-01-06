@@ -322,7 +322,7 @@ void StructureCheck::DistanceCheck(Frame const& currentFrame, int atom1, int ato
                                    Parray& problemAtoms, int& Nproblems)
 const
 {
-  double D2 = DIST2( imageOpt_.ImagingEnabled(), currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
+  double D2 = DIST2( imageOpt_.ImagingType(), currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
                      currentFrame.BoxCrd());
   if (D2 < nonbondcut2_) {
     ++Nproblems;
@@ -437,6 +437,8 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame)
 
 //  StructureCheck::CheckOverlaps()
 int StructureCheck::CheckOverlaps(Frame const& currentFrame) {
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( currentFrame.BoxCrd().Is_X_Aligned_Ortho() );
   int Nproblems = 0;
   switch (checkType_) {
     case PL_1_MASK     : Nproblems = PL1_CheckOverlap(currentFrame); break;

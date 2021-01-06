@@ -141,6 +141,8 @@ Action::RetType Action_Distance::Setup(ActionSetup& setup) {
 
 // Action_Distance::DoAction()
 Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   Vec3 a1;
 
   if ( mode_ == NORMAL ) {
@@ -158,7 +160,7 @@ Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
       a1 = frm.Frm().VGeometricCenter( Mask1_ );
   }
 
-  double Dist = DIST(imageOpt_.ImagingEnabled(), a1, a2_, frm.Frm().BoxCrd());
+  double Dist = DIST(imageOpt_.ImagingType(), a1, a2_, frm.Frm().BoxCrd());
 
   dist_->Add(frameNum, &Dist);
 

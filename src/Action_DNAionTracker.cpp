@@ -118,6 +118,8 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
   double d_tmp, dval;
   Vec3 P1, P2, BASE;
 
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho());
   // Get center for P1, P2, and Base
   if (useMass_) {
     P1 = frm.Frm().VCenterOfMass( p1_ );
@@ -130,14 +132,14 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
   }
  
   // Calculate P -- P distance and centroid
-  double d_pp = DIST2(imageOpt_.ImagingEnabled(), P1, P2, frm.Frm().BoxCrd());
+  double d_pp = DIST2(imageOpt_.ImagingType(), P1, P2, frm.Frm().BoxCrd());
   Vec3 pp_centroid = (P1 + P2) / 2.0;
 
   // Cutoff^2
   double d_cut = d_pp*0.25 + (poffset_*poffset_); // TODO: precalc offset^2
 
   // Calculate P -- base centroid to median point
-  double d_pbase = DIST2(imageOpt_.ImagingEnabled(), pp_centroid, BASE, frm.Frm().BoxCrd());
+  double d_pbase = DIST2(imageOpt_.ImagingType(), pp_centroid, BASE, frm.Frm().BoxCrd());
 
   //double d_min = DBL_MAX;
   if (bintype_ == SHORTEST)
@@ -148,9 +150,9 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
     const double* ionxyz = frm.Frm().XYZ(*ion);
-    double d_p1ion =   DIST2(imageOpt_.ImagingEnabled(), P1,   ionxyz, frm.Frm().BoxCrd());
-    double d_p2ion =   DIST2(imageOpt_.ImagingEnabled(), P2,   ionxyz, frm.Frm().BoxCrd());
-    double d_baseion = DIST2(imageOpt_.ImagingEnabled(), BASE, ionxyz, frm.Frm().BoxCrd());
+    double d_p1ion =   DIST2(imageOpt_.ImagingType(), P1,   ionxyz, frm.Frm().BoxCrd());
+    double d_p2ion =   DIST2(imageOpt_.ImagingType(), P2,   ionxyz, frm.Frm().BoxCrd());
+    double d_baseion = DIST2(imageOpt_.ImagingType(), BASE, ionxyz, frm.Frm().BoxCrd());
     //mprintf("DEBUG: ion atom %i to P1 is %f\n", *ion+1, sqrt(d_p1ion));
     //mprintf("DEBUG: ion atom %i to P2 is %f\n", *ion+1, sqrt(d_p2ion));
     //mprintf("DEBUG: ion atom %i to base is %f\n", *ion+1, sqrt(d_baseion));

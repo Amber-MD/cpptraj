@@ -28,9 +28,9 @@ double DIST_NoImage( Vec3 const&, Vec3 const& );
 double DIST2(const double*, const double*, ImagingType, Box const&, // TODO deprecate this version 
              Matrix_3x3 const&, Matrix_3x3 const&);
 /// \return Distance squared using minimum-image convention or no imaging.
-double DIST2(bool, Vec3 const&, Vec3 const&, Box const&);
-/// \return Distance using minimum-image convention or no imaging.
-double DIST(bool, Vec3 const&, Vec3 const&, Box const&);
-/// \return Distance squared using minimum-image convention or no imaging.
 double DIST2(ImageOption::Type, const double*, const double*, Box const&);
+// \return Distance squared using minimum-image convention or no imaging.
+double DIST2(ImageOption::Type, Vec3 const&, Vec3 const&, Box const&);
+// \return Distance using minimum-image convention or no imaging.
+double DIST(ImageOption::Type, Vec3 const&, Vec3 const&, Box const&);
 #endif
