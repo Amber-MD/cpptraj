@@ -321,15 +321,27 @@ void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, const double* xyzabg) {
   //  recip.Zero();
   //  return -1.0;
   //}
-  ucell[0] = xyzabg[0]; // u(1,1)
-  ucell[1] = 0.0;     // u(2,1)
-  ucell[2] = 0.0;     // u(3,1)
-  ucell[3] = xyzabg[1]*cos(Constants::DEGRAD*xyzabg[5]); // u(1,2)
-  ucell[4] = xyzabg[1]*sin(Constants::DEGRAD*xyzabg[5]); // u(2,2)
-  ucell[5] = 0.0;                                    // u(3,2)
-  ucell[6] = xyzabg[2]*cos(Constants::DEGRAD*xyzabg[4]);
-  ucell[7] = (xyzabg[1]*xyzabg[2]*cos(Constants::DEGRAD*xyzabg[3]) - ucell[6]*ucell[3]) / ucell[4];
-  ucell[8] = sqrt(xyzabg[2]*xyzabg[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
+  if (xyzabg[3] == 90.0 && xyzabg[4] == 90.0 && xyzabg[5] == 90.0) {
+    ucell[0] = xyzabg[0];
+    ucell[1] = 0;
+    ucell[2] = 0;
+    ucell[3] = 0;
+    ucell[4] = xyzabg[1];
+    ucell[5] = 0;
+    ucell[6] = 0;
+    ucell[7] = 0;
+    ucell[8] = xyzabg[2];
+  } else {
+    ucell[0] = xyzabg[0]; // u(1,1)
+    ucell[1] = 0.0;     // u(2,1)
+    ucell[2] = 0.0;     // u(3,1)
+    ucell[3] = xyzabg[1]*cos(Constants::DEGRAD*xyzabg[5]); // u(1,2)
+    ucell[4] = xyzabg[1]*sin(Constants::DEGRAD*xyzabg[5]); // u(2,2)
+    ucell[5] = 0.0;                                    // u(3,2)
+    ucell[6] = xyzabg[2]*cos(Constants::DEGRAD*xyzabg[4]);
+    ucell[7] = (xyzabg[1]*xyzabg[2]*cos(Constants::DEGRAD*xyzabg[3]) - ucell[6]*ucell[3]) / ucell[4];
+    ucell[8] = sqrt(xyzabg[2]*xyzabg[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
+  }
 }
 
 // Box::CalcUcellFromXyzAbg()
