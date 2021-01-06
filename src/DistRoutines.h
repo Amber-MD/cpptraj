@@ -3,6 +3,7 @@
 class Vec3;
 class Matrix_3x3;
 class Box;
+#include "ImageOption.h"
 /*! \file DistRoutines.h
     \brief A collection of routines used to calculate distance.
  */
@@ -31,5 +32,5 @@ double DIST2(bool, Vec3 const&, Vec3 const&, Box const&);
 /// \return Distance using minimum-image convention or no imaging.
 double DIST(bool, Vec3 const&, Vec3 const&, Box const&);
 /// \return Distance squared using minimum-image convention or no imaging.
-double DIST2(bool, bool, Vec3 const&, Vec3 const&, Box const&);
+double DIST2(ImageOption::Type, const double*, const double*, Box const&);
 #endif

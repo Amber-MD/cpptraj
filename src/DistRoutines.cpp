@@ -401,12 +401,18 @@ double DIST(bool imagingEnabled, Vec3 const& a1, Vec3 const& a2, Box const& box)
 }
 
 /** \return Distance squared using either minimum-image convention or no imaging. */
-double DIST2(bool imagingEnabled, bool is_ortho, Vec3 const& a1, Vec3 const& a2, Box const& box) {
-  if (imagingEnabled) {
+double DIST2(ImageOption::Type itype, const double* a1, const double* a2, Box const& box) {
+/*  if (imagingEnabled) {
     if (is_ortho)
       return DIST2_ImageOrtho(a1, a2, box);
     else
       return DIST2_ImageNonOrtho(a1, a2, box.UnitCell(), box.FracCell());
   } else
+    return DIST2_NoImage(a1, a2);*/
+  if (itype == ImageOption::NO_IMAGE)
     return DIST2_NoImage(a1, a2);
+  else if (itype == ImageOption::ORTHO)
+    return DIST2_ImageOrtho(a1, a2, box);
+  else // NONORTHO
+    return DIST2_ImageNonOrtho(a1, a2, box.UnitCell(), box.FracCell());
 }
