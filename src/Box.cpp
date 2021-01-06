@@ -167,7 +167,7 @@ bool Box::Is_X_Aligned_Ortho() const {
 
 /** For debugging purposes, print XYZ ABG and unit/frac cell matrices. */
 void Box::printBoxStatus(const char* desc) const {
-  mprintf("DEBUG: [%s] Box: %s\n", desc, BoxNames_[btype_]);
+  mprintf("DEBUG: [%s] Box: %s  is_x_aligned= %i  ortho= %i\n", desc, BoxNames_[btype_], (int)Is_X_Aligned(), (int)Is_X_Aligned_Ortho());
   mprintf("DEBUG:   XYZ= %12.4f %12.4f %8.3f  ABG= %12.4f %12.4f %12.4f\n",
           box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
   unitCell_.Print(desc);
