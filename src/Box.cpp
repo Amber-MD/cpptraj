@@ -174,6 +174,28 @@ void Box::printBoxStatus(const char* desc) const {
   fracCell_.Print("frac");
 }
 
+/** For debugging purposes, more in-depth printout. */
+void Box::PrintDebug(const char* desc) const {
+  mprintf("DEBUG: %s Box: %s\n"
+          "DEBUG: %s XYZ= %12.4f %12.4f %12.4f  ABG= %12.4f %12.4f %12.4f\n"
+          "DEBUG: %s Ucell = { %20.10E %20.10E %20.10E\n"
+          "DEBUG: %s           %20.10E %20.10E %20.10E\n"
+          "DEBUG: %s           %20.10E %20.10E %20.10E\n"
+          "DEBUG: %s Frac  = { %20.10E %20.10E %20.10E\n"
+          "DEBUG: %s           %20.10E %20.10E %20.10E\n"
+          "DEBUG: %s           %20.10E %20.10E %20.10E\n"
+          "DEBUG: %s is_x_aligned= %i  is_x_aligned_ortho= %i\n",
+          desc, BoxNames_[btype_],
+          desc, box_[0], box_[1], box_[2], box_[3], box_[4], box_[5],
+          desc, unitCell_[0], unitCell_[1], unitCell_[2],
+          desc, unitCell_[3], unitCell_[4], unitCell_[5],
+          desc, unitCell_[6], unitCell_[7], unitCell_[8],
+          desc, fracCell_[0], fracCell_[1], fracCell_[2],
+          desc, fracCell_[3], fracCell_[4], fracCell_[5],
+          desc, fracCell_[6], fracCell_[7], fracCell_[8],
+          desc, (int)Is_X_Aligned(), (int)Is_X_Aligned_Ortho());
+}
+
 // Box::SetBoxType()
 /** Determine box type (none/ortho/nonortho) based on box angles. It is
   * expected that if this routine is called, valid box information is present.

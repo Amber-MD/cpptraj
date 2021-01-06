@@ -59,6 +59,8 @@ class Box {
 
     /// Print Box info to STDOUT
     void PrintInfo() const;
+    /// Print box debug info to stdout
+    void PrintDebug(const char*) const;
 
     const char* TypeName()    const { return BoxNames_[btype_]; }
     BoxType Type()            const { return btype_;  }
