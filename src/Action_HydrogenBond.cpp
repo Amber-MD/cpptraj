@@ -716,8 +716,10 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
 # ifdef TIMER
   t_action_.Start();
 # endif
-  if (imageOpt_.ImagingEnabled())
+  if (imageOpt_.ImagingEnabled()) {
+    //frm.Frm().BoxCrd().PrintDebug("hbond");
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+  }
   // Loop over all solute donor sites
 # ifdef TIMER
   t_uu_.Start();
