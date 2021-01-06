@@ -12,10 +12,12 @@ class Box;
 enum ImagingType { NOIMAGE=0, ORTHO, NONORTHO };
 /// \return Vector representing minimum imaged distance between two points.
 Vec3 MinImagedVec(Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3x3 const&);
-/// \return Distance squared between points in Cartesian space, general unit cell imaging.
-double DIST2_ImageNonOrtho(Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3x3 const&);
 /// \return Distance squared between points in fractional space, general unit cell imaging.
 double DIST2_ImageNonOrthoRecip(Vec3 const&, Vec3 const&, double, int*, Matrix_3x3 const&);
+/// \return Distance squared between points in Cartesian space, general unit cell imaging.
+double DIST2_ImageNonOrtho(Vec3 const&, Vec3 const&, Matrix_3x3 const&, Matrix_3x3 const&);
+/// \return Distance squared between points in Cartesian space, general unit cell imaging.
+double DIST2_ImageNonOrtho(const double*, const double*, Matrix_3x3 const&, Matrix_3x3 const&);
 /// \return Distance squared, X-aligned and orthogonal imaging.
 double DIST2_ImageOrtho(const double*, const double*, Box const&);
 /// \return Distance squared, X-aligned and orthogonal imaging.

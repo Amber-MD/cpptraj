@@ -44,19 +44,6 @@ Vec3 MinImagedVec(Vec3 const& a1, Vec3 const& a2,
   return minVec;
 }
 
-/** \param a1 First set of XYZ coordinates.
-  * \param a2 Second set of XYZ coordinates.
-  * \param ucell Unit cell vectors.
-  * \param recip Fractional cell vectors.
-  * \return the shortest imaged distance^2 between the coordinates.
-  */
-double DIST2_ImageNonOrtho(Vec3 const& a1, Vec3 const& a2, 
-                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip) 
-{ 
-  int ixyz[3];
-  return DIST2_ImageNonOrthoRecip(recip * a2, recip * a1, -1.0, ixyz, ucell);
-}
-
 /** NON-ORTHORHOMBIC CASE: find shortest distance in periodic reference
   * This is a brute force check requiring up to 26 distance evaluations.
   * It has been adapted to be smarter by returning the first distance that
@@ -307,6 +294,38 @@ double DIST2_ImageNonOrthoRecip(Vec3 const& f1, Vec3 const& f2, double minIn,
 //  fprintf(stdout,"DEBUG: MinDist  = %2i %2i %2i = %8.3f\n", ixmin, iymin, izmin, D);
 //  printf("---------------------------------------------------------------\n");
   return(min);
+}
+
+/** \param a1 First set of XYZ coordinates.
+  * \param a2 Second set of XYZ coordinates.
+  * \param ucell Unit cell vectors.
+  * \param recip Fractional cell vectors.
+  * \return the shortest imaged distance^2 between the coordinates.
+  */
+double DIST2_ImageNonOrtho(Vec3 const& a1, Vec3 const& a2, 
+                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip) 
+{ 
+  int ixyz[3];
+  return DIST2_ImageNonOrthoRecip(recip * a2, recip * a1, -1.0, ixyz, ucell);
+}
+
+/** \param a1 First set of XYZ coordinates.
+  * \param a2 Second set of XYZ coordinates.
+  * \param ucell Unit cell vectors.
+  * \param recip Fractional cell vectors.
+  * \return the shortest imaged distance^2 between the coordinates.
+  */
+double DIST2_ImageNonOrtho(const double* a1, const double* a2,
+                           Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
+{
+  int ixyz[3];
+  Vec3 f1( ((recip[0]*a1[0]) + (recip[1]*a1[1]) + (recip[2]*a1[2])),
+           ((recip[3]*a1[0]) + (recip[4]*a1[1]) + (recip[5]*a1[2])),
+           ((recip[6]*a1[0]) + (recip[7]*a1[1]) + (recip[8]*a1[2]))  );
+  Vec3 f2( ((recip[0]*a2[0]) + (recip[1]*a2[1]) + (recip[2]*a2[2])),
+           ((recip[3]*a2[0]) + (recip[4]*a2[1]) + (recip[5]*a2[2])),
+           ((recip[6]*a2[0]) + (recip[7]*a2[1]) + (recip[8]*a2[2]))  );
+  return DIST2_ImageNonOrthoRecip(f1, f2, -1.0, ixyz, ucell);
 }
 
 // Frame::DIST2_ImageOrtho()
