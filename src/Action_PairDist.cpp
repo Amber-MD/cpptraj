@@ -22,7 +22,7 @@ Action_PairDist::Action_PairDist() :
 
 void Action_PairDist::Help() const {
   mprintf("\t[out <filename>] mask <mask> [mask2 <mask>] [delta <resolution>]\n"
-          "\t[maxdist <distance>]\n"
+          "\t[maxdist <distance>] [noimage]\n"
           "  Calculate pair distribution function P(r) between two masks.\n"
           "  If 'maxdist' is specified the initial histogram max size will be set to\n"
           "  <distance>; if larger distances are encountered the histogram will be\n"
@@ -35,7 +35,7 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
 # ifdef MPI
   trajComm_ = init.TrajComm();
 # endif
-  InitImaging(true);
+  imageOpt_.InitImaging( !actionArgs.hasKey("noimage") );
   delta_ = actionArgs.getKeyDouble("delta", 0.01);
   double maxDist = actionArgs.getKeyDouble("maxdist", -1.0);
   if (maxDist > 0.0) {
@@ -96,6 +96,10 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
   mprintf("\tResolution is %f Ang.\n", delta_);
   if (maxDist > 0.0)
     mprintf("\tInitial histogram max distance= %f Ang\n", maxDist);
+  if (imageOpt_.UseImage())
+    mprintf("\tImaging enabled if box info present.\n");
+  else
+    mprintf("\tNo imaging.\n");
 # ifdef MPI
   if (trajComm_.Size() > 1 && maxDist < 0.0)
     mprintf("Warning: Due to the way 'pairdist' currently accumulates data, the\n"
@@ -145,7 +149,7 @@ Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
     ub2_ = mask2_.Nselected();
   }
 
-  SetupImaging(setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging(setup.CoordInfo().TrajBox().HasBox() );
 
   return Action::OK;
 }
@@ -154,29 +158,17 @@ Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
 // Action_PairDist::action()
 Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
   unsigned long bin, j;
-  double Dist = 0.0;
   Vec3 a1, a2;
   std::vector<double> tmp;	// per frame histogram
 
-
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   tmp.resize(histogram_.size() );
 
   for (unsigned long i = 0; i < ub1_; i++) {
     for (same_mask_ ? j = i + 1 : j = 0; j < ub2_; j++) {
-      a1 = frm.Frm().XYZ(mask1_[i]);
-      a2 = frm.Frm().XYZ(mask2_[j]);
 
-      switch (ImageType() ) {
-      case NONORTHO:
-	Dist = DIST2_ImageNonOrtho(a1, a2, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell());
-	break;
-      case ORTHO:
-	Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd());
-	break;
-      case NOIMAGE:
-	Dist = DIST2_NoImage(a1, a2);
-	break;
-      }
+      double Dist = DIST2(imageOpt_.ImagingType(), frm.Frm().XYZ(mask1_[i]), frm.Frm().XYZ(mask2_[j]), frm.Frm().BoxCrd());
 
       bin = (unsigned long) (sqrt(Dist) / delta_);
 

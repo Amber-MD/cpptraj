@@ -3,11 +3,11 @@
 #define INC_ACTION_PAIRDIST_H
 
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 #include "OnlineVarT.h"
 /** \author Hannes H. Loeffler
   */
-class Action_PairDist : public Action, ImagedAction {
+class Action_PairDist : public Action {
  public:
   Action_PairDist();
 
@@ -32,6 +32,7 @@ class Action_PairDist : public Action, ImagedAction {
   double delta_;   ///< resolution
   std::vector<Stats<double> > histogram_;
   unsigned long maxbin_;
+  ImageOption imageOpt_; ///< Used to decide if imaging should be used
 
   bool same_mask_;
   unsigned long ub1_;
