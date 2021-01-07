@@ -5,7 +5,7 @@
 in=Pr.in
 out=Pr.dat
 
-CleanFiles $in $out
+CleanFiles $in $out ortho.dat
 
 INPUT="-i $in"
 
@@ -18,6 +18,14 @@ EOF
 
 RunCpptraj "PairDist Test."
 DoTest ${out}.save $out
+
+cat > $in <<EOF
+parm ../tz2.ortho.parm7
+trajin ../tz2.ortho.nc
+pairdist P1 out ortho.dat mask :WAT@O delta 0.1 maxdist 20.0
+EOF
+RunCpptraj "Pairdist test, orthogonal imaging."
+DoTest ortho.dat ortho.dat.save
 
 EndTest
 
