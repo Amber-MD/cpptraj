@@ -94,7 +94,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
     }
     calcType_ = DIST;
     // See if imaging is to be performed.
-    image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+    imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   } else if (actionArgs.Contains("lower")) {
     mprinterr("Error: 'lower' requires 'mask2'\n");
     return Action::ERR;
@@ -123,7 +123,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
   else if (calcType_ == DIST) {
     mprintf("\t\tAtoms in mask 2 (%s) in the range %.3f to %.3f Angstrom will be used\n",
             mask2_.MaskString(), lcut, ucut);
-    if (image_.UseImage())
+    if (imageOpt_.UseImage())
       mprintf("\t\tDistances will be imaged.\n");
     else
       mprintf("\t\tDistances will not be imaged.\n");
@@ -175,8 +175,8 @@ Action::RetType Action_STFC_Diffusion::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
     // Set up imaging info
-    image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-    if (image_.ImagingEnabled())
+    imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+    if (imageOpt_.ImagingEnabled())
       mprintf("\tImaging distances.\n");
     else
       mprintf("\tImaging off.\n");
@@ -326,7 +326,8 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
 // Action_STFC_Diffusion::DoAction()
 Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   double Time, average, avgx, avgy, avgz;
-
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   // ----- Load initial frame if necessary -------
   if ( initialxyz_.empty() ) {
     //mprintf("DEBUG: Initial frame is empty, mode %i\n", (int)calcType_);
@@ -423,11 +424,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
       for ( AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
       {
         const double* XYZ2 = frm.Frm().XYZ(*atom2);
-        switch ( image_.ImageType() ) {
-          case NONORTHO: dist2 = DIST2_ImageNonOrtho(XYZ1, XYZ2, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()); break;
-          case ORTHO:    dist2 = DIST2_ImageOrtho(XYZ1, XYZ2, frm.Frm().BoxCrd()); break;
-          case NOIMAGE:  dist2 = DIST2_NoImage(XYZ1, XYZ2); break;
-        }
+        dist2 = DIST2( imageOpt_.ImagingType(), XYZ1, XYZ2, frm.Frm().BoxCrd() );
         // Find minimum distance.
         if (dist2 < minDist) {
           minDist = dist2;
