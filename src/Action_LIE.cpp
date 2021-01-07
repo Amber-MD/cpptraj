@@ -150,13 +150,13 @@ double Action_LIE::Calculate_LJ(Frame const& frameIn, Topology const& parmIn) co
        maskatom1 != mask1_end; maskatom1++) {
 
     int crdidx1 = (*maskatom1) * 3; // index into coordinate array
-    Vec3 atm1 = Vec3(frameIn.CRD(crdidx1));
+    const double* atm1 = frameIn.CRD(crdidx1);
 
     for (AtomMask::const_iterator maskatom2 = Mask2_.begin();
          maskatom2 != mask2_end; maskatom2++) {
 
       int crdidx2 = (*maskatom2) * 3; // index into coordinate array
-      Vec3 atm2 = Vec3(frameIn.CRD(crdidx2));
+      const double* atm2 = frameIn.CRD(crdidx2);
 
       // Get imaged distance
       double dist2 = DIST2(imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd());
@@ -182,13 +182,13 @@ double Action_LIE::Calculate_Elec(Frame const& frameIn) const {
        maskatom1 != mask1_end; maskatom1++) {
 
     int crdidx1 = (*maskatom1) * 3; // index into coordinate array
-    Vec3 atm1 = Vec3(frameIn.CRD(crdidx1));
+    const double* atm1 = frameIn.CRD(crdidx1);
 
     for (AtomMask::const_iterator maskatom2 = Mask2_.begin();
          maskatom2 != mask2_end; maskatom2++) {
 
       int crdidx2 = (*maskatom2) * 3; // index into coordinate array
-      Vec3 atm2 = Vec3(frameIn.CRD(crdidx2));
+      const double* atm2 = frameIn.CRD(crdidx2);
 
       // Get imaged distance
       double dist2 = DIST2(imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd());
@@ -208,7 +208,7 @@ double Action_LIE::Calculate_Elec(Frame const& frameIn) const {
 Action::RetType Action_LIE::DoAction(int frameNum, ActionFrame& frm) {
   if (imageOpt_.ImagingEnabled()) {
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
-    mprintf("DEBUG: Image type is %i\n", (int)imageOpt_.ImagingType());
+    //mprintf("DEBUG: Image type is %i\n", (int)imageOpt_.ImagingType());
   }
   if (doelec_) {
     double e = Calculate_Elec(frm.Frm());
