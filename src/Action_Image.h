@@ -30,8 +30,6 @@ class Action_Image: public Action {
     bool origin_;
     /// If true molecules will be imaged w.r.t. their center, otherwise first atom will be used
     bool center_;
-    /// True if orthorhombic cell, false otherwise.
-    bool ortho_;
     bool useMass_;
     bool truncoct_;
     enum TriclinicArg {OFF, FORCE, FAMILIAR};

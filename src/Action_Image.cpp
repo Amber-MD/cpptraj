@@ -11,7 +11,6 @@ Action_Image::Action_Image() :
   offset_(0.0),
   origin_(false),
   center_(false),
-  ortho_(false),
   useMass_(true),
   truncoct_(false),
   triclinic_(OFF),
@@ -111,9 +110,6 @@ Action::RetType Action_Image::Setup(ActionSetup& setup) {
             setup.Top().c_str());
     return Action::SKIP;
   }
-  ortho_ = false;  
-  if (setup.CoordInfo().TrajBox().Type()==Box::ORTHO && triclinic_==OFF)
-    ortho_ = true;
   // Setup atom pairs to be unwrapped.
   if (imageList_ != 0) delete imageList_;
   imageList_ = Image::CreateImageList(setup.Top(), imageMode_, maskExpression_,
@@ -151,12 +147,8 @@ Action::RetType Action_Image::Setup(ActionSetup& setup) {
 
 // Action_Image::DoAction()
 Action::RetType Action_Image::DoAction(int frameNum, ActionFrame& frm) {
-  // Ortho
-  Vec3 bp, bm;
-  // Nonortho
-  Vec3 fcom;
-  
-  if (ortho_) {
+  if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho() && triclinic_ == OFF) {
+    Vec3 bp, bm;
     if (Image::SetupOrtho(frm.Frm().BoxCrd(), bp, bm, origin_)) {
       mprintf("Warning: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
@@ -164,9 +156,11 @@ Action::RetType Action_Image::DoAction(int frameNum, ActionFrame& frm) {
     }
     Image::Ortho(frm.ModifyFrm(), bp, bm, offset_, *imageList_);
   } else {
+    Vec3 fcom;
     if (truncoct_)
       fcom = Image::SetupTruncoct( frm.Frm(), ComMask_, useMass_, origin_ );
-    Image::Nonortho( frm.ModifyFrm(), origin_, fcom, offset_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), truncoct_,
+    Image::Nonortho( frm.ModifyFrm(), origin_, fcom, offset_,
+                     frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell(), truncoct_,
                      *imageList_);
   }
   return Action::MODIFY_COORDS;
