@@ -105,7 +105,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 # endif
   debug_ = debugIn;
   // Always use imaged distances
-  image_.InitImaging(true);
+  imageOpt_.InitImaging(true);
   // This is needed everywhere in this function scope
   std::string peaksname;
 
@@ -281,10 +281,10 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
   // SANITY CHECK - imaging should always be active.
-  if (!image_.ImagingEnabled()) {
-    mprinterr("Interal Error: Imaging info not properly set up for Action_Spam\n");
+  if (!imageOpt_.ImagingEnabled()) {
+    mprinterr("Error: Imaging not possible for %s; required for SPAM.\n");
     return Action::ERR;
   }
   // Set up the solvent_residues_ vector
@@ -351,6 +351,8 @@ int Action_Spam::SetupParms(Topology const& ParmIn) {
 // Action_Spam::DoAction()
 Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
   Nframes_++;
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   // Check that our box is still big enough...
   overflow_ = overflow_ || frm.Frm().BoxCrd().Param(Box::X) < doublecut_ ||
                            frm.Frm().BoxCrd().Param(Box::Y) < doublecut_ ||
@@ -492,17 +494,12 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
   // Now loop through all atoms in the residue and loop through the pairlist to
   // get the energies
   for (int i = res.FirstAtom(); i < res.LastAtom(); i++) {
-    Vec3 atm1 = Vec3(frameIn.XYZ(i));
+    const double* atm1 = frameIn.XYZ(i);
     for (int j = 0; j < CurrentParm_->Natom(); j++) {
       if (j >= res.FirstAtom() && j < res.LastAtom()) continue;
-      Vec3 atm2 = Vec3(frameIn.XYZ(j));
-      double dist2;
+      const double* atm2 = frameIn.XYZ(j);
       // Get imaged distance
-      switch( image_.ImageType() ) {
-        case NONORTHO : dist2 = DIST2_ImageNonOrtho(atm1, atm2, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell()); break;
-        case ORTHO    : dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd()); break;
-        default       : dist2 = DIST2_NoImage(atm1, atm2); break;
-      }
+      double dist2 = DIST2( imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd() );
       if (dist2 < cut2_) {
         double qiqj = atom_charge_[i] * atom_charge_[j];
         NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);

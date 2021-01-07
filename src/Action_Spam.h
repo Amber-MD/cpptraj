@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_SPAM_H
 #define INC_ACTION_SPAM_H
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 #include "Vec3.h"
 #include "Timer.h"
 #include "PairList.h"
@@ -62,7 +62,7 @@ class Action_Spam: public Action {
 
     int debug_;
     FxnType Inside_;          ///< Function for determining if water is inside peak.
-    ImagedAction image_;      ///< Imaging routines.
+    ImageOption imageOpt_;    ///< Used to determine if imaging should be used.
     PairList pairList_;       ///< Atom pair list (purewater_ only)
     Iarray watidx_;           ///< Hold water index for each atom (starting from 0).
     std::string solvname_;    ///< Name of the solvent residues
