@@ -6,11 +6,12 @@ CleanFiles radial.in Radial.agr cRadial.agr WatO-Trp4.agr WatO-Trp4.raw.agr \
            WatO-Trp4.byres.agr WatO-Trp.agr WatO-Trp.volume.agr \
            WatO-Glu5CD.agr noimage.WatO-Glu5CD.agr
 
-TESTNAME='Radial test'
+TESTNAME='Radial tests'
 Requires netcdf maxthreads 10
 
 INPUT="-i radial.in"
 
+UNITNAME='Radial test, non-orthogonal imaging'
 cat > radial.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 10
@@ -23,7 +24,7 @@ radial WatO-Trp4.byres.agr 0.5 10.0 :WAT@O :4&!@C,O,CA,HA,N,H byres2
 radial out WatO-Trp.agr 0.5 10.0 :WAT@O :TRP byres2
 radial out WatO-Trp.volume.agr 0.5 10.0 :WAT@O :TRP volume  
 EOF
-RunCpptraj "$TESTNAME"
+RunCpptraj "$UNITNAME"
 DoTest Radial.agr.save Radial.agr
 DoTest cRadial.agr.save cRadial.agr
 DoTest WatO-Trp4.agr.save WatO-Trp4.agr
