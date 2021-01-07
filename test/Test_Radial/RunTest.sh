@@ -4,7 +4,7 @@
 
 CleanFiles radial.in Radial.agr cRadial.agr WatO-Trp4.agr WatO-Trp4.raw.agr \
            WatO-Trp4.byres.agr WatO-Trp.agr WatO-Trp.volume.agr \
-           WatO-Glu5CD.agr
+           WatO-Glu5CD.agr noimage.WatO-Glu5CD.agr
 
 TESTNAME='Radial test'
 Requires netcdf maxthreads 10
@@ -32,14 +32,16 @@ DoTest WatO-Trp4.agr.save WatO-Trp4.byres.agr
 DoTest WatO-Trp.agr.save WatO-Trp.agr
 DoTest WatO-Trp.volume.agr.save WatO-Trp.volume.agr
 
-UNITNAME='Radial test, orthogonal imaging'
+UNITNAME='Radial test, orthogonal and no imaging'
 cat > radial.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
-radial O_CD :WAT@O :5@CD out WatO-Glu5CD.agr 0.5 10.0
+radial O_CD :WAT@O :5@CD out WatO-Glu5CD.agr 0.5 20.0
+radial O_CD.noimage :WAT@O :5@CD out noimage.WatO-Glu5CD.agr 0.5 20.0 noimage
 EOF
 RunCpptraj "$UNITNAME"
 DoTest WatO-Glu5CD.agr.save WatO-Glu5CD.agr
+DoTest noimage.WatO-Glu5CD.agr.save noimage.WatO-Glu5CD.agr
 
 EndTest
 
