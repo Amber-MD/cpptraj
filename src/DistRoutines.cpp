@@ -390,18 +390,6 @@ double DIST_NoImage( Vec3 const& a1, Vec3 const& a2 ) {
   return sqrt( vec.Magnitude2() );
 }
 
-/// \return Distance squared with optional imaging TODO deprecate this function
-double DIST2(const double* a1, const double* a2, ImagingType itype,
-             Box const& box, Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
-{
-  if (itype==NOIMAGE) 
-    return DIST2_NoImage( a1, a2 );
-  else if (itype==ORTHO) 
-    return DIST2_ImageOrtho( a1, a2, box );
-  else // NONORTHO
-    return DIST2_ImageNonOrtho( a1, a2, ucell, recip );
-}
-
 /** \return Distance squared using either minimum-image convention or no imaging. */
 double DIST2(ImageOption::Type itype, const double* a1, const double* a2, Box const& box) {
 /*  if (imagingEnabled) {
