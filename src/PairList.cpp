@@ -127,7 +127,7 @@ int PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
   Frac_.clear();
   Frac_.reserve( maskIn.Nselected() );
   int nOffGrid = 0;
-  if (frmIn.BoxCrd().Type() == Box::ORTHO) {
+  if (frmIn.BoxCrd().Is_X_Aligned_Ortho()) {
     // Orthogonal imaging
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
     {
