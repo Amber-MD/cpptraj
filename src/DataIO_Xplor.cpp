@@ -53,7 +53,7 @@ int DataIO_Xplor::ReadData(FileName const& fname,
   Box box;
   box.SetupFromXyzAbg( CellDim );
   int err = 0;
-  if (box.Type() == Box::ORTHO) {
+  if (box.Is_X_Aligned_Ortho()) {
     // Allocate orthogonal grid
     Vec3 spacing( CellDim[0] / (double)GridPts[0],
                   CellDim[1] / (double)GridPts[3],
