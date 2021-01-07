@@ -148,9 +148,9 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
 int GridAction::GridSetup(Topology const& currentParm, CoordinateInfo const& cInfo) {
   // Check box
   if (mode_ == BOX) {
-    if (cInfo.TrajBox().Type() != Box::ORTHO) {
+    if (!cInfo.TrajBox().Is_X_Aligned_Ortho()) {
       mprintf("Warning: Code to shift to the box center is not yet\n");
-      mprintf("Warning: implemented for non-orthorhomibic unit cells.\n");
+      mprintf("Warning: implemented for non-orthorhombic unit cells.\n");
       mprintf("Warning: Shifting to the origin instead.\n");
       mode_ = ORIGIN;
     }
