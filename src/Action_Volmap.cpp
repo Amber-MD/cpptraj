@@ -166,7 +166,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
         mprinterr("Error: Reference '%s' not found.\n", setup_arg.c_str());
         return Action::ERR;
       }
-      if (REF->CoordsInfo().TrajBox().Type() != Box::ORTHO) {
+      if (REF->CoordsInfo().TrajBox().Is_X_Aligned_Ortho()) {
         mprinterr("Error: Reference '%s' does not have orthogonal box information.\n",
                   setup_arg.c_str());
         return Action::ERR;
