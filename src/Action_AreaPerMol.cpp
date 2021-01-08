@@ -64,8 +64,8 @@ Action::RetType Action_AreaPerMol::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   // Probably will not work for non-orthorhombic cells
-  if (setup.CoordInfo().TrajBox().Type() != Box::ORTHO)
-    mprintf("Warning: Box is not orthorhombic, calculated area may not be correct.\n");
+  if (!setup.CoordInfo().TrajBox().Is_X_Aligned_Ortho())
+    mprintf("Warning: Box is not X-aligned orthorhombic, calculated area may not be correct.\n");
   // Determine how many molecules are selected
   if (Mask1_.MaskStringSet()) {
     if (setup.Top().SetupCharMask(Mask1_)) return Action::ERR;
