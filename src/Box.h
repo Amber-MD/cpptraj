@@ -13,7 +13,8 @@ class Box {
     /// Various box parameters; corresponds to XYZ ABG array.
     enum ParamType { X=0, Y, Z, ALPHA, BETA, GAMMA };
     /// Cell shape types
-    enum CellShapeType { CUBIC = 0,    TETRAGONAL, ORTHORHOMBIC,
+    enum CellShapeType { NO_SHAPE = 0,
+                         CUBIC,        TETRAGONAL, ORTHORHOMBIC,
                          MONOCLINIC,   TRICLINIC,  HEXAGONAL,
                          RHOMBOHEDRAL, OCTAHEDRAL, RHOMBIC_DODECAHEDRON };
     /// CONSTRUCTOR

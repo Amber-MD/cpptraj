@@ -130,6 +130,7 @@ const char* Box::BoxNames_[] = {
 
 /** Correspond to CellShapeType */
 const char* Box::CellShapeStr_[] = {
+  "None",
   "Cubic",
   "Tetragonal",
   "Orthorhombic",
@@ -211,6 +212,7 @@ void Box::PrintDebug(const char* desc) const {
 
 /** \return Cell shape based on current XYZ (i.e. ABC) alpha beta gamma. */
 Box::CellShapeType Box::CellShape() const {
+  if (!HasBox()) return NO_SHAPE;
   bool A_equals_B = IsEq( box_[X], box_[Y] );
   bool Lengths_Equal = A_equals_B && IsEq( box_[X], box_[Z] );
 
