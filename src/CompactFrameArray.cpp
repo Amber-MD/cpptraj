@@ -35,7 +35,7 @@ CompactFrameArray& CompactFrameArray::operator=(CompactFrameArray const& rhs) {
 
 /** Allocate for specified number of frames. */
 void CompactFrameArray::Resize(int nframes) {
-  rprintf("DEBUG: Calling CompactFrameArray::Resize for %i frames.\n", nframes);
+  //rprintf("DEBUG: Calling CompactFrameArray::Resize for %i frames.\n", nframes);
   if (nframes > 0 && !offsets_.empty()) {
     compactFrames_.resize( offsets_.back() * nframes );
     maxIdx_ = nframes;
@@ -146,12 +146,12 @@ int CompactFrameArray::SetupFrameArray(CoordinateInfo const& cinfoIn, unsigned i
   // Allocate for specified number of frames
   Resize(nframes);
   currentIdx_ = -1;
-
+/*
   rprintf("DEBUG: CompactFrameArray (%u frames) has the following components:\n", maxIdx_);
   for (unsigned int cidx = 0; cidx != components_.size(); cidx++)
     rprintf("DEBUG:\t%20s : %li - %li\n", CoordinateInfo::ComponentStr(components_[cidx]),
             offsets_[cidx], offsets_[cidx+1]);
-
+*/
   return 0;
 }
 

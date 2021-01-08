@@ -103,7 +103,7 @@ int BoxArgs::SetEmptyInfo(const char* str1, double& param1,
 int BoxArgs::SetMissingInfo(Box const& boxIn) {
   for (int i = 0; i < 6; i++) {
     if (!setVar_[i]) xyzabg_[i] = boxIn.Param((Box::ParamType)i);
-    if (!setVar_[i]) mprintf("DEBUG: SetMissingInfo param %i boxIn= %12.4f\n", i, boxIn.Param((Box::ParamType)i));
+    //if (!setVar_[i]) mprintf("DEBUG: SetMissingInfo param %i boxIn= %12.4f\n", i, boxIn.Param((Box::ParamType)i));
   }
   if (xyzabg_[Box::X] <= 0) {
     if (SetEmptyInfo("X", xyzabg_[Box::X], "Y", xyzabg_[Box::Y], "Z", xyzabg_[Box::Z])) return 1;

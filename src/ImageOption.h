@@ -1,6 +1,17 @@
 #ifndef INC_IMAGEOPTION_H
 #define INC_IMAGEOPTION_H
 /// Used to determine if imaging should be used. Imaging disabled when no box present.
+/** This class should be used in conjunction with the routines in DistRoutines.h
+  * when imaging may or may not be desired.
+  * First, InitImaging() should be called with true if imaging desired if
+  * possible, false otherwise.
+  * Second, SetupImaging() should be called with true if box info is
+  * present, false otherwise.
+  * Third, SetImageType() should be called with true if the box is X-aligned
+  * and orthogonal, false otherwise.
+  * The ImagingType() function will then return the appropriate imaging type
+  * for the box.
+  */
 class ImageOption {
   public:
     /// Different imaging types.
