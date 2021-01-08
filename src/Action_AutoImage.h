@@ -23,7 +23,6 @@ class Action_AutoImage : public Action {
     std::string mobile_;  ///< Mask expression for mobile region.
     int debug_;
     bool origin_;         ///< If true imaging occurs w.r.t. coordinate origin.
-    bool ortho_;          ///< If true imaging is orthogonal.
     bool usecom_;         ///< If true imaging of mobile region uses molecule center.
     bool truncoct_;       ///< If true image into truncated octahedron shape.
     bool useMass_;        ///< If true use center of mass
