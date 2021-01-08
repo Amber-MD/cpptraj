@@ -526,7 +526,9 @@ int Box::SetupFromShapeMatrix(const double* shape) {
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
+# ifdef DEBUG_BOX
   printBoxStatus("SetupFromShapeMatrix");
+# endif
   if (CheckBox()) {
     SetNoBox();
     return 1;
@@ -542,7 +544,9 @@ int Box::SetupFromUcell(const double* ucell) {
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
+# ifdef DEBUG_BOX
   printBoxStatus("SetupFromUcell");
+# endif
   if (CheckBox()) {
     SetNoBox();
     return 1;
@@ -563,7 +567,9 @@ int Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb, 
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
+# ifdef DEBUG_BOX
   printBoxStatus("SetupFromXyzAbgIndividual");
+# endif
   if (CheckBox()) {
     SetNoBox();
     return 1;
@@ -584,7 +590,9 @@ int Box::SetupFromXyzAbg(const double* xyzabg) {
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
+# ifdef DEBUG_BOX
   printBoxStatus("SetupFromXyzAbg");
+# endif
   if (CheckBox()) {
     SetNoBox();
     return 1;
