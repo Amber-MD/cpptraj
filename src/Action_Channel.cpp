@@ -55,7 +55,7 @@ Action::RetType Action_Channel::Setup(ActionSetup& setup) {
     if (!box.HasBox()) {
       mprinterr("Error: No box information to set up grid.\n");
       return Action::ERR;
-    } else if (box.Type() == Box::ORTHO) {
+    } else if (box.Is_X_Aligned_Ortho()) {
       // FIXME: May need to update parm box info or set up on first frame.
       if (GRID.Allocate_X_C_D(box.Lengths(), box.Center(), dxyz_)) return Action::ERR; 
     } else {
