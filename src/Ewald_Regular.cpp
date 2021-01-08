@@ -149,7 +149,7 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
   //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
-  if (Setup_Pairlist(boxIn, boxIn.RecipLengths(), skinnbIn)) return 1;
+  if (Setup_Pairlist(boxIn, skinnbIn)) return 1;
 
   return 0;
 }

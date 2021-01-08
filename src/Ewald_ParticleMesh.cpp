@@ -123,7 +123,7 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   mprintf("\n");
 
   // Set up pair list
-  if (Setup_Pairlist(boxIn, boxIn.RecipLengths(), skinnbIn)) return 1;
+  if (Setup_Pairlist(boxIn, skinnbIn)) return 1;
 
   return 0;
 }

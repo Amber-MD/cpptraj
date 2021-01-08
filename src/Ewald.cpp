@@ -241,9 +241,9 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
 }
 
 /** Initialize and set up pairlist. */
-int Ewald::Setup_Pairlist(Box const& boxIn, Vec3 const& recipLengths, double skinnbIn) {
+int Ewald::Setup_Pairlist(Box const& boxIn, double skinnbIn) {
   if (pairList_.InitPairList(cutoff_, skinnbIn, debug_)) return 1;
-  if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
+  if (pairList_.SetupPairList( boxIn )) return 1;
 # ifdef DEBUG_PAIRLIST
   // Write grid PDB
   PDBfile gridpdb;
