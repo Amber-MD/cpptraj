@@ -275,7 +275,7 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
     if (!parmbox_.HasBox()) {
       if (ptype_ != CHAMBER) mprintf("Warning: Prmtop missing Box information.\n");
       // Check for IFBOX/BoxType mismatch
-      if (values_[IFBOX]==2 && parmbox_.Type() != Box::TRUNCOCT) {
+      if (values_[IFBOX]==2 && parmbox_.CellShape() != Box::OCTAHEDRAL) {
         mprintf("Warning: Amber Parm Box should be Truncated Octahedron (ifbox==2)\n"
                 "         but BOX_DIMENSIONS indicate %s - may cause imaging problems.\n",
                 parmbox_.TypeName());
@@ -1794,12 +1794,21 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
 
   // Determine value of ifbox
-  int ifbox;
-  switch ( TopOut.ParmBox().Type() ) {
-    case Box::NOBOX    : ifbox = 0; break;
-    case Box::ORTHO    : ifbox = 1; break;
-    case Box::TRUNCOCT : ifbox = 2; break;
-    default:             ifbox = 3; break; // General triclinic
+  int ifbox = 0;
+  Box::CellShapeType cellShape = TopOut.ParmBox().CellShape();
+  if ( cellShape != Box::NO_SHAPE ) {
+    if (cellShape == Box::CUBIC || cellShape == Box::TETRAGONAL || cellShape == Box::ORTHORHOMBIC) {
+      // Orthorhombic
+      if (!TopOut.ParmBox().Is_X_Aligned_Ortho())
+        mprintf("Warning: Parm box shape is orthorhombic but cell is not X-aligned.\n");
+      ifbox = 1;
+    } else if (cellShape == Box::OCTAHEDRAL) {
+      // Truncated octahedron
+      ifbox = 2;
+    } else {
+      // General triclinic
+      ifbox = 3;
+    }
   }
 
   // POINTERS
@@ -2258,7 +2267,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     if (BufferAlloc(F_PARMBOX, 4)) return 1;
     double beta;
     // Special case: Rhombic dodecahedron stores alpha/gamma (60) instead of beta (90)
-    if (TopOut.ParmBox().Type() == Box::RHOMBIC)
+    if (cellShape == Box::RHOMBIC_DODECAHEDRON)
       beta = 60.0;
     else
       beta = TopOut.ParmBox().Param(Box::BETA);
