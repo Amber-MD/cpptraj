@@ -8,7 +8,6 @@ Action_Unwrap::Action_Unwrap() :
   imageList_(0),
   imageMode_(Image::BYATOM),
   RefParm_(0),
-  orthogonal_(false),
   center_(false)
 { }
 
@@ -95,9 +94,6 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
             setup.Top().c_str());
     return Action::ERR;
   }
-  orthogonal_ = false;
-  if (setup.CoordInfo().TrajBox().Type()==Box::ORTHO)
-    orthogonal_ = true;
 
   // Setup atom pairs to be unwrapped. Always use CoM TODO why?
   if (imageList_ != 0) delete imageList_;
@@ -130,7 +126,7 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
     return Action::OK;
   }
  
-  if (orthogonal_)
+  if (frm.Frm().BoxCrd().Is_X_Aligned_Ortho())
     Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_ );
   else {
     Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, *imageList_, allEntities_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
