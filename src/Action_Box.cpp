@@ -140,12 +140,12 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
 // Action_Box::DoAction()
 Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
   if (mode_ == REMOVE) {
-    frm.ModifyFrm().SetBox( Box() );
+    frm.ModifyFrm().ModifyBox().SetNoBox();
   } else if (mode_ == AUTO) {
     frm.ModifyFrm().SetOrthoBoundingBox(Radii_, offset_);
   } else {
     boxArgs_.SetMissingInfo( frm.Frm().BoxCrd() );
-    frm.ModifyFrm().ModifyBox().SetupFromXyzAbg( boxArgs_.XyzAbg() );
+    frm.ModifyFrm().ModifyBox().AssignFromXyzAbg( boxArgs_.XyzAbg() );
   }
   return Action::MODIFY_COORDS;
 }
