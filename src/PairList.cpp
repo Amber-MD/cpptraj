@@ -34,21 +34,17 @@ int PairList::InitPairList(double cutIn, double skinNBin, int debugIn) {
   return 0;
 }
 
-int PairList::SetupPairList(Box const& boxIn) {
-  return SetupPairList( boxIn.Type(), boxIn.RecipLengths() );
-}
-
 // PairList::SetupPairList()
-int PairList::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
+int PairList::SetupPairList(Box const& boxIn) {
   Timer t_setup;
   t_setup.Start();
-  if (typeIn == Box::NOBOX) {
-    mprinterr("Error: Pair list code currently requires box coordinates.\n");
+  if (!boxIn.HasBox()) {
+    mprinterr("Error: Pair list code currently requires box information.\n");
     return 1;
   }
 
   // Allocate/reallocate memory
-  if (SetupGrids(recipLengthsIn)) return 1;
+  if (SetupGrids(boxIn.RecipLengths())) return 1;
   t_setup.Stop();
   t_setup.WriteTiming(1, "Pair List Setup:");
   mprintf("\tGrid dimensions: %i %i %i (%zu total).\n", nGridX_, nGridY_, nGridZ_, cells_.size());
