@@ -207,7 +207,7 @@ Box::CellShapeType Box::CellShape() const {
   if (!HasBox()) return NO_SHAPE;
   bool A_equals_B = IsEq( box_[X], box_[Y] );
   bool Lengths_Equal = A_equals_B && IsEq( box_[X], box_[Z] );
-  mprintf("DEBUG: Lengths_Equal= %i  %g  %g  %g (deltas %g and %g)\n", (int)Lengths_Equal, box_[0], box_[1], box_[2], box_[0]-box_[1], box_[0]-box_[2]);
+  //mprintf("DEBUG: Lengths_Equal= %i  %g  %g  %g (deltas %g and %g)\n", (int)Lengths_Equal, box_[0], box_[1], box_[2], box_[0]-box_[1], box_[0]-box_[2]);
   bool alpha_90 = IsEq( box_[ALPHA], 90.0 );
   bool beta_90  = IsEq( box_[BETA],  90.0 );
   bool gamma_90 = IsEq( box_[GAMMA], 90.0 );
