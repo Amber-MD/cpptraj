@@ -12,6 +12,10 @@ class Box {
     enum BoxType { NOBOX=0, ORTHO, TRUNCOCT, RHOMBIC, NONORTHO };
     /// Various box parameters; corresponds to XYZ ABG array.
     enum ParamType { X=0, Y, Z, ALPHA, BETA, GAMMA };
+    /// Cell shape types
+    enum CellShapeType { CUBIC = 0,    TETRAGONAL, ORTHORHOMBIC,
+                         MONOCLINIC,   TRICLINIC,  HEXAGONAL,
+                         RHOMBOHEDRAL, OCTAHEDRAL, RHOMBIC_DODECAHEDRON };
     /// CONSTRUCTOR
     Box();
     /// COPY CONSTRUCTOR
@@ -27,7 +31,8 @@ class Box {
 #   endif
     /// Remove all box information
     void SetNoBox();
-
+    /// \return Current cell shape based on lengths and angles
+    CellShapeType CellShape() const;
     // -------------------------------------------
     // Setup routines; will set the box type and perform checks.
     int SetupFromShapeMatrix(const double*);
@@ -114,6 +119,8 @@ class Box {
     static const char* BoxNames_[];
     /// Names corresponding to ParamType
     static const char* ParamStr_[];
+    /// Names corresponding to CellShapeType
+    static const char* CellShapeStr_[];
 
     static inline bool BadTruncOctAngle(double);
     static inline bool IsEq(double,double);

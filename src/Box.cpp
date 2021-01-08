@@ -128,6 +128,19 @@ const char* Box::BoxNames_[] = {
   "None", "Orthogonal", "Trunc. Oct.", "Rhombic Dodec.", "Non-orthogonal"
 };
 
+/** Correspond to CellShapeType */
+const char* Box::CellShapeStr_[] = {
+  "Cubic",
+  "Tetragonal",
+  "Orthorhombic",
+  "Monoclinic",
+  "Triclinic",
+  "Hexagonal",
+  "Rhombohedral",
+  "Truncated octahedron",
+  "Rhombic dodecahedron"
+};
+
 const char* Box::ParamStr_[] = { "X", "Y", "Z", "alpha", "beta", "gamma" };
 
 // -----------------------------------------------------------------------------
@@ -139,9 +152,9 @@ bool Box::BadTruncOctAngle(double angle) {
   return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
 }
 
-/// \return True if 'angle' is approximately equal to 'tgt'
-bool Box::IsEq(double angle, double tgt) {
-  return (fabs(tgt - angle) < Constants::SMALL);
+/// \return True if 'lhs' is approximately equal to 'rhs'
+bool Box::IsEq(double lhs, double rhs) {
+  return (fabs(rhs - lhs) < Constants::SMALL);
 }
 
 /** \return True if cell "A" axis is aligned along the X-axis (i.e. XYZ ABG reference). */
@@ -194,6 +207,37 @@ void Box::PrintDebug(const char* desc) const {
           desc, fracCell_[3], fracCell_[4], fracCell_[5],
           desc, fracCell_[6], fracCell_[7], fracCell_[8],
           desc, (int)Is_X_Aligned(), (int)Is_X_Aligned_Ortho());
+}
+
+/** \return Cell shape based on current XYZ (i.e. ABC) alpha beta gamma. */
+Box::CellShapeType Box::CellShape() const {
+  bool A_equals_B = IsEq( box_[X], box_[Y] );
+  bool Lengths_Equal = A_equals_B && IsEq( box_[X], box_[Z] );
+
+  bool alpha_90 = IsEq( box_[ALPHA], 90.0 );
+  bool beta_90  = IsEq( box_[BETA],  90.0 );
+  bool gamma_90 = IsEq( box_[GAMMA], 90.0 );
+
+  if (alpha_90 && beta_90 && gamma_90) {
+    if (Lengths_Equal)
+      return CUBIC;
+    else if ( A_equals_B )
+      return TETRAGONAL;
+    else
+      return ORTHORHOMBIC;
+  } else if (alpha_90 && gamma_90) {
+    return MONOCLINIC;
+  } else if (A_equals_B && alpha_90 && beta_90 && IsEq( box_[GAMMA], 120.0 )) {
+    return HEXAGONAL;
+  } else if (Lengths_Equal) {
+    if ( IsTruncOct( box_[ALPHA] ) && IsTruncOct( box_[BETA] ) && IsTruncOct( box_[GAMMA] ) )
+      return OCTAHEDRAL;
+    else if (beta_90 && IsEq( box_[ALPHA], 60.0 ) && IsEq( box_[GAMMA], 60.0 ))
+      return RHOMBIC_DODECAHEDRON;
+    else if ( box_[ALPHA] < 120.0 && IsEq( box_[ALPHA], box_[BETA] ) && IsEq( box_[ALPHA], box_[GAMMA] ) )
+      return RHOMBOHEDRAL;
+  }
+  return TRICLINIC;
 }
 
 // Box::SetBoxType()
