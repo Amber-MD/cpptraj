@@ -8,8 +8,6 @@
 /// Hold box information; unit and fractional cell vectors, 3xlengths, 3xangles.
 class Box {
   public:
-    /// Various box types; should correspond to BoxNames_.
-    enum BoxType { NOBOX=0, ORTHO, TRUNCOCT, RHOMBIC, NONORTHO };
     /// Various box parameters; corresponds to XYZ ABG array.
     enum ParamType { X=0, Y, Z, ALPHA, BETA, GAMMA };
     /// Cell shape types
@@ -67,9 +65,8 @@ class Box {
     void PrintInfo() const;
     /// Print box debug info to stdout
     void PrintDebug(const char*) const;
-
-    const char* TypeName()    const { return BoxNames_[btype_]; }
-    BoxType Type()            const { return btype_;  }
+    /// \return Name of current cell shape
+    const char* CellShapeName() const { return CellShapeStr_[CellShape()]; }
     /// \return Specified XYZ ABG parameter
     double Param(ParamType p) const { return box_[p]; }
     /// \return True if box info present
@@ -116,8 +113,7 @@ class Box {
     static const double TruncOctMin_;
     static const double TruncOctMax_;
     static const double TruncOctEps_;
-    /// Names corresponding to BoxType
-    static const char* BoxNames_[];
+    static const double EqEps_;
     /// Names corresponding to ParamType
     static const char* ParamStr_[];
     /// Names corresponding to CellShapeType
@@ -127,8 +123,8 @@ class Box {
     static inline bool IsEq(double,double);
 
     void printBoxStatus(const char*) const;
-    /// \return The box type based on angles; performs sanity checks.
-    BoxType SetBoxType() const;
+    /// \return 1 if box has issues, 0 otherwise.
+    int CheckBox() const;
 
     /// Calculate fractional matrix from unit cell matrix.
     static inline double CalcFracFromUcell(Matrix_3x3&, Matrix_3x3 const&);
@@ -143,7 +139,6 @@ class Box {
     /// Calculate symmetric shape matrix from XYZ ABG array
     static void CalcShapeFromXyzAbg(double*, const double*);
 
-    BoxType btype_;       ///< Box type
     double box_[6];       ///< Box X Y Z alpha beta gamma
     Matrix_3x3 unitCell_; ///< Unit cell (Cartesian) matrix
     Matrix_3x3 fracCell_; ///< Fractional coord. cell matrix

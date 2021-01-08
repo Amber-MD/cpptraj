@@ -91,7 +91,7 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
       return Action::ERR;
     Box pbox;
     pbox.SetupFromXyzAbg( boxArgs_.XyzAbg() );
-    mprintf("\tNew box type is %s\n", pbox.TypeName() );
+    mprintf("\tNew box type is %s\n", pbox.CellShapeName() );
     cInfo_.SetBox( pbox );
     // Get radii for AUTO
     if (mode_ == AUTO) {

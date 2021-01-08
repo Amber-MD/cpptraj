@@ -262,7 +262,7 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
     else
       input_.ntb = 0;
     mprintf("Warning: 'ntb' not specified; setting to %i based on box type '%s'\n",
-            input_.ntb, fIn.BoxCrd().TypeName());
+            input_.ntb, fIn.BoxCrd().CellShapeName());
   }
   if (!specified_cut_) {
     if (input_.ntb == 0)

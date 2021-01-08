@@ -93,7 +93,7 @@ const char* CoordinateInfo::ComponentStr(Component cmptIn) {
 
 /** DEBUG: Print info to stdout. */
 void CoordinateInfo::PrintCoordInfo(const char* name, const char* parm) const {
-  mprintf("DBG: '%s' parm '%s' CoordInfo={ box type %s", name, parm, box_.TypeName());
+  mprintf("DBG: '%s' parm '%s' CoordInfo={ box type %s", name, parm, box_.CellShapeName());
   if (remdDim_.Ndims() > 0) mprintf(", %i rep dims", remdDim_.Ndims());
   if (hasCrd_) mprintf(", coords");
   if (hasVel_) mprintf(", velocities");

@@ -104,7 +104,7 @@ void DataSet_3D::GridInfo() const {
   } else {
     Box box;
     box.SetupFromUcell(gridBin_->Ucell());
-    mprintf("\t\tBox: %s ABC={%g %g %g} abg={%g %g %g}\n", box.TypeName(),
+    mprintf("\t\tBox: %s ABC={%g %g %g} abg={%g %g %g}\n", box.CellShapeName(),
             box.Param(Box::X), box.Param(Box::Y), box.Param(Box::Z),
             box.Param(Box::ALPHA), box.Param(Box::BETA), box.Param(Box::GAMMA));
   }

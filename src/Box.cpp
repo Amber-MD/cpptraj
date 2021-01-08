@@ -4,10 +4,9 @@
 #include "CpptrajStdio.h"
 #include <algorithm> // std::copy
 
-// CONSTRUCTOR
+/** CONSTRUCTOR */
 Box::Box() :
-  btype_(NOBOX),
-  cellVolume_(0) //, debug_(0)
+  cellVolume_(0)
 {
   box_[0] = 0;
   box_[1] = 0;
@@ -19,7 +18,6 @@ Box::Box() :
 
 /** COPY CONSTRUCTOR */
 Box::Box(const Box& rhs) :
-  btype_(rhs.btype_),
   unitCell_(rhs.unitCell_),
   fracCell_(rhs.fracCell_),
   cellVolume_(rhs.cellVolume_) //, debug_(rhs.debug_)
@@ -35,8 +33,6 @@ Box::Box(const Box& rhs) :
 /** Assignment */
 Box& Box::operator=(const Box& rhs) {
   if (&rhs == this) return *this;
-  //debug_ = rhs.debug_;
-  btype_ = rhs.btype_;
   box_[0] = rhs.box_[0];
   box_[1] = rhs.box_[1];
   box_[2] = rhs.box_[2];
@@ -56,16 +52,8 @@ static inline void dswap(double& d1, double& d2) {
   d2 = dtemp;
 }
 
-/// Swap box type
-static inline void bswap(Box::BoxType& b1, Box::BoxType& b2) {
-  Box::BoxType btemp = b1;
-  b1 = b2;
-  b2 = btemp;
-}
-
 /** Swap this box with given box. */
 void Box::swap(Box& rhs) {
-  bswap( btype_,  rhs.btype_ );
   dswap( box_[0], rhs.box_[0] );
   dswap( box_[1], rhs.box_[1] );
   dswap( box_[2], rhs.box_[2] );
@@ -80,8 +68,8 @@ void Box::swap(Box& rhs) {
 }
 
 #ifdef MPI
+/** Sync box info to Comm master. */
 int Box::SyncBox(Parallel::Comm const& commIn) {
-  commIn.MasterBcast( &btype_, 1, MPI_INT );
   commIn.MasterBcast( box_,    6, MPI_DOUBLE );
   unitCell_.SyncMatrix( commIn );
   fracCell_.SyncMatrix( commIn );
@@ -89,8 +77,8 @@ int Box::SyncBox(Parallel::Comm const& commIn) {
   return 0;
 }
 
+/** Send box info to recvrank. */
 int Box::SendBox(int recvrank, Parallel::Comm const& commIn) {
-  commIn.Send( &btype_,      1, MPI_INT,    recvrank, 1800 );
   commIn.Send( box_,         6, MPI_DOUBLE, recvrank, 1801 );
   unitCell_.SendMatrix(recvrank, commIn);
   fracCell_.SendMatrix(recvrank, commIn);
@@ -98,8 +86,8 @@ int Box::SendBox(int recvrank, Parallel::Comm const& commIn) {
   return 0;
 }
 
+/** Get box info from recvrank. */
 int Box::RecvBox(int sendrank, Parallel::Comm const& commIn) {
-  commIn.Recv( &btype_,      1, MPI_INT,    sendrank, 1800 );
   commIn.Recv( box_,         6, MPI_DOUBLE, sendrank, 1801 );
   unitCell_.RecvMatrix(sendrank, commIn);
   fracCell_.RecvMatrix(sendrank, commIn);
@@ -124,9 +112,10 @@ const double Box::TruncOctMax_ = Box::TRUNCOCTBETA_ + Box::TruncOctDelta_;
 /** Used to detect low precision trunc. oct. angles (e.g. 109.47). */
 const double Box::TruncOctEps_ = 0.001;
 
-const char* Box::BoxNames_[] = {
-  "None", "Orthogonal", "Trunc. Oct.", "Rhombic Dodec.", "Non-orthogonal"
-};
+/** Used in IsEq. Larger value than SMALL in case we are reading from
+  * low-precision coordinates.
+  */
+const double Box::EqEps_ = 0.00001;
 
 /** Correspond to CellShapeType */
 const char* Box::CellShapeStr_[] = {
@@ -142,22 +131,10 @@ const char* Box::CellShapeStr_[] = {
   "Rhombic dodecahedron"
 };
 
+/** Correspond to ParamType */
 const char* Box::ParamStr_[] = { "X", "Y", "Z", "alpha", "beta", "gamma" };
 
 // -----------------------------------------------------------------------------
-bool Box::IsTruncOct(double angle) {
-  return (angle > TruncOctMin_ && angle < TruncOctMax_);
-}
-
-bool Box::BadTruncOctAngle(double angle) {
-  return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
-}
-
-/// \return True if 'lhs' is approximately equal to 'rhs'
-bool Box::IsEq(double lhs, double rhs) {
-  return (fabs(rhs - lhs) < Constants::SMALL);
-}
-
 /** \return True if cell "A" axis is aligned along the X-axis (i.e. XYZ ABG reference). */
 bool Box::Is_X_Aligned() const {
   if (fabs(unitCell_[1]) > Constants::SMALL) return false;
@@ -181,7 +158,7 @@ bool Box::Is_X_Aligned_Ortho() const {
 
 /** For debugging purposes, print XYZ ABG and unit/frac cell matrices. */
 void Box::printBoxStatus(const char* desc) const {
-  mprintf("DEBUG: [%s] Box: %s  is_x_aligned= %i  ortho= %i\n", desc, BoxNames_[btype_], (int)Is_X_Aligned(), (int)Is_X_Aligned_Ortho());
+  mprintf("DEBUG: [%s] Box: %s  is_x_aligned= %i  ortho= %i\n", desc, CellShapeName(), (int)Is_X_Aligned(), (int)Is_X_Aligned_Ortho());
   mprintf("DEBUG:   XYZ= %12.4f %12.4f %8.3f  ABG= %12.4f %12.4f %12.4f\n",
           box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
   unitCell_.Print(desc);
@@ -199,7 +176,7 @@ void Box::PrintDebug(const char* desc) const {
           "DEBUG: %s           %20.10E %20.10E %20.10E\n"
           "DEBUG: %s           %20.10E %20.10E %20.10E\n"
           "DEBUG: %s is_x_aligned= %i  is_x_aligned_ortho= %i\n",
-          desc, BoxNames_[btype_],
+          desc, CellShapeName(),
           desc, box_[0], box_[1], box_[2], box_[3], box_[4], box_[5],
           desc, unitCell_[0], unitCell_[1], unitCell_[2],
           desc, unitCell_[3], unitCell_[4], unitCell_[5],
@@ -210,12 +187,27 @@ void Box::PrintDebug(const char* desc) const {
           desc, (int)Is_X_Aligned(), (int)Is_X_Aligned_Ortho());
 }
 
+/** \return True if angle is truncated octahedron within a certain range. */
+bool Box::IsTruncOct(double angle) {
+  return (angle > TruncOctMin_ && angle < TruncOctMax_);
+}
+
+/** \return True if the given truncated octahedral angle will cause imaging issues. */
+bool Box::BadTruncOctAngle(double angle) {
+  return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
+}
+
+/** \return True if 'lhs' is approximately equal to 'rhs' */
+bool Box::IsEq(double lhs, double rhs) {
+  return (fabs(rhs - lhs) < EqEps_);
+}
+
 /** \return Cell shape based on current XYZ (i.e. ABC) alpha beta gamma. */
 Box::CellShapeType Box::CellShape() const {
   if (!HasBox()) return NO_SHAPE;
   bool A_equals_B = IsEq( box_[X], box_[Y] );
   bool Lengths_Equal = A_equals_B && IsEq( box_[X], box_[Z] );
-
+  mprintf("DEBUG: Lengths_Equal= %i  %g  %g  %g (deltas %g and %g)\n", (int)Lengths_Equal, box_[0], box_[1], box_[2], box_[0]-box_[1], box_[0]-box_[2]);
   bool alpha_90 = IsEq( box_[ALPHA], 90.0 );
   bool beta_90  = IsEq( box_[BETA],  90.0 );
   bool gamma_90 = IsEq( box_[GAMMA], 90.0 );
@@ -242,12 +234,11 @@ Box::CellShapeType Box::CellShape() const {
   return TRICLINIC;
 }
 
-// Box::SetBoxType()
-/** Determine box type (none/ortho/nonortho) based on box angles. It is
-  * expected that if this routine is called, valid box information is present.
-  * If not, this is an error.
+/** Check the box for potential problems. It is expected that if this routine
+  * is called, valid box information is present. If not, this is an error.
+  * \return 1 if no box, 0 otherwise.
   */
-Box::BoxType Box::SetBoxType() const {
+int Box::CheckBox() const {
   // Check for invalid lengths/angles
   bool hasZeros = false;
   for (int i = 0; i < 3; i++) {
@@ -262,47 +253,32 @@ Box::BoxType Box::SetBoxType() const {
       hasZeros = true;
     }
   }
-  if (hasZeros) return NOBOX;
-  // Check Angles
-  BoxType boxType;
-  if (box_[3] == 90.0 && box_[4] == 90.0 && box_[5] == 90.0)
-    // All 90, orthogonal
-    boxType = ORTHO;
-  else if ( IsTruncOct( box_[3] ) && IsTruncOct( box_[4] ) && IsTruncOct( box_[5] ) )
-    // All 109.47, truncated octahedron
-    boxType = TRUNCOCT;
-  else if ( IsEq(box_[3],60.0) && IsEq(box_[4],90.0) && IsEq(box_[5],60.0) )
-    // 60/90/60, rhombic dodecahedron
-    boxType = RHOMBIC;
-  else
-    // Everything else; non-orthogonal
-    boxType = NONORTHO;
-  //if (debug_>0) mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
+  if (hasZeros) return 1;
 
-  // Extra checks
-  if (boxType == TRUNCOCT) {
-    // Check for low-precision truncated octahedron angles.
+  CellShapeType cellShape = CellShape();
+  // Check for low-precision truncated octahedron angles.
+  if (cellShape == OCTAHEDRAL) {
     if ( BadTruncOctAngle(box_[3]) || BadTruncOctAngle(box_[4]) || BadTruncOctAngle(box_[5]) )
       mprintf("Warning: Low precision truncated octahedron angles detected (%g vs %g).\n"
               "Warning:   If desired, the 'box' command can be used during processing\n"
               "Warning:   to set higher-precision angles.\n", box_[4], TRUNCOCTBETA_);
-  } else if (boxType == NONORTHO) {
-    // Check for skewed box.
-    const double boxFactor = 0.5005;
-    double Xaxis_X = box_[0];
-    double Yaxis_X = box_[1]*cos(Constants::DEGRAD*box_[5]);
-    double Yaxis_Y = box_[1]*sin(Constants::DEGRAD*box_[5]);
-    double Zaxis_X = box_[2]*cos(Constants::DEGRAD*box_[4]);
-    double Zaxis_Y = (box_[1]*box_[2]*cos(Constants::DEGRAD*box_[3]) - Zaxis_X*Yaxis_X) / Yaxis_Y;
-    if ( fabs(Yaxis_X) > boxFactor * Xaxis_X ||
-         fabs(Zaxis_X) > boxFactor * Xaxis_X ||
-         fabs(Zaxis_Y) > boxFactor * Yaxis_Y )
-    {
-      mprintf("Warning: Non-orthogonal box is too skewed to perform accurate imaging.\n"
-              "Warning:  Images and imaged distances may not be the absolute minimum.\n");
-    }
   }
-  return boxType;
+  // Check for skewed box.
+  const double boxFactor = 0.5005;
+  double Xaxis_X = unitCell_[0];
+  double Yaxis_X = unitCell_[3];
+  double Yaxis_Y = unitCell_[4];
+  double Zaxis_X = unitCell_[6];
+  double Zaxis_Y = unitCell_[7];
+  if ( fabs(Yaxis_X) > boxFactor * Xaxis_X ||
+       fabs(Zaxis_X) > boxFactor * Xaxis_X ||
+       fabs(Zaxis_Y) > boxFactor * Yaxis_Y )
+  {
+    mprintf("Warning: Box is too skewed to perform accurate imaging.\n"
+            "Warning:  Images and imaged distances may not be the absolute minimum.\n");
+    // TODO should this return 1?
+  }
+  return 0;
 }
 
 // Box::SetNoBox()
@@ -314,7 +290,6 @@ void Box::SetNoBox() {
   box_[3] = 0;
   box_[4] = 0;
   box_[5] = 0;
-  btype_ = NOBOX;
   unitCell_.Zero();
   fracCell_.Zero();
   cellVolume_ = 0;
@@ -323,7 +298,7 @@ void Box::SetNoBox() {
 /** Print box info to STDOUT. */
 void Box::PrintInfo() const {
   mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
-          BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
+          CellShapeName(), box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
 }
 
 // -----------------------------------------------------------------------------
@@ -551,9 +526,8 @@ int Box::SetupFromShapeMatrix(const double* shape) {
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
-  btype_ = SetBoxType();
   printBoxStatus("SetupFromShapeMatrix");
-  if (btype_ == NOBOX) {
+  if (CheckBox()) {
     SetNoBox();
     return 1;
   }
@@ -568,9 +542,8 @@ int Box::SetupFromUcell(const double* ucell) {
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
-  btype_ = SetBoxType();
   printBoxStatus("SetupFromUcell");
-  if (btype_ == NOBOX) {
+  if (CheckBox()) {
     SetNoBox();
     return 1;
   }
@@ -590,9 +563,8 @@ int Box::SetupFromXyzAbg(double bx, double by, double bz, double ba, double bb, 
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
-  btype_ = SetBoxType();
   printBoxStatus("SetupFromXyzAbgIndividual");
-  if (btype_ == NOBOX) {
+  if (CheckBox()) {
     SetNoBox();
     return 1;
   }
@@ -612,9 +584,8 @@ int Box::SetupFromXyzAbg(const double* xyzabg) {
 
   cellVolume_ = CalcFracFromUcell(fracCell_, unitCell_);
 
-  btype_ = SetBoxType();
   printBoxStatus("SetupFromXyzAbg");
-  if (btype_ == NOBOX) {
+  if (CheckBox()) {
     SetNoBox();
     return 1;
   }
@@ -627,10 +598,10 @@ int Box::SetupFromXyzAbg(const double* xyzabg) {
 /** Assign Xyz Abg array and frac cell from unit cell. */
 void Box::AssignFromUcell(const double* ucell) {
   // Sanity check
-  if (btype_ == NOBOX) {
-    mprintf("Internal Error: AssignFromUcell(): No box has been set.\n");
-    return;
-  }
+  //if (btype_ == NOBOX) {
+  //  mprintf("Internal Error: AssignFromUcell(): No box has been set.\n");
+  //  return;
+  //}
 
   std::copy(ucell, ucell+9, unitCell_.Dptr());
 
@@ -645,10 +616,10 @@ void Box::AssignFromUcell(const double* ucell) {
 /** Assign from XYZ ABG parameters. */
 void Box::AssignFromXyzAbg(double bx, double by, double bz, double ba, double bb, double bg) {
   // Sanity check
-  if (btype_ == NOBOX) {
-    mprintf("Internal Error: AssignFromXyzAbgIndividual(): No box has been set.\n");
-    return;
-  }
+  //if (btype_ == NOBOX) {
+  //  mprintf("Internal Error: AssignFromXyzAbgIndividual(): No box has been set.\n");
+  //  return;
+  //}
 
   box_[0] = bx;
   box_[1] = by;
@@ -668,10 +639,10 @@ void Box::AssignFromXyzAbg(double bx, double by, double bz, double ba, double bb
 /** Assign from XYZ ABG array. */
 void Box::AssignFromXyzAbg(const double* xyzabg) {
   // Sanity check
-  if (btype_ == NOBOX) {
-    mprintf("Internal Error: AssignFromXyzAbg(): No box has been set.\n");
-    return;
-  }
+  //if (btype_ == NOBOX) {
+  //  mprintf("Internal Error: AssignFromXyzAbg(): No box has been set.\n");
+  //  return;
+  //}
   // TODO detect orthogonal?
   box_[0] = xyzabg[0];
   box_[1] = xyzabg[1];
@@ -692,10 +663,10 @@ void Box::AssignFromXyzAbg(const double* xyzabg) {
 /** Assign from symmetric shape matrix. */
 void Box::AssignFromShapeMatrix(const double* shape) {
   // Sanity check
-  if (btype_ == NOBOX) {
-    mprintf("Internal Error: AssignFromShapeMatrix(): No box has been set.\n");
-    return;
-  }
+  //if (btype_ == NOBOX) {
+  //  mprintf("Internal Error: AssignFromShapeMatrix(): No box has been set.\n");
+  //  return;
+  //}
 
   unitCell_[0] = shape[0];
   unitCell_[1] = shape[1];

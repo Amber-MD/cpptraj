@@ -61,10 +61,10 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
         boxStatus = SET;
       } else if (boxStatus == SET) {
         // Make sure it is the same type of box. TODO Check angles
-        if (combinedBox.Type() != CRD[setnum]->CoordsInfo().TrajBox().Type())
+        if (combinedBox.CellShape() != CRD[setnum]->CoordsInfo().TrajBox().CellShape())
         {
           mprintf("Warning: COORDS '%s' box type '%s' differs from other COORDS. Disabling box.\n",
-                  CRD[setnum]->legend(), CRD[setnum]->CoordsInfo().TrajBox().TypeName());
+                  CRD[setnum]->legend(), CRD[setnum]->CoordsInfo().TrajBox().CellShapeName());
           combinedBox.SetNoBox();
           boxStatus = INVALID;
         }

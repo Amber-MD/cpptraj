@@ -278,7 +278,7 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
       if (values_[IFBOX]==2 && parmbox_.CellShape() != Box::OCTAHEDRAL) {
         mprintf("Warning: Amber Parm Box should be Truncated Octahedron (ifbox==2)\n"
                 "         but BOX_DIMENSIONS indicate %s - may cause imaging problems.\n",
-                parmbox_.TypeName());
+                parmbox_.CellShapeName());
       }
     }
   }

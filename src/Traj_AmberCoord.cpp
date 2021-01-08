@@ -395,12 +395,23 @@ int Traj_AmberCoord::setupTrajout(FileName const& fname, Topology* trajParm,
   //       on write mode, which is not known until now.
   natom3_ = trajParm->Natom() * 3;
   file_.SetupFrameBuffer( natom3_, 8, 10 );
+  // Warn if not X-aligned
+  if (!CoordInfo().TrajBox().Is_X_Aligned())
+    mprintf("Warning: Unit cell is not X-aligned. Box cannot be properly stored in this format.\n");
   // If box coords are present, allocate extra space for them
-  switch (CoordInfo().TrajBox().Type()) {
-    case Box::NOBOX   : numBoxCoords_ = 0; break;
-    case Box::ORTHO   :
-    case Box::TRUNCOCT: numBoxCoords_ = 3; break;
-    default           : numBoxCoords_ = 6;
+  Box::CellShapeType cellShape = CoordInfo().TrajBox().CellShape();
+  switch (cellShape) {
+    case Box::NO_SHAPE :
+      numBoxCoords_ = 0;
+      break;
+    case Box::CUBIC        :
+    case Box::TETRAGONAL   :
+    case Box::ORTHORHOMBIC :
+    case Box::OCTAHEDRAL   :
+      numBoxCoords_ = 3;
+      break;
+    default:
+      numBoxCoords_ = 6;
   }
   file_.ResizeBuffer( numBoxCoords_ );
  
