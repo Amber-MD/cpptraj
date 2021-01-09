@@ -293,7 +293,7 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
     // Check coordinate info of all files               0    1    2     3     4      5
     std::vector<int> Info( iSize * ensComm.Size() ); // box, vel, temp, time, force, nRepDims
     int rank_info[iSize];
-    rank_info[0] = (int)cInfo.TrajBox().Type();
+    rank_info[0] = (int)cInfo.TrajBox().HasBox(); // TODO should this be CellShape()?
     rank_info[1] = (int)cInfo.HasVel();
     rank_info[2] = (int)cInfo.HasTemp();
     rank_info[3] = (int)cInfo.HasTime();
