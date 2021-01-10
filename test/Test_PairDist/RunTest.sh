@@ -28,7 +28,7 @@ trajin ../tz2.ortho.nc
 pairdist P1 out ortho.dat mask :WAT@O delta 0.1 maxdist 20.0
 EOF
   RunCpptraj "$UNITNAME."
-  DoTest ortho.dat ortho.dat.save
+  DoTest ortho.dat.save ortho.dat
 fi
 
 UNITNAME='Pairdist test, nonorthogonal imaging'
