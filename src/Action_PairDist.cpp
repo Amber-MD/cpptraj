@@ -198,14 +198,12 @@ Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
 void Action_PairDist::UpdateHistogramFrames() {
   for (unsigned long i = 0; i < histogram_.size(); i++)
   {
-    // DEBUG
     unsigned int ndata = (unsigned int)histogram_[i].nData();
     if (ndata != nframes_) {
-      rprintf("DEBUG: Hist bin %lu frames does not match (%u vs %u)\n", i, ndata, nframes_);
+      //rprintf("DEBUG: Hist bin %lu frames does not match (%u vs %u)\n", i, ndata, nframes_);
       for (unsigned int idx = ndata; idx < nframes_; idx++)
         histogram_[i].accumulate( 0 );
     }
-    //histogram_[i].Set_nData( nframes_ );
   }
 }
 
@@ -224,7 +222,7 @@ void Action_PairDist::UpdateHistogramFrames() {
   */
 int Action_PairDist::SyncAction() {
   if (trajComm_.Size() > 1) {
-    rprintf("DEBUG: Total number of frames: %u\n", nframes_);
+    //rprintf("DEBUG: Total number of frames: %u\n", nframes_);
     // Ensure histogram bins have the correct count on this rank 
     UpdateHistogramFrames();
     // Get the total number of frames on all ranks.
