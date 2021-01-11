@@ -46,9 +46,10 @@ CheckFor netcdf
 if [ $? -eq 0 ] ; then
   cat > check.in <<EOF
 parm ../tz2.truncoct.parm7
-trajin ../tz2.truncoct.nc
-rms first :1-13
-scale :1 x 2.0 y 1.2 z 1.2
+#trajin ../tz2.truncoct.nc
+trajin tz2.truncoct.baducell.nc
+#rms first :1-13
+#scale :1 x 2.0 y 1.2 z 1.2
 check reportfile tz2.dat offset 1.0
 check reportfile tz2.cut0.9.dat offset 1.0 cut 0.9
 EOF
@@ -58,9 +59,10 @@ EOF
   # Around test
   cat > check.in <<EOF
 parm ../tz2.truncoct.parm7
-trajin ../tz2.truncoct.nc
-rms first :1-13
-scale :1 x 2.0 y 1.2 z 1.2
+#trajin ../tz2.truncoct.nc
+trajin tz2.truncoct.baducell.nc
+#rms first :1-13
+#scale :1 x 2.0 y 1.2 z 1.2
 check reportfile around.dat offset 1.0 :WAT around :1
 EOF
   RunCpptraj "Structure Check with Around"
