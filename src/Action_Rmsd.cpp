@@ -354,10 +354,6 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
     else if (err == 2) return Action::ERR;
   }
 
-  // Warn if PBC and rotating
-  if (fit_ && mode_ == ROT_AND_TRANS)
-    Action::CheckImageRotationWarning(setup, "the RMS-fit");
-
   return Action::OK;
 }
 

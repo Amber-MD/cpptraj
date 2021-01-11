@@ -699,17 +699,19 @@ void Box::AssignFromShapeMatrix(const double* shape) {
 // -----------------------------------------------------------------------------
 /** Rotate unit cell vectors; recalculate fractional cell vectors. */
 void Box::RotateUcell(Matrix_3x3 const& rot) {
+  // Rotate each unit cell vector
   Vec3 ucellx = rot * unitCell_.Row1();
   Vec3 ucelly = rot * unitCell_.Row2();
   Vec3 ucellz = rot * unitCell_.Row3();
-  ucellx.Print("ucellx");
-  ucelly.Print("ucelly");
-  ucellz.Print("ucellz");
+  //ucellx.Print("ucellx");
+  //ucelly.Print("ucelly");
+  //ucellz.Print("ucellz");
+  // Set new unit cell matrix
   unitCell_ = Matrix_3x3( ucellx[0], ucellx[1], ucellx[2],
                           ucelly[0], ucelly[1], ucelly[2],
                           ucellz[0], ucellz[1], ucellz[2] );
-  //unitCell_ = rot * unitCell_;
-  unitCell_.Print("RotatedUcell");
+  //unitCell_.Print("RotatedUcell");
+  // Recalculate the fractional cell; volume is unchanged.
   CalcFracFromUcell(fracCell_, unitCell_);
 }
 
