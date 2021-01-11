@@ -30,6 +30,8 @@ class Box {
 #   endif
     /// Remove all box information
     void SetNoBox();
+    /// Rotate unit/frac cell vectors
+    void RotateUcell(Matrix_3x3 const&);
     /// \return Current cell shape based on lengths and angles
     CellShapeType CellShape() const;
     // -------------------------------------------
@@ -97,6 +99,7 @@ class Box {
     bool Is_X_Aligned() const;
     /// \return True if X-aligned and cell is orthogonal.
     bool Is_X_Aligned_Ortho() const;
+
     /// \return true if the given angle is suitable for a truncated octahedron
     static bool IsTruncOct(double);
     // \return Truncated oct angle in degrees TODO should this be in Constants?

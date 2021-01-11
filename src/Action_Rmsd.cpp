@@ -382,6 +382,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
     switch (mode_) {
       case ROT_AND_TRANS:
         frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
+        frm.ModifyFrm().ModifyBox().RotateUcell( rot_ );
         err = Action::MODIFY_COORDS;
         break;
       case TRANS_ONLY:
