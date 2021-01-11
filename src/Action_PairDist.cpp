@@ -15,15 +15,15 @@
 Action_PairDist::Action_PairDist() :
   delta_(0.0),
   maxbin_(0),
-  same_mask_(false),
-  ub1_(0),
-  ub2_(0)
+  single_mask_(false),
+  nframes_(0)
 {}
 
 void Action_PairDist::Help() const {
   mprintf("\t[out <filename>] mask <mask> [mask2 <mask>] [delta <resolution>]\n"
           "\t[maxdist <distance>] [noimage]\n"
-          "  Calculate pair distribution function P(r) between two masks.\n"
+          "  Calculate pair distribution function P(r) within a single mask\n"
+          "  or between two masks.\n"
           "  If 'maxdist' is specified the initial histogram max size will be set to\n"
           "  <distance>; if larger distances are encountered the histogram will be\n"
           "  resized appropriately.\n");
@@ -35,6 +35,7 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
 # ifdef MPI
   trajComm_ = init.TrajComm();
 # endif
+  nframes_ = 0;
   imageOpt_.InitImaging( !actionArgs.hasKey("noimage") );
   delta_ = actionArgs.getKeyDouble("delta", 0.01);
   double maxDist = actionArgs.getKeyDouble("maxdist", -1.0);
@@ -44,30 +45,22 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
   }
 
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-
+  // Get first mask
   std::string mask1 = actionArgs.GetStringKey("mask");
-
   if (mask1.empty()) {
     mprinterr("Error: pairdist: No mask1 specified.\n");
     return Action::ERR;
   }
-
   if (mask1_.SetMaskString(mask1)) return Action::ERR;
-
+  // Get second mask if specified
   std::string mask2 = actionArgs.GetStringKey("mask2");
-
   if (mask2.empty()) {
-    same_mask_ = true;
-    if (mask2_.SetMaskString(mask1)) return Action::ERR;
+    single_mask_ = true;
   } else {
     if (mask2_.SetMaskString(mask2)) return Action::ERR;
-
-    if (mask1_.MaskExpression() != mask2_.MaskExpression() )
-      same_mask_ = false;
-    else
-      same_mask_ = true;
+    single_mask_ = false;
   }
-
+  // Set up data sets
   std::string dsname = actionArgs.GetStringNext();
   if (dsname.empty())
     dsname = init.DSL().GenerateDefaultName("PDIST");
@@ -87,7 +80,7 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
 # endif
 
   mprintf("    PAIRDIST: Calculate P(r)");
-  if (!same_mask_)
+  if (!single_mask_)
     mprintf(" between atoms selected by '%s' and '%s'\n", mask1_.MaskString(), mask2_.MaskString());
   else
     mprintf(" for atoms selected by '%s'\n", mask1_.MaskString());
@@ -113,82 +106,107 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
 
 // Action_PairDist::Setup()
 Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
+  // Set up first mask
   if (setup.Top().SetupIntegerMask(mask1_) ) return Action::ERR;
-
   mprintf("\t");
   mask1_.BriefMaskInfo();
-
   if (mask1_.None()) {
     mprintf("Warning: Mask has no atoms.\n");
     return Action::SKIP;
   }
-
-  if (setup.Top().SetupIntegerMask(mask2_) ) return Action::ERR;
-
-  mask2_.BriefMaskInfo();
-  mprintf("\n");
-
-  if (mask2_.None()) {
-    mprintf("Warning: PairDist::setup: Mask2 has no atoms.\n");
-    return Action::SKIP;
+  // Set up second mask if specified
+  if (!single_mask_) {
+    if (setup.Top().SetupIntegerMask(mask2_) ) return Action::ERR;
+    mask2_.BriefMaskInfo();
+    mprintf("\n");
+    if (mask2_.None()) {
+      mprintf("Warning: Second mask has no atoms.\n");
+      return Action::SKIP;
+    }
+    int numInCommon = mask1_.NumAtomsInCommon( mask2_ );
+    if (numInCommon > 0) {
+      mprinterr("Error: Masks must be non-overlapping (currently %i atoms in common.)\n",
+                numInCommon);
+      return Action::ERR;
+    }
   }
-
-  if (mask1_.MaskExpression() != mask2_.MaskExpression() &&
-      mask1_.NumAtomsInCommon(mask2_) > 0) {
-    mprinterr("Error: mask expressions must be either "
-	      "exactly the same\n\t(equivalent to mask2 omitted) or masks must "
-	      "be non-overlapping.\n");
-    return Action::ERR;
-  }
-
-  if (same_mask_) {
-    ub1_ = mask1_.Nselected() - 1;
-    ub2_ = mask1_.Nselected();
-  } else {
-    ub1_ = mask1_.Nselected();
-    ub2_ = mask2_.Nselected();
-  }
-
+  // See if imaging is possible
   imageOpt_.SetupImaging(setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
+    mprintf("\tDistances will be imaged.\n");
 
   return Action::OK;
 }
 
+/** Do histogram binning */
+void Action_PairDist::BinHist( std::vector<double>& tmp,
+                               const double* XYZ1, const double* XYZ2, Box const& box)
+{
+  double Dist = DIST(imageOpt_.ImagingType(), XYZ1, XYZ2, box);
 
-// Action_PairDist::action()
+  unsigned long bin = (unsigned long) (Dist / delta_);
+  // Resize on the fly if necessary
+  if (bin > maxbin_) {
+    maxbin_ = bin;
+    tmp.resize(maxbin_ + 1);
+    histogram_.resize(maxbin_ + 1);
+  }
+  //if (bin == 326) rprintf("DEBUG: Bin 326 frame %i idx1 %i idx2 %i %f\n", frame_, idx1_, idx2_, Dist);
+  tmp[bin]++;
+}
+
+// Action_PairDist::DoAction()
 Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
-  unsigned long bin, j;
-  Vec3 a1, a2;
-  std::vector<double> tmp;	// per frame histogram
+  std::vector<double> tmp(histogram_.size(), 0); // per frame histogram
 
   if (imageOpt_.ImagingEnabled())
     imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
-  tmp.resize(histogram_.size() );
 
-  for (unsigned long i = 0; i < ub1_; i++) {
-    for (same_mask_ ? j = i + 1 : j = 0; j < ub2_; j++) {
-
-      double Dist = DIST2(imageOpt_.ImagingType(), frm.Frm().XYZ(mask1_[i]), frm.Frm().XYZ(mask2_[j]), frm.Frm().BoxCrd());
-
-      bin = (unsigned long) (sqrt(Dist) / delta_);
-
-      if (bin > maxbin_) {
-	maxbin_ = bin;
-	tmp.resize(maxbin_ + 1);
-	histogram_.resize(maxbin_ + 1);
+  if (single_mask_) {
+    // Only 1 mask
+    for (int idx1 = 0; idx1 != mask1_.Nselected(); idx1++) {
+      for (int idx2 = idx1 + 1; idx2 != mask1_.Nselected(); idx2++) {
+        //frame_ = frameNum; // DEBUG
+        //idx1_ = idx1; // DEBUG
+        //idx2_ = idx2; // DEBUG
+        BinHist(tmp, frm.Frm().XYZ(mask1_[idx1]), frm.Frm().XYZ(mask1_[idx2]), frm.Frm().BoxCrd());
       }
-
-      tmp[bin]++;
+    }
+  } else {
+    // 2 non-overlapping masks
+    for (int idx1 = 0; idx1 != mask1_.Nselected(); idx1++) {
+      for (int idx2 = 0; idx2 != mask2_.Nselected(); idx2++) {
+        BinHist(tmp, frm.Frm().XYZ(mask1_[idx1]), frm.Frm().XYZ(mask2_[idx2]), frm.Frm().BoxCrd());
+      }
     }
   }
 
-  // FIXME: may be inefficient to call accumulate() on every data point
-  // -> pass "array" to accumulate()?
-  for (unsigned long i = 0; i < tmp.size(); i++) {
+  // Update the overall histogram 
+  for (unsigned long i = 0; i < tmp.size(); i++)
     histogram_[i].accumulate(tmp[i]);
-  }
+
+  nframes_++;
 
   return Action::OK;
+}
+
+/** Since the histogram can be resized on-the-fly, there may be bins in
+  * histogram_ not present at the start of the calculation. These bins
+  * need to have their n_ field updated to the actual number of frames
+  * so it is as if they were present from the start.
+  */
+void Action_PairDist::UpdateHistogramFrames() {
+  for (unsigned long i = 0; i < histogram_.size(); i++)
+  {
+    // DEBUG
+    unsigned int ndata = (unsigned int)histogram_[i].nData();
+    if (ndata != nframes_) {
+      rprintf("DEBUG: Hist bin %lu frames does not match (%u vs %u)\n", i, ndata, nframes_);
+      for (unsigned int idx = ndata; idx < nframes_; idx++)
+        histogram_[i].accumulate( 0 );
+    }
+    //histogram_[i].Set_nData( nframes_ );
+  }
 }
 
 #ifdef MPI
@@ -206,6 +224,27 @@ Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
   */
 int Action_PairDist::SyncAction() {
   if (trajComm_.Size() > 1) {
+    rprintf("DEBUG: Total number of frames: %u\n", nframes_);
+    // Ensure histogram bins have the correct count on this rank 
+    UpdateHistogramFrames();
+    // Get the total number of frames on all ranks.
+    unsigned int myframes = nframes_;
+    trajComm_.AllReduce(&nframes_, &myframes, 1, MPI_UNSIGNED, MPI_SUM);
+/*
+    // DEBUG - Print out histogram on each rank.
+    for (int rank = 0; rank < trajComm_.Size(); rank++) {
+      if ( rank == trajComm_.Rank() ) {
+        rprintf("DEBUG: Histogram for rank.\n");
+        for (unsigned long i = 0; i < histogram_.size(); i++) {
+          double dist = ((double) i + 0.5) * delta_;
+          rprintf("DEBUG:\t%12lu %12.4f %12.4f %12.4f %12.4f\n", i, dist, histogram_[i].mean(), histogram_[i].M2(), histogram_[i].nData());
+        }
+      }
+      trajComm_.Barrier();
+    }
+    trajComm_.Barrier();
+    // END DEBUG
+*/
     std::vector<double> buffer;
     unsigned long rank_size;
     if (trajComm_.Master()) {
@@ -255,19 +294,21 @@ int Action_PairDist::SyncAction() {
 // Action_PairDist::print()
 void Action_PairDist::Print()
 {
+  // Ensure bins not present at the beginning are properly updated
+  UpdateHistogramFrames();
   // Set DataSets X dim
   Dimension Xdim( 0.5 * delta_, delta_, "Distance" );
   Pr_->SetDim(Dimension::X, Xdim);
   std_->SetDim(Dimension::X, Xdim);
 
-  double dist, Pr, sd;
-
+  //mprintf("DEBUG: Final result:\n");
   for (unsigned long i = 0; i < histogram_.size(); i++) {
-    Pr = histogram_[i].mean() / delta_;
+    //mprintf("DEBUG:\t%12lu %12.4f %12.4f %12.4f %12.4f\n", i, ((double) i + 0.5) * delta_, histogram_[i].mean(), histogram_[i].M2(), histogram_[i].nData());
+    double Pr = histogram_[i].mean() / delta_;
 
     if (Pr > 0.0) {
-      dist = ((double) i + 0.5) * delta_;
-      sd = sqrt(histogram_[i].variance() );
+      double dist = ((double) i + 0.5) * delta_;
+      double sd = sqrt(histogram_[i].variance() );
       ((DataSet_Mesh*) Pr_)->AddXY(dist, Pr);
       ((DataSet_Mesh*) std_)->AddXY(dist, sd);
     }
