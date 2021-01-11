@@ -5,7 +5,7 @@
 in=Pr.in
 out=Pr.dat
 
-CleanFiles $in $out ortho.dat truncoct.dat
+CleanFiles $in $out ortho.dat truncoct.dat twomask.dat
 
 INPUT="-i $in"
 
@@ -42,6 +42,15 @@ EOF
   RunCpptraj "$UNITNAME."
   DoTest truncoct.dat.save truncoct.dat
 fi
+
+UNITNAME='Pairdist test, 2 masks'
+cat > $in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.crd
+pairdist P0 out twomask.dat mask @O mask2 @H delta 0.1 maxdist 36.25
+EOF
+RunCpptraj "$UNITNAME."
+DoTest twomask.dat.save twomask.dat
 
 EndTest
 
