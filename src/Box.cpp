@@ -135,6 +135,21 @@ const char* Box::CellShapeStr_[] = {
 const char* Box::ParamStr_[] = { "X", "Y", "Z", "alpha", "beta", "gamma" };
 
 // -----------------------------------------------------------------------------
+/** \return True if angle is truncated octahedron within a certain range. */
+bool Box::IsTruncOct(double angle) {
+  return (angle > TruncOctMin_ && angle < TruncOctMax_);
+}
+
+/** \return True if the given truncated octahedral angle will cause imaging issues. */
+bool Box::BadTruncOctAngle(double angle) {
+  return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
+}
+
+/** \return True if 'lhs' is approximately equal to 'rhs' */
+bool Box::IsEq(double lhs, double rhs) {
+  return (fabs(rhs - lhs) < EqEps_);
+}
+
 /** \return True if cell "A" axis is aligned along the X-axis (i.e. XYZ ABG reference). */
 bool Box::Is_X_Aligned() const {
   if (fabs(unitCell_[1]) > Constants::SMALL) return false;
@@ -153,6 +168,14 @@ bool Box::Is_X_Aligned_Ortho() const {
   if (fabs(unitCell_[5]) > Constants::SMALL) return false;
   if (fabs(unitCell_[2]) > Constants::SMALL) return false;
   if (fabs(unitCell_[1]) > Constants::SMALL) return false;
+  return true;
+}
+
+/** \return True if the matrix has symmetric off-diagonal elements. */
+bool Box::Is_Symmetric() const {
+  if (!IsEq(unitCell_[1], unitCell_[3])) return false;
+  if (!IsEq(unitCell_[2], unitCell_[6])) return false;
+  if (!IsEq(unitCell_[5], unitCell_[7])) return false;
   return true;
 }
 
@@ -185,21 +208,6 @@ void Box::PrintDebug(const char* desc) const {
           desc, fracCell_[3], fracCell_[4], fracCell_[5],
           desc, fracCell_[6], fracCell_[7], fracCell_[8],
           desc, (int)Is_X_Aligned(), (int)Is_X_Aligned_Ortho());
-}
-
-/** \return True if angle is truncated octahedron within a certain range. */
-bool Box::IsTruncOct(double angle) {
-  return (angle > TruncOctMin_ && angle < TruncOctMax_);
-}
-
-/** \return True if the given truncated octahedral angle will cause imaging issues. */
-bool Box::BadTruncOctAngle(double angle) {
-  return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
-}
-
-/** \return True if 'lhs' is approximately equal to 'rhs' */
-bool Box::IsEq(double lhs, double rhs) {
-  return (fabs(rhs - lhs) < EqEps_);
 }
 
 /** \return Cell shape based on current XYZ (i.e. ABC) alpha beta gamma. */

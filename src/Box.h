@@ -99,6 +99,8 @@ class Box {
     bool Is_X_Aligned() const;
     /// \return True if X-aligned and cell is orthogonal.
     bool Is_X_Aligned_Ortho() const;
+    /// \return True if unit cell off-diagonal elements are symmetric
+    bool Is_Symmetric() const;
 
     /// \return true if the given angle is suitable for a truncated octahedron
     static bool IsTruncOct(double);
