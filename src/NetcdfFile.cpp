@@ -907,6 +907,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE typeIn, int natomIn,
   } 
   // Box Info
   if (coordInfo.HasBox()) {
+    // Check x-aligned
+    if (!coordInfo.TrajBox().Is_X_Aligned())
+      mprintf("Warning: Unit cell is not X-aligned. Box cannot be properly stored as Amber NetCDF\n");
     // Cell Spatial
     if ( NC::CheckErr( nc_def_dim( ncid_, NCCELL_SPATIAL, 3, &cell_spatialDID_)) ) {
       mprinterr("Error: Defining cell spatial dimension.\n");
