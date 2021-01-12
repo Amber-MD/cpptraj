@@ -287,7 +287,6 @@ int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
   Box box;
   if (boxBytes_) {
     double boxtmp[6];
-    if (charmmCellType_ == SHAPE)
     if (ReadBox( boxtmp )) return TRAJIN_ERR;
     if (charmmCellType_ == SHAPE) {
       mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
@@ -496,6 +495,7 @@ int Traj_CharmmDcd::ReadBox(double* boxtmp) {
     boxtmp[3] = box[3];
     boxtmp[4] = box[4];
     boxtmp[5] = box[5];
+    //mprintf("DEBUG: charmm box read ucell: %f %f %f %f %f %f\n", boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
   }
   return 0;
 }
@@ -608,6 +608,30 @@ int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
 {
   if (!append) {
     SetCoordInfo( cInfoIn );
+    // Check if the cell is symmetric for SHAPE, or X-aligned for UCELL
+    if (CoordInfo().TrajBox().HasBox()) {
+      bool box_ok = true;
+      if (charmmCellType_ == UNKNOWN || charmmCellType_ == SHAPE) {
+        if (!CoordInfo().TrajBox().Is_Symmetric()) {
+          box_ok = false;
+          mprintf("Warning: Unit cell matrix is not symmetric.\n");
+          if (charmmCellType_ == UNKNOWN) {
+            if (CoordInfo().TrajBox().Is_X_Aligned()) {
+              mprintf("Warning: Storing 3xlengths and 3x angles instead of shape matrix.\n");
+              charmmCellType_ = UCELL;
+              box_ok = true;
+            }
+          }
+        }
+      } else if (charmmCellType_ == UCELL) {
+        if (!CoordInfo().TrajBox().Is_X_Aligned()) {
+          box_ok = false;
+          mprintf("Warning: Unit cell is not X-aligned.\n");
+        }
+      }
+      if (!box_ok)
+        mprintf("Warning: Box cannot be properly stored as Charmm DCD.\n");
+    }
     dcdatom_ = trajParm->Natom();
     // dcdframes = trajParm->parmFrames;
     dcdframes_ = 0;
@@ -723,9 +747,13 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
   // Box coords - 6 doubles, 48 bytes
   if (boxBytes_ != 0) {
     double boxtmp[6];
-    if (charmmCellType_ == SHAPE)
+    if (charmmCellType_ == SHAPE) {
+      if (!frameOut.BoxCrd().Is_Symmetric())
+        mprintf("Warning: Set %i; unit cell is not symmetric. Box cannot be properly stored as Charmm DCD.\n", set+1);
       frameOut.BoxCrd().GetSymmetricShapeMatrix( boxtmp );
-    else {
+    } else {
+      if (!frameOut.BoxCrd().Is_X_Aligned())
+        mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Charmm DCD.\n", set+1);
       /* The format for the 'box' array used in cpptraj is not the same as the
        * one used for NAMD/CHARMM dcd files.  Refer to the reading routine above
        * for a description of the box info.
@@ -734,6 +762,7 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
       boxtmp[2] = frameOut.BoxCrd().Param(Box::Y);
       boxtmp[5] = frameOut.BoxCrd().Param(Box::Z);
       // The angles must be reported in cos(angle) format
+      // TODO set cos(90) to zero?
       boxtmp[1] = cos(frameOut.BoxCrd().Param(Box::GAMMA) * Constants::DEGRAD);
       boxtmp[3] = cos(frameOut.BoxCrd().Param(Box::BETA ) * Constants::DEGRAD);
       boxtmp[4] = cos(frameOut.BoxCrd().Param(Box::ALPHA) * Constants::DEGRAD);
