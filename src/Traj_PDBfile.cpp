@@ -734,6 +734,8 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   write_cryst1_ = (CoordInfo().TrajBox().HasBox());
   if (write_cryst1_) {
+    if (!CoordInfo().TrajBox().Is_X_Aligned())
+      mprintf("Warning: Unit cell is not X-aligned. Box cannot be properly stored in PBD CRYST1.\n");
     if (pdbWriteMode_==MODEL)
       mprintf("Warning: For PDB with MODEL, box coords for first frame only will be written to CRYST1.\n");
     if (space_group_.empty())
@@ -824,6 +826,15 @@ void Traj_PDBfile::WriteBonds() {
   }
 }
 
+/** Write the CRYST1 record from box. */
+void Traj_PDBfile::writeBox(int set, Box const& box) {
+  if (write_cryst1_) {
+    if (!box.Is_X_Aligned())
+      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored in PDB CRYST1.\n", set+1);
+    file_.WriteCRYST1( box.XyzPtr(), space_group_.c_str() );
+  }
+}
+
 // Traj_PDBfile::writeFrame()
 /** Write the frame (model) to PDB file. */
 int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
@@ -833,14 +844,12 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
     WriteDisulfides(frameOut);
-    if (write_cryst1_)
-      file_.WriteCRYST1( frameOut.BoxCrd().XyzPtr(), space_group_.c_str() );
+    writeBox( set, frameOut.BoxCrd() );
   } else {
     // Write disulfides/box coords, first frame only.
     if (firstframe_) {
       WriteDisulfides(frameOut);
-      if (write_cryst1_)
-        file_.WriteCRYST1( frameOut.BoxCrd().XyzPtr(), space_group_.c_str() );
+      writeBox( set, frameOut.BoxCrd() );
       firstframe_ = false;
     }
   }
