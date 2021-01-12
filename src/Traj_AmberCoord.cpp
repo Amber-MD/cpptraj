@@ -398,9 +398,6 @@ int Traj_AmberCoord::setupTrajout(FileName const& fname, Topology* trajParm,
   //       on write mode, which is not known until now.
   natom3_ = trajParm->Natom() * 3;
   file_.SetupFrameBuffer( natom3_, 8, 10 );
-  // Warn if not X-aligned
-  if (!CoordInfo().TrajBox().Is_X_Aligned())
-    mprintf("Warning: Unit cell is not X-aligned. Box cannot be properly stored in this format.\n");
   // If box coords are present, allocate extra space for them
   Box::CellShapeType cellShape = CoordInfo().TrajBox().CellShape();
   switch (cellShape) {
@@ -417,6 +414,10 @@ int Traj_AmberCoord::setupTrajout(FileName const& fname, Topology* trajParm,
       numBoxCoords_ = 6;
   }
   file_.ResizeBuffer( numBoxCoords_ );
+  // Warn if not X-aligned
+  if (numBoxCoords_ > 0 && !CoordInfo().TrajBox().Is_X_Aligned())
+    mprintf("Warning: Unit cell is not X-aligned. Box cannot be properly stored as Amber ASCII trajectory.\n");
+
  
   if (debug_>0) 
     rprintf("(%s): Each frame has %lu bytes.\n", file_.Filename().base(), file_.FrameSize());
