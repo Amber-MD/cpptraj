@@ -382,6 +382,8 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
     }
     // Write box
     if (cellLengthVID_ != -1) {
+      if (!frm->BoxCrd().Is_X_Aligned())
+      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Amber NetCDF ensemble.\n", set+1);
       count_[2] = 3;
 #     ifdef HAS_PNETCDF
       if (ncmpi_put_vara_double_all(ncid_,cellLengthVID_,start_,count_,frm->BoxCrd().XyzPtr()))
