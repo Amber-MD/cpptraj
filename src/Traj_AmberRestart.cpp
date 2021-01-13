@@ -111,6 +111,8 @@ int Traj_AmberRestart::setupTrajout(FileName const& fname, Topology* trajParm,
   file_.ResizeBuffer( natom3_ );
   // If box coords are present, allocate extra space for them
   if (CoordInfo().HasBox()) {
+    if (!CoordInfo().TrajBox().Is_X_Aligned())
+      mprintf("Warning: Unit cell is not X-aligned. Box cannot be properly stored as Amber ASCII restart.\n");
     numBoxCoords_ = 6;
     file_.ResizeBuffer( numBoxCoords_ );
   }
@@ -363,8 +365,11 @@ int Traj_AmberRestart::writeFrame(int set, Frame const& frameOut) {
   if (CoordInfo().HasVel() && frameOut.HasVelocity())
     file_.DoubleToBuffer(frameOut.vAddress(), natom3_, "%12.7f");
   // Write box to buffer
-  if (numBoxCoords_!=0)
+  if (numBoxCoords_!=0) {
+    if (!frameOut.BoxCrd().Is_X_Aligned())
+      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored as Amber ASCII restart.\n", set+1);
     file_.DoubleToBuffer(frameOut.BoxCrd().XyzPtr(), numBoxCoords_, "%12.7f");
+  }
 
   if (file_.WriteFrame()) return 1;
 
