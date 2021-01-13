@@ -707,6 +707,7 @@ void Box::AssignFromShapeMatrix(const double* shape) {
 // -----------------------------------------------------------------------------
 /** Rotate unit cell vectors; recalculate fractional cell vectors. */
 void Box::RotateUcell(Matrix_3x3 const& rot) {
+  if (!HasBox()) return;
   // Rotate each unit cell vector
   Vec3 ucellx = rot * unitCell_.Row1();
   Vec3 ucelly = rot * unitCell_.Row2();
