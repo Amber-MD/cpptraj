@@ -65,14 +65,17 @@ EOF
 fi
 
 UNITNAME='NativeContacts test, orthorhombic imaging.'
-cat > nc.in <<EOF
+CheckFor maxthreads 2
+if [ $? -eq 0 ] ; then
+  cat > nc.in <<EOF
 parm ../dna30.parm7
 trajin ../Test_AutoImage/split.duplex.nc
 reference ../Test_AutoImage/split.duplex.nc 1
 nativecontacts name NC7 @N= @O= out nc7.dat distance 3.0
 EOF
-RunCpptraj "$UNITNAME"
-DoTest nc7.dat.save nc7.dat
+  RunCpptraj "$UNITNAME"
+  DoTest nc7.dat.save nc7.dat
+fi
 
 EndTest
 exit 0 
