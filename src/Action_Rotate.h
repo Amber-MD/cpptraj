@@ -22,5 +22,6 @@ class Action_Rotate : public Action {
     double delta_;              ///< Degrees to rotate if mode is AXIS
     ModeType mode_;             ///< Mode to use.
     bool inverse_;              ///< If true perform an inverse rotation.
+    bool all_atoms_selected_;   ///< If true all atoms selected for rotation
 };
 #endif

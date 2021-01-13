@@ -32,6 +32,8 @@ class Box {
     void SetNoBox();
     /// Rotate unit/frac cell vectors
     void RotateUcell(Matrix_3x3 const&);
+    /// Inverse rotate unit/frac cell vectors
+    void InverseRotateUcell(Matrix_3x3 const&);
     /// \return Current cell shape based on lengths and angles
     CellShapeType CellShape() const;
     // -------------------------------------------

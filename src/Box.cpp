@@ -724,6 +724,21 @@ void Box::RotateUcell(Matrix_3x3 const& rot) {
   CalcFracFromUcell(fracCell_, unitCell_);
 }
 
+/** Inverse rotation of unit cell vectors; recalculate fractional cell vectors. */
+void Box::InverseRotateUcell(Matrix_3x3 const& rot) {
+  if (!HasBox()) return;
+  // Inverse rotate each unit cell vector
+  Vec3 ucellx = rot.TransposeMult( unitCell_.Row1() );
+  Vec3 ucelly = rot.TransposeMult( unitCell_.Row2() );
+  Vec3 ucellz = rot.TransposeMult( unitCell_.Row3() );
+  // Set new unit cell matrix
+  unitCell_ = Matrix_3x3( ucellx[0], ucellx[1], ucellx[2],
+                          ucelly[0], ucelly[1], ucelly[2],
+                          ucellz[0], ucellz[1], ucellz[2] );
+  // Recalculate the fractional cell; volume is unchanged.
+  CalcFracFromUcell(fracCell_, unitCell_);
+}
+
 /** Set 'shape' with values for symmetric shape matrix from XYZ ABG array. */
 void Box::GetSymmetricShapeMatrix(double* shape) const {
   CalcShapeFromXyzAbg(shape, box_);
