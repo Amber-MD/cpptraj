@@ -15595,6 +15595,79 @@ trajout output.crd onlyframes 2,5-7
 only frames 2, 5, 6, and 7 from input.crd will be written to output.crd.
 \end_layout
 
+\begin_layout Subsubsection*
+Cell not X-aligned Warning
+\end_layout
+
+\begin_layout Standard
+Certain Actions (e.g.
+ 
+\series bold
+\emph on
+align
+\series default
+\emph default
+, 
+\series bold
+\emph on
+rms
+\series default
+\emph default
+, 
+\series bold
+\emph on
+principal
+\series default
+\emph default
+, etc.) can rotate the unit cell vectors (i.e.
+ the box) if they are present.
+ Some trajectory formats do not support writing out box coordinates if the
+ unit cell is not 
+\begin_inset Quotes eld
+\end_inset
+
+X-aligned
+\begin_inset Quotes erd
+\end_inset
+
+; in other words, if the unit cell 
+\begin_inset Quotes eld
+\end_inset
+
+A
+\begin_inset Quotes erd
+\end_inset
+
+ vector is not aligned with the coordinate X-axis and the 
+\begin_inset Quotes eld
+\end_inset
+
+B
+\begin_inset Quotes erd
+\end_inset
+
+ vector is not in the X-Y plane.
+ If this is the case, the following warnings may appear:
+\end_layout
+
+\begin_layout Standard
+Warning: Unit cell is not X-aligned.
+ Box cannot be properly stored as <format>.
+\end_layout
+
+\begin_layout Standard
+Warning: Set <#>; unit cell is not X-aligned.
+ Box cannot be properly stored as <format>.
+\end_layout
+
+\begin_layout Standard
+This means that the frame will be written with the X-aligned unit cell instead
+ of the actual unit cell.
+ Imaging will not be possible with a trajectory written this way.
+ Currently the only trajectory formats that support writing non-X-aligned
+ cells are the Gromacs TRR and XTC formats.
+\end_layout
+
 \begin_layout Subsubsection
 
 \shape italic
