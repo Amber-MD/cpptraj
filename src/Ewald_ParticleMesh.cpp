@@ -210,9 +210,20 @@ double Ewald_ParticleMesh::LJ_Recip_ParticleMesh(Box const& boxIn)
 
   //auto pme_vdw = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
   pme_vdw_.setup(6, lw_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
+  PMEInstanceD::LatticeType lattice = PMEInstanceD::LatticeType::XAligned;
+  // TODO just pass in Ucell when helPME supports it
+  boxIn.PrintDebug("pme");
+  if (!boxIn.Is_X_Aligned()) {
+    if (boxIn.Is_Symmetric())
+      lattice = PMEInstanceD::LatticeType::ShapeMatrix;
+    else {
+      mprinterr("Error: Unit cell is not X-aligned or symmetric; cannot set PME recip grid.\n");
+      return 0;
+    }
+  }
   pme_vdw_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
                              boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
-                             PMEInstanceD::LatticeType::XAligned);
+                             lattice);
   double evdwrecip = pme_vdw_.computeERec(0, cparamD, coordsD);
   t_recip_.Stop();
   return evdwrecip;
