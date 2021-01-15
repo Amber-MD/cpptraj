@@ -46,18 +46,10 @@ class Frame {
     Frame(int, double*);
     Frame(const Frame&);
     Frame& operator=(Frame);
-    typedef std::vector<int> RemdIdxType; ///< For dealing with replica indices TODO put in ReplicaInfo
-    typedef std::vector<double> RemdValType; /// < For reading replica values
-    // -------------------------------------------
-    /// This type interfaces with DataSet_Coords_CRD
-    //typedef std::vector<float> CRDtype;
-    /// Assign given CRDtype to this frame.
-    //void SetFromCRD(CRDtype const&, int, int, bool);
-    /// Assign selected atoms from given CRDtype to this frame.
-    //void SetFromCRD(CRDtype const&, AtomMask const&, int, int, bool);
-    /// Convert this frame to CRDtype.
-    //CRDtype ConvertToCRD(int, bool) const;
-    // -------------------------------------------
+    /// For dealing with replica indices TODO put in ReplicaInfo
+    typedef std::vector<int> RemdIdxType;
+    /// For reading replica values
+    typedef std::vector<double> RemdValType;
     /// \return Size of Frame in memory
     size_t DataSize() const;
     /// Print XYZ coordinates for given atom.
