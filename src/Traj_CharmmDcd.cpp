@@ -768,7 +768,10 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
       boxtmp[4] = cos(frameOut.BoxCrd().Param(Box::ALPHA) * Constants::DEGRAD);
     }
     WriteBlock(48);
-    file_.Write(boxtmp, sizeof(double)*6);
+    if (file_.Write(boxtmp, sizeof(double)*6)) {
+      mprinterr("Error: Failed writing box for DCD trajectory frame %i\n", set+1);
+      return 1;
+    }
     WriteBlock(48);
   }
   // Put X coords into xyz arrays
@@ -784,15 +787,24 @@ int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
   }
   // Write x coords
   WriteBlock(coordinate_size_);
-  file_.Write(xcoord_, coordinate_size_);
+  if (file_.Write(xcoord_, coordinate_size_)) {
+    mprinterr("Error: Failed writing X coordinates for DCD trajectory frame %i\n", set+1);
+    return 1;
+  }
   WriteBlock(coordinate_size_);
   // Write y coords
   WriteBlock(coordinate_size_);
-  file_.Write(ycoord_, coordinate_size_);
+  if (file_.Write(ycoord_, coordinate_size_)) {
+    mprinterr("Error: Failed writing Y coordinates for DCD trajectory frame %i\n", set+1);
+    return 1;
+  }
   WriteBlock(coordinate_size_);
   // Write z coords 
   WriteBlock(coordinate_size_);
-  file_.Write(zcoord_, coordinate_size_);
+  if (file_.Write(zcoord_, coordinate_size_)) {
+    mprinterr("Error: Failed writing Z coordinates for DCD trajectory frame %i\n", set+1);
+    return 1;
+  }
   WriteBlock(coordinate_size_);
   // Update frame count
   dcdframes_++;
