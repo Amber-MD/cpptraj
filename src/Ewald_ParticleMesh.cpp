@@ -212,7 +212,7 @@ double Ewald_ParticleMesh::LJ_Recip_ParticleMesh(Box const& boxIn)
   pme_vdw_.setup(6, lw_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
   PMEInstanceD::LatticeType lattice = PMEInstanceD::LatticeType::XAligned;
   // TODO just pass in Ucell when helPME supports it
-  boxIn.PrintDebug("pme");
+  //boxIn.PrintDebug("pme");
   if (!boxIn.Is_X_Aligned()) {
     if (boxIn.Is_Symmetric())
       lattice = PMEInstanceD::LatticeType::ShapeMatrix;
