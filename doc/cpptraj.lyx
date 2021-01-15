@@ -15650,12 +15650,12 @@ B
  If this is the case, the following warnings may appear:
 \end_layout
 
-\begin_layout Standard
+\begin_layout LyX-Code
 Warning: Unit cell is not X-aligned.
  Box cannot be properly stored as <format>.
 \end_layout
 
-\begin_layout Standard
+\begin_layout LyX-Code
 Warning: Set <#>; unit cell is not X-aligned.
  Box cannot be properly stored as <format>.
 \end_layout
@@ -15666,6 +15666,27 @@ This means that the frame will be written with the X-aligned unit cell instead
  Imaging will not be possible with a trajectory written this way.
  Currently the only trajectory formats that support writing non-X-aligned
  cells are the Gromacs TRR and XTC formats.
+\end_layout
+
+\begin_layout Standard
+If unit cell information is no longer needed, it can be removed (via e.g.
+ the 
+\series bold
+\emph on
+box
+\series default
+\emph default
+ action, the 
+\series bold
+\emph on
+strip
+\series default
+\emph default
+ action with the 
+\series bold
+'nobox'
+\series default
+ keyword, etc.) to prevent these warnings from triggering.
 \end_layout
 
 \begin_layout Subsubsection
@@ -16093,6 +16114,13 @@ veltraj Write velocity trajectory instead of coordinates.
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+Note that by default CPPTRAJ will try to write the symmetric shape matrix
+ if box information is present.
+ If this is not possible, CPPTRAJ will fall back to writing unit cell parameters
+ (lengths and angles) as long as the cell is X-aligned.
+\end_layout
+
 \begin_layout Subsubsection
 
 \emph on
@@ -16110,6 +16138,11 @@ dt Time step tp multiply set numbers by (default 1.0).
 \end_layout
 
 \end_deeper
+\begin_layout Standard
+Note: these formats can write rotated (i.e.
+ non-X-aligned) unit cells.
+\end_layout
+
 \begin_layout Subsubsection
 
 \shape italic
