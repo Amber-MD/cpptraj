@@ -96,8 +96,6 @@ class Frame {
     int RepIdx()                      const { return repidx_;        }
     /// \return overall coordinate index
     int CrdIdx()                      const { return crdidx_;        }
-    /// Set box alpha, beta, and gamma
-    //inline void SetBoxAngles(const double*);
     /// Set box from another box
     void SetBox( Box const& b ) { box_ = b; }
     /// Modify box in place
@@ -293,11 +291,6 @@ class Frame {
     inline bool ReallocateX(int);
 };
 // ---------- INLINE FUNCTION DEFINITIONS --------------------------------------
-/*void Frame::SetBoxAngles(const double* boxAngle) {
-  box_.SetAlpha( boxAngle[0] );
-  box_.SetBeta(  boxAngle[1] );
-  box_.SetGamma( boxAngle[2] );
-}*/
 
 bool Frame::CheckCoordsInvalid() const {
   if (natom_ > 1) {
