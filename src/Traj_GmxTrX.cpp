@@ -653,6 +653,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   write_real( lambda_ );
   // Write box
   // NOTE: GROMACS units are nm
+  int err = 0;
   if (box_size_ > 0) {
     //Matrix_3x3 ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
     Matrix_3x3 ucell = frameOut.BoxCrd().UnitCell();
@@ -666,10 +667,14 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       for (int i = 0; i < 9; i++)
         f_ucell[i] = (float)ucell[i];
       if (swapBytes_) endian_swap( f_ucell, 9 );
-      file_.Write( f_ucell, box_size_ );
+      err = file_.Write( f_ucell, box_size_ );
     } else { // double
       if (swapBytes_) endian_swap8( ucell.Dptr(), 9 );
-      file_.Write( ucell.Dptr(), box_size_ );
+      err = file_.Write( ucell.Dptr(), box_size_ );
+    }
+    if (err != 0) {
+      mprinterr("Error: Could not write box for TRR frame %i\n", set+1);
+      return 1;
     }
   }
   // Write coords/velo/forces
@@ -688,7 +693,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       for (int ir = 0; ir < natom3_; ir++, ix++)
         farray_[ix] = (float)(Fptr[ir] * Constants::AMBER_FRC_TO_GMX);
     if (swapBytes_) endian_swap( farray_, arraySize_ );
-    file_.Write( farray_, x_size_ + v_size_ + f_size_ );
+    err = file_.Write( farray_, x_size_ + v_size_ + f_size_ );
   } else { // double
     for (; ix < natom3_; ix++)
       darray_[ix] = (Xptr[ix] * Constants::ANG_TO_NM);
@@ -699,7 +704,11 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       for (int ir = 0; ir < natom3_; ir++, ix++)
         darray_[ix] = (Fptr[ir] * Constants::AMBER_FRC_TO_GMX);
     if (swapBytes_) endian_swap8( darray_, arraySize_ );
-    file_.Write( darray_, x_size_ + v_size_ + f_size_ );
+    err = file_.Write( darray_, x_size_ + v_size_ + f_size_ );
+  }
+  if (err != 0) {
+    mprinterr("Error: Could not write coords for TRR frame %i\n", set+1);
+    return 1;
   }
   return 0;
 }
