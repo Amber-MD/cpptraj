@@ -342,25 +342,39 @@ double Box::CalcFracFromUcell(Matrix_3x3& recip, Matrix_3x3 const& ucell) {
   return volume;
 }
 
-/** Calculate unit cell matrix from XYZ ABG array. */
+/** Calculate unit cell matrix from XYZ ABG array. 
+  * NOTE: Since cos(90 deg.) is not numerically stable (i.e. it is never
+  *       exactly 0.0), trap 90 deg. angles explicitly to ensure
+  *       the unit cell vectors are properly orthogonal.
+  */
 void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, const double* xyzabg) {
-  // If box lengths are zero no imaging possible
-  //if (xyzabg[0]==0.0 || xyzabg[1]==0.0 || xyzabg[2]==0.0) {
-  //  ucell.Zero();
-  //  recip.Zero();
-  //  return -1.0;
-  //}
-  if (xyzabg[3] == 90.0 && xyzabg[4] == 90.0 && xyzabg[5] == 90.0) {
-    ucell[0] = xyzabg[0];
-    ucell[1] = 0;
-    ucell[2] = 0;
-    ucell[3] = 0;
+  // A vector
+  ucell[0] = xyzabg[0]; // u(1,1)
+  ucell[1] = 0.0;       // u(2,1)
+  ucell[2] = 0.0;       // u(3,1)
+  // B vector
+  if ( fabs(xyzabg[5] - 90.0) < Constants::SMALL ) {
+    ucell[3] = 0.0;
     ucell[4] = xyzabg[1];
-    ucell[5] = 0;
-    ucell[6] = 0;
-    ucell[7] = 0;
-    ucell[8] = xyzabg[2];
   } else {
+    ucell[3] = xyzabg[1]*cos(Constants::DEGRAD*xyzabg[5]); // u(1,2)
+    ucell[4] = xyzabg[1]*sin(Constants::DEGRAD*xyzabg[5]); // u(2,2)
+  }
+  ucell[5] = 0.0;                                          // u(3,2)
+  // C vector
+  if ( fabs(xyzabg[4] - 90.0) < Constants::SMALL )
+    ucell[6] = 0.0;
+  else
+    ucell[6] = xyzabg[2]*cos(Constants::DEGRAD*xyzabg[4]);
+  double y_z_cos_alpha;
+  if ( fabs(xyzabg[3] - 90.0) < Constants::SMALL )
+    y_z_cos_alpha = 0.0;
+  else
+    y_z_cos_alpha = xyzabg[1]*xyzabg[2]*cos(Constants::DEGRAD*xyzabg[3]);
+  ucell[7] = (y_z_cos_alpha - ucell[6]*ucell[3]) / ucell[4];
+  ucell[8] = sqrt(xyzabg[2]*xyzabg[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
+/*
+    //The old code for reference.
     ucell[0] = xyzabg[0]; // u(1,1)
     ucell[1] = 0.0;     // u(2,1)
     ucell[2] = 0.0;     // u(3,1)
@@ -370,45 +384,8 @@ void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, const double* xyzabg) {
     ucell[6] = xyzabg[2]*cos(Constants::DEGRAD*xyzabg[4]);
     ucell[7] = (xyzabg[1]*xyzabg[2]*cos(Constants::DEGRAD*xyzabg[3]) - ucell[6]*ucell[3]) / ucell[4];
     ucell[8] = sqrt(xyzabg[2]*xyzabg[2] - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
-  }
+*/
 }
-
-// Box::CalcUcellFromXyzAbg()
-/*
-void Box::CalcUcellFromXyzAbg(Matrix_3x3& ucell, BoxType btype, const double* xyzabg, double scale) {
-  double by, bz;
-  //switch (btype) {
-  //  case NOBOX: ucell.Zero(); break;
-  //  case ORTHO:
-  if (btype == ORTHO) {
-      ucell[0] = xyzabg[0] * scale;
-      ucell[1] = 0.0;
-      ucell[2] = 0.0;
-      ucell[3] = 0.0;
-      ucell[4] = xyzabg[1] * scale;
-      ucell[5] = 0.0;
-      ucell[6] = 0.0;
-      ucell[7] = 0.0;
-      ucell[8] = xyzabg[2] * scale;
-  //    break;
-  //  case TRUNCOCT:
-  //  case RHOMBIC:
-  //  case NONORTHO:
-  } else {
-      by = xyzabg[1] * scale;
-      bz = xyzabg[2] * scale;
-      ucell[0] = xyzabg[0] * scale;
-      ucell[1] = 0.0;
-      ucell[2] = 0.0;
-      ucell[3] = by*cos(Constants::DEGRAD*xyzabg[5]);
-      ucell[4] = by*sin(Constants::DEGRAD*xyzabg[5]);
-      ucell[5] = 0.0;
-      ucell[6] = bz*cos(Constants::DEGRAD*xyzabg[4]);
-      ucell[7] = (by*bz*cos(Constants::DEGRAD*xyzabg[3]) - ucell[6]*ucell[3]) / ucell[4];
-      ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
-  //    break;
-  }
-}*/
 
 /** Calculate XYZ ABG array from unit cell matrix */
 void Box::CalcXyzAbgFromUcell(double* box, Matrix_3x3 const& ucell) {
