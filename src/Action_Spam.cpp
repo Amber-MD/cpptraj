@@ -284,7 +284,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
   // SANITY CHECK - imaging should always be active.
   if (!imageOpt_.ImagingEnabled()) {
-    mprinterr("Error: Imaging not possible for %s; required for SPAM.\n");
+    mprinterr("Error: Imaging not possible for %s; required for SPAM.\n", setup.Top().c_str());
     return Action::ERR;
   }
   // Set up the solvent_residues_ vector
