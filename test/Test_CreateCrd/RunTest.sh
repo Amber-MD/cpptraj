@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles create.in crd?.dat crd?.gnu crd?.rst7 crd.rst7 mremd.nc traj1.dat
+CleanFiles create.in crd?.dat crd?.gnu crd?.rst7 crd.rst7 mremd.nc traj1.dat mremd.traj.nc
 
 INPUT="-i create.in"
 TESTNAME='COORDS creation tests'
@@ -101,6 +101,16 @@ crdout MREMD mremd.nc
 EOF
 RunCpptraj "$UNITNAME"
 NcTest mremd.nc.save mremd.nc
+
+UNITNAME='TRAJ test storing frame metadata'
+cat > create.in <<EOF
+parm ../Test_Ensemble_MREMD/rGACC.nowat.parm7
+loadtraj ../Test_Ensemble_MREMD/rGACC.nowat.001 name MREMD
+list dataset
+crdout MREMD mremd.traj.nc
+EOF
+RunCpptraj "$UNITNAME"
+NcTest ../Test_Ensemble_MREMD/rGACC.nowat.001 mremd.traj.nc
 
 EndTest
 

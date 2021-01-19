@@ -201,7 +201,7 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
   while (atom < pdbAtom_) {
     if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
     // Skip non-ATOM records
-    if ( file_.RecType() == PDBfile::CRYST1 && frameIn.BoxCrd().HasBox() ) {
+    if ( file_.RecType() == PDBfile::CRYST1) {
       double xyzabg[6];
       file_.pdb_Box_terse( xyzabg );
       frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
