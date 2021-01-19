@@ -1,6 +1,7 @@
 #include <cmath> // sqrt
 #include "Action_RandomizeIons.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Action_RandomizeIons::Action_RandomizeIons() :
@@ -28,7 +29,7 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
   if (ions_.SetMaskString( ionmask )) return Action::ERR;
 
   // Get Keywords
-  image_.InitImaging( !actionArgs.hasKey("noimage") );
+  imageOpt_.InitImaging( !actionArgs.hasKey("noimage") );
   int seed = actionArgs.getKeyInt("seed", -1);
   overlap_ = actionArgs.getKeyDouble("overlap", 3.5);
   min_ = actionArgs.getKeyDouble("by", 3.5);
@@ -48,7 +49,7 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
   if (around_.MaskStringSet())
     mprintf("\tNo ion can get closer than %.2f angstroms to atoms in mask '%s'\n",
             sqrt( min_ ), around_.MaskString());
-  if (!image_.UseImage())
+  if (!imageOpt_.UseImage())
     mprintf("\tImaging of the coordinates will not be performed.\n");
   if (seed > 0)
     mprintf("\tRandom number generator seed is %i\n", seed);
@@ -109,7 +110,7 @@ Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
       solvMols_.push_back( Mol->MolUnit() ); 
     }
   }
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
   // Allocate solvent molecule considered for swap mask
   solvent_.resize( solvMols_.size() );
 
@@ -118,10 +119,8 @@ Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
 
 // Action_RandomizeIons::DoAction()
 Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
-
-  if (image_.ImageType() == NONORTHO)
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   // Loop over all solvent molecules and mark those that are too close to the solute
   int n_active_solvent = 0;
   for (unsigned int idx = 0; idx != solvMols_.size(); idx++) {
@@ -132,8 +131,7 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
       const double* solventXYZ = frm.Frm().XYZ( solvMols_[idx].Front() );
       for (AtomMask::const_iterator atom = around_.begin(); atom != around_.end(); ++atom)
       {
-        double dist = DIST2( solventXYZ, frm.Frm().XYZ(*atom), image_.ImageType(),
-                             frm.Frm().BoxCrd(), ucell, recip);
+        double dist = DIST2( imageOpt_.ImagingType(), solventXYZ, frm.Frm().XYZ(*atom), frm.Frm().BoxCrd() );
         if (dist < min_) {
           solvent_[idx] = false;
           //mprintf("RANDOMIZEIONS: water %i only %.2f ang from around @%i\n",
@@ -178,8 +176,7 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
         for (AtomMask::const_iterator ion2 = ions_.begin(); ion2 != ions_.end(); ++ion2)
         {
           if (*ion1 != *ion2) {
-            double dist = DIST2( solventXYZ, frm.Frm().XYZ(*ion2), image_.ImageType(),
-                                 frm.Frm().BoxCrd(), ucell, recip);
+            double dist = DIST2( imageOpt_.ImagingType(), solventXYZ, frm.Frm().XYZ(*ion2), frm.Frm().BoxCrd() );
             if (dist < overlap_) {
               // This solvent mol is too close to another ion.
               solvent_[idx] = false;

@@ -125,7 +125,9 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
     mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
               cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
-    TopIn.SetParmBox( Box(cif_box) ); 
+    Box parmBox;
+    parmBox.SetupFromXyzAbg( cif_box );
+    TopIn.SetParmBox( parmBox ); 
   }
   
   return 0;

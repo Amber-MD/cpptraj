@@ -1,6 +1,7 @@
 #ifndef ACTION_BOX_H
 #define ACTION_BOX_H
 #include "Action.h"
+#include "BoxArgs.h"
 /// Manipulate box coords
 class Action_Box : public Action {
   public:
@@ -17,7 +18,7 @@ class Action_Box : public Action {
     enum RadiiType { UNSPECIFIED = 0, GB, PARSE, VDW, NONE };
 
     CoordinateInfo cInfo_; ///< For holding modified coordinate info.
-    Box box_;              ///< Hold box info to be set for SET.
+    BoxArgs boxArgs_;      ///< Hold arguments for setting box (SET).
     ModeType mode_;        ///< How box info will be assigned.
     double offset_;        ///< Offset for AUTO
     RadiiType radiiMode_;  ///< Radii type to use for AUTO

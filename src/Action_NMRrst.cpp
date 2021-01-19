@@ -9,6 +9,7 @@
 #include "AtomMap.h"
 #include "ViewRst.h"
 #include "BufferedLine.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Action_NMRrst::Action_NMRrst() :
@@ -67,7 +68,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
 # endif
   debug_ = debugIn;
   // Get Keywords
-  Image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   findNOEs_ = actionArgs.hasKey("findnoes");
   findOutput_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("findout"), "Found NOEs",
@@ -161,7 +162,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
       mprintf("\t\t[%s] to [%s]\n", mp->first.MaskString(), mp->second.MaskString());
     mprintf("\tSpecified NOE data will be written to '%s'\n", specOutput_->Filename().full());
   }
-  if (!Image_.UseImage()) 
+  if (!imageOpt_.UseImage()) 
     mprintf("\tNon-imaged");
   else
     mprintf("\tImaged");
@@ -480,8 +481,8 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
     }
   } 
   // Set up imaging info for this parm
-  Image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (Image_.ImagingEnabled())
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
     mprintf("\tImaged.\n");
   else
     mprintf("\tImaging off.\n");
@@ -516,10 +517,10 @@ void Action_NMRrst::ProcessNoeArray(NOEtypeArray& Narray, Frame const& frameIn, 
     {
       for (unsigned int idx2 = 0; idx2 != my_noe->Site2().Nindices(); ++idx2)
       {
-        double dist2 = DIST2(frameIn.XYZ(my_noe->Site1().Idx(idx1)),
+        double dist2 = DIST2(imageOpt_.ImagingType(),
+                             frameIn.XYZ(my_noe->Site1().Idx(idx1)),
                              frameIn.XYZ(my_noe->Site2().Idx(idx2)),
-                             Image_.ImageType(), frameIn.BoxCrd(),
-                             ucell_, recip_);
+                             frameIn.BoxCrd());
         if (shortest_dist2 < 0.0 || dist2 < shortest_dist2) {
           shortest_dist2 = dist2;
           shortest_idx1 = idx1;
@@ -534,11 +535,10 @@ void Action_NMRrst::ProcessNoeArray(NOEtypeArray& Narray, Frame const& frameIn, 
 
 // Action_NMRrst::DoAction()
 Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
-  double Dist;
   Vec3 a1, a2;
 
-  if (Image_.ImageType() == NONORTHO)
-    frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   // NOEs from file.
   for (noeDataArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
     if ( noe->active_ ) {
@@ -550,12 +550,8 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
         a2 = frm.Frm().VGeometricCenter( noe->dMask2_ );
       }
 
-      switch ( Image_.ImageType() ) {
-        case NONORTHO: Dist = DIST2_ImageNonOrtho(a1, a2, ucell_, recip_); break;
-        case ORTHO: Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd()); break;
-        case NOIMAGE: Dist = DIST2_NoImage(a1, a2); break;
-      }
-      Dist = sqrt(Dist);
+      double Dist = DIST(imageOpt_.ImagingType(), a1, a2, frm.Frm().BoxCrd());
+
       noe->dist_->Add(frameNum, &Dist);
     }
   }

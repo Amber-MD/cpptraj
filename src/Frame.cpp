@@ -260,75 +260,6 @@ Frame &Frame::operator=(Frame rhs) {
   return *this;
 }
 
-// ---------- CONVERT TO/FROM CRDtype ------------------------------------------
-// Frame::SetFromCRD()
-void Frame::SetFromCRD(CRDtype const& farray, int numCrd, int numBoxCrd, bool hasVel) {
-  int f_ncoord = numCrd;
-  if (f_ncoord > maxnatom_*3) {
-    mprinterr("Error: Float array size (%i) > max #coords in frame (%i)\n",
-              f_ncoord, maxnatom_*3);
-    return;
-  }
-  ncoord_ = f_ncoord;
-  natom_ = ncoord_ / 3;
-  for (int ix = 0; ix < ncoord_; ++ix)
-    X_[ix] = (double)farray[ix];
-  if (hasVel && V_ != 0) {
-    for (int iv = 0; iv < ncoord_; ++iv)
-      V_[iv] = (double)farray[f_ncoord++];
-  }
-  for (int ib = 0; ib < numBoxCrd; ++ib)
-    box_[ib] = (double)farray[f_ncoord++];
-}
-
-// Frame::SetFromCRD()
-void Frame::SetFromCRD(CRDtype const& crdIn, AtomMask const& mask, int numCrd,
-                       int numBoxCrd, bool hasVel)
-{
-  if (mask.Nselected() > maxnatom_) {
-    mprinterr("Internal Error: Selected # atoms in float array (%i) > max #atoms in frame (%i)\n",
-              mask.Nselected(), maxnatom_);
-    return;
-  }
-  natom_ = mask.Nselected();
-  ncoord_ = natom_ * 3;
-  unsigned int ix = 0;
-  unsigned int iv = 0;
-  for (AtomMask::const_iterator atom = mask.begin(); atom != mask.end(); ++atom) {
-    unsigned int xoffset = ((unsigned int)(*atom)) * 3;
-    X_[ix++] = (double)crdIn[xoffset  ];
-    X_[ix++] = (double)crdIn[xoffset+1];
-    X_[ix++] = (double)crdIn[xoffset+2];
-    if (hasVel && V_ != 0) {
-      unsigned int voffset = numCrd + xoffset;
-      V_[iv++] = (double)crdIn[voffset  ]; 
-      V_[iv++] = (double)crdIn[voffset+1]; 
-      V_[iv++] = (double)crdIn[voffset+2]; 
-    }
-  }
-  int f_ncoord = (int)crdIn.size() - numBoxCrd;
-  for (int ib = 0; ib < numBoxCrd; ++ib)
-    box_[ib] = (double)crdIn[f_ncoord++];
-}
-
-// Frame::ConvertToCRD()
-Frame::CRDtype Frame::ConvertToCRD(int numBoxCrd, bool hasVel) const {
-  int nvel;
-  if (hasVel)
-    nvel = ncoord_;
-  else
-    nvel = 0;
-  CRDtype farray;
-  farray.reserve( ncoord_ + nvel + numBoxCrd );
-  for (int ix = 0; ix < ncoord_; ++ix)
-    farray.push_back( (float)X_[ix]   );
-  for (int iv = 0; iv < nvel; ++iv )
-    farray.push_back( (float)V_[iv]   );
-  for (int ib = 0; ib < numBoxCrd; ++ib)
-    farray.push_back( (float)box_[ib] );
-  return farray;
-}
-
 // ---------- ACCESS INTERNAL DATA ---------------------------------------------
 // Frame::DataSize()
 /** Size of Frame in memory. */
@@ -1431,7 +1362,7 @@ void Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
   xyzabg[3] = 90.0;
   xyzabg[4] = 90.0;
   xyzabg[5] = 90.0;
-  box_.SetBox(xyzabg);
+  box_.SetupFromXyzAbg(xyzabg);
 }
 
 #ifdef MPI
@@ -1444,7 +1375,7 @@ int Frame::SendFrame(int recvrank, Parallel::Comm const& commIn) {
     commIn.Send( V_,              ncoord_, MPI_DOUBLE, recvrank, 1215 );
   if (F_ != 0)
     commIn.Send( F_,              ncoord_, MPI_DOUBLE, recvrank, 1218 );
-  commIn.Send( box_.boxPtr(),     6,       MPI_DOUBLE, recvrank, 1213 );
+  box_.SendBox(recvrank, commIn);
   commIn.Send( &T_,               1,       MPI_DOUBLE, recvrank, 1214 );
   commIn.Send( &pH_,              1,       MPI_DOUBLE, recvrank, 1219 );
   commIn.Send( &redox_,           1,       MPI_DOUBLE, recvrank, 1220 );
@@ -1464,7 +1395,7 @@ int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
     commIn.Recv( V_,              ncoord_, MPI_DOUBLE, sendrank, 1215 );
   if (F_ != 0)
     commIn.Recv( F_,              ncoord_, MPI_DOUBLE, sendrank, 1218 );
-  commIn.Recv( box_.boxPtr(),     6,       MPI_DOUBLE, sendrank, 1213 );
+  box_.RecvBox(sendrank, commIn);
   commIn.Recv( &T_,               1,       MPI_DOUBLE, sendrank, 1214 );
   commIn.Recv( &pH_,              1,       MPI_DOUBLE, sendrank, 1219 );
   commIn.Recv( &redox_,           1,       MPI_DOUBLE, sendrank, 1220 );

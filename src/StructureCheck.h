@@ -1,7 +1,7 @@
 #ifndef INC_STRUCTURECHECK_H
 #define INC_STRUCTURECHECK_H
 #include "PairList.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 #include "ExclusionArray.h"
 #include "AtomMask.h"
 #include "ParameterTypes.h"
@@ -24,7 +24,7 @@ class StructureCheck {
 
     AtomMask const& Mask1()     const { return Mask1_; }
     AtomMask const& Mask2()     const { return Mask2_; }
-    ImagedAction const& Image() const { return image_; }
+    ImageOption const& ImageOpt() const { return imageOpt_; }
     bool CheckBonds()           const { return bondcheck_; }
     double BondOffset()         const { return bondoffset_; }
     double BondMinOffset()      const { return bondMinOffset_; }
@@ -79,16 +79,15 @@ class StructureCheck {
     /// Add selected bonds in topology to list to be checked.
     void SetupBondList(AtomMask const&, Topology const&);
     /// PairList version of CheckOverlap, 1 mask
-    int PL1_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
+    int PL1_CheckOverlap(Frame const&);
     /// Non-pairlist version of CheckOverlap, 1 mask
-    int Mask1_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
+    int Mask1_CheckOverlap(Frame const&);
     /// Non-pairlist version of CheckOverlap, 2 masks
-    int Mask2_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
+    int Mask2_CheckOverlap(Frame const&);
     /// Sort problem list; combine results from threads for OpenMP
     void ConsolidateProblems();
     /// Check for/record non-bonded interaction problem
-    inline void DistanceCheck(Frame const&, int, int, Matrix_3x3 const&, Matrix_3x3 const&,
-                              Parray&, int&) const;
+    inline void DistanceCheck(Frame const&, int, int, Parray&, int&) const;
 #   ifdef _OPENMP
     std::vector<Parray> thread_problemAtoms_;
 #   endif
@@ -96,7 +95,7 @@ class StructureCheck {
 
     PairList pairList_;     ///< Atom pair list
     ExclusionArray Excluded_; ///< Hold excluded atoms for pair list.
-    ImagedAction image_;    ///< Hold imaging routines and info.
+    ImageOption imageOpt_;    ///< Used to determine if imaging should be used.
     Parray bondList_;       ///< Array of bonds to check.
     AtomMask Mask1_;        ///< Mask of atoms to check.
     AtomMask Mask2_;        ///< Optional mask of atoms to check against atoms in Mask1

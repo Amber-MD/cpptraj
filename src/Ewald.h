@@ -41,8 +41,8 @@ class Ewald {
     double Vdw_Correction(double);
     /// Box, debug, cutoff, dsum tol, ew coeff, lj coeff, switch window, erfc dx, nb skin
     int CheckInput(Box const&, int, double, double, double, double, double, double, double);
-    /// Set up pair list
-    int Setup_Pairlist(Box const&, Vec3 const&, double);
+    /// Set up pair list for given box and NB "skin" size
+    int Setup_Pairlist(Box const&, double);
     /// Calculate sum q, sum q^2. Calls setup for vdw correction
     void CalculateCharges(Topology const&, AtomMask const&);
     /// Calculate VDW C6 parameters for LJ PME

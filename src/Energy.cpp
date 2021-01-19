@@ -367,8 +367,6 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
   double Edirect = E_Elec(fIn, tIn, mask, Excluded);
   // Sum over images.
   double Eimage = 0.0;
-  Matrix_3x3 ucell, recip;
-  fIn.BoxCrd().ToRecip(ucell, recip);
   // Cache npoints values, excluding this cell (0,0,0)
   std::vector<Vec3> Cells;
   int Ncells = (2*n_points)+1;
@@ -386,14 +384,14 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
     // Inner loop over atoms (j)
     for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
     {
-      Vec3 frac2 = recip * Vec3(fIn.XYZ( *atom2 )); // atom j in fractional coords
+      Vec3 frac2 = fIn.BoxCrd().FracCell() * Vec3(fIn.XYZ( *atom2 )); // atom j in fractional coords
       double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
       // Loop over images of atom j
       for (std::vector<Vec3>::const_iterator ixyz = Cells.begin(); ixyz != Cells.end(); ++ixyz)
       {
 //        mprintf("DEBUG: Atom %4i to %4i Image %3i %3i %3i", *atom1+1, *atom2+1, ix, iy, iz);
         // atom j image back in Cartesian space minus atom i in Cartesian space.
-        Vec3 dxyz = ucell.TransposeMult(frac2 + *ixyz) - T1;
+        Vec3 dxyz = fIn.BoxCrd().UnitCell().TransposeMult(frac2 + *ixyz) - T1;
         double rij2 = dxyz.Magnitude2();
         double rij = sqrt(rij2);
 //        mprintf(" Distance= %g\n", rij);

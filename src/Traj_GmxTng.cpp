@@ -314,7 +314,9 @@ int Traj_GmxTng::setupTrajin(FileName const& fname, Topology* trajParm)
   } // END loop over blocks
 
   // Set up coordinate info. Box, coord, vel, force, time
-  SetCoordInfo( CoordinateInfo( Box(boxShape), hasPos, hasVel, hasFrc, (tpf > 0.0) ) );
+  Box tngBox;
+  tngBox.SetupFromUcell( boxShape );
+  SetCoordInfo( CoordinateInfo( tngBox, hasPos, hasVel, hasFrc, (tpf > 0.0) ) );
 
   // Set up blocks that are actually there.
   blockIds_.clear();
@@ -405,9 +407,9 @@ int Traj_GmxTng::readFrame(int set, Frame& frameIn) {
     }
     // ----- Box -----------------------
     if ( blockId == TNG_TRAJ_BOX_SHAPE ) { // TODO switch?
-      Matrix_3x3 boxShape(0.0);
-      convertArray(boxShape.Dptr(), (float*)values_, 9, tngfac_);
-      frameIn.SetBox( Box(boxShape) );
+      double boxShape[9];
+      convertArray(boxShape, (float*)values_, 9, tngfac_);
+      frameIn.ModifyBox().AssignFromUcell( boxShape );
       //mprintf("DEBUG: box set %i %g %g %g\n", set,
       //        frameIn.BoxCrd().BoxX(),
       //        frameIn.BoxCrd().BoxY(),

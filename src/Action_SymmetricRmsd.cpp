@@ -83,8 +83,6 @@ Action::RetType Action_SymmetricRmsd::Setup(ActionSetup& setup) {
   // Reference frame setup
   if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected()))
     return Action::ERR;
-  if (SRMSD_.Fit())
-    Action::CheckImageRotationWarning(setup, "the RMS fit");
   return Action::OK;
 }
 
@@ -106,8 +104,10 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, ActionFrame& frm) {
     remapFrame_.SetCoordinatesByMap( frm.Frm(), targetMap_ );
     frm.SetFrame( &remapFrame_ );
   }
-  if ( SRMSD_.Fit() )
+  if ( SRMSD_.Fit() ) {
     frm.ModifyFrm().Trans_Rot_Trans( SRMSD_.TgtTrans(), SRMSD_.RotMatrix(), REF_.RefTrans() );
+    frm.ModifyFrm().ModifyBox().RotateUcell( SRMSD_.RotMatrix() );
+  }
   REF_.PreviousRef( frm.Frm() );
 
   return action_return_;

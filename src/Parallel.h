@@ -19,7 +19,6 @@
   *       necessary.
   * Send/Receive Tags: All Comm Send()/Recv() tags should be noted here in order.
   *     1212  : Frame::X_
-  *     1213  : Frame::box_
   *     1214  : Frame::T_
   *     1215  : Frame::V_
   *     1216  : Frame::remd_indices_
@@ -37,6 +36,10 @@
   *     1600+X: Ensemble sort
   *     1700  : DataSet_MatrixFlt size
   *     1701  : DataSet_MatrixFlt buffer
+  *     1800  : Box::btype_
+  *     1801  : Box::box_
+  *     1802  : Box::cellVolume_
+  *     1900  : Matrix_3x3::M_
   */
 class Parallel {
   public:

@@ -71,9 +71,29 @@ CoordinateInfo::CoordinateInfo(int e, ReplicaDimArray const& r, Box const& b,
   useRemdValues_(u)
 {}
 
+/** \return Character string corresponding to given component. */
+const char* CoordinateInfo::ComponentStr(Component cmptIn) {
+  switch (cmptIn) {
+    case POSITION : return "Position";
+    case VELOCITY : return "Velocity";
+    case FORCE    : return "Force";
+    case BOX      : return "Box";
+    case TEMPERATURE : return "Temperature";
+    case PH          : return "pH";
+    case REDOX       : return "RedOx";
+    case TIME        : return "Time";
+    case STEP        : return "Step";
+    case REMD_INDICES : return "REMD_indices";
+    case REPIDX       : return "Replica_indices";
+    case CRDIDX       : return "Coord_indices";
+    case NCOMPONENTS : break;
+  }
+  return 0;
+}
+
 /** DEBUG: Print info to stdout. */
 void CoordinateInfo::PrintCoordInfo(const char* name, const char* parm) const {
-  mprintf("DBG: '%s' parm '%s' CoordInfo={ box type %s", name, parm, box_.TypeName());
+  mprintf("DBG: '%s' parm '%s' CoordInfo={ box type %s", name, parm, box_.CellShapeName());
   if (remdDim_.Ndims() > 0) mprintf(", %i rep dims", remdDim_.Ndims());
   if (hasCrd_) mprintf(", coords");
   if (hasVel_) mprintf(", velocities");

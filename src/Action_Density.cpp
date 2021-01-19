@@ -137,7 +137,6 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     density_ = init.DSL().AddSet(DataSet::DOUBLE, dsname, "DENSITY");
     if (density_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddDataSet( density_ );
-    image_.InitImaging( true );
     // Hijack delta for storing sum of masses
     delta_ = 0.0;
   } else {
@@ -224,8 +223,7 @@ Action::RetType Action_Density::HistSetup(ActionSetup& setup) {
 // Action_Density::DensitySetup()
 Action::RetType Action_Density::DensitySetup(ActionSetup& setup) {
   // Total system density setup
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (!image_.ImagingEnabled()) {
+  if ( !setup.CoordInfo().TrajBox().HasBox() ) { 
     mprintf("Warning: No unit cell information, total density cannot be calculated for '%s'\n",
             setup.Top().c_str());
     return Action::SKIP;
@@ -298,7 +296,8 @@ Action::RetType Action_Density::HistAction(int frameNum, ActionFrame& frm) {
 
   // Accumulate area
   Box const& box = frm.Frm().BoxCrd();
-  area_.accumulate(box[area_coord_[0]] * box[area_coord_[1]]);
+  area_.accumulate(box.Param((Box::ParamType)area_coord_[0]) *
+                   box.Param((Box::ParamType)area_coord_[1]));
 
   return Action::OK;
 }
@@ -308,16 +307,8 @@ const double Action_Density::AMU_ANG_TO_G_CM3 = Constants::NA * 1E-24;
 
 // Action_Density::DensityAction()
 Action::RetType Action_Density::DensityAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
-  double volume = 0.0;
-  if (image_.ImageType() == ORTHO)
-    volume = frm.Frm().BoxCrd().BoxX() *
-             frm.Frm().BoxCrd().BoxY() *
-             frm.Frm().BoxCrd().BoxZ();
-  else if (image_.ImageType() == NONORTHO)
-    volume = frm.Frm().BoxCrd().ToRecip( ucell, recip );
   // Total mass is in delta_
-  double density = delta_ / (volume * AMU_ANG_TO_G_CM3);
+  double density = delta_ / (frm.Frm().BoxCrd().CellVolume() * AMU_ANG_TO_G_CM3);
   density_->Add(frameNum, &density);
   return Action::OK;
 }

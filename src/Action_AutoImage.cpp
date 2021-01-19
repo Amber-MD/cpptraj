@@ -10,7 +10,6 @@
 Action_AutoImage::Action_AutoImage() :
   debug_(0),
   origin_(false),
-  ortho_(false),
   usecom_(true),
   truncoct_(false),
   useMass_(false),
@@ -93,16 +92,14 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   // Determine Box info
-  Box::BoxType boxType = setup.CoordInfo().TrajBox().Type();
-  if (boxType == Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: Topology %s does not contain box information.\n", setup.Top().c_str());
     return Action::SKIP;
   }
-  ortho_ = false;
-  if (boxType == Box::ORTHO && triclinic_ == OFF) ortho_ = true;
   // If box is originally truncated oct and not forcing triclinic, 
   // turn familiar on.
-  if (boxType == Box::TRUNCOCT && triclinic_ != FORCE && triclinic_ != FAMILIAR) {
+  if (triclinic_ != FORCE && triclinic_ != FAMILIAR && setup.CoordInfo().TrajBox().CellShape() == Box::OCTAHEDRAL)
+  {
     mprintf("\tOriginal box is truncated octahedron, turning on 'familiar'.\n");
     triclinic_ = FAMILIAR;
   }
@@ -211,13 +208,13 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
 
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
   Vec3 fcom;
   Vec3 bp, bm, offset(0.0);
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
   Box const& box = frm.Frm().BoxCrd();
-  if (!ortho_) box.ToRecip(ucell, recip);
+  bool is_ortho = frm.Frm().BoxCrd().Is_X_Aligned_Ortho();
+  bool use_ortho = (is_ortho && triclinic_ == OFF);
   // Store anchor point in fcom for now.
   if (useMass_)
     fcom = frm.Frm().VCenterOfMass( anchorMask_ );
@@ -231,19 +228,19 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
     anchorcenter.Zero();
   } else {
     // Center on box center
-    if (ortho_ || truncoct_)
+    if (is_ortho || truncoct_)
       // Center is box xyz over 2
       anchorcenter = box.Center();
     else
       // Center in frac coords is (0.5,0.5,0.5)
-      anchorcenter = ucell.TransposeMult(Vec3(0.5));
+      anchorcenter = box.UnitCell().TransposeMult(Vec3(0.5));
     fcom = anchorcenter - fcom;
   }
   frm.ModifyFrm().Translate(fcom);
 
   // Setup imaging, and image everything in current Frame
   // according to mobileList_.
-  if (ortho_) {
+  if (is_ortho) {
     if (Image::SetupOrtho(box, bp, bm, origin_)) {
       mprintf("Warning: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
@@ -253,7 +250,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   } else {
     if (truncoct_)
       fcom = Image::SetupTruncoct( frm.Frm(), 0, useMass_, origin_ );
-    Image::Nonortho(frm.ModifyFrm(), origin_, fcom, offset, ucell, recip, truncoct_,
+    Image::Nonortho(frm.ModifyFrm(), origin_, fcom, offset, box.UnitCell(), box.FracCell(), truncoct_,
                     *mobileList_);
   }
 
@@ -267,13 +264,13 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       framecenter = fixedList_->GetCoord(idx, frm.Frm());
 
       // Determine distance in terms of box lengths
-      if (ortho_) {
+      if (use_ortho) {
         // Determine direction from molecule to anchor
         Vec3 delta = anchorcenter - framecenter;
         //mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
-        Vec3 minTrans( floor(delta[0]/box.BoxX()+0.5)*box.BoxX(),
-                       floor(delta[1]/box.BoxY()+0.5)*box.BoxY(),
-                       floor(delta[2]/box.BoxZ()+0.5)*box.BoxZ() );
+        Vec3 minTrans( floor(delta[0]/box.Param(Box::X)+0.5)*box.Param(Box::X),
+                       floor(delta[1]/box.Param(Box::Y)+0.5)*box.Param(Box::Y),
+                       floor(delta[2]/box.Param(Box::Z)+0.5)*box.Param(Box::Z) );
         Vec3 minImage = framecenter + minTrans;
         //mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}\n",
         //        frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
@@ -284,7 +281,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
         anchorcenter = minImage;
       } else {
         Vec3 newAnchor = framecenter;
-        Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
+        Trans = Image::Nonortho(framecenter, truncoct_, origin_, box.UnitCell(), box.FracCell(), fcom, -1.0);
         // If molecule was imaged, determine whether imaged position is closer to anchor.
         if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
           imagedcenter = framecenter + Trans;
@@ -312,10 +309,10 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       framecenter = fixedList_->GetCoord(idx, frm.Frm());
       
       // Determine if molecule would be imaged.
-      if (ortho_)
+      if (use_ortho)
         Trans = Image::Ortho(framecenter, bp, bm, box);
       else
-        Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
+        Trans = Image::Nonortho(framecenter, truncoct_, origin_, box.UnitCell(), box.FracCell(), fcom, -1.0);
       // If molecule was imaged, determine whether imaged position is closer to anchor.
       if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
         imagedcenter = framecenter + Trans;

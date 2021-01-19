@@ -2,7 +2,6 @@
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
 COMMON_SOURCES= \
         SpaceGroup.cpp \
-        Action.cpp \
         ActionFrameCounter.cpp \
         ActionList.cpp \
         ActionTopWriter.cpp \
@@ -142,6 +141,7 @@ COMMON_SOURCES= \
         AxisType.cpp \
         BondSearch.cpp \
         Box.cpp \
+        BoxArgs.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \
         ByteRoutines.cpp \
@@ -162,6 +162,7 @@ COMMON_SOURCES= \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
+        CompactFrameArray.cpp \
         ComplexArray.cpp \
         Constraints.cpp \
         ControlBlock_For.cpp \

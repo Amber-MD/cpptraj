@@ -2,7 +2,7 @@
 #define INC_ACTION_HYDROGENBOND_H
 #include <map>
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 #include "DataSet_integer.h"
 #ifdef TIMER
 # include "Timer.h"
@@ -28,7 +28,7 @@ class Action_HydrogenBond : public Action {
     class Hbond;
     class Bridge;
 
-    inline double Angle(const double*, const double*, const double*) const;
+    inline double Angle(const double*, const double*, const double*, Box const&) const;
     inline int UU_Set_Idx(int,int) const;
     inline DataSet_integer* UUset(int,int,int);
     void AddUU(double,double,int,int,int,int);
@@ -76,8 +76,7 @@ class Action_HydrogenBond : public Action {
     AtomMask SolventDonorMask_;
     AtomMask SolventAcceptorMask_;
     AtomMask Mask_;
-    ImagedAction Image_;       ///< Hold imaging info.
-    Matrix_3x3 ucell_, recip_; ///< Unit/recip cell for imaging.
+    ImageOption imageOpt_;       ///< Used to determine if imaging should be performed
 #   ifdef TIMER
     Timer t_action_;
     Timer t_uu_;

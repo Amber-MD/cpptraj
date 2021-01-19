@@ -4,6 +4,7 @@
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "CharMask.h"
+#include "DistRoutines.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -28,7 +29,7 @@ int StructureCheck::SetOptions(bool imageOn, bool checkBonds, bool saveProblemsI
                                double overlapCut, double bondLengthOffset, double bondMinOffset,
                                double pairListCut)
 {
-  image_.InitImaging( imageOn );
+  imageOpt_.InitImaging( imageOn );
   bondcheck_ = checkBonds;
   saveProblems_ = saveProblemsIn;
   debug_ = debugIn;
@@ -87,7 +88,7 @@ void StructureCheck::SetupBondList(AtomMask const& iMask, Topology const& top) {
 // StructureCheck::Setup()
 int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
 {
-  image_.SetupImaging( boxIn.Type() );
+  imageOpt_.SetupImaging( boxIn.HasBox() );
   bondList_.clear();
   // Set up first mask
   if ( topIn.SetupIntegerMask( Mask1_ ) ) return 1;
@@ -123,7 +124,7 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   // Check if pairlist should be used.
   ExclusionArray::SelfOpt ex_self_opt = ExclusionArray::NO_EXCLUDE_SELF;
   ExclusionArray::ListOpt ex_list_opt = ExclusionArray::ONLY_GREATER_IDX;
-  if (image_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
+  if (imageOpt_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
     mprintf("\tUsing pair list.\n");
     if (pairList_.InitPairList( plcut_, 0.1, debug_ )) {
       mprinterr("Error: StructureCheck: Could not init pair list.\n");
@@ -211,11 +212,12 @@ int StructureCheck::CheckBonds(Frame const& currentFrame)
 /** Check for bad overlaps; use a pair list to speed things up.
   * \return Number of bad overlaps.
   */
-int StructureCheck::PL1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const& ucell,
-                                     Matrix_3x3 const& recip)
+int StructureCheck::PL1_CheckOverlap(Frame const& currentFrame)
 {
   int Nproblems = 0;
-  int retVal = pairList_.CreatePairList(currentFrame, ucell, recip, Mask1_);
+  int retVal = pairList_.CreatePairList(currentFrame,
+                                        currentFrame.BoxCrd().UnitCell(),
+                                        currentFrame.BoxCrd().FracCell(), Mask1_);
   if (retVal < 0) {
     // Treat grid setup failure as one problem.
     mprinterr("Error: Grid setup failed.\n");
@@ -317,12 +319,11 @@ int StructureCheck::PL1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const
 
 /** Check for and record non-bonded clashes. */
 void StructureCheck::DistanceCheck(Frame const& currentFrame, int atom1, int atom2,
-                                   Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
                                    Parray& problemAtoms, int& Nproblems)
 const
 {
-  double D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                     image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
+  double D2 = DIST2( imageOpt_.ImagingType(), currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
+                     currentFrame.BoxCrd());
   if (D2 < nonbondcut2_) {
     ++Nproblems;
     if (saveProblems_) {
@@ -332,8 +333,7 @@ const
 }
 
 // StructureCheck::Mask2_CheckOverlap()
-int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const& ucell,
-                                       Matrix_3x3 const& recip)
+int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame)
 {
   problemAtoms_.clear();
   int Nproblems = 0;
@@ -354,7 +354,7 @@ int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
     for (int nmask2 = 0; nmask2 < inner_max; nmask2++) {
       int atom2 = InnerMask_[nmask2];
       if (atom1 != atom2) {
-        DistanceCheck(currentFrame, atom1, atom2, ucell, recip,
+        DistanceCheck(currentFrame, atom1, atom2,
 #                     ifdef _OPENMP
                       thread_problemAtoms_[mythread],
 #                     else
@@ -373,8 +373,7 @@ int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
 }
 
 // StructureCheck::Mask1_CheckOverlap()
-int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const& ucell,
-                                       Matrix_3x3 const& recip)
+int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame)
 {
   problemAtoms_.clear();
   int Nproblems = 0;
@@ -406,7 +405,7 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
       if (nmask2 == *ex)
         ++ex;
       else {
-        DistanceCheck(currentFrame, atom1, atom2, ucell, recip,
+        DistanceCheck(currentFrame, atom1, atom2,
 #                     ifdef _OPENMP
                       thread_problemAtoms_[mythread],
 #                     else
@@ -419,7 +418,7 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
     // Now, no more interactions to exclude.
     for (; nmask2 < mask1_max; nmask2++) {
       atom2 = Mask1_[nmask2];
-      DistanceCheck(currentFrame, atom1, atom2, ucell, recip,
+      DistanceCheck(currentFrame, atom1, atom2,
 #                   ifdef _OPENMP
                     thread_problemAtoms_[mythread],
 #                   else
@@ -438,14 +437,13 @@ int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
 
 //  StructureCheck::CheckOverlaps()
 int StructureCheck::CheckOverlaps(Frame const& currentFrame) {
-  Matrix_3x3 ucell, recip;
-  if (checkType_ == PL_1_MASK || image_.ImageType() == NONORTHO)
-    currentFrame.BoxCrd().ToRecip(ucell, recip);
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( currentFrame.BoxCrd().Is_X_Aligned_Ortho() );
   int Nproblems = 0;
   switch (checkType_) {
-    case PL_1_MASK     : Nproblems = PL1_CheckOverlap(currentFrame, ucell, recip); break;
-    case NO_PL_2_MASKS : Nproblems = Mask2_CheckOverlap(currentFrame, ucell, recip); break;
-    case NO_PL_1_MASK  : Nproblems = Mask1_CheckOverlap(currentFrame, ucell, recip); break;
+    case PL_1_MASK     : Nproblems = PL1_CheckOverlap(currentFrame); break;
+    case NO_PL_2_MASKS : Nproblems = Mask2_CheckOverlap(currentFrame); break;
+    case NO_PL_1_MASK  : Nproblems = Mask1_CheckOverlap(currentFrame); break;
   }
   return Nproblems;
 }

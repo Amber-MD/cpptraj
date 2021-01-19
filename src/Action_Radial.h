@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_RADIAL_H
 #define INC_ACTION_RADIAL_H
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 /// Calculate the radial distribution (pair correlation) function.
 class Action_Radial: public Action {
   public:
@@ -25,7 +25,7 @@ class Action_Radial: public Action {
 #   ifdef _OPENMP
     bool threadsCombined_;           ///< True if CombineRdfThreads() has been called.
 #   endif
-    ImagedAction image_;             ///< Image routines.
+    ImageOption imageOpt_;           ///< Used to decide if imaging should be used.
     Iarray RDF_;                     ///< Hold bin counts.
     std::vector<Iarray> rdf_thread_; ///< Hold bin count on each thread.
     AtomMask Mask1_;                 ///< Atoms to calculate RDF for.

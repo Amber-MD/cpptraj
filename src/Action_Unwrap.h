@@ -22,7 +22,6 @@ class Action_Unwrap : public Action {
     std::string maskExpression_; ///< Expression selecting entities to unwrap
     Frame RefFrame_;             ///< Reference frame, updated each DoAction
     Topology* RefParm_;          ///< Reference topology
-    bool orthogonal_;            ///< If true, cell is orthogonal
     bool center_;                ///< If true, determine distances to centers
     Unit allEntities_;           ///< Hold atoms to copy from target to reference
 #   ifdef MPI

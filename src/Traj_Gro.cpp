@@ -55,32 +55,36 @@ double Traj_Gro::GetTimeValue(const char* line) const {
 }
 
 // Traj_Gro::GetBox()
-Box Traj_Gro::GetBox(const char* line) const {
+/** \return true if box coords detected in line, false otherwise.
+  * \param ucell Array of length 9 set with unit cell vectors, X{xyz} Y{xyz} Z{xyz}
+  * \param line Line to scan.
+  */
+bool Traj_Gro::GetBox(double* ucell, const char* line) const {
   float fXYZ[9];
-  Box groBox;
   int nbox = sscanf( line, "%f %f %f %f %f %f %f %f %f", fXYZ, fXYZ+1, fXYZ+2,
                      fXYZ+3, fXYZ+4, fXYZ+5, fXYZ+6, fXYZ+7, fXYZ+8);
   if (nbox == 3) {
     // Box lengths. Convert nm->Ang. Assume orthogonal FIXME OK?
-    double dXYZ[6];
-    dXYZ[0] = (double)fXYZ[0];
-    dXYZ[1] = (double)fXYZ[1];
-    dXYZ[2] = (double)fXYZ[2];
-    for (int i = 0; i != 3; i++) dXYZ[i] *= Constants::NM_TO_ANG;
-    dXYZ[3] = 90.0;
-    dXYZ[4] = 90.0;
-    dXYZ[5] = 90.0;
-    groBox.SetBox( dXYZ );
+    ucell[0] = (double)fXYZ[0] * Constants::NM_TO_ANG;
+    ucell[1] = 0;
+    ucell[2] = 0;
+
+    ucell[3] = 0;
+    ucell[4] = (double)fXYZ[1] * Constants::NM_TO_ANG;
+    ucell[5] = 0;
+
+    ucell[6] = 0;
+    ucell[7] = 0;
+    ucell[8] = (double)fXYZ[2] * Constants::NM_TO_ANG;
+
+    return true;
   } else if (nbox == 9) {
     // Box vectors. Convert nm->Ang.
-    Matrix_3x3 ucell;
-    ucell[0] = (double)fXYZ[0]; ucell[1] = (double)fXYZ[3]; ucell[2] = (double)fXYZ[4]; // X
-    ucell[3] = (double)fXYZ[5]; ucell[4] = (double)fXYZ[1]; ucell[5] = (double)fXYZ[6]; // Y
-    ucell[6] = (double)fXYZ[7]; ucell[7] = (double)fXYZ[8]; ucell[8] = (double)fXYZ[2]; // Z
-    for (int i = 0; i != 9; i++) ucell[i] *= Constants::NM_TO_ANG;
-    groBox.SetBox( ucell );
+    for (int i = 0; i != 9; i++)
+      ucell[i] = fXYZ[i] * Constants::NM_TO_ANG;
+    return true;
   } // Otherwise assume no box.
-  return groBox;
+  return false;
 }
 
 // Traj_Gro::openTrajin()
@@ -146,8 +150,11 @@ int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   // v1(x) v2(y) v3(z) [v1(y) v1(z) v2(x) v2(z) v3(x) v3(y)]
   ptr = file_.Line();
   Box groBox;
-  if (ptr != 0)
-    groBox = GetBox( ptr );
+  if (ptr != 0) {
+    double ucell[9];
+    if (GetBox(ucell, ptr))
+      groBox.SetupFromUcell( ucell );
+  }
   // Set trajectory information. No temperature info.
   SetCoordInfo( CoordinateInfo(groBox, hasV, false, hasTime) );
   SetTitle( title );
@@ -156,7 +163,7 @@ int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   // are more frames.
   bool hasMultipleFrames = false;
   if (ptr != 0) {
-    if (groBox.Type() == Box::NOBOX) // Assume another title read.
+    if (!groBox.HasBox()) // Assume another title read.
       hasMultipleFrames = true;
     else {
       ptr = file_.Line(); // Read line after box info
@@ -166,7 +173,7 @@ int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   }
   // Set up some info for performing blank reads.
   linesToRead_ = natom_;
-  if (groBox.Type() != Box::NOBOX)
+  if (groBox.HasBox())
     linesToRead_ += 1;
   int nframes = 1;
   if (hasMultipleFrames) {
@@ -240,7 +247,9 @@ int Traj_Gro::readFrame(int fnum, Frame& frm) {
   // Box read
   if (CoordInfo().HasBox()) {
     ptr = file_.Line();
-    frm.SetBox( GetBox(ptr) );
+    double ucell[9];
+    if (GetBox(ucell, ptr))
+      frm.ModifyBox().AssignFromUcell( ucell );
   }
 
   ++currentSet_;

@@ -72,21 +72,21 @@ void Topology::SetBoxFromTraj(Box const& boxIn) {
     }
   } else {
     // Incoming box.
-    if ( boxIn.BoxX() < Constants::SMALL || 
-         boxIn.BoxY() < Constants::SMALL || 
-         boxIn.BoxZ() < Constants::SMALL )
+    if ( boxIn.Param(Box::X) < Constants::SMALL || 
+         boxIn.Param(Box::Y) < Constants::SMALL || 
+         boxIn.Param(Box::Z) < Constants::SMALL )
     {
-      // Incoming box has no lengths - disable parm box.
+      // Incoming box has no lengths - disable parm box. TODO is this check necessary/desirable?
       mprintf("Warning: Box information present in trajectory but lengths are zero.\n"
               "Warning: DISABLING BOX in topology '%s'!\n", c_str());
       parmBox_.SetNoBox();
     } else {
       // Incoming box is valid. Indicate if current box type differs from
       // incoming box type.
-      if (parmBox_.Type() != boxIn.Type()) {
+      if (parmBox_.CellShape() != boxIn.CellShape()) {
         mprintf("Warning: Trajectory box type is '%s' but topology box type is '%s'.\n"
                 "Warning: Setting topology box information from trajectory.\n",
-                boxIn.TypeName(), parmBox_.TypeName());
+                boxIn.CellShapeName(), parmBox_.CellShapeName());
       }
       parmBox_ = boxIn;
     }
@@ -291,7 +291,7 @@ void Topology::Summary() const {
   s2 = dihedrals_.size();
   if (s1 + s2 > 0)
     mprintf("\t\t%zu dihedrals (%zu with H, %zu other).\n", s1+s2, s1, s2);
-  mprintf("\t\tBox: %s\n", parmBox_.TypeName());
+  mprintf("\t\tBox: %s\n", parmBox_.CellShapeName());
   if (NsolventMolecules_>0) {
     mprintf("\t\t%i solvent molecules.\n", NsolventMolecules_);
   }
@@ -319,7 +319,7 @@ void Topology::Brief(const char* heading) const {
   else
     mprintf(" %s,", c_str());
   mprintf(" %zu atoms, %zu res, box: %s, %zu mol", atoms_.size(), 
-          residues_.size(), parmBox_.TypeName(), molecules_.size());
+          residues_.size(), parmBox_.CellShapeName(), molecules_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent", NsolventMolecules_);
   if (heading != 0)

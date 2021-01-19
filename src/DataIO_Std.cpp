@@ -592,7 +592,7 @@ int DataIO_Std::Read_3D(std::string const& fname,
       dvals[0] *= (double)dims_[0]; dvals[1] *= (double)dims_[0]; dvals[2] *= (double)dims_[0];
       dvals[3] *= (double)dims_[1]; dvals[4] *= (double)dims_[1]; dvals[5] *= (double)dims_[1];
       dvals[6] *= (double)dims_[2]; dvals[7] *= (double)dims_[2]; dvals[8] *= (double)dims_[2];
-      gridBox = Box(Matrix_3x3(dvals));
+      gridBox.SetupFromUcell(dvals);
     }
     ptr = buffer.Line();
   }

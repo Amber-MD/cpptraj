@@ -3,6 +3,7 @@
 #include "Action_Radial.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // FOURTHIRDSPI
+#include "DistRoutines.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -57,7 +58,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
 # endif
   debug_ = debugIn;
   // Get Keywords
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   std::string outfilename = actionArgs.GetStringKey("out");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
@@ -223,7 +224,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tNormalizing based on cell volume.\n");
   else
     mprintf("\tNormalizing using particle density of %f molecules/Ang^3.\n",density_);
-  if (!image_.UseImage()) 
+  if (!imageOpt_.UseImage()) 
     mprintf("\tImaging disabled.\n");
   if (numthreads_ > 1)
     mprintf("\tParallelizing RDF calculation with %i threads.\n",numthreads_);
@@ -322,7 +323,7 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
     mprintf("Warning: Second mask has no atoms.\n");
     return Action::SKIP;
   }
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
 
   // If not computing center for mask 1 or 2, make the outer loop for distance
   // calculation correspond to the mask with the most atoms.
@@ -382,7 +383,7 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
   }
 
   // Check volume information
-  if (useVolume_ && setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+  if (useVolume_ && !setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: 'volume' specified but no box information for %s, skipping.\n",
             setup.Top().c_str());
     return Action::SKIP;
@@ -396,7 +397,7 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
     mprintf("\t%i atoms in Mask1, %i atoms in Mask2\n",
             Mask1_.Nselected(), Mask2_.Nselected());
   }
-  if (image_.ImagingEnabled())
+  if (imageOpt_.ImagingEnabled())
     mprintf("\tImaging on.\n");
   else
     mprintf("\tImaging off.\n");
@@ -410,20 +411,17 @@ Action::RetType Action_Radial::Setup(ActionSetup& setup) {
 // NOTE: Because of maximum2 not essential to check idx>numBins?
 Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   double D;
-  Matrix_3x3 ucell, recip;
   int atom1, atom2;
   int nmask1, nmask2;
   int idx;
 # ifdef _OPENMP
   int mythread;
 # endif
-
-  // Set imaging information and store volume if specified
-  // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (image_.ImagingEnabled() || useVolume_) {
-    D = frm.Frm().BoxCrd().ToRecip(ucell,recip);
-    if (useVolume_)  volume_ += D;
-  }
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+  // Store volume if specified
+  if (useVolume_)
+    volume_ += frm.Frm().BoxCrd().CellVolume();
   // ---------------------------------------------
   if ( rmode_ == NORMAL ) { 
     // Calculation of all atoms in Mask1 to all atoms in Mask2
@@ -441,8 +439,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask_[nmask2];
         if (atom1 != atom2) {
-          D = DIST2( frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2),
-                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip);
+          D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd() );
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
@@ -479,8 +476,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask_[nmask2];
         if ( (*currentParm_)[atom1].MolNum() != (*currentParm_)[atom2].MolNum() ) {
-          D = DIST2( frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2),
-                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip);
+          D = DIST2( imageOpt_.ImagingType(), frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
@@ -517,8 +513,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
       {
         if (site1 != *site2) {
           Vec3 com2 = frm.Frm().VGeometricCenter( *site2 );
-          D = DIST2(com1.Dptr(), com2.Dptr(), image_.ImageType(),
-                    frm.Frm().BoxCrd(), ucell, recip);
+          D = DIST2(imageOpt_.ImagingType(), com1.Dptr(), com2.Dptr(), frm.Frm().BoxCrd());
           if (D <= maximum2_) {
             D = sqrt(D);
             //mprintf("MASKLOOP: %10i %10i %10.4f\n",atom1,atom2,D);
@@ -549,8 +544,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 #   endif
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = InnerMask_[nmask2];
-      D = DIST2(coord_center.Dptr(), frm.Frm().XYZ(atom2), image_.ImageType(),
-                frm.Frm().BoxCrd(), ucell, recip);
+      D = DIST2(imageOpt_.ImagingType(), coord_center.Dptr(), frm.Frm().XYZ(atom2), frm.Frm().BoxCrd());
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);

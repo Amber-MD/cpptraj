@@ -95,7 +95,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask '%s'", check_.Mask1().MaskString());
   if (check_.Mask2().MaskStringSet())
     mprintf(" around mask '%s'", check_.Mask2().MaskString());
-  if (!check_.Image().UseImage())
+  if (!check_.ImageOpt().UseImage())
     mprintf(", imaging off");
   if (outfile_ != 0)
     mprintf(", warnings output to %s", outfile_->Filename().full());
@@ -145,7 +145,7 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   if (check_.CheckBonds())
     mprintf("\tChecking %u bonds.\n", check_.Nbonds());
   // Print imaging info for this parm
-  if (check_.Image().ImagingEnabled())
+  if (check_.ImageOpt().ImagingEnabled())
     mprintf("\tImaging on.\n");
   else
     mprintf("\timaging off.\n");

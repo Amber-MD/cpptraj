@@ -80,7 +80,7 @@ int Traj_CIF::setupTrajin(FileName const& fname, Topology* trajParm)
     cif_box[5] = convertToDouble( cellblock.Data("angle_gamma") );
     mprintf("\tRead cell info from CIF: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
               cif_box[0], cif_box[1], cif_box[2], cif_box[3], cif_box[4], cif_box[5]);
-    boxInfo_.SetBox( cif_box);
+    boxInfo_.SetupFromXyzAbg( cif_box);
   }
   // Set traj info - No velocity, temperature, time.
   SetCoordInfo( CoordinateInfo( boxInfo_, false, false, false ) );
@@ -105,7 +105,7 @@ int Traj_CIF::readFrame(int set, Frame& frameIn) {
     *(Xptr++) = convertToDouble( (*line)[Cartn_y_col_] );
     *(Xptr++) = convertToDouble( (*line)[Cartn_z_col_] );
   }
-  std::copy( boxInfo_.boxPtr(), boxInfo_.boxPtr() + 6, frameIn.bAddress() );
+  frameIn.SetBox( boxInfo_ );
   return 0;
 }
 

@@ -105,7 +105,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 # endif
   debug_ = debugIn;
   // Always use imaged distances
-  image_.InitImaging(true);
+  imageOpt_.InitImaging(true);
   // This is needed everywhere in this function scope
   std::string peaksname;
 
@@ -267,24 +267,24 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   // We need box info
   Box const& currentBox = setup.CoordInfo().TrajBox();
-  if (currentBox.Type() == Box::NOBOX) {
+  if (!currentBox.HasBox()) {
     mprinterr("Error: SPAM: Must have explicit solvent with periodic boundaries!\n");
     return Action::ERR;
   }
 
   // See if our box dimensions are too small for our cutoff...
-  if (currentBox.BoxX() < doublecut_ ||
-      currentBox.BoxY() < doublecut_ ||
-      currentBox.BoxZ() < doublecut_)
+  if (currentBox.Param(Box::X) < doublecut_ ||
+      currentBox.Param(Box::Y) < doublecut_ ||
+      currentBox.Param(Box::Z) < doublecut_)
   {
     mprinterr("Error: SPAM: The box appears to be too small for your cutoff!\n");
     return Action::ERR;
   }
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
   // SANITY CHECK - imaging should always be active.
-  if (!image_.ImagingEnabled()) {
-    mprinterr("Interal Error: Imaging info not properly set up for Action_Spam\n");
+  if (!imageOpt_.ImagingEnabled()) {
+    mprinterr("Error: Imaging not possible for %s; required for SPAM.\n", setup.Top().c_str());
     return Action::ERR;
   }
   // Set up the solvent_residues_ vector
@@ -351,10 +351,12 @@ int Action_Spam::SetupParms(Topology const& ParmIn) {
 // Action_Spam::DoAction()
 Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
   Nframes_++;
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
   // Check that our box is still big enough...
-  overflow_ = overflow_ || frm.Frm().BoxCrd().BoxX() < doublecut_ ||
-                           frm.Frm().BoxCrd().BoxY() < doublecut_ ||
-                           frm.Frm().BoxCrd().BoxZ() < doublecut_;
+  overflow_ = overflow_ || frm.Frm().BoxCrd().Param(Box::X) < doublecut_ ||
+                           frm.Frm().BoxCrd().Param(Box::Y) < doublecut_ ||
+                           frm.Frm().BoxCrd().Param(Box::Z) < doublecut_;
   if (purewater_)
     return DoPureWater(frameNum, frm.Frm());
   else
@@ -393,8 +395,7 @@ double Action_Spam::Ecalc(int i, int j, double dist2) const {
 Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 {
   t_action_.Start();
-  frameIn.BoxCrd().ToRecip(ucell_, recip_);
-  int retVal = pairList_.CreatePairList(frameIn, ucell_, recip_, mask_);
+  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), mask_);
   if (retVal != 0) {
     mprinterr("Error: Grid setup failed.\n");
     return Action::ERR;
@@ -493,17 +494,12 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
   // Now loop through all atoms in the residue and loop through the pairlist to
   // get the energies
   for (int i = res.FirstAtom(); i < res.LastAtom(); i++) {
-    Vec3 atm1 = Vec3(frameIn.XYZ(i));
+    const double* atm1 = frameIn.XYZ(i);
     for (int j = 0; j < CurrentParm_->Natom(); j++) {
       if (j >= res.FirstAtom() && j < res.LastAtom()) continue;
-      Vec3 atm2 = Vec3(frameIn.XYZ(j));
-      double dist2;
+      const double* atm2 = frameIn.XYZ(j);
       // Get imaged distance
-      switch( image_.ImageType() ) {
-        case NONORTHO : dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell_, recip_); break;
-        case ORTHO    : dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd()); break;
-        default       : dist2 = DIST2_NoImage(atm1, atm2); break;
-      }
+      double dist2 = DIST2( imageOpt_.ImagingType(), atm1, atm2, frameIn.BoxCrd() );
       if (dist2 < cut2_) {
         double qiqj = atom_charge_[i] * atom_charge_[j];
         NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
@@ -526,9 +522,6 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
 /** Carries out SPAM analysis on a typical system */
 Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   t_action_.Start();
-  // Calculate unit cell and fractional matrices for non-orthorhombic system
-  if ( image_.ImageType() == NONORTHO )
-    frameIn.BoxCrd().ToRecip(ucell_, recip_);
   t_resCom_.Start();
   /* A list of all solvent residues and the sites that they are reserved for. An
    * unreserved solvent residue has an index -1. At the end, we will go through

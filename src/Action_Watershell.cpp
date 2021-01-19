@@ -10,7 +10,9 @@
 #ifdef CUDA
 # include "CharMask.h"
 // CUDA Kernel wrappers
-extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
+extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImageOption::Type,const double*,const double*,const double*);
+#else
+# include "DistRoutines.h"
 #endif
 
 // CONSTRUCTOR
@@ -34,7 +36,7 @@ void Action_Watershell::Help() const {
 // Action_Watershell::Init()
 Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  image_.InitImaging( !actionArgs.hasKey("noimage") );
+  imageOpt_.InitImaging( !actionArgs.hasKey("noimage") );
   // Get keywords
   std::string filename = actionArgs.GetStringKey("out");
   lowerCutoff_ = actionArgs.getKeyDouble("lower", 3.4);
@@ -82,7 +84,7 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
   mprintf("    WATERSHELL:");
   if (outfile != 0) mprintf(" Output to %s", outfile->DataFilename().full());
   mprintf("\n");
-  if (!image_.UseImage())
+  if (!imageOpt_.UseImage())
     mprintf("\tImaging is disabled.\n");
   mprintf("\tThe first shell will contain solvent < %.3f angstroms from\n",
           lowerCutoff_);
@@ -150,7 +152,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   NAtoms_ = setup.Top().Mol( first_solvent_mol ).NumAtoms();
   for (AtomMask::const_iterator atm = solventMask_.begin(); atm != solventMask_.end(); ++atm) {
     int mol = setup.Top()[*atm].MolNum();
-    if (NAtoms_ != setup.Top().Mol( mol ).NumAtoms()) {
+    if (NAtoms_ != (int)setup.Top().Mol( mol ).NumAtoms()) {
       mprinterr("Error: CUDA version of 'watershell' requires all solvent mols be same size.\n");
       return Action::ERR;
     }
@@ -183,8 +185,8 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
 # endif
 #endif /* CUDA */
   // Set up imaging
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled())
     mprintf("\tImaging is on.\n");
   else
     mprintf("\tImaging is off.\n");
@@ -199,6 +201,8 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
 Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
   int nlower = 0;
   int nupper = 0;
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
 # ifdef CUDA
   // Copy solvent atom coords to array
   unsigned int idx = 0; // Index into V_atom_coords_
@@ -210,9 +214,6 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
     V_atom_coords_[idx+1] = xyz[1];
     V_atom_coords_[idx+2] = xyz[2];
   }
-  Matrix_3x3 ucell, recip;
-  if (image_.ImageType() == NONORTHO)
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
   // Copy solute atom coords to array
   idx = 0;
   for (AtomMask::const_iterator atm = soluteMask_.begin();
@@ -226,8 +227,10 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
 
   Action_Closest_NoCenter( &V_atom_coords_[0], &V_distances_[0], &soluteCoords_[0],
                            9999999999999.0, NsolventMolecules_, NAtoms_, soluteMask_.Nselected(),
-                           image_.ImageType(),
-                           frm.Frm().BoxCrd().boxPtr(), ucell.Dptr(), recip.Dptr() );
+                           imageOpt_.ImagingType(),
+                           frm.Frm().BoxCrd().XyzPtr(),
+                           frm.Frm().BoxCrd().UnitCell().Dptr(),
+                           frm.Frm().BoxCrd().FracCell().Dptr() );
 
   // V_distances_ now has the closest distance of each solvent molecule to
   // solute. Determine shell status of each.
@@ -249,12 +252,10 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
 # endif
   int* status = 0;
 
-  if (image_.ImageType() == NONORTHO) {
+  if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
     // ----- NON-ORTHORHOMBIC IMAGING ------------
-    Matrix_3x3 ucell, recip;
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
     // Wrap all solute atoms back into primary cell, save coords.
-    Image::WrapToCell0( soluteCoords_, frm.Frm(), soluteMask_, ucell, recip );
+    Image::WrapToCell0( soluteCoords_, frm.Frm(), soluteMask_, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell() );
     // Calculate every imaged distance of all solvent atoms to solute
 #   ifdef _OPENMP
 #   pragma omp parallel private(Vidx, mythread, status)
@@ -270,7 +271,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
       int Vat = solventMask_[Vidx];
       int currentRes = (*CurrentParm_)[ Vat ].ResNum();
       // Convert to frac coords
-      Vec3 vFrac = recip * Vec3( frm.Frm().XYZ( Vat ) );
+      Vec3 vFrac = frm.Frm().BoxCrd().FracCell() * Vec3( frm.Frm().XYZ( Vat ) );
       // Wrap to primary unit cell
       vFrac[0] = vFrac[0] - floor(vFrac[0]);
       vFrac[1] = vFrac[1] - floor(vFrac[1]);
@@ -281,7 +282,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
           for (int iz = -1; iz != 2; iz++)
           {
             // Convert image back to Cartesian
-            Vec3 vCart = ucell.TransposeMult( vFrac + Vec3(ix, iy, iz) );
+            Vec3 vCart = frm.Frm().BoxCrd().UnitCell().TransposeMult( vFrac + Vec3(ix, iy, iz) );
             // Loop over all solute atoms
             for (unsigned int idx = 0; idx < soluteCoords_.size(); idx += 3)
             {
@@ -346,7 +347,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
           // Residue is not yet marked as 1st shell, calc distance
           Vec3 Ucoord( soluteCoords_[idx], soluteCoords_[idx+1], soluteCoords_[idx+2] );
           double dist2;
-          if (image_.ImageType() == ORTHO)
+          if (imageOpt_.ImagingType() == ImageOption::ORTHO)
             dist2 = DIST2_ImageOrtho( Vcoord, Ucoord, frm.Frm().BoxCrd() );
           else
             dist2 = DIST2_NoImage( Vcoord, Ucoord );

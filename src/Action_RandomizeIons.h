@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_RANDOMIZEIONS_H
 #define INC_ACTION_RANDOMIZEIONS_H
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 #include "Random.h"
 /// Used to randomize ion positions by swapping with solvent molecules.
 class Action_RandomizeIons : public Action {
@@ -15,7 +15,7 @@ class Action_RandomizeIons : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    ImagedAction image_;         ///< Imaging routines.
+    ImageOption imageOpt_;       ///< Used to determine if imaging should be used.
     Random_Number RN_;           ///< Random number generator.
     AtomMask ions_;              ///< Mask of ions to be moved.
     AtomMask around_;            ///< The 'around' mask (region of space for ions to avoid)
