@@ -1341,7 +1341,6 @@ int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
 
 // Parm_Amber::ReadChamberCmapCounts()
 int Parm_Amber::ReadCmapCounts(FlagType ftype, FortranData const& FMT) {
-  //const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
   if (SetupBuffer(ftype, 2, FMT)) return 1;
   n_cmap_terms_ = atoi( file_.NextElement() );
   n_cmap_grids_ = atoi( file_.NextElement() );
@@ -1351,7 +1350,6 @@ int Parm_Amber::ReadCmapCounts(FlagType ftype, FortranData const& FMT) {
 // Parm_Amber::ReadChamberCmapRes()
 /** Get CMAP resolutions for each grid and allocate grids. */
 int Parm_Amber::ReadCmapRes(FlagType ftype, Topology& TopIn, FortranData const& FMT) {
-  //const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPR : F_CMAPR;
   if (SetupBuffer(ftype, n_cmap_grids_, FMT)) return 1;
   for (int i = 0; i != n_cmap_grids_; i++)
     TopIn.AddCmapGrid( CmapGridType( atoi(file_.NextElement()) ) );
@@ -1391,7 +1389,6 @@ int Parm_Amber::ReadCmapGrid(FlagType ftype, const char* CmapFlag, Topology& Top
   int gridnum = convertToInteger( cmap_index_str ) - 1;
   if (gridnum < 0 || gridnum >= (int)TopIn.CmapGrid().size()) {
     mprintf("Warning: CMAP grid '%s' out of range.\n", CmapFlag);
-    //const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
     if (TopIn.HasCmap())
       mprintf("Warning: Expected grid between 1 and %zu, got %i\n",
               TopIn.CmapGrid().size(), gridnum+1);
@@ -1401,7 +1398,6 @@ int Parm_Amber::ReadCmapGrid(FlagType ftype, const char* CmapFlag, Topology& Top
     return 0;
   }
   CmapGridType& GRID = TopIn.SetCmapGrid( gridnum );
-  //const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPP : F_CMAPP;
   if (SetupBuffer(ftype, GRID.Size(), FMT)) return 1;
   for (int idx = 0; idx != GRID.Size(); idx++)
     GRID.SetGridPt( idx, atof(file_.NextElement()) );
@@ -1411,7 +1407,6 @@ int Parm_Amber::ReadCmapGrid(FlagType ftype, const char* CmapFlag, Topology& Top
 // Parm_Amber::ReadChamberCmapTerms()
 int Parm_Amber::ReadCmapTerms(FlagType ftype, Topology& TopIn, FortranData const& FMT) {
   int nvals = n_cmap_terms_ * 6;
-  //const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
   if (SetupBuffer(ftype, nvals, FMT)) return 1;
   for (int idx = 0; idx != nvals; idx += 6) {
     int a1 = atoi(file_.NextElement()) - 1;
