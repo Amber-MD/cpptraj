@@ -12,7 +12,7 @@ PotentialTerm_LJ_Coulomb::PotentialTerm_LJ_Coulomb() :
 {}
 
 /** Setup nonbonds. */
-int PotentialTerm_LJ_Coulomb::SetupTerm(Topology const& topIn, CharMask const& maskIn,
+int PotentialTerm_LJ_Coulomb::SetupTerm(Topology const& topIn,Box const& boxIn, CharMask const& maskIn,
                                   EnergyArray& Earray)
 {
   selectedAtoms_.clear();

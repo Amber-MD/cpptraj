@@ -1,6 +1,7 @@
 #include "PotentialFunction.h"
 #include "CpptrajStdio.h"
 #include "Topology.h"
+#include "MdOpts.h"
 // ----- All potential terms -----------
 #include "PotentialTerm_Bond.h"
 #include "PotentialTerm_OpenMM.h"
@@ -44,19 +45,27 @@ int PotentialFunction::SetupPotential(Topology const& topIn, Box const& boxIn,
     return 1;
   }
   mask_.MaskInfo();
-  return setupPotential(topIn);
+  return setupPotential(topIn, boxIn);
 }
 
-int PotentialFunction::SetupPotential(Topology const& topIn, CharMask const& maskIn) {
+/** Add term with default options. */
+int PotentialFunction::AddTerm(PotentialTerm::Type typeIn) {
+  MdOpts opts;
+  mprintf("\tUsing default options for term.\n");
+  return AddTerm(typeIn, opts);
+}
+
+/** Set up potential. */
+int PotentialFunction::SetupPotential(Topology const& topIn, Box const& boxIn, CharMask const& maskIn) {
   if (maskIn.Nselected() < 1) {
     mprinterr("Internal Error: SetupPotential called with empty mask.\n");
     return 1;
   }
   mask_ = maskIn;
-  return setupPotential(topIn);
+  return setupPotential(topIn, boxIn);
 }
 
-int PotentialFunction::setupPotential(Topology const& topIn) {
+int PotentialFunction::setupPotential(Topology const& topIn, Box const& boxIn) {
   // Determine degrees of freedom
   deg_of_freedom_ = 3 * mask_.Nselected();
   mprintf("\t%i degrees of freedom.\n", deg_of_freedom_);

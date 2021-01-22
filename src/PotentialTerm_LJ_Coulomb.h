@@ -5,11 +5,12 @@
 // Forward declares
 class NonbondParmType;
 class Atom;
+class MdOpts;
 /// Potential term for simple nonbonded LJ + Coulomb with no cutoff
 class PotentialTerm_LJ_Coulomb : public PotentialTerm {
   public:
     PotentialTerm_LJ_Coulomb();
-    int SetupTerm(Topology const&, CharMask const&, EnergyArray&);
+    int SetupTerm(Topology const&, Box const&, CharMask const&, EnergyArray&);
     void CalcForce(Frame&, CharMask const&) const;
   private:
     typedef std::vector<int> Iarray;

@@ -13,12 +13,14 @@ class MdOpts;
 class PotentialFunction {
   public:
     PotentialFunction() : current_(0), deg_of_freedom_(0) {}
-
+    /// Add term to function with given options
     int AddTerm(PotentialTerm::Type, MdOpts const&);
-    /// Set up all terms in the potential function.
+    /// Add term to function with default options
+    int AddTerm(PotentialTerm::Type);
+    /// Set up all terms in the potential function using mask expression.
     int SetupPotential(Topology const&, Box const&, std::string const&);
- 
-    int SetupPotential(Topology const&, CharMask const&);
+    /// Set up all terms in the potential function using given mask
+    int SetupPotential(Topology const&, Box const&, CharMask const&);
 
     int CalculateForce(Frame&);
 
@@ -30,7 +32,7 @@ class PotentialFunction {
   private:
     typedef std::vector<PotentialTerm*> Parray;
 
-    int setupPotential(Topology const&);
+    int setupPotential(Topology const&, Box const&);
 
     Parray terms_;       ///< Array of potential function terms
     EnergyArray earray_; ///< Array of energy terms

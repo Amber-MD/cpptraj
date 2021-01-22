@@ -381,7 +381,7 @@ const
   potential.AddTerm( PotentialTerm::SIMPLE_LJ_Q );
   Minimize_SteepestDescent SD;
 
-  if (potential.SetupPotential( topIn, maskIn )) return 1;
+  if (potential.SetupPotential( topIn, frameIn.BoxCrd(), maskIn )) return 1;
 
   if (SD.SetupMin("min.nc", min_tol, 1.0, nMinSteps_)) return 1;
 
