@@ -166,6 +166,14 @@ int PotentialTerm_OpenMM::SetupTerm(Topology const& topIn, Box const& boxIn,
 void PotentialTerm_OpenMM::CalcForce(Frame& frameIn, CharMask const& maskIn) const
 {
 # ifdef HAS_OPENMM
+  // Update box
+  if (frameIn.BoxCrd().HasBox()) {
+    Matrix_3x3 ucell = frameIn.BoxCrd().UnitCell() * OpenMM::NmPerAngstrom;
+    system_->setDefaultPeriodicBoxVectors(
+      OpenMM::Vec3( ucell[0], ucell[1], ucell[2] ),
+      OpenMM::Vec3( ucell[3], ucell[4], ucell[5] ),
+      OpenMM::Vec3( ucell[6], ucell[7], ucell[8] ) );
+  }
   // Set positions, convert from Ang to nm
   std::vector<OpenMM::Vec3> posInNm;
   posInNm.reserve(maskIn.Nselected());
