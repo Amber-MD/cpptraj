@@ -5,6 +5,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // convertToInteger, convertToDouble
 #include "DistRoutines.h" // selection by distance
+#include "RangeToken.h" // for parsing <num>-<num> tokens
 
 MaskToken::MaskToken() :
   distance2_(0.0),
@@ -98,38 +99,29 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
     }
   }
   if (type_ == ResNum || type_ == AtomNum || type_ == MolNum || type_ == OresNum) {
-    // Does this token argument have a dash? Only valid for number ranges.
-    size_t dashPosition = tokenString.find_first_of("-");
-    if (dashPosition != std::string::npos) {
-      // Get first and second args. If first arg is blank negative number specified.
-      std::string arg1(tokenString.begin(), tokenString.begin()+dashPosition);
-      if (arg1.empty()) {
-        mprinterr("Error: Mask expressions cannot contain negative numbers (%s)\n",
-                  tokenString.c_str());
-        return 1;
-      }
-      std::string arg2(tokenString.begin()+dashPosition+1, tokenString.end());
-      if (arg2.empty()) {
-        mprinterr("Error: Incomplete number range given (%s).\n", tokenString.c_str());
-        return 1;
-      }
-      idx1_ = convertToInteger( arg1 );
-      idx2_ = convertToInteger( arg2 );
-    } else {
-      // Get the number arg
-      idx1_ = convertToInteger( tokenString );
-      idx2_ = idx1_;
+    // Use RangeToken to convert the number/number range.
+    RangeToken rt;
+    if (rt.Assign(tokenString)) {
+      mprinterr("Error: Converting number token: %s\n", rt.Err().c_str());
+      return 1;
     }
-    // Ensure that res1 and res2 are valid
+    idx1_ = convertToInteger( rt.Num1() );
+    if (rt.Num2().empty())
+      idx2_ = idx1_;
+    else
+      idx2_ = convertToInteger( rt.Num2() );
+    // Ensure that idx2 >= idx1
     if (idx2_ < idx1_) {
       mprinterr("Error: Mask range, second num (%i) less than first (%i).\n",idx2_,idx1_);
       return 1;
     }
-    // It is expected that number args will start from 1
-    if (idx1_ < 1 || idx2_ < 1) {
-      mprinterr("Error: One or both numbers of mask arg (%s) < 1 (%i, %i)\n",
-                tokenString.c_str(), idx1_,idx2_);
-      return 1;
+    // It is expected that number args will start from 1 unless type is original resnum
+    if (type_ != OresNum) {
+      if (idx1_ < 1 || idx2_ < 1) {
+        mprinterr("Error: One or both numbers of mask arg (%s) < 1 (%i, %i)\n",
+                  tokenString.c_str(), idx1_,idx2_);
+        return 1;
+      }
     }
   } else {
     // This is a string arg.
@@ -860,25 +852,32 @@ int MaskTokenArray::SelectDistance(const double* REF, char *mask,
     for (moli = 0; moli < n_of_mol; moli++) {
       // Initial state
       char schar = char0;
-      int atomi = molecules[moli].BeginAtom();
-      const double* i_crd = REF + (atomi * 3);
-      // Loop over molecule atoms
-      for (; atomi != molecules[moli].EndAtom(); atomi++, i_crd += 3) {
-        // Loop over initially selected atoms
-        for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
-          double d2 = DIST2_NoImage(i_crd, REF + *idx);
-          if (d2 < dcut2) {
-            // State changes
-            schar = char1;
-            break;
-          }
-        } // END loop over initially selected atoms
-        if (schar == char1) break;
-      } // END loop over molecule atoms
+      // Loop over molecule segments
+      for (Unit::const_iterator seg = molecules[moli].MolUnit().segBegin();
+                                seg != molecules[moli].MolUnit().segEnd(); ++seg)
+      {
+        int atomi = seg->Begin();
+        const double* i_crd = REF + (atomi * 3);
+        // Loop over segment atoms
+        for (; atomi != seg->End(); atomi++, i_crd += 3)
+        {
+          // Loop over initially selected atoms
+          for (Uarray::const_iterator idx = Idx.begin(); idx != Idx.end(); ++idx) {
+            double d2 = DIST2_NoImage(i_crd, REF + *idx);
+            if (d2 < dcut2) {
+              // State changes
+              schar = char1;
+              break;
+            }
+          } // END loop over initially selected atoms
+          if (schar == char1) break;
+        } // END loop over segment atoms
+      } // END loop over molecule segments
       // Set molecule selection status
-      for (atomi = molecules[moli].BeginAtom();
-           atomi != molecules[moli].EndAtom(); atomi++)
-        mask[atomi] = schar;
+      for (Unit::const_iterator seg = molecules[moli].MolUnit().segBegin();
+                                seg != molecules[moli].MolUnit().segEnd(); ++seg)
+        for (int atomi = seg->Begin(); atomi != seg->End(); atomi++)
+          mask[atomi] = schar;
     } // END loop over all molecules
 #   ifdef _OPENMP
     } // END pragma omp parallel
@@ -976,7 +975,12 @@ void MaskTokenArray::SelectChainID(ResArrayT const& residues, NameType const& na
       std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
 }
 
-/** Select by molecule number. */
+/** Select by molecule number.
+  * \param molecules The array of molecules
+  * \param mol1 Start molecule arg (from 1)
+  * \param mol2 End molecule arg (from 1)
+  * \param mask The output mask
+  */
 void MaskTokenArray::SelectMolNum(MolArrayT const& molecules, int mol1, int mol2,
                                   char* mask) const
 {
@@ -984,20 +988,25 @@ void MaskTokenArray::SelectMolNum(MolArrayT const& molecules, int mol1, int mol2
     mprintf("Warning: No molecule information, cannot select by molecule.\n");
     return;
   }
-  int endatom;
-  int nmol = (int)molecules.size();
-  // Mask args expected to start from 1
-  if (mol1 > nmol) {
-    mprintf("Warning: Select molecules: mol 1 out of range (%i > %i)\n", mol1, nmol);
+  // Check start molecule arg.
+  unsigned int molStart = mol1 - 1;
+  if (molStart >= molecules.size()) {
+    mprintf("Warning: Select molecules: molecule start arg %i out of range (1-%zu)\n",
+            mol1, molecules.size());
     return;
   }
-  // If last mol > nmol, make it nmol
-  if ( mol2 >= nmol )
-    endatom = molecules.back().EndAtom();
-  else
-    endatom = molecules[mol2-1].EndAtom();
-  // Select atoms
-  std::fill(mask + molecules[mol1-1].BeginAtom(), mask + endatom, SelectedChar_);
+  // Check end molecule arg. If beyond last molecule, make it the last molecule
+  unsigned int molEnd = mol2;
+  if (molEnd > molecules.size())
+    molEnd = molecules.size();
+  // Loop over molecules
+  for (unsigned int midx = molStart; midx < molEnd; midx++)
+  {
+    // Loop over segments
+    for (Unit::const_iterator seg = molecules[midx].MolUnit().segBegin();
+                              seg != molecules[midx].MolUnit().segEnd(); ++seg)
+      std::fill(mask + seg->Begin(), mask + seg->End(), SelectedChar_);
+  }
 }
 
 /** Select by atomic element. */

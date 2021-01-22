@@ -33,8 +33,6 @@ static inline int toDigit(char c) {
 // Action_ReplicateCell::Init()
 Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  // Require imaging.
-  image_.InitImaging( true );
   // Set up output traj
   std::string trajfilename = actionArgs.GetStringKey("out");
   topWriter_.InitTopWriter( actionArgs, "replicated cell", debugIn );
@@ -135,10 +133,9 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     mprintf("Warning: One or both masks have no atoms.\n");
     return Action::SKIP;
   }
-  // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (!image_.ImagingEnabled()) {
-    mprintf("Warning: Imaging cannot be performed for topology %s\n", setup.Top().c_str());
+  // Check unit cell info for this parm
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
+    mprintf("Warning: No box info, cannot replica cell for topology %s\n", setup.Top().c_str());
     return Action::SKIP;
   }
   // Create combined topology.
@@ -179,7 +176,6 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
   unsigned int id;
   Vec3 frac, t2;
 
-  frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   int shift = Mask1_.Nselected() * 3;
 # ifdef _OPENMP
 # pragma omp parallel private(idx, newFrameIdx, id) firstprivate(frac, t2)
@@ -188,14 +184,14 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
 # endif
   for (idx = 0; idx < Mask1_.Nselected(); idx++) {
     // Convert to fractional coords
-    frac = recip_ * Vec3(frm.Frm().XYZ( Mask1_[idx] ));
+    frac = frm.Frm().BoxCrd().FracCell() * Vec3(frm.Frm().XYZ( Mask1_[idx] ));
     //mprintf("DEBUG: Atom %i frac={ %g %g %g }\n", Mask1_[idx]+1, frac[0], frac[1], frac[2]);
     // replicate in each direction
     newFrameIdx = idx * 3;
     for (id = 0; id != directionArray_.size(); id+=3, newFrameIdx += shift)
     {
        // Convert back to Cartesian coords.
-       t2 = ucell_.TransposeMult(frac + Vec3(directionArray_[id  ],
+       t2 = frm.Frm().BoxCrd().UnitCell().TransposeMult(frac + Vec3(directionArray_[id  ],
                                              directionArray_[id+1],
                                              directionArray_[id+2]));
        combinedFrame_[newFrameIdx  ] = t2[0];

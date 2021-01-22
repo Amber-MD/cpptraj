@@ -46,18 +46,10 @@ class Frame {
     Frame(int, double*);
     Frame(const Frame&);
     Frame& operator=(Frame);
-    typedef std::vector<int> RemdIdxType; ///< For dealing with replica indices TODO put in ReplicaInfo
-    typedef std::vector<double> RemdValType; /// < For reading replica values
-    // -------------------------------------------
-    /// This type interfaces with DataSet_Coords_CRD
-    typedef std::vector<float> CRDtype;
-    /// Assign given CRDtype to this frame.
-    void SetFromCRD(CRDtype const&, int, int, bool);
-    /// Assign selected atoms from given CRDtype to this frame.
-    void SetFromCRD(CRDtype const&, AtomMask const&, int, int, bool);
-    /// Convert this frame to CRDtype.
-    CRDtype ConvertToCRD(int, bool) const;
-    // -------------------------------------------
+    /// For dealing with replica indices TODO put in ReplicaInfo
+    typedef std::vector<int> RemdIdxType;
+    /// For reading replica values
+    typedef std::vector<double> RemdValType;
     /// \return Size of Frame in memory
     size_t DataSize() const;
     /// Print XYZ coordinates for given atom.
@@ -106,12 +98,10 @@ class Frame {
     int RepIdx()                      const { return repidx_;        }
     /// \return overall coordinate index
     int CrdIdx()                      const { return crdidx_;        }
-    /// Set box alpha, beta, and gamma
-    inline void SetBoxAngles(const double*);
     /// Set box from another box
     void SetBox( Box const& b ) { box_ = b; }
     /// Modify box in place
-    Box& SetBox() { return box_; }
+    Box& ModifyBox() { return box_; }
     /// Set temperature
     void SetTemperature(double tIn) { T_ = tIn;     }
     /// Set step
@@ -122,13 +112,20 @@ class Frame {
     void SetRedOx(double rIn)       { redox_ = rIn; }
     /// Set time
     void SetTime(double tIn)        { time_ = tIn;  }
+    /// Set replica index
+    void SetRepIdx(int rIn)         { repidx_ = rIn; }
+    /// Set coordinate index
+    void SetCrdIdx(int cIn)         { crdidx_ = cIn; }
     /// Set masses
     void SetMass(std::vector<Atom> const&);
+    /// Copy atoms from input frame to here
+    void CopyFrom(Frame const&, int, int);
+    /// Copy unit from input frame to here
+    void CopyFrom(Frame const&, Unit const&);
     // ----- Access to internal data pointers ----
     inline double* xAddress() { return X_;                }
     inline double* vAddress() { return V_;                }
     inline double* fAddress() { return F_;                }
-    inline double* bAddress() { return box_.boxPtr();     }
     inline double* tAddress() { return &T_;               }
     inline double* mAddress() { return &time_;            }
     inline int* iAddress()    { return &remd_indices_[0]; }
@@ -137,7 +134,6 @@ class Frame {
     inline const double* xAddress() const { return X_;                }
     inline const double* vAddress() const { return V_;                }
     inline const double* fAddress() const { return F_;                }
-    inline const double* bAddress() const { return box_.boxPtr();     }
     inline const double* tAddress() const { return &T_;               }
     inline const double* mAddress() const { return &time_;            }
     inline const int* iAddress()    const { return &remd_indices_[0]; }
@@ -213,10 +209,16 @@ class Frame {
     inline Vec3 VCenterOfMass(int, int) const;
     /// \return Geometric center of atoms in range.
     inline Vec3 VGeometricCenter(int, int) const;
+    /// \return Center of mass of atoms in Unit
+    inline Vec3 VCenterOfMass(Unit const&) const;
+    /// \return Geometric center of atoms in Unit
+    inline Vec3 VGeometricCenter(Unit const&) const;
     /// Translate atoms in mask by Vec
     inline void Translate(Vec3 const&, AtomMask const&);
     /// Translate atoms in range by Vec
     inline void Translate(Vec3 const&, int, int);
+    /// Translate atoms in Unit by Vec
+    inline void Translate(Vec3 const&, Unit const&);
     /// Translate atom by Vec
     inline void Translate(Vec3 const&, int);
     /// Translate all atoms by Vec
@@ -227,6 +229,8 @@ class Frame {
     inline void Rotate(Matrix_3x3 const&);
     /// Rotate all atoms in range by matrix
     inline void Rotate(Matrix_3x3 const&, int, int);
+    /// Rotate all atoms in unit by matrix
+    inline void Rotate(Matrix_3x3 const&, Unit const&);
     /// Rotate all atoms in mask by matrix
     inline void Rotate(Matrix_3x3 const&, AtomMask const&);
     /// Apply inverse of rotation defined by matrix to all atoms in mask
@@ -258,6 +262,8 @@ class Frame {
     Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&) const;
     /// Calculate temperature of atoms in mask.
     double CalcTemperature(AtomMask const&,int) const;
+    /// Set an orthogonal bounding box
+    void SetOrthoBoundingBox(std::vector<double> const& Radii, double);
 #   ifdef MPI
     // ----- Parallel Routines -------------------
     int SendFrame(int, Parallel::Comm const&);
@@ -291,11 +297,6 @@ class Frame {
     inline bool ReallocateX(int);
 };
 // ---------- INLINE FUNCTION DEFINITIONS --------------------------------------
-void Frame::SetBoxAngles(const double* boxAngle) {
-  box_.SetAlpha( boxAngle[0] );
-  box_.SetBeta(  boxAngle[1] );
-  box_.SetGamma( boxAngle[2] );
-}
 
 bool Frame::CheckCoordsInvalid() const {
   if (natom_ > 1) {
@@ -358,6 +359,13 @@ Vec3 Frame::VCenterOfMass(int startAtom, int stopAtom) const {
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
 }
 
+Vec3 Frame::VCenterOfMass(Unit const& unit) const {
+  Vec3 out(0.0);
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+    out += VCenterOfMass(seg->Begin(), seg->End());
+  return out;
+}
+
 Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   double Coord0 = 0.0;
   double Coord1 = 0.0;
@@ -372,6 +380,13 @@ Vec3 Frame::VGeometricCenter(int startAtom, int stopAtom) const {
   double sumMass = (double)(stopAtom - startAtom);
   if (sumMass == 0) return Vec3(0,0,0);
   return Vec3( Coord0 / sumMass, Coord1 / sumMass, Coord2 / sumMass );
+}
+
+Vec3 Frame::VGeometricCenter(Unit const& unit) const {
+  Vec3 out(0.0);
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+    out += VGeometricCenter(seg->Begin(), seg->End());
+  return out;
 }
 
 void Frame::Translate(Vec3 const& Vec, AtomMask const& maskIn) {
@@ -392,6 +407,11 @@ void Frame::Translate(Vec3 const& Vec, int firstAtom, int lastAtom) {
     X_[i+1] += Vec[1];
     X_[i+2] += Vec[2];
   }
+}
+
+void Frame::Translate(Vec3 const& Vec, Unit const& unit) {
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+    Translate(Vec, seg->Begin(), seg->End());
 }
 
 void Frame::Translate(Vec3 const& Vec, int atom) {
@@ -439,6 +459,11 @@ void Frame::Rotate(Matrix_3x3 const& T, int firstAtom, int lastAtom) {
     X_[i+1] = (x*T[3]) + (y*T[4]) + (z*T[5]);
     X_[i+2] = (x*T[6]) + (y*T[7]) + (z*T[8]);
   }
+}
+
+void Frame::Rotate(Matrix_3x3 const& T, Unit const& unit) {
+  for (Unit::const_iterator seg = unit.segBegin(); seg != unit.segEnd(); ++seg)
+    Rotate(T, seg->Begin(), seg->End());
 }
 
 void Frame::Rotate(Matrix_3x3 const& RotMatrix, AtomMask const& mask) {

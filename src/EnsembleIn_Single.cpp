@@ -225,7 +225,7 @@ void EnsembleIn_Single::EnsembleInfo(int showExtended) const {
   mprintf("'%s' (REMD ensemble size %i) ",Traj().Filename().base(), ensembleSize_); 
   eio_->Info();
   mprintf(", Parm %s",Traj().Parm()->c_str());
-  if (cInfo_.HasBox()) mprintf(" (%s box)", cInfo_.TrajBox().TypeName());
+  if (cInfo_.HasBox()) mprintf(" (%s box)", cInfo_.TrajBox().CellShapeName());
   if (showExtended==1) Traj().Counter().PrintFrameInfo();
   if (debug_>0)
     mprintf(", %i atoms, Box %i",Traj().Parm()->Natom(),(int)cInfo_.HasBox());

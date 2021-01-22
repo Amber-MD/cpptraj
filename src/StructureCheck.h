@@ -1,14 +1,20 @@
 #ifndef INC_STRUCTURECHECK_H
 #define INC_STRUCTURECHECK_H
 #include "PairList.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
+#include "ExclusionArray.h"
+#include "AtomMask.h"
+#include "ParameterTypes.h"
+// Forward declares
+class Topology;
+class CharMask;
 /// Used to count potential structure problems.
 class StructureCheck {
   public:
     StructureCheck();
-    /// Options: imageOn, checkBonds, saveProblems, debug, mask1, mask2, ovrlpCut, bndLenOffset, PListCut
+    /// Options: imageOn, checkBonds, saveProblems, debug, mask1, mask2, ovrlpCut, bndLenOffset, minBndLenOffset, PListCut
     int SetOptions(bool, bool, bool, int, std::string const&, std::string const&,
-                   double, double, double);
+                   double, double, double, double);
     /// Setup for given topology and box.
     int Setup(Topology const&, Box const&);
     /// \return Number of abnormal bonds.
@@ -18,9 +24,10 @@ class StructureCheck {
 
     AtomMask const& Mask1()     const { return Mask1_; }
     AtomMask const& Mask2()     const { return Mask2_; }
-    ImagedAction const& Image() const { return image_; }
+    ImageOption const& ImageOpt() const { return imageOpt_; }
     bool CheckBonds()           const { return bondcheck_; }
     double BondOffset()         const { return bondoffset_; }
+    double BondMinOffset()      const { return bondMinOffset_; }
     double NonBondCut2()        const { return nonbondcut2_; }
     double PairListCut()        const { return plcut_; }
     unsigned int Nbonds()       const { return bondList_.size(); }
@@ -72,27 +79,31 @@ class StructureCheck {
     /// Add selected bonds in topology to list to be checked.
     void SetupBondList(AtomMask const&, Topology const&);
     /// PairList version of CheckOverlap, 1 mask
-    int PL1_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
+    int PL1_CheckOverlap(Frame const&);
     /// Non-pairlist version of CheckOverlap, 1 mask
-    int Mask1_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
+    int Mask1_CheckOverlap(Frame const&);
     /// Non-pairlist version of CheckOverlap, 2 masks
-    int Mask2_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
+    int Mask2_CheckOverlap(Frame const&);
     /// Sort problem list; combine results from threads for OpenMP
     void ConsolidateProblems();
+    /// Check for/record non-bonded interaction problem
+    inline void DistanceCheck(Frame const&, int, int, Parray&, int&) const;
 #   ifdef _OPENMP
     std::vector<Parray> thread_problemAtoms_;
 #   endif
     Parray problemAtoms_;
 
     PairList pairList_;     ///< Atom pair list
-    ImagedAction image_;    ///< Hold imaging routines and info.
+    ExclusionArray Excluded_; ///< Hold excluded atoms for pair list.
+    ImageOption imageOpt_;    ///< Used to determine if imaging should be used.
     Parray bondList_;       ///< Array of bonds to check.
     AtomMask Mask1_;        ///< Mask of atoms to check.
     AtomMask Mask2_;        ///< Optional mask of atoms to check against atoms in Mask1
     AtomMask OuterMask_;    ///< Mask with the most atoms.
     AtomMask InnerMask_;    ///< Mask with fewer atoms.
-    double bondoffset_;     ///< Report bonds larger than Req + bondoffset
-    double nonbondcut2_;    ///< Report distance^2 less than nonbondcut2
+    double bondoffset_;     ///< Report bonds larger than Req + bondoffset_
+    double bondMinOffset_;  ///< Report bonds less than Req - bondMinOffset_
+    double nonbondcut2_;    ///< Report distance^2 less than nonbondcut2_
     double plcut_;          ///< Pairlist cutoff
     CheckType checkType_;   ///< Type of atom overlap check
     int debug_;             ///< Debug level.

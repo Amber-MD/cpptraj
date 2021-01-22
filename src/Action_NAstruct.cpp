@@ -1783,106 +1783,113 @@ static const char* STEP_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f
 
 // Action_NAstruct::Print()
 void Action_NAstruct::Print() {
-  if (bpout_ == 0) return;
   // Ensure all series have been updated for all frames.
   UpdateSeries();
-  // ---------- Base pair parameters ----------
-  // Check that there is actually data
-  if ( BasePairs_.empty() || nframes_ < 1)
-    mprinterr("Error: Could not write BP file %s: No BP data.\n", bpout_->Filename().full()); 
-  else {
-    mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
-            bpout_->Filename().full(), nframes_, BasePairs_.size());
-    //  File header
-    if (printheader_) {
-      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %2s",
-                     "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
-                     "Buckle","Propeller","Opening", "BP", "HB");
-      if (grooveCalcType_ == PP_OO)
-        bpout_->Printf(" %10s %10s", "Major", "Minor");
-      bpout_->Printf("\n");
-    }
-    // Loop over all frames
-    for (int frame = 0; frame < nframes_; ++frame) {
-      for (BPmap::const_iterator it = BasePairs_.begin();
-                                 it != BasePairs_.end(); ++it)
-      {
-        BPtype const& BP = it->second;
-        bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
-                       Bases_[BP.base1idx_].ResNum()+1, Bases_[BP.base2idx_].ResNum()+1,
-                       BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
-                       BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
-                       BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
-                       BP.isBP_->Dval(frame),    BP.hbonds_->Dval(frame));
-        if (grooveCalcType_ == PP_OO) 
-          bpout_->Printf(GROOVE_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
+
+  // ---------- Base pair parameters -------------
+  if (bpout_ != 0) {
+    // Check that there is actually data
+    if ( BasePairs_.empty() || nframes_ < 1)
+      mprintf("Warning: Could not write BP file %s: No BP data.\n", bpout_->Filename().full());
+    else {
+      mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
+              bpout_->Filename().full(), nframes_, BasePairs_.size());
+      //  File header
+      if (printheader_) {
+        bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %2s",
+                       "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
+                       "Buckle","Propeller","Opening", "BP", "HB");
+        if (grooveCalcType_ == PP_OO)
+          bpout_->Printf(" %10s %10s", "Major", "Minor");
         bpout_->Printf("\n");
       }
-      if (spaceBetweenFrames_) bpout_->Printf("\n");
+      // Loop over all frames
+      for (int frame = 0; frame < nframes_; ++frame) {
+        for (BPmap::const_iterator it = BasePairs_.begin();
+                                   it != BasePairs_.end(); ++it)
+        {
+          BPtype const& BP = it->second;
+          bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
+                         Bases_[BP.base1idx_].ResNum()+1, Bases_[BP.base2idx_].ResNum()+1,
+                         BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
+                         BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
+                         BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
+                         BP.isBP_->Dval(frame),    BP.hbonds_->Dval(frame));
+          if (grooveCalcType_ == PP_OO) 
+            bpout_->Printf(GROOVE_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
+          bpout_->Printf("\n");
+        }
+        if (spaceBetweenFrames_) bpout_->Printf("\n");
+      }
     }
   }
 
-  // ---------- Base pair step parameters ----------
+  // ---------- Base pair step parameters --------
   // Check that there is actually data
-  if ( Steps_.empty() || nframes_ < 1 )
-    mprinterr("Error: Could not write BPstep / helix files: No data.\n"); 
-  else {
-    mprintf("\tBase pair step output file %s\n\tHelix output file %s:\n"
-            "\t  %i frames, %zu base pair steps.\n", 
-            stepout_->Filename().full(), helixout_->Filename().full(),
-            nframes_, Steps_.size());
-    // Base pair step frames
-    if (printheader_) {
-      stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",
-                     "Shift","Slide","Rise","Tilt","Roll","Twist","Zp");
-      if (grooveCalcType_ == HASSAN_CALLADINE)
-        stepout_->Printf(" %10s %10s\n", "Major", "Minor");
-      stepout_->Printf("\n");
-    }
-    for (int frame = 0; frame < nframes_; ++frame) {
-      for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
-      {
-        StepType const& BS = it->second;
-        // BPstep write
-        stepout_->Printf(STEP_OUTPUT_FMT, frame+1, 
-                       Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
-                       Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
-                       BS.shift_->Dval(frame), BS.slide_->Dval(frame),
-                       BS.rise_->Dval(frame),  BS.tilt_->Dval(frame),
-                       BS.roll_->Dval(frame),  BS.twist_->Dval(frame),
-                       BS.Zp_->Dval(frame));
-        if (grooveCalcType_ == HASSAN_CALLADINE) {
-          if (BS.majGroove_ == 0)
-            stepout_->Printf(" %10s", "----");
-          else
-            stepout_->Printf(" %10.4f", BS.majGroove_->Dval(frame));
-          if (BS.minGroove_ == 0)
-            stepout_->Printf(" %10s", "----");
-          else
-            stepout_->Printf(" %10.4f", BS.minGroove_->Dval(frame));
-        }
+  if ( Steps_.empty() || nframes_ < 1 ) {
+    if (stepout_ != 0 || helixout_ != 0)
+      mprintf("Warning: Could not write BPstep / helix files: No data.\n");
+  } else {
+    if (stepout_ != 0) {
+      mprintf("\tBase pair step output file %s\n\tHelix output file %s:\n"
+              "\t  %i frames, %zu base pair steps.\n", 
+              stepout_->Filename().full(), helixout_->Filename().full(),
+              nframes_, Steps_.size());
+      // -- Base pair step frames ------
+      if (printheader_) {
+        stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",
+                       "Shift","Slide","Rise","Tilt","Roll","Twist","Zp");
+        if (grooveCalcType_ == HASSAN_CALLADINE)
+          stepout_->Printf(" %10s %10s\n", "Major", "Minor");
         stepout_->Printf("\n");
       }
-      if (spaceBetweenFrames_) stepout_->Printf("\n");
-    }
-    // Helix frames
-    if (printheader_)
-      helixout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
-                      "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
-    for (int frame = 0; frame < nframes_; ++frame) {
-      for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
-      {
-        StepType const& BS = it->second;
-        // Helix write
-        helixout_->Printf(HELIX_OUTPUT_FMT, frame+1,
-                          Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
-                          Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
-                          BS.xdisp_->Dval(frame), BS.ydisp_->Dval(frame),
-                          BS.hrise_->Dval(frame), BS.incl_->Dval(frame),
-                          BS.tip_->Dval(frame),   BS.htwist_->Dval(frame));
-        helixout_->Printf("\n");
+      for (int frame = 0; frame < nframes_; ++frame) {
+        for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+        {
+          StepType const& BS = it->second;
+          // BPstep write
+          stepout_->Printf(STEP_OUTPUT_FMT, frame+1, 
+                         Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
+                         Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
+                         BS.shift_->Dval(frame), BS.slide_->Dval(frame),
+                         BS.rise_->Dval(frame),  BS.tilt_->Dval(frame),
+                         BS.roll_->Dval(frame),  BS.twist_->Dval(frame),
+                         BS.Zp_->Dval(frame));
+          if (grooveCalcType_ == HASSAN_CALLADINE) {
+            if (BS.majGroove_ == 0)
+              stepout_->Printf(" %10s", "----");
+            else
+              stepout_->Printf(" %10.4f", BS.majGroove_->Dval(frame));
+            if (BS.minGroove_ == 0)
+              stepout_->Printf(" %10s", "----");
+            else
+              stepout_->Printf(" %10.4f", BS.minGroove_->Dval(frame));
+          }
+          stepout_->Printf("\n");
+        }
+        if (spaceBetweenFrames_) stepout_->Printf("\n");
       }
-      if (spaceBetweenFrames_) helixout_->Printf("\n");
-    }
-  }
+    } // END stepout_ file defined
+    // -- Helix frames -----------------
+    if (helixout_ != 0) {
+      if (printheader_)
+        helixout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+                        "X-disp","Y-disp","Rise","Incl.","Tip","Twist");
+      for (int frame = 0; frame < nframes_; ++frame) {
+        for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
+        {
+          StepType const& BS = it->second;
+          // Helix write
+          helixout_->Printf(HELIX_OUTPUT_FMT, frame+1,
+                            Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
+                            Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
+                            BS.xdisp_->Dval(frame), BS.ydisp_->Dval(frame),
+                            BS.hrise_->Dval(frame), BS.incl_->Dval(frame),
+                            BS.tip_->Dval(frame),   BS.htwist_->Dval(frame));
+          helixout_->Printf("\n");
+        }
+        if (spaceBetweenFrames_) helixout_->Printf("\n");
+      } // END loop over frames for helix data
+    } // END helixout_ file defined
+  } // END Steps_ contains data
 }

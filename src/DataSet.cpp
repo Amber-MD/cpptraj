@@ -30,7 +30,8 @@ const char* DataSet::Descriptions_[] = {
   "pH REMD (implicit)",         // PH_IMPL
   "parameters",                 // PARAMETERS
   "tensor",                     // TENSOR
-  "string variable"             // STRINGVAR
+  "string variable",            // STRINGVAR
+  "vector with scalar"          // VECTOR_SCALAR
 };
 
 // CONSTRUCTOR

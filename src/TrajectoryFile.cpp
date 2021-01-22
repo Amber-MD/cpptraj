@@ -45,7 +45,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # else
   { "Amber NC Ensemble",  0, 0, 0                          },
 # endif
-  { "PDB",                0, Traj_PDBfile::WriteHelp, Traj_PDBfile::Alloc        },
+  { "PDB",                Traj_PDBfile::ReadHelp, Traj_PDBfile::WriteHelp, Traj_PDBfile::Alloc    },
   { "Mol2",               0, Traj_Mol2File::WriteHelp, Traj_Mol2File::Alloc       },
   { "CIF",                0, 0, Traj_CIF::Alloc            },
   { "Charmm DCD",         Traj_CharmmDcd::ReadHelp, Traj_CharmmDcd::WriteHelp, Traj_CharmmDcd::Alloc      },

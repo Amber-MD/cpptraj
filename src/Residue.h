@@ -31,6 +31,38 @@ class Residue {
       resname_(n), firstAtom_(-1), lastAtom_(-1), originalResNum_(r), segID_(s),
        icode_(i), chainID_(BLANK_CHAINID_), isTerminal_(false)
     {}
+    /// \return True if this residue does not match given residue
+    bool operator!=(const Residue& rhs) const {
+      return ( originalResNum_ != rhs.originalResNum_ ||
+               segID_          != rhs.segID_          ||
+               icode_          != rhs.icode_          ||
+               chainID_        != rhs.chainID_        ||
+               (originalResNum_ == rhs.originalResNum_ && resname_ != rhs.resname_) );
+    }
+    /// \return Absolute distance in orig. residue numbering
+    int AbsResDist(const Residue& rhs) const {
+      if (chainID_ != rhs.chainID_) return 99999999; // TODO a real constant
+      int dist;
+      if (originalResNum_ == rhs.originalResNum_)
+      {
+        // blank icodes need to be replaced with the one before 'A'
+        static const int blankCode = ((int)'A') - 1;
+        int code1, code2;
+        if (icode_ == ' ')
+          code1 = blankCode;
+        else
+          code1 = (int)icode_;
+        if (rhs.icode_ == ' ')
+          code2 = blankCode;
+        else
+          code2 = (int)rhs.icode_;
+        dist = code1 - code2;
+      } else
+        dist = originalResNum_ - rhs.originalResNum_;
+      if (dist < 0) dist = -dist;
+      return dist;
+    }
+
     inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
     inline void SetLastAtom(int i)         { lastAtom_ = i;       }
     inline void SetOriginalNum(int i)      { originalResNum_ = i; }

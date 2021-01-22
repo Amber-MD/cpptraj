@@ -2,6 +2,7 @@
 #include <cmath> // sqrt
 #include "Action_DNAionTracker.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Action_DNAionTracker::Action_DNAionTracker() :
@@ -24,7 +25,7 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, ActionInit& init
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   poffset_ = actionArgs.getKeyDouble("poffset", 5.0);
-  InitImaging( !actionArgs.hasKey("noimage") );
+  imageOpt_.InitImaging( !actionArgs.hasKey("noimage") );
   if (actionArgs.hasKey("shortest"))
     bintype_ = SHORTEST;
   else if (actionArgs.hasKey("counttopcone"))
@@ -70,7 +71,7 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, ActionInit& init
   }
   mprintf("      saved to array named %s\n", distance_->legend());
   mprintf("      Perpendicular offset for cone is %5.2f angstroms\n", poffset_);
-  if (!UseImage())
+  if (!imageOpt_.UseImage())
     mprintf("      Imaging has been disabled\n");
   mprintf("\tPhosphate1 Mask [%s]\n", p1_.MaskString());
   mprintf("\tPhosphate2 Mask [%s]\n", p2_.MaskString());
@@ -104,7 +105,7 @@ Action::RetType Action_DNAionTracker::Setup(ActionSetup& setup) {
     mprinterr("Error: dnaiontracker: No atoms in mask4\n");
     return Action::ERR;
   }
-  SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
   mprintf("\tPhosphate1 Mask [%s] %i atoms.\n", p1_.MaskString(), p1_.Nselected());
   mprintf("\tPhosphate2 Mask [%s] %i atoms.\n", p2_.MaskString(), p2_.Nselected());
   mprintf("\t      Base Mask [%s] %i atoms.\n", base_.MaskString(), base_.Nselected());
@@ -114,13 +115,11 @@ Action::RetType Action_DNAionTracker::Setup(ActionSetup& setup) {
 }
 
 Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
   double d_tmp, dval;
   Vec3 P1, P2, BASE;
-  // Setup imaging info if necessary
-  if (ImageType()==NONORTHO) 
-    frm.Frm().BoxCrd().ToRecip(ucell,recip);
 
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho());
   // Get center for P1, P2, and Base
   if (useMass_) {
     P1 = frm.Frm().VCenterOfMass( p1_ );
@@ -133,15 +132,14 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
   }
  
   // Calculate P -- P distance and centroid
-  double d_pp = DIST2(P1.Dptr(), P2.Dptr(), ImageType(), frm.Frm().BoxCrd(), ucell, recip);
+  double d_pp = DIST2(imageOpt_.ImagingType(), P1, P2, frm.Frm().BoxCrd());
   Vec3 pp_centroid = (P1 + P2) / 2.0;
 
   // Cutoff^2
   double d_cut = d_pp*0.25 + (poffset_*poffset_); // TODO: precalc offset^2
 
   // Calculate P -- base centroid to median point
-  double d_pbase = DIST2(pp_centroid.Dptr(), BASE.Dptr(), ImageType(), frm.Frm().BoxCrd(), 
-                         ucell, recip);
+  double d_pbase = DIST2(imageOpt_.ImagingType(), pp_centroid, BASE, frm.Frm().BoxCrd());
 
   //double d_min = DBL_MAX;
   if (bintype_ == SHORTEST)
@@ -152,12 +150,9 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
     const double* ionxyz = frm.Frm().XYZ(*ion);
-    double d_p1ion =   DIST2(P1.Dptr(),   ionxyz, ImageType(), frm.Frm().BoxCrd(), 
-                             ucell, recip);
-    double d_p2ion =   DIST2(P2.Dptr(),   ionxyz, ImageType(), frm.Frm().BoxCrd(), 
-                             ucell, recip);
-    double d_baseion = DIST2(BASE.Dptr(), ionxyz, ImageType(), frm.Frm().BoxCrd(), 
-                             ucell, recip);
+    double d_p1ion =   DIST2(imageOpt_.ImagingType(), P1,   ionxyz, frm.Frm().BoxCrd());
+    double d_p2ion =   DIST2(imageOpt_.ImagingType(), P2,   ionxyz, frm.Frm().BoxCrd());
+    double d_baseion = DIST2(imageOpt_.ImagingType(), BASE, ionxyz, frm.Frm().BoxCrd());
     //mprintf("DEBUG: ion atom %i to P1 is %f\n", *ion+1, sqrt(d_p1ion));
     //mprintf("DEBUG: ion atom %i to P2 is %f\n", *ion+1, sqrt(d_p2ion));
     //mprintf("DEBUG: ion atom %i to base is %f\n", *ion+1, sqrt(d_baseion));

@@ -53,7 +53,7 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   trajComm_ = init.TrajComm();
 # endif
   debug_ = debugIn;
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")) );
   // Determine if this is old syntax or new.
   if (actionArgs.Nargs() > 2 && actionArgs.ArgIsMask(1) && validDouble(actionArgs[2]))
   {
@@ -174,7 +174,7 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   else
     mprintf("\tOnly average diffusion will be calculated.\n");
   mprintf("\tData set base name: %s\n", avg_x_->Meta().Name().c_str());
-  if (image_.UseImage())
+  if (imageOpt_.UseImage())
     mprintf("\tCorrections for imaging enabled.\n");
   else
     mprintf("\tCorrections for imaging disabled.\n");
@@ -221,8 +221,8 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   }
 
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled()) {
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
+  if (imageOpt_.ImagingEnabled()) {
     mprintf("\tImaging enabled.\n");
 #   ifdef MPI
     if (trajComm_.Size() > 1) {
@@ -299,7 +299,6 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 
 // Action_Diffusion::DoAction()
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
   // Load initial frame if necessary
   if (initial_.empty()) {
     initial_ = frm.Frm();
@@ -321,10 +320,9 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     }
   }
   // Diffusion calculation
-  if (image_.ImageType() != NOIMAGE) {
+  if (imageOpt_.ImagingEnabled()) {
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
     boxcenter_ = frm.Frm().BoxCrd().Center();
-    if (image_.ImageType() == NONORTHO)
-      frm.Frm().BoxCrd().ToRecip(ucell, recip);
   }
   // For averaging over selected atoms
   double average2 = 0.0;
@@ -338,7 +336,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     const double* iXYZ = initial_.XYZ(*at);
     // Calculate distance from initial position. 
     double delx, dely, delz;
-    if ( image_.ImageType() == ORTHO ) {
+    if ( imageOpt_.ImagingType() == ImageOption::ORTHO ) {
       // Orthorhombic imaging
       // Calculate distance to previous frames coordinates.
       delx = XYZ[0] - previous_[idx  ];
@@ -347,18 +345,18 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       // If the particle moved more than half the box, assume it was imaged
       // and adjust the distance of the total movement with respect to the
       // original frame.
-      if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().BoxX();
-      else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().BoxX();
-      if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().BoxY();
-      else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().BoxY();
-      if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().BoxZ();
-      else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().BoxZ();
+      if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().Param(Box::X);
+      else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().Param(Box::X);
+      if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().Param(Box::Y);
+      else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().Param(Box::Y);
+      if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().Param(Box::Z);
+      else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().Param(Box::Z);
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
       delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
       dely = XYZ[1] + delta_[idx+1] - iXYZ[1];
       delz = XYZ[2] + delta_[idx+2] - iXYZ[2];
-    } else if ( image_.ImageType() == NONORTHO ) {
+    } else if ( imageOpt_.ImagingType() == ImageOption::NONORTHO ) {
       // Non-orthorhombic imaging
       // Calculate distance to previous frames coordinates.
       delx = XYZ[0] - previous_[idx  ];
@@ -374,11 +372,11 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
         // Previous position in Cartesian space
         Vec3 pCart( previous_[idx], previous_[idx+1], previous_[idx+2] );
         // Current position in fractional coords
-        Vec3 cFrac = recip * Vec3( XYZ[0], XYZ[1], XYZ[2] );
+        Vec3 cFrac = frm.Frm().BoxCrd().FracCell() * Vec3( XYZ[0], XYZ[1], XYZ[2] );
         // Look for imaged distance closer to previous than current position
-        double minDist2 = frm.Frm().BoxCrd().BoxX() *
-                          frm.Frm().BoxCrd().BoxY() *
-                          frm.Frm().BoxCrd().BoxZ();
+        double minDist2 = frm.Frm().BoxCrd().Param(Box::X) *
+                          frm.Frm().BoxCrd().Param(Box::Y) *
+                          frm.Frm().BoxCrd().Param(Box::Z);
         Vec3 minCurr(0.0);
         for (int ix = -1; ix < 2; ix++) {
           for (int iy = -1; iy < 2; iy++) {
@@ -386,7 +384,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
               if (ix != 0 || iy != 0 || iz != 0) { // Ignore current position
                 Vec3 ixyz(ix, iy, iz);
                 // Current position shifted and back in Cartesian space
-                Vec3 IMG = ucell.TransposeMult(cFrac + ixyz);
+                Vec3 IMG = frm.Frm().BoxCrd().UnitCell().TransposeMult(cFrac + ixyz);
                 // Distance from previous position to imaged current position
                 Vec3 dxyz = IMG - pCart;
                 double dist2 = dxyz.Magnitude2();

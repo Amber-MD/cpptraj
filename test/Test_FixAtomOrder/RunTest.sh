@@ -18,7 +18,7 @@ trajin min1.crd 1 10
 fixatomorder outprefix reorder parmopts nopdbinfo
 trajout reorder.mdcrd
 EOF
-RunCpptraj "$TESTNAME (will print error messages)"
+RunCpptraj "$TESTNAME"
 DoTest reorder.outoforder.parm7.save reorder.outoforder.parm7 -I %VERSION
 DoTest reorder.mdcrd.save reorder.mdcrd
 

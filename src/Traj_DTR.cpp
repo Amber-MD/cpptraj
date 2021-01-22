@@ -132,8 +132,8 @@ int Traj_DTR::setupTrajin(FileName const& fname, Topology* trajParm)
     return 1;
   }
 
-  tmpBox.SetBox( Tstep.A, Tstep.B, Tstep.C,
-                 Tstep.alpha, Tstep.beta, Tstep.gamma );
+  tmpBox.SetupFromXyzAbg( Tstep.A, Tstep.B, Tstep.C,
+                          Tstep.alpha, Tstep.beta, Tstep.gamma );
 
   SetCoordInfo( CoordinateInfo(tmpBox, has_vel, false, true) );
   
@@ -163,8 +163,8 @@ int Traj_DTR::readFrame(int set, Frame& frameIn) {
     FloatToDouble(frameIn.vAddress(), Tstep.velocities, bufsize_);
 
   // Set box
-  frameIn.SetBox().SetBox( Tstep.A, Tstep.B, Tstep.C,
-                           Tstep.alpha, Tstep.beta, Tstep.gamma );
+  frameIn.ModifyBox().AssignFromXyzAbg( Tstep.A, Tstep.B, Tstep.C,
+                                        Tstep.alpha, Tstep.beta, Tstep.gamma );
 
   // Time
   frameIn.SetTime( Tstep.physical_time );

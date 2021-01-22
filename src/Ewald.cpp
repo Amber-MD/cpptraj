@@ -6,14 +6,13 @@
 #include "Spline.h"
 #include "Topology.h"
 #include "CharMask.h"
+#include "ParameterTypes.h"
 #ifdef DEBUG_PAIRLIST
 #incl ude "PDBfile.h"
 #endif
 
 /// CONSTRUCTOR
 Ewald::Ewald() :
-  sumq_(0.0),
-  sumq2_(0.0),
   ew_coeff_(0.0),
   lw_coeff_(0.0),
   switch_width_(0.0),
@@ -21,9 +20,10 @@ Ewald::Ewald() :
   cut2_(0.0),
   cut2_0_(0.0),
   dsumTol_(0.0),
-  erfcTableDx_(0.0),
-  one_over_Dx_(0.0),
-  debug_(0)
+  debug_(0),
+  sumq_(0.0),
+  sumq2_(0.0),
+  Vdw_Recip_term_(0)
 {
 # ifdef DEBUG_EWALD
   // Save fractional translations for 1 cell in each direction (and primary cell).
@@ -90,44 +90,9 @@ double Ewald::erfc_func(double xIn) {
   return erfc;
 }
 
-// Ewald::FillErfcTable()
-void Ewald::FillErfcTable(double cutoffIn, double dxdr) {
-  one_over_Dx_ = 1.0 / erfcTableDx_;
-  unsigned int erfcTableSize = (unsigned int)(dxdr * one_over_Dx_ * cutoffIn * 1.5);
-  Darray erfc_X, erfc_Y;
-  erfc_X.reserve( erfcTableSize );
-  erfc_Y.reserve( erfcTableSize );
-  // Save X and Y values so we can calc the spline coefficients
-  double xval = 0.0;
-  for (unsigned int i = 0; i != erfcTableSize; i++) {
-    double yval = erfc_func( xval );
-    erfc_X.push_back( xval );
-    erfc_Y.push_back( yval );
-    xval += erfcTableDx_;
-  }
-  Spline cspline;
-  cspline.CubicSpline_Coeff(erfc_X, erfc_Y);
-  erfc_X.clear();
-  // Store values in Spline table
-  erfc_table_.reserve( erfcTableSize * 4 ); // Y B C D
-  for (unsigned int i = 0; i != erfcTableSize; i++) {
-    erfc_table_.push_back( erfc_Y[i] );
-    erfc_table_.push_back( cspline.B_coeff()[i] );
-    erfc_table_.push_back( cspline.C_coeff()[i] );
-    erfc_table_.push_back( cspline.D_coeff()[i] );
-  }
-  // Memory saved Y values plus spline B, C, and D coefficient arrays.
-  mprintf("\tMemory used by Erfc table and splines: %s\n",
-          ByteString(erfc_table_.size() * sizeof(double), BYTE_DECIMAL).c_str());
-}
-
 // Ewald::ERFC()
 double Ewald::ERFC(double xIn) const {
-  int xidx = ((int)(one_over_Dx_ * xIn));
-  double dx = xIn - ((double)xidx * erfcTableDx_);
-  xidx *= 4;
-  return erfc_table_[xidx] + 
-         dx*(erfc_table_[xidx+1] + dx*(erfc_table_[xidx+2] + dx*erfc_table_[xidx+3]));
+  return table_.Yval( xIn);
 }
 
 /** Determine Ewald coefficient from cutoff and direct sum tolerance.
@@ -199,43 +164,16 @@ void Ewald::CalculateC6params(Topology const& topIn, AtomMask const& maskIn) {
 }
 
 /** Set up exclusion lists for selected atoms. */
-void Ewald::SetupExcluded(Topology const& topIn, AtomMask const& maskIn)
+void Ewald::SetupExclusionList(Topology const& topIn, AtomMask const& maskIn)
 {
-  Excluded_.clear();
-  Excluded_.resize( maskIn.Nselected() );
-  // Create a character mask so we can see if atoms in excluded lists are
-  // also selected.
-  CharMask Cmask(maskIn.ConvertToCharMask(), maskIn.Nselected());
-  // Create a map of atom number to maskIn index.
-  int selectedIdx = 0;
-  Iarray atToIdx( Cmask.Natom(), -1 );
-  for (int cidx = 0; cidx != Cmask.Natom(); cidx++)
-    if (Cmask.AtomInCharMask(cidx))
-      atToIdx[cidx] = selectedIdx++;
-  // Loop over selected atoms
-  for (int idx = 0; idx != maskIn.Nselected(); idx++)
+  // Use distance of 4 (up to dihedrals)
+  if (Excluded_.SetupExcluded(topIn.Atoms(), maskIn, 4,
+                              ExclusionArray::EXCLUDE_SELF,
+                              ExclusionArray::FULL))
   {
-    // Always exclude self
-    Excluded_[idx].insert( idx );
-    int at = maskIn[idx];
-    for (Atom::excluded_iterator excluded_atom = topIn[at].excludedbegin();
-                                 excluded_atom != topIn[at].excludedend();
-                               ++excluded_atom)
-    {
-      if (Cmask.AtomInCharMask(*excluded_atom))
-      {
-        // Find excluded atoms index in maskIn
-        int excluded_idx = atToIdx[*excluded_atom];
-        Excluded_[idx         ].insert( excluded_idx );
-        Excluded_[excluded_idx].insert( idx          );
-      }
-    }
+    mprinterr("Error: Ewald: Could not set up exclusion list.\n");
+    return;
   }
-  unsigned int ex_size = 0;
-  for (Iarray2D::const_iterator it = Excluded_.begin(); it != Excluded_.end(); ++it)
-    ex_size += it->size();
-  mprintf("\tMemory used by full exclusion list: %s\n",
-          ByteString(ex_size * sizeof(int), BYTE_DECIMAL).c_str());
 }
 
 /** Check some common input. */
@@ -249,17 +187,18 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
   ew_coeff_ = ew_coeffIn;
   lw_coeff_ = lw_coeffIn;
   switch_width_ = switch_widthIn;
-  erfcTableDx_ = erfcTableDxIn;
+  double erfcTableDx = erfcTableDxIn;
   // Check input
   if (cutoff_ < Constants::SMALL) {
     mprinterr("Error: Direct space cutoff (%g) is too small.\n", cutoff_);
     return 1;
   }
   char dir[3] = {'X', 'Y', 'Z'};
+  // NOTE: First 3 box parameters are X Y Z
   for (int i = 0; i < 3; i++) {
-    if (cutoff_ > boxIn[i]/2.0) {
+    if (cutoff_ > boxIn.Param((Box::ParamType)i)/2.0) {
       mprinterr("Error: Cutoff must be less than half the box length (%g > %g, %c)\n",
-                cutoff_, boxIn[i]/2.0, dir[i]);
+                cutoff_, boxIn.Param((Box::ParamType)i)/2.0, dir[i]);
       return 1;
     }
   }
@@ -278,9 +217,14 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
     dsumTol_ = 1E-5;
   if (DABS(ew_coeff_) < Constants::SMALL)
     ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
-  if (erfcTableDx_ <= 0.0) erfcTableDx_ = 1.0 / 5000;
+  if (erfcTableDx <= 0.0) erfcTableDx = 1.0 / 5000;
   // TODO make this optional
-  FillErfcTable( cutoff_, ew_coeff_ ); 
+  if (table_.FillTable( erfc_func, erfcTableDx, 0.0, cutoff_*ew_coeff_*1.5 )) {
+    mprinterr("Error: Could not set up spline table for ERFC\n");
+    return 1;
+  }
+  table_.PrintMemUsage("\t");
+  table_.PrintTableInfo("\t");
   // TODO do for C6 as well
   // TODO for C6 correction term
   if (lw_coeff_ < 0.0)
@@ -297,14 +241,12 @@ int Ewald::CheckInput(Box const& boxIn, int debugIn, double cutoffIn, double dsu
 }
 
 /** Initialize and set up pairlist. */
-int Ewald::Setup_Pairlist(Box const& boxIn, Vec3 const& recipLengths, double skinnbIn) {
+int Ewald::Setup_Pairlist(Box const& boxIn, double skinnbIn) {
   if (pairList_.InitPairList(cutoff_, skinnbIn, debug_)) return 1;
-  if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
+  if (pairList_.SetupPairList( boxIn )) return 1;
 # ifdef DEBUG_PAIRLIST
   // Write grid PDB
   PDBfile gridpdb;
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
   gridpdb.OpenWrite("gridpoints.pdb");
   for (int iz = 0; iz != pairList_.NZ(); iz++)
     for (int iy = 0; iy != pairList_.NY(); iy++)
@@ -312,7 +254,7 @@ int Ewald::Setup_Pairlist(Box const& boxIn, Vec3 const& recipLengths, double ski
         double fx = (double)ix / (double)pairList_.NX();
         double fy = (double)iy / (double)pairList_.NY();
         double fz = (double)iz / (double)pairList_.NZ();
-        Vec3 cart = ucell.TransposeMult( Vec3(fx,fy,fz) );
+        Vec3 cart = boxIn.UnitCell().TransposeMult( Vec3(fx,fy,fz) );
         gridpdb.WriteHET(1, cart[0], cart[1], cart[2]);
       }
   gridpdb.CloseFile();
@@ -568,11 +510,10 @@ double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
                                     AtomMask const& maskIn)
 {
   t_total_.Start();
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double volume = frameIn.BoxCrd().CellVolume();
   double e_self = Self( volume );
   // Place atoms in pairlist. This calcs frac/imaged coords.
-  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
 
   double e_recip = Recip_Regular( recip, volume );
 
@@ -583,7 +524,7 @@ double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
   t_total_.Stop();
   return e_self + e_recip + e_direct;
 }
-#endif
+#endif /* DEBUG_EWALD */
 
 // Ewald::Timing()
 void Ewald::Timing(double total) const {

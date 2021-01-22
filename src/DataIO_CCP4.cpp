@@ -148,8 +148,14 @@ int DataIO_CCP4::ReadData(FileName const& fname,
   if (gridDS == 0) return 1;
   DataSet_GridFlt& grid = static_cast<DataSet_GridFlt&>( *gridDS );
   // Allocate grid from dims and spacing. FIXME OK to assume zero origin?
+  double xyzabg[6];
+  const float* boxptr = buffer.f + 10;
+  for (int i = 0; i < 6; i++)
+    xyzabg[i] = (double)boxptr[i];
+  Box gridBox;
+  gridBox.SetupFromXyzAbg( xyzabg );
   if (grid.Allocate_N_O_Box( buffer.i[7], buffer.i[8], buffer.i[9],
-                             Vec3(0.0), Box(buffer.f + 10) ) != 0)
+                             Vec3(0.0), gridBox ) != 0)
   {
     mprinterr("Error: Could not allocate grid.\n");
     return 1;
@@ -248,13 +254,14 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
   buffer.i[7] = (int)grid.NX();
   buffer.i[8] = (int)grid.NY();
   buffer.i[9] = (int)grid.NZ();
-  Box box( grid.Bin().Ucell() );
-  buffer.f[10] = (float)box[0];
-  buffer.f[11] = (float)box[1];
-  buffer.f[12] = (float)box[2];
-  buffer.f[13] = (float)box[3];
-  buffer.f[14] = (float)box[4];
-  buffer.f[15] = (float)box[5];
+  Box box;
+  box.SetupFromUcell( grid.Bin().Ucell() );
+  buffer.f[10] = (float)box.Param(Box::X);
+  buffer.f[11] = (float)box.Param(Box::Y);
+  buffer.f[12] = (float)box.Param(Box::Z);
+  buffer.f[13] = (float)box.Param(Box::ALPHA);
+  buffer.f[14] = (float)box.Param(Box::BETA);
+  buffer.f[15] = (float)box.Param(Box::GAMMA);
   buffer.i[16] = 1; // Cols = X
   buffer.i[17] = 2; // Rows = Y
   buffer.i[18] = 3; // Secs = Z

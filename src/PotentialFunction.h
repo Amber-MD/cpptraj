@@ -17,6 +17,8 @@ class PotentialFunction {
     int AddTerm(PotentialTerm::Type, MdOpts const&);
     /// Set up all terms in the potential function.
     int SetupPotential(Topology const&, Box const&, std::string const&);
+ 
+    int SetupPotential(Topology const&, CharMask const&);
 
     int CalculateForce(Frame&);
 
@@ -27,6 +29,8 @@ class PotentialFunction {
     int DegreesOfFreedom() const { return deg_of_freedom_; }
   private:
     typedef std::vector<PotentialTerm*> Parray;
+
+    int setupPotential(Topology const&);
 
     Parray terms_;       ///< Array of potential function terms
     EnergyArray earray_; ///< Array of energy terms

@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_WATERSHELL_H
 #define INC_ACTION_WATERSHELL_H
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 /// Calculate number of solvent residues in 1st/2nd solvation shell.
 class Action_Watershell : public Action {
   public:
@@ -17,7 +17,7 @@ class Action_Watershell : public Action {
     typedef std::vector<int> Iarray;
     typedef std::vector<double> Darray;
 
-    ImagedAction image_;    ///< Hold imaging routines.
+    ImageOption imageOpt_;  ///< Used to determine if imaging should be performed.
     AtomMask soluteMask_;   ///< Selected solute atoms.
     AtomMask solventMask_;  ///< Selected solvent atoms.
     double lowerCutoff_;    ///< Solvent below this is in the first shell.

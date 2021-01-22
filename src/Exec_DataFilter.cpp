@@ -2,6 +2,7 @@
 #include "Action_FilterByData.h"
 #include "CpptrajStdio.h"
 #include "DataSet_integer.h"
+#include "DataSet_double.h"
 #include "ProgressBar.h"
 
 void Exec_DataFilter::Help() const {
@@ -46,6 +47,7 @@ Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
   // Get the set to be filtered if needed.
   DataSet_1D* SetToBeFiltered = 0;
   DataSet_1D* FilteredSet = 0;
+  DataSet_double Xvals;
   DataSet_integer* FilterSet = 0;
   if (!filterSetName.empty()) {
     DataSet* ds = filterAction.FilterSet();
@@ -71,6 +73,7 @@ Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
     }
     SetToBeFiltered = (DataSet_1D*)ds;
     // Create new filter set
+    
     FilteredSet = (DataSet_1D*)DataSetList::Allocate(SetToBeFiltered->Type());
     MetaData md(SetToBeFiltered->Meta());
     if (!newSetName.empty()) {
@@ -84,6 +87,7 @@ Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
     } else
       mprintf("\tFiltering set '%s'\n", SetToBeFiltered->legend());
     FilteredSet->SetMeta( md );
+    FilteredSet->SetDim(0, SetToBeFiltered->Dim(0));
     // Do not allocate here to save memory.
   }
   
@@ -95,15 +99,19 @@ Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
     ActionFrame frm(0, frame);
     filterAction.DoAction(frame, frm);
     if (SetToBeFiltered != 0) {
-      if ((*FilterSet)[frame] == 1)
+      if ((*FilterSet)[frame] == 1) {
+        Xvals.AddElement(SetToBeFiltered->Xcrd(frame));
         FilteredSet->Add(newidx++, SetToBeFiltered->VoidPtr(frame));
+      }
     }
   }
   // Add/replace the filtered set if necessary
   if (SetToBeFiltered != 0) {
     if (newSetName.empty())
       State.DSL().RemoveSet( SetToBeFiltered );
-    State.DSL().AddSet( FilteredSet );
+    DataSetList::DataListType inputSets(1);
+    inputSets[0] = FilteredSet;
+    State.DSL().AddOrAppendSets( FilteredSet->Dim(0).Label(), Xvals.Data(), inputSets );
   } 
   // Trigger master datafile write just in case
   State.MasterDataFileWrite();

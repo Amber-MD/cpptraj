@@ -1,8 +1,8 @@
 #ifndef INC_TOPOLOGY_H
 #define INC_TOPOLOGY_H
 #include <string>
+#include <set> // BP_mapType
 #include "Atom.h"
-#include "AtomExtra.h"
 #include "Residue.h"
 #include "Molecule.h"
 #include "ParameterTypes.h"
@@ -47,11 +47,35 @@ class Topology {
     const Atom &operator[](int idx)              const { return atoms_[idx];    }
     std::vector<Atom> const& Atoms()             const { return atoms_;         }
     Atom& SetAtom(int idx)                             { return atoms_[idx]; }
-    typedef std::vector<AtomExtra>::const_iterator extra_iterator;
-    extra_iterator extraBegin()                  const { return extra_.begin(); }
-    extra_iterator extraEnd()                    const { return extra_.end();   }
-    inline const std::vector<AtomExtra>& Extra() const { return extra_;         }
-    AtomExtra& SetExtraAtomInfo(int idx)               { return extra_[idx];    }
+    // ----- Amber Extra Info --------------------
+    std::vector<NameType> const& TreeChainClassification() const { return tree_;   }
+    std::vector<int>      const& JoinArray()               const { return ijoin_;  }
+    std::vector<int>      const& RotateArray()             const { return irotat_; }
+    void AllocTreeChainClassification() { tree_.assign(atoms_.size(), "BLA"); }
+    void AllocJoinArray()               { ijoin_.assign(atoms_.size(), 0);    }
+    void AllocRotateArray()             { irotat_.assign(atoms_.size(), 0);   }
+    void SetTreeChainClassification(int idx, NameType const& n) { tree_[idx] = n;   }
+    void SetJoinArray(int idx, int j)                           { ijoin_[idx] = j;  }
+    void SetRotateArray(int idx, int r)                         { irotat_[idx] = r; }
+    // ----- PDB info ----------------------------
+    /// Reset all PDB-related info
+    void ResetPDBinfo();
+    std::vector<char> const& AtomAltLoc()  const { return atom_altloc_;  }
+    std::vector<float> const& Occupancy()  const { return occupancy_;    }
+    std::vector<float> const& Bfactor()    const { return bfactor_;      }
+    std::vector<int> const& PdbSerialNum() const { return pdbSerialNum_; }
+    void AllocAtomAltLoc()   { atom_altloc_.assign(atoms_.size(), ' '); }
+    void AllocOccupancy()    { occupancy_.assign(atoms_.size(), 1.0);   }
+    void AllocBfactor()      { bfactor_.assign(atoms_.size(), 0.0);     }
+    void AllocPdbSerialNum() { pdbSerialNum_.assign(atoms_.size(), -1); }
+    void SetAtomAltLoc(int idx, char a)  { atom_altloc_[idx] = a;  }
+    void SetOccupancy(int idx, float o)  { occupancy_[idx] = o;    }
+    void SetBfactor(int idx, float b)    { bfactor_[idx] = b;      }
+    void SetPdbSerialNum(int idx, int i) { pdbSerialNum_[idx] = i; }
+    void AddAtomAltLoc(char a)  { atom_altloc_.push_back( a );  }
+    void AddOccupancy(float o)  { occupancy_.push_back( o );    }
+    void AddBfactor(float b)    { bfactor_.push_back( b );      }
+    void AddPdbSerialNum(int i) { pdbSerialNum_.push_back( i ); }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -64,6 +88,8 @@ class Topology {
     inline mol_iterator MolStart() const { return molecules_.begin(); }
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
+    /// \return number of residues in the specified molecule.
+    int NresInMol(int) const;
     /// Determine molecules based on bond information
     int DetermineMolecules();
     // ----- Bond-specific routines --------------
@@ -103,6 +129,13 @@ class Topology {
     void AddDihedral(DihedralType const&, DihedralParmType const&);
     void AssignImproperParams(ParmHolder<DihedralParmType> const&);
     void AssignDihedralParams(DihedralParmHolder const&);
+    // ----- CMAP-specific routines --------------
+    bool                     HasCmap()      const { return !cmapGrid_.empty(); }
+    CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
+    CmapArray         const& Cmap()         const { return cmap_;         }
+    CmapGridType& SetCmapGrid(int idx)            { return cmapGrid_[idx];}
+    void AddCmapGrid(CmapGridType const& g) { cmapGrid_.push_back(g); }
+    void AddCmapTerm(CmapType const& c)     { cmap_.push_back(c);     }
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
     NonbondParmType&        SetNonbond()           { return nonbond_;      }
@@ -157,11 +190,12 @@ class Topology {
     void SetBoxFromTraj(Box const&);
     // ----- Setup routines ----------------------
     int AddTopAtom(Atom const&, Residue const&);
-    void AddExtraAtomInfo(AtomExtra const& ex) { extra_.push_back(ex); } // FIXME bounds check
-    void StartNewMol();
-    int CommonSetup(bool);
-    int CommonSetup() { return CommonSetup(true); }
-    void ResetPDBinfo();
+    //void StartNewMol();
+    /// Perform common final setup: optional molecule determination, renumber residues by molecules
+    int CommonSetup(bool, bool);
+    /// Perform common final setup with molecule determination on, renumber residues off.
+    int CommonSetup() { return CommonSetup(true, false); }
+    /// Set up with no residue info TODO deprecate in favor of routine in CommonSetup?
     int Setup_NoResInfo();
     /// Resize for given numbers of atoms/residues etc. Clears any existing data.
     void Resize(Pointers const&);
@@ -201,13 +235,13 @@ class Topology {
     static inline DihedralType SetTorsionParmIndex(DihedralType const&,
                                                    DihedralParmArray const&,
                                                    int, const char*);
+    inline bool CheckExtraSize(size_t, const char*) const;
 
     void VisitAtom(int, int);
     int RecursiveMolSearch();
     int NonrecursiveMolSearch();
     void ClearMolecules();
-    void AtomDistance(int, int, int, std::set<int>&) const;
-    void DetermineExcludedAtoms();
+    void AtomDistance(int, int, int, std::set<int>&, int) const;
     void DetermineNumExtraPoints();
     int SetSolventInfo();
 
@@ -251,13 +285,22 @@ class Topology {
     DihedralArray dihedrals_;
     DihedralArray dihedralsh_;
     DihedralParmArray dihedralparm_;
+    CmapArray cmap_;                 ///< Hold atom indices and CMAP grid index
+    CmapGridArray cmapGrid_;         ///< Hold CMAP grids
     NonbondParmType nonbond_;        ///< Non-bonded parameters
     // Amber-only parameters
     CapParmType cap_;                ///< Water cap information
     LES_ParmType lesparm_;           ///< LES parameters
     ChamberParmType chamber_;        ///< CHAMBER parameters
-    // Extra atom info
-    std::vector<AtomExtra> extra_;
+    // "Extra" Amber atom info
+    std::vector<NameType> tree_;     ///< Amber TREE_CHAIN_CLASSIFICATION array
+    std::vector<int> ijoin_;         ///< Amber JOIN_ARRAY array
+    std::vector<int> irotat_;        ///< Amber IROTAT array
+    // PDB info
+    std::vector<char> atom_altloc_;  ///< Atom alternate location ID
+    std::vector<float> occupancy_;   ///< Atom occupancy
+    std::vector<float> bfactor_;     ///< Atom B-factor
+    std::vector<int> pdbSerialNum_;  ///< Atom PDB original serial number
 
     Box parmBox_;
     Frame refCoords_;       ///< Internal reference coords for distance-based masks
@@ -279,15 +322,12 @@ NonbondType const& Topology::GetLJparam(int a1, int a2) const {
 // -----------------------------------------------------------------------------
 class Topology::Pointers {
   public:
-    Pointers() : natom_(0), nres_(0), nextra_(0), nBndParm_(0), nAngParm_(0),
-                 nDihParm_(0) {}
-    Pointers(int na, int nr, int ne, int nbp, int nap, int ndp):
-     natom_(na), nres_(nr), nextra_(ne), nBndParm_(nbp), nAngParm_(nap),
-     nDihParm_(ndp) {} 
+    Pointers() : natom_(0), nres_(0), nBndParm_(0), nAngParm_(0), nDihParm_(0) {}
+    Pointers(int na, int nr, int nbp, int nap, int ndp):
+     natom_(na), nres_(nr), nBndParm_(nbp), nAngParm_(nap), nDihParm_(ndp) {} 
   //private:
     int natom_;
     int nres_;
-    int nextra_;
     int nBndParm_;
     int nAngParm_;
     int nDihParm_;

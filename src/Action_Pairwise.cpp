@@ -6,6 +6,7 @@
 #include "Trajout_Single.h"
 #include "Constants.h" // ELECTOAMBER
 #include "StringRoutines.h" // ByteString()
+#include "DataSet_MatrixDbl.h"
 
 // CONSTRUCTOR
 Action_Pairwise::Action_Pairwise() :
@@ -117,11 +118,11 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
       return Action::ERR;
     }
     // Set up nonbonded params for reference
-    if ( (N_ref_interactions_=SetupNonbondParm( RefMask_, REF.Parm() )) == -1 ) 
+    if ( (N_ref_interactions_=SetupNonbondParm( ExcludedR_, RefMask_, REF.Parm() )) == -1 ) 
       return Action::ERR;
     // Calculate energy for reference
     nb_calcType_ = SET_REF;
-    NonbondEnergy(REF.Coord(), REF.Parm(), RefMask_);
+    NonbondEnergy(REF.Coord(), REF.Parm(), RefMask_, ExcludedR_);
     nb_calcType_ = COMPARE_REF;
   }
 
@@ -184,7 +185,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
 /** Set up the exclusion list based on the given mask and parm.
   * \return the total number of interactions, -1 on error.
   */
-int Action_Pairwise::SetupNonbondParm(AtomMask const& maskIn, Topology const& ParmIn)
+int Action_Pairwise::SetupNonbondParm(ExclusionArray& Excluded, AtomMask const& maskIn, Topology const& ParmIn)
 {
   // Check if LJ parameters present - need at least 2 atoms for it to matter.
   if (ParmIn.Natom() > 1 && !ParmIn.Nonbond().HasNonbond()) {
@@ -192,14 +193,26 @@ int Action_Pairwise::SetupNonbondParm(AtomMask const& maskIn, Topology const& Pa
     return -1;
   }
 
+  // Set up exclusion list
+  if (Excluded.SetupExcluded(ParmIn.Atoms(), maskIn, 4,
+                             ExclusionArray::NO_EXCLUDE_SELF,
+                             ExclusionArray::ONLY_GREATER_IDX))
+  {
+    mprinterr("Error: Pairwise: Could not set up atom exclusion list.\n");
+    return 1;
+  }
+
   // Determine the actual number of pairwise interactions that will be calcd.
   unsigned int n_interactions = 0;
-  for (AtomMask::const_iterator at0 = maskIn.begin(); at0 != maskIn.end(); ++at0) {
-    Atom::excluded_iterator ex = ParmIn[*at0].excludedbegin();
-    for (AtomMask::const_iterator at1 = at0 + 1; at1 != maskIn.end(); ++at1) {
+  for (int idx0 = 0; idx0 != maskIn.Nselected(); idx0++)
+  {
+    ExclusionArray::ExListType::const_iterator ex = Excluded[idx0].begin();
+    for (int idx1 = idx0 + 1; idx1 != maskIn.Nselected(); idx1++)
+    {
+      int at1 = maskIn[idx1];
       // Advance excluded list up to current selected atom
-      while (ex != ParmIn[*at0].excludedend() && *ex < *at1) ++ex;
-      if (ex != ParmIn[*at0].excludedend() && *at1 == *ex)
+      while (ex != Excluded[idx0].end() && *ex < at1) ++ex;
+      if (ex != Excluded[idx0].end() && at1 == *ex)
         // Atom 1 is excluded from Atom0; just increment to next excluded atom.
         ++ex;
       else
@@ -236,7 +249,7 @@ Action::RetType Action_Pairwise::Setup(ActionSetup& setup) {
   }
 
   // Set up exclusion list and determine total # interactions.
-  int N_interactions = SetupNonbondParm(Mask0_, setup.Top());
+  int N_interactions = SetupNonbondParm(Excluded0_, Mask0_, setup.Top());
   if (N_interactions < 0) return Action::ERR;
   if (N_interactions < 1) {
     mprintf("Warning: No pairwise interactions to calculate for mask '%s'\n", Mask0_.MaskString());
@@ -307,7 +320,7 @@ void Action_Pairwise::WriteEnergies(Topology const& parmIn, int atom1, int atom2
   * the cutoffs are printed.
   */
 void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn, 
-                                    AtomMask const& maskIn)
+                                    AtomMask const& maskIn, ExclusionArray const& Excluded)
 {
   double delta2;
   NonbondEnergyType refE;
@@ -323,18 +336,19 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
     // Get coordinates for first atom.
     Vec3 coord1 = frameIn.XYZ( maskatom1 );
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = parmIn[maskatom1].excludedbegin();
+    // TODO : Refactor the inner loop to be like in StructureCheck, more efficient
+    ExclusionArray::ExListType::const_iterator excluded_idx = Excluded[idx1].begin();
     // Inner loop
     for (int idx2 = idx1 + 1; idx2 != maskIn.Nselected(); idx2++)
     {
       int maskatom2 = maskIn[idx2];
       // Advance excluded list up to current selected atom
-      while (excluded_atom != parmIn[maskatom1].excludedend() && *excluded_atom < maskatom2)
-        ++excluded_atom;
+      while (excluded_idx != Excluded[idx1].end() && *excluded_idx < idx2)
+        ++excluded_idx;
       // If atom is excluded, just increment to next excluded atom;
       // otherwise perform energy calc.
-      if ( excluded_atom != parmIn[maskatom1].excludedend() && maskatom2 == *excluded_atom )
-        ++excluded_atom;
+      if ( excluded_idx != Excluded[idx1].end() && idx2 == *excluded_idx )
+        ++excluded_idx;
       else {
         // Calculate the vector pointing from atom2 to atom1
         Vec3 JI = coord1 - Vec3(frameIn.XYZ( maskatom2 ));
@@ -491,7 +505,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
   atom_eelec_.assign(Mask0_.Nselected(), 0.0);
   atom_evdw_.assign(Mask0_.Nselected(), 0.0);
   if (Eout_ != 0) Eout_->Printf("PAIRWISE: Frame %i\n",frm.TrajoutNum());
-  NonbondEnergy( frm.Frm(), *CurrentParm_, Mask0_ );
+  NonbondEnergy( frm.Frm(), *CurrentParm_, Mask0_, Excluded0_ );
   nframes_++;
   // Write cumulative energy arrays
   if (PrintCutAtoms( frm.Frm(), frm.TrajoutNum(), VDWOUT, atom_evdw_, cut_evdw_ ))

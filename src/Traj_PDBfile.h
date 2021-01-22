@@ -18,6 +18,7 @@ class Traj_PDBfile: public TrajectoryIO {
 
     Traj_PDBfile();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
+    static void ReadHelp();
     static void WriteHelp();
   private:
     typedef std::vector<int> Iarray;
@@ -34,7 +35,7 @@ class Traj_PDBfile: public TrajectoryIO {
     int processWriteArgs(ArgList&, DataSetList const&);
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
-    int processReadArgs(ArgList&) { return 0; }
+    int processReadArgs(ArgList&);
 #   ifdef MPI
     // Parallel functions
     int parallelOpenTrajout(Parallel::Comm const&);
@@ -46,6 +47,7 @@ class Traj_PDBfile: public TrajectoryIO {
 
     void WriteDisulfides(Frame const&);
     void WriteBonds();
+    void writeBox(int, Box const&);
     /// Used to set up B-factor/occupancy data from DataSets
     int AssignData(Darray&, DataSet*, Topology const&, bool, const char*, double) const;
     /// Used to scale Bfactor/occupancy data between set values
@@ -88,6 +90,7 @@ class Traj_PDBfile: public TrajectoryIO {
     std::vector<char> chainID_;      ///< Hold chainID for each residue.
     std::vector<NameType> resNames_; ///< Hold residue names.
     char chainchar_;
+    char keepAltLoc_;                ///< If not blank, only read atoms with this alt. loc. ID
     DataSet* bfacdata_;
     DataSet* occdata_;
     DataSet* adpdata_; ///< Hold anisotropic B-factor data for writing.

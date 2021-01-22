@@ -1,6 +1,9 @@
 #ifndef INC_MATRIX_3X3_H
 #define INC_MATRIX_3X3_H
 #include "Vec3.h"
+#ifdef MPI
+#include "Parallel.h"
+#endif
 class Matrix_3x3 {
   public:
     Matrix_3x3() {}
@@ -34,8 +37,15 @@ class Matrix_3x3 {
     int Diagonalize_Sort_Chirality(Vec3&,int);
 
     void Transpose();
+    /// \return Matrix with rows and columns transposed.
     inline Matrix_3x3 Transposed() const;
+    /// \return Result of multiplying this matrix times given 3x3 matrix TODO split into a void and const version
     Matrix_3x3& operator*=(const Matrix_3x3&);
+    /// Multiply all elements of this matrix by scalar
+    Matrix_3x3& operator*=(double);
+    /// \return Result of multiplying this matrix times given scalar
+    Matrix_3x3 operator*(double) const;
+    
     void RotationAroundZ(double, double);
     void RotationAroundY(double, double);
     void CalcRotationMatrix(Vec3 const&, double);
@@ -82,11 +92,14 @@ class Matrix_3x3 {
     Matrix_3x3 operator*(Matrix_3x3 const&) const;
     /// Multiply this times transpose of 3x3 matrix
     Matrix_3x3 TransposeMult(Matrix_3x3 const&) const;
-    /// Multiply this times given scalar
-    void operator*=(double);
     // TODO: Get rid of this
     const double* Dptr() const { return M_; }
     double* Dptr() { return M_; }
+#   ifdef MPI
+    void SyncMatrix(Parallel::Comm const&);
+    int SendMatrix(int, Parallel::Comm const&);
+    int RecvMatrix(int, Parallel::Comm const&);
+#   endif
   private:
     double M_[9];
     // The following three variables are set during Diagonalize_Sort. They

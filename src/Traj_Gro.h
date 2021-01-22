@@ -23,7 +23,7 @@ class Traj_Gro : public TrajectoryIO {
     int processReadArgs(ArgList&)  { return 0; }
 
     double GetTimeValue(const char*) const;
-    Box GetBox(const char*) const;
+    bool GetBox(double*, const char*) const;
 
     BufferedLine file_;
     int debug_;

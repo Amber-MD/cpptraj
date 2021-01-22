@@ -3,6 +3,8 @@
 //#incl ude <memory> // unique_ptr
 #include "Ewald_ParticleMesh.h"
 #include "CpptrajStdio.h"
+#include "AtomMask.h"
+#include "Frame.h"
 
 typedef helpme::Matrix<double> Mat;
 
@@ -68,13 +70,13 @@ int Ewald_ParticleMesh::DetermineNfft(int& nfft1, int& nfft2, int& nfft3, Box co
 {
    if (nfft1 < 1) {
     // Need even dimension for X direction
-    nfft1 = ComputeNFFT( (boxIn.BoxX() + 1.0) * 0.5 );
+    nfft1 = ComputeNFFT( (boxIn.Param(Box::X) + 1.0) * 0.5 );
     nfft1 *= 2;
   }
   if (nfft2 < 1)
-    nfft2 = ComputeNFFT( boxIn.BoxY() );
+    nfft2 = ComputeNFFT( boxIn.Param(Box::Y) );
   if (nfft3 < 1)
-    nfft3 = ComputeNFFT( boxIn.BoxZ() );
+    nfft3 = ComputeNFFT( boxIn.Param(Box::Z) );
 
   if (nfft1 < 1 || nfft2 < 1 || nfft3 < 1) {
     mprinterr("Error: Bad NFFT values: %i %i %i\n", nfft1, nfft2, nfft3);
@@ -111,7 +113,7 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   if (switch_width_ > 0.0)
     mprintf("\t  LJ switch width= %g\n", switch_width_);
   mprintf("\t  Bspline order= %i\n", order_);
-  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t ");
   for (int i = 0; i != 3; i++)
     if (nfft_[i] == -1)
@@ -121,10 +123,7 @@ int Ewald_ParticleMesh::Init(Box const& boxIn, double cutoffIn, double dsumTolIn
   mprintf("\n");
 
   // Set up pair list
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
-  Vec3 recipLengths = boxIn.RecipLengths(recip);
-  if (Setup_Pairlist(boxIn, recipLengths, skinnbIn)) return 1;
+  if (Setup_Pairlist(boxIn, skinnbIn)) return 1;
 
   return 0;
 }
@@ -137,7 +136,7 @@ int Ewald_ParticleMesh::Setup(Topology const& topIn, AtomMask const& maskIn) {
   CalculateC6params( topIn, maskIn );
   coordsD_.clear();
   coordsD_.reserve( maskIn.Nselected() * 3);
-  SetupExcluded(topIn, maskIn);
+  SetupExclusionList(topIn, maskIn);
   return 0;
 }
 
@@ -185,8 +184,8 @@ double Ewald_ParticleMesh::Recip_ParticleMesh(Box const& boxIn)
   //       5 = the beta lattice parameter in degrees.
   //       6 = the gamma lattice parameter in degrees.
   //       7 = lattice type
-  pme_object_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
-                                boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
+  pme_object_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
+                                boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
                                 PMEInstanceD::LatticeType::XAligned);
   double erecip = pme_object_.computeERec(0, chargesD, coordsD);
 
@@ -211,9 +210,20 @@ double Ewald_ParticleMesh::LJ_Recip_ParticleMesh(Box const& boxIn)
 
   //auto pme_vdw = std::unique_ptr<PMEInstanceD>(new PMEInstanceD());
   pme_vdw_.setup(6, lw_coeff_, order_, nfft1, nfft2, nfft3, -1.0, 0);
-  pme_vdw_.setLatticeVectors(boxIn.BoxX(), boxIn.BoxY(), boxIn.BoxZ(),
-                             boxIn.Alpha(), boxIn.Beta(), boxIn.Gamma(),
-                             PMEInstanceD::LatticeType::XAligned);
+  PMEInstanceD::LatticeType lattice = PMEInstanceD::LatticeType::XAligned;
+  // TODO just pass in Ucell when helPME supports it
+  //boxIn.PrintDebug("pme");
+  if (!boxIn.Is_X_Aligned()) {
+    if (boxIn.Is_Symmetric())
+      lattice = PMEInstanceD::LatticeType::ShapeMatrix;
+    else {
+      mprinterr("Error: Unit cell is not X-aligned or symmetric; cannot set PME recip grid.\n");
+      return 0;
+    }
+  }
+  pme_vdw_.setLatticeVectors(boxIn.Param(Box::X), boxIn.Param(Box::Y), boxIn.Param(Box::Z),
+                             boxIn.Param(Box::ALPHA), boxIn.Param(Box::BETA), boxIn.Param(Box::GAMMA),
+                             lattice);
   double evdwrecip = pme_vdw_.computeERec(0, cparamD, coordsD);
   t_recip_.Stop();
   return evdwrecip;
@@ -224,12 +234,11 @@ int Ewald_ParticleMesh::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& 
                                       double& e_elec, double& e_vdw)
 {
   t_total_.Start();
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double volume = frameIn.BoxCrd().CellVolume();
   double e_self = Self( volume );
   double e_vdw_lr_correction;
 
-  int retVal = pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
   if (retVal != 0) {
     mprinterr("Error: Grid setup failed.\n");
     return 1;

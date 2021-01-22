@@ -179,7 +179,9 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata,
     omp_set_num_threads( original_num_threads );
 # endif
   // Normalize
-  for (unsigned int j = 0; j < Out.Size(); j++)
+  for (unsigned int j = 0; j < Out.Size(); j++) {
+    //mprintf("DEBUG:\t\t\tkde %g %g %g\n", Out[j], total, bandwidth);
     Out[j] /= (total * bandwidth);
+  }
   return 0;
 }

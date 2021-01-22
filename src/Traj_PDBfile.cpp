@@ -32,6 +32,7 @@ Traj_PDBfile::Traj_PDBfile() :
   occbyres_(false),
   pdbTop_(0),
   chainchar_(' '),
+  keepAltLoc_(' '),
   bfacdata_(0),
   occdata_(0),
   adpdata_(0),
@@ -65,6 +66,19 @@ int Traj_PDBfile::openTrajin() {
   return file_.OpenFile();
 }
 
+// void Traj_PDBfile::ReadHelp()
+void Traj_PDBfile::ReadHelp() {
+  mprintf("\tkeepaltloc <char> : If specified, alternate location ID to keep.\n");
+}
+
+// Traj_PDBfile::processReadArgs()
+int Traj_PDBfile::processReadArgs(ArgList& argIn) {
+  std::string keepAltChar = argIn.GetStringKey("keepaltloc");
+  if (!keepAltChar.empty())
+    keepAltLoc_ = keepAltChar[0];
+  return 0;
+}
+
 // Traj_PDBfile::setupTrajin()
 /** Scan PDB file to determine number of frames (models). The first frame will 
   * also be checked to ensure that the atom names match those in the parm file
@@ -72,6 +86,8 @@ int Traj_PDBfile::openTrajin() {
   */
 int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
 {
+  if (keepAltLoc_ != ' ')
+    mprintf("\tWhen present, only reading alternate location ID %c\n", keepAltLoc_);
   int atom;
   pdbWriteMode_ = NONE;
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
@@ -80,6 +96,7 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
   // records can be read. Currently employing the latter.
   int Frames = 0;
   int numMismatch = 0;
+  int nAltLoc = 0;
   bool scanPDB = true;
   Box boxInfo;
   while (scanPDB) {
@@ -94,11 +111,23 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
       if (file_.RecType() ==  PDBfile::CRYST1) {
         // Read in box information
         double box_crd[6];
-        file_.pdb_Box( box_crd );
-        boxInfo.SetBox( box_crd );
+        file_.pdb_Box_verbose( box_crd );
+        if (boxInfo.SetupFromXyzAbg( box_crd )) {
+          mprintf("Warning: Box information in PDB appears invalid; disabling box.\n");
+          boxInfo.SetNoBox();
+        }
       } 
       // Skip non-ATOM records
       if (file_.RecType() != PDBfile::ATOM) continue;
+      // Record the alt loc. ID
+      char altLoc = file_.pdb_AltLoc();
+      // Check if we are filtering alt loc IDs
+      if (keepAltLoc_ != ' ') {
+        if (altLoc != ' ' && altLoc != keepAltLoc_) {
+          //nAltLocSkipped++;
+          continue;
+        }
+      }
       // If still on first frame, check pdb atom name against the name in the 
       // associated parm file.
       if (Frames==0) {
@@ -110,12 +139,16 @@ int Traj_PDBfile::setupTrajin(FileName const& fname, Topology* trajParm)
                     *((*trajParm)[atom].Name()));
           ++numMismatch;
         }
+        if (altLoc != ' ') nAltLoc++;
       }
       ++atom;
     }
     if (Frames==0) {
       // First frame #atoms 
       pdbAtom_ = atom;
+      // Report alt. loc. IDs if not filtering.
+      if (keepAltLoc_ == ' ' && nAltLoc > 0)
+        mprintf("Warning: PDB has %i records wih alternate atom location IDs.\n", nAltLoc);
     } else {
       // Check that # atoms read in this frame match the first frame
       if (atom>0 && pdbAtom_!=atom) {
@@ -168,9 +201,20 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
   while (atom < pdbAtom_) {
     if ( file_.NextRecord() == PDBfile::END_OF_FILE ) return 1;
     // Skip non-ATOM records
-    if ( file_.RecType() == PDBfile::CRYST1 )
-      file_.pdb_Box( frameIn.bAddress() );
+    if ( file_.RecType() == PDBfile::CRYST1) {
+      double xyzabg[6];
+      file_.pdb_Box_terse( xyzabg );
+      frameIn.ModifyBox().AssignFromXyzAbg( xyzabg );
+    }
     else if ( file_.RecType() == PDBfile::ATOM ) {
+      // Check if we are filtering alt loc IDs
+      if (keepAltLoc_ != ' ') {
+        char altLoc = file_.pdb_AltLoc();
+        if (altLoc != ' ' && altLoc != keepAltLoc_) {
+          //nAltLocSkipped++;
+          continue;
+        }
+      }
       // Read current PDB record XYZ into Frame
       file_.pdb_XYZ( Xptr );
       ++atom; 
@@ -199,7 +243,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tchainid <c>     : Write character 'c' in chain ID column.\n"
           "\tsg <group>      : Space group for CRYST1 record, only if box coordinates written.\n"
           "\tinclude_ep      : Include extra points.\n"
-          "\tconect          : Write CONECT records using bond information.\n"
+          "\tconect          : Write CONECT records using bond information (if 'pdbres', only for HETATM).\n"
+          "\tconectmode <m>  : Write CONECT records for <m>='all' (all bonds), 'het' (HETATM only), 'none' (no CONECT).\n"
           "\tkeepext         : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n"
           "\tusecol21        : Use column 21 for 4-letter residue names.\n"
           "\tbfacdefault <#> : Default value to use in B-factor column (default 0).\n"
@@ -253,6 +298,20 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn, DataSetList const& DSLin) {
     conectMode_ = HETATM_ONLY;
   else
     conectMode_ = NO_CONECT;
+  // Override conect mode
+  std::string conectmode = argIn.GetStringKey("conectmode");
+  if (!conectmode.empty()) {
+    if (conectmode == "all")
+      conectMode_ = ALL_BONDS;
+    else if (conectmode == "het")
+      conectMode_ = HETATM_ONLY;
+    else if (conectmode == "none")
+      conectMode_ = NO_CONECT;
+    else {
+      mprinterr("Error: Unrecognized keyword for 'conectmode': %s\n", conectmode.c_str());
+      return 1;
+    }
+  }
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
@@ -434,7 +493,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   resIsHet_.reserve( trajParm->Nres() );
   ss_residues_.clear();
   ss_atoms_.clear();
-  if (pdbres_) {
+  if (pdbres_ || conectMode_ == HETATM_ONLY) {
     Iarray cys_idxs_; ///< Hold CYS residue indices
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
@@ -498,7 +557,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
           else if (rname[0] == 'C') rname=" DC ";
         }
       }
-      resNames_.push_back( rname );
+      if (pdbres_)
+        resNames_.push_back( rname );
+      else
+        resNames_.push_back( res->Name() );
       // Any non-standard residue should get HETATM
       if ( rname == "CYS " )
         // NOTE: Comparing to CYS works here since HETATM_ONLY is only active
@@ -647,7 +709,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     if ( trajParm->Nmol() > 0 ) {
       for (Topology::mol_iterator mol = trajParm->MolStart();
                                   mol != trajParm->MolEnd(); ++mol)
-        TER_idxs_.push_back( mol->EndAtom() - 1 );
+        TER_idxs_.push_back( mol->MolUnit().Back() - 1 );
     }
   }
   TER_idxs_.push_back( -1 ); // Indicates that final TER has been written.
@@ -670,8 +732,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     if ( file_.OpenFile() ) return 1;
     if (!Title().empty()) file_.WriteTITLE( Title() );
   }
-  write_cryst1_ = (CoordInfo().TrajBox().Type() != Box::NOBOX);
+  write_cryst1_ = (CoordInfo().TrajBox().HasBox());
   if (write_cryst1_) {
+    if (!CoordInfo().TrajBox().Is_X_Aligned())
+      mprintf("Warning: Unit cell is not X-aligned. Box cannot be properly stored in PBD CRYST1.\n");
     if (pdbWriteMode_==MODEL)
       mprintf("Warning: For PDB with MODEL, box coords for first frame only will be written to CRYST1.\n");
     if (space_group_.empty())
@@ -690,6 +754,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         case VDW:   Bfactors_.push_back( trajParm->GetVDWradius(iat) ); break;
       }
     }
+  } else if (!trajParm->Bfactor().empty()) {
+    Bfactors_.reserve( trajParm->Natom() );
+    for (std::vector<float>::const_iterator it = trajParm->Bfactor().begin(); it != trajParm->Bfactor().end(); ++it)
+      Bfactors_.push_back( *it );
   }
   Occupancy_.clear();
   if (occdata_ != 0) {
@@ -701,6 +769,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     // Set up charges
     for (Topology::atom_iterator atm = trajParm->begin(); atm != trajParm->end(); ++atm)
       Occupancy_.push_back( atm->Charge() );
+  } else if (!trajParm->Occupancy().empty()) {
+    Occupancy_.reserve( trajParm->Natom() );
+    for (std::vector<float>::const_iterator it = trajParm->Occupancy().begin(); it != trajParm->Occupancy().end(); ++it)
+      Occupancy_.push_back( *it );
   }
   // If no default occupancy set it to 1
   if (occdefault_ < 0) occdefault_ = 1.0;
@@ -754,6 +826,15 @@ void Traj_PDBfile::WriteBonds() {
   }
 }
 
+/** Write the CRYST1 record from box. */
+void Traj_PDBfile::writeBox(int set, Box const& box) {
+  if (write_cryst1_) {
+    if (!box.Is_X_Aligned())
+      mprintf("Warning: Set %i; unit cell is not X-aligned. Box cannot be properly stored in PDB CRYST1.\n", set+1);
+    file_.WriteCRYST1( box.XyzPtr(), space_group_.c_str() );
+  }
+}
+
 // Traj_PDBfile::writeFrame()
 /** Write the frame (model) to PDB file. */
 int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
@@ -763,14 +844,12 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
     WriteDisulfides(frameOut);
-    if (write_cryst1_)
-      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
+    writeBox( set, frameOut.BoxCrd() );
   } else {
     // Write disulfides/box coords, first frame only.
     if (firstframe_) {
       WriteDisulfides(frameOut);
-      if (write_cryst1_)
-        file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
+      writeBox( set, frameOut.BoxCrd() );
       firstframe_ = false;
     }
   }
@@ -799,11 +878,12 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         rectype = PDBfile::HETATM;
       else
         rectype = PDBfile::ATOM;
-      if (!pdbTop_->Extra().empty()) {
-        Occ  = pdbTop_->Extra()[aidx].Occupancy();
-        Bfac = pdbTop_->Extra()[aidx].Bfactor();
-        altLoc = pdbTop_->Extra()[aidx].AtomAltLoc();
-      }
+      if (!pdbTop_->Occupancy().empty())
+        Occ = pdbTop_->Occupancy()[aidx];
+      if (!pdbTop_->Bfactor().empty())
+        Bfac = pdbTop_->Bfactor()[aidx];
+      if (!pdbTop_->AtomAltLoc().empty())
+        altLoc = pdbTop_->AtomAltLoc()[aidx];
       if (!Bfactors_.empty())
         Bfac = (float) Bfactors_[aidx];
       if (!Occupancy_.empty())

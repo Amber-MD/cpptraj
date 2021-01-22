@@ -73,7 +73,7 @@ Action::RetType Action_Dipole::Setup(ActionSetup& setup) {
   // Traverse over solvent molecules to find out the 
   // "largest" solvent molecule; allocate space for this
   // many coordinates.
-  int NsolventAtoms = 0;
+  unsigned int NsolventAtoms = 0;
   for (Topology::mol_iterator Mol = setup.Top().MolStart();
                               Mol != setup.Top().MolEnd(); ++Mol)
   {
@@ -83,7 +83,7 @@ Action::RetType Action_Dipole::Setup(ActionSetup& setup) {
     }
   }
   //sol_.resize( NsolventAtoms );
-  mprintf("\tLargest solvent mol is %i atoms.\n", NsolventAtoms);
+  mprintf("\tLargest solvent mol is %u atoms.\n", NsolventAtoms);
 
   // Setup grid, checks box info.
   if (GridSetup( setup.Top(), setup.CoordInfo() )) return Action::ERR;
@@ -123,26 +123,30 @@ Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
     COM.Zero();
     double total_mass = 0;
     // Loop over solvent atoms
-    for (int satom = (*solvmol).BeginAtom(); satom < (*solvmol).EndAtom(); ++satom)
+    for (Unit::const_iterator seg = solvmol->MolUnit().segBegin();
+                              seg != solvmol->MolUnit().segEnd(); ++seg)
     {
-      if ( mask_.AtomInCharMask(satom) ) {
-        // Get coordinates and shift to origin and then to appropriate spacing
-        // NOTE: Do not shift into grid coords until the very end.
-        const double* sol = frm.Frm().XYZ( satom );
-        // Calculate dipole vector. The center of mass of the solvent is used 
-        // as the "origin" for the vector.
-        // NOTE: the total charge on the solvent should be neutral for this 
-        //       to have any meaning.
-        double mass = (*CurrentParm_)[satom].Mass();
-        total_mass += mass;
-        COM[0] += (mass * sol[0]);
-        COM[1] += (mass * sol[1]);
-        COM[2] += (mass * sol[2]);
+      for (int satom = seg->Begin(); satom != seg->End(); ++satom)
+      {
+        if ( mask_.AtomInCharMask(satom) ) {
+          // Get coordinates and shift to origin and then to appropriate spacing
+          // NOTE: Do not shift into grid coords until the very end.
+          const double* sol = frm.Frm().XYZ( satom );
+          // Calculate dipole vector. The center of mass of the solvent is used 
+          // as the "origin" for the vector.
+          // NOTE: the total charge on the solvent should be neutral for this 
+          //       to have any meaning.
+          double mass = (*CurrentParm_)[satom].Mass();
+          total_mass += mass;
+          COM[0] += (mass * sol[0]);
+          COM[1] += (mass * sol[1]);
+          COM[2] += (mass * sol[2]);
 
-        double charge = (*CurrentParm_)[satom].Charge();
-        dipolar_vector[0] += (charge * sol[0]);
-        dipolar_vector[1] += (charge * sol[1]);
-        dipolar_vector[2] += (charge * sol[2]);
+          double charge = (*CurrentParm_)[satom].Charge();
+          dipolar_vector[0] += (charge * sol[0]);
+          dipolar_vector[1] += (charge * sol[1]);
+          dipolar_vector[2] += (charge * sol[2]);
+        }
       }
     }
     // If no atoms selected for this solvent molecule, skip.

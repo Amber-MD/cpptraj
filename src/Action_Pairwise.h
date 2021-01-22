@@ -2,7 +2,8 @@
 #define INC_ACTION_PAIRWISE_H
 #include "Action.h"
 #include "PDBfile.h"
-#include "DataSet_MatrixDbl.h"
+#include "ExclusionArray.h"
+class DataSet_MatrixDbl;
 // Class: Pairwise 
 /// Action to calculate nonbonded energy between pairs of atoms.
 /** Functions in two ways:
@@ -35,12 +36,12 @@ class Action_Pairwise: public Action {
     typedef std::vector<NonbondEnergyType> Narray;
     typedef std::vector<double> Darray;
 
-    /// Count number of pairwise interactions that will actually be calcd.
-    static int SetupNonbondParm(AtomMask const&, Topology const&);
+    /// Set up exclusion array, count number of pairwise interactions that will actually be calcd.
+    static int SetupNonbondParm(ExclusionArray&, AtomMask const&, Topology const&);
     /// Write energies to file
     inline void WriteEnergies(Topology const&, int, int, double, double, const char*);
     /// Calculate nonbond energy using nonbondParm for given frame
-    void NonbondEnergy(Frame const&, Topology const&, AtomMask const&);
+    void NonbondEnergy(Frame const&, Topology const&, AtomMask const&, ExclusionArray const&);
     /// Write mol2 file with atoms satisfying cutoff
     int WriteCutFrame(int, Topology const&, AtomMask const&, Darray const&, 
                       Frame const&, std::string const&);
@@ -71,5 +72,7 @@ class Action_Pairwise: public Action {
     CpptrajFile* Eout_;        ///< Output file for atom energies.
     static const double QFAC;  ///< Convert charges to kcal/mol units
     bool scalePdbE_;           ///< If true scale PDB energy each frame between 0 and 100
+    ExclusionArray Excluded0_; ///< Hold exclusion arrays for atoms selected by Mask0_
+    ExclusionArray ExcludedR_; ///< Hold exclusion arrays for atoms selected by RefMask_
 };
 #endif  

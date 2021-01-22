@@ -29,7 +29,14 @@ Box CreateBoundingBox(Frame const& frameIn, Vec3& min)
   max += boffset;
   min -= boffset;
   Vec3 len = max - min;
-  box.SetBetaLengths(90.0, len[0], len[1], len[2]);
+  double xyzabg[6];
+  xyzabg[Box::X] = len[0];
+  xyzabg[Box::Y] = len[1];
+  xyzabg[Box::Z] = len[2];
+  xyzabg[Box::ALPHA] = 90.0;
+  xyzabg[Box::BETA] = 90.0;
+  xyzabg[Box::GAMMA] = 90.0;
+  box.SetupFromXyzAbg( xyzabg );
   //mprintf("DEBUG: Min={%8.3f, %8.3f, %8.3f} Max={%8.3f, %8.3f, %8.3f}\n",
   //        min[0], min[1], min[2], max[0], max[1], max[2]);
   return box;
@@ -44,7 +51,7 @@ Box CreateBoundingBox(Frame const& frameIn) {
 /** Add bonds within residues to top using coords in frameIn. */
 void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
   // ----- STEP 1: Determine bonds within residues
-  std::vector<AtomExtra> const& Extra = top.Extra();
+  std::vector<char> const& AtomAltLoc = top.AtomAltLoc();
   for (Topology::res_iterator res = top.ResStart(); res != top.ResEnd(); ++res)
   {
     int stopatom = res->LastAtom();
@@ -55,15 +62,15 @@ void BondsWithinResidues(Topology& top, Frame const& frameIn, double offset) {
       if (a1Elt==Atom::HYDROGEN && top[atom1].Nbonds() > 0 )
         continue;
       // Determine if atom1 has an alternate location
-      bool hasAltLoc1 = (!Extra.empty() && Extra[atom1].AtomAltLoc() != ' ');
+      bool hasAltLoc1 = (!AtomAltLoc.empty() && AtomAltLoc[atom1] != ' ');
       // Loop over all other atoms in the residue
       for (int atom2 = atom1 + 1; atom2 != stopatom; ++atom2) {
         // Determine if atom2 has an alternate location. Only matters if
         // atom1 has an alternate location.
-        if (hasAltLoc1 && Extra[atom2].AtomAltLoc() != ' ') {
+        if (hasAltLoc1 && AtomAltLoc[atom2] != ' ') {
           // If alternate location info present for both atoms, make sure the
           // location IDs match.
-          if (Extra[atom1].AtomAltLoc() != Extra[atom2].AtomAltLoc()) continue;
+          if (AtomAltLoc[atom1] != AtomAltLoc[atom2]) continue;
         }
         Atom::AtomicElementType a2Elt = top[atom2].Element();
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
@@ -119,9 +126,9 @@ int BondSearch_Grid(Topology& top, Frame const& frameIn, double offset, int debu
   box.PrintInfo();
   // Create grid indices.
   static const double spacing = 6.0; // TODO make this a parameter?
-  int nx = (int)ceil(box.BoxX() / spacing);
-  int ny = (int)ceil(box.BoxY() / spacing);
-  int nz = (int)ceil(box.BoxZ() / spacing);
+  int nx = (int)ceil(box.Param(Box::X) / spacing);
+  int ny = (int)ceil(box.Param(Box::Y) / spacing);
+  int nz = (int)ceil(box.Param(Box::Z) / spacing);
   int nynz = ny*nz;
   typedef std::vector<int> Iarray;
   typedef std::vector<Iarray> I2array;
@@ -289,7 +296,7 @@ int BondSearch_ByResidue( Topology& top, Frame const& frameIn, double offset, in
     // this residue >= first atom of next molecule, which indicates this
     // residue and the previous residue are in different molecules.
     if ( (nextmol != top.MolEnd()) &&
-         (res->FirstAtom() >= nextmol->BeginAtom()) )
+         (res->FirstAtom() >= nextmol->MolUnit().Front()) )
     {
       ++nextmol;
       continue;
@@ -354,7 +361,7 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
 # endif
   // Pair list setup requires a box. Will need to create one if not present.
   Box box = frameIn.BoxCrd();
-  if (box.Type() == Box::NOBOX)
+  if (!box.HasBox())
    box = CreateBoundingBox(frameIn); 
   box.PrintInfo();
 
@@ -364,9 +371,7 @@ int BondSearch_PL( Topology& top, Frame const& frameIn, double offset, int debug
   PairList PL;
   PL.InitPairList( cutoff, skinnb, debug );
   PL.SetupPairList( box );
-  Matrix_3x3 ucell, recip;
-  box.ToRecip( ucell, recip );
-  int retVal = PL.CreatePairList( frameIn, ucell, recip, AtomMask(0, frameIn.Natom()) );
+  int retVal = PL.CreatePairList( frameIn, box.UnitCell(), box.FracCell(), AtomMask(0, frameIn.Natom()) );
   if (retVal != 0) {
     mprinterr("Error: Grid setup failed.\n");
     return 1;

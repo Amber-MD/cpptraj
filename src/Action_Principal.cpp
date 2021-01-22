@@ -78,8 +78,6 @@ Action::RetType Action_Principal::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms selected for %s [%s].\n",setup.Top().c_str(), mask_.MaskString());
     return Action::SKIP;
   }
-  if (doRotation_)
-    Action::CheckImageRotationWarning(setup, "principal alignment");
   return Action::OK;
 }
 
@@ -112,6 +110,7 @@ Action::RetType Action_Principal::DoAction(int frameNum, ActionFrame& frm) {
   // inverse rotation.
   if (doRotation_) {
     frm.ModifyFrm().Rotate( Inertia );
+    frm.ModifyFrm().ModifyBox().RotateUcell( Inertia );
     return Action::MODIFY_COORDS;
   }
   return Action::OK;

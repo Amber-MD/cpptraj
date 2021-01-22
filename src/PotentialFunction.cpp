@@ -4,6 +4,7 @@
 // ----- All potential terms -----------
 #include "PotentialTerm_Bond.h"
 #include "PotentialTerm_OpenMM.h"
+#include "PotentialTerm_LJ_Coulomb.h"
 
 /** Add a term to the potential function. */
 int PotentialFunction::AddTerm(PotentialTerm::Type typeIn, MdOpts const& opts) {
@@ -11,6 +12,7 @@ int PotentialFunction::AddTerm(PotentialTerm::Type typeIn, MdOpts const& opts) {
   switch (typeIn) {
     case PotentialTerm::BOND : term = (PotentialTerm*)new PotentialTerm_Bond(); break;
     case PotentialTerm::OPENMM : term = (PotentialTerm*)new PotentialTerm_OpenMM(); break;
+    case PotentialTerm::SIMPLE_LJ_Q : term = (PotentialTerm*)new PotentialTerm_LJ_Coulomb(); break;
     default :
       mprinterr("Internal Error: No allocator type for potential term.\n");
       return 1;
@@ -42,7 +44,19 @@ int PotentialFunction::SetupPotential(Topology const& topIn, Box const& boxIn,
     return 1;
   }
   mask_.MaskInfo();
+  return setupPotential(topIn);
+}
 
+int PotentialFunction::SetupPotential(Topology const& topIn, CharMask const& maskIn) {
+  if (maskIn.Nselected() < 1) {
+    mprinterr("Internal Error: SetupPotential called with empty mask.\n");
+    return 1;
+  }
+  mask_ = maskIn;
+  return setupPotential(topIn);
+}
+
+int PotentialFunction::setupPotential(Topology const& topIn) {
   // Determine degrees of freedom
   deg_of_freedom_ = 3 * mask_.Nselected();
   mprintf("\t%i degrees of freedom.\n", deg_of_freedom_);
