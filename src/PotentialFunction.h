@@ -24,6 +24,8 @@ class PotentialFunction {
 
     int CalculateForce(Frame&);
 
+    void FnInfo() const;
+
     EnergyArray const& Energy() const { return earray_; }
 
     Topology* CurrentTop() const { return current_; }

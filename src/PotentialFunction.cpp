@@ -96,3 +96,11 @@ int PotentialFunction::CalculateForce(Frame& frameIn) {
   }
   return 0;
 }
+
+/** Print information about potential function. */
+void PotentialFunction::FnInfo() const {
+  mprintf("\t%zu terms:", terms_.size());
+  for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
+    mprintf(" %s", (*it)->TypeStr());
+  mprintf("\n");
+}

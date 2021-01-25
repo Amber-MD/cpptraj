@@ -22,6 +22,8 @@ class PotentialTerm {
     virtual int RemovedDegreesOfFreedom() const { return 0; } // TODO pure virtual?
 
     static const char* TypeStr(Type);
+
+    const char* TypeStr() const { return TypeStr(type_); }
   private:
     static const char* typeStr_[];
 
