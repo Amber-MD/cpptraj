@@ -2,6 +2,7 @@
 #include "Topology.h"
 #include "CharMask.h"
 #include "EnergyArray.h"
+#include "EnergyKernel_NonBond_Simple.h"
 #include "CpptrajStdio.h" 
 
 void PotentialTerm_Dihedral::addDihedrals(DihedralArray const& dihedrals, CharMask const& maskIn)
@@ -44,6 +45,8 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
   double dc[7];
   double dr[13];
   double dtx[7][13];
+
+  EnergyKernel_NonBond_Simple<double> NB14;
 
   for (DihedralArray::const_iterator dih = activeDihs_.begin(); dih != activeDihs_.end(); ++dih)
   {
