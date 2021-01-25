@@ -3,7 +3,20 @@
 #include "CharMask.h"
 #include "EnergyArray.h"
 #include "EnergyKernel_NonBond_Simple.h"
+#include "Constants.h"
 #include "CpptrajStdio.h" 
+
+/** CONSTRUCTOR */
+PotentialTerm_Dihedral::PotentialTerm_Dihedral() :
+  PotentialTerm(DIHEDRAL),
+  dihParm_(0),
+  nonbond_(0),
+  atoms_(0),
+  Edih_(0),
+  Enb14_(0),
+  Eq14_(0)
+{}
+
 
 void PotentialTerm_Dihedral::addDihedrals(DihedralArray const& dihedrals, CharMask const& maskIn)
 {
@@ -29,7 +42,11 @@ int PotentialTerm_Dihedral::SetupTerm(Topology const& topIn, Box const& boxIn,
   addDihedrals( topIn.DihedralsH(), maskIn );
 
   dihParm_ = &(topIn.DihedralParm());
+  nonbond_ = &(topIn.Nonbond());
+  atoms_ = &(topIn.Atoms());
   Edih_ = Earray.AddType( EnergyArray::E_DIHEDRAL );
+  Enb14_ = Earray.AddType( EnergyArray::E_VDW14 );
+  Eq14_ = Earray.AddType( EnergyArray::E_Q14 );
 
   return 0;
 }
@@ -39,6 +56,8 @@ int PotentialTerm_Dihedral::SetupTerm(Topology const& topIn, Box const& boxIn,
   */
 void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) const {
   *Edih_ = 0.0;
+  *Enb14_ = 0.0;
+  *Eq14_ = 0.0;
 
   // TODO fix indices and names
   double t[7];
@@ -46,11 +65,24 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
   double dr[13];
   double dtx[7][13];
 
+  double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
+
   EnergyKernel_NonBond_Simple<double> NB14;
 
   for (DihedralArray::const_iterator dih = activeDihs_.begin(); dih != activeDihs_.end(); ++dih)
   {
     DihedralParmType DP = (*dihParm_)[ dih->Idx() ];
+
+    // Do the 1-4 terms
+    Atom const& A1 = (*atoms_)[dih->A1()];
+    Atom const& A4 = (*atoms_)[dih->A4()];
+    int nbindex = nonbond_->GetLJindex( A1.TypeIndex(), A4.TypeIndex() );
+    NonbondType const& LJ = nonbond_->NBarray( nbindex );
+    NB14.Calc_F_E( frameIn, dih->A1(), dih->A4(), LJ.A(), LJ.B(),
+                   QFAC, A1.Charge(), A4.Charge(),
+                   1.0/DP.SCNB(), 1.0/DP.SCEE(), maskIn,
+                   *Enb14_, *Eq14_);
+
     const double* XYZ1 = frameIn.XYZ( dih->A1() );
     const double* XYZ2 = frameIn.XYZ( dih->A2() );
     const double* XYZ3 = frameIn.XYZ( dih->A3() );

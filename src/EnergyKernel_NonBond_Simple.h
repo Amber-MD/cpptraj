@@ -9,12 +9,14 @@ template <class REAL> class EnergyKernel_NonBond_Simple {
      /// CONSTRUCTOR
      EnergyKernel_NonBond_Simple() {}
      /// Energy/forces
-     void Calc_F_E(Frame&, int, int, double, double, double, CharMask const&, double&, double&);
+     void Calc_F_E(Frame&, int, int, double, double, double, double, double, double, double, CharMask const&, double&, double&);
 };
 
 template<class REAL> 
 void EnergyKernel_NonBond_Simple<REAL>::Calc_F_E(Frame& frameIn, int idx, int jdx,
-                                           double LJA, double LJB, double qiqj,
+                                           double LJA, double LJB,
+                                           double QFAC, double qi, double qj,
+                                           double enbfac, double eelfac,
                                            CharMask const& maskIn,
                                            double& E_vdw, double& E_elec)
 {
@@ -34,14 +36,14 @@ void EnergyKernel_NonBond_Simple<REAL>::Calc_F_E(Frame& frameIn, int idx, int jd
     REAL f6    = LJB * r6;   // B/r^6
     REAL e_vdw = f12 - f6;   // (A/r^12)-(B/r^6)
     //mprintf("DBG:\t\t%8i %8i %12.4f\n", e_vdw);
-    E_vdw += e_vdw;
+    E_vdw += (e_vdw * enbfac);
     // VDW force
-    REAL fvdw = ((12*f12) - (6*f6)) * r2; // (12A/r^13)-(6B/r^7)
+    REAL fvdw = ((12*f12) - (6*f6)) * enbfac * r2; // (12A/r^13)-(6B/r^7)
     REAL dfx = rx * fvdw;
     REAL dfy = ry * fvdw;
     REAL dfz = rz * fvdw;
     // COULOMB
-    REAL e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
+    REAL e_elec = QFAC * ((eelfac*qi*qj) / rij); // 1.0 is electrostatic constant, not really needed
     E_elec += e_elec;
     // COULOMB force
     REAL felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
