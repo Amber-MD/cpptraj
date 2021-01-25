@@ -3,12 +3,9 @@
 #include "CharMask.h"
 #include "EnergyArray.h"
 
-/** Set up Hooke's law angle term. */
-int PotentialTerm_Angle::SetupTerm(Topology const& topIn, Box const& boxIn,
-                                   CharMask const& maskIn, EnergyArray& Earray)
+void PotentialTerm_Angle::addAngles(AngleArray const& angles, CharMask const& maskIn)
 {
-  activeAngs_.clear();
-  for (AngleArray::const_iterator ang = topIn.Angles().begin(); ang != topIn.Angles().end(); ++ang)
+  for (AngleArray::const_iterator ang = angles.begin(); ang != angles.end(); ++ang)
   {
     if (maskIn.AtomInCharMask( ang->A1() ) ||
         maskIn.AtomInCharMask( ang->A2() ) ||
@@ -18,6 +15,16 @@ int PotentialTerm_Angle::SetupTerm(Topology const& topIn, Box const& boxIn,
       activeAngs_.push_back( *ang );
     }
   }
+}
+
+/** Set up Hooke's law angle term. */
+int PotentialTerm_Angle::SetupTerm(Topology const& topIn, Box const& boxIn,
+                                   CharMask const& maskIn, EnergyArray& Earray)
+{
+  activeAngs_.clear();
+  addAngles( topIn.Angles(),  maskIn );
+  addAngles( topIn.AnglesH(), maskIn );
+
   angParm_ = &(topIn.AngleParm());
   Eang_ = Earray.AddType( EnergyArray::E_ANGLE );
 
