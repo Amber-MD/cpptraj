@@ -85,36 +85,32 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
     ct = ct > 1.0 ? 1.0 : ct;
     ct = ct < -1.0 ? -1.0 : ct;
 
-    /*     ----- ct value above is actually -cosphi; here we change
-     *           its sign -----
-     */
+    //     ----- ct value above is actually -cosphi; here we change
+    //           its sign -----
     ct = -ct;
 
-    /*     ----- calculate the energy and derivatives -----
+    //     ----- calculate the energy and derivatives -----
 
 
-     *     ----- get df = first der. of potential w/respect to cosphi; and
-     *           ddf = second der. of potntial w/respect to cosphi -----
+    //     ----- get df = first der. of potential w/respect to cosphi; and
+    //           ddf = second der. of potntial w/respect to cosphi -----
 
-     *           the torsional potential is assumed to have the form:
-     *            e = pk(ic) * (1.0+phase*cos(pn(ic)*phi)
-     *            where phase = 1.0 or -1.0, and pn = 1,2,3,4, or 6
+    //           the torsional potential is assumed to have the form:
+    //            e = pk(ic) * (1.0+phase*cos(pn(ic)*phi)
+    //            where phase = 1.0 or -1.0, and pn = 1,2,3,4, or 6
 
-     *     ----- energy terms for dihedrals are expressed in terms of
-     *           cosphi in order to eliminate problems for planar angles ----
-     */
+    //     ----- energy terms for dihedrals are expressed in terms of
+    //           cosphi in order to eliminate problems for planar angles ----
 
     // multi-term // TODO use Constants PI?
     double df;
     if ((fabs(DP.Phase() - 3.142) > 0.01) && (fabs(DP.Phase()) > 0.01)) {
-      /*   here we have special code for phases that are not zero or pi */
+      //   here we have special code for phases that are not zero or pi
 
       double phi = acos(ct);
 
-      /*
-         now calculate sin(phi) because cos(phi) is symmetric, so
-         we can decide between +-phi.
-       */
+      // now calculate sin(phi) because cos(phi) is symmetric, so
+      // we can decide between +-phi.
 
       double ux = -yij * zkj + zij * ykj;
       double uy = -zij * xkj + xij * zkj;
@@ -142,19 +138,22 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
         //ddf = -Pk[atyp]*Pn[atyp]*( Pn[atyp]*cos(delta) -
         //        ct*sin(delta)/yy )/(yy*yy);
       } else {
-        /* if sin(phi) happens to be at zero or pi, adjust it slightly */
-        if (phi > -1. && phi < 1.) {  /* set sin(phi) = 0.001 */
+        // if sin(phi) happens to be at zero or pi, adjust it slightly
+        if (phi > -1. && phi < 1.) {
+          // set sin(phi) = 0.001
           df = DP.Pk()*DP.Pn()*sin(delta) * 1000.;
           //ddf = -Pk[atyp]*Pn[atyp]*1000000. * ( Pn[atyp]*cos(delta) -
           //        ct*1000.*sin(delta) );
-        } else {  /* set sin(phi) = -0.001  */
+        } else {
+          // set sin(phi) = -0.001
           df = -DP.Pk()*DP.Pn()*sin(delta) * 1000.;
           //ddf = -Pk[atyp]*Pn[atyp]*1000000. * ( Pn[atyp]*cos(delta) +
           //        ct*1000.*sin(delta) );
         }
       }
 
-    } else {   /* here is "usual" case, where the phase is 0 or pi */
+    } else {
+      // here is "usual" case, where the phase is 0 or pi
       *Edih_ = 0; // FIXME
 
     }
