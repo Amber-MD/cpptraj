@@ -350,6 +350,7 @@ COMMON_SOURCES= \
         PotentialTerm.cpp \
         PotentialTerm_Angle.cpp \
         PotentialTerm_Bond.cpp \
+        PotentialTerm_Dihedral.cpp \
         PotentialTerm_LJ_Coulomb.cpp \
         PotentialTerm_OpenMM.cpp \
         ProgressBar.cpp \

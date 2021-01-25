@@ -8,7 +8,7 @@ class EnergyArray {
   public:
     EnergyArray();
     /// Energy term types. Keep in sync with TypeStr_.
-    enum Type { E_BOND = 0, E_ANGLE, E_VDW, E_COULOMB, E_OPENMM, N_E_TERMS };
+    enum Type { E_BOND = 0, E_ANGLE, E_DIHEDRAL, E_VDW, E_COULOMB, E_OPENMM, N_E_TERMS };
     /// \return Pointer to specified part of the energy array.
     double* AddType(Type);
     /// Clear all terms.

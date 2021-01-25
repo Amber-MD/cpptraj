@@ -7,6 +7,7 @@
 #include "PotentialTerm_OpenMM.h"
 #include "PotentialTerm_LJ_Coulomb.h"
 #include "PotentialTerm_Angle.h"
+#include "PotentialTerm_Dihedral.h"
 
 /** Add a term to the potential function. */
 int PotentialFunction::AddTerm(PotentialTerm::Type typeIn, MdOpts const& opts) {
@@ -16,6 +17,7 @@ int PotentialFunction::AddTerm(PotentialTerm::Type typeIn, MdOpts const& opts) {
     case PotentialTerm::OPENMM : term = (PotentialTerm*)new PotentialTerm_OpenMM(); break;
     case PotentialTerm::SIMPLE_LJ_Q : term = (PotentialTerm*)new PotentialTerm_LJ_Coulomb(); break;
     case PotentialTerm::ANGLE : term = (PotentialTerm*)new PotentialTerm_Angle(); break;
+    case PotentialTerm::DIHEDRAL : term = (PotentialTerm*)new PotentialTerm_Dihedral(); break;
     default :
       mprinterr("Internal Error: No allocator type for potential term.\n");
       return 1;
