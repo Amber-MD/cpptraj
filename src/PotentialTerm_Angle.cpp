@@ -2,6 +2,7 @@
 #include "Topology.h"
 #include "CharMask.h"
 #include "EnergyArray.h"
+#include "CpptrajStdio.h" 
 
 void PotentialTerm_Angle::addAngles(AngleArray const& angles, CharMask const& maskIn)
 {
@@ -11,7 +12,7 @@ void PotentialTerm_Angle::addAngles(AngleArray const& angles, CharMask const& ma
         maskIn.AtomInCharMask( ang->A2() ) ||
         maskIn.AtomInCharMask( ang->A3() ))
     {
-      //mprintf("DEBUG: Angle %i to %i to %i\n", ang->A1()+1, ang->A2()+1, ang->A3()+1);
+      mprintf("DEBUG: Angle %i to %i to %i\n", ang->A1()+1, ang->A2()+1, ang->A3()+1);
       activeAngs_.push_back( *ang );
     }
   }
@@ -129,18 +130,18 @@ void PotentialTerm_Angle::CalcForce(Frame& frameIn, CharMask const& maskIn) cons
 
     /* update the forces:  */
     double* frc = frameIn.fAddress() + ang->A1()*3;
-    frc[0] -= df * dr[1];
-    frc[1] -= df * dr[2];
-    frc[2] -= df * dr[3];
+    frc[0] += df * dr[1];
+    frc[1] += df * dr[2];
+    frc[2] += df * dr[3];
 
     frc = frameIn.fAddress() + ang->A2()*3;
-    frc[0] -= df * dr[4];
-    frc[1] -= df * dr[5];
-    frc[2] -= df * dr[6];
+    frc[0] += df * dr[4];
+    frc[1] += df * dr[5];
+    frc[2] += df * dr[6];
 
     frc = frameIn.fAddress() + ang->A3()*3;
-    frc[0] -= df * dr[7];
-    frc[1] -= df * dr[8];
-    frc[2] -= df * dr[9];
+    frc[0] += df * dr[7];
+    frc[1] += df * dr[8];
+    frc[2] += df * dr[9];
   } // END loop over angles
 }
