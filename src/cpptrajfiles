@@ -347,9 +347,10 @@ COMMON_SOURCES= \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
         PotentialFunction.cpp \
+        PotentialTerm_Angle.cpp \
         PotentialTerm_Bond.cpp \
-        PotentialTerm_OpenMM.cpp \
         PotentialTerm_LJ_Coulomb.cpp \
+        PotentialTerm_OpenMM.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \

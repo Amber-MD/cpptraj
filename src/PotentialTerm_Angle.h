@@ -7,7 +7,7 @@ class PotentialTerm_Angle : public PotentialTerm {
   public:
     PotentialTerm_Angle() : PotentialTerm(ANGLE), angParm_(0), Eang_(0) {}
 
-    int SetupTerm(Topology const&, CharMask const&, EnergyArray&);
+    int SetupTerm(Topology const&, Box const&, CharMask const&, EnergyArray&);
     void CalcForce(Frame&, CharMask const&) const;
   private:
     AngleArray activeAngs_;          ///< Array of angles selected by mask during setup
