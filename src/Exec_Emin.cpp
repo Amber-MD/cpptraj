@@ -82,6 +82,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   else {
     if (crdset->Top().Nbonds() > 0) potential.AddTerm( PotentialTerm::BOND, opts );
     if (crdset->Top().Nangles() > 0) potential.AddTerm( PotentialTerm::ANGLE, opts );
+    if (crdset->Top().Ndihedrals() > 0) potential.AddTerm( PotentialTerm::DIHEDRAL, opts );
   }
   Minimize_SteepestDescent SD;
 
