@@ -129,19 +129,25 @@ void PotentialTerm_Angle::CalcForce(Frame& frameIn, CharMask const& maskIn) cons
     }
 
     /* update the forces:  */
-    double* frc = frameIn.fAddress() + ang->A1()*3;
-    frc[0] += df * dr[1];
-    frc[1] += df * dr[2];
-    frc[2] += df * dr[3];
+    if (maskIn.AtomInCharMask(ang->A1())) {
+      double* frc = frameIn.fAddress() + ang->A1()*3;
+      frc[0] += df * dr[1];
+      frc[1] += df * dr[2];
+      frc[2] += df * dr[3];
+    }
 
-    frc = frameIn.fAddress() + ang->A2()*3;
-    frc[0] += df * dr[4];
-    frc[1] += df * dr[5];
-    frc[2] += df * dr[6];
+    if (maskIn.AtomInCharMask(ang->A2())) {
+      double* frc = frameIn.fAddress() + ang->A2()*3;
+      frc[0] += df * dr[4];
+      frc[1] += df * dr[5];
+      frc[2] += df * dr[6];
+    }
 
-    frc = frameIn.fAddress() + ang->A3()*3;
-    frc[0] += df * dr[7];
-    frc[1] += df * dr[8];
-    frc[2] += df * dr[9];
+    if (maskIn.AtomInCharMask(ang->A3())) {
+      double* frc = frameIn.fAddress() + ang->A3()*3;
+      frc[0] += df * dr[7];
+      frc[1] += df * dr[8];
+      frc[2] += df * dr[9];
+    }
   } // END loop over angles
 }
