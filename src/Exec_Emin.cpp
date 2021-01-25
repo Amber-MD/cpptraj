@@ -79,8 +79,10 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   opts.PrintOpts();
   if (use_openmm)
     potential.AddTerm( PotentialTerm::OPENMM, opts );
-  else
-    potential.AddTerm( PotentialTerm::BOND, opts );
+  else {
+    if (crdset->Top().Nbonds() > 0) potential.AddTerm( PotentialTerm::BOND, opts );
+    if (crdset->Top().Nangles() > 0) potential.AddTerm( PotentialTerm::ANGLE, opts );
+  }
   Minimize_SteepestDescent SD;
 
   // Set up the potential function
