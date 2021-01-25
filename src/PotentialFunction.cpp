@@ -76,7 +76,7 @@ int PotentialFunction::setupPotential(Topology const& topIn, Box const& boxIn) {
   for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
   {
     if ( (*it)->SetupTerm( topIn, boxIn, mask_, earray_ ) ) {
-      mprinterr("Error: Could not set up energy term.\n");
+      mprinterr("Error: Could not set up potential function term %s.\n", (*it)->TypeStr());
       return 1;
     }
     deg_of_freedom_ -= (*it)->RemovedDegreesOfFreedom();
@@ -103,4 +103,6 @@ void PotentialFunction::FnInfo() const {
   for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
     mprintf(" %s", (*it)->TypeStr());
   mprintf("\n");
+  mprintf("\tEnergy terms:");
+  earray_.PrintActiveTerms();
 }

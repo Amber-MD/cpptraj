@@ -33,14 +33,16 @@ class EnergyArray {
     void PrintActiveTerms(CpptrajFile&, bool) const;
     /// Print active labels to specified file (optionally including single terms).
     void PrintActiveLabels(CpptrajFile&, bool) const;
+    /// Print active term labels to stdout
+    void PrintActiveTerms() const;
   private:
     static const char* TypeStr_[];
 
     typedef std::vector<double> Darray;
     typedef std::vector<Type> Tarray;
 
-    Darray ene_;         ///< Energy array
-    Tarray activeTerms_; ///< Active energy terms
+    Darray ene_;         ///< Energy array for all terms in Type
+    Tarray activeTerms_; ///< Energy terms in ene_ that are currently active
     
 };
 #endif

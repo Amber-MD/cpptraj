@@ -48,3 +48,9 @@ const
   for (Tarray::const_iterator it = activeTerms_.begin(); it != activeTerms_.end(); ++it)
     outfile.Printf(" %12s", TypeStr_[*it]);
 }
+
+/** Print active term labels to STDOUT. */
+void EnergyArray::PrintActiveTerms() const {
+  for (Tarray::const_iterator it = activeTerms_.begin(); it != activeTerms_.end(); ++it)
+    mprintf(" %s", TypeStr_[*it]);
+}
