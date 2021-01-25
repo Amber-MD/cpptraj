@@ -88,6 +88,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Could not set up potential.\n");
     return CpptrajState::ERR;
   }
+  potential.FnInfo();
 
   // Set up and run minimization
   if (SD.SetupMin(trajoutname, min_tol, dx0, nMinSteps)) {

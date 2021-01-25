@@ -75,6 +75,7 @@ int PotentialFunction::setupPotential(Topology const& topIn, Box const& boxIn) {
   earray_.clear();
   for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
   {
+    mprintf("DEBUG: Set up term %s\n", (*it)->TypeStr());
     if ( (*it)->SetupTerm( topIn, boxIn, mask_, earray_ ) ) {
       mprinterr("Error: Could not set up potential function term %s.\n", (*it)->TypeStr());
       return 1;
@@ -105,4 +106,5 @@ void PotentialFunction::FnInfo() const {
   mprintf("\n");
   mprintf("\tEnergy terms:");
   earray_.PrintActiveTerms();
+  mprintf("\n");
 }

@@ -2,21 +2,28 @@
 #include "Topology.h"
 #include "CharMask.h"
 #include "EnergyArray.h"
+#include "CpptrajStdio.h" // DEBUG
+
+void PotentialTerm_Bond::addBonds(BondArray const& bonds, CharMask const& maskIn) {
+  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+  {
+    if (maskIn.AtomInCharMask( bnd->A1() ) ||
+        maskIn.AtomInCharMask( bnd->A2() ))
+    {
+      mprintf("DEBUG: Bond %i to %i\n", bnd->A1()+1, bnd->A2()+1);
+      activeBonds_.push_back( *bnd );
+    }
+  }
+}
 
 /** Set up Hooke's law bond term. */
 int PotentialTerm_Bond::SetupTerm(Topology const& topIn, Box const& boxIn,
                                   CharMask const& maskIn, EnergyArray& Earray)
 {
   activeBonds_.clear();
-  for (BondArray::const_iterator bnd = topIn.Bonds().begin(); bnd != topIn.Bonds().end(); ++bnd)
-  {
-    if (maskIn.AtomInCharMask( bnd->A1() ) ||
-        maskIn.AtomInCharMask( bnd->A2() ))
-    {
-      //mprintf("DEBUG: Bond %i to %i\n", bnd->A1()+1, bnd->A2()+1);
-      activeBonds_.push_back( *bnd );
-    }
-  }
+  addBonds( topIn.Bonds(),  maskIn );
+  addBonds( topIn.BondsH(), maskIn );
+
   bondParm_ = &(topIn.BondParm());
   Ebond_ = Earray.AddType( EnergyArray::E_BOND );
 
