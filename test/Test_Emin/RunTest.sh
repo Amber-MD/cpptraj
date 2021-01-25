@@ -6,7 +6,8 @@ TESTNAME='Emin tests'
 
 CleanFiles emin.in cpptraj.ene.dat cpptraj.emin.nc \
            omm.ene.dat ommangle.ene.dat ommdihedral.ene.dat \
-           ommnb.ene.dat omm.tz2.ene.dat omm.tz2.pme.dat
+           ommnb.ene.dat omm.tz2.ene.dat omm.tz2.pme.dat \
+           cpptraj.angle.dat
 
 INPUT='-i emin.in'
 
@@ -19,6 +20,16 @@ emin crdset O2mol nsteps 100 out cpptraj.ene.dat trajoutname cpptraj.emin.nc
 EOF
 RunCpptraj "$UNITNAME"
 DoTest cpptraj.ene.dat.save cpptraj.ene.dat
+
+UNITNAME='Energy minimization with angle term test.'
+cat > emin.in <<EOF
+parm HOHmol.parm7
+loadcrd HOHmol.rst7 name HOHmol
+
+emin crdset HOHmol nsteps 100 out cpptraj.angle.dat
+EOF
+RunCpptraj "$UNITNAME"
+DoTest cpptraj.angle.dat.save cpptraj.angle.dat
 
 UNITNAME='OpenMM basic energy minimization tests'
 CheckFor openmm
