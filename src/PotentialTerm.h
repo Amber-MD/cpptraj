@@ -21,7 +21,10 @@ class PotentialTerm {
     /// # deg. of removed by this term
     virtual int RemovedDegreesOfFreedom() const { return 0; } // TODO pure virtual?
 
+    static const char* TypeStr(Type);
   private:
+    static const char* typeStr_[];
+
     Type type_;
 };
 #endif

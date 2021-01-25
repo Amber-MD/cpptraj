@@ -347,6 +347,7 @@ COMMON_SOURCES= \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
         PotentialFunction.cpp \
+        PotentialTerm.cpp \
         PotentialTerm_Angle.cpp \
         PotentialTerm_Bond.cpp \
         PotentialTerm_LJ_Coulomb.cpp \
