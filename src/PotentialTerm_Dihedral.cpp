@@ -4,7 +4,7 @@
 #include "EnergyArray.h"
 #include "EnergyKernel_NonBond_Simple.h"
 #include "Constants.h"
-#include "CpptrajStdio.h" 
+#include "CpptrajStdio.h"
 
 /** CONSTRUCTOR */
 PotentialTerm_Dihedral::PotentialTerm_Dihedral() :
@@ -68,7 +68,7 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
   double QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 
   EnergyKernel_NonBond_Simple<double> NB14;
-  mprintf("FCALC\n");
+  //mprintf("FCALC\n");
   for (DihedralArray::const_iterator dih = activeDihs_.begin(); dih != activeDihs_.end(); ++dih)
   {
     DihedralParmType DP = (*dihParm_)[ dih->Idx() ];
@@ -113,7 +113,7 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
     double bi = dx * dx + dy * dy + dz * dz;
     double bk = gx * gx + gy * gy + gz * gz;
     double ct = dx * gx + dy * gy + dz * gz;
-    mprintf("FCALC CT %20.10f\n", ct);
+    //mprintf("FCALC CT %20.10f\n", ct);
     //    ----- approximate if linear dihedral 
     //    ----- assumes force constant is eventually zero -----
 
@@ -383,13 +383,13 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
     f[at4] -= df * dr[10];
     f[at4 + 1] -= df * dr[11];
     f[at4 + 2] -= df * dr[12];*/
-    mprintf("FCALC forces ");
+    //mprintf("FCALC forces ");
     if (maskIn.AtomInCharMask(dih->A1())) {
       double* frc = frameIn.fAddress() + dih->A1()*3;
       frc[0] += df * dr[1];
       frc[1] += df * dr[2];
       frc[2] += df * dr[3];
-      mprintf("%16.8f%16.8f%16.8f",df*dr[1],df*dr[2],df*dr[3]);
+      //mprintf("%16.8f%16.8f%16.8f",df*dr[1],df*dr[2],df*dr[3]);
     }
 
     if (maskIn.AtomInCharMask(dih->A2())) {
@@ -397,7 +397,7 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
       frc[0] += df * dr[4];
       frc[1] += df * dr[5];
       frc[2] += df * dr[6];
-      mprintf("%16.8f%16.8f%16.8f",df*dr[4],df*dr[5],df*dr[6]);
+      //mprintf("%16.8f%16.8f%16.8f",df*dr[4],df*dr[5],df*dr[6]);
     }
 
     if (maskIn.AtomInCharMask(dih->A3())) {
@@ -405,7 +405,7 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
       frc[0] += df * dr[7];
       frc[1] += df * dr[8];
       frc[2] += df * dr[9];
-      mprintf("%16.8f%16.8f%16.8f",df*dr[7],df*dr[8],df*dr[9]);
+      //mprintf("%16.8f%16.8f%16.8f",df*dr[7],df*dr[8],df*dr[9]);
     }
 
     if (maskIn.AtomInCharMask(dih->A4())) {
@@ -413,9 +413,9 @@ void PotentialTerm_Dihedral::CalcForce(Frame& frameIn, CharMask const& maskIn) c
       frc[0] += df * dr[10];
       frc[1] += df * dr[11];
       frc[2] += df * dr[12];
-      mprintf("%16.8f%16.8f%16.8f",df*dr[10],df*dr[11],df*dr[12]);
+      //mprintf("%16.8f%16.8f%16.8f",df*dr[10],df*dr[11],df*dr[12]);
     }
-    mprintf("\n");
+    //mprintf("\n");
 
   } // END loop over dihedrals
 }

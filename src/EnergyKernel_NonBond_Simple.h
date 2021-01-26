@@ -3,7 +3,7 @@
 #include <cmath> //sqrt
 #include "Frame.h"
 #include "CharMask.h"
-#include "CpptrajStdio.h" // DEBUG
+//#incl ude "CpptrajStdio.h" // DEBUG
 /// Simple LJ and electrostatics
 template <class REAL> class EnergyKernel_NonBond_Simple {
   public:
@@ -56,7 +56,7 @@ void EnergyKernel_NonBond_Simple<REAL>::Calc_F_E(Frame& frameIn, int idx, int jd
     REAL dfx = rx * dfn;
     REAL dfy = ry * dfn;
     REAL dfz = rz * dfn;
-    mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx,dfx, dfy, dfz,dfn);
+    //mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx,dfx, dfy, dfz,dfn);
     //mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx, rx, ry, rz, dfn);
     //mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx, f12, f6, enbfac, qi*qj*QFAC, 1/rij, eelfac, r2);
     //mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx, f12, f6, enbfac, qi*qj*QFAC/rij, eelfac, r2);

@@ -42,7 +42,7 @@ void PotentialTerm_Angle::CalcForce(Frame& frameIn, CharMask const& maskIn) cons
   double s[7];
   double dc[7];
   double dr[10];
-  mprintf("FCALC\n");
+  //mprintf("FCALC\n");
   for (AngleArray::const_iterator ang = activeAngs_.begin(); ang != activeAngs_.end(); ++ang)
   {
     AngleParmType AP = (*angParm_)[ ang->Idx() ];
@@ -107,7 +107,7 @@ void PotentialTerm_Angle::CalcForce(Frame& frameIn, CharMask const& maskIn) cons
     c = c > 1.0 ? 1.0 : c;
     c = c < -1.0 ? -1.0 : c;
     double theta = acos(c);
-    mprintf("FCALC ANGLE %20.10f\n", theta);
+    //mprintf("FCALC ANGLE %20.10f\n", theta);
     double dtheta = theta - AP.Teq();
 
     // df and ddf are derivatives of E with respect to c == costheta:
