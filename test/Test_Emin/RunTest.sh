@@ -7,7 +7,7 @@ TESTNAME='Emin tests'
 CleanFiles emin.in cpptraj.ene.dat cpptraj.emin.nc \
            omm.ene.dat ommangle.ene.dat ommdihedral.ene.dat \
            ommnb.ene.dat omm.tz2.ene.dat omm.tz2.pme.dat \
-           cpptraj.angle.dat
+           cpptraj.angle.dat cpptraj.dihedral.dat
 
 INPUT='-i emin.in'
 
@@ -30,6 +30,16 @@ emin crdset HOHmol nsteps 100 out cpptraj.angle.dat
 EOF
 RunCpptraj "$UNITNAME"
 DoTest cpptraj.angle.dat.save cpptraj.angle.dat
+
+UNITNAME='Energy minimization with dihedral and 1-4 terms test.'
+cat > emin.in <<EOF
+parm ETHmol.parm7
+loadcrd ETHmol.rst7 name ETHmol
+
+emin crdset ETHmol nsteps 100 out cpptraj.dihedral.dat
+EOF
+RunCpptraj "$UNITNAME"
+DoTest cpptraj.dihedral.dat.save cpptraj.dihedral.dat
 
 UNITNAME='OpenMM basic energy minimization tests'
 CheckFor openmm
