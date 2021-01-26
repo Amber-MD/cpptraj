@@ -3,6 +3,7 @@
 #include <cmath> //sqrt
 #include "Frame.h"
 #include "CharMask.h"
+#include "CpptrajStdio.h" // DEBUG
 /// Simple LJ and electrostatics
 template <class REAL> class EnergyKernel_NonBond_Simple {
   public:
@@ -38,18 +39,28 @@ void EnergyKernel_NonBond_Simple<REAL>::Calc_F_E(Frame& frameIn, int idx, int jd
     //mprintf("DBG:\t\t%8i %8i %12.4f\n", e_vdw);
     E_vdw += (e_vdw * enbfac);
     // VDW force
-    REAL fvdw = ((12*f12) - (6*f6)) * enbfac * r2; // (12A/r^13)-(6B/r^7)
-    REAL dfx = rx * fvdw;
-    REAL dfy = ry * fvdw;
-    REAL dfz = rz * fvdw;
+//    REAL fvdw = ((12*f12) - (6*f6)) * enbfac * r2; // (12A/r^13)-(6B/r^7)
+//    REAL dfx = rx * fvdw;
+//    REAL dfy = ry * fvdw;
+//    REAL dfz = rz * fvdw;
     // COULOMB
     REAL e_elec = QFAC * ((eelfac*qi*qj) / rij); // 1.0 is electrostatic constant, not really needed
     E_elec += e_elec;
     // COULOMB force
-    REAL felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
-    dfx += rx * felec;
-    dfy += ry * felec;
-    dfz += rz * felec;
+//    REAL felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
+//    dfx += rx * felec;
+//    dfy += ry * felec;
+//    dfz += rz * felec;
+    // COMBINED Vdw and Coulomb force 
+    REAL dfn = ( (((12*f12) - (6*f6)) * enbfac) + e_elec ) * r2;
+    REAL dfx = rx * dfn;
+    REAL dfy = ry * dfn;
+    REAL dfz = rz * dfn;
+    mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx,dfx, dfy, dfz,dfn);
+    //mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx, rx, ry, rz, dfn);
+    //mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx, f12, f6, enbfac, qi*qj*QFAC, 1/rij, eelfac, r2);
+    //mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx, f12, f6, enbfac, qi*qj*QFAC/rij, eelfac, r2);
+    //mprintf("FCALC 14 %6i%6i%16.8f%16.8f%16.8f%16.8f%16.8f\n", 3*idx,3*jdx, f12, f6, enbfac, e_elec, r2);
     // Apply forces
     if (maskIn.AtomInCharMask(idx)) {
       double* fxyz = frameIn.fAddress() + (3*idx);
