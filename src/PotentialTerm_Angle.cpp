@@ -42,13 +42,42 @@ void PotentialTerm_Angle::CalcForce(Frame& frameIn, CharMask const& maskIn) cons
   double s[7];
   double dc[7];
   double dr[10];
-
+  mprintf("FCALC\n");
   for (AngleArray::const_iterator ang = activeAngs_.begin(); ang != activeAngs_.end(); ++ang)
   {
     AngleParmType AP = (*angParm_)[ ang->Idx() ];
     const double* XYZ1 = frameIn.XYZ( ang->A1() );
     const double* XYZ2 = frameIn.XYZ( ang->A2() );
     const double* XYZ3 = frameIn.XYZ( ang->A3() );
+/*
+    // TODO just use CalcAngle?
+    Vec3 v2_1 = Vec3( XYZ1[0] - XYZ2[0],
+                      XYZ1[1] - XYZ2[1],
+                      XYZ1[2] - XYZ2[2] );
+
+    Vec3 v2_3 = Vec3( XYZ3[0] - XYZ2[0],
+                      XYZ3[1] - XYZ2[1],
+                      XYZ3[2] - XYZ2[2] );
+
+    Vec3 v1_3 = Vec3( XYZ3[0] - XYZ1[0],
+                      XYZ3[1] - XYZ1[1],
+                      XYZ3[2] - XYZ1[2] );
+
+    double mag_v2_1 = v2_1.Magnitude2();
+    double ang_in_rad = 0;
+    if (mag_v2_1 > Constants::SMALL) {
+      double mag_v2_3 = v2_3.Magnitude2();
+      if (mag_v2_3 > Constants::SMALL) {
+        double cos_ang = (v2_1 * v2_3) / sqrt(mag_v2_1 * mag_v2_3);
+        if (cos_ang > 1.0)
+          cos_ang = 1.0;
+        else if (cos_ang < -1.0)
+          cos_ang = -1.0;
+        ang_in_rad = acos( cos_ang );
+      }
+    }
+    mprintf("FCALC ANGLE %20.10f\n", ang_in_rad);
+*/
 
     double x1 = XYZ1[0];
     double y1 = XYZ1[1];
@@ -78,11 +107,12 @@ void PotentialTerm_Angle::CalcForce(Frame& frameIn, CharMask const& maskIn) cons
     c = c > 1.0 ? 1.0 : c;
     c = c < -1.0 ? -1.0 : c;
     double theta = acos(c);
+    mprintf("FCALC ANGLE %20.10f\n", theta);
     double dtheta = theta - AP.Teq();
 
     // df and ddf are derivatives of E with respect to c == costheta:
     double df = dtheta * AP.Tk();
-    /*double ddf = 2. * AP.Tk();*/
+    //*double ddf = 2. * AP.Tk();*
     double e = df * dtheta;
     *Eang_ += e;
 
@@ -93,14 +123,14 @@ void PotentialTerm_Angle::CalcForce(Frame& frameIn, CharMask const& maskIn) cons
        st = 1.e-3;
     else if (st < 0 && st > -1.e-3)
        st = -1.e-3;
-    df *= 2.0;                /* check this!!  */
+    df *= 2.0;                // check this!!  
 
-    // dc = derivative of c with respect to cartesian differences: */
+    // dc = derivative of c with respect to cartesian differences:
     for (int i = 1; i <= 3; i++) {
        dc[i] = (s[i + 3] / rkj - c * s[i] / rij) / rij;
        dc[i + 3] = (s[i] / rij - c * s[i + 3] / rkj) / rkj;
     }
-/*
+ /*
     // get ddc = second derivative of c with respect to 
     // cartesian differences:
     difang(c, s, dc, ddc);
@@ -114,21 +144,22 @@ void PotentialTerm_Angle::CalcForce(Frame& frameIn, CharMask const& maskIn) cons
           ddc[j][i] = ddc[i][j];
        }
     }
-*/
+ */
+
     // change dc to derivative of theta w/ respect to cartesian
     // differences:
     for (int i = 1; i <= 6; i++) {
        dc[i] = -dc[i] / st;
     }
 
-    /* dr will hold -derivates of theta w/ respect to cartesians: */
+    // dr will hold -derivates of theta w/ respect to cartesians:
     for (int i = 1; i <= 3; i++) {
        dr[i]     = -dc[i];
        dr[i + 6] = -dc[i + 3];
        dr[i + 3] =  dc[i] + dc[i + 3];
     }
 
-    /* update the forces:  */
+    // update the forces:  
     if (maskIn.AtomInCharMask(ang->A1())) {
       double* frc = frameIn.fAddress() + ang->A1()*3;
       frc[0] += df * dr[1];
