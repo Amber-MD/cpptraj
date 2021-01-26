@@ -4,6 +4,7 @@
 #include "EnergyArray.h"
 #include "EnergyKernel_NonBond_Simple.h"
 #include "MdOpts.h"
+#include "CpptrajStdio.h"
 
 /**  CONSTRUCTOR */
 PotentialTerm_LJ_Coulomb::PotentialTerm_LJ_Coulomb() :
@@ -35,6 +36,16 @@ int PotentialTerm_LJ_Coulomb::SetupTerm(Topology const& topIn,Box const& boxIn, 
     else
       nonSelectedAtoms_.push_back( i );
   }
+  // Set up exclusion array to ignore self and have full list
+  // since the non-selected to selected loop may not have atoms in order.
+  AtomMask fullSystem(0, topIn.Natom());
+  if (Excluded_.SetupExcluded(topIn.Atoms(), fullSystem, nExclude_,
+                              ExclusionArray::EXCLUDE_SELF,
+                              ExclusionArray::FULL))
+  {
+    mprinterr("Error: PotentialTerm_LJ_Coulomb: Could not set up exclusion list.\n");
+    return 1;
+  }
 
   atoms_ = &(topIn.Atoms());
   nonbond_ = &(topIn.Nonbond());
@@ -64,10 +75,12 @@ void PotentialTerm_LJ_Coulomb::CalcForce(Frame& frameIn, CharMask const& maskIn)
   for (Iarray::const_iterator idx = nonSelectedAtoms_.begin();
                               idx != nonSelectedAtoms_.end(); ++idx)
   {
+    // Exclusion list for this atom
+    ExclusionArray::ExListType const& excluded = Excluded_[*idx];
     for (Iarray::const_iterator jdx = selectedAtoms_.begin(); jdx != selectedAtoms_.end(); ++jdx)
     {
-      // Ignore if idx and jdx are bonded. TODO use exclusion
-      if (!(*atoms_)[*idx].IsBondedTo(*jdx))
+      // Check exclusion
+      if (excluded.find( *jdx ) == excluded.end())
       {
         NonbondType LJ = GetLJparam(*atoms_, *nonbond_, *idx, *jdx);
         //NonBondKernel(frameIn, *idx, *jdx, LJ.A(), LJ.B(), maskIn, *E_vdw_, *E_elec_);
@@ -79,10 +92,12 @@ void PotentialTerm_LJ_Coulomb::CalcForce(Frame& frameIn, CharMask const& maskIn)
   for (Iarray::const_iterator idx0 = selectedAtoms_.begin();
                               idx0 != selectedAtoms_.end(); ++idx0)
   {
+    // Exclusion list for this atom
+    ExclusionArray::ExListType const& excluded = Excluded_[*idx0];
     for (Iarray::const_iterator idx1 = idx0 + 1; idx1 != selectedAtoms_.end(); ++idx1)
     {
-      // Ignore if idx0 and idx1 are bonded.
-      if (!(*atoms_)[*idx0].IsBondedTo(*idx1))
+      // Check exclusion
+      if (excluded.find( *idx1 ) == excluded.end())
       {
         NonbondType LJ = GetLJparam(*atoms_, *nonbond_, *idx0, *idx1);
         nonbond.Calc_F_E(frameIn, *idx0, *idx1, LJ.A(), LJ.B(), 1, (*atoms_)[*idx0].Charge(), (*atoms_)[*idx1].Charge(), 1, 1, maskIn, *E_vdw_, *E_elec_);
