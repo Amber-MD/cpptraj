@@ -7,9 +7,11 @@ MdOpts::MdOpts() :
   scaleEE_(1.0/1.2), // Amber default
   scaleNB_(1.0/2.0), // Amber default
   cutEE_(8.0),       // in Ang., Amber default
-  cutNB_(8.0)        // in Ang., Amber default
+  cutNB_(8.0),       // in Ang., Amber default
+  nExclude_(4)       // Exclude dihedral, angle, bond
 {}
 
+/** Get options from incoming argument list. */
 int MdOpts::GetOptsFromArgs(ArgList& argIn)
 {
   cutEE_ = argIn.getKeyDouble("cutee", 8.0);
@@ -33,6 +35,8 @@ int MdOpts::GetOptsFromArgs(ArgList& argIn)
       return 1;
     }
   }
+  nExclude_ = argIn.getKeyInt("nexclude", 4);
+  
   return 0;
 }
 
@@ -42,4 +46,5 @@ void MdOpts::PrintOpts() const {
   mprintf("\t1-4 Elec. scaling     : %g\n", scaleEE_);
   mprintf("\t1-4 vdW scaling       : %g\n", scaleNB_);
   mprintf("\tSHAKE constraints     : %s\n", Constraints::shakeString(shakeType_));
+  mprintf("\tExclude beyond        : %i atoms\n", nExclude_);
 }

@@ -5,11 +5,11 @@
 // Forward declares
 class NonbondParmType;
 class Atom;
-class MdOpts;
 /// Potential term for simple nonbonded LJ + Coulomb with no cutoff
 class PotentialTerm_LJ_Coulomb : public PotentialTerm {
   public:
     PotentialTerm_LJ_Coulomb();
+    int InitTerm(MdOpts const&);
     int SetupTerm(Topology const&, Box const&, CharMask const&, EnergyArray&);
     void CalcForce(Frame&, CharMask const&) const;
   private:
@@ -20,5 +20,6 @@ class PotentialTerm_LJ_Coulomb : public PotentialTerm {
     NonbondParmType const* nonbond_; ///< Pointer to nonbond parameters.
     double* E_vdw_;                  ///< Pointer to VDW term of energy array.
     double* E_elec_;                 ///< Pointer to Coulomb term of energy array.
+    int nExclude_;                   ///< Interactions to exclude when setting up exclusion array
 };
 #endif

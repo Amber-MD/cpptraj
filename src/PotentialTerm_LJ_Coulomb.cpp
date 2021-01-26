@@ -3,14 +3,22 @@
 #include "CharMask.h"
 #include "EnergyArray.h"
 #include "EnergyKernel_NonBond_Simple.h"
+#include "MdOpts.h"
 
 /**  CONSTRUCTOR */
 PotentialTerm_LJ_Coulomb::PotentialTerm_LJ_Coulomb() :
   PotentialTerm(SIMPLE_LJ_Q),
   nonbond_(0),
   E_vdw_(0),
-  E_elec_(0)
+  E_elec_(0),
+  nExclude_(4)
 {}
+
+/** Init nonbonds. */
+int PotentialTerm_LJ_Coulomb::InitTerm(MdOpts const& optsIn) {
+  nExclude_ = optsIn.N_Exclude();
+  return 0;
+}
 
 /** Setup nonbonds. */
 int PotentialTerm_LJ_Coulomb::SetupTerm(Topology const& topIn,Box const& boxIn, CharMask const& maskIn,
