@@ -2,7 +2,7 @@
 #include "Topology.h"
 #include "CharMask.h"
 #include "EnergyArray.h"
-#include "CpptrajStdio.h" 
+//#incl ude "CpptrajStdio.h" 
 
 void PotentialTerm_Angle::addAngles(AngleArray const& angles, CharMask const& maskIn)
 {
@@ -12,7 +12,7 @@ void PotentialTerm_Angle::addAngles(AngleArray const& angles, CharMask const& ma
         maskIn.AtomInCharMask( ang->A2() ) ||
         maskIn.AtomInCharMask( ang->A3() ))
     {
-      mprintf("DEBUG: Angle %i to %i to %i\n", ang->A1()+1, ang->A2()+1, ang->A3()+1);
+      //mprintf("DEBUG: Angle %i to %i to %i\n", ang->A1()+1, ang->A2()+1, ang->A3()+1);
       activeAngs_.push_back( *ang );
     }
   }

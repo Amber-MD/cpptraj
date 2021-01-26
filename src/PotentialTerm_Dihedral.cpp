@@ -27,7 +27,7 @@ void PotentialTerm_Dihedral::addDihedrals(DihedralArray const& dihedrals, CharMa
         maskIn.AtomInCharMask( dih->A3() ) ||
         maskIn.AtomInCharMask( dih->A4() ))
     {
-      mprintf("DEBUG: Dihedral %i to %i to %i to %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
+      //mprintf("DEBUG: Dihedral %i to %i to %i to %i\n", dih->A1()+1, dih->A2()+1, dih->A3()+1, dih->A4()+1);
       activeDihs_.push_back( *dih );
     }
   }

@@ -2,7 +2,7 @@
 #include "Topology.h"
 #include "CharMask.h"
 #include "EnergyArray.h"
-#include "CpptrajStdio.h" // DEBUG
+//#incl ude "CpptrajStdio.h" // DEBUG
 
 void PotentialTerm_Bond::addBonds(BondArray const& bonds, CharMask const& maskIn) {
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
@@ -10,7 +10,7 @@ void PotentialTerm_Bond::addBonds(BondArray const& bonds, CharMask const& maskIn
     if (maskIn.AtomInCharMask( bnd->A1() ) ||
         maskIn.AtomInCharMask( bnd->A2() ))
     {
-      mprintf("DEBUG: Bond %i to %i\n", bnd->A1()+1, bnd->A2()+1);
+      //mprintf("DEBUG: Bond %i to %i\n", bnd->A1()+1, bnd->A2()+1);
       activeBonds_.push_back( *bnd );
     }
   }
