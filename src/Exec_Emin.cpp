@@ -44,6 +44,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   cinfo.SetForce( true );
   frameIn.SetupFrameV(crdset->Top().Atoms(), cinfo);
   crdset->GetFrame(framenum, frameIn);
+  frameIn.Info("Emin");
 
   std::string trajoutname = argIn.GetStringKey("trajoutname");
   if (!trajoutname.empty())

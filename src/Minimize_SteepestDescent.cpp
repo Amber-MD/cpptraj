@@ -75,9 +75,14 @@ const
     // Calculate the magnitude of the force vector.
     double sum = 0.0;
     const double* fxyz = frameIn.fAddress();
-    for (int idx = 0; idx < frameIn.Natom(); idx++, fxyz += 3)
+    for (int idx = 0; idx < frameIn.Natom(); idx++, fxyz += 3) {
+      //mprintf("FDEBUG %8li%20.10f\n", fxyz-frameIn.fAddress()+1, fxyz[0]);
+      //mprintf("FDEBUG %8li%20.10f\n", fxyz-frameIn.fAddress()+2, fxyz[1]);
+      //mprintf("FDEBUG %8li%20.10f\n", fxyz-frameIn.fAddress()+3, fxyz[2]);
       sum += (fxyz[0]*fxyz[0] + fxyz[1]*fxyz[1] + fxyz[2]*fxyz[2]);
+    }
     rms = sqrt( sum ) / fnq;
+    //mprintf("DBG sum rms %20.10f%20.10f\n", sum, rms);
     // Adjust search step size
     if (dxst < crits) dxst = dxstm;
     dxst = dxst / 2.0;
