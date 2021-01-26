@@ -298,6 +298,7 @@ void Frame::Info(const char *msg) const {
     mprintf("\tFrame:");
   mprintf("%i atoms, %i coords",natom_, ncoord_);
   if (V_!=0) mprintf(", with Velocities");
+  if (F_!=0) mprintf(", with Forces");
   if (!remd_indices_.empty()) mprintf(", with replica indices");
   mprintf("\n");
 }
