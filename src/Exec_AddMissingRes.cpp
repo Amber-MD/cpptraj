@@ -808,13 +808,17 @@ static inline void AddResToTopologies(Residue const& srcRes, Topology const& sou
     // Use the center of the residue
     vcenter /= (double)srcRes.NumAtoms();
     mprintf("Warning: Using center: %g %g %g\n", vcenter[0], vcenter[1], vcenter[2]);
-    CAtop.AddTopAtom( Atom("CA", "C"), newres );
+    Atom CaAtom("CA", "C");
+    CaAtom.SetCharge(1.0);
+    CAtop.AddTopAtom( CaAtom, newres );
     CAcrd.push_back( vcenter[0] );
     CAcrd.push_back( vcenter[1] );
     CAcrd.push_back( vcenter[2] );
     CAmissing.AddAtom(false);
   } else {
-    CAtop.AddTopAtom( Atom(sourceTop[caidx].Name(), sourceTop[caidx].ElementName()), newres );
+    Atom CaAtom(sourceTop[caidx].Name(), sourceTop[caidx].ElementName());
+    CaAtom.SetCharge(1.0);
+    CAtop.AddTopAtom( CaAtom, newres );
     const double* XYZ = sourceFrame.XYZ( caidx );
     CAcrd.push_back( XYZ[0] );
     CAcrd.push_back( XYZ[1] );
@@ -891,7 +895,9 @@ const
       newCrd.push_back( 0 );
       newCrd.push_back( 0 );
       // CA top
-      CAtop.AddTopAtom( Atom("CA", "CA", 0),
+      Atom CaAtom("CA", "CA", 0);
+      CaAtom.SetCharge(1.0);
+      CAtop.AddTopAtom( CaAtom,
                         Residue(tgtRes->Name(), tgtRes->OriginalResNum(), tgtRes->Icode(), tgtRes->ChainId()) );
       CAcrd.push_back( 0 );
       CAcrd.push_back( 0 );
@@ -1157,7 +1163,9 @@ const
       newAtNum++;
       newFrame.AddVec3( Zero );
       // CA top
-      CAtop.AddTopAtom( Atom("CA", "CA", 0),
+      Atom CaAtom("CA", "CA", 0);
+      CaAtom.SetCharge(1.0);
+      CAtop.AddTopAtom( CaAtom,
                         Residue(it->Name(), it->Onum(), it->Icode(), it->Chain()) );
       CAframe.AddVec3( Zero );
       CAmissing.AddAtom(true);
@@ -1188,11 +1196,15 @@ const
         // Use the center of the residue
         vcenter /= (double)topres.NumAtoms();
         mprintf("Warning: Using center: %g %g %g\n", vcenter[0], vcenter[1], vcenter[2]);
-        CAtop.AddTopAtom( Atom("CA", "C"), newres );
+        Atom CaAtom("CA", "C");
+        CaAtom.SetCharge(1.0);
+        CAtop.AddTopAtom( CaAtom, newres );
         CAframe.AddVec3( vcenter );
         CAmissing.AddAtom(false);
       } else {
-        CAtop.AddTopAtom( Atom(topIn[caidx].Name(), topIn[caidx].ElementName()), newres );
+        Atom CaAtom(topIn[caidx].Name(), topIn[caidx].ElementName());
+        CaAtom.SetCharge(1.0);
+        CAtop.AddTopAtom( CaAtom, newres );
         CAframe.AddXYZ( frameIn.XYZ(caidx) );
         CAmissing.AddAtom(false);
       }
