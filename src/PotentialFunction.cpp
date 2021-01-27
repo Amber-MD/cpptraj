@@ -19,18 +19,30 @@ int PotentialFunction::AddTerm(PotentialTerm::Type typeIn, MdOpts const& opts) {
     case PotentialTerm::ANGLE : term = (PotentialTerm*)new PotentialTerm_Angle(); break;
     case PotentialTerm::DIHEDRAL : term = (PotentialTerm*)new PotentialTerm_Dihedral(); break;
     default :
-      mprinterr("Internal Error: No allocator type for potential term.\n");
+      mprinterr("Internal Error: No allocator type for potential term type #%i.\n", (int)typeIn);
       return 1;
   }
   if (term == 0) {
-    mprinterr("Internal Error: Could not allocate potential term.\n");
+    mprinterr("Internal Error: Could not allocate potential term %s.\n", PotentialTerm::TypeStr(typeIn));
     return 1;
   }
   if (term->InitTerm(opts)) {
-    mprinterr("Error: Term init failed.\n");
+    mprinterr("Error: Term init failed for %s.\n", term->TypeStr());
     return 1;
   }
   terms_.push_back( term );
+  return 0;
+}
+
+/** Initialize (or re-initialize) each term with given options. */
+int PotentialFunction::InitPotential(MdOpts const& optsIn) {
+  for (Parray::const_iterator it = terms_.begin(); it != terms_.end(); ++it)
+  {
+    if ( (*it)->InitTerm( optsIn ) ) {
+      mprinterr("Error: Could not initialize term %s\n", (*it)->TypeStr());
+      return 1;
+    }
+  }
   return 0;
 }
 

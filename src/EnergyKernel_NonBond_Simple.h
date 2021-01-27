@@ -7,10 +7,14 @@
 /// Simple LJ and electrostatics
 template <class REAL> class EnergyKernel_NonBond_Simple {
   public:
-     /// CONSTRUCTOR
-     EnergyKernel_NonBond_Simple() {}
+     /// CONSTRUCTOR - Huge cutoff
+     EnergyKernel_NonBond_Simple() : cutoff_(999999.0) {}
+     /// CONSTRUCTOR - specified cutoff
+     EnergyKernel_NonBond_Simple(REAL cutIn) : cutoff_(cutIn) {}
      /// Energy/forces
      void Calc_F_E(Frame&, int, int, double, double, double, double, double, double, double, CharMask const&, double&, double&);
+  private:
+    REAL cutoff_; ///< Only calculate interactions within this cutoff
 };
 
 template<class REAL> 
@@ -27,7 +31,7 @@ void EnergyKernel_NonBond_Simple<REAL>::Calc_F_E(Frame& frameIn, int idx, int jd
   REAL ry = XYZ0[1] - XYZ1[1];
   REAL rz = XYZ0[2] - XYZ1[2];
   REAL rij2 = rx*rx + ry*ry + rz*rz;
-  if (rij2 > 0) {
+  if (rij2 < cutoff_) {
     REAL rij = sqrt( rij2 );
     // VDW
     REAL r2    = 1.0 / rij2;
@@ -74,6 +78,6 @@ void EnergyKernel_NonBond_Simple<REAL>::Calc_F_E(Frame& frameIn, int idx, int jd
       fxyz[1] -= dfy;
       fxyz[2] -= dfz;
     }
-  } // END rij > 0
+  } // END rij < cutoff 
 }
 #endif

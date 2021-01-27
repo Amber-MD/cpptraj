@@ -17,6 +17,8 @@ class PotentialFunction {
     int AddTerm(PotentialTerm::Type, MdOpts const&);
     /// Add term to function with default options
     int AddTerm(PotentialTerm::Type);
+    /// Initialize all terms in the potential with the given options
+    int InitPotential(MdOpts const&);
     /// Set up all terms in the potential function using mask expression.
     int SetupPotential(Topology const&, Box const&, std::string const&);
     /// Set up all terms in the potential function using given mask
