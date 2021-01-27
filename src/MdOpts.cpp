@@ -48,5 +48,6 @@ void MdOpts::PrintOpts() const {
   mprintf("\t1-4 Elec. scaling     : %g\n", scaleEE_);
   mprintf("\t1-4 vdW scaling       : %g\n", scaleNB_);
   mprintf("\tSHAKE constraints     : %s\n", Constraints::shakeString(shakeType_));
+  mprintf("\tCoulomb factor        : %g\n", qfac_);
   mprintf("\tExclude beyond        : %i atoms\n", nExclude_);
 }
