@@ -55,7 +55,7 @@ int PotentialFunction::SetupPotential(Topology const& topIn, Box const& boxIn,
 /** Add term with default options. */
 int PotentialFunction::AddTerm(PotentialTerm::Type typeIn) {
   MdOpts opts;
-  mprintf("\tUsing default options for term.\n");
+  mprintf("\tUsing default options for term %s.\n", PotentialTerm::TypeStr(typeIn));
   return AddTerm(typeIn, opts);
 }
 

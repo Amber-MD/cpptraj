@@ -4,7 +4,7 @@ const char* PotentialTerm::typeStr_[] = {
   "Bond",
   "Angle",
   "Dihedral",
-  "SimpleNonbnod",
+  "SimpleNonbond",
   "OpenMM",
   0
 };
