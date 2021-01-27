@@ -1,3 +1,4 @@
+name: Cpptraj Tests
 on:
   push:
     branches: [master]
