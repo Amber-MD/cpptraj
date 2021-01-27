@@ -379,7 +379,7 @@ const
 
   PotentialFunction potential;
   MdOpts opts;
-  ArgList args("nexclude 2 qfac 1");
+  ArgList args("nexclude 2 qfac 1 cut 999999");
   opts.GetOptsFromArgs( args );
   opts.PrintOpts();
   potential.AddTerm( PotentialTerm::BOND );
