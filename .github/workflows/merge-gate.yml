@@ -71,11 +71,19 @@ jobs:
           if [ $USE_OPENMP = "yes" ]; then
             export OPT="openmp"
             export OMP_NUM_THREADS=4
-            export BUILD_FLAGS="-openmp"
+            if [ "$USE_CMAKE" = "1" ]; then
+              export BUILD_FLAGS="-DOPENMP=TRUE"
+            else
+              export BUILD_FLAGS="-openmp"
+            fi
           fi
 
           if [ $USE_MPI = "yes" ]; then
-            export BUILD_FLAGS="-mpi ${BUILD_FLAGS}"
+            if [ "$USE_CMAKE" = "1" ]; then
+              export BUILD_FLAGS="-DMPI=TRUE ${BUILD_FLAGS}"
+            else
+              export BUILD_FLAGS="-mpi ${BUILD_FLAGS}"
+            fi
           fi
 
           if [ "$USE_CMAKE" = "1" ]; then
