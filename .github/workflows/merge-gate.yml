@@ -20,12 +20,15 @@ jobs:
           - use_openmp: "yes"
             compiler: "gnu"
             use_mpi: "no"
+            use_cmake: "1"
           - use_openmp: "no"
             compiler: "gnu"
             use_mpi: "yes"
+            use_cmake: "1"
           - use_openmp: "yes"
             compiler: "gnu"
             use_mpi: "yes"
+            use_cmake: "1"
 
     env:
       COMPILER: ${{ matrix.compiler }}
@@ -79,7 +82,7 @@ jobs:
             mkdir build install
             installdir=$(pwd)
             cd build
-            cmake .. $BUILD_FLAGS -DCOMPILER=$COMPILER -DINSTALL_HEADERS=FALSE \
+            cmake .. $BUILD_FLAGS -DCOMPILER=${COMPILER^^} -DINSTALL_HEADERS=FALSE \
                      -DCMAKE_INSTALL_PREFIX=$installdir -DCMAKE_LIBRARY_PATH=$HOME/lib \
                      -DPRINT_PACKAGING_REPORT=TRUE
             make -j2 install
