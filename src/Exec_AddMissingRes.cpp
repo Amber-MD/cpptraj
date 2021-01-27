@@ -7,6 +7,7 @@
 #include "Minimize_SteepestDescent.h"
 #include "ParmFile.h"
 #include "PotentialFunction.h"
+#include "MdOpts.h"
 #include "Trajin_Single.h"
 #include "Trajout_Single.h"
 #include <cmath>
@@ -377,8 +378,13 @@ const
   double min_tol = 1.0E-5;
 
   PotentialFunction potential;
+  MdOpts opts;
+  ArgList args("nexclude 2");
+  opts.GetOptsFromArgs( args );
+  opts.PrintOpts();
   potential.AddTerm( PotentialTerm::BOND );
-  potential.AddTerm( PotentialTerm::SIMPLE_LJ_Q );
+  potential.AddTerm( PotentialTerm::SIMPLE_LJ_Q, opts );
+  potential.FnInfo();
   Minimize_SteepestDescent SD;
 
   if (potential.SetupPotential( topIn, frameIn.BoxCrd(), maskIn )) return 1;
