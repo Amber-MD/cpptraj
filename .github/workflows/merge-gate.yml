@@ -53,12 +53,14 @@ jobs:
 
       - name: Checkout source code
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Compile and test cpptraj
         run: |
-          curl -OL https://anaconda.org/AmberMD/amber_phenix/0.9.6/download/linux-64/amber_phenix-0.9.6-0.tar.bz2;
-          tar jxf amber_phenix-0.9.6-0.tar.bz2 lib/libsander.so AmberTools/src/sander/sander.h;
-          mkdir -p include && mv AmberTools/src/sander/sander.h include;
+          curl -OL https://anaconda.org/AmberMD/amber_phenix/0.9.6/download/linux-64/amber_phenix-0.9.6-0.tar.bz2
+          tar jxf amber_phenix-0.9.6-0.tar.bz2 lib/libsander.so AmberTools/src/sander/sander.h
+          mkdir -p include && mv AmberTools/src/sander/sander.h include
           mv lib include $HOME
 
           if [ $USE_OPENMP = "yes" ]; then
