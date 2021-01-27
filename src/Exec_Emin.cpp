@@ -8,7 +8,8 @@
 void Exec_Emin::Help() const
 {
   mprintf("\tcrdset <name> [trajoutname <name>] [rmstol <tol>] [nsteps <#>]\n"
-          "\t[<mask>] [frame <#>] [dx0 <step0>] [out <file>]\n");
+          "\t[<mask>] [frame <#>] [dx0 <step0>] [out <file>]\n"
+          "\t[nonbond]\n");
 }
 
 // Exec_Emin::Execute()
@@ -26,6 +27,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No COORDS set found with name '%s'\n", setname.c_str());
     return CpptrajState::ERR;
   }
+  bool useNonbond = argIn.hasKey("nonbond");
 
   // Get the frame # to be minimized.
   int framenum = argIn.getKeyInt("frame", 0);
@@ -84,6 +86,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     if (crdset->Top().Nbonds() > 0) potential.AddTerm( PotentialTerm::BOND, opts );
     if (crdset->Top().Nangles() > 0) potential.AddTerm( PotentialTerm::ANGLE, opts );
     if (crdset->Top().Ndihedrals() > 0) potential.AddTerm( PotentialTerm::DIHEDRAL, opts );
+    if (useNonbond) potential.AddTerm( PotentialTerm::SIMPLE_LJ_Q );
   }
   Minimize_SteepestDescent SD;
 
