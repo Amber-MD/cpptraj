@@ -1,6 +1,7 @@
 #include "MdOpts.h"
 #include "ArgList.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
 
 MdOpts::MdOpts() :
   shakeType_(Constraints::OFF),
@@ -36,6 +37,7 @@ int MdOpts::GetOptsFromArgs(ArgList& argIn)
     }
   }
   nExclude_ = argIn.getKeyInt("nexclude", 4);
+  qfac_ = argIn.getKeyDouble("qfac", Constants::ELECTOAMBER * Constants::ELECTOAMBER);
   
   return 0;
 }
