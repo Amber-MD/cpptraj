@@ -38,6 +38,8 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No COORDS set found with name '%s'\n", setname.c_str());
     return CpptrajState::ERR;
   }
+  if (crdset->Type() == DataSet::TRAJ)
+    mprintf("Warning: Cannot write to TRAJ sets.\n");
   bool useNonbond = argIn.hasKey("nonbond");
 
   // Get the frame # to be minimized.
@@ -118,6 +120,10 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Minimization failed.\n");
     return CpptrajState::ERR;
   }
+
+  // Update frame
+  if (crdset->Type() != DataSet::TRAJ)
+    crdset->SetCRD( framenum, frameIn );
 
   return CpptrajState::OK;
 }
