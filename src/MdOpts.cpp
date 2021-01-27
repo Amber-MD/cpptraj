@@ -13,6 +13,21 @@ MdOpts::MdOpts() :
   nExclude_(4)       // Exclude dihedral, angle, bond
 {}
 
+/** Display options recognized by MdOpts to stdout. */
+void MdOpts::PrintHelp() {
+  mprintf("\tcut <cutoff>     : Set nonbonded interaction cutoff in Ang. (electrostatics and vdW).\n"
+          "\tcutee <cutoff>   : Set electrostatics interaction cutoff in Ang.\n"
+          "\tcutnb <cutoff>   : Set vdW interaction cutoff in Ang.\n"
+          "\tscaleee <factor> : Scaling factor to multiply 1-4 electrostatics interactions by.\n"
+          "\tscalenb <factor> : Scaling factor to multiply 1-4 vdW interactions by.\n"
+          "\tshake <type>     : Use SHAKE constraints of <type>;\n"
+          "\t                   <type> = 'hydrogen' : Constrain bonds to hydrogen.\n"
+          "\t                   <type> = 'all'      : Constrain all bonds.\n"
+          "\tnexclude <#>     : Number of bonded atoms within which nonbonded interactions are excluded.\n"
+          "\tqfac <factor>    : Factor to use in electrostatic calculation.\n"
+  );
+}
+
 /** Get options from incoming argument list. */
 int MdOpts::GetOptsFromArgs(ArgList& argIn)
 {

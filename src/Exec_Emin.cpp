@@ -9,7 +9,18 @@ void Exec_Emin::Help() const
 {
   mprintf("\tcrdset <name> [trajoutname <name>] [rmstol <tol>] [nsteps <#>]\n"
           "\t[<mask>] [frame <#>] [dx0 <step0>] [out <file>]\n"
-          "\t[nonbond]\n");
+          "\t[nonbond] [<potential options>]\n"
+          "Warning: THIS COMMAND IS STILL UNDER DEVELOPMENT.\n"
+          "  Perform a simple steepest descent minimization on given COORDS set.\n"
+          "  Type 'help emin opts' for a list of <potential options>\n");
+}
+
+void Exec_Emin::Help(ArgList& argIn) const {
+  if (argIn.hasKey("opts")) {
+    mprintf("  <potential options>:\n");
+    MdOpts::PrintHelp();
+  } else
+    Help();
 }
 
 // Exec_Emin::Execute()

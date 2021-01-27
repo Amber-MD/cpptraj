@@ -16,6 +16,8 @@ class MdOpts {
     double CutNB()         const { return cutNB_; }
     double CoulombFactor() const { return qfac_; }
     int N_Exclude()        const { return nExclude_; }
+    /// Print options recognized by GetOptsFromArgs() to stdout.
+    static void PrintHelp();
   private:
     Constraints::ShakeType shakeType_;
     double scaleEE_; ///< Global electrostatic 1-4 scaling factor
