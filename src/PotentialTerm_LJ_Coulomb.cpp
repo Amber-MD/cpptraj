@@ -5,6 +5,8 @@
 #include "EnergyKernel_NonBond_Simple.h"
 #include "MdOpts.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // SMALL
+#include <cmath> //fabs
 
 /**  CONSTRUCTOR */
 PotentialTerm_LJ_Coulomb::PotentialTerm_LJ_Coulomb() :
@@ -12,7 +14,8 @@ PotentialTerm_LJ_Coulomb::PotentialTerm_LJ_Coulomb() :
   nonbond_(0),
   E_vdw_(0),
   E_elec_(0),
-  QFAC_(1),
+  QFAC_(0),
+  cutoff2_(0),
   nExclude_(4)
 {}
 
@@ -20,6 +23,13 @@ PotentialTerm_LJ_Coulomb::PotentialTerm_LJ_Coulomb() :
 int PotentialTerm_LJ_Coulomb::InitTerm(MdOpts const& optsIn) {
   nExclude_ = optsIn.N_Exclude();
   QFAC_ = optsIn.CoulombFactor();
+  cutoff2_ = optsIn.CutEE();
+  if ( fabs(cutoff2_ - optsIn.CutNB()) > Constants::SMALL ) {
+    mprinterr("Error: Simple nonbond term does not yet support separate elec/LJ cutoff.\n");
+    return 1;
+  }
+  // Store cutoff^2
+  cutoff2_ *= cutoff2_;
   return 0;
 }
 
@@ -71,7 +81,7 @@ static inline NonbondType const& GetLJparam(std::vector<Atom> const& atoms,
 void PotentialTerm_LJ_Coulomb::CalcForce(Frame& frameIn, CharMask const& maskIn) const {
   *E_vdw_ = 0.0;
   *E_elec_ = 0.0;
-  EnergyKernel_NonBond_Simple<double> nonbond;
+  EnergyKernel_NonBond_Simple<double> nonbond(cutoff2_);
   // First loop is each non-selected atom to each selected atom.
   // There is no overlap between the two.
   for (Iarray::const_iterator idx = nonSelectedAtoms_.begin();

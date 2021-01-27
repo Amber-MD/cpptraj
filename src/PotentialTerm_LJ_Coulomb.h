@@ -22,6 +22,7 @@ class PotentialTerm_LJ_Coulomb : public PotentialTerm {
     double* E_vdw_;                  ///< Pointer to VDW term of energy array.
     double* E_elec_;                 ///< Pointer to Coulomb term of energy array.
     double QFAC_;                    ///< Coulomb calculation prefactor
+    double cutoff2_;                 ///< Interaction distance cutoff squared (Ang^2)
     int nExclude_;                   ///< Interactions to exclude when setting up exclusion array
     ExclusionArray Excluded_;        ///< Exclusion array
 };

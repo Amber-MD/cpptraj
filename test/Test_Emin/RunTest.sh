@@ -46,7 +46,7 @@ UNITNAME='Energy minimization with nonbond term test.'
 cat > emin.in <<EOF
 parm ../tz2.parm7
 loadcrd ../tz2.rst7 1 1 name TZ2
-emin crdset TZ2 nsteps 100 out cpptraj.nonbond.dat nonbond
+emin crdset TZ2 nsteps 100 out cpptraj.nonbond.dat nonbond cut 9999
 EOF
 RunCpptraj "$UNITNAME"
 DoTest cpptraj.nonbond.dat.save cpptraj.nonbond.dat
