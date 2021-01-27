@@ -4,7 +4,7 @@
 /// <Enter description of Exec_Emin here>
 class Exec_Emin : public Exec {
   public:
-    Exec_Emin() : Exec(COORDS) { SetHidden(true); }
+    Exec_Emin() : Exec(COORDS) { SetHidden(false); }
     void Help() const;
     void Help(ArgList&) const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Emin(); }

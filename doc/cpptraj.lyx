@@ -6247,7 +6247,7 @@ emin crdset <name> [trajoutname <name>] [rmstol <tol>] [nsteps <#>]
 \end_layout
 
 \begin_layout LyX-Code
- 	[nonbond] [<potential options>]
+ 	[{nonbond|openmm}] [<potential options>]
 \end_layout
 
 \begin_deeper
@@ -6314,6 +6314,11 @@ crdset
 \begin_layout Description
 [nonbond] If specified, use simple nonbonded potential term in additon to
  bonded terms.
+\end_layout
+
+\begin_layout Description
+[openmm] If specified and if CPPTRAJ was compiled with OpenMM support, use
+ OpenMM to calculate the forces.
 \end_layout
 
 \begin_layout Standard
