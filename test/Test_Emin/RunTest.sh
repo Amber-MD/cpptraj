@@ -7,7 +7,8 @@ TESTNAME='Emin tests'
 CleanFiles emin.in cpptraj.ene.dat cpptraj.emin.nc \
            omm.ene.dat ommangle.ene.dat ommdihedral.ene.dat \
            ommnb.ene.dat omm.tz2.ene.dat omm.tz2.pme.dat \
-           cpptraj.angle.dat cpptraj.dihedral.dat
+           cpptraj.angle.dat cpptraj.dihedral.dat \
+           cpptraj.nonbond.dat
 
 INPUT='-i emin.in'
 
@@ -41,6 +42,16 @@ EOF
 RunCpptraj "$UNITNAME"
 DoTest cpptraj.dihedral.dat.save cpptraj.dihedral.dat
 
+UNITNAME='Energy minimization with nonbond term test.'
+cat > emin.in <<EOF
+parm ../tz2.parm7
+loadcrd ../tz2.rst7 1 1 name TZ2
+emin crdset TZ2 nsteps 100 out cpptraj.nonbond.dat nonbond
+EOF
+RunCpptraj "$UNITNAME"
+DoTest cpptraj.nonbond.dat.save cpptraj.nonbond.dat
+
+# OpenMM tests
 UNITNAME='OpenMM basic energy minimization tests'
 CheckFor openmm
 if [ $? -eq 0 ] ; then
