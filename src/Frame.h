@@ -168,6 +168,8 @@ class Frame {
     int SetCoordinates(int, double*);
     /// Copy entire input frame according to mask.
     void SetFrame(Frame const&, AtomMask const&);
+    /// Copy entire input frame
+    void SetFrame(Frame const&);
     /// Zero the force array
     void ZeroForces();
     /// Zero the velocity array

@@ -23,7 +23,7 @@ class DataSet_Coords_REF : public DataSet_Coords {
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { frame_ = fIn; }
     /// Get a frame at position.
-    inline void GetFrame(int idx, Frame& fIn) { fIn = frame_; }
+    inline void GetFrame(int idx, Frame& fIn) { fIn.SetFrame( frame_ ); }
     /// Get a frame at position corresponding to mask.
     inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) {
       fIn.SetFrame(frame_, mIn);

@@ -577,7 +577,7 @@ int Frame::SetCoordinates(int natom, double* Xptr) {
 // Frame::SetFrame()
 void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   if (maskIn.Nselected() > maxnatom_) {
-    mprinterr("Error: SetFrame: Mask [%s] selected (%i) > max natom (%i)\n",
+    mprinterr("Internal Error: SetFrame: Mask [%s] selected (%i) > max natom (%i)\n",
               maskIn.MaskString(), maskIn.Nselected(), maxnatom_);
     return;
   }
@@ -621,6 +621,38 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
       newFptr += 3;
     }
   }
+}
+
+// Frame::SetFrame()
+void Frame::SetFrame(Frame const& frameIn) {
+  if (frameIn.natom_ > maxnatom_) {
+    mprinterr("Internal Error: SetFrame: Incoming frame # atoms (%i) > max natom (%i)\n",
+              frameIn.natom_, maxnatom_);
+    return;
+  }
+  natom_ = frameIn.natom_; 
+  ncoord_ = natom_ * 3;
+  step_ = frameIn.step_;
+  // Copy T/box
+  box_ = frameIn.box_;
+  T_ = frameIn.T_;
+  repidx_ = frameIn.repidx_;
+  crdidx_ = frameIn.crdidx_;
+  pH_ = frameIn.pH_;
+  redox_ = frameIn.redox_;
+  time_ = frameIn.time_;
+  remd_indices_ = frameIn.remd_indices_;
+  // Copy coords
+  if (X_ != 0 && frameIn.X_ != 0)
+    std::copy( frameIn.X_, frameIn.X_ + ncoord_, X_ );
+  // Copy mass
+  Mass_ = frameIn.Mass_;
+  // Copy velocity if necessary
+  if (frameIn.V_ != 0 && V_ != 0)
+    std::copy( frameIn.V_, frameIn.V_ + ncoord_, V_ );
+  // Copy force if necessary
+  if (frameIn.F_ != 0 && F_ != 0)
+    std::copy( frameIn.F_, frameIn.F_ + ncoord_, F_ );
 }
 
 /** Zero force array. */
