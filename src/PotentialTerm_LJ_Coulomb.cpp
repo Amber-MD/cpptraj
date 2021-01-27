@@ -12,12 +12,14 @@ PotentialTerm_LJ_Coulomb::PotentialTerm_LJ_Coulomb() :
   nonbond_(0),
   E_vdw_(0),
   E_elec_(0),
+  QFAC_(1),
   nExclude_(4)
 {}
 
 /** Init nonbonds. */
 int PotentialTerm_LJ_Coulomb::InitTerm(MdOpts const& optsIn) {
   nExclude_ = optsIn.N_Exclude();
+  QFAC_ = optsIn.CoulombFactor();
   return 0;
 }
 
@@ -84,7 +86,7 @@ void PotentialTerm_LJ_Coulomb::CalcForce(Frame& frameIn, CharMask const& maskIn)
       {
         NonbondType LJ = GetLJparam(*atoms_, *nonbond_, *idx, *jdx);
         //NonBondKernel(frameIn, *idx, *jdx, LJ.A(), LJ.B(), maskIn, *E_vdw_, *E_elec_);
-        nonbond.Calc_F_E(frameIn, *idx, *jdx, LJ.A(), LJ.B(), 1, (*atoms_)[*idx].Charge(), (*atoms_)[*jdx].Charge(), 1, 1, maskIn, *E_vdw_, *E_elec_);
+        nonbond.Calc_F_E(frameIn, *idx, *jdx, LJ.A(), LJ.B(), QFAC_, (*atoms_)[*idx].Charge(), (*atoms_)[*jdx].Charge(), 1, 1, maskIn, *E_vdw_, *E_elec_);
       } // END idx not bonded to jdx
     } // END inner loop over jdx
   } // END outer loop over idx
@@ -100,7 +102,7 @@ void PotentialTerm_LJ_Coulomb::CalcForce(Frame& frameIn, CharMask const& maskIn)
       if (excluded.find( *idx1 ) == excluded.end())
       {
         NonbondType LJ = GetLJparam(*atoms_, *nonbond_, *idx0, *idx1);
-        nonbond.Calc_F_E(frameIn, *idx0, *idx1, LJ.A(), LJ.B(), 1, (*atoms_)[*idx0].Charge(), (*atoms_)[*idx1].Charge(), 1, 1, maskIn, *E_vdw_, *E_elec_);
+        nonbond.Calc_F_E(frameIn, *idx0, *idx1, LJ.A(), LJ.B(), QFAC_, (*atoms_)[*idx0].Charge(), (*atoms_)[*idx1].Charge(), 1, 1, maskIn, *E_vdw_, *E_elec_);
         //NonBondKernel(frameIn, *idx0, *idx1, LJ.A(), LJ.B(), maskIn, *E_vdw_, *E_elec_);
       }
     } // END inner loop over idx1

@@ -21,6 +21,7 @@ class PotentialTerm_LJ_Coulomb : public PotentialTerm {
     NonbondParmType const* nonbond_; ///< Pointer to nonbond parameters.
     double* E_vdw_;                  ///< Pointer to VDW term of energy array.
     double* E_elec_;                 ///< Pointer to Coulomb term of energy array.
+    double QFAC_;                    ///< Coulomb calculation prefactor
     int nExclude_;                   ///< Interactions to exclude when setting up exclusion array
     ExclusionArray Excluded_;        ///< Exclusion array
 };
