@@ -1420,7 +1420,7 @@ int CpptrajState::AddReference(DataSet_Coords_REF* ref, Topology* refParm,
       fnum = argIn.getNextInteger(1) - 1;
     mprintf("\tSetting up reference from COORDS set '%s', frame %i\n",
             CRD->legend(), fnum+1);
-    if (ref->SetRefFromCoords(CRD, tag, fnum)) return 1;
+    if (ref->SetRefFromCoords(CRD, tag, fnum)) return 1; // TODO deprecate - all coords can be ref and vice versa
   }
   // If a mask expression was specified, strip to match the expression.
   if (!maskexpr.empty()) {

@@ -3,6 +3,7 @@
 #include "Trajin_Single.h"
 #include "ArgList.h"
 
+/** Print info about REF coords. */
 void DataSet_Coords_REF::Info() const {
   //if (!tag_.empty())
   //  mprintf(" %s", tag_.c_str());
@@ -11,26 +12,51 @@ void DataSet_Coords_REF::Info() const {
   CommonInfo();
 }
 
+/** Set up REF coords with given Topology and coordinate info. */
 int DataSet_Coords_REF::CoordsSetup(Topology const& topIn, CoordinateInfo const& cInfoIn) {
   top_ = topIn;
   cInfo_ = cInfoIn;
+
+  if (frame_.SetupFrameV( topIn.Atoms(), cInfoIn )) {
+    mprinterr("Internal Error: DataSet_Coords_REF: Could not allocate Frame.\n");
+    return 1;
+  }
   return 0;
 }
 
+/** Set REF from incoming frame. */
+void DataSet_Coords_REF::AddFrame(Frame const& fIn) {
+  if (frame_.empty())
+    frame_.SetupFrame( fIn ); // TODO always do?
+  frame_.SetFrame( fIn );
+}
+
+/** Set REF from incoming frame. */
+void DataSet_Coords_REF::SetCRD(int idx, Frame const& fIn) {
+  // TODO warn if idx not zero?
+  if (idx == 0)
+    mprintf("Warning: In reference set '%s', attempting to set index which is not 1 (%i)\n", idx+1);
+  if (frame_.empty())
+    frame_.SetupFrame( fIn );
+  frame_.SetFrame( fIn );
+}
+
+/** Load reference from file, no arguments or name. */
 int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, Topology const& parmIn, int dbg)
 {
   ArgList blank;
   return LoadRefFromFile(fname, "", parmIn, blank, dbg);
 }
 
+/** Load reference from file. */
 int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, std::string const& nameIn,
                                         Topology const& parmIn, ArgList& argIn, int dbg)
 {
-  // Set up trajectory - false = do not modify box info
+  // Set up input trajectory
   Trajin_Single traj;
   traj.SetDebug( dbg );
-  if ( traj.SetupTrajRead( fname, argIn, (Topology*)&parmIn ) ) { // FIXME: Fix cast
-    mprinterr("Error: reference: Could not set up trajectory.\n");
+  if ( traj.SetupTrajRead( fname, argIn, (Topology*)&parmIn ) ) { // TODO: should there be a version of Setup that takes const&? 
+    mprinterr("Error: DataSet_Coords_REF: Could not set up trajectory.\n");
     return 1;
   }
   // Check number of frames to be read
@@ -41,18 +67,21 @@ int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, std::string const
   } else if (trajFrames > 1)
     mprintf("Warning: Reference has %i frames, only reading frame %i\n",
             trajFrames, traj.Traj().Counter().Start()+1);
+  // Set up REF set
+  if (CoordsSetup( parmIn, traj.TrajCoordInfo() )) {
+    mprinterr("Error: Could not set up reference DataSet for %s\n", traj.Traj().Filename().full());
+    return 1;
+  }
   // Start trajectory read
   if ( traj.BeginTraj() ) {
     mprinterr("Error: Could not open reference '%s'\n.", traj.Traj().Filename().full());
     return 1;
   }
-  // Set up reference frame
-  if (frame_.SetupFrameV(parmIn.Atoms(), traj.TrajCoordInfo()))
-    return 1;
   // Read reference frame
   traj.ReadTrajFrame( traj.Traj().Counter().Start(), frame_ );
+  // Close trajectory
   traj.EndTraj();
-  CoordsSetup( parmIn, traj.TrajCoordInfo() );
+  // Set up DataSet metadata
   MetaData md(fname, nameIn, traj.Traj().Counter().Start()+1);
   if (!traj.Title().empty())
     md.SetLegend( traj.Title() );
@@ -60,6 +89,7 @@ int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, std::string const
   return 0;
 }
 
+/** Set reference from given COORDS. */ // TODO deprecate
 int DataSet_Coords_REF::SetRefFromCoords(DataSet_Coords* CRD, std::string const& nameIn, int fnum)
 {
   if (CRD==0) return 1;
@@ -75,6 +105,7 @@ int DataSet_Coords_REF::SetRefFromCoords(DataSet_Coords* CRD, std::string const&
   return 0;
 }
 
+/** Strip down reference according to the given atom mask. */
 int DataSet_Coords_REF::StripRef(std::string const& maskexpr) {
   if (maskexpr.empty()) return 1;
   AtomMask stripMask( maskexpr );

@@ -146,6 +146,8 @@ class Frame {
     int SetupFrameM(std::vector<Atom> const&);
     /// Allocate frame with given XYZ coords and masses, no velocity.
     int SetupFrameXM(Darray const&, Darray const&);
+    /// Allocate frame based on given frame.
+    int SetupFrame(Frame const&);
     /// Allocate frame for given # atoms with mass and opt. velocity/indices.
     int SetupFrameV(std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms, coords/mass only.
@@ -297,6 +299,8 @@ class Frame {
     void swap(Frame&, Frame&);
     void IncreaseX();
     inline bool ReallocateX(int);
+    /// Allocate coords/velo/force based on given num atoms and coordinate info.
+    bool setupFrame(unsigned int, CoordinateInfo const&);
 };
 // ---------- INLINE FUNCTION DEFINITIONS --------------------------------------
 

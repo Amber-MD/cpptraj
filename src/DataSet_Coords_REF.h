@@ -21,7 +21,7 @@ class DataSet_Coords_REF : public DataSet_Coords {
     size_t MemUsageInBytes() const { return frame_.DataSize(); }
     // ----- DataSet_Coords functions ------------
     /// Add a frame.
-    inline void AddFrame(Frame const& fIn) { frame_ = fIn; }
+    inline void AddFrame(Frame const&);
     /// Get a frame at position.
     inline void GetFrame(int idx, Frame& fIn) { fIn.SetFrame( frame_ ); }
     /// Get a frame at position corresponding to mask.
@@ -29,7 +29,7 @@ class DataSet_Coords_REF : public DataSet_Coords {
       fIn.SetFrame(frame_, mIn);
     }
     /// Set CRD at position with frame.
-    inline void SetCRD(int idx, Frame const& fIn) { frame_.SetFrame( fIn ); }
+    inline void SetCRD(int, Frame const&);
     /// Set Topology and coordinate info
     int CoordsSetup(Topology const&, CoordinateInfo const&);
     // -------------------------------------------

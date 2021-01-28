@@ -413,9 +413,14 @@ int Frame::SetupFrameXM(Darray const& Xin, Darray const& massIn) {
   return 0;
 }
 
-// Frame::SetupFrameV()
-int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cinfo) {
-  bool reallocate = ReallocateX( atoms.size() );
+/** Allocate memory for frame coordinates, velocities, force, and replica
+  * indices based on size and given coordinate info. Mass should be
+  * allocated after this routine.
+  * \return 1 if reallocation happened.
+  * \return 0 if no reallocation.
+  */
+bool Frame::setupFrame(unsigned int natomsIn, CoordinateInfo const& cinfo) {
+  bool reallocate = ReallocateX( natomsIn );
   // Velocity
   if (cinfo.HasVel()) {
     if (reallocate || V_ == 0) {
@@ -437,17 +442,28 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
       memset(F_, 0, maxnatom_ * COORDSIZE_);
     }
   }
-  // Mass 
-  if (reallocate || Mass_.empty())
-    Mass_.resize(maxnatom_);
-  Darray::iterator mass = Mass_.begin();
-  for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); ++atom, ++mass)
-    *mass = atom->Mass();
   // Box
   box_ = cinfo.TrajBox();
   // Replica indices
   remd_indices_.assign( cinfo.ReplicaDimensions().Ndims(), 0 );
+  return (reallocate);
+}
+
+/** Allocate this frame based on given frame. */
+int Frame::SetupFrame(Frame const& frameIn) {
+  setupFrame(frameIn.Natom(), frameIn.CoordsInfo());
+  Mass_ = frameIn.Mass_;
+  return 0;
+}
+
+// Frame::SetupFrameV()
+/** Allocate this frame based on given array of atoms and coordinate info. */
+int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cinfo) {
+  setupFrame( atoms.size(), cinfo );
+  Mass_.clear();
+  Mass_.reserve( atoms.size() );
+  for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
+    Mass_.push_back( atm->Mass() );
   return 0;
 }
 
