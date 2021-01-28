@@ -3,6 +3,7 @@
 #include <cstring> // strchr
 #include <cctype>  // isdigit, isalpha
 #include <algorithm> // std::max
+#include <map>     // For reading in potentially sparse matrix
 #include <cmath>   // modf TODO put function in StringRoutines?
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
@@ -135,6 +136,12 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
     // Column user args start from 1
     strCols_.ShiftBy(-1);
   }
+  // Options for 2d
+  if (mode_ == READ2D) {
+    square2d_ = true;
+    if (argIn.hasKey("nosquare2d"))
+      square2d_ = false;
+  }
   // Options for 3d
   if (mode_ == READ3D) {
     if (Get3Double(argIn.GetStringKey("origin"), origin_, originSpecified_)) return 1;
@@ -188,7 +195,12 @@ int DataIO_Std::ReadData(FileName const& fname,
       if (err == IS_ASCII_CMATRIX)
         err = ReadCmatrix(fname, dsl, dsname);
       break;
-    case READ2D: err = Read_2D(fname.Full(), dsl, dsname); break;
+    case READ2D:
+      if (square2d_)
+        err = Read_2D(fname.Full(), dsl, dsname);
+      else
+        err = Read_2D_XYZ(fname, dsl, dsname);
+      break;
     case READ3D: err = Read_3D(fname.Full(), dsl, dsname); break;
     case READVEC: err = Read_Vector(fname.Full(), dsl, dsname); break;
     case READMAT3X3: err = Read_Mat3x3(fname.Full(), dsl, dsname); break;
@@ -496,6 +508,114 @@ int DataIO_Std::Read_2D(std::string const& fname,
   const char* linebuffer = buffer.Line();
   while (linebuffer != 0 && linebuffer[0] == '#')
     linebuffer = buffer.Line();
+  int ncols = -1;
+  int nrows = 0;
+  std::vector<double> matrixArray;
+  while (linebuffer != 0) {
+    int ntokens = buffer.TokenizeLine( SEPARATORS );
+    if (ncols < 0) {
+      ncols = ntokens;
+      if (ntokens < 1) {
+        mprinterr("Error: Could not tokenize line.\n");
+        return 1;
+      }
+    } else if (ncols != ntokens) {
+      mprinterr("Error: In 2D file, number of columns changes from %i to %i at line %i\n",
+                ncols, ntokens, buffer.LineNumber());
+      return 1;
+    }
+    for (int i = 0; i < ntokens; i++)
+      matrixArray.push_back( atof( buffer.NextToken() ) );
+    nrows++;
+    linebuffer = buffer.Line();
+  }
+  if (ncols < 0) {
+    mprinterr("Error: No data detected in %s\n", buffer.Filename().full());
+    return 1;
+  }
+  if ( DetermineMatrixType( matrixArray, nrows, ncols, datasetlist, dsname )==0 ) return 1;
+
+  return 0;
+}
+
+// DataIO_Std::Read_2D_XYZ()
+/* Read matrix of format <X> <Y> <VAL> */
+int DataIO_Std::Read_2D_XYZ(FileName const& fname, 
+                            DataSetList& datasetlist, std::string const& dsname)
+{
+  // Buffer file
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  mprintf("\tData will be read as a 2D XYZ matrix.\n");
+  // Skip comments
+  const char* linebuffer = buffer.Line();
+  while (linebuffer != 0 && linebuffer[0] == '#')
+    linebuffer = buffer.Line();
+  // To allow for sparse matrix, read in indices and values first. Then
+  // put into a matrix.
+  int maxcol = -1;
+  int maxrow = -1;
+  typedef std::pair<int,int> Ipair;
+  typedef std::map<Ipair, double> MatrixMap;
+  MatrixMap matrixMap;
+
+  int err = 0;
+  while (linebuffer != 0) {
+    // Skip comments
+    if (linebuffer[0] != '#') {
+      int ntokens = buffer.TokenizeLine( SEPARATORS );
+      if (ntokens < 3) {
+        mprintf("Warning: In 2D file, less than 3 columns at line %i, skipping.\n", buffer.LineNumber());
+      } else {
+        int ix, iy;
+        double dval;
+        // X
+        std::string Str( buffer.NextToken() );
+        if (validInteger( Str ))
+          ix = convertToInteger( Str );
+        else if (validDouble( Str )) {
+          mprintf("Warning: Line %i X value %s is not an integer.\n", buffer.LineNumber(), Str.c_str());
+          ix = (int)convertToDouble( Str );
+        } else {
+          mprinterr("Error: Line %i X value %s does not appear to be a valid number.\n", buffer.LineNumber(), Str.c_str());
+          err = 1;
+          break;
+        }
+        // Y
+        Str = std::string( buffer.NextToken() );
+        if (validInteger( Str ))
+          iy = convertToInteger( Str );
+        else if (validDouble( Str )) {
+          mprintf("Warning: Line %i Y value %s is not an integer.\n", buffer.LineNumber(), Str.c_str());
+          iy = (int)convertToDouble( Str );
+        } else {
+          mprinterr("Error: Line %i Y value %s does not appear to be a valid number.\n", buffer.LineNumber(), Str.c_str());
+          err = 1;
+          break;
+        }
+        // Value
+        Str = std::string( buffer.NextToken() );
+        if (validDouble( Str )) {
+          dval = convertToDouble( Str );
+        } else {
+          mprinterr("Error: Line %i Z value does not appear to be a valid number.\n", buffer.LineNumber(), Str.c_str());
+          err = 1;
+          break;
+        }
+        // Add to map
+        Ipair idx(ix, iy);
+        MatrixMap::iterator it = matrixMap.lower_bound( idx );
+        if (it == matrixMap.end() || it->first != idx) {
+          matrixMap.insert(it, std::pair<Ipair, double>(idx, dval));
+        } else {
+          mprinterr("Error: Line %i duplicate matrix indices found: %i %i\n", buffer.LineNumber(), ix, iy);
+        }
+      } // END if ntokens < 3
+    } // END if linebuffer[0] != #
+    linebuffer = buffer.Line();
+  } // END loop over file
+  mprintf("\tRead in %zu values for matrix.\n", matrixMap.size()); 
+
   int ncols = -1;
   int nrows = 0;
   std::vector<double> matrixArray;

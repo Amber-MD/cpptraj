@@ -25,6 +25,7 @@ class DataIO_Std : public DataIO {
     int Read_1D(std::string const&,DataSetList&,std::string const&);
     int ReadCmatrix(FileName const&, DataSetList&, std::string const&);
     int Read_2D(std::string const&,DataSetList&,std::string const&);
+    int Read_2D_XYZ(FileName const&,DataSetList&,std::string const&);
     int Read_3D(std::string const&,DataSetList&,std::string const&);
     int Read_Vector(std::string const&,DataSetList&,std::string const&);
     int Read_Mat3x3(std::string const&,DataSetList&,std::string const&);
