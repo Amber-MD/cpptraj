@@ -8,7 +8,7 @@ EnergyArray::EnergyArray() :
 {}
 
 /** Energy term labels. Keep in sync with Type. */
-const char* EnergyArray::TypeStr_[] = { "Bond", "Angle", "VDW", "Elec", 0 };
+const char* EnergyArray::TypeStr_[] = { "Bond", "Angle", "Dihedral", "VDW14", "Q14", "VDW", "Elec", "OpenMM", 0 };
 
 const char* EnergyArray::label(Type t) const {
   return TypeStr_[(int)t];
@@ -47,4 +47,10 @@ const
   if (!includeSingleTerms && activeTerms_.size() < 2) return;
   for (Tarray::const_iterator it = activeTerms_.begin(); it != activeTerms_.end(); ++it)
     outfile.Printf(" %12s", TypeStr_[*it]);
+}
+
+/** Print active term labels to STDOUT. */
+void EnergyArray::PrintActiveTerms() const {
+  for (Tarray::const_iterator it = activeTerms_.begin(); it != activeTerms_.end(); ++it)
+    mprintf(" %s", TypeStr_[*it]);
 }

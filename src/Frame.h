@@ -78,6 +78,8 @@ class Frame {
     double pH()                       const { return pH_;            }
     double RedOx()                    const { return redox_;         }
     double Time()                     const { return time_;          }
+    /// \return CoordinateInfo that describes the Frame
+    CoordinateInfo CoordsInfo()       const;
     /// \return pointer to start of XYZ coords for given atom.
     const double* XYZ(int atnum)      const { return X_ + (atnum*3); } 
     /// \return pointer to specified coordinate.
@@ -144,6 +146,8 @@ class Frame {
     int SetupFrameM(std::vector<Atom> const&);
     /// Allocate frame with given XYZ coords and masses, no velocity.
     int SetupFrameXM(Darray const&, Darray const&);
+    /// Allocate frame based on given frame.
+    int SetupFrame(Frame const&);
     /// Allocate frame for given # atoms with mass and opt. velocity/indices.
     int SetupFrameV(std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms, coords/mass only.
@@ -166,6 +170,12 @@ class Frame {
     int SetCoordinates(int, double*);
     /// Copy entire input frame according to mask.
     void SetFrame(Frame const&, AtomMask const&);
+    /// Copy entire input frame
+    void SetFrame(Frame const&);
+    /// Zero the force array
+    void ZeroForces();
+    /// Zero the velocity array
+    void ZeroVelocities();
     // ----- Frame coordinate remapping ----------
     /// Copy entire input frame, reorder according to input map. 
     void SetCoordinatesByMap(Frame const&, std::vector<int>const&);
@@ -289,6 +299,8 @@ class Frame {
     void swap(Frame&, Frame&);
     void IncreaseX();
     inline bool ReallocateX(int);
+    /// Allocate coords/velo/force based on given num atoms and coordinate info.
+    bool setupFrame(unsigned int, CoordinateInfo const&);
 };
 // ---------- INLINE FUNCTION DEFINITIONS --------------------------------------
 

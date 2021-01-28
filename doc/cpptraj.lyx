@@ -5766,7 +5766,7 @@ The following COORDS data set commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="13" columns="2">
+<lyxtabular version="3" rows="14" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="75text%">
@@ -5889,6 +5889,26 @@ createcrd
 
 \begin_layout Plain Layout
 (Action) Create a COORDS set during a Run.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+emin
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Run simple energy minimization on a frame of a COORDS set.
 \end_layout
 
 \end_inset
@@ -6212,6 +6232,128 @@ reference "subsec:cpptraj_createcrd"
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Subsection
+emin
+\end_layout
+
+\begin_layout LyX-Code
+emin crdset <name> [trajoutname <name>] [rmstol <tol>] [nsteps <#>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	[<mask>] [frame <#>] [dx0 <step0>] [out <file>]
+\end_layout
+
+\begin_layout LyX-Code
+ 	[{nonbond|openmm}] [<potential options>]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+crdset
+\begin_inset space ~
+\end_inset
+
+<name> COORDS set to use.
+\end_layout
+
+\begin_layout Description
+[trajoutname
+\begin_inset space ~
+\end_inset
+
+<name>] Optional output trajectory for minimization steps.
+\end_layout
+
+\begin_layout Description
+[rmstol
+\begin_inset space ~
+\end_inset
+
+<tol>] Minimum RMS tolerance (default 1E-4).
+\end_layout
+
+\begin_layout Description
+[nsteps
+\begin_inset space ~
+\end_inset
+
+<#>] Number of minimization steps (default 1).
+\end_layout
+
+\begin_layout Description
+[<mask>] Atoms to minimize (default all).
+\end_layout
+
+\begin_layout Description
+[frame
+\begin_inset space ~
+\end_inset
+
+<#>] Frame from COORDS set to minimize (default 1).
+\end_layout
+
+\begin_layout Description
+[dx0
+\begin_inset space ~
+\end_inset
+
+<step0>] Size of initial minimization step (default 0.01).
+\end_layout
+
+\begin_layout Description
+[out
+\begin_inset space ~
+\end_inset
+
+<file>] File to write energies to.
+\end_layout
+
+\begin_layout Description
+[nonbond] If specified, use simple nonbonded potential term in additon to
+ bonded terms.
+\end_layout
+
+\begin_layout Description
+[openmm] If specified and if CPPTRAJ was compiled with OpenMM support, use
+ OpenMM to calculate the forces.
+\end_layout
+
+\begin_layout Standard
+<potential options>
+\end_layout
+
+\begin_layout Description
+cut
+\begin_inset space ~
+\end_inset
+
+<cutoff> Set nonbonded interaction cutoff in Ang.
+ (electrostatics and vdW).
+ Default 8.0.
+ 
+\end_layout
+
+\begin_layout Description
+nexclude
+\begin_inset space ~
+\end_inset
+
+<#> Number of bonded atoms within which nonbonded interactions are excluded.
+ Default 4.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+THIS COMMAND IS STILL IN DEVELOPMENT AS OF VERSION 5.0.2.
+\end_layout
+
+\begin_layout Standard
+Perform steepest descent minimization on a frame in a COORDS set using a
+ very basic force field (bonds, angles, dihedrals).
+ A simple nonbonded term can be added as well if desired.
 \end_layout
 
 \begin_layout Subsection

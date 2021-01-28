@@ -45,7 +45,7 @@ UsageFull() {
   echo "    --with-<lib>=<DIR> : Use library in specified directory."
   echo "    -l<lib>=<FILE>     : Use specified library file."
   echo "    -no<lib>           : Disable library."
-  echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng"
+  echo "    Libraries: netcdf pnetcdf zlib bzlib blas lapack arpack fftw3 readline sanderlib xdrfile tng openmm"
   echo "    Note: pnetcdf is needed for writing NetCDF trajectories with MPI."
   echo "  LINKING OPTIONS"
   echo "    -static        : Use static linking."
@@ -141,8 +141,6 @@ CPPTRAJBIN=''
 CPPTRAJLIB=''
 
 # ----- External Libraries -----------------------
-# Total number of external libraries
-NLIB=14
 # Library indices
 # Original: FFT ARPACK LAPACK BLAS NETCDF PARANC BZIP ZIP READLINE XDRFILE
 # Libraries containing definition of a function should appear *after*
@@ -161,6 +159,9 @@ LXDRFILE=10
 LSANDER=11
 LTIMER=12
 LCUDA=13
+LOPENMM=14
+# Total number of external libraries
+NLIB=15
 
 # LIB_STAT = Library status:
 #   off       : Do not use library.
@@ -292,6 +293,15 @@ LIB_STTC[$LTNGFILE]='libtng_io.a'
 LIB_D_ON[$LTNGFILE]='-DHAS_TNGFILE'
 LIB_DOFF[$LTNGFILE]=''
 LIB_TYPE[$LTNGFILE]='ld'
+
+LIB_STAT[$LOPENMM]='off'
+LIB_CKEY[$LOPENMM]='openmm'
+LIB_HOME[$LOPENMM]=''
+LIB_FLAG[$LOPENMM]='-lOpenMM'
+LIB_STTC[$LOPENMM]=''
+LIB_D_ON[$LOPENMM]='-DHAS_OPENMM'
+LIB_DOFF[$LOPENMM]=''
+LIB_TYPE[$LOPENMM]='cpp'
 
 for ((i=0; i < $NLIB; i++)) ; do
   LIB_LINK[$i]='dynamic'
@@ -654,6 +664,24 @@ EOF
   TestProgram noexe "  Checking CUDA" "$CXX" "$CXXFLAGS ${LIB_INCL[$LCUDA]}" testp.cpp "${LIB_FLAG[$LCUDA]}"
 }
 
+TestOpenMM() {
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include "OpenMM.h"
+int main() {
+  OpenMM::System*         system = new OpenMM::System();
+  system->addParticle(1);
+  OpenMM::Integrator*     integrator = new OpenMM::VerletIntegrator(1);
+  OpenMM::Context*        context = new OpenMM::Context(*system, *integrator);
+  if (system == 0 || integrator == 0 || context == 0) return 1;
+  delete system;
+  delete integrator;
+  delete context;
+  return 0;
+}
+EOF
+  TestProgram "  Checking OpenMM" "$CXX" "$CXXFLAGS ${LIB_INCL[$LOPENMM]}" testp.cpp "${LIB_FLAG[$LOPENMM]}"
+}
 
 #-------------------------------------------------------------------------------
 # Test external libraries
@@ -670,6 +698,7 @@ TestLibraries() {
   if [ "${LIB_TEST[$LTNGFILE]}" = 'yes'  ] ; then TestTngfile ; fi
   if [ "${LIB_TEST[$LSANDER]}" = 'yes'   ] ; then TestSanderlib ; fi
   if [ "${LIB_TEST[$LCUDA]}" = 'yes'     ] ; then TestCuda ; fi
+  if [ "${LIB_TEST[$LOPENMM]}" = 'yes'   ] ; then TestOpenMM ; fi
 }
 
 #-------------------------------------------------------------------------------

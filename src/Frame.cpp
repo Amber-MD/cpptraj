@@ -261,6 +261,12 @@ Frame &Frame::operator=(Frame rhs) {
 }
 
 // ---------- ACCESS INTERNAL DATA ---------------------------------------------
+/** \return CoordinateInfo describing the Frame. */
+CoordinateInfo Frame::CoordsInfo() const {
+  // TODO no good way to tell about time yet.
+  return CoordinateInfo( box_, X_ != 0, V_ != 0, F_ != 0, false );
+}
+
 // Frame::DataSize()
 /** Size of Frame in memory. */
 size_t Frame::DataSize() const {
@@ -292,6 +298,7 @@ void Frame::Info(const char *msg) const {
     mprintf("\tFrame:");
   mprintf("%i atoms, %i coords",natom_, ncoord_);
   if (V_!=0) mprintf(", with Velocities");
+  if (F_!=0) mprintf(", with Forces");
   if (!remd_indices_.empty()) mprintf(", with replica indices");
   mprintf("\n");
 }
@@ -406,9 +413,14 @@ int Frame::SetupFrameXM(Darray const& Xin, Darray const& massIn) {
   return 0;
 }
 
-// Frame::SetupFrameV()
-int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cinfo) {
-  bool reallocate = ReallocateX( atoms.size() );
+/** Allocate memory for frame coordinates, velocities, force, and replica
+  * indices based on size and given coordinate info. Mass should be
+  * allocated after this routine.
+  * \return 1 if reallocation happened.
+  * \return 0 if no reallocation.
+  */
+bool Frame::setupFrame(unsigned int natomsIn, CoordinateInfo const& cinfo) {
+  bool reallocate = ReallocateX( natomsIn );
   // Velocity
   if (cinfo.HasVel()) {
     if (reallocate || V_ == 0) {
@@ -430,17 +442,28 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
       memset(F_, 0, maxnatom_ * COORDSIZE_);
     }
   }
-  // Mass 
-  if (reallocate || Mass_.empty())
-    Mass_.resize(maxnatom_);
-  Darray::iterator mass = Mass_.begin();
-  for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); ++atom, ++mass)
-    *mass = atom->Mass();
   // Box
   box_ = cinfo.TrajBox();
   // Replica indices
   remd_indices_.assign( cinfo.ReplicaDimensions().Ndims(), 0 );
+  return (reallocate);
+}
+
+/** Allocate this frame based on given frame. */
+int Frame::SetupFrame(Frame const& frameIn) {
+  setupFrame(frameIn.Natom(), frameIn.CoordsInfo());
+  Mass_ = frameIn.Mass_;
+  return 0;
+}
+
+// Frame::SetupFrameV()
+/** Allocate this frame based on given array of atoms and coordinate info. */
+int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cinfo) {
+  setupFrame( atoms.size(), cinfo );
+  Mass_.clear();
+  Mass_.reserve( atoms.size() );
+  for (std::vector<Atom>::const_iterator atm = atoms.begin(); atm != atoms.end(); ++atm)
+    Mass_.push_back( atm->Mass() );
   return 0;
 }
 
@@ -570,7 +593,7 @@ int Frame::SetCoordinates(int natom, double* Xptr) {
 // Frame::SetFrame()
 void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   if (maskIn.Nselected() > maxnatom_) {
-    mprinterr("Error: SetFrame: Mask [%s] selected (%i) > max natom (%i)\n",
+    mprinterr("Internal Error: SetFrame: Mask [%s] selected (%i) > max natom (%i)\n",
               maskIn.MaskString(), maskIn.Nselected(), maxnatom_);
     return;
   }
@@ -614,6 +637,50 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
       newFptr += 3;
     }
   }
+}
+
+// Frame::SetFrame()
+void Frame::SetFrame(Frame const& frameIn) {
+  if (frameIn.natom_ > maxnatom_) {
+    mprinterr("Internal Error: SetFrame: Incoming frame # atoms (%i) > max natom (%i)\n",
+              frameIn.natom_, maxnatom_);
+    return;
+  }
+  natom_ = frameIn.natom_; 
+  ncoord_ = natom_ * 3;
+  step_ = frameIn.step_;
+  // Copy T/box
+  box_ = frameIn.box_;
+  T_ = frameIn.T_;
+  repidx_ = frameIn.repidx_;
+  crdidx_ = frameIn.crdidx_;
+  pH_ = frameIn.pH_;
+  redox_ = frameIn.redox_;
+  time_ = frameIn.time_;
+  remd_indices_ = frameIn.remd_indices_;
+  // Copy coords
+  if (X_ != 0 && frameIn.X_ != 0)
+    std::copy( frameIn.X_, frameIn.X_ + ncoord_, X_ );
+  // Copy mass
+  Mass_ = frameIn.Mass_;
+  // Copy velocity if necessary
+  if (frameIn.V_ != 0 && V_ != 0)
+    std::copy( frameIn.V_, frameIn.V_ + ncoord_, V_ );
+  // Copy force if necessary
+  if (frameIn.F_ != 0 && F_ != 0)
+    std::copy( frameIn.F_, frameIn.F_ + ncoord_, F_ );
+}
+
+/** Zero force array. */
+void Frame::ZeroForces() {
+  if (F_ != 0)
+    memset(F_, 0, natom_ * COORDSIZE_);
+}
+
+/** Zero the velocity array. */
+void Frame::ZeroVelocities() {
+  if (V_ != 0)
+    memset(V_, 0, natom_ * COORDSIZE_);
 }
 
 // ---------- FRAME SETUP WITH ATOM MAPPING ------------------------------------

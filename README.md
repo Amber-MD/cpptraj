@@ -117,6 +117,11 @@ use the option `--with-netcdf=/opt/netcdf`. Alternatively, individual libraries 
 disabled with the `-no<LIB>` options. The `-libstatic` flag can be used to static link
 only libraries that have been specified.
 
+CPPTRAJ can also be built with support for [OpenMM](http://openmm.org) by specifying
+'--with-openmm=PATH', where PATH is the OpenMM directory containing
+the OpenMM library, i.e. PATH/lib/libOpenMM.so. Currently the only command that uses OpenMM
+is emin, so compiling with OpenMM is typically not required at this time.
+
 After `configure` has been successfully run, `make install` will
 compile and place the cpptraj binary in the `$CPPTRAJHOME/bin` subdirectory. Note that
 on multithreaded systems `make -j X install` (where X is an integer > 1
