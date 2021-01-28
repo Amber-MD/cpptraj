@@ -21,15 +21,15 @@ class DataSet_Coords_REF : public DataSet_Coords {
     size_t MemUsageInBytes() const { return frame_.DataSize(); }
     // ----- DataSet_Coords functions ------------
     /// Add a frame.
-    inline void AddFrame(Frame const&);
+    void AddFrame(Frame const&);
     /// Get a frame at position.
-    inline void GetFrame(int idx, Frame& fIn) { fIn.SetFrame( frame_ ); }
+    void GetFrame(int idx, Frame& fIn) { fIn.SetFrame( frame_ ); }
     /// Get a frame at position corresponding to mask.
-    inline void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) {
+    void GetFrame(int idx, Frame& fIn, AtomMask const& mIn) {
       fIn.SetFrame(frame_, mIn);
     }
     /// Set CRD at position with frame.
-    inline void SetCRD(int, Frame const&);
+    void SetCRD(int, Frame const&);
     /// Set Topology and coordinate info
     int CoordsSetup(Topology const&, CoordinateInfo const&);
     // -------------------------------------------
