@@ -17,7 +17,7 @@ cat > emin.in <<EOF
 parm O2mol.parm7
 loadcrd O2mol.rst7 name O2mol
 
-emin crdset O2mol nsteps 100 out cpptraj.ene.dat trajoutname cpptraj.emin.nc
+emin crdset O2mol nsteps 100 out cpptraj.ene.dat #trajoutname cpptraj.emin.nc
 EOF
 RunCpptraj "$UNITNAME"
 DoTest cpptraj.ene.dat.save cpptraj.ene.dat
@@ -102,14 +102,17 @@ EOF
   RunCpptraj "$UNITNAME (Tz2)"
   DoTest omm.tz2.ene.dat.save omm.tz2.ene.dat
   # All, PME
-  cat > emin.in <<EOF
+  UNITNAME="$UNITNAME (Tz2 PME)"
+  CheckFor netcdf
+  if [ $? -eq 0 ] ; then
+    cat > emin.in <<EOF
 parm ../tz2.ortho.parm7
 loadcrd ../tz2.ortho.nc 1 1 name TZ2
 emin crdset TZ2 nsteps 100 out omm.tz2.pme.dat openmm !:WAT
 EOF
-  RunCpptraj "$UNITNAME (Tz2 PME)"
-  DoTest omm.tz2.pme.dat.save omm.tz2.pme.dat
+    RunCpptraj "$UNITNAME"
+    DoTest omm.tz2.pme.dat.save omm.tz2.pme.dat
+  fi
 fi
-
 
 EndTest
