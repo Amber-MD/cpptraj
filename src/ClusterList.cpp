@@ -94,6 +94,7 @@ void SaveBestRep(RepMap& reps, RepPair const& Dist_Num, unsigned int maxSize)
   else {
     RepMap::reverse_iterator end = reps.rbegin();
     if (Dist_Num.first < end->first) {
+      //mprintf("DEBUG: %i (%30.15E) lower than %i (%30.15E)\n", Dist_Num.second, Dist_Num.first, end->second, end->first);
       reps.insert( Dist_Num );
       if (reps.size() > maxSize) {
         RepMap::iterator it = reps.end();
@@ -124,31 +125,48 @@ int ClusterList::FindBestRepFrames_CumulativeDist(int nToSave) {
     //node->Cent()->Print("centroid." + integerToString(node->Num())); // DEBUG
     //CpptrajFile tmp; // DEBUG
     //tmp.OpenWrite("c"+integerToString(node->Num())+".bestRep.dat"); // DEBUG
-    RepMap bestReps;
-    for (ClusterNode::frame_iterator f1 = node->beginframe();
-                                     f1 != node->endframe(); ++f1)
-    {
-      double cdist = 0.0;
-      for (ClusterNode::frame_iterator f2 = node->beginframe(); f2 != node->endframe(); ++f2)
+    // Handle special cases
+    if (node->Nframes() == 1) {
+      node->BestReps().clear();
+      if (debug_ > 0)
+        mprintf("DEBUG: Only 1 frame, best rep: %i\n", node->ClusterFrame(0));
+      // Only one frame. That is the best rep.
+      node->BestReps().push_back( ClusterNode::RepPair(node->ClusterFrame(0), 0.0) );
+    } else if (node->Nframes() == 2) {
+      node->BestReps().clear();
+      if (debug_ > 0)
+        mprintf("DEBUG: 2 frames %i and %i, using former as best rep.\n", node->ClusterFrame(0), node->ClusterFrame(1));
+      // Two frames, distance from f1 to f2 same as f2 to f1. Take f1 by convention.
+      node->BestReps().push_back( ClusterNode::RepPair(node->ClusterFrame(0),
+                                                       Frame_Distance(node->ClusterFrame(0), node->ClusterFrame(1))) );
+    } else {
+      // Find cumulative distance of each frame to all other frames.
+      RepMap bestReps;
+      for (ClusterNode::frame_iterator f1 = node->beginframe();
+                                       f1 != node->endframe(); ++f1)
       {
-        if (f1 != f2)
-          cdist += Frame_Distance(*f1, *f2);
+        double cdist = 0.0;
+        for (ClusterNode::frame_iterator f2 = node->beginframe(); f2 != node->endframe(); ++f2)
+        {
+          if (f1 != f2)
+            cdist += Frame_Distance(*f1, *f2);
+        }
+        SaveBestRep(bestReps, RepPair(cdist, *f1), nToSave);
+        //tmp.Printf("%i %g %g\n", *f1+1, cdist, Cdist_->FrameCentroidDist(*f1, node->Cent()));
       }
-      SaveBestRep(bestReps, RepPair(cdist, *f1), nToSave);
-      //tmp.Printf("%i %g %g\n", *f1+1, cdist, Cdist_->FrameCentroidDist(*f1, node->Cent()));
-    }
-    //tmp.CloseFile();
-    if (bestReps.empty()) {
-      mprinterr("Error: Could not determine represenative frame for cluster %i\n",
-                node->Num());
-      err++;
-    }
-    SetBestRepFrame( *node, bestReps );
-    // DEBUG
-    if (debug_ > 0) {
-      mprintf("DEBUG: Best reps:\n");
-      for (RepMap::const_iterator it = bestReps.begin(); it != bestReps.end(); ++it)
-        mprintf("\t%i (%g)\n", it->second, it->first);
+      //tmp.CloseFile();
+      if (bestReps.empty()) {
+        mprinterr("Error: Could not determine represenative frame for cluster %i\n",
+                  node->Num());
+        err++;
+      }
+      SetBestRepFrame( *node, bestReps );
+      // DEBUG
+      if (debug_ > 0) {
+        mprintf("DEBUG: Best reps:\n");
+        for (RepMap::const_iterator it = bestReps.begin(); it != bestReps.end(); ++it)
+          mprintf("\t%i (%20.10E)\n", it->second, it->first);
+      }
     }
   }
   return err;
