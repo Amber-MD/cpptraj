@@ -566,6 +566,7 @@ int DataIO_Std::Read_2D_XYZ(FileName const& fname,
   MatrixMap matrixMap;
 
   int err = 0;
+  bool hasDiagonal = false;
   while (linebuffer != 0) {
     // Skip comments
     if (linebuffer[0] != '#') {
@@ -602,10 +603,13 @@ int DataIO_Std::Read_2D_XYZ(FileName const& fname,
           break;
         }
         maxrow = std::max(iy, maxrow);
+        // Check diagonal
+        if (ix == iy) hasDiagonal = true;
         // Value
         Str = std::string( buffer.NextToken() );
         if (validDouble( Str )) {
           dval = convertToDouble( Str );
+          //mprintf("DBG: %i %i %s\n", ix, iy, Str.c_str());
         } else {
           mprinterr("Error: Line %i Z value does not appear to be a valid number.\n", buffer.LineNumber(), Str.c_str());
           err = 1;
@@ -633,6 +637,8 @@ int DataIO_Std::Read_2D_XYZ(FileName const& fname,
     mprinterr("Error: One or more dimensions is empty.\n");
     return 1;
   }
+  if (hasDiagonal)
+    mprintf("\tMatrix has diagonal elements.\n");
 
   // Allocate set
   DataSet::DataType dtype;
