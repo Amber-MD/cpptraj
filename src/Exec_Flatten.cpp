@@ -8,7 +8,10 @@
 // Exec_Flatten::Help()
 void Exec_Flatten::Help() const
 {
-
+  mprintf("\tname <output set name> [mode {sum|avg}] <input set args>\n"
+          "  Flatten 1 or more matrices into 1D array(s) by summing or\n"
+          "  averaging elements.\n"
+         );
 }
 
 // Exec_Flatten::Execute()
