@@ -2,6 +2,8 @@
 #include "CpptrajStdio.h"
 #include "DataSet_2D.h"
 #include "DataSet_1D.h"
+#include "OnlineVarT.h"
+#include <algorithm> // std::max
 
 // Exec_Flatten::Help()
 void Exec_Flatten::Help() const
@@ -54,6 +56,75 @@ Exec::RetType Exec_Flatten::Execute(CpptrajState& State, ArgList& argIn)
     setarg = argIn.GetStringNext();
   }
   mprintf("\t%zu matrices to flatten.\n", inpSets.size());
+  if (inpSets.empty()) return CpptrajState::OK;
 
+  // Set up output sets.
+  if (inpSets.size() == 1) {
+    DataSet* ds = State.DSL().AddSet( DataSet::DOUBLE, dsname );
+    if (ds == 0) return CpptrajState::ERR;
+    outSets.push_back( (DataSet_1D*)ds );
+  } else {
+    int idx = 1;
+    for (std::vector<DataSet_2D*>::const_iterator it = inpSets.begin(); it != inpSets.end(); ++it)
+    {
+      MetaData md(dsname, idx);
+      DataSet* ds = State.DSL().AddSet( DataSet::DOUBLE, md );
+      if (ds == 0) return CpptrajState::ERR;
+      outSets.push_back( (DataSet_1D*)ds );
+      idx++;
+    }
+  }
+
+  // Flatten
+  std::vector<double> sumArray;
+  std::vector< Stats<double> > avgArray;
+  
+  for (unsigned int idx = 0; idx != inpSets.size(); idx++) {
+    DataSet_2D const& Mat = static_cast<DataSet_2D const&>( *(inpSets[idx]) );
+    DataSet_1D&       Out = static_cast<DataSet_1D&      >( *(outSets[idx]) );
+    // Determine max size for Out and allocate
+    unsigned int maxSize = std::max(Mat.Ncols(), Mat.Nrows());
+    mprintf("\tMatrix: %s, %i columns, %i rows. Output: %u elements\n", Mat.legend(), Mat.Ncols(), Mat.Nrows(), maxSize);
+    Out.Allocate( DataSet::SizeArray(1, maxSize) );
+    // Allocate temp array
+    if (mode == SUM) {
+      sumArray.clear();
+      sumArray.resize( maxSize, 0.0 );
+    } else {
+      avgArray.clear();
+      avgArray.resize( maxSize, Stats<double>() );
+    }
+    // Loop over array.
+    for (unsigned int row = 0; row != Mat.Nrows(); row++) {
+      for (unsigned int col = 0; col != Mat.Ncols(); col++) {
+        double dval = Mat.GetElement(col, row);
+        mprintf("DBG: %8u %8u %12.4f\n", col, row, dval);
+        // Divide element between row and col
+        double halfVal = dval / 2.0;
+        // Operation
+        if (mode == SUM) {
+          sumArray[row] += halfVal;
+          sumArray[col] += halfVal;
+        } else {
+          avgArray[row].accumulate( halfVal );
+          avgArray[col].accumulate( halfVal );
+        }
+      } // END loop over columns
+    } // END loop over rows
+    // Fill in final values TODO make Resize a DataSet_1D function
+    if (mode == SUM) {
+      int jdx = 0;
+      for (std::vector<double>::const_iterator it = sumArray.begin(); it != sumArray.end(); ++it) {
+        double val = *it;
+        Out.Add(jdx++, &val);
+      }
+    } else {
+      int jdx = 0;
+      for (std::vector< Stats<double> >::const_iterator it = avgArray.begin(); it != avgArray.end(); ++it) {
+        double val = it->mean();
+        Out.Add(jdx++, &val );
+      }
+    }
+  } // END loop over input sets
   return CpptrajState::OK;  
 }
