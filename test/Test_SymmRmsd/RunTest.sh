@@ -11,7 +11,7 @@ Requires maxthreads 3
 Rotate() {
   INPUT="-i rotate.in"
   cat > rotate.in <<EOF
-parm AFV.parm7
+parm ../AFV.parm7
 trajin AFV.rst7
 makestructure chi2:2:CA:CB:CG:CD1:0
 #trajout AFV.rotate2.rst7
@@ -25,7 +25,7 @@ EOF
 Rms() {
   INPUT="-i rms.in"
   cat > rms.in <<EOF
-parm AFV.parm7
+parm ../AFV.parm7
 reference AFV.rst7
 trajin AFV.rotate2.rst7
 trajin AFV.rotate3.rst7 

@@ -8,7 +8,7 @@ INPUT="-i cluster.in"
 
 # Run Clustering
 RunCluster() {
-  echo "parm ../Test_SymmRmsd/AFV.parm7" > cluster.in
+  echo "parm ../AFV.parm7" > cluster.in
   for ((i=0; i < 10; i++)) ; do
     echo "trajin ../Test_SymmRmsd/AFV.rst7" >> cluster.in
   done
