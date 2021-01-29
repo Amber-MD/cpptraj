@@ -101,16 +101,28 @@ Exec::RetType Exec_Flatten::Execute(CpptrajState& State, ArgList& argIn)
     for (unsigned int row = 0; row != Mat.Nrows(); row++) {
       for (unsigned int col = 0; col != Mat.Ncols(); col++) {
         double dval = Mat.GetElement(col, row);
-        mprintf("DBG: %8u %8u %12.4f\n", col, row, dval);
-        // Divide element between row and col
-        double halfVal = dval / 2.0;
-        // Operation
-        if (mode == SUM) {
-          sumArray[row] += halfVal;
-          sumArray[col] += halfVal;
+        //mprintf("DBG: %8u %8u %12.4f\n", col, row, dval);
+        // Diagonal element gets full interaction
+        if (row == col) {
+          //if (col == 0) mprintf("DBG: Diag Elt 0 %12.4f\n", dval);
+          if (mode == SUM)
+            sumArray[row] += dval;
+          else
+            avgArray[row].accumulate( dval );
         } else {
-          avgArray[row].accumulate( halfVal );
-          avgArray[col].accumulate( halfVal );
+          // Off-diagonal element: divide element between row and col
+          double halfVal = dval / 2.0;
+          //mprintf("DBG0: %8u %12.4f\n", col, halfVal);
+          //mprintf("DBG1: %8u %12.4f\n", row, halfVal);
+          //if (col == 0 || row == 0) mprintf("DBG: Elt 0 %12.4f\n", halfVal);
+          // Operation
+          if (mode == SUM) {
+            sumArray[row] += halfVal;
+            sumArray[col] += halfVal;
+          } else {
+            avgArray[row].accumulate( halfVal );
+            avgArray[col].accumulate( halfVal );
+          }
         }
       } // END loop over columns
     } // END loop over rows
