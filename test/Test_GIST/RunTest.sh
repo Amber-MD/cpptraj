@@ -46,7 +46,7 @@ DoTest Gist2-order-norm.dx.save Gist2-order-norm.dx
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
 #       THIS IS THE SAVED OUTPUT FROM THE ORIGINAL GIST COMMAND.
-DoTest gist.out.save Gist2-output.dat -r 0.0001
+DoTest gist.out.save Gist2-output.dat -a 0.0001
 
 # GIST test, nonorthogonal cell
 UNITNAME='GIST test, nonorthogonal cell'
@@ -69,6 +69,6 @@ DoTest Gist3-order-norm.dx.save Gist3-order-norm.dx
 # The CUDA code requires slightly bigger relative error:
 ### Maximum absolute error in matching lines = 1.10e-05 at line 5484 field 14
 ### Maximum relative error in matching lines = 1.08e-04 at line 5484 field 14
-DoTest Gist3-output.dat.save Gist3-output.dat -r $TEST_REL_ERR 
+DoTest Gist3-output.dat.save Gist3-output.dat -a 0.0001
 EndTest
 exit 0
