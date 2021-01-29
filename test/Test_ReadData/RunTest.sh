@@ -143,15 +143,17 @@ matrix name CA @CA byatom out matrix.dat nosquare2d
 run
 EOF
 RunCpptraj "$UNITNAME"
+DoTest matrix.dat.save matrix.dat
 
 # Non-square matrix read
 UNITNAME='Read non-square matrix'
 cat > vector.in <<EOF
-readdata matrix.dat read2d name MyMatrix
+readdata matrix.dat read2d name MyMatrix nosquare2d
 list dataset
-writedata cpptraj.matrix.dat nosquare2d MyMatrix
+writedata cpptraj.matrix.dat nosquare2d MyMatrix prec 6.3 noheader
 EOF
 RunCpptraj "$UNITNAME"
+DoTest matrix.dat.save cpptraj.matrix.dat
 
 EndTest
   
