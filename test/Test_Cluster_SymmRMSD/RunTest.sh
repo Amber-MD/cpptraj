@@ -8,20 +8,9 @@ INPUT="-i cluster.in"
 
 # Run Clustering
 RunCluster() {
-  echo "parm ../AFV.parm7" > cluster.in
-  for ((i=0; i < 10; i++)) ; do
-    echo "trajin ../Test_SymmRmsd/AFV.rst7" >> cluster.in
-  done
-  for ((i=0; i < 10; i++)) ; do
-    echo "trajin ../Test_SymmRmsd/AFV.rotate2.rst7" >> cluster.in
-  done
-  for ((i=0; i < 10; i++)) ; do
-    echo "trajin ../Test_SymmRmsd/AFV.rotate3.rst7" >> cluster.in
-  done
-  for ((i=0; i < 10; i++)) ; do
-    echo "trajin ../Test_SymmRmsd/AFV.rotate23.rst7" >> cluster.in
-  done
-  cat >> cluster.in <<EOF
+  cat > cluster.in <<EOF
+parm ../AFV.parm7
+trajin ../AFV.nc
 2drms !@H= out 2drms.gnu srmsd
 cluster cluster1 hieragglo epsilon 0.8 averagelinkage \
         rms !@H= \
