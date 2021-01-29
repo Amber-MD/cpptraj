@@ -17,6 +17,8 @@
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_2D.h"
+#include "DataSet_MatrixFlt.h"
+#include "DataSet_MatrixDbl.h"
 #include "DataSet_3D.h"
 #include "DataSet_Cmatrix_MEM.h"
 
@@ -136,6 +138,19 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
     // Column user args start from 1
     strCols_.ShiftBy(-1);
   }
+  // Precision
+  // TODO precision for 1d too
+  if (mode_ == READ2D || mode_ == READ3D) {
+    std::string precKey = argIn.GetStringKey("prec");
+    if (!precKey.empty()) {
+      if (precKey == "flt") prec_ = FLOAT;
+      else if (precKey == "dbl") prec_ = DOUBLE;
+      else {
+        mprinterr("Error: Expected only 'flt' or 'dbl' for keyword 'prec'\n");
+        return 1;
+      }
+    }
+  }
   // Options for 2d
   if (mode_ == READ2D) {
     square2d_ = true;
@@ -158,16 +173,7 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
       dims_[1] = oArg.getNextInteger(dims_[1]);
       dims_[2] = oArg.getNextInteger(dims_[2]);
     }
-    // TODO precision for 1d and 2d too
-    std::string precKey = argIn.GetStringKey("prec");
-    if (!precKey.empty()) {
-      if (precKey == "flt") prec_ = FLOAT;
-      else if (precKey == "dbl") prec_ = DOUBLE;
-      else {
-        mprinterr("Error: Expected only 'flt' or 'dbl' for keyword 'prec'\n");
-        return 1;
-      }
-    }
+    
     std::string binKey = argIn.GetStringKey("bin");
     if (!binKey.empty()) {
       if (binKey == "center") binCorners_ = false;
@@ -567,8 +573,9 @@ int DataIO_Std::Read_2D_XYZ(FileName const& fname,
       if (ntokens < 3) {
         mprintf("Warning: In 2D file, less than 3 columns at line %i, skipping.\n", buffer.LineNumber());
       } else {
-        int ix, iy;
-        double dval;
+        int ix = -1;
+        int iy = -1;
+        double dval = 0;
         // X
         std::string Str( buffer.NextToken() );
         if (validInteger( Str ))
@@ -581,6 +588,7 @@ int DataIO_Std::Read_2D_XYZ(FileName const& fname,
           err = 1;
           break;
         }
+        maxcol = std::max(ix, maxcol);
         // Y
         Str = std::string( buffer.NextToken() );
         if (validInteger( Str ))
@@ -593,6 +601,7 @@ int DataIO_Std::Read_2D_XYZ(FileName const& fname,
           err = 1;
           break;
         }
+        maxrow = std::max(iy, maxrow);
         // Value
         Str = std::string( buffer.NextToken() );
         if (validDouble( Str )) {
@@ -614,34 +623,49 @@ int DataIO_Std::Read_2D_XYZ(FileName const& fname,
     } // END if linebuffer[0] != #
     linebuffer = buffer.Line();
   } // END loop over file
-  mprintf("\tRead in %zu values for matrix.\n", matrixMap.size()); 
-
-  int ncols = -1;
-  int nrows = 0;
-  std::vector<double> matrixArray;
-  while (linebuffer != 0) {
-    int ntokens = buffer.TokenizeLine( SEPARATORS );
-    if (ncols < 0) {
-      ncols = ntokens;
-      if (ntokens < 1) {
-        mprinterr("Error: Could not tokenize line.\n");
-        return 1;
-      }
-    } else if (ncols != ntokens) {
-      mprinterr("Error: In 2D file, number of columns changes from %i to %i at line %i\n",
-                ncols, ntokens, buffer.LineNumber());
-      return 1;
-    }
-    for (int i = 0; i < ntokens; i++)
-      matrixArray.push_back( atof( buffer.NextToken() ) );
-    nrows++;
-    linebuffer = buffer.Line();
-  }
-  if (ncols < 0) {
-    mprinterr("Error: No data detected in %s\n", buffer.Filename().full());
+  if (err != 0) {
+    mprinterr("Error: Could not read matrix from %s\n", fname.full());
     return 1;
   }
-  if ( DetermineMatrixType( matrixArray, nrows, ncols, datasetlist, dsname )==0 ) return 1;
+  mprintf("\tRead in %zu values for matrix.\n", matrixMap.size());
+  mprintf("\tMax col = %i, max row = %i\n", maxcol, maxrow);
+  if (maxcol < 1 || maxrow < 1) {
+    mprinterr("Error: One or more dimensions is empty.\n");
+    return 1;
+  }
+
+  // Allocate set
+  DataSet::DataType dtype;
+  if (prec_ == FLOAT) {
+    mprintf("\tMatrix is single precision.\n");
+    dtype = DataSet::MATRIX_FLT;
+  } else {
+    mprintf("\tMatrix is double precision.\n");
+    dtype = DataSet::MATRIX_DBL;
+  }
+  DataSet* ds = datasetlist.AddSet(dtype, dsname, "Mat");
+  if (ds == 0) {
+    mprinterr("Error: Could not allocate dataset for 2D xyz matrix.\n");
+    return 1;
+  }
+  // TODO check symmetric, upper triangle, etc
+  DataSet_2D& mat = static_cast<DataSet_2D&>( *ds );
+  if (mat.Allocate2D(maxcol, maxrow)) {
+    mprinterr("Error: Could not allocate memory for 2D xyz matrix.\n");
+    return 1;
+  }
+  if (dtype == DataSet::MATRIX_FLT) {
+    DataSet_MatrixFlt& fmat =  static_cast<DataSet_MatrixFlt&>( *ds );
+    for (MatrixMap::const_iterator it = matrixMap.begin(); it != matrixMap.end(); ++it)
+      fmat.SetElement( it->first.first-1, it->first.second-1, it->second );
+  } else if (dtype == DataSet::MATRIX_DBL) {
+    DataSet_MatrixDbl& dmat =  static_cast<DataSet_MatrixDbl&>( *ds );
+    for (MatrixMap::const_iterator it = matrixMap.begin(); it != matrixMap.end(); ++it)
+      dmat.SetElement( it->first.first-1, it->first.second-1, it->second );
+  } else {
+    mprinterr("Internal Error: Unhandled matrix type during 2D xyz matrix read.\n");
+    return 1;
+  }
 
   return 0;
 }
