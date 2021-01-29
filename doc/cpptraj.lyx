@@ -9748,6 +9748,171 @@ Exit normally.
 \end_layout
 
 \begin_layout Subsection
+flatten
+\end_layout
+
+\begin_layout LyX-Code
+flatten name <output set name> [mode {sum|avg}] <input set args>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Name of 
+\begin_inset Quotes eld
+\end_inset
+
+flattened
+\begin_inset Quotes erd
+\end_inset
+
+ 1D output set(s).
+\end_layout
+
+\begin_layout Description
+mode
+\begin_inset space ~
+\end_inset
+
+{sum|avg} If sum, matrix elements will be summed.
+ If avg, matrix elements will be averaged.
+\end_layout
+
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+args> Specify matrices to 
+\begin_inset Quotes eld
+\end_inset
+
+flatten
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+DataSets Created
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Flattened 1D set if only one input matrix.
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name>:<idx> Flattened 1D sets when more than one input matrix; index starts
+ from 1.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Flatten 1 or more matrices into 1D array(s) by summing or averaging elements.
+ For example, given a matrix with values like this:
+\end_layout
+
+\begin_layout LyX-Code
+X Y Value
+\end_layout
+
+\begin_layout LyX-Code
+1 3 5.0
+\end_layout
+
+\begin_layout LyX-Code
+1 4 4.0
+\end_layout
+
+\begin_layout LyX-Code
+2 3 2.0
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Quotes eld
+\end_inset
+
+flattened
+\begin_inset Quotes erd
+\end_inset
+
+ 1D array with mode SUM would be determined as follows:
+\end_layout
+
+\begin_layout LyX-Code
+Element 1 = (5.0/2) + (4.0/2) = 4.5
+\end_layout
+
+\begin_layout LyX-Code
+Element 2 = (2.0/2) = 1.0
+\end_layout
+
+\begin_layout LyX-Code
+Element 3 = (5.0/2) + (2.0/2) = 3.5
+\end_layout
+
+\begin_layout LyX-Code
+Element 4 = (4.0/2) = 2.0
+\end_layout
+
+\begin_layout Standard
+And the final 1D array would look like so:
+\end_layout
+
+\begin_layout LyX-Code
+Index Value
+\end_layout
+
+\begin_layout LyX-Code
+1     4.5
+\end_layout
+
+\begin_layout LyX-Code
+2     1.0
+\end_layout
+
+\begin_layout LyX-Code
+3     3.5
+\end_layout
+
+\begin_layout LyX-Code
+4     2.0 
+\end_layout
+
+\begin_layout Subsection
 go | run
 \end_layout
 
