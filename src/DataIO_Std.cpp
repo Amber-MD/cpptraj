@@ -32,7 +32,7 @@ DataIO_Std::DataIO_Std() :
   isInverted_(false), 
   hasXcolumn_(true), 
   writeHeader_(true), 
-  square2d_(false),
+  square2d_(true),
   sparse_(false),
   originSpecified_(false),
   deltaSpecified_(false),
@@ -48,26 +48,6 @@ DataIO_Std::DataIO_Std() :
 
 static void PrintColumnError(int idx) {
   mprinterr("Error: Number of columns in file changes at line %i.\n", idx);
-}
-
-void DataIO_Std::ReadHelp() {
-  mprintf("\tread1d:      Read data as 1D data sets (default).\n"
-          "\t\tindex <col>        : (1D) Use column # (starting from 1) as index (X) column.\n"
-          "\t\tonlycols <range>   : Only read columns in range.\n"
-          "\t\tfloatcols <range>  : Force specified columns to be read as single-precision floats.\n"
-          "\t\tintcols <range>    : Force specified columns to be read as integers.\n"
-          "\t\tstringcols <range> : Force specified columns to be read as strings.\n"
-          "\tread2d:      Read data as 2D square matrix.\n"
-          "\tread3d:      Read data as 3D grid. If no dimension data in file must also\n"
-          "\t             specify 'dims'; can also specify 'origin' and 'delta'.\n"
-          "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
-          "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
-          "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
-          "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
-          "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
-          "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
-          "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
-
 }
 
 const char* DataIO_Std::SEPARATORS = " ,\t"; // whitespace, comma, or tab-delimited
@@ -89,6 +69,28 @@ int DataIO_Std::Get3Double(std::string const& key, Vec3& vec, bool& specified)
   }
   return 0;
 }
+
+/** Data read options. */
+void DataIO_Std::ReadHelp() {
+  mprintf("\tread1d:      Read data as 1D data sets (default).\n"
+          "\t\tindex <col>        : (1D) Use column # (starting from 1) as index (X) column.\n"
+          "\t\tonlycols <range>   : Only read columns in range.\n"
+          "\t\tfloatcols <range>  : Force specified columns to be read as single-precision floats.\n"
+          "\t\tintcols <range>    : Force specified columns to be read as integers.\n"
+          "\t\tstringcols <range> : Force specified columns to be read as strings.\n"
+          "\tread2d:      Read data as 2D square matrix.\n"
+          "\tread3d:      Read data as 3D grid. If no dimension data in file must also\n"
+          "\t             specify 'dims'; can also specify 'origin' and 'delta'.\n"
+          "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
+          "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
+          "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
+          "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
+          "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
+          "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
+          "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
+
+}
+
 
 // DataIO_Std::processReadArgs()
 int DataIO_Std::processReadArgs(ArgList& argIn) {
@@ -153,9 +155,8 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   }
   // Options for 2d
   if (mode_ == READ2D) {
-    square2d_ = true;
-    if (argIn.hasKey("nosquare2d"))
-      square2d_ = false;
+    if (argIn.hasKey("square2d")) square2d_ = true;
+    if (argIn.hasKey("nosquare2d")) square2d_ = false;
   }
   // Options for 3d
   if (mode_ == READ3D) {
@@ -1001,6 +1002,7 @@ void DataIO_Std::WriteHelp() {
   mprintf("\theader         : Print header line.\n"
           "\tnoheader       : Do not print header line.\n"
           "\tinvert         : Flip X/Y axes (1D).\n"
+          "\tnoinvert       : Do not flip X/Y axes(1D).\n"
           "\tgroupby <type> : (1D) group data sets by <type>.\n"
           "\t\tname   : Group by name.\n"
           "\t\taspect : Group by aspect.\n"
@@ -1018,8 +1020,6 @@ void DataIO_Std::WriteHelp() {
 
 // DataIO_Std::processWriteArgs()
 int DataIO_Std::processWriteArgs(ArgList &argIn) {
-  if (!isInverted_ && argIn.hasKey("invert"))
-    isInverted_ = true;
   std::string grouparg = argIn.GetStringKey("groupby");
   if (!grouparg.empty()) {
     if (group_ != BY_NAME && grouparg == "name")
@@ -1036,22 +1036,18 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
       mprintf("Warning: Unrecognized arg for 'groupby' (%s), ignoring.\n", grouparg.c_str());
     }
   }
-  if (hasXcolumn_ && argIn.hasKey("noxcol"))
-    hasXcolumn_ = false;
-  if (!hasXcolumn_ && argIn.hasKey("xcol"))
-    hasXcolumn_ = true;
-  if (writeHeader_ && argIn.hasKey("noheader"))
-    writeHeader_ = false;
-  if (!writeHeader_ && argIn.hasKey("header"))
-    writeHeader_ = true;
-  if (!square2d_ && argIn.hasKey("square2d"))
-    square2d_ = true;
-  else if (square2d_ && argIn.hasKey("nosquare2d"))
-    square2d_ = false;
-  if (!sparse_ && argIn.hasKey("sparse"))
-    sparse_ = true;
-  else if (sparse_ && argIn.hasKey("nosparse"))
-    sparse_ = false;
+
+  if (argIn.hasKey("invert")) isInverted_ = true;
+  if (argIn.hasKey("noinvert")) isInverted_ = false;
+  if (argIn.hasKey("xcol")) hasXcolumn_ = true;
+  if (argIn.hasKey("noxcol")) hasXcolumn_ = false;
+  if (argIn.hasKey("header")) writeHeader_ = true;
+  if (argIn.hasKey("noheader")) writeHeader_ = false;
+  if (argIn.hasKey("square2d")) square2d_ = true;
+  if (argIn.hasKey("nosquare2d")) square2d_ = false;
+  if (argIn.hasKey("sparse")) sparse_ = true;
+  if (argIn.hasKey("nosparse")) sparse_ = false; 
+
   if (sparse_)
     cut_ = argIn.getKeyDouble("cut", cut_);
   return 0;
