@@ -56,9 +56,9 @@ class CurveFit {
     /// Calculate Jacobian using forward-difference approximation
     void CalcJacobian_ForwardDiff(Darray const&, Darray const&, Darray&, Darray const&, Darray&);
     /// Calculate || m(i,...) || for row vector in matrix
-    static double VecNorm(Darray::const_iterator const&, dsize);
+    double VecNorm(Darray::const_iterator const&, dsize) const;
     /// Calculate || v || for vector
-    static inline double VecNorm(Darray const& vec) {
+    inline double VecNorm(Darray const& vec) const {
       return VecNorm( vec.begin(), vec.size() );
     }
     /// Print final parameters to STDOUT

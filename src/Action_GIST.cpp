@@ -905,18 +905,26 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         H1_wat.Normalize();
         H2_wat.Normalize();
 
-        Vec3 ar1 = H1_wat.Cross( x_lab_ );
-        Vec3 sar = ar1;
+        Vec3 ar1 = H1_wat.Cross( x_lab_ ); // ar1 = V cross U 
+        Vec3 sar = ar1;                    // sar = V cross U
         ar1.Normalize();
-        double dp1 = x_lab_ * H1_wat;
+        //mprintf("------------------------------------------\n");
+        //H1_wat.Print("DEBUG: H1_wat");
+        //x_lab_.Print("DEBUG: x_lab_");
+        //ar1.Print("DEBUG: ar1");
+        //sar.Print("DEBUG: sar");
+        double dp1 = x_lab_ * H1_wat; // V dot U
         double theta = acos(dp1);
         double sign = sar * H1_wat;
-        if (sign > 0)
+        //mprintf("DEBUG0: dp1= %f  theta= %f  sign= %f\n", dp1, theta, sign);
+        // NOTE: Use SMALL instead of 0 to avoid issues with denormalization
+        if (sign > Constants::SMALL)
           theta /= 2.0;
         else
           theta /= -2.0;
         double w1 = cos(theta);
         double sin_theta = sin(theta);
+        //mprintf("DEBUG0: theta= %f  w1= %f  sin_theta= %f\n", theta, w1, sin_theta);
         double x1 = ar1[0] * sin_theta;
         double y1 = ar1[1] * sin_theta;
         double z1 = ar1[2] * sin_theta;
@@ -983,7 +991,11 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         voxel_Q_[voxel].push_back( x4 );
         voxel_Q_[voxel].push_back( y4 );
         voxel_Q_[voxel].push_back( z4 );
-        //mprintf("DEBUG1: wxyz4= %g %g %g %g\n", w4, x4, y4, z4);
+        //mprintf("DEBUG1: sidx= %u  voxel= %i  wxyz4= %g %g %g %g\n", sidx, voxel, w4, x4, y4, z4);
+        //mprintf("DEBUG2: wxyz3= %g %g %g %g  wxyz2= %g %g %g %g  wxyz1= %g %g %g\n",
+        //        w3, x3, y3, z3,
+        //        w2, x2, y2, z2,
+        //        w1, x1, y1, z1);
         // NOTE: No need for nw_angle_ here, it is same as N_waters_
         gist_euler_.Stop();
         // ----- DIPOLE --------------------------
@@ -1124,18 +1136,21 @@ void Action_GIST::Print() {
           {
             if (n0 != n1) {
               int q1 = n1 * 4; // Index into voxel_Q_ for n1
+              //mprintf("DEBUG1:\t\t q1= %8i {%12.4f %12.4f %12.4f %12.4f} q0= %8i {%12.4f %12.4f %12.4f %12.4f}\n",
+              //        q1, voxel_Q_[gr_pt][q1  ], voxel_Q_[gr_pt][q1+1], voxel_Q_[gr_pt][q1+2], voxel_Q_[gr_pt][q1+3],
+              //        q0, voxel_Q_[gr_pt][q0  ], voxel_Q_[gr_pt][q0+1], voxel_Q_[gr_pt][q0+2], voxel_Q_[gr_pt][q0+3]);
               double rR = 2.0 * acos(  fabs(voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
                                    + voxel_Q_[gr_pt][q1+1] * voxel_Q_[gr_pt][q0+1]
                                    + voxel_Q_[gr_pt][q1+2] * voxel_Q_[gr_pt][q0+2]
                                    + voxel_Q_[gr_pt][q1+3] * voxel_Q_[gr_pt][q0+3] )); // add fabs for quaternion distance calculation
-              //mprintf("DEBUG1: %g\n", rR);
+              //mprintf("DEBUG1:\t\t %8i %8i %g\n", n0, n1, rR);
               if (rR > 0 && rR < NNr) NNr = rR;
             }
           } // END inner loop over all waters for this voxel
 
           if (NNr < 9999 && NNr > 0) {
             double dbl = log(NNr*NNr*NNr*nw_total / (3.0*Constants::TWOPI));
-            //mprintf("DEBUG1: dbl %f\n", dbl);
+            //mprintf("DEBUG1: %u  nw_total= %i  NNr= %f  dbl= %f\n", gr_pt, nw_total, NNr, dbl);
             dTSorient_norm[gr_pt] += dbl;
             dTSo += dbl;
           }

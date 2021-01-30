@@ -43,12 +43,9 @@ RunCpptraj "$UNITNAME"
 DoTest cpptraj.dihedral.dat.save cpptraj.dihedral.dat
 
 UNITNAME='Energy minimization with nonbond term test.'
-# There are some small numerical differences on windows.
-if [ "$CPPTRAJ_TEST_OS" = 'windows' ] ; then
-  nbtestargs='-a 0.002'
-else
-  nbtestargs=''
-fi
+# There are some small numerical differences on windows
+# and with PGI compilers.
+nbtestargs='-a 0.002'
 cat > emin.in <<EOF
 parm ../tz2.parm7
 loadcrd ../tz2.rst7 1 1 name TZ2

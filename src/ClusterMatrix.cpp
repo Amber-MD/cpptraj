@@ -69,7 +69,7 @@ void ClusterMatrix::PrintElements() const {
   unsigned int jVal = 1;
   for (size_t idx = 0UL; idx < Mat_.size(); ++idx) {
     if (!ignore_[iVal] && !ignore_[jVal])
-      mprintf("\t%u %u %f\n",iVal,jVal,Mat_[idx]);
+      mprintf("\t%u %u %20.10E\n",iVal,jVal,Mat_[idx]);
     // Increment indices
     jVal++;
     if (jVal >= ignore_.size()) {
