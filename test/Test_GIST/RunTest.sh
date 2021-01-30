@@ -13,7 +13,8 @@ UNITNAME='Eww Test'
 CheckFor notcuda
 # doeij test with much smaller grid to save memory
 if [ $? -eq 0 ]; then
-  TEST_REL_ERR='0.0001'
+  # Default test tolerance
+  TEST_TOLERANCE='0.0001'
   cat > gist.in <<EOF
   parm ../tz2.ortho.parm7
   trajin ../tz2.ortho.nc 1 10
@@ -25,7 +26,8 @@ EOF
   RunCpptraj "GIST water-water interaction test"
   DoTest Gist1-Eww_ij.dat.save Gist1-Eww_ij.dat
 else
-  TEST_REL_ERR='0.0002'
+  # GPU test tolerance
+  TEST_TOLERANCE='0.0002'
 fi
 
 # GIST test with finer grid for everything else
@@ -46,7 +48,7 @@ DoTest Gist2-order-norm.dx.save Gist2-order-norm.dx
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
 #       THIS IS THE SAVED OUTPUT FROM THE ORIGINAL GIST COMMAND.
-DoTest gist.out.save Gist2-output.dat -r 0.0001
+DoTest gist.out.save Gist2-output.dat -a $TEST_TOLERANCE 
 
 # GIST test, nonorthogonal cell
 UNITNAME='GIST test, nonorthogonal cell'
@@ -69,6 +71,6 @@ DoTest Gist3-order-norm.dx.save Gist3-order-norm.dx
 # The CUDA code requires slightly bigger relative error:
 ### Maximum absolute error in matching lines = 1.10e-05 at line 5484 field 14
 ### Maximum relative error in matching lines = 1.08e-04 at line 5484 field 14
-DoTest Gist3-output.dat.save Gist3-output.dat -r $TEST_REL_ERR 
+DoTest Gist3-output.dat.save Gist3-output.dat -a $TEST_TOLERANCE 
 EndTest
 exit 0

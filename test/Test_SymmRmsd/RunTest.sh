@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles rms.in rmsd?.dat rmsd.dat rotate.in srms.in *.rmsd.dat \
-           TYR.remap.crd ASP.remap.crd GLU.remap.crd
+           TYR.remap.crd ASP.remap.crd GLU.remap.crd afv.rmsd.dat
 
 TESTNAME='Symmetry-corrected RMSD tests'
 Requires maxthreads 3
@@ -11,7 +11,7 @@ Requires maxthreads 3
 Rotate() {
   INPUT="-i rotate.in"
   cat > rotate.in <<EOF
-parm AFV.parm7
+parm ../AFV.parm7
 trajin AFV.rst7
 makestructure chi2:2:CA:CB:CG:CD1:0
 #trajout AFV.rotate2.rst7
@@ -25,7 +25,7 @@ EOF
 Rms() {
   INPUT="-i rms.in"
   cat > rms.in <<EOF
-parm AFV.parm7
+parm ../AFV.parm7
 reference AFV.rst7
 trajin AFV.rotate2.rst7
 trajin AFV.rotate3.rst7 
@@ -55,11 +55,27 @@ EOF
   fi
 }
 
+LongerTest() {
+  UNITNAME='Longer symmetry-corrected RMSD test'
+  CheckFor netcdf
+  if [ $? -eq 0 ] ; then
+    INPUT='-i srms.in'
+    cat > srms.in <<EOF
+parm ../AFV.parm7
+trajin ../AFV.nc
+symmrmsd AFV !@H= out afv.rmsd.dat
+EOF
+    RunCpptraj "$UNITNAME."
+    DoTest afv.rmsd.dat.save afv.rmsd.dat
+  fi
+}
+
 #Rotate
 Rms
 STest ASP
 STest GLU
 STest TYR
+LongerTest
 
 EndTest
 exit 0
