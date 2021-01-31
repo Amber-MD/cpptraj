@@ -72,24 +72,25 @@ int DataIO_Std::Get3Double(std::string const& key, Vec3& vec, bool& specified)
 
 /** Data read options. */
 void DataIO_Std::ReadHelp() {
-  mprintf("\tread1d:      Read data as 1D data sets (default).\n"
+  mprintf("\tprec {flt|dbl} : Read data as single (flt) or double (dbl, default) precision.\n"
+          "\tread1d         : Read data as 1D data sets (default).\n"
           "\t\tindex <col>        : (1D) Use column # (starting from 1) as index (X) column.\n"
           "\t\tonlycols <range>   : Only read columns in range.\n"
           "\t\tfloatcols <range>  : Force specified columns to be read as single-precision floats.\n"
           "\t\tintcols <range>    : Force specified columns to be read as integers.\n"
           "\t\tstringcols <range> : Force specified columns to be read as strings.\n"
-          "\tread2d:      Read data as 2D matrix.\n"
+          "\tread2d         : Read data as 2D matrix.\n"
           "\t\tsquare2d   : Read data as square matrix (default).\n"
           "\t\tnosquare2d : Read data as XYZ matrix (i.e. each line contains '<column> <row> <data>').\n"
-          "\tread3d:      Read data as 3D grid. If no dimension data in file must also\n"
-          "\t             specify 'dims'; can also specify 'origin' and 'delta'.\n"
+          "\tread3d         : Read data as 3D grid. If no dimension data in file must also\n"
+          "\t                 specify 'dims'; can also specify 'origin' and 'delta'.\n"
           "\t\tdims <nx>,<ny>,<nz>   : Grid dimensions.\n"
           "\t\torigin <ox>,<oy>,<oz> : Grid origins (0,0,0).\n"
           "\t\tdelta <dx>,<dy>,<dz>  : Grid spacing (1,1,1).\n"
           "\t\tprec {dbl|flt*}       : Grid precision; double or float (default float).\n"
           "\t\tbin {center|corner*}  : Coords specify bin centers or corners (default corners).\n"
-          "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
-          "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
+          "\tvector         : Read data as vector: VX VY VZ [OX OY OZ]\n"
+          "\tmat3x3         : Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n");
 
 }
 
