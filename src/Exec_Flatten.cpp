@@ -87,7 +87,7 @@ Exec::RetType Exec_Flatten::Execute(CpptrajState& State, ArgList& argIn)
     DataSet_1D&       Out = static_cast<DataSet_1D&      >( *(outSets[idx]) );
     // Determine max size for Out and allocate
     unsigned int maxSize = std::max(Mat.Ncols(), Mat.Nrows());
-    mprintf("\tMatrix: %s, %i columns, %i rows. Output: %u elements\n", Mat.legend(), Mat.Ncols(), Mat.Nrows(), maxSize);
+    mprintf("\tMatrix: %s, %zu columns, %zu rows. Output: %u elements\n", Mat.legend(), Mat.Ncols(), Mat.Nrows(), maxSize);
     Out.Allocate( DataSet::SizeArray(1, maxSize) );
     // Allocate temp array
     if (mode == SUM) {
