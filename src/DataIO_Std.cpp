@@ -72,7 +72,7 @@ int DataIO_Std::Get3Double(std::string const& key, Vec3& vec, bool& specified)
 
 /** Data read options. */
 void DataIO_Std::ReadHelp() {
-  mprintf("\tprec {flt|dbl} : Read data as single (flt) or double (dbl, default) precision.\n"
+  mprintf("\tprec {flt|dbl} : Read 2d/3d data as single (flt) or double (dbl, default) precision.\n"
           "\tread1d         : Read data as 1D data sets (default).\n"
           "\t\tindex <col>        : (1D) Use column # (starting from 1) as index (X) column.\n"
           "\t\tonlycols <range>   : Only read columns in range.\n"

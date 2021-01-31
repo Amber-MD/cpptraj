@@ -4971,7 +4971,7 @@ prec
 \begin_inset space ~
 \end_inset
 
-{flt|dbl} Read data as single (flt) or double (dbl, default) precision.
+{flt|dbl} Read 2d/3d data as single (flt) or double (dbl, default) precision.
 \end_layout
 
 \begin_layout Description
