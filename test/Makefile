@@ -474,6 +474,9 @@ test.evalplateau:
 test.graft:
 	@-cd Test_Graft && ./RunTest.sh $(OPT)
 
+test.flatten:
+	@-cd Test_Flatten && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -625,7 +628,8 @@ COMPLETETESTS=test.general \
               test.diagmatrix \
               test.emin \
               test.evalplateau \
-              test.graft
+              test.graft \
+              test.flatten
 
 test.all:
 	$(MAKE) test.complete summary

@@ -4926,11 +4926,27 @@ Read
 \end_layout
 
 \begin_layout LyX-Code
-[ read1d [index <col>] [onlycols <range>] ]
+[prec {flt|dbl}]
 \end_layout
 
 \begin_layout LyX-Code
-[read2d] [vector] [mat3x3]
+{[read1d [index <col>] [onlycols <range>] [floatcols <range>]
+\end_layout
+
+\begin_layout LyX-Code
+         [intcols <range>] [stringcols <range>]] |
+\end_layout
+
+\begin_layout LyX-Code
+ [read2d [{square2d|nosquare2d}]] |
+\end_layout
+
+\begin_layout LyX-Code
+ [vector] |
+\end_layout
+
+\begin_layout LyX-Code
+ [mat3x3] |
 \begin_inset Separator latexpar
 \end_inset
 
@@ -4938,20 +4954,24 @@ Read
 \end_layout
 
 \begin_layout LyX-Code
-[ read3d [dims <nx>,<ny>,<nz>] [origin <ox>,<oy>,<oz>]
+ [read3d [dims <nx>,<ny>,<nz>] [origin <ox>,<oy>,<oz>]
 \end_layout
 
 \begin_layout LyX-Code
-  [delta <dx>,<dy>,dz>] [prec {dbl|flt}] [bin {center|corner} ]
+         [delta <dx>,<dy>,dz>] [prec {dbl|flt}] [bin {center|corner} ]
+\end_layout
+
+\begin_layout LyX-Code
+}
 \end_layout
 
 \begin_deeper
 \begin_layout Description
-index
+prec
 \begin_inset space ~
 \end_inset
 
-<col> Use column <col> (starting from 1) as index column (1D data only).
+{flt|dbl} Read 2d/3d data as single (flt) or double (dbl, default) precision.
 \end_layout
 
 \begin_layout Description
@@ -5001,9 +5021,20 @@ stringcols
 
 \end_deeper
 \begin_layout Description
-read2d Read data as 2D square matrix.
+read2d Read data as 2D matrix.
 \end_layout
 
+\begin_deeper
+\begin_layout Description
+square2d Read data as square matrix (default).
+\end_layout
+
+\begin_layout Description
+nosquare2d Read data as XYZ matrix (i.e.
+ each line contains '<column> <row> <data>').
+\end_layout
+
+\end_deeper
 \begin_layout Description
 vector Read data as vector.
  If indices are present they will be skipped.
@@ -5107,7 +5138,7 @@ Write
 \end_layout
 
 \begin_layout LyX-Code
-[invert] [xydy] [<label set>]
+[{invert|noinvert}] [{xydy|noxydy}] [<label set>]
 \begin_inset Separator latexpar
 \end_inset
 
@@ -5123,7 +5154,15 @@ invert Normally, data is written out with X-values pertaining to frames
 \end_layout
 
 \begin_layout Description
+noinvert Do not flip X-Y axes (default).
+\end_layout
+
+\begin_layout Description
 xydy Combine consecutive pairs of sets into XYDY sets.
+\end_layout
+
+\begin_layout Description
+noxydy Do not combine consecutuve pairs of sets into XYDY sets (default).
 \end_layout
 
 \begin_layout Description
@@ -5174,7 +5213,7 @@ Write
 \end_layout
 
 \begin_layout LyX-Code
-[nolabels] [usemap] [pm3d] [nopm3d] [title <title>]
+[{nolabels|labels}] [{usemap|pm3d|nopm3d}] [title <title>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -5188,6 +5227,10 @@ Write
 \begin_deeper
 \begin_layout Description
 nolabels Do not print axis labels.
+\end_layout
+
+\begin_layout Description
+labels Print axis labels.
 \end_layout
 
 \begin_layout Description
@@ -7093,7 +7136,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="32" columns="2">
+<lyxtabular version="3" rows="33" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -7337,6 +7380,26 @@ exit | quit
 
 \begin_layout Plain Layout
 Quit cpptraj.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+flatten
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Distribute elements of 2d matrix across 1d array.
 \end_layout
 
 \end_inset
@@ -9745,6 +9808,171 @@ exit | quit
 
 \begin_layout Standard
 Exit normally.
+\end_layout
+
+\begin_layout Subsection
+flatten
+\end_layout
+
+\begin_layout LyX-Code
+flatten name <output set name> [mode {sum|avg}] <input set args>
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Name of 
+\begin_inset Quotes eld
+\end_inset
+
+flattened
+\begin_inset Quotes erd
+\end_inset
+
+ 1D output set(s).
+\end_layout
+
+\begin_layout Description
+mode
+\begin_inset space ~
+\end_inset
+
+{sum|avg} If sum, matrix elements will be summed.
+ If avg, matrix elements will be averaged.
+\end_layout
+
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+args> Specify matrices to 
+\begin_inset Quotes eld
+\end_inset
+
+flatten
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+DataSets Created
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name> Flattened 1D set if only one input matrix.
+\end_layout
+
+\begin_layout Description
+<output
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+name>:<idx> Flattened 1D sets when more than one input matrix; index starts
+ from 1.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Flatten 1 or more matrices into 1D array(s) by summing or averaging elements.
+ For example, given a matrix with values like this:
+\end_layout
+
+\begin_layout LyX-Code
+X Y Value
+\end_layout
+
+\begin_layout LyX-Code
+1 3 5.0
+\end_layout
+
+\begin_layout LyX-Code
+1 4 4.0
+\end_layout
+
+\begin_layout LyX-Code
+2 3 2.0
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Quotes eld
+\end_inset
+
+flattened
+\begin_inset Quotes erd
+\end_inset
+
+ 1D array with mode SUM would be determined as follows:
+\end_layout
+
+\begin_layout LyX-Code
+Element 1 = (5.0/2) + (4.0/2) = 4.5
+\end_layout
+
+\begin_layout LyX-Code
+Element 2 = (2.0/2) = 1.0
+\end_layout
+
+\begin_layout LyX-Code
+Element 3 = (5.0/2) + (2.0/2) = 3.5
+\end_layout
+
+\begin_layout LyX-Code
+Element 4 = (4.0/2) = 2.0
+\end_layout
+
+\begin_layout Standard
+And the final 1D array would look like so:
+\end_layout
+
+\begin_layout LyX-Code
+Index Value
+\end_layout
+
+\begin_layout LyX-Code
+1     4.5
+\end_layout
+
+\begin_layout LyX-Code
+2     1.0
+\end_layout
+
+\begin_layout LyX-Code
+3     3.5
+\end_layout
+
+\begin_layout LyX-Code
+4     2.0 
 \end_layout
 
 \begin_layout Subsection
