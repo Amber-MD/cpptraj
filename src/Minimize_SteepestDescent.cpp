@@ -38,7 +38,7 @@ const
   if (!trajoutName_.empty()) {
     if (trajOut.InitTrajWrite(trajoutName_, ArgList(), DataSetList(), TrajectoryFile::UNKNOWN_TRAJ))
       return 1;
-    if (trajOut.SetupTrajWrite(potential.CurrentTop(), CoordinateInfo(), 0))
+    if (trajOut.SetupTrajWrite(potential.CurrentTop(), frameIn.CoordsInfo(), 0))
       return 1;
     if (trajOut.WriteSingle(iteration, frameIn)) return 1;
   }
@@ -48,8 +48,7 @@ const
     mprinterr("Internal Error: Frame not set up with forces.\n");
     return 1;
   }
-  double* fxyz = frameIn.fAddress();
-  std::fill(fxyz, fxyz + frameIn.size(), 0.0);
+  frameIn.ZeroForces();
 
   // Degrees of freedom
   double deg_of_freedom = potential.DegreesOfFreedom(); 
@@ -66,6 +65,7 @@ const
   outfile.Printf("\n");
   // Start min 
   while (rms > min_tol_ && iteration < nMinSteps_) {
+    // Calculate forces.
     if (potential.CalculateForce( frameIn )) {
       mprinterr("Error: Could not calculate force.\n");
       return 1;
@@ -74,17 +74,22 @@ const
 
     // Calculate the magnitude of the force vector.
     double sum = 0.0;
-    fxyz = frameIn.fAddress();
-    for (int idx = 0; idx < frameIn.Natom(); idx++, fxyz += 3)
+    const double* fxyz = frameIn.fAddress();
+    for (int idx = 0; idx < frameIn.Natom(); idx++, fxyz += 3) {
+      //mprintf("FDEBUG %8li%20.10f\n", fxyz-frameIn.fAddress()+1, fxyz[0]);
+      //mprintf("FDEBUG %8li%20.10f\n", fxyz-frameIn.fAddress()+2, fxyz[1]);
+      //mprintf("FDEBUG %8li%20.10f\n", fxyz-frameIn.fAddress()+3, fxyz[2]);
       sum += (fxyz[0]*fxyz[0] + fxyz[1]*fxyz[1] + fxyz[2]*fxyz[2]);
+    }
     rms = sqrt( sum ) / fnq;
+    //mprintf("DBG sum rms %20.10f%20.10f\n", sum, rms);
     // Adjust search step size
     if (dxst < crits) dxst = dxstm;
     dxst = dxst / 2.0;
     if (e_total < last_e) dxst = dxst * 2.4;
     double dxsth = dxst / sqrt( sum );
     last_e = e_total;
-    // Update positions and reset force array.
+    // Update positions
     double* Xptr = frameIn.xAddress();
     fxyz = frameIn.fAddress();
     for (int idx = 0; idx != frameIn.Natom(); idx++, Xptr += 3, fxyz += 3)
@@ -93,9 +98,9 @@ const
       Xptr[0] += fxyz[0] * dxsth;
       Xptr[1] += fxyz[1] * dxsth;
       Xptr[2] += fxyz[2] * dxsth;
-      fxyz[0] = 0.0;
-      fxyz[1] = 0.0;
-      fxyz[2] = 0.0;
+      //fxyz[0] = 0.0;
+      //fxyz[1] = 0.0;
+      //fxyz[2] = 0.0;
       //mprintf("xyz1= %g %g %g\n", Xptr[0], Xptr[1], Xptr[2]);
       //*XV += (*FV * dxsth);
       //*FV = 0.0;

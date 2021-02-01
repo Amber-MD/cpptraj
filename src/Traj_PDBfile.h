@@ -47,6 +47,7 @@ class Traj_PDBfile: public TrajectoryIO {
 
     void WriteDisulfides(Frame const&);
     void WriteBonds();
+    void writeBox(int, Box const&);
     /// Used to set up B-factor/occupancy data from DataSets
     int AssignData(Darray&, DataSet*, Topology const&, bool, const char*, double) const;
     /// Used to scale Bfactor/occupancy data between set values

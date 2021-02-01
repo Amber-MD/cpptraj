@@ -232,7 +232,6 @@ Action::RetType Action_AtomMap::Setup(ActionSetup& setup) {
   }
   if (rmsfit_) {
     mprintf("\trmsfit specified, %i atoms.\n",rmsRefFrame_.Natom());
-    Action::CheckImageRotationWarning(setup, "the RMS-fit");
     return Action::OK;
   }
   mprintf("\tMap for parm %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),
@@ -257,6 +256,7 @@ Action::RetType Action_AtomMap::DoAction(int frameNum, ActionFrame& frm) {
     Vec3 Trans, refTrans;
     double R = rmsTgtFrame_.RMSD(rmsRefFrame_, Rot, Trans, refTrans, false);
     frm.ModifyFrm().Trans_Rot_Trans(Trans, Rot, refTrans);
+    frm.ModifyFrm().ModifyBox().RotateUcell( Rot );
     if (rmsdata_!=0)
       rmsdata_->Add(frameNum, &R);
   } else {

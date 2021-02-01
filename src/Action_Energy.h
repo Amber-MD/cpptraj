@@ -4,6 +4,7 @@
 #include "Energy.h"
 #include "CharMask.h"
 #include "Timer.h"
+#include "ExclusionArray.h"
 class Ewald;
 /// Calculate energy 
 class Action_Energy: public Action {
@@ -17,6 +18,7 @@ class Action_Energy: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
+
     /// Corresponds to data sets.
     enum Etype { BOND = 0, ANGLE, DIHEDRAL, V14, Q14, VDW, ELEC, KE, TOTAL};
     /// Add energy data set of specified type.
@@ -30,12 +32,15 @@ class Action_Energy: public Action {
     enum ElecType { NO_ELE = 0, SIMPLE, DIRECTSUM, EWALD, PME };
     /// Corresponds to type of KE calc.
     enum KEType { KE_NONE = 0, KE_AUTO, KE_VEL, KE_VV };
+    /// Type for iterator over calculations
+    typedef std::vector<CalcType>::const_iterator calc_it;
 
     ElecType elecType_;            ///< Type of electrostatics calc.
     KEType KEtype_;                ///< Type of KE calc.
     std::vector<DataSet*> Energy_; ///< Hold output data sets (length Etype+1)
     std::vector<CalcType> Ecalcs_; ///< Hold which calcs to perform
     Topology* currentParm_;        ///< Hold current topology
+    ExclusionArray Excluded_;      ///< Hold exclusion list for current topology/mask
     CharMask Mask1_;               ///< Char mask for all but NB calc
     AtomMask Imask_;               ///< Int mask for NB calc
     Energy_Amber ENE_;             ///< Energy calc class.
@@ -55,6 +60,7 @@ class Action_Energy: public Action {
     double dt_;                    ///< Time step for estimating kinetic energy (leapfrog)
     int mlimits_[3];               ///< mlimits (reg. Ewald) or nfft (PME)
     bool need_lj_params_;          ///< True if LJ parameters needed.
+    bool needs_exclList_;          ///< True if Excluded_ needs to be set up.
     Timer time_total_;
     Timer time_bond_;
     Timer time_angle_;

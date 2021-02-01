@@ -238,6 +238,9 @@ std::string Cpptraj::Defines() {
 #ifdef LIBPME
   defined_str.append(" -DLIBPME");
 #endif
+#ifdef HAS_OPENMM
+  defined_str.append(" -DHAS_OPENMM");
+#endif
   return defined_str;
 }
 

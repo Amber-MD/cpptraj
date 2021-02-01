@@ -35,8 +35,9 @@ Analysis_IRED::Analysis_IRED() :
 {}
 
 void Analysis_IRED::Help() const {
-  mprintf("\t[relax freq <MHz> [NHdist <distnh>]] [order <order>]\n"
-          "\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n"
+  mprintf("\t[relax freq <MHz> [NHdist <distnh>] [noefile <noefilename>]]\n"
+          "\t[order <order>] [orderparamfile <orderfilename>]\n"
+          "\t[tstep <tstep>] [tcorr <tcorr>] [out <filename>] [norm] [drct]\n"
           "\tmodes <modesname> [name <output sets name>] [ds2matrix <file>]\n"
           "  Perform isotropic reorientational Eigenmode dynamics analysis.\n");
 }

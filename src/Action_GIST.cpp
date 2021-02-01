@@ -8,6 +8,7 @@
 #include "DataSet_GridDbl.h"
 #include "ProgressBar.h"
 #include "StringRoutines.h"
+#include "DistRoutines.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -113,7 +114,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   DataFile* file_dipolez = init.DFL().AddDataFile(prefix_ + "-dipolez-dens" + ext);
   // Other keywords
   includeIons_ = !actionArgs.hasKey("excludeions");
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  imageOpt_.InitImaging( !(actionArgs.hasKey("noimage")), actionArgs.hasKey("nonortho") );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
 #ifdef CUDA
@@ -327,10 +328,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tSkipping water-water Eij matrix.\n");
   mprintf("\tWater reference density: %6.4f molecules/Ang^3\n", BULK_DENS_);
   mprintf("\tSimulation temperature: %6.4f K\n", temperature_);
-  if (image_.UseImage())
+  if (imageOpt_.UseImage())
     mprintf("\tDistances will be imaged.\n");
   else
     mprintf("\tDistances will not be imaged.\n");
+  if (imageOpt_.ForceNonOrtho())
+    mprintf("\tWill use non-orthogonal imaging routines for all cell types.\n");
   gO_->GridInfo();
   mprintf("\tNumber of voxels: %u, voxel volume: %f Ang^3\n",
           MAX_GRID_PT_, gO_->Bin().VoxelVolume());
@@ -345,6 +348,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
           "#    Johannes Kraml, Anna S. Kamenik, Franz Waibl, Michael Schauperl, Klaus R. Liedl, JCTC (2019)\n"
 #endif
           );
+# ifdef GIST_USE_NONORTHO_DIST2
+  mprintf("DEBUG: Using regular non-orthogonal distance routine.\n");
+# endif
   gist_init_.Stop();
   return Action::OK;
 }
@@ -356,11 +362,11 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   gist_setup_.Start();
   CurrentParm_ = setup.TopAddress();
   // We need box info
-  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprinterr("Error: Must have explicit solvent with periodic boundaries!");
     return Action::ERR;
   }
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  imageOpt_.SetupImaging( setup.CoordInfo().TrajBox().HasBox() );
   #ifdef CUDA
   this->numberAtoms_ = setup.Top().Natom();
   this->solvent_ = new bool[this->numberAtoms_];
@@ -494,7 +500,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   N_ON_GRID_ = 0;
 
   if (!skipE_) {
-    if (image_.ImagingEnabled())
+    if (imageOpt_.ImagingEnabled())
       mprintf("\tImaging enabled for energy distance calculations.\n");
     else
       mprintf("\tNo imaging will be performed for energy distance calculations.\n");
@@ -560,13 +566,15 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
 /** Calculate the energy between all solute/solvent atoms and solvent atoms
   * on the grid. This is done after the intial GIST calculations
   * so that all waters have voxels assigned in atom_voxel_.
+  * NOTE: This routine modifies the coordinates in OnGrid_XYZ_ when the cell
+  *       has nonorthogonal shape in order to properly satsify the minimum
+  *       image convention, so any calculations that rely on the on grid
+  *       coordinates (like Order()) must be done *BEFORE* this routine.
   */
 void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
   // Set up imaging info.
-  Matrix_3x3 ucell, recip;
-  if (image_.ImageType() == NONORTHO) {
-    frameIn.BoxCrd().ToRecip(ucell, recip);
+  if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
     // Wrap on-grid water coords back to primary cell TODO openmp
     double* ongrid_xyz = &OnGrid_XYZ_[0];
     int maxXYZ = (int)OnGrid_XYZ_.size();
@@ -580,13 +588,13 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     {
       double* XYZ = ongrid_xyz + idx;
       // Convert to frac coords
-      recip.TimesVec( XYZ, XYZ );
+      frameIn.BoxCrd().FracCell().TimesVec( XYZ, XYZ );
       // Wrap to primary cell
       XYZ[0] = XYZ[0] - floor(XYZ[0]);
       XYZ[1] = XYZ[1] - floor(XYZ[1]);
       XYZ[2] = XYZ[2] - floor(XYZ[2]);
       // Convert back to Cartesian
-      ucell.TransposeMult( XYZ, XYZ );
+      frameIn.BoxCrd().UnitCell().TransposeMult( XYZ, XYZ );
     }
 #   ifdef _OPENMP
     }
@@ -636,9 +644,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
     bool a1IsO = (topIn[ a1 ].Element() == Atom::OXYGEN);
     std::vector<Vec3> vImages;
-    if (image_.ImageType() == NONORTHO) {
+    if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
       // Convert to frac coords
-      Vec3 vFrac = recip * A1_XYZ;
+      Vec3 vFrac = frameIn.BoxCrd().FracCell() * A1_XYZ;
       // Wrap to primary unit cell
       vFrac[0] = vFrac[0] - floor(vFrac[0]);
       vFrac[1] = vFrac[1] - floor(vFrac[1]);
@@ -649,7 +657,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         for (int iy = -1; iy != 2; iy++)
           for (int iz = -1; iz != 2; iz++)
             // Convert image back to Cartesian
-            vImages.push_back( ucell.TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
+            vImages.push_back( frameIn.BoxCrd().UnitCell().TransposeMult( vFrac + Vec3(ix,iy,iz) ) );
     }
     // Loop over all solvent atoms on the grid
     for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx++)
@@ -665,7 +673,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           // Calculate distance
           //gist_nonbond_dist_.Start();
           double rij2;
-          if (image_.ImageType() == NONORTHO) {
+          if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
+#           ifdef GIST_USE_NONORTHO_DIST2
+            rij2 = DIST2_ImageNonOrtho(A1_XYZ, A2_XYZ, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell());
+#           else
             rij2 = maxD_;
             for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
                                                    vCart != vImages.end(); ++vCart)
@@ -675,7 +686,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               double z = (*vCart)[2] - A2_XYZ[2];
               rij2 = std::min(rij2, x*x + y*y + z*z);
             }
-          } else if (image_.ImageType() == ORTHO)
+#           endif
+          } else if (imageOpt_.ImagingType() == ImageOption::ORTHO)
             rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
           else
             rij2 = DIST2_NoImage( A1_XYZ, A2_XYZ );
@@ -694,7 +706,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             // Calculate distance
             //gist_nonbond_dist_.Start();
             double rij2;
-            if (image_.ImageType() == NONORTHO) {
+            if (imageOpt_.ImagingType() == ImageOption::NONORTHO) {
+#            ifdef GIST_USE_NONORTHO_DIST2
+             rij2 = DIST2_ImageNonOrtho(A1_XYZ, A2_XYZ, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell());
+#            else
              rij2 = maxD_;
               for (std::vector<Vec3>::const_iterator vCart = vImages.begin();
                                                      vCart != vImages.end(); ++vCart)
@@ -704,7 +719,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
                 double z = (*vCart)[2] - A2_XYZ[2];
                 rij2 = std::min(rij2, x*x + y*y + z*z);
               }
-            } else if (image_.ImageType() == ORTHO)
+#             endif
+            } else if (imageOpt_.ImagingType() == ImageOption::ORTHO)
               rij2 = DIST2_ImageOrtho( A1_XYZ, A2_XYZ, frameIn.BoxCrd() );
             else
               rij2 = DIST2_NoImage( A1_XYZ, A2_XYZ );
@@ -804,6 +820,7 @@ void Action_GIST::Order(Frame const& frameIn) {
       }
     }
     order_norm_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
+    //mprintf("DBG: gidx= %u  oidx1=%i  voxel1= %i  XYZ1={%g, %g, %g}  sum= %g\n", gidx, oidx1, voxel1, XYZ1[0], XYZ1[1], XYZ1[2], sum);
   } // END loop over all solvent molecules
 }
 
@@ -816,6 +833,21 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   OnGrid_idxs_.clear();
   OnGrid_XYZ_.clear();
 
+  // Determine imaging type
+# ifdef DEBUG_GIST
+  //mprintf("DEBUG: Is_X_Aligned_Ortho() = %i  Is_X_Aligned() = %i\n", (int)frm.Frm().BoxCrd().Is_X_Aligned_Ortho(), (int)frm.Frm().BoxCrd().Is_X_Aligned());
+  frm.Frm().BoxCrd().UnitCell().Print("Ucell");
+  frm.Frm().BoxCrd().FracCell().Print("Frac");
+# endif
+  if (imageOpt_.ImagingEnabled())
+    imageOpt_.SetImageType( frm.Frm().BoxCrd().Is_X_Aligned_Ortho() );
+# ifdef DEBUG_GIST
+  switch (imageOpt_.ImagingType()) {
+    case ImageOption::NO_IMAGE : mprintf("DEBUG: No Image.\n"); break;
+    case ImageOption::ORTHO    : mprintf("DEBUG: Orthogonal image.\n"); break;
+    case ImageOption::NONORTHO : mprintf("DEBUG: Nonorthogonal image.\n"); break;
+  }
+# endif
   // CUDA necessary information
 
   size_t bin_i, bin_j, bin_k;
@@ -873,18 +905,26 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         H1_wat.Normalize();
         H2_wat.Normalize();
 
-        Vec3 ar1 = H1_wat.Cross( x_lab_ );
-        Vec3 sar = ar1;
+        Vec3 ar1 = H1_wat.Cross( x_lab_ ); // ar1 = V cross U 
+        Vec3 sar = ar1;                    // sar = V cross U
         ar1.Normalize();
-        double dp1 = x_lab_ * H1_wat;
+        //mprintf("------------------------------------------\n");
+        //H1_wat.Print("DEBUG: H1_wat");
+        //x_lab_.Print("DEBUG: x_lab_");
+        //ar1.Print("DEBUG: ar1");
+        //sar.Print("DEBUG: sar");
+        double dp1 = x_lab_ * H1_wat; // V dot U
         double theta = acos(dp1);
         double sign = sar * H1_wat;
-        if (sign > 0)
+        //mprintf("DEBUG0: dp1= %f  theta= %f  sign= %f\n", dp1, theta, sign);
+        // NOTE: Use SMALL instead of 0 to avoid issues with denormalization
+        if (sign > Constants::SMALL)
           theta /= 2.0;
         else
           theta /= -2.0;
         double w1 = cos(theta);
         double sin_theta = sin(theta);
+        //mprintf("DEBUG0: theta= %f  w1= %f  sin_theta= %f\n", theta, w1, sin_theta);
         double x1 = ar1[0] * sin_theta;
         double y1 = ar1[1] * sin_theta;
         double z1 = ar1[2] * sin_theta;
@@ -951,7 +991,11 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         voxel_Q_[voxel].push_back( x4 );
         voxel_Q_[voxel].push_back( y4 );
         voxel_Q_[voxel].push_back( z4 );
-        //mprintf("DEBUG1: wxyz4= %g %g %g %g\n", w4, x4, y4, z4);
+        //mprintf("DEBUG1: sidx= %u  voxel= %i  wxyz4= %g %g %g %g\n", sidx, voxel, w4, x4, y4, z4);
+        //mprintf("DEBUG2: wxyz3= %g %g %g %g  wxyz2= %g %g %g %g  wxyz1= %g %g %g\n",
+        //        w3, x3, y3, z3,
+        //        w2, x2, y2, z2,
+        //        w1, x1, y1, z1);
         // NOTE: No need for nw_angle_ here, it is same as N_waters_
         gist_euler_.Stop();
         // ----- DIPOLE --------------------------
@@ -985,21 +1029,23 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
     } // END water is within 1.5 Ang of grid
   } // END loop over each solvent molecule
 
-  // Do energy calculation if requested
-  #ifndef CUDA
-  gist_nonbond_.Start();
-  if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
-  gist_nonbond_.Stop();
-
-
-  // Do order calculation if requested
+# ifndef CUDA
+  // Do order calculation if requested.
+  // NOTE: This has to be done before the nonbond energy calc since
+  //       the nonbond calc can modify the on-grid coordinates (for minimum
+  //       image convention when cell is non-orthogonal).
   gist_order_.Start();
   if (doOrder_) Order(frm.Frm());
   gist_order_.Stop();
-  #else
+  // Do nonbond energy calc if not skipping energy
+  gist_nonbond_.Start();
+  if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
+  gist_nonbond_.Stop();
+# else /* CUDA */
+  // Do nonbond energy calc on GPU if not skipping energy
   if (! this->skipE_)
     NonbondCuda(frm);
-  #endif
+# endif /* CUDA */
 
   gist_action_.Stop();
   return Action::OK;
@@ -1090,18 +1136,21 @@ void Action_GIST::Print() {
           {
             if (n0 != n1) {
               int q1 = n1 * 4; // Index into voxel_Q_ for n1
+              //mprintf("DEBUG1:\t\t q1= %8i {%12.4f %12.4f %12.4f %12.4f} q0= %8i {%12.4f %12.4f %12.4f %12.4f}\n",
+              //        q1, voxel_Q_[gr_pt][q1  ], voxel_Q_[gr_pt][q1+1], voxel_Q_[gr_pt][q1+2], voxel_Q_[gr_pt][q1+3],
+              //        q0, voxel_Q_[gr_pt][q0  ], voxel_Q_[gr_pt][q0+1], voxel_Q_[gr_pt][q0+2], voxel_Q_[gr_pt][q0+3]);
               double rR = 2.0 * acos(  fabs(voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
                                    + voxel_Q_[gr_pt][q1+1] * voxel_Q_[gr_pt][q0+1]
                                    + voxel_Q_[gr_pt][q1+2] * voxel_Q_[gr_pt][q0+2]
                                    + voxel_Q_[gr_pt][q1+3] * voxel_Q_[gr_pt][q0+3] )); // add fabs for quaternion distance calculation
-              //mprintf("DEBUG1: %g\n", rR);
+              //mprintf("DEBUG1:\t\t %8i %8i %g\n", n0, n1, rR);
               if (rR > 0 && rR < NNr) NNr = rR;
             }
           } // END inner loop over all waters for this voxel
 
           if (NNr < 9999 && NNr > 0) {
             double dbl = log(NNr*NNr*NNr*nw_total / (3.0*Constants::TWOPI));
-            //mprintf("DEBUG1: dbl %f\n", dbl);
+            //mprintf("DEBUG1: %u  nw_total= %i  NNr= %f  dbl= %f\n", gr_pt, nw_total, NNr, dbl);
             dTSorient_norm[gr_pt] += dbl;
             dTSo += dbl;
           }
@@ -1452,32 +1501,30 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
   std::vector<std::vector<int> > order_indices;
   this->gist_nonbond_.Start();
 
-  Matrix_3x3 ucell_m, recip_m;
   float *recip = NULL;
   float *ucell = NULL;
   int boxinfo;
 
   // Check Boxinfo and write the necessary data into recip, ucell and boxinfo.
-  switch(this->image_.ImageType()) {
-    case NONORTHO:
+  switch(imageOpt_.ImagingType()) {
+    case ImageOption::NONORTHO:
       recip = new float[9];
       ucell = new float[9];
-      frm.Frm().BoxCrd().ToRecip(ucell_m, recip_m);
       for (int i = 0; i < 9; ++i) {
-        ucell[i] = (float) ucell_m.Dptr()[i];
-        recip[i] = (float) recip_m.Dptr()[i];
+        ucell[i] = (float) frm.Frm().BoxCrd().UnitCell()[i];
+        recip[i] = (float) frm.Frm().BoxCrd().FracCell()[i];
       }
       boxinfo = 2;
       break;
-    case ORTHO:
+    case ImageOption::ORTHO:
       recip = new float[9];
-      for (int i = 0; i < 3; ++i) {
-        recip[i] = (float) frm.Frm().BoxCrd()[i];
-      }
+      recip[0] = frm.Frm().BoxCrd().Param(Box::X);
+      recip[1] = frm.Frm().BoxCrd().Param(Box::Y);
+      recip[2] = frm.Frm().BoxCrd().Param(Box::Z);
       ucell = NULL;
       boxinfo = 1;
       break;
-    case NOIMAGE:
+    case ImageOption::NO_IMAGE:
       recip = NULL;
       ucell = NULL;
       boxinfo = 0;
@@ -1531,20 +1578,18 @@ void Action_GIST::NonbondCuda(ActionFrame frm) {
         double sum = 0;
         Vec3 cent( frm.Frm().xAddress() + (headAtomIndex) * 3 );
         std::vector<Vec3> vectors;
-        switch(this->image_.ImageType()) {
-          case NONORTHO:
-          case ORTHO:
+        switch(imageOpt_.ImagingType()) {
+          case ImageOption::NONORTHO:
+          case ImageOption::ORTHO:
             {
-              Matrix_3x3 ucell, recip;
-              frm.Frm().BoxCrd().ToRecip(ucell, recip);
               Vec3 vec(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(0) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
               vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(1) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
               vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(2) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
               vec = Vec3(frm.Frm().xAddress() + (order_indices.at(headAtomIndex).at(3) * 3));
-              vectors.push_back( MinImagedVec(vec, cent, ucell, recip));
+              vectors.push_back( MinImagedVec(vec, cent, frm.Frm().BoxCrd().UnitCell(), frm.Frm().BoxCrd().FracCell()));
             }
             break;
           default:

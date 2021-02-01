@@ -206,9 +206,8 @@ const
   Vec3 corig = orig.VCenterOfMass(0, orig.Natom());
   Vec3 cothr = othr.VCenterOfMass(0, othr.Natom());
   Vec3 cdiff = cothr - corig;
-  Matrix_3x3 U, invU;
-  U = RefFrame_.BoxCrd().UnitCell(1.0);
-  RefFrame_.BoxCrd().ToRecip(U, invU);
+  Matrix_3x3 const& U = RefFrame_.BoxCrd().UnitCell();
+  Matrix_3x3 const& invU = RefFrame_.BoxCrd().FracCell();
   cdiff = invU * cdiff;
   const double nearTwo = 1.999999999;  
   double minx = floor(cdiff[0] - nearTwo);
@@ -665,8 +664,6 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
 {
   int i, j;
   Frame orig;
-  Matrix_3x3 U, invU;
-
   // Allocate space for the subunit frames
   orig = Frame(Masks_[0].Nselected());
 
@@ -683,8 +680,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
     // Ensure this is only done once FIXME ok?
     refType_ = NONE;
 
-    U = RefFrame_.BoxCrd().UnitCell(1.0);
-    RefFrame_.BoxCrd().ToRecip(U, invU);
+    Matrix_3x3 const& U = RefFrame_.BoxCrd().UnitCell();
+    Matrix_3x3 const& invU = RefFrame_.BoxCrd().FracCell(); 
     XtalDock* leads = new XtalDock[nops_ * nops_ * 125]; // TODO vector?
     int nLead = 0;
     for (i = 0; i < nops_; i++) {
@@ -820,8 +817,8 @@ Action::RetType Action_XtalSymm::DoAction(int frameNum, ActionFrame& frm)
   
   // Loop over all subunits, set them according to the correct displacements from
   // the original subunits (imaging considerations), and apply the transformations.
-  U = frm.Frm().BoxCrd().UnitCell(1.0);
-  frm.Frm().BoxCrd().ToRecip(U, invU);
+  Matrix_3x3 const& U = frm.Frm().BoxCrd().UnitCell();
+  Matrix_3x3 const& invU = frm.Frm().BoxCrd().FracCell();
   orig = Frame(Masks_[0].Nselected());
 
   orig.SetCoordinates(frm.Frm(), Masks_[0]);

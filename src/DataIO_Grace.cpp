@@ -120,14 +120,18 @@ int DataIO_Grace::ReadData(FileName const& fname,
 // -----------------------------------------------------------------------------
 void DataIO_Grace::WriteHelp() {
   mprintf("\tinvert      : Flip X/Y axes.\n"
+          "\tnoinvert    : Do not flip X/Y axes.\n"
           "\txydy        : Make consecutive sets into XYDY sets.\n"
+          "\tnoxydy      : Do not make consecutive sets into XYDY sets.\n"
           "\t<label set> : If a string dataset is specified, assume it has data point labels.\n");
 }
 
 // DataIO_Grace::processWriteArgs()
 int DataIO_Grace::processWriteArgs(ArgList &argIn) {
   if (argIn.hasKey("invert")) isInverted_ = true;
+  if (argIn.hasKey("noinvert")) isInverted_ = false;
   if (argIn.hasKey("xydy")) isXYDY_ = true;
+  if (argIn.hasKey("noxydy")) isXYDY_ = false;
   if (isInverted_ && isXYDY_) {
     mprinterr("Error: 'invert' not compatible with 'xydy'\n");
     return 1;

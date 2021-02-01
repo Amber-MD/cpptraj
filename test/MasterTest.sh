@@ -48,6 +48,7 @@
 #   CPPTRAJ_XDRFILE      : If set CPPTRAJ has XDR file support.
 #   CPPTRAJ_TNGFILE      : If set CPPTRAJ has TNG file support.
 #   CPPTRAJ_SINGLE_ENS   : If set CPPTRAJ has single ensemble support.
+#   CPPTRAJ_OPENMM       : If set CPPTRAJ has OpenMM support.
 # ----- Variables that can be set by individual scripts ----
 #   TOP                  : Topology file for cpptraj
 #   INPUT                : Input file for cpptraj
@@ -76,6 +77,8 @@ CHECKERR=0               # Total errors this test from CheckEnv routine.
 TESTNAME=''              # Current test name for Requires routine.
 UNITNAME=''              # Current unit name for CheckFor routine.
 DESCRIP=''               # Current test/unit name for CheckEnv routine.
+FNC1=''                  # First file to NcTest(); for output in DoTest()
+FNC2=''                  # Second file to NcTest(); for output in DoTest()
 
 # ==============================================================================
 # TestHeader() <outfile>
@@ -156,6 +159,14 @@ DoTest() {
   # First two arguments are files to compare.
   F1=$1 ; shift
   F2=$1 ; shift
+  # Names for output
+  if [ "$F1" = 'nc0.save' -a "$F2" = 'nc0' ] ; then
+    FNAME1=$FNC1
+    FNAME2=$FNC2
+  else
+    FNAME1=$F1
+    FNAME2=$F2
+  fi
   # Process remaining arguments.
   USE_NDIFF=0
   while [ ! -z "$1" ] ; do
@@ -172,7 +183,7 @@ DoTest() {
   else
     if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
       # Print AT test header.
-      echo "diffing $F1 with $F2"
+      echo "diffing $FNAME1 with $FNAME2"
     fi
     if [ $USE_NDIFF -eq 0 ] ; then
       $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
@@ -181,21 +192,21 @@ DoTest() {
     fi
     if [ -s 'temp.diff' ] ; then
       if [ -z "$CPPTRAJ_DACDIF" ] ; then
-        OutBoth "  $F1 $F2 are different."
+        OutBoth "  $FNAME1 $FNAME2 are different."
         cat temp.diff >> $CPPTRAJ_TEST_ERROR
       else
-        mv temp.diff $F2.dif
-        echo "possible FAILURE:  check $F2.dif"
-        echo "possible FAILURE:  check $F2.dif" >> $CPPTRAJ_TEST_ERROR
+        mv temp.diff $FNAME2.dif
+        echo "possible FAILURE:  check $FNAME2.dif"
+        echo "possible FAILURE:  check $FNAME2.dif" >> $CPPTRAJ_TEST_ERROR
         echo "$TEST_WORKDIR" >> $CPPTRAJ_TEST_ERROR
-        cat $F2.dif >> $CPPTRAJ_TEST_ERROR
+        cat $FNAME2.dif >> $CPPTRAJ_TEST_ERROR
         echo "---------------------------------------" >> $CPPTRAJ_TEST_ERROR
       fi
       ((ERRCOUNT++))
     else
       if [ -z "$CPPTRAJ_DACDIF" ] ; then
         # Standalone pass.
-        OUT  "  $F2 OK."
+        OUT  "  $FNAME2 OK."
       else
         # AmberTools pass.
         echo "PASSED"
@@ -220,8 +231,8 @@ NcTest() {
     exit 1
   fi
   # Save remaining args for DoTest
-  F1=$1
-  F2=$2
+  FNC1=$1
+  FNC2=$2
   shift
   shift
   DIFFARGS="nc0.save nc0"
@@ -233,7 +244,7 @@ NcTest() {
     DIFFARGS=$DIFFARGS" $1"
     shift
   done
-  CheckTestFiles $F1 $F2
+  CheckTestFiles $FNC1 $FNC2
   if [ $? -ne 0 ] ; then
     ((NUMCOMPARISONS++))
     ((ERRCOUNT++))
@@ -244,11 +255,11 @@ NcTest() {
       # the regular expression to ndiff.awk FS without the interpreter giving
       # this error for FS='[ \t,()]':
       # awk: fatal: Invalid regular expression: /'[/
-      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0.save
-      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0
+      $CPPTRAJ_NCDUMP -n nctest $FNC1 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $FNC2 | grep -v "==>\|:program" | sed 's/,/ /g' > nc0
     else
-      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:program" > nc0.save
-      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:program" > nc0
+      $CPPTRAJ_NCDUMP -n nctest $FNC1 | grep -v "==>\|:program" > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $FNC2 | grep -v "==>\|:program" > nc0
     fi
     DoTest $DIFFARGS 
     $CPPTRAJ_RM nc0.save nc0
@@ -752,6 +763,7 @@ CheckDefines() {
       '-DNO_XDRFILE'    ) CPPTRAJ_XDRFILE='' ;;
       '-DHAS_TNGFILE'   ) CPPTRAJ_TNGFILE='$DEFINE' ;;
       '-DENABLE_SINGLE_ENSEMBLE' ) export CPPTRAJ_SINGLE_ENS=$DEFINE ;;
+      '-DHAS_OPENMM'    ) export CPPTRAJ_OPENMM=$DEFINE ;;
     esac
   done
   export CPPTRAJ_XDRFILE
@@ -968,6 +980,7 @@ CheckEnv() {
       'openmp'    ) TestLibrary "OpenMP"             "$CPPTRAJ_OPENMP" ;;
       'singleensemble' ) TestLibrary "Single ensemble support" "$CPPTRAJ_SINGLE_ENS" ;;
       'cuda'      ) TestLibrary "CUDA"               "$CPPTRAJ_CUDA" ;;
+      'openmm'    ) TestLibrary "OpenMM"             "$CPPTRAJ_OPENMM" ;;
       'notcuda'   )
 	if [ ! -z "$CPPTRAJ_CUDA" ]; then
           echo "  $DESCRIP cannot be run on CUDA."

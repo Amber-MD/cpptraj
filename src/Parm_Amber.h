@@ -128,10 +128,10 @@ class Parm_Amber : public ParmIO {
     int ReadChamberImpPHASE(Topology&, FortranData const&);
     int ReadChamberLJ14A(Topology&, FortranData const&);
     int ReadChamberLJ14B(Topology&, FortranData const&);
-    int ReadCmapCounts(FortranData const&);
-    int ReadCmapRes(Topology&, FortranData const&);
-    int ReadCmapGrid(const char*, Topology&, FortranData const&);
-    int ReadCmapTerms(Topology&, FortranData const&);
+    int ReadCmapCounts(FlagType,FortranData const&);
+    int ReadCmapRes(FlagType,Topology&, FortranData const&);
+    int ReadCmapGrid(FlagType,const char*, Topology&, FortranData const&);
+    int ReadCmapTerms(FlagType,Topology&, FortranData const&);
     // LES
     int ReadLESntyp(Topology&, FortranData const&);
     int ReadLESfac(Topology&, FortranData const&);

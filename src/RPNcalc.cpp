@@ -798,8 +798,9 @@ int RPNcalc::TokenLoop(DataSetList& DSL) const {
                         G1.Bin().GridOrigin()[2]);
               tempDS = LocalList.AddSet(DataSet::GRID_FLT, MetaData("TEMP", T-tokens_.begin()));
               DataSet_GridFlt& G0 = static_cast<DataSet_GridFlt&>( *tempDS );
-              G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.Bin().GridOrigin(),
-                                  Box(G1.Bin().Ucell()));
+              Box tempBox;
+              tempBox.SetupFromUcell( G1.Bin().Ucell() );
+              G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.Bin().GridOrigin(), tempBox);
               G1.GridInfo();
               G0.GridInfo();
               for (unsigned int n = 0; n != G1.Size(); n++)

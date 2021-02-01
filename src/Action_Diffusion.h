@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_DIFFUSION_H
 #define INC_ACTION_DIFFUSION_H
 #include "Action.h"
-#include "ImagedAction.h"
+#include "ImageOption.h"
 class Action_Diffusion : public Action {
   public:
     Action_Diffusion();
@@ -20,7 +20,7 @@ class Action_Diffusion : public Action {
     void CalcDiffForSet(unsigned int&, Dlist const&, int, std::string const&) const;
     void CalcDiffusionConst(unsigned int&, DataSet*, int, std::string const&) const;
 
-    ImagedAction image_; ///< Imaging routines
+    ImageOption imageOpt_; ///< Used to determine if imaging should be used.
     Frame initial_;   ///< Initial frame (all atoms)
     Darray previous_; ///< Previous coordinates (selected atoms)
     DataSet* avg_x_;  ///< Hold average diffusion in X direction each frame

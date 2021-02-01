@@ -2,21 +2,31 @@
 #include "CpptrajStdio.h"
 #include "PotentialFunction.h"
 #include "Minimize_SteepestDescent.h"
+#include "MdOpts.h"
 
 // Exec_Emin::Help()
 void Exec_Emin::Help() const
 {
   mprintf("\tcrdset <name> [trajoutname <name>] [rmstol <tol>] [nsteps <#>]\n"
-          "\t[<mask>] [frame <#>] [dx0 <step0>] [out <file>]\n");
+          "\t[<mask>] [frame <#>] [dx0 <step0>] [out <file>]\n"
+          "\t[{nonbond|openmm}] [<potential options>]\n"
+          "Warning: THIS COMMAND IS STILL UNDER DEVELOPMENT.\n"
+          "  Perform a simple steepest descent minimization on given COORDS set.\n"
+          "  Type 'help emin opts' for a list of <potential options>\n");
+}
+
+void Exec_Emin::Help(ArgList& argIn) const {
+  if (argIn.hasKey("opts")) {
+    mprintf("  <potential options>:\n");
+    MdOpts::PrintHelp();
+  } else
+    Help();
 }
 
 // Exec_Emin::Execute()
 Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
 {
   mprintf("Warning: THIS COMMAND IS STILL UNDER DEVELOPMENT.\n");
-  PotentialFunction potential;
-  potential.AddTerm( PotentialTerm::BOND );
-  Minimize_SteepestDescent SD;
 
   std::string setname = argIn.GetStringKey("crdset");
   if (setname.empty()) {
@@ -28,6 +38,9 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No COORDS set found with name '%s'\n", setname.c_str());
     return CpptrajState::ERR;
   }
+  if (crdset->Type() == DataSet::TRAJ)
+    mprintf("Warning: Cannot write to TRAJ sets.\n");
+  bool useNonbond = argIn.hasKey("nonbond");
 
   // Get the frame # to be minimized.
   int framenum = argIn.getKeyInt("frame", 0);
@@ -46,6 +59,7 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   cinfo.SetForce( true );
   frameIn.SetupFrameV(crdset->Top().Atoms(), cinfo);
   crdset->GetFrame(framenum, frameIn);
+  frameIn.Info("Emin");
 
   std::string trajoutname = argIn.GetStringKey("trajoutname");
   if (!trajoutname.empty())
@@ -72,11 +86,31 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
   if (!maskexpr.empty())
     mprintf("\tMask expression: %s\n", maskexpr.c_str());
 
-  if (potential.SetupPotential( crdset->Top(), maskexpr )) {
+  bool use_openmm = argIn.hasKey("openmm");
+  // Create the potential function. This is done last so potential term
+  // arguments are parsed last.
+  PotentialFunction potential;
+  MdOpts opts;
+  if (opts.GetOptsFromArgs(argIn)) return CpptrajState::ERR;
+  opts.PrintOpts();
+  if (use_openmm)
+    potential.AddTerm( PotentialTerm::OPENMM, opts );
+  else {
+    if (crdset->Top().Nbonds() > 0) potential.AddTerm( PotentialTerm::BOND, opts );
+    if (crdset->Top().Nangles() > 0) potential.AddTerm( PotentialTerm::ANGLE, opts );
+    if (crdset->Top().Ndihedrals() > 0) potential.AddTerm( PotentialTerm::DIHEDRAL, opts );
+    if (useNonbond) potential.AddTerm( PotentialTerm::SIMPLE_LJ_Q, opts );
+  }
+  Minimize_SteepestDescent SD;
+
+  // Set up the potential function
+  if (potential.SetupPotential( crdset->Top(), frameIn.BoxCrd(), maskexpr )) {
     mprinterr("Error: Could not set up potential.\n");
     return CpptrajState::ERR;
   }
+  potential.FnInfo();
 
+  // Set up and run minimization
   if (SD.SetupMin(trajoutname, min_tol, dx0, nMinSteps)) {
     mprinterr("Error: Could not set up minimizer.\n");
     return CpptrajState::ERR;
@@ -86,6 +120,10 @@ Exec::RetType Exec_Emin::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Minimization failed.\n");
     return CpptrajState::ERR;
   }
+
+  // Update frame
+  if (crdset->Type() != DataSet::TRAJ)
+    crdset->SetCRD( framenum, frameIn );
 
   return CpptrajState::OK;
 }

@@ -8,6 +8,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
 #include "StringRoutines.h" // NoTrailingWhitespace
+#include "ExclusionArray.h"
 
 // ---------- Constants and Enumerated types -----------------------------------
 const int Parm_Amber::AMBERPOINTERS_ = 31;
@@ -271,19 +272,17 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   }
   // Check box info
   if (values_[IFBOX] > 0) {
-    if (parmbox_.Type() == Box::NOBOX) {
+    if (!parmbox_.HasBox()) {
       if (ptype_ != CHAMBER) mprintf("Warning: Prmtop missing Box information.\n");
-      // ifbox 2: truncated octahedron for certain
-      if (values_[IFBOX] == 2)
-        parmbox_.SetTruncOct();
+      // Check for IFBOX/BoxType mismatch
+      if (values_[IFBOX]==2 && parmbox_.CellShape() != Box::OCTAHEDRAL) {
+        mprintf("Warning: Amber Parm Box should be Truncated Octahedron (ifbox==2)\n"
+                "         but BOX_DIMENSIONS indicate %s - may cause imaging problems.\n",
+                parmbox_.CellShapeName());
+      }
     }
   }
-  // Check for IFBOX/BoxType mismatch
-  if (values_[IFBOX]==2 && parmbox_.Type() != Box::TRUNCOCT) {
-    mprintf("Warning: Amber Parm Box should be Truncated Octahedron (ifbox==2)\n");
-    mprintf("         but BOX_DIMENSIONS indicate %s - may cause imaging problems.\n",
-            parmbox_.TypeName());
-  }
+
   TopIn.SetParmBox( parmbox_ );
 
   // DEBUG
@@ -414,7 +413,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
           ptr = SkipToNextFlag();
         } else {
           int err = 0;
-          switch ((FlagType)flagIdx) {
+          FlagType ftype = (FlagType)flagIdx;
+          switch (ftype) {
             case F_CTITLE: ptype_ = CHAMBER; // Fall through to F_TITLE
                            elec_to_parm_ = ELECTOCHAMBER_;
                            parm_to_elec_ = CHAMBERTOELEC_;
@@ -495,13 +495,13 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_LES_ID:    err = ReadLESid(TopIn, FMT); break;
             // CMAP
             case F_CHM_CMAPC: // fallthrough
-            case F_CMAPC:     err = ReadCmapCounts(FMT); break;
+            case F_CMAPC:     err = ReadCmapCounts(ftype, FMT); break;
             case F_CHM_CMAPR: // fallthrough
-            case F_CMAPR:     err = ReadCmapRes(TopIn, FMT); break;
+            case F_CMAPR:     err = ReadCmapRes(ftype, TopIn, FMT); break;
             case F_CHM_CMAPP: // fallthrough
-            case F_CMAPP:     err = ReadCmapGrid(flagType.c_str(), TopIn, FMT); break;
+            case F_CMAPP:     err = ReadCmapGrid(ftype, flagType.c_str(), TopIn, FMT); break;
             case F_CHM_CMAPI: // fallthrough
-            case F_CMAPI:     err = ReadCmapTerms(TopIn, FMT); break;
+            case F_CMAPI:     err = ReadCmapTerms(ftype, TopIn, FMT); break;
             // Sanity check
             default:
               mprinterr("Internal Error: Unhandled FLAG '%s'.\n", flagType.c_str());
@@ -1030,11 +1030,35 @@ int Parm_Amber::ReadIrotat(Topology& TopIn, FortranData const& FMT) {
 // Parm_Amber::ReadBox()
 int Parm_Amber::ReadBox(FortranData const& FMT) {
   if (SetupBuffer(F_PARMBOX, 4, FMT)) return 1;
-  double beta = atof(file_.NextElement());
-  double bx = atof(file_.NextElement());
-  double by = atof(file_.NextElement());
-  double bz = atof(file_.NextElement());
-  parmbox_.SetBetaLengths( beta, bx, by, bz );
+  double xyzabg[6];
+  xyzabg[Box::BETA] = atof(file_.NextElement());
+  xyzabg[Box::X   ] = atof(file_.NextElement());
+  xyzabg[Box::Y   ] = atof(file_.NextElement());
+  xyzabg[Box::Z   ] = atof(file_.NextElement());
+  //parmbox_.SetBetaLengths( beta, bx, by, bz );
+  // Only beta angle is set (e.g. from Amber topology).
+  if (xyzabg[Box::BETA] == 90.0) {
+    xyzabg[Box::ALPHA] = 90.0;
+    xyzabg[Box::GAMMA] = 90.0;
+    if (debug_>0) mprintf("\tAmber topology box is orthogonal.\n");
+  } else if ( Box::IsTruncOct( xyzabg[Box::BETA] ) ) {
+    // Use trunc oct angle from Box; higher precision
+    //xyzabg[Box::BETA ] = Box::TruncatedOctAngle();
+    xyzabg[Box::ALPHA] = xyzabg[Box::BETA];
+    xyzabg[Box::GAMMA] = xyzabg[Box::BETA];
+    if (debug_>0) mprintf("\tAmber topology box is truncated octahedron.\n");
+  } else if (xyzabg[Box::BETA] == 60.0) {
+    xyzabg[Box::ALPHA] = 60.0; 
+    xyzabg[Box::BETA]  = 90.0; 
+    xyzabg[Box::GAMMA] = 60.0;
+    if (debug_>0) mprintf("\tAmber topology box is rhombic dodecahedron, alpha=gamma=60.0, beta=90.0.\n");
+  } else {
+    mprintf("Warning: AmberParm: Unrecognized beta (%g); setting all angles to beta.\n", xyzabg[Box::BETA]);
+    xyzabg[Box::ALPHA] = xyzabg[Box::BETA];
+    xyzabg[Box::GAMMA] = xyzabg[Box::BETA];
+  }
+  parmbox_.SetupFromXyzAbg( xyzabg );
+ 
   return 0;
 }
 
@@ -1316,9 +1340,8 @@ int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
 }
 
 // Parm_Amber::ReadChamberCmapCounts()
-int Parm_Amber::ReadCmapCounts(FortranData const& FMT) {
-  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
-  if (SetupBuffer(f, 2, FMT)) return 1;
+int Parm_Amber::ReadCmapCounts(FlagType ftype, FortranData const& FMT) {
+  if (SetupBuffer(ftype, 2, FMT)) return 1;
   n_cmap_terms_ = atoi( file_.NextElement() );
   n_cmap_grids_ = atoi( file_.NextElement() );
   return 0;
@@ -1326,47 +1349,65 @@ int Parm_Amber::ReadCmapCounts(FortranData const& FMT) {
 
 // Parm_Amber::ReadChamberCmapRes()
 /** Get CMAP resolutions for each grid and allocate grids. */
-int Parm_Amber::ReadCmapRes(Topology& TopIn, FortranData const& FMT) {
-  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPR : F_CMAPR;
-  if (SetupBuffer(f, n_cmap_grids_, FMT)) return 1;
+int Parm_Amber::ReadCmapRes(FlagType ftype, Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(ftype, n_cmap_grids_, FMT)) return 1;
   for (int i = 0; i != n_cmap_grids_; i++)
     TopIn.AddCmapGrid( CmapGridType( atoi(file_.NextElement()) ) );
   return 0;
 }
 
 // Parm_Amber::ReadChamberCmapGrid()
-/** Read CMAP grid. */
-int Parm_Amber::ReadCmapGrid(const char* CmapFlag, Topology& TopIn, FortranData const& FMT)
+/** Read CMAP grid. It is expected that the grid number is between 1 and CHARMM_CMAP_COUNT */
+int Parm_Amber::ReadCmapGrid(FlagType ftype, const char* CmapFlag, Topology& TopIn, FortranData const& FMT)
 {
+  if (CmapFlag == 0) {
+    mprinterr("Internal Error: ReadCmapGrid: CmapFlag is null.\n");
+    return 1;
+  }
   // Figure out which grid this is.
+  //           11111111112222
   // 012345678901234567890123
-  // CHARMM_CMAP_PARAMETER_XX
-  const size_t cmap_parameter_flag_size = (ptype_ == CHAMBER) ? strlen("CHARMM_CMAP_PARAMETER_") : strlen ("CMAP_PARAMETER_");
-  int gridnum = convertToInteger( std::string( CmapFlag+cmap_parameter_flag_size ) ) - 1;
+  // CHARMM_CMAP_PARAMETER_XX or CMAP_PARAMETER_XX
+  // The former is what is specified by the Amber parm/top file format spec.
+  // The latter appears to be what is output from Charmm GUI
+  // Advance to the final underscore.
+  const char* ptr = CmapFlag;
+  unsigned int underscore_idx = 0;
+  while (*ptr != '\0') {
+    if (*ptr == '_') underscore_idx = (ptr - CmapFlag);
+    ptr++;
+  }
+  // Get string
+  std::string cmap_index_str( CmapFlag+underscore_idx+1 );
+  // Sanity check
+  if (cmap_index_str.size() != 2 || !validInteger(cmap_index_str)) {
+    mprinterr("Error: CMAP index flag %s does not appear to contain an integer: %s\n",
+             CmapFlag, cmap_index_str.c_str());
+    return 1;
+  }
+  //mprintf("DEBUG: cmap index string: %s\n", cmap_index_str.c_str());
+  int gridnum = convertToInteger( cmap_index_str ) - 1;
   if (gridnum < 0 || gridnum >= (int)TopIn.CmapGrid().size()) {
     mprintf("Warning: CMAP grid '%s' out of range.\n", CmapFlag);
-    const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPC : F_CMAPC;
     if (TopIn.HasCmap())
       mprintf("Warning: Expected grid between 1 and %zu, got %i\n",
               TopIn.CmapGrid().size(), gridnum+1);
     else
-      mprintf("Warning: Missing previous %s section.\n", FLAGS_[f].Flag);
+      mprintf("Warning: Missing previous %s section.\n", FLAGS_[ftype].Flag);
     mprintf("Warning: Skipping read of CMAP grid.\n");
     return 0;
   }
   CmapGridType& GRID = TopIn.SetCmapGrid( gridnum );
-  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPP : F_CMAPP;
-  if (SetupBuffer(f, GRID.Size(), FMT)) return 1;
+  if (SetupBuffer(ftype, GRID.Size(), FMT)) return 1;
   for (int idx = 0; idx != GRID.Size(); idx++)
     GRID.SetGridPt( idx, atof(file_.NextElement()) );
   return 0;
 }
 
 // Parm_Amber::ReadChamberCmapTerms()
-int Parm_Amber::ReadCmapTerms(Topology& TopIn, FortranData const& FMT) {
+int Parm_Amber::ReadCmapTerms(FlagType ftype, Topology& TopIn, FortranData const& FMT) {
   int nvals = n_cmap_terms_ * 6;
-  const FlagType f = (ptype_ == CHAMBER) ? F_CHM_CMAPI : F_CMAPI;
-  if (SetupBuffer(f, nvals, FMT)) return 1;
+  if (SetupBuffer(ftype, nvals, FMT)) return 1;
   for (int idx = 0; idx != nvals; idx += 6) {
     int a1 = atoi(file_.NextElement()) - 1;
     int a2 = atoi(file_.NextElement()) - 1;
@@ -1690,15 +1731,24 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   WriteLine( titleFlag, TopOut.ParmName() );
 
   // Generate atom exclusion list. Do this here since POINTERS needs the size.
-  Iarray Excluded;
-  for (Topology::atom_iterator atom = TopOut.begin(); atom != TopOut.end(); ++atom)
+  ExclusionArray exclusionArray;
+  if (exclusionArray.SetupExcluded(TopOut.Atoms(), 4,
+                                   ExclusionArray::NO_EXCLUDE_SELF,
+                                   ExclusionArray::ONLY_GREATER_IDX))
   {
-    int nex = atom->Nexcluded();
-    if (nex == 0)
+    mprinterr("Error: Parm_Amber: Could not set up exclusion array for topology write.\n");
+    return 1;
+  }
+  Iarray Excluded;
+  for (ExclusionArray::const_iterator exList = exclusionArray.begin();
+                                      exList != exclusionArray.end();
+                                    ++exList)
+  {
+    if (exList->empty())
       Excluded.push_back( 0 );
     else {
-      for (Atom::excluded_iterator ex = atom->excludedbegin();
-                                   ex != atom->excludedend(); ex++)
+      for (ExclusionArray::ExListType::const_iterator ex = exList->begin();
+                                                      ex != exList->end(); ex++)
         // Amber atom #s start from 1
         Excluded.push_back( (*ex) + 1 );
     }
@@ -1762,12 +1812,21 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   }
 
   // Determine value of ifbox
-  int ifbox;
-  switch ( TopOut.ParmBox().Type() ) {
-    case Box::NOBOX    : ifbox = 0; break;
-    case Box::ORTHO    : ifbox = 1; break;
-    case Box::TRUNCOCT : ifbox = 2; break;
-    default:             ifbox = 3; break; // General triclinic
+  int ifbox = 0;
+  Box::CellShapeType cellShape = TopOut.ParmBox().CellShape();
+  if ( cellShape != Box::NO_SHAPE ) {
+    if (cellShape == Box::CUBIC || cellShape == Box::TETRAGONAL || cellShape == Box::ORTHORHOMBIC) {
+      // Orthorhombic
+      if (!TopOut.ParmBox().Is_X_Aligned_Ortho())
+        mprintf("Warning: Parm box shape is orthorhombic but cell is not X-aligned.\n");
+      ifbox = 1;
+    } else if (cellShape == Box::OCTAHEDRAL) {
+      // Truncated octahedron
+      ifbox = 2;
+    } else {
+      // General triclinic
+      ifbox = 3;
+    }
   }
 
   // POINTERS
@@ -1863,11 +1922,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // NUMEX
   if (BufferAlloc(F_NUMEX, TopOut.Natom())) return 1;
-  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    if (atm->Nexcluded() == 0)
+  for (ExclusionArray::const_iterator exList = exclusionArray.begin();
+                                      exList != exclusionArray.end(); ++exList)
+  {
+    if (exList->empty())
       file_.IntToBuffer( 1 );
     else
-      file_.IntToBuffer( atm->Nexcluded() );
+      file_.IntToBuffer( (int)exList->size() );
+  }
   file_.FlushBuffer();
 
   // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
@@ -2221,10 +2283,16 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     }
     // BOX DIMENSIONS
     if (BufferAlloc(F_PARMBOX, 4)) return 1;
-    file_.DblToBuffer( TopOut.ParmBox().Beta() );
-    file_.DblToBuffer( TopOut.ParmBox().BoxX() );
-    file_.DblToBuffer( TopOut.ParmBox().BoxY() );
-    file_.DblToBuffer( TopOut.ParmBox().BoxZ() );
+    double beta;
+    // Special case: Rhombic dodecahedron stores alpha/gamma (60) instead of beta (90)
+    if (cellShape == Box::RHOMBIC_DODECAHEDRON)
+      beta = 60.0;
+    else
+      beta = TopOut.ParmBox().Param(Box::BETA);
+    file_.DblToBuffer( beta );
+    file_.DblToBuffer( TopOut.ParmBox().Param(Box::X) );
+    file_.DblToBuffer( TopOut.ParmBox().Param(Box::Y) );
+    file_.DblToBuffer( TopOut.ParmBox().Param(Box::Z) );
     file_.FlushBuffer();
   }
 

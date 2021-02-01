@@ -2,7 +2,6 @@
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
 COMMON_SOURCES= \
         SpaceGroup.cpp \
-        Action.cpp \
         ActionFrameCounter.cpp \
         ActionList.cpp \
         ActionTopWriter.cpp \
@@ -142,6 +141,7 @@ COMMON_SOURCES= \
         AxisType.cpp \
         BondSearch.cpp \
         Box.cpp \
+        BoxArgs.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \
         ByteRoutines.cpp \
@@ -162,6 +162,7 @@ COMMON_SOURCES= \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
+        CompactFrameArray.cpp \
         ComplexArray.cpp \
         Constraints.cpp \
         ControlBlock_For.cpp \
@@ -244,6 +245,7 @@ COMMON_SOURCES= \
         Ewald.cpp \
         Ewald_ParticleMesh.cpp \
         Ewald_Regular.cpp \
+        ExclusionArray.cpp \
         Exec_AddMissingRes.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
@@ -260,6 +262,7 @@ COMMON_SOURCES= \
         Exec_DataFilter.cpp \
         Exec_DataSetCmd.cpp \
         Exec_Emin.cpp \
+        Exec_Flatten.cpp \
         Exec_GenerateAmberRst.cpp \
         Exec_Graft.cpp \
         Exec_Help.cpp \
@@ -319,6 +322,7 @@ COMMON_SOURCES= \
         MaskArray.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
+        MdOpts.cpp \
         MetaData.cpp \
         Minimize_SteepestDescent.cpp \
         Mol.cpp \
@@ -327,6 +331,7 @@ COMMON_SOURCES= \
         NC_Cmatrix.cpp \
         NC_Routines.cpp \
         NetcdfFile.cpp \
+        OMM_helpers.cpp \
         OutputTrajCommon.cpp \
         ParameterSet.cpp \
         PDBfile.cpp \
@@ -343,8 +348,12 @@ COMMON_SOURCES= \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
         PotentialFunction.cpp \
+        PotentialTerm.cpp \
+        PotentialTerm_Angle.cpp \
         PotentialTerm_Bond.cpp \
+        PotentialTerm_Dihedral.cpp \
         PotentialTerm_LJ_Coulomb.cpp \
+        PotentialTerm_OpenMM.cpp \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
@@ -357,6 +366,7 @@ COMMON_SOURCES= \
         SDFfile.cpp \
         SimplexMin.cpp \
         Spline.cpp \
+        SplineFxnTable.cpp \
         StringRoutines.cpp \
         StructureCheck.cpp \
         StructureMapper.cpp \
@@ -542,6 +552,7 @@ LIBCPPTRAJ_TRAJ_OBJECTS= \
 LIBCPPTRAJ_PARM_OBJECTS= \
   BondSearch.o \
   CharmmParamFile.o \
+  ExclusionArray.o \
   Mol.o \
   ParameterSet.o \
   ParmFile.o \

@@ -1,12 +1,17 @@
 #include "Action_Box.h"
 #include "CpptrajStdio.h"
 
-Action_Box::Action_Box() : mode_(SET) {}
+Action_Box::Action_Box() :
+  mode_(SET)
+{}
 
 void Action_Box::Help() const {
-  mprintf("\t{[x <xval>] [y <yval>] [z <zval>] {[alpha <a>] [beta <b>] [gamma <g>]\n"
-          "\t [truncoct]} | nobox | auto [offset <offset>] [radii {vdw|gb|parse|none}]}\n"
-          "  For each input frame, replace any box information with the information given.\n"
+  mprintf("\t{%s |\n"
+          "\t %s |\n"
+          "\t nobox |\n"
+          "\t auto [offset <offset>] [radii {vdw|gb|parse|none}]}\n",
+          BoxArgs::Keywords_XyzAbg(), BoxArgs::Keywords_TruncOct());
+  mprintf("  For each input frame, replace any box information with the information given.\n"
           "  If 'truncoct' is specified, alpha, beta, and gamma will be set to the\n"
           "  appropriate angle for a truncated octahedral box. If 'nobox' is specified,\n"
           "  all existing box information will be removed. If 'auto' is specified, an\n"
@@ -30,12 +35,8 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
     radiiMode_ = UNSPECIFIED;
     // NOTE: Set angles to 90 here so we can set parm box type to
     //       ORTHO in Setup().
-    box_.SetAlpha(90.0);
-    box_.SetBeta(90.0);
-    box_.SetGamma(90.0);
-    box_.SetX(1.0);
-    box_.SetY(1.0);
-    box_.SetZ(1.0);
+    boxArgs_.SetAngles( 90.0 );
+    boxArgs_.SetLengths( 1.0 );
     std::string rstr = actionArgs.GetStringKey("radii");
     if (!rstr.empty()) {
       if (rstr == "vdw")
@@ -53,13 +54,8 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
     }
   } else {
     mode_ = SET;
-    box_.SetX( actionArgs.getKeyDouble("x", 0.0) );
-    box_.SetY( actionArgs.getKeyDouble("y", 0.0) );
-    box_.SetZ( actionArgs.getKeyDouble("z", 0.0) );
-    box_.SetAlpha( actionArgs.getKeyDouble("alpha", 0.0) );
-    box_.SetBeta(  actionArgs.getKeyDouble("beta",  0.0) );
-    box_.SetGamma( actionArgs.getKeyDouble("gamma", 0.0) );
-    if (actionArgs.hasKey("truncoct")) box_.SetTruncOct();
+    // TODO check for bad args?
+    if (boxArgs_.SetBoxArgs( actionArgs )) return Action::ERR;
   }
 
   mprintf("    BOX:");
@@ -77,13 +73,7 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debu
         break;
     }
   } else {
-    if (box_.BoxX() > 0) mprintf(" X=%.3f", box_.BoxX());
-    if (box_.BoxY() > 0) mprintf(" Y=%.3f", box_.BoxY());
-    if (box_.BoxZ() > 0) mprintf(" Z=%.3f", box_.BoxZ());
-    if (box_.Alpha() > 0) mprintf(" A=%.3f", box_.Alpha());
-    if (box_.Beta() > 0) mprintf(" B=%.3f", box_.Beta());
-    if (box_.Gamma() > 0) mprintf(" G=%.3f", box_.Gamma());
-    mprintf("\n");
+    boxArgs_.PrintXyzAbg();
   }
   return Action::OK;
 }
@@ -96,10 +86,12 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
     cInfo_.SetBox( Box() );
   } else {
     // SET, AUTO
-    Box pbox( box_ );
-    // Fill in missing box information from current box 
-    pbox.SetMissingInfo( setup.CoordInfo().TrajBox() );
-    mprintf("\tNew box type is %s\n", pbox.TypeName() );
+    // Fill in missing box information from current box
+    if (boxArgs_.SetMissingInfo( setup.CoordInfo().TrajBox() ))
+      return Action::ERR;
+    Box pbox;
+    pbox.SetupFromXyzAbg( boxArgs_.XyzAbg() );
+    mprintf("\tNew box type is %s\n", pbox.CellShapeName() );
     cInfo_.SetBox( pbox );
     // Get radii for AUTO
     if (mode_ == AUTO) {
@@ -148,13 +140,12 @@ Action::RetType Action_Box::Setup(ActionSetup& setup) {
 // Action_Box::DoAction()
 Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
   if (mode_ == REMOVE) {
-    frm.ModifyFrm().SetBox( Box() );
+    frm.ModifyFrm().ModifyBox().SetNoBox();
   } else if (mode_ == AUTO) {
     frm.ModifyFrm().SetOrthoBoundingBox(Radii_, offset_);
   } else {
-    Box fbox( box_ );
-    fbox.SetMissingInfo( frm.Frm().BoxCrd() );
-    frm.ModifyFrm().SetBox( fbox );
+    boxArgs_.SetMissingInfo( frm.Frm().BoxCrd() );
+    frm.ModifyFrm().ModifyBox().AssignFromXyzAbg( boxArgs_.XyzAbg() );
   }
   return Action::MODIFY_COORDS;
 }

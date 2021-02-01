@@ -2,17 +2,39 @@
 #include "Topology.h"
 #include "CharMask.h"
 #include "EnergyArray.h"
+#include "EnergyKernel_NonBond_Simple.h"
+#include "MdOpts.h"
+#include "CpptrajStdio.h"
+#include "Constants.h" // SMALL
+#include <cmath> //fabs
 
 /**  CONSTRUCTOR */
 PotentialTerm_LJ_Coulomb::PotentialTerm_LJ_Coulomb() :
   PotentialTerm(SIMPLE_LJ_Q),
   nonbond_(0),
   E_vdw_(0),
-  E_elec_(0)
+  E_elec_(0),
+  QFAC_(0),
+  cutoff2_(0),
+  nExclude_(4)
 {}
 
+/** Init nonbonds. */
+int PotentialTerm_LJ_Coulomb::InitTerm(MdOpts const& optsIn) {
+  nExclude_ = optsIn.N_Exclude();
+  QFAC_ = optsIn.CoulombFactor();
+  cutoff2_ = optsIn.CutEE();
+  if ( fabs(cutoff2_ - optsIn.CutNB()) > Constants::SMALL ) {
+    mprinterr("Error: Simple nonbond term does not yet support separate elec/LJ cutoff.\n");
+    return 1;
+  }
+  // Store cutoff^2
+  cutoff2_ *= cutoff2_;
+  return 0;
+}
+
 /** Setup nonbonds. */
-int PotentialTerm_LJ_Coulomb::SetupTerm(Topology const& topIn, CharMask const& maskIn,
+int PotentialTerm_LJ_Coulomb::SetupTerm(Topology const& topIn,Box const& boxIn, CharMask const& maskIn,
                                   EnergyArray& Earray)
 {
   selectedAtoms_.clear();
@@ -26,6 +48,16 @@ int PotentialTerm_LJ_Coulomb::SetupTerm(Topology const& topIn, CharMask const& m
     else
       nonSelectedAtoms_.push_back( i );
   }
+  // Set up exclusion array to ignore self and have full list
+  // since the non-selected to selected loop may not have atoms in order.
+  AtomMask fullSystem(0, topIn.Natom());
+  if (Excluded_.SetupExcluded(topIn.Atoms(), fullSystem, nExclude_,
+                              ExclusionArray::EXCLUDE_SELF,
+                              ExclusionArray::FULL))
+  {
+    mprinterr("Error: PotentialTerm_LJ_Coulomb: Could not set up exclusion list.\n");
+    return 1;
+  }
 
   atoms_ = &(topIn.Atoms());
   nonbond_ = &(topIn.Nonbond());
@@ -35,69 +67,7 @@ int PotentialTerm_LJ_Coulomb::SetupTerm(Topology const& topIn, CharMask const& m
   return 0;
 }
 
-/** Calculate LJ and coulomb forces between specified atoms. */
-static inline void NonBondKernel(Frame& frameIn, int idx, int jdx,
-                                 double LJA, double LJB,
-                                 CharMask const& maskIn,
-                                 double& E_vdw, double& E_elec)
-{
-  const double* XYZ0 = frameIn.XYZ( idx );
-  const double* XYZ1 = frameIn.XYZ( jdx );
-  double rx = XYZ0[0] - XYZ1[0];
-  double ry = XYZ0[1] - XYZ1[1];
-  double rz = XYZ0[2] - XYZ1[2];
-  double rij2 = rx*rx + ry*ry + rz*rz;
-  if (rij2 > 0) {
-    //double rij;
-    //if (rij2 < nbcut2) {
-    //  rij2 = nbcut2;
-    //  // Make rij really big to scale down the coulomb part.
-    //  rij = 99999;
-    //} else
-    //  rij = sqrt( rij2 );
-    double rij = sqrt( rij2 );
-    //double dfx = 0;
-    //double dfy = 0;
-    //double dfz = 0;
-    // VDW
-    double r2    = 1.0 / rij2;
-    double r6    = r2 * r2 * r2;
-    double r12   = r6 * r6;
-    double f12   = LJA * r12;  // A/r^12
-    double f6    = LJB * r6;   // B/r^6
-    double e_vdw = f12 - f6;   // (A/r^12)-(B/r^6)
-    //mprintf("DBG:\t\t%8i %8i %12.4f\n", e_vdw);
-    E_vdw += e_vdw;
-    // VDW force
-    double fvdw = ((12*f12) - (6*f6)) * r2; // (12A/r^13)-(6B/r^7)
-    double dfx = rx * fvdw;
-    double dfy = ry * fvdw;
-    double dfz = rz * fvdw;
-    // COULOMB
-    double qiqj = 1; // Give each atom charge of 1
-    double e_elec = 1.0 * (qiqj / rij); // 1.0 is electrostatic constant, not really needed
-    E_elec += e_elec;
-    // COULOMB force
-    double felec = e_elec / rij; // kes * (qiqj / r) * (1/r)
-    dfx += rx * felec;
-    dfy += ry * felec;
-    dfz += rz * felec;
-    // Apply forces
-    if (maskIn.AtomInCharMask(idx)) {
-      double* fxyz = frameIn.fAddress() + (3*idx);
-      fxyz[0] += dfx;
-      fxyz[1] += dfy;
-      fxyz[2] += dfz;
-    }
-    if (maskIn.AtomInCharMask(jdx)) {
-      double* fxyz = frameIn.fAddress() + (3*jdx);
-      fxyz[0] -= dfx;
-      fxyz[1] -= dfy;
-      fxyz[2] -= dfz;
-    }
-  } // END rij > 0
-}
-
+/** Get LJ parameter for interaction between two atoms. */
 static inline NonbondType const& GetLJparam(std::vector<Atom> const& atoms,
                                             NonbondParmType const& nonbond, int a1, int a2)
 {
@@ -111,18 +81,22 @@ static inline NonbondType const& GetLJparam(std::vector<Atom> const& atoms,
 void PotentialTerm_LJ_Coulomb::CalcForce(Frame& frameIn, CharMask const& maskIn) const {
   *E_vdw_ = 0.0;
   *E_elec_ = 0.0;
+  EnergyKernel_NonBond_Simple<double> nonbond(cutoff2_);
   // First loop is each non-selected atom to each selected atom.
   // There is no overlap between the two.
   for (Iarray::const_iterator idx = nonSelectedAtoms_.begin();
                               idx != nonSelectedAtoms_.end(); ++idx)
   {
+    // Exclusion list for this atom
+    ExclusionArray::ExListType const& excluded = Excluded_[*idx];
     for (Iarray::const_iterator jdx = selectedAtoms_.begin(); jdx != selectedAtoms_.end(); ++jdx)
     {
-      // Ignore if idx and jdx are bonded. TODO use exclusion
-      if (!(*atoms_)[*idx].IsBondedTo(*jdx))
+      // Check exclusion
+      if (excluded.find( *jdx ) == excluded.end())
       {
         NonbondType LJ = GetLJparam(*atoms_, *nonbond_, *idx, *jdx);
-        NonBondKernel(frameIn, *idx, *jdx, LJ.A(), LJ.B(), maskIn, *E_vdw_, *E_elec_);
+        //NonBondKernel(frameIn, *idx, *jdx, LJ.A(), LJ.B(), maskIn, *E_vdw_, *E_elec_);
+        nonbond.Calc_F_E(frameIn, *idx, *jdx, LJ.A(), LJ.B(), QFAC_, (*atoms_)[*idx].Charge(), (*atoms_)[*jdx].Charge(), 1, 1, maskIn, *E_vdw_, *E_elec_);
       } // END idx not bonded to jdx
     } // END inner loop over jdx
   } // END outer loop over idx
@@ -130,13 +104,16 @@ void PotentialTerm_LJ_Coulomb::CalcForce(Frame& frameIn, CharMask const& maskIn)
   for (Iarray::const_iterator idx0 = selectedAtoms_.begin();
                               idx0 != selectedAtoms_.end(); ++idx0)
   {
+    // Exclusion list for this atom
+    ExclusionArray::ExListType const& excluded = Excluded_[*idx0];
     for (Iarray::const_iterator idx1 = idx0 + 1; idx1 != selectedAtoms_.end(); ++idx1)
     {
-      // Ignore if idx0 and idx1 are bonded.
-      if (!(*atoms_)[*idx0].IsBondedTo(*idx1))
+      // Check exclusion
+      if (excluded.find( *idx1 ) == excluded.end())
       {
         NonbondType LJ = GetLJparam(*atoms_, *nonbond_, *idx0, *idx1);
-        NonBondKernel(frameIn, *idx0, *idx1, LJ.A(), LJ.B(), maskIn, *E_vdw_, *E_elec_);
+        nonbond.Calc_F_E(frameIn, *idx0, *idx1, LJ.A(), LJ.B(), QFAC_, (*atoms_)[*idx0].Charge(), (*atoms_)[*idx1].Charge(), 1, 1, maskIn, *E_vdw_, *E_elec_);
+        //NonBondKernel(frameIn, *idx0, *idx1, LJ.A(), LJ.B(), maskIn, *E_vdw_, *E_elec_);
       }
     } // END inner loop over idx1
   } // END outer loop over idx0

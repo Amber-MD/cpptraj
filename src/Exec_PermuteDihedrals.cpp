@@ -182,7 +182,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     // Increment backtrack by 1 since we need to skip over current res
     ++backtrack_;
     // Initialize CheckStructure
-    if (checkStructure_.SetOptions( false, false, false, State.Debug(), "*", "", 0.8, 1.15, 4.0 )) {
+    if (checkStructure_.SetOptions( false, false, false, State.Debug(), "*", "", 0.8, 1.15, 0.5, 4.0 )) {
       mprinterr("Error: Could not set up structure check.\n");
       return CpptrajState::ERR;
     }

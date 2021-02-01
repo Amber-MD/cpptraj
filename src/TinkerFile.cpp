@@ -5,6 +5,8 @@
 #include "ArgList.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "Frame.h"
+#include "Atom.h"
 
 // CONSTRUCTOR
 TinkerFile::TinkerFile() : natom_(0), hasBox_(false) {}
@@ -155,7 +157,7 @@ int TinkerFile::OpenTinker() {
       mprinterr("Error: Expected 6 box coordinates.\n");
       return 1;
     }
-    box_.SetBox( bp );
+    box_.SetupFromXyzAbg( bp );
   }
   // Close and reopen the file.
   file_.CloseFile();
@@ -201,7 +203,8 @@ int TinkerFile::NextTinkerFrame() {
   * \return -1 if an error occurs.
   * \return 1 if more frames to read.
   */
-int TinkerFile::ReadNextTinkerFrame(double* Xptr, double* box) {
+int TinkerFile::ReadNextTinkerFrame(Frame& frameOut) {
+  double* Xptr = frameOut.xAddress();
   // Title line
   if (file_.Line() == 0) return 0;
   if (CheckTitleLine()) return -1;
@@ -217,8 +220,10 @@ int TinkerFile::ReadNextTinkerFrame(double* Xptr, double* box) {
                 file_.LineNumber(), nbox);
       return -1;
     }
+    double xyzabg[6];
     for (int b = 0; b != nbox; b++)
-      box[b] = atof( file_.NextToken() );
+      xyzabg[b] = atof( file_.NextToken() );
+    frameOut.ModifyBox().AssignFromXyzAbg( xyzabg );
   }
   // Coords
   for (int atidx = 0; atidx < natom_; atidx++) {

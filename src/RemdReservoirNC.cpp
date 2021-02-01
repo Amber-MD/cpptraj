@@ -66,13 +66,14 @@ int RemdReservoirNC::WriteReservoir(unsigned int set, Frame const& frame, double
   }
   // Write box
   if (cellLengthVID_ != -1) {
+    // TODO Check if Box is normal?
     count_[1] = 3;
     count_[2] = 0;
-    if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frame.bAddress())) ) {
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frame.BoxCrd().XyzPtr())) ) {
       mprinterr("Error: Writing cell lengths.\n");
       return 1;
     }
-    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frame.bAddress()+3)) ) {
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frame.BoxCrd().AbgPtr())) ) {
       mprinterr("Error: Writing cell angles.\n");
       return 1;
     }

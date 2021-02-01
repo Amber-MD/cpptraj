@@ -4,6 +4,8 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "StringRoutines.h" // ByteString
+#include "AtomMask.h"
+#include "Frame.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -104,8 +106,6 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
     return 1;
   rsumTol_ = rsumTolIn;
   maxexp_ = maxexpIn;
-  Matrix_3x3 ucell, recip;
-  boxIn.ToRecip(ucell, recip);
   if (mlimitsIn != 0)
     std::copy(mlimitsIn, mlimitsIn+3, mlimit_);
   else
@@ -127,16 +127,15 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
   // Set defaults if necessary
   if (rsumTol_ < Constants::SMALL)
     rsumTol_ = 5E-5;
-  Vec3 recipLengths = boxIn.RecipLengths(recip);
   if (maxmlim_ > 0)
-    maxexp_ = FindMaxexpFromMlim(mlimit_, recip);
+    maxexp_ = FindMaxexpFromMlim(mlimit_, boxIn.FracCell());
   else {
     if ( maxexp_ < Constants::SMALL )
       maxexp_ = FindMaxexpFromTol(ew_coeff_, rsumTol_);
     // eigmin typically bigger than this unless cell is badly distorted.
     double eigmin = 0.5;
     // Calculate lengths of reciprocal vectors
-    GetMlimits(mlimit_, maxexp_, eigmin, recipLengths, recip);
+    GetMlimits(mlimit_, maxexp_, eigmin, boxIn.RecipLengths(), boxIn.FracCell());
     maxmlim_ = mlimit_[0];
     maxmlim_ = std::max(maxmlim_, mlimit_[1]);
     maxmlim_ = std::max(maxmlim_, mlimit_[2]);
@@ -147,10 +146,10 @@ int Ewald_Regular::Init(Box const& boxIn, double cutoffIn, double dsumTolIn, dou
           cutoff_, dsumTol_, ew_coeff_);
   mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g   NB skin= %g\n",
           maxexp_, rsumTol_, skinnbIn);
-  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
+  //mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
-  if (Setup_Pairlist(boxIn, recipLengths, skinnbIn)) return 1;
+  if (Setup_Pairlist(boxIn, skinnbIn)) return 1;
 
   return 0;
 }
@@ -185,7 +184,7 @@ int Ewald_Regular::Setup(Topology const& topIn, AtomMask const& maskIn) {
 //    sinf3_.push_back( 0.0 );
 // }
 
-  SetupExcluded(topIn, maskIn);
+  SetupExclusionList(topIn, maskIn);
 
 # ifdef _OPENMP
   // Pre-calculate m1 and m2 indices
@@ -382,19 +381,18 @@ int Ewald_Regular::CalcNonbondEnergy(Frame const& frameIn, AtomMask const& maskI
                               double& e_elec, double& e_vdw)
 {
   t_total_.Start();
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double volume = frameIn.BoxCrd().CellVolume();
   double e_self = Self( volume );
   double e_vdwr = Vdw_Correction( volume );
 
-  int retVal = pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  int retVal = pairList_.CreatePairList(frameIn, frameIn.BoxCrd().UnitCell(), frameIn.BoxCrd().FracCell(), maskIn);
   if (retVal != 0) {
     mprinterr("Error: Grid setup failed.\n");
     return 1;
   }
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
-  double e_recip = Recip_Regular( recip, volume );
+  double e_recip = Recip_Regular( frameIn.BoxCrd().FracCell(), volume );
   e_vdw = 0.0;
   double e_direct = Direct( pairList_, e_vdw );
   if (debug_ > 0)

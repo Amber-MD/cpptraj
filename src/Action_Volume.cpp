@@ -15,7 +15,6 @@ void Action_Volume::Help() const {
 // Action_Volume::Init()
 Action::RetType Action_Volume::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  image_.InitImaging( true );
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Dataset
@@ -33,8 +32,7 @@ Action::RetType Action_Volume::Init(ArgList& actionArgs, ActionInit& init, int d
 
 // Action_Volume::Setup()
 Action::RetType Action_Volume::Setup(ActionSetup& setup) {
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (!image_.ImagingEnabled()) {
+  if (!setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: No unit cell information, volume cannot be calculated for '%s'\n",
             setup.Top().c_str());
     return Action::SKIP;
@@ -45,14 +43,8 @@ Action::RetType Action_Volume::Setup(ActionSetup& setup) {
 
 // Action_Volume::DoAction()
 Action::RetType Action_Volume::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
-  double volume = 0.0;
-  if (image_.ImageType() == ORTHO)
-    volume = frm.Frm().BoxCrd().BoxX() *
-             frm.Frm().BoxCrd().BoxY() *
-             frm.Frm().BoxCrd().BoxZ();
-  else if (image_.ImageType() == NONORTHO)
-    volume = frm.Frm().BoxCrd().ToRecip( ucell, recip );
+  double volume = frm.Frm().BoxCrd().CellVolume();
+
   vol_->Add(frameNum, &volume);
 
   return Action::OK;

@@ -129,6 +129,8 @@ double SymmetricRmsdCalc::SymmRMSD_CenteredRef(Frame const& selectedTgt, Frame c
     // Since tgtRemap is moved to origin during RMSD calc and centeredREF
     // should already be at the origin, just rotate.
     tgtRemap_.Rotate( rotMatrix_ );
+    // Since tgtRemap_ is only ever used privately, no need to rotate unit cell
+    //tgtRemap_.ModifyBox().RotateUcell( rotMatrix_ );
   }
   // Correct RMSD for symmetry
   for (AtomIndexArray::const_iterator symmatoms = SymmetricAtomIndices_.begin();

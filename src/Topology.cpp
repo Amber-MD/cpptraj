@@ -72,21 +72,21 @@ void Topology::SetBoxFromTraj(Box const& boxIn) {
     }
   } else {
     // Incoming box.
-    if ( boxIn.BoxX() < Constants::SMALL || 
-         boxIn.BoxY() < Constants::SMALL || 
-         boxIn.BoxZ() < Constants::SMALL )
+    if ( boxIn.Param(Box::X) < Constants::SMALL || 
+         boxIn.Param(Box::Y) < Constants::SMALL || 
+         boxIn.Param(Box::Z) < Constants::SMALL )
     {
-      // Incoming box has no lengths - disable parm box.
+      // Incoming box has no lengths - disable parm box. TODO is this check necessary/desirable?
       mprintf("Warning: Box information present in trajectory but lengths are zero.\n"
               "Warning: DISABLING BOX in topology '%s'!\n", c_str());
       parmBox_.SetNoBox();
     } else {
       // Incoming box is valid. Indicate if current box type differs from
       // incoming box type.
-      if (parmBox_.Type() != boxIn.Type()) {
+      if (parmBox_.CellShape() != boxIn.CellShape()) {
         mprintf("Warning: Trajectory box type is '%s' but topology box type is '%s'.\n"
                 "Warning: Setting topology box information from trajectory.\n",
-                boxIn.TypeName(), parmBox_.TypeName());
+                boxIn.CellShapeName(), parmBox_.CellShapeName());
       }
       parmBox_ = boxIn;
     }
@@ -291,7 +291,7 @@ void Topology::Summary() const {
   s2 = dihedrals_.size();
   if (s1 + s2 > 0)
     mprintf("\t\t%zu dihedrals (%zu with H, %zu other).\n", s1+s2, s1, s2);
-  mprintf("\t\tBox: %s\n", parmBox_.TypeName());
+  mprintf("\t\tBox: %s\n", parmBox_.CellShapeName());
   if (NsolventMolecules_>0) {
     mprintf("\t\t%i solvent molecules.\n", NsolventMolecules_);
   }
@@ -319,7 +319,7 @@ void Topology::Brief(const char* heading) const {
   else
     mprintf(" %s,", c_str());
   mprintf(" %zu atoms, %zu res, box: %s, %zu mol", atoms_.size(), 
-          residues_.size(), parmBox_.TypeName(), molecules_.size());
+          residues_.size(), parmBox_.CellShapeName(), molecules_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent", NsolventMolecules_);
   if (heading != 0)
@@ -374,11 +374,6 @@ void Topology::StartNewMol() {
   residues_.back().SetTerminal( true );
 }*/
 
-/** Common setup with common excluded distance of 4. */
-int Topology::CommonSetup(bool molsearch, bool renumberResidues) {
-  return CommonSetup(molsearch, 4, renumberResidues);
-}
-
 /** Check the given size. If not # atoms, return true (error). */
 bool Topology::CheckExtraSize(size_t sizeIn, const char* desc)
 const
@@ -393,11 +388,10 @@ const
 // Topology::CommonSetup()
 /** Set up common to all topologies.
   * \param molsearch If true, determine molecules based on bond info.
-  * \param excludedDist Number of atoms to use when determining exclusion list.
   * \param renumberResidues If true, renumber residues if any residue is part of more than 1 molecule
   *        e.g. when alternate locations are present.
   */
-int Topology::CommonSetup(bool molsearch, int excludedDist, bool renumberResidues)
+int Topology::CommonSetup(bool molsearch, bool renumberResidues)
 {
   // Check the size of any "extra" arrays
   if (CheckExtraSize(tree_.size(), "Amber tree")) return 1;
@@ -480,8 +474,7 @@ int Topology::CommonSetup(bool molsearch, int excludedDist, bool renumberResidue
   // Set up solvent information
   if (SetSolventInfo())
     mprinterr("Error: Could not determine solvent information for %s.\n", c_str());
-  // Determine excluded atoms
-  DetermineExcludedAtoms(excludedDist);
+
   // Determine # of extra points.
   DetermineNumExtraPoints();
 
@@ -1158,53 +1151,6 @@ int Topology::DetermineMolecules() {
 }
 
 // -----------------------------------------------------------------------------
-// Topology::AtomDistance()
-void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> &excluded,
-                            int TgtDist) const 
-{
-  // If this atom is already too far away return
-  if (dist==TgtDist) return;
-  // dist is less than 4 and this atom greater than original, add exclusion
-  if (atom > originalAtom)
-    excluded.insert( atom ); 
-  // Visit each atom bonded to this atom
-  for (Atom::bond_iterator bondedatom = atoms_[atom].bondbegin();
-                           bondedatom != atoms_[atom].bondend();
-                           bondedatom++)
-    AtomDistance(originalAtom, *bondedatom, dist+1, excluded, TgtDist);
-}
-
-// Topology::DetermineExcludedAtoms()
-/** For each atom, determine which atoms with greater atom# are within
-  * TgtDist bonds (and therefore should be excluded from a non-bonded calc).
-  */
-void Topology::DetermineExcludedAtoms(int TgtDist) {
-  // A set is used since it automatically sorts itself and rejects duplicates.
-  std::set<int> excluded_i;
-  int natom = (int)atoms_.size();
-  for (int atomi = 0; atomi < natom; atomi++) {
-    excluded_i.clear();
-    //mprintf("    Determining excluded atoms for atom %i\n",atomi+1);
-    // AtomDistance recursively sets each atom bond distance from atomi
-    AtomDistance(atomi, atomi, 0, excluded_i, TgtDist);
-    atoms_[atomi].AddExclusionList( excluded_i );
-    // DEBUG
-    //mprintf("\tAtom %i Excluded:",atomi+1);
-    //for (Atom::excluded_iterator ei = atoms_[atomi].excludedbegin(); 
-    //                             ei != atoms_[atomi].excludedend(); ++ei)
-    //  mprintf(" %i",*ei + 1);
-    //mprintf("\n");
-  } // END loop over atomi
-}
-
-/** For each atom, determine which atoms with greater atom# are within
-  * 4 bonds (default for a force field with 4 atom through-bond i.e.
-  * torsion terms).
-  */
-void Topology::DetermineExcludedAtoms() {
-  DetermineExcludedAtoms(4);
-}
-
 // Topology::DetermineNumExtraPoints()
 void Topology::DetermineNumExtraPoints() {
   n_extra_pts_ = 0;
@@ -1691,9 +1637,6 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   stripFloat.Strip(newParm->occupancy_, occupancy_, MapIn);
   stripFloat.Strip(newParm->bfactor_, bfactor_, MapIn);
   
-  // Setup excluded atoms list - Necessary?
-  newParm->DetermineExcludedAtoms();
-
   // Determine number of extra points
   newParm->DetermineNumExtraPoints();
 

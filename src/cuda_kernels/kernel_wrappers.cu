@@ -1,7 +1,7 @@
 #ifdef DEBUG_CUDA
 #include <cstdio>
 #endif
-#include "../DistRoutines.h"
+#include "../ImageOption.h"
 
 #define BLOCKDIM 512
 
@@ -31,7 +31,7 @@ __global__ void kClosestDistsToAtoms_Nonortho(double*,const double*,const double
   * \param recip Fractional cell matrix.
   */
 void Action_Closest_Center(const double *SolventMols_, double *D_, const double* maskCenter,
-                           double maxD, int NMols, int NAtoms, ImagingType type,
+                           double maxD, int NMols, int NAtoms, ImageOption::Type type,
                            const double* box, const double* ucell, const double* recip)
 {
   #ifdef DEBUG_CUDA
@@ -52,12 +52,12 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   cudaMalloc(((void **)(&devI2Ptr)),NMols * NAtoms * 3 * sizeof(double ));
   cudaMemcpy(devI2Ptr,SolventMols_,NMols * NAtoms * 3 * sizeof(double ),cudaMemcpyHostToDevice);
 
-  if (type == ORTHO)
+  if (type == ImageOption::ORTHO)
   {
     cudaMalloc(((void**)(&boxDev)), 3 * sizeof(double));
     cudaMemcpy(boxDev,box, 3 * sizeof(double), cudaMemcpyHostToDevice);
   }
-  if (type == NONORTHO)
+  if (type == ImageOption::NONORTHO)
   {
     cudaMalloc(((void**)(&ucellDev)), 9 * sizeof(double));
     cudaMalloc(((void**)(&recipDev)), 9 * sizeof(double));
@@ -84,13 +84,13 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   #endif
 
   switch (type) {
-    case NOIMAGE:
+    case ImageOption::NO_IMAGE:
       kClosestDistsToPt_NoImage<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD, NMols, NAtoms,active_size);
       break;
-    case ORTHO:
+    case ImageOption::ORTHO:
       kClosestDistsToPt_Ortho<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,boxDev, NMols, NAtoms,active_size);
       break;
-    case NONORTHO:
+    case ImageOption::NONORTHO:
       kClosestDistsToPt_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,ucellDev, recipDev, NMols, NAtoms,active_size);
   }
 
@@ -108,9 +108,9 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   cudaFree(devO1Ptr);
   cudaFree(devI1Ptr);
   cudaFree(devI2Ptr);
-  if (type == ORTHO)
+  if (type == ImageOption::ORTHO)
     cudaFree(boxDev);
-  if (type == NONORTHO)
+  if (type == ImageOption::NONORTHO)
   {
     cudaFree(ucellDev);
     cudaFree(recipDev);
@@ -132,7 +132,7 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   * \param recip Fractional cell matrix.
   */
 void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const double *Solute_atoms,
-                             double maxD, int NMols, int NAtoms, int NSAtoms, ImagingType type,
+                             double maxD, int NMols, int NAtoms, int NSAtoms, ImageOption::Type type,
                              const double* box, const double* ucell, const double* recip)
 {
   #ifdef DEBUG_CUDA
@@ -153,12 +153,12 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
   cudaMalloc(((void **)(&devI3Ptr)), NSAtoms * 3 * sizeof(double ));
   cudaMemcpy(devI3Ptr,Solute_atoms,NSAtoms * 3 * sizeof(double ),cudaMemcpyHostToDevice);
 
-  if (type == ORTHO)
+  if (type == ImageOption::ORTHO)
   {
     cudaMalloc(((void**)(&boxDev)), 3 * sizeof(double));
     cudaMemcpy(boxDev,box, 3 * sizeof(double), cudaMemcpyHostToDevice);
   }
-  if (type == NONORTHO)
+  if (type == ImageOption::NONORTHO)
   {
     cudaMalloc(((void**)(&ucellDev)), 9 * sizeof(double));
     cudaMalloc(((void**)(&recipDev)), 9 * sizeof(double));
@@ -185,13 +185,13 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
   #endif
 
   switch (type) {
-    case NOIMAGE:
+    case ImageOption::NO_IMAGE:
       kClosestDistsToAtoms_NoImage<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, NMols, NAtoms,NSAtoms,active_size);
       break;
-    case ORTHO:
+    case ImageOption::ORTHO:
       kClosestDistsToAtoms_Ortho<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, boxDev,  NMols, NAtoms,NSAtoms,active_size);
       break;
-    case NONORTHO:
+    case ImageOption::NONORTHO:
       kClosestDistsToAtoms_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, ucellDev, recipDev,  NMols, NAtoms,NSAtoms,active_size);
     break;
   }
@@ -210,9 +210,9 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
   cudaFree(devO1Ptr);
   cudaFree(devI2Ptr);
   cudaFree(devI3Ptr);
-  if (type == ORTHO)
+  if (type == ImageOption::ORTHO)
     cudaFree(boxDev);
-  if (type == NONORTHO)
+  if (type == ImageOption::NONORTHO)
   {
     cudaFree(ucellDev);
     cudaFree(recipDev);

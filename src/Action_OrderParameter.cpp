@@ -45,7 +45,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
   std::string mask;
 
 
-  InitImaging(true);
+  //imageOpt_.InitImaging(true);
 
   std::string outfileName = actionArgs.GetStringKey("out");
 
@@ -143,7 +143,7 @@ Action::RetType Action_OrderParameter::Setup(ActionSetup& setup) {
   std::vector<AtomMask>::iterator mask;
 
 
-  SetupImaging(setup.CoordInfo().TrajBox().Type() );
+  //imageOpt_.SetupImaging(setup.CoordInfo().TrajBox().HasBox() );
 
 
   if (!scd_) {

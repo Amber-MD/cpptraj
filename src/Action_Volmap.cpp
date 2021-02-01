@@ -15,6 +15,11 @@
 #ifdef _OPENMP
 # include <omp.h>
 #endif
+//#if defined(VOLMAP_USEFASTEXPS) || defined(VOLMAP_USEFASTEXP64)
+//# incl ude "FastExp_Schraudolph.h"
+//#elif defined(VOLMAP_USEFASTEXPIEEE)
+//# incl ude "FastExp_fastexp.h"
+//#endif
 
 const double Action_Volmap::sqrt_8_pi_cubed_ = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
 
@@ -39,7 +44,8 @@ Action_Volmap::Action_Volmap() :
   peakcut_(0.05),
   buffer_(3.0),
   radscale_(1.0),
-  stepfac_(4.1)
+  stepfac_(4.1),
+  splineDx_(0.01) // Recommendation from Roe & Brooks JMGM 2021
 {}
 
 void Action_Volmap::Help() const {
@@ -55,7 +61,7 @@ void Action_Volmap::Help() const {
 
 void Action_Volmap::RawHelp() const {
   mprintf("\t[out <filename>] <mask> [radscale <factor>] [stepfac <fac>]\n"
-          "\t[sphere] [radii {vdw | element}]\n"
+          "\t[sphere] [radii {vdw | element}] [splinedx <spacing>]\n"
           "\t[calcpeaks] [peakcut <cutoff>] [peakfile <xyzfile>]\n"
           "\t{ data <existing set> |\n"
           "\t  name <setname> <dx> [<dy> <dz>]\n"
@@ -82,6 +88,8 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     radscale_ = 0.5;
     stepfac_ = 1.0;
   }
+  //splineDx_ = actionArgs.getKeyDouble("splinedx", 1.0/5000.0);
+  splineDx_ = actionArgs.getKeyDouble("splinedx", 0.01);
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", radscale_);
   stepfac_ = actionArgs.getKeyDouble("stepfac", stepfac_);
   std::string radarg = actionArgs.GetStringKey("radii");
@@ -158,7 +166,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
         mprinterr("Error: Reference '%s' not found.\n", setup_arg.c_str());
         return Action::ERR;
       }
-      if (REF->CoordsInfo().TrajBox().Type() != Box::ORTHO) {
+      if (REF->CoordsInfo().TrajBox().Is_X_Aligned_Ortho()) {
         mprinterr("Error: Reference '%s' does not have orthogonal box information.\n",
                   setup_arg.c_str());
         return Action::ERR;
@@ -214,7 +222,11 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     xmin_ = oxyz[0];
     ymin_ = oxyz[1];
     zmin_ = oxyz[2];
-  } 
+  }
+  // Warn for small grid spacing
+  if (dx_ < 0.4 || dy_ < 0.4 || dz_ < 0.4)
+    mprintf("Warning: Grid spacings smaller than 0.4 Ang. may be very slow;\n"
+            "Warning:  consider using larger grid spacings.\n");
   //std::string density = actionArgs.GetStringKey("density"); // FIXME obsolete?
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
@@ -295,7 +307,26 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf("\tWhen smearing Gaussian, voxels farther than radii/2 will be skipped.\n");
   mprintf("\tDividing radii by %f\n", 1.0/radscale_);
   mprintf("\tFactor for determining number of bins to smear Gaussian is %f\n", stepfac_);
-
+# if defined(VOLMAP_USEEXP)
+  mprintf("\tUsing system exp() function for evaluating Gaussians.\n");
+//# elif defined(VOLMAP_USEFASTEXPS)
+//  mprintf("\tUsing exp() from N. Schraudolph, Neural Computation 11, 853–862 (1999).\n");
+//# elif defined(VOLMAP_USEFASTEXP64)
+//  mprintf("\tUsing 64 bit version of exp() from N. Schraudolph, Neural Computation 11, 853–862 (1999).\n");
+//# elif defined(VOLMAP_USEFASTEXPIEEE)
+//  mprintf("\tUsing exp() from Schraudolph & Malossi et al.\n");
+# else /* VOLMAP_USEEXP */
+  mprintf("\tExponential for Gaussians will be approximated using cubic splines\n"
+          "\t  with a spacing of %g Ang.\n", splineDx_);
+  mprintf("# Citation: Roe, D. R.; Brooks, B. R.; \"Improving the Speed of Volumetric\n"
+          "#           Density Map Generation via Cubic Spline Interpolation\".\n"
+          "#           Journal of Molecular Graphics and Modelling (2021).\n");
+# if defined(VOLMAP_USEACCURATE)
+  mprintf("\tSplines using more accurate but slower table lookup.\n");
+# elif defined(VOLMAP_USEXTABLE)
+  mprintf("\tSplines using less accurate lookup with tabled X values.\n");
+# endif
+# endif /* VOLMAP_USEEXP */
   if (outfile != 0)
     mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
   mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
@@ -381,8 +412,14 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   //mprintf("DEBUG: nx= %i  ny= %i  nz= %i\n", nxstep, nystep, nzstep);
   //mprintf("DEBUG: %g %g %g %g\n", maxx, maxy, maxz, maxDist);
   maxDist *= (-1.0 / (2.0 * maxRad * maxRad));
-  if (debug_ > 1)
-    mprintf("DEBUG: maxDist= %g\n", maxDist);
+  //mprintf("DEBUG: max= %g\n", maxDist);
+# ifndef VOLMAP_USEEXP
+  // Set up the interpolation table
+  if (table_.FillTable( exp, splineDx_, maxDist, 1.0 )) return Action::ERR;
+  table_.PrintMemUsage("\t");
+  if (debug_ > 0)
+    table_.PrintTableInfo("DEBUG: ");
+# endif
 
   if ((int)Atoms_.size() < densitymask_.Nselected())
     mprintf("Warning: %i atoms have 0.0 radii and will be skipped.\n",
@@ -511,9 +548,39 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
                 if (dist2 < rcut2) {
                   //mprintf("DEBUG: rhalf= %g  dist2= %g  exfac= %g  exp= %g\n", rhalf, dist2, exfac, exfac*dist2);
 #                 ifdef _OPENMP
+                  // NOTE: It is OK to call table_.Yval() here because in OpenMP
+                  //       local variables of called functions are private.
+#                 if defined(VOLMAP_USEEXP)
                   GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXPS)
+//                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * FASTEXPS(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXP64)
+//                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * fast_exps_64(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXPIEEE)
+//                  GRID_THREAD[mythread].incrementBy(xval, yval, zval, norm * fastexp::exp<double, fastexp::IEEE, 4>(exfac * dist2));
+#                 elif defined(VOLMAP_USEACCURATE)
+                  GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
+#                 elif defined(VOLMAP_USEXTABLE)
+                  GRID_THREAD_[mythread].incrementBy(xval, yval, xval, norm * table_.Yval_xtable(exfac * dist2));
+#                 else
+                  GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * table_.Yval(exfac * dist2));
+#                 endif
 #                 else /* OPENMP */
+#                 if defined(VOLMAP_USEEXP)
                   grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXPS)
+//                  grid_->Increment(xval, yval, zval, norm * FASTEXPS(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXP64)
+//                  grid_->Increment(xval, yval, zval, norm * fast_exps_64(exfac * dist2));
+//#                 elif defined(VOLMAP_USEFASTEXPIEEE)
+//                  grid_->Increment(xval, yval, zval, norm * fastexp::exp<double, fastexp::IEEE, 4>(exfac * dist2));
+#                 elif defined(VOLMAP_USEACCURATE)
+                  grid_->Increment(xval, yval, zval, norm * table_.Yval_accurate(exfac * dist2));
+#                 elif defined(VOLMAP_USEXTABLE)
+                  grid_->Increment(xval, yval, zval, norm * table_.Yval_xtable(exfac * dist2));
+#                 else
+                  grid_->Increment(xval, yval, zval, norm * table_.Yval(exfac * dist2));
+#                 endif
 #                 endif /* OPENMP */
                 }
               } // END loop over zval
@@ -531,6 +598,7 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
+/** Sync grid to the master process. */
 int Action_Volmap::SyncAction() {
 # ifdef _OPENMP
   CombineGridThreads();

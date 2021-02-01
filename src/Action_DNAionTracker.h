@@ -1,8 +1,8 @@
 #ifndef INC_ACTION_DNAIONTRACKER_H
 #define INC_ACTION_DNAIONTRACKER_H
 #include "Action.h"
-#include "ImagedAction.h"
-class Action_DNAionTracker : public Action, ImagedAction {
+#include "ImageOption.h"
+class Action_DNAionTracker : public Action {
   public:
     Action_DNAionTracker();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_DNAionTracker(); }
@@ -18,6 +18,7 @@ class Action_DNAionTracker : public Action, ImagedAction {
     BINTYPE bintype_; // iarg3
     double poffset_; // darg2
     bool useMass_;
+    ImageOption imageOpt_;
     AtomMask p1_;
     AtomMask p2_;
     AtomMask base_;

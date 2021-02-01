@@ -86,7 +86,7 @@ Action::RetType Action_Center::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
 
-  if (centerMode_ == BOXCTR && setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+  if (centerMode_ == BOXCTR && !setup.CoordInfo().TrajBox().HasBox()) {
     mprintf("Warning: Box center specified but no box information.\n");
     return Action::SKIP;
   }
