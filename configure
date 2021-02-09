@@ -341,7 +341,8 @@ LIB_HOME[$LHIP]=''
 LIB_FLAG[$LHIP]='-L${HIP_HOME}/lib -lamdhip64'
 LIB_STTC[$LHIP]=''
 if [ "$HIP_PLATFORM" = 'hcc' ]; then
-  LIB_D_ON[$LHIP]='-DCUDA -DHIP -D__HIP_PLATFORM_HCC__'
+  # TODO: Replace __HIP_PLATFORM_HCC__ after 4.1 rocm release
+  LIB_D_ON[$LHIP]='-DCUDA -DHIP -DAMBER_PLATFORM_AMD -D__HIP_PLATFORM_HCC__'
 else
   LIB_D_ON[$LHIP]='-DCUDA -DHIP -D__HIP_PLATFORM_NVCC__'
 fi

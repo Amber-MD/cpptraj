@@ -19,31 +19,31 @@ foreach(LINE ${CPPTRAJFILES_CONTENTS})
 
 		# extract the name of the source file mentioned in the line (a string after whitespace or an equals sign)
 		string(REGEX MATCH "[^ :=]+\.(cpp|c|LIBCPPTRAJ\.o)" SOURCE_FILE_NAME "${LINE}")
-		
+
 		# get name of variable that the following list is being set to
 		# must exclude parentheses so that we don't match dereferences of other variables
 		string(REGEX MATCH "[^$\(\)]+=" VARIABLE_NAME "${LINE}")
-		
+
 		# if we are starting a new source list, update LIST_NAME accordingly
 		if(NOT "${VARIABLE_NAME}" STREQUAL "")
 			string(REPLACE "=" "" VARIABLE_NAME "${VARIABLE_NAME}")
 			set(LIST_NAME ${VARIABLE_NAME})
 		endif()
-		
+
 		# did we get a new source file?
 		if(NOT "${SOURCE_FILE_NAME}" STREQUAL "")
-			
+
 			if("${LIST_NAME}" STREQUAL "")
 				message(FATAL_ERROR "cpptrajfiles parser error: got source files before any source lists!")
 			endif()
-			
+
 			# get rid of LIBCPPTRAJ.o suffix if it exists
 			string(REPLACE "LIBCPPTRAJ.o" "cpp" SOURCE_FILE_NAME "${SOURCE_FILE_NAME}")
-			
-			
+
+
 			list(APPEND ${LIST_NAME} ${SOURCE_FILE_NAME})
 		endif()
-			
+
 		#message("\"${LINE}\" - SFN: \"${SOURCE_FILE_NAME}\" - VN: \"${VARIABLE_NAME}\"")
 	endif()
 endforeach()
@@ -52,7 +52,7 @@ endforeach()
 # COMMON_SOURCES - all C++ source files used for both cpptraj and libcpptraj, that are compiled the same way for both
 # CSOURCES - all C source files used for cpptraj and libcpptraj
 # SOURCES - C++ sources for cpptraj only
-# LIBCPPTRAJ_OBJECTS - C++ sources for libcpptraj that should be compiled with the LIBCPPTRAJ definition 
+# LIBCPPTRAJ_OBJECTS - C++ sources for libcpptraj that should be compiled with the LIBCPPTRAJ definition
 
 # pub_fft.F90 is not in the source lists
 set(PUBFFT_FORTRAN_SOURCE pub_fft.F90)
@@ -65,7 +65,7 @@ set_property(SOURCE ${CSOURCES} PROPERTY COMPILE_FLAGS "${OPT_CFLAGS_SPC}")
 
 include_directories(${AMBERTOOLS_INC_DIR})
 
-if(fftw_ENABLED)	
+if(fftw_ENABLED)
 	set_property(SOURCE PubFFT.cpp PROPERTY COMPILE_DEFINITIONS FFTW_FFT)
 endif()
 
@@ -89,7 +89,7 @@ make_pic_if_needed(cpptraj_common_obj)
 # it turns out that CMake's cuda library passes the include paths after the first one from each of these generator expressions to nvcc without the -I flag
 # This causes the error "A single input file is required for a non-link phase when an outputfile is specified"
 target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:xdrfile,INTERFACE_INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:netcdf,INTERFACE_INCLUDE_DIRECTORIES>)
- 
+
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # cpptraj executable
 
@@ -130,13 +130,13 @@ if(INSTALL_HEADERS)
 	# grab all .h files from the main directory.
 	file(GLOB CPPTRAJ_HEADERS "*.h")
 	list(REMOVE_ITEM CPPTRAJ_HEADERS "SymbolExporting.h")
-	
+
 	# also grab xdrfile headers since some of them are used by cpptraj headers
 	file(GLOB XDRFILE_HEADERS "xdrfile/*.h")
 
 	install(FILES ${CPPTRAJ_HEADERS} DESTINATION ${INCDIR}/cpptraj)
 	install(FILES ${XDRFILE_HEADERS} DESTINATION ${INCDIR}/cpptraj/xdrfile)
-	
+
 	# configure SymbolExporting.h specially for the current install type
 	if(SHARED)
 		set(CPPTRAJ_IS_SHARED 1)
@@ -144,9 +144,9 @@ if(INSTALL_HEADERS)
 		set(CPPTRAJ_IS_SHARED 0)
 	endif()
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/SymbolExporting-installversion.h.in ${CMAKE_CURRENT_BINARY_DIR}/SymbolExporting-installversion.h @ONLY)
-	
+
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/SymbolExporting-installversion.h DESTINATION ${INCDIR}/cpptraj RENAME SymbolExporting.h)
-	
+
 endif()
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -169,7 +169,7 @@ if(zlib_ENABLED)
 endif()
 
 if(fftw_ENABLED)
-	target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:fftw,INTERFACE_INCLUDE_DIRECTORIES>)	
+	target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:fftw,INTERFACE_INCLUDE_DIRECTORIES>)
 	targets_link_libraries(cpptraj libcpptraj LIBRARIES fftw)
 endif()
 
@@ -205,13 +205,13 @@ if(MPI)
 	make_mpi_version(cpptraj_common_obj cpptraj_common_obj_mpi LANGUAGES CXX)
 	make_mpi_version(cpptraj cpptraj.MPI LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi> INSTALL)
 	make_mpi_version(libcpptraj libcpptraj_mpi LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi> INSTALL)
-	
+
 	set_property(TARGET cpptraj.MPI libcpptraj_mpi cpptraj_common_obj_mpi APPEND PROPERTY COMPILE_DEFINITIONS MPI) # since we use CXX mpi, we have to define this manually
-			
+
 	if(pnetcdf_ENABLED)
 		targets_link_libraries(cpptraj.MPI libcpptraj_mpi LIBRARIES pnetcdf)
 		target_include_directories(cpptraj_common_obj_mpi PUBLIC $<TARGET_PROPERTY:pnetcdf,INTERFACE_INCLUDE_DIRECTORIES>)
-		set_property(TARGET cpptraj.MPI libcpptraj_mpi cpptraj_common_obj_mpi APPEND PROPERTY COMPILE_DEFINITIONS HAS_PNETCDF) 		
+		set_property(TARGET cpptraj.MPI libcpptraj_mpi cpptraj_common_obj_mpi APPEND PROPERTY COMPILE_DEFINITIONS HAS_PNETCDF)
 	endif()
 endif()
 
@@ -226,42 +226,45 @@ if(BUILD_PARALLEL_COMBINATIONS AND (MPI AND OPENMP))
 	make_openmp_version(cpptraj.MPI cpptraj.MPI.OMP LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp> INSTALL)
 	make_openmp_version(libcpptraj_mpi libcpptraj_mpi_omp LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp> INSTALL)
 endif()
-	
+
 # CUDA
 if(CUDA)
 	if(HIP)
-		add_compile_definitions(HIP __HIP_PLATFORM_HCC__)
+	    # TODO: Replace __HIP_PLATFORM_HCC__ after 4.1 rocm release
+		add_compile_definitions(HIP AMBER_PLATFORM_AMD __HIP_PLATFORM_HCC__)
 		add_compile_options(-fPIC)
 		include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
+	else()
+		add_compile_definitions(AMBER_PLATFORM_NVIDIA)
 	endif()
 	add_subdirectory(cuda_kernels)
-	
+
 	include_directories(${CUDA_INCLUDE_DIRS})
-	
+
 	copy_target(cpptraj_common_obj cpptraj_common_obj_cuda)
 	target_compile_definitions(cpptraj_common_obj_cuda PRIVATE CUDA)
-	
+
 	copy_target(cpptraj cpptraj.cuda SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_cuda>)
 	copy_target(libcpptraj libcpptraj_cuda SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_cuda>)
-	
+
 	target_compile_definitions(cpptraj.cuda PRIVATE CUDA)
 	target_compile_definitions(libcpptraj_cuda PRIVATE CUDA)
-	
+
 	targets_link_libraries(cpptraj.cuda libcpptraj_cuda LIBRARIES cpptraj_cuda_routines)
-	
+
 	install(TARGETS cpptraj.cuda DESTINATION ${BINDIR} COMPONENT CUDA)
-	
+
 	if(BUILD_PARALLEL_COMBINATIONS AND MPI)
 		make_mpi_version(cpptraj_common_obj_cuda cpptraj_common_obj_mpi_cuda LANGUAGES CXX)
 		make_mpi_version(cpptraj.cuda cpptraj.MPI.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> INSTALL)
 		make_mpi_version(libcpptraj_cuda libcpptraj_mpi_cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> INSTALL)
-		
+
 		set_property(TARGET cpptraj.MPI.cuda libcpptraj_mpi_cuda cpptraj_common_obj_mpi_cuda APPEND PROPERTY COMPILE_DEFINITIONS MPI) # since we use CXX mpi, we have to define this manually
-				
+
 		if(pnetcdf_ENABLED)
 			targets_link_libraries(cpptraj.MPI.cuda libcpptraj_mpi_cuda LIBRARIES pnetcdf)
 			target_include_directories(cpptraj_common_obj_mpi_cuda PUBLIC $<TARGET_PROPERTY:pnetcdf,INTERFACE_INCLUDE_DIRECTORIES>)
-			set_property(TARGET cpptraj.MPI.cuda libcpptraj_mpi_cuda cpptraj_common_obj_mpi_cuda APPEND PROPERTY COMPILE_DEFINITIONS HAS_PNETCDF) 		
+			set_property(TARGET cpptraj.MPI.cuda libcpptraj_mpi_cuda cpptraj_common_obj_mpi_cuda APPEND PROPERTY COMPILE_DEFINITIONS HAS_PNETCDF)
 		endif()
 	endif()
 
@@ -277,9 +280,7 @@ if(CUDA)
 		make_openmp_version(cpptraj.MPI.cuda cpptraj.MPI.OMP.cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp_cuda> INSTALL)
 		make_openmp_version(libcpptraj_mpi_cuda libcpptraj_mpi_omp_cuda LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj_mpi_cuda> TO $<TARGET_OBJECTS:cpptraj_common_obj_mpi_openmp_cuda> INSTALL)
 	endif()
-		
-		
-	
-endif()
 
-	
+
+
+endif()
