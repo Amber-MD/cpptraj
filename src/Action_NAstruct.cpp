@@ -41,7 +41,7 @@ Action_NAstruct::Action_NAstruct() :
 {}
 
 void Action_NAstruct::Help() const {
-  mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>] [sscalc]\n"
+  mprintf("\t[<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
           "\t[noframespaces] [baseref <file>] ...\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"

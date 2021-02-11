@@ -29579,7 +29579,7 @@ nastruct
 
 \end_inset
 
- [<dataset name>] [resrange <range>] [naout <suffix>]
+ [<dataset name>] [resrange <range>] [sscalc] [naout <suffix>]
 \end_layout
 
 \begin_layout LyX-Code
@@ -29628,6 +29628,10 @@ name>] Output data set name.
 \end_layout
 
 \begin_layout Description
+[sscalc] Calculate parameters between consectuive bases in strands.
+\end_layout
+
+\begin_layout Description
 [naout
 \begin_inset space ~
 \end_inset
@@ -29635,6 +29639,11 @@ name>] Output data set name.
 <suffix>] File name suffix for output files; BP.<suffix> for base pair parameters
 , BPstep.<suffix> for base pair step parameters, and Helix.<suffix> for base
  pair step helical parameters.
+ If 
+\series bold
+sscalc
+\series default
+ is specified, also SS.<suffix> for parameters of consecutive bases in strands.
 \end_layout
 
 \begin_layout Description
@@ -29929,11 +29938,39 @@ Helical steps:
 <name>[htwist]:X Helical twist.
 \end_layout
 
+\begin_layout Standard
+Strands (sscalc only):
+\end_layout
+
+\begin_layout Description
+<name>[dx]:X Strand pair X (starting from 1) X displacement.
+\end_layout
+
+\begin_layout Description
+<name>[dy]:X Y displacement.
+\end_layout
+
+\begin_layout Description
+<name>[dz]:X Z displacement.
+\end_layout
+
+\begin_layout Description
+<name>[rx]:X Relative rotation around X axis.
+\end_layout
+
+\begin_layout Description
+<name>[ry]:X Relative rotation around Y axis.
+\end_layout
+
+\begin_layout Description
+<name>[rz]:X Relateive rotation around Z axis.
+\end_layout
+
 \end_deeper
 \begin_layout Standard
 
 \shape italic
-Note that data sets are not created until base pairing is determined.
+Note that base pair data sets are not created until base pairing is determined.
 \end_layout
 
 \begin_layout Standard
@@ -30064,6 +30101,16 @@ run
 
 \begin_layout LyX-Code
 writedata NApucker.dat NA[pucker]
+\end_layout
+
+\begin_layout Standard
+Note that while the underlying procedure is geared towards calculating parameter
+s for base pairs, the code can be made to calculate parameters between consecuti
+ve bases in single strands by specifying 
+\series bold
+sscalc
+\series default
+.
 \end_layout
 
 \begin_layout Subsubsection*
