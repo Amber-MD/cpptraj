@@ -270,7 +270,7 @@ class Frame {
     void SetOrthoBoundingBox(std::vector<double> const& Radii, double);
 #   ifdef MPI
     // ----- Parallel Routines -------------------
-    int SendFrame(int, Parallel::Comm const&);
+    int SendFrame(int, Parallel::Comm const&) const;
     int RecvFrame(int, Parallel::Comm const&);
     int SumToMaster(Parallel::Comm const&);
 #   endif

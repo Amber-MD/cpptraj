@@ -439,7 +439,7 @@ const
 }
 
 /** Send data to specified rank. */
-int Parallel::Comm::Send(void* sendbuffer, int sendcount, MPI_Datatype sendtype, int dest, int tag)
+int Parallel::Comm::Send(const void* sendbuffer, int sendcount, MPI_Datatype sendtype, int dest, int tag)
 const
 {
   int err = MPI_Send( sendbuffer, sendcount, sendtype, dest, tag, comm_ );

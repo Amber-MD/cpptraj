@@ -408,9 +408,9 @@ Action_NAstruct::HbondType Action_NAstruct::ID_HBtype(NA_Base const& base1, int 
     return (ATpair(base1, b1, base2, b2));
   else if ( base1.Type() == NA_Base::THY && base2.Type() == NA_Base::ADE )
     return (ATpair(base2, b2, base1, b1));
-  else if ( base1.Type() == NA_Base::ADE && base2.Type() == NA_Base::URA ) // FIXME: OK for A-U?
+  else if ( base1.Type() == NA_Base::ADE && base2.Type() == NA_Base::URA ) // A-U has same WC pattern as A-T
     return (ATpair(base1, b1, base2, b2));
-  else if ( base1.Type() == NA_Base::URA && base2.Type() == NA_Base::ADE ) // FIXME: OK for A-U?
+  else if ( base1.Type() == NA_Base::URA && base2.Type() == NA_Base::ADE ) // A-U has same WC pattern as A-T
     return (ATpair(base2, b2, base1, b1));
   return OTHER;
 }
@@ -517,7 +517,7 @@ int Action_NAstruct::DetermineBasePairing() {
 # ifdef NASTRUCTDEBUG  
   mprintf("\n=================== Setup Base Pairing ===================\n");
 # endif
-  // FIXME does data set name gen belong in Init()?
+  // Loop over all possible pairs of bases 
   for (Barray::const_iterator base1 = Bases_.begin(); base1 != Bases_.end(); ++base1)
   {
     for (Barray::const_iterator base2 = base1 + 1; base2 != Bases_.end(); ++base2)
@@ -1164,8 +1164,8 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         //       pair steps are indexed by base pair indices.
         Rpair steppair(BP1.bpidx_, BP2.bpidx_);
         // Base pair step. Try to find existing base pair step.
-        StepMap::iterator entry = Steps_.find( steppair );
-        if (entry == Steps_.end()) {
+        StepMap::iterator entry = Steps_.lower_bound( steppair );
+        if (entry == Steps_.end() || entry->first != steppair) {
           // New base pair step
           StepType BS;
           MetaData md = NewStepType(BS, BP1.base1idx_, BP1.base2idx_,
@@ -1211,7 +1211,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
               //        BS.minGroove_->legend(), BS.P_p1_+1, BS.P_p2_+1, BS.p_m1_+1, BS.p_m2_+1);
             }
           }
-          entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
+          entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) );
 #         ifdef NASTRUCTDEBUG
           mprintf("  New base pair step: %s\n", md.Legend().c_str());
 #         endif
@@ -1493,8 +1493,8 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
 
         // Get/add data set for strandpair
         Rpair strandpair(b1idx, b2idx);
-        Smap::iterator entry = StrandPairs_.find( strandpair );
-        if (entry == StrandPairs_.end()) {
+        Smap::iterator entry = StrandPairs_.lower_bound( strandpair );
+        if (entry == StrandPairs_.end() || entry->first != strandpair) {
           // New strand pair 
           Stype SP;
           //  MetaData md = NewStepType(BS, BP1.base1idx_, BP1.base2idx_,
@@ -1518,7 +1518,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
           //SP.base1idx_ = b1idx_;
           //SP.base2idx_ = b2idx_;
 
-          entry = StrandPairs_.insert( entry, std::pair<Rpair,Stype>(strandpair, SP) ); // FIXME does entry make more efficient?
+          entry = StrandPairs_.insert( entry, std::pair<Rpair,Stype>(strandpair, SP) );
         }
       } // END loop over bases in strand
     } // END loop over strands
@@ -1556,7 +1556,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
     int err = 0;
     if (trajComm_.Master()) { // TODO MasterBcast?
       for (int rank = 1; rank < trajComm_.Size(); rank++)
-        frm.ModifyFrm().SendFrame( rank, trajComm_); // FIXME make SendFrame const
+        frm.Frm().SendFrame( rank, trajComm_);
       err = SetupBaseAxes(frm.Frm());
       if (err==0) err = DetermineBasePairing();
     } else {
@@ -1710,8 +1710,8 @@ int Action_NAstruct::SyncAction() {
         int ii = 0;
         for (int in = 0; in != nsteps_on_rank[rank]; in++, ii += iSize) {
           Rpair steppair( iArray[ii], iArray[ii+1] );
-          StepMap::iterator entry = Steps_.find( steppair );
-          if (entry == Steps_.end()) {
+          StepMap::iterator entry = Steps_.lower_bound( steppair );
+          if (entry == Steps_.end() || entry->first != steppair) {
             // New base pair step
             //mprintf("NEW BASE PAIR STEP: %i %i\n", iArray[0], iArray[1]);
             StepType BS;
@@ -1729,7 +1729,7 @@ int Action_NAstruct::SyncAction() {
                 BS.minGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
               }
             }
-            entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
+            entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) );
           }
           //else mprintf("EXISTING BASE PAIR STEP: %i %i\n", entry->first.first, entry->first.second);
           // Synchronize all step data sets from rank.
