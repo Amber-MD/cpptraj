@@ -990,7 +990,7 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
     int b1idx = it->first.first;
     int b2idx = it->first.second;
     Stype const& SP = it->second;
-    mprintf("DEBUG: Strand %u, bases %u to %u\n", SP.strandidx_, b1idx, b2idx);
+    //mprintf("DEBUG: Strand %u, bases %u to %u\n", SP.strandidx_, b1idx, b2idx);
 
     // Get bases
     NA_Base& base1 = Bases_[b1idx];
