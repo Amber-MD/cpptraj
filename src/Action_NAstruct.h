@@ -52,8 +52,8 @@ class Action_NAstruct: public Action {
       DataSet_1D* ry_;
       DataSet_1D* rz_;
       unsigned int strandidx_; ///< Index in Strands_
-      unsigned int base1idx_; ///< Index of first base in Bases_
-      unsigned int base2idx_; ///< Index of second base in Bases_
+      //unsigned int base1idx_; ///< Index of first base in Bases_
+      //unsigned int base2idx_; ///< Index of second base in Bases_
     };
     /// Hold a base pair.
     struct BPtype {

@@ -973,70 +973,40 @@ int Action_NAstruct::GetBaseIdxStep(int idx, int Nsteps) const {
 int Action_NAstruct::DetermineStrandParameters(int frameNum) {
   double Param[6];
   NA_Axis commonAxis;
-  // Loop over strands
-  for (StrandArray::const_iterator strand = Strands_.begin();
-                                   strand != Strands_.end(); ++strand)
+  // Loop over strand pairs
+  for (Smap::const_iterator it = StrandPairs_.begin(); it != StrandPairs_.end(); ++it)
   {
-    mprintf("DEBUG: Strand %li, %i-%i\n", strand-Strands_.begin(), strand->first, strand->second);
-    for (int b1idx = strand->first; b1idx < strand->second; b1idx++)
-    {
-      int b2idx = b1idx + 1;
-      mprintf("DEBUG:\tStrand pair: %i to %i\n", b1idx, b2idx);
+    int b1idx = it->first.first;
+    int b2idx = it->first.second;
+    Stype const& SP = it->second;
+    mprintf("DEBUG: Strand %u, bases %u to %u\n", SP.strandidx_, b1idx, b2idx);
 
-      // Get/add data set for strandpair
-      Rpair strandpair(b1idx, b2idx);
-      Smap::iterator entry = StrandPairs_.find( strandpair );
-      if (entry == StrandPairs_.end()) {
-        // New strand pair 
-        Stype SP;
-        //  MetaData md = NewStepType(BS, BP1.base1idx_, BP1.base2idx_,
-        //                                BP2.base1idx_, BP2.base2idx_, Steps_.size()+1);
-        MetaData md(dataname_, StrandPairs_.size()+1);
-        md.SetLegend( Bases_[b1idx].BaseName() + "-" + Bases_[b2idx].BaseName() );
-        md.SetAspect("dx");
-        SP.dx_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-        md.SetAspect("dy");
-        SP.dy_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-        md.SetAspect("dz");
-        SP.dz_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-        md.SetAspect("rx");
-        SP.rx_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-        md.SetAspect("ry");
-        SP.ry_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-        md.SetAspect("rz");
-        SP.rz_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-
-        entry = StrandPairs_.insert( entry, std::pair<Rpair,Stype>(strandpair, SP) ); // FIXME does entry make more efficient?
-      }
-      Stype& currentSpair = entry->second;
-
-      // Get bases
-      NA_Base& base1 = Bases_[b1idx];
-      NA_Base& base2 = Bases_[b2idx]; //TODO copy?
-      // Calc parameters between bases in the strand
-      calculateParameters(base2.Axis(), base1.Axis(), &commonAxis, Param);
-      // Store data
-      Param[3] *= Constants::RADDEG;
-      Param[4] *= Constants::RADDEG;
-      Param[5] *= Constants::RADDEG;
-      //mprintf("DBG: BP %i # hbonds = %i\n", nbasepair+1, NumberOfHbonds_[nbasepair]);
-      // Convert everything to float to save space
-      float shear = (float)Param[0];
-      float stretch = (float)Param[1];
-      float stagger = (float)Param[2];
-      float opening = (float)Param[3];
-      float prop = (float)Param[4];
-      float buckle = (float)Param[5];
-      // Add to DataSets
-      mprintf("DEBUG:\tShear= %f  stretch= %f  stagger= %f\n", shear, stretch, stagger);
-      mprintf("DEBUG:\tOpeni= %f  propell= %f  buckle_= %f\n", opening, prop, buckle);
-      currentSpair.dx_->Add(frameNum, &shear);
-      currentSpair.dy_->Add(frameNum, &stretch);
-      currentSpair.dz_->Add(frameNum, &stagger);
-      currentSpair.rx_->Add(frameNum, &opening);
-      currentSpair.ry_->Add(frameNum, &prop);
-      currentSpair.rz_->Add(frameNum, &buckle);
-    }
+    // Get bases
+    NA_Base& base1 = Bases_[b1idx];
+    NA_Base& base2 = Bases_[b2idx]; //TODO copy?
+    // Calc parameters between bases in the strand
+    calculateParameters(base2.Axis(), base1.Axis(), &commonAxis, Param);
+    // Store data
+    Param[3] *= Constants::RADDEG;
+    Param[4] *= Constants::RADDEG;
+    Param[5] *= Constants::RADDEG;
+    //mprintf("DBG: BP %i # hbonds = %i\n", nbasepair+1, NumberOfHbonds_[nbasepair]);
+    // Convert everything to float to save space
+    float shear = (float)Param[0];
+    float stretch = (float)Param[1];
+    float stagger = (float)Param[2];
+    float opening = (float)Param[3];
+    float prop = (float)Param[4];
+    float buckle = (float)Param[5];
+    // Add to DataSets
+    mprintf("DEBUG:\tShear= %f  stretch= %f  stagger= %f\n", shear, stretch, stagger);
+    mprintf("DEBUG:\tOpeni= %f  propell= %f  buckle_= %f\n", opening, prop, buckle);
+    SP.dx_->Add(frameNum, &shear);
+    SP.dy_->Add(frameNum, &stretch);
+    SP.dz_->Add(frameNum, &stagger);
+    SP.rx_->Add(frameNum, &opening);
+    SP.ry_->Add(frameNum, &prop);
+    SP.rz_->Add(frameNum, &buckle);
   }
   return 0;
 }
@@ -1496,6 +1466,49 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     if (GuessBasePairing(setup.Top())) return Action::ERR;
     findBPmode_ = REFERENCE;
   }
+  // Determine strand data
+  if (sscalc_) {
+    for (StrandArray::const_iterator strand = Strands_.begin();
+                                     strand != Strands_.end(); ++strand)
+    {
+      mprintf("DEBUG: Strand %li, %i-%i\n", strand-Strands_.begin(), strand->first, strand->second);
+      for (int b1idx = strand->first; b1idx < strand->second; b1idx++)
+      {
+        int b2idx = b1idx + 1;
+        mprintf("DEBUG:\tStrand pair: %i to %i\n", b1idx, b2idx);
+
+        // Get/add data set for strandpair
+        Rpair strandpair(b1idx, b2idx);
+        Smap::iterator entry = StrandPairs_.find( strandpair );
+        if (entry == StrandPairs_.end()) {
+          // New strand pair 
+          Stype SP;
+          //  MetaData md = NewStepType(BS, BP1.base1idx_, BP1.base2idx_,
+          //                                BP2.base1idx_, BP2.base2idx_, Steps_.size()+1);
+          MetaData md(dataname_, StrandPairs_.size()+1);
+          md.SetLegend( Bases_[b1idx].BaseName() + "-" + Bases_[b2idx].BaseName() );
+          md.SetAspect("dx");
+          SP.dx_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("dy");
+          SP.dy_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("dz");
+          SP.dz_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("rx");
+          SP.rx_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("ry");
+          SP.ry_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("rz");
+          SP.rz_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+
+          SP.strandidx_ = (unsigned int)(strand - Strands_.begin());
+          //SP.base1idx_ = b1idx_;
+          //SP.base2idx_ = b2idx_;
+
+          entry = StrandPairs_.insert( entry, std::pair<Rpair,Stype>(strandpair, SP) ); // FIXME does entry make more efficient?
+        }
+      } // END loop over bases in strand
+    } // END loop over strands
+  } // END if sscalc
   return Action::OK;  
 }
 
