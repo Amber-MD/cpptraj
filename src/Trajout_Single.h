@@ -12,10 +12,10 @@ class DataSetList;
   * however in case we do want to inherit in the future in a manner
   * similar to Trajin.
   */
-// FIXME: Should open state be tracked and error given if setup called
+// TODO: Should open state be tracked and error given if setup called
 //        twice for already open traj? Should append be default if
 //        traj is opened twice?
-// FIXME: Should take ArgList&, not const, so we can determine if there are unknown args later.
+// TODO: Should take ArgList&, not const, so we can determine if there are unknown args later.
 class Trajout_Single {
   public:
     Trajout_Single() : trajio_(0), debug_(0) {}

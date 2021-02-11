@@ -4,7 +4,7 @@
 #include "GridBin.h"
 class Box;
 /// Interface for 3D DataSets.
-// FIXME: Use DataSet Dims?
+// TODO: Use DataSet Dims?
 class DataSet_3D : public DataSet {
   public:
     DataSet_3D() : gridBin_(0) {}

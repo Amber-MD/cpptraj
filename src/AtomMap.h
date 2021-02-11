@@ -8,7 +8,7 @@ class AtomMap {
     AtomMap();
 
     MapAtom& operator[](int);
-    const MapAtom& operator[](int i) const { return mapatoms_[i]; } // FIXME: bounds
+    const MapAtom& operator[](int i) const { return mapatoms_[i]; }
     /// \return the number of atoms in the AtomMap.
     int Natom() const { return (int)mapatoms_.size(); }
     /// Set the debug level of the AtomMap.

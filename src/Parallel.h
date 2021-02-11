@@ -8,7 +8,7 @@
 # undef MPI
 # define CPPTRAJ_MPI
 # include <mpi.h>
-# include <sys/types.h> // off_t FIXME necessary?
+# include <sys/types.h> // off_t 
 # ifdef PARALLEL_DEBUG_VERBOSE
 #   include <cstdio> // for FILE
 # endif

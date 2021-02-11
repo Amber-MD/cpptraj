@@ -39,7 +39,7 @@ class Ewald_Regular : public Ewald {
     Iarray mlim2_;        ///< Hold m2 reciprocal indices
     int multCut_;         ///< Hold index after which multiplier should be 2.0.
 #   endif
-    double maxexp_;       ///< Determines how far out recip vectors go? FIXME check!
+    double maxexp_;       ///< Determines how far out recip vectors go? TODO check!
     double rsumTol_;      ///< Reciprocal space sum tolerance.
     int mlimit_[3];       ///< Number of units in each direction to calc recip. sum. / nfft
     int maxmlim_;         ///< The max of the three mlimit_ values. / pme spline order

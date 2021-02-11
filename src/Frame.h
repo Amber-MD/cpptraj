@@ -286,7 +286,7 @@ class Frame {
     double T_;      ///< Temperature
     double pH_;     ///< pH
     double redox_;  ///< RedOx potential
-    double time_;   ///< Time FIXME Should this be float?
+    double time_;   ///< Time
     double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     double* V_;     ///< Velocities (same arrangement as Coords).
     double* F_;     ///< Frame (same arrangement as Coords).
