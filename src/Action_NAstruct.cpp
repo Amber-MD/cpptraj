@@ -982,6 +982,35 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
     {
       int b2idx = b1idx + 1;
       mprintf("DEBUG:\tStrand pair: %i to %i\n", b1idx, b2idx);
+
+      // Get/add data set for strandpair
+      Rpair strandpair(b1idx, b2idx);
+      Smap::iterator entry = StrandPairs_.find( strandpair );
+      if (entry == StrandPairs_.end()) {
+        // New strand pair 
+        Stype SP;
+        //  MetaData md = NewStepType(BS, BP1.base1idx_, BP1.base2idx_,
+        //                                BP2.base1idx_, BP2.base2idx_, Steps_.size()+1);
+        MetaData md(dataname_, StrandPairs_.size()+1);
+        md.SetLegend( Bases_[b1idx].BaseName() + "-" + Bases_[b2idx].BaseName() );
+        md.SetAspect("dx");
+        SP.dx_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+        md.SetAspect("dy");
+        SP.dy_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+        md.SetAspect("dz");
+        SP.dz_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+        md.SetAspect("rx");
+        SP.rx_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+        md.SetAspect("ry");
+        SP.ry_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+        md.SetAspect("rz");
+        SP.rz_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+
+        entry = StrandPairs_.insert( entry, std::pair<Rpair,Stype>(strandpair, SP) ); // FIXME does entry make more efficient?
+      }
+      Stype& currentSpair = entry->second;
+
+      // Get bases
       NA_Base& base1 = Bases_[b1idx];
       NA_Base& base2 = Bases_[b2idx]; //TODO copy?
       // Calc parameters between bases in the strand
@@ -1001,13 +1030,12 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
       // Add to DataSets
       mprintf("DEBUG:\tShear= %f  stretch= %f  stagger= %f\n", shear, stretch, stagger);
       mprintf("DEBUG:\tOpeni= %f  propell= %f  buckle_= %f\n", opening, prop, buckle);
-      //BP.shear_->Add(frameNum, &shear);
-      //BP.stretch_->Add(frameNum, &stretch);
-      //BP.stagger_->Add(frameNum, &stagger);
-      //BP.opening_->Add(frameNum, &opening);
-      //BP.prop_->Add(frameNum, &prop);
-      //BP.buckle_->Add(frameNum, &buckle);
-      //BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
+      currentSpair.dx_->Add(frameNum, &shear);
+      currentSpair.dy_->Add(frameNum, &stretch);
+      currentSpair.dz_->Add(frameNum, &stagger);
+      currentSpair.rx_->Add(frameNum, &opening);
+      currentSpair.ry_->Add(frameNum, &prop);
+      currentSpair.rz_->Add(frameNum, &buckle);
     }
   }
   return 0;

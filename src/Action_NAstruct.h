@@ -43,6 +43,18 @@ class Action_NAstruct: public Action {
     /// How to find base pairs: first frame, reference structure, all frames, guess.
     enum FindType { FIRST = 0, REFERENCE, ALL, GUESS };
     // ----- Data Structures ---------------------
+    /// Hold consecutive bases
+    struct Stype {
+      DataSet_1D* dx_;
+      DataSet_1D* dy_;
+      DataSet_1D* dz_;
+      DataSet_1D* rx_;
+      DataSet_1D* ry_;
+      DataSet_1D* rz_;
+      unsigned int strandidx_; ///< Index in Strands_
+      unsigned int base1idx_; ///< Index of first base in Bases_
+      unsigned int base2idx_; ///< Index of second base in Bases_
+    };
     /// Hold a base pair.
     struct BPtype {
       NA_Axis bpaxis_; ///< Base pair axis.
@@ -95,6 +107,7 @@ class Action_NAstruct: public Action {
     // ----- Type Definitions --------------------
     typedef std::vector<NA_Base> Barray;      ///< Array of NA bases
     typedef std::pair<int,int> Rpair;         ///< Pair of residue numbers / BP indices
+    typedef std::map<Rpair,Stype> Smap;       ///< Map of residue numbers to strand pairs
     typedef std::map<Rpair,BPtype> BPmap;     ///< Map of residue numbers to BP
     typedef std::map<Rpair,StepType> StepMap; ///< Map of BP indices to Steps
     typedef std::vector<Rpair> StrandArray;   ///< Hold indices into Bases_ for strand beg/end
@@ -140,6 +153,7 @@ class Action_NAstruct: public Action {
     NA_Reference refBases_;             ///< Hold reference bases
     RefMapType nameToRef_;              ///< Map residue names to custom reference
     Barray Bases_;                      ///< Hold nucleobases
+    Smap StrandPairs_;                  ///< Hold consecutive bases in strands
     BPmap BasePairs_;                   ///< Hold base pairs
     StepMap Steps_;                     ///< Hold base pair steps.
     StrandArray Strands_;               ///< Hold strand info
