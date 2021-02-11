@@ -174,6 +174,7 @@ class Action_NAstruct: public Action {
     bool spaceBetweenFrames_;           ///< If false do not print spaces between frames in naout
     bool sscalc_;                       ///< If true determine params for consecutive bases in strands
     CpptrajFile* bpout_;                ///< Base pair out (BP.<suffix>).
+    CpptrajFile* ssout_;                ///< Single strand out (SS.<suffix>).
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
     CpptrajFile* helixout_;             ///< Helical parameters out (Helix.<suffix>).
     std::string dataname_;              ///< NA DataSet name (default NA).

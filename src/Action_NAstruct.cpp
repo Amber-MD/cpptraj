@@ -29,7 +29,11 @@ Action_NAstruct::Action_NAstruct() :
   seriesUpdated_(false),
   skipIfNoHB_(true),
   spaceBetweenFrames_(true),
-  bpout_(0), stepout_(0), helixout_(0),
+  sscalc_(false),
+  bpout_(0),
+  ssout_(0),
+  stepout_(0),
+  helixout_(0),
   masterDSL_(0)
 # ifdef NASTRUCTDEBUG
   ,calcparam_(true)
@@ -73,6 +77,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   debug_ = debugIn;
   masterDSL_ = init.DslPtr();
   // Get keywords
+  sscalc_ = actionArgs.hasKey("sscalc");
   std::string outputsuffix = actionArgs.GetStringKey("naout");
   if (!outputsuffix.empty()) {
     // Set up output files.
@@ -81,6 +86,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     stepout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("BPstep."), "Base Pair Step");
     helixout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("Helix."), "Helix");
     if (bpout_ == 0 || stepout_ == 0 || helixout_ == 0) return Action::ERR;
+    if (sscalc_) {
+      ssout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("SS."), "Single Strand");
+      if (ssout_ == 0) return Action::ERR;
+    }
   }
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
   if (hbcut > 0) 
@@ -127,7 +136,6 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     findBPmode_ = FIRST;
   else 
     findBPmode_ = FIRST;
-  sscalc_ = actionArgs.hasKey("sscalc");
 # ifdef MPI
   if (findBPmode_ == ALL && trajComm_.Size() > 1) {
     mprinterr("Error: Currently 'allframes' does not work with > 1 process per trajectory"
@@ -196,14 +204,17 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("Scanning all NA residues\n");
   else
     mprintf("Scanning residues %s\n",resRange_.RangeArg());
-  if (sscalc_)
-    mprintf("\tWill determine parameters for consecutive bases in strands.\n");
   if (bpout_ != 0) {
     mprintf("\tBase pair parameters written to %s\n", bpout_->Filename().full());
     mprintf("\tBase pair step parameters written to %s\n", stepout_->Filename().full());
     mprintf("\tHelical parameters written to %s\n", helixout_->Filename().full());
     if (!printheader_) mprintf("\tHeader line will not be written.\n");
     if (!spaceBetweenFrames_) mprintf("\tNo spaces will be written between frames.\n");
+  }
+  if (sscalc_) {
+    mprintf("\tWill determine parameters for consecutive bases in strands.\n");
+    if (ssout_ != 0)
+      mprintf("\tSingle strand parameters written to %s\n", ssout_->Filename().full());
   }
   mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( HBdistCut2_ ) );
@@ -1023,6 +1034,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
   basepairaxesfile.OpenWrite("basepairaxes.pdb");
   mprintf("\n=================== Determine BP Parameters ===================\n");
 # endif
+  // NOTE: iterator cannot be const because bpaxis_ needs to be updated
   for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it)
   {
     if (it->second.nhb_ < 1 && skipIfNoHB_) continue;
@@ -1880,6 +1892,7 @@ void Action_NAstruct::UpdateSeries() {
 
 // Output Format Strings
 static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f %2.0f";
+static const char* SS_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
 static const char* GROOVE_FMT = " %10.4f %10.4f";
 static const char* HELIX_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
 static const char* STEP_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
@@ -1923,6 +1936,37 @@ void Action_NAstruct::Print() {
           bpout_->Printf("\n");
         }
         if (spaceBetweenFrames_) bpout_->Printf("\n");
+      }
+    }
+  }
+
+  // ---------- Single strand parameters ---------
+  if (sscalc_ && ssout_ != 0) {
+    // Check that there is actually data
+    if ( StrandPairs_.empty() || nframes_ < 1)
+      mprintf("Warning: Could not write single strand file %s: No SS data.\n",
+              ssout_->Filename().full());
+    else {
+      mprintf("\tSingle strand output file %s; %i frames, %zu base pairs.\n", 
+              ssout_->Filename().full(), nframes_, StrandPairs_.size());
+      //  File header
+      if (printheader_) {
+        bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s\n",
+                       "#Frame","Base1","Base2", "DX","DY","DZ", "RX","RY","RZ");
+      }
+      // Loop over all frames
+      for (int frame = 0; frame < nframes_; ++frame) {
+        for (Smap::const_iterator it = StrandPairs_.begin();
+                                  it != StrandPairs_.end(); ++it)
+        {
+          Stype const& SP = it->second;
+          ssout_->Printf(SS_OUTPUT_FMT, frame+1, 
+                         Bases_[it->first.first].ResNum()+1, Bases_[it->first.second].ResNum()+1,
+                         SP.dx_->Dval(frame), SP.dy_->Dval(frame), SP.dz_->Dval(frame),
+                         SP.rx_->Dval(frame), SP.ry_->Dval(frame), SP.rz_->Dval(frame));
+          ssout_->Printf("\n");
+        }
+        if (spaceBetweenFrames_) ssout_->Printf("\n");
       }
     }
   }
