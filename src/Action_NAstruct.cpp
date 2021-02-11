@@ -1829,8 +1829,8 @@ void Action_NAstruct::UpdateSeries() {
   if (seriesUpdated_) return;
   if (nframes_ > 0) {
     // Base pair data
-    for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it) {
-      BPtype& BP = it->second;
+    for (BPmap::const_iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it) {
+      BPtype const& BP = it->second;
       UpdateTimeSeries( nframes_, BP.shear_ );
       UpdateTimeSeries( nframes_, BP.stretch_ );
       UpdateTimeSeries( nframes_, BP.stagger_ );
@@ -1845,8 +1845,8 @@ void Action_NAstruct::UpdateSeries() {
       UpdateTimeSeries( nframes_, Bases_[BP.base2idx_].Pucker() );
     }
     // Step and helix data
-    for (StepMap::iterator it = Steps_.begin(); it != Steps_.end(); ++it) {
-      StepType& BS = it->second;
+    for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it) {
+      StepType const& BS = it->second;
       UpdateTimeSeries( nframes_, BS.shift_ );
       UpdateTimeSeries( nframes_, BS.slide_ );
       UpdateTimeSeries( nframes_, BS.rise_ );
@@ -1862,6 +1862,16 @@ void Action_NAstruct::UpdateSeries() {
       UpdateTimeSeries( nframes_, BS.Zp_ );
       UpdateTimeSeries( nframes_, BS.majGroove_ );
       UpdateTimeSeries( nframes_, BS.minGroove_ );
+    }
+    // Strand data
+    for (Smap::const_iterator it = StrandPairs_.begin(); it != StrandPairs_.end(); ++it) {
+      Stype const& SP = it->second;
+      UpdateTimeSeries( nframes_, SP.dx_ );
+      UpdateTimeSeries( nframes_, SP.dy_ );
+      UpdateTimeSeries( nframes_, SP.dz_ );
+      UpdateTimeSeries( nframes_, SP.rx_ );
+      UpdateTimeSeries( nframes_, SP.ry_ );
+      UpdateTimeSeries( nframes_, SP.rz_ );
     }
   }
   // Should only be called once.
