@@ -1010,8 +1010,8 @@ int Action_NAstruct::DetermineStrandParameters(int frameNum) {
     float prop = (float)Param[4];
     float buckle = (float)Param[5];
     // Add to DataSets
-    mprintf("DEBUG:\tShear= %f  stretch= %f  stagger= %f\n", shear, stretch, stagger);
-    mprintf("DEBUG:\tOpeni= %f  propell= %f  buckle_= %f\n", opening, prop, buckle);
+    //mprintf("DEBUG:\tShear= %f  stretch= %f  stagger= %f\n", shear, stretch, stagger);
+    //mprintf("DEBUG:\tOpeni= %f  propell= %f  buckle_= %f\n", opening, prop, buckle);
     SP.dx_->Add(frameNum, &shear);
     SP.dy_->Add(frameNum, &stretch);
     SP.dz_->Add(frameNum, &stagger);
@@ -1483,11 +1483,13 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     for (StrandArray::const_iterator strand = Strands_.begin();
                                      strand != Strands_.end(); ++strand)
     {
-      mprintf("DEBUG: Strand %li, %i-%i\n", strand-Strands_.begin(), strand->first, strand->second);
+      if (debug_ > 0)
+        mprintf("DEBUG: Strand %li, %i-%i\n", strand-Strands_.begin(), strand->first, strand->second);
       for (int b1idx = strand->first; b1idx < strand->second; b1idx++)
       {
         int b2idx = b1idx + 1;
-        mprintf("DEBUG:\tStrand pair: %i to %i\n", b1idx, b2idx);
+        if (debug_ > 0)
+          mprintf("DEBUG:\tStrand pair: %i to %i\n", b1idx, b2idx);
 
         // Get/add data set for strandpair
         Rpair strandpair(b1idx, b2idx);
