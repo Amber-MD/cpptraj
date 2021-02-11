@@ -44,8 +44,8 @@ class OutputTrajCommon {
     /// \return 'true' if output frame range has been set up
     inline bool HasRange() const { return hasRange_ || !frameCount_.DefaultSettings(); }
   private:
-    FileName trajName_; // FIXME: Save this here?
-    Topology* trajParm_;// FIXME: Save this here?
+    FileName trajName_;                ///< Output file name
+    Topology* trajParm_;               ///< Pointer to associated Topology
     CoordinateInfo cInfo_;             ///< Coordinate info for trajectory
     int NframesToWrite_;               ///< Expected number of frames to be written.
     // Track frame numbers

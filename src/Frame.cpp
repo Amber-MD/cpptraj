@@ -1435,7 +1435,7 @@ void Frame::SetOrthoBoundingBox(std::vector<double> const& Radii, double offset)
 #ifdef MPI
 // TODO: Change Frame class so everything can be sent in one MPI call.
 /** Send contents of this Frame to recvrank. */
-int Frame::SendFrame(int recvrank, Parallel::Comm const& commIn) {
+int Frame::SendFrame(int recvrank, Parallel::Comm const& commIn) const {
   //rprintf("SENDING TO %i\n", recvrank); // DEBUG
   commIn.Send( X_,                ncoord_, MPI_DOUBLE, recvrank, 1212 );
   if (V_ != 0)

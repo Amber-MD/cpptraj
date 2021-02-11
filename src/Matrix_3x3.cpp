@@ -537,7 +537,7 @@ void Matrix_3x3::SyncMatrix(Parallel::Comm const& commIn) {
   commIn.MasterBcast( M_, 9, MPI_DOUBLE );
 }
 
-int Matrix_3x3::SendMatrix(int recvrank, Parallel::Comm const& commIn) {
+int Matrix_3x3::SendMatrix(int recvrank, Parallel::Comm const& commIn) const {
   commIn.Send( M_, 9, MPI_DOUBLE, recvrank, 1900 );
   return 0;
 }

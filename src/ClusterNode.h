@@ -24,7 +24,6 @@ class ClusterNode {
     void CalcEccentricity(DataSet_Cmatrix const&);
     /// Calculate centroid of members of this cluster.
     void CalculateCentroid(ClusterDist* Cdist) {
-      // FIXME: Could potentially get rid of this branch.
       if (centroid_ == 0)
         centroid_ = Cdist->NewCentroid( frameList_ );
       else

@@ -41,7 +41,6 @@ private:
   AtomMask tailend_mask_;
   AtomMask unsat_mask_;
 
-  // FIXME:
   // std::vector<std::pair<AtomMask, bool> > masks_;
   std::vector<AtomMask> masks_;
   std::vector<std::vector<int> > dbonds_;

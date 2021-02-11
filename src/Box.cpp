@@ -78,7 +78,7 @@ int Box::SyncBox(Parallel::Comm const& commIn) {
 }
 
 /** Send box info to recvrank. */
-int Box::SendBox(int recvrank, Parallel::Comm const& commIn) {
+int Box::SendBox(int recvrank, Parallel::Comm const& commIn) const {
   commIn.Send( box_,         6, MPI_DOUBLE, recvrank, 1801 );
   unitCell_.SendMatrix(recvrank, commIn);
   fracCell_.SendMatrix(recvrank, commIn);

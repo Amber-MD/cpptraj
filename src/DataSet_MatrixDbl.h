@@ -14,7 +14,7 @@ class DataSet_MatrixDbl : public DataSet_2D {
     // ----- DataSet functions -------------------
     size_t Size()                        const { return mat_.size();        }
 #   ifdef MPI
-    // FIXME: Currently just sums up. Should this be a separate Sync function?
+    // TODO: Currently just sums up. Should this be a separate Sync function?
     int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
     void Info()                          const { return;                    }

@@ -270,7 +270,7 @@ class Frame {
     void SetOrthoBoundingBox(std::vector<double> const& Radii, double);
 #   ifdef MPI
     // ----- Parallel Routines -------------------
-    int SendFrame(int, Parallel::Comm const&);
+    int SendFrame(int, Parallel::Comm const&) const;
     int RecvFrame(int, Parallel::Comm const&);
     int SumToMaster(Parallel::Comm const&);
 #   endif
@@ -286,7 +286,7 @@ class Frame {
     double T_;      ///< Temperature
     double pH_;     ///< pH
     double redox_;  ///< RedOx potential
-    double time_;   ///< Time FIXME Should this be float?
+    double time_;   ///< Time
     double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     double* V_;     ///< Velocities (same arrangement as Coords).
     double* F_;     ///< Frame (same arrangement as Coords).

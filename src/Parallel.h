@@ -8,7 +8,7 @@
 # undef MPI
 # define CPPTRAJ_MPI
 # include <mpi.h>
-# include <sys/types.h> // off_t FIXME necessary?
+# include <sys/types.h> // off_t 
 # ifdef PARALLEL_DEBUG_VERBOSE
 #   include <cstdio> // for FILE
 # endif
@@ -142,7 +142,7 @@ class Parallel::Comm {
     /// SendBuffer, Count, DataType, RecvBuffer
     int AllGather(void*, int, MPI_Datatype, void*) const;
     /// Buffer, Count, DataType, Destination Rank, Tag
-    int Send(void*, int, MPI_Datatype, int, int) const;
+    int Send(const void*, int, MPI_Datatype, int, int) const;
     /// Buffer, Count, DataType, Source Rank, Tag
     int Recv(void*, int, MPI_Datatype, int, int) const;
     /// Buffer, Count, DataType
