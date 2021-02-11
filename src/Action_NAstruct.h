@@ -124,6 +124,8 @@ class Action_NAstruct: public Action {
     int helicalParameters(NA_Axis const&, NA_Axis const&, double *);
     /// \return index of base that is N steps away in specified direction from another base.
     int GetBaseIdxStep(int, int) const;
+    /// Determine individual base parameters in single strands.
+    int DetermineStrandParameters(int);
     /// Determine individual base and base pair parameters.
     int DeterminePairParameters(int);
     /// Determine base pair steps and step parameters, including HC groove calc.
@@ -156,6 +158,7 @@ class Action_NAstruct: public Action {
     bool seriesUpdated_;                ///< If false, check that time series data is nframes long
     bool skipIfNoHB_;                   ///< When true, do not calc parameters when BP not present
     bool spaceBetweenFrames_;           ///< If false do not print spaces between frames in naout
+    bool sscalc_;                       ///< If true determine params for consecutive bases in strands
     CpptrajFile* bpout_;                ///< Base pair out (BP.<suffix>).
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
     CpptrajFile* helixout_;             ///< Helical parameters out (Helix.<suffix>).

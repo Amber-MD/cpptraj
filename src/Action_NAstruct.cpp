@@ -37,7 +37,7 @@ Action_NAstruct::Action_NAstruct() :
 {}
 
 void Action_NAstruct::Help() const {
-  mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
+  mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>] [sscalc]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
           "\t[noframespaces] [baseref <file>] ...\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
@@ -127,6 +127,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     findBPmode_ = FIRST;
   else 
     findBPmode_ = FIRST;
+  sscalc_ = actionArgs.hasKey("sscalc");
 # ifdef MPI
   if (findBPmode_ == ALL && trajComm_.Size() > 1) {
     mprinterr("Error: Currently 'allframes' does not work with > 1 process per trajectory"
@@ -195,6 +196,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("Scanning all NA residues\n");
   else
     mprintf("Scanning residues %s\n",resRange_.RangeArg());
+  if (sscalc_)
+    mprintf("\tWill determine parameters for consecutive bases in strands.\n");
   if (bpout_ != 0) {
     mprintf("\tBase pair parameters written to %s\n", bpout_->Filename().full());
     mprintf("\tBase pair step parameters written to %s\n", stepout_->Filename().full());
@@ -964,6 +967,52 @@ int Action_NAstruct::GetBaseIdxStep(int idx, int Nsteps) const {
     return GetBaseIdxStep( base.C5resIdx(), Nsteps + 1);
 }
 
+/** For bases in a single strand, get the values of buckle, propeller twist,
+  * opening, shear, stretch, and stagger.
+  */
+int Action_NAstruct::DetermineStrandParameters(int frameNum) {
+  double Param[6];
+  NA_Axis commonAxis;
+  // Loop over strands
+  for (StrandArray::const_iterator strand = Strands_.begin();
+                                   strand != Strands_.end(); ++strand)
+  {
+    mprintf("DEBUG: Strand %li, %i-%i\n", strand-Strands_.begin(), strand->first, strand->second);
+    for (int b1idx = strand->first; b1idx < strand->second; b1idx++)
+    {
+      int b2idx = b1idx + 1;
+      mprintf("DEBUG:\tStrand pair: %i to %i\n", b1idx, b2idx);
+      NA_Base& base1 = Bases_[b1idx];
+      NA_Base& base2 = Bases_[b2idx]; //TODO copy?
+      // Calc parameters between bases in the strand
+      calculateParameters(base2.Axis(), base1.Axis(), &commonAxis, Param);
+      // Store data
+      Param[3] *= Constants::RADDEG;
+      Param[4] *= Constants::RADDEG;
+      Param[5] *= Constants::RADDEG;
+      //mprintf("DBG: BP %i # hbonds = %i\n", nbasepair+1, NumberOfHbonds_[nbasepair]);
+      // Convert everything to float to save space
+      float shear = (float)Param[0];
+      float stretch = (float)Param[1];
+      float stagger = (float)Param[2];
+      float opening = (float)Param[3];
+      float prop = (float)Param[4];
+      float buckle = (float)Param[5];
+      // Add to DataSets
+      mprintf("DEBUG:\tShear= %f  stretch= %f  stagger= %f\n", shear, stretch, stagger);
+      mprintf("DEBUG:\tOpeni= %f  propell= %f  buckle_= %f\n", opening, prop, buckle);
+      //BP.shear_->Add(frameNum, &shear);
+      //BP.stretch_->Add(frameNum, &stretch);
+      //BP.stagger_->Add(frameNum, &stagger);
+      //BP.opening_->Add(frameNum, &opening);
+      //BP.prop_->Add(frameNum, &prop);
+      //BP.buckle_->Add(frameNum, &buckle);
+      //BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
+    }
+  }
+  return 0;
+}
+
 // Action_NAstruct::DeterminePairParameters()
 /** For each base pair, get the values of buckle, propeller twist,
   * opening, shear, stretch, and stagger. Also determine the origin and 
@@ -1476,6 +1525,9 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 #   endif
     findBPmode_ = REFERENCE;
   }
+  // Determine strand parameters if desired
+  if (sscalc_)
+    DetermineStrandParameters(frameNum);
 
   // Determine base parameters
   DeterminePairParameters(frameNum);
