@@ -25,7 +25,7 @@ class MetaData {
       CHI2,    CHI3, CHI4,  CHI5,
       PUCKER,
       NOE,
-      DIST,    COVAR,     MWCOVAR, //FIXME: May need more descriptive names 
+      DIST,    COVAR,     MWCOVAR,
       CORREL,  DISTCOVAR, IDEA,
       IREDMAT, DIHCOVAR,
       IREDVEC,

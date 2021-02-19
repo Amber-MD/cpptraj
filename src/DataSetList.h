@@ -30,7 +30,7 @@ class DataSetList {
 
     DataSetList& operator+=(DataSetList const&);
     /// \return DataSet at didx.
-    DataSet* operator[](int didx) const { return DataList_[didx]; } // FIXME: No bounds check
+    DataSet* operator[](int didx) const { return DataList_[didx]; }
     /// DataSetList default iterator
     typedef DataListType::const_iterator const_iterator;
     /// Iterator to beginning of dataset list

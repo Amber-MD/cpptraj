@@ -20,7 +20,7 @@ class Action_MakeStructure : public Action {
         SS_TYPE(double ph,double ps,double ph2,double ps2,int t,std::string const& n) :
           phi(ph), psi(ps), phi2(ph2), psi2(ps2), isTurn(t), type_arg(n) {}
         bool empty() { return (isTurn == -1); }
-        double phi, psi, phi2, psi2; // Angle(s) FIXME: Should this be an array?
+        double phi, psi, phi2, psi2; // Angle(s) TODO: Should this be an array?
         int isTurn; // 0=phi/psi, 1=Turn (phi/psi/phi2/psi2), 2=Single Dihedral(phi)
         std::string type_arg;
     };

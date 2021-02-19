@@ -399,7 +399,7 @@ class NonbondParmType {
     void SetNHBterms(int n)   { hbarray_.assign( n, HB_ParmType() ); }
     /// Set specified HB term
     HB_ParmType& SetHB(int i) { return hbarray_[i];                  }
-    /// Set specified nbindex location to given value. FIXME no bounds check
+    /// Set specified nbindex location to given value.
     void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
     /** Certain routines in sander (like the 1-4 calcs) do NOT use the 

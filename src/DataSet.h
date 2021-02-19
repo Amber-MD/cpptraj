@@ -49,7 +49,7 @@ class DataSet {
     virtual SizeArray DimSizes() const { return SizeArray(); }
     /// Print DataSet information //TODO return string instead?
     virtual void Info() const = 0;
-    /// Write data to file given start indices. FIXME Buffer? Should this function take number of elements as well?
+    /// Write data to file given start indices.
     virtual void WriteBuffer(CpptrajFile&, SizeArray const&) const = 0;
     /// \return value of coordinate for specified dimension d and position p.
     /** NOTE: It is assumed this can ALWAYS be represented as double precision. */
