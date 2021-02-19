@@ -359,6 +359,8 @@ COMMON_SOURCES= \
         PubFFT.cpp \
         Random.cpp \
         Range.cpp \
+        RNG.cpp \
+        RNG_Marsaglia.cpp \
         RPNcalc.cpp \
         ReferenceAction.cpp \
         RemdReservoirNC.cpp \
