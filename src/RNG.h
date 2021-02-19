@@ -10,9 +10,9 @@ class RNG {
     virtual double Generate() = 0;
 
     /// Initialize the random number generator with the given seed
-    void rn_set(int);
+    void Set_Seed(int);
     /// Initialize RN generator with 71277 (Amber default)
-    void rn_set() { rn_set(71277); }
+    void Set_Seed() { Set_Seed(71277); }
 
     /// Generate a pseudo-random Gaussian sequence.
     double rn_gauss(double,double);

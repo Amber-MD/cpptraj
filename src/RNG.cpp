@@ -7,7 +7,7 @@
 Cpptraj::RNG::RNG() : iseed_(-1) {}
 
 /** Set up the seed, then perform any specific setup required by the RNG. */
-void Cpptraj::RNG::rn_set(int iseedIn) {
+void Cpptraj::RNG::Set_Seed(int iseedIn) {
   // If iseed <= 0 set the seed based on wallclock time
   if (iseedIn <= 0 ) {
     clock_t wallclock = clock();
@@ -23,7 +23,7 @@ void Cpptraj::RNG::rn_set(int iseedIn) {
 
 /** This is a version of Generate() that adds the constraint of a Gaussian
   * distribution, with mean "am" and standard deviation "sd". This 
-  * requires rn_set() to have been called first, and "uses up" the
+  * requires Set_Seed() to have been called first, and "uses up" the
   * same sequence that Generate() does.
   */
 double Cpptraj::RNG::rn_gauss(double am, double sd) {
