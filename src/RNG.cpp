@@ -21,10 +21,10 @@ void Cpptraj::RNG::rn_set(int iseedIn) {
   }
 }
 
-/** This is a version of rn_gen() that adds the constraint of a Gaussian
+/** This is a version of Generate() that adds the constraint of a Gaussian
   * distribution, with mean "am" and standard deviation "sd". This 
   * requires rn_set() to have been called first, and "uses up" the
-  * same sequence that rn_gen() does.
+  * same sequence that Generate() does.
   */
 double Cpptraj::RNG::rn_gauss(double am, double sd) {
   if (!IsSet()) {
@@ -40,10 +40,10 @@ double Cpptraj::RNG::rn_gauss(double am, double sd) {
   // Get two random numbers, even on (-1,1):
   bool generate = true;
   while (generate) {
-    double uni = rn_gen();
+    double uni = Generate();
     double zeta1 = uni + uni - 1.0;
 
-    uni = rn_gen();
+    uni = Generate();
     double zeta2 = uni + uni - 1.0;
 
     double tmp1 = zeta1 * zeta1 + zeta2 * zeta2;

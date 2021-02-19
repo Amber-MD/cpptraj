@@ -103,7 +103,7 @@ int Cpptraj::RNG_Marsaglia::SetupRng() {
   * \return A random number between 0.0 and 1.0
   * \return -1.0 if the random number generator is not initialized.
   */
-double Cpptraj::RNG_Marsaglia::rn_gen() {
+double Cpptraj::RNG_Marsaglia::Generate() {
   if (!IsSet()) { 
     mprinterr("Error: random number generator not initialized.");
     return -1.0;
