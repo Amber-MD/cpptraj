@@ -1,10 +1,25 @@
-// Random_Number
+#include <ctime> // clock
 #include <cmath> // sqrt, log
 #include "RNG.h"
 #include "CpptrajStdio.h"
 
 /** CONSTRUCTOR */
 Cpptraj::RNG::RNG() : iseed_(-1) {}
+
+/** Set up the seed, then perform any specific setup required by the RNG. */
+void Cpptraj::RNG::rn_set(int iseedIn) {
+  // If iseed <= 0 set the seed based on wallclock time
+  if (iseedIn <= 0 ) {
+    clock_t wallclock = clock();
+    iseed_ = (int)wallclock;
+    mprintf("Random_Number: seed is <= 0, using wallclock time as seed (%i)\n", iseed_);
+  } else
+    iseed_ = iseedIn;
+
+  if (SetupRng()) {
+    mprinterr("Error: RNG setup failed.\n");
+  }
+}
 
 /** This is a version of rn_gen() that adds the constraint of a Gaussian
   * distribution, with mean "am" and standard deviation "sd". This 
