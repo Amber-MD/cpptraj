@@ -9,6 +9,11 @@ class Random_Number {
   public:
     Random_Number();
     ~Random_Number();
+    /// Different possible RNGs
+    enum RngType { MARSAGLIAS=0, STDLIB };
+
+    static void SetDefaultRng(RngType);
+
     /// Initialize the random number generator with the given seed
     void rn_set(int);
     /// Initialize RN generator with 71277 (Amber default)
@@ -22,6 +27,10 @@ class Random_Number {
     /// \return Value of RN generator seed
     int Seed() const;
   private:
+    void allocateRng();
+
     Cpptraj::RNG* rng_; ///< Hold the random number generator.
+
+    static RngType default_; ///< Default RNG type
 };
 #endif

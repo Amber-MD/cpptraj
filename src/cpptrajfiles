@@ -361,6 +361,7 @@ COMMON_SOURCES= \
         Range.cpp \
         RNG.cpp \
         RNG_Marsaglia.cpp \
+        RNG_Stdlib.cpp \
         RPNcalc.cpp \
         ReferenceAction.cpp \
         RemdReservoirNC.cpp \

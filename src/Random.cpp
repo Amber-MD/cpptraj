@@ -1,19 +1,44 @@
+#include "CpptrajStdio.h"
 #include "Random.h"
 #include "RNG.h"
 #include "RNG_Marsaglia.h"
+#include "RNG_Stdlib.h"
+
+Random_Number::RngType Random_Number::default_ = MARSAGLIAS;
+
+void Random_Number::SetDefaultRng(RngType r) {
+  default_ = r;
+}
 
 /** CONSTRUCTOR */
-Random_Number::Random_Number() {
-  rng_ = new Cpptraj::RNG_Marsaglia();
-}
+Random_Number::Random_Number() :
+  rng_(0)
+{}
 
 /** DESTRUCTOR */
 Random_Number::~Random_Number() {
   if (rng_ != 0) delete rng_;
 }
 
+/** Allocate RNG. */
+void Random_Number::allocateRng() {
+  if (rng_ != 0) delete rng_;
+  rng_ = 0;
+  switch (default_) {
+    case MARSAGLIAS :
+      mprintf("\tRNG: Marsaglia\n");
+      rng_ = new Cpptraj::RNG_Marsaglia();
+      break;
+    case STDLIB     :
+      mprintf("\tRNG: C stdlib\n");
+      rng_ = new Cpptraj::RNG_Stdlib();
+      break;
+  } 
+}
+
 /** Initialize RNG. */
 void Random_Number::rn_set(int seedIn) {
+  allocateRng();
   rng_->Set_Seed( seedIn );
 }
 
