@@ -6,6 +6,8 @@ class RNG {
   public:
     /// CONSTRUCTOR
     RNG();
+    /// DESTRUCTOR - virtual since inherited
+    virtual ~RNG() {}
     /// Generate a random number between 0.0 and 1.0
     virtual double Generate() = 0;
 
