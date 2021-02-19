@@ -26,7 +26,7 @@ void Cpptraj::RNG::Set_Seed(int iseedIn) {
   * requires Set_Seed() to have been called first, and "uses up" the
   * same sequence that Generate() does.
   */
-double Cpptraj::RNG::rn_gauss(double am, double sd) {
+double Cpptraj::RNG::GenerateGauss(double am, double sd) {
   if (!IsSet()) {
     mprinterr("Error: random number generator not initialized.");
     return -1.0;

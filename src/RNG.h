@@ -15,7 +15,7 @@ class RNG {
     void Set_Seed() { Set_Seed(71277); }
 
     /// Generate a pseudo-random Gaussian sequence.
-    double rn_gauss(double,double);
+    double GenerateGauss(double,double);
 
     /// \return true if RN generator has been set up.
     bool IsSet() const { return (iseed_ != -1); }
