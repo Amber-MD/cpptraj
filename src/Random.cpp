@@ -59,8 +59,8 @@ double Random_Number::rn_gen() {
 }
 
 /** Generate pseudo-random Gaussian sequence. */
-double Random_Number::rn_gauss(double d0, double d1) {
-  return rng_->GenerateGauss(d0, d1);
+double Random_Number::rn_gauss(double am, double sd) {
+  return rng_->GenerateGauss(am, sd);
 }
 
 /** \return true if RNG has been set up. */
