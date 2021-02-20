@@ -4,10 +4,16 @@
 #include "RNG_Marsaglia.h"
 #include "RNG_Stdlib.h"
 
-Random_Number::RngType Random_Number::default_ = MARSAGLIAS;
+Random_Number::RngType Random_Number::defaultType_ = MARSAGLIAS;
+
+int Random_Number::defaultSeed_ = 71277; // AMBER default seed
 
 void Random_Number::SetDefaultRng(RngType r) {
-  default_ = r;
+  defaultType_ = r;
+}
+
+void Random_Number::SetDefaultSeed(int i) {
+  defaultSeed_ = i;
 }
 
 /** CONSTRUCTOR */
@@ -24,7 +30,7 @@ Random_Number::~Random_Number() {
 void Random_Number::allocateRng() {
   if (rng_ != 0) delete rng_;
   rng_ = 0;
-  switch (default_) {
+  switch (defaultType_) {
     case MARSAGLIAS :
       mprintf("\tRNG: Marsaglia\n");
       rng_ = new Cpptraj::RNG_Marsaglia();
@@ -43,9 +49,9 @@ void Random_Number::rn_set(int seedIn) {
 }
 
 /** Initialize with default seed. */
-void Random_Number::rn_set() {
-  rng_->Set_Seed();
-}
+//void Random_Number::rn_set() {
+//  rng_->Set_Seed();
+//}
 
 /** Generate random number. */
 double Random_Number::rn_gen() {

@@ -14,7 +14,7 @@ class RNG {
     /// Initialize the random number generator with the given seed
     void Set_Seed(int);
     /// Initialize RN generator with 71277 (Amber default)
-    void Set_Seed() { Set_Seed(71277); }
+    //void Set_Seed() { Set_Seed(71277); }
 
     /// Generate a pseudo-random Gaussian sequence.
     double GenerateGauss(double,double);

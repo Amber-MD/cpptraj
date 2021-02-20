@@ -14,10 +14,12 @@ class Random_Number {
 
     static void SetDefaultRng(RngType);
 
+    static void SetDefaultSeed(int);
+
     /// Initialize the random number generator with the given seed
     void rn_set(int);
     /// Initialize RN generator with 71277 (Amber default)
-    void rn_set();
+    //void rn_set();
     /// Generate a random number between 0.0 and 1.0
     double rn_gen();
     /// Generate a pseudo-random Gaussian sequence.
@@ -31,6 +33,7 @@ class Random_Number {
 
     Cpptraj::RNG* rng_; ///< Hold the random number generator.
 
-    static RngType default_; ///< Default RNG type
+    static RngType defaultType_; ///< Default RNG type
+    static int defaultSeed_;     ///< Default RNG seed
 };
 #endif
