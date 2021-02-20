@@ -1,8 +1,7 @@
 #ifndef INC_RANDOM_H
 #define INC_RANDOM_H
-// Class: Random_Number
 namespace Cpptraj {
-class RNG;
+  class RNG;
 }
 /// Wrapper around RNG
 class Random_Number {
@@ -16,22 +15,23 @@ class Random_Number {
 
     static void SetDefaultSeed(int);
 
-    /// Initialize the random number generator with the given seed
+    /// Allocate and initialize the random number generator with the given seed
     void rn_set(int);
     /// Initialize RN generator with 71277 (Amber default)
     //void rn_set();
     /// Generate a random number between 0.0 and 1.0
-    double rn_gen();
+    double rn_gen() const;
     /// Generate a pseudo-random Gaussian sequence.
-    double rn_gauss(double,double);
+    double rn_gauss(double,double) const;
     /// \return true if RN generator has been set up.
     bool IsSet() const;
     /// \return Value of RN generator seed
     int Seed() const;
   private:
+    /// Allocate the RNG
     void allocateRng();
 
-    Cpptraj::RNG* rng_; ///< Hold the random number generator.
+    Cpptraj::RNG* rng_;          ///< Hold the random number generator implemenatation.
 
     static RngType defaultType_; ///< Default RNG type
     static int defaultSeed_;     ///< Default RNG seed

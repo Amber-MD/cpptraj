@@ -54,12 +54,12 @@ void Random_Number::rn_set(int seedIn) {
 //}
 
 /** Generate random number. */
-double Random_Number::rn_gen() {
+double Random_Number::rn_gen() const {
   return rng_->Generate();
 }
 
 /** Generate pseudo-random Gaussian sequence. */
-double Random_Number::rn_gauss(double am, double sd) {
+double Random_Number::rn_gauss(double am, double sd) const {
   return rng_->GenerateGauss(am, sd);
 }
 
