@@ -8,6 +8,9 @@ rngtest: $(OBJECTS)
 clean:
 	/bin/rm -f $(OBJECTS) rngtest
 
+rngtest.o: rngtest.cpp
+	$(CXX) -c -o rngtest.o rngtest.cpp
+
 Random.o: ../../src/Random.cpp
 	$(CXX) -c -o Random.o ../../src/Random.cpp
 
