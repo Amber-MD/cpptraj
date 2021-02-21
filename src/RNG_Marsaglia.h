@@ -28,6 +28,7 @@ class RNG_Marsaglia : public RNG {
     RNG_Marsaglia();
     /// Generate a random number between 0.0 and 1.0
     double Generate();
+    unsigned int Number();
   private:
     /// Setup RNG
     int SetupRng();

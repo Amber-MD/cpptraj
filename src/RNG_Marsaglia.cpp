@@ -1,4 +1,5 @@
 #include <cstdlib> // div
+#include <limits>
 #include "RNG_Marsaglia.h"
 #include "CpptrajStdio.h"
 
@@ -121,4 +122,9 @@ double Cpptraj::RNG_Marsaglia::Generate() {
   uni -= RN_generator.c;
   if (uni < 0.0) uni += 1.0; 
   return uni;
+}
+
+unsigned int Cpptraj::RNG_Marsaglia::Number() {
+  double rn = Generate();
+  return (unsigned int)(rn * std::numeric_limits<unsigned int>::max());
 }

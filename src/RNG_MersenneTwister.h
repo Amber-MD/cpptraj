@@ -10,6 +10,7 @@ class RNG_MersenneTwister : public RNG {
     RNG_MersenneTwister() {}
 
     double Generate();
+    unsigned int Number();
   private:
     int SetupRng();
 #   ifdef C11_SUPPORT

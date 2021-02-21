@@ -10,6 +10,8 @@ class RNG {
     virtual ~RNG() {}
     /// Generate a random number between 0.0 and 1.0
     virtual double Generate() = 0;
+    /// Generate a random integer
+    virtual unsigned int Number() = 0;
 
     /// Initialize the random number generator with the given seed
     int Set_Seed(int);

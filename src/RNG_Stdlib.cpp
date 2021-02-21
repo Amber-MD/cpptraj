@@ -15,3 +15,7 @@ double Cpptraj::RNG_Stdlib::Generate() {
 
   return (drn / drand_max);
 }
+
+unsigned int Cpptraj::RNG_Stdlib::Number() {
+  return rand();
+}

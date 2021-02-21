@@ -10,6 +10,14 @@ double Cpptraj::RNG_MersenneTwister::Generate() {
 # endif
 }
 
+unsigned int Cpptraj::RNG_MersenneTwister::Number() {
+# ifdef C11_SUPPORT
+  return gen_();
+# else
+  return 0;
+# endif
+}
+
 int Cpptraj::RNG_MersenneTwister::SetupRng() {
 # ifdef C11_SUPPORT
   gen_.seed( Seed() );

@@ -21,6 +21,8 @@ class Random_Number {
     //void rn_set();
     /// Generate a random number between 0.0 and 1.0
     double rn_gen() const;
+    /// Generate a random integer
+    int rn_num() const;
     /// Generate a pseudo-random Gaussian sequence.
     double rn_gauss(double,double) const;
     /// \return true if RN generator has been set up.

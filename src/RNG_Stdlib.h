@@ -8,6 +8,7 @@ class RNG_Stdlib : public RNG {
     RNG_Stdlib();
 
     double Generate();
+    unsigned int Number();
   private:
     int SetupRng();
 };

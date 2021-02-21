@@ -38,11 +38,15 @@ int main(int argc, char** argv) {
   Random_Number::SetDefaultRng(rt);
   RNG.rn_set( iseed );
 
+/*
   double d_imax = (double)std::numeric_limits<int>::max();
   for (int ic = 0; ic < icount; ic++) {
     double rn = RNG.rn_gen() * d_imax;
     int in = (int)rn;
     printf("%10i\n", in);
+  }*/
+  for (int ic = 0; ic < icount; ic++) {
+    printf("%10i\n", RNG.rn_num());
   }
 
   //printf("\n");

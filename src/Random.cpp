@@ -63,6 +63,11 @@ double Random_Number::rn_gen() const {
   return rng_->Generate();
 }
 
+/** Generate a random integer. */
+int Random_Number::rn_num() const {
+  return rng_->Number();
+}
+
 /** Generate pseudo-random Gaussian sequence. */
 double Random_Number::rn_gauss(double am, double sd) const {
   return rng_->GenerateGauss(am, sd);
