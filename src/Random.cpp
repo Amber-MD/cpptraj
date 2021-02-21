@@ -4,6 +4,7 @@
 #include "RNG_Marsaglia.h"
 #include "RNG_Stdlib.h"
 #include "RNG_MersenneTwister.h"
+#include "RNG_PCG32.h"
 
 Random_Number::RngType Random_Number::defaultType_ = MARSAGLIAS;
 
@@ -43,6 +44,10 @@ void Random_Number::allocateRng() {
     case MERSENNE_TWISTER :
       mprintf("\tRNG: Mersenne twister\n");
       rng_ = new Cpptraj::RNG_MersenneTwister();
+      break;
+    case PCG32            :
+      mprintf("\tRNG: PCG 32\n");
+      rng_ = new Cpptraj::RNG_PCG32();
       break;
   } 
 }

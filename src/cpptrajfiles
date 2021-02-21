@@ -362,6 +362,7 @@ COMMON_SOURCES= \
         RNG.cpp \
         RNG_Marsaglia.cpp \
         RNG_MersenneTwister.cpp \
+        RNG_PCG32.cpp \
         RNG_Stdlib.cpp \
         RPNcalc.cpp \
         ReferenceAction.cpp \
