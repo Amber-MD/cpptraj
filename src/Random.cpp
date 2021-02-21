@@ -3,6 +3,7 @@
 #include "RNG.h"
 #include "RNG_Marsaglia.h"
 #include "RNG_Stdlib.h"
+#include "RNG_MersenneTwister.h"
 
 Random_Number::RngType Random_Number::defaultType_ = MARSAGLIAS;
 
@@ -38,6 +39,10 @@ void Random_Number::allocateRng() {
     case STDLIB     :
       mprintf("\tRNG: C stdlib\n");
       rng_ = new Cpptraj::RNG_Stdlib();
+      break;
+    case MERSENNE_TWISTER :
+      mprintf("\tRNG: Mersenne twister\n");
+      rng_ = new Cpptraj::RNG_MersenneTwister();
       break;
   } 
 }

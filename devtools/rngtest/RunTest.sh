@@ -4,7 +4,7 @@ COUNT=10000000
 
 make rngtest
 
-for CPPTRAJTYPE in 0 1 ; do
+for CPPTRAJTYPE in 0 1 2 ; do
   echo "Cpptraj type $CPPTRAJTYPE"
   TMPFILE=temp.$CPPTRAJTYPE
   ./rngtest -t $COUNT -S 1 -r $CPPTRAJTYPE > $TMPFILE
