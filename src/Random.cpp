@@ -5,6 +5,7 @@
 #include "RNG_Stdlib.h"
 #include "RNG_MersenneTwister.h"
 #include "RNG_PCG32.h"
+#include "RNG_Xoshiro128pp.h"
 
 Random_Number::RngType Random_Number::defaultType_ = MARSAGLIAS;
 
@@ -49,6 +50,10 @@ void Random_Number::allocateRng() {
       mprintf("\tRNG: PCG 32\n");
       rng_ = new Cpptraj::RNG_PCG32();
       break;
+    case XOSHIRO128PP     :
+      mprintf("\tRNG: Xoshiro128++\n");
+      rng_ = new Cpptraj::RNG_Xoshiro128pp();
+    break;
   } 
 }
 
