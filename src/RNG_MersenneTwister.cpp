@@ -1,4 +1,5 @@
 #include "RNG_MersenneTwister.h"
+#include "CpptrajStdio.h"
 
 double Cpptraj::RNG_MersenneTwister::Generate() {
 # ifdef C11_SUPPORT

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-COUNT=10000000
+COUNT=100000000
 
 make rngtest
 
