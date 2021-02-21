@@ -43,9 +43,9 @@ void Random_Number::allocateRng() {
 }
 
 /** Initialize RNG. */
-void Random_Number::rn_set(int seedIn) {
+int Random_Number::rn_set(int seedIn) {
   allocateRng();
-  rng_->Set_Seed( seedIn );
+  return rng_->Set_Seed( seedIn );
 }
 
 /** Initialize with default seed. */

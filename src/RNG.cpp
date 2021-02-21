@@ -7,7 +7,7 @@
 Cpptraj::RNG::RNG() : iseed_(-1) {}
 
 /** Set up the seed, then perform any specific setup required by the RNG. */
-void Cpptraj::RNG::Set_Seed(int iseedIn) {
+int Cpptraj::RNG::Set_Seed(int iseedIn) {
   // If iseed <= 0 set the seed based on wallclock time
   if (iseedIn <= 0 ) {
     clock_t wallclock = clock();
@@ -18,7 +18,9 @@ void Cpptraj::RNG::Set_Seed(int iseedIn) {
 
   if (SetupRng()) {
     mprinterr("Error: RNG setup failed.\n");
+    return 1;
   }
+  return 0;
 }
 
 /** This is a version of Generate() that adds the constraint of a Gaussian

@@ -12,12 +12,14 @@ class RNG {
     virtual double Generate() = 0;
 
     /// Initialize the random number generator with the given seed
-    void Set_Seed(int);
+    int Set_Seed(int);
     /// Initialize RN generator with 71277 (Amber default)
     //void Set_Seed() { Set_Seed(71277); }
 
     /// Generate a pseudo-random Gaussian sequence.
     double GenerateGauss(double,double);
+    /// Reorder elements in input array using Fisher-Yates shuffle
+    //void Fisher_Yates_Shuffle(std::vector<int>&);
 
     /// \return true if RN generator has been set up.
     bool IsSet() const { return (iseed_ != -1); }

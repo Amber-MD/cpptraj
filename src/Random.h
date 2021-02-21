@@ -16,7 +16,7 @@ class Random_Number {
     static void SetDefaultSeed(int);
 
     /// Allocate and initialize the random number generator with the given seed
-    void rn_set(int);
+    int rn_set(int);
     /// Initialize RN generator with 71277 (Amber default)
     //void rn_set();
     /// Generate a random number between 0.0 and 1.0
