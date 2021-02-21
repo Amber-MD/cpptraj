@@ -1,6 +1,6 @@
 include ../../config.h
 
-OBJECTS=rngtest.o Random.o RNG.o RNG_Stdlib.o RNG_Marsaglia.o CpptrajStdio.o RNG_MersenneTwister.o
+OBJECTS=rngtest.o Random.o RNG.o RNG_Stdlib.o RNG_Marsaglia.o CpptrajStdio.o RNG_MersenneTwister.o RNG_PCG32.o
 
 all: rngtest
 
@@ -27,6 +27,9 @@ RNG_Marsaglia.o: ../../src/RNG_Marsaglia.cpp
 
 RNG_MersenneTwister.o: ../../src/RNG_MersenneTwister.cpp
 	$(CXX) $(DIRECTIVES) $(CXXFLAGS) -c -o RNG_MersenneTwister.o ../../src/RNG_MersenneTwister.cpp
+
+RNG_PCG32.o: ../../src/RNG_PCG32.cpp
+	$(CXX) -c -o RNG_PCG32.o ../../src/RNG_PCG32.cpp
 
 CpptrajStdio.o: ../../src/CpptrajStdio.cpp
 	$(CXX) -c -o CpptrajStdio.o ../../src/CpptrajStdio.cpp

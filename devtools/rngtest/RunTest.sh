@@ -4,7 +4,7 @@ COUNT=100000000
 
 make rngtest
 
-for CPPTRAJTYPE in 0 1 2 ; do
+for CPPTRAJTYPE in 0 1 2 3 ; do
   OUTFILE=results.$CPPTRAJTYPE
   echo "Cpptraj type $CPPTRAJTYPE"
   echo "Cpptraj type $CPPTRAJTYPE" > $OUTFILE

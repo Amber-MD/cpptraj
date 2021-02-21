@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     printf("%10i\n", in);
   }*/
   for (int ic = 0; ic < icount; ic++) {
-    printf("%10i\n", RNG.rn_num());
+    printf("%10u\n", RNG.rn_num());
   }
 
   //printf("\n");

@@ -2,6 +2,7 @@
 
 int Cpptraj::RNG_PCG32::SetupRng() {
   rng_ = pcg32( Seed() );
+  return 0;
 }
 
 double Cpptraj::RNG_PCG32::Generate() {
