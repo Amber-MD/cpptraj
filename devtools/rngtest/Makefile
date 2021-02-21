@@ -1,6 +1,6 @@
 include ../../config.h
 
-OBJECTS=rngtest.o Random.o RNG.o RNG_Stdlib.o RNG_Marsaglia.o CpptrajStdio.o RNG_MersenneTwister.o RNG_PCG32.o
+OBJECTS=rngtest.o Random.o RNG.o RNG_Stdlib.o RNG_Marsaglia.o CpptrajStdio.o RNG_MersenneTwister.o RNG_PCG32.o xoshiro128plusplus.o RNG_Xoshiro128pp.o
 
 all: rngtest
 
@@ -33,3 +33,10 @@ RNG_PCG32.o: ../../src/RNG_PCG32.cpp
 
 CpptrajStdio.o: ../../src/CpptrajStdio.cpp
 	$(CXX) -c -o CpptrajStdio.o ../../src/CpptrajStdio.cpp
+
+RNG_Xoshiro128pp.o: ../../src/RNG_Xoshiro128pp.cpp
+	$(CXX) -c -o RNG_Xoshiro128pp.o ../../src/RNG_Xoshiro128pp.cpp
+
+xoshiro128plusplus.o: ../../src/xoshiro128plusplus.c
+	$(CC) -c -o xoshiro128plusplus.o ../../src/xoshiro128plusplus.c
+	
