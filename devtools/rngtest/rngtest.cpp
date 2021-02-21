@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
     printf("%10i\n", in);
   }
 
-  printf("\n");
+  //printf("\n");
 
   return 0;
 }
