@@ -17,6 +17,7 @@ rng setdefault xo128     createset Xoshiro128++ settype int count 10 seed 10 out
 list
 EOF
 RunCpptraj "$UNITNAME"
+DoTest random.dat.save random.dat
 
 UNITNAME='Test Mersenne Twister RNG'
 CheckFor c++11
@@ -25,6 +26,7 @@ if [ $? -eq 0 ] ; then
 rng setdefault mt createset MT    settype int count 10 seed 10 out mt.dat
 EOF
   RunCpptraj "$UNITNAME"
+  DoTest mt.dat.save mt.dat
 fi
 
 EndTest
