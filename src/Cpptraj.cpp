@@ -232,6 +232,9 @@ std::string Cpptraj::Defines() {
 #ifdef FFTW_FFT
   defined_str.append(" -DFFTW_FFT");
 #endif
+#ifdef C11_SUPPORT
+  defined_str.append(" -DC11_SUPPORT");
+#endif
 #ifdef LIBPME
   defined_str.append(" -DLIBPME");
 #endif
