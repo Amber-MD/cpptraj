@@ -229,6 +229,7 @@ COMMON_SOURCES= \
         DataSet_string.cpp \
         DataSet_StringVar.cpp \
         DataSet_Tensor.cpp \
+        DataSet_unsignedInt.cpp \
         Deprecated.cpp \
         DihedralSearch.cpp \
         DistRoutines.cpp \

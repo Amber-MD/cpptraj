@@ -32,6 +32,7 @@ const char* DataSet::Descriptions_[] = {
   "tensor",                     // TENSOR
   "string variable",            // STRINGVAR
   "vector with scalar"          // VECTOR_SCALAR
+  "unsigned integer"            // UNSIGNED_INTEGER
 };
 
 // CONSTRUCTOR
