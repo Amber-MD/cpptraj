@@ -16,6 +16,8 @@ class Random_Number {
 
     static void SetDefaultSeed(int);
 
+    static const char* CurrentDefaultRngStr();
+
     /// Allocate and initialize the random number generator with the given seed
     int rn_set(int);
     /// Initialize RN generator with 71277 (Amber default)

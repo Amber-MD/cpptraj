@@ -4,39 +4,42 @@ OBJECTS=rngtest.o Random.o RNG.o RNG_Stdlib.o RNG_Marsaglia.o CpptrajStdio.o RNG
 
 all: rngtest
 
+debug:
+	make CXXFLAGS='-O0 -g' CFLAGS='-O0 -g' rngtest
+
 rngtest: $(OBJECTS)
-	$(CXX) -o rngtest $(OBJECTS)
+	$(CXX) $(CXXFLAGS) -o rngtest $(OBJECTS)
 
 clean:
 	/bin/rm -f $(OBJECTS) rngtest
 
 rngtest.o: rngtest.cpp
-	$(CXX) -c -o rngtest.o rngtest.cpp
+	$(CXX) $(CXXFLAGS) -c -o rngtest.o rngtest.cpp
 
 Random.o: ../../src/Random.cpp
-	$(CXX) -c -o Random.o ../../src/Random.cpp
+	$(CXX) $(CXXFLAGS) -c -o Random.o ../../src/Random.cpp
 
 RNG.o: ../../src/RNG.cpp
-	$(CXX) -c -o RNG.o ../../src/RNG.cpp
+	$(CXX) $(CXXFLAGS) -c -o RNG.o ../../src/RNG.cpp
 
 RNG_Stdlib.o: ../../src/RNG_Stdlib.cpp
-	$(CXX) -c -o RNG_Stdlib.o ../../src/RNG_Stdlib.cpp
+	$(CXX) $(CXXFLAGS) -c -o RNG_Stdlib.o ../../src/RNG_Stdlib.cpp
 
 RNG_Marsaglia.o: ../../src/RNG_Marsaglia.cpp
-	$(CXX) -c -o RNG_Marsaglia.o ../../src/RNG_Marsaglia.cpp
+	$(CXX) $(CXXFLAGS) -c -o RNG_Marsaglia.o ../../src/RNG_Marsaglia.cpp
 
 RNG_MersenneTwister.o: ../../src/RNG_MersenneTwister.cpp
 	$(CXX) $(DIRECTIVES) $(CXXFLAGS) -c -o RNG_MersenneTwister.o ../../src/RNG_MersenneTwister.cpp
 
 RNG_PCG32.o: ../../src/RNG_PCG32.cpp
-	$(CXX) -c -o RNG_PCG32.o ../../src/RNG_PCG32.cpp
+	$(CXX) $(CXXFLAGS) -c -o RNG_PCG32.o ../../src/RNG_PCG32.cpp
 
 CpptrajStdio.o: ../../src/CpptrajStdio.cpp
-	$(CXX) -c -o CpptrajStdio.o ../../src/CpptrajStdio.cpp
+	$(CXX) $(CXXFLAGS) -c -o CpptrajStdio.o ../../src/CpptrajStdio.cpp
 
 RNG_Xoshiro128pp.o: ../../src/RNG_Xoshiro128pp.cpp
-	$(CXX) -c -o RNG_Xoshiro128pp.o ../../src/RNG_Xoshiro128pp.cpp
+	$(CXX) $(CXXFLAGS) -c -o RNG_Xoshiro128pp.o ../../src/RNG_Xoshiro128pp.cpp
 
 xoshiro128plusplus.o: ../../src/xoshiro128plusplus.c
-	$(CC) -c -o xoshiro128plusplus.o ../../src/xoshiro128plusplus.c
+	$(CC) $(CFLAGS) -c -o xoshiro128plusplus.o ../../src/xoshiro128plusplus.c
 	

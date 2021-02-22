@@ -8,7 +8,8 @@
 
 static int DieHard_Tests(Random_Number const& RNG, int itype, int iseed, int icount) {
   printf("#==================================================================\n");
-  printf("# Cpptraj generator %i  seed = %i                                  \n", itype, iseed);
+  printf("# Cpptraj generator %s  seed = %i                                  \n",
+         Random_Number::CurrentDefaultRngStr(), iseed);
   printf("#==================================================================\n");
   printf("type: d\n");
   printf("count: %i\n", icount);

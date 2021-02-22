@@ -34,6 +34,19 @@ Random_Number::~Random_Number() {
   if (rng_ != 0) delete rng_;
 }
 
+/** \return Description of current default RNG. */
+const char* Random_Number::CurrentDefaultRngStr() {
+  const char* str = 0;
+  switch (defaultType_) {
+    case MARSAGLIAS       : str = "Marsaglia"; break;
+    case STDLIB           : str = "C stdlib"; break;
+    case MERSENNE_TWISTER : str = "Mersenne Twister (mt19937)"; break;
+    case PCG32            : str = "Permuted Congruential Generator (32 bit)"; break;
+    case XOSHIRO128PP     : str = "Xoshiro128++"; break;
+  }
+  return str;
+}
+
 /** Allocate RNG according to the current default type. */
 void Random_Number::allocateRng() {
   if (rng_ != 0) delete rng_;
