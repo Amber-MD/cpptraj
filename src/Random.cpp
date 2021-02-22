@@ -79,8 +79,23 @@ double Random_Number::rn_gen() const {
 }
 
 /** Generate a random integer. */
-int Random_Number::rn_num() const {
+unsigned int Random_Number::rn_num() const {
   return rng_->Number();
+}
+
+/** Generate a random integer on interval imin to imax. 
+  * NOTE: Unlike rn_num(), this returns an integer to allow intervals of
+  *       negative numbers.
+  */
+int Random_Number::rn_num_interval(int imin, int imax) const {
+  int iwidth = imax - imin;
+  if (iwidth < 1) {
+    mprinterr("Internal Error: Random_Number::rn_num(): Interval width <= 0.\n");
+    return 0;
+  }
+  int uwidth = (unsigned int)iwidth + 1;
+  unsigned int umod = (rn_num() % uwidth);
+  return (int)umod + imin;
 }
 
 /** This uses Generate() to generate random numbers between 0 and 1

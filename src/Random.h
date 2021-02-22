@@ -22,7 +22,9 @@ class Random_Number {
     /// Generate a random number between 0.0 and 1.0
     double rn_gen() const;
     /// Generate a random integer
-    int rn_num() const;
+    unsigned int rn_num() const;
+    /// Generate a random number on defined interval
+    int rn_num_interval(int, int) const;
     /// Generate random numbers between 0 and 1 in Gaussian distribution.
     double GenerateGauss(double, double) const;
     /// Generate a pseudo-random Gaussian sequence. // TODO deprecate this version
