@@ -1,6 +1,9 @@
 #include "RNG_MersenneTwister.h"
 #include "CpptrajStdio.h"
 
+Cpptraj::RNG_MersenneTwister::RNG_MersenneTwister()  
+{}
+
 double Cpptraj::RNG_MersenneTwister::Generate() {
 # ifdef C11_SUPPORT
   unsigned urn = gen_();

@@ -7,7 +7,7 @@
 namespace Cpptraj {
 class RNG_MersenneTwister : public RNG {
   public:
-    RNG_MersenneTwister() {}
+    RNG_MersenneTwister();
 
     double Generate();
     unsigned int Number();
