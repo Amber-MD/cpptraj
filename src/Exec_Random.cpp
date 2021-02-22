@@ -52,11 +52,11 @@ Exec::RetType Exec_Random::Execute(CpptrajState& State, ArgList& argIn)
     std::string typestr = argIn.GetStringKey("settype");
     if (typestr == "int") {
       // Create integer set
-      DataSet* ds = State.DSL().AddSet( DataSet::INTEGER, MetaData(dsname) );
+      DataSet* ds = State.DSL().AddSet( DataSet::UNSIGNED_INTEGER, MetaData(dsname) );
       if (ds == 0) return CpptrajState::ERR;
       if (outfile != 0) outfile->AddDataSet( ds );
       for (int idx = 0; idx != count; idx++) {
-        int rn = rng.rn_num();
+        unsigned int rn = rng.rn_num();
         ds->Add(idx, &rn);
       }
     } else {
