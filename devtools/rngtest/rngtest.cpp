@@ -84,9 +84,12 @@ int main(int argc, char** argv) {
   // Setup RNG
   Random_Number::RngType rt = (Random_Number::RngType)itype;
   Random_Number::SetDefaultRng(rt);
-  RNG.rn_set( iseed );
-
+  if (RNG.rn_set( iseed )) {
+    fprintf(stderr, "Error: Could not set up RNG.\n");
+    return 1;
+  }
   int err = 0;
+
   if (mode == DIEHARD) {
     err = DieHard_Tests(RNG, itype, iseed, icount);
   } else if (mode == SHUFFLE) {
