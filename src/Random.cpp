@@ -87,15 +87,27 @@ unsigned int Random_Number::rn_num() const {
   * NOTE: Unlike rn_num(), this returns an integer to allow intervals of
   *       negative numbers.
   */
-int Random_Number::rn_num_interval(int imin, int imax) const {
+int Random_Number::rn_num_interval_signed(int imin, int imax) const {
   int iwidth = imax - imin;
   if (iwidth < 1) {
-    mprinterr("Internal Error: Random_Number::rn_num(): Interval width <= 0.\n");
+    mprinterr("Internal Error: Random_Number::rn_num_interval_signed(): Interval width <= 0.\n");
     return 0;
   }
-  int uwidth = (unsigned int)iwidth + 1;
+  unsigned int uwidth = (unsigned int)iwidth + 1;
   unsigned int umod = (rn_num() % uwidth);
   return (int)umod + imin;
+}
+
+/** Generate a random integer on interval umin to umax. */
+unsigned int Random_Number::rn_num_interval(unsigned int umin, unsigned int umax) const {
+  if (umax > umin) {
+   unsigned int uwidth = (umax - umin) + 1;
+   unsigned int umod = (rn_num() % uwidth);
+   return umod + umin; 
+  } else {
+    mprinterr("Internal Error: Random_Number::rn_num_interval(): Interval max <= interval min.\n");
+  }
+  return 0;
 }
 
 /** This uses Generate() to generate random numbers between 0 and 1

@@ -24,7 +24,9 @@ class Random_Number {
     /// Generate a random integer
     unsigned int rn_num() const;
     /// Generate a random number on defined interval
-    int rn_num_interval(int, int) const;
+    int rn_num_interval_signed(int, int) const;
+    /// Generate a random number on defined interval
+    unsigned int rn_num_interval(unsigned int, unsigned int) const;
     /// Generate random numbers between 0 and 1 in Gaussian distribution.
     double GenerateGauss(double, double) const;
     /// Generate a pseudo-random Gaussian sequence. // TODO deprecate this version
