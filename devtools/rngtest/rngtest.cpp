@@ -31,7 +31,7 @@ static int DieHard_Tests(Random_Number const& RNG, int itype, int iseed, int ico
 }
 
 static int Shuffle_Tests(Random_Number const& RNG, int itype, int iseed, int icount) {
-  printf("Shuffle tests\n");
+  printf("Shuffle tests (%s)\n", Random_Number::CurrentDefaultRngStr());
   printf("\tSeed  : %i\n", iseed);
   printf("\tCount : %i\n", icount);
   printf("\tType  : %i\n", itype);
