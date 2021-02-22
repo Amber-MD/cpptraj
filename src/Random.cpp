@@ -148,6 +148,19 @@ double Random_Number::rn_gauss(double am, double sd) const {
   return GenerateGauss(am, sd);
 }
 
+/** Use modern version of the Fisher-Yates shuffle to randomly reorder the
+  * given points.
+  */
+void Random_Number::ShufflePoints( std::vector<int>& PointIndices ) const {
+  for (unsigned int i = PointIndices.size() - 1; i != 1; i--)
+  { // 0 <= j <= i
+    unsigned int j = rn_num_interval(0, i);
+    int temp = PointIndices[j];
+    PointIndices[j] = PointIndices[i];
+    PointIndices[i] = temp;
+  }
+}
+
 /** \return true if RNG has been set up. */
 bool Random_Number::IsSet() const {
   return rng_->IsSet();

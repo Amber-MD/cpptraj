@@ -1,5 +1,6 @@
 #ifndef INC_RANDOM_H
 #define INC_RANDOM_H
+#include <vector>
 namespace Cpptraj {
   class RNG;
 }
@@ -31,6 +32,8 @@ class Random_Number {
     double GenerateGauss(double, double) const;
     /// Generate a pseudo-random Gaussian sequence. // TODO deprecate this version
     double rn_gauss(double,double) const;
+    /// Shuffle given points in array
+    void ShufflePoints(std::vector<int>&) const;
     /// \return true if RN generator has been set up.
     bool IsSet() const;
     /// \return Value of RN generator seed
