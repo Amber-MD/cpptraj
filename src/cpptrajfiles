@@ -277,6 +277,7 @@ COMMON_SOURCES= \
         Exec_Precision.cpp \
         Exec_PrepareForLeap.cpp \
         Exec_PrintData.cpp \
+        Exec_Random.cpp \
         Exec_ReadData.cpp \
         Exec_ReadEnsembleData.cpp \
         Exec_ReadInput.cpp \

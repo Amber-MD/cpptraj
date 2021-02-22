@@ -36,6 +36,7 @@
 #include "Exec_ViewRst.h"
 #include "Exec_Set.h"
 #include "Exec_Show.h"
+#include "Exec_Random.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -228,6 +229,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
   Command::AddCmd( new Exec_QuietBlocks(),     Cmd::EXE, 1, "quietblocks" );
   Command::AddCmd( new Exec_Quit(),            Cmd::EXE, 2, "exit", "quit" );
+  Command::AddCmd( new Exec_Random(),          Cmd::EXE, 2, "random", "rng" );
   Command::AddCmd( new Exec_ReadData(),        Cmd::EXE, 1, "readdata" );
   Command::AddCmd( new Exec_ReadEnsembleData(),Cmd::EXE, 1, "readensembledata" );
   Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
