@@ -5,7 +5,8 @@
 // Exec_Random::Help()
 void Exec_Random::Help() const
 {
-
+  mprintf("\t[setdefault {marsaglia|stdlib|mt|pcg32|xo128}]\n"
+          "\t[createset <name> count <#> settype {int} [seed <#>]\n");
 }
 
 // Exec_Random::Execute()
