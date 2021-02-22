@@ -18,8 +18,6 @@ class RNG {
     /// Initialize RN generator with 71277 (Amber default)
     //void Set_Seed() { Set_Seed(71277); }
 
-    /// Generate a pseudo-random Gaussian sequence.
-    double GenerateGauss(double,double);
     /// Reorder elements in input array using Fisher-Yates shuffle
     //void Fisher_Yates_Shuffle(std::vector<int>&);
 

@@ -23,7 +23,9 @@ class Random_Number {
     double rn_gen() const;
     /// Generate a random integer
     int rn_num() const;
-    /// Generate a pseudo-random Gaussian sequence.
+    /// Generate random numbers between 0 and 1 in Gaussian distribution.
+    double GenerateGauss(double, double) const;
+    /// Generate a pseudo-random Gaussian sequence. // TODO deprecate this version
     double rn_gauss(double,double) const;
     /// \return true if RN generator has been set up.
     bool IsSet() const;

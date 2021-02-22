@@ -1,3 +1,4 @@
+#include <cmath> //sqrt, log
 #include "CpptrajStdio.h"
 #include "Random.h"
 #include "RNG.h"
@@ -78,9 +79,42 @@ int Random_Number::rn_num() const {
   return rng_->Number();
 }
 
-/** Generate pseudo-random Gaussian sequence. */
+/** This uses Generate() to generate random numbers between 0 and 1
+  * in a Gaussian distribution, with mean "am" and standard deviation "sd".
+  */
+double Random_Number::GenerateGauss(double am, double sd) const {
+  if (!IsSet()) {
+    mprinterr("Error: random number generator not initialized.");
+    return -1.0;
+  }
+  // Use the method of Box and Muller.
+  // For some applications, one could use both "v" and "veven" in random
+  // sequence; but this won't work for most things we need (e.g. Langevin
+  // dynamics,) since the two adjacent variables are themselves highly
+  // correlated.  Hence we will just use the first ("v") variable.
+
+  // Get two random numbers, even on (-1,1):
+  bool generate = true;
+  while (generate) {
+    double uni = rng_->Generate();
+    double zeta1 = uni + uni - 1.0;
+
+    uni = rng_->Generate();
+    double zeta2 = uni + uni - 1.0;
+
+    double tmp1 = zeta1 * zeta1 + zeta2 * zeta2;
+
+    if (tmp1 < 1.0 && tmp1 != 0.0) {
+        double tmp2 = sd * sqrt(-2.0 * log(tmp1)/tmp1);
+        return (zeta1 * tmp2 + am);
+    }
+  }
+  return 0.0;
+}
+
+/** Generate pseudo-random Gaussian sequence. */ // TODO deprecate this version
 double Random_Number::rn_gauss(double am, double sd) const {
-  return rng_->GenerateGauss(am, sd);
+  return GenerateGauss(am, sd);
 }
 
 /** \return true if RNG has been set up. */
