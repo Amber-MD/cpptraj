@@ -11,7 +11,7 @@ void Exec_Random::Help() const
 # else
           "\t[setdefault {marsaglia|stdlib|pcg32|xo128}]\n"
 # endif
-          "\t[createset <name> count <#> settype {int} [seed <#>]]\n");
+          "\t[createset <name> count <#> settype {int|float01} [seed <#>]]\n");
 }
 
 // Exec_Random::Execute()
@@ -57,6 +57,15 @@ Exec::RetType Exec_Random::Execute(CpptrajState& State, ArgList& argIn)
       if (outfile != 0) outfile->AddDataSet( ds );
       for (int idx = 0; idx != count; idx++) {
         unsigned int rn = rng.rn_num();
+        ds->Add(idx, &rn);
+      }
+    } else if (typestr == "float01") {
+      // Create floating point set between 0 and 1
+      DataSet* ds = State.DSL().AddSet( DataSet::DOUBLE, MetaData(dsname) );
+      if (ds == 0) return CpptrajState::ERR;
+      if (outfile != 0) outfile->AddDataSet( ds );
+      for (int idx = 0; idx != count; idx++) {
+        double rn = rng.rn_gen();
         ds->Add(idx, &rn);
       }
     } else {
