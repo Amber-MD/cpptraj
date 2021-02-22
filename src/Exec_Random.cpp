@@ -11,7 +11,7 @@ void Exec_Random::Help() const
 # else
           "\t[setdefault {marsaglia|stdlib|pcg32|xo128}]\n"
 # endif
-          "\t[createset <name> count <#> settype {int} [seed <#>]\n");
+          "\t[createset <name> count <#> settype {int} [seed <#>]]\n");
 }
 
 // Exec_Random::Execute()
