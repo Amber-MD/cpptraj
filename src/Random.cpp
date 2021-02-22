@@ -8,14 +8,18 @@
 #include "RNG_PCG32.h"
 #include "RNG_Xoshiro128pp.h"
 
+/** Starting default type. */
 Random_Number::RngType Random_Number::defaultType_ = MARSAGLIAS;
 
+/** Starting default seed. */
 int Random_Number::defaultSeed_ = 71277; // AMBER default seed
 
+/** Set the default RNG type. */
 void Random_Number::SetDefaultRng(RngType r) {
   defaultType_ = r;
 }
 
+/** Set the default seed. */
 void Random_Number::SetDefaultSeed(int i) {
   defaultSeed_ = i;
 }
@@ -30,7 +34,7 @@ Random_Number::~Random_Number() {
   if (rng_ != 0) delete rng_;
 }
 
-/** Allocate RNG. */
+/** Allocate RNG according to the current default type. */
 void Random_Number::allocateRng() {
   if (rng_ != 0) delete rng_;
   rng_ = 0;
@@ -58,7 +62,7 @@ void Random_Number::allocateRng() {
   } 
 }
 
-/** Initialize RNG. */
+/** Allocate RNG, initialize with given seed. */
 int Random_Number::rn_set(int seedIn) {
   allocateRng();
   return rng_->Set_Seed( seedIn );
@@ -69,7 +73,7 @@ int Random_Number::rn_set(int seedIn) {
 //  rng_->Set_Seed();
 //}
 
-/** Generate random number. */
+/** Generate random number between 0 and 1. */
 double Random_Number::rn_gen() const {
   return rng_->Generate();
 }
