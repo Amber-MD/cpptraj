@@ -1,14 +1,16 @@
 include ../../config.h
 
-OBJECTS=rngtest.o Random.o RNG.o RNG_Stdlib.o RNG_Marsaglia.o CpptrajStdio.o RNG_MersenneTwister.o RNG_PCG32.o xoshiro128plusplus.o RNG_Xoshiro128pp.o
+#OBJECTS=rngtest.o Random.o RNG.o RNG_Stdlib.o RNG_Marsaglia.o CpptrajStdio.o RNG_MersenneTwister.o RNG_PCG32.o xoshiro128plusplus.o RNG_Xoshiro128pp.o
+OBJECTS=xoshiro128plusplus.o
+SOURCES=rngtest.cpp ../../src/RNG_MersenneTwister.cpp ../../src/RNG.cpp ../../src/CpptrajStdio.cpp ../../src/Random.cpp ../../src/RNG_Stdlib.cpp ../../src/RNG_Marsaglia.cpp ../../src/RNG_PCG32.cpp ../../src/RNG_Xoshiro128pp.cpp
 
 all: rngtest
 
 debug:
 	make CXXFLAGS='-O0 -g' CFLAGS='-O0 -g' rngtest
 
-rngtest: $(OBJECTS)
-	$(CXX) $(CXXFLAGS) -o rngtest $(OBJECTS)
+rngtest: $(SOURCES) $(OBJECTS)
+	$(CXX) $(DIRECTIVES) $(CXXFLAGS) -o rngtest $(SOURCES) $(OBJECTS)
 
 clean:
 	/bin/rm -f $(OBJECTS) rngtest
