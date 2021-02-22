@@ -5,7 +5,12 @@
 // Exec_Random::Help()
 void Exec_Random::Help() const
 {
-  mprintf("\t[setdefault {marsaglia|stdlib|mt|pcg32|xo128}]\n"
+  mprintf(
+# ifdef C11_SUPPORT
+          "\t[setdefault {marsaglia|stdlib|mt|pcg32|xo128}]\n"
+# else
+          "\t[setdefault {marsaglia|stdlib|pcg32|xo128}]\n"
+# endif
           "\t[createset <name> count <#> settype {int} [seed <#>]\n");
 }
 
