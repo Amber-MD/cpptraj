@@ -5,6 +5,7 @@
 #include "DataSet_Topology.h" // AddTopology
 #include "FrameArray.h" // RunEnsemble
 #include "ProgressBar.h"
+#include "Random.h"
 #ifdef MPI
 # include "Parallel.h"
 # include "DataSet_Coords_TRJ.h"
@@ -29,6 +30,38 @@ CpptrajState::CpptrajState() :
   , forceParallelEnsemble_(false)
 # endif
 {}
+
+/** \return Keywords recognized by ChangeDefaultRng() */
+const char* CpptrajState::RngKeywords() {
+# ifdef C11_SUPPORT
+  return "{marsaglia|stdlib|mt|pcg32|xo128}";
+# else
+  return "{marsaglia|stdlib|pcg32|xo128}";
+# endif
+}
+
+/** Change default RNG. */
+int CpptrajState::ChangeDefaultRng(std::string const& setarg) const {
+  if (!setarg.empty()) {
+    if (setarg == "marsaglia") Random_Number::SetDefaultRng( Random_Number::MARSAGLIAS );
+    else if (setarg == "stdlib") Random_Number::SetDefaultRng( Random_Number::STDLIB );
+    else if (setarg == "mt") {
+#     ifdef C11_SUPPORT
+      Random_Number::SetDefaultRng( Random_Number::MERSENNE_TWISTER );
+#     else
+      mprinterr("Error: Mersenne twister RNG requires C++11 support.\n");
+      return 1;
+#     endif
+    } else if (setarg == "pcg32") Random_Number::SetDefaultRng( Random_Number::PCG32 );
+    else if (setarg == "xo128") Random_Number::SetDefaultRng( Random_Number::XOSHIRO128PP );
+    else {
+      mprinterr("Error: Unrecognized RNG type for 'setdefault': %s\n", setarg.c_str());
+      return 1;
+    }
+    mprintf("\tDefault RNG set to '%s'\n", Random_Number::CurrentDefaultRngStr());
+  }
+  return 0;
+}
 
 /** This version of SetTrajMode() may be called from AddToActionQueue() to set
   * NORMAL as the default mode without setting up a trajectory. May also be used
