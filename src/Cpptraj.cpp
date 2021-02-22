@@ -65,6 +65,7 @@ void Cpptraj::Usage() {
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
             "               [-ms <mask>] [-mr <mask>] [--mask <mask>] [--resmask <mask>]\n"
+            "               [--rng %s]\n"
             "\t-p <Top0>        : * Load <Top0> as a topology file.\n"
             "\t-i <Input0>      : * Read input from file <Input0>.\n"
             "\t-y <trajin>      : * Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
@@ -87,8 +88,9 @@ void Cpptraj::Usage() {
             "\t-mr <mask>       : Print selected residue numbers to STDOUT.\n"
             "\t--mask <mask>    : Print detailed atom selection to STDOUT.\n"
             "\t--resmask <mask> : Print detailed residue selection to STDOUT.\n"
+            "\t--rng <type>     : Change default random number generator.\n"
             "      * Denotes flag may be specified multiple times.\n"
-            "\n");
+            "\n", CpptrajState::RngKeywords());
 }
 
 void Cpptraj::Intro() const {
@@ -482,6 +484,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // --resmask: Parse mask string, print selected residue details
       if (ProcessMask( topFiles, refFiles, cmdLineArgs[++iarg], true, true )) return ERROR;
       return QUIT;
+    } else if ( NotFinalArg(cmdLineArgs, "--rng", iarg) ) {
+      // --rng: Change default RNG
+      if (State_.ChangeDefaultRng( cmdLineArgs[++iarg] )) return ERROR;
     } else {
       // Check if this is a file.
 #     ifdef MPI

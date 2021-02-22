@@ -55,7 +55,7 @@ int CpptrajState::ChangeDefaultRng(std::string const& setarg) const {
     } else if (setarg == "pcg32") Random_Number::SetDefaultRng( Random_Number::PCG32 );
     else if (setarg == "xo128") Random_Number::SetDefaultRng( Random_Number::XOSHIRO128PP );
     else {
-      mprinterr("Error: Unrecognized RNG type for 'setdefault': %s\n", setarg.c_str());
+      mprinterr("Error: Unrecognized RNG type: %s\n", setarg.c_str());
       return 1;
     }
     mprintf("\tDefault RNG set to '%s'\n", Random_Number::CurrentDefaultRngStr());
