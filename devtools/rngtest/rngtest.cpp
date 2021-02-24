@@ -49,12 +49,40 @@ static int Shuffle_Tests(Random_Number const& RNG, int itype, int iseed, int ico
   return 0;
 }
 
+static int Range_Tests(Random_Number const& RNG, int itype, int iseed, int icount) {
+  printf("Range tests (%s)\n", Random_Number::CurrentDefaultRngStr());
+  printf("\tSeed  : %i\n", iseed);
+  printf("\tCount : %i\n", icount);
+  printf("\tType  : %i\n", itype);
+
+  unsigned int min = 1;
+  unsigned int max = 10;
+  std::vector<int> Counts( max-min+1, 0 );
+  unsigned int oob = 0;
+  for (int i = 0; i < icount; i++) {
+    unsigned int rn = RNG.rn_num_interval(min, max);
+    long int idx = (long int)rn - (long int)min;
+    if (idx < 0 || idx >= (long int)Counts.size()) {
+      printf("Random # %u out of bounds (%li)\n", rn, idx);
+      oob++;
+    } else {
+      Counts[idx]++;
+    }
+  }
+
+  printf("Final counts (%u out of bounds):\n", oob);
+  unsigned int num = min;
+  for (std::vector<int>::const_iterator it = Counts.begin(); it != Counts.end(); ++it, ++num)
+    printf("\t%10u : %10u\n", num, *it);
+  return 0;
+}
+
 // Test the random number generators in cpptraj
 int main(int argc, char** argv) {
   SetWorldSilent(true);
   Random_Number RNG;
 
-  enum ModeType {DIEHARD = 0, SHUFFLE };
+  enum ModeType {DIEHARD = 0, SHUFFLE, RANGE };
   ModeType mode = DIEHARD;
   int iseed = 0;
   int icount = 0;
@@ -74,6 +102,8 @@ int main(int argc, char** argv) {
         mode = DIEHARD;
       else if (marg == "shuffle")
         mode = SHUFFLE;
+      else if (marg == "range")
+        mode = RANGE;
       else {
         fprintf(stderr,"Error: Unrecognized mode: %s\n", marg.c_str());
         return 1;
@@ -94,6 +124,8 @@ int main(int argc, char** argv) {
     err = DieHard_Tests(RNG, itype, iseed, icount);
   } else if (mode == SHUFFLE) {
     err = Shuffle_Tests(RNG, itype, iseed, icount);
+  } else if (mode == RANGE) {
+    err = Range_Tests(RNG, itype, iseed, icount);
   }
 
   return err;
