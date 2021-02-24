@@ -7136,7 +7136,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="33" columns="2">
+<lyxtabular version="3" rows="34" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -7560,6 +7560,26 @@ printdata
 
 \begin_layout Plain Layout
 Print data set to screen.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+random
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Change default random number generator, create random sets.
 \end_layout
 
 \end_inset
@@ -10232,6 +10252,89 @@ and the output would look like:
 
 \begin_layout LyX-Code
 2 0.630
+\end_layout
+
+\begin_layout Subsection
+random
+\end_layout
+
+\begin_layout LyX-Code
+random [setdefault {marsaglia|stdlib|mt|pcg32|xo128}]
+\end_layout
+
+\begin_layout LyX-Code
+   	[createset <name> count <#> settype {int|float01} [seed <#>]]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+setdefault If specified, change the default random number generator (RNG).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+marsaglia Use the Marsaglia RNG that is used in the Amber MD programs sander/pme
+md.
+\end_layout
+
+\begin_layout Description
+stdlib Use the C standard library RNG.
+\end_layout
+
+\begin_layout Description
+mt Use the C++11 implementation of the Mersenne twister (mt19937); only
+ available with C++11 support.
+\end_layout
+
+\begin_layout Description
+pcg32 Use the 32 bit version of the Permuted Congruential Generator.
+\end_layout
+
+\begin_layout Description
+xo128 Use the Xoshiro128++ RNG.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+createset If specified, create a 1D data set filled with random numbers
+ of the specified type.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<name> Name of created set.
+\end_layout
+
+\begin_layout Description
+count
+\begin_inset space ~
+\end_inset
+
+<#> The number of elements to put into the set.
+\end_layout
+
+\begin_layout Description
+settype
+\begin_inset space ~
+\end_inset
+
+{int|float01} Type of numbers to use; integer or floating point between
+ 0 and 1.
+\end_layout
+
+\begin_layout Description
+seed
+\begin_inset space ~
+\end_inset
+
+<#> Optional seed for the RNG.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+This command can be used to set the default random number generator used
+ in CPPTRAJ, and/or create a 1D data set filled with random values.
 \end_layout
 
 \begin_layout Subsection
