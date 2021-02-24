@@ -49,15 +49,18 @@ static int Shuffle_Tests(Random_Number const& RNG, int itype, int iseed, int ico
   return 0;
 }
 
-static int Range_Tests(Random_Number const& RNG, int itype, int iseed, int icount) {
+static int Range_Tests(Random_Number const& RNG, int itype, int iseed, int icount, int imax) {
   printf("Range tests (%s)\n", Random_Number::CurrentDefaultRngStr());
   printf("\tSeed  : %i\n", iseed);
   printf("\tCount : %i\n", icount);
   printf("\tType  : %i\n", itype);
 
   unsigned int min = 1;
-  unsigned int max = 10;
-  std::vector<int> Counts( max-min+1, 0 );
+  unsigned int max = (unsigned int)imax;
+  unsigned int width = max - min + 1;
+  std::vector<int> Counts( width, 0 );
+  double avg = (double)icount / (double)width;
+  printf("\tAverage: %g\n", avg);
   unsigned int oob = 0;
   for (int i = 0; i < icount; i++) {
     unsigned int rn = RNG.rn_num_interval(min, max);
@@ -71,9 +74,29 @@ static int Range_Tests(Random_Number const& RNG, int itype, int iseed, int icoun
   }
 
   printf("Final counts (%u out of bounds):\n", oob);
+  unsigned int zeroCount = 0;
   unsigned int num = min;
+  double sum = 0;
+  double absSum = 0;
   for (std::vector<int>::const_iterator it = Counts.begin(); it != Counts.end(); ++it, ++num)
-    printf("\t%10u : %10u\n", num, *it);
+  {
+    if (*it < 1) {
+      zeroCount++;
+    } else {
+      double delta = ((double)(*it)) - avg;
+      printf("\t%10u : %10u (%g)\n", num, *it, delta);
+      sum += delta;
+      if (delta < 0) delta = -delta;
+      absSum += delta;
+    }
+  }
+  if (zeroCount > 0)
+    printf("%u BINS HAVE NO POPULATION.\n", zeroCount);
+  double nonZeroCount = (double)(Counts.size() - zeroCount);
+  sum /= nonZeroCount;
+  absSum /= nonZeroCount;
+  printf("Avg delta = %g\n", sum);
+  printf("|Avg| delta = %g\n", absSum);
   return 0;
 }
 
@@ -87,6 +110,7 @@ int main(int argc, char** argv) {
   int iseed = 0;
   int icount = 0;
   int itype = 0;
+  int imax = 10;
   // Parse options
   for (int iarg = 1; iarg < argc; iarg++) {
     std::string arg( argv[iarg] );
@@ -96,6 +120,8 @@ int main(int argc, char** argv) {
       icount = atoi( argv[++iarg] );
     } else if (arg == "-r") {
       itype = atoi( argv[++iarg] );
+    } else if (arg == "--max") {
+      imax = atoi( argv[++iarg] );
     } else if (arg == "--mode") {
       std::string marg(argv[++iarg]);
       if (marg == "diehard")
@@ -125,7 +151,7 @@ int main(int argc, char** argv) {
   } else if (mode == SHUFFLE) {
     err = Shuffle_Tests(RNG, itype, iseed, icount);
   } else if (mode == RANGE) {
-    err = Range_Tests(RNG, itype, iseed, icount);
+    err = Range_Tests(RNG, itype, iseed, icount, imax);
   }
 
   return err;
