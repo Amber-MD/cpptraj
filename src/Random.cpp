@@ -9,7 +9,12 @@
 #include "RNG_Xoshiro128pp.h"
 
 /** Starting default type. */
-Random_Number::RngType Random_Number::defaultType_ = MARSAGLIAS;
+Random_Number::RngType Random_Number::defaultType_ =
+#ifdef C11_SUPPORT
+  Random_Number::MERSENNE_TWISTER;
+#else
+  Random_Number::STDLIB;
+#endif
 
 /** Starting default seed. */
 int Random_Number::defaultSeed_ = 71277; // AMBER default seed
