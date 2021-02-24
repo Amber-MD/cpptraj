@@ -9,6 +9,9 @@ Cpptraj::RNG_Marsaglia::RNG_Marsaglia() {
   RN_generator.iseed = -1;
 }
 
+/** Max value for this RNG, 2^24 bits */
+const double Cpptraj::RNG_Marsaglia::rng_max_ = 16777216.0;
+
 /** Initialization routine for Marsaglias random number generator
   * as implemented in Amber 3.0 Rev A by George Seibel. See doc in amrand.
   *
@@ -72,9 +75,9 @@ int Cpptraj::RNG_Marsaglia::SetupRng() {
     RN_generator.u[ii] = s;
   }
 
-  RN_generator.c  = 362436.0   / 16777216.0;
-  RN_generator.cd = 7654321.0  / 16777216.0;
-  RN_generator.cm = 16777213.0 / 16777216.0;
+  RN_generator.c  = 362436.0   / rng_max_;
+  RN_generator.cd = 7654321.0  / rng_max_;
+  RN_generator.cm = 16777213.0 / rng_max_;
 
   RN_generator.i97 = 96;
   RN_generator.j97 = 32;
@@ -126,5 +129,5 @@ double Cpptraj::RNG_Marsaglia::Generate() {
 
 unsigned int Cpptraj::RNG_Marsaglia::Number() {
   double rn = Generate();
-  return (unsigned int)(rn * std::numeric_limits<unsigned int>::max());
+  return (unsigned int)(rn * rng_max_);
 }

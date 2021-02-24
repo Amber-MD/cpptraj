@@ -30,6 +30,8 @@ class RNG_Marsaglia : public RNG {
     double Generate();
     unsigned int Number();
   private:
+    /// The max for this RNG, 2^24 bits
+    static const double rng_max_;
     /// Setup RNG
     int SetupRng();
     /// Variables necessary for Marsaglia random number stream.
