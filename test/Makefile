@@ -477,6 +477,9 @@ test.graft:
 test.flatten:
 	@-cd Test_Flatten && ./RunTest.sh $(OPT)
 
+test.random:
+	@-cd Test_Random && ./RunTest.sh $(OPT)
+
 # Every test target should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -629,7 +632,8 @@ COMPLETETESTS=test.general \
               test.emin \
               test.evalplateau \
               test.graft \
-              test.flatten
+              test.flatten \
+              test.random
 
 test.all:
 	$(MAKE) test.complete summary
