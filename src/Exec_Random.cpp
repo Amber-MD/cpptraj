@@ -7,6 +7,10 @@ void Exec_Random::Help() const
 {
   mprintf("\t[setdefault %s]\n", CpptrajState::RngKeywords());
   mprintf("\t[createset <name> count <#> settype {int|float01} [seed <#>]]\n");
+  mprintf("  If 'setdefault' specified, change the default random number generator used.\n"
+          "  If 'createset' specified, create a 1D data set filled with random numbers\n"
+          "  of the specified type: 'int' creates a set of integer numbers, 'float01'\n"
+          "  creates a set of floating point numbers between 0 and 1.\n");
 }
 
 // Exec_Random::Execute()
