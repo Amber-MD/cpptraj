@@ -5,5 +5,8 @@ SOURCES=main.cpp ../../src/RNG_MersenneTwister.cpp ../../src/RNG.cpp ../../src/C
 all: a.out
 
 a.out: $(SOURCES) 
-	g++ -o a.out -I$(TESTU01_DIR)/include -L$(TESTU01_DIR)/lib $(SOURCES) 
+	g++ -o a.out -I$(TESTU01_DIR)/include -L$(TESTU01_DIR)/lib $(SOURCES) -ltestu01 -lprobdist -lmylib
+
+clean:
+	-/bin/rm *.o a.out
 
