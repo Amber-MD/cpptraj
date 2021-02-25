@@ -425,4 +425,4 @@ ViewRst.o : ViewRst.cpp ActionFrameCounter.h ArgList.h AssociatedData.h Atom.h A
 main.o : main.cpp Action.h ActionList.h ActionState.h Analysis.h AnalysisList.h AnalysisState.h ArgList.h AssociatedData.h Atom.h AtomMask.h AtomType.h BaseIOtype.h Box.h Constants.h CoordinateInfo.h Cpptraj.h CpptrajFile.h CpptrajState.h DataFile.h DataFileList.h DataSet.h DataSetList.h DataSet_Coords.h DataSet_Coords_REF.h Dimension.h DispatchObject.h EnsembleIn.h EnsembleOutList.h FileIO.h FileName.h FileTypes.h Frame.h FramePtrArray.h InputTrajCommon.h MaskToken.h Matrix_3x3.h MetaData.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h Range.h ReferenceFrame.h ReplicaDimArray.h ReplicaInfo.h Residue.h Segment.h SymbolExporting.h TextFormat.h Timer.h Topology.h TrajFrameCounter.h Trajin.h TrajinList.h TrajoutList.h TypeNameHolder.h Unit.h Vec3.h
 molsurf.o : molsurf.c molsurf.h
 vmdplugin/dtrplugin.o : vmdplugin/dtrplugin.cpp vmdplugin/../ByteRoutines.h vmdplugin/dtrplugin.hxx vmdplugin/vmddir.h
-xoshiro128plusplus.o : xoshiro128plusplus.c
+xoshiro128plusplus.o : xoshiro128plusplus.cpp
