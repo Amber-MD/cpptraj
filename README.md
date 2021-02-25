@@ -5,7 +5,7 @@ Fast, parallelized molecular dynamics trajectory data analysis.
 
 Build Status
 =============
-* Travis-CI: [![Travis Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
+* GitHub Actions: [![GitHub Actions Status](https://github.com/Amber-MD/cpptraj/actions/workflows/merge-gate.yml/badge.svg)
 * AppVeyor: [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
 * Jenkins: [![Jenkins Build Status](https://jenkins.jasonswails.com/buildStatus/icon?job=amber-github%2Fcpptraj%2Fmaster&style=plastic)](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj/job/master/)
 * LGTM: [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/Amber-MD/cpptraj.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Amber-MD/cpptraj/context:cpp)
