@@ -1,6 +1,6 @@
 include ../../config.h
 
-TESTU01_DIR=/home/droe/Programs/TestU01/1.2.3
+TESTU01_DIR=$(TESTU01_HOME)
 
 #AR= ar cqs
 
