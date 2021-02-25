@@ -10,11 +10,11 @@ class Random_Number {
     Random_Number();
     ~Random_Number();
     /// Different possible RNGs
-    enum RngType { MARSAGLIAS=0, STDLIB, MERSENNE_TWISTER, PCG32, XOSHIRO128PP };
+    enum RngType { MARSAGLIA = 0, STDLIB, MERSENNE_TWISTER, PCG32, XOSHIRO128PP };
 
     static void SetDefaultRng(RngType);
 
-    static void SetDefaultSeed(int);
+    //static void SetDefaultSeed(int);
 
     static const char* CurrentDefaultRngStr();
 
@@ -47,6 +47,6 @@ class Random_Number {
     Cpptraj::RNG* rng_;          ///< Hold the random number generator implemenatation.
 
     static RngType defaultType_; ///< Default RNG type
-    static int defaultSeed_;     ///< Default RNG seed
+    //static int defaultSeed_;     ///< Default RNG seed
 };
 #endif

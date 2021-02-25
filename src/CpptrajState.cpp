@@ -43,7 +43,7 @@ const char* CpptrajState::RngKeywords() {
 /** Change default RNG. */
 int CpptrajState::ChangeDefaultRng(std::string const& setarg) const {
   if (!setarg.empty()) {
-    if (setarg == "marsaglia") Random_Number::SetDefaultRng( Random_Number::MARSAGLIAS );
+    if (setarg == "marsaglia") Random_Number::SetDefaultRng( Random_Number::MARSAGLIA );
     else if (setarg == "stdlib") Random_Number::SetDefaultRng( Random_Number::STDLIB );
     else if (setarg == "mt") {
 #     ifdef C11_SUPPORT

@@ -1227,7 +1227,8 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   export CPPTRAJ_TEST_ERROR='Test_Error.dat'
   CPPTRAJ_OUTPUT='test.out'
   CPPTRAJ_ERROR=''
-  export CPPTRAJ_RNG='--rng marsaglia'
+  #export CPPTRAJ_RNG='--rng marsaglia'
+  CPPTRAJ_RNG='' # Placeholder
   # Process command line options
   CmdLineOpts $*
   # Determine standalone or AmberTools

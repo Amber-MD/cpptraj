@@ -18,7 +18,7 @@ Random_Number::RngType Random_Number::defaultType_ = Random_Number::MARSAGLIA;
 //#endif
 
 /** Starting default seed. */
-int Random_Number::defaultSeed_ = 71277; // AMBER default seed
+//int Random_Number::defaultSeed_ = 71277; // AMBER default seed
 
 /** Set the default RNG type. */
 void Random_Number::SetDefaultRng(RngType r) {
@@ -26,9 +26,9 @@ void Random_Number::SetDefaultRng(RngType r) {
 }
 
 /** Set the default seed. */
-void Random_Number::SetDefaultSeed(int i) {
-  defaultSeed_ = i;
-}
+//void Random_Number::SetDefaultSeed(int i) {
+//  defaultSeed_ = i;
+//}
 
 /** CONSTRUCTOR */
 Random_Number::Random_Number() :
@@ -44,7 +44,7 @@ Random_Number::~Random_Number() {
 const char* Random_Number::CurrentDefaultRngStr() {
   const char* str = 0;
   switch (defaultType_) {
-    case MARSAGLIAS       : str = "Marsaglia"; break;
+    case MARSAGLIA        : str = "Marsaglia"; break;
     case STDLIB           : str = "C stdlib"; break;
     case MERSENNE_TWISTER : str = "Mersenne Twister (mt19937)"; break;
     case PCG32            : str = "Permuted Congruential Generator (32 bit)"; break;
@@ -58,7 +58,7 @@ void Random_Number::allocateRng() {
   if (rng_ != 0) delete rng_;
   rng_ = 0;
   switch (defaultType_) {
-    case MARSAGLIAS :
+    case MARSAGLIA  :
       mprintf("\tRNG: Marsaglia\n");
       rng_ = new Cpptraj::RNG_Marsaglia();
       break;
