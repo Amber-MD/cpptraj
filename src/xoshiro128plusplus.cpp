@@ -1,3 +1,5 @@
+// NOTE: Original URL: http://prng.di.unimi.it/xoshiro128plusplus.c
+/** The Interface code (at the very bottom) was written by DRR. */ 
 /*  Written in 2019 by David Blackman and Sebastiano Vigna (vigna@acm.org)
 
 To the extent possible under law, the author has dedicated all copyright
