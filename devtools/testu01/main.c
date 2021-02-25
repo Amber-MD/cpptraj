@@ -50,6 +50,10 @@ int main(int argc, char** argv) {
   // Setup RNG
   rngptr = get_cpptraj_rng( itype, iseed );
   
+  //int it;
+  //for (it = 0; it < icount; it++)
+  //  printf("%10u\n", num_cpptraj_rng( rngptr ));
+
   // Create TestU01 PRNG object for our generator
   unif01_Gen* gen = unif01_CreateExternGenBits((char*)"CPPTRAJ", test_rng);
 

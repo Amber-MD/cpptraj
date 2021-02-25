@@ -1,9 +1,11 @@
+include ../../config.h
+
 TESTU01_DIR=/home/droe/Programs/TestU01/1.2.3
 
 #AR= ar cqs
 
 #CXX=g++
-CXXFLAGS=-Wall -O3 -I../../src
+CXXFLAGS += -I../../src
 
 SOURCES=cpptraj_rng.cpp RNG_MersenneTwister.cpp RNG.cpp CpptrajStdio.cpp Random.cpp RNG_Stdlib.cpp RNG_Marsaglia.cpp RNG_PCG32.cpp RNG_Xoshiro128pp.cpp xoshiro128plusplus.cpp
 
