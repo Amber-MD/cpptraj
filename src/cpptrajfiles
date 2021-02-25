@@ -359,7 +359,7 @@ COMMON_SOURCES= \
         ProgressBar.cpp \
         ProgressTimer.cpp \
         PubFFT.cpp \
-        PytrajFxn.cpp \
+        ExternalFxn.cpp \
         Random.cpp \
         Range.cpp \
         RNG.cpp \

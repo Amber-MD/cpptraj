@@ -1,8 +1,8 @@
-#ifndef INC_PYTRAJFXN_H
-#define INC_PYTRAJFXN_H
-/*! \file PytrajFxn.h
-    \brief This file contains some functions that pytraj needs.
+#ifndef INC_EXTERNALFXN_H
+#define INC_EXTERNALFXN_H
+/*! \file ExternalFxn.h
+    \brief This file contains some functions that external programs (like pytraj) need.
  */
 /// Calls Random_Number::SetDefaultRng()
-void PT_SetDefaultRng(int);
+void EXT_SetDefaultRng(int);
 #endif
