@@ -419,9 +419,10 @@ COMMON_SOURCES= \
         TrajoutList.cpp \
         Vec3.cpp \
         ViewRst.cpp \
-        vmdplugin/dtrplugin.cpp
+        vmdplugin/dtrplugin.cpp \
+        xoshiro128plusplus.cpp
 
-CSOURCES= molsurf.c xoshiro128plusplus.c
+CSOURCES= molsurf.c 
 
 # The files below are used by cpptraj and libcpptraj but must be compiled
 # differently for libcpptraj.
