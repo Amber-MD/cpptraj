@@ -1,14 +1,20 @@
 // Test the RNGs in cpptraj with TestU01
-#include <string>
-#include <cstdlib>
+#include <string.h>
+#include <stdlib.h>
 #include "TestU01.h"
-#include "../../src/Random.h"
+#include "cpptraj_rng.h"
 
-static Random_Number* rng_ = 0;
+static void* rngptr = 0;
 
 unsigned int test_rng(void)
 {
-  return rng_->rn_num();
+  return num_cpptraj_rng( rngptr );
+}
+
+int argIs(const char* arg, const char* key)
+{
+  if (strcmp(arg, key) == 0) return 1;
+  return 0;
 }
 
 int main(int argc, char** argv) {
@@ -18,14 +24,13 @@ int main(int argc, char** argv) {
   int imax = 10;
   // Parse options
   for (int iarg = 1; iarg < argc; iarg++) {
-    std::string arg( argv[iarg] );
-    if (arg == "-S") {
+    if (argIs(argv[iarg], "-S")) {
       iseed = atoi( argv[++iarg] );
-    } else if (arg == "-t") {
+    } else if (argIs(argv[iarg], "-t")) {
       icount = atoi( argv[++iarg] );
-    } else if (arg == "-r") {
+    } else if (argIs(argv[iarg], "-r")) {
       itype = atoi( argv[++iarg] );
-    } else if (arg == "--max") {
+    } else if (argIs(argv[iarg], "--max")) {
       imax = atoi( argv[++iarg] );
     }/* else if (arg == "--mode") {
       std::string marg(argv[++iarg]);
@@ -43,14 +48,17 @@ int main(int argc, char** argv) {
   }
 
   // Setup RNG
-  Random_Number::RngType rt = (Random_Number::RngType)itype;
-  Random_Number::SetDefaultRng(rt);
-  rng_ = new Random_Number();
-  if (rng_->rn_set( iseed )) {
-    fprintf(stderr, "Error: Could not set up RNG.\n");
-    return 1;
-  }
+  rngptr = get_cpptraj_rng( itype, iseed );
+  
+  // Create TestU01 PRNG object for our generator
+  unif01_Gen* gen = unif01_CreateExternGenBits((char*)"CPPTRAJ", test_rng);
 
-  if (rng_ != 0) delete rng_;
+  // Run the tests.
+  bbattery_SmallCrush(gen);
+
+  // Clean up.
+  unif01_DeleteExternGenBits(gen);
+
+  destroy_cpptraj_rng( rngptr );
   return 0;
 } 
