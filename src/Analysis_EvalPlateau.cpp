@@ -16,7 +16,6 @@ Analysis_EvalPlateau::Analysis_EvalPlateau() :
   maxIt_(0),
   debug_(0)
 {
-  SetHidden(true);
 }
 
 /** Aspects for output data sets (data_[]). KEEP IN SYNC WITH OdataType */
