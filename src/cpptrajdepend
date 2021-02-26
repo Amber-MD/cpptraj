@@ -363,7 +363,7 @@ PubFFT.o : PubFFT.cpp ArrayIterator.h ComplexArray.h CpptrajStdio.h PubFFT.h
 RNG.o : RNG.cpp CpptrajStdio.h RNG.h
 RNG_Marsaglia.o : RNG_Marsaglia.cpp CpptrajStdio.h RNG.h RNG_Marsaglia.h
 RNG_MersenneTwister.o : RNG_MersenneTwister.cpp CpptrajStdio.h RNG.h RNG_MersenneTwister.h
-RNG_PCG32.o : RNG_PCG32.cpp RNG.h RNG_PCG32.h pcg_random.hpp
+RNG_PCG32.o : RNG_PCG32.cpp CpptrajStdio.h RNG.h RNG_PCG32.h pcg_random.hpp
 RNG_Stdlib.o : RNG_Stdlib.cpp RNG.h RNG_Stdlib.h
 RNG_Xoshiro128pp.o : RNG_Xoshiro128pp.cpp RNG.h RNG_Xoshiro128pp.h xoshiro128plusplus.h
 RPNcalc.o : RPNcalc.cpp ArgList.h ArrayIterator.h AssociatedData.h Atom.h AtomMask.h AtomType.h Box.h ComplexArray.h Constants.h CoordinateInfo.h CpptrajFile.h CpptrajStdio.h DataSet.h DataSetList.h DataSet_1D.h DataSet_2D.h DataSet_3D.h DataSet_Coords.h DataSet_Coords_REF.h DataSet_GridFlt.h DataSet_MatrixDbl.h DataSet_Mesh.h DataSet_Vector.h DataSet_double.h Dimension.h FileIO.h FileName.h Frame.h Grid.h GridBin.h MaskToken.h Matrix.h Matrix_3x3.h MetaData.h Molecule.h NameType.h Parallel.h ParameterHolders.h ParameterSet.h ParameterTypes.h RPNcalc.h Range.h ReferenceFrame.h ReplicaDimArray.h Residue.h Segment.h Spline.h StringRoutines.h SymbolExporting.h TextFormat.h Timer.h Topology.h TypeNameHolder.h Unit.h Vec3.h
