@@ -10288,10 +10288,23 @@ mt Use the C++11 implementation of the Mersenne twister (mt19937); only
 
 \begin_layout Description
 pcg32 Use the 32 bit version of the Permuted Congruential Generator.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Oneill2014"
+literal "true"
+
+\end_inset
+
 \end_layout
 
 \begin_layout Description
 xo128 Use the Xoshiro128++ RNG.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Vigna2017"
+literal "true"
+
+\end_inset
 \end_layout
 
 \end_deeper
