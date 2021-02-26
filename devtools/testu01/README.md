@@ -9,6 +9,7 @@ The Marsaglia generator didnt complete tests.
 
 C Stdlib
 ========
+```
  Version:          TestU01 1.2.3
  Generator:        CPPTRAJ
  Number of statistics:  144
@@ -105,9 +106,11 @@ C Stdlib
  95  AutoCor, d = 30                1 - eps1
  ----------------------------------------------
  All other tests were passed
+```
 
 Mersenne Twister
 ================
+```
  Version:          TestU01 1.2.3
  Generator:        CPPTRAJ
  Number of statistics:  144
@@ -123,9 +126,11 @@ Mersenne Twister
  72  LinearComp, r = 29             1 - eps1
  ----------------------------------------------
  All other tests were passed
+```
 
 PCG32
 =====
+```
  Version:          TestU01 1.2.3
  Generator:        CPPTRAJ
  Number of statistics:  144
@@ -139,13 +144,15 @@ PCG32
  44  MaxOft, t = 30                  3.6e-4
  ----------------------------------------------
  All other tests were passed
+```
 
 Xoshiro128++
 ============
+```
  Version:          TestU01 1.2.3
  Generator:        CPPTRAJ
  Number of statistics:  144
  Total CPU time:   00:28:41.95
 
  All tests were passed
-
+```
