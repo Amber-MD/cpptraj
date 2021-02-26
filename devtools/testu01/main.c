@@ -18,10 +18,12 @@ int argIs(const char* arg, const char* key)
 }
 
 int main(int argc, char** argv) {
+  int it = 0;
   int iseed = 0;
   int icount = 0;
   int itype = 0;
   int imax = 10;
+  int imode = 1; // 1 = small crush
   // Parse options
   for (int iarg = 1; iarg < argc; iarg++) {
     if (argIs(argv[iarg], "-S")) {
@@ -32,6 +34,8 @@ int main(int argc, char** argv) {
       itype = atoi( argv[++iarg] );
     } else if (argIs(argv[iarg], "--max")) {
       imax = atoi( argv[++iarg] );
+    } else if (argIs(argv[iarg], "--mode")) {
+      imode = atoi( argv[++iarg] );
     }/* else if (arg == "--mode") {
       std::string marg(argv[++iarg]);
       if (marg == "diehard")
@@ -50,18 +54,20 @@ int main(int argc, char** argv) {
   // Setup RNG
   rngptr = get_cpptraj_rng( itype, iseed );
   
-  //int it;
-  //for (it = 0; it < icount; it++)
-  //  printf("%10u\n", num_cpptraj_rng( rngptr ));
-
-  // Create TestU01 PRNG object for our generator
-  unif01_Gen* gen = unif01_CreateExternGenBits((char*)"CPPTRAJ", test_rng);
-
-  // Run the tests.
-  bbattery_SmallCrush(gen);
-
-  // Clean up.
-  unif01_DeleteExternGenBits(gen);
+  if (imode == 0) {
+    for (it = 0; it < icount; it++)
+    printf("%10u\n", num_cpptraj_rng( rngptr ));
+  } else {
+    // Create TestU01 PRNG object for our generator
+    unif01_Gen* gen = unif01_CreateExternGenBits((char*)"CPPTRAJ", test_rng);
+    // Run the tests.
+    if (imode == 1)
+      bbattery_SmallCrush(gen);
+    else if (imode == 2)
+      bbattery_Crush(gen);
+    // Clean up.
+    unif01_DeleteExternGenBits(gen);
+  }
 
   destroy_cpptraj_rng( rngptr );
   return 0;
