@@ -1,5 +1,8 @@
 FROM condaforge/miniforge3
 
+# Fix tzdata issue
+RUN DEBIAN_FRONTEND="noninteractive" apt-get -y install tzdata
+
 RUN mkdir /cpptraj && \
     mkdir /.conda /.local && \
     apt-get update && \
