@@ -13,6 +13,7 @@ ti TI nq 9 name Curve out skip.agr curveout curve.agr bsout bs.dat \
   nskip 0,5,10,15,20,30,40,50
 ti TI nq 9 name Avg
 ti TI nq 9 name Increment avgincrement 10 out incr.agr curveout incr.crv.agr
+rng setdefault marsaglia
 ti TI nq 9 name Bootstrap bs_samples 20 bs_seed 10 bs_pts 70 out bs.dat curveout bs.crv.agr
 runanalysis
 list dataset
