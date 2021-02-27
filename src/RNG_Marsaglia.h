@@ -29,6 +29,7 @@ class RNG_Marsaglia : public RNG {
     /// Generate a random number between 0.0 and 1.0
     double Generate();
     unsigned int Number();
+    unsigned int Number_UpTo(unsigned int);
   private:
     /// The max for this RNG, 2^24 bits
     static const double rng_max_;

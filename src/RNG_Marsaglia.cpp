@@ -131,3 +131,7 @@ unsigned int Cpptraj::RNG_Marsaglia::Number() {
   double rn = Generate();
   return (unsigned int)(rn * rng_max_);
 }
+
+unsigned int Cpptraj::RNG_Marsaglia::Number_UpTo(unsigned int exclusiveMax) {
+  return (unsigned int)(Generate() * (double)exclusiveMax);
+}
