@@ -33,3 +33,12 @@ unsigned int Cpptraj::RNG::Number_UpTo(unsigned int exclusiveMax)
   }
   return (unsigned int)(((unsigned long)exclusiveMax * Number()) >> 32);
 }
+
+#define M_RAN_INVM32 2.32830643653869628906e-010
+/** Generate a random number between 0 and 1 from 32bit unsigned int.
+  * Uses code from Doornik, ACM Transactions on Mathematical Software, 2006.
+  */
+double Cpptraj::RNG::Generate() {
+  unsigned int uiRan = Number();
+  return (int)uiRan * M_RAN_INVM32 + 0.5;
+}

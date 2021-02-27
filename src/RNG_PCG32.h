@@ -10,7 +10,7 @@ class RNG_PCG32 : public RNG {
   public:
     RNG_PCG32() {}
 
-    double Generate();
+    //double Generate();
     unsigned int Number();
   private:
     int SetupRng();

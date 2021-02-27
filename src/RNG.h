@@ -9,7 +9,7 @@ class RNG {
     /// DESTRUCTOR - virtual since inherited
     virtual ~RNG() {}
     /// Generate a random number between 0.0 and 1.0
-    virtual double Generate() = 0;
+    virtual double Generate();
     /// Generate a random integer between 0 and the max value
     virtual unsigned int Number() = 0;
     /// Generate a random integer from 0 up to a given max value.

@@ -10,7 +10,7 @@ int Cpptraj::RNG_PCG32::SetupRng() {
   return 0;
 # endif
 }
-
+/*
 double Cpptraj::RNG_PCG32::Generate() {
 # ifdef _MSC_VER
   return 0;
@@ -18,7 +18,7 @@ double Cpptraj::RNG_PCG32::Generate() {
   unsigned int rn = rng_();
   return (double)rn / (double)rng_.max();
 # endif
-}
+}*/
 
 unsigned int Cpptraj::RNG_PCG32::Number() {
 # ifdef _MSC_VER

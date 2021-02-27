@@ -7,7 +7,7 @@ class RNG_Stdlib : public RNG {
   public:
     RNG_Stdlib();
 
-    double Generate();
+    //double Generate();
     unsigned int Number();
   private:
     int SetupRng();
