@@ -26,6 +26,8 @@ class Random_Number {
     double rn_gen() const;
     /// Generate a random integer
     unsigned int rn_num() const;
+    /// Generate a random number between 0 and given max
+    unsigned int rn_num_max(unsigned int) const;
     /// Generate a random number on defined interval
     int rn_num_interval_signed(int, int) const;
     /// Generate a random number on defined interval

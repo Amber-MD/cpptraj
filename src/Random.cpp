@@ -9,7 +9,7 @@
 #include "RNG_Xoshiro128pp.h"
 
 /** Starting default type. */
-Random_Number::RngType Random_Number::defaultType_ = Random_Number::MARSAGLIA;
+Random_Number::RngType Random_Number::defaultType_ = Random_Number::XOSHIRO128PP;
 // TODO test these, then enable. Should be better RNGs in the long run
 //#ifdef C11_SUPPORT
 //  Random_Number::MERSENNE_TWISTER;
@@ -102,6 +102,15 @@ unsigned int Random_Number::rn_num() const {
   return rng_->Number();
 }
 
+/** Generate a random integer from 0 to exclusiveMax. */
+unsigned int Random_Number::rn_num_max(unsigned int exclusiveMax) const {
+  if (exclusiveMax == 0) {
+    mprinterr("Internal Error: RandomNum::rn_num_max(): max is zero.\n");
+    return 0;
+  }
+  return (unsigned int)(((unsigned long)exclusiveMax * rn_num()) >> 32);
+}
+
 /** Generate a random integer on interval imin to imax. 
   * NOTE: Unlike rn_num(), this returns an integer to allow intervals of
   *       negative numbers.
@@ -113,7 +122,8 @@ int Random_Number::rn_num_interval_signed(int imin, int imax) const {
     return 0;
   }
   unsigned int uwidth = (unsigned int)iwidth + 1;
-  unsigned int umod = (rn_num() % uwidth);
+  //unsigned int umod = (rn_num() % uwidth);
+  unsigned int umod = rn_num_max( uwidth );
   return (int)umod + imin;
 }
 
@@ -121,7 +131,8 @@ int Random_Number::rn_num_interval_signed(int imin, int imax) const {
 unsigned int Random_Number::rn_num_interval(unsigned int umin, unsigned int umax) const {
   if (umax > umin) {
    unsigned int uwidth = (umax - umin) + 1;
-   unsigned int umod = (rn_num() % uwidth);
+   //unsigned int umod = (rn_num() % uwidth);
+   unsigned int umod = rn_num_max( uwidth );
    return umod + umin; 
   } else {
     mprinterr("Internal Error: Random_Number::rn_num_interval(): Interval max <= interval min.\n");
