@@ -21,3 +21,15 @@ int Cpptraj::RNG::Set_Seed(int iseedIn) {
   }
   return 0;
 }
+
+/** Generate random number from 0 to a given max. Use multiply and 
+ *  bit-shift to try to avoid modulo bias.
+ */
+unsigned int Cpptraj::RNG::Number_UpTo(unsigned int exclusiveMax)
+{
+  if (exclusiveMax == 0) {
+    mprinterr("Internal Error: RandomNum::rn_num_max(): max is zero.\n");
+    return 0;
+  }
+  return (unsigned int)(((unsigned long)exclusiveMax * Number()) >> 32);
+}
