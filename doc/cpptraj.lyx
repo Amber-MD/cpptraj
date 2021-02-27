@@ -7136,7 +7136,7 @@ The following general commands are available:
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="33" columns="2">
+<lyxtabular version="3" rows="34" columns="2">
 <features tabularvalignment="middle">
 <column alignment="center" valignment="top">
 <column alignment="center" valignment="top">
@@ -7560,6 +7560,26 @@ printdata
 
 \begin_layout Plain Layout
 Print data set to screen.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+random
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Change default random number generator, create random sets.
 \end_layout
 
 \end_inset
@@ -10232,6 +10252,105 @@ and the output would look like:
 
 \begin_layout LyX-Code
 2 0.630
+\end_layout
+
+\begin_layout Subsection
+random
+\end_layout
+
+\begin_layout LyX-Code
+random [setdefault {marsaglia|stdlib|mt|pcg32|xo128}]
+\end_layout
+
+\begin_layout LyX-Code
+   	[createset <name> count <#> settype {int|float01} [seed <#>]]
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+setdefault If specified, change the default random number generator (RNG).
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+marsaglia Use the Marsaglia RNG that is used in the Amber MD programs sander/pme
+md.
+\end_layout
+
+\begin_layout Description
+stdlib Use the C standard library RNG.
+\end_layout
+
+\begin_layout Description
+mt Use the C++11 implementation of the Mersenne twister (mt19937); only
+ available with C++11 support.
+\end_layout
+
+\begin_layout Description
+pcg32 Use the 32 bit version of the Permuted Congruential Generator.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Oneill2014"
+literal "true"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+xo128 Use the Xoshiro128++ RNG.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Vigna2017"
+literal "true"
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Description
+createset If specified, create a 1D data set filled with random numbers
+ of the specified type.
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+<name> Name of created set.
+\end_layout
+
+\begin_layout Description
+count
+\begin_inset space ~
+\end_inset
+
+<#> The number of elements to put into the set.
+\end_layout
+
+\begin_layout Description
+settype
+\begin_inset space ~
+\end_inset
+
+{int|float01} Type of numbers to use; integer or floating point between
+ 0 and 1.
+\end_layout
+
+\begin_layout Description
+seed
+\begin_inset space ~
+\end_inset
+
+<#> Optional seed for the RNG.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+This command can be used to set the default random number generator used
+ in CPPTRAJ, and/or create a 1D data set filled with random values.
 \end_layout
 
 \begin_layout Subsection
@@ -36271,20 +36390,14 @@ buffer
 \begin_layout Standard
 The calculation is sped up by using cubic splines to interpolate the exponential
  function when calculating the Gaussians.
- The details are in Roe & Brooks, 
-\begin_inset Quotes eld
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2021"
+literal "true"
+
 \end_inset
 
-Improving the Speed of Volumetric Density Map Generation via Cubic Spline
- Interpolation
-\begin_inset Quotes erd
-\end_inset
 
-, J.
- Mol.
- Graph.
- Model.
- (2021).
 \end_layout
 
 \begin_layout Subsection
@@ -36684,7 +36797,7 @@ trajin
 \begin_layout Standard
 \align center
 \begin_inset Tabular
-<lyxtabular version="3" rows="46" columns="3">
+<lyxtabular version="3" rows="47" columns="3">
 <features islongtable="true" longtabularalignment="center">
 <column alignment="center" valignment="top" width="25text%">
 <column alignment="center" valignment="top" width="50text%">
@@ -37154,6 +37267,35 @@ Calculate Kullback-Leibler divergence between two data sets.
 
 \begin_layout Plain Layout
 2 1D scalar
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+evalplateau
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Evaluate whether the data in a 1D set has reached a single exponential plateau.
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
 \end_layout
 
 \end_inset
@@ -41242,6 +41384,233 @@ divergence ds1 <ds1> ds2 <ds2>
 
 \begin_layout Standard
 Calculate Kullback-Leibler divergence between specified data sets.
+\end_layout
+
+\begin_layout Subsection
+evalplateau
+\end_layout
+
+\begin_layout LyX-Code
+evalplateau [name <set out name>] [tol <tol>] [valacut <valacut>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[initpct <initial pct>] [finalpct <final pct>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[chisqcut <chisqcut>] [slopecut <slopecut>] [maxit <maxit>]
+\end_layout
+
+\begin_layout LyX-Code
+        	[out <outfile>] [resultsout <resultsfile>] [statsout <statsfile>]
+\end_layout
+
+\begin_layout LyX-Code
+        	<input set args> ...
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+name
+\begin_inset space ~
+\end_inset
+
+<set
+\begin_inset space ~
+\end_inset
+
+out
+\begin_inset space ~
+\end_inset
+
+name>] Name for output data sets.
+\end_layout
+
+\begin_layout Description
+tol
+\begin_inset space ~
+\end_inset
+
+<tol> Curve fitting tolerance.
+ Default 0.00001.
+\end_layout
+
+\begin_layout Description
+valacut
+\begin_inset space ~
+\end_inset
+
+<valacut> (
+\begin_inset Quotes eld
+\end_inset
+
+Value A cutoff
+\begin_inset Quotes erd
+\end_inset
+
+) Cutoff for last half average vs estimated long term value.
+ Default 0.01.
+\end_layout
+
+\begin_layout Description
+initpct
+\begin_inset space ~
+\end_inset
+
+<initial
+\begin_inset space ~
+\end_inset
+
+pct> The initial percentage of data to use for the initial density guess.
+ Default 1%.
+\end_layout
+
+\begin_layout Description
+finalpct
+\begin_inset space ~
+\end_inset
+
+<final
+\begin_inset space ~
+\end_inset
+
+pct> The final percentatge of data to use for the final density guess.
+ Default 50%.
+\end_layout
+
+\begin_layout Description
+chisqcut
+\begin_inset space ~
+\end_inset
+
+<chisqcut> Curve fit chi-squared cutoff.
+ Defualt 0.5.
+\end_layout
+
+\begin_layout Description
+slopecut
+\begin_inset space ~
+\end_inset
+
+<slopecut> Final slope of fitted curve cutoff.
+ Default 0.000001.
+\end_layout
+
+\begin_layout Description
+maxit
+\begin_inset space ~
+\end_inset
+
+<maxit> Maximum number of iterations to perform during curve fit.
+\end_layout
+
+\begin_layout Description
+out
+\begin_inset space ~
+\end_inset
+
+<outfile> File to write data and fitted curve to.
+\end_layout
+
+\begin_layout Description
+resultsout
+\begin_inset space ~
+\end_inset
+
+<resultsfile> File to write plateau results to.
+\end_layout
+
+\begin_layout Description
+statsout
+\begin_inset space ~
+\end_inset
+
+<statsfile> File to write curve fitting stats to.
+\end_layout
+
+\begin_layout Description
+<input
+\begin_inset space ~
+\end_inset
+
+set
+\begin_inset space ~
+\end_inset
+
+args> Data sets to evaluate plateau for.
+\end_layout
+
+\begin_layout Standard
+Data Sets Created
+\end_layout
+
+\begin_layout Description
+<name>[A0] The A0 (initial density) values.
+\end_layout
+
+\begin_layout Description
+<name>[A1] The A1 (rate constant) values.
+\end_layout
+
+\begin_layout Description
+<name>[A2] The A2 (final density) values.
+\end_layout
+
+\begin_layout Description
+<name>[OneA1] One over the A1 (rate constant) values.
+\end_layout
+
+\begin_layout Description
+<name>[corr] Curve fit correlation.
+\end_layout
+
+\begin_layout Description
+<name>[vala] Difference between last half average of data vs final density
+ (A2).
+\end_layout
+
+\begin_layout Description
+<name>[chisq] Chi-squared of the curve fit.
+\end_layout
+
+\begin_layout Description
+<name>[pltime] Plateau time (time at which all cutoffs satisfied).
+\end_layout
+
+\begin_layout Description
+<name>[fslope] Final slope of fitted curve.
+\end_layout
+
+\begin_layout Description
+<name>[name] Input set legend.
+\end_layout
+
+\begin_layout Description
+<name>[result] Final result: yes, no, err (error).
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Attempt to determine if data has 
+\begin_inset Quotes eld
+\end_inset
+
+plateaued
+\begin_inset Quotes erd
+\end_inset
+
+, i.e.
+ stopped changing significantly by the end of the set.
+ Currently the defaults are set up to evaluate density data as part of the
+ system preparation protocol described by Roe & Brooks.
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roe2020"
+literal "true"
+
+\end_inset
+
 \end_layout
 
 \begin_layout Subsection

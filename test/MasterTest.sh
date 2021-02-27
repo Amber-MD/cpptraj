@@ -32,10 +32,12 @@
 #   DIFFOPTS             : Additional options to pass to CPPTRAJ_DIFF
 #   CPPTRAJ_PROFILE      : If 1, end of test profiling with gprof performed.
 #   CPPTRAJ_LONG_TEST    : If 1, enable long tests
+#   CPPTRAJ_RNG          : Hold the --rng arg for CPPTRAJ.
 # Cpptraj binary characteristics
 #   CPPTRAJ_ZLIB         : If set CPPTRAJ has zlib support.
 #   CPPTRAJ_BZLIB        : If set CPPTRAJ has bzip support.
 #   CPPTRAJ_NETCDFLIB    : If set CPPTRAJ has NetCDF support.
+#   CPPTRAJ_C11_SUPPORT  : If set CPPTRAJ has C++11 support.
 #   CPPTRAJ_LIBPME       : If set CPPTRAJ was compiled with libPME.
 #   CPPTRAJ_MPILIB       : If set CPPTRAJ has MPI support.
 #   CPPTRAJ_MATHLIB      : If set CPPTRAJ was compiled with math libraries.
@@ -501,7 +503,7 @@ RunCpptraj() {
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     OUT "  CPPTRAJ: $1"
   fi
-  cpptraj_cmd="$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG"
+  cpptraj_cmd="$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_RNG $CPPTRAJ_DEBUG"
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
     echo "$cpptraj_cmd >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
   fi
@@ -750,6 +752,7 @@ CheckDefines() {
       '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
       '-DHASBZ2'        ) export CPPTRAJ_BZLIB=$DEFINE ;;
       '-DBINTRAJ'       ) export CPPTRAJ_NETCDFLIB=$DEFINE ;;
+      '-DC11_SUPPORT'   ) export CPPTRAJ_C11_SUPPORT=$DEFINE ;;
       '-DLIBPME'        ) export CPPTRAJ_LIBPME=$DEFINE ;;
       '-DMPI'           ) export CPPTRAJ_MPILIB=$DEFINE ;;
       '-DNO_MATHLIB'    ) CPPTRAJ_MATHLIB='' ;;
@@ -966,6 +969,7 @@ CheckEnv() {
     #echo "DEBUG: $DESCRIP: Checking requirement: $1"
     case "$1" in
       'netcdf'    ) TestLibrary "NetCDF"             "$CPPTRAJ_NETCDFLIB" ;;
+      'c++11'     ) TestLibrary "C++11"              "$CPPTRAJ_C11_SUPPORT" ;;
       'libpme'    ) TestLibrary "libPME"             "$CPPTRAJ_LIBPME" ;;
       'zlib'      ) TestLibrary "Zlib"               "$CPPTRAJ_ZLIB" ;;
       'bzlib'     ) TestLibrary "Bzlib"              "$CPPTRAJ_BZLIB" ;;
@@ -1223,6 +1227,8 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   export CPPTRAJ_TEST_ERROR='Test_Error.dat'
   CPPTRAJ_OUTPUT='test.out'
   CPPTRAJ_ERROR=''
+  #export CPPTRAJ_RNG='--rng marsaglia'
+  CPPTRAJ_RNG='' # Placeholder
   # Process command line options
   CmdLineOpts $*
   # Determine standalone or AmberTools

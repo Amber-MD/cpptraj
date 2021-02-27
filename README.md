@@ -5,7 +5,7 @@ Fast, parallelized molecular dynamics trajectory data analysis.
 
 Build Status
 =============
-* Travis-CI: [![Travis Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
+* GitHub Actions: [![GitHub Actions Status](https://github.com/Amber-MD/cpptraj/actions/workflows/merge-gate.yml/badge.svg)](https://github.com/Amber-MD/cpptraj/actions)
 * AppVeyor: [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
 * Jenkins: [![Jenkins Build Status](https://jenkins.jasonswails.com/buildStatus/icon?job=amber-github%2Fcpptraj%2Fmaster&style=plastic)](https://jenkins.jasonswails.com/job/amber-github/job/cpptraj/job/master/)
 * LGTM: [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/Amber-MD/cpptraj.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Amber-MD/cpptraj/context:cpp)
@@ -84,10 +84,12 @@ the following libraries:
 
 CPPTRAJ also makes use of the following libraries that are bundled with CPPTRAJ. External ones can be used in place of these if desired.
 
-* ARPACK; without this diagonalization of sparse matrices in `diagmatrix` will be slow
-* [helPME](https://github.com/andysim/helpme), required for PME functionality
-* XDR for reading GROMACS XTC trajectories
-* TNG for reading GROMACS TNG trajectories
+* ARPACK; without this diagonalization of sparse matrices in `diagmatrix` will be slow.
+* [helPME](https://github.com/andysim/helpme) by Andy Simmonett, required for PME functionality.
+* XDR for reading GROMACS XTC trajectories.
+* TNG for reading GROMACS TNG trajectories.
+
+CPPTRAJ also uses the PCG32 and Xoshiro 128++ pseudo-random number generators.
 
 `./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK/ARPACK and/or NetCDF libraries installed,
@@ -213,8 +215,8 @@ Original implementation of the Amber NetCDF trajectory format.
 * Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)
 Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
-External libraries bundled with CPPTRAJ
-=======================================
+External code/libraries bundled with CPPTRAJ
+============================================
 
 * CPPTRAJ makes use of the [GNU readline](https://tiswww.case.edu/php/chet/readline/rltop.html) library for the interactive command line.
 
@@ -227,3 +229,5 @@ External libraries bundled with CPPTRAJ
 * The reciprocal part of the PME calculation is handled by the [helPME](https://github.com/andysim/helpme) library by Andy Simmonett.
 
 * Support for reading DTR trajectories uses the VMD DTR plugin.
+
+* CPPTRAJ uses code for the [permuted congruent pseudo-random number generator](https://www.pcg-random.org/index.html) PCG32 by Melissa O'Neill and the [Xoshiro 128++ pseudo-random number generator](http://prng.di.unimi.it) by David Blackman and Sebastino Vigna.
