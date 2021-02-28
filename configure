@@ -397,6 +397,8 @@ TestProgram() {
       cat $COMPERR >&2
       exit 1
     else
+      COMPILE_ERROR_LINE=$COMPILELINE
+      COMPILE_ERROR_MESSAGE=`cat $COMPERR`
       rm $COMPERR $COMPOUT
       return 1
     fi
@@ -466,7 +468,10 @@ EOF
         exit 1
       fi
     else
-      echo "Could not build/link with NetCDF."
+      echo "Failed."
+      ErrMsg "NetCDF build/link failed: $COMPILE_ERROR_LINE"
+      echo "Error message follows:"
+      echo "$COMPILE_ERROR_MESSAGE"
       exit 1
     fi
   fi
