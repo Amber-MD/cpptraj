@@ -451,11 +451,16 @@ EOF
         read yesno
       done
       if [ "$yesno" = 'y' ] ; then
-        CC=$CC CFLAGS=$CFLAGS ./get_netcdf.sh
+        PREFIX=$CPPTRAJHOME CC=$CC CFLAGS=$CFLAGS ./get_netcdf.sh
         if [ $? -ne 0 ] ; then
           echo "Getting NetCDF failed."
           exit 1
         fi
+        LIB_STAT[$LNETCDF]='specified'
+        LIB_HOME[$LNETCDF]=$CPPTRAJHOME
+        LIB_FLAG[$LNETCDF]=$CPPTRAJHOME/lib/${LIB_STTC[$LNETCDF]}
+        LIB_INCL[$LNETCDF]="-I$CPPTRAJHOME/include"
+        TestProgram "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
       else
         echo "No NetCDF. Configure failed."
         exit 1
