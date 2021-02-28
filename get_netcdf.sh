@@ -11,4 +11,7 @@ if [ -z "$WGET" ] ; then
   exit 1
 fi
 
+echo "CC=$CC"
+echo "CFLAGS=$CFLAGS"
 
+exit 1

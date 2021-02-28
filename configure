@@ -446,7 +446,7 @@ EOF
     if [ "${LIB_STAT[$LNETCDF]}" = 'enabled' ] ; then
       echo "No NetCDF found; should CPPTRAJ try to download and compile it? {y|n}: "
       read yesno
-      while [ "$yesno" != 'y' -a "$yesno" ! = 'n' ] ; do
+      while [ "$yesno" != 'y' -a "$yesno" != 'n' ] ; do
         echo "  Please enter 'y' or 'n': "
         read yesno
       done
