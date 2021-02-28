@@ -440,7 +440,31 @@ TestNetcdf() {
 void unused() {int ncid; nc_open("foo.nc", 0, &ncid);}
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
-  TestProgram "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  TestProgram silent "  Checking NetCDF" "$CXX" "$CXXFLAGS ${LIB_INCL[$LNETCDF]}" testp.cpp "${LIB_FLAG[$LNETCDF]}"
+  if [ $? -ne 0 ] ; then
+    # Should we try to get netcdf?
+    if [ "${LIB_STAT[$LNETCDF]}" = 'enabled' ] ; then
+      echo "No NetCDF found; should CPPTRAJ try to download and compile it? {y|n}: "
+      read yesno
+      while [ "$yesno" != 'y' -a "$yesno" ! = 'n' ] ; do
+        echo "  Please enter 'y' or 'n': "
+        read yesno
+      done
+      if [ "$yesno" = 'y' ] ; then
+        CC=$CC CFLAGS=$CFLAGS ./get_netcdf.sh
+        if [ $? -ne 0 ] ; then
+          echo "Getting NetCDF failed."
+          exit 1
+        fi
+      else
+        echo "No NetCDF. Configure failed."
+        exit 1
+      fi
+    else
+      echo "Could not build/link with NetCDF."
+      exit 1
+    fi
+  fi
 }
 
 TestPnetcdf() {
